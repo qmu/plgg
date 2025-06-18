@@ -26,163 +26,76 @@ npm install plgg
 ## Quick Start
 
 ```typescript
-import { chain, Str, Num, Obj, proc } from 'plgg';
+import { chain, Str, Num, Obj, isOk } from 'plgg';
 
-// Define a user validator
-const validateUser = chain(
-  rawInput,
+const validateUser = (input: unknown) => chain(
+  input,
   Obj.cast,
   Obj.prop('name', Str.cast),
-  Obj.prop('age', chain(Num.cast, Num.gt(0))),
-  Obj.optional('email', Str.cast)
+  Obj.prop('age', chain(Num.cast, Num.gt(0)))
 );
 
-// Use with error handling
-const result = await validateUser(userInput);
+const result = validateUser(userInput);
 if (isOk(result)) {
   console.log('Valid user:', result.ok);
-} else {
-  console.error('Validation failed:', result.err.message);
 }
 ```
 
 ## Core Modules
 
 ### Semantics
-
-Foundation types for functional programming:
-
 ```typescript
 import { Result, Option, Brand, Procedural } from 'plgg';
 
-// Result type for error handling
 type Result<T, F> = Ok<T> | Err<F>;
-
-// Option type for nullable values  
 type Option<T> = Some<T> | None;
-
-// Brand type for nominal typing
 type UserId = Brand<string, 'UserId'>;
-
-// Procedural type for async operations
 type Procedural<T, E = PlggError.t> = Promise<Result<T, E>>;
 ```
 
 ### Primitives
-
-Type-safe primitive operations with validation:
-
 ```typescript
 import { Str, Num, Bool, Time } from 'plgg';
 
-// String validation with constraints
-const validateName = chain(
-  Str.cast,
-  Str.lenGt(0),
-  Str.lenLt(50)
-);
-
-// Number validation with bounds
-const validateAge = chain(
-  Num.cast,
-  Num.gt(0),
-  Num.lt(150)
-);
-
-// Boolean validation
+const validateName = chain(Str.cast, Str.lenGt(0), Str.lenLt(50));
+const validateAge = chain(Num.cast, Num.gt(0), Num.lt(150));
 const isActive = Bool.cast(value);
-
-// Date validation
 const validDate = Time.cast('2023-12-01');
 ```
 
 ### Pipes
-
-Function composition and pipeline utilities:
-
 ```typescript
 import { chain, proc, synth, mapOk, mapErr } from 'plgg';
 
-// Chain operations with error short-circuiting
-const validateAndTransform = chain(
-  input,
-  validateInput,
-  transformData,
-  saveToDatabase
-);
-
-// Simple function piping
-const result = proc(
-  data,
-  normalize,
-  validate,
-  transform
-);
-
-// Create reusable pipelines
-const userValidator = synth(
-  Obj.cast,
-  Obj.prop('name', Str.cast),
-  Obj.prop('age', Num.cast)
-);
-
-// Transform success/error values
-const handleResult = chain(
-  operation,
-  mapOk(data => ({ ...data, processed: true })),
-  mapErr(error => new ProcessingError(error.message))
-);
+const pipeline = (input: unknown) => chain(input, validate, transform, save);
+const result = await proc(data, normalize, validate, transform);
+const userValidator = synth(Obj.cast, Obj.prop('name', Str.cast));
 ```
 
 ### Conjunctives
-
-Object validation and manipulation:
-
 ```typescript
 import { Obj } from 'plgg';
 
-// Object with required properties
 const validateUser = chain(
   Obj.cast,
-  Obj.prop('id', Str.cast),
   Obj.prop('name', Str.cast),
   Obj.prop('age', Num.cast)
-);
-
-// Object with optional properties  
-const validateProfile = chain(
-  Obj.cast,
-  Obj.prop('userId', Str.cast),
-  Obj.optional('bio', Str.cast),
-  Obj.optional('avatar', Str.cast)
 );
 ```
 
 ## Error Handling
-
-plgg uses explicit error handling through Result types:
-
 ```typescript
 import { isOk, isErr, PlggError } from 'plgg';
 
 const result = await someOperation();
-
 if (isOk(result)) {
-  // Handle success case
   console.log('Success:', result.ok);
-} else if (isErr(result)) {
-  // Handle error case
-  if (PlggError.is(result.err)) {
-    PlggError.debug(result.err); // Pretty print error chain
-  }
+} else {
   console.error('Error:', result.err.message);
 }
 ```
 
 ## Branded Types
-
-Create semantically distinct types:
-
 ```typescript
 import { Brand, BrandStr } from 'plgg';
 
@@ -190,116 +103,46 @@ type UserId = Brand<string, 'UserId'>;
 type Email = Brand<string, 'Email'>;
 
 const validateUserId = BrandStr.cast<'UserId'>;
-const validateEmail = chain(
-  BrandStr.cast<'Email'>,
-  // Additional email validation...
-);
-
-// TypeScript prevents mixing different branded types
-const userId: UserId = 'user123' as UserId; // ✓
-const email: Email = userId; // ✗ Type error
+const validateEmail = chain(BrandStr.cast<'Email'>, emailValidator);
 ```
 
 ## Advanced Usage
 
-### Custom Validators
-
 ```typescript
-import { Procedural, success, fail, ValidationError } from 'plgg';
-
-const validateEmailFormat = (value: string): Procedural<string> => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(value)
+// Custom validators
+const validateEmail = (value: string): Procedural<string> => 
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
     ? success(value)
-    : fail(new ValidationError('Invalid email format'));
-};
+    : fail(new ValidationError('Invalid email'));
 
-// Use in chains
-const validateUser = chain(
-  Obj.cast,
-  Obj.prop('email', chain(Str.cast, validateEmailFormat))
-);
-```
+// Error transformation
+const handleError = capture((error: DatabaseError) => 
+  new UserFacingError('Unable to save data'));
 
-### Error Transformation
-
-```typescript
-import { capture, mapProcErr } from 'plgg';
-
-// Transform error types
-const handleDatabaseError = capture((error: DatabaseError) => 
-  new UserFacingError('Unable to save user data')
-);
-
-// Map error values
-const withRetry = mapProcErr((error: NetworkError) => 
-  retryOperation(3)
-);
-```
-
-### Complex Pipelines
-
-```typescript
-// Create a complete user registration pipeline
+// Complex pipelines
 const registerUser = synth(
-  // Validate input
   Obj.cast,
-  Obj.prop('email', chain(Str.cast, validateEmailFormat)),
-  Obj.prop('password', chain(Str.cast, validatePassword)),
-  Obj.prop('name', chain(Str.cast, Str.lenGt(0))),
-  
-  // Transform data
+  Obj.prop('email', chain(Str.cast, validateEmail)),
+  Obj.prop('password', validatePassword),
   hashPassword,
-  generateUserId,
-  
-  // Save to database
-  saveUser,
-  
-  // Send welcome email
-  sendWelcomeEmail
+  saveUser
 );
-
-const result = await registerUser(userInput);
 ```
 
 ## API Reference
 
-### Semantics
-- `Result<T, F>` - Success/error union type
-- `Option<T>` - Optional value type
-- `Brand<T, U>` - Nominal typing
-- `Procedural<T, E>` - Async Result wrapper
-- `MaybePromise<T>` - Sync/async union type
-
-### Primitives
-- `Bool`, `Str`, `Num`, `Time` - Basic primitive types
-- `BrandBool`, `BrandStr`, `BrandNum` - Branded variants
-- `Primitive` - Union of all primitive types
-
-### Pipes
-- `chain()` - Error-aware function chaining
-- `proc()` - Simple function piping
-- `synth()` - Reusable pipeline creation
-- `mapOk()`, `mapErr()` - Result value mapping
-- `mapProcOk()`, `mapProcErr()` - Procedural value mapping
-- `capture()` - Error type transformation
-
-### Conjunctives
-- `Obj.cast()` - Object validation
-- `Obj.prop()` - Required property validation
-- `Obj.optional()` - Optional property validation
+**Semantics:** `Result<T, F>`, `Option<T>`, `Brand<T, U>`, `Procedural<T, E>`  
+**Primitives:** `Bool`, `Str`, `Num`, `Time` + branded variants  
+**Pipes:** `chain()`, `proc()`, `synth()`, `mapOk()`, `mapErr()`, `capture()`  
+**Conjunctives:** `Obj.cast()`, `Obj.prop()`, `Obj.optional()`
 
 ## TypeScript Configuration
 
-plgg requires TypeScript with strict mode enabled. Add path mapping to your `tsconfig.json`:
-
+Requires strict mode:
 ```json
 {
   "compilerOptions": {
-    "strict": true,
-    "paths": {
-      "@plgg/*": ["./node_modules/plgg/dist/*"]
-    }
+    "strict": true
   }
 }
 ```
