@@ -9,6 +9,11 @@ export default defineConfig({
       plgg: path.resolve(__dirname, "./src"),
     },
   },
+  test: {
+    coverage: {
+      all: true,
+    },
+  },
   build: {
     outDir: "dist",
     lib: {

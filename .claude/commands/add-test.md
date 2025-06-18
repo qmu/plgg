@@ -3,4 +3,4 @@
 - User only `test` (not `describe`, `it`, etc.) in the spec.ts file.
 - Use `expect` and `assert` for assertions.
 - No relative imports, use absolute imports.
-- Make sure it passes with `npm test`.
+- Make sure `npm run coverage` passes and 100% for both C1 and C2, but least tests.
