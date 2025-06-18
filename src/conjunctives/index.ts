@@ -1,1 +1,1 @@
-export * as Obj from "@plgg/conjunctives/Obj";
+export * as Obj from "plgg/conjunctives/Obj";

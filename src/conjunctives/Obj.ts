@@ -11,7 +11,7 @@ import {
   none,
   Primitive,
   success,
-} from "@plgg/index";
+} from "plgg/index";
 
 /**
  * Object type with primitive values.

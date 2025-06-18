@@ -1,4 +1,4 @@
-import { Procedural, success, fail, ValidationError, Str } from "@plgg/index";
+import { Procedural, success, fail, ValidationError, Str } from "plgg/index";
 
 /**
  * Date type.

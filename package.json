@@ -4,7 +4,9 @@
   "description": "Domain semantics made functional",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsc --noEmit && vitest --run",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
@@ -15,5 +17,11 @@
   "bugs": {
     "url": "https://github.com/qmu/plgg/issues"
   },
-  "homepage": "https://github.com/qmu/plgg#readme"
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
 }

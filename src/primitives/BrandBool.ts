@@ -5,7 +5,7 @@ import {
   ValidationError,
   Brand,
   Bool,
-} from "@plgg/index";
+} from "plgg/index";
 
 /**
  * Branded boolean type.

@@ -1,4 +1,4 @@
-import { isErr, isResult, ok, Procedural } from "@plgg/index";
+import { isErr, isResult, ok, Procedural } from "plgg/index";
 
 /**
  * Function type for chain operations.

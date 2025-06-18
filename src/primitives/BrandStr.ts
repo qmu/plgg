@@ -5,7 +5,7 @@ import {
   success,
   fail,
   Brand,
-} from "@plgg/index";
+} from "plgg/index";
 
 /**
  * Branded string type.
