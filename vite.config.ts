@@ -6,7 +6,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   resolve: {
     alias: {
-      "plgg": path.resolve(__dirname, "./src"),
+      plgg: path.resolve(__dirname, "./src"),
     },
   },
   build: {
