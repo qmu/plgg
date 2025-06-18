@@ -1,0 +1,5 @@
+- Add spec.ts for `$ARGUMENT`
+- When the comment above is "Add spec.ts for ``", the user did not provide a specific argument, so you ask the user to provide one.
+- User only `test` (not `describe`, `it`, etc.) in the spec.ts file.
+- Use `expect` and `assert` for assertions.
+- Make sure it passes with `npm test`.
