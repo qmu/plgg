@@ -1,4 +1,4 @@
-import { MaybePromise } from "plgg/lib/semantics/MaybePromise";
+import { MaybePromise } from "plgg/lib";
 
 /* prettier-ignore */ export function synth<A, B>(ab: (a: A) => MaybePromise<B>): (a: A) => MaybePromise<B>;
 /* prettier-ignore */ export function synth<A, B, C>(  ab: (a: A) => MaybePromise<B>,  bc: (b: B) => MaybePromise<C>,): (a: A) => MaybePromise<C>;

@@ -1,4 +1,4 @@
-import { MaybePromise } from "plgg/lib/semantics/MaybePromise";
+import { MaybePromise } from "plgg/lib";
 
 /*
  * Type-safe function composition with overloads for inference.
