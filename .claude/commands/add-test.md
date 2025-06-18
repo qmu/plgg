@@ -2,4 +2,5 @@
 - When the comment above is "Add spec.ts for ``", the user did not provide a specific argument, so you ask the user to provide one.
 - User only `test` (not `describe`, `it`, etc.) in the spec.ts file.
 - Use `expect` and `assert` for assertions.
+- No relative imports, use absolute imports.
 - Make sure it passes with `npm test`.

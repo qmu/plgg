@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { ok, err, isOk, isErr, isResult, Result } from "./Result";
+import { ok, err, isOk, isErr, isResult, Result } from "plgg/lib";
 
 test("ok creates Ok result", () => {
   const result = ok(42);
@@ -22,7 +22,7 @@ test("err creates Err result", () => {
 test("isOk identifies Ok results", () => {
   const okResult = ok("success");
   const errResult = err("failure");
-  
+
   assert(isOk(okResult));
   assert(!isOk(errResult));
 });
@@ -30,7 +30,7 @@ test("isOk identifies Ok results", () => {
 test("isErr identifies Err results", () => {
   const okResult = ok("success");
   const errResult = err("failure");
-  
+
   assert(!isErr(okResult));
   assert(isErr(errResult));
 });
@@ -41,7 +41,7 @@ test("isResult identifies Result types", () => {
   const notResult = { random: "object" };
   const nullValue = null;
   const undefinedValue = undefined;
-  
+
   assert(isResult(okResult));
   assert(isResult(errResult));
   assert(!isResult(notResult));
@@ -52,15 +52,16 @@ test("isResult identifies Result types", () => {
 test("Result can handle different types", () => {
   const stringResult: Result<string, number> = ok("hello");
   const numberErrorResult: Result<string, number> = err(404);
-  
+
   assert(isOk(stringResult));
   assert(isErr(numberErrorResult));
-  
+
   if (isOk(stringResult)) {
     expect(stringResult.ok).toBe("hello");
   }
-  
+
   if (isErr(numberErrorResult)) {
     expect(numberErrorResult.err).toBe(404);
   }
 });
+
