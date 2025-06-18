@@ -1,0 +1,4 @@
+- Check unstaged changes
+- Group related changes together
+- Git add/commit one category at a time
+- Continue until all changes are committed
