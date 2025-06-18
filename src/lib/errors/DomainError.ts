@@ -1,6 +1,6 @@
-import { isSome, BaseError, ValidationError } from "plgg/lib/index";
+import { isSome, ValidationError } from "plgg/lib";
 
-export type t = BaseError | ValidationError;
+export type t = ValidationError;
 
 /*
  * Color helper functions

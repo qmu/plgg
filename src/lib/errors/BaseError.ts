@@ -1,4 +1,4 @@
-import { Option, none, some, DomainError } from "plgg/lib/index";
+import { Option, none, some } from "plgg/lib";
 
 /**
  * Base Error
@@ -22,12 +22,12 @@ export class BaseError extends Error {
   /**
    * Parent
    */
-  public parent: Option<DomainError.t | Error> = none();
+  public parent: Option<BaseError | Error> = none();
 
   /**
    * Constructor
    */
-  constructor(detail: string, parent?: DomainError.t | Error) {
+  constructor(detail: string, parent?: BaseError | Error) {
     super(detail);
     this.parent = parent ? some(parent) : none();
   }
