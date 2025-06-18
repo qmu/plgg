@@ -1,4 +1,4 @@
-import { DomainError, Result, ok, err } from "plgg/index";
+import { DomainError, Result, ok, err } from "plgg/lib/index";
 
 /**
  * Async Result type for Plgg operations.

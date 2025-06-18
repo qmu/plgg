@@ -5,7 +5,7 @@ import {
   fail,
   ValidationError,
   Num,
-} from "plgg/index";
+} from "plgg/lib/index";
 
 /**
  * Branded number type.

@@ -6,7 +6,7 @@ import {
   MaybePromise,
   Procedural,
   DomainError,
-} from "plgg/index";
+} from "plgg/lib/index";
 
 /**
  * Maps Result success value with function.

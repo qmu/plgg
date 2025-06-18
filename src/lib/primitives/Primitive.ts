@@ -6,7 +6,7 @@ import {
   Bool,
   BrandBool,
   Time,
-} from "plgg/index";
+} from "plgg/lib/index";
 
 /**
  * Union of all primitive types.

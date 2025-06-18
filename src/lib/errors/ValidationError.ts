@@ -1,4 +1,4 @@
-import { BaseError } from "plgg/index";
+import { BaseError } from "plgg/lib/index";
 
 export class ValidationError extends BaseError {
   /**

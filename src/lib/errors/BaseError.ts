@@ -1,4 +1,4 @@
-import { Option, none, some, DomainError } from "plgg/index";
+import { Option, none, some, DomainError } from "plgg/lib/index";
 
 /**
  * Base Error

@@ -1,4 +1,4 @@
-import { Procedural, success, fail, ValidationError } from "plgg/index";
+import { Procedural, success, fail, ValidationError } from "plgg/lib/index";
 
 /**
  * String primitive type.

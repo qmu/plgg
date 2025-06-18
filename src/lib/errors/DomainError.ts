@@ -1,4 +1,4 @@
-import { isSome, BaseError, ValidationError } from "plgg/index";
+import { isSome, BaseError, ValidationError } from "plgg/lib/index";
 
 export type t = BaseError | ValidationError;
 

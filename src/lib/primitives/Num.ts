@@ -5,7 +5,7 @@ import {
   success,
   fail,
   ValidationError,
-} from "plgg/index";
+} from "plgg/lib/index";
 
 /**
  * Number primitive type.
