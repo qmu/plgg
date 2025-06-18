@@ -1,6 +1,6 @@
 {
   "name": "plgg",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Domain semantics made functional",
   "main": "index.js",
   "scripts": {
