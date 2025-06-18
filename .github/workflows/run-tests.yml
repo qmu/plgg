@@ -33,6 +33,23 @@ jobs:
               repo: context.repo.repo,
               labels: ["ci-testing"]
             })
-      - name: Build and run tests
-        run: |
-          echo "Build and run tests here"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run TypeScript compilation check
+        run: npx tsc --noEmit
+        
+      - name: Run tests
+        run: npm test
+        
+      - name: Build library
+        run: npm run build
+        
+      - name: Run tests with coverage
+        run: npm run coverage
