@@ -1,10 +1,17 @@
 {
   "name": "plgg",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "Domain semantics made functional",
-  "main": "index.js",
+  "main": "dist/plgg.umd.js",
+  "module": "dist/plgg.mjs",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "vite build",
+    "test": "tsc --noEmit && vitest --run",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "vitest",
+    "coverage": "vitest --run --coverage",
+    "coverage:watch": "vitest --coverage"
   },
   "repository": {
     "type": "git",
@@ -15,5 +22,12 @@
   "bugs": {
     "url": "https://github.com/qmu/plgg/issues"
   },
-  "homepage": "https://github.com/qmu/plgg#readme"
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
 }
