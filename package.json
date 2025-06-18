@@ -2,8 +2,11 @@
   "name": "plgg",
   "version": "0.0.1",
   "description": "Domain semantics made functional",
-  "main": "index.js",
+  "main": "dist/plgg.umd.js",
+  "module": "dist/plgg.mjs",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "build": "vite build",
     "test": "tsc --noEmit && vitest --run",
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "vitest"
