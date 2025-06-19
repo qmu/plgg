@@ -1,9 +1,4 @@
-import { isErr, isResult, ok, Procedural } from "plgg/lib/index";
-
-/**
- * Function type for chain operations.
- */
-export type ChainFn = (a: unknown) => Procedural<unknown>;
+import { isOk, ok, Procedural } from "plgg/lib/index";
 
 /*
  * Result-aware function chaining with error short-circuiting.
@@ -39,12 +34,13 @@ export function chain(
   return fns.reduce(
     async (acc: Procedural<unknown>, fn: ChainFn) => {
       const current = await acc;
-      if (isErr(current)) {
-        return current;
-      }
-      const currentValue = isResult(current) ? current.ok : current;
-      return await fn(currentValue);
+      return isOk(current) ? fn(current.ok) : current;
     },
     Promise.resolve(ok(value)),
   );
 }
+
+/**
+ * Function type for chain operations.
+ */
+export type ChainFn = (a: unknown) => Procedural<unknown>;
