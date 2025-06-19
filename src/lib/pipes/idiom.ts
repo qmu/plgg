@@ -6,7 +6,8 @@ import {
   MaybePromise,
   Procedural,
   DomainError,
-} from "plgg/lib/index";
+  success,
+} from "plgg/lib";
 
 /**
  * Maps Result success value with function.
@@ -48,8 +49,29 @@ export const mapProcErr =
  * Transforms Procedural error into new error type.
  */
 export const capture =
-  <T, E1 extends DomainError.t, E2 extends DomainError.t>(f: (error: E1) => E2) =>
+  <T, E1 extends DomainError.t, E2 extends DomainError.t>(
+    f: (error: E1) => E2,
+  ) =>
   async (plgg: Procedural<T, E1>): Procedural<T, E2> => {
     const result = await plgg;
     return isErr(result) ? fail(f(result.err)) : result;
   };
+
+/**
+ * Lifts a synchronous function into a Procedural context.
+ */
+export const lift =
+  <T, U>(f: (a: T) => U) =>
+  (a: T): Procedural<U> =>
+    success(f(a));
+
+/**
+ * Handles a Procedural value, executing a function on error.
+ */
+export const handle = async <T, E extends DomainError.t>(
+  value: Procedural<T, E>,
+  onError: (p: E) => E,
+): Procedural<T> => {
+  const result = await value;
+  return isErr(result) ? fail(onError(result.err)) : value;
+};
