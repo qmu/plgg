@@ -1,2 +1,1 @@
-- sh/tsc-plgg.sh to check compilation errors first, fix them if any
-- sh/test-plgg.sh to run tests, fix errors if any
+- `sh/test-plgg.sh` to check compilation errors and run unit tests, fix errors if any
