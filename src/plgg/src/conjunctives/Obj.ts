@@ -1,7 +1,6 @@
 import {
   Procedural,
   fail,
-  isResult,
   ok,
   err,
   ValidationError,
@@ -39,16 +38,13 @@ export const prop =
   <T extends string, U>(key: T, predicate: (a: unknown) => Procedural<U>) =>
   async <V extends object>(obj: V): Procedural<V & Record<T, U>> =>
     hasField(obj, key)
-      ? step(obj[key], predicate, (v) =>
-          isResult(v)
-            ? step(
-                v,
-                mapResult(
-                  (okValue) => ok({ ...obj, [key]: okValue }),
-                  (errValue) => err(errValue),
-                ),
-              )
-            : ok({ ...obj, [key]: v }),
+      ? step(
+          obj[key],
+          predicate,
+          mapResult(
+            (okValue) => ok({ ...obj, [key]: okValue }),
+            (errValue) => err(errValue),
+          ),
         )
       : err(new ValidationError(`Value does not have property '${key}'`));
 
@@ -59,16 +55,13 @@ export const optional =
   <T extends string, U>(key: T, predicate: (a: unknown) => Procedural<U>) =>
   async <V extends object>(obj: V): Procedural<V & Record<T, Option<U>>> =>
     hasField(obj, key)
-      ? step(obj[key], predicate, (v) =>
-          isResult(v)
-            ? step(
-                v,
-                mapResult(
-                  (okValue) => ok({ ...obj, [key]: some(okValue) }),
-                  (errValue) => err(errValue),
-                ),
-              )
-            : ok({ ...obj, [key]: some(v) }),
+      ? step(
+          obj[key],
+          predicate,
+          mapResult(
+            (okValue) => ok({ ...obj, [key]: some(okValue) }),
+            (errValue) => err(errValue),
+          ),
         )
       : ok({ ...obj, [key]: none<U>() } as V & Record<T, Option<U>>);
 
