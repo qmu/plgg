@@ -19,10 +19,16 @@ import {
 export type t = Record<string, Primitive.t | Option<Primitive.t>>;
 
 /**
+ * Type guard for object.
+ */
+export const is = (value: unknown): value is t =>
+  typeof value === "object" && value !== null;
+
+/**
  * Validates and casts to object with primitives.
  */
 export const cast = (value: unknown): Procedural<t> =>
-  typeof value === "object" && value !== null
+  is(value)
     ? (() => {
         const result: Record<string, Primitive.t> = {};
         for (const [key, val] of Object.entries(value)) {
