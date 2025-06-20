@@ -1,9 +1,9 @@
 {
-  "name": "plgg example",
+  "name": "plgg",
   "version": "0.0.2",
-  "description": "Example of using plgg",
-  "main": "dist/example.umd.js",
-  "module": "dist/example.mjs",
+  "description": "Pipeline utilities",
+  "main": "dist/plgg.umd.js",
+  "module": "dist/plgg.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "vite build",
@@ -23,14 +23,12 @@
     "url": "https://github.com/qmu/plgg/issues"
   },
   "homepage": "https://github.com/qmu/plgg#readme",
-  "dependencies": {
-    "plgg": "file:../"
-  },
   "devDependencies": {
     "@types/node": "^24.0.3",
     "@vitest/coverage-v8": "^3.2.4",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
   }
 }
