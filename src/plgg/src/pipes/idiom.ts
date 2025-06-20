@@ -25,6 +25,18 @@ export const mapErr =
   async (result: Result<T, F>): Promise<Result<T, U>> =>
     isOk(result) ? result : await fn(result.err);
 
+/**
+ * Pattern matches on a Result, applying the appropriate function based on the variant.
+ * This enables handling both success and error cases in a type-safe way.
+ */
+export const mapResult =
+  <T, U, F = Error>(
+    onOk: (value: T) => MaybePromise<Result<U, F>>,
+    onErr: (error: F) => MaybePromise<Result<U, F>>,
+  ) =>
+  async (result: Result<T, F>): Promise<Result<U, F>> =>
+    isOk(result) ? await onOk(result.ok) : await onErr(result.err);
+
 /*
  * Maps Procedural success value with function.
  */

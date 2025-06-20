@@ -1,7 +1,6 @@
 import {
   Procedural,
   fail,
-  isErr,
   isResult,
   ok,
   err,
@@ -9,14 +8,15 @@ import {
   Option,
   some,
   none,
-  Primitive,
   success,
+  step,
+  mapResult,
 } from "plgg/index";
 
 /**
  * Object type with primitive values.
  */
-export type t = Record<string, Primitive.t | Option<Primitive.t>>;
+export type t = Record<string, unknown>;
 
 /**
  * Type guard for object.
@@ -29,19 +29,7 @@ export const is = (value: unknown): value is t =>
  */
 export const cast = (value: unknown): Procedural<t> =>
   is(value)
-    ? (() => {
-        const result: Record<string, Primitive.t> = {};
-        for (const [key, val] of Object.entries(value)) {
-          if (Primitive.is(val)) {
-            result[key] = val;
-          } else {
-            return fail(
-              new ValidationError(`Value at key '${key}' is not a primitive`),
-            );
-          }
-        }
-        return success(result);
-      })()
+    ? success(value)
     : fail(new ValidationError("Value is not an object"));
 
 /**
@@ -49,46 +37,40 @@ export const cast = (value: unknown): Procedural<t> =>
  */
 export const prop =
   <T extends string, U>(key: T, predicate: (a: unknown) => Procedural<U>) =>
-  async <V extends object>(value: V): Procedural<V & Record<T, U>> => {
-    if (!hasField(value, key)) {
-      return err(new ValidationError(`Value does not have property '${key}'`));
-    }
-
-    const validatedProperty = await predicate(value[key]);
-
-    if (isResult(validatedProperty)) {
-      if (isErr(validatedProperty)) {
-        return validatedProperty;
-      }
-      return ok({ ...value, [key]: validatedProperty.ok });
-    }
-
-    return ok({ ...value, [key]: validatedProperty });
-  };
+  async <V extends object>(obj: V): Procedural<V & Record<T, U>> =>
+    hasField(obj, key)
+      ? step(obj[key], predicate, (v) =>
+          isResult(v)
+            ? step(
+                v,
+                mapResult(
+                  (okValue) => ok({ ...obj, [key]: okValue }),
+                  (errValue) => err(errValue),
+                ),
+              )
+            : ok({ ...obj, [key]: v }),
+        )
+      : err(new ValidationError(`Value does not have property '${key}'`));
 
 /**
  * Validates optional object property with predicate.
  */
 export const optional =
   <T extends string, U>(key: T, predicate: (a: unknown) => Procedural<U>) =>
-  async <V extends object>(value: V): Procedural<V & Record<T, Option<U>>> => {
-    if (!hasField(value, key)) {
-      return ok({ ...value, [key]: none<U>() } as V & Record<T, Option<U>>);
-    }
-
-    const validatedProperty = await predicate(value[key]);
-
-    if (isResult(validatedProperty)) {
-      if (isErr(validatedProperty)) {
-        return validatedProperty;
-      }
-      return ok({ ...value, [key]: some(validatedProperty.ok) } as V &
-        Record<T, Option<U>>);
-    }
-
-    return ok({ ...value, [key]: some(validatedProperty) } as V &
-      Record<T, Option<U>>);
-  };
+  async <V extends object>(obj: V): Procedural<V & Record<T, Option<U>>> =>
+    hasField(obj, key)
+      ? step(obj[key], predicate, (v) =>
+          isResult(v)
+            ? step(
+                v,
+                mapResult(
+                  (okValue) => ok({ ...obj, [key]: some(okValue) }),
+                  (errValue) => err(errValue),
+                ),
+              )
+            : ok({ ...obj, [key]: some(v) }),
+        )
+      : ok({ ...obj, [key]: none<U>() } as V & Record<T, Option<U>>);
 
 /**
  * Type guard for object field existence.
