@@ -1,4 +1,4 @@
-import { isSome, ValidationError } from "plgg/index";
+import { isSome, ValidationError, Obj } from "plgg/index";
 
 export type t = ValidationError;
 
@@ -12,10 +12,7 @@ const gray = (text: string): string => `\x1b[90m${text}\x1b[0m`;
  * Checks if a value is a DomainError.
  */
 export const is = (value: unknown): value is t =>
-  typeof value === "object" &&
-  value !== null &&
-  "__" in value &&
-  value.__ === "DomainError";
+  Obj.is(value) && "__" in value && value.__ === "DomainError";
 
 /*
  * Pretty prints a DomainError with nested error information
@@ -28,9 +25,7 @@ export const debug = (error: t): void => {
         : [err]
       : [err];
   collectErrors(error).forEach((err, index) => {
-    const loc = err.stack
-      ? err.stack.split("\n")[1]?.trim().replace(/^at /, "")
-      : "";
+    const loc = err.stack?.split("\n")[1]?.trim().replace(/^at /, "") || "";
     const output =
       index === 0
         ? `${red(`[${err.constructor.name}]`)}: ${err.message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`
