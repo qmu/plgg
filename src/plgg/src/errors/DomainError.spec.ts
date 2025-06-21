@@ -71,6 +71,22 @@ test("DomainError.debug with nested errors", () => {
   consoleSpy.mockRestore();
 });
 
+test("DomainError.debug with regular Error", () => {
+  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  
+  const error = new Error("Regular error");
+  DomainError.debug(error as any);
+  
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.stringContaining("[Error]")
+  );
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.stringContaining("Regular error")
+  );
+  
+  consoleSpy.mockRestore();
+});
+
 test("DomainError type alias", () => {
   const error: DomainError.t = new ValidationError("Test error");
   expect(error instanceof ValidationError).toBe(true);
