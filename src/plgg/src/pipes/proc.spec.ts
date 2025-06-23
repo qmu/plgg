@@ -22,7 +22,7 @@ test("proc with multiple functions", async () => {
 
 test("proc with error in chain", async () => {
   const double = (x: number) => x * 2;
-  const failFn = (_: number) => fail(new ValidationError("Test error"));
+  const failFn = (_: number) => fail<number>(new ValidationError("Test error"));
   const triple = (x: number) => x * 3;
 
   const result = await proc(5, lift(double), failFn, lift(triple));
