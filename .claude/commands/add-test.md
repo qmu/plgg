@@ -3,4 +3,5 @@
 - User only `test` (not `describe`, `it`, etc.) in the spec.ts file.
 - Use `expect` and `assert` for assertions.
 - No relative imports, use absolute imports.
-- Make sure `npm run test` passes and `npm run coverage` 100% for both C1 and C2 by least tests.
+- `sh/test-plgg.sh` to check compilation errors and run unit tests, fix errors if any
+- `sh/coverage-plgg.sh` to ensure 100% for both C1 and C2 by least tests.
