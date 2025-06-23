@@ -1,6 +1,6 @@
 {
   "name": "plgg",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Pipeline utilities",
   "main": "dist/plgg.umd.js",
   "module": "dist/plgg.mjs",
