@@ -3,5 +3,5 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # --------- (End of Boilerplate) ---------
 
 echo "=== Running npm runt test for plgg package ==="
-cd $REPO_ROOT/src/plgg && npm run coverage
+cd $REPO_ROOT/src/plgg && npm run test
 echo "\n=== All packages have been installed successfully ==="
