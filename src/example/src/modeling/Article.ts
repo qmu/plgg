@@ -12,7 +12,7 @@ import {
 
 export namespace Id {
   export type t = BrandStr.t<"ArticleId">;
-  export const cast = async (v: unknown): Procedural<t> =>
+  export const cast = (v: unknown): Procedural<t> =>
     handle(
       proc(v, BrandStr.cast<"ArticleId">),
       (e) => new ValidationError("ArticleId validation failed", e),
