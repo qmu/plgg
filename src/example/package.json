@@ -1,0 +1,36 @@
+{
+  "name": "plgg example",
+  "version": "0.0.2",
+  "description": "Example of using plgg",
+  "main": "dist/example.umd.js",
+  "module": "dist/example.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "vite build",
+    "test": "tsc --noEmit && vitest --run",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "vitest",
+    "coverage": "vitest --run --coverage",
+    "coverage:watch": "vitest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "@vitest/coverage-v8": "^3.2.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,1 +1,1 @@
-Fix error by running `npm run test`
+- `sh/test-plgg.sh` to check compilation errors and run unit tests, fix errors if any

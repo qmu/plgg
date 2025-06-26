@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-**Core Commands:**
+**Core Commands (run from `src/plgg/`):**
 - `npm run build` - Build the library using Vite
 - `npm test` - Run TypeScript compilation check + Vitest tests  
 - `npm run test:watch` - Run tests in watch mode
@@ -40,7 +40,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Module Structure
 
 ```
-src/lib/
+src/plgg/src/lib/
 ├── monadics/     # Core types: Result, Option, Brand, Procedural
 ├── primitives/   # Validated types: Str, Num, Bool, Time + Branded variants
 ├── pipes/        # Composition: chain, proc, synth, idiom
@@ -66,7 +66,7 @@ chain(Obj.cast, Obj.prop('name', Str.cast), Obj.prop('age', chain(Num.cast, Num.
 ### TypeScript Configuration
 
 - **Strict mode required** - The library relies on strict TypeScript settings
-- **Path mapping:** `"plgg*": ["./src/*"]` for internal imports
+- **Path mapping:** `"plgg*": ["./src/*"]` for internal imports (within src/plgg/)
 - **Module system:** Uses NodeNext for proper ESM/CJS handling
 - **Build target:** ES2021 with declaration files
 
