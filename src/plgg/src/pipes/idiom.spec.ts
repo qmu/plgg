@@ -138,3 +138,49 @@ test("handle should pass through success", async () => {
   }
   expect(result.ok).toBe(10);
 });
+
+test("tap should execute side effect on success and return original result", () => {
+  let sideEffectValue: number | undefined;
+  const tapFn = (value: number) => { sideEffectValue = value * 10; };
+  
+  const result = idiom.tap(tapFn)(ok(5));
+  
+  assert(isOk(result));
+  expect(result.ok).toBe(5);
+  expect(sideEffectValue).toBe(50);
+});
+
+test("tap should not execute side effect on error and return original error", () => {
+  let sideEffectExecuted = false;
+  const tapFn = (_: number) => { sideEffectExecuted = true; };
+  const error = new ValidationError("test error");
+  
+  const result = idiom.tap(tapFn)(err(error));
+  
+  assert(isErr(result));
+  expect(result.err).toBe(error);
+  expect(sideEffectExecuted).toBe(false);
+});
+
+test("tapProc should execute side effect on success and return original result", async () => {
+  let sideEffectValue: number | undefined;
+  const tapFn = (value: number) => { sideEffectValue = value * 10; };
+  
+  const result = await idiom.tapProc(tapFn)(success(5));
+  
+  assert(isOk(result));
+  expect(result.ok).toBe(5);
+  expect(sideEffectValue).toBe(50);
+});
+
+test("tapProc should not execute side effect on error and return original error", async () => {
+  let sideEffectExecuted = false;
+  const tapFn = (_: number) => { sideEffectExecuted = true; };
+  const error = new ValidationError("test error");
+  
+  const result = await idiom.tapProc(tapFn)(fail(error));
+  
+  assert(isErr(result));
+  expect(result.err).toBe(error);
+  expect(sideEffectExecuted).toBe(false);
+});

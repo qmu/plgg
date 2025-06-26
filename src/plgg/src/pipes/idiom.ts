@@ -87,3 +87,30 @@ export const handle = async <T, E extends DomainError.t>(
   const result = await value;
   return isErr(result) ? fail(onError(result.err)) : value;
 };
+
+/**
+ * Executes a side effect function on the success value of a Result without changing the Result.
+ * Useful for logging, debugging, or other side effects.
+ */
+export const tap =
+  <T, F = Error>(fn: (value: T) => void) =>
+  (result: Result<T, F>): Result<T, F> => {
+    if (isOk(result)) {
+      fn(result.ok);
+    }
+    return result;
+  };
+
+/**
+ * Executes a side effect function on the success value of a Procedural without changing the Procedural.
+ * Useful for logging, debugging, or other side effects.
+ */
+export const tapProc =
+  <T, F = DomainError.t>(fn: (value: T) => void) =>
+  async (plgg: Procedural<T, F>): Procedural<T, F> => {
+    const result = await plgg;
+    if (isOk(result)) {
+      fn(result.ok);
+    }
+    return result;
+  };
