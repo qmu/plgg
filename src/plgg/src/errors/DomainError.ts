@@ -1,6 +1,6 @@
-import { isSome, ValidationError, Obj } from "plgg/index";
+import { isSome, ValidationError, Exception, Obj } from "plgg/index";
 
-export type t = ValidationError;
+export type t = ValidationError | Exception;
 
 /*
  * Color helper functions
