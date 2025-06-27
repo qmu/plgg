@@ -25,9 +25,7 @@ export const is = (value: unknown): value is t =>
  * Validates and casts to object with primitives.
  */
 export const cast = (value: unknown): Result<t, ValidationError> =>
-  is(value)
-    ? ok(value)
-    : err(new ValidationError({ message: "Value is not an object" }));
+  is(value) ? ok(value) : err(new ValidationError({ message: "Not object" }));
 
 /**
  * Validates object property with predicate.
@@ -49,7 +47,7 @@ export const prop =
         )
       : err(
           new ValidationError({
-            message: `Value does not have property '${key}'`,
+            message: `Property '${key}' not found`,
           }),
         );
 
