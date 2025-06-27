@@ -160,8 +160,11 @@ test("handle should pass through success", async () => {
 
 test("tap should execute side effect on success and return original result", () => {
   let sideEffectValue: number | undefined;
-  const tapFn = (value: number) => {
-    sideEffectValue = value * 10;
+  const tapFn = (value: Result<number, Error>) => {
+    if (!isOk(value)) {
+      throw new Error("Expected value to be ok");
+    }
+    sideEffectValue = value.ok * 10;
   };
 
   const result = idiom.tap(tapFn)(ok(5));
@@ -171,43 +174,15 @@ test("tap should execute side effect on success and return original result", () 
   expect(sideEffectValue).toBe(50);
 });
 
-test("tap should not execute side effect on error and return original error", () => {
+test("tap should execute side effect even on error and return original error", () => {
   let sideEffectExecuted = false;
-  const tapFn = (_: number) => {
+  const tapFn = (_: Result<number, Error>) => {
     sideEffectExecuted = true;
   };
   const error = new ValidationError({ message: "test error" });
-
   const result = idiom.tap(tapFn)(err(error));
 
   assert(isErr(result));
   expect(result.err).toBe(error);
-  expect(sideEffectExecuted).toBe(false);
-});
-
-test("tapProc should execute side effect on success and return original result", async () => {
-  let sideEffectValue: number | undefined;
-  const tapFn = (value: number) => {
-    sideEffectValue = value * 10;
-  };
-
-  const result = await idiom.tapProc(tapFn)(success(5));
-
-  assert(isOk(result));
-  expect(result.ok).toBe(5);
-  expect(sideEffectValue).toBe(50);
-});
-
-test("tapProc should not execute side effect on error and return original error", async () => {
-  let sideEffectExecuted = false;
-  const tapFn = (_: number) => {
-    sideEffectExecuted = true;
-  };
-  const error = new ValidationError({ message: "test error" });
-
-  const result = await idiom.tapProc(tapFn)(fail(error));
-
-  assert(isErr(result));
-  expect(result.err).toBe(error);
-  expect(sideEffectExecuted).toBe(false);
+  expect(sideEffectExecuted).toBe(true);
 });

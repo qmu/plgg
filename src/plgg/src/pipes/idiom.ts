@@ -10,6 +10,22 @@ import {
 } from "plgg/index";
 
 /**
+ * Maps Result success value with function.
+ */
+export const mapOk =
+  <T, U, F = Error>(fn: (value: T) => Result<U, F>) =>
+  (result: Result<T, F>): Result<U, F> =>
+    isOk(result) ? fn(result.ok) : result;
+
+/**
+ * Maps Result error value with function.
+ */
+export const mapErr =
+  <T, U, F = Error>(fn: (error: F) => Result<T, U>) =>
+  (result: Result<T, F>): Result<T, U> =>
+    isOk(result) ? result : fn(result.err);
+
+/**
  * Pattern matches on a Result, applying the appropriate function based on the variant.
  * This enables handling both success and error cases in a type-safe way.
  */
@@ -105,11 +121,9 @@ export const handle = async <T, E extends DomainError.t>(
  * Useful for logging, debugging, or other side effects.
  */
 export const tap =
-  <T, F = Error>(fn: (value: T) => void) =>
+  <T, F = Error>(fn: (value: Result<T, F>) => void) =>
   (result: Result<T, F>): Result<T, F> => {
-    if (isOk(result)) {
-      fn(result.ok);
-    }
+    fn(result);
     return result;
   };
 
