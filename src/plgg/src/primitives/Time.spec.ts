@@ -15,52 +15,53 @@ test("Time.is type guard", () => {
 
 test("Time.cast validation with Date objects", async () => {
   const date = new Date("2023-01-01");
-  const validResult = await Time.cast(date);
+  const validResult = Time.cast(date);
   assert(isOk(validResult));
   expect(validResult.ok).toBe(date);
 
   const currentDate = new Date();
-  const currentResult = await Time.cast(currentDate);
+  const currentResult = Time.cast(currentDate);
   assert(isOk(currentResult));
   expect(currentResult.ok).toBe(currentDate);
 });
 
 test("Time.cast validation with date strings", async () => {
-  const iso8601Result = await Time.cast("2023-01-01T00:00:00.000Z");
+  const iso8601Result = Time.cast("2023-01-01T00:00:00.000Z");
   assert(isOk(iso8601Result));
   expect(iso8601Result.ok).toEqual(new Date("2023-01-01T00:00:00.000Z"));
 
-  const simpleDateResult = await Time.cast("2023-01-01");
+  const simpleDateResult = Time.cast("2023-01-01");
   assert(isOk(simpleDateResult));
   expect(simpleDateResult.ok).toEqual(new Date("2023-01-01"));
 
-  const americanFormatResult = await Time.cast("01/01/2023");
+  const americanFormatResult = Time.cast("01/01/2023");
   assert(isOk(americanFormatResult));
   expect(americanFormatResult.ok).toEqual(new Date("01/01/2023"));
 });
 
 test("Time.cast validation with invalid inputs", async () => {
-  const invalidStringResult = await Time.cast("not-a-date");
+  const invalidStringResult = Time.cast("not-a-date");
   assert(isErr(invalidStringResult));
   expect(invalidStringResult.err.message).toBe("Value is not a Date");
 
-  const numberResult = await Time.cast(1672531200000);
+  const numberResult = Time.cast(1672531200000);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not a Date");
 
-  const boolResult = await Time.cast(true);
+  const boolResult = Time.cast(true);
   assert(isErr(boolResult));
   expect(boolResult.err.message).toBe("Value is not a Date");
 
-  const nullResult = await Time.cast(null);
+  const nullResult = Time.cast(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("Value is not a Date");
 
-  const undefinedResult = await Time.cast(undefined);
+  const undefinedResult = Time.cast(undefined);
   assert(isErr(undefinedResult));
   expect(undefinedResult.err.message).toBe("Value is not a Date");
 
-  const emptyStringResult = await Time.cast("");
+  const emptyStringResult = Time.cast("");
   assert(isErr(emptyStringResult));
   expect(emptyStringResult.err.message).toBe("Value is not a Date");
 });
+

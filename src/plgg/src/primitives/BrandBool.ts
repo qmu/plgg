@@ -1,11 +1,4 @@
-import {
-  Procedural,
-  success,
-  fail,
-  ValidationError,
-  Brand,
-  Bool,
-} from "plgg/index";
+import { Result, ValidationError, Brand, Bool, ok, err } from "plgg/index";
 
 /**
  * Branded boolean type.
@@ -21,7 +14,9 @@ export const is = <U extends string>(value: unknown): value is t<U> =>
 /**
  * Validates and casts to branded boolean.
  */
-export const cast = <U extends string>(value: unknown): Procedural<t<U>> =>
+export const cast = <U extends string>(
+  value: unknown,
+): Result<t<U>, ValidationError> =>
   is<U>(value)
-    ? success(value)
-    : fail(new ValidationError({ message: "Value is not a branded boolean" }));
+    ? ok(value)
+    : err(new ValidationError({ message: "Value is not a branded boolean" }));

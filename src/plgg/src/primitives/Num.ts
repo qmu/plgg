@@ -1,12 +1,4 @@
-import {
-  Procedural,
-  ok,
-  err,
-  success,
-  fail,
-  Result,
-  ValidationError,
-} from "plgg/index";
+import { ok, err, Result, ValidationError } from "plgg/index";
 
 /**
  * Number primitive type.
@@ -31,10 +23,10 @@ export const cast = (value: unknown): Result<t, ValidationError> =>
  */
 export const gt =
   (min: number) =>
-  (a: number): Procedural<t> =>
+  (a: number): Result<t, ValidationError> =>
     a > min
-      ? success(a)
-      : fail(
+      ? ok(a)
+      : err(
           new ValidationError({
             message: `The number ${a} is not greater than ${min}`,
           }),
@@ -44,10 +36,10 @@ export const gt =
  */
 export const lt =
   (max: number) =>
-  (a: number): Procedural<t> =>
+  (a: number): Result<t, ValidationError> =>
     a < max
-      ? success(a)
-      : fail(
+      ? ok(a)
+      : err(
           new ValidationError({
             message: `The number ${a} is not less than ${max}`,
           }),

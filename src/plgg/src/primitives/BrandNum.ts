@@ -1,11 +1,4 @@
-import {
-  Brand,
-  Procedural,
-  success,
-  fail,
-  ValidationError,
-  Num,
-} from "plgg/index";
+import { Brand, Result, ok, err, ValidationError, Num } from "plgg/index";
 
 /**
  * Branded number type.
@@ -21,7 +14,9 @@ export const is = <U extends string>(value: unknown): value is t<U> =>
 /**
  * Validates and casts to branded number.
  */
-export const cast = <U extends string>(value: unknown): Procedural<t<U>> =>
+export const cast = <U extends string>(
+  value: unknown,
+): Result<t<U>, ValidationError> =>
   is<U>(value)
-    ? success(value)
-    : fail(new ValidationError({ message: "Value is not a branded number" }));
+    ? ok(value)
+    : err(new ValidationError({ message: "Value is not a branded number" }));
