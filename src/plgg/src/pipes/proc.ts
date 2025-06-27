@@ -51,4 +51,4 @@ export function proc(
 /**
  * Function type for chain operations.
  */
-export type ChainFn = (a: unknown) => Procedural<unknown>;
+type ChainFn = (a: unknown) => Procedural<unknown>;

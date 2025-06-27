@@ -10,9 +10,21 @@ import {
 } from "plgg/index";
 
 /**
+ * Pattern matches on a Result, applying the appropriate function based on the variant.
+ * This enables handling both success and error cases in a type-safe way.
+ */
+export const mapResult =
+  <T, U, F = Error>(
+    onOk: (value: T) => Result<U, F>,
+    onErr: (error: F) => Result<U, F>,
+  ) =>
+  (result: Result<T, F>): Result<U, F> =>
+    isOk(result) ? onOk(result.ok) : onErr(result.err);
+
+/**
  * Maps Result success value with function.
  */
-export const mapOk =
+export const mapMaybeOk =
   <T, U, F = Error>(fn: (value: T) => MaybePromise<Result<U, F>>) =>
   async (result: Result<T, F>): Promise<Result<U, F>> =>
     isOk(result) ? await fn(result.ok) : result;
@@ -20,7 +32,7 @@ export const mapOk =
 /**
  * Maps Result error value with function.
  */
-export const mapErr =
+export const mapMaybeErr =
   <T, U, F = Error>(fn: (error: F) => MaybePromise<Result<T, U>>) =>
   async (result: Result<T, F>): Promise<Result<T, U>> =>
     isOk(result) ? result : await fn(result.err);
@@ -29,7 +41,7 @@ export const mapErr =
  * Pattern matches on a Result, applying the appropriate function based on the variant.
  * This enables handling both success and error cases in a type-safe way.
  */
-export const mapResult =
+export const mapMaybeResult =
   <T, U, F = Error>(
     onOk: (value: T) => MaybePromise<Result<U, F>>,
     onErr: (error: F) => MaybePromise<Result<U, F>>,

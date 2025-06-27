@@ -1,37 +1,51 @@
 import { test, expect, assert } from "vitest";
-import { lift, proc, isErr, isOk, handle, ValidationError, success, fail, ok, err, Result } from "plgg/index";
+import {
+  lift,
+  proc,
+  isErr,
+  isOk,
+  handle,
+  ValidationError,
+  success,
+  fail,
+  ok,
+  err,
+  Result,
+} from "plgg/index";
 import * as idiom from "plgg/pipes/idiom";
 
 test("mapOk should transform success value", async () => {
   const double = (x: number) => ok(x * 2);
-  const result = await idiom.mapOk(double)(ok(5));
-  
+  const result = await idiom.mapMaybeOk(double)(ok(5));
+
   assert(isOk(result));
   expect(result.ok).toBe(10);
 });
 
 test("mapOk should pass through error", async () => {
   const double = (x: number): Result<number, ValidationError> => ok(x * 2);
-  const error = new ValidationError("test error");
-  const result = await idiom.mapOk(double)(err(error));
-  
+  const error = new ValidationError({ message: "test error" });
+  const result = await idiom.mapMaybeOk(double)(err(error));
+
   assert(isErr(result));
   expect(result.err).toBe(error);
 });
 
 test("mapErr should transform error value", async () => {
   const handleError = (_: ValidationError) => ok("handled");
-  const error = new ValidationError("test error");
-  const result = await idiom.mapErr(handleError)(err(error));
-  
+  const error = new ValidationError({ message: "test error" });
+  const result = await idiom.mapMaybeErr(handleError)(err(error));
+
   assert(isOk(result));
   expect(result.ok).toBe("handled");
 });
 
 test("mapErr should pass through success", async () => {
   const handleError = (_: ValidationError) => ok("handled");
-  const result = await idiom.mapErr(handleError)(ok<string, ValidationError>("success"));
-  
+  const result = await idiom.mapMaybeErr(handleError)(
+    ok<string, ValidationError>("success"),
+  );
+
   assert(isOk(result));
   expect(result.ok).toBe("success");
 });
@@ -39,8 +53,8 @@ test("mapErr should pass through success", async () => {
 test("mapResult should handle success case", async () => {
   const onOk = (x: number) => ok(x * 2);
   const onErr = (_: ValidationError) => ok(0);
-  const result = await idiom.mapResult(onOk, onErr)(ok(5));
-  
+  const result = await idiom.mapMaybeResult(onOk, onErr)(ok(5));
+
   assert(isOk(result));
   expect(result.ok).toBe(10);
 });
@@ -48,9 +62,9 @@ test("mapResult should handle success case", async () => {
 test("mapResult should handle error case", async () => {
   const onOk = (x: number) => ok(x * 2);
   const onErr = (_: ValidationError) => ok(-1);
-  const error = new ValidationError("test error");
-  const result = await idiom.mapResult(onOk, onErr)(err(error));
-  
+  const error = new ValidationError({ message: "test error" });
+  const result = await idiom.mapMaybeResult(onOk, onErr)(err(error));
+
   assert(isOk(result));
   expect(result.ok).toBe(-1);
 });
@@ -58,25 +72,25 @@ test("mapResult should handle error case", async () => {
 test("mapProcOk should transform success value", async () => {
   const double = (x: number) => success(x * 2);
   const result = await idiom.mapProcOk(double)(success(5));
-  
+
   assert(isOk(result));
   expect(result.ok).toBe(10);
 });
 
 test("mapProcOk should pass through error", async () => {
   const double = (x: number) => success(x * 2);
-  const error = new ValidationError("test error");
+  const error = new ValidationError({ message: "test error" });
   const result = await idiom.mapProcOk(double)(fail(error));
-  
+
   assert(isErr(result));
   expect(result.err).toBe(error);
 });
 
 test("mapProcErr should transform error value", async () => {
   const handleError = (_: ValidationError) => success("handled");
-  const error = new ValidationError("test error");
+  const error = new ValidationError({ message: "test error" });
   const result = await idiom.mapProcErr(handleError)(fail(error));
-  
+
   assert(isOk(result));
   expect(result.ok).toBe("handled");
 });
@@ -84,24 +98,26 @@ test("mapProcErr should transform error value", async () => {
 test("mapProcErr should pass through success", async () => {
   const handleError = (_: ValidationError) => success("handled");
   const result = await idiom.mapProcErr(handleError)(success("test"));
-  
+
   assert(isOk(result));
   expect(result.ok).toBe("test");
 });
 
 test("capture should transform error type", async () => {
-  const transformError = (e: ValidationError) => new ValidationError("captured: " + e.message);
-  const error = new ValidationError("original error");
+  const transformError = (e: ValidationError) =>
+    new ValidationError({ message: "captured: " + e.message });
+  const error = new ValidationError({ message: "original error" });
   const result = await idiom.capture(transformError)(fail(error));
-  
+
   assert(isErr(result));
   expect(result.err.message).toBe("captured: original error");
 });
 
 test("capture should pass through success", async () => {
-  const transformError = (e: ValidationError) => new ValidationError("captured: " + e.message);
+  const transformError = (e: ValidationError) =>
+    new ValidationError({ message: "captured: " + e.message });
   const result = await idiom.capture(transformError)(success(42));
-  
+
   assert(isOk(result));
   expect(result.ok).toBe(42);
 });
@@ -109,18 +125,18 @@ test("capture should pass through success", async () => {
 test("lift should create Procedural from sync function", async () => {
   const double = (x: number) => x * 2;
   const result = await idiom.lift(double)(5);
-  
+
   assert(isOk(result));
   expect(result.ok).toBe(10);
 });
 
 test("handle should transform error", async () => {
-  const originalError = new ValidationError("original");
+  const originalError = new ValidationError({ message: "original" });
   const errorProc = fail(originalError);
 
   const result = await handle(
     errorProc,
-    (er) => new ValidationError("Error occurred", er),
+    (er) => new ValidationError({ message: "Error occurred", parent: er }),
   );
 
   assert(isErr(result));
@@ -129,8 +145,11 @@ test("handle should transform error", async () => {
 
 test("handle should pass through success", async () => {
   const result = await handle(
-    proc(5, lift((x: number) => x * 2)),
-    (er) => new ValidationError("Error occurred", er),
+    proc(
+      5,
+      lift((x: number) => x * 2),
+    ),
+    (er) => new ValidationError({ message: "Error occurred", parent: er }),
   );
 
   if (isErr(result)) {
@@ -141,10 +160,12 @@ test("handle should pass through success", async () => {
 
 test("tap should execute side effect on success and return original result", () => {
   let sideEffectValue: number | undefined;
-  const tapFn = (value: number) => { sideEffectValue = value * 10; };
-  
+  const tapFn = (value: number) => {
+    sideEffectValue = value * 10;
+  };
+
   const result = idiom.tap(tapFn)(ok(5));
-  
+
   assert(isOk(result));
   expect(result.ok).toBe(5);
   expect(sideEffectValue).toBe(50);
@@ -152,11 +173,13 @@ test("tap should execute side effect on success and return original result", () 
 
 test("tap should not execute side effect on error and return original error", () => {
   let sideEffectExecuted = false;
-  const tapFn = (_: number) => { sideEffectExecuted = true; };
-  const error = new ValidationError("test error");
-  
+  const tapFn = (_: number) => {
+    sideEffectExecuted = true;
+  };
+  const error = new ValidationError({ message: "test error" });
+
   const result = idiom.tap(tapFn)(err(error));
-  
+
   assert(isErr(result));
   expect(result.err).toBe(error);
   expect(sideEffectExecuted).toBe(false);
@@ -164,10 +187,12 @@ test("tap should not execute side effect on error and return original error", ()
 
 test("tapProc should execute side effect on success and return original result", async () => {
   let sideEffectValue: number | undefined;
-  const tapFn = (value: number) => { sideEffectValue = value * 10; };
-  
+  const tapFn = (value: number) => {
+    sideEffectValue = value * 10;
+  };
+
   const result = await idiom.tapProc(tapFn)(success(5));
-  
+
   assert(isOk(result));
   expect(result.ok).toBe(5);
   expect(sideEffectValue).toBe(50);
@@ -175,11 +200,13 @@ test("tapProc should execute side effect on success and return original result",
 
 test("tapProc should not execute side effect on error and return original error", async () => {
   let sideEffectExecuted = false;
-  const tapFn = (_: number) => { sideEffectExecuted = true; };
-  const error = new ValidationError("test error");
-  
+  const tapFn = (_: number) => {
+    sideEffectExecuted = true;
+  };
+  const error = new ValidationError({ message: "test error" });
+
   const result = await idiom.tapProc(tapFn)(fail(error));
-  
+
   assert(isErr(result));
   expect(result.err).toBe(error);
   expect(sideEffectExecuted).toBe(false);

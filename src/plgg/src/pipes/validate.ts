@@ -1,28 +1,28 @@
-import { isOk, ok, Procedural, ValidationError, fail } from "plgg/index";
+import { isOk, ok, Result, ValidationError, err } from "plgg/index";
 
 /*
  * Result-aware function chaining with error short-circuiting.
  */
-/* prettier-ignore */ export function validate<A, B>(a: A, ab: (a: A) => Procedural<B>): Procedural<B>;
-/* prettier-ignore */ export function validate<A, B, C>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>): Procedural<C>;
-/* prettier-ignore */ export function validate<A, B, C, D>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>): Procedural<D>;
-/* prettier-ignore */ export function validate<A, B, C, D, E>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>): Procedural<E>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>): Procedural<F>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>): Procedural<G>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>): Procedural<H>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>): Procedural<I>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>): Procedural<J>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>): Procedural<K>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>): Procedural<L>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>): Procedural<M>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>): Procedural<N>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>, no: (n: N) => Procedural<O>): Procedural<O>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>, no: (n: N) => Procedural<O>, op: (o: O) => Procedural<P>): Procedural<P>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>, no: (n: N) => Procedural<O>, op: (o: O) => Procedural<P>, pq: (p: P) => Procedural<Q>): Procedural<Q>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>, no: (n: N) => Procedural<O>, op: (o: O) => Procedural<P>, pq: (p: P) => Procedural<Q>, qr: (q: Q) => Procedural<R>): Procedural<R>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>, no: (n: N) => Procedural<O>, op: (o: O) => Procedural<P>, pq: (p: P) => Procedural<Q>, qr: (q: Q) => Procedural<R>, rs: (r: R) => Procedural<S>): Procedural<S>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>, no: (n: N) => Procedural<O>, op: (o: O) => Procedural<P>, pq: (p: P) => Procedural<Q>, qr: (q: Q) => Procedural<R>, rs: (r: R) => Procedural<S>, st: (s: S) => Procedural<T>): Procedural<T>;
-/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>, cd: (c: C) => Procedural<D>, de: (d: D) => Procedural<E>, ef: (e: E) => Procedural<F>, fg: (f: F) => Procedural<G>, gh: (g: G) => Procedural<H>, hi: (h: H) => Procedural<I>, ij: (i: I) => Procedural<J>, jk: (j: J) => Procedural<K>, kl: (k: K) => Procedural<L>, lm: (l: L) => Procedural<M>, mn: (m: M) => Procedural<N>, no: (n: N) => Procedural<O>, op: (o: O) => Procedural<P>, pq: (p: P) => Procedural<Q>, qr: (q: Q) => Procedural<R>, rs: (r: R) => Procedural<S>, st: (s: S) => Procedural<T>, tu: (t: T) => Procedural<U>): Procedural<U>;
+/* prettier-ignore */ export function validate<A, B, ERR>(a: A, ab: (a: A) => Result<B,ERR>): Result<B, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>): Result<C, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>): Result<D, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>): Result<E, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>): Result<F, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>): Result<G, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>): Result<H, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>): Result<I, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>): Result<J, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>): Result<K, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>): Result<L, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>): Result<M, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>): Result<N, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>, no: (n: N) => Result<O, ERR>): Result<O, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>, no: (n: N) => Result<O, ERR>, op: (o: O) => Result<P, ERR>): Result<P, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>, no: (n: N) => Result<O, ERR>, op: (o: O) => Result<P, ERR>, pq: (p: P) => Result<Q, ERR>): Result<Q, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>, no: (n: N) => Result<O, ERR>, op: (o: O) => Result<P, ERR>, pq: (p: P) => Result<Q, ERR>, qr: (q: Q) => Result<R, ERR>): Result<R, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>, no: (n: N) => Result<O, ERR>, op: (o: O) => Result<P, ERR>, pq: (p: P) => Result<Q, ERR>, qr: (q: Q) => Result<R, ERR>, rs: (r: R) => Result<S, ERR>): Result<S, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>, no: (n: N) => Result<O, ERR>, op: (o: O) => Result<P, ERR>, pq: (p: P) => Result<Q, ERR>, qr: (q: Q) => Result<R, ERR>, rs: (r: R) => Result<S, ERR>, st: (s: S) => Result<T, ERR>): Result<T, ERR>;
+/* prettier-ignore */ export function validate<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>, cd: (c: C) => Result<D, ERR>, de: (d: D) => Result<E, ERR>, ef: (e: E) => Result<F, ERR>, fg: (f: F) => Result<G, ERR>, gh: (g: G) => Result<H, ERR>, hi: (h: H) => Result<I, ERR>, ij: (i: I) => Result<J, ERR>, jk: (j: J) => Result<K, ERR>, kl: (k: K) => Result<L, ERR>, lm: (l: L) => Result<M, ERR>, mn: (m: M) => Result<N, ERR>, no: (n: N) => Result<O, ERR>, op: (o: O) => Result<P, ERR>, pq: (p: P) => Result<Q, ERR>, qr: (q: Q) => Result<R, ERR>, rs: (r: R) => Result<S, ERR>, st: (s: S) => Result<T, ERR>, tu: (t: T) => Result<U, ERR>): Result<U, ERR>;
 
 /*
  * Chains Result-returning functions with early error exit.
@@ -30,32 +30,22 @@ import { isOk, ok, Procedural, ValidationError, fail } from "plgg/index";
 export function validate(
   value: unknown,
   ...fns: ReadonlyArray<ChainFn>
-): Procedural<unknown, ReadonlyArray<ValidationError>> {
-  return fns.reduce(
-    async (
-      acc: Procedural<unknown, ReadonlyArray<ValidationError>>,
-      fn: ChainFn,
-    ) => {
-      const current = await acc;
-      if (isOk(current)) {
-        return fn(current.ok);
-      }
-      const nextResult = await fn(value);
-      if (isOk(nextResult)) {
-        return fail(current.err);
-      }
-      return fail([
-        ...current.err,
-        ...(nextResult.err instanceof ValidationError
-          ? [nextResult.err]
-          : [new ValidationError("Validation failed")]),
-      ]);
-    },
-    Promise.resolve(ok(value)),
-  );
+): Result<unknown, ValidationError> {
+  return fns.reduce((acc: Result<unknown, ValidationError>, fn: ChainFn) => {
+    if (isOk(acc)) {
+      return fn(acc.ok);
+    }
+    const nextResult = fn(value);
+    if (isOk(nextResult)) {
+      return err(acc.err);
+    }
+    const current = acc.err.sibling.length > 0 ? [] : [acc.err];
+    const sibling = [...current, ...acc.err.sibling, nextResult.err];
+    return err(new ValidationError({ message: "Validation failed", sibling }));
+  }, ok(value));
 }
 
 /**
  * Function type for chain operations.
  */
-export type ChainFn = (a: unknown) => Procedural<unknown>;
+type ChainFn = (a: unknown) => Result<unknown, ValidationError>;
