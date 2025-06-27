@@ -45,4 +45,3 @@ test("validate", async () => {
   expect(isErr(result2)).toBe(true);
   expect(result2.err.sibling.length).toBe(3);
 });
-
