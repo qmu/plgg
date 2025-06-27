@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import { Num } from "plgg/index";
-import { isOk, isErr } from "plgg/monadics/Result";
+import { isOk, isErr } from "plgg/effectfuls/Result";
 
 test("Num.is type guard", () => {
   expect(Num.is(123)).toBe(true);

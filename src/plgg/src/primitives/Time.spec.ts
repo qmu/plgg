@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import { Time } from "plgg/index";
-import { isOk, isErr } from "plgg/monadics/Result";
+import { isOk, isErr } from "plgg/effectfuls/Result";
 
 test("Time.is type guard", () => {
   expect(Time.is(new Date())).toBe(true);

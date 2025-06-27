@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import { BrandBool } from "plgg/index";
-import { isOk, isErr } from "plgg/monadics/Result";
+import { isOk, isErr } from "plgg/effectfuls/Result";
 
 type IsActive = BrandBool.t<"IsActive">;
 type IsAdmin = BrandBool.t<"IsAdmin">;

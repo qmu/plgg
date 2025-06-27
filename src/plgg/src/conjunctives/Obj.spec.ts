@@ -1,7 +1,7 @@
 import { test, expect, assert } from "vitest";
 import { Obj, Str, Num } from "plgg/index";
-import { isOk, isErr } from "plgg/monadics/Result";
-import { isSome, isNone } from "plgg/monadics/Option";
+import { isOk, isErr } from "plgg/effectfuls/Result";
+import { isSome, isNone } from "plgg/effectfuls/Option";
 
 test("Obj.is type guard", () => {
   expect(Obj.is({})).toBe(true);

@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import { BrandNum } from "plgg/index";
-import { isOk, isErr } from "plgg/monadics/Result";
+import { isOk, isErr } from "plgg/effectfuls/Result";
 
 type Age = BrandNum.t<"Age">;
 type Price = BrandNum.t<"Price">;

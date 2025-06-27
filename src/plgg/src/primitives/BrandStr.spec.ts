@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import { BrandStr } from "plgg/index";
-import { isOk, isErr } from "plgg/monadics/Result";
+import { isOk, isErr } from "plgg/effectfuls/Result";
 
 type UserId = BrandStr.t<"UserId">;
 type Email = BrandStr.t<"Email">;
