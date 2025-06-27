@@ -24,4 +24,4 @@ export const is = <U extends string>(value: unknown): value is t<U> =>
 export const cast = <U extends string>(value: unknown): Procedural<t<U>> =>
   is<U>(value)
     ? success(value)
-    : fail(new ValidationError("Value is not a branded boolean"));
+    : fail(new ValidationError({ message: "Value is not a branded boolean" }));
