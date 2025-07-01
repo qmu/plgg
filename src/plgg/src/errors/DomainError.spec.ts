@@ -2,7 +2,7 @@ import { test, expect, vi } from "vitest";
 import { DomainError, ValidationError, BaseError } from "plgg/index";
 
 test("DomainError.is type guard with ValidationError", () => {
-  const error = new ValidationError("Test error");
+  const error = new ValidationError({ message: "Test error" });
   expect(DomainError.is(error)).toBe(true);
 });
 
@@ -28,67 +28,69 @@ test("DomainError.is type guard with non-error objects", () => {
 test("DomainError.is checks brand property", () => {
   const validError = { __: "DomainError", message: "test" };
   expect(DomainError.is(validError)).toBe(true);
-  
+
   const invalidError = { __: "SomeOtherError", message: "test" };
   expect(DomainError.is(invalidError)).toBe(false);
-  
+
   const noBrandError = { message: "test" };
   expect(DomainError.is(noBrandError)).toBe(false);
 });
 
 test("DomainError.debug with ValidationError", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  
-  const error = new ValidationError("Test validation error");
+
+  const error = new ValidationError({ message: "Test validation error" });
   DomainError.debug(error);
-  
+
   expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("[ValidationError]")
+    expect.stringContaining("[ValidationError]"),
   );
   expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("Test validation error")
+    expect.stringContaining("Test validation error"),
   );
-  
+
   consoleSpy.mockRestore();
 });
 
 test("DomainError.debug with nested errors", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  
-  const parentError = new ValidationError("Parent error");
-  const childError = new ValidationError("Child error", parentError);
-  
+
+  const parentError = new ValidationError({ message: "Parent error" });
+  const childError = new ValidationError({
+    message: "Child error",
+    parent: parentError,
+  });
+
   DomainError.debug(childError);
-  
+
   expect(consoleSpy).toHaveBeenCalledTimes(2);
   expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("Child error")
+    expect.stringContaining("Child error"),
   );
   expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("Parent error")
+    expect.stringContaining("Parent error"),
   );
-  
+
   consoleSpy.mockRestore();
 });
 
 test("DomainError.debug with regular Error", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  
+
   const error = new Error("Regular error");
   DomainError.debug(error as any);
-  
+
+  expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("[Error]"));
   expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("[Error]")
+    expect.stringContaining("Regular error"),
   );
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("Regular error")
-  );
-  
+
   consoleSpy.mockRestore();
 });
 
 test("DomainError type alias", () => {
-  const error: DomainError.t = new ValidationError("Test error");
+  const error: DomainError.t = new ValidationError({ message: "Test error" });
   expect(error instanceof ValidationError).toBe(true);
   expect(error instanceof BaseError).toBe(true);
 });
+

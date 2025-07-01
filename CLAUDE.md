@@ -41,14 +41,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 src/plgg/src/lib/
-├── monadics/     # Core types: Result, Option, Brand, Procedural
+├── effectfuls/   # Core types: Result, Option, Brand, Procedural
 ├── primitives/   # Validated types: Str, Num, Bool, Time + Branded variants
 ├── pipes/        # Composition: chain, proc, synth, idiom
 ├── conjunctives/ # Object validation: Obj.cast, Obj.prop, Obj.optional
 └── errors/       # Error hierarchy: BaseError, ValidationError, DomainError
 ```
 
-**Export Pattern:** Primitives and conjunctives export as namespaces (`export * as Str`), while monadics and pipes export individual functions.
+**Export Pattern:** Primitives and conjunctives export as namespaces (`export * as Str`), while effectfuls and pipes export individual functions.
 
 ### Key Implementation Details
 

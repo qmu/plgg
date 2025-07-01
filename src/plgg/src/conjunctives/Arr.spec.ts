@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import * as Arr from "plgg/conjunctives/Arr";
-import { isOk, isErr } from "plgg/monadics/Result";
+import { isOk, isErr } from "plgg/effectfuls/Result";
 import * as Str from "plgg/primitives/Str";
 import * as Num from "plgg/primitives/Num";
 
