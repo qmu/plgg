@@ -2,6 +2,13 @@
 
 ⚠️ **UNSTABLE** - This is experimental study work focused on functional programming concepts. Primarily intended for our own projects, though publicly available.
 
+## Project Structure
+
+This is a monorepo containing:
+
+- **`src/plgg/`** - Main library package
+- **`src/example/`** - Example usage project
+
 ## Installation
 
 ```bash
@@ -28,4 +35,4 @@ if (isOk(result)) {
 
 ## License
 
-ISC License - see LICENSE file for details.
+MIT License - see LICENSE file for details.
