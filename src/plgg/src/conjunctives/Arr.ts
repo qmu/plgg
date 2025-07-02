@@ -16,7 +16,7 @@ export const is = (value: unknown): value is t => Array.isArray(value);
 export const cast = (value: unknown): Procedural<t> =>
   is(value)
     ? success(value)
-    : fail(new ValidationError("Value is not an object"));
+    : fail(new ValidationError({ message: "Value is not an object" }));
 
 /**
  * Validates array property with predicate.
@@ -26,4 +26,4 @@ export const every =
   (value: t): Procedural<t<T>> =>
     value.every(predicate)
       ? success(value)
-      : fail(new ValidationError("Value is not an object"));
+      : fail(new ValidationError({ message: "Value is not an object" }));

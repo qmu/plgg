@@ -22,7 +22,9 @@ export const is = (value: unknown): value is t => typeof value === "boolean";
  */
 export const cast = (value: unknown): Procedural<t> =>
   Promise.resolve(
-    is(value) ? ok(value) : err(new ValidationError("Value is not a boolean")),
+    is(value)
+      ? ok(value)
+      : err(new ValidationError({ message: "Value is not a boolean" })),
   );
 
 /**
@@ -31,7 +33,7 @@ export const cast = (value: unknown): Procedural<t> =>
 export const isTrue = (value: unknown): Procedural<t> =>
   is(value) && value === true
     ? success(true)
-    : fail(new ValidationError("Value is not true"));
+    : fail(new ValidationError({ message: "Value is not true" }));
 
 /**
  * Validates value is false.
@@ -39,4 +41,4 @@ export const isTrue = (value: unknown): Procedural<t> =>
 export const isFalse = (value: unknown): Procedural<t> =>
   is(value) && value === false
     ? success(false)
-    : fail(new ValidationError("Value is not false"));
+    : fail(new ValidationError({ message: "Value is not false" }));

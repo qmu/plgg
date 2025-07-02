@@ -1,4 +1,4 @@
-import { isOk, ok, Procedural } from "plgg/index";
+import { isOk, fail, ok, Procedural, DomainError, Exception } from "plgg/index";
 
 /*
  * Result-aware function chaining with error short-circuiting.
@@ -33,8 +33,16 @@ export function proc(
 ): Procedural<unknown> {
   return fns.reduce(
     async (acc: Procedural<unknown>, fn: ChainFn) => {
-      const current = await acc;
-      return isOk(current) ? fn(current.ok) : current;
+      try {
+        const current = await acc;
+        return isOk(current) ? fn(current.ok) : current;
+      } catch (e: unknown) {
+        return DomainError.is(e)
+          ? fail(e)
+          : e instanceof Error
+            ? fail(new Exception("Unexpected error in proc", e))
+            : fail(new Exception("Unknown error in proc"));
+      }
     },
     Promise.resolve(ok(value)),
   );
@@ -43,4 +51,4 @@ export function proc(
 /**
  * Function type for chain operations.
  */
-export type ChainFn = (a: unknown) => Procedural<unknown>;
+type ChainFn = (a: unknown) => Procedural<unknown>;

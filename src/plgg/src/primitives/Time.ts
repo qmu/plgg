@@ -1,4 +1,4 @@
-import { Procedural, success, fail, ValidationError, Str } from "plgg/index";
+import { Result, ok, err, ValidationError, Str } from "plgg/index";
 
 /**
  * Date type.
@@ -19,9 +19,9 @@ const isDateString = (value: unknown): value is string =>
 /**
  * Validates and casts to Date.
  */
-export const cast = (value: unknown): Procedural<t> =>
+export const cast = (value: unknown): Result<t, ValidationError> =>
   is(value)
-    ? success(value)
+    ? ok(value)
     : isDateString(value)
-      ? success(new Date(value))
-      : fail(new ValidationError("Value is not a Date"));
+      ? ok(new Date(value))
+      : err(new ValidationError({ message: "Value is not a Date" }));

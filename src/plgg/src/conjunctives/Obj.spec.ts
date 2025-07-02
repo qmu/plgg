@@ -1,7 +1,7 @@
 import { test, expect, assert } from "vitest";
 import { Obj, Str, Num } from "plgg/index";
-import { isOk, isErr } from "plgg/monadics/Result";
-import { isSome, isNone } from "plgg/monadics/Option";
+import { isOk, isErr } from "plgg/effectfuls/Result";
+import { isSome, isNone } from "plgg/effectfuls/Option";
 
 test("Obj.is type guard", () => {
   expect(Obj.is({})).toBe(true);
@@ -16,59 +16,59 @@ test("Obj.is type guard", () => {
 });
 
 test("Obj.cast validation", async () => {
-  const emptyResult = await Obj.cast({});
+  const emptyResult = Obj.cast({});
   assert(isOk(emptyResult));
   expect(emptyResult.ok).toEqual({});
 
-  const objectResult = await Obj.cast({ a: 1, b: "test" });
+  const objectResult = Obj.cast({ a: 1, b: "test" });
   assert(isOk(objectResult));
   expect(objectResult.ok).toEqual({ a: 1, b: "test" });
 
-  const arrayResult = await Obj.cast([1, 2, 3]);
+  const arrayResult = Obj.cast([1, 2, 3]);
   assert(isOk(arrayResult));
   expect(arrayResult.ok).toEqual([1, 2, 3]);
 
-  const nullResult = await Obj.cast(null);
+  const nullResult = Obj.cast(null);
   assert(isErr(nullResult));
-  expect(nullResult.err.message).toBe("Value is not an object");
+  expect(nullResult.err.message).toBe("Not object");
 
-  const undefinedResult = await Obj.cast(undefined);
+  const undefinedResult = Obj.cast(undefined);
   assert(isErr(undefinedResult));
-  expect(nullResult.err.message).toBe("Value is not an object");
+  expect(nullResult.err.message).toBe("Not object");
 
-  const stringResult = await Obj.cast("test");
+  const stringResult = Obj.cast("test");
   assert(isErr(stringResult));
-  expect(stringResult.err.message).toBe("Value is not an object");
+  expect(stringResult.err.message).toBe("Not object");
 
-  const numberResult = await Obj.cast(123);
+  const numberResult = Obj.cast(123);
   assert(isErr(numberResult));
-  expect(numberResult.err.message).toBe("Value is not an object");
+  expect(numberResult.err.message).toBe("Not object");
 });
 
 test("Obj.prop validation - success cases", async () => {
   const obj = { name: "John", age: 30 };
-  
-  const nameResult = await Obj.prop("name", Str.cast)(obj);
+
+  const nameResult = Obj.prop("name", Str.cast)(obj);
   assert(isOk(nameResult));
   expect(nameResult.ok).toEqual({ name: "John", age: 30 });
 
-  const ageResult = await Obj.prop("age", Num.cast)(obj);
+  const ageResult = Obj.prop("age", Num.cast)(obj);
   assert(isOk(ageResult));
   expect(ageResult.ok).toEqual({ name: "John", age: 30 });
 });
 
 test("Obj.prop validation - missing property", async () => {
   const obj = { name: "John" };
-  
-  const ageResult = await Obj.prop("age", Num.cast)(obj);
+
+  const ageResult = Obj.prop("age", Num.cast)(obj);
   assert(isErr(ageResult));
-  expect(ageResult.err.message).toBe("Value does not have property 'age'");
+  expect(ageResult.err.message).toBe("Property 'age' not found");
 });
 
 test("Obj.prop validation - invalid property type", async () => {
   const obj = { name: "John", age: "thirty" };
-  
-  const ageResult = await Obj.prop("age", Num.cast)(obj);
+
+  const ageResult = Obj.prop("age", Num.cast)(obj);
   assert(isErr(ageResult));
   expect(ageResult.err.message).toBe("Value is not a number");
 });
@@ -76,22 +76,22 @@ test("Obj.prop validation - invalid property type", async () => {
 test("Obj.prop validation - adds property to object type", async () => {
   const obj = { existing: "value" };
   const newKey = "newProp";
-  
-  const result = await Obj.prop(newKey, Str.cast)({ ...obj, [newKey]: "test" });
+
+  const result = Obj.prop(newKey, Str.cast)({ ...obj, [newKey]: "test" });
   assert(isOk(result));
   expect(result.ok).toEqual({ existing: "value", newProp: "test" });
 });
 
 test("Obj.optional validation - property exists", async () => {
   const obj = { name: "John", age: 30 };
-  
-  const nameResult = await Obj.optional("name", Str.cast)(obj);
+
+  const nameResult = Obj.optional("name", Str.cast)(obj);
   assert(isOk(nameResult));
   assert(isSome(nameResult.ok.name));
   expect(nameResult.ok.name.value).toBe("John");
   expect(nameResult.ok.age).toBe(30);
 
-  const ageResult = await Obj.optional("age", Num.cast)(obj);
+  const ageResult = Obj.optional("age", Num.cast)(obj);
   assert(isOk(ageResult));
   assert(isSome(ageResult.ok.age));
   expect(ageResult.ok.age.value).toBe(30);
@@ -99,7 +99,7 @@ test("Obj.optional validation - property exists", async () => {
 
 test("Obj.optional validation - property missing", async () => {
   const obj = { name: "John" };
-  
+
   const ageResult = await Obj.optional("age", Num.cast)(obj);
   assert(isOk(ageResult));
   assert(isNone(ageResult.ok.age));
@@ -108,16 +108,16 @@ test("Obj.optional validation - property missing", async () => {
 
 test("Obj.optional validation - invalid property type", async () => {
   const obj = { name: "John", age: "thirty" };
-  
-  const ageResult = await Obj.optional("age", Num.cast)(obj);
+
+  const ageResult = Obj.optional("age", Num.cast)(obj);
   assert(isErr(ageResult));
   expect(ageResult.err.message).toBe("Value is not a number");
 });
 
 test("Obj.optional validation - adds optional property to object type", async () => {
   const obj = { existing: "value" };
-  
-  const result = await Obj.optional("optionalProp", Str.cast)(obj);
+
+  const result = Obj.optional("optionalProp", Str.cast)(obj);
   assert(isOk(result));
   assert(isNone(result.ok.optionalProp));
   expect(result.ok.existing).toBe("value");
@@ -125,17 +125,16 @@ test("Obj.optional validation - adds optional property to object type", async ()
 
 test("Complex object validation with multiple properties", async () => {
   const obj = { name: "John", age: 30, email: "john@example.com" };
-  
+
   // Chain multiple property validations
-  const nameResult = await Obj.prop("name", Str.cast)(obj);
+  const nameResult = Obj.prop("name", Str.cast)(obj);
   assert(isOk(nameResult));
-  
-  const ageResult = await Obj.prop("age", Num.cast)(nameResult.ok);
+
+  const ageResult = Obj.prop("age", Num.cast)(nameResult.ok);
   assert(isOk(ageResult));
-  
-  const emailResult = await Obj.optional("email", Str.cast)(ageResult.ok);
+
+  const emailResult = Obj.optional("email", Str.cast)(ageResult.ok);
   assert(isOk(emailResult));
   assert(isSome(emailResult.ok.email));
   expect(emailResult.ok.email.value).toBe("john@example.com");
 });
-

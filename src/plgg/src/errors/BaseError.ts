@@ -27,8 +27,8 @@ export class BaseError extends Error {
   /**
    * Constructor
    */
-  constructor(detail: string, parent?: BaseError | Error) {
-    super(detail);
+  constructor(message: string, parent?: BaseError | Error) {
+    super(message);
     this.parent = parent ? some(parent) : none();
   }
 }

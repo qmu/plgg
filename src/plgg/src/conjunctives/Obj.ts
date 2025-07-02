@@ -1,14 +1,12 @@
 import {
-  Procedural,
-  fail,
+  Result,
   ok,
   err,
   ValidationError,
   Option,
   some,
   none,
-  success,
-  step,
+  pipe,
   mapResult,
 } from "plgg/index";
 
@@ -26,19 +24,20 @@ export const is = (value: unknown): value is t =>
 /**
  * Validates and casts to object with primitives.
  */
-export const cast = (value: unknown): Procedural<t> =>
-  is(value)
-    ? success(value)
-    : fail(new ValidationError("Value is not an object"));
+export const cast = (value: unknown): Result<t, ValidationError> =>
+  is(value) ? ok(value) : err(new ValidationError({ message: "Not object" }));
 
 /**
  * Validates object property with predicate.
  */
 export const prop =
-  <T extends string, U>(key: T, predicate: (a: unknown) => Procedural<U>) =>
-  async <V extends object>(obj: V): Procedural<V & Record<T, U>> =>
+  <T extends string, U>(
+    key: T,
+    predicate: (a: unknown) => Result<U, ValidationError>,
+  ) =>
+  <V extends object>(obj: V): Result<V & Record<T, U>, ValidationError> =>
     hasField(obj, key)
-      ? step(
+      ? pipe(
           obj[key],
           predicate,
           mapResult(
@@ -46,16 +45,25 @@ export const prop =
             (errValue) => err(errValue),
           ),
         )
-      : err(new ValidationError(`Value does not have property '${key}'`));
+      : err(
+          new ValidationError({
+            message: `Property '${key}' not found`,
+          }),
+        );
 
 /**
  * Validates optional object property with predicate.
  */
 export const optional =
-  <T extends string, U>(key: T, predicate: (a: unknown) => Procedural<U>) =>
-  async <V extends object>(obj: V): Procedural<V & Record<T, Option<U>>> =>
+  <T extends string, U>(
+    key: T,
+    predicate: (a: unknown) => Result<U, ValidationError>,
+  ) =>
+  <V extends object>(
+    obj: V,
+  ): Result<V & Record<T, Option<U>>, ValidationError> =>
     hasField(obj, key)
-      ? step(
+      ? pipe(
           obj[key],
           predicate,
           mapResult(
