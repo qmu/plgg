@@ -20,12 +20,14 @@ export default defineConfig({
     lib: {
       entry: "src/index.ts",
       name: "plgg",
-      fileName: "plgg",
+      fileName: (format) => `plgg.${format}.js`,
+      formats: ["es", "cjs"],
     },
     rollupOptions: {
       external: [],
       output: {
         globals: {},
+        exports: "named",
       },
     },
   },
