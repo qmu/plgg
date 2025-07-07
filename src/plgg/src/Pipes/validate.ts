@@ -33,17 +33,38 @@ export function validate(
 ): Result<unknown, ValidationError> {
   return fns.reduce((acc: Result<unknown, ValidationError>, fn: ChainFn) => {
     if (isOk(acc)) {
-      return fn(acc.ok);
+      try {
+        return fn(acc.ok);
+      } catch (e) {
+        return convUnknownToValidationError(e);
+      }
     }
-    const nextResult = fn(value);
-    if (isOk(nextResult)) {
+    const currentResult = (() => {
+      try {
+        return fn(value);
+      } catch (e) {
+        return convUnknownToValidationError(e);
+      }
+    })();
+    if (isOk(currentResult)) {
       return err(acc.err);
     }
-    const current = acc.err.sibling.length > 0 ? [] : [acc.err];
-    const sibling = [...current, ...acc.err.sibling, nextResult.err];
+    const prevError = acc.err.sibling.length > 0 ? [] : [acc.err];
+    const sibling = [...prevError, ...acc.err.sibling, currentResult.err];
     return err(new ValidationError({ message: "Validation failed", sibling }));
   }, ok(value));
 }
+
+const convUnknownToValidationError = (
+  e: unknown,
+): Result<never, ValidationError> =>
+  err(
+    new ValidationError({
+      message: "Validation failed",
+      parent: e instanceof Error ? e : new Error(String(e)),
+    }),
+  );
+1;
 
 /**
  * Function type for chain operations.
