@@ -1,6 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { BrandBool } from "plgg/index";
-import { isOk, isErr } from "plgg/effectfuls/Result";
+import { BrandBool, isOk, isErr } from "plgg/index";
 
 test("BrandBool.is type guard", () => {
   expect(BrandBool.is<"IsActive">(true)).toBe(true);
@@ -47,4 +46,3 @@ test("BrandBool.cast validation", async () => {
   assert(isErr(objectResult));
   expect(objectResult.err.message).toBe("Value is not a branded boolean");
 });
-

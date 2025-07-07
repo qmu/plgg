@@ -1,4 +1,4 @@
-import { Procedural, fail, ValidationError, success } from "plgg/index";
+import { Result, ok, err, ValidationError } from "plgg/index";
 
 /**
  * Array type with primitive values.
@@ -13,17 +13,17 @@ export const is = (value: unknown): value is t => Array.isArray(value);
 /**
  * Validates and casts to object with primitives.
  */
-export const cast = (value: unknown): Procedural<t> =>
+export const cast = (value: unknown): Result<t, ValidationError> =>
   is(value)
-    ? success(value)
-    : fail(new ValidationError({ message: "Value is not an object" }));
+    ? ok(value)
+    : err(new ValidationError({ message: "Value is not an object" }));
 
 /**
  * Validates array property with predicate.
  */
 export const every =
   <T>(predicate: (value: unknown) => value is T) =>
-  (value: t): Procedural<t<T>> =>
+  (value: t): Result<t<T>, ValidationError> =>
     value.every(predicate)
-      ? success(value)
-      : fail(new ValidationError({ message: "Value is not an object" }));
+      ? ok(value)
+      : err(new ValidationError({ message: "Value is not an object" }));

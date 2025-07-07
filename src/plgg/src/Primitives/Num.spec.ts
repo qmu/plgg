@@ -1,6 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { Num } from "plgg/index";
-import { isOk, isErr } from "plgg/effectfuls/Result";
+import { Num, isOk, isErr } from "plgg/index";
 
 test("Num.is type guard", () => {
   expect(Num.is(123)).toBe(true);
@@ -87,4 +86,3 @@ test("Num.lt validation", async () => {
   assert(isErr(greaterResult));
   expect(greaterResult.err.message).toBe("The number 15 is not less than 10");
 });
-

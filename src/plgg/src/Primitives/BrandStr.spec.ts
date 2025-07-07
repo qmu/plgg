@@ -1,6 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { BrandStr } from "plgg/index";
-import { isOk, isErr } from "plgg/effectfuls/Result";
+import { BrandStr, isOk, isErr } from "plgg/index";
 
 test("BrandStr.is type guard", () => {
   expect(BrandStr.is<"UserId">("user123")).toBe(true);
@@ -47,4 +46,3 @@ test("BrandStr.cast validation", async () => {
   assert(isErr(objectResult));
   expect(objectResult.err.message).toBe("Value is not a branded string");
 });
-
