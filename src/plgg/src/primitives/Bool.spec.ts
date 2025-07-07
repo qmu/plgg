@@ -15,59 +15,60 @@ test("Bool.is type guard", () => {
 });
 
 test("Bool.cast validation", async () => {
-  const trueResult = await Bool.cast(true);
+  const trueResult = Bool.cast(true);
   assert(isOk(trueResult));
   expect(trueResult.ok).toBe(true);
 
-  const falseResult = await Bool.cast(false);
+  const falseResult = Bool.cast(false);
   assert(isOk(falseResult));
   expect(falseResult.ok).toBe(false);
 
-  const stringResult = await Bool.cast("true");
+  const stringResult = Bool.cast("true");
   assert(isErr(stringResult));
   expect(stringResult.err.message).toBe("Value is not a boolean");
 
-  const numberResult = await Bool.cast(1);
+  const numberResult = Bool.cast(1);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not a boolean");
 
-  const nullResult = await Bool.cast(null);
+  const nullResult = Bool.cast(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("Value is not a boolean");
 });
 
 test("Bool.isTrue validation", async () => {
-  const trueResult = await Bool.isTrue(true);
+  const trueResult = Bool.isTrue(true);
   assert(isOk(trueResult));
   expect(trueResult.ok).toBe(true);
 
-  const falseResult = await Bool.isTrue(false);
+  const falseResult = Bool.isTrue(false);
   assert(isErr(falseResult));
   expect(falseResult.err.message).toBe("Value is not true");
 
-  const stringResult = await Bool.isTrue("true");
+  const stringResult = Bool.isTrue("true");
   assert(isErr(stringResult));
   expect(stringResult.err.message).toBe("Value is not true");
 
-  const numberResult = await Bool.isTrue(1);
+  const numberResult = Bool.isTrue(1);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not true");
 });
 
 test("Bool.isFalse validation", async () => {
-  const falseResult = await Bool.isFalse(false);
+  const falseResult = Bool.isFalse(false);
   assert(isOk(falseResult));
   expect(falseResult.ok).toBe(false);
 
-  const trueResult = await Bool.isFalse(true);
+  const trueResult = Bool.isFalse(true);
   assert(isErr(trueResult));
   expect(trueResult.err.message).toBe("Value is not false");
 
-  const stringResult = await Bool.isFalse("false");
+  const stringResult = Bool.isFalse("false");
   assert(isErr(stringResult));
   expect(stringResult.err.message).toBe("Value is not false");
 
-  const numberResult = await Bool.isFalse(0);
+  const numberResult = Bool.isFalse(0);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not false");
 });
+

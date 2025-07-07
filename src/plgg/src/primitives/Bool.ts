@@ -1,11 +1,4 @@
-import {
-  Procedural,
-  ok,
-  err,
-  success,
-  fail,
-  ValidationError,
-} from "plgg/index";
+import { Result, ok, err, ValidationError } from "plgg/index";
 
 /**
  * Boolean primitive type.
@@ -20,25 +13,23 @@ export const is = (value: unknown): value is t => typeof value === "boolean";
 /**
  * Type guard for boolean.
  */
-export const cast = (value: unknown): Procedural<t> =>
-  Promise.resolve(
-    is(value)
-      ? ok(value)
-      : err(new ValidationError({ message: "Value is not a boolean" })),
-  );
+export const cast = (value: unknown): Result<t, ValidationError> =>
+  is(value)
+    ? ok(value)
+    : err(new ValidationError({ message: "Value is not a boolean" }));
 
 /**
  * Validates value is true.
  */
-export const isTrue = (value: unknown): Procedural<t> =>
+export const isTrue = (value: unknown): Result<t, ValidationError> =>
   is(value) && value === true
-    ? success(true)
-    : fail(new ValidationError({ message: "Value is not true" }));
+    ? ok(true)
+    : err(new ValidationError({ message: "Value is not true" }));
 
 /**
  * Validates value is false.
  */
-export const isFalse = (value: unknown): Procedural<t> =>
+export const isFalse = (value: unknown): Result<t, ValidationError> =>
   is(value) && value === false
-    ? success(false)
-    : fail(new ValidationError({ message: "Value is not false" }));
+    ? ok(false)
+    : err(new ValidationError({ message: "Value is not false" }));
