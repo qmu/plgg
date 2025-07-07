@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { step } from "plgg/pipes/step";
+import { step } from "plgg/index";
 
 test("step with single function", async () => {
   const double = (x: number) => x * 2;

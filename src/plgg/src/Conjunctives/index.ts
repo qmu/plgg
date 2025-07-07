@@ -1,1 +1,2 @@
-export * as Obj from "plgg/conjunctives/Obj";
+export * as Obj from "plgg/Conjunctives/Obj";
+export * as Arr from "plgg/Conjunctives/Arr";

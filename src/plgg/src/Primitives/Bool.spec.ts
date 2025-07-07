@@ -1,6 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { Bool } from "plgg/index";
-import { isOk, isErr } from "plgg/effectfuls/Result";
+import { Bool, isOk, isErr } from "plgg/index";
 
 test("Bool.is type guard", () => {
   expect(Bool.is(true)).toBe(true);
@@ -71,4 +70,3 @@ test("Bool.isFalse validation", async () => {
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not false");
 });
-

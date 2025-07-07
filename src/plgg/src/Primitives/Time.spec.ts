@@ -1,6 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { Time } from "plgg/index";
-import { isOk, isErr } from "plgg/effectfuls/Result";
+import { Time, isOk, isErr } from "plgg/index";
 
 test("Time.is type guard", () => {
   expect(Time.is(new Date())).toBe(true);
@@ -64,4 +63,3 @@ test("Time.cast validation with invalid inputs", async () => {
   assert(isErr(emptyStringResult));
   expect(emptyStringResult.err.message).toBe("Value is not a Date");
 });
-

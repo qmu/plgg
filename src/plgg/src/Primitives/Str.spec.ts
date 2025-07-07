@@ -1,6 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { Str } from "plgg/index";
-import { isOk, isErr } from "plgg/effectfuls/Result";
+import { Str, isOk, isErr } from "plgg/index";
 
 test("Str.is type guard", () => {
   expect(Str.is("hello")).toBe(true);
@@ -85,4 +84,3 @@ test("Str.lenLt validation", async () => {
     "The string abcd is not shorter than 3",
   );
 });
-

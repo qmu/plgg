@@ -1,8 +1,5 @@
 import { test, expect, assert } from "vitest";
-import * as Arr from "plgg/conjunctives/Arr";
-import { isOk, isErr } from "plgg/effectfuls/Result";
-import * as Str from "plgg/primitives/Str";
-import * as Num from "plgg/primitives/Num";
+import { Arr, isOk, isErr, Str, Num } from "plgg/index";
 
 test("Arr.is should return true for arrays", () => {
   expect(Arr.is([])).toBe(true);
@@ -77,7 +74,10 @@ test("Arr.every should succeed when all elements match predicate", async () => {
   assert(isOk(result3));
   expect(result3.ok).toEqual([1, 2, 3]);
 
-  const result4 = await Arr.every((x): x is string => typeof x === "string")(["hello", "world"]);
+  const result4 = await Arr.every((x): x is string => typeof x === "string")([
+    "hello",
+    "world",
+  ]);
   assert(isOk(result4));
   expect(result4.ok).toEqual(["hello", "world"]);
 });
@@ -95,7 +95,11 @@ test("Arr.every should fail when some elements don't match predicate", async () 
   assert(isErr(result3));
   expect(result3.err.message).toBe("Value is not an object");
 
-  const result4 = await Arr.every((x): x is number => typeof x === "number")([1, "2", 3]);
+  const result4 = await Arr.every((x): x is number => typeof x === "number")([
+    1,
+    "2",
+    3,
+  ]);
   assert(isErr(result4));
   expect(result4.err.message).toBe("Value is not an object");
 });
@@ -103,7 +107,7 @@ test("Arr.every should fail when some elements don't match predicate", async () 
 test("Arr.every with complex predicates", async () => {
   // Test with boolean predicate
   const isBool = (x: unknown): x is boolean => typeof x === "boolean";
-  
+
   const result1 = await Arr.every(isBool)([true, false, true]);
   assert(isOk(result1));
   expect(result1.ok).toEqual([true, false, true]);
@@ -114,7 +118,7 @@ test("Arr.every with complex predicates", async () => {
 
   // Test with null/undefined
   const isNotNull = (x: unknown): x is NonNullable<unknown> => x != null;
-  
+
   const result3 = await Arr.every(isNotNull)([1, "a", true]);
   assert(isOk(result3));
   expect(result3.ok).toEqual([1, "a", true]);
