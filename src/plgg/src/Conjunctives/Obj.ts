@@ -13,7 +13,7 @@ import {
 /**
  * Object type with primitive values.
  */
-export type t = Record<string, unknown>;
+export type t = Readonly<Record<string, unknown>>;
 
 /**
  * Type guard for object.
