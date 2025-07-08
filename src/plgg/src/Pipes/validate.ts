@@ -1,7 +1,8 @@
 import { isOk, ok, Result, ValidationError, err } from "plgg/index";
 
-/*
- * Result-aware function chaining with error short-circuiting.
+/**
+ * Synchronous function composition with error accumulation for Result types.
+ * Chains functions that return Result values, collecting all validation errors.
  */
 /* prettier-ignore */ export function validate<A, B, ERR>(a: A, ab: (a: A) => Result<B,ERR>): Result<B, ERR>;
 /* prettier-ignore */ export function validate<A, B, C, ERR>(a: A, ab: (a: A) => Result<B, ERR>, bc: (b: B) => Result<C, ERR>): Result<C, ERR>;
@@ -64,7 +65,6 @@ const convUnknownToValidationError = (
       parent: e instanceof Error ? e : new Error(String(e)),
     }),
   );
-1;
 
 /**
  * Function type for chain operations.

@@ -21,8 +21,9 @@ import { MaybePromise } from "plgg/index";
 /* prettier-ignore */ export function synth<  A,  B,  C,  D,  E,  F,  G,  H,  I,  J,  K,  L,  M,  N,  O,  P,  Q,  R,  S,  T,>(  ab: (a: A) => MaybePromise<B>,  bc: (b: B) => MaybePromise<C>,  cd: (c: C) => MaybePromise<D>,  de: (d: D) => MaybePromise<E>,  ef: (e: E) => MaybePromise<F>,  fg: (f: F) => MaybePromise<G>,  gh: (g: G) => MaybePromise<H>,  hi: (h: H) => MaybePromise<I>,  ij: (i: I) => MaybePromise<J>,  jk: (j: J) => MaybePromise<K>,  kl: (k: K) => MaybePromise<L>,  lm: (l: L) => MaybePromise<M>,  mn: (m: M) => MaybePromise<N>,  no: (n: N) => MaybePromise<O>,  op: (o: O) => MaybePromise<P>,  pq: (p: P) => MaybePromise<Q>,  qr: (q: Q) => MaybePromise<R>,  rs: (r: R) => MaybePromise<S>,  st: (s: S) => MaybePromise<T>,): (a: A) => MaybePromise<T>;
 /* prettier-ignore */ export function synth<  A,  B,  C,  D,  E,  F,  G,  H,  I,  J,  K,  L,  M,  N,  O,  P,  Q,  R,  S,  T,  U,>(  ab: (a: A) => MaybePromise<B>,  bc: (b: B) => MaybePromise<C>,  cd: (c: C) => MaybePromise<D>,  de: (d: D) => MaybePromise<E>,  ef: (e: E) => MaybePromise<F>,  fg: (f: F) => MaybePromise<G>,  gh: (g: G) => MaybePromise<H>,  hi: (h: H) => MaybePromise<I>,  ij: (i: I) => MaybePromise<J>,  jk: (j: J) => MaybePromise<K>,  kl: (k: K) => MaybePromise<L>,  lm: (l: L) => MaybePromise<M>,  mn: (m: M) => MaybePromise<N>,  no: (n: N) => MaybePromise<O>,  op: (o: O) => MaybePromise<P>,  pq: (p: P) => MaybePromise<Q>,  qr: (q: Q) => MaybePromise<R>,  rs: (r: R) => MaybePromise<S>,  st: (s: S) => MaybePromise<T>,  tu: (t: T) => MaybePromise<U>,): (a: A) => MaybePromise<U>;
 
-/*
- * Composes functions into reusable pipeline.
+/**
+ * Composes functions that may return promises into a reusable pipeline.
+ * Creates a single function that applies all composed functions in sequence.
  */
 export function synth(
   ...fns: ReadonlyArray<(a: unknown) => MaybePromise<unknown>>

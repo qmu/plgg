@@ -65,8 +65,9 @@ export const mapMaybeResult =
   async (result: Result<T, F>): Promise<Result<U, F>> =>
     isOk(result) ? await onOk(result.ok) : await onErr(result.err);
 
-/*
+/**
  * Maps Procedural success value with function.
+ * If the Procedural is successful, applies the function to the success value.
  */
 export const mapProcOk =
   <T, U, F = DomainError.t>(fn: (value: T) => Procedural<U, F>) =>
@@ -75,8 +76,9 @@ export const mapProcOk =
     return isOk(result) ? await fn(result.ok) : result;
   };
 
-/*
+/**
  * Maps Procedural error value with function.
+ * If the Procedural is an error, applies the function to the error value.
  */
 export const mapProcErr =
   <T, U, F = DomainError.t>(fn: (error: F) => Procedural<T, U>) =>
@@ -85,8 +87,9 @@ export const mapProcErr =
     return isOk(result) ? result : await fn(result.err);
   };
 
-/*
+/**
  * Transforms Procedural error into new error type.
+ * Captures and transforms errors while preserving success values.
  */
 export const capture =
   <T, E1 extends DomainError.t, E2 extends DomainError.t>(

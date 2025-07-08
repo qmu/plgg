@@ -42,23 +42,23 @@ test("Arr.cast should succeed for arrays", () => {
 test("Arr.cast should fail for non-arrays", () => {
   const result1 = Arr.cast(null);
   assert(isErr(result1));
-  expect(result1.err.message).toBe("Value is not an object");
+  expect(result1.err.message).toBe("Value is not an array");
 
   const result2 = Arr.cast(undefined);
   assert(isErr(result2));
-  expect(result2.err.message).toBe("Value is not an object");
+  expect(result2.err.message).toBe("Value is not an array");
 
   const result3 = Arr.cast({});
   assert(isErr(result3));
-  expect(result3.err.message).toBe("Value is not an object");
+  expect(result3.err.message).toBe("Value is not an array");
 
   const result4 = Arr.cast("array");
   assert(isErr(result4));
-  expect(result4.err.message).toBe("Value is not an object");
+  expect(result4.err.message).toBe("Value is not an array");
 
   const result5 = Arr.cast(123);
   assert(isErr(result5));
-  expect(result5.err.message).toBe("Value is not an object");
+  expect(result5.err.message).toBe("Value is not an array");
 });
 
 test("Arr.every should succeed when all elements match predicate", () => {
@@ -82,18 +82,18 @@ test("Arr.every should succeed when all elements match predicate", () => {
   expect(result4.ok).toEqual(["hello", "world"]);
 });
 
-test("Arr.every should fail when some elements don't match predicate", async () => {
+test("Arr.every should fail when some elements don't match predicate", () => {
   const result1 = Arr.every(Str.is)([1, 2, 3]);
   assert(isErr(result1));
-  expect(result1.err.message).toBe("Value is not an object");
+  expect(result1.err.message).toBe("Array elements do not match predicate");
 
   const result2 = Arr.every(Str.is)(["a", 1, "c"]);
   assert(isErr(result2));
-  expect(result2.err.message).toBe("Value is not an object");
+  expect(result2.err.message).toBe("Array elements do not match predicate");
 
   const result3 = Arr.every(Num.is)(["a", "b", "c"]);
   assert(isErr(result3));
-  expect(result3.err.message).toBe("Value is not an object");
+  expect(result3.err.message).toBe("Array elements do not match predicate");
 
   const result4 = Arr.every((x): x is number => typeof x === "number")([
     1,
@@ -101,7 +101,7 @@ test("Arr.every should fail when some elements don't match predicate", async () 
     3,
   ]);
   assert(isErr(result4));
-  expect(result4.err.message).toBe("Value is not an object");
+  expect(result4.err.message).toBe("Array elements do not match predicate");
 });
 
 test("Arr.every with complex predicates", () => {
@@ -114,7 +114,7 @@ test("Arr.every with complex predicates", () => {
 
   const result2 = Arr.every(isBool)([true, "false", true]);
   assert(isErr(result2));
-  expect(result2.err.message).toBe("Value is not an object");
+  expect(result2.err.message).toBe("Array elements do not match predicate");
 
   // Test with null/undefined
   const isNotNull = (x: unknown): x is NonNullable<unknown> => x != null;
@@ -125,5 +125,5 @@ test("Arr.every with complex predicates", () => {
 
   const result4 = Arr.every(isNotNull)([1, null, true]);
   assert(isErr(result4));
-  expect(result4.err.message).toBe("Value is not an object");
+  expect(result4.err.message).toBe("Array elements do not match predicate");
 });
