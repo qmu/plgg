@@ -7,10 +7,13 @@ import {
   Procedural,
   DomainError,
   success,
+  pipe,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
- * Maps Result success value with function.
+ * Maps Result success value with function, leaving errors unchanged.
  */
 export const mapOk =
   <T, U, F = Error>(fn: (value: T) => Result<U, F>) =>
@@ -18,7 +21,7 @@ export const mapOk =
     isOk(result) ? fn(result.ok) : result;
 
 /**
- * Maps Result error value with function.
+ * Maps Result error value with function, leaving success values unchanged.
  */
 export const mapErr =
   <T, U, F = Error>(fn: (error: F) => Result<T, U>) =>
@@ -38,7 +41,7 @@ export const mapResult =
     isOk(result) ? onOk(result.ok) : onErr(result.err);
 
 /**
- * Maps Result success value with function.
+ * Maps Result success value with async function, leaving errors unchanged.
  */
 export const mapMaybeOk =
   <T, U, F = Error>(fn: (value: T) => MaybePromise<Result<U, F>>) =>
@@ -46,7 +49,7 @@ export const mapMaybeOk =
     isOk(result) ? await fn(result.ok) : result;
 
 /**
- * Maps Result error value with function.
+ * Maps Result error value with async function, leaving success values unchanged.
  */
 export const mapMaybeErr =
   <T, U, F = Error>(fn: (error: F) => MaybePromise<Result<T, U>>) =>
@@ -54,7 +57,7 @@ export const mapMaybeErr =
     isOk(result) ? result : await fn(result.err);
 
 /**
- * Pattern matches on a Result, applying the appropriate function based on the variant.
+ * Pattern matches on a Result, applying the appropriate async function based on the variant.
  * This enables handling both success and error cases in a type-safe way.
  */
 export const mapMaybeResult =
@@ -65,8 +68,9 @@ export const mapMaybeResult =
   async (result: Result<T, F>): Promise<Result<U, F>> =>
     isOk(result) ? await onOk(result.ok) : await onErr(result.err);
 
-/*
+/**
  * Maps Procedural success value with function.
+ * If the Procedural is successful, applies the function to the success value.
  */
 export const mapProcOk =
   <T, U, F = DomainError.t>(fn: (value: T) => Procedural<U, F>) =>
@@ -75,8 +79,9 @@ export const mapProcOk =
     return isOk(result) ? await fn(result.ok) : result;
   };
 
-/*
+/**
  * Maps Procedural error value with function.
+ * If the Procedural is an error, applies the function to the error value.
  */
 export const mapProcErr =
   <T, U, F = DomainError.t>(fn: (error: F) => Procedural<T, U>) =>
@@ -85,8 +90,9 @@ export const mapProcErr =
     return isOk(result) ? result : await fn(result.err);
   };
 
-/*
+/**
  * Transforms Procedural error into new error type.
+ * Captures and transforms errors while preserving success values.
  */
 export const capture =
   <T, E1 extends DomainError.t, E2 extends DomainError.t>(
@@ -140,3 +146,74 @@ export const tapProc =
     }
     return result;
   };
+
+/**
+ * Encodes data as formatted JSON string.
+ */
+export const jsonEncode = (data: unknown): string =>
+  JSON.stringify(data, null, 2);
+
+/**
+ * Decodes JSON string or Buffer into unknown value, returning Result.
+ */
+export const jsonDecode = (json: string | Buffer): Result<unknown, Error> =>
+  pipe(
+    json,
+    tryCatch(
+      (json) =>
+        JSON.parse(Buffer.isBuffer(json) ? json.toString("utf-8") : json),
+      (error) => toError(error),
+    ),
+  );
+
+/**
+ * Converts unknown error to Error instance.
+ */
+export const toError = (err: unknown): Error =>
+  err instanceof Error ? err : new Error(String(err));
+
+/**
+ * Wraps a function to catch exceptions and return Result.
+ */
+export const tryCatch =
+  <T, U, E = Error>(
+    fn: (arg: T) => U,
+    errorHandler: (error: unknown) => E = (error: unknown) => {
+      if (error instanceof Error) {
+        return new Error(`Operation failed: ${error.message}`) as unknown as E;
+      }
+      return new Error("Unexpected error occurred") as unknown as E;
+    },
+  ) =>
+  (arg: T): Result<U, E> => {
+    try {
+      return ok(fn(arg));
+    } catch (error: unknown) {
+      return err(errorHandler(error));
+    }
+  };
+
+export const defined = async <T>(
+  value: T | undefined,
+): Promise<Result<T, Error>> =>
+  value === undefined ? err(new Error("Value is undefined")) : ok(value);
+
+export function unreachable(): never {
+  throw new Error("Supposed to be unreachable");
+}
+
+/*
+ * Branching flow that preserves input/output types
+ * Selects between two functions based on predicate
+ */
+export const ifElse =
+  <T, U>(
+    predicate: PredicateFunction<T>,
+    ifTrue: AsyncFunction<T, U>,
+    ifFalse: AsyncFunction<T, U>,
+  ) =>
+  async (value: T): Promise<U> =>
+    predicate(value) ? await ifTrue(value) : await ifFalse(value);
+
+export type AsyncFunction<T, U = T> = (x: T) => MaybePromise<U>;
+export type PredicateFunction<T> = (x: T) => boolean;

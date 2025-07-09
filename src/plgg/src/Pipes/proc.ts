@@ -1,7 +1,8 @@
 import { isOk, fail, ok, Procedural, DomainError, Exception } from "plgg/index";
 
-/*
- * Result-aware function chaining with error short-circuiting.
+/**
+ * Async function composition with error short-circuiting for Procedural types.
+ * Chains functions that return Procedural values, stopping on first error.
  */
 /* prettier-ignore */ export function proc<A, B>(a: A, ab: (a: A) => Procedural<B>): Procedural<B>;
 /* prettier-ignore */ export function proc<A, B, C>(a: A, ab: (a: A) => Procedural<B>, bc: (b: B) => Procedural<C>): Procedural<C>;

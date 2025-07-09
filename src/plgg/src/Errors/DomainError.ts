@@ -1,5 +1,9 @@
 import { isSome, ValidationError, Exception, Obj } from "plgg/index";
 
+/**
+ * Union type representing domain errors in the application.
+ * Can be either a ValidationError or an Exception.
+ */
 export type t = ValidationError | Exception;
 
 /*
@@ -14,8 +18,9 @@ const gray = (text: string): string => `\x1b[90m${text}\x1b[0m`;
 export const is = (value: unknown): value is t =>
   Obj.is(value) && "__" in value && value.__ === "DomainError";
 
-/*
- * Pretty prints a DomainError with nested error information
+/**
+ * Pretty prints a DomainError with nested error information.
+ * Displays the error chain with colored output for better readability.
  */
 export const debug = (error: t): void => {
   const collectErrors = (err: t | Error): ReadonlyArray<t | Error> =>

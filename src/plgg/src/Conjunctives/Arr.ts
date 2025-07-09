@@ -11,12 +11,12 @@ export type t<T extends unknown = unknown> = ReadonlyArray<T>;
 export const is = (value: unknown): value is t => Array.isArray(value);
 
 /**
- * Validates and casts to object with primitives.
+ * Validates and casts to array.
  */
 export const cast = (value: unknown): Result<t, ValidationError> =>
   is(value)
     ? ok(value)
-    : err(new ValidationError({ message: "Value is not an object" }));
+    : err(new ValidationError({ message: "Value is not an array" }));
 
 /**
  * Validates array property with predicate.
@@ -26,4 +26,4 @@ export const every =
   (value: t): Result<t<T>, ValidationError> =>
     value.every(predicate)
       ? ok(value)
-      : err(new ValidationError({ message: "Value is not an object" }));
+      : err(new ValidationError({ message: "Array elements do not match predicate" }));
