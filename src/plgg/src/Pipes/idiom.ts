@@ -192,3 +192,28 @@ export const tryCatch =
       return err(errorHandler(error));
     }
   };
+
+export const defined = async <T>(
+  value: T | undefined,
+): Promise<Result<T, Error>> =>
+  value === undefined ? err(new Error("Value is undefined")) : ok(value);
+
+export function unreachable(): never {
+  throw new Error("Supposed to be unreachable");
+}
+
+/*
+ * Branching flow that preserves input/output types
+ * Selects between two functions based on predicate
+ */
+export const ifElse =
+  <T, U>(
+    predicate: PredicateFunction<T>,
+    ifTrue: AsyncFunction<T, U>,
+    ifFalse: AsyncFunction<T, U>,
+  ) =>
+  async (value: T): Promise<U> =>
+    predicate(value) ? await ifTrue(value) : await ifFalse(value);
+
+export type AsyncFunction<T, U = T> = (x: T) => MaybePromise<U>;
+export type PredicateFunction<T> = (x: T) => boolean;
