@@ -1,6 +1,6 @@
 {
   "name": "plgg",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Pipeline utilities",
   "main": "dist/plgg.cjs.js",
   "module": "dist/plgg.es.js",
@@ -12,7 +12,8 @@
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage",
-    "coverage:watch": "vitest --coverage"
+    "coverage:watch": "vitest --coverage",
+    "publish": "vite build && npm publish"
   },
   "repository": {
     "type": "git",
