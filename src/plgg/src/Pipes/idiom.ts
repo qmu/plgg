@@ -193,9 +193,7 @@ export const tryCatch =
     }
   };
 
-export const defined = async <T>(
-  value: T | undefined,
-): Promise<Result<T, Error>> =>
+export const defined = <T>(value: T | undefined): Result<T, Error> =>
   value === undefined ? err(new Error("Value is undefined")) : ok(value);
 
 export function unreachable(): never {
@@ -209,11 +207,11 @@ export function unreachable(): never {
 export const ifElse =
   <T, U>(
     predicate: PredicateFunction<T>,
-    ifTrue: AsyncFunction<T, U>,
-    ifFalse: AsyncFunction<T, U>,
+    ifTrue: OptionFunction<T, U>,
+    ifFalse: OptionFunction<T, U>,
   ) =>
-  async (value: T): Promise<U> =>
-    predicate(value) ? await ifTrue(value) : await ifFalse(value);
+  (value: T): U =>
+    predicate(value) ? ifTrue(value) : ifFalse(value);
 
-export type AsyncFunction<T, U = T> = (x: T) => MaybePromise<U>;
-export type PredicateFunction<T> = (x: T) => boolean;
+type OptionFunction<T, U = T> = (x: T) => U;
+type PredicateFunction<T> = (x: T) => boolean;
