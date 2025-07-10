@@ -6,6 +6,7 @@ import {
   isDomainError,
   Exception,
   isResult,
+  Result,
 } from "plgg/index";
 
 /**
@@ -36,11 +37,11 @@ import {
 /*
  * Chains Result-returning functions with early error exit.
  */
-export function proc(
+export async function proc(
   value: unknown,
   ...fns: ReadonlyArray<ChainFn>
-): Procedural<unknown> {
-  return fns.reduce(
+): Promise<Result<unknown, unknown>> {
+  const result = await fns.reduce(
     async (acc: Procedural<unknown>, fn: ChainFn) => {
       try {
         const current = await acc;
@@ -58,6 +59,10 @@ export function proc(
     },
     Promise.resolve(ok(value)),
   );
+  if (isResult(result)) {
+    return result;
+  }
+  return ok(result);
 }
 
 /**
