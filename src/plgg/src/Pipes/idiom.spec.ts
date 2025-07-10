@@ -13,9 +13,9 @@ import {
   Result,
 } from "plgg/index";
 import {
-  mapMaybeOk,
-  mapMaybeErr,
-  mapMaybeResult,
+  mapOkAsync,
+  mapErrAsync,
+  mapResultAsync,
   capture,
   mapProcOk,
   mapProcErr,
@@ -24,7 +24,7 @@ import {
 
 test("mapOk should transform success value", async () => {
   const double = (x: number) => ok(x * 2);
-  const result = await mapMaybeOk(double)(ok(5));
+  const result = await mapOkAsync(double)(ok(5));
 
   assert(isOk(result));
   expect(result.ok).toBe(10);
@@ -33,7 +33,7 @@ test("mapOk should transform success value", async () => {
 test("mapOk should pass through error", async () => {
   const double = (x: number): Result<number, ValidationError> => ok(x * 2);
   const error = new ValidationError({ message: "test error" });
-  const result = await mapMaybeOk(double)(err(error));
+  const result = await mapOkAsync(double)(err(error));
 
   assert(isErr(result));
   expect(result.err).toBe(error);
@@ -42,7 +42,7 @@ test("mapOk should pass through error", async () => {
 test("mapErr should transform error value", async () => {
   const handleError = (_: ValidationError) => ok("handled");
   const error = new ValidationError({ message: "test error" });
-  const result = await mapMaybeErr(handleError)(err(error));
+  const result = await mapErrAsync(handleError)(err(error));
 
   assert(isOk(result));
   expect(result.ok).toBe("handled");
@@ -50,7 +50,7 @@ test("mapErr should transform error value", async () => {
 
 test("mapErr should pass through success", async () => {
   const handleError = (_: ValidationError) => ok("handled");
-  const result = await mapMaybeErr(handleError)(
+  const result = await mapErrAsync(handleError)(
     ok<string, ValidationError>("success"),
   );
 
@@ -61,7 +61,7 @@ test("mapErr should pass through success", async () => {
 test("mapResult should handle success case", async () => {
   const onOk = (x: number) => ok(x * 2);
   const onErr = (_: ValidationError) => ok(0);
-  const result = await mapMaybeResult(onOk, onErr)(ok(5));
+  const result = await mapResultAsync(onOk, onErr)(ok(5));
 
   assert(isOk(result));
   expect(result.ok).toBe(10);

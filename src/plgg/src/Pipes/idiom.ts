@@ -44,7 +44,7 @@ export const mapResult =
 /**
  * Maps Result success value with async function, leaving errors unchanged.
  */
-export const mapMaybeOk =
+export const mapOkAsync =
   <T, U, F = Error>(fn: (value: T) => MaybePromise<Result<U, F>>) =>
   async (result: Result<T, F>): Promise<Result<U, F>> =>
     isOk(result) ? await fn(result.ok) : result;
@@ -52,7 +52,7 @@ export const mapMaybeOk =
 /**
  * Maps Result error value with async function, leaving success values unchanged.
  */
-export const mapMaybeErr =
+export const mapErrAsync =
   <T, U, F = Error>(fn: (error: F) => MaybePromise<Result<T, U>>) =>
   async (result: Result<T, F>): Promise<Result<T, U>> =>
     isOk(result) ? result : await fn(result.err);
@@ -61,7 +61,7 @@ export const mapMaybeErr =
  * Pattern matches on a Result, applying the appropriate async function based on the variant.
  * This enables handling both success and error cases in a type-safe way.
  */
-export const mapMaybeResult =
+export const mapResultAsync =
   <T, U, F = Error>(
     onOk: (value: T) => MaybePromise<Result<U, F>>,
     onErr: (error: F) => MaybePromise<Result<U, F>>,
@@ -187,6 +187,24 @@ export const tryCatch =
   (arg: T): Result<U, E> => {
     try {
       return ok(fn(arg));
+    } catch (error: unknown) {
+      return err(errorHandler(error));
+    }
+  };
+
+export const tryCatchAsync =
+  <T, U, E = Error>(
+    fn: (arg: T) => MaybePromise<U>,
+    errorHandler: (error: unknown) => E = (error: unknown) => {
+      if (error instanceof Error) {
+        return new Error(`Operation failed: ${error.message}`) as unknown as E;
+      }
+      return new Error("Unexpected error occurred") as unknown as E;
+    },
+  ) =>
+  async (arg: T): Promise<Result<U, E>> => {
+    try {
+      return ok(await fn(arg));
     } catch (error: unknown) {
       return err(errorHandler(error));
     }
