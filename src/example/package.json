@@ -2,11 +2,17 @@
   "name": "@plgg/example",
   "version": "0.0.2",
   "description": "Example of using plgg",
-  "main": "dist/index.umd.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
   "exports": {
-    "import": "./dist/index.es.js",
-    "require": "./dist/index.cjs.js"
+    "import": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.es.js"
+    },
+    "require": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.cjs.js"
+    }
   },
   "types": "dist/index.d.ts",
   "scripts": {
