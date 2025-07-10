@@ -4,29 +4,33 @@ import {
   validate,
   ValidationError,
   Str,
-  Obj,
+  castObj,
+  castProp,
   Time,
   Num,
+  castNum,
+  castTime,
+  castStr,
   isOk,
   isErr,
 } from "plgg/index";
 
 test("validate", async () => {
   type Article = {
-    id: Num.t;
-    createdAt: Time.t;
-    name: Str.t;
+    id: Num;
+    createdAt: Time;
+    name: Str;
   };
-  const cast = (v: unknown): Result<Article, ValidationError> =>
+  const castArticle = (v: unknown): Result<Article, ValidationError> =>
     validate(
       v,
-      Obj.cast,
-      Obj.prop("id", Num.cast),
-      Obj.prop("createdAt", Time.cast),
-      Obj.prop("name", Str.cast),
+      castObj,
+      castProp("id", castNum),
+      castProp("createdAt", castTime),
+      castProp("name", castStr),
     );
 
-  const result = cast({
+  const result = castArticle({
     id: 20,
     createdAt: "2023-10-01T12:00:00Z",
     name: "Test Article",
@@ -34,7 +38,7 @@ test("validate", async () => {
   expect(isOk(result)).toBe(true);
 
   // not ok
-  const result2 = cast({
+  const result2 = castArticle({
     id: "20",
     createdAt: "xxx",
     name: 123,

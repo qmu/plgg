@@ -3,18 +3,19 @@ import { ok, err, Result, ValidationError } from "plgg/index";
 /**
  * Number primitive type.
  */
-export type t = number;
+export type Num = number;
 
 /**
  * Type guard for number.
  */
-export const is = (value: unknown): value is t => typeof value === "number";
+export const isNum = (value: unknown): value is Num =>
+  typeof value === "number";
 
 /**
  * Type guard for number.
  */
-export const cast = (value: unknown): Result<t, ValidationError> =>
-  is(value)
+export const castNum = (value: unknown): Result<Num, ValidationError> =>
+  isNum(value)
     ? ok(value)
     : err(new ValidationError({ message: "Value is not a number" }));
 
@@ -23,7 +24,7 @@ export const cast = (value: unknown): Result<t, ValidationError> =>
  */
 export const gt =
   (min: number) =>
-  (a: number): Result<t, ValidationError> =>
+  (a: number): Result<Num, ValidationError> =>
     a > min
       ? ok(a)
       : err(
@@ -36,7 +37,7 @@ export const gt =
  */
 export const lt =
   (max: number) =>
-  (a: number): Result<t, ValidationError> =>
+  (a: number): Result<Num, ValidationError> =>
     a < max
       ? ok(a)
       : err(

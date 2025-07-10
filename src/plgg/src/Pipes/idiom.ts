@@ -73,7 +73,7 @@ export const mapMaybeResult =
  * If the Procedural is successful, applies the function to the success value.
  */
 export const mapProcOk =
-  <T, U, F = DomainError.t>(fn: (value: T) => Procedural<U, F>) =>
+  <T, U, F = DomainError>(fn: (value: T) => Procedural<U, F>) =>
   async (plgg: Procedural<T, F>): Procedural<U, F> => {
     const result = await plgg;
     return isOk(result) ? await fn(result.ok) : result;
@@ -84,7 +84,7 @@ export const mapProcOk =
  * If the Procedural is an error, applies the function to the error value.
  */
 export const mapProcErr =
-  <T, U, F = DomainError.t>(fn: (error: F) => Procedural<T, U>) =>
+  <T, U, F = DomainError>(fn: (error: F) => Procedural<T, U>) =>
   async (plgg: Procedural<T, F>): Procedural<T, U> => {
     const result = await plgg;
     return isOk(result) ? result : await fn(result.err);
@@ -95,9 +95,7 @@ export const mapProcErr =
  * Captures and transforms errors while preserving success values.
  */
 export const capture =
-  <T, E1 extends DomainError.t, E2 extends DomainError.t>(
-    f: (error: E1) => E2,
-  ) =>
+  <T, E1 extends DomainError, E2 extends DomainError>(f: (error: E1) => E2) =>
   async (plgg: Procedural<T, E1>): Procedural<T, E2> => {
     const result = await plgg;
     return isErr(result) ? fail(f(result.err)) : result;
@@ -114,7 +112,7 @@ export const lift =
 /**
  * Handles a Procedural value, executing a function on error.
  */
-export const handle = async <T, E extends DomainError.t>(
+export const handle = async <T, E extends DomainError>(
   value: Procedural<T, E>,
   onError: (p: E) => E,
 ): Procedural<T> => {
@@ -138,7 +136,7 @@ export const tap =
  * Useful for logging, debugging, or other side effects.
  */
 export const tapProc =
-  <T, F = DomainError.t>(fn: (value: T) => void) =>
+  <T, F = DomainError>(fn: (value: T) => void) =>
   async (plgg: Procedural<T, F>): Procedural<T, F> => {
     const result = await plgg;
     if (isOk(result)) {
