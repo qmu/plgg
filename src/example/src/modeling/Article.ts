@@ -2,43 +2,44 @@ import {
   Result,
   ValidationError,
   BrandStr,
-  Str,
-  Obj,
+  castBrandStr,
+  castStr,
+  lenGt,
+  castObj,
+  castProp,
+  castOptionalProp,
   Time,
+  castTime,
   Option,
   validate,
 } from "plgg";
 
-export namespace Id {
-  export type t = BrandStr.t<"ArticleId">;
-  export const cast = (v: unknown): Result<t, ValidationError> =>
-    validate(v, BrandStr.cast<"ArticleId">);
-}
+type Id = BrandStr<"ArticleId">;
+const castId = (v: unknown): Result<Id, ValidationError> =>
+  validate(v, castBrandStr<"ArticleId">);
 
-export namespace Name {
-  export type t = BrandStr.t<"ArticleName">;
-  export const cast = (v: unknown): Result<t, ValidationError> =>
-    validate(
-      v,
-      Str.cast,
-      Str.lenGt(3) /* enforce minimum length */,
-      BrandStr.cast<"ArticleName">,
-    );
-}
+type Name = BrandStr<"ArticleName">;
+const castName = (v: unknown): Result<Name, ValidationError> =>
+  validate(
+    v,
+    castStr,
+    lenGt(3) /* enforce minimum length */,
+    castBrandStr<"ArticleName">,
+  );
 
-export type t = {
-  id: Id.t;
-  createdAt: Time.t;
-  name: Name.t;
+export type Article = {
+  id: Id;
+  createdAt: Time;
+  name: Name;
   memo: Option<string>;
 };
 
-export const cast = (v: unknown): Result<t, ValidationError> =>
+export const castArticle = (v: unknown): Result<Article, ValidationError> =>
   validate(
     v,
-    Obj.cast,
-    Obj.prop("id", Id.cast),
-    Obj.prop("createdAt", Time.cast),
-    Obj.prop("name", Name.cast),
-    Obj.optional("memo", Str.cast),
+    castObj,
+    castProp("id", castId),
+    castProp("createdAt", castTime),
+    castProp("name", castName),
+    castOptionalProp("memo", castStr),
   );
