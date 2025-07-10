@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { success, fail, isOk, isErr } from "plgg/index";
+import { isResult, success, fail, isOk } from "plgg/index";
 
 test("success creates successful Procedural", async () => {
   const result = await success("test value");
@@ -8,8 +8,10 @@ test("success creates successful Procedural", async () => {
 });
 
 test("fail creates failed Procedural", async () => {
-  const result = await fail("test error");
-  assert(isErr(result));
-  expect(result.err).toBe("test error");
+  const err = new Error("test error");
+  const result = await fail(err);
+  if (!isResult(result) || isOk(result)) {
+    assert.fail("Expected error, but got success");
+  }
+  expect(result.err).toBe(err);
 });
-

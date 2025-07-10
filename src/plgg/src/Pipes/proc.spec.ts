@@ -1,11 +1,21 @@
 import { test, expect, assert } from "vitest";
-import { lift, proc, isErr, isOk, fail, ValidationError } from "plgg/index";
+import {
+  isResult,
+  lift,
+  proc,
+  isErr,
+  isOk,
+  fail,
+  ok,
+  ValidationError,
+  Result,
+} from "plgg/index";
 
 test("proc with single function", async () => {
   const double = (x: number) => x * 2;
 
   const result = await proc(5, lift(double));
-  if (isErr(result)) {
+  if (!isResult(result) || isErr(result)) {
     assert.fail("Expected success, but got error");
   }
   expect(result.ok).toBe(10);
@@ -25,8 +35,21 @@ test("proc with error in chain", async () => {
   const failFn = (_: number) =>
     fail<number>(new ValidationError({ message: "Test error" }));
   const triple = (x: number) => x * 3;
+  const asyncFn = (x: number): Promise<number> =>
+    new Promise((resolve) => setTimeout(() => resolve(x * 4), 100));
+  const resultFn = (x: number) => ok(x * 5);
+  const asyncResultFn = async (x: number): Promise<Result<number, never>> =>
+    new Promise((resolve) => setTimeout(() => resolve(ok(x * 6)), 100));
 
-  const result = await proc(5, lift(double), failFn, lift(triple));
+  const result = await proc(
+    5,
+    double,
+    asyncFn,
+    resultFn,
+    asyncResultFn,
+    failFn,
+    triple,
+  );
   assert(isErr(result));
   expect(result.err.message).toBe("Test error");
 });
