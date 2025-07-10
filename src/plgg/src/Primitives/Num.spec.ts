@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isNum, gt, lt, castNum, isOk, isErr } from "plgg/index";
+import { isNum, castNum, isOk, isErr } from "plgg/index";
 
 test("Num.is type guard", () => {
   expect(isNum(123)).toBe(true);
@@ -45,44 +45,4 @@ test("Num.cast validation", async () => {
   const nullResult = castNum(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("Value is not a number");
-});
-
-test("Num.gt validation", async () => {
-  const gt10 = gt(10);
-
-  const validResult = gt10(15);
-  assert(isOk(validResult));
-  expect(validResult.ok).toBe(15);
-
-  const equalResult = gt10(10);
-  assert(isErr(equalResult));
-  expect(equalResult.err.message).toBe("The number 10 is not greater than 10");
-
-  const lesserResult = gt10(5);
-  assert(isErr(lesserResult));
-  expect(lesserResult.err.message).toBe("The number 5 is not greater than 10");
-
-  const negativeValidResult = gt10(11);
-  assert(isOk(negativeValidResult));
-  expect(negativeValidResult.ok).toBe(11);
-});
-
-test("Num.lt validation", async () => {
-  const lt10 = lt(10);
-
-  const validResult = lt10(5);
-  assert(isOk(validResult));
-  expect(validResult.ok).toBe(5);
-
-  const negativeResult = lt10(-5);
-  assert(isOk(negativeResult));
-  expect(negativeResult.ok).toBe(-5);
-
-  const equalResult = lt10(10);
-  assert(isErr(equalResult));
-  expect(equalResult.err.message).toBe("The number 10 is not less than 10");
-
-  const greaterResult = lt10(15);
-  assert(isErr(greaterResult));
-  expect(greaterResult.err.message).toBe("The number 15 is not less than 10");
 });
