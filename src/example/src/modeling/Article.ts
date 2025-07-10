@@ -4,7 +4,6 @@ import {
   BrandStr,
   castBrandStr,
   castStr,
-  lenGt,
   castObj,
   castProp,
   castOptionalProp,
@@ -12,6 +11,7 @@ import {
   castTime,
   Option,
   validate,
+  refine,
 } from "plgg";
 
 type Id = BrandStr<"ArticleId">;
@@ -23,7 +23,7 @@ const castName = (v: unknown): Result<Name, ValidationError> =>
   validate(
     v,
     castStr,
-    lenGt(3) /* enforce minimum length */,
+    refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
     castBrandStr<"ArticleName">,
   );
 
