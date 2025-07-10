@@ -13,24 +13,26 @@ import {
 /**
  * Object type with primitive values.
  */
-export type t = Readonly<Record<string, unknown>>;
+export type Obj = Readonly<Record<string, unknown>>;
 
 /**
  * Type guard for object.
  */
-export const is = (value: unknown): value is t =>
+export const isObj = (value: unknown): value is Obj =>
   typeof value === "object" && value !== null;
 
 /**
  * Validates and casts to object with primitives.
  */
-export const cast = (value: unknown): Result<t, ValidationError> =>
-  is(value) ? ok(value) : err(new ValidationError({ message: "Not object" }));
+export const castObj = (value: unknown): Result<Obj, ValidationError> =>
+  isObj(value)
+    ? ok(value)
+    : err(new ValidationError({ message: "Not object" }));
 
 /**
  * Validates object property with predicate.
  */
-export const prop =
+export const castProp =
   <T extends string, U>(
     key: T,
     predicate: (a: unknown) => Result<U, ValidationError>,
@@ -54,7 +56,7 @@ export const prop =
 /**
  * Validates optional object property with predicate.
  */
-export const optional =
+export const castOptionalProp =
   <T extends string, U>(
     key: T,
     predicate: (a: unknown) => Result<U, ValidationError>,

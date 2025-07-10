@@ -1,18 +1,12 @@
 {
-  "name": "@plgg/example",
-  "version": "0.0.2",
-  "description": "Example of using plgg",
+  "name": "@plgg/llm",
+  "version": "0.0.1",
+  "description": "LLMs plugin for plgg",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
-    "import": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.es.js"
-    },
-    "require": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.cjs.js"
-    }
+    "import": "./dist/index.es.js",
+    "require": "./dist/index.cjs.js"
   },
   "types": "dist/index.d.ts",
   "scripts": {
@@ -22,7 +16,8 @@
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage",
-    "coverage:watch": "vitest --coverage"
+    "coverage:watch": "vitest --coverage",
+    "publish": "vite build && npm publish"
   },
   "repository": {
     "type": "git",

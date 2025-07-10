@@ -1,4 +1,11 @@
-import { isOk, fail, ok, Procedural, DomainError, Exception } from "plgg/index";
+import {
+  isOk,
+  fail,
+  ok,
+  Procedural,
+  isDomainError,
+  Exception,
+} from "plgg/index";
 
 /**
  * Async function composition with error short-circuiting for Procedural types.
@@ -38,7 +45,7 @@ export function proc(
         const current = await acc;
         return isOk(current) ? fn(current.ok) : current;
       } catch (e: unknown) {
-        return DomainError.is(e)
+        return isDomainError(e)
           ? fail(e)
           : e instanceof Error
             ? fail(new Exception("Unexpected error in proc", e))

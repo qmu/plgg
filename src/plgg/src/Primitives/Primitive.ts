@@ -6,28 +6,35 @@ import {
   Bool,
   BrandBool,
   Time,
+  isBool,
+  isBrandBool,
+  isNum,
+  isBrandNum,
+  isStr,
+  isBrandStr,
+  isTime,
 } from "plgg/index";
 
 /**
  * Union of all primitive types.
  */
-export type t =
-  | Str.t
-  | BrandStr.t<string>
-  | Num.t
-  | BrandNum.t<string>
-  | Bool.t
-  | BrandBool.t<string>
-  | Time.t;
+export type Primitive =
+  | Str
+  | BrandStr<string>
+  | Num
+  | BrandNum<string>
+  | Bool
+  | BrandBool<string>
+  | Time;
 
 /**
  * Type guard for any primitive.
  */
-export const is = (value: unknown): value is t =>
-  Str.is(value) ||
-  BrandStr.is(value) ||
-  Num.is(value) ||
-  BrandNum.is(value) ||
-  Bool.is(value) ||
-  BrandBool.is(value) ||
-  Time.is(value);
+export const isPrimitive = (value: unknown): value is Primitive =>
+  isStr(value) ||
+  isBrandStr(value) ||
+  isNum(value) ||
+  isBrandNum(value) ||
+  isBool(value) ||
+  isBrandBool(value) ||
+  isTime(value);
