@@ -1,10 +1,8 @@
 import { test, expect, assert } from "vitest";
 import {
   lift,
-  proc,
   isErr,
   isOk,
-  handle,
   ValidationError,
   success,
   fail,
@@ -16,7 +14,6 @@ import {
   mapOkAsync,
   mapErrAsync,
   mapResultAsync,
-  capture,
   mapProcOk,
   mapProcErr,
   tap,
@@ -94,30 +91,11 @@ test("mapProcErr should transform error value", async () => {
 });
 
 test("mapProcErr should pass through success", async () => {
-  const handleError = (_: ValidationError) => success("handled");
+  const handleError = (_: ValidationError) => success<string>("handled");
   const result = await mapProcErr(handleError)(success("test"));
 
   assert(isOk(result));
   expect(result.ok).toBe("test");
-});
-
-test("capture should transform error type", async () => {
-  const transformError = (e: ValidationError) =>
-    new ValidationError({ message: "captured: " + e.message });
-  const error = new ValidationError({ message: "original error" });
-  const result = await capture(transformError)(fail(error));
-
-  assert(isErr(result));
-  expect(result.err.message).toBe("captured: original error");
-});
-
-test("capture should pass through success", async () => {
-  const transformError = (e: ValidationError) =>
-    new ValidationError({ message: "captured: " + e.message });
-  const result = await capture(transformError)(success(42));
-
-  assert(isOk(result));
-  expect(result.ok).toBe(42);
 });
 
 test("lift should create Procedural from sync function", async () => {
@@ -125,34 +103,6 @@ test("lift should create Procedural from sync function", async () => {
   const result = await lift(double)(5);
 
   assert(isOk(result));
-  expect(result.ok).toBe(10);
-});
-
-test("handle should transform error", async () => {
-  const originalError = new ValidationError({ message: "original" });
-  const errorProc = fail(originalError);
-
-  const result = await handle(
-    errorProc,
-    (er) => new ValidationError({ message: "Error occurred", parent: er }),
-  );
-
-  assert(isErr(result));
-  expect(result.err.message).toBe("Error occurred");
-});
-
-test("handle should pass through success", async () => {
-  const result = await handle(
-    proc(
-      5,
-      lift((x: number) => x * 2),
-    ),
-    (er) => new ValidationError({ message: "Error occurred", parent: er }),
-  );
-
-  if (isErr(result)) {
-    assert.fail("Expected success, but got error");
-  }
   expect(result.ok).toBe(10);
 });
 

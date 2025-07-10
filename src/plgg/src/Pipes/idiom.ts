@@ -1,16 +1,16 @@
 import {
   isOk,
   isErr,
-  fail,
   Result,
   MaybePromise,
   Procedural,
-  DomainError,
   success,
   pipe,
   ok,
   err,
   ValidationError,
+  isResult,
+  isPromise,
 } from "plgg/index";
 
 /**
@@ -74,10 +74,20 @@ export const mapResultAsync =
  * If the Procedural is successful, applies the function to the success value.
  */
 export const mapProcOk =
-  <T, U, F = DomainError>(fn: (value: T) => Procedural<U, F>) =>
-  async (plgg: Procedural<T, F>): Procedural<U, F> => {
-    const result = await plgg;
-    return isOk(result) ? await fn(result.ok) : result;
+  <T, U, F extends Error = Error>(fn: (value: T) => Procedural<U, F>) =>
+  (value: Procedural<T, F>): Procedural<U, F> => {
+    if (isPromise(value)) {
+      return value.then((result) => {
+        if (isResult(result)) {
+          return isOk(result) ? fn(result.ok) : result;
+        }
+        return fn(result);
+      });
+    }
+    if (isResult(value)) {
+      return isOk(value) ? fn(value.ok) : value;
+    }
+    return fn(value);
   };
 
 /**
@@ -85,21 +95,22 @@ export const mapProcOk =
  * If the Procedural is an error, applies the function to the error value.
  */
 export const mapProcErr =
-  <T, U, F = DomainError>(fn: (error: F) => Procedural<T, U>) =>
-  async (plgg: Procedural<T, F>): Procedural<T, U> => {
-    const result = await plgg;
-    return isOk(result) ? result : await fn(result.err);
-  };
-
-/**
- * Transforms Procedural error into new error type.
- * Captures and transforms errors while preserving success values.
- */
-export const capture =
-  <T, E1 extends DomainError, E2 extends DomainError>(f: (error: E1) => E2) =>
-  async (plgg: Procedural<T, E1>): Procedural<T, E2> => {
-    const result = await plgg;
-    return isErr(result) ? fail(f(result.err)) : result;
+  <T, U extends Error, F extends Error = Error>(
+    fn: (error: F) => Procedural<T, U>,
+  ) =>
+  (value: Procedural<T, F>): Procedural<T, U> => {
+    if (isPromise(value)) {
+      return value.then((result) => {
+        if (isResult(result)) {
+          return isErr(result) ? fn(result.err) : result;
+        }
+        return result;
+      });
+    }
+    if (isResult(value)) {
+      return isOk(value) ? value : fn(value.err);
+    }
+    return value;
   };
 
 /**
@@ -111,17 +122,6 @@ export const lift =
     success(f(a));
 
 /**
- * Handles a Procedural value, executing a function on error.
- */
-export const handle = async <T, E extends DomainError>(
-  value: Procedural<T, E>,
-  onError: (p: E) => E,
-): Procedural<T> => {
-  const result = await value;
-  return isErr(result) ? fail(onError(result.err)) : value;
-};
-
-/**
  * Executes a side effect function on the success value of a Result without changing the Result.
  * Useful for logging, debugging, or other side effects.
  */
@@ -129,20 +129,6 @@ export const tap =
   <T, F = Error>(fn: (value: Result<T, F>) => void) =>
   (result: Result<T, F>): Result<T, F> => {
     fn(result);
-    return result;
-  };
-
-/**
- * Executes a side effect function on the success value of a Procedural without changing the Procedural.
- * Useful for logging, debugging, or other side effects.
- */
-export const tapProc =
-  <T, F = DomainError>(fn: (value: T) => void) =>
-  async (plgg: Procedural<T, F>): Procedural<T, F> => {
-    const result = await plgg;
-    if (isOk(result)) {
-      fn(result.ok);
-    }
     return result;
   };
 
