@@ -5,11 +5,6 @@ import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      plgg: path.resolve(__dirname, "./src"),
-    },
-  },
   test: {
     coverage: {
       all: true,
@@ -19,7 +14,7 @@ export default defineConfig({
     outDir: "dist",
     lib: {
       entry: "src/index.ts",
-      name: "plgg",
+      name: "plgg-example",
       fileName: (format) => `index.${format}.js`,
       formats: ["es", "cjs"],
     },
