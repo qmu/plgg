@@ -1,6 +1,5 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
-# --------- (End of Boilerplate) ---------
 
 echo "=== Running 'npm install' in src/plgg and src/example ==="
 cd $REPO_ROOT/src/plgg && npm install
