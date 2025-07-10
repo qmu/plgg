@@ -10,6 +10,7 @@ import {
   pipe,
   ok,
   err,
+  ValidationError,
 } from "plgg/index";
 
 /**
@@ -213,3 +214,16 @@ export const ifElse =
 
 type OptionFunction<T, U = T> = (x: T) => U;
 type PredicateFunction<T> = (x: T) => boolean;
+
+export const refine =
+  <T>(predicate: (arg: T) => boolean, errMessage?: string) =>
+  (a: T): Result<T, ValidationError> =>
+    predicate(a)
+      ? ok(a)
+      : err(
+          new ValidationError({
+            message: errMessage
+              ? errMessage
+              : `The string ${a} is not valid according to the predicate`,
+          }),
+        );
