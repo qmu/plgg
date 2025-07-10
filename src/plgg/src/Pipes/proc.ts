@@ -5,6 +5,7 @@ import {
   Procedural,
   isDomainError,
   Exception,
+  isResult,
 } from "plgg/index";
 
 /**
@@ -43,7 +44,10 @@ export function proc(
     async (acc: Procedural<unknown>, fn: ChainFn) => {
       try {
         const current = await acc;
-        return isOk(current) ? fn(current.ok) : current;
+        if (isResult(current)) {
+          return isOk(current) ? fn(current.ok) : current;
+        }
+        return fn(current);
       } catch (e: unknown) {
         return isDomainError(e)
           ? fail(e)
