@@ -55,9 +55,11 @@ export const err = <F, T = never>(e: F): Result<T, F> => {
 /**
  * Type guard to check if a Result is an Ok.
  */
-export const isOk = <T, F>(e: Result<T, F>): e is Ok<T> => e._tag === "Ok";
+export const isOk = <T, F>(e: unknown): e is Ok<T> =>
+  isResult<T, F>(e) && e._tag === "Ok";
 
 /**
  * Type guard to check if a Result is an Err.
  */
-export const isErr = <T, F>(e: Result<T, F>): e is Err<F> => e._tag === "Err";
+export const isErr = <T, F>(e: unknown): e is Err<F> =>
+  isResult<T, F>(e) && e._tag === "Err";
