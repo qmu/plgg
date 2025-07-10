@@ -1,26 +1,26 @@
-import { Result, ok, err, ValidationError, Str } from "plgg/index";
+import { Result, ok, err, ValidationError, isStr } from "plgg/index";
 
 /**
  * Date type.
  */
-export type t = Date;
+export type Time = Date;
 
 /**
  * Type guard for Date.
  */
-export const is = (value: unknown): value is t => value instanceof Date;
+export const isTime = (value: unknown): value is Time => value instanceof Date;
 
 /**
  * Type guard for date string.
  */
 const isDateString = (value: unknown): value is string =>
-  Str.is(value) && !isNaN(new Date(value).getTime());
+  isStr(value) && !isNaN(new Date(value).getTime());
 
 /**
  * Validates and casts to Date.
  */
-export const cast = (value: unknown): Result<t, ValidationError> =>
-  is(value)
+export const castTime = (value: unknown): Result<Time, ValidationError> =>
+  isTime(value)
     ? ok(value)
     : isDateString(value)
       ? ok(new Date(value))

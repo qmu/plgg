@@ -1,32 +1,32 @@
 import { test, expect } from "vitest";
-import { Primitive } from "plgg/index";
+import { isPrimitive } from "plgg/index";
 
 test("Primitive.is type guard", () => {
   // String primitives
-  expect(Primitive.is("hello")).toBe(true);
-  expect(Primitive.is("")).toBe(true);
-  
+  expect(isPrimitive("hello")).toBe(true);
+  expect(isPrimitive("")).toBe(true);
+
   // Number primitives
-  expect(Primitive.is(123)).toBe(true);
-  expect(Primitive.is(0)).toBe(true);
-  expect(Primitive.is(-123)).toBe(true);
-  expect(Primitive.is(3.14)).toBe(true);
-  
+  expect(isPrimitive(123)).toBe(true);
+  expect(isPrimitive(0)).toBe(true);
+  expect(isPrimitive(-123)).toBe(true);
+  expect(isPrimitive(3.14)).toBe(true);
+
   // Boolean primitives
-  expect(Primitive.is(true)).toBe(true);
-  expect(Primitive.is(false)).toBe(true);
-  
+  expect(isPrimitive(true)).toBe(true);
+  expect(isPrimitive(false)).toBe(true);
+
   // Date primitives
-  expect(Primitive.is(new Date())).toBe(true);
-  expect(Primitive.is(new Date("2023-01-01"))).toBe(true);
-  
+  expect(isPrimitive(new Date())).toBe(true);
+  expect(isPrimitive(new Date("2023-01-01"))).toBe(true);
+
   // Non-primitives
-  expect(Primitive.is({})).toBe(false);
-  expect(Primitive.is([])).toBe(false);
-  expect(Primitive.is(null)).toBe(false);
-  expect(Primitive.is(undefined)).toBe(false);
-  expect(Primitive.is(Symbol("test"))).toBe(false);
-  expect(Primitive.is(() => {})).toBe(false);
+  expect(isPrimitive({})).toBe(false);
+  expect(isPrimitive([])).toBe(false);
+  expect(isPrimitive(null)).toBe(false);
+  expect(isPrimitive(undefined)).toBe(false);
+  expect(isPrimitive(Symbol("test"))).toBe(false);
+  expect(isPrimitive(() => {})).toBe(false);
 });
 
 test("Primitive.is covers all primitive types", () => {
@@ -38,12 +38,12 @@ test("Primitive.is covers all primitive types", () => {
     false,
     new Date(),
     "branded string" as any, // Branded strings are still strings
-    42 as any, // Branded numbers are still numbers  
+    42 as any, // Branded numbers are still numbers
     true as any, // Branded booleans are still booleans
   ];
-  
-  testValues.forEach(value => {
-    expect(Primitive.is(value)).toBe(true);
+
+  testValues.forEach((value) => {
+    expect(isPrimitive(value)).toBe(true);
   });
 });
 
@@ -60,8 +60,9 @@ test("Primitive.is rejects non-primitive types", () => {
     /regex/,
     new Error("test"),
   ];
-  
-  nonPrimitives.forEach(value => {
-    expect(Primitive.is(value)).toBe(false);
+
+  nonPrimitives.forEach((value) => {
+    expect(isPrimitive(value)).toBe(false);
   });
 });
+
