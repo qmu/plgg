@@ -101,3 +101,35 @@ test("DomainError type alias", () => {
   expect(error instanceof ValidationError).toBe(true);
   expect(error instanceof BaseError).toBe(true);
 });
+
+test("DomainError.debug with error having no stack trace", () => {
+  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  
+  const error = new ValidationError({ message: "No stack error" });
+  // Create an error without stack by using Object.defineProperty
+  Object.defineProperty(error, 'stack', { value: undefined });
+  
+  printDomainError(error);
+  
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.not.stringContaining(" at ")
+  );
+  
+  consoleSpy.mockRestore();
+});
+
+test("DomainError.debug with error having malformed stack", () => {
+  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  
+  const error = new ValidationError({ message: "Malformed stack error" });
+  // Set a malformed stack (only one line)
+  Object.defineProperty(error, 'stack', { value: "Error: Malformed stack error" });
+  
+  printDomainError(error);
+  
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.not.stringContaining(" at ")
+  );
+  
+  consoleSpy.mockRestore();
+});

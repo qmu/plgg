@@ -8,9 +8,11 @@ import {
   hasProp,
   Time,
   Num,
+  Bool,
   asNum,
   asTime,
   asStr,
+  asBool,
   isOk,
   isErr,
   refine,
@@ -168,5 +170,101 @@ test("cast stops on first validation failure when not accumulating errors", () =
   const result = validateSequentially(-5);
   assert(isErr(result));
   expect(result.err.message).toBe("Must be positive");
+});
+
+test("cast with higher arity functions (5+ parameters)", () => {
+  // Test validation chains with 5+ parameters to exercise more overloads
+  type ComplexObject = {
+    field1: Str;
+    field2: Num;
+    field3: Bool;
+    field4: Str;
+    field5: Num;
+    field6: Bool;
+    field7: Str;
+  };
+
+  const asComplexObject = (data: unknown): Result<ComplexObject, ValidationError> =>
+    cast(
+      data,
+      asObj,
+      hasProp("field1", asStr),
+      hasProp("field2", asNum),
+      hasProp("field3", asBool),
+      hasProp("field4", asStr),
+      hasProp("field5", asNum),
+      hasProp("field6", asBool),
+      hasProp("field7", asStr),
+    );
+
+  const validData = {
+    field1: "test1",
+    field2: 42,
+    field3: true,
+    field4: "test2",
+    field5: 99,
+    field6: false,
+    field7: "test3",
+  };
+
+  const result = asComplexObject(validData);
+  assert(isOk(result));
+  expect(result.ok.field1).toBe("test1");
+  expect(result.ok.field7).toBe("test3");
+});
+
+test("cast handles functions that throw exceptions", () => {
+  // Test exception handling in validation functions
+  const throwingValidator = (_: unknown): Result<unknown, ValidationError> => {
+    throw new Error("Validation exception");
+  };
+
+  const result = cast("test", throwingValidator);
+  assert(isErr(result));
+  expect(result.err.message).toBe("Validation failed");
+});
+
+test("cast handles non-Error exceptions", () => {
+  // Test conversion of non-Error exceptions
+  const throwingValidator = (_: unknown): Result<unknown, ValidationError> => {
+    throw "String exception";
+  };
+
+  const result = cast("test", throwingValidator);
+  assert(isErr(result));
+  expect(result.err.message).toBe("Validation failed");
+});
+
+test("cast with maximum parameters (20 functions)", () => {
+  // Test with many validation functions to exercise highest-arity overloads
+  const identity = (x: unknown) => ({ _tag: "Ok" as const, ok: x });
+  
+  const result = cast(
+    "test",
+    identity, identity, identity, identity, identity,
+    identity, identity, identity, identity, identity,
+    identity, identity, identity, identity, identity,
+    identity, identity, identity, identity, identity
+  );
+  
+  assert(isOk(result));
+  expect(result.ok).toBe("test");
+});
+
+test("cast aggregates multiple validation errors", () => {
+  // Test error accumulation when multiple validations fail
+  const alwaysFail1 = (_: unknown): Result<unknown, ValidationError> => 
+    ({ _tag: "Err" as const, err: new ValidationError({ message: "Error 1" }) });
+  const alwaysFail2 = (_: unknown): Result<unknown, ValidationError> => 
+    ({ _tag: "Err" as const, err: new ValidationError({ message: "Error 2" }) });
+  const alwaysFail3 = (_: unknown): Result<unknown, ValidationError> => 
+    ({ _tag: "Err" as const, err: new ValidationError({ message: "Error 3" }) });
+
+  const result = cast("test", alwaysFail1, alwaysFail2, alwaysFail3);
+  assert(isErr(result));
+  expect(result.err.sibling?.length).toBe(3);
+  expect(result.err.sibling?.[0]?.message).toBe("Error 1");
+  expect(result.err.sibling?.[1]?.message).toBe("Error 2");
+  expect(result.err.sibling?.[2]?.message).toBe("Error 3");
 });
 

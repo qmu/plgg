@@ -155,3 +155,32 @@ test("ifElse provides conditional branching", () => {
   expect(processNumber(4)).toBe("4 is even");
   expect(processNumber(5)).toBe("5 is odd");
 });
+
+test("refine with default error message", () => {
+  // Test refine function without custom error message
+  const isPositive = (n: number) => n > 0;
+  const validatePositive = refine(isPositive);
+  
+  const invalidResult = validatePositive(-5);
+  assert(isErr(invalidResult));
+  expect(invalidResult.err.message).toBe("The value -5 is not valid according to the predicate");
+});
+
+test("tryCatch with default error handler", () => {
+  // Test tryCatch without custom error handler
+  const throwingFunction = (input: string) => {
+    if (input === "error") throw new Error("Custom error");
+    if (input === "string") throw "String error";
+    return input.toUpperCase();
+  };
+
+  const safeThrowing = tryCatch(throwingFunction);
+  
+  const errorResult = safeThrowing("error");
+  assert(isErr(errorResult));
+  expect(errorResult.err.message).toBe("Operation failed: Custom error");
+  
+  const stringErrorResult = safeThrowing("string");
+  assert(isErr(stringErrorResult));
+  expect(stringErrorResult.err.message).toBe("Unexpected error occurred");
+});
