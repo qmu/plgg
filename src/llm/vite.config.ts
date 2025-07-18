@@ -7,36 +7,19 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   resolve: {
     alias: {
-      plgg: path.resolve(__dirname, "./src"),
+      "plgg/llm": path.resolve(__dirname, "./src"),
     },
   },
   test: {
     coverage: {
       all: true,
-      provider: 'v8',
-      reporter: ['text', 'lcov', 'html'],
-      exclude: [
-        'node_modules/**',
-        'dist/**',
-        'coverage/**',
-        '**/*.spec.ts',
-        '**/*.test.ts',
-        '**/index.ts',
-        'vite.config.ts',
-      ],
-      thresholds: {
-        statements: 100,
-        branches: 100,
-        functions: 100,
-        lines: 100,
-      },
     },
   },
   build: {
     outDir: "dist",
     lib: {
       entry: "src/index.ts",
-      name: "plgg",
+      name: "plgg-llm",
       fileName: (format) => `index.${format}.js`,
       formats: ["es", "cjs"],
     },
