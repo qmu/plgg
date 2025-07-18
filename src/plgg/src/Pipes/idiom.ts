@@ -1,12 +1,4 @@
-import {
-  isOk,
-  Result,
-  Procedural,
-  pipe,
-  ok,
-  err,
-  ValidationError,
-} from "plgg/index";
+import { isOk, Result, pipe, ok, err, ValidationError } from "plgg/index";
 
 /**
  * Maps Result success value with function, leaving errors unchanged.
@@ -37,9 +29,14 @@ export const mapResult =
     isOk(result) ? onOk(result.ok) : onErr(result.err);
 
 export const bind =
-  <T, U>(fn: (x: T) => Procedural<U>) =>
+  <T, U>(fn: (x: T) => U) =>
   (x: T) =>
     fn(x);
+
+export const debug = <T>(value: T): T => {
+  console.debug(value);
+  return value;
+};
 
 export const refine =
   <T>(predicate: (arg: T) => boolean, errMessage?: string) =>
