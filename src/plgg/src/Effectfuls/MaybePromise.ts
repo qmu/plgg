@@ -9,4 +9,7 @@ export type MaybePromise<T> = T | Promise<T>;
  */
 export const isPromise = <T>(value: MaybePromise<T>): value is Promise<T> =>
   value instanceof Promise ||
-  (typeof value === "object" && value !== null && "then" in value);
+  (typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof value.then === "function");
