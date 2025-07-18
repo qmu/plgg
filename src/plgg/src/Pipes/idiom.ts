@@ -36,24 +36,23 @@ export const mapResult =
   (result: Result<T, F>): Result<U, F> =>
     isOk(result) ? onOk(result.ok) : onErr(result.err);
 
-/**
- * Encodes data as formatted JSON string.
- */
-export const jsonEncode = (data: unknown): string =>
-  JSON.stringify(data, null, 2);
+export const bind =
+  <T, U>(fn: (x: T) => Procedural<U>) =>
+  (x: T) =>
+    fn(x);
 
-/**
- * Decodes JSON string or Buffer into unknown value, returning Result.
- */
-export const jsonDecode = (json: string | Buffer): Result<unknown, Error> =>
-  pipe(
-    json,
-    tryCatch(
-      (json) =>
-        JSON.parse(Buffer.isBuffer(json) ? json.toString("utf-8") : json),
-      (error) => toError(error),
-    ),
-  );
+export const refine =
+  <T>(predicate: (arg: T) => boolean, errMessage?: string) =>
+  (a: T): Result<T, ValidationError> =>
+    predicate(a)
+      ? ok(a)
+      : err(
+          new ValidationError({
+            message: errMessage
+              ? errMessage
+              : `The string ${a} is not valid according to the predicate`,
+          }),
+        );
 
 /**
  * Converts unknown error to Error instance.
@@ -82,11 +81,6 @@ export const tryCatch =
     }
   };
 
-export const bind =
-  <T, U>(fn: (x: T) => Procedural<U>) =>
-  (x: T) =>
-    fn(x);
-
 export const defined = <T>(value: T | undefined): Result<T, Error> =>
   value === undefined ? err(new Error("Value is undefined")) : ok(value);
 
@@ -110,15 +104,21 @@ export const ifElse =
 type OptionFunction<T, U = T> = (x: T) => U;
 type PredicateFunction<T> = (x: T) => boolean;
 
-export const refine =
-  <T>(predicate: (arg: T) => boolean, errMessage?: string) =>
-  (a: T): Result<T, ValidationError> =>
-    predicate(a)
-      ? ok(a)
-      : err(
-          new ValidationError({
-            message: errMessage
-              ? errMessage
-              : `The string ${a} is not valid according to the predicate`,
-          }),
-        );
+/**
+ * Encodes data as formatted JSON string.
+ */
+export const jsonEncode = (data: unknown): string =>
+  JSON.stringify(data, null, 2);
+
+/**
+ * Decodes JSON string or Buffer into unknown value, returning Result.
+ */
+export const jsonDecode = (json: string | Buffer): Result<unknown, Error> =>
+  pipe(
+    json,
+    tryCatch(
+      (json) =>
+        JSON.parse(Buffer.isBuffer(json) ? json.toString("utf-8") : json),
+      (error) => toError(error),
+    ),
+  );
