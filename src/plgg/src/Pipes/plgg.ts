@@ -327,8 +327,9 @@ export function plgg<
   tu: (t: T) => Plggable<U>,
 ): Promise<Result<U, Error>>;
 
-/*
- * Chains Result-returning functions with early error exit.
+/**
+ * Chains Plggable-returning functions with early error exit.
+ * Processes functions sequentially, stopping on first error.
  */
 export async function plgg(
   value: unknown,
@@ -346,8 +347,8 @@ export async function plgg(
         return isDomainError(e)
           ? fail(e)
           : e instanceof Error
-            ? fail(new Exception("Unexpected error in step", e))
-            : fail(new Exception("Unknown error in step"));
+            ? fail(new Exception("Unexpected error in plgg", e))
+            : fail(new Exception("Unknown error in plgg"));
       }
     },
     Promise.resolve(ok(value)),
@@ -359,6 +360,6 @@ export async function plgg(
 }
 
 /**
- * Function type for chain operations.
+ * Function type for plgg operations.
  */
 type ChainFn = (a: unknown) => Plggable<unknown>;

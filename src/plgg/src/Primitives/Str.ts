@@ -12,7 +12,8 @@ export const isStr = (value: unknown): value is Str =>
   typeof value === "string";
 
 /**
- * Type guard for string.
+ * Validates and casts unknown value to string.
+ * Returns Ok with string if valid, Err with ValidationError if invalid.
  */
 export const asStr = (value: unknown): Result<Str, ValidationError> =>
   isStr(value)

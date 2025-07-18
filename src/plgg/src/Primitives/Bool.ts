@@ -12,7 +12,8 @@ export const isBool = (value: unknown): value is Bool =>
   typeof value === "boolean";
 
 /**
- * Type guard for boolean.
+ * Validates and casts unknown value to boolean.
+ * Returns Ok with boolean if valid, Err with ValidationError if invalid.
  */
 export const asBool = (value: unknown): Result<Bool, ValidationError> =>
   isBool(value)

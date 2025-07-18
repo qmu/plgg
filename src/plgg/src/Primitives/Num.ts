@@ -15,7 +15,8 @@ export const isNum = (value: unknown): value is Num =>
     value <= Number.MAX_SAFE_INTEGER);
 
 /**
- * Type guard for number.
+ * Validates and casts unknown value to number.
+ * Returns Ok with number if valid, Err with ValidationError if invalid.
  */
 export const asNum = (value: unknown): Result<Num, ValidationError> =>
   isNum(value)

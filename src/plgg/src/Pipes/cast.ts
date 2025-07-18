@@ -341,8 +341,9 @@ export function cast<
   tu: (t: T) => Result<U, ERR>,
 ): Result<U, ERR>;
 
-/*
- * Chains Result-returning functions with early error exit.
+/**
+ * Synchronous composition of Result-returning functions with error accumulation.
+ * Unlike plgg (async), this processes functions sequentially and accumulates validation errors.
  */
 export function cast(
   value: unknown,
@@ -383,6 +384,6 @@ const convUnknownToValidationError = (
   );
 
 /**
- * Function type for chain operations.
+ * Function type for cast operations.
  */
 type ChainFn = (a: unknown) => Result<unknown, ValidationError>;

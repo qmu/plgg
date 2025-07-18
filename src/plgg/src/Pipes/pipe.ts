@@ -1,4 +1,4 @@
-/*
+/**
  * Type-safe function composition with overloads for inference.
  */
 export function pipe<A, B>(a: A, ab: (a: A) => B): B;

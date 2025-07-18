@@ -28,16 +28,28 @@ export const mapResult =
   (result: Result<T, F>): Result<U, F> =>
     isOk(result) ? onOk(result.ok) : onErr(result.err);
 
+/**
+ * Simple function composition utility.
+ * Applies a function to a value - useful for pipeline operations.
+ */
 export const bind =
   <T, U>(fn: (x: T) => U) =>
   (x: T) =>
     fn(x);
 
+/**
+ * Debug utility that logs a value and returns it unchanged.
+ * Useful for debugging values in pipeline operations.
+ */
 export const debug = <T>(value: T): T => {
   console.debug(value);
   return value;
 };
 
+/**
+ * Validates a value against a predicate function.
+ * Returns Ok if predicate passes, Err with ValidationError if it fails.
+ */
 export const refine =
   <T>(predicate: (arg: T) => boolean, errMessage?: string) =>
   (a: T): Result<T, ValidationError> =>
@@ -47,7 +59,7 @@ export const refine =
           new ValidationError({
             message: errMessage
               ? errMessage
-              : `The string ${a} is not valid according to the predicate`,
+              : `The value ${a} is not valid according to the predicate`,
           }),
         );
 
@@ -78,16 +90,24 @@ export const tryCatch =
     }
   };
 
+/**
+ * Checks if a value is defined (not undefined).
+ * Returns Ok with the value if defined, Err if undefined.
+ */
 export const defined = <T>(value: T | undefined): Result<T, Error> =>
   value === undefined ? err(new Error("Value is undefined")) : ok(value);
 
+/**
+ * Utility function for exhaustive checks and unreachable code paths.
+ * Throws an error when called - used for compile-time exhaustiveness checking.
+ */
 export function unreachable(): never {
   throw new Error("Supposed to be unreachable");
 }
 
-/*
- * Branching flow that preserves input/output types
- * Selects between two functions based on predicate
+/**
+ * Branching flow that preserves input/output types.
+ * Selects between two functions based on predicate.
  */
 export const ifElse =
   <T, U>(
