@@ -15,7 +15,7 @@ export const isBrandNum = <U extends string>(
 /**
  * Validates and casts to branded number.
  */
-export const castBrandNum = <U extends string>(
+export const asBrandNum = <U extends string>(
   value: unknown,
 ): Result<BrandNum<U>, ValidationError> =>
   isBrandNum<U>(value)

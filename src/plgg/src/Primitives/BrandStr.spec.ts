@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isBrandStr, castBrandStr, isOk, isErr } from "plgg/index";
+import { isBrandStr, asBrandStr, isOk, isErr } from "plgg/index";
 
 test("BrandStr.is type guard", () => {
   expect(isBrandStr<"UserId">("user123")).toBe(true);
@@ -14,35 +14,35 @@ test("BrandStr.is type guard", () => {
 });
 
 test("BrandStr.cast validation", async () => {
-  const userIdResult = castBrandStr<"UserId">("user123");
+  const userIdResult = asBrandStr<"UserId">("user123");
   assert(isOk(userIdResult));
   expect(userIdResult.ok).toBe("user123");
 
-  const emailResult = castBrandStr<"Email">("test@example.com");
+  const emailResult = asBrandStr<"Email">("test@example.com");
   assert(isOk(emailResult));
   expect(emailResult.ok).toBe("test@example.com");
 
-  const emptyResult = castBrandStr<"UserId">("");
+  const emptyResult = asBrandStr<"UserId">("");
   assert(isOk(emptyResult));
   expect(emptyResult.ok).toBe("");
 
-  const numberResult = castBrandStr<"UserId">(123);
+  const numberResult = asBrandStr<"UserId">(123);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not a branded string");
 
-  const boolResult = castBrandStr<"UserId">(true);
+  const boolResult = asBrandStr<"UserId">(true);
   assert(isErr(boolResult));
   expect(boolResult.err.message).toBe("Value is not a branded string");
 
-  const nullResult = castBrandStr<"UserId">(null);
+  const nullResult = asBrandStr<"UserId">(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("Value is not a branded string");
 
-  const undefinedResult = castBrandStr<"UserId">(undefined);
+  const undefinedResult = asBrandStr<"UserId">(undefined);
   assert(isErr(undefinedResult));
   expect(undefinedResult.err.message).toBe("Value is not a branded string");
 
-  const objectResult = castBrandStr<"UserId">({});
+  const objectResult = asBrandStr<"UserId">({});
   assert(isErr(objectResult));
   expect(objectResult.err.message).toBe("Value is not a branded string");
 });
