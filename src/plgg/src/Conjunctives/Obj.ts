@@ -24,7 +24,7 @@ export const isObj = (value: unknown): value is Obj =>
 /**
  * Validates and casts to object with primitives.
  */
-export const castObj = (value: unknown): Result<Obj, ValidationError> =>
+export const asObj = (value: unknown): Result<Obj, ValidationError> =>
   isObj(value)
     ? ok(value)
     : err(new ValidationError({ message: "Not object" }));
@@ -32,7 +32,7 @@ export const castObj = (value: unknown): Result<Obj, ValidationError> =>
 /**
  * Validates object property with predicate.
  */
-export const castProp =
+export const hasProp =
   <T extends string, U>(
     key: T,
     predicate: (a: unknown) => Result<U, ValidationError>,
