@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isNum, castNum, isOk, isErr } from "plgg/index";
+import { isNum, asNum, isOk, isErr } from "plgg/index";
 
 test("Num.is type guard", () => {
   expect(isNum(123)).toBe(true);
@@ -18,31 +18,31 @@ test("Num.is type guard", () => {
 });
 
 test("Num.cast validation", async () => {
-  const validResult = castNum(123);
+  const validResult = asNum(123);
   assert(isOk(validResult));
   expect(validResult.ok).toBe(123);
 
-  const zeroResult = castNum(0);
+  const zeroResult = asNum(0);
   assert(isOk(zeroResult));
   expect(validResult.ok).toBe(123);
 
-  const negativeResult = castNum(-123);
+  const negativeResult = asNum(-123);
   assert(isOk(negativeResult));
   expect(negativeResult.ok).toBe(-123);
 
-  const floatResult = castNum(3.14);
+  const floatResult = asNum(3.14);
   assert(isOk(floatResult));
   expect(floatResult.ok).toBe(3.14);
 
-  const stringResult = castNum("123");
+  const stringResult = asNum("123");
   assert(isErr(stringResult));
   expect(stringResult.err.message).toBe("Value is not a number");
 
-  const boolResult = castNum(true);
+  const boolResult = asNum(true);
   assert(isErr(boolResult));
   expect(boolResult.err.message).toBe("Value is not a number");
 
-  const nullResult = castNum(null);
+  const nullResult = asNum(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("Value is not a number");
 });

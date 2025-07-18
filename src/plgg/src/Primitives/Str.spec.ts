@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isStr, castStr, isOk, isErr } from "plgg/index";
+import { isStr, asStr, isOk, isErr } from "plgg/index";
 
 test("Str.is type guard", () => {
   expect(isStr("hello")).toBe(true);
@@ -14,27 +14,27 @@ test("Str.is type guard", () => {
 });
 
 test("Str.cast validation", async () => {
-  const validResult = castStr("hello");
+  const validResult = asStr("hello");
   assert(isOk(validResult));
   expect(validResult.ok).toBe("hello");
 
-  const emptyResult = castStr("");
+  const emptyResult = asStr("");
   assert(isOk(emptyResult));
   expect(emptyResult.ok).toBe("");
 
-  const numberResult = castStr(123);
+  const numberResult = asStr(123);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("123 is not a string");
 
-  const boolResult = castStr(true);
+  const boolResult = asStr(true);
   assert(isErr(boolResult));
   expect(boolResult.err.message).toBe("true is not a string");
 
-  const nullResult = castStr(null);
+  const nullResult = asStr(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("null is not a string");
 
-  const undefinedResult = castStr(undefined);
+  const undefinedResult = asStr(undefined);
   assert(isErr(undefinedResult));
   expect(undefinedResult.err.message).toBe("undefined is not a string");
 });

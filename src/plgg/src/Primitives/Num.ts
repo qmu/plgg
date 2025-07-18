@@ -17,7 +17,7 @@ export const isNum = (value: unknown): value is Num =>
 /**
  * Type guard for number.
  */
-export const castNum = (value: unknown): Result<Num, ValidationError> =>
+export const asNum = (value: unknown): Result<Num, ValidationError> =>
   isNum(value)
     ? ok(Number(value))
     : err(new ValidationError({ message: "Value is not a number" }));

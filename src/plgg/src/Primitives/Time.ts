@@ -19,7 +19,7 @@ const isDateString = (value: unknown): value is string =>
 /**
  * Validates and casts to Date.
  */
-export const castTime = (value: unknown): Result<Time, ValidationError> =>
+export const asTime = (value: unknown): Result<Time, ValidationError> =>
   isTime(value)
     ? ok(value)
     : isDateString(value)

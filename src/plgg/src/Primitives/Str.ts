@@ -14,7 +14,7 @@ export const isStr = (value: unknown): value is Str =>
 /**
  * Type guard for string.
  */
-export const castStr = (value: unknown): Result<Str, ValidationError> =>
+export const asStr = (value: unknown): Result<Str, ValidationError> =>
   isStr(value)
     ? ok(value)
     : err(new ValidationError({ message: `${value} is not a string` }));

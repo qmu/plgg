@@ -14,7 +14,7 @@ export const isBool = (value: unknown): value is Bool =>
 /**
  * Type guard for boolean.
  */
-export const castBool = (value: unknown): Result<Bool, ValidationError> =>
+export const asBool = (value: unknown): Result<Bool, ValidationError> =>
   isBool(value)
     ? ok(value)
     : err(new ValidationError({ message: "Value is not a boolean" }));
