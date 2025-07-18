@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isBrandBool, castBrandBool, isOk, isErr } from "plgg/index";
+import { isBrandBool, asBrandBool, isOk, isErr } from "plgg/index";
 
 test("BrandBool.is type guard", () => {
   expect(isBrandBool<"IsActive">(true)).toBe(true);
@@ -14,35 +14,35 @@ test("BrandBool.is type guard", () => {
 });
 
 test("BrandBool.cast validation", async () => {
-  const isActiveResult = castBrandBool<"IsActive">(true);
+  const isActiveResult = asBrandBool<"IsActive">(true);
   assert(isOk(isActiveResult));
   expect(isActiveResult.ok).toBe(true);
 
-  const isAdminResult = castBrandBool<"IsAdmin">(false);
+  const isAdminResult = asBrandBool<"IsAdmin">(false);
   assert(isOk(isAdminResult));
   expect(isAdminResult.ok).toBe(false);
 
-  const stringResult = castBrandBool<"IsActive">("true");
+  const stringResult = asBrandBool<"IsActive">("true");
   assert(isErr(stringResult));
   expect(stringResult.err.message).toBe("Value is not a branded boolean");
 
-  const numberResult = castBrandBool<"IsActive">(1);
+  const numberResult = asBrandBool<"IsActive">(1);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not a branded boolean");
 
-  const zeroResult = castBrandBool<"IsActive">(0);
+  const zeroResult = asBrandBool<"IsActive">(0);
   assert(isErr(zeroResult));
   expect(zeroResult.err.message).toBe("Value is not a branded boolean");
 
-  const nullResult = castBrandBool<"IsActive">(null);
+  const nullResult = asBrandBool<"IsActive">(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("Value is not a branded boolean");
 
-  const undefinedResult = castBrandBool<"IsActive">(undefined);
+  const undefinedResult = asBrandBool<"IsActive">(undefined);
   assert(isErr(undefinedResult));
   expect(undefinedResult.err.message).toBe("Value is not a branded boolean");
 
-  const objectResult = castBrandBool<"IsActive">({});
+  const objectResult = asBrandBool<"IsActive">({});
   assert(isErr(objectResult));
   expect(objectResult.err.message).toBe("Value is not a branded boolean");
 });

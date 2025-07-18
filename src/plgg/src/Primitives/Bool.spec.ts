@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isBool, castBool, isOk, isErr } from "plgg/index";
+import { isBool, asBool, isOk, isErr } from "plgg/index";
 
 test("Bool.is type guard", () => {
   expect(isBool(true)).toBe(true);
@@ -14,23 +14,23 @@ test("Bool.is type guard", () => {
 });
 
 test("Bool.cast validation", async () => {
-  const trueResult = castBool(true);
+  const trueResult = asBool(true);
   assert(isOk(trueResult));
   expect(trueResult.ok).toBe(true);
 
-  const falseResult = castBool(false);
+  const falseResult = asBool(false);
   assert(isOk(falseResult));
   expect(falseResult.ok).toBe(false);
 
-  const stringResult = castBool("true");
+  const stringResult = asBool("true");
   assert(isErr(stringResult));
   expect(stringResult.err.message).toBe("Value is not a boolean");
 
-  const numberResult = castBool(1);
+  const numberResult = asBool(1);
   assert(isErr(numberResult));
   expect(numberResult.err.message).toBe("Value is not a boolean");
 
-  const nullResult = castBool(null);
+  const nullResult = asBool(null);
   assert(isErr(nullResult));
   expect(nullResult.err.message).toBe("Value is not a boolean");
 });

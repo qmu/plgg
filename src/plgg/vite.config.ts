@@ -13,6 +13,23 @@ export default defineConfig({
   test: {
     coverage: {
       all: true,
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'html'],
+      exclude: [
+        'node_modules/**',
+        'dist/**',
+        'coverage/**',
+        '**/*.spec.ts',
+        '**/*.test.ts',
+        '**/index.ts',
+        'vite.config.ts',
+      ],
+      thresholds: {
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100,
+      },
     },
   },
   build: {
