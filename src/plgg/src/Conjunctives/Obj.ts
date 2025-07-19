@@ -56,7 +56,7 @@ export const hasProp =
 /**
  * Validates optional object property with predicate.
  */
-export const castOptionalProp =
+export const hasOptionProp =
   <T extends string, U>(
     key: T,
     predicate: (a: unknown) => Result<U, ValidationError>,
