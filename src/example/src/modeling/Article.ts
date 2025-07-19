@@ -1,12 +1,12 @@
 import {
   Result,
-  ValidationError,
+  InvalidError,
   BrandStr,
   asBrandStr,
   asStr,
   asObj,
-  hasProp,
-  asOptionalProp,
+  forProp,
+  forOptionProp,
   Time,
   asTime,
   Option,
@@ -15,11 +15,11 @@ import {
 } from "plgg";
 
 type Id = BrandStr<"ArticleId">;
-const asId = (v: unknown): Result<Id, ValidationError> =>
+const asId = (v: unknown): Result<Id, InvalidError> =>
   cast(v, asBrandStr<"ArticleId">);
 
 type Name = BrandStr<"ArticleName">;
-const asName = (v: unknown): Result<Name, ValidationError> =>
+const asName = (v: unknown): Result<Name, InvalidError> =>
   cast(
     v,
     asStr,
@@ -34,12 +34,12 @@ export type Article = {
   memo: Option<string>;
 };
 
-export const asArticle = (v: unknown): Result<Article, ValidationError> =>
+export const asArticle = (v: unknown): Result<Article, InvalidError> =>
   cast(
     v,
     asObj,
-    hasProp("id", asId),
-    hasProp("createdAt", asTime),
-    hasProp("name", asName),
-    asOptionalProp("memo", asStr),
+    forProp("id", asId),
+    forProp("createdAt", asTime),
+    forProp("name", asName),
+    forOptionProp("memo", asStr),
   );

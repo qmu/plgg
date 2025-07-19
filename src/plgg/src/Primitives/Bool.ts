@@ -1,4 +1,4 @@
-import { Result, ok, err, ValidationError } from "plgg/index";
+import { Result, ok, err, InvalidError } from "plgg/index";
 
 /**
  * Boolean primitive type.
@@ -13,9 +13,9 @@ export const isBool = (value: unknown): value is Bool =>
 
 /**
  * Validates and casts unknown value to boolean.
- * Returns Ok with boolean if valid, Err with ValidationError if invalid.
+ * Returns Ok with boolean if valid, Err with InvalidError if invalid.
  */
-export const asBool = (value: unknown): Result<Bool, ValidationError> =>
+export const asBool = (value: unknown): Result<Bool, InvalidError> =>
   isBool(value)
     ? ok(value)
-    : err(new ValidationError({ message: "Value is not a boolean" }));
+    : err(new InvalidError({ message: "Value is not a boolean" }));

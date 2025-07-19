@@ -7,7 +7,7 @@ import {
   bind,
   fail,
   err,
-  ValidationError,
+  InvalidError,
   asStr,
   Result,
 } from "plgg/index";
@@ -15,8 +15,8 @@ import {
 test("plgg composes sync and async functions with early error exit", async () => {
   // Example: Processing user input through validation pipeline
   const increment = (x: number) => x + 1;
-  const validatePositive = (x: number): Result<number, ValidationError> =>
-    x > 0 ? ok(x) : err(new ValidationError({ message: "Must be positive" }));
+  const validatePositive = (x: number): Result<number, InvalidError> =>
+    x > 0 ? ok(x) : err(new InvalidError({ message: "Must be positive" }));
   const asyncDouble = (x: number): Promise<number> =>
     new Promise((resolve) => setTimeout(() => resolve(x * 2), 1));
   const formatResult = (x: number): string => `Result: ${x}`;
@@ -36,7 +36,7 @@ test("plgg composes sync and async functions with early error exit", async () =>
 test("plgg stops processing on first error", async () => {
   const increment = (x: number) => x + 1;
   const failValidation = (_: number) =>
-    fail<number>(new ValidationError({ message: "Validation failed" }));
+    fail<number>(new InvalidError({ message: "Validation failed" }));
   const neverCalled = (_: number) => {
     throw new Error("This should never be called");
   };
@@ -50,10 +50,10 @@ test("plgg stops processing on first error", async () => {
 test("plgg handles mixed return types (values, Results, Promises)", async () => {
   // Demonstrates real-world API processing pipeline
   const parseInput = (input: string) => input.trim();
-  const validateNotEmpty = (str: string): Result<string, ValidationError> =>
+  const validateNotEmpty = (str: string): Result<string, InvalidError> =>
     str.length > 0
       ? ok(str)
-      : err(new ValidationError({ message: "Empty input" }));
+      : err(new InvalidError({ message: "Empty input" }));
   const fetchData = (id: string): Promise<{ id: string; value: number }> =>
     new Promise((resolve) => setTimeout(() => resolve({ id, value: 42 }), 1));
   const extractValue = (data: { id: string; value: number }) => data.value;
@@ -99,7 +99,7 @@ test("plgg gracefully handles exceptions in functions", async () => {
 
 test("plgg handles thrown DomainError", async () => {
   const throwDomainError = (_: number) => {
-    throw new ValidationError({ message: "Domain error thrown" });
+    throw new InvalidError({ message: "Domain error thrown" });
   };
 
   const result = await plgg(5, throwDomainError);
@@ -118,4 +118,3 @@ test("plgg handles thrown non-Error values", async () => {
   assert(isErr(result));
   expect(result.err.message).toBe("Unknown error in plgg");
 });
-

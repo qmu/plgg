@@ -1,10 +1,10 @@
-import { isSome, ValidationError, Exception, isObj } from "plgg/index";
+import { isSome, InvalidError, Exception, isObj } from "plgg/index";
 
 /**
  * Union type representing domain errors in the application.
- * Can be either a ValidationError or an Exception.
+ * Can be either a InvalidError or an Exception.
  */
-export type DomainError = ValidationError | Exception;
+export type DomainError = InvalidError | Exception;
 
 /*
  * Color helper functions

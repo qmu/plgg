@@ -1,4 +1,4 @@
-import { isOk, ok, Result, ValidationError, err } from "plgg/index";
+import { isOk, ok, Result, InvalidError, err } from "plgg/index";
 
 /**
  * Synchronous function composition with error accumulation for Result types.
@@ -348,20 +348,20 @@ export function cast<
 export function cast(
   value: unknown,
   ...fns: ReadonlyArray<ChainFn>
-): Result<unknown, ValidationError> {
-  return fns.reduce((acc: Result<unknown, ValidationError>, fn: ChainFn) => {
+): Result<unknown, InvalidError> {
+  return fns.reduce((acc: Result<unknown, InvalidError>, fn: ChainFn) => {
     if (isOk(acc)) {
       try {
         return fn(acc.ok);
       } catch (e) {
-        return convUnknownToValidationError(e);
+        return convUnknownToInvalidError(e);
       }
     }
     const currentResult = (() => {
       try {
         return fn(value);
       } catch (e) {
-        return convUnknownToValidationError(e);
+        return convUnknownToInvalidError(e);
       }
     })();
     if (isOk(currentResult)) {
@@ -369,15 +369,13 @@ export function cast(
     }
     const prevError = acc.err.sibling.length > 0 ? [] : [acc.err];
     const sibling = [...prevError, ...acc.err.sibling, currentResult.err];
-    return err(new ValidationError({ message: "Validation failed", sibling }));
+    return err(new InvalidError({ message: "Validation failed", sibling }));
   }, ok(value));
 }
 
-const convUnknownToValidationError = (
-  e: unknown,
-): Result<never, ValidationError> =>
+const convUnknownToInvalidError = (e: unknown): Result<never, InvalidError> =>
   err(
-    new ValidationError({
+    new InvalidError({
       message: "Validation failed",
       parent: e instanceof Error ? e : new Error(String(e)),
     }),
@@ -386,4 +384,4 @@ const convUnknownToValidationError = (
 /**
  * Function type for cast operations.
  */
-type ChainFn = (a: unknown) => Result<unknown, ValidationError>;
+type ChainFn = (a: unknown) => Result<unknown, InvalidError>;
