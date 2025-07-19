@@ -1,20 +1,29 @@
-import { Result, ok, err, MaybePromise } from "plgg/index";
+import { Result } from "plgg/index";
+
+/**
+ * Type for values that may or may not be Promises.
+ */
+export type MaybePromise<T> = Promise<T> | T;
+
+/**
+ *
+ */
+export type MaybeResult<T, U> = Result<T, U> | T;
 
 /**
  * Async Result type for Plgg operations.
  */
-export type Plggable<T, E extends Error = Error> = MaybePromise<
-  Result<T, E> | T
+export type Plggable<T, U extends Error = Error> = MaybePromise<
+  MaybeResult<T, U>
 >;
 
 /**
- * Creates successful Plggable.
+ * Type guard to check if a value is a Promise.
+ * Checks both instanceof Promise and thenable objects.
  */
-export const success = <T, E extends Error = Error>(value: T): Plggable<T, E> =>
-  Promise.resolve(ok(value));
-
-/**
- * Creates failed Plggable.
- */
-export const fail = <T, E extends Error = Error>(error: E): Plggable<T, E> =>
-  Promise.resolve(err(error));
+export const isPromise = <T>(value: MaybePromise<T>): value is Promise<T> =>
+  value instanceof Promise ||
+  (typeof value === "object" &&
+    value !== null &&
+    "then" in value &&
+    typeof value.then === "function");
