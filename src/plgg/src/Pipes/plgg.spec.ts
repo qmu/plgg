@@ -4,7 +4,7 @@ import {
   isOk,
   isErr,
   ok,
-  bind,
+  hold,
   fail,
   err,
   InvalidError,
@@ -79,7 +79,7 @@ test("plgg with type casting and validation chain", async () => {
     (data: any) => data.name,
     asStr,
     (name: string) => name.toUpperCase(),
-    bind((name: string) => `Hello, ${name}!`),
+    hold((name: string) => `Hello, ${name}!`),
   );
 
   assert(isOk(result));

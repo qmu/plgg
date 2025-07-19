@@ -8,7 +8,7 @@ import {
   mapOk,
   mapErr,
   mapResult,
-  bind,
+  hold,
   debug,
   refine,
   defined,
@@ -70,7 +70,7 @@ test("bind applies function to values in pipelines", () => {
   // Example: Simple value transformation in composition
   const uppercase = (s: string) => s.toUpperCase();
 
-  const result = bind(uppercase)("hello");
+  const result = hold(uppercase)("hello");
   expect(result).toBe("HELLO");
 });
 
@@ -192,4 +192,3 @@ test("tryCatch with default error handler", () => {
   assert(isErr(stringErrorResult));
   expect(stringErrorResult.err.message).toBe("Unexpected error occurred");
 });
-

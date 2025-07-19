@@ -32,7 +32,7 @@ export const mapResult =
  * Simple function composition utility.
  * Applies a function to a value - useful for pipeline operations.
  */
-export const bind =
+export const hold =
   <T, U>(fn: (x: T) => U) =>
   (x: T) =>
     fn(x);
