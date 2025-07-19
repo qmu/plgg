@@ -1,6 +1,6 @@
 import {
   isOk,
-  fail,
+  err,
   ok,
   Plggable,
   isDomainError,
@@ -345,10 +345,10 @@ export async function plgg(
         return fn(current);
       } catch (e: unknown) {
         return isDomainError(e)
-          ? fail(e)
+          ? err(e)
           : e instanceof Error
-            ? fail(new Exception("Unexpected error in plgg", e))
-            : fail(new Exception("Unknown error in plgg"));
+            ? err(new Exception("Unexpected error in plgg", e))
+            : err(new Exception("Unknown error in plgg"));
       }
     },
     Promise.resolve(ok(value)),

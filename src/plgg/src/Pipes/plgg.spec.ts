@@ -5,7 +5,6 @@ import {
   isErr,
   ok,
   hold,
-  fail,
   err,
   InvalidError,
   asStr,
@@ -36,7 +35,7 @@ test("plgg composes sync and async functions with early error exit", async () =>
 test("plgg stops processing on first error", async () => {
   const increment = (x: number) => x + 1;
   const failValidation = (_: number) =>
-    fail<number>(new InvalidError({ message: "Validation failed" }));
+    Promise.resolve(err(new InvalidError({ message: "Validation failed" })));
   const neverCalled = (_: number) => {
     throw new Error("This should never be called");
   };
