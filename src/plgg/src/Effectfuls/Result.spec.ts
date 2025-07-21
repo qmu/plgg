@@ -1,5 +1,16 @@
 import { test, expect, assert } from "vitest";
-import { ok, err, isOk, isErr, isResult, Result } from "plgg/index";
+import {
+  ok,
+  err,
+  isOk,
+  isErr,
+  isResult,
+  Result,
+  mapOk,
+  mapErr,
+  mapResult,
+  InvalidError,
+} from "plgg/index";
 
 test("ok creates Ok result", () => {
   const result = ok(42);
@@ -63,4 +74,51 @@ test("Result can handle different types", () => {
   if (isErr(numberErrorResult)) {
     expect(numberErrorResult.err).toBe(404);
   }
+});
+
+test("mapOk transforms success values while preserving errors", () => {
+  // Example: Processing successful API responses
+  const formatPrice = (price: number) =>
+    ok<string, InvalidError>(`$${price.toFixed(2)}`);
+
+  const successResult = mapOk(formatPrice)(ok<number, InvalidError>(29.99));
+  assert(isOk(successResult));
+  expect(successResult.ok).toBe("$29.99");
+
+  const priceError = new InvalidError({ message: "Invalid price" });
+  const errorResult = mapOk(formatPrice)(err<InvalidError, number>(priceError));
+  assert(isErr(errorResult));
+  expect(errorResult.err.message).toBe("Invalid price");
+});
+
+test("mapErr recovers from errors while preserving success values", () => {
+  // Example: Error recovery in data processing
+  const recoverFromError = (_: InvalidError) => ok("default-value");
+
+  const errorResult = mapErr(recoverFromError)(
+    err(new InvalidError({ message: "Parse failed" })),
+  );
+  assert(isOk(errorResult));
+  expect(errorResult.ok).toBe("default-value");
+
+  const successResult = mapErr(recoverFromError)(ok("original-value"));
+  assert(isOk(successResult));
+  expect(successResult.ok).toBe("original-value");
+});
+
+test("mapResult handles both success and error cases", () => {
+  // Example: Converting results to consistent output format
+  const formatSuccess = (data: string) => ok(`SUCCESS: ${data}`);
+  const formatError = (error: InvalidError) => ok(`ERROR: ${error.message}`);
+
+  const successResult = mapResult(formatSuccess, formatError)(ok("user-data"));
+  assert(isOk(successResult));
+  expect(successResult.ok).toBe("SUCCESS: user-data");
+
+  const errorResult = mapResult(
+    formatSuccess,
+    formatError,
+  )(err(new InvalidError({ message: "Not found" })));
+  assert(isOk(errorResult));
+  expect(errorResult.ok).toBe("ERROR: Not found");
 });
