@@ -4,7 +4,7 @@ import { isSome, InvalidError, Exception, isObj } from "plgg/index";
  * Union type representing domain errors in the application.
  * Can be either a InvalidError or an Exception.
  */
-export type DomainError = InvalidError | Exception;
+export type PlggError = InvalidError | Exception;
 
 /*
  * Color helper functions
@@ -13,20 +13,20 @@ const red = (text: string): string => `\x1b[31m${text}\x1b[0m`;
 const gray = (text: string): string => `\x1b[90m${text}\x1b[0m`;
 
 /**
- * Checks if a value is a DomainError.
+ * Checks if a value is a PlggError.
  */
-export const isDomainError = (value: unknown): value is DomainError =>
-  isObj(value) && "__" in value && value.__ === "DomainError";
+export const isPlggError = (value: unknown): value is PlggError =>
+  isObj(value) && "__" in value && value.__ === "PlggError";
 
 /**
- * Pretty prints a DomainError with nested error information.
+ * Pretty prints a PlggError with nested error information.
  * Displays the error chain with colored output for better readability.
  */
-export const printDomainError = (error: DomainError): void => {
+export const printPlggError = (error: PlggError): void => {
   const collectErrors = (
-    err: DomainError | Error,
-  ): ReadonlyArray<DomainError | Error> =>
-    isDomainError(err)
+    err: PlggError | Error,
+  ): ReadonlyArray<PlggError | Error> =>
+    isPlggError(err)
       ? isSome(err.parent)
         ? [err, ...collectErrors(err.parent.value)]
         : [err]
@@ -40,3 +40,17 @@ export const printDomainError = (error: DomainError): void => {
     console.error(output);
   });
 };
+
+/**
+ * Converts unknown error to Error instance.
+ */
+export const toError = (err: unknown): Error =>
+  err instanceof Error ? err : new Error(String(err));
+
+/**
+ * Utility function for exhaustive checks and unreachable code paths.
+ * Throws an error when called - used for compile-time exhaustiveness checking.
+ */
+export function unreachable(): never {
+  throw new Error("Supposed to be unreachable");
+}

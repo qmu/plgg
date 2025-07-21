@@ -1,4 +1,4 @@
-import { Result, pipe, ok, err, InvalidError } from "plgg/index";
+import { Result, pipe, ok, err, InvalidError, toError } from "plgg/index";
 
 /**
  * Simple function composition utility.
@@ -36,12 +36,6 @@ export const refine =
         );
 
 /**
- * Converts unknown error to Error instance.
- */
-export const toError = (err: unknown): Error =>
-  err instanceof Error ? err : new Error(String(err));
-
-/**
  * Wraps a function to catch exceptions and return Result.
  */
 export const tryCatch =
@@ -68,14 +62,6 @@ export const tryCatch =
  */
 export const defined = <T>(value: T | undefined): Result<T, Error> =>
   value === undefined ? err(new Error("Value is undefined")) : ok(value);
-
-/**
- * Utility function for exhaustive checks and unreachable code paths.
- * Throws an error when called - used for compile-time exhaustiveness checking.
- */
-export function unreachable(): never {
-  throw new Error("Supposed to be unreachable");
-}
 
 /**
  * Branching flow that preserves input/output types.

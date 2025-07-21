@@ -3,7 +3,7 @@ import {
   err,
   ok,
   Plggable,
-  isDomainError,
+  isPlggError,
   Exception,
   isResult,
   Result,
@@ -344,7 +344,7 @@ export async function plgg(
         }
         return fn(current);
       } catch (e: unknown) {
-        return isDomainError(e)
+        return isPlggError(e)
           ? err(e)
           : e instanceof Error
             ? err(new Exception("Unexpected error in plgg", e))

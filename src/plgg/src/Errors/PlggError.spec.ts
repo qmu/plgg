@@ -1,52 +1,53 @@
 import { test, expect, vi } from "vitest";
 import {
-  DomainError,
-  printDomainError,
-  isDomainError,
+  PlggError,
+  printPlggError,
+  isPlggError,
   InvalidError,
   BaseError,
+  unreachable,
 } from "plgg/index";
 
-test("DomainError.is type guard with InvalidError", () => {
+test("PlggError.is type guard with InvalidError", () => {
   const error = new InvalidError({ message: "Test error" });
-  expect(isDomainError(error)).toBe(true);
+  expect(isPlggError(error)).toBe(true);
 });
 
-test("DomainError.is type guard with BaseError", () => {
+test("PlggError.is type guard with BaseError", () => {
   const error = new BaseError("Test error");
-  expect(isDomainError(error)).toBe(true);
+  expect(isPlggError(error)).toBe(true);
 });
 
-test("DomainError.is type guard with regular Error", () => {
+test("PlggError.is type guard with regular Error", () => {
   const error = new Error("Test error");
-  expect(isDomainError(error)).toBe(false);
+  expect(isPlggError(error)).toBe(false);
 });
 
-test("DomainError.is type guard with non-error objects", () => {
-  expect(isDomainError({})).toBe(false);
-  expect(isDomainError(null)).toBe(false);
-  expect(isDomainError(undefined)).toBe(false);
-  expect(isDomainError("string")).toBe(false);
-  expect(isDomainError(123)).toBe(false);
-  expect(isDomainError([])).toBe(false);
+test("PlggError.is type guard with non-error objects", () => {
+  expect(isPlggError({})).toBe(false);
+  expect(isPlggError(null)).toBe(false);
+  expect(isPlggError(undefined)).toBe(false);
+  expect(isPlggError("string")).toBe(false);
+  expect(isPlggError(123)).toBe(false);
+  expect(isPlggError([])).toBe(false);
 });
 
-test("DomainError.is checks brand property", () => {
-  const validError = { __: "DomainError", message: "test" };
-  expect(isDomainError(validError)).toBe(true);
+test("PlggError.is checks brand property", () => {
+  const validError = { __: "PlggError", message: "test" };
+  expect(isPlggError(validError)).toBe(true);
 
   const invalidError = { __: "SomeOtherError", message: "test" };
-  expect(isDomainError(invalidError)).toBe(false);
+  expect(isPlggError(invalidError)).toBe(false);
 
   const noBrandError = { message: "test" };
-  expect(isDomainError(noBrandError)).toBe(false);
+  expect(isPlggError(noBrandError)).toBe(false);
 });
 
-test("DomainError.debug with InvalidError", () => {
+test("PlggError.debug with InvalidError", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   const error = new InvalidError({ message: "Test validation error" });
-  printDomainError(error);
+  printPlggError(error);
 
   expect(consoleSpy).toHaveBeenCalledWith(
     expect.stringContaining("[InvalidError]"),
@@ -58,7 +59,7 @@ test("DomainError.debug with InvalidError", () => {
   consoleSpy.mockRestore();
 });
 
-test("DomainError.debug with nested errors", () => {
+test("PlggError.debug with nested errors", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   const parentError = new InvalidError({ message: "Parent error" });
@@ -67,7 +68,7 @@ test("DomainError.debug with nested errors", () => {
     parent: parentError,
   });
 
-  printDomainError(childError);
+  printPlggError(childError);
 
   expect(consoleSpy).toHaveBeenCalledTimes(2);
   expect(consoleSpy).toHaveBeenCalledWith(
@@ -80,11 +81,11 @@ test("DomainError.debug with nested errors", () => {
   consoleSpy.mockRestore();
 });
 
-test("DomainError.debug with regular Error", () => {
+test("PlggError.debug with regular Error", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   const error = new Error("Regular error");
-  printDomainError(error as any);
+  printPlggError(error as any);
 
   expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("[Error]"));
   expect(consoleSpy).toHaveBeenCalledWith(
@@ -94,29 +95,29 @@ test("DomainError.debug with regular Error", () => {
   consoleSpy.mockRestore();
 });
 
-test("DomainError type alias", () => {
-  const error: DomainError = new InvalidError({
+test("PlggError type alias", () => {
+  const error: PlggError = new InvalidError({
     message: "Test error",
   });
   expect(error instanceof InvalidError).toBe(true);
   expect(error instanceof BaseError).toBe(true);
 });
 
-test("DomainError.debug with error having no stack trace", () => {
+test("PlggError.debug with error having no stack trace", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   const error = new InvalidError({ message: "No stack error" });
   // Create an error without stack by using Object.defineProperty
   Object.defineProperty(error, "stack", { value: undefined });
 
-  printDomainError(error);
+  printPlggError(error);
 
   expect(consoleSpy).toHaveBeenCalledWith(expect.not.stringContaining(" at "));
 
   consoleSpy.mockRestore();
 });
 
-test("DomainError.debug with error having malformed stack", () => {
+test("PlggError.debug with error having malformed stack", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
   const error = new InvalidError({ message: "Malformed stack error" });
@@ -125,9 +126,14 @@ test("DomainError.debug with error having malformed stack", () => {
     value: "Error: Malformed stack error",
   });
 
-  printDomainError(error);
+  printPlggError(error);
 
   expect(consoleSpy).toHaveBeenCalledWith(expect.not.stringContaining(" at "));
 
   consoleSpy.mockRestore();
+});
+
+test("unreachable throws error for exhaustive checking", () => {
+  // Example: Exhaustive pattern matching
+  expect(() => unreachable()).toThrow("Supposed to be unreachable");
 });

@@ -7,7 +7,6 @@ import {
   debug,
   refine,
   defined,
-  unreachable,
   tryCatch,
   jsonEncode,
   jsonDecode,
@@ -56,11 +55,6 @@ test("defined checks for non-undefined values", () => {
   const undefinedValue = defined(undefined);
   assert(isErr(undefinedValue));
   expect(undefinedValue.err.message).toBe("Value is undefined");
-});
-
-test("unreachable throws error for exhaustive checking", () => {
-  // Example: Exhaustive pattern matching
-  expect(() => unreachable()).toThrow("Supposed to be unreachable");
 });
 
 test("tryCatch wraps functions to handle exceptions", () => {

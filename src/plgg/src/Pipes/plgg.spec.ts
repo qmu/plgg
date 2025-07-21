@@ -96,12 +96,12 @@ test("plgg gracefully handles exceptions in functions", async () => {
   expect(result.err.message).toContain("Unexpected error in plgg");
 });
 
-test("plgg handles thrown DomainError", async () => {
-  const throwDomainError = (_: number) => {
+test("plgg handles thrown PlggError", async () => {
+  const throwPlggError = (_: number) => {
     throw new InvalidError({ message: "Domain error thrown" });
   };
 
-  const result = await plgg(5, throwDomainError);
+  const result = await plgg(5, throwPlggError);
 
   assert(isErr(result));
   expect(result.err.message).toBe("Domain error thrown");
