@@ -19,3 +19,11 @@ export const asStr = (value: unknown): Result<Str, InvalidError> =>
   isStr(value)
     ? ok(value)
     : err(new InvalidError({ message: `${value} is not a string` }));
+
+/**
+ * Concatenates two strings.
+ */
+export const concat =
+  (adding: Str) =>
+  (base: Str): Str =>
+    base + adding;

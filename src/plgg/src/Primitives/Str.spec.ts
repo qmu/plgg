@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isStr, asStr, isOk, isErr } from "plgg/index";
+import { isStr, asStr, isOk, isErr, concat } from "plgg/index";
 
 test("isStr correctly identifies string values", () => {
   // Valid strings
@@ -8,7 +8,7 @@ test("isStr correctly identifies string values", () => {
   expect(isStr("123")).toBe(true);
   expect(isStr(" whitespace ")).toBe(true);
   expect(isStr("special chars: !@#$%")).toBe(true);
-  
+
   // Invalid types
   expect(isStr(123)).toBe(false);
   expect(isStr(true)).toBe(false);
@@ -52,7 +52,7 @@ test("asStr works in validation pipelines", () => {
   const validateEmail = (input: unknown) => {
     const strResult = asStr(input);
     if (isErr(strResult)) return strResult;
-    
+
     const email = strResult.ok;
     return email.includes("@") && email.includes(".")
       ? { _tag: "Ok" as const, ok: email }
@@ -71,3 +71,19 @@ test("asStr works in validation pipelines", () => {
   assert(isErr(invalidFormat));
   expect(invalidFormat.err.message).toBe("Invalid email format");
 });
+
+test("concat concatenates strings correctly", () => {
+  // Basic concatenation
+  expect(concat(" world")("hello")).toBe("hello world");
+  expect(concat("")("test")).toBe("test");
+
+  // Concatenating special characters
+  expect(concat("!@#$%")("special")).toBe("special!@#$%");
+
+  // Concatenating with empty strings
+  expect(concat("")("")).toBe("");
+
+  // Concatenating with numbers as strings
+  expect(concat("123")("456")).toBe("456123");
+});
+
