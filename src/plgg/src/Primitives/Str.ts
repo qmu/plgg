@@ -1,4 +1,4 @@
-import { Result, ok, err, ValidationError } from "plgg/index";
+import { Result, ok, err, InvalidError } from "plgg/index";
 
 /**
  * String primitive type.
@@ -13,9 +13,17 @@ export const isStr = (value: unknown): value is Str =>
 
 /**
  * Validates and casts unknown value to string.
- * Returns Ok with string if valid, Err with ValidationError if invalid.
+ * Returns Ok with string if valid, Err with InvalidError if invalid.
  */
-export const asStr = (value: unknown): Result<Str, ValidationError> =>
+export const asStr = (value: unknown): Result<Str, InvalidError> =>
   isStr(value)
     ? ok(value)
-    : err(new ValidationError({ message: `${value} is not a string` }));
+    : err(new InvalidError({ message: `${value} is not a string` }));
+
+/**
+ * Concatenates two strings.
+ */
+export const concat =
+  (adding: Str) =>
+  (base: Str): Str =>
+    base + adding;

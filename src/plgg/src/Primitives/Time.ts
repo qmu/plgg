@@ -1,4 +1,4 @@
-import { Result, ok, err, ValidationError, isStr } from "plgg/index";
+import { Result, ok, err, InvalidError, isStr } from "plgg/index";
 
 /**
  * Date type.
@@ -19,9 +19,9 @@ const isDateString = (value: unknown): value is string =>
 /**
  * Validates and casts to Date.
  */
-export const asTime = (value: unknown): Result<Time, ValidationError> =>
+export const asTime = (value: unknown): Result<Time, InvalidError> =>
   isTime(value)
     ? ok(value)
     : isDateString(value)
       ? ok(new Date(value))
-      : err(new ValidationError({ message: "Value is not a Date" }));
+      : err(new InvalidError({ message: "Value is not a Date" }));

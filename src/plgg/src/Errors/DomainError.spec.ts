@@ -3,12 +3,12 @@ import {
   DomainError,
   printDomainError,
   isDomainError,
-  ValidationError,
+  InvalidError,
   BaseError,
 } from "plgg/index";
 
-test("DomainError.is type guard with ValidationError", () => {
-  const error = new ValidationError({ message: "Test error" });
+test("DomainError.is type guard with InvalidError", () => {
+  const error = new InvalidError({ message: "Test error" });
   expect(isDomainError(error)).toBe(true);
 });
 
@@ -42,14 +42,14 @@ test("DomainError.is checks brand property", () => {
   expect(isDomainError(noBrandError)).toBe(false);
 });
 
-test("DomainError.debug with ValidationError", () => {
+test("DomainError.debug with InvalidError", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-  const error = new ValidationError({ message: "Test validation error" });
+  const error = new InvalidError({ message: "Test validation error" });
   printDomainError(error);
 
   expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("[ValidationError]"),
+    expect.stringContaining("[InvalidError]"),
   );
   expect(consoleSpy).toHaveBeenCalledWith(
     expect.stringContaining("Test validation error"),
@@ -61,8 +61,8 @@ test("DomainError.debug with ValidationError", () => {
 test("DomainError.debug with nested errors", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-  const parentError = new ValidationError({ message: "Parent error" });
-  const childError = new ValidationError({
+  const parentError = new InvalidError({ message: "Parent error" });
+  const childError = new InvalidError({
     message: "Child error",
     parent: parentError,
   });
@@ -95,41 +95,39 @@ test("DomainError.debug with regular Error", () => {
 });
 
 test("DomainError type alias", () => {
-  const error: DomainError = new ValidationError({
+  const error: DomainError = new InvalidError({
     message: "Test error",
   });
-  expect(error instanceof ValidationError).toBe(true);
+  expect(error instanceof InvalidError).toBe(true);
   expect(error instanceof BaseError).toBe(true);
 });
 
 test("DomainError.debug with error having no stack trace", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  
-  const error = new ValidationError({ message: "No stack error" });
+
+  const error = new InvalidError({ message: "No stack error" });
   // Create an error without stack by using Object.defineProperty
-  Object.defineProperty(error, 'stack', { value: undefined });
-  
+  Object.defineProperty(error, "stack", { value: undefined });
+
   printDomainError(error);
-  
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.not.stringContaining(" at ")
-  );
-  
+
+  expect(consoleSpy).toHaveBeenCalledWith(expect.not.stringContaining(" at "));
+
   consoleSpy.mockRestore();
 });
 
 test("DomainError.debug with error having malformed stack", () => {
   const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  
-  const error = new ValidationError({ message: "Malformed stack error" });
+
+  const error = new InvalidError({ message: "Malformed stack error" });
   // Set a malformed stack (only one line)
-  Object.defineProperty(error, 'stack', { value: "Error: Malformed stack error" });
-  
+  Object.defineProperty(error, "stack", {
+    value: "Error: Malformed stack error",
+  });
+
   printDomainError(error);
-  
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.not.stringContaining(" at ")
-  );
-  
+
+  expect(consoleSpy).toHaveBeenCalledWith(expect.not.stringContaining(" at "));
+
   consoleSpy.mockRestore();
 });

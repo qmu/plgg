@@ -1,30 +1,30 @@
 import {
   Result,
-  ValidationError,
+  InvalidError,
   BrandStr,
-  castBrandStr,
-  castStr,
-  castObj,
-  castProp,
-  castOptionalProp,
+  asBrandStr,
+  asStr,
+  asObj,
+  forProp,
+  forOptionProp,
   Time,
-  castTime,
+  asTime,
   Option,
-  validate,
+  cast,
   refine,
 } from "plgg";
 
 type Id = BrandStr<"ArticleId">;
-const castId = (v: unknown): Result<Id, ValidationError> =>
-  validate(v, castBrandStr<"ArticleId">);
+const asId = (v: unknown): Result<Id, InvalidError> =>
+  cast(v, asBrandStr<"ArticleId">);
 
 type Name = BrandStr<"ArticleName">;
-const castName = (v: unknown): Result<Name, ValidationError> =>
-  validate(
+const asName = (v: unknown): Result<Name, InvalidError> =>
+  cast(
     v,
-    castStr,
+    asStr,
     refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
-    castBrandStr<"ArticleName">,
+    asBrandStr<"ArticleName">,
   );
 
 export type Article = {
@@ -34,12 +34,12 @@ export type Article = {
   memo: Option<string>;
 };
 
-export const castArticle = (v: unknown): Result<Article, ValidationError> =>
-  validate(
+export const asArticle = (v: unknown): Result<Article, InvalidError> =>
+  cast(
     v,
-    castObj,
-    castProp("id", castId),
-    castProp("createdAt", castTime),
-    castProp("name", castName),
-    castOptionalProp("memo", castStr),
+    asObj,
+    forProp("id", asId),
+    forProp("createdAt", asTime),
+    forProp("name", asName),
+    forOptionProp("memo", asStr),
   );

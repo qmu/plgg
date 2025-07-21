@@ -2,7 +2,7 @@ import {
   Result,
   ok,
   err,
-  ValidationError,
+  InvalidError,
   Option,
   some,
   none,
@@ -24,20 +24,18 @@ export const isObj = (value: unknown): value is Obj =>
 /**
  * Validates and casts to object with primitives.
  */
-export const asObj = (value: unknown): Result<Obj, ValidationError> =>
-  isObj(value)
-    ? ok(value)
-    : err(new ValidationError({ message: "Not object" }));
+export const asObj = (value: unknown): Result<Obj, InvalidError> =>
+  isObj(value) ? ok(value) : err(new InvalidError({ message: "Not object" }));
 
 /**
  * Validates object property with predicate.
  */
-export const hasProp =
+export const forProp =
   <T extends string, U>(
     key: T,
-    predicate: (a: unknown) => Result<U, ValidationError>,
+    predicate: (a: unknown) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(obj: V): Result<V & Record<T, U>, ValidationError> =>
+  <V extends object>(obj: V): Result<V & Record<T, U>, InvalidError> =>
     hasField(obj, key)
       ? pipe(
           obj[key],
@@ -48,7 +46,7 @@ export const hasProp =
           ),
         )
       : err(
-          new ValidationError({
+          new InvalidError({
             message: `Property '${key}' not found`,
           }),
         );
@@ -56,14 +54,12 @@ export const hasProp =
 /**
  * Validates optional object property with predicate.
  */
-export const castOptionalProp =
+export const forOptionProp =
   <T extends string, U>(
     key: T,
-    predicate: (a: unknown) => Result<U, ValidationError>,
+    predicate: (a: unknown) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(
-    obj: V,
-  ): Result<V & Record<T, Option<U>>, ValidationError> =>
+  <V extends object>(obj: V): Result<V & Record<T, Option<U>>, InvalidError> =>
     hasField(obj, key)
       ? pipe(
           obj[key],

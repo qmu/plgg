@@ -5,16 +5,16 @@ import { BaseError } from "./BaseError";
  * Error class for validation failures.
  * Extends BaseError and includes support for sibling errors.
  */
-export class ValidationError extends BaseError {
+export class InvalidError extends BaseError {
   /**
    * Name
    */
-  public name = "ValidationError";
+  public name = "InvalidError";
 
   /**
    * Sibling errors that occurred during validation.
    */
-  public sibling: ReadonlyArray<ValidationError> = [];
+  public sibling: ReadonlyArray<InvalidError> = [];
 
   /**
    * Constructor
@@ -26,7 +26,7 @@ export class ValidationError extends BaseError {
   }: {
     message: string;
     parent?: BaseError | Error;
-    sibling?: ReadonlyArray<ValidationError>;
+    sibling?: ReadonlyArray<InvalidError>;
   }) {
     super(message, parent);
     this.sibling = sibling || [];

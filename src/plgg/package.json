@@ -1,6 +1,6 @@
 {
   "name": "plgg",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Pipeline utilities",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",

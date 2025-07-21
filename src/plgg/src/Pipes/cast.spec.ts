@@ -2,10 +2,10 @@ import { test, assert, expect } from "vitest";
 import {
   Result,
   cast,
-  ValidationError,
+  InvalidError,
   Str,
   asObj,
-  hasProp,
+  forProp,
   Time,
   Num,
   Bool,
@@ -26,13 +26,13 @@ test("cast validates object structure with multiple properties", () => {
     createdAt: Time;
   };
 
-  const asUserProfile = (data: unknown): Result<UserProfile, ValidationError> =>
+  const asUserProfile = (data: unknown): Result<UserProfile, InvalidError> =>
     cast(
       data,
       asObj,
-      hasProp("id", asNum),
-      hasProp("email", asStr),
-      hasProp("createdAt", asTime),
+      forProp("id", asNum),
+      forProp("email", asStr),
+      forProp("createdAt", asTime),
     );
 
   const validData = {
@@ -55,13 +55,13 @@ test("cast accumulates validation errors for multiple invalid properties", () =>
     price: Num;
   };
 
-  const asProduct = (data: unknown): Result<Product, ValidationError> =>
+  const asProduct = (data: unknown): Result<Product, InvalidError> =>
     cast(
       data,
       asObj,
-      hasProp("id", asNum),
-      hasProp("name", asStr),
-      hasProp("price", asNum),
+      forProp("id", asNum),
+      forProp("name", asStr),
+      forProp("price", asNum),
     );
 
   const invalidData = {
@@ -79,11 +79,11 @@ test("cast processes validation chain sequentially", () => {
   // Example: Form data processing with multiple validation steps
   const processFormData = (
     input: unknown,
-  ): Result<{ username: string }, ValidationError> =>
+  ): Result<{ username: string }, InvalidError> =>
     cast(
       input,
       asObj,
-      hasProp("username", (v) =>
+      forProp("username", (v) =>
         cast(
           v,
           asStr,
@@ -116,16 +116,16 @@ test("cast handles nested object validation", () => {
     address: Address;
   };
 
-  const asAddress = (data: unknown): Result<Address, ValidationError> =>
-    cast(data, asObj, hasProp("street", asStr), hasProp("city", asStr));
+  const asAddress = (data: unknown): Result<Address, InvalidError> =>
+    cast(data, asObj, forProp("street", asStr), forProp("city", asStr));
 
-  const asUser = (data: unknown): Result<User, ValidationError> =>
+  const asUser = (data: unknown): Result<User, InvalidError> =>
     cast(
       data,
       asObj,
-      hasProp("name", asStr),
-      hasProp("age", asNum),
-      hasProp("address", asAddress),
+      forProp("name", asStr),
+      forProp("age", asNum),
+      forProp("address", asAddress),
     );
 
   const userData = {
@@ -145,9 +145,7 @@ test("cast handles nested object validation", () => {
 
 test("cast stops on first validation failure when not accumulating errors", () => {
   // This test demonstrates the difference between cast and early-exit validation
-  const validateSequentially = (
-    input: unknown,
-  ): Result<number, ValidationError> =>
+  const validateSequentially = (input: unknown): Result<number, InvalidError> =>
     cast(
       input,
       asNum,
@@ -156,14 +154,14 @@ test("cast stops on first validation failure when not accumulating errors", () =
           ? { _tag: "Ok" as const, ok: n }
           : {
               _tag: "Err" as const,
-              err: new ValidationError({ message: "Must be positive" }),
+              err: new InvalidError({ message: "Must be positive" }),
             },
       (n: number) =>
         n < 100
           ? { _tag: "Ok" as const, ok: n }
           : {
               _tag: "Err" as const,
-              err: new ValidationError({ message: "Must be less than 100" }),
+              err: new InvalidError({ message: "Must be less than 100" }),
             },
     );
 
@@ -184,17 +182,19 @@ test("cast with higher arity functions (5+ parameters)", () => {
     field7: Str;
   };
 
-  const asComplexObject = (data: unknown): Result<ComplexObject, ValidationError> =>
+  const asComplexObject = (
+    data: unknown,
+  ): Result<ComplexObject, InvalidError> =>
     cast(
       data,
       asObj,
-      hasProp("field1", asStr),
-      hasProp("field2", asNum),
-      hasProp("field3", asBool),
-      hasProp("field4", asStr),
-      hasProp("field5", asNum),
-      hasProp("field6", asBool),
-      hasProp("field7", asStr),
+      forProp("field1", asStr),
+      forProp("field2", asNum),
+      forProp("field3", asBool),
+      forProp("field4", asStr),
+      forProp("field5", asNum),
+      forProp("field6", asBool),
+      forProp("field7", asStr),
     );
 
   const validData = {
@@ -215,7 +215,7 @@ test("cast with higher arity functions (5+ parameters)", () => {
 
 test("cast handles functions that throw exceptions", () => {
   // Test exception handling in validation functions
-  const throwingValidator = (_: unknown): Result<unknown, ValidationError> => {
+  const throwingValidator = (_: unknown): Result<unknown, InvalidError> => {
     throw new Error("Validation exception");
   };
 
@@ -226,7 +226,7 @@ test("cast handles functions that throw exceptions", () => {
 
 test("cast handles non-Error exceptions", () => {
   // Test conversion of non-Error exceptions
-  const throwingValidator = (_: unknown): Result<unknown, ValidationError> => {
+  const throwingValidator = (_: unknown): Result<unknown, InvalidError> => {
     throw "String exception";
   };
 
@@ -238,27 +238,49 @@ test("cast handles non-Error exceptions", () => {
 test("cast with maximum parameters (20 functions)", () => {
   // Test with many validation functions to exercise highest-arity overloads
   const identity = (x: unknown) => ({ _tag: "Ok" as const, ok: x });
-  
+
   const result = cast(
     "test",
-    identity, identity, identity, identity, identity,
-    identity, identity, identity, identity, identity,
-    identity, identity, identity, identity, identity,
-    identity, identity, identity, identity, identity
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
+    identity,
   );
-  
+
   assert(isOk(result));
   expect(result.ok).toBe("test");
 });
 
 test("cast aggregates multiple validation errors", () => {
   // Test error accumulation when multiple validations fail
-  const alwaysFail1 = (_: unknown): Result<unknown, ValidationError> => 
-    ({ _tag: "Err" as const, err: new ValidationError({ message: "Error 1" }) });
-  const alwaysFail2 = (_: unknown): Result<unknown, ValidationError> => 
-    ({ _tag: "Err" as const, err: new ValidationError({ message: "Error 2" }) });
-  const alwaysFail3 = (_: unknown): Result<unknown, ValidationError> => 
-    ({ _tag: "Err" as const, err: new ValidationError({ message: "Error 3" }) });
+  const alwaysFail1 = (_: unknown): Result<unknown, InvalidError> => ({
+    _tag: "Err" as const,
+    err: new InvalidError({ message: "Error 1" }),
+  });
+  const alwaysFail2 = (_: unknown): Result<unknown, InvalidError> => ({
+    _tag: "Err" as const,
+    err: new InvalidError({ message: "Error 2" }),
+  });
+  const alwaysFail3 = (_: unknown): Result<unknown, InvalidError> => ({
+    _tag: "Err" as const,
+    err: new InvalidError({ message: "Error 3" }),
+  });
 
   const result = cast("test", alwaysFail1, alwaysFail2, alwaysFail3);
   assert(isErr(result));
@@ -267,4 +289,3 @@ test("cast aggregates multiple validation errors", () => {
   expect(result.err.sibling?.[1]?.message).toBe("Error 2");
   expect(result.err.sibling?.[2]?.message).toBe("Error 3");
 });
-

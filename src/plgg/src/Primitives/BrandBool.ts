@@ -1,4 +1,4 @@
-import { Result, ValidationError, Brand, isBool, ok, err } from "plgg/index";
+import { Result, InvalidError, Brand, isBool, ok, err } from "plgg/index";
 
 /**
  * Branded boolean type.
@@ -17,7 +17,7 @@ export const isBrandBool = <U extends string>(
  */
 export const asBrandBool = <U extends string>(
   value: unknown,
-): Result<BrandBool<U>, ValidationError> =>
+): Result<BrandBool<U>, InvalidError> =>
   isBrandBool<U>(value)
     ? ok(value)
-    : err(new ValidationError({ message: "Value is not a branded boolean" }));
+    : err(new InvalidError({ message: "Value is not a branded boolean" }));

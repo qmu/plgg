@@ -2,8 +2,8 @@ import { test, expect, assert } from "vitest";
 import {
   isObj,
   asObj,
-  castOptionalProp,
-  hasProp,
+  forOptionProp,
+  forProp,
   asStr,
   asNum,
   isOk,
@@ -57,11 +57,11 @@ test("Obj.cast validation", async () => {
 test("Obj.prop validation - success cases", async () => {
   const obj = { name: "John", age: 30 };
 
-  const nameResult = hasProp("name", asStr)(obj);
+  const nameResult = forProp("name", asStr)(obj);
   assert(isOk(nameResult));
   expect(nameResult.ok).toEqual({ name: "John", age: 30 });
 
-  const ageResult = hasProp("age", asNum)(obj);
+  const ageResult = forProp("age", asNum)(obj);
   assert(isOk(ageResult));
   expect(ageResult.ok).toEqual({ name: "John", age: 30 });
 });
@@ -69,7 +69,7 @@ test("Obj.prop validation - success cases", async () => {
 test("Obj.prop validation - missing property", async () => {
   const obj = { name: "John" };
 
-  const ageResult = hasProp("age", asNum)(obj);
+  const ageResult = forProp("age", asNum)(obj);
   assert(isErr(ageResult));
   expect(ageResult.err.message).toBe("Property 'age' not found");
 });
@@ -77,7 +77,7 @@ test("Obj.prop validation - missing property", async () => {
 test("Obj.prop validation - invalid property type", async () => {
   const obj = { name: "John", age: "thirty" };
 
-  const ageResult = hasProp("age", asNum)(obj);
+  const ageResult = forProp("age", asNum)(obj);
   assert(isErr(ageResult));
   expect(ageResult.err.message).toBe("Value is not a number");
 });
@@ -86,7 +86,7 @@ test("Obj.prop validation - adds property to object type", async () => {
   const obj = { existing: "value" };
   const newKey = "newProp";
 
-  const result = hasProp(newKey, asStr)({ ...obj, [newKey]: "test" });
+  const result = forProp(newKey, asStr)({ ...obj, [newKey]: "test" });
   assert(isOk(result));
   expect(result.ok).toEqual({ existing: "value", newProp: "test" });
 });
@@ -94,13 +94,13 @@ test("Obj.prop validation - adds property to object type", async () => {
 test("Obj.optional validation - property exists", async () => {
   const obj = { name: "John", age: 30 };
 
-  const nameResult = castOptionalProp("name", asStr)(obj);
+  const nameResult = forOptionProp("name", asStr)(obj);
   assert(isOk(nameResult));
   assert(isSome(nameResult.ok.name));
   expect(nameResult.ok.name.value).toBe("John");
   expect(nameResult.ok.age).toBe(30);
 
-  const ageResult = castOptionalProp("age", asNum)(obj);
+  const ageResult = forOptionProp("age", asNum)(obj);
   assert(isOk(ageResult));
   assert(isSome(ageResult.ok.age));
   expect(ageResult.ok.age.value).toBe(30);
@@ -109,7 +109,7 @@ test("Obj.optional validation - property exists", async () => {
 test("Obj.optional validation - property missing", async () => {
   const obj = { name: "John" };
 
-  const ageResult = castOptionalProp("age", asNum)(obj);
+  const ageResult = forOptionProp("age", asNum)(obj);
   assert(isOk(ageResult));
   assert(isNone(ageResult.ok.age));
   expect(ageResult.ok.name).toBe("John");
@@ -118,7 +118,7 @@ test("Obj.optional validation - property missing", async () => {
 test("Obj.optional validation - invalid property type", async () => {
   const obj = { name: "John", age: "thirty" };
 
-  const ageResult = castOptionalProp("age", asNum)(obj);
+  const ageResult = forOptionProp("age", asNum)(obj);
   assert(isErr(ageResult));
   expect(ageResult.err.message).toBe("Value is not a number");
 });
@@ -126,7 +126,7 @@ test("Obj.optional validation - invalid property type", async () => {
 test("Obj.optional validation - adds optional property to object type", async () => {
   const obj = { existing: "value" };
 
-  const result = castOptionalProp("optionalProp", asStr)(obj);
+  const result = forOptionProp("optionalProp", asStr)(obj);
   assert(isOk(result));
   assert(isNone(result.ok.optionalProp));
   expect(result.ok.existing).toBe("value");
@@ -136,13 +136,13 @@ test("Complex object validation with multiple properties", async () => {
   const obj = { name: "John", age: 30, email: "john@example.com" };
 
   // Chain multiple property validations
-  const nameResult = hasProp("name", asStr)(obj);
+  const nameResult = forProp("name", asStr)(obj);
   assert(isOk(nameResult));
 
-  const ageResult = hasProp("age", asNum)(nameResult.ok);
+  const ageResult = forProp("age", asNum)(nameResult.ok);
   assert(isOk(ageResult));
 
-  const emailResult = castOptionalProp("email", asStr)(ageResult.ok);
+  const emailResult = forOptionProp("email", asStr)(ageResult.ok);
   assert(isOk(emailResult));
   assert(isSome(emailResult.ok.email));
   expect(emailResult.ok.email.value).toBe("john@example.com");

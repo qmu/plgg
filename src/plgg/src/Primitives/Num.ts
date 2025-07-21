@@ -1,4 +1,4 @@
-import { ok, err, Result, ValidationError } from "plgg/index";
+import { ok, err, Result, InvalidError } from "plgg/index";
 
 /**
  * Number primitive type.
@@ -16,9 +16,9 @@ export const isNum = (value: unknown): value is Num =>
 
 /**
  * Validates and casts unknown value to number.
- * Returns Ok with number if valid, Err with ValidationError if invalid.
+ * Returns Ok with number if valid, Err with InvalidError if invalid.
  */
-export const asNum = (value: unknown): Result<Num, ValidationError> =>
+export const asNum = (value: unknown): Result<Num, InvalidError> =>
   isNum(value)
     ? ok(Number(value))
-    : err(new ValidationError({ message: "Value is not a number" }));
+    : err(new InvalidError({ message: "Value is not a number" }));
