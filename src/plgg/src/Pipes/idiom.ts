@@ -64,22 +64,6 @@ export const defined = <T>(value: T | undefined): Result<T, Error> =>
   value === undefined ? err(new Error("Value is undefined")) : ok(value);
 
 /**
- * Branching flow that preserves input/output types.
- * Selects between two functions based on predicate.
- */
-export const ifElse =
-  <T, U>(
-    predicate: PredicateFunction<T>,
-    ifTrue: OptionFunction<T, U>,
-    ifFalse: OptionFunction<T, U>,
-  ) =>
-  (value: T): U =>
-    predicate(value) ? ifTrue(value) : ifFalse(value);
-
-type OptionFunction<T, U = T> = (x: T) => U;
-type PredicateFunction<T> = (x: T) => boolean;
-
-/**
  * Encodes data as formatted JSON string.
  */
 export const jsonEncode = (data: unknown): string =>

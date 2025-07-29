@@ -10,7 +10,6 @@ import {
   tryCatch,
   jsonEncode,
   jsonDecode,
-  ifElse,
 } from "plgg/index";
 
 test("bind applies function to values in pipelines", () => {
@@ -90,18 +89,6 @@ test("jsonEncode and jsonDecode handle JSON operations", () => {
 
   const invalidJson = jsonDecode("invalid json");
   assert(isErr(invalidJson));
-});
-
-test("ifElse provides conditional branching", () => {
-  // Example: Conditional processing
-  const isEven = (n: number) => n % 2 === 0;
-  const formatEven = (n: number) => `${n} is even`;
-  const formatOdd = (n: number) => `${n} is odd`;
-
-  const processNumber = ifElse(isEven, formatEven, formatOdd);
-
-  expect(processNumber(4)).toBe("4 is even");
-  expect(processNumber(5)).toBe("5 is odd");
 });
 
 test("refine with default error message", () => {
