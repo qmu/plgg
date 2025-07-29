@@ -13,9 +13,9 @@ export type MaybeResult<T, U> = Result<T, U> | T;
 /**
  * Async Result type for Plgg operations.
  */
-export type Plggable<T, U extends Error = Error> = MaybePromise<
-  MaybeResult<T, U>
->;
+export type Plggable<T, U extends Error = Error> = T extends never
+  ? never
+  : MaybePromise<MaybeResult<T, U>>;
 
 /**
  * Type guard to check if a value is a Promise.
