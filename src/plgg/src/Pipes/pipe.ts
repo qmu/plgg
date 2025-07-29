@@ -4,20 +4,17 @@ import { NonNeverFn } from "plgg/index";
  * Type-safe function composition with overloads for inference.
  */
 export function pipe<A, B>(a: A, ab: NonNeverFn<(a: A) => B>): B;
-
 export function pipe<A, B, C>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
 ): C;
-
 export function pipe<A, B, C, D>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
   cd: NonNeverFn<(c: C) => D>,
 ): D;
-
 export function pipe<A, B, C, D, E>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,

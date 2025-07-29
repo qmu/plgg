@@ -54,7 +54,7 @@ test("string", async () => {
   expect(fn("c")).equal("c");
 });
 
-test("string with plgg", async () => {
+test("plgg string", async () => {
   const s1 = "a" as const,
     s2 = "b" as const,
     s3 = "c" as const;
