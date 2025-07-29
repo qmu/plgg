@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { pipe, plgg, match, isErr, True, False } from "plgg/index";
+import { pipe, plgg, cover, isErr, True, False } from "plgg/index";
 
 test("number", async () => {
   const s1 = 1 as const,
@@ -10,7 +10,7 @@ test("number", async () => {
   const fn = (a: status) =>
     pipe(
       a,
-      match(
+      cover(
         [s1, () => "1"],
         [s2, () => "2"],
         [s3, () => "3"], // should compile error when erased
@@ -25,7 +25,7 @@ test("boolean", async () => {
   const fn = (a: boolean) =>
     pipe(
       a,
-      match(
+      cover(
         [True, () => "true"],
         [False, () => "false"], // should compile error when erased
         // [3 as const, () => "3"], // should compile error when uncommented
@@ -43,7 +43,7 @@ test("string", async () => {
   const fn = (a: status) =>
     pipe(
       a,
-      match(
+      cover(
         [s1, () => "a"],
         [s2, () => "b"],
         [s3, () => "c"], // should compile error when erased
@@ -62,7 +62,7 @@ test("plgg string", async () => {
   const fn = (a: status) =>
     plgg(
       a,
-      match(
+      cover(
         [s1, () => "a"],
         [s2, () => "b"],
         [s3, () => "c"], // should compile error when erased

@@ -3,32 +3,32 @@ type IsEqual<A, B> =
     ? true
     : false;
 
-export function match<O1, R>(
+export function cover<O1, R>(
   o1: [O1, () => R],
 ): <A>(a: A) => IsEqual<O1, A> extends true ? R : never;
-export function match<O1, O2, R>(
+export function cover<O1, O2, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
 ): <A>(a: A) => IsEqual<O1 | O2, A> extends true ? R : never;
-export function match<O1, O2, O3, R>(
+export function cover<O1, O2, O3, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
 ): <A>(a: A) => IsEqual<O1 | O2 | O3, A> extends true ? R : never;
-export function match<O1, O2, O3, O4, R>(
+export function cover<O1, O2, O3, O4, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
   o4: [O4, () => R],
 ): <A>(a: A) => IsEqual<O1 | O2 | O3 | O4, A> extends true ? R : never;
-export function match<O1, O2, O3, O4, O5, R>(
+export function cover<O1, O2, O3, O4, O5, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
   o4: [O4, () => R],
   o5: [O5, () => R],
 ): <A>(a: A) => IsEqual<O1 | O2 | O3 | O4 | O5, A> extends true ? R : never;
-export function match<O1, O2, O3, O4, O5, O6, R>(
+export function cover<O1, O2, O3, O4, O5, O6, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
@@ -38,7 +38,7 @@ export function match<O1, O2, O3, O4, O5, O6, R>(
 ): <A>(
   a: A,
 ) => IsEqual<O1 | O2 | O3 | O4 | O5 | O6, A> extends true ? R : never;
-export function match<O1, O2, O3, O4, O5, O6, O7, R>(
+export function cover<O1, O2, O3, O4, O5, O6, O7, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
@@ -49,7 +49,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, R>(
 ): <A>(
   a: A,
 ) => IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7, A> extends true ? R : never;
-export function match<O1, O2, O3, O4, O5, O6, O7, O8, R>(
+export function cover<O1, O2, O3, O4, O5, O6, O7, O8, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
@@ -61,7 +61,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, R>(
 ): <A>(
   a: A,
 ) => IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8, A> extends true ? R : never;
-export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, R>(
+export function cover<O1, O2, O3, O4, O5, O6, O7, O8, O9, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
@@ -76,7 +76,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, R>(
 ) => IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9, A> extends true
   ? R
   : never;
-export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, R>(
+export function cover<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
@@ -92,7 +92,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, R>(
 ) => IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10, A> extends true
   ? R
   : never;
-export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, R>(
+export function cover<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
@@ -112,7 +112,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, R>(
 > extends true
   ? R
   : never;
-export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, R>(
+export function cover<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, R>(
   o1: [O1, () => R],
   o2: [O2, () => R],
   o3: [O3, () => R],
@@ -133,7 +133,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, R>(
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -170,7 +170,7 @@ export function match<
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -209,7 +209,7 @@ export function match<
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -264,7 +264,7 @@ export function match<
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -322,7 +322,7 @@ export function match<
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -383,7 +383,7 @@ export function match<
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -447,7 +447,7 @@ export function match<
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -514,7 +514,7 @@ export function match<
 > extends true
   ? R
   : never;
-export function match<
+export function cover<
   O1,
   O2,
   O3,
@@ -585,7 +585,7 @@ export function match<
   ? R
   : never;
 
-export function match(
+export function cover(
   ...options: ReadonlyArray<[unknown, () => unknown]>
 ): (a: unknown) => unknown {
   return (v: unknown): unknown => {
