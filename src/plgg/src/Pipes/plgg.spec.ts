@@ -34,13 +34,11 @@ test("plgg composes sync and async functions with early error exit", async () =>
 
 test("plgg stops processing on first error", async () => {
   const increment = (x: number) => x + 1;
-  const failValidation = (_: number) =>
+  const failValidation = (_: number): Promise<Result<number, InvalidError>> =>
     Promise.resolve(err(new InvalidError({ message: "Validation failed" })));
-  const neverCalled = (_: number) => {
-    throw new Error("This should never be called");
-  };
+  const neverCalled = (_: never): string => "should not be called";
 
-  const result = await plgg(5, increment, failValidation, neverCalled);
+  const result = await plgg(5, increment, failValidation as any, neverCalled as any);
 
   assert(isErr(result));
   expect(result.err.message).toBe("Validation failed");
@@ -86,33 +84,42 @@ test("plgg with type casting and validation chain", async () => {
 });
 
 test("plgg gracefully handles exceptions in functions", async () => {
-  const throwError = (_: number) => {
-    throw new Error("Unexpected error");
+  const processWithError = (x: number): Result<string, InvalidError> => {
+    if (x === 5) {
+      throw new Error("Unexpected error");
+    }
+    return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg(5, throwError);
+  const result = await plgg(5, processWithError);
 
   assert(isErr(result));
   expect(result.err.message).toContain("Unexpected error in plgg");
 });
 
 test("plgg handles thrown PlggError", async () => {
-  const throwPlggError = (_: number) => {
-    throw new InvalidError({ message: "Domain error thrown" });
+  const processWithPlggError = (x: number): Result<string, InvalidError> => {
+    if (x === 5) {
+      throw new InvalidError({ message: "Domain error thrown" });
+    }
+    return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg(5, throwPlggError);
+  const result = await plgg(5, processWithPlggError);
 
   assert(isErr(result));
   expect(result.err.message).toBe("Domain error thrown");
 });
 
 test("plgg handles thrown non-Error values", async () => {
-  const throwString = (_: number) => {
-    throw "String error";
+  const processWithStringError = (x: number): Result<string, InvalidError> => {
+    if (x === 5) {
+      throw "String error";
+    }
+    return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg(5, throwString);
+  const result = await plgg(5, processWithStringError);
 
   assert(isErr(result));
   expect(result.err.message).toBe("Unknown error in plgg");

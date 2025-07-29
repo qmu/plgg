@@ -1,31 +1,78 @@
-import { test, expect } from "vitest";
-import { pipe, match } from "plgg/index";
+import { test, expect, assert } from "vitest";
+import { pipe, plgg, match, isErr, True, False } from "plgg/index";
 
-test("number1", async () => {
-  const r1 = pipe(
-    3, // Should compile error when 4
-    match(
-      [1 as const, () => "1"],
-      [2 as const, () => "2"],
-      [3 as const, () => "3"],
-    ),
-  );
-  expect(r1).equal("3");
+test("number", async () => {
+  const s1 = 1 as const,
+    s2 = 2 as const,
+    s3 = 3 as const;
+  type status = typeof s1 | typeof s2 | typeof s3;
+
+  const fn = (a: status) =>
+    pipe(
+      a,
+      match(
+        [s1, () => "1"],
+        [s2, () => "2"],
+        [s3, () => "3"], // should compile error when erased
+        //[4 as const, () => "4"], // should compile error when uncommented
+      ),
+      (a) => a,
+    );
+  expect(fn(3)).equal("3");
 });
 
-test("number2", async () => {
-  const status1 = 1 as const,
-    status2 = 2 as const,
-    status3 = 3 as const;
-  type status = typeof status1 | typeof status2 | typeof status3;
-  const a1: status = 3;
-  // prettier-ignore
-  const r2 = pipe(
-    a1, 
-    match(
-      [status1, () => "1"], 
-      [status2, () => "2"],  // should compile error when erased
-      [status3, () => "3"]
-    ));
-  expect(r2).equal("3");
+test("boolean", async () => {
+  const fn = (a: boolean) =>
+    pipe(
+      a,
+      match(
+        [True, () => "true"],
+        [False, () => "false"], // should compile error when erased
+        // [3 as const, () => "3"], // should compile error when uncommented
+      ),
+      (a) => a,
+    );
+  expect(fn(true)).equal("true");
+});
+
+test("string", async () => {
+  const s1 = "a" as const,
+    s2 = "b" as const,
+    s3 = "c" as const;
+  type status = typeof s1 | typeof s2 | typeof s3;
+  const fn = (a: status) =>
+    pipe(
+      a,
+      match(
+        [s1, () => "a"],
+        [s2, () => "b"],
+        [s3, () => "c"], // should compile error when erased
+        //[4 as const, () => "4"], // should compile error when uncommented
+      ),
+      (a) => a,
+    );
+  expect(fn("c")).equal("c");
+});
+
+test("string with plgg", async () => {
+  const s1 = "a" as const,
+    s2 = "b" as const,
+    s3 = "c" as const;
+  type status = typeof s1 | typeof s2 | typeof s3;
+  const fn = (a: status) =>
+    plgg(
+      a,
+      match(
+        [s1, () => "a"],
+        [s2, () => "b"],
+        [s3, () => "c"], // should compile error when erased
+        //[4 as const, () => "4"], // should compile error when uncommented
+      ),
+      (a) => a,
+    );
+  const r = await fn("c");
+  if (isErr(r)) {
+    assert.fail("Expected success, got error");
+  }
+  expect(r.ok).equal("c");
 });
