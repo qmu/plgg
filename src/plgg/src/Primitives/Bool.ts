@@ -1,9 +1,12 @@
 import { Result, ok, err, InvalidError } from "plgg/index";
 
+export const True = true as const;
+export const False = false as const;
+
 /**
  * Boolean primitive type.
  */
-export type Bool = boolean;
+export type Bool = typeof True | typeof False;
 
 /**
  * Type guard for boolean.

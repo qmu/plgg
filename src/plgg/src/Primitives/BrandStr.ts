@@ -1,9 +1,9 @@
-import { isStr, Result, InvalidError, ok, err, Brand } from "plgg/index";
+import { isStr, Result, InvalidError, ok, err, Str, Brand } from "plgg/index";
 
 /**
  * Branded string type.
  */
-export type BrandStr<U extends string> = Brand<string, U>;
+export type BrandStr<U extends string> = Brand<Str, U>;
 
 /**
  * Type guard for branded string.

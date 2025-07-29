@@ -1,9 +1,9 @@
-import { Result, InvalidError, Brand, isBool, ok, err } from "plgg/index";
+import { Result, InvalidError, Brand, Bool, isBool, ok, err } from "plgg/index";
 
 /**
  * Branded boolean type.
  */
-export type BrandBool<U extends string> = Brand<boolean, U>;
+export type BrandBool<U extends string> = Brand<Bool, U>;
 
 /**
  * Type guard for branded boolean.
