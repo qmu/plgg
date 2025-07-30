@@ -54,7 +54,10 @@ export function match<O1, O2, O3, R>(
 ) => If<
   Or<
     IsEqual<O1 | O2 | O3, A>,
-    And<IsAssignable<O1 | O2, A>, IsEqual<O3, typeof DEFAULT>>
+    Or<
+      And<IsAssignable<O1 | O2, A>, IsEqual<O3, typeof DEFAULT>>,
+      And<IsAssignable<A, O1 | O2>, IsEqual<O3, typeof DEFAULT>>
+    >
   >,
   R,
   never
@@ -281,9 +284,15 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13, A>,
+    IsEqual<
+      O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12, A>,
+      IsAssignable<
+        O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12,
+        A
+      >,
       IsEqual<O13, typeof DEFAULT>
     >
   >,
@@ -325,9 +334,15 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14, A>,
+    IsEqual<
+      O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13, A>,
+      IsAssignable<
+        O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13,
+        A
+      >,
       IsEqual<O14, typeof DEFAULT>
     >
   >,
@@ -371,9 +386,42 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15, A>,
+    IsEqual<
+      | O1
+      | O2
+      | O3
+      | O4
+      | O5
+      | O6
+      | O7
+      | O8
+      | O9
+      | O10
+      | O11
+      | O12
+      | O13
+      | O14
+      | O15,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14, A>,
+      IsAssignable<
+        | O1
+        | O2
+        | O3
+        | O4
+        | O5
+        | O6
+        | O7
+        | O8
+        | O9
+        | O10
+        | O11
+        | O12
+        | O13
+        | O14,
+        A
+      >,
       IsEqual<O15, typeof DEFAULT>
     >
   >,
@@ -419,9 +467,44 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16, A>,
+    IsEqual<
+      | O1
+      | O2
+      | O3
+      | O4
+      | O5
+      | O6
+      | O7
+      | O8
+      | O9
+      | O10
+      | O11
+      | O12
+      | O13
+      | O14
+      | O15
+      | O16,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15, A>,
+      IsAssignable<
+        | O1
+        | O2
+        | O3
+        | O4
+        | O5
+        | O6
+        | O7
+        | O8
+        | O9
+        | O10
+        | O11
+        | O12
+        | O13
+        | O14
+        | O15,
+        A
+      >,
       IsEqual<O16, typeof DEFAULT>
     >
   >,
@@ -469,9 +552,46 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16 | O17, A>,
+    IsEqual<
+      | O1
+      | O2
+      | O3
+      | O4
+      | O5
+      | O6
+      | O7
+      | O8
+      | O9
+      | O10
+      | O11
+      | O12
+      | O13
+      | O14
+      | O15
+      | O16
+      | O17,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16, A>,
+      IsAssignable<
+        | O1
+        | O2
+        | O3
+        | O4
+        | O5
+        | O6
+        | O7
+        | O8
+        | O9
+        | O10
+        | O11
+        | O12
+        | O13
+        | O14
+        | O15
+        | O16,
+        A
+      >,
       IsEqual<O17, typeof DEFAULT>
     >
   >,
@@ -521,9 +641,48 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16 | O17 | O18, A>,
+    IsEqual<
+      | O1
+      | O2
+      | O3
+      | O4
+      | O5
+      | O6
+      | O7
+      | O8
+      | O9
+      | O10
+      | O11
+      | O12
+      | O13
+      | O14
+      | O15
+      | O16
+      | O17
+      | O18,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16 | O17, A>,
+      IsAssignable<
+        | O1
+        | O2
+        | O3
+        | O4
+        | O5
+        | O6
+        | O7
+        | O8
+        | O9
+        | O10
+        | O11
+        | O12
+        | O13
+        | O14
+        | O15
+        | O16
+        | O17,
+        A
+      >,
       IsEqual<O18, typeof DEFAULT>
     >
   >,
@@ -575,9 +734,50 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16 | O17 | O18 | O19, A>,
+    IsEqual<
+      | O1
+      | O2
+      | O3
+      | O4
+      | O5
+      | O6
+      | O7
+      | O8
+      | O9
+      | O10
+      | O11
+      | O12
+      | O13
+      | O14
+      | O15
+      | O16
+      | O17
+      | O18
+      | O19,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16 | O17 | O18, A>,
+      IsAssignable<
+        | O1
+        | O2
+        | O3
+        | O4
+        | O5
+        | O6
+        | O7
+        | O8
+        | O9
+        | O10
+        | O11
+        | O12
+        | O13
+        | O14
+        | O15
+        | O16
+        | O17
+        | O18,
+        A
+      >,
       IsEqual<O19, typeof DEFAULT>
     >
   >,
@@ -631,9 +831,52 @@ export function match<
   a: A,
 ) => If<
   Or<
-    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16 | O17 | O18 | O19 | O20, A>,
+    IsEqual<
+      | O1
+      | O2
+      | O3
+      | O4
+      | O5
+      | O6
+      | O7
+      | O8
+      | O9
+      | O10
+      | O11
+      | O12
+      | O13
+      | O14
+      | O15
+      | O16
+      | O17
+      | O18
+      | O19
+      | O20,
+      A
+    >,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14 | O15 | O16 | O17 | O18 | O19, A>,
+      IsAssignable<
+        | O1
+        | O2
+        | O3
+        | O4
+        | O5
+        | O6
+        | O7
+        | O8
+        | O9
+        | O10
+        | O11
+        | O12
+        | O13
+        | O14
+        | O15
+        | O16
+        | O17
+        | O18
+        | O19,
+        A
+      >,
       IsEqual<O20, typeof DEFAULT>
     >
   >,
