@@ -5,7 +5,7 @@ import {
   pattern,
   pipe,
   match,
-  DEFAULT,
+  OTHERWISE,
 } from "plgg/index";
 
 test("tagged union", async () => {
@@ -44,7 +44,7 @@ test("tagged union", async () => {
         [square(), () => "b"],
         [triangle({ base: 0 }), () => "c"],
         [triangle({ base: 1 }), () => "d"],
-        [DEFAULT, () => "default"],
+        [OTHERWISE, () => "default"],
       ),
       (a) => a,
     );
@@ -75,7 +75,7 @@ test("recurring structure like AST", async () => {
         [ast({ type: "root" }), () => "root"],
         [ast({ type: "leaf" }), () => "leaf"],
         [ast({ type: "branch" }), () => "branch"],
-        [DEFAULT, () => "default"],
+        [OTHERWISE, () => "default"],
       ),
       (a) => a,
     );

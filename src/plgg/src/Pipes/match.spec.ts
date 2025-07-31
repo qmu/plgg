@@ -1,5 +1,15 @@
 import { test, expect, assert } from "vitest";
-import { pipe, plgg, match, isErr, TRUE, FALSE, DEFAULT } from "plgg/index";
+import {
+  pipe,
+  plgg,
+  match,
+  isErr,
+  TRUE,
+  FALSE,
+  Variant,
+  pattern,
+  OTHERWISE,
+} from "plgg/index";
 
 test("number", async () => {
   const s1 = 1 as const,
@@ -88,10 +98,79 @@ test("default", async () => {
       match(
         [s1, () => "a"],
         [s2, () => "b"],
-        [DEFAULT, () => "default"], // should compile error when erased
+        [OTHERWISE, () => "default"], // should compile error when erased
         //[4 as const, () => "4"], // should compile error when uncommented
       ),
       (a) => a,
     );
   expect(fn("c")).equal("default");
 });
+
+/**
+ * Example3
+ */
+{
+  type Circle = Variant<
+    "circle",
+    {
+      radius: number;
+    }
+  >;
+  const circle = pattern("circle")<Circle>();
+
+  type Square = Variant<
+    "square",
+    {
+      side: number;
+    }
+  >;
+  const square = pattern("square")<Square>();
+
+  type Triangle = Variant<
+    "triangle",
+    {
+      base: number;
+      height: number;
+    }
+  >;
+  const triangle = pattern("triangle")<Triangle>();
+
+  type Shape = Circle | Square | Triangle;
+
+  (a: Shape) =>
+    pipe(
+      a,
+      match(
+        [circle(), () => "a"],
+        [square(), () => "b"],
+        [triangle(), () => "b"],
+      ),
+      (a) => a,
+    );
+}
+
+/**
+ * Example4
+ */
+{
+  type AST = Variant<
+    "ast",
+    {
+      type: "root" | "leaf" | "branch";
+      children?: ReadonlyArray<AST>;
+    }
+  >;
+  const ast = pattern("ast")<AST>();
+
+  (a: AST) =>
+    pipe(
+      a,
+      match(
+        [ast({ type: "root" }), () => "root"],
+        [ast({ type: "leaf" }), () => "leaf"],
+        [ast({ type: "branch" }), () => "branch"],
+        [OTHERWISE, () => "default"],
+      ),
+      (a) => a,
+    );
+}
