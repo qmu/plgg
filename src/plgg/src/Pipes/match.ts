@@ -1,33 +1,4 @@
-// ------------------------------------
-// Helper types
-// ------------------------------------
-
-type IsEqual<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-    ? true
-    : false;
-
-type And<A extends boolean, B extends boolean> = A extends true
-  ? B extends true
-    ? true
-    : false
-  : false;
-
-type Or<A extends boolean, B extends boolean> = A extends true
-  ? true
-  : B extends true
-    ? true
-    : false;
-
-type IsAssignable<From, To> = From extends To ? true : false;
-
-type If<C extends boolean, T, F> = C extends true ? T : F;
-
-export const DEFAULT = "__MATCH_DEFAULT__" as const;
-
-// ------------------------------------
-// Actual match function
-// ------------------------------------
+import { If, IsEqual, And, Or, IsExtended, DEFAULT } from "plgg/index";
 
 export function match<O1, R>(
   o1: [O1, () => R],
@@ -38,10 +9,7 @@ export function match<O1, O2, R>(
 ): <A>(
   a: A,
 ) => If<
-  Or<
-    IsEqual<O1 | O2, A>,
-    And<IsAssignable<O1, A>, IsEqual<O2, typeof DEFAULT>>
-  >,
+  Or<IsEqual<O1 | O2, A>, And<IsExtended<O1, A>, IsEqual<O2, typeof DEFAULT>>>,
   R,
   never
 >;
@@ -55,8 +23,8 @@ export function match<O1, O2, O3, R>(
   Or<
     IsEqual<O1 | O2 | O3, A>,
     Or<
-      And<IsAssignable<O1 | O2, A>, IsEqual<O3, typeof DEFAULT>>,
-      And<IsAssignable<A, O1 | O2>, IsEqual<O3, typeof DEFAULT>>
+      And<IsExtended<O1 | O2, A>, IsEqual<O3, typeof DEFAULT>>,
+      And<IsExtended<A, O1 | O2>, IsEqual<O3, typeof DEFAULT>>
     >
   >,
   R,
@@ -72,7 +40,7 @@ export function match<O1, O2, O3, O4, R>(
 ) => If<
   Or<
     IsEqual<O1 | O2 | O3 | O4, A>,
-    And<IsAssignable<O1 | O2 | O3, A>, IsEqual<O4, typeof DEFAULT>>
+    And<IsExtended<O1 | O2 | O3, A>, IsEqual<O4, typeof DEFAULT>>
   >,
   R,
   never
@@ -88,7 +56,7 @@ export function match<O1, O2, O3, O4, O5, R>(
 ) => If<
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5, A>,
-    And<IsAssignable<O1 | O2 | O3 | O4, A>, IsEqual<O5, typeof DEFAULT>>
+    And<IsExtended<O1 | O2 | O3 | O4, A>, IsEqual<O5, typeof DEFAULT>>
   >,
   R,
   never
@@ -105,7 +73,7 @@ export function match<O1, O2, O3, O4, O5, O6, R>(
 ) => If<
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5 | O6, A>,
-    And<IsAssignable<O1 | O2 | O3 | O4 | O5, A>, IsEqual<O6, typeof DEFAULT>>
+    And<IsExtended<O1 | O2 | O3 | O4 | O5, A>, IsEqual<O6, typeof DEFAULT>>
   >,
   R,
   never
@@ -123,10 +91,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, R>(
 ) => If<
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7, A>,
-    And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6, A>,
-      IsEqual<O7, typeof DEFAULT>
-    >
+    And<IsExtended<O1 | O2 | O3 | O4 | O5 | O6, A>, IsEqual<O7, typeof DEFAULT>>
   >,
   R,
   never
@@ -146,7 +111,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, R>(
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8, A>,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7, A>,
+      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7, A>,
       IsEqual<O8, typeof DEFAULT>
     >
   >,
@@ -169,7 +134,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, R>(
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9, A>,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8, A>,
+      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8, A>,
       IsEqual<O9, typeof DEFAULT>
     >
   >,
@@ -193,7 +158,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, R>(
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10, A>,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9, A>,
+      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9, A>,
       IsEqual<O10, typeof DEFAULT>
     >
   >,
@@ -218,7 +183,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, R>(
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11, A>,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10, A>,
+      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10, A>,
       IsEqual<O11, typeof DEFAULT>
     >
   >,
@@ -244,7 +209,7 @@ export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, R>(
   Or<
     IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12, A>,
     And<
-      IsAssignable<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11, A>,
+      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11, A>,
       IsEqual<O12, typeof DEFAULT>
     >
   >,
@@ -289,7 +254,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12,
         A
       >,
@@ -339,7 +304,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13,
         A
       >,
@@ -405,7 +370,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         | O1
         | O2
         | O3
@@ -487,7 +452,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         | O1
         | O2
         | O3
@@ -573,7 +538,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         | O1
         | O2
         | O3
@@ -663,7 +628,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         | O1
         | O2
         | O3
@@ -757,7 +722,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         | O1
         | O2
         | O3
@@ -855,7 +820,7 @@ export function match<
       A
     >,
     And<
-      IsAssignable<
+      IsExtended<
         | O1
         | O2
         | O3

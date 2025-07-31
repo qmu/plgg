@@ -3,3 +3,4 @@ export * from "plgg/Conjunctives";
 export * from "plgg/Errors";
 export * from "plgg/Pipes";
 export * from "plgg/Effectfuls";
+export * from "plgg/TypeLevels";
