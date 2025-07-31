@@ -8,7 +8,7 @@ import {
   TupleToUnion,
   IsUnionSubset,
   UnPartial,
-  DEFAULT,
+  OTHERWISE,
 } from "plgg/index";
 
 // -------------------------
@@ -106,7 +106,7 @@ export function match<
   O1,
   O2,
   R,
-  DEFAULT_LAST extends boolean = Is<O2, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O2, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<DEFAULT_LAST, [O1], [O1, O2]>,
 >(
   o1: MatchOption<O1, R>,
@@ -121,7 +121,7 @@ export function match<
   O2,
   O3,
   R,
-  DEFAULT_LAST extends boolean = Is<O3, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O3, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2],
@@ -142,7 +142,7 @@ export function match<
   O3,
   O4,
   R,
-  DEFAULT_LAST extends boolean = Is<O4, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O4, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3],
@@ -165,7 +165,7 @@ export function match<
   O4,
   O5,
   R,
-  DEFAULT_LAST extends boolean = Is<O5, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O5, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4],
@@ -190,7 +190,7 @@ export function match<
   O5,
   O6,
   R,
-  DEFAULT_LAST extends boolean = Is<O6, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O6, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5],
@@ -217,7 +217,7 @@ export function match<
   O6,
   O7,
   R,
-  DEFAULT_LAST extends boolean = Is<O7, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O7, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6],
@@ -246,7 +246,7 @@ export function match<
   O7,
   O8,
   R,
-  DEFAULT_LAST extends boolean = Is<O8, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O8, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7],
@@ -277,7 +277,7 @@ export function match<
   O8,
   O9,
   R,
-  DEFAULT_LAST extends boolean = Is<O9, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O9, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8],
@@ -310,7 +310,7 @@ export function match<
   O9,
   O10,
   R,
-  DEFAULT_LAST extends boolean = Is<O10, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O10, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9],
@@ -345,7 +345,7 @@ export function match<
   O10,
   O11,
   R,
-  DEFAULT_LAST extends boolean = Is<O11, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O11, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10],
@@ -382,7 +382,7 @@ export function match<
   O11,
   O12,
   R,
-  DEFAULT_LAST extends boolean = Is<O12, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O12, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11],
@@ -421,7 +421,7 @@ export function match<
   O12,
   O13,
   R,
-  DEFAULT_LAST extends boolean = Is<O13, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O13, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12],
@@ -462,7 +462,7 @@ export function match<
   O13,
   O14,
   R,
-  DEFAULT_LAST extends boolean = Is<O14, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O14, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13],
@@ -505,7 +505,7 @@ export function match<
   O14,
   O15,
   R,
-  DEFAULT_LAST extends boolean = Is<O15, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O15, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14],
@@ -550,7 +550,7 @@ export function match<
   O15,
   O16,
   R,
-  DEFAULT_LAST extends boolean = Is<O16, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O16, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15],
@@ -597,7 +597,7 @@ export function match<
   O16,
   O17,
   R,
-  DEFAULT_LAST extends boolean = Is<O17, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O17, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16],
@@ -646,11 +646,48 @@ export function match<
   O17,
   O18,
   R,
-  DEFAULT_LAST extends boolean = Is<O18, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O18, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16, O17],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16, O17, O18]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+      O17,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+      O17,
+      O18,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -697,11 +734,50 @@ export function match<
   O18,
   O19,
   R,
-  DEFAULT_LAST extends boolean = Is<O19, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O19, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16, O17, O18],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16, O17, O18, O19]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+      O17,
+      O18,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+      O17,
+      O18,
+      O19,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -750,11 +826,52 @@ export function match<
   O19,
   O20,
   R,
-  DEFAULT_LAST extends boolean = Is<O20, typeof DEFAULT>,
+  DEFAULT_LAST extends boolean = Is<O20, typeof OTHERWISE>,
   OPTIONS extends ReadonlyArray<unknown> = If<
     DEFAULT_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16, O17, O18, O19],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16, O17, O18, O19, O20]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+      O17,
+      O18,
+      O19,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+      O17,
+      O18,
+      O19,
+      O20,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -787,7 +904,7 @@ export function match(
 ): (a: unknown) => unknown {
   return (a: unknown): unknown => {
     for (const [cond, fn] of options) {
-      if (cond === "__MATCH_DEFAULT__") {
+      if (cond === OTHERWISE) {
         return fn(a);
       }
       if (isVariant(a) && isVariant(cond) && deepPartialEqual(a, cond)) {
