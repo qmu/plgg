@@ -87,7 +87,7 @@ test("default", async () => {
       a,
       match(
         [s1, () => "a"],
-        ["hoge", () => "b"],
+        [s2, () => "b"],
         [DEFAULT, () => "default"], // should compile error when erased
         //[4 as const, () => "4"], // should compile error when uncommented
       ),

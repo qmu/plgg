@@ -1,5 +1,12 @@
 import { test, expect } from "vitest";
-import { Variant, variant, pipe, match } from "plgg/index";
+import {
+  Variant,
+  variantMaker,
+  pattern,
+  pipe,
+  match,
+  DEFAULT,
+} from "plgg/index";
 
 test("tagged union", async () => {
   type Circle = Variant<
@@ -8,7 +15,7 @@ test("tagged union", async () => {
       radius: number;
     }
   >;
-  const circle = variant("circle")<Circle>();
+  const circle = pattern("circle")<Circle>();
 
   type Square = Variant<
     "square",
@@ -16,7 +23,7 @@ test("tagged union", async () => {
       side: number;
     }
   >;
-  const square = variant("square")<Square>();
+  const square = pattern("square")<Square>();
 
   type Triangle = Variant<
     "triangle",
@@ -25,53 +32,57 @@ test("tagged union", async () => {
       height: number;
     }
   >;
-  const triangle = variant("triangle")<Triangle>();
+  const triangle = pattern("triangle")<Triangle>();
+  const makeTriangle = variantMaker("triangle")<Triangle>();
 
   type Shape = Circle | Square | Triangle;
   const fn = (a: Shape) =>
     pipe(
       a,
       match(
-        [circle({ radius: 0 }), () => "a"],
-        [square({ side: 0 }), () => "b"],
-        [triangle({ base: 0, height: 0 }), () => "b"],
-        //[4 as const, () => "4"], // should compile error when uncommented
-      )<Shape>,
+        [circle(), () => "a"],
+        [square(), () => "b"],
+        [triangle({ base: 0 }), () => "c"],
+        [triangle({ base: 1 }), () => "d"],
+        [DEFAULT, () => "default"],
+      ),
       (a) => a,
     );
 
-  const realTriangle = triangle({
-    base: 3,
+  const realTriangle = makeTriangle({
+    base: 1,
     height: 4,
   });
 
-  expect(fn(realTriangle)).equal("b");
+  expect(fn(realTriangle)).equal("d");
 });
 
 test("recurring structure like AST", async () => {
   type AST = Variant<
     "ast",
     {
-      type: string;
+      type: "root" | "leaf" | "branch";
       children?: ReadonlyArray<AST>;
     }
   >;
-  const ast = variant("ast")<AST>();
+  const ast = pattern("ast")<AST>();
+  const makeAst = variantMaker("ast")<AST>();
 
   const fn = (a: AST) =>
     pipe(
       a,
       match(
-        [ast({ type: "root", children: [] }), () => "root"],
+        [ast({ type: "root" }), () => "root"],
         [ast({ type: "leaf" }), () => "leaf"],
-        [ast({ type: "branch", children: [] }), () => "branch"],
-      )<AST>,
+        [ast({ type: "branch" }), () => "branch"],
+        [DEFAULT, () => "default"],
+      ),
       (a) => a,
     );
 
-  const realAst = ast({
+  const realAst = makeAst({
     type: "branch",
-    children: [ast({ type: "leaf" })],
+    children: [makeAst({ type: "leaf" })],
   });
 
   expect(fn(realAst)).equal("branch");
