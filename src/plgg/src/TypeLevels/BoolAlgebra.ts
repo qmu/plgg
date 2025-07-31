@@ -1,4 +1,4 @@
-export const DEFAULT = "__MATCH_DEFAULT__" as const;
+export const OTHERWISE = "__MATCH_OTHERWISE__" as const;
 
 export type If<C extends boolean, T, F> = C extends true ? T : F;
 
