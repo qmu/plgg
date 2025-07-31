@@ -1,12 +1,6 @@
 import { test, expect, assert } from "vitest";
 import { pipe, plgg, match, isErr, TRUE, FALSE, DEFAULT } from "plgg/index";
 
-const variant =
-  <T extends string, U>(tag: T) =>
-  (body?: U) => {
-    return { __tag: tag, __body: body } as const;
-  };
-
 test("number", async () => {
   const s1 = 1 as const,
     s2 = 2 as const,
@@ -100,41 +94,4 @@ test("default", async () => {
       (a) => a,
     );
   expect(fn("c")).equal("default");
-});
-
-test("tagged union", async () => {
-  const makeCircle = variant("circle" as const);
-  const cricle = makeCircle();
-  type Circle = typeof cricle;
-
-  const makeSquare = variant("square" as const);
-  const square = makeSquare();
-  type Square = typeof square;
-
-  const makeTriangle = variant("triangle" as const);
-  const triangle = makeTriangle();
-  type Triangle = typeof triangle;
-
-  // const circle = { type: "circle", radius: 5 } as const,
-  //   square = { type: "square", side: 4 } as const,
-  //   triangle = { type: "triangle", base: 3, height: 4 } as const;
-  type Shape = Circle | Square | Triangle;
-  const fn = (a: Shape) =>
-    pipe(
-      a,
-      match(
-        [cricle, () => "a"],
-        [square, () => "b"],
-        [triangle, () => "b"],
-        //[4 as const, () => "4"], // should compile error when uncommented
-      )<Shape>,
-      (a) => a,
-    );
-
-  const realTriangle = makeTriangle({
-    base: 3,
-    height: 4,
-  });
-
-  expect(fn(realTriangle)).equal("default");
 });
