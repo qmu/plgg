@@ -1,866 +1,202 @@
-//import { If, IsEqual, And, Or, IsExtended, DEFAULT } from "plgg/index";
-//
-//export function match<O1, R>(
-//  o1: [O1, () => R],
-//): <A>(a: A) => If<Or<IsEqual<O1, A>, IsEqual<O1, typeof DEFAULT>>, R, never>;
-//export function match<O1, O2, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<IsEqual<O1 | O2, A>, And<IsExtended<O1, A>, IsEqual<O2, typeof DEFAULT>>>,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3, A>,
-//    Or<
-//      And<IsExtended<O1 | O2, A>, IsEqual<O3, typeof DEFAULT>>,
-//      And<IsExtended<A, O1 | O2>, IsEqual<O3, typeof DEFAULT>>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4, A>,
-//    And<IsExtended<O1 | O2 | O3, A>, IsEqual<O4, typeof DEFAULT>>
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5, A>,
-//    And<IsExtended<O1 | O2 | O3 | O4, A>, IsEqual<O5, typeof DEFAULT>>
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, O6, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5 | O6, A>,
-//    And<IsExtended<O1 | O2 | O3 | O4 | O5, A>, IsEqual<O6, typeof DEFAULT>>
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, O6, O7, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7, A>,
-//    And<IsExtended<O1 | O2 | O3 | O4 | O5 | O6, A>, IsEqual<O7, typeof DEFAULT>>
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, O6, O7, O8, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8, A>,
-//    And<
-//      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7, A>,
-//      IsEqual<O8, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9, A>,
-//    And<
-//      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8, A>,
-//      IsEqual<O9, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10, A>,
-//    And<
-//      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9, A>,
-//      IsEqual<O10, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11, A>,
-//    And<
-//      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10, A>,
-//      IsEqual<O11, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, R>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12, A>,
-//    And<
-//      IsExtended<O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11, A>,
-//      IsEqual<O12, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12,
-//        A
-//      >,
-//      IsEqual<O13, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  O14,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//  o14: [O14, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13 | O14,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        O1 | O2 | O3 | O4 | O5 | O6 | O7 | O8 | O9 | O10 | O11 | O12 | O13,
-//        A
-//      >,
-//      IsEqual<O14, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  O14,
-//  O15,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//  o14: [O14, () => R],
-//  o15: [O15, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      | O1
-//      | O2
-//      | O3
-//      | O4
-//      | O5
-//      | O6
-//      | O7
-//      | O8
-//      | O9
-//      | O10
-//      | O11
-//      | O12
-//      | O13
-//      | O14
-//      | O15,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        | O1
-//        | O2
-//        | O3
-//        | O4
-//        | O5
-//        | O6
-//        | O7
-//        | O8
-//        | O9
-//        | O10
-//        | O11
-//        | O12
-//        | O13
-//        | O14,
-//        A
-//      >,
-//      IsEqual<O15, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  O14,
-//  O15,
-//  O16,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//  o14: [O14, () => R],
-//  o15: [O15, () => R],
-//  o16: [O16, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      | O1
-//      | O2
-//      | O3
-//      | O4
-//      | O5
-//      | O6
-//      | O7
-//      | O8
-//      | O9
-//      | O10
-//      | O11
-//      | O12
-//      | O13
-//      | O14
-//      | O15
-//      | O16,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        | O1
-//        | O2
-//        | O3
-//        | O4
-//        | O5
-//        | O6
-//        | O7
-//        | O8
-//        | O9
-//        | O10
-//        | O11
-//        | O12
-//        | O13
-//        | O14
-//        | O15,
-//        A
-//      >,
-//      IsEqual<O16, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  O14,
-//  O15,
-//  O16,
-//  O17,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//  o14: [O14, () => R],
-//  o15: [O15, () => R],
-//  o16: [O16, () => R],
-//  o17: [O17, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      | O1
-//      | O2
-//      | O3
-//      | O4
-//      | O5
-//      | O6
-//      | O7
-//      | O8
-//      | O9
-//      | O10
-//      | O11
-//      | O12
-//      | O13
-//      | O14
-//      | O15
-//      | O16
-//      | O17,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        | O1
-//        | O2
-//        | O3
-//        | O4
-//        | O5
-//        | O6
-//        | O7
-//        | O8
-//        | O9
-//        | O10
-//        | O11
-//        | O12
-//        | O13
-//        | O14
-//        | O15
-//        | O16,
-//        A
-//      >,
-//      IsEqual<O17, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  O14,
-//  O15,
-//  O16,
-//  O17,
-//  O18,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//  o14: [O14, () => R],
-//  o15: [O15, () => R],
-//  o16: [O16, () => R],
-//  o17: [O17, () => R],
-//  o18: [O18, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      | O1
-//      | O2
-//      | O3
-//      | O4
-//      | O5
-//      | O6
-//      | O7
-//      | O8
-//      | O9
-//      | O10
-//      | O11
-//      | O12
-//      | O13
-//      | O14
-//      | O15
-//      | O16
-//      | O17
-//      | O18,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        | O1
-//        | O2
-//        | O3
-//        | O4
-//        | O5
-//        | O6
-//        | O7
-//        | O8
-//        | O9
-//        | O10
-//        | O11
-//        | O12
-//        | O13
-//        | O14
-//        | O15
-//        | O16
-//        | O17,
-//        A
-//      >,
-//      IsEqual<O18, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  O14,
-//  O15,
-//  O16,
-//  O17,
-//  O18,
-//  O19,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//  o14: [O14, () => R],
-//  o15: [O15, () => R],
-//  o16: [O16, () => R],
-//  o17: [O17, () => R],
-//  o18: [O18, () => R],
-//  o19: [O19, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      | O1
-//      | O2
-//      | O3
-//      | O4
-//      | O5
-//      | O6
-//      | O7
-//      | O8
-//      | O9
-//      | O10
-//      | O11
-//      | O12
-//      | O13
-//      | O14
-//      | O15
-//      | O16
-//      | O17
-//      | O18
-//      | O19,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        | O1
-//        | O2
-//        | O3
-//        | O4
-//        | O5
-//        | O6
-//        | O7
-//        | O8
-//        | O9
-//        | O10
-//        | O11
-//        | O12
-//        | O13
-//        | O14
-//        | O15
-//        | O16
-//        | O17
-//        | O18,
-//        A
-//      >,
-//      IsEqual<O19, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//export function match<
-//  O1,
-//  O2,
-//  O3,
-//  O4,
-//  O5,
-//  O6,
-//  O7,
-//  O8,
-//  O9,
-//  O10,
-//  O11,
-//  O12,
-//  O13,
-//  O14,
-//  O15,
-//  O16,
-//  O17,
-//  O18,
-//  O19,
-//  O20,
-//  R,
-//>(
-//  o1: [O1, () => R],
-//  o2: [O2, () => R],
-//  o3: [O3, () => R],
-//  o4: [O4, () => R],
-//  o5: [O5, () => R],
-//  o6: [O6, () => R],
-//  o7: [O7, () => R],
-//  o8: [O8, () => R],
-//  o9: [O9, () => R],
-//  o10: [O10, () => R],
-//  o11: [O11, () => R],
-//  o12: [O12, () => R],
-//  o13: [O13, () => R],
-//  o14: [O14, () => R],
-//  o15: [O15, () => R],
-//  o16: [O16, () => R],
-//  o17: [O17, () => R],
-//  o18: [O18, () => R],
-//  o19: [O19, () => R],
-//  o20: [O20, () => R],
-//): <A>(
-//  a: A,
-//) => If<
-//  Or<
-//    IsEqual<
-//      | O1
-//      | O2
-//      | O3
-//      | O4
-//      | O5
-//      | O6
-//      | O7
-//      | O8
-//      | O9
-//      | O10
-//      | O11
-//      | O12
-//      | O13
-//      | O14
-//      | O15
-//      | O16
-//      | O17
-//      | O18
-//      | O19
-//      | O20,
-//      A
-//    >,
-//    And<
-//      IsExtended<
-//        | O1
-//        | O2
-//        | O3
-//        | O4
-//        | O5
-//        | O6
-//        | O7
-//        | O8
-//        | O9
-//        | O10
-//        | O11
-//        | O12
-//        | O13
-//        | O14
-//        | O15
-//        | O16
-//        | O17
-//        | O18
-//        | O19,
-//        A
-//      >,
-//      IsEqual<O20, typeof DEFAULT>
-//    >
-//  >,
-//  R,
-//  never
-//>;
-//
-//export function match(
-//  ...options: ReadonlyArray<[unknown, () => unknown]>
-//): (a: unknown) => unknown {
-//  return (v: unknown): unknown => {
-//    for (const [cond, fn] of options) {
-//      if (cond === "__MATCH_DEFAULT__") {
-//        return fn();
-//      }
-//      if (Object.is(v, cond)) {
-//        return fn();
-//      }
-//    }
-//    throw new Error(`Unexpectedly no match for value: ${String(v)}`);
-//  };
-//}
+import {
+  Variant,
+  ExtractBody,
+  isVariant,
+  If,
+  IsEqual,
+  Is,
+  TupleToUnion,
+  IsUnionSubset,
+  UnPartial,
+  DEFAULT,
+} from "plgg/index";
+
+// -------------------------
+// Helper Types
+// -------------------------
+
+type MatchResult<
+  OPTIONS extends ReadonlyArray<unknown>,
+  DEFAULT_LAST extends boolean,
+  A,
+  R,
+  UNION_OPTIONS extends ReadonlyArray<unknown>[number] = TupleToUnion<OPTIONS>,
+> = If<
+  Is<A, boolean>,
+  If<Is<OPTIONS, [true, false]>, R, never>,
+  If<
+    IsAllVariant<OPTIONS>,
+    If<
+      FullCoveragedVariants<OPTIONS, A>, // check if all variants are covered
+      R,
+      If<DEFAULT_LAST, If<Is<A, UNION_OPTIONS>, R, never>, never>
+    >,
+    If<
+      IsEqual<UNION_OPTIONS, A>,
+      R,
+      If<DEFAULT_LAST, If<IsUnionSubset<UNION_OPTIONS, A>, R, never>, never>
+    >
+  >
+>;
+
+type FullCoveragedVariants<OPTIONS extends ReadonlyArray<unknown>, A> = If<
+  IsAllTagOnly<OPTIONS>,
+  IsUnionSubset<A, TupleToUnion<OPTIONS>>,
+  false
+>;
+
+type IsVariant<T> = T extends { __tag: string } ? true : false;
+
+type IsAllVariant<ARR extends ReadonlyArray<unknown>> = ARR extends [
+  infer Head,
+  ...infer Tail,
+]
+  ? IsVariant<Head> extends true
+    ? IsAllVariant<Tail>
+    : false
+  : true;
+
+type IsOnlyTag<T> = T extends { __tag: string }
+  ? keyof T extends "__tag"
+    ? T["__tag"] extends string
+      ? Exclude<keyof T, "__tag"> extends never
+        ? true
+        : false
+      : false
+    : false
+  : false;
+
+type IsAllTagOnly<ARR extends ReadonlyArray<unknown>> = ARR extends [
+  infer Head,
+  ...infer Tail,
+]
+  ? IsOnlyTag<Head> extends true
+    ? IsAllTagOnly<Tail>
+    : false
+  : true;
+
+type PartialBodyVariant = Variant<string, Partial<unknown>>;
+
+type MapperArg<T> = T extends PartialBodyVariant
+  ? UnPartial<ExtractBody<T>>
+  : T;
+
+type MatchOption<T, R> = [T, (a: MapperArg<T>) => R];
+
+function deepPartialEqual<T>(obj1: T, obj2: Partial<T>): boolean {
+  const isObject = (obj: unknown): obj is object =>
+    obj !== null && typeof obj === "object";
+  return Object.keys(obj2).every((key) => {
+    const k = key as keyof T;
+    const v1 = obj1[k];
+    const v2 = obj2[k];
+    if (isObject(v1) && isObject(v2)) {
+      return deepPartialEqual(v1, v2);
+    }
+    return v1 === v2;
+  });
+}
+
+// -------------------------
+
+/**
+ * O1~O2
+ */
+export function match<
+  O1,
+  O2,
+  R,
+  DEFAULT_LAST extends boolean = Is<O2, typeof DEFAULT>,
+  OPTIONS extends ReadonlyArray<unknown> = If<DEFAULT_LAST, [O1], [O1, O2]>,
+>(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+): <A>(a: A) => MatchResult<OPTIONS, DEFAULT_LAST, A, R>;
+
+/**
+ * O1~O3
+ */
+export function match<
+  O1,
+  O2,
+  O3,
+  R,
+  DEFAULT_LAST extends boolean = Is<O3, typeof DEFAULT>,
+  OPTIONS extends ReadonlyArray<unknown> = If<
+    DEFAULT_LAST,
+    [O1, O2],
+    [O1, O2, O3]
+  >,
+>(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+): <A>(a: A) => MatchResult<OPTIONS, DEFAULT_LAST, A, R>;
+
+/**
+ * O1~O4
+ */
+export function match<
+  O1,
+  O2,
+  O3,
+  O4,
+  R,
+  DEFAULT_LAST extends boolean = Is<O4, typeof DEFAULT>,
+  OPTIONS extends ReadonlyArray<unknown> = If<
+    DEFAULT_LAST,
+    [O1, O2, O3],
+    [O1, O2, O3, O4]
+  >,
+>(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+): <A>(a: A) => MatchResult<OPTIONS, DEFAULT_LAST, A, R>;
+
+/**
+ * O1~O5
+ */
+export function match<
+  O1,
+  O2,
+  O3,
+  O4,
+  O5,
+  R,
+  DEFAULT_LAST extends boolean = Is<O5, typeof DEFAULT>,
+  OPTIONS extends ReadonlyArray<unknown> = If<
+    DEFAULT_LAST,
+    [O1, O2, O3, O4],
+    [O1, O2, O3, O4, O5]
+  >,
+>(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+): <A>(a: A) => MatchResult<OPTIONS, DEFAULT_LAST, A, R>;
+
+/**
+ * match
+ */
+export function match(
+  ...options: ReadonlyArray<[unknown, (ma: unknown) => unknown]>
+): (a: unknown) => unknown {
+  return (a: unknown): unknown => {
+    for (const [cond, fn] of options) {
+      if (cond === "__MATCH_DEFAULT__") {
+        return fn(a);
+      }
+      if (isVariant(a) && isVariant(cond) && deepPartialEqual(a, cond)) {
+        return fn(a);
+      }
+      if (Object.is(a, cond)) {
+        return fn(a);
+      }
+    }
+    throw new Error(`Unexpectedly no match for value: ${String(a)}`);
+  };
+}
