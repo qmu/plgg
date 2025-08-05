@@ -8,6 +8,7 @@ import {
   FALSE,
   ParametricVariant,
   pattern,
+  variantMaker,
   OTHERWISE,
 } from "plgg/index";
 
@@ -87,7 +88,7 @@ test("plgg string", async () => {
   expect(r.content).equal("c");
 });
 
-test("default", async () => {
+test("otherwise", async () => {
   const s1 = "a" as const,
     s2 = "b" as const,
     s3 = "c" as const;
@@ -106,10 +107,7 @@ test("default", async () => {
   expect(fn("c")).equal("default");
 });
 
-/**
- * Example3
- */
-{
+test("Variant1", async () => {
   type Circle = ParametricVariant<
     "circle",
     {
@@ -134,25 +132,29 @@ test("default", async () => {
     }
   >;
   const triangle = pattern("triangle")<Triangle>();
+  const ofTriangle = variantMaker("triangle")<Triangle>();
 
   type Shape = Circle | Square | Triangle;
 
-  (a: Shape) =>
+  const fn = (a: Shape) =>
     pipe(
       a,
       match(
         [circle(), () => "a"],
         [square(), () => "b"],
-        [triangle(), () => "b"],
+        [triangle(), () => "c"],
       ),
       (a) => a,
     );
-}
 
-/**
- * Example4
- */
-{
+  const realTriangle = ofTriangle({
+    base: 1,
+    height: 4,
+  });
+  expect(fn(realTriangle)).equal("c");
+});
+
+test("Variant2", async () => {
   type AST = ParametricVariant<
     "ast",
     {
@@ -161,8 +163,9 @@ test("default", async () => {
     }
   >;
   const ast = pattern("ast")<AST>();
+  const ofAst = variantMaker("ast")<AST>();
 
-  (a: AST) =>
+  const fn = (a: AST) =>
     pipe(
       a,
       match(
@@ -173,4 +176,11 @@ test("default", async () => {
       ),
       (a) => a,
     );
-}
+
+  const realAst = ofAst({
+    type: "branch",
+    children: [ofAst({ type: "leaf" })],
+  });
+
+  expect(fn(realAst)).equal("branch");
+});

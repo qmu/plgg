@@ -9,6 +9,8 @@ import {
   IsUnionSubset,
   UnPartial,
   OTHERWISE,
+  And,
+  Or,
 } from "plgg/index";
 
 // -------------------------
@@ -17,7 +19,7 @@ import {
 
 type MatchResult<
   OPTIONS extends ReadonlyArray<unknown>,
-  DEFAULT_LAST extends boolean,
+  OTHERWISE_LAST extends boolean,
   A,
   R,
   UNION_OPTIONS extends ReadonlyArray<unknown>[number] = TupleToUnion<OPTIONS>,
@@ -29,23 +31,51 @@ type MatchResult<
     If<
       FullCoveragedVariants<OPTIONS, A>, // check if all variants are covered
       R,
-      If<DEFAULT_LAST, If<Is<A, UNION_OPTIONS>, R, never>, never>
+      If<And<OTHERWISE_LAST, Is<A, UNION_OPTIONS>>, R, never>
     >,
     If<
-      IsEqual<UNION_OPTIONS, A>,
-      R,
-      If<DEFAULT_LAST, If<IsUnionSubset<UNION_OPTIONS, A>, R, never>, never>
+      IsAllAtomic<OPTIONS>,
+      If<
+        IsEqual<UNION_OPTIONS, A>,
+        R,
+        If<And<OTHERWISE_LAST, IsUnionSubset<UNION_OPTIONS, A>>, R, never>
+      >,
+      If<OTHERWISE_LAST, R, never>
     >
   >
 >;
 
 type FullCoveragedVariants<OPTIONS extends ReadonlyArray<unknown>, A> = If<
-  IsAllTagOnly<OPTIONS>,
+  IsFixedVariantAll<OPTIONS>,
   IsUnionSubset<A, TupleToUnion<OPTIONS>>,
   false
 >;
 
 type IsVariant<T> = T extends { __tag: string } ? true : false;
+
+type IsAllAtomic<ARR extends ReadonlyArray<unknown>> = ARR extends [
+  infer Head,
+  ...infer Tail,
+]
+  ? IsAtomic<Head> extends true
+    ? IsAllAtomic<Tail>
+    : false
+  : true;
+
+type IsAtomic<T> = If<
+  Or<
+    Is<T, boolean>,
+    Or<
+      Is<T, string>,
+      Or<
+        Is<T, number>,
+        Or<Is<T, bigint>, Or<Is<T, symbol>, Or<Is<T, null>, Is<T, undefined>>>>
+      >
+    >
+  >,
+  true,
+  false
+>;
 
 type IsAllVariant<ARR extends ReadonlyArray<unknown>> = ARR extends [
   infer Head,
@@ -56,7 +86,7 @@ type IsAllVariant<ARR extends ReadonlyArray<unknown>> = ARR extends [
     : false
   : true;
 
-type IsOnlyTag<T> = T extends { __tag: string }
+type IsFixedVariant<T> = T extends { __tag: string }
   ? keyof T extends "__tag"
     ? T["__tag"] extends string
       ? Exclude<keyof T, "__tag"> extends never
@@ -66,12 +96,12 @@ type IsOnlyTag<T> = T extends { __tag: string }
     : false
   : false;
 
-type IsAllTagOnly<ARR extends ReadonlyArray<unknown>> = ARR extends [
+type IsFixedVariantAll<ARR extends ReadonlyArray<unknown>> = ARR extends [
   infer Head,
   ...infer Tail,
 ]
-  ? IsOnlyTag<Head> extends true
-    ? IsAllTagOnly<Tail>
+  ? IsFixedVariant<Head> extends true
+    ? IsFixedVariantAll<Tail>
     : false
   : true;
 
