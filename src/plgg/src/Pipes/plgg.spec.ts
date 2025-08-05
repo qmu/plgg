@@ -29,7 +29,7 @@ test("plgg composes sync and async functions with early error exit", async () =>
   );
 
   assert(isOk(result));
-  expect(result.ok).toBe("Result: 12");
+  expect(result.content).toBe("Result: 12");
 });
 
 test("plgg stops processing on first error", async () => {
@@ -41,7 +41,7 @@ test("plgg stops processing on first error", async () => {
   const result = await plgg(5, increment, failValidation as any, neverCalled as any);
 
   assert(isErr(result));
-  expect(result.err.message).toBe("Validation failed");
+  expect(result.content.message).toBe("Validation failed");
 });
 
 test("plgg handles mixed return types (values, Results, Promises)", async () => {
@@ -64,7 +64,7 @@ test("plgg handles mixed return types (values, Results, Promises)", async () => 
   );
 
   assert(isOk(result));
-  expect(result.ok).toBe(42);
+  expect(result.content).toBe(42);
 });
 
 test("plgg with type casting and validation chain", async () => {
@@ -80,7 +80,7 @@ test("plgg with type casting and validation chain", async () => {
   );
 
   assert(isOk(result));
-  expect(result.ok).toBe("Hello, JOHN!");
+  expect(result.content).toBe("Hello, JOHN!");
 });
 
 test("plgg gracefully handles exceptions in functions", async () => {
@@ -91,10 +91,10 @@ test("plgg gracefully handles exceptions in functions", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg(5, processWithError);
+  const result = await plgg<number, string>(5, processWithError);
 
   assert(isErr(result));
-  expect(result.err.message).toContain("Unexpected error in plgg");
+  expect(result.content.message).toContain("Unexpected error in plgg");
 });
 
 test("plgg handles thrown PlggError", async () => {
@@ -105,10 +105,10 @@ test("plgg handles thrown PlggError", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg(5, processWithPlggError);
+  const result = await plgg<number, string>(5, processWithPlggError);
 
   assert(isErr(result));
-  expect(result.err.message).toBe("Domain error thrown");
+  expect(result.content.message).toBe("Domain error thrown");
 });
 
 test("plgg handles thrown non-Error values", async () => {
@@ -119,8 +119,8 @@ test("plgg handles thrown non-Error values", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg(5, processWithStringError);
+  const result = await plgg<number, string>(5, processWithStringError);
 
   assert(isErr(result));
-  expect(result.err.message).toBe("Unknown error in plgg");
+  expect(result.content.message).toBe("Unknown error in plgg");
 });

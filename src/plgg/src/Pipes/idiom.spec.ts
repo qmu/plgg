@@ -38,22 +38,22 @@ test("refine validates values with custom predicates", () => {
 
   const validResult = validatePositive(5);
   assert(isOk(validResult));
-  expect(validResult.ok).toBe(5);
+  expect(validResult.content).toBe(5);
 
   const invalidResult = validatePositive(-3);
   assert(isErr(invalidResult));
-  expect(invalidResult.err.message).toBe("Number must be positive");
+  expect(invalidResult.content.message).toBe("Number must be positive");
 });
 
 test("defined checks for non-undefined values", () => {
   // Example: Handling optional values
   const validValue = defined("hello");
   assert(isOk(validValue));
-  expect(validValue.ok).toBe("hello");
+  expect(validValue.content).toBe("hello");
 
   const undefinedValue = defined(undefined);
   assert(isErr(undefinedValue));
-  expect(undefinedValue.err.message).toBe("Value is undefined");
+  expect(undefinedValue.content.message).toBe("Value is undefined");
 });
 
 test("tryCatch wraps functions to handle exceptions", () => {
@@ -69,11 +69,11 @@ test("tryCatch wraps functions to handle exceptions", () => {
 
   const successResult = parseNumber("123");
   assert(isOk(successResult));
-  expect(successResult.ok).toBe(123);
+  expect(successResult.content).toBe(123);
 
   const errorResult = parseNumber("abc");
   assert(isErr(errorResult));
-  expect(errorResult.err.message).toContain("Parse error");
+  expect(errorResult.content.message).toContain("Parse error");
 });
 
 test("jsonEncode and jsonDecode handle JSON operations", () => {
@@ -85,7 +85,7 @@ test("jsonEncode and jsonDecode handle JSON operations", () => {
 
   const decoded = jsonDecode(encoded);
   assert(isOk(decoded));
-  expect(decoded.ok).toEqual(data);
+  expect(decoded.content).toEqual(data);
 
   const invalidJson = jsonDecode("invalid json");
   assert(isErr(invalidJson));
@@ -98,7 +98,7 @@ test("refine with default error message", () => {
 
   const invalidResult = validatePositive(-5);
   assert(isErr(invalidResult));
-  expect(invalidResult.err.message).toBe(
+  expect(invalidResult.content.message).toBe(
     "The value -5 is not valid according to the predicate",
   );
 });
@@ -115,9 +115,9 @@ test("tryCatch with default error handler", () => {
 
   const errorResult = safeThrowing("error");
   assert(isErr(errorResult));
-  expect(errorResult.err.message).toBe("Operation failed: Custom error");
+  expect(errorResult.content.message).toBe("Operation failed: Custom error");
 
   const stringErrorResult = safeThrowing("string");
   assert(isErr(stringErrorResult));
-  expect(stringErrorResult.err.message).toBe("Unexpected error occurred");
+  expect(stringErrorResult.content.message).toBe("Unexpected error occurred");
 });

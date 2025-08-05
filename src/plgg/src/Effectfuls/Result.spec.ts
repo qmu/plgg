@@ -12,19 +12,19 @@ import {
 
 test("ok creates Ok result", () => {
   const result = ok(42);
-  expect(result._tag).toBe("Ok");
+  expect(result.__tag).toBe("Ok");
   assert(isOk(result));
   if (isOk(result)) {
-    expect(result.ok).toBe(42);
+    expect(result.content).toBe(42);
   }
 });
 
 test("err creates Err result", () => {
   const result = err("error message");
-  expect(result._tag).toBe("Err");
+  expect(result.__tag).toBe("Err");
   assert(isErr(result));
   if (isErr(result)) {
-    expect(result.err).toBe("error message");
+    expect(result.content).toBe("error message");
   }
 });
 
@@ -66,11 +66,11 @@ test("Result can handle different types", () => {
   assert(isErr(numberErrorResult));
 
   if (isOk(stringResult)) {
-    expect(stringResult.ok).toBe("hello");
+    expect(stringResult.content).toBe("hello");
   }
 
   if (isErr(numberErrorResult)) {
-    expect(numberErrorResult.err).toBe(404);
+    expect(numberErrorResult.content).toBe(404);
   }
 });
 
@@ -83,12 +83,12 @@ test("mapOk transforms success values while preserving errors", () => {
     ok<number, InvalidError>(29.99),
   );
   assert(isOk(successResult));
-  expect(successResult.ok).toBe("$29.99");
+  expect(successResult.content).toBe("$29.99");
 
   const priceError = new InvalidError({ message: "Invalid price" });
   const errorResult = chainResult(formatPrice)(
     err<InvalidError, number>(priceError),
   );
   assert(isErr(errorResult));
-  expect(errorResult.err.message).toBe("Invalid price");
+  expect(errorResult.content.message).toBe("Invalid price");
 });

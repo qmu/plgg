@@ -84,7 +84,7 @@ test("plgg string", async () => {
   if (isErr(r)) {
     assert.fail("Expected success, got error");
   }
-  expect(r.ok).equal("c");
+  expect(r.content).equal("c");
 });
 
 test("default", async () => {
