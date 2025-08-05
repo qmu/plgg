@@ -6,7 +6,7 @@ import {
   isErr,
   TRUE,
   FALSE,
-  Variant,
+  ParametricVariant,
   pattern,
   OTHERWISE,
 } from "plgg/index";
@@ -110,7 +110,7 @@ test("default", async () => {
  * Example3
  */
 {
-  type Circle = Variant<
+  type Circle = ParametricVariant<
     "circle",
     {
       radius: number;
@@ -118,7 +118,7 @@ test("default", async () => {
   >;
   const circle = pattern("circle")<Circle>();
 
-  type Square = Variant<
+  type Square = ParametricVariant<
     "square",
     {
       side: number;
@@ -126,7 +126,7 @@ test("default", async () => {
   >;
   const square = pattern("square")<Square>();
 
-  type Triangle = Variant<
+  type Triangle = ParametricVariant<
     "triangle",
     {
       base: number;
@@ -153,7 +153,7 @@ test("default", async () => {
  * Example4
  */
 {
-  type AST = Variant<
+  type AST = ParametricVariant<
     "ast",
     {
       type: "root" | "leaf" | "branch";
