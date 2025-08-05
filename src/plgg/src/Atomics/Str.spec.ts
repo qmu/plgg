@@ -23,28 +23,28 @@ test("asStr validates and returns string values", () => {
   // Example: User input validation
   const validString = asStr("user@example.com");
   assert(isOk(validString));
-  expect(validString.ok).toBe("user@example.com");
+  expect(validString.content).toBe("user@example.com");
 
   const emptyString = asStr("");
   assert(isOk(emptyString));
-  expect(emptyString.ok).toBe("");
+  expect(emptyString.content).toBe("");
 
   // Example: API response validation
   const numberInput = asStr(123);
   assert(isErr(numberInput));
-  expect(numberInput.err.message).toBe("123 is not a string");
+  expect(numberInput.content.message).toBe("123 is not a string");
 
   const booleanInput = asStr(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.err.message).toBe("true is not a string");
+  expect(booleanInput.content.message).toBe("true is not a string");
 
   const nullInput = asStr(null);
   assert(isErr(nullInput));
-  expect(nullInput.err.message).toBe("null is not a string");
+  expect(nullInput.content.message).toBe("null is not a string");
 
   const undefinedInput = asStr(undefined);
   assert(isErr(undefinedInput));
-  expect(undefinedInput.err.message).toBe("undefined is not a string");
+  expect(undefinedInput.content.message).toBe("undefined is not a string");
 });
 
 test("asStr works in validation pipelines", () => {
@@ -53,23 +53,23 @@ test("asStr works in validation pipelines", () => {
     const strResult = asStr(input);
     if (isErr(strResult)) return strResult;
 
-    const email = strResult.ok;
+    const email = strResult.content;
     return email.includes("@") && email.includes(".")
-      ? { _tag: "Ok" as const, ok: email }
-      : { _tag: "Err" as const, err: new Error("Invalid email format") };
+      ? { __tag: "Ok" as const, content: email }
+      : { __tag: "Err" as const, content: new Error("Invalid email format") };
   };
 
   const validEmail = validateEmail("user@example.com");
   assert(isOk(validEmail));
-  expect(validEmail.ok).toBe("user@example.com");
+  expect(validEmail.content).toBe("user@example.com");
 
   const invalidType = validateEmail(123);
   assert(isErr(invalidType));
-  expect(invalidType.err.message).toBe("123 is not a string");
+  expect(invalidType.content.message).toBe("123 is not a string");
 
   const invalidFormat = validateEmail("not-an-email");
   assert(isErr(invalidFormat));
-  expect(invalidFormat.err.message).toBe("Invalid email format");
+  expect(invalidFormat.content.message).toBe("Invalid email format");
 });
 
 test("concat concatenates strings correctly", () => {
