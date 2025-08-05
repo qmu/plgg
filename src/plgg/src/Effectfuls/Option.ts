@@ -1,63 +1,56 @@
 import { Monad1 } from "plgg/TypeLevels";
+import {
+  FixedVariant,
+  ParametricVariant,
+  hasTag,
+  variantMaker,
+} from "plgg/Effectfuls";
+
+const someTag = "Some" as const;
+const noneTag = "None" as const;
 
 /**
  * Some side of Option, representing a value that exists.
  */
-export type Some<T> = {
-  _tag: "Some";
-  value: T;
-};
+export type Some<T> = ParametricVariant<typeof someTag, T>;
 
 /**
  * None side of Option, representing no value.
  */
-export type None = {
-  _tag: "None";
-};
+export type None = FixedVariant<typeof noneTag>;
 
 /**
  * Option type for handling optional values.
- * @template T - The value type
  */
 export type Option<T> = Some<T> | None;
-
-/**
- * Type guard to check if a value is an Option.
- */
-export const isOption = <T>(e: unknown): e is Option<T> =>
-  typeof e === "object" &&
-  e !== null &&
-  "_tag" in e &&
-  (e._tag === "Some" || e._tag === "None");
 
 /**
  * Creates a Some instance.
  */
 export const some = <T>(value: T): Option<T> =>
-  ({
-    _tag: "Some",
-    value,
-  }) as const;
+  variantMaker<typeof someTag, Some<T>>(someTag)()(value);
 
 /**
  * Creates a None instance.
  */
-export const none = <T = never>(): Option<T> =>
-  ({
-    _tag: "None",
-  }) as const;
+export const none = <T>(): Option<T> =>
+  variantMaker<typeof noneTag, None>(noneTag)()();
 
 /**
  * Type guard to check if an Option is a Some.
  */
-export const isSome = <T>(e: unknown): e is Some<T> =>
-  isOption<T>(e) && e._tag === "Some";
+export const isSome = <T>(e: unknown): e is Some<T> => hasTag(someTag)(e);
 
 /**
  * Type guard to check if an Option is a None.
  */
-export const isNone = <T>(e: unknown): e is None =>
-  isOption<T>(e) && e._tag === "None";
+export const isNone = (e: unknown): e is None => hasTag(noneTag)(e);
+
+/**
+ * Type guard to check if a value is an Option.
+ */
+export const isOption = <T>(e: unknown): e is Option<T> =>
+  isSome(someTag) || isNone(noneTag);
 
 // --------------------------------------
 
@@ -79,7 +72,7 @@ export const {
   map:
     <A, B>(f: (a: A) => B) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? some<B>(f(fa.value)) : none<B>(),
+      isSome(fa) ? some<B>(f(fa.content)) : none<B>(),
 
   // Apply1: ap
   ap:
@@ -87,7 +80,7 @@ export const {
     (fa: Option<A>): Option<B> =>
       isSome(fab)
         ? isSome(fa)
-          ? some<B>(fab.value(fa.value))
+          ? some<B>(fab.content(fa.content))
           : none<B>()
         : none<B>(),
 
@@ -98,5 +91,5 @@ export const {
   chain:
     <A, B>(f: (a: A) => Option<B>) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? f(fa.value) : none<B>(),
+      isSome(fa) ? f(fa.content) : none<B>(),
 };
