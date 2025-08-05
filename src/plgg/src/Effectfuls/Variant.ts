@@ -27,12 +27,11 @@ export const asVariant = () => {};
 // TODO
 export const withContent = () => {};
 
-export function variantMaker<
-  TAG extends string,
-  V extends Variant<string, unknown>,
-  CONTENT = ExtractContent<V>,
->(__tag: TAG) {
-  return function () {
+export function variantMaker<TAG extends string>(__tag: TAG) {
+  return function <
+    V extends Variant<string, unknown>,
+    CONTENT = ExtractContent<V>,
+  >() {
     function maker(): FixedVariant<TAG>;
     function maker(content: CONTENT): ParametricVariant<TAG, CONTENT>;
     function maker(
