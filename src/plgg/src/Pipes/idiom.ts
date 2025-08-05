@@ -58,10 +58,10 @@ export const tryCatch =
 
 /**
  * Checks if a value is defined (not undefined).
- * Returns Ok with the value if defined, Err if undefined.
+ * Returns Some with the value if defined, None if undefined.
  */
 export const defined = <T>(value: T | undefined): Result<T, Error> =>
-  value === undefined ? err(new Error("Value is undefined")) : ok(value);
+  value === undefined ? err(new Error("Value is undefined")) : ok<T>(value);
 
 /**
  * Encodes data as formatted JSON string.

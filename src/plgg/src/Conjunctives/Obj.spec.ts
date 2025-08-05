@@ -97,13 +97,13 @@ test("Obj.optional validation - property exists", async () => {
   const nameResult = forOptionProp("name", asStr)(obj);
   assert(isOk(nameResult));
   assert(isSome(nameResult.ok.name));
-  expect(nameResult.ok.name.value).toBe("John");
+  expect(nameResult.ok.name.content).toBe("John");
   expect(nameResult.ok.age).toBe(30);
 
   const ageResult = forOptionProp("age", asNum)(obj);
   assert(isOk(ageResult));
   assert(isSome(ageResult.ok.age));
-  expect(ageResult.ok.age.value).toBe(30);
+  expect(ageResult.ok.age.content).toBe(30);
 });
 
 test("Obj.optional validation - property missing", async () => {
@@ -145,5 +145,5 @@ test("Complex object validation with multiple properties", async () => {
   const emailResult = forOptionProp("email", asStr)(ageResult.ok);
   assert(isOk(emailResult));
   assert(isSome(emailResult.ok.email));
-  expect(emailResult.ok.email.value).toBe("john@example.com");
+  expect(emailResult.ok.email.content).toBe("john@example.com");
 });

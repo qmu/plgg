@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import {
-  Variant,
+  ParametricVariant,
   variantMaker,
   pattern,
   pipe,
@@ -9,7 +9,7 @@ import {
 } from "plgg/index";
 
 test("tagged union", async () => {
-  type Circle = Variant<
+  type Circle = ParametricVariant<
     "circle",
     {
       radius: number;
@@ -17,7 +17,7 @@ test("tagged union", async () => {
   >;
   const circle = pattern("circle")<Circle>();
 
-  type Square = Variant<
+  type Square = ParametricVariant<
     "square",
     {
       side: number;
@@ -25,7 +25,7 @@ test("tagged union", async () => {
   >;
   const square = pattern("square")<Square>();
 
-  type Triangle = Variant<
+  type Triangle = ParametricVariant<
     "triangle",
     {
       base: number;
@@ -33,7 +33,7 @@ test("tagged union", async () => {
     }
   >;
   const triangle = pattern("triangle")<Triangle>();
-  const makeTriangle = variantMaker("triangle")<Triangle>();
+  const ofTriangle = variantMaker<"triangle", Triangle>("triangle")();
 
   type Shape = Circle | Square | Triangle;
   const fn = (a: Shape) =>
@@ -49,7 +49,7 @@ test("tagged union", async () => {
       (a) => a,
     );
 
-  const realTriangle = makeTriangle({
+  const realTriangle = ofTriangle({
     base: 1,
     height: 4,
   });
@@ -58,7 +58,7 @@ test("tagged union", async () => {
 });
 
 test("recurring structure like AST", async () => {
-  type AST = Variant<
+  type AST = ParametricVariant<
     "ast",
     {
       type: "root" | "leaf" | "branch";
@@ -66,7 +66,7 @@ test("recurring structure like AST", async () => {
     }
   >;
   const ast = pattern("ast")<AST>();
-  const makeAst = variantMaker("ast")<AST>();
+  const makeAst = variantMaker<"ast", AST>("ast")();
 
   const fn = (a: AST) =>
     pipe(
