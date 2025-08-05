@@ -1,66 +1,51 @@
 import { Monad2 } from "plgg/TypeLevels";
+import { ParametricVariant, hasTag, variantMaker } from "plgg/Effectfuls";
+
+const okTag = "Ok" as const;
+const errTag = "Err" as const;
 
 /**
  * Ok side of Result, typically representing a success value.
  */
-export type Ok<T> = {
-  _tag: "Ok";
-  ok: T;
-};
+export type Ok<T> = ParametricVariant<typeof okTag, T>;
 
 /**
  * Err side of Result, typically representing an error.
  */
-export type Err<F> = {
-  _tag: "Err";
-  err: F;
-};
+export type Err<F> = ParametricVariant<typeof errTag, F>;
 
 /**
  * Result type for functional error handling.
- * @template T - The success type
- * @template F - The failure type
  */
 export type Result<T, F> = Ok<T> | Err<F>;
-
-/**
- * Type guard to check if a value is a Result.
- */
-export const isResult = <T, F>(e: unknown): e is Result<T, F> =>
-  typeof e === "object" &&
-  e !== null &&
-  "_tag" in e &&
-  (e._tag === "Ok" || e._tag === "Err");
 
 /**
  * Creates an Ok instance.
  */
 export const ok = <T, F = never>(a: T): Result<T, F> =>
-  ({
-    _tag: "Ok",
-    ok: a,
-  }) as const;
+  variantMaker<typeof okTag, Ok<T>>(okTag)()(a);
 
 /**
  * Creates an Err instance.
  */
 export const err = <F, T = never>(e: F): Result<T, F> =>
-  ({
-    _tag: "Err",
-    err: e,
-  }) as const;
+  variantMaker<typeof errTag, Err<F>>(errTag)()(e);
 
 /**
  * Type guard to check if a Result is an Ok.
  */
-export const isOk = <T, F>(e: unknown): e is Ok<T> =>
-  isResult<T, F>(e) && e._tag === "Ok";
+export const isOk = <T>(e: unknown): e is Ok<T> => hasTag(okTag)(e);
 
 /**
  * Type guard to check if a Result is an Err.
  */
-export const isErr = <T, F>(e: unknown): e is Err<F> =>
-  isResult<T, F>(e) && e._tag === "Err";
+export const isErr = <F>(e: unknown): e is Err<F> => hasTag(errTag)(e);
+
+/**
+ * Type guard to check if a value is a Result.
+ */
+export const isResult = <T, F>(e: unknown): e is Result<T, F> =>
+  isOk<T>(e) || isErr<F>(e);
 
 declare module "plgg/TypeLevels/Kind" {
   export interface KindKeytoKind2<A, B> {
@@ -80,13 +65,13 @@ export const {
   map:
     <A, B, C>(f: (a: A) => B) =>
     (fa: Result<A, C>): Result<B, C> =>
-      isOk(fa) ? ok<B, C>(f(fa.ok)) : fa,
+      isOk(fa) ? ok<B, C>(f(fa.content)) : fa,
 
   // Apply2: ap
   ap:
     <A, B, C>(fab: Result<(a: A) => B, C>) =>
     (fa: Result<A, C>): Result<B, C> =>
-      isOk(fab) ? (isOk(fa) ? ok<B, C>(fab.ok(fa.ok)) : fa) : fab,
+      isOk(fab) ? (isOk(fa) ? ok<B, C>(fab.content(fa.content)) : fa) : fab,
 
   // Pointed2: of
   of: <A = never, B = never>(a: A): Result<A, B> => ok<A, B>(a),
@@ -95,5 +80,5 @@ export const {
   chain:
     <A, B, C>(f: (a: A) => Result<B, C>) =>
     (fa: Result<A, C>): Result<B, C> =>
-      isOk(fa) ? f(fa.ok) : fa,
+      isOk(fa) ? f(fa.content) : fa,
 };
