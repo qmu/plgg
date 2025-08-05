@@ -341,7 +341,7 @@ export async function plgg(
       try {
         const current = await acc;
         if (isResult(current)) {
-          return isOk(current) ? fn(current.ok) : current;
+          return isOk(current) ? fn(current.content) : current;
         }
         return fn(current);
       } catch (e: unknown) {

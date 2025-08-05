@@ -352,7 +352,7 @@ export function cast(
   return fns.reduce((acc: Result<unknown, InvalidError>, fn: ChainFn) => {
     if (isOk(acc)) {
       try {
-        return fn(acc.ok);
+        return fn(acc.content);
       } catch (e) {
         return convUnknownToInvalidError(e);
       }
@@ -365,12 +365,12 @@ export function cast(
       }
     })();
     if (isOk(currentResult)) {
-      return err(acc.err);
+      return err(acc.content);
     }
-    const prevError = acc.err.sibling.length > 0 ? [] : [acc.err];
-    const sibling = [...prevError, ...acc.err.sibling, currentResult.err];
+    const prevError = acc.content.sibling.length > 0 ? [] : [acc.content];
+    const sibling = [...prevError, ...acc.content.sibling, currentResult.content];
     return err(new InvalidError({ message: "Validation failed", sibling }));
-  }, ok(value));
+  }, ok<unknown, InvalidError>(value));
 }
 
 const convUnknownToInvalidError = (e: unknown): Result<never, InvalidError> =>

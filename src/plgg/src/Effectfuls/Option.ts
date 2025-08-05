@@ -50,7 +50,7 @@ export const isNone = (e: unknown): e is None => hasTag(noneTag)(e);
  * Type guard to check if a value is an Option.
  */
 export const isOption = <T>(e: unknown): e is Option<T> =>
-  isSome(someTag) || isNone(noneTag);
+  isSome(e) || isNone(e);
 
 // --------------------------------------
 
