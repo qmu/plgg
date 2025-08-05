@@ -33,23 +33,19 @@ export const isOption = <T>(e: unknown): e is Option<T> =>
 /**
  * Creates a Some instance.
  */
-export const some = <T>(value: T): Option<T> => {
-  const result = {
-    _tag: "Some" as const,
+export const some = <T>(value: T): Option<T> =>
+  ({
+    _tag: "Some",
     value,
-  };
-  return result;
-};
+  }) as const;
 
 /**
  * Creates a None instance.
  */
-export const none = <T = never>(): Option<T> => {
-  const result = {
-    _tag: "None" as const,
-  };
-  return result;
-};
+export const none = <T = never>(): Option<T> =>
+  ({
+    _tag: "None",
+  }) as const;
 
 /**
  * Type guard to check if an Option is a Some.
@@ -80,17 +76,27 @@ export const {
   KindKey: "Option",
 
   // Functor1: map
-  map: <A, B>(f: (a: A) => B) => (fa: Option<A>): Option<B> =>
-    isSome(fa) ? some<B>(f(fa.value)) : none<B>(),
+  map:
+    <A, B>(f: (a: A) => B) =>
+    (fa: Option<A>): Option<B> =>
+      isSome(fa) ? some<B>(f(fa.value)) : none<B>(),
 
   // Apply1: ap
-  ap: <A, B>(fab: Option<(a: A) => B>) => (fa: Option<A>): Option<B> =>
-    isSome(fab) ? (isSome(fa) ? some<B>(fab.value(fa.value)) : none<B>()) : none<B>(),
+  ap:
+    <A, B>(fab: Option<(a: A) => B>) =>
+    (fa: Option<A>): Option<B> =>
+      isSome(fab)
+        ? isSome(fa)
+          ? some<B>(fab.value(fa.value))
+          : none<B>()
+        : none<B>(),
 
   // Pointed1: of
   of: <A>(a: A): Option<A> => some<A>(a),
 
   // Chain1: chain
-  chain: <A, B>(f: (a: A) => Option<B>) => (fa: Option<A>): Option<B> =>
-    isSome(fa) ? f(fa.value) : none<B>(),
+  chain:
+    <A, B>(f: (a: A) => Option<B>) =>
+    (fa: Option<A>): Option<B> =>
+      isSome(fa) ? f(fa.value) : none<B>(),
 };
