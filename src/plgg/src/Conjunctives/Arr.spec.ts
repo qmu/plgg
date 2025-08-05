@@ -113,7 +113,7 @@ test("Arr.every with complex predicates", () => {
   expect(result2.err.message).toBe("Array elements do not match predicate");
 
   // Test with null/undefined
-  const isNotNull = (x: unknown): x is NonNullable<unknown> => x != null;
+  const isNotNull = (x: unknown): x is unknown => x != null;
 
   const result3 = every(isNotNull)([1, "a", true]);
   assert(isOk(result3));
