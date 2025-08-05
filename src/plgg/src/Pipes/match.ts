@@ -1,6 +1,6 @@
 import {
   Variant,
-  ExtractBody,
+  ExtractContent,
   isVariant,
   If,
   IsEqual,
@@ -78,7 +78,7 @@ type IsAllTagOnly<ARR extends ReadonlyArray<unknown>> = ARR extends [
 type PartialBodyVariant = Variant<string, Partial<unknown>>;
 
 type MapperArg<T> = T extends PartialBodyVariant
-  ? UnPartial<ExtractBody<T>>
+  ? UnPartial<ExtractContent<T>>
   : T;
 
 type MatchOption<T, R> = [T, (a: MapperArg<T>) => R];
