@@ -122,8 +122,8 @@ test("variant with complex nested content", () => {
     }
   >;
 
-  const complexMaker = variantMaker("complex")<ComplexVariant>();
-  const complex = complexMaker({
+  const ofComplex = variantMaker("complex")<ComplexVariant>();
+  const complex = ofComplex({
     id: 123,
     metadata: {
       created: "2023-01-01",
@@ -145,25 +145,25 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
 
   type AsyncState<T> = Loading | Success<T> | Error;
 
-  const loading = variantMaker("loading")<Loading>();
-  const success = variantMaker("success")<Success<string>>();
-  const error = variantMaker("error")<Error>();
+  const ofLoading = variantMaker("loading")<Loading>();
+  const ofSuccess = variantMaker("success")<Success<string>>();
+  const ofError = variantMaker("error")<Error>();
 
-  const loadingState: AsyncState<string> = loading();
-  const successState: AsyncState<string> = success("data loaded");
-  const errorState: AsyncState<string> = error("failed to load");
+  const loading = pattern("loading")<Loading>();
+  const success = pattern("success")<Success<string>>();
+  const error = pattern("error")<Error>();
 
   const getStateMessage = (state: AsyncState<string>) =>
     pipe(
       state,
       match(
-        [pattern("loading")<Loading>()(), () => "Loading..."],
-        [pattern("success")<Success<string>>()(), () => "Success!"],
-        [pattern("error")<Error>()(), () => "Error occurred"],
+        [loading(), () => "Loading..."],
+        [success(), () => "Success!"],
+        [error(), () => "Error occurred"],
       ),
     );
 
-  expect(getStateMessage(loadingState)).toBe("Loading...");
-  expect(getStateMessage(successState)).toBe("Success!");
-  expect(getStateMessage(errorState)).toBe("Error occurred");
+  expect(getStateMessage(ofLoading())).toBe("Loading...");
+  expect(getStateMessage(ofSuccess("data loaded"))).toBe("Success!");
+  expect(getStateMessage(ofError("failed to load"))).toBe("Error occurred");
 });
