@@ -28,13 +28,12 @@ export type Option<T> = Some<T> | None;
  * Creates a Some instance.
  */
 export const some = <T>(value: T): Option<T> =>
-  variantMaker<typeof someTag, Some<T>>(someTag)()(value);
+  variantMaker(someTag)<Some<T>>()(value);
 
 /**
  * Creates a None instance.
  */
-export const none = <T>(): Option<T> =>
-  variantMaker<typeof noneTag, None>(noneTag)()();
+export const none = <T>(): Option<T> => variantMaker(noneTag)<None>()();
 
 /**
  * Type guard to check if an Option is a Some.

@@ -23,13 +23,13 @@ export type Result<T, F> = Ok<T> | Err<F>;
  * Creates an Ok instance.
  */
 export const ok = <T, F = never>(a: T): Result<T, F> =>
-  variantMaker<typeof okTag, Ok<T>>(okTag)()(a);
+  variantMaker(okTag)<Ok<T>>()(a);
 
 /**
  * Creates an Err instance.
  */
 export const err = <F, T = never>(e: F): Result<T, F> =>
-  variantMaker<typeof errTag, Err<F>>(errTag)()(e);
+  variantMaker(errTag)<Err<F>>()(e);
 
 /**
  * Type guard to check if a Result is an Ok.
