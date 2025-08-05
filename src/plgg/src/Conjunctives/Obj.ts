@@ -7,7 +7,7 @@ import {
   some,
   none,
   pipe,
-  mapResult,
+  chainResult,
 } from "plgg/index";
 
 /**
@@ -40,10 +40,7 @@ export const forProp =
       ? pipe(
           obj[key],
           predicate,
-          mapResult(
-            (okValue) => ok({ ...obj, [key]: okValue }),
-            (errValue) => err(errValue),
-          ),
+          chainResult((okValue) => ok({ ...obj, [key]: okValue })),
         )
       : err(
           new InvalidError({
@@ -64,10 +61,7 @@ export const forOptionProp =
       ? pipe(
           obj[key],
           predicate,
-          mapResult(
-            (okValue) => ok({ ...obj, [key]: some(okValue) }),
-            (errValue) => err(errValue),
-          ),
+          chainResult((okValue) => ok({ ...obj, [key]: some(okValue) })),
         )
       : ok({ ...obj, [key]: none<U>() } as V & Record<T, Option<U>>);
 
