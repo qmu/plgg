@@ -21,3 +21,4 @@ export interface Pointed3<KindKey extends KindKeys3> {
   readonly KindKey: KindKey;
   of: <A = never, B = never, C = never>(a: A) => Kind3<KindKey, A, B, C>;
 }
+

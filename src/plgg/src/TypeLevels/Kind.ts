@@ -1,6 +1,6 @@
 export interface KindKeytoKind1<A> {}
 export interface KindKeytoKind2<A, B> {}
-// @ts-ignore
+// @ts-ignore will have ReaderTaskResult
 export interface KindKeytoKind3<A, B, C> {}
 
 export type KindKeys1 = keyof KindKeytoKind1<unknown>;
