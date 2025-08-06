@@ -3,68 +3,14 @@ import {
   isErr,
   isOk,
   InvalidError,
-  ok,
-  err,
-  mapOk,
-  mapErr,
-  mapResult,
   hold,
   debug,
   refine,
   defined,
-  unreachable,
   tryCatch,
   jsonEncode,
   jsonDecode,
-  ifElse,
 } from "plgg/index";
-
-test("mapOk transforms success values while preserving errors", () => {
-  // Example: Processing successful API responses
-  const formatPrice = (price: number) =>
-    ok<string, InvalidError>(`$${price.toFixed(2)}`);
-
-  const successResult = mapOk(formatPrice)(ok<number, InvalidError>(29.99));
-  assert(isOk(successResult));
-  expect(successResult.ok).toBe("$29.99");
-
-  const priceError = new InvalidError({ message: "Invalid price" });
-  const errorResult = mapOk(formatPrice)(err<InvalidError, number>(priceError));
-  assert(isErr(errorResult));
-  expect(errorResult.err.message).toBe("Invalid price");
-});
-
-test("mapErr recovers from errors while preserving success values", () => {
-  // Example: Error recovery in data processing
-  const recoverFromError = (_: InvalidError) => ok("default-value");
-
-  const errorResult = mapErr(recoverFromError)(
-    err(new InvalidError({ message: "Parse failed" })),
-  );
-  assert(isOk(errorResult));
-  expect(errorResult.ok).toBe("default-value");
-
-  const successResult = mapErr(recoverFromError)(ok("original-value"));
-  assert(isOk(successResult));
-  expect(successResult.ok).toBe("original-value");
-});
-
-test("mapResult handles both success and error cases", () => {
-  // Example: Converting results to consistent output format
-  const formatSuccess = (data: string) => ok(`SUCCESS: ${data}`);
-  const formatError = (error: InvalidError) => ok(`ERROR: ${error.message}`);
-
-  const successResult = mapResult(formatSuccess, formatError)(ok("user-data"));
-  assert(isOk(successResult));
-  expect(successResult.ok).toBe("SUCCESS: user-data");
-
-  const errorResult = mapResult(
-    formatSuccess,
-    formatError,
-  )(err(new InvalidError({ message: "Not found" })));
-  assert(isOk(errorResult));
-  expect(errorResult.ok).toBe("ERROR: Not found");
-});
 
 test("bind applies function to values in pipelines", () => {
   // Example: Simple value transformation in composition
@@ -92,27 +38,22 @@ test("refine validates values with custom predicates", () => {
 
   const validResult = validatePositive(5);
   assert(isOk(validResult));
-  expect(validResult.ok).toBe(5);
+  expect(validResult.content).toBe(5);
 
   const invalidResult = validatePositive(-3);
   assert(isErr(invalidResult));
-  expect(invalidResult.err.message).toBe("Number must be positive");
+  expect(invalidResult.content.message).toBe("Number must be positive");
 });
 
 test("defined checks for non-undefined values", () => {
   // Example: Handling optional values
   const validValue = defined("hello");
   assert(isOk(validValue));
-  expect(validValue.ok).toBe("hello");
+  expect(validValue.content).toBe("hello");
 
   const undefinedValue = defined(undefined);
   assert(isErr(undefinedValue));
-  expect(undefinedValue.err.message).toBe("Value is undefined");
-});
-
-test("unreachable throws error for exhaustive checking", () => {
-  // Example: Exhaustive pattern matching
-  expect(() => unreachable()).toThrow("Supposed to be unreachable");
+  expect(undefinedValue.content.message).toBe("Value is undefined");
 });
 
 test("tryCatch wraps functions to handle exceptions", () => {
@@ -128,11 +69,11 @@ test("tryCatch wraps functions to handle exceptions", () => {
 
   const successResult = parseNumber("123");
   assert(isOk(successResult));
-  expect(successResult.ok).toBe(123);
+  expect(successResult.content).toBe(123);
 
   const errorResult = parseNumber("abc");
   assert(isErr(errorResult));
-  expect(errorResult.err.message).toContain("Parse error");
+  expect(errorResult.content.message).toContain("Parse error");
 });
 
 test("jsonEncode and jsonDecode handle JSON operations", () => {
@@ -144,22 +85,10 @@ test("jsonEncode and jsonDecode handle JSON operations", () => {
 
   const decoded = jsonDecode(encoded);
   assert(isOk(decoded));
-  expect(decoded.ok).toEqual(data);
+  expect(decoded.content).toEqual(data);
 
   const invalidJson = jsonDecode("invalid json");
   assert(isErr(invalidJson));
-});
-
-test("ifElse provides conditional branching", () => {
-  // Example: Conditional processing
-  const isEven = (n: number) => n % 2 === 0;
-  const formatEven = (n: number) => `${n} is even`;
-  const formatOdd = (n: number) => `${n} is odd`;
-
-  const processNumber = ifElse(isEven, formatEven, formatOdd);
-
-  expect(processNumber(4)).toBe("4 is even");
-  expect(processNumber(5)).toBe("5 is odd");
 });
 
 test("refine with default error message", () => {
@@ -169,7 +98,7 @@ test("refine with default error message", () => {
 
   const invalidResult = validatePositive(-5);
   assert(isErr(invalidResult));
-  expect(invalidResult.err.message).toBe(
+  expect(invalidResult.content.message).toBe(
     "The value -5 is not valid according to the predicate",
   );
 });
@@ -186,9 +115,9 @@ test("tryCatch with default error handler", () => {
 
   const errorResult = safeThrowing("error");
   assert(isErr(errorResult));
-  expect(errorResult.err.message).toBe("Operation failed: Custom error");
+  expect(errorResult.content.message).toBe("Operation failed: Custom error");
 
   const stringErrorResult = safeThrowing("string");
   assert(isErr(stringErrorResult));
-  expect(stringErrorResult.err.message).toBe("Unexpected error occurred");
+  expect(stringErrorResult.content.message).toBe("Unexpected error occurred");
 });

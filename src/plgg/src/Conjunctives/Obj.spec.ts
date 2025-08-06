@@ -27,31 +27,31 @@ test("Obj.is type guard", () => {
 test("Obj.cast validation", async () => {
   const emptyResult = asObj({});
   assert(isOk(emptyResult));
-  expect(emptyResult.ok).toEqual({});
+  expect(emptyResult.content).toEqual({});
 
   const objectResult = asObj({ a: 1, b: "test" });
   assert(isOk(objectResult));
-  expect(objectResult.ok).toEqual({ a: 1, b: "test" });
+  expect(objectResult.content).toEqual({ a: 1, b: "test" });
 
   const arrayResult = asObj([1, 2, 3]);
   assert(isOk(arrayResult));
-  expect(arrayResult.ok).toEqual([1, 2, 3]);
+  expect(arrayResult.content).toEqual([1, 2, 3]);
 
   const nullResult = asObj(null);
   assert(isErr(nullResult));
-  expect(nullResult.err.message).toBe("Not object");
+  expect(nullResult.content.message).toBe("Not object");
 
   const undefinedResult = asObj(undefined);
   assert(isErr(undefinedResult));
-  expect(nullResult.err.message).toBe("Not object");
+  expect(undefinedResult.content.message).toBe("Not object");
 
   const stringResult = asObj("test");
   assert(isErr(stringResult));
-  expect(stringResult.err.message).toBe("Not object");
+  expect(stringResult.content.message).toBe("Not object");
 
   const numberResult = asObj(123);
   assert(isErr(numberResult));
-  expect(numberResult.err.message).toBe("Not object");
+  expect(numberResult.content.message).toBe("Not object");
 });
 
 test("Obj.prop validation - success cases", async () => {
@@ -59,11 +59,11 @@ test("Obj.prop validation - success cases", async () => {
 
   const nameResult = forProp("name", asStr)(obj);
   assert(isOk(nameResult));
-  expect(nameResult.ok).toEqual({ name: "John", age: 30 });
+  expect(nameResult.content).toEqual({ name: "John", age: 30 });
 
   const ageResult = forProp("age", asNum)(obj);
   assert(isOk(ageResult));
-  expect(ageResult.ok).toEqual({ name: "John", age: 30 });
+  expect(ageResult.content).toEqual({ name: "John", age: 30 });
 });
 
 test("Obj.prop validation - missing property", async () => {
@@ -71,7 +71,7 @@ test("Obj.prop validation - missing property", async () => {
 
   const ageResult = forProp("age", asNum)(obj);
   assert(isErr(ageResult));
-  expect(ageResult.err.message).toBe("Property 'age' not found");
+  expect(ageResult.content.message).toBe("Property 'age' not found");
 });
 
 test("Obj.prop validation - invalid property type", async () => {
@@ -79,7 +79,7 @@ test("Obj.prop validation - invalid property type", async () => {
 
   const ageResult = forProp("age", asNum)(obj);
   assert(isErr(ageResult));
-  expect(ageResult.err.message).toBe("Value is not a number");
+  expect(ageResult.content.message).toBe("Value is not a number");
 });
 
 test("Obj.prop validation - adds property to object type", async () => {
@@ -88,7 +88,7 @@ test("Obj.prop validation - adds property to object type", async () => {
 
   const result = forProp(newKey, asStr)({ ...obj, [newKey]: "test" });
   assert(isOk(result));
-  expect(result.ok).toEqual({ existing: "value", newProp: "test" });
+  expect(result.content).toEqual({ existing: "value", newProp: "test" });
 });
 
 test("Obj.optional validation - property exists", async () => {
@@ -96,14 +96,14 @@ test("Obj.optional validation - property exists", async () => {
 
   const nameResult = forOptionProp("name", asStr)(obj);
   assert(isOk(nameResult));
-  assert(isSome(nameResult.ok.name));
-  expect(nameResult.ok.name.value).toBe("John");
-  expect(nameResult.ok.age).toBe(30);
+  assert(isSome(nameResult.content.name));
+  expect(nameResult.content.name.content).toBe("John");
+  expect(nameResult.content.age).toBe(30);
 
   const ageResult = forOptionProp("age", asNum)(obj);
   assert(isOk(ageResult));
-  assert(isSome(ageResult.ok.age));
-  expect(ageResult.ok.age.value).toBe(30);
+  assert(isSome(ageResult.content.age));
+  expect(ageResult.content.age.content).toBe(30);
 });
 
 test("Obj.optional validation - property missing", async () => {
@@ -111,8 +111,8 @@ test("Obj.optional validation - property missing", async () => {
 
   const ageResult = forOptionProp("age", asNum)(obj);
   assert(isOk(ageResult));
-  assert(isNone(ageResult.ok.age));
-  expect(ageResult.ok.name).toBe("John");
+  assert(isNone(ageResult.content.age));
+  expect(ageResult.content.name).toBe("John");
 });
 
 test("Obj.optional validation - invalid property type", async () => {
@@ -120,7 +120,7 @@ test("Obj.optional validation - invalid property type", async () => {
 
   const ageResult = forOptionProp("age", asNum)(obj);
   assert(isErr(ageResult));
-  expect(ageResult.err.message).toBe("Value is not a number");
+  expect(ageResult.content.message).toBe("Value is not a number");
 });
 
 test("Obj.optional validation - adds optional property to object type", async () => {
@@ -128,8 +128,8 @@ test("Obj.optional validation - adds optional property to object type", async ()
 
   const result = forOptionProp("optionalProp", asStr)(obj);
   assert(isOk(result));
-  assert(isNone(result.ok.optionalProp));
-  expect(result.ok.existing).toBe("value");
+  assert(isNone(result.content.optionalProp));
+  expect(result.content.existing).toBe("value");
 });
 
 test("Complex object validation with multiple properties", async () => {
@@ -139,11 +139,11 @@ test("Complex object validation with multiple properties", async () => {
   const nameResult = forProp("name", asStr)(obj);
   assert(isOk(nameResult));
 
-  const ageResult = forProp("age", asNum)(nameResult.ok);
+  const ageResult = forProp("age", asNum)(nameResult.content);
   assert(isOk(ageResult));
 
-  const emailResult = forOptionProp("email", asStr)(ageResult.ok);
+  const emailResult = forOptionProp("email", asStr)(ageResult.content);
   assert(isOk(emailResult));
-  assert(isSome(emailResult.ok.email));
-  expect(emailResult.ok.email.value).toBe("john@example.com");
+  assert(isSome(emailResult.content.email));
+  expect(emailResult.content.email.content).toBe("john@example.com");
 });

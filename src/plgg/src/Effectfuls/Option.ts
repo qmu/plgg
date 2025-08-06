@@ -1,51 +1,94 @@
+import { Monad1 } from "plgg/TypeLevels";
+import {
+  FixedVariant,
+  ParametricVariant,
+  hasTag,
+  variantMaker,
+} from "plgg/Effectfuls";
+
+const someTag = "Some" as const;
+const noneTag = "None" as const;
+
 /**
  * Some side of Option, representing a value that exists.
  */
-export type Some<T> = {
-  _tag: "Some";
-  value: T;
-};
+export type Some<T> = ParametricVariant<typeof someTag, T>;
 
 /**
  * None side of Option, representing no value.
  */
-export type None = {
-  _tag: "None";
-};
+export type None = FixedVariant<typeof noneTag>;
 
 /**
  * Option type for handling optional values.
- * @template T - The value type
  */
 export type Option<T> = Some<T> | None;
 
 /**
  * Creates a Some instance.
  */
-export const some = <T>(value: T): Option<T> => {
-  const result = {
-    _tag: "Some" as const,
-    value,
-  };
-  return result;
-};
+export const some = <T>(value: T): Option<T> =>
+  variantMaker(someTag)<Some<T>>()(value);
 
 /**
  * Creates a None instance.
  */
-export const none = <T = never>(): Option<T> => {
-  const result = {
-    _tag: "None" as const,
-  };
-  return result;
-};
+export const none = <T>(): Option<T> => variantMaker(noneTag)<None>()();
 
 /**
  * Type guard to check if an Option is a Some.
  */
-export const isSome = <T>(e: Option<T>): e is Some<T> => e._tag === "Some";
+export const isSome = <T>(e: unknown): e is Some<T> => hasTag(someTag)(e);
 
 /**
  * Type guard to check if an Option is a None.
  */
-export const isNone = <T>(e: Option<T>): e is None => e._tag === "None";
+export const isNone = (e: unknown): e is None => hasTag(noneTag)(e);
+
+/**
+ * Type guard to check if a value is an Option.
+ */
+export const isOption = <T>(e: unknown): e is Option<T> =>
+  isSome(e) || isNone(e);
+
+// --------------------------------------
+
+declare module "plgg/TypeLevels/Kind" {
+  export interface KindKeytoKind1<A> {
+    Option: Option<A>;
+  }
+}
+
+export const {
+  map: mapOption,
+  ap: applyOption,
+  of: ofOption,
+  chain: chainOption,
+}: Monad1<"Option"> = {
+  KindKey: "Option",
+
+  // Functor1: map
+  map:
+    <A, B>(f: (a: A) => B) =>
+    (fa: Option<A>): Option<B> =>
+      isSome(fa) ? some<B>(f(fa.content)) : none<B>(),
+
+  // Apply1: ap
+  ap:
+    <A, B>(fab: Option<(a: A) => B>) =>
+    (fa: Option<A>): Option<B> =>
+      isSome(fab)
+        ? isSome(fa)
+          ? some<B>(fab.content(fa.content))
+          : none<B>()
+        : none<B>(),
+
+  // Pointed1: of
+  of: <A>(a: A): Option<A> => some<A>(a),
+
+  // Chain1: chain
+  chain:
+    <A, B>(f: (a: A) => Option<B>) =>
+    (fa: Option<A>): Option<B> =>
+      isSome(fa) ? f(fa.content) : none<B>(),
+};

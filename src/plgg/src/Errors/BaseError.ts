@@ -12,7 +12,7 @@ export class BaseError extends Error {
   /**
    * Brand
    */
-  public __ = "DomainError";
+  public __ = "PlggError";
 
   /**
    * Detail

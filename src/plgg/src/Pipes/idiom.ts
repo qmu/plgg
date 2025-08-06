@@ -1,32 +1,4 @@
-import { isOk, Result, pipe, ok, err, InvalidError } from "plgg/index";
-
-/**
- * Maps Result success value with function, leaving errors unchanged.
- */
-export const mapOk =
-  <T, U, F = Error>(fn: (value: T) => Result<U, F>) =>
-  (result: Result<T, F>): Result<U, F> =>
-    isOk(result) ? fn(result.ok) : result;
-
-/**
- * Maps Result error value with function, leaving success values unchanged.
- */
-export const mapErr =
-  <T, U, F = Error>(fn: (error: F) => Result<T, U>) =>
-  (result: Result<T, F>): Result<T, U> =>
-    isOk(result) ? result : fn(result.err);
-
-/**
- * Pattern matches on a Result, applying the appropriate function based on the variant.
- * This enables handling both success and error cases in a type-safe way.
- */
-export const mapResult =
-  <T, U, F = Error>(
-    onOk: (value: T) => Result<U, F>,
-    onErr: (error: F) => Result<U, F>,
-  ) =>
-  (result: Result<T, F>): Result<U, F> =>
-    isOk(result) ? onOk(result.ok) : onErr(result.err);
+import { Result, pipe, ok, err, InvalidError, toError } from "plgg/index";
 
 /**
  * Simple function composition utility.
@@ -64,12 +36,6 @@ export const refine =
         );
 
 /**
- * Converts unknown error to Error instance.
- */
-export const toError = (err: unknown): Error =>
-  err instanceof Error ? err : new Error(String(err));
-
-/**
  * Wraps a function to catch exceptions and return Result.
  */
 export const tryCatch =
@@ -92,34 +58,10 @@ export const tryCatch =
 
 /**
  * Checks if a value is defined (not undefined).
- * Returns Ok with the value if defined, Err if undefined.
+ * Returns Some with the value if defined, None if undefined.
  */
 export const defined = <T>(value: T | undefined): Result<T, Error> =>
-  value === undefined ? err(new Error("Value is undefined")) : ok(value);
-
-/**
- * Utility function for exhaustive checks and unreachable code paths.
- * Throws an error when called - used for compile-time exhaustiveness checking.
- */
-export function unreachable(): never {
-  throw new Error("Supposed to be unreachable");
-}
-
-/**
- * Branching flow that preserves input/output types.
- * Selects between two functions based on predicate.
- */
-export const ifElse =
-  <T, U>(
-    predicate: PredicateFunction<T>,
-    ifTrue: OptionFunction<T, U>,
-    ifFalse: OptionFunction<T, U>,
-  ) =>
-  (value: T): U =>
-    predicate(value) ? ifTrue(value) : ifFalse(value);
-
-type OptionFunction<T, U = T> = (x: T) => U;
-type PredicateFunction<T> = (x: T) => boolean;
+  value === undefined ? err(new Error("Value is undefined")) : ok<T>(value);
 
 /**
  * Encodes data as formatted JSON string.

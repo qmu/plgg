@@ -1,9 +1,9 @@
-import { Brand, Result, ok, err, InvalidError, isNum } from "plgg/index";
+import { Brand, Result, ok, err, InvalidError, Num, isNum } from "plgg/index";
 
 /**
  * Branded number type.
  */
-export type BrandNum<U extends string> = Brand<number, U>;
+export type BrandNum<U extends string> = Brand<Num, U>;
 
 /**
  * Type guard for branded number.

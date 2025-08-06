@@ -17,37 +17,37 @@ test("BrandNum.is type guard", () => {
 test("BrandNum.cast validation", async () => {
   const ageResult = asBrandNum<"Age">(25);
   assert(isOk(ageResult));
-  expect(ageResult.ok).toBe(25);
+  expect(ageResult.content).toBe(25);
 
   const priceResult = asBrandNum<"Price">(99.99);
   assert(isOk(priceResult));
-  expect(priceResult.ok).toBe(99.99);
+  expect(priceResult.content).toBe(99.99);
 
   const zeroResult = asBrandNum<"Age">(0);
   assert(isOk(zeroResult));
-  expect(zeroResult.ok).toBe(0);
+  expect(zeroResult.content).toBe(0);
 
   const negativeResult = asBrandNum<"Age">(-5);
   assert(isOk(negativeResult));
-  expect(negativeResult.ok).toBe(-5);
+  expect(negativeResult.content).toBe(-5);
 
   const stringResult = asBrandNum<"Age">("25");
   assert(isErr(stringResult));
-  expect(stringResult.err.message).toBe("Value is not a branded number");
+  expect(stringResult.content.message).toBe("Value is not a branded number");
 
   const boolResult = asBrandNum<"Age">(true);
   assert(isErr(boolResult));
-  expect(boolResult.err.message).toBe("Value is not a branded number");
+  expect(boolResult.content.message).toBe("Value is not a branded number");
 
   const nullResult = asBrandNum<"Age">(null);
   assert(isErr(nullResult));
-  expect(nullResult.err.message).toBe("Value is not a branded number");
+  expect(nullResult.content.message).toBe("Value is not a branded number");
 
   const undefinedResult = asBrandNum<"Age">(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.err.message).toBe("Value is not a branded number");
+  expect(undefinedResult.content.message).toBe("Value is not a branded number");
 
   const objectResult = asBrandNum<"Age">({});
   assert(isErr(objectResult));
-  expect(objectResult.err.message).toBe("Value is not a branded number");
+  expect(objectResult.content.message).toBe("Value is not a branded number");
 });

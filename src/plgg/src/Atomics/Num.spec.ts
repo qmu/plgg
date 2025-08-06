@@ -32,37 +32,37 @@ test("asNum validates and converts numeric values", () => {
   // Example: Age validation
   const validAge = asNum(25);
   assert(isOk(validAge));
-  expect(validAge.ok).toBe(25);
+  expect(validAge.content).toBe(25);
 
   const zeroAge = asNum(0);
   assert(isOk(zeroAge));
-  expect(zeroAge.ok).toBe(0);
+  expect(zeroAge.content).toBe(0);
 
   const negativeValue = asNum(-123);
   assert(isOk(negativeValue));
-  expect(negativeValue.ok).toBe(-123);
+  expect(negativeValue.content).toBe(-123);
 
   const floatValue = asNum(3.14);
   assert(isOk(floatValue));
-  expect(floatValue.ok).toBe(3.14);
+  expect(floatValue.content).toBe(3.14);
 
   // BigInt conversion
   const bigIntValue = asNum(BigInt(42));
   assert(isOk(bigIntValue));
-  expect(bigIntValue.ok).toBe(42);
+  expect(bigIntValue.content).toBe(42);
 
   // Example: API response validation
   const stringInput = asNum("123");
   assert(isErr(stringInput));
-  expect(stringInput.err.message).toBe("Value is not a number");
+  expect(stringInput.content.message).toBe("Value is not a number");
 
   const booleanInput = asNum(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.err.message).toBe("Value is not a number");
+  expect(booleanInput.content.message).toBe("Value is not a number");
 
   const nullInput = asNum(null);
   assert(isErr(nullInput));
-  expect(nullInput.err.message).toBe("Value is not a number");
+  expect(nullInput.content.message).toBe("Value is not a number");
 });
 
 test("asNum works in validation pipelines", () => {
@@ -71,44 +71,44 @@ test("asNum works in validation pipelines", () => {
     const numResult = asNum(input);
     if (isErr(numResult)) return numResult;
     
-    const price = numResult.ok;
+    const price = numResult.content;
     if (price < 0) {
-      return { _tag: "Err" as const, err: new Error("Price cannot be negative") };
+      return { __tag: "Err" as const, content: new Error("Price cannot be negative") };
     }
     if (price > 10000) {
-      return { _tag: "Err" as const, err: new Error("Price too high") };
+      return { __tag: "Err" as const, content: new Error("Price too high") };
     }
-    return { _tag: "Ok" as const, ok: price };
+    return { __tag: "Ok" as const, content: price };
   };
 
   const validPrice = validatePrice(29.99);
   assert(isOk(validPrice));
-  expect(validPrice.ok).toBe(29.99);
+  expect(validPrice.content).toBe(29.99);
 
   const invalidType = validatePrice("not-a-number");
   assert(isErr(invalidType));
-  expect(invalidType.err.message).toBe("Value is not a number");
+  expect(invalidType.content.message).toBe("Value is not a number");
 
   const negativePrice = validatePrice(-5);
   assert(isErr(negativePrice));
-  expect(negativePrice.err.message).toBe("Price cannot be negative");
+  expect(negativePrice.content.message).toBe("Price cannot be negative");
 
   const expensivePrice = validatePrice(15000);
   assert(isErr(expensivePrice));
-  expect(expensivePrice.err.message).toBe("Price too high");
+  expect(expensivePrice.content.message).toBe("Price too high");
 });
 
 test("asNum handles special numeric values", () => {
   // Example: Mathematical operations that might produce special values
   const infinityResult = asNum(Infinity);
   assert(isOk(infinityResult));
-  expect(infinityResult.ok).toBe(Infinity);
+  expect(infinityResult.content).toBe(Infinity);
 
   const negativeInfinityResult = asNum(-Infinity);
   assert(isOk(negativeInfinityResult));
-  expect(negativeInfinityResult.ok).toBe(-Infinity);
+  expect(negativeInfinityResult.content).toBe(-Infinity);
 
   const nanResult = asNum(NaN);
   assert(isOk(nanResult));
-  expect(Number.isNaN(nanResult.ok)).toBe(true);
+  expect(Number.isNaN(nanResult.content)).toBe(true);
 });

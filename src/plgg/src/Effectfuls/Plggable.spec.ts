@@ -4,7 +4,7 @@ import { MaybePromise, isPromise, isResult, ok, err, isOk } from "plgg/index";
 test("success creates successful Plggable", () => {
   const result = ok("test value");
   assert(isOk(result));
-  expect(result.ok).toBe("test value");
+  expect(result.content).toBe("test value");
 });
 
 test("fail creates failed Plggable", () => {
@@ -13,7 +13,7 @@ test("fail creates failed Plggable", () => {
   if (!isResult(result) || isOk(result)) {
     assert.fail("Expected error, but got success");
   }
-  expect(result.err).toBe(error);
+  expect(result.content).toBe(error);
 });
 
 test("MaybePromise accepts synchronous values", () => {

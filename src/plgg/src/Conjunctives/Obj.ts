@@ -7,7 +7,7 @@ import {
   some,
   none,
   pipe,
-  mapResult,
+  chainResult,
 } from "plgg/index";
 
 /**
@@ -36,14 +36,11 @@ export const forProp =
     predicate: (a: unknown) => Result<U, InvalidError>,
   ) =>
   <V extends object>(obj: V): Result<V & Record<T, U>, InvalidError> =>
-    hasField(obj, key)
+    hasProp(obj, key)
       ? pipe(
           obj[key],
           predicate,
-          mapResult(
-            (okValue) => ok({ ...obj, [key]: okValue }),
-            (errValue) => err(errValue),
-          ),
+          chainResult((okValue) => ok({ ...obj, [key]: okValue })),
         )
       : err(
           new InvalidError({
@@ -60,21 +57,18 @@ export const forOptionProp =
     predicate: (a: unknown) => Result<U, InvalidError>,
   ) =>
   <V extends object>(obj: V): Result<V & Record<T, Option<U>>, InvalidError> =>
-    hasField(obj, key)
+    hasProp(obj, key)
       ? pipe(
           obj[key],
           predicate,
-          mapResult(
-            (okValue) => ok({ ...obj, [key]: some(okValue) }),
-            (errValue) => err(errValue),
-          ),
+          chainResult((okValue) => ok({ ...obj, [key]: some(okValue) })),
         )
       : ok({ ...obj, [key]: none<U>() } as V & Record<T, Option<U>>);
 
 /**
  * Type guard for object field existence.
  */
-const hasField = <K extends string>(
+export const hasProp = <K extends string>(
   value: object,
   key: K,
 ): value is Record<K, unknown> => key in value;
