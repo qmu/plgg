@@ -22,14 +22,12 @@ export type Result<T, F> = Ok<T> | Err<F>;
 /**
  * Creates an Ok instance.
  */
-export const ok = <T, F = never>(a: T): Result<T, F> =>
-  variantMaker(okTag)<Ok<T>>()(a);
+export const ok = <T>(a: T): Ok<T> => variantMaker(okTag)<Ok<T>>()(a);
 
 /**
  * Creates an Err instance.
  */
-export const err = <F, T = never>(e: F): Result<T, F> =>
-  variantMaker(errTag)<Err<F>>()(e);
+export const err = <F>(e: F): Err<F> => variantMaker(errTag)<Err<F>>()(e);
 
 /**
  * Type guard to check if a Result is an Ok.
@@ -65,16 +63,16 @@ export const {
   map:
     <A, B, C>(f: (a: A) => B) =>
     (fa: Result<A, C>): Result<B, C> =>
-      isOk(fa) ? ok<B, C>(f(fa.content)) : fa,
+      isOk(fa) ? ok<B>(f(fa.content)) : fa,
 
   // Apply2: ap
   ap:
     <A, B, C>(fab: Result<(a: A) => B, C>) =>
     (fa: Result<A, C>): Result<B, C> =>
-      isOk(fab) ? (isOk(fa) ? ok<B, C>(fab.content(fa.content)) : fa) : fab,
+      isOk(fab) ? (isOk(fa) ? ok<B>(fab.content(fa.content)) : fa) : fab,
 
   // Pointed2: of
-  of: <A = never, B = never>(a: A): Result<A, B> => ok<A, B>(a),
+  of: <A = never, B = never>(a: A): Result<A, B> => ok<A>(a),
 
   // Chain2: chain
   chain:
