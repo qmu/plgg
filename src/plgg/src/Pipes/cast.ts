@@ -368,9 +368,13 @@ export function cast(
       return err(acc.content);
     }
     const prevError = acc.content.sibling.length > 0 ? [] : [acc.content];
-    const sibling = [...prevError, ...acc.content.sibling, currentResult.content];
+    const sibling = [
+      ...prevError,
+      ...acc.content.sibling,
+      currentResult.content,
+    ];
     return err(new InvalidError({ message: "Validation failed", sibling }));
-  }, ok<unknown, InvalidError>(value));
+  }, ok<unknown>(value));
 }
 
 const convUnknownToInvalidError = (e: unknown): Result<never, InvalidError> =>

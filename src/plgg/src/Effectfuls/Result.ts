@@ -22,14 +22,12 @@ export type Result<T, F> = Ok<T> | Err<F>;
 /**
  * Creates an Ok instance.
  */
-export const ok = <T, F = never>(a: T): Result<T, F> =>
-  variantMaker(okTag)<Ok<T>>()(a);
+export const ok = <T>(a: T): Ok<T> => variantMaker(okTag)<Ok<T>>()(a);
 
 /**
  * Creates an Err instance.
  */
-export const err = <F, T = never>(e: F): Result<T, F> =>
-  variantMaker(errTag)<Err<F>>()(e);
+export const err = <F>(e: F): Err<F> => variantMaker(errTag)<Err<F>>()(e);
 
 /**
  * Type guard to check if a Result is an Ok.
@@ -63,22 +61,22 @@ export const {
 
   // Functor2: map
   map:
-    <A, B, C>(f: (a: A) => B) =>
-    (fa: Result<A, C>): Result<B, C> =>
-      isOk(fa) ? ok<B, C>(f(fa.content)) : fa,
+    <T1, T2, E>(f: (a: T1) => T2) =>
+    (fa: Result<T1, E>): Result<T2, E> =>
+      isOk(fa) ? ok<T2>(f(fa.content)) : fa,
 
   // Apply2: ap
   ap:
-    <A, B, C>(fab: Result<(a: A) => B, C>) =>
-    (fa: Result<A, C>): Result<B, C> =>
-      isOk(fab) ? (isOk(fa) ? ok<B, C>(fab.content(fa.content)) : fa) : fab,
+    <T1, T2, E>(fab: Result<(a: T1) => T2, E>) =>
+    (fa: Result<T1, E>): Result<T2, E> =>
+      isOk(fab) ? (isOk(fa) ? ok<T2>(fab.content(fa.content)) : fa) : fab,
 
   // Pointed2: of
-  of: <A = never, B = never>(a: A): Result<A, B> => ok<A, B>(a),
+  of: <T = never, E = never>(a: T): Result<T, E> => ok<T>(a),
 
   // Chain2: chain
   chain:
-    <A, B, C>(f: (a: A) => Result<B, C>) =>
-    (fa: Result<A, C>): Result<B, C> =>
+    <T1, T2, E1>(f: (a: T1) => Result<T2, E1>) =>
+    <E2>(fa: Result<T1, E2>): Result<T2, E1 | E2> =>
       isOk(fa) ? f(fa.content) : fa,
 };

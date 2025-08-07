@@ -27,13 +27,13 @@ export type Option<T> = Some<T> | None;
 /**
  * Creates a Some instance.
  */
-export const some = <T>(value: T): Option<T> =>
+export const some = <T>(value: T): Some<T> =>
   variantMaker(someTag)<Some<T>>()(value);
 
 /**
  * Creates a None instance.
  */
-export const none = <T>(): Option<T> => variantMaker(noneTag)<None>()();
+export const none = (): None => variantMaker(noneTag)<None>()();
 
 /**
  * Type guard to check if an Option is a Some.
@@ -71,7 +71,7 @@ export const {
   map:
     <A, B>(f: (a: A) => B) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? some<B>(f(fa.content)) : none<B>(),
+      isSome(fa) ? some<B>(f(fa.content)) : none(),
 
   // Apply1: ap
   ap:
@@ -80,8 +80,8 @@ export const {
       isSome(fab)
         ? isSome(fa)
           ? some<B>(fab.content(fa.content))
-          : none<B>()
-        : none<B>(),
+          : none()
+        : none(),
 
   // Pointed1: of
   of: <A>(a: A): Option<A> => some<A>(a),
@@ -90,5 +90,5 @@ export const {
   chain:
     <A, B>(f: (a: A) => Option<B>) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? f(fa.content) : none<B>(),
+      isSome(fa) ? f(fa.content) : none(),
 };

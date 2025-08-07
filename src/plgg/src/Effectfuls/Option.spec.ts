@@ -56,7 +56,7 @@ test("none creates None option", () => {
 });
 
 test("none creates None option with type parameter", () => {
-  const result = none<string>();
+  const result = none();
   expect(result.__tag).toBe("None");
   assert(isNone(result));
 });
@@ -120,7 +120,7 @@ test("Option with complex types", () => {
 
   const user: User = { id: 1, name: "John", email: "john@example.com" };
   const userOption = some(user);
-  const noUserOption = none<User>();
+  const noUserOption = none();
 
   assert(isSome(userOption));
   assert(isNone(noUserOption));
@@ -136,7 +136,7 @@ test("Option with array contents", () => {
   const numbers = [1, 2, 3, 4, 5];
   const arrayOption = some(numbers);
   const emptyArrayOption = some([]);
-  const noneArrayOption = none<number[]>();
+  const noneArrayOption = none();
 
   assert(isSome(arrayOption));
   assert(isSome(emptyArrayOption));
@@ -156,7 +156,7 @@ test("Option with array contents", () => {
 test("Option with boolean contents", () => {
   const trueOption = some(true);
   const falseOption = some(false);
-  const noneBoolOption = none<boolean>();
+  const noneBoolOption = none();
 
   assert(isSome(trueOption));
   assert(isSome(falseOption));
