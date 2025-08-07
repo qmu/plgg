@@ -76,14 +76,15 @@ test("Result can handle different types", () => {
 
 test("mapOk transforms success values while preserving errors", () => {
   // Example: Processing successful API responses
-  const formatPrice = (price: number) => ok(`$${price.toFixed(2)}`);
+  const formatPrice = (price: number): Result<string, Error> =>
+    ok(`$${price.toFixed(2)}`);
 
   const successResult = chainResult(formatPrice)(ok(29.99));
   assert(isOk(successResult));
   expect(successResult.content).toBe("$29.99");
 
   const priceError = new InvalidError({ message: "Invalid price" });
-  const e :Result<string,Error> = err(priceError);
+  const e = err(priceError);
   const errorResult = chainResult(formatPrice)(e);
   assert(isErr(errorResult));
   expect(errorResult.content.message).toBe("Invalid price");
