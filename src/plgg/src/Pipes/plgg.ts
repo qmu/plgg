@@ -13,6 +13,17 @@ import {
 /**
  * Async function composition with error short-circuiting for Plggable types.
  * Chains functions that return Plggable values, stopping on first error.
+ * Unlike cast (synchronous), this handles async operations and stops on first error.
+ * 
+ * @param a - Initial value to process
+ * @param ab - Function to transform A to Plggable<B>
+ * @returns Promise resolving to Result containing final value or error
+ * @example
+ * const result = await plgg(
+ *   "123",
+ *   async (s) => ok(parseInt(s)),
+ *   async (n) => n > 0 ? ok(n * 2) : err(new Error("Invalid"))
+ * ); // Promise<Result<number, Error>>
  */
 export function plgg<A, B>(
   a: A,
@@ -329,8 +340,12 @@ export function plgg<
 ): Promise<Result<U, Error>>;
 
 /**
- * Chains Plggable-returning functions with early error exit.
+ * Implementation function that chains any number of Plggable-returning functions.
  * Processes functions sequentially, stopping on first error.
+ * 
+ * @param value - Initial value to process
+ * @param fns - Array of functions that return Plggable values
+ * @returns Promise resolving to Result with final value or first encountered error
  */
 export async function plgg(
   value: unknown,
@@ -362,5 +377,6 @@ export async function plgg(
 
 /**
  * Function type for plgg operations.
+ * Represents a function that takes any value and returns a Plggable result.
  */
 type ChainFn = (a: unknown) => Plggable<unknown>;

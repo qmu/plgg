@@ -59,10 +59,18 @@ declare module "plgg/TypeLevels/Kind" {
   }
 }
 
+/**
+ * Monad instance for Option providing map, ap, of, and chain operations.
+ * Exported as individual functions for convenient use.
+ */
 export const {
+  /** Maps a function over the content of an Option */
   map: mapOption,
+  /** Applies a wrapped function to a wrapped value */
   ap: applyOption,
+  /** Wraps a value in a Some */
   of: ofOption,
+  /** Monadic bind operation for Option */
   chain: chainOption,
 }: Monad1<"Option"> = {
   KindKey: "Option",

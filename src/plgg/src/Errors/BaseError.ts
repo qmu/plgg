@@ -1,31 +1,37 @@
 import { Option, none, some } from "plgg/index";
 
 /**
- * Base Error
+ * Base error class for all Plgg errors.
+ * Extends JavaScript Error with additional metadata and parent error tracking.
  */
 export class BaseError extends Error {
   /**
-   * Name
+   * Error name identifier.
    */
   public name = "BaseError";
 
   /**
-   * Brand
+   * Brand identifier for Plgg error types.
+   * Used to distinguish Plgg errors from standard JavaScript errors.
    */
   public __ = "PlggError";
 
   /**
-   * Detail
+   * Optional additional detail about the error.
    */
   public detail: Option<string> = none();
 
   /**
-   * Parent
+   * Optional parent error for error chaining.
+   * Allows building error cause chains for debugging.
    */
   public parent: Option<BaseError | Error> = none();
 
   /**
-   * Constructor
+   * Creates a new BaseError instance.
+   * 
+   * @param message - Error message
+   * @param parent - Optional parent error for chaining
    */
   constructor(message: string, parent?: BaseError | Error) {
     super(message);

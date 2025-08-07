@@ -16,7 +16,8 @@ import {
 } from "plgg/index";
 
 /**
- * Union of all primitive types.
+ * Union of all primitive types including branded variants.
+ * Represents all basic data types supported by the system.
  */
 export type Primitive =
   | Str
@@ -28,7 +29,15 @@ export type Primitive =
   | Time;
 
 /**
- * Type guard for any primitive.
+ * Type guard for any primitive type.
+ * Checks if a value is any of the supported primitive types.
+ * 
+ * @param value - Value to check
+ * @returns True if value is a primitive, false otherwise
+ * @example
+ * if (isPrimitive(value)) {
+ *   // TypeScript knows value is a Primitive
+ * }
  */
 export const isPrimitive = (value: unknown): value is Primitive =>
   isStr(value) ||
