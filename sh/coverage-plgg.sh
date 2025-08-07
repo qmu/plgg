@@ -19,7 +19,7 @@ echo ""
 
 # Check if coverage thresholds were met
 if [ $? -eq 0 ]; then
-  echo "✅ Coverage thresholds met - 100% C1 and C2 coverage achieved"
+  echo "✅ Coverage thresholds met"
 else
   echo "❌ Coverage thresholds not met - see report for details"
   echo "Run 'npm run coverage' to re-run coverage analysis"
