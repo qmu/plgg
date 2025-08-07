@@ -8,6 +8,9 @@ import {
   Result,
   InvalidError,
   chainResult,
+  mapResult,
+  applyResult,
+  ofResult,
 } from "plgg/index";
 
 test("ok creates Ok result", () => {
@@ -88,4 +91,62 @@ test("mapOk transforms success values while preserving errors", () => {
   const errorResult = chainResult(formatPrice)(e);
   assert(isErr(errorResult));
   expect(errorResult.content.message).toBe("Invalid price");
+});
+
+test("mapResult transforms Ok values while preserving Err", () => {
+  const double = (x: number) => x * 2;
+  const okValue = ok(5);
+  const errValue = err("error");
+
+  const mappedOk = mapResult(double)(okValue);
+  const mappedErr = mapResult(double)(errValue);
+
+  assert(isOk(mappedOk));
+  expect(mappedOk.content).toBe(10);
+
+  assert(isErr(mappedErr));
+  expect(mappedErr.content).toBe("error");
+});
+
+test("applyResult applies wrapped function to wrapped value", () => {
+  const add = (x: number) => (y: number) => x + y;
+  const okAdd3: Result<(y: number) => number, string> = ok(add(3));
+  const okNumber: Result<number, string> = ok(5);
+  const errFunction: Result<(y: number) => number, string> = err("function error");
+  const errValue: Result<number, string> = err("value error");
+
+  // Ok function applied to Ok value
+  const result1 = applyResult(okAdd3)(okNumber);
+  assert(isOk(result1));
+  expect(result1.content).toBe(8);
+
+  // Err function applied to Ok value
+  const result2 = applyResult(errFunction)(okNumber);
+  assert(isErr(result2));
+  expect(result2.content).toBe("function error");
+
+  // Ok function applied to Err value
+  const result3 = applyResult<number, number, string>(okAdd3)(errValue);
+  assert(isErr(result3));
+  expect(result3.content).toBe("value error");
+
+  // Err function applied to Err value
+  const result4 = applyResult(errFunction)(errValue);
+  assert(isErr(result4));
+  expect(result4.content).toBe("function error");
+});
+
+test("ofResult creates Ok with value", () => {
+  const result1 = ofResult(42);
+  const result2 = ofResult("hello");
+  const result3 = ofResult(null);
+
+  assert(isOk(result1));
+  expect(result1.content).toBe(42);
+
+  assert(isOk(result2));
+  expect(result2.content).toBe("hello");
+
+  assert(isOk(result3));
+  expect(result3.content).toBe(null);
 });

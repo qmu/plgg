@@ -8,6 +8,7 @@ import {
   isVariant,
   pipe,
   match,
+  ExtractContent,
 } from "plgg/index";
 
 test("FixedVariant creation and structure", () => {
@@ -166,4 +167,39 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
   expect(getStateMessage(ofLoading())).toBe("Loading...");
   expect(getStateMessage(ofSuccess("data loaded"))).toBe("Success!");
   expect(getStateMessage(ofError("failed to load"))).toBe("Error occurred");
+});
+
+test("variantMaker with undefined content creates FixedVariant", () => {
+  type SimpleVariant = FixedVariant<"simple">;
+  const simple = variantMaker("simple")<SimpleVariant>();
+  
+  // Calling with undefined should create FixedVariant
+  const variant1 = simple(undefined as any);
+  const variant2 = simple();
+  
+  expect(variant1.__tag).toBe("simple");
+  expect(variant2.__tag).toBe("simple");
+  expect(variant1).not.toHaveProperty("content");
+  expect(variant2).not.toHaveProperty("content");
+});
+
+test("pattern with undefined content creates FixedVariant", () => {
+  type SimplePattern = FixedVariant<"simple">;
+  const simple = pattern("simple")<SimplePattern>();
+  
+  const pattern1 = simple(undefined as any);
+  const pattern2 = simple();
+  
+  expect(pattern1.__tag).toBe("simple");
+  expect(pattern2.__tag).toBe("simple");
+  expect(pattern1).not.toHaveProperty("content");
+  expect(pattern2).not.toHaveProperty("content");
+});
+
+test("ExtractContent type utility", () => {
+  type TestVariant = ParametricVariant<"test", { data: string }>;
+  
+  // This is a compile-time test - if it compiles, the type works correctly
+  const testContent: ExtractContent<TestVariant> = { data: "hello" };
+  expect(testContent.data).toBe("hello");
 });

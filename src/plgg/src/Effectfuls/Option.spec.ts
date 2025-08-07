@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { some, none, isSome, isNone, Option } from "plgg/index";
+import { some, none, isSome, isNone, Option, mapOption, applyOption, ofOption, chainOption } from "plgg/index";
 
 test("some creates Some option", () => {
   const result = some(42);
@@ -185,4 +185,79 @@ test("Option with zero contents", () => {
   if (isSome(emptyStringOption)) {
     expect(emptyStringOption.content).toBe("");
   }
+});
+
+test("mapOption transforms Some values", () => {
+  const double = (x: number) => x * 2;
+  const someNumber = some(5);
+  const noneNumber = none();
+
+  const mappedSome = mapOption(double)(someNumber);
+  const mappedNone = mapOption(double)(noneNumber);
+
+  assert(isSome(mappedSome));
+  expect(mappedSome.content).toBe(10);
+
+  assert(isNone(mappedNone));
+});
+
+test("applyOption applies wrapped function to wrapped value", () => {
+  const add = (x: number) => (y: number) => x + y;
+  const someAdd3 = some(add(3));
+  const someNumber = some(5);
+  const noneAdd = none();
+  const noneNumber = none();
+
+  // Some function applied to Some value
+  const result1 = applyOption(someAdd3)(someNumber);
+  assert(isSome(result1));
+  expect(result1.content).toBe(8);
+
+  // None function applied to Some value
+  const result2 = applyOption(noneAdd)(someNumber);
+  assert(isNone(result2));
+
+  // Some function applied to None value
+  const result3 = applyOption(someAdd3)(noneNumber);
+  assert(isNone(result3));
+
+  // None function applied to None value
+  const result4 = applyOption(noneAdd)(noneNumber);
+  assert(isNone(result4));
+});
+
+test("ofOption creates Some with value", () => {
+  const result1 = ofOption(42);
+  const result2 = ofOption("hello");
+  const result3 = ofOption(null);
+
+  assert(isSome(result1));
+  expect(result1.content).toBe(42);
+
+  assert(isSome(result2));
+  expect(result2.content).toBe("hello");
+
+  assert(isSome(result3));
+  expect(result3.content).toBe(null);
+});
+
+test("chainOption applies monadic bind", () => {
+  const safeDivide = (y: number) => (x: number): Option<number> =>
+    y === 0 ? none() : some(x / y);
+
+  const someNumber = some(10);
+  const noneNumber = none();
+
+  // Chain with Some value - successful division
+  const result1 = chainOption(safeDivide(2))(someNumber);
+  assert(isSome(result1));
+  expect(result1.content).toBe(5);
+
+  // Chain with Some value - division by zero
+  const result2 = chainOption(safeDivide(0))(someNumber);
+  assert(isNone(result2));
+
+  // Chain with None value
+  const result3 = chainOption(safeDivide(2))(noneNumber);
+  assert(isNone(result3));
 });
