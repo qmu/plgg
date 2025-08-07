@@ -40,7 +40,10 @@ export const forProp =
       ? pipe(
           obj[key],
           predicate,
-          chainResult((okValue) => ok({ ...obj, [key]: okValue })),
+          chainResult(
+            (okValue): Result<V & Record<T, U>, InvalidError> =>
+              ok({ ...obj, [key]: okValue }),
+          ),
         )
       : err(
           new InvalidError({
@@ -61,9 +64,12 @@ export const forOptionProp =
       ? pipe(
           obj[key],
           predicate,
-          chainResult((okValue) => ok({ ...obj, [key]: some(okValue) })),
+          chainResult(
+            (okValue): Result<V & Record<T, Option<U>>, InvalidError> =>
+              ok({ ...obj, [key]: some(okValue) }),
+          ),
         )
-      : ok({ ...obj, [key]: none<U>() } as V & Record<T, Option<U>>);
+      : ok({ ...obj, [key]: none() } as V & Record<T, Option<U>>);
 
 /**
  * Type guard for object field existence.
