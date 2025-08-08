@@ -89,7 +89,7 @@ export const isErr = <F>(e: unknown): e is Err<F> => hasTag(errTag)(e);
 export const isResult = <T, F>(e: unknown): e is Result<T, F> =>
   isOk<T>(e) || isErr<F>(e);
 
-declare module "plgg/TypeLevels/Kind" {
+declare module "plgg/Theoriticals/Kind" {
   export interface KindKeytoKind2<A, B> {
     Result: Result<A, B>;
   }

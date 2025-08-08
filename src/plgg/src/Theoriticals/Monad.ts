@@ -8,17 +8,17 @@ import {
   Applicative1,
   Applicative2,
   Applicative3,
-} from "plgg/TypeLevels";
+} from "plgg/index";
 
 /**
  * Monad interface for single-parameter type constructors.
  * Combines Chain (flatMap/bind) and Applicative (pure + apply) capabilities.
- * 
+ *
  * Monad laws:
  * - Left Identity: chain(of(a), f) === f(a)
  * - Right Identity: chain(m, of) === m
  * - Associativity: chain(chain(m, f), g) === chain(m, x => chain(f(x), g))
- * 
+ *
  * @template KindKey - The kind identifier for this monad
  * @example
  * // Option implements Monad1
@@ -36,7 +36,7 @@ export interface Monad1<KindKey extends KindKeys1>
 
 /**
  * Monad interface for two-parameter type constructors.
- * 
+ *
  * @template KindKey - The kind identifier for this monad
  */
 export interface Monad2<KindKey extends KindKeys2>
@@ -45,7 +45,7 @@ export interface Monad2<KindKey extends KindKeys2>
 
 /**
  * Monad interface for three-parameter type constructors.
- * 
+ *
  * @template KindKey - The kind identifier for this monad
  */
 export interface Monad3<KindKey extends KindKeys3>

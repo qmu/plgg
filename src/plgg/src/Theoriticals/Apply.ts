@@ -8,15 +8,15 @@ import {
   Functor1,
   Functor2,
   Functor3,
-} from "plgg/TypeLevels";
+} from "plgg/index";
 
 /**
  * Apply interface for single-parameter type constructors.
  * Extends Functor to provide the ability to apply wrapped functions to wrapped values.
- * 
+ *
  * Apply law:
  * - Composition: ap(ap(map(compose, u), v), w) === ap(u, ap(v, w))
- * 
+ *
  * @template KindKey - The kind identifier for this apply functor
  */
 export interface Apply1<KindKey extends KindKeys1> extends Functor1<KindKey> {
@@ -32,7 +32,7 @@ export interface Apply1<KindKey extends KindKeys1> extends Functor1<KindKey> {
 
 /**
  * Apply interface for two-parameter type constructors.
- * 
+ *
  * @template KindKey - The kind identifier for this apply functor
  */
 export interface Apply2<KindKey extends KindKeys2> extends Functor2<KindKey> {
@@ -48,7 +48,7 @@ export interface Apply2<KindKey extends KindKeys2> extends Functor2<KindKey> {
 
 /**
  * Apply interface for three-parameter type constructors.
- * 
+ *
  * @template KindKey - The kind identifier for this apply functor
  */
 export interface Apply3<KindKey extends KindKeys3> extends Functor3<KindKey> {
@@ -61,4 +61,3 @@ export interface Apply3<KindKey extends KindKeys3> extends Functor3<KindKey> {
     fab: Kind3<KindKey, (a: A) => B, C, D>,
   ) => (fa: Kind3<KindKey, A, C, D>) => Kind3<KindKey, B, C, D>;
 }
-

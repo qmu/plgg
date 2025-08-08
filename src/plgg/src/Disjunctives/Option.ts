@@ -53,7 +53,7 @@ export const isOption = <T>(e: unknown): e is Option<T> =>
 
 // --------------------------------------
 
-declare module "plgg/TypeLevels/Kind" {
+declare module "plgg/Theoriticals/Kind" {
   export interface KindKeytoKind1<A> {
     Option: Option<A>;
   }

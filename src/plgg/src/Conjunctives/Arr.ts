@@ -56,7 +56,7 @@ export const every =
           }),
         );
 
-declare module "plgg/TypeLevels/Kind" {
+declare module "plgg/Theoriticals/Kind" {
   export interface KindKeytoKind1<A> {
     Arr: Arr<A>;
   }
@@ -88,7 +88,7 @@ export const {
   ap:
     <T1, T2>(fab: Arr<(a: T1) => T2>) =>
     (fa: Arr<T1>): Arr<T2> =>
-      fab.flatMap(f => fa.map(f)),
+      fab.flatMap((f) => fa.map(f)),
 
   // Pointed1: of
   of: <T>(a: T): Arr<T> => [a],
