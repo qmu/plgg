@@ -42,20 +42,7 @@ export const arrRefinement: Refinement<Arr> = {
       ? ok(value)
       : err(new InvalidError({ message: "Value is not an array" })),
 };
-
-export const {
-  /**
-   * Type guard for ReadonlyArray<unknown>.
-   * Extracted from arrRefinement for backward compatibility.
-   */
-  is: isArr,
-
-  /**
-   * Validates and casts unknown value to array.
-   * Extracted from arrRefinement for backward compatibility.
-   */
-  as: asArr,
-} = arrRefinement;
+export const { is: isArr, as: asArr } = arrRefinement;
 
 // ------------------------------------
 
@@ -74,11 +61,7 @@ export const arrFunctor: Functor1<"Arr"> = {
     (fa: Arr<T1>): Arr<T2> =>
       fa.map(f),
 };
-
-export const {
-  /** Maps a function over each element of an array */
-  map: mapArr,
-} = arrFunctor;
+export const { map: mapArr } = arrFunctor;
 
 // ------------------------------------
 
@@ -100,10 +83,7 @@ export const arrApply: Apply1<"Arr"> = {
       fab.flatMap((f) => fa.map(f)),
 };
 
-export const {
-  /** Applies an array of functions to an array of values */
-  ap: applyArr,
-} = arrApply;
+export const { ap: applyArr } = arrApply;
 
 // ------------------------------------
 
@@ -120,10 +100,7 @@ export const arrPointed: Pointed1<"Arr"> = {
   of: <T>(a: T): Arr<T> => [a],
 };
 
-export const {
-  /** Wraps a value in an array */
-  of: ofArr,
-} = arrPointed;
+export const { of: ofArr } = arrPointed;
 
 // ------------------------------------
 
@@ -158,10 +135,7 @@ export const arrChain: Chain1<"Arr"> = {
     (fa: Arr<T1>): Arr<T2> =>
       fa.flatMap(f),
 };
-export const {
-  /** Chains operations that return arrays */
-  chain: chainArr,
-} = arrChain;
+export const { chain: chainArr } = arrChain;
 
 // ------------------------------------
 

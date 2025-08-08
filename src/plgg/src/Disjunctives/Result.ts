@@ -128,10 +128,7 @@ export const resultFunctor: Functor2<"Result"> = {
       isOk(fa) ? ok<T2>(f(fa.content)) : fa,
 };
 
-export const {
-  /** Maps a function over the success value of a Result */
-  map: mapResult,
-} = resultFunctor;
+export const { map: mapResult } = resultFunctor;
 
 // ------------------------------------
 
@@ -154,10 +151,7 @@ export const resultApply: Apply2<"Result"> = {
       isOk(fab) ? (isOk(fa) ? ok<T2>(fab.content(fa.content)) : fa) : fab,
 };
 
-export const {
-  /** Applies a wrapped function to a wrapped value */
-  ap: applyResult,
-} = resultApply;
+export const { ap: applyResult } = resultApply;
 
 // ------------------------------------
 
@@ -174,10 +168,7 @@ export const resultPointed: Pointed2<"Result"> = {
   of: <T = never, E = never>(a: T): Result<T, E> => ok<T>(a),
 };
 
-export const {
-  /** Wraps a value in a successful Result */
-  of: ofResult,
-} = resultPointed;
+export const { of: ofResult } = resultPointed;
 
 // ------------------------------------
 
@@ -215,10 +206,7 @@ export const resultChain: Chain2<"Result"> = {
       isOk(fa) ? f(fa.content) : fa,
 };
 
-export const {
-  /** Monadic bind operation for Result */
-  chain: chainResult,
-} = resultChain;
+export const { chain: chainResult } = resultChain;
 
 // ------------------------------------
 

@@ -126,10 +126,7 @@ export const optionFunctor: Functor1<"Option"> = {
       isSome(fa) ? some<B>(f(fa.content)) : none(),
 };
 
-export const {
-  /** Maps a function over the content of an Option */
-  map: mapOption,
-} = optionFunctor;
+export const { map: mapOption } = optionFunctor;
 
 // ------------------------------------
 
@@ -156,10 +153,7 @@ export const optionApply: Apply1<"Option"> = {
         : none(),
 };
 
-export const {
-  /** Applies a wrapped function to a wrapped value */
-  ap: applyOption,
-} = optionApply;
+export const { ap: applyOption } = optionApply;
 
 // ------------------------------------
 
@@ -176,10 +170,7 @@ export const optionPointed: Pointed1<"Option"> = {
   of: <A>(a: A): Option<A> => some<A>(a),
 };
 
-export const {
-  /** Wraps a value in a Some */
-  of: ofOption,
-} = optionPointed;
+export const { of: ofOption } = optionPointed;
 
 // ------------------------------------
 
@@ -217,10 +208,7 @@ export const optionChain: Chain1<"Option"> = {
       isSome(fa) ? f(fa.content) : none(),
 };
 
-export const {
-  /** Monadic bind operation for Option */
-  chain: chainOption,
-} = optionChain;
+export const { chain: chainOption } = optionChain;
 
 // ------------------------------------
 
