@@ -100,7 +100,7 @@ export const isNone = (e: unknown): e is None => hasTag(noneTag)(e);
 export const isOption = <T>(e: unknown): e is Option<T> =>
   isSome(e) || isNone(e);
 
-declare module "plgg/Abstracts/Theoriticals/Kind" {
+declare module "plgg/Abstracts/Theoreticals/Kind" {
   export interface KindKeytoKind1<A> {
     Option: Option<A>;
   }

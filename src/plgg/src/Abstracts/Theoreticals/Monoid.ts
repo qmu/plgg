@@ -66,4 +66,3 @@ export interface Monoid3<KindKey extends KindKeys3>
    */
   empty: <A = never, B = never, C = never>() => Kind3<KindKey, A, B, C>;
 }
-

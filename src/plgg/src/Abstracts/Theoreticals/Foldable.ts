@@ -99,4 +99,3 @@ export interface Foldable3<KindKey extends KindKeys3> {
     f: (b: B, a: A) => B,
   ) => (initial: B) => (fa: Kind3<KindKey, A, C, D>) => B;
 }
-

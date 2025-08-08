@@ -12,7 +12,7 @@ import {
   Chain1,
 } from "plgg/index";
 
-declare module "plgg/Abstracts/Theoriticals/Kind" {
+declare module "plgg/Abstracts/Theoreticals/Kind" {
   export interface KindKeytoKind1<A> {
     Arr: Arr<A>;
   }

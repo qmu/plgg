@@ -126,4 +126,3 @@ export interface Traversable3<KindKey extends KindKeys3>
     tfa: Kind3<KindKey, Kind1<F, A>, C, D>,
   ) => Kind1<F, Kind3<KindKey, A, C, D>>;
 }
-
