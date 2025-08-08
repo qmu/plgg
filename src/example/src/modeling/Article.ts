@@ -1,54 +1,43 @@
 import {
-  Procedural,
-  proc,
-  ValidationError,
   BrandStr,
-  Str,
-  Obj,
+  asBrandStr,
+  asStr,
+  asObj,
+  forProp,
+  forOptionProp,
   Time,
+  asTime,
   Option,
-  handle,
+  cast,
+  refine,
+  Obj,
 } from "plgg";
 
-export namespace Id {
-  export type t = BrandStr.t<"ArticleId">;
-  export const cast = async (v: unknown): Procedural<t> =>
-    handle(
-      proc(v, BrandStr.cast<"ArticleId">),
-      (e) => new ValidationError("ArticleId validation failed", e),
-    );
-}
+type Id = BrandStr<"ArticleId">;
+const asId = (v: unknown) => cast(v, asBrandStr<"ArticleId">);
 
-export namespace Name {
-  export type t = BrandStr.t<"ArticleName">;
-  export const cast = (v: unknown): Procedural<t> =>
-    handle(
-      proc(
-        v,
-        Str.cast,
-        Str.lenGt(3) /* enforce minimum length */,
-        BrandStr.cast<"ArticleName">,
-      ),
-      (e) => new ValidationError("ArticleName validation failed", e),
-    );
-}
+type Name = BrandStr<"ArticleName">;
+const asName = (v: unknown) =>
+  cast(
+    v,
+    asStr,
+    refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
+    asBrandStr<"ArticleName">,
+  );
 
-export type t = {
-  id: Id.t;
-  createdAt: Time.t;
-  name: Name.t;
+export type Article = Obj<{
+  id: Id;
+  createdAt: Time;
+  name: Name;
   memo: Option<string>;
-};
+}>;
 
-export const cast = (v: unknown): Procedural<t> =>
-  handle(
-    proc(
-      v,
-      Obj.cast,
-      Obj.prop("id", Id.cast),
-      Obj.prop("createdAt", Time.cast),
-      Obj.prop("name", Name.cast),
-      Obj.optional("memo", Str.cast),
-    ),
-    (e) => new ValidationError("Article validation failed", e),
+export const asArticle = (v: unknown) =>
+  cast(
+    v,
+    asObj,
+    forProp("id", asId),
+    forProp("createdAt", asTime),
+    forProp("name", asName),
+    forOptionProp("memo", asStr),
   );
