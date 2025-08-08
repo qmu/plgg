@@ -2,15 +2,10 @@ import { Result, InvalidError } from "plgg/index";
 
 /**
  * Refinement type class for type validation and safe casting.
- * Provides both type guard predicates and safe casting operations.
- *
- * This type class is used to create type-safe validators that can:
- * - Check if a value matches a specific type (type guard)
- * - Safely cast unknown values to the target type with error handling
+ * Abstracts the common `is*`/`as*` pattern found in Atomics files.
  *
  * @template T - The target type to refine to
  * @example
- * // String refinement instance
  * const strRefinement: Refinement<string> = {
  *   is: (value: unknown): value is string => typeof value === "string",
  *   as: (value: unknown): Result<string, InvalidError> =>
@@ -18,6 +13,8 @@ import { Result, InvalidError } from "plgg/index";
  *       ? ok(value)
  *       : err(new InvalidError({ message: "Value is not a string" }))
  * };
+ *
+ * const { is: isStr, as: asStr } = strRefinement;
  */
 export interface Refinement<T> {
   /**

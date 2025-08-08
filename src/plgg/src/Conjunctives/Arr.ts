@@ -3,6 +3,7 @@ import {
   ok,
   err,
   InvalidError,
+  Refinement,
   Monad1,
   Functor1,
   Apply1,
@@ -10,6 +11,12 @@ import {
   Applicative1,
   Chain1,
 } from "plgg/index";
+
+declare module "plgg/Abstracts/Theoriticals/Kind" {
+  export interface KindKeytoKind1<A> {
+    Arr: Arr<A>;
+  }
+}
 
 /**
  * Readonly array type for functional programming operations.
@@ -22,61 +29,35 @@ import {
  */
 export type Arr<T extends unknown = unknown> = ReadonlyArray<T>;
 
-/**
- * Type guard for ReadonlyArray<unknown>.
- *
- * @param value - Value to check
- * @returns True if value is an array, false otherwise
- * @example
- * if (isArr(value)) {
- *   // TypeScript knows value is Arr
- * }
- */
-export const isArr = (value: unknown): value is Arr => Array.isArray(value);
-
-/**
- * Validates and casts unknown value to array.
- *
- * @param value - Value to validate and cast
- * @returns Result with array if valid, InvalidError if not
- * @example
- * const result = castArr([1, 2, 3]); // Ok([1, 2, 3])
- * const invalid = castArr("not array"); // Err(InvalidError)
- */
-export const asArr = (value: unknown): Result<Arr, InvalidError> =>
-  isArr(value)
-    ? ok(value)
-    : err(new InvalidError({ message: "Value is not an array" }));
-
-/**
- * Validates that all array elements match a type predicate.
- * Returns a typed array if all elements pass the predicate.
- *
- * @param predicate - Type guard function to validate each element
- * @returns Function that validates arrays using the predicate
- * @example
- * const validateNumbers = every(isNum);
- * const result = validateNumbers([1, 2, 3]); // Ok([1, 2, 3])
- * const invalid = validateNumbers([1, "2", 3]); // Err(InvalidError)
- */
-export const every =
-  <T>(predicate: (value: unknown) => value is T) =>
-  (value: Arr): Result<Arr<T>, InvalidError> =>
-    value.every(predicate)
-      ? ok(value)
-      : err(
-          new InvalidError({
-            message: "Array elements do not match predicate",
-          }),
-        );
-
-declare module "plgg/Abstracts/Theoriticals/Kind" {
-  export interface KindKeytoKind1<A> {
-    Arr: Arr<A>;
-  }
-}
-
 // ==== TYPE CLASS INSTANCES ====
+
+/**
+ * Refinement instance for array validation and casting.
+ * Provides type-safe array validation following the standard Refinement pattern.
+ */
+export const arrRefinement: Refinement<Arr> = {
+  is: (value: unknown): value is Arr => Array.isArray(value),
+  as: (value: unknown): Result<Arr, InvalidError> =>
+    Array.isArray(value)
+      ? ok(value)
+      : err(new InvalidError({ message: "Value is not an array" })),
+};
+
+export const {
+  /**
+   * Type guard for ReadonlyArray<unknown>.
+   * Extracted from arrRefinement for backward compatibility.
+   */
+  is: isArr,
+
+  /**
+   * Validates and casts unknown value to array.
+   * Extracted from arrRefinement for backward compatibility.
+   */
+  as: asArr,
+} = arrRefinement;
+
+// ------------------------------------
 
 /**
  * Functor instance for Arr.
@@ -199,3 +180,27 @@ export const arrMonad: Monad1<"Arr"> = {
   ...arrApplicative,
   ...arrChain,
 };
+
+// ------------------------------------
+
+/**
+ * Validates that all array elements match a type predicate.
+ * Returns a typed array if all elements pass the predicate.
+ *
+ * @param predicate - Type guard function to validate each element
+ * @returns Function that validates arrays using the predicate
+ * @example
+ * const validateNumbers = every(isNum);
+ * const result = validateNumbers([1, 2, 3]); // Ok([1, 2, 3])
+ * const invalid = validateNumbers([1, "2", 3]); // Err(InvalidError)
+ */
+export const every =
+  <T>(predicate: (value: unknown) => value is T) =>
+  (value: Arr): Result<Arr<T>, InvalidError> =>
+    value.every(predicate)
+      ? ok(value)
+      : err(
+          new InvalidError({
+            message: "Array elements do not match predicate",
+          }),
+        );
