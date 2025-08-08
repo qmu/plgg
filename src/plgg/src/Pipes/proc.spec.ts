@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import {
-  plgg,
+  proc,
   isOk,
   isErr,
   ok,
@@ -11,7 +11,7 @@ import {
   Result,
 } from "plgg/index";
 
-test("plgg composes sync and async functions with early error exit", async () => {
+test("proc composes sync and async functions with early error exit", async () => {
   // Example: Processing user input through validation pipeline
   const increment = (x: number) => x + 1;
   const validatePositive = (x: number): Result<number, InvalidError> =>
@@ -20,7 +20,7 @@ test("plgg composes sync and async functions with early error exit", async () =>
     new Promise((resolve) => setTimeout(() => resolve(x * 2), 1));
   const formatResult = (x: number): string => `Result: ${x}`;
 
-  const result = await plgg(
+  const result = await proc(
     5,
     increment,
     validatePositive,
@@ -32,19 +32,24 @@ test("plgg composes sync and async functions with early error exit", async () =>
   expect(result.content).toBe("Result: 12");
 });
 
-test("plgg stops processing on first error", async () => {
+test("proc stops processing on first error", async () => {
   const increment = (x: number) => x + 1;
   const failValidation = (_: number): Promise<Result<number, InvalidError>> =>
     Promise.resolve(err(new InvalidError({ message: "Validation failed" })));
   const neverCalled = (_: never): string => "should not be called";
 
-  const result = await plgg(5, increment, failValidation as any, neverCalled as any);
+  const result = await proc(
+    5,
+    increment,
+    failValidation as any,
+    neverCalled as any,
+  );
 
   assert(isErr(result));
   expect(result.content.message).toBe("Validation failed");
 });
 
-test("plgg handles mixed return types (values, Results, Promises)", async () => {
+test("proc handles mixed return types (values, Results, Promises)", async () => {
   // Demonstrates real-world API processing pipeline
   const parseInput = (input: string) => input.trim();
   const validateNotEmpty = (str: string): Result<string, InvalidError> =>
@@ -55,7 +60,7 @@ test("plgg handles mixed return types (values, Results, Promises)", async () => 
     new Promise((resolve) => setTimeout(() => resolve({ id, value: 42 }), 1));
   const extractValue = (data: { id: string; value: number }) => data.value;
 
-  const result = await plgg(
+  const result = await proc(
     "user123",
     parseInput,
     validateNotEmpty,
@@ -67,11 +72,11 @@ test("plgg handles mixed return types (values, Results, Promises)", async () => 
   expect(result.content).toBe(42);
 });
 
-test("plgg with type casting and validation chain", async () => {
+test("proc with type casting and validation chain", async () => {
   // Example: Form validation pipeline
   const userData = { name: "John", age: "30" };
 
-  const result = await plgg(
+  const result = await proc(
     userData,
     (data: any) => data.name,
     asStr,
@@ -83,7 +88,7 @@ test("plgg with type casting and validation chain", async () => {
   expect(result.content).toBe("Hello, JOHN!");
 });
 
-test("plgg gracefully handles exceptions in functions", async () => {
+test("proc gracefully handles exceptions in functions", async () => {
   const processWithError = (x: number): Result<string, InvalidError> => {
     if (x === 5) {
       throw new Error("Unexpected error");
@@ -91,27 +96,27 @@ test("plgg gracefully handles exceptions in functions", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg<number, string>(5, processWithError);
+  const result = await proc<number, string>(5, processWithError);
 
   assert(isErr(result));
-  expect(result.content.message).toContain("Unexpected error in plgg");
+  expect(result.content.message).toContain("Unexpected error in proc");
 });
 
-test("plgg handles thrown PlggError", async () => {
-  const processWithPlggError = (x: number): Result<string, InvalidError> => {
+test("proc handles thrown procError", async () => {
+  const processWithprocError = (x: number): Result<string, InvalidError> => {
     if (x === 5) {
       throw new InvalidError({ message: "Domain error thrown" });
     }
     return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg<number, string>(5, processWithPlggError);
+  const result = await proc<number, string>(5, processWithprocError);
 
   assert(isErr(result));
   expect(result.content.message).toBe("Domain error thrown");
 });
 
-test("plgg handles thrown non-Error values", async () => {
+test("proc handles thrown non-Error values", async () => {
   const processWithStringError = (x: number): Result<string, InvalidError> => {
     if (x === 5) {
       throw "String error";
@@ -119,8 +124,8 @@ test("plgg handles thrown non-Error values", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await plgg<number, string>(5, processWithStringError);
+  const result = await proc<number, string>(5, processWithStringError);
 
   assert(isErr(result));
-  expect(result.content.message).toBe("Unknown error in plgg");
+  expect(result.content.message).toBe("Unknown error in proc");
 });
