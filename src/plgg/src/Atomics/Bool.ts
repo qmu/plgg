@@ -1,4 +1,4 @@
-import { Result, ok, err, InvalidError } from "plgg/index";
+import { Result, ok, err, InvalidError, Refinement } from "plgg/index";
 
 /**
  * Boolean true constant for type-safe boolean operations.
@@ -18,29 +18,15 @@ export const FALSE = false as const;
 export type Bool = typeof TRUE | typeof FALSE;
 
 /**
- * Type guard for boolean values.
- * 
- * @param value - The value to check
- * @returns True if value is a boolean, false otherwise
- * @example
- * if (isBool(value)) {
- *   // TypeScript knows value is Bool
- * }
+ * Refinement instance for boolean validation and casting.
+ * Provides type-safe boolean validation following the standard Refinement pattern.
  */
-export const isBool = (value: unknown): value is Bool =>
-  typeof value === "boolean";
+export const boolRefinement: Refinement<Bool> = {
+  is: (value: unknown): value is Bool => typeof value === "boolean",
+  as: (value: unknown): Result<Bool, InvalidError> =>
+    typeof value === "boolean"
+      ? ok(value)
+      : err(new InvalidError({ message: "Value is not a boolean" })),
+};
 
-/**
- * Validates and casts unknown value to boolean.
- * Returns Ok with boolean if valid, Err with InvalidError if invalid.
- * 
- * @param value - The value to validate and cast
- * @returns Result containing boolean or InvalidError
- * @example
- * const result = asBool(true); // Ok(true)
- * const invalid = asBool("not boolean"); // Err(InvalidError)
- */
-export const asBool = (value: unknown): Result<Bool, InvalidError> =>
-  isBool(value)
-    ? ok(value)
-    : err(new InvalidError({ message: "Value is not a boolean" }));
+export const { is: isBool, as: asBool } = boolRefinement;

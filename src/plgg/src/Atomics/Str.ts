@@ -1,4 +1,4 @@
-import { Result, ok, err, InvalidError } from "plgg/index";
+import { Result, ok, err, InvalidError, Refinement } from "plgg/index";
 
 /**
  * String primitive type.
@@ -7,32 +7,17 @@ import { Result, ok, err, InvalidError } from "plgg/index";
 export type Str = string;
 
 /**
- * Type guard for string.
- * 
- * @param value - Value to check
- * @returns True if value is a string, false otherwise
- * @example
- * if (isStr(value)) {
- *   // TypeScript knows value is Str
- * }
+ * Refinement instance for string validation and casting.
+ * Provides type-safe string validation following the standard Refinement pattern.
  */
-export const isStr = (value: unknown): value is Str =>
-  typeof value === "string";
-
-/**
- * Validates and casts unknown value to string.
- * Returns Ok with string if valid, Err with InvalidError if invalid.
- * 
- * @param value - Value to validate and cast
- * @returns Result containing string or InvalidError
- * @example
- * const result = asStr("hello"); // Ok("hello")
- * const invalid = asStr(42); // Err(InvalidError)
- */
-export const asStr = (value: unknown): Result<Str, InvalidError> =>
-  isStr(value)
-    ? ok(value)
-    : err(new InvalidError({ message: `${value} is not a string` }));
+export const strRefinement: Refinement<Str> = {
+  is: (value: unknown): value is Str => typeof value === "string",
+  as: (value: unknown): Result<Str, InvalidError> =>
+    typeof value === "string"
+      ? ok(value)
+      : err(new InvalidError({ message: `${value} is not a string` })),
+};
+export const { is: isStr, as: asStr } = strRefinement;
 
 /**
  * Concatenates two strings using curried application.

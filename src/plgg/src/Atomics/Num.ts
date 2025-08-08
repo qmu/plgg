@@ -1,4 +1,4 @@
-import { ok, err, Result, InvalidError } from "plgg/index";
+import { ok, err, Result, InvalidError, Refinement } from "plgg/index";
 
 /**
  * Number primitive type.
@@ -7,34 +7,21 @@ import { ok, err, Result, InvalidError } from "plgg/index";
 export type Num = number;
 
 /**
- * Type guard for number.
- * Also accepts bigints that fit within JavaScript's safe integer range.
- * 
- * @param value - Value to check
- * @returns True if value is a number or safe bigint, false otherwise
- * @example
- * if (isNum(value)) {
- *   // TypeScript knows value is Num
- * }
+ * Refinement instance for number validation and casting.
+ * Provides type-safe number validation following the standard Refinement pattern.
  */
-export const isNum = (value: unknown): value is Num =>
-  typeof value === "number" ||
-  (typeof value === "bigint" &&
-    value >= Number.MIN_SAFE_INTEGER &&
-    value <= Number.MAX_SAFE_INTEGER);
-
-/**
- * Validates and casts unknown value to number.
- * Returns Ok with number if valid, Err with InvalidError if invalid.
- * 
- * @param value - Value to validate and cast
- * @returns Result containing number or InvalidError
- * @example
- * const result = asNum(42); // Ok(42)
- * const bigIntResult = asNum(42n); // Ok(42)
- * const invalid = asNum("not a number"); // Err(InvalidError)
- */
-export const asNum = (value: unknown): Result<Num, InvalidError> =>
-  isNum(value)
-    ? ok(Number(value))
-    : err(new InvalidError({ message: "Value is not a number" }));
+export const numRefinement: Refinement<Num> = {
+  is: (value: unknown): value is Num =>
+    typeof value === "number" ||
+    (typeof value === "bigint" &&
+      value >= Number.MIN_SAFE_INTEGER &&
+      value <= Number.MAX_SAFE_INTEGER),
+  as: (value: unknown): Result<Num, InvalidError> =>
+    typeof value === "number" ||
+    (typeof value === "bigint" &&
+      value >= Number.MIN_SAFE_INTEGER &&
+      value <= Number.MAX_SAFE_INTEGER)
+      ? ok(Number(value))
+      : err(new InvalidError({ message: "Value is not a number" })),
+};
+export const { is: isNum, as: asNum } = numRefinement;
