@@ -28,9 +28,9 @@ export type PossiblyResult<T, U> = Result<T, U> | T;
  * @template T - The success value type
  * @template U - The error type (defaults to Error)
  * @example
- * type AsyncNumber = Plggable<number>; // Promise<Result<number, Error>> | Result<number, Error> | number
+ * type AsyncNumber = Procedural<number>; // Promise<Result<number, Error>> | Result<number, Error> | number
  */
-export type Plggable<T, U extends Error = Error> = T extends never
+export type Procedural<T, U extends Error = Error> = T extends never
   ? never
   : PossiblyPromise<PossiblyResult<T, U>>;
 

@@ -8,13 +8,13 @@ import {
   isOk,
 } from "plgg/index";
 
-test("success creates successful Plggable", () => {
+test("success creates successful Procedural", () => {
   const result = ok("test value");
   assert(isOk(result));
   expect(result.content).toBe("test value");
 });
 
-test("fail creates failed Plggable", () => {
+test("fail creates failed Procedural", () => {
   const error = new Error("test error");
   const result = err(error);
   if (!isResult(result) || isOk(result)) {
