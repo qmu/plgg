@@ -14,12 +14,13 @@ import {
  * Object type with primitive values.
  * Readonly record with string keys and unknown values.
  */
-export type Obj = Readonly<Record<string, unknown>>;
+export type Obj<T extends Record<string, unknown> = Record<string, unknown>> =
+  Readonly<T>;
 
 /**
  * Type guard for object.
  * Checks if value is an object (not null or array).
- * 
+ *
  * @param value - Value to check
  * @returns True if value is an object, false otherwise
  */
@@ -28,7 +29,7 @@ export const isObj = (value: unknown): value is Obj =>
 
 /**
  * Validates and casts to object with primitives.
- * 
+ *
  * @param value - Value to validate and cast
  * @returns Result with object if valid, InvalidError if not
  * @example
@@ -41,7 +42,7 @@ export const asObj = (value: unknown): Result<Obj, InvalidError> =>
 /**
  * Validates and transforms an object property using a predicate.
  * Returns a new object with the validated and transformed property.
- * 
+ *
  * @param key - The property key to validate
  * @param predicate - Function to validate and transform the property value
  * @returns Function that takes an object and returns validated result with typed property
@@ -73,7 +74,7 @@ export const forProp =
 /**
  * Validates optional object property with predicate.
  * If property exists, validates it. If not, wraps result in None.
- * 
+ *
  * @param key - The property key to validate (optional)
  * @param predicate - Function to validate and transform the property value
  * @returns Function that returns object with Option-wrapped property
@@ -102,7 +103,7 @@ export const forOptionProp =
 /**
  * Type guard for object field existence.
  * Checks if an object has a specific property and narrows the type.
- * 
+ *
  * @param value - Object to check
  * @param key - Property key to look for
  * @returns True if object has the property, false otherwise

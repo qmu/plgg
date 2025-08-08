@@ -1,6 +1,4 @@
 import {
-  Result,
-  InvalidError,
   BrandStr,
   asBrandStr,
   asStr,
@@ -12,14 +10,14 @@ import {
   Option,
   cast,
   refine,
+  Obj,
 } from "plgg";
 
 type Id = BrandStr<"ArticleId">;
-const asId = (v: unknown): Result<Id, InvalidError> =>
-  cast(v, asBrandStr<"ArticleId">);
+const asId = (v: unknown) => cast(v, asBrandStr<"ArticleId">);
 
 type Name = BrandStr<"ArticleName">;
-const asName = (v: unknown): Result<Name, InvalidError> =>
+const asName = (v: unknown) =>
   cast(
     v,
     asStr,
@@ -27,14 +25,14 @@ const asName = (v: unknown): Result<Name, InvalidError> =>
     asBrandStr<"ArticleName">,
   );
 
-export type Article = {
+export type Article = Obj<{
   id: Id;
   createdAt: Time;
   name: Name;
   memo: Option<string>;
-};
+}>;
 
-export const asArticle = (v: unknown): Result<Article, InvalidError> =>
+export const asArticle = (v: unknown) =>
   cast(
     v,
     asObj,
