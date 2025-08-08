@@ -1,5 +1,16 @@
 import { test, expect, assert } from "vitest";
-import { some, none, isSome, isNone, Option } from "plgg/index";
+import {
+  some,
+  none,
+  isSome,
+  isNone,
+  Option,
+  mapOption,
+  applyOption,
+  ofOption,
+  chainOption,
+  pipe,
+} from "plgg/index";
 
 test("some creates Some option", () => {
   const result = some(42);
@@ -185,4 +196,124 @@ test("Option with zero contents", () => {
   if (isSome(emptyStringOption)) {
     expect(emptyStringOption.content).toBe("");
   }
+});
+
+test("Option Monad - map function", () => {
+  const double = (x: number) => x * 2;
+  const someNumber = some(5);
+  const noneNumber = none();
+
+  const r1 = pipe(someNumber, mapOption(double));
+  const r2 = pipe(noneNumber, mapOption(double));
+
+  assert(isSome(r1));
+  expect(r1.content).toBe(10);
+  assert(isNone(r2));
+});
+
+test("Option Monad - ap function (applicative)", () => {
+  const add = (x: number) => (y: number) => x + y;
+  const someAdd3 = some(add(3));
+  const someNumber = some(5);
+  const noneAdd = none();
+  const noneNumber = none();
+
+  const r1 = pipe(someNumber, applyOption(someAdd3));
+  const r2 = pipe(someNumber, applyOption(noneAdd));
+  const r3 = pipe(noneNumber, applyOption(someAdd3));
+  const r4 = pipe(noneNumber, applyOption(noneAdd));
+
+  assert(isSome(r1));
+  expect(r1.content).toBe(8);
+  assert(isNone(r2));
+  assert(isNone(r3));
+  assert(isNone(r4));
+});
+
+test("Option Monad - of function", () => {
+  const r1 = pipe(42, ofOption);
+  const r2 = pipe("hello", ofOption);
+  const r3 = pipe(null, ofOption);
+
+  assert(isSome(r1));
+  expect(r1.content).toBe(42);
+  assert(isSome(r2));
+  expect(r2.content).toBe("hello");
+  assert(isSome(r3));
+  expect(r3.content).toBe(null);
+});
+
+test("Option Monad - chain function", () => {
+  const safeDivide =
+    (y: number) =>
+    (x: number): Option<number> =>
+      y === 0 ? none() : some(x / y);
+
+  const someNumber = some(10);
+  const noneNumber = none();
+
+  const r1 = pipe(someNumber, chainOption(safeDivide(2)));
+  const r2 = pipe(someNumber, chainOption(safeDivide(0)));
+  const r3 = pipe(noneNumber, chainOption(safeDivide(2)));
+
+  assert(isSome(r1));
+  expect(r1.content).toBe(5);
+  assert(isNone(r2));
+  assert(isNone(r3));
+});
+
+test("Option Monad Laws - Left Identity", () => {
+  const f = (x: number): Option<number> => some(x * 2);
+  const a = 5;
+
+  const r1 = pipe(a, ofOption, chainOption(f));
+  const r2 = f(a);
+
+  expect(r1).toEqual(r2);
+});
+
+test("Option Monad Laws - Right Identity", () => {
+  const m = some(42);
+
+  const r1 = pipe(m, chainOption(ofOption));
+  const r2 = m;
+
+  expect(r1).toEqual(r2);
+});
+
+test("Option Monad Laws - Associativity", () => {
+  const f = (x: number): Option<number> => some(x + 1);
+  const g = (x: number): Option<number> => some(x * 2);
+  const m = some(5);
+
+  const r1 = pipe(m, chainOption(f), chainOption(g));
+  const r2 = pipe(
+    m,
+    chainOption((x: number) => pipe(x, f, chainOption(g))),
+  );
+
+  expect(r1).toEqual(r2);
+});
+
+test("Option Functor Laws - Identity", () => {
+  const opt = some(42);
+  const identity = <T>(x: T) => x;
+
+  const r1 = pipe(opt, mapOption(identity));
+
+  expect(r1).toEqual(opt);
+});
+
+test("Option Functor Laws - Composition", () => {
+  const opt = some(5);
+  const f = (x: number) => x * 2;
+  const g = (x: number) => x + 1;
+
+  const r1 = pipe(
+    opt,
+    mapOption((x: number) => g(f(x))),
+  );
+  const r2 = pipe(opt, mapOption(f), mapOption(g));
+
+  expect(r1).toEqual(r2);
 });

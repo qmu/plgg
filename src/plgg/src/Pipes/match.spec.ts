@@ -1,7 +1,7 @@
 import { test, expect, assert } from "vitest";
 import {
   pipe,
-  plgg,
+  proc,
   match,
   isErr,
   TRUE,
@@ -71,7 +71,7 @@ test("plgg string", async () => {
     s3 = "c" as const;
   type status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: status) =>
-    plgg(
+    proc(
       a,
       match(
         [s1, () => "a"],

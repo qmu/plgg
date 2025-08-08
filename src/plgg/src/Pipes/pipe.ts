@@ -2,6 +2,13 @@ import { NonNeverFn } from "plgg/index";
 
 /**
  * Type-safe function composition with overloads for inference.
+ * Pipes a value through a sequence of functions, applying each in order.
+ * 
+ * @param a - Initial value to process
+ * @param ab - Function to transform A to B
+ * @returns Final transformed value
+ * @example
+ * const result = pipe(5, x => x * 2, x => x + 1); // 11
  */
 export function pipe<A, B>(a: A, ab: NonNeverFn<(a: A) => B>): B;
 export function pipe<A, B, C>(
@@ -315,7 +322,11 @@ export function pipe<
 ): U;
 
 /**
- * Pipes value through functions sequentially.
+ * Implementation function that pipes value through any number of functions sequentially.
+ * 
+ * @param value - Initial value to process
+ * @param fns - Array of functions to apply in sequence
+ * @returns Final transformed value after applying all functions
  */
 export function pipe(
   value: unknown,

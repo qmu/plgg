@@ -1,5 +1,12 @@
 import { test, expect, assert } from "vitest";
-import { MaybePromise, isPromise, isResult, ok, err, isOk } from "plgg/index";
+import {
+  PossiblyPromise,
+  isPromise,
+  isResult,
+  ok,
+  err,
+  isOk,
+} from "plgg/index";
 
 test("success creates successful Plggable", () => {
   const result = ok("test value");
@@ -16,20 +23,20 @@ test("fail creates failed Plggable", () => {
   expect(result.content).toBe(error);
 });
 
-test("MaybePromise accepts synchronous values", () => {
-  const syncValue: MaybePromise<string> = "hello";
+test("PossiblyPromise accepts synchronous values", () => {
+  const syncValue: PossiblyPromise<string> = "hello";
   expect(syncValue).toBe("hello");
 });
 
-test("MaybePromise accepts asynchronous values", async () => {
-  const asyncValue: MaybePromise<string> = Promise.resolve("hello");
+test("PossiblyPromise accepts asynchronous values", async () => {
+  const asyncValue: PossiblyPromise<string> = Promise.resolve("hello");
   expect(await asyncValue).toBe("hello");
 });
 
 test("isPromise correctly identifies Promise objects", () => {
   // Example: Conditional async handling
-  const syncValue: MaybePromise<number> = 42;
-  const asyncValue: MaybePromise<number> = Promise.resolve(42);
+  const syncValue: PossiblyPromise<number> = 42;
+  const asyncValue: PossiblyPromise<number> = Promise.resolve(42);
 
   expect(isPromise(syncValue)).toBe(false);
   expect(isPromise(asyncValue)).toBe(true);
@@ -57,7 +64,7 @@ test("isPromise identifies thenable objects", () => {
 
 test("isPromise works in async composition patterns", async () => {
   // Example: Conditional async processing
-  const processValue = async (value: MaybePromise<string>) => {
+  const processValue = async (value: PossiblyPromise<string>) => {
     if (isPromise(value)) {
       const resolved = await value;
       return `async: ${resolved}`;

@@ -14,9 +14,13 @@ import {
 } from "plgg/index";
 
 // -------------------------
-// Helper Types
+// Helper Types for Pattern Matching
 // -------------------------
 
+/**
+ * Type-level computation for pattern matching results.
+ * Determines the return type based on whether patterns provide exhaustive coverage.
+ */
 type MatchResult<
   OPTIONS extends ReadonlyArray<unknown>,
   OTHERWISE_LAST extends boolean,
@@ -45,14 +49,23 @@ type MatchResult<
   >
 >;
 
+/**
+ * Checks if variant patterns provide full coverage of union A.
+ */
 type FullCoveragedVariants<OPTIONS extends ReadonlyArray<unknown>, A> = If<
   IsFixedVariantAll<OPTIONS>,
   IsUnionSubset<A, TupleToUnion<OPTIONS>>,
   false
 >;
 
+/**
+ * Type predicate to check if T is a variant with a __tag property.
+ */
 type IsVariant<T> = T extends { __tag: string } ? true : false;
 
+/**
+ * Recursively checks if all elements in array are atomic types.
+ */
 type IsAllAtomic<ARR extends ReadonlyArray<unknown>> = ARR extends [
   infer Head,
   ...infer Tail,
@@ -62,6 +75,10 @@ type IsAllAtomic<ARR extends ReadonlyArray<unknown>> = ARR extends [
     : false
   : true;
 
+/**
+ * Type predicate for atomic/primitive types.
+ * Returns true for boolean, string, number, bigint, symbol, null, undefined.
+ */
 type IsAtomic<T> = If<
   Or<
     Is<T, boolean>,
@@ -77,6 +94,9 @@ type IsAtomic<T> = If<
   false
 >;
 
+/**
+ * Recursively checks if all elements in array are variants.
+ */
 type IsAllVariant<ARR extends ReadonlyArray<unknown>> = ARR extends [
   infer Head,
   ...infer Tail,
@@ -86,6 +106,9 @@ type IsAllVariant<ARR extends ReadonlyArray<unknown>> = ARR extends [
     : false
   : true;
 
+/**
+ * Checks if T is a fixed variant (variant with only __tag property).
+ */
 type IsFixedVariant<T> = T extends { __tag: string }
   ? keyof T extends "__tag"
     ? T["__tag"] extends string
@@ -96,6 +119,9 @@ type IsFixedVariant<T> = T extends { __tag: string }
     : false
   : false;
 
+/**
+ * Recursively checks if all elements in array are fixed variants.
+ */
 type IsFixedVariantAll<ARR extends ReadonlyArray<unknown>> = ARR extends [
   infer Head,
   ...infer Tail,
@@ -105,14 +131,31 @@ type IsFixedVariantAll<ARR extends ReadonlyArray<unknown>> = ARR extends [
     : false
   : true;
 
+/**
+ * Variant type with partial content for pattern matching.
+ */
 type PartialBodyVariant = Variant<string, Partial<unknown>>;
 
+/**
+ * Maps pattern types to their corresponding handler argument types.
+ */
 type MapperArg<T> = T extends PartialBodyVariant
   ? UnPartial<ExtractContent<T>>
   : T;
 
+/**
+ * Represents a pattern-handler pair for matching.
+ * @template T - The pattern type to match against
+ * @template R - The return type of the handler
+ */
 type MatchOption<T, R> = [T, (a: MapperArg<T>) => R];
 
+/**
+ * Deep equality check for partial objects used in variant pattern matching.
+ * @param obj1 - The complete object to compare
+ * @param obj2 - The partial pattern to match against
+ * @returns True if all properties in obj2 match those in obj1
+ */
 function deepPartialEqual<T>(obj1: T, obj2: Partial<T>): boolean {
   const isObject = (obj: unknown): obj is object =>
     obj !== null && typeof obj === "object";
@@ -130,7 +173,17 @@ function deepPartialEqual<T>(obj1: T, obj2: Partial<T>): boolean {
 // -------------------------
 
 /**
- * O1~O2
+ * Type-safe pattern matching for values, variants, and literals.
+ * Provides exhaustive matching with compile-time verification.
+ * 
+ * @param o1 - First pattern-handler pair
+ * @param o2 - Second pattern-handler pair (can be OTHERWISE for catch-all)
+ * @returns Function that matches input against patterns
+ * @example
+ * const handleOption = match(
+ *   [some({ content: true }), (some) => some.content],
+ *   [none(), () => false]
+ * );
  */
 export function match<
   O1,
@@ -927,7 +980,12 @@ export function match<
 ): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
- * match
+ * Runtime implementation of pattern matching.
+ * Processes pattern-handler pairs sequentially until a match is found.
+ * 
+ * @param options - Array of [pattern, handler] tuples
+ * @returns Function that takes a value and returns the result of the matched handler
+ * @throws Error if no pattern matches and no OTHERWISE clause is provided
  */
 export function match(
   ...options: ReadonlyArray<[unknown, (ma: unknown) => unknown]>
