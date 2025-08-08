@@ -70,7 +70,7 @@ export const every =
           }),
         );
 
-declare module "plgg/Theoriticals/Kind" {
+declare module "plgg/Abstracts/Theoriticals/Kind" {
   export interface KindKeytoKind1<A> {
     Arr: Arr<A>;
   }
@@ -191,7 +191,7 @@ export const {
  *
  * Available operations:
  * - map: Transform elements
- * - ap: Apply functions to values  
+ * - ap: Apply functions to values
  * - of: Lift values into arrays
  * - chain: Flatten nested operations
  */

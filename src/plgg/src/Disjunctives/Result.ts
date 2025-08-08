@@ -39,7 +39,7 @@ export type Err<F> = ParametricVariant<typeof errTag, F>;
  * @example
  * const divide = (a: number, b: number): Result<number, string> =>
  *   b === 0 ? err("Division by zero") : ok(a / b);
- * 
+ *
  * const safeDivision = divide(10, 2); // Ok(5)
  * const unsafeDivision = divide(10, 0); // Err("Division by zero")
  */
@@ -102,7 +102,7 @@ export const isErr = <F>(e: unknown): e is Err<F> => hasTag(errTag)(e);
 export const isResult = <T, F>(e: unknown): e is Result<T, F> =>
   isOk<T>(e) || isErr<F>(e);
 
-declare module "plgg/Theoriticals/Kind" {
+declare module "plgg/Abstracts/Theoriticals/Kind" {
   export interface KindKeytoKind2<A, B> {
     Result: Result<A, B>;
   }
@@ -200,7 +200,7 @@ export const resultApplicative: Applicative2<"Result"> = {
  * Enables sequential computations that can fail at any step.
  *
  * @example
- * const safeDivide = (x: number) => (y: number) => 
+ * const safeDivide = (x: number) => (y: number) =>
  *   y === 0 ? err("Division by zero") : ok(x / y);
  * chainResult(safeDivide(10))(ok(2)); // Ok(5)
  * chainResult(safeDivide(10))(err("input error")); // Err("input error")
@@ -229,7 +229,7 @@ export const {
  *
  * Available operations:
  * - map: Transform success values
- * - ap: Apply functions to values  
+ * - ap: Apply functions to values
  * - of: Lift values into Results
  * - chain: Chain fallible operations
  */

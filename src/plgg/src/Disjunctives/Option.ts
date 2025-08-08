@@ -37,7 +37,7 @@ export type None = FixedVariant<typeof noneTag>;
  * @example
  * const getName = (user: { name?: string }): Option<string> =>
  *   user.name ? some(user.name) : none();
- * 
+ *
  * const greeting = getName({ name: "Alice" }); // Some("Alice")
  * const noGreeting = getName({}); // None
  */
@@ -100,7 +100,7 @@ export const isNone = (e: unknown): e is None => hasTag(noneTag)(e);
 export const isOption = <T>(e: unknown): e is Option<T> =>
   isSome(e) || isNone(e);
 
-declare module "plgg/Theoriticals/Kind" {
+declare module "plgg/Abstracts/Theoriticals/Kind" {
   export interface KindKeytoKind1<A> {
     Option: Option<A>;
   }
@@ -202,7 +202,7 @@ export const optionApplicative: Applicative1<"Option"> = {
  * Enables sequential computations that can fail by returning None.
  *
  * @example
- * const safeDivide = (x: number) => (y: number) => 
+ * const safeDivide = (x: number) => (y: number) =>
  *   y === 0 ? none() : some(x / y);
  * chainOption(safeDivide(10))(some(2)); // Some(5)
  * chainOption(safeDivide(10))(none()); // None
@@ -231,7 +231,7 @@ export const {
  *
  * Available operations:
  * - map: Transform optional values
- * - ap: Apply functions to values  
+ * - ap: Apply functions to values
  * - of: Lift values into Options
  * - chain: Chain optional operations
  */
