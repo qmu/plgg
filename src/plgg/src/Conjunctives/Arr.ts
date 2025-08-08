@@ -1,10 +1,24 @@
-import { Result, ok, err, InvalidError, Monad1 } from "plgg/index";
+import {
+  Result,
+  ok,
+  err,
+  InvalidError,
+  Monad1,
+  Functor1,
+  Apply1,
+  Pointed1,
+  Applicative1,
+  Chain1,
+} from "plgg/index";
 
 /**
- * Array type with primitive values.
- * Readonly array that can contain any type of values.
+ * Readonly array type for functional programming operations.
+ * Provides a type-safe wrapper around JavaScript arrays with immutable operations.
  *
  * @template T - Type of array elements (defaults to unknown)
+ * @example
+ * const numbers: Arr<number> = [1, 2, 3];
+ * const strings: Arr<string> = ['a', 'b', 'c'];
  */
 export type Arr<T extends unknown = unknown> = ReadonlyArray<T>;
 
@@ -62,40 +76,126 @@ declare module "plgg/Theoriticals/Kind" {
   }
 }
 
-/**
- * Monad instance for Arr providing map, ap, of, and chain operations.
- * Exported as individual functions for convenient use.
- */
-export const {
-  /** Maps a function over each element of an array */
-  map: mapArr,
-  /** Applies an array of functions to an array of values */
-  ap: applyArr,
-  /** Wraps a value in an array */
-  of: ofArr,
-  /** Monadic bind operation for arrays (flatMap) */
-  chain: chainArr,
-}: Monad1<"Arr"> = {
-  KindKey: "Arr",
+// ==== TYPE CLASS INSTANCES ====
 
-  // Functor1: map
+/**
+ * Functor instance for Arr.
+ * Provides the ability to map functions over array elements while preserving structure.
+ *
+ * @example
+ * const double = (x: number) => x * 2;
+ * mapArr(double)([1, 2, 3]); // [2, 4, 6]
+ */
+export const arrFunctor: Functor1<"Arr"> = {
+  KindKey: "Arr",
   map:
     <T1, T2>(f: (a: T1) => T2) =>
     (fa: Arr<T1>): Arr<T2> =>
       fa.map(f),
+};
 
-  // Apply1: ap
+export const {
+  /** Maps a function over each element of an array */
+  map: mapArr,
+} = arrFunctor;
+
+// ------------------------------------
+
+/**
+ * Apply instance for Arr.
+ * Extends Functor with the ability to apply wrapped functions to wrapped values.
+ * Creates cartesian product by applying each function to each value.
+ *
+ * @example
+ * const fns = [(x: number) => x * 2, (x: number) => x + 1];
+ * const values = [1, 2];
+ * applyArr(fns)(values); // [2, 4, 2, 3]
+ */
+export const arrApply: Apply1<"Arr"> = {
+  ...arrFunctor,
   ap:
     <T1, T2>(fab: Arr<(a: T1) => T2>) =>
     (fa: Arr<T1>): Arr<T2> =>
       fab.flatMap((f) => fa.map(f)),
+};
 
-  // Pointed1: of
+export const {
+  /** Applies an array of functions to an array of values */
+  ap: applyArr,
+} = arrApply;
+
+// ------------------------------------
+
+/**
+ * Pointed instance for Arr.
+ * Provides the ability to wrap a single value in an array context.
+ *
+ * @example
+ * ofArr(42); // [42]
+ * ofArr('hello'); // ['hello']
+ */
+export const arrPointed: Pointed1<"Arr"> = {
+  ...arrFunctor,
   of: <T>(a: T): Arr<T> => [a],
+};
 
-  // Chain1: chain
+export const {
+  /** Wraps a value in an array */
+  of: ofArr,
+} = arrPointed;
+
+// ------------------------------------
+
+/**
+ * Applicative instance for Arr.
+ * Combines Apply and Pointed to provide both function application and value lifting.
+ * Enables working with functions and values wrapped in array contexts.
+ */
+export const arrApplicative: Applicative1<"Arr"> = {
+  ...arrApply,
+  ...arrFunctor,
+  ...arrPointed,
+};
+
+// ------------------------------------
+
+/**
+ * Chain instance for Arr.
+ * Extends Apply with the ability to chain operations that return arrays,
+ * automatically flattening nested arrays to prevent Arr<Arr<T>>.
+ *
+ * @example
+ * const duplicate = (x: number) => [x, x];
+ * chainArr(duplicate)([1, 2]); // [1, 1, 2, 2]
+ */
+export const arrChain: Chain1<"Arr"> = {
+  ...arrFunctor,
+  ...arrApply,
+  ...arrPointed,
   chain:
     <T1, T2>(f: (a: T1) => Arr<T2>) =>
     (fa: Arr<T1>): Arr<T2> =>
       fa.flatMap(f),
+};
+export const {
+  /** Chains operations that return arrays */
+  chain: chainArr,
+} = arrChain;
+
+// ------------------------------------
+
+/**
+ * Monad instance for Arr.
+ * Combines Applicative and Chain to provide the full monadic interface.
+ * Satisfies monad laws and enables powerful composition patterns.
+ *
+ * Available operations:
+ * - map: Transform elements
+ * - ap: Apply functions to values  
+ * - of: Lift values into arrays
+ * - chain: Flatten nested operations
+ */
+export const arrMonad: Monad1<"Arr"> = {
+  ...arrApplicative,
+  ...arrChain,
 };
