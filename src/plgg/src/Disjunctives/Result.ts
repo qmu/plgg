@@ -3,8 +3,13 @@ import {
   Functor2,
   Apply2,
   Pointed2,
+  Applicative1,
   Applicative2,
   Chain2,
+  Foldable2,
+  Traversable2,
+  KindKeys1,
+  Kind1,
   ParametricVariant,
   hasTag,
   variantMaker,
@@ -225,3 +230,72 @@ export const resultMonad: Monad2<"Result"> = {
   ...resultApplicative,
   ...resultChain,
 };
+
+// ------------------------------------
+
+/**
+ * Foldable instance for Result.
+ * Provides the ability to fold/reduce Results to single values.
+ * Folds over the success value only; errors are ignored.
+ *
+ * @example
+ * const sum = (a: number, b: number) => a + b;
+ * foldrResult(sum)(0)(ok(42)); // 42
+ * foldrResult(sum)(0)(err("failed")); // 0
+ */
+export const resultFoldable: Foldable2<"Result"> = {
+  KindKey: "Result",
+  foldr:
+    <A, B, C>(f: (a: A, b: B) => B) =>
+    (initial: B) =>
+    (fa: Result<A, C>): B =>
+      isOk(fa) ? f(fa.content, initial) : initial,
+  foldl:
+    <A, B, C>(f: (b: B, a: A) => B) =>
+    (initial: B) =>
+    (fa: Result<A, C>): B =>
+      isOk(fa) ? f(initial, fa.content) : initial,
+};
+
+export const { foldr: foldrResult, foldl: foldlResult } = resultFoldable;
+
+// ------------------------------------
+
+/**
+ * Traversable instance for Result.
+ * Extends both Functor and Foldable to provide structure-preserving traversal
+ * that allows applying effects while maintaining the Result structure.
+ *
+ * @example
+ * import { optionApplicative, some } from "plgg/index";
+ * const validatePositive = (n: number) => n > 0 ? some(n * 2) : none();
+ * 
+ * traverseResult(optionApplicative)(validatePositive)(ok(5)); // Some(Ok(10))
+ * traverseResult(optionApplicative)(validatePositive)(ok(-1)); // None
+ * traverseResult(optionApplicative)(validatePositive)(err("failed")); // Some(Err("failed"))
+ */
+export const resultTraversable: Traversable2<"Result"> = {
+  ...resultFunctor,
+  ...resultFoldable,
+  traverse:
+    <F extends KindKeys1>(A: Applicative1<F>) =>
+    <A, B, C>(f: (a: A) => Kind1<F, B>) =>
+    (ta: Result<A, C>): Kind1<F, Result<B, C>> => {
+      if (isOk(ta)) {
+        return A.map(ok)(f(ta.content));
+      } else {
+        return A.of(err(ta.content));
+      }
+    },
+  sequence:
+    <F extends KindKeys1>(A: Applicative1<F>) =>
+    <A, C>(tfa: Result<Kind1<F, A>, C>): Kind1<F, Result<A, C>> => {
+      if (isOk(tfa)) {
+        return A.map(ok)(tfa.content);
+      } else {
+        return A.of(err(tfa.content));
+      }
+    },
+};
+
+export const { traverse: traverseResult, sequence: sequenceResult } = resultTraversable;
