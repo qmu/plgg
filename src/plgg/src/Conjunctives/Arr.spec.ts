@@ -17,6 +17,14 @@ import {
   foldrArr,
   foldlArr,
   arrApplicative,
+  optionApplicative,
+  some,
+  none,
+  isSome,
+  isNone,
+  ok,
+  err,
+  Result,
 } from "plgg/index";
 
 test("Arr.is should return true for arrays", () => {
@@ -303,3 +311,162 @@ test("Arr Traversable - sequence with Array", () => {
   const r3 = pipe([[]], sequenceArr(arrApplicative));
   expect(r3).toEqual([]);
 });
+
+test("Arr Traversable - collect results with Option (safe division)", () => {
+  // Function that safely divides 10 by n, failing for zero or negative numbers
+  const safeDivide = (n: number) => n > 0 ? some(10 / n) : none();
+
+  // Success case: all divisions succeed, results collected into Some([...])
+  const r1 = pipe([1, 2, 5], traverseArr(optionApplicative)(safeDivide));
+  assert(isSome(r1));
+  expect(r1.content).toEqual([10, 5, 2]);
+
+  // Failure case: one division fails, entire traversal fails with None
+  const r2 = pipe([1, 0, 5], traverseArr(optionApplicative)(safeDivide));
+  assert(isNone(r2));
+
+  // Edge case: empty array always succeeds
+  const r3 = pipe([], traverseArr(optionApplicative)(safeDivide));
+  assert(isSome(r3));
+  expect(r3.content).toEqual([]);
+});
+
+test("Arr Traversable - collect results with Option (validation)", () => {
+  // Function that validates and parses positive numbers from strings
+  const parsePositive = (s: string) => {
+    const num = Number(s);
+    return isNaN(num) || num <= 0 ? none() : some(num);
+  };
+
+  // Success case: all strings are valid positive numbers
+  const r1 = pipe(["1", "2.5", "42"], traverseArr(optionApplicative)(parsePositive));
+  assert(isSome(r1));
+  expect(r1.content).toEqual([1, 2.5, 42]);
+
+  // Failure case: invalid number in array causes entire validation to fail
+  const r2 = pipe(["1", "invalid", "42"], traverseArr(optionApplicative)(parsePositive));
+  assert(isNone(r2));
+
+  // Failure case: negative number causes validation to fail
+  const r3 = pipe(["1", "-5", "42"], traverseArr(optionApplicative)(parsePositive));
+  assert(isNone(r3));
+
+  // Failure case: zero causes validation to fail (not positive)
+  const r4 = pipe(["1", "0", "42"], traverseArr(optionApplicative)(parsePositive));
+  assert(isNone(r4));
+});
+
+test("Arr Traversable - empty array edge cases", () => {
+  // Empty arrays should always succeed regardless of the effectful function
+  const alwaysFails = (_: unknown) => none();
+  const maybeSucceeds = (x: number) => x > 0 ? some(x * 2) : none();
+
+  // Even functions that always fail should succeed on empty arrays
+  const r1 = pipe([], traverseArr(optionApplicative)(alwaysFails));
+  assert(isSome(r1));
+  expect(r1.content).toEqual([]);
+
+  // Functions that might succeed should also work on empty arrays
+  const r2 = pipe([], traverseArr(optionApplicative)(maybeSucceeds));
+  assert(isSome(r2));
+  expect(r2.content).toEqual([]);
+
+  // This demonstrates that traverse respects the Applicative identity:
+  // traverse(f, []) === pure([]) for any function f
+});
+
+test("Batch API requests with Result collection", () => {
+  // Real scenario: Making multiple API calls and collecting all results or failing fast
+  type User = { id: number; name: string };
+  
+  const fetchUser = (id: number): Result<User, string> => {
+    if (id === 999) return err(`User ${id} not found`);
+    if (id < 0) return err(`Invalid user ID: ${id}`);
+    return ok({ id, name: `User${id}` });
+  };
+
+  // Success case: all API calls succeed, results collected into Some([User1, User2, User3])
+  const userIds = [1, 2, 3];
+  const result1 = pipe(userIds, traverseArr(optionApplicative)((id: number) => {
+    const userResult = fetchUser(id);
+    return isOk(userResult) ? some(userResult.content) : none();
+  }));
+  
+  assert(isSome(result1));
+  expect(result1.content).toHaveLength(3);
+  expect(result1.content[0]).toEqual({ id: 1, name: "User1" });
+  expect(result1.content[1]).toEqual({ id: 2, name: "User2" });
+  expect(result1.content[2]).toEqual({ id: 3, name: "User3" });
+
+  // Failure case: one API call fails, entire batch fails with None
+  const failingIds = [1, 999, 3];
+  const result2 = pipe(failingIds, traverseArr(optionApplicative)((id: number) => {
+    const userResult = fetchUser(id);
+    return isOk(userResult) ? some(userResult.content) : none();
+  }));
+  
+  assert(isNone(result2));
+
+  // Empty array case: succeeds with empty result
+  const result3 = pipe([], traverseArr(optionApplicative)((id: number) => {
+    const userResult = fetchUser(id);
+    return isOk(userResult) ? some(userResult.content) : none();
+  }));
+  assert(isSome(result3));
+  expect(result3.content).toEqual([]);
+});
+
+test("Config file validation pipeline", () => {
+  // Real scenario: Validating configuration files and collecting all valid configs
+  type Config = { service: string; port: number; enabled: boolean };
+  
+  const validateConfig = (raw: string): Result<Config, string> => {
+    try {
+      const data = JSON.parse(raw);
+      if (!data.service || typeof data.port !== 'number') {
+        return err("Invalid config format");
+      }
+      return ok({ 
+        service: data.service, 
+        port: data.port, 
+        enabled: data.enabled || false 
+      });
+    } catch {
+      return err("Invalid JSON");
+    }
+  };
+
+  const configStrings = [
+    '{"service":"auth","port":8080,"enabled":true}',
+    '{"service":"db","port":5432}',
+    '{"service":"cache","port":6379,"enabled":false}'
+  ];
+
+  // Success case: all configs valid
+  const result1 = pipe(configStrings, traverseArr(optionApplicative)((config: string) => {
+    const configResult = validateConfig(config);
+    return isOk(configResult) ? some(configResult.content) : none();
+  }));
+  
+  assert(isSome(result1));
+  expect(result1.content).toHaveLength(3);
+  const configs = result1.content;
+  expect(configs[0]).toEqual({ service: "auth", port: 8080, enabled: true });
+  expect(configs[1]).toEqual({ service: "db", port: 5432, enabled: false });
+  expect(configs[2]).toEqual({ service: "cache", port: 6379, enabled: false });
+
+  // Failure case: invalid config breaks the pipeline
+  const invalidConfigs = [
+    '{"service":"auth","port":8080}',
+    'invalid json',
+    '{"service":"cache","port":6379}'
+  ];
+  
+  const result2 = pipe(invalidConfigs, traverseArr(optionApplicative)((config: string) => {
+    const configResult = validateConfig(config);
+    return isOk(configResult) ? some(configResult.content) : none();
+  }));
+  
+  assert(isNone(result2));
+});
+
