@@ -12,6 +12,14 @@ import {
   applyResult,
   ofResult,
   pipe,
+  traverseResult,
+  foldrResult,
+  foldlResult,
+  optionApplicative,
+  some,
+  none,
+  isSome,
+  isNone,
 } from "plgg/index";
 
 test("ok creates Ok result", () => {
@@ -219,4 +227,100 @@ test("Result Functor Laws - Composition", () => {
   const r2 = pipe(res, mapResult(f), mapResult(g));
 
   expect(r1).toEqual(r2);
+});
+
+test("Result Foldable - foldr function", () => {
+  const add = (a: number, b: number) => a + b;
+  const concat = (a: string, b: string) => a + b;
+
+  const r1 = pipe(ok(42), foldrResult(add)(0));
+  const r2 = pipe(err("failed"), foldrResult(add)(0));
+  const r3 = pipe(ok("hello"), foldrResult(concat)(""));
+
+  expect(r1).toBe(42);
+  expect(r2).toBe(0);
+  expect(r3).toBe("hello");
+});
+
+test("Result Foldable - foldl function", () => {
+  const add = (a: number, b: number) => a + b;
+  const concat = (a: string, b: string) => a + b;
+
+  const r1 = pipe(ok(42), foldlResult(add)(0));
+  const r2 = pipe(err("failed"), foldlResult(add)(0));
+  const r3 = pipe(ok("world"), foldlResult(concat)("hello "));
+
+  expect(r1).toBe(42);
+  expect(r2).toBe(0);
+  expect(r3).toBe("hello world");
+});
+
+test("User data validation pipeline with optional fields", () => {
+  // Real scenario: Processing user data where some fields are optional
+  type User = { id: number; name: string; email?: string };
+  
+  const validateEmail = (email: string) => 
+    email.includes("@") ? some(email.toLowerCase()) : none();
+  
+  const processUser = (userData: Result<User, string>) =>
+    pipe(
+      userData,
+      traverseResult(optionApplicative)((user: User) => 
+        user.email ? validateEmail(user.email) : some(undefined)
+      )
+    );
+
+  // User with valid email - processing succeeds
+  const validUser = ok({ id: 1, name: "Alice", email: "ALICE@EXAMPLE.COM" });
+  const result1 = processUser(validUser);
+  assert(isSome(result1));
+  assert(isOk(result1.content));
+  expect(result1.content.content).toBe("alice@example.com");
+
+  // User with invalid email - processing fails
+  const invalidEmailUser = ok({ id: 2, name: "Bob", email: "not-an-email" });
+  const result2 = processUser(invalidEmailUser);
+  assert(isNone(result2));
+
+  // User data parsing failed - error preserved 
+  const parseError = err("Invalid JSON");
+  const result3 = processUser(parseError);
+  assert(isSome(result3));
+  assert(isErr(result3.content));
+  expect(result3.content.content).toBe("Invalid JSON");
+});
+
+test("Database query with optional caching", () => {
+  // Real scenario: Database query that might hit cache or fail
+  type QueryResult = { data: string; cached: boolean };
+  
+  const checkCache = (query: string) => 
+    query.length < 10 ? some(`cached_${query}`) : none();
+  
+  const executeQuery = (queryResult: Result<QueryResult, string>) =>
+    pipe(
+      queryResult,
+      traverseResult(optionApplicative)((result: QueryResult) => 
+        result.cached ? checkCache(result.data) : some(result.data)
+      )
+    );
+
+  // Cached query succeeds
+  const cachedQuery = ok({ data: "users", cached: true });
+  const result1 = executeQuery(cachedQuery);
+  assert(isSome(result1));
+  assert(isOk(result1.content));
+  expect(result1.content.content).toBe("cached_users");
+
+  // Non-cached query
+  const directQuery = ok({ data: "complex_analytics", cached: false });
+  const result2 = executeQuery(directQuery);
+  assert(isSome(result2));
+  assert(isOk(result2.content));
+  expect(result2.content.content).toBe("complex_analytics");
+
+  // Cached query too long - cache miss
+  const longCachedQuery = ok({ data: "very_long_query_name", cached: true });
+  const result3 = executeQuery(longCachedQuery);
+  assert(isNone(result3));
 });
