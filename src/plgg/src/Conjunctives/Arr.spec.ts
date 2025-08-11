@@ -12,6 +12,11 @@ import {
   ofArr,
   chainArr,
   pipe,
+  traverseArr,
+  sequenceArr,
+  foldrArr,
+  foldlArr,
+  arrApplicative,
 } from "plgg/index";
 
 test("Arr.is should return true for arrays", () => {
@@ -246,4 +251,55 @@ test("Arr Functor Laws - Composition", () => {
   const r2 = pipe(arr, mapArr(f), mapArr(g));
 
   expect(r1).toEqual(r2);
+});
+
+test("Arr Foldable - foldr function", () => {
+  const add = (x: number, acc: number) => x + acc;
+  const concat = (x: string, acc: string) => x + acc;
+
+  const r1 = pipe([], foldrArr(add)(0));
+  const r2 = pipe([1, 2, 3], foldrArr(add)(0));
+  const r3 = pipe(["a", "b", "c"], foldrArr(concat)(""));
+
+  expect(r1).toBe(0);
+  expect(r2).toBe(6);
+  expect(r3).toBe("abc");
+});
+
+test("Arr Foldable - foldl function", () => {
+  const add = (acc: number, x: number) => acc + x;
+  const concat = (acc: string, x: string) => acc + x;
+
+  const r1 = pipe([], foldlArr(add)(0));
+  const r2 = pipe([1, 2, 3], foldlArr(add)(0));
+  const r3 = pipe(["a", "b", "c"], foldlArr(concat)(""));
+
+  expect(r1).toBe(0);
+  expect(r2).toBe(6);
+  expect(r3).toBe("abc");
+});
+
+test("Arr Traversable - traverse with Array", () => {
+  const choices = (x: number) => [x, x + 10]; // gives each number two choices
+
+  const r1 = pipe([], traverseArr(arrApplicative)(choices));
+  expect(r1).toEqual([[]]);
+
+  // For [1, 2] with choices (x => [x, x + 10]):
+  // choices(1) = [1, 11], choices(2) = [2, 12]
+  // traverse should give all combinations:
+  // [1, 2], [1, 12], [11, 2], [11, 12]
+  const r2 = pipe([1, 2], traverseArr(arrApplicative)(choices));
+  expect(r2).toEqual([[1, 2], [1, 12], [11, 2], [11, 12]]);
+});
+
+test("Arr Traversable - sequence with Array", () => {
+  const r1 = pipe([[1, 2], [3, 4]], sequenceArr(arrApplicative));
+  expect(r1).toEqual([[1, 3], [1, 4], [2, 3], [2, 4]]);
+
+  const r2 = pipe([], sequenceArr(arrApplicative));
+  expect(r2).toEqual([[]]);
+
+  const r3 = pipe([[]], sequenceArr(arrApplicative));
+  expect(r3).toEqual([]);
 });

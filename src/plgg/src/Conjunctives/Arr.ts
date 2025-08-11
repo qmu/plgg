@@ -10,6 +10,10 @@ import {
   Pointed1,
   Applicative1,
   Chain1,
+  Foldable1,
+  Traversable1,
+  KindKeys1,
+  Kind1,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Theoreticals/Kind" {
@@ -154,6 +158,69 @@ export const arrMonad: Monad1<"Arr"> = {
   ...arrApplicative,
   ...arrChain,
 };
+
+// ------------------------------------
+
+/**
+ * Foldable instance for Arr.
+ * Provides the ability to fold/reduce arrays to single values with both
+ * left-associative and right-associative operations.
+ *
+ * @example
+ * const sum = (a: number, b: number) => a + b;
+ * foldrArr(sum)(0)([1, 2, 3]); // 6
+ * foldlArr((acc: number, x: number) => acc + x)(0)([1, 2, 3]); // 6
+ */
+export const arrFoldable: Foldable1<"Arr"> = {
+  KindKey: "Arr",
+  foldr:
+    <A, B>(f: (a: A, b: B) => B) =>
+    (initial: B) =>
+    (fa: Arr<A>): B =>
+      fa.reduceRight((acc, x) => f(x, acc), initial),
+  foldl:
+    <A, B>(f: (b: B, a: A) => B) =>
+    (initial: B) =>
+    (fa: Arr<A>): B =>
+      fa.reduce(f, initial),
+};
+
+export const { foldr: foldrArr, foldl: foldlArr } = arrFoldable;
+
+// ------------------------------------
+
+/**
+ * Traversable instance for Arr.
+ * Extends both Functor and Foldable to provide structure-preserving traversal
+ * that allows applying effects while maintaining the array structure.
+ *
+ * @example
+ * import { resultApplicative, ok } from "plgg/index";
+ * const parseNumber = (s: string) => 
+ *   isNaN(Number(s)) ? err(new Error("Not a number")) : ok(Number(s));
+ * 
+ * traverseArr(resultApplicative)(parseNumber)(["1", "2", "3"]); // Ok([1, 2, 3])
+ * traverseArr(resultApplicative)(parseNumber)(["1", "x", "3"]); // Err(Error)
+ */
+export const arrTraversable: Traversable1<"Arr"> = {
+  ...arrFunctor,
+  ...arrFoldable,
+  traverse:
+    <F extends KindKeys1>(A: Applicative1<F>) =>
+    <A, B>(f: (a: A) => Kind1<F, B>) =>
+    (ta: Arr<A>): Kind1<F, Arr<B>> =>
+      ta.reduceRight(
+        (acc: Kind1<F, Arr<B>>, x: A) =>
+          A.ap(A.map((b: B) => (bs: Arr<B>) => [b, ...bs])(f(x)))(acc),
+        A.of([])
+      ),
+  sequence:
+    <F extends KindKeys1>(A: Applicative1<F>) =>
+    <A>(tfa: Arr<Kind1<F, A>>): Kind1<F, Arr<A>> =>
+      arrTraversable.traverse(A)((fa: Kind1<F, A>) => fa)(tfa),
+};
+
+export const { traverse: traverseArr, sequence: sequenceArr } = arrTraversable;
 
 // ------------------------------------
 
