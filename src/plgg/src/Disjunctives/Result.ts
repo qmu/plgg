@@ -12,7 +12,7 @@ import {
   Kind1,
   ParametricVariant,
   hasTag,
-  variantMaker,
+  construct,
 } from "plgg/index";
 
 const okTag = "Ok" as const;
@@ -58,7 +58,7 @@ export type Result<T, F> = Ok<T> | Err<F>;
  * @example
  * const success = ok(42); // Ok<number>
  */
-export const ok = <T>(a: T): Ok<T> => variantMaker(okTag)<Ok<T>>()(a);
+export const ok = <T>(a: T): Ok<T> => construct<Ok<T>>(okTag)(a);
 
 /**
  * Creates an Err instance containing an error value.
@@ -68,7 +68,7 @@ export const ok = <T>(a: T): Ok<T> => variantMaker(okTag)<Ok<T>>()(a);
  * @example
  * const error = err("Something went wrong"); // Err<string>
  */
-export const err = <F>(e: F): Err<F> => variantMaker(errTag)<Err<F>>()(e);
+export const err = <F>(e: F): Err<F> => construct<Err<F>>(errTag)(e);
 
 /**
  * Type guard to check if a Result is an Ok.
@@ -269,7 +269,7 @@ export const { foldr: foldrResult, foldl: foldlResult } = resultFoldable;
  * @example
  * import { optionApplicative, some } from "plgg/index";
  * const validatePositive = (n: number) => n > 0 ? some(n * 2) : none();
- * 
+ *
  * traverseResult(optionApplicative)(validatePositive)(ok(5)); // Some(Ok(10))
  * traverseResult(optionApplicative)(validatePositive)(ok(-1)); // None
  * traverseResult(optionApplicative)(validatePositive)(err("failed")); // Some(Err("failed"))
@@ -298,4 +298,5 @@ export const resultTraversable: Traversable2<"Result"> = {
     },
 };
 
-export const { traverse: traverseResult, sequence: sequenceResult } = resultTraversable;
+export const { traverse: traverseResult, sequence: sequenceResult } =
+  resultTraversable;

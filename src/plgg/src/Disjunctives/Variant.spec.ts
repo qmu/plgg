@@ -2,7 +2,7 @@ import { test, expect, assert } from "vitest";
 import {
   FixedVariant,
   ParametricVariant,
-  variantMaker,
+  construct,
   pattern,
   hasTag,
   isVariant,
@@ -12,7 +12,7 @@ import {
 } from "plgg/index";
 
 test("FixedVariant creation and structure", () => {
-  const loading = variantMaker("loading")<FixedVariant<"loading">>();
+  const loading = construct<FixedVariant<"loading">>("loading");
   const loadingVariant = loading();
 
   expect(loadingVariant.__tag).toBe("loading");
@@ -22,7 +22,7 @@ test("FixedVariant creation and structure", () => {
 
 test("ParametricVariant creation and structure", () => {
   type Success<T> = ParametricVariant<"success", T>;
-  const success = variantMaker("success")<Success<string>>();
+  const success = construct<Success<string>>("success");
   const successVariant = success("hello world");
 
   expect(successVariant.__tag).toBe("success");
@@ -30,15 +30,15 @@ test("ParametricVariant creation and structure", () => {
   expect(Object.keys(successVariant)).toEqual(["__tag", "content"]);
 });
 
-test("variantMaker with different content types", () => {
+test("construct with different content types", () => {
   type NumberVariant = ParametricVariant<"number", number>;
   type ObjectVariant = ParametricVariant<
     "object",
     { id: number; name: string }
   >;
 
-  const numberMaker = variantMaker("number")<NumberVariant>();
-  const objectMaker = variantMaker("object")<ObjectVariant>();
+  const numberMaker = construct<NumberVariant>("number");
+  const objectMaker = construct<ObjectVariant>("object");
 
   const numVariant = numberMaker(42);
   const objVariant = objectMaker({ id: 1, name: "test" });
@@ -54,8 +54,8 @@ test("hasTag type guard function", () => {
   type User = ParametricVariant<"user", { name: string }>;
   type Admin = ParametricVariant<"admin", { permissions: string[] }>;
 
-  const userMaker = variantMaker("user")<User>();
-  const adminMaker = variantMaker("admin")<Admin>();
+  const userMaker = construct<User>("user");
+  const adminMaker = construct<Admin>("admin");
 
   const user = userMaker({ name: "John" });
   const admin = adminMaker({ permissions: ["read", "write"] });
@@ -77,7 +77,7 @@ test("hasTag type guard function", () => {
 
 test("isVariant type guard function", () => {
   type TestVariant = ParametricVariant<"test", string>;
-  const testMaker = variantMaker("test")<TestVariant>();
+  const testMaker = construct<TestVariant>("test");
   const variant = testMaker("content");
 
   assert(isVariant(variant));
@@ -93,10 +93,10 @@ test("pattern function for matching", () => {
   type Circle = ParametricVariant<"circle", { radius: number }>;
   type Square = ParametricVariant<"square", { side: number }>;
 
-  const circle = pattern("circle")<Circle>();
-  const square = pattern("square")<Square>();
-  const circleInstance = variantMaker("circle")<Circle>()({ radius: 5 });
-  const squareInstance = variantMaker("square")<Square>()({ side: 4 });
+  const circle = pattern<Circle>("circle");
+  const square = pattern<Square>("square");
+  const circleInstance = construct<Circle>("circle")({ radius: 5 });
+  const squareInstance = construct<Square>("square")({ side: 4 });
 
   type Shape = Circle | Square;
 
@@ -123,7 +123,7 @@ test("variant with complex nested content", () => {
     }
   >;
 
-  const ofComplex = variantMaker("complex")<ComplexVariant>();
+  const ofComplex = construct<ComplexVariant>("complex");
   const complex = ofComplex({
     id: 123,
     metadata: {
@@ -146,13 +146,13 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
 
   type AsyncState<T> = Loading | Success<T> | Error;
 
-  const ofLoading = variantMaker("loading")<Loading>();
-  const ofSuccess = variantMaker("success")<Success<string>>();
-  const ofError = variantMaker("error")<Error>();
+  const ofLoading = construct<Loading>("loading");
+  const ofSuccess = construct<Success<string>>("success");
+  const ofError = construct<Error>("error");
 
-  const loading = pattern("loading")<Loading>();
-  const success = pattern("success")<Success<string>>();
-  const error = pattern("error")<Error>();
+  const loading = pattern<Loading>("loading");
+  const success = pattern<Success<string>>("success");
+  const error = pattern<Error>("error");
 
   const getStateMessage = (state: AsyncState<string>) =>
     pipe(
@@ -169,14 +169,14 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
   expect(getStateMessage(ofError("failed to load"))).toBe("Error occurred");
 });
 
-test("variantMaker with undefined content creates FixedVariant", () => {
+test("construct with undefined content creates FixedVariant", () => {
   type SimpleVariant = FixedVariant<"simple">;
-  const simple = variantMaker("simple")<SimpleVariant>();
-  
+  const simple = construct<SimpleVariant>("simple");
+
   // Calling with undefined should create FixedVariant
   const variant1 = simple(undefined as any);
   const variant2 = simple();
-  
+
   expect(variant1.__tag).toBe("simple");
   expect(variant2.__tag).toBe("simple");
   expect(variant1).not.toHaveProperty("content");
@@ -185,11 +185,11 @@ test("variantMaker with undefined content creates FixedVariant", () => {
 
 test("pattern with undefined content creates FixedVariant", () => {
   type SimplePattern = FixedVariant<"simple">;
-  const simple = pattern("simple")<SimplePattern>();
-  
+  const simple = pattern<SimplePattern>("simple");
+
   const pattern1 = simple(undefined as any);
   const pattern2 = simple();
-  
+
   expect(pattern1.__tag).toBe("simple");
   expect(pattern2.__tag).toBe("simple");
   expect(pattern1).not.toHaveProperty("content");
@@ -198,7 +198,7 @@ test("pattern with undefined content creates FixedVariant", () => {
 
 test("ExtractContent type utility", () => {
   type TestVariant = ParametricVariant<"test", { data: string }>;
-  
+
   // This is a compile-time test - if it compiles, the type works correctly
   const testContent: ExtractContent<TestVariant> = { data: "hello" };
   expect(testContent.data).toBe("hello");

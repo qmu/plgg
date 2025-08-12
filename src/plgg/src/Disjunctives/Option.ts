@@ -8,7 +8,7 @@ import {
   FixedVariant,
   ParametricVariant,
   hasTag,
-  variantMaker,
+  construct,
 } from "plgg/index";
 
 const someTag = "Some" as const;
@@ -52,7 +52,7 @@ export type Option<T> = Some<T> | None;
  * const value = some(42); // Some<number>
  */
 export const some = <T>(value: T): Some<T> =>
-  variantMaker(someTag)<Some<T>>()(value);
+  construct<Some<T>>(someTag)(value);
 
 /**
  * Creates a None instance representing no value.
@@ -61,7 +61,7 @@ export const some = <T>(value: T): Some<T> =>
  * @example
  * const empty = none(); // None
  */
-export const none = (): None => variantMaker(noneTag)<None>()();
+export const none = (): None => construct<None>(noneTag)();
 
 /**
  * Type guard to check if an Option is a Some.

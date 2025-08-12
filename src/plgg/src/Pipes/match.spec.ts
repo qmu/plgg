@@ -8,7 +8,7 @@ import {
   FALSE,
   ParametricVariant,
   pattern,
-  variantMaker,
+  construct,
   OTHERWISE,
 } from "plgg/index";
 
@@ -109,30 +109,30 @@ test("otherwise", async () => {
 
 test("Variant1", async () => {
   type Circle = ParametricVariant<
-    "circle",
+    "Circle",
     {
       radius: number;
     }
   >;
-  const circle = pattern("circle")<Circle>();
+  const Circle = pattern<Circle>("Circle");
 
   type Square = ParametricVariant<
-    "square",
+    "Square",
     {
       side: number;
     }
   >;
-  const square = pattern("square")<Square>();
+  const Square = pattern<Square>("Square");
 
   type Triangle = ParametricVariant<
-    "triangle",
+    "Triangle",
     {
       base: number;
       height: number;
     }
   >;
-  const triangle = pattern("triangle")<Triangle>();
-  const ofTriangle = variantMaker("triangle")<Triangle>();
+  const Triangle = pattern<Triangle>("Triangle");
+  const triangle = construct<Triangle>("Triangle");
 
   type Shape = Circle | Square | Triangle;
 
@@ -140,14 +140,14 @@ test("Variant1", async () => {
     pipe(
       a,
       match(
-        [circle(), () => "a"],
-        [square(), () => "b"],
-        [triangle(), () => "c"],
+        [Circle(), () => "a"],
+        [Square(), () => "b"],
+        [Triangle(), () => "c"],
       ),
       (a) => a,
     );
 
-  const realTriangle = ofTriangle({
+  const realTriangle = triangle({
     base: 1,
     height: 4,
   });
@@ -156,30 +156,30 @@ test("Variant1", async () => {
 
 test("Variant2", async () => {
   type AST = ParametricVariant<
-    "ast",
+    "AST",
     {
       type: "root" | "leaf" | "branch";
       children?: ReadonlyArray<AST>;
     }
   >;
-  const ast = pattern("ast")<AST>();
-  const ofAst = variantMaker("ast")<AST>();
+  const AST = pattern<AST>("AST");
+  const ast = construct<AST>("AST");
 
   const fn = (a: AST) =>
     pipe(
       a,
       match(
-        [ast({ type: "root" }), () => "root"],
-        [ast({ type: "leaf" }), () => "leaf"],
-        [ast({ type: "branch" }), () => "branch"],
+        [AST({ type: "root" }), () => "root"],
+        [AST({ type: "leaf" }), () => "leaf"],
+        [AST({ type: "branch" }), () => "branch"],
         [OTHERWISE, () => "default"],
       ),
       (a) => a,
     );
 
-  const realAst = ofAst({
+  const realAst = ast({
     type: "branch",
-    children: [ofAst({ type: "leaf" })],
+    children: [ast({ type: "leaf" })],
   });
 
   expect(fn(realAst)).equal("branch");
