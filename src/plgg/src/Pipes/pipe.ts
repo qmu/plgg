@@ -3,7 +3,10 @@ import { NonNeverFn } from "plgg/index";
 /**
  * Type-safe function composition with overloads for inference.
  */
-export function pipe<A, B>(a: A, ab: NonNeverFn<(a: A) => B>): B;
+export function pipe<A, B>(
+  a: A,
+  ab: NonNeverFn<(a: A) => B>,
+): B;
 export function pipe<A, B, C>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
@@ -60,7 +63,18 @@ export function pipe<A, B, C, D, E, F, G, H, I>(
   gh: NonNeverFn<(g: G) => H>,
   hi: NonNeverFn<(h: H) => I>,
 ): I;
-export function pipe<A, B, C, D, E, F, G, H, I, J>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -72,7 +86,19 @@ export function pipe<A, B, C, D, E, F, G, H, I, J>(
   hi: NonNeverFn<(h: H) => I>,
   ij: NonNeverFn<(i: I) => J>,
 ): J;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -85,7 +111,20 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K>(
   ij: NonNeverFn<(i: I) => J>,
   jk: NonNeverFn<(j: J) => K>,
 ): K;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -99,7 +138,21 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K, L>(
   jk: NonNeverFn<(j: J) => K>,
   kl: NonNeverFn<(k: K) => L>,
 ): L;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -114,7 +167,22 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M>(
   kl: NonNeverFn<(k: K) => L>,
   lm: NonNeverFn<(l: L) => M>,
 ): M;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -130,7 +198,23 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N>(
   lm: NonNeverFn<(l: L) => M>,
   mn: NonNeverFn<(m: M) => N>,
 ): N;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -147,7 +231,24 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(
   mn: NonNeverFn<(m: M) => N>,
   no: NonNeverFn<(n: N) => O>,
 ): O;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -165,7 +266,25 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P>(
   no: NonNeverFn<(n: N) => O>,
   op: NonNeverFn<(o: O) => P>,
 ): P;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -184,7 +303,26 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q>(
   op: NonNeverFn<(o: O) => P>,
   pq: NonNeverFn<(p: P) => Q>,
 ): Q;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+  R,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
@@ -204,7 +342,27 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R>(
   pq: NonNeverFn<(p: P) => Q>,
   qr: NonNeverFn<(q: Q) => R>,
 ): R;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S>(
+export function pipe<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+  R,
+  S,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,

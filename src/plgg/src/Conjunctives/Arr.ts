@@ -28,24 +28,29 @@ declare module "plgg/Abstracts/Standards/Kind" {
  * Readonly array type for functional programming operations.
  * Provides a type-safe wrapper around JavaScript arrays with immutable operations.
  */
-export type Arr<T extends unknown = unknown> = ReadonlyArray<T>;
-
-// ==== TYPE CLASS INSTANCES ====
+export type Arr<T extends unknown = unknown> =
+  ReadonlyArray<T>;
 
 /**
  * Refinement instance for array validation and casting.
  * Provides type-safe array validation following the standard Refinement pattern.
  */
 export const arrRefinement: Refinement<Arr> = {
-  is: (value: unknown): value is Arr => Array.isArray(value),
-  as: (value: unknown): Result<Arr, InvalidError> =>
+  is: (value: unknown): value is Arr =>
+    Array.isArray(value),
+  as: (
+    value: unknown,
+  ): Result<Arr, InvalidError> =>
     Array.isArray(value)
       ? ok(value)
-      : err(new InvalidError({ message: "Value is not an array" })),
+      : err(
+          new InvalidError({
+            message: "Value is not an array",
+          }),
+        ),
 };
-export const { is: isArr, as: asArr } = arrRefinement;
-
-// ------------------------------------
+export const { is: isArr, as: asArr } =
+  arrRefinement;
 
 /**
  * Functor instance for Arr.
@@ -60,8 +65,6 @@ export const arrFunctor: Functor1<"Arr"> = {
 };
 export const { map: mapArr } = arrFunctor;
 
-// ------------------------------------
-
 /**
  * Apply instance for Arr.
  * Extends Functor with the ability to apply wrapped functions to wrapped values.
@@ -73,10 +76,7 @@ export const arrApply: Apply1<"Arr"> = {
     (fa: Arr<T1>): Arr<T2> =>
       fab.flatMap((f) => fa.map(f)),
 };
-
 export const { ap: applyArr } = arrApply;
-
-// ------------------------------------
 
 /**
  * Pointed instance for Arr.
@@ -89,20 +89,17 @@ export const arrPointed: Pointed1<"Arr"> = {
 
 export const { of: ofArr } = arrPointed;
 
-// ------------------------------------
-
 /**
  * Applicative instance for Arr.
  * Combines Apply and Pointed to provide both function application and value lifting.
  * Enables working with functions and values wrapped in array contexts.
  */
-export const arrApplicative: Applicative1<"Arr"> = {
-  ...arrApply,
-  ...arrFunctor,
-  ...arrPointed,
-};
-
-// ------------------------------------
+export const arrApplicative: Applicative1<"Arr"> =
+  {
+    ...arrApply,
+    ...arrFunctor,
+    ...arrPointed,
+  };
 
 /**
  * Chain instance for Arr.
@@ -119,8 +116,6 @@ export const arrChain: Chain1<"Arr"> = {
 };
 export const { chain: chainArr } = arrChain;
 
-// ------------------------------------
-
 /**
  * Monad instance for Arr.
  * Combines Applicative and Chain to provide the full monadic interface.
@@ -129,8 +124,6 @@ export const arrMonad: Monad1<"Arr"> = {
   ...arrApplicative,
   ...arrChain,
 };
-
-// ------------------------------------
 
 /**
  * Foldable instance for Arr.
@@ -142,43 +135,56 @@ export const arrFoldable: Foldable1<"Arr"> = {
     <A, B>(f: (a: A, b: B) => B) =>
     (initial: B) =>
     (fa: Arr<A>): B =>
-      fa.reduceRight((acc, x) => f(x, acc), initial),
+      fa.reduceRight(
+        (acc, x) => f(x, acc),
+        initial,
+      ),
   foldl:
     <A, B>(f: (b: B, a: A) => B) =>
     (initial: B) =>
     (fa: Arr<A>): B =>
       fa.reduce(f, initial),
 };
-
-export const { foldr: foldrArr, foldl: foldlArr } = arrFoldable;
-
-// ------------------------------------
+export const {
+  foldr: foldrArr,
+  foldl: foldlArr,
+} = arrFoldable;
 
 /**
  * Traversable instance for Arr.
  * Extends Functor and Foldable to provide structure-preserving traversal.
  */
-export const arrTraversable: Traversable1<"Arr"> = {
-  ...arrFunctor,
-  ...arrFoldable,
-  traverse:
-    <F extends KindKeys1>(A: Applicative1<F>) =>
-    <A, B>(f: (a: A) => Kind1<F, B>) =>
-    (ta: Arr<A>): Kind1<F, Arr<B>> =>
-      ta.reduceRight(
-        (acc: Kind1<F, Arr<B>>, x: A) =>
-          A.ap(A.map((b: B) => (bs: Arr<B>) => [b, ...bs])(f(x)))(acc),
-        A.of([]),
-      ),
-  sequence:
-    <F extends KindKeys1>(A: Applicative1<F>) =>
-    <A>(tfa: Arr<Kind1<F, A>>): Kind1<F, Arr<A>> =>
-      arrTraversable.traverse(A)((fa: Kind1<F, A>) => fa)(tfa),
-};
-
-export const { traverse: traverseArr, sequence: sequenceArr } = arrTraversable;
-
-// ------------------------------------
+export const arrTraversable: Traversable1<"Arr"> =
+  {
+    ...arrFunctor,
+    ...arrFoldable,
+    traverse:
+      <F extends KindKeys1>(A: Applicative1<F>) =>
+      <A, B>(f: (a: A) => Kind1<F, B>) =>
+      (ta: Arr<A>): Kind1<F, Arr<B>> =>
+        ta.reduceRight(
+          (acc: Kind1<F, Arr<B>>, x: A) =>
+            A.ap(
+              A.map((b: B) => (bs: Arr<B>) => [
+                b,
+                ...bs,
+              ])(f(x)),
+            )(acc),
+          A.of([]),
+        ),
+    sequence:
+      <F extends KindKeys1>(A: Applicative1<F>) =>
+      <A>(
+        tfa: Arr<Kind1<F, A>>,
+      ): Kind1<F, Arr<A>> =>
+        arrTraversable.traverse(A)(
+          (fa: Kind1<F, A>) => fa,
+        )(tfa),
+  };
+export const {
+  traverse: traverseArr,
+  sequence: sequenceArr,
+} = arrTraversable;
 
 /**
  * Applies function to each array element, collecting results.
@@ -189,14 +195,6 @@ export const conclude =
   (arr: Arr<T>): Result<Arr<U>, Arr<F>> =>
     arr
       .map(fn)
-      .reduce<Result<Arr<U>, Arr<F>>>(
-        (acc, result) =>
-          isOk(result)
-            ? isOk(acc)
-              ? ok([...acc.content, result.content])
-              : acc
-            : isErr(acc)
-            ? err([...acc.content, result.content])
-            : err([result.content]),
-        ok([])
-      );
+      .reduce<
+        Result<Arr<U>, Arr<F>>
+      >((acc, result) => (isOk(result) ? (isOk(acc) ? ok([...acc.content, result.content]) : acc) : isErr(acc) ? err([...acc.content, result.content]) : err([result.content])), ok([]));

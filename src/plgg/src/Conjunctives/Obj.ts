@@ -14,20 +14,34 @@ import {
  * Object type with primitive values.
  * Readonly record with string keys and unknown values.
  */
-export type Obj<T extends Record<string, unknown> = Record<string, unknown>> =
-  Readonly<T>;
+export type Obj<
+  T extends Record<string, unknown> = Record<
+    string,
+    unknown
+  >,
+> = Readonly<T>;
 
 /**
  * Type guard for object.
  */
-export const isObj = (value: unknown): value is Obj =>
+export const isObj = (
+  value: unknown,
+): value is Obj =>
   typeof value === "object" && value !== null;
 
 /**
  * Validates and casts to object with primitives.
  */
-export const asObj = (value: unknown): Result<Obj, InvalidError> =>
-  isObj(value) ? ok(value) : err(new InvalidError({ message: "Not object" }));
+export const asObj = (
+  value: unknown,
+): Result<Obj, InvalidError> =>
+  isObj(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Not object",
+        }),
+      );
 
 /**
  * Validates and transforms an object property using a predicate.
@@ -35,16 +49,24 @@ export const asObj = (value: unknown): Result<Obj, InvalidError> =>
 export const forProp =
   <T extends string, U>(
     key: T,
-    predicate: (a: unknown) => Result<U, InvalidError>,
+    predicate: (
+      a: unknown,
+    ) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(obj: V): Result<V & Record<T, U>, InvalidError> =>
+  <V extends object>(
+    obj: V,
+  ): Result<V & Record<T, U>, InvalidError> =>
     hasProp(obj, key)
       ? pipe(
           obj[key],
           predicate,
           chainResult(
-            (okValue): Result<V & Record<T, U>, InvalidError> =>
-              ok({ ...obj, [key]: okValue }),
+            (
+              okValue,
+            ): Result<
+              V & Record<T, U>,
+              InvalidError
+            > => ok({ ...obj, [key]: okValue }),
           ),
         )
       : err(
@@ -59,19 +81,35 @@ export const forProp =
 export const forOptionProp =
   <T extends string, U>(
     key: T,
-    predicate: (a: unknown) => Result<U, InvalidError>,
+    predicate: (
+      a: unknown,
+    ) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(obj: V): Result<V & Record<T, Option<U>>, InvalidError> =>
+  <V extends object>(
+    obj: V,
+  ): Result<
+    V & Record<T, Option<U>>,
+    InvalidError
+  > =>
     hasProp(obj, key)
       ? pipe(
           obj[key],
           predicate,
           chainResult(
-            (okValue): Result<V & Record<T, Option<U>>, InvalidError> =>
-              ok({ ...obj, [key]: some(okValue) }),
+            (
+              okValue,
+            ): Result<
+              V & Record<T, Option<U>>,
+              InvalidError
+            > =>
+              ok({
+                ...obj,
+                [key]: some(okValue),
+              }),
           ),
         )
-      : ok({ ...obj, [key]: none() } as V & Record<T, Option<U>>);
+      : ok({ ...obj, [key]: none() } as V &
+          Record<T, Option<U>>);
 
 /**
  * Type guard for object field existence.

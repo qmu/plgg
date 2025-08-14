@@ -25,12 +25,16 @@ export class BaseError extends Error {
    * Optional parent error for error chaining.
    * Allows building error cause chains for debugging.
    */
-  public parent: Option<BaseError | Error> = none();
+  public parent: Option<BaseError | Error> =
+    none();
 
   /**
    * Creates a new BaseError instance.
    */
-  constructor(message: string, parent?: BaseError | Error) {
+  constructor(
+    message: string,
+    parent?: BaseError | Error,
+  ) {
     super(message);
     this.parent = parent ? some(parent) : none();
   }

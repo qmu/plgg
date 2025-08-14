@@ -1,4 +1,10 @@
-import { Result, ok, err, InvalidError, Refinement } from "plgg/index";
+import {
+  Result,
+  ok,
+  err,
+  InvalidError,
+  Refinement,
+} from "plgg/index";
 
 /**
  * String primitive type.
@@ -11,13 +17,21 @@ export type Str = string;
  * Provides type-safe string validation following the standard Refinement pattern.
  */
 export const strRefinement: Refinement<Str> = {
-  is: (value: unknown): value is Str => typeof value === "string",
-  as: (value: unknown): Result<Str, InvalidError> =>
+  is: (value: unknown): value is Str =>
+    typeof value === "string",
+  as: (
+    value: unknown,
+  ): Result<Str, InvalidError> =>
     typeof value === "string"
       ? ok(value)
-      : err(new InvalidError({ message: `${value} is not a string` })),
+      : err(
+          new InvalidError({
+            message: `${value} is not a string`,
+          }),
+        ),
 };
-export const { is: isStr, as: asStr } = strRefinement;
+export const { is: isStr, as: asStr } =
+  strRefinement;
 
 /**
  * Concatenates two strings using curried application.

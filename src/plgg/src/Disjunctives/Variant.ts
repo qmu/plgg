@@ -10,7 +10,10 @@ export type FixedVariant<TAG extends string> = {
 /**
  * A variant with both a tag and content.
  */
-export type ParametricVariant<TAG extends string, CONTENT> = {
+export type ParametricVariant<
+  TAG extends string,
+  CONTENT,
+> = {
   __tag: TAG;
   content: CONTENT;
 };
@@ -18,14 +21,19 @@ export type ParametricVariant<TAG extends string, CONTENT> = {
 /**
  * Union of fixed and parametric variants.
  */
-export type Variant<TAG extends string, CONTENT> =
+export type Variant<
+  TAG extends string,
+  CONTENT,
+> =
   | FixedVariant<TAG>
   | ParametricVariant<TAG, CONTENT>;
 
 /**
  * Type guard to check if a value is any variant.
  */
-export const isVariant = (v: unknown): v is Variant<string, unknown> =>
+export const isVariant = (
+  v: unknown,
+): v is Variant<string, unknown> =>
   isObj(v) && hasProp(v, "__tag");
 
 /**
@@ -51,16 +59,22 @@ export const withContent = () => {};
 /**
  * Creates a variant constructor for a specific tag.
  */
-export function variantMaker<TAG extends string>(__tag: TAG) {
+export function variantMaker<TAG extends string>(
+  __tag: TAG,
+) {
   return function <
     V extends Variant<string, unknown>,
     CONTENT = ExtractContent<V>,
   >() {
     function maker(): FixedVariant<TAG>;
-    function maker(content: CONTENT): ParametricVariant<TAG, CONTENT>;
+    function maker(
+      content: CONTENT,
+    ): ParametricVariant<TAG, CONTENT>;
     function maker(
       content?: CONTENT,
-    ): FixedVariant<TAG> | ParametricVariant<TAG, CONTENT> {
+    ):
+      | FixedVariant<TAG>
+      | ParametricVariant<TAG, CONTENT> {
       return content === undefined
         ? ({ __tag } as const)
         : ({ __tag, content } as const);
@@ -72,17 +86,23 @@ export function variantMaker<TAG extends string>(__tag: TAG) {
 /**
  * Creates a pattern constructor for matching variants.
  */
-export function pattern<TAG extends string>(__tag: TAG) {
+export function pattern<TAG extends string>(
+  __tag: TAG,
+) {
   return function <
     V extends Variant<string, unknown>,
     CONTENT = ExtractContent<V>,
     PCONTENT = Partial<CONTENT>,
   >() {
     function maker(): FixedVariant<TAG>;
-    function maker(content: PCONTENT): ParametricVariant<TAG, PCONTENT>;
+    function maker(
+      content: PCONTENT,
+    ): ParametricVariant<TAG, PCONTENT>;
     function maker(
       content?: PCONTENT,
-    ): FixedVariant<TAG> | ParametricVariant<TAG, PCONTENT> {
+    ):
+      | FixedVariant<TAG>
+      | ParametricVariant<TAG, PCONTENT> {
       return content === undefined
         ? ({ __tag } as const)
         : ({ __tag, content } as const);
@@ -94,5 +114,9 @@ export function pattern<TAG extends string>(__tag: TAG) {
 /**
  * Extracts the content type from a variant type.
  */
-export type ExtractContent<V extends Variant<string, unknown>> =
-  V extends Variant<string, infer CONTENT> ? CONTENT : never;
+export type ExtractContent<
+  V extends Variant<string, unknown>,
+> =
+  V extends Variant<string, infer CONTENT>
+    ? CONTENT
+    : never;

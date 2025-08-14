@@ -18,7 +18,10 @@ const noneTag = "None" as const;
  * Some side of Option, representing a value that exists.
  * Contains the actual value in the content property.
  */
-export type Some<T> = ParametricVariant<typeof someTag, T>;
+export type Some<T> = ParametricVariant<
+  typeof someTag,
+  T
+>;
 
 /**
  * None side of Option, representing the absence of a value.
@@ -41,23 +44,28 @@ export const some = <T>(value: T): Some<T> =>
 /**
  * Creates a None instance representing no value.
  */
-export const none = (): None => variantMaker(noneTag)<None>()();
+export const none = (): None =>
+  variantMaker(noneTag)<None>()();
 
 /**
  * Type guard to check if an Option is a Some.
  */
-export const isSome = <T>(e: unknown): e is Some<T> => hasTag(someTag)(e);
+export const isSome = <T>(
+  e: unknown,
+): e is Some<T> => hasTag(someTag)(e);
 
 /**
  * Type guard to check if an Option is a None.
  */
-export const isNone = (e: unknown): e is None => hasTag(noneTag)(e);
+export const isNone = (e: unknown): e is None =>
+  hasTag(noneTag)(e);
 
 /**
  * Type guard to check if a value is an Option (either Some or None).
  */
-export const isOption = <T>(e: unknown): e is Option<T> =>
-  isSome(e) || isNone(e);
+export const isOption = <T>(
+  e: unknown,
+): e is Option<T> => isSome(e) || isNone(e);
 
 declare module "plgg/Abstracts/Standards/Kind" {
   export interface KindKeytoKind1<A> {
@@ -76,7 +84,9 @@ export const optionFunctor: Functor1<"Option"> = {
   map:
     <A, B>(f: (a: A) => B) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? some<B>(f(fa.content)) : none(),
+      isSome(fa)
+        ? some<B>(f(fa.content))
+        : none(),
 };
 
 export const { map: mapOption } = optionFunctor;
@@ -121,11 +131,12 @@ export const { of: ofOption } = optionPointed;
  * Combines Apply and Pointed to provide both function application and value lifting.
  * Enables working with functions and values wrapped in Option contexts.
  */
-export const optionApplicative: Applicative1<"Option"> = {
-  ...optionApply,
-  ...optionFunctor,
-  ...optionPointed,
-};
+export const optionApplicative: Applicative1<"Option"> =
+  {
+    ...optionApply,
+    ...optionFunctor,
+    ...optionPointed,
+  };
 
 // ------------------------------------
 

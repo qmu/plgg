@@ -14,11 +14,24 @@ import {
 test("proc composes sync and async functions with early error exit", async () => {
   // Example: Processing user input through validation pipeline
   const increment = (x: number) => x + 1;
-  const validatePositive = (x: number): Result<number, InvalidError> =>
-    x > 0 ? ok(x) : err(new InvalidError({ message: "Must be positive" }));
-  const asyncDouble = (x: number): Promise<number> =>
-    new Promise((resolve) => setTimeout(() => resolve(x * 2), 1));
-  const formatResult = (x: number): string => `Result: ${x}`;
+  const validatePositive = (
+    x: number,
+  ): Result<number, InvalidError> =>
+    x > 0
+      ? ok(x)
+      : err(
+          new InvalidError({
+            message: "Must be positive",
+          }),
+        );
+  const asyncDouble = (
+    x: number,
+  ): Promise<number> =>
+    new Promise((resolve) =>
+      setTimeout(() => resolve(x * 2), 1),
+    );
+  const formatResult = (x: number): string =>
+    `Result: ${x}`;
 
   const result = await proc(
     5,
@@ -34,9 +47,18 @@ test("proc composes sync and async functions with early error exit", async () =>
 
 test("proc stops processing on first error", async () => {
   const increment = (x: number) => x + 1;
-  const failValidation = (_: number): Promise<Result<number, InvalidError>> =>
-    Promise.resolve(err(new InvalidError({ message: "Validation failed" })));
-  const neverCalled = (_: never): string => "should not be called";
+  const failValidation = (
+    _: number,
+  ): Promise<Result<number, InvalidError>> =>
+    Promise.resolve(
+      err(
+        new InvalidError({
+          message: "Validation failed",
+        }),
+      ),
+    );
+  const neverCalled = (_: never): string =>
+    "should not be called";
 
   const result = await proc(
     5,
@@ -46,19 +68,38 @@ test("proc stops processing on first error", async () => {
   );
 
   assert(isErr(result));
-  expect(result.content.message).toBe("Validation failed");
+  expect(result.content.message).toBe(
+    "Validation failed",
+  );
 });
 
 test("proc handles mixed return types (values, Results, Promises)", async () => {
   // Demonstrates real-world API processing pipeline
-  const parseInput = (input: string) => input.trim();
-  const validateNotEmpty = (str: string): Result<string, InvalidError> =>
+  const parseInput = (input: string) =>
+    input.trim();
+  const validateNotEmpty = (
+    str: string,
+  ): Result<string, InvalidError> =>
     str.length > 0
       ? ok(str)
-      : err(new InvalidError({ message: "Empty input" }));
-  const fetchData = (id: string): Promise<{ id: string; value: number }> =>
-    new Promise((resolve) => setTimeout(() => resolve({ id, value: 42 }), 1));
-  const extractValue = (data: { id: string; value: number }) => data.value;
+      : err(
+          new InvalidError({
+            message: "Empty input",
+          }),
+        );
+  const fetchData = (
+    id: string,
+  ): Promise<{ id: string; value: number }> =>
+    new Promise((resolve) =>
+      setTimeout(
+        () => resolve({ id, value: 42 }),
+        1,
+      ),
+    );
+  const extractValue = (data: {
+    id: string;
+    value: number;
+  }) => data.value;
 
   const result = await proc(
     "user123",
@@ -89,43 +130,66 @@ test("proc with type casting and validation chain", async () => {
 });
 
 test("proc gracefully handles exceptions in functions", async () => {
-  const processWithError = (x: number): Result<string, InvalidError> => {
+  const processWithError = (
+    x: number,
+  ): Result<string, InvalidError> => {
     if (x === 5) {
       throw new Error("Unexpected error");
     }
     return ok(`Processed: ${x}`);
   };
 
-  const result = await proc<number, string>(5, processWithError);
+  const result = await proc<number, string>(
+    5,
+    processWithError,
+  );
 
   assert(isErr(result));
-  expect(result.content.message).toContain("Unexpected error in proc");
+  expect(result.content.message).toContain(
+    "Unexpected error in proc",
+  );
 });
 
 test("proc handles thrown procError", async () => {
-  const processWithprocError = (x: number): Result<string, InvalidError> => {
+  const processWithprocError = (
+    x: number,
+  ): Result<string, InvalidError> => {
     if (x === 5) {
-      throw new InvalidError({ message: "Domain error thrown" });
+      throw new InvalidError({
+        message: "Domain error thrown",
+      });
     }
     return ok(`Processed: ${x}`);
   };
 
-  const result = await proc<number, string>(5, processWithprocError);
+  const result = await proc<number, string>(
+    5,
+    processWithprocError,
+  );
 
   assert(isErr(result));
-  expect(result.content.message).toBe("Domain error thrown");
+  expect(result.content.message).toBe(
+    "Domain error thrown",
+  );
 });
 
 test("proc handles thrown non-Error values", async () => {
-  const processWithStringError = (x: number): Result<string, InvalidError> => {
+  const processWithStringError = (
+    x: number,
+  ): Result<string, InvalidError> => {
     if (x === 5) {
       throw "String error";
     }
     return ok(`Processed: ${x}`);
   };
 
-  const result = await proc<number, string>(5, processWithStringError);
+  const result = await proc<number, string>(
+    5,
+    processWithStringError,
+  );
 
   assert(isErr(result));
-  expect(result.content.message).toBe("Unknown error in proc");
+  expect(result.content.message).toBe(
+    "Unknown error in proc",
+  );
 });

@@ -17,7 +17,9 @@ import {
  * - foldr(f, z, xs ++ ys) === foldr(f, foldr(f, z, ys), xs)
  *
  */
-export interface Foldable1<KindKey extends KindKeys1> {
+export interface Foldable1<
+  KindKey extends KindKeys1,
+> {
   /** The kind key identifier */
   readonly KindKey: KindKey;
   /**
@@ -25,13 +27,17 @@ export interface Foldable1<KindKey extends KindKeys1> {
    */
   foldr: <A, B>(
     f: (a: A, b: B) => B,
-  ) => (initial: B) => (fa: Kind1<KindKey, A>) => B;
+  ) => (
+    initial: B,
+  ) => (fa: Kind1<KindKey, A>) => B;
   /**
    * Left-associative fold of a structure.
    */
   foldl: <A, B>(
     f: (b: B, a: A) => B,
-  ) => (initial: B) => (fa: Kind1<KindKey, A>) => B;
+  ) => (
+    initial: B,
+  ) => (fa: Kind1<KindKey, A>) => B;
 }
 
 /**
@@ -39,7 +45,9 @@ export interface Foldable1<KindKey extends KindKeys1> {
  * Folds over the first type parameter while preserving the second.
  *
  */
-export interface Foldable2<KindKey extends KindKeys2> {
+export interface Foldable2<
+  KindKey extends KindKeys2,
+> {
   /** The kind key identifier */
   readonly KindKey: KindKey;
   /**
@@ -47,13 +55,17 @@ export interface Foldable2<KindKey extends KindKeys2> {
    */
   foldr: <A, B, C>(
     f: (a: A, b: B) => B,
-  ) => (initial: B) => (fa: Kind2<KindKey, A, C>) => B;
+  ) => (
+    initial: B,
+  ) => (fa: Kind2<KindKey, A, C>) => B;
   /**
    * Left-associative fold for two-parameter types.
    */
   foldl: <A, B, C>(
     f: (b: B, a: A) => B,
-  ) => (initial: B) => (fa: Kind2<KindKey, A, C>) => B;
+  ) => (
+    initial: B,
+  ) => (fa: Kind2<KindKey, A, C>) => B;
 }
 
 /**
@@ -61,7 +73,9 @@ export interface Foldable2<KindKey extends KindKeys2> {
  * Folds over the first type parameter while preserving the second and third.
  *
  */
-export interface Foldable3<KindKey extends KindKeys3> {
+export interface Foldable3<
+  KindKey extends KindKeys3,
+> {
   /** The kind key identifier */
   readonly KindKey: KindKey;
   /**
@@ -69,11 +83,15 @@ export interface Foldable3<KindKey extends KindKeys3> {
    */
   foldr: <A, B, C, D>(
     f: (a: A, b: B) => B,
-  ) => (initial: B) => (fa: Kind3<KindKey, A, C, D>) => B;
+  ) => (
+    initial: B,
+  ) => (fa: Kind3<KindKey, A, C, D>) => B;
   /**
    * Left-associative fold for three-parameter types.
    */
   foldl: <A, B, C, D>(
     f: (b: B, a: A) => B,
-  ) => (initial: B) => (fa: Kind3<KindKey, A, C, D>) => B;
+  ) => (
+    initial: B,
+  ) => (fa: Kind3<KindKey, A, C, D>) => B;
 }

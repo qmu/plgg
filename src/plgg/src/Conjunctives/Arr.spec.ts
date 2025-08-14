@@ -31,7 +31,13 @@ test("Arr.is should return true for arrays", () => {
   expect(isArr(["a", "b", "c"])).toBe(true);
   expect(isArr([1, "a", true, null])).toBe(true);
   expect(isArr(new Array(5))).toBe(true);
-  expect(isArr(Array.from({ length: 3 }))).toBe(true);
+  expect(
+    isArr(
+      Array.from({
+        length: 3,
+      }),
+    ),
+  ).toBe(true);
 });
 
 test("Arr.is should return false for non-arrays", () => {
@@ -41,7 +47,11 @@ test("Arr.is should return false for non-arrays", () => {
   expect(isArr("array")).toBe(false);
   expect(isArr(123)).toBe(false);
   expect(isArr(true)).toBe(false);
-  expect(isArr({ length: 0 })).toBe(false);
+  expect(
+    isArr({
+      length: 0,
+    }),
+  ).toBe(false);
   expect(isArr("")).toBe(false);
 });
 
@@ -56,33 +66,52 @@ test("Arr.cast should succeed for arrays", () => {
 
   const result3 = asArr(["a", "b", "c"]);
   assert(isOk(result3));
-  expect(result3.content).toEqual(["a", "b", "c"]);
+  expect(result3.content).toEqual([
+    "a",
+    "b",
+    "c",
+  ]);
 
   const result4 = asArr([1, "a", true, null]);
   assert(isOk(result4));
-  expect(result4.content).toEqual([1, "a", true, null]);
+  expect(result4.content).toEqual([
+    1,
+    "a",
+    true,
+    null,
+  ]);
 });
 
 test("Arr.cast should fail for non-arrays", () => {
   const result1 = asArr(null);
   assert(isErr(result1));
-  expect(result1.content.message).toBe("Value is not an array");
+  expect(result1.content.message).toBe(
+    "Value is not an array",
+  );
 
   const result2 = asArr(undefined);
   assert(isErr(result2));
-  expect(result2.content.message).toBe("Value is not an array");
+  expect(result2.content.message).toBe(
+    "Value is not an array",
+  );
 
   const result3 = asArr({});
   assert(isErr(result3));
-  expect(result3.content.message).toBe("Value is not an array");
+  expect(result3.content.message).toBe(
+    "Value is not an array",
+  );
 
   const result4 = asArr("array");
   assert(isErr(result4));
-  expect(result4.content.message).toBe("Value is not an array");
+  expect(result4.content.message).toBe(
+    "Value is not an array",
+  );
 
   const result5 = asArr(123);
   assert(isErr(result5));
-  expect(result5.content.message).toBe("Value is not an array");
+  expect(result5.content.message).toBe(
+    "Value is not an array",
+  );
 });
 
 test("Arr Monad - map function", () => {
@@ -110,7 +139,8 @@ test("Arr Monad - of function", () => {
 
 test("Arr Monad - chain function (flatMap)", () => {
   const duplicate = (x: number) => [x, x];
-  const range = (n: number) => Array.from({ length: n }, (_, i) => i);
+  const range = (n: number) =>
+    Array.from({ length: n }, (_, i) => i);
 
   const r1 = pipe([], chainArr(duplicate));
   const r2 = pipe([1, 2, 3], chainArr(duplicate));
@@ -123,21 +153,35 @@ test("Arr Monad - chain function (flatMap)", () => {
 
 test("Arr Monad - ap function (applicative)", () => {
   const add = (x: number) => (y: number) => x + y;
-  const multiply = (x: number) => (y: number) => x * y;
-  const curryConcat = (a: string) => (b: string) => a + b;
+  const multiply = (x: number) => (y: number) =>
+    x * y;
+  const curryConcat =
+    (a: string) => (b: string) =>
+      a + b;
 
-  const r1 = pipe([1, 2], applyArr([add(1), multiply(2)]));
+  const r1 = pipe(
+    [1, 2],
+    applyArr([add(1), multiply(2)]),
+  );
   const r2 = pipe([], applyArr([add(0)]));
   const r3 = pipe([1, 2], applyArr([]));
   const r4 = pipe(
     ["world", "there"],
-    applyArr([curryConcat("hello "), curryConcat("hi ")]),
+    applyArr([
+      curryConcat("hello "),
+      curryConcat("hi "),
+    ]),
   );
 
   expect(r1).toEqual([2, 3, 2, 4]);
   expect(r2).toEqual([]);
   expect(r3).toEqual([]);
-  expect(r4).toEqual(["hello world", "hello there", "hi world", "hi there"]);
+  expect(r4).toEqual([
+    "hello world",
+    "hello there",
+    "hi world",
+    "hi there",
+  ]);
 });
 
 test("Arr Monad Laws - Left Identity", () => {
@@ -167,7 +211,9 @@ test("Arr Monad Laws - Associativity", () => {
   const r1 = pipe(m, chainArr(f), chainArr(g));
   const r2 = pipe(
     m,
-    chainArr((x: number) => pipe(x, f, chainArr(g))),
+    chainArr((x: number) =>
+      pipe(x, f, chainArr(g)),
+    ),
   );
 
   expect(r1).toEqual(r2);
@@ -198,11 +244,15 @@ test("Arr Functor Laws - Composition", () => {
 
 test("Arr Foldable - foldr function", () => {
   const add = (x: number, acc: number) => x + acc;
-  const concat = (x: string, acc: string) => x + acc;
+  const concat = (x: string, acc: string) =>
+    x + acc;
 
   const r1 = pipe([], foldrArr(add)(0));
   const r2 = pipe([1, 2, 3], foldrArr(add)(0));
-  const r3 = pipe(["a", "b", "c"], foldrArr(concat)(""));
+  const r3 = pipe(
+    ["a", "b", "c"],
+    foldrArr(concat)(""),
+  );
 
   expect(r1).toBe(0);
   expect(r2).toBe(6);
@@ -211,11 +261,15 @@ test("Arr Foldable - foldr function", () => {
 
 test("Arr Foldable - foldl function", () => {
   const add = (acc: number, x: number) => acc + x;
-  const concat = (acc: string, x: string) => acc + x;
+  const concat = (acc: string, x: string) =>
+    acc + x;
 
   const r1 = pipe([], foldlArr(add)(0));
   const r2 = pipe([1, 2, 3], foldlArr(add)(0));
-  const r3 = pipe(["a", "b", "c"], foldlArr(concat)(""));
+  const r3 = pipe(
+    ["a", "b", "c"],
+    foldlArr(concat)(""),
+  );
 
   expect(r1).toBe(0);
   expect(r2).toBe(6);
@@ -225,14 +279,20 @@ test("Arr Foldable - foldl function", () => {
 test("Arr Traversable - traverse with Array", () => {
   const choices = (x: number) => [x, x + 10]; // gives each number two choices
 
-  const r1 = pipe([], traverseArr(arrApplicative)(choices));
+  const r1 = pipe(
+    [],
+    traverseArr(arrApplicative)(choices),
+  );
   expect(r1).toEqual([[]]);
 
   // For [1, 2] with choices (x => [x, x + 10]):
   // choices(1) = [1, 11], choices(2) = [2, 12]
   // traverse should give all combinations:
   // [1, 2], [1, 12], [11, 2], [11, 12]
-  const r2 = pipe([1, 2], traverseArr(arrApplicative)(choices));
+  const r2 = pipe(
+    [1, 2],
+    traverseArr(arrApplicative)(choices),
+  );
   expect(r2).toEqual([
     [1, 2],
     [1, 12],
@@ -256,28 +316,44 @@ test("Arr Traversable - sequence with Array", () => {
     [2, 4],
   ]);
 
-  const r2 = pipe([], sequenceArr(arrApplicative));
+  const r2 = pipe(
+    [],
+    sequenceArr(arrApplicative),
+  );
   expect(r2).toEqual([[]]);
 
-  const r3 = pipe([[]], sequenceArr(arrApplicative));
+  const r3 = pipe(
+    [[]],
+    sequenceArr(arrApplicative),
+  );
   expect(r3).toEqual([]);
 });
 
 test("Arr Traversable - collect results with Option (safe division)", () => {
   // Function that safely divides 10 by n, failing for zero or negative numbers
-  const safeDivide = (n: number) => (n > 0 ? some(10 / n) : none());
+  const safeDivide = (n: number) =>
+    n > 0 ? some(10 / n) : none();
 
   // Success case: all divisions succeed, results collected into Some([...])
-  const r1 = pipe([1, 2, 5], traverseArr(optionApplicative)(safeDivide));
+  const r1 = pipe(
+    [1, 2, 5],
+    traverseArr(optionApplicative)(safeDivide),
+  );
   assert(isSome(r1));
   expect(r1.content).toEqual([10, 5, 2]);
 
   // Failure case: one division fails, entire traversal fails with None
-  const r2 = pipe([1, 0, 5], traverseArr(optionApplicative)(safeDivide));
+  const r2 = pipe(
+    [1, 0, 5],
+    traverseArr(optionApplicative)(safeDivide),
+  );
   assert(isNone(r2));
 
   // Edge case: empty array always succeeds
-  const r3 = pipe([], traverseArr(optionApplicative)(safeDivide));
+  const r3 = pipe(
+    [],
+    traverseArr(optionApplicative)(safeDivide),
+  );
   assert(isSome(r3));
   expect(r3.content).toEqual([]);
 });
@@ -286,7 +362,9 @@ test("Arr Traversable - collect results with Option (validation)", () => {
   // Function that validates and parses positive numbers from strings
   const parsePositive = (s: string) => {
     const num = Number(s);
-    return isNaN(num) || num <= 0 ? none() : some(num);
+    return isNaN(num) || num <= 0
+      ? none()
+      : some(num);
   };
 
   // Success case: all strings are valid positive numbers
@@ -322,15 +400,22 @@ test("Arr Traversable - collect results with Option (validation)", () => {
 test("Arr Traversable - empty array edge cases", () => {
   // Empty arrays should always succeed regardless of the effectful function
   const alwaysFails = (_: unknown) => none();
-  const maybeSucceeds = (x: number) => (x > 0 ? some(x * 2) : none());
+  const maybeSucceeds = (x: number) =>
+    x > 0 ? some(x * 2) : none();
 
   // Even functions that always fail should succeed on empty arrays
-  const r1 = pipe([], traverseArr(optionApplicative)(alwaysFails));
+  const r1 = pipe(
+    [],
+    traverseArr(optionApplicative)(alwaysFails),
+  );
   assert(isSome(r1));
   expect(r1.content).toEqual([]);
 
   // Functions that might succeed should also work on empty arrays
-  const r2 = pipe([], traverseArr(optionApplicative)(maybeSucceeds));
+  const r2 = pipe(
+    [],
+    traverseArr(optionApplicative)(maybeSucceeds),
+  );
   assert(isSome(r2));
   expect(r2.content).toEqual([]);
 
@@ -339,26 +424,38 @@ test("Arr Traversable - empty array edge cases", () => {
 });
 
 test("conclude - success case with all valid results", () => {
-  const parseNumber = (s: string): Result<number, string> => {
+  const parseNumber = (
+    s: string,
+  ): Result<number, string> => {
     const num = Number(s);
-    return isNaN(num) ? err("Invalid number") : ok(num);
+    return isNaN(num)
+      ? err("Invalid number")
+      : ok(num);
   };
 
   const r1 = pipe([], conclude(parseNumber));
   assert(isOk(r1));
   expect(r1.content).toEqual([]);
 
-  const r2 = pipe(["1", "2", "3"], conclude(parseNumber));
+  const r2 = pipe(
+    ["1", "2", "3"],
+    conclude(parseNumber),
+  );
   assert(isOk(r2));
   expect(r2.content).toEqual([1, 2, 3]);
 
-  const r3 = pipe(["42", "3.14", "0"], conclude(parseNumber));
+  const r3 = pipe(
+    ["42", "3.14", "0"],
+    conclude(parseNumber),
+  );
   assert(isOk(r3));
   expect(r3.content).toEqual([42, 3.14, 0]);
 });
 
 test("conclude - failure case with first error returned", () => {
-  const parsePositiveNumber = (s: string): Result<number, string> => {
+  const parsePositiveNumber = (
+    s: string,
+  ): Result<number, string> => {
     const num = Number(s);
     if (isNaN(num)) {
       return err("Invalid number: " + s);
@@ -369,25 +466,49 @@ test("conclude - failure case with first error returned", () => {
     return ok(num);
   };
 
-  const r1 = pipe(["invalid"], conclude(parsePositiveNumber));
+  const r1 = pipe(
+    ["invalid"],
+    conclude(parsePositiveNumber),
+  );
   assert(isErr(r1));
-  expect(r1.content).toEqual(["Invalid number: invalid"]);
+  expect(r1.content).toEqual([
+    "Invalid number: invalid",
+  ]);
 
-  const r2 = pipe(["1", "invalid", "3"], conclude(parsePositiveNumber));
+  const r2 = pipe(
+    ["1", "invalid", "3"],
+    conclude(parsePositiveNumber),
+  );
   assert(isErr(r2));
-  expect(r2.content).toEqual(["Invalid number: invalid"]);
+  expect(r2.content).toEqual([
+    "Invalid number: invalid",
+  ]);
 
-  const r3 = pipe(["1", "-5", "3"], conclude(parsePositiveNumber));
+  const r3 = pipe(
+    ["1", "-5", "3"],
+    conclude(parsePositiveNumber),
+  );
   assert(isErr(r3));
-  expect(r3.content).toEqual(["Non-positive number: -5"]);
+  expect(r3.content).toEqual([
+    "Non-positive number: -5",
+  ]);
 
-  const r4 = pipe(["-1", "invalid", "0"], conclude(parsePositiveNumber));
+  const r4 = pipe(
+    ["-1", "invalid", "0"],
+    conclude(parsePositiveNumber),
+  );
   assert(isErr(r4));
-  expect(r4.content).toEqual(["Non-positive number: -1", "Invalid number: invalid", "Non-positive number: 0"]);
+  expect(r4.content).toEqual([
+    "Non-positive number: -1",
+    "Invalid number: invalid",
+    "Non-positive number: 0",
+  ]);
 });
 
 test("conclude - mixed types transformation", () => {
-  const processValue = (x: number): Result<string, string> => {
+  const processValue = (
+    x: number,
+  ): Result<string, string> => {
     if (x < 0) {
       return err("Negative value not allowed");
     }
@@ -400,18 +521,33 @@ test("conclude - mixed types transformation", () => {
     return ok(`number: ${x}`);
   };
 
-  const r1 = pipe([0, 1, 2, 10], conclude(processValue));
+  const r1 = pipe(
+    [0, 1, 2, 10],
+    conclude(processValue),
+  );
   assert(isOk(r1));
-  expect(r1.content).toEqual(["zero", "one", "number: 2", "number: 10"]);
+  expect(r1.content).toEqual([
+    "zero",
+    "one",
+    "number: 2",
+    "number: 10",
+  ]);
 
-  const r2 = pipe([1, -1, 2], conclude(processValue));
+  const r2 = pipe(
+    [1, -1, 2],
+    conclude(processValue),
+  );
   assert(isErr(r2));
-  expect(r2.content).toEqual(["Negative value not allowed"]);
+  expect(r2.content).toEqual([
+    "Negative value not allowed",
+  ]);
 });
 
 test("conclude - processes all elements but returns first error", () => {
   let callCount = 0;
-  const trackingFunction = (x: number): Result<number, string> => {
+  const trackingFunction = (
+    x: number,
+  ): Result<number, string> => {
     callCount++;
     if (x === 2) {
       return err("Error at 2");
@@ -420,13 +556,19 @@ test("conclude - processes all elements but returns first error", () => {
   };
 
   callCount = 0;
-  const r1 = pipe([1, 2, 3, 4], conclude(trackingFunction));
+  const r1 = pipe(
+    [1, 2, 3, 4],
+    conclude(trackingFunction),
+  );
   assert(isErr(r1));
   expect(r1.content).toEqual(["Error at 2"]);
   expect(callCount).toBe(4);
 
   callCount = 0;
-  const r2 = pipe([1, 3, 4], conclude(trackingFunction));
+  const r2 = pipe(
+    [1, 3, 4],
+    conclude(trackingFunction),
+  );
   assert(isOk(r2));
   expect(r2.content).toEqual([10, 30, 40]);
   expect(callCount).toBe(3);

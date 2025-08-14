@@ -89,7 +89,8 @@ test("isNone identifies None options", () => {
 });
 
 test("Option can handle different types", () => {
-  const stringOption: Option<string> = some("hello");
+  const stringOption: Option<string> =
+    some("hello");
   const numberOption: Option<number> = some(42);
   const noneStringOption: Option<string> = none();
   const noneNumberOption: Option<number> = none();
@@ -113,13 +114,27 @@ test("Option type structure", () => {
   const noneOption = none();
 
   // Test that Some has the expected structure
-  expect(someOption).toHaveProperty("__tag", "Some");
-  expect(someOption).toHaveProperty("content", 123);
-  expect(Object.keys(someOption)).toEqual(["__tag", "content"]);
+  expect(someOption).toHaveProperty(
+    "__tag",
+    "Some",
+  );
+  expect(someOption).toHaveProperty(
+    "content",
+    123,
+  );
+  expect(Object.keys(someOption)).toEqual([
+    "__tag",
+    "content",
+  ]);
 
   // Test that None has the expected structure
-  expect(noneOption).toHaveProperty("__tag", "None");
-  expect(Object.keys(noneOption)).toEqual(["__tag"]);
+  expect(noneOption).toHaveProperty(
+    "__tag",
+    "None",
+  );
+  expect(Object.keys(noneOption)).toEqual([
+    "__tag",
+  ]);
 });
 
 test("Option with complex types", () => {
@@ -129,7 +144,11 @@ test("Option with complex types", () => {
     email?: string;
   }
 
-  const user: User = { id: 1, name: "John", email: "john@example.com" };
+  const user: User = {
+    id: 1,
+    name: "John",
+    email: "john@example.com",
+  };
   const userOption = some(user);
   const noUserOption = none();
 
@@ -139,7 +158,9 @@ test("Option with complex types", () => {
   if (isSome(userOption)) {
     expect(userOption.content.id).toBe(1);
     expect(userOption.content.name).toBe("John");
-    expect(userOption.content.email).toBe("john@example.com");
+    expect(userOption.content.email).toBe(
+      "john@example.com",
+    );
   }
 });
 
@@ -154,13 +175,17 @@ test("Option with array contents", () => {
   assert(isNone(noneArrayOption));
 
   if (isSome(arrayOption)) {
-    expect(arrayOption.content).toEqual([1, 2, 3, 4, 5]);
+    expect(arrayOption.content).toEqual([
+      1, 2, 3, 4, 5,
+    ]);
     expect(arrayOption.content.length).toBe(5);
   }
 
   if (isSome(emptyArrayOption)) {
     expect(emptyArrayOption.content).toEqual([]);
-    expect(emptyArrayOption.content.length).toBe(0);
+    expect(emptyArrayOption.content.length).toBe(
+      0,
+    );
   }
 });
 
@@ -218,10 +243,22 @@ test("Option Monad - ap function (applicative)", () => {
   const noneAdd = none();
   const noneNumber = none();
 
-  const r1 = pipe(someNumber, applyOption(someAdd3));
-  const r2 = pipe(someNumber, applyOption(noneAdd));
-  const r3 = pipe(noneNumber, applyOption(someAdd3));
-  const r4 = pipe(noneNumber, applyOption(noneAdd));
+  const r1 = pipe(
+    someNumber,
+    applyOption(someAdd3),
+  );
+  const r2 = pipe(
+    someNumber,
+    applyOption(noneAdd),
+  );
+  const r3 = pipe(
+    noneNumber,
+    applyOption(someAdd3),
+  );
+  const r4 = pipe(
+    noneNumber,
+    applyOption(noneAdd),
+  );
 
   assert(isSome(r1));
   expect(r1.content).toBe(8);
@@ -252,9 +289,18 @@ test("Option Monad - chain function", () => {
   const someNumber = some(10);
   const noneNumber = none();
 
-  const r1 = pipe(someNumber, chainOption(safeDivide(2)));
-  const r2 = pipe(someNumber, chainOption(safeDivide(0)));
-  const r3 = pipe(noneNumber, chainOption(safeDivide(2)));
+  const r1 = pipe(
+    someNumber,
+    chainOption(safeDivide(2)),
+  );
+  const r2 = pipe(
+    someNumber,
+    chainOption(safeDivide(0)),
+  );
+  const r3 = pipe(
+    noneNumber,
+    chainOption(safeDivide(2)),
+  );
 
   assert(isSome(r1));
   expect(r1.content).toBe(5);
@@ -263,7 +309,8 @@ test("Option Monad - chain function", () => {
 });
 
 test("Option Monad Laws - Left Identity", () => {
-  const f = (x: number): Option<number> => some(x * 2);
+  const f = (x: number): Option<number> =>
+    some(x * 2);
   const a = 5;
 
   const r1 = pipe(a, ofOption, chainOption(f));
@@ -282,14 +329,22 @@ test("Option Monad Laws - Right Identity", () => {
 });
 
 test("Option Monad Laws - Associativity", () => {
-  const f = (x: number): Option<number> => some(x + 1);
-  const g = (x: number): Option<number> => some(x * 2);
+  const f = (x: number): Option<number> =>
+    some(x + 1);
+  const g = (x: number): Option<number> =>
+    some(x * 2);
   const m = some(5);
 
-  const r1 = pipe(m, chainOption(f), chainOption(g));
+  const r1 = pipe(
+    m,
+    chainOption(f),
+    chainOption(g),
+  );
   const r2 = pipe(
     m,
-    chainOption((x: number) => pipe(x, f, chainOption(g))),
+    chainOption((x: number) =>
+      pipe(x, f, chainOption(g)),
+    ),
   );
 
   expect(r1).toEqual(r2);
@@ -313,7 +368,11 @@ test("Option Functor Laws - Composition", () => {
     opt,
     mapOption((x: number) => g(f(x))),
   );
-  const r2 = pipe(opt, mapOption(f), mapOption(g));
+  const r2 = pipe(
+    opt,
+    mapOption(f),
+    mapOption(g),
+  );
 
   expect(r1).toEqual(r2);
 });

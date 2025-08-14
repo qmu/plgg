@@ -22,13 +22,19 @@ const errTag = "Err" as const;
  * Ok side of Result, representing a successful computation.
  * Contains the success value in the content property.
  */
-export type Ok<T> = ParametricVariant<typeof okTag, T>;
+export type Ok<T> = ParametricVariant<
+  typeof okTag,
+  T
+>;
 
 /**
  * Err side of Result, representing a failed computation.
  * Contains the error value in the content property.
  */
-export type Err<F> = ParametricVariant<typeof errTag, F>;
+export type Err<F> = ParametricVariant<
+  typeof errTag,
+  F
+>;
 
 /**
  * Result type for functional error handling without exceptions.
@@ -39,28 +45,34 @@ export type Result<T, F> = Ok<T> | Err<F>;
 /**
  * Creates an Ok instance containing a success value.
  */
-export const ok = <T>(a: T): Ok<T> => variantMaker(okTag)<Ok<T>>()(a);
+export const ok = <T>(a: T): Ok<T> =>
+  variantMaker(okTag)<Ok<T>>()(a);
 
 /**
  * Creates an Err instance containing an error value.
  */
-export const err = <F>(e: F): Err<F> => variantMaker(errTag)<Err<F>>()(e);
+export const err = <F>(e: F): Err<F> =>
+  variantMaker(errTag)<Err<F>>()(e);
 
 /**
  * Type guard to check if a Result is an Ok.
  */
-export const isOk = <T>(e: unknown): e is Ok<T> => hasTag(okTag)(e);
+export const isOk = <T>(e: unknown): e is Ok<T> =>
+  hasTag(okTag)(e);
 
 /**
  * Type guard to check if a Result is an Err.
  */
-export const isErr = <F>(e: unknown): e is Err<F> => hasTag(errTag)(e);
+export const isErr = <F>(
+  e: unknown,
+): e is Err<F> => hasTag(errTag)(e);
 
 /**
  * Type guard to check if a value is a Result (either Ok or Err).
  */
-export const isResult = <T, F>(e: unknown): e is Result<T, F> =>
-  isOk<T>(e) || isErr<F>(e);
+export const isResult = <T, F>(
+  e: unknown,
+): e is Result<T, F> => isOk<T>(e) || isErr<F>(e);
 
 declare module "plgg/Abstracts/Standards/Kind" {
   export interface KindKeytoKind2<A, B> {
@@ -95,7 +107,11 @@ export const resultApply: Apply2<"Result"> = {
   ap:
     <T1, T2, E>(fab: Result<(a: T1) => T2, E>) =>
     (fa: Result<T1, E>): Result<T2, E> =>
-      isOk(fab) ? (isOk(fa) ? ok<T2>(fab.content(fa.content)) : fa) : fab,
+      isOk(fab)
+        ? isOk(fa)
+          ? ok<T2>(fab.content(fa.content))
+          : fa
+        : fab,
 };
 
 export const { ap: applyResult } = resultApply;
@@ -108,7 +124,9 @@ export const { ap: applyResult } = resultApply;
  */
 export const resultPointed: Pointed2<"Result"> = {
   ...resultFunctor,
-  of: <T = never, E = never>(a: T): Result<T, E> => ok<T>(a),
+  of: <T = never, E = never>(
+    a: T,
+  ): Result<T, E> => ok<T>(a),
 };
 
 export const { of: ofResult } = resultPointed;
@@ -120,11 +138,12 @@ export const { of: ofResult } = resultPointed;
  * Combines Apply and Pointed to provide both function application and value lifting.
  * Enables working with functions and values wrapped in Result contexts.
  */
-export const resultApplicative: Applicative2<"Result"> = {
-  ...resultApply,
-  ...resultFunctor,
-  ...resultPointed,
-};
+export const resultApplicative: Applicative2<"Result"> =
+  {
+    ...resultApply,
+    ...resultFunctor,
+    ...resultPointed,
+  };
 
 // ------------------------------------
 
@@ -138,7 +157,9 @@ export const resultChain: Chain2<"Result"> = {
   ...resultPointed,
   chain:
     <T1, T2, E1>(f: (a: T1) => Result<T2, E1>) =>
-    <E2>(fa: Result<T1, E2>): Result<T2, E1 | E2> =>
+    <E2>(
+      fa: Result<T1, E2>,
+    ): Result<T2, E1 | E2> =>
       isOk(fa) ? f(fa.content) : fa,
 };
 
@@ -161,21 +182,29 @@ export const resultMonad: Monad2<"Result"> = {
  * Foldable instance for Result.
  * Folds over success values only; errors are ignored.
  */
-export const resultFoldable: Foldable2<"Result"> = {
-  KindKey: "Result",
-  foldr:
-    <A, B, C>(f: (a: A, b: B) => B) =>
-    (initial: B) =>
-    (fa: Result<A, C>): B =>
-      isOk(fa) ? f(fa.content, initial) : initial,
-  foldl:
-    <A, B, C>(f: (b: B, a: A) => B) =>
-    (initial: B) =>
-    (fa: Result<A, C>): B =>
-      isOk(fa) ? f(initial, fa.content) : initial,
-};
+export const resultFoldable: Foldable2<"Result"> =
+  {
+    KindKey: "Result",
+    foldr:
+      <A, B, C>(f: (a: A, b: B) => B) =>
+      (initial: B) =>
+      (fa: Result<A, C>): B =>
+        isOk(fa)
+          ? f(fa.content, initial)
+          : initial,
+    foldl:
+      <A, B, C>(f: (b: B, a: A) => B) =>
+      (initial: B) =>
+      (fa: Result<A, C>): B =>
+        isOk(fa)
+          ? f(initial, fa.content)
+          : initial,
+  };
 
-export const { foldr: foldrResult, foldl: foldlResult } = resultFoldable;
+export const {
+  foldr: foldrResult,
+  foldl: foldlResult,
+} = resultFoldable;
 
 // ------------------------------------
 
@@ -183,29 +212,36 @@ export const { foldr: foldrResult, foldl: foldlResult } = resultFoldable;
  * Traversable instance for Result.
  * Extends Functor and Foldable to provide structure-preserving traversal.
  */
-export const resultTraversable: Traversable2<"Result"> = {
-  ...resultFunctor,
-  ...resultFoldable,
-  traverse:
-    <F extends KindKeys1>(A: Applicative1<F>) =>
-    <A, B, C>(f: (a: A) => Kind1<F, B>) =>
-    (ta: Result<A, C>): Kind1<F, Result<B, C>> => {
-      if (isOk(ta)) {
-        return A.map(ok)(f(ta.content));
-      } else {
-        return A.of(err(ta.content));
-      }
-    },
-  sequence:
-    <F extends KindKeys1>(A: Applicative1<F>) =>
-    <A, C>(tfa: Result<Kind1<F, A>, C>): Kind1<F, Result<A, C>> => {
-      if (isOk(tfa)) {
-        return A.map(ok)(tfa.content);
-      } else {
-        return A.of(err(tfa.content));
-      }
-    },
-};
+export const resultTraversable: Traversable2<"Result"> =
+  {
+    ...resultFunctor,
+    ...resultFoldable,
+    traverse:
+      <F extends KindKeys1>(A: Applicative1<F>) =>
+      <A, B, C>(f: (a: A) => Kind1<F, B>) =>
+      (
+        ta: Result<A, C>,
+      ): Kind1<F, Result<B, C>> => {
+        if (isOk(ta)) {
+          return A.map(ok)(f(ta.content));
+        } else {
+          return A.of(err(ta.content));
+        }
+      },
+    sequence:
+      <F extends KindKeys1>(A: Applicative1<F>) =>
+      <A, C>(
+        tfa: Result<Kind1<F, A>, C>,
+      ): Kind1<F, Result<A, C>> => {
+        if (isOk(tfa)) {
+          return A.map(ok)(tfa.content);
+        } else {
+          return A.of(err(tfa.content));
+        }
+      },
+  };
 
-export const { traverse: traverseResult, sequence: sequenceResult } =
-  resultTraversable;
+export const {
+  traverse: traverseResult,
+  sequence: sequenceResult,
+} = resultTraversable;

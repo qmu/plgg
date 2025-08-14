@@ -73,7 +73,18 @@ export function proc<A, B, C, D, E, F, G, H, I>(
   gh: NonNeverFn<(g: G) => Procedural<H>>,
   hi: NonNeverFn<(h: H) => Procedural<I>>,
 ): Promise<Result<I, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -85,7 +96,19 @@ export function proc<A, B, C, D, E, F, G, H, I, J>(
   hi: NonNeverFn<(h: H) => Procedural<I>>,
   ij: NonNeverFn<(i: I) => Procedural<J>>,
 ): Promise<Result<J, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -98,7 +121,20 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K>(
   ij: NonNeverFn<(i: I) => Procedural<J>>,
   jk: NonNeverFn<(j: J) => Procedural<K>>,
 ): Promise<Result<K, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -112,7 +148,21 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K, L>(
   jk: NonNeverFn<(j: J) => Procedural<K>>,
   kl: NonNeverFn<(k: K) => Procedural<L>>,
 ): Promise<Result<L, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -127,7 +177,22 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M>(
   kl: NonNeverFn<(k: K) => Procedural<L>>,
   lm: NonNeverFn<(l: L) => Procedural<M>>,
 ): Promise<Result<M, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -143,7 +208,23 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N>(
   lm: NonNeverFn<(l: L) => Procedural<M>>,
   mn: NonNeverFn<(m: M) => Procedural<N>>,
 ): Promise<Result<N, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -160,7 +241,24 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(
   mn: NonNeverFn<(m: M) => Procedural<N>>,
   no: NonNeverFn<(n: N) => Procedural<O>>,
 ): Promise<Result<O, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -178,7 +276,25 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P>(
   no: NonNeverFn<(n: N) => Procedural<O>>,
   op: NonNeverFn<(o: O) => Procedural<P>>,
 ): Promise<Result<P, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -197,7 +313,26 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q>(
   op: NonNeverFn<(o: O) => Procedural<P>>,
   pq: NonNeverFn<(p: P) => Procedural<Q>>,
 ): Promise<Result<Q, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+  R,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -217,7 +352,27 @@ export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R>(
   pq: NonNeverFn<(p: P) => Procedural<Q>>,
   qr: NonNeverFn<(q: Q) => Procedural<R>>,
 ): Promise<Result<R, Error>>;
-export function proc<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S>(
+export function proc<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+  R,
+  S,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Procedural<B>>,
   bc: NonNeverFn<(b: B) => Procedural<C>>,
@@ -335,19 +490,33 @@ export async function proc(
   ...fns: ReadonlyArray<ChainFn>
 ): Promise<Result<unknown, unknown>> {
   const result = await fns.reduce(
-    async (acc: Procedural<unknown>, fn: ChainFn) => {
+    async (
+      acc: Procedural<unknown>,
+      fn: ChainFn,
+    ) => {
       try {
         const current = await acc;
         if (isResult(current)) {
-          return isOk(current) ? fn(current.content) : current;
+          return isOk(current)
+            ? fn(current.content)
+            : current;
         }
         return fn(current);
       } catch (e: unknown) {
         return isPlggError(e)
           ? err(e)
           : e instanceof Error
-            ? err(new Exception("Unexpected error in proc", e))
-            : err(new Exception("Unknown error in proc"));
+            ? err(
+                new Exception(
+                  "Unexpected error in proc",
+                  e,
+                ),
+              )
+            : err(
+                new Exception(
+                  "Unknown error in proc",
+                ),
+              );
       }
     },
     Promise.resolve(ok(value)),
@@ -362,4 +531,6 @@ export async function proc(
  * Function type for plgg operations.
  * Represents a function that takes any value and returns a Procedural result.
  */
-type ChainFn = (a: unknown) => Procedural<unknown>;
+type ChainFn = (
+  a: unknown,
+) => Procedural<unknown>;

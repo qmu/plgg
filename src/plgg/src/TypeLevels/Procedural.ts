@@ -8,19 +8,26 @@ export type PossiblyPromise<T> = Promise<T> | T;
 /**
  * Utility type for values that can be either direct values or Results.
  */
-export type PossiblyResult<T, U> = Result<T, U> | T;
+export type PossiblyResult<T, U> =
+  | Result<T, U>
+  | T;
 
 /**
  * Async Result type for Plgg operations.
  */
-export type Procedural<T, U extends Error = Error> = T extends never
+export type Procedural<
+  T,
+  U extends Error = Error,
+> = T extends never
   ? never
   : PossiblyPromise<PossiblyResult<T, U>>;
 
 /**
  * Type guard to check if a value is a Promise.
  */
-export const isPromise = <T>(value: PossiblyPromise<T>): value is Promise<T> =>
+export const isPromise = <T>(
+  value: PossiblyPromise<T>,
+): value is Promise<T> =>
   value instanceof Promise ||
   (typeof value === "object" &&
     value !== null &&

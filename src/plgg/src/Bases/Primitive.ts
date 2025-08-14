@@ -31,7 +31,9 @@ export type Primitive =
 /**
  * Type guard for any primitive type.
  */
-export const isPrimitive = (value: unknown): value is Primitive =>
+export const isPrimitive = (
+  value: unknown,
+): value is Primitive =>
   isStr(value) ||
   isBrandStr(value) ||
   isNum(value) ||

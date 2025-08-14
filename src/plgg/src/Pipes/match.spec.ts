@@ -131,8 +131,10 @@ test("Variant1", async () => {
       height: number;
     }
   >;
-  const triangle = pattern("triangle")<Triangle>();
-  const ofTriangle = variantMaker("triangle")<Triangle>();
+  const triangle =
+    pattern("triangle")<Triangle>();
+  const ofTriangle =
+    variantMaker("triangle")<Triangle>();
 
   type Shape = Circle | Square | Triangle;
 

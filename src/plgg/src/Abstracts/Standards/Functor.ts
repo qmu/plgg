@@ -11,20 +11,28 @@ import {
  * Functor interface for single-parameter type constructors.
  * Maps functions over wrapped values.
  */
-export interface Functor1<KindKey extends KindKeys1> {
+export interface Functor1<
+  KindKey extends KindKeys1,
+> {
   /** The kind key identifier */
   readonly KindKey: KindKey;
   /**
    * Maps a function over the wrapped value.
    */
-  map: <A, B>(f: (a: A) => B) => (fa: Kind1<KindKey, A>) => Kind1<KindKey, B>;
+  map: <A, B>(
+    f: (a: A) => B,
+  ) => (
+    fa: Kind1<KindKey, A>,
+  ) => Kind1<KindKey, B>;
 }
 
 /**
  * Functor interface for two-parameter type constructors.
  * Maps over the first parameter while preserving the second.
  */
-export interface Functor2<KindKey extends KindKeys2> {
+export interface Functor2<
+  KindKey extends KindKeys2,
+> {
   /** The kind key identifier */
   readonly KindKey: KindKey;
   /**
@@ -32,14 +40,18 @@ export interface Functor2<KindKey extends KindKeys2> {
    */
   map: <A, B, C>(
     f: (a: A) => B,
-  ) => (fa: Kind2<KindKey, A, C>) => Kind2<KindKey, B, C>;
+  ) => (
+    fa: Kind2<KindKey, A, C>,
+  ) => Kind2<KindKey, B, C>;
 }
 
 /**
  * Functor interface for three-parameter type constructors.
  * Maps over the first parameter while preserving others.
  */
-export interface Functor3<KindKey extends KindKeys3> {
+export interface Functor3<
+  KindKey extends KindKeys3,
+> {
   /** The kind key identifier */
   readonly KindKey: KindKey;
   /**
@@ -47,5 +59,7 @@ export interface Functor3<KindKey extends KindKeys3> {
    */
   map: <A, B, C, D>(
     f: (a: A) => B,
-  ) => (fa: Kind3<KindKey, A, C, D>) => Kind3<KindKey, B, C, D>;
+  ) => (
+    fa: Kind3<KindKey, A, C, D>,
+  ) => Kind3<KindKey, B, C, D>;
 }

@@ -1,5 +1,11 @@
 import { test, expect, assert } from "vitest";
-import { isStr, asStr, isOk, isErr, concat } from "plgg/index";
+import {
+  isStr,
+  asStr,
+  isOk,
+  isErr,
+  concat,
+} from "plgg/index";
 
 test("isStr correctly identifies string values", () => {
   // Valid strings
@@ -7,7 +13,9 @@ test("isStr correctly identifies string values", () => {
   expect(isStr("")).toBe(true);
   expect(isStr("123")).toBe(true);
   expect(isStr(" whitespace ")).toBe(true);
-  expect(isStr("special chars: !@#$%")).toBe(true);
+  expect(isStr("special chars: !@#$%")).toBe(
+    true,
+  );
 
   // Invalid types
   expect(isStr(123)).toBe(false);
@@ -23,7 +31,9 @@ test("asStr validates and returns string values", () => {
   // Example: User input validation
   const validString = asStr("user@example.com");
   assert(isOk(validString));
-  expect(validString.content).toBe("user@example.com");
+  expect(validString.content).toBe(
+    "user@example.com",
+  );
 
   const emptyString = asStr("");
   assert(isOk(emptyString));
@@ -32,19 +42,27 @@ test("asStr validates and returns string values", () => {
   // Example: API response validation
   const numberInput = asStr(123);
   assert(isErr(numberInput));
-  expect(numberInput.content.message).toBe("123 is not a string");
+  expect(numberInput.content.message).toBe(
+    "123 is not a string",
+  );
 
   const booleanInput = asStr(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.content.message).toBe("true is not a string");
+  expect(booleanInput.content.message).toBe(
+    "true is not a string",
+  );
 
   const nullInput = asStr(null);
   assert(isErr(nullInput));
-  expect(nullInput.content.message).toBe("null is not a string");
+  expect(nullInput.content.message).toBe(
+    "null is not a string",
+  );
 
   const undefinedInput = asStr(undefined);
   assert(isErr(undefinedInput));
-  expect(undefinedInput.content.message).toBe("undefined is not a string");
+  expect(undefinedInput.content.message).toBe(
+    "undefined is not a string",
+  );
 });
 
 test("asStr works in validation pipelines", () => {
@@ -54,31 +72,51 @@ test("asStr works in validation pipelines", () => {
     if (isErr(strResult)) return strResult;
 
     const email = strResult.content;
-    return email.includes("@") && email.includes(".")
+    return email.includes("@") &&
+      email.includes(".")
       ? { __tag: "Ok" as const, content: email }
-      : { __tag: "Err" as const, content: new Error("Invalid email format") };
+      : {
+          __tag: "Err" as const,
+          content: new Error(
+            "Invalid email format",
+          ),
+        };
   };
 
-  const validEmail = validateEmail("user@example.com");
+  const validEmail = validateEmail(
+    "user@example.com",
+  );
   assert(isOk(validEmail));
-  expect(validEmail.content).toBe("user@example.com");
+  expect(validEmail.content).toBe(
+    "user@example.com",
+  );
 
   const invalidType = validateEmail(123);
   assert(isErr(invalidType));
-  expect(invalidType.content.message).toBe("123 is not a string");
+  expect(invalidType.content.message).toBe(
+    "123 is not a string",
+  );
 
-  const invalidFormat = validateEmail("not-an-email");
+  const invalidFormat = validateEmail(
+    "not-an-email",
+  );
   assert(isErr(invalidFormat));
-  expect(invalidFormat.content.message).toBe("Invalid email format");
+  expect(invalidFormat.content.message).toBe(
+    "Invalid email format",
+  );
 });
 
 test("concat concatenates strings correctly", () => {
   // Basic concatenation
-  expect(concat(" world")("hello")).toBe("hello world");
+  expect(concat(" world")("hello")).toBe(
+    "hello world",
+  );
   expect(concat("")("test")).toBe("test");
 
   // Concatenating special characters
-  expect(concat("!@#$%")("special")).toBe("special!@#$%");
+  expect(concat("!@#$%")("special")).toBe(
+    "special!@#$%",
+  );
 
   // Concatenating with empty strings
   expect(concat("")("")).toBe("");
@@ -86,4 +124,3 @@ test("concat concatenates strings correctly", () => {
   // Concatenating with numbers as strings
   expect(concat("123")("456")).toBe("456123");
 });
-

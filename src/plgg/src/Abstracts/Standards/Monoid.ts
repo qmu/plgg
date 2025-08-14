@@ -20,8 +20,9 @@ import {
  * - Associativity: concat(concat(a, b), c) === concat(a, concat(b, c)) (inherited from Semigroup)
  *
  */
-export interface Monoid1<KindKey extends KindKeys1>
-  extends Semigroup1<KindKey> {
+export interface Monoid1<
+  KindKey extends KindKeys1,
+> extends Semigroup1<KindKey> {
   /**
    * The identity element for the concat operation.
    */
@@ -33,12 +34,17 @@ export interface Monoid1<KindKey extends KindKeys1>
  * Extends Semigroup with an identity element.
  *
  */
-export interface Monoid2<KindKey extends KindKeys2>
-  extends Semigroup2<KindKey> {
+export interface Monoid2<
+  KindKey extends KindKeys2,
+> extends Semigroup2<KindKey> {
   /**
    * The identity element for the concat operation for two-parameter types.
    */
-  empty: <A = never, B = never>() => Kind2<KindKey, A, B>;
+  empty: <A = never, B = never>() => Kind2<
+    KindKey,
+    A,
+    B
+  >;
 }
 
 /**
@@ -46,10 +52,15 @@ export interface Monoid2<KindKey extends KindKeys2>
  * Extends Semigroup with an identity element.
  *
  */
-export interface Monoid3<KindKey extends KindKeys3>
-  extends Semigroup3<KindKey> {
+export interface Monoid3<
+  KindKey extends KindKeys3,
+> extends Semigroup3<KindKey> {
   /**
    * The identity element for the concat operation for three-parameter types.
    */
-  empty: <A = never, B = never, C = never>() => Kind3<KindKey, A, B, C>;
+  empty: <
+    A = never,
+    B = never,
+    C = never,
+  >() => Kind3<KindKey, A, B, C>;
 }
