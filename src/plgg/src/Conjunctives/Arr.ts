@@ -180,23 +180,8 @@ export const { traverse: traverseArr, sequence: sequenceArr } = arrTraversable;
 // ------------------------------------
 
 /**
- * Validates that all array elements match a type predicate.
- * Returns a typed array if all elements pass the predicate.
- */
-export const every =
-  <T>(predicate: (value: unknown) => value is T) =>
-  (value: Arr): Result<Arr<T>, InvalidError> =>
-    value.every(predicate)
-      ? ok(value)
-      : err(
-          new InvalidError({
-            message: "Array elements do not match predicate",
-          }),
-        );
-
-/**
  * Applies function to each array element, collecting results.
- * Fails fast on first error encountered.
+ * Returns first error encountered, but processes all elements.
  */
 export const conclude =
   <T, U, F>(fn: (item: T) => Result<U, F>) =>

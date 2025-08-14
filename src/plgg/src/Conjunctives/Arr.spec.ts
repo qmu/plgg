@@ -1,12 +1,9 @@
 import { test, expect, assert } from "vitest";
 import {
   isArr,
-  every,
   asArr,
   isOk,
   isErr,
-  isStr,
-  isNum,
   mapArr,
   applyArr,
   ofArr,
@@ -22,6 +19,7 @@ import {
   none,
   isSome,
   isNone,
+  conclude,
   ok,
   err,
   Result,
@@ -85,69 +83,6 @@ test("Arr.cast should fail for non-arrays", () => {
   const result5 = asArr(123);
   assert(isErr(result5));
   expect(result5.content.message).toBe("Value is not an array");
-});
-
-test("Arr.every should succeed when all elements match predicate", () => {
-  const result1 = every(isStr)([]);
-  assert(isOk(result1));
-  expect(result1.content).toEqual([]);
-
-  const result2 = every(isStr)(["a", "b", "c"]);
-  assert(isOk(result2));
-  expect(result2.content).toEqual(["a", "b", "c"]);
-
-  const result3 = every(isNum)([1, 2, 3]);
-  assert(isOk(result3));
-  expect(result3.content).toEqual([1, 2, 3]);
-
-  const result4 = every((x): x is string => typeof x === "string")([
-    "hello",
-    "world",
-  ]);
-  assert(isOk(result4));
-  expect(result4.content).toEqual(["hello", "world"]);
-});
-
-test("Arr.every should fail when some elements don't match predicate", () => {
-  const result1 = every(isStr)([1, 2, 3]);
-  assert(isErr(result1));
-  expect(result1.content.message).toBe("Array elements do not match predicate");
-
-  const result2 = every(isStr)(["a", 1, "c"]);
-  assert(isErr(result2));
-  expect(result2.content.message).toBe("Array elements do not match predicate");
-
-  const result3 = every(isNum)(["a", "b", "c"]);
-  assert(isErr(result3));
-  expect(result3.content.message).toBe("Array elements do not match predicate");
-
-  const result4 = every((x): x is number => typeof x === "number")([1, "2", 3]);
-  assert(isErr(result4));
-  expect(result4.content.message).toBe("Array elements do not match predicate");
-});
-
-test("Arr.every with complex predicates", () => {
-  // Test with boolean predicate
-  const isBool = (x: unknown): x is boolean => typeof x === "boolean";
-
-  const result1 = every(isBool)([true, false, true]);
-  assert(isOk(result1));
-  expect(result1.content).toEqual([true, false, true]);
-
-  const result2 = every(isBool)([true, "false", true]);
-  assert(isErr(result2));
-  expect(result2.content.message).toBe("Array elements do not match predicate");
-
-  // Test with null/undefined
-  const isNotNull = (x: unknown): x is unknown => x != null;
-
-  const result3 = every(isNotNull)([1, "a", true]);
-  assert(isOk(result3));
-  expect(result3.content).toEqual([1, "a", true]);
-
-  const result4 = every(isNotNull)([1, null, true]);
-  assert(isErr(result4));
-  expect(result4.content.message).toBe("Array elements do not match predicate");
 });
 
 test("Arr Monad - map function", () => {
@@ -298,12 +233,28 @@ test("Arr Traversable - traverse with Array", () => {
   // traverse should give all combinations:
   // [1, 2], [1, 12], [11, 2], [11, 12]
   const r2 = pipe([1, 2], traverseArr(arrApplicative)(choices));
-  expect(r2).toEqual([[1, 2], [1, 12], [11, 2], [11, 12]]);
+  expect(r2).toEqual([
+    [1, 2],
+    [1, 12],
+    [11, 2],
+    [11, 12],
+  ]);
 });
 
 test("Arr Traversable - sequence with Array", () => {
-  const r1 = pipe([[1, 2], [3, 4]], sequenceArr(arrApplicative));
-  expect(r1).toEqual([[1, 3], [1, 4], [2, 3], [2, 4]]);
+  const r1 = pipe(
+    [
+      [1, 2],
+      [3, 4],
+    ],
+    sequenceArr(arrApplicative),
+  );
+  expect(r1).toEqual([
+    [1, 3],
+    [1, 4],
+    [2, 3],
+    [2, 4],
+  ]);
 
   const r2 = pipe([], sequenceArr(arrApplicative));
   expect(r2).toEqual([[]]);
@@ -314,7 +265,7 @@ test("Arr Traversable - sequence with Array", () => {
 
 test("Arr Traversable - collect results with Option (safe division)", () => {
   // Function that safely divides 10 by n, failing for zero or negative numbers
-  const safeDivide = (n: number) => n > 0 ? some(10 / n) : none();
+  const safeDivide = (n: number) => (n > 0 ? some(10 / n) : none());
 
   // Success case: all divisions succeed, results collected into Some([...])
   const r1 = pipe([1, 2, 5], traverseArr(optionApplicative)(safeDivide));
@@ -339,27 +290,39 @@ test("Arr Traversable - collect results with Option (validation)", () => {
   };
 
   // Success case: all strings are valid positive numbers
-  const r1 = pipe(["1", "2.5", "42"], traverseArr(optionApplicative)(parsePositive));
+  const r1 = pipe(
+    ["1", "2.5", "42"],
+    traverseArr(optionApplicative)(parsePositive),
+  );
   assert(isSome(r1));
   expect(r1.content).toEqual([1, 2.5, 42]);
 
   // Failure case: invalid number in array causes entire validation to fail
-  const r2 = pipe(["1", "invalid", "42"], traverseArr(optionApplicative)(parsePositive));
+  const r2 = pipe(
+    ["1", "invalid", "42"],
+    traverseArr(optionApplicative)(parsePositive),
+  );
   assert(isNone(r2));
 
   // Failure case: negative number causes validation to fail
-  const r3 = pipe(["1", "-5", "42"], traverseArr(optionApplicative)(parsePositive));
+  const r3 = pipe(
+    ["1", "-5", "42"],
+    traverseArr(optionApplicative)(parsePositive),
+  );
   assert(isNone(r3));
 
   // Failure case: zero causes validation to fail (not positive)
-  const r4 = pipe(["1", "0", "42"], traverseArr(optionApplicative)(parsePositive));
+  const r4 = pipe(
+    ["1", "0", "42"],
+    traverseArr(optionApplicative)(parsePositive),
+  );
   assert(isNone(r4));
 });
 
 test("Arr Traversable - empty array edge cases", () => {
   // Empty arrays should always succeed regardless of the effectful function
   const alwaysFails = (_: unknown) => none();
-  const maybeSucceeds = (x: number) => x > 0 ? some(x * 2) : none();
+  const maybeSucceeds = (x: number) => (x > 0 ? some(x * 2) : none());
 
   // Even functions that always fail should succeed on empty arrays
   const r1 = pipe([], traverseArr(optionApplicative)(alwaysFails));
@@ -375,98 +338,96 @@ test("Arr Traversable - empty array edge cases", () => {
   // traverse(f, []) === pure([]) for any function f
 });
 
-test("Batch API requests with Result collection", () => {
-  // Real scenario: Making multiple API calls and collecting all results or failing fast
-  type User = { id: number; name: string };
-  
-  const fetchUser = (id: number): Result<User, string> => {
-    if (id === 999) return err(`User ${id} not found`);
-    if (id < 0) return err(`Invalid user ID: ${id}`);
-    return ok({ id, name: `User${id}` });
+test("conclude - success case with all valid results", () => {
+  const parseNumber = (s: string): Result<number, string> => {
+    const num = Number(s);
+    return isNaN(num) ? err("Invalid number") : ok(num);
   };
 
-  // Success case: all API calls succeed, results collected into Some([User1, User2, User3])
-  const userIds = [1, 2, 3];
-  const result1 = pipe(userIds, traverseArr(optionApplicative)((id: number) => {
-    const userResult = fetchUser(id);
-    return isOk(userResult) ? some(userResult.content) : none();
-  }));
-  
-  assert(isSome(result1));
-  expect(result1.content).toHaveLength(3);
-  expect(result1.content[0]).toEqual({ id: 1, name: "User1" });
-  expect(result1.content[1]).toEqual({ id: 2, name: "User2" });
-  expect(result1.content[2]).toEqual({ id: 3, name: "User3" });
+  const r1 = pipe([], conclude(parseNumber));
+  assert(isOk(r1));
+  expect(r1.content).toEqual([]);
 
-  // Failure case: one API call fails, entire batch fails with None
-  const failingIds = [1, 999, 3];
-  const result2 = pipe(failingIds, traverseArr(optionApplicative)((id: number) => {
-    const userResult = fetchUser(id);
-    return isOk(userResult) ? some(userResult.content) : none();
-  }));
-  
-  assert(isNone(result2));
+  const r2 = pipe(["1", "2", "3"], conclude(parseNumber));
+  assert(isOk(r2));
+  expect(r2.content).toEqual([1, 2, 3]);
 
-  // Empty array case: succeeds with empty result
-  const result3 = pipe([], traverseArr(optionApplicative)((id: number) => {
-    const userResult = fetchUser(id);
-    return isOk(userResult) ? some(userResult.content) : none();
-  }));
-  assert(isSome(result3));
-  expect(result3.content).toEqual([]);
+  const r3 = pipe(["42", "3.14", "0"], conclude(parseNumber));
+  assert(isOk(r3));
+  expect(r3.content).toEqual([42, 3.14, 0]);
 });
 
-test("Config file validation pipeline", () => {
-  // Real scenario: Validating configuration files and collecting all valid configs
-  type Config = { service: string; port: number; enabled: boolean };
-  
-  const validateConfig = (raw: string): Result<Config, string> => {
-    try {
-      const data = JSON.parse(raw);
-      if (!data.service || typeof data.port !== 'number') {
-        return err("Invalid config format");
-      }
-      return ok({ 
-        service: data.service, 
-        port: data.port, 
-        enabled: data.enabled || false 
-      });
-    } catch {
-      return err("Invalid JSON");
+test("conclude - failure case with first error returned", () => {
+  const parsePositiveNumber = (s: string): Result<number, string> => {
+    const num = Number(s);
+    if (isNaN(num)) {
+      return err("Invalid number: " + s);
     }
+    if (num <= 0) {
+      return err("Non-positive number: " + s);
+    }
+    return ok(num);
   };
 
-  const configStrings = [
-    '{"service":"auth","port":8080,"enabled":true}',
-    '{"service":"db","port":5432}',
-    '{"service":"cache","port":6379,"enabled":false}'
-  ];
+  const r1 = pipe(["invalid"], conclude(parsePositiveNumber));
+  assert(isErr(r1));
+  expect(r1.content).toBe("Invalid number: invalid");
 
-  // Success case: all configs valid
-  const result1 = pipe(configStrings, traverseArr(optionApplicative)((config: string) => {
-    const configResult = validateConfig(config);
-    return isOk(configResult) ? some(configResult.content) : none();
-  }));
-  
-  assert(isSome(result1));
-  expect(result1.content).toHaveLength(3);
-  const configs = result1.content;
-  expect(configs[0]).toEqual({ service: "auth", port: 8080, enabled: true });
-  expect(configs[1]).toEqual({ service: "db", port: 5432, enabled: false });
-  expect(configs[2]).toEqual({ service: "cache", port: 6379, enabled: false });
+  const r2 = pipe(["1", "invalid", "3"], conclude(parsePositiveNumber));
+  assert(isErr(r2));
+  expect(r2.content).toBe("Invalid number: invalid");
 
-  // Failure case: invalid config breaks the pipeline
-  const invalidConfigs = [
-    '{"service":"auth","port":8080}',
-    'invalid json',
-    '{"service":"cache","port":6379}'
-  ];
-  
-  const result2 = pipe(invalidConfigs, traverseArr(optionApplicative)((config: string) => {
-    const configResult = validateConfig(config);
-    return isOk(configResult) ? some(configResult.content) : none();
-  }));
-  
-  assert(isNone(result2));
+  const r3 = pipe(["1", "-5", "3"], conclude(parsePositiveNumber));
+  assert(isErr(r3));
+  expect(r3.content).toBe("Non-positive number: -5");
+
+  const r4 = pipe(["-1", "invalid", "0"], conclude(parsePositiveNumber));
+  assert(isErr(r4));
+  expect(r4.content).toBe("Non-positive number: -1");
 });
 
+test("conclude - mixed types transformation", () => {
+  const processValue = (x: number): Result<string, string> => {
+    if (x < 0) {
+      return err("Negative value not allowed");
+    }
+    if (x === 0) {
+      return ok("zero");
+    }
+    if (x === 1) {
+      return ok("one");
+    }
+    return ok(`number: ${x}`);
+  };
+
+  const r1 = pipe([0, 1, 2, 10], conclude(processValue));
+  assert(isOk(r1));
+  expect(r1.content).toEqual(["zero", "one", "number: 2", "number: 10"]);
+
+  const r2 = pipe([1, -1, 2], conclude(processValue));
+  assert(isErr(r2));
+  expect(r2.content).toBe("Negative value not allowed");
+});
+
+test("conclude - processes all elements but returns first error", () => {
+  let callCount = 0;
+  const trackingFunction = (x: number): Result<number, string> => {
+    callCount++;
+    if (x === 2) {
+      return err("Error at 2");
+    }
+    return ok(x * 10);
+  };
+
+  callCount = 0;
+  const r1 = pipe([1, 2, 3, 4], conclude(trackingFunction));
+  assert(isErr(r1));
+  expect(r1.content).toBe("Error at 2");
+  expect(callCount).toBe(4);
+
+  callCount = 0;
+  const r2 = pipe([1, 3, 4], conclude(trackingFunction));
+  assert(isOk(r2));
+  expect(r2.content).toEqual([10, 30, 40]);
+  expect(callCount).toBe(3);
+});
