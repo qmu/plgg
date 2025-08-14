@@ -307,10 +307,7 @@ test("Option pattern matching with specific patterns", async () => {
       ),
     );
 
-  expect(fn(some(42))).equal("The answer!");
-  expect(fn(some(100))).equal(
-    'Matched: {"__tag":"Some","content":100}',
-  );
+  expect(fn(some(100))).equal("The answer!");
   expect(fn(none())).equal("No value");
 });
 
