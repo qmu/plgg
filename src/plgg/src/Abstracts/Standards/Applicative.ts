@@ -20,6 +20,7 @@ import {
  * - Homomorphism: ap(of(f), of(x)) === of(f(x))
  * - Interchange: ap(u, of(y)) === ap(of(f => f(y)), u)
  *
+ * @template KindKey - The kind identifier for this applicative
  */
 export interface Applicative1<KindKey extends KindKeys1>
   extends Apply1<KindKey>,
@@ -28,6 +29,7 @@ export interface Applicative1<KindKey extends KindKeys1>
 /**
  * Applicative functor interface for two-parameter type constructors.
  *
+ * @template KindKey - The kind identifier for this applicative
  */
 export interface Applicative2<KindKey extends KindKeys2>
   extends Apply2<KindKey>,
@@ -36,6 +38,7 @@ export interface Applicative2<KindKey extends KindKeys2>
 /**
  * Applicative functor interface for three-parameter type constructors.
  *
+ * @template KindKey - The kind identifier for this applicative
  */
 export interface Applicative3<KindKey extends KindKeys3>
   extends Apply3<KindKey>,

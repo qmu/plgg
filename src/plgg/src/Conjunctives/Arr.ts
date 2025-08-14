@@ -17,7 +17,7 @@ import {
   resultApplicative,
 } from "plgg/index";
 
-declare module "plgg/Abstracts/Theoreticals/Kind" {
+declare module "plgg/Abstracts/Standards/Kind" {
   export interface KindKeytoKind1<A> {
     Arr: Arr<A>;
   }

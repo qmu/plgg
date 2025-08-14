@@ -62,7 +62,7 @@ export const isErr = <F>(e: unknown): e is Err<F> => hasTag(errTag)(e);
 export const isResult = <T, F>(e: unknown): e is Result<T, F> =>
   isOk<T>(e) || isErr<F>(e);
 
-declare module "plgg/Abstracts/Theoreticals/Kind" {
+declare module "plgg/Abstracts/Standards/Kind" {
   export interface KindKeytoKind2<A, B> {
     Result: Result<A, B>;
   }
@@ -207,4 +207,5 @@ export const resultTraversable: Traversable2<"Result"> = {
     },
 };
 
-export const { traverse: traverseResult, sequence: sequenceResult } = resultTraversable;
+export const { traverse: traverseResult, sequence: sequenceResult } =
+  resultTraversable;
