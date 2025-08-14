@@ -17,13 +17,10 @@ import {
  * Apply law:
  * - Composition: ap(ap(map(compose, u), v), w) === ap(u, ap(v, w))
  *
- * @template KindKey - The kind identifier for this apply functor
  */
 export interface Apply1<KindKey extends KindKeys1> extends Functor1<KindKey> {
   /**
    * Applies a wrapped function to a wrapped value.
-   * @param fab - Wrapped function to apply
-   * @returns Function that takes a wrapped value and applies the wrapped function
    */
   ap: <A, B>(
     fab: Kind1<KindKey, (a: A) => B>,
@@ -33,13 +30,10 @@ export interface Apply1<KindKey extends KindKeys1> extends Functor1<KindKey> {
 /**
  * Apply interface for two-parameter type constructors.
  *
- * @template KindKey - The kind identifier for this apply functor
  */
 export interface Apply2<KindKey extends KindKeys2> extends Functor2<KindKey> {
   /**
    * Applies a wrapped function to a wrapped value for two-parameter types.
-   * @param fab - Wrapped function to apply
-   * @returns Function that takes a wrapped value and applies the wrapped function
    */
   ap: <A, B, C>(
     fab: Kind2<KindKey, (a: A) => B, C>,
@@ -49,13 +43,10 @@ export interface Apply2<KindKey extends KindKeys2> extends Functor2<KindKey> {
 /**
  * Apply interface for three-parameter type constructors.
  *
- * @template KindKey - The kind identifier for this apply functor
  */
 export interface Apply3<KindKey extends KindKeys3> extends Functor3<KindKey> {
   /**
    * Applies a wrapped function to a wrapped value for three-parameter types.
-   * @param fab - Wrapped function to apply
-   * @returns Function that takes a wrapped value and applies the wrapped function
    */
   ap: <A, B, C, D>(
     fab: Kind3<KindKey, (a: A) => B, C, D>,

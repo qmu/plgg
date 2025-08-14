@@ -145,16 +145,11 @@ type MapperArg<T> = T extends PartialBodyVariant
 
 /**
  * Represents a pattern-handler pair for matching.
- * @template T - The pattern type to match against
- * @template R - The return type of the handler
  */
 type MatchOption<T, R> = [T, (a: MapperArg<T>) => R];
 
 /**
  * Deep equality check for partial objects used in variant pattern matching.
- * @param obj1 - The complete object to compare
- * @param obj2 - The partial pattern to match against
- * @returns True if all properties in obj2 match those in obj1
  */
 function deepPartialEqual<T>(obj1: T, obj2: Partial<T>): boolean {
   const isObject = (obj: unknown): obj is object =>
@@ -174,16 +169,6 @@ function deepPartialEqual<T>(obj1: T, obj2: Partial<T>): boolean {
 
 /**
  * Type-safe pattern matching for values, variants, and literals.
- * Provides exhaustive matching with compile-time verification.
- * 
- * @param o1 - First pattern-handler pair
- * @param o2 - Second pattern-handler pair (can be OTHERWISE for catch-all)
- * @returns Function that matches input against patterns
- * @example
- * const handleOption = match(
- *   [some({ content: true }), (some) => some.content],
- *   [none(), () => false]
- * );
  */
 export function match<
   O1,
@@ -981,11 +966,6 @@ export function match<
 
 /**
  * Runtime implementation of pattern matching.
- * Processes pattern-handler pairs sequentially until a match is found.
- * 
- * @param options - Array of [pattern, handler] tuples
- * @returns Function that takes a value and returns the result of the matched handler
- * @throws Error if no pattern matches and no OTHERWISE clause is provided
  */
 export function match(
   ...options: ReadonlyArray<[unknown, (ma: unknown) => unknown]>

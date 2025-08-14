@@ -26,11 +26,6 @@ declare module "plgg/Abstracts/Theoreticals/Kind" {
 /**
  * Readonly array type for functional programming operations.
  * Provides a type-safe wrapper around JavaScript arrays with immutable operations.
- *
- * @template T - Type of array elements (defaults to unknown)
- * @example
- * const numbers: Arr<number> = [1, 2, 3];
- * const strings: Arr<string> = ['a', 'b', 'c'];
  */
 export type Arr<T extends unknown = unknown> = ReadonlyArray<T>;
 
@@ -54,10 +49,6 @@ export const { is: isArr, as: asArr } = arrRefinement;
 /**
  * Functor instance for Arr.
  * Provides the ability to map functions over array elements while preserving structure.
- *
- * @example
- * const double = (x: number) => x * 2;
- * mapArr(double)([1, 2, 3]); // [2, 4, 6]
  */
 export const arrFunctor: Functor1<"Arr"> = {
   KindKey: "Arr",
@@ -73,12 +64,6 @@ export const { map: mapArr } = arrFunctor;
 /**
  * Apply instance for Arr.
  * Extends Functor with the ability to apply wrapped functions to wrapped values.
- * Creates cartesian product by applying each function to each value.
- *
- * @example
- * const fns = [(x: number) => x * 2, (x: number) => x + 1];
- * const values = [1, 2];
- * applyArr(fns)(values); // [2, 4, 2, 3]
  */
 export const arrApply: Apply1<"Arr"> = {
   ...arrFunctor,
@@ -95,10 +80,6 @@ export const { ap: applyArr } = arrApply;
 /**
  * Pointed instance for Arr.
  * Provides the ability to wrap a single value in an array context.
- *
- * @example
- * ofArr(42); // [42]
- * ofArr('hello'); // ['hello']
  */
 export const arrPointed: Pointed1<"Arr"> = {
   ...arrFunctor,
@@ -124,12 +105,7 @@ export const arrApplicative: Applicative1<"Arr"> = {
 
 /**
  * Chain instance for Arr.
- * Extends Apply with the ability to chain operations that return arrays,
- * automatically flattening nested arrays to prevent Arr<Arr<T>>.
- *
- * @example
- * const duplicate = (x: number) => [x, x];
- * chainArr(duplicate)([1, 2]); // [1, 1, 2, 2]
+ * Extends Apply with the ability to chain operations that return arrays.
  */
 export const arrChain: Chain1<"Arr"> = {
   ...arrFunctor,
@@ -147,13 +123,6 @@ export const { chain: chainArr } = arrChain;
 /**
  * Monad instance for Arr.
  * Combines Applicative and Chain to provide the full monadic interface.
- * Satisfies monad laws and enables powerful composition patterns.
- *
- * Available operations:
- * - map: Transform elements
- * - ap: Apply functions to values
- * - of: Lift values into arrays
- * - chain: Flatten nested operations
  */
 export const arrMonad: Monad1<"Arr"> = {
   ...arrApplicative,
@@ -164,13 +133,7 @@ export const arrMonad: Monad1<"Arr"> = {
 
 /**
  * Foldable instance for Arr.
- * Provides the ability to fold/reduce arrays to single values with both
- * left-associative and right-associative operations.
- *
- * @example
- * const sum = (a: number, b: number) => a + b;
- * foldrArr(sum)(0)([1, 2, 3]); // 6
- * foldlArr((acc: number, x: number) => acc + x)(0)([1, 2, 3]); // 6
+ * Provides fold/reduce operations for arrays with left and right associativity.
  */
 export const arrFoldable: Foldable1<"Arr"> = {
   KindKey: "Arr",
@@ -192,16 +155,7 @@ export const { foldr: foldrArr, foldl: foldlArr } = arrFoldable;
 
 /**
  * Traversable instance for Arr.
- * Extends both Functor and Foldable to provide structure-preserving traversal
- * that allows applying effects while maintaining the array structure.
- *
- * @example
- * import { resultApplicative, ok } from "plgg/index";
- * const parseNumber = (s: string) =>
- *   isNaN(Number(s)) ? err(new Error("Not a number")) : ok(Number(s));
- *
- * traverseArr(resultApplicative)(parseNumber)(["1", "2", "3"]); // Ok([1, 2, 3])
- * traverseArr(resultApplicative)(parseNumber)(["1", "x", "3"]); // Err(Error)
+ * Extends Functor and Foldable to provide structure-preserving traversal.
  */
 export const arrTraversable: Traversable1<"Arr"> = {
   ...arrFunctor,
@@ -240,9 +194,11 @@ export const every =
           }),
         );
 
-export const collect =
+/**
+ * Applies function to each array element, collecting results.
+ * Fails fast on first error encountered.
+ */
+export const conclude =
   <T, U, F>(fn: (item: T) => Result<U, F>) =>
-  (arr: ReadonlyArray<T>): Result<Arr<U>, F> => {
-    const r = traverseArr(resultApplicative)(fn)(arr);
-    return r;
-  };
+  (arr: Arr<T>): Result<Arr<U>, F> =>
+    traverseArr(resultApplicative)(fn)(arr);

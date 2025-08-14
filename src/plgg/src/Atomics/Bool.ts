@@ -2,13 +2,11 @@ import { Result, ok, err, InvalidError, Refinement } from "plgg/index";
 
 /**
  * Boolean true constant for type-safe boolean operations.
- * @constant
  */
 export const TRUE = true as const;
 
 /**
  * Boolean false constant for type-safe boolean operations.
- * @constant
  */
 export const FALSE = false as const;
 

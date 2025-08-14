@@ -8,10 +8,6 @@ export type Time = Date;
 
 /**
  * Type guard for valid date strings.
- * Checks if a string can be parsed into a valid Date.
- * 
- * @param value - Value to check
- * @returns True if value is a parseable date string
  */
 const isDateString = (value: unknown): value is string =>
   isStr(value) && !isNaN(new Date(value).getTime());

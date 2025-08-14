@@ -21,12 +21,6 @@ export const { is: isStr, as: asStr } = strRefinement;
 
 /**
  * Concatenates two strings using curried application.
- * 
- * @param adding - The string to append
- * @returns Function that takes the base string and returns the concatenated result
- * @example
- * const addWorld = concat(" World");
- * const result = addWorld("Hello"); // "Hello World"
  */
 export const concat =
   (adding: Str) =>

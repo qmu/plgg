@@ -2,15 +2,6 @@ import { isOk, ok, Result, InvalidError, err, NonNeverFn } from "plgg/index";
 
 /**
  * Synchronous function composition with error accumulation for Result types.
- * Chains functions that return Result values, collecting all validation errors.
- * Unlike plgg (async), this processes functions sequentially and accumulates validation errors.
- * 
- * @param a - Initial value to process
- * @param ab - Function to transform A to Result<B, ERR>
- * @returns Result containing final value or accumulated errors
- * @example
- * const result = cast("123", asNum); // Ok(123)
- * const invalid = cast("not-number", asNum); // Err(InvalidError)
  */
 export function cast<A, B, ERR>(
   a: A,
@@ -18,10 +9,6 @@ export function cast<A, B, ERR>(
 ): Result<B, ERR>;
 /**
  * Two-step synchronous function composition with error accumulation.
- * @param a - Initial value
- * @param ab - First transformation function
- * @param bc - Second transformation function
- * @returns Result containing final value or accumulated errors
  */
 export function cast<A, B, C, ERR>(
   a: A,
@@ -358,12 +345,6 @@ export function cast<
 
 /**
  * Implementation function for cast that processes any number of functions.
- * Synchronous composition of Result-returning functions with error accumulation.
- * Unlike plgg (async), this processes functions sequentially and accumulates validation errors.
- * 
- * @param value - Initial value to process
- * @param fns - Array of functions to chain
- * @returns Result containing final value or accumulated InvalidError with siblings
  */
 export function cast(
   value: unknown,

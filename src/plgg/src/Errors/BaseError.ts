@@ -29,9 +29,6 @@ export class BaseError extends Error {
 
   /**
    * Creates a new BaseError instance.
-   * 
-   * @param message - Error message
-   * @param parent - Optional parent error for chaining
    */
   constructor(message: string, parent?: BaseError | Error) {
     super(message);

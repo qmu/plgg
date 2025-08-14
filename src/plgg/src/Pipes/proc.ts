@@ -12,18 +12,6 @@ import {
 
 /**
  * Async function composition with error short-circuiting for Procedural types.
- * Chains functions that return Procedural values, stopping on first error.
- * Unlike cast (synchronous), this handles async operations and stops on first error.
- *
- * @param a - Initial value to process
- * @param ab - Function to transform A to Procedural<B>
- * @returns Promise resolving to Result containing final value or error
- * @example
- * const result = await plgg(
- *   "123",
- *   async (s) => ok(parseInt(s)),
- *   async (n) => n > 0 ? ok(n * 2) : err(new Error("Invalid"))
- * ); // Promise<Result<number, Error>>
  */
 export function proc<A, B>(
   a: A,
@@ -341,11 +329,6 @@ export function proc<
 
 /**
  * Implementation function that chains any number of Procedural-returning functions.
- * Processes functions sequentially, stopping on first error.
- *
- * @param value - Initial value to process
- * @param fns - Array of functions that return Procedural values
- * @returns Promise resolving to Result with final value or first encountered error
  */
 export async function proc(
   value: unknown,
