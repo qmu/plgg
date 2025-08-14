@@ -35,7 +35,7 @@ export type Some<T> = ParametricVariant<
  * Pattern constructor for Some matching.
  * Used in pattern matching to match Some values.
  */
-export const Some = <T>(a: T) =>
+export const Some = <T>(a?: T) =>
   pattern<Some<T>>(someTag)(a);
 
 /**
@@ -77,4 +77,3 @@ export const someCastable: Castable1<"Some"> = {
 
 export const { is: isSome } = someRefinable;
 export const { as: asSome } = someCastable;
-

@@ -302,13 +302,8 @@ test("Option pattern matching with specific patterns", async () => {
     pipe(
       a,
       match(
-        [Some(42), () => "The answer!"],
+        [Some(), () => "The answer!"],
         [None(), () => "No value"],
-        [
-          OTHERWISE,
-          (value) =>
-            `Matched: ${JSON.stringify(value)}`,
-        ],
       ),
     );
 
@@ -324,7 +319,10 @@ test("Option pattern matching with OTHERWISE", async () => {
     pipe(
       a,
       match(
-        [Some("success"), () => "Specific success"],
+        [
+          Some("success"),
+          () => "Specific success",
+        ],
         [
           OTHERWISE,
           (value) =>

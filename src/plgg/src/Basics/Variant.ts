@@ -91,7 +91,7 @@ export function pattern<
 >(__tag: TAG) {
   function maker(): FixedVariant<TAG>;
   function maker(
-    content: PCONTENT,
+    content?: PCONTENT,
   ): ParametricVariant<TAG, PCONTENT>;
   function maker(
     content?: PCONTENT,
