@@ -23,16 +23,21 @@ const isDateString = (
   !isNaN(new Date(value).getTime());
 
 /**
+ * Type guard to check if a value is a Time.
+ */
+const is = (value: unknown): value is Time =>
+  value instanceof Date;
+
+/**
  * Refinement instance for Time validation and casting.
  * Provides type-safe Date validation following the standard Refinement pattern.
  */
 export const timeRefinement: Refinement<Time> = {
-  is: (value: unknown): value is Time =>
-    value instanceof Date,
+  is,
   as: (
     value: unknown,
   ): Result<Time, InvalidError> =>
-    value instanceof Date
+    is(value)
       ? ok(value)
       : isDateString(value)
         ? ok(new Date(value))

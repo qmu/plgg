@@ -22,16 +22,21 @@ export const FALSE = false as const;
 export type Bool = typeof TRUE | typeof FALSE;
 
 /**
+ * Type guard to check if a value is a Bool.
+ */
+const is = (value: unknown): value is Bool =>
+  typeof value === "boolean";
+
+/**
  * Refinement instance for boolean validation and casting.
  * Provides type-safe boolean validation following the standard Refinement pattern.
  */
 export const boolRefinement: Refinement<Bool> = {
-  is: (value: unknown): value is Bool =>
-    typeof value === "boolean",
+  is,
   as: (
     value: unknown,
   ): Result<Bool, InvalidError> =>
-    typeof value === "boolean"
+    is(value)
       ? ok(value)
       : err(
           new InvalidError({

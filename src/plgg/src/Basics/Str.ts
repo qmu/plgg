@@ -13,16 +13,21 @@ import {
 export type Str = string;
 
 /**
+ * Type guard to check if a value is a Str.
+ */
+const is = (value: unknown): value is Str =>
+  typeof value === "string";
+
+/**
  * Refinement instance for string validation and casting.
  * Provides type-safe string validation following the standard Refinement pattern.
  */
 export const strRefinement: Refinement<Str> = {
-  is: (value: unknown): value is Str =>
-    typeof value === "string",
+  is,
   as: (
     value: unknown,
   ): Result<Str, InvalidError> =>
-    typeof value === "string"
+    is(value)
       ? ok(value)
       : err(
           new InvalidError({

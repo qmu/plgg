@@ -13,22 +13,24 @@ import {
 export type Num = number;
 
 /**
+ * Type guard to check if a value is a Num.
+ */
+const is = (value: unknown): value is Num =>
+  typeof value === "number" ||
+  (typeof value === "bigint" &&
+    value >= Number.MIN_SAFE_INTEGER &&
+    value <= Number.MAX_SAFE_INTEGER);
+
+/**
  * Refinement instance for number validation and casting.
  * Provides type-safe number validation following the standard Refinement pattern.
  */
 export const numRefinement: Refinement<Num> = {
-  is: (value: unknown): value is Num =>
-    typeof value === "number" ||
-    (typeof value === "bigint" &&
-      value >= Number.MIN_SAFE_INTEGER &&
-      value <= Number.MAX_SAFE_INTEGER),
+  is,
   as: (
     value: unknown,
   ): Result<Num, InvalidError> =>
-    typeof value === "number" ||
-    (typeof value === "bigint" &&
-      value >= Number.MIN_SAFE_INTEGER &&
-      value <= Number.MAX_SAFE_INTEGER)
+    is(value)
       ? ok(Number(value))
       : err(
           new InvalidError({
