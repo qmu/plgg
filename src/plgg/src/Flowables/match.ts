@@ -68,7 +68,10 @@ type FullCoveragedVariants<
   OPTIONS extends ReadonlyArray<unknown>,
   A,
 > = If<
-  IsFixedVariantAll<OPTIONS>,
+  Or<
+    IsFixedVariantAll<OPTIONS>,
+    IsWildParametricVariantAll<OPTIONS>
+  >,
   IsUnionSubset<A, TupleToUnion<OPTIONS>>,
   false
 >;
@@ -130,7 +133,7 @@ type IsAllVariant<
 /**
  * Checks if T is a fixed variant (variant with only __tag property).
  */
-type IsFixedVariant<T> = T extends {
+type IsFixedVariantPattern<T> = T extends {
   __tag: string;
 }
   ? keyof T extends "__tag"
@@ -148,10 +151,36 @@ type IsFixedVariant<T> = T extends {
 type IsFixedVariantAll<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
-  ? IsFixedVariant<Head> extends true
+  ? IsFixedVariantPattern<Head> extends true
     ? IsFixedVariantAll<Tail>
     : false
   : true;
+
+/**
+ * Checks if T is a wild parametric variant without actual pattern.
+ */
+type IsWildParametricVariantAll<
+  ARR extends ReadonlyArray<unknown>,
+> = ARR extends [infer Head, ...infer Tail]
+  ? IsWildParametricVariantPattern<Head> extends true
+    ? IsWildParametricVariantAll<Tail>
+    : false
+  : true;
+
+/**
+ * Type predicate for wild parametric variant patterns.
+ */
+type IsWildParametricVariantPattern<T> =
+  T extends Variant<
+    infer Tag,
+    Partial<infer Content>
+  >
+    ? Is<Tag, string> extends true
+      ? IsEqual<Content, unknown> extends true
+        ? true
+        : false
+      : false
+    : false;
 
 /**
  * Variant type with partial content for pattern matching.
