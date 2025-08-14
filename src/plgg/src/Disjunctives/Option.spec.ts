@@ -4,6 +4,7 @@ import {
   newNone,
   isSome,
   isNone,
+  isOption,
   Option,
   mapOption,
   applyOption,
@@ -378,4 +379,25 @@ test("Option Functor Laws - Composition", () => {
   );
 
   expect(r1).toEqual(r2);
+});
+
+test("isOption - type guard for Option types", () => {
+  // Test with Some values
+  const someValue = newSome(42);
+  expect(isOption(someValue)).toBe(true);
+  
+  const someString = newSome("hello");
+  expect(isOption(someString)).toBe(true);
+  
+  // Test with None
+  const noneValue = newNone();
+  expect(isOption(noneValue)).toBe(true);
+  
+  // Test with non-Option values
+  expect(isOption(42)).toBe(false);
+  expect(isOption("string")).toBe(false);
+  expect(isOption(null)).toBe(false);
+  expect(isOption(undefined)).toBe(false);
+  expect(isOption({})).toBe(false);
+  expect(isOption([])).toBe(false);
 });
