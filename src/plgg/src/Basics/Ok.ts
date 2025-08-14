@@ -7,6 +7,7 @@ import {
   InvalidError,
   Refinable1,
   Castable1,
+  pattern,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Standards/Kind" {
@@ -29,6 +30,9 @@ export type Ok<T> = ParametricVariant<
   T
 >;
 
+export const Ok = <T>(a: T) =>
+  pattern<Ok<T>>(okTag)(a);
+
 /**
  * Creates an Ok instance containing a success value.
  */
@@ -45,15 +49,16 @@ const is = <T>(e: unknown): e is Ok<T> =>
  * Refinable instance for Ok type guards.
  */
 export const okRefinable: Refinable1<"Ok"> = {
-  KindKey: "Ok",
+  KindKey: okTag,
   is,
 };
+export const { is: isOk } = okRefinable;
 
 /**
  * Castable instance for Ok safe casting.
  */
 export const okCastable: Castable1<"Ok"> = {
-  KindKey: "Ok",
+  KindKey: okTag,
   as: <A>(
     value: unknown,
   ): Result<Ok<A>, InvalidError> =>
@@ -65,6 +70,4 @@ export const okCastable: Castable1<"Ok"> = {
           }),
         ),
 };
-
-export const { is: isOk } = okRefinable;
 export const { as: asOk } = okCastable;

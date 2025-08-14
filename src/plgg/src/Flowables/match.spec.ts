@@ -10,6 +10,10 @@ import {
   pattern,
   construct,
   OTHERWISE,
+  Ok,
+  ok,
+  err,
+  Result,
 } from "plgg/index";
 
 test("number", async () => {
@@ -183,4 +187,84 @@ test("Variant2", async () => {
   });
 
   expect(fn(realAst)).equal("branch");
+});
+
+test("Result pattern matching", async () => {
+  const fn = (a: Result<string, number>) =>
+    pipe(
+      a,
+      match(
+        [ok("hello"), () => "Specific hello"],
+        [
+          OTHERWISE,
+          (value) =>
+            `Matched: ${JSON.stringify(value)}`,
+        ],
+      ),
+    );
+
+  const successResult = ok("hello");
+  const errorResult = err(404);
+
+  expect(fn(successResult)).equal(
+    "Specific hello",
+  );
+  expect(fn(errorResult)).equal(
+    'Matched: {"__tag":"Err","content":404}',
+  );
+});
+
+test("Result pattern matching with specific patterns", async () => {
+  const fn = (a: Result<number, string>) =>
+    pipe(
+      a,
+      match(
+        [ok(42), () => "The answer!"],
+        [
+          err("not_found"),
+          () => "Not found error",
+        ],
+        [
+          OTHERWISE,
+          (value) =>
+            `Matched: ${JSON.stringify(value)}`,
+        ],
+      ),
+    );
+
+  expect(fn(ok(42))).equal("The answer!");
+  expect(fn(ok(100))).equal(
+    'Matched: {"__tag":"Ok","content":100}',
+  );
+  expect(fn(err("not_found"))).equal(
+    "Not found error",
+  );
+  expect(fn(err("server_error"))).equal(
+    'Matched: {"__tag":"Err","content":"server_error"}',
+  );
+});
+
+test("Result pattern matching with OTHERWISE", async () => {
+  const fn = (a: Result<string, number>) =>
+    pipe(
+      a,
+      match(
+        [Ok("success"), () => "Specific success"],
+        [
+          OTHERWISE,
+          (value) =>
+            `Fallback: ${JSON.stringify(value)}`,
+        ],
+      ),
+    );
+
+  expect(fn(ok("success"))).equal(
+    "Specific success",
+  );
+  expect(fn(ok("other"))).equal(
+    'Fallback: {"__tag":"Ok","content":"other"}',
+  );
+  expect(fn(err(500))).equal(
+    'Fallback: {"__tag":"Err","content":500}',
+  );
 });

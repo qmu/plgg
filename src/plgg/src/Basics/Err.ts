@@ -7,6 +7,7 @@ import {
   InvalidError,
   Refinable1,
   Castable1,
+  pattern,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Standards/Kind" {
@@ -29,6 +30,9 @@ export type Err<F> = ParametricVariant<
   F
 >;
 
+export const Err = <T>(a: T) =>
+  pattern<Err<T>>(errTag)(a);
+
 /**
  * Creates an Err instance containing an error value.
  */
@@ -45,7 +49,7 @@ const is = <F>(e: unknown): e is Err<F> =>
  * Refinable instance for Err type guards.
  */
 export const errRefinable: Refinable1<"Err"> = {
-  KindKey: "Err",
+  KindKey: errTag,
   is,
 };
 export const { is: isErr } = errRefinable;
@@ -54,7 +58,7 @@ export const { is: isErr } = errRefinable;
  * Castable instance for Err safe casting.
  */
 export const errCastable: Castable1<"Err"> = {
-  KindKey: "Err",
+  KindKey: errTag,
   as: <A>(
     value: unknown,
   ): Result<Err<A>, InvalidError> =>
