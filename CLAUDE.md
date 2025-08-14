@@ -1,2 +1,4 @@
-* Fix compilation error with `sh/tsc-plgg.sh` to check type errors.
-* `as` `any`, and `ts-ignore` is prohibited as a solution to type errors.
+THE MOST IMPORTANT RULE - `as` `any`, and `ts-ignore` is STRICTLY PROHIBITED as a solution to type errors under any circumstances.
+
+* Fix compilation error with `sh/tsc-plgg.sh`.
+* Test with `sh/test-plgg.sh`.
