@@ -13,7 +13,7 @@ import {
   isNone,
 } from "plgg/index";
 
-declare module "plgg/Abstracts/Standards/Kind" {
+declare module "plgg/Abstracts/Principals/Kind" {
   export interface KindKeytoKind1<A> {
     Option: Option<A>;
   }
