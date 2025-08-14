@@ -6,3 +6,4 @@ export * from "plgg/Basics/Num";
 export * from "plgg/Basics/Primitive";
 export * from "plgg/Basics/Str";
 export * from "plgg/Basics/Time";
+export * from "plgg/Basics/Variant";
