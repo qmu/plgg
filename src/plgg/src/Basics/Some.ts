@@ -8,6 +8,7 @@ import {
   InvalidError,
   Refinable1,
   Castable1,
+  pattern,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Standards/Kind" {
@@ -29,6 +30,13 @@ export type Some<T> = ParametricVariant<
   typeof someTag,
   T
 >;
+
+/**
+ * Pattern constructor for Some matching.
+ * Used in pattern matching to match Some values.
+ */
+export const Some = <T>(a: T) =>
+  pattern<Some<T>>(someTag)(a);
 
 /**
  * Creates a Some instance containing a value.

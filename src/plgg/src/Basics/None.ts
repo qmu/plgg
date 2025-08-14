@@ -8,6 +8,7 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
+  pattern,
 } from "plgg/index";
 
 /**
@@ -20,6 +21,13 @@ const noneTag = "None" as const;
  * Equivalent to null/undefined but in a type-safe way.
  */
 export type None = FixedVariant<typeof noneTag>;
+
+/**
+ * Pattern constructor for None matching.
+ * Used in pattern matching to match None values.
+ */
+export const None = () =>
+  pattern<None>(noneTag)();
 
 /**
  * Creates a None instance representing no value.

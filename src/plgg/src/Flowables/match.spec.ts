@@ -14,6 +14,11 @@ import {
   ok,
   err,
   Result,
+  Some,
+  None,
+  some,
+  none,
+  Option,
 } from "plgg/index";
 
 test("number", async () => {
@@ -266,5 +271,75 @@ test("Result pattern matching with OTHERWISE", async () => {
   );
   expect(fn(err(500))).equal(
     'Fallback: {"__tag":"Err","content":500}',
+  );
+});
+
+test("Option pattern matching", async () => {
+  const fn = (a: Option<string>) =>
+    pipe(
+      a,
+      match(
+        [Some("hello"), () => "Specific hello"],
+        [
+          OTHERWISE,
+          (value) =>
+            `Matched: ${JSON.stringify(value)}`,
+        ],
+      ),
+    );
+
+  const someResult = some("hello");
+  const noneResult = none();
+
+  expect(fn(someResult)).equal("Specific hello");
+  expect(fn(noneResult)).equal(
+    'Matched: {"__tag":"None"}',
+  );
+});
+
+test("Option pattern matching with specific patterns", async () => {
+  const fn = (a: Option<number>) =>
+    pipe(
+      a,
+      match(
+        [Some(42), () => "The answer!"],
+        [None(), () => "No value"],
+        [
+          OTHERWISE,
+          (value) =>
+            `Matched: ${JSON.stringify(value)}`,
+        ],
+      ),
+    );
+
+  expect(fn(some(42))).equal("The answer!");
+  expect(fn(some(100))).equal(
+    'Matched: {"__tag":"Some","content":100}',
+  );
+  expect(fn(none())).equal("No value");
+});
+
+test("Option pattern matching with OTHERWISE", async () => {
+  const fn = (a: Option<string>) =>
+    pipe(
+      a,
+      match(
+        [Some("success"), () => "Specific success"],
+        [
+          OTHERWISE,
+          (value) =>
+            `Fallback: ${JSON.stringify(value)}`,
+        ],
+      ),
+    );
+
+  expect(fn(some("success"))).equal(
+    "Specific success",
+  );
+  expect(fn(some("other"))).equal(
+    'Fallback: {"__tag":"Some","content":"other"}',
+  );
+  expect(fn(none())).equal(
+    'Fallback: {"__tag":"None"}',
   );
 });

@@ -30,6 +30,10 @@ export type Err<F> = ParametricVariant<
   F
 >;
 
+/**
+ * Pattern constructor for Err matching.
+ * Used in pattern matching to match Err values.
+ */
 export const Err = <T>(a: T) =>
   pattern<Err<T>>(errTag)(a);
 
