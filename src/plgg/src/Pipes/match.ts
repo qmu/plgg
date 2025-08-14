@@ -26,7 +26,8 @@ type MatchResult<
   OTHERWISE_LAST extends boolean,
   A,
   R,
-  UNION_OPTIONS extends ReadonlyArray<unknown>[number] = TupleToUnion<OPTIONS>,
+  UNION_OPTIONS extends
+    ReadonlyArray<unknown>[number] = TupleToUnion<OPTIONS>,
 > = If<
   Is<A, boolean>,
   If<Is<OPTIONS, [true, false]>, R, never>,
@@ -35,14 +36,25 @@ type MatchResult<
     If<
       FullCoveragedVariants<OPTIONS, A>, // check if all variants are covered
       R,
-      If<And<OTHERWISE_LAST, Is<A, UNION_OPTIONS>>, R, never>
+      If<
+        And<OTHERWISE_LAST, Is<A, UNION_OPTIONS>>,
+        R,
+        never
+      >
     >,
     If<
       IsAllAtomic<OPTIONS>,
       If<
         IsEqual<UNION_OPTIONS, A>,
         R,
-        If<And<OTHERWISE_LAST, IsUnionSubset<UNION_OPTIONS, A>>, R, never>
+        If<
+          And<
+            OTHERWISE_LAST,
+            IsUnionSubset<UNION_OPTIONS, A>
+          >,
+          R,
+          never
+        >
       >,
       If<OTHERWISE_LAST, R, never>
     >
@@ -52,7 +64,10 @@ type MatchResult<
 /**
  * Checks if variant patterns provide full coverage of union A.
  */
-type FullCoveragedVariants<OPTIONS extends ReadonlyArray<unknown>, A> = If<
+type FullCoveragedVariants<
+  OPTIONS extends ReadonlyArray<unknown>,
+  A,
+> = If<
   IsFixedVariantAll<OPTIONS>,
   IsUnionSubset<A, TupleToUnion<OPTIONS>>,
   false
@@ -61,15 +76,16 @@ type FullCoveragedVariants<OPTIONS extends ReadonlyArray<unknown>, A> = If<
 /**
  * Type predicate to check if T is a variant with a __tag property.
  */
-type IsVariant<T> = T extends { __tag: string } ? true : false;
+type IsVariant<T> = T extends { __tag: string }
+  ? true
+  : false;
 
 /**
  * Recursively checks if all elements in array are atomic types.
  */
-type IsAllAtomic<ARR extends ReadonlyArray<unknown>> = ARR extends [
-  infer Head,
-  ...infer Tail,
-]
+type IsAllAtomic<
+  ARR extends ReadonlyArray<unknown>,
+> = ARR extends [infer Head, ...infer Tail]
   ? IsAtomic<Head> extends true
     ? IsAllAtomic<Tail>
     : false
@@ -86,7 +102,13 @@ type IsAtomic<T> = If<
       Is<T, string>,
       Or<
         Is<T, number>,
-        Or<Is<T, bigint>, Or<Is<T, symbol>, Or<Is<T, null>, Is<T, undefined>>>>
+        Or<
+          Is<T, bigint>,
+          Or<
+            Is<T, symbol>,
+            Or<Is<T, null>, Is<T, undefined>>
+          >
+        >
       >
     >
   >,
@@ -97,10 +119,9 @@ type IsAtomic<T> = If<
 /**
  * Recursively checks if all elements in array are variants.
  */
-type IsAllVariant<ARR extends ReadonlyArray<unknown>> = ARR extends [
-  infer Head,
-  ...infer Tail,
-]
+type IsAllVariant<
+  ARR extends ReadonlyArray<unknown>,
+> = ARR extends [infer Head, ...infer Tail]
   ? IsVariant<Head> extends true
     ? IsAllVariant<Tail>
     : false
@@ -109,7 +130,9 @@ type IsAllVariant<ARR extends ReadonlyArray<unknown>> = ARR extends [
 /**
  * Checks if T is a fixed variant (variant with only __tag property).
  */
-type IsFixedVariant<T> = T extends { __tag: string }
+type IsFixedVariant<T> = T extends {
+  __tag: string;
+}
   ? keyof T extends "__tag"
     ? T["__tag"] extends string
       ? Exclude<keyof T, "__tag"> extends never
@@ -122,10 +145,9 @@ type IsFixedVariant<T> = T extends { __tag: string }
 /**
  * Recursively checks if all elements in array are fixed variants.
  */
-type IsFixedVariantAll<ARR extends ReadonlyArray<unknown>> = ARR extends [
-  infer Head,
-  ...infer Tail,
-]
+type IsFixedVariantAll<
+  ARR extends ReadonlyArray<unknown>,
+> = ARR extends [infer Head, ...infer Tail]
   ? IsFixedVariant<Head> extends true
     ? IsFixedVariantAll<Tail>
     : false
@@ -134,7 +156,10 @@ type IsFixedVariantAll<ARR extends ReadonlyArray<unknown>> = ARR extends [
 /**
  * Variant type with partial content for pattern matching.
  */
-type PartialBodyVariant = Variant<string, Partial<unknown>>;
+type PartialBodyVariant = Variant<
+  string,
+  Partial<unknown>
+>;
 
 /**
  * Maps pattern types to their corresponding handler argument types.
@@ -145,19 +170,22 @@ type MapperArg<T> = T extends PartialBodyVariant
 
 /**
  * Represents a pattern-handler pair for matching.
- * @template T - The pattern type to match against
- * @template R - The return type of the handler
  */
-type MatchOption<T, R> = [T, (a: MapperArg<T>) => R];
+type MatchOption<T, R> = [
+  T,
+  (a: MapperArg<T>) => R,
+];
 
 /**
  * Deep equality check for partial objects used in variant pattern matching.
- * @param obj1 - The complete object to compare
- * @param obj2 - The partial pattern to match against
- * @returns True if all properties in obj2 match those in obj1
  */
-function deepPartialEqual<T>(obj1: T, obj2: Partial<T>): boolean {
-  const isObject = (obj: unknown): obj is object =>
+function deepPartialEqual<T>(
+  obj1: T,
+  obj2: Partial<T>,
+): boolean {
+  const isObject = (
+    obj: unknown,
+  ): obj is object =>
     obj !== null && typeof obj === "object";
   return Object.keys(obj2).every((key) => {
     const k = key as keyof T;
@@ -174,27 +202,26 @@ function deepPartialEqual<T>(obj1: T, obj2: Partial<T>): boolean {
 
 /**
  * Type-safe pattern matching for values, variants, and literals.
- * Provides exhaustive matching with compile-time verification.
- * 
- * @param o1 - First pattern-handler pair
- * @param o2 - Second pattern-handler pair (can be OTHERWISE for catch-all)
- * @returns Function that matches input against patterns
- * @example
- * const handleOption = match(
- *   [some({ content: true }), (some) => some.content],
- *   [none(), () => false]
- * );
  */
 export function match<
   O1,
   O2,
   R,
-  OTHERWISE_LAST extends boolean = Is<O2, typeof OTHERWISE>,
-  OPTIONS extends ReadonlyArray<unknown> = If<OTHERWISE_LAST, [O1], [O1, O2]>,
+  OTHERWISE_LAST extends boolean = Is<
+    O2,
+    typeof OTHERWISE
+  >,
+  OPTIONS extends ReadonlyArray<unknown> = If<
+    OTHERWISE_LAST,
+    [O1],
+    [O1, O2]
+  >,
 >(
   o1: MatchOption<O1, R>,
   o2: MatchOption<O2, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O3
@@ -204,7 +231,10 @@ export function match<
   O2,
   O3,
   R,
-  OTHERWISE_LAST extends boolean = Is<O3, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O3,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2],
@@ -214,7 +244,9 @@ export function match<
   o1: MatchOption<O1, R>,
   o2: MatchOption<O2, R>,
   o3: MatchOption<O3, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O4
@@ -225,7 +257,10 @@ export function match<
   O3,
   O4,
   R,
-  OTHERWISE_LAST extends boolean = Is<O4, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O4,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3],
@@ -236,7 +271,9 @@ export function match<
   o2: MatchOption<O2, R>,
   o3: MatchOption<O3, R>,
   o4: MatchOption<O4, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O5
@@ -248,7 +285,10 @@ export function match<
   O4,
   O5,
   R,
-  OTHERWISE_LAST extends boolean = Is<O5, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O5,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3, O4],
@@ -260,7 +300,9 @@ export function match<
   o3: MatchOption<O3, R>,
   o4: MatchOption<O4, R>,
   o5: MatchOption<O5, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O6
@@ -273,7 +315,10 @@ export function match<
   O5,
   O6,
   R,
-  OTHERWISE_LAST extends boolean = Is<O6, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O6,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3, O4, O5],
@@ -286,7 +331,9 @@ export function match<
   o4: MatchOption<O4, R>,
   o5: MatchOption<O5, R>,
   o6: MatchOption<O6, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O7
@@ -300,7 +347,10 @@ export function match<
   O6,
   O7,
   R,
-  OTHERWISE_LAST extends boolean = Is<O7, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O7,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3, O4, O5, O6],
@@ -314,7 +364,9 @@ export function match<
   o5: MatchOption<O5, R>,
   o6: MatchOption<O6, R>,
   o7: MatchOption<O7, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O8
@@ -329,7 +381,10 @@ export function match<
   O7,
   O8,
   R,
-  OTHERWISE_LAST extends boolean = Is<O8, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O8,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3, O4, O5, O6, O7],
@@ -344,7 +399,9 @@ export function match<
   o6: MatchOption<O6, R>,
   o7: MatchOption<O7, R>,
   o8: MatchOption<O8, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O9
@@ -360,7 +417,10 @@ export function match<
   O8,
   O9,
   R,
-  OTHERWISE_LAST extends boolean = Is<O9, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O9,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8],
@@ -376,7 +436,9 @@ export function match<
   o7: MatchOption<O7, R>,
   o8: MatchOption<O8, R>,
   o9: MatchOption<O9, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O10
@@ -393,7 +455,10 @@ export function match<
   O9,
   O10,
   R,
-  OTHERWISE_LAST extends boolean = Is<O10, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O10,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9],
@@ -410,7 +475,9 @@ export function match<
   o8: MatchOption<O8, R>,
   o9: MatchOption<O9, R>,
   o10: MatchOption<O10, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O11
@@ -428,7 +495,10 @@ export function match<
   O10,
   O11,
   R,
-  OTHERWISE_LAST extends boolean = Is<O11, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O11,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10],
@@ -446,7 +516,9 @@ export function match<
   o9: MatchOption<O9, R>,
   o10: MatchOption<O10, R>,
   o11: MatchOption<O11, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O12
@@ -465,11 +537,39 @@ export function match<
   O11,
   O12,
   R,
-  OTHERWISE_LAST extends boolean = Is<O12, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O12,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -484,7 +584,9 @@ export function match<
   o10: MatchOption<O10, R>,
   o11: MatchOption<O11, R>,
   o12: MatchOption<O12, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O13
@@ -504,11 +606,41 @@ export function match<
   O12,
   O13,
   R,
-  OTHERWISE_LAST extends boolean = Is<O13, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O13,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -524,7 +656,9 @@ export function match<
   o11: MatchOption<O11, R>,
   o12: MatchOption<O12, R>,
   o13: MatchOption<O13, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O14
@@ -545,11 +679,43 @@ export function match<
   O13,
   O14,
   R,
-  OTHERWISE_LAST extends boolean = Is<O14, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O14,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -566,7 +732,9 @@ export function match<
   o12: MatchOption<O12, R>,
   o13: MatchOption<O13, R>,
   o14: MatchOption<O14, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O15
@@ -588,11 +756,45 @@ export function match<
   O14,
   O15,
   R,
-  OTHERWISE_LAST extends boolean = Is<O15, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O15,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -610,7 +812,9 @@ export function match<
   o13: MatchOption<O13, R>,
   o14: MatchOption<O14, R>,
   o15: MatchOption<O15, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O16
@@ -633,11 +837,47 @@ export function match<
   O15,
   O16,
   R,
-  OTHERWISE_LAST extends boolean = Is<O16, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O16,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -656,7 +896,9 @@ export function match<
   o14: MatchOption<O14, R>,
   o15: MatchOption<O15, R>,
   o16: MatchOption<O16, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O17
@@ -680,11 +922,49 @@ export function match<
   O16,
   O17,
   R,
-  OTHERWISE_LAST extends boolean = Is<O17, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O17,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16],
-    [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11, O12, O13, O14, O15, O16, O17]
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+    ],
+    [
+      O1,
+      O2,
+      O3,
+      O4,
+      O5,
+      O6,
+      O7,
+      O8,
+      O9,
+      O10,
+      O11,
+      O12,
+      O13,
+      O14,
+      O15,
+      O16,
+      O17,
+    ]
   >,
 >(
   o1: MatchOption<O1, R>,
@@ -704,7 +984,9 @@ export function match<
   o15: MatchOption<O15, R>,
   o16: MatchOption<O16, R>,
   o17: MatchOption<O17, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O18
@@ -729,7 +1011,10 @@ export function match<
   O17,
   O18,
   R,
-  OTHERWISE_LAST extends boolean = Is<O18, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O18,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
@@ -791,7 +1076,9 @@ export function match<
   o16: MatchOption<O16, R>,
   o17: MatchOption<O17, R>,
   o18: MatchOption<O18, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O19
@@ -817,7 +1104,10 @@ export function match<
   O18,
   O19,
   R,
-  OTHERWISE_LAST extends boolean = Is<O19, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O19,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
@@ -882,7 +1172,9 @@ export function match<
   o17: MatchOption<O17, R>,
   o18: MatchOption<O18, R>,
   o19: MatchOption<O19, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O20
@@ -909,7 +1201,10 @@ export function match<
   O19,
   O20,
   R,
-  OTHERWISE_LAST extends boolean = Is<O20, typeof OTHERWISE>,
+  OTHERWISE_LAST extends boolean = Is<
+    O20,
+    typeof OTHERWISE
+  >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
@@ -977,31 +1272,36 @@ export function match<
   o18: MatchOption<O18, R>,
   o19: MatchOption<O19, R>,
   o20: MatchOption<O20, R>,
-): <A>(a: A) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+): <A>(
+  a: A,
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * Runtime implementation of pattern matching.
- * Processes pattern-handler pairs sequentially until a match is found.
- * 
- * @param options - Array of [pattern, handler] tuples
- * @returns Function that takes a value and returns the result of the matched handler
- * @throws Error if no pattern matches and no OTHERWISE clause is provided
  */
 export function match(
-  ...options: ReadonlyArray<[unknown, (ma: unknown) => unknown]>
+  ...options: ReadonlyArray<
+    [unknown, (ma: unknown) => unknown]
+  >
 ): (a: unknown) => unknown {
   return (a: unknown): unknown => {
     for (const [cond, fn] of options) {
       if (cond === OTHERWISE) {
         return fn(a);
       }
-      if (isVariant(a) && isVariant(cond) && deepPartialEqual(a, cond)) {
+      if (
+        isVariant(a) &&
+        isVariant(cond) &&
+        deepPartialEqual(a, cond)
+      ) {
         return fn(a);
       }
       if (Object.is(a, cond)) {
         return fn(a);
       }
     }
-    throw new Error(`Unexpectedly no match for value: ${String(a)}`);
+    throw new Error(
+      `Unexpectedly no match for value: ${String(a)}`,
+    );
   };
 }

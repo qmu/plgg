@@ -9,7 +9,9 @@ import {
 } from "plgg/index";
 
 test("PlggError.is type guard with InvalidError", () => {
-  const error = new InvalidError({ message: "Test error" });
+  const error = new InvalidError({
+    message: "Test error",
+  });
   expect(isPlggError(error)).toBe(true);
 });
 
@@ -33,10 +35,16 @@ test("PlggError.is type guard with non-error objects", () => {
 });
 
 test("PlggError.is checks brand property", () => {
-  const validError = { __: "PlggError", message: "test" };
+  const validError = {
+    __: "PlggError",
+    message: "test",
+  };
   expect(isPlggError(validError)).toBe(true);
 
-  const invalidError = { __: "SomeOtherError", message: "test" };
+  const invalidError = {
+    __: "SomeOtherError",
+    message: "test",
+  };
   expect(isPlggError(invalidError)).toBe(false);
 
   const noBrandError = { message: "test" };
@@ -44,25 +52,35 @@ test("PlggError.is checks brand property", () => {
 });
 
 test("PlggError.debug with InvalidError", () => {
-  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const consoleSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
 
-  const error = new InvalidError({ message: "Test validation error" });
+  const error = new InvalidError({
+    message: "Test validation error",
+  });
   printPlggError(error);
 
   expect(consoleSpy).toHaveBeenCalledWith(
     expect.stringContaining("[InvalidError]"),
   );
   expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("Test validation error"),
+    expect.stringContaining(
+      "Test validation error",
+    ),
   );
 
   consoleSpy.mockRestore();
 });
 
 test("PlggError.debug with nested errors", () => {
-  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const consoleSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
 
-  const parentError = new InvalidError({ message: "Parent error" });
+  const parentError = new InvalidError({
+    message: "Parent error",
+  });
   const childError = new InvalidError({
     message: "Child error",
     parent: parentError,
@@ -82,12 +100,16 @@ test("PlggError.debug with nested errors", () => {
 });
 
 test("PlggError.debug with regular Error", () => {
-  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const consoleSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
 
   const error = new Error("Regular error");
   printPlggError(error as any);
 
-  expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("[Error]"));
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.stringContaining("[Error]"),
+  );
   expect(consoleSpy).toHaveBeenCalledWith(
     expect.stringContaining("Regular error"),
   );
@@ -99,28 +121,42 @@ test("PlggError type alias", () => {
   const error: PlggError = new InvalidError({
     message: "Test error",
   });
-  expect(error instanceof InvalidError).toBe(true);
+  expect(error instanceof InvalidError).toBe(
+    true,
+  );
   expect(error instanceof BaseError).toBe(true);
 });
 
 test("PlggError.debug with error having no stack trace", () => {
-  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const consoleSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
 
-  const error = new InvalidError({ message: "No stack error" });
+  const error = new InvalidError({
+    message: "No stack error",
+  });
   // Create an error without stack by using Object.defineProperty
-  Object.defineProperty(error, "stack", { value: undefined });
+  Object.defineProperty(error, "stack", {
+    value: undefined,
+  });
 
   printPlggError(error);
 
-  expect(consoleSpy).toHaveBeenCalledWith(expect.not.stringContaining(" at "));
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.not.stringContaining(" at "),
+  );
 
   consoleSpy.mockRestore();
 });
 
 test("PlggError.debug with error having malformed stack", () => {
-  const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  const consoleSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
 
-  const error = new InvalidError({ message: "Malformed stack error" });
+  const error = new InvalidError({
+    message: "Malformed stack error",
+  });
   // Set a malformed stack (only one line)
   Object.defineProperty(error, "stack", {
     value: "Error: Malformed stack error",
@@ -128,12 +164,16 @@ test("PlggError.debug with error having malformed stack", () => {
 
   printPlggError(error);
 
-  expect(consoleSpy).toHaveBeenCalledWith(expect.not.stringContaining(" at "));
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.not.stringContaining(" at "),
+  );
 
   consoleSpy.mockRestore();
 });
 
 test("unreachable throws error for exhaustive checking", () => {
   // Example: Exhaustive pattern matching
-  expect(() => unreachable()).toThrow("Supposed to be unreachable");
+  expect(() => unreachable()).toThrow(
+    "Supposed to be unreachable",
+  );
 });

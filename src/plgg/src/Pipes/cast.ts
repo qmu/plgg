@@ -1,16 +1,14 @@
-import { isOk, ok, Result, InvalidError, err, NonNeverFn } from "plgg/index";
+import {
+  isOk,
+  ok,
+  Result,
+  InvalidError,
+  err,
+  NonNeverFn,
+} from "plgg/index";
 
 /**
  * Synchronous function composition with error accumulation for Result types.
- * Chains functions that return Result values, collecting all validation errors.
- * Unlike plgg (async), this processes functions sequentially and accumulates validation errors.
- * 
- * @param a - Initial value to process
- * @param ab - Function to transform A to Result<B, ERR>
- * @returns Result containing final value or accumulated errors
- * @example
- * const result = cast("123", asNum); // Ok(123)
- * const invalid = cast("not-number", asNum); // Err(InvalidError)
  */
 export function cast<A, B, ERR>(
   a: A,
@@ -18,10 +16,6 @@ export function cast<A, B, ERR>(
 ): Result<B, ERR>;
 /**
  * Two-step synchronous function composition with error accumulation.
- * @param a - Initial value
- * @param ab - First transformation function
- * @param bc - Second transformation function
- * @returns Result containing final value or accumulated errors
  */
 export function cast<A, B, C, ERR>(
   a: A,
@@ -68,7 +62,18 @@ export function cast<A, B, C, D, E, F, G, H, ERR>(
   fg: NonNeverFn<(f: F) => Result<G, ERR>>,
   gh: NonNeverFn<(g: G) => Result<H, ERR>>,
 ): Result<H, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -79,7 +84,19 @@ export function cast<A, B, C, D, E, F, G, H, I, ERR>(
   gh: NonNeverFn<(g: G) => Result<H, ERR>>,
   hi: NonNeverFn<(h: H) => Result<I, ERR>>,
 ): Result<I, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -91,7 +108,20 @@ export function cast<A, B, C, D, E, F, G, H, I, J, ERR>(
   hi: NonNeverFn<(h: H) => Result<I, ERR>>,
   ij: NonNeverFn<(i: I) => Result<J, ERR>>,
 ): Result<J, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -104,7 +134,21 @@ export function cast<A, B, C, D, E, F, G, H, I, J, K, ERR>(
   ij: NonNeverFn<(i: I) => Result<J, ERR>>,
   jk: NonNeverFn<(j: J) => Result<K, ERR>>,
 ): Result<K, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, L, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -118,7 +162,22 @@ export function cast<A, B, C, D, E, F, G, H, I, J, K, L, ERR>(
   jk: NonNeverFn<(j: J) => Result<K, ERR>>,
   kl: NonNeverFn<(k: K) => Result<L, ERR>>,
 ): Result<L, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -133,7 +192,23 @@ export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, ERR>(
   kl: NonNeverFn<(k: K) => Result<L, ERR>>,
   lm: NonNeverFn<(l: L) => Result<M, ERR>>,
 ): Result<M, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -149,7 +224,24 @@ export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, ERR>(
   lm: NonNeverFn<(l: L) => Result<M, ERR>>,
   mn: NonNeverFn<(m: M) => Result<N, ERR>>,
 ): Result<N, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -166,7 +258,25 @@ export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, ERR>(
   mn: NonNeverFn<(m: M) => Result<N, ERR>>,
   no: NonNeverFn<(n: N) => Result<O, ERR>>,
 ): Result<O, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -184,7 +294,26 @@ export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, ERR>(
   no: NonNeverFn<(n: N) => Result<O, ERR>>,
   op: NonNeverFn<(o: O) => Result<P, ERR>>,
 ): Result<P, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -203,7 +332,27 @@ export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, ERR>(
   op: NonNeverFn<(o: O) => Result<P, ERR>>,
   pq: NonNeverFn<(p: P) => Result<Q, ERR>>,
 ): Result<Q, ERR>;
-export function cast<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, ERR>(
+export function cast<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  K,
+  L,
+  M,
+  N,
+  O,
+  P,
+  Q,
+  R,
+  ERR,
+>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
@@ -358,50 +507,63 @@ export function cast<
 
 /**
  * Implementation function for cast that processes any number of functions.
- * Synchronous composition of Result-returning functions with error accumulation.
- * Unlike plgg (async), this processes functions sequentially and accumulates validation errors.
- * 
- * @param value - Initial value to process
- * @param fns - Array of functions to chain
- * @returns Result containing final value or accumulated InvalidError with siblings
  */
 export function cast(
   value: unknown,
   ...fns: ReadonlyArray<ChainFn>
 ): Result<unknown, InvalidError> {
-  return fns.reduce((acc: Result<unknown, InvalidError>, fn: ChainFn) => {
-    if (isOk(acc)) {
-      try {
-        return fn(acc.content);
-      } catch (e) {
-        return convUnknownToInvalidError(e);
+  return fns.reduce(
+    (
+      acc: Result<unknown, InvalidError>,
+      fn: ChainFn,
+    ) => {
+      if (isOk(acc)) {
+        try {
+          return fn(acc.content);
+        } catch (e) {
+          return convUnknownToInvalidError(e);
+        }
       }
-    }
-    const currentResult = (() => {
-      try {
-        return fn(value);
-      } catch (e) {
-        return convUnknownToInvalidError(e);
+      const currentResult = (() => {
+        try {
+          return fn(value);
+        } catch (e) {
+          return convUnknownToInvalidError(e);
+        }
+      })();
+      if (isOk(currentResult)) {
+        return err(acc.content);
       }
-    })();
-    if (isOk(currentResult)) {
-      return err(acc.content);
-    }
-    const prevError = acc.content.sibling.length > 0 ? [] : [acc.content];
-    const sibling = [
-      ...prevError,
-      ...acc.content.sibling,
-      currentResult.content,
-    ];
-    return err(new InvalidError({ message: "Validation failed", sibling }));
-  }, ok<unknown>(value));
+      const prevError =
+        acc.content.sibling.length > 0
+          ? []
+          : [acc.content];
+      const sibling = [
+        ...prevError,
+        ...acc.content.sibling,
+        currentResult.content,
+      ];
+      return err(
+        new InvalidError({
+          message: "Validation failed",
+          sibling,
+        }),
+      );
+    },
+    ok<unknown>(value),
+  );
 }
 
-const convUnknownToInvalidError = (e: unknown): Result<never, InvalidError> =>
+const convUnknownToInvalidError = (
+  e: unknown,
+): Result<never, InvalidError> =>
   err(
     new InvalidError({
       message: "Validation failed",
-      parent: e instanceof Error ? e : new Error(String(e)),
+      parent:
+        e instanceof Error
+          ? e
+          : new Error(String(e)),
     }),
   );
 
@@ -409,4 +571,6 @@ const convUnknownToInvalidError = (e: unknown): Result<never, InvalidError> =>
  * Function type for cast operations.
  * Represents a function that takes any value and returns a Result.
  */
-type ChainFn = (a: unknown) => Result<unknown, InvalidError>;
+type ChainFn = (
+  a: unknown,
+) => Result<unknown, InvalidError>;

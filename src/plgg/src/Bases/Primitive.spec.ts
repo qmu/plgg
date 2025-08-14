@@ -18,7 +18,9 @@ test("Primitive.is type guard", () => {
 
   // Date primitives
   expect(isPrimitive(new Date())).toBe(true);
-  expect(isPrimitive(new Date("2023-01-01"))).toBe(true);
+  expect(
+    isPrimitive(new Date("2023-01-01")),
+  ).toBe(true);
 
   // Non-primitives
   expect(isPrimitive({})).toBe(false);
@@ -65,4 +67,3 @@ test("Primitive.is rejects non-primitive types", () => {
     expect(isPrimitive(value)).toBe(false);
   });
 });
-

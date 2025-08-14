@@ -14,7 +14,8 @@ import {
 
 test("bind applies function to values in pipelines", () => {
   // Example: Simple value transformation in composition
-  const uppercase = (s: string) => s.toUpperCase();
+  const uppercase = (s: string) =>
+    s.toUpperCase();
 
   const result = hold(uppercase)("hello");
   expect(result).toBe("HELLO");
@@ -22,11 +23,15 @@ test("bind applies function to values in pipelines", () => {
 
 test("debug logs values without changing them", () => {
   // Example: Debugging values in processing pipeline
-  const consoleSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+  const consoleSpy = vi
+    .spyOn(console, "debug")
+    .mockImplementation(() => {});
 
   const result = debug("test-value");
   expect(result).toBe("test-value");
-  expect(consoleSpy).toHaveBeenCalledWith("test-value");
+  expect(consoleSpy).toHaveBeenCalledWith(
+    "test-value",
+  );
 
   consoleSpy.mockRestore();
 });
@@ -34,7 +39,10 @@ test("debug logs values without changing them", () => {
 test("refine validates values with custom predicates", () => {
   // Example: Custom validation rules
   const isPositive = (n: number) => n > 0;
-  const validatePositive = refine(isPositive, "Number must be positive");
+  const validatePositive = refine(
+    isPositive,
+    "Number must be positive",
+  );
 
   const validResult = validatePositive(5);
   assert(isOk(validResult));
@@ -42,7 +50,9 @@ test("refine validates values with custom predicates", () => {
 
   const invalidResult = validatePositive(-3);
   assert(isErr(invalidResult));
-  expect(invalidResult.content.message).toBe("Number must be positive");
+  expect(invalidResult.content.message).toBe(
+    "Number must be positive",
+  );
 });
 
 test("defined checks for non-undefined values", () => {
@@ -53,7 +63,9 @@ test("defined checks for non-undefined values", () => {
 
   const undefinedValue = defined(undefined);
   assert(isErr(undefinedValue));
-  expect(undefinedValue.content.message).toBe("Value is undefined");
+  expect(undefinedValue.content.message).toBe(
+    "Value is undefined",
+  );
 });
 
 test("tryCatch wraps functions to handle exceptions", () => {
@@ -61,10 +73,14 @@ test("tryCatch wraps functions to handle exceptions", () => {
   const parseNumber = tryCatch(
     (input: string) => {
       const num = parseInt(input, 10);
-      if (isNaN(num)) throw new Error("Not a number");
+      if (isNaN(num))
+        throw new Error("Not a number");
       return num;
     },
-    (error: unknown) => new InvalidError({ message: `Parse error: ${error}` }),
+    (error: unknown) =>
+      new InvalidError({
+        message: `Parse error: ${error}`,
+      }),
   );
 
   const successResult = parseNumber("123");
@@ -73,7 +89,9 @@ test("tryCatch wraps functions to handle exceptions", () => {
 
   const errorResult = parseNumber("abc");
   assert(isErr(errorResult));
-  expect(errorResult.content.message).toContain("Parse error");
+  expect(errorResult.content.message).toContain(
+    "Parse error",
+  );
 });
 
 test("jsonEncode and jsonDecode handle JSON operations", () => {
@@ -81,7 +99,9 @@ test("jsonEncode and jsonDecode handle JSON operations", () => {
   const data = { name: "John", age: 30 };
 
   const encoded = jsonEncode(data);
-  expect(encoded).toBe('{\n  "name": "John",\n  "age": 30\n}');
+  expect(encoded).toBe(
+    '{\n  "name": "John",\n  "age": 30\n}',
+  );
 
   const decoded = jsonDecode(encoded);
   assert(isOk(decoded));
@@ -106,7 +126,8 @@ test("refine with default error message", () => {
 test("tryCatch with default error handler", () => {
   // Test tryCatch without custom error handler
   const throwingFunction = (input: string) => {
-    if (input === "error") throw new Error("Custom error");
+    if (input === "error")
+      throw new Error("Custom error");
     if (input === "string") throw "String error";
     return input.toUpperCase();
   };
@@ -115,9 +136,14 @@ test("tryCatch with default error handler", () => {
 
   const errorResult = safeThrowing("error");
   assert(isErr(errorResult));
-  expect(errorResult.content.message).toBe("Operation failed: Custom error");
+  expect(errorResult.content.message).toBe(
+    "Operation failed: Custom error",
+  );
 
-  const stringErrorResult = safeThrowing("string");
+  const stringErrorResult =
+    safeThrowing("string");
   assert(isErr(stringErrorResult));
-  expect(stringErrorResult.content.message).toBe("Unexpected error occurred");
+  expect(stringErrorResult.content.message).toBe(
+    "Unexpected error occurred",
+  );
 });

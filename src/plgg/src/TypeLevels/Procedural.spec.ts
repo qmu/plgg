@@ -18,31 +18,38 @@ test("fail creates failed Procedural", () => {
   const error = new Error("test error");
   const result = err(error);
   if (!isResult(result) || isOk(result)) {
-    assert.fail("Expected error, but got success");
+    assert.fail(
+      "Expected error, but got success",
+    );
   }
   expect(result.content).toBe(error);
 });
 
 test("PossiblyPromise accepts synchronous values", () => {
-  const syncValue: PossiblyPromise<string> = "hello";
+  const syncValue: PossiblyPromise<string> =
+    "hello";
   expect(syncValue).toBe("hello");
 });
 
 test("PossiblyPromise accepts asynchronous values", async () => {
-  const asyncValue: PossiblyPromise<string> = Promise.resolve("hello");
+  const asyncValue: PossiblyPromise<string> =
+    Promise.resolve("hello");
   expect(await asyncValue).toBe("hello");
 });
 
 test("isPromise correctly identifies Promise objects", () => {
   // Example: Conditional async handling
   const syncValue: PossiblyPromise<number> = 42;
-  const asyncValue: PossiblyPromise<number> = Promise.resolve(42);
+  const asyncValue: PossiblyPromise<number> =
+    Promise.resolve(42);
 
   expect(isPromise(syncValue)).toBe(false);
   expect(isPromise(asyncValue)).toBe(true);
 
   // Test rejected promise without causing unhandled rejection
-  const rejectedPromise = Promise.reject(new Error());
+  const rejectedPromise = Promise.reject(
+    new Error(),
+  );
   rejectedPromise.catch(() => {}); // Handle the rejection
   expect(isPromise(rejectedPromise)).toBe(true);
 });
@@ -64,7 +71,9 @@ test("isPromise identifies thenable objects", () => {
 
 test("isPromise works in async composition patterns", async () => {
   // Example: Conditional async processing
-  const processValue = async (value: PossiblyPromise<string>) => {
+  const processValue = async (
+    value: PossiblyPromise<string>,
+  ) => {
     if (isPromise(value)) {
       const resolved = await value;
       return `async: ${resolved}`;
@@ -75,6 +84,8 @@ test("isPromise works in async composition patterns", async () => {
   const syncResult = await processValue("hello");
   expect(syncResult).toBe("sync: hello");
 
-  const asyncResult = await processValue(Promise.resolve("world"));
+  const asyncResult = await processValue(
+    Promise.resolve("world"),
+  );
   expect(asyncResult).toBe("async: world");
 });

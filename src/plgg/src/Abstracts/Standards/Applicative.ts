@@ -22,8 +22,9 @@ import {
  *
  * @template KindKey - The kind identifier for this applicative
  */
-export interface Applicative1<KindKey extends KindKeys1>
-  extends Apply1<KindKey>,
+export interface Applicative1<
+  KindKey extends KindKeys1,
+> extends Apply1<KindKey>,
     Pointed1<KindKey> {}
 
 /**
@@ -31,8 +32,9 @@ export interface Applicative1<KindKey extends KindKeys1>
  *
  * @template KindKey - The kind identifier for this applicative
  */
-export interface Applicative2<KindKey extends KindKeys2>
-  extends Apply2<KindKey>,
+export interface Applicative2<
+  KindKey extends KindKeys2,
+> extends Apply2<KindKey>,
     Pointed2<KindKey> {}
 
 /**
@@ -40,6 +42,7 @@ export interface Applicative2<KindKey extends KindKeys2>
  *
  * @template KindKey - The kind identifier for this applicative
  */
-export interface Applicative3<KindKey extends KindKeys3>
-  extends Apply3<KindKey>,
+export interface Applicative3<
+  KindKey extends KindKeys3,
+> extends Apply3<KindKey>,
     Pointed3<KindKey> {}

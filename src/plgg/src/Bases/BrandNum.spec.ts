@@ -1,5 +1,10 @@
 import { test, expect, assert } from "vitest";
-import { isBrandNum, asBrandNum, isOk, isErr } from "plgg/index";
+import {
+  isBrandNum,
+  asBrandNum,
+  isOk,
+  isErr,
+} from "plgg/index";
 
 test("BrandNum.is type guard", () => {
   expect(isBrandNum<"Age">(25)).toBe(true);
@@ -9,7 +14,9 @@ test("BrandNum.is type guard", () => {
   expect(isBrandNum<"Age">("25")).toBe(false);
   expect(isBrandNum<"Age">(true)).toBe(false);
   expect(isBrandNum<"Age">(null)).toBe(false);
-  expect(isBrandNum<"Age">(undefined)).toBe(false);
+  expect(isBrandNum<"Age">(undefined)).toBe(
+    false,
+  );
   expect(isBrandNum<"Age">({})).toBe(false);
   expect(isBrandNum<"Age">([])).toBe(false);
 });
@@ -33,21 +40,32 @@ test("BrandNum.cast validation", async () => {
 
   const stringResult = asBrandNum<"Age">("25");
   assert(isErr(stringResult));
-  expect(stringResult.content.message).toBe("Value is not a branded number");
+  expect(stringResult.content.message).toBe(
+    "Value is not a branded number",
+  );
 
   const boolResult = asBrandNum<"Age">(true);
   assert(isErr(boolResult));
-  expect(boolResult.content.message).toBe("Value is not a branded number");
+  expect(boolResult.content.message).toBe(
+    "Value is not a branded number",
+  );
 
   const nullResult = asBrandNum<"Age">(null);
   assert(isErr(nullResult));
-  expect(nullResult.content.message).toBe("Value is not a branded number");
+  expect(nullResult.content.message).toBe(
+    "Value is not a branded number",
+  );
 
-  const undefinedResult = asBrandNum<"Age">(undefined);
+  const undefinedResult =
+    asBrandNum<"Age">(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.content.message).toBe("Value is not a branded number");
+  expect(undefinedResult.content.message).toBe(
+    "Value is not a branded number",
+  );
 
   const objectResult = asBrandNum<"Age">({});
   assert(isErr(objectResult));
-  expect(objectResult.content.message).toBe("Value is not a branded number");
+  expect(objectResult.content.message).toBe(
+    "Value is not a branded number",
+  );
 });

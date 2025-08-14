@@ -1,4 +1,10 @@
-import { ok, err, Result, InvalidError, Refinement } from "plgg/index";
+import {
+  ok,
+  err,
+  Result,
+  InvalidError,
+  Refinement,
+} from "plgg/index";
 
 /**
  * Number primitive type.
@@ -16,12 +22,19 @@ export const numRefinement: Refinement<Num> = {
     (typeof value === "bigint" &&
       value >= Number.MIN_SAFE_INTEGER &&
       value <= Number.MAX_SAFE_INTEGER),
-  as: (value: unknown): Result<Num, InvalidError> =>
+  as: (
+    value: unknown,
+  ): Result<Num, InvalidError> =>
     typeof value === "number" ||
     (typeof value === "bigint" &&
       value >= Number.MIN_SAFE_INTEGER &&
       value <= Number.MAX_SAFE_INTEGER)
       ? ok(Number(value))
-      : err(new InvalidError({ message: "Value is not a number" })),
+      : err(
+          new InvalidError({
+            message: "Value is not a number",
+          }),
+        ),
 };
-export const { is: isNum, as: asNum } = numRefinement;
+export const { is: isNum, as: asNum } =
+  numRefinement;

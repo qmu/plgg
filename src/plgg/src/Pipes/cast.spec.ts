@@ -26,7 +26,9 @@ test("cast validates object structure with multiple properties", () => {
     createdAt: Time;
   };
 
-  const asUserProfile = (data: unknown): Result<UserProfile, InvalidError> =>
+  const asUserProfile = (
+    data: unknown,
+  ): Result<UserProfile, InvalidError> =>
     cast(
       data,
       asObj,
@@ -44,8 +46,12 @@ test("cast validates object structure with multiple properties", () => {
   const result = asUserProfile(validData);
   assert(isOk(result));
   expect(result.content.id).toBe(123);
-  expect(result.content.email).toBe("user@example.com");
-  expect(result.content.createdAt).toBeInstanceOf(Date);
+  expect(result.content.email).toBe(
+    "user@example.com",
+  );
+  expect(result.content.createdAt).toBeInstanceOf(
+    Date,
+  );
 });
 
 test("cast accumulates validation errors for multiple invalid properties", () => {
@@ -55,7 +61,9 @@ test("cast accumulates validation errors for multiple invalid properties", () =>
     price: Num;
   };
 
-  const asProduct = (data: unknown): Result<Product, InvalidError> =>
+  const asProduct = (
+    data: unknown,
+  ): Result<Product, InvalidError> =>
     cast(
       data,
       asObj,
@@ -87,7 +95,10 @@ test("cast processes validation chain sequentially", () => {
         cast(
           v,
           asStr,
-          refine((a) => a.trim().length >= 3, "Username too short"),
+          refine(
+            (a) => a.trim().length >= 3,
+            "Username too short",
+          ),
         ),
       ),
     );
@@ -95,12 +106,16 @@ test("cast processes validation chain sequentially", () => {
   const validForm = { username: "  johndoe  " };
   const result = processFormData(validForm);
   assert(isOk(result));
-  expect(result.content.username).toBe("  johndoe  ");
+  expect(result.content.username).toBe(
+    "  johndoe  ",
+  );
 
   const invalidForm = { username: "  ab  " };
   const result2 = processFormData(invalidForm);
   assert(isErr(result2));
-  expect(result2.content.message).toBe("Username too short");
+  expect(result2.content.message).toBe(
+    "Username too short",
+  );
 });
 
 test("cast handles nested object validation", () => {
@@ -116,10 +131,19 @@ test("cast handles nested object validation", () => {
     address: Address;
   };
 
-  const asAddress = (data: unknown): Result<Address, InvalidError> =>
-    cast(data, asObj, forProp("street", asStr), forProp("city", asStr));
+  const asAddress = (
+    data: unknown,
+  ): Result<Address, InvalidError> =>
+    cast(
+      data,
+      asObj,
+      forProp("street", asStr),
+      forProp("city", asStr),
+    );
 
-  const asUser = (data: unknown): Result<User, InvalidError> =>
+  const asUser = (
+    data: unknown,
+  ): Result<User, InvalidError> =>
     cast(
       data,
       asObj,
@@ -140,12 +164,16 @@ test("cast handles nested object validation", () => {
   const result = asUser(userData);
   assert(isOk(result));
   expect(result.content.name).toBe("John Doe");
-  expect(result.content.address.street).toBe("123 Main St");
+  expect(result.content.address.street).toBe(
+    "123 Main St",
+  );
 });
 
 test("cast stops on first validation failure when not accumulating errors", () => {
   // This test demonstrates the difference between cast and early-exit validation
-  const validateSequentially = (input: unknown): Result<number, InvalidError> =>
+  const validateSequentially = (
+    input: unknown,
+  ): Result<number, InvalidError> =>
     cast(
       input,
       asNum,
@@ -154,20 +182,26 @@ test("cast stops on first validation failure when not accumulating errors", () =
           ? { __tag: "Ok" as const, content: n }
           : {
               __tag: "Err" as const,
-              content: new InvalidError({ message: "Must be positive" }),
+              content: new InvalidError({
+                message: "Must be positive",
+              }),
             },
       (n: number) =>
         n < 100
           ? { __tag: "Ok" as const, content: n }
           : {
               __tag: "Err" as const,
-              content: new InvalidError({ message: "Must be less than 100" }),
+              content: new InvalidError({
+                message: "Must be less than 100",
+              }),
             },
     );
 
   const result = validateSequentially(-5);
   assert(isErr(result));
-  expect(result.content.message).toBe("Must be positive");
+  expect(result.content.message).toBe(
+    "Must be positive",
+  );
 });
 
 test("cast with higher arity functions (5+ parameters)", () => {
@@ -215,29 +249,40 @@ test("cast with higher arity functions (5+ parameters)", () => {
 
 test("cast handles functions that throw exceptions", () => {
   // Test exception handling in validation functions
-  const throwingValidator = (_: unknown): Result<unknown, InvalidError> => {
+  const throwingValidator = (
+    _: unknown,
+  ): Result<unknown, InvalidError> => {
     throw new Error("Validation exception");
   };
 
   const result = cast("test", throwingValidator);
   assert(isErr(result));
-  expect(result.content.message).toBe("Validation failed");
+  expect(result.content.message).toBe(
+    "Validation failed",
+  );
 });
 
 test("cast handles non-Error exceptions", () => {
   // Test conversion of non-Error exceptions
-  const throwingValidator = (_: unknown): Result<unknown, InvalidError> => {
+  const throwingValidator = (
+    _: unknown,
+  ): Result<unknown, InvalidError> => {
     throw "String exception";
   };
 
   const result = cast("test", throwingValidator);
   assert(isErr(result));
-  expect(result.content.message).toBe("Validation failed");
+  expect(result.content.message).toBe(
+    "Validation failed",
+  );
 });
 
 test("cast with maximum parameters (20 functions)", () => {
   // Test with many validation functions to exercise highest-arity overloads
-  const identity = (x: unknown) => ({ __tag: "Ok" as const, content: x });
+  const identity = (x: unknown) => ({
+    __tag: "Ok" as const,
+    content: x,
+  });
 
   const result = cast(
     "test",
@@ -269,23 +314,46 @@ test("cast with maximum parameters (20 functions)", () => {
 
 test("cast aggregates multiple validation errors", () => {
   // Test error accumulation when multiple validations fail
-  const alwaysFail1 = (_: unknown): Result<unknown, InvalidError> => ({
+  const alwaysFail1 = (
+    _: unknown,
+  ): Result<unknown, InvalidError> => ({
     __tag: "Err" as const,
-    content: new InvalidError({ message: "Error 1" }),
+    content: new InvalidError({
+      message: "Error 1",
+    }),
   });
-  const alwaysFail2 = (_: unknown): Result<unknown, InvalidError> => ({
+  const alwaysFail2 = (
+    _: unknown,
+  ): Result<unknown, InvalidError> => ({
     __tag: "Err" as const,
-    content: new InvalidError({ message: "Error 2" }),
+    content: new InvalidError({
+      message: "Error 2",
+    }),
   });
-  const alwaysFail3 = (_: unknown): Result<unknown, InvalidError> => ({
+  const alwaysFail3 = (
+    _: unknown,
+  ): Result<unknown, InvalidError> => ({
     __tag: "Err" as const,
-    content: new InvalidError({ message: "Error 3" }),
+    content: new InvalidError({
+      message: "Error 3",
+    }),
   });
 
-  const result = cast("test", alwaysFail1, alwaysFail2, alwaysFail3);
+  const result = cast(
+    "test",
+    alwaysFail1,
+    alwaysFail2,
+    alwaysFail3,
+  );
   assert(isErr(result));
   expect(result.content.sibling?.length).toBe(3);
-  expect(result.content.sibling?.[0]?.message).toBe("Error 1");
-  expect(result.content.sibling?.[1]?.message).toBe("Error 2");
-  expect(result.content.sibling?.[2]?.message).toBe("Error 3");
+  expect(
+    result.content.sibling?.[0]?.message,
+  ).toBe("Error 1");
+  expect(
+    result.content.sibling?.[1]?.message,
+  ).toBe("Error 2");
+  expect(
+    result.content.sibling?.[2]?.message,
+  ).toBe("Error 3");
 });

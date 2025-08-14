@@ -19,16 +19,6 @@ import {
  * - Right Identity: chain(m, of) === m
  * - Associativity: chain(chain(m, f), g) === chain(m, x => chain(f(x), g))
  *
- * @template KindKey - The kind identifier for this monad
- * @example
- * // Option implements Monad1
- * const optionMonad: Monad1<"Option"> = {
- *   KindKey: "Option",
- *   map: (f) => (opt) => isSome(opt) ? some(f(opt.content)) : none(),
- *   of: (a) => some(a),
- *   ap: (optF) => (optA) => isSome(optF) && isSome(optA) ? some(optF.content(optA.content)) : none(),
- *   chain: (f) => (opt) => isSome(opt) ? f(opt.content) : none()
- * };
  */
 export interface Monad1<KindKey extends KindKeys1>
   extends Chain1<KindKey>,
@@ -37,7 +27,6 @@ export interface Monad1<KindKey extends KindKeys1>
 /**
  * Monad interface for two-parameter type constructors.
  *
- * @template KindKey - The kind identifier for this monad
  */
 export interface Monad2<KindKey extends KindKeys2>
   extends Chain2<KindKey>,
@@ -46,7 +35,6 @@ export interface Monad2<KindKey extends KindKeys2>
 /**
  * Monad interface for three-parameter type constructors.
  *
- * @template KindKey - The kind identifier for this monad
  */
 export interface Monad3<KindKey extends KindKeys3>
   extends Chain3<KindKey>,

@@ -132,8 +132,8 @@ test("Variant1", async () => {
     }
   >;
   const Triangle = pattern<Triangle>("Triangle");
-  const triangle = construct<Triangle>("Triangle");
-
+  const triangle =
+    construct<Triangle>("Triangle");
   type Shape = Circle | Square | Triangle;
 
   const fn = (a: Shape) =>

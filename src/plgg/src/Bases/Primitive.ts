@@ -30,16 +30,10 @@ export type Primitive =
 
 /**
  * Type guard for any primitive type.
- * Checks if a value is any of the supported primitive types.
- * 
- * @param value - Value to check
- * @returns True if value is a primitive, false otherwise
- * @example
- * if (isPrimitive(value)) {
- *   // TypeScript knows value is a Primitive
- * }
  */
-export const isPrimitive = (value: unknown): value is Primitive =>
+export const isPrimitive = (
+  value: unknown,
+): value is Primitive =>
   isStr(value) ||
   isBrandStr(value) ||
   isNum(value) ||
