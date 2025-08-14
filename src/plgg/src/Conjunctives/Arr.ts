@@ -45,6 +45,7 @@ export const arrRefinable: Refinable1<"Arr"> = {
   KindKey: "Arr",
   is,
 };
+export const { is: isArr } = arrRefinable;
 
 /**
  * Castable instance for array safe casting.
@@ -62,8 +63,6 @@ export const arrCastable: Castable1<"Arr"> = {
           }),
         ),
 };
-
-export const { is: isArr } = arrRefinable;
 export const { as: asArr } = arrCastable;
 
 /**
