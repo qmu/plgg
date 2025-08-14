@@ -5,29 +5,19 @@ import {
   Pointed1,
   Applicative1,
   Chain1,
-  FixedVariant,
-  ParametricVariant,
-  hasTag,
-  construct,
+  Some,
+  some,
+  isSome,
+  None,
+  none,
+  isNone,
 } from "plgg/index";
 
-const someTag = "Some" as const;
-const noneTag = "None" as const;
-
-/**
- * Some side of Option, representing a value that exists.
- * Contains the actual value in the content property.
- */
-export type Some<T> = ParametricVariant<
-  typeof someTag,
-  T
->;
-
-/**
- * None side of Option, representing the absence of a value.
- * Equivalent to null/undefined but in a type-safe way.
- */
-export type None = FixedVariant<typeof noneTag>;
+declare module "plgg/Abstracts/Standards/Kind" {
+  export interface KindKeytoKind1<A> {
+    Option: Option<A>;
+  }
+}
 
 /**
  * Option type for type-safe null handling.
@@ -36,42 +26,11 @@ export type None = FixedVariant<typeof noneTag>;
 export type Option<T> = Some<T> | None;
 
 /**
- * Creates a Some instance containing a value.
- */
-export const some = <T>(value: T): Some<T> =>
-  construct<Some<T>>(someTag)(value);
-
-/**
- * Creates a None instance representing no value.
- */
-export const none = (): None =>
-  construct<None>(noneTag)();
-
-/**
- * Type guard to check if an Option is a Some.
- */
-export const isSome = <T>(
-  e: unknown,
-): e is Some<T> => hasTag(someTag)(e);
-
-/**
- * Type guard to check if an Option is a None.
- */
-export const isNone = (e: unknown): e is None =>
-  hasTag(noneTag)(e);
-
-/**
  * Type guard to check if a value is an Option (either Some or None).
  */
 export const isOption = <T>(
   e: unknown,
 ): e is Option<T> => isSome(e) || isNone(e);
-
-declare module "plgg/Abstracts/Standards/Kind" {
-  export interface KindKeytoKind1<A> {
-    Option: Option<A>;
-  }
-}
 
 /**
  * Functor instance for Option.

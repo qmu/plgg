@@ -10,31 +10,19 @@ import {
   Traversable2,
   KindKeys1,
   Kind1,
-  ParametricVariant,
-  hasTag,
-  construct,
+  Ok,
+  ok,
+  isOk,
+  Err,
+  err,
+  isErr,
 } from "plgg/index";
 
-const okTag = "Ok" as const;
-const errTag = "Err" as const;
-
-/**
- * Ok side of Result, representing a successful computation.
- * Contains the success value in the content property.
- */
-export type Ok<T> = ParametricVariant<
-  typeof okTag,
-  T
->;
-
-/**
- * Err side of Result, representing a failed computation.
- * Contains the error value in the content property.
- */
-export type Err<F> = ParametricVariant<
-  typeof errTag,
-  F
->;
+declare module "plgg/Abstracts/Standards/Kind" {
+  export interface KindKeytoKind2<A, B> {
+    Result: Result<A, B>;
+  }
+}
 
 /**
  * Result type for functional error handling without exceptions.
@@ -43,42 +31,11 @@ export type Err<F> = ParametricVariant<
 export type Result<T, F> = Ok<T> | Err<F>;
 
 /**
- * Creates an Ok instance containing a success value.
- */
-export const ok = <T>(a: T): Ok<T> =>
-  construct<Ok<T>>(okTag)(a);
-
-/**
- * Creates an Err instance containing an error value.
- */
-export const err = <F>(e: F): Err<F> =>
-  construct<Err<F>>(errTag)(e);
-
-/**
- * Type guard to check if a Result is an Ok.
- */
-export const isOk = <T>(e: unknown): e is Ok<T> =>
-  hasTag(okTag)(e);
-
-/**
- * Type guard to check if a Result is an Err.
- */
-export const isErr = <F>(
-  e: unknown,
-): e is Err<F> => hasTag(errTag)(e);
-
-/**
  * Type guard to check if a value is a Result (either Ok or Err).
  */
 export const isResult = <T, F>(
   e: unknown,
 ): e is Result<T, F> => isOk<T>(e) || isErr<F>(e);
-
-declare module "plgg/Abstracts/Standards/Kind" {
-  export interface KindKeytoKind2<A, B> {
-    Result: Result<A, B>;
-  }
-}
 
 /**
  * Functor instance for Result.
