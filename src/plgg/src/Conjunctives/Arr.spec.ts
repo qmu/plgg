@@ -371,19 +371,19 @@ test("conclude - failure case with first error returned", () => {
 
   const r1 = pipe(["invalid"], conclude(parsePositiveNumber));
   assert(isErr(r1));
-  expect(r1.content).toBe("Invalid number: invalid");
+  expect(r1.content).toEqual(["Invalid number: invalid"]);
 
   const r2 = pipe(["1", "invalid", "3"], conclude(parsePositiveNumber));
   assert(isErr(r2));
-  expect(r2.content).toBe("Invalid number: invalid");
+  expect(r2.content).toEqual(["Invalid number: invalid"]);
 
   const r3 = pipe(["1", "-5", "3"], conclude(parsePositiveNumber));
   assert(isErr(r3));
-  expect(r3.content).toBe("Non-positive number: -5");
+  expect(r3.content).toEqual(["Non-positive number: -5"]);
 
   const r4 = pipe(["-1", "invalid", "0"], conclude(parsePositiveNumber));
   assert(isErr(r4));
-  expect(r4.content).toBe("Non-positive number: -1");
+  expect(r4.content).toEqual(["Non-positive number: -1", "Invalid number: invalid", "Non-positive number: 0"]);
 });
 
 test("conclude - mixed types transformation", () => {
@@ -406,7 +406,7 @@ test("conclude - mixed types transformation", () => {
 
   const r2 = pipe([1, -1, 2], conclude(processValue));
   assert(isErr(r2));
-  expect(r2.content).toBe("Negative value not allowed");
+  expect(r2.content).toEqual(["Negative value not allowed"]);
 });
 
 test("conclude - processes all elements but returns first error", () => {
@@ -422,7 +422,7 @@ test("conclude - processes all elements but returns first error", () => {
   callCount = 0;
   const r1 = pipe([1, 2, 3, 4], conclude(trackingFunction));
   assert(isErr(r1));
-  expect(r1.content).toBe("Error at 2");
+  expect(r1.content).toEqual(["Error at 2"]);
   expect(callCount).toBe(4);
 
   callCount = 0;

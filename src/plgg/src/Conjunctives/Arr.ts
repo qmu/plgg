@@ -2,6 +2,8 @@ import {
   Result,
   ok,
   err,
+  isOk,
+  isErr,
   InvalidError,
   Refinement,
   Monad1,
@@ -14,7 +16,6 @@ import {
   Traversable1,
   KindKeys1,
   Kind1,
-  resultApplicative,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Standards/Kind" {
@@ -181,9 +182,21 @@ export const { traverse: traverseArr, sequence: sequenceArr } = arrTraversable;
 
 /**
  * Applies function to each array element, collecting results.
- * Returns first error encountered, but processes all elements.
+ * Returns all successful results or all errors encountered.
  */
 export const conclude =
   <T, U, F>(fn: (item: T) => Result<U, F>) =>
-  (arr: Arr<T>): Result<Arr<U>, F> =>
-    traverseArr(resultApplicative)(fn)(arr);
+  (arr: Arr<T>): Result<Arr<U>, Arr<F>> =>
+    arr
+      .map(fn)
+      .reduce<Result<Arr<U>, Arr<F>>>(
+        (acc, result) =>
+          isOk(result)
+            ? isOk(acc)
+              ? ok([...acc.content, result.content])
+              : acc
+            : isErr(acc)
+            ? err([...acc.content, result.content])
+            : err([result.content]),
+        ok([])
+      );
