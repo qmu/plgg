@@ -12,7 +12,29 @@ import {
   Foldable2,
   Foldable3,
   Applicative1,
+  Applicative2,
+  Applicative3,
 } from "plgg/index";
+
+export interface Traverse1<T extends KindKeys1> {
+  <F extends KindKeys3>(
+    F: Applicative3<F>,
+  ): <A, B, C, D>(
+    f: (a: A) => Kind3<F, B, C, D>,
+  ) => (ta: Kind1<T, A>) => Kind3<F, Kind1<T, B>, C, D>;
+
+  <F extends KindKeys2>(
+    F: Applicative2<F>,
+  ): <A, B, C>(
+    f: (a: A) => Kind2<F, B, C>,
+  ) => (ta: Kind1<T, A>) => Kind2<F, Kind1<T, B>, C>;
+
+  <F extends KindKeys1>(
+    F: Applicative1<F>,
+  ): <A, B>(
+    f: (a: A) => Kind1<F, B>,
+  ) => (ta: Kind1<T, A>) => Kind1<F, Kind1<T, B>>;
+}
 
 /**
  * Traversable interface for single-parameter type constructors.
@@ -47,11 +69,7 @@ export interface Traversable1<KindKey extends KindKeys1>
    * @param A - Applicative instance for the effect type
    * @returns Function that takes traversing function and returns traversal function
    */
-  traverse: <F extends KindKeys1>(
-    A: Applicative1<F>,
-  ) => <A, B>(
-    f: (a: A) => Kind1<F, B>,
-  ) => (ta: Kind1<KindKey, A>) => Kind1<F, Kind1<KindKey, B>>;
+  traverse: Traverse1<KindKey>;
 
   /**
    * Sequences effects while preserving structure.

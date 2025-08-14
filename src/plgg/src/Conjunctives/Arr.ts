@@ -14,6 +14,7 @@ import {
   Traversable1,
   KindKeys1,
   Kind1,
+  resultApplicative,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Theoreticals/Kind" {
@@ -196,9 +197,9 @@ export const { foldr: foldrArr, foldl: foldlArr } = arrFoldable;
  *
  * @example
  * import { resultApplicative, ok } from "plgg/index";
- * const parseNumber = (s: string) => 
+ * const parseNumber = (s: string) =>
  *   isNaN(Number(s)) ? err(new Error("Not a number")) : ok(Number(s));
- * 
+ *
  * traverseArr(resultApplicative)(parseNumber)(["1", "2", "3"]); // Ok([1, 2, 3])
  * traverseArr(resultApplicative)(parseNumber)(["1", "x", "3"]); // Err(Error)
  */
@@ -212,7 +213,7 @@ export const arrTraversable: Traversable1<"Arr"> = {
       ta.reduceRight(
         (acc: Kind1<F, Arr<B>>, x: A) =>
           A.ap(A.map((b: B) => (bs: Arr<B>) => [b, ...bs])(f(x)))(acc),
-        A.of([])
+        A.of([]),
       ),
   sequence:
     <F extends KindKeys1>(A: Applicative1<F>) =>
@@ -227,13 +228,6 @@ export const { traverse: traverseArr, sequence: sequenceArr } = arrTraversable;
 /**
  * Validates that all array elements match a type predicate.
  * Returns a typed array if all elements pass the predicate.
- *
- * @param predicate - Type guard function to validate each element
- * @returns Function that validates arrays using the predicate
- * @example
- * const validateNumbers = every(isNum);
- * const result = validateNumbers([1, 2, 3]); // Ok([1, 2, 3])
- * const invalid = validateNumbers([1, "2", 3]); // Err(InvalidError)
  */
 export const every =
   <T>(predicate: (value: unknown) => value is T) =>
@@ -245,3 +239,10 @@ export const every =
             message: "Array elements do not match predicate",
           }),
         );
+
+export const collect =
+  <T, U, F>(fn: (item: T) => Result<U, F>) =>
+  (arr: ReadonlyArray<T>): Result<Arr<U>, F> => {
+    const r = traverseArr(resultApplicative)(fn)(arr);
+    return r;
+  };
