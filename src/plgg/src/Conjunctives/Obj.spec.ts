@@ -10,6 +10,15 @@ import {
   isErr,
   isSome,
   isNone,
+  mapObj,
+  applyObj,
+  ofObj,
+  chainObj,
+  foldrObj,
+  foldlObj,
+  traverseObj,
+  sequenceObj,
+  pipe,
 } from "plgg/index";
 
 test("Obj.is type guard", () => {
@@ -206,4 +215,105 @@ test("Complex object validation with multiple properties", async () => {
   expect(emailResult.content.email.content).toBe(
     "john@example.com",
   );
+});
+
+test("mapObj - Functor instance", () => {
+  const obj = { x: 1, y: 2 };
+  const double = (n: number) => n * 2;
+  
+  const result = pipe(
+    obj,
+    mapObj((o: typeof obj) => ({ x: double(o.x), y: double(o.y) }))
+  );
+  expect(result).toEqual({ x: 2, y: 4 });
+  
+  const toString = (n: number) => n.toString();
+  const stringResult = pipe(
+    obj,
+    mapObj((o: typeof obj) => ({ x: toString(o.x), y: toString(o.y) }))
+  );
+  expect(stringResult).toEqual({ x: "1", y: "2" });
+});
+
+test("ofObj - Pointed instance", () => {
+  const obj = { name: "test", value: 42 };
+  const result = pipe(obj, ofObj);
+  expect(result).toEqual(obj);
+  expect(result).toBe(obj);
+  
+  const primitiveObj = { count: 0 };
+  const primitiveResult = pipe(primitiveObj, ofObj);
+  expect(primitiveResult).toEqual(primitiveObj);
+});
+
+test("applyObj - Apply instance", () => {
+  const addValues = (obj: { a: number; b: number }) => obj.a + obj.b;
+  const obj = { a: 5, b: 3 };
+  
+  const result = pipe(obj, applyObj(addValues));
+  expect(result).toBe(8);
+  
+  const transformObj = (obj: { name: string; age: number }) => ({ 
+    fullName: obj.name.toUpperCase(), 
+    isAdult: obj.age >= 18 
+  });
+  const personObj = { name: "alice", age: 25 };
+  
+  const transformResult = pipe(personObj, applyObj(transformObj));
+  expect(transformResult).toEqual({ fullName: "ALICE", isAdult: true });
+});
+
+test("chainObj - Chain instance", () => {
+  const obj = { value: 10 };
+  
+  const multiplyAndWrap = (o: typeof obj) => ({ result: o.value * 2 });
+  const result = pipe(obj, chainObj(multiplyAndWrap));
+  expect(result).toEqual({ result: 20 });
+  
+  const addFieldsAndWrap = (o: { x: number }) => ({ 
+    original: o.x, 
+    doubled: o.x * 2, 
+    squared: o.x * o.x 
+  });
+  const numberObj = { x: 3 };
+  const chainResult = pipe(numberObj, chainObj(addFieldsAndWrap));
+  expect(chainResult).toEqual({ original: 3, doubled: 6, squared: 9 });
+});
+
+test("foldrObj - right fold", () => {
+  const obj = { name: "Alice", age: 30 };
+  
+  const concatenateValues = (o: typeof obj, acc: string) => acc + JSON.stringify(o);
+  const result = pipe(obj, foldrObj(concatenateValues)("start:"));
+  expect(result).toBe('start:{"name":"Alice","age":30}');
+  
+  const sumNumericFields = (o: { a: number; b: number }, acc: number) => acc + o.a + o.b;
+  const numObj = { a: 5, b: 10 };
+  const sumResult = pipe(numObj, foldrObj(sumNumericFields)(0));
+  expect(sumResult).toBe(15);
+});
+
+test("foldlObj - left fold", () => {
+  const obj = { x: 2, y: 3 };
+  
+  const multiplyValues = (acc: number, o: typeof obj) => acc * o.x * o.y;
+  const result = pipe(obj, foldlObj(multiplyValues)(1));
+  expect(result).toBe(6);
+  
+  const appendObject = (acc: string, o: { name: string }) => acc + o.name;
+  const nameObj = { name: "World" };
+  const appendResult = pipe(nameObj, foldlObj(appendObject)("Hello "));
+  expect(appendResult).toBe("Hello World");
+});
+
+test("traverseObj - function exists", () => {
+  // Test that the traverse function exists and is exported
+  expect(typeof traverseObj).toBe("function");
+  expect(traverseObj).toBeDefined();
+});
+
+test("sequenceObj - function exists", () => {
+  // Test that the sequence function exists and is exported
+  expect(typeof sequenceObj).toBe("function");
+  expect(sequenceObj).toBeDefined();
 });
