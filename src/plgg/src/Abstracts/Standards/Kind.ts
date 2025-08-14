@@ -3,13 +3,6 @@
  * Maps kind keys to their concrete types for type-level programming.
  *
  * To register a new Kind1 type, use module augmentation:
- * @example
- * declare module "plgg/TypeLevels/Kind" {
- *   export interface KindKeytoKind1<A> {
- *     MyType: MyType<A>;
- *   }
- * }
- *
  * @template A - The type parameter for the kind
  */
 export interface KindKeytoKind1<A> {}
