@@ -3,7 +3,7 @@ import {
   hasTag,
   construct,
   Result,
-  ok,
+  newOk,
   InvalidError,
   Refinable1,
   Castable1,
@@ -34,13 +34,13 @@ export type Err<F> = ParametricVariant<
  * Pattern constructor for Err matching.
  * Used in pattern matching to match Err values.
  */
-export const Err = <T>(a: T) =>
+export const err = <T>(a: T) =>
   pattern<Err<T>>(errTag)(a);
 
 /**
  * Creates an Err instance containing an error value.
  */
-export const err = <F>(e: F): Err<F> =>
+export const newErr = <F>(e: F): Err<F> =>
   construct<Err<F>>(errTag)(e);
 
 /**
@@ -67,8 +67,8 @@ export const errCastable: Castable1<"Err"> = {
     value: unknown,
   ): Result<Err<A>, InvalidError> =>
     is<A>(value)
-      ? ok(value)
-      : err(
+      ? newOk(value)
+      : newErr(
           new InvalidError({
             message: "Value is not an Err",
           }),

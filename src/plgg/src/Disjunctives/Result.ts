@@ -10,11 +10,11 @@ import {
   Traversable2,
   KindKeys1,
   Kind1,
-  Ok,
-  ok,
+  newOk,
   isOk,
+  Ok,
   Err,
-  err,
+  newErr,
   isErr,
 } from "plgg/index";
 
@@ -46,7 +46,7 @@ export const resultFunctor: Functor2<"Result"> = {
   map:
     <T1, T2, E>(f: (a: T1) => T2) =>
     (fa: Result<T1, E>): Result<T2, E> =>
-      isOk(fa) ? ok<T2>(f(fa.content)) : fa,
+      isOk(fa) ? newOk<T2>(f(fa.content)) : fa,
 };
 export const { map: mapResult } = resultFunctor;
 
@@ -61,7 +61,7 @@ export const resultApply: Apply2<"Result"> = {
     (fa: Result<T1, E>): Result<T2, E> =>
       isOk(fab)
         ? isOk(fa)
-          ? ok<T2>(fab.content(fa.content))
+          ? newOk<T2>(fab.content(fa.content))
           : fa
         : fab,
 };
@@ -75,7 +75,7 @@ export const resultPointed: Pointed2<"Result"> = {
   ...resultFunctor,
   of: <T = never, E = never>(
     a: T,
-  ): Result<T, E> => ok<T>(a),
+  ): Result<T, E> => newOk<T>(a),
 };
 export const { of: ofResult } = resultPointed;
 
@@ -161,9 +161,9 @@ export const resultTraversable: Traversable2<"Result"> =
         ta: Result<A, C>,
       ): Kind1<F, Result<B, C>> => {
         if (isOk(ta)) {
-          return A.map(ok)(f(ta.content));
+          return A.map(newOk)(f(ta.content));
         } else {
-          return A.of(err(ta.content));
+          return A.of(newErr(ta.content));
         }
       },
     sequence:
@@ -172,9 +172,9 @@ export const resultTraversable: Traversable2<"Result"> =
         tfa: Result<Kind1<F, A>, C>,
       ): Kind1<F, Result<A, C>> => {
         if (isOk(tfa)) {
-          return A.map(ok)(tfa.content);
+          return A.map(newOk)(tfa.content);
         } else {
-          return A.of(err(tfa.content));
+          return A.of(newErr(tfa.content));
         }
       },
   };

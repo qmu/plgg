@@ -5,11 +5,11 @@ import {
   Pointed1,
   Applicative1,
   Chain1,
-  Some,
-  some,
+  newSome,
   isSome,
+  Some,
   None,
-  none,
+  newNone,
   isNone,
 } from "plgg/index";
 
@@ -42,8 +42,8 @@ export const optionFunctor: Functor1<"Option"> = {
     <A, B>(f: (a: A) => B) =>
     (fa: Option<A>): Option<B> =>
       isSome(fa)
-        ? some<B>(f(fa.content))
-        : none(),
+        ? newSome<B>(f(fa.content))
+        : newNone(),
 };
 export const { map: mapOption } = optionFunctor;
 
@@ -58,9 +58,9 @@ export const optionApply: Apply1<"Option"> = {
     (fa: Option<A>): Option<B> =>
       isSome(fab)
         ? isSome(fa)
-          ? some<B>(fab.content(fa.content))
-          : none()
-        : none(),
+          ? newSome<B>(fab.content(fa.content))
+          : newNone()
+        : newNone(),
 };
 export const { ap: applyOption } = optionApply;
 
@@ -70,7 +70,7 @@ export const { ap: applyOption } = optionApply;
  */
 export const optionPointed: Pointed1<"Option"> = {
   ...optionFunctor,
-  of: <A>(a: A): Option<A> => some<A>(a),
+  of: <A>(a: A): Option<A> => newSome<A>(a),
 };
 export const { of: ofOption } = optionPointed;
 
@@ -97,7 +97,7 @@ export const optionChain: Chain1<"Option"> = {
   chain:
     <A, B>(f: (a: A) => Option<B>) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? f(fa.content) : none(),
+      isSome(fa) ? f(fa.content) : newNone(),
 };
 export const { chain: chainOption } = optionChain;
 

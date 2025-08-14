@@ -8,7 +8,7 @@ import {
   TupleToUnion,
   IsUnionSubset,
   UnPartial,
-  OTHERWISE,
+  otherwise,
   And,
   Or,
 } from "plgg/index";
@@ -238,7 +238,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O2,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -262,7 +262,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O3,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -288,7 +288,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O4,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -316,7 +316,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O5,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -346,7 +346,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O6,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -378,7 +378,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O7,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -412,7 +412,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O8,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -448,7 +448,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O9,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -486,7 +486,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O10,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -526,7 +526,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O11,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -568,7 +568,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O12,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -637,7 +637,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O13,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -710,7 +710,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O14,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -787,7 +787,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O15,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -868,7 +868,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O16,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -953,7 +953,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O17,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -1042,7 +1042,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O18,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -1135,7 +1135,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O19,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -1232,7 +1232,7 @@ export function match<
   R,
   OTHERWISE_LAST extends boolean = Is<
     O20,
-    typeof OTHERWISE
+    typeof otherwise
   >,
   OPTIONS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
@@ -1315,7 +1315,7 @@ export function match(
 ): (a: unknown) => unknown {
   return (a: unknown): unknown => {
     for (const [cond, fn] of options) {
-      if (cond === OTHERWISE) {
+      if (cond === otherwise) {
         return fn(a);
       }
       if (

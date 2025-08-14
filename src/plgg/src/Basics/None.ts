@@ -3,8 +3,8 @@ import {
   hasTag,
   construct,
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   Refinable0,
   Castable0,
@@ -26,13 +26,13 @@ export type None = FixedVariant<typeof noneTag>;
  * Pattern constructor for None matching.
  * Used in pattern matching to match None values.
  */
-export const None = () =>
+export const none = () =>
   pattern<None>(noneTag)();
 
 /**
  * Creates a None instance representing no value.
  */
-export const none = (): None =>
+export const newNone = (): None =>
   construct<None>(noneTag)();
 
 /**
@@ -57,8 +57,8 @@ export const noneCastable: Castable0<None> = {
     value: unknown,
   ): Result<None, InvalidError> =>
     is(value)
-      ? ok(value)
-      : err(
+      ? newOk(value)
+      : newErr(
           new InvalidError({
             message: "Value is not a None",
           }),

@@ -1,11 +1,11 @@
 import {
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   Option,
-  some,
-  none,
+  newSome,
+  newNone,
   pipe,
   chainResult,
 } from "plgg/index";
@@ -36,8 +36,8 @@ export const asObj = (
   value: unknown,
 ): Result<Obj, InvalidError> =>
   isObj(value)
-    ? ok(value)
-    : err(
+    ? newOk(value)
+    : newErr(
         new InvalidError({
           message: "Not object",
         }),
@@ -66,10 +66,11 @@ export const forProp =
             ): Result<
               V & Record<T, U>,
               InvalidError
-            > => ok({ ...obj, [key]: okValue }),
+            > =>
+              newOk({ ...obj, [key]: okValue }),
           ),
         )
-      : err(
+      : newErr(
           new InvalidError({
             message: `Property '${key}' not found`,
           }),
@@ -102,13 +103,13 @@ export const forOptionProp =
               V & Record<T, Option<U>>,
               InvalidError
             > =>
-              ok({
+              newOk({
                 ...obj,
-                [key]: some(okValue),
+                [key]: newSome(okValue),
               }),
           ),
         )
-      : ok({ ...obj, [key]: none() } as V &
+      : newOk({ ...obj, [key]: newNone() } as V &
           Record<T, Option<U>>);
 
 /**

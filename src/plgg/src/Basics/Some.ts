@@ -3,8 +3,8 @@ import {
   hasTag,
   construct,
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   Refinable1,
   Castable1,
@@ -35,13 +35,13 @@ export type Some<T> = ParametricVariant<
  * Pattern constructor for Some matching.
  * Used in pattern matching to match Some values.
  */
-export const Some = <T>(a?: T) =>
+export const some = <T>(a?: T) =>
   pattern<Some<T>>(someTag)(a);
 
 /**
  * Creates a Some instance containing a value.
  */
-export const some = <T>(value: T): Some<T> =>
+export const newSome = <T>(value: T): Some<T> =>
   construct<Some<T>>(someTag)(value);
 
 /**
@@ -67,8 +67,8 @@ export const someCastable: Castable1<"Some"> = {
     value: unknown,
   ): Result<Some<A>, InvalidError> =>
     is<A>(value)
-      ? ok(value)
-      : err(
+      ? newOk(value)
+      : newErr(
           new InvalidError({
             message: "Value is not a Some",
           }),

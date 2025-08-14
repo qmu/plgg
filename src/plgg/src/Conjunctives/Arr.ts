@@ -1,7 +1,7 @@
 import {
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   isOk,
   isErr,
   InvalidError,
@@ -55,8 +55,8 @@ export const arrCastable: Castable1<"Arr"> = {
     value: unknown,
   ): Result<Arr<A>, InvalidError> =>
     is<A>(value)
-      ? ok(value)
-      : err(
+      ? newOk(value)
+      : newErr(
           new InvalidError({
             message: "Value is not an array",
           }),
@@ -211,4 +211,4 @@ export const conclude =
       .map(fn)
       .reduce<
         Result<Arr<U>, Arr<F>>
-      >((acc, result) => (isOk(result) ? (isOk(acc) ? ok([...acc.content, result.content]) : acc) : isErr(acc) ? err([...acc.content, result.content]) : err([result.content])), ok([]));
+      >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));

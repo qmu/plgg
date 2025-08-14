@@ -2,8 +2,8 @@ import {
   isStr,
   Result,
   InvalidError,
-  ok,
-  err,
+  newOk,
+  newErr,
   Str,
   Brand,
 } from "plgg/index";
@@ -30,8 +30,8 @@ export const asBrandStr = <U extends string>(
   value: unknown,
 ): Result<BrandStr<U>, InvalidError> =>
   isBrandStr<U>(value)
-    ? ok(value)
-    : err(
+    ? newOk(value)
+    : newErr(
         new InvalidError({
           message:
             "Value is not a branded string",

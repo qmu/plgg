@@ -4,8 +4,8 @@ import {
   Brand,
   Bool,
   isBool,
-  ok,
-  err,
+  newOk,
+  newErr,
 } from "plgg/index";
 
 /**
@@ -30,8 +30,8 @@ export const asBrandBool = <U extends string>(
   value: unknown,
 ): Result<BrandBool<U>, InvalidError> =>
   isBrandBool<U>(value)
-    ? ok(value)
-    : err(
+    ? newOk(value)
+    : newErr(
         new InvalidError({
           message:
             "Value is not a branded boolean",

@@ -1,7 +1,7 @@
 import {
   isOk,
-  err,
-  ok,
+  newErr,
+  newOk,
   Procedural,
   isPlggError,
   Exception,
@@ -504,27 +504,27 @@ export async function proc(
         return fn(current);
       } catch (e: unknown) {
         return isPlggError(e)
-          ? err(e)
+          ? newErr(e)
           : e instanceof Error
-            ? err(
+            ? newErr(
                 new Exception(
                   "Unexpected error in proc",
                   e,
                 ),
               )
-            : err(
+            : newErr(
                 new Exception(
                   "Unknown error in proc",
                 ),
               );
       }
     },
-    Promise.resolve(ok(value)),
+    Promise.resolve(newOk(value)),
   );
   if (isResult(result)) {
     return result;
   }
-  return ok(result);
+  return newOk(result);
 }
 
 /**
