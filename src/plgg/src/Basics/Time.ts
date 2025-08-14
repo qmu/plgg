@@ -4,7 +4,7 @@ import {
   err,
   InvalidError,
   isStr,
-  Refinement,
+  Refinement0,
 } from "plgg/index";
 
 /**
@@ -32,7 +32,7 @@ const is = (value: unknown): value is Time =>
  * Refinement instance for Time validation and casting.
  * Provides type-safe Date validation following the standard Refinement pattern.
  */
-export const timeRefinement: Refinement<Time> = {
+export const timeRefinement: Refinement0<Time> = {
   is,
   as: (
     value: unknown,

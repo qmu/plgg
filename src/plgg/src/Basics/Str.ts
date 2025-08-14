@@ -3,7 +3,7 @@ import {
   ok,
   err,
   InvalidError,
-  Refinement,
+  Refinement0,
 } from "plgg/index";
 
 /**
@@ -22,7 +22,7 @@ const is = (value: unknown): value is Str =>
  * Refinement instance for string validation and casting.
  * Provides type-safe string validation following the standard Refinement pattern.
  */
-export const strRefinement: Refinement<Str> = {
+export const strRefinement: Refinement0<Str> = {
   is,
   as: (
     value: unknown,

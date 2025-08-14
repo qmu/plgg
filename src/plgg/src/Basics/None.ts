@@ -6,7 +6,7 @@ import {
   ok,
   err,
   InvalidError,
-  Refinement,
+  Refinement0,
 } from "plgg/index";
 
 /**
@@ -36,7 +36,7 @@ const is = (e: unknown): e is None =>
  * Refinement instance for None validation and casting.
  * Provides type-safe None validation following the standard Refinement pattern.
  */
-export const noneRefinement: Refinement<None> = {
+export const noneRefinement: Refinement0<None> = {
   is,
   as: (
     value: unknown,

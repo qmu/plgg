@@ -9,7 +9,7 @@ import {
  * Base Refinement type class for type validation and safe casting.
  * Used for concrete types with no type parameters.
  */
-export interface Refinement<T> {
+export interface Refinement0<T> {
   /**
    * Type guard predicate to check if a value is of type T.
    */
@@ -36,7 +36,9 @@ export interface Refinement1<
   /**
    * Type guard predicate to check if a value is of the specified kind.
    */
-  is: <A>(value: unknown) => value is Kind1<KindKey, A>;
+  is: <A>(
+    value: unknown,
+  ) => value is Kind1<KindKey, A>;
 
   /**
    * Safe casting operation that validates and converts unknown values.

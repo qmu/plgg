@@ -3,7 +3,7 @@ import {
   ok,
   err,
   InvalidError,
-  Refinement,
+  Refinement0,
 } from "plgg/index";
 
 /**
@@ -31,7 +31,7 @@ const is = (value: unknown): value is Bool =>
  * Refinement instance for boolean validation and casting.
  * Provides type-safe boolean validation following the standard Refinement pattern.
  */
-export const boolRefinement: Refinement<Bool> = {
+export const boolRefinement: Refinement0<Bool> = {
   is,
   as: (
     value: unknown,

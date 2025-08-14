@@ -3,7 +3,7 @@ import {
   err,
   Result,
   InvalidError,
-  Refinement,
+  Refinement0,
 } from "plgg/index";
 
 /**
@@ -25,7 +25,7 @@ const is = (value: unknown): value is Num =>
  * Refinement instance for number validation and casting.
  * Provides type-safe number validation following the standard Refinement pattern.
  */
-export const numRefinement: Refinement<Num> = {
+export const numRefinement: Refinement0<Num> = {
   is,
   as: (
     value: unknown,
