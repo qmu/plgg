@@ -3,20 +3,20 @@ import {
   PossiblyPromise,
   isPromise,
   isResult,
-  ok,
-  err,
+  newOk,
+  newErr,
   isOk,
 } from "plgg/index";
 
 test("success creates successful Procedural", () => {
-  const result = ok("test value");
+  const result = newOk("test value");
   assert(isOk(result));
   expect(result.content).toBe("test value");
 });
 
 test("fail creates failed Procedural", () => {
   const error = new Error("test error");
-  const result = err(error);
+  const result = newErr(error);
   if (!isResult(result) || isOk(result)) {
     assert.fail(
       "Expected error, but got success",

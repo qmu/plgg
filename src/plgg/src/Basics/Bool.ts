@@ -1,7 +1,7 @@
 import {
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   Refinable0,
   Castable0,
@@ -44,8 +44,8 @@ export const boolCastable: Castable0<Bool> = {
     value: unknown,
   ): Result<Bool, InvalidError> =>
     is(value)
-      ? ok(value)
-      : err(
+      ? newOk(value)
+      : newErr(
           new InvalidError({
             message: "Value is not a boolean",
           }),

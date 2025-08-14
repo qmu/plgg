@@ -15,13 +15,13 @@ import {
   foldlArr,
   arrApplicative,
   optionApplicative,
-  some,
-  none,
+  newSome,
+  newNone,
   isSome,
   isNone,
   conclude,
-  ok,
-  err,
+  newOk,
+  newErr,
   Result,
 } from "plgg/index";
 
@@ -332,7 +332,7 @@ test("Arr Traversable - sequence with Array", () => {
 test("Arr Traversable - collect results with Option (safe division)", () => {
   // Function that safely divides 10 by n, failing for zero or negative numbers
   const safeDivide = (n: number) =>
-    n > 0 ? some(10 / n) : none();
+    n > 0 ? newSome(10 / n) : newNone();
 
   // Success case: all divisions succeed, results collected into Some([...])
   const r1 = pipe(
@@ -363,8 +363,8 @@ test("Arr Traversable - collect results with Option (validation)", () => {
   const parsePositive = (s: string) => {
     const num = Number(s);
     return isNaN(num) || num <= 0
-      ? none()
-      : some(num);
+      ? newNone()
+      : newSome(num);
   };
 
   // Success case: all strings are valid positive numbers
@@ -399,9 +399,9 @@ test("Arr Traversable - collect results with Option (validation)", () => {
 
 test("Arr Traversable - empty array edge cases", () => {
   // Empty arrays should always succeed regardless of the effectful function
-  const alwaysFails = (_: unknown) => none();
+  const alwaysFails = (_: unknown) => newNone();
   const maybeSucceeds = (x: number) =>
-    x > 0 ? some(x * 2) : none();
+    x > 0 ? newSome(x * 2) : newNone();
 
   // Even functions that always fail should succeed on empty arrays
   const r1 = pipe(
@@ -429,8 +429,8 @@ test("conclude - success case with all valid results", () => {
   ): Result<number, string> => {
     const num = Number(s);
     return isNaN(num)
-      ? err("Invalid number")
-      : ok(num);
+      ? newErr("Invalid number")
+      : newOk(num);
   };
 
   const r1 = pipe([], conclude(parseNumber));
@@ -458,12 +458,12 @@ test("conclude - failure case with first error returned", () => {
   ): Result<number, string> => {
     const num = Number(s);
     if (isNaN(num)) {
-      return err("Invalid number: " + s);
+      return newErr("Invalid number: " + s);
     }
     if (num <= 0) {
-      return err("Non-positive number: " + s);
+      return newErr("Non-positive number: " + s);
     }
-    return ok(num);
+    return newOk(num);
   };
 
   const r1 = pipe(
@@ -510,15 +510,15 @@ test("conclude - mixed types transformation", () => {
     x: number,
   ): Result<string, string> => {
     if (x < 0) {
-      return err("Negative value not allowed");
+      return newErr("Negative value not allowed");
     }
     if (x === 0) {
-      return ok("zero");
+      return newOk("zero");
     }
     if (x === 1) {
-      return ok("one");
+      return newOk("one");
     }
-    return ok(`number: ${x}`);
+    return newOk(`number: ${x}`);
   };
 
   const r1 = pipe(
@@ -550,9 +550,9 @@ test("conclude - processes all elements but returns first error", () => {
   ): Result<number, string> => {
     callCount++;
     if (x === 2) {
-      return err("Error at 2");
+      return newErr("Error at 2");
     }
-    return ok(x * 10);
+    return newOk(x * 10);
   };
 
   callCount = 0;

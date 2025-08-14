@@ -1,7 +1,7 @@
 import {
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   isStr,
   Refinable0,
@@ -45,10 +45,10 @@ export const timeCastable: Castable0<Time> = {
     value: unknown,
   ): Result<Time, InvalidError> =>
     is(value)
-      ? ok(value)
+      ? newOk(value)
       : isDateString(value)
-        ? ok(new Date(value as string))
-        : err(
+        ? newOk(new Date(value as string))
+        : newErr(
             new InvalidError({
               message: "Value is not a Date",
             }),

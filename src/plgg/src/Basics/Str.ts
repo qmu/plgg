@@ -1,7 +1,7 @@
 import {
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   Refinable0,
   Castable0,
@@ -35,8 +35,8 @@ export const strCastable: Castable0<Str> = {
     value: unknown,
   ): Result<Str, InvalidError> =>
     is(value)
-      ? ok(value)
-      : err(
+      ? newOk(value)
+      : newErr(
           new InvalidError({
             message: `${value} is not a string`,
           }),

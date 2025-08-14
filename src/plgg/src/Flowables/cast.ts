@@ -1,9 +1,9 @@
 import {
   isOk,
-  ok,
+  newOk,
   Result,
   InvalidError,
-  err,
+  newErr,
   NonNeverFn,
 } from "plgg/index";
 
@@ -532,7 +532,7 @@ export function cast(
         }
       })();
       if (isOk(currentResult)) {
-        return err(acc.content);
+        return newErr(acc.content);
       }
       const prevError =
         acc.content.sibling.length > 0
@@ -543,21 +543,21 @@ export function cast(
         ...acc.content.sibling,
         currentResult.content,
       ];
-      return err(
+      return newErr(
         new InvalidError({
           message: "Validation failed",
           sibling,
         }),
       );
     },
-    ok<unknown>(value),
+    newOk<unknown>(value),
   );
 }
 
 const convUnknownToInvalidError = (
   e: unknown,
 ): Result<never, InvalidError> =>
-  err(
+  newErr(
     new InvalidError({
       message: "Validation failed",
       parent:

@@ -3,14 +3,14 @@ import {
   hasTag,
   construct,
   Result,
-  err,
+  newErr,
   InvalidError,
   Refinable1,
   Castable1,
   pattern,
 } from "plgg/index";
 
-declare module "plgg/Abstracts/Standards/Kind" {
+declare module "plgg/Abstracts/Principals/Kind" {
   export interface KindKeytoKind1<A> {
     Ok: Ok<A>;
   }
@@ -34,13 +34,13 @@ export type Ok<T> = ParametricVariant<
  * Pattern constructor for Ok matching.
  * Used in pattern matching to match Ok values.
  */
-export const Ok = <T>(a: T) =>
+export const ok = <T>(a: T) =>
   pattern<Ok<T>>(okTag)(a);
 
 /**
  * Creates an Ok instance containing a success value.
  */
-export const ok = <T>(a: T): Ok<T> =>
+export const newOk = <T>(a: T): Ok<T> =>
   construct<Ok<T>>(okTag)(a);
 
 /**
@@ -67,8 +67,8 @@ export const okCastable: Castable1<"Ok"> = {
     value: unknown,
   ): Result<Ok<A>, InvalidError> =>
     is<A>(value)
-      ? ok(value)
-      : err(
+      ? newOk(value)
+      : newErr(
           new InvalidError({
             message: "Value is not an Ok",
           }),

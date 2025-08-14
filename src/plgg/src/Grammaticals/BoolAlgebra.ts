@@ -1,7 +1,7 @@
 /**
  * Sentinel value for exhaustive pattern matching default cases.
  */
-export const OTHERWISE =
+export const otherwise =
   "__MATCH_OTHERWISE__" as const;
 
 /**

@@ -1,2 +1,2 @@
-export * from "plgg/Abstracts/Pragmatics";
-export * from "plgg/Abstracts/Standards";
+export * from "plgg/Abstracts/Principals";
+export * from "plgg/Abstracts/Usefuls";

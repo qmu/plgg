@@ -1,6 +1,6 @@
 import {
-  ok,
-  err,
+  newOk,
+  newErr,
   Result,
   InvalidError,
   Refinable0,
@@ -37,8 +37,8 @@ export const numCastable: Castable0<Num> = {
     value: unknown,
   ): Result<Num, InvalidError> =>
     is(value)
-      ? ok(Number(value))
-      : err(
+      ? newOk(Number(value))
+      : newErr(
           new InvalidError({
             message: "Value is not a number",
           }),

@@ -1,8 +1,8 @@
 import {
   Brand,
   Result,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   Num,
   isNum,
@@ -30,8 +30,8 @@ export const asBrandNum = <U extends string>(
   value: unknown,
 ): Result<BrandNum<U>, InvalidError> =>
   isBrandNum<U>(value)
-    ? ok(value)
-    : err(
+    ? newOk(value)
+    : newErr(
         new InvalidError({
           message:
             "Value is not a branded number",

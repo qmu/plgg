@@ -1,8 +1,8 @@
 import {
   Result,
   pipe,
-  ok,
-  err,
+  newOk,
+  newErr,
   InvalidError,
   toError,
 } from "plgg/index";
@@ -33,8 +33,8 @@ export const refine =
   ) =>
   (a: T): Result<T, InvalidError> =>
     predicate(a)
-      ? ok(a)
-      : err(
+      ? newOk(a)
+      : newErr(
           new InvalidError({
             message: errMessage
               ? errMessage
@@ -63,9 +63,9 @@ export const tryCatch =
   ) =>
   (arg: T): Result<U, E> => {
     try {
-      return ok(fn(arg));
+      return newOk(fn(arg));
     } catch (error: unknown) {
-      return err(errorHandler(error));
+      return newErr(errorHandler(error));
     }
   };
 
@@ -76,8 +76,8 @@ export const defined = <T>(
   value: T | undefined,
 ): Result<T, Error> =>
   value === undefined
-    ? err(new Error("Value is undefined"))
-    : ok<T>(value);
+    ? newErr(new Error("Value is undefined"))
+    : newOk<T>(value);
 
 /**
  * Encodes data as formatted JSON string.
