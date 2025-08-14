@@ -4,7 +4,8 @@ import {
   err,
   InvalidError,
   isStr,
-  Refinement0,
+  Refinable0,
+  Castable0,
 } from "plgg/index";
 
 /**
@@ -29,24 +30,28 @@ const is = (value: unknown): value is Time =>
   value instanceof Date;
 
 /**
- * Refinement instance for Time validation and casting.
- * Provides type-safe Date validation following the standard Refinement pattern.
+ * Refinable instance for Time type guards.
  */
-export const timeRefinement: Refinement0<Time> = {
+export const timeRefinable: Refinable0<Time> = {
   is,
+};
+export const { is: isTime } = timeRefinable;
+
+/**
+ * Castable instance for Time safe casting.
+ */
+export const timeCastable: Castable0<Time> = {
   as: (
     value: unknown,
   ): Result<Time, InvalidError> =>
     is(value)
       ? ok(value)
       : isDateString(value)
-        ? ok(new Date(value))
+        ? ok(new Date(value as string))
         : err(
             new InvalidError({
               message: "Value is not a Date",
             }),
           ),
 };
-
-export const { is: isTime, as: asTime } =
-  timeRefinement;
+export const { as: asTime } = timeCastable;

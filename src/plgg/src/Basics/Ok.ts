@@ -5,7 +5,8 @@ import {
   Result,
   err,
   InvalidError,
-  Refinement1,
+  Refinable1,
+  Castable1,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Standards/Kind" {
@@ -41,12 +42,18 @@ const is = <T>(e: unknown): e is Ok<T> =>
   hasTag(okTag)(e);
 
 /**
- * Refinement instance for Ok validation and casting.
- * Provides type-safe Ok validation following the standard Refinement1 pattern.
+ * Refinable instance for Ok type guards.
  */
-export const okRefinement: Refinement1<"Ok"> = {
+export const okRefinable: Refinable1<"Ok"> = {
   KindKey: "Ok",
   is,
+};
+
+/**
+ * Castable instance for Ok safe casting.
+ */
+export const okCastable: Castable1<"Ok"> = {
+  KindKey: "Ok",
   as: <A>(
     value: unknown,
   ): Result<Ok<A>, InvalidError> =>
@@ -58,5 +65,6 @@ export const okRefinement: Refinement1<"Ok"> = {
           }),
         ),
 };
-export const { is: isOk, as: asOk } =
-  okRefinement;
+
+export const { is: isOk } = okRefinable;
+export const { as: asOk } = okCastable;

@@ -6,15 +6,10 @@ import {
 } from "plgg/index";
 
 /**
- * Base Refinement type class for type validation and safe casting.
+ * Castable type class for safe type casting.
  * Used for concrete types with no type parameters.
  */
-export interface Refinement0<T> {
-  /**
-   * Type guard predicate to check if a value is of type T.
-   */
-  is: (value: unknown) => value is T;
-
+export interface Castable0<T> {
   /**
    * Safe casting operation that validates and converts unknown values to type T.
    */
@@ -22,23 +17,16 @@ export interface Refinement0<T> {
 }
 
 /**
- * Refinement type class for single-parameter type constructors.
+ * Castable type class for single-parameter type constructors.
  * Used for types like Option<T>, Ok<T>, Err<F>, etc.
  */
-export interface Refinement1<
+export interface Castable1<
   KindKey extends KindKeys1,
 > {
   /**
-   * The kind identifier for this refinement.
+   * The kind identifier for this castable.
    */
   KindKey: KindKey;
-
-  /**
-   * Type guard predicate to check if a value is of the specified kind.
-   */
-  is: <A>(
-    value: unknown,
-  ) => value is Kind1<KindKey, A>;
 
   /**
    * Safe casting operation that validates and converts unknown values.

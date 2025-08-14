@@ -5,7 +5,8 @@ import {
   isOk,
   isErr,
   InvalidError,
-  Refinement1,
+  Refinable1,
+  Castable1,
   Monad1,
   Functor1,
   Apply1,
@@ -38,12 +39,18 @@ const is = <T>(value: unknown): value is Arr<T> =>
   Array.isArray(value);
 
 /**
- * Refinement instance for array validation and casting.
- * Provides type-safe array validation following the standard Refinement1 pattern.
+ * Refinable instance for array type guards.
  */
-export const arrRefinement: Refinement1<"Arr"> = {
+export const arrRefinable: Refinable1<"Arr"> = {
   KindKey: "Arr",
   is,
+};
+
+/**
+ * Castable instance for array safe casting.
+ */
+export const arrCastable: Castable1<"Arr"> = {
+  KindKey: "Arr",
   as: <A>(
     value: unknown,
   ): Result<Arr<A>, InvalidError> =>
@@ -55,8 +62,9 @@ export const arrRefinement: Refinement1<"Arr"> = {
           }),
         ),
 };
-export const { is: isArr, as: asArr } =
-  arrRefinement;
+
+export const { is: isArr } = arrRefinable;
+export const { as: asArr } = arrCastable;
 
 /**
  * Functor instance for Arr.

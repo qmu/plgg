@@ -6,7 +6,8 @@ import {
   ok,
   err,
   InvalidError,
-  Refinement0,
+  Refinable0,
+  Castable0,
 } from "plgg/index";
 
 /**
@@ -33,11 +34,17 @@ const is = (e: unknown): e is None =>
   hasTag(noneTag)(e);
 
 /**
- * Refinement instance for None validation and casting.
- * Provides type-safe None validation following the standard Refinement pattern.
+ * Refinable instance for None type guards.
  */
-export const noneRefinement: Refinement0<None> = {
+export const noneRefinable: Refinable0<None> = {
   is,
+};
+export const { is: isNone } = noneRefinable;
+
+/**
+ * Castable instance for None safe casting.
+ */
+export const noneCastable: Castable0<None> = {
   as: (
     value: unknown,
   ): Result<None, InvalidError> =>
@@ -49,6 +56,4 @@ export const noneRefinement: Refinement0<None> = {
           }),
         ),
 };
-export const { is: isNone, as: asNone } =
-  noneRefinement;
-
+export const { as: asNone } = noneCastable;

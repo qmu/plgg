@@ -3,7 +3,8 @@ import {
   err,
   Result,
   InvalidError,
-  Refinement0,
+  Refinable0,
+  Castable0,
 } from "plgg/index";
 
 /**
@@ -22,11 +23,16 @@ const is = (value: unknown): value is Num =>
     value <= Number.MAX_SAFE_INTEGER);
 
 /**
- * Refinement instance for number validation and casting.
- * Provides type-safe number validation following the standard Refinement pattern.
+ * Refinable instance for number type guards.
  */
-export const numRefinement: Refinement0<Num> = {
+export const numRefinable: Refinable0<Num> = {
   is,
+};
+
+/**
+ * Castable instance for number safe casting.
+ */
+export const numCastable: Castable0<Num> = {
   as: (
     value: unknown,
   ): Result<Num, InvalidError> =>
@@ -38,5 +44,6 @@ export const numRefinement: Refinement0<Num> = {
           }),
         ),
 };
-export const { is: isNum, as: asNum } =
-  numRefinement;
+
+export const { is: isNum } = numRefinable;
+export const { as: asNum } = numCastable;

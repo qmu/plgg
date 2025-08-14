@@ -1,1 +1,2 @@
-export * from "plgg/Abstracts/Pragmatics/Refinement";
+export * from "plgg/Abstracts/Pragmatics/Castable";
+export * from "plgg/Abstracts/Pragmatics/Refinable";

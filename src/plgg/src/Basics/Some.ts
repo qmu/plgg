@@ -6,7 +6,8 @@ import {
   ok,
   err,
   InvalidError,
-  Refinement1,
+  Refinable1,
+  Castable1,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Standards/Kind" {
@@ -42,24 +43,30 @@ const is = <T>(e: unknown): e is Some<T> =>
   hasTag(someTag)(e);
 
 /**
- * Refinement instance for Some validation and casting.
- * Provides type-safe Some validation following the standard Refinement1 pattern.
+ * Refinable instance for Some type guards.
  */
-export const someRefinement: Refinement1<"Some"> =
-  {
-    KindKey: "Some",
-    is,
-    as: <A>(
-      value: unknown,
-    ): Result<Some<A>, InvalidError> =>
-      is<A>(value)
-        ? ok(value)
-        : err(
-            new InvalidError({
-              message: "Value is not a Some",
-            }),
-          ),
-  };
-export const { is: isSome, as: asSome } =
-  someRefinement;
+export const someRefinable: Refinable1<"Some"> = {
+  KindKey: "Some",
+  is,
+};
+
+/**
+ * Castable instance for Some safe casting.
+ */
+export const someCastable: Castable1<"Some"> = {
+  KindKey: "Some",
+  as: <A>(
+    value: unknown,
+  ): Result<Some<A>, InvalidError> =>
+    is<A>(value)
+      ? ok(value)
+      : err(
+          new InvalidError({
+            message: "Value is not a Some",
+          }),
+        ),
+};
+
+export const { is: isSome } = someRefinable;
+export const { as: asSome } = someCastable;
 

@@ -5,7 +5,8 @@ import {
   Result,
   ok,
   InvalidError,
-  Refinement1,
+  Refinable1,
+  Castable1,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Standards/Kind" {
@@ -41,12 +42,19 @@ const is = <F>(e: unknown): e is Err<F> =>
   hasTag(errTag)(e);
 
 /**
- * Refinement instance for Err validation and casting.
- * Provides type-safe Err validation following the standard Refinement1 pattern.
+ * Refinable instance for Err type guards.
  */
-export const errRefinement: Refinement1<"Err"> = {
+export const errRefinable: Refinable1<"Err"> = {
   KindKey: "Err",
   is,
+};
+export const { is: isErr } = errRefinable;
+
+/**
+ * Castable instance for Err safe casting.
+ */
+export const errCastable: Castable1<"Err"> = {
+  KindKey: "Err",
   as: <A>(
     value: unknown,
   ): Result<Err<A>, InvalidError> =>
@@ -58,6 +66,4 @@ export const errRefinement: Refinement1<"Err"> = {
           }),
         ),
 };
-export const { is: isErr, as: asErr } =
-  errRefinement;
-
+export const { as: asErr } = errCastable;

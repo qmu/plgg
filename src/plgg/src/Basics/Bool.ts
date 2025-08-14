@@ -3,7 +3,8 @@ import {
   ok,
   err,
   InvalidError,
-  Refinement0,
+  Refinable0,
+  Castable0,
 } from "plgg/index";
 
 /**
@@ -28,11 +29,17 @@ const is = (value: unknown): value is Bool =>
   typeof value === "boolean";
 
 /**
- * Refinement instance for boolean validation and casting.
- * Provides type-safe boolean validation following the standard Refinement pattern.
+ * Refinable instance for boolean type guards.
  */
-export const boolRefinement: Refinement0<Bool> = {
+export const boolRefinable: Refinable0<Bool> = {
   is,
+};
+export const { is: isBool } = boolRefinable;
+
+/**
+ * Castable instance for boolean safe casting.
+ */
+export const boolCastable: Castable0<Bool> = {
   as: (
     value: unknown,
   ): Result<Bool, InvalidError> =>
@@ -44,6 +51,4 @@ export const boolRefinement: Refinement0<Bool> = {
           }),
         ),
 };
-
-export const { is: isBool, as: asBool } =
-  boolRefinement;
+export const { as: asBool } = boolCastable;

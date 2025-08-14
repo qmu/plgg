@@ -3,7 +3,8 @@ import {
   ok,
   err,
   InvalidError,
-  Refinement0,
+  Refinable0,
+  Castable0,
 } from "plgg/index";
 
 /**
@@ -19,11 +20,17 @@ const is = (value: unknown): value is Str =>
   typeof value === "string";
 
 /**
- * Refinement instance for string validation and casting.
- * Provides type-safe string validation following the standard Refinement pattern.
+ * Refinable instance for string type guards.
  */
-export const strRefinement: Refinement0<Str> = {
+export const strRefinable: Refinable0<Str> = {
   is,
+};
+export const { is: isStr } = strRefinable;
+
+/**
+ * Castable instance for string safe casting.
+ */
+export const strCastable: Castable0<Str> = {
   as: (
     value: unknown,
   ): Result<Str, InvalidError> =>
@@ -35,8 +42,7 @@ export const strRefinement: Refinement0<Str> = {
           }),
         ),
 };
-export const { is: isStr, as: asStr } =
-  strRefinement;
+export const { as: asStr } = strCastable;
 
 /**
  * Concatenates two strings using curried application.
