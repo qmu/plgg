@@ -22,7 +22,7 @@ export type Obj<
 > = Readonly<T>;
 
 /**
- * Type guard for object.
+ * Basic type guard for object without constraints.
  */
 export const isObj = (
   value: unknown,

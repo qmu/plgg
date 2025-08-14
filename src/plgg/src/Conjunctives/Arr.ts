@@ -5,7 +5,7 @@ import {
   isOk,
   isErr,
   InvalidError,
-  Refinement,
+  Refinement1,
   Monad1,
   Functor1,
   Apply1,
@@ -32,16 +32,22 @@ export type Arr<T extends unknown = unknown> =
   ReadonlyArray<T>;
 
 /**
- * Refinement instance for array validation and casting.
- * Provides type-safe array validation following the standard Refinement pattern.
+ * Type guard to check if a value is an Arr.
  */
-export const arrRefinement: Refinement<Arr> = {
-  is: (value: unknown): value is Arr =>
-    Array.isArray(value),
-  as: (
+const is = <T>(value: unknown): value is Arr<T> =>
+  Array.isArray(value);
+
+/**
+ * Refinement instance for array validation and casting.
+ * Provides type-safe array validation following the standard Refinement1 pattern.
+ */
+export const arrRefinement: Refinement1<"Arr"> = {
+  KindKey: "Arr",
+  is,
+  as: <A>(
     value: unknown,
-  ): Result<Arr, InvalidError> =>
-    Array.isArray(value)
+  ): Result<Arr<A>, InvalidError> =>
+    is<A>(value)
       ? ok(value)
       : err(
           new InvalidError({
