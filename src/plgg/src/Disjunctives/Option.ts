@@ -1,87 +1,58 @@
 import {
   Monad1,
-  FixedVariant,
-  ParametricVariant,
-  hasTag,
-  variantMaker,
+  Functor1,
+  Apply1,
+  Pointed1,
+  Applicative1,
+  Chain1,
+  Some,
+  some,
+  isSome,
+  None,
+  none,
+  isNone,
 } from "plgg/index";
 
-const someTag = "Some" as const;
-const noneTag = "None" as const;
-
-/**
- * Some side of Option, representing a value that exists.
- */
-export type Some<T> = ParametricVariant<typeof someTag, T>;
-
-/**
- * None side of Option, representing no value.
- */
-export type None = FixedVariant<typeof noneTag>;
-
-/**
- * Option type for handling optional values.
- */
-export type Option<T> = Some<T> | None;
-
-/**
- * Creates a Some instance.
- */
-export const some = <T>(value: T): Some<T> =>
-  variantMaker(someTag)<Some<T>>()(value);
-
-/**
- * Creates a None instance.
- */
-export const none = (): None => variantMaker(noneTag)<None>()();
-
-/**
- * Type guard to check if an Option is a Some.
- */
-export const isSome = <T>(e: unknown): e is Some<T> => hasTag(someTag)(e);
-
-/**
- * Type guard to check if an Option is a None.
- */
-export const isNone = (e: unknown): e is None => hasTag(noneTag)(e);
-
-/**
- * Type guard to check if a value is an Option.
- */
-export const isOption = <T>(e: unknown): e is Option<T> =>
-  isSome(e) || isNone(e);
-
-// --------------------------------------
-
-declare module "plgg/TypeLevels/Kind" {
+declare module "plgg/Abstracts/Standards/Kind" {
   export interface KindKeytoKind1<A> {
     Option: Option<A>;
   }
 }
 
 /**
- * Monad instance for Option providing map, ap, of, and chain operations.
- * Exported as individual functions for convenient use.
+ * Option type for type-safe null handling.
+ * Represents a value that may or may not exist.
  */
-export const {
-  /** Maps a function over the content of an Option */
-  map: mapOption,
-  /** Applies a wrapped function to a wrapped value */
-  ap: applyOption,
-  /** Wraps a value in a Some */
-  of: ofOption,
-  /** Monadic bind operation for Option */
-  chain: chainOption,
-}: Monad1<"Option"> = {
-  KindKey: "Option",
+export type Option<T> = Some<T> | None;
 
-  // Functor1: map
+/**
+ * Type guard to check if a value is an Option (either Some or None).
+ */
+export const isOption = <T>(
+  e: unknown,
+): e is Option<T> => isSome(e) || isNone(e);
+
+/**
+ * Functor instance for Option.
+ * Maps functions over optional values.
+ */
+export const optionFunctor: Functor1<"Option"> = {
+  KindKey: "Option",
   map:
     <A, B>(f: (a: A) => B) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? some<B>(f(fa.content)) : none(),
+      isSome(fa)
+        ? some<B>(f(fa.content))
+        : none(),
+};
+export const { map: mapOption } = optionFunctor;
 
-  // Apply1: ap
+/**
+ * Apply instance for Option.
+ * Applies wrapped functions to wrapped values.
+ */
+export const optionApply: Apply1<"Option"> = {
+  ...optionFunctor,
   ap:
     <A, B>(fab: Option<(a: A) => B>) =>
     (fa: Option<A>): Option<B> =>
@@ -90,13 +61,51 @@ export const {
           ? some<B>(fab.content(fa.content))
           : none()
         : none(),
+};
+export const { ap: applyOption } = optionApply;
 
-  // Pointed1: of
+/**
+ * Pointed instance for Option.
+ * Wraps values in Some context.
+ */
+export const optionPointed: Pointed1<"Option"> = {
+  ...optionFunctor,
   of: <A>(a: A): Option<A> => some<A>(a),
+};
+export const { of: ofOption } = optionPointed;
 
-  // Chain1: chain
+/**
+ * Applicative instance for Option.
+ * Combines Apply and Pointed to provide both function application and value lifting.
+ * Enables working with functions and values wrapped in Option contexts.
+ */
+export const optionApplicative: Applicative1<"Option"> =
+  {
+    ...optionApply,
+    ...optionFunctor,
+    ...optionPointed,
+  };
+
+/**
+ * Chain instance for Option.
+ * Chains operations that return Options.
+ */
+export const optionChain: Chain1<"Option"> = {
+  ...optionFunctor,
+  ...optionApply,
+  ...optionPointed,
   chain:
     <A, B>(f: (a: A) => Option<B>) =>
     (fa: Option<A>): Option<B> =>
       isSome(fa) ? f(fa.content) : none(),
+};
+export const { chain: chainOption } = optionChain;
+
+/**
+ * Monad instance for Option.
+ * Combines Applicative and Chain to provide full monadic interface.
+ */
+export const optionMonad: Monad1<"Option"> = {
+  ...optionApplicative,
+  ...optionChain,
 };

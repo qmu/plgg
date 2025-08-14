@@ -1,101 +1,214 @@
-import { Result, ok, err, InvalidError, Monad1 } from "plgg/index";
+import {
+  Result,
+  ok,
+  err,
+  isOk,
+  isErr,
+  InvalidError,
+  Refinable1,
+  Castable1,
+  Monad1,
+  Functor1,
+  Apply1,
+  Pointed1,
+  Applicative1,
+  Chain1,
+  Foldable1,
+  Traversable1,
+  KindKeys1,
+  Kind1,
+} from "plgg/index";
 
-/**
- * Array type with primitive values.
- * Readonly array that can contain any type of values.
- *
- * @template T - Type of array elements (defaults to unknown)
- */
-export type Arr<T extends unknown = unknown> = ReadonlyArray<T>;
-
-/**
- * Type guard for ReadonlyArray<unknown>.
- *
- * @param value - Value to check
- * @returns True if value is an array, false otherwise
- * @example
- * if (isArr(value)) {
- *   // TypeScript knows value is Arr
- * }
- */
-export const isArr = (value: unknown): value is Arr => Array.isArray(value);
-
-/**
- * Validates and casts unknown value to array.
- *
- * @param value - Value to validate and cast
- * @returns Result with array if valid, InvalidError if not
- * @example
- * const result = castArr([1, 2, 3]); // Ok([1, 2, 3])
- * const invalid = castArr("not array"); // Err(InvalidError)
- */
-export const asArr = (value: unknown): Result<Arr, InvalidError> =>
-  isArr(value)
-    ? ok(value)
-    : err(new InvalidError({ message: "Value is not an array" }));
-
-/**
- * Validates that all array elements match a type predicate.
- * Returns a typed array if all elements pass the predicate.
- *
- * @param predicate - Type guard function to validate each element
- * @returns Function that validates arrays using the predicate
- * @example
- * const validateNumbers = every(isNum);
- * const result = validateNumbers([1, 2, 3]); // Ok([1, 2, 3])
- * const invalid = validateNumbers([1, "2", 3]); // Err(InvalidError)
- */
-export const every =
-  <T>(predicate: (value: unknown) => value is T) =>
-  (value: Arr): Result<Arr<T>, InvalidError> =>
-    value.every(predicate)
-      ? ok(value)
-      : err(
-          new InvalidError({
-            message: "Array elements do not match predicate",
-          }),
-        );
-
-declare module "plgg/TypeLevels/Kind" {
+declare module "plgg/Abstracts/Standards/Kind" {
   export interface KindKeytoKind1<A> {
     Arr: Arr<A>;
   }
 }
 
 /**
- * Monad instance for Arr providing map, ap, of, and chain operations.
- * Exported as individual functions for convenient use.
+ * Readonly array type for functional programming operations.
+ * Provides a type-safe wrapper around JavaScript arrays with immutable operations.
  */
-export const {
-  /** Maps a function over each element of an array */
-  map: mapArr,
-  /** Applies an array of functions to an array of values */
-  ap: applyArr,
-  /** Wraps a value in an array */
-  of: ofArr,
-  /** Monadic bind operation for arrays (flatMap) */
-  chain: chainArr,
-}: Monad1<"Arr"> = {
-  KindKey: "Arr",
+export type Arr<T extends unknown = unknown> =
+  ReadonlyArray<T>;
 
-  // Functor1: map
+/**
+ * Type guard to check if a value is an Arr.
+ */
+const is = <T>(value: unknown): value is Arr<T> =>
+  Array.isArray(value);
+
+/**
+ * Refinable instance for array type guards.
+ */
+export const arrRefinable: Refinable1<"Arr"> = {
+  KindKey: "Arr",
+  is,
+};
+
+/**
+ * Castable instance for array safe casting.
+ */
+export const arrCastable: Castable1<"Arr"> = {
+  KindKey: "Arr",
+  as: <A>(
+    value: unknown,
+  ): Result<Arr<A>, InvalidError> =>
+    is<A>(value)
+      ? ok(value)
+      : err(
+          new InvalidError({
+            message: "Value is not an array",
+          }),
+        ),
+};
+
+export const { is: isArr } = arrRefinable;
+export const { as: asArr } = arrCastable;
+
+/**
+ * Functor instance for Arr.
+ * Provides the ability to map functions over array elements while preserving structure.
+ */
+export const arrFunctor: Functor1<"Arr"> = {
+  KindKey: "Arr",
   map:
     <T1, T2>(f: (a: T1) => T2) =>
     (fa: Arr<T1>): Arr<T2> =>
       fa.map(f),
+};
+export const { map: mapArr } = arrFunctor;
 
-  // Apply1: ap
+/**
+ * Apply instance for Arr.
+ * Extends Functor with the ability to apply wrapped functions to wrapped values.
+ */
+export const arrApply: Apply1<"Arr"> = {
+  ...arrFunctor,
   ap:
     <T1, T2>(fab: Arr<(a: T1) => T2>) =>
     (fa: Arr<T1>): Arr<T2> =>
-      fab.flatMap(f => fa.map(f)),
+      fab.flatMap((f) => fa.map(f)),
+};
+export const { ap: applyArr } = arrApply;
 
-  // Pointed1: of
+/**
+ * Pointed instance for Arr.
+ * Provides the ability to wrap a single value in an array context.
+ */
+export const arrPointed: Pointed1<"Arr"> = {
+  ...arrFunctor,
   of: <T>(a: T): Arr<T> => [a],
+};
 
-  // Chain1: chain
+export const { of: ofArr } = arrPointed;
+
+/**
+ * Applicative instance for Arr.
+ * Combines Apply and Pointed to provide both function application and value lifting.
+ * Enables working with functions and values wrapped in array contexts.
+ */
+export const arrApplicative: Applicative1<"Arr"> =
+  {
+    ...arrApply,
+    ...arrFunctor,
+    ...arrPointed,
+  };
+
+/**
+ * Chain instance for Arr.
+ * Extends Apply with the ability to chain operations that return arrays.
+ */
+export const arrChain: Chain1<"Arr"> = {
+  ...arrFunctor,
+  ...arrApply,
+  ...arrPointed,
   chain:
     <T1, T2>(f: (a: T1) => Arr<T2>) =>
     (fa: Arr<T1>): Arr<T2> =>
       fa.flatMap(f),
 };
+export const { chain: chainArr } = arrChain;
+
+/**
+ * Monad instance for Arr.
+ * Combines Applicative and Chain to provide the full monadic interface.
+ */
+export const arrMonad: Monad1<"Arr"> = {
+  ...arrApplicative,
+  ...arrChain,
+};
+
+/**
+ * Foldable instance for Arr.
+ * Provides fold/reduce operations for arrays with left and right associativity.
+ */
+export const arrFoldable: Foldable1<"Arr"> = {
+  KindKey: "Arr",
+  foldr:
+    <A, B>(f: (a: A, b: B) => B) =>
+    (initial: B) =>
+    (fa: Arr<A>): B =>
+      fa.reduceRight(
+        (acc, x) => f(x, acc),
+        initial,
+      ),
+  foldl:
+    <A, B>(f: (b: B, a: A) => B) =>
+    (initial: B) =>
+    (fa: Arr<A>): B =>
+      fa.reduce(f, initial),
+};
+export const {
+  foldr: foldrArr,
+  foldl: foldlArr,
+} = arrFoldable;
+
+/**
+ * Traversable instance for Arr.
+ * Extends Functor and Foldable to provide structure-preserving traversal.
+ */
+export const arrTraversable: Traversable1<"Arr"> =
+  {
+    ...arrFunctor,
+    ...arrFoldable,
+    traverse:
+      <F extends KindKeys1>(A: Applicative1<F>) =>
+      <A, B>(f: (a: A) => Kind1<F, B>) =>
+      (ta: Arr<A>): Kind1<F, Arr<B>> =>
+        ta.reduceRight(
+          (acc: Kind1<F, Arr<B>>, x: A) =>
+            A.ap(
+              A.map((b: B) => (bs: Arr<B>) => [
+                b,
+                ...bs,
+              ])(f(x)),
+            )(acc),
+          A.of([]),
+        ),
+    sequence:
+      <F extends KindKeys1>(A: Applicative1<F>) =>
+      <A>(
+        tfa: Arr<Kind1<F, A>>,
+      ): Kind1<F, Arr<A>> =>
+        arrTraversable.traverse(A)(
+          (fa: Kind1<F, A>) => fa,
+        )(tfa),
+  };
+export const {
+  traverse: traverseArr,
+  sequence: sequenceArr,
+} = arrTraversable;
+
+/**
+ * Applies function to each array element, collecting results.
+ * Returns all successful results or all errors encountered.
+ */
+export const conclude =
+  <T, U, F>(fn: (item: T) => Result<U, F>) =>
+  (arr: Arr<T>): Result<Arr<U>, Arr<F>> =>
+    arr
+      .map(fn)
+      .reduce<
+        Result<Arr<U>, Arr<F>>
+      >((acc, result) => (isOk(result) ? (isOk(acc) ? ok([...acc.content, result.content]) : acc) : isErr(acc) ? err([...acc.content, result.content]) : err([result.content])), ok([]));
