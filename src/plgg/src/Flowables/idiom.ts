@@ -8,6 +8,11 @@ import {
 } from "plgg/index";
 
 /**
+ * Identity function that returns its argument unchanged.
+ */
+export const pass = <T>(x: T): T => x;
+
+/**
  * Simple function composition utility.
  */
 export const hold =

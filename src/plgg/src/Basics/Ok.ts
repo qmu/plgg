@@ -34,7 +34,7 @@ export type Ok<T> = ParametricVariant<
  * Pattern constructor for Ok matching.
  * Used in pattern matching to match Ok values.
  */
-export const ok = <T>(a: T) =>
+export const ok = <T>(a?: T) =>
   pattern<Ok<T>>(okTag)(a);
 
 /**
