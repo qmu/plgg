@@ -68,11 +68,8 @@ type FullCoveragedVariants<
   OPTIONS extends ReadonlyArray<unknown>,
   A,
 > = If<
-  Or<
-    IsFixedVariantAll<OPTIONS>,
-    IsWildParametricVariantAll<OPTIONS>
-  >,
   IsUnionSubset<A, TupleToUnion<OPTIONS>>,
+  true,
   false
 >;
 
@@ -131,58 +128,6 @@ type IsAllVariant<
   : true;
 
 /**
- * Checks if T is a fixed variant (variant with only __tag property).
- */
-type IsFixedVariantPattern<T> = T extends {
-  __tag: string;
-}
-  ? keyof T extends "__tag"
-    ? T["__tag"] extends string
-      ? Exclude<keyof T, "__tag"> extends never
-        ? true
-        : false
-      : false
-    : false
-  : false;
-
-/**
- * Recursively checks if all elements in array are fixed variants.
- */
-type IsFixedVariantAll<
-  ARR extends ReadonlyArray<unknown>,
-> = ARR extends [infer Head, ...infer Tail]
-  ? IsFixedVariantPattern<Head> extends true
-    ? IsFixedVariantAll<Tail>
-    : false
-  : true;
-
-/**
- * Checks if T is a wild parametric variant without actual pattern.
- */
-type IsWildParametricVariantAll<
-  ARR extends ReadonlyArray<unknown>,
-> = ARR extends [infer Head, ...infer Tail]
-  ? IsWildParametricVariantPattern<Head> extends true
-    ? IsWildParametricVariantAll<Tail>
-    : false
-  : true;
-
-/**
- * Type predicate for wild parametric variant patterns.
- */
-type IsWildParametricVariantPattern<T> =
-  T extends Variant<
-    infer Tag,
-    Partial<infer Content>
-  >
-    ? Is<Tag, string> extends true
-      ? IsEqual<Content, unknown> extends true
-        ? true
-        : false
-      : false
-    : false;
-
-/**
  * Variant type with partial content for pattern matching.
  */
 type PartialBodyVariant = Variant<
@@ -200,9 +145,9 @@ type MapperArg<T> = T extends PartialBodyVariant
 /**
  * Represents a pattern-handler pair for matching.
  */
-type MatchOption<A, T, R> = [
+type MatchOption<T, R> = [
   T,
-  (a: A & MapperArg<T>) => R,
+  (a: MapperArg<T>) => R,
 ];
 
 /**
@@ -233,7 +178,6 @@ function deepPartialEqual<T>(
  * Type-safe pattern matching for values, variants, and literals.
  */
 export function match<
-  A,
   O1,
   O2,
   R,
@@ -247,16 +191,16 @@ export function match<
     [O1, O2]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O3
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -271,17 +215,17 @@ export function match<
     [O1, O2, O3]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O4
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -297,18 +241,18 @@ export function match<
     [O1, O2, O3, O4]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O5
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -325,19 +269,19 @@ export function match<
     [O1, O2, O3, O4, O5]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O6
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -355,20 +299,20 @@ export function match<
     [O1, O2, O3, O4, O5, O6]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O7
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -387,21 +331,21 @@ export function match<
     [O1, O2, O3, O4, O5, O6, O7]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O8
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -421,22 +365,22 @@ export function match<
     [O1, O2, O3, O4, O5, O6, O7, O8]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O9
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -457,23 +401,23 @@ export function match<
     [O1, O2, O3, O4, O5, O6, O7, O8, O9]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O10
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -495,24 +439,24 @@ export function match<
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O11
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -535,25 +479,25 @@ export function match<
     [O1, O2, O3, O4, O5, O6, O7, O8, O9, O10, O11]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O12
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -602,26 +546,26 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O13
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -673,27 +617,27 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O14
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -748,28 +692,28 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+  o14: MatchOption<O14, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-  o14: MatchOption<A, O14, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O15
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -827,29 +771,29 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+  o14: MatchOption<O14, R>,
+  o15: MatchOption<O15, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-  o14: MatchOption<A, O14, R>,
-  o15: MatchOption<A, O15, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O16
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -910,30 +854,30 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+  o14: MatchOption<O14, R>,
+  o15: MatchOption<O15, R>,
+  o16: MatchOption<O16, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-  o14: MatchOption<A, O14, R>,
-  o15: MatchOption<A, O15, R>,
-  o16: MatchOption<A, O16, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O17
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -997,31 +941,31 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+  o14: MatchOption<O14, R>,
+  o15: MatchOption<O15, R>,
+  o16: MatchOption<O16, R>,
+  o17: MatchOption<O17, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-  o14: MatchOption<A, O14, R>,
-  o15: MatchOption<A, O15, R>,
-  o16: MatchOption<A, O16, R>,
-  o17: MatchOption<A, O17, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O18
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -1088,32 +1032,32 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+  o14: MatchOption<O14, R>,
+  o15: MatchOption<O15, R>,
+  o16: MatchOption<O16, R>,
+  o17: MatchOption<O17, R>,
+  o18: MatchOption<O18, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-  o14: MatchOption<A, O14, R>,
-  o15: MatchOption<A, O15, R>,
-  o16: MatchOption<A, O16, R>,
-  o17: MatchOption<A, O17, R>,
-  o18: MatchOption<A, O18, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O19
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -1183,33 +1127,33 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+  o14: MatchOption<O14, R>,
+  o15: MatchOption<O15, R>,
+  o16: MatchOption<O16, R>,
+  o17: MatchOption<O17, R>,
+  o18: MatchOption<O18, R>,
+  o19: MatchOption<O19, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-  o14: MatchOption<A, O14, R>,
-  o15: MatchOption<A, O15, R>,
-  o16: MatchOption<A, O16, R>,
-  o17: MatchOption<A, O17, R>,
-  o18: MatchOption<A, O18, R>,
-  o19: MatchOption<A, O19, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * O1~O20
  */
 export function match<
-  A,
   O1,
   O2,
   O3,
@@ -1282,54 +1226,56 @@ export function match<
     ]
   >,
 >(
+  o1: MatchOption<O1, R>,
+  o2: MatchOption<O2, R>,
+  o3: MatchOption<O3, R>,
+  o4: MatchOption<O4, R>,
+  o5: MatchOption<O5, R>,
+  o6: MatchOption<O6, R>,
+  o7: MatchOption<O7, R>,
+  o8: MatchOption<O8, R>,
+  o9: MatchOption<O9, R>,
+  o10: MatchOption<O10, R>,
+  o11: MatchOption<O11, R>,
+  o12: MatchOption<O12, R>,
+  o13: MatchOption<O13, R>,
+  o14: MatchOption<O14, R>,
+  o15: MatchOption<O15, R>,
+  o16: MatchOption<O16, R>,
+  o17: MatchOption<O17, R>,
+  o18: MatchOption<O18, R>,
+  o19: MatchOption<O19, R>,
+  o20: MatchOption<O20, R>,
+): <A>(
   a: A,
-  o1: MatchOption<A, O1, R>,
-  o2: MatchOption<A, O2, R>,
-  o3: MatchOption<A, O3, R>,
-  o4: MatchOption<A, O4, R>,
-  o5: MatchOption<A, O5, R>,
-  o6: MatchOption<A, O6, R>,
-  o7: MatchOption<A, O7, R>,
-  o8: MatchOption<A, O8, R>,
-  o9: MatchOption<A, O9, R>,
-  o10: MatchOption<A, O10, R>,
-  o11: MatchOption<A, O11, R>,
-  o12: MatchOption<A, O12, R>,
-  o13: MatchOption<A, O13, R>,
-  o14: MatchOption<A, O14, R>,
-  o15: MatchOption<A, O15, R>,
-  o16: MatchOption<A, O16, R>,
-  o17: MatchOption<A, O17, R>,
-  o18: MatchOption<A, O18, R>,
-  o19: MatchOption<A, O19, R>,
-  o20: MatchOption<A, O20, R>,
-): MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
+) => MatchResult<OPTIONS, OTHERWISE_LAST, A, R>;
 
 /**
  * Runtime implementation of pattern matching.
  */
 export function match(
-  a: unknown,
   ...options: ReadonlyArray<
     [unknown, (ma: unknown) => unknown]
   >
-): unknown {
-  for (const [cond, fn] of options) {
-    if (cond === otherwise) {
-      return fn(a);
+): (a: unknown) => unknown {
+  return (a: unknown): unknown => {
+    for (const [cond, fn] of options) {
+      if (cond === otherwise) {
+        return fn(a);
+      }
+      if (
+        isVariant(a) &&
+        isVariant(cond) &&
+        deepPartialEqual(a, cond)
+      ) {
+        return fn(a);
+      }
+      if (Object.is(a, cond)) {
+        return fn(a);
+      }
     }
-    if (
-      isVariant(a) &&
-      isVariant(cond) &&
-      deepPartialEqual(a, cond)
-    ) {
-      return fn(a);
-    }
-    if (Object.is(a, cond)) {
-      return fn(a);
-    }
-  }
-  throw new Error(
-    `Unexpectedly no match for value: ${String(a)}`,
-  );
+    throw new Error(
+      `Unexpectedly no match for value: ${String(a)}`,
+    );
+  };
 }

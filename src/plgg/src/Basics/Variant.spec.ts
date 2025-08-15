@@ -146,10 +146,12 @@ test("pattern function for matching", () => {
   type Shape = Circle | Square;
 
   const getShapeInfo = (shape: Shape) =>
-    match(
+    pipe(
       shape,
-      [circle(), () => "is circle"],
-      [square(), () => "is square"],
+      match(
+        [circle(), () => "is circle"],
+        [square(), () => "is square"],
+      ),
     );
 
   expect(getShapeInfo(circleInstance)).toBe(

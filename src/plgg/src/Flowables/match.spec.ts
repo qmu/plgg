@@ -29,8 +29,8 @@ test("number", async () => {
 
   const fn = (a: status) =>
     pipe(
+      a,
       match(
-        a,
         [s1, () => "1"],
         [s2, () => "2"],
         [s3, () => "3"], // should compile error when erased
@@ -44,8 +44,8 @@ test("number", async () => {
 test("boolean", async () => {
   const fn = (a: boolean) =>
     pipe(
+      a,
       match(
-        a,
         [TRUE, () => "true"],
         [FALSE, () => "false"], // should compile error when erased
         // [3 as const, () => "3"], // should compile error when uncommented
@@ -62,8 +62,8 @@ test("string", async () => {
   type Status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: Status) =>
     pipe(
+      a,
       match(
-        a,
         [s1, () => "a"],
         [s2, () => "b"],
         [s3, () => "c"], // should compile error when erased
@@ -81,8 +81,8 @@ test("plgg string", async () => {
   type Status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: Status) =>
     proc(
+      a,
       match(
-        a,
         [s1, () => "a"],
         [s2, () => "b"],
         [s3, () => "c"], // should compile error when erased
@@ -104,8 +104,8 @@ test("otherwise", async () => {
   type Status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: Status) =>
     pipe(
+      a,
       match(
-        a,
         [s1, () => "a"],
         [s2, () => "b"],
         [otherwise, () => "default"], // should compile error when erased
@@ -146,11 +146,14 @@ test("Variant1", async () => {
   type Shape = Circle | Square | Triangle;
 
   const fn = (a: Shape) =>
-    match(
+    pipe(
       a,
-      [circle(), () => "a"],
-      [square(), () => "b"],
-      [triangle(), () => "c"],
+      match(
+        [circle(), () => "a"],
+        [square(), () => "b"],
+        [triangle(), () => "c"],
+      ),
+      (a) => a,
     );
 
   const realTriangle = newTriangle({
@@ -173,8 +176,8 @@ test("Variant2", async () => {
 
   const fn = (a: AST) =>
     pipe(
+      a,
       match(
-        a,
         [ast({ type: "root" }), () => "root"],
         [ast({ type: "leaf" }), () => "leaf"],
         [ast({ type: "branch" }), () => "branch"],
@@ -193,14 +196,16 @@ test("Variant2", async () => {
 
 test("Result pattern matching", async () => {
   const fn = (a: Result<string, number>) =>
-    match(
+    pipe(
       a,
-      [newOk("hello"), () => "Specific hello"],
-      [
-        otherwise,
-        (value) =>
-          `Matched: ${JSON.stringify(value)}`,
-      ],
+      match(
+        [newOk("hello"), () => "Specific hello"],
+        [
+          otherwise,
+          (value) =>
+            `Matched: ${JSON.stringify(value)}`,
+        ],
+      ),
     );
 
   const successResult = newOk("hello");
@@ -216,18 +221,20 @@ test("Result pattern matching", async () => {
 
 test("Result pattern matching with specific patterns", async () => {
   const fn = (a: Result<number, string>) =>
-    match(
+    pipe(
       a,
-      [newOk(42), () => "The answer!"],
-      [
-        newErr("not_found"),
-        () => "Not found error",
-      ],
-      [
-        otherwise,
-        (value) =>
-          `Matched: ${JSON.stringify(value)}`,
-      ],
+      match(
+        [newOk(42), () => "The answer!"],
+        [
+          newErr("not_found"),
+          () => "Not found error",
+        ],
+        [
+          otherwise,
+          (value) =>
+            `Matched: ${JSON.stringify(value)}`,
+        ],
+      ),
     );
 
   expect(fn(newOk(42))).equal("The answer!");
@@ -244,14 +251,16 @@ test("Result pattern matching with specific patterns", async () => {
 
 test("Result pattern matching with OTHERWISE", async () => {
   const fn = (a: Result<string, number>) =>
-    match(
+    pipe(
       a,
-      [ok("success"), () => "Specific success"],
-      [
-        otherwise,
-        (value) =>
-          `Fallback: ${JSON.stringify(value)}`,
-      ],
+      match(
+        [ok("success"), () => "Specific success"],
+        [
+          otherwise,
+          (value) =>
+            `Fallback: ${JSON.stringify(value)}`,
+        ],
+      ),
     );
 
   expect(fn(newOk("success"))).equal(
@@ -267,14 +276,16 @@ test("Result pattern matching with OTHERWISE", async () => {
 
 test("Option pattern matching", async () => {
   const fn = (a: Option<string>) =>
-    match(
+    pipe(
       a,
-      [some("hello"), () => "Specific hello"],
-      [
-        otherwise,
-        (value) =>
-          `Matched: ${JSON.stringify(value)}`,
-      ],
+      match(
+        [some("hello"), () => "Specific hello"],
+        [
+          otherwise,
+          (value) =>
+            `Matched: ${JSON.stringify(value)}`,
+        ],
+      ),
     );
 
   const someResult = newSome("hello");
@@ -288,10 +299,12 @@ test("Option pattern matching", async () => {
 
 test("Option pattern matching with specific patterns", async () => {
   const fn = (a: Option<number>) =>
-    match(
+    pipe(
       a,
-      [some(), () => "The answer!"],
-      [none(), () => "No value"],
+      match(
+        [some(), () => "The answer!"],
+        [none(), () => "No value"],
+      ),
     );
 
   expect(fn(newSome(100))).equal("The answer!");
@@ -300,14 +313,19 @@ test("Option pattern matching with specific patterns", async () => {
 
 test("Option pattern matching with OTHERWISE", async () => {
   const fn = (a: Option<string>) =>
-    match(
+    pipe(
       a,
-      [some("success"), () => "Specific success"],
-      [
-        otherwise,
-        (value) =>
-          `Fallback: ${JSON.stringify(value)}`,
-      ],
+      match(
+        [
+          some("success"),
+          () => "Specific success",
+        ],
+        [
+          otherwise,
+          (value) =>
+            `Fallback: ${JSON.stringify(value)}`,
+        ],
+      ),
     );
 
   expect(fn(newSome("success"))).equal(
