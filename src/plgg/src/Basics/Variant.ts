@@ -89,7 +89,10 @@ export function pattern<
   CONTENT = ExtractContent<V>,
   PCONTENT = Partial<CONTENT>,
 >(__tag: TAG) {
-  function maker(): FixedVariant<TAG>;
+  function maker(): ParametricVariant<
+    TAG,
+    PCONTENT
+  >;
   function maker(
     content?: PCONTENT,
   ): ParametricVariant<TAG, PCONTENT>;
