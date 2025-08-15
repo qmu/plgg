@@ -63,15 +63,28 @@ type MatchResult<
 
 /**
  * Checks if variant patterns provide full coverage of union A.
+ * More permissive check that allows partial content variants to match.
  */
 type FullCoveragedVariants<
   OPTIONS extends ReadonlyArray<unknown>,
   A,
 > = If<
-  IsUnionSubset<A, TupleToUnion<OPTIONS>>,
+  IsUnionSubset<
+    ExtractVariantTags<A>,
+    ExtractVariantTags<TupleToUnion<OPTIONS>>
+  >,
   true,
   false
 >;
+
+/**
+ * Extract variant tags from a union of variants.
+ */
+type ExtractVariantTags<T> = T extends {
+  __tag: infer Tag;
+}
+  ? Tag
+  : never;
 
 /**
  * Type predicate to check if T is a variant with a __tag property.
