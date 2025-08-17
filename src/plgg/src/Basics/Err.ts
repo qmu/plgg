@@ -23,7 +23,7 @@ const errTag = "Err" as const;
 
 /**
  * Err side of Result, representing a failed computation.
- * Contains the error value in the content property.
+ * Contains the error value in the body property.
  */
 export type Err<F> = ParametricVariant<
   typeof errTag,

@@ -40,10 +40,7 @@ export const printPlggError = (
   ): ReadonlyArray<PlggError | Error> =>
     isPlggError(err)
       ? isSome(err.parent)
-        ? [
-            err,
-            ...collectErrors(err.parent.content),
-          ]
+        ? [err, ...collectErrors(err.parent.body)]
         : [err]
       : [err];
   collectErrors(error).forEach((err, index) => {

@@ -24,7 +24,7 @@ const someTag = "Some" as const;
 
 /**
  * Some side of Option, representing a value that exists.
- * Contains the actual value in the content property.
+ * Contains the actual value in the body property.
  */
 export type Some<T> = ParametricVariant<
   typeof someTag,

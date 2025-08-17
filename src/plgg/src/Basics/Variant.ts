@@ -1,32 +1,29 @@
 import { isObj, hasProp } from "plgg/index";
 
 /**
- * A variant with only a tag and no content.
+ * A variant with only a tag and no body.
  */
 export type FixedVariant<TAG extends string> = {
   __tag: TAG;
 };
 
 /**
- * A variant with both a tag and content.
+ * A variant with both a tag and body.
  */
 export type ParametricVariant<
   TAG extends string,
-  CONTENT,
+  BODY,
 > = {
   __tag: TAG;
-  content: CONTENT;
+  body: BODY;
 };
 
 /**
  * Union of fixed and parametric variants.
  */
-export type Variant<
-  TAG extends string,
-  CONTENT,
-> =
+export type Variant<TAG extends string, BODY> =
   | FixedVariant<TAG>
-  | ParametricVariant<TAG, CONTENT>;
+  | ParametricVariant<TAG, BODY>;
 
 /**
  * Type guard to check if a value is any variant.
@@ -51,10 +48,10 @@ export const hasTag =
 export const asVariant = () => {};
 
 /**
- * TODO: Content extractor for parametric variants.
- * Will provide safe extraction of content from variants.
+ * TODO: body extractor for parametric variants.
+ * Will provide safe extraction of body from variants.
  */
-export const withContent = () => {};
+export const withbody = () => {};
 
 /**
  * Creates a variant constructor for a specific tag.
@@ -62,20 +59,20 @@ export const withContent = () => {};
 export function construct<
   V extends Variant<string, unknown>,
   TAG extends string = ExtractTag<V>,
-  CONTENT = ExtractContent<V>,
+  BODY = ExtractBody<V>,
 >(__tag: TAG) {
   function maker(): FixedVariant<TAG>;
   function maker(
-    content: CONTENT,
-  ): ParametricVariant<TAG, CONTENT>;
+    body: BODY,
+  ): ParametricVariant<TAG, BODY>;
   function maker(
-    content?: CONTENT,
+    body?: BODY,
   ):
     | FixedVariant<TAG>
-    | ParametricVariant<TAG, CONTENT> {
-    return content === undefined
+    | ParametricVariant<TAG, BODY> {
+    return body === undefined
       ? ({ __tag } as const)
-      : ({ __tag, content } as const);
+      : ({ __tag, body: body } as const);
   }
   return maker;
 }
@@ -86,42 +83,39 @@ export function construct<
 export function pattern<
   V extends Variant<string, unknown>,
   TAG extends string = ExtractTag<V>,
-  CONTENT = ExtractContent<V>,
-  PCONTENT = Partial<CONTENT>,
+  BODY = ExtractBody<V>,
+  PBODY = Partial<BODY>,
 >(__tag: TAG) {
-  function maker(): ParametricVariant<
-    TAG,
-    PCONTENT
-  >;
+  function maker(): ParametricVariant<TAG, PBODY>;
   function maker(
-    content?: PCONTENT,
-  ): ParametricVariant<TAG, PCONTENT>;
+    body?: PBODY,
+  ): ParametricVariant<TAG, PBODY>;
   function maker(
-    content?: PCONTENT,
+    body?: PBODY,
   ):
     | FixedVariant<TAG>
-    | ParametricVariant<TAG, PCONTENT> {
-    return content === undefined
+    | ParametricVariant<TAG, PBODY> {
+    return body === undefined
       ? ({ __tag } as const)
-      : ({ __tag, content } as const);
+      : ({ __tag, body: body } as const);
   }
   return maker;
 }
 
 /**
- * Extracts the content type from a variant type.
+ * Extracts the body type from a variant type.
  */
-export type ExtractContent<
+export type ExtractBody<
   V extends Variant<string, unknown>,
 > =
-  V extends Variant<string, infer CONTENT>
-    ? CONTENT
+  V extends Variant<string, infer BODY>
+    ? BODY
     : never;
 
 /**
  * Extracts the tag type from a variant type using conditional type inference.
  * This utility type helps in type-level operations where we need to work with
- * the tag portion of a variant type separately from its content.
+ * the tag portion of a variant type separately from its body.
  *
  * @template V - Variant type to extract tag from
  */

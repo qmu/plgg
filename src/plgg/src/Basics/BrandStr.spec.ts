@@ -28,48 +28,48 @@ test("BrandStr.cast validation", async () => {
   const userIdResult =
     asBrandStr<"UserId">("user123");
   assert(isOk(userIdResult));
-  expect(userIdResult.content).toBe("user123");
+  expect(userIdResult.body).toBe("user123");
 
   const emailResult = asBrandStr<"Email">(
     "test@example.com",
   );
   assert(isOk(emailResult));
-  expect(emailResult.content).toBe(
+  expect(emailResult.body).toBe(
     "test@example.com",
   );
 
   const emptyResult = asBrandStr<"UserId">("");
   assert(isOk(emptyResult));
-  expect(emptyResult.content).toBe("");
+  expect(emptyResult.body).toBe("");
 
   const numberResult = asBrandStr<"UserId">(123);
   assert(isErr(numberResult));
-  expect(numberResult.content.message).toBe(
+  expect(numberResult.body.message).toBe(
     "Value is not a branded string",
   );
 
   const boolResult = asBrandStr<"UserId">(true);
   assert(isErr(boolResult));
-  expect(boolResult.content.message).toBe(
+  expect(boolResult.body.message).toBe(
     "Value is not a branded string",
   );
 
   const nullResult = asBrandStr<"UserId">(null);
   assert(isErr(nullResult));
-  expect(nullResult.content.message).toBe(
+  expect(nullResult.body.message).toBe(
     "Value is not a branded string",
   );
 
   const undefinedResult =
     asBrandStr<"UserId">(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.content.message).toBe(
+  expect(undefinedResult.body.message).toBe(
     "Value is not a branded string",
   );
 
   const objectResult = asBrandStr<"UserId">({});
   assert(isErr(objectResult));
-  expect(objectResult.content.message).toBe(
+  expect(objectResult.body.message).toBe(
     "Value is not a branded string",
   );
 });

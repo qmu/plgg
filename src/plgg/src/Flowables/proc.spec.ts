@@ -42,7 +42,7 @@ test("proc composes sync and async functions with early error exit", async () =>
   );
 
   assert(isOk(result));
-  expect(result.content).toBe("Result: 12");
+  expect(result.body).toBe("Result: 12");
 });
 
 test("proc stops processing on first error", async () => {
@@ -68,7 +68,7 @@ test("proc stops processing on first error", async () => {
   );
 
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.body.message).toBe(
     "Validation failed",
   );
 });
@@ -110,7 +110,7 @@ test("proc handles mixed return types (values, Results, Promises)", async () => 
   );
 
   assert(isOk(result));
-  expect(result.content).toBe(42);
+  expect(result.body).toBe(42);
 });
 
 test("proc with type casting and validation chain", async () => {
@@ -126,7 +126,7 @@ test("proc with type casting and validation chain", async () => {
   );
 
   assert(isOk(result));
-  expect(result.content).toBe("Hello, JOHN!");
+  expect(result.body).toBe("Hello, JOHN!");
 });
 
 test("proc gracefully handles exceptions in functions", async () => {
@@ -145,7 +145,7 @@ test("proc gracefully handles exceptions in functions", async () => {
   );
 
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.body.message).toContain(
     "Unexpected error in proc",
   );
 });
@@ -168,7 +168,7 @@ test("proc handles thrown procError", async () => {
   );
 
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.body.message).toBe(
     "Domain error thrown",
   );
 });
@@ -189,7 +189,7 @@ test("proc handles thrown non-Error values", async () => {
   );
 
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.body.message).toBe(
     "Unknown error in proc",
   );
 });

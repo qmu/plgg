@@ -519,7 +519,7 @@ export function cast(
     ) => {
       if (isOk(acc)) {
         try {
-          return fn(acc.content);
+          return fn(acc.body);
         } catch (e) {
           return convUnknownToInvalidError(e);
         }
@@ -532,16 +532,16 @@ export function cast(
         }
       })();
       if (isOk(currentResult)) {
-        return newErr(acc.content);
+        return newErr(acc.body);
       }
       const prevError =
-        acc.content.sibling.length > 0
+        acc.body.sibling.length > 0
           ? []
-          : [acc.content];
+          : [acc.body];
       const sibling = [
         ...prevError,
-        ...acc.content.sibling,
-        currentResult.content,
+        ...acc.body.sibling,
+        currentResult.body,
       ];
       return newErr(
         new InvalidError({

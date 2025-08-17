@@ -46,7 +46,7 @@ export const resultFunctor: Functor2<"Result"> = {
   map:
     <T1, T2, E>(f: (a: T1) => T2) =>
     (fa: Result<T1, E>): Result<T2, E> =>
-      isOk(fa) ? newOk<T2>(f(fa.content)) : fa,
+      isOk(fa) ? newOk<T2>(f(fa.body)) : fa,
 };
 export const { map: mapResult } = resultFunctor;
 
@@ -61,7 +61,7 @@ export const resultApply: Apply2<"Result"> = {
     (fa: Result<T1, E>): Result<T2, E> =>
       isOk(fab)
         ? isOk(fa)
-          ? newOk<T2>(fab.content(fa.content))
+          ? newOk<T2>(fab.body(fa.body))
           : fa
         : fab,
 };
@@ -104,7 +104,7 @@ export const resultChain: Chain2<"Result"> = {
     <E2>(
       fa: Result<T1, E2>,
     ): Result<T2, E1 | E2> =>
-      isOk(fa) ? f(fa.content) : fa,
+      isOk(fa) ? f(fa.body) : fa,
 };
 
 export const { chain: chainResult } = resultChain;
@@ -129,16 +129,12 @@ export const resultFoldable: Foldable2<"Result"> =
       <A, B, C>(f: (a: A, b: B) => B) =>
       (initial: B) =>
       (fa: Result<A, C>): B =>
-        isOk(fa)
-          ? f(fa.content, initial)
-          : initial,
+        isOk(fa) ? f(fa.body, initial) : initial,
     foldl:
       <A, B, C>(f: (b: B, a: A) => B) =>
       (initial: B) =>
       (fa: Result<A, C>): B =>
-        isOk(fa)
-          ? f(initial, fa.content)
-          : initial,
+        isOk(fa) ? f(initial, fa.body) : initial,
   };
 
 export const {
@@ -161,9 +157,9 @@ export const resultTraversable: Traversable2<"Result"> =
         ta: Result<A, C>,
       ): Kind1<F, Result<B, C>> => {
         if (isOk(ta)) {
-          return A.map(newOk)(f(ta.content));
+          return A.map(newOk)(f(ta.body));
         } else {
-          return A.of(newErr(ta.content));
+          return A.of(newErr(ta.body));
         }
       },
     sequence:
@@ -172,9 +168,9 @@ export const resultTraversable: Traversable2<"Result"> =
         tfa: Result<Kind1<F, A>, C>,
       ): Kind1<F, Result<A, C>> => {
         if (isOk(tfa)) {
-          return A.map(newOk)(tfa.content);
+          return A.map(newOk)(tfa.body);
         } else {
-          return A.of(newErr(tfa.content));
+          return A.of(newErr(tfa.body));
         }
       },
   };

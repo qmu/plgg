@@ -58,23 +58,19 @@ test("Arr.is should return false for non-arrays", () => {
 test("Arr.cast should succeed for arrays", () => {
   const result1 = asArr([]);
   assert(isOk(result1));
-  expect(result1.content).toEqual([]);
+  expect(result1.body).toEqual([]);
 
   const result2 = asArr([1, 2, 3]);
   assert(isOk(result2));
-  expect(result2.content).toEqual([1, 2, 3]);
+  expect(result2.body).toEqual([1, 2, 3]);
 
   const result3 = asArr(["a", "b", "c"]);
   assert(isOk(result3));
-  expect(result3.content).toEqual([
-    "a",
-    "b",
-    "c",
-  ]);
+  expect(result3.body).toEqual(["a", "b", "c"]);
 
   const result4 = asArr([1, "a", true, null]);
   assert(isOk(result4));
-  expect(result4.content).toEqual([
+  expect(result4.body).toEqual([
     1,
     "a",
     true,
@@ -85,31 +81,31 @@ test("Arr.cast should succeed for arrays", () => {
 test("Arr.cast should fail for non-arrays", () => {
   const result1 = asArr(null);
   assert(isErr(result1));
-  expect(result1.content.message).toBe(
+  expect(result1.body.message).toBe(
     "Value is not an array",
   );
 
   const result2 = asArr(undefined);
   assert(isErr(result2));
-  expect(result2.content.message).toBe(
+  expect(result2.body.message).toBe(
     "Value is not an array",
   );
 
   const result3 = asArr({});
   assert(isErr(result3));
-  expect(result3.content.message).toBe(
+  expect(result3.body.message).toBe(
     "Value is not an array",
   );
 
   const result4 = asArr("array");
   assert(isErr(result4));
-  expect(result4.content.message).toBe(
+  expect(result4.body.message).toBe(
     "Value is not an array",
   );
 
   const result5 = asArr(123);
   assert(isErr(result5));
-  expect(result5.content.message).toBe(
+  expect(result5.body.message).toBe(
     "Value is not an array",
   );
 });
@@ -340,7 +336,7 @@ test("Arr Traversable - collect results with Option (safe division)", () => {
     traverseArr(optionApplicative)(safeDivide),
   );
   assert(isSome(r1));
-  expect(r1.content).toEqual([10, 5, 2]);
+  expect(r1.body).toEqual([10, 5, 2]);
 
   // Failure case: one division fails, entire traversal fails with None
   const r2 = pipe(
@@ -355,7 +351,7 @@ test("Arr Traversable - collect results with Option (safe division)", () => {
     traverseArr(optionApplicative)(safeDivide),
   );
   assert(isSome(r3));
-  expect(r3.content).toEqual([]);
+  expect(r3.body).toEqual([]);
 });
 
 test("Arr Traversable - collect results with Option (validation)", () => {
@@ -373,7 +369,7 @@ test("Arr Traversable - collect results with Option (validation)", () => {
     traverseArr(optionApplicative)(parsePositive),
   );
   assert(isSome(r1));
-  expect(r1.content).toEqual([1, 2.5, 42]);
+  expect(r1.body).toEqual([1, 2.5, 42]);
 
   // Failure case: invalid number in array causes entire validation to fail
   const r2 = pipe(
@@ -409,7 +405,7 @@ test("Arr Traversable - empty array edge cases", () => {
     traverseArr(optionApplicative)(alwaysFails),
   );
   assert(isSome(r1));
-  expect(r1.content).toEqual([]);
+  expect(r1.body).toEqual([]);
 
   // Functions that might succeed should also work on empty arrays
   const r2 = pipe(
@@ -417,7 +413,7 @@ test("Arr Traversable - empty array edge cases", () => {
     traverseArr(optionApplicative)(maybeSucceeds),
   );
   assert(isSome(r2));
-  expect(r2.content).toEqual([]);
+  expect(r2.body).toEqual([]);
 
   // This demonstrates that traverse respects the Applicative identity:
   // traverse(f, []) === pure([]) for any function f
@@ -435,21 +431,21 @@ test("conclude - success case with all valid results", () => {
 
   const r1 = pipe([], conclude(parseNumber));
   assert(isOk(r1));
-  expect(r1.content).toEqual([]);
+  expect(r1.body).toEqual([]);
 
   const r2 = pipe(
     ["1", "2", "3"],
     conclude(parseNumber),
   );
   assert(isOk(r2));
-  expect(r2.content).toEqual([1, 2, 3]);
+  expect(r2.body).toEqual([1, 2, 3]);
 
   const r3 = pipe(
     ["42", "3.14", "0"],
     conclude(parseNumber),
   );
   assert(isOk(r3));
-  expect(r3.content).toEqual([42, 3.14, 0]);
+  expect(r3.body).toEqual([42, 3.14, 0]);
 });
 
 test("conclude - failure case with first error returned", () => {
@@ -471,7 +467,7 @@ test("conclude - failure case with first error returned", () => {
     conclude(parsePositiveNumber),
   );
   assert(isErr(r1));
-  expect(r1.content).toEqual([
+  expect(r1.body).toEqual([
     "Invalid number: invalid",
   ]);
 
@@ -480,7 +476,7 @@ test("conclude - failure case with first error returned", () => {
     conclude(parsePositiveNumber),
   );
   assert(isErr(r2));
-  expect(r2.content).toEqual([
+  expect(r2.body).toEqual([
     "Invalid number: invalid",
   ]);
 
@@ -489,7 +485,7 @@ test("conclude - failure case with first error returned", () => {
     conclude(parsePositiveNumber),
   );
   assert(isErr(r3));
-  expect(r3.content).toEqual([
+  expect(r3.body).toEqual([
     "Non-positive number: -5",
   ]);
 
@@ -498,7 +494,7 @@ test("conclude - failure case with first error returned", () => {
     conclude(parsePositiveNumber),
   );
   assert(isErr(r4));
-  expect(r4.content).toEqual([
+  expect(r4.body).toEqual([
     "Non-positive number: -1",
     "Invalid number: invalid",
     "Non-positive number: 0",
@@ -526,7 +522,7 @@ test("conclude - mixed types transformation", () => {
     conclude(processValue),
   );
   assert(isOk(r1));
-  expect(r1.content).toEqual([
+  expect(r1.body).toEqual([
     "zero",
     "one",
     "number: 2",
@@ -538,7 +534,7 @@ test("conclude - mixed types transformation", () => {
     conclude(processValue),
   );
   assert(isErr(r2));
-  expect(r2.content).toEqual([
+  expect(r2.body).toEqual([
     "Negative value not allowed",
   ]);
 });
@@ -561,7 +557,7 @@ test("conclude - processes all elements but returns first error", () => {
     conclude(trackingFunction),
   );
   assert(isErr(r1));
-  expect(r1.content).toEqual(["Error at 2"]);
+  expect(r1.body).toEqual(["Error at 2"]);
   expect(callCount).toBe(4);
 
   callCount = 0;
@@ -570,6 +566,6 @@ test("conclude - processes all elements but returns first error", () => {
     conclude(trackingFunction),
   );
   assert(isOk(r2));
-  expect(r2.content).toEqual([10, 30, 40]);
+  expect(r2.body).toEqual([10, 30, 40]);
   expect(callCount).toBe(3);
 });

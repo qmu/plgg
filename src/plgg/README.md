@@ -29,7 +29,7 @@ const validateUser = (input: unknown) => chain(
 
 const result = validateUser(userInput);
 if (isOk(result)) {
-  console.log('Valid user:', result.content);
+  console.log('Valid user:', result.body);
 }
 ```
 

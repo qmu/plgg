@@ -7,7 +7,7 @@ import {
   hasTag,
   isVariant,
   match,
-  ExtractContent,
+  ExtractBody,
 } from "plgg/index";
 
 test("FixedVariant creation and structure", () => {
@@ -19,7 +19,7 @@ test("FixedVariant creation and structure", () => {
     "__tag",
   ]);
   expect(loadingVariant).not.toHaveProperty(
-    "content",
+    "body",
   );
 });
 
@@ -33,16 +33,14 @@ test("ParametricVariant creation and structure", () => {
   const successVariant = success("hello world");
 
   expect(successVariant.__tag).toBe("success");
-  expect(successVariant.content).toBe(
-    "hello world",
-  );
+  expect(successVariant.body).toBe("hello world");
   expect(Object.keys(successVariant)).toEqual([
     "__tag",
-    "content",
+    "body",
   ]);
 });
 
-test("construct with different content types", () => {
+test("construct with different body types", () => {
   type NumberVariant = ParametricVariant<
     "number",
     number
@@ -64,10 +62,10 @@ test("construct with different content types", () => {
   });
 
   expect(numVariant.__tag).toBe("number");
-  expect(numVariant.content).toBe(42);
+  expect(numVariant.body).toBe(42);
 
   expect(objVariant.__tag).toBe("object");
-  expect(objVariant.content).toEqual({
+  expect(objVariant.body).toEqual({
     id: 1,
     name: "test",
   });
@@ -113,7 +111,7 @@ test("isVariant type guard function", () => {
   >;
   const testMaker =
     construct<TestVariant>("test");
-  const variant = testMaker("content");
+  const variant = testMaker("body");
 
   assert(isVariant(variant));
   assert(!isVariant("string"));
@@ -159,7 +157,7 @@ test("pattern function for matching", () => {
   );
 });
 
-test("variant with complex nested content", () => {
+test("variant with complex nested body", () => {
   type ComplexVariant = ParametricVariant<
     "complex",
     {
@@ -184,12 +182,12 @@ test("variant with complex nested content", () => {
   });
 
   expect(complex.__tag).toBe("complex");
-  expect(complex.content.id).toBe(123);
-  expect(complex.content.metadata.tags).toEqual([
+  expect(complex.body.id).toBe(123);
+  expect(complex.body.metadata.tags).toEqual([
     "important",
     "test",
   ]);
-  expect(complex.content.data).toEqual({
+  expect(complex.body.data).toEqual({
     nested: "value",
   });
 });
@@ -238,7 +236,7 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
   ).toBe("Error occurred");
 });
 
-test("construct with undefined content creates FixedVariant", () => {
+test("construct with undefined body creates FixedVariant", () => {
   type SimpleVariant = FixedVariant<"simple">;
   const simple =
     construct<SimpleVariant>("simple");
@@ -249,11 +247,11 @@ test("construct with undefined content creates FixedVariant", () => {
 
   expect(variant1.__tag).toBe("simple");
   expect(variant2.__tag).toBe("simple");
-  expect(variant1).not.toHaveProperty("content");
-  expect(variant2).not.toHaveProperty("content");
+  expect(variant1).not.toHaveProperty("body");
+  expect(variant2).not.toHaveProperty("body");
 });
 
-test("pattern with undefined content creates FixedVariant", () => {
+test("pattern with undefined body creates FixedVariant", () => {
   type SimplePattern = FixedVariant<"simple">;
   const simple = pattern<SimplePattern>("simple");
 
@@ -262,18 +260,19 @@ test("pattern with undefined content creates FixedVariant", () => {
 
   expect(pattern1.__tag).toBe("simple");
   expect(pattern2.__tag).toBe("simple");
-  expect(pattern1).not.toHaveProperty("content");
-  expect(pattern2).not.toHaveProperty("content");
+  expect(pattern1).not.toHaveProperty("body");
+  expect(pattern2).not.toHaveProperty("body");
 });
 
-test("ExtractContent type utility", () => {
+test("Extractbody type utility", () => {
   type TestVariant = ParametricVariant<
     "test",
     { data: string }
   >;
 
   // This is a compile-time test - if it compiles, the type works correctly
-  const testContent: ExtractContent<TestVariant> =
-    { data: "hello" };
-  expect(testContent.data).toBe("hello");
+  const testbody: ExtractBody<TestVariant> = {
+    data: "hello",
+  };
+  expect(testbody.data).toBe("hello");
 });

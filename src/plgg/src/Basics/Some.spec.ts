@@ -11,28 +11,37 @@ import {
 test("asSome - safe casting to Some type", () => {
   const someValue = newSome(42);
   const result1 = pipe(someValue, asSome);
-  
+
   assert(isOk(result1));
-  expect(result1.content).toBe(someValue);
-  
+  expect(result1.body).toBe(someValue);
+
   // Test with non-Some value
   const noneValue = newNone();
   const result2 = pipe(noneValue, asSome);
-  
+
   assert(isErr(result2));
-  expect(result2.content.message).toBe("Value is not a Some");
-  
+  expect(result2.body.message).toBe(
+    "Value is not a Some",
+  );
+
   // Test with non-Option value
   const result3 = pipe(42, asSome);
   assert(isErr(result3));
-  expect(result3.content.message).toBe("Value is not a Some");
-  
+  expect(result3.body.message).toBe(
+    "Value is not a Some",
+  );
+
   // Test with null/undefined
   const result4 = pipe(null, asSome);
   assert(isErr(result4));
-  expect(result4.content.message).toBe("Value is not a Some");
-  
+  expect(result4.body.message).toBe(
+    "Value is not a Some",
+  );
+
   const result5 = pipe(undefined, asSome);
   assert(isErr(result5));
-  expect(result5.content.message).toBe("Value is not a Some");
+  expect(result5.body.message).toBe(
+    "Value is not a Some",
+  );
 });
+

@@ -42,7 +42,7 @@ export const optionFunctor: Functor1<"Option"> = {
     <A, B>(f: (a: A) => B) =>
     (fa: Option<A>): Option<B> =>
       isSome(fa)
-        ? newSome<B>(f(fa.content))
+        ? newSome<B>(f(fa.body))
         : newNone(),
 };
 export const { map: mapOption } = optionFunctor;
@@ -58,7 +58,7 @@ export const optionApply: Apply1<"Option"> = {
     (fa: Option<A>): Option<B> =>
       isSome(fab)
         ? isSome(fa)
-          ? newSome<B>(fab.content(fa.content))
+          ? newSome<B>(fab.body(fa.body))
           : newNone()
         : newNone(),
 };
@@ -97,7 +97,7 @@ export const optionChain: Chain1<"Option"> = {
   chain:
     <A, B>(f: (a: A) => Option<B>) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? f(fa.content) : newNone(),
+      isSome(fa) ? f(fa.body) : newNone(),
 };
 export const { chain: chainOption } = optionChain;
 

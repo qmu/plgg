@@ -23,7 +23,7 @@ const okTag = "Ok" as const;
 
 /**
  * Ok side of Result, representing a successful computation.
- * Contains the success value in the content property.
+ * Contains the success value in the body property.
  */
 export type Ok<T> = ParametricVariant<
   typeof okTag,

@@ -21,27 +21,27 @@ test("Bool.is type guard", () => {
 test("Bool.cast validation", async () => {
   const trueResult = asBool(true);
   assert(isOk(trueResult));
-  expect(trueResult.content).toBe(true);
+  expect(trueResult.body).toBe(true);
 
   const falseResult = asBool(false);
   assert(isOk(falseResult));
-  expect(falseResult.content).toBe(false);
+  expect(falseResult.body).toBe(false);
 
   const stringResult = asBool("true");
   assert(isErr(stringResult));
-  expect(stringResult.content.message).toBe(
+  expect(stringResult.body.message).toBe(
     "Value is not a boolean",
   );
 
   const numberResult = asBool(1);
   assert(isErr(numberResult));
-  expect(numberResult.content.message).toBe(
+  expect(numberResult.body.message).toBe(
     "Value is not a boolean",
   );
 
   const nullResult = asBool(null);
   assert(isErr(nullResult));
-  expect(nullResult.content.message).toBe(
+  expect(nullResult.body.message).toBe(
     "Value is not a boolean",
   );
 });
