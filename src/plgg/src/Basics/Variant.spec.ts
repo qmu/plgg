@@ -6,7 +6,6 @@ import {
   pattern,
   hasTag,
   isVariant,
-  pipe,
   match,
   ExtractContent,
 } from "plgg/index";
@@ -146,12 +145,10 @@ test("pattern function for matching", () => {
   type Shape = Circle | Square;
 
   const getShapeInfo = (shape: Shape) =>
-    pipe(
+    match(
       shape,
-      match(
-        [circle(), () => "is circle"],
-        [square(), () => "is square"],
-      ),
+      [circle(), () => "is circle"],
+      [square(), () => "is square"],
     );
 
   expect(getShapeInfo(circleInstance)).toBe(
@@ -223,13 +220,11 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
   const getStateMessage = (
     state: AsyncState<string>,
   ) =>
-    pipe(
+    match(
       state,
-      match(
-        [loading(), () => "Loading..."],
-        [success(), () => "Success!"],
-        [error(), () => "Error occurred"],
-      ),
+      [loading(), () => "Loading..."],
+      [success(), () => "Success!"],
+      [error(), () => "Error occurred"],
     );
 
   expect(getStateMessage(ofLoading())).toBe(
