@@ -135,6 +135,7 @@ test("Option type structure", () => {
   );
   expect(Object.keys(noneOption)).toEqual([
     "__tag",
+    "body",
   ]);
 });
 

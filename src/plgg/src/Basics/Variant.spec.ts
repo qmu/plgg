@@ -17,10 +17,8 @@ test("FixedVariant creation and structure", () => {
   expect(loadingVariant.__tag).toBe("loading");
   expect(Object.keys(loadingVariant)).toEqual([
     "__tag",
-  ]);
-  expect(loadingVariant).not.toHaveProperty(
     "body",
-  );
+  ]);
 });
 
 test("ParametricVariant creation and structure", () => {
@@ -236,32 +234,12 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
   ).toBe("Error occurred");
 });
 
-test("construct with undefined body creates FixedVariant", () => {
-  type SimpleVariant = FixedVariant<"simple">;
-  const simple =
-    construct<SimpleVariant>("simple");
-
-  // Calling with undefined should create FixedVariant
-  const variant1 = simple(undefined as any);
-  const variant2 = simple();
-
-  expect(variant1.__tag).toBe("simple");
-  expect(variant2.__tag).toBe("simple");
-  expect(variant1).not.toHaveProperty("body");
-  expect(variant2).not.toHaveProperty("body");
-});
-
 test("pattern with undefined body creates FixedVariant", () => {
   type SimplePattern = FixedVariant<"simple">;
   const simple = pattern<SimplePattern>("simple");
 
-  const pattern1 = simple(undefined as any);
-  const pattern2 = simple();
-
-  expect(pattern1.__tag).toBe("simple");
-  expect(pattern2.__tag).toBe("simple");
-  expect(pattern1).not.toHaveProperty("body");
-  expect(pattern2).not.toHaveProperty("body");
+  const pattern1 = simple();
+  expect(pattern1.tag).toBe("simple");
 });
 
 test("Extractbody type utility", () => {

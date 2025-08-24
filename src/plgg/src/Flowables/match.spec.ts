@@ -1,6 +1,5 @@
 import { test, expect } from "vitest";
 import {
-  pipe,
   match,
   TRUE,
   FALSE,
@@ -9,6 +8,7 @@ import {
   construct,
   otherwise,
   ok,
+  err,
   newOk,
   newErr,
   Result,
@@ -26,15 +26,12 @@ test("number", async () => {
   type status = typeof s1 | typeof s2 | typeof s3;
 
   const fn = (a: status) =>
-    pipe(
+    match(
       a,
-      match(
-        [s1, () => "1"],
-        [s2, () => "2"],
-        [s3, () => "3"], // should compile error when erased
-        //[4 as const, () => "4"], // should compile error when uncommented
-      ),
-      (a) => a,
+      [s1, () => "1"],
+      [s2, () => "2"],
+      [s3, () => "3"], // should compile error when erased
+      //[4 as const, () => "4"], // should compile error when uncommented
     );
   expect(fn(3)).equal("3");
 });
@@ -127,13 +124,11 @@ test("Variant1", async () => {
 });
 
 test("Variant2", async () => {
-  type AST = ParametricVariant<
-    "AST",
-    {
-      type: "root" | "leaf" | "branch";
-      children?: ReadonlyArray<AST>;
-    }
-  >;
+  type ast = {
+    type: "root" | "leaf" | "branch";
+    children?: ReadonlyArray<AST>;
+  };
+  type AST = ParametricVariant<"AST", ast>;
   const ast = pattern<AST>("AST");
   const newAST = construct<AST>("AST");
 
@@ -158,7 +153,7 @@ test("Result pattern matching", async () => {
   const fn = (a: Result<string, number>) =>
     match(
       a,
-      [newOk("hello"), () => "Specific hello"],
+      [ok("hello"), () => "Specific hello"],
       [
         otherwise,
         (value) =>
@@ -181,11 +176,8 @@ test("Result pattern matching with specific patterns", async () => {
   const fn = (a: Result<number, string>) =>
     match(
       a,
-      [newOk(42), () => "The answer!"],
-      [
-        newErr("not_found"),
-        () => "Not found error",
-      ],
+      [ok(42), () => "The answer!"],
+      [err("not_found"), () => "Not found error"],
       [
         otherwise,
         (value) =>
@@ -253,10 +245,7 @@ test("Option pattern matching with specific patterns", async () => {
   const fn = (a: Option<number>) =>
     match(
       a,
-      [
-        some({ body: 1 }),
-        (a) => a + 1 + "The answer!",
-      ],
+      [some(100), () => "The answer!"],
       [none(), () => "No value"],
     );
 
