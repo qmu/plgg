@@ -14,6 +14,10 @@ import {
  */
 export type Time = Date;
 
+export type IsTime<T> = T extends Time
+  ? true
+  : false;
+
 /**
  * Type guard for valid date strings.
  */

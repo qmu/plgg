@@ -22,6 +22,10 @@ export const FALSE = false as const;
  */
 export type Bool = typeof TRUE | typeof FALSE;
 
+export type IsBool<T> = T extends Bool
+  ? true
+  : false;
+
 /**
  * Type guard to check if a value is a Bool.
  */

@@ -13,6 +13,10 @@ import {
  */
 export type Str = string;
 
+export type IsStr<T> = T extends Str
+  ? true
+  : false;
+
 /**
  * Type guard to check if a value is a Str.
  */

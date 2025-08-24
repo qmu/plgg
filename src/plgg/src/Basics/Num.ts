@@ -13,6 +13,10 @@ import {
  */
 export type Num = number;
 
+export type IsNum<T> = T extends Num
+  ? true
+  : false;
+
 /**
  * Type guard to check if a value is a Num.
  */
