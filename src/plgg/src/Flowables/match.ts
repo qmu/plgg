@@ -13,6 +13,9 @@ import {
   Or,
   ParametricVariant,
   FixedVariant,
+  isAtomicPattern,
+  isObjectPattern,
+  isFixedVariantPattern,
 } from "plgg/index";
 
 // -------------------------
@@ -24,35 +27,43 @@ import {
  * Determines the return type based on whether patterns provide exhaustive coverage.
  */
 type MatchResult<
-  CASES extends ReadonlyArray<unknown>,
+  PATTERNS extends ReadonlyArray<unknown>,
   OTHERWISE_LAST extends boolean,
   A,
   R,
-  UNION_CASES extends
-    ReadonlyArray<unknown>[number] = TupleToUnion<CASES>,
+  UNION_PATTERNS extends
+    ReadonlyArray<unknown>[number] = TupleToUnion<PATTERNS>,
 > = If<
   Is<A, boolean>,
-  If<Is<CASES, [true, false]>, R, never>,
+  If<Is<PATTERNS, [true, false]>, R, never>,
   If<
-    IsAllVariant<CASES>,
+    IsAllVariant<PATTERNS>,
     If<
-      FullCoveragedVariants<CASES, A>, // check if all variants are covered
+      FullCoveragedVariants<A, PATTERNS>,
       R,
       If<
-        And<OTHERWISE_LAST, Is<A, UNION_CASES>>,
+        And<
+          OTHERWISE_LAST,
+          IsUnionSubset<
+            ExtractVariantTags<A>,
+            ExtractVariantTags<
+              TupleToUnion<PATTERNS>
+            >
+          >
+        >,
         R,
         never
       >
     >,
     If<
-      IsAllAtomic<CASES>,
+      IsAllAtomic<PATTERNS>,
       If<
-        IsEqual<UNION_CASES, A>,
+        IsEqual<UNION_PATTERNS, A>,
         R,
         If<
           And<
             OTHERWISE_LAST,
-            IsUnionSubset<UNION_CASES, A>
+            IsUnionSubset<UNION_PATTERNS, A>
           >,
           R,
           never
@@ -67,13 +78,16 @@ type MatchResult<
  * Checks if variant patterns provide full coverage of union A.
  * More permissive check that allows partial body variants to match.
  */
-type FullCoveragedVariants<
-  CASES extends ReadonlyArray<unknown>,
+export type FullCoveragedVariants<
   A,
+  PATTERNS extends ReadonlyArray<unknown>,
 > = If<
-  IsUnionSubset<
-    ExtractVariantTags<A>,
-    ExtractVariantTags<TupleToUnion<CASES>>
+  And<
+    AreNoneConditionalVariants<PATTERNS>,
+    IsUnionSubset<
+      ExtractVariantTags<A>,
+      ExtractVariantTags<TupleToUnion<PATTERNS>>
+    >
   >,
   true,
   false
@@ -82,11 +96,55 @@ type FullCoveragedVariants<
 /**
  * Extract variant tags from a union of variants.
  */
-type ExtractVariantTags<T> = T extends {
+export type ExtractVariantTags<T> = T extends {
   __tag: infer Tag;
 }
   ? Tag
   : never;
+
+/**
+ * Checks if T is a wild parametric variant without actual pattern.
+ */
+export type AreNoneConditionalVariants<
+  ARR extends ReadonlyArray<unknown>,
+> = ARR extends [infer Head, ...infer Tail]
+  ? Or<
+      JustTagVariantPattern<Head>,
+      WildParametricVariantPattern<Head>
+    > extends true
+    ? AreNoneConditionalVariants<Tail>
+    : false
+  : true;
+
+/**
+ * Checks if T is a fixed variant (variant with only __tag property).
+ */
+type JustTagVariantPattern<T> = T extends {
+  __tag: string;
+}
+  ? keyof T extends "__tag"
+    ? T["__tag"] extends string
+      ? Exclude<keyof T, "__tag"> extends never
+        ? true
+        : false
+      : false
+    : false
+  : false;
+
+/**
+ * Type predicate for wild parametric variant patterns.
+ */
+export type WildParametricVariantPattern<T> =
+  T extends Variant<
+    infer Tag,
+    Partial<infer Content>
+  >
+    ? Is<Tag, string> extends true
+      ? IsEqual<Content, unknown> extends true
+        ? true
+        : false
+      : false
+    : false;
 
 /**
  * Type predicate to check if T is a variant with a __tag property.
@@ -98,7 +156,7 @@ type IsVariant<T> = T extends { __tag: string }
 /**
  * Recursively checks if all elements in array are atomic types.
  */
-type IsAllAtomic<
+export type IsAllAtomic<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
   ? IsAtomic<Head> extends true
@@ -153,14 +211,14 @@ type PartialBodyVariant = Variant<
 /**
  * Represents a pattern-handler pair for matching.
  */
-type CaseDecl<
+export type CaseDecl<
   A,
-  C,
+  P,
   R,
   // unwrapped body from case
-  B1 = C extends PartialBodyVariant
-    ? UnPartial<ExtractBody<C>>
-    : C,
+  B1 = P extends PartialBodyVariant
+    ? UnPartial<ExtractBody<P>>
+    : P,
   // unwrapped body from argument
   B2 = A extends ParametricVariant<
     string,
@@ -170,8 +228,21 @@ type CaseDecl<
     : A extends FixedVariant<string>
       ? never
       : A,
-  ARG = B1 extends unknown ? B2 : B2 & B1,
-> = [C, (a: ARG) => R];
+  ARG = B1 extends unknown
+    ? B2
+    : B2 extends B1
+      ? B2 & B1
+      : never,
+  VALID_PATTERN = ARG extends never
+    ? false
+    : true,
+> = If<
+  IsVariant<P>,
+  VALID_PATTERN extends true
+    ? [P, (a: ARG) => R]
+    : never,
+  [P, (a: ARG) => R]
+>;
 
 /**
  * Deep equality check for partial objects used in variant pattern matching.
@@ -202,1102 +273,1124 @@ function deepPartialEqual<T>(
  */
 export function match<
   A,
-  C1,
-  C2,
+  P1,
+  P2,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C2,
+    P2,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1],
-    [C1, C2]
+    [P1],
+    [P1, P2]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C3
+ * P1~P3
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
+  P1,
+  P2,
+  P3,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C3,
+    P3,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2],
-    [C1, C2, C3]
+    [P1, P2],
+    [P1, P2, P3]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C4
+ * P1~P4
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
+  P1,
+  P2,
+  P3,
+  P4,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C4,
+    P4,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3],
-    [C1, C2, C3, C4]
+    [P1, P2, P3],
+    [P1, P2, P3, P4]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C5
+ * P1~P5
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C5,
+    P5,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3, C4],
-    [C1, C2, C3, C4, C5]
+    [P1, P2, P3, P4],
+    [P1, P2, P3, P4, P5]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C6
+ * P1~P6
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C6,
+    P6,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3, C4, C5],
-    [C1, C2, C3, C4, C5, C6]
+    [P1, P2, P3, P4, P5],
+    [P1, P2, P3, P4, P5, P6]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C7
+ * P1~P7
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C7,
+    P7,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3, C4, C5, C6],
-    [C1, C2, C3, C4, C5, C6, C7]
+    [P1, P2, P3, P4, P5, P6],
+    [P1, P2, P3, P4, P5, P6, P7]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C8
+ * P1~P8
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C8,
+    P8,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3, C4, C5, C6, C7],
-    [C1, C2, C3, C4, C5, C6, C7, C8]
+    [P1, P2, P3, P4, P5, P6, P7],
+    [P1, P2, P3, P4, P5, P6, P7, P8]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C9
+ * P1~P9
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C9,
+    P9,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3, C4, C5, C6, C7, C8],
-    [C1, C2, C3, C4, C5, C6, C7, C8, C9]
+    [P1, P2, P3, P4, P5, P6, P7, P8],
+    [P1, P2, P3, P4, P5, P6, P7, P8, P9]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C10
+ * P1~P10
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C10,
+    P10,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3, C4, C5, C6, C7, C8, C9],
-    [C1, C2, C3, C4, C5, C6, C7, C8, C9, C10]
+    [P1, P2, P3, P4, P5, P6, P7, P8, P9],
+    [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C11
+ * P1~P11
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C11,
+    P11,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
-    [C1, C2, C3, C4, C5, C6, C7, C8, C9, C10],
-    [C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11]
+    [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10],
+    [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C12
+ * P1~P12
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C12,
+    P12,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C13
+ * P1~P13
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C13,
+    P13,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C14
+ * P1~P14
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
-  C14,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
+  P14,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C14,
+    P14,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-  c14: CaseDecl<A, C14, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+  c14: CaseDecl<A, P14, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C15
+ * P1~P15
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
-  C14,
-  C15,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
+  P14,
+  P15,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C15,
+    P15,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-  c14: CaseDecl<A, C14, R>,
-  c15: CaseDecl<A, C15, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+  c14: CaseDecl<A, P14, R>,
+  c15: CaseDecl<A, P15, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C16
+ * P1~P16
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
-  C14,
-  C15,
-  C16,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
+  P14,
+  P15,
+  P16,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C16,
+    P16,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-  c14: CaseDecl<A, C14, R>,
-  c15: CaseDecl<A, C15, R>,
-  c16: CaseDecl<A, C16, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+  c14: CaseDecl<A, P14, R>,
+  c15: CaseDecl<A, P15, R>,
+  c16: CaseDecl<A, P16, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C17
+ * P1~P17
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
-  C14,
-  C15,
-  C16,
-  C17,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
+  P14,
+  P15,
+  P16,
+  P17,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C17,
+    P17,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
-      C17,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
+      P17,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-  c14: CaseDecl<A, C14, R>,
-  c15: CaseDecl<A, C15, R>,
-  c16: CaseDecl<A, C16, R>,
-  c17: CaseDecl<A, C17, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+  c14: CaseDecl<A, P14, R>,
+  c15: CaseDecl<A, P15, R>,
+  c16: CaseDecl<A, P16, R>,
+  c17: CaseDecl<A, P17, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C18
+ * P1~P18
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
-  C14,
-  C15,
-  C16,
-  C17,
-  C18,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
+  P14,
+  P15,
+  P16,
+  P17,
+  P18,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C18,
+    P18,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
-      C17,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
+      P17,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
-      C17,
-      C18,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
+      P17,
+      P18,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-  c14: CaseDecl<A, C14, R>,
-  c15: CaseDecl<A, C15, R>,
-  c16: CaseDecl<A, C16, R>,
-  c17: CaseDecl<A, C17, R>,
-  c18: CaseDecl<A, C18, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+  c14: CaseDecl<A, P14, R>,
+  c15: CaseDecl<A, P15, R>,
+  c16: CaseDecl<A, P16, R>,
+  c17: CaseDecl<A, P17, R>,
+  c18: CaseDecl<A, P18, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C19
+ * P1~P19
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
-  C14,
-  C15,
-  C16,
-  C17,
-  C18,
-  C19,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
+  P14,
+  P15,
+  P16,
+  P17,
+  P18,
+  P19,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C19,
+    P19,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
-      C17,
-      C18,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
+      P17,
+      P18,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
-      C17,
-      C18,
-      C19,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
+      P17,
+      P18,
+      P19,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-  c14: CaseDecl<A, C14, R>,
-  c15: CaseDecl<A, C15, R>,
-  c16: CaseDecl<A, C16, R>,
-  c17: CaseDecl<A, C17, R>,
-  c18: CaseDecl<A, C18, R>,
-  c19: CaseDecl<A, C19, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+  c14: CaseDecl<A, P14, R>,
+  c15: CaseDecl<A, P15, R>,
+  c16: CaseDecl<A, P16, R>,
+  c17: CaseDecl<A, P17, R>,
+  c18: CaseDecl<A, P18, R>,
+  c19: CaseDecl<A, P19, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
- * C1~C20
+ * P1~P20
  */
 export function match<
   A,
-  C1,
-  C2,
-  C3,
-  C4,
-  C5,
-  C6,
-  C7,
-  C8,
-  C9,
-  C10,
-  C11,
-  C12,
-  C13,
-  C14,
-  C15,
-  C16,
-  C17,
-  C18,
-  C19,
-  C20,
+  P1,
+  P2,
+  P3,
+  P4,
+  P5,
+  P6,
+  P7,
+  P8,
+  P9,
+  P10,
+  P11,
+  P12,
+  P13,
+  P14,
+  P15,
+  P16,
+  P17,
+  P18,
+  P19,
+  P20,
   R,
   OTHERWISE_LAST extends boolean = Is<
-    C20,
+    P20,
     typeof otherwise
   >,
-  CASES extends ReadonlyArray<unknown> = If<
+  PATTERNS extends ReadonlyArray<unknown> = If<
     OTHERWISE_LAST,
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
-      C17,
-      C18,
-      C19,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
+      P17,
+      P18,
+      P19,
     ],
     [
-      C1,
-      C2,
-      C3,
-      C4,
-      C5,
-      C6,
-      C7,
-      C8,
-      C9,
-      C10,
-      C11,
-      C12,
-      C13,
-      C14,
-      C15,
-      C16,
-      C17,
-      C18,
-      C19,
-      C20,
+      P1,
+      P2,
+      P3,
+      P4,
+      P5,
+      P6,
+      P7,
+      P8,
+      P9,
+      P10,
+      P11,
+      P12,
+      P13,
+      P14,
+      P15,
+      P16,
+      P17,
+      P18,
+      P19,
+      P20,
     ]
   >,
 >(
   a: A,
-  c1: CaseDecl<A, C1, R>,
-  c2: CaseDecl<A, C2, R>,
-  c3: CaseDecl<A, C3, R>,
-  c4: CaseDecl<A, C4, R>,
-  c5: CaseDecl<A, C5, R>,
-  c6: CaseDecl<A, C6, R>,
-  c7: CaseDecl<A, C7, R>,
-  c8: CaseDecl<A, C8, R>,
-  c9: CaseDecl<A, C9, R>,
-  c10: CaseDecl<A, C10, R>,
-  c11: CaseDecl<A, C11, R>,
-  c12: CaseDecl<A, C12, R>,
-  c13: CaseDecl<A, C13, R>,
-  c14: CaseDecl<A, C14, R>,
-  c15: CaseDecl<A, C15, R>,
-  c16: CaseDecl<A, C16, R>,
-  c17: CaseDecl<A, C17, R>,
-  c18: CaseDecl<A, C18, R>,
-  c19: CaseDecl<A, C19, R>,
-  c20: CaseDecl<A, C20, R>,
-): MatchResult<CASES, OTHERWISE_LAST, A, R>;
+  c1: CaseDecl<A, P1, R>,
+  c2: CaseDecl<A, P2, R>,
+  c3: CaseDecl<A, P3, R>,
+  c4: CaseDecl<A, P4, R>,
+  c5: CaseDecl<A, P5, R>,
+  c6: CaseDecl<A, P6, R>,
+  c7: CaseDecl<A, P7, R>,
+  c8: CaseDecl<A, P8, R>,
+  c9: CaseDecl<A, P9, R>,
+  c10: CaseDecl<A, P10, R>,
+  c11: CaseDecl<A, P11, R>,
+  c12: CaseDecl<A, P12, R>,
+  c13: CaseDecl<A, P13, R>,
+  c14: CaseDecl<A, P14, R>,
+  c15: CaseDecl<A, P15, R>,
+  c16: CaseDecl<A, P16, R>,
+  c17: CaseDecl<A, P17, R>,
+  c18: CaseDecl<A, P18, R>,
+  c19: CaseDecl<A, P19, R>,
+  c20: CaseDecl<A, P20, R>,
+): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
 
 /**
  * Runtime implementation of pattern matching.
  */
 export function match(
   a: unknown,
-  ...options: ReadonlyArray<
+  ...cases: ReadonlyArray<
     [unknown, (ma: unknown) => unknown]
   >
 ): unknown {
-  for (const [cond, fn] of options) {
-    if (cond === otherwise) {
+  for (const [pattern, fn] of cases) {
+    if (isVariant(a)) {
+      if (isAtomicPattern(pattern)) {
+        if (a.body === pattern.body) {
+          return fn(a);
+        }
+        continue;
+      }
+      if (isObjectPattern(pattern)) {
+        if (
+          typeof a === "object" &&
+          deepPartialEqual(a.body, pattern.body)
+        ) {
+          return fn(a);
+        }
+        continue;
+      }
+      if (isFixedVariantPattern(pattern)) {
+        if (
+          isVariant(a) &&
+          a.__tag === pattern.tag
+        ) {
+          return fn(a);
+        }
+        continue;
+      }
+      // if (pattern === otherwise) {
+      //   return fn(a);
+      // }
+    }
+    if (pattern === otherwise) {
       return fn(a);
     }
-    if (
-      isVariant(a) &&
-      isVariant(cond) &&
-      deepPartialEqual(a, cond)
-    ) {
-      return fn(a);
-    }
-    if (Object.is(a, cond)) {
+    if (!isVariant(pattern) && a === pattern) {
       return fn(a);
     }
   }
-  throw new Error(
-    `Unexpectedly no match for value: ${String(a)}`,
+  return new Error(
+    `Unexpectedly no match for value: ${JSON.stringify(a)}`,
   );
 }
