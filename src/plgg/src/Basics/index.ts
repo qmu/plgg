@@ -1,3 +1,4 @@
+export * from "plgg/Basics/Atomic";
 export * from "plgg/Basics/Bool";
 export * from "plgg/Basics/BrandBool";
 export * from "plgg/Basics/BrandNum";
