@@ -86,7 +86,7 @@ test("Variant1", async () => {
       radius: number;
     }
   >;
-  const circle = pattern<Circle>("Circle");
+  const circle = pattern("Circle" as const);
 
   type Square = ParametricVariant<
     "Square",
@@ -94,7 +94,7 @@ test("Variant1", async () => {
       side: number;
     }
   >;
-  const square = pattern<Square>("Square");
+  const square = pattern("Square" as const);
 
   type Triangle = ParametricVariant<
     "Triangle",
@@ -103,7 +103,7 @@ test("Variant1", async () => {
       height: number;
     }
   >;
-  const triangle = pattern<Triangle>("Triangle");
+  const triangle = pattern("Triangle" as const);
   const newTriangle =
     construct<Triangle>("Triangle");
   type Shape = Circle | Square | Triangle;
@@ -129,7 +129,7 @@ test("Variant2", async () => {
     children?: ReadonlyArray<AST>;
   };
   type AST = ParametricVariant<"AST", ast>;
-  const ast = pattern<AST>("AST");
+  const ast = pattern("AST");
   const newAST = construct<AST>("AST");
 
   const fn = (a: AST) =>
@@ -247,6 +247,11 @@ test("Option pattern matching with specific patterns", async () => {
       a,
       [some(100), () => "The answer!"],
       [none(), () => "No value"],
+      [
+        otherwise,
+        (value) =>
+          `Fallback: ${JSON.stringify(value)}`,
+      ],
     );
 
   expect(fn(newSome(100))).equal("The answer!");

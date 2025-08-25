@@ -10,12 +10,15 @@ import {
   UnPartial,
   otherwise,
   And,
-  Or,
   ParametricVariant,
   FixedVariant,
-  isAtomicPattern,
-  isObjectPattern,
-  isFixedVariantPattern,
+  isVariantPatternAtomic,
+  isVariantPatternObject,
+  isVariantPatternTag,
+  IsVariant,
+  IsAtomic,
+  IsVariantPatternTag,
+  IsVariantPattern,
 } from "plgg/index";
 
 // -------------------------
@@ -26,32 +29,31 @@ import {
  * Type-level computation for pattern matching results.
  * Determines the return type based on whether patterns provide exhaustive coverage.
  */
-type MatchResult<
+type Matchable<
   PATTERNS extends ReadonlyArray<unknown>,
   OTHERWISE_LAST extends boolean,
   A,
-  R,
   UNION_PATTERNS extends
     ReadonlyArray<unknown>[number] = TupleToUnion<PATTERNS>,
 > = If<
   Is<A, boolean>,
-  If<Is<PATTERNS, [true, false]>, R, never>,
+  If<Is<PATTERNS, [true, false]>, A, never>,
   If<
-    IsAllVariant<PATTERNS>,
+    IsAllVariantPattern<PATTERNS>,
     If<
       FullCoveragedVariants<A, PATTERNS>,
-      R,
+      A,
       If<
         And<
           OTHERWISE_LAST,
           IsUnionSubset<
             ExtractVariantTags<A>,
-            ExtractVariantTags<
-              TupleToUnion<PATTERNS>
+            TupleToUnion<
+              ExtractPatternTags<PATTERNS>
             >
           >
         >,
-        R,
+        A,
         never
       >
     >,
@@ -59,17 +61,17 @@ type MatchResult<
       IsAllAtomic<PATTERNS>,
       If<
         IsEqual<UNION_PATTERNS, A>,
-        R,
+        A,
         If<
           And<
             OTHERWISE_LAST,
             IsUnionSubset<UNION_PATTERNS, A>
           >,
-          R,
+          A,
           never
         >
       >,
-      If<OTHERWISE_LAST, R, never>
+      If<OTHERWISE_LAST, A, never>
     >
   >
 >;
@@ -83,10 +85,10 @@ export type FullCoveragedVariants<
   PATTERNS extends ReadonlyArray<unknown>,
 > = If<
   And<
-    AreNoneConditionalVariants<PATTERNS>,
+    AreAllTagPatterns<PATTERNS>,
     IsUnionSubset<
       ExtractVariantTags<A>,
-      ExtractVariantTags<TupleToUnion<PATTERNS>>
+      TupleToUnion<ExtractPatternTags<PATTERNS>>
     >
   >,
   true,
@@ -102,56 +104,24 @@ export type ExtractVariantTags<T> = T extends {
   ? Tag
   : never;
 
+export type ExtractPatternTags<
+  PATTERNS extends ReadonlyArray<unknown>,
+> = PATTERNS extends [infer Head, ...infer Tail]
+  ? Head extends { tag: infer Tag }
+    ? [Tag, ...ExtractPatternTags<Tail>]
+    : ExtractPatternTags<Tail>
+  : [];
+
 /**
  * Checks if T is a wild parametric variant without actual pattern.
  */
-export type AreNoneConditionalVariants<
+export type AreAllTagPatterns<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
-  ? Or<
-      JustTagVariantPattern<Head>,
-      WildParametricVariantPattern<Head>
-    > extends true
-    ? AreNoneConditionalVariants<Tail>
+  ? IsVariantPatternTag<Head> extends true
+    ? AreAllTagPatterns<Tail>
     : false
   : true;
-
-/**
- * Checks if T is a fixed variant (variant with only __tag property).
- */
-type JustTagVariantPattern<T> = T extends {
-  __tag: string;
-}
-  ? keyof T extends "__tag"
-    ? T["__tag"] extends string
-      ? Exclude<keyof T, "__tag"> extends never
-        ? true
-        : false
-      : false
-    : false
-  : false;
-
-/**
- * Type predicate for wild parametric variant patterns.
- */
-export type WildParametricVariantPattern<T> =
-  T extends Variant<
-    infer Tag,
-    Partial<infer Content>
-  >
-    ? Is<Tag, string> extends true
-      ? IsEqual<Content, unknown> extends true
-        ? true
-        : false
-      : false
-    : false;
-
-/**
- * Type predicate to check if T is a variant with a __tag property.
- */
-type IsVariant<T> = T extends { __tag: string }
-  ? true
-  : false;
 
 /**
  * Recursively checks if all elements in array are atomic types.
@@ -165,38 +135,13 @@ export type IsAllAtomic<
   : true;
 
 /**
- * Type predicate for atomic/primitive types.
- * Returns true for boolean, string, number, bigint, symbol, null, undefined.
- */
-type IsAtomic<T> = If<
-  Or<
-    Is<T, boolean>,
-    Or<
-      Is<T, string>,
-      Or<
-        Is<T, number>,
-        Or<
-          Is<T, bigint>,
-          Or<
-            Is<T, symbol>,
-            Or<Is<T, null>, Is<T, undefined>>
-          >
-        >
-      >
-    >
-  >,
-  true,
-  false
->;
-
-/**
  * Recursively checks if all elements in array are variants.
  */
-type IsAllVariant<
+export type IsAllVariantPattern<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
-  ? IsVariant<Head> extends true
-    ? IsAllVariant<Tail>
+  ? IsVariantPattern<Head> extends true
+    ? IsAllVariantPattern<Tail>
     : false
   : true;
 
@@ -244,28 +189,6 @@ export type CaseDecl<
   [P, (a: ARG) => R]
 >;
 
-/**
- * Deep equality check for partial objects used in variant pattern matching.
- */
-function deepPartialEqual<T>(
-  obj1: T,
-  obj2: Partial<T>,
-): boolean {
-  const isObject = (
-    obj: unknown,
-  ): obj is object =>
-    obj !== null && typeof obj === "object";
-  return Object.keys(obj2).every((key) => {
-    const k = key as keyof T;
-    const v1 = obj1[k];
-    const v2 = obj2[k];
-    if (isObject(v1) && isObject(v2)) {
-      return deepPartialEqual(v1, v2);
-    }
-    return v1 === v2;
-  });
-}
-
 // -------------------------
 
 /**
@@ -286,10 +209,10 @@ export function match<
     [P1, P2]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P3
@@ -310,11 +233,11 @@ export function match<
     [P1, P2, P3]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P4
@@ -336,12 +259,12 @@ export function match<
     [P1, P2, P3, P4]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
   c4: CaseDecl<A, P4, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P5
@@ -364,13 +287,13 @@ export function match<
     [P1, P2, P3, P4, P5]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
   c4: CaseDecl<A, P4, R>,
   c5: CaseDecl<A, P5, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P6
@@ -394,14 +317,14 @@ export function match<
     [P1, P2, P3, P4, P5, P6]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
   c4: CaseDecl<A, P4, R>,
   c5: CaseDecl<A, P5, R>,
   c6: CaseDecl<A, P6, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P7
@@ -426,7 +349,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -434,7 +357,7 @@ export function match<
   c5: CaseDecl<A, P5, R>,
   c6: CaseDecl<A, P6, R>,
   c7: CaseDecl<A, P7, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P8
@@ -460,7 +383,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -469,7 +392,7 @@ export function match<
   c6: CaseDecl<A, P6, R>,
   c7: CaseDecl<A, P7, R>,
   c8: CaseDecl<A, P8, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P9
@@ -496,7 +419,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8, P9]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -506,7 +429,7 @@ export function match<
   c7: CaseDecl<A, P7, R>,
   c8: CaseDecl<A, P8, R>,
   c9: CaseDecl<A, P9, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P10
@@ -534,7 +457,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -545,7 +468,7 @@ export function match<
   c8: CaseDecl<A, P8, R>,
   c9: CaseDecl<A, P9, R>,
   c10: CaseDecl<A, P10, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P11
@@ -574,7 +497,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -586,7 +509,7 @@ export function match<
   c9: CaseDecl<A, P9, R>,
   c10: CaseDecl<A, P10, R>,
   c11: CaseDecl<A, P11, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P12
@@ -641,7 +564,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -654,7 +577,7 @@ export function match<
   c10: CaseDecl<A, P10, R>,
   c11: CaseDecl<A, P11, R>,
   c12: CaseDecl<A, P12, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P13
@@ -712,7 +635,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -726,7 +649,7 @@ export function match<
   c11: CaseDecl<A, P11, R>,
   c12: CaseDecl<A, P12, R>,
   c13: CaseDecl<A, P13, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P14
@@ -787,7 +710,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -802,7 +725,7 @@ export function match<
   c12: CaseDecl<A, P12, R>,
   c13: CaseDecl<A, P13, R>,
   c14: CaseDecl<A, P14, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P15
@@ -866,7 +789,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -882,7 +805,7 @@ export function match<
   c13: CaseDecl<A, P13, R>,
   c14: CaseDecl<A, P14, R>,
   c15: CaseDecl<A, P15, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P16
@@ -949,7 +872,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -966,7 +889,7 @@ export function match<
   c14: CaseDecl<A, P14, R>,
   c15: CaseDecl<A, P15, R>,
   c16: CaseDecl<A, P16, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P17
@@ -1036,7 +959,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -1054,7 +977,7 @@ export function match<
   c15: CaseDecl<A, P15, R>,
   c16: CaseDecl<A, P16, R>,
   c17: CaseDecl<A, P17, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P18
@@ -1127,7 +1050,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -1146,7 +1069,7 @@ export function match<
   c16: CaseDecl<A, P16, R>,
   c17: CaseDecl<A, P17, R>,
   c18: CaseDecl<A, P18, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P19
@@ -1222,7 +1145,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -1242,7 +1165,7 @@ export function match<
   c17: CaseDecl<A, P17, R>,
   c18: CaseDecl<A, P18, R>,
   c19: CaseDecl<A, P19, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * P1~P20
@@ -1321,7 +1244,7 @@ export function match<
     ]
   >,
 >(
-  a: A,
+  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -1342,7 +1265,7 @@ export function match<
   c18: CaseDecl<A, P18, R>,
   c19: CaseDecl<A, P19, R>,
   c20: CaseDecl<A, P20, R>,
-): MatchResult<PATTERNS, OTHERWISE_LAST, A, R>;
+): R;
 
 /**
  * Runtime implementation of pattern matching.
@@ -1355,13 +1278,13 @@ export function match(
 ): unknown {
   for (const [pattern, fn] of cases) {
     if (isVariant(a)) {
-      if (isAtomicPattern(pattern)) {
+      if (isVariantPatternAtomic(pattern)) {
         if (a.body === pattern.body) {
           return fn(a);
         }
         continue;
       }
-      if (isObjectPattern(pattern)) {
+      if (isVariantPatternObject(pattern)) {
         if (
           typeof a === "object" &&
           deepPartialEqual(a.body, pattern.body)
@@ -1370,7 +1293,7 @@ export function match(
         }
         continue;
       }
-      if (isFixedVariantPattern(pattern)) {
+      if (isVariantPatternTag(pattern)) {
         if (
           isVariant(a) &&
           a.__tag === pattern.tag
@@ -1393,4 +1316,26 @@ export function match(
   return new Error(
     `Unexpectedly no match for value: ${JSON.stringify(a)}`,
   );
+}
+
+/**
+ * Deep equality check for partial objects used in variant pattern matching.
+ */
+function deepPartialEqual<T>(
+  obj1: T,
+  obj2: Partial<T>,
+): boolean {
+  const isObject = (
+    obj: unknown,
+  ): obj is object =>
+    obj !== null && typeof obj === "object";
+  return Object.keys(obj2).every((key) => {
+    const k = key as keyof T;
+    const v1 = obj1[k];
+    const v2 = obj2[k];
+    if (isObject(v1) && isObject(v2)) {
+      return deepPartialEqual(v1, v2);
+    }
+    return v1 === v2;
+  });
 }
