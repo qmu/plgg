@@ -1,24 +1,23 @@
 import {
-  Variant,
-  ExtractBody,
   isVariant,
   If,
   IsEqual,
   Is,
   TupleToUnion,
   IsUnionSubset,
-  UnPartial,
   otherwise,
   And,
-  ParametricVariant,
-  FixedVariant,
   isVariantPatternAtomic,
   isVariantPatternObject,
   isVariantPatternTag,
-  IsVariant,
+  ExtractBodyFromVariantPattern,
   IsAtomic,
   IsVariantPatternTag,
   IsVariantPattern,
+  Or,
+  IsVariant,
+  ExtractVariantBody,
+  Variant,
 } from "plgg/index";
 
 // -------------------------
@@ -146,47 +145,27 @@ export type IsAllVariantPattern<
   : true;
 
 /**
- * Variant type with partial body for pattern matching.
- */
-type PartialBodyVariant = Variant<
-  string,
-  Partial<unknown>
->;
-
-/**
  * Represents a pattern-handler pair for matching.
  */
 export type CaseDecl<
   A,
-  P,
+  PATTERN,
   R,
-  // unwrapped body from case
-  B1 = P extends PartialBodyVariant
-    ? UnPartial<ExtractBody<P>>
-    : P,
-  // unwrapped body from argument
-  B2 = A extends ParametricVariant<
-    string,
-    infer BODY
-  >
-    ? BODY
-    : A extends FixedVariant<string>
-      ? never
-      : A,
-  ARG = B1 extends unknown
-    ? B2
-    : B2 extends B1
-      ? B2 & B1
-      : never,
-  VALID_PATTERN = ARG extends never
-    ? false
-    : true,
-> = If<
-  IsVariant<P>,
-  VALID_PATTERN extends true
-    ? [P, (a: ARG) => R]
+  ABODY = A extends Variant<string, unknown>
+    ? ExtractVariantBody<A>
     : never,
-  [P, (a: ARG) => R]
+  PBODY = ExtractBodyFromVariantPattern<PATTERN>,
+> = If<
+  And<IsVariant<A>, IsVariantPattern<PATTERN>>,
+  If<
+    Or<
+      Is<PBODY, undefined>,
+      Or<Is<PBODY, ABODY>, Is<ABODY, PBODY>>
+    >,
+    [PATTERN, (a: PBODY) => R],
+    never
+  >,
+  [PATTERN, (a: PATTERN) => R]
 >;
 
 // -------------------------
@@ -1286,7 +1265,10 @@ export function match(
       }
       if (isVariantPatternObject(pattern)) {
         if (
-          typeof a === "object" &&
+          a.body !== null &&
+          typeof a.body === "object" &&
+          pattern.body !== null &&
+          typeof pattern.body === "object" &&
           deepPartialEqual(a.body, pattern.body)
         ) {
           return fn(a);
@@ -1321,9 +1303,9 @@ export function match(
 /**
  * Deep equality check for partial objects used in variant pattern matching.
  */
-function deepPartialEqual<T>(
+function deepPartialEqual<T extends object>(
   obj1: T,
-  obj2: Partial<T>,
+  obj2: T,
 ): boolean {
   const isObject = (
     obj: unknown,

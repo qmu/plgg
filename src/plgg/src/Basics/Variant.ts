@@ -90,7 +90,7 @@ export const withbody = () => {};
 export function construct<
   V extends Variant<string, unknown>,
   TAG extends string = ExtractTag<V>,
-  BODY = ExtractBody<V>,
+  BODY = ExtractVariantBody<V>,
 >(__tag: TAG) {
   function maker(): FixedVariant<TAG>;
   function maker(
@@ -111,7 +111,7 @@ export function construct<
 /**
  * Extracts the body type from a variant type.
  */
-export type ExtractBody<
+export type ExtractVariantBody<
   V extends Variant<string, unknown>,
 > =
   V extends Variant<string, infer BODY>

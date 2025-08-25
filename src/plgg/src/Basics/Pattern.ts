@@ -10,7 +10,7 @@ export const isMatcherAbstract = (
 ): p is {
   tag: string;
   type: string;
-  body?: unknown;
+  body: unknown;
 } =>
   isObj(p) &&
   hasProp(p, "tag") &&
@@ -44,7 +44,7 @@ export const isVariantPatternAtomic = <
 export type VariantPatternObject<T> = {
   tag: string;
   type: "object";
-  body: Partial<T>;
+  body: T;
 };
 
 export type IsVariantPatternObject<P> =
@@ -113,3 +113,12 @@ export const pattern =
             : "tag",
       body: value,
     }) as Pattern<T, TAG>;
+
+export type ExtractBodyFromVariantPattern<P> =
+  P extends {
+    tag: string;
+    type: string;
+    body: infer B;
+  }
+    ? B
+    : never;

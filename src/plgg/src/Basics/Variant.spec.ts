@@ -7,7 +7,7 @@ import {
   hasTag,
   isVariant,
   match,
-  ExtractBody,
+  ExtractVariantBody,
 } from "plgg/index";
 
 test("FixedVariant creation and structure", () => {
@@ -247,8 +247,9 @@ test("Extractbody type utility", () => {
   >;
 
   // This is a compile-time test - if it compiles, the type works correctly
-  const testbody: ExtractBody<TestVariant> = {
-    data: "hello",
-  };
+  const testbody: ExtractVariantBody<TestVariant> =
+    {
+      data: "hello",
+    };
   expect(testbody.data).toBe("hello");
 });

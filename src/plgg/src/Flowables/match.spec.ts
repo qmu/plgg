@@ -41,8 +41,7 @@ test("boolean", async () => {
     match(
       a,
       [TRUE, () => "true"],
-      [FALSE, () => "false"], // should compile error when erased
-      // [3 as const, () => "3"], // should compile error when uncommented
+      [FALSE, () => "false"],
     );
   expect(fn(true)).equal("true");
 });
@@ -57,8 +56,8 @@ test("string", async () => {
       a,
       [s1, () => "a"],
       [s2, () => "b"],
-      [s3, () => "c"], // should compile error when erased
-      //[4 as const, () => "4"], // should compile error when uncommented
+      [s3, () => "c"],
+      // ["d" as const, () => "d"], // should compile error when uncommented
     );
   expect(fn("c")).equal("c");
 });
@@ -74,7 +73,6 @@ test("otherwise", async () => {
       [s1, () => "a"],
       [s2, () => "b"],
       [otherwise, () => "default"], // should compile error when erased
-      //[4 as const, () => "4"], // should compile error when uncommented
     );
   expect(fn("c")).equal("default");
 });
