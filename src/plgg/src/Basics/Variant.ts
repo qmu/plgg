@@ -1,4 +1,4 @@
-import { isObj, hasProp } from "plgg/index";
+import { isObj, hasProp, Or } from "plgg/index";
 
 /**
  * A variant with only a tag and no body.
@@ -7,6 +7,15 @@ export type FixedVariant<TAG extends string> = {
   __tag: TAG;
   body: undefined;
 };
+
+export type IsFixedVariant<V> = V extends {
+  __tag: infer T;
+  body: undefined;
+}
+  ? T extends string
+    ? true
+    : false
+  : false;
 
 /**
  * A variant with both a tag and body.
@@ -19,6 +28,17 @@ export type ParametricVariant<
   body: BODY;
 };
 
+export type IsParametricVariant<V> = V extends {
+  __tag: infer T;
+  body: infer B;
+}
+  ? T extends string
+    ? B extends undefined
+      ? false
+      : true
+    : false
+  : false;
+
 /**
  * Union of fixed and parametric variants.
  */
@@ -26,80 +46,13 @@ export type Variant<TAG extends string, BODY> =
   | FixedVariant<TAG>
   | ParametricVariant<TAG, BODY>;
 
-export const isPatternAbstract = (
-  p: unknown,
-): p is {
-  tag: string;
-  type: string;
-  body?: unknown;
-} =>
-  isObj(p) &&
-  hasProp(p, "tag") &&
-  hasProp(p, "type") &&
-  hasProp(p, "body");
-
-export type AtomicPattern<T> = {
-  tag: string;
-  type: "atomic";
-  body: T;
-};
-
-export const isAtomicPattern = <T>(
-  p: unknown,
-): p is AtomicPattern<T> =>
-  isPatternAbstract(p) && p.type === "atomic";
-
-export type ObjectPattern<T> = {
-  tag: string;
-  type: "object";
-  body: Partial<T>;
-};
-
-export const isObjectPattern = <T>(
-  p: unknown,
-): p is ObjectPattern<T> =>
-  isPatternAbstract(p) && p.type === "object";
-
-export type FixedVariantPattern = {
-  tag: string;
-  type: "fixed";
-};
-
-export const isFixedVariantPattern = (
-  p: unknown,
-): p is FixedVariantPattern =>
-  isPatternAbstract(p) && p.type === "fixed";
-
-type Atomic = boolean | number | string | bigint;
-
-export type Pattern<T> = T extends Atomic
-  ? AtomicPattern<T>
-  : T extends Record<string, unknown>
-    ? ObjectPattern<T>
-    : FixedVariantPattern;
-
-export const pattern =
-  <
-    V extends Variant<string, unknown>,
-    T = ExtractBody<V>,
-  >(
-    tag: string,
-  ) =>
-  (value?: T): Pattern<T> =>
-    ({
-      tag,
-      type:
-        typeof value === "string" ||
-        typeof value === "number" ||
-        typeof value === "boolean" ||
-        typeof value === "bigint"
-          ? "atomic"
-          : typeof value === "object" &&
-              value !== null
-            ? "object"
-            : "fixed",
-      body: value,
-    }) as Pattern<T>;
+/**
+ * Type predicate to check if T is a variant with a __tag property.
+ */
+export type IsVariant<T> = Or<
+  IsFixedVariant<T>,
+  IsParametricVariant<T>
+>;
 
 /**
  * Type guard to check if a value is any variant.

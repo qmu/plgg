@@ -26,8 +26,7 @@ export type None = FixedVariant<typeof noneTag>;
  * Pattern constructor for None matching.
  * Used in pattern matching to match None values.
  */
-export const none = () =>
-  pattern<None>(noneTag)();
+export const none = () => pattern(noneTag)();
 
 /**
  * Creates a None instance representing no value.

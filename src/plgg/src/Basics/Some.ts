@@ -36,7 +36,7 @@ export type Some<T> = ParametricVariant<
  * Used in pattern matching to match Some values.
  */
 export const some = <T>(a?: T) =>
-  pattern<Some<T>>(someTag)(a);
+  pattern(someTag)(a);
 
 /**
  * Creates a Some instance containing a value.

@@ -130,8 +130,8 @@ test("pattern function for matching", () => {
     { side: number }
   >;
 
-  const circle = pattern<Circle>("circle");
-  const square = pattern<Square>("square");
+  const circle = pattern("circle");
+  const square = pattern("square");
   const circleInstance = construct<Circle>(
     "circle",
   )({ radius: 5 });
@@ -208,10 +208,9 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
     construct<Success<string>>("success");
   const ofError = construct<Error>("error");
 
-  const loading = pattern<Loading>("loading");
-  const success =
-    pattern<Success<string>>("success");
-  const error = pattern<Error>("error");
+  const loading = pattern("loading");
+  const success = pattern("success");
+  const error = pattern("error");
 
   const getStateMessage = (
     state: AsyncState<string>,
@@ -235,8 +234,7 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
 });
 
 test("pattern with undefined body creates FixedVariant", () => {
-  type SimplePattern = FixedVariant<"simple">;
-  const simple = pattern<SimplePattern>("simple");
+  const simple = pattern("simple");
 
   const pattern1 = simple();
   expect(pattern1.tag).toBe("simple");
