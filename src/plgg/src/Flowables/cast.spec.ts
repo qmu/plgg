@@ -4,7 +4,7 @@ import {
   cast,
   InvalidError,
   Str,
-  asObj,
+  asRec,
   forProp,
   Time,
   Num,
@@ -31,7 +31,7 @@ test("cast validates object structure with multiple properties", () => {
   ): Result<UserProfile, InvalidError> =>
     cast(
       data,
-      asObj,
+      asRec,
       forProp("id", asNum),
       forProp("email", asStr),
       forProp("createdAt", asTime),
@@ -66,7 +66,7 @@ test("cast accumulates validation errors for multiple invalid properties", () =>
   ): Result<Product, InvalidError> =>
     cast(
       data,
-      asObj,
+      asRec,
       forProp("id", asNum),
       forProp("name", asStr),
       forProp("price", asNum),
@@ -90,7 +90,7 @@ test("cast processes validation chain sequentially", () => {
   ): Result<{ username: string }, InvalidError> =>
     cast(
       input,
-      asObj,
+      asRec,
       forProp("username", (v) =>
         cast(
           v,
@@ -136,7 +136,7 @@ test("cast handles nested object validation", () => {
   ): Result<Address, InvalidError> =>
     cast(
       data,
-      asObj,
+      asRec,
       forProp("street", asStr),
       forProp("city", asStr),
     );
@@ -146,7 +146,7 @@ test("cast handles nested object validation", () => {
   ): Result<User, InvalidError> =>
     cast(
       data,
-      asObj,
+      asRec,
       forProp("name", asStr),
       forProp("age", asNum),
       forProp("address", asAddress),
@@ -221,7 +221,7 @@ test("cast with higher arity functions (5+ parameters)", () => {
   ): Result<ComplexObject, InvalidError> =>
     cast(
       data,
-      asObj,
+      asRec,
       forProp("field1", asStr),
       forProp("field2", asNum),
       forProp("field3", asBool),

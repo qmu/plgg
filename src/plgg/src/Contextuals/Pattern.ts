@@ -1,6 +1,6 @@
 import {
   Atomic,
-  isObj,
+  isRec,
   hasProp,
   Or,
 } from "plgg/index";
@@ -15,7 +15,7 @@ export const isMatcherAbstract = (
   type: string;
   body: unknown;
 } =>
-  isObj(p) &&
+  isRec(p) &&
   hasProp(p, "tag") &&
   hasProp(p, "type") &&
   hasProp(p, "body");
