@@ -1,5 +1,5 @@
 /**
- * Type utility that excludes functions returning never from type unions.
+ * Type utility that excludes functions returning never.
  */
 export type NonNeverFn<F> = F extends (
   ...args: any[]

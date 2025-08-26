@@ -17,13 +17,12 @@ declare module "plgg/Abstracts/Principals/Kind" {
 }
 
 /**
- * Tag which represents the Err variant of Result.
+ * Tag representing the Err variant of Result.
  */
 const errTag = "Err" as const;
 
 /**
- * Err side of Result, representing a failed computation.
- * Contains the error value in the body property.
+ * Represents a failed computation containing an error value.
  */
 export type Err<F> = ParametricVariant<
   typeof errTag,
@@ -31,8 +30,7 @@ export type Err<F> = ParametricVariant<
 >;
 
 /**
- * Pattern constructor for Err matching.
- * Used in pattern matching to match Err values.
+ * Pattern constructor for matching Err values in pattern matching.
  */
 export const err = <T>(v?: T) =>
   pattern(errTag)(v);
@@ -56,6 +54,9 @@ export const errRefinable: Refinable1<"Err"> = {
   KindKey: errTag,
   is,
 };
+/**
+ * Exported type guard function for Err values.
+ */
 export const { is: isErr } = errRefinable;
 
 /**
@@ -74,4 +75,7 @@ export const errCastable: Castable1<"Err"> = {
           }),
         ),
 };
+/**
+ * Exported safe casting function for Err values.
+ */
 export const { as: asErr } = errCastable;

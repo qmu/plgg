@@ -11,7 +11,7 @@ import {
 } from "plgg/index";
 
 /**
- * Async function composition with error short-circuiting for Procedural types.
+ * Async function composition for Procedural types.
  */
 export function proc<A, B>(
   a: A,
@@ -483,7 +483,7 @@ export function proc<
 ): Promise<Result<U, Error>>;
 
 /**
- * Implementation function that chains any number of Procedural-returning functions.
+ * Implementation function that chains Procedural-returning functions.
  */
 export async function proc(
   value: unknown,
@@ -528,8 +528,7 @@ export async function proc(
 }
 
 /**
- * Function type for plgg operations.
- * Represents a function that takes any value and returns a Procedural result.
+ * Function type for proc operations.
  */
 type ChainFn = (
   a: unknown,

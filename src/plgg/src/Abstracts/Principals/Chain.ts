@@ -12,11 +12,7 @@ import {
 
 /**
  * Chain interface for single-parameter type constructors.
- * Provides monadic bind/flatMap operation. Extends Apply to inherit map and ap.
- *
- * Chain law:
- * - Associativity: chain(chain(m, f), g) === chain(m, x => chain(f(x), g))
- *
+ * Provides monadic bind/flatMap operation extending Apply capabilities.
  */
 export interface Chain1<KindKey extends KindKeys1>
   extends Apply1<KindKey> {
@@ -33,7 +29,6 @@ export interface Chain1<KindKey extends KindKeys1>
 
 /**
  * Chain interface for two-parameter type constructors.
- *
  */
 export interface Chain2<KindKey extends KindKeys2>
   extends Apply2<KindKey> {
@@ -49,7 +44,6 @@ export interface Chain2<KindKey extends KindKeys2>
 
 /**
  * Chain interface for three-parameter type constructors.
- *
  */
 export interface Chain3<KindKey extends KindKeys3>
   extends Apply3<KindKey> {

@@ -6,19 +6,17 @@ import {
 } from "plgg/index";
 
 /**
- * Castable type class for safe type casting.
- * Used for concrete types with no type parameters.
+ * Enables safe type casting for concrete types with no type parameters.
  */
 export interface Castable0<T> {
   /**
-   * Safe casting operation that validates and converts unknown values to type T.
+   * Safely casts unknown values to the target type with validation.
    */
   as: (value: unknown) => Result<T, InvalidError>;
 }
 
 /**
- * Castable type class for single-parameter type constructors.
- * Used for types like Option<T>, Ok<T>, Err<F>, etc.
+ * Enables safe type casting for single-parameter type constructors.
  */
 export interface Castable1<
   KindKey extends KindKeys1,
@@ -29,7 +27,7 @@ export interface Castable1<
   KindKey: KindKey;
 
   /**
-   * Safe casting operation that validates and converts unknown values.
+   * Safely casts unknown values to the target type with validation.
    */
   as: <A>(
     value: unknown,

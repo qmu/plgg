@@ -8,11 +8,13 @@ import {
 } from "plgg/index";
 
 /**
- * Number primitive type.
- * Represents JavaScript numbers, including integers and floating-point values.
+ * Represents JavaScript number values including integers and floats.
  */
 export type Num = number;
 
+/**
+ * Type predicate to determine if a type is Num.
+ */
 export type IsNum<T> = T extends Num
   ? true
   : false;
@@ -32,6 +34,9 @@ const is = (value: unknown): value is Num =>
 export const numRefinable: Refinable0<Num> = {
   is,
 };
+/**
+ * Exported type guard function for number values.
+ */
 export const { is: isNum } = numRefinable;
 
 /**
@@ -49,4 +54,7 @@ export const numCastable: Castable0<Num> = {
           }),
         ),
 };
+/**
+ * Exported safe casting function for number values.
+ */
 export const { as: asNum } = numCastable;

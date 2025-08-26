@@ -8,11 +8,13 @@ import {
 } from "plgg/index";
 
 /**
- * String primitive type.
- * Represents JavaScript strings.
+ * Represents JavaScript string values.
  */
 export type Str = string;
 
+/**
+ * Type predicate to determine if a type is Str.
+ */
 export type IsStr<T> = T extends Str
   ? true
   : false;
@@ -29,6 +31,9 @@ const is = (value: unknown): value is Str =>
 export const strRefinable: Refinable0<Str> = {
   is,
 };
+/**
+ * Exported type guard function for string values.
+ */
 export const { is: isStr } = strRefinable;
 
 /**
@@ -46,6 +51,9 @@ export const strCastable: Castable0<Str> = {
           }),
         ),
 };
+/**
+ * Exported safe casting function for string values.
+ */
 export const { as: asStr } = strCastable;
 
 /**

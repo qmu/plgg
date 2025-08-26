@@ -1,7 +1,7 @@
 import { NonNeverFn } from "plgg/index";
 
 /**
- * Type-safe function composition with overloads for inference.
+ * Type-safe function composition.
  */
 export function pipe<A, B>(
   a: A,
@@ -473,7 +473,7 @@ export function pipe<
 ): U;
 
 /**
- * Implementation function that pipes value through any number of functions sequentially.
+ * Implementation function that pipes value through functions sequentially.
  */
 export function pipe(
   value: unknown,

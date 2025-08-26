@@ -8,14 +8,14 @@ import {
 } from "plgg/index";
 
 /**
- * Synchronous function composition with error accumulation for Result types.
+ * Synchronous function composition for Result types.
  */
 export function cast<A, B, ERR>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
 ): Result<B, ERR>;
 /**
- * Two-step synchronous function composition with error accumulation.
+ * Two-step function composition for Result types.
  */
 export function cast<A, B, C, ERR>(
   a: A,
@@ -506,7 +506,7 @@ export function cast<
 ): Result<U, ERR>;
 
 /**
- * Implementation function for cast that processes any number of functions.
+ * Implementation function that processes any number of functions.
  */
 export function cast(
   value: unknown,
@@ -569,7 +569,6 @@ const convUnknownToInvalidError = (
 
 /**
  * Function type for cast operations.
- * Represents a function that takes any value and returns a Result.
  */
 type ChainFn = (
   a: unknown,

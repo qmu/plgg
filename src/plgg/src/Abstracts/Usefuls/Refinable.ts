@@ -4,8 +4,7 @@ import {
 } from "plgg/index";
 
 /**
- * Refinable type class for type validation.
- * Used for concrete types with no type parameters.
+ * Enables type validation for concrete types with no type parameters.
  */
 export interface Refinable0<T> {
   /**
@@ -15,8 +14,7 @@ export interface Refinable0<T> {
 }
 
 /**
- * Refinable type class for single-parameter type constructors.
- * Used for types like Option<T>, Ok<T>, Err<F>, etc.
+ * Enables type validation for single-parameter type constructors.
  */
 export interface Refinable1<
   KindKey extends KindKeys1,

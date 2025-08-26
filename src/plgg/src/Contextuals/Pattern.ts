@@ -5,6 +5,9 @@ import {
   Or,
 } from "plgg/index";
 
+/**
+ * Checks if value has the basic matcher structure.
+ */
 export const isMatcherAbstract = (
   p: unknown,
 ): p is {
@@ -17,6 +20,9 @@ export const isMatcherAbstract = (
   hasProp(p, "type") &&
   hasProp(p, "body");
 
+/**
+ * Pattern type for matching atomic values.
+ */
 export type VariantPatternAtomic<
   T extends Atomic,
 > = {
@@ -25,6 +31,9 @@ export type VariantPatternAtomic<
   body: T;
 };
 
+/**
+ * Type predicate for atomic variant patterns.
+ */
 export type IsVariantPatternAtomic<P> =
   P extends {
     tag: string;
@@ -34,6 +43,9 @@ export type IsVariantPatternAtomic<P> =
     ? true
     : false;
 
+/**
+ * Runtime check for atomic variant patterns.
+ */
 export const isVariantPatternAtomic = <
   T extends Atomic,
 >(
@@ -41,12 +53,18 @@ export const isVariantPatternAtomic = <
 ): p is VariantPatternAtomic<T> =>
   isMatcherAbstract(p) && p.type === "atomic";
 
+/**
+ * Pattern type for matching object values.
+ */
 export type VariantPatternObject<T> = {
   tag: string;
   type: "object";
   body: T;
 };
 
+/**
+ * Type predicate for object variant patterns.
+ */
 export type IsVariantPatternObject<P> =
   P extends {
     tag: string;
@@ -56,17 +74,26 @@ export type IsVariantPatternObject<P> =
     ? true
     : false;
 
+/**
+ * Runtime check for object variant patterns.
+ */
 export const isVariantPatternObject = <T>(
   p: unknown,
 ): p is VariantPatternObject<T> =>
   isMatcherAbstract(p) && p.type === "object";
 
+/**
+ * Pattern type for matching tag-only values.
+ */
 export type VariantPatternTag<T> = {
   tag: T;
   type: "tag";
   body: undefined;
 };
 
+/**
+ * Type predicate for tag variant patterns.
+ */
 export type IsVariantPatternTag<P> = P extends {
   tag: string;
   type: "tag";
@@ -74,11 +101,17 @@ export type IsVariantPatternTag<P> = P extends {
   ? true
   : false;
 
+/**
+ * Runtime check for tag variant patterns.
+ */
 export const isVariantPatternTag = <TAG>(
   p: unknown,
 ): p is VariantPatternTag<TAG> =>
   isMatcherAbstract(p) && p.type === "tag";
 
+/**
+ * Union type predicate for all variant patterns.
+ */
 export type IsVariantPattern<P> = Or<
   IsVariantPatternAtomic<P>,
   Or<
@@ -87,6 +120,9 @@ export type IsVariantPattern<P> = Or<
   >
 >;
 
+/**
+ * Creates appropriate pattern type based on value type.
+ */
 export type Pattern<
   T,
   TAG extends string,
@@ -96,6 +132,9 @@ export type Pattern<
     ? VariantPatternObject<T>
     : VariantPatternTag<TAG>;
 
+/**
+ * Creates a pattern matcher for variant values.
+ */
 export const pattern =
   <TAG extends string>(tag: TAG) =>
   <T>(value?: T): Pattern<T, TAG> =>
@@ -114,6 +153,9 @@ export const pattern =
       body: value,
     }) as Pattern<T, TAG>;
 
+/**
+ * Extracts the body type from a variant pattern.
+ */
 export type ExtractBodyFromVariantPattern<P> =
   P extends {
     tag: string;

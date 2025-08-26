@@ -9,11 +9,13 @@ import {
 } from "plgg/index";
 
 /**
- * Date type alias for time representations.
- * Represents JavaScript Date objects.
+ * Represents JavaScript Date objects for time operations.
  */
 export type Time = Date;
 
+/**
+ * Type predicate to determine if a type is Time.
+ */
 export type IsTime<T> = T extends Time
   ? true
   : false;
@@ -39,6 +41,9 @@ const is = (value: unknown): value is Time =>
 export const timeRefinable: Refinable0<Time> = {
   is,
 };
+/**
+ * Exported type guard function for Time values.
+ */
 export const { is: isTime } = timeRefinable;
 
 /**
@@ -58,4 +63,7 @@ export const timeCastable: Castable0<Time> = {
             }),
           ),
 };
+/**
+ * Exported safe casting function for Time values.
+ */
 export const { as: asTime } = timeCastable;

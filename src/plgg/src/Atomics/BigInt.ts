@@ -8,11 +8,13 @@ import {
 } from "plgg/index";
 
 /**
- * BigInt primitive type.
  * Represents JavaScript BigInt values for arbitrary precision integers.
  */
 export type BigInt = bigint;
 
+/**
+ * Type predicate to determine if a type is BigInt.
+ */
 export type IsBigInt<T> = T extends BigInt
   ? true
   : false;
@@ -30,6 +32,9 @@ export const bigIntRefinable: Refinable0<BigInt> =
   {
     is,
   };
+/**
+ * Exported type guard function for BigInt values.
+ */
 export const { is: isBigInt } = bigIntRefinable;
 
 /**
@@ -70,5 +75,8 @@ export const bigIntCastable: Castable0<BigInt> = {
     );
   },
 };
+/**
+ * Exported safe casting function for BigInt values.
+ */
 export const { as: asBigInt } = bigIntCastable;
 

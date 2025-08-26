@@ -119,11 +119,7 @@ export type ExtractVariantBody<
     : undefined;
 
 /**
- * Extracts the tag type from a variant type using conditional type inference.
- * This utility type helps in type-level operations where we need to work with
- * the tag portion of a variant type separately from its body.
- *
- * @template V - Variant type to extract tag from
+ * Extracts the tag type from a variant type.
  */
 type ExtractTag<
   V extends Variant<string, unknown>,

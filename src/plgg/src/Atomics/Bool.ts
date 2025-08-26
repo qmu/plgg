@@ -18,10 +18,13 @@ export const TRUE = true as const;
 export const FALSE = false as const;
 
 /**
- * Boolean primitive type.
+ * Represents JavaScript boolean values.
  */
 export type Bool = typeof TRUE | typeof FALSE;
 
+/**
+ * Type predicate to determine if a type is Bool.
+ */
 export type IsBool<T> = T extends Bool
   ? true
   : false;
@@ -38,6 +41,9 @@ const is = (value: unknown): value is Bool =>
 export const boolRefinable: Refinable0<Bool> = {
   is,
 };
+/**
+ * Exported type guard function for boolean values.
+ */
 export const { is: isBool } = boolRefinable;
 
 /**
@@ -55,4 +61,7 @@ export const boolCastable: Castable0<Bool> = {
           }),
         ),
 };
+/**
+ * Exported safe casting function for boolean values.
+ */
 export const { as: asBool } = boolCastable;

@@ -12,7 +12,6 @@ export class InvalidError extends BaseError {
 
   /**
    * Sibling errors that occurred during validation.
-   * Used to accumulate multiple validation failures.
    */
   public sibling: ReadonlyArray<InvalidError> =
     [];

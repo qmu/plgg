@@ -6,7 +6,7 @@ import { Result } from "plgg/index";
 export type PossiblyPromise<T> = Promise<T> | T;
 
 /**
- * Utility type for values that can be either direct values or Results.
+ * Type for values that can be direct values or Results.
  */
 export type PossiblyResult<T, U> =
   | Result<T, U>

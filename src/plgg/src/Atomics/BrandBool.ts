@@ -9,25 +9,28 @@ import {
 } from "plgg/index";
 
 /**
- * Branded boolean type.
+ * Represents branded boolean values with type-level string labels.
  */
 export type BrandBool<U extends string> = Brand<
   Bool,
   U
 >;
 
+/**
+ * Type predicate to determine if a type is BrandBool.
+ */
 export type IsBrandBool<T> =
   T extends BrandBool<string> ? true : false;
 
 /**
- * Type guard for branded boolean.
+ * Runtime type guard for branded boolean values.
  */
 export const isBrandBool = <U extends string>(
   value: unknown,
 ): value is BrandBool<U> => isBool(value);
 
 /**
- * Validates and casts to branded boolean.
+ * Safely casts values to branded boolean with validation.
  */
 export const asBrandBool = <U extends string>(
   value: unknown,

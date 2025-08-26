@@ -26,7 +26,6 @@ import {
 
 /**
  * Type-level computation for pattern matching results.
- * Determines the return type based on whether patterns provide exhaustive coverage.
  */
 type ArgMatchable<
   PATTERNS extends ReadonlyArray<unknown>,
@@ -77,7 +76,6 @@ type ArgMatchable<
 
 /**
  * Checks if variant patterns provide full coverage of union A.
- * More permissive check that allows partial body variants to match.
  */
 export type FullCoveragedVariants<
   A,
@@ -112,7 +110,7 @@ export type ExtractPatternTags<
   : [];
 
 /**
- * Checks if T is a wild parametric variant without actual pattern.
+ * Checks if all elements in array are tag patterns.
  */
 export type AreAllTagPatterns<
   ARR extends ReadonlyArray<unknown>,
@@ -1301,7 +1299,7 @@ export function match(
 }
 
 /**
- * Deep equality check for partial objects used in variant pattern matching.
+ * Deep equality check for partial objects.
  */
 function deepPartialEqual<T extends object>(
   obj1: T,

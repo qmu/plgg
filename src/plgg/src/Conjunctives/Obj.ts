@@ -29,8 +29,7 @@ declare module "plgg/Abstracts/Principals/Kind" {
 }
 
 /**
- * Object type with primitive values.
- * Readonly record with string keys and unknown values.
+ * Readonly object type for functional programming operations.
  */
 export type Obj<T = Record<string, unknown>> = Readonly<T>;
 
@@ -47,6 +46,9 @@ export const objRefinable: Refinable1<"Obj"> = {
   KindKey: "Obj",
   is,
 };
+/**
+ * Exported type guard function for object values.
+ */
 export const { is: isObj } = objRefinable;
 
 /**
@@ -63,11 +65,13 @@ export const objCastable: Castable1<"Obj"> = {
           }),
         ),
 };
+/**
+ * Exported safe casting function for object values.
+ */
 export const { as: asObj } = objCastable;
 
 /**
- * Functor instance for Obj.
- * Maps functions over object values while preserving structure.
+ * Functor instance providing mapping operations over object values.
  */
 export const objFunctor: Functor1<"Obj"> = {
   KindKey: "Obj",
@@ -76,11 +80,13 @@ export const objFunctor: Functor1<"Obj"> = {
     (fa: Obj<A>): Obj<B> =>
       f(fa),
 };
+/**
+ * Exported mapping function for objects.
+ */
 export const { map: mapObj } = objFunctor;
 
 /**
- * Apply instance for Obj.
- * Applies wrapped functions to wrapped values.
+ * Apply instance enabling application of wrapped functions to wrapped values.
  */
 export const objApply: Apply1<"Obj"> = {
   ...objFunctor,
@@ -89,21 +95,25 @@ export const objApply: Apply1<"Obj"> = {
     (fa: Obj<A>): Obj<B> =>
       (fab as (a: A) => B)(fa),
 };
+/**
+ * Exported application function for objects.
+ */
 export const { ap: applyObj } = objApply;
 
 /**
- * Pointed instance for Obj.
- * Wraps a value in an object context.
+ * Pointed instance enabling wrapping of values in object context.
  */
 export const objPointed: Pointed1<"Obj"> = {
   ...objFunctor,
   of: <A>(a: A): Obj<A> => a,
 };
+/**
+ * Exported value wrapping function for objects.
+ */
 export const { of: ofObj } = objPointed;
 
 /**
- * Applicative instance for Obj.
- * Combines Apply and Pointed to provide both function application and value lifting.
+ * Applicative instance combining Apply and Pointed for objects.
  */
 export const objApplicative: Applicative1<"Obj"> = {
   ...objApply,
@@ -112,8 +122,7 @@ export const objApplicative: Applicative1<"Obj"> = {
 };
 
 /**
- * Chain instance for Obj.
- * Chains operations that return objects.
+ * Chain instance enabling chaining of operations that return objects.
  */
 export const objChain: Chain1<"Obj"> = {
   ...objFunctor,
@@ -124,11 +133,13 @@ export const objChain: Chain1<"Obj"> = {
     (fa: Obj<A>): Obj<B> =>
       f(fa),
 };
+/**
+ * Exported chaining function for objects.
+ */
 export const { chain: chainObj } = objChain;
 
 /**
- * Monad instance for Obj.
- * Combines Applicative and Chain to provide the full monadic interface.
+ * Monad instance providing full monadic interface for objects.
  */
 export const objMonad: Monad1<"Obj"> = {
   ...objApplicative,
@@ -136,8 +147,7 @@ export const objMonad: Monad1<"Obj"> = {
 };
 
 /**
- * Foldable instance for Obj.
- * Provides fold/reduce operations for objects.
+ * Foldable instance providing fold operations for objects.
  */
 export const objFoldable: Foldable1<"Obj"> = {
   KindKey: "Obj",
@@ -152,14 +162,16 @@ export const objFoldable: Foldable1<"Obj"> = {
     (fa: Obj<A>): B =>
       f(initial, fa),
 };
+/**
+ * Exported fold functions for objects.
+ */
 export const {
   foldr: foldrObj,
   foldl: foldlObj,
 } = objFoldable;
 
 /**
- * Traversable instance for Obj.
- * Extends Functor and Foldable to provide structure-preserving traversal.
+ * Traversable instance providing structure-preserving traversal for objects.
  */
 export const objTraversable: Traversable1<"Obj"> = {
   ...objFunctor,
@@ -174,6 +186,9 @@ export const objTraversable: Traversable1<"Obj"> = {
     <A>(tfa: Obj<Kind1<F, A>>): Kind1<F, Obj<A>> =>
       A.map((a: A) => a)(tfa as Kind1<F, A>),
 };
+/**
+ * Exported traversal functions for objects.
+ */
 export const {
   traverse: traverseObj,
   sequence: sequenceObj,

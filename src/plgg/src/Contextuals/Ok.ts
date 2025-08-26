@@ -17,13 +17,12 @@ declare module "plgg/Abstracts/Principals/Kind" {
 }
 
 /**
- * Tag which represents the Ok variant of Result.
+ * Tag representing the Ok variant of Result.
  */
 const okTag = "Ok" as const;
 
 /**
- * Ok side of Result, representing a successful computation.
- * Contains the success value in the body property.
+ * Represents a successful computation containing a success value.
  */
 export type Ok<T> = ParametricVariant<
   typeof okTag,
@@ -31,8 +30,7 @@ export type Ok<T> = ParametricVariant<
 >;
 
 /**
- * Pattern constructor for Ok matching.
- * Used in pattern matching to match Ok values.
+ * Pattern constructor for matching Ok values in pattern matching.
  */
 export const ok = <T>(a?: T) => pattern(okTag)(a);
 
@@ -55,6 +53,9 @@ export const okRefinable: Refinable1<"Ok"> = {
   KindKey: okTag,
   is,
 };
+/**
+ * Exported type guard function for Ok values.
+ */
 export const { is: isOk } = okRefinable;
 
 /**
@@ -73,4 +74,7 @@ export const okCastable: Castable1<"Ok"> = {
           }),
         ),
 };
+/**
+ * Exported safe casting function for Ok values.
+ */
 export const { as: asOk } = okCastable;

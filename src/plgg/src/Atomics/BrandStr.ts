@@ -9,25 +9,28 @@ import {
 } from "plgg/index";
 
 /**
- * Branded string type.
+ * Represents branded string values with type-level string labels.
  */
 export type BrandStr<U extends string> = Brand<
   Str,
   U
 >;
 
+/**
+ * Type predicate to determine if a type is BrandStr.
+ */
 export type IsBrandStr<T> =
   T extends BrandStr<string> ? true : false;
 
 /**
- * Type guard for branded string.
+ * Runtime type guard for branded string values.
  */
 export const isBrandStr = <U extends string>(
   value: unknown,
 ): value is BrandStr<U> => isStr(value);
 
 /**
- * Validates and casts to branded string.
+ * Safely casts values to branded string with validation.
  */
 export const asBrandStr = <U extends string>(
   value: unknown,

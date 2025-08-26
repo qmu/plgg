@@ -9,25 +9,28 @@ import {
 } from "plgg/index";
 
 /**
- * Branded number type.
+ * Represents branded number values with type-level string labels.
  */
 export type BrandNum<U extends string> = Brand<
   Num,
   U
 >;
 
+/**
+ * Type predicate to determine if a type is BrandNum.
+ */
 export type IsBrandNum<T> =
   T extends BrandNum<string> ? true : false;
 
 /**
- * Type guard for branded number.
+ * Runtime type guard for branded number values.
  */
 export const isBrandNum = <U extends string>(
   value: unknown,
 ): value is BrandNum<U> => isNum(value);
 
 /**
- * Validates and casts to branded number.
+ * Safely casts values to branded number with validation.
  */
 export const asBrandNum = <U extends string>(
   value: unknown,

@@ -76,8 +76,6 @@ export const { of: ofOption } = optionPointed;
 
 /**
  * Applicative instance for Option.
- * Combines Apply and Pointed to provide both function application and value lifting.
- * Enables working with functions and values wrapped in Option contexts.
  */
 export const optionApplicative: Applicative1<"Option"> =
   {
@@ -103,7 +101,6 @@ export const { chain: chainOption } = optionChain;
 
 /**
  * Monad instance for Option.
- * Combines Applicative and Chain to provide full monadic interface.
  */
 export const optionMonad: Monad1<"Option"> = {
   ...optionApplicative,

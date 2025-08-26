@@ -7,7 +7,6 @@ import {
 
 /**
  * Union type representing domain errors in the application.
- * Can be either a InvalidError or an Exception.
  */
 export type PlggError = InvalidError | Exception;
 

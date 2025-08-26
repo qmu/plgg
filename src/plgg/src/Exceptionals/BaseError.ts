@@ -6,7 +6,6 @@ import {
 
 /**
  * Base error class for all Plgg errors.
- * Extends JavaScript Error with additional metadata and parent error tracking.
  */
 export class BaseError extends Error {
   /**
@@ -16,7 +15,6 @@ export class BaseError extends Error {
 
   /**
    * Brand identifier for Plgg error types.
-   * Used to distinguish Plgg errors from standard JavaScript errors.
    */
   public __ = "PlggError";
 
@@ -27,7 +25,6 @@ export class BaseError extends Error {
 
   /**
    * Optional parent error for error chaining.
-   * Allows building error cause chains for debugging.
    */
   public parent: Option<BaseError | Error> =
     newNone();
