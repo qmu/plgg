@@ -32,6 +32,7 @@ const is = (value: unknown): value is Num =>
 export const numRefinable: Refinable0<Num> = {
   is,
 };
+export const { is: isNum } = numRefinable;
 
 /**
  * Castable instance for number safe casting.
@@ -48,6 +49,4 @@ export const numCastable: Castable0<Num> = {
           }),
         ),
 };
-
-export const { is: isNum } = numRefinable;
 export const { as: asNum } = numCastable;

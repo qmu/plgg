@@ -28,7 +28,7 @@ import {
  * Type-level computation for pattern matching results.
  * Determines the return type based on whether patterns provide exhaustive coverage.
  */
-type Matchable<
+type ArgMatchable<
   PATTERNS extends ReadonlyArray<unknown>,
   OTHERWISE_LAST extends boolean,
   A,
@@ -188,7 +188,7 @@ export function match<
     [P1, P2]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
 ): R;
@@ -212,7 +212,7 @@ export function match<
     [P1, P2, P3]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -238,7 +238,7 @@ export function match<
     [P1, P2, P3, P4]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -266,7 +266,7 @@ export function match<
     [P1, P2, P3, P4, P5]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -296,7 +296,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -328,7 +328,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -362,7 +362,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -398,7 +398,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8, P9]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -436,7 +436,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -476,7 +476,7 @@ export function match<
     [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -543,7 +543,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -614,7 +614,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -689,7 +689,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -768,7 +768,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -851,7 +851,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -938,7 +938,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -1029,7 +1029,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -1124,7 +1124,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
@@ -1223,7 +1223,7 @@ export function match<
     ]
   >,
 >(
-  a: Matchable<PATTERNS, OTHERWISE_LAST, A>,
+  a: ArgMatchable<PATTERNS, OTHERWISE_LAST, A>,
   c1: CaseDecl<A, P1, R>,
   c2: CaseDecl<A, P2, R>,
   c3: CaseDecl<A, P3, R>,
