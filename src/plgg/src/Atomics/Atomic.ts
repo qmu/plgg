@@ -3,13 +3,26 @@ import {
   Num,
   Bool,
   BigInt,
+  BrandStr,
+  BrandNum,
+  BrandBool,
   isStr,
   isNum,
   isBool,
   isBigInt,
+  isBrandStr,
+  isBrandNum,
+  isBrandBool,
 } from "plgg/index";
 
-export type Atomic = Str | Num | Bool | BigInt;
+export type Atomic =
+  | Str
+  | Num
+  | Bool
+  | BigInt
+  | BrandStr<string>
+  | BrandNum<string>
+  | BrandBool<string>;
 
 export type IsAtomic<T> = [T] extends [Atomic]
   ? true
@@ -18,4 +31,10 @@ export type IsAtomic<T> = [T] extends [Atomic]
 export const isAtomic = (
   value: unknown,
 ): value is Atomic =>
-  isStr(value) || isNum(value) || isBool(value) || isBigInt(value);
+  isStr(value) ||
+  isNum(value) ||
+  isBool(value) ||
+  isBigInt(value) ||
+  isBrandStr(value) ||
+  isBrandNum(value) ||
+  isBrandBool(value);

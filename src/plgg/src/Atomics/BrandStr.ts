@@ -16,6 +16,9 @@ export type BrandStr<U extends string> = Brand<
   U
 >;
 
+export type IsBrandStr<T> =
+  T extends BrandStr<string> ? true : false;
+
 /**
  * Type guard for branded string.
  */

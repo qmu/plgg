@@ -16,6 +16,9 @@ export type BrandBool<U extends string> = Brand<
   U
 >;
 
+export type IsBrandBool<T> =
+  T extends BrandBool<string> ? true : false;
+
 /**
  * Type guard for branded boolean.
  */
