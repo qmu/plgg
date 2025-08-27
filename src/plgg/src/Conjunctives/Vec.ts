@@ -21,142 +21,142 @@ import {
 
 declare module "plgg/Abstracts/Principals/Kind" {
   export interface KindKeytoKind1<A> {
-    Arr: Arr<A>;
+    Vec: Vec<A>;
   }
 }
 
 /**
- * Readonly array type providing immutable functional programming operations.
+ * Readonly vector type providing immutable functional programming operations.
  */
-export type Arr<T extends unknown = unknown> =
+export type Vec<T extends unknown = unknown> =
   ReadonlyArray<T>;
 
 /**
- * Type guard to check if a value is an Arr.
+ * Type guard to check if a value is a Vec.
  */
-const is = <T>(value: unknown): value is Arr<T> =>
+const is = <T>(value: unknown): value is Vec<T> =>
   Array.isArray(value);
 
 /**
- * Refinable instance for array type guards.
+ * Refinable instance for vector type guards.
  */
-export const arrRefinable: Refinable1<"Arr"> = {
-  KindKey: "Arr",
+export const vecRefinable: Refinable1<"Vec"> = {
+  KindKey: "Vec",
   is,
 };
 /**
- * Exported type guard function for array values.
+ * Exported type guard function for vector values.
  */
-export const { is: isArr } = arrRefinable;
+export const { is: isVec } = vecRefinable;
 
 /**
- * Castable instance for array safe casting.
+ * Castable instance for vector safe casting.
  */
-export const arrCastable: Castable1<"Arr"> = {
-  KindKey: "Arr",
+export const vecCastable: Castable1<"Vec"> = {
+  KindKey: "Vec",
   as: <A>(
     value: unknown,
-  ): Result<Arr<A>, InvalidError> =>
+  ): Result<Vec<A>, InvalidError> =>
     is<A>(value)
       ? newOk(value)
       : newErr(
           new InvalidError({
-            message: "Value is not an array",
+            message: "Value is not a vector",
           }),
         ),
 };
 /**
- * Exported safe casting function for array values.
+ * Exported safe casting function for vector values.
  */
-export const { as: asArr } = arrCastable;
+export const { as: asVec } = vecCastable;
 
 /**
- * Functor instance providing mapping operations over array elements.
+ * Functor instance providing mapping operations over vector elements.
  */
-export const arrFunctor: Functor1<"Arr"> = {
-  KindKey: "Arr",
+export const vecFunctor: Functor1<"Vec"> = {
+  KindKey: "Vec",
   map:
     <T1, T2>(f: (a: T1) => T2) =>
-    (fa: Arr<T1>): Arr<T2> =>
+    (fa: Vec<T1>): Vec<T2> =>
       fa.map(f),
 };
 /**
- * Exported mapping function for arrays.
+ * Exported mapping function for vectors.
  */
-export const { map: mapArr } = arrFunctor;
+export const { map: mapVec } = vecFunctor;
 
 /**
  * Apply instance enabling application of wrapped functions to wrapped values.
  */
-export const arrApply: Apply1<"Arr"> = {
-  ...arrFunctor,
+export const vecApply: Apply1<"Vec"> = {
+  ...vecFunctor,
   ap:
-    <T1, T2>(fab: Arr<(a: T1) => T2>) =>
-    (fa: Arr<T1>): Arr<T2> =>
+    <T1, T2>(fab: Vec<(a: T1) => T2>) =>
+    (fa: Vec<T1>): Vec<T2> =>
       fab.flatMap((f) => fa.map(f)),
 };
 /**
- * Exported application function for arrays.
+ * Exported application function for vectors.
  */
-export const { ap: applyArr } = arrApply;
+export const { ap: applyVec } = vecApply;
 
 /**
- * Pointed instance enabling wrapping of values in array context.
+ * Pointed instance enabling wrapping of values in vector context.
  */
-export const arrPointed: Pointed1<"Arr"> = {
-  ...arrFunctor,
-  of: <T>(a: T): Arr<T> => [a],
+export const vecPointed: Pointed1<"Vec"> = {
+  ...vecFunctor,
+  of: <T>(a: T): Vec<T> => [a],
 };
 
 /**
- * Exported value wrapping function for arrays.
+ * Exported value wrapping function for vectors.
  */
-export const { of: ofArr } = arrPointed;
+export const { of: ofVec } = vecPointed;
 
 /**
- * Applicative instance combining Apply and Pointed for arrays.
+ * Applicative instance combining Apply and Pointed for vectors.
  */
-export const arrApplicative: Applicative1<"Arr"> =
+export const vecApplicative: Applicative1<"Vec"> =
   {
-    ...arrApply,
-    ...arrFunctor,
-    ...arrPointed,
+    ...vecApply,
+    ...vecFunctor,
+    ...vecPointed,
   };
 
 /**
- * Chain instance enabling chaining of operations that return arrays.
+ * Chain instance enabling chaining of operations that return vectors.
  */
-export const arrChain: Chain1<"Arr"> = {
-  ...arrFunctor,
-  ...arrApply,
-  ...arrPointed,
+export const vecChain: Chain1<"Vec"> = {
+  ...vecFunctor,
+  ...vecApply,
+  ...vecPointed,
   chain:
-    <T1, T2>(f: (a: T1) => Arr<T2>) =>
-    (fa: Arr<T1>): Arr<T2> =>
+    <T1, T2>(f: (a: T1) => Vec<T2>) =>
+    (fa: Vec<T1>): Vec<T2> =>
       fa.flatMap(f),
 };
 /**
- * Exported chaining function for arrays.
+ * Exported chaining function for vectors.
  */
-export const { chain: chainArr } = arrChain;
+export const { chain: chainVec } = vecChain;
 
 /**
- * Monad instance providing full monadic interface for arrays.
+ * Monad instance providing full monadic interface for vectors.
  */
-export const arrMonad: Monad1<"Arr"> = {
-  ...arrApplicative,
-  ...arrChain,
+export const vecMonad: Monad1<"Vec"> = {
+  ...vecApplicative,
+  ...vecChain,
 };
 
 /**
- * Foldable instance providing fold operations for arrays.
+ * Foldable instance providing fold operations for vectors.
  */
-export const arrFoldable: Foldable1<"Arr"> = {
-  KindKey: "Arr",
+export const vecFoldable: Foldable1<"Vec"> = {
+  KindKey: "Vec",
   foldr:
     <A, B>(f: (a: A, b: B) => B) =>
     (initial: B) =>
-    (fa: Arr<A>): B =>
+    (fa: Vec<A>): B =>
       fa.reduceRight(
         (acc, x) => f(x, acc),
         initial,
@@ -164,32 +164,32 @@ export const arrFoldable: Foldable1<"Arr"> = {
   foldl:
     <A, B>(f: (b: B, a: A) => B) =>
     (initial: B) =>
-    (fa: Arr<A>): B =>
+    (fa: Vec<A>): B =>
       fa.reduce(f, initial),
 };
 /**
- * Exported fold functions for arrays.
+ * Exported fold functions for vectors.
  */
 export const {
-  foldr: foldrArr,
-  foldl: foldlArr,
-} = arrFoldable;
+  foldr: foldrVec,
+  foldl: foldlVec,
+} = vecFoldable;
 
 /**
- * Traversable instance providing structure-preserving traversal for arrays.
+ * Traversable instance providing structure-preserving traversal for vectors.
  */
-export const arrTraversable: Traversable1<"Arr"> =
+export const vecTraversable: Traversable1<"Vec"> =
   {
-    ...arrFunctor,
-    ...arrFoldable,
+    ...vecFunctor,
+    ...vecFoldable,
     traverse:
       <F extends KindKeys1>(A: Applicative1<F>) =>
       <A, B>(f: (a: A) => Kind1<F, B>) =>
-      (ta: Arr<A>): Kind1<F, Arr<B>> =>
+      (ta: Vec<A>): Kind1<F, Vec<B>> =>
         ta.reduceRight(
-          (acc: Kind1<F, Arr<B>>, x: A) =>
+          (acc: Kind1<F, Vec<B>>, x: A) =>
             A.ap(
-              A.map((b: B) => (bs: Arr<B>) => [
+              A.map((b: B) => (bs: Vec<B>) => [
                 b,
                 ...bs,
               ])(f(x)),
@@ -199,28 +199,28 @@ export const arrTraversable: Traversable1<"Arr"> =
     sequence:
       <F extends KindKeys1>(A: Applicative1<F>) =>
       <A>(
-        tfa: Arr<Kind1<F, A>>,
-      ): Kind1<F, Arr<A>> =>
-        arrTraversable.traverse(A)(
+        tfa: Vec<Kind1<F, A>>,
+      ): Kind1<F, Vec<A>> =>
+        vecTraversable.traverse(A)(
           (fa: Kind1<F, A>) => fa,
         )(tfa),
   };
 /**
- * Exported traversal functions for arrays.
+ * Exported traversal functions for vectors.
  */
 export const {
-  traverse: traverseArr,
-  sequence: sequenceArr,
-} = arrTraversable;
+  traverse: traverseVec,
+  sequence: sequenceVec,
+} = vecTraversable;
 
 /**
  * Applies function to each element, collecting all results or errors.
  */
 export const conclude =
   <T, U, F>(fn: (item: T) => Result<U, F>) =>
-  (arr: Arr<T>): Result<Arr<U>, Arr<F>> =>
-    arr
+  (vec: Vec<T>): Result<Vec<U>, Vec<F>> =>
+    vec
       .map(fn)
       .reduce<
-        Result<Arr<U>, Arr<F>>
+        Result<Vec<U>, Vec<F>>
       >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.body, result.body]) : acc) : isErr(acc) ? newErr([...acc.body, result.body]) : newErr([result.body])), newOk([]));
