@@ -2,7 +2,7 @@ import {
   BrandStr,
   asBrandStr,
   asStr,
-  asObj,
+  asRec,
   forProp,
   forOptionProp,
   Time,
@@ -10,7 +10,7 @@ import {
   Option,
   cast,
   refine,
-  Obj,
+  Rec,
 } from "plgg";
 
 type Id = BrandStr<"ArticleId">;
@@ -25,7 +25,7 @@ const asName = (v: unknown) =>
     asBrandStr<"ArticleName">,
   );
 
-export type Article = Obj<{
+export type Article = Rec<{
   id: Id;
   createdAt: Time;
   name: Name;
@@ -35,7 +35,7 @@ export type Article = Obj<{
 export const asArticle = (v: unknown) =>
   cast(
     v,
-    asObj,
+    asRec,
     forProp("id", asId),
     forProp("createdAt", asTime),
     forProp("name", asName),
