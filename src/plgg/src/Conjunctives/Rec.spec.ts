@@ -11,9 +11,7 @@ import {
   isSome,
   isNone,
   mapRec,
-  applyRec,
   ofRec,
-  chainRec,
   foldrRec,
   foldlRec,
   traverseRec,
@@ -293,72 +291,6 @@ test("ofRec - Pointed instance", () => {
     ofRec,
   );
   expect(primitiveResult).toEqual(primitiveRec);
-});
-
-/**
- * Tests function application over records through Apply instance.
- */
-test("applyRec - Apply instance", () => {
-  const addValues = (rec: {
-    a: number;
-    b: number;
-  }) => rec.a + rec.b;
-  const rec = { a: 5, b: 3 };
-
-  const result = pipe(rec, applyRec(addValues));
-  expect(result).toBe(8);
-
-  const transformRec = (rec: {
-    name: string;
-    age: number;
-  }) => ({
-    fullName: rec.name.toUpperCase(),
-    isAdult: rec.age >= 18,
-  });
-  const personRec = { name: "alice", age: 25 };
-
-  const transformResult = pipe(
-    personRec,
-    applyRec(transformRec),
-  );
-  expect(transformResult).toEqual({
-    fullName: "ALICE",
-    isAdult: true,
-  });
-});
-
-/**
- * Validates record chaining operations through Chain instance.
- */
-test("chainRec - Chain instance", () => {
-  const rec = { value: 10 };
-
-  const multiplyAndWrap = (o: typeof rec) => ({
-    result: o.value * 2,
-  });
-  const result = pipe(
-    rec,
-    chainRec(multiplyAndWrap),
-  );
-  expect(result).toEqual({ result: 20 });
-
-  const addFieldsAndWrap = (o: {
-    x: number;
-  }) => ({
-    original: o.x,
-    doubled: o.x * 2,
-    squared: o.x * o.x,
-  });
-  const numberRec = { x: 3 };
-  const chainResult = pipe(
-    numberRec,
-    chainRec(addFieldsAndWrap),
-  );
-  expect(chainResult).toEqual({
-    original: 3,
-    doubled: 6,
-    squared: 9,
-  });
 });
 
 /**

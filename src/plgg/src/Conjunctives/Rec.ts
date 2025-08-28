@@ -4,14 +4,10 @@ import {
   newErr,
   InvalidError,
   Functor1Rec,
-  Apply1Rec,
   Pointed1Rec,
-  Applicative1Rec,
-  Chain1Rec,
   Foldable1Rec,
   Traversable1Rec,
   Traverse1Rec,
-  Monad1Rec,
   KindKeys1,
   Kind1,
   Applicative1,
@@ -89,7 +85,9 @@ export const recFunctor: Functor1Rec<"Rec"> = {
     <
       A extends Record<string, unknown>,
       B extends Record<string, unknown>,
-    >(f: (a: A) => B) =>
+    >(
+      f: (a: A) => B,
+    ) =>
     (fa: Rec<A>): Rec<B> =>
       f(fa),
 };
@@ -97,24 +95,6 @@ export const recFunctor: Functor1Rec<"Rec"> = {
  * Exported mapping function for records.
  */
 export const { map: mapRec } = recFunctor;
-
-/**
- * Apply instance enabling application of wrapped functions to wrapped values.
- */
-export const recApply: Apply1Rec<"Rec"> = {
-  ...recFunctor,
-  ap:
-    <
-      A extends Record<string, unknown>,
-      B extends Record<string, unknown>,
-    >(fab: Rec<A>) =>
-    (fa: Rec<A>): Rec<B> =>
-      fab,
-};
-/**
- * Exported application function for records.
- */
-export const { ap: applyRec } = recApply;
 
 /**
  * Pointed instance enabling wrapping of values in record context.
@@ -129,42 +109,6 @@ export const recPointed: Pointed1Rec<"Rec"> = {
  * Exported value wrapping function for records.
  */
 export const { of: ofRec } = recPointed;
-
-/**
- * Applicative instance combining Apply and Pointed for records.
- */
-export const recApplicative: Applicative1Rec<"Rec"> =
-  {
-    ...recApply,
-    ...recPointed,
-  };
-
-/**
- * Chain instance enabling chaining of operations that return objects.
- */
-export const recChain: Chain1Rec<"Rec"> = {
-  ...recApply,
-  ...recPointed,
-  chain:
-    <
-      A extends Record<string, unknown>,
-      B extends Record<string, unknown>,
-    >(f: (a: A) => Rec<B>) =>
-    (fa: Rec<A>): Rec<B> =>
-      f(fa),
-};
-/**
- * Exported chaining function for reocrds.
- */
-export const { chain: chainRec } = recChain;
-
-/**
- * Monad instance providing full monadic interface for records.
- */
-export const recMonad: Monad1Rec<"Rec"> = {
-  ...recApplicative,
-  ...recChain,
-};
 
 /**
  * Foldable instance providing fold operations for records.
@@ -201,15 +145,16 @@ export const recTraversable: Traversable1Rec<"Rec"> =
   {
     ...recFunctor,
     ...recFoldable,
-    traverse: ((
-      <F extends KindKeys1>(A: Applicative1<F>) =>
-      <
-        A extends Record<string, unknown>,
-        B,
-      >(f: (a: A) => Kind1<F, B>) =>
+    traverse: (<F extends KindKeys1>(
+        A: Applicative1<F>,
+      ) =>
+      <A extends Record<string, unknown>, B>(
+        f: (a: A) => Kind1<F, B>,
+      ) =>
       (ta: Rec<A>): Kind1<F, Rec<A>> =>
-        A.map(() => ta)(f(ta))
-    )) as Traverse1Rec<"Rec">,
+        A.map(() => ta)(
+          f(ta),
+        )) as Traverse1Rec<"Rec">,
     sequence:
       <F extends KindKeys1>(A: Applicative1<F>) =>
       <A extends Record<string, unknown>>(
