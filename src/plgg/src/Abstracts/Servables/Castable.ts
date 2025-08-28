@@ -51,4 +51,3 @@ export interface Castable1Rec<
     value: unknown,
   ) => Result<Kind1Rec<KindKey, A>, InvalidError>;
 }
-

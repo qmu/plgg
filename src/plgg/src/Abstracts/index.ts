@@ -1,2 +1,2 @@
 export * from "plgg/Abstracts/Principals";
-export * from "plgg/Abstracts/Usefuls";
+export * from "plgg/Abstracts/Servables";
