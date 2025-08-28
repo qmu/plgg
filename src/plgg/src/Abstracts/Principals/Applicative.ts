@@ -2,12 +2,15 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
+  KindKeys1Rec,
   Apply1,
   Apply2,
   Apply3,
+  Apply1Rec,
   Pointed1,
   Pointed2,
   Pointed3,
+  Pointed1Rec,
 } from "plgg/index";
 
 /**
@@ -34,3 +37,12 @@ export interface Applicative3<
   KindKey extends KindKeys3,
 > extends Apply3<KindKey>,
     Pointed3<KindKey> {}
+
+/**
+ * Applicative functor interface for single-parameter record type constructors.
+ * Combines Apply1Rec and Pointed1Rec to provide both function application and record value lifting.
+ */
+export interface Applicative1Rec<
+  KindKey extends KindKeys1Rec,
+> extends Apply1Rec<KindKey>,
+    Pointed1Rec<KindKey> {}

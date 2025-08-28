@@ -5,9 +5,12 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
+  KindKeys1Rec,
+  Kind1Rec,
   Apply1,
   Apply2,
   Apply3,
+  Apply1Rec,
 } from "plgg/index";
 
 /**
@@ -55,4 +58,25 @@ export interface Chain3<KindKey extends KindKeys3>
   ) => (
     fa: Kind3<KindKey, A, C, D>,
   ) => Kind3<KindKey, B, C, D>;
+}
+
+/**
+ * Chain interface for single-parameter record type constructors.
+ * Provides monadic bind/flatMap operation for record values extending Apply1Rec capabilities.
+ */
+export interface Chain1Rec<
+  KindKey extends KindKeys1Rec,
+> extends Apply1Rec<KindKey> {
+  /**
+   * Monadic bind operation for record values (also known as flatMap).
+   * Applies a function that returns a wrapped record value and flattens the result.
+   */
+  chain: <
+    A extends Record<string, unknown>,
+    B extends Record<string, unknown>,
+  >(
+    f: (a: A) => Kind1Rec<KindKey, B>,
+  ) => (
+    fa: Kind1Rec<KindKey, A>,
+  ) => Kind1Rec<KindKey, B>;
 }

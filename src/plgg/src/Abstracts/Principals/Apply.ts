@@ -5,9 +5,12 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
+  KindKeys1Rec,
+  Kind1Rec,
   Functor1,
   Functor2,
   Functor3,
+  Functor1Rec,
 } from "plgg/index";
 
 /**
@@ -54,4 +57,25 @@ export interface Apply3<KindKey extends KindKeys3>
   ) => (
     fa: Kind3<KindKey, A, C, D>,
   ) => Kind3<KindKey, B, C, D>;
+}
+
+/**
+ * Apply interface for single-parameter record type constructors.
+ * Extends Functor1Rec to provide the ability to apply wrapped functions to wrapped record values.
+ * Note: This is mainly for compatibility - most record types don't use Apply in practice.
+ */
+export interface Apply1Rec<
+  KindKey extends KindKeys1Rec,
+> extends Functor1Rec<KindKey> {
+  /**
+   * Applies a wrapped function to a wrapped record value.
+   */
+  ap: <
+    A extends Record<string, unknown>,
+    B extends Record<string, unknown>,
+  >(
+    fab: Kind1Rec<KindKey, A>,
+  ) => (
+    fa: Kind1Rec<KindKey, A>,
+  ) => Kind1Rec<KindKey, B>;
 }

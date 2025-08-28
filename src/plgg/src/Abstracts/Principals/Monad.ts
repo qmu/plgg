@@ -2,12 +2,15 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
+  KindKeys1Rec,
   Chain1,
   Chain2,
   Chain3,
+  Chain1Rec,
   Applicative1,
   Applicative2,
   Applicative3,
+  Applicative1Rec,
 } from "plgg/index";
 
 /**
@@ -30,3 +33,11 @@ export interface Monad2<KindKey extends KindKeys2>
 export interface Monad3<KindKey extends KindKeys3>
   extends Chain3<KindKey>,
     Applicative3<KindKey> {}
+
+/**
+ * Combines Chain1Rec and Applicative1Rec capabilities for single-parameter record type constructors.
+ */
+export interface Monad1Rec<
+  KindKey extends KindKeys1Rec,
+> extends Chain1Rec<KindKey>,
+    Applicative1Rec<KindKey> {}
