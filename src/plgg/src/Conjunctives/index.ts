@@ -1,3 +1,3 @@
-export * from "plgg/Conjunctives/Rec";
-export * from "plgg/Conjunctives/MutRec";
-export * from "plgg/Conjunctives/RecLike";
+export * from "plgg/Conjunctives/Obj";
+export * from "plgg/Conjunctives/ObjLike";
+export * from "plgg/Conjunctives/RawObj";

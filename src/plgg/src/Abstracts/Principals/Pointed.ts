@@ -5,8 +5,6 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  KindKeys1Rec,
-  Kind1Rec,
 } from "plgg/index";
 
 /**
@@ -59,22 +57,4 @@ export interface Pointed3<
   of: <A = never, B = never, C = never>(
     a: A,
   ) => Kind3<KindKey, A, B, C>;
-}
-
-/**
- * Provides the ability to wrap record values in minimal context for single-parameter record types.
- */
-export interface Pointed1Rec<
-  KindKey extends KindKeys1Rec,
-> {
-  /**
-   * The kind key identifier.
-   */
-  readonly KindKey: KindKey;
-  /**
-   * Wraps a record value in the minimal context (also known as pure or return).
-   */
-  of: <A extends Record<string, unknown>>(
-    a: A,
-  ) => Kind1Rec<KindKey, A>;
 }

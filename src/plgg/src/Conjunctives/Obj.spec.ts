@@ -1,7 +1,7 @@
 import { test, expect, assert } from "vitest";
 import {
-  isRec,
-  asRec,
+  isObj,
+  asObj,
   forOptionProp,
   forProp,
   asStr,
@@ -10,70 +10,69 @@ import {
   isErr,
   isSome,
   isNone,
-  mapRec,
-  ofRec,
-  foldrRec,
-  foldlRec,
-  traverseRec,
-  sequenceRec,
+  mapObj,
+  foldrObj,
+  foldlObj,
+  traverseObj,
+  sequenceObj,
   pipe,
 } from "plgg/index";
 
 /**
- * Validates isRec type guard for various value types.
+ * Validates isObj type guard for various value types.
  */
-test("isRec type guard", () => {
-  expect(isRec({})).toBe(true);
-  expect(isRec({ a: 1 })).toBe(true);
+test("isObj type guard", () => {
+  expect(isObj({})).toBe(true);
+  expect(isObj({ a: 1 })).toBe(true);
   expect(
-    isRec({ a: "test", b: 123, c: true }),
+    isObj({ a: "test", b: 123, c: true }),
   ).toBe(true);
-  expect(isRec([])).toBe(true); // Arrays are records in JavaScript runtime
-  expect(isRec(null)).toBe(false);
-  expect(isRec(undefined)).toBe(false);
-  expect(isRec("string")).toBe(false);
-  expect(isRec(123)).toBe(false);
-  expect(isRec(true)).toBe(false);
+  expect(isObj([])).toBe(true); // Arrays are records in JavaScript runtime
+  expect(isObj(null)).toBe(false);
+  expect(isObj(undefined)).toBe(false);
+  expect(isObj("string")).toBe(false);
+  expect(isObj(123)).toBe(false);
+  expect(isObj(true)).toBe(false);
 });
 
 /**
- * Tests asRec validation for records and non-record types.
+ * Tests asObj validation for records and non-record types.
  */
-test("asRec validation", async () => {
-  const emptyResult = asRec({});
+test("asObj validation", async () => {
+  const emptyResult = asObj({});
   assert(isOk(emptyResult));
   expect(emptyResult.body).toEqual({});
 
-  const recResult = asRec({ a: 1, b: "test" });
+  const recResult = asObj({ a: 1, b: "test" });
   assert(isOk(recResult));
   expect(recResult.body).toEqual({
     a: 1,
     b: "test",
   });
 
-  const arrayResult = asRec([1, 2, 3]);
+  const arrayResult = asObj([1, 2, 3]);
   assert(isOk(arrayResult));
   expect(arrayResult.body).toEqual([1, 2, 3]);
 
-  const nullResult = asRec(null);
+  const nullResult = asObj(null);
   assert(isErr(nullResult));
   expect(nullResult.body.message).toBe(
     "Not record",
   );
 
-  const undefinedResult = asRec(undefined);
+  const undefinedResult = asObj(undefined);
   assert(isErr(undefinedResult));
   expect(undefinedResult.body.message).toBe(
     "Not record",
   );
 
-  const stringResult = asRec("test");
+  const stringResult = asObj("test");
   assert(isErr(stringResult));
   expect(stringResult.body.message).toBe(
     "Not record",
   );
 
-  const numberResult = asRec(123);
+  const numberResult = asObj(123);
   assert(isErr(numberResult));
   expect(numberResult.body.message).toBe(
     "Not record",
@@ -83,7 +82,7 @@ test("asRec validation", async () => {
 /**
  * Validates property extraction from records with successful cases.
  */
-test("Rec.prop validation - success cases", async () => {
+test("Obj.prop validation - success cases", async () => {
   const rec = { name: "John", age: 30 };
 
   const nameResult = forProp("name", asStr)(rec);
@@ -104,7 +103,7 @@ test("Rec.prop validation - success cases", async () => {
 /**
  * Tests property validation error handling for missing properties.
  */
-test("Rec.prop validation - missing property", async () => {
+test("Obj.prop validation - missing property", async () => {
   const rec = { name: "John" };
 
   const ageResult = forProp("age", asNum)(rec);
@@ -117,7 +116,7 @@ test("Rec.prop validation - missing property", async () => {
 /**
  * Validates error handling when property types don't match expected types.
  */
-test("Rec.prop validation - invalid property type", async () => {
+test("Obj.prop validation - invalid property type", async () => {
   const rec = { name: "John", age: "thirty" };
 
   const ageResult = forProp("age", asNum)(rec);
@@ -130,7 +129,7 @@ test("Rec.prop validation - invalid property type", async () => {
 /**
  * Tests that property validation preserves existing properties in record.
  */
-test("Rec.prop validation - adds property to record type", async () => {
+test("Obj.prop validation - adds property to record type", async () => {
   const rec = { existing: "value" };
   const newKey = "newProp";
 
@@ -148,7 +147,7 @@ test("Rec.prop validation - adds property to record type", async () => {
 /**
  * Validates optional property extraction when properties exist.
  */
-test("Rec.optional validation - property exists", async () => {
+test("Obj.optional validation - property exists", async () => {
   const rec = { name: "John", age: 30 };
 
   const nameResult = forOptionProp(
@@ -172,7 +171,7 @@ test("Rec.optional validation - property exists", async () => {
 /**
  * Tests optional property handling when properties are absent.
  */
-test("Rec.optional validation - property missing", async () => {
+test("Obj.optional validation - property missing", async () => {
   const rec = { name: "John" };
 
   const ageResult = forOptionProp(
@@ -187,7 +186,7 @@ test("Rec.optional validation - property missing", async () => {
 /**
  * Validates error handling for optional properties with invalid types.
  */
-test("Rec.optional validation - invalid property type", async () => {
+test("Obj.optional validation - invalid property type", async () => {
   const rec = { name: "John", age: "thirty" };
 
   const ageResult = forOptionProp(
@@ -203,7 +202,7 @@ test("Rec.optional validation - invalid property type", async () => {
 /**
  * Tests optional property validation with absent properties in record.
  */
-test("Rec.optional validation - adds optional property to record type", async () => {
+test("Obj.optional validation - adds optional property to record type", async () => {
   const rec = { existing: "value" };
 
   const result = forOptionProp(
@@ -249,13 +248,13 @@ test("Complex record validation with multiple properties", async () => {
 /**
  * Tests record mapping functionality through Functor instance.
  */
-test("mapRec - Functor instance", () => {
+test("mapObj - Functor instance", () => {
   const rec = { x: 1, y: 2 };
   const double = (n: number) => n * 2;
 
   const result = pipe(
     rec,
-    mapRec((o: typeof rec) => ({
+    mapObj((o: typeof rec) => ({
       x: double(o.x),
       y: double(o.y),
     })),
@@ -265,7 +264,7 @@ test("mapRec - Functor instance", () => {
   const toString = (n: number) => n.toString();
   const stringResult = pipe(
     rec,
-    mapRec((o: typeof rec) => ({
+    mapObj((o: typeof rec) => ({
       x: toString(o.x),
       y: toString(o.y),
     })),
@@ -277,26 +276,9 @@ test("mapRec - Functor instance", () => {
 });
 
 /**
- * Validates record wrapping through Pointed instance.
- */
-test("ofRec - Pointed instance", () => {
-  const rec = { name: "test", value: 42 };
-  const result = pipe(rec, ofRec);
-  expect(result).toEqual(rec);
-  expect(result).toBe(rec);
-
-  const primitiveRec = { count: 0 };
-  const primitiveResult = pipe(
-    primitiveRec,
-    ofRec,
-  );
-  expect(primitiveResult).toEqual(primitiveRec);
-});
-
-/**
  * Tests right-to-left folding operations on records.
  */
-test("foldrRec - right fold", () => {
+test("foldrObj - right fold", () => {
   const rec = { name: "Alice", age: 30 };
 
   const concatenateValues = (
@@ -305,7 +287,7 @@ test("foldrRec - right fold", () => {
   ) => acc + JSON.stringify(o);
   const result = pipe(
     rec,
-    foldrRec(concatenateValues)("start:"),
+    foldrObj(concatenateValues)("start:"),
   );
   expect(result).toBe(
     'start:{"name":"Alice","age":30}',
@@ -315,10 +297,10 @@ test("foldrRec - right fold", () => {
     o: { a: number; b: number },
     acc: number,
   ) => acc + o.a + o.b;
-  const numRec = { a: 5, b: 10 };
+  const numObj = { a: 5, b: 10 };
   const sumResult = pipe(
-    numRec,
-    foldrRec(sumNumericFields)(0),
+    numObj,
+    foldrObj(sumNumericFields)(0),
   );
   expect(sumResult).toBe(15);
 });
@@ -326,7 +308,7 @@ test("foldrRec - right fold", () => {
 /**
  * Tests left-to-right folding operations on records.
  */
-test("foldlRec - left fold", () => {
+test("foldlObj - left fold", () => {
   const rec = { x: 2, y: 3 };
 
   const multiplyValues = (
@@ -335,7 +317,7 @@ test("foldlRec - left fold", () => {
   ) => acc * o.x * o.y;
   const result = pipe(
     rec,
-    foldlRec(multiplyValues)(1),
+    foldlObj(multiplyValues)(1),
   );
   expect(result).toBe(6);
 
@@ -343,28 +325,28 @@ test("foldlRec - left fold", () => {
     acc: string,
     o: { name: string },
   ) => acc + o.name;
-  const nameRec = { name: "World" };
+  const nameObj = { name: "World" };
   const appendResult = pipe(
-    nameRec,
-    foldlRec(appendrecord)("Hello "),
+    nameObj,
+    foldlObj(appendrecord)("Hello "),
   );
   expect(appendResult).toBe("Hello World");
 });
 
 /**
- * Verifies traverseRec function is exported and available.
+ * Verifies traverseObj function is exported and available.
  */
-test("traverseRec - function exists", () => {
+test("traverseObj - function exists", () => {
   // Verify traverse function availability for record operations
-  expect(typeof traverseRec).toBe("function");
-  expect(traverseRec).toBeDefined();
+  expect(typeof traverseObj).toBe("function");
+  expect(traverseObj).toBeDefined();
 });
 
 /**
- * Verifies sequenceRec function is exported and available.
+ * Verifies sequenceObj function is exported and available.
  */
-test("sequenceRec - function exists", () => {
+test("sequenceObj - function exists", () => {
   // Verify sequence function availability for record operations
-  expect(typeof sequenceRec).toBe("function");
-  expect(sequenceRec).toBeDefined();
+  expect(typeof sequenceObj).toBe("function");
+  expect(sequenceObj).toBeDefined();
 });

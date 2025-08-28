@@ -2,7 +2,7 @@ import {
   isSome,
   InvalidError,
   Exception,
-  isRec,
+  isObj,
 } from "plgg/index";
 
 /**
@@ -24,7 +24,7 @@ const gray = (text: string): string =>
 export const isPlggError = (
   value: unknown,
 ): value is PlggError =>
-  isRec(value) &&
+  isObj(value) &&
   "__" in value &&
   value.__ === "PlggError";
 

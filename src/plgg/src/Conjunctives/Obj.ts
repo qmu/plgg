@@ -4,7 +4,6 @@ import {
   newErr,
   InvalidError,
   Functor1Rec,
-  Pointed1Rec,
   Foldable1Rec,
   Traversable1Rec,
   Traverse1Rec,
@@ -17,14 +16,14 @@ import {
 
 declare module "plgg/Abstracts/Principals/Kind" {
   export interface KindKeytoKind1Rec<A> {
-    Rec: Rec<A>;
+    Obj: Obj<A>;
   }
 }
 
 /**
  * Readonly record type for functional programming operations.
  */
-export type Rec<
+export type Obj<
   T extends Record<string, unknown> = Record<
     string,
     unknown
@@ -32,19 +31,19 @@ export type Rec<
 > = Readonly<T>;
 
 /**
- * Type guard to check if a value is an Rec.
+ * Type guard to check if a value is an Obj.
  */
 const is = <T extends Record<string, unknown>>(
   value: unknown,
-): value is Rec<T> =>
+): value is Obj<T> =>
   typeof value === "object" && value !== null;
 
 /**
  * Refinable instance for record type guards.
  */
-export const recRefinable: Refinable1Rec<"Rec"> =
+export const recRefinable: Refinable1Rec<"Obj"> =
   {
-    KindKey: "Rec",
+    KindKey: "Obj",
     is,
   };
 /**
@@ -53,16 +52,16 @@ export const recRefinable: Refinable1Rec<"Rec"> =
 /**
  * Exported type guard function for record values.
  */
-export const { is: isRec } = recRefinable;
+export const { is: isObj } = recRefinable;
 
 /**
  * Castable instance for record safe casting.
  */
-export const recCastable: Castable1Rec<"Rec"> = {
-  KindKey: "Rec",
+export const recCastable: Castable1Rec<"Obj"> = {
+  KindKey: "Obj",
   as: <A extends Record<string, unknown>>(
     value: unknown,
-  ): Result<Rec<A>, InvalidError> =>
+  ): Result<Obj<A>, InvalidError> =>
     is<A>(value)
       ? newOk(value)
       : newErr(
@@ -74,13 +73,13 @@ export const recCastable: Castable1Rec<"Rec"> = {
 /**
  * Exported safe casting function for record values.
  */
-export const { as: asRec } = recCastable;
+export const { as: asObj } = recCastable;
 
 /**
  * Functor instance providing mapping operations over record values.
  */
-export const recFunctor: Functor1Rec<"Rec"> = {
-  KindKey: "Rec",
+export const recFunctor: Functor1Rec<"Obj"> = {
+  KindKey: "Obj",
   map:
     <
       A extends Record<string, unknown>,
@@ -88,60 +87,46 @@ export const recFunctor: Functor1Rec<"Rec"> = {
     >(
       f: (a: A) => B,
     ) =>
-    (fa: Rec<A>): Rec<B> =>
+    (fa: Obj<A>): Obj<B> =>
       f(fa),
 };
 /**
  * Exported mapping function for records.
  */
-export const { map: mapRec } = recFunctor;
-
-/**
- * Pointed instance enabling wrapping of values in record context.
- */
-export const recPointed: Pointed1Rec<"Rec"> = {
-  KindKey: "Rec",
-  of: <A extends Record<string, unknown>>(
-    a: A,
-  ): Rec<A> => a,
-};
-/**
- * Exported value wrapping function for records.
- */
-export const { of: ofRec } = recPointed;
+export const { map: mapObj } = recFunctor;
 
 /**
  * Foldable instance providing fold operations for records.
  */
-export const recFoldable: Foldable1Rec<"Rec"> = {
-  KindKey: "Rec",
+export const recFoldable: Foldable1Rec<"Obj"> = {
+  KindKey: "Obj",
   foldr:
     <A extends Record<string, unknown>, B>(
       f: (a: A, b: B) => B,
     ) =>
     (initial: B) =>
-    (fa: Rec<A>): B =>
+    (fa: Obj<A>): B =>
       f(fa, initial),
   foldl:
     <A extends Record<string, unknown>, B>(
       f: (b: B, a: A) => B,
     ) =>
     (initial: B) =>
-    (fa: Rec<A>): B =>
+    (fa: Obj<A>): B =>
       f(initial, fa),
 };
 /**
  * Exported fold functions for records.
  */
 export const {
-  foldr: foldrRec,
-  foldl: foldlRec,
+  foldr: foldrObj,
+  foldl: foldlObj,
 } = recFoldable;
 
 /**
  * Traversable instance providing structure-preserving traversal for records.
  */
-export const recTraversable: Traversable1Rec<"Rec"> =
+export const recTraversable: Traversable1Rec<"Obj"> =
   {
     ...recFunctor,
     ...recFoldable,
@@ -151,21 +136,21 @@ export const recTraversable: Traversable1Rec<"Rec"> =
       <A extends Record<string, unknown>, B>(
         f: (a: A) => Kind1<F, B>,
       ) =>
-      (ta: Rec<A>): Kind1<F, Rec<A>> =>
+      (ta: Obj<A>): Kind1<F, Obj<A>> =>
         A.map(() => ta)(
           f(ta),
-        )) as Traverse1Rec<"Rec">,
+        )) as Traverse1Rec<"Obj">,
     sequence:
       <F extends KindKeys1>(A: Applicative1<F>) =>
       <A extends Record<string, unknown>>(
-        tfa: Rec<A>,
-      ): Kind1<F, Rec<A>> =>
+        tfa: Obj<A>,
+      ): Kind1<F, Obj<A>> =>
         A.of(tfa),
   };
 /**
  * Exported traversal functions for records.
  */
 export const {
-  traverse: traverseRec,
-  sequence: sequenceRec,
+  traverse: traverseObj,
+  sequence: sequenceObj,
 } = recTraversable;

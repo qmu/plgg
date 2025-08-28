@@ -1,4 +1,4 @@
-import { isRec, hasProp, Or } from "plgg/index";
+import { isObj, hasProp, Or } from "plgg/index";
 
 /**
  * A variant with only a tag and no body.
@@ -60,7 +60,7 @@ export type IsVariant<T> = Or<
 export const isVariant = (
   v: unknown,
 ): v is Variant<string, unknown> =>
-  isRec(v) &&
+  isObj(v) &&
   hasProp(v, "__tag") &&
   hasProp(v, "body");
 
