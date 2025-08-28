@@ -3,6 +3,8 @@ import {
   InvalidError,
   KindKeys1,
   Kind1,
+  KindKeys1Rec,
+  Kind1Rec,
 } from "plgg/index";
 
 /**
@@ -33,3 +35,20 @@ export interface Castable1<
     value: unknown,
   ) => Result<Kind1<KindKey, A>, InvalidError>;
 }
+
+export interface Castable1Rec<
+  KindKey extends KindKeys1Rec,
+> {
+  /**
+   * The kind identifier for this castable.
+   */
+  KindKey: KindKey;
+
+  /**
+   * Safely casts unknown values to the target type with validation.
+   */
+  as: <A extends Record<string, unknown>>(
+    value: unknown,
+  ) => Result<Kind1Rec<KindKey, A>, InvalidError>;
+}
+
