@@ -12,6 +12,10 @@ export interface KindKeytoKind2<A, B> {}
 // @ts-ignore will have ReaderTaskResult
 export interface KindKeytoKind3<A, B, C> {}
 
+export interface KindKeytoKind1Rec<
+  A extends Record<string, unknown>,
+> {}
+
 /**
  * Union type of all registered single-parameter kind keys.
  */
@@ -32,6 +36,11 @@ export type KindKeys3 = keyof KindKeytoKind3<
   unknown,
   unknown
 >;
+
+export type KindKeys1Rec =
+  keyof KindKeytoKind1Rec<
+    Record<string, unknown>
+  >;
 
 /**
  * Resolves a kind key to its concrete single-parameter type.
@@ -57,3 +66,8 @@ export type Kind3<
   B,
   C,
 > = KindKeytoKind3<A, B, C>[KindKey];
+
+export type Kind1Rec<
+  KindKey extends KindKeys1Rec,
+  A extends Record<string, unknown>,
+> = KindKeytoKind1Rec<A>[KindKey];
