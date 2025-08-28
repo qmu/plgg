@@ -26,21 +26,25 @@ declare module "plgg/Abstracts/Principals/Kind" {
 /**
  * Mutable record type for functional programming operations.
  */
-export type MutRec<T = Record<string, unknown>> = T;
+export type MutRec<T = Record<string, unknown>> =
+  T;
 
 /**
  * Type guard to check if a value is a MutRec.
  */
-const is = <T>(value: unknown): value is MutRec<T> =>
+const is = <T>(
+  value: unknown,
+): value is MutRec<T> =>
   typeof value === "object" && value !== null;
 
 /**
  * Refinable instance for mutable record type guards.
  */
-export const mutRecRefinable: Refinable1<"MutRec"> = {
-  KindKey: "MutRec",
-  is,
-};
+export const mutRecRefinable: Refinable1<"MutRec"> =
+  {
+    KindKey: "MutRec",
+    is,
+  };
 /**
  * Exported type guard function for mutable record values.
  */
@@ -49,19 +53,20 @@ export const { is: isMutRec } = mutRecRefinable;
 /**
  * Castable instance for mutable record safe casting.
  */
-export const mutRecCastable: Castable1<"MutRec"> = {
-  KindKey: "MutRec",
-  as: <A>(
-    value: unknown,
-  ): Result<MutRec<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Not record",
-          }),
-        ),
-};
+export const mutRecCastable: Castable1<"MutRec"> =
+  {
+    KindKey: "MutRec",
+    as: <A>(
+      value: unknown,
+    ): Result<MutRec<A>, InvalidError> =>
+      is<A>(value)
+        ? newOk(value)
+        : newErr(
+            new InvalidError({
+              message: "Not record",
+            }),
+          ),
+  };
 /**
  * Exported safe casting function for mutable record values.
  */
@@ -147,19 +152,20 @@ export const mutRecMonad: Monad1<"MutRec"> = {
 /**
  * Foldable instance providing fold operations for mutable records.
  */
-export const mutRecFoldable: Foldable1<"MutRec"> = {
-  KindKey: "MutRec",
-  foldr:
-    <A, B>(f: (a: A, b: B) => B) =>
-    (initial: B) =>
-    (fa: MutRec<A>): B =>
-      f(fa, initial),
-  foldl:
-    <A, B>(f: (b: B, a: A) => B) =>
-    (initial: B) =>
-    (fa: MutRec<A>): B =>
-      f(initial, fa),
-};
+export const mutRecFoldable: Foldable1<"MutRec"> =
+  {
+    KindKey: "MutRec",
+    foldr:
+      <A, B>(f: (a: A, b: B) => B) =>
+      (initial: B) =>
+      (fa: MutRec<A>): B =>
+        f(fa, initial),
+    foldl:
+      <A, B>(f: (b: B, a: A) => B) =>
+      (initial: B) =>
+      (fa: MutRec<A>): B =>
+        f(initial, fa),
+  };
 /**
  * Exported fold functions for mutable records.
  */
