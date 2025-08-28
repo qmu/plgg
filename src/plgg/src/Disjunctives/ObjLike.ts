@@ -1,8 +1,8 @@
 import {
   Obj,
-  MutRec,
+  RawObj,
   isObj,
-  isMutRec,
+  isRawObj,
   Result,
   InvalidError,
   chainResult,
@@ -17,22 +17,22 @@ import {
 /**
  * Union type representing all record-like types in the system.
  */
-export type RecLike = Obj | MutRec;
+export type ObjLike = Obj | RawObj;
 
 /**
  * Type predicate to determine if a type is record-like.
  */
-export type IsRecLike<T> = [T] extends [RecLike]
+export type IsObjLike<T> = [T] extends [ObjLike]
   ? true
   : false;
 
 /**
  * Runtime type guard to check if a value is record-like.
  */
-export const isRecLike = (
+export const isObjLike = (
   value: unknown,
-): value is RecLike =>
-  isObj(value) || isMutRec(value);
+): value is ObjLike =>
+  isObj(value) || isRawObj(value);
 
 /**
  * Validates and transforms an record property using a predicate.

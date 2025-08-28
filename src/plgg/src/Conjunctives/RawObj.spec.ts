@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import {
-  isMutRec,
+  isRawObj,
   asMutRec,
   isOk,
   isErr,
@@ -19,17 +19,17 @@ import {
  * Validates isMutRec type guard for various value types.
  */
 test("isMutRec type guard", () => {
-  expect(isMutRec({})).toBe(true);
-  expect(isMutRec({ a: 1 })).toBe(true);
+  expect(isRawObj({})).toBe(true);
+  expect(isRawObj({ a: 1 })).toBe(true);
   expect(
-    isMutRec({ a: "test", b: 123, c: true }),
+    isRawObj({ a: "test", b: 123, c: true }),
   ).toBe(true);
-  expect(isMutRec([])).toBe(true); // Arrays are records in JavaScript runtime
-  expect(isMutRec(null)).toBe(false);
-  expect(isMutRec(undefined)).toBe(false);
-  expect(isMutRec("string")).toBe(false);
-  expect(isMutRec(123)).toBe(false);
-  expect(isMutRec(true)).toBe(false);
+  expect(isRawObj([])).toBe(true); // Arrays are records in JavaScript runtime
+  expect(isRawObj(null)).toBe(false);
+  expect(isRawObj(undefined)).toBe(false);
+  expect(isRawObj("string")).toBe(false);
+  expect(isRawObj(123)).toBe(false);
+  expect(isRawObj(true)).toBe(false);
 });
 
 /**
@@ -133,7 +133,10 @@ test("applyMutRec - Apply instance", () => {
   }) => rec.a + rec.b;
   const rec = { a: 5, b: 3 };
 
-  const result = pipe(rec, applyMutRec(addValues));
+  const result = pipe(
+    rec,
+    applyMutRec(addValues),
+  );
   expect(result).toBe(8);
 
   const transformRec = (rec: {
@@ -264,3 +267,4 @@ test("sequenceMutRec - function exists", () => {
   expect(typeof sequenceMutRec).toBe("function");
   expect(sequenceMutRec).toBeDefined();
 });
+

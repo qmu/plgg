@@ -1,4 +1,3 @@
-export * from "plgg/Atomics/Atomic";
 export * from "plgg/Atomics/BigInt";
 export * from "plgg/Atomics/Bool";
 export * from "plgg/Atomics/BrandBool";

@@ -19,14 +19,14 @@ import {
 
 declare module "plgg/Abstracts/Principals/Kind" {
   export interface KindKeytoKind1<A> {
-    MutRec: MutRec<A>;
+    MutRec: RawObj<A>;
   }
 }
 
 /**
  * Mutable record type for functional programming operations.
  */
-export type MutRec<T = Record<string, unknown>> =
+export type RawObj<T = Record<string, unknown>> =
   T;
 
 /**
@@ -34,7 +34,7 @@ export type MutRec<T = Record<string, unknown>> =
  */
 const is = <T>(
   value: unknown,
-): value is MutRec<T> =>
+): value is RawObj<T> =>
   typeof value === "object" && value !== null;
 
 /**
@@ -48,7 +48,7 @@ export const mutRecRefinable: Refinable1<"MutRec"> =
 /**
  * Exported type guard function for mutable record values.
  */
-export const { is: isMutRec } = mutRecRefinable;
+export const { is: isRawObj } = mutRecRefinable;
 
 /**
  * Castable instance for mutable record safe casting.
@@ -58,7 +58,7 @@ export const mutRecCastable: Castable1<"MutRec"> =
     KindKey: "MutRec",
     as: <A>(
       value: unknown,
-    ): Result<MutRec<A>, InvalidError> =>
+    ): Result<RawObj<A>, InvalidError> =>
       is<A>(value)
         ? newOk(value)
         : newErr(
@@ -79,7 +79,7 @@ export const mutRecFunctor: Functor1<"MutRec"> = {
   KindKey: "MutRec",
   map:
     <A, B>(f: (a: A) => B) =>
-    (fa: MutRec<A>): MutRec<B> =>
+    (fa: RawObj<A>): RawObj<B> =>
       f(fa),
 };
 /**
@@ -93,8 +93,8 @@ export const { map: mapMutRec } = mutRecFunctor;
 export const mutRecApply: Apply1<"MutRec"> = {
   ...mutRecFunctor,
   ap:
-    <A, B>(fab: MutRec<(a: A) => B>) =>
-    (fa: MutRec<A>): MutRec<B> =>
+    <A, B>(fab: RawObj<(a: A) => B>) =>
+    (fa: RawObj<A>): RawObj<B> =>
       (fab as (a: A) => B)(fa),
 };
 /**
@@ -107,7 +107,7 @@ export const { ap: applyMutRec } = mutRecApply;
  */
 export const mutRecPointed: Pointed1<"MutRec"> = {
   ...mutRecFunctor,
-  of: <A>(a: A): MutRec<A> => a,
+  of: <A>(a: A): RawObj<A> => a,
 };
 /**
  * Exported value wrapping function for mutable records.
@@ -132,8 +132,8 @@ export const mutRecChain: Chain1<"MutRec"> = {
   ...mutRecApply,
   ...mutRecPointed,
   chain:
-    <A, B>(f: (a: A) => MutRec<B>) =>
-    (fa: MutRec<A>): MutRec<B> =>
+    <A, B>(f: (a: A) => RawObj<B>) =>
+    (fa: RawObj<A>): RawObj<B> =>
       f(fa),
 };
 /**
@@ -158,12 +158,12 @@ export const mutRecFoldable: Foldable1<"MutRec"> =
     foldr:
       <A, B>(f: (a: A, b: B) => B) =>
       (initial: B) =>
-      (fa: MutRec<A>): B =>
+      (fa: RawObj<A>): B =>
         f(fa, initial),
     foldl:
       <A, B>(f: (b: B, a: A) => B) =>
       (initial: B) =>
-      (fa: MutRec<A>): B =>
+      (fa: RawObj<A>): B =>
         f(initial, fa),
   };
 /**
@@ -184,13 +184,13 @@ export const mutRecTraversable: Traversable1<"MutRec"> =
     traverse:
       <F extends KindKeys1>(A: Applicative1<F>) =>
       <A, B>(f: (a: A) => Kind1<F, B>) =>
-      (ta: MutRec<A>): Kind1<F, MutRec<B>> =>
+      (ta: RawObj<A>): Kind1<F, RawObj<B>> =>
         A.map((b: B) => b)(f(ta)),
     sequence:
       <F extends KindKeys1>(A: Applicative1<F>) =>
       <A>(
-        tfa: MutRec<Kind1<F, A>>,
-      ): Kind1<F, MutRec<A>> =>
+        tfa: RawObj<Kind1<F, A>>,
+      ): Kind1<F, RawObj<A>> =>
         A.map((a: A) => a)(tfa as Kind1<F, A>),
   };
 /**

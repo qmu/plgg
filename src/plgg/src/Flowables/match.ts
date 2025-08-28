@@ -18,7 +18,7 @@ import {
   IsVariant,
   ExtractVariantBody,
   Variant,
-  isRecLike,
+  isObjLike,
 } from "plgg/index";
 
 // -------------------------
@@ -1264,8 +1264,8 @@ export function match(
       }
       if (isVariantPatternObject(pattern)) {
         if (
-          isRecLike(a.body) &&
-          isRecLike(pattern.body) &&
+          isObjLike(a.body) &&
+          isObjLike(pattern.body) &&
           deepPartialEqual(a.body, pattern.body)
         ) {
           return fn(a);
