@@ -1,14 +1,18 @@
 import {
   isSome,
-  InvalidError,
-  Exception,
   isObj,
+  Exception,
+  InvalidError,
+  SerializeError,
 } from "plgg/index";
 
 /**
  * Union type representing domain errors in the application.
  */
-export type PlggError = InvalidError | Exception;
+export type PlggError =
+  | InvalidError
+  | Exception
+  | SerializeError;
 
 /*
  * Color helper functions
