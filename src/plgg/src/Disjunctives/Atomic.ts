@@ -13,6 +13,14 @@ import {
   isBrandStr,
   isBrandNum,
   isBrandBool,
+  JsonReadyStr,
+  JsonReadyNum,
+  JsonReadyBool,
+  JsonReadyBigInt,
+  JsonReadyBrandStr,
+  JsonReadyBrandNum,
+  JsonReadyBrandBool,
+  toJsonReadyBigInt,
 } from "plgg/index";
 
 /**
@@ -47,3 +55,21 @@ export const isAtomic = (
   isBrandStr(value) ||
   isBrandNum(value) ||
   isBrandBool(value);
+
+export type JsonReadyAtomic =
+  | JsonReadyStr
+  | JsonReadyNum
+  | JsonReadyBool
+  | JsonReadyBigInt
+  | JsonReadyBrandStr
+  | JsonReadyBrandNum
+  | JsonReadyBrandBool;
+
+export const toJsonReadyAtomic = (
+  value: Atomic,
+): JsonReadyAtomic => {
+  if (isBigInt(value)) {
+    return toJsonReadyBigInt(value);
+  }
+  return value;
+};
