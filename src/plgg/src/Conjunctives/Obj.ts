@@ -7,6 +7,7 @@ import {
   Castable1,
   JsonReady,
   toJsonReadyAtomic,
+  fromJsonReadyAtomic,
   isAtomic,
   JsonSerializable,
 } from "plgg/index";
@@ -88,6 +89,35 @@ export const toJsonReadyObj = (
       result[key] = toJsonReadyAtomic(val);
     }
     // throw LogicalException?
+  }
+  return result;
+};
+
+/**
+ * Determines if a JsonReady value is an object (not atomic)
+ */
+const isJsonReadyObj = (
+  value: JsonReady,
+): value is JsonReadyObj =>
+  typeof value === "object" &&
+  value !== null &&
+  !("type" in value);
+
+export const fromJsonReadyObj = (
+  jsonReady: JsonReadyObj,
+): Obj => {
+  const result: Obj = {};
+  for (const key in jsonReady) {
+    if (jsonReady.hasOwnProperty(key)) {
+      const val = jsonReady[key];
+      if (val !== undefined) {
+        if (isJsonReadyObj(val)) {
+          result[key] = fromJsonReadyObj(val);
+        } else {
+          result[key] = fromJsonReadyAtomic(val);
+        }
+      }
+    }
   }
   return result;
 };
