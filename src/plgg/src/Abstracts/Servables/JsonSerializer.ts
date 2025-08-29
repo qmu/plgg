@@ -3,7 +3,7 @@ type JsonSafe = {
   value: string;
 };
 
-export interface JsonSerializable<
+export interface JsonSerializer<
   T,
   U extends JsonSafe | "pass" = "pass",
   V = U extends "pass" ? T : U,
