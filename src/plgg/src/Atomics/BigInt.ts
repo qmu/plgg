@@ -5,6 +5,7 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -79,4 +80,28 @@ export const bigIntCastable: Castable0<BigInt> = {
  * Exported safe casting function for BigInt values.
  */
 export const { as: asBigInt } = bigIntCastable;
+
+/**
+ * JsonSafe representation for BigInt values.
+ */
+type BigIntJsonSafe = {
+  type: "bigint";
+  value: string;
+};
+
+/**
+ * JsonSerializable instance for BigInt values.
+ */
+export const bigIntJsonSerializable: JsonSerializable<
+  BigInt,
+  BigIntJsonSafe
+> = {
+  toJsonReady: (value: BigInt): BigIntJsonSafe => ({
+    type: "bigint",
+    value: value.toString(),
+  }),
+  fromJsonReady: (
+    jsonReady: BigIntJsonSafe,
+  ): BigInt => BigInt(jsonReady.value),
+};
 

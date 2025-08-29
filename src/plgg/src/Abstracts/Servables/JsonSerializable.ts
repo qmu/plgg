@@ -1,16 +1,13 @@
 type JsonSafe = {
-  type: string;
+  type: "bigint" | "time";
   value: string;
 };
 
 export interface JsonSerializable<
   T,
   U extends JsonSafe | "pass" = "pass",
+  V = U extends "pass" ? T : U,
 > {
-  toJsonReady: U extends "pass"
-    ? (value: T) => T
-    : (value: T) => U;
-  fromJsonReady: U extends "pass"
-    ? (value: T) => T
-    : (jsonReady: U) => T;
+  toJsonReady: (a: T) => V;
+  fromJsonReady: (a: V) => T;
 }

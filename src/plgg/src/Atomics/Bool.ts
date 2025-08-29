@@ -5,6 +5,7 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -65,3 +66,12 @@ export const boolCastable: Castable0<Bool> = {
  * Exported safe casting function for boolean values.
  */
 export const { as: asBool } = boolCastable;
+
+/**
+ * JsonSerializable instance for boolean values.
+ */
+export const boolJsonSerializable: JsonSerializable<Bool> =
+  {
+    toJsonReady: (value: Bool) => value,
+    fromJsonReady: (jsonReady: Bool) => jsonReady,
+  };

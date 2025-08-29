@@ -5,6 +5,7 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -58,3 +59,12 @@ export const numCastable: Castable0<Num> = {
  * Exported safe casting function for number values.
  */
 export const { as: asNum } = numCastable;
+
+/**
+ * JsonSerializable instance for number values.
+ */
+export const numJsonSerializable: JsonSerializable<Num> =
+  {
+    toJsonReady: (value: Num) => value,
+    fromJsonReady: (jsonReady: Num) => jsonReady,
+  };
