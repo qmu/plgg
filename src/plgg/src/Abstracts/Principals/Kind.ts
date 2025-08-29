@@ -12,8 +12,8 @@ export interface KindKeytoKind2<A, B> {}
 // @ts-ignore will have ReaderTaskResult
 export interface KindKeytoKind3<A, B, C> {}
 
-export interface KindKeytoKind1Rec<
-  _A extends Record<string, unknown>,
+export interface KindKeytoKind1JsonSerializable<
+  A,
 > {}
 
 /**
@@ -37,10 +37,8 @@ export type KindKeys3 = keyof KindKeytoKind3<
   unknown
 >;
 
-export type KindKeys1Rec =
-  keyof KindKeytoKind1Rec<
-    Record<string, unknown>
-  >;
+export type KindKeys1JsonSerializable =
+  keyof KindKeytoKind1JsonSerializable<unknown>;
 
 /**
  * Resolves a kind key to its concrete single-parameter type.
@@ -67,7 +65,7 @@ export type Kind3<
   C,
 > = KindKeytoKind3<A, B, C>[KindKey];
 
-export type Kind1Rec<
-  KindKey extends KindKeys1Rec,
-  A extends Record<string, unknown>,
-> = KindKeytoKind1Rec<A>[KindKey];
+export type Kind1JsonSerializable<
+  KindKey extends KindKeys1JsonSerializable,
+  A,
+> = KindKeytoKind1JsonSerializable<A>[KindKey];

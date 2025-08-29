@@ -5,16 +5,12 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  KindKeys1Rec,
-  Kind1Rec,
   Functor1,
   Functor2,
   Functor3,
-  Functor1Rec,
   Foldable1,
   Foldable2,
   Foldable3,
-  Foldable1Rec,
   Applicative1,
   Applicative2,
   Applicative3,
@@ -120,64 +116,4 @@ export interface Traversable3<
   ) => <A, C, D>(
     tfa: Kind3<KindKey, Kind1<F, A>, C, D>,
   ) => Kind1<F, Kind3<KindKey, A, C, D>>;
-}
-
-export interface Traverse1Rec<T extends KindKeys1Rec> {
-  <F extends KindKeys3>(
-    F: Applicative3<F>,
-  ): <
-    A extends Record<string, unknown>,
-    B,
-    C,
-    D,
-  >(
-    f: (a: A) => Kind3<F, B, C, D>,
-  ) => (
-    ta: Kind1Rec<T, A>,
-  ) => Kind3<F, Kind1Rec<T, A>, C, D>;
-
-  <F extends KindKeys2>(
-    F: Applicative2<F>,
-  ): <
-    A extends Record<string, unknown>,
-    B,
-    C,
-  >(
-    f: (a: A) => Kind2<F, B, C>,
-  ) => (
-    ta: Kind1Rec<T, A>,
-  ) => Kind2<F, Kind1Rec<T, A>, C>;
-
-  <F extends KindKeys1>(
-    F: Applicative1<F>,
-  ): <
-    A extends Record<string, unknown>,
-    B,
-  >(
-    f: (a: A) => Kind1<F, B>,
-  ) => (
-    ta: Kind1Rec<T, A>,
-  ) => Kind1<F, Kind1Rec<T, A>>;
-}
-
-/**
- * Enables structure-preserving traversal with effects for single-parameter record types.
- */
-export interface Traversable1Rec<
-  KindKey extends KindKeys1Rec,
-> extends Functor1Rec<KindKey>,
-    Foldable1Rec<KindKey> {
-  /**
-   * Traverses the record structure applying effectful functions while preserving structure.
-   */
-  traverse: Traverse1Rec<KindKey>;
-
-  /**
-   * Sequences effects while preserving record structure.
-   */
-  sequence: <F extends KindKeys1>(
-    A: Applicative1<F>,
-  ) => <A extends Record<string, unknown>>(
-    tfa: Kind1Rec<KindKey, A>,
-  ) => Kind1<F, Kind1Rec<KindKey, A>>;
 }

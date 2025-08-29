@@ -5,8 +5,6 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  KindKeys1Rec,
-  Kind1Rec,
 } from "plgg/index";
 
 /**
@@ -67,27 +65,4 @@ export interface Functor3<
   ) => (
     fa: Kind3<KindKey, A, C, D>,
   ) => Kind3<KindKey, B, C, D>;
-}
-
-/**
- * Enables mapping functions over wrapped record values in single-parameter type constructors.
- */
-export interface Functor1Rec<
-  KindKey extends KindKeys1Rec,
-> {
-  /**
-   * The kind key identifier.
-   */
-  readonly KindKey: KindKey;
-  /**
-   * Maps a function over the wrapped record value.
-   */
-  map: <
-    A extends Record<string, unknown>,
-    B extends Record<string, unknown>,
-  >(
-    f: (a: A) => B,
-  ) => (
-    fa: Kind1Rec<KindKey, A>,
-  ) => Kind1Rec<KindKey, B>;
 }

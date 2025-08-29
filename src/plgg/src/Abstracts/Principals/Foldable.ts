@@ -5,8 +5,6 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  KindKeys1Rec,
-  Kind1Rec,
 } from "plgg/index";
 
 /**
@@ -91,38 +89,4 @@ export interface Foldable3<
   ) => (
     initial: B,
   ) => (fa: Kind3<KindKey, A, C, D>) => B;
-}
-
-/**
- * Enables folding record structures into single values through reduction operations.
- */
-export interface Foldable1Rec<
-  KindKey extends KindKeys1Rec,
-> {
-  /**
-   * The kind key identifier.
-   */
-  readonly KindKey: KindKey;
-  /**
-   * Performs right-associative fold of a record structure.
-   */
-  foldr: <
-    A extends Record<string, unknown>,
-    B,
-  >(
-    f: (a: A, b: B) => B,
-  ) => (
-    initial: B,
-  ) => (fa: Kind1Rec<KindKey, A>) => B;
-  /**
-   * Performs left-associative fold of a record structure.
-   */
-  foldl: <
-    A extends Record<string, unknown>,
-    B,
-  >(
-    f: (b: B, a: A) => B,
-  ) => (
-    initial: B,
-  ) => (fa: Kind1Rec<KindKey, A>) => B;
 }
