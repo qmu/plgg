@@ -13,7 +13,7 @@ export interface KindKeytoKind2<A, B> {}
 export interface KindKeytoKind3<A, B, C> {}
 
 export interface KindKeytoKind1Rec<
-  A extends Record<string, unknown>,
+  _A extends Record<string, unknown>,
 > {}
 
 /**
