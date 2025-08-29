@@ -1,9 +1,3 @@
-import {
-  Result,
-  SerializeError,
-  DeserializeError,
-} from "plgg/index";
-
 type JsonSafe = {
   type: string;
   value: string;
@@ -11,12 +5,12 @@ type JsonSafe = {
 
 export interface JsonSerializable<
   T,
-  U extends JsonSafe,
+  U extends JsonSafe | "pass" = "pass",
 > {
-  toJsonReady: (
-    value: T,
-  ) => Result<T | U, SerializeError>;
-  fromJsonReady: (
-    jsonReady: T | U,
-  ) => Result<T, DeserializeError>;
+  toJsonReady: U extends "pass"
+    ? (value: T) => T
+    : (value: T) => U;
+  fromJsonReady: U extends "pass"
+    ? (value: T) => T
+    : (jsonReady: U) => T;
 }

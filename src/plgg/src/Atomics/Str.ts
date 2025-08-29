@@ -5,6 +5,7 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -55,6 +56,15 @@ export const strCastable: Castable0<Str> = {
  * Exported safe casting function for string values.
  */
 export const { as: asStr } = strCastable;
+
+/**
+ * JsonSerializable instance for string values.
+ */
+export const strJsonSerializable: JsonSerializable<Str> =
+  {
+    toJsonReady: (value: Str) => value,
+    fromJsonReady: (jsonReady: Str) => jsonReady,
+  };
 
 /**
  * Concatenates two strings using curried application.
