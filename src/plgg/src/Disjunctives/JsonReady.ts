@@ -13,7 +13,13 @@ import {
   fromJsonReadyObj,
 } from "plgg/index";
 
-export type JsonSerializable = Atomic | Obj | Vec<JsonSerializable>;
+export type JsonSerializable =
+  | Atomic
+  | Obj
+  | Vec<VecWrapper<JsonSerializable>>;
+
+type VecWrapper<T extends JsonSerializable> =
+  Vec<T>;
 
 export type JsonReady =
   | JsonReadyAtomic
