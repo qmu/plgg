@@ -8,6 +8,9 @@ import {
   Applicative1,
   Applicative2,
   Applicative3,
+  Chain1JsonSerializable,
+  Applicative1JsonSerializable,
+  KindKeys1JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -30,3 +33,12 @@ export interface Monad2<KindKey extends KindKeys2>
 export interface Monad3<KindKey extends KindKeys3>
   extends Chain3<KindKey>,
     Applicative3<KindKey> {}
+
+/**
+ * Combines Chain and Applicative capabilities for JsonSerializable single-parameter type constructors.
+ */
+export interface Monad1JsonSerializable<
+  KindKey extends KindKeys1JsonSerializable,
+> extends
+  Chain1JsonSerializable<KindKey>,
+  Applicative1JsonSerializable<KindKey> {}

@@ -5,6 +5,9 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
+  Kind1JsonSerializable,
+  KindKeys1JsonSerializable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -65,4 +68,27 @@ export interface Functor3<
   ) => (
     fa: Kind3<KindKey, A, C, D>,
   ) => Kind3<KindKey, B, C, D>;
+}
+
+/**
+ * Enables mapping functions over wrapped JsonSerializable values in single-parameter type constructors.
+ */
+export interface Functor1JsonSerializable<
+  KindKey extends KindKeys1JsonSerializable,
+> {
+  /**
+   * The kind key identifier.
+   */
+  readonly KindKey: KindKey;
+  /**
+   * Maps a function over the wrapped JsonSerializable value.
+   */
+  map: <
+    A extends JsonSerializable,
+    B extends JsonSerializable,
+  >(
+    f: (a: A) => B,
+  ) => (
+    fa: Kind1JsonSerializable<KindKey, A>,
+  ) => Kind1JsonSerializable<KindKey, B>;
 }

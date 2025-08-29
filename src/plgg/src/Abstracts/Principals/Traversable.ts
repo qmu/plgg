@@ -14,6 +14,11 @@ import {
   Applicative1,
   Applicative2,
   Applicative3,
+  Kind1JsonSerializable,
+  KindKeys1JsonSerializable,
+  Functor1JsonSerializable,
+  Foldable1JsonSerializable,
+  JsonSerializable,
 } from "plgg/index";
 
 export interface Traverse1<T extends KindKeys1> {
@@ -116,4 +121,39 @@ export interface Traversable3<
   ) => <A, C, D>(
     tfa: Kind3<KindKey, Kind1<F, A>, C, D>,
   ) => Kind1<F, Kind3<KindKey, A, C, D>>;
+}
+
+/**
+ * Enables structure-preserving traversal with effects for JsonSerializable single-parameter types.
+ */
+export interface Traversable1JsonSerializable<
+  KindKey extends KindKeys1JsonSerializable,
+> extends
+  Functor1JsonSerializable<KindKey>,
+  Foldable1JsonSerializable<KindKey> {
+  /**
+   * Traverses the JsonSerializable structure applying effectful functions while preserving structure.
+   */
+  traverse: <F extends KindKeys1>(
+    A: Applicative1<F>,
+  ) => <
+    A extends JsonSerializable,
+    B extends JsonSerializable,
+  >(
+    f: (a: A) => Kind1<F, B>,
+  ) => (
+    ta: Kind1JsonSerializable<KindKey, A>,
+  ) => Kind1<F, Kind1JsonSerializable<KindKey, B>>;
+
+  /**
+   * Sequences effects while preserving JsonSerializable structure.
+   */
+  sequence: <F extends KindKeys1>(
+    A: Applicative1<F>,
+  ) => <A extends JsonSerializable>(
+    tfa: Kind1JsonSerializable<
+      KindKey,
+      Kind1<F, A>
+    >,
+  ) => Kind1<F, Kind1JsonSerializable<KindKey, A>>;
 }

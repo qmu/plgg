@@ -5,6 +5,9 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
+  Kind1JsonSerializable,
+  KindKeys1JsonSerializable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -89,4 +92,36 @@ export interface Foldable3<
   ) => (
     initial: B,
   ) => (fa: Kind3<KindKey, A, C, D>) => B;
+}
+
+/**
+ * Enables folding JsonSerializable structures into single values through reduction operations.
+ */
+export interface Foldable1JsonSerializable<
+  KindKey extends KindKeys1JsonSerializable,
+> {
+  /**
+   * The kind key identifier.
+   */
+  readonly KindKey: KindKey;
+  /**
+   * Performs right-associative fold of a JsonSerializable structure.
+   */
+  foldr: <A extends JsonSerializable, B>(
+    f: (a: A, b: B) => B,
+  ) => (
+    initial: B,
+  ) => (
+    fa: Kind1JsonSerializable<KindKey, A>,
+  ) => B;
+  /**
+   * Performs left-associative fold of a JsonSerializable structure.
+   */
+  foldl: <A extends JsonSerializable, B>(
+    f: (b: B, a: A) => B,
+  ) => (
+    initial: B,
+  ) => (
+    fa: Kind1JsonSerializable<KindKey, A>,
+  ) => B;
 }

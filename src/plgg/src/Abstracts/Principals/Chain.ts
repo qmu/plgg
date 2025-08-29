@@ -8,6 +8,10 @@ import {
   Apply1,
   Apply2,
   Apply3,
+  Kind1JsonSerializable,
+  KindKeys1JsonSerializable,
+  Apply1JsonSerializable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -55,4 +59,25 @@ export interface Chain3<KindKey extends KindKeys3>
   ) => (
     fa: Kind3<KindKey, A, C, D>,
   ) => Kind3<KindKey, B, C, D>;
+}
+
+/**
+ * Chain interface for JsonSerializable single-parameter type constructors.
+ * Provides monadic bind/flatMap operation extending Apply capabilities.
+ */
+export interface Chain1JsonSerializable<
+  KindKey extends KindKeys1JsonSerializable,
+> extends Apply1JsonSerializable<KindKey> {
+  /**
+   * Monadic bind operation for JsonSerializable types (also known as flatMap).
+   * Applies a function that returns a wrapped value and flattens the result.
+   */
+  chain: <
+    A extends JsonSerializable,
+    B extends JsonSerializable,
+  >(
+    f: (a: A) => Kind1JsonSerializable<KindKey, B>,
+  ) => (
+    fa: Kind1JsonSerializable<KindKey, A>,
+  ) => Kind1JsonSerializable<KindKey, B>;
 }

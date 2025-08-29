@@ -8,6 +8,9 @@ import {
   Pointed1,
   Pointed2,
   Pointed3,
+  Apply1JsonSerializable,
+  Pointed1JsonSerializable,
+  KindKeys1JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -34,3 +37,12 @@ export interface Applicative3<
   KindKey extends KindKeys3,
 > extends Apply3<KindKey>,
     Pointed3<KindKey> {}
+
+/**
+ * Combines Apply and Pointed for JsonSerializable single-parameter types.
+ */
+export interface Applicative1JsonSerializable<
+  KindKey extends KindKeys1JsonSerializable,
+> extends
+  Apply1JsonSerializable<KindKey>,
+  Pointed1JsonSerializable<KindKey> {}
