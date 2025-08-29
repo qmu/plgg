@@ -5,14 +5,7 @@ import {
   isOk,
   isErr,
   InvalidError,
-  Monad1,
-  Functor1,
-  Apply1,
-  Pointed1,
   Applicative1,
-  Chain1,
-  Foldable1,
-  Traversable1,
   KindKeys1,
   Kind1,
   JsonSerializer,
@@ -94,13 +87,19 @@ export const { as: asVec } = vecCastable;
 /**
  * Functor instance providing mapping operations over vector elements.
  */
-export const vecFunctor: Functor1JsonSerializable<"Vec"> = {
-  KindKey: "Vec",
-  map:
-    <T1 extends JsonSerializable, T2 extends JsonSerializable>(f: (a: T1) => T2) =>
-    (fa: Vec<T1>): Vec<T2> =>
-      fa.map(f),
-};
+export const vecFunctor: Functor1JsonSerializable<"Vec"> =
+  {
+    KindKey: "Vec",
+    map:
+      <
+        T1 extends JsonSerializable,
+        T2 extends JsonSerializable,
+      >(
+        f: (a: T1) => T2,
+      ) =>
+      (fa: Vec<T1>): Vec<T2> =>
+        fa.map(f),
+  };
 /**
  * Exported mapping function for vectors.
  */
@@ -109,13 +108,19 @@ export const { map: mapVec } = vecFunctor;
 /**
  * Apply instance enabling application of wrapped functions to wrapped values.
  */
-export const vecApply: Apply1JsonSerializable<"Vec"> = {
-  ...vecFunctor,
-  ap:
-    <T1 extends JsonSerializable, T2 extends JsonSerializable>(fab: Vec<(a: T1) => T2>) =>
-    (fa: Vec<T1>): Vec<T2> =>
-      fab.flatMap((f) => fa.map(f)),
-};
+export const vecApply: Apply1JsonSerializable<"Vec"> =
+  {
+    ...vecFunctor,
+    ap:
+      <
+        T1 extends JsonSerializable,
+        T2 extends JsonSerializable,
+      >(
+        fab: Vec<(a: T1) => T2>,
+      ) =>
+      (fa: Vec<T1>): Vec<T2> =>
+        fab.flatMap((f) => fa.map(f)),
+  };
 /**
  * Exported application function for vectors.
  */
@@ -124,10 +129,13 @@ export const { ap: applyVec } = vecApply;
 /**
  * Pointed instance enabling wrapping of values in vector context.
  */
-export const vecPointed: Pointed1JsonSerializable<"Vec"> = {
-  ...vecFunctor,
-  of: <T extends JsonSerializable>(a: T): Vec<T> => [a],
-};
+export const vecPointed: Pointed1JsonSerializable<"Vec"> =
+  {
+    ...vecFunctor,
+    of: <T extends JsonSerializable>(
+      a: T,
+    ): Vec<T> => [a],
+  };
 
 /**
  * Exported value wrapping function for vectors.
@@ -147,15 +155,21 @@ export const vecApplicative: Applicative1JsonSerializable<"Vec"> =
 /**
  * Chain instance enabling chaining of operations that return vectors.
  */
-export const vecChain: Chain1JsonSerializable<"Vec"> = {
-  ...vecFunctor,
-  ...vecApply,
-  ...vecPointed,
-  chain:
-    <T1 extends JsonSerializable, T2 extends JsonSerializable>(f: (a: T1) => Vec<T2>) =>
-    (fa: Vec<T1>): Vec<T2> =>
-      fa.flatMap(f),
-};
+export const vecChain: Chain1JsonSerializable<"Vec"> =
+  {
+    ...vecFunctor,
+    ...vecApply,
+    ...vecPointed,
+    chain:
+      <
+        T1 extends JsonSerializable,
+        T2 extends JsonSerializable,
+      >(
+        f: (a: T1) => Vec<T2>,
+      ) =>
+      (fa: Vec<T1>): Vec<T2> =>
+        fa.flatMap(f),
+  };
 /**
  * Exported chaining function for vectors.
  */
@@ -164,30 +178,36 @@ export const { chain: chainVec } = vecChain;
 /**
  * Monad instance providing full monadic interface for vectors.
  */
-export const vecMonad: Monad1JsonSerializable<"Vec"> = {
-  ...vecApplicative,
-  ...vecChain,
-};
+export const vecMonad: Monad1JsonSerializable<"Vec"> =
+  {
+    ...vecApplicative,
+    ...vecChain,
+  };
 
 /**
  * Foldable instance providing fold operations for vectors.
  */
-export const vecFoldable: Foldable1JsonSerializable<"Vec"> = {
-  KindKey: "Vec",
-  foldr:
-    <A extends JsonSerializable, B>(f: (a: A, b: B) => B) =>
-    (initial: B) =>
-    (fa: Vec<A>): B =>
-      fa.reduceRight(
-        (acc, x) => f(x, acc),
-        initial,
-      ),
-  foldl:
-    <A extends JsonSerializable, B>(f: (b: B, a: A) => B) =>
-    (initial: B) =>
-    (fa: Vec<A>): B =>
-      fa.reduce(f, initial),
-};
+export const vecFoldable: Foldable1JsonSerializable<"Vec"> =
+  {
+    KindKey: "Vec",
+    foldr:
+      <A extends JsonSerializable, B>(
+        f: (a: A, b: B) => B,
+      ) =>
+      (initial: B) =>
+      (fa: Vec<A>): B =>
+        fa.reduceRight(
+          (acc, x) => f(x, acc),
+          initial,
+        ),
+    foldl:
+      <A extends JsonSerializable, B>(
+        f: (b: B, a: A) => B,
+      ) =>
+      (initial: B) =>
+      (fa: Vec<A>): B =>
+        fa.reduce(f, initial),
+  };
 /**
  * Exported fold functions for vectors.
  */
@@ -205,7 +225,12 @@ export const vecTraversable: Traversable1JsonSerializable<"Vec"> =
     ...vecFoldable,
     traverse:
       <F extends KindKeys1>(A: Applicative1<F>) =>
-      <A extends JsonSerializable, B extends JsonSerializable>(f: (a: A) => Kind1<F, B>) =>
+      <
+        A extends JsonSerializable,
+        B extends JsonSerializable,
+      >(
+        f: (a: A) => Kind1<F, B>,
+      ) =>
       (ta: Vec<A>): Kind1<F, Vec<B>> =>
         ta.reduceRight(
           (acc: Kind1<F, Vec<B>>, x: A) =>
@@ -265,11 +290,12 @@ export const fromJsonReadyVec = (
 /**
  * JsonSerializer instance for Vec values.
  */
-export const vecJsonSerializer: JsonSerializer<Vec<JsonSerializable>> =
-  {
-    toJsonReady: toJsonReadyVec,
-    fromJsonReady: fromJsonReadyVec,
-  };
+export const vecJsonSerializer: JsonSerializer<
+  Vec<JsonSerializable>
+> = {
+  toJsonReady: toJsonReadyVec,
+  fromJsonReady: fromJsonReadyVec,
+};
 
 export const {
   toJsonReady: toJsonReadyVecFunc,
