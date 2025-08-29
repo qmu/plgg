@@ -5,13 +5,15 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
-  JsonSerializable,
+  JsonSerializer,
 } from "plgg/index";
 
 /**
  * Represents JavaScript number values including integers and floats.
  */
 export type Num = number;
+
+export type JsonReadyNum = Num;
 
 /**
  * Type predicate to determine if a type is Num.
@@ -63,8 +65,12 @@ export const { as: asNum } = numCastable;
 /**
  * JsonSerializable instance for number values.
  */
-export const numJsonSerializable: JsonSerializable<Num> =
+export const numJsonSerializable: JsonSerializer<Num> =
   {
     toJsonReady: (value: Num) => value,
     fromJsonReady: (jsonReady: Num) => jsonReady,
   };
+export const {
+  toJsonReady: toJsonReadyNum,
+  fromJsonReady: fromJsonReadyNum,
+} = numJsonSerializable;

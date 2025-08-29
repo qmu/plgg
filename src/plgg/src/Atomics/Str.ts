@@ -5,13 +5,15 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
-  JsonSerializable,
+  JsonSerializer,
 } from "plgg/index";
 
 /**
  * Represents JavaScript string values.
  */
 export type Str = string;
+
+export type JsonReadyStr = Str;
 
 /**
  * Type predicate to determine if a type is Str.
@@ -60,11 +62,15 @@ export const { as: asStr } = strCastable;
 /**
  * JsonSerializable instance for string values.
  */
-export const strJsonSerializable: JsonSerializable<Str> =
+export const strJsonSerializable: JsonSerializer<Str> =
   {
     toJsonReady: (value: Str) => value,
     fromJsonReady: (jsonReady: Str) => jsonReady,
   };
+export const {
+  toJsonReady: toJsonReadyStr,
+  fromJsonReady: fromJsonReadyStr,
+} = strJsonSerializable;
 
 /**
  * Concatenates two strings using curried application.

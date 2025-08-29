@@ -16,6 +16,8 @@ export type BrandStr<U extends string> = Brand<
   U
 >;
 
+export type JsonReadyBrandStr = Str;
+
 /**
  * Type predicate to determine if a type is BrandStr.
  */

@@ -5,13 +5,18 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
-  JsonSerializable,
+  JsonSerializer,
 } from "plgg/index";
 
 /**
  * Represents JavaScript BigInt values for arbitrary precision integers.
  */
 export type BigInt = bigint;
+
+export type JsonReadyBigInt = {
+  type: "bigint";
+  value: string;
+};
 
 /**
  * Type predicate to determine if a type is BigInt.
@@ -82,26 +87,23 @@ export const bigIntCastable: Castable0<BigInt> = {
 export const { as: asBigInt } = bigIntCastable;
 
 /**
- * JsonSafe representation for BigInt values.
- */
-type BigIntJsonSafe = {
-  type: "bigint";
-  value: string;
-};
-
-/**
  * JsonSerializable instance for BigInt values.
  */
-export const bigIntJsonSerializable: JsonSerializable<
+export const bigIntJsonSerializable: JsonSerializer<
   BigInt,
-  BigIntJsonSafe
+  JsonReadyBigInt
 > = {
-  toJsonReady: (value: BigInt): BigIntJsonSafe => ({
+  toJsonReady: (
+    value: BigInt,
+  ): JsonReadyBigInt => ({
     type: "bigint",
     value: value.toString(),
   }),
   fromJsonReady: (
-    jsonReady: BigIntJsonSafe,
+    jsonReady: JsonReadyBigInt,
   ): BigInt => BigInt(jsonReady.value),
 };
-
+export const {
+  toJsonReady: toJsonReadyBigInt,
+  fromJsonReady: fromJsonReadyBigInt,
+} = bigIntJsonSerializable;

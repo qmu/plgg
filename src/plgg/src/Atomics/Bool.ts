@@ -5,7 +5,7 @@ import {
   InvalidError,
   Refinable0,
   Castable0,
-  JsonSerializable,
+  JsonSerializer,
 } from "plgg/index";
 
 /**
@@ -22,6 +22,8 @@ export const FALSE = false as const;
  * Represents JavaScript boolean values.
  */
 export type Bool = typeof TRUE | typeof FALSE;
+
+export type JsonReadyBool = Bool;
 
 /**
  * Type predicate to determine if a type is Bool.
@@ -70,8 +72,12 @@ export const { as: asBool } = boolCastable;
 /**
  * JsonSerializable instance for boolean values.
  */
-export const boolJsonSerializable: JsonSerializable<Bool> =
+export const boolJsonSerializable: JsonSerializer<Bool> =
   {
     toJsonReady: (value: Bool) => value,
     fromJsonReady: (jsonReady: Bool) => jsonReady,
   };
+export const {
+  toJsonReady: toJsonReadyBool,
+  fromJsonReady: fromJsonReadyBool,
+} = boolJsonSerializable;

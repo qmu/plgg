@@ -16,6 +16,8 @@ export type BrandNum<U extends string> = Brand<
   U
 >;
 
+export type JsonReadyBrandNum = Num;
+
 /**
  * Type predicate to determine if a type is BrandNum.
  */
