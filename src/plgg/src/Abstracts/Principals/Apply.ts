@@ -8,10 +8,6 @@ import {
   Functor1,
   Functor2,
   Functor3,
-  Kind1JsonSerializable,
-  KindKeys1JsonSerializable,
-  Functor1JsonSerializable,
-  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -58,27 +54,4 @@ export interface Apply3<KindKey extends KindKeys3>
   ) => (
     fa: Kind3<KindKey, A, C, D>,
   ) => Kind3<KindKey, B, C, D>;
-}
-
-/**
- * Apply interface for single-parameter JsonSerializable type constructors.
- * Extends Functor1JsonSerializable to provide the ability to apply wrapped functions to wrapped values.
- */
-export interface Apply1JsonSerializable<
-  KindKey extends KindKeys1JsonSerializable,
-> extends Functor1JsonSerializable<KindKey> {
-  /**
-   * Applies a wrapped JsonSerializable function to a wrapped JsonSerializable value.
-   */
-  ap: <
-    A extends JsonSerializable,
-    B extends JsonSerializable,
-  >(
-    fab: Kind1JsonSerializable<
-      KindKey,
-      (a: A) => B
-    >,
-  ) => (
-    fa: Kind1JsonSerializable<KindKey, A>,
-  ) => Kind1JsonSerializable<KindKey, B>;
 }

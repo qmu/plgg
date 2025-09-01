@@ -16,10 +16,7 @@ import {
 export type JsonSerializable =
   | Atomic
   | Obj
-  | Vec<VecWrapper<JsonSerializable>>;
-
-type VecWrapper<T extends JsonSerializable> =
-  Vec<T>;
+  | readonly JsonSerializable[];
 
 export type JsonReady =
   | JsonReadyAtomic

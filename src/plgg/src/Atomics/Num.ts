@@ -65,11 +65,13 @@ export const { as: asNum } = numCastable;
 /**
  * JsonSerializable instance for number values.
  */
-export const numJsonSerializable: JsonSerializer<Num> =
-  {
-    toJsonReady: (value: Num) => value,
-    fromJsonReady: (jsonReady: Num) => jsonReady,
-  };
+export const numJsonSerializable: JsonSerializer<
+  Num,
+  JsonReadyNum
+> = {
+  toJsonReady: (value: Num) => value,
+  fromJsonReady: (jsonReady: Num) => jsonReady,
+};
 export const {
   toJsonReady: toJsonReadyNum,
   fromJsonReady: fromJsonReadyNum,

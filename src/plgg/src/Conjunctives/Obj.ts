@@ -7,9 +7,10 @@ import {
   Castable1,
   JsonReady,
   toJsonReadyAtomic,
-  fromJsonReadyAtomic,
   isAtomic,
   JsonSerializable,
+  fromJsonReady,
+  JsonSerializer,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -93,16 +94,6 @@ export const toJsonReadyObj = (
   return result;
 };
 
-/**
- * Determines if a JsonReady value is an object (not atomic)
- */
-const isJsonReadyObj = (
-  value: JsonReady,
-): value is JsonReadyObj =>
-  typeof value === "object" &&
-  value !== null &&
-  !("type" in value);
-
 export const fromJsonReadyObj = (
   jsonReady: JsonReadyObj,
 ): Obj => {
@@ -111,13 +102,20 @@ export const fromJsonReadyObj = (
     if (jsonReady.hasOwnProperty(key)) {
       const val = jsonReady[key];
       if (val !== undefined) {
-        if (isJsonReadyObj(val)) {
-          result[key] = fromJsonReadyObj(val);
-        } else {
-          result[key] = fromJsonReadyAtomic(val);
-        }
+        result[key] = fromJsonReady(val);
       }
     }
   }
   return result;
+};
+
+/**
+ * JsonSerializer instance for Obj values.
+ */
+export const objJsonSerializer: JsonSerializer<
+  Obj,
+  JsonReadyObj
+> = {
+  toJsonReady: toJsonReadyObj,
+  fromJsonReady: fromJsonReadyObj,
 };

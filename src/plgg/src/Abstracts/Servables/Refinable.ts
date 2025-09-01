@@ -3,6 +3,7 @@ import {
   Kind1,
   KindKeys1JsonSerializable,
   Kind1JsonSerializable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -45,7 +46,7 @@ export type Refinable1JsonSerializable<
   /**
    * Type guard predicate to check if a value is of the specified kind.
    */
-  is: <A>(
+  is: <A extends JsonSerializable>(
     value: unknown,
   ) => value is Kind1JsonSerializable<KindKey, A>;
 };

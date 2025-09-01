@@ -72,11 +72,13 @@ export const { as: asBool } = boolCastable;
 /**
  * JsonSerializable instance for boolean values.
  */
-export const boolJsonSerializable: JsonSerializer<Bool> =
-  {
-    toJsonReady: (value: Bool) => value,
-    fromJsonReady: (jsonReady: Bool) => jsonReady,
-  };
+export const boolJsonSerializable: JsonSerializer<
+  Bool,
+  JsonReadyBool
+> = {
+  toJsonReady: (value: Bool) => value,
+  fromJsonReady: (jsonReady: Bool) => jsonReady,
+};
 export const {
   toJsonReady: toJsonReadyBool,
   fromJsonReady: fromJsonReadyBool,

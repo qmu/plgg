@@ -1,3 +1,5 @@
+import { JsonSerializable } from "plgg/index";
+
 /**
  * Registry for mapping single-parameter type constructor keys to their concrete types.
  */
@@ -13,7 +15,7 @@ export interface KindKeytoKind2<A, B> {}
 export interface KindKeytoKind3<A, B, C> {}
 
 export interface KindKeytoKind1JsonSerializable<
-  A,
+  A extends JsonSerializable,
 > {}
 
 /**
@@ -38,7 +40,7 @@ export type KindKeys3 = keyof KindKeytoKind3<
 >;
 
 export type KindKeys1JsonSerializable =
-  keyof KindKeytoKind1JsonSerializable<unknown>;
+  keyof KindKeytoKind1JsonSerializable<JsonSerializable>;
 
 /**
  * Resolves a kind key to its concrete single-parameter type.
@@ -67,5 +69,5 @@ export type Kind3<
 
 export type Kind1JsonSerializable<
   KindKey extends KindKeys1JsonSerializable,
-  A,
+  A extends JsonSerializable,
 > = KindKeytoKind1JsonSerializable<A>[KindKey];

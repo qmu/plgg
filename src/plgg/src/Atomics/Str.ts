@@ -62,11 +62,13 @@ export const { as: asStr } = strCastable;
 /**
  * JsonSerializable instance for string values.
  */
-export const strJsonSerializable: JsonSerializer<Str> =
-  {
-    toJsonReady: (value: Str) => value,
-    fromJsonReady: (jsonReady: Str) => jsonReady,
-  };
+export const strJsonSerializable: JsonSerializer<
+  Str,
+  JsonReadyStr
+> = {
+  toJsonReady: (value: Str) => value,
+  fromJsonReady: (jsonReady: Str) => jsonReady,
+};
 export const {
   toJsonReady: toJsonReadyStr,
   fromJsonReady: fromJsonReadyStr,

@@ -1,13 +1,12 @@
-type JsonSafe = {
-  type: "bigint" | "time";
-  value: string;
-};
+import {
+  JsonSerializable,
+  JsonReady,
+} from "plgg/index";
 
 export interface JsonSerializer<
-  T,
-  U extends JsonSafe | "pass" = "pass",
-  V = U extends "pass" ? T : U,
+  T extends JsonSerializable,
+  U extends JsonReady,
 > {
-  toJsonReady: (a: T) => V;
-  fromJsonReady: (a: V) => T;
+  toJsonReady: (a: T) => U;
+  fromJsonReady: (a: U) => T;
 }

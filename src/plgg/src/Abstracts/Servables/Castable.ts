@@ -5,6 +5,7 @@ import {
   Kind1,
   KindKeys1JsonSerializable,
   Kind1JsonSerializable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -47,7 +48,7 @@ export interface Castable1JsonSerializable<
   /**
    * Safely casts unknown values to the target type with validation.
    */
-  as: <A>(
+  as: <A extends JsonSerializable>(
     value: unknown,
   ) => Result<
     Kind1JsonSerializable<KindKey, A>,
