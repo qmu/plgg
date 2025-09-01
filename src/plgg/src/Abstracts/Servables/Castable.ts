@@ -3,15 +3,15 @@ import {
   InvalidError,
   KindKeys1,
   Kind1,
-  KindKeys1Datum,
-  Kind1Datum,
+  KindKeysDatum,
+  KindDatum,
   Datum,
 } from "plgg/index";
 
 /**
  * Enables safe type casting for concrete types with no type parameters.
  */
-export interface Castable0<T> {
+export interface Castable<T> {
   /**
    * Safely casts unknown values to the target type with validation.
    */
@@ -40,8 +40,8 @@ export interface Castable1<
 /**
  * Enables safe type casting for single-parameter type constructors with Datum constraints.
  */
-export interface Castable1Datum<
-  KindKey extends KindKeys1Datum,
+export interface CastableDatum<
+  KindKey extends KindKeysDatum,
 > {
   /**
    * The kind identifier for this castable.
@@ -54,7 +54,7 @@ export interface Castable1Datum<
   as: <A extends Datum>(
     value: unknown,
   ) => Result<
-    Kind1Datum<KindKey, A>,
+    KindDatum<KindKey, A>,
     InvalidError
   >;
 }

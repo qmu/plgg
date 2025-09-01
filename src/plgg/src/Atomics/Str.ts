@@ -3,9 +3,9 @@ import {
   newOk,
   newErr,
   InvalidError,
-  Refinable0,
-  Castable0,
-  JsonSerializer,
+  Refinable,
+  Castable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -29,7 +29,7 @@ const is = (value: unknown): value is Str =>
 /**
  * Refinable instance for string type guards.
  */
-export const strRefinable: Refinable0<Str> = {
+export const strRefinable: Refinable<Str> = {
   is,
 };
 /**
@@ -40,7 +40,7 @@ export const { is: isStr } = strRefinable;
 /**
  * Castable instance for string safe casting.
  */
-export const strCastable: Castable0<Str> = {
+export const strCastable: Castable<Str> = {
   as: (
     value: unknown,
   ): Result<Str, InvalidError> =>
@@ -82,7 +82,7 @@ export const isJsonReadyStr = isStr;
 /**
  * Datum instance for string values.
  */
-export const strJsonSerializable: JsonSerializer<
+export const strJsonSerializable: JsonSerializable<
   Str,
   JsonReadyStr
 > = {

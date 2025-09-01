@@ -3,9 +3,9 @@ import {
   newOk,
   newErr,
   InvalidError,
-  Refinable0,
-  Castable0,
-  JsonSerializer,
+  Refinable,
+  Castable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -39,7 +39,7 @@ const is = (value: unknown): value is Bool =>
 /**
  * Refinable instance for boolean type guards.
  */
-export const boolRefinable: Refinable0<Bool> = {
+export const boolRefinable: Refinable<Bool> = {
   is,
 };
 /**
@@ -50,7 +50,7 @@ export const { is: isBool } = boolRefinable;
 /**
  * Castable instance for boolean safe casting.
  */
-export const boolCastable: Castable0<Bool> = {
+export const boolCastable: Castable<Bool> = {
   as: (
     value: unknown,
   ): Result<Bool, InvalidError> =>
@@ -84,7 +84,7 @@ export const isJsonReadyBool = isBool;
 /**
  * Datum instance for boolean values.
  */
-export const boolJsonSerializable: JsonSerializer<
+export const boolJsonSerializable: JsonSerializable<
   Bool,
   JsonReadyBool
 > = {

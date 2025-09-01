@@ -3,9 +3,9 @@ import {
   newErr,
   Result,
   InvalidError,
-  Refinable0,
-  Castable0,
-  JsonSerializer,
+  Refinable,
+  Castable,
+  JsonSerializable,
 } from "plgg/index";
 
 /**
@@ -32,7 +32,7 @@ const is = (value: unknown): value is Num =>
 /**
  * Refinable instance for number type guards.
  */
-export const numRefinable: Refinable0<Num> = {
+export const numRefinable: Refinable<Num> = {
   is,
 };
 /**
@@ -43,7 +43,7 @@ export const { is: isNum } = numRefinable;
 /**
  * Castable instance for number safe casting.
  */
-export const numCastable: Castable0<Num> = {
+export const numCastable: Castable<Num> = {
   as: (
     value: unknown,
   ): Result<Num, InvalidError> =>
@@ -77,7 +77,7 @@ export const isJsonReadyNum = isNum;
 /**
  * Datum instance for number values.
  */
-export const numJsonSerializable: JsonSerializer<
+export const numJsonSerializable: JsonSerializable<
   Num,
   JsonReadyNum
 > = {

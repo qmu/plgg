@@ -5,20 +5,20 @@ import {
   isOk,
   isErr,
   InvalidError,
-  JsonSerializer,
+  JsonSerializable,
   JsonReady,
   Datum,
-  Refinable1Datum,
-  Castable1Datum,
-  Functor1Datum,
-  Foldable1Datum,
+  RefinableDatum,
+  CastableDatum,
+  FunctorDatum,
+  FoldableDatum,
   toJsonReady,
   fromJsonReady,
   isJsonReady,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface MapKind1Datum<A> {
+  export interface MapKindDatum<A> {
     Vec: Vec<A>;
   }
 }
@@ -39,7 +39,7 @@ const is = <T extends Datum>(
 /**
  * Refinable instance for vector type guards.
  */
-export const vecRefinable: Refinable1Datum<"Vec"> =
+export const vecRefinable: RefinableDatum<"Vec"> =
   {
     KindKey: "Vec",
     is,
@@ -52,20 +52,19 @@ export const { is: isVec } = vecRefinable;
 /**
  * Castable instance for vector safe casting.
  */
-export const vecCastable: Castable1Datum<"Vec"> =
-  {
-    KindKey: "Vec",
-    as: <A extends Datum>(
-      value: unknown,
-    ): Result<Vec<A>, InvalidError> =>
-      is<A>(value)
-        ? newOk(value)
-        : newErr(
-            new InvalidError({
-              message: "Value is not a vector",
-            }),
-          ),
-  };
+export const vecCastable: CastableDatum<"Vec"> = {
+  KindKey: "Vec",
+  as: <A extends Datum>(
+    value: unknown,
+  ): Result<Vec<A>, InvalidError> =>
+    is<A>(value)
+      ? newOk(value)
+      : newErr(
+          new InvalidError({
+            message: "Value is not a vector",
+          }),
+        ),
+};
 /**
  * Exported safe casting function for vector values.
  */
@@ -74,7 +73,7 @@ export const { as: asVec } = vecCastable;
 /**
  * Functor instance providing mapping operations over vector elements.
  */
-export const vecFunctor: Functor1Datum<"Vec"> = {
+export const vecFunctor: FunctorDatum<"Vec"> = {
   KindKey: "Vec",
   map:
     <T1 extends Datum, T2 extends Datum>(
@@ -91,27 +90,22 @@ export const { map: mapVec } = vecFunctor;
 /**
  * Foldable instance providing fold operations for vectors.
  */
-export const vecFoldable: Foldable1Datum<"Vec"> =
-  {
-    KindKey: "Vec",
-    foldr:
-      <A extends Datum, B>(
-        f: (a: A, b: B) => B,
-      ) =>
-      (initial: B) =>
-      (fa: Vec<A>): B =>
-        fa.reduceRight(
-          (acc, x) => f(x, acc),
-          initial,
-        ),
-    foldl:
-      <A extends Datum, B>(
-        f: (b: B, a: A) => B,
-      ) =>
-      (initial: B) =>
-      (fa: Vec<A>): B =>
-        fa.reduce(f, initial),
-  };
+export const vecFoldable: FoldableDatum<"Vec"> = {
+  KindKey: "Vec",
+  foldr:
+    <A extends Datum, B>(f: (a: A, b: B) => B) =>
+    (initial: B) =>
+    (fa: Vec<A>): B =>
+      fa.reduceRight(
+        (acc, x) => f(x, acc),
+        initial,
+      ),
+  foldl:
+    <A extends Datum, B>(f: (b: B, a: A) => B) =>
+    (initial: B) =>
+    (fa: Vec<A>): B =>
+      fa.reduce(f, initial),
+};
 /**
  * Exported fold functions for vectors.
  */
@@ -159,7 +153,7 @@ export const isJsonReadyVec = (
 /**
  * JsonSerializer instance for Vec values using Datum types.
  */
-export const vecJsonSerializer: JsonSerializer<
+export const vecJsonSerializer: JsonSerializable<
   Vec,
   JsonReadyVec
 > = {

@@ -3,7 +3,7 @@ import { Datum, JsonReady } from "plgg/index";
 /**
  * Provides bidirectional conversion between Datum types and JsonReady representations.
  */
-export interface JsonSerializer<
+export interface JsonSerializable<
   T extends Datum,
   U extends JsonReady,
 > {

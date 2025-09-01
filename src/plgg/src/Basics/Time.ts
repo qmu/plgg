@@ -4,8 +4,8 @@ import {
   newErr,
   InvalidError,
   isStr,
-  Refinable0,
-  Castable0,
+  Refinable,
+  Castable,
 } from "plgg/index";
 
 /**
@@ -38,7 +38,7 @@ const is = (value: unknown): value is Time =>
 /**
  * Refinable instance for Time type guards.
  */
-export const timeRefinable: Refinable0<Time> = {
+export const timeRefinable: Refinable<Time> = {
   is,
 };
 /**
@@ -49,7 +49,7 @@ export const { is: isTime } = timeRefinable;
 /**
  * Castable instance for Time safe casting.
  */
-export const timeCastable: Castable0<Time> = {
+export const timeCastable: Castable<Time> = {
   as: (
     value: unknown,
   ): Result<Time, InvalidError> =>

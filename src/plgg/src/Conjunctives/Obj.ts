@@ -9,7 +9,7 @@ import {
   toJsonReady,
   Datum,
   fromJsonReady,
-  JsonSerializer,
+  JsonSerializable,
   isJsonReady,
   isDatum,
 } from "plgg/index";
@@ -124,7 +124,7 @@ export const fromJsonReadyObj = (
 /**
  * JsonSerializer instance for Obj values.
  */
-export const objJsonSerializer: JsonSerializer<
+export const objJsonSerializer: JsonSerializable<
   Obj,
   JsonReadyObj
 > = {

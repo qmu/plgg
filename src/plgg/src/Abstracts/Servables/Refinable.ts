@@ -1,15 +1,15 @@
 import {
   KindKeys1,
   Kind1,
-  KindKeys1Datum,
-  Kind1Datum,
+  KindKeysDatum,
+  KindDatum,
   Datum,
 } from "plgg/index";
 
 /**
  * Enables type validation for concrete types with no type parameters.
  */
-export interface Refinable0<T> {
+export interface Refinable<T> {
   /**
    * Type guard predicate to check if a value is of type T.
    */
@@ -38,8 +38,8 @@ export interface Refinable1<
 /**
  * Enables type validation for single-parameter type constructors with Datum constraints.
  */
-export type Refinable1Datum<
-  KindKey extends KindKeys1Datum,
+export type RefinableDatum<
+  KindKey extends KindKeysDatum,
 > = {
   /**
    * The kind identifier for this refinable.
@@ -51,5 +51,5 @@ export type Refinable1Datum<
    */
   is: <A extends Datum>(
     value: unknown,
-  ) => value is Kind1Datum<KindKey, A>;
+  ) => value is KindDatum<KindKey, A>;
 };

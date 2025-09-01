@@ -6,8 +6,8 @@ import {
   newOk,
   newErr,
   InvalidError,
-  Refinable0,
-  Castable0,
+  Refinable,
+  Castable,
   pattern,
 } from "plgg/index";
 
@@ -43,7 +43,7 @@ const is = (e: unknown): e is None =>
 /**
  * Refinable instance for None type guards.
  */
-export const noneRefinable: Refinable0<None> = {
+export const noneRefinable: Refinable<None> = {
   is,
 };
 /**
@@ -54,7 +54,7 @@ export const { is: isNone } = noneRefinable;
 /**
  * Castable instance for None safe casting.
  */
-export const noneCastable: Castable0<None> = {
+export const noneCastable: Castable<None> = {
   as: (
     value: unknown,
   ): Result<None, InvalidError> =>

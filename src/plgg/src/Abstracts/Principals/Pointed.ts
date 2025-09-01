@@ -5,8 +5,8 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  Kind1Datum,
-  KindKeys1Datum,
+  KindDatum,
+  KindKeysDatum,
   Datum,
 } from "plgg/index";
 
@@ -65,8 +65,8 @@ export interface Pointed3<
 /**
  * Provides the ability to wrap Datum values in minimal context for single-parameter types.
  */
-export interface Pointed1JsonSerializable<
-  KindKey extends KindKeys1Datum,
+export interface PointedDatum<
+  KindKey extends KindKeysDatum,
 > {
   /**
    * The kind key identifier.
@@ -77,5 +77,5 @@ export interface Pointed1JsonSerializable<
    */
   of: <A extends Datum>(
     a: A,
-  ) => Kind1Datum<KindKey, A>;
+  ) => KindDatum<KindKey, A>;
 }

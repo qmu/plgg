@@ -5,8 +5,8 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  Kind1Datum,
-  KindKeys1Datum,
+  KindDatum,
+  KindKeysDatum,
   Datum,
 } from "plgg/index";
 
@@ -73,8 +73,8 @@ export interface Functor3<
 /**
  * Enables mapping functions over wrapped Datum values in single-parameter type constructors.
  */
-export interface Functor1Datum<
-  KindKey extends KindKeys1Datum,
+export interface FunctorDatum<
+  KindKey extends KindKeysDatum,
 > {
   /**
    * The kind key identifier.
@@ -86,6 +86,6 @@ export interface Functor1Datum<
   map: <A extends Datum, B extends Datum>(
     f: (a: A) => B,
   ) => (
-    fa: Kind1Datum<KindKey, A>,
-  ) => Kind1Datum<KindKey, B>;
+    fa: KindDatum<KindKey, A>,
+  ) => KindDatum<KindKey, B>;
 }

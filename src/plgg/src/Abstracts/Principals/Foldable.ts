@@ -5,8 +5,8 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  Kind1Datum,
-  KindKeys1Datum,
+  KindDatum,
+  KindKeysDatum,
   Datum,
 } from "plgg/index";
 
@@ -97,8 +97,8 @@ export interface Foldable3<
 /**
  * Enables folding Datum structures into single values through reduction operations.
  */
-export interface Foldable1Datum<
-  KindKey extends KindKeys1Datum,
+export interface FoldableDatum<
+  KindKey extends KindKeysDatum,
 > {
   /**
    * The kind key identifier.
@@ -111,7 +111,7 @@ export interface Foldable1Datum<
     f: (a: A, b: B) => B,
   ) => (
     initial: B,
-  ) => (fa: Kind1Datum<KindKey, A>) => B;
+  ) => (fa: KindDatum<KindKey, A>) => B;
   /**
    * Performs left-associative fold of a Datum structure.
    */
@@ -119,5 +119,5 @@ export interface Foldable1Datum<
     f: (b: B, a: A) => B,
   ) => (
     initial: B,
-  ) => (fa: Kind1Datum<KindKey, A>) => B;
+  ) => (fa: KindDatum<KindKey, A>) => B;
 }

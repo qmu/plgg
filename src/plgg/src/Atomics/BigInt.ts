@@ -3,9 +3,9 @@ import {
   newErr,
   Result,
   InvalidError,
-  Refinable0,
-  Castable0,
-  JsonSerializer,
+  Refinable,
+  Castable,
+  JsonSerializable,
   isObj,
   hasProp,
 } from "plgg/index";
@@ -31,7 +31,7 @@ const is = (value: unknown): value is BigInt =>
 /**
  * Refinable instance for BigInt type guards.
  */
-export const bigIntRefinable: Refinable0<BigInt> =
+export const bigIntRefinable: Refinable<BigInt> =
   {
     is,
   };
@@ -43,7 +43,7 @@ export const { is: isBigInt } = bigIntRefinable;
 /**
  * Castable instance for BigInt safe casting.
  */
-export const bigIntCastable: Castable0<BigInt> = {
+export const bigIntCastable: Castable<BigInt> = {
   as: (
     value: unknown,
   ): Result<BigInt, InvalidError> => {
@@ -110,7 +110,7 @@ export const isJsonReadyBigInt = (
 /**
  * Datum instance for BigInt values.
  */
-export const bigIntJsonSerializable: JsonSerializer<
+export const bigIntJsonSerializable: JsonSerializable<
   BigInt,
   JsonReadyBigInt
 > = {
