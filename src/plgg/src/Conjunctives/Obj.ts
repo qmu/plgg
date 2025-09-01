@@ -23,7 +23,8 @@ declare module "plgg/Abstracts/Principals/Kind" {
 /**
  * Readonly record type for functional programming operations.
  */
-export type Obj<T extends _Obj = _Obj> = T;
+export type Obj<T extends _Obj = _Obj> =
+  Readonly<T>;
 
 type _Obj = {
   [key: string]: Datum;
@@ -111,14 +112,14 @@ export const toJsonReadyObj = (
 export const fromJsonReadyObj = (
   jsonReady: JsonReadyObj,
 ): Obj => {
-  const result: Obj = {};
+  const entries: [string, Datum][] = [];
   for (const key in jsonReady) {
     const val = jsonReady[key];
     if (val !== undefined) {
-      result[key] = fromJsonReady(val);
+      entries.push([key, fromJsonReady(val)]);
     }
   }
-  return result;
+  return Object.fromEntries(entries);
 };
 
 /**
