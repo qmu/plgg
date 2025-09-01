@@ -4,6 +4,9 @@ import {
   KindKeysDatum,
   KindDatum,
   Datum,
+  DatumObject,
+  KindDatumObject,
+  KindKeysDatumObject,
 } from "plgg/index";
 
 /**
@@ -52,4 +55,23 @@ export type RefinableDatum<
   is: <A extends Datum>(
     value: unknown,
   ) => value is KindDatum<KindKey, A>;
+};
+
+/**
+ * Enables type validation for single-parameter type constructors with DatumObject constraints.
+ */
+export type RefinableDatumObject<
+  KindKey extends KindKeysDatumObject,
+> = {
+  /**
+   * The kind identifier for this refinable.
+   */
+  KindKey: KindKey;
+
+  /**
+   * Type guard predicate to check if a value is of the specified kind.
+   */
+  is: <A extends DatumObject>(
+    value: unknown,
+  ) => value is KindDatumObject<KindKey, A>;
 };

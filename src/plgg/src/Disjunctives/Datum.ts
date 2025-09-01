@@ -23,3 +23,7 @@ export const isDatum = (
   isAtomic(value) ||
   isObj(value) || // FIXME : should check that all props are Datum as Obj
   (isVec(value) && value.every(isDatum));
+
+export type DatumObject = {
+  [key: string]: Datum;
+};

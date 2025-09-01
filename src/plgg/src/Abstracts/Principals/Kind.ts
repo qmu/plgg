@@ -1,4 +1,4 @@
-import { Datum } from "plgg/index";
+import { Datum, DatumObject } from "plgg/index";
 
 /**
  * Registry for mapping single-parameter type constructor keys to their concrete types.
@@ -20,6 +20,10 @@ export interface MapKind3<A, B, C> {}
  * Registry for mapping single-parameter type constructor keys to their concrete Datum types.
  */
 export interface MapKindDatum<A extends Datum> {}
+
+export interface MapKindDatumObject<
+  A extends DatumObject,
+> {}
 
 // ----------------------------------------------------------------
 
@@ -50,6 +54,9 @@ export type KindKeys3 = keyof MapKind3<
  */
 export type KindKeysDatum =
   keyof MapKindDatum<Datum>;
+
+export type KindKeysDatumObject =
+  keyof MapKindDatumObject<DatumObject>;
 
 // ----------------------------------------------------------------
 
@@ -87,3 +94,8 @@ export type KindDatum<
   KindKey extends KindKeysDatum,
   A extends Datum,
 > = MapKindDatum<A>[KindKey];
+
+export type KindDatumObject<
+  KindKey extends KindKeysDatumObject,
+  A extends DatumObject,
+> = MapKindDatumObject<A>[KindKey];

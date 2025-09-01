@@ -3,8 +3,8 @@ import {
   newOk,
   newErr,
   InvalidError,
-  Refinable1,
-  Castable1,
+  RefinableDatumObject,
+  CastableDatumObject,
   JsonReady,
   toJsonReady,
   Datum,
@@ -12,37 +12,38 @@ import {
   JsonSerializable,
   isJsonReady,
   isDatum,
+  DatumObject,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface MapKind1<A> {
-    Obj: Obj;
+  export interface MapKindDatumObject<A> {
+    Obj: Obj<A>;
   }
 }
 
 /**
  * Readonly record type for functional programming operations.
  */
-export type Obj<T extends _Obj = _Obj> =
-  Readonly<T>;
-
-type _Obj = {
-  [key: string]: Datum;
-};
+export type Obj<
+  T extends DatumObject = DatumObject,
+> = Readonly<T>;
 
 /**
  * Type guard to check if a value is an Obj.
  */
-const is = (value: unknown): value is Obj =>
+const is = <T extends DatumObject>(
+  value: unknown,
+): value is Obj<T> =>
   typeof value === "object" && value !== null;
 
 /**
  * Refinable instance for record type guards.
  */
-export const recRefinable: Refinable1<"Obj"> = {
-  KindKey: "Obj",
-  is,
-};
+export const recRefinable: RefinableDatumObject<"Obj"> =
+  {
+    KindKey: "Obj",
+    is,
+  };
 /**
  * Exported type guard function for record values.
  */
@@ -51,19 +52,20 @@ export const { is: isObj } = recRefinable;
 /**
  * Castable instance for record safe casting.
  */
-export const recCastable: Castable1<"Obj"> = {
-  KindKey: "Obj",
-  as: (
-    value: unknown,
-  ): Result<Obj, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Not record",
-          }),
-        ),
-};
+export const recCastable: CastableDatumObject<"Obj"> =
+  {
+    KindKey: "Obj",
+    as: <T extends DatumObject>(
+      value: unknown,
+    ): Result<Obj<T>, InvalidError> =>
+      is<T>(value)
+        ? newOk(value)
+        : newErr(
+            new InvalidError({
+              message: "Not record",
+            }),
+          ),
+  };
 /**
  * Exported safe casting function for record values.
  */
