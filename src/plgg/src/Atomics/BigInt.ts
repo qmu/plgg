@@ -87,11 +87,17 @@ export const { as: asBigInt } = bigIntCastable;
 // JsonReady
 // --------------------------------
 
+/**
+ * JSON-ready representation of BigInt values.
+ */
 export type JsonReadyBigInt = {
   type: "bigint";
   value: string;
 };
 
+/**
+ * Type guard for JSON-ready BigInt values.
+ */
 export const isJsonReadyBigInt = (
   value: unknown,
 ): value is JsonReadyBigInt =>
@@ -102,7 +108,7 @@ export const isJsonReadyBigInt = (
   typeof value.value === "string";
 
 /**
- * JsonSerializable instance for BigInt values.
+ * Datum instance for BigInt values.
  */
 export const bigIntJsonSerializable: JsonSerializer<
   BigInt,
@@ -118,6 +124,9 @@ export const bigIntJsonSerializable: JsonSerializer<
     jsonReady: JsonReadyBigInt,
   ): BigInt => BigInt(jsonReady.value),
 };
+/**
+ * Exported JSON serialization functions for BigInt values.
+ */
 export const {
   toJsonReady: toJsonReadyBigInt,
   fromJsonReady: fromJsonReadyBigInt,

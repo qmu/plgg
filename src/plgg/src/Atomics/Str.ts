@@ -69,12 +69,18 @@ export const concat =
 // JsonReady
 // --------------------------------
 
+/**
+ * JSON-ready representation of Str values.
+ */
 export type JsonReadyStr = Str;
 
+/**
+ * Type guard for JSON-ready Str values.
+ */
 export const isJsonReadyStr = isStr;
 
 /**
- * JsonSerializable instance for string values.
+ * Datum instance for string values.
  */
 export const strJsonSerializable: JsonSerializer<
   Str,
@@ -83,6 +89,9 @@ export const strJsonSerializable: JsonSerializer<
   toJsonReady: (value: Str) => value,
   fromJsonReady: (jsonReady: Str) => jsonReady,
 };
+/**
+ * Exported JSON serialization functions for Str values.
+ */
 export const {
   toJsonReady: toJsonReadyStr,
   fromJsonReady: fromJsonReadyStr,

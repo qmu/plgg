@@ -63,7 +63,7 @@ export interface Pointed3<
 }
 
 /**
- * Provides the ability to wrap JsonSerializable values in minimal context for single-parameter types.
+ * Provides the ability to wrap Datum values in minimal context for single-parameter types.
  */
 export interface Pointed1JsonSerializable<
   KindKey extends KindKeys1Datum,
@@ -73,7 +73,7 @@ export interface Pointed1JsonSerializable<
    */
   readonly KindKey: KindKey;
   /**
-   * Wraps a JsonSerializable value in the minimal context (also known as pure or return).
+   * Wraps a Datum value in the minimal context (also known as pure or return).
    */
   of: <A extends Datum>(
     a: A,

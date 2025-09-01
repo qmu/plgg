@@ -57,6 +57,10 @@ export const someRefinable: Refinable1<"Some"> = {
   KindKey: "Some",
   is,
 };
+/**
+ * Exported type guard function for Some values.
+ */
+export const { is: isSome } = someRefinable;
 
 /**
  * Castable instance for Some safe casting.
@@ -74,6 +78,7 @@ export const someCastable: Castable1<"Some"> = {
           }),
         ),
 };
-
-export const { is: isSome } = someRefinable;
+/**
+ * Exported safe casting function for Some values.
+ */
 export const { as: asSome } = someCastable;

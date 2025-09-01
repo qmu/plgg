@@ -37,6 +37,9 @@ export interface Castable1<
   ) => Result<Kind1<KindKey, A>, InvalidError>;
 }
 
+/**
+ * Enables safe type casting for single-parameter type constructors with Datum constraints.
+ */
 export interface Castable1Datum<
   KindKey extends KindKeys1Datum,
 > {

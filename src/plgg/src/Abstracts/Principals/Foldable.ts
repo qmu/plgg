@@ -95,7 +95,7 @@ export interface Foldable3<
 }
 
 /**
- * Enables folding JsonSerializable structures into single values through reduction operations.
+ * Enables folding Datum structures into single values through reduction operations.
  */
 export interface Foldable1Datum<
   KindKey extends KindKeys1Datum,
@@ -105,7 +105,7 @@ export interface Foldable1Datum<
    */
   readonly KindKey: KindKey;
   /**
-   * Performs right-associative fold of a JsonSerializable structure.
+   * Performs right-associative fold of a Datum structure.
    */
   foldr: <A extends Datum, B>(
     f: (a: A, b: B) => B,
@@ -113,7 +113,7 @@ export interface Foldable1Datum<
     initial: B,
   ) => (fa: Kind1Datum<KindKey, A>) => B;
   /**
-   * Performs left-associative fold of a JsonSerializable structure.
+   * Performs left-associative fold of a Datum structure.
    */
   foldl: <A extends Datum, B>(
     f: (b: B, a: A) => B,

@@ -14,6 +14,9 @@ export interface MapKind2<A, B> {}
 // @ts-ignore will have ReaderTaskResult
 export interface MapKind3<A, B, C> {}
 
+/**
+ * Registry for mapping single-parameter type constructor keys to their concrete Datum types.
+ */
 export interface MapKind1Datum<A extends Datum> {}
 
 /**
@@ -36,6 +39,9 @@ export type KindKeys3 = keyof MapKind3<
   unknown
 >;
 
+/**
+ * Union type of all registered single-parameter Datum kind keys.
+ */
 export type KindKeys1Datum =
   keyof MapKind1Datum<Datum>;
 
@@ -64,6 +70,9 @@ export type Kind3<
   C,
 > = MapKind3<A, B, C>[KindKey];
 
+/**
+ * Resolves a kind key to its concrete single-parameter Datum type.
+ */
 export type Kind1Datum<
   KindKey extends KindKeys1Datum,
   A extends Datum,

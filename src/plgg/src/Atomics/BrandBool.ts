@@ -16,6 +16,9 @@ export type BrandBool<U extends string> = Brand<
   U
 >;
 
+/**
+ * JSON-ready representation of BrandBool values.
+ */
 export type JsonReadyBrandBool = Bool;
 
 /**

@@ -35,6 +35,9 @@ export interface Refinable1<
   ) => value is Kind1<KindKey, A>;
 }
 
+/**
+ * Enables type validation for single-parameter type constructors with Datum constraints.
+ */
 export type Refinable1Datum<
   KindKey extends KindKeys1Datum,
 > = {

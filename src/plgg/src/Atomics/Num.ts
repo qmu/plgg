@@ -64,12 +64,18 @@ export const { as: asNum } = numCastable;
 // JsonReady
 // --------------------------------
 
+/**
+ * JSON-ready representation of Num values.
+ */
 export type JsonReadyNum = Num;
 
+/**
+ * Type guard for JSON-ready Num values.
+ */
 export const isJsonReadyNum = isNum;
 
 /**
- * JsonSerializable instance for number values.
+ * Datum instance for number values.
  */
 export const numJsonSerializable: JsonSerializer<
   Num,
@@ -78,6 +84,9 @@ export const numJsonSerializable: JsonSerializer<
   toJsonReady: (value: Num) => value,
   fromJsonReady: (jsonReady: Num) => jsonReady,
 };
+/**
+ * Exported JSON serialization functions for Num values.
+ */
 export const {
   toJsonReady: toJsonReadyNum,
   fromJsonReady: fromJsonReadyNum,

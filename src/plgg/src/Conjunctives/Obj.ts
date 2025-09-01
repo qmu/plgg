@@ -45,9 +45,6 @@ export const recRefinable: Refinable1<"Obj"> = {
 /**
  * Exported type guard function for record values.
  */
-/**
- * Exported type guard function for record values.
- */
 export const { is: isObj } = recRefinable;
 
 /**
@@ -75,16 +72,25 @@ export const { as: asObj } = recCastable;
 // JsonReady
 // --------------------------------
 
+/**
+ * Object type containing JsonReady values for serialization.
+ */
 export type JsonReadyObj = {
   [key: string]: JsonReady;
 };
 
+/**
+ * Type guard to check if a value is a JsonReadyObj.
+ */
 export const isJsonReadyObj = (
   value: unknown,
 ): value is JsonReadyObj =>
   isObj(value) &&
   Object.values(value).every(isJsonReady);
 
+/**
+ * Converts an Obj to JsonReadyObj for serialization.
+ */
 export const toJsonReadyObj = (
   value: Obj,
 ): JsonReadyObj => {
@@ -99,6 +105,9 @@ export const toJsonReadyObj = (
   return result;
 };
 
+/**
+ * Converts JsonReadyObj back to Obj from serialization.
+ */
 export const fromJsonReadyObj = (
   jsonReady: JsonReadyObj,
 ): Obj => {

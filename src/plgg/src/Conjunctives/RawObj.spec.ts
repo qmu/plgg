@@ -1,17 +1,17 @@
 import { test, expect, assert } from "vitest";
 import {
   isRawObj,
-  asMutRec,
+  asRawObj,
   isOk,
   isErr,
-  mapMutRec,
-  applyMutRec,
-  ofMutRec,
-  chainMutRec,
-  foldrMutRec,
-  foldlMutRec,
-  traverseMutRec,
-  sequenceMutRec,
+  mapRawObj,
+  applyRawObj,
+  ofRawObj,
+  chainRawObj,
+  foldrRawObj,
+  foldlRawObj,
+  traverseRawObj,
+  sequenceRawObj,
   pipe,
 } from "plgg/index";
 
@@ -33,43 +33,43 @@ test("isMutRec type guard", () => {
 });
 
 /**
- * Tests asMutRec validation for records and non-record types.
+ * Tests asRawObj validation for records and non-record types.
  */
-test("asMutRec validation", async () => {
-  const emptyResult = asMutRec({});
+test("asRawObj validation", async () => {
+  const emptyResult = asRawObj({});
   assert(isOk(emptyResult));
   expect(emptyResult.body).toEqual({});
 
-  const recResult = asMutRec({ a: 1, b: "test" });
+  const recResult = asRawObj({ a: 1, b: "test" });
   assert(isOk(recResult));
   expect(recResult.body).toEqual({
     a: 1,
     b: "test",
   });
 
-  const arrayResult = asMutRec([1, 2, 3]);
+  const arrayResult = asRawObj([1, 2, 3]);
   assert(isOk(arrayResult));
   expect(arrayResult.body).toEqual([1, 2, 3]);
 
-  const nullResult = asMutRec(null);
+  const nullResult = asRawObj(null);
   assert(isErr(nullResult));
   expect(nullResult.body.message).toBe(
     "Not record",
   );
 
-  const undefinedResult = asMutRec(undefined);
+  const undefinedResult = asRawObj(undefined);
   assert(isErr(undefinedResult));
   expect(undefinedResult.body.message).toBe(
     "Not record",
   );
 
-  const stringResult = asMutRec("test");
+  const stringResult = asRawObj("test");
   assert(isErr(stringResult));
   expect(stringResult.body.message).toBe(
     "Not record",
   );
 
-  const numberResult = asMutRec(123);
+  const numberResult = asRawObj(123);
   assert(isErr(numberResult));
   expect(numberResult.body.message).toBe(
     "Not record",
@@ -79,13 +79,13 @@ test("asMutRec validation", async () => {
 /**
  * Tests mutable record mapping functionality through Functor instance.
  */
-test("mapMutRec - Functor instance", () => {
+test("mapRawObj - Functor instance", () => {
   const rec = { x: 1, y: 2 };
   const double = (n: number) => n * 2;
 
   const result = pipe(
     rec,
-    mapMutRec((o: typeof rec) => ({
+    mapRawObj((o: typeof rec) => ({
       x: double(o.x),
       y: double(o.y),
     })),
@@ -95,7 +95,7 @@ test("mapMutRec - Functor instance", () => {
   const toString = (n: number) => n.toString();
   const stringResult = pipe(
     rec,
-    mapMutRec((o: typeof rec) => ({
+    mapRawObj((o: typeof rec) => ({
       x: toString(o.x),
       y: toString(o.y),
     })),
@@ -109,16 +109,16 @@ test("mapMutRec - Functor instance", () => {
 /**
  * Validates mutable record wrapping through Pointed instance.
  */
-test("ofMutRec - Pointed instance", () => {
+test("ofRawObj - Pointed instance", () => {
   const rec = { name: "test", value: 42 };
-  const result = pipe(rec, ofMutRec);
+  const result = pipe(rec, ofRawObj);
   expect(result).toEqual(rec);
   expect(result).toBe(rec);
 
   const primitiveRec = { count: 0 };
   const primitiveResult = pipe(
     primitiveRec,
-    ofMutRec,
+    ofRawObj,
   );
   expect(primitiveResult).toEqual(primitiveRec);
 });
@@ -126,7 +126,7 @@ test("ofMutRec - Pointed instance", () => {
 /**
  * Tests function application over mutable records through Apply instance.
  */
-test("applyMutRec - Apply instance", () => {
+test("applyRawObj - Apply instance", () => {
   const addValues = (rec: {
     a: number;
     b: number;
@@ -135,7 +135,7 @@ test("applyMutRec - Apply instance", () => {
 
   const result = pipe(
     rec,
-    applyMutRec(addValues),
+    applyRawObj(addValues),
   );
   expect(result).toBe(8);
 
@@ -150,7 +150,7 @@ test("applyMutRec - Apply instance", () => {
 
   const transformResult = pipe(
     personRec,
-    applyMutRec(transformRec),
+    applyRawObj(transformRec),
   );
   expect(transformResult).toEqual({
     fullName: "ALICE",
@@ -161,7 +161,7 @@ test("applyMutRec - Apply instance", () => {
 /**
  * Validates mutable record chaining operations through Chain instance.
  */
-test("chainMutRec - Chain instance", () => {
+test("chainRawObj - Chain instance", () => {
   const rec = { value: 10 };
 
   const multiplyAndWrap = (o: typeof rec) => ({
@@ -169,7 +169,7 @@ test("chainMutRec - Chain instance", () => {
   });
   const result = pipe(
     rec,
-    chainMutRec(multiplyAndWrap),
+    chainRawObj(multiplyAndWrap),
   );
   expect(result).toEqual({ result: 20 });
 
@@ -183,7 +183,7 @@ test("chainMutRec - Chain instance", () => {
   const numberRec = { x: 3 };
   const chainResult = pipe(
     numberRec,
-    chainMutRec(addFieldsAndWrap),
+    chainRawObj(addFieldsAndWrap),
   );
   expect(chainResult).toEqual({
     original: 3,
@@ -195,7 +195,7 @@ test("chainMutRec - Chain instance", () => {
 /**
  * Tests right-to-left folding operations on mutable records.
  */
-test("foldrMutRec - right fold", () => {
+test("foldrRawObj - right fold", () => {
   const rec = { name: "Alice", age: 30 };
 
   const concatenateValues = (
@@ -204,7 +204,7 @@ test("foldrMutRec - right fold", () => {
   ) => acc + JSON.stringify(o);
   const result = pipe(
     rec,
-    foldrMutRec(concatenateValues)("start:"),
+    foldrRawObj(concatenateValues)("start:"),
   );
   expect(result).toBe(
     'start:{"name":"Alice","age":30}',
@@ -217,7 +217,7 @@ test("foldrMutRec - right fold", () => {
   const numRec = { a: 5, b: 10 };
   const sumResult = pipe(
     numRec,
-    foldrMutRec(sumNumericFields)(0),
+    foldrRawObj(sumNumericFields)(0),
   );
   expect(sumResult).toBe(15);
 });
@@ -225,7 +225,7 @@ test("foldrMutRec - right fold", () => {
 /**
  * Tests left-to-right folding operations on mutable records.
  */
-test("foldlMutRec - left fold", () => {
+test("foldlRawObj - left fold", () => {
   const rec = { x: 2, y: 3 };
 
   const multiplyValues = (
@@ -234,7 +234,7 @@ test("foldlMutRec - left fold", () => {
   ) => acc * o.x * o.y;
   const result = pipe(
     rec,
-    foldlMutRec(multiplyValues)(1),
+    foldlRawObj(multiplyValues)(1),
   );
   expect(result).toBe(6);
 
@@ -245,26 +245,26 @@ test("foldlMutRec - left fold", () => {
   const nameRec = { name: "World" };
   const appendResult = pipe(
     nameRec,
-    foldlMutRec(appendrecord)("Hello "),
+    foldlRawObj(appendrecord)("Hello "),
   );
   expect(appendResult).toBe("Hello World");
 });
 
 /**
- * Verifies traverseMutRec function is exported and available.
+ * Verifies traverseRawObj function is exported and available.
  */
-test("traverseMutRec - function exists", () => {
+test("traverseRawObj - function exists", () => {
   // Verify traverse function availability for mutable record operations
-  expect(typeof traverseMutRec).toBe("function");
-  expect(traverseMutRec).toBeDefined();
+  expect(typeof traverseRawObj).toBe("function");
+  expect(traverseRawObj).toBeDefined();
 });
 
 /**
- * Verifies sequenceMutRec function is exported and available.
+ * Verifies sequenceRawObj function is exported and available.
  */
-test("sequenceMutRec - function exists", () => {
+test("sequenceRawObj - function exists", () => {
   // Verify sequence function availability for mutable record operations
-  expect(typeof sequenceMutRec).toBe("function");
-  expect(sequenceMutRec).toBeDefined();
+  expect(typeof sequenceRawObj).toBe("function");
+  expect(sequenceRawObj).toBeDefined();
 });
 

@@ -16,11 +16,17 @@ import {
   isJsonReadyObj,
 } from "plgg/index";
 
+/**
+ * Union type for all JSON-ready data types.
+ */
 export type JsonReady =
   | JsonReadyAtomic
   | JsonReadyObj
   | JsonReadyVec;
 
+/**
+ * Runtime type guard to check if a value is JSON-ready.
+ */
 export const isJsonReady = (
   value: unknown,
 ): value is JsonReady =>
@@ -28,6 +34,9 @@ export const isJsonReady = (
   isJsonReadyObj(value) ||
   isJsonReadyVec(value);
 
+/**
+ * Converts a Datum value to its JSON-ready representation.
+ */
 export const toJsonReady = (
   value: Datum,
 ): JsonReady => {
@@ -40,6 +49,9 @@ export const toJsonReady = (
   return toJsonReadyAtomic(value);
 };
 
+/**
+ * Converts a JSON-ready value back to its original Datum form.
+ */
 export const fromJsonReady = (
   jsonReady: JsonReady,
 ): Datum => {
@@ -52,9 +64,15 @@ export const fromJsonReady = (
   return fromJsonReadyObj(jsonReady);
 };
 
+/**
+ * Serializes a Datum value to a JSON string.
+ */
 export const toJson = (value: Datum): string =>
   JSON.stringify(toJsonReady(value));
 
+/**
+ * Deserializes a JSON string back to a Datum value.
+ */
 export const fromJson = (
   jsonString: string,
 ): Datum => fromJsonReady(JSON.parse(jsonString));

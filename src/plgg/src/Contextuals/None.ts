@@ -46,6 +46,9 @@ const is = (e: unknown): e is None =>
 export const noneRefinable: Refinable0<None> = {
   is,
 };
+/**
+ * Exported type guard function for None values.
+ */
 export const { is: isNone } = noneRefinable;
 
 /**
@@ -63,4 +66,7 @@ export const noneCastable: Castable0<None> = {
           }),
         ),
 };
+/**
+ * Exported safe casting function for None values.
+ */
 export const { as: asNone } = noneCastable;

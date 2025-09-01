@@ -142,16 +142,22 @@ export const conclude =
 // JsonReady
 // --------------------------------
 
+/**
+ * Type representing a vector that is ready for JSON serialization.
+ */
 export type JsonReadyVec =
   ReadonlyArray<JsonReady>;
 
+/**
+ * Type guard to check if a value is a JsonReadyVec.
+ */
 export const isJsonReadyVec = (
   value: unknown,
 ): value is JsonReadyVec =>
   isVec(value) && value.every(isJsonReady);
 
 /**
- * JsonSerializer instance for Vec values.
+ * JsonSerializer instance for Vec values using Datum types.
  */
 export const vecJsonSerializer: JsonSerializer<
   Vec,
@@ -163,6 +169,9 @@ export const vecJsonSerializer: JsonSerializer<
     jsonReady.map(fromJsonReady),
 };
 
+/**
+ * Exported JSON serialization functions for Vec values.
+ */
 export const {
   toJsonReady: toJsonReadyVec,
   fromJsonReady: fromJsonReadyVec,

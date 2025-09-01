@@ -70,7 +70,10 @@ export const mutRecCastable: Castable1<"MutRec"> =
 /**
  * Exported safe casting function for mutable record values.
  */
-export const { as: asMutRec } = mutRecCastable;
+/**
+ * Exported safe casting function for mutable record values.
+ */
+export const { as: asRawObj } = mutRecCastable;
 
 /**
  * Functor instance providing mapping operations over mutable record values.
@@ -85,7 +88,7 @@ export const mutRecFunctor: Functor1<"MutRec"> = {
 /**
  * Exported mapping function for mutable records.
  */
-export const { map: mapMutRec } = mutRecFunctor;
+export const { map: mapRawObj } = mutRecFunctor;
 
 /**
  * Apply instance enabling application of wrapped functions to wrapped values.
@@ -100,7 +103,7 @@ export const mutRecApply: Apply1<"MutRec"> = {
 /**
  * Exported application function for mutable records.
  */
-export const { ap: applyMutRec } = mutRecApply;
+export const { ap: applyRawObj } = mutRecApply;
 
 /**
  * Pointed instance enabling wrapping of values in mutable record context.
@@ -112,7 +115,7 @@ export const mutRecPointed: Pointed1<"MutRec"> = {
 /**
  * Exported value wrapping function for mutable records.
  */
-export const { of: ofMutRec } = mutRecPointed;
+export const { of: ofRawObj } = mutRecPointed;
 
 /**
  * Applicative instance combining Apply and Pointed for mutable records.
@@ -139,7 +142,7 @@ export const mutRecChain: Chain1<"MutRec"> = {
 /**
  * Exported chaining function for mutable records.
  */
-export const { chain: chainMutRec } = mutRecChain;
+export const { chain: chainRawObj } = mutRecChain;
 
 /**
  * Monad instance providing full monadic interface for mutable records.
@@ -170,8 +173,8 @@ export const mutRecFoldable: Foldable1<"MutRec"> =
  * Exported fold functions for mutable records.
  */
 export const {
-  foldr: foldrMutRec,
-  foldl: foldlMutRec,
+  foldr: foldrRawObj,
+  foldl: foldlRawObj,
 } = mutRecFoldable;
 
 /**
@@ -197,6 +200,6 @@ export const mutRecTraversable: Traversable1<"MutRec"> =
  * Exported traversal functions for mutable records.
  */
 export const {
-  traverse: traverseMutRec,
-  sequence: sequenceMutRec,
+  traverse: traverseRawObj,
+  sequence: sequenceRawObj,
 } = mutRecTraversable;

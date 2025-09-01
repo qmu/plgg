@@ -8,6 +8,9 @@ export type FixedVariant<TAG extends string> = {
   body: undefined;
 };
 
+/**
+ * Type predicate to check if a type is a fixed variant.
+ */
 export type IsFixedVariant<V> = V extends {
   __tag: infer T;
   body: undefined;
@@ -28,6 +31,9 @@ export type ParametricVariant<
   body: BODY;
 };
 
+/**
+ * Type predicate to check if a type is a parametric variant.
+ */
 export type IsParametricVariant<V> = V extends {
   __tag: infer T;
   body: infer B;
@@ -121,7 +127,7 @@ export type ExtractVariantBody<
 /**
  * Extracts the tag type from a variant type.
  */
-type ExtractTag<
+export type ExtractTag<
   V extends Variant<string, unknown>,
 > =
   V extends Variant<infer TAG, unknown>

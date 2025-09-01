@@ -16,6 +16,9 @@ export type BrandNum<U extends string> = Brand<
   U
 >;
 
+/**
+ * JSON-ready representation of BrandNum values.
+ */
 export type JsonReadyBrandNum = Num;
 
 /**

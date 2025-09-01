@@ -1,5 +1,8 @@
 import { BaseError } from "plgg/Exceptionals/BaseError";
 
+/**
+ * Error class for deserialization failures.
+ */
 export class DeserializeError extends BaseError {
   /**
    * Error name identifier.

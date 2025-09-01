@@ -71,12 +71,18 @@ export const { as: asBool } = boolCastable;
 // JsonReady
 // --------------------------------
 
+/**
+ * JSON-ready representation of Bool values.
+ */
 export type JsonReadyBool = Bool;
 
+/**
+ * Type guard for JSON-ready Bool values.
+ */
 export const isJsonReadyBool = isBool;
 
 /**
- * JsonSerializable instance for boolean values.
+ * Datum instance for boolean values.
  */
 export const boolJsonSerializable: JsonSerializer<
   Bool,
@@ -85,6 +91,9 @@ export const boolJsonSerializable: JsonSerializer<
   toJsonReady: (value: Bool) => value,
   fromJsonReady: (jsonReady: Bool) => jsonReady,
 };
+/**
+ * Exported JSON serialization functions for Bool values.
+ */
 export const {
   toJsonReady: toJsonReadyBool,
   fromJsonReady: fromJsonReadyBool,

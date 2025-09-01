@@ -1,5 +1,8 @@
 import { BaseError } from "plgg/Exceptionals/BaseError";
 
+/**
+ * Error class for serialization failures.
+ */
 export class SerializeError extends BaseError {
   /**
    * Error name identifier.

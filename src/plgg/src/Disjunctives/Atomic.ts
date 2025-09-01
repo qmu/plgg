@@ -65,6 +65,9 @@ export const isAtomic = (
 // JsonReady
 // --------------------------------
 
+/**
+ * Union type for JSON-ready atomic values.
+ */
 export type JsonReadyAtomic =
   | JsonReadyStr
   | JsonReadyNum
@@ -74,6 +77,9 @@ export type JsonReadyAtomic =
   | JsonReadyBrandNum
   | JsonReadyBrandBool;
 
+/**
+ * Runtime type guard to check if a value is JSON-ready atomic.
+ */
 export const isJsonReadyAtomic = (
   value: unknown,
 ): value is JsonReadyAtomic =>
@@ -85,6 +91,9 @@ export const isJsonReadyAtomic = (
   isBrandNum(value) ||
   isBrandBool(value);
 
+/**
+ * Converts an atomic value to its JSON-ready representation.
+ */
 export const toJsonReadyAtomic = (
   value: Atomic,
 ): JsonReadyAtomic => {
@@ -94,6 +103,9 @@ export const toJsonReadyAtomic = (
   return value;
 };
 
+/**
+ * Converts a JSON-ready atomic value back to its original form.
+ */
 export const fromJsonReadyAtomic = (
   jsonReady: JsonReadyAtomic,
 ): Atomic => {

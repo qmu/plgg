@@ -71,7 +71,7 @@ export interface Functor3<
 }
 
 /**
- * Enables mapping functions over wrapped JsonSerializable values in single-parameter type constructors.
+ * Enables mapping functions over wrapped Datum values in single-parameter type constructors.
  */
 export interface Functor1Datum<
   KindKey extends KindKeys1Datum,
@@ -81,7 +81,7 @@ export interface Functor1Datum<
    */
   readonly KindKey: KindKey;
   /**
-   * Maps a function over the wrapped JsonSerializable value.
+   * Maps a function over the wrapped Datum value.
    */
   map: <A extends Datum, B extends Datum>(
     f: (a: A) => B,
