@@ -13,8 +13,6 @@ import {
  */
 export type Num = number;
 
-export type JsonReadyNum = Num;
-
 /**
  * Type predicate to determine if a type is Num.
  */
@@ -61,6 +59,14 @@ export const numCastable: Castable0<Num> = {
  * Exported safe casting function for number values.
  */
 export const { as: asNum } = numCastable;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+export type JsonReadyNum = Num;
+
+export const isJsonReadyNum = isNum;
 
 /**
  * JsonSerializable instance for number values.

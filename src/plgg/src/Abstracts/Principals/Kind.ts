@@ -1,46 +1,43 @@
-import { JsonSerializable } from "plgg/index";
+import { Datum } from "plgg/index";
 
 /**
  * Registry for mapping single-parameter type constructor keys to their concrete types.
  */
-export interface KindKeytoKind1<A> {}
+export interface MapKind1<A> {}
 /**
  * Registry for mapping two-parameter type constructor keys to their concrete types.
  */
-export interface KindKeytoKind2<A, B> {}
+export interface MapKind2<A, B> {}
 /**
  * Registry for mapping three-parameter type constructor keys to their concrete types.
  */
 // @ts-ignore will have ReaderTaskResult
-export interface KindKeytoKind3<A, B, C> {}
+export interface MapKind3<A, B, C> {}
 
-export interface KindKeytoKind1JsonSerializable<
-  A extends JsonSerializable,
-> {}
+export interface MapKind1Datum<A extends Datum> {}
 
 /**
  * Union type of all registered single-parameter kind keys.
  */
-export type KindKeys1 =
-  keyof KindKeytoKind1<unknown>;
+export type KindKeys1 = keyof MapKind1<unknown>;
 /**
  * Union type of all registered two-parameter kind keys.
  */
-export type KindKeys2 = keyof KindKeytoKind2<
+export type KindKeys2 = keyof MapKind2<
   unknown,
   unknown
 >;
 /**
  * Union type of all registered three-parameter kind keys.
  */
-export type KindKeys3 = keyof KindKeytoKind3<
+export type KindKeys3 = keyof MapKind3<
   unknown,
   unknown,
   unknown
 >;
 
-export type KindKeys1JsonSerializable =
-  keyof KindKeytoKind1JsonSerializable<JsonSerializable>;
+export type KindKeys1Datum =
+  keyof MapKind1Datum<Datum>;
 
 /**
  * Resolves a kind key to its concrete single-parameter type.
@@ -48,7 +45,7 @@ export type KindKeys1JsonSerializable =
 export type Kind1<
   KindKey extends KindKeys1,
   A,
-> = KindKeytoKind1<A>[KindKey];
+> = MapKind1<A>[KindKey];
 /**
  * Resolves a kind key to its concrete two-parameter type.
  */
@@ -56,7 +53,7 @@ export type Kind2<
   KindKey extends KindKeys2,
   A,
   B,
-> = KindKeytoKind2<A, B>[KindKey];
+> = MapKind2<A, B>[KindKey];
 /**
  * Resolves a kind key to its concrete three-parameter type.
  */
@@ -65,9 +62,9 @@ export type Kind3<
   A,
   B,
   C,
-> = KindKeytoKind3<A, B, C>[KindKey];
+> = MapKind3<A, B, C>[KindKey];
 
-export type Kind1JsonSerializable<
-  KindKey extends KindKeys1JsonSerializable,
-  A extends JsonSerializable,
-> = KindKeytoKind1JsonSerializable<A>[KindKey];
+export type Kind1Datum<
+  KindKey extends KindKeys1Datum,
+  A extends Datum,
+> = MapKind1Datum<A>[KindKey];

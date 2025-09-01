@@ -13,8 +13,6 @@ import {
  */
 export type Str = string;
 
-export type JsonReadyStr = Str;
-
 /**
  * Type predicate to determine if a type is Str.
  */
@@ -60,6 +58,22 @@ export const strCastable: Castable0<Str> = {
 export const { as: asStr } = strCastable;
 
 /**
+ * Concatenates two strings using curried application.
+ */
+export const concat =
+  (adding: Str) =>
+  (base: Str): Str =>
+    base + adding;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+export type JsonReadyStr = Str;
+
+export const isJsonReadyStr = isStr;
+
+/**
  * JsonSerializable instance for string values.
  */
 export const strJsonSerializable: JsonSerializer<
@@ -73,11 +87,3 @@ export const {
   toJsonReady: toJsonReadyStr,
   fromJsonReady: fromJsonReadyStr,
 } = strJsonSerializable;
-
-/**
- * Concatenates two strings using curried application.
- */
-export const concat =
-  (adding: Str) =>
-  (base: Str): Str =>
-    base + adding;

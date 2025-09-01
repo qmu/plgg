@@ -20,7 +20,7 @@ import {
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface KindKeytoKind1<A> {
+  export interface MapKind1<A> {
     MutVec: MutVec<A>;
   }
 }
@@ -34,16 +34,18 @@ export type MutVec<T extends unknown = unknown> =
 /**
  * Type guard to check if a value is a MutVec.
  */
-const is = <T>(value: unknown): value is MutVec<T> =>
-  Array.isArray(value);
+const is = <T>(
+  value: unknown,
+): value is MutVec<T> => Array.isArray(value);
 
 /**
  * Refinable instance for mutable vector type guards.
  */
-export const mutVecRefinable: Refinable1<"MutVec"> = {
-  KindKey: "MutVec",
-  is,
-};
+export const mutVecRefinable: Refinable1<"MutVec"> =
+  {
+    KindKey: "MutVec",
+    is,
+  };
 /**
  * Exported type guard function for mutable vector values.
  */
@@ -52,19 +54,20 @@ export const { is: isMutVec } = mutVecRefinable;
 /**
  * Castable instance for mutable vector safe casting.
  */
-export const mutVecCastable: Castable1<"MutVec"> = {
-  KindKey: "MutVec",
-  as: <A>(
-    value: unknown,
-  ): Result<MutVec<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a vector",
-          }),
-        ),
-};
+export const mutVecCastable: Castable1<"MutVec"> =
+  {
+    KindKey: "MutVec",
+    as: <A>(
+      value: unknown,
+    ): Result<MutVec<A>, InvalidError> =>
+      is<A>(value)
+        ? newOk(value)
+        : newErr(
+            new InvalidError({
+              message: "Value is not a vector",
+            }),
+          ),
+  };
 /**
  * Exported safe casting function for mutable vector values.
  */
@@ -151,22 +154,23 @@ export const mutVecMonad: Monad1<"MutVec"> = {
 /**
  * Foldable instance providing fold operations for mutable vectors.
  */
-export const mutVecFoldable: Foldable1<"MutVec"> = {
-  KindKey: "MutVec",
-  foldr:
-    <A, B>(f: (a: A, b: B) => B) =>
-    (initial: B) =>
-    (fa: MutVec<A>): B =>
-      fa.reduceRight(
-        (acc, x) => f(x, acc),
-        initial,
-      ),
-  foldl:
-    <A, B>(f: (b: B, a: A) => B) =>
-    (initial: B) =>
-    (fa: MutVec<A>): B =>
-      fa.reduce(f, initial),
-};
+export const mutVecFoldable: Foldable1<"MutVec"> =
+  {
+    KindKey: "MutVec",
+    foldr:
+      <A, B>(f: (a: A, b: B) => B) =>
+      (initial: B) =>
+      (fa: MutVec<A>): B =>
+        fa.reduceRight(
+          (acc, x) => f(x, acc),
+          initial,
+        ),
+    foldl:
+      <A, B>(f: (b: B, a: A) => B) =>
+      (initial: B) =>
+      (fa: MutVec<A>): B =>
+        fa.reduce(f, initial),
+  };
 /**
  * Exported fold functions for mutable vectors.
  */
@@ -218,9 +222,12 @@ export const {
  */
 export const concludeMutVec =
   <T, U, F>(fn: (item: T) => Result<U, F>) =>
-  (vec: MutVec<T>): Result<MutVec<U>, MutVec<F>> =>
+  (
+    vec: MutVec<T>,
+  ): Result<MutVec<U>, MutVec<F>> =>
     vec
       .map(fn)
       .reduce<
         Result<MutVec<U>, MutVec<F>>
       >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.body, result.body]) : acc) : isErr(acc) ? newErr([...acc.body, result.body]) : newErr([result.body])), newOk([]));
+

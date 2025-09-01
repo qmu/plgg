@@ -18,7 +18,7 @@ import {
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface KindKeytoKind1<A> {
+  export interface MapKind1<A> {
     MutRec: RawObj<A>;
   }
 }

@@ -5,9 +5,9 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
-  Kind1JsonSerializable,
-  KindKeys1JsonSerializable,
-  JsonSerializable,
+  Kind1Datum,
+  KindKeys1Datum,
+  Datum,
 } from "plgg/index";
 
 /**
@@ -66,7 +66,7 @@ export interface Pointed3<
  * Provides the ability to wrap JsonSerializable values in minimal context for single-parameter types.
  */
 export interface Pointed1JsonSerializable<
-  KindKey extends KindKeys1JsonSerializable,
+  KindKey extends KindKeys1Datum,
 > {
   /**
    * The kind key identifier.
@@ -75,7 +75,7 @@ export interface Pointed1JsonSerializable<
   /**
    * Wraps a JsonSerializable value in the minimal context (also known as pure or return).
    */
-  of: <A extends JsonSerializable>(
+  of: <A extends Datum>(
     a: A,
-  ) => Kind1JsonSerializable<KindKey, A>;
+  ) => Kind1Datum<KindKey, A>;
 }

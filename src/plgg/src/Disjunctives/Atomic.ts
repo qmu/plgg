@@ -22,6 +22,10 @@ import {
   JsonReadyBrandBool,
   toJsonReadyBigInt,
   fromJsonReadyBigInt,
+  isJsonReadyStr,
+  isJsonReadyNum,
+  isJsonReadyBool,
+  isJsonReadyBigInt,
 } from "plgg/index";
 
 /**
@@ -57,6 +61,10 @@ export const isAtomic = (
   isBrandNum(value) ||
   isBrandBool(value);
 
+// --------------------------------
+// JsonReady
+// --------------------------------
+
 export type JsonReadyAtomic =
   | JsonReadyStr
   | JsonReadyNum
@@ -66,6 +74,17 @@ export type JsonReadyAtomic =
   | JsonReadyBrandNum
   | JsonReadyBrandBool;
 
+export const isJsonReadyAtomic = (
+  value: unknown,
+): value is JsonReadyAtomic =>
+  isJsonReadyStr(value) ||
+  isJsonReadyNum(value) ||
+  isJsonReadyBool(value) ||
+  isJsonReadyBigInt(value) ||
+  isBrandStr(value) ||
+  isBrandNum(value) ||
+  isBrandBool(value);
+
 export const toJsonReadyAtomic = (
   value: Atomic,
 ): JsonReadyAtomic => {
@@ -74,17 +93,6 @@ export const toJsonReadyAtomic = (
   }
   return value;
 };
-
-/**
- * Determines if a JsonReady value is a BigInt object structure
- */
-const isJsonReadyBigInt = (
-  value: JsonReadyAtomic,
-): value is JsonReadyBigInt =>
-  typeof value === "object" &&
-  value !== null &&
-  "type" in value &&
-  value.type === "bigint";
 
 export const fromJsonReadyAtomic = (
   jsonReady: JsonReadyAtomic,

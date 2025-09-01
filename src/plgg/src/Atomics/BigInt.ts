@@ -6,17 +6,14 @@ import {
   Refinable0,
   Castable0,
   JsonSerializer,
+  isObj,
+  hasProp,
 } from "plgg/index";
 
 /**
  * Represents JavaScript BigInt values for arbitrary precision integers.
  */
 export type BigInt = bigint;
-
-export type JsonReadyBigInt = {
-  type: "bigint";
-  value: string;
-};
 
 /**
  * Type predicate to determine if a type is BigInt.
@@ -85,6 +82,24 @@ export const bigIntCastable: Castable0<BigInt> = {
  * Exported safe casting function for BigInt values.
  */
 export const { as: asBigInt } = bigIntCastable;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+export type JsonReadyBigInt = {
+  type: "bigint";
+  value: string;
+};
+
+export const isJsonReadyBigInt = (
+  value: unknown,
+): value is JsonReadyBigInt =>
+  isObj(value) &&
+  hasProp(value, "type") &&
+  value.type === "bigint" &&
+  hasProp(value, "value") &&
+  typeof value.value === "string";
 
 /**
  * JsonSerializable instance for BigInt values.

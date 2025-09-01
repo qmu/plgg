@@ -23,8 +23,6 @@ export const FALSE = false as const;
  */
 export type Bool = typeof TRUE | typeof FALSE;
 
-export type JsonReadyBool = Bool;
-
 /**
  * Type predicate to determine if a type is Bool.
  */
@@ -68,6 +66,14 @@ export const boolCastable: Castable0<Bool> = {
  * Exported safe casting function for boolean values.
  */
 export const { as: asBool } = boolCastable;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+export type JsonReadyBool = Bool;
+
+export const isJsonReadyBool = isBool;
 
 /**
  * JsonSerializable instance for boolean values.

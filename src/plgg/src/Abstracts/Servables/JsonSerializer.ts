@@ -1,10 +1,7 @@
-import {
-  JsonSerializable,
-  JsonReady,
-} from "plgg/index";
+import { Datum, JsonReady } from "plgg/index";
 
 export interface JsonSerializer<
-  T extends JsonSerializable,
+  T extends Datum,
   U extends JsonReady,
 > {
   toJsonReady: (a: T) => U;

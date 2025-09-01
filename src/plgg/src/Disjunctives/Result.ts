@@ -19,7 +19,7 @@ import {
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface KindKeytoKind2<A, B> {
+  export interface MapKind2<A, B> {
     Result: Result<A, B>;
   }
 }

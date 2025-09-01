@@ -8,13 +8,13 @@ import {
   JsonReady,
   toJsonReadyAtomic,
   isAtomic,
-  JsonSerializable,
+  Datum,
   fromJsonReady,
   JsonSerializer,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface KindKeytoKind1<A> {
+  export interface MapKind1<A> {
     Obj: Obj;
   }
 }
@@ -22,17 +22,10 @@ declare module "plgg/Abstracts/Principals/Kind" {
 /**
  * Readonly record type for functional programming operations.
  */
-export type Obj<
-  T extends
-    JsonSerializableObj = JsonSerializableObj,
-> = T;
+export type Obj<T extends _Obj = _Obj> = T;
 
-export type JsonSerializableObj = {
-  [key: string]: JsonSerializable;
-};
-
-export type JsonReadyObj = {
-  [key: string]: JsonReady;
+type _Obj = {
+  [key: string]: Datum;
 };
 
 /**
@@ -76,6 +69,14 @@ export const recCastable: Castable1<"Obj"> = {
  * Exported safe casting function for record values.
  */
 export const { as: asObj } = recCastable;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+export type JsonReadyObj = {
+  [key: string]: JsonReady;
+};
 
 export const toJsonReadyObj = (
   value: Obj,

@@ -7,7 +7,7 @@ import {
   InvalidError,
   JsonSerializer,
   JsonReady,
-  JsonSerializable,
+  Datum,
   Refinable1JsonSerializable,
   Castable1JsonSerializable,
   Functor1JsonSerializable,
@@ -17,9 +17,7 @@ import {
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface KindKeytoKind1JsonSerializable<
-    A,
-  > {
+  export interface MapKind1Datum<A> {
     Vec: Vec<A>;
   }
 }
@@ -27,20 +25,13 @@ declare module "plgg/Abstracts/Principals/Kind" {
 /**
  * Readonly vector type providing immutable functional programming operations.
  */
-export type Vec<
-  A extends JsonSerializable = JsonSerializable,
-> = readonly A[];
-
-export type JsonReadyVec = readonly JsonReady[];
-
-export const isJsonReadyVec = (
-  value: JsonReady,
-): value is JsonReadyVec => Array.isArray(value);
+export type Vec<A extends Datum = Datum> =
+  ReadonlyArray<A>;
 
 /**
  * Type guard to check if a value is a Vec.
  */
-const is = <T extends JsonSerializable>(
+const is = <T extends Datum>(
   value: unknown,
 ): value is Vec<T> => Array.isArray(value);
 
@@ -63,7 +54,7 @@ export const { is: isVec } = vecRefinable;
 export const vecCastable: Castable1JsonSerializable<"Vec"> =
   {
     KindKey: "Vec",
-    as: <A extends JsonSerializable>(
+    as: <A extends Datum>(
       value: unknown,
     ): Result<Vec<A>, InvalidError> =>
       is<A>(value)
@@ -86,10 +77,7 @@ export const vecFunctor: Functor1JsonSerializable<"Vec"> =
   {
     KindKey: "Vec",
     map:
-      <
-        T1 extends JsonSerializable,
-        T2 extends JsonSerializable,
-      >(
+      <T1 extends Datum, T2 extends Datum>(
         f: (a: T1) => T2,
       ) =>
       (fa: Vec<T1>): Vec<T2> =>
@@ -107,7 +95,7 @@ export const vecFoldable: Foldable1JsonSerializable<"Vec"> =
   {
     KindKey: "Vec",
     foldr:
-      <A extends JsonSerializable, B>(
+      <A extends Datum, B>(
         f: (a: A, b: B) => B,
       ) =>
       (initial: B) =>
@@ -117,7 +105,7 @@ export const vecFoldable: Foldable1JsonSerializable<"Vec"> =
           initial,
         ),
     foldl:
-      <A extends JsonSerializable, B>(
+      <A extends Datum, B>(
         f: (b: B, a: A) => B,
       ) =>
       (initial: B) =>
@@ -137,9 +125,9 @@ export const {
  */
 export const conclude =
   <
-    T extends JsonSerializable,
-    U extends JsonSerializable,
-    F extends JsonSerializable,
+    T extends Datum,
+    U extends Datum,
+    F extends Datum,
   >(
     fn: (item: T) => Result<U, F>,
   ) =>
@@ -149,6 +137,17 @@ export const conclude =
       .reduce<
         Result<Vec<U>, Vec<F>>
       >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.body, result.body]) : acc) : isErr(acc) ? newErr([...acc.body, result.body]) : newErr([result.body])), newOk([]));
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+export type JsonReadyVec =
+  ReadonlyArray<JsonReady>;
+
+export const isJsonReadyVec = (
+  value: JsonReady,
+): value is JsonReadyVec => Array.isArray(value);
 
 /**
  * JsonSerializer instance for Vec values.

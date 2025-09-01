@@ -1,9 +1,9 @@
 import {
   KindKeys1,
   Kind1,
-  KindKeys1JsonSerializable,
-  Kind1JsonSerializable,
-  JsonSerializable,
+  KindKeys1Datum,
+  Kind1Datum,
+  Datum,
 } from "plgg/index";
 
 /**
@@ -36,7 +36,7 @@ export interface Refinable1<
 }
 
 export type Refinable1JsonSerializable<
-  KindKey extends KindKeys1JsonSerializable,
+  KindKey extends KindKeys1Datum,
 > = {
   /**
    * The kind identifier for this refinable.
@@ -46,7 +46,7 @@ export type Refinable1JsonSerializable<
   /**
    * Type guard predicate to check if a value is of the specified kind.
    */
-  is: <A extends JsonSerializable>(
+  is: <A extends Datum>(
     value: unknown,
-  ) => value is Kind1JsonSerializable<KindKey, A>;
+  ) => value is Kind1Datum<KindKey, A>;
 };
