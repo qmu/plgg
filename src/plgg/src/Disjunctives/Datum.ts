@@ -21,5 +21,5 @@ export const isDatum = (
   value: unknown,
 ): value is Datum =>
   isAtomic(value) ||
-  isObj(value) ||
+  isObj(value) || // FIXME : should check that all props are Datum as Obj
   (isVec(value) && value.every(isDatum));
