@@ -35,7 +35,7 @@ export interface Refinable1<
   ) => value is Kind1<KindKey, A>;
 }
 
-export type Refinable1JsonSerializable<
+export type Refinable1Datum<
   KindKey extends KindKeys1Datum,
 > = {
   /**

@@ -37,7 +37,7 @@ export interface Castable1<
   ) => Result<Kind1<KindKey, A>, InvalidError>;
 }
 
-export interface Castable1JsonSerializable<
+export interface Castable1Datum<
   KindKey extends KindKeys1Datum,
 > {
   /**

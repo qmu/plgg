@@ -13,12 +13,20 @@ import {
   fromJsonReadyObj,
   isJsonReadyAtomic,
   isJsonReadyVec,
+  isJsonReadyObj,
 } from "plgg/index";
 
 export type JsonReady =
   | JsonReadyAtomic
   | JsonReadyObj
   | JsonReadyVec;
+
+export const isJsonReady = (
+  value: unknown,
+): value is JsonReady =>
+  isJsonReadyAtomic(value) ||
+  isJsonReadyObj(value) ||
+  isJsonReadyVec(value);
 
 export const toJsonReady = (
   value: Datum,
@@ -49,7 +57,4 @@ export const toJson = (value: Datum): string =>
 
 export const fromJson = (
   jsonString: string,
-): Datum => {
-  const parsed = JSON.parse(jsonString);
-  return fromJsonReady(parsed);
-};
+): Datum => fromJsonReady(JSON.parse(jsonString));

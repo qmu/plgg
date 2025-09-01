@@ -73,7 +73,7 @@ export interface Functor3<
 /**
  * Enables mapping functions over wrapped JsonSerializable values in single-parameter type constructors.
  */
-export interface Functor1JsonSerializable<
+export interface Functor1Datum<
   KindKey extends KindKeys1Datum,
 > {
   /**

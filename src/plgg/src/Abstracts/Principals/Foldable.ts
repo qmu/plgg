@@ -97,7 +97,7 @@ export interface Foldable3<
 /**
  * Enables folding JsonSerializable structures into single values through reduction operations.
  */
-export interface Foldable1JsonSerializable<
+export interface Foldable1Datum<
   KindKey extends KindKeys1Datum,
 > {
   /**

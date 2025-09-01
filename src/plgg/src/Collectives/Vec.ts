@@ -8,12 +8,13 @@ import {
   JsonSerializer,
   JsonReady,
   Datum,
-  Refinable1JsonSerializable,
-  Castable1JsonSerializable,
-  Functor1JsonSerializable,
-  Foldable1JsonSerializable,
+  Refinable1Datum,
+  Castable1Datum,
+  Functor1Datum,
+  Foldable1Datum,
   toJsonReady,
   fromJsonReady,
+  isJsonReady,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -38,7 +39,7 @@ const is = <T extends Datum>(
 /**
  * Refinable instance for vector type guards.
  */
-export const vecRefinable: Refinable1JsonSerializable<"Vec"> =
+export const vecRefinable: Refinable1Datum<"Vec"> =
   {
     KindKey: "Vec",
     is,
@@ -51,7 +52,7 @@ export const { is: isVec } = vecRefinable;
 /**
  * Castable instance for vector safe casting.
  */
-export const vecCastable: Castable1JsonSerializable<"Vec"> =
+export const vecCastable: Castable1Datum<"Vec"> =
   {
     KindKey: "Vec",
     as: <A extends Datum>(
@@ -73,16 +74,15 @@ export const { as: asVec } = vecCastable;
 /**
  * Functor instance providing mapping operations over vector elements.
  */
-export const vecFunctor: Functor1JsonSerializable<"Vec"> =
-  {
-    KindKey: "Vec",
-    map:
-      <T1 extends Datum, T2 extends Datum>(
-        f: (a: T1) => T2,
-      ) =>
-      (fa: Vec<T1>): Vec<T2> =>
-        fa.map(f),
-  };
+export const vecFunctor: Functor1Datum<"Vec"> = {
+  KindKey: "Vec",
+  map:
+    <T1 extends Datum, T2 extends Datum>(
+      f: (a: T1) => T2,
+    ) =>
+    (fa: Vec<T1>): Vec<T2> =>
+      fa.map(f),
+};
 /**
  * Exported mapping function for vectors.
  */
@@ -91,7 +91,7 @@ export const { map: mapVec } = vecFunctor;
 /**
  * Foldable instance providing fold operations for vectors.
  */
-export const vecFoldable: Foldable1JsonSerializable<"Vec"> =
+export const vecFoldable: Foldable1Datum<"Vec"> =
   {
     KindKey: "Vec",
     foldr:
@@ -146,8 +146,9 @@ export type JsonReadyVec =
   ReadonlyArray<JsonReady>;
 
 export const isJsonReadyVec = (
-  value: JsonReady,
-): value is JsonReadyVec => Array.isArray(value);
+  value: unknown,
+): value is JsonReadyVec =>
+  isVec(value) && value.every(isJsonReady);
 
 /**
  * JsonSerializer instance for Vec values.

@@ -6,11 +6,12 @@ import {
   Refinable1,
   Castable1,
   JsonReady,
-  toJsonReadyAtomic,
-  isAtomic,
+  toJsonReady,
   Datum,
   fromJsonReady,
   JsonSerializer,
+  isJsonReady,
+  isDatum,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -78,17 +79,20 @@ export type JsonReadyObj = {
   [key: string]: JsonReady;
 };
 
+export const isJsonReadyObj = (
+  value: unknown,
+): value is JsonReadyObj =>
+  isObj(value) &&
+  Object.values(value).every(isJsonReady);
+
 export const toJsonReadyObj = (
   value: Obj,
 ): JsonReadyObj => {
   const result: JsonReadyObj = {};
   for (const key in value) {
     const val = value[key];
-    if (isObj(val)) {
-      result[key] = toJsonReadyObj(val);
-    }
-    if (isAtomic(val)) {
-      result[key] = toJsonReadyAtomic(val);
+    if (isDatum(val)) {
+      result[key] = toJsonReady(val);
     }
     // throw LogicalException?
   }
@@ -100,11 +104,9 @@ export const fromJsonReadyObj = (
 ): Obj => {
   const result: Obj = {};
   for (const key in jsonReady) {
-    if (jsonReady.hasOwnProperty(key)) {
-      const val = jsonReady[key];
-      if (val !== undefined) {
-        result[key] = fromJsonReady(val);
-      }
+    const val = jsonReady[key];
+    if (val !== undefined) {
+      result[key] = fromJsonReady(val);
     }
   }
   return result;
