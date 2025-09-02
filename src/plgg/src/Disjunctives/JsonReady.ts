@@ -20,7 +20,8 @@ import {
   isJsonReadyObj,
   isJsonReadyOptionalDatum,
   isOptionalDatum,
-  newOk,
+  isAtomic,
+  newSome,
   newNone,
 } from "plgg/index";
 
@@ -39,25 +40,25 @@ export type JsonReadyCore =
 export const toJsonReadyCore = (
   value: DatumCore,
 ): JsonReadyCore => {
-  if (isObj(value)) {
-    return toJsonReadyObj(value);
+  if (isAtomic(value)) {
+    return toJsonReadyAtomic(value);
   }
   if (isVec(value)) {
     return toJsonReadyVec(value);
   }
-  return toJsonReadyAtomic(value);
+  return toJsonReadyObj(value);
 };
 
 export const fromJsonReadyCore = (
   jsonReady: JsonReadyCore,
 ): DatumCore => {
-  if (isJsonReadyObj(jsonReady)) {
-    return fromJsonReadyObj(jsonReady);
+  if (isJsonReadyAtomic(jsonReady)) {
+    return fromJsonReadyAtomic(jsonReady);
   }
   if (isJsonReadyVec(jsonReady)) {
     return fromJsonReadyVec(jsonReady);
   }
-  return fromJsonReadyAtomic(jsonReady);
+  return fromJsonReadyObj(jsonReady);
 };
 /**
  * Runtime type guard to check if a value is JSON-ready.
@@ -76,11 +77,11 @@ export const isJsonReady = (
 export const toJsonReady = (
   value: Datum,
 ): JsonReady => {
-  if (isObj(value)) {
-    return toJsonReadyObj(value);
-  }
   if (isVec(value)) {
     return toJsonReadyVec(value);
+  }
+  if (isObj(value)) {
+    return toJsonReadyObj(value);
   }
   if (isOptionalDatum(value)) {
     return toJsonReadyOptionalDatum(value);
@@ -94,16 +95,16 @@ export const toJsonReady = (
 export const fromJsonReady = (
   jsonReady: JsonReady,
 ): Datum => {
+  if (isJsonReadyOptionalDatum(jsonReady)) {
+    return isSome(jsonReady)
+      ? newSome(fromJsonReadyCore(jsonReady.body))
+      : newNone();
+  }
   if (isJsonReadyAtomic(jsonReady)) {
     return fromJsonReadyAtomic(jsonReady);
   }
   if (isJsonReadyVec(jsonReady)) {
     return fromJsonReadyVec(jsonReady);
-  }
-  if (isOptionalDatum(jsonReady)) {
-    return isSome(jsonReady)
-      ? newOk(fromJsonReadyCore(jsonReady))
-      : newNone();
   }
   return fromJsonReadyObj(jsonReady);
 };

@@ -74,7 +74,9 @@ export const isVariantLike = (
 export const hasTag =
   <TAG extends string>(tag: TAG) =>
   <T>(v: unknown): v is VariantLike<TAG, T> =>
-    isVariantLike(v) && v.__tag === tag;
+    isObj(v) &&
+    hasProp(v, "__tag") &&
+    v.__tag === tag;
 
 /**
  * Creates a variant constructor for a specific tag.
