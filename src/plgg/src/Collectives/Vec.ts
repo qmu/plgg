@@ -8,8 +8,8 @@ import {
   JsonSerializable,
   JsonReady,
   Datum,
-  RefinableDatum,
-  CastableDatum,
+  Refinable,
+  Castable,
   FunctorDatum,
   FoldableDatum,
   toJsonReady,
@@ -32,18 +32,15 @@ export type Vec<A extends Datum = Datum> =
 /**
  * Type guard to check if a value is a Vec.
  */
-const is = <T extends Datum>(
-  value: unknown,
-): value is Vec<T> => Array.isArray(value);
+const is = (value: unknown): value is Vec =>
+  Array.isArray(value);
 
 /**
  * Refinable instance for vector type guards.
  */
-export const vecRefinable: RefinableDatum<"Vec"> =
-  {
-    KindKey: "Vec",
-    is,
-  };
+export const vecRefinable: Refinable<Vec> = {
+  is,
+};
 /**
  * Exported type guard function for vector values.
  */
@@ -52,12 +49,11 @@ export const { is: isVec } = vecRefinable;
 /**
  * Castable instance for vector safe casting.
  */
-export const vecCastable: CastableDatum<"Vec"> = {
-  KindKey: "Vec",
-  as: <A extends Datum>(
+export const vecCastable: Castable<Vec> = {
+  as: (
     value: unknown,
-  ): Result<Vec<A>, InvalidError> =>
-    is<A>(value)
+  ): Result<Vec, InvalidError> =>
+    is(value)
       ? newOk(value)
       : newErr(
           new InvalidError({

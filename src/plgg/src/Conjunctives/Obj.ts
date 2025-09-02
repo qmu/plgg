@@ -3,8 +3,8 @@ import {
   newOk,
   newErr,
   InvalidError,
-  RefinableDatumObject,
-  CastableDatumObject,
+  Refinable,
+  Castable,
   JsonReady,
   toJsonReady,
   Datum,
@@ -14,12 +14,6 @@ import {
   isDatum,
   DatumObject,
 } from "plgg/index";
-
-declare module "plgg/Abstracts/Principals/Kind" {
-  export interface MapKindDatumObject<A> {
-    Obj: Obj<A>;
-  }
-}
 
 /**
  * Readonly record type for functional programming operations.
@@ -31,19 +25,15 @@ export type Obj<
 /**
  * Type guard to check if a value is an Obj.
  */
-const is = <T extends DatumObject>(
-  value: unknown,
-): value is Obj<T> =>
+const is = (value: unknown): value is Obj =>
   typeof value === "object" && value !== null;
 
 /**
  * Refinable instance for record type guards.
  */
-export const recRefinable: RefinableDatumObject<"Obj"> =
-  {
-    KindKey: "Obj",
-    is,
-  };
+export const recRefinable: Refinable<Obj> = {
+  is,
+};
 /**
  * Exported type guard function for record values.
  */
@@ -52,20 +42,18 @@ export const { is: isObj } = recRefinable;
 /**
  * Castable instance for record safe casting.
  */
-export const recCastable: CastableDatumObject<"Obj"> =
-  {
-    KindKey: "Obj",
-    as: <T extends DatumObject>(
-      value: unknown,
-    ): Result<Obj<T>, InvalidError> =>
-      is<T>(value)
-        ? newOk(value)
-        : newErr(
-            new InvalidError({
-              message: "Not record",
-            }),
-          ),
-  };
+export const recCastable: Castable<Obj> = {
+  as: (
+    value: unknown,
+  ): Result<Obj, InvalidError> =>
+    is(value)
+      ? newOk(value)
+      : newErr(
+          new InvalidError({
+            message: "Not record",
+          }),
+        ),
+};
 /**
  * Exported safe casting function for record values.
  */
