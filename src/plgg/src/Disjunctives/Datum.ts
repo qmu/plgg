@@ -1,6 +1,7 @@
 import {
   Atomic,
   Obj,
+  OptionalDatum,
   isAtomic,
   isObj,
   isVec,
@@ -10,6 +11,10 @@ import {
  * Data type representing atomic values, objects, and vectors.
  */
 export type Datum =
+  | DatumCore
+  | OptionalDatum<DatumCore>;
+
+export type DatumCore =
   | Atomic
   | Obj
   | ReadonlyArray<Datum>; // Vec

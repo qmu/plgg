@@ -1,29 +1,64 @@
 import {
   Datum,
-  isObj,
-  isVec,
   JsonReadyAtomic,
   JsonReadyObj,
   JsonReadyVec,
+  OptionalDatumJsonReady,
+  DatumCore,
+  isObj,
+  isVec,
+  isSome,
   toJsonReadyAtomic,
   toJsonReadyVec,
   toJsonReadyObj,
+  toJsonReadyOptionalDatum,
   fromJsonReadyAtomic,
   fromJsonReadyVec,
   fromJsonReadyObj,
   isJsonReadyAtomic,
   isJsonReadyVec,
   isJsonReadyObj,
+  isJsonReadyOptionalDatum,
+  isOptionalDatum,
+  newOk,
+  newNone,
 } from "plgg/index";
 
 /**
  * Union type for all JSON-ready data types.
  */
 export type JsonReady =
+  | JsonReadyCore
+  | OptionalDatumJsonReady<JsonReadyCore>;
+
+export type JsonReadyCore =
   | JsonReadyAtomic
   | JsonReadyObj
   | JsonReadyVec;
 
+export const toJsonReadyCore = (
+  value: DatumCore,
+): JsonReadyCore => {
+  if (isObj(value)) {
+    return toJsonReadyObj(value);
+  }
+  if (isVec(value)) {
+    return toJsonReadyVec(value);
+  }
+  return toJsonReadyAtomic(value);
+};
+
+export const fromJsonReadyCore = (
+  jsonReady: JsonReadyCore,
+): DatumCore => {
+  if (isJsonReadyObj(jsonReady)) {
+    return fromJsonReadyObj(jsonReady);
+  }
+  if (isJsonReadyVec(jsonReady)) {
+    return fromJsonReadyVec(jsonReady);
+  }
+  return fromJsonReadyAtomic(jsonReady);
+};
 /**
  * Runtime type guard to check if a value is JSON-ready.
  */
@@ -32,7 +67,8 @@ export const isJsonReady = (
 ): value is JsonReady =>
   isJsonReadyAtomic(value) ||
   isJsonReadyObj(value) ||
-  isJsonReadyVec(value);
+  isJsonReadyVec(value) ||
+  isJsonReadyOptionalDatum(value);
 
 /**
  * Converts a Datum value to its JSON-ready representation.
@@ -46,7 +82,10 @@ export const toJsonReady = (
   if (isVec(value)) {
     return toJsonReadyVec(value);
   }
-  return toJsonReadyAtomic(value);
+  if (isOptionalDatum(value)) {
+    return toJsonReadyOptionalDatum(value);
+  }
+  return toJsonReadyCore(value);
 };
 
 /**
@@ -60,6 +99,11 @@ export const fromJsonReady = (
   }
   if (isJsonReadyVec(jsonReady)) {
     return fromJsonReadyVec(jsonReady);
+  }
+  if (isOptionalDatum(jsonReady)) {
+    return isSome(jsonReady)
+      ? newOk(fromJsonReadyCore(jsonReady))
+      : newNone();
   }
   return fromJsonReadyObj(jsonReady);
 };
