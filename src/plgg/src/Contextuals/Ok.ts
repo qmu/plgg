@@ -1,5 +1,5 @@
 import {
-  ParametricVariant,
+  Variant,
   hasTag,
   construct,
   Result,
@@ -24,10 +24,7 @@ const okTag = "Ok" as const;
 /**
  * Represents a successful computation containing a success value.
  */
-export type Ok<T> = ParametricVariant<
-  typeof okTag,
-  T
->;
+export type Ok<T> = Variant<typeof okTag, T>;
 
 /**
  * Pattern constructor for matching Ok values in pattern matching.

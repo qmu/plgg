@@ -23,10 +23,7 @@ export type IsFixedVariant<V> = V extends {
 /**
  * A variant with both a tag and body.
  */
-export type ParametricVariant<
-  TAG extends string,
-  BODY,
-> = {
+export type Variant<TAG extends string, BODY> = {
   __tag: TAG;
   body: BODY;
 };
@@ -34,7 +31,7 @@ export type ParametricVariant<
 /**
  * Type predicate to check if a type is a parametric variant.
  */
-export type IsParametricVariant<V> = V extends {
+export type IsVariant<V> = V extends {
   __tag: infer T;
   body: infer B;
 }
@@ -48,24 +45,25 @@ export type IsParametricVariant<V> = V extends {
 /**
  * Union of fixed and parametric variants.
  */
-export type Variant<TAG extends string, BODY> =
-  | FixedVariant<TAG>
-  | ParametricVariant<TAG, BODY>;
+export type VariantLike<
+  TAG extends string,
+  BODY,
+> = FixedVariant<TAG> | Variant<TAG, BODY>;
 
 /**
  * Type predicate to check if T is a variant with a __tag property.
  */
-export type IsVariant<T> = Or<
+export type IsVariantLike<T> = Or<
   IsFixedVariant<T>,
-  IsParametricVariant<T>
+  IsVariant<T>
 >;
 
 /**
  * Type guard to check if a value is any variant.
  */
-export const isVariant = (
+export const isVariantLike = (
   v: unknown,
-): v is Variant<string, unknown> =>
+): v is VariantLike<string, unknown> =>
   isObj(v) &&
   hasProp(v, "__tag") &&
   hasProp(v, "body");
@@ -75,38 +73,22 @@ export const isVariant = (
  */
 export const hasTag =
   <TAG extends string>(tag: TAG) =>
-  <T>(v: unknown): v is Variant<TAG, T> =>
-    isVariant(v) && v.__tag === tag;
-
-/**
- * TODO: Validator function for variants.
- * Will provide safe casting from unknown to specific variant types.
- */
-export const asVariant = () => {};
-
-/**
- * TODO: body extractor for parametric variants.
- * Will provide safe extraction of body from variants.
- */
-export const withbody = () => {};
+  <T>(v: unknown): v is VariantLike<TAG, T> =>
+    isVariantLike(v) && v.__tag === tag;
 
 /**
  * Creates a variant constructor for a specific tag.
  */
 export function construct<
-  V extends Variant<string, unknown>,
+  V extends VariantLike<string, unknown>,
   TAG extends string = ExtractTag<V>,
   BODY = ExtractVariantBody<V>,
 >(__tag: TAG) {
   function maker(): FixedVariant<TAG>;
-  function maker(
-    body: BODY,
-  ): ParametricVariant<TAG, BODY>;
+  function maker(body: BODY): Variant<TAG, BODY>;
   function maker(
     body?: BODY,
-  ):
-    | FixedVariant<TAG>
-    | ParametricVariant<TAG, BODY> {
+  ): FixedVariant<TAG> | Variant<TAG, BODY> {
     return body === undefined
       ? ({ __tag, body: undefined } as const)
       : ({ __tag, body: body } as const);
@@ -118,9 +100,9 @@ export function construct<
  * Extracts the body type from a variant type.
  */
 export type ExtractVariantBody<
-  V extends Variant<string, unknown>,
+  V extends VariantLike<string, unknown>,
 > =
-  V extends Variant<string, infer BODY>
+  V extends VariantLike<string, infer BODY>
     ? BODY
     : undefined;
 
@@ -128,8 +110,8 @@ export type ExtractVariantBody<
  * Extracts the tag type from a variant type.
  */
 export type ExtractTag<
-  V extends Variant<string, unknown>,
+  V extends VariantLike<string, unknown>,
 > =
-  V extends Variant<infer TAG, unknown>
+  V extends VariantLike<infer TAG, unknown>
     ? TAG
     : never;

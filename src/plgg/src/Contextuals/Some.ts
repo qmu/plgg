@@ -1,5 +1,5 @@
 import {
-  ParametricVariant,
+  Variant,
   hasTag,
   construct,
   Result,
@@ -26,10 +26,7 @@ const someTag = "Some" as const;
  * Some side of Option, representing a value that exists.
  * Contains the actual value in the body property.
  */
-export type Some<T> = ParametricVariant<
-  typeof someTag,
-  T
->;
+export type Some<T> = Variant<typeof someTag, T>;
 
 /**
  * Pattern constructor for Some matching.

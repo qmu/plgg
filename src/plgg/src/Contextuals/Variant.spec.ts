@@ -1,11 +1,11 @@
 import { test, expect, assert } from "vitest";
 import {
   FixedVariant,
-  ParametricVariant,
+  Variant,
   construct,
   pattern,
   hasTag,
-  isVariant,
+  isVariantLike,
   match,
   ExtractVariantBody,
 } from "plgg/index";
@@ -22,10 +22,7 @@ test("FixedVariant creation and structure", () => {
 });
 
 test("ParametricVariant creation and structure", () => {
-  type Success<T> = ParametricVariant<
-    "success",
-    T
-  >;
+  type Success<T> = Variant<"success", T>;
   const success =
     construct<Success<string>>("success");
   const successVariant = success("hello world");
@@ -39,11 +36,8 @@ test("ParametricVariant creation and structure", () => {
 });
 
 test("construct with different body types", () => {
-  type NumberVariant = ParametricVariant<
-    "number",
-    number
-  >;
-  type ObjectVariant = ParametricVariant<
+  type NumberVariant = Variant<"number", number>;
+  type ObjectVariant = Variant<
     "object",
     { id: number; name: string }
   >;
@@ -70,11 +64,8 @@ test("construct with different body types", () => {
 });
 
 test("hasTag type guard function", () => {
-  type User = ParametricVariant<
-    "user",
-    { name: string }
-  >;
-  type Admin = ParametricVariant<
+  type User = Variant<"user", { name: string }>;
+  type Admin = Variant<
     "admin",
     { permissions: string[] }
   >;
@@ -103,29 +94,28 @@ test("hasTag type guard function", () => {
 });
 
 test("isVariant type guard function", () => {
-  type TestVariant = ParametricVariant<
-    "test",
-    string
-  >;
+  type TestVariant = Variant<"test", string>;
   const testMaker =
     construct<TestVariant>("test");
   const variant = testMaker("body");
 
-  assert(isVariant(variant));
-  assert(!isVariant("string"));
-  assert(!isVariant(123));
-  assert(!isVariant(null));
-  assert(!isVariant(undefined));
-  assert(!isVariant({}));
-  assert(!isVariant({ tag: "wrong-property" }));
+  assert(isVariantLike(variant));
+  assert(!isVariantLike("string"));
+  assert(!isVariantLike(123));
+  assert(!isVariantLike(null));
+  assert(!isVariantLike(undefined));
+  assert(!isVariantLike({}));
+  assert(
+    !isVariantLike({ tag: "wrong-property" }),
+  );
 });
 
 test("pattern function for matching", () => {
-  type Circle = ParametricVariant<
+  type Circle = Variant<
     "circle",
     { radius: number }
   >;
-  type Square = ParametricVariant<
+  type Square = Variant<
     "square",
     { side: number }
   >;
@@ -156,7 +146,7 @@ test("pattern function for matching", () => {
 });
 
 test("variant with complex nested body", () => {
-  type ComplexVariant = ParametricVariant<
+  type ComplexVariant = Variant<
     "complex",
     {
       id: number;
@@ -192,11 +182,8 @@ test("variant with complex nested body", () => {
 
 test("mixed FixedVariant and ParametricVariant in union", () => {
   type Loading = FixedVariant<"loading">;
-  type Success<T> = ParametricVariant<
-    "success",
-    T
-  >;
-  type Error = ParametricVariant<"error", string>;
+  type Success<T> = Variant<"success", T>;
+  type Error = Variant<"error", string>;
 
   type AsyncState<T> =
     | Loading
@@ -241,7 +228,7 @@ test("pattern with undefined body creates FixedVariant", () => {
 });
 
 test("Extractbody type utility", () => {
-  type TestVariant = ParametricVariant<
+  type TestVariant = Variant<
     "test",
     { data: string }
   >;
