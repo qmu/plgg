@@ -3,8 +3,8 @@ import {
   asObj,
   forProp,
   forOptionProp,
-  //Time,
-  //asTime,
+  Time,
+  asTime,
   Option,
   cast,
   refine,
@@ -24,7 +24,7 @@ const asName = (v: unknown) =>
 
 export type Article = Obj<{
   id: Id;
-  //createdAt: Time;
+  createdAt: Time;
   name: Name;
   memo: Option<string>;
 }>;
@@ -34,7 +34,7 @@ export const asArticle = (v: unknown) =>
     v,
     asObj,
     forProp("id", asId),
-    //forProp("createdAt", asTime),
+    forProp("createdAt", asTime),
     forProp("name", asName),
     forOptionProp("memo", asStr),
   );

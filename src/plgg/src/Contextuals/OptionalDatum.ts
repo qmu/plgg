@@ -25,7 +25,7 @@ export const isOptionalDatum = <
     : true);
 
 export const toJsonReadyOptionalDatum = <
-  T extends JsonReadyCore,
+  T extends DatumCore,
 >(
   value: OptionalDatum<T>,
 ): OptionalDatumJsonReady<JsonReadyCore> =>

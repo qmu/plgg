@@ -80,9 +80,12 @@ export type JsonReadyTime = string;
 
 /**
  * Type guard for JSON-ready Time values.
+ * Only matches ISO 8601 date strings to avoid false positives.
  */
 export const isJsonReadyTime = (value: unknown): value is JsonReadyTime =>
-  isStr(value) && !isNaN(new Date(value).getTime());
+  isStr(value) && 
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value) &&
+  !isNaN(new Date(value).getTime());
 
 /**
  * JsonSerializable instance for Time values.
