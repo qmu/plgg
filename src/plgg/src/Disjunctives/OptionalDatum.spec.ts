@@ -144,10 +144,10 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        const body = restored.content as any;
-        expect(body.user.name).toBe("Bob");
-        expect(body.user.details.age).toBe(25);
-        expect(body.user.details.active).toBe(
+        const content = restored.content as any;
+        expect(content.user.name).toBe("Bob");
+        expect(content.user.details.age).toBe(25);
+        expect(content.user.details.active).toBe(
           true,
         );
       }
@@ -165,10 +165,10 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        const body = restored.content as any;
-        expect(body).toEqual([1, 2, 3, 4, 5]);
-        expect(Array.isArray(body)).toBe(true);
-        expect(body.length).toBe(5);
+        const content = restored.content as any;
+        expect(content).toEqual([1, 2, 3, 4, 5]);
+        expect(Array.isArray(content)).toBe(true);
+        expect(content.length).toBe(5);
       }
     });
 
@@ -188,14 +188,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        const body = restored.content as any;
-        expect(body.id).toBe(123n);
-        expect(typeof body.id).toBe("bigint");
-        expect(body.name).toBe("Charlie");
-        expect(body.balance).toBe(
+        const content = restored.content as any;
+        expect(content.id).toBe(123n);
+        expect(typeof content.id).toBe("bigint");
+        expect(content.name).toBe("Charlie");
+        expect(content.balance).toBe(
           456789012345678901234567890n,
         );
-        expect(typeof body.balance).toBe(
+        expect(typeof content.balance).toBe(
           "bigint",
         );
       }
@@ -410,7 +410,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         "Some",
       );
       expect(parsed).toHaveProperty(
-        "body",
+        "content",
         "json structure test",
       );
     });
@@ -426,7 +426,9 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         "__tag",
         "None",
       );
-      expect(parsed).not.toHaveProperty("body");
+      expect(parsed).not.toHaveProperty(
+        "content",
+      );
     });
 
     it("should produce expected JSON structure for Some OptionalDatum with BigInt", () => {
@@ -440,7 +442,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         "__tag",
         "Some",
       );
-      expect(parsed.body).toEqual({
+      expect(parsed.content).toEqual({
         type: "bigint",
         value: "987654321",
       });

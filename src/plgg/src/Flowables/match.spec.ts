@@ -166,7 +166,7 @@ test("Result pattern matching", async () => {
     "Specific hello",
   );
   expect(fn(errorResult)).equal(
-    'Matched: {"__tag":"Err","body":404}',
+    'Matched: {"__tag":"Err","content":404}',
   );
 });
 
@@ -185,13 +185,13 @@ test("Result pattern matching with specific patterns", async () => {
 
   expect(fn(newOk(42))).equal("The answer!");
   expect(fn(newOk(100))).equal(
-    'Matched: {"__tag":"Ok","body":100}',
+    'Matched: {"__tag":"Ok","content":100}',
   );
   expect(fn(newErr("not_found"))).equal(
     "Not found error",
   );
   expect(fn(newErr("server_error"))).equal(
-    'Matched: {"__tag":"Err","body":"server_error"}',
+    'Matched: {"__tag":"Err","content":"server_error"}',
   );
 });
 
@@ -211,10 +211,10 @@ test("Result pattern matching with OTHERWISE", async () => {
     "Specific success",
   );
   expect(fn(newOk("other"))).equal(
-    'Fallback: {"__tag":"Ok","body":"other"}',
+    'Fallback: {"__tag":"Ok","content":"other"}',
   );
   expect(fn(newErr(500))).equal(
-    'Fallback: {"__tag":"Err","body":500}',
+    'Fallback: {"__tag":"Err","content":500}',
   );
 });
 
@@ -272,7 +272,7 @@ test("Option pattern matching with OTHERWISE", async () => {
     "Specific success",
   );
   expect(fn(newSome("other"))).equal(
-    'Fallback: {"__tag":"Some","body":"other"}',
+    'Fallback: {"__tag":"Some","content":"other"}',
   );
   expect(fn(newNone())).equal(
     'Fallback: {"__tag":"None"}',

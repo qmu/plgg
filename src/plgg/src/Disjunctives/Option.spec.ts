@@ -74,7 +74,7 @@ test("none creates None option with type parameter", () => {
 });
 
 test("isSome identifies Some options", () => {
-  const someResult = newSome("body");
+  const someResult = newSome("content");
   const noneResult = newNone();
 
   assert(isSome(someResult));
@@ -82,7 +82,7 @@ test("isSome identifies Some options", () => {
 });
 
 test("isNone identifies None options", () => {
-  const someResult = newSome("body");
+  const someResult = newSome("content");
   const noneResult = newNone();
 
   assert(!isNone(someResult));
@@ -122,10 +122,13 @@ test("Option type structure", () => {
     "__tag",
     "Some",
   );
-  expect(someOption).toHaveProperty("body", 123);
+  expect(someOption).toHaveProperty(
+    "content",
+    123,
+  );
   expect(Object.keys(someOption)).toEqual([
     "__tag",
-    "body",
+    "content",
   ]);
 
   // Test that None has the expected structure
@@ -135,7 +138,7 @@ test("Option type structure", () => {
   );
   expect(Object.keys(noneOption)).toEqual([
     "__tag",
-    "body",
+    "content",
   ]);
 });
 
@@ -166,7 +169,7 @@ test("Option with complex types", () => {
   }
 });
 
-test("Option with array bodys", () => {
+test("Option with array contents", () => {
   const numbers = [1, 2, 3, 4, 5];
   const arrayOption = newSome(numbers);
   const emptyArrayOption = newSome([]);
@@ -191,7 +194,7 @@ test("Option with array bodys", () => {
   }
 });
 
-test("Option with boolean bodys", () => {
+test("Option with boolean contents", () => {
   const trueOption = newSome(true);
   const falseOption = newSome(false);
   const noneBoolOption = newNone();
@@ -209,7 +212,7 @@ test("Option with boolean bodys", () => {
   }
 });
 
-test("Option with zero bodys", () => {
+test("Option with zero contents", () => {
   const zeroOption = newSome(0);
   const emptyStringOption = newSome("");
 

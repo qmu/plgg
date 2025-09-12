@@ -17,7 +17,7 @@ test("FixedVariant creation and structure", () => {
   expect(loadingVariant.__tag).toBe("loading");
   expect(Object.keys(loadingVariant)).toEqual([
     "__tag",
-    "body",
+    "content",
   ]);
 });
 
@@ -33,11 +33,11 @@ test("ParametricVariant creation and structure", () => {
   );
   expect(Object.keys(successVariant)).toEqual([
     "__tag",
-    "body",
+    "content",
   ]);
 });
 
-test("construct with different body types", () => {
+test("construct with different content types", () => {
   type NumberVariant = Box<"number", number>;
   type ObjectVariant = Box<
     "object",
@@ -99,7 +99,7 @@ test("isVariant type guard function", () => {
   type TestVariant = Box<"test", string>;
   const testMaker =
     construct<TestVariant>("test");
-  const variant = testMaker("body");
+  const variant = testMaker("content");
 
   assert(isBoxLike(variant));
   assert(!isBoxLike("string"));
@@ -139,7 +139,7 @@ test("pattern function for matching", () => {
   );
 });
 
-test("variant with complex nested body", () => {
+test("variant with complex nested content", () => {
   type ComplexVariant = Box<
     "complex",
     {
@@ -214,23 +214,23 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
   ).toBe("Error occurred");
 });
 
-test("pattern with undefined body creates FixedVariant", () => {
+test("pattern with undefined content creates FixedVariant", () => {
   const simple = pattern("simple");
 
   const pattern1 = simple();
   expect(pattern1.tag).toBe("simple");
 });
 
-test("Extractbody type utility", () => {
+test("Extractcontent type utility", () => {
   type TestVariant = Box<
     "test",
     { data: string }
   >;
 
   // This is a compile-time test - if it compiles, the type works correctly
-  const testbody: ExtractBoxContent<TestVariant> =
+  const testcontent: ExtractBoxContent<TestVariant> =
     {
       data: "hello",
     };
-  expect(testbody.data).toBe("hello");
+  expect(testcontent.data).toBe("hello");
 });
