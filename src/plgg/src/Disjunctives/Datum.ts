@@ -2,6 +2,7 @@ import {
   Atomic,
   Obj,
   OptionalDatum,
+  NominalDatum,
   isAtomic,
   isObj,
   isVec,
@@ -15,7 +16,8 @@ import {
  */
 export type Datum =
   | DatumCore
-  | OptionalDatum<DatumCore>;
+  | OptionalDatum<DatumCore>
+  | NominalDatum<string, DatumCore>;
 
 /**
  * Runtime type guard to check if a value is Datum.

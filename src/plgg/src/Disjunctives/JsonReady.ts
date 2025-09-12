@@ -5,6 +5,7 @@ import {
   JsonReadyVec,
   OptionalDatumJsonReady,
   DatumCore,
+  NominalDatumJsonReady,
   isObj,
   isVec,
   isSome,
@@ -30,7 +31,8 @@ import {
  */
 export type JsonReady =
   | JsonReadyCore
-  | OptionalDatumJsonReady<JsonReadyCore>;
+  | OptionalDatumJsonReady<JsonReadyCore>
+  | NominalDatumJsonReady<string, JsonReadyCore>;
 
 export type JsonReadyCore =
   | JsonReadyAtomic
