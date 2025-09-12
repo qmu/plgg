@@ -7,4 +7,3 @@ export * from "plgg/Contextuals/Ok";
 export * from "plgg/Contextuals/OptionalDatum";
 export * from "plgg/Contextuals/Pattern";
 export * from "plgg/Contextuals/Some";
-export * from "plgg/Contextuals/Variant";
