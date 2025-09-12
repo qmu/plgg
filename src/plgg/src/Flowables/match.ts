@@ -10,10 +10,10 @@ import {
   IsVariantPatternTag,
   IsVariantPattern,
   Or,
-  IsBoxLike,
+  IsVariant,
   ExtractBoxContent,
-  BoxLike,
-  isBoxLike,
+  Variant,
+  isVariant,
   otherwise,
   isVariantPatternAtomic,
   isVariantPatternObject,
@@ -150,12 +150,12 @@ export type CaseDecl<
   A,
   PATTERN,
   R,
-  ABODY = A extends BoxLike<string, unknown>
+  ABODY = A extends Variant<string, unknown>
     ? ExtractBoxContent<A>
     : never,
   PBODY = ExtractBodyFromVariantPattern<PATTERN>,
 > = If<
-  And<IsBoxLike<A>, IsVariantPattern<PATTERN>>,
+  And<IsVariant<A>, IsVariantPattern<PATTERN>>,
   If<
     Or<
       Is<PBODY, undefined>,
@@ -1255,7 +1255,7 @@ export function match(
   >
 ): unknown {
   for (const [pattern, fn] of cases) {
-    if (isBoxLike(a)) {
+    if (isVariant(a)) {
       if (isVariantPatternAtomic(pattern)) {
         if (a.content === pattern.body) {
           return fn(a);
@@ -1277,7 +1277,7 @@ export function match(
       }
       if (isVariantPatternTag(pattern)) {
         if (
-          isBoxLike(a) &&
+          isVariant(a) &&
           a.__tag === pattern.tag
         ) {
           return fn(a);
@@ -1291,7 +1291,7 @@ export function match(
     if (pattern === otherwise) {
       return fn(a);
     }
-    if (!isBoxLike(pattern) && a === pattern) {
+    if (!isVariant(pattern) && a === pattern) {
       return fn(a);
     }
   }

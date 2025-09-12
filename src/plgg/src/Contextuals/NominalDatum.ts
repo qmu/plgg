@@ -5,7 +5,7 @@ import {
   isDatumCore,
   isJsonReady,
   toJsonReadyCore,
-  isBoxLike,
+  isVariant,
   hasTag,
 } from "plgg/index";
 
@@ -42,7 +42,7 @@ export const isNominalDatum =
   (
     value: unknown,
   ): value is NominalDatum<BRAND, T> =>
-    isBoxLike(value) &&
+    isVariant(value) &&
     hasTag(brand)(value) &&
     isDatumCore(value.content);
 
@@ -112,7 +112,6 @@ export const isJsonReadyNominalDatum =
   (
     value: unknown,
   ): value is NominalDatumJsonReady<BRAND, T> =>
-    isBoxLike(value) &&
+    isVariant(value) &&
     hasTag(brand)(value) &&
     isJsonReady(value.content);
-
