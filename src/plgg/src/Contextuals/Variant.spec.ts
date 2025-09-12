@@ -214,11 +214,13 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
   ).toBe("Error occurred");
 });
 
-test("pattern with undefined content creates FixedVariant", () => {
+test("pattern with undefined content creates pattern for tag matching", () => {
   const simple = pattern("simple");
 
   const pattern1 = simple();
   expect(pattern1.tag).toBe("simple");
+  expect(pattern1.type).toBe("tag");
+  expect(pattern1.body).toBe(undefined);
 });
 
 test("Extractcontent type utility", () => {
