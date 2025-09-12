@@ -3,23 +3,14 @@ import {
   Num,
   Bool,
   BigInt,
-  BrandStr,
-  BrandNum,
-  BrandBool,
   JsonReadyStr,
   JsonReadyNum,
   JsonReadyBool,
   JsonReadyBigInt,
-  JsonReadyBrandStr,
-  JsonReadyBrandNum,
-  JsonReadyBrandBool,
   isStr,
   isNum,
   isBool,
   isBigInt,
-  isBrandStr,
-  isBrandNum,
-  isBrandBool,
   toJsonReadyBigInt,
   fromJsonReadyBigInt,
   isJsonReadyStr,
@@ -35,10 +26,7 @@ export type Atomic =
   | Str
   | Num
   | Bool
-  | BigInt
-  | BrandStr<string>
-  | BrandNum<string>
-  | BrandBool<string>;
+  | BigInt;
 
 /**
  * Type predicate to determine if a type is atomic.
@@ -56,10 +44,7 @@ export const isAtomic = (
   isStr(value) ||
   isNum(value) ||
   isBool(value) ||
-  isBigInt(value) ||
-  isBrandStr(value) ||
-  isBrandNum(value) ||
-  isBrandBool(value);
+  isBigInt(value);
 
 // --------------------------------
 // JsonReady
@@ -72,10 +57,7 @@ export type JsonReadyAtomic =
   | JsonReadyStr
   | JsonReadyNum
   | JsonReadyBool
-  | JsonReadyBigInt
-  | JsonReadyBrandStr
-  | JsonReadyBrandNum
-  | JsonReadyBrandBool;
+  | JsonReadyBigInt;
 
 /**
  * Runtime type guard to check if a value is JSON-ready atomic.
@@ -86,10 +68,7 @@ export const isJsonReadyAtomic = (
   isJsonReadyStr(value) ||
   isJsonReadyNum(value) ||
   isJsonReadyBool(value) ||
-  isJsonReadyBigInt(value) ||
-  isBrandStr(value) ||
-  isBrandNum(value) ||
-  isBrandBool(value);
+  isJsonReadyBigInt(value);
 
 /**
  * Converts an atomic value to its JSON-ready representation.

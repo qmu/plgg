@@ -1,33 +1,30 @@
 import {
-  BrandStr,
-  asBrandStr,
   asStr,
-  asRec,
+  asObj,
   forProp,
   forOptionProp,
-  Time,
-  asTime,
+  //Time,
+  //asTime,
   Option,
   cast,
   refine,
-  Rec,
+  Obj,
 } from "plgg";
 
-type Id = BrandStr<"ArticleId">;
-const asId = (v: unknown) => cast(v, asBrandStr<"ArticleId">);
+type Id = string;
+const asId = (v: unknown) => cast(v, asStr);
 
-type Name = BrandStr<"ArticleName">;
+type Name = string;
 const asName = (v: unknown) =>
   cast(
     v,
     asStr,
     refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
-    asBrandStr<"ArticleName">,
   );
 
-export type Article = Rec<{
+export type Article = Obj<{
   id: Id;
-  createdAt: Time;
+  //createdAt: Time;
   name: Name;
   memo: Option<string>;
 }>;
@@ -35,9 +32,9 @@ export type Article = Rec<{
 export const asArticle = (v: unknown) =>
   cast(
     v,
-    asRec,
+    asObj,
     forProp("id", asId),
-    forProp("createdAt", asTime),
+    //forProp("createdAt", asTime),
     forProp("name", asName),
     forOptionProp("memo", asStr),
   );
