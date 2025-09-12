@@ -1,9 +1,9 @@
 import {
-  isSome,
-  isObj,
   Exception,
   InvalidError,
   SerializeError,
+  isSome,
+  isObj,
 } from "plgg/index";
 
 /**

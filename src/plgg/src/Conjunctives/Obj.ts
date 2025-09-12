@@ -1,18 +1,18 @@
 import {
   Result,
-  newOk,
-  newErr,
   InvalidError,
   Refinable,
   Castable,
   JsonReady,
-  toJsonReady,
   Datum,
-  fromJsonReady,
   JsonSerializable,
+  DatumObject,
+  newOk,
+  newErr,
+  toJsonReady,
+  fromJsonReady,
   isJsonReady,
   isDatum,
-  DatumObject,
 } from "plgg/index";
 
 /**

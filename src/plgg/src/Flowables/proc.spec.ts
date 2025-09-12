@@ -1,14 +1,14 @@
 import { test, expect, assert } from "vitest";
 import {
+  InvalidError,
+  Result,
   proc,
   isOk,
   isErr,
   newOk,
   hold,
   newErr,
-  InvalidError,
   asStr,
-  Result,
 } from "plgg/index";
 
 test("proc composes sync and async functions with early error exit", async () => {

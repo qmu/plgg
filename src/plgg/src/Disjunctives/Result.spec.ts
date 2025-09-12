@@ -1,12 +1,12 @@
 import { test, expect, assert } from "vitest";
 import {
+  Result,
+  InvalidError,
   newOk,
   newErr,
   isOk,
   isErr,
   isResult,
-  Result,
-  InvalidError,
   chainResult,
   mapResult,
   applyResult,

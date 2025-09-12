@@ -1,4 +1,4 @@
-import { isObj, hasProp, Or } from "plgg/index";
+import { Or, isObj, hasProp } from "plgg/index";
 
 /**
  * A variant with both a tag and body.

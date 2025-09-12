@@ -10,10 +10,10 @@ import {
   Traversable2,
   KindKeys1,
   Kind1,
-  newOk,
-  isOk,
   Ok,
   Err,
+  newOk,
+  isOk,
   newErr,
   isErr,
 } from "plgg/index";

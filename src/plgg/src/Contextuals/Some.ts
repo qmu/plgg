@@ -1,13 +1,13 @@
 import {
   Box,
-  hasTag,
-  construct,
   Result,
-  newOk,
-  newErr,
   InvalidError,
   Refinable1,
   Castable1,
+  hasTag,
+  construct,
+  newOk,
+  newErr,
   pattern,
 } from "plgg/index";
 

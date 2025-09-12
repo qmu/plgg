@@ -1,10 +1,10 @@
 import {
-  isOk,
-  newOk,
   Result,
   InvalidError,
-  newErr,
   NonNeverFn,
+  isOk,
+  newOk,
+  newErr,
 } from "plgg/index";
 
 /**

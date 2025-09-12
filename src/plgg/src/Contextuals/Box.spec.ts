@@ -2,12 +2,12 @@ import { test, expect, assert } from "vitest";
 import {
   EmptyBox,
   Box,
+  ExtractBoxContent,
   construct,
   pattern,
   hasTag,
   isBoxLike,
   match,
-  ExtractBoxContent,
 } from "plgg/index";
 
 test("FixedVariant creation and structure", () => {

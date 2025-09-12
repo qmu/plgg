@@ -1,5 +1,6 @@
 import { test, expect, assert } from "vitest";
 import {
+  Result,
   isVec,
   asVec,
   isOk,
@@ -11,7 +12,6 @@ import {
   conclude,
   newOk,
   newErr,
-  Result,
 } from "plgg/index";
 
 test("Vec.is should return true for vectors", () => {

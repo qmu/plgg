@@ -1,11 +1,11 @@
 import { test, expect, assert } from "vitest";
 import {
+  Option,
   newSome,
   newNone,
   isSome,
   isNone,
   isOption,
-  Option,
   mapOption,
   applyOption,
   ofOption,

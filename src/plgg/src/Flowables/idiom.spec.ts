@@ -1,8 +1,8 @@
 import { test, expect, assert, vi } from "vitest";
 import {
+  InvalidError,
   isErr,
   isOk,
-  InvalidError,
   pass,
   hold,
   debug,

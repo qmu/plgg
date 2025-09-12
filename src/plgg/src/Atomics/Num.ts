@@ -1,11 +1,11 @@
 import {
-  newOk,
-  newErr,
   Result,
   InvalidError,
   Refinable,
   Castable,
   JsonSerializable,
+  newOk,
+  newErr,
 } from "plgg/index";
 
 /**

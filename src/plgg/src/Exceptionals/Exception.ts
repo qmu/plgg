@@ -1,5 +1,4 @@
-/* Exceptionally relative import to avoid circular dependencies */
-import { BaseError } from "./BaseError";
+import { BaseError } from "plgg/Exceptionals/BaseError";
 
 /**
  * General exception class for non-validation errors.

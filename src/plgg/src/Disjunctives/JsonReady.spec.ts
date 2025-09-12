@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+  Datum,
   toJson,
   fromJson,
   toJsonReady,
   fromJsonReady,
-  Datum,
 } from "plgg/index";
 
 describe("JsonReady", () => {
@@ -265,4 +265,3 @@ describe("JsonReady", () => {
     });
   });
 });
-

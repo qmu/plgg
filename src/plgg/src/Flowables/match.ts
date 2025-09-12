@@ -1,15 +1,10 @@
 import {
-  isBoxLike,
   If,
   IsEqual,
   Is,
   TupleToUnion,
   IsUnionSubset,
-  otherwise,
   And,
-  isVariantPatternAtomic,
-  isVariantPatternObject,
-  isVariantPatternTag,
   ExtractBodyFromVariantPattern,
   IsAtomic,
   IsVariantPatternTag,
@@ -18,6 +13,11 @@ import {
   IsBoxLike,
   ExtractBoxContent,
   BoxLike,
+  isBoxLike,
+  otherwise,
+  isVariantPatternAtomic,
+  isVariantPatternObject,
+  isVariantPatternTag,
   isObjLike,
 } from "plgg/index";
 

@@ -1,8 +1,8 @@
 import {
   Atomic,
+  Or,
   isObj,
   hasProp,
-  Or,
 } from "plgg/index";
 
 /**

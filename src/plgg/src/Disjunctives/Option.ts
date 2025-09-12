@@ -5,10 +5,10 @@ import {
   Pointed1,
   Applicative1,
   Chain1,
-  newSome,
-  isSome,
   Some,
   None,
+  newSome,
+  isSome,
   newNone,
   isNone,
 } from "plgg/index";

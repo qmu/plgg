@@ -1,14 +1,14 @@
 import {
   EmptyBox,
-  hasTag,
-  construct,
   Result,
-  newOk,
-  newErr,
   InvalidError,
   Refinable,
   Castable,
   pattern,
+  hasTag,
+  construct,
+  newOk,
+  newErr,
 } from "plgg/index";
 
 /**

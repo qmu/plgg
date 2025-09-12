@@ -1,10 +1,10 @@
 import {
   Brand,
   Result,
-  newOk,
-  newErr,
   InvalidError,
   Num,
+  newOk,
+  newErr,
   isNum,
 } from "plgg/index";
 

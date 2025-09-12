@@ -1,5 +1,6 @@
 import { test, expect, assert } from "vitest";
 import {
+  Result,
   isMutVec,
   asMutVec,
   isOk,
@@ -22,7 +23,6 @@ import {
   concludeMutVec,
   newOk,
   newErr,
-  Result,
 } from "plgg/index";
 
 test("MutVec.is should return true for vectors", () => {
@@ -464,4 +464,3 @@ test("sequenceMutVec - function exists", () => {
   expect(typeof sequenceMutVec).toBe("function");
   expect(sequenceMutVec).toBeDefined();
 });
-

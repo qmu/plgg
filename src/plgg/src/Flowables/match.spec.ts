@@ -1,9 +1,11 @@
 import { test, expect } from "vitest";
 import {
-  match,
+  Box,
+  Result,
+  Option,
   TRUE,
   FALSE,
-  Box,
+  match,
   pattern,
   construct,
   otherwise,
@@ -11,12 +13,10 @@ import {
   err,
   newOk,
   newErr,
-  Result,
   some,
   none,
   newSome,
   newNone,
-  Option,
 } from "plgg/index";
 
 test("number", async () => {

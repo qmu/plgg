@@ -1,9 +1,5 @@
 import {
   Result,
-  newOk,
-  newErr,
-  isOk,
-  isErr,
   InvalidError,
   Refinable1,
   Castable1,
@@ -17,6 +13,10 @@ import {
   Traversable1,
   KindKeys1,
   Kind1,
+  newOk,
+  newErr,
+  isOk,
+  isErr,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {

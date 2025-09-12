@@ -1,11 +1,11 @@
 import {
-  isStr,
   Result,
   InvalidError,
-  newOk,
-  newErr,
   Str,
   Brand,
+  isStr,
+  newOk,
+  newErr,
 } from "plgg/index";
 
 /**

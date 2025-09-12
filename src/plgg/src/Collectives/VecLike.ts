@@ -1,9 +1,9 @@
 import {
   Vec,
   MutVec,
+  Datum,
   isVec,
   isMutVec,
-  Datum,
 } from "plgg/index";
 
 /**

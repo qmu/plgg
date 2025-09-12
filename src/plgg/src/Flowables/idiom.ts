@@ -1,9 +1,9 @@
 import {
   Result,
+  InvalidError,
   pipe,
   newOk,
   newErr,
-  InvalidError,
   toError,
 } from "plgg/index";
 

@@ -1,13 +1,13 @@
 import {
+  Procedural,
+  Exception,
+  Result,
+  NonNeverFn,
   isOk,
   newErr,
   newOk,
-  Procedural,
   isPlggError,
-  Exception,
   isResult,
-  Result,
-  NonNeverFn,
 } from "plgg/index";
 
 /**

@@ -1,15 +1,15 @@
 import {
   Obj,
   RawObj,
-  isObj,
-  isRawObj,
   Result,
   InvalidError,
+  Option,
+  isObj,
+  isRawObj,
   chainResult,
   pipe,
   newOk,
   newErr,
-  Option,
   newSome,
   newNone,
 } from "plgg/index";
