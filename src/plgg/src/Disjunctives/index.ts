@@ -1,4 +1,5 @@
 export * from "plgg/Disjunctives/Atomic";
+export * from "plgg/Disjunctives/Basic";
 export * from "plgg/Disjunctives/Datum";
 export * from "plgg/Disjunctives/JsonReady";
 export * from "plgg/Disjunctives/ObjLike";

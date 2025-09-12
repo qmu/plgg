@@ -3,6 +3,7 @@ import {
   InvalidError,
   Refinable,
   Castable,
+  JsonSerializable,
   newOk,
   newErr,
   isStr,
@@ -67,3 +68,36 @@ export const timeCastable: Castable<Time> = {
  * Exported safe casting function for Time values.
  */
 export const { as: asTime } = timeCastable;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+/**
+ * JSON-ready representation of Time values as ISO strings.
+ */
+export type JsonReadyTime = string;
+
+/**
+ * Type guard for JSON-ready Time values.
+ */
+export const isJsonReadyTime = (value: unknown): value is JsonReadyTime =>
+  isStr(value) && !isNaN(new Date(value).getTime());
+
+/**
+ * JsonSerializable instance for Time values.
+ */
+export const timeJsonSerializable: JsonSerializable<
+  Time,
+  JsonReadyTime
+> = {
+  toJsonReady: (value: Time) => value.toISOString(),
+  fromJsonReady: (jsonReady: string) => new Date(jsonReady),
+};
+/**
+ * Exported JSON serialization functions for Time values.
+ */
+export const {
+  toJsonReady: toJsonReadyTime,
+  fromJsonReady: fromJsonReadyTime,
+} = timeJsonSerializable;

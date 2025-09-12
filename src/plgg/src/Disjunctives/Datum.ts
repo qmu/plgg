@@ -1,9 +1,11 @@
 import {
   Atomic,
+  Basic,
   Obj,
   OptionalDatum,
   NominalDatum,
   isAtomic,
+  isBasic,
   isObj,
   isVec,
   isOptionalDatum,
@@ -32,6 +34,7 @@ export const isDatum = (
 
 export type DatumCore =
   | Atomic
+  | Basic
   | Obj
   | ReadonlyArray<Datum>; // Vec
 
@@ -39,6 +42,7 @@ export const isDatumCore = (
   value: unknown,
 ): value is DatumCore =>
   isAtomic(value) ||
+  isBasic(value) ||
   (isObj(value) &&
     Object.values(value).every(isDatum)) ||
   (isVec(value) && value.every(isDatum));

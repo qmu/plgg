@@ -1,6 +1,7 @@
 import {
   Datum,
   JsonReadyAtomic,
+  JsonReadyBasic,
   JsonReadyObj,
   JsonReadyVec,
   OptionalDatumJsonReady,
@@ -10,18 +11,22 @@ import {
   isVec,
   isSome,
   toJsonReadyAtomic,
+  toJsonReadyBasic,
   toJsonReadyVec,
   toJsonReadyObj,
   toJsonReadyOptionalDatum,
   fromJsonReadyAtomic,
+  fromJsonReadyBasic,
   fromJsonReadyVec,
   fromJsonReadyObj,
   isJsonReadyAtomic,
+  isJsonReadyBasic,
   isJsonReadyVec,
   isJsonReadyObj,
   isJsonReadyOptionalDatum,
   isOptionalDatum,
   isAtomic,
+  isBasic,
   newSome,
   newNone,
 } from "plgg/index";
@@ -36,6 +41,7 @@ export type JsonReady =
 
 export type JsonReadyCore =
   | JsonReadyAtomic
+  | JsonReadyBasic
   | JsonReadyObj
   | JsonReadyVec;
 
@@ -44,6 +50,9 @@ export const toJsonReadyCore = (
 ): JsonReadyCore => {
   if (isAtomic(value)) {
     return toJsonReadyAtomic(value);
+  }
+  if (isBasic(value)) {
+    return toJsonReadyBasic(value);
   }
   if (isVec(value)) {
     return toJsonReadyVec(value);
@@ -57,6 +66,9 @@ export const fromJsonReadyCore = (
   if (isJsonReadyAtomic(jsonReady)) {
     return fromJsonReadyAtomic(jsonReady);
   }
+  if (isJsonReadyBasic(jsonReady)) {
+    return fromJsonReadyBasic(jsonReady);
+  }
   if (isJsonReadyVec(jsonReady)) {
     return fromJsonReadyVec(jsonReady);
   }
@@ -69,6 +81,7 @@ export const isJsonReady = (
   value: unknown,
 ): value is JsonReady =>
   isJsonReadyAtomic(value) ||
+  isJsonReadyBasic(value) ||
   isJsonReadyObj(value) ||
   isJsonReadyVec(value) ||
   isJsonReadyOptionalDatum(value);
@@ -106,6 +119,9 @@ export const fromJsonReady = (
   }
   if (isJsonReadyAtomic(jsonReady)) {
     return fromJsonReadyAtomic(jsonReady);
+  }
+  if (isJsonReadyBasic(jsonReady)) {
+    return fromJsonReadyBasic(jsonReady);
   }
   if (isJsonReadyVec(jsonReady)) {
     return fromJsonReadyVec(jsonReady);
