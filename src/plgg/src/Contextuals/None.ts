@@ -1,5 +1,5 @@
 import {
-  FixedVariant,
+  EmptyBox,
   hasTag,
   construct,
   Result,
@@ -20,7 +20,7 @@ const noneTag = "None" as const;
  * None side of Option, representing the absence of a value.
  * Equivalent to null/undefined but in a type-safe way.
  */
-export type None = FixedVariant<typeof noneTag>;
+export type None = EmptyBox<typeof noneTag>;
 
 /**
  * Pattern constructor for None matching.

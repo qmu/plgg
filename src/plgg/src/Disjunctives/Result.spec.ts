@@ -28,7 +28,7 @@ test("ok creates Ok result", () => {
   expect(result.__tag).toBe("Ok");
   assert(isOk(result));
   if (isOk(result)) {
-    expect(result.body).toBe(42);
+    expect(result.content).toBe(42);
   }
 });
 
@@ -37,7 +37,7 @@ test("err creates Err result", () => {
   expect(result.__tag).toBe("Err");
   assert(isErr(result));
   if (isErr(result)) {
-    expect(result.body).toBe("error message");
+    expect(result.content).toBe("error message");
   }
 });
 
@@ -83,11 +83,11 @@ test("Result can handle different types", () => {
   assert(isErr(numberErrorResult));
 
   if (isOk(stringResult)) {
-    expect(stringResult.body).toBe("hello");
+    expect(stringResult.content).toBe("hello");
   }
 
   if (isErr(numberErrorResult)) {
-    expect(numberErrorResult.body).toBe(404);
+    expect(numberErrorResult.content).toBe(404);
   }
 });
 
@@ -102,7 +102,7 @@ test("mapOk transforms success values while preserving errors", () => {
     newOk(29.99),
   );
   assert(isOk(successResult));
-  expect(successResult.body).toBe("$29.99");
+  expect(successResult.content).toBe("$29.99");
 
   const priceError = new InvalidError({
     message: "Invalid price",
@@ -110,7 +110,7 @@ test("mapOk transforms success values while preserving errors", () => {
   const e = newErr(priceError);
   const errorResult = chainResult(formatPrice)(e);
   assert(isErr(errorResult));
-  expect(errorResult.body.message).toBe(
+  expect(errorResult.content.message).toBe(
     "Invalid price",
   );
 });
@@ -124,9 +124,9 @@ test("Result Monad - map function", () => {
   const r2 = pipe(errValue, mapResult(double));
 
   assert(isOk(r1));
-  expect(r1.body).toBe(10);
+  expect(r1.content).toBe(10);
   assert(isErr(r2));
-  expect(r2.body).toBe("error");
+  expect(r2.content).toBe("error");
 });
 
 test("Result Monad - ap function (applicative)", () => {
@@ -160,13 +160,13 @@ test("Result Monad - ap function (applicative)", () => {
   );
 
   assert(isOk(r1));
-  expect(r1.body).toBe(8);
+  expect(r1.content).toBe(8);
   assert(isErr(r2));
-  expect(r2.body).toBe("function error");
+  expect(r2.content).toBe("function error");
   assert(isErr(r3));
-  expect(r3.body).toBe("value error");
+  expect(r3.content).toBe("value error");
   assert(isErr(r4));
-  expect(r4.body).toBe("function error");
+  expect(r4.content).toBe("function error");
 });
 
 test("Result Monad - of function", () => {
@@ -175,11 +175,11 @@ test("Result Monad - of function", () => {
   const r3 = pipe(null, ofResult);
 
   assert(isOk(r1));
-  expect(r1.body).toBe(42);
+  expect(r1.content).toBe(42);
   assert(isOk(r2));
-  expect(r2.body).toBe("hello");
+  expect(r2.content).toBe("hello");
   assert(isOk(r3));
-  expect(r3.body).toBe(null);
+  expect(r3.content).toBe(null);
 });
 
 test("Result Monad - chain function", () => {
@@ -207,11 +207,11 @@ test("Result Monad - chain function", () => {
   );
 
   assert(isOk(r1));
-  expect(r1.body).toBe(5);
+  expect(r1.content).toBe(5);
   assert(isErr(r2));
-  expect(r2.body).toBe("Division by zero");
+  expect(r2.content).toBe("Division by zero");
   assert(isErr(r3));
-  expect(r3.body).toBe("Invalid number");
+  expect(r3.content).toBe("Invalid number");
 });
 
 test("Result Monad Laws - Left Identity", () => {
@@ -355,8 +355,8 @@ test("User data validation pipeline with optional fields", () => {
   });
   const result1 = processUser(validUser);
   assert(isSome(result1));
-  assert(isOk(result1.body));
-  expect(result1.body.body).toBe(
+  assert(isOk(result1.content));
+  expect(result1.content.content).toBe(
     "alice@example.com",
   );
 
@@ -373,8 +373,10 @@ test("User data validation pipeline with optional fields", () => {
   const parseError = newErr("Invalid JSON");
   const result3 = processUser(parseError);
   assert(isSome(result3));
-  assert(isErr(result3.body));
-  expect(result3.body.body).toBe("Invalid JSON");
+  assert(isErr(result3.content));
+  expect(result3.content.content).toBe(
+    "Invalid JSON",
+  );
 });
 
 test("Database query with optional caching", () => {
@@ -409,8 +411,10 @@ test("Database query with optional caching", () => {
   });
   const result1 = executeQuery(cachedQuery);
   assert(isSome(result1));
-  assert(isOk(result1.body));
-  expect(result1.body.body).toBe("cached_users");
+  assert(isOk(result1.content));
+  expect(result1.content.content).toBe(
+    "cached_users",
+  );
 
   // Non-cached query
   const directQuery = newOk({
@@ -419,8 +423,8 @@ test("Database query with optional caching", () => {
   });
   const result2 = executeQuery(directQuery);
   assert(isSome(result2));
-  assert(isOk(result2.body));
-  expect(result2.body.body).toBe(
+  assert(isOk(result2.content));
+  expect(result2.content.content).toBe(
     "complex_analytics",
   );
 
@@ -442,8 +446,8 @@ test("sequenceResult - sequence with Option", () => {
   );
 
   assert(isSome(result1));
-  assert(isOk(result1.body));
-  expect(result1.body.body).toBe(42);
+  assert(isOk(result1.content));
+  expect(result1.content.content).toBe(42);
 
   // Test successful sequence with None
   const okWithNone = newOk(newNone());
@@ -462,6 +466,6 @@ test("sequenceResult - sequence with Option", () => {
   );
 
   assert(isSome(result3));
-  assert(isErr(result3.body));
-  expect(result3.body.body).toBe("error");
+  assert(isErr(result3.content));
+  expect(result3.content.content).toBe("error");
 });

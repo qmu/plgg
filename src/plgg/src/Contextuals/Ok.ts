@@ -1,5 +1,5 @@
 import {
-  Variant,
+  Box,
   hasTag,
   construct,
   Result,
@@ -24,7 +24,7 @@ const okTag = "Ok" as const;
 /**
  * Represents a successful computation containing a success value.
  */
-export type Ok<T> = Variant<typeof okTag, T>;
+export type Ok<T> = Box<typeof okTag, T>;
 
 /**
  * Pattern constructor for matching Ok values in pattern matching.

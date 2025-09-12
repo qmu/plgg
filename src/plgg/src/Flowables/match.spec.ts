@@ -3,7 +3,7 @@ import {
   match,
   TRUE,
   FALSE,
-  Variant,
+  Box,
   pattern,
   construct,
   otherwise,
@@ -78,7 +78,7 @@ test("otherwise", async () => {
 });
 
 test("Variant1", async () => {
-  type Circle = Variant<
+  type Circle = Box<
     "Circle",
     {
       radius: number;
@@ -86,7 +86,7 @@ test("Variant1", async () => {
   >;
   const circle = pattern("Circle" as const);
 
-  type Square = Variant<
+  type Square = Box<
     "Square",
     {
       side: number;
@@ -94,7 +94,7 @@ test("Variant1", async () => {
   >;
   const square = pattern("Square" as const);
 
-  type Triangle = Variant<
+  type Triangle = Box<
     "Triangle",
     {
       base: number;
@@ -126,7 +126,7 @@ test("Variant2", async () => {
     type: "root" | "leaf" | "branch";
     children?: ReadonlyArray<AST>;
   };
-  type AST = Variant<"AST", ast>;
+  type AST = Box<"AST", ast>;
   const ast = pattern("AST");
   const newAST = construct<AST>("AST");
 

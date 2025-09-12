@@ -26,7 +26,7 @@ export const isDatum = (
   isDatumCore(value) ||
   (isOptionalDatum(value) &&
     (isNone(value) ||
-      (isSome(value) && isDatum(value.body))));
+      (isSome(value) && isDatum(value.content))));
 
 export type DatumCore =
   | Atomic

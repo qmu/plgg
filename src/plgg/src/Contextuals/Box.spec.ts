@@ -1,18 +1,18 @@
 import { test, expect, assert } from "vitest";
 import {
-  FixedVariant,
-  Variant,
+  EmptyBox,
+  Box,
   construct,
   pattern,
   hasTag,
-  isVariantLike,
+  isBoxLike,
   match,
-  ExtractVariantBody,
+  ExtractBoxContent,
 } from "plgg/index";
 
 test("FixedVariant creation and structure", () => {
   const loading =
-    construct<FixedVariant<"loading">>("loading");
+    construct<EmptyBox<"loading">>("loading");
   const loadingVariant = loading();
   expect(loadingVariant.__tag).toBe("loading");
   expect(Object.keys(loadingVariant)).toEqual([
@@ -22,13 +22,15 @@ test("FixedVariant creation and structure", () => {
 });
 
 test("ParametricVariant creation and structure", () => {
-  type Success<T> = Variant<"success", T>;
+  type Success<T> = Box<"success", T>;
   const success =
     construct<Success<string>>("success");
   const successVariant = success("hello world");
 
   expect(successVariant.__tag).toBe("success");
-  expect(successVariant.body).toBe("hello world");
+  expect(successVariant.content).toBe(
+    "hello world",
+  );
   expect(Object.keys(successVariant)).toEqual([
     "__tag",
     "body",
@@ -36,8 +38,8 @@ test("ParametricVariant creation and structure", () => {
 });
 
 test("construct with different body types", () => {
-  type NumberVariant = Variant<"number", number>;
-  type ObjectVariant = Variant<
+  type NumberVariant = Box<"number", number>;
+  type ObjectVariant = Box<
     "object",
     { id: number; name: string }
   >;
@@ -54,18 +56,18 @@ test("construct with different body types", () => {
   });
 
   expect(numVariant.__tag).toBe("number");
-  expect(numVariant.body).toBe(42);
+  expect(numVariant.content).toBe(42);
 
   expect(objVariant.__tag).toBe("object");
-  expect(objVariant.body).toEqual({
+  expect(objVariant.content).toEqual({
     id: 1,
     name: "test",
   });
 });
 
 test("hasTag type guard function", () => {
-  type User = Variant<"user", { name: string }>;
-  type Admin = Variant<
+  type User = Box<"user", { name: string }>;
+  type Admin = Box<
     "admin",
     { permissions: string[] }
   >;
@@ -94,31 +96,23 @@ test("hasTag type guard function", () => {
 });
 
 test("isVariant type guard function", () => {
-  type TestVariant = Variant<"test", string>;
+  type TestVariant = Box<"test", string>;
   const testMaker =
     construct<TestVariant>("test");
   const variant = testMaker("body");
 
-  assert(isVariantLike(variant));
-  assert(!isVariantLike("string"));
-  assert(!isVariantLike(123));
-  assert(!isVariantLike(null));
-  assert(!isVariantLike(undefined));
-  assert(!isVariantLike({}));
-  assert(
-    !isVariantLike({ tag: "wrong-property" }),
-  );
+  assert(isBoxLike(variant));
+  assert(!isBoxLike("string"));
+  assert(!isBoxLike(123));
+  assert(!isBoxLike(null));
+  assert(!isBoxLike(undefined));
+  assert(!isBoxLike({}));
+  assert(!isBoxLike({ tag: "wrong-property" }));
 });
 
 test("pattern function for matching", () => {
-  type Circle = Variant<
-    "circle",
-    { radius: number }
-  >;
-  type Square = Variant<
-    "square",
-    { side: number }
-  >;
+  type Circle = Box<"circle", { radius: number }>;
+  type Square = Box<"square", { side: number }>;
 
   const circle = pattern("circle");
   const square = pattern("square");
@@ -146,7 +140,7 @@ test("pattern function for matching", () => {
 });
 
 test("variant with complex nested body", () => {
-  type ComplexVariant = Variant<
+  type ComplexVariant = Box<
     "complex",
     {
       id: number;
@@ -170,20 +164,20 @@ test("variant with complex nested body", () => {
   });
 
   expect(complex.__tag).toBe("complex");
-  expect(complex.body.id).toBe(123);
-  expect(complex.body.metadata.tags).toEqual([
+  expect(complex.content.id).toBe(123);
+  expect(complex.content.metadata.tags).toEqual([
     "important",
     "test",
   ]);
-  expect(complex.body.data).toEqual({
+  expect(complex.content.data).toEqual({
     nested: "value",
   });
 });
 
 test("mixed FixedVariant and ParametricVariant in union", () => {
-  type Loading = FixedVariant<"loading">;
-  type Success<T> = Variant<"success", T>;
-  type Error = Variant<"error", string>;
+  type Loading = EmptyBox<"loading">;
+  type Success<T> = Box<"success", T>;
+  type Error = Box<"error", string>;
 
   type AsyncState<T> =
     | Loading
@@ -228,13 +222,13 @@ test("pattern with undefined body creates FixedVariant", () => {
 });
 
 test("Extractbody type utility", () => {
-  type TestVariant = Variant<
+  type TestVariant = Box<
     "test",
     { data: string }
   >;
 
   // This is a compile-time test - if it compiles, the type works correctly
-  const testbody: ExtractVariantBody<TestVariant> =
+  const testbody: ExtractBoxContent<TestVariant> =
     {
       data: "hello",
     };

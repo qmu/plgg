@@ -18,7 +18,7 @@ test("some creates Some option", () => {
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
-    expect(result.body).toBe(42);
+    expect(result.content).toBe(42);
   }
 });
 
@@ -27,7 +27,7 @@ test("some creates Some option with string", () => {
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
-    expect(result.body).toBe("hello");
+    expect(result.content).toBe("hello");
   }
 });
 
@@ -37,9 +37,9 @@ test("some creates Some option with object", () => {
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
-    expect(result.body).toBe(obj);
-    expect(result.body.name).toBe("test");
-    expect(result.body.age).toBe(25);
+    expect(result.content).toBe(obj);
+    expect(result.content.name).toBe("test");
+    expect(result.content.age).toBe(25);
   }
 });
 
@@ -48,7 +48,7 @@ test("some creates Some option with null", () => {
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
-    expect(result.body).toBe(null);
+    expect(result.content).toBe(null);
   }
 });
 
@@ -57,7 +57,7 @@ test("some creates Some option with undefined", () => {
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
-    expect(result.body).toBe(undefined);
+    expect(result.content).toBe(undefined);
   }
 });
 
@@ -105,11 +105,11 @@ test("Option can handle different types", () => {
   assert(isNone(noneNumberOption));
 
   if (isSome(stringOption)) {
-    expect(stringOption.body).toBe("hello");
+    expect(stringOption.content).toBe("hello");
   }
 
   if (isSome(numberOption)) {
-    expect(numberOption.body).toBe(42);
+    expect(numberOption.content).toBe(42);
   }
 });
 
@@ -158,9 +158,9 @@ test("Option with complex types", () => {
   assert(isNone(noUserOption));
 
   if (isSome(userOption)) {
-    expect(userOption.body.id).toBe(1);
-    expect(userOption.body.name).toBe("John");
-    expect(userOption.body.email).toBe(
+    expect(userOption.content.id).toBe(1);
+    expect(userOption.content.name).toBe("John");
+    expect(userOption.content.email).toBe(
       "john@example.com",
     );
   }
@@ -177,15 +177,17 @@ test("Option with array bodys", () => {
   assert(isNone(noneArrayOption));
 
   if (isSome(arrayOption)) {
-    expect(arrayOption.body).toEqual([
+    expect(arrayOption.content).toEqual([
       1, 2, 3, 4, 5,
     ]);
-    expect(arrayOption.body.length).toBe(5);
+    expect(arrayOption.content.length).toBe(5);
   }
 
   if (isSome(emptyArrayOption)) {
-    expect(emptyArrayOption.body).toEqual([]);
-    expect(emptyArrayOption.body.length).toBe(0);
+    expect(emptyArrayOption.content).toEqual([]);
+    expect(emptyArrayOption.content.length).toBe(
+      0,
+    );
   }
 });
 
@@ -199,11 +201,11 @@ test("Option with boolean bodys", () => {
   assert(isNone(noneBoolOption));
 
   if (isSome(trueOption)) {
-    expect(trueOption.body).toBe(true);
+    expect(trueOption.content).toBe(true);
   }
 
   if (isSome(falseOption)) {
-    expect(falseOption.body).toBe(false);
+    expect(falseOption.content).toBe(false);
   }
 });
 
@@ -215,11 +217,11 @@ test("Option with zero bodys", () => {
   assert(isSome(emptyStringOption));
 
   if (isSome(zeroOption)) {
-    expect(zeroOption.body).toBe(0);
+    expect(zeroOption.content).toBe(0);
   }
 
   if (isSome(emptyStringOption)) {
-    expect(emptyStringOption.body).toBe("");
+    expect(emptyStringOption.content).toBe("");
   }
 });
 
@@ -232,7 +234,7 @@ test("Option Monad - map function", () => {
   const r2 = pipe(noneNumber, mapOption(double));
 
   assert(isSome(r1));
-  expect(r1.body).toBe(10);
+  expect(r1.content).toBe(10);
   assert(isNone(r2));
 });
 
@@ -261,7 +263,7 @@ test("Option Monad - ap function (applicative)", () => {
   );
 
   assert(isSome(r1));
-  expect(r1.body).toBe(8);
+  expect(r1.content).toBe(8);
   assert(isNone(r2));
   assert(isNone(r3));
   assert(isNone(r4));
@@ -273,11 +275,11 @@ test("Option Monad - of function", () => {
   const r3 = pipe(null, ofOption);
 
   assert(isSome(r1));
-  expect(r1.body).toBe(42);
+  expect(r1.content).toBe(42);
   assert(isSome(r2));
-  expect(r2.body).toBe("hello");
+  expect(r2.content).toBe("hello");
   assert(isSome(r3));
-  expect(r3.body).toBe(null);
+  expect(r3.content).toBe(null);
 });
 
 test("Option Monad - chain function", () => {
@@ -303,7 +305,7 @@ test("Option Monad - chain function", () => {
   );
 
   assert(isSome(r1));
-  expect(r1.body).toBe(5);
+  expect(r1.content).toBe(5);
   assert(isNone(r2));
   assert(isNone(r3));
 });

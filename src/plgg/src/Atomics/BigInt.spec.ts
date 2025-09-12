@@ -41,28 +41,30 @@ test("asBigInt validates and converts BigInt values", () => {
   // Direct BigInt values
   const validBigInt = asBigInt(BigInt(123));
   assert(isOk(validBigInt));
-  expect(validBigInt.body).toBe(BigInt(123));
+  expect(validBigInt.content).toBe(BigInt(123));
 
   const zeroBigInt = asBigInt(BigInt(0));
   assert(isOk(zeroBigInt));
-  expect(zeroBigInt.body).toBe(BigInt(0));
+  expect(zeroBigInt.content).toBe(BigInt(0));
 
   const negativeBigInt = asBigInt(BigInt(-456));
   assert(isOk(negativeBigInt));
-  expect(negativeBigInt.body).toBe(BigInt(-456));
+  expect(negativeBigInt.content).toBe(
+    BigInt(-456),
+  );
 
   // Integer number conversion
   const integerValue = asBigInt(42);
   assert(isOk(integerValue));
-  expect(integerValue.body).toBe(BigInt(42));
+  expect(integerValue.content).toBe(BigInt(42));
 
   const zeroValue = asBigInt(0);
   assert(isOk(zeroValue));
-  expect(zeroValue.body).toBe(BigInt(0));
+  expect(zeroValue.content).toBe(BigInt(0));
 
   const negativeIntValue = asBigInt(-789);
   assert(isOk(negativeIntValue));
-  expect(negativeIntValue.body).toBe(
+  expect(negativeIntValue.content).toBe(
     BigInt(-789),
   );
 
@@ -71,36 +73,36 @@ test("asBigInt validates and converts BigInt values", () => {
     "123456789012345678901234567890",
   );
   assert(isOk(stringValue));
-  expect(stringValue.body).toBe(
+  expect(stringValue.content).toBe(
     BigInt("123456789012345678901234567890"),
   );
 
   const stringZero = asBigInt("0");
   assert(isOk(stringZero));
-  expect(stringZero.body).toBe(BigInt(0));
+  expect(stringZero.content).toBe(BigInt(0));
 
   // Invalid conversions
   const floatValue = asBigInt(3.14);
   assert(isErr(floatValue));
-  expect(floatValue.body.message).toBe(
+  expect(floatValue.content.message).toBe(
     "Value is not a BigInt",
   );
 
   const invalidString = asBigInt("not-a-number");
   assert(isErr(invalidString));
-  expect(invalidString.body.message).toBe(
+  expect(invalidString.content.message).toBe(
     "Value is not a valid BigInt",
   );
 
   const booleanInput = asBigInt(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.body.message).toBe(
+  expect(booleanInput.content.message).toBe(
     "Value is not a BigInt",
   );
 
   const nullInput = asBigInt(null);
   assert(isErr(nullInput));
-  expect(nullInput.body.message).toBe(
+  expect(nullInput.content.message).toBe(
     "Value is not a BigInt",
   );
 });
@@ -111,11 +113,11 @@ test("asBigInt works in validation pipelines", () => {
     const bigIntResult = asBigInt(input);
     if (isErr(bigIntResult)) return bigIntResult;
 
-    const userId = bigIntResult.body;
+    const userId = bigIntResult.content;
     if (userId < 1n) {
       return {
         __tag: "Err" as const,
-        body: new Error(
+        content: new Error(
           "User ID must be positive",
         ),
       };
@@ -123,12 +125,12 @@ test("asBigInt works in validation pipelines", () => {
     if (userId > BigInt("9999999999999999")) {
       return {
         __tag: "Err" as const,
-        body: new Error("User ID too large"),
+        content: new Error("User ID too large"),
       };
     }
     return {
       __tag: "Ok" as const,
-      body: userId,
+      content: userId,
     };
   };
 
@@ -136,12 +138,12 @@ test("asBigInt works in validation pipelines", () => {
     BigInt(12345),
   );
   assert(isOk(validUserId));
-  expect(validUserId.body).toBe(BigInt(12345));
+  expect(validUserId.content).toBe(BigInt(12345));
 
   const stringUserId =
     validateUserId("9876543210");
   assert(isOk(stringUserId));
-  expect(stringUserId.body).toBe(
+  expect(stringUserId.content).toBe(
     BigInt("9876543210"),
   );
 
@@ -149,7 +151,7 @@ test("asBigInt works in validation pipelines", () => {
     "not-a-number",
   );
   assert(isErr(invalidType));
-  expect(invalidType.body.message).toBe(
+  expect(invalidType.content.message).toBe(
     "Value is not a valid BigInt",
   );
 
@@ -157,7 +159,7 @@ test("asBigInt works in validation pipelines", () => {
     BigInt(-1),
   );
   assert(isErr(negativeUserId));
-  expect(negativeUserId.body.message).toBe(
+  expect(negativeUserId.content.message).toBe(
     "User ID must be positive",
   );
 
@@ -165,7 +167,7 @@ test("asBigInt works in validation pipelines", () => {
     BigInt("99999999999999999"),
   );
   assert(isErr(tooLargeUserId));
-  expect(tooLargeUserId.body.message).toBe(
+  expect(tooLargeUserId.content.message).toBe(
     "User ID too large",
   );
 });
@@ -176,7 +178,7 @@ test("asBigInt handles large values beyond Number.MAX_SAFE_INTEGER", () => {
     "123456789012345678901234567890",
   );
   assert(isOk(largeValue));
-  expect(largeValue.body).toBe(
+  expect(largeValue.content).toBe(
     BigInt("123456789012345678901234567890"),
   );
 
@@ -184,7 +186,7 @@ test("asBigInt handles large values beyond Number.MAX_SAFE_INTEGER", () => {
     "-987654321098765432109876543210",
   );
   assert(isOk(veryLargeNegative));
-  expect(veryLargeNegative.body).toBe(
+  expect(veryLargeNegative.content).toBe(
     BigInt("-987654321098765432109876543210"),
   );
 
@@ -193,7 +195,7 @@ test("asBigInt handles large values beyond Number.MAX_SAFE_INTEGER", () => {
     Number.MAX_SAFE_INTEGER,
   );
   assert(isOk(maxSafeInt));
-  expect(maxSafeInt.body).toBe(
+  expect(maxSafeInt.content).toBe(
     BigInt(Number.MAX_SAFE_INTEGER),
   );
 
@@ -201,8 +203,7 @@ test("asBigInt handles large values beyond Number.MAX_SAFE_INTEGER", () => {
     Number.MIN_SAFE_INTEGER,
   );
   assert(isOk(minSafeInt));
-  expect(minSafeInt.body).toBe(
+  expect(minSafeInt.content).toBe(
     BigInt(Number.MIN_SAFE_INTEGER),
   );
 });
-

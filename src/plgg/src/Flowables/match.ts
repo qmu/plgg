@@ -1,5 +1,5 @@
 import {
-  isVariantLike,
+  isBoxLike,
   If,
   IsEqual,
   Is,
@@ -15,9 +15,9 @@ import {
   IsVariantPatternTag,
   IsVariantPattern,
   Or,
-  IsVariantLike,
-  ExtractVariantBody,
-  VariantLike,
+  IsBoxLike,
+  ExtractBoxContent,
+  BoxLike,
   isObjLike,
 } from "plgg/index";
 
@@ -150,15 +150,12 @@ export type CaseDecl<
   A,
   PATTERN,
   R,
-  ABODY = A extends VariantLike<string, unknown>
-    ? ExtractVariantBody<A>
+  ABODY = A extends BoxLike<string, unknown>
+    ? ExtractBoxContent<A>
     : never,
   PBODY = ExtractBodyFromVariantPattern<PATTERN>,
 > = If<
-  And<
-    IsVariantLike<A>,
-    IsVariantPattern<PATTERN>
-  >,
+  And<IsBoxLike<A>, IsVariantPattern<PATTERN>>,
   If<
     Or<
       Is<PBODY, undefined>,
@@ -1258,18 +1255,21 @@ export function match(
   >
 ): unknown {
   for (const [pattern, fn] of cases) {
-    if (isVariantLike(a)) {
+    if (isBoxLike(a)) {
       if (isVariantPatternAtomic(pattern)) {
-        if (a.body === pattern.body) {
+        if (a.content === pattern.body) {
           return fn(a);
         }
         continue;
       }
       if (isVariantPatternObject(pattern)) {
         if (
-          isObjLike(a.body) &&
+          isObjLike(a.content) &&
           isObjLike(pattern.body) &&
-          deepPartialEqual(a.body, pattern.body)
+          deepPartialEqual(
+            a.content,
+            pattern.body,
+          )
         ) {
           return fn(a);
         }
@@ -1277,7 +1277,7 @@ export function match(
       }
       if (isVariantPatternTag(pattern)) {
         if (
-          isVariantLike(a) &&
+          isBoxLike(a) &&
           a.__tag === pattern.tag
         ) {
           return fn(a);
@@ -1291,10 +1291,7 @@ export function match(
     if (pattern === otherwise) {
       return fn(a);
     }
-    if (
-      !isVariantLike(pattern) &&
-      a === pattern
-    ) {
+    if (!isBoxLike(pattern) && a === pattern) {
       return fn(a);
     }
   }

@@ -38,40 +38,40 @@ test("isMutRec type guard", () => {
 test("asRawObj validation", async () => {
   const emptyResult = asRawObj({});
   assert(isOk(emptyResult));
-  expect(emptyResult.body).toEqual({});
+  expect(emptyResult.content).toEqual({});
 
   const recResult = asRawObj({ a: 1, b: "test" });
   assert(isOk(recResult));
-  expect(recResult.body).toEqual({
+  expect(recResult.content).toEqual({
     a: 1,
     b: "test",
   });
 
   const arrayResult = asRawObj([1, 2, 3]);
   assert(isOk(arrayResult));
-  expect(arrayResult.body).toEqual([1, 2, 3]);
+  expect(arrayResult.content).toEqual([1, 2, 3]);
 
   const nullResult = asRawObj(null);
   assert(isErr(nullResult));
-  expect(nullResult.body.message).toBe(
+  expect(nullResult.content.message).toBe(
     "Not record",
   );
 
   const undefinedResult = asRawObj(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.body.message).toBe(
+  expect(undefinedResult.content.message).toBe(
     "Not record",
   );
 
   const stringResult = asRawObj("test");
   assert(isErr(stringResult));
-  expect(stringResult.body.message).toBe(
+  expect(stringResult.content.message).toBe(
     "Not record",
   );
 
   const numberResult = asRawObj(123);
   assert(isErr(numberResult));
-  expect(numberResult.body.message).toBe(
+  expect(numberResult.content.message).toBe(
     "Not record",
   );
 });
@@ -267,4 +267,3 @@ test("sequenceRawObj - function exists", () => {
   expect(typeof sequenceRawObj).toBe("function");
   expect(sequenceRawObj).toBeDefined();
 });
-

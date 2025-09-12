@@ -229,5 +229,4 @@ export const concludeMutVec =
       .map(fn)
       .reduce<
         Result<MutVec<U>, MutVec<F>>
-      >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.body, result.body]) : acc) : isErr(acc) ? newErr([...acc.body, result.body]) : newErr([result.body])), newOk([]));
-
+      >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));

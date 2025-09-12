@@ -31,36 +31,36 @@ test("asStr validates and returns string values", () => {
   // Example: User input validation
   const validString = asStr("user@example.com");
   assert(isOk(validString));
-  expect(validString.body).toBe(
+  expect(validString.content).toBe(
     "user@example.com",
   );
 
   const emptyString = asStr("");
   assert(isOk(emptyString));
-  expect(emptyString.body).toBe("");
+  expect(emptyString.content).toBe("");
 
   // Example: API response validation
   const numberInput = asStr(123);
   assert(isErr(numberInput));
-  expect(numberInput.body.message).toBe(
+  expect(numberInput.content.message).toBe(
     "123 is not a string",
   );
 
   const booleanInput = asStr(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.body.message).toBe(
+  expect(booleanInput.content.message).toBe(
     "true is not a string",
   );
 
   const nullInput = asStr(null);
   assert(isErr(nullInput));
-  expect(nullInput.body.message).toBe(
+  expect(nullInput.content.message).toBe(
     "null is not a string",
   );
 
   const undefinedInput = asStr(undefined);
   assert(isErr(undefinedInput));
-  expect(undefinedInput.body.message).toBe(
+  expect(undefinedInput.content.message).toBe(
     "undefined is not a string",
   );
 });
@@ -71,13 +71,15 @@ test("asStr works in validation pipelines", () => {
     const strResult = asStr(input);
     if (isErr(strResult)) return strResult;
 
-    const email = strResult.body;
+    const email = strResult.content;
     return email.includes("@") &&
       email.includes(".")
-      ? { __tag: "Ok" as const, body: email }
+      ? { __tag: "Ok" as const, content: email }
       : {
           __tag: "Err" as const,
-          body: new Error("Invalid email format"),
+          content: new Error(
+            "Invalid email format",
+          ),
         };
   };
 
@@ -85,13 +87,13 @@ test("asStr works in validation pipelines", () => {
     "user@example.com",
   );
   assert(isOk(validEmail));
-  expect(validEmail.body).toBe(
+  expect(validEmail.content).toBe(
     "user@example.com",
   );
 
   const invalidType = validateEmail(123);
   assert(isErr(invalidType));
-  expect(invalidType.body.message).toBe(
+  expect(invalidType.content.message).toBe(
     "123 is not a string",
   );
 
@@ -99,7 +101,7 @@ test("asStr works in validation pipelines", () => {
     "not-an-email",
   );
   assert(isErr(invalidFormat));
-  expect(invalidFormat.body.message).toBe(
+  expect(invalidFormat.content.message).toBe(
     "Invalid email format",
   );
 });

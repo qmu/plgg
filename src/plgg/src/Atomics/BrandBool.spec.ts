@@ -32,43 +32,43 @@ test("BrandBool.cast validation", async () => {
   const isActiveResult =
     asBrandBool<"IsActive">(true);
   assert(isOk(isActiveResult));
-  expect(isActiveResult.body).toBe(true);
+  expect(isActiveResult.content).toBe(true);
 
   const isAdminResult =
     asBrandBool<"IsAdmin">(false);
   assert(isOk(isAdminResult));
-  expect(isAdminResult.body).toBe(false);
+  expect(isAdminResult.content).toBe(false);
 
   const stringResult =
     asBrandBool<"IsActive">("true");
   assert(isErr(stringResult));
-  expect(stringResult.body.message).toBe(
+  expect(stringResult.content.message).toBe(
     "Value is not a branded boolean",
   );
 
   const numberResult = asBrandBool<"IsActive">(1);
   assert(isErr(numberResult));
-  expect(numberResult.body.message).toBe(
+  expect(numberResult.content.message).toBe(
     "Value is not a branded boolean",
   );
 
   const zeroResult = asBrandBool<"IsActive">(0);
   assert(isErr(zeroResult));
-  expect(zeroResult.body.message).toBe(
+  expect(zeroResult.content.message).toBe(
     "Value is not a branded boolean",
   );
 
   const nullResult =
     asBrandBool<"IsActive">(null);
   assert(isErr(nullResult));
-  expect(nullResult.body.message).toBe(
+  expect(nullResult.content.message).toBe(
     "Value is not a branded boolean",
   );
 
   const undefinedResult =
     asBrandBool<"IsActive">(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.body.message).toBe(
+  expect(undefinedResult.content.message).toBe(
     "Value is not a branded boolean",
   );
 
@@ -76,7 +76,7 @@ test("BrandBool.cast validation", async () => {
     {},
   );
   assert(isErr(objectResult));
-  expect(objectResult.body.message).toBe(
+  expect(objectResult.content.message).toBe(
     "Value is not a branded boolean",
   );
 });

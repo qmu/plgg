@@ -498,7 +498,7 @@ export async function proc(
         const current = await acc;
         if (isResult(current)) {
           return isOk(current)
-            ? fn(current.body)
+            ? fn(current.content)
             : current;
         }
         return fn(current);

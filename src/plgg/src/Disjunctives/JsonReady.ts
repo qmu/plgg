@@ -97,7 +97,9 @@ export const fromJsonReady = (
 ): Datum => {
   if (isJsonReadyOptionalDatum(jsonReady)) {
     return isSome(jsonReady)
-      ? newSome(fromJsonReadyCore(jsonReady.body))
+      ? newSome(
+          fromJsonReadyCore(jsonReady.content),
+        )
       : newNone();
   }
   if (isJsonReadyAtomic(jsonReady)) {

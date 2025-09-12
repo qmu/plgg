@@ -1,5 +1,5 @@
 import {
-  Variant,
+  Box,
   hasTag,
   construct,
   Result,
@@ -24,7 +24,7 @@ const errTag = "Err" as const;
 /**
  * Represents a failed computation containing an error value.
  */
-export type Err<F> = Variant<typeof errTag, F>;
+export type Err<F> = Box<typeof errTag, F>;
 
 /**
  * Pattern constructor for matching Err values in pattern matching.

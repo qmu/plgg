@@ -27,7 +27,9 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        expect(restored.body).toBe("hello world");
+        expect(restored.content).toBe(
+          "hello world",
+        );
       }
     });
 
@@ -43,7 +45,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        expect(restored.body).toBe(42.5);
+        expect(restored.content).toBe(42.5);
       }
     });
 
@@ -59,7 +61,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        expect(restored.body).toBe(true);
+        expect(restored.content).toBe(true);
       }
     });
 
@@ -75,10 +77,10 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        expect(restored.body).toBe(
+        expect(restored.content).toBe(
           123456789012345678901234567890n,
         );
-        expect(typeof restored.body).toBe(
+        expect(typeof restored.content).toBe(
           "bigint",
         );
       }
@@ -115,7 +117,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        expect(restored.body).toEqual({
+        expect(restored.content).toEqual({
           name: "Alice",
           age: 30,
         });
@@ -142,7 +144,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        const body = restored.body as any;
+        const body = restored.content as any;
         expect(body.user.name).toBe("Bob");
         expect(body.user.details.age).toBe(25);
         expect(body.user.details.active).toBe(
@@ -163,7 +165,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        const body = restored.body as any;
+        const body = restored.content as any;
         expect(body).toEqual([1, 2, 3, 4, 5]);
         expect(Array.isArray(body)).toBe(true);
         expect(body.length).toBe(5);
@@ -186,7 +188,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       if (isSome(restored)) {
-        const body = restored.body as any;
+        const body = restored.content as any;
         expect(body.id).toBe(123n);
         expect(typeof body.id).toBe("bigint");
         expect(body.name).toBe("Charlie");
@@ -236,7 +238,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         toJsonReadyOptionalDatum(original);
       expect(isSome(jsonReady)).toBe(true);
       if (isSome(jsonReady)) {
-        expect(jsonReady.body).toBe(
+        expect(jsonReady.content).toBe(
           "direct test",
         );
       }
@@ -363,8 +365,8 @@ describe("OptionalDatum Serialization/Deserialization", () => {
           isSome(original) &&
           isSome(restored)
         ) {
-          expect(typeof restored.body).toBe(
-            typeof original.body,
+          expect(typeof restored.content).toBe(
+            typeof original.content,
           );
         }
       });
@@ -389,8 +391,8 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       );
       if (isSome(restored)) {
         expect(
-          Object.keys(restored.body),
-        ).toEqual(Object.keys(original.body));
+          Object.keys(restored.content),
+        ).toEqual(Object.keys(original.content));
       }
     });
   });
@@ -445,4 +447,3 @@ describe("OptionalDatum Serialization/Deserialization", () => {
     });
   });
 });
-

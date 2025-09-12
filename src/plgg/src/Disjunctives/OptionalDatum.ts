@@ -21,7 +21,7 @@ export const isOptionalDatum = <
 ): value is OptionalDatum<T> =>
   isOption(value) &&
   (isSome(value)
-    ? isDatumCore(value.body)
+    ? isDatumCore(value.content)
     : true);
 
 export const toJsonReadyOptionalDatum = <
@@ -30,7 +30,7 @@ export const toJsonReadyOptionalDatum = <
   value: OptionalDatum<T>,
 ): OptionalDatumJsonReady<JsonReadyCore> =>
   isSome(value)
-    ? newSome(toJsonReadyCore(value.body))
+    ? newSome(toJsonReadyCore(value.content))
     : newNone();
 
 // --------------------------------
@@ -48,5 +48,5 @@ export const isJsonReadyOptionalDatum = <
 ): value is OptionalDatumJsonReady<T> =>
   isOption(value) &&
   (isSome(value)
-    ? isJsonReady(value.body)
+    ? isJsonReady(value.content)
     : true);

@@ -45,11 +45,11 @@ test("cast validates object structure with multiple properties", () => {
 
   const result = asUserProfile(validData);
   assert(isOk(result));
-  expect(result.body.id).toBe(123);
-  expect(result.body.email).toBe(
+  expect(result.content.id).toBe(123);
+  expect(result.content.email).toBe(
     "user@example.com",
   );
-  expect(result.body.createdAt).toBeInstanceOf(
+  expect(result.content.createdAt).toBeInstanceOf(
     Date,
   );
 });
@@ -80,7 +80,7 @@ test("cast accumulates validation errors for multiple invalid properties", () =>
 
   const result = asProduct(invalidData);
   assert(isErr(result));
-  expect(result.body.sibling.length).toBe(3); // All three properties failed
+  expect(result.content.sibling.length).toBe(3); // All three properties failed
 });
 
 test("cast processes validation chain sequentially", () => {
@@ -106,14 +106,14 @@ test("cast processes validation chain sequentially", () => {
   const validForm = { username: "  johndoe  " };
   const result = processFormData(validForm);
   assert(isOk(result));
-  expect(result.body.username).toBe(
+  expect(result.content.username).toBe(
     "  johndoe  ",
   );
 
   const invalidForm = { username: "  ab  " };
   const result2 = processFormData(invalidForm);
   assert(isErr(result2));
-  expect(result2.body.message).toBe(
+  expect(result2.content.message).toBe(
     "Username too short",
   );
 });
@@ -163,8 +163,8 @@ test("cast handles nested object validation", () => {
 
   const result = asUser(userData);
   assert(isOk(result));
-  expect(result.body.name).toBe("John Doe");
-  expect(result.body.address.street).toBe(
+  expect(result.content.name).toBe("John Doe");
+  expect(result.content.address.street).toBe(
     "123 Main St",
   );
 });
@@ -179,19 +179,19 @@ test("cast stops on first validation failure when not accumulating errors", () =
       asNum,
       (n: number) =>
         n > 0
-          ? { __tag: "Ok" as const, body: n }
+          ? { __tag: "Ok" as const, content: n }
           : {
               __tag: "Err" as const,
-              body: new InvalidError({
+              content: new InvalidError({
                 message: "Must be positive",
               }),
             },
       (n: number) =>
         n < 100
-          ? { __tag: "Ok" as const, body: n }
+          ? { __tag: "Ok" as const, content: n }
           : {
               __tag: "Err" as const,
-              body: new InvalidError({
+              content: new InvalidError({
                 message: "Must be less than 100",
               }),
             },
@@ -199,7 +199,7 @@ test("cast stops on first validation failure when not accumulating errors", () =
 
   const result = validateSequentially(-5);
   assert(isErr(result));
-  expect(result.body.message).toBe(
+  expect(result.content.message).toBe(
     "Must be positive",
   );
 });
@@ -243,8 +243,8 @@ test("cast with higher arity functions (5+ parameters)", () => {
 
   const result = asComplexObject(validData);
   assert(isOk(result));
-  expect(result.body.field1).toBe("test1");
-  expect(result.body.field7).toBe("test3");
+  expect(result.content.field1).toBe("test1");
+  expect(result.content.field7).toBe("test3");
 });
 
 test("cast handles functions that throw exceptions", () => {
@@ -257,7 +257,7 @@ test("cast handles functions that throw exceptions", () => {
 
   const result = cast("test", throwingValidator);
   assert(isErr(result));
-  expect(result.body.message).toBe(
+  expect(result.content.message).toBe(
     "Validation failed",
   );
 });
@@ -272,7 +272,7 @@ test("cast handles non-Error exceptions", () => {
 
   const result = cast("test", throwingValidator);
   assert(isErr(result));
-  expect(result.body.message).toBe(
+  expect(result.content.message).toBe(
     "Validation failed",
   );
 });
@@ -281,7 +281,7 @@ test("cast with maximum parameters (20 functions)", () => {
   // Test with many validation functions to exercise highest-arity overloads
   const identity = (x: unknown) => ({
     __tag: "Ok" as const,
-    body: x,
+    content: x,
   });
 
   const result = cast(
@@ -309,7 +309,7 @@ test("cast with maximum parameters (20 functions)", () => {
   );
 
   assert(isOk(result));
-  expect(result.body).toBe("test");
+  expect(result.content).toBe("test");
 });
 
 test("cast aggregates multiple validation errors", () => {
@@ -318,7 +318,7 @@ test("cast aggregates multiple validation errors", () => {
     _: unknown,
   ): Result<unknown, InvalidError> => ({
     __tag: "Err" as const,
-    body: new InvalidError({
+    content: new InvalidError({
       message: "Error 1",
     }),
   });
@@ -326,7 +326,7 @@ test("cast aggregates multiple validation errors", () => {
     _: unknown,
   ): Result<unknown, InvalidError> => ({
     __tag: "Err" as const,
-    body: new InvalidError({
+    content: new InvalidError({
       message: "Error 2",
     }),
   });
@@ -334,7 +334,7 @@ test("cast aggregates multiple validation errors", () => {
     _: unknown,
   ): Result<unknown, InvalidError> => ({
     __tag: "Err" as const,
-    body: new InvalidError({
+    content: new InvalidError({
       message: "Error 3",
     }),
   });
@@ -346,14 +346,14 @@ test("cast aggregates multiple validation errors", () => {
     alwaysFail3,
   );
   assert(isErr(result));
-  expect(result.body.sibling?.length).toBe(3);
-  expect(result.body.sibling?.[0]?.message).toBe(
-    "Error 1",
-  );
-  expect(result.body.sibling?.[1]?.message).toBe(
-    "Error 2",
-  );
-  expect(result.body.sibling?.[2]?.message).toBe(
-    "Error 3",
-  );
+  expect(result.content.sibling?.length).toBe(3);
+  expect(
+    result.content.sibling?.[0]?.message,
+  ).toBe("Error 1");
+  expect(
+    result.content.sibling?.[1]?.message,
+  ).toBe("Error 2");
+  expect(
+    result.content.sibling?.[2]?.message,
+  ).toBe("Error 3");
 });

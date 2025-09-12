@@ -11,7 +11,7 @@ import {
 test("success creates successful Procedural", () => {
   const result = newOk("test value");
   assert(isOk(result));
-  expect(result.body).toBe("test value");
+  expect(result.content).toBe("test value");
 });
 
 test("fail creates failed Procedural", () => {
@@ -22,7 +22,7 @@ test("fail creates failed Procedural", () => {
       "Expected error, but got success",
     );
   }
-  expect(result.body).toBe(error);
+  expect(result.content).toBe(error);
 });
 
 test("PossiblyPromise accepts synchronous values", () => {
