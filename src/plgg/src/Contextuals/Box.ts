@@ -7,6 +7,8 @@ import {
   newErr,
   isObj,
   hasProp,
+  pipe,
+  chainResult,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -81,3 +83,36 @@ export const boxCastable: Castable1<"Box"> = {
  * Exported safe casting function for Box values.
  */
 export const { as: asBox } = boxCastable;
+
+/**
+ * Validates and transforms the content of a Box with a specific tag using a predicate.
+ */
+export const forContent =
+  <T extends string, U>(
+    tag: T,
+    predicate: (
+      a: unknown,
+    ) => Result<U, InvalidError>,
+  ) =>
+  <V extends Box<string, unknown>>(
+    box: V,
+  ): Result<Box<T, U>, InvalidError> =>
+    box.__tag === tag
+      ? pipe(
+          box.content,
+          predicate,
+          chainResult(
+            (
+              okValue,
+            ): Result<Box<T, U>, InvalidError> =>
+              newOk({
+                __tag: tag,
+                content: okValue,
+              }),
+          ),
+        )
+      : newErr(
+          new InvalidError({
+            message: `Box tag '${box.__tag}' does not match expected tag '${tag}'`,
+          }),
+        );
