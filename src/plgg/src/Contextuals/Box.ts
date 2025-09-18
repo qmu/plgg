@@ -85,6 +85,14 @@ export const boxCastable: Castable1<"Box"> = {
 export const { as: asBox } = boxCastable;
 
 /**
+ * Type guard for Box tag existence.
+ */
+export const hasTag = <T extends string>(
+  value: Box<string, unknown>,
+  tag: T,
+): value is Box<T, unknown> => value.__tag === tag;
+
+/**
  * Validates and transforms the content of a Box with a specific tag using a predicate.
  */
 export const forContent =
@@ -97,7 +105,7 @@ export const forContent =
   <V extends Box<string, unknown>>(
     box: V,
   ): Result<Box<T, U>, InvalidError> =>
-    box.__tag === tag
+    hasTag(box, tag)
       ? pipe(
           box.content,
           predicate,
