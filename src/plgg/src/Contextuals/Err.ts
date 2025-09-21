@@ -4,6 +4,7 @@ import {
   InvalidError,
   Refinable1,
   Castable1,
+  isBox,
   hasTag,
   construct,
   newOk,
@@ -42,7 +43,7 @@ export const newErr = <F>(e: F): Err<F> =>
  * Type guard to check if a Result is an Err.
  */
 const is = <F>(e: unknown): e is Err<F> =>
-  hasTag(errTag)(e);
+  isBox(e) && hasTag(errTag)(e);
 
 /**
  * Refinable instance for Err type guards.

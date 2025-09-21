@@ -35,16 +35,6 @@ export const isVariant = (
   hasProp(v, "content");
 
 /**
- * Creates a type guard to check if a variant has a specific tag.
- */
-export const hasTag =
-  <TAG extends string>(tag: TAG) =>
-  <T>(v: unknown): v is Variant<TAG, T> =>
-    isObj(v) &&
-    hasProp(v, "__tag") &&
-    v.__tag === tag;
-
-/**
  * Creates a variant constructor for a specific tag.
  */
 export function construct<

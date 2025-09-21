@@ -48,8 +48,7 @@ const is = <TAG extends string, CONTENT>(
   isObj(value) &&
   hasProp(value, "__tag") &&
   typeof value.__tag === "string" &&
-  hasProp(value, "content") &&
-  value.content !== undefined;
+  hasProp(value, "content");
 
 /**
  * Refinable instance for Box type guards.
@@ -87,10 +86,12 @@ export const { as: asBox } = boxCastable;
 /**
  * Type guard for Box tag existence.
  */
-export const hasTag = <T extends string>(
-  value: Box<string, unknown>,
-  tag: T,
-): value is Box<T, unknown> => value.__tag === tag;
+export const hasTag =
+  <T extends string>(tag: T) =>
+  (
+    value: Box<string, unknown>,
+  ): value is Box<T, unknown> =>
+    value.__tag === tag;
 
 /**
  * Validates and transforms the content of a Box with a specific tag using a predicate.
@@ -105,7 +106,7 @@ export const forContent =
   <V extends Box<string, unknown>>(
     box: V,
   ): Result<Box<T, U>, InvalidError> =>
-    hasTag(box, tag)
+    hasTag(tag)(box)
       ? pipe(
           box.content,
           predicate,

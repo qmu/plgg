@@ -4,6 +4,7 @@ import {
   InvalidError,
   Refinable1,
   Castable1,
+  isBox,
   hasTag,
   construct,
   newErr,
@@ -41,7 +42,7 @@ export const newOk = <T>(a: T): Ok<T> =>
  * Type guard to check if a Result is an Ok.
  */
 const is = <T>(e: unknown): e is Ok<T> =>
-  hasTag(okTag)(e);
+  isBox(e) && hasTag(okTag)(e);
 
 /**
  * Refinable instance for Ok type guards.

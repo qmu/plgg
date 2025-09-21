@@ -4,6 +4,7 @@ import {
   JsonReadyCore,
   isOption,
   isSome,
+  isNone,
   isDatumCore,
   toJsonReadyCore,
   newSome,
@@ -19,10 +20,9 @@ export const isOptionalDatum = <
 >(
   value: unknown,
 ): value is OptionalDatum<T> =>
-  isOption(value) &&
-  (isSome(value)
+  isSome(value)
     ? isDatumCore(value.content)
-    : true);
+    : isNone(value);
 
 export const toJsonReadyOptionalDatum = <
   T extends DatumCore,

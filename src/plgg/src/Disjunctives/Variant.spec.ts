@@ -5,7 +5,6 @@ import {
   ExtractBoxContent,
   construct,
   pattern,
-  hasTag,
   isVariant,
   match,
 } from "plgg/index";
@@ -63,36 +62,6 @@ test("construct with different content types", () => {
     id: 1,
     name: "test",
   });
-});
-
-test("hasTag type guard function", () => {
-  type User = Box<"user", { name: string }>;
-  type Admin = Box<
-    "admin",
-    { permissions: string[] }
-  >;
-
-  const userMaker = construct<User>("user");
-  const adminMaker = construct<Admin>("admin");
-
-  const user = userMaker({ name: "John" });
-  const admin = adminMaker({
-    permissions: ["read", "write"],
-  });
-
-  const isUser = hasTag("user");
-  const isAdmin = hasTag("admin");
-
-  assert(isUser(user));
-  assert(!isUser(admin));
-  assert(isAdmin(admin));
-  assert(!isAdmin(user));
-
-  // Test with non-variant values
-  assert(!isUser("not a variant"));
-  assert(!isUser(null));
-  assert(!isUser(undefined));
-  assert(!isUser({}));
 });
 
 test("isVariant type guard function", () => {

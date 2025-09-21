@@ -4,6 +4,7 @@ import {
   InvalidError,
   Refinable1,
   Castable1,
+  isBox,
   hasTag,
   construct,
   newOk,
@@ -45,7 +46,7 @@ export const newSome = <T>(value: T): Some<T> =>
  * Type guard to check if an Option is a Some.
  */
 const is = <T>(e: unknown): e is Some<T> =>
-  hasTag(someTag)(e);
+  isBox(e) && hasTag(someTag)(e);
 
 /**
  * Refinable instance for Some type guards.

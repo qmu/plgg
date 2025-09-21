@@ -5,7 +5,8 @@ import {
   Refinable,
   Castable,
   pattern,
-  hasTag,
+  isEmptyBox,
+  hasEmptyBoxTag,
   construct,
   newOk,
   newErr,
@@ -38,7 +39,7 @@ export const newNone = (): None =>
  * Type guard to check if an Option is a None.
  */
 const is = (e: unknown): e is None =>
-  hasTag(noneTag)(e);
+  isEmptyBox(e) && hasEmptyBoxTag(noneTag)(e);
 
 /**
  * Refinable instance for None type guards.
