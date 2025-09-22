@@ -5,10 +5,11 @@ import {
   Castable1,
   newOk,
   newErr,
-  isObj,
-  hasProp,
   pipe,
   chainResult,
+  isBox,
+  hasTag,
+  isNum,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -29,22 +30,6 @@ export type I8<
 };
 
 /**
- * Type predicate to check if a type is a parametric variant with I8 content.
- */
-export type IsI8<V> = V extends {
-  __tag: infer T;
-  content: infer B;
-}
-  ? T extends string
-    ? B extends number
-      ? B extends undefined
-        ? false
-        : true
-      : false
-    : false
-  : false;
-
-/**
  * Type guard to check if a value is an I8.
  */
 const is = <
@@ -53,11 +38,9 @@ const is = <
 >(
   value: unknown,
 ): value is I8<TAG, CONTENT> =>
-  isObj(value) &&
-  hasProp(value, "__tag") &&
-  typeof value.__tag === "string" &&
-  hasProp(value, "content") &&
-  typeof value.content === "number" &&
+  isBox(value) &&
+  hasTag("I8")(value) &&
+  isNum(value.content) &&
   Number.isInteger(value.content) &&
   value.content >= -128 &&
   value.content <= 127;
@@ -128,4 +111,3 @@ export const forContent =
             message: `I8 tag '${i8.__tag}' does not match expected tag '${tag}'`,
           }),
         );
-
