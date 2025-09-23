@@ -4,8 +4,8 @@ import {
   EmptyBox,
   IsBox,
   IsEmptyBox,
-  isObj,
-  hasProp,
+  isBox,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -29,10 +29,7 @@ export type IsVariant<T> = Or<
  */
 export const isVariant = (
   v: unknown,
-): v is Variant<string, unknown> =>
-  isObj(v) &&
-  hasProp(v, "__tag") &&
-  hasProp(v, "content");
+): v is Variant<string, unknown> => isBox(v);
 
 /**
  * Creates a variant constructor for a specific tag.
@@ -50,8 +47,8 @@ export function construct<
     content?: CONTENT,
   ): EmptyBox<TAG> | Box<TAG, CONTENT> {
     return content === undefined
-      ? ({ __tag, content: undefined } as const)
-      : ({ __tag, content } as const);
+      ? newBox(__tag)(undefined)
+      : newBox(__tag)(content);
   }
   return maker;
 }
