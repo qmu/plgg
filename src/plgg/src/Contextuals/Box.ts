@@ -137,3 +137,11 @@ export const newBox =
     __tag: tag,
     content,
   });
+
+/**
+ * Type guard to check if a value is a Box with a specific tag.
+ */
+export const isBoxWithTag =
+  <T extends string>(tag: T) =>
+  (value: unknown): value is Box<T, unknown> =>
+    isBox(value) && hasTag(tag)(value);

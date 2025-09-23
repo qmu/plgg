@@ -42,3 +42,12 @@ export const hasEmptyBoxTag =
   ): value is EmptyBox<T> =>
     value.__tag === tag;
 
+/**
+ * Creates a new EmptyBox with the specified tag.
+ */
+export const newEmptyBox = <TAG extends string>(
+  tag: TAG,
+): EmptyBox<TAG> => ({
+  __tag: tag,
+  content: undefined,
+});

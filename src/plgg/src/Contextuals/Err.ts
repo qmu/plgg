@@ -6,9 +6,9 @@ import {
   Castable1,
   isBox,
   hasTag,
-  construct,
   newOk,
   pattern,
+  newBox,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -37,7 +37,7 @@ export const err = <T>(v?: T) =>
  * Creates an Err instance containing an error value.
  */
 export const newErr = <F>(e: F): Err<F> =>
-  construct<Err<F>>(errTag)(e);
+  newBox(errTag)(e);
 
 /**
  * Type guard to check if a Result is an Err.

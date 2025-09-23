@@ -6,10 +6,10 @@ import {
   Castable1,
   isBox,
   hasTag,
-  construct,
   newOk,
   newErr,
   pattern,
+  newBox,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -40,7 +40,7 @@ export const some = <T>(a?: T) =>
  * Creates a Some instance containing a value.
  */
 export const newSome = <T>(value: T): Some<T> =>
-  construct<Some<T>>(someTag)(value);
+  newBox(someTag)(value);
 
 /**
  * Type guard to check if an Option is a Some.

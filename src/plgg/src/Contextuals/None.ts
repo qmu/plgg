@@ -7,9 +7,9 @@ import {
   pattern,
   isEmptyBox,
   hasEmptyBoxTag,
-  construct,
   newOk,
   newErr,
+  newEmptyBox,
 } from "plgg/index";
 
 /**
@@ -33,7 +33,7 @@ export const none = () => pattern(noneTag)();
  * Creates a None instance representing no value.
  */
 export const newNone = (): None =>
-  construct<None>(noneTag)();
+  newEmptyBox(noneTag);
 
 /**
  * Type guard to check if an Option is a None.

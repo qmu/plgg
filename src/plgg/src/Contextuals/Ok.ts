@@ -6,9 +6,9 @@ import {
   Castable1,
   isBox,
   hasTag,
-  construct,
   newErr,
   pattern,
+  newBox,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -36,7 +36,7 @@ export const ok = <T>(a?: T) => pattern(okTag)(a);
  * Creates an Ok instance containing a success value.
  */
 export const newOk = <T>(a: T): Ok<T> =>
-  construct<Ok<T>>(okTag)(a);
+  newBox(okTag)(a);
 
 /**
  * Type guard to check if a Result is an Ok.
