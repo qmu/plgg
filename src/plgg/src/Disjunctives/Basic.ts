@@ -1,16 +1,16 @@
 import {
-  Time,
-  JsonReadyTime,
-  isTime,
-  toJsonReadyTime,
-  fromJsonReadyTime,
-  isJsonReadyTime,
+  I8,
+  JsonReadyI8,
+  isI8,
+  toJsonReadyI8,
+  fromJsonReadyI8,
+  isJsonReadyI8,
 } from "plgg/index";
 
 /**
  * Union type representing all basic value types in the system.
  */
-export type Basic = Time;
+export type Basic = I8;
 
 /**
  * Type predicate to determine if a type is basic.
@@ -25,7 +25,7 @@ export type IsBasic<T> = [T] extends [Basic]
 export const isBasic = (
   value: unknown,
 ): value is Basic =>
-  isTime(value);
+  isI8(value);
 
 // --------------------------------
 // JsonReady
@@ -34,7 +34,7 @@ export const isBasic = (
 /**
  * Union type for JSON-ready basic values.
  */
-export type JsonReadyBasic = JsonReadyTime;
+export type JsonReadyBasic = JsonReadyI8;
 
 /**
  * Runtime type guard to check if a value is JSON-ready basic.
@@ -42,7 +42,7 @@ export type JsonReadyBasic = JsonReadyTime;
 export const isJsonReadyBasic = (
   value: unknown,
 ): value is JsonReadyBasic =>
-  isJsonReadyTime(value);
+  isJsonReadyI8(value);
 
 /**
  * Converts a basic value to its JSON-ready representation.
@@ -50,8 +50,8 @@ export const isJsonReadyBasic = (
 export const toJsonReadyBasic = (
   value: Basic,
 ): JsonReadyBasic => {
-  if (isTime(value)) {
-    return toJsonReadyTime(value);
+  if (isI8(value)) {
+    return toJsonReadyI8(value);
   }
   return value;
 };
@@ -62,8 +62,8 @@ export const toJsonReadyBasic = (
 export const fromJsonReadyBasic = (
   jsonReady: JsonReadyBasic,
 ): Basic => {
-  if (isJsonReadyTime(jsonReady)) {
-    return fromJsonReadyTime(jsonReady);
+  if (isJsonReadyI8(jsonReady)) {
+    return fromJsonReadyI8(jsonReady);
   }
   return jsonReady;
 };

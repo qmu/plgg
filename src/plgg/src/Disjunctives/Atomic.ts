@@ -4,23 +4,29 @@ import {
   Bool,
   BigInt,
   Int,
+  Time,
   JsonReadyStr,
   JsonReadyNum,
   JsonReadyBool,
   JsonReadyBigInt,
   JsonReadyInt,
+  JsonReadyTime,
   isStr,
   isNum,
   isBool,
   isBigInt,
   isInt,
+  isTime,
   toJsonReadyBigInt,
   fromJsonReadyBigInt,
+  toJsonReadyTime,
+  fromJsonReadyTime,
   isJsonReadyStr,
   isJsonReadyNum,
   isJsonReadyBool,
   isJsonReadyBigInt,
   isJsonReadyInt,
+  isJsonReadyTime,
 } from "plgg/index";
 
 /**
@@ -31,7 +37,8 @@ export type Atomic =
   | Num
   | Int
   | BigInt
-  | Str;
+  | Str
+  | Time;
 
 /**
  * Type predicate to determine if a type is atomic.
@@ -50,7 +57,8 @@ export const isAtomic = (
   isNum(value) ||
   isInt(value) ||
   isBigInt(value) ||
-  isStr(value);
+  isStr(value) ||
+  isTime(value);
 
 // --------------------------------
 // JsonReady
@@ -64,7 +72,8 @@ export type JsonReadyAtomic =
   | JsonReadyNum
   | JsonReadyInt
   | JsonReadyBigInt
-  | JsonReadyStr;
+  | JsonReadyStr
+  | JsonReadyTime;
 
 /**
  * Runtime type guard to check if a value is JSON-ready atomic.
@@ -76,7 +85,8 @@ export const isJsonReadyAtomic = (
   isJsonReadyNum(value) ||
   isJsonReadyInt(value) ||
   isJsonReadyBigInt(value) ||
-  isJsonReadyStr(value);
+  isJsonReadyStr(value) ||
+  isJsonReadyTime(value);
 
 /**
  * Converts an atomic value to its JSON-ready representation.
@@ -86,6 +96,9 @@ export const toJsonReadyAtomic = (
 ): JsonReadyAtomic => {
   if (isBigInt(value)) {
     return toJsonReadyBigInt(value);
+  }
+  if (isTime(value)) {
+    return toJsonReadyTime(value);
   }
   return value;
 };
@@ -98,6 +111,9 @@ export const fromJsonReadyAtomic = (
 ): Atomic => {
   if (isJsonReadyBigInt(jsonReady)) {
     return fromJsonReadyBigInt(jsonReady);
+  }
+  if (isJsonReadyTime(jsonReady)) {
+    return fromJsonReadyTime(jsonReady);
   }
   return jsonReady;
 };
