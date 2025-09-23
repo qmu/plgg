@@ -8,3 +8,4 @@ export * from "plgg/Basics/U16";
 export * from "plgg/Basics/U32";
 export * from "plgg/Basics/U64";
 export * from "plgg/Basics/U128";
+export * from "plgg/Basics/Float";

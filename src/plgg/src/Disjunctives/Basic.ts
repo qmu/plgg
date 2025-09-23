@@ -9,6 +9,7 @@ import {
   U32,
   U64,
   U128,
+  Float,
   JsonReadyI8,
   JsonReadyI16,
   JsonReadyI32,
@@ -19,6 +20,7 @@ import {
   JsonReadyU32,
   JsonReadyU64,
   JsonReadyU128,
+  JsonReadyFloat,
   isI8,
   isI16,
   isI32,
@@ -29,6 +31,7 @@ import {
   isU32,
   isU64,
   isU128,
+  isFloat,
   toJsonReadyI8,
   toJsonReadyI16,
   toJsonReadyI32,
@@ -39,6 +42,7 @@ import {
   toJsonReadyU32,
   toJsonReadyU64,
   toJsonReadyU128,
+  toJsonReadyFloat,
   fromJsonReadyI8,
   fromJsonReadyI16,
   fromJsonReadyI32,
@@ -49,6 +53,7 @@ import {
   fromJsonReadyU32,
   fromJsonReadyU64,
   fromJsonReadyU128,
+  fromJsonReadyFloat,
   isJsonReadyI8,
   isJsonReadyI16,
   isJsonReadyI32,
@@ -59,6 +64,7 @@ import {
   isJsonReadyU32,
   isJsonReadyU64,
   isJsonReadyU128,
+  isJsonReadyFloat,
 } from "plgg/index";
 
 /**
@@ -74,7 +80,8 @@ export type Basic =
   | U16
   | U32
   | U64
-  | U128;
+  | U128
+  | Float;
 
 /**
  * Type predicate to determine if a type is basic.
@@ -98,7 +105,8 @@ export const isBasic = (
   isU16(value) ||
   isU32(value) ||
   isU64(value) ||
-  isU128(value);
+  isU128(value) ||
+  isFloat(value);
 
 // --------------------------------
 // JsonReady
@@ -117,7 +125,8 @@ export type JsonReadyBasic =
   | JsonReadyU16
   | JsonReadyU32
   | JsonReadyU64
-  | JsonReadyU128;
+  | JsonReadyU128
+  | JsonReadyFloat;
 
 /**
  * Runtime type guard to check if a value is JSON-ready basic.
@@ -134,7 +143,8 @@ export const isJsonReadyBasic = (
   isJsonReadyU16(value) ||
   isJsonReadyU32(value) ||
   isJsonReadyU64(value) ||
-  isJsonReadyU128(value);
+  isJsonReadyU128(value) ||
+  isJsonReadyFloat(value);
 
 /**
  * Converts a basic value to its JSON-ready representation.
@@ -171,6 +181,9 @@ export const toJsonReadyBasic = (
   }
   if (isU128(value)) {
     return toJsonReadyU128(value);
+  }
+  if (isFloat(value)) {
+    return toJsonReadyFloat(value);
   }
   throw new Error("Unsupported Basic type");
 };
@@ -210,6 +223,9 @@ export const fromJsonReadyBasic = (
   }
   if (isJsonReadyU128(jsonReady)) {
     return fromJsonReadyU128(jsonReady);
+  }
+  if (isJsonReadyFloat(jsonReady)) {
+    return fromJsonReadyFloat(jsonReady);
   }
   throw new Error(
     "Unsupported JsonReadyBasic type",
