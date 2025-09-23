@@ -125,3 +125,15 @@ export const forContent =
             message: `Box tag '${box.__tag}' does not match expected tag '${tag}'`,
           }),
         );
+
+/**
+ * Creates a new Box with the specified tag and content.
+ */
+export const newBox =
+  <TAG extends string>(tag: TAG) =>
+  <CONTENT>(
+    content: CONTENT,
+  ): Box<TAG, CONTENT> => ({
+    __tag: tag,
+    content,
+  });

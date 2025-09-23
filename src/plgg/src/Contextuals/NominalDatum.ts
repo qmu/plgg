@@ -5,8 +5,7 @@ import {
   isDatumCore,
   isJsonReady,
   toJsonReadyCore,
-  isVariant,
-  hasTag,
+  isBox,
 } from "plgg/index";
 
 /**
@@ -35,16 +34,12 @@ export const createNominalDatum = <
 /**
  * Type guard to check if a value is a nominal datum with a specific brand.
  */
-export const isNominalDatum =
-  <BRAND extends string, T extends DatumCore>(
-    brand: BRAND,
-  ) =>
-  (
-    value: unknown,
-  ): value is NominalDatum<BRAND, T> =>
-    isVariant(value) &&
-    hasTag(brand)(value) &&
-    isDatumCore(value.content);
+export const isNominalDatum = <
+  T extends DatumCore,
+>(
+  value: unknown,
+): value is NominalDatum<string, T> =>
+  isBox(value) && isDatumCore(value.content);
 
 /**
  * Extracts the underlying value from a nominal datum.
@@ -105,13 +100,9 @@ export const toJsonReadyNominalDatum = <
 /**
  * Type guard for JsonReady nominal datum.
  */
-export const isJsonReadyNominalDatum =
-  <BRAND extends string, T extends JsonReadyCore>(
-    brand: BRAND,
-  ) =>
-  (
-    value: unknown,
-  ): value is NominalDatumJsonReady<BRAND, T> =>
-    isVariant(value) &&
-    hasTag(brand)(value) &&
-    isJsonReady(value.content);
+export const isJsonReadyNominalDatum = <
+  T extends JsonReadyCore,
+>(
+  value: unknown,
+): value is NominalDatumJsonReady<string, T> =>
+  isBox(value) && isJsonReady(value.content);

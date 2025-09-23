@@ -22,12 +22,7 @@ describe("NominalDatum", () => {
 
       expect(nominal.__tag).toBe("UserId");
       expect(nominal.content).toBe("user-123");
-      expect(
-        isNominalDatum("UserId")(nominal),
-      ).toBe(true);
-      expect(
-        isNominalDatum("ProductId")(nominal),
-      ).toBe(false);
+      expect(isNominalDatum(nominal)).toBe(true);
     });
 
     it("should create a nominal datum with number value", () => {
@@ -38,9 +33,7 @@ describe("NominalDatum", () => {
 
       expect(nominal.__tag).toBe("Price");
       expect(nominal.content).toBe(42.99);
-      expect(
-        isNominalDatum("Price")(nominal),
-      ).toBe(true);
+      expect(isNominalDatum(nominal)).toBe(true);
     });
 
     it("should create a nominal datum with boolean value", () => {
@@ -51,9 +44,7 @@ describe("NominalDatum", () => {
 
       expect(nominal.__tag).toBe("IsActive");
       expect(nominal.content).toBe(true);
-      expect(
-        isNominalDatum("IsActive")(nominal),
-      ).toBe(true);
+      expect(isNominalDatum(nominal)).toBe(true);
     });
 
     it("should create a nominal datum with BigInt value", () => {
@@ -69,9 +60,7 @@ describe("NominalDatum", () => {
       expect(typeof nominal.content).toBe(
         "bigint",
       );
-      expect(
-        isNominalDatum("LargeId")(nominal),
-      ).toBe(true);
+      expect(isNominalDatum(nominal)).toBe(true);
     });
 
     it("should create a nominal datum with object value", () => {
@@ -86,9 +75,7 @@ describe("NominalDatum", () => {
 
       expect(nominal.__tag).toBe("UserData");
       expect(nominal.content).toEqual(userData);
-      expect(
-        isNominalDatum("UserData")(nominal),
-      ).toBe(true);
+      expect(isNominalDatum(nominal)).toBe(true);
     });
 
     it("should create a nominal datum with array value", () => {
@@ -100,9 +87,7 @@ describe("NominalDatum", () => {
 
       expect(nominal.__tag).toBe("Scores");
       expect(nominal.content).toEqual(scores);
-      expect(
-        isNominalDatum("Scores")(nominal),
-      ).toBe(true);
+      expect(isNominalDatum(nominal)).toBe(true);
     });
   });
 
@@ -112,29 +97,15 @@ describe("NominalDatum", () => {
       const plainObject = { value: 42 };
       const wrongStructure = { __tag: "Test" }; // missing content
 
-      expect(
-        isNominalDatum("Test")(plainValue),
-      ).toBe(false);
-      expect(
-        isNominalDatum("Test")(plainObject),
-      ).toBe(false);
-      expect(
-        isNominalDatum("Test")(wrongStructure),
-      ).toBe(false);
-    });
-
-    it("should reject nominal datum with wrong brand", () => {
-      const nominal = createNominalDatum(
-        "UserId",
-        "user-123",
+      expect(isNominalDatum(plainValue)).toBe(
+        false,
       );
-
-      expect(
-        isNominalDatum("ProductId")(nominal),
-      ).toBe(false);
-      expect(
-        isNominalDatum("OrderId")(nominal),
-      ).toBe(false);
+      expect(isNominalDatum(plainObject)).toBe(
+        false,
+      );
+      expect(isNominalDatum(wrongStructure)).toBe(
+        false,
+      );
     });
 
     it("should reject nominal datum with non-datum content", () => {
@@ -143,9 +114,9 @@ describe("NominalDatum", () => {
         content: undefined, // undefined is not a valid DatumCore
       };
 
-      expect(
-        isNominalDatum("Invalid")(invalidNominal),
-      ).toBe(false);
+      expect(isNominalDatum(invalidNominal)).toBe(
+        false,
+      );
     });
   });
 
@@ -218,9 +189,7 @@ describe("NominalDatum", () => {
 
       expect(mapped.__tag).toBe("Name");
       expect(mapped.content).toBe("ALICE");
-      expect(isNominalDatum("Name")(mapped)).toBe(
-        true,
-      );
+      expect(isNominalDatum(mapped)).toBe(true);
     });
 
     it("should map over number content", () => {
@@ -235,9 +204,7 @@ describe("NominalDatum", () => {
 
       expect(mapped.__tag).toBe("Count");
       expect(mapped.content).toBe(10);
-      expect(
-        isNominalDatum("Count")(mapped),
-      ).toBe(true);
+      expect(isNominalDatum(mapped)).toBe(true);
     });
 
     it("should map from one type to another", () => {
@@ -271,9 +238,7 @@ describe("NominalDatum", () => {
       expect(mapped.content).toEqual([
         1, 2, 3, 4,
       ]);
-      expect(
-        isNominalDatum("CustomBrand")(mapped),
-      ).toBe(true);
+      expect(isNominalDatum(mapped)).toBe(true);
     });
   });
 
@@ -288,7 +253,7 @@ describe("NominalDatum", () => {
       const restored = fromJson(jsonString);
 
       expect(restored).toEqual(original);
-      if (isNominalDatum("Email")(restored)) {
+      if (isNominalDatum(restored)) {
         expect(unwrapNominalDatum(restored)).toBe(
           "test@example.com",
         );
@@ -305,9 +270,7 @@ describe("NominalDatum", () => {
       const restored = fromJson(jsonString);
 
       expect(restored).toEqual(original);
-      expect(
-        isNominalDatum("Score")(restored),
-      ).toBe(true);
+      expect(isNominalDatum(restored)).toBe(true);
     });
 
     it("should serialize and deserialize nominal datum with BigInt", () => {
@@ -320,10 +283,8 @@ describe("NominalDatum", () => {
       const restored = fromJson(jsonString);
 
       expect(restored).toEqual(original);
-      expect(
-        isNominalDatum("Nonce")(restored),
-      ).toBe(true);
-      if (isNominalDatum("Nonce")(restored)) {
+      expect(isNominalDatum(restored)).toBe(true);
+      if (isNominalDatum(restored)) {
         expect(
           typeof unwrapNominalDatum(restored),
         ).toBe("bigint");
@@ -348,9 +309,7 @@ describe("NominalDatum", () => {
       const restored = fromJson(jsonString);
 
       expect(restored).toEqual(original);
-      expect(
-        isNominalDatum("Address")(restored),
-      ).toBe(true);
+      expect(isNominalDatum(restored)).toBe(true);
     });
 
     it("should serialize and deserialize nominal datum with array", () => {
@@ -368,9 +327,7 @@ describe("NominalDatum", () => {
       const restored = fromJson(jsonString);
 
       expect(restored).toEqual(original);
-      expect(
-        isNominalDatum("Tags")(restored),
-      ).toBe(true);
+      expect(isNominalDatum(restored)).toBe(true);
     });
   });
 
@@ -385,9 +342,7 @@ describe("NominalDatum", () => {
       const restored = fromJsonReady(jsonReady);
 
       expect(restored).toEqual(original);
-      expect(
-        isNominalDatum("ProductId")(restored),
-      ).toBe(true);
+      expect(isNominalDatum(restored)).toBe(true);
     });
 
     it("should use toJsonReadyNominalDatum directly", () => {
@@ -401,9 +356,7 @@ describe("NominalDatum", () => {
       expect(jsonReady.__tag).toBe("OrderId");
       expect(jsonReady.content).toBe("order-456");
       expect(
-        isJsonReadyNominalDatum("OrderId")(
-          jsonReady,
-        ),
+        isJsonReadyNominalDatum(jsonReady),
       ).toBe(true);
     });
 
@@ -417,9 +370,7 @@ describe("NominalDatum", () => {
         toJsonReadyNominalDatum(original);
       expect(jsonReady.__tag).toBe("BlockNumber");
       expect(
-        isJsonReadyNominalDatum("BlockNumber")(
-          jsonReady,
-        ),
+        isJsonReadyNominalDatum(jsonReady),
       ).toBe(true);
     });
   });
@@ -438,20 +389,10 @@ describe("NominalDatum", () => {
       // Both have string content but different brands
       expect(userId.content).toBe("user-123");
       expect(productId.content).toBe("prod-456");
-      expect(
-        isNominalDatum("UserId")(userId),
-      ).toBe(true);
-      expect(
-        isNominalDatum("ProductId")(productId),
-      ).toBe(true);
-
-      // Cross-brand checks should fail
-      expect(
-        isNominalDatum("UserId")(productId),
-      ).toBe(false);
-      expect(
-        isNominalDatum("ProductId")(userId),
-      ).toBe(false);
+      expect(isNominalDatum(userId)).toBe(true);
+      expect(isNominalDatum(productId)).toBe(
+        true,
+      );
     });
 
     it("should allow same content with different brands", () => {
@@ -466,18 +407,8 @@ describe("NominalDatum", () => {
 
       expect(id1.content).toBe(id2.content);
       expect(id1.__tag).not.toBe(id2.__tag);
-      expect(isNominalDatum("Type1")(id1)).toBe(
-        true,
-      );
-      expect(isNominalDatum("Type2")(id2)).toBe(
-        true,
-      );
-      expect(isNominalDatum("Type1")(id2)).toBe(
-        false,
-      );
-      expect(isNominalDatum("Type2")(id1)).toBe(
-        false,
-      );
+      expect(isNominalDatum(id1)).toBe(true);
+      expect(isNominalDatum(id2)).toBe(true);
     });
   });
 
@@ -490,9 +421,7 @@ describe("NominalDatum", () => {
 
       expect(nominal.__tag).toBe("EmptyContent");
       expect(nominal.content).toBe("");
-      expect(
-        isNominalDatum("EmptyContent")(nominal),
-      ).toBe(true);
+      expect(isNominalDatum(nominal)).toBe(true);
     });
 
     it("should handle zero values", () => {
@@ -509,15 +438,15 @@ describe("NominalDatum", () => {
         false,
       );
 
-      expect(
-        isNominalDatum("Zero")(zeroNumber),
-      ).toBe(true);
-      expect(
-        isNominalDatum("ZeroBigInt")(zeroBigInt),
-      ).toBe(true);
-      expect(
-        isNominalDatum("False")(falseBool),
-      ).toBe(true);
+      expect(isNominalDatum(zeroNumber)).toBe(
+        true,
+      );
+      expect(isNominalDatum(zeroBigInt)).toBe(
+        true,
+      );
+      expect(isNominalDatum(falseBool)).toBe(
+        true,
+      );
 
       expect(unwrapNominalDatum(zeroNumber)).toBe(
         0,
@@ -540,12 +469,12 @@ describe("NominalDatum", () => {
         {},
       );
 
-      expect(
-        isNominalDatum("EmptyList")(emptyArray),
-      ).toBe(true);
-      expect(
-        isNominalDatum("EmptyObj")(emptyObject),
-      ).toBe(true);
+      expect(isNominalDatum(emptyArray)).toBe(
+        true,
+      );
+      expect(isNominalDatum(emptyObject)).toBe(
+        true,
+      );
       expect(
         unwrapNominalDatum(emptyArray),
       ).toEqual([]);
@@ -555,4 +484,3 @@ describe("NominalDatum", () => {
     });
   });
 });
-

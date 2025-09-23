@@ -14,6 +14,7 @@ import {
   toJsonReadyVec,
   toJsonReadyObj,
   toJsonReadyOptionalDatum,
+  toJsonReadyNominalDatum,
   fromJsonReadyAtomic,
   fromJsonReadyBasic,
   fromJsonReadyVec,
@@ -23,11 +24,14 @@ import {
   isJsonReadyVec,
   isJsonReadyObj,
   isJsonReadyOptionalDatum,
+  isJsonReadyNominalDatum,
   isOptionalDatum,
+  isNominalDatum,
   isAtomic,
   isBasic,
   newSome,
   newNone,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -87,7 +91,8 @@ export const isJsonReady = (
   isJsonReadyAtomic(value) ||
   isJsonReadyObj(value) ||
   isJsonReadyVec(value) ||
-  isJsonReadyOptionalDatum(value);
+  isJsonReadyOptionalDatum(value) ||
+  isJsonReadyNominalDatum(value);
 
 /**
  * Converts a Datum value to its JSON-ready representation.
@@ -100,6 +105,9 @@ export const toJsonReady = (
   }
   if (isOptionalDatum(value)) {
     return toJsonReadyOptionalDatum(value);
+  }
+  if (isNominalDatum(value)) {
+    return toJsonReadyNominalDatum(value);
   }
   return toJsonReadyCore(value);
 };
@@ -116,6 +124,11 @@ export const fromJsonReady = (
           fromJsonReadyCore(jsonReady.content),
         )
       : newNone();
+  }
+  if (isJsonReadyNominalDatum(jsonReady)) {
+    return newBox(jsonReady.__tag)(
+      fromJsonReadyCore(jsonReady.content),
+    );
   }
   // Check Basic types before Atomic to handle Time strings correctly
   if (isJsonReadyBasic(jsonReady)) {

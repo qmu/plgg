@@ -9,6 +9,7 @@ import {
   isObj,
   isVec,
   isOptionalDatum,
+  isNominalDatum,
   isSome,
   isNone,
 } from "plgg/index";
@@ -21,6 +22,12 @@ export type Datum =
   | OptionalDatum<DatumCore>
   | NominalDatum<string, DatumCore>;
 
+export type DatumCore =
+  | Atomic
+  | Basic
+  | Obj
+  | ReadonlyArray<Datum>; // Vec
+
 /**
  * Runtime type guard to check if a value is Datum.
  */
@@ -30,13 +37,10 @@ export const isDatum = (
   isDatumCore(value) ||
   (isOptionalDatum(value) &&
     (isNone(value) ||
-      (isSome(value) && isDatum(value.content))));
-
-export type DatumCore =
-  | Atomic
-  | Basic
-  | Obj
-  | ReadonlyArray<Datum>; // Vec
+      (isSome(value) &&
+        isDatum(value.content)))) ||
+  (isNominalDatum<DatumCore>(value) &&
+    isDatumCore(value.content));
 
 export const isDatumCore = (
   value: unknown,
