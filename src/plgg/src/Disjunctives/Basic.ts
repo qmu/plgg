@@ -4,37 +4,77 @@ import {
   I32,
   I64,
   I128,
+  U8,
+  U16,
+  U32,
+  U64,
+  U128,
   JsonReadyI8,
   JsonReadyI16,
   JsonReadyI32,
   JsonReadyI64,
   JsonReadyI128,
+  JsonReadyU8,
+  JsonReadyU16,
+  JsonReadyU32,
+  JsonReadyU64,
+  JsonReadyU128,
   isI8,
   isI16,
   isI32,
   isI64,
   isI128,
+  isU8,
+  isU16,
+  isU32,
+  isU64,
+  isU128,
   toJsonReadyI8,
   toJsonReadyI16,
   toJsonReadyI32,
   toJsonReadyI64,
   toJsonReadyI128,
+  toJsonReadyU8,
+  toJsonReadyU16,
+  toJsonReadyU32,
+  toJsonReadyU64,
+  toJsonReadyU128,
   fromJsonReadyI8,
   fromJsonReadyI16,
   fromJsonReadyI32,
   fromJsonReadyI64,
   fromJsonReadyI128,
+  fromJsonReadyU8,
+  fromJsonReadyU16,
+  fromJsonReadyU32,
+  fromJsonReadyU64,
+  fromJsonReadyU128,
   isJsonReadyI8,
   isJsonReadyI16,
   isJsonReadyI32,
   isJsonReadyI64,
   isJsonReadyI128,
+  isJsonReadyU8,
+  isJsonReadyU16,
+  isJsonReadyU32,
+  isJsonReadyU64,
+  isJsonReadyU128,
 } from "plgg/index";
 
 /**
  * Union type representing all basic value types in the system.
  */
-export type Basic = I8 | I16 | I32 | I64 | I128;
+export type Basic =
+  | I8
+  | I16
+  | I32
+  | I64
+  | I128
+  | U8
+  | U16
+  | U32
+  | U64
+  | U128;
 
 /**
  * Type predicate to determine if a type is basic.
@@ -53,7 +93,12 @@ export const isBasic = (
   isI16(value) ||
   isI32(value) ||
   isI64(value) ||
-  isI128(value);
+  isI128(value) ||
+  isU8(value) ||
+  isU16(value) ||
+  isU32(value) ||
+  isU64(value) ||
+  isU128(value);
 
 // --------------------------------
 // JsonReady
@@ -67,7 +112,12 @@ export type JsonReadyBasic =
   | JsonReadyI16
   | JsonReadyI32
   | JsonReadyI64
-  | JsonReadyI128;
+  | JsonReadyI128
+  | JsonReadyU8
+  | JsonReadyU16
+  | JsonReadyU32
+  | JsonReadyU64
+  | JsonReadyU128;
 
 /**
  * Runtime type guard to check if a value is JSON-ready basic.
@@ -79,7 +129,12 @@ export const isJsonReadyBasic = (
   isJsonReadyI16(value) ||
   isJsonReadyI32(value) ||
   isJsonReadyI64(value) ||
-  isJsonReadyI128(value);
+  isJsonReadyI128(value) ||
+  isJsonReadyU8(value) ||
+  isJsonReadyU16(value) ||
+  isJsonReadyU32(value) ||
+  isJsonReadyU64(value) ||
+  isJsonReadyU128(value);
 
 /**
  * Converts a basic value to its JSON-ready representation.
@@ -101,6 +156,21 @@ export const toJsonReadyBasic = (
   }
   if (isI128(value)) {
     return toJsonReadyI128(value);
+  }
+  if (isU8(value)) {
+    return toJsonReadyU8(value);
+  }
+  if (isU16(value)) {
+    return toJsonReadyU16(value);
+  }
+  if (isU32(value)) {
+    return toJsonReadyU32(value);
+  }
+  if (isU64(value)) {
+    return toJsonReadyU64(value);
+  }
+  if (isU128(value)) {
+    return toJsonReadyU128(value);
   }
   throw new Error("Unsupported Basic type");
 };
@@ -126,8 +196,22 @@ export const fromJsonReadyBasic = (
   if (isJsonReadyI128(jsonReady)) {
     return fromJsonReadyI128(jsonReady);
   }
+  if (isJsonReadyU8(jsonReady)) {
+    return fromJsonReadyU8(jsonReady);
+  }
+  if (isJsonReadyU16(jsonReady)) {
+    return fromJsonReadyU16(jsonReady);
+  }
+  if (isJsonReadyU32(jsonReady)) {
+    return fromJsonReadyU32(jsonReady);
+  }
+  if (isJsonReadyU64(jsonReady)) {
+    return fromJsonReadyU64(jsonReady);
+  }
+  if (isJsonReadyU128(jsonReady)) {
+    return fromJsonReadyU128(jsonReady);
+  }
   throw new Error(
     "Unsupported JsonReadyBasic type",
   );
 };
-
