@@ -8,7 +8,7 @@ import {
   newErr,
   isBox,
   hasTag,
-  isNum,
+  isInt,
 } from "plgg/index";
 
 /**
@@ -22,8 +22,7 @@ export type I8 = Box<"I8", number>;
 const is = (value: unknown): value is I8 =>
   isBox(value) &&
   hasTag("I8")(value) &&
-  isNum(value.content) &&
-  Number.isInteger(value.content) &&
+  isInt(value.content) &&
   value.content >= -128 &&
   value.content <= 127;
 

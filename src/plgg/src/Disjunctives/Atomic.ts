@@ -3,30 +3,35 @@ import {
   Num,
   Bool,
   BigInt,
+  Int,
   JsonReadyStr,
   JsonReadyNum,
   JsonReadyBool,
   JsonReadyBigInt,
+  JsonReadyInt,
   isStr,
   isNum,
   isBool,
   isBigInt,
+  isInt,
   toJsonReadyBigInt,
   fromJsonReadyBigInt,
   isJsonReadyStr,
   isJsonReadyNum,
   isJsonReadyBool,
   isJsonReadyBigInt,
+  isJsonReadyInt,
 } from "plgg/index";
 
 /**
  * Union type representing all atomic value types in the system.
  */
 export type Atomic =
-  | Str
-  | Num
   | Bool
-  | BigInt;
+  | Num
+  | Int
+  | BigInt
+  | Str;
 
 /**
  * Type predicate to determine if a type is atomic.
@@ -41,10 +46,11 @@ export type IsAtomic<T> = [T] extends [Atomic]
 export const isAtomic = (
   value: unknown,
 ): value is Atomic =>
-  isStr(value) ||
-  isNum(value) ||
   isBool(value) ||
-  isBigInt(value);
+  isNum(value) ||
+  isInt(value) ||
+  isBigInt(value) ||
+  isStr(value);
 
 // --------------------------------
 // JsonReady
@@ -54,10 +60,11 @@ export const isAtomic = (
  * Union type for JSON-ready atomic values.
  */
 export type JsonReadyAtomic =
-  | JsonReadyStr
-  | JsonReadyNum
   | JsonReadyBool
-  | JsonReadyBigInt;
+  | JsonReadyNum
+  | JsonReadyInt
+  | JsonReadyBigInt
+  | JsonReadyStr;
 
 /**
  * Runtime type guard to check if a value is JSON-ready atomic.
@@ -65,10 +72,11 @@ export type JsonReadyAtomic =
 export const isJsonReadyAtomic = (
   value: unknown,
 ): value is JsonReadyAtomic =>
-  isJsonReadyStr(value) ||
-  isJsonReadyNum(value) ||
   isJsonReadyBool(value) ||
-  isJsonReadyBigInt(value);
+  isJsonReadyNum(value) ||
+  isJsonReadyInt(value) ||
+  isJsonReadyBigInt(value) ||
+  isJsonReadyStr(value);
 
 /**
  * Converts an atomic value to its JSON-ready representation.
