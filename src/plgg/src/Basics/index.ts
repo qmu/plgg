@@ -1,1 +1,5 @@
 export * from "plgg/Basics/I8";
+export * from "plgg/Basics/I16";
+export * from "plgg/Basics/I32";
+export * from "plgg/Basics/I64";
+export * from "plgg/Basics/I128";
