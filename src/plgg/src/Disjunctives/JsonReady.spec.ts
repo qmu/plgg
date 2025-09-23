@@ -5,6 +5,23 @@ import {
   fromJson,
   toJsonReady,
   fromJsonReady,
+  newBox,
+  I8,
+  I16,
+  I32,
+  I64,
+  I128,
+  U8,
+  U16,
+  U32,
+  U64,
+  U128,
+  Float,
+  isI64,
+  isI128,
+  isU64,
+  isU128,
+  isFloat,
 } from "plgg/index";
 
 describe("JsonReady", () => {
@@ -71,6 +88,306 @@ describe("JsonReady", () => {
         expect(restored).toEqual(original);
         expect(restored instanceof Date).toBe(true);
         expect((restored as Date).getTime()).toBe(original.getTime());
+      });
+    });
+  });
+
+  describe("Basic types round-trip", () => {
+    describe("Signed integer types", () => {
+      it("should handle I8 values", () => {
+        const testValues = [-128, -1, 0, 1, 127];
+        testValues.forEach((value) => {
+          const original: I8 = newBox("I8")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+
+          // Test full JSON string round-trip
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+        });
+      });
+
+      it("should handle I16 values", () => {
+        const testValues = [-32768, -1000, 0, 1000, 32767];
+        testValues.forEach((value) => {
+          const original: I16 = newBox("I16")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+        });
+      });
+
+      it("should handle I32 values", () => {
+        const testValues = [-2147483648, -100000, 0, 100000, 2147483647];
+        testValues.forEach((value) => {
+          const original: I32 = newBox("I32")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+        });
+      });
+
+      it("should handle I64 values", () => {
+        const testValues = [
+          -9223372036854775808n,
+          -1000000000000n,
+          0n,
+          1000000000000n,
+          9223372036854775807n
+        ];
+        testValues.forEach((value) => {
+          const original: I64 = newBox("I64")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+          if (isI64(restored)) {
+            expect(typeof restored.content).toBe("bigint");
+          }
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+          if (isI64(jsonRestored)) {
+            expect(typeof jsonRestored.content).toBe("bigint");
+          }
+        });
+      });
+
+      it("should handle I128 values", () => {
+        const testValues = [
+          -170141183460469231731687303715884105728n,
+          -1000000000000000000000000000000000000n,
+          0n,
+          1000000000000000000000000000000000000n,
+          170141183460469231731687303715884105727n
+        ];
+        testValues.forEach((value) => {
+          const original: I128 = newBox("I128")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+          if (isI128(restored)) {
+            expect(typeof restored.content).toBe("bigint");
+          }
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+          if (isI128(jsonRestored)) {
+            expect(typeof jsonRestored.content).toBe("bigint");
+          }
+        });
+      });
+    });
+
+    describe("Unsigned integer types", () => {
+      it("should handle U8 values", () => {
+        const testValues = [0, 1, 128, 255];
+        testValues.forEach((value) => {
+          const original: U8 = newBox("U8")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+        });
+      });
+
+      it("should handle U16 values", () => {
+        const testValues = [0, 1000, 32768, 65535];
+        testValues.forEach((value) => {
+          const original: U16 = newBox("U16")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+        });
+      });
+
+      it("should handle U32 values", () => {
+        const testValues = [0, 100000, 2147483648, 4294967295];
+        testValues.forEach((value) => {
+          const original: U32 = newBox("U32")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+        });
+      });
+
+      it("should handle U64 values", () => {
+        const testValues = [
+          0n,
+          1000000000000n,
+          9223372036854775808n,
+          18446744073709551615n
+        ];
+        testValues.forEach((value) => {
+          const original: U64 = newBox("U64")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+          if (isU64(restored)) {
+            expect(typeof restored.content).toBe("bigint");
+          }
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+          if (isU64(jsonRestored)) {
+            expect(typeof jsonRestored.content).toBe("bigint");
+          }
+        });
+      });
+
+      it("should handle U128 values", () => {
+        const testValues = [
+          0n,
+          1000000000000000000000000000000000000n,
+          170141183460469231731687303715884105728n,
+          340282366920938463463374607431768211455n
+        ];
+        testValues.forEach((value) => {
+          const original: U128 = newBox("U128")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+          if (isU128(restored)) {
+            expect(typeof restored.content).toBe("bigint");
+          }
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+          if (isU128(jsonRestored)) {
+            expect(typeof jsonRestored.content).toBe("bigint");
+          }
+        });
+      });
+    });
+
+    describe("Floating-point types", () => {
+      it("should handle Float values", () => {
+        const testValues = [
+          -123.456,
+          -1.0,
+          0.0,
+          1.0,
+          3.14159,
+          123.456,
+          Number.MAX_SAFE_INTEGER - 1,
+          Number.MIN_SAFE_INTEGER + 1
+        ];
+        testValues.forEach((value) => {
+          const original: Float = newBox("Float")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+          if (isFloat(restored)) {
+            expect(typeof restored.content).toBe("number");
+          }
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+          if (isFloat(jsonRestored)) {
+            expect(typeof jsonRestored.content).toBe("number");
+          }
+        });
+      });
+
+      it("should handle Float edge cases", () => {
+        const testValues = [
+          0.0,
+          1e-10,
+          1e10,
+          Number.EPSILON,
+          Number.MAX_VALUE,
+          Number.MIN_VALUE
+        ];
+        testValues.forEach((value) => {
+          const original: Float = newBox("Float")(value);
+          const jsonReady = toJsonReady(original);
+          const restored = fromJsonReady(jsonReady);
+          expect(restored).toEqual(original);
+
+          const json = toJson(original);
+          const jsonRestored = fromJson(json);
+          expect(jsonRestored).toEqual(original);
+        });
+      });
+
+      it("should handle -0 specially (loses sign through JSON)", () => {
+        const original: Float = newBox("Float")(-0);
+        const jsonReady = toJsonReady(original);
+        const restored = fromJsonReady(jsonReady);
+        expect(restored).toEqual(original);
+
+        // Note: -0 becomes +0 through JSON serialization, this is expected behavior
+        const json = toJson(original);
+        const jsonRestored = fromJson(json);
+        const expected: Float = newBox("Float")(0); // -0 becomes +0
+        expect(jsonRestored).toEqual(expected);
+      });
+    });
+
+    describe("Mixed Basic types", () => {
+      it("should handle objects containing multiple Basic types", () => {
+        const original = {
+          i8: newBox("I8")(-128),
+          i16: newBox("I16")(-32768),
+          i32: newBox("I32")(-2147483648),
+          i64: newBox("I64")(-9223372036854775808n),
+          i128: newBox("I128")(-170141183460469231731687303715884105728n),
+          u8: newBox("U8")(255),
+          u16: newBox("U16")(65535),
+          u32: newBox("U32")(4294967295),
+          u64: newBox("U64")(18446744073709551615n),
+          u128: newBox("U128")(340282366920938463463374607431768211455n),
+          float: newBox("Float")(3.14159)
+        };
+
+        const jsonReady = toJsonReady(original);
+        const restored = fromJsonReady(jsonReady);
+        expect(restored).toEqual(original);
+
+        // Verify bigint types are preserved
+        const restoredAny = restored as any;
+        expect(typeof restoredAny.i64.content).toBe("bigint");
+        expect(typeof restoredAny.i128.content).toBe("bigint");
+        expect(typeof restoredAny.u64.content).toBe("bigint");
+        expect(typeof restoredAny.u128.content).toBe("bigint");
+        expect(typeof restoredAny.float.content).toBe("number");
+
+        // Test full JSON string round-trip
+        const json = toJson(original);
+        const jsonRestored = fromJson(json);
+        expect(jsonRestored).toEqual(original);
+
+        const jsonRestoredAny = jsonRestored as any;
+        expect(typeof jsonRestoredAny.i64.content).toBe("bigint");
+        expect(typeof jsonRestoredAny.i128.content).toBe("bigint");
+        expect(typeof jsonRestoredAny.u64.content).toBe("bigint");
+        expect(typeof jsonRestoredAny.u128.content).toBe("bigint");
+        expect(typeof jsonRestoredAny.float.content).toBe("number");
       });
     });
   });
