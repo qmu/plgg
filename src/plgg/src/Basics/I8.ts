@@ -3,6 +3,7 @@ import {
   InvalidError,
   Refinable,
   Castable,
+  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -57,3 +58,35 @@ export const i8Castable: Castable<I8> = {
  * Exported safe casting function for I8 values.
  */
 export const { as: asI8 } = i8Castable;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+/**
+ * JSON-ready representation of I8 values.
+ */
+export type JsonReadyI8 = I8;
+
+/**
+ * Type guard for JSON-ready I8 values.
+ */
+export const isJsonReadyI8 = isI8;
+
+/**
+ * JsonSerializable instance for I8 values.
+ */
+export const i8JsonSerializable: JsonSerializable<
+  I8,
+  JsonReadyI8
+> = {
+  toJsonReady: (value: I8) => value,
+  fromJsonReady: (jsonReady: I8) => jsonReady,
+};
+/**
+ * Exported JSON serialization functions for I8 values.
+ */
+export const {
+  toJsonReady: toJsonReadyI8,
+  fromJsonReady: fromJsonReadyI8,
+} = i8JsonSerializable;
