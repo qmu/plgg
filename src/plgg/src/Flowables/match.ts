@@ -105,7 +105,7 @@ export type ExtractVariantTags<T> = T extends {
 export type ExtractPatternTags<
   PATTERNS extends ReadonlyArray<unknown>,
 > = PATTERNS extends [infer Head, ...infer Tail]
-  ? Head extends { tag: infer Tag }
+  ? Head extends { __tag: infer Tag }
     ? [Tag, ...ExtractPatternTags<Tail>]
     : ExtractPatternTags<Tail>
   : [];
@@ -1278,7 +1278,7 @@ export function match(
       if (isVariantPatternTag(pattern)) {
         if (
           isVariant(a) &&
-          a.__tag === pattern.tag
+          a.__tag === pattern.__tag
         ) {
           return fn(a);
         }
