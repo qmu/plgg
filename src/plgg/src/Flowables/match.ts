@@ -11,7 +11,6 @@ import {
   IsVariantPattern,
   Or,
   IsVariant,
-  ExtractBoxContent,
   Variant,
   isVariant,
   otherwise,
@@ -166,6 +165,16 @@ export type CaseDecl<
   >,
   [PATTERN, (a: PATTERN) => R]
 >;
+
+/**
+ * Extracts the body type from a variant type.
+ */
+type ExtractBoxContent<
+  V extends Variant<string, unknown>,
+> =
+  V extends Variant<string, infer CONTENT>
+    ? CONTENT
+    : undefined;
 
 // -------------------------
 

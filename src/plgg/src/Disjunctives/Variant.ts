@@ -5,7 +5,6 @@ import {
   IsBox,
   IsEmptyBox,
   isBox,
-  newBox,
 } from "plgg/index";
 
 /**
@@ -30,45 +29,3 @@ export type IsVariant<T> = Or<
 export const isVariant = (
   v: unknown,
 ): v is Variant<string, unknown> => isBox(v);
-
-/**
- * Creates a variant constructor for a specific tag.
- */
-export function construct<
-  V extends Variant<string, unknown>,
-  TAG extends string = ExtractTag<V>,
-  CONTENT = ExtractBoxContent<V>,
->(__tag: TAG) {
-  function maker(): EmptyBox<TAG>;
-  function maker(
-    content: CONTENT,
-  ): Box<TAG, CONTENT>;
-  function maker(
-    content?: CONTENT,
-  ): EmptyBox<TAG> | Box<TAG, CONTENT> {
-    return content === undefined
-      ? newBox(__tag)(undefined)
-      : newBox(__tag)(content);
-  }
-  return maker;
-}
-
-/**
- * Extracts the body type from a variant type.
- */
-export type ExtractBoxContent<
-  V extends Variant<string, unknown>,
-> =
-  V extends Variant<string, infer CONTENT>
-    ? CONTENT
-    : undefined;
-
-/**
- * Extracts the tag type from a variant type.
- */
-export type ExtractTag<
-  V extends Variant<string, unknown>,
-> =
-  V extends Variant<infer TAG, unknown>
-    ? TAG
-    : never;

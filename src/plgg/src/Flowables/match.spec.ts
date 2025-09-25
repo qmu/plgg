@@ -7,7 +7,6 @@ import {
   FALSE,
   match,
   pattern,
-  construct,
   otherwise,
   ok,
   err,
@@ -17,6 +16,7 @@ import {
   none,
   newSome,
   newNone,
+  newBox,
 } from "plgg/index";
 
 test("number", async () => {
@@ -102,8 +102,7 @@ test("Variant1", async () => {
     }
   >;
   const triangle = pattern("Triangle" as const);
-  const newTriangle =
-    construct<Triangle>("Triangle");
+  const newTriangle = newBox("Triangle");
   type Shape = Circle | Square | Triangle;
 
   const fn = (a: Shape) =>
@@ -128,7 +127,7 @@ test("Variant2", async () => {
   };
   type AST = Box<"AST", ast>;
   const ast = pattern("AST");
-  const newAST = construct<AST>("AST");
+  const newAST = newBox("AST");
 
   const fn = (a: AST) =>
     match(
@@ -140,8 +139,8 @@ test("Variant2", async () => {
     );
 
   const realAst = newAST({
-    type: "branch",
-    children: [newAST({ type: "leaf" })],
+    type: "branch" as const,
+    children: [newAST({ type: "leaf" as const })],
   });
 
   expect(fn(realAst)).equal("branch");

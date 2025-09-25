@@ -2,17 +2,15 @@ import { test, expect, assert } from "vitest";
 import {
   EmptyBox,
   Box,
-  ExtractBoxContent,
-  construct,
   pattern,
   isVariant,
   match,
+  newBox,
+  newEmptyBox,
 } from "plgg/index";
 
 test("FixedVariant creation and structure", () => {
-  const loading =
-    construct<EmptyBox<"loading">>("loading");
-  const loadingVariant = loading();
+  const loadingVariant = newEmptyBox("loading");
   expect(loadingVariant.__tag).toBe("loading");
   expect(Object.keys(loadingVariant)).toEqual([
     "__tag",
@@ -21,10 +19,9 @@ test("FixedVariant creation and structure", () => {
 });
 
 test("ParametricVariant creation and structure", () => {
-  type Success<T> = Box<"success", T>;
-  const success =
-    construct<Success<string>>("success");
-  const successVariant = success("hello world");
+  const successVariant = newBox("success")(
+    "hello world",
+  );
 
   expect(successVariant.__tag).toBe("success");
   expect(successVariant.content).toBe(
@@ -37,19 +34,8 @@ test("ParametricVariant creation and structure", () => {
 });
 
 test("construct with different content types", () => {
-  type NumberVariant = Box<"number", number>;
-  type ObjectVariant = Box<
-    "object",
-    { id: number; name: string }
-  >;
-
-  const numberMaker =
-    construct<NumberVariant>("number");
-  const objectMaker =
-    construct<ObjectVariant>("object");
-
-  const numVariant = numberMaker(42);
-  const objVariant = objectMaker({
+  const numVariant = newBox("number")(42);
+  const objVariant = newBox("object")({
     id: 1,
     name: "test",
   });
@@ -65,10 +51,7 @@ test("construct with different content types", () => {
 });
 
 test("isVariant type guard function", () => {
-  type TestVariant = Box<"test", string>;
-  const testMaker =
-    construct<TestVariant>("test");
-  const variant = testMaker("content");
+  const variant = newBox("test")("content");
 
   assert(isVariant(variant));
   assert(!isVariant("string"));
@@ -80,17 +63,17 @@ test("isVariant type guard function", () => {
 });
 
 test("pattern function for matching", () => {
-  type Circle = Box<"circle", { radius: number }>;
-  type Square = Box<"square", { side: number }>;
-
   const circle = pattern("circle");
   const square = pattern("square");
-  const circleInstance = construct<Circle>(
-    "circle",
-  )({ radius: 5 });
-  const squareInstance = construct<Square>(
-    "square",
-  )({ side: 4 });
+  const circleInstance = newBox("circle")({
+    radius: 5,
+  });
+  const squareInstance = newBox("square")({
+    side: 4,
+  });
+
+  type Circle = Box<"circle", { radius: number }>;
+  type Square = Box<"square", { side: number }>;
   type Shape = Circle | Square;
 
   const getShapeInfo = (shape: Shape) =>
@@ -109,21 +92,7 @@ test("pattern function for matching", () => {
 });
 
 test("variant with complex nested content", () => {
-  type ComplexVariant = Box<
-    "complex",
-    {
-      id: number;
-      metadata: {
-        created: string;
-        tags: string[];
-      };
-      data?: unknown;
-    }
-  >;
-
-  const ofComplex =
-    construct<ComplexVariant>("complex");
-  const complex = ofComplex({
+  const complex = newBox("complex")({
     id: 123,
     metadata: {
       created: "2023-01-01",
@@ -153,11 +122,6 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
     | Success<T>
     | Error;
 
-  const ofLoading = construct<Loading>("loading");
-  const ofSuccess =
-    construct<Success<string>>("success");
-  const ofError = construct<Error>("error");
-
   const loading = pattern("loading");
   const success = pattern("success");
   const error = pattern("error");
@@ -172,14 +136,18 @@ test("mixed FixedVariant and ParametricVariant in union", () => {
       [error(), () => "Error occurred"],
     );
 
-  expect(getStateMessage(ofLoading())).toBe(
-    "Loading...",
-  );
   expect(
-    getStateMessage(ofSuccess("data loaded")),
+    getStateMessage(newEmptyBox("loading")),
+  ).toBe("Loading...");
+  expect(
+    getStateMessage(
+      newBox("success")("data loaded"),
+    ),
   ).toBe("Success!");
   expect(
-    getStateMessage(ofError("failed to load")),
+    getStateMessage(
+      newBox("error")("failed to load"),
+    ),
   ).toBe("Error occurred");
 });
 
@@ -190,18 +158,4 @@ test("pattern with undefined content creates pattern for tag matching", () => {
   expect(pattern1.__tag).toBe("simple");
   expect(pattern1.type).toBe("tag");
   expect(pattern1.body).toBe(undefined);
-});
-
-test("Extractcontent type utility", () => {
-  type TestVariant = Box<
-    "test",
-    { data: string }
-  >;
-
-  // This is a compile-time test - if it compiles, the type works correctly
-  const testcontent: ExtractBoxContent<TestVariant> =
-    {
-      data: "hello",
-    };
-  expect(testcontent.data).toBe("hello");
 });
