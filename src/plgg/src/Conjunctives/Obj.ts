@@ -6,7 +6,6 @@ import {
   JsonReady,
   Datum,
   JsonSerializable,
-  DatumObject,
   newOk,
   newErr,
   toJsonReady,
@@ -19,8 +18,12 @@ import {
  * Readonly record type for functional programming operations.
  */
 export type Obj<
-  T extends DatumObject = DatumObject,
+  T extends OnlyDatumObject = OnlyDatumObject,
 > = Readonly<T>;
+
+type OnlyDatumObject = {
+  [key: string]: Datum;
+};
 
 /**
  * Type guard to check if a value is an Obj.

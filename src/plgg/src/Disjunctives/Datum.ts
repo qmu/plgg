@@ -20,7 +20,7 @@ import {
 export type Datum =
   | DatumCore
   | OptionalDatum<DatumCore>
-  | NominalDatum<string, DatumCore>;
+  | NominalDatum<string, DatumCore>; // Box
 
 export type DatumCore =
   | Atomic
@@ -50,7 +50,3 @@ export const isDatumCore = (
   (isObj(value) &&
     Object.values(value).every(isDatum)) ||
   (isVec(value) && value.every(isDatum));
-
-export type DatumObject = {
-  [key: string]: Datum;
-};
