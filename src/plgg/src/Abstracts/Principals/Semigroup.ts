@@ -8,17 +8,14 @@ import {
 } from "plgg/index";
 
 /**
- * Semigroup interface for single-parameter type constructors.
- * Provides an associative binary operation for combining values.
- *
- * Semigroup law:
- * - Associativity: concat(concat(a, b), c) === concat(a, concat(b, c))
- *
+ * Provides associative binary operations for combining single-parameter types.
  */
 export interface Semigroup1<
   KindKey extends KindKeys1,
 > {
-  /** The kind key identifier */
+  /**
+   * The kind key identifier.
+   */
   readonly KindKey: KindKey;
   /**
    * Combines two values of the same type.
@@ -31,14 +28,14 @@ export interface Semigroup1<
 }
 
 /**
- * Semigroup interface for two-parameter type constructors.
- * Combines values while preserving the second type parameter.
- *
+ * Provides associative binary operations for combining two-parameter types.
  */
 export interface Semigroup2<
   KindKey extends KindKeys2,
 > {
-  /** The kind key identifier */
+  /**
+   * The kind key identifier.
+   */
   readonly KindKey: KindKey;
   /**
    * Combines two values of the same type for two-parameter types.
@@ -51,14 +48,14 @@ export interface Semigroup2<
 }
 
 /**
- * Semigroup interface for three-parameter type constructors.
- * Combines values while preserving the second and third type parameters.
- *
+ * Provides associative binary operations for combining three-parameter types.
  */
 export interface Semigroup3<
   KindKey extends KindKeys3,
 > {
-  /** The kind key identifier */
+  /**
+   * The kind key identifier.
+   */
   readonly KindKey: KindKey;
   /**
    * Combines two values of the same type for three-parameter types.

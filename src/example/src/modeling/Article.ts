@@ -1,6 +1,4 @@
 import {
-  BrandStr,
-  asBrandStr,
   asStr,
   asObj,
   forProp,
@@ -13,16 +11,15 @@ import {
   Obj,
 } from "plgg";
 
-type Id = BrandStr<"ArticleId">;
-const asId = (v: unknown) => cast(v, asBrandStr<"ArticleId">);
+type Id = string;
+const asId = (v: unknown) => cast(v, asStr);
 
-type Name = BrandStr<"ArticleName">;
+type Name = string;
 const asName = (v: unknown) =>
   cast(
     v,
     asStr,
     refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
-    asBrandStr<"ArticleName">,
   );
 
 export type Article = Obj<{

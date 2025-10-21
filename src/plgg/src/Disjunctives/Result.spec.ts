@@ -1,12 +1,12 @@
 import { test, expect, assert } from "vitest";
 import {
+  Result,
+  InvalidError,
   newOk,
   newErr,
   isOk,
   isErr,
   isResult,
-  Result,
-  InvalidError,
   chainResult,
   mapResult,
   applyResult,
@@ -440,22 +440,31 @@ test("Database query with optional caching", () => {
 test("sequenceResult - sequence with Option", () => {
   // Test successful sequence with Some
   const okWithSome = newOk(newSome(42));
-  const result1 = pipe(okWithSome, sequenceResult(optionApplicative));
-  
+  const result1 = pipe(
+    okWithSome,
+    sequenceResult(optionApplicative),
+  );
+
   assert(isSome(result1));
   assert(isOk(result1.content));
   expect(result1.content.content).toBe(42);
-  
+
   // Test successful sequence with None
   const okWithNone = newOk(newNone());
-  const result2 = pipe(okWithNone, sequenceResult(optionApplicative));
-  
+  const result2 = pipe(
+    okWithNone,
+    sequenceResult(optionApplicative),
+  );
+
   assert(isNone(result2));
-  
+
   // Test error case - should return Some(Err(...))
   const errResult = newErr("error");
-  const result3 = pipe(errResult, sequenceResult(optionApplicative));
-  
+  const result3 = pipe(
+    errResult,
+    sequenceResult(optionApplicative),
+  );
+
   assert(isSome(result3));
   assert(isErr(result3.content));
   expect(result3.content.content).toBe("error");

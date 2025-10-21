@@ -1,5 +1,4 @@
-/* Exceptionally relative import to avoid circular dependencies */
-import { BaseError } from "./BaseError";
+import { BaseError } from "plgg/Exceptionals/BaseError";
 
 /**
  * Error class for validation failures.
@@ -12,7 +11,6 @@ export class InvalidError extends BaseError {
 
   /**
    * Sibling errors that occurred during validation.
-   * Used to accumulate multiple validation failures.
    */
   public sibling: ReadonlyArray<InvalidError> =
     [];

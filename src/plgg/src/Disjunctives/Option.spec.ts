@@ -1,11 +1,11 @@
 import { test, expect, assert } from "vitest";
 import {
+  Option,
   newSome,
   newNone,
   isSome,
   isNone,
   isOption,
-  Option,
   mapOption,
   applyOption,
   ofOption,
@@ -55,6 +55,7 @@ test("some creates Some option with null", () => {
 test("some creates Some option with undefined", () => {
   const result = newSome(undefined);
   expect(result.__tag).toBe("Some");
+  console.log(result, isSome(result));
   assert(isSome(result));
   if (isSome(result)) {
     expect(result.content).toBe(undefined);
@@ -138,6 +139,7 @@ test("Option type structure", () => {
   );
   expect(Object.keys(noneOption)).toEqual([
     "__tag",
+    "content",
   ]);
 });
 
@@ -385,14 +387,14 @@ test("isOption - type guard for Option types", () => {
   // Test with Some values
   const someValue = newSome(42);
   expect(isOption(someValue)).toBe(true);
-  
+
   const someString = newSome("hello");
   expect(isOption(someString)).toBe(true);
-  
+
   // Test with None
   const noneValue = newNone();
   expect(isOption(noneValue)).toBe(true);
-  
+
   // Test with non-Option values
   expect(isOption(42)).toBe(false);
   expect(isOption("string")).toBe(false);

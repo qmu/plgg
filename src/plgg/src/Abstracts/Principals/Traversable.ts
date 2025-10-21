@@ -41,45 +41,19 @@ export interface Traverse1<T extends KindKeys1> {
 }
 
 /**
- * Traversable interface for single-parameter type constructors.
- * Extends both Functor and Foldable to provide structure-preserving traversal
- * that allows applying effects while maintaining the original structure.
- *
- * Traversable laws:
- * - Identity: traverse(Identity, pure) === Identity
- * - Composition: traverse(Compose, f) === Compose . fmap (traverse g) . traverse f
- * - Naturality: t . traverse f === traverse (t . f) for natural transformation t
- *
- * @template KindKey - The kind identifier for this traversable
- * @example
- * // Array implements Traversable1
- * const arrayTraversable: Traversable1<"Arr"> = {
- *   KindKey: "Arr",
- *   traverse: <F extends KindKeys1>(A: Applicative1<F>) =>
- *     <A, B>(f: (a: A) => Kind1<F, B>) =>
- *       (ta: Arr<A>): Kind1<F, Arr<B>> =>
- *         ta.reduce(
- *           (acc, x) => A.ap(A.map((bs: B[]) => (b: B) => [...bs, b])(acc))(f(x)),
- *           A.of([])
- *         )
- * };
+ * Enables structure-preserving traversal with effects for single-parameter types.
  */
 export interface Traversable1<
   KindKey extends KindKeys1,
 > extends Functor1<KindKey>,
     Foldable1<KindKey> {
   /**
-   * Traverses the structure, applying an effectful function to each element
-   * while preserving the structure and accumulating effects.
-   * @param A - Applicative instance for the effect type
-   * @returns Function that takes traversing function and returns traversal function
+   * Traverses the structure applying effectful functions while preserving structure.
    */
   traverse: Traverse1<KindKey>;
 
   /**
    * Sequences effects while preserving structure.
-   * @param A - Applicative instance for the effect type
-   * @returns Function that sequences the structure
    */
   sequence: <F extends KindKeys1>(
     A: Applicative1<F>,
@@ -89,10 +63,7 @@ export interface Traversable1<
 }
 
 /**
- * Traversable interface for two-parameter type constructors.
- * Traverses over the first type parameter while preserving the second.
- *
- * @template KindKey - The kind identifier for this traversable
+ * Enables structure-preserving traversal with effects for two-parameter types.
  */
 export interface Traversable2<
   KindKey extends KindKeys2,
@@ -100,8 +71,6 @@ export interface Traversable2<
     Foldable2<KindKey> {
   /**
    * Traverses the structure for two-parameter types.
-   * @param A - Applicative instance for the effect type
-   * @returns Function that takes traversing function and returns traversal function
    */
   traverse: <F extends KindKeys1>(
     A: Applicative1<F>,
@@ -113,8 +82,6 @@ export interface Traversable2<
 
   /**
    * Sequences effects for two-parameter types.
-   * @param A - Applicative instance for the effect type
-   * @returns Function that sequences the structure
    */
   sequence: <F extends KindKeys1>(
     A: Applicative1<F>,
@@ -124,10 +91,7 @@ export interface Traversable2<
 }
 
 /**
- * Traversable interface for three-parameter type constructors.
- * Traverses over the first type parameter while preserving the second and third.
- *
- * @template KindKey - The kind identifier for this traversable
+ * Enables structure-preserving traversal with effects for three-parameter types.
  */
 export interface Traversable3<
   KindKey extends KindKeys3,
@@ -135,8 +99,6 @@ export interface Traversable3<
     Foldable3<KindKey> {
   /**
    * Traverses the structure for three-parameter types.
-   * @param A - Applicative instance for the effect type
-   * @returns Function that takes traversing function and returns traversal function
    */
   traverse: <F extends KindKeys1>(
     A: Applicative1<F>,
@@ -148,8 +110,6 @@ export interface Traversable3<
 
   /**
    * Sequences effects for three-parameter types.
-   * @param A - Applicative instance for the effect type
-   * @returns Function that sequences the structure
    */
   sequence: <F extends KindKeys1>(
     A: Applicative1<F>,

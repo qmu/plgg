@@ -10,23 +10,22 @@ import {
   Traversable2,
   KindKeys1,
   Kind1,
-  newOk,
-  isOk,
   Ok,
   Err,
+  newOk,
+  isOk,
   newErr,
   isErr,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
-  export interface KindKeytoKind2<A, B> {
+  export interface MapKind2<A, B> {
     Result: Result<A, B>;
   }
 }
 
 /**
- * Result type for functional error handling without exceptions.
- * Represents a computation that can either succeed (Ok) or fail (Err).
+ * Represents computations that can either succeed or fail without exceptions.
  */
 export type Result<T, F> = Ok<T> | Err<F>;
 
@@ -38,8 +37,7 @@ export const isResult = <T, F>(
 ): e is Result<T, F> => isOk<T>(e) || isErr<F>(e);
 
 /**
- * Functor instance for Result.
- * Maps functions over successful values while preserving errors.
+ * Functor instance for mapping over successful values while preserving errors.
  */
 export const resultFunctor: Functor2<"Result"> = {
   KindKey: "Result",
@@ -81,8 +79,6 @@ export const { of: ofResult } = resultPointed;
 
 /**
  * Applicative instance for Result.
- * Combines Apply and Pointed to provide both function application and value lifting.
- * Enables working with functions and values wrapped in Result contexts.
  */
 export const resultApplicative: Applicative2<"Result"> =
   {
@@ -111,7 +107,6 @@ export const { chain: chainResult } = resultChain;
 
 /**
  * Monad instance for Result.
- * Combines Applicative and Chain to provide full monadic interface.
  */
 export const resultMonad: Monad2<"Result"> = {
   ...resultApplicative,
@@ -148,7 +143,6 @@ export const {
 
 /**
  * Traversable instance for Result.
- * Extends Functor and Foldable to provide structure-preserving traversal.
  */
 export const resultTraversable: Traversable2<"Result"> =
   {

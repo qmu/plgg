@@ -1,10 +1,10 @@
 import { test, expect, vi } from "vitest";
 import {
   PlggError,
-  printPlggError,
-  isPlggError,
   InvalidError,
   BaseError,
+  printPlggError,
+  isPlggError,
   unreachable,
 } from "plgg/index";
 

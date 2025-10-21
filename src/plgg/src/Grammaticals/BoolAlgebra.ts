@@ -1,11 +1,11 @@
 /**
- * Sentinel value for exhaustive pattern matching default cases.
+ * Sentinel value for pattern matching default cases.
  */
 export const otherwise =
   "__MATCH_OTHERWISE__" as const;
 
 /**
- * Type-level conditional that selects types based on boolean conditions.
+ * Type-level conditional that selects types based on conditions.
  */
 export type If<
   C extends boolean,
@@ -14,7 +14,7 @@ export type If<
 > = C extends true ? T : F;
 
 /**
- * Type-level strict equality check using distributive conditional types.
+ * Type-level strict equality check.
  */
 export type IsEqual<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <
@@ -48,7 +48,7 @@ export type Or<
     : false;
 
 /**
- * Type-level extends check converted to boolean.
+ * Type-level extends check.
  */
 export type Is<A, B> = A extends B ? true : false;
 

@@ -1,0 +1,100 @@
+import {
+  Result,
+  InvalidError,
+  Refinable,
+  Castable,
+  JsonSerializable,
+  Box,
+  newOk,
+  newErr,
+  isBoxWithTag,
+  isBigInt,
+} from "plgg/index";
+
+/**
+ * A variant with both a tag and content that must be a 128-bit unsigned integer.
+ * Range: 0n to 340282366920938463463374607431768211455n
+ */
+export type U128 = Box<"U128", bigint>;
+
+/**
+ * Type guard to check if a value is a U128.
+ */
+const is = (value: unknown): value is U128 =>
+  isBoxWithTag("U128")(value) &&
+  isBigInt(value.content) &&
+  value.content >= 0n &&
+  value.content <= 340282366920938463463374607431768211455n;
+
+/**
+ * Refinable instance for U128 type guards.
+ */
+export const u128Refinable: Refinable<U128> = {
+  is,
+};
+/**
+ * Exported type guard function for U128 values.
+ */
+export const { is: isU128 } = u128Refinable;
+
+/**
+ * Castable instance for U128 safe casting.
+ */
+export const u128Castable: Castable<U128> = {
+  as: (
+    value: unknown,
+  ): Result<U128, InvalidError> =>
+    is(value)
+      ? newOk(value)
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not a U128 (tag-content pair with bigint in 128-bit unsigned range)",
+          }),
+        ),
+};
+/**
+ * Exported safe casting function for U128 values.
+ */
+export const { as: asU128 } = u128Castable;
+
+// --------------------------------
+// JsonReady
+// --------------------------------
+
+/**
+ * JSON-ready representation of U128 values as strings.
+ */
+export type JsonReadyU128 = Box<"U128", string>;
+
+/**
+ * Type guard for JSON-ready U128 values.
+ */
+export const isJsonReadyU128 = (value: unknown): value is JsonReadyU128 =>
+  isBoxWithTag("U128")(value) &&
+  typeof value.content === "string" &&
+  /^\d+$/.test(value.content);
+
+/**
+ * JsonSerializable instance for U128 values.
+ */
+export const u128JsonSerializable: JsonSerializable<
+  U128,
+  JsonReadyU128
+> = {
+  toJsonReady: (value: U128) => ({
+    __tag: "U128" as const,
+    content: value.content.toString(),
+  }),
+  fromJsonReady: (jsonReady: JsonReadyU128) => ({
+    __tag: "U128" as const,
+    content: BigInt(jsonReady.content),
+  }),
+};
+/**
+ * Exported JSON serialization functions for U128 values.
+ */
+export const {
+  toJsonReady: toJsonReadyU128,
+  fromJsonReady: fromJsonReadyU128,
+} = u128JsonSerializable;

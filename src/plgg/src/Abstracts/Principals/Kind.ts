@@ -1,83 +1,89 @@
-/**
- * Higher-kinded type registry for single-parameter type constructors.
- * Maps kind keys to their concrete types for type-level programming.
- *
- * To register a new Kind1 type, use module augmentation:
- * @template A - The type parameter for the kind
- */
-export interface KindKeytoKind1<A> {}
-/**
- * Higher-kinded type registry for two-parameter type constructors.
- *
- * @template A - First type parameter
- * @template B - Second type parameter
- */
-export interface KindKeytoKind2<A, B> {}
-/**
- * Higher-kinded type registry for three-parameter type constructors.
- * Currently reserved for future use (e.g., ReaderTaskResult).
- *
- * @template A - First type parameter
- * @template B - Second type parameter
- * @template C - Third type parameter
- */
-// @ts-ignore will have ReaderTaskResult
-export interface KindKeytoKind3<A, B, C> {}
+import { Datum } from "plgg/index";
 
 /**
- * Union of all registered single-parameter kind keys.
+ * Registry for mapping single-parameter type constructor keys to their concrete types.
  */
-export type KindKeys1 =
-  keyof KindKeytoKind1<unknown>;
+export interface MapKind1<A> {}
+
 /**
- * Union of all registered two-parameter kind keys.
+ * Registry for mapping two-parameter type constructor keys to their concrete types.
  */
-export type KindKeys2 = keyof KindKeytoKind2<
+export interface MapKind2<A, B> {}
+
+/**
+ * Registry for mapping three-parameter type constructor keys to their concrete types.
+ */
+// @ts-ignore will have ReaderTaskResult
+export interface MapKind3<A, B, C> {}
+
+/**
+ * Registry for mapping single-parameter type constructor keys to their concrete Datum types.
+ */
+export interface MapKindDatum<A extends Datum> {}
+
+// ----------------------------------------------------------------
+
+/**
+ * Union type of all registered single-parameter kind keys.
+ */
+export type KindKeys1 = keyof MapKind1<unknown>;
+
+/**
+ * Union type of all registered two-parameter kind keys.
+ */
+export type KindKeys2 = keyof MapKind2<
   unknown,
   unknown
 >;
+
 /**
- * Union of all registered three-parameter kind keys.
+ * Union type of all registered three-parameter kind keys.
  */
-export type KindKeys3 = keyof KindKeytoKind3<
+export type KindKeys3 = keyof MapKind3<
   unknown,
   unknown,
   unknown
 >;
+
+/**
+ * Union type of all registered single-parameter Datum kind keys.
+ */
+export type KindKeysDatum =
+  keyof MapKindDatum<Datum>;
+
+// ----------------------------------------------------------------
 
 /**
  * Resolves a kind key to its concrete single-parameter type.
- *
- * @template KindKey - The kind identifier
- * @template A - The type parameter
  */
 export type Kind1<
   KindKey extends KindKeys1,
   A,
-> = KindKeytoKind1<A>[KindKey];
+> = MapKind1<A>[KindKey];
+
 /**
  * Resolves a kind key to its concrete two-parameter type.
- *
- * @template KindKey - The kind identifier
- * @template A - First type parameter
- * @template B - Second type parameter
  */
 export type Kind2<
   KindKey extends KindKeys2,
   A,
   B,
-> = KindKeytoKind2<A, B>[KindKey];
+> = MapKind2<A, B>[KindKey];
+
 /**
  * Resolves a kind key to its concrete three-parameter type.
- *
- * @template KindKey - The kind identifier
- * @template A - First type parameter
- * @template B - Second type parameter
- * @template C - Third type parameter
  */
 export type Kind3<
   KindKey extends KindKeys3,
   A,
   B,
   C,
-> = KindKeytoKind3<A, B, C>[KindKey];
+> = MapKind3<A, B, C>[KindKey];
+
+/**
+ * Resolves a kind key to its concrete single-parameter Datum type.
+ */
+export type KindDatum<
+  KindKey extends KindKeysDatum,
+  A extends Datum,
+> = MapKindDatum<A>[KindKey];

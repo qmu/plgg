@@ -1,14 +1,14 @@
 import { test, assert, expect } from "vitest";
 import {
   Result,
-  cast,
   InvalidError,
   Str,
-  asObj,
-  forProp,
   Time,
   Num,
   Bool,
+  cast,
+  asObj,
+  forProp,
   asNum,
   asTime,
   asStr,

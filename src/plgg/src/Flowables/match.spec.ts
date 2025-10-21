@@ -1,24 +1,22 @@
-import { test, expect, assert } from "vitest";
+import { test, expect } from "vitest";
 import {
-  pipe,
-  proc,
-  match,
-  isErr,
+  Box,
+  Result,
+  Option,
   TRUE,
   FALSE,
-  ParametricVariant,
+  match,
   pattern,
-  construct,
   otherwise,
   ok,
+  err,
   newOk,
   newErr,
-  Result,
   some,
   none,
   newSome,
   newNone,
-  Option,
+  newBox,
 } from "plgg/index";
 
 test("number", async () => {
@@ -28,29 +26,22 @@ test("number", async () => {
   type status = typeof s1 | typeof s2 | typeof s3;
 
   const fn = (a: status) =>
-    pipe(
+    match(
       a,
-      match(
-        [s1, () => "1"],
-        [s2, () => "2"],
-        [s3, () => "3"], // should compile error when erased
-        //[4 as const, () => "4"], // should compile error when uncommented
-      ),
-      (a) => a,
+      [s1, () => "1"],
+      [s2, () => "2"],
+      [s3, () => "3"], // should compile error when erased
+      //[4 as const, () => "4"], // should compile error when uncommented
     );
   expect(fn(3)).equal("3");
 });
 
 test("boolean", async () => {
   const fn = (a: boolean) =>
-    pipe(
+    match(
       a,
-      match(
-        [TRUE, () => "true"],
-        [FALSE, () => "false"], // should compile error when erased
-        // [3 as const, () => "3"], // should compile error when uncommented
-      ),
-      (a) => a,
+      [TRUE, () => "true"],
+      [FALSE, () => "false"],
     );
   expect(fn(true)).equal("true");
 });
@@ -61,40 +52,14 @@ test("string", async () => {
     s3 = "c" as const;
   type Status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: Status) =>
-    pipe(
+    match(
       a,
-      match(
-        [s1, () => "a"],
-        [s2, () => "b"],
-        [s3, () => "c"], // should compile error when erased
-        //[4 as const, () => "4"], // should compile error when uncommented
-      ),
-      (a) => a,
+      [s1, () => "a"],
+      [s2, () => "b"],
+      [s3, () => "c"],
+      // ["d" as const, () => "d"], // should compile error when uncommented
     );
   expect(fn("c")).equal("c");
-});
-
-test("plgg string", async () => {
-  const s1 = "a" as const,
-    s2 = "b" as const,
-    s3 = "c" as const;
-  type Status = typeof s1 | typeof s2 | typeof s3;
-  const fn = (a: Status) =>
-    proc(
-      a,
-      match(
-        [s1, () => "a"],
-        [s2, () => "b"],
-        [s3, () => "c"], // should compile error when erased
-        //[4 as const, () => "4"], // should compile error when uncommented
-      ),
-      (a) => a,
-    );
-  const r = await fn("c");
-  if (isErr(r)) {
-    assert.fail("Expected success, got error");
-  }
-  expect(r.content).equal("c");
 });
 
 test("otherwise", async () => {
@@ -103,57 +68,49 @@ test("otherwise", async () => {
     s3 = "c" as const;
   type Status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: Status) =>
-    pipe(
+    match(
       a,
-      match(
-        [s1, () => "a"],
-        [s2, () => "b"],
-        [otherwise, () => "default"], // should compile error when erased
-        //[4 as const, () => "4"], // should compile error when uncommented
-      ),
-      (a) => a,
+      [s1, () => "a"],
+      [s2, () => "b"],
+      [otherwise, () => "default"], // should compile error when erased
     );
   expect(fn("c")).equal("default");
 });
 
 test("Variant1", async () => {
-  type Circle = ParametricVariant<
+  type Circle = Box<
     "Circle",
     {
       radius: number;
     }
   >;
-  const circle = pattern<Circle>("Circle");
+  const circle = pattern("Circle" as const);
 
-  type Square = ParametricVariant<
+  type Square = Box<
     "Square",
     {
       side: number;
     }
   >;
-  const square = pattern<Square>("Square");
+  const square = pattern("Square" as const);
 
-  type Triangle = ParametricVariant<
+  type Triangle = Box<
     "Triangle",
     {
       base: number;
       height: number;
     }
   >;
-  const triangle = pattern<Triangle>("Triangle");
-  const newTriangle =
-    construct<Triangle>("Triangle");
+  const triangle = pattern("Triangle" as const);
+  const newTriangle = newBox("Triangle");
   type Shape = Circle | Square | Triangle;
 
   const fn = (a: Shape) =>
-    pipe(
+    match(
       a,
-      match(
-        [circle(), () => "a"],
-        [square(), () => "b"],
-        [triangle(), () => "c"],
-      ),
-      (a) => a,
+      [circle(), () => "a"],
+      [square(), () => "b"],
+      [triangle(), () => "c"],
     );
 
   const realTriangle = newTriangle({
@@ -164,31 +121,26 @@ test("Variant1", async () => {
 });
 
 test("Variant2", async () => {
-  type AST = ParametricVariant<
-    "AST",
-    {
-      type: "root" | "leaf" | "branch";
-      children?: ReadonlyArray<AST>;
-    }
-  >;
-  const ast = pattern<AST>("AST");
-  const newAST = construct<AST>("AST");
+  type ast = {
+    type: "root" | "leaf" | "branch";
+    children?: ReadonlyArray<AST>;
+  };
+  type AST = Box<"AST", ast>;
+  const ast = pattern("AST");
+  const newAST = newBox("AST");
 
   const fn = (a: AST) =>
-    pipe(
+    match(
       a,
-      match(
-        [ast({ type: "root" }), () => "root"],
-        [ast({ type: "leaf" }), () => "leaf"],
-        [ast({ type: "branch" }), () => "branch"],
-        [otherwise, () => "default"],
-      ),
-      (a) => a,
+      [ast({ type: "root" }), () => "root"],
+      [ast({ type: "leaf" }), () => "leaf"],
+      [ast({ type: "branch" }), () => "branch"],
+      [otherwise, () => "default"],
     );
 
   const realAst = newAST({
-    type: "branch",
-    children: [newAST({ type: "leaf" })],
+    type: "branch" as const,
+    children: [newAST({ type: "leaf" as const })],
   });
 
   expect(fn(realAst)).equal("branch");
@@ -196,16 +148,14 @@ test("Variant2", async () => {
 
 test("Result pattern matching", async () => {
   const fn = (a: Result<string, number>) =>
-    pipe(
+    match(
       a,
-      match(
-        [newOk("hello"), () => "Specific hello"],
-        [
-          otherwise,
-          (value) =>
-            `Matched: ${JSON.stringify(value)}`,
-        ],
-      ),
+      [ok("hello"), () => "Specific hello"],
+      [
+        otherwise,
+        (value) =>
+          `Matched: ${JSON.stringify(value)}`,
+      ],
     );
 
   const successResult = newOk("hello");
@@ -221,20 +171,15 @@ test("Result pattern matching", async () => {
 
 test("Result pattern matching with specific patterns", async () => {
   const fn = (a: Result<number, string>) =>
-    pipe(
+    match(
       a,
-      match(
-        [newOk(42), () => "The answer!"],
-        [
-          newErr("not_found"),
-          () => "Not found error",
-        ],
-        [
-          otherwise,
-          (value) =>
-            `Matched: ${JSON.stringify(value)}`,
-        ],
-      ),
+      [ok(42), () => "The answer!"],
+      [err("not_found"), () => "Not found error"],
+      [
+        otherwise,
+        (value) =>
+          `Matched: ${JSON.stringify(value)}`,
+      ],
     );
 
   expect(fn(newOk(42))).equal("The answer!");
@@ -251,16 +196,14 @@ test("Result pattern matching with specific patterns", async () => {
 
 test("Result pattern matching with OTHERWISE", async () => {
   const fn = (a: Result<string, number>) =>
-    pipe(
+    match(
       a,
-      match(
-        [ok("success"), () => "Specific success"],
-        [
-          otherwise,
-          (value) =>
-            `Fallback: ${JSON.stringify(value)}`,
-        ],
-      ),
+      [ok("success"), () => "Specific success"],
+      [
+        otherwise,
+        (value) =>
+          `Fallback: ${JSON.stringify(value)}`,
+      ],
     );
 
   expect(fn(newOk("success"))).equal(
@@ -276,16 +219,14 @@ test("Result pattern matching with OTHERWISE", async () => {
 
 test("Option pattern matching", async () => {
   const fn = (a: Option<string>) =>
-    pipe(
+    match(
       a,
-      match(
-        [some("hello"), () => "Specific hello"],
-        [
-          otherwise,
-          (value) =>
-            `Matched: ${JSON.stringify(value)}`,
-        ],
-      ),
+      [some("hello"), () => "Specific hello"],
+      [
+        otherwise,
+        (value) =>
+          `Matched: ${JSON.stringify(value)}`,
+      ],
     );
 
   const someResult = newSome("hello");
@@ -299,12 +240,15 @@ test("Option pattern matching", async () => {
 
 test("Option pattern matching with specific patterns", async () => {
   const fn = (a: Option<number>) =>
-    pipe(
+    match(
       a,
-      match(
-        [some(), () => "The answer!"],
-        [none(), () => "No value"],
-      ),
+      [some(100), () => "The answer!"],
+      [none(), () => "No value"],
+      [
+        otherwise,
+        (value) =>
+          `Fallback: ${JSON.stringify(value)}`,
+      ],
     );
 
   expect(fn(newSome(100))).equal("The answer!");
@@ -313,19 +257,14 @@ test("Option pattern matching with specific patterns", async () => {
 
 test("Option pattern matching with OTHERWISE", async () => {
   const fn = (a: Option<string>) =>
-    pipe(
+    match(
       a,
-      match(
-        [
-          some("success"),
-          () => "Specific success",
-        ],
-        [
-          otherwise,
-          (value) =>
-            `Fallback: ${JSON.stringify(value)}`,
-        ],
-      ),
+      [some("success"), () => "Specific success"],
+      [
+        otherwise,
+        (value) =>
+          `Fallback: ${JSON.stringify(value)}`,
+      ],
     );
 
   expect(fn(newSome("success"))).equal(

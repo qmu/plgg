@@ -5,25 +5,23 @@ import {
   KindKeys1,
   KindKeys2,
   KindKeys3,
+  KindDatum,
+  KindKeysDatum,
+  Datum,
 } from "plgg/index";
 
 /**
- * Foldable interface for single-parameter type constructors.
- * Provides the ability to fold/reduce structures to a single value.
- *
- * Foldable laws:
- * - foldr(f, z, []) === z
- * - foldr(f, z, [x]) === f(x, z)
- * - foldr(f, z, xs ++ ys) === foldr(f, foldr(f, z, ys), xs)
- *
+ * Enables folding structures into single values through reduction operations.
  */
 export interface Foldable1<
   KindKey extends KindKeys1,
 > {
-  /** The kind key identifier */
+  /**
+   * The kind key identifier.
+   */
   readonly KindKey: KindKey;
   /**
-   * Right-associative fold of a structure.
+   * Performs right-associative fold of a structure.
    */
   foldr: <A, B>(
     f: (a: A, b: B) => B,
@@ -31,7 +29,7 @@ export interface Foldable1<
     initial: B,
   ) => (fa: Kind1<KindKey, A>) => B;
   /**
-   * Left-associative fold of a structure.
+   * Performs left-associative fold of a structure.
    */
   foldl: <A, B>(
     f: (b: B, a: A) => B,
@@ -41,17 +39,17 @@ export interface Foldable1<
 }
 
 /**
- * Foldable interface for two-parameter type constructors.
- * Folds over the first type parameter while preserving the second.
- *
+ * Enables folding two-parameter type constructors over the first type parameter.
  */
 export interface Foldable2<
   KindKey extends KindKeys2,
 > {
-  /** The kind key identifier */
+  /**
+   * The kind key identifier.
+   */
   readonly KindKey: KindKey;
   /**
-   * Right-associative fold for two-parameter types.
+   * Performs right-associative fold for two-parameter types.
    */
   foldr: <A, B, C>(
     f: (a: A, b: B) => B,
@@ -59,7 +57,7 @@ export interface Foldable2<
     initial: B,
   ) => (fa: Kind2<KindKey, A, C>) => B;
   /**
-   * Left-associative fold for two-parameter types.
+   * Performs left-associative fold for two-parameter types.
    */
   foldl: <A, B, C>(
     f: (b: B, a: A) => B,
@@ -69,17 +67,17 @@ export interface Foldable2<
 }
 
 /**
- * Foldable interface for three-parameter type constructors.
- * Folds over the first type parameter while preserving the second and third.
- *
+ * Enables folding three-parameter type constructors over the first type parameter.
  */
 export interface Foldable3<
   KindKey extends KindKeys3,
 > {
-  /** The kind key identifier */
+  /**
+   * The kind key identifier.
+   */
   readonly KindKey: KindKey;
   /**
-   * Right-associative fold for three-parameter types.
+   * Performs right-associative fold for three-parameter types.
    */
   foldr: <A, B, C, D>(
     f: (a: A, b: B) => B,
@@ -87,11 +85,39 @@ export interface Foldable3<
     initial: B,
   ) => (fa: Kind3<KindKey, A, C, D>) => B;
   /**
-   * Left-associative fold for three-parameter types.
+   * Performs left-associative fold for three-parameter types.
    */
   foldl: <A, B, C, D>(
     f: (b: B, a: A) => B,
   ) => (
     initial: B,
   ) => (fa: Kind3<KindKey, A, C, D>) => B;
+}
+
+/**
+ * Enables folding Datum structures into single values through reduction operations.
+ */
+export interface FoldableDatum<
+  KindKey extends KindKeysDatum,
+> {
+  /**
+   * The kind key identifier.
+   */
+  readonly KindKey: KindKey;
+  /**
+   * Performs right-associative fold of a Datum structure.
+   */
+  foldr: <A extends Datum, B>(
+    f: (a: A, b: B) => B,
+  ) => (
+    initial: B,
+  ) => (fa: KindDatum<KindKey, A>) => B;
+  /**
+   * Performs left-associative fold of a Datum structure.
+   */
+  foldl: <A extends Datum, B>(
+    f: (b: B, a: A) => B,
+  ) => (
+    initial: B,
+  ) => (fa: KindDatum<KindKey, A>) => B;
 }

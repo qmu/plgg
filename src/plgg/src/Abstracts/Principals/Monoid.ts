@@ -11,14 +11,7 @@ import {
 } from "plgg/index";
 
 /**
- * Monoid interface for single-parameter type constructors.
- * Extends Semigroup with an identity element (empty).
- *
- * Monoid laws:
- * - Left Identity: concat(empty, a) === a
- * - Right Identity: concat(a, empty) === a
- * - Associativity: concat(concat(a, b), c) === concat(a, concat(b, c)) (inherited from Semigroup)
- *
+ * Extends Semigroup with an identity element for single-parameter type constructors.
  */
 export interface Monoid1<
   KindKey extends KindKeys1,
@@ -30,9 +23,7 @@ export interface Monoid1<
 }
 
 /**
- * Monoid interface for two-parameter type constructors.
- * Extends Semigroup with an identity element.
- *
+ * Extends Semigroup with an identity element for two-parameter type constructors.
  */
 export interface Monoid2<
   KindKey extends KindKeys2,
@@ -48,9 +39,7 @@ export interface Monoid2<
 }
 
 /**
- * Monoid interface for three-parameter type constructors.
- * Extends Semigroup with an identity element.
- *
+ * Extends Semigroup with an identity element for three-parameter type constructors.
  */
 export interface Monoid3<
   KindKey extends KindKeys3,

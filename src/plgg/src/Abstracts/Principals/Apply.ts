@@ -13,10 +13,6 @@ import {
 /**
  * Apply interface for single-parameter type constructors.
  * Extends Functor to provide the ability to apply wrapped functions to wrapped values.
- *
- * Apply law:
- * - Composition: ap(ap(map(compose, u), v), w) === ap(u, ap(v, w))
- *
  */
 export interface Apply1<KindKey extends KindKeys1>
   extends Functor1<KindKey> {
@@ -32,7 +28,6 @@ export interface Apply1<KindKey extends KindKeys1>
 
 /**
  * Apply interface for two-parameter type constructors.
- *
  */
 export interface Apply2<KindKey extends KindKeys2>
   extends Functor2<KindKey> {
@@ -48,7 +43,6 @@ export interface Apply2<KindKey extends KindKeys2>
 
 /**
  * Apply interface for three-parameter type constructors.
- *
  */
 export interface Apply3<KindKey extends KindKeys3>
   extends Functor3<KindKey> {
