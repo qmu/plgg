@@ -29,7 +29,9 @@ type OnlyDatumObject = {
  * Type guard to check if a value is an Obj.
  */
 const is = (value: unknown): value is Obj =>
-  typeof value === "object" && value !== null;
+  typeof value === "object" && value !== null
+    ? Object.values(value).every(isDatum)
+    : false;
 
 /**
  * Refinable instance for record type guards.

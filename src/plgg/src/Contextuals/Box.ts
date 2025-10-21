@@ -5,7 +5,6 @@ import {
   Castable1,
   newOk,
   newErr,
-  isObj,
   hasProp,
   pipe,
   chainResult,
@@ -45,7 +44,8 @@ export type IsBox<V> = V extends {
 const is = <TAG extends string, CONTENT>(
   value: unknown,
 ): value is Box<TAG, CONTENT> =>
-  isObj(value) &&
+  typeof value === "object" &&
+  value !== null &&
   hasProp(value, "__tag") &&
   typeof value.__tag === "string" &&
   hasProp(value, "content");

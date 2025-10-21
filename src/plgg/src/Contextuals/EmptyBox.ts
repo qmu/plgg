@@ -1,4 +1,4 @@
-import { Box, isObj, hasProp } from "plgg/index";
+import { Box, hasProp } from "plgg/index";
 
 /**
  * A variant with only a tag and no body.
@@ -26,7 +26,8 @@ export type IsEmptyBox<V> = V extends {
 const is = <TAG extends string>(
   value: unknown,
 ): value is EmptyBox<TAG> =>
-  isObj(value) &&
+  typeof value === "object" &&
+  value !== null &&
   hasProp(value, "__tag") &&
   typeof value.__tag === "string";
 

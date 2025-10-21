@@ -44,7 +44,8 @@ const isMatcherAbstract = (
   type: string;
   body: unknown;
 } =>
-  isObj(p) &&
+  typeof p === "object" &&
+  p !== null &&
   hasProp(p, "__tag") &&
   hasProp(p, "type") &&
   hasProp(p, "body");
