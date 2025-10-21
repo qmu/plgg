@@ -5,18 +5,19 @@ import {
   TupleToUnion,
   IsUnionSubset,
   And,
-  ExtractBodyFromVariantPattern,
+  ExtractBodyFromBoxPattern,
   IsAtomic,
-  IsVariantPatternTag,
-  IsVariantPattern,
+  IsPatternEmptyBox,
+  IsBoxPattern,
   Or,
-  IsVariant,
-  Variant,
-  isVariant,
+  IsBox,
+  IsEmptyBox,
+  Box,
+  isBox,
   otherwise,
-  isVariantPatternAtomic,
-  isVariantPatternObject,
-  isVariantPatternTag,
+  isPatternBoxedAtomic,
+  isPatternBoxedObject,
+  isPatternEmptyBox as isPatternEmptyBox,
   isObjLike,
 } from "plgg/index";
 
@@ -37,15 +38,15 @@ type ArgMatchable<
   Is<A, boolean>,
   If<Is<PATTERNS, [true, false]>, A, never>,
   If<
-    IsAllVariantPattern<PATTERNS>,
+    IsAllBoxPattern<PATTERNS>,
     If<
-      FullCoveragedVariants<A, PATTERNS>,
+      FullCoveragedBoxes<A, PATTERNS>,
       A,
       If<
         And<
           OTHERWISE_LAST,
           IsUnionSubset<
-            ExtractVariantTags<A>,
+            ExtractBoxTag<A>,
             TupleToUnion<
               ExtractPatternTags<PATTERNS>
             >
@@ -75,16 +76,16 @@ type ArgMatchable<
 >;
 
 /**
- * Checks if variant patterns provide full coverage of union A.
+ * Checks if box patterns provide full coverage of union A.
  */
-export type FullCoveragedVariants<
+export type FullCoveragedBoxes<
   A,
   PATTERNS extends ReadonlyArray<unknown>,
 > = If<
   And<
     AreAllTagPatterns<PATTERNS>,
     IsUnionSubset<
-      ExtractVariantTags<A>,
+      ExtractBoxTag<A>,
       TupleToUnion<ExtractPatternTags<PATTERNS>>
     >
   >,
@@ -93,9 +94,9 @@ export type FullCoveragedVariants<
 >;
 
 /**
- * Extract variant tags from a union of variants.
+ * Extract box tags from a union of boxes.
  */
-export type ExtractVariantTags<T> = T extends {
+export type ExtractBoxTag<T> = T extends {
   __tag: infer Tag;
 }
   ? Tag
@@ -115,7 +116,7 @@ export type ExtractPatternTags<
 export type AreAllTagPatterns<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
-  ? IsVariantPatternTag<Head> extends true
+  ? IsPatternEmptyBox<Head> extends true
     ? AreAllTagPatterns<Tail>
     : false
   : true;
@@ -132,13 +133,13 @@ export type IsAllAtomic<
   : true;
 
 /**
- * Recursively checks if all elements in array are variants.
+ * Recursively checks if all elements in array are boxes.
  */
-export type IsAllVariantPattern<
+export type IsAllBoxPattern<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
-  ? IsVariantPattern<Head> extends true
-    ? IsAllVariantPattern<Tail>
+  ? IsBoxPattern<Head> extends true
+    ? IsAllBoxPattern<Tail>
     : false
   : true;
 
@@ -149,12 +150,15 @@ export type CaseDecl<
   A,
   PATTERN,
   R,
-  ABODY = A extends Variant<string, unknown>
+  ABODY = A extends Box<string, unknown>
     ? ExtractBoxContent<A>
     : never,
-  PBODY = ExtractBodyFromVariantPattern<PATTERN>,
+  PBODY = ExtractBodyFromBoxPattern<PATTERN>,
 > = If<
-  And<IsVariant<A>, IsVariantPattern<PATTERN>>,
+  And<
+    Or<IsBox<A>, IsEmptyBox<A>>,
+    IsBoxPattern<PATTERN>
+  >,
   If<
     Or<
       Is<PBODY, undefined>,
@@ -170,9 +174,9 @@ export type CaseDecl<
  * Extracts the body type from a variant type.
  */
 type ExtractBoxContent<
-  V extends Variant<string, unknown>,
+  V extends Box<string, unknown>,
 > =
-  V extends Variant<string, infer CONTENT>
+  V extends Box<string, infer CONTENT>
     ? CONTENT
     : undefined;
 
@@ -1264,14 +1268,14 @@ export function match(
   >
 ): unknown {
   for (const [pattern, fn] of cases) {
-    if (isVariant(a)) {
-      if (isVariantPatternAtomic(pattern)) {
+    if (isBox(a)) {
+      if (isPatternBoxedAtomic(pattern)) {
         if (a.content === pattern.body) {
           return fn(a);
         }
         continue;
       }
-      if (isVariantPatternObject(pattern)) {
+      if (isPatternBoxedObject(pattern)) {
         if (
           isObjLike(a.content) &&
           isObjLike(pattern.body) &&
@@ -1284,9 +1288,9 @@ export function match(
         }
         continue;
       }
-      if (isVariantPatternTag(pattern)) {
+      if (isPatternEmptyBox(pattern)) {
         if (
-          isVariant(a) &&
+          isBox(a) &&
           a.__tag === pattern.__tag
         ) {
           return fn(a);
@@ -1300,7 +1304,7 @@ export function match(
     if (pattern === otherwise) {
       return fn(a);
     }
-    if (!isVariant(pattern) && a === pattern) {
+    if (!isBox(pattern) && a === pattern) {
       return fn(a);
     }
   }

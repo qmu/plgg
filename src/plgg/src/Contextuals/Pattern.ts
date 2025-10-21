@@ -12,10 +12,10 @@ type Pattern<
   T,
   TAG extends string,
 > = T extends Atomic
-  ? VariantPatternAtomic<T>
+  ? PatternBoxedAtomic<T>
   : T extends Record<string, unknown>
-    ? VariantPatternObject<T>
-    : VariantPatternTag<TAG>;
+    ? PatternBoxedObject<T>
+    : PatternEmptyBox<TAG>;
 
 /**
  * Creates a pattern matcher for variant values.
@@ -56,18 +56,17 @@ const isMatcherAbstract = (
 /**
  * Pattern type for matching atomic values.
  */
-export type VariantPatternAtomic<
-  T extends Atomic,
-> = {
-  __tag: string;
-  type: "atomic";
-  body: T;
-};
+export type PatternBoxedAtomic<T extends Atomic> =
+  {
+    __tag: string;
+    type: "atomic";
+    body: T;
+  };
 
 /**
  * Pattern type for matching object values.
  */
-type VariantPatternObject<T> = {
+type PatternBoxedObject<T> = {
   __tag: string;
   type: "object";
   body: T;
@@ -76,7 +75,7 @@ type VariantPatternObject<T> = {
 /**
  * Pattern type for matching tag-only values.
  */
-type VariantPatternTag<T> = {
+type PatternEmptyBox<T> = {
   __tag: T;
   type: "tag";
   body: undefined;
@@ -85,19 +84,18 @@ type VariantPatternTag<T> = {
 /**
  * Type predicate for atomic variant patterns.
  */
-export type IsVariantPatternAtomic<P> =
-  P extends {
-    __tag: string;
-    type: "atomic";
-    body: Atomic;
-  }
-    ? true
-    : false;
+type IsPatternBoxedAtomic<P> = P extends {
+  __tag: string;
+  type: "atomic";
+  body: Atomic;
+}
+  ? true
+  : false;
 
 /**
  * Type predicate for object variant patterns.
  */
-type IsVariantPatternObject<P> = P extends {
+type IsPatternBoxedObject<P> = P extends {
   __tag: string;
   type: "object";
   body: object;
@@ -108,7 +106,7 @@ type IsVariantPatternObject<P> = P extends {
 /**
  * Type predicate for tag variant patterns.
  */
-export type IsVariantPatternTag<P> = P extends {
+export type IsPatternEmptyBox<P> = P extends {
   __tag: string;
   type: "tag";
 }
@@ -118,43 +116,43 @@ export type IsVariantPatternTag<P> = P extends {
 /**
  * Runtime check for atomic variant patterns.
  */
-export const isVariantPatternAtomic = <
+export const isPatternBoxedAtomic = <
   T extends Atomic,
 >(
   p: unknown,
-): p is VariantPatternAtomic<T> =>
+): p is PatternBoxedAtomic<T> =>
   isMatcherAbstract(p) && p.type === "atomic";
 /**
  * Runtime check for object variant patterns.
  */
-export const isVariantPatternObject = <T>(
+export const isPatternBoxedObject = <T>(
   p: unknown,
-): p is VariantPatternObject<T> =>
+): p is PatternBoxedObject<T> =>
   isMatcherAbstract(p) && p.type === "object";
 
 /**
  * Runtime check for tag variant patterns.
  */
-export const isVariantPatternTag = <TAG>(
+export const isPatternEmptyBox = <TAG>(
   p: unknown,
-): p is VariantPatternTag<TAG> =>
+): p is PatternEmptyBox<TAG> =>
   isMatcherAbstract(p) && p.type === "tag";
 
 /**
  * Union type predicate for all variant patterns.
  */
-export type IsVariantPattern<P> = Or<
-  IsVariantPatternAtomic<P>,
+export type IsBoxPattern<P> = Or<
+  IsPatternBoxedAtomic<P>,
   Or<
-    IsVariantPatternObject<P>,
-    IsVariantPatternTag<P>
+    IsPatternBoxedObject<P>,
+    IsPatternEmptyBox<P>
   >
 >;
 
 /**
  * Extracts the body type from a variant pattern.
  */
-export type ExtractBodyFromVariantPattern<P> =
+export type ExtractBodyFromBoxPattern<P> =
   P extends {
     __tag: string;
     type: string;
