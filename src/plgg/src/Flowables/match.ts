@@ -8,14 +8,14 @@ import {
   ExtractBodyFromBoxPattern,
   IsAtomic,
   IsPatternEmptyBox,
-  IsBoxPattern,
+  IsPattern,
   Or,
   IsBox,
   IsEmptyBox,
   Box,
   isBox,
   otherwise,
-  isPatternBoxedAtomic,
+  isPatternAtomic,
   isPatternBoxedObject,
   isPatternEmptyBox as isPatternEmptyBox,
   isObjLike,
@@ -138,7 +138,7 @@ export type IsAllAtomic<
 export type IsAllBoxPattern<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
-  ? IsBoxPattern<Head> extends true
+  ? IsPattern<Head> extends true
     ? IsAllBoxPattern<Tail>
     : false
   : true;
@@ -157,7 +157,7 @@ export type CaseDecl<
 > = If<
   And<
     Or<IsBox<A>, IsEmptyBox<A>>,
-    IsBoxPattern<PATTERN>
+    IsPattern<PATTERN>
   >,
   If<
     Or<
@@ -1269,7 +1269,7 @@ export function match(
 ): unknown {
   for (const [pattern, fn] of cases) {
     if (isBox(a)) {
-      if (isPatternBoxedAtomic(pattern)) {
+      if (isPatternAtomic(pattern)) {
         if (a.content === pattern.body) {
           return fn(a);
         }

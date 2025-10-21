@@ -2,6 +2,7 @@ import {
   Atomic,
   Or,
   isObj,
+  isAtomic,
   hasProp,
 } from "plgg/index";
 
@@ -12,7 +13,7 @@ type Pattern<
   T,
   TAG extends string,
 > = T extends Atomic
-  ? PatternBoxedAtomic<T>
+  ? PatternAtomic<T>
   : T extends Record<string, unknown>
     ? PatternBoxedObject<T>
     : PatternEmptyBox<TAG>;
@@ -25,16 +26,11 @@ export const pattern =
   <T>(value?: T): Pattern<T, TAG> =>
     ({
       __tag,
-      type:
-        typeof value === "string" ||
-        typeof value === "number" ||
-        typeof value === "boolean" ||
-        typeof value === "bigint"
-          ? "atomic"
-          : typeof value === "object" &&
-              value !== null
-            ? "object"
-            : "tag",
+      type: isAtomic(value)
+        ? "atomic"
+        : isObj(value)
+          ? "object"
+          : "tag",
       body: value,
     }) as Pattern<T, TAG>;
 
@@ -56,12 +52,11 @@ const isMatcherAbstract = (
 /**
  * Pattern type for matching atomic values.
  */
-export type PatternBoxedAtomic<T extends Atomic> =
-  {
-    __tag: string;
-    type: "atomic";
-    body: T;
-  };
+export type PatternAtomic<T extends Atomic> = {
+  __tag: string;
+  type: "atomic";
+  body: T;
+};
 
 /**
  * Pattern type for matching object values.
@@ -84,7 +79,7 @@ type PatternEmptyBox<T> = {
 /**
  * Type predicate for atomic variant patterns.
  */
-type IsPatternBoxedAtomic<P> = P extends {
+type IsPatternAtomic<P> = P extends {
   __tag: string;
   type: "atomic";
   body: Atomic;
@@ -116,11 +111,9 @@ export type IsPatternEmptyBox<P> = P extends {
 /**
  * Runtime check for atomic variant patterns.
  */
-export const isPatternBoxedAtomic = <
-  T extends Atomic,
->(
+export const isPatternAtomic = <T extends Atomic>(
   p: unknown,
-): p is PatternBoxedAtomic<T> =>
+): p is PatternAtomic<T> =>
   isMatcherAbstract(p) && p.type === "atomic";
 /**
  * Runtime check for object variant patterns.
@@ -141,8 +134,8 @@ export const isPatternEmptyBox = <TAG>(
 /**
  * Union type predicate for all variant patterns.
  */
-export type IsBoxPattern<P> = Or<
-  IsPatternBoxedAtomic<P>,
+export type IsPattern<P> = Or<
+  IsPatternAtomic<P>,
   Or<
     IsPatternBoxedObject<P>,
     IsPatternEmptyBox<P>
