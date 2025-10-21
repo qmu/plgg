@@ -173,7 +173,7 @@ test("Result pattern matching with specific patterns", async () => {
   const fn = (a: Result<number, string>) =>
     match(
       a,
-      [ok(), () => "The answer!"],
+      [ok(42), () => "The answer!"],
       [err("not_found"), () => "Not found error"],
       [
         otherwise,
