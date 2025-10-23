@@ -1,0 +1,118 @@
+import { test } from "vitest";
+import { isErr } from "plgg";
+import { Foundry } from "autoplgg/index";
+import { plan, assemble } from "autoplgg/Foundry/usecase";
+
+test("Character Image Generation", async () => {
+  type Base64 = string;
+
+  type Image = Readonly<{
+    base64: Base64;
+  }>;
+  type ImageMediumValue = ReadonlyArray<Image>;
+  type StringMediumValue = string;
+
+  const isImage = (a: unknown): a is ImageMediumValue =>
+    Array.isArray(a) &&
+    a.every((item) => typeof item === "object" && "base64" in item);
+
+  const isString = (a: unknown): a is StringMediumValue =>
+    typeof a === "string";
+
+  const exampleFoundry: Foundry = {
+    description: `This is a foundry for generating character designs based on text prompts and reference images.`,
+    processors: [
+      {
+        id: "plan",
+        description: "Plans the character design based on the prompt",
+        input: "string",
+        output: "string",
+        process: (medium) => {
+          if (!isString(medium.output)) {
+            console.log(medium);
+            throw new Error("Invalid medium value for planning step");
+          }
+          console.log("01:plan");
+          return "Well-planned character design description";
+        },
+      },
+      {
+        id: "analyze",
+        description: "Analyzes reference images for character features",
+        input: "image[]",
+        output: "string",
+        process: (medium) => {
+          if (!isImage(medium.output)) {
+            throw new Error("Invalid medium value for analyzing step");
+          }
+          console.log("02:analyze");
+          return [{ base64: "base64imagestring" }];
+        },
+      },
+      {
+        id: "genMain",
+        description: "Generates the main character image",
+        input: "string",
+        output: "image[]",
+        process: (medium) => {
+          if (!isString(medium.output)) {
+            throw new Error("Invalid medium value for main generation step");
+          }
+          console.log("03:genMain");
+          return [{ base64: "base64imagestring" }];
+        },
+      },
+      {
+        id: "genSpread",
+        description: "Generates spread images for the character",
+        input: "image[]",
+        output: "image[]",
+        process: (medium) => {
+          if (!isImage(medium.output)) {
+            throw new Error("Invalid medium value for spread generation step");
+          }
+          console.log("04:genSpread");
+          return [{ base64: "base64imagestring" }];
+        },
+      },
+    ],
+    switchers: [
+      {
+        id: "checkValidity",
+        description: "Checks for inappropriate content in images",
+        input: "image[]",
+        outputWhenTrue: "image[]",
+        outputWhenFalse: "string",
+        check: (medium) => {
+          if (!isImage(medium.output)) {
+            throw new Error("Invalid medium value for censoring step");
+          }
+          console.log("validity check");
+          const isValid = Math.random() < 0.5;
+          return [
+            isValid,
+            isValid
+              ? medium.output
+              : "Plan once again to avoid inappropriate content",
+          ];
+        },
+      },
+    ],
+  };
+
+  const alignment = plan({
+    foundry: exampleFoundry,
+    instruction: "A fantasy character with a sword and shield",
+  });
+  const procedure = assemble({
+    foundry: exampleFoundry,
+    alignment,
+  });
+  if (isErr(procedure)) {
+    throw procedure.content;
+  }
+  const r = await procedure.content.exec(
+    "A fantasy character with a sword and shield",
+  );
+  console.log(JSON.stringify(r, null, 2));
+});
