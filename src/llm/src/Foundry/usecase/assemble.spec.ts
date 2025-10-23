@@ -1,7 +1,7 @@
-import { test } from "vitest";
-import { isErr } from "plgg";
+import { test, assert } from "vitest";
+import { isErr, proc } from "plgg";
 import { Foundry } from "autoplgg/index";
-import { plan, assemble } from "autoplgg/Foundry/usecase";
+import { plan, assemble, operate } from "autoplgg/Foundry/usecase";
 
 test("Character Image Generation", async () => {
   type Base64 = string;
@@ -19,7 +19,7 @@ test("Character Image Generation", async () => {
   const isString = (a: unknown): a is StringMediumValue =>
     typeof a === "string";
 
-  const exampleFoundry: Foundry = {
+  const foundry: Foundry = {
     description: `This is a foundry for generating character designs based on text prompts and reference images.`,
     processors: [
       {
@@ -100,19 +100,14 @@ test("Character Image Generation", async () => {
     ],
   };
 
-  const alignment = plan({
-    foundry: exampleFoundry,
-    instruction: "A fantasy character with a sword and shield",
-  });
-  const procedure = assemble({
-    foundry: exampleFoundry,
-    alignment,
-  });
-  if (isErr(procedure)) {
-    throw procedure.content;
-  }
-  const r = await procedure.content.exec(
+  const result = await proc(
     "A fantasy character with a sword and shield",
+    plan(foundry),
+    assemble(foundry),
+    operate,
   );
-  console.log(JSON.stringify(r, null, 2));
+  if (isErr(result)) {
+    assert.fail(`Process failed: ${result.content.message}`);
+  }
+  console.log(JSON.stringify(result.content, null, 2));
 });
