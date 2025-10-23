@@ -7,7 +7,7 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   resolve: {
     alias: {
-      "plgg/llm": path.resolve(__dirname, "./src"),
+      autoplgg: path.resolve(__dirname, "./src"),
     },
   },
   test: {
@@ -19,7 +19,7 @@ export default defineConfig({
     outDir: "dist",
     lib: {
       entry: "src/index.ts",
-      name: "plgg-llm",
+      name: "autoplgg",
       fileName: (format) => `index.${format}.js`,
       formats: ["es", "cjs"],
     },
