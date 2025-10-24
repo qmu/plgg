@@ -3,7 +3,6 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -57,34 +56,3 @@ export const u32Castable: Castable<U32> = {
  */
 export const { as: asU32 } = u32Castable;
 
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of U32 values.
- */
-export type JsonReadyU32 = U32;
-
-/**
- * Type guard for JSON-ready U32 values.
- */
-export const isJsonReadyU32 = isU32;
-
-/**
- * JsonSerializable instance for U32 values.
- */
-export const u32JsonSerializable: JsonSerializable<
-  U32,
-  JsonReadyU32
-> = {
-  toJsonReady: (value: U32) => value,
-  fromJsonReady: (jsonReady: U32) => jsonReady,
-};
-/**
- * Exported JSON serialization functions for U32 values.
- */
-export const {
-  toJsonReady: toJsonReadyU32,
-  fromJsonReady: fromJsonReadyU32,
-} = u32JsonSerializable;

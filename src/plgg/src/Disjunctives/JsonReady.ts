@@ -1,7 +1,6 @@
 import {
   Datum,
   JsonReadyAtomic,
-  JsonReadyBasic,
   JsonReadyObj,
   JsonReadyVec,
   OptionalDatumJsonReady,
@@ -10,17 +9,14 @@ import {
   isVec,
   isSome,
   toJsonReadyAtomic,
-  toJsonReadyBasic,
   toJsonReadyVec,
   toJsonReadyObj,
   toJsonReadyOptionalDatum,
   toJsonReadyNominalDatum,
   fromJsonReadyAtomic,
-  fromJsonReadyBasic,
   fromJsonReadyVec,
   fromJsonReadyObj,
   isJsonReadyAtomic,
-  isJsonReadyBasic,
   isJsonReadyVec,
   isJsonReadyObj,
   isJsonReadyOptionalDatum,
@@ -28,7 +24,6 @@ import {
   isOptionalDatum,
   isNominalDatum,
   isAtomic,
-  isBasic,
   newSome,
   newNone,
   newBox,
@@ -44,18 +39,12 @@ export type JsonReady =
 
 export type JsonReadyCore =
   | JsonReadyAtomic
-  | JsonReadyBasic
   | JsonReadyObj
   | JsonReadyVec;
 
 export const toJsonReadyCore = (
   value: DatumCore,
 ): JsonReadyCore => {
-  // Check Basic types before falling back to Obj
-  // to prevent Date objects from being treated as generic objects
-  if (isBasic(value)) {
-    return toJsonReadyBasic(value);
-  }
   if (isAtomic(value)) {
     return toJsonReadyAtomic(value);
   }
@@ -69,10 +58,6 @@ export const toJsonReadyCore = (
 export const fromJsonReadyCore = (
   jsonReady: JsonReadyCore,
 ): DatumCore => {
-  // Check Basic types before Atomic to handle Time strings correctly
-  if (isJsonReadyBasic(jsonReady)) {
-    return fromJsonReadyBasic(jsonReady);
-  }
   if (isJsonReadyAtomic(jsonReady)) {
     return fromJsonReadyAtomic(jsonReady);
   }
@@ -87,7 +72,6 @@ export const fromJsonReadyCore = (
 export const isJsonReady = (
   value: unknown,
 ): value is JsonReady =>
-  isJsonReadyBasic(value) ||
   isJsonReadyAtomic(value) ||
   isJsonReadyObj(value) ||
   isJsonReadyVec(value) ||
@@ -131,9 +115,6 @@ export const fromJsonReady = (
     );
   }
   // Check Basic types before Atomic to handle Time strings correctly
-  if (isJsonReadyBasic(jsonReady)) {
-    return fromJsonReadyBasic(jsonReady);
-  }
   if (isJsonReadyAtomic(jsonReady)) {
     return fromJsonReadyAtomic(jsonReady);
   }

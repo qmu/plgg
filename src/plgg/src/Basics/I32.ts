@@ -3,7 +3,6 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -56,36 +55,3 @@ export const i32Castable: Castable<I32> = {
  * Exported safe casting function for I32 values.
  */
 export const { as: asI32 } = i32Castable;
-
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of I32 values.
- */
-export type JsonReadyI32 = I32;
-
-/**
- * Type guard for JSON-ready I32 values.
- */
-export const isJsonReadyI32 = isI32;
-
-/**
- * JsonSerializable instance for I32 values.
- */
-export const i32JsonSerializable: JsonSerializable<
-  I32,
-  JsonReadyI32
-> = {
-  toJsonReady: (value: I32) => value,
-  fromJsonReady: (jsonReady: I32) => jsonReady,
-};
-/**
- * Exported JSON serialization functions for I32 values.
- */
-export const {
-  toJsonReady: toJsonReadyI32,
-  fromJsonReady: fromJsonReadyI32,
-} = i32JsonSerializable;
-

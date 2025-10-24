@@ -3,7 +3,6 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -57,43 +56,3 @@ export const u64Castable: Castable<U64> = {
  */
 export const { as: asU64 } = u64Castable;
 
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of U64 values as strings.
- */
-export type JsonReadyU64 = Box<"U64", string>;
-
-/**
- * Type guard for JSON-ready U64 values.
- */
-export const isJsonReadyU64 = (value: unknown): value is JsonReadyU64 =>
-  isBoxWithTag("U64")(value) &&
-  typeof value.content === "string" &&
-  /^\d+$/.test(value.content);
-
-/**
- * JsonSerializable instance for U64 values.
- */
-export const u64JsonSerializable: JsonSerializable<
-  U64,
-  JsonReadyU64
-> = {
-  toJsonReady: (value: U64) => ({
-    __tag: "U64" as const,
-    content: value.content.toString(),
-  }),
-  fromJsonReady: (jsonReady: JsonReadyU64) => ({
-    __tag: "U64" as const,
-    content: BigInt(jsonReady.content),
-  }),
-};
-/**
- * Exported JSON serialization functions for U64 values.
- */
-export const {
-  toJsonReady: toJsonReadyU64,
-  fromJsonReady: fromJsonReadyU64,
-} = u64JsonSerializable;

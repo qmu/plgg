@@ -3,7 +3,6 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -59,47 +58,3 @@ export const i128Castable: Castable<I128> = {
  * Exported safe casting function for I128 values.
  */
 export const { as: asI128 } = i128Castable;
-
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of I128 values as strings.
- */
-export type JsonReadyI128 = Box<"I128", string>;
-
-/**
- * Type guard for JSON-ready I128 values.
- */
-export const isJsonReadyI128 = (
-  value: unknown,
-): value is JsonReadyI128 =>
-  isBoxWithTag("I128")(value) &&
-  typeof value.content === "string" &&
-  /^-?\d+$/.test(value.content);
-
-/**
- * JsonSerializable instance for I128 values.
- */
-export const i128JsonSerializable: JsonSerializable<
-  I128,
-  JsonReadyI128
-> = {
-  toJsonReady: (value: I128) => ({
-    __tag: "I128" as const,
-    content: value.content.toString(),
-  }),
-  fromJsonReady: (jsonReady: JsonReadyI128) => ({
-    __tag: "I128" as const,
-    content: BigInt(jsonReady.content),
-  }),
-};
-/**
- * Exported JSON serialization functions for I128 values.
- */
-export const {
-  toJsonReady: toJsonReadyI128,
-  fromJsonReady: fromJsonReadyI128,
-} = i128JsonSerializable;
-

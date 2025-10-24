@@ -3,7 +3,6 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -24,7 +23,8 @@ const is = (value: unknown): value is U128 =>
   isBoxWithTag("U128")(value) &&
   isBigInt(value.content) &&
   value.content >= 0n &&
-  value.content <= 340282366920938463463374607431768211455n;
+  value.content <=
+    340282366920938463463374607431768211455n;
 
 /**
  * Refinable instance for U128 type guards.
@@ -58,43 +58,3 @@ export const u128Castable: Castable<U128> = {
  */
 export const { as: asU128 } = u128Castable;
 
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of U128 values as strings.
- */
-export type JsonReadyU128 = Box<"U128", string>;
-
-/**
- * Type guard for JSON-ready U128 values.
- */
-export const isJsonReadyU128 = (value: unknown): value is JsonReadyU128 =>
-  isBoxWithTag("U128")(value) &&
-  typeof value.content === "string" &&
-  /^\d+$/.test(value.content);
-
-/**
- * JsonSerializable instance for U128 values.
- */
-export const u128JsonSerializable: JsonSerializable<
-  U128,
-  JsonReadyU128
-> = {
-  toJsonReady: (value: U128) => ({
-    __tag: "U128" as const,
-    content: value.content.toString(),
-  }),
-  fromJsonReady: (jsonReady: JsonReadyU128) => ({
-    __tag: "U128" as const,
-    content: BigInt(jsonReady.content),
-  }),
-};
-/**
- * Exported JSON serialization functions for U128 values.
- */
-export const {
-  toJsonReady: toJsonReadyU128,
-  fromJsonReady: fromJsonReadyU128,
-} = u128JsonSerializable;

@@ -3,7 +3,6 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -57,34 +56,3 @@ export const u8Castable: Castable<U8> = {
  */
 export const { as: asU8 } = u8Castable;
 
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of U8 values.
- */
-export type JsonReadyU8 = U8;
-
-/**
- * Type guard for JSON-ready U8 values.
- */
-export const isJsonReadyU8 = isU8;
-
-/**
- * JsonSerializable instance for U8 values.
- */
-export const u8JsonSerializable: JsonSerializable<
-  U8,
-  JsonReadyU8
-> = {
-  toJsonReady: (value: U8) => value,
-  fromJsonReady: (jsonReady: U8) => jsonReady,
-};
-/**
- * Exported JSON serialization functions for U8 values.
- */
-export const {
-  toJsonReady: toJsonReadyU8,
-  fromJsonReady: fromJsonReadyU8,
-} = u8JsonSerializable;

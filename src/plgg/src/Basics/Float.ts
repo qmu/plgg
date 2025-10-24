@@ -3,7 +3,6 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
   newOk,
   newErr,
@@ -56,34 +55,3 @@ export const floatCastable: Castable<Float> = {
  */
 export const { as: asFloat } = floatCastable;
 
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of Float values.
- */
-export type JsonReadyFloat = Float;
-
-/**
- * Type guard for JSON-ready Float values.
- */
-export const isJsonReadyFloat = isFloat;
-
-/**
- * JsonSerializable instance for Float values.
- */
-export const floatJsonSerializable: JsonSerializable<
-  Float,
-  JsonReadyFloat
-> = {
-  toJsonReady: (value: Float) => value,
-  fromJsonReady: (jsonReady: Float) => jsonReady,
-};
-/**
- * Exported JSON serialization functions for Float values.
- */
-export const {
-  toJsonReady: toJsonReadyFloat,
-  fromJsonReady: fromJsonReadyFloat,
-} = floatJsonSerializable;
