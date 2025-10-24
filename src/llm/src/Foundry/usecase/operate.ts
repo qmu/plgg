@@ -1,5 +1,6 @@
 import {
   Medium,
+  OperationContext,
   isSwitcherOperation,
   isProcessorOperation,
 } from "autoplgg/index";
