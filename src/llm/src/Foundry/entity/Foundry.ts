@@ -9,9 +9,8 @@ import {
 import {
   NonEmptyStr,
   Castable,
-  asNonEmptyStr,
+  packAsNonEmptyStr,
   cast,
-  asObj,
   forProp,
   asReadonlyArray,
 } from "plgg";
@@ -31,8 +30,7 @@ export type FoundryArg = {
 export const asFoundry = (value: FoundryArg) =>
   cast(
     value,
-    asObj,
-    forProp("description", asNonEmptyStr),
+    forProp("description", packAsNonEmptyStr),
     forProp("processors", asReadonlyArray(asProcessor)),
     forProp("switchers", asReadonlyArray(asSwitcher)),
   );

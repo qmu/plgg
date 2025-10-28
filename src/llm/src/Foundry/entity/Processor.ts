@@ -1,5 +1,5 @@
 import { Medium } from "autoplgg/index";
-import { Castable, cast, asObj, forProp, asStr, asFunc } from "plgg";
+import { Castable, cast, forProp, asStr, asFunc } from "plgg";
 
 export type Processor = {
   id: string;
@@ -20,7 +20,6 @@ export type ProcessorArg = {
 export const asProcessor = (value: ProcessorArg) =>
   cast(
     value,
-    asObj,
     forProp("id", asStr),
     forProp("description", asStr),
     forProp("inputType", asStr),

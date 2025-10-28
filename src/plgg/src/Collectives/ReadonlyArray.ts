@@ -72,6 +72,7 @@ export const asReadonlyArray =
         return newErr(
           new InvalidError({
             message: `Array element at index ${i} failed validation: ${result.content.message}`,
+            parent: result.content,
           }),
         );
       }

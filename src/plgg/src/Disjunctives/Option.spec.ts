@@ -55,7 +55,6 @@ test("some creates Some option with null", () => {
 test("some creates Some option with undefined", () => {
   const result = newSome(undefined);
   expect(result.__tag).toBe("Some");
-  console.log(result, isSome(result));
   assert(isSome(result));
   if (isSome(result)) {
     expect(result.content).toBe(undefined);

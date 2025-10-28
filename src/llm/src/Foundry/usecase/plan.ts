@@ -1,9 +1,8 @@
 import { Foundry, Alignment } from "autoplgg/index";
 
 export const plan =
-  (foundry: Foundry) =>
+  (_foundry: Foundry) =>
   (instruction: string): Alignment => {
-    console.log(foundry, instruction);
     const examplAlignment: Alignment = {
       instruction,
       operations: [

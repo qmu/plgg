@@ -1,5 +1,5 @@
 import { Medium } from "autoplgg/index";
-import { Castable, cast, asObj, forProp, asStr, asFunc } from "plgg";
+import { Castable, cast, forProp, asStr, asFunc } from "plgg";
 
 export type Switcher = {
   id: string;
@@ -28,7 +28,6 @@ export type SwitcherArg = {
 export const asSwitcher = (value: SwitcherArg) =>
   cast(
     value,
-    asObj,
     forProp("id", asStr),
     forProp("description", asStr),
     forProp("input", asStr),
