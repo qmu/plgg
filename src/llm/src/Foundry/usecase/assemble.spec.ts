@@ -1,5 +1,5 @@
 import { test, assert } from 'vitest';
-import { isErr, proc } from 'plgg';
+import { isErr, proc, packAsNonEmptyStr } from 'plgg';
 import { Foundry } from 'autoplgg/index';
 import {
   plan,
@@ -31,8 +31,13 @@ test('Character Image Generation', async () => {
   ): a is StringMediumValue =>
     typeof a === 'string';
 
+  const descriptionResult = packAsNonEmptyStr(`This is a foundry for generating character designs based on text prompts and reference images.`);
+  if (isErr(descriptionResult)) {
+    throw new Error('Failed to create description');
+  }
+
   const foundry: Foundry = {
-    description: `This is a foundry for generating character designs based on text prompts and reference images.`,
+    description: descriptionResult.content,
     processors: [
       {
         id: 'plan',

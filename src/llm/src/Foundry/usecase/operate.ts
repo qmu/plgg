@@ -57,14 +57,13 @@ export const operate = async ({
       );
     }
     const startedAt = new Date().toISOString();
-    const output =
-      await processor.process(medium);
+    const value = await processor.process(medium);
     const newMedium = {
       startedAt,
       endedAt: new Date().toISOString(),
       currentOpId: op.id,
       nextOpId: op.to,
-      output,
+      value,
       lastMedium: medium,
     };
     return op.final
