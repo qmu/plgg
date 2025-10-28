@@ -57,23 +57,21 @@ export const errRefinable: Refinable1<"Err"> = {
  */
 export const { is: isErr } = errRefinable;
 
+export const asErr = <A>(
+  value: unknown,
+): Result<Err<A>, InvalidError> =>
+  is<A>(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not an Err",
+        }),
+      );
+
 /**
  * Castable instance for Err safe casting.
  */
 export const errCastable: Castable1<"Err"> = {
   KindKey: errTag,
-  as: <A>(
-    value: unknown,
-  ): Result<Err<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not an Err",
-          }),
-        ),
+  as: asErr,
 };
-/**
- * Exported safe casting function for Err values.
- */
-export const { as: asErr } = errCastable;

@@ -56,23 +56,21 @@ export const okRefinable: Refinable1<"Ok"> = {
  */
 export const { is: isOk } = okRefinable;
 
+export const asOk = <A>(
+  value: unknown,
+): Result<Ok<A>, InvalidError> =>
+  is<A>(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not an Ok",
+        }),
+      );
+
 /**
  * Castable instance for Ok safe casting.
  */
 export const okCastable: Castable1<"Ok"> = {
   KindKey: okTag,
-  as: <A>(
-    value: unknown,
-  ): Result<Ok<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not an Ok",
-          }),
-        ),
+  as: asOk,
 };
-/**
- * Exported safe casting function for Ok values.
- */
-export const { as: asOk } = okCastable;

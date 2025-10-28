@@ -34,24 +34,22 @@ export const floatRefinable: Refinable<Float> = {
  */
 export const { is: isFloat } = floatRefinable;
 
+export const asFloat = (
+  value: unknown,
+): Result<Float, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a Float (tag-content pair with finite number)",
+        }),
+      );
+
 /**
  * Castable instance for Float safe casting.
  */
 export const floatCastable: Castable<Float> = {
-  as: (
-    value: unknown,
-  ): Result<Float, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not a Float (tag-content pair with finite number)",
-          }),
-        ),
+  as: asFloat,
 };
-/**
- * Exported safe casting function for Float values.
- */
-export const { as: asFloat } = floatCastable;
 

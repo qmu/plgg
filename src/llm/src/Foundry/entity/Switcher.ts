@@ -22,27 +22,24 @@ export type Switcher = {
   ];
 };
 
+export const asSwitcher = (
+  value: unknown
+): Result<Switcher, InvalidError> =>
+  cast(
+    value,
+    asObj,
+    forProp('id', asStr),
+    forProp('description', asStr),
+    forProp('input', asStr),
+    forProp('outputWhenTrue', asStr),
+    forProp('outputWhenFalse', asStr),
+    forProp('check', asFunc)
+  );
+
 /**
  * Castable instance for Switcher safe casting.
  */
-export const switcherCastable: Castable<
-  Switcher
-> = {
-  as: (value: unknown): Result<Switcher, InvalidError> =>
-    cast(
-      value,
-      asObj,
-      forProp('id', asStr),
-      forProp('description', asStr),
-      forProp('input', asStr),
-      forProp('outputWhenTrue', asStr),
-      forProp('outputWhenFalse', asStr),
-      forProp('check', asFunc)
-    ),
-};
-
-/**
- * Exported safe casting function for Switcher values.
- */
-export const { as: asSwitcher } =
-  switcherCastable;
+export const switcherCastable: Castable<Switcher> =
+  {
+    as: asSwitcher,
+  };

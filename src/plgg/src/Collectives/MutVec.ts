@@ -51,27 +51,25 @@ export const mutVecRefinable: Refinable1<"MutVec"> =
  */
 export const { is: isMutVec } = mutVecRefinable;
 
+export const asMutVec = <A>(
+  value: unknown,
+): Result<MutVec<A>, InvalidError> =>
+  is<A>(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not a vector",
+        }),
+      );
+
 /**
  * Castable instance for mutable vector safe casting.
  */
 export const mutVecCastable: Castable1<"MutVec"> =
   {
     KindKey: "MutVec",
-    as: <A>(
-      value: unknown,
-    ): Result<MutVec<A>, InvalidError> =>
-      is<A>(value)
-        ? newOk(value)
-        : newErr(
-            new InvalidError({
-              message: "Value is not a vector",
-            }),
-          ),
+    as: asMutVec,
   };
-/**
- * Exported safe casting function for mutable vector values.
- */
-export const { as: asMutVec } = mutVecCastable;
 
 /**
  * Functor instance providing mapping operations over mutable vector elements.

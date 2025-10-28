@@ -35,23 +35,21 @@ export const i64Refinable: Refinable<I64> = {
  */
 export const { is: isI64 } = i64Refinable;
 
+export const asI64 = (
+  value: unknown,
+): Result<I64, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not an I64 (tag-content pair with bigint -9223372036854775808n to 9223372036854775807n)",
+        }),
+      );
+
 /**
  * Castable instance for I64 safe casting.
  */
 export const i64Castable: Castable<I64> = {
-  as: (
-    value: unknown,
-  ): Result<I64, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not an I64 (tag-content pair with bigint -9223372036854775808n to 9223372036854775807n)",
-          }),
-        ),
+  as: asI64,
 };
-/**
- * Exported safe casting function for I64 values.
- */
-export const { as: asI64 } = i64Castable;

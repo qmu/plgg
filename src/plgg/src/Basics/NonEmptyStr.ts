@@ -51,28 +51,25 @@ export const nonEmptyStrRefinable: Refinable<NonEmptyStr> =
 export const { is: isNonEmptyStr } =
   nonEmptyStrRefinable;
 
+export const asNonEmptyStr = (
+  value: unknown,
+): Result<NonEmptyStr, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a NonEmptyStr (tag-content pair with non-empty string)",
+        }),
+      );
+
 /**
  * Castable instance for NonEmptyStr safe casting.
  */
 export const nonEmptyStrCastable: Castable<NonEmptyStr> =
   {
-    as: (
-      value: unknown,
-    ): Result<NonEmptyStr, InvalidError> =>
-      is(value)
-        ? newOk(value)
-        : newErr(
-            new InvalidError({
-              message:
-                "Value is not a NonEmptyStr (tag-content pair with non-empty string)",
-            }),
-          ),
+    as: asNonEmptyStr,
   };
-/**
- * Exported safe casting function for NonEmptyStr values.
- */
-export const { as: asNonEmptyStr } =
-  nonEmptyStrCastable;
 
 /**
  * Packable instance for NonEmptyStr construction.

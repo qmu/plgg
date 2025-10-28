@@ -37,24 +37,22 @@ export const u128Refinable: Refinable<U128> = {
  */
 export const { is: isU128 } = u128Refinable;
 
+export const asU128 = (
+  value: unknown,
+): Result<U128, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a U128 (tag-content pair with bigint in 128-bit unsigned range)",
+        }),
+      );
+
 /**
  * Castable instance for U128 safe casting.
  */
 export const u128Castable: Castable<U128> = {
-  as: (
-    value: unknown,
-  ): Result<U128, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not a U128 (tag-content pair with bigint in 128-bit unsigned range)",
-          }),
-        ),
+  as: asU128,
 };
-/**
- * Exported safe casting function for U128 values.
- */
-export const { as: asU128 } = u128Castable;
 

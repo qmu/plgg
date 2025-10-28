@@ -29,22 +29,20 @@ export const funcRefinable: Refinable<Func> = {
  */
 export const { is: isFunc } = funcRefinable;
 
+export const asFunc = (
+  value: unknown,
+): Result<Func, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not a function",
+        }),
+      );
+
 /**
  * Castable instance for function safe casting.
  */
 export const funcCastable: Castable<Func> = {
-  as: (
-    value: unknown,
-  ): Result<Func, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a function",
-          }),
-        ),
+  as: asFunc,
 };
-/**
- * Exported safe casting function for function values.
- */
-export const { as: asFunc } = funcCastable;

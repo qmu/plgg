@@ -35,24 +35,22 @@ export const u64Refinable: Refinable<U64> = {
  */
 export const { is: isU64 } = u64Refinable;
 
+export const asU64 = (
+  value: unknown,
+): Result<U64, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a U64 (tag-content pair with bigint 0n to 18446744073709551615n)",
+        }),
+      );
+
 /**
  * Castable instance for U64 safe casting.
  */
 export const u64Castable: Castable<U64> = {
-  as: (
-    value: unknown,
-  ): Result<U64, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not a U64 (tag-content pair with bigint 0n to 18446744073709551615n)",
-          }),
-        ),
+  as: asU64,
 };
-/**
- * Exported safe casting function for U64 values.
- */
-export const { as: asU64 } = u64Castable;
 

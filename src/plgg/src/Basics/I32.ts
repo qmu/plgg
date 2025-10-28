@@ -35,23 +35,21 @@ export const i32Refinable: Refinable<I32> = {
  */
 export const { is: isI32 } = i32Refinable;
 
+export const asI32 = (
+  value: unknown,
+): Result<I32, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not an I32 (tag-content pair with integer -2147483648 to 2147483647)",
+        }),
+      );
+
 /**
  * Castable instance for I32 safe casting.
  */
 export const i32Castable: Castable<I32> = {
-  as: (
-    value: unknown,
-  ): Result<I32, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not an I32 (tag-content pair with integer -2147483648 to 2147483647)",
-          }),
-        ),
+  as: asI32,
 };
-/**
- * Exported safe casting function for I32 values.
- */
-export const { as: asI32 } = i32Castable;

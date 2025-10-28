@@ -47,27 +47,25 @@ export const timeRefinable: Refinable<Time> = {
  */
 export const { is: isTime } = timeRefinable;
 
+export const asTime = (
+  value: unknown,
+): Result<Time, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : isDateString(value)
+      ? newOk(new Date(value as string))
+      : newErr(
+          new InvalidError({
+            message: "Value is not a Date",
+          }),
+        );
+
 /**
  * Castable instance for Time safe casting.
  */
 export const timeCastable: Castable<Time> = {
-  as: (
-    value: unknown,
-  ): Result<Time, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : isDateString(value)
-        ? newOk(new Date(value as string))
-        : newErr(
-            new InvalidError({
-              message: "Value is not a Date",
-            }),
-          ),
+  as: asTime,
 };
-/**
- * Exported safe casting function for Time values.
- */
-export const { as: asTime } = timeCastable;
 
 // --------------------------------
 // JsonReady

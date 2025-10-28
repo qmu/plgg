@@ -35,23 +35,21 @@ export const i8Refinable: Refinable<I8> = {
  */
 export const { is: isI8 } = i8Refinable;
 
+export const asI8 = (
+  value: unknown,
+): Result<I8, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not an I8 (tag-content pair with integer -128 to 127)",
+        }),
+      );
+
 /**
  * Castable instance for I8 safe casting.
  */
 export const i8Castable: Castable<I8> = {
-  as: (
-    value: unknown,
-  ): Result<I8, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not an I8 (tag-content pair with integer -128 to 127)",
-          }),
-        ),
+  as: asI8,
 };
-/**
- * Exported safe casting function for I8 values.
- */
-export const { as: asI8 } = i8Castable;

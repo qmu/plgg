@@ -35,24 +35,22 @@ export const u16Refinable: Refinable<U16> = {
  */
 export const { is: isU16 } = u16Refinable;
 
+export const asU16 = (
+  value: unknown,
+): Result<U16, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a U16 (tag-content pair with integer 0 to 65535)",
+        }),
+      );
+
 /**
  * Castable instance for U16 safe casting.
  */
 export const u16Castable: Castable<U16> = {
-  as: (
-    value: unknown,
-  ): Result<U16, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not a U16 (tag-content pair with integer 0 to 65535)",
-          }),
-        ),
+  as: asU16,
 };
-/**
- * Exported safe casting function for U16 values.
- */
-export const { as: asU16 } = u16Castable;
 

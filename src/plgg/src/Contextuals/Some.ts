@@ -60,23 +60,21 @@ export const someRefinable: Refinable1<"Some"> = {
  */
 export const { is: isSome } = someRefinable;
 
+export const asSome = <A>(
+  value: unknown,
+): Result<Some<A>, InvalidError> =>
+  is<A>(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not a Some",
+        }),
+      );
+
 /**
  * Castable instance for Some safe casting.
  */
 export const someCastable: Castable1<"Some"> = {
   KindKey: "Some",
-  as: <A>(
-    value: unknown,
-  ): Result<Some<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a Some",
-          }),
-        ),
+  as: asSome,
 };
-/**
- * Exported safe casting function for Some values.
- */
-export const { as: asSome } = someCastable;

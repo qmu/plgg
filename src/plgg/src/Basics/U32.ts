@@ -35,24 +35,22 @@ export const u32Refinable: Refinable<U32> = {
  */
 export const { is: isU32 } = u32Refinable;
 
+export const asU32 = (
+  value: unknown,
+): Result<U32, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a U32 (tag-content pair with integer 0 to 4294967295)",
+        }),
+      );
+
 /**
  * Castable instance for U32 safe casting.
  */
 export const u32Castable: Castable<U32> = {
-  as: (
-    value: unknown,
-  ): Result<U32, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not a U32 (tag-content pair with integer 0 to 4294967295)",
-          }),
-        ),
+  as: asU32,
 };
-/**
- * Exported safe casting function for U32 values.
- */
-export const { as: asU32 } = u32Castable;
 

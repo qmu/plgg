@@ -52,22 +52,20 @@ export const noneRefinable: Refinable<None> = {
  */
 export const { is: isNone } = noneRefinable;
 
+export const asNone = (
+  value: unknown,
+): Result<None, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not a None",
+        }),
+      );
+
 /**
  * Castable instance for None safe casting.
  */
 export const noneCastable: Castable<None> = {
-  as: (
-    value: unknown,
-  ): Result<None, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a None",
-          }),
-        ),
+  as: asNone,
 };
-/**
- * Exported safe casting function for None values.
- */
-export const { as: asNone } = noneCastable;

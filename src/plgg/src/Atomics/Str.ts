@@ -37,25 +37,23 @@ export const strRefinable: Refinable<Str> = {
  */
 export const { is: isStr } = strRefinable;
 
+export const asStr = (
+  value: unknown,
+): Result<Str, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: `${value} is not a string`,
+        }),
+      );
+
 /**
  * Castable instance for string safe casting.
  */
 export const strCastable: Castable<Str> = {
-  as: (
-    value: unknown,
-  ): Result<Str, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: `${value} is not a string`,
-          }),
-        ),
+  as: asStr,
 };
-/**
- * Exported safe casting function for string values.
- */
-export const { as: asStr } = strCastable;
 
 /**
  * Concatenates two strings using curried application.

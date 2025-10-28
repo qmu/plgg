@@ -62,26 +62,24 @@ export const boxRefinable: Refinable1<"Box"> = {
  */
 export const { is: isBox } = boxRefinable;
 
+export const asBox = <A>(
+  value: unknown,
+): Result<Box<string, A>, InvalidError> =>
+  is<string, A>(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not a Box",
+        }),
+      );
+
 /**
  * Castable instance for Box safe casting.
  */
 export const boxCastable: Castable1<"Box"> = {
   KindKey: "Box",
-  as: <A>(
-    value: unknown,
-  ): Result<Box<string, A>, InvalidError> =>
-    is<string, A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a Box",
-          }),
-        ),
+  as: asBox,
 };
-/**
- * Exported safe casting function for Box values.
- */
-export const { as: asBox } = boxCastable;
 
 /**
  * Type guard for Box tag existence.

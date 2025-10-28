@@ -38,23 +38,21 @@ export const i128Refinable: Refinable<I128> = {
  */
 export const { is: isI128 } = i128Refinable;
 
+export const asI128 = (
+  value: unknown,
+): Result<I128, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not an I128 (tag-content pair with bigint in 128-bit signed range)",
+        }),
+      );
+
 /**
  * Castable instance for I128 safe casting.
  */
 export const i128Castable: Castable<I128> = {
-  as: (
-    value: unknown,
-  ): Result<I128, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not an I128 (tag-content pair with bigint in 128-bit signed range)",
-          }),
-        ),
+  as: asI128,
 };
-/**
- * Exported safe casting function for I128 values.
- */
-export const { as: asI128 } = i128Castable;

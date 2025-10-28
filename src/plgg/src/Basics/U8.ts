@@ -35,24 +35,22 @@ export const u8Refinable: Refinable<U8> = {
  */
 export const { is: isU8 } = u8Refinable;
 
+export const asU8 = (
+  value: unknown,
+): Result<U8, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a U8 (tag-content pair with integer 0 to 255)",
+        }),
+      );
+
 /**
  * Castable instance for U8 safe casting.
  */
 export const u8Castable: Castable<U8> = {
-  as: (
-    value: unknown,
-  ): Result<U8, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not a U8 (tag-content pair with integer 0 to 255)",
-          }),
-        ),
+  as: asU8,
 };
-/**
- * Exported safe casting function for U8 values.
- */
-export const { as: asU8 } = u8Castable;
 

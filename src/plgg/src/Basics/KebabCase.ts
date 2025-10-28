@@ -62,28 +62,25 @@ export const kebabCaseRefinable: Refinable<KebabCase> =
 export const { is: isKebabCase } =
   kebabCaseRefinable;
 
+export const asKebabCase = (
+  value: unknown,
+): Result<KebabCase, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not a KebabCase (tag-content pair with valid kebab-case string)",
+        }),
+      );
+
 /**
  * Castable instance for KebabCase safe casting.
  */
 export const kebabCaseCastable: Castable<KebabCase> =
   {
-    as: (
-      value: unknown,
-    ): Result<KebabCase, InvalidError> =>
-      is(value)
-        ? newOk(value)
-        : newErr(
-            new InvalidError({
-              message:
-                "Value is not a KebabCase (tag-content pair with valid kebab-case string)",
-            }),
-          ),
+    as: asKebabCase,
   };
-/**
- * Exported safe casting function for KebabCase values.
- */
-export const { as: asKebabCase } =
-  kebabCaseCastable;
 
 /**
  * Packable instance for KebabCase construction.

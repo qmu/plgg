@@ -46,25 +46,23 @@ export const vecRefinable: Refinable<Vec> = {
  */
 export const { is: isVec } = vecRefinable;
 
+export const asVec = (
+  value: unknown,
+): Result<Vec, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message: "Value is not a vector",
+        }),
+      );
+
 /**
  * Castable instance for vector safe casting.
  */
 export const vecCastable: Castable<Vec> = {
-  as: (
-    value: unknown,
-  ): Result<Vec, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a vector",
-          }),
-        ),
+  as: asVec,
 };
-/**
- * Exported safe casting function for vector values.
- */
-export const { as: asVec } = vecCastable;
 
 /**
  * Functor instance providing mapping operations over vector elements.

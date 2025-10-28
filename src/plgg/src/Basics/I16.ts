@@ -35,23 +35,21 @@ export const i16Refinable: Refinable<I16> = {
  */
 export const { is: isI16 } = i16Refinable;
 
+export const asI16 = (
+  value: unknown,
+): Result<I16, InvalidError> =>
+  is(value)
+    ? newOk(value)
+    : newErr(
+        new InvalidError({
+          message:
+            "Value is not an I16 (tag-content pair with integer -32768 to 32767)",
+        }),
+      );
+
 /**
  * Castable instance for I16 safe casting.
  */
 export const i16Castable: Castable<I16> = {
-  as: (
-    value: unknown,
-  ): Result<I16, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message:
-              "Value is not an I16 (tag-content pair with integer -32768 to 32767)",
-          }),
-        ),
+  as: asI16,
 };
-/**
- * Exported safe casting function for I16 values.
- */
-export const { as: asI16 } = i16Castable;

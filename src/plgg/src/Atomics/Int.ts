@@ -40,25 +40,23 @@ export const intRefinable: Refinable<Int> = {
  */
 export const { is: isInt } = intRefinable;
 
+export const asInt = (
+  value: unknown,
+): Result<Int, InvalidError> =>
+  is(value)
+    ? newOk(Number(value))
+    : newErr(
+        new InvalidError({
+          message: "Value is not an integer",
+        }),
+      );
+
 /**
  * Castable instance for integer safe casting.
  */
 export const intCastable: Castable<Int> = {
-  as: (
-    value: unknown,
-  ): Result<Int, InvalidError> =>
-    is(value)
-      ? newOk(Number(value))
-      : newErr(
-          new InvalidError({
-            message: "Value is not an integer",
-          }),
-        ),
+  as: asInt,
 };
-/**
- * Exported safe casting function for integer values.
- */
-export const { as: asInt } = intCastable;
 
 // --------------------------------
 // JsonReady

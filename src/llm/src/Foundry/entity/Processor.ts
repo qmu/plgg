@@ -18,26 +18,30 @@ export type Processor = {
   process: (input: Medium) => unknown;
 };
 
+export type ProcessorArg = {
+  id: string;
+  description: string;
+  inputType: string;
+  outputType: string;
+};
+
+export const asProcessor = (
+  value: unknown
+): Result<Processor, InvalidError> =>
+  cast(
+    value,
+    asObj,
+    forProp('id', asStr),
+    forProp('description', asStr),
+    forProp('inputType', asStr),
+    forProp('outputType', asStr),
+    forProp('process', asFunc)
+  );
+
 /**
  * Castable instance for Processor safe casting.
  */
-export const processorCastable: Castable<
-  Processor
-> = {
-  as: (value: unknown): Result<Processor, InvalidError> =>
-    cast(
-      value,
-      asObj,
-      forProp('id', asStr),
-      forProp('description', asStr),
-      forProp('inputType', asStr),
-      forProp('outputType', asStr),
-      forProp('process', asFunc)
-    ),
-};
-
-/**
- * Exported safe casting function for Processor values.
- */
-export const { as: asProcessor } =
-  processorCastable;
+export const processorCastable: Castable<Processor> =
+  {
+    as: asProcessor,
+  };
