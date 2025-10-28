@@ -25,7 +25,18 @@ const errTag = "Err" as const;
 /**
  * Represents a failed computation containing an error value.
  */
-export type Err<F> = Box<typeof errTag, F>;
+export type Err<F> = Box<typeof errTag, F> & {
+  /**
+   * Type guard method to check if this Result is an Ok.
+   * Always returns false for Err instances.
+   */
+  isOk(): false;
+  /**
+   * Type guard method to check if this Result is an Err.
+   * Always returns true for Err instances.
+   */
+  isErr(): this is Err<F>;
+};
 
 /**
  * Pattern constructor for matching Err values in pattern matching.
@@ -36,8 +47,15 @@ export const err = <T>(v?: T) =>
 /**
  * Creates an Err instance containing an error value.
  */
-export const newErr = <F>(e: F): Err<F> =>
-  newBox(errTag)(e);
+export const newErr = <F>(e: F): Err<F> => ({
+  ...newBox(errTag)(e),
+  isOk(): false {
+    return false;
+  },
+  isErr(): this is Err<F> {
+    return true;
+  },
+});
 
 /**
  * Type guard to check if a Result is an Err.

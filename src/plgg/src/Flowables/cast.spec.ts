@@ -15,6 +15,8 @@ import {
   asBool,
   isOk,
   isErr,
+  newOk,
+  newErr,
   refine,
 } from "plgg/index";
 
@@ -179,22 +181,20 @@ test("cast stops on first validation failure when not accumulating errors", () =
       asNum,
       (n: number) =>
         n > 0
-          ? { __tag: "Ok" as const, content: n }
-          : {
-              __tag: "Err" as const,
-              content: new InvalidError({
+          ? newOk(n)
+          : newErr(
+              new InvalidError({
                 message: "Must be positive",
               }),
-            },
+            ),
       (n: number) =>
         n < 100
-          ? { __tag: "Ok" as const, content: n }
-          : {
-              __tag: "Err" as const,
-              content: new InvalidError({
+          ? newOk(n)
+          : newErr(
+              new InvalidError({
                 message: "Must be less than 100",
               }),
-            },
+            ),
     );
 
   const result = validateSequentially(-5);
@@ -279,10 +279,7 @@ test("cast handles non-Error exceptions", () => {
 
 test("cast with maximum parameters (20 functions)", () => {
   // Test with many validation functions to exercise highest-arity overloads
-  const identity = (x: unknown) => ({
-    __tag: "Ok" as const,
-    content: x,
-  });
+  const identity = (x: unknown) => newOk(x);
 
   const result = cast(
     "test",
@@ -316,28 +313,28 @@ test("cast aggregates multiple validation errors", () => {
   // Test error accumulation when multiple validations fail
   const alwaysFail1 = (
     _: unknown,
-  ): Result<unknown, InvalidError> => ({
-    __tag: "Err" as const,
-    content: new InvalidError({
-      message: "Error 1",
-    }),
-  });
+  ): Result<unknown, InvalidError> =>
+    newErr(
+      new InvalidError({
+        message: "Error 1",
+      }),
+    );
   const alwaysFail2 = (
     _: unknown,
-  ): Result<unknown, InvalidError> => ({
-    __tag: "Err" as const,
-    content: new InvalidError({
-      message: "Error 2",
-    }),
-  });
+  ): Result<unknown, InvalidError> =>
+    newErr(
+      new InvalidError({
+        message: "Error 2",
+      }),
+    );
   const alwaysFail3 = (
     _: unknown,
-  ): Result<unknown, InvalidError> => ({
-    __tag: "Err" as const,
-    content: new InvalidError({
-      message: "Error 3",
-    }),
-  });
+  ): Result<unknown, InvalidError> =>
+    newErr(
+      new InvalidError({
+        message: "Error 3",
+      }),
+    );
 
   const result = cast(
     "test",

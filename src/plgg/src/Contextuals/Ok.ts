@@ -25,7 +25,18 @@ const okTag = "Ok" as const;
 /**
  * Represents a successful computation containing a success value.
  */
-export type Ok<T> = Box<typeof okTag, T>;
+export type Ok<T> = Box<typeof okTag, T> & {
+  /**
+   * Type guard method to check if this Result is an Ok.
+   * Always returns true for Ok instances.
+   */
+  isOk(): this is Ok<T>;
+  /**
+   * Type guard method to check if this Result is an Err.
+   * Always returns false for Ok instances.
+   */
+  isErr(): false;
+};
 
 /**
  * Pattern constructor for matching Ok values in pattern matching.
@@ -35,8 +46,15 @@ export const ok = <T>(a?: T) => pattern(okTag)(a);
 /**
  * Creates an Ok instance containing a success value.
  */
-export const newOk = <T>(a: T): Ok<T> =>
-  newBox(okTag)(a);
+export const newOk = <T>(a: T): Ok<T> => ({
+  ...newBox(okTag)(a),
+  isOk(): this is Ok<T> {
+    return true;
+  },
+  isErr(): false {
+    return false;
+  },
+});
 
 /**
  * Type guard to check if a Result is an Ok.

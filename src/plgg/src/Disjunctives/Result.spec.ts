@@ -71,6 +71,49 @@ test("isResult identifies Result types", () => {
   assert(!isResult(undefinedValue));
 });
 
+test("result.isOk() method returns true for Ok instances", () => {
+  const okResult = newOk("success");
+
+  assert(okResult.isOk());
+  assert(!okResult.isErr());
+
+  // Type narrowing should work
+  if (okResult.isOk()) {
+    expect(okResult.content).toBe("success");
+  }
+});
+
+test("result.isErr() method returns true for Err instances", () => {
+  const errResult = newErr("failure");
+
+  assert(!errResult.isOk());
+  assert(errResult.isErr());
+
+  // Type narrowing should work
+  if (errResult.isErr()) {
+    expect(errResult.content).toBe("failure");
+  }
+});
+
+test("result methods work with Result union type", () => {
+  const okResult: Result<number, string> = newOk(42);
+  const errResult: Result<number, string> = newErr("error");
+
+  // Ok case
+  assert(okResult.isOk());
+  assert(!okResult.isErr());
+  if (okResult.isOk()) {
+    expect(okResult.content).toBe(42);
+  }
+
+  // Err case
+  assert(!errResult.isOk());
+  assert(errResult.isErr());
+  if (errResult.isErr()) {
+    expect(errResult.content).toBe("error");
+  }
+});
+
 test("Result can handle different types", () => {
   const stringResult: Result<string, number> =
     newOk("hello");
@@ -222,7 +265,8 @@ test("Result Monad Laws - Left Identity", () => {
   const r1 = pipe(a, ofResult, chainResult(f));
   const r2 = f(a);
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  expect(r1.content).toEqual(r2.content);
 });
 
 test("Result Monad Laws - Right Identity", () => {
@@ -231,7 +275,8 @@ test("Result Monad Laws - Right Identity", () => {
   const r1 = pipe(m, chainResult(ofResult));
   const r2 = m;
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  expect(r1.content).toEqual(r2.content);
 });
 
 test("Result Monad Laws - Associativity", () => {
@@ -253,7 +298,8 @@ test("Result Monad Laws - Associativity", () => {
     ),
   );
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  expect(r1.content).toEqual(r2.content);
 });
 
 test("Result Functor Laws - Identity", () => {
@@ -262,7 +308,8 @@ test("Result Functor Laws - Identity", () => {
 
   const r1 = pipe(res, mapResult(identity));
 
-  expect(r1).toEqual(res);
+  expect(r1.__tag).toBe(res.__tag);
+  expect(r1.content).toEqual(res.content);
 });
 
 test("Result Functor Laws - Composition", () => {
@@ -280,7 +327,8 @@ test("Result Functor Laws - Composition", () => {
     mapResult(g),
   );
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  expect(r1.content).toEqual(r2.content);
 });
 
 test("Result Foldable - foldr function", () => {
