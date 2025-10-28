@@ -3,7 +3,7 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  Newable,
+  Packable,
   Box,
   newOk,
   newErr,
@@ -75,12 +75,12 @@ export const { as: asNonEmptyStr } =
   nonEmptyStrCastable;
 
 /**
- * Newable instance for NonEmptyStr construction.
+ * Packable instance for NonEmptyStr construction.
  */
-export const nonEmptyStrNewable: Newable<
+export const nonEmptyStrPackable: Packable<
   Result<NonEmptyStr, InvalidError>
 > = {
-  new: (
+  packAs: (
     value: unknown,
   ): Result<NonEmptyStr, InvalidError> =>
     qualify(value)
@@ -95,5 +95,5 @@ export const nonEmptyStrNewable: Newable<
 /**
  * Exported constructor function for NonEmptyStr values.
  */
-export const { new: newNonEmptyStr } =
-  nonEmptyStrNewable;
+export const { packAs: packAsNonEmptyStr } =
+  nonEmptyStrPackable;

@@ -9,48 +9,48 @@ import {
 /**
  * Enables construction of values for concrete types with no type parameters.
  */
-export interface Newable<T, Arg = unknown> {
+export interface Packable<T, Arg = unknown> {
   /**
    * Constructs a new instance of type T from an argument.
    * When Arg is unknown, the constructor should validate and transform the input.
    */
-  new: (arg: Arg) => T;
+  packAs: (arg: Arg) => T;
 }
 
 /**
  * Enables construction of values for single-parameter type constructors.
  */
-export interface Newable1<
+export interface Packable1<
   KindKey extends KindKeys1,
   Arg,
 > {
   /**
-   * The kind identifier for this newable.
+   * The kind identifier for this packable.
    */
   KindKey: KindKey;
 
   /**
    * Constructs a new instance of the specified kind.
    */
-  new: <A>(arg: Arg) => Kind1<KindKey, A>;
+  packAs: <A>(arg: Arg) => Kind1<KindKey, A>;
 }
 
 /**
  * Enables construction of values for single-parameter type constructors with Datum constraints.
  */
-export interface NewableDatum<
+export interface PackableDatum<
   KindKey extends KindKeysDatum,
   Arg,
 > {
   /**
-   * The kind identifier for this newable.
+   * The kind identifier for this packable.
    */
   KindKey: KindKey;
 
   /**
    * Constructs a new instance of the specified kind.
    */
-  new: <A extends Datum>(
+  packAs: <A extends Datum>(
     arg: Arg,
   ) => KindDatum<KindKey, A>;
 }

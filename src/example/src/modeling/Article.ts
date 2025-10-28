@@ -10,7 +10,7 @@ import {
   refine,
   Obj,
   NonEmptyStr,
-  newNonEmptyStr,
+  packAsNonEmptyStr,
   Result,
   InvalidError,
 } from 'plgg';
@@ -27,7 +27,7 @@ const asName = (v: unknown) =>
       (str) => str.length >= 3,
       'Name must be at least 3 characters long'
     ),
-    newNonEmptyStr
+    packAsNonEmptyStr
   );
 
 export type Article = Obj<{
