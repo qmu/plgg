@@ -1,9 +1,9 @@
-import { Medium } from "autoplgg/index";
+import { Medium } from 'autoplgg/index';
 
 export type Processor = {
   id: string;
   description: string;
-  input: string;
-  output: string;
+  inputType: string;
+  outputType: string;
   process: (input: Medium) => unknown;
 };

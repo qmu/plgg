@@ -4,5 +4,5 @@ export type Medium = Readonly<{
   currentOpId: string | undefined;
   nextOpId: string | undefined;
   lastMedium: Medium | undefined;
-  output: unknown;
+  value: unknown;
 }>;
