@@ -3,6 +3,7 @@ export * from "plgg/Basics/I16";
 export * from "plgg/Basics/I32";
 export * from "plgg/Basics/I64";
 export * from "plgg/Basics/I128";
+export * from "plgg/Basics/KebabCase";
 export * from "plgg/Basics/NonEmptyStr";
 export * from "plgg/Basics/U8";
 export * from "plgg/Basics/U16";
