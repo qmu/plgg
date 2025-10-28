@@ -1,6 +1,6 @@
 import { test, assert } from "vitest";
-import { isErr, proc, packAsNonEmptyStr } from "plgg";
-import { Foundry } from "autoplgg/index";
+import { isErr, isOk, proc } from "plgg";
+import { FoundryArg, asFoundry } from "autoplgg/index";
 import { plan, assemble, operate } from "autoplgg/Foundry/usecase";
 
 test("Character Image Generation", async () => {
@@ -19,15 +19,9 @@ test("Character Image Generation", async () => {
   const isString = (a: unknown): a is StringMediumValue =>
     typeof a === "string";
 
-  const descriptionResult = packAsNonEmptyStr(
-    `This is a foundry for generating character designs based on text prompts and reference images.`,
-  );
-  if (isErr(descriptionResult)) {
-    throw new Error("Failed to create description");
-  }
-
-  const foundry: Foundry = {
-    description: descriptionResult.content,
+  const foundryArg: FoundryArg = {
+    description:
+      "This is a foundry for generating character designs based on text prompts and reference images.",
     processors: [
       {
         id: "plan",
@@ -105,6 +99,10 @@ test("Character Image Generation", async () => {
       },
     ],
   };
+
+  const foundryResult = asFoundry(foundryArg);
+  assert(isOk(foundryResult));
+  const foundry = foundryResult.content;
 
   const result = await proc(
     "A fantasy character with a sword and shield",
