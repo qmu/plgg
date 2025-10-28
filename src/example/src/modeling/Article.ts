@@ -9,17 +9,25 @@ import {
   cast,
   refine,
   Obj,
-} from "plgg";
+  NonEmptyStr,
+  newNonEmptyStr,
+  Result,
+  InvalidError,
+} from 'plgg';
 
 type Id = string;
 const asId = (v: unknown) => cast(v, asStr);
 
-type Name = string;
+type Name = NonEmptyStr;
 const asName = (v: unknown) =>
   cast(
     v,
     asStr,
-    refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
+    refine(
+      (str) => str.length >= 3,
+      'Name must be at least 3 characters long'
+    ),
+    newNonEmptyStr
   );
 
 export type Article = Obj<{
@@ -29,12 +37,12 @@ export type Article = Obj<{
   memo: Option<string>;
 }>;
 
-export const asArticle = (v: unknown) =>
+export const asArticle = (v: unknown): Result<Article, InvalidError> =>
   cast(
     v,
     asObj,
-    forProp("id", asId),
-    forProp("createdAt", asTime),
-    forProp("name", asName),
-    forOptionProp("memo", asStr),
+    forProp('id', asId),
+    forProp('createdAt', asTime),
+    forProp('name', asName),
+    forOptionProp('memo', asStr)
   );

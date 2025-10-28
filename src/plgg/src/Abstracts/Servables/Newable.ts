@@ -9,9 +9,10 @@ import {
 /**
  * Enables construction of values for concrete types with no type parameters.
  */
-export interface Newable<T, Arg> {
+export interface Newable<T, Arg = unknown> {
   /**
-   * Constructs a new instance of type T.
+   * Constructs a new instance of type T from an argument.
+   * When Arg is unknown, the constructor should validate and transform the input.
    */
   new: (arg: Arg) => T;
 }
