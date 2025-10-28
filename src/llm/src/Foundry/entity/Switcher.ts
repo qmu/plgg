@@ -1,4 +1,4 @@
-import { Medium } from "autoplgg/index";
+import { Medium } from 'autoplgg/index';
 import {
   Castable,
   Result,
@@ -25,8 +25,13 @@ export type Switcher = {
 /**
  * Castable instance for Switcher safe casting.
  */
-export const switcherCastable: Castable<Switcher> = {
-  as: (value: unknown): Result<Switcher, InvalidError> =>
+export const switcherCastable: Castable<
+  unknown,
+  Switcher
+> = {
+  as: (
+    value: unknown
+  ): Result<Switcher, InvalidError> =>
     cast(
       value,
       asObj,
@@ -35,11 +40,12 @@ export const switcherCastable: Castable<Switcher> = {
       forProp('input', asStr),
       forProp('outputWhenTrue', asStr),
       forProp('outputWhenFalse', asStr),
-      forProp('check', asFunc),
+      forProp('check', asFunc)
     ),
 };
 
 /**
  * Exported safe casting function for Switcher values.
  */
-export const { as: asSwitcher } = switcherCastable;
+export const { as: asSwitcher } =
+  switcherCastable;

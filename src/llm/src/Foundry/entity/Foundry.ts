@@ -25,19 +25,27 @@ export type Foundry = {
 /**
  * Castable instance for Foundry safe casting.
  */
-export const foundryCastable: Castable<Foundry> =
-  {
-    as: (
-      value: unknown
-    ): Result<Foundry, InvalidError> =>
-      cast(
-        value,
-        asObj,
-        forProp('description', asNonEmptyStr),
-        forProp('processors', asReadonlyArray(asProcessor)),
-        forProp('switchers', asReadonlyArray(asSwitcher))
+export const foundryCastable: Castable<
+  unknown,
+  Foundry
+> = {
+  as: (
+    value: unknown
+  ): Result<Foundry, InvalidError> =>
+    cast(
+      value,
+      asObj,
+      forProp('description', asNonEmptyStr),
+      forProp(
+        'processors',
+        asReadonlyArray(asProcessor)
       ),
-  };
+      forProp(
+        'switchers',
+        asReadonlyArray(asSwitcher)
+      )
+    ),
+};
 
 /**
  * Exported safe casting function for Foundry values.
