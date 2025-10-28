@@ -30,6 +30,15 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         expect(restored.content).toBe(
           "hello world",
         );
+        // Verify methods exist on deserialized option
+        expect(typeof restored.isSome).toBe(
+          "function",
+        );
+        expect(typeof restored.isNone).toBe(
+          "function",
+        );
+        expect(restored.isSome()).toBe(true);
+        expect(restored.isNone()).toBe(false);
       }
     });
 
@@ -98,6 +107,17 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         true,
       );
       expect(isNone(restored)).toBe(true);
+      // Verify methods exist on deserialized None
+      if (isOptionalDatum(restored)) {
+        expect(typeof restored.isSome).toBe(
+          "function",
+        );
+        expect(typeof restored.isNone).toBe(
+          "function",
+        );
+        expect(restored.isSome()).toBe(false);
+        expect(restored.isNone()).toBe(true);
+      }
     });
   });
 
