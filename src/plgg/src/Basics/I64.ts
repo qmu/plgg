@@ -38,7 +38,7 @@ export const { is: isI64 } = i64Refinable;
 /**
  * Castable instance for I64 safe casting.
  */
-export const i64Castable: Castable<unknown, I64> = {
+export const i64Castable: Castable<I64> = {
   as: (
     value: unknown,
   ): Result<I64, InvalidError> =>

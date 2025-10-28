@@ -26,7 +26,6 @@ export type Foundry = {
  * Castable instance for Foundry safe casting.
  */
 export const foundryCastable: Castable<
-  unknown,
   Foundry
 > = {
   as: (

@@ -1,6 +1,8 @@
 import { Medium } from 'autoplgg/index';
 import {
   Castable,
+  Result,
+  InvalidError,
   cast,
   asObj,
   forProp,
@@ -20,10 +22,9 @@ export type Processor = {
  * Castable instance for Processor safe casting.
  */
 export const processorCastable: Castable<
-  unknown,
   Processor
 > = {
-  as: (value: unknown) =>
+  as: (value: unknown): Result<Processor, InvalidError> =>
     cast(
       value,
       asObj,

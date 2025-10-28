@@ -10,9 +10,10 @@ import {
 
 /**
  * Enables safe type casting for concrete types with no type parameters.
- * Takes two parameters: A for the argument type and T for the return type.
+ * Takes two parameters: T for the return type and A for the argument type.
+ * When only T is provided, A defaults to unknown for maximum flexibility.
  */
-export interface Castable<A = unknown, T = unknown> {
+export interface Castable<T, A = unknown> {
   /**
    * Safely casts values of type A to the target type T with validation.
    */

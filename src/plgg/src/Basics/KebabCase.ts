@@ -65,7 +65,7 @@ export const { is: isKebabCase } =
 /**
  * Castable instance for KebabCase safe casting.
  */
-export const kebabCaseCastable: Castable<unknown, KebabCase> =
+export const kebabCaseCastable: Castable<KebabCase> =
   {
     as: (
       value: unknown,

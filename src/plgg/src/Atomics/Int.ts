@@ -43,7 +43,7 @@ export const { is: isInt } = intRefinable;
 /**
  * Castable instance for integer safe casting.
  */
-export const intCastable: Castable<unknown, Int> = {
+export const intCastable: Castable<Int> = {
   as: (
     value: unknown,
   ): Result<Int, InvalidError> =>

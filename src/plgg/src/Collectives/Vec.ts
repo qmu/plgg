@@ -49,7 +49,7 @@ export const { is: isVec } = vecRefinable;
 /**
  * Castable instance for vector safe casting.
  */
-export const vecCastable: Castable<unknown, Vec> = {
+export const vecCastable: Castable<Vec> = {
   as: (
     value: unknown,
   ): Result<Vec, InvalidError> =>

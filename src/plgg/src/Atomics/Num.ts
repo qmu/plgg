@@ -43,7 +43,7 @@ export const { is: isNum } = numRefinable;
 /**
  * Castable instance for number safe casting.
  */
-export const numCastable: Castable<unknown, Num> = {
+export const numCastable: Castable<Num> = {
   as: (
     value: unknown,
   ): Result<Num, InvalidError> =>

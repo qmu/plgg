@@ -47,7 +47,7 @@ export const { is: isObj } = recRefinable;
 /**
  * Castable instance for record safe casting.
  */
-export const recCastable: Castable<unknown, Obj> = {
+export const recCastable: Castable<Obj> = {
   as: (
     value: unknown,
   ): Result<Obj, InvalidError> =>

@@ -37,7 +37,7 @@ export const { is: isFloat } = floatRefinable;
 /**
  * Castable instance for Float safe casting.
  */
-export const floatCastable: Castable<unknown, Float> = {
+export const floatCastable: Castable<Float> = {
   as: (
     value: unknown,
   ): Result<Float, InvalidError> =>

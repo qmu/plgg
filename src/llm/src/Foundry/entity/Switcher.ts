@@ -26,12 +26,9 @@ export type Switcher = {
  * Castable instance for Switcher safe casting.
  */
 export const switcherCastable: Castable<
-  unknown,
   Switcher
 > = {
-  as: (
-    value: unknown
-  ): Result<Switcher, InvalidError> =>
+  as: (value: unknown): Result<Switcher, InvalidError> =>
     cast(
       value,
       asObj,

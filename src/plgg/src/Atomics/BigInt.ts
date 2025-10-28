@@ -43,7 +43,7 @@ export const { is: isBigInt } = bigIntRefinable;
 /**
  * Castable instance for BigInt safe casting.
  */
-export const bigIntCastable: Castable<unknown, BigInt> = {
+export const bigIntCastable: Castable<BigInt> = {
   as: (
     value: unknown,
   ): Result<BigInt, InvalidError> => {
