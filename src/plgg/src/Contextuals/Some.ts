@@ -27,7 +27,18 @@ const someTag = "Some" as const;
  * Some side of Option, representing a value that exists.
  * Contains the actual value in the body property.
  */
-export type Some<T> = Box<typeof someTag, T>;
+export type Some<T> = Box<typeof someTag, T> & {
+  /**
+   * Type guard method to check if this Option is a Some.
+   * Always returns true for Some instances.
+   */
+  isSome(): this is Some<T>;
+  /**
+   * Type guard method to check if this Option is a None.
+   * Always returns false for Some instances.
+   */
+  isNone(): false;
+};
 
 /**
  * Pattern constructor for Some matching.
@@ -39,8 +50,15 @@ export const some = <T>(a?: T) =>
 /**
  * Creates a Some instance containing a value.
  */
-export const newSome = <T>(value: T): Some<T> =>
-  newBox(someTag)(value);
+export const newSome = <T>(value: T): Some<T> => ({
+  ...newBox(someTag)(value),
+  isSome(): this is Some<T> {
+    return true;
+  },
+  isNone(): false {
+    return false;
+  },
+});
 
 /**
  * Type guard to check if an Option is a Some.

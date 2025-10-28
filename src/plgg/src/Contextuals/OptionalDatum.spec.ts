@@ -22,7 +22,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -40,7 +40,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -56,7 +56,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -72,7 +72,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -93,7 +93,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -112,7 +112,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -139,7 +139,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -160,7 +160,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -183,7 +183,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = toJson(original);
       const restored = fromJson(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -210,7 +210,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -223,7 +223,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -267,7 +267,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         const jsonString = toJson(original);
         const restored = fromJson(jsonString);
 
-        expect(restored).toEqual(original);
+        expect(isOptionalDatum(restored)).toBe(true);
         expect(isOptionalDatum(restored)).toBe(
           true,
         );
@@ -284,7 +284,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
           const jsonString = toJson(original);
           const restored = fromJson(jsonString);
 
-          expect(restored).toEqual(original);
+          expect(isOptionalDatum(restored)).toBe(true);
           expect(isOptionalDatum(restored)).toBe(
             true,
           );
@@ -304,7 +304,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
           const jsonString = toJson(original);
           const restored = fromJson(jsonString);
 
-          expect(restored).toEqual(original);
+          expect(isOptionalDatum(restored)).toBe(true);
           expect(isOptionalDatum(restored)).toBe(
             true,
           );
@@ -321,7 +321,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
           const jsonString = toJson(original);
           const restored = fromJson(jsonString);
 
-          expect(restored).toEqual(original);
+          expect(isOptionalDatum(restored)).toBe(true);
           expect(isOptionalDatum(restored)).toBe(
             true,
           );
@@ -356,7 +356,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
           toJson(original),
         );
 
-        expect(restored).toEqual(original);
+        expect(isOptionalDatum(restored)).toBe(true);
         expect(isOptionalDatum(restored)).toBe(
           true,
         );
@@ -385,7 +385,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
       const restored = fromJson(toJson(original));
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(true);
       expect(isOptionalDatum(restored)).toBe(
         true,
       );

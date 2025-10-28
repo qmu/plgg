@@ -89,6 +89,49 @@ test("isNone identifies None options", () => {
   assert(isNone(noneResult));
 });
 
+test("option.isSome() method returns true for Some instances", () => {
+  const someOption = newSome("value");
+
+  assert(someOption.isSome());
+  assert(!someOption.isNone());
+
+  // Type narrowing should work
+  if (someOption.isSome()) {
+    expect(someOption.content).toBe("value");
+  }
+});
+
+test("option.isNone() method returns true for None instances", () => {
+  const noneOption = newNone();
+
+  assert(!noneOption.isSome());
+  assert(noneOption.isNone());
+
+  // Type narrowing should work
+  if (noneOption.isNone()) {
+    expect(noneOption.__tag).toBe("None");
+  }
+});
+
+test("option methods work with Option union type", () => {
+  const someOption: Option<number> = newSome(42);
+  const noneOption: Option<number> = newNone();
+
+  // Some case
+  assert(someOption.isSome());
+  assert(!someOption.isNone());
+  if (someOption.isSome()) {
+    expect(someOption.content).toBe(42);
+  }
+
+  // None case
+  assert(!noneOption.isSome());
+  assert(noneOption.isNone());
+  if (noneOption.isNone()) {
+    expect(noneOption.__tag).toBe("None");
+  }
+});
+
 test("Option can handle different types", () => {
   const stringOption: Option<string> =
     newSome("hello");
@@ -126,20 +169,16 @@ test("Option type structure", () => {
     "content",
     123,
   );
-  expect(Object.keys(someOption)).toEqual([
-    "__tag",
-    "content",
-  ]);
+  expect(someOption).toHaveProperty("isSome");
+  expect(someOption).toHaveProperty("isNone");
 
   // Test that None has the expected structure
   expect(noneOption).toHaveProperty(
     "__tag",
     "None",
   );
-  expect(Object.keys(noneOption)).toEqual([
-    "__tag",
-    "content",
-  ]);
+  expect(noneOption).toHaveProperty("isSome");
+  expect(noneOption).toHaveProperty("isNone");
 });
 
 test("Option with complex types", () => {
@@ -321,7 +360,10 @@ test("Option Monad Laws - Left Identity", () => {
   const r1 = pipe(a, ofOption, chainOption(f));
   const r2 = f(a);
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("Option Monad Laws - Right Identity", () => {
@@ -330,7 +372,10 @@ test("Option Monad Laws - Right Identity", () => {
   const r1 = pipe(m, chainOption(ofOption));
   const r2 = m;
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("Option Monad Laws - Associativity", () => {
@@ -352,7 +397,10 @@ test("Option Monad Laws - Associativity", () => {
     ),
   );
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("Option Functor Laws - Identity", () => {
@@ -361,7 +409,10 @@ test("Option Functor Laws - Identity", () => {
 
   const r1 = pipe(opt, mapOption(identity));
 
-  expect(r1).toEqual(opt);
+  expect(r1.__tag).toBe(opt.__tag);
+  if (isSome(r1) && isSome(opt)) {
+    expect(r1.content).toEqual(opt.content);
+  }
 });
 
 test("Option Functor Laws - Composition", () => {
@@ -379,7 +430,10 @@ test("Option Functor Laws - Composition", () => {
     mapOption(g),
   );
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("isOption - type guard for Option types", () => {
