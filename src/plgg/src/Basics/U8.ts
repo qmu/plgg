@@ -38,7 +38,7 @@ export const { is: isU8 } = u8Refinable;
 /**
  * Castable instance for U8 safe casting.
  */
-export const u8Castable: Castable<U8> = {
+export const u8Castable: Castable<unknown, U8> = {
   as: (
     value: unknown,
   ): Result<U8, InvalidError> =>

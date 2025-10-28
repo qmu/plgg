@@ -40,7 +40,7 @@ export const { is: isStr } = strRefinable;
 /**
  * Castable instance for string safe casting.
  */
-export const strCastable: Castable<Str> = {
+export const strCastable: Castable<unknown, Str> = {
   as: (
     value: unknown,
   ): Result<Str, InvalidError> =>

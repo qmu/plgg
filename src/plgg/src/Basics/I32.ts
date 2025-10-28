@@ -38,7 +38,7 @@ export const { is: isI32 } = i32Refinable;
 /**
  * Castable instance for I32 safe casting.
  */
-export const i32Castable: Castable<I32> = {
+export const i32Castable: Castable<unknown, I32> = {
   as: (
     value: unknown,
   ): Result<I32, InvalidError> =>

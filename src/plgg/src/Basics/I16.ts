@@ -38,7 +38,7 @@ export const { is: isI16 } = i16Refinable;
 /**
  * Castable instance for I16 safe casting.
  */
-export const i16Castable: Castable<I16> = {
+export const i16Castable: Castable<unknown, I16> = {
   as: (
     value: unknown,
   ): Result<I16, InvalidError> =>

@@ -54,7 +54,7 @@ export const { is: isNonEmptyStr } =
 /**
  * Castable instance for NonEmptyStr safe casting.
  */
-export const nonEmptyStrCastable: Castable<NonEmptyStr> =
+export const nonEmptyStrCastable: Castable<unknown, NonEmptyStr> =
   {
     as: (
       value: unknown,

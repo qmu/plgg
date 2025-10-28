@@ -50,7 +50,7 @@ export const { is: isBool } = boolRefinable;
 /**
  * Castable instance for boolean safe casting.
  */
-export const boolCastable: Castable<Bool> = {
+export const boolCastable: Castable<unknown, Bool> = {
   as: (
     value: unknown,
   ): Result<Bool, InvalidError> =>

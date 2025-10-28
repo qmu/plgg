@@ -32,7 +32,7 @@ export const { is: isFunc } = funcRefinable;
 /**
  * Castable instance for function safe casting.
  */
-export const funcCastable: Castable<Func> = {
+export const funcCastable: Castable<unknown, Func> = {
   as: (
     value: unknown,
   ): Result<Func, InvalidError> =>

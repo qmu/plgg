@@ -55,7 +55,7 @@ export const { is: isNone } = noneRefinable;
 /**
  * Castable instance for None safe casting.
  */
-export const noneCastable: Castable<None> = {
+export const noneCastable: Castable<unknown, None> = {
   as: (
     value: unknown,
   ): Result<None, InvalidError> =>

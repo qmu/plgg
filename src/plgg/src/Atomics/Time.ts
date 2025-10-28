@@ -50,7 +50,7 @@ export const { is: isTime } = timeRefinable;
 /**
  * Castable instance for Time safe casting.
  */
-export const timeCastable: Castable<Time> = {
+export const timeCastable: Castable<unknown, Time> = {
   as: (
     value: unknown,
   ): Result<Time, InvalidError> =>

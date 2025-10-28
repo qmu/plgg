@@ -40,7 +40,7 @@ export const { is: isU128 } = u128Refinable;
 /**
  * Castable instance for U128 safe casting.
  */
-export const u128Castable: Castable<U128> = {
+export const u128Castable: Castable<unknown, U128> = {
   as: (
     value: unknown,
   ): Result<U128, InvalidError> =>
