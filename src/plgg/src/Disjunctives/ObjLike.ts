@@ -38,18 +38,16 @@ export const isObjLike = (
  * Validates and transforms an record property using a predicate.
  */
 export const forProp =
-  <T extends string, U>(
+  <T extends string, U, A>(
     key: T,
-    predicate: (
-      a: unknown,
-    ) => Result<U, InvalidError>,
+    predicate: (a: A) => Result<U, InvalidError>,
   ) =>
   <V extends object>(
     rec: V,
   ): Result<V & Record<T, U>, InvalidError> =>
     hasProp(rec, key)
       ? pipe(
-          rec[key],
+          rec[key] as A, // FIXME
           predicate,
           chainResult(
             (

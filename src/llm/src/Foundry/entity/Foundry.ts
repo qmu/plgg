@@ -1,20 +1,20 @@
 import {
   Processor,
   Switcher,
+  ProcessorArg,
+  SwitcherArg,
   asProcessor,
   asSwitcher,
-} from 'autoplgg/index';
+} from "autoplgg/index";
 import {
   NonEmptyStr,
   Castable,
-  Result,
-  InvalidError,
   asNonEmptyStr,
   cast,
   asObj,
   forProp,
   asReadonlyArray,
-} from 'plgg';
+} from "plgg";
 
 export type Foundry = {
   description: NonEmptyStr;
@@ -22,27 +22,24 @@ export type Foundry = {
   switchers: ReadonlyArray<Switcher>;
 };
 
-export const asFoundry = (
-  value: unknown
-): Result<Foundry, InvalidError> =>
+export type FoundryArg = {
+  description: string;
+  processors: ReadonlyArray<ProcessorArg>;
+  switchers: ReadonlyArray<SwitcherArg>;
+};
+
+export const asFoundry = (value: FoundryArg) =>
   cast(
     value,
     asObj,
-    forProp('description', asNonEmptyStr),
-    forProp(
-      'processors',
-      asReadonlyArray(asProcessor)
-    ),
-    forProp(
-      'switchers',
-      asReadonlyArray(asSwitcher)
-    )
+    forProp("description", asNonEmptyStr),
+    forProp("processors", asReadonlyArray(asProcessor)),
+    forProp("switchers", asReadonlyArray(asSwitcher)),
   );
 
 /**
  * Castable instance for Foundry safe casting.
  */
-export const foundryCastable: Castable<Foundry> =
-  {
-    as: asFoundry,
-  };
+export const foundryCastable: Castable<Foundry, FoundryArg> = {
+  as: asFoundry,
+};

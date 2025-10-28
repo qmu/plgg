@@ -1,14 +1,5 @@
-import { Medium } from 'autoplgg/index';
-import {
-  Castable,
-  Result,
-  InvalidError,
-  cast,
-  asObj,
-  forProp,
-  asStr,
-  asFunc,
-} from 'plgg';
+import { Medium } from "autoplgg/index";
+import { Castable, cast, asObj, forProp, asStr, asFunc } from "plgg";
 
 export type Processor = {
   id: string;
@@ -23,25 +14,23 @@ export type ProcessorArg = {
   description: string;
   inputType: string;
   outputType: string;
+  process: (input: Medium) => unknown;
 };
 
-export const asProcessor = (
-  value: unknown
-): Result<Processor, InvalidError> =>
+export const asProcessor = (value: ProcessorArg) =>
   cast(
     value,
     asObj,
-    forProp('id', asStr),
-    forProp('description', asStr),
-    forProp('inputType', asStr),
-    forProp('outputType', asStr),
-    forProp('process', asFunc)
+    forProp("id", asStr),
+    forProp("description", asStr),
+    forProp("inputType", asStr),
+    forProp("outputType", asStr),
+    forProp("process", asFunc),
   );
 
 /**
  * Castable instance for Processor safe casting.
  */
-export const processorCastable: Castable<Processor> =
-  {
-    as: asProcessor,
-  };
+export const processorCastable: Castable<Processor, ProcessorArg> = {
+  as: asProcessor,
+};
