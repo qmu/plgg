@@ -2,7 +2,7 @@ import { test, assert, expect } from "vitest";
 import {
   Result,
   InvalidError,
-  Str,
+  SoftStr,
   Time,
   Num,
   Bool,
@@ -11,7 +11,7 @@ import {
   forProp,
   asNum,
   asTime,
-  asStr,
+  asSoftStr,
   asBool,
   isOk,
   isErr,
@@ -24,7 +24,7 @@ test("cast validates object structure with multiple properties", () => {
   // Example: Validating API response data
   type UserProfile = {
     id: Num;
-    email: Str;
+    email: SoftStr;
     createdAt: Time;
   };
 
@@ -35,7 +35,7 @@ test("cast validates object structure with multiple properties", () => {
       data,
       asObj,
       forProp("id", asNum),
-      forProp("email", asStr),
+      forProp("email", asSoftStr),
       forProp("createdAt", asTime),
     );
 
@@ -59,7 +59,7 @@ test("cast validates object structure with multiple properties", () => {
 test("cast accumulates validation errors for multiple invalid properties", () => {
   type Product = {
     id: Num;
-    name: Str;
+    name: SoftStr;
     price: Num;
   };
 
@@ -70,7 +70,7 @@ test("cast accumulates validation errors for multiple invalid properties", () =>
       data,
       asObj,
       forProp("id", asNum),
-      forProp("name", asStr),
+      forProp("name", asSoftStr),
       forProp("price", asNum),
     );
 
@@ -96,7 +96,7 @@ test("cast processes validation chain sequentially", () => {
       forProp("username", (v) =>
         cast(
           v,
-          asStr,
+          asSoftStr,
           refine(
             (a) => a.trim().length >= 3,
             "Username too short",
@@ -123,12 +123,12 @@ test("cast processes validation chain sequentially", () => {
 test("cast handles nested object validation", () => {
   // Example: Complex nested data structure validation
   type Address = {
-    street: Str;
-    city: Str;
+    street: SoftStr;
+    city: SoftStr;
   };
 
   type User = {
-    name: Str;
+    name: SoftStr;
     age: Num;
     address: Address;
   };
@@ -139,8 +139,8 @@ test("cast handles nested object validation", () => {
     cast(
       data,
       asObj,
-      forProp("street", asStr),
-      forProp("city", asStr),
+      forProp("street", asSoftStr),
+      forProp("city", asSoftStr),
     );
 
   const asUser = (
@@ -149,7 +149,7 @@ test("cast handles nested object validation", () => {
     cast(
       data,
       asObj,
-      forProp("name", asStr),
+      forProp("name", asSoftStr),
       forProp("age", asNum),
       forProp("address", asAddress),
     );
@@ -207,13 +207,13 @@ test("cast stops on first validation failure when not accumulating errors", () =
 test("cast with higher arity functions (5+ parameters)", () => {
   // Test validation chains with 5+ parameters to exercise more overloads
   type ComplexObject = {
-    field1: Str;
+    field1: SoftStr;
     field2: Num;
     field3: Bool;
-    field4: Str;
+    field4: SoftStr;
     field5: Num;
     field6: Bool;
-    field7: Str;
+    field7: SoftStr;
   };
 
   const asComplexObject = (
@@ -222,13 +222,13 @@ test("cast with higher arity functions (5+ parameters)", () => {
     cast(
       data,
       asObj,
-      forProp("field1", asStr),
+      forProp("field1", asSoftStr),
       forProp("field2", asNum),
       forProp("field3", asBool),
-      forProp("field4", asStr),
+      forProp("field4", asSoftStr),
       forProp("field5", asNum),
       forProp("field6", asBool),
-      forProp("field7", asStr),
+      forProp("field7", asSoftStr),
     );
 
   const validData = {

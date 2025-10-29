@@ -1,5 +1,5 @@
 import {
-  asStr,
+  asSoftStr,
   asObj,
   forProp,
   forOptionProp,
@@ -16,13 +16,13 @@ import {
 } from "plgg";
 
 type Id = string;
-const asId = (v: unknown) => cast(v, asStr);
+const asId = (v: unknown) => cast(v, asSoftStr);
 
 type Name = NonEmptyStr;
 const asName = (v: unknown) =>
   cast(
     v,
-    asStr,
+    asSoftStr,
     refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
     asNonEmptyStr,
   );
@@ -41,5 +41,5 @@ export const asArticle = (v: unknown): Result<Article, InvalidError> =>
     forProp("id", asId),
     forProp("createdAt", asTime),
     forProp("name", asName),
-    forOptionProp("memo", asStr),
+    forOptionProp("memo", asSoftStr),
   );

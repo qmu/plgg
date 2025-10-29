@@ -7,7 +7,7 @@ import {
   asBox,
   asObj,
   forProp,
-  asStr,
+  asSoftStr,
   isOk,
   cast,
 } from "plgg/index";
@@ -57,7 +57,7 @@ test("forContent - validates Box from unknown using cast", () => {
   const result = cast(
     unknownValue,
     asBox,
-    forContent("user", asStr),
+    forContent("user", asSoftStr),
   );
 
   assert(isOk(result));
@@ -80,8 +80,8 @@ test("forContent - combined pattern with Obj validation", () => {
     cast(
       value,
       asObj,
-      forProp("name", asStr),
-      forProp("email", asStr),
+      forProp("name", asSoftStr),
+      forProp("email", asSoftStr),
     );
 
   const result = cast(

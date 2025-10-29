@@ -4,7 +4,7 @@ import {
   asObj,
   forOptionProp,
   forProp,
-  asStr,
+  asSoftStr,
   asNum,
   isOk,
   isErr,
@@ -79,7 +79,7 @@ test("asObj validation", async () => {
 test("Obj.prop validation - success cases", async () => {
   const rec = { name: "John", age: 30 };
 
-  const nameResult = forProp("name", asStr)(rec);
+  const nameResult = forProp("name", asSoftStr)(rec);
   assert(isOk(nameResult));
   expect(nameResult.content).toEqual({
     name: "John",
@@ -129,7 +129,7 @@ test("Obj.prop validation - adds property to record type", async () => {
 
   const result = forProp(
     newKey,
-    asStr,
+    asSoftStr,
   )({ ...rec, [newKey]: "test" });
   assert(isOk(result));
   expect(result.content).toEqual({
@@ -146,7 +146,7 @@ test("Obj.optional validation - property exists", async () => {
 
   const nameResult = forOptionProp(
     "name",
-    asStr,
+    asSoftStr,
   )(rec);
   assert(isOk(nameResult));
   assert(isSome(nameResult.content.name));
@@ -203,7 +203,7 @@ test("Obj.optional validation - adds optional property to record type", async ()
 
   const result = forOptionProp(
     "optionalProp",
-    asStr,
+    asSoftStr,
   )(rec);
   assert(isOk(result));
   assert(isNone(result.content.optionalProp));
@@ -221,7 +221,7 @@ test("Complex record validation with multiple properties", async () => {
   };
 
   // Demonstrates chained property validation workflow
-  const nameResult = forProp("name", asStr)(rec);
+  const nameResult = forProp("name", asSoftStr)(rec);
   assert(isOk(nameResult));
 
   const ageResult = forProp(
@@ -232,7 +232,7 @@ test("Complex record validation with multiple properties", async () => {
 
   const emailResult = forOptionProp(
     "email",
-    asStr,
+    asSoftStr,
   )(ageResult.content);
   assert(isOk(emailResult));
   assert(isSome(emailResult.content.email));

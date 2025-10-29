@@ -7,7 +7,7 @@ import {
   newOk,
   newErr,
   isBoxWithTag,
-  isStr,
+  isSoftStr,
   newBox,
 } from "plgg/index";
 
@@ -26,7 +26,7 @@ export type NonEmptyStr = Box<
 const qualify = (
   value: unknown,
 ): value is string =>
-  isStr(value) && value.length > 0;
+  isSoftStr(value) && value.length > 0;
 
 /**
  * Type guard to check if a value is a NonEmptyStr.

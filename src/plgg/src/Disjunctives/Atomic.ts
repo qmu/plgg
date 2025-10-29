@@ -1,17 +1,17 @@
 import {
-  Str,
+  SoftStr,
   Num,
   Bool,
   BigInt,
   Int,
   Time,
-  JsonReadyStr,
+  JsonReadySoftStr,
   JsonReadyNum,
   JsonReadyBool,
   JsonReadyBigInt,
   JsonReadyInt,
   JsonReadyTime,
-  isStr,
+  isSoftStr,
   isNum,
   isBool,
   isBigInt,
@@ -21,7 +21,7 @@ import {
   fromJsonReadyBigInt,
   toJsonReadyTime,
   fromJsonReadyTime,
-  isJsonReadyStr,
+  isJsonReadySoftStr,
   isJsonReadyNum,
   isJsonReadyBool,
   isJsonReadyBigInt,
@@ -37,7 +37,7 @@ export type Atomic =
   | Num
   | Int
   | BigInt
-  | Str
+  | SoftStr
   | Time;
 
 /**
@@ -57,7 +57,7 @@ export const isAtomic = (
   isNum(value) ||
   isInt(value) ||
   isBigInt(value) ||
-  isStr(value) ||
+  isSoftStr(value) ||
   isTime(value);
 
 // --------------------------------
@@ -72,7 +72,7 @@ export type JsonReadyAtomic =
   | JsonReadyNum
   | JsonReadyInt
   | JsonReadyBigInt
-  | JsonReadyStr
+  | JsonReadySoftStr
   | JsonReadyTime;
 
 /**
@@ -85,7 +85,7 @@ export const isJsonReadyAtomic = (
   isJsonReadyNum(value) ||
   isJsonReadyInt(value) ||
   isJsonReadyBigInt(value) ||
-  isJsonReadyStr(value) ||
+  isJsonReadySoftStr(value) ||
   isJsonReadyTime(value);
 
 /**

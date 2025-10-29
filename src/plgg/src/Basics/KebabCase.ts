@@ -7,7 +7,7 @@ import {
   newOk,
   newErr,
   isBoxWithTag,
-  isStr,
+  isSoftStr,
   newBox,
 } from "plgg/index";
 
@@ -25,7 +25,7 @@ export type KebabCase = Box<"KebabCase", string>;
 const qualify = (
   value: unknown,
 ): value is string => {
-  if (!isStr(value) || value.length === 0) {
+  if (!isSoftStr(value) || value.length === 0) {
     return false;
   }
   // Check kebab-case pattern:

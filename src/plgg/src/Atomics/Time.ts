@@ -6,7 +6,7 @@ import {
   JsonSerializable,
   newOk,
   newErr,
-  isStr,
+  isSoftStr,
 } from "plgg/index";
 
 /**
@@ -27,7 +27,7 @@ export type IsTime<T> = T extends Time
 const isDateString = (
   value: unknown,
 ): value is string =>
-  isStr(value) &&
+  isSoftStr(value) &&
   !isNaN(new Date(value).getTime());
 
 /**
@@ -81,7 +81,7 @@ export type JsonReadyTime = string;
  * Only matches ISO 8601 date strings to avoid false positives.
  */
 export const isJsonReadyTime = (value: unknown): value is JsonReadyTime =>
-  isStr(value) && 
+  isSoftStr(value) &&
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value) &&
   !isNaN(new Date(value).getTime());
 

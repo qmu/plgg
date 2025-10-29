@@ -8,7 +8,7 @@ import {
   newOk,
   hold,
   newErr,
-  asStr,
+  asSoftStr,
 } from "plgg/index";
 
 test("proc composes sync and async functions with early error exit", async () => {
@@ -120,7 +120,7 @@ test("proc with type casting and validation chain", async () => {
   const result = await proc(
     userData,
     (data: any) => data.name,
-    asStr,
+    asSoftStr,
     (name: string) => name.toUpperCase(),
     hold((name: string) => `Hello, ${name}!`),
   );
