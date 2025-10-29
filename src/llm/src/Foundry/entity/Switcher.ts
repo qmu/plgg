@@ -48,6 +48,9 @@ export const asSwitcher = (value: SwitcherArg) =>
 /**
  * Castable instance for Switcher safe casting.
  */
-export const switcherCastable: Castable<Switcher, SwitcherArg> = {
+export const switcherCastable: Castable<
+  Switcher,
+  SwitcherArg
+> = {
   as: asSwitcher,
 };

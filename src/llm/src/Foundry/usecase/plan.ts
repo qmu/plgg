@@ -1,4 +1,7 @@
-import { Foundry, Alignment } from "autoplgg/index";
+import {
+  Foundry,
+  Alignment,
+} from "autoplgg/index";
 
 export const plan =
   (_foundry: Foundry) =>

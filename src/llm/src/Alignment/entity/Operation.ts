@@ -1,3 +1,8 @@
-import { ProcessorOperation, SwitcherOperation } from "autoplgg/index";
+import {
+  ProcessorOperation,
+  SwitcherOperation,
+} from "autoplgg/index";
 
-export type Operation = ProcessorOperation | SwitcherOperation;
+export type Operation =
+  | ProcessorOperation
+  | SwitcherOperation;

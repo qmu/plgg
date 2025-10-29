@@ -7,9 +7,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "paths": {
-      "autoplgg*": [
-        "./src/*"
-      ]
+      "autoplgg*": ["./src/*"]
     },
     "rootDir": "src",
     "outDir": "dist",
@@ -29,7 +27,5 @@
     "allowJs": false,
     "erasableSyntaxOnly": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

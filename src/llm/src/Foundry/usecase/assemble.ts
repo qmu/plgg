@@ -1,22 +1,22 @@
-import { Result, newOk } from 'plgg';
+import { Result, newOk } from "plgg";
 import {
   Medium,
   Foundry,
   Alignment,
   OperationContext,
-} from 'autoplgg/index';
+} from "autoplgg/index";
 
 export const assemble =
   (foundry: Foundry) =>
   (
-    alignment: Alignment
+    alignment: Alignment,
   ): Result<OperationContext, Error> => {
     const iniOp = alignment.operations.find(
-      (op) => 'initial' in op && op.initial
+      (op) => "initial" in op && op.initial,
     );
     if (!iniOp) {
       throw new Error(
-        'No initial operation found in alignment'
+        "No initial operation found in alignment",
       );
     }
     const medium: Medium = {

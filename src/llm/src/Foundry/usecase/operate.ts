@@ -10,18 +10,27 @@ export const operate = async ({
   alignment,
   medium,
 }: OperationContext): Promise<Medium> => {
-  const op = alignment.operations.find((op) => op.id === medium.nextOpId);
+  const op = alignment.operations.find(
+    (op) => op.id === medium.nextOpId,
+  );
   if (!op) {
-    throw new Error(`Operation "${medium.nextOpId}" not found in alignment`);
+    throw new Error(
+      `Operation "${medium.nextOpId}" not found in alignment`,
+    );
   }
 
   if (isSwitcherOperation(op)) {
-    const switcher = foundry.switchers.find((s) => s.id.content === op.id);
+    const switcher = foundry.switchers.find(
+      (s) => s.id.content === op.id,
+    );
     if (!switcher) {
-      throw new Error(`No checker found for step type "${op.id}"`);
+      throw new Error(
+        `No checker found for step type "${op.id}"`,
+      );
     }
     const startedAt = new Date().toISOString();
-    const [isValid, value] = switcher.check(medium);
+    const [isValid, value] =
+      switcher.check(medium);
     return operate({
       foundry,
       alignment,
@@ -29,7 +38,9 @@ export const operate = async ({
         startedAt,
         endedAt: new Date().toISOString(),
         currentOpId: op.id,
-        nextOpId: isValid ? op.whenTrue : op.whenFalse,
+        nextOpId: isValid
+          ? op.whenTrue
+          : op.whenFalse,
         value: value,
         lastMedium: medium,
       },
@@ -37,9 +48,13 @@ export const operate = async ({
   }
 
   if (isProcessorOperation(op)) {
-    const processor = foundry.processors.find((p) => p.id.content === op.id);
+    const processor = foundry.processors.find(
+      (p) => p.id.content === op.id,
+    );
     if (!processor) {
-      throw new Error(`No processor found for step type "${op.id}"`);
+      throw new Error(
+        `No processor found for step type "${op.id}"`,
+      );
     }
     const startedAt = new Date().toISOString();
     const value = await processor.process(medium);
@@ -60,5 +75,7 @@ export const operate = async ({
         });
   }
 
-  throw new Error(`Unknown operation type for operation`);
+  throw new Error(
+    `Unknown operation type for operation`,
+  );
 };

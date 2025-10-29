@@ -7,5 +7,7 @@ export type SwitcherOperation = Readonly<{
   whenFalse: string;
 }>;
 
-export const isSwitcherOperation = (op: Operation): op is SwitcherOperation =>
+export const isSwitcherOperation = (
+  op: Operation,
+): op is SwitcherOperation =>
   op.type === "switcher";

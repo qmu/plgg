@@ -26,7 +26,9 @@ export type ProcessorArg = {
   process: (input: Medium) => unknown;
 };
 
-export const asProcessor = (value: ProcessorArg) =>
+export const asProcessor = (
+  value: ProcessorArg,
+) =>
   cast(
     value,
     forProp("id", asKebabCase),
@@ -39,6 +41,9 @@ export const asProcessor = (value: ProcessorArg) =>
 /**
  * Castable instance for Processor safe casting.
  */
-export const processorCastable: Castable<Processor, ProcessorArg> = {
+export const processorCastable: Castable<
+  Processor,
+  ProcessorArg
+> = {
   as: asProcessor,
 };

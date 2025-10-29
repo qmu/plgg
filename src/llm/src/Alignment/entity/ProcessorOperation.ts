@@ -8,5 +8,7 @@ export type ProcessorOperation = Readonly<{
   to?: string;
 }>;
 
-export const isProcessorOperation = (op: Operation): op is ProcessorOperation =>
+export const isProcessorOperation = (
+  op: Operation,
+): op is ProcessorOperation =>
   op.type === "processor";

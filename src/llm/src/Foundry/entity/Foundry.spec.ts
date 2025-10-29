@@ -32,10 +32,18 @@ test("asFoundry validation - valid foundry", () => {
 
   const result = asFoundry(validFoundry);
   assert(isOk(result));
-  expect(result.content.processors).toHaveLength(1);
-  expect(result.content.switchers).toHaveLength(1);
-  expect(result.content.processors[0]?.id.content).toBe("test-processor");
-  expect(result.content.switchers[0]?.id.content).toBe("test-switcher");
+  expect(result.content.processors).toHaveLength(
+    1,
+  );
+  expect(result.content.switchers).toHaveLength(
+    1,
+  );
+  expect(
+    result.content.processors[0]?.id.content,
+  ).toBe("test-processor");
+  expect(
+    result.content.switchers[0]?.id.content,
+  ).toBe("test-switcher");
 });
 
 /**
@@ -50,8 +58,12 @@ test("asFoundry validation - empty processors and switchers", () => {
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));
-  expect(result.content.processors).toHaveLength(0);
-  expect(result.content.switchers).toHaveLength(0);
+  expect(result.content.processors).toHaveLength(
+    0,
+  );
+  expect(result.content.switchers).toHaveLength(
+    0,
+  );
 });
 
 /**
@@ -98,8 +110,12 @@ test("asFoundry validation - multiple processors and switchers", () => {
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));
-  expect(result.content.processors).toHaveLength(2);
-  expect(result.content.switchers).toHaveLength(2);
+  expect(result.content.processors).toHaveLength(
+    2,
+  );
+  expect(result.content.switchers).toHaveLength(
+    2,
+  );
 });
 
 /**
@@ -113,7 +129,9 @@ test("asFoundry validation - missing description", () => {
 
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
-  expect(result.content.message).toContain("description");
+  expect(result.content.message).toContain(
+    "description",
+  );
 });
 
 /**
@@ -127,7 +145,9 @@ test("asFoundry validation - missing processors", () => {
 
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
-  expect(result.content.message).toContain("processors");
+  expect(result.content.message).toContain(
+    "processors",
+  );
 });
 
 /**
@@ -141,7 +161,9 @@ test("asFoundry validation - missing switchers", () => {
 
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
-  expect(result.content.message).toContain("switchers");
+  expect(result.content.message).toContain(
+    "switchers",
+  );
 });
 
 /**
@@ -162,7 +184,9 @@ test("asFoundry validation - invalid processor", () => {
 
   const result = asFoundry(foundryArg as any);
   assert(isErr(result));
-  expect(result.content.message).toContain("Array element");
+  expect(result.content.message).toContain(
+    "Array element",
+  );
 });
 
 /**
@@ -183,7 +207,9 @@ test("asFoundry validation - invalid switcher", () => {
 
   const result = asFoundry(foundryArg as any);
   assert(isErr(result));
-  expect(result.content.message).toContain("Array element");
+  expect(result.content.message).toContain(
+    "Array element",
+  );
 });
 
 /**
@@ -198,7 +224,9 @@ test("asFoundry validation - processors not array", () => {
 
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
-  expect(result.content.message).toContain("array");
+  expect(result.content.message).toContain(
+    "array",
+  );
 });
 
 /**
@@ -213,5 +241,7 @@ test("asFoundry validation - switchers not array", () => {
 
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
-  expect(result.content.message).toContain("array");
+  expect(result.content.message).toContain(
+    "array",
+  );
 });

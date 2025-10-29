@@ -31,13 +31,22 @@ export const asFoundry = (value: FoundryArg) =>
   cast(
     value,
     forProp("description", asStr),
-    forProp("processors", asReadonlyArray(asProcessor)),
-    forProp("switchers", asReadonlyArray(asSwitcher)),
+    forProp(
+      "processors",
+      asReadonlyArray(asProcessor),
+    ),
+    forProp(
+      "switchers",
+      asReadonlyArray(asSwitcher),
+    ),
   );
 
 /**
  * Castable instance for Foundry safe casting.
  */
-export const foundryCastable: Castable<Foundry, FoundryArg> = {
+export const foundryCastable: Castable<
+  Foundry,
+  FoundryArg
+> = {
   as: asFoundry,
 };
