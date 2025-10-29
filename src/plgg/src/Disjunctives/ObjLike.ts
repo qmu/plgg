@@ -69,11 +69,9 @@ export const forProp =
  * Validates optional record property with predicate.
  */
 export const forOptionProp =
-  <T extends string, U>(
+  <T extends string, U, A>(
     key: T,
-    predicate: (
-      a: unknown,
-    ) => Result<U, InvalidError>,
+    predicate: (a: A) => Result<U, InvalidError>,
   ) =>
   <V extends object>(
     rec: V,
@@ -83,7 +81,7 @@ export const forOptionProp =
   > =>
     hasProp(rec, key)
       ? pipe(
-          rec[key],
+          rec[key] as A, // FIXME
           predicate,
           chainResult(
             (
