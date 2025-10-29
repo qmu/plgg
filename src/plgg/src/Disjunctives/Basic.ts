@@ -10,7 +10,7 @@ import {
   U64,
   U128,
   Float,
-  NonEmptyStr,
+  Str,
   isI8,
   isI16,
   isI32,
@@ -22,7 +22,7 @@ import {
   isU64,
   isU128,
   isFloat,
-  isNonEmptyStr,
+  isStr,
 } from "plgg/index";
 
 /**
@@ -40,7 +40,7 @@ export type Basic =
   | U64
   | U128
   | Float
-  | NonEmptyStr;
+  | Str;
 
 /**
  * Type predicate to determine if a type is basic.
@@ -66,4 +66,4 @@ export const isBasic = (
   isU64(value) ||
   isU128(value) ||
   isFloat(value) ||
-  isNonEmptyStr(value);
+  isStr(value);

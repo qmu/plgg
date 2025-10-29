@@ -9,8 +9,8 @@ import {
   cast,
   refine,
   Obj,
-  NonEmptyStr,
-  asNonEmptyStr,
+  Str,
+  asStr,
   Result,
   InvalidError,
 } from "plgg";
@@ -18,13 +18,13 @@ import {
 type Id = string;
 const asId = (v: unknown) => cast(v, asSoftStr);
 
-type Name = NonEmptyStr;
+type Name = Str;
 const asName = (v: unknown) =>
   cast(
     v,
     asSoftStr,
     refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
-    asNonEmptyStr,
+    asStr,
   );
 
 export type Article = Obj<{

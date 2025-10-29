@@ -10,7 +10,7 @@ import {
 
 /**
  * Represents JavaScript string values.
- * SoftStr can be empty, unlike NonEmptyStr which requires at least one character.
+ * SoftStr can be empty, unlike Str which requires at least one character.
  */
 export type SoftStr = string;
 

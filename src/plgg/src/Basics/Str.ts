@@ -14,8 +14,8 @@ import {
 /**
  * A variant with both a tag and content that must be a non-empty string.
  */
-export type NonEmptyStr = Box<
-  "NonEmptyStr",
+export type Str = Box<
+  "Str",
   string
 >;
 
@@ -29,45 +29,45 @@ const qualify = (
   isSoftStr(value) && value.length > 0;
 
 /**
- * Type guard to check if a value is a NonEmptyStr.
+ * Type guard to check if a value is a Str.
  */
 const is = (
   value: unknown,
-): value is NonEmptyStr =>
-  isBoxWithTag("NonEmptyStr")(value) &&
+): value is Str =>
+  isBoxWithTag("Str")(value) &&
   qualify(value.content);
 
 /**
- * Refinable instance for NonEmptyStr type guards.
+ * Refinable instance for Str type guards.
  */
-export const nonEmptyStrRefinable: Refinable<NonEmptyStr> =
+export const strRefinable: Refinable<Str> =
   {
     is,
   };
 /**
- * Exported type guard function for NonEmptyStr values.
+ * Exported type guard function for Str values.
  */
-export const { is: isNonEmptyStr } =
-  nonEmptyStrRefinable;
+export const { is: isStr } =
+  strRefinable;
 
-export const asNonEmptyStr = (
+export const asStr = (
   value: unknown,
-): Result<NonEmptyStr, InvalidError> =>
+): Result<Str, InvalidError> =>
   is(value)
     ? newOk(value)
     : qualify(value)
-      ? newOk(newBox("NonEmptyStr")(value))
+      ? newOk(newBox("Str")(value))
       : newErr(
           new InvalidError({
             message:
-              "Value is not a NonEmptyStr (tag-content pair with non-empty string)",
+              "Value is not a Str (tag-content pair with non-empty string)",
           }),
         );
 
 /**
- * Castable instance for NonEmptyStr safe casting.
+ * Castable instance for Str safe casting.
  */
-export const nonEmptyStrCastable: Castable<NonEmptyStr> =
+export const strCastable: Castable<Str> =
   {
-    as: asNonEmptyStr,
+    as: asStr,
   };

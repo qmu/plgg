@@ -7,16 +7,16 @@ import {
   asSwitcher,
 } from "autoplgg/index";
 import {
-  NonEmptyStr,
+  Str,
   Castable,
-  asNonEmptyStr,
+  asStr,
   cast,
   forProp,
   asReadonlyArray,
 } from "plgg";
 
 export type Foundry = {
-  description: NonEmptyStr;
+  description: Str;
   processors: ReadonlyArray<Processor>;
   switchers: ReadonlyArray<Switcher>;
 };
@@ -30,7 +30,7 @@ export type FoundryArg = {
 export const asFoundry = (value: FoundryArg) =>
   cast(
     value,
-    forProp("description", asNonEmptyStr),
+    forProp("description", asStr),
     forProp("processors", asReadonlyArray(asProcessor)),
     forProp("switchers", asReadonlyArray(asSwitcher)),
   );
