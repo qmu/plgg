@@ -50,7 +50,7 @@ test("Character Image Generation", async () => {
         },
       },
       {
-        id: "genMain",
+        id: "gen-main",
         description: "Generates the main character image",
         inputType: "string",
         outputType: "image[]",
@@ -63,7 +63,7 @@ test("Character Image Generation", async () => {
         },
       },
       {
-        id: "genSpread",
+        id: "gen-spread",
         description: "Generates spread images for the character",
         inputType: "image[]",
         outputType: "image[]",
@@ -78,7 +78,7 @@ test("Character Image Generation", async () => {
     ],
     switchers: [
       {
-        id: "checkValidity",
+        id: "check-validity",
         description: "Checks for inappropriate content in images",
         input: "image[]",
         outputWhenTrue: "image[]",

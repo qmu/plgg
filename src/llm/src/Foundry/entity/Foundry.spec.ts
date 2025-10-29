@@ -34,8 +34,8 @@ test("asFoundry validation - valid foundry", () => {
   assert(isOk(result));
   expect(result.content.processors).toHaveLength(1);
   expect(result.content.switchers).toHaveLength(1);
-  expect(result.content.processors[0]?.id).toBe("test-processor");
-  expect(result.content.switchers[0]?.id).toBe("test-switcher");
+  expect(result.content.processors[0]?.id.content).toBe("test-processor");
+  expect(result.content.switchers[0]?.id.content).toBe("test-switcher");
 });
 
 /**

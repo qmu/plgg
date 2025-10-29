@@ -10,10 +10,10 @@ import {
   refine,
   Obj,
   NonEmptyStr,
-  packAsNonEmptyStr,
+  asNonEmptyStr,
   Result,
   InvalidError,
-} from 'plgg';
+} from "plgg";
 
 type Id = string;
 const asId = (v: unknown) => cast(v, asStr);
@@ -23,11 +23,8 @@ const asName = (v: unknown) =>
   cast(
     v,
     asStr,
-    refine(
-      (str) => str.length >= 3,
-      'Name must be at least 3 characters long'
-    ),
-    packAsNonEmptyStr
+    refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
+    asNonEmptyStr,
   );
 
 export type Article = Obj<{
@@ -41,8 +38,8 @@ export const asArticle = (v: unknown): Result<Article, InvalidError> =>
   cast(
     v,
     asObj,
-    forProp('id', asId),
-    forProp('createdAt', asTime),
-    forProp('name', asName),
-    forOptionProp('memo', asStr)
+    forProp("id", asId),
+    forProp("createdAt", asTime),
+    forProp("name", asName),
+    forOptionProp("memo", asStr),
   );

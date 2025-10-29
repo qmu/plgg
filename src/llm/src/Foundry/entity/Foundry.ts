@@ -9,7 +9,7 @@ import {
 import {
   NonEmptyStr,
   Castable,
-  packAsNonEmptyStr,
+  asNonEmptyStr,
   cast,
   forProp,
   asReadonlyArray,
@@ -30,7 +30,7 @@ export type FoundryArg = {
 export const asFoundry = (value: FoundryArg) =>
   cast(
     value,
-    forProp("description", packAsNonEmptyStr),
+    forProp("description", asNonEmptyStr),
     forProp("processors", asReadonlyArray(asProcessor)),
     forProp("switchers", asReadonlyArray(asSwitcher)),
   );
