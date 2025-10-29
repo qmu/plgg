@@ -2,19 +2,19 @@ import { Medium } from "autoplgg/index";
 import {
   Castable,
   KebabCase,
-  SoftStr,
+  Str,
   cast,
   forProp,
-  asSoftStr,
+  asStr,
   asFunc,
   asKebabCase,
 } from "plgg";
 
 export type Processor = {
   id: KebabCase;
-  description: SoftStr;
-  inputType: SoftStr;
-  outputType: SoftStr;
+  description: Str;
+  inputType: Str;
+  outputType: Str;
   process: (input: Medium) => unknown;
 };
 
@@ -32,9 +32,9 @@ export const asProcessor = (
   cast(
     value,
     forProp("id", asKebabCase),
-    forProp("description", asSoftStr),
-    forProp("inputType", asSoftStr),
-    forProp("outputType", asSoftStr),
+    forProp("description", asStr),
+    forProp("inputType", asStr),
+    forProp("outputType", asStr),
     forProp("process", asFunc),
   );
 

@@ -1,18 +1,18 @@
 import {
+  Time,
+  Option,
+  Obj,
+  Str,
+  Result,
+  InvalidError,
   asSoftStr,
   asObj,
   forProp,
   forOptionProp,
-  Time,
   asTime,
-  Option,
   cast,
   refine,
-  Obj,
-  Str,
   asStr,
-  Result,
-  InvalidError,
 } from "plgg";
 
 type Id = string;

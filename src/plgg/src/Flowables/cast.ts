@@ -545,7 +545,7 @@ export function cast(
       ];
       return newErr(
         new InvalidError({
-          message: "Validation failed",
+          message: `Cast failed at ${sibling.length} of ${fns.length} step(s), see sibling errors for details.`,
           sibling,
         }),
       );

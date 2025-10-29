@@ -1,21 +1,21 @@
 import { Medium } from "autoplgg/index";
 import {
   KebabCase,
-  SoftStr,
+  Str,
   Castable,
   cast,
   forProp,
-  asSoftStr,
+  asStr,
   asFunc,
   asKebabCase,
 } from "plgg";
 
 export type Switcher = {
   id: KebabCase;
-  description: SoftStr;
-  input: SoftStr;
-  outputWhenTrue: SoftStr;
-  outputWhenFalse: SoftStr;
+  description: Str;
+  input: Str;
+  outputWhenTrue: Str;
+  outputWhenFalse: Str;
   check: (input: Medium) => [
     boolean, // validity
     unknown, // proppagating data
@@ -38,10 +38,10 @@ export const asSwitcher = (value: SwitcherArg) =>
   cast(
     value,
     forProp("id", asKebabCase),
-    forProp("description", asSoftStr),
-    forProp("input", asSoftStr),
-    forProp("outputWhenTrue", asSoftStr),
-    forProp("outputWhenFalse", asSoftStr),
+    forProp("description", asStr),
+    forProp("input", asStr),
+    forProp("outputWhenTrue", asStr),
+    forProp("outputWhenFalse", asStr),
     forProp("check", asFunc),
   );
 

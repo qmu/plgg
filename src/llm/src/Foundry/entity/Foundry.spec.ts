@@ -1,5 +1,9 @@
 import { test, expect, assert } from "vitest";
-import { isOk, isErr } from "plgg";
+import {
+  isOk,
+  isErr,
+  printPlggError,
+} from "plgg";
 import { asFoundry } from "./Foundry";
 import type { FoundryArg } from "./Foundry";
 
