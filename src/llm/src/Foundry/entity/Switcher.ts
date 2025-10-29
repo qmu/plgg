@@ -1,12 +1,21 @@
 import { Medium } from "autoplgg/index";
-import { Castable, cast, forProp, asStr, asFunc } from "plgg";
+import {
+  KebabCase,
+  Str,
+  Castable,
+  cast,
+  forProp,
+  asStr,
+  asFunc,
+  asKebabCase,
+} from "plgg";
 
 export type Switcher = {
-  id: string;
-  description: string;
-  input: string;
-  outputWhenTrue: string;
-  outputWhenFalse: string;
+  id: KebabCase;
+  description: Str;
+  input: Str;
+  outputWhenTrue: Str;
+  outputWhenFalse: Str;
   check: (input: Medium) => [
     boolean, // validity
     unknown, // proppagating data
@@ -28,7 +37,7 @@ export type SwitcherArg = {
 export const asSwitcher = (value: SwitcherArg) =>
   cast(
     value,
-    forProp("id", asStr),
+    forProp("id", asKebabCase),
     forProp("description", asStr),
     forProp("input", asStr),
     forProp("outputWhenTrue", asStr),

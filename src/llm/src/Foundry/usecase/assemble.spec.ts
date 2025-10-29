@@ -113,6 +113,7 @@ test("Character Image Generation", async () => {
   if (isErr(result)) {
     assert.fail(`Process failed: ${result.content.message}`);
   }
+  assert(isOk(result));
   // console.log(
   //   JSON.stringify(result.content, null, 2)
   // );
