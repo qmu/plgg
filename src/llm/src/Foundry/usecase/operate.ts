@@ -127,7 +127,7 @@ const operateSwitch = async (
         operation: opResult.content,
         medium: {
           ...medium,
-          value: value,
+          value,
         },
         env,
       })

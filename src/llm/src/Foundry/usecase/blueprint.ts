@@ -32,7 +32,7 @@ export const plan =
           type: "switch",
           opcode: "check-validity",
           nextWhenTrue: "gen-spread",
-          nextWhenFalse: "gen-main",
+          nextWhenFalse: "plan",
           loadAddr: "r2",
           saveAddrTrue: "r3",
           saveAddrFalse: "r0",

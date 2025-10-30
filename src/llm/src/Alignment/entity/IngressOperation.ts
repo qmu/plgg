@@ -14,4 +14,4 @@ export type IngressOperation = Readonly<{
 export const isIngressOperation = (
   op: Operation,
 ): op is IngressOperation =>
-  op.type === "process";
+  op.type === "ingress";

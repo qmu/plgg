@@ -3,6 +3,7 @@ import {
   Operation,
   IngressOperation,
   isInternalOperation,
+  isIngressOperation,
   isEgressOperation,
 } from "autoplgg/index";
 
@@ -15,9 +16,7 @@ export const findIngressOp = (
   alignment: Alignment,
 ): Result<IngressOperation, Error> => {
   const operation = alignment.operations.find(
-    (op) =>
-      !isInternalOperation(op) &&
-      !isEgressOperation(op),
+    (op) => isIngressOperation(op),
   );
   if (!operation) {
     return newErr(
