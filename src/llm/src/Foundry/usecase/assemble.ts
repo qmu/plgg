@@ -1,9 +1,9 @@
 import { Result, newOk, isErr } from "plgg";
 import {
-  Medium,
   FoundrySpec,
   Alignment,
   OperationContext,
+  Operation,
   findIngressOp,
   findInternalOp,
 } from "autoplgg/index";
@@ -12,13 +12,18 @@ export const assemble =
   (foundry: FoundrySpec) =>
   (
     alignment: Alignment,
-  ): Result<OperationContext, Error> => {
+  ): Result<
+    { op: Operation; ctx: OperationContext },
+    Error
+  > => {
     const ingressOp = findIngressOp(alignment);
     if (isErr(ingressOp)) {
       return ingressOp;
     }
-    const medium: Medium = {
-      value: alignment.instruction,
+    const newEnv = {
+      [ingressOp.content.promptAddr]: {
+        value: alignment.instruction,
+      },
     };
     const nextOp = findInternalOp(
       alignment,
@@ -28,10 +33,11 @@ export const assemble =
       return nextOp;
     }
     return newOk({
-      foundry,
-      alignment,
-      medium,
-      operation: nextOp.content,
-      env: {},
+      op: nextOp.content,
+      ctx: {
+        foundry,
+        alignment,
+        env: newEnv,
+      },
     });
   };

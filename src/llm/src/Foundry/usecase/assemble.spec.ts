@@ -114,9 +114,9 @@ test("Character Image Generation", async () => {
         id: "check-validity",
         description:
           "Checks for inappropriate content in images",
-        input: "image[]",
-        outputWhenTrue: "image[]",
-        outputWhenFalse: "string",
+        inputType: "image[]",
+        outputTypeWhenTrue: "image[]",
+        outputTypeWhenFalse: "string",
         check: (medium) => {
           if (!isImage(medium.value)) {
             throw new Error(

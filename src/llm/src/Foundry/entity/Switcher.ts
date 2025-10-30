@@ -13,9 +13,9 @@ import {
 export type Switcher = {
   id: KebabCase;
   description: Str;
-  input: Str;
-  outputWhenTrue: Str;
-  outputWhenFalse: Str;
+  inputType: Str;
+  outputTypeWhenTrue: Str;
+  outputTypeWhenFalse: Str;
   check: (input: Medium) => [
     boolean, // validity
     unknown, // proppagating data
@@ -25,9 +25,9 @@ export type Switcher = {
 export type SwitcherArg = {
   id: string;
   description: string;
-  input: string;
-  outputWhenTrue: string;
-  outputWhenFalse: string;
+  inputType: string;
+  outputTypeWhenTrue: string;
+  outputTypeWhenFalse: string;
   check: (input: Medium) => [
     boolean, // validity
     unknown, // proppagating data
@@ -39,9 +39,9 @@ export const asSwitcher = (value: SwitcherArg) =>
     value,
     forProp("id", asKebabCase),
     forProp("description", asStr),
-    forProp("input", asStr),
-    forProp("outputWhenTrue", asStr),
-    forProp("outputWhenFalse", asStr),
+    forProp("inputType", asStr),
+    forProp("outputTypeWhenTrue", asStr),
+    forProp("outputTypeWhenFalse", asStr),
     forProp("check", asFunc),
   );
 

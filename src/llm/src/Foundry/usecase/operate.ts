@@ -5,14 +5,14 @@ import {
   isOk,
 } from "plgg";
 import {
-  Foundry,
   Medium,
   OperationContext,
-  Alignment,
   IngressOperation,
   SwitchOperation,
   ProcessOperation,
   EgressOperation,
+  Env,
+  Operation,
   isIngressOperation,
   isEgressOperation,
   isSwitchOperation,
@@ -24,49 +24,23 @@ import {
 } from "autoplgg/index";
 
 export const operate = async ({
-  foundry,
-  alignment,
-  medium,
-  operation: op,
-  env,
-}: OperationContext): Promise<
-  Result<Medium, Error>
-> => {
+  op,
+  ctx,
+}: {
+  op: Operation;
+  ctx: OperationContext;
+}): Promise<Result<Medium, Error>> => {
   if (isIngressOperation(op)) {
-    return operateIngress(
-      foundry,
-      alignment,
-      medium,
-      op,
-      env,
-    );
+    return operateIngress({ op, ctx });
   }
   if (isSwitchOperation(op)) {
-    return operateSwitch(
-      foundry,
-      alignment,
-      medium,
-      op,
-      env,
-    );
+    return operateSwitch({ op, ctx });
   }
   if (isProcessOperation(op)) {
-    return operateProcess(
-      foundry,
-      alignment,
-      medium,
-      op,
-      env,
-    );
+    return operateProcess({ op, ctx });
   }
   if (isEgressOperation(op)) {
-    return operateEgress(
-      foundry,
-      alignment,
-      medium,
-      op,
-      env,
-    );
+    return operateEgress({ op, ctx });
   }
   return newErr(
     new Error(
@@ -75,41 +49,52 @@ export const operate = async ({
   );
 };
 
-const operateIngress = async (
-  foundry: Foundry,
-  alignment: Alignment,
-  medium: Medium,
-  op: IngressOperation,
-  env: Record<string, unknown>,
-): Promise<Result<Medium, Error>> => {
+const operateIngress = async ({
+  op,
+  ctx,
+}: {
+  op: IngressOperation;
+  ctx: OperationContext;
+}): Promise<Result<Medium, Error>> => {
+  const { alignment, env } = ctx;
   const opResult = findInternalOp(
     alignment,
     op.next,
   );
   return isOk(opResult)
     ? operate({
-        foundry,
-        alignment,
-        operation: opResult.content,
-        medium,
-        env,
+        op: opResult.content,
+        ctx: {
+          ...ctx,
+          env,
+        },
       })
     : newErr(opResult.content);
 };
 
-const operateSwitch = async (
-  foundry: Foundry,
-  alignment: Alignment,
-  medium: Medium,
-  op: SwitchOperation,
-  env: Record<string, unknown>,
-): Promise<Result<Medium, Error>> => {
+const operateSwitch = async ({
+  op,
+  ctx,
+}: {
+  op: SwitchOperation;
+  ctx: OperationContext;
+}): Promise<Result<Medium, Error>> => {
+  const { foundry, alignment, env } = ctx;
   const switcherResult = findSwitcher(
     foundry,
     op.opcode,
   );
   if (!isOk(switcherResult)) {
     return newErr(switcherResult.content);
+  }
+
+  const medium = env[op.loadAddr];
+  if (!medium) {
+    return newErr(
+      new Error(
+        `No value found at load address "${op.loadAddr}"`,
+      ),
+    );
   }
 
   const [isValid, value] =
@@ -119,28 +104,32 @@ const operateSwitch = async (
     alignment,
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
   );
+  const newEnv: Env = {
+    ...env,
+    [isValid
+      ? op.saveAddrTrue
+      : op.saveAddrFalse]: { value },
+  };
 
   return isOk(opResult)
     ? operate({
-        foundry,
-        alignment,
-        operation: opResult.content,
-        medium: {
-          ...medium,
-          value,
+        op: opResult.content,
+        ctx: {
+          ...ctx,
+          env: newEnv,
         },
-        env,
       })
     : newErr(opResult.content);
 };
 
-const operateProcess = async (
-  foundry: Foundry,
-  alignment: Alignment,
-  medium: Medium,
-  op: ProcessOperation,
-  env: Record<string, unknown>,
-): Promise<Result<Medium, Error>> => {
+const operateProcess = async ({
+  op,
+  ctx,
+}: {
+  op: ProcessOperation;
+  ctx: OperationContext;
+}): Promise<Result<Medium, Error>> => {
+  const { foundry, alignment, env } = ctx;
   const processorResult = findProcessor(
     foundry,
     op.opcode,
@@ -148,21 +137,33 @@ const operateProcess = async (
   if (!isOk(processorResult)) {
     return newErr(processorResult.content);
   }
+
+  const medium = env[op.loadAddr];
+  if (!medium) {
+    return newErr(
+      new Error(
+        `No value found at load address "${op.loadAddr}"`,
+      ),
+    );
+  }
   const value =
     await processorResult.content.process(medium);
+
+  const newEnv = {
+    ...env,
+    [op.saveAddr]: { value },
+  };
 
   if (op.exit) {
     const egressOpResult =
       findEgressOp(alignment);
     return isOk(egressOpResult)
       ? operate({
-          foundry,
-          alignment,
-          medium: {
-            value,
+          op: egressOpResult.content,
+          ctx: {
+            ...ctx,
+            env: newEnv,
           },
-          operation: egressOpResult.content,
-          env,
         })
       : newErr(egressOpResult.content);
   }
@@ -181,23 +182,26 @@ const operateProcess = async (
   );
   return isOk(nextOpResult)
     ? operate({
-        foundry,
-        alignment,
-        operation: nextOpResult.content,
-        medium: {
-          value,
+        op: nextOpResult.content,
+        ctx: {
+          ...ctx,
+          env: newEnv,
         },
-        env,
       })
     : newErr(nextOpResult.content);
 };
 
-const operateEgress = async (
-  _foundry: Foundry,
-  _alignment: Alignment,
-  medium: Medium,
-  _op: EgressOperation,
-  _env: Record<string, unknown>,
-): Promise<Result<Medium, Error>> => {
+const operateEgress = async ({
+  op,
+  ctx,
+}: {
+  op: EgressOperation;
+  ctx: OperationContext;
+}): Promise<Result<Medium, Error>> => {
+  const medium: Medium = {
+    value: "Egress reached",
+  };
+  op;
+  ctx;
   return newOk(medium);
 };
