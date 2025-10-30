@@ -109,3 +109,37 @@ export const jsonDecode = (
       (error) => toError(error),
     ),
   );
+
+/**
+ * Accesses a property from an object in a proc-friendly way.
+ * Returns Ok with the property value or Err if the property doesn't exist.
+ */
+export const atProp =
+  <K extends string>(key: K) =>
+  (obj: unknown): Result<unknown, InvalidError> => {
+    if (typeof obj !== "object" || obj === null || !(key in obj)) {
+      return newErr(
+        new InvalidError({
+          message: `Cannot access property '${key}'`,
+        }),
+      );
+    }
+    return newOk((obj as Record<string, unknown>)[key]);
+  };
+
+/**
+ * Accesses an element from an array at a specific index in a proc-friendly way.
+ * Returns Ok with the element at the index or Err if the index is out of bounds.
+ */
+export const atIndex =
+  (index: number) =>
+  (arr: unknown): Result<unknown, InvalidError> => {
+    if (!Array.isArray(arr) || index < 0 || index >= arr.length) {
+      return newErr(
+        new InvalidError({
+          message: `Cannot access index ${index}`,
+        }),
+      );
+    }
+    return newOk(arr[index]);
+  };

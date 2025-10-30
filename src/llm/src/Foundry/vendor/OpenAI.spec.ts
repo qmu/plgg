@@ -1,4 +1,5 @@
-import { test } from "vitest";
+import { test, expect } from "vitest";
+import { isOk } from "plgg";
 import { generateJson } from "./OpenAI";
 
 test.skip("OpenAI API invocation works", async () => {
@@ -10,7 +11,7 @@ test.skip("OpenAI API invocation works", async () => {
     return;
   }
 
-  const response = await generateJson({
+  const res = await generateJson({
     apiKey,
     model: "gpt-5-nano-2025-08-07",
     input: `Compose function call chain to contact the following user request:
@@ -43,5 +44,6 @@ Generate me a mascot character of lion x durian fruit.
       },
     },
   });
-  console.log(response);
+  expect(isOk(res)).toBe(true);
+  console.log(res.content);
 }, 20000);
