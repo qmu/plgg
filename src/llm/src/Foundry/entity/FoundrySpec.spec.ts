@@ -1,17 +1,15 @@
 import { test, expect, assert } from "vitest";
+import { isOk, isErr } from "plgg";
 import {
-  isOk,
-  isErr,
-  printPlggError,
-} from "plgg";
-import { asFoundry } from "./Foundry";
-import type { FoundryArg } from "./Foundry";
+  FoundrySpecArg,
+  asFoundrySpec,
+} from "autoplgg/index";
 
 /**
- * Tests asFoundry validation with a valid Foundry object.
+ * Tests asFoundrySpec validation with a valid Foundry object.
  */
-test("asFoundry validation - valid foundry", () => {
-  const validFoundry: FoundryArg = {
+test("asFoundrySpec validation - valid foundry", () => {
+  const validFoundry: FoundrySpecArg = {
     description: "Test foundry description",
     processors: [
       {
@@ -34,7 +32,7 @@ test("asFoundry validation - valid foundry", () => {
     ],
   };
 
-  const result = asFoundry(validFoundry);
+  const result = asFoundrySpec(validFoundry);
   assert(isOk(result));
   expect(result.content.processors).toHaveLength(
     1,
@@ -51,16 +49,16 @@ test("asFoundry validation - valid foundry", () => {
 });
 
 /**
- * Tests asFoundry validation with empty processors and switchers arrays.
+ * Tests asFoundrySpec validation with empty processors and switchers arrays.
  */
-test("asFoundry validation - empty processors and switchers", () => {
-  const foundryArg: FoundryArg = {
+test("asFoundrySpec validation - empty processors and switchers", () => {
+  const foundryArg: FoundrySpecArg = {
     description: "Empty foundry",
     processors: [],
     switchers: [],
   };
 
-  const result = asFoundry(foundryArg);
+  const result = asFoundrySpec(foundryArg);
   assert(isOk(result));
   expect(result.content.processors).toHaveLength(
     0,
@@ -71,10 +69,10 @@ test("asFoundry validation - empty processors and switchers", () => {
 });
 
 /**
- * Tests asFoundry validation with multiple processors and switchers.
+ * Tests asFoundrySpec validation with multiple processors and switchers.
  */
-test("asFoundry validation - multiple processors and switchers", () => {
-  const foundryArg: FoundryArg = {
+test("asFoundrySpec validation - multiple processors and switchers", () => {
+  const foundryArg: FoundrySpecArg = {
     description: "Multi-component foundry",
     processors: [
       {
@@ -112,7 +110,7 @@ test("asFoundry validation - multiple processors and switchers", () => {
     ],
   };
 
-  const result = asFoundry(foundryArg);
+  const result = asFoundrySpec(foundryArg);
   assert(isOk(result));
   expect(result.content.processors).toHaveLength(
     2,
@@ -123,15 +121,17 @@ test("asFoundry validation - multiple processors and switchers", () => {
 });
 
 /**
- * Tests asFoundry validation failure when description is missing.
+ * Tests asFoundrySpec validation failure when description is missing.
  */
-test("asFoundry validation - missing description", () => {
+test("asFoundrySpec validation - missing description", () => {
   const invalidFoundry = {
     processors: [],
     switchers: [],
   };
 
-  const result = asFoundry(invalidFoundry as any);
+  const result = asFoundrySpec(
+    invalidFoundry as any,
+  );
   assert(isErr(result));
   expect(result.content.message).toContain(
     "description",
@@ -139,15 +139,17 @@ test("asFoundry validation - missing description", () => {
 });
 
 /**
- * Tests asFoundry validation failure when processors is missing.
+ * Tests asFoundrySpec validation failure when processors is missing.
  */
-test("asFoundry validation - missing processors", () => {
+test("asFoundrySpec validation - missing processors", () => {
   const invalidFoundry = {
     description: "Test foundry",
     switchers: [],
   };
 
-  const result = asFoundry(invalidFoundry as any);
+  const result = asFoundrySpec(
+    invalidFoundry as any,
+  );
   assert(isErr(result));
   expect(result.content.message).toContain(
     "processors",
@@ -155,15 +157,17 @@ test("asFoundry validation - missing processors", () => {
 });
 
 /**
- * Tests asFoundry validation failure when switchers is missing.
+ * Tests asFoundrySpec validation failure when switchers is missing.
  */
-test("asFoundry validation - missing switchers", () => {
+test("asFoundrySpec validation - missing switchers", () => {
   const invalidFoundry = {
     description: "Test foundry",
     processors: [],
   };
 
-  const result = asFoundry(invalidFoundry as any);
+  const result = asFoundrySpec(
+    invalidFoundry as any,
+  );
   assert(isErr(result));
   expect(result.content.message).toContain(
     "switchers",
@@ -171,9 +175,9 @@ test("asFoundry validation - missing switchers", () => {
 });
 
 /**
- * Tests asFoundry validation failure with invalid processor structure.
+ * Tests asFoundrySpec validation failure with invalid processor structure.
  */
-test("asFoundry validation - invalid processor", () => {
+test("asFoundrySpec validation - invalid processor", () => {
   const foundryArg = {
     description: "Test foundry",
     processors: [
@@ -186,7 +190,7 @@ test("asFoundry validation - invalid processor", () => {
     switchers: [],
   };
 
-  const result = asFoundry(foundryArg as any);
+  const result = asFoundrySpec(foundryArg as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "Array element",
@@ -194,9 +198,9 @@ test("asFoundry validation - invalid processor", () => {
 });
 
 /**
- * Tests asFoundry validation failure with invalid switcher structure.
+ * Tests asFoundrySpec validation failure with invalid switcher structure.
  */
-test("asFoundry validation - invalid switcher", () => {
+test("asFoundrySpec validation - invalid switcher", () => {
   const foundryArg = {
     description: "Test foundry",
     processors: [],
@@ -209,7 +213,7 @@ test("asFoundry validation - invalid switcher", () => {
     ],
   };
 
-  const result = asFoundry(foundryArg as any);
+  const result = asFoundrySpec(foundryArg as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "Array element",
@@ -217,16 +221,18 @@ test("asFoundry validation - invalid switcher", () => {
 });
 
 /**
- * Tests asFoundry validation failure when processors is not an array.
+ * Tests asFoundrySpec validation failure when processors is not an array.
  */
-test("asFoundry validation - processors not array", () => {
+test("asFoundrySpec validation - processors not array", () => {
   const invalidFoundry = {
     description: "Test foundry",
     processors: "not an array",
     switchers: [],
   };
 
-  const result = asFoundry(invalidFoundry as any);
+  const result = asFoundrySpec(
+    invalidFoundry as any,
+  );
   assert(isErr(result));
   expect(result.content.message).toContain(
     "array",
@@ -234,16 +240,18 @@ test("asFoundry validation - processors not array", () => {
 });
 
 /**
- * Tests asFoundry validation failure when switchers is not an array.
+ * Tests asFoundrySpec validation failure when switchers is not an array.
  */
-test("asFoundry validation - switchers not array", () => {
+test("asFoundrySpec validation - switchers not array", () => {
   const invalidFoundry = {
     description: "Test foundry",
     processors: [],
     switchers: "not an array",
   };
 
-  const result = asFoundry(invalidFoundry as any);
+  const result = asFoundrySpec(
+    invalidFoundry as any,
+  );
   assert(isErr(result));
   expect(result.content.message).toContain(
     "array",

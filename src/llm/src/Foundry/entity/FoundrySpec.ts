@@ -15,19 +15,21 @@ import {
   asReadonlyArray,
 } from "plgg";
 
-export type Foundry = {
+export type FoundrySpec = {
   description: Str;
   processors: ReadonlyArray<Processor>;
   switchers: ReadonlyArray<Switcher>;
 };
 
-export type FoundryArg = {
+export type FoundrySpecArg = {
   description: string;
   processors: ReadonlyArray<ProcessorArg>;
   switchers: ReadonlyArray<SwitcherArg>;
 };
 
-export const asFoundry = (value: FoundryArg) =>
+export const asFoundrySpec = (
+  value: FoundrySpecArg,
+) =>
   cast(
     value,
     forProp("description", asStr),
@@ -44,9 +46,9 @@ export const asFoundry = (value: FoundryArg) =>
 /**
  * Castable instance for Foundry safe casting.
  */
-export const foundryCastable: Castable<
-  Foundry,
-  FoundryArg
+export const foundrySpecCastable: Castable<
+  FoundrySpec,
+  FoundrySpecArg
 > = {
-  as: asFoundry,
+  as: asFoundrySpec,
 };

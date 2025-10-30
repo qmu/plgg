@@ -1,11 +1,11 @@
 import { test, assert } from "vitest";
 import { isErr, isOk, proc } from "plgg";
 import {
-  FoundryArg,
-  asFoundry,
+  FoundrySpecArg,
+  asFoundrySpec,
 } from "autoplgg/index";
 import {
-  plan,
+  plan as blueprint,
   assemble,
   operate,
 } from "autoplgg/Foundry/usecase";
@@ -34,7 +34,7 @@ test("Character Image Generation", async () => {
   ): a is StringMediumValue =>
     typeof a === "string";
 
-  const foundryArg: FoundryArg = {
+  const foundryArg: FoundrySpecArg = {
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
     processors: [
@@ -136,14 +136,14 @@ test("Character Image Generation", async () => {
     ],
   };
 
-  const foundryResult = asFoundry(foundryArg);
-  assert(isOk(foundryResult));
-  const foundry = foundryResult.content;
+  const specResult = asFoundrySpec(foundryArg);
+  assert(isOk(specResult));
+  const spec = specResult.content;
 
   const result = await proc(
     "A fantasy character with a sword and shield",
-    plan(foundry),
-    assemble(foundry),
+    blueprint(spec),
+    assemble(spec),
     operate,
   );
   if (isErr(result)) {

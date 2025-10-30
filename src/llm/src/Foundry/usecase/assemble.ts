@@ -1,13 +1,13 @@
 import { Result, newOk } from "plgg";
 import {
   Medium,
-  Foundry,
+  FoundrySpec,
   Alignment,
   OperationContext,
 } from "autoplgg/index";
 
 export const assemble =
-  (foundry: Foundry) =>
+  (foundry: FoundrySpec) =>
   (
     alignment: Alignment,
   ): Result<OperationContext, Error> => {

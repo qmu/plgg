@@ -1,10 +1,10 @@
 import {
-  Foundry,
+  FoundrySpec,
   Alignment,
 } from "autoplgg/index";
 
 export const plan =
-  (_foundry: Foundry) =>
+  (_foundry: FoundrySpec) =>
   (instruction: string): Alignment => {
     const examplAlignment: Alignment = {
       instruction,

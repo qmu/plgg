@@ -1,11 +1,11 @@
 import {
-  Foundry,
+  FoundrySpec,
   Alignment,
   Medium,
 } from "autoplgg/index";
 
 export type OperationContext = {
-  foundry: Foundry;
+  foundry: FoundrySpec;
   alignment: Alignment;
   medium: Medium;
 };
