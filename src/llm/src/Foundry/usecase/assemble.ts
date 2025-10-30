@@ -1,9 +1,11 @@
-import { Result, newOk } from "plgg";
+import { Result, newOk, isErr } from "plgg";
 import {
   Medium,
   FoundrySpec,
   Alignment,
   OperationContext,
+  findIngressOp,
+  findInternalOp,
 } from "autoplgg/index";
 
 export const assemble =
@@ -11,25 +13,25 @@ export const assemble =
   (
     alignment: Alignment,
   ): Result<OperationContext, Error> => {
-    const iniOp = alignment.operations.find(
-      (op) => "initial" in op && op.initial,
-    );
-    if (!iniOp) {
-      throw new Error(
-        "No initial operation found in alignment",
-      );
+    const ingressOp = findIngressOp(alignment);
+    if (isErr(ingressOp)) {
+      return ingressOp;
     }
     const medium: Medium = {
-      startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(),
       value: alignment.instruction,
-      lastMedium: undefined,
     };
+    const nextOp = findInternalOp(
+      alignment,
+      ingressOp.content.next,
+    );
+    if (isErr(nextOp)) {
+      return nextOp;
+    }
     return newOk({
       foundry,
       alignment,
       medium,
-      opcode: iniOp.opcode,
+      operation: nextOp.content,
       env: {},
     });
   };

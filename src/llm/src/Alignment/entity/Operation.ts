@@ -1,8 +1,10 @@
 import {
-  ProcessorOperation,
-  SwitcherOperation,
+  EgressOperation,
+  IngressOperation,
+  InternalOperation,
 } from "autoplgg/index";
 
 export type Operation =
-  | ProcessorOperation
-  | SwitcherOperation;
+  | EgressOperation
+  | IngressOperation
+  | InternalOperation;

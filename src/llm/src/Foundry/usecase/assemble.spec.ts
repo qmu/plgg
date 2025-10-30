@@ -39,7 +39,7 @@ test("Character Image Generation", async () => {
       "This is a foundry for generating character designs based on text prompts and reference images.",
     processors: [
       {
-        id: "plan",
+        opcode: "plan",
         description:
           "Plans the character design based on the prompt",
         inputType: "string",
@@ -55,7 +55,7 @@ test("Character Image Generation", async () => {
         },
       },
       {
-        id: "analyze",
+        opcode: "analyze",
         description:
           "Analyzes reference images for character features",
         inputType: "image[]",
@@ -73,7 +73,7 @@ test("Character Image Generation", async () => {
         },
       },
       {
-        id: "gen-main",
+        opcode: "gen-main",
         description:
           "Generates the main character image",
         inputType: "string",
@@ -91,7 +91,7 @@ test("Character Image Generation", async () => {
         },
       },
       {
-        id: "gen-spread",
+        opcode: "gen-spread",
         description:
           "Generates spread images for the character",
         inputType: "image[]",

@@ -1,4 +1,15 @@
 import {
+  Str,
+  Castable,
+  Result,
+  asStr,
+  cast,
+  forProp,
+  asReadonlyArray,
+  newOk,
+  newErr,
+} from "plgg";
+import {
   Processor,
   Switcher,
   ProcessorArg,
@@ -6,14 +17,6 @@ import {
   asProcessor,
   asSwitcher,
 } from "autoplgg/index";
-import {
-  Str,
-  Castable,
-  asStr,
-  cast,
-  forProp,
-  asReadonlyArray,
-} from "plgg";
 
 export type FoundrySpec = {
   description: Str;
@@ -51,4 +54,38 @@ export const foundrySpecCastable: Castable<
   FoundrySpecArg
 > = {
   as: asFoundrySpec,
+};
+
+export const findSwitcher = (
+  foundry: Foundry,
+  opcode: string,
+): Result<Switcher, Error> => {
+  const switcher = foundry.switchers.find(
+    (s) => s.id.content === opcode,
+  );
+  if (!switcher) {
+    return newErr(
+      new Error(
+        `No switcher found for opcode "${opcode}"`,
+      ),
+    );
+  }
+  return newOk(switcher);
+};
+
+export const findProcessor = (
+  foundry: Foundry,
+  opcode: string,
+): Result<Processor, Error> => {
+  const processor = foundry.processors.find(
+    (p) => p.opcode.content === opcode,
+  );
+  if (!processor) {
+    return newErr(
+      new Error(
+        `No processor found for opcode "${opcode}"`,
+      ),
+    );
+  }
+  return newOk(processor);
 };

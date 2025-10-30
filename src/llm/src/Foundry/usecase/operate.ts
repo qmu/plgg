@@ -1,96 +1,203 @@
-import { Result, newOk, newErr } from "plgg";
 import {
+  Result,
+  newOk,
+  newErr,
+  isOk,
+} from "plgg";
+import {
+  Foundry,
   Medium,
   OperationContext,
-  isSwitcherOperation,
-  isProcessorOperation,
+  Alignment,
+  IngressOperation,
+  SwitchOperation,
+  ProcessOperation,
+  EgressOperation,
+  isIngressOperation,
+  isEgressOperation,
+  isSwitchOperation,
+  isProcessOperation,
+  findInternalOp,
+  findEgressOp,
+  findSwitcher,
+  findProcessor,
 } from "autoplgg/index";
 
 export const operate = async ({
   foundry,
   alignment,
   medium,
-  opcode,
+  operation: op,
   env,
 }: OperationContext): Promise<
   Result<Medium, Error>
 > => {
-  const op = alignment.operations.find(
-    (op) => op.opcode === opcode,
-  );
-  if (!op) {
-    return newErr(
-      new Error(
-        `Operation "${opcode}" not found in alignment`,
-      ),
-    );
-  }
-
-  if (isSwitcherOperation(op)) {
-    const switcher = foundry.switchers.find(
-      (s) => s.id.content === op.opcode,
-    );
-    if (!switcher) {
-      return newErr(
-        new Error(
-          `No checker found for step type "${op.opcode}"`,
-        ),
-      );
-    }
-    const startedAt = new Date().toISOString();
-    const [isValid, value] =
-      switcher.check(medium);
-    return operate({
+  if (isIngressOperation(op)) {
+    return operateIngress(
       foundry,
       alignment,
-      opcode: isValid
-        ? op.whenTrue
-        : op.whenFalse,
-      medium: {
-        ...medium,
-        startedAt,
-        endedAt: new Date().toISOString(),
-        value: value,
-        lastMedium: medium,
-      },
+      medium,
+      op,
       env,
-    });
-  }
-
-  if (isProcessorOperation(op)) {
-    const processor = foundry.processors.find(
-      (p) => p.id.content === op.opcode,
     );
-    if (!processor) {
-      return newErr(
-        new Error(
-          `No processor found for step type "${op.opcode}"`,
-        ),
-      );
-    }
-    const startedAt = new Date().toISOString();
-    const value = await processor.process(medium);
-    const newMedium = {
-      startedAt,
-      endedAt: new Date().toISOString(),
-      value,
-      lastMedium: medium,
-    };
-    return op.final
-      ? newOk(newMedium)
-      : op.next
-        ? operate({
-            foundry,
-            alignment,
-            medium: newMedium,
-            opcode: op.next,
-            env,
-          })
-        : newErr(new Error());
+  }
+  if (isSwitchOperation(op)) {
+    return operateSwitch(
+      foundry,
+      alignment,
+      medium,
+      op,
+      env,
+    );
+  }
+  if (isProcessOperation(op)) {
+    return operateProcess(
+      foundry,
+      alignment,
+      medium,
+      op,
+      env,
+    );
+  }
+  if (isEgressOperation(op)) {
+    return operateEgress(
+      foundry,
+      alignment,
+      medium,
+      op,
+      env,
+    );
   }
   return newErr(
     new Error(
       `Unknown operation type for operation`,
     ),
   );
+};
+
+const operateIngress = async (
+  foundry: Foundry,
+  alignment: Alignment,
+  medium: Medium,
+  op: IngressOperation,
+  env: Record<string, unknown>,
+): Promise<Result<Medium, Error>> => {
+  const opResult = findInternalOp(
+    alignment,
+    op.next,
+  );
+  return isOk(opResult)
+    ? operate({
+        foundry,
+        alignment,
+        operation: opResult.content,
+        medium,
+        env,
+      })
+    : newErr(opResult.content);
+};
+
+const operateSwitch = async (
+  foundry: Foundry,
+  alignment: Alignment,
+  medium: Medium,
+  op: SwitchOperation,
+  env: Record<string, unknown>,
+): Promise<Result<Medium, Error>> => {
+  const switcherResult = findSwitcher(
+    foundry,
+    op.opcode,
+  );
+  if (!isOk(switcherResult)) {
+    return newErr(switcherResult.content);
+  }
+
+  const [isValid, value] =
+    switcherResult.content.check(medium);
+
+  const opResult = findInternalOp(
+    alignment,
+    isValid ? op.nextWhenTrue : op.nextWhenFalse,
+  );
+
+  return isOk(opResult)
+    ? operate({
+        foundry,
+        alignment,
+        operation: opResult.content,
+        medium: {
+          ...medium,
+          value: value,
+        },
+        env,
+      })
+    : newErr(opResult.content);
+};
+
+const operateProcess = async (
+  foundry: Foundry,
+  alignment: Alignment,
+  medium: Medium,
+  op: ProcessOperation,
+  env: Record<string, unknown>,
+): Promise<Result<Medium, Error>> => {
+  const processorResult = findProcessor(
+    foundry,
+    op.opcode,
+  );
+  if (!isOk(processorResult)) {
+    return newErr(processorResult.content);
+  }
+  const value =
+    await processorResult.content.process(medium);
+
+  if (op.exit) {
+    const egressOpResult =
+      findEgressOp(alignment);
+    return isOk(egressOpResult)
+      ? operate({
+          foundry,
+          alignment,
+          medium: {
+            value,
+          },
+          operation: egressOpResult.content,
+          env,
+        })
+      : newErr(egressOpResult.content);
+  }
+
+  if (!op.next) {
+    return newErr(
+      new Error(
+        `No next opcode specified for operation "${op.opcode}"`,
+      ),
+    );
+  }
+
+  const nextOpResult = findInternalOp(
+    alignment,
+    op.next,
+  );
+  return isOk(nextOpResult)
+    ? operate({
+        foundry,
+        alignment,
+        operation: nextOpResult.content,
+        medium: {
+          value,
+        },
+        env,
+      })
+    : newErr(nextOpResult.content);
+};
+
+const operateEgress = async (
+  _foundry: Foundry,
+  _alignment: Alignment,
+  medium: Medium,
+  _op: EgressOperation,
+  _env: Record<string, unknown>,
+): Promise<Result<Medium, Error>> => {
+  return newOk(medium);
 };

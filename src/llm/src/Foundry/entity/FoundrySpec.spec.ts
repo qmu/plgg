@@ -13,7 +13,7 @@ test("asFoundrySpec validation - valid foundry", () => {
     description: "Test foundry description",
     processors: [
       {
-        id: "test-processor",
+        opcode: "test-processor",
         description: "A test processor",
         inputType: "string",
         outputType: "string",
@@ -41,7 +41,7 @@ test("asFoundrySpec validation - valid foundry", () => {
     1,
   );
   expect(
-    result.content.processors[0]?.id.content,
+    result.content.processors[0]?.opcode.content,
   ).toBe("test-processor");
   expect(
     result.content.switchers[0]?.id.content,
@@ -76,14 +76,14 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
     description: "Multi-component foundry",
     processors: [
       {
-        id: "processor-1",
+        opcode: "processor-1",
         description: "First processor",
         inputType: "string",
         outputType: "number",
         process: () => 1,
       },
       {
-        id: "processor-2",
+        opcode: "processor-2",
         description: "Second processor",
         inputType: "number",
         outputType: "string",

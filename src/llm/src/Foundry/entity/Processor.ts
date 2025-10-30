@@ -11,7 +11,7 @@ import {
 } from "plgg";
 
 export type Processor = {
-  id: KebabCase;
+  opcode: KebabCase;
   description: Str;
   inputType: Str;
   outputType: Str;
@@ -19,7 +19,7 @@ export type Processor = {
 };
 
 export type ProcessorArg = {
-  id: string;
+  opcode: string;
   description: string;
   inputType: string;
   outputType: string;
@@ -31,7 +31,7 @@ export const asProcessor = (
 ) =>
   cast(
     value,
-    forProp("id", asKebabCase),
+    forProp("opcode", asKebabCase),
     forProp("description", asStr),
     forProp("inputType", asStr),
     forProp("outputType", asStr),
