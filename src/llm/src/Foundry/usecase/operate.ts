@@ -1,3 +1,4 @@
+import { Result, newOk, newErr } from "plgg";
 import {
   Medium,
   OperationContext,
@@ -9,23 +10,31 @@ export const operate = async ({
   foundry,
   alignment,
   medium,
-}: OperationContext): Promise<Medium> => {
+  opcode,
+  env,
+}: OperationContext): Promise<
+  Result<Medium, Error>
+> => {
   const op = alignment.operations.find(
-    (op) => op.id === medium.nextOpId,
+    (op) => op.opcode === opcode,
   );
   if (!op) {
-    throw new Error(
-      `Operation "${medium.nextOpId}" not found in alignment`,
+    return newErr(
+      new Error(
+        `Operation "${opcode}" not found in alignment`,
+      ),
     );
   }
 
   if (isSwitcherOperation(op)) {
     const switcher = foundry.switchers.find(
-      (s) => s.id.content === op.id,
+      (s) => s.id.content === op.opcode,
     );
     if (!switcher) {
-      throw new Error(
-        `No checker found for step type "${op.id}"`,
+      return newErr(
+        new Error(
+          `No checker found for step type "${op.opcode}"`,
+        ),
       );
     }
     const startedAt = new Date().toISOString();
@@ -34,26 +43,29 @@ export const operate = async ({
     return operate({
       foundry,
       alignment,
+      opcode: isValid
+        ? op.whenTrue
+        : op.whenFalse,
       medium: {
+        ...medium,
         startedAt,
         endedAt: new Date().toISOString(),
-        currentOpId: op.id,
-        nextOpId: isValid
-          ? op.whenTrue
-          : op.whenFalse,
         value: value,
         lastMedium: medium,
       },
+      env,
     });
   }
 
   if (isProcessorOperation(op)) {
     const processor = foundry.processors.find(
-      (p) => p.id.content === op.id,
+      (p) => p.id.content === op.opcode,
     );
     if (!processor) {
-      throw new Error(
-        `No processor found for step type "${op.id}"`,
+      return newErr(
+        new Error(
+          `No processor found for step type "${op.opcode}"`,
+        ),
       );
     }
     const startedAt = new Date().toISOString();
@@ -61,21 +73,24 @@ export const operate = async ({
     const newMedium = {
       startedAt,
       endedAt: new Date().toISOString(),
-      currentOpId: op.id,
-      nextOpId: op.to,
       value,
       lastMedium: medium,
     };
     return op.final
-      ? newMedium
-      : operate({
-          foundry,
-          alignment,
-          medium: newMedium,
-        });
+      ? newOk(newMedium)
+      : op.next
+        ? operate({
+            foundry,
+            alignment,
+            medium: newMedium,
+            opcode: op.next,
+            env,
+          })
+        : newErr(new Error());
   }
-
-  throw new Error(
-    `Unknown operation type for operation`,
+  return newErr(
+    new Error(
+      `Unknown operation type for operation`,
+    ),
   );
 };

@@ -1,14 +1,16 @@
 import { Operation } from "autoplgg/index";
 
 export type ProcessorOperation = Readonly<{
-  type: "processor";
+  type: "process";
   initial?: boolean;
   final?: boolean;
-  id: string;
-  to?: string;
+  opcode: string;
+  next?: string;
+  src?: string;
+  dist: string;
 }>;
 
 export const isProcessorOperation = (
   op: Operation,
 ): op is ProcessorOperation =>
-  op.type === "processor";
+  op.type === "process";

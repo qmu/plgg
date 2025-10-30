@@ -1,13 +1,16 @@
 import { Operation } from "autoplgg/index";
 
 export type SwitcherOperation = Readonly<{
-  type: "switcher";
-  id: string;
+  type: "switch";
+  opcode: string;
   whenTrue: string;
   whenFalse: string;
+  src: string;
+  distWhenTrue: string;
+  distWhenFalse: string;
 }>;
 
 export const isSwitcherOperation = (
   op: Operation,
 ): op is SwitcherOperation =>
-  op.type === "switcher";
+  op.type === "switch";

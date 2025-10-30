@@ -23,13 +23,13 @@ export const assemble =
       startedAt: new Date().toISOString(),
       endedAt: new Date().toISOString(),
       value: alignment.instruction,
-      currentOpId: undefined,
-      nextOpId: iniOp.id,
       lastMedium: undefined,
     };
     return newOk({
       foundry,
       alignment,
       medium,
+      opcode: iniOp.opcode,
+      env: {},
     });
   };
