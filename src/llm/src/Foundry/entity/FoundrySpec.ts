@@ -57,7 +57,7 @@ export const foundrySpecCastable: Castable<
 };
 
 export const findSwitcher = (
-  foundry: Foundry,
+  foundry: FoundrySpec,
   opcode: string,
 ): Result<Switcher, Error> => {
   const switcher = foundry.switchers.find(
@@ -74,7 +74,7 @@ export const findSwitcher = (
 };
 
 export const findProcessor = (
-  foundry: Foundry,
+  foundry: FoundrySpec,
   opcode: string,
 ): Result<Processor, Error> => {
   const processor = foundry.processors.find(
