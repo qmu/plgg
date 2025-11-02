@@ -1,16 +1,13 @@
 import { test, assert } from "vitest";
-import { isErr, isOk, proc } from "plgg";
+import { proc, isErr, isOk } from "plgg";
 import {
   FoundrySpecArg,
   asFoundrySpec,
+  asOrder,
 } from "autoplgg/index";
-import {
-  plan as blueprint,
-  assemble,
-  operate,
-} from "autoplgg/Foundry/usecase";
+import { run } from "autoplgg/Foundry/usecase";
 
-test("Character Image Generation", async () => {
+test("Run Character Image Generation", async () => {
   type Base64 = string;
 
   type Image = Readonly<{
@@ -136,23 +133,28 @@ test("Character Image Generation", async () => {
     ],
   };
 
-  const specResult = asFoundrySpec(specArg);
-  assert(isOk(specResult));
-  const spec = specResult.content;
-
   const result = await proc(
-    "A fantasy character with a sword and shield",
-    blueprint(spec),
-    assemble(spec),
-    operate,
+    specArg,
+    asFoundrySpec,
+    (spec) =>
+      proc(
+        {
+          prompt:
+            "A fantasy character with a sword and shield",
+        },
+        asOrder,
+        (order) =>
+          run({
+            order,
+            foundrySpec: spec,
+          }),
+      ),
   );
+
   if (isErr(result)) {
     assert.fail(
       `Process failed: ${result.content.message}`,
     );
   }
   assert(isOk(result));
-  // console.log(
-  //   JSON.stringify(result.content, null, 2)
-  // );
 });
