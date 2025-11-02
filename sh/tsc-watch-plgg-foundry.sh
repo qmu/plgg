@@ -1,6 +1,6 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
-echo "=== Running 'npm run tsc:watch' in src/llm ==="
-cd $REPO_ROOT/src/llm && npm run tsc:watch
+echo "=== Running 'npm run tsc:watch' in src/plgg-foundry ==="
+cd $REPO_ROOT/src/plgg-foundry && npm run tsc:watch
 echo "\n=== All shell scripts have been executed successfully ==="

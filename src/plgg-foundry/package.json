@@ -1,7 +1,7 @@
 {
   "name": "plgg-foundry",
   "version": "0.0.1",
-  "description": "LLMs plugin for plgg",
+  "description": "",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
