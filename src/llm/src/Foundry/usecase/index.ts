@@ -1,1 +1,1 @@
-export * from "autoplgg/Foundry/usecase/run";
+export * from "plgg-foundry/Foundry/usecase/run";

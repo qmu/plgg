@@ -1,4 +1,4 @@
-import { Operation } from "autoplgg/index";
+import { Operation } from "plgg-foundry/index";
 
 export type SwitchOperation = Readonly<{
   type: "switch";

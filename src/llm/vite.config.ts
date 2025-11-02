@@ -8,7 +8,10 @@ import dotenv from "dotenv";
 export default defineConfig({
   resolve: {
     alias: {
-      autoplgg: path.resolve(__dirname, "./src"),
+      "plgg-foundry": path.resolve(
+        __dirname,
+        "./src",
+      ),
     },
   },
   test: {
@@ -21,7 +24,7 @@ export default defineConfig({
     outDir: "dist",
     lib: {
       entry: "src/index.ts",
-      name: "autoplgg",
+      name: "plgg-foundry",
       fileName: (format) => `index.${format}.js`,
       formats: ["es", "cjs"],
     },

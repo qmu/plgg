@@ -1,2 +1,2 @@
-export * from "autoplgg/Alignment";
-export * from "autoplgg/Foundry";
+export * from "plgg-foundry/Alignment";
+export * from "plgg-foundry/Foundry";

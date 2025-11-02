@@ -4,7 +4,7 @@ import {
   Operation,
   isProcessOperation,
   isSwitchOperation,
-} from "autoplgg/index";
+} from "plgg-foundry/index";
 
 export type InternalOperation =
   | ProcessOperation

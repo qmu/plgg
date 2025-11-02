@@ -23,7 +23,7 @@ import {
   findInternalOp,
   asProcessor,
   asSwitcher,
-} from "autoplgg/index";
+} from "plgg-foundry/index";
 
 export type FoundrySpec = {
   description: Str;

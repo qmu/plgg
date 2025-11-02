@@ -1,1 +1,1 @@
-export * from "autoplgg/Foundry/carrier";
+export * from "plgg-foundry/Foundry/carrier";

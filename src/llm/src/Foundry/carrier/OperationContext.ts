@@ -21,7 +21,7 @@ import {
   findEgressOp,
   findSwitcher,
   findProcessor,
-} from "autoplgg/index";
+} from "plgg-foundry/index";
 
 export type Env = Record<string, Medium>;
 

@@ -5,7 +5,7 @@ import {
   blueprint,
   assemble,
   operate,
-} from "autoplgg/index";
+} from "plgg-foundry/index";
 
 export const run = async ({
   foundrySpec,

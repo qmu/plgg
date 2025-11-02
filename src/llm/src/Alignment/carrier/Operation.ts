@@ -2,7 +2,7 @@ import {
   EgressOperation,
   IngressOperation,
   InternalOperation,
-} from "autoplgg/index";
+} from "plgg-foundry/index";
 
 export type Operation =
   | EgressOperation

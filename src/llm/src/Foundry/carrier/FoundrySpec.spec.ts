@@ -3,7 +3,7 @@ import { isOk, isErr } from "plgg";
 import {
   FoundrySpecArg,
   asFoundrySpec,
-} from "autoplgg/index";
+} from "plgg-foundry/index";
 
 /**
  * Tests asFoundrySpec validation with a valid Foundry object.

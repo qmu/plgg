@@ -4,8 +4,8 @@ import {
   FoundrySpecArg,
   asFoundrySpec,
   asOrder,
-} from "autoplgg/index";
-import { run } from "autoplgg/Foundry/usecase";
+} from "plgg-foundry/index";
+import { run } from "plgg-foundry/Foundry/usecase";
 
 test("Run Character Image Generation", async () => {
   type Base64 = string;

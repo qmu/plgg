@@ -1,4 +1,4 @@
-import { Medium } from "autoplgg/index";
+import { Medium } from "plgg-foundry/index";
 import {
   KebabCase,
   Str,

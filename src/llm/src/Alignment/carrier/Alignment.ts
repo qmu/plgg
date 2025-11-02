@@ -5,7 +5,7 @@ import {
   isInternalOperation,
   isIngressOperation,
   isEgressOperation,
-} from "autoplgg/index";
+} from "plgg-foundry/index";
 
 export type Alignment = {
   instruction: string;

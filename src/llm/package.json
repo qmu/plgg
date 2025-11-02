@@ -1,5 +1,5 @@
 {
-  "name": "@plgg/llm",
+  "name": "plgg-foundry",
   "version": "0.0.1",
   "description": "LLMs plugin for plgg",
   "main": "dist/index.cjs.js",
