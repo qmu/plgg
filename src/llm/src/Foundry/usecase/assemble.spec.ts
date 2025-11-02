@@ -34,7 +34,7 @@ test("Character Image Generation", async () => {
   ): a is StringMediumValue =>
     typeof a === "string";
 
-  const foundryArg: FoundrySpecArg = {
+  const specArg: FoundrySpecArg = {
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
     processors: [
@@ -136,7 +136,7 @@ test("Character Image Generation", async () => {
     ],
   };
 
-  const specResult = asFoundrySpec(foundryArg);
+  const specResult = asFoundrySpec(specArg);
   assert(isOk(specResult));
   const spec = specResult.content;
 
