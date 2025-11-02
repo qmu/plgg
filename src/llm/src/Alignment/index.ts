@@ -1,1 +1,1 @@
-export * from "autoplgg/Alignment/entity";
+export * from "autoplgg/Alignment/carrier";
