@@ -206,10 +206,35 @@ const operateEgress = async ({
   op: EgressOperation;
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
+  const { env } = ctx;
+  const resultObj: Record<string, unknown> = {};
+
+  // Resolve each address in the result mapping
+  for (const [key, addr] of Object.entries(
+    op.result,
+  )) {
+    if (typeof addr !== "string") {
+      return newErr(
+        new Error(
+          `Invalid address type for key "${key}": expected string, got ${typeof addr}`,
+        ),
+      );
+    }
+
+    const medium = env[addr];
+    if (!medium) {
+      return newErr(
+        new Error(
+          `No value found at address "${addr}" for result key "${key}"`,
+        ),
+      );
+    }
+
+    resultObj[key] = medium.value;
+  }
+
   const medium: Medium = {
-    value: "Egress reached",
+    value: resultObj,
   };
-  op;
-  ctx;
   return newOk(medium);
 };

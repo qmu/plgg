@@ -1,5 +1,11 @@
-import { test, assert } from "vitest";
-import { proc, isErr, isOk } from "plgg";
+import { test, assert, expect } from "vitest";
+import {
+  pipe,
+  proc,
+  isErr,
+  isOk,
+  atProp,
+} from "plgg";
 import {
   FoundrySpecArg,
   Alignment,
@@ -122,7 +128,7 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
         type: "egress",
         result: {
           mainImage: "r2",
-          spreadImage: "r3",
+          spreadImages: "r3",
         },
       },
     ],
@@ -147,5 +153,20 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
     );
   }
   assert(isOk(result));
-  console.log(result.content);
+  const mainImage = pipe(
+    result.content.value,
+    atProp("mainImage"),
+  );
+  assert(isOk(mainImage));
+  expect(mainImage.content).toBeInstanceOf(
+    Uint8Array,
+  );
+  const spreadImages = pipe(
+    result.content.value,
+    atProp("spreadImages"),
+  );
+  assert(isOk(spreadImages));
+  expect(spreadImages.content).toBeInstanceOf(
+    Array,
+  );
 });
