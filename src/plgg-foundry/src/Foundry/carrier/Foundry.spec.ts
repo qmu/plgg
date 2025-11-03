@@ -1,15 +1,15 @@
 import { test, expect, assert } from "vitest";
 import { isOk, isErr } from "plgg";
 import {
-  FoundrySpecArg,
-  asFoundrySpec,
+  FoundrySpec,
+  asFoundry,
 } from "plgg-foundry/index";
 
 /**
  * Tests asFoundrySpec validation with a valid Foundry object.
  */
 test("asFoundrySpec validation - valid foundry", () => {
-  const validFoundry: FoundrySpecArg = {
+  const validFoundry: FoundrySpec = {
     description: "Test foundry description",
     processors: [
       {
@@ -32,7 +32,7 @@ test("asFoundrySpec validation - valid foundry", () => {
     ],
   };
 
-  const result = asFoundrySpec(validFoundry);
+  const result = asFoundry(validFoundry);
   assert(isOk(result));
   expect(result.content.processors).toHaveLength(
     1,
@@ -52,13 +52,13 @@ test("asFoundrySpec validation - valid foundry", () => {
  * Tests asFoundrySpec validation with empty processors and switchers arrays.
  */
 test("asFoundrySpec validation - empty processors and switchers", () => {
-  const foundryArg: FoundrySpecArg = {
+  const foundryArg: FoundrySpec = {
     description: "Empty foundry",
     processors: [],
     switchers: [],
   };
 
-  const result = asFoundrySpec(foundryArg);
+  const result = asFoundry(foundryArg);
   assert(isOk(result));
   expect(result.content.processors).toHaveLength(
     0,
@@ -72,7 +72,7 @@ test("asFoundrySpec validation - empty processors and switchers", () => {
  * Tests asFoundrySpec validation with multiple processors and switchers.
  */
 test("asFoundrySpec validation - multiple processors and switchers", () => {
-  const foundryArg: FoundrySpecArg = {
+  const foundryArg: FoundrySpec = {
     description: "Multi-component foundry",
     processors: [
       {
@@ -110,7 +110,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
     ],
   };
 
-  const result = asFoundrySpec(foundryArg);
+  const result = asFoundry(foundryArg);
   assert(isOk(result));
   expect(result.content.processors).toHaveLength(
     2,
@@ -129,9 +129,7 @@ test("asFoundrySpec validation - missing description", () => {
     switchers: [],
   };
 
-  const result = asFoundrySpec(
-    invalidFoundry as any,
-  );
+  const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "description",
@@ -147,9 +145,7 @@ test("asFoundrySpec validation - missing processors", () => {
     switchers: [],
   };
 
-  const result = asFoundrySpec(
-    invalidFoundry as any,
-  );
+  const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "processors",
@@ -165,9 +161,7 @@ test("asFoundrySpec validation - missing switchers", () => {
     processors: [],
   };
 
-  const result = asFoundrySpec(
-    invalidFoundry as any,
-  );
+  const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "switchers",
@@ -190,7 +184,7 @@ test("asFoundrySpec validation - invalid processor", () => {
     switchers: [],
   };
 
-  const result = asFoundrySpec(foundryArg as any);
+  const result = asFoundry(foundryArg as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "Array element",
@@ -213,7 +207,7 @@ test("asFoundrySpec validation - invalid switcher", () => {
     ],
   };
 
-  const result = asFoundrySpec(foundryArg as any);
+  const result = asFoundry(foundryArg as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "Array element",
@@ -230,9 +224,7 @@ test("asFoundrySpec validation - processors not array", () => {
     switchers: [],
   };
 
-  const result = asFoundrySpec(
-    invalidFoundry as any,
-  );
+  const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "array",
@@ -249,9 +241,7 @@ test("asFoundrySpec validation - switchers not array", () => {
     switchers: "not an array",
   };
 
-  const result = asFoundrySpec(
-    invalidFoundry as any,
-  );
+  const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
     "array",

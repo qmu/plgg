@@ -5,7 +5,7 @@ import {
   isOk,
 } from "plgg";
 import {
-  FoundrySpec,
+  Foundry,
   Alignment,
   Medium,
   IngressOperation,
@@ -26,7 +26,7 @@ import {
 export type Env = Record<string, Medium>;
 
 export type OperationContext = {
-  foundry: FoundrySpec;
+  foundry: Foundry;
   alignment: Alignment;
   env: Env; // Register Machine Environment Variables
 };

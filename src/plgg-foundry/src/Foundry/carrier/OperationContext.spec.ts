@@ -7,16 +7,16 @@ import {
   atProp,
 } from "plgg";
 import {
-  FoundrySpecArg,
+  FoundrySpec,
   Alignment,
-  asFoundrySpec,
+  asFoundry,
   assemble,
   operate,
 } from "plgg-foundry/index";
 
 test("OperationContext: assemble -> operate with example blueprint", async () => {
   // Define the FoundrySpec with processors and switchers
-  const specArg: FoundrySpecArg = {
+  const specArg: FoundrySpec = {
     description:
       "Test foundry for character design workflow",
     processors: [
@@ -137,7 +137,7 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
   // Test the flow: assemble -> operate
   const result = await proc(
     specArg,
-    asFoundrySpec,
+    asFoundry,
     (foundrySpec) =>
       proc(
         exampleAlignment,

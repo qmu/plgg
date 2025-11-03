@@ -20,7 +20,7 @@ export type Processor = {
   process: (input: Medium) => unknown;
 };
 
-export type ProcessorArg = {
+export type ProcessorSpec = {
   name: string;
   description: string;
   inputType?: string;
@@ -29,7 +29,7 @@ export type ProcessorArg = {
 };
 
 export const asProcessor = (
-  value: ProcessorArg,
+  value: ProcessorSpec,
 ) =>
   cast(
     value,
@@ -45,7 +45,7 @@ export const asProcessor = (
  */
 export const processorCastable: Castable<
   Processor,
-  ProcessorArg
+  ProcessorSpec
 > = {
   as: asProcessor,
 };

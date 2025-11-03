@@ -1,10 +1,6 @@
 import { test, assert } from "vitest";
-import { proc, isErr, isOk } from "plgg";
-import {
-  FoundrySpecArg,
-  asFoundrySpec,
-  asOrder,
-} from "plgg-foundry/index";
+import { isErr, isOk } from "plgg";
+import { FoundrySpec } from "plgg-foundry/index";
 import { run } from "plgg-foundry/Foundry/usecase";
 
 test("Run Character Image Generation", async () => {
@@ -31,7 +27,7 @@ test("Run Character Image Generation", async () => {
   ): a is StringMediumValue =>
     typeof a === "string";
 
-  const specArg: FoundrySpecArg = {
+  const specArg: FoundrySpec = {
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
     processors: [
@@ -133,24 +129,13 @@ test("Run Character Image Generation", async () => {
     ],
   };
 
-  const result = await proc(
-    specArg,
-    asFoundrySpec,
-    (spec) =>
-      proc(
-        {
-          prompt:
-            "A fantasy character with a sword and shield",
-        },
-        asOrder,
-        (order) =>
-          run({
-            order,
-            foundrySpec: spec,
-          }),
-      ),
-  );
-
+  const result = await run({
+    foundrySpec: specArg,
+    orderSpec: {
+      prompt:
+        "A fantasy character with a sword and shield",
+    },
+  });
   if (isErr(result)) {
     assert.fail(
       `Process failed: ${result.content.message}`,

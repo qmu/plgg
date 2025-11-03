@@ -14,7 +14,7 @@ export type Order = Obj<{
   files: ReadonlyArray<Bin>;
 }>;
 
-export type OrderArg = {
+export type OrderSpec = {
   prompt: string;
   files?: ReadonlyArray<Uint8Array>;
 };
@@ -22,7 +22,7 @@ export type OrderArg = {
 export const asOrder = ({
   prompt,
   files = [],
-}: OrderArg) =>
+}: OrderSpec) =>
   cast(
     { prompt, files },
     forProp("prompt", asStr),

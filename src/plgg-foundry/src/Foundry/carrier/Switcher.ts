@@ -24,7 +24,7 @@ export type Switcher = {
   ];
 };
 
-export type SwitcherArg = {
+export type SwitcherSpec = {
   id: string;
   description: string;
   inputType?: string;
@@ -36,7 +36,7 @@ export type SwitcherArg = {
   ];
 };
 
-export const asSwitcher = (value: SwitcherArg) =>
+export const asSwitcher = (value: SwitcherSpec) =>
   cast(
     value,
     forProp("id", asKebabCase),
@@ -52,7 +52,7 @@ export const asSwitcher = (value: SwitcherArg) =>
  */
 export const switcherCastable: Castable<
   Switcher,
-  SwitcherArg
+  SwitcherSpec
 > = {
   as: asSwitcher,
 };

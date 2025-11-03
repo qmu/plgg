@@ -13,8 +13,8 @@ import {
 import {
   Processor,
   Switcher,
-  ProcessorArg,
-  SwitcherArg,
+  ProcessorSpec,
+  SwitcherSpec,
   Alignment,
   OperationContext,
   Operation,
@@ -25,21 +25,19 @@ import {
   asSwitcher,
 } from "plgg-foundry/index";
 
-export type FoundrySpec = {
+export type Foundry = {
   description: Str;
   processors: ReadonlyArray<Processor>;
   switchers: ReadonlyArray<Switcher>;
 };
 
-export type FoundrySpecArg = {
+export type FoundrySpec = {
   description: string;
-  processors: ReadonlyArray<ProcessorArg>;
-  switchers: ReadonlyArray<SwitcherArg>;
+  processors: ReadonlyArray<ProcessorSpec>;
+  switchers: ReadonlyArray<SwitcherSpec>;
 };
 
-export const asFoundrySpec = (
-  value: FoundrySpecArg,
-) =>
+export const asFoundry = (value: FoundrySpec) =>
   cast(
     value,
     forProp("description", asStr),
@@ -57,14 +55,14 @@ export const asFoundrySpec = (
  * Castable instance for Foundry safe casting.
  */
 export const foundrySpecCastable: Castable<
-  FoundrySpec,
-  FoundrySpecArg
+  Foundry,
+  FoundrySpec
 > = {
-  as: asFoundrySpec,
+  as: asFoundry,
 };
 
 export const findSwitcher = (
-  foundry: FoundrySpec,
+  foundry: Foundry,
   opcode: string,
 ): Result<Switcher, Error> => {
   const switcher = foundry.switchers.find(
@@ -81,7 +79,7 @@ export const findSwitcher = (
 };
 
 export const findProcessor = (
-  foundry: FoundrySpec,
+  foundry: Foundry,
   opcode: string,
 ): Result<Processor, Error> => {
   const processor = foundry.processors.find(
@@ -98,7 +96,7 @@ export const findProcessor = (
 };
 
 export const blueprint =
-  (_foundry: FoundrySpec) =>
+  (_foundry: Foundry) =>
   (order: Order): Alignment => {
     const examplAlignment: Alignment = {
       instruction: order.prompt.content,
@@ -152,7 +150,7 @@ export const blueprint =
   };
 
 export const assemble =
-  (foundry: FoundrySpec) =>
+  (foundry: Foundry) =>
   (
     alignment: Alignment,
   ): Result<

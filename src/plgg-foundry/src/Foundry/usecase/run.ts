@@ -1,22 +1,27 @@
 import { proc } from "plgg";
 import {
   FoundrySpec,
-  Order,
+  OrderSpec,
   blueprint,
   assemble,
   operate,
+  asFoundry,
+  asOrder,
 } from "plgg-foundry/index";
 
 export const run = async ({
   foundrySpec,
-  order,
+  orderSpec,
 }: {
   foundrySpec: FoundrySpec;
-  order: Order;
+  orderSpec: OrderSpec;
 }) =>
-  proc(
-    order,
-    blueprint(foundrySpec),
-    assemble(foundrySpec),
-    operate,
+  await proc(foundrySpec, asFoundry, (foundry) =>
+    proc(
+      orderSpec,
+      asOrder,
+      blueprint(foundry),
+      assemble(foundry),
+      operate,
+    ),
   );
