@@ -12,7 +12,7 @@ import {
   asKebabCase,
 } from "plgg";
 
-export type Switcher = {
+export type Switcher = Readonly<{
   id: KebabCase;
   description: Str;
   inputType: Option<Str>;
@@ -22,9 +22,9 @@ export type Switcher = {
     boolean, // validity
     unknown, // proppagating data
   ];
-};
+}>;
 
-export type SwitcherSpec = {
+export type SwitcherSpec = Readonly<{
   id: string;
   description: string;
   inputType?: string;
@@ -34,7 +34,7 @@ export type SwitcherSpec = {
     boolean, // validity
     unknown, // proppagating data
   ];
-};
+}>;
 
 export const asSwitcher = (value: SwitcherSpec) =>
   cast(

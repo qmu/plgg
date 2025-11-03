@@ -12,21 +12,21 @@ import {
   asKebabCase,
 } from "plgg";
 
-export type Processor = {
+export type Processor = Readonly<{
   name: KebabCase;
   description: Str;
   inputType: Option<Str>;
   outputType: Option<Str>;
   process: (input: Medium) => unknown;
-};
+}>;
 
-export type ProcessorSpec = {
+export type ProcessorSpec = Readonly<{
   name: string;
   description: string;
   inputType?: string;
   outputType?: string;
   process: (input: Medium) => unknown;
-};
+}>;
 
 export const asProcessor = (
   value: ProcessorSpec,

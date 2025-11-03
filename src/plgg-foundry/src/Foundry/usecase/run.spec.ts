@@ -127,6 +127,20 @@ test("Run Character Image Generation", async () => {
         },
       },
     ],
+    packers: [
+      {
+        name: "mainImage",
+        processedBy: "gen-main",
+      },
+      {
+        name: "spreadImages",
+        processedBy: "gen-spread",
+      },
+      {
+        name: "plannedDescription",
+        processedBy: "plan",
+      },
+    ],
   };
 
   const result = await run({

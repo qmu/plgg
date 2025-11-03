@@ -82,6 +82,20 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
         },
       },
     ],
+    packers: [
+      {
+        name: "mainImage",
+        processedBy: "gen-main",
+      },
+      {
+        name: "spreadImages",
+        processedBy: "gen-spread",
+      },
+      {
+        name: "plannedDescription",
+        processedBy: "plan",
+      },
+    ],
   };
 
   // Define the example Alignment (blueprint)

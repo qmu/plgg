@@ -11,10 +11,12 @@ import {
   isErr,
 } from "plgg";
 import {
-  Processor,
-  Switcher,
   ProcessorSpec,
+  Processor,
   SwitcherSpec,
+  Switcher,
+  PackerSpec,
+  Packer,
   Alignment,
   OperationContext,
   Operation,
@@ -23,19 +25,22 @@ import {
   findInternalOp,
   asProcessor,
   asSwitcher,
+  asPacker,
 } from "plgg-foundry/index";
 
-export type Foundry = {
+export type Foundry = Readonly<{
   description: Str;
   processors: ReadonlyArray<Processor>;
   switchers: ReadonlyArray<Switcher>;
-};
+  packers: ReadonlyArray<Packer>;
+}>;
 
-export type FoundrySpec = {
+export type FoundrySpec = Readonly<{
   description: string;
   processors: ReadonlyArray<ProcessorSpec>;
   switchers: ReadonlyArray<SwitcherSpec>;
-};
+  packers: ReadonlyArray<PackerSpec>;
+}>;
 
 export const asFoundry = (value: FoundrySpec) =>
   cast(
@@ -49,6 +54,7 @@ export const asFoundry = (value: FoundrySpec) =>
       "switchers",
       asReadonlyArray(asSwitcher),
     ),
+    forProp("packers", asReadonlyArray(asPacker)),
   );
 
 /**

@@ -30,6 +30,12 @@ test("asFoundrySpec validation - valid foundry", () => {
         check: (input) => [true, input.value],
       },
     ],
+    packers: [
+      {
+        name: "testResult",
+        processedBy: "test-processor",
+      },
+    ],
   };
 
   const result = asFoundry(validFoundry);
@@ -56,6 +62,7 @@ test("asFoundrySpec validation - empty processors and switchers", () => {
     description: "Empty foundry",
     processors: [],
     switchers: [],
+    packers: [],
   };
 
   const result = asFoundry(foundryArg);
@@ -108,6 +115,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         check: () => [false, "error"],
       },
     ],
+    packers: [],
   };
 
   const result = asFoundry(foundryArg);
