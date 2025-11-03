@@ -3,8 +3,10 @@ import {
   KebabCase,
   Str,
   Castable,
+  Option,
   cast,
   forProp,
+  forOptionProp,
   asStr,
   asFunc,
   asKebabCase,
@@ -13,9 +15,9 @@ import {
 export type Switcher = {
   id: KebabCase;
   description: Str;
-  inputType: Str;
-  outputTypeWhenTrue: Str;
-  outputTypeWhenFalse: Str;
+  inputType: Option<Str>;
+  outputTypeWhenTrue: Option<Str>;
+  outputTypeWhenFalse: Option<Str>;
   check: (input: Medium) => [
     boolean, // validity
     unknown, // proppagating data
@@ -25,9 +27,9 @@ export type Switcher = {
 export type SwitcherArg = {
   id: string;
   description: string;
-  inputType: string;
-  outputTypeWhenTrue: string;
-  outputTypeWhenFalse: string;
+  inputType?: string;
+  outputTypeWhenTrue?: string;
+  outputTypeWhenFalse?: string;
   check: (input: Medium) => [
     boolean, // validity
     unknown, // proppagating data
@@ -39,9 +41,9 @@ export const asSwitcher = (value: SwitcherArg) =>
     value,
     forProp("id", asKebabCase),
     forProp("description", asStr),
-    forProp("inputType", asStr),
-    forProp("outputTypeWhenTrue", asStr),
-    forProp("outputTypeWhenFalse", asStr),
+    forOptionProp("inputType", asStr),
+    forOptionProp("outputTypeWhenTrue", asStr),
+    forOptionProp("outputTypeWhenFalse", asStr),
     forProp("check", asFunc),
   );
 

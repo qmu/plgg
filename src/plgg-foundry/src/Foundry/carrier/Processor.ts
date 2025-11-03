@@ -3,26 +3,28 @@ import {
   Castable,
   KebabCase,
   Str,
+  Option,
   cast,
   forProp,
+  forOptionProp,
   asStr,
   asFunc,
   asKebabCase,
 } from "plgg";
 
 export type Processor = {
-  opcode: KebabCase;
+  name: KebabCase;
   description: Str;
-  inputType: Str;
-  outputType: Str;
+  inputType: Option<Str>;
+  outputType: Option<Str>;
   process: (input: Medium) => unknown;
 };
 
 export type ProcessorArg = {
-  opcode: string;
+  name: string;
   description: string;
-  inputType: string;
-  outputType: string;
+  inputType?: string;
+  outputType?: string;
   process: (input: Medium) => unknown;
 };
 
@@ -31,10 +33,10 @@ export const asProcessor = (
 ) =>
   cast(
     value,
-    forProp("opcode", asKebabCase),
+    forProp("name", asKebabCase),
     forProp("description", asStr),
-    forProp("inputType", asStr),
-    forProp("outputType", asStr),
+    forOptionProp("inputType", asStr),
+    forOptionProp("outputType", asStr),
     forProp("process", asFunc),
   );
 

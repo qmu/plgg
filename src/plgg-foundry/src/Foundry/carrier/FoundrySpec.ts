@@ -85,7 +85,7 @@ export const findProcessor = (
   opcode: string,
 ): Result<Processor, Error> => {
   const processor = foundry.processors.find(
-    (p) => p.opcode.content === opcode,
+    (p) => p.name.content === opcode,
   );
   if (!processor) {
     return newErr(
