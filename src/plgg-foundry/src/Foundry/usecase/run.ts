@@ -2,12 +2,13 @@ import { proc } from "plgg";
 import {
   FoundrySpec,
   OrderSpec,
-  blueprint,
-  assemble,
-  operate,
   asFoundry,
   asOrder,
 } from "plgg-foundry/index";
+import {
+  blueprint,
+  operate,
+} from "plgg-foundry/Foundry/usecase";
 
 export const run = async ({
   foundrySpec,
@@ -21,7 +22,6 @@ export const run = async ({
       orderSpec,
       asOrder,
       blueprint(foundry),
-      assemble(foundry),
-      operate,
+      operate(foundry),
     ),
   );

@@ -10,9 +10,8 @@ import {
   FoundrySpec,
   Alignment,
   asFoundry,
-  assemble,
-  operate,
 } from "plgg-foundry/index";
+import { operate } from "plgg-foundry/Foundry/usecase";
 
 test("OperationContext: assemble -> operate with example blueprint", async () => {
   // Define the FoundrySpec with processors and switchers
@@ -155,8 +154,7 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
     (foundrySpec) =>
       proc(
         exampleAlignment,
-        assemble(foundrySpec),
-        operate,
+        operate(foundrySpec),
       ),
   );
 

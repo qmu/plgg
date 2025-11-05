@@ -2,6 +2,7 @@ import { Result, newOk, newErr } from "plgg";
 import {
   Operation,
   IngressOperation,
+  InternalOperation,
   isInternalOperation,
   isIngressOperation,
   isEgressOperation,
@@ -26,24 +27,28 @@ export const findIngressOp = (
   return newOk(operation);
 };
 
-export const findInternalOp = (
-  alignment: Alignment,
-  opcode: string,
-): Result<Operation, Error> => {
-  const operation = alignment.operations.find(
-    (op) =>
-      isInternalOperation(op) &&
-      op.opcode === opcode,
-  );
-  if (!operation) {
-    return newErr(
-      new Error(
-        `No operation found for opcode "${opcode}"`,
-      ),
+export const findInternalOp =
+  (opcode: string) =>
+  (
+    alignment: Alignment,
+  ): Result<InternalOperation, Error> => {
+    const operation = alignment.operations.find(
+      (op) =>
+        isInternalOperation(op) &&
+        op.opcode === opcode,
     );
-  }
-  return newOk(operation);
-};
+    if (
+      !operation ||
+      !isInternalOperation(operation)
+    ) {
+      return newErr(
+        new Error(
+          `No operation found for opcode "${opcode}"`,
+        ),
+      );
+    }
+    return newOk(operation);
+  };
 
 export const findEgressOp = (
   alignment: Alignment,
