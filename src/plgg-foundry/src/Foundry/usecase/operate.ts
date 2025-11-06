@@ -31,56 +31,40 @@ export const operate =
   (foundry: Foundry) =>
   (
     alignment: Alignment,
-  ): Promise<Result<Medium, Error>> => {
-    return proc(
+  ): Promise<Result<Medium, Error>> =>
+    proc(
       alignment,
       findIngressOp,
-      (ingressOp) =>
-        proc(
-          alignment,
-          findInternalOp(ingressOp.next),
-          (op) =>
-            execute({
-              op,
-              ctx: {
-                foundry,
-                alignment,
-                env: {
-                  [ingressOp.promptAddr]: {
-                    value: alignment.instruction,
-                  },
-                },
-              },
-            }),
-        ),
+      execute({
+        foundry,
+        alignment,
+        env: {},
+      }),
+    );
+
+const execute =
+  (ctx: OperationContext) =>
+  async (
+    op: Operation,
+  ): Promise<Result<Medium, Error>> => {
+    if (isIngressOperation(op)) {
+      return execIngress({ op, ctx });
+    }
+    if (isSwitchOperation(op)) {
+      return execSwitch({ op, ctx });
+    }
+    if (isProcessOperation(op)) {
+      return execProcess({ op, ctx });
+    }
+    if (isEgressOperation(op)) {
+      return execEgress({ op, ctx });
+    }
+    return newErr(
+      new Error(
+        `Unknown operation type for operation`,
+      ),
     );
   };
-
-const execute = async ({
-  op,
-  ctx,
-}: {
-  op: Operation;
-  ctx: OperationContext;
-}): Promise<Result<Medium, Error>> => {
-  if (isIngressOperation(op)) {
-    return execIngress({ op, ctx });
-  }
-  if (isSwitchOperation(op)) {
-    return execSwitch({ op, ctx });
-  }
-  if (isProcessOperation(op)) {
-    return execProcess({ op, ctx });
-  }
-  if (isEgressOperation(op)) {
-    return execEgress({ op, ctx });
-  }
-  return newErr(
-    new Error(
-      `Unknown operation type for operation`,
-    ),
-  );
-};
 
 const execIngress = async ({
   op,
@@ -88,21 +72,19 @@ const execIngress = async ({
 }: {
   op: IngressOperation;
   ctx: OperationContext;
-}): Promise<Result<Medium, Error>> => {
-  const { alignment, env } = ctx;
-  const opResult = findInternalOp(op.next)(
-    alignment,
-  );
-  return isOk(opResult)
-    ? execute({
-        op: opResult.content,
-        ctx: {
-          ...ctx,
-          env,
+}): Promise<Result<Medium, Error>> =>
+  proc(
+    ctx.alignment,
+    findInternalOp(op.next),
+    execute({
+      ...ctx,
+      env: {
+        [op.promptAddr]: {
+          value: ctx.alignment.instruction,
         },
-      })
-    : newErr(opResult.content);
-};
+      },
+    }),
+  );
 
 const execSwitch = async ({
   op,
@@ -141,15 +123,11 @@ const execSwitch = async ({
       ? op.saveAddrTrue
       : op.saveAddrFalse]: { value },
   };
-
   return isOk(opResult)
     ? execute({
-        op: opResult.content,
-        ctx: {
-          ...ctx,
-          env: newEnv,
-        },
-      })
+        ...ctx,
+        env: newEnv,
+      })(opResult.content)
     : newErr(opResult.content);
 };
 
@@ -190,12 +168,9 @@ const execProcess = async ({
       findEgressOp(alignment);
     return isOk(egressOpResult)
       ? execute({
-          op: egressOpResult.content,
-          ctx: {
-            ...ctx,
-            env: newEnv,
-          },
-        })
+          ...ctx,
+          env: newEnv,
+        })(egressOpResult.content)
       : newErr(egressOpResult.content);
   }
 
@@ -212,12 +187,9 @@ const execProcess = async ({
   );
   return isOk(nextOpResult)
     ? execute({
-        op: nextOpResult.content,
-        ctx: {
-          ...ctx,
-          env: newEnv,
-        },
-      })
+        ...ctx,
+        env: newEnv,
+      })(nextOpResult.content)
     : newErr(nextOpResult.content);
 };
 

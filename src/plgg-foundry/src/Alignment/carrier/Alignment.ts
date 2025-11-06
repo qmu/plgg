@@ -2,10 +2,11 @@ import { Result, newOk, newErr } from "plgg";
 import {
   Operation,
   IngressOperation,
-  InternalOperation,
+  ProcessOperation,
   isInternalOperation,
   isIngressOperation,
   isEgressOperation,
+  isProcessOperation,
 } from "plgg-foundry/index";
 
 export type Alignment = {
@@ -31,23 +32,19 @@ export const findInternalOp =
   (opcode: string) =>
   (
     alignment: Alignment,
-  ): Result<InternalOperation, Error> => {
-    const operation = alignment.operations.find(
-      (op) =>
-        isInternalOperation(op) &&
-        op.opcode === opcode,
+  ): Result<ProcessOperation, Error> => {
+    const op = alignment.operations.find(
+      (o) =>
+        isInternalOperation(o) &&
+        o.opcode === opcode,
     );
-    if (
-      !operation ||
-      !isInternalOperation(operation)
-    ) {
-      return newErr(
-        new Error(
-          `No operation found for opcode "${opcode}"`,
-        ),
-      );
-    }
-    return newOk(operation);
+    return op && isProcessOperation(op)
+      ? newOk(op)
+      : newErr(
+          new Error(
+            `No operation found for opcode "${opcode}"`,
+          ),
+        );
   };
 
 export const findEgressOp = (
