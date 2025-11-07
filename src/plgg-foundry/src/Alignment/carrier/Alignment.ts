@@ -2,8 +2,8 @@ import { Result, newOk, newErr } from "plgg";
 import {
   Operation,
   IngressOperation,
+  InternalOperation,
   isInternalOperation,
-  isOperation,
   isIngressOperation,
   isEgressOperation,
 } from "plgg-foundry/index";
@@ -31,13 +31,13 @@ export const findInternalOp =
   (opcode: string) =>
   (
     alignment: Alignment,
-  ): Result<Operation, Error> => {
+  ): Result<InternalOperation, Error> => {
     const op = alignment.operations.find(
       (o) =>
         isInternalOperation(o) &&
         o.opcode === opcode,
     );
-    return op && isOperation(op)
+    return op && isInternalOperation(op)
       ? newOk(op)
       : newErr(
           new Error(
