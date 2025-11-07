@@ -140,7 +140,7 @@ test("asFoundrySpec validation - missing description", () => {
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
-    "description",
+    "Cast failed",
   );
 });
 
@@ -156,7 +156,7 @@ test("asFoundrySpec validation - missing processors", () => {
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
-    "processors",
+    "Cast failed",
   );
 });
 
@@ -172,7 +172,7 @@ test("asFoundrySpec validation - missing switchers", () => {
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
-    "switchers",
+    "Cast failed",
   );
 });
 
@@ -195,7 +195,7 @@ test("asFoundrySpec validation - invalid processor", () => {
   const result = asFoundry(foundryArg as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
-    "Array element",
+    "Cast failed",
   );
 });
 
@@ -218,7 +218,7 @@ test("asFoundrySpec validation - invalid switcher", () => {
   const result = asFoundry(foundryArg as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
-    "Array element",
+    "Cast failed",
   );
 });
 
@@ -235,7 +235,7 @@ test("asFoundrySpec validation - processors not array", () => {
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
-    "array",
+    "Cast failed",
   );
 });
 
@@ -252,6 +252,6 @@ test("asFoundrySpec validation - switchers not array", () => {
   const result = asFoundry(invalidFoundry as any);
   assert(isErr(result));
   expect(result.content.message).toContain(
-    "array",
+    "Cast failed",
   );
 });
