@@ -7,18 +7,23 @@ export type PossiblyPromise<T> = Promise<T> | T;
 
 /**
  * Type for values that can be direct values or Results.
+ * Uses [T] extends [never] to prevent distributive conditional types
+ * which ensures union types like Operation work correctly with Result.
  */
-export type PossiblyResult<T, U> =
-  | Result<T, U>
-  | T;
+export type PossiblyResult<T, U> = [T] extends [
+  never,
+]
+  ? never
+  : Result<T, U> | T;
 
 /**
  * Async Result type for Plgg operations.
+ * Uses [T] extends [never] to prevent distribution over union types.
  */
 export type Procedural<
   T,
   U extends Error = Error,
-> = T extends never
+> = [T] extends [never]
   ? never
   : PossiblyPromise<PossiblyResult<T, U>>;
 
