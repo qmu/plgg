@@ -1,4 +1,14 @@
-import { Result, newOk, newErr } from "plgg";
+import {
+  Result,
+  Str,
+  newOk,
+  newErr,
+  asStr,
+  asObj,
+  cast,
+  forProp,
+  asReadonlyArray,
+} from "plgg";
 import {
   Operation,
   IngressOperation,
@@ -6,12 +16,24 @@ import {
   isInternalOperation,
   isIngressOperation,
   isEgressOperation,
+  asOperation,
 } from "plgg-foundry/index";
 
-export type Alignment = {
-  instruction: string;
+export type Alignment = Readonly<{
+  instruction: Str;
   operations: ReadonlyArray<Operation>;
-};
+}>;
+
+export const asAlignment = (value: unknown) =>
+  cast(
+    value,
+    asObj,
+    forProp("instruction", asStr),
+    forProp(
+      "operations",
+      asReadonlyArray(asOperation),
+    ),
+  );
 
 export const findIngressOp = (
   alignment: Alignment,

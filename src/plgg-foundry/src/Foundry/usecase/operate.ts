@@ -80,7 +80,7 @@ const execIngress = async ({
       ...ctx,
       env: {
         [op.promptAddr]: {
-          value: ctx.alignment.instruction,
+          value: ctx.alignment.instruction.content,
         },
       },
     }),
