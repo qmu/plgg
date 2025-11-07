@@ -1,4 +1,4 @@
-import { Operation } from "plgg-foundry/index";
+import { isRawObj, hasProp } from "plgg";
 
 export type EgressOperation = Readonly<{
   type: "egress";
@@ -6,5 +6,8 @@ export type EgressOperation = Readonly<{
 }>;
 
 export const isEgressOperation = (
-  op: Operation,
-): op is EgressOperation => op.type === "egress";
+  op: unknown,
+): op is EgressOperation =>
+  isRawObj<object>(op) &&
+  hasProp(op, "type") &&
+  op.type === "egress";

@@ -1,7 +1,6 @@
 import {
   ProcessOperation,
   SwitchOperation,
-  Operation,
   isProcessOperation,
   isSwitchOperation,
 } from "plgg-foundry/index";
@@ -11,6 +10,6 @@ export type InternalOperation =
   | SwitchOperation;
 
 export const isInternalOperation = (
-  op: Operation,
+  op: unknown,
 ): op is InternalOperation =>
   isProcessOperation(op) || isSwitchOperation(op);

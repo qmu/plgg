@@ -1,4 +1,4 @@
-import { Operation } from "plgg-foundry/index";
+import { isRawObj, hasProp } from "plgg";
 
 export type SwitchOperation = Readonly<{
   type: "switch";
@@ -11,5 +11,8 @@ export type SwitchOperation = Readonly<{
 }>;
 
 export const isSwitchOperation = (
-  op: Operation,
-): op is SwitchOperation => op.type === "switch";
+  op: unknown,
+): op is SwitchOperation =>
+  isRawObj<object>(op) &&
+  hasProp(op, "type") &&
+  op.type === "switch";
