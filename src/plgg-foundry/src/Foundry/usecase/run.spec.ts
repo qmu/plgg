@@ -3,7 +3,7 @@ import { isErr, isOk } from "plgg";
 import { FoundrySpec } from "plgg-foundry/index";
 import { run } from "plgg-foundry/Foundry/usecase";
 
-test("Run Character Image Generation", async () => {
+test.skip("Run Character Image Generation", async () => {
   type Base64 = string;
 
   type Image = Readonly<{
@@ -27,7 +27,16 @@ test("Run Character Image Generation", async () => {
   ): a is StringMediumValue =>
     typeof a === "string";
 
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    console.log(
+      "Skipping test: OPENAI_API_KEY not set",
+    );
+    return;
+  }
+
   const specArg: FoundrySpec = {
+    apiKey,
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
     processors: [

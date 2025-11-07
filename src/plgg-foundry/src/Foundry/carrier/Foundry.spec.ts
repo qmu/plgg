@@ -10,6 +10,7 @@ import {
  */
 test("asFoundrySpec validation - valid foundry", () => {
   const validFoundry: FoundrySpec = {
+    apiKey: "test-api-key",
     description: "Test foundry description",
     processors: [
       {
@@ -59,6 +60,7 @@ test("asFoundrySpec validation - valid foundry", () => {
  */
 test("asFoundrySpec validation - empty processors and switchers", () => {
   const foundryArg: FoundrySpec = {
+    apiKey: "test-api-key",
     description: "Empty foundry",
     processors: [],
     switchers: [],
@@ -80,6 +82,7 @@ test("asFoundrySpec validation - empty processors and switchers", () => {
  */
 test("asFoundrySpec validation - multiple processors and switchers", () => {
   const foundryArg: FoundrySpec = {
+    apiKey: "test-api-key",
     description: "Multi-component foundry",
     processors: [
       {

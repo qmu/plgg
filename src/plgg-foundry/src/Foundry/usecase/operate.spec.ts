@@ -8,7 +8,7 @@ import {
 } from "plgg";
 import {
   FoundrySpec,
-  Alignment,
+  asAlignment,
   asFoundry,
 } from "plgg-foundry/index";
 import { operate } from "plgg-foundry/Foundry/usecase";
@@ -16,6 +16,7 @@ import { operate } from "plgg-foundry/Foundry/usecase";
 test("OperationContext: assemble -> operate with example blueprint", async () => {
   // Define the FoundrySpec with processors and switchers
   const specArg: FoundrySpec = {
+    apiKey: "not needed for this test",
     description:
       "Test foundry for character design workflow",
     processors: [
@@ -98,7 +99,7 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
   };
 
   // Define the example Alignment (blueprint)
-  const exampleAlignment: Alignment = {
+  const maybeAlignment = asAlignment({
     instruction:
       "A fantasy character with a sword and shield",
     operations: [
@@ -145,7 +146,9 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
         },
       },
     ],
-  };
+  });
+
+  assert(isOk(maybeAlignment));
 
   // Test the flow: assemble -> operate
   const result = await proc(
@@ -153,7 +156,7 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
     asFoundry,
     (foundrySpec) =>
       proc(
-        exampleAlignment,
+        maybeAlignment.content,
         operate(foundrySpec),
       ),
   );

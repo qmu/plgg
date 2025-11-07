@@ -23,12 +23,14 @@ import {
 
 export type Foundry = Readonly<{
   description: Str;
+  apiKey: Str;
   processors: ReadonlyArray<Processor>;
   switchers: ReadonlyArray<Switcher>;
   packers: ReadonlyArray<Packer>;
 }>;
 
 export type FoundrySpec = Readonly<{
+  apiKey: string;
   description: string;
   processors: ReadonlyArray<ProcessorSpec>;
   switchers: ReadonlyArray<SwitcherSpec>;
@@ -38,6 +40,7 @@ export type FoundrySpec = Readonly<{
 export const asFoundry = (value: FoundrySpec) =>
   cast(
     value,
+    forProp("apiKey", asStr),
     forProp("description", asStr),
     forProp(
       "processors",

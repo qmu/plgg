@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import { isOk } from "plgg";
-import { generateJson } from "./OpenAI";
+import { generateJson } from "plgg-foundry/Foundry/vendor/OpenAI";
 
 test.skip("OpenAI API invocation works", async () => {
   const apiKey = process.env.OPENAI_API_KEY;

@@ -1,59 +1,57 @@
+import { Result, isErr } from "plgg";
 import {
   Alignment,
   Foundry,
   Order,
+  asAlignment,
 } from "plgg-foundry/index";
+import { generateJson } from "plgg-foundry/Foundry/vendor/OpenAI";
 
 export const blueprint =
-  (_foundry: Foundry) =>
-  (order: Order): Alignment => {
-    const examplAlignment: Alignment = {
-      instruction: order.prompt.content,
-      operations: [
-        {
-          type: "ingress",
-          next: "plan",
-          promptAddr: "r0",
-        },
-        {
-          type: "process",
-          opcode: "plan",
-          next: "gen-main",
-          loadAddr: "r0",
-          saveAddr: "r1",
-        },
-        {
-          type: "process",
-          opcode: "gen-main",
-          next: "check-validity",
-          loadAddr: "r1",
-          saveAddr: "r2",
-        },
-        {
-          type: "switch",
-          opcode: "check-validity",
-          nextWhenTrue: "gen-spread",
-          nextWhenFalse: "plan",
-          loadAddr: "r2",
-          saveAddrTrue: "r3",
-          saveAddrFalse: "r0",
-        },
-        {
-          type: "process",
-          opcode: "gen-spread",
-          exit: true,
-          loadAddr: "r2",
-          saveAddr: "r3",
-        },
-        {
-          type: "egress",
-          result: {
-            mainImage: "r2",
-            spreadImage: "r3",
+  (foundry: Foundry) =>
+  async (
+    _order: Order,
+  ): Promise<Result<Alignment, Error>> => {
+    const res = await generateJson({
+      apiKey: foundry.apiKey.content,
+      model: "gpt-5-nano-2025-08-07",
+      input: `Compose function call chain to contact the following user request:
+<user-request>
+Generate me a mascot character of lion x durian fruit.
+</user-request>
+`,
+      responseFormat: {
+        name: "function_call_chain",
+        description:
+          "A chain of function calls to fulfill the user request",
+        type: "json_schema",
+        schema: {
+          type: "object",
+          properties: {
+            function_call_chain: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  function_name: {
+                    type: "string",
+                  },
+                },
+                required: ["function_name"],
+                additionalProperties: false,
+              },
+            },
           },
+          required: ["function_call_chain"],
+          additionalProperties: false,
         },
-      ],
-    };
+      },
+    });
+    if (isErr(res)) {
+      return res;
+    }
 
-    return examplAlignment;
+    console.log(res);
+
+    return asAlignment(res.content);
   };
