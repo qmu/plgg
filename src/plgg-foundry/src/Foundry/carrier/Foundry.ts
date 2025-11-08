@@ -19,6 +19,9 @@ import {
   asProcessor,
   asSwitcher,
   asPacker,
+  explainProcessor,
+  explainSwitcher,
+  explainPacker,
 } from "plgg-foundry/index";
 
 export type Foundry = Readonly<{
@@ -96,3 +99,21 @@ export const findProcessor = (
   }
   return newOk(processor);
 };
+
+export const explainFoundry = (
+  foundry: Foundry,
+) => `Foundry Description: ${foundry.description.content}
+-------------------
+Processors:
+${foundry.processors
+  .map(explainProcessor)
+  .join("\n")}
+-------------------
+Switchers:
+${foundry.switchers
+  .map(explainSwitcher)
+  .join("\n")}
+-------------------
+Packers:
+${foundry.packers.map(explainPacker).join("\n")}
+-------------------`;

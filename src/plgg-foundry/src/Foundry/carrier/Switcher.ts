@@ -56,3 +56,25 @@ export const switcherCastable: Castable<
 > = {
   as: asSwitcher,
 };
+
+export const explainSwitcher = (
+  switcher: Switcher,
+) =>
+  `Switcher:
+  ID: ${switcher.id}
+  Description: ${switcher.description}
+  Input Type: ${
+    switcher.inputType
+      ? switcher.inputType.content
+      : "None"
+  }
+  Output Type When True: ${
+    switcher.outputTypeWhenTrue
+      ? switcher.outputTypeWhenTrue.content
+      : "None"
+  }
+  Output Type When False: ${
+    switcher.outputTypeWhenFalse
+      ? switcher.outputTypeWhenFalse.content
+      : "None"
+  }`;

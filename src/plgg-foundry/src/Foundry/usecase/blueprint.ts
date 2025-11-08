@@ -4,6 +4,7 @@ import {
   Foundry,
   Order,
   asAlignment,
+  explainFoundry,
 } from "plgg-foundry/index";
 import { generateJson } from "plgg-foundry/Foundry/vendor/OpenAI";
 
@@ -16,9 +17,9 @@ export const blueprint =
       apiKey: foundry.apiKey.content,
       model: "gpt-5-nano-2025-08-07",
       input: `Compose function call chain to contact the following user request:
-<user-request>
-Generate me a mascot character of lion x durian fruit.
-</user-request>
+<foundry-explanation>
+${explainFoundry(foundry)}
+</foundry-explanation>
 `,
       responseFormat: {
         name: "function_call_chain",

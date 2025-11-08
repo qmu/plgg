@@ -49,3 +49,19 @@ export const processorCastable: Castable<
 > = {
   as: asProcessor,
 };
+
+export const explainProcessor = (
+  processor: Processor,
+) => `Processor:
+  Name: ${processor.name}
+  Description: ${processor.description}
+  Input Type: ${
+    processor.inputType
+      ? processor.inputType.content
+      : "Any"
+  }
+  Output Type: ${
+    processor.outputType
+      ? processor.outputType.content
+      : "Any"
+  }`;

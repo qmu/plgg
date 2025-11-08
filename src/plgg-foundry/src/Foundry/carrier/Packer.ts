@@ -39,3 +39,14 @@ export const packerCastable: Castable<
 > = {
   as: asPacker,
 };
+
+export const explainPacker = (
+  packer: Packer,
+) => `Packer:
+  Name: ${packer.name}
+  Processed By: ${packer.processedBy}
+  Description: ${
+    packer.description
+      ? packer.description.content
+      : "N/A"
+  }`;
