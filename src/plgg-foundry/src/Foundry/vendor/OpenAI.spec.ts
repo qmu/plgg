@@ -14,6 +14,8 @@ test.skip("OpenAI API invocation works", async () => {
   const res = await generateJson({
     apiKey,
     model: "gpt-5-nano-2025-08-07",
+    instructions:
+      "Compose function call chain to fulfill the user request.",
     input: `Compose function call chain to contact the following user request:
 <user-request>
 Generate me a mascot character of lion x durian fruit.

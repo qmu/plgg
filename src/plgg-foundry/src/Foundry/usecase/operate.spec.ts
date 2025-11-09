@@ -67,7 +67,7 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
     ],
     switchers: [
       {
-        id: "check-validity",
+        name: "check-validity",
         description:
           "Checks for inappropriate content in images",
         check: (medium) => {
@@ -100,7 +100,11 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
 
   // Define the example Alignment (blueprint)
   const maybeAlignment = asAlignment({
-    instruction:
+    userRequestAnalysis:
+      "User wants a fantasy character image with sword and shield",
+    compositionRationale:
+      "Use plan->generate->validate loop to create character",
+    userRequest:
       "A fantasy character with a sword and shield",
     operations: [
       {

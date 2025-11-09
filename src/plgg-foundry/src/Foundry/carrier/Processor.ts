@@ -1,4 +1,3 @@
-import { Medium } from "plgg-foundry/index";
 import {
   Castable,
   KebabCase,
@@ -10,7 +9,9 @@ import {
   asStr,
   asFunc,
   asKebabCase,
+  isSome,
 } from "plgg";
+import { Medium } from "plgg-foundry/index";
 
 export type Processor = Readonly<{
   name: KebabCase;
@@ -52,16 +53,16 @@ export const processorCastable: Castable<
 
 export const explainProcessor = (
   processor: Processor,
-) => `Processor:
-  Name: ${processor.name}
-  Description: ${processor.description}
-  Input Type: ${
-    processor.inputType
-      ? processor.inputType.content
-      : "Any"
-  }
-  Output Type: ${
-    processor.outputType
-      ? processor.outputType.content
-      : "Any"
-  }`;
+) => `${processor.description.content}
+
+- Opcode: \`${processor.name.content}\`
+- Input Type: ${
+  isSome(processor.inputType)
+    ? `\`${processor.inputType.content.content}\``
+    : "Any"
+}
+- Output Type: ${
+  isSome(processor.outputType)
+    ? `\`${processor.outputType.content.content}\``
+    : "Any"
+}`;

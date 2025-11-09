@@ -71,7 +71,7 @@ export const findSwitcher = (
   opcode: string,
 ): Result<Switcher, Error> => {
   const switcher = foundry.switchers.find(
-    (s) => s.id.content === opcode,
+    (s) => s.name.content === opcode,
   );
   if (!switcher) {
     return newErr(
@@ -102,18 +102,48 @@ export const findProcessor = (
 
 export const explainFoundry = (
   foundry: Foundry,
-) => `Foundry Description: ${foundry.description.content}
--------------------
-Processors:
+) => `## 1. Foundry Description
+
+${foundry.description.content}
+
+## 2. Processors
+
 ${foundry.processors
-  .map(explainProcessor)
+  .map(
+    (a, i) => `### 2-${i + 1}. ${a.name.content}
+
+${explainProcessor(a)}
+`,
+  )
   .join("\n")}
--------------------
-Switchers:
+
+## 3. Switchers
+
 ${foundry.switchers
-  .map(explainSwitcher)
+  .map(
+    (a, i) => `### 3-${i + 1}. ${a.name.content}
+
+${explainSwitcher(a)}
+`,
+  )
   .join("\n")}
--------------------
-Packers:
-${foundry.packers.map(explainPacker).join("\n")}
--------------------`;
+
+## 4. Packers
+
+${foundry.packers
+  .map(
+    (a, i) => `### 4-${i + 1}. ${a.name.content}
+
+${explainPacker(a)}
+`,
+  )
+  .join("\n")}
+`;
+
+export const extractOpcodes = <
+  T extends { name: { content: string } },
+>(
+  items: ReadonlyArray<T>,
+): ReadonlyArray<string> => {
+  return items.map((item) => item.name.content);
+};

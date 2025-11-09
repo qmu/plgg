@@ -11,11 +11,13 @@ import {
 export const generateJson = async ({
   apiKey,
   model,
+  instructions,
   input,
   responseFormat,
 }: {
   apiKey: string;
   model: string;
+  instructions: string;
   input: string;
   responseFormat: any;
 }): Promise<Result<unknown, Error>> => {
@@ -33,6 +35,7 @@ export const generateJson = async ({
         reasoning: {
           effort: "minimal",
         },
+        instructions,
         text: { format: responseFormat },
       }),
     },

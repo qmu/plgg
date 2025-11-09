@@ -28,3 +28,16 @@ export const asOrder = ({
     forProp("prompt", asStr),
     forProp("files", asReadonlyArray(asBin)),
   );
+
+export const explainOrder = (order: Order): string => {
+  const fileCount = order.files.length;
+  const promptText = order.prompt.content;
+
+  if (fileCount === 0) {
+    return promptText;
+  }
+
+  const fileText =
+    fileCount === 1 ? "1 file" : `${fileCount} files`;
+  return `${promptText}\n\n(${fileText} attached)`;
+};

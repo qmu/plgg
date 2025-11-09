@@ -23,7 +23,7 @@ test("asFoundrySpec validation - valid foundry", () => {
     ],
     switchers: [
       {
-        id: "test-switcher",
+        name: "test-switcher",
         description: "A test switcher",
         inputType: "string",
         outputTypeWhenTrue: "string",
@@ -51,7 +51,7 @@ test("asFoundrySpec validation - valid foundry", () => {
     result.content.processors[0]?.name.content,
   ).toBe("test-processor");
   expect(
-    result.content.switchers[0]?.id.content,
+    result.content.switchers[0]?.name.content,
   ).toBe("test-switcher");
 });
 
@@ -102,7 +102,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
     ],
     switchers: [
       {
-        id: "switcher-1",
+        name: "switcher-1",
         description: "First switcher",
         inputType: "string",
         outputTypeWhenTrue: "string",
@@ -110,7 +110,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         check: (input) => [true, input.value],
       },
       {
-        id: "switcher-2",
+        name: "switcher-2",
         description: "Second switcher",
         inputType: "number",
         outputTypeWhenTrue: "number",

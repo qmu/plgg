@@ -8,6 +8,7 @@ import {
   forOptionProp,
   asStr,
   asKebabCase,
+  isSome,
 } from "plgg";
 
 export type Packer = Readonly<{
@@ -42,11 +43,11 @@ export const packerCastable: Castable<
 
 export const explainPacker = (
   packer: Packer,
-) => `Packer:
-  Name: ${packer.name}
-  Processed By: ${packer.processedBy}
-  Description: ${
-    packer.description
-      ? packer.description.content
-      : "N/A"
-  }`;
+) => `${
+  isSome(packer.description)
+    ? packer.description.content.content
+    : "N/A"
+}
+
+- Processed By: ${packer.processedBy.content}
+`;

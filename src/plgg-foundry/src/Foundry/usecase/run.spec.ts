@@ -3,7 +3,7 @@ import { isErr, isOk } from "plgg";
 import { FoundrySpec } from "plgg-foundry/index";
 import { run } from "plgg-foundry/Foundry/usecase";
 
-test.skip("Run Character Image Generation", async () => {
+test("Run Character Image Generation", async () => {
   type Base64 = string;
 
   type Image = Readonly<{
@@ -113,7 +113,7 @@ test.skip("Run Character Image Generation", async () => {
     ],
     switchers: [
       {
-        id: "check-validity",
+        name: "check-validity",
         description:
           "Checks for inappropriate content in images",
         inputType: "image[]",
@@ -165,4 +165,4 @@ test.skip("Run Character Image Generation", async () => {
     );
   }
   assert(isOk(result));
-});
+}, 30000);

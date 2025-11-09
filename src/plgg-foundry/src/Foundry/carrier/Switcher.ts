@@ -1,4 +1,3 @@
-import { Medium } from "plgg-foundry/index";
 import {
   KebabCase,
   Str,
@@ -10,10 +9,12 @@ import {
   asStr,
   asFunc,
   asKebabCase,
+  isSome,
 } from "plgg";
+import { Medium } from "plgg-foundry/index";
 
 export type Switcher = Readonly<{
-  id: KebabCase;
+  name: KebabCase;
   description: Str;
   inputType: Option<Str>;
   outputTypeWhenTrue: Option<Str>;
@@ -25,7 +26,7 @@ export type Switcher = Readonly<{
 }>;
 
 export type SwitcherSpec = Readonly<{
-  id: string;
+  name: string;
   description: string;
   inputType?: string;
   outputTypeWhenTrue?: string;
@@ -39,7 +40,7 @@ export type SwitcherSpec = Readonly<{
 export const asSwitcher = (value: SwitcherSpec) =>
   cast(
     value,
-    forProp("id", asKebabCase),
+    forProp("name", asKebabCase),
     forProp("description", asStr),
     forOptionProp("inputType", asStr),
     forOptionProp("outputTypeWhenTrue", asStr),
@@ -60,21 +61,21 @@ export const switcherCastable: Castable<
 export const explainSwitcher = (
   switcher: Switcher,
 ) =>
-  `Switcher:
-  ID: ${switcher.id}
-  Description: ${switcher.description}
-  Input Type: ${
-    switcher.inputType
-      ? switcher.inputType.content
+  `${switcher.description.content}
+
+- Opcode: \`${switcher.name.content}\`
+- Input Type: ${
+    isSome(switcher.inputType)
+      ? `\`${switcher.inputType.content.content}\``
       : "None"
   }
-  Output Type When True: ${
-    switcher.outputTypeWhenTrue
-      ? switcher.outputTypeWhenTrue.content
+- Output Type When True: ${
+    isSome(switcher.outputTypeWhenTrue)
+      ? `\`${switcher.outputTypeWhenTrue.content.content}\``
       : "None"
   }
-  Output Type When False: ${
-    switcher.outputTypeWhenFalse
-      ? switcher.outputTypeWhenFalse.content
+- Output Type When False: ${
+    isSome(switcher.outputTypeWhenFalse)
+      ? `\`${switcher.outputTypeWhenFalse.content.content}\``
       : "None"
   }`;

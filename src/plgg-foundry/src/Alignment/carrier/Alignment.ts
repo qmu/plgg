@@ -20,7 +20,9 @@ import {
 } from "plgg-foundry/index";
 
 export type Alignment = Readonly<{
-  instruction: Str;
+  userRequestAnalysis: Str;
+  compositionRationale: Str;
+  userRequest: Str;
   operations: ReadonlyArray<Operation>;
 }>;
 
@@ -28,7 +30,9 @@ export const asAlignment = (value: unknown) =>
   cast(
     value,
     asObj,
-    forProp("instruction", asStr),
+    forProp("userRequestAnalysis", asStr),
+    forProp("compositionRationale", asStr),
+    forProp("userRequest", asStr),
     forProp(
       "operations",
       asReadonlyArray(asOperation),
@@ -63,7 +67,7 @@ export const findInternalOp =
       ? newOk(op)
       : newErr(
           new Error(
-            `No operation found for opcode "${opcode}"`,
+            `No operation found for processorName "${opcode}"`,
           ),
         );
   };
