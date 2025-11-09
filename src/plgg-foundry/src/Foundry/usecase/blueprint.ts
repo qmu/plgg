@@ -25,6 +25,7 @@ export const blueprint =
     const allOpcodes = [
       ...processorOpcodes,
       ...switcherOpcodes,
+      "egress",
     ];
     console.log(`## Available Foundry Functions
 
@@ -61,13 +62,38 @@ The Foundry provides functions for 'process' and 'switch' operations:
 ${explainFoundry(foundry)}
 \`\`\`
 
-Example:
+## Switch Operation Semantics
+
+Switchers evaluate data and return [boolean, data]. The boolean determines the branch:
+- nextWhenTrue: Executes when condition is TRUE (success/valid/yes)
+- nextWhenFalse: Executes when condition is FALSE (failure/invalid/no)
+
+For validation switchers: TRUE means valid → proceed forward. FALSE means invalid → retry or handle error.
+
+## Reachability Rule
+
+Every process/switch operation MUST be reachable via control flow (next, nextWhenTrue, nextWhenFalse). Do NOT create orphan operations that are never referenced.
+
+Example without validation:
 \`\`\`json
 {
   "operations": [
     { "type": "ingress", "next": "plan", "promptAddr": "r0" },
     { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": "r0", "saveAddr": "r1" },
-    { "type": "process", "opcode": "gen-main", "exit": true, "loadAddr": "r1", "saveAddr": "r2" },
+    { "type": "process", "opcode": "gen-main", "next": "egress", "loadAddr": "r1", "saveAddr": "r2" },
+    { "type": "egress", "result": {"mainImage": "r2"} }
+  ]
+}
+\`\`\`
+
+Example with validation (validation passes → continue, validation fails → retry):
+\`\`\`json
+{
+  "operations": [
+    { "type": "ingress", "next": "plan", "promptAddr": "r0" },
+    { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": "r0", "saveAddr": "r1" },
+    { "type": "process", "opcode": "gen-main", "next": "check-validity", "loadAddr": "r1", "saveAddr": "r2" },
+    { "type": "switch", "opcode": "check-validity", "loadAddr": "r2", "nextWhenTrue": "egress", "nextWhenFalse": "plan", "saveAddrTrue": "r2", "saveAddrFalse": "r0" },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -177,49 +203,6 @@ Example:
                   {
                     type: "object",
                     description:
-                      "Process operation with exit - Executes a Foundry processor as terminal operation.",
-                    properties: {
-                      type: {
-                        type: "string",
-                        const: "process",
-                        description:
-                          "Operation type.",
-                      },
-                      opcode: {
-                        type: "string",
-                        enum: processorOpcodes,
-                        description:
-                          "Processor opcode from Available Foundry Functions.",
-                      },
-                      loadAddr: {
-                        type: "string",
-                        description:
-                          "Register to load input from (e.g., 'r0'). Must be previously written.",
-                      },
-                      saveAddr: {
-                        type: "string",
-                        description:
-                          "Register to save output to (e.g., 'r2'). Can be referenced by later operations.",
-                      },
-                      exit: {
-                        type: "boolean",
-                        const: true,
-                        description:
-                          "Marks this as terminal operation before egress.",
-                      },
-                    },
-                    required: [
-                      "type",
-                      "opcode",
-                      "loadAddr",
-                      "saveAddr",
-                      "exit",
-                    ],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: "object",
-                    description:
                       "Switch operation - Evaluates register data and branches based on true/false result.",
                     properties: {
                       type: {
@@ -306,7 +289,7 @@ Structure: Start with one 'ingress', end with 'egress'. Ingress first, egress la
 
 Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially.
 
-Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference opcodes from other operations. Can create loops. Terminal operations use 'exit: true'.
+Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference opcodes from other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
 
 Data Flow: loadAddr references previously written register. Flow: ingress → process/switch → egress.`,
             },

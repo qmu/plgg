@@ -138,7 +138,7 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
       {
         type: "process",
         opcode: "gen-spread",
-        exit: true,
+        next: "egress",
         loadAddr: "r2",
         saveAddr: "r3",
       },

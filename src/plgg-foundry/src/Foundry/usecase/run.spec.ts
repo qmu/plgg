@@ -115,7 +115,7 @@ test("Run Character Image Generation", async () => {
       {
         name: "check-validity",
         description:
-          "Checks for inappropriate content in images",
+          "Checks for inappropriate content in images, if invalid go back to former step",
         inputType: "image[]",
         outputTypeWhenTrue: "image[]",
         outputTypeWhenFalse: "string",

@@ -164,7 +164,7 @@ const execProcess = async ({
     [op.saveAddr]: { value },
   };
 
-  if (op.exit) {
+  if (op.next === "egress") {
     const egressOpResult =
       findEgressOp(alignment);
     return isOk(egressOpResult)
@@ -173,14 +173,6 @@ const execProcess = async ({
           env: newEnv,
         })(egressOpResult.content)
       : newErr(egressOpResult.content);
-  }
-
-  if (!op.next) {
-    return newErr(
-      new Error(
-        `No next opcode specified for operation "${op.opcode}"`,
-      ),
-    );
   }
 
   const nextOpResult = findInternalOp(op.next)(

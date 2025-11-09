@@ -5,8 +5,7 @@ export type ProcessOperation = Readonly<{
   opcode: string;
   loadAddr: string;
   saveAddr: string;
-  next?: string;
-  exit?: true;
+  next: string;
 }>;
 
 export const isProcessOperation = (
