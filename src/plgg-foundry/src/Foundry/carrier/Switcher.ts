@@ -11,7 +11,10 @@ import {
   asKebabCase,
   isSome,
 } from "plgg";
-import { Medium } from "plgg-foundry/index";
+import {
+  Medium,
+  Alignment,
+} from "plgg-foundry/index";
 
 export type Switcher = Readonly<{
   name: KebabCase;
@@ -19,7 +22,10 @@ export type Switcher = Readonly<{
   inputType: Option<Str>;
   outputTypeWhenTrue: Option<Str>;
   outputTypeWhenFalse: Option<Str>;
-  check: (input: Medium) => [
+  check: (arg: {
+    medium: Medium;
+    alignment: Alignment;
+  }) => [
     boolean, // validity
     unknown, // proppagating data
   ];
@@ -31,7 +37,10 @@ export type SwitcherSpec = Readonly<{
   inputType?: string;
   outputTypeWhenTrue?: string;
   outputTypeWhenFalse?: string;
-  check: (input: Medium) => [
+  check: (arg: {
+    medium: Medium;
+    alignment: Alignment;
+  }) => [
     boolean, // validity
     unknown, // proppagating data
   ];

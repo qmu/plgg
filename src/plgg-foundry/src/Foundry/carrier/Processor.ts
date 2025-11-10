@@ -11,14 +11,20 @@ import {
   asKebabCase,
   isSome,
 } from "plgg";
-import { Medium } from "plgg-foundry/index";
+import {
+  Medium,
+  Alignment,
+} from "plgg-foundry/index";
 
 export type Processor = Readonly<{
   name: KebabCase;
   description: Str;
   inputType: Option<Str>;
   outputType: Option<Str>;
-  process: (input: Medium) => unknown;
+  process: (arg: {
+    medium: Medium;
+    alignment: Alignment;
+  }) => unknown;
 }>;
 
 export type ProcessorSpec = Readonly<{
@@ -26,7 +32,10 @@ export type ProcessorSpec = Readonly<{
   description: string;
   inputType?: string;
   outputType?: string;
-  process: (input: Medium) => unknown;
+  process: (arg: {
+    medium: Medium;
+    alignment: Alignment;
+  }) => unknown;
 }>;
 
 export const asProcessor = (

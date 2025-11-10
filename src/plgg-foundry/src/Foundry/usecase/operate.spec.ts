@@ -12,93 +12,13 @@ import {
   asFoundry,
 } from "plgg-foundry/index";
 import { operate } from "plgg-foundry/Foundry/usecase";
+import { newTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test("OperationContext: assemble -> operate with example blueprint", async () => {
-  // Define the FoundrySpec with processors and switchers
-  const specArg: FoundrySpec = {
-    apiKey: "not needed for this test",
-    description:
-      "Test foundry for character design workflow",
-    processors: [
-      {
-        name: "plan",
-        description: "plan",
-        process: (medium) => {
-          if (typeof medium.value !== "string") {
-            throw new Error(
-              "Invalid medium value for planning step",
-            );
-          }
-          return "Well-planned character design description";
-        },
-      },
-      {
-        name: "gen-main",
-        description:
-          "Generates the main character image",
-        process: (medium) => {
-          if (typeof medium.value !== "string") {
-            throw new Error(
-              "Invalid medium value for main generation step",
-            );
-          }
-          const image = new Uint8Array([0]);
-          return image;
-        },
-      },
-      {
-        name: "gen-spread",
-        description:
-          "Generates spread images for the character",
-        process: (medium) => {
-          if (
-            !(medium.value instanceof Uint8Array)
-          ) {
-            throw new Error(
-              "Invalid medium value for spread generation step",
-            );
-          }
-          const image1 = new Uint8Array([1]);
-          const image2 = new Uint8Array([2]);
-          const image3 = new Uint8Array([3]);
-          return [image1, image2, image3];
-        },
-      },
-    ],
-    switchers: [
-      {
-        name: "check-validity",
-        description:
-          "Checks for inappropriate content in images",
-        check: (medium) => {
-          if (
-            !(medium.value instanceof Uint8Array)
-          ) {
-            throw new Error(
-              "Invalid medium value for validity check",
-            );
-          }
-          return [true, medium.value];
-        },
-      },
-    ],
-    packers: [
-      {
-        name: "mainImage",
-        processedBy: "gen-main",
-      },
-      {
-        name: "spreadImages",
-        processedBy: "gen-spread",
-      },
-      {
-        name: "plannedDescription",
-        processedBy: "plan",
-      },
-    ],
-  };
+  const specArg: FoundrySpec = newTestFoundrySpec(
+    "no api key needed",
+  );
 
-  // Define the example Alignment (blueprint)
   const maybeAlignment = asAlignment({
     userRequestAnalysis:
       "User wants a fantasy character image with sword and shield",
@@ -177,7 +97,8 @@ test("OperationContext: assemble -> operate with example blueprint", async () =>
     atProp("mainImage"),
   );
   assert(isOk(mainImage));
-  expect(mainImage.content).toBeInstanceOf(
+  assert(Array.isArray(mainImage.content));
+  expect(mainImage.content[0]).toBeInstanceOf(
     Uint8Array,
   );
   const spreadImages = pipe(

@@ -113,7 +113,10 @@ const execSwitch = async ({
   }
 
   const [isValid, value] =
-    switcherResult.content.check(medium);
+    switcherResult.content.check({
+      medium,
+      alignment,
+    });
 
   const opResult = findInternalOp(
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
@@ -157,7 +160,10 @@ const execProcess = async ({
     );
   }
   const value =
-    await processorResult.content.process(medium);
+    await processorResult.content.process({
+      medium,
+      alignment,
+    });
 
   const newEnv = {
     ...env,
