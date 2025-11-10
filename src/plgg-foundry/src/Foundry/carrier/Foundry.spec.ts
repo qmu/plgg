@@ -18,7 +18,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         description: "A test processor",
         inputType: "string",
         outputType: "string",
-        process: (input) => input.value,
+        process: ({ medium }) => medium.value,
       },
     ],
     switchers: [
@@ -28,7 +28,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         inputType: "string",
         outputTypeWhenTrue: "string",
         outputTypeWhenFalse: "error",
-        check: (input) => [true, input.value],
+        check: ({ medium }) => [true, medium.value],
       },
     ],
     packers: [
@@ -107,7 +107,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         inputType: "string",
         outputTypeWhenTrue: "string",
         outputTypeWhenFalse: "error",
-        check: (input) => [true, input.value],
+        check: ({ medium }) => [true, medium.value],
       },
       {
         name: "switcher-2",

@@ -27,6 +27,7 @@ import {
 export type Foundry = Readonly<{
   description: Str;
   apiKey: Str;
+  maxOperationLimit: number;
   processors: ReadonlyArray<Processor>;
   switchers: ReadonlyArray<Switcher>;
   packers: ReadonlyArray<Packer>;
@@ -35,14 +36,19 @@ export type Foundry = Readonly<{
 export type FoundrySpec = Readonly<{
   apiKey: string;
   description: string;
+  maxOperationLimit?: number;
   processors: ReadonlyArray<ProcessorSpec>;
   switchers: ReadonlyArray<SwitcherSpec>;
   packers: ReadonlyArray<PackerSpec>;
 }>;
 
-export const asFoundry = (value: FoundrySpec) =>
-  cast(
-    value,
+export const asFoundry = (value: FoundrySpec) => {
+  const withDefaults = {
+    ...value,
+    maxOperationLimit: value.maxOperationLimit ?? 10,
+  };
+  return cast(
+    withDefaults,
     forProp("apiKey", asStr),
     forProp("description", asStr),
     forProp(
@@ -55,6 +61,7 @@ export const asFoundry = (value: FoundrySpec) =>
     ),
     forProp("packers", asReadonlyArray(asPacker)),
   );
+};
 
 /**
  * Castable instance for Foundry safe casting.

@@ -10,4 +10,5 @@ export type OperationContext = {
   foundry: Foundry;
   alignment: Alignment;
   env: Env; // Register Machine Environment Variables
+  operationCount: number;
 };

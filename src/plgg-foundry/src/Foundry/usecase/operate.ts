@@ -39,6 +39,7 @@ export const operate =
         foundry,
         alignment,
         env: {},
+        operationCount: 0,
       }),
     );
 
@@ -47,6 +48,15 @@ const execute =
   async (
     op: Operation,
   ): Promise<Result<Medium, Error>> => {
+    if (
+      ctx.operationCount >=
+      ctx.foundry.maxOperationLimit
+    ) {
+      return newErr(
+        new Error("Operation limit exceeded"),
+      );
+    }
+
     if (isIngressOperation(op)) {
       return execIngress({ op, ctx });
     }
@@ -84,6 +94,7 @@ const execIngress = async ({
             ctx.alignment.userRequest.content,
         },
       },
+      operationCount: ctx.operationCount + 1,
     }),
   );
 
@@ -131,6 +142,7 @@ const execSwitch = async ({
     ? execute({
         ...ctx,
         env: newEnv,
+        operationCount: ctx.operationCount + 1,
       })(opResult.content)
     : newErr(opResult.content);
 };
@@ -177,6 +189,7 @@ const execProcess = async ({
       ? execute({
           ...ctx,
           env: newEnv,
+          operationCount: ctx.operationCount + 1,
         })(egressOpResult.content)
       : newErr(egressOpResult.content);
   }
@@ -188,6 +201,7 @@ const execProcess = async ({
     ? execute({
         ...ctx,
         env: newEnv,
+        operationCount: ctx.operationCount + 1,
       })(nextOpResult.content)
     : newErr(nextOpResult.content);
 };
