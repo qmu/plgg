@@ -4,6 +4,7 @@ import {
   newOk,
   newErr,
   isOk,
+  tryCatch,
 } from "plgg";
 import {
   Foundry,
@@ -123,11 +124,18 @@ const execSwitch = async ({
     );
   }
 
-  const [isValid, value] =
-    switcherResult.content.check({
-      medium,
-      alignment,
-    });
+  const checkResult = tryCatch(
+    (args: {
+      medium: Medium;
+      alignment: Alignment;
+    }) => switcherResult.content.check(args),
+  )({ medium, alignment });
+
+  if (!isOk(checkResult)) {
+    return newErr(checkResult.content);
+  }
+
+  const [isValid, value] = checkResult.content;
 
   const opResult = findInternalOp(
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
@@ -171,11 +179,17 @@ const execProcess = async ({
       ),
     );
   }
-  const value =
-    await processorResult.content.process({
-      medium,
-      alignment,
-    });
+
+  const processResult = await tryCatch(
+    (args: { medium: Medium; alignment: Alignment }) =>
+      processorResult.content.process(args),
+  )({ medium, alignment });
+
+  if (!isOk(processResult)) {
+    return newErr(processResult.content);
+  }
+
+  const value = processResult.content;
 
   const newEnv = {
     ...env,
