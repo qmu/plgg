@@ -3,6 +3,7 @@ import {
   Str,
   Castable,
   Option,
+  PossiblyPromise,
   cast,
   forProp,
   forOptionProp,
@@ -25,10 +26,12 @@ export type Switcher = Readonly<{
   check: (arg: {
     medium: Medium;
     alignment: Alignment;
-  }) => [
-    boolean, // validity
-    unknown, // proppagating data
-  ];
+  }) => PossiblyPromise<
+    [
+      boolean, // validity
+      unknown, // proppagating data
+    ]
+  >;
 }>;
 
 export type SwitcherSpec = Readonly<{
@@ -40,10 +43,12 @@ export type SwitcherSpec = Readonly<{
   check: (arg: {
     medium: Medium;
     alignment: Alignment;
-  }) => [
-    boolean, // validity
-    unknown, // proppagating data
-  ];
+  }) => PossiblyPromise<
+    [
+      boolean, // validity
+      unknown, // proppagating data
+    ]
+  >;
 }>;
 
 export const asSwitcher = (value: SwitcherSpec) =>

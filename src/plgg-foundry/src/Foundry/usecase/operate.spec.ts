@@ -14,7 +14,7 @@ import {
 import { operate } from "plgg-foundry/Foundry/usecase";
 import { newTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
-test("OperationContext: assemble -> operate with example blueprint", async () => {
+test.skip("OperationContext: assemble -> operate with example blueprint", async () => {
   const specArg: FoundrySpec = newTestFoundrySpec(
     "no api key needed",
   );

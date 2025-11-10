@@ -3,6 +3,7 @@ import {
   KebabCase,
   Str,
   Option,
+  PossiblyPromise,
   cast,
   forProp,
   forOptionProp,
@@ -24,7 +25,7 @@ export type Processor = Readonly<{
   process: (arg: {
     medium: Medium;
     alignment: Alignment;
-  }) => unknown;
+  }) => PossiblyPromise<unknown>;
 }>;
 
 export type ProcessorSpec = Readonly<{
@@ -35,7 +36,7 @@ export type ProcessorSpec = Readonly<{
   process: (arg: {
     medium: Medium;
     alignment: Alignment;
-  }) => unknown;
+  }) => PossiblyPromise<unknown>;
 }>;
 
 export const asProcessor = (

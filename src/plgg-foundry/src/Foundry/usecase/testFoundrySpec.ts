@@ -14,7 +14,7 @@ export const newTestFoundrySpec = (
         "Plans the character design based on the prompt",
       inputType: "string",
       outputType: "string",
-      process: ({ medium }) => {
+      process: async ({ medium }) => {
         if (typeof medium.value !== "string") {
           throw new Error(
             "Invalid medium value for planning step",
@@ -29,7 +29,7 @@ export const newTestFoundrySpec = (
         "Analyzes reference images for character features",
       inputType: "image[]",
       outputType: "string",
-      process: ({ medium }) => {
+      process: async ({ medium }) => {
         if (
           !isVec(medium.value) ||
           !medium.value.every(isBin)
@@ -47,7 +47,7 @@ export const newTestFoundrySpec = (
         "Generates the main character image",
       inputType: "string",
       outputType: "image[]",
-      process: ({ medium }) => {
+      process: async ({ medium }) => {
         if (typeof medium.value !== "string") {
           throw new Error(
             "Invalid medium value for main generation step",
@@ -62,7 +62,7 @@ export const newTestFoundrySpec = (
         "Generates spread images for the character",
       inputType: "image[]",
       outputType: "image[]",
-      process: ({ medium }) => {
+      process: async ({ medium }) => {
         if (
           !isVec(medium.value) ||
           !medium.value.every(isBin)
@@ -87,7 +87,7 @@ export const newTestFoundrySpec = (
       inputType: "image[]",
       outputTypeWhenTrue: "image[]",
       outputTypeWhenFalse: "string",
-      check: ({ medium }) => {
+      check: async ({ medium }) => {
         if (
           !isVec(medium.value) ||
           !medium.value.every(isBin)

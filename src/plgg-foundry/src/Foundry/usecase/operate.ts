@@ -124,18 +124,20 @@ const execSwitch = async ({
     );
   }
 
-  const checkResult = tryCatch(
-    (args: {
-      medium: Medium;
-      alignment: Alignment;
-    }) => switcherResult.content.check(args),
-  )({ medium, alignment });
+  const checkResult = await proc(
+    {
+      medium,
+      alignment,
+    },
+    tryCatch(switcherResult.content.check),
+  );
 
   if (!isOk(checkResult)) {
     return newErr(checkResult.content);
   }
 
-  const [isValid, value] = checkResult.content;
+  const [isValid, value] =
+    await checkResult.content;
 
   const opResult = findInternalOp(
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
@@ -180,16 +182,16 @@ const execProcess = async ({
     );
   }
 
-  const processResult = await tryCatch(
-    (args: { medium: Medium; alignment: Alignment }) =>
-      processorResult.content.process(args),
-  )({ medium, alignment });
+  const processResult = await proc(
+    { medium, alignment },
+    tryCatch(processorResult.content.process),
+  );
 
   if (!isOk(processResult)) {
     return newErr(processResult.content);
   }
 
-  const value = processResult.content;
+  const value = await processResult.content;
 
   const newEnv = {
     ...env,

@@ -18,7 +18,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         description: "A test processor",
         inputType: "string",
         outputType: "string",
-        process: ({ medium }) => medium.value,
+        process: async ({ medium }) => medium.value,
       },
     ],
     switchers: [
@@ -28,7 +28,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         inputType: "string",
         outputTypeWhenTrue: "string",
         outputTypeWhenFalse: "error",
-        check: ({ medium }) => [true, medium.value],
+        check: async ({ medium }) => [true, medium.value],
       },
     ],
     packers: [
@@ -90,14 +90,14 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         description: "First processor",
         inputType: "string",
         outputType: "number",
-        process: () => 1,
+        process: async () => 1,
       },
       {
         name: "processor-2",
         description: "Second processor",
         inputType: "number",
         outputType: "string",
-        process: () => "result",
+        process: async () => "result",
       },
     ],
     switchers: [
@@ -107,7 +107,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         inputType: "string",
         outputTypeWhenTrue: "string",
         outputTypeWhenFalse: "error",
-        check: ({ medium }) => [true, medium.value],
+        check: async ({ medium }) => [true, medium.value],
       },
       {
         name: "switcher-2",
@@ -115,7 +115,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         inputType: "number",
         outputTypeWhenTrue: "number",
         outputTypeWhenFalse: "error",
-        check: () => [false, "error"],
+        check: async () => [false, "error"],
       },
     ],
     packers: [],
