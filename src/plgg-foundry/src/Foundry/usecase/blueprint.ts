@@ -27,13 +27,6 @@ export const blueprint =
       ...switcherOpcodes,
       "egress",
     ];
-    console.log(`## Available Foundry Functions
-
-\`\`\`
-${explainFoundry(foundry)}
-\`\`\`
-
-Compose the Alignment using only these available functions, following the JSON schema rules.`);
     const res = await generateJson({
       apiKey: foundry.apiKey.content,
       model: "gpt-5-nano-2025-08-07",
@@ -307,8 +300,5 @@ Data Flow: loadAddr references previously written register. Flow: ingress → pr
     if (isErr(res)) {
       return res;
     }
-
-    console.log(res.content);
-
     return asAlignment(res.content);
   };

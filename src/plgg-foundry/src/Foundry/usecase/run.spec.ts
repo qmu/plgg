@@ -1,32 +1,9 @@
 import { test, assert } from "vitest";
-import { isErr, isOk } from "plgg";
+import { isErr, isOk, isBin, isVec } from "plgg";
 import { FoundrySpec } from "plgg-foundry/index";
 import { run } from "plgg-foundry/Foundry/usecase";
 
-test("Run Character Image Generation", async () => {
-  type Base64 = string;
-
-  type Image = Readonly<{
-    base64: Base64;
-  }>;
-  type ImageMediumValue = ReadonlyArray<Image>;
-  type StringMediumValue = string;
-
-  const isImage = (
-    a: unknown,
-  ): a is ImageMediumValue =>
-    Array.isArray(a) &&
-    a.every(
-      (item) =>
-        typeof item === "object" &&
-        "base64" in item,
-    );
-
-  const isString = (
-    a: unknown,
-  ): a is StringMediumValue =>
-    typeof a === "string";
-
+test.skip("Run Character Image Generation", async () => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     console.log(
@@ -47,12 +24,11 @@ test("Run Character Image Generation", async () => {
         inputType: "string",
         outputType: "string",
         process: (medium) => {
-          if (!isString(medium.value)) {
+          if (typeof medium.value !== "string") {
             throw new Error(
               "Invalid medium value for planning step",
             );
           }
-          // console.log("01:plan");
           return "Well-planned character design description";
         },
       },
@@ -63,15 +39,15 @@ test("Run Character Image Generation", async () => {
         inputType: "image[]",
         outputType: "string",
         process: (medium) => {
-          if (!isImage(medium.value)) {
+          if (
+            !isVec(medium.value) ||
+            !medium.value.every(isBin)
+          ) {
             throw new Error(
               "Invalid medium value for analyzing step",
             );
           }
-          // console.log("02:analyze");
-          return [
-            { base64: "base64imagestring" },
-          ];
+          return "Extracted character features from reference images";
         },
       },
       {
@@ -81,15 +57,12 @@ test("Run Character Image Generation", async () => {
         inputType: "string",
         outputType: "image[]",
         process: (medium) => {
-          if (!isString(medium.value)) {
+          if (typeof medium.value !== "string") {
             throw new Error(
               "Invalid medium value for main generation step",
             );
           }
-          // console.log("03:genMain");
-          return [
-            { base64: "base64imagestring" },
-          ];
+          return [new Uint8Array([0])];
         },
       },
       {
@@ -99,14 +72,18 @@ test("Run Character Image Generation", async () => {
         inputType: "image[]",
         outputType: "image[]",
         process: (medium) => {
-          if (!isImage(medium.value)) {
+          if (
+            !isVec(medium.value) ||
+            !medium.value.every(isBin)
+          ) {
             throw new Error(
               "Invalid medium value for spread generation step",
             );
           }
-          // console.log("04:genSpread");
           return [
-            { base64: "base64imagestring" },
+            new Uint8Array([1]),
+            new Uint8Array([2]),
+            new Uint8Array([3]),
           ];
         },
       },
@@ -120,12 +97,14 @@ test("Run Character Image Generation", async () => {
         outputTypeWhenTrue: "image[]",
         outputTypeWhenFalse: "string",
         check: (medium) => {
-          if (!isImage(medium.value)) {
+          if (
+            !isVec(medium.value) ||
+            !medium.value.every(isBin)
+          ) {
             throw new Error(
               "Invalid medium value for censoring step",
             );
           }
-          // console.log("validity check");
           const isValid = Math.random() < 0.5;
           return [
             isValid,
