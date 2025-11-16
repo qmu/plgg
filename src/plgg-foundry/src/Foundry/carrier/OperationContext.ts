@@ -1,10 +1,10 @@
 import {
   Foundry,
   Alignment,
-  Medium,
+  Param,
 } from "plgg-foundry/index";
 
-export type Env = Record<string, Medium>;
+export type Env = ReadonlyArray<Param>;
 
 export type OperationContext = {
   foundry: Foundry;

@@ -1,3 +1,5 @@
+import { Param } from "plgg-foundry/index";
+
 export type Medium = Readonly<{
-  value: unknown;
+  params: ReadonlyArray<Param>;
 }>;
