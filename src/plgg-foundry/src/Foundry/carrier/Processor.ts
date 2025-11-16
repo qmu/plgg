@@ -36,8 +36,8 @@ export type Processor = Readonly<{
 export type ProcessorSpec = Readonly<{
   name: string;
   description: string;
-  inputType?: ReadonlyArray<VirtualTypeSpec>;
-  outputType?: ReadonlyArray<VirtualTypeSpec>;
+  arguments?: ReadonlyArray<VirtualTypeSpec>;
+  returns?: ReadonlyArray<VirtualTypeSpec>;
   process: (arg: {
     medium: Medium;
     alignment: Alignment;

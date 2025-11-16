@@ -12,10 +12,13 @@ export const newTestFoundrySpec = (
       name: "plan",
       description:
         "Plans the character design based on the prompt",
-      inputType: [{ name: "prompt", type: "string" }],
-      outputType: [{ name: "plan", type: "string" }],
+      arguments: [
+        { name: "prompt", type: "string" },
+      ],
+      returns: [{ name: "plan", type: "string" }],
       process: async ({ medium }) => {
-        if (typeof medium.value !== "string") {
+        const value = medium.params[0]?.value;
+        if (typeof value !== "string") {
           throw new Error(
             "Invalid medium value for planning step",
           );
@@ -27,12 +30,17 @@ export const newTestFoundrySpec = (
       name: "analyze",
       description:
         "Analyzes reference images for character features",
-      inputType: [{ name: "images", type: "image[]" }],
-      outputType: [{ name: "features", type: "string" }],
+      arguments: [
+        { name: "images", type: "image[]" },
+      ],
+      returns: [
+        { name: "features", type: "string" },
+      ],
       process: async ({ medium }) => {
+        const value = medium.params[0]?.value;
         if (
-          !isVec(medium.value) ||
-          !medium.value.every(isBin)
+          !isVec(value) ||
+          !value.every(isBin)
         ) {
           throw new Error(
             "Invalid medium value for analyzing step",
@@ -45,10 +53,15 @@ export const newTestFoundrySpec = (
       name: "gen-main",
       description:
         "Generates the main character image",
-      inputType: [{ name: "description", type: "string" }],
-      outputType: [{ name: "image", type: "image[]" }],
+      arguments: [
+        { name: "description", type: "string" },
+      ],
+      returns: [
+        { name: "image", type: "image[]" },
+      ],
       process: async ({ medium }) => {
-        if (typeof medium.value !== "string") {
+        const value = medium.params[0]?.value;
+        if (typeof value !== "string") {
           throw new Error(
             "Invalid medium value for main generation step",
           );
@@ -60,12 +73,17 @@ export const newTestFoundrySpec = (
       name: "gen-spread",
       description:
         "Generates spread images for the character",
-      inputType: [{ name: "mainImage", type: "image[]" }],
-      outputType: [{ name: "spreadImages", type: "image[]" }],
+      arguments: [
+        { name: "mainImage", type: "image[]" },
+      ],
+      returns: [
+        { name: "spreadImages", type: "image[]" },
+      ],
       process: async ({ medium }) => {
+        const value = medium.params[0]?.value;
         if (
-          !isVec(medium.value) ||
-          !medium.value.every(isBin)
+          !isVec(value) ||
+          !value.every(isBin)
         ) {
           throw new Error(
             "Invalid medium value for spread generation step",
@@ -84,13 +102,20 @@ export const newTestFoundrySpec = (
       name: "check-validity",
       description:
         "Checks for inappropriate content in images, if invalid go back to former step",
-      inputType: [{ name: "images", type: "image[]" }],
-      outputTypeWhenTrue: [{ name: "validImages", type: "image[]" }],
-      outputTypeWhenFalse: [{ name: "feedback", type: "string" }],
+      arguments: [
+        { name: "images", type: "image[]" },
+      ],
+      returnsWhenTrue: [
+        { name: "validImages", type: "image[]" },
+      ],
+      returnsWhenFalse: [
+        { name: "feedback", type: "string" },
+      ],
       check: async ({ medium }) => {
+        const value = medium.params[0]?.value;
         if (
-          !isVec(medium.value) ||
-          !medium.value.every(isBin)
+          !isVec(value) ||
+          !value.every(isBin)
         ) {
           throw new Error(
             "Invalid medium value for censoring step",
@@ -100,7 +125,7 @@ export const newTestFoundrySpec = (
         return [
           isValid,
           isValid
-            ? medium.value
+            ? value
             : "Plan once again to avoid inappropriate content",
         ];
       },

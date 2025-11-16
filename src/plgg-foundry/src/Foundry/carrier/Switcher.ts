@@ -42,9 +42,9 @@ export type Switcher = Readonly<{
 export type SwitcherSpec = Readonly<{
   name: string;
   description: string;
-  inputType?: ReadonlyArray<VirtualTypeSpec>;
-  outputTypeWhenTrue?: ReadonlyArray<VirtualTypeSpec>;
-  outputTypeWhenFalse?: ReadonlyArray<VirtualTypeSpec>;
+  arguments?: ReadonlyArray<VirtualTypeSpec>;
+  returnsWhenTrue?: ReadonlyArray<VirtualTypeSpec>;
+  returnsWhenFalse?: ReadonlyArray<VirtualTypeSpec>;
   check: (arg: {
     medium: Medium;
     alignment: Alignment;

@@ -1,10 +1,8 @@
 import { test, assert, expect } from "vitest";
 import {
-  pipe,
   proc,
   isErr,
   isOk,
-  atProp,
 } from "plgg";
 import {
   FoundrySpec,
@@ -92,21 +90,19 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
     );
   }
   assert(isOk(result));
-  const mainImage = pipe(
-    result.content.value,
-    atProp("mainImage"),
-  );
-  assert(isOk(mainImage));
-  assert(Array.isArray(mainImage.content));
-  expect(mainImage.content[0]).toBeInstanceOf(
+  const mainImage = result.content.params.find(
+    (p) => p.argument.name.content === "mainImage",
+  )?.value;
+  assert(mainImage);
+  assert(Array.isArray(mainImage));
+  expect(mainImage[0]).toBeInstanceOf(
     Uint8Array,
   );
-  const spreadImages = pipe(
-    result.content.value,
-    atProp("spreadImages"),
-  );
-  assert(isOk(spreadImages));
-  expect(spreadImages.content).toBeInstanceOf(
+  const spreadImages = result.content.params.find(
+    (p) => p.argument.name.content === "spreadImages",
+  )?.value;
+  assert(spreadImages);
+  expect(spreadImages).toBeInstanceOf(
     Array,
   );
 });
