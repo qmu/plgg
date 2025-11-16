@@ -5,18 +5,19 @@ import {
   newErr,
   isOk,
   tryCatch,
+  isSome,
 } from "plgg";
 import {
   Foundry,
   Alignment,
   Medium,
+  Param,
   IngressOperation,
   SwitchOperation,
   ProcessOperation,
   EgressOperation,
   Operation,
   OperationContext,
-  Env,
   isIngressOperation,
   isEgressOperation,
   isSwitchOperation,
@@ -26,6 +27,7 @@ import {
   findSwitcher,
   findProcessor,
   findIngressOp,
+  asVirtualType,
 } from "plgg-foundry/index";
 
 export const operate =
@@ -39,7 +41,7 @@ export const operate =
       execute({
         foundry,
         alignment,
-        env: {},
+        env: [],
         operationCount: 0,
       }),
     );
@@ -85,18 +87,28 @@ const execIngress = async ({
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> =>
   proc(
-    ctx.alignment,
-    findInternalOp(op.next),
-    execute({
-      ...ctx,
-      env: {
-        [op.promptAddr]: {
-          value:
-            ctx.alignment.userRequest.content,
-        },
-      },
-      operationCount: ctx.operationCount + 1,
-    }),
+    {
+      name: op.promptAddr,
+      type: "string",
+    },
+    asVirtualType,
+    (argument) =>
+      proc(
+        ctx.alignment,
+        findInternalOp(op.next),
+        execute({
+          ...ctx,
+          env: [
+            ...ctx.env,
+            {
+              argument,
+              value:
+                ctx.alignment.userRequest.content,
+            },
+          ],
+          operationCount: ctx.operationCount + 1,
+        }),
+      ),
   );
 
 const execSwitch = async ({
@@ -115,24 +127,43 @@ const execSwitch = async ({
     return newErr(switcherResult.content);
   }
 
-  // Load values from all addresses
-  const loadedValues: unknown[] = [];
+  // Load params from all addresses
+  const loadedParams: Param[] = [];
   for (const addr of op.loadAddr) {
-    const medium = env[addr];
-    if (!medium) {
+    const paramsAtAddr = env.filter(
+      (param) =>
+        param.argument.name.content === addr,
+    );
+    if (paramsAtAddr.length === 0) {
       return newErr(
         new Error(
           `No value found at load address "${addr}"`,
         ),
       );
     }
-    loadedValues.push(medium.value);
+    loadedParams.push(...paramsAtAddr);
   }
 
-  // Create medium with array if multiple values, otherwise single value
-  const medium: Medium = {
-    value: op.loadAddr.length === 1 ? loadedValues[0] : loadedValues,
-  };
+  // Match loaded params with switcher's argument types
+  const switcherArguments = isSome(
+    switcherResult.content.arguments,
+  )
+    ? switcherResult.content.arguments.content
+    : [];
+
+  const params: Param[] =
+    switcherArguments.length > 0
+      ? loadedParams
+          .slice(0, switcherArguments.length)
+          .map((param, index) => ({
+            argument:
+              switcherArguments[index] ||
+              param.argument,
+            value: param.value,
+          }))
+      : loadedParams;
+
+  const medium: Medium = { params };
 
   const checkResult = await proc(
     {
@@ -153,21 +184,21 @@ const execSwitch = async ({
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
   )(alignment);
 
-  // Save values to all addresses
-  const saveAddrs = isValid ? op.saveAddrTrue : op.saveAddrFalse;
-  const newEnv: Env = { ...env };
-  const values = Array.isArray(value) && saveAddrs.length > 1 ? value : [value];
-
-  for (const [index, addr] of saveAddrs.entries()) {
-    newEnv[addr] = { value: values[index] !== undefined ? values[index] : value };
-  }
-
+  // Save values to all addresses with return types
+  const saveAddrs = isValid
+    ? op.saveAddrTrue
+    : op.saveAddrFalse;
   return isOk(opResult)
-    ? execute({
-        ...ctx,
-        env: newEnv,
-        operationCount: ctx.operationCount + 1,
-      })(opResult.content)
+    ? proc(
+        { name: saveAddrs[0], type: "unknown" },
+        asVirtualType,
+        (argument) =>
+          execute({
+            ...ctx,
+            env: [...env, { argument, value }],
+            operationCount: ctx.operationCount + 1,
+          })(opResult.content),
+      )
     : newErr(opResult.content);
 };
 
@@ -187,24 +218,43 @@ const execProcess = async ({
     return newErr(processorResult.content);
   }
 
-  // Load values from all addresses
-  const loadedValues: unknown[] = [];
+  // Load params from all addresses
+  const loadedParams: Param[] = [];
   for (const addr of op.loadAddr) {
-    const medium = env[addr];
-    if (!medium) {
+    const paramsAtAddr = env.filter(
+      (param) =>
+        param.argument.name.content === addr,
+    );
+    if (paramsAtAddr.length === 0) {
       return newErr(
         new Error(
           `No value found at load address "${addr}"`,
         ),
       );
     }
-    loadedValues.push(medium.value);
+    loadedParams.push(...paramsAtAddr);
   }
 
-  // Create medium with array if multiple values, otherwise single value
-  const medium: Medium = {
-    value: op.loadAddr.length === 1 ? loadedValues[0] : loadedValues,
-  };
+  // Match loaded params with processor's argument types
+  const processorArguments = isSome(
+    processorResult.content.arguments,
+  )
+    ? processorResult.content.arguments.content
+    : [];
+
+  const params: Param[] =
+    processorArguments.length > 0
+      ? loadedParams
+          .slice(0, processorArguments.length)
+          .map((param, index) => ({
+            argument:
+              processorArguments[index] ||
+              param.argument,
+            value: param.value,
+          }))
+      : loadedParams;
+
+  const medium: Medium = { params };
 
   const processResult = await proc(
     { medium, alignment },
@@ -217,36 +267,22 @@ const execProcess = async ({
 
   const value = await processResult.content;
 
-  // Save values to all addresses
-  const newEnv: Env = { ...env };
-  const values = Array.isArray(value) && op.saveAddr.length > 1 ? value : [value];
-
-  for (const [index, addr] of op.saveAddr.entries()) {
-    newEnv[addr] = { value: values[index] !== undefined ? values[index] : value };
-  }
-
-  if (op.next === "egress") {
-    const egressOpResult =
-      findEgressOp(alignment);
-    return isOk(egressOpResult)
-      ? execute({
+  return proc(
+    { name: op.saveAddr[0], type: "unknown" },
+    asVirtualType,
+    (argument) =>
+      proc(
+        alignment,
+        op.next === "egress"
+          ? findEgressOp
+          : findInternalOp(op.next),
+        execute({
           ...ctx,
-          env: newEnv,
+          env: [...env, { argument, value }],
           operationCount: ctx.operationCount + 1,
-        })(egressOpResult.content)
-      : newErr(egressOpResult.content);
-  }
-
-  const nextOpResult = findInternalOp(op.next)(
-    alignment,
+        }),
+      ),
   );
-  return isOk(nextOpResult)
-    ? execute({
-        ...ctx,
-        env: newEnv,
-        operationCount: ctx.operationCount + 1,
-      })(nextOpResult.content)
-    : newErr(nextOpResult.content);
 };
 
 const execEgress = async ({
@@ -257,9 +293,9 @@ const execEgress = async ({
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
   const { env } = ctx;
-  const resultObj: Record<string, unknown> = {};
+  const resultParams: Param[] = [];
 
-  // Resolve each address in the result mapping
+  // Resolve each address in the result mapping and collect params
   for (const [key, addr] of Object.entries(
     op.result,
   )) {
@@ -271,8 +307,11 @@ const execEgress = async ({
       );
     }
 
-    const medium = env[addr];
-    if (!medium) {
+    const paramsAtAddr = env.filter(
+      (param) =>
+        param.argument.name.content === addr,
+    );
+    if (paramsAtAddr.length === 0) {
       return newErr(
         new Error(
           `No value found at address "${addr}" for result key "${key}"`,
@@ -280,11 +319,31 @@ const execEgress = async ({
       );
     }
 
-    resultObj[key] = medium.value;
+    // Collect all params from this address, updating the argument name to match the key
+    for (const param of paramsAtAddr) {
+      const updatedArgResult = asVirtualType({
+        name: key,
+        type: param.argument.type.content,
+        optional: isSome(param.argument.optional)
+          ? param.argument.optional.content
+          : undefined,
+      });
+      if (!isOk(updatedArgResult)) {
+        return newErr(
+          new Error(
+            `Failed to create VirtualType for egress key "${key}"`,
+          ),
+        );
+      }
+      resultParams.push({
+        argument: updatedArgResult.content,
+        value: param.value,
+      });
+    }
   }
 
   const medium: Medium = {
-    value: resultObj,
+    params: resultParams,
   };
   return newOk(medium);
 };
