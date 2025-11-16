@@ -3,8 +3,8 @@ import { isRawObj, hasProp } from "plgg";
 export type ProcessOperation = Readonly<{
   type: "process";
   opcode: string;
-  loadAddr: string;
-  saveAddr: string;
+  loadAddr: ReadonlyArray<string>;
+  saveAddr: ReadonlyArray<string>;
   next: string;
 }>;
 

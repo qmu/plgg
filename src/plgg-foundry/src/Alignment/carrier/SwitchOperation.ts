@@ -5,9 +5,9 @@ export type SwitchOperation = Readonly<{
   opcode: string;
   nextWhenTrue: string;
   nextWhenFalse: string;
-  loadAddr: string;
-  saveAddrTrue: string;
-  saveAddrFalse: string;
+  loadAddr: ReadonlyArray<string>;
+  saveAddrTrue: ReadonlyArray<string>;
+  saveAddrFalse: ReadonlyArray<string>;
 }>;
 
 export const isSwitchOperation = (
