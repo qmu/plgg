@@ -16,7 +16,6 @@ import {
 } from "plgg";
 import {
   Medium,
-  Alignment,
   VirtualType,
   VirtualTypeSpec,
   asVirtualType,
@@ -27,10 +26,7 @@ export type Processor = Readonly<{
   description: Str;
   arguments: Option<Vec<VirtualType>>;
   returns: Option<Vec<VirtualType>>;
-  process: (arg: {
-    medium: Medium;
-    alignment: Alignment;
-  }) => PossiblyPromise<unknown>;
+  process: (medium: Medium) => PossiblyPromise<unknown>;
 }>;
 
 export type ProcessorSpec = Readonly<{
@@ -38,10 +34,7 @@ export type ProcessorSpec = Readonly<{
   description: string;
   arguments?: ReadonlyArray<VirtualTypeSpec>;
   returns?: ReadonlyArray<VirtualTypeSpec>;
-  process: (arg: {
-    medium: Medium;
-    alignment: Alignment;
-  }) => PossiblyPromise<unknown>;
+  process: (medium: Medium) => PossiblyPromise<unknown>;
 }>;
 
 export const asProcessor = (

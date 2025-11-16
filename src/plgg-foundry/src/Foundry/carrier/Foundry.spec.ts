@@ -22,7 +22,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         returns: [
           { name: "result", type: "string" },
         ],
-        process: async ({ medium }) =>
+        process: async (medium) =>
           medium.params[0]?.value,
       },
     ],
@@ -39,7 +39,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         returnsWhenFalse: [
           { name: "error", type: "error" },
         ],
-        check: async ({ medium }) => [
+        check: async (medium) => [
           true,
           medium.params[0]?.value,
         ],
@@ -135,7 +135,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         returnsWhenFalse: [
           { name: "error", type: "error" },
         ],
-        check: async ({ medium }) => [
+        check: async (medium) => [
           true,
           medium.params[0]?.value,
         ],

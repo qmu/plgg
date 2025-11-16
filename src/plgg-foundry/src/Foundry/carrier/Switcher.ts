@@ -16,7 +16,6 @@ import {
 } from "plgg";
 import {
   Medium,
-  Alignment,
   VirtualType,
   VirtualTypeSpec,
   asVirtualType,
@@ -28,10 +27,9 @@ export type Switcher = Readonly<{
   arguments: Option<Vec<VirtualType>>;
   returnsWhenTrue: Option<Vec<VirtualType>>;
   returnsWhenFalse: Option<Vec<VirtualType>>;
-  check: (arg: {
-    medium: Medium;
-    alignment: Alignment;
-  }) => PossiblyPromise<
+  check: (
+    medium: Medium,
+  ) => PossiblyPromise<
     [
       boolean, // validity
       unknown, // proppagating data
@@ -45,10 +43,9 @@ export type SwitcherSpec = Readonly<{
   arguments?: ReadonlyArray<VirtualTypeSpec>;
   returnsWhenTrue?: ReadonlyArray<VirtualTypeSpec>;
   returnsWhenFalse?: ReadonlyArray<VirtualTypeSpec>;
-  check: (arg: {
-    medium: Medium;
-    alignment: Alignment;
-  }) => PossiblyPromise<
+  check: (
+    medium: Medium,
+  ) => PossiblyPromise<
     [
       boolean, // validity
       unknown, // proppagating data

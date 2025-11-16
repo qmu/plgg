@@ -163,13 +163,10 @@ const execSwitch = async ({
           }))
       : loadedParams;
 
-  const medium: Medium = { params };
+  const medium: Medium = { alignment, params };
 
   const checkResult = await proc(
-    {
-      medium,
-      alignment,
-    },
+    medium,
     tryCatch(switcherResult.content.check),
   );
 
@@ -254,10 +251,10 @@ const execProcess = async ({
           }))
       : loadedParams;
 
-  const medium: Medium = { params };
+  const medium: Medium = { alignment, params };
 
   const processResult = await proc(
-    { medium, alignment },
+    medium,
     tryCatch(processorResult.content.process),
   );
 
@@ -292,7 +289,7 @@ const execEgress = async ({
   op: EgressOperation;
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
-  const { env } = ctx;
+  const { env, alignment } = ctx;
   const resultParams: Param[] = [];
 
   // Resolve each address in the result mapping and collect params
@@ -343,6 +340,7 @@ const execEgress = async ({
   }
 
   const medium: Medium = {
+    alignment,
     params: resultParams,
   };
   return newOk(medium);

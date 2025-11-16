@@ -16,7 +16,7 @@ export const newTestFoundrySpec = (
         { name: "prompt", type: "string" },
       ],
       returns: [{ name: "plan", type: "string" }],
-      process: async ({ medium }) => {
+      process: async (medium) => {
         const value = medium.params[0]?.value;
         if (typeof value !== "string") {
           throw new Error(
@@ -36,7 +36,7 @@ export const newTestFoundrySpec = (
       returns: [
         { name: "features", type: "string" },
       ],
-      process: async ({ medium }) => {
+      process: async (medium) => {
         const value = medium.params[0]?.value;
         if (
           !isVec(value) ||
@@ -59,7 +59,7 @@ export const newTestFoundrySpec = (
       returns: [
         { name: "image", type: "image[]" },
       ],
-      process: async ({ medium }) => {
+      process: async (medium) => {
         const value = medium.params[0]?.value;
         if (typeof value !== "string") {
           throw new Error(
@@ -79,7 +79,7 @@ export const newTestFoundrySpec = (
       returns: [
         { name: "spreadImages", type: "image[]" },
       ],
-      process: async ({ medium }) => {
+      process: async (medium) => {
         const value = medium.params[0]?.value;
         if (
           !isVec(value) ||
@@ -111,7 +111,7 @@ export const newTestFoundrySpec = (
       returnsWhenFalse: [
         { name: "feedback", type: "string" },
       ],
-      check: async ({ medium }) => {
+      check: async (medium) => {
         const value = medium.params[0]?.value;
         if (
           !isVec(value) ||
