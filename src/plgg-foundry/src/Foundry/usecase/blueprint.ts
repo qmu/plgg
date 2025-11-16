@@ -72,8 +72,8 @@ Example without validation:
 {
   "operations": [
     { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": "r0", "saveAddr": "r1" },
-    { "type": "process", "opcode": "gen-main", "next": "egress", "loadAddr": "r1", "saveAddr": "r2" },
+    { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": ["r0"], "saveAddr": ["r1"] },
+    { "type": "process", "opcode": "gen-main", "next": "egress", "loadAddr": ["r1"], "saveAddr": ["r2"] },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -84,9 +84,9 @@ Example with validation (validation passes → continue, validation fails → re
 {
   "operations": [
     { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": "r0", "saveAddr": "r1" },
-    { "type": "process", "opcode": "gen-main", "next": "check-validity", "loadAddr": "r1", "saveAddr": "r2" },
-    { "type": "switch", "opcode": "check-validity", "loadAddr": "r2", "nextWhenTrue": "egress", "nextWhenFalse": "plan", "saveAddrTrue": "r2", "saveAddrFalse": "r0" },
+    { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": ["r0"], "saveAddr": ["r1"] },
+    { "type": "process", "opcode": "gen-main", "next": "check-validity", "loadAddr": ["r1"], "saveAddr": ["r2"] },
+    { "type": "switch", "opcode": "check-validity", "loadAddr": ["r2"], "nextWhenTrue": "egress", "nextWhenFalse": "plan", "saveAddrTrue": ["r2"], "saveAddrFalse": ["r0"] },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -168,14 +168,16 @@ Example with validation (validation passes → continue, validation fails → re
                           "Processor opcode from Available Foundry Functions.",
                       },
                       loadAddr: {
-                        type: "string",
+                        type: "array",
+                        items: { type: "string" },
                         description:
-                          "Register to load input from (e.g., 'r0'). Must be previously written.",
+                          "Array of registers to load input from (e.g., ['r0']). All must be previously written. Multiple registers will be passed as array to processor.",
                       },
                       saveAddr: {
-                        type: "string",
+                        type: "array",
+                        items: { type: "string" },
                         description:
-                          "Register to save output to (e.g., 'r2'). Can be referenced by later operations.",
+                          "Array of registers to save output to (e.g., ['r2']). Can be referenced by later operations. If processor returns array and multiple registers specified, values are distributed.",
                       },
                       next: {
                         type: "string",
@@ -211,9 +213,10 @@ Example with validation (validation passes → continue, validation fails → re
                           "Switcher opcode from Available Foundry Functions.",
                       },
                       loadAddr: {
-                        type: "string",
+                        type: "array",
+                        items: { type: "string" },
                         description:
-                          "Register to evaluate (e.g., 'r2'). Must be previously written.",
+                          "Array of registers to evaluate (e.g., ['r2']). All must be previously written. Multiple registers will be passed as array to switcher.",
                       },
                       nextWhenTrue: {
                         type: "string",
@@ -228,14 +231,16 @@ Example with validation (validation passes → continue, validation fails → re
                           "Opcode to execute when condition is false.",
                       },
                       saveAddrTrue: {
-                        type: "string",
+                        type: "array",
+                        items: { type: "string" },
                         description:
-                          "Register to save data when true (e.g., 'r3').",
+                          "Array of registers to save data when true (e.g., ['r3']). If switcher returns array and multiple registers specified, values are distributed.",
                       },
                       saveAddrFalse: {
-                        type: "string",
+                        type: "array",
+                        items: { type: "string" },
                         description:
-                          "Register to save data when false (e.g., 'r0'). Can match saveAddrTrue if needed.",
+                          "Array of registers to save data when false (e.g., ['r0']). Can match saveAddrTrue if needed. If switcher returns array and multiple registers specified, values are distributed.",
                       },
                     },
                     required: [
