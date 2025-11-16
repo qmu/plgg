@@ -84,9 +84,9 @@ export const newTestFoundrySpec = (
       name: "check-validity",
       description:
         "Checks for inappropriate content in images, if invalid go back to former step",
-      inputType: "image[]",
-      outputTypeWhenTrue: "image[]",
-      outputTypeWhenFalse: "string",
+      inputType: [{ name: "images", type: "image[]" }],
+      outputTypeWhenTrue: [{ name: "validImages", type: "image[]" }],
+      outputTypeWhenFalse: [{ name: "feedback", type: "string" }],
       check: async ({ medium }) => {
         if (
           !isVec(medium.value) ||
