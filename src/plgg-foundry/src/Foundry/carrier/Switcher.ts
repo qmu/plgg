@@ -4,6 +4,7 @@ import {
   Castable,
   Option,
   PossiblyPromise,
+  Vec,
   cast,
   forProp,
   forOptionProp,
@@ -11,18 +12,22 @@ import {
   asFunc,
   asKebabCase,
   isSome,
+  asVecOf,
 } from "plgg";
 import {
   Medium,
   Alignment,
+  VirtualType,
+  VirtualTypeSpec,
+  asVirtualType,
 } from "plgg-foundry/index";
 
 export type Switcher = Readonly<{
   name: KebabCase;
   description: Str;
-  inputType: Option<Str>;
-  outputTypeWhenTrue: Option<Str>;
-  outputTypeWhenFalse: Option<Str>;
+  arguments: Option<Vec<VirtualType>>;
+  returnsWhenTrue: Option<Vec<VirtualType>>;
+  returnsWhenFalse: Option<Vec<VirtualType>>;
   check: (arg: {
     medium: Medium;
     alignment: Alignment;
@@ -37,9 +42,9 @@ export type Switcher = Readonly<{
 export type SwitcherSpec = Readonly<{
   name: string;
   description: string;
-  inputType?: string;
-  outputTypeWhenTrue?: string;
-  outputTypeWhenFalse?: string;
+  inputType?: ReadonlyArray<VirtualTypeSpec>;
+  outputTypeWhenTrue?: ReadonlyArray<VirtualTypeSpec>;
+  outputTypeWhenFalse?: ReadonlyArray<VirtualTypeSpec>;
   check: (arg: {
     medium: Medium;
     alignment: Alignment;
@@ -56,9 +61,18 @@ export const asSwitcher = (value: SwitcherSpec) =>
     value,
     forProp("name", asKebabCase),
     forProp("description", asStr),
-    forOptionProp("inputType", asStr),
-    forOptionProp("outputTypeWhenTrue", asStr),
-    forOptionProp("outputTypeWhenFalse", asStr),
+    forOptionProp(
+      "arguments",
+      asVecOf(asVirtualType),
+    ),
+    forOptionProp(
+      "returnsWhenTrue",
+      asVecOf(asVirtualType),
+    ),
+    forOptionProp(
+      "returnsWhenFalse",
+      asVecOf(asVirtualType),
+    ),
     forProp("check", asFunc),
   );
 
@@ -72,24 +86,40 @@ export const switcherCastable: Castable<
   as: asSwitcher,
 };
 
+const formatVirtualType = (
+  vt: VirtualType,
+): string => {
+  const isOptional = isSome(vt.optional)
+    ? vt.optional.content
+    : true;
+  const optionalMarker = isOptional ? "?" : "";
+  return `${vt.name.content}: ${vt.type.content}${optionalMarker}`;
+};
+
 export const explainSwitcher = (
   switcher: Switcher,
 ) =>
   `${switcher.description.content}
 
 - Opcode: \`${switcher.name.content}\`
-- Input Type: ${
-    isSome(switcher.inputType)
-      ? `\`${switcher.inputType.content.content}\``
-      : "None"
+- Arguments: ${
+    isSome(switcher.arguments)
+      ? switcher.arguments.content
+          .map(formatVirtualType)
+          .join(", ")
+      : "Any"
   }
-- Output Type When True: ${
-    isSome(switcher.outputTypeWhenTrue)
-      ? `\`${switcher.outputTypeWhenTrue.content.content}\``
-      : "None"
+- Returns When True: ${
+    isSome(switcher.returnsWhenTrue)
+      ? switcher.returnsWhenTrue.content
+          .map(formatVirtualType)
+          .join(", ")
+      : "Any"
   }
-- Output Type When False: ${
-    isSome(switcher.outputTypeWhenFalse)
-      ? `\`${switcher.outputTypeWhenFalse.content.content}\``
-      : "None"
+- Returns When False: ${
+    isSome(switcher.returnsWhenFalse)
+      ? switcher.returnsWhenFalse.content
+          .map(formatVirtualType)
+          .join(", ")
+      : "Any"
   }`;
