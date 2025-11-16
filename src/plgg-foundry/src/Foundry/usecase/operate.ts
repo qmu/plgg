@@ -115,14 +115,24 @@ const execSwitch = async ({
     return newErr(switcherResult.content);
   }
 
-  const medium = env[op.loadAddr];
-  if (!medium) {
-    return newErr(
-      new Error(
-        `No value found at load address "${op.loadAddr}"`,
-      ),
-    );
+  // Load values from all addresses
+  const loadedValues: unknown[] = [];
+  for (const addr of op.loadAddr) {
+    const medium = env[addr];
+    if (!medium) {
+      return newErr(
+        new Error(
+          `No value found at load address "${addr}"`,
+        ),
+      );
+    }
+    loadedValues.push(medium.value);
   }
+
+  // Create medium with array if multiple values, otherwise single value
+  const medium: Medium = {
+    value: op.loadAddr.length === 1 ? loadedValues[0] : loadedValues,
+  };
 
   const checkResult = await proc(
     {
@@ -142,12 +152,16 @@ const execSwitch = async ({
   const opResult = findInternalOp(
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
   )(alignment);
-  const newEnv: Env = {
-    ...env,
-    [isValid
-      ? op.saveAddrTrue
-      : op.saveAddrFalse]: { value },
-  };
+
+  // Save values to all addresses
+  const saveAddrs = isValid ? op.saveAddrTrue : op.saveAddrFalse;
+  const newEnv: Env = { ...env };
+  const values = Array.isArray(value) && saveAddrs.length > 1 ? value : [value];
+
+  for (const [index, addr] of saveAddrs.entries()) {
+    newEnv[addr] = { value: values[index] !== undefined ? values[index] : value };
+  }
+
   return isOk(opResult)
     ? execute({
         ...ctx,
@@ -173,14 +187,24 @@ const execProcess = async ({
     return newErr(processorResult.content);
   }
 
-  const medium = env[op.loadAddr];
-  if (!medium) {
-    return newErr(
-      new Error(
-        `No value found at load address "${op.loadAddr}"`,
-      ),
-    );
+  // Load values from all addresses
+  const loadedValues: unknown[] = [];
+  for (const addr of op.loadAddr) {
+    const medium = env[addr];
+    if (!medium) {
+      return newErr(
+        new Error(
+          `No value found at load address "${addr}"`,
+        ),
+      );
+    }
+    loadedValues.push(medium.value);
   }
+
+  // Create medium with array if multiple values, otherwise single value
+  const medium: Medium = {
+    value: op.loadAddr.length === 1 ? loadedValues[0] : loadedValues,
+  };
 
   const processResult = await proc(
     { medium, alignment },
@@ -193,10 +217,13 @@ const execProcess = async ({
 
   const value = await processResult.content;
 
-  const newEnv = {
-    ...env,
-    [op.saveAddr]: { value },
-  };
+  // Save values to all addresses
+  const newEnv: Env = { ...env };
+  const values = Array.isArray(value) && op.saveAddr.length > 1 ? value : [value];
+
+  for (const [index, addr] of op.saveAddr.entries()) {
+    newEnv[addr] = { value: values[index] !== undefined ? values[index] : value };
+  }
 
   if (op.next === "egress") {
     const egressOpResult =
