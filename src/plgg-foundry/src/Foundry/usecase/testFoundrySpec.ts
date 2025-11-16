@@ -12,8 +12,8 @@ export const newTestFoundrySpec = (
       name: "plan",
       description:
         "Plans the character design based on the prompt",
-      inputType: "string",
-      outputType: "string",
+      inputType: [{ name: "prompt", type: "string" }],
+      outputType: [{ name: "plan", type: "string" }],
       process: async ({ medium }) => {
         if (typeof medium.value !== "string") {
           throw new Error(
@@ -27,8 +27,8 @@ export const newTestFoundrySpec = (
       name: "analyze",
       description:
         "Analyzes reference images for character features",
-      inputType: "image[]",
-      outputType: "string",
+      inputType: [{ name: "images", type: "image[]" }],
+      outputType: [{ name: "features", type: "string" }],
       process: async ({ medium }) => {
         if (
           !isVec(medium.value) ||
@@ -45,8 +45,8 @@ export const newTestFoundrySpec = (
       name: "gen-main",
       description:
         "Generates the main character image",
-      inputType: "string",
-      outputType: "image[]",
+      inputType: [{ name: "description", type: "string" }],
+      outputType: [{ name: "image", type: "image[]" }],
       process: async ({ medium }) => {
         if (typeof medium.value !== "string") {
           throw new Error(
@@ -60,8 +60,8 @@ export const newTestFoundrySpec = (
       name: "gen-spread",
       description:
         "Generates spread images for the character",
-      inputType: "image[]",
-      outputType: "image[]",
+      inputType: [{ name: "mainImage", type: "image[]" }],
+      outputType: [{ name: "spreadImages", type: "image[]" }],
       process: async ({ medium }) => {
         if (
           !isVec(medium.value) ||

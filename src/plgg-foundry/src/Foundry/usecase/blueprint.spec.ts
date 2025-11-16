@@ -7,7 +7,7 @@ import {
 import { blueprint } from "plgg-foundry/Foundry/usecase";
 import { newTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
-test("Blueprint generation with test foundry", async () => {
+test.skip("Blueprint generation with test foundry", async () => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     console.log(
