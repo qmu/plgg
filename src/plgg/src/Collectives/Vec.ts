@@ -126,6 +126,41 @@ export const conclude =
         Result<Vec<U>, Vec<F>>
       >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));
 
+/**
+ * Creates a casting function for validating arrays with element type validation.
+ * This can be composed with other casting functions in the cast pipeline.
+ *
+ * @example
+ * forOptionProp("items", asVecOf(asStr))
+ */
+export const asVecOf = <T extends Datum>(
+  asFn: (value: unknown) => Result<T, InvalidError>,
+) =>
+  (value: unknown): Result<Vec<T>, InvalidError> => {
+    if (!is(value)) {
+      return newErr(
+        new InvalidError({
+          message: "Value is not a vector",
+        }),
+      );
+    }
+
+    const results: T[] = [];
+    for (let i = 0; i < value.length; i++) {
+      const result = asFn(value[i]);
+      if (isErr(result)) {
+        return newErr(
+          new InvalidError({
+            message: `Invalid element at index ${i}: ${result.content.message}`,
+          }),
+        );
+      }
+      results.push(result.content);
+    }
+
+    return newOk(results);
+  };
+
 // --------------------------------
 // JsonReady
 // --------------------------------
