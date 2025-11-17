@@ -1,10 +1,12 @@
+import { Obj } from "plgg";
 import {
   Foundry,
   Alignment,
   Param,
+  Address,
 } from "plgg-foundry/index";
 
-export type Env = ReadonlyArray<Param>;
+export type Env = Obj<Record<Address, Param>>;
 
 export type OperationContext = {
   foundry: Foundry;

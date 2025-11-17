@@ -12,12 +12,12 @@ import {
 } from "plgg-foundry/index";
 
 export type Param = Obj<{
-  argument: VirtualType;
+  type: VirtualType;
   value: Datum;
 }>;
 
 export type ParamSpec = Obj<{
-  argument: VirtualTypeSpec;
+  type: VirtualTypeSpec;
   value: Datum;
 }>;
 
@@ -25,5 +25,5 @@ export const asParam = (value: unknown) =>
   cast(
     value,
     asObj,
-    forProp("argument", asVirtualType),
+    forProp("type", asVirtualType),
   );

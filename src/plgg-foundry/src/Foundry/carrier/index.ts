@@ -1,4 +1,5 @@
 export * from "plgg-foundry/Foundry/carrier/Foundry";
+export * from "plgg-foundry/Foundry/carrier/IO";
 export * from "plgg-foundry/Foundry/carrier/Medium";
 export * from "plgg-foundry/Foundry/carrier/OperationContext";
 export * from "plgg-foundry/Foundry/carrier/Order";
