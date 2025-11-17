@@ -22,7 +22,9 @@ export const newTestFoundrySpec = (
             "Invalid medium value for planning step",
           );
         }
-        return "Well-planned character design description";
+        return {
+          plan: "Well-planned character design description",
+        };
       },
     },
     {
@@ -42,7 +44,10 @@ export const newTestFoundrySpec = (
             "Invalid medium value for analyzing step",
           );
         }
-        return "Extracted character features from reference images";
+        return {
+          features:
+            "Extracted character features from reference images",
+        };
       },
     },
     {
@@ -61,7 +66,9 @@ export const newTestFoundrySpec = (
             "Invalid medium value for main generation step",
           );
         }
-        return [new Uint8Array([0])];
+        return {
+          image: [new Uint8Array([0])],
+        };
       },
     },
     {
@@ -85,11 +92,13 @@ export const newTestFoundrySpec = (
             "Invalid medium value for spread generation step",
           );
         }
-        return [
-          new Uint8Array([1]),
-          new Uint8Array([2]),
-          new Uint8Array([3]),
-        ];
+        return {
+          spreadImages: [
+            new Uint8Array([1]),
+            new Uint8Array([2]),
+            new Uint8Array([3]),
+          ],
+        };
       },
     },
   ],
@@ -122,8 +131,11 @@ export const newTestFoundrySpec = (
         return [
           isValid,
           isValid
-            ? value
-            : "Plan once again to avoid inappropriate content",
+            ? { validImages: value }
+            : {
+                feedback:
+                  "Plan once again to avoid inappropriate content",
+              },
         ];
       },
     },

@@ -44,7 +44,7 @@ export type ProcessorSpec = Readonly<{
   returns?: Dict<VariableName, VirtualTypeSpec>;
   process: (
     medium: Medium,
-  ) => PossiblyPromise<unknown>;
+  ) => PossiblyPromise<Dict<VariableName, Datum>>;
 }>;
 
 export const asProcessor = (

@@ -58,7 +58,7 @@ export type SwitcherSpec = Readonly<{
   check: (medium: Medium) => PossiblyPromise<
     [
       boolean, // validity
-      unknown, // proppagating data
+      Dict<VariableName, Datum>, // proppagating data
     ]
   >;
 }>;

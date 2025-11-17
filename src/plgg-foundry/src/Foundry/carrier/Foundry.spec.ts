@@ -22,8 +22,9 @@ test("asFoundrySpec validation - valid foundry", () => {
         returns: {
           result: { type: "string" },
         },
-        process: async (medium) =>
-          medium.params["arg"]?.value,
+        process: async () => ({
+          result: "test-result",
+        }),
       },
     ],
     switchers: [
@@ -39,9 +40,11 @@ test("asFoundrySpec validation - valid foundry", () => {
         returnsWhenFalse: {
           error: { type: "error" },
         },
-        check: async (medium) => [
+        check: async () => [
           true,
-          medium.params["arg"]?.value,
+          {
+            result: "test-result",
+          },
         ],
       },
     ],
@@ -108,7 +111,9 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         returns: {
           result: { type: "number" },
         },
-        process: async () => 1,
+        process: async () => ({
+          result: 1,
+        }),
       },
       {
         name: "processor-2",
@@ -119,7 +124,9 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         returns: {
           result: { type: "string" },
         },
-        process: async () => "result",
+        process: async () => ({
+          result: "result",
+        }),
       },
     ],
     switchers: [
@@ -135,9 +142,11 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         returnsWhenFalse: {
           error: { type: "error" },
         },
-        check: async (medium) => [
+        check: async () => [
           true,
-          medium.params["arg"]?.value,
+          {
+            result: "test-result",
+          },
         ],
       },
       {
@@ -152,7 +161,10 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         returnsWhenFalse: {
           error: { type: "error" },
         },
-        check: async () => [false, "error"],
+        check: async () => [
+          false,
+          { error: "error" },
+        ],
       },
     ],
     packers: [],
