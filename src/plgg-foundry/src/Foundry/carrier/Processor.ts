@@ -4,8 +4,8 @@ import {
   Str,
   Option,
   PossiblyPromise,
-  Vec,
   Datum,
+  Dict,
   cast,
   forProp,
   forOptionProp,
@@ -13,30 +13,35 @@ import {
   asFunc,
   asKebabCase,
   isSome,
-  asVecOf,
+  asDictOf,
 } from "plgg";
 import {
   Medium,
   VirtualType,
   VirtualTypeSpec,
+  VariableName,
   asVirtualType,
 } from "plgg-foundry/index";
 
 export type Processor = Readonly<{
   name: KebabCase;
   description: Str;
-  arguments: Option<Vec<VirtualType>>;
-  returns: Option<Vec<VirtualType>>;
+  arguments: Option<
+    Dict<VariableName, VirtualType>
+  >;
+  returns: Option<
+    Dict<VariableName, VirtualType>
+  >;
   process: (
     medium: Medium,
-  ) => PossiblyPromise<Datum>;
+  ) => PossiblyPromise<Dict<VariableName, Datum>>;
 }>;
 
 export type ProcessorSpec = Readonly<{
   name: string;
   description: string;
-  arguments?: Vec<VirtualTypeSpec>;
-  returns?: Vec<VirtualTypeSpec>;
+  arguments?: Dict<VariableName, VirtualTypeSpec>;
+  returns?: Dict<VariableName, VirtualTypeSpec>;
   process: (
     medium: Medium,
   ) => PossiblyPromise<unknown>;
@@ -51,11 +56,11 @@ export const asProcessor = (
     forProp("description", asStr),
     forOptionProp(
       "arguments",
-      asVecOf(asVirtualType),
+      asDictOf(asVirtualType),
     ),
     forOptionProp(
       "returns",
-      asVecOf(asVirtualType),
+      asDictOf(asVirtualType),
     ),
     forProp("process", asFunc),
   );
@@ -71,13 +76,14 @@ export const processorCastable: Castable<
 };
 
 const formatVirtualType = (
+  name: string,
   vt: VirtualType,
 ): string => {
   const isOptional = isSome(vt.optional)
     ? vt.optional.content
     : true;
   const optionalMarker = isOptional ? "?" : "";
-  return `${vt.name.content}: ${vt.type.content}${optionalMarker}`;
+  return `${name}: ${vt.type.content}${optionalMarker}`;
 };
 
 export const explainProcessor = (
@@ -87,15 +93,15 @@ export const explainProcessor = (
 - Opcode: \`${processor.name.content}\`
 - Arguments: ${
   isSome(processor.arguments)
-    ? processor.arguments.content
-        .map(formatVirtualType)
+    ? Object.entries(processor.arguments.content)
+        .map(([name, vt]) => formatVirtualType(name, vt))
         .join(", ")
     : "Any"
 }
 - Returns: ${
   isSome(processor.returns)
-    ? processor.returns.content
-        .map(formatVirtualType)
+    ? Object.entries(processor.returns.content)
+        .map(([name, vt]) => formatVirtualType(name, vt))
         .join(", ")
     : "Any"
 }`;

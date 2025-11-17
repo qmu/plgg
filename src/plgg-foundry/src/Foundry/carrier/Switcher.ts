@@ -4,8 +4,8 @@ import {
   Castable,
   Option,
   PossiblyPromise,
-  Vec,
   Datum,
+  Dict,
   cast,
   forProp,
   forOptionProp,
@@ -13,25 +13,32 @@ import {
   asFunc,
   asKebabCase,
   isSome,
-  asVecOf,
+  asDictOf,
 } from "plgg";
 import {
   Medium,
   VirtualType,
   VirtualTypeSpec,
+  VariableName,
   asVirtualType,
 } from "plgg-foundry/index";
 
 export type Switcher = Readonly<{
   name: KebabCase;
   description: Str;
-  arguments: Option<Vec<VirtualType>>;
-  returnsWhenTrue: Option<Vec<VirtualType>>;
-  returnsWhenFalse: Option<Vec<VirtualType>>;
+  arguments: Option<
+    Dict<VariableName, VirtualType>
+  >;
+  returnsWhenTrue: Option<
+    Dict<VariableName, VirtualType>
+  >;
+  returnsWhenFalse: Option<
+    Dict<VariableName, VirtualType>
+  >;
   check: (medium: Medium) => PossiblyPromise<
     [
       boolean, // validity
-      Datum, // proppagating data
+      Dict<VariableName, Datum>, // proppagating data
     ]
   >;
 }>;
@@ -39,9 +46,15 @@ export type Switcher = Readonly<{
 export type SwitcherSpec = Readonly<{
   name: string;
   description: string;
-  arguments?: ReadonlyArray<VirtualTypeSpec>;
-  returnsWhenTrue?: ReadonlyArray<VirtualTypeSpec>;
-  returnsWhenFalse?: ReadonlyArray<VirtualTypeSpec>;
+  arguments?: Dict<VariableName, VirtualTypeSpec>;
+  returnsWhenTrue?: Dict<
+    VariableName,
+    VirtualTypeSpec
+  >;
+  returnsWhenFalse?: Dict<
+    VariableName,
+    VirtualTypeSpec
+  >;
   check: (medium: Medium) => PossiblyPromise<
     [
       boolean, // validity
@@ -57,15 +70,15 @@ export const asSwitcher = (value: SwitcherSpec) =>
     forProp("description", asStr),
     forOptionProp(
       "arguments",
-      asVecOf(asVirtualType),
+      asDictOf(asVirtualType),
     ),
     forOptionProp(
       "returnsWhenTrue",
-      asVecOf(asVirtualType),
+      asDictOf(asVirtualType),
     ),
     forOptionProp(
       "returnsWhenFalse",
-      asVecOf(asVirtualType),
+      asDictOf(asVirtualType),
     ),
     forProp("check", asFunc),
   );
@@ -81,13 +94,14 @@ export const switcherCastable: Castable<
 };
 
 const formatVirtualType = (
+  name: string,
   vt: VirtualType,
 ): string => {
   const isOptional = isSome(vt.optional)
     ? vt.optional.content
     : true;
   const optionalMarker = isOptional ? "?" : "";
-  return `${vt.name.content}: ${vt.type.content}${optionalMarker}`;
+  return `${name}: ${vt.type.content}${optionalMarker}`;
 };
 
 export const explainSwitcher = (
@@ -98,22 +112,32 @@ export const explainSwitcher = (
 - Opcode: \`${switcher.name.content}\`
 - Arguments: ${
     isSome(switcher.arguments)
-      ? switcher.arguments.content
-          .map(formatVirtualType)
+      ? Object.entries(switcher.arguments.content)
+          .map(([name, vt]) =>
+            formatVirtualType(name, vt),
+          )
           .join(", ")
       : "Any"
   }
 - Returns When True: ${
     isSome(switcher.returnsWhenTrue)
-      ? switcher.returnsWhenTrue.content
-          .map(formatVirtualType)
+      ? Object.entries(
+          switcher.returnsWhenTrue.content,
+        )
+          .map(([name, vt]) =>
+            formatVirtualType(name, vt),
+          )
           .join(", ")
       : "Any"
   }
 - Returns When False: ${
     isSome(switcher.returnsWhenFalse)
-      ? switcher.returnsWhenFalse.content
-          .map(formatVirtualType)
+      ? Object.entries(
+          switcher.returnsWhenFalse.content,
+        )
+          .map(([name, vt]) =>
+            formatVirtualType(name, vt),
+          )
           .join(", ")
       : "Any"
   }`;
