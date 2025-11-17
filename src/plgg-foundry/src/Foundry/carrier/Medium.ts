@@ -1,4 +1,4 @@
-import { Obj } from "plgg";
+import { Obj, Dict } from "plgg";
 import {
   Param,
   Alignment,
@@ -6,5 +6,5 @@ import {
 
 export type Medium = Obj<{
   alignment: Alignment;
-  params: ReadonlyArray<Param>;
+  params: Dict<Param>;
 }>;
