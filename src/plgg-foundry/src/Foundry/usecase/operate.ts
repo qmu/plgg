@@ -1,11 +1,14 @@
 import {
   Result,
+  Dict,
   proc,
+  pipe,
   newOk,
   newErr,
   isOk,
   tryCatch,
   isSome,
+  conclude,
 } from "plgg";
 import {
   Foundry,
@@ -18,6 +21,9 @@ import {
   EgressOperation,
   Operation,
   OperationContext,
+  Env,
+  Address,
+  VariableName,
   isIngressOperation,
   isEgressOperation,
   isSwitchOperation,
@@ -41,7 +47,7 @@ export const operate =
       execute({
         foundry,
         alignment,
-        env: [],
+        env: {},
         operationCount: 0,
       }),
     );
@@ -98,18 +104,31 @@ const execIngress = async ({
         findInternalOp(op.next),
         execute({
           ...ctx,
-          env: [
+          env: {
             ...ctx.env,
-            {
-              argument,
+            [op.promptAddr]: {
+              type: argument,
               value:
                 ctx.alignment.userRequest.content,
             },
-          ],
+          },
           operationCount: ctx.operationCount + 1,
         }),
       ),
   );
+
+const loadValueFromEnv =
+  (env: Env) =>
+  (
+    addr: string,
+  ): Result<[Address, Param], Error> =>
+    env[addr]
+      ? newOk([addr, env[addr]])
+      : newErr(
+          new Error(
+            `No value found at load address "${addr}"`,
+          ),
+        );
 
 const execSwitch = async ({
   op,
@@ -127,41 +146,23 @@ const execSwitch = async ({
     return newErr(switcherResult.content);
   }
 
-  // Load params from all addresses
-  const loadedParams: Param[] = [];
-  for (const addr of op.loadAddr) {
-    const paramsAtAddr = env.filter(
-      (param) =>
-        param.argument.name.content === addr,
+  const input = pipe(
+    op.inputAddresses,
+    Object.values,
+    conclude(loadValueFromEnv(env)),
+  );
+  if (!isOk(input)) {
+    return newErr(
+      new Error(
+        input.content
+          .map((e) => e.message)
+          .join("; "),
+      ),
     );
-    if (paramsAtAddr.length === 0) {
-      return newErr(
-        new Error(
-          `No value found at load address "${addr}"`,
-        ),
-      );
-    }
-    loadedParams.push(...paramsAtAddr);
   }
 
-  // Match loaded params with switcher's argument types
-  const switcherArguments = isSome(
-    switcherResult.content.arguments,
-  )
-    ? switcherResult.content.arguments.content
-    : [];
-
-  const params: Param[] =
-    switcherArguments.length > 0
-      ? loadedParams
-          .slice(0, switcherArguments.length)
-          .map((param, index) => ({
-            argument:
-              switcherArguments[index] ||
-              param.argument,
-            value: param.value,
-          }))
-      : loadedParams;
+  const params: Dict<Address, Param> =
+    Object.fromEntries(input.content);
 
   const medium: Medium = { alignment, params };
 
@@ -182,21 +183,41 @@ const execSwitch = async ({
   )(alignment);
 
   // Save values to all addresses with return types
-  const saveAddrs = isValid
-    ? op.saveAddrTrue
-    : op.saveAddrFalse;
+  const outputs: Record<VariableName, Address> =
+    isValid
+      ? op.outputAddressesTrue
+      : op.outputAddressesFalse;
+
+  // Get the return types from the switcher
+  const switcher = switcherResult.content;
+  const returnTypes = isValid
+    ? switcher.returnsWhenTrue
+    : switcher.returnsWhenFalse;
+
+  // Create env entries for each output
+  const newEnvEntries: Record<Address, Param> = {};
+  if (isSome(returnTypes) && typeof value === "object" && value !== null && !Array.isArray(value)) {
+    for (const [varName, addr] of Object.entries(outputs)) {
+      const virtualType = returnTypes.content[varName];
+      const varValue = value[varName];
+      if (virtualType && varName in value && varValue !== undefined) {
+        newEnvEntries[addr] = {
+          type: virtualType,
+          value: varValue,
+        };
+      }
+    }
+  }
+
   return isOk(opResult)
-    ? proc(
-        { name: saveAddrs[0], type: "unknown" },
-        asVirtualType,
-        (argument) =>
-          execute({
-            ...ctx,
-            env: [...env, { argument, value }],
-            operationCount:
-              ctx.operationCount + 1,
-          })(opResult.content),
-      )
+    ? execute({
+        ...ctx,
+        env: {
+          ...env,
+          ...newEnvEntries,
+        },
+        operationCount: ctx.operationCount + 1,
+      })(opResult.content)
     : newErr(opResult.content);
 };
 
@@ -216,41 +237,24 @@ const execProcess = async ({
     return newErr(processorResult.content);
   }
 
-  // Load params from all addresses
-  const loadedParams: Param[] = [];
-  for (const addr of op.loadAddr) {
-    const paramsAtAddr = env.filter(
-      (param) =>
-        param.argument.name.content === addr,
+  // Load params from addresses - op.loadAddr is Dict<VariableName, Address>
+  const input = pipe(
+    op.loadAddr,
+    Object.values,
+    conclude(loadValueFromEnv(env)),
+  );
+  if (!isOk(input)) {
+    return newErr(
+      new Error(
+        input.content
+          .map((e) => e.message)
+          .join("; "),
+      ),
     );
-    if (paramsAtAddr.length === 0) {
-      return newErr(
-        new Error(
-          `No value found at load address "${addr}"`,
-        ),
-      );
-    }
-    loadedParams.push(...paramsAtAddr);
   }
 
-  // Match loaded params with processor's argument types
-  const processorArguments = isSome(
-    processorResult.content.arguments,
-  )
-    ? processorResult.content.arguments.content
-    : [];
-
-  const params: Param[] =
-    processorArguments.length > 0
-      ? loadedParams
-          .slice(0, processorArguments.length)
-          .map((param, index) => ({
-            argument:
-              processorArguments[index] ||
-              param.argument,
-            value: param.value,
-          }))
-      : loadedParams;
+  const params: Dict<Address, Param> =
+    Object.fromEntries(input.content);
 
   const medium: Medium = { alignment, params };
 
@@ -265,21 +269,38 @@ const execProcess = async ({
 
   const value = await processResult.content;
 
+  // Get processor return types
+  const processor = processorResult.content;
+  const returnTypes = processor.returns;
+
+  // Save values to addresses - op.saveAddr is Dict<VariableName, Address>
+  const newEnvEntries: Record<Address, Param> = {};
+  if (isSome(returnTypes) && typeof value === "object" && value !== null && !Array.isArray(value)) {
+    for (const [varName, addr] of Object.entries(op.saveAddr)) {
+      const virtualType = returnTypes.content[varName];
+      const varValue = value[varName];
+      if (virtualType && varName in value && varValue !== undefined) {
+        newEnvEntries[addr] = {
+          type: virtualType,
+          value: varValue,
+        };
+      }
+    }
+  }
+
   return proc(
-    { name: op.saveAddr[0], type: "unknown" },
-    asVirtualType,
-    (argument) =>
-      proc(
-        alignment,
-        op.next === "egress"
-          ? findEgressOp
-          : findInternalOp(op.next),
-        execute({
-          ...ctx,
-          env: [...env, { argument, value }],
-          operationCount: ctx.operationCount + 1,
-        }),
-      ),
+    alignment,
+    op.next === "egress"
+      ? findEgressOp
+      : findInternalOp(op.next),
+    execute({
+      ...ctx,
+      env: {
+        ...env,
+        ...newEnvEntries,
+      },
+      operationCount: ctx.operationCount + 1,
+    }),
   );
 };
 
@@ -291,58 +312,29 @@ const execEgress = async ({
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
   const { env, alignment } = ctx;
-  const resultParams: Param[] = [];
 
   // Resolve each address in the result mapping and collect params
-  for (const [key, addr] of Object.entries(
+  const input = pipe(
     op.result,
-  )) {
-    if (typeof addr !== "string") {
-      return newErr(
-        new Error(
-          `Invalid address type for key "${key}": expected string, got ${typeof addr}`,
-        ),
-      );
-    }
-
-    const paramsAtAddr = env.filter(
-      (param) =>
-        param.argument.name.content === addr,
+    Object.values,
+    conclude(loadValueFromEnv(env)),
+  );
+  if (!isOk(input)) {
+    return newErr(
+      new Error(
+        input.content
+          .map((e) => e.message)
+          .join("; "),
+      ),
     );
-    if (paramsAtAddr.length === 0) {
-      return newErr(
-        new Error(
-          `No value found at address "${addr}" for result key "${key}"`,
-        ),
-      );
-    }
-
-    // Collect all params from this address, updating the argument name to match the key
-    for (const param of paramsAtAddr) {
-      const updatedArgResult = asVirtualType({
-        name: key,
-        type: param.argument.type.content,
-        optional: isSome(param.argument.optional)
-          ? param.argument.optional.content
-          : undefined,
-      });
-      if (!isOk(updatedArgResult)) {
-        return newErr(
-          new Error(
-            `Failed to create VirtualType for egress key "${key}"`,
-          ),
-        );
-      }
-      resultParams.push({
-        argument: updatedArgResult.content,
-        value: param.value,
-      });
-    }
   }
+
+  const params: Dict<Address, Param> =
+    Object.fromEntries(input.content);
 
   const medium: Medium = {
     alignment,
-    params: resultParams,
+    params,
   };
   return newOk(medium);
 };
