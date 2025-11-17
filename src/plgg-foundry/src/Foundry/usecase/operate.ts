@@ -9,6 +9,7 @@ import {
   tryCatch,
   isSome,
   conclude,
+  isObj,
 } from "plgg";
 import {
   Foundry,
@@ -164,10 +165,11 @@ const execSwitch = async ({
   const params: Dict<Address, Param> =
     Object.fromEntries(input.content);
 
-  const medium: Medium = { alignment, params };
-
   const checkResult = await proc(
-    medium,
+    {
+      alignment,
+      params,
+    } satisfies Medium,
     tryCatch(switcherResult.content.check),
   );
 
@@ -195,12 +197,20 @@ const execSwitch = async ({
     : switcher.returnsWhenFalse;
 
   // Create env entries for each output
-  const newEnvEntries: Record<Address, Param> = {};
-  if (isSome(returnTypes) && typeof value === "object" && value !== null && !Array.isArray(value)) {
-    for (const [varName, addr] of Object.entries(outputs)) {
-      const virtualType = returnTypes.content[varName];
+  const newEnvEntries: Record<Address, Param> =
+    {};
+  if (isSome(returnTypes) && isObj(value)) {
+    for (const [varName, addr] of Object.entries(
+      outputs,
+    )) {
+      const virtualType =
+        returnTypes.content[varName];
       const varValue = value[varName];
-      if (virtualType && varName in value && varValue !== undefined) {
+      if (
+        virtualType &&
+        varName in value &&
+        varValue !== undefined
+      ) {
         newEnvEntries[addr] = {
           type: virtualType,
           value: varValue,
@@ -256,10 +266,8 @@ const execProcess = async ({
   const params: Dict<Address, Param> =
     Object.fromEntries(input.content);
 
-  const medium: Medium = { alignment, params };
-
   const processResult = await proc(
-    medium,
+    { alignment, params } satisfies Medium,
     tryCatch(processorResult.content.process),
   );
 
@@ -274,12 +282,20 @@ const execProcess = async ({
   const returnTypes = processor.returns;
 
   // Save values to addresses - op.saveAddr is Dict<VariableName, Address>
-  const newEnvEntries: Record<Address, Param> = {};
-  if (isSome(returnTypes) && typeof value === "object" && value !== null && !Array.isArray(value)) {
-    for (const [varName, addr] of Object.entries(op.saveAddr)) {
-      const virtualType = returnTypes.content[varName];
+  const newEnvEntries: Record<Address, Param> =
+    {};
+  if (isSome(returnTypes) && isObj(value)) {
+    for (const [varName, addr] of Object.entries(
+      op.saveAddr,
+    )) {
+      const virtualType =
+        returnTypes.content[varName];
       const varValue = value[varName];
-      if (virtualType && varName in value && varValue !== undefined) {
+      if (
+        virtualType &&
+        varName in value &&
+        varValue !== undefined
+      ) {
         newEnvEntries[addr] = {
           type: virtualType,
           value: varValue,
