@@ -193,7 +193,8 @@ const execSwitch = async ({
           execute({
             ...ctx,
             env: [...env, { argument, value }],
-            operationCount: ctx.operationCount + 1,
+            operationCount:
+              ctx.operationCount + 1,
           })(opResult.content),
       )
     : newErr(opResult.content);

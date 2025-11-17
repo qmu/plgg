@@ -5,6 +5,7 @@ import {
   Option,
   PossiblyPromise,
   Vec,
+  Datum,
   cast,
   forProp,
   forOptionProp,
@@ -26,7 +27,9 @@ export type Processor = Readonly<{
   description: Str;
   arguments: Option<Vec<VirtualType>>;
   returns: Option<Vec<VirtualType>>;
-  process: (medium: Medium) => PossiblyPromise<unknown>;
+  process: (
+    medium: Medium,
+  ) => PossiblyPromise<Datum>;
 }>;
 
 export type ProcessorSpec = Readonly<{
@@ -34,7 +37,9 @@ export type ProcessorSpec = Readonly<{
   description: string;
   arguments?: ReadonlyArray<VirtualTypeSpec>;
   returns?: ReadonlyArray<VirtualTypeSpec>;
-  process: (medium: Medium) => PossiblyPromise<unknown>;
+  process: (
+    medium: Medium,
+  ) => PossiblyPromise<unknown>;
 }>;
 
 export const asProcessor = (

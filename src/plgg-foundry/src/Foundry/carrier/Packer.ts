@@ -1,4 +1,5 @@
 import {
+  Obj,
   Castable,
   Str,
   Option,
@@ -11,13 +12,13 @@ import {
   isSome,
 } from "plgg";
 
-export type Packer = Readonly<{
+export type Packer = Obj<{
   name: Str;
   processedBy: KebabCase;
   description: Option<Str>;
 }>;
 
-export type PackerSpec = Readonly<{
+export type PackerSpec = Obj<{
   name: string;
   processedBy: string;
   description?: string;

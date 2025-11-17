@@ -14,10 +14,10 @@ export type Order = Obj<{
   files: ReadonlyArray<Bin>;
 }>;
 
-export type OrderSpec = {
+export type OrderSpec = Obj<{
   prompt: string;
   files?: ReadonlyArray<Uint8Array>;
-};
+}>;
 
 export const asOrder = ({
   prompt,
@@ -29,7 +29,9 @@ export const asOrder = ({
     forProp("files", asReadonlyArray(asBin)),
   );
 
-export const explainOrder = (order: Order): string => {
+export const explainOrder = (
+  order: Order,
+): string => {
   const fileCount = order.files.length;
   const promptText = order.prompt.content;
 
@@ -38,6 +40,8 @@ export const explainOrder = (order: Order): string => {
   }
 
   const fileText =
-    fileCount === 1 ? "1 file" : `${fileCount} files`;
+    fileCount === 1
+      ? "1 file"
+      : `${fileCount} files`;
   return `${promptText}\n\n(${fileText} attached)`;
 };

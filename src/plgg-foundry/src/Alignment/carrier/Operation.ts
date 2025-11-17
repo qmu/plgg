@@ -1,4 +1,10 @@
 import {
+  Result,
+  InvalidError,
+  newOk,
+  newErr,
+} from "plgg";
+import {
   EgressOperation,
   IngressOperation,
   InternalOperation,
@@ -6,7 +12,6 @@ import {
   isIngressOperation,
   isEgressOperation,
 } from "plgg-foundry/index";
-import { Result, InvalidError, newOk, newErr } from "plgg";
 
 export type Operation =
   | EgressOperation

@@ -1,8 +1,13 @@
-import { isRawObj, hasProp } from "plgg";
+import {
+  Obj,
+  Dict,
+  isRawObj,
+  hasProp,
+} from "plgg";
 
-export type EgressOperation = Readonly<{
+export type EgressOperation = Obj<{
   type: "egress";
-  result: Record<string, unknown>;
+  result: Dict;
 }>;
 
 export const isEgressOperation = (

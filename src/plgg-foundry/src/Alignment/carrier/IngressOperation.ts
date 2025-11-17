@@ -1,6 +1,6 @@
-import { isRawObj, hasProp } from "plgg";
+import { Obj, isRawObj, hasProp } from "plgg";
 
-export type IngressOperation = Readonly<{
+export type IngressOperation = Obj<{
   type: "ingress";
   next: string;
   promptAddr: string;

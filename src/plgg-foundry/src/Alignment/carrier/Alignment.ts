@@ -1,6 +1,8 @@
 import {
   Result,
   Str,
+  Obj,
+  Vec,
   newOk,
   newErr,
   asStr,
@@ -19,11 +21,11 @@ import {
   asOperation,
 } from "plgg-foundry/index";
 
-export type Alignment = Readonly<{
+export type Alignment = Obj<{
   userRequestAnalysis: Str;
   compositionRationale: Str;
   userRequest: Str;
-  operations: ReadonlyArray<Operation>;
+  operations: Vec<Operation>;
 }>;
 
 export const asAlignment = (value: unknown) =>

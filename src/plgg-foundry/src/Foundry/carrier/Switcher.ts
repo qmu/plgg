@@ -5,6 +5,7 @@ import {
   Option,
   PossiblyPromise,
   Vec,
+  Datum,
   cast,
   forProp,
   forOptionProp,
@@ -27,12 +28,10 @@ export type Switcher = Readonly<{
   arguments: Option<Vec<VirtualType>>;
   returnsWhenTrue: Option<Vec<VirtualType>>;
   returnsWhenFalse: Option<Vec<VirtualType>>;
-  check: (
-    medium: Medium,
-  ) => PossiblyPromise<
+  check: (medium: Medium) => PossiblyPromise<
     [
       boolean, // validity
-      unknown, // proppagating data
+      Datum, // proppagating data
     ]
   >;
 }>;
@@ -43,9 +42,7 @@ export type SwitcherSpec = Readonly<{
   arguments?: ReadonlyArray<VirtualTypeSpec>;
   returnsWhenTrue?: ReadonlyArray<VirtualTypeSpec>;
   returnsWhenFalse?: ReadonlyArray<VirtualTypeSpec>;
-  check: (
-    medium: Medium,
-  ) => PossiblyPromise<
+  check: (medium: Medium) => PossiblyPromise<
     [
       boolean, // validity
       unknown, // proppagating data

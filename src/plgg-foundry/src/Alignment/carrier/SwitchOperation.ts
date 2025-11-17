@@ -1,13 +1,18 @@
-import { isRawObj, hasProp } from "plgg";
+import {
+  Obj,
+  Vec,
+  isRawObj,
+  hasProp,
+} from "plgg";
 
-export type SwitchOperation = Readonly<{
+export type SwitchOperation = Obj<{
   type: "switch";
   opcode: string;
   nextWhenTrue: string;
   nextWhenFalse: string;
-  loadAddr: ReadonlyArray<string>;
-  saveAddrTrue: ReadonlyArray<string>;
-  saveAddrFalse: ReadonlyArray<string>;
+  loadAddr: Vec<string>;
+  saveAddrTrue: Vec<string>;
+  saveAddrFalse: Vec<string>;
 }>;
 
 export const isSwitchOperation = (

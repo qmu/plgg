@@ -45,7 +45,8 @@ export type FoundrySpec = Readonly<{
 export const asFoundry = (value: FoundrySpec) => {
   const withDefaults = {
     ...value,
-    maxOperationLimit: value.maxOperationLimit ?? 10,
+    maxOperationLimit:
+      value.maxOperationLimit ?? 10,
   };
   return cast(
     withDefaults,

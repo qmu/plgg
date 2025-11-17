@@ -1,10 +1,15 @@
-import { isRawObj, hasProp } from "plgg";
+import {
+  Obj,
+  Vec,
+  isRawObj,
+  hasProp,
+} from "plgg";
 
-export type ProcessOperation = Readonly<{
+export type ProcessOperation = Obj<{
   type: "process";
   opcode: string;
-  loadAddr: ReadonlyArray<string>;
-  saveAddr: ReadonlyArray<string>;
+  loadAddr: Vec<string>;
+  saveAddr: Vec<string>;
   next: string;
 }>;
 

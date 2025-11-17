@@ -17,7 +17,7 @@ export type VirtualType = Obj<{
   optional: Option<Bool>;
 }>;
 
-export type VirtualTypeSpec = Readonly<{
+export type VirtualTypeSpec = Obj<{
   name: string;
   type: string;
   optional?: boolean;
