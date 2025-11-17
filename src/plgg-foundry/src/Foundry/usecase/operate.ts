@@ -24,7 +24,6 @@ import {
   OperationContext,
   Env,
   Address,
-  VariableName,
   isIngressOperation,
   isEgressOperation,
   isSwitchOperation,
@@ -139,6 +138,9 @@ const execSwitch = async ({
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
   const { foundry, alignment, env } = ctx;
+
+  // Load params from addresses
+
   const switcherResult = findSwitcher(
     foundry,
     op.opcode,
@@ -146,38 +148,40 @@ const execSwitch = async ({
   if (!isOk(switcherResult)) {
     return newErr(switcherResult.content);
   }
+  const switcher = switcherResult.content;
 
-  const input = pipe(
-    op.inputAddresses,
+  const addrParams = pipe(
+    op.input,
     Object.values,
     conclude(loadValueFromEnv(env)),
   );
-  if (!isOk(input)) {
+  if (!isOk(addrParams)) {
     return newErr(
       new Error(
-        input.content
+        addrParams.content
           .map((e) => e.message)
           .join("; "),
       ),
     );
   }
-
   const params: Dict<Address, Param> =
-    Object.fromEntries(input.content);
+    Object.fromEntries(addrParams.content);
+
+  // Execute the check with the loaded params
 
   const checkResult = await proc(
     {
       alignment,
       params,
     } satisfies Medium,
-    tryCatch(switcherResult.content.check),
+    tryCatch(switcher.check),
   );
 
   if (!isOk(checkResult)) {
     return newErr(checkResult.content);
   }
 
-  const [isValid, value] =
+  const [isValid, returnedValue] =
     await checkResult.content;
 
   const opResult = findInternalOp(
@@ -185,13 +189,11 @@ const execSwitch = async ({
   )(alignment);
 
   // Save values to all addresses with return types
-  const outputs: Record<VariableName, Address> =
-    isValid
-      ? op.outputAddressesTrue
-      : op.outputAddressesFalse;
+  const outputs = isValid
+    ? op.outputWhenTrue
+    : op.outputWhenFalse;
 
   // Get the return types from the switcher
-  const switcher = switcherResult.content;
   const returnTypes = isValid
     ? switcher.returnsWhenTrue
     : switcher.returnsWhenFalse;
@@ -199,16 +201,19 @@ const execSwitch = async ({
   // Create env entries for each output
   const newEnvEntries: Record<Address, Param> =
     {};
-  if (isSome(returnTypes) && isObj(value)) {
+  if (
+    isSome(returnTypes) &&
+    isObj(returnedValue)
+  ) {
     for (const [varName, addr] of Object.entries(
       outputs,
     )) {
       const virtualType =
         returnTypes.content[varName];
-      const varValue = value[varName];
+      const varValue = returnedValue[varName];
       if (
         virtualType &&
-        varName in value &&
+        varName in returnedValue &&
         varValue !== undefined
       ) {
         newEnvEntries[addr] = {
@@ -239,6 +244,9 @@ const execProcess = async ({
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
   const { foundry, alignment, env } = ctx;
+
+  // Load params from addresses
+
   const processorResult = findProcessor(
     foundry,
     op.opcode,
@@ -247,24 +255,24 @@ const execProcess = async ({
     return newErr(processorResult.content);
   }
 
-  // Load params from addresses - op.loadAddr is Dict<VariableName, Address>
-  const input = pipe(
-    op.loadAddr,
+  const addrParams = pipe(
+    op.input,
     Object.values,
     conclude(loadValueFromEnv(env)),
   );
-  if (!isOk(input)) {
+  if (!isOk(addrParams)) {
     return newErr(
       new Error(
-        input.content
+        addrParams.content
           .map((e) => e.message)
           .join("; "),
       ),
     );
   }
-
   const params: Dict<Address, Param> =
-    Object.fromEntries(input.content);
+    Object.fromEntries(addrParams.content);
+
+  // Execute the processor with the loaded params
 
   const processResult = await proc(
     { alignment, params } satisfies Medium,
@@ -275,25 +283,29 @@ const execProcess = async ({
     return newErr(processResult.content);
   }
 
-  const value = await processResult.content;
+  const returnedValue =
+    await processResult.content;
 
   // Get processor return types
-  const processor = processorResult.content;
-  const returnTypes = processor.returns;
+  const returnTypes =
+    processorResult.content.returns;
 
   // Save values to addresses - op.saveAddr is Dict<VariableName, Address>
   const newEnvEntries: Record<Address, Param> =
     {};
-  if (isSome(returnTypes) && isObj(value)) {
+  if (
+    isSome(returnTypes) &&
+    isObj(returnedValue)
+  ) {
     for (const [varName, addr] of Object.entries(
-      op.saveAddr,
+      op.output,
     )) {
       const virtualType =
         returnTypes.content[varName];
-      const varValue = value[varName];
+      const varValue = returnedValue[varName];
       if (
         virtualType &&
-        varName in value &&
+        varName in returnedValue &&
         varValue !== undefined
       ) {
         newEnvEntries[addr] = {
