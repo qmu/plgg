@@ -115,15 +115,17 @@ export const conclude =
   <
     T extends Datum,
     U extends Datum,
-    F extends Datum,
+    F extends Error,
   >(
     fn: (item: T) => Result<U, F>,
   ) =>
-  (vec: Vec<T>): Result<Vec<U>, Vec<F>> =>
+  (
+    vec: Vec<T>,
+  ): Result<Vec<U>, ReadonlyArray<F>> =>
     vec
       .map(fn)
       .reduce<
-        Result<Vec<U>, Vec<F>>
+        Result<Vec<U>, ReadonlyArray<F>>
       >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));
 
 /**
@@ -133,10 +135,15 @@ export const conclude =
  * @example
  * forOptionProp("items", asVecOf(asStr))
  */
-export const asVecOf = <T extends Datum>(
-  asFn: (value: unknown) => Result<T, InvalidError>,
-) =>
-  (value: unknown): Result<Vec<T>, InvalidError> => {
+export const asVecOf =
+  <T extends Datum>(
+    asFn: (
+      value: unknown,
+    ) => Result<T, InvalidError>,
+  ) =>
+  (
+    value: unknown,
+  ): Result<Vec<T>, InvalidError> => {
     if (!is(value)) {
       return newErr(
         new InvalidError({
