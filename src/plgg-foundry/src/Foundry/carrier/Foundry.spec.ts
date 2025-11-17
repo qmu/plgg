@@ -17,13 +17,13 @@ test("asFoundrySpec validation - valid foundry", () => {
         name: "test-processor",
         description: "A test processor",
         arguments: {
-          value: { type: "string" },
+          arg: { type: "string" },
         },
         returns: {
           result: { type: "string" },
         },
         process: async (medium) =>
-          medium.params[0]?.value,
+          medium.params["arg"]?.value,
       },
     ],
     switchers: [
@@ -31,7 +31,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         name: "test-switcher",
         description: "A test switcher",
         arguments: {
-          value: { type: "string" },
+          arg: { type: "string" },
         },
         returnsWhenTrue: {
           result: { type: "string" },
@@ -41,7 +41,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         },
         check: async (medium) => [
           true,
-          medium.params[0]?.value,
+          medium.params["arg"]?.value,
         ],
       },
     ],
@@ -103,7 +103,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         name: "processor-1",
         description: "First processor",
         arguments: {
-          value: { type: "string" },
+          arg: { type: "string" },
         },
         returns: {
           result: { type: "number" },
@@ -114,7 +114,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         name: "processor-2",
         description: "Second processor",
         arguments: {
-          value: { type: "number" },
+          arg: { type: "number" },
         },
         returns: {
           result: { type: "string" },
@@ -127,7 +127,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         name: "switcher-1",
         description: "First switcher",
         arguments: {
-          value: { type: "string" },
+          arg: { type: "string" },
         },
         returnsWhenTrue: {
           result: { type: "string" },
@@ -137,7 +137,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         },
         check: async (medium) => [
           true,
-          medium.params[0]?.value,
+          medium.params["arg"]?.value,
         ],
       },
       {
