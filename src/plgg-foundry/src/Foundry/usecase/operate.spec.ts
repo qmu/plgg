@@ -1,9 +1,5 @@
 import { test, assert, expect } from "vitest";
-import {
-  proc,
-  isErr,
-  isOk,
-} from "plgg";
+import { proc, isErr, isOk } from "plgg";
 import {
   FoundrySpec,
   asAlignment,
@@ -90,19 +86,13 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
     );
   }
   assert(isOk(result));
-  const mainImage = result.content.params.find(
-    (p) => p.argument.name.content === "mainImage",
-  )?.value;
+  const mainImage =
+    result.content.params["mainImage"]?.value;
   assert(mainImage);
   assert(Array.isArray(mainImage));
-  expect(mainImage[0]).toBeInstanceOf(
-    Uint8Array,
-  );
-  const spreadImages = result.content.params.find(
-    (p) => p.argument.name.content === "spreadImages",
-  )?.value;
+  expect(mainImage[0]).toBeInstanceOf(Uint8Array);
+  const spreadImages =
+    result.content.params["spreadImages"]?.value;
   assert(spreadImages);
-  expect(spreadImages).toBeInstanceOf(
-    Array,
-  );
+  expect(spreadImages).toBeInstanceOf(Array);
 });

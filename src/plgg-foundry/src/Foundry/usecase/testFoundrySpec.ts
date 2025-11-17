@@ -12,10 +12,8 @@ export const newTestFoundrySpec = (
       name: "plan",
       description:
         "Plans the character design based on the prompt",
-      arguments: [
-        { name: "prompt", type: "string" },
-      ],
-      returns: [{ name: "plan", type: "string" }],
+      arguments: { prompt: { type: "string" } },
+      returns: { plan: { type: "string" } },
       process: async (medium) => {
         const value = medium.params[0]?.value;
         if (typeof value !== "string") {
@@ -30,12 +28,8 @@ export const newTestFoundrySpec = (
       name: "analyze",
       description:
         "Analyzes reference images for character features",
-      arguments: [
-        { name: "images", type: "image[]" },
-      ],
-      returns: [
-        { name: "features", type: "string" },
-      ],
+      arguments: { images: { type: "image[]" } },
+      returns: { features: { type: "string" } },
       process: async (medium) => {
         const value = medium.params[0]?.value;
         if (
@@ -53,12 +47,10 @@ export const newTestFoundrySpec = (
       name: "gen-main",
       description:
         "Generates the main character image",
-      arguments: [
-        { name: "description", type: "string" },
-      ],
-      returns: [
-        { name: "image", type: "image[]" },
-      ],
+      arguments: {
+        description: { type: "string" },
+      },
+      returns: { image: { type: "image[]" } },
       process: async (medium) => {
         const value = medium.params[0]?.value;
         if (typeof value !== "string") {
@@ -73,12 +65,12 @@ export const newTestFoundrySpec = (
       name: "gen-spread",
       description:
         "Generates spread images for the character",
-      arguments: [
-        { name: "mainImage", type: "image[]" },
-      ],
-      returns: [
-        { name: "spreadImages", type: "image[]" },
-      ],
+      arguments: {
+        mainImage: { type: "image[]" },
+      },
+      returns: {
+        spreadImages: { type: "image[]" },
+      },
       process: async (medium) => {
         const value = medium.params[0]?.value;
         if (
@@ -102,15 +94,15 @@ export const newTestFoundrySpec = (
       name: "check-validity",
       description:
         "Checks for inappropriate content in images, if invalid go back to former step",
-      arguments: [
-        { name: "images", type: "image[]" },
-      ],
-      returnsWhenTrue: [
-        { name: "validImages", type: "image[]" },
-      ],
-      returnsWhenFalse: [
-        { name: "feedback", type: "string" },
-      ],
+      arguments: {
+        images: { type: "image[]" },
+      },
+      returnsWhenTrue: {
+        validImages: { type: "image[]" },
+      },
+      returnsWhenFalse: {
+        feedback: { type: "string" },
+      },
       check: async (medium) => {
         const value = medium.params[0]?.value;
         if (

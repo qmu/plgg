@@ -16,12 +16,12 @@ test("asFoundrySpec validation - valid foundry", () => {
       {
         name: "test-processor",
         description: "A test processor",
-        arguments: [
-          { name: "value", type: "string" },
-        ],
-        returns: [
-          { name: "result", type: "string" },
-        ],
+        arguments: {
+          value: { type: "string" },
+        },
+        returns: {
+          result: { type: "string" },
+        },
         process: async (medium) =>
           medium.params[0]?.value,
       },
@@ -30,15 +30,15 @@ test("asFoundrySpec validation - valid foundry", () => {
       {
         name: "test-switcher",
         description: "A test switcher",
-        arguments: [
-          { name: "value", type: "string" },
-        ],
-        returnsWhenTrue: [
-          { name: "result", type: "string" },
-        ],
-        returnsWhenFalse: [
-          { name: "error", type: "error" },
-        ],
+        arguments: {
+          value: { type: "string" },
+        },
+        returnsWhenTrue: {
+          result: { type: "string" },
+        },
+        returnsWhenFalse: {
+          error: { type: "error" },
+        },
         check: async (medium) => [
           true,
           medium.params[0]?.value,
@@ -102,23 +102,23 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
       {
         name: "processor-1",
         description: "First processor",
-        arguments: [
-          { name: "value", type: "string" },
-        ],
-        returns: [
-          { name: "result", type: "number" },
-        ],
+        arguments: {
+          value: { type: "string" },
+        },
+        returns: {
+          result: { type: "number" },
+        },
         process: async () => 1,
       },
       {
         name: "processor-2",
         description: "Second processor",
-        arguments: [
-          { name: "value", type: "number" },
-        ],
-        returns: [
-          { name: "result", type: "string" },
-        ],
+        arguments: {
+          value: { type: "number" },
+        },
+        returns: {
+          result: { type: "string" },
+        },
         process: async () => "result",
       },
     ],
@@ -126,15 +126,15 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
       {
         name: "switcher-1",
         description: "First switcher",
-        arguments: [
-          { name: "value", type: "string" },
-        ],
-        returnsWhenTrue: [
-          { name: "result", type: "string" },
-        ],
-        returnsWhenFalse: [
-          { name: "error", type: "error" },
-        ],
+        arguments: {
+          value: { type: "string" },
+        },
+        returnsWhenTrue: {
+          result: { type: "string" },
+        },
+        returnsWhenFalse: {
+          error: { type: "error" },
+        },
         check: async (medium) => [
           true,
           medium.params[0]?.value,
@@ -143,15 +143,15 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
       {
         name: "switcher-2",
         description: "Second switcher",
-        arguments: [
-          { name: "value", type: "number" },
-        ],
-        returnsWhenTrue: [
-          { name: "result", type: "number" },
-        ],
-        returnsWhenFalse: [
-          { name: "error", type: "error" },
-        ],
+        arguments: {
+          value: { type: "number" },
+        },
+        returnsWhenTrue: {
+          result: { type: "number" },
+        },
+        returnsWhenFalse: {
+          error: { type: "error" },
+        },
         check: async () => [false, "error"],
       },
     ],
