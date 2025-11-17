@@ -35,8 +35,8 @@ export type Processor = Readonly<{
 export type ProcessorSpec = Readonly<{
   name: string;
   description: string;
-  arguments?: ReadonlyArray<VirtualTypeSpec>;
-  returns?: ReadonlyArray<VirtualTypeSpec>;
+  arguments?: Vec<VirtualTypeSpec>;
+  returns?: Vec<VirtualTypeSpec>;
   process: (
     medium: Medium,
   ) => PossiblyPromise<unknown>;
