@@ -1,4 +1,3 @@
-import { Obj } from "plgg";
 import {
   Foundry,
   Alignment,
@@ -6,7 +5,9 @@ import {
   Address,
 } from "plgg-foundry/index";
 
-export type Env = Obj<Record<Address, Param>>;
+export type Env = Readonly<
+  Record<Address, Param>
+>;
 
 export type OperationContext = {
   foundry: Foundry;

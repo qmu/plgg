@@ -112,20 +112,16 @@ export const {
  * Applies function to each element, collecting all results or errors.
  */
 export const conclude =
-  <
-    T extends Datum,
-    U extends Datum,
-    F extends Error,
-  >(
+  <T, U, F extends Error>(
     fn: (item: T) => Result<U, F>,
   ) =>
   (
-    vec: Vec<T>,
-  ): Result<Vec<U>, ReadonlyArray<F>> =>
+    vec: ReadonlyArray<T>,
+  ): Result<ReadonlyArray<U>, ReadonlyArray<F>> =>
     vec
       .map(fn)
       .reduce<
-        Result<Vec<U>, ReadonlyArray<F>>
+        Result<ReadonlyArray<U>, ReadonlyArray<F>>
       >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));
 
 /**

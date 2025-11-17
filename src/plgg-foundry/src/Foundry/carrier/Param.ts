@@ -1,24 +1,18 @@
-import {
-  Datum,
-  Obj,
-  cast,
-  forProp,
-  asObj,
-} from "plgg";
+import { cast, forProp, asObj } from "plgg";
 import {
   VirtualType,
   VirtualTypeSpec,
   asVirtualType,
 } from "plgg-foundry/index";
 
-export type Param = Obj<{
+export type Param = Readonly<{
   type: VirtualType;
-  value: Datum;
+  value: unknown;
 }>;
 
-export type ParamSpec = Obj<{
+export type ParamSpec = Readonly<{
   type: VirtualTypeSpec;
-  value: Datum;
+  value: unknown;
 }>;
 
 export const asParam = (value: unknown) =>

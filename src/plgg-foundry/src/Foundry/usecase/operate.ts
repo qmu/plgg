@@ -1,6 +1,5 @@
 import {
   Result,
-  Dict,
   proc,
   pipe,
   newOk,
@@ -164,7 +163,7 @@ const execSwitch = async ({
       ),
     );
   }
-  const params: Dict<Address, Param> =
+  const params: Record<Address, Param> =
     Object.fromEntries(addrParams.content);
 
   // Execute the check with the loaded params
@@ -269,7 +268,7 @@ const execProcess = async ({
       ),
     );
   }
-  const params: Dict<Address, Param> =
+  const params: Record<Address, Param> =
     Object.fromEntries(addrParams.content);
 
   // Execute the processor with the loaded params
@@ -357,7 +356,7 @@ const execEgress = async ({
     );
   }
 
-  const params: Dict<Address, Param> =
+  const params: Record<Address, Param> =
     Object.fromEntries(input.content);
 
   const medium: Medium = {

@@ -94,14 +94,18 @@ export const explainProcessor = (
 - Arguments: ${
   isSome(processor.arguments)
     ? Object.entries(processor.arguments.content)
-        .map(([name, vt]) => formatVirtualType(name, vt))
+        .map(([name, vt]) =>
+          formatVirtualType(name, vt),
+        )
         .join(", ")
     : "Any"
 }
 - Returns: ${
   isSome(processor.returns)
     ? Object.entries(processor.returns.content)
-        .map(([name, vt]) => formatVirtualType(name, vt))
+        .map(([name, vt]) =>
+          formatVirtualType(name, vt),
+        )
         .join(", ")
     : "Any"
 }`;
