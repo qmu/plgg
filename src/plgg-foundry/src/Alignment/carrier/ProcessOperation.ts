@@ -1,11 +1,11 @@
 import { Obj, isRawObj, hasProp } from "plgg";
-import { IO } from "plgg-foundry/index";
+import { NameTable } from "plgg-foundry/index";
 
 export type ProcessOperation = Obj<{
   type: "process";
   opcode: string;
-  loadAddr: IO;
-  saveAddr: IO;
+  input: NameTable;
+  output: NameTable;
   next: string;
 }>;
 

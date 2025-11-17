@@ -1,14 +1,14 @@
 import { Obj, isRawObj, hasProp } from "plgg";
-import { IO } from "plgg-foundry/index";
+import { NameTable } from "plgg-foundry/index";
 
 export type SwitchOperation = Obj<{
   type: "switch";
   opcode: string;
   nextWhenTrue: string;
   nextWhenFalse: string;
-  inputAddresses: IO;
-  outputAddressesTrue: IO;
-  outputAddressesFalse: IO;
+  input: NameTable;
+  outputWhenTrue: NameTable;
+  outputWhenFalse: NameTable;
 }>;
 
 export const isSwitchOperation = (
