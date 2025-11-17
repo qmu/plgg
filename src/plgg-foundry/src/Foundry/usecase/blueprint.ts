@@ -37,9 +37,9 @@ export const blueprint =
 An Alignment is a sequence of operations that processes input data into output data, like a factory production line.
 
 There are 4 operation types:
-- 'ingress': Assigns input data to register addresses
-- 'process': Loads data from a register, processes it with a function, and saves the result to a register
-- 'switch': Evaluates data from a register and branches to different operations based on the result
+- 'ingress': Assigns input data (prompt and files) to register addresses
+- 'process': Loads data from registers using a name table, processes it with a function, and saves the result to registers using a name table
+- 'switch': Evaluates data from registers using a name table and branches to different operations based on the result, saving outputs using name tables
 - 'egress': Maps register data to output fields
 
 ## Foundry
@@ -57,11 +57,18 @@ ${explainFoundry(foundry)}
 
 ## Switch Operation Semantics
 
-Switchers evaluate data and return [boolean, data]. The boolean determines the branch:
+Switchers evaluate data and return [boolean, Dict<VariableName, Datum>]. The boolean determines the branch:
 - nextWhenTrue: Executes when condition is TRUE (success/valid/yes)
 - nextWhenFalse: Executes when condition is FALSE (failure/invalid/no)
 
 For validation switchers: TRUE means valid → proceed forward. FALSE means invalid → retry or handle error.
+
+## NameTable Semantics
+
+NameTables map variable names to register addresses:
+- 'input': Maps function argument names to register addresses (where to read from)
+- 'output': Maps function return value names to register addresses (where to write to)
+- 'outputWhenTrue'/'outputWhenFalse': Maps switcher return value names to register addresses based on condition
 
 ## Reachability Rule
 
@@ -72,8 +79,8 @@ Example without validation:
 {
   "operations": [
     { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": ["r0"], "saveAddr": ["r1"] },
-    { "type": "process", "opcode": "gen-main", "next": "egress", "loadAddr": ["r1"], "saveAddr": ["r2"] },
+    { "type": "process", "opcode": "plan", "input": {"prompt": "r0"}, "output": {"plan": "r1"}, "next": "gen-main" },
+    { "type": "process", "opcode": "gen-main", "input": {"description": "r1"}, "output": {"image": "r2"}, "next": "egress" },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -84,9 +91,9 @@ Example with validation (validation passes → continue, validation fails → re
 {
   "operations": [
     { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "next": "gen-main", "loadAddr": ["r0"], "saveAddr": ["r1"] },
-    { "type": "process", "opcode": "gen-main", "next": "check-validity", "loadAddr": ["r1"], "saveAddr": ["r2"] },
-    { "type": "switch", "opcode": "check-validity", "loadAddr": ["r2"], "nextWhenTrue": "egress", "nextWhenFalse": "plan", "saveAddrTrue": ["r2"], "saveAddrFalse": ["r0"] },
+    { "type": "process", "opcode": "plan", "input": {"prompt": "r0"}, "output": {"plan": "r1"}, "next": "gen-main" },
+    { "type": "process", "opcode": "gen-main", "input": {"description": "r1"}, "output": {"image": "r2"}, "next": "check-validity" },
+    { "type": "switch", "opcode": "check-validity", "input": {"images": "r2"}, "nextWhenTrue": "egress", "nextWhenFalse": "plan", "outputWhenTrue": {"validImages": "r2"}, "outputWhenFalse": {"feedback": "r3"} },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -140,7 +147,7 @@ Example with validation (validation passes → continue, validation fails → re
                       promptAddr: {
                         type: "string",
                         description:
-                          "Register (e.g., 'r0') storing user prompt. Referenced by subsequent loadAddr fields.",
+                          "Register (e.g., 'r0') storing user prompt. Referenced by subsequent input name tables.",
                       },
                     },
                     required: [
@@ -153,7 +160,7 @@ Example with validation (validation passes → continue, validation fails → re
                   {
                     type: "object",
                     description:
-                      "Process operation with next - Executes a Foundry processor and continues to next operation.",
+                      "Process operation - Executes a Foundry processor and continues to next operation.",
                     properties: {
                       type: {
                         type: "string",
@@ -167,17 +174,25 @@ Example with validation (validation passes → continue, validation fails → re
                         description:
                           "Processor opcode from Available Foundry Functions.",
                       },
-                      loadAddr: {
-                        type: "array",
-                        items: { type: "string" },
+                      input: {
+                        type: "object",
                         description:
-                          "Array of registers to load input from (e.g., ['r0']). All must be previously written. Multiple registers will be passed as array to processor.",
+                          "NameTable mapping processor argument names to register addresses (e.g., {'prompt': 'r0', 'description': 'r1'}). All registers must be previously written. Keys must match processor's argument names.",
+                        properties: {},
+                        additionalProperties: {
+                          type: "string",
+                        },
+                        required: [],
                       },
-                      saveAddr: {
-                        type: "array",
-                        items: { type: "string" },
+                      output: {
+                        type: "object",
                         description:
-                          "Array of registers to save output to (e.g., ['r2']). Can be referenced by later operations. If processor returns array and multiple registers specified, values are distributed.",
+                          "NameTable mapping processor return value names to register addresses (e.g., {'plan': 'r2', 'result': 'r3'}). These registers can be referenced by later operations. Keys must match processor's return value names.",
+                        properties: {},
+                        additionalProperties: {
+                          type: "string",
+                        },
+                        required: [],
                       },
                       next: {
                         type: "string",
@@ -189,8 +204,8 @@ Example with validation (validation passes → continue, validation fails → re
                     required: [
                       "type",
                       "opcode",
-                      "loadAddr",
-                      "saveAddr",
+                      "input",
+                      "output",
                       "next",
                     ],
                     additionalProperties: false,
@@ -212,11 +227,15 @@ Example with validation (validation passes → continue, validation fails → re
                         description:
                           "Switcher opcode from Available Foundry Functions.",
                       },
-                      loadAddr: {
-                        type: "array",
-                        items: { type: "string" },
+                      input: {
+                        type: "object",
                         description:
-                          "Array of registers to evaluate (e.g., ['r2']). All must be previously written. Multiple registers will be passed as array to switcher.",
+                          "NameTable mapping switcher argument names to register addresses (e.g., {'images': 'r2', 'data': 'r3'}). All registers must be previously written. Keys must match switcher's argument names.",
+                        properties: {},
+                        additionalProperties: {
+                          type: "string",
+                        },
+                        required: [],
                       },
                       nextWhenTrue: {
                         type: "string",
@@ -230,27 +249,35 @@ Example with validation (validation passes → continue, validation fails → re
                         description:
                           "Opcode to execute when condition is false.",
                       },
-                      saveAddrTrue: {
-                        type: "array",
-                        items: { type: "string" },
+                      outputWhenTrue: {
+                        type: "object",
                         description:
-                          "Array of registers to save data when true (e.g., ['r3']). If switcher returns array and multiple registers specified, values are distributed.",
+                          "NameTable mapping switcher return value names to register addresses when true (e.g., {'validImages': 'r4', 'result': 'r5'}). Keys must match switcher's returnsWhenTrue field names.",
+                        properties: {},
+                        additionalProperties: {
+                          type: "string",
+                        },
+                        required: [],
                       },
-                      saveAddrFalse: {
-                        type: "array",
-                        items: { type: "string" },
+                      outputWhenFalse: {
+                        type: "object",
                         description:
-                          "Array of registers to save data when false (e.g., ['r0']). Can match saveAddrTrue if needed. If switcher returns array and multiple registers specified, values are distributed.",
+                          "NameTable mapping switcher return value names to register addresses when false (e.g., {'feedback': 'r6', 'error': 'r7'}). Keys must match switcher's returnsWhenFalse field names.",
+                        properties: {},
+                        additionalProperties: {
+                          type: "string",
+                        },
+                        required: [],
                       },
                     },
                     required: [
                       "type",
                       "opcode",
-                      "loadAddr",
+                      "input",
                       "nextWhenTrue",
                       "nextWhenFalse",
-                      "saveAddrTrue",
-                      "saveAddrFalse",
+                      "outputWhenTrue",
+                      "outputWhenFalse",
                     ],
                     additionalProperties: false,
                   },
@@ -285,11 +312,11 @@ Example with validation (validation passes → continue, validation fails → re
 
 Structure: Start with one 'ingress', end with 'egress'. Ingress first, egress last.
 
-Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially.
+Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially for file addresses and operation outputs.
 
 Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference opcodes from other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
 
-Data Flow: loadAddr references previously written register. Flow: ingress → process/switch → egress.`,
+Data Flow: NameTables map variable names to register addresses. Input NameTables reference previously written registers. Output NameTables specify where to write results. Flow: ingress → process/switch (using input/output NameTables) → egress.`,
             },
           },
           required: [
