@@ -1,15 +1,11 @@
-import {
-  Obj,
-  Vec,
-  isRawObj,
-  hasProp,
-} from "plgg";
+import { Obj, isRawObj, hasProp } from "plgg";
+import { IO } from "plgg-foundry/index";
 
 export type ProcessOperation = Obj<{
   type: "process";
   opcode: string;
-  loadAddr: Vec<string>;
-  saveAddr: Vec<string>;
+  loadAddr: IO;
+  saveAddr: IO;
   next: string;
 }>;
 

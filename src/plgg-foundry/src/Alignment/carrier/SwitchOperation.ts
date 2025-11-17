@@ -1,18 +1,14 @@
-import {
-  Obj,
-  Vec,
-  isRawObj,
-  hasProp,
-} from "plgg";
+import { Obj, isRawObj, hasProp } from "plgg";
+import { IO } from "plgg-foundry/index";
 
 export type SwitchOperation = Obj<{
   type: "switch";
   opcode: string;
   nextWhenTrue: string;
   nextWhenFalse: string;
-  loadAddr: Vec<string>;
-  saveAddrTrue: Vec<string>;
-  saveAddrFalse: Vec<string>;
+  inputAddresses: IO;
+  outputAddressesTrue: IO;
+  outputAddressesFalse: IO;
 }>;
 
 export const isSwitchOperation = (
