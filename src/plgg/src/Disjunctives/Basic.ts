@@ -11,6 +11,7 @@ import {
   U128,
   Float,
   Str,
+  CamelCase,
   KebabCase,
   isI8,
   isI16,
@@ -24,6 +25,7 @@ import {
   isU128,
   isFloat,
   isStr,
+  isCamelCase,
   isKebabCase,
 } from "plgg/index";
 
@@ -43,6 +45,7 @@ export type Basic =
   | U128
   | Float
   | Str
+  | CamelCase
   | KebabCase;
 
 /**
@@ -70,4 +73,5 @@ export const isBasic = (
   isU128(value) ||
   isFloat(value) ||
   isStr(value) ||
+  isCamelCase(value) ||
   isKebabCase(value);

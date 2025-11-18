@@ -1,3 +1,4 @@
+export * from "plgg/Basics/CamelCase";
 export * from "plgg/Basics/I8";
 export * from "plgg/Basics/I16";
 export * from "plgg/Basics/I32";
