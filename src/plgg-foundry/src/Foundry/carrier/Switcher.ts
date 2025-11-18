@@ -23,6 +23,9 @@ import {
   asVirtualType,
 } from "plgg-foundry/index";
 
+/**
+ * Function that evaluates a condition and returns boolean with optional data for each branch.
+ */
 export type Switcher = Readonly<{
   name: KebabCase;
   description: Str;
@@ -37,8 +40,8 @@ export type Switcher = Readonly<{
   >;
   check: (medium: Medium) => PossiblyPromise<
     [
-      boolean, // validity
-      Dict<VariableName, Datum>, // proppagating data
+      boolean,
+      Dict<VariableName, Datum>,
     ]
   >;
 }>;
@@ -57,12 +60,15 @@ export type SwitcherSpec = Readonly<{
   >;
   check: (medium: Medium) => PossiblyPromise<
     [
-      boolean, // validity
-      Dict<VariableName, Datum>, // proppagating data
+      boolean,
+      Dict<VariableName, Datum>,
     ]
   >;
 }>;
 
+/**
+ * Validates and casts a SwitcherSpec to Switcher.
+ */
 export const asSwitcher = (value: SwitcherSpec) =>
   cast(
     value,
@@ -104,6 +110,9 @@ const formatVirtualType = (
   return `${name}: ${vt.type.content}${optionalMarker}`;
 };
 
+/**
+ * Generates human-readable markdown description of switcher.
+ */
 export const explainSwitcher = (
   switcher: Switcher,
 ) =>

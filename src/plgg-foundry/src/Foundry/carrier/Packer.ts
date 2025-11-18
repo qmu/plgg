@@ -12,6 +12,9 @@ import {
   isSome,
 } from "plgg";
 
+/**
+ * Named output definition specifying which processor handles it.
+ */
 export type Packer = Obj<{
   name: Str;
   processedBy: KebabCase;
@@ -24,6 +27,9 @@ export type PackerSpec = Obj<{
   description?: string;
 }>;
 
+/**
+ * Validates and casts a PackerSpec to Packer.
+ */
 export const asPacker = (value: PackerSpec) =>
   cast(
     value,
@@ -42,6 +48,9 @@ export const packerCastable: Castable<
   as: asPacker,
 };
 
+/**
+ * Generates human-readable markdown description of packer.
+ */
 export const explainPacker = (
   packer: Packer,
 ) => `${

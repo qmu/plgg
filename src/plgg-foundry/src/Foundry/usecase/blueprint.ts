@@ -10,6 +10,9 @@ import {
 } from "plgg-foundry/index";
 import { generateJson } from "plgg-foundry/Foundry/vendor/OpenAI";
 
+/**
+ * Generates an alignment from user order using AI model based on available foundry functions.
+ */
 export const blueprint =
   (foundry: Foundry) =>
   async (

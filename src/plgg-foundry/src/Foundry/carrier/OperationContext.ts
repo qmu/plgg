@@ -1,17 +1,15 @@
 import {
   Foundry,
   Alignment,
-  Param,
-  Address,
+  Env,
 } from "plgg-foundry/index";
 
-export type Env = Readonly<
-  Record<Address, Param>
->;
-
+/**
+ * Execution context passed through operation chain during alignment execution.
+ */
 export type OperationContext = {
   foundry: Foundry;
   alignment: Alignment;
-  env: Env; // Register Machine Environment Variables
+  env: Env;
   operationCount: number;
 };

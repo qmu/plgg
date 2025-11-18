@@ -35,6 +35,9 @@ import {
   asVirtualType,
 } from "plgg-foundry/index";
 
+/**
+ * Executes an alignment by processing operations sequentially starting from ingress.
+ */
 export const operate =
   (foundry: Foundry) =>
   (
@@ -51,6 +54,9 @@ export const operate =
       }),
     );
 
+/**
+ * Dispatches operation execution based on type with operation limit check.
+ */
 const execute =
   (ctx: OperationContext) =>
   async (
@@ -84,6 +90,9 @@ const execute =
     );
   };
 
+/**
+ * Executes ingress operation by storing user request in register and proceeding to next operation.
+ */
 const execIngress = async ({
   op,
   ctx,
@@ -116,6 +125,9 @@ const execIngress = async ({
       ),
   );
 
+/**
+ * Loads a param from environment by address.
+ */
 const loadValueFromEnv =
   (env: Env) =>
   (
@@ -129,6 +141,9 @@ const loadValueFromEnv =
           ),
         );
 
+/**
+ * Executes switch operation by evaluating condition and branching accordingly.
+ */
 const execSwitch = async ({
   op,
   ctx,
@@ -138,8 +153,7 @@ const execSwitch = async ({
 }): Promise<Result<Medium, Error>> => {
   const { foundry, alignment, env } = ctx;
 
-  // Load params from addresses
-
+  // Step 1: Find the switcher function by opcode
   const switcherResult = findSwitcher(
     foundry,
     op.opcode,
@@ -149,6 +163,7 @@ const execSwitch = async ({
   }
   const switcher = switcherResult.content;
 
+  // Step 2: Load input parameters from registers using input NameTable
   const addrParams = pipe(
     op.input,
     Object.values,
@@ -166,8 +181,7 @@ const execSwitch = async ({
   const params: Record<Address, Param> =
     Object.fromEntries(addrParams.content);
 
-  // Execute the check with the loaded params
-
+  // Step 3: Execute the switcher check function
   const checkResult = await proc(
     {
       alignment,
@@ -183,27 +197,27 @@ const execSwitch = async ({
   const [isValid, returnedValue] =
     await checkResult.content;
 
+  // Step 4: Determine next operation based on condition result
   const opResult = findInternalOp(
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
   )(alignment);
 
-  // Save values to all addresses with return types
+  // Step 5: Store returned values in registers using appropriate output NameTable
   const outputs = isValid
     ? op.outputWhenTrue
     : op.outputWhenFalse;
 
-  // Get the return types from the switcher
   const returnTypes = isValid
     ? switcher.returnsWhenTrue
     : switcher.returnsWhenFalse;
 
-  // Create env entries for each output
   const newEnvEntries: Record<Address, Param> =
     {};
   if (
     isSome(returnTypes) &&
     isObj(returnedValue)
   ) {
+    // Map each variable name to its register address
     for (const [varName, addr] of Object.entries(
       outputs,
     )) {
@@ -223,6 +237,7 @@ const execSwitch = async ({
     }
   }
 
+  // Step 6: Continue execution with updated environment
   return isOk(opResult)
     ? execute({
         ...ctx,
@@ -235,6 +250,9 @@ const execSwitch = async ({
     : newErr(opResult.content);
 };
 
+/**
+ * Executes process operation by calling processor function and storing results in registers.
+ */
 const execProcess = async ({
   op,
   ctx,
@@ -242,10 +260,9 @@ const execProcess = async ({
   op: ProcessOperation;
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
-  const { foundry, alignment, env } = ctx;
+  const { foundry, alignment, env} = ctx;
 
-  // Load params from addresses
-
+  // Step 1: Find the processor function by opcode
   const processorResult = findProcessor(
     foundry,
     op.opcode,
@@ -254,6 +271,7 @@ const execProcess = async ({
     return newErr(processorResult.content);
   }
 
+  // Step 2: Load input parameters from registers using input NameTable
   const addrParams = pipe(
     op.input,
     Object.values,
@@ -271,8 +289,7 @@ const execProcess = async ({
   const params: Record<Address, Param> =
     Object.fromEntries(addrParams.content);
 
-  // Execute the processor with the loaded params
-
+  // Step 3: Execute the processor function
   const processResult = await proc(
     { alignment, params } satisfies Medium,
     tryCatch(processorResult.content.process),
@@ -285,17 +302,17 @@ const execProcess = async ({
   const returnedValue =
     await processResult.content;
 
-  // Get processor return types
+  // Step 4: Store returned values in registers using output NameTable
   const returnTypes =
     processorResult.content.returns;
 
-  // Save values to addresses - op.saveAddr is Dict<VariableName, Address>
   const newEnvEntries: Record<Address, Param> =
     {};
   if (
     isSome(returnTypes) &&
     isObj(returnedValue)
   ) {
+    // Map each variable name to its register address
     for (const [varName, addr] of Object.entries(
       op.output,
     )) {
@@ -315,6 +332,7 @@ const execProcess = async ({
     }
   }
 
+  // Step 5: Continue to next operation (either egress or another internal op)
   return proc(
     alignment,
     op.next === "egress"
@@ -331,6 +349,9 @@ const execProcess = async ({
   );
 };
 
+/**
+ * Executes egress operation by collecting final output from registers.
+ */
 const execEgress = async ({
   op,
   ctx,
@@ -340,7 +361,7 @@ const execEgress = async ({
 }): Promise<Result<Medium, Error>> => {
   const { env, alignment } = ctx;
 
-  // Resolve each address in the result mapping and collect params
+  // Step 1: Load output values from registers specified in result mapping
   const input = pipe(
     op.result,
     Object.values,
@@ -359,6 +380,7 @@ const execEgress = async ({
   const params: Record<Address, Param> =
     Object.fromEntries(input.content);
 
+  // Step 2: Construct final medium with alignment and collected params
   const medium: Medium = {
     alignment,
     params,

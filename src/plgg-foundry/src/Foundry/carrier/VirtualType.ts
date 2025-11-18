@@ -11,6 +11,9 @@ import {
   asBool,
 } from "plgg";
 
+/**
+ * Type descriptor for function arguments and return values.
+ */
 export type VirtualType = Obj<{
   type: Str;
   optional: Option<Bool>;
@@ -21,6 +24,9 @@ export type VirtualTypeSpec = Obj<{
   optional?: boolean;
 }>;
 
+/**
+ * Validates and casts a value to VirtualType.
+ */
 export const asVirtualType = (value: unknown) =>
   cast(
     value,

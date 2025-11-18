@@ -23,6 +23,9 @@ import {
   asVirtualType,
 } from "plgg-foundry/index";
 
+/**
+ * Function that processes input data and returns output data.
+ */
 export type Processor = Readonly<{
   name: KebabCase;
   description: Str;
@@ -47,6 +50,9 @@ export type ProcessorSpec = Readonly<{
   ) => PossiblyPromise<Dict<VariableName, Datum>>;
 }>;
 
+/**
+ * Validates and casts a ProcessorSpec to Processor.
+ */
 export const asProcessor = (
   value: ProcessorSpec,
 ) =>
@@ -86,6 +92,9 @@ const formatVirtualType = (
   return `${name}: ${vt.type.content}${optionalMarker}`;
 };
 
+/**
+ * Generates human-readable markdown description of processor.
+ */
 export const explainProcessor = (
   processor: Processor,
 ) => `${processor.description.content}

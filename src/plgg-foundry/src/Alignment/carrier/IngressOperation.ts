@@ -1,5 +1,9 @@
 import { Obj, isRawObj, hasProp } from "plgg";
 
+/**
+ * Entry point operation that assigns user input (prompt and files) to registers.
+ * Must be first operation and appear exactly once in alignment.
+ */
 export type IngressOperation = Obj<{
   type: "ingress";
   next: string;
@@ -11,6 +15,9 @@ export type IngressOperation = Obj<{
   file5Addr?: string;
 }>;
 
+/**
+ * Type guard checking if operation is ingress type.
+ */
 export const isIngressOperation = (
   op: unknown,
 ): op is IngressOperation =>

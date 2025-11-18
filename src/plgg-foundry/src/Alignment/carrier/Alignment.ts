@@ -21,6 +21,10 @@ import {
   asOperation,
 } from "plgg-foundry/index";
 
+/**
+ * Sequence of operations that processes input to output, like a factory production line.
+ * Contains analysis, rationale, refined user request, and ordered operations.
+ */
 export type Alignment = Obj<{
   userRequestAnalysis: Str;
   compositionRationale: Str;
@@ -28,6 +32,9 @@ export type Alignment = Obj<{
   operations: Vec<Operation>;
 }>;
 
+/**
+ * Validates and casts a value to Alignment type.
+ */
 export const asAlignment = (value: unknown) =>
   cast(
     value,
@@ -41,6 +48,10 @@ export const asAlignment = (value: unknown) =>
     ),
   );
 
+/**
+ * Finds the ingress operation (entry point) in alignment.
+ * Every alignment must have exactly one ingress operation.
+ */
 export const findIngressOp = (
   alignment: Alignment,
 ): Result<IngressOperation, Error> => {
@@ -55,6 +66,10 @@ export const findIngressOp = (
   return newOk(operation);
 };
 
+/**
+ * Finds an internal operation (process or switch) by opcode.
+ * Used for control flow navigation between operations.
+ */
 export const findInternalOp =
   (opcode: string) =>
   (
@@ -74,6 +89,10 @@ export const findInternalOp =
         );
   };
 
+/**
+ * Finds the egress operation (exit point) in alignment.
+ * Every alignment must have at least one egress operation.
+ */
 export const findEgressOp = (
   alignment: Alignment,
 ): Result<Operation, Error> => {

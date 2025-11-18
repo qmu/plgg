@@ -24,6 +24,9 @@ import {
   explainPacker,
 } from "plgg-foundry/index";
 
+/**
+ * Factory containing available processors, switchers, and packers for alignment execution.
+ */
 export type Foundry = Readonly<{
   description: Str;
   apiKey: Str;
@@ -42,6 +45,9 @@ export type FoundrySpec = Readonly<{
   packers: ReadonlyArray<PackerSpec>;
 }>;
 
+/**
+ * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10.
+ */
 export const asFoundry = (value: FoundrySpec) => {
   const withDefaults = {
     ...value,
@@ -74,6 +80,9 @@ export const foundrySpecCastable: Castable<
   as: asFoundry,
 };
 
+/**
+ * Finds a switcher by opcode in the foundry.
+ */
 export const findSwitcher = (
   foundry: Foundry,
   opcode: string,
@@ -91,6 +100,9 @@ export const findSwitcher = (
   return newOk(switcher);
 };
 
+/**
+ * Finds a processor by opcode in the foundry.
+ */
 export const findProcessor = (
   foundry: Foundry,
   opcode: string,
@@ -108,6 +120,9 @@ export const findProcessor = (
   return newOk(processor);
 };
 
+/**
+ * Generates comprehensive markdown documentation of the foundry.
+ */
 export const explainFoundry = (
   foundry: Foundry,
 ) => `## 1. Foundry Description
@@ -148,6 +163,9 @@ ${explainPacker(a)}
   .join("\n")}
 `;
 
+/**
+ * Extracts opcode names from items containing name.content property.
+ */
 export const extractOpcodes = <
   T extends { name: { content: string } },
 >(
