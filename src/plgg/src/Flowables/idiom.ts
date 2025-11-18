@@ -1,12 +1,14 @@
 import {
   Result,
   InvalidError,
+  Procedural,
   pipe,
   newOk,
   newErr,
   toError,
-  Procedural,
   isPromise,
+  isOk,
+  isErr,
 } from "plgg/index";
 
 /**
@@ -139,15 +141,23 @@ export const jsonDecode = (
  */
 export const atProp =
   <K extends string>(key: K) =>
-  (obj: unknown): Result<unknown, InvalidError> => {
-    if (typeof obj !== "object" || obj === null || !(key in obj)) {
+  (
+    obj: unknown,
+  ): Result<unknown, InvalidError> => {
+    if (
+      typeof obj !== "object" ||
+      obj === null ||
+      !(key in obj)
+    ) {
       return newErr(
         new InvalidError({
           message: `Cannot access property '${key}'`,
         }),
       );
     }
-    return newOk((obj as Record<string, unknown>)[key]);
+    return newOk(
+      (obj as Record<string, unknown>)[key],
+    );
   };
 
 /**
@@ -156,8 +166,14 @@ export const atProp =
  */
 export const atIndex =
   (index: number) =>
-  (arr: unknown): Result<unknown, InvalidError> => {
-    if (!Array.isArray(arr) || index < 0 || index >= arr.length) {
+  (
+    arr: unknown,
+  ): Result<unknown, InvalidError> => {
+    if (
+      !Array.isArray(arr) ||
+      index < 0 ||
+      index >= arr.length
+    ) {
       return newErr(
         new InvalidError({
           message: `Cannot access index ${index}`,
@@ -166,3 +182,19 @@ export const atIndex =
     }
     return newOk(arr[index]);
   };
+
+/**
+ * Applies function to each element, collecting all results or errors.
+ */
+export const conclude =
+  <T, U, F extends Error>(
+    fn: (item: T) => Result<U, F>,
+  ) =>
+  (
+    vec: ReadonlyArray<T>,
+  ): Result<ReadonlyArray<U>, ReadonlyArray<F>> =>
+    vec
+      .map(fn)
+      .reduce<
+        Result<ReadonlyArray<U>, ReadonlyArray<F>>
+      >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));
