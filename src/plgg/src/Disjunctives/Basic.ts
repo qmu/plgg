@@ -11,6 +11,8 @@ import {
   U128,
   Float,
   Str,
+  Alphabet,
+  Alphanumeric,
   CamelCase,
   CapitalCase,
   KebabCase,
@@ -28,6 +30,8 @@ import {
   isU128,
   isFloat,
   isStr,
+  isAlphabet,
+  isAlphanumeric,
   isCamelCase,
   isCapitalCase,
   isKebabCase,
@@ -51,6 +55,8 @@ export type Basic =
   | U128
   | Float
   | Str
+  | Alphabet
+  | Alphanumeric
   | CamelCase
   | CapitalCase
   | KebabCase
@@ -82,6 +88,8 @@ export const isBasic = (
   isU128(value) ||
   isFloat(value) ||
   isStr(value) ||
+  isAlphabet(value) ||
+  isAlphanumeric(value) ||
   isCamelCase(value) ||
   isCapitalCase(value) ||
   isKebabCase(value) ||

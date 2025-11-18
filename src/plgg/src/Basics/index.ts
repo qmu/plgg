@@ -1,3 +1,5 @@
+export * from "plgg/Basics/Alphabet";
+export * from "plgg/Basics/Alphanumeric";
 export * from "plgg/Basics/CamelCase";
 export * from "plgg/Basics/CapitalCase";
 export * from "plgg/Basics/I8";
