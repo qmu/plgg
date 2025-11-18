@@ -11,6 +11,7 @@ import {
   U128,
   Float,
   Str,
+  KebabCase,
   isI8,
   isI16,
   isI32,
@@ -23,6 +24,7 @@ import {
   isU128,
   isFloat,
   isStr,
+  isKebabCase,
 } from "plgg/index";
 
 /**
@@ -40,7 +42,8 @@ export type Basic =
   | U64
   | U128
   | Float
-  | Str;
+  | Str
+  | KebabCase;
 
 /**
  * Type predicate to determine if a type is basic.
@@ -66,4 +69,5 @@ export const isBasic = (
   isU64(value) ||
   isU128(value) ||
   isFloat(value) ||
-  isStr(value);
+  isStr(value) ||
+  isKebabCase(value);
