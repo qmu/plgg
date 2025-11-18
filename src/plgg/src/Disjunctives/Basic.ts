@@ -12,7 +12,10 @@ import {
   Float,
   Str,
   CamelCase,
+  CapitalCase,
   KebabCase,
+  PascalCase,
+  SnakeCase,
   isI8,
   isI16,
   isI32,
@@ -26,7 +29,10 @@ import {
   isFloat,
   isStr,
   isCamelCase,
+  isCapitalCase,
   isKebabCase,
+  isPascalCase,
+  isSnakeCase,
 } from "plgg/index";
 
 /**
@@ -46,7 +52,10 @@ export type Basic =
   | Float
   | Str
   | CamelCase
-  | KebabCase;
+  | CapitalCase
+  | KebabCase
+  | PascalCase
+  | SnakeCase;
 
 /**
  * Type predicate to determine if a type is basic.
@@ -74,4 +83,7 @@ export const isBasic = (
   isFloat(value) ||
   isStr(value) ||
   isCamelCase(value) ||
-  isKebabCase(value);
+  isCapitalCase(value) ||
+  isKebabCase(value) ||
+  isPascalCase(value) ||
+  isSnakeCase(value);
