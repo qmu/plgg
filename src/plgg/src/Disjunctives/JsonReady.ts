@@ -127,12 +127,13 @@ export const fromJsonReady = (
 /**
  * Serializes a Datum value to a JSON string.
  */
-export const toJson = (value: Datum): string =>
-  JSON.stringify(toJsonReady(value));
+export const jsonEncode = (
+  value: Datum,
+): string => JSON.stringify(toJsonReady(value));
 
 /**
  * Deserializes a JSON string back to a Datum value.
  */
-export const fromJson = (
+export const jsonDecode = (
   jsonString: string,
 ): Datum => fromJsonReady(JSON.parse(jsonString));

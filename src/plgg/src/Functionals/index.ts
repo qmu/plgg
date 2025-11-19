@@ -4,8 +4,6 @@ export * from "plgg/Functionals/conclude";
 export * from "plgg/Functionals/debug";
 export * from "plgg/Functionals/defined";
 export * from "plgg/Functionals/hold";
-export * from "plgg/Functionals/jsonDecode";
-export * from "plgg/Functionals/jsonEncode";
 export * from "plgg/Functionals/pass";
 export * from "plgg/Functionals/postJson";
 export * from "plgg/Functionals/refine";

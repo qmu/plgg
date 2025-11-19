@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   Datum,
-  toJson,
-  fromJson,
+  jsonEncode,
+  jsonDecode,
   toJsonReady,
   fromJsonReady,
   newBox,
@@ -66,12 +66,16 @@ describe("JsonReady", () => {
     });
 
     it("should handle Time values", () => {
-      const original = new Date("2023-12-25T10:30:00.000Z");
+      const original = new Date(
+        "2023-12-25T10:30:00.000Z",
+      );
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
       expect(restored).toEqual(original);
       expect(restored instanceof Date).toBe(true);
-      expect((restored as Date).toISOString()).toBe(original.toISOString());
+      expect(
+        (restored as Date).toISOString(),
+      ).toBe(original.toISOString());
     });
 
     it("should handle Time values with different dates", () => {
@@ -86,8 +90,12 @@ describe("JsonReady", () => {
         const jsonReady = toJsonReady(original);
         const restored = fromJsonReady(jsonReady);
         expect(restored).toEqual(original);
-        expect(restored instanceof Date).toBe(true);
-        expect((restored as Date).getTime()).toBe(original.getTime());
+        expect(restored instanceof Date).toBe(
+          true,
+        );
+        expect((restored as Date).getTime()).toBe(
+          original.getTime(),
+        );
       });
     });
   });
@@ -97,42 +105,53 @@ describe("JsonReady", () => {
       it("should handle I8 values", () => {
         const testValues = [-128, -1, 0, 1, 127];
         testValues.forEach((value) => {
-          const original: I8 = newBox("I8")(value);
+          const original: I8 =
+            newBox("I8")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
 
           // Test full JSON string round-trip
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
         });
       });
 
       it("should handle I16 values", () => {
-        const testValues = [-32768, -1000, 0, 1000, 32767];
+        const testValues = [
+          -32768, -1000, 0, 1000, 32767,
+        ];
         testValues.forEach((value) => {
-          const original: I16 = newBox("I16")(value);
+          const original: I16 =
+            newBox("I16")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
         });
       });
 
       it("should handle I32 values", () => {
-        const testValues = [-2147483648, -100000, 0, 100000, 2147483647];
+        const testValues = [
+          -2147483648, -100000, 0, 100000,
+          2147483647,
+        ];
         testValues.forEach((value) => {
-          const original: I32 = newBox("I32")(value);
+          const original: I32 =
+            newBox("I32")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
         });
       });
@@ -143,22 +162,28 @@ describe("JsonReady", () => {
           -1000000000000n,
           0n,
           1000000000000n,
-          9223372036854775807n
+          9223372036854775807n,
         ];
         testValues.forEach((value) => {
-          const original: I64 = newBox("I64")(value);
+          const original: I64 =
+            newBox("I64")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
           if (isI64(restored)) {
-            expect(typeof restored.content).toBe("bigint");
+            expect(typeof restored.content).toBe(
+              "bigint",
+            );
           }
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
           if (isI64(jsonRestored)) {
-            expect(typeof jsonRestored.content).toBe("bigint");
+            expect(
+              typeof jsonRestored.content,
+            ).toBe("bigint");
           }
         });
       });
@@ -169,22 +194,28 @@ describe("JsonReady", () => {
           -1000000000000000000000000000000000000n,
           0n,
           1000000000000000000000000000000000000n,
-          170141183460469231731687303715884105727n
+          170141183460469231731687303715884105727n,
         ];
         testValues.forEach((value) => {
-          const original: I128 = newBox("I128")(value);
+          const original: I128 =
+            newBox("I128")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
           if (isI128(restored)) {
-            expect(typeof restored.content).toBe("bigint");
+            expect(typeof restored.content).toBe(
+              "bigint",
+            );
           }
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
           if (isI128(jsonRestored)) {
-            expect(typeof jsonRestored.content).toBe("bigint");
+            expect(
+              typeof jsonRestored.content,
+            ).toBe("bigint");
           }
         });
       });
@@ -194,41 +225,51 @@ describe("JsonReady", () => {
       it("should handle U8 values", () => {
         const testValues = [0, 1, 128, 255];
         testValues.forEach((value) => {
-          const original: U8 = newBox("U8")(value);
+          const original: U8 =
+            newBox("U8")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
         });
       });
 
       it("should handle U16 values", () => {
-        const testValues = [0, 1000, 32768, 65535];
+        const testValues = [
+          0, 1000, 32768, 65535,
+        ];
         testValues.forEach((value) => {
-          const original: U16 = newBox("U16")(value);
+          const original: U16 =
+            newBox("U16")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
         });
       });
 
       it("should handle U32 values", () => {
-        const testValues = [0, 100000, 2147483648, 4294967295];
+        const testValues = [
+          0, 100000, 2147483648, 4294967295,
+        ];
         testValues.forEach((value) => {
-          const original: U32 = newBox("U32")(value);
+          const original: U32 =
+            newBox("U32")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
         });
       });
@@ -238,22 +279,28 @@ describe("JsonReady", () => {
           0n,
           1000000000000n,
           9223372036854775808n,
-          18446744073709551615n
+          18446744073709551615n,
         ];
         testValues.forEach((value) => {
-          const original: U64 = newBox("U64")(value);
+          const original: U64 =
+            newBox("U64")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
           if (isU64(restored)) {
-            expect(typeof restored.content).toBe("bigint");
+            expect(typeof restored.content).toBe(
+              "bigint",
+            );
           }
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
           if (isU64(jsonRestored)) {
-            expect(typeof jsonRestored.content).toBe("bigint");
+            expect(
+              typeof jsonRestored.content,
+            ).toBe("bigint");
           }
         });
       });
@@ -263,22 +310,28 @@ describe("JsonReady", () => {
           0n,
           1000000000000000000000000000000000000n,
           170141183460469231731687303715884105728n,
-          340282366920938463463374607431768211455n
+          340282366920938463463374607431768211455n,
         ];
         testValues.forEach((value) => {
-          const original: U128 = newBox("U128")(value);
+          const original: U128 =
+            newBox("U128")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
           if (isU128(restored)) {
-            expect(typeof restored.content).toBe("bigint");
+            expect(typeof restored.content).toBe(
+              "bigint",
+            );
           }
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
           if (isU128(jsonRestored)) {
-            expect(typeof jsonRestored.content).toBe("bigint");
+            expect(
+              typeof jsonRestored.content,
+            ).toBe("bigint");
           }
         });
       });
@@ -294,22 +347,28 @@ describe("JsonReady", () => {
           3.14159,
           123.456,
           Number.MAX_SAFE_INTEGER - 1,
-          Number.MIN_SAFE_INTEGER + 1
+          Number.MIN_SAFE_INTEGER + 1,
         ];
         testValues.forEach((value) => {
-          const original: Float = newBox("Float")(value);
+          const original: Float =
+            newBox("Float")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
           if (isFloat(restored)) {
-            expect(typeof restored.content).toBe("number");
+            expect(typeof restored.content).toBe(
+              "number",
+            );
           }
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
           if (isFloat(jsonRestored)) {
-            expect(typeof jsonRestored.content).toBe("number");
+            expect(
+              typeof jsonRestored.content,
+            ).toBe("number");
           }
         });
       });
@@ -321,30 +380,34 @@ describe("JsonReady", () => {
           1e10,
           Number.EPSILON,
           Number.MAX_VALUE,
-          Number.MIN_VALUE
+          Number.MIN_VALUE,
         ];
         testValues.forEach((value) => {
-          const original: Float = newBox("Float")(value);
+          const original: Float =
+            newBox("Float")(value);
           const jsonReady = toJsonReady(original);
-          const restored = fromJsonReady(jsonReady);
+          const restored =
+            fromJsonReady(jsonReady);
           expect(restored).toEqual(original);
 
-          const json = toJson(original);
-          const jsonRestored = fromJson(json);
+          const json = jsonEncode(original);
+          const jsonRestored = jsonDecode(json);
           expect(jsonRestored).toEqual(original);
         });
       });
 
       it("should handle -0 specially (loses sign through JSON)", () => {
-        const original: Float = newBox("Float")(-0);
+        const original: Float =
+          newBox("Float")(-0);
         const jsonReady = toJsonReady(original);
         const restored = fromJsonReady(jsonReady);
         expect(restored).toEqual(original);
 
         // Note: -0 becomes +0 through JSON serialization, this is expected behavior
-        const json = toJson(original);
-        const jsonRestored = fromJson(json);
-        const expected: Float = newBox("Float")(0); // -0 becomes +0
+        const json = jsonEncode(original);
+        const jsonRestored = jsonDecode(json);
+        const expected: Float =
+          newBox("Float")(0); // -0 becomes +0
         expect(jsonRestored).toEqual(expected);
       });
     });
@@ -355,14 +418,22 @@ describe("JsonReady", () => {
           i8: newBox("I8")(-128),
           i16: newBox("I16")(-32768),
           i32: newBox("I32")(-2147483648),
-          i64: newBox("I64")(-9223372036854775808n),
-          i128: newBox("I128")(-170141183460469231731687303715884105728n),
+          i64: newBox("I64")(
+            -9223372036854775808n,
+          ),
+          i128: newBox("I128")(
+            -170141183460469231731687303715884105728n,
+          ),
           u8: newBox("U8")(255),
           u16: newBox("U16")(65535),
           u32: newBox("U32")(4294967295),
-          u64: newBox("U64")(18446744073709551615n),
-          u128: newBox("U128")(340282366920938463463374607431768211455n),
-          float: newBox("Float")(3.14159)
+          u64: newBox("U64")(
+            18446744073709551615n,
+          ),
+          u128: newBox("U128")(
+            340282366920938463463374607431768211455n,
+          ),
+          float: newBox("Float")(3.14159),
         };
 
         const jsonReady = toJsonReady(original);
@@ -371,23 +442,44 @@ describe("JsonReady", () => {
 
         // Verify bigint types are preserved
         const restoredAny = restored as any;
-        expect(typeof restoredAny.i64.content).toBe("bigint");
-        expect(typeof restoredAny.i128.content).toBe("bigint");
-        expect(typeof restoredAny.u64.content).toBe("bigint");
-        expect(typeof restoredAny.u128.content).toBe("bigint");
-        expect(typeof restoredAny.float.content).toBe("number");
+        expect(
+          typeof restoredAny.i64.content,
+        ).toBe("bigint");
+        expect(
+          typeof restoredAny.i128.content,
+        ).toBe("bigint");
+        expect(
+          typeof restoredAny.u64.content,
+        ).toBe("bigint");
+        expect(
+          typeof restoredAny.u128.content,
+        ).toBe("bigint");
+        expect(
+          typeof restoredAny.float.content,
+        ).toBe("number");
 
         // Test full JSON string round-trip
-        const json = toJson(original);
-        const jsonRestored = fromJson(json);
+        const json = jsonEncode(original);
+        const jsonRestored = jsonDecode(json);
         expect(jsonRestored).toEqual(original);
 
-        const jsonRestoredAny = jsonRestored as any;
-        expect(typeof jsonRestoredAny.i64.content).toBe("bigint");
-        expect(typeof jsonRestoredAny.i128.content).toBe("bigint");
-        expect(typeof jsonRestoredAny.u64.content).toBe("bigint");
-        expect(typeof jsonRestoredAny.u128.content).toBe("bigint");
-        expect(typeof jsonRestoredAny.float.content).toBe("number");
+        const jsonRestoredAny =
+          jsonRestored as any;
+        expect(
+          typeof jsonRestoredAny.i64.content,
+        ).toBe("bigint");
+        expect(
+          typeof jsonRestoredAny.i128.content,
+        ).toBe("bigint");
+        expect(
+          typeof jsonRestoredAny.u64.content,
+        ).toBe("bigint");
+        expect(
+          typeof jsonRestoredAny.u128.content,
+        ).toBe("bigint");
+        expect(
+          typeof jsonRestoredAny.float.content,
+        ).toBe("number");
       });
     });
   });
@@ -460,30 +552,30 @@ describe("JsonReady", () => {
   describe("JSON string serialization", () => {
     it("should serialize and deserialize strings", () => {
       const original = "test string";
-      const json = toJson(original);
-      const restored = fromJson(json);
+      const json = jsonEncode(original);
+      const restored = jsonDecode(json);
       expect(restored).toBe(original);
     });
 
     it("should serialize and deserialize numbers", () => {
       const original = 123.456;
-      const json = toJson(original);
-      const restored = fromJson(json);
+      const json = jsonEncode(original);
+      const restored = jsonDecode(json);
       expect(restored).toBe(original);
     });
 
     it("should serialize and deserialize booleans", () => {
       const original = true;
-      const json = toJson(original);
-      const restored = fromJson(json);
+      const json = jsonEncode(original);
+      const restored = jsonDecode(json);
       expect(restored).toBe(original);
     });
 
     it("should serialize and deserialize BigInt", () => {
       const original =
         987654321098765432109876543210n;
-      const json = toJson(original);
-      const restored = fromJson(json);
+      const json = jsonEncode(original);
+      const restored = jsonDecode(json);
       expect(restored).toBe(original);
       expect(typeof restored).toBe("bigint");
 
@@ -496,16 +588,22 @@ describe("JsonReady", () => {
     });
 
     it("should serialize and deserialize Time", () => {
-      const original = new Date("2023-12-25T15:30:45.123Z");
-      const json = toJson(original);
-      const restored = fromJson(json);
+      const original = new Date(
+        "2023-12-25T15:30:45.123Z",
+      );
+      const json = jsonEncode(original);
+      const restored = jsonDecode(json);
       expect(restored).toEqual(original);
       expect(restored instanceof Date).toBe(true);
-      expect((restored as Date).toISOString()).toBe(original.toISOString());
+      expect(
+        (restored as Date).toISOString(),
+      ).toBe(original.toISOString());
 
       // Verify the JSON structure contains the ISO string
       const parsed = JSON.parse(json);
-      expect(parsed).toBe("2023-12-25T15:30:45.123Z");
+      expect(parsed).toBe(
+        "2023-12-25T15:30:45.123Z",
+      );
     });
 
     it("should serialize and deserialize complex objects", () => {
@@ -514,17 +612,21 @@ describe("JsonReady", () => {
           version: 2,
           timestamp: 1234567890123n,
           active: true,
-          createdAt: new Date("2023-01-15T10:00:00.000Z"),
+          createdAt: new Date(
+            "2023-01-15T10:00:00.000Z",
+          ),
         },
         summary: {
           total: 999999999999999999n,
           processed: true,
-          lastUpdated: new Date("2023-12-25T15:30:45.123Z"),
+          lastUpdated: new Date(
+            "2023-12-25T15:30:45.123Z",
+          ),
         },
       };
 
-      const json = toJson(original);
-      const restored = fromJson(json);
+      const json = jsonEncode(original);
+      const restored = jsonDecode(json);
       expect(restored).toEqual(original);
 
       // Verify BigInt types are preserved
@@ -538,10 +640,12 @@ describe("JsonReady", () => {
 
       // Verify Date types are preserved
       expect(
-        restoredAny.metadata.createdAt instanceof Date,
+        restoredAny.metadata.createdAt instanceof
+          Date,
       ).toBe(true);
       expect(
-        restoredAny.summary.lastUpdated instanceof Date,
+        restoredAny.summary.lastUpdated instanceof
+          Date,
       ).toBe(true);
       expect(
         restoredAny.metadata.createdAt.toISOString(),
@@ -553,51 +657,69 @@ describe("JsonReady", () => {
 
     it("should handle empty objects", () => {
       const emptyObj = {};
-      const jsonObj = toJson(emptyObj);
-      const restoredObj = fromJson(jsonObj);
+      const jsonObj = jsonEncode(emptyObj);
+      const restoredObj = jsonDecode(jsonObj);
       expect(restoredObj).toEqual(emptyObj);
     });
   });
 
   describe("Edge cases", () => {
     it("should handle zero values", () => {
-      expect(fromJson(toJson(0))).toBe(0);
-      expect(fromJson(toJson(0n))).toBe(0n);
-      expect(fromJson(toJson(""))).toBe("");
-      expect(fromJson(toJson(false))).toBe(false);
+      expect(jsonDecode(jsonEncode(0))).toBe(0);
+      expect(jsonDecode(jsonEncode(0n))).toBe(0n);
+      expect(jsonDecode(jsonEncode(""))).toBe("");
+      expect(jsonDecode(jsonEncode(false))).toBe(
+        false,
+      );
     });
 
     it("should handle Time edge cases", () => {
       // Test Unix epoch
       const epoch = new Date(0);
-      expect(fromJson(toJson(epoch))).toEqual(epoch);
+      expect(
+        jsonDecode(jsonEncode(epoch)),
+      ).toEqual(epoch);
 
       // Test far future date
-      const farFuture = new Date("2099-12-31T23:59:59.999Z");
-      expect(fromJson(toJson(farFuture))).toEqual(farFuture);
+      const farFuture = new Date(
+        "2099-12-31T23:59:59.999Z",
+      );
+      expect(
+        jsonDecode(jsonEncode(farFuture)),
+      ).toEqual(farFuture);
 
       // Test leap year date
-      const leapYear = new Date("2024-02-29T12:00:00.000Z");
-      expect(fromJson(toJson(leapYear))).toEqual(leapYear);
+      const leapYear = new Date(
+        "2024-02-29T12:00:00.000Z",
+      );
+      expect(
+        jsonDecode(jsonEncode(leapYear)),
+      ).toEqual(leapYear);
 
       // Test current time with millisecond precision
       const now = new Date();
-      const restored = fromJson(toJson(now));
+      const restored = jsonDecode(
+        jsonEncode(now),
+      );
       expect(restored).toEqual(now);
-      expect((restored as Date).getTime()).toBe(now.getTime());
+      expect((restored as Date).getTime()).toBe(
+        now.getTime(),
+      );
     });
 
     it("should handle negative numbers", () => {
-      expect(fromJson(toJson(-42))).toBe(-42);
-      expect(fromJson(toJson(-123.456))).toBe(
-        -123.456,
+      expect(jsonDecode(jsonEncode(-42))).toBe(
+        -42,
       );
+      expect(
+        jsonDecode(jsonEncode(-123.456)),
+      ).toBe(-123.456);
     });
 
     it("should handle negative BigInt", () => {
       const negativeBigInt = -999999999999999999n;
       expect(
-        fromJson(toJson(negativeBigInt)),
+        jsonDecode(jsonEncode(negativeBigInt)),
       ).toBe(negativeBigInt);
     });
 
@@ -607,7 +729,9 @@ describe("JsonReady", () => {
         a: "first",
         m: "middle",
       };
-      const restored = fromJson(toJson(original));
+      const restored = jsonDecode(
+        jsonEncode(original),
+      );
       expect(restored).toEqual(original);
       expect(Object.keys(restored)).toEqual(
         Object.keys(original),
@@ -632,14 +756,16 @@ describe("JsonReady", () => {
             num: 1,
             bool: false,
             big: 456n,
-            time: new Date("2023-12-01T09:30:00.000Z"),
+            time: new Date(
+              "2023-12-01T09:30:00.000Z",
+            ),
           },
         },
       ];
 
       testCases.forEach((testCase) => {
-        const restored = fromJson(
-          toJson(testCase),
+        const restored = jsonDecode(
+          jsonEncode(testCase),
         );
         expect(restored).toEqual(testCase);
         expect(typeof restored).toBe(

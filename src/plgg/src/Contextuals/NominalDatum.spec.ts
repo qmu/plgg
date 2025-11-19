@@ -6,8 +6,8 @@ import {
   mapNominalDatum,
   toJsonReadyNominalDatum,
   isJsonReadyNominalDatum,
-  toJson,
-  fromJson,
+  jsonEncode,
+  jsonDecode,
   toJsonReady,
   fromJsonReady,
 } from "plgg/index";
@@ -249,8 +249,8 @@ describe("NominalDatum", () => {
         "test@example.com",
       );
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
       expect(restored).toEqual(original);
       if (isNominalDatum(restored)) {
@@ -266,8 +266,8 @@ describe("NominalDatum", () => {
         87.5,
       );
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
       expect(restored).toEqual(original);
       expect(isNominalDatum(restored)).toBe(true);
@@ -279,8 +279,8 @@ describe("NominalDatum", () => {
         999888777666555444333222111n,
       );
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
       expect(restored).toEqual(original);
       expect(isNominalDatum(restored)).toBe(true);
@@ -305,8 +305,8 @@ describe("NominalDatum", () => {
         addressData,
       );
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
       expect(restored).toEqual(original);
       expect(isNominalDatum(restored)).toBe(true);
@@ -323,8 +323,8 @@ describe("NominalDatum", () => {
         tags,
       );
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
       expect(restored).toEqual(original);
       expect(isNominalDatum(restored)).toBe(true);
