@@ -107,7 +107,10 @@ const formatVirtualType = (
     ? vt.optional.content
     : true;
   const optionalMarker = isOptional ? "?" : "";
-  return `${name}: ${vt.type.content}${optionalMarker}`;
+  const description = isSome(vt.description)
+    ? ` (${vt.description.content.content})`
+    : "";
+  return `${name}: ${vt.type.content}${optionalMarker}${description}`;
 };
 
 /**

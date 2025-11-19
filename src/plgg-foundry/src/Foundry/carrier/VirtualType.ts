@@ -17,11 +17,13 @@ import {
 export type VirtualType = Obj<{
   type: Str;
   optional: Option<Bool>;
+  description: Option<Str>;
 }>;
 
 export type VirtualTypeSpec = Obj<{
   type: string;
   optional?: boolean;
+  description?: string;
 }>;
 
 /**
@@ -33,4 +35,5 @@ export const asVirtualType = (value: unknown) =>
     asObj,
     forProp("type", asStr),
     forOptionProp("optional", asBool),
+    forOptionProp("description", asStr),
   );
