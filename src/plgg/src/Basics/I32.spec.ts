@@ -1,5 +1,10 @@
-import { test, expect, assert } from "vitest";
-import { asI32, isOk, isErr, newBox } from "plgg/index";
+import { test, assert } from "vitest";
+import {
+  asI32,
+  isOk,
+  isErr,
+  newBox,
+} from "plgg/index";
 
 test("asI32 basic validation", () => {
   const result = asI32(newBox("I32")(100000));

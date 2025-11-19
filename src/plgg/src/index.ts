@@ -7,4 +7,5 @@ export * from "plgg/Contextuals";
 export * from "plgg/Disjunctives";
 export * from "plgg/Exceptionals";
 export * from "plgg/Flowables";
+export * from "plgg/Functionals";
 export * from "plgg/Grammaticals";
