@@ -3,13 +3,13 @@ import {
   Str,
   Obj,
   Vec,
-  newOk,
-  newErr,
   asStr,
   asObj,
   cast,
   forProp,
   asReadonlyArray,
+  find,
+  pipe,
 } from "plgg";
 import {
   Operation,
@@ -54,17 +54,14 @@ export const asAlignment = (value: unknown) =>
  */
 export const findIngressOp = (
   alignment: Alignment,
-): Result<IngressOperation, Error> => {
-  const operation = alignment.operations.find(
-    (op) => isIngressOperation(op),
+): Result<IngressOperation, Error> =>
+  pipe(
+    alignment.operations,
+    find({
+      predicate: isIngressOperation,
+      errMessage: "No ingress operation found",
+    }),
   );
-  if (!operation) {
-    return newErr(
-      new Error(`No ingress operation found`),
-    );
-  }
-  return newOk(operation);
-};
 
 /**
  * Finds an internal operation (process or switch) by opcode.
@@ -74,20 +71,16 @@ export const findInternalOp =
   (opcode: string) =>
   (
     alignment: Alignment,
-  ): Result<InternalOperation, Error> => {
-    const op = alignment.operations.find(
-      (o) =>
-        isInternalOperation(o) &&
-        o.opcode === opcode,
+  ): Result<InternalOperation, Error> =>
+    pipe(
+      alignment.operations,
+      find<Operation, InternalOperation>({
+        predicate: (o): o is InternalOperation =>
+          isInternalOperation(o) &&
+          o.opcode === opcode,
+        errMessage: `No operation found for processorName "${opcode}"`,
+      }),
     );
-    return op && isInternalOperation(op)
-      ? newOk(op)
-      : newErr(
-          new Error(
-            `No operation found for processorName "${opcode}"`,
-          ),
-        );
-  };
 
 /**
  * Finds the egress operation (exit point) in alignment.
@@ -95,14 +88,11 @@ export const findInternalOp =
  */
 export const findEgressOp = (
   alignment: Alignment,
-): Result<Operation, Error> => {
-  const operation = alignment.operations.find(
-    (op) => isEgressOperation(op),
+): Result<Operation, Error> =>
+  pipe(
+    alignment.operations,
+    find({
+      predicate: isEgressOperation,
+      errMessage: "No egress operation found",
+    }),
   );
-  if (!operation) {
-    return newErr(
-      new Error(`No egress operation found`),
-    );
-  }
-  return newOk(operation);
-};

@@ -11,15 +11,35 @@ import {
  * Can accept either:
  * - A predicate function directly
  * - An object with predicate and optional errMessage properties
+ *
+ * Supports type guards for narrowing the result type.
  */
-export const find = <T>(
+export function find<T, S extends T>(
+  arg:
+    | ((element: T) => element is S)
+    | {
+        predicate: (element: T) => element is S;
+        errMessage?: string;
+      },
+): (arr: ReadonlyArray<T>) => Result<S, Error>;
+
+export function find<T>(
   arg:
     | ((element: T) => boolean)
     | {
         predicate: (element: T) => boolean;
         errMessage?: string;
       },
-) => {
+): (arr: ReadonlyArray<T>) => Result<T, Error>;
+
+export function find<T>(
+  arg:
+    | ((element: T) => boolean)
+    | {
+        predicate: (element: T) => boolean;
+        errMessage?: string;
+      },
+): (arr: ReadonlyArray<T>) => Result<T, Error> {
   const predicate =
     typeof arg === "function"
       ? arg
@@ -30,13 +50,11 @@ export const find = <T>(
       : (arg.errMessage ??
         "No element found matching the predicate");
 
-  return (
-    arr: ReadonlyArray<T>,
-  ): Result<T, Error> => {
+  return (arr: ReadonlyArray<T>): Result<T, Error> => {
     const found = arr.find(predicate);
     if (found === undefined) {
       return newErr(new Error(errMessage));
     }
     return newOk(found);
   };
-};
+}
