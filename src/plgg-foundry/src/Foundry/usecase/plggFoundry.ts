@@ -19,18 +19,14 @@ import {
  *
  * Returns final medium containing alignment and output parameters.
  */
-export const run = async ({
-  foundrySpec,
-  orderSpec,
-}: {
-  foundrySpec: FoundrySpec;
-  orderSpec: OrderSpec;
-}) =>
-  await proc(foundrySpec, asFoundry, (foundry) =>
-    proc(
-      orderSpec,
-      asOrder,
-      blueprint(foundry),
-      operate(foundry),
-    ),
-  );
+export const plggFoundry =
+  (foundrySpec: FoundrySpec) =>
+  async (orderSpec: OrderSpec) =>
+    proc(foundrySpec, asFoundry, (foundry) =>
+      proc(
+        orderSpec,
+        asOrder,
+        blueprint(foundry),
+        operate(foundry),
+      ),
+    );
