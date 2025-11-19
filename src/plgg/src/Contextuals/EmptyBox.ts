@@ -1,11 +1,17 @@
 import { Box, hasProp } from "plgg/index";
 
 /**
+ * Special placeholder value for EmptyBox content.
+ * Using a unique string to avoid conflicts with user data.
+ */
+export const EMPTY_BOX_CONTENT = "__none__" as const;
+
+/**
  * A variant with only a tag and no body.
  */
 export type EmptyBox<TAG extends string> = Box<
   TAG,
-  undefined
+  typeof EMPTY_BOX_CONTENT
 >;
 
 /**
@@ -13,7 +19,7 @@ export type EmptyBox<TAG extends string> = Box<
  */
 export type IsEmptyBox<V> = V extends {
   __tag: infer T;
-  content: undefined;
+  content: typeof EMPTY_BOX_CONTENT;
 }
   ? T extends string
     ? true
@@ -50,5 +56,5 @@ export const newEmptyBox = <TAG extends string>(
   tag: TAG,
 ): EmptyBox<TAG> => ({
   __tag: tag,
-  content: undefined,
+  content: EMPTY_BOX_CONTENT,
 });

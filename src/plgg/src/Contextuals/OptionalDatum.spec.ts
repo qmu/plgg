@@ -482,8 +482,9 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         "__tag",
         "None",
       );
-      expect(parsed).not.toHaveProperty(
+      expect(parsed).toHaveProperty(
         "content",
+        "__none__",
       );
     });
 

@@ -8,6 +8,7 @@ import {
   hasProp,
   pipe,
   chainResult,
+  EMPTY_BOX_CONTENT,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -32,7 +33,7 @@ export type IsBox<V> = V extends {
   content: infer B;
 }
   ? T extends string
-    ? B extends undefined
+    ? B extends typeof EMPTY_BOX_CONTENT
       ? false
       : true
     : false

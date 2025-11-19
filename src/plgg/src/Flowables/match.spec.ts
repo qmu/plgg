@@ -234,7 +234,7 @@ test("Option pattern matching", async () => {
 
   expect(fn(someResult)).equal("Specific hello");
   expect(fn(noneResult)).equal(
-    'Matched: {"__tag":"None"}',
+    'Matched: {"__tag":"None","content":"__none__"}',
   );
 });
 
@@ -274,6 +274,6 @@ test("Option pattern matching with OTHERWISE", async () => {
     'Fallback: {"__tag":"Some","content":"other"}',
   );
   expect(fn(newNone())).equal(
-    'Fallback: {"__tag":"None"}',
+    'Fallback: {"__tag":"None","content":"__none__"}',
   );
 });

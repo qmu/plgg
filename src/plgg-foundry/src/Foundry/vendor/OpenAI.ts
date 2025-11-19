@@ -20,8 +20,8 @@ export const generateJson = async ({
   instructions: string;
   input: string;
   responseFormat: any;
-}): Promise<Result<unknown, Error>> =>
-  proc(
+}): Promise<Result<unknown, Error>> => {
+  const r = proc(
     {
       model,
       input,
@@ -46,3 +46,5 @@ export const generateJson = async ({
     asSoftStr,
     jsonDecode,
   );
+  return r;
+};

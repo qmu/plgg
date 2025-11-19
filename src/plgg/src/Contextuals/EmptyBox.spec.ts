@@ -1,12 +1,12 @@
 import { test, expect } from "vitest";
-import { Box, EmptyBox, IsEmptyBox } from "plgg/index";
+import { Box, EmptyBox, IsEmptyBox, EMPTY_BOX_CONTENT } from "plgg/index";
 
 test("EmptyBox type structure", () => {
   // These are compile-time tests - if they compile, the types work correctly
   type TestEmptyBox = EmptyBox<"empty">;
   type ExpectedStructure = {
     __tag: "empty";
-    content: undefined;
+    content: typeof EMPTY_BOX_CONTENT;
   };
 
   // Type-level assertion that EmptyBox has the correct structure
@@ -30,9 +30,9 @@ test("IsEmptyBox type predicate", () => {
 });
 
 test("Box and EmptyBox relationship", () => {
-  // Test that EmptyBox is properly defined as Box<TAG, undefined>
+  // Test that EmptyBox is properly defined as Box<TAG, EMPTY_BOX_CONTENT>
   type TestEmptyBox = EmptyBox<"loading">;
-  type ExpectedType = Box<"loading", undefined>;
+  type ExpectedType = Box<"loading", typeof EMPTY_BOX_CONTENT>;
 
   const _typeTest: TestEmptyBox extends ExpectedType ? true : false = true;
   expect(_typeTest).toBe(true);
