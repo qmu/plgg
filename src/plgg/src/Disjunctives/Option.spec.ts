@@ -89,45 +89,45 @@ test("isNone identifies None options", () => {
   assert(isNone(noneResult));
 });
 
-test("option.isSome() method returns true for Some instances", () => {
+test("isSome() function returns true for Some instances", () => {
   const someOption = newSome("value");
 
-  assert(someOption.isSome());
-  assert(!someOption.isNone());
+  assert(isSome(someOption));
+  assert(!isNone(someOption));
 
   // Type narrowing should work
-  if (someOption.isSome()) {
+  if (isSome(someOption)) {
     expect(someOption.content).toBe("value");
   }
 });
 
-test("option.isNone() method returns true for None instances", () => {
+test("isNone() function returns true for None instances", () => {
   const noneOption = newNone();
 
-  assert(!noneOption.isSome());
-  assert(noneOption.isNone());
+  assert(!isSome(noneOption));
+  assert(isNone(noneOption));
 
   // Type narrowing should work
-  if (noneOption.isNone()) {
+  if (isNone(noneOption)) {
     expect(noneOption.__tag).toBe("None");
   }
 });
 
-test("option methods work with Option union type", () => {
+test("isSome and isNone functions work with Option union type", () => {
   const someOption: Option<number> = newSome(42);
   const noneOption: Option<number> = newNone();
 
   // Some case
-  assert(someOption.isSome());
-  assert(!someOption.isNone());
-  if (someOption.isSome()) {
+  assert(isSome(someOption));
+  assert(!isNone(someOption));
+  if (isSome(someOption)) {
     expect(someOption.content).toBe(42);
   }
 
   // None case
-  assert(!noneOption.isSome());
-  assert(noneOption.isNone());
-  if (noneOption.isNone()) {
+  assert(!isSome(noneOption));
+  assert(isNone(noneOption));
+  if (isNone(noneOption)) {
     expect(noneOption.__tag).toBe("None");
   }
 });
@@ -169,16 +169,12 @@ test("Option type structure", () => {
     "content",
     123,
   );
-  expect(someOption).toHaveProperty("isSome");
-  expect(someOption).toHaveProperty("isNone");
 
   // Test that None has the expected structure
   expect(noneOption).toHaveProperty(
     "__tag",
     "None",
   );
-  expect(noneOption).toHaveProperty("isSome");
-  expect(noneOption).toHaveProperty("isNone");
 });
 
 test("Option with complex types", () => {

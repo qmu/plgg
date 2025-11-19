@@ -21,18 +21,7 @@ const noneTag = "None" as const;
  * None side of Option, representing the absence of a value.
  * Equivalent to null/undefined but in a type-safe way.
  */
-export type None = EmptyBox<typeof noneTag> & {
-  /**
-   * Type guard method to check if this Option is a Some.
-   * Always returns false for None instances.
-   */
-  isSome(): false;
-  /**
-   * Type guard method to check if this Option is a None.
-   * Always returns true for None instances.
-   */
-  isNone(): this is None;
-};
+export type None = EmptyBox<typeof noneTag>;
 
 /**
  * Pattern constructor for None matching.
@@ -43,15 +32,8 @@ export const none = () => pattern(noneTag)();
 /**
  * Creates a None instance representing no value.
  */
-export const newNone = (): None => ({
-  ...newEmptyBox(noneTag),
-  isSome(): false {
-    return false;
-  },
-  isNone(): this is None {
-    return true;
-  },
-});
+export const newNone = (): None =>
+  newEmptyBox(noneTag);
 
 /**
  * Type guard to check if an Option is a None.

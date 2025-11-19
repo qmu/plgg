@@ -16,7 +16,7 @@ export const postJson =
   }) =>
   async (
     data: Datum,
-  ): Promise<Result<Response, Error>> => {
+  ): Promise<Result<unknown, Error>> => {
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -32,5 +32,5 @@ export const postJson =
         ),
       );
     }
-    return newOk(res);
+    return newOk(await res.json());
   };
