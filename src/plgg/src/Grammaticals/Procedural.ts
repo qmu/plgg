@@ -31,7 +31,7 @@ export type Procedural<
  * Type guard to check if a value is a Promise.
  */
 export const isPromise = <T>(
-  value: PossiblyPromise<T>,
+  value: unknown,
 ): value is Promise<T> =>
   value instanceof Promise ||
   (typeof value === "object" &&
