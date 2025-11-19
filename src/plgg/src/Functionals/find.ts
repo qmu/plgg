@@ -1,6 +1,5 @@
 import {
   Result,
-  InvalidError,
   newOk,
   newErr,
 } from "plgg/index";
@@ -22,23 +21,21 @@ export const find = <T>(
       },
 ) => {
   const predicate =
-    typeof arg === "function" ? arg : arg.predicate;
+    typeof arg === "function"
+      ? arg
+      : arg.predicate;
   const errMessage =
     typeof arg === "function"
       ? "No element found matching the predicate"
-      : arg.errMessage ??
-        "No element found matching the predicate";
+      : (arg.errMessage ??
+        "No element found matching the predicate");
 
   return (
     arr: ReadonlyArray<T>,
-  ): Result<T, InvalidError> => {
+  ): Result<T, Error> => {
     const found = arr.find(predicate);
     if (found === undefined) {
-      return newErr(
-        new InvalidError({
-          message: errMessage,
-        }),
-      );
+      return newErr(new Error(errMessage));
     }
     return newOk(found);
   };

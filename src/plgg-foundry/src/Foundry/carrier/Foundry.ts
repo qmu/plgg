@@ -6,8 +6,8 @@ import {
   cast,
   forProp,
   asReadonlyArray,
-  newOk,
-  newErr,
+  find,
+  pipe,
 } from "plgg";
 import {
   ProcessorSpec,
@@ -48,14 +48,13 @@ export type FoundrySpec = Readonly<{
 /**
  * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10.
  */
-export const asFoundry = (value: FoundrySpec) => {
-  const withDefaults = {
-    ...value,
-    maxOperationLimit:
-      value.maxOperationLimit ?? 10,
-  };
-  return cast(
-    withDefaults,
+export const asFoundry = (value: FoundrySpec) =>
+  cast(
+    {
+      ...value,
+      maxOperationLimit:
+        value.maxOperationLimit ?? 10,
+    },
     forProp("apiKey", asStr),
     forProp("description", asStr),
     forProp(
@@ -68,7 +67,6 @@ export const asFoundry = (value: FoundrySpec) => {
     ),
     forProp("packers", asReadonlyArray(asPacker)),
   );
-};
 
 /**
  * Castable instance for Foundry safe casting.
@@ -86,19 +84,14 @@ export const foundrySpecCastable: Castable<
 export const findSwitcher = (
   foundry: Foundry,
   opcode: string,
-): Result<Switcher, Error> => {
-  const switcher = foundry.switchers.find(
-    (s) => s.name.content === opcode,
+): Result<Switcher, Error> =>
+  pipe(
+    foundry.switchers,
+    find<Switcher>({
+      predicate: (s) => s.name.content === opcode,
+      errMessage: `No switcher found for opcode "${opcode}"`,
+    }),
   );
-  if (!switcher) {
-    return newErr(
-      new Error(
-        `No switcher found for opcode "${opcode}"`,
-      ),
-    );
-  }
-  return newOk(switcher);
-};
 
 /**
  * Finds a processor by opcode in the foundry.
@@ -106,19 +99,14 @@ export const findSwitcher = (
 export const findProcessor = (
   foundry: Foundry,
   opcode: string,
-): Result<Processor, Error> => {
-  const processor = foundry.processors.find(
-    (p) => p.name.content === opcode,
+): Result<Processor, Error> =>
+  pipe(
+    foundry.processors,
+    find<Processor>({
+      predicate: (p) => p.name.content === opcode,
+      errMessage: `No processor found for opcode "${opcode}"`,
+    }),
   );
-  if (!processor) {
-    return newErr(
-      new Error(
-        `No processor found for opcode "${opcode}"`,
-      ),
-    );
-  }
-  return newOk(processor);
-};
 
 /**
  * Generates comprehensive markdown documentation of the foundry.
@@ -170,6 +158,5 @@ export const extractOpcodes = <
   T extends { name: { content: string } },
 >(
   items: ReadonlyArray<T>,
-): ReadonlyArray<string> => {
-  return items.map((item) => item.name.content);
-};
+): ReadonlyArray<string> =>
+  items.map((item) => item.name.content);
