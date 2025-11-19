@@ -5,7 +5,7 @@ import {
   atIndex,
   asSoftStr,
   jsonDecode,
-  newErr,
+  postJson,
 } from "plgg";
 
 export const generateJson = async ({
@@ -20,37 +20,24 @@ export const generateJson = async ({
   instructions: string;
   input: string;
   responseFormat: any;
-}): Promise<Result<unknown, Error>> => {
-  const res = await fetch(
-    "https://api.openai.com/v1/responses",
+}): Promise<Result<unknown, Error>> =>
+  proc(
     {
-      method: "POST",
+      model,
+      input,
+      reasoning: {
+        effort: "minimal",
+      },
+      instructions,
+      text: { format: responseFormat },
+    },
+    postJson({
+      url: "https://api.openai.com/v1/responses",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        input,
-        reasoning: {
-          effort: "minimal",
-        },
-        instructions,
-        text: { format: responseFormat },
-      }),
-    },
-  );
-
-  if (!res.ok) {
-    return newErr(
-      new Error(
-        `OpenAI API error! status: ${res.status}, body: ${await res.text()}`,
-      ),
-    );
-  }
-
-  return proc(
-    await res.json(),
+    }),
+    async (res) => await res.json(),
     atProp("output"),
     atIndex(1),
     atProp("content"),
@@ -59,4 +46,3 @@ export const generateJson = async ({
     asSoftStr,
     jsonDecode,
   );
-};
