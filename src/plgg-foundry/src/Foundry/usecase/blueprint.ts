@@ -23,7 +23,7 @@ export const blueprint =
       foundry.processors,
     );
     const switcherOpcodes = extractOpcodes(
-      foundry.switchers,
+      foundry.switchers ?? [],
     );
     const allOpcodes = [
       ...processorOpcodes,

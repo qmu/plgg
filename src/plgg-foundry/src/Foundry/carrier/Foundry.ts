@@ -32,7 +32,7 @@ export type Foundry = Readonly<{
   apiKey: Str;
   maxOperationLimit: number;
   processors: ReadonlyArray<Processor>;
-  switchers: ReadonlyArray<Switcher>;
+  switchers?: ReadonlyArray<Switcher>;
   packers: ReadonlyArray<Packer>;
 }>;
 
@@ -41,12 +41,12 @@ export type FoundrySpec = Readonly<{
   description: string;
   maxOperationLimit?: number;
   processors: ReadonlyArray<ProcessorSpec>;
-  switchers: ReadonlyArray<SwitcherSpec>;
+  switchers?: ReadonlyArray<SwitcherSpec>;
   packers: ReadonlyArray<PackerSpec>;
 }>;
 
 /**
- * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10.
+ * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10 and empty switchers array.
  */
 export const asFoundry = (value: FoundrySpec) =>
   cast(
@@ -54,6 +54,7 @@ export const asFoundry = (value: FoundrySpec) =>
       ...value,
       maxOperationLimit:
         value.maxOperationLimit ?? 10,
+      switchers: value.switchers ?? [],
     },
     forProp("apiKey", asStr),
     forProp("description", asStr),
@@ -86,7 +87,7 @@ export const findSwitcher = (
   opcode: string,
 ): Result<Switcher, Error> =>
   pipe(
-    foundry.switchers,
+    foundry.switchers ?? [],
     find<Switcher>({
       predicate: (s) => s.name.content === opcode,
       errMessage: `No switcher found for opcode "${opcode}"`,
@@ -130,7 +131,7 @@ ${explainProcessor(a)}
 
 ## 3. Switchers
 
-${foundry.switchers
+${(foundry.switchers ?? [])
   .map(
     (a, i) => `### 3-${i + 1}. ${a.name.content}
 
