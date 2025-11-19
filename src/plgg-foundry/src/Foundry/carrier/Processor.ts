@@ -81,6 +81,29 @@ export const processorCastable: Castable<
   as: asProcessor,
 };
 
+/**
+ * Creates a ProcessorSpec with strict type checking on return type.
+ * The process function must return keys matching the returns field.
+ */
+export const specProcessor = <
+  const R extends Dict<
+    VariableName,
+    VirtualTypeSpec
+  >,
+>(spec: {
+  name: string;
+  description: string;
+  arguments?: Dict<VariableName, VirtualTypeSpec>;
+  returns?: R;
+  process: (
+    medium: Medium,
+  ) => PossiblyPromise<
+    R extends Dict<VariableName, VirtualTypeSpec>
+      ? Record<keyof R & VariableName, Datum>
+      : Dict<VariableName, Datum>
+  >;
+}): ProcessorSpec => spec;
+
 const formatVirtualType = (
   name: string,
   vt: VirtualType,

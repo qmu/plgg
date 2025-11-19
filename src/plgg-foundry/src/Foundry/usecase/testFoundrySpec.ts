@@ -1,5 +1,8 @@
 import { isBin, isVec } from "plgg";
-import { FoundrySpec } from "plgg-foundry/index";
+import {
+  FoundrySpec,
+  specProcessor,
+} from "plgg-foundry/index";
 
 export const newTestFoundrySpec = (
   apiKey: string,
@@ -8,7 +11,7 @@ export const newTestFoundrySpec = (
   description:
     "This is a foundry for generating character designs based on text prompts and reference images.",
   processors: [
-    {
+    specProcessor({
       name: "plan",
       description:
         "Plans the character design based on the prompt",
@@ -26,7 +29,7 @@ export const newTestFoundrySpec = (
           plan: "Well-planned character design description",
         };
       },
-    },
+    }),
     {
       name: "analyze",
       description:
