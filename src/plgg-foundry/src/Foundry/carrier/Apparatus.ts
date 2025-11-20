@@ -47,15 +47,16 @@ export const isSwitcher = (
 
 /**
  * Type guard to check if apparatus is a Packer.
+ * Packers are plain Dict objects without 'process' or 'check' functions.
  */
 export const isPacker = (
   apparatus: unknown,
 ): apparatus is Packer =>
   typeof apparatus === "object" &&
   apparatus !== null &&
-  "processedBy" in apparatus &&
   !("process" in apparatus) &&
-  !("check" in apparatus);
+  !("check" in apparatus) &&
+  !("name" in apparatus);
 
 /**
  * Validates and casts an ApparatusSpec to Apparatus.

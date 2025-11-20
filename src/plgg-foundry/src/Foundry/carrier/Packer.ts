@@ -1,35 +1,27 @@
 import {
-  Obj,
   Castable,
-  Str,
-  Option,
-  KebabCase,
+  Dict,
   Box,
   newBox,
-  cast,
-  forProp,
-  forOptionProp,
-  asStr,
-  asKebabCase,
-  isSome,
+  asDictOf,
 } from "plgg";
+import {
+  VirtualType,
+  VirtualTypeSpec,
+  VariableName,
+  asVirtualType,
+  formatVirtualType,
+} from "plgg-foundry/index";
 
 /**
- * Named output definition specifying which processor handles it.
+ * Output specification defining egress fields and their types.
+ * Maps output variable names to their type specifications.
  */
-export type Packer = Obj<{
-  name: Str;
-  processedBy: KebabCase;
-  description: Option<Str>;
-}>;
+export type Packer = Dict<VariableName, VirtualType>;
 
 export type PackerSpec = Box<
   "PackerSpec",
-  Obj<{
-    name: string;
-    processedBy: string;
-    description?: string;
-  }>
+  Dict<VariableName, VirtualTypeSpec>
 >;
 
 /**
@@ -44,12 +36,7 @@ export const newPackerSpec = (
  * Validates and casts a PackerSpec to Packer.
  */
 export const asPacker = (value: PackerSpec) =>
-  cast(
-    value.content,
-    forProp("name", asStr),
-    forProp("processedBy", asKebabCase),
-    forOptionProp("description", asStr),
-  );
+  asDictOf(asVirtualType)(value.content);
 
 /**
  * Castable instance for Packer safe casting.
@@ -66,11 +53,6 @@ export const packerCastable: Castable<
  */
 export const explainPacker = (
   packer: Packer,
-) => `${
-  isSome(packer.description)
-    ? packer.description.content.content
-    : "N/A"
-}
-
-- Processed By: ${packer.processedBy.content}
-`;
+) => `Outputs: ${Object.entries(packer)
+  .map(([name, vt]) => formatVirtualType(name, vt))
+  .join(", ")}`;
