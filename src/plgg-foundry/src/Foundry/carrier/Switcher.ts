@@ -87,8 +87,8 @@ export const newSwitcherSpec = <
   name: string;
   description: string;
   arguments?: Dict<VariableName, VirtualTypeSpec>;
-  returnsWhenTrue?: RT;
-  returnsWhenFalse?: RF;
+  returnsWhenTrue: RT;
+  returnsWhenFalse: RF;
   check: (
     medium: Medium,
   ) => PossiblyPromise<

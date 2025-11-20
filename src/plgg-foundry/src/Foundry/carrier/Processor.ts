@@ -101,7 +101,7 @@ export const newProcessorSpec = <
   name: string;
   description: string;
   arguments?: Dict<VariableName, VirtualTypeSpec>;
-  returns?: R;
+  returns: R;
   process: (
     medium: Medium,
   ) => PossiblyPromise<
