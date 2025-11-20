@@ -53,8 +53,7 @@ test("asFoundrySpec validation - valid foundry", () => {
           ],
         }),
         newPackerSpec({
-          name: "testResult",
-          processedBy: "test-processor",
+          result: { type: "string" },
         }),
       ],
     });

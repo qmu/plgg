@@ -146,16 +146,13 @@ export const newTestFoundrySpec = (
         },
       }),
       newPackerSpec({
-        name: "mainImage",
-        processedBy: "gen-main",
+        mainImage: { type: "image[]" },
       }),
       newPackerSpec({
-        name: "spreadImages",
-        processedBy: "gen-spread",
+        spreadImages: { type: "image[]" },
       }),
       newPackerSpec({
-        name: "plannedDescription",
-        processedBy: "plan",
+        plannedDescription: { type: "string" },
       }),
     ],
   });
