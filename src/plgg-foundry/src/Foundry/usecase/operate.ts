@@ -8,6 +8,7 @@ import {
   tryCatch,
   conclude,
   isObj,
+  filter,
 } from "plgg";
 import {
   Foundry,
@@ -32,6 +33,7 @@ import {
   findProcessor,
   findIngressOp,
   asVirtualType,
+  isPacker,
 } from "plgg-foundry/index";
 
 /**
@@ -350,7 +352,7 @@ const execEgress = async ({
   op: EgressOperation;
   ctx: OperationContext;
 }): Promise<Result<Medium, Error>> => {
-  const { env, alignment } = ctx;
+  const { env, alignment, foundry } = ctx;
 
   // Step 1: Load output values from registers specified in result mapping
   const input = pipe(
@@ -371,7 +373,38 @@ const execEgress = async ({
   const params: Record<Address, Param> =
     Object.fromEntries(input.content);
 
-  // Step 2: Construct final medium with alignment and collected params
+  // Step 2: Validate outputs against packer specifications
+  const packers = pipe(
+    foundry.apparatuses,
+    filter(isPacker),
+  );
+
+  for (const packer of packers) {
+    for (const [outputName, expectedType] of Object.entries(packer)) {
+      // Check if this output name exists in the egress result mapping
+      const variableAddr = op.result[outputName];
+      if (variableAddr !== undefined && typeof variableAddr === "string") {
+        // Find the param at this address
+        const param = params[variableAddr];
+        if (param) {
+          // Validate that the param type matches the expected type
+          const actualType = param.type;
+          const actualTypeStr = actualType.type?.content ?? "";
+          const expectedTypeStr = expectedType.type?.content ?? "";
+
+          if (actualTypeStr !== expectedTypeStr) {
+            return newErr(
+              new Error(
+                `Type mismatch for output "${outputName}": expected ${expectedTypeStr}, got ${actualTypeStr}`
+              )
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // Step 3: Construct final medium with alignment and collected params
   const medium: Medium = {
     alignment,
     params,
