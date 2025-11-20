@@ -1,5 +1,8 @@
 import { isBin, isVec } from "plgg";
-import { newFoundrySpec } from "plgg-foundry/index";
+import {
+  newFoundrySpec,
+  newProcessorSpec,
+} from "plgg-foundry/index";
 
 export const newTestFoundrySpec = (
   apiKey: string,
@@ -9,7 +12,7 @@ export const newTestFoundrySpec = (
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
     processors: [
-      {
+      newProcessorSpec({
         name: "plan",
         description:
           "Plans the character design based on the prompt",
@@ -27,8 +30,8 @@ export const newTestFoundrySpec = (
             plan: "Well-planned character design description",
           };
         },
-      },
-      {
+      }),
+      newProcessorSpec({
         name: "analyze",
         description:
           "Analyzes reference images for character features",
@@ -52,8 +55,8 @@ export const newTestFoundrySpec = (
               "Extracted character features from reference images",
           };
         },
-      },
-      {
+      }),
+      newProcessorSpec({
         name: "gen-main",
         description:
           "Generates the main character image",
@@ -73,8 +76,8 @@ export const newTestFoundrySpec = (
             image: [new Uint8Array([0])],
           };
         },
-      },
-      {
+      }),
+      newProcessorSpec({
         name: "gen-spread",
         description:
           "Generates spread images for the character",
@@ -103,7 +106,7 @@ export const newTestFoundrySpec = (
             ],
           };
         },
-      },
+      }),
     ],
     switchers: [
       {

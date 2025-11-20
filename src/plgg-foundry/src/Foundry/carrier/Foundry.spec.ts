@@ -4,6 +4,7 @@ import {
   FoundrySpec,
   asFoundry,
   newFoundrySpec,
+  newProcessorSpec,
 } from "plgg-foundry/index";
 
 /**
@@ -15,7 +16,7 @@ test("asFoundrySpec validation - valid foundry", () => {
       apiKey: "test-api-key",
       description: "Test foundry description",
       processors: [
-        {
+        newProcessorSpec({
           name: "test-processor",
           description: "A test processor",
           arguments: {
@@ -27,7 +28,7 @@ test("asFoundrySpec validation - valid foundry", () => {
           process: async () => ({
             result: "test-result",
           }),
-        },
+        }),
       ],
       switchers: [
         {
@@ -104,7 +105,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
     apiKey: "test-api-key",
     description: "Multi-component foundry",
     processors: [
-      {
+      newProcessorSpec({
         name: "processor-1",
         description: "First processor",
         arguments: {
@@ -116,8 +117,8 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         process: async () => ({
           result: 1,
         }),
-      },
-      {
+      }),
+      newProcessorSpec({
         name: "processor-2",
         description: "Second processor",
         arguments: {
@@ -129,7 +130,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         process: async () => ({
           result: "result",
         }),
-      },
+      }),
     ],
     switchers: [
       {

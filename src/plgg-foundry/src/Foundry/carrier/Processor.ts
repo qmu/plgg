@@ -6,6 +6,8 @@ import {
   PossiblyPromise,
   Datum,
   Dict,
+  Box,
+  newBox,
   cast,
   forProp,
   forOptionProp,
@@ -41,15 +43,18 @@ export type Processor = Readonly<{
   ) => PossiblyPromise<Dict<VariableName, Datum>>;
 }>;
 
-export type ProcessorSpec = Readonly<{
-  name: string;
-  description: string;
-  arguments?: Dict<VariableName, VirtualTypeSpec>;
-  returns?: Dict<VariableName, VirtualTypeSpec>;
-  process: (
-    medium: Medium,
-  ) => PossiblyPromise<Dict<VariableName, Datum>>;
-}>;
+export type ProcessorSpec = Box<
+  "ProcessorSpec",
+  Readonly<{
+    name: string;
+    description: string;
+    arguments?: Dict<VariableName, VirtualTypeSpec>;
+    returns?: Dict<VariableName, VirtualTypeSpec>;
+    process: (
+      medium: Medium,
+    ) => PossiblyPromise<Dict<VariableName, Datum>>;
+  }>
+>;
 
 /**
  * Validates and casts a ProcessorSpec to Processor.
@@ -58,7 +63,7 @@ export const asProcessor = (
   value: ProcessorSpec,
 ) =>
   cast(
-    value,
+    value.content,
     forProp("name", asKebabCase),
     forProp("description", asStr),
     forOptionProp(
@@ -87,7 +92,7 @@ export const processorCastable: Castable<
  * Creates a ProcessorSpec with strict type checking on return type.
  * The process function must return keys matching the returns field.
  */
-export const specProcessor = <
+export const newProcessorSpec = <
   const R extends Dict<
     VariableName,
     VirtualTypeSpec
@@ -104,7 +109,10 @@ export const specProcessor = <
       ? Record<keyof R & VariableName, Datum>
       : Dict<VariableName, Datum>
   >;
-}): ProcessorSpec => spec;
+}): ProcessorSpec =>
+  newBox("ProcessorSpec")<ProcessorSpec["content"]>(
+    spec,
+  );
 
 /**
  * Generates human-readable markdown description of processor.
