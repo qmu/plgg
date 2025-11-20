@@ -71,11 +71,38 @@ export type SwitcherSpec = Box<
 >;
 
 /**
- * Creates a new SwitcherSpec with type-safe content.
+ * Creates a SwitcherSpec with strict type checking on return types.
+ * The check function must return keys matching the returnsWhenTrue and returnsWhenFalse fields.
  */
-export const newSwitcherSpec = (
-  spec: SwitcherSpec["content"],
-): SwitcherSpec =>
+export const newSwitcherSpec = <
+  const RT extends Dict<
+    VariableName,
+    VirtualTypeSpec
+  >,
+  const RF extends Dict<
+    VariableName,
+    VirtualTypeSpec
+  >,
+>(spec: {
+  name: string;
+  description: string;
+  arguments?: Dict<VariableName, VirtualTypeSpec>;
+  returnsWhenTrue?: RT;
+  returnsWhenFalse?: RF;
+  check: (
+    medium: Medium,
+  ) => PossiblyPromise<
+    [
+      boolean,
+      (RT extends Dict<VariableName, VirtualTypeSpec>
+        ? Record<keyof RT & VariableName, Datum>
+        : Dict<VariableName, Datum>) |
+      (RF extends Dict<VariableName, VirtualTypeSpec>
+        ? Record<keyof RF & VariableName, Datum>
+        : Dict<VariableName, Datum>),
+    ]
+  >;
+}): SwitcherSpec =>
   newBox("SwitcherSpec")<SwitcherSpec["content"]>(
     spec,
   );
