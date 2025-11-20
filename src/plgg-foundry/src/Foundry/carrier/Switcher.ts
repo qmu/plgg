@@ -21,6 +21,7 @@ import {
   VirtualTypeSpec,
   VariableName,
   asVirtualType,
+  formatVirtualType,
 } from "plgg-foundry/index";
 
 /**
@@ -38,11 +39,10 @@ export type Switcher = Readonly<{
   returnsWhenFalse: Option<
     Dict<VariableName, VirtualType>
   >;
-  check: (medium: Medium) => PossiblyPromise<
-    [
-      boolean,
-      Dict<VariableName, Datum>,
-    ]
+  check: (
+    medium: Medium,
+  ) => PossiblyPromise<
+    [boolean, Dict<VariableName, Datum>]
   >;
 }>;
 
@@ -58,11 +58,10 @@ export type SwitcherSpec = Readonly<{
     VariableName,
     VirtualTypeSpec
   >;
-  check: (medium: Medium) => PossiblyPromise<
-    [
-      boolean,
-      Dict<VariableName, Datum>,
-    ]
+  check: (
+    medium: Medium,
+  ) => PossiblyPromise<
+    [boolean, Dict<VariableName, Datum>]
   >;
 }>;
 
@@ -97,20 +96,6 @@ export const switcherCastable: Castable<
   SwitcherSpec
 > = {
   as: asSwitcher,
-};
-
-const formatVirtualType = (
-  name: string,
-  vt: VirtualType,
-): string => {
-  const isOptional = isSome(vt.optional)
-    ? vt.optional.content
-    : true;
-  const optionalMarker = isOptional ? "?" : "";
-  const description = isSome(vt.description)
-    ? ` (${vt.description.content.content})`
-    : "";
-  return `${name}: ${vt.type.content}${optionalMarker}${description}`;
 };
 
 /**

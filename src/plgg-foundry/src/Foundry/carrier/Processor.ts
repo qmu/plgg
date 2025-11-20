@@ -21,6 +21,7 @@ import {
   VirtualTypeSpec,
   VariableName,
   asVirtualType,
+  formatVirtualType,
 } from "plgg-foundry/index";
 
 /**
@@ -72,6 +73,7 @@ export const asProcessor = (
   );
 
 /**
+ *
  * Castable instance for Processor safe casting.
  */
 export const processorCastable: Castable<
@@ -103,20 +105,6 @@ export const specProcessor = <
       : Dict<VariableName, Datum>
   >;
 }): ProcessorSpec => spec;
-
-const formatVirtualType = (
-  name: string,
-  vt: VirtualType,
-): string => {
-  const isOptional = isSome(vt.optional)
-    ? vt.optional.content
-    : true;
-  const optionalMarker = isOptional ? "?" : "";
-  const description = isSome(vt.description)
-    ? ` (${vt.description.content.content})`
-    : "";
-  return `${name}: ${vt.type.content}${optionalMarker}${description}`;
-};
 
 /**
  * Generates human-readable markdown description of processor.

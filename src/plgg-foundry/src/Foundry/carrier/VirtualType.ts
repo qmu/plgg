@@ -9,6 +9,8 @@ import {
   asObj,
   asStr,
   asBool,
+  pipe,
+  isSome,
 } from "plgg";
 
 /**
@@ -36,4 +38,25 @@ export const asVirtualType = (value: unknown) =>
     forProp("type", asStr),
     forOptionProp("optional", asBool),
     forOptionProp("description", asStr),
+  );
+
+/**
+ * Formats a VirtualType as a string for display.
+ */
+export const formatVirtualType = (
+  name: string,
+  vt: VirtualType,
+): string =>
+  pipe(
+    isSome(vt.optional)
+      ? vt.optional.content
+      : true,
+    (isOptional) =>
+      pipe(
+        isSome(vt.description)
+          ? ` (${vt.description.content.content})`
+          : "",
+        (description) =>
+          `${name}: ${vt.type.content}${isOptional ? "?" : ""}${description}`,
+      ),
   );
