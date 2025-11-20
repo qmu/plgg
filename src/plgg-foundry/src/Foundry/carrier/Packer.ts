@@ -4,6 +4,8 @@ import {
   Str,
   Option,
   KebabCase,
+  Box,
+  newBox,
   cast,
   forProp,
   forOptionProp,
@@ -21,18 +23,29 @@ export type Packer = Obj<{
   description: Option<Str>;
 }>;
 
-export type PackerSpec = Obj<{
-  name: string;
-  processedBy: string;
-  description?: string;
-}>;
+export type PackerSpec = Box<
+  "PackerSpec",
+  Obj<{
+    name: string;
+    processedBy: string;
+    description?: string;
+  }>
+>;
+
+/**
+ * Creates a new PackerSpec with type-safe content.
+ */
+export const newPackerSpec = (
+  spec: PackerSpec["content"],
+): PackerSpec =>
+  newBox("PackerSpec")<PackerSpec["content"]>(spec);
 
 /**
  * Validates and casts a PackerSpec to Packer.
  */
 export const asPacker = (value: PackerSpec) =>
   cast(
-    value,
+    value.content,
     forProp("name", asStr),
     forProp("processedBy", asKebabCase),
     forOptionProp("description", asStr),

@@ -6,6 +6,7 @@ import {
   newFoundrySpec,
   newProcessorSpec,
   newSwitcherSpec,
+  newPackerSpec,
 } from "plgg-foundry/index";
 
 /**
@@ -53,10 +54,10 @@ test("asFoundrySpec validation - valid foundry", () => {
         }),
       ],
       packers: [
-        {
+        newPackerSpec({
           name: "testResult",
           processedBy: "test-processor",
-        },
+        }),
       ],
     });
 

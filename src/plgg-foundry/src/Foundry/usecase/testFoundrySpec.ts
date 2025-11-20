@@ -3,6 +3,7 @@ import {
   newFoundrySpec,
   newProcessorSpec,
   newSwitcherSpec,
+  newPackerSpec,
 } from "plgg-foundry/index";
 
 export const newTestFoundrySpec = (
@@ -148,17 +149,17 @@ export const newTestFoundrySpec = (
       }),
     ],
     packers: [
-      {
+      newPackerSpec({
         name: "mainImage",
         processedBy: "gen-main",
-      },
-      {
+      }),
+      newPackerSpec({
         name: "spreadImages",
         processedBy: "gen-spread",
-      },
-      {
+      }),
+      newPackerSpec({
         name: "plannedDescription",
         processedBy: "plan",
-      },
+      }),
     ],
   });
