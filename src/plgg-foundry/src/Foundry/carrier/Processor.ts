@@ -35,9 +35,7 @@ export type Processor = Readonly<{
   arguments: Option<
     Dict<VariableName, VirtualType>
   >;
-  returns: Option<
-    Dict<VariableName, VirtualType>
-  >;
+  returns: Dict<VariableName, VirtualType>;
   process: (
     medium: Medium,
   ) => PossiblyPromise<Dict<VariableName, Datum>>;
@@ -49,7 +47,7 @@ export type ProcessorSpec = Box<
     name: string;
     description: string;
     arguments?: Dict<VariableName, VirtualTypeSpec>;
-    returns?: Dict<VariableName, VirtualTypeSpec>;
+    returns: Dict<VariableName, VirtualTypeSpec>;
     process: (
       medium: Medium,
     ) => PossiblyPromise<Dict<VariableName, Datum>>;
@@ -70,10 +68,7 @@ export const asProcessor = (
       "arguments",
       asDictOf(asVirtualType),
     ),
-    forOptionProp(
-      "returns",
-      asDictOf(asVirtualType),
-    ),
+    forProp("returns", asDictOf(asVirtualType)),
     forProp("process", asFunc),
   );
 
@@ -131,12 +126,6 @@ export const explainProcessor = (
         .join(", ")
     : "Any"
 }
-- Returns: ${
-  isSome(processor.returns)
-    ? Object.entries(processor.returns.content)
-        .map(([name, vt]) =>
-          formatVirtualType(name, vt),
-        )
-        .join(", ")
-    : "Any"
-}`;
+- Returns: ${Object.entries(processor.returns)
+  .map(([name, vt]) => formatVirtualType(name, vt))
+  .join(", ")}`;

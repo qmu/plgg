@@ -6,7 +6,6 @@ import {
   newErr,
   isOk,
   tryCatch,
-  isSome,
   conclude,
   isObj,
 } from "plgg";
@@ -213,16 +212,12 @@ const execSwitch = async ({
 
   const newEnvEntries: Record<Address, Param> =
     {};
-  if (
-    isSome(returnTypes) &&
-    isObj(returnedValue)
-  ) {
+  if (isObj(returnedValue)) {
     // Map each variable name to its register address
     for (const [varName, addr] of Object.entries(
       outputs,
     )) {
-      const virtualType =
-        returnTypes.content[varName];
+      const virtualType = returnTypes[varName];
       const varValue = returnedValue[varName];
       if (
         virtualType &&
@@ -308,16 +303,12 @@ const execProcess = async ({
 
   const newEnvEntries: Record<Address, Param> =
     {};
-  if (
-    isSome(returnTypes) &&
-    isObj(returnedValue)
-  ) {
+  if (isObj(returnedValue)) {
     // Map each variable name to its register address
     for (const [varName, addr] of Object.entries(
       op.output,
     )) {
-      const virtualType =
-        returnTypes.content[varName];
+      const virtualType = returnTypes[varName];
       const varValue = returnedValue[varName];
       if (
         virtualType &&

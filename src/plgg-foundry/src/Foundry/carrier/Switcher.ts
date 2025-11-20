@@ -27,7 +27,7 @@ import {
 } from "plgg-foundry/index";
 
 /**
- * Function that evaluates a condition and returns boolean with optional data for each branch.
+ * Function that evaluates a condition and returns boolean with data for each branch.
  */
 export type Switcher = Readonly<{
   name: KebabCase;
@@ -35,11 +35,13 @@ export type Switcher = Readonly<{
   arguments: Option<
     Dict<VariableName, VirtualType>
   >;
-  returnsWhenTrue: Option<
-    Dict<VariableName, VirtualType>
+  returnsWhenTrue: Dict<
+    VariableName,
+    VirtualType
   >;
-  returnsWhenFalse: Option<
-    Dict<VariableName, VirtualType>
+  returnsWhenFalse: Dict<
+    VariableName,
+    VirtualType
   >;
   check: (
     medium: Medium,
@@ -54,11 +56,11 @@ export type SwitcherSpec = Box<
     name: string;
     description: string;
     arguments?: Dict<VariableName, VirtualTypeSpec>;
-    returnsWhenTrue?: Dict<
+    returnsWhenTrue: Dict<
       VariableName,
       VirtualTypeSpec
     >;
-    returnsWhenFalse?: Dict<
+    returnsWhenFalse: Dict<
       VariableName,
       VirtualTypeSpec
     >;
@@ -119,11 +121,11 @@ export const asSwitcher = (value: SwitcherSpec) =>
       "arguments",
       asDictOf(asVirtualType),
     ),
-    forOptionProp(
+    forProp(
       "returnsWhenTrue",
       asDictOf(asVirtualType),
     ),
-    forOptionProp(
+    forProp(
       "returnsWhenFalse",
       asDictOf(asVirtualType),
     ),
@@ -158,25 +160,13 @@ export const explainSwitcher = (
           .join(", ")
       : "Any"
   }
-- Returns When True: ${
-    isSome(switcher.returnsWhenTrue)
-      ? Object.entries(
-          switcher.returnsWhenTrue.content,
-        )
-          .map(([name, vt]) =>
-            formatVirtualType(name, vt),
-          )
-          .join(", ")
-      : "Any"
-  }
-- Returns When False: ${
-    isSome(switcher.returnsWhenFalse)
-      ? Object.entries(
-          switcher.returnsWhenFalse.content,
-        )
-          .map(([name, vt]) =>
-            formatVirtualType(name, vt),
-          )
-          .join(", ")
-      : "Any"
-  }`;
+- Returns When True: ${Object.entries(
+    switcher.returnsWhenTrue,
+  )
+    .map(([name, vt]) => formatVirtualType(name, vt))
+    .join(", ")}
+- Returns When False: ${Object.entries(
+    switcher.returnsWhenFalse,
+  )
+    .map(([name, vt]) => formatVirtualType(name, vt))
+    .join(", ")}`;
