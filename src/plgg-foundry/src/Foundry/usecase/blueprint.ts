@@ -7,6 +7,8 @@ import {
   explainFoundry,
   explainOrder,
   extractOpcodes,
+  isProcessor,
+  isSwitcher,
 } from "plgg-foundry/index";
 import { generateJson } from "plgg-foundry/Foundry/vendor/OpenAI";
 
@@ -20,10 +22,12 @@ export const blueprint =
   ): Promise<Result<Alignment, Error>> => {
     // Extract available opcodes for enum constraints
     const processorOpcodes = extractOpcodes(
-      foundry.processors,
+      foundry.apparatuses,
+      isProcessor,
     );
     const switcherOpcodes = extractOpcodes(
-      foundry.switchers ?? [],
+      foundry.apparatuses,
+      isSwitcher,
     );
     const allOpcodes = [
       ...processorOpcodes,
@@ -47,12 +51,12 @@ There are 4 operation types:
 
 ## Foundry
 
-The Foundry provides functions for 'process' and 'switch' operations:
-- 'processors': Functions used in process operations
-- 'switchers': Functions used in switch operations
-- 'packers': Processor definitions with output key names
+The Foundry provides apparatuses for 'process' and 'switch' operations:
+- 'processors': Apparatuses that execute processing functions in process operations
+- 'switchers': Apparatuses that evaluate conditions in switch operations
+- 'packers': Apparatuses that define processor output specifications
 
-## Available Foundry Functions
+## Available Foundry Apparatuses
 
 \`\`\`
 ${explainFoundry(foundry)}

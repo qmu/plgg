@@ -13,7 +13,7 @@ export const newTestFoundrySpec = (
     apiKey,
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
-    processors: [
+    apparatuses: [
       newProcessorSpec({
         name: "plan",
         description:
@@ -109,8 +109,6 @@ export const newTestFoundrySpec = (
           };
         },
       }),
-    ],
-    switchers: [
       newSwitcherSpec({
         name: "check-validity",
         description:
@@ -147,8 +145,6 @@ export const newTestFoundrySpec = (
           ];
         },
       }),
-    ],
-    packers: [
       newPackerSpec({
         name: "mainImage",
         processedBy: "gen-main",
