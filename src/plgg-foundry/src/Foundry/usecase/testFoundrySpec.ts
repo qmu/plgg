@@ -2,6 +2,7 @@ import { isBin, isVec } from "plgg";
 import {
   newFoundrySpec,
   newProcessorSpec,
+  newSwitcherSpec,
 } from "plgg-foundry/index";
 
 export const newTestFoundrySpec = (
@@ -109,7 +110,7 @@ export const newTestFoundrySpec = (
       }),
     ],
     switchers: [
-      {
+      newSwitcherSpec({
         name: "check-validity",
         description:
           "Checks for inappropriate content in images, if invalid go back to former step",
@@ -144,7 +145,7 @@ export const newTestFoundrySpec = (
                 },
           ];
         },
-      },
+      }),
     ],
     packers: [
       {

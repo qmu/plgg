@@ -6,6 +6,8 @@ import {
   PossiblyPromise,
   Datum,
   Dict,
+  Box,
+  newBox,
   cast,
   forProp,
   forOptionProp,
@@ -46,31 +48,44 @@ export type Switcher = Readonly<{
   >;
 }>;
 
-export type SwitcherSpec = Readonly<{
-  name: string;
-  description: string;
-  arguments?: Dict<VariableName, VirtualTypeSpec>;
-  returnsWhenTrue?: Dict<
-    VariableName,
-    VirtualTypeSpec
-  >;
-  returnsWhenFalse?: Dict<
-    VariableName,
-    VirtualTypeSpec
-  >;
-  check: (
-    medium: Medium,
-  ) => PossiblyPromise<
-    [boolean, Dict<VariableName, Datum>]
-  >;
-}>;
+export type SwitcherSpec = Box<
+  "SwitcherSpec",
+  Readonly<{
+    name: string;
+    description: string;
+    arguments?: Dict<VariableName, VirtualTypeSpec>;
+    returnsWhenTrue?: Dict<
+      VariableName,
+      VirtualTypeSpec
+    >;
+    returnsWhenFalse?: Dict<
+      VariableName,
+      VirtualTypeSpec
+    >;
+    check: (
+      medium: Medium,
+    ) => PossiblyPromise<
+      [boolean, Dict<VariableName, Datum>]
+    >;
+  }>
+>;
+
+/**
+ * Creates a new SwitcherSpec with type-safe content.
+ */
+export const newSwitcherSpec = (
+  spec: SwitcherSpec["content"],
+): SwitcherSpec =>
+  newBox("SwitcherSpec")<SwitcherSpec["content"]>(
+    spec,
+  );
 
 /**
  * Validates and casts a SwitcherSpec to Switcher.
  */
 export const asSwitcher = (value: SwitcherSpec) =>
   cast(
-    value,
+    value.content,
     forProp("name", asKebabCase),
     forProp("description", asStr),
     forOptionProp(

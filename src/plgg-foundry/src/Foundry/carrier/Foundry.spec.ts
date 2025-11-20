@@ -5,6 +5,7 @@ import {
   asFoundry,
   newFoundrySpec,
   newProcessorSpec,
+  newSwitcherSpec,
 } from "plgg-foundry/index";
 
 /**
@@ -31,7 +32,7 @@ test("asFoundrySpec validation - valid foundry", () => {
         }),
       ],
       switchers: [
-        {
+        newSwitcherSpec({
           name: "test-switcher",
           description: "A test switcher",
           arguments: {
@@ -49,7 +50,7 @@ test("asFoundrySpec validation - valid foundry", () => {
               result: "test-result",
             },
           ],
-        },
+        }),
       ],
       packers: [
         {
@@ -133,7 +134,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
       }),
     ],
     switchers: [
-      {
+      newSwitcherSpec({
         name: "switcher-1",
         description: "First switcher",
         arguments: {
@@ -151,8 +152,8 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
             result: "test-result",
           },
         ],
-      },
-      {
+      }),
+      newSwitcherSpec({
         name: "switcher-2",
         description: "Second switcher",
         arguments: {
@@ -168,7 +169,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
           false,
           { error: "error" },
         ],
-      },
+      }),
     ],
     packers: [],
   });
