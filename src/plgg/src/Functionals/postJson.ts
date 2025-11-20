@@ -28,7 +28,7 @@ export const postJson =
     if (!res.ok) {
       return newErr(
         new Error(
-          `OpenAI API error! status: ${res.status}, body: ${await res.text()}`,
+          `HTTP Error status: ${res.status}, body: ${await res.text()}`,
         ),
       );
     }
