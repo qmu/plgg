@@ -1,7 +1,7 @@
 import { test, assert } from "vitest";
 import { pipe, isErr, isOk } from "plgg";
 import { FoundrySpec } from "plgg-foundry/index";
-import { plggFoundry } from "plgg-foundry/Foundry/usecase";
+import { runFoundry } from "plgg-foundry/Foundry/usecase";
 import { newTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("Run Character Image Generation", async () => {
@@ -13,7 +13,7 @@ test.skip("Run Character Image Generation", async () => {
     return;
   }
 
-  const foundrySpec: FoundrySpec =
+  const spec: FoundrySpec =
     newTestFoundrySpec(apiKey);
 
   const result = await pipe(
@@ -21,7 +21,7 @@ test.skip("Run Character Image Generation", async () => {
       prompt:
         "A fantasy character with a sword and shield",
     },
-    plggFoundry(foundrySpec),
+    runFoundry(spec),
   );
 
   if (isErr(result)) {

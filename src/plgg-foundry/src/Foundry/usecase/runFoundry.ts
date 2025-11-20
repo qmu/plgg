@@ -19,7 +19,7 @@ import {
  *
  * Returns final medium containing alignment and output parameters.
  */
-export const plggFoundry =
+export const runFoundry =
   (foundrySpec: FoundrySpec) =>
   async (orderSpec: OrderSpec) =>
     proc(foundrySpec, asFoundry, (foundry) =>

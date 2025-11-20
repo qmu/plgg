@@ -147,11 +147,7 @@ export const newTestFoundrySpec = (
       }),
       newPackerSpec({
         mainImage: { type: "image[]" },
-      }),
-      newPackerSpec({
         spreadImages: { type: "image[]" },
-      }),
-      newPackerSpec({
         plannedDescription: { type: "string" },
       }),
     ],
