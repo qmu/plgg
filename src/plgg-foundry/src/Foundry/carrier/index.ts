@@ -1,3 +1,4 @@
+export * from "plgg-foundry/Foundry/carrier/Apparatus";
 export * from "plgg-foundry/Foundry/carrier/Env";
 export * from "plgg-foundry/Foundry/carrier/Foundry";
 export * from "plgg-foundry/Foundry/carrier/NameTable";

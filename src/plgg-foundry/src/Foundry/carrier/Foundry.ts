@@ -10,32 +10,28 @@ import {
   asReadonlyArray,
   find,
   pipe,
+  filter,
 } from "plgg";
 import {
-  ProcessorSpec,
+  Apparatus,
+  ApparatusSpec,
   Processor,
-  SwitcherSpec,
   Switcher,
-  PackerSpec,
-  Packer,
-  asProcessor,
-  asSwitcher,
-  asPacker,
-  explainProcessor,
-  explainSwitcher,
-  explainPacker,
+  asApparatus,
+  isProcessor,
+  isSwitcher,
+  isPacker,
+  explainApparatus,
 } from "plgg-foundry/index";
 
 /**
- * Factory containing available processors, switchers, and packers for alignment execution.
+ * Factory containing available apparatuses (processors, switchers, and packers) for alignment execution.
  */
 export type Foundry = Readonly<{
   description: Str;
   apiKey: Str;
   maxOperationLimit: number;
-  processors: ReadonlyArray<Processor>;
-  switchers?: ReadonlyArray<Switcher>;
-  packers: ReadonlyArray<Packer>;
+  apparatuses: ReadonlyArray<Apparatus>;
 }>;
 
 export type FoundrySpec = Box<
@@ -44,9 +40,7 @@ export type FoundrySpec = Box<
     apiKey: string;
     description: string;
     maxOperationLimit?: number;
-    processors: ReadonlyArray<ProcessorSpec>;
-    switchers?: ReadonlyArray<SwitcherSpec>;
-    packers: ReadonlyArray<PackerSpec>;
+    apparatuses: ReadonlyArray<ApparatusSpec>;
   }>
 >;
 
@@ -61,27 +55,20 @@ export const newFoundrySpec = (
   );
 
 /**
- * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10 and empty switchers array.
+ * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10.
  */
-export const asFoundry = (value: FoundrySpec) =>
+export const asFoundry = (spec: FoundrySpec) =>
   cast(
     {
-      ...value.content,
-      maxOperationLimit:
-        value.content.maxOperationLimit ?? 10,
-      switchers: value.content.switchers ?? [],
+      maxOperationLimit: 10,
+      ...(spec?.content ?? {}),
     },
     forProp("apiKey", asStr),
     forProp("description", asStr),
     forProp(
-      "processors",
-      asReadonlyArray(asProcessor),
+      "apparatuses",
+      asReadonlyArray(asApparatus),
     ),
-    forProp(
-      "switchers",
-      asReadonlyArray(asSwitcher),
-    ),
-    forProp("packers", asReadonlyArray(asPacker)),
   );
 
 /**
@@ -95,14 +82,15 @@ export const foundrySpecCastable: Castable<
 };
 
 /**
- * Finds a switcher by opcode in the foundry.
+ * Finds a switcher by opcode in the foundry apparatuses.
  */
 export const findSwitcher = (
   foundry: Foundry,
   opcode: string,
 ): Result<Switcher, Error> =>
   pipe(
-    foundry.switchers ?? [],
+    foundry.apparatuses,
+    filter(isSwitcher),
     find<Switcher>({
       predicate: (s) => s.name.content === opcode,
       errMessage: `No switcher found for opcode "${opcode}"`,
@@ -110,14 +98,15 @@ export const findSwitcher = (
   );
 
 /**
- * Finds a processor by opcode in the foundry.
+ * Finds a processor by opcode in the foundry apparatuses.
  */
 export const findProcessor = (
   foundry: Foundry,
   opcode: string,
 ): Result<Processor, Error> =>
   pipe(
-    foundry.processors,
+    foundry.apparatuses,
+    filter(isProcessor),
     find<Processor>({
       predicate: (p) => p.name.content === opcode,
       errMessage: `No processor found for opcode "${opcode}"`,
@@ -129,50 +118,66 @@ export const findProcessor = (
  */
 export const explainFoundry = (
   foundry: Foundry,
-) => `## 1. Foundry Description
+) => {
+  const processors = pipe(
+    foundry.apparatuses,
+    filter(isProcessor),
+  );
+  const switchers = pipe(
+    foundry.apparatuses,
+    filter(isSwitcher),
+  );
+  const packers = pipe(
+    foundry.apparatuses,
+    filter(isPacker),
+  );
+
+  return `## 1. Foundry Description
 
 ${foundry.description.content}
 
 ## 2. Processors
 
-${foundry.processors
+${processors
   .map(
     (a, i) => `### 2-${i + 1}. ${a.name.content}
 
-${explainProcessor(a)}
+${explainApparatus(a)}
 `,
   )
   .join("\n")}
 
 ## 3. Switchers
 
-${(foundry.switchers ?? [])
+${switchers
   .map(
     (a, i) => `### 3-${i + 1}. ${a.name.content}
 
-${explainSwitcher(a)}
+${explainApparatus(a)}
 `,
   )
   .join("\n")}
 
 ## 4. Packers
 
-${foundry.packers
+${packers
   .map(
     (a, i) => `### 4-${i + 1}. ${a.name.content}
 
-${explainPacker(a)}
+${explainApparatus(a)}
 `,
   )
   .join("\n")}
 `;
+};
 
 /**
- * Extracts opcode names from items containing name.content property.
+ * Extracts opcode names from apparatuses of a specific type.
  */
-export const extractOpcodes = <
-  T extends { name: { content: string } },
->(
-  items: ReadonlyArray<T>,
+export const extractOpcodes = (
+  apparatuses: ReadonlyArray<Apparatus>,
+  filter: (apparatus: Apparatus) => boolean,
 ): ReadonlyArray<string> =>
-  items.map((item) => item.name.content);
+  apparatuses
+    .filter(filter)
+    .map((item) => item.name.content);

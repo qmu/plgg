@@ -1,5 +1,5 @@
 import { test, expect, assert } from "vitest";
-import { isOk, isErr } from "plgg";
+import { isOk, isErr, filter, pipe } from "plgg";
 import {
   FoundrySpec,
   asFoundry,
@@ -7,6 +7,8 @@ import {
   newProcessorSpec,
   newSwitcherSpec,
   newPackerSpec,
+  isProcessor,
+  isSwitcher,
 } from "plgg-foundry/index";
 
 /**
@@ -17,7 +19,7 @@ test("asFoundrySpec validation - valid foundry", () => {
     newFoundrySpec({
       apiKey: "test-api-key",
       description: "Test foundry description",
-      processors: [
+      apparatuses: [
         newProcessorSpec({
           name: "test-processor",
           description: "A test processor",
@@ -31,8 +33,6 @@ test("asFoundrySpec validation - valid foundry", () => {
             result: "test-result",
           }),
         }),
-      ],
-      switchers: [
         newSwitcherSpec({
           name: "test-switcher",
           description: "A test switcher",
@@ -52,8 +52,6 @@ test("asFoundrySpec validation - valid foundry", () => {
             },
           ],
         }),
-      ],
-      packers: [
         newPackerSpec({
           name: "testResult",
           processedBy: "test-processor",
@@ -63,38 +61,39 @@ test("asFoundrySpec validation - valid foundry", () => {
 
   const result = asFoundry(validFoundry);
   assert(isOk(result));
-  expect(result.content.processors).toHaveLength(
-    1,
+  const foundry = result.content;
+  expect(foundry.apparatuses).toHaveLength(3);
+  const processors = pipe(
+    foundry.apparatuses,
+    filter(isProcessor),
   );
-  expect(result.content.switchers).toHaveLength(
-    1,
+  const switchers = pipe(
+    foundry.apparatuses,
+    filter(isSwitcher),
   );
-  expect(
-    result.content.processors[0]?.name.content,
-  ).toBe("test-processor");
-  expect(
-    result.content.switchers[0]?.name.content,
-  ).toBe("test-switcher");
+  expect(processors).toHaveLength(1);
+  expect(switchers).toHaveLength(1);
+  expect(processors[0]?.name.content).toBe(
+    "test-processor",
+  );
+  expect(switchers[0]?.name.content).toBe(
+    "test-switcher",
+  );
 });
 
 /**
- * Tests asFoundrySpec validation with empty processors and switchers arrays.
+ * Tests asFoundrySpec validation with empty apparatuses array.
  */
-test("asFoundrySpec validation - empty processors and switchers", () => {
+test("asFoundrySpec validation - empty apparatuses", () => {
   const foundryArg: FoundrySpec = newFoundrySpec({
     apiKey: "test-api-key",
     description: "Empty foundry",
-    processors: [],
-    switchers: [],
-    packers: [],
+    apparatuses: [],
   });
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));
-  expect(result.content.processors).toHaveLength(
-    0,
-  );
-  expect(result.content.switchers).toHaveLength(
+  expect(result.content.apparatuses).toHaveLength(
     0,
   );
 });
@@ -102,11 +101,11 @@ test("asFoundrySpec validation - empty processors and switchers", () => {
 /**
  * Tests asFoundrySpec validation with multiple processors and switchers.
  */
-test("asFoundrySpec validation - multiple processors and switchers", () => {
+test("asFoundrySpec validation - multiple apparatuses", () => {
   const foundryArg: FoundrySpec = newFoundrySpec({
     apiKey: "test-api-key",
     description: "Multi-component foundry",
-    processors: [
+    apparatuses: [
       newProcessorSpec({
         name: "processor-1",
         description: "First processor",
@@ -133,8 +132,6 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
           result: "result",
         }),
       }),
-    ],
-    switchers: [
       newSwitcherSpec({
         name: "switcher-1",
         description: "First switcher",
@@ -172,17 +169,23 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
         ],
       }),
     ],
-    packers: [],
   });
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));
-  expect(result.content.processors).toHaveLength(
-    2,
+  expect(result.content.apparatuses).toHaveLength(
+    4,
   );
-  expect(result.content.switchers).toHaveLength(
-    2,
+  const processors = pipe(
+    result.content.apparatuses,
+    filter(isProcessor),
   );
+  const switchers = pipe(
+    result.content.apparatuses,
+    filter(isSwitcher),
+  );
+  expect(processors).toHaveLength(2);
+  expect(switchers).toHaveLength(2);
 });
 
 /**
@@ -190,8 +193,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
  */
 test("asFoundrySpec validation - missing description", () => {
   const invalidFoundry = {
-    processors: [],
-    switchers: [],
+    apparatuses: [],
   };
 
   const result = asFoundry(invalidFoundry as any);
@@ -202,12 +204,11 @@ test("asFoundrySpec validation - missing description", () => {
 });
 
 /**
- * Tests asFoundrySpec validation failure when processors is missing.
+ * Tests asFoundrySpec validation failure when apparatuses is missing.
  */
-test("asFoundrySpec validation - missing processors", () => {
+test("asFoundrySpec validation - missing apparatuses", () => {
   const invalidFoundry = {
     description: "Test foundry",
-    switchers: [],
   };
 
   const result = asFoundry(invalidFoundry as any);
@@ -218,56 +219,16 @@ test("asFoundrySpec validation - missing processors", () => {
 });
 
 /**
- * Tests asFoundrySpec validation failure when switchers is missing.
+ * Tests asFoundrySpec validation failure with invalid apparatus structure.
  */
-test("asFoundrySpec validation - missing switchers", () => {
-  const invalidFoundry = {
-    description: "Test foundry",
-    processors: [],
-  };
-
-  const result = asFoundry(invalidFoundry as any);
-  assert(isErr(result));
-  expect(result.content.message).toContain(
-    "Cast failed",
-  );
-});
-
-/**
- * Tests asFoundrySpec validation failure with invalid processor structure.
- */
-test("asFoundrySpec validation - invalid processor", () => {
+test("asFoundrySpec validation - invalid apparatus", () => {
   const foundryArg = {
     description: "Test foundry",
-    processors: [
+    apparatuses: [
       {
         id: "test",
         description: "test",
-        // missing inputType, outputType, and process
-      },
-    ],
-    switchers: [],
-  };
-
-  const result = asFoundry(foundryArg as any);
-  assert(isErr(result));
-  expect(result.content.message).toContain(
-    "Cast failed",
-  );
-});
-
-/**
- * Tests asFoundrySpec validation failure with invalid switcher structure.
- */
-test("asFoundrySpec validation - invalid switcher", () => {
-  const foundryArg = {
-    description: "Test foundry",
-    processors: [],
-    switchers: [
-      {
-        id: "test",
-        description: "test",
-        // missing input, outputWhenTrue, outputWhenFalse, and check
+        // missing required fields
       },
     ],
   };
@@ -280,30 +241,12 @@ test("asFoundrySpec validation - invalid switcher", () => {
 });
 
 /**
- * Tests asFoundrySpec validation failure when processors is not an array.
+ * Tests asFoundrySpec validation failure when apparatuses is not an array.
  */
-test("asFoundrySpec validation - processors not array", () => {
+test("asFoundrySpec validation - apparatuses not array", () => {
   const invalidFoundry = {
     description: "Test foundry",
-    processors: "not an array",
-    switchers: [],
-  };
-
-  const result = asFoundry(invalidFoundry as any);
-  assert(isErr(result));
-  expect(result.content.message).toContain(
-    "Cast failed",
-  );
-});
-
-/**
- * Tests asFoundrySpec validation failure when switchers is not an array.
- */
-test("asFoundrySpec validation - switchers not array", () => {
-  const invalidFoundry = {
-    description: "Test foundry",
-    processors: [],
-    switchers: "not an array",
+    apparatuses: "not an array",
   };
 
   const result = asFoundry(invalidFoundry as any);
