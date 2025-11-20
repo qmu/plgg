@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isBigInt,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -17,14 +18,23 @@ import {
 export type U128 = Box<"U128", bigint>;
 
 /**
+ * Validates that a value is a valid 128-bit unsigned integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is bigint =>
+  isBigInt(value) &&
+  value >= 0n &&
+  value <=
+    340282366920938463463374607431768211455n;
+
+/**
  * Type guard to check if a value is a U128.
  */
 const is = (value: unknown): value is U128 =>
   isBoxWithTag("U128")(value) &&
-  isBigInt(value.content) &&
-  value.content >= 0n &&
-  value.content <=
-    340282366920938463463374607431768211455n;
+  qualify(value.content);
 
 /**
  * Refinable instance for U128 type guards.
@@ -42,12 +52,14 @@ export const asU128 = (
 ): Result<U128, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not a U128 (tag-content pair with bigint in 128-bit unsigned range)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("U128")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not a U128 (tag-content pair with bigint in 128-bit unsigned range)",
+          }),
+        );
 
 /**
  * Castable instance for U128 safe casting.

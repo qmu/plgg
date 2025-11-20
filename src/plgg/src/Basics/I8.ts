@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isInt,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -16,13 +17,22 @@ import {
 export type I8 = Box<"I8", number>;
 
 /**
+ * Validates that a value is a valid 8-bit signed integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is number =>
+  isInt(value) &&
+  value >= -128 &&
+  value <= 127;
+
+/**
  * Type guard to check if a value is an I8.
  */
 const is = (value: unknown): value is I8 =>
   isBoxWithTag("I8")(value) &&
-  isInt(value.content) &&
-  value.content >= -128 &&
-  value.content <= 127;
+  qualify(value.content);
 
 /**
  * Refinable instance for I8 type guards.
@@ -40,12 +50,14 @@ export const asI8 = (
 ): Result<I8, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not an I8 (tag-content pair with integer -128 to 127)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("I8")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not an I8 (tag-content pair with integer -128 to 127)",
+          }),
+        );
 
 /**
  * Castable instance for I8 safe casting.

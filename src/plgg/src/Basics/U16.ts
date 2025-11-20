@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isInt,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -16,13 +17,22 @@ import {
 export type U16 = Box<"U16", number>;
 
 /**
+ * Validates that a value is a valid 16-bit unsigned integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is number =>
+  isInt(value) &&
+  value >= 0 &&
+  value <= 65535;
+
+/**
  * Type guard to check if a value is a U16.
  */
 const is = (value: unknown): value is U16 =>
   isBoxWithTag("U16")(value) &&
-  isInt(value.content) &&
-  value.content >= 0 &&
-  value.content <= 65535;
+  qualify(value.content);
 
 /**
  * Refinable instance for U16 type guards.
@@ -40,12 +50,14 @@ export const asU16 = (
 ): Result<U16, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not a U16 (tag-content pair with integer 0 to 65535)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("U16")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not a U16 (tag-content pair with integer 0 to 65535)",
+          }),
+        );
 
 /**
  * Castable instance for U16 safe casting.

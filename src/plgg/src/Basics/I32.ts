@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isInt,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -16,13 +17,22 @@ import {
 export type I32 = Box<"I32", number>;
 
 /**
+ * Validates that a value is a valid 32-bit signed integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is number =>
+  isInt(value) &&
+  value >= -2147483648 &&
+  value <= 2147483647;
+
+/**
  * Type guard to check if a value is an I32.
  */
 const is = (value: unknown): value is I32 =>
   isBoxWithTag("I32")(value) &&
-  isInt(value.content) &&
-  value.content >= -2147483648 &&
-  value.content <= 2147483647;
+  qualify(value.content);
 
 /**
  * Refinable instance for I32 type guards.
@@ -40,12 +50,14 @@ export const asI32 = (
 ): Result<I32, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not an I32 (tag-content pair with integer -2147483648 to 2147483647)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("I32")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not an I32 (tag-content pair with integer -2147483648 to 2147483647)",
+          }),
+        );
 
 /**
  * Castable instance for I32 safe casting.

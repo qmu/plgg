@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isBigInt,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -16,13 +17,22 @@ import {
 export type U64 = Box<"U64", bigint>;
 
 /**
+ * Validates that a value is a valid 64-bit unsigned integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is bigint =>
+  isBigInt(value) &&
+  value >= 0n &&
+  value <= 18446744073709551615n;
+
+/**
  * Type guard to check if a value is a U64.
  */
 const is = (value: unknown): value is U64 =>
   isBoxWithTag("U64")(value) &&
-  isBigInt(value.content) &&
-  value.content >= 0n &&
-  value.content <= 18446744073709551615n;
+  qualify(value.content);
 
 /**
  * Refinable instance for U64 type guards.
@@ -40,12 +50,14 @@ export const asU64 = (
 ): Result<U64, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not a U64 (tag-content pair with bigint 0n to 18446744073709551615n)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("U64")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not a U64 (tag-content pair with bigint 0n to 18446744073709551615n)",
+          }),
+        );
 
 /**
  * Castable instance for U64 safe casting.

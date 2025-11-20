@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isNum,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -16,12 +17,20 @@ import {
 export type Float = Box<"Float", number>;
 
 /**
+ * Validates that a value is a valid finite number.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is number =>
+  isNum(value) && isFinite(value);
+
+/**
  * Type guard to check if a value is a Float.
  */
 const is = (value: unknown): value is Float =>
   isBoxWithTag("Float")(value) &&
-  isNum(value.content) &&
-  isFinite(value.content);
+  qualify(value.content);
 
 /**
  * Refinable instance for Float type guards.
@@ -39,12 +48,14 @@ export const asFloat = (
 ): Result<Float, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not a Float (tag-content pair with finite number)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("Float")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not a Float (tag-content pair with finite number)",
+          }),
+        );
 
 /**
  * Castable instance for Float safe casting.

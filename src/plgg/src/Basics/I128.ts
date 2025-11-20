@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isBigInt,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -17,15 +18,24 @@ import {
 export type I128 = Box<"I128", bigint>;
 
 /**
+ * Validates that a value is a valid 128-bit signed integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is bigint =>
+  isBigInt(value) &&
+  value >=
+    -170141183460469231731687303715884105728n &&
+  value <=
+    170141183460469231731687303715884105727n;
+
+/**
  * Type guard to check if a value is an I128.
  */
 const is = (value: unknown): value is I128 =>
   isBoxWithTag("I128")(value) &&
-  isBigInt(value.content) &&
-  value.content >=
-    -170141183460469231731687303715884105728n &&
-  value.content <=
-    170141183460469231731687303715884105727n;
+  qualify(value.content);
 
 /**
  * Refinable instance for I128 type guards.
@@ -43,12 +53,14 @@ export const asI128 = (
 ): Result<I128, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not an I128 (tag-content pair with bigint in 128-bit signed range)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("I128")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not an I128 (tag-content pair with bigint in 128-bit signed range)",
+          }),
+        );
 
 /**
  * Castable instance for I128 safe casting.

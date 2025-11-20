@@ -8,6 +8,7 @@ import {
   newErr,
   isBoxWithTag,
   isBigInt,
+  newBox,
 } from "plgg/index";
 
 /**
@@ -16,13 +17,22 @@ import {
 export type I64 = Box<"I64", bigint>;
 
 /**
+ * Validates that a value is a valid 64-bit signed integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is bigint =>
+  isBigInt(value) &&
+  value >= -9223372036854775808n &&
+  value <= 9223372036854775807n;
+
+/**
  * Type guard to check if a value is an I64.
  */
 const is = (value: unknown): value is I64 =>
   isBoxWithTag("I64")(value) &&
-  isBigInt(value.content) &&
-  value.content >= -9223372036854775808n &&
-  value.content <= 9223372036854775807n;
+  qualify(value.content);
 
 /**
  * Refinable instance for I64 type guards.
@@ -40,12 +50,14 @@ export const asI64 = (
 ): Result<I64, InvalidError> =>
   is(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message:
-            "Value is not an I64 (tag-content pair with bigint -9223372036854775808n to 9223372036854775807n)",
-        }),
-      );
+    : qualify(value)
+      ? newOk(newBox("I64")(value))
+      : newErr(
+          new InvalidError({
+            message:
+              "Value is not an I64 (tag-content pair with bigint -9223372036854775808n to 9223372036854775807n)",
+          }),
+        );
 
 /**
  * Castable instance for I64 safe casting.
