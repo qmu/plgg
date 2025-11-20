@@ -54,7 +54,7 @@ There are 4 operation types:
 The Foundry provides apparatuses for 'process' and 'switch' operations:
 - 'processors': Apparatuses that execute processing functions in process operations
 - 'switchers': Apparatuses that evaluate conditions in switch operations
-- 'packers': Apparatuses that define processor output specifications
+- 'packers': Apparatuses that define egress output field specifications and types
 
 ## Available Foundry Apparatuses
 

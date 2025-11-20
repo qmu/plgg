@@ -48,7 +48,9 @@ const foundrySpec = {
   ],
   switchers: [],
   packers: [
-    { name: "result", processedBy: "analyze-sentiment" }
+    {
+      result: { type: "string" }
+    }
   ]
 };
 
@@ -175,9 +177,15 @@ const foundrySpec = {
   ],
 
   packers: [
-    { name: "mainImage", processedBy: "gen-main" },
-    { name: "spreadImages", processedBy: "gen-spread" },
-    { name: "designPlan", processedBy: "plan" }
+    {
+      mainImage: { type: "image[]" }
+    },
+    {
+      spreadImages: { type: "image[]" }
+    },
+    {
+      designPlan: { type: "string" }
+    }
   ]
 };
 
@@ -339,20 +347,19 @@ type SwitcherSpec = {
 
 ### PackerSpec
 
-Packers declare named outputs produced by processors.
+Packers define the expected output fields and their types for egress operations.
 
 ```typescript
-type PackerSpec = {
-  name: string;           // Output name
-  processedBy: string;    // Processor opcode that generates it
-  description?: string;   // Optional description
-}
+type PackerSpec = Dict<VariableName, VirtualTypeSpec>;
 ```
 
 **Example:**
 
 ```typescript
-{ name: "finalReport", processedBy: "generate-report" }
+{
+  finalReport: { type: "string" },
+  summary: { type: "string" }
+}
 ```
 
 ### OrderSpec

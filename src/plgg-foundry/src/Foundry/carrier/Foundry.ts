@@ -162,7 +162,7 @@ ${explainApparatus(a)}
 
 ${packers
   .map(
-    (a, i) => `### 4-${i + 1}. ${a.name.content}
+    (a, i) => `### 4-${i + 1}. Packer ${i + 1}
 
 ${explainApparatus(a)}
 `,
@@ -173,6 +173,7 @@ ${explainApparatus(a)}
 
 /**
  * Extracts opcode names from apparatuses of a specific type.
+ * Only works for Processors and Switchers which have name fields.
  */
 export const extractOpcodes = (
   apparatuses: ReadonlyArray<Apparatus>,
@@ -180,4 +181,5 @@ export const extractOpcodes = (
 ): ReadonlyArray<string> =>
   apparatuses
     .filter(filter)
+    .filter((item): item is Processor | Switcher => "name" in item)
     .map((item) => item.name.content);
