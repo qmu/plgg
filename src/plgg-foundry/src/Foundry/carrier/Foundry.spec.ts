@@ -3,58 +3,60 @@ import { isOk, isErr } from "plgg";
 import {
   FoundrySpec,
   asFoundry,
+  newFoundrySpec,
 } from "plgg-foundry/index";
 
 /**
  * Tests asFoundrySpec validation with a valid Foundry object.
  */
 test("asFoundrySpec validation - valid foundry", () => {
-  const validFoundry: FoundrySpec = {
-    apiKey: "test-api-key",
-    description: "Test foundry description",
-    processors: [
-      {
-        name: "test-processor",
-        description: "A test processor",
-        arguments: {
-          arg: { type: "string" },
-        },
-        returns: {
-          result: { type: "string" },
-        },
-        process: async () => ({
-          result: "test-result",
-        }),
-      },
-    ],
-    switchers: [
-      {
-        name: "test-switcher",
-        description: "A test switcher",
-        arguments: {
-          arg: { type: "string" },
-        },
-        returnsWhenTrue: {
-          result: { type: "string" },
-        },
-        returnsWhenFalse: {
-          error: { type: "error" },
-        },
-        check: async () => [
-          true,
-          {
-            result: "test-result",
+  const validFoundry: FoundrySpec =
+    newFoundrySpec({
+      apiKey: "test-api-key",
+      description: "Test foundry description",
+      processors: [
+        {
+          name: "test-processor",
+          description: "A test processor",
+          arguments: {
+            arg: { type: "string" },
           },
-        ],
-      },
-    ],
-    packers: [
-      {
-        name: "testResult",
-        processedBy: "test-processor",
-      },
-    ],
-  };
+          returns: {
+            result: { type: "string" },
+          },
+          process: async () => ({
+            result: "test-result",
+          }),
+        },
+      ],
+      switchers: [
+        {
+          name: "test-switcher",
+          description: "A test switcher",
+          arguments: {
+            arg: { type: "string" },
+          },
+          returnsWhenTrue: {
+            result: { type: "string" },
+          },
+          returnsWhenFalse: {
+            error: { type: "error" },
+          },
+          check: async () => [
+            true,
+            {
+              result: "test-result",
+            },
+          ],
+        },
+      ],
+      packers: [
+        {
+          name: "testResult",
+          processedBy: "test-processor",
+        },
+      ],
+    });
 
   const result = asFoundry(validFoundry);
   assert(isOk(result));
@@ -76,13 +78,13 @@ test("asFoundrySpec validation - valid foundry", () => {
  * Tests asFoundrySpec validation with empty processors and switchers arrays.
  */
 test("asFoundrySpec validation - empty processors and switchers", () => {
-  const foundryArg: FoundrySpec = {
+  const foundryArg: FoundrySpec = newFoundrySpec({
     apiKey: "test-api-key",
     description: "Empty foundry",
     processors: [],
     switchers: [],
     packers: [],
-  };
+  });
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));
@@ -98,7 +100,7 @@ test("asFoundrySpec validation - empty processors and switchers", () => {
  * Tests asFoundrySpec validation with multiple processors and switchers.
  */
 test("asFoundrySpec validation - multiple processors and switchers", () => {
-  const foundryArg: FoundrySpec = {
+  const foundryArg: FoundrySpec = newFoundrySpec({
     apiKey: "test-api-key",
     description: "Multi-component foundry",
     processors: [
@@ -168,7 +170,7 @@ test("asFoundrySpec validation - multiple processors and switchers", () => {
       },
     ],
     packers: [],
-  };
+  });
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));

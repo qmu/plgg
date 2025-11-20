@@ -2,6 +2,8 @@ import {
   Str,
   Castable,
   Result,
+  Box,
+  newBox,
   asStr,
   cast,
   forProp,
@@ -36,14 +38,27 @@ export type Foundry = Readonly<{
   packers: ReadonlyArray<Packer>;
 }>;
 
-export type FoundrySpec = Readonly<{
-  apiKey: string;
-  description: string;
-  maxOperationLimit?: number;
-  processors: ReadonlyArray<ProcessorSpec>;
-  switchers?: ReadonlyArray<SwitcherSpec>;
-  packers: ReadonlyArray<PackerSpec>;
-}>;
+export type FoundrySpec = Box<
+  "FoundrySpec",
+  Readonly<{
+    apiKey: string;
+    description: string;
+    maxOperationLimit?: number;
+    processors: ReadonlyArray<ProcessorSpec>;
+    switchers?: ReadonlyArray<SwitcherSpec>;
+    packers: ReadonlyArray<PackerSpec>;
+  }>
+>;
+
+/**
+ * Creates a new FoundrySpec with type-safe content.
+ */
+export const newFoundrySpec = (
+  content: FoundrySpec["content"],
+): FoundrySpec =>
+  newBox("FoundrySpec")<FoundrySpec["content"]>(
+    content,
+  );
 
 /**
  * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10 and empty switchers array.
@@ -51,10 +66,10 @@ export type FoundrySpec = Readonly<{
 export const asFoundry = (value: FoundrySpec) =>
   cast(
     {
-      ...value,
+      ...value.content,
       maxOperationLimit:
-        value.maxOperationLimit ?? 10,
-      switchers: value.switchers ?? [],
+        value.content.maxOperationLimit ?? 10,
+      switchers: value.content.switchers ?? [],
     },
     forProp("apiKey", asStr),
     forProp("description", asStr),
