@@ -1,10 +1,10 @@
 import {
   Result,
   proc,
-  //atProp,
-  //atIndex,
-  //asSoftStr,
-  //jsonDecode,
+  atProp,
+  atIndex,
+  asSoftStr,
+  jsonDecode,
   postJson,
 } from "plgg";
 
@@ -42,4 +42,9 @@ export const generateJsonClaude = async ({
           "structured-outputs-2025-11-13",
       },
     }),
+    atProp("content"),
+    atIndex(0),
+    atProp("text"),
+    asSoftStr,
+    jsonDecode,
   );

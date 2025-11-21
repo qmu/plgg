@@ -2,7 +2,7 @@ import { test, expect } from "vitest";
 import { isOk } from "plgg";
 import { generateJsonClaude } from "plgg-foundry/Foundry/vendor/Claude";
 
-test.skip("Claude API invocation works", async () => {
+test("Claude API invocation works", async () => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.log(
