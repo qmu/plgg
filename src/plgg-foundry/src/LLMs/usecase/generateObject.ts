@@ -1,4 +1,4 @@
-import { Result, match } from "plgg";
+import { PromisedResult, match } from "plgg";
 import {
   Provider,
   patternOpenAI,
@@ -19,7 +19,7 @@ export const generateObject = ({
   systemPrompt?: string;
   userPrompt: string;
   schema: Record<string, unknown>;
-}): Promise<Result<unknown, Error>> =>
+}): PromisedResult<unknown, Error> =>
   match(
     provider,
     [

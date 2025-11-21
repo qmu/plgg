@@ -1,5 +1,5 @@
 import {
-  Result,
+  PromisedResult,
   proc,
   atProp,
   atIndex,
@@ -23,7 +23,7 @@ export const reqObjectGemini = ({
   instructions: string;
   input: string;
   schema: any;
-}): Promise<Result<unknown, Error>> =>
+}): PromisedResult<unknown, Error> =>
   proc(
     {
       system_instruction: {

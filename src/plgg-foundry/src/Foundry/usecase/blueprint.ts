@@ -1,4 +1,4 @@
-import { Result, proc } from "plgg";
+import { PromisedResult, proc } from "plgg";
 import {
   Alignment,
   Foundry,
@@ -20,7 +20,7 @@ export const blueprint =
   (foundry: Foundry) =>
   async (
     order: Order,
-  ): Promise<Result<Alignment, Error>> => {
+  ): PromisedResult<Alignment, Error> => {
     // Extract available opcodes for enum constraints
     const processorOpcodes = extractOpcodes(
       foundry.apparatuses,

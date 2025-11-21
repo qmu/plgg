@@ -1,5 +1,6 @@
 import {
   Result,
+  PromisedResult,
   proc,
   pipe,
   newOk,
@@ -43,7 +44,7 @@ export const operate =
   (foundry: Foundry) =>
   (
     alignment: Alignment,
-  ): Promise<Result<Medium, Error>> =>
+  ): PromisedResult<Medium, Error> =>
     proc(
       alignment,
       findIngressOp,
@@ -62,7 +63,7 @@ const execute =
   (ctx: OperationContext) =>
   async (
     op: Operation,
-  ): Promise<Result<Medium, Error>> => {
+  ): PromisedResult<Medium, Error> => {
     if (
       ctx.operationCount >=
       ctx.foundry.maxOperationLimit
@@ -100,7 +101,7 @@ const execIngress = async ({
 }: {
   op: IngressOperation;
   ctx: OperationContext;
-}): Promise<Result<Medium, Error>> =>
+}): PromisedResult<Medium, Error> =>
   proc(
     {
       name: op.promptAddr,
@@ -151,7 +152,7 @@ const execSwitch = async ({
 }: {
   op: SwitchOperation;
   ctx: OperationContext;
-}): Promise<Result<Medium, Error>> => {
+}): PromisedResult<Medium, Error> => {
   const { foundry, alignment, env } = ctx;
 
   // Step 1: Find the switcher function by opcode
@@ -256,8 +257,8 @@ const execProcess = async ({
 }: {
   op: ProcessOperation;
   ctx: OperationContext;
-}): Promise<Result<Medium, Error>> => {
-  const { foundry, alignment, env} = ctx;
+}): PromisedResult<Medium, Error> => {
+  const { foundry, alignment, env } = ctx;
 
   // Step 1: Find the processor function by opcode
   const processorResult = findProcessor(
@@ -351,7 +352,7 @@ const execEgress = async ({
 }: {
   op: EgressOperation;
   ctx: OperationContext;
-}): Promise<Result<Medium, Error>> => {
+}): PromisedResult<Medium, Error> => {
   const { env, alignment, foundry } = ctx;
 
   // Step 1: Load output values from registers specified in result mapping
@@ -380,23 +381,31 @@ const execEgress = async ({
   );
 
   for (const packer of packers) {
-    for (const [outputName, expectedType] of Object.entries(packer)) {
+    for (const [
+      outputName,
+      expectedType,
+    ] of Object.entries(packer)) {
       // Check if this output name exists in the egress result mapping
       const variableAddr = op.result[outputName];
-      if (variableAddr !== undefined && typeof variableAddr === "string") {
+      if (
+        variableAddr !== undefined &&
+        typeof variableAddr === "string"
+      ) {
         // Find the param at this address
         const param = params[variableAddr];
         if (param) {
           // Validate that the param type matches the expected type
           const actualType = param.type;
-          const actualTypeStr = actualType.type?.content ?? "";
-          const expectedTypeStr = expectedType.type?.content ?? "";
+          const actualTypeStr =
+            actualType.type?.content ?? "";
+          const expectedTypeStr =
+            expectedType.type?.content ?? "";
 
           if (actualTypeStr !== expectedTypeStr) {
             return newErr(
               new Error(
-                `Type mismatch for output "${outputName}": expected ${expectedTypeStr}, got ${actualTypeStr}`
-              )
+                `Type mismatch for output "${outputName}": expected ${expectedTypeStr}, got ${actualTypeStr}`,
+              ),
             );
           }
         }

@@ -1,5 +1,5 @@
 import {
-  Result,
+  PromisedResult,
   proc,
   atProp,
   atIndex,
@@ -24,7 +24,7 @@ export const reqObjectClaude = ({
   input: string;
   schema: any;
   maxTokens?: number;
-}): Promise<Result<unknown, Error>> =>
+}): PromisedResult<unknown, Error> =>
   proc(
     {
       model,

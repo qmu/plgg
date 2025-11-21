@@ -1,5 +1,5 @@
 import {
-  Result,
+  PromisedResult,
   proc,
   atProp,
   atIndex,
@@ -22,7 +22,7 @@ export const reqObjectGPT = ({
   instructions: string;
   input: string;
   schema: any;
-}): Promise<Result<unknown, Error>> =>
+}): PromisedResult<unknown, Error> =>
   proc(
     {
       model,
