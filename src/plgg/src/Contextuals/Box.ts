@@ -22,7 +22,7 @@ declare module "plgg/Abstracts/Principals/Kind" {
  */
 export type Box<TAG extends string, CONTENT> = {
   __tag: TAG;
-  content: CONTENT;
+  content: Readonly<CONTENT>;
 };
 
 /**
