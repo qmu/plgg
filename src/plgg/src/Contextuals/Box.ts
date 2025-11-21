@@ -20,10 +20,13 @@ declare module "plgg/Abstracts/Principals/Kind" {
 /**
  * A variant with both a tag and body.
  */
-export type Box<TAG extends string, CONTENT> = {
+export type Box<
+  TAG extends string,
+  CONTENT,
+> = Readonly<{
   __tag: TAG;
-  content: Readonly<CONTENT>;
-};
+  content: CONTENT;
+}>;
 
 /**
  * Type predicate to check if a type is a parametric variant.
