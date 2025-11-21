@@ -26,7 +26,7 @@ export const reqObjectGPT = ({
       model,
       input,
       reasoning: {
-        effort: "minimal",
+        effort: "none",
       },
       instructions,
       text: {
@@ -44,7 +44,7 @@ export const reqObjectGPT = ({
       },
     }),
     atProp("output"),
-    atIndex(1),
+    atIndex(0),
     atProp("content"),
     atIndex(0),
     atProp("text"),

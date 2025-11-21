@@ -1,5 +1,11 @@
-import { test, expect } from "vitest";
-import { isOk } from "plgg";
+import { test, expect, assert } from "vitest";
+import {
+  isOk,
+  proc,
+  atProp,
+  asReadonlyArray,
+  asSoftStr,
+} from "plgg";
 import { reqObjectGemini } from "plgg-foundry/LLMs/vendor/Google";
 
 test.skip("Gemini API invocation works", async () => {
@@ -11,34 +17,40 @@ test.skip("Gemini API invocation works", async () => {
     return;
   }
 
-  const res = await reqObjectGemini({
-    apiKey,
-    model: "gemini-2.5-flash",
-    instructions:
-      "Compose function call chain to fulfill the user request.",
-    input: `Compose function call chain to contact the following user request:
-<user-request>
-Generate me a mascot character of lion x durian fruit.
-</user-request>
-`,
-    schema: {
-      type: "object",
-      properties: {
-        function_call_chain: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              function_name: { type: "string" },
+  const result = await proc(
+    {
+      apiKey,
+      model: "gemini-2.5-flash",
+      instructions:
+        "You are an expert cake maker.",
+      input: `Choose 3 fruits for a pineapple cake.`,
+      schema: {
+        type: "object",
+        properties: {
+          fruits: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: [
+                "strawberry",
+                "pineapple",
+                "banana",
+                "mango",
+                "kiwi",
+              ],
             },
-            required: ["function_name"],
-            additionalProperties: false,
           },
         },
+        required: ["fruits"],
+        additionalProperties: false,
       },
-      required: ["function_call_chain"],
-      additionalProperties: false,
     },
-  });
-  expect(isOk(res)).toBe(true);
+    reqObjectGemini,
+    atProp("fruits"),
+    asReadonlyArray(asSoftStr),
+  );
+  expect(isOk(result)).toBe(true);
+  assert(isOk(result));
+  expect(result.content.length).toBe(3);
+  expect(result.content).toContain("pineapple");
 }, 20000);
