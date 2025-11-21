@@ -5,9 +5,18 @@ import {
   newErr,
   InvalidError,
 } from "plgg";
-import type { Processor, ProcessorSpec } from "./Processor";
-import type { Switcher, SwitcherSpec } from "./Switcher";
-import type { Packer, PackerSpec } from "./Packer";
+import type {
+  Processor,
+  ProcessorSpec,
+} from "./Processor";
+import type {
+  Switcher,
+  SwitcherSpec,
+} from "./Switcher";
+import type {
+  Packer,
+  PackerSpec,
+} from "./Packer";
 import { asProcessor } from "./Processor";
 import { asSwitcher } from "./Switcher";
 import { asPacker } from "./Packer";
@@ -19,9 +28,15 @@ import { explainPacker } from "./Packer";
  * Unified type representing any apparatus in the foundry.
  * Can be a processor, switcher, or packer.
  */
-export type Apparatus = Processor | Switcher | Packer;
+export type Apparatus =
+  | Processor
+  | Switcher
+  | Packer;
 
-export type ApparatusSpec = ProcessorSpec | SwitcherSpec | PackerSpec;
+export type ApparatusSpec =
+  | ProcessorSpec
+  | SwitcherSpec
+  | PackerSpec;
 
 /**
  * Type guard to check if apparatus is a Processor.
@@ -62,7 +77,7 @@ export const isPacker = (
  * Validates and casts an ApparatusSpec to Apparatus.
  */
 export const asApparatus = (
-  value: ApparatusSpec,
+  value: unknown,
 ): Result<Apparatus, InvalidError> => {
   if (isBoxWithTag("ProcessorSpec")(value)) {
     return asProcessor(value as ProcessorSpec);
@@ -75,7 +90,8 @@ export const asApparatus = (
   }
   return newErr(
     new InvalidError({
-      message: "Value is not a valid ApparatusSpec",
+      message:
+        "Value is not a valid ApparatusSpec",
     }),
   );
 };
@@ -83,14 +99,19 @@ export const asApparatus = (
 /**
  * Castable instance for Apparatus safe casting.
  */
-export const apparatusCastable: Castable<Apparatus, ApparatusSpec> = {
+export const apparatusCastable: Castable<
+  Apparatus,
+  ApparatusSpec
+> = {
   as: asApparatus,
 };
 
 /**
  * Generates human-readable markdown description of apparatus.
  */
-export const explainApparatus = (apparatus: Apparatus): string => {
+export const explainApparatus = (
+  apparatus: Apparatus,
+): string => {
   if (isProcessor(apparatus)) {
     return explainProcessor(apparatus);
   }
