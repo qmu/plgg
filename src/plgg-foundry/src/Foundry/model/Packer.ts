@@ -17,7 +17,10 @@ import {
  * Output specification defining egress fields and their types.
  * Maps output variable names to their type specifications.
  */
-export type Packer = Dict<VariableName, VirtualType>;
+export type Packer = Dict<
+  VariableName,
+  VirtualType
+>;
 
 export type PackerSpec = Box<
   "PackerSpec",
@@ -25,12 +28,17 @@ export type PackerSpec = Box<
 >;
 
 /**
- * Creates a new PackerSpec with type-safe content.
+ * Type guard to check if apparatus is a Packer.
+ * Packers are plain Dict objects without 'process' or 'check' functions.
  */
-export const newPackerSpec = (
-  spec: PackerSpec["content"],
-): PackerSpec =>
-  newBox("PackerSpec")<PackerSpec["content"]>(spec);
+export const isPacker = (
+  apparatus: unknown,
+): apparatus is Packer =>
+  typeof apparatus === "object" &&
+  apparatus !== null &&
+  !("process" in apparatus) &&
+  !("check" in apparatus) &&
+  !("name" in apparatus);
 
 /**
  * Validates and casts a PackerSpec to Packer.
@@ -49,10 +57,21 @@ export const packerCastable: Castable<
 };
 
 /**
+ * Creates a new PackerSpec with type-safe content.
+ */
+export const newPackerSpec = (
+  spec: PackerSpec["content"],
+): PackerSpec =>
+  newBox("PackerSpec")<PackerSpec["content"]>(
+    spec,
+  );
+
+/**
  * Generates human-readable markdown description of packer.
  */
-export const explainPacker = (
-  packer: Packer,
-) => `Outputs: ${Object.entries(packer)
-  .map(([name, vt]) => formatVirtualType(name, vt))
-  .join(", ")}`;
+export const explainPacker = (packer: Packer) =>
+  `Outputs: ${Object.entries(packer)
+    .map(([name, vt]) =>
+      formatVirtualType(name, vt),
+    )
+    .join(", ")}`;

@@ -20,7 +20,7 @@ export const newTestFoundrySpec = (
           "Plans the character design based on the prompt",
         arguments: { prompt: { type: "string" } },
         returns: { plan: { type: "string" } },
-        process: async (medium) => {
+        fn: async (medium) => {
           const value =
             medium.params["prompt"]?.value;
           if (typeof value !== "string") {
@@ -41,7 +41,7 @@ export const newTestFoundrySpec = (
           images: { type: "image[]" },
         },
         returns: { features: { type: "string" } },
-        process: async (medium) => {
+        fn: async (medium) => {
           const value =
             medium.params["images"]?.value;
           if (
@@ -66,7 +66,7 @@ export const newTestFoundrySpec = (
           description: { type: "string" },
         },
         returns: { image: { type: "image[]" } },
-        process: async (medium) => {
+        fn: async (medium) => {
           const value =
             medium.params["description"]?.value;
           if (typeof value !== "string") {
@@ -89,7 +89,7 @@ export const newTestFoundrySpec = (
         returns: {
           spreadImages: { type: "image[]" },
         },
-        process: async (medium) => {
+        fn: async (medium) => {
           const value =
             medium.params["mainImage"]?.value;
           if (
@@ -122,7 +122,7 @@ export const newTestFoundrySpec = (
         returnsWhenFalse: {
           feedback: { type: "string" },
         },
-        check: async (medium) => {
+        fn: async (medium) => {
           const value =
             medium.params["images"]?.value;
           if (

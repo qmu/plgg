@@ -29,7 +29,7 @@ test("asFoundrySpec validation - valid foundry", () => {
           returns: {
             result: { type: "string" },
           },
-          process: async () => ({
+          fn: async () => ({
             result: "test-result",
           }),
         }),
@@ -45,7 +45,7 @@ test("asFoundrySpec validation - valid foundry", () => {
           returnsWhenFalse: {
             error: { type: "error" },
           },
-          check: async () => [
+          fn: async () => [
             true,
             {
               result: "test-result",
@@ -114,7 +114,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
         returns: {
           result: { type: "number" },
         },
-        process: async () => ({
+        fn: async () => ({
           result: 1,
         }),
       }),
@@ -127,7 +127,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
         returns: {
           result: { type: "string" },
         },
-        process: async () => ({
+        fn: async () => ({
           result: "result",
         }),
       }),
@@ -143,7 +143,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
         returnsWhenFalse: {
           error: { type: "error" },
         },
-        check: async () => [
+        fn: async () => [
           true,
           {
             result: "test-result",
@@ -162,7 +162,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
         returnsWhenFalse: {
           error: { type: "error" },
         },
-        check: async () => [
+        fn: async () => [
           false,
           { error: "error" },
         ],

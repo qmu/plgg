@@ -189,7 +189,7 @@ const execSwitch = async ({
       alignment,
       params,
     } satisfies Medium,
-    tryCatch(switcher.check),
+    tryCatch(switcher.fn),
   );
 
   if (!isOk(checkResult)) {
@@ -290,7 +290,7 @@ const execProcess = async ({
   // Step 3: Execute the processor function
   const processResult = await proc(
     { alignment, params } satisfies Medium,
-    tryCatch(processorResult.content.process),
+    tryCatch(processorResult.content.fn),
   );
 
   if (!isOk(processResult)) {

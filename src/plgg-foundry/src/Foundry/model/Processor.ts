@@ -30,13 +30,14 @@ import {
  * Function that processes input data and returns output data.
  */
 export type Processor = Readonly<{
+  type: "Processor";
   name: KebabCase;
   description: Str;
   arguments: Option<
     Dict<VariableName, VirtualType>
   >;
   returns: Dict<VariableName, VirtualType>;
-  process: (
+  fn: (
     medium: Medium,
   ) => PossiblyPromise<Dict<VariableName, Datum>>;
 }>;
@@ -44,15 +45,32 @@ export type Processor = Readonly<{
 export type ProcessorSpec = Box<
   "ProcessorSpec",
   Readonly<{
+    type: "Processor";
     name: string;
     description: string;
-    arguments?: Dict<VariableName, VirtualTypeSpec>;
+    arguments?: Dict<
+      VariableName,
+      VirtualTypeSpec
+    >;
     returns: Dict<VariableName, VirtualTypeSpec>;
-    process: (
+    fn: (
       medium: Medium,
-    ) => PossiblyPromise<Dict<VariableName, Datum>>;
+    ) => PossiblyPromise<
+      Dict<VariableName, Datum>
+    >;
   }>
 >;
+
+/**
+ * Type guard to check if apparatus is a Processor.
+ */
+export const isProcessor = (
+  apparatus: unknown,
+): apparatus is Processor =>
+  typeof apparatus === "object" &&
+  apparatus !== null &&
+  "type" in apparatus &&
+  apparatus.type === "Processor";
 
 /**
  * Validates and casts a ProcessorSpec to Processor.
@@ -69,7 +87,7 @@ export const asProcessor = (
       asDictOf(asVirtualType),
     ),
     forProp("returns", asDictOf(asVirtualType)),
-    forProp("process", asFunc),
+    forProp("fn", asFunc),
   );
 
 /**
@@ -97,7 +115,7 @@ export const newProcessorSpec = <
   description: string;
   arguments?: Dict<VariableName, VirtualTypeSpec>;
   returns: R;
-  process: (
+  fn: (
     medium: Medium,
   ) => PossiblyPromise<
     R extends Dict<VariableName, VirtualTypeSpec>
@@ -105,9 +123,12 @@ export const newProcessorSpec = <
       : Dict<VariableName, Datum>
   >;
 }): ProcessorSpec =>
-  newBox("ProcessorSpec")<ProcessorSpec["content"]>(
-    spec,
-  );
+  newBox("ProcessorSpec")<
+    ProcessorSpec["content"]
+  >({
+    type: "Processor",
+    ...spec,
+  });
 
 /**
  * Generates human-readable markdown description of processor.
@@ -127,5 +148,7 @@ export const explainProcessor = (
     : "Any"
 }
 - Returns: ${Object.entries(processor.returns)
-  .map(([name, vt]) => formatVirtualType(name, vt))
+  .map(([name, vt]) =>
+    formatVirtualType(name, vt),
+  )
   .join(", ")}`;

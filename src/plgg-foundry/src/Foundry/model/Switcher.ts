@@ -30,6 +30,7 @@ import {
  * Function that evaluates a condition and returns boolean with data for each branch.
  */
 export type Switcher = Readonly<{
+  type: "Switcher";
   name: KebabCase;
   description: Str;
   arguments: Option<
@@ -43,7 +44,7 @@ export type Switcher = Readonly<{
     VariableName,
     VirtualType
   >;
-  check: (
+  fn: (
     medium: Medium,
   ) => PossiblyPromise<
     [boolean, Dict<VariableName, Datum>]
@@ -53,9 +54,13 @@ export type Switcher = Readonly<{
 export type SwitcherSpec = Box<
   "SwitcherSpec",
   Readonly<{
+    type: "Switcher";
     name: string;
     description: string;
-    arguments?: Dict<VariableName, VirtualTypeSpec>;
+    arguments?: Dict<
+      VariableName,
+      VirtualTypeSpec
+    >;
     returnsWhenTrue: Dict<
       VariableName,
       VirtualTypeSpec
@@ -64,7 +69,7 @@ export type SwitcherSpec = Box<
       VariableName,
       VirtualTypeSpec
     >;
-    check: (
+    fn: (
       medium: Medium,
     ) => PossiblyPromise<
       [boolean, Dict<VariableName, Datum>]
@@ -73,41 +78,15 @@ export type SwitcherSpec = Box<
 >;
 
 /**
- * Creates a SwitcherSpec with strict type checking on return types.
- * The check function must return keys matching the returnsWhenTrue and returnsWhenFalse fields.
+ * Type guard to check if apparatus is a Switcher.
  */
-export const newSwitcherSpec = <
-  const RT extends Dict<
-    VariableName,
-    VirtualTypeSpec
-  >,
-  const RF extends Dict<
-    VariableName,
-    VirtualTypeSpec
-  >,
->(spec: {
-  name: string;
-  description: string;
-  arguments?: Dict<VariableName, VirtualTypeSpec>;
-  returnsWhenTrue: RT;
-  returnsWhenFalse: RF;
-  check: (
-    medium: Medium,
-  ) => PossiblyPromise<
-    [
-      boolean,
-      (RT extends Dict<VariableName, VirtualTypeSpec>
-        ? Record<keyof RT & VariableName, Datum>
-        : Dict<VariableName, Datum>) |
-      (RF extends Dict<VariableName, VirtualTypeSpec>
-        ? Record<keyof RF & VariableName, Datum>
-        : Dict<VariableName, Datum>),
-    ]
-  >;
-}): SwitcherSpec =>
-  newBox("SwitcherSpec")<SwitcherSpec["content"]>(
-    spec,
-  );
+export const isSwitcher = (
+  apparatus: unknown,
+): apparatus is Switcher =>
+  typeof apparatus === "object" &&
+  apparatus !== null &&
+  "type" in apparatus &&
+  apparatus.type === "Switcher";
 
 /**
  * Validates and casts a SwitcherSpec to Switcher.
@@ -129,7 +108,7 @@ export const asSwitcher = (value: SwitcherSpec) =>
       "returnsWhenFalse",
       asDictOf(asVirtualType),
     ),
-    forProp("check", asFunc),
+    forProp("fn", asFunc),
   );
 
 /**
@@ -141,6 +120,60 @@ export const switcherCastable: Castable<
 > = {
   as: asSwitcher,
 };
+
+/**
+ * Creates a SwitcherSpec with strict type checking on return types.
+ * The check function must return keys matching the returnsWhenTrue and returnsWhenFalse fields.
+ */
+export const newSwitcherSpec = <
+  const RT extends Dict<
+    VariableName,
+    VirtualTypeSpec
+  >,
+  const RF extends Dict<
+    VariableName,
+    VirtualTypeSpec
+  >,
+>(spec: {
+  name: string;
+  description: string;
+  arguments?: Dict<VariableName, VirtualTypeSpec>;
+  returnsWhenTrue: RT;
+  returnsWhenFalse: RF;
+  fn: (
+    medium: Medium,
+  ) => PossiblyPromise<
+    [
+      boolean,
+      (
+        | (RT extends Dict<
+            VariableName,
+            VirtualTypeSpec
+          >
+            ? Record<
+                keyof RT & VariableName,
+                Datum
+              >
+            : Dict<VariableName, Datum>)
+        | (RF extends Dict<
+            VariableName,
+            VirtualTypeSpec
+          >
+            ? Record<
+                keyof RF & VariableName,
+                Datum
+              >
+            : Dict<VariableName, Datum>)
+      ),
+    ]
+  >;
+}): SwitcherSpec =>
+  newBox("SwitcherSpec")<SwitcherSpec["content"]>(
+    {
+      type: "Switcher",
+      ...spec,
+    },
+  );
 
 /**
  * Generates human-readable markdown description of switcher.
@@ -163,10 +196,14 @@ export const explainSwitcher = (
 - Returns When True: ${Object.entries(
     switcher.returnsWhenTrue,
   )
-    .map(([name, vt]) => formatVirtualType(name, vt))
+    .map(([name, vt]) =>
+      formatVirtualType(name, vt),
+    )
     .join(", ")}
 - Returns When False: ${Object.entries(
     switcher.returnsWhenFalse,
   )
-    .map(([name, vt]) => formatVirtualType(name, vt))
+    .map(([name, vt]) =>
+      formatVirtualType(name, vt),
+    )
     .join(", ")}`;
