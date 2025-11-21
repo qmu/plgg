@@ -39,13 +39,13 @@ export const { is: isReadonlyArray } =
  * each element of the array.
  */
 export const asReadonlyArray =
-  <T, A>(
+  <T>(
     elementCast: (
-      value: A,
+      value: unknown,
     ) => Result<T, InvalidError>,
   ) =>
   (
-    value: ReadonlyArray<A>,
+    value: unknown,
   ): Result<ReadonlyArr<T>, InvalidError> => {
     if (!is(value)) {
       return newErr(
@@ -58,7 +58,7 @@ export const asReadonlyArray =
     const results: T[] = [];
     for (let i = 0; i < value.length; i++) {
       const a = value[i];
-      if (a === undefined) {
+      if (a === undefined || a === null) {
         return newErr(
           new InvalidError({
             message: `Array element at index ${i} is undefined`,
