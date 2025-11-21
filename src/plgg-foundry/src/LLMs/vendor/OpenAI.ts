@@ -8,6 +8,8 @@ import {
   postJson,
 } from "plgg";
 
+// https://platform.openai.com/docs/api-reference/responses
+
 export const reqObjectGPT = ({
   apiKey,
   model,

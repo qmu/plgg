@@ -8,6 +8,9 @@ import {
   postJson,
 } from "plgg";
 
+// https://ai.google.dev/api/generate-content?hl=ja#json-mode
+// https://ai.google.dev/gemini-api/docs/structured-output?hl=ja&example=recipe
+
 export const reqObjectGemini = ({
   apiKey,
   model,
