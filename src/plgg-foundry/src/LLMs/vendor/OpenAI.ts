@@ -1,5 +1,5 @@
 import {
-  Result,
+  Procedural,
   proc,
   atProp,
   atIndex,
@@ -8,19 +8,19 @@ import {
   postJson,
 } from "plgg";
 
-export const generateJson = async ({
+export const reqOpenAIObject = ({
   apiKey,
   model,
   instructions,
   input,
-  responseFormat,
+  schema,
 }: {
   apiKey: string;
   model: string;
   instructions: string;
   input: string;
-  responseFormat: any;
-}): Promise<Result<unknown, Error>> =>
+  schema: any;
+}): Procedural<unknown, Error> =>
   proc(
     {
       model,
@@ -29,7 +29,7 @@ export const generateJson = async ({
         effort: "minimal",
       },
       instructions,
-      text: { format: responseFormat },
+      text: { format: schema },
     },
     postJson({
       url: "https://api.openai.com/v1/responses",

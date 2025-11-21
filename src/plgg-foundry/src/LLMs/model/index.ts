@@ -1,1 +1,1 @@
-export * from "plgg-foundry/LLMs/model/LLMsProvider";
+export * from "plgg-foundry/LLMs/model/Provider";

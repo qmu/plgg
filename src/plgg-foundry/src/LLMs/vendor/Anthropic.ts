@@ -1,5 +1,5 @@
 import {
-  Result,
+  Procedural,
   proc,
   atProp,
   atIndex,
@@ -8,21 +8,21 @@ import {
   postJson,
 } from "plgg";
 
-export const generateJsonClaude = async ({
+export const reqAnthropicObject = ({
   apiKey,
   model,
   instructions,
   input,
-  responseFormat,
+  schema,
   maxTokens = 1024,
 }: {
   apiKey: string;
   model: string;
   instructions: string;
   input: string;
-  responseFormat: any;
+  schema: any;
   maxTokens?: number;
-}): Promise<Result<unknown, Error>> =>
+}): Procedural<unknown, Error> =>
   proc(
     {
       model,
@@ -31,7 +31,7 @@ export const generateJsonClaude = async ({
       messages: [
         { role: "user", content: input },
       ],
-      output_format: responseFormat,
+      output_format: schema,
     },
     postJson({
       url: "https://api.anthropic.com/v1/messages",
