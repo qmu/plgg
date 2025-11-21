@@ -1,9 +1,9 @@
 import { Procedural, match } from "plgg";
 import {
   Provider,
-  openai,
-  anthropic,
-  google,
+  patternOpenAI,
+  patternAnthropic,
+  patternGoogle,
 } from "plgg-foundry/index";
 import { reqObjectGPT } from "plgg-foundry/LLMs/vendor/OpenAI";
 import { reqObjectClaude } from "plgg-foundry/LLMs/vendor/Anthropic";
@@ -23,7 +23,7 @@ export const generateObject = ({
   match(
     provider,
     [
-      openai(),
+      patternOpenAI(),
       () =>
         reqObjectGPT({
           apiKey: provider.content.apiKey,
@@ -34,7 +34,7 @@ export const generateObject = ({
         }),
     ],
     [
-      anthropic(),
+      patternAnthropic(),
       () =>
         reqObjectClaude({
           apiKey: provider.content.apiKey,
@@ -45,7 +45,7 @@ export const generateObject = ({
         }),
     ],
     [
-      google(),
+      patternGoogle(),
       () =>
         reqObjectGemini({
           apiKey: provider.content.apiKey,

@@ -8,9 +8,9 @@ import {
 } from "plgg";
 import { generateObject } from "plgg-foundry/LLMs/usecase/generateObject";
 import {
-  newOpenAI,
-  newAnthropic,
-  newGoogle,
+  openai,
+  anthropic,
+  google,
 } from "plgg-foundry/LLMs/model/Provider";
 
 const testSchema = {
@@ -45,7 +45,7 @@ test.skip("generateObject with OpenAI provider works", async () => {
 
   const result = await proc(
     {
-      provider: newOpenAI({
+      provider: openai({
         apiKey,
         modelName: "gpt-5.1",
       }),
@@ -77,7 +77,7 @@ test.skip("generateObject with Anthropic provider works", async () => {
 
   const result = await proc(
     {
-      provider: newAnthropic({
+      provider: anthropic({
         apiKey,
         modelName: "claude-sonnet-4-5",
       }),
@@ -109,7 +109,7 @@ test.skip("generateObject with Google provider works", async () => {
 
   const result = await proc(
     {
-      provider: newGoogle({
+      provider: google({
         apiKey,
         modelName: "gemini-2.5-flash",
       }),
