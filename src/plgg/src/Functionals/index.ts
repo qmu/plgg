@@ -9,4 +9,5 @@ export * from "plgg/Functionals/hold";
 export * from "plgg/Functionals/pass";
 export * from "plgg/Functionals/postJson";
 export * from "plgg/Functionals/refine";
+export * from "plgg/Functionals/tap";
 export * from "plgg/Functionals/tryCatch";
