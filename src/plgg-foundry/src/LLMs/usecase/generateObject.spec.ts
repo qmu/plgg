@@ -6,12 +6,12 @@ import {
   asReadonlyArray,
   asSoftStr,
 } from "plgg";
-import { generateObject } from "plgg-foundry/LLMs/usecase/generateObject";
 import {
   openai,
   anthropic,
   google,
-} from "plgg-foundry/LLMs/model/Provider";
+} from "plgg-foundry/index";
+import { generateObject } from "plgg-foundry/LLMs/usecase/generateObject";
 
 const testSchema = {
   type: "object",

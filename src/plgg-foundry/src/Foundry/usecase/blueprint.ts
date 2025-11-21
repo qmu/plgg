@@ -1,4 +1,4 @@
-import { Result, isErr } from "plgg";
+import { Result, proc } from "plgg";
 import {
   Alignment,
   Foundry,
@@ -9,8 +9,9 @@ import {
   extractOpcodes,
   isProcessor,
   isSwitcher,
+  openai,
 } from "plgg-foundry/index";
-import { generateJson } from "plgg-foundry/Foundry/vendor/OpenAI";
+import { generateObject } from "plgg-foundry/LLMs/usecase";
 
 /**
  * Generates an alignment from user order using AI model based on available foundry functions.
@@ -34,10 +35,12 @@ export const blueprint =
       ...switcherOpcodes,
       "egress",
     ];
-    const res = await generateJson({
-      apiKey: foundry.apiKey.content,
-      model: "gpt-5-nano-2025-08-07",
-      instructions: `Generate an Alignment to fulfill the user request.
+    const reqArg = {
+      provider: openai({
+        apiKey: foundry.apiKey.content,
+        modelName: "gpt-5.1",
+      }),
+      systemPrompt: `Generate an Alignment to fulfill the user request.
 
 ## Alignment
 
@@ -105,217 +108,213 @@ Example with validation (validation passes → continue, validation fails → re
   ]
 }
 \`\`\``,
-      input: explainOrder(order),
-      responseFormat: {
-        name: "alignment_composition",
-        description: `Analysis and composition of an Alignment to fulfill the user request.`,
-        type: "json_schema",
-        schema: {
-          type: "object",
-          properties: {
-            userRequestAnalysis: {
-              type: "string",
-              maxLength: 600,
-              description:
-                "Analysis of the user request and strategy to fulfill it using available Foundry functions. Use the same language as the user request. Must be under 100 words.",
+      userPrompt: explainOrder(order),
+      schema: {
+        type: "object",
+        properties: {
+          userRequestAnalysis: {
+            type: "string",
+            maxLength: 600,
+            description:
+              "Analysis of the user request and strategy to fulfill it using available Foundry functions. Use the same language as the user request. Must be under 100 words.",
+          },
+          compositionRationale: {
+            type: "string",
+            maxLength: 400,
+            description:
+              "Rationale for the operation sequence based on the analysis. Use the same language as the user request. Must be under 60 words.",
+          },
+          userRequest: {
+            type: "string",
+            description:
+              "Refined user request based on the analysis.",
+          },
+          operations: {
+            type: "array",
+            items: {
+              anyOf: [
+                {
+                  type: "object",
+                  description:
+                    "Ingress operation - Entry point that assigns input to registers. Must be first and appear exactly once.",
+                  properties: {
+                    type: {
+                      type: "string",
+                      const: "ingress",
+                      description:
+                        "Operation type.",
+                    },
+                    next: {
+                      type: "string",
+                      enum: allOpcodes,
+                      description:
+                        "Opcode of next operation to execute.",
+                    },
+                    promptAddr: {
+                      type: "string",
+                      description:
+                        "Register (e.g., 'r0') storing user prompt. Referenced by subsequent input name tables.",
+                    },
+                  },
+                  required: [
+                    "type",
+                    "next",
+                    "promptAddr",
+                  ],
+                  additionalProperties: false,
+                },
+                {
+                  type: "object",
+                  description:
+                    "Process operation - Executes a Foundry processor and continues to next operation.",
+                  properties: {
+                    type: {
+                      type: "string",
+                      const: "process",
+                      description:
+                        "Operation type.",
+                    },
+                    opcode: {
+                      type: "string",
+                      enum: processorOpcodes,
+                      description:
+                        "Processor opcode from Available Foundry Functions.",
+                    },
+                    input: {
+                      type: "object",
+                      description:
+                        "NameTable mapping processor argument names to register addresses (e.g., {'prompt': 'r0', 'description': 'r1'}). All registers must be previously written. Keys must match processor's argument names.",
+                      properties: {},
+                      additionalProperties: {
+                        type: "string",
+                      },
+                      required: [],
+                    },
+                    output: {
+                      type: "object",
+                      description:
+                        "NameTable mapping processor return value names to register addresses (e.g., {'plan': 'r2', 'result': 'r3'}). These registers can be referenced by later operations. Keys must match processor's return value names.",
+                      properties: {},
+                      additionalProperties: {
+                        type: "string",
+                      },
+                      required: [],
+                    },
+                    next: {
+                      type: "string",
+                      enum: allOpcodes,
+                      description:
+                        "Opcode of next operation to execute.",
+                    },
+                  },
+                  required: [
+                    "type",
+                    "opcode",
+                    "input",
+                    "output",
+                    "next",
+                  ],
+                  additionalProperties: false,
+                },
+                {
+                  type: "object",
+                  description:
+                    "Switch operation - Evaluates register data and branches based on true/false result.",
+                  properties: {
+                    type: {
+                      type: "string",
+                      const: "switch",
+                      description:
+                        "Operation type.",
+                    },
+                    opcode: {
+                      type: "string",
+                      enum: switcherOpcodes,
+                      description:
+                        "Switcher opcode from Available Foundry Functions.",
+                    },
+                    input: {
+                      type: "object",
+                      description:
+                        "NameTable mapping switcher argument names to register addresses (e.g., {'images': 'r2', 'data': 'r3'}). All registers must be previously written. Keys must match switcher's argument names.",
+                      properties: {},
+                      additionalProperties: {
+                        type: "string",
+                      },
+                      required: [],
+                    },
+                    nextWhenTrue: {
+                      type: "string",
+                      enum: allOpcodes,
+                      description:
+                        "Opcode to execute when condition is true.",
+                    },
+                    nextWhenFalse: {
+                      type: "string",
+                      enum: allOpcodes,
+                      description:
+                        "Opcode to execute when condition is false.",
+                    },
+                    outputWhenTrue: {
+                      type: "object",
+                      description:
+                        "NameTable mapping switcher return value names to register addresses when true (e.g., {'validImages': 'r4', 'result': 'r5'}). Keys must match switcher's returnsWhenTrue field names.",
+                      properties: {},
+                      additionalProperties: {
+                        type: "string",
+                      },
+                      required: [],
+                    },
+                    outputWhenFalse: {
+                      type: "object",
+                      description:
+                        "NameTable mapping switcher return value names to register addresses when false (e.g., {'feedback': 'r6', 'error': 'r7'}). Keys must match switcher's returnsWhenFalse field names.",
+                      properties: {},
+                      additionalProperties: {
+                        type: "string",
+                      },
+                      required: [],
+                    },
+                  },
+                  required: [
+                    "type",
+                    "opcode",
+                    "input",
+                    "nextWhenTrue",
+                    "nextWhenFalse",
+                    "outputWhenTrue",
+                    "outputWhenFalse",
+                  ],
+                  additionalProperties: false,
+                },
+                {
+                  type: "object",
+                  description:
+                    "Egress operation - Exit point that maps registers to output fields. Must appear at least once.",
+                  properties: {
+                    type: {
+                      type: "string",
+                      const: "egress",
+                      description:
+                        "Operation type.",
+                    },
+                    result: {
+                      type: "object",
+                      description:
+                        "Maps output names to registers. Keys are output field names (e.g., 'mainImage'), values are registers (e.g., 'r2').",
+                      properties: {},
+                      additionalProperties: {
+                        type: "string",
+                      },
+                      required: [],
+                    },
+                  },
+                  required: ["type", "result"],
+                  additionalProperties: false,
+                },
+              ],
             },
-            compositionRationale: {
-              type: "string",
-              maxLength: 400,
-              description:
-                "Rationale for the operation sequence based on the analysis. Use the same language as the user request. Must be under 60 words.",
-            },
-            userRequest: {
-              type: "string",
-              description:
-                "Refined user request based on the analysis.",
-            },
-            operations: {
-              type: "array",
-              items: {
-                anyOf: [
-                  {
-                    type: "object",
-                    description:
-                      "Ingress operation - Entry point that assigns input to registers. Must be first and appear exactly once.",
-                    properties: {
-                      type: {
-                        type: "string",
-                        const: "ingress",
-                        description:
-                          "Operation type.",
-                      },
-                      next: {
-                        type: "string",
-                        enum: allOpcodes,
-                        description:
-                          "Opcode of next operation to execute.",
-                      },
-                      promptAddr: {
-                        type: "string",
-                        description:
-                          "Register (e.g., 'r0') storing user prompt. Referenced by subsequent input name tables.",
-                      },
-                    },
-                    required: [
-                      "type",
-                      "next",
-                      "promptAddr",
-                    ],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: "object",
-                    description:
-                      "Process operation - Executes a Foundry processor and continues to next operation.",
-                    properties: {
-                      type: {
-                        type: "string",
-                        const: "process",
-                        description:
-                          "Operation type.",
-                      },
-                      opcode: {
-                        type: "string",
-                        enum: processorOpcodes,
-                        description:
-                          "Processor opcode from Available Foundry Functions.",
-                      },
-                      input: {
-                        type: "object",
-                        description:
-                          "NameTable mapping processor argument names to register addresses (e.g., {'prompt': 'r0', 'description': 'r1'}). All registers must be previously written. Keys must match processor's argument names.",
-                        properties: {},
-                        additionalProperties: {
-                          type: "string",
-                        },
-                        required: [],
-                      },
-                      output: {
-                        type: "object",
-                        description:
-                          "NameTable mapping processor return value names to register addresses (e.g., {'plan': 'r2', 'result': 'r3'}). These registers can be referenced by later operations. Keys must match processor's return value names.",
-                        properties: {},
-                        additionalProperties: {
-                          type: "string",
-                        },
-                        required: [],
-                      },
-                      next: {
-                        type: "string",
-                        enum: allOpcodes,
-                        description:
-                          "Opcode of next operation to execute.",
-                      },
-                    },
-                    required: [
-                      "type",
-                      "opcode",
-                      "input",
-                      "output",
-                      "next",
-                    ],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: "object",
-                    description:
-                      "Switch operation - Evaluates register data and branches based on true/false result.",
-                    properties: {
-                      type: {
-                        type: "string",
-                        const: "switch",
-                        description:
-                          "Operation type.",
-                      },
-                      opcode: {
-                        type: "string",
-                        enum: switcherOpcodes,
-                        description:
-                          "Switcher opcode from Available Foundry Functions.",
-                      },
-                      input: {
-                        type: "object",
-                        description:
-                          "NameTable mapping switcher argument names to register addresses (e.g., {'images': 'r2', 'data': 'r3'}). All registers must be previously written. Keys must match switcher's argument names.",
-                        properties: {},
-                        additionalProperties: {
-                          type: "string",
-                        },
-                        required: [],
-                      },
-                      nextWhenTrue: {
-                        type: "string",
-                        enum: allOpcodes,
-                        description:
-                          "Opcode to execute when condition is true.",
-                      },
-                      nextWhenFalse: {
-                        type: "string",
-                        enum: allOpcodes,
-                        description:
-                          "Opcode to execute when condition is false.",
-                      },
-                      outputWhenTrue: {
-                        type: "object",
-                        description:
-                          "NameTable mapping switcher return value names to register addresses when true (e.g., {'validImages': 'r4', 'result': 'r5'}). Keys must match switcher's returnsWhenTrue field names.",
-                        properties: {},
-                        additionalProperties: {
-                          type: "string",
-                        },
-                        required: [],
-                      },
-                      outputWhenFalse: {
-                        type: "object",
-                        description:
-                          "NameTable mapping switcher return value names to register addresses when false (e.g., {'feedback': 'r6', 'error': 'r7'}). Keys must match switcher's returnsWhenFalse field names.",
-                        properties: {},
-                        additionalProperties: {
-                          type: "string",
-                        },
-                        required: [],
-                      },
-                    },
-                    required: [
-                      "type",
-                      "opcode",
-                      "input",
-                      "nextWhenTrue",
-                      "nextWhenFalse",
-                      "outputWhenTrue",
-                      "outputWhenFalse",
-                    ],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: "object",
-                    description:
-                      "Egress operation - Exit point that maps registers to output fields. Must appear at least once.",
-                    properties: {
-                      type: {
-                        type: "string",
-                        const: "egress",
-                        description:
-                          "Operation type.",
-                      },
-                      result: {
-                        type: "object",
-                        description:
-                          "Maps output names to registers. Keys are output field names (e.g., 'mainImage'), values are registers (e.g., 'r2').",
-                        properties: {},
-                        additionalProperties: {
-                          type: "string",
-                        },
-                        required: [],
-                      },
-                    },
-                    required: ["type", "result"],
-                    additionalProperties: false,
-                  },
-                ],
-              },
-              description: `Operation sequence rules:
+            description: `Operation sequence rules:
 
 Structure: Start with one 'ingress', end with 'egress'. Ingress first, egress last.
 
@@ -324,20 +323,20 @@ Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Incre
 Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference opcodes from other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
 
 Data Flow: NameTables map variable names to register addresses. Input NameTables reference previously written registers. Output NameTables specify where to write results. Flow: ingress → process/switch (using input/output NameTables) → egress.`,
-            },
           },
-          required: [
-            "userRequestAnalysis",
-            "compositionRationale",
-            "userRequest",
-            "operations",
-          ],
-          additionalProperties: false,
         },
+        required: [
+          "userRequestAnalysis",
+          "compositionRationale",
+          "userRequest",
+          "operations",
+        ],
+        additionalProperties: false,
       },
-    });
-    if (isErr(res)) {
-      return res;
-    }
-    return asAlignment(res.content);
+    };
+    return proc(
+      reqArg,
+      generateObject,
+      asAlignment,
+    );
   };
