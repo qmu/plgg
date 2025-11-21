@@ -1,5 +1,5 @@
 import {
-  Procedural,
+  Result,
   proc,
   atProp,
   atIndex,
@@ -20,7 +20,7 @@ export const reqObjectGPT = ({
   instructions: string;
   input: string;
   schema: any;
-}): Procedural<unknown, Error> =>
+}): Promise<Result<unknown, Error>> =>
   proc(
     {
       model,

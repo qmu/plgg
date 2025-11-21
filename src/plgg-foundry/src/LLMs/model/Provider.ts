@@ -17,10 +17,10 @@ export type Provider =
 
 // -------------
 
-type Config = {
+type Config = Readonly<{
   modelName: string;
   apiKey: string;
-};
+}>;
 const asConfig = (v: unknown) =>
   cast(
     v,

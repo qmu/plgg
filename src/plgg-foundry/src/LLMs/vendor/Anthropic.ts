@@ -1,5 +1,5 @@
 import {
-  Procedural,
+  Result,
   proc,
   atProp,
   atIndex,
@@ -22,7 +22,7 @@ export const reqObjectClaude = ({
   input: string;
   schema: any;
   maxTokens?: number;
-}): Procedural<unknown, Error> =>
+}): Promise<Result<unknown, Error>> =>
   proc(
     {
       model,
