@@ -1,1 +1,1 @@
-export * from "plgg-foundry/Alignment/carrier";
+export * from "plgg-foundry/Alignment/model";
