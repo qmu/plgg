@@ -8,7 +8,7 @@ import {
   postJson,
 } from "plgg";
 
-export const reqAnthropicObject = ({
+export const reqObjectClaude = ({
   apiKey,
   model,
   instructions,
@@ -31,7 +31,10 @@ export const reqAnthropicObject = ({
       messages: [
         { role: "user", content: input },
       ],
-      output_format: schema,
+      output_format: {
+        type: "json_schema",
+        schema,
+      },
     },
     postJson({
       url: "https://api.anthropic.com/v1/messages",

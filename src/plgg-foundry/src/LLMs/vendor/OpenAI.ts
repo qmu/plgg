@@ -8,7 +8,7 @@ import {
   postJson,
 } from "plgg";
 
-export const reqOpenAIObject = ({
+export const reqObjectGPT = ({
   apiKey,
   model,
   instructions,
@@ -29,7 +29,13 @@ export const reqOpenAIObject = ({
         effort: "minimal",
       },
       instructions,
-      text: { format: schema },
+      text: {
+        format: {
+          name: "schema",
+          type: "json_schema",
+          schema,
+        },
+      },
     },
     postJson({
       url: "https://api.openai.com/v1/responses",

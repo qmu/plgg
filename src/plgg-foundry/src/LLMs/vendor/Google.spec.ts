@@ -1,19 +1,19 @@
 import { test, expect } from "vitest";
 import { isOk } from "plgg";
-import { reqObjectClaude } from "plgg-foundry/LLMs/vendor/Anthropic";
+import { reqObjectGemini } from "plgg-foundry/LLMs/vendor/Google";
 
-test.skip("Claude API invocation works", async () => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+test.skip("Gemini API invocation works", async () => {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.log(
-      "Skipping test: ANTHROPIC_API_KEY not set",
+      "Skipping test: GEMINI_API_KEY not set",
     );
     return;
   }
 
-  const res = await reqObjectClaude({
+  const res = await reqObjectGemini({
     apiKey,
-    model: "claude-sonnet-4-5",
+    model: "gemini-2.5-flash",
     instructions:
       "Compose function call chain to fulfill the user request.",
     input: `Compose function call chain to contact the following user request:

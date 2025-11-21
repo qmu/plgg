@@ -5,8 +5,9 @@ import {
   anthropic,
   google,
 } from "plgg-foundry/index";
-import { reqOpenAIObject } from "plgg-foundry/LLMs/vendor/OpenAI";
-import { reqAnthropicObject } from "plgg-foundry/LLMs/vendor/Anthropic";
+import { reqObjectGPT } from "plgg-foundry/LLMs/vendor/OpenAI";
+import { reqObjectClaude } from "plgg-foundry/LLMs/vendor/Anthropic";
+import { reqObjectGemini } from "plgg-foundry/LLMs/vendor/Google";
 
 export const generateObject = ({
   provider,
@@ -24,7 +25,7 @@ export const generateObject = ({
     [
       openai(),
       () =>
-        reqOpenAIObject({
+        reqObjectGPT({
           apiKey: provider.content.apiKey,
           model: provider.content.modelName,
           instructions: systemPrompt || "",
@@ -35,7 +36,7 @@ export const generateObject = ({
     [
       anthropic(),
       () =>
-        reqAnthropicObject({
+        reqObjectClaude({
           apiKey: provider.content.apiKey,
           model: provider.content.modelName,
           instructions: systemPrompt || "",
@@ -43,5 +44,15 @@ export const generateObject = ({
           schema,
         }),
     ],
-    [google(), () => {}],
+    [
+      google(),
+      () =>
+        reqObjectGemini({
+          apiKey: provider.content.apiKey,
+          model: provider.content.modelName,
+          instructions: systemPrompt || "",
+          input: userPrompt,
+          schema,
+        }),
+    ],
   );
