@@ -7,9 +7,9 @@ import {
   newErr,
   hasProp,
   pipe,
-  flow,
   chainResult,
   newUntaggedBox,
+  flow,
 } from "plgg/index";
 
 /**
@@ -103,12 +103,7 @@ export const forContent =
       ? pipe(
           box.content,
           predicate,
-          chainResult(
-            (
-              okValue,
-            ): Result<Box<T, U>, InvalidError> =>
-              pipe(okValue, newBox(tag), newOk),
-          ),
+          chainResult(flow(newBox(tag), newOk)),
         )
       : newErr(
           new InvalidError({

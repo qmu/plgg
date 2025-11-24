@@ -460,10 +460,7 @@ export function flow(
   ...fns: ReadonlyArray<
     (a: unknown) => NonNeverFn<unknown>
   >
-): (input: unknown) => Promise<unknown> {
+): (input: unknown) => unknown {
   return (input: unknown) =>
-    fns.reduce(
-      async (acc, fn) => fn(await acc),
-      Promise.resolve(input),
-    );
+    fns.reduce((acc, fn) => fn(acc), input);
 }
