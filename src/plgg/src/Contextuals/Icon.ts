@@ -1,25 +1,25 @@
 import { Box, hasProp } from "plgg/index";
 
 /**
- * Special placeholder value for EmptyBox content.
+ * Special placeholder value for Icon content.
  * Using a unique string to avoid conflicts with user data.
  */
-export const EMPTY_BOX_CONTENT = "__none__" as const;
+export const ICON_CONTENT = "__none__" as const;
 
 /**
  * A variant with only a tag and no body.
  */
-export type EmptyBox<TAG extends string> = Box<
+export type Icon<TAG extends string> = Box<
   TAG,
-  typeof EMPTY_BOX_CONTENT
+  typeof ICON_CONTENT
 >;
 
 /**
  * Type predicate to check if a type is a fixed variant.
  */
-export type IsEmptyBox<V> = V extends {
+export type IsIcon<V> = V extends {
   __tag: infer T;
-  content: typeof EMPTY_BOX_CONTENT;
+  content: typeof ICON_CONTENT;
 }
   ? T extends string
     ? true
@@ -31,7 +31,7 @@ export type IsEmptyBox<V> = V extends {
  */
 const is = <TAG extends string>(
   value: unknown,
-): value is EmptyBox<TAG> =>
+): value is Icon<TAG> =>
   typeof value === "object" &&
   value !== null &&
   hasProp(value, "__tag") &&
@@ -40,21 +40,21 @@ const is = <TAG extends string>(
 /**
  * Exported type guard function for Box values.
  */
-export const isEmptyBox = is;
+export const isIcon = is;
 
-export const hasEmptyBoxTag =
+export const hasIconTag =
   <T extends string>(tag: T) =>
   (
-    value: EmptyBox<string>,
-  ): value is EmptyBox<T> =>
+    value: Icon<string>,
+  ): value is Icon<T> =>
     value.__tag === tag;
 
 /**
- * Creates a new EmptyBox with the specified tag.
+ * Creates a new Icon with the specified tag.
  */
-export const newEmptyBox = <TAG extends string>(
+export const newIcon = <TAG extends string>(
   tag: TAG,
-): EmptyBox<TAG> => ({
+): Icon<TAG> => ({
   __tag: tag,
-  content: EMPTY_BOX_CONTENT,
+  content: ICON_CONTENT,
 });

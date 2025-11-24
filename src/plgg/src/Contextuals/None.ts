@@ -1,15 +1,15 @@
 import {
-  EmptyBox,
+  Icon,
   Result,
   InvalidError,
   Refinable,
   Castable,
   pattern,
-  isEmptyBox,
-  hasEmptyBoxTag,
+  isIcon,
+  hasIconTag,
   newOk,
   newErr,
-  newEmptyBox,
+  newIcon,
 } from "plgg/index";
 
 /**
@@ -21,7 +21,7 @@ const noneTag = "None" as const;
  * None side of Option, representing the absence of a value.
  * Equivalent to null/undefined but in a type-safe way.
  */
-export type None = EmptyBox<typeof noneTag>;
+export type None = Icon<typeof noneTag>;
 
 /**
  * Pattern constructor for None matching.
@@ -33,13 +33,13 @@ export const none = () => pattern(noneTag)();
  * Creates a None instance representing no value.
  */
 export const newNone = (): None =>
-  newEmptyBox(noneTag);
+  newIcon(noneTag);
 
 /**
  * Type guard to check if an Option is a None.
  */
 const is = (e: unknown): e is None =>
-  isEmptyBox(e) && hasEmptyBoxTag(noneTag)(e);
+  isIcon(e) && hasIconTag(noneTag)(e);
 
 /**
  * Refinable instance for None type guards.

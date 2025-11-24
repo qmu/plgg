@@ -8,7 +8,6 @@ import {
   hasProp,
   pipe,
   chainResult,
-  EMPTY_BOX_CONTENT,
 } from "plgg/index";
 
 /**
@@ -27,12 +26,10 @@ export type Box<
  */
 export type IsBox<V> = V extends {
   __tag: infer T;
-  content: infer B;
+  content: unknown;
 }
   ? T extends string
-    ? B extends typeof EMPTY_BOX_CONTENT
-      ? false
-      : true
+    ? true
     : false
   : false;
 

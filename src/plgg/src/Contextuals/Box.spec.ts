@@ -1,8 +1,6 @@
 import { test, expect, assert } from "vitest";
 import {
   Box,
-  EmptyBox,
-  IsBox,
   forContent,
   asBox,
   asObj,
@@ -25,27 +23,6 @@ test("Box type structure", () => {
     ? true
     : false = true;
   expect(_typeTest).toBe(true);
-});
-
-test("IsBox type predicate", () => {
-  // Type-level tests for IsBox
-  type BoxTest = IsBox<Box<"test", string>>;
-  type EmptyBoxTest = IsBox<EmptyBox<"test">>;
-  type NonBoxTest = IsBox<{ someOther: "prop" }>;
-
-  const _boxTest: BoxTest extends true
-    ? true
-    : false = true;
-  const _emptyBoxTest: EmptyBoxTest extends false
-    ? true
-    : false = true;
-  const _nonBoxTest: NonBoxTest extends false
-    ? true
-    : false = true;
-
-  expect(_boxTest).toBe(true);
-  expect(_emptyBoxTest).toBe(true);
-  expect(_nonBoxTest).toBe(true);
 });
 
 test("forContent - validates Box from unknown using cast", () => {

@@ -1,5 +1,5 @@
 export * from "plgg/Contextuals/Box";
-export * from "plgg/Contextuals/EmptyBox";
+export * from "plgg/Contextuals/Icon";
 export * from "plgg/Contextuals/Err";
 export * from "plgg/Contextuals/NominalDatum";
 export * from "plgg/Contextuals/None";
