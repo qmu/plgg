@@ -4,6 +4,10 @@ import {
   Box,
   newBox,
   asDictOf,
+  isBoxWithTag,
+  forContent,
+  asBox,
+  cast,
 } from "plgg";
 import {
   VirtualType,
@@ -17,9 +21,9 @@ import {
  * Output specification defining egress fields and their types.
  * Maps output variable names to their type specifications.
  */
-export type Packer = Dict<
-  VariableName,
-  VirtualType
+export type Packer = Box<
+  "Packer",
+  Dict<VariableName, VirtualType>
 >;
 
 export type PackerSpec = Box<
@@ -32,19 +36,20 @@ export type PackerSpec = Box<
  * Packers are plain Dict objects without 'process' or 'check' functions.
  */
 export const isPacker = (
-  apparatus: unknown,
-): apparatus is Packer =>
-  typeof apparatus === "object" &&
-  apparatus !== null &&
-  !("process" in apparatus) &&
-  !("check" in apparatus) &&
-  !("name" in apparatus);
+  v: unknown,
+): v is Packer => isBoxWithTag("Packer")(v);
 
 /**
  * Validates and casts a PackerSpec to Packer.
  */
 export const asPacker = (value: PackerSpec) =>
-  asDictOf(asVirtualType)(value.content);
+  cast(
+    value.content,
+    asBox,
+    forContent("Packer", (a) =>
+      cast(a, asDictOf(asVirtualType)),
+    ),
+  );
 
 /**
  * Castable instance for Packer safe casting.
@@ -70,7 +75,7 @@ export const newPackerSpec = (
  * Generates human-readable markdown description of packer.
  */
 export const explainPacker = (packer: Packer) =>
-  `Outputs: ${Object.entries(packer)
+  `Outputs: ${Object.entries(packer.content)
     .map(([name, vt]) =>
       formatVirtualType(name, vt),
     )

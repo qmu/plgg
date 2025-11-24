@@ -384,7 +384,7 @@ const execEgress = async ({
     for (const [
       outputName,
       expectedType,
-    ] of Object.entries(packer)) {
+    ] of Object.entries(packer.content)) {
       // Check if this output name exists in the egress result mapping
       const variableAddr = op.result[outputName];
       if (
