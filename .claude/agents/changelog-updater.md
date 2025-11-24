@@ -21,9 +21,10 @@ This project has separate changelogs:
    - Changes in `src/plgg-foundry/` go to `src/plgg-foundry/CHANGELOG.md`
    - Changes in `.claude/`, `sh/`, or other root files go to `CHANGELOG.md`
 3. Run `git diff --cached` to see the actual changes
-4. For each affected package:
-   - Read its `package.json` to get the current version number
-   - Read and update its CHANGELOG.md using that version
+4. For each affected location:
+   - For `src/plgg/` and `src/plgg-foundry/`: Read its `package.json` to get the current version number
+   - For root `CHANGELOG.md`: Use the version from `src/plgg/package.json`
+   - Read and update the appropriate CHANGELOG.md using that version
 5. Analyze the staged changes and categorize them:
    - **Added**: New features or files
    - **Changed**: Changes to existing functionality
