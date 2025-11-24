@@ -7,7 +7,9 @@ import {
   newErr,
   hasProp,
   pipe,
+  flow,
   chainResult,
+  newUntaggedBox,
 } from "plgg/index";
 
 /**
@@ -63,10 +65,7 @@ export const asBox = (
 ): Result<Box<string, unknown>, InvalidError> =>
   is<string>(value)
     ? newOk(value)
-    : newOk({
-        __tag: "Untagged",
-        content: value,
-      });
+    : newOk(newUntaggedBox(value));
 
 /**
  * Castable instance for Box safe casting.
@@ -108,10 +107,7 @@ export const forContent =
             (
               okValue,
             ): Result<Box<T, U>, InvalidError> =>
-              newOk({
-                __tag: tag,
-                content: okValue,
-              }),
+              pipe(okValue, newBox(tag), newOk),
           ),
         )
       : newErr(

@@ -1,3 +1,4 @@
+export * from "plgg/Contextuals/UntaggedBox";
 export * from "plgg/Contextuals/Box";
 export * from "plgg/Contextuals/Icon";
 export * from "plgg/Contextuals/Err";
