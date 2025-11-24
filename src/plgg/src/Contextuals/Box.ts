@@ -1,8 +1,8 @@
 import {
   Result,
   InvalidError,
-  Refinable1,
-  Castable1,
+  Refinable,
+  Castable,
   newOk,
   newErr,
   hasProp,
@@ -10,12 +10,6 @@ import {
   chainResult,
   EMPTY_BOX_CONTENT,
 } from "plgg/index";
-
-declare module "plgg/Abstracts/Principals/Kind" {
-  export interface MapKind1<A> {
-    Box: Box<string, A>;
-  }
-}
 
 /**
  * A variant with both a tag and body.
@@ -45,9 +39,9 @@ export type IsBox<V> = V extends {
 /**
  * Type guard to check if a value is a Box.
  */
-const is = <TAG extends string, CONTENT>(
+const is = <TAG extends string>(
   value: unknown,
-): value is Box<TAG, CONTENT> =>
+): value is Box<TAG, unknown> =>
   typeof value === "object" &&
   value !== null &&
   hasProp(value, "__tag") &&
@@ -57,8 +51,9 @@ const is = <TAG extends string, CONTENT>(
 /**
  * Refinable instance for Box type guards.
  */
-export const boxRefinable: Refinable1<"Box"> = {
-  KindKey: "Box",
+export const boxRefinable: Refinable<
+  Box<string, unknown>
+> = {
   is,
 };
 /**
@@ -66,29 +61,22 @@ export const boxRefinable: Refinable1<"Box"> = {
  */
 export const { is: isBox } = boxRefinable;
 
-export const asBox = <A>(
+export const asBox = (
   value: unknown,
-): Result<Box<string, A>, InvalidError> =>
-  is<string, A>(value)
+): Result<Box<string, unknown>, InvalidError> =>
+  is<string>(value)
     ? newOk(value)
-    : newErr(
-        new InvalidError({
-          message: "Value is not a Box",
-        }),
-      );
-
-export const asBoxOf =
-  (tag: string) =>
-  (
-    value: unknown,
-  ): Result<Box<string, A>, InvalidError> =>
-    newBox();
+    : newOk({
+        __tag: "Untagged",
+        content: value,
+      });
 
 /**
  * Castable instance for Box safe casting.
  */
-export const boxCastable: Castable1<"Box"> = {
-  KindKey: "Box",
+export const boxCastable: Castable<
+  Box<string, unknown>
+> = {
   as: asBox,
 };
 
