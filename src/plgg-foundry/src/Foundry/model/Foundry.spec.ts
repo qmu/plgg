@@ -171,7 +171,6 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
   });
 
   const result = asFoundry(foundryArg);
-  console.log(result.content);
   assert(isOk(result));
   expect(result.content.apparatuses).toHaveLength(
     4,

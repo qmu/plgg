@@ -61,7 +61,7 @@ export const asFoundry = (spec: FoundrySpec) =>
   cast(
     {
       maxOperationLimit: 10,
-      ...(spec?.content ?? {}),
+      ...spec.content,
     },
     forProp("apiKey", asStr),
     forProp("description", asStr),
