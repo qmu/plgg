@@ -4,7 +4,6 @@ import {
   Refinable,
   Castable,
   newOk,
-  newErr,
   hasProp,
   pipe,
   chainResult,
@@ -99,17 +98,11 @@ export const forContent =
   <V extends Box<string, unknown>>(
     box: V,
   ): Result<Box<T, U>, InvalidError> =>
-    hasTag(tag)(box)
-      ? pipe(
-          box.content,
-          predicate,
-          chainResult(flow(newBox(tag), newOk)),
-        )
-      : newErr(
-          new InvalidError({
-            message: `Box tag '${box.__tag}' does not match expected tag '${tag}'`,
-          }),
-        );
+    pipe(
+      box.content,
+      predicate,
+      chainResult(flow(newBox(tag), newOk)),
+    );
 
 /**
  * Creates a new Box with the specified tag and content.

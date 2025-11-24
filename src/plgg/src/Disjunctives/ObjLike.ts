@@ -42,26 +42,42 @@ export const forProp =
     key: T,
     predicate: (a: A) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(
+  <V>(
     rec: V,
-  ): Result<V & Record<T, U>, InvalidError> =>
-    hasProp(rec, key)
-      ? pipe(
-          rec[key] as A, // FIXME
-          predicate,
-          chainResult(
-            (
-              okValue,
-            ): Result<
-              V & Record<T, U>,
-              InvalidError
-            > =>
-              newOk({ ...rec, [key]: okValue }),
-          ),
-        )
+  ): Result<
+    (V extends object ? V : object) & Record<T, U>,
+    InvalidError
+  > =>
+    typeof rec === "object" && rec !== null
+      ? hasProp(rec, key)
+        ? pipe(
+            rec[key] as A, // FIXME
+            predicate,
+            chainResult(
+              (
+                okValue,
+              ): Result<
+                (V extends object ? V : object) &
+                  Record<T, U>,
+                InvalidError
+              > =>
+                newOk({
+                  ...rec,
+                  [key]: okValue,
+                } as (V extends object
+                  ? V
+                  : object) &
+                  Record<T, U>),
+            ),
+          )
+        : newErr(
+            new InvalidError({
+              message: `Property '${key}' not found`,
+            }),
+          )
       : newErr(
           new InvalidError({
-            message: `Property '${key}' not found`,
+            message: "Not an object",
           }),
         );
 
@@ -73,31 +89,45 @@ export const forOptionProp =
     key: T,
     predicate: (a: A) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(
+  <V>(
     rec: V,
   ): Result<
-    V & Record<T, Option<U>>,
+    (V extends object ? V : object) &
+      Record<T, Option<U>>,
     InvalidError
   > =>
-    hasProp(rec, key)
-      ? pipe(
-          rec[key] as A, // FIXME
-          predicate,
-          chainResult(
-            (
-              okValue,
-            ): Result<
-              V & Record<T, Option<U>>,
-              InvalidError
-            > =>
-              newOk({
-                ...rec,
-                [key]: newSome(okValue),
-              }),
-          ),
-        )
-      : newOk({ ...rec, [key]: newNone() } as V &
-          Record<T, Option<U>>);
+    typeof rec === "object" && rec !== null
+      ? hasProp(rec, key)
+        ? pipe(
+            rec[key] as A, // FIXME
+            predicate,
+            chainResult(
+              (
+                okValue,
+              ): Result<
+                (V extends object ? V : object) &
+                  Record<T, Option<U>>,
+                InvalidError
+              > =>
+                newOk({
+                  ...rec,
+                  [key]: newSome(okValue),
+                } as (V extends object
+                  ? V
+                  : object) &
+                  Record<T, Option<U>>),
+            ),
+          )
+        : newOk({
+            ...rec,
+            [key]: newNone(),
+          } as (V extends object ? V : object) &
+            Record<T, Option<U>>)
+      : newErr(
+          new InvalidError({
+            message: "Not an object",
+          }),
+        );
 
 /**
  * Type guard for record field existence.
