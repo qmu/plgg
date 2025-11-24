@@ -16,6 +16,10 @@ import {
   asKebabCase,
   isSome,
   asDictOf,
+  asBox,
+  asObj,
+  forContent,
+  isBoxWithTag,
 } from "plgg";
 import {
   Medium,
@@ -29,32 +33,33 @@ import {
 /**
  * Function that evaluates a condition and returns boolean with data for each branch.
  */
-export type Switcher = Readonly<{
-  type: "Switcher";
-  name: KebabCase;
-  description: Str;
-  arguments: Option<
-    Dict<VariableName, VirtualType>
-  >;
-  returnsWhenTrue: Dict<
-    VariableName,
-    VirtualType
-  >;
-  returnsWhenFalse: Dict<
-    VariableName,
-    VirtualType
-  >;
-  fn: (
-    medium: Medium,
-  ) => PossiblyPromise<
-    [boolean, Dict<VariableName, Datum>]
-  >;
-}>;
+export type Switcher = Box<
+  "Switcher",
+  {
+    name: KebabCase;
+    description: Str;
+    arguments: Option<
+      Dict<VariableName, VirtualType>
+    >;
+    returnsWhenTrue: Dict<
+      VariableName,
+      VirtualType
+    >;
+    returnsWhenFalse: Dict<
+      VariableName,
+      VirtualType
+    >;
+    fn: (
+      medium: Medium,
+    ) => PossiblyPromise<
+      [boolean, Dict<VariableName, Datum>]
+    >;
+  }
+>;
 
 export type SwitcherSpec = Box<
   "SwitcherSpec",
   Readonly<{
-    type: "Switcher";
     name: string;
     description: string;
     arguments?: Dict<
@@ -81,12 +86,8 @@ export type SwitcherSpec = Box<
  * Type guard to check if apparatus is a Switcher.
  */
 export const isSwitcher = (
-  apparatus: unknown,
-): apparatus is Switcher =>
-  typeof apparatus === "object" &&
-  apparatus !== null &&
-  "type" in apparatus &&
-  apparatus.type === "Switcher";
+  v: unknown,
+): v is Switcher => isBoxWithTag("Switcher")(v);
 
 /**
  * Validates and casts a SwitcherSpec to Switcher.
@@ -94,21 +95,28 @@ export const isSwitcher = (
 export const asSwitcher = (value: SwitcherSpec) =>
   cast(
     value.content,
-    forProp("name", asKebabCase),
-    forProp("description", asStr),
-    forOptionProp(
-      "arguments",
-      asDictOf(asVirtualType),
+    asBox,
+    forContent("Switcher", (a) =>
+      cast(
+        a,
+        asObj,
+        forProp("name", asKebabCase),
+        forProp("description", asStr),
+        forOptionProp(
+          "arguments",
+          asDictOf(asVirtualType),
+        ),
+        forProp(
+          "returnsWhenTrue",
+          asDictOf(asVirtualType),
+        ),
+        forProp(
+          "returnsWhenFalse",
+          asDictOf(asVirtualType),
+        ),
+        forProp("fn", asFunc),
+      ),
     ),
-    forProp(
-      "returnsWhenTrue",
-      asDictOf(asVirtualType),
-    ),
-    forProp(
-      "returnsWhenFalse",
-      asDictOf(asVirtualType),
-    ),
-    forProp("fn", asFunc),
   );
 
 /**
@@ -169,10 +177,7 @@ export const newSwitcherSpec = <
   >;
 }): SwitcherSpec =>
   newBox("SwitcherSpec")<SwitcherSpec["content"]>(
-    {
-      type: "Switcher",
-      ...spec,
-    },
+    spec,
   );
 
 /**
@@ -181,12 +186,14 @@ export const newSwitcherSpec = <
 export const explainSwitcher = (
   switcher: Switcher,
 ) =>
-  `${switcher.description.content}
+  `${switcher.content.description.content}
 
-- Opcode: \`${switcher.name.content}\`
+- Opcode: \`${switcher.content.name.content}\`
 - Arguments: ${
-    isSome(switcher.arguments)
-      ? Object.entries(switcher.arguments.content)
+    isSome(switcher.content.arguments)
+      ? Object.entries(
+          switcher.content.arguments.content,
+        )
           .map(([name, vt]) =>
             formatVirtualType(name, vt),
           )
@@ -194,14 +201,14 @@ export const explainSwitcher = (
       : "Any"
   }
 - Returns When True: ${Object.entries(
-    switcher.returnsWhenTrue,
+    switcher.content.returnsWhenTrue,
   )
     .map(([name, vt]) =>
       formatVirtualType(name, vt),
     )
     .join(", ")}
 - Returns When False: ${Object.entries(
-    switcher.returnsWhenFalse,
+    switcher.content.returnsWhenFalse,
   )
     .map(([name, vt]) =>
       formatVirtualType(name, vt),

@@ -72,10 +72,10 @@ test("asFoundrySpec validation - valid foundry", () => {
   );
   expect(processors).toHaveLength(1);
   expect(switchers).toHaveLength(1);
-  expect(processors[0]?.name.content).toBe(
-    "test-processor",
-  );
-  expect(switchers[0]?.name.content).toBe(
+  expect(
+    processors[0]?.content.name.content,
+  ).toBe("test-processor");
+  expect(switchers[0]?.content.name.content).toBe(
     "test-switcher",
   );
 });
@@ -171,6 +171,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
   });
 
   const result = asFoundry(foundryArg);
+  console.log(result.content);
   assert(isOk(result));
   expect(result.content.apparatuses).toHaveLength(
     4,

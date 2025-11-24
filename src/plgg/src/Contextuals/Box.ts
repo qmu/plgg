@@ -77,6 +77,13 @@ export const asBox = <A>(
         }),
       );
 
+export const asBoxOf =
+  (tag: string) =>
+  (
+    value: unknown,
+  ): Result<Box<string, A>, InvalidError> =>
+    newBox();
+
 /**
  * Castable instance for Box safe casting.
  */

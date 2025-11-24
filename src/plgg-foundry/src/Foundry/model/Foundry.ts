@@ -92,7 +92,8 @@ export const findSwitcher = (
     foundry.apparatuses,
     filter(isSwitcher),
     find<Switcher>({
-      predicate: (s) => s.name.content === opcode,
+      predicate: (s) =>
+        s.content.name.content === opcode,
       errMessage: `No switcher found for opcode "${opcode}"`,
     }),
   );
@@ -108,7 +109,8 @@ export const findProcessor = (
     foundry.apparatuses,
     filter(isProcessor),
     find<Processor>({
-      predicate: (p) => p.name.content === opcode,
+      predicate: (p) =>
+        p.content.name.content === opcode,
       errMessage: `No processor found for opcode "${opcode}"`,
     }),
   );
@@ -140,7 +142,10 @@ ${foundry.description.content}
 
 ${processors
   .map(
-    (a, i) => `### 2-${i + 1}. ${a.name.content}
+    (
+      a,
+      i,
+    ) => `### 2-${i + 1}. ${a.content.name.content}
 
 ${explainApparatus(a)}
 `,
@@ -151,7 +156,10 @@ ${explainApparatus(a)}
 
 ${switchers
   .map(
-    (a, i) => `### 3-${i + 1}. ${a.name.content}
+    (
+      a,
+      i,
+    ) => `### 3-${i + 1}. ${a.content.name.content}
 
 ${explainApparatus(a)}
 `,
@@ -181,5 +189,8 @@ export const extractOpcodes = (
 ): ReadonlyArray<string> =>
   apparatuses
     .filter(filter)
-    .filter((item): item is Processor | Switcher => "name" in item)
-    .map((item) => item.name.content);
+    .filter(
+      (item): item is Processor | Switcher =>
+        "name" in item,
+    )
+    .map((item) => item.content.name.content);

@@ -16,6 +16,10 @@ import {
   asKebabCase,
   isSome,
   asDictOf,
+  asBox,
+  asObj,
+  forContent,
+  isBoxWithTag,
 } from "plgg";
 import {
   Medium,
@@ -29,23 +33,26 @@ import {
 /**
  * Function that processes input data and returns output data.
  */
-export type Processor = Readonly<{
-  type: "Processor";
-  name: KebabCase;
-  description: Str;
-  arguments: Option<
-    Dict<VariableName, VirtualType>
-  >;
-  returns: Dict<VariableName, VirtualType>;
-  fn: (
-    medium: Medium,
-  ) => PossiblyPromise<Dict<VariableName, Datum>>;
-}>;
+export type Processor = Box<
+  "Processor",
+  Readonly<{
+    name: KebabCase;
+    description: Str;
+    arguments: Option<
+      Dict<VariableName, VirtualType>
+    >;
+    returns: Dict<VariableName, VirtualType>;
+    fn: (
+      medium: Medium,
+    ) => PossiblyPromise<
+      Dict<VariableName, Datum>
+    >;
+  }>
+>;
 
 export type ProcessorSpec = Box<
   "ProcessorSpec",
   Readonly<{
-    type: "Processor";
     name: string;
     description: string;
     arguments?: Dict<
@@ -65,12 +72,8 @@ export type ProcessorSpec = Box<
  * Type guard to check if apparatus is a Processor.
  */
 export const isProcessor = (
-  apparatus: unknown,
-): apparatus is Processor =>
-  typeof apparatus === "object" &&
-  apparatus !== null &&
-  "type" in apparatus &&
-  apparatus.type === "Processor";
+  v: unknown,
+): v is Processor => isBoxWithTag("Processor")(v);
 
 /**
  * Validates and casts a ProcessorSpec to Processor.
@@ -80,14 +83,24 @@ export const asProcessor = (
 ) =>
   cast(
     value.content,
-    forProp("name", asKebabCase),
-    forProp("description", asStr),
-    forOptionProp(
-      "arguments",
-      asDictOf(asVirtualType),
+    asBox,
+    forContent("Processor", (a) =>
+      cast(
+        a,
+        asObj,
+        forProp("name", asKebabCase),
+        forProp("description", asStr),
+        forOptionProp(
+          "arguments",
+          asDictOf(asVirtualType),
+        ),
+        forProp(
+          "returns",
+          asDictOf(asVirtualType),
+        ),
+        forProp("fn", asFunc),
+      ),
     ),
-    forProp("returns", asDictOf(asVirtualType)),
-    forProp("fn", asFunc),
   );
 
 /**
@@ -126,7 +139,6 @@ export const newProcessorSpec = <
   newBox("ProcessorSpec")<
     ProcessorSpec["content"]
   >({
-    type: "Processor",
     ...spec,
   });
 
@@ -135,19 +147,23 @@ export const newProcessorSpec = <
  */
 export const explainProcessor = (
   processor: Processor,
-) => `${processor.description.content}
+) => `${processor.content.description.content}
 
-- Opcode: \`${processor.name.content}\`
+- Opcode: \`${processor.content.name.content}\`
 - Arguments: ${
-  isSome(processor.arguments)
-    ? Object.entries(processor.arguments.content)
+  isSome(processor.content.arguments)
+    ? Object.entries(
+        processor.content.arguments.content,
+      )
         .map(([name, vt]) =>
           formatVirtualType(name, vt),
         )
         .join(", ")
     : "Any"
 }
-- Returns: ${Object.entries(processor.returns)
+- Returns: ${Object.entries(
+  processor.content.returns,
+)
   .map(([name, vt]) =>
     formatVirtualType(name, vt),
   )

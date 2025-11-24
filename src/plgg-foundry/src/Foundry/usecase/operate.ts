@@ -189,7 +189,7 @@ const execSwitch = async ({
       alignment,
       params,
     } satisfies Medium,
-    tryCatch(switcher.fn),
+    tryCatch(switcher.content.fn),
   );
 
   if (!isOk(checkResult)) {
@@ -210,8 +210,8 @@ const execSwitch = async ({
     : op.outputWhenFalse;
 
   const returnTypes = isValid
-    ? switcher.returnsWhenTrue
-    : switcher.returnsWhenFalse;
+    ? switcher.content.returnsWhenTrue
+    : switcher.content.returnsWhenFalse;
 
   const newEnvEntries: Record<Address, Param> =
     {};
@@ -290,7 +290,7 @@ const execProcess = async ({
   // Step 3: Execute the processor function
   const processResult = await proc(
     { alignment, params } satisfies Medium,
-    tryCatch(processorResult.content.fn),
+    tryCatch(processorResult.content.content.fn),
   );
 
   if (!isOk(processResult)) {
@@ -302,7 +302,7 @@ const execProcess = async ({
 
   // Step 4: Store returned values in registers using output NameTable
   const returnTypes =
-    processorResult.content.returns;
+    processorResult.content.content.returns;
 
   const newEnvEntries: Record<Address, Param> =
     {};
