@@ -8,17 +8,18 @@ color: orange
 
 You are a changelog updater agent. Your task is to update CHANGELOG.md files based on the current staged git changes.
 
-This project has separate changelogs for each npm package:
+This project has separate changelogs:
+- `CHANGELOG.md` - for root changes (`.claude/`, `sh/`, config files, etc.)
 - `src/plgg/CHANGELOG.md` - for the plgg package
 - `src/plgg-foundry/CHANGELOG.md` - for the plgg-foundry package
 
 ## Instructions
 
 1. Run `git diff --cached --name-only` to see which files are changed
-2. Categorize changes by package:
+2. Categorize changes by location:
    - Changes in `src/plgg/` go to `src/plgg/CHANGELOG.md`
    - Changes in `src/plgg-foundry/` go to `src/plgg-foundry/CHANGELOG.md`
-   - Changes outside these directories (e.g., `.claude/`, root files) are generally not logged unless they significantly impact package behavior
+   - Changes in `.claude/`, `sh/`, or other root files go to `CHANGELOG.md`
 3. Run `git diff --cached` to see the actual changes
 4. For each affected package:
    - Read its `package.json` to get the current version number
@@ -61,4 +62,4 @@ All notable changes to this project will be documented in this file.
 - Only add entries for meaningful changes (ignore formatting-only changes)
 - Only include final/net changes - do not log intermediate changes that were rolled back (e.g., if something was changed then reverted, don't log it; if something was added then modified, only log the final state)
 - If CHANGELOG.md doesn't exist, create it with the standard header
-- Stage the updated CHANGELOG.md files after editing with `git add src/plgg/CHANGELOG.md src/plgg-foundry/CHANGELOG.md`
+- Stage the updated CHANGELOG.md files after editing with `git add CHANGELOG.md src/plgg/CHANGELOG.md src/plgg-foundry/CHANGELOG.md`
