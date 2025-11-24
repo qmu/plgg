@@ -17,7 +17,7 @@ import {
   isSome,
   asDictOf,
   asBox,
-  asObj,
+  asRawObj,
   forContent,
   isBoxWithTag,
 } from "plgg";
@@ -99,7 +99,7 @@ export const asSwitcher = (value: SwitcherSpec) =>
     forContent("Switcher", (a) =>
       cast(
         a,
-        asObj,
+        asRawObj,
         forProp("name", asKebabCase),
         forProp("description", asStr),
         forOptionProp(

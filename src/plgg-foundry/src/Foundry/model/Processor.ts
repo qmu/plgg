@@ -17,7 +17,7 @@ import {
   isSome,
   asDictOf,
   asBox,
-  asObj,
+  asRawObj,
   forContent,
   isBoxWithTag,
 } from "plgg";
@@ -87,7 +87,7 @@ export const asProcessor = (
     forContent("Processor", (a) =>
       cast(
         a,
-        asObj,
+        asRawObj,
         forProp("name", asKebabCase),
         forProp("description", asStr),
         forOptionProp(
