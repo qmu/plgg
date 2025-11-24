@@ -40,6 +40,15 @@ export const isPacker = (
 ): v is Packer => isBoxWithTag("Packer")(v);
 
 /**
+ * Type guard to check if apparatus spec is a PackerSpec.
+ * PackerSpecs are plain Dict objects without 'process' or 'check' functions.
+ */
+export const isPackerSpec = (
+  v: unknown,
+): v is PackerSpec =>
+  isBoxWithTag("PackerSpec")(v);
+
+/**
  * Validates and casts a PackerSpec to Packer.
  */
 export const asPacker = (value: PackerSpec) =>

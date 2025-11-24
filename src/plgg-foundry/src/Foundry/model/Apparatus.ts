@@ -2,7 +2,6 @@ import {
   Castable,
   Result,
   InvalidError,
-  isBoxWithTag,
   newErr,
 } from "plgg";
 import {
@@ -21,6 +20,9 @@ import {
   isProcessor,
   isSwitcher,
   isPacker,
+  isProcessorSpec,
+  isSwitcherSpec,
+  isPackerSpec,
 } from "plgg-foundry/index";
 
 /**
@@ -41,16 +43,16 @@ export type ApparatusSpec =
  * Validates and casts an ApparatusSpec to Apparatus.
  */
 export const asApparatus = (
-  value: unknown,
+  v: unknown,
 ): Result<Apparatus, InvalidError> => {
-  if (isBoxWithTag("ProcessorSpec")(value)) {
-    return asProcessor(value as ProcessorSpec);
+  if (isProcessorSpec(v)) {
+    return asProcessor(v);
   }
-  if (isBoxWithTag("SwitcherSpec")(value)) {
-    return asSwitcher(value as SwitcherSpec);
+  if (isSwitcherSpec(v)) {
+    return asSwitcher(v);
   }
-  if (isBoxWithTag("PackerSpec")(value)) {
-    return asPacker(value as PackerSpec);
+  if (isPackerSpec(v)) {
+    return asPacker(v);
   }
   return newErr(
     new InvalidError({

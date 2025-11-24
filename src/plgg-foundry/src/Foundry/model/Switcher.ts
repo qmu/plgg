@@ -90,6 +90,14 @@ export const isSwitcher = (
 ): v is Switcher => isBoxWithTag("Switcher")(v);
 
 /**
+ * Type guard to check if apparatus spec is a SwitcherSpec.
+ */
+export const isSwitcherSpec = (
+  v: unknown,
+): v is SwitcherSpec =>
+  isBoxWithTag("SwitcherSpec")(v);
+
+/**
  * Validates and casts a SwitcherSpec to Switcher.
  */
 export const asSwitcher = (value: SwitcherSpec) =>

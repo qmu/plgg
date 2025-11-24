@@ -76,6 +76,14 @@ export const isProcessor = (
 ): v is Processor => isBoxWithTag("Processor")(v);
 
 /**
+ * Type guard to check if apparatus spec is a ProcessorSpec.
+ */
+export const isProcessorSpec = (
+  v: unknown,
+): v is ProcessorSpec =>
+  isBoxWithTag("ProcessorSpec")(v);
+
+/**
  * Validates and casts a ProcessorSpec to Processor.
  */
 export const asProcessor = (
