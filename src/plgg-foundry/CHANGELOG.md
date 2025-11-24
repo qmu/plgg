@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.0.25] - Unreleased
+## [0.0.1] - Unreleased
 
 ### Added
 - LLMs module with provider abstractions and vendor implementations

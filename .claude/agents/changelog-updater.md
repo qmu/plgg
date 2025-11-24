@@ -20,7 +20,9 @@ This project has separate changelogs for each npm package:
    - Changes in `src/plgg-foundry/` go to `src/plgg-foundry/CHANGELOG.md`
    - Changes outside these directories (e.g., `.claude/`, root files) are generally not logged unless they significantly impact package behavior
 3. Run `git diff --cached` to see the actual changes
-4. For each affected package, read and update its CHANGELOG.md
+4. For each affected package:
+   - Read its `package.json` to get the current version number
+   - Read and update its CHANGELOG.md using that version
 5. Analyze the staged changes and categorize them:
    - **Added**: New features or files
    - **Changed**: Changes to existing functionality
