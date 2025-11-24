@@ -2,10 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.0.25] - Unreleased
 
 ### Added
-- New changelog-updater agent for automatically updating CHANGELOG.md based on staged git changes
+- `Dict` type alias and casting functions in Conjunctives module
+- `flow` function for type-safe function composition in Flowables
+- `tap` function for side effects in Functionals module
+- `find` generic function with type guard support in Functionals
+- `filter` function with proper type narrowing in Functionals
+- `postJson` utility for HTTP POST requests with JSON
+- `tryCatch`, `conclude`, `debug`, `hold`, `pass`, `refine` functions extracted to individual files
+- `asVecOf` helper for type-safe array element validation
+- `PromisedResult` type alias for `Promise<Result<T, E>>`
+- Case validation types: `KebabCase`, `CamelCase`, `PascalCase`, `SnakeCase`, `CapitalCase`
+- Character types: `Alphabet`, `Alphanumeric`
+- Automatic boxing logic to numeric types (Float, I8-I128, U8-U128)
+- Comprehensive test coverage for Basics, Collectives, Conjunctives, Exceptionals, and Grammaticals
 
 ### Changed
-- Update commit command to include instruction for using changelog-updater subagent before committing
+- Refactor `Box` type to be fully readonly instead of just content property
+- Rename `EmptyBox` to `Icon` for clearer tagged union semantics
+- Refactor `Box` to use `Refinable`/`Castable` instead of `Refinable1`/`Castable1`
+- Simplify `forContent` and relax `forProp` type constraints
+- Simplify `flow` to synchronous execution
+- Change `EmptyBox` content from `undefined` to `'__none__'` constant
+- Change `isPromise` parameter type from `PossiblyPromise<T>` to `unknown`
+- Remove `isSome` and `isNone` methods from Option types
+- Update `conclude` function to return Error array
+- Simplify types by replacing `Obj`/`Dict` with `Readonly`/`Record` where appropriate
+- Move `conclude` function from Vec to idiom module
+- Refactor idiom module to Functionals directory with individual function files
+- Remove type assertion from `asReadonlyArray` function
+
+### Fixed
+- Fix `Procedural` type to prevent union type distribution
+
+### Removed
+- Remove `jsonEncode`/`jsonDecode` from Functionals (refactored to use `JsonReady`)

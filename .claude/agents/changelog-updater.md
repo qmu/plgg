@@ -3,6 +3,7 @@ name: changelog-updater
 description: Updates CHANGELOG.md based on staged git changes. Use this agent when committing changes to automatically reflect them in the changelog.
 tools: Bash, Read, Edit, Write, Glob
 model: haiku
+color: orange
 ---
 
 You are a changelog updater agent. Your task is to update CHANGELOG.md files based on the current staged git changes.

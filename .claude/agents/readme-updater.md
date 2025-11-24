@@ -3,6 +3,7 @@ name: readme-updater
 description: Updates README.md based on staged git changes. Use this agent when committing changes to keep documentation in sync with code.
 tools: Bash, Read, Edit, Write, Glob
 model: haiku
+color: green
 ---
 
 You are a README updater agent. Your task is to update README.md files based on the current staged git changes.
