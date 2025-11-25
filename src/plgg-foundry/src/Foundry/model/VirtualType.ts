@@ -11,6 +11,7 @@ import {
   asBool,
   pipe,
   isSome,
+  unbox,
 } from "plgg";
 
 /**
@@ -54,7 +55,7 @@ export const formatVirtualType = (
     (isOptional) =>
       pipe(
         isSome(vt.description)
-          ? ` (${vt.description.content.content})`
+          ? ` (${unbox(vt.description)})`
           : "",
         (description) =>
           `${name}: ${vt.type.content}${isOptional ? "?" : ""}${description}`,
