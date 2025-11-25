@@ -1,7 +1,4 @@
 - Check unstaged changes
 - Group related changes together
 - Git add/commit one category at a time
-- Use the version-checker subagent to verify package.json versions are incremented when needed
-- Use the readme-updater subagent to update README.md based on staged changes before committing
-- Use the changelog-updater subagent to update CHANGELOG.md based on staged changes before committing
 - Continue until all changes are committed

@@ -2,6 +2,3 @@
 - Only commit staged changes without adding new files.
 - If unrelated changes are included, end with "etc."
 - In the body, summarize the changes as bullet points.
-- Use the version-checker subagent to verify package.json versions are incremented when needed.
-- Use the readme-updater subagent to update README.md based on staged changes before committing.
-- Use the changelog-updater subagent to update CHANGELOG.md based on staged changes before committing.
