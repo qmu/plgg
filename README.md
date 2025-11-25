@@ -6,7 +6,9 @@
 
 This is a monorepo containing:
 
-- **`src/plgg/`** - Main library package
+- **`src/plgg/`** - Main library package with functional programming utilities
+- **`src/plgg-kit/`** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
+- **`src/plgg-foundry/`** - AI-powered workflow orchestration library
 - **`src/example/`** - Example usage project
 
 ## Installation
