@@ -123,3 +123,22 @@ export const isBoxWithTag =
   <T extends string>(tag: T) =>
   (value: unknown): value is Box<T, unknown> =>
     isBox(value) && hasTag(tag)(value);
+
+/**
+ * Recursively extracts the innermost content from nested Box structures.
+ * If the value is not a Box, returns it as-is.
+ */
+export type Unbox<T> =
+  T extends Box<string, infer C> ? Unbox<C> : T;
+
+/**
+ * Recursively unboxes a value, extracting the innermost content from nested Box structures.
+ * If the value is not a Box, returns it as-is.
+ */
+export function unbox<T>(value: T): Unbox<T>;
+export function unbox(value: unknown): unknown {
+  if (isBox(value)) {
+    return unbox(value.content);
+  }
+  return value;
+}

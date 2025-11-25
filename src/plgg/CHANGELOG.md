@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.0.25] - Unreleased
 
 ### Added
+- `unbox` function and `Unbox` type for recursive nested Box content extraction
 - `Dict` type alias and casting functions in Conjunctives module
 - `flow` function for type-safe function composition in Flowables
 - `tap` function for side effects in Functionals module
@@ -18,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Character types: `Alphabet`, `Alphanumeric`
 - Automatic boxing logic to numeric types (Float, I8-I128, U8-U128)
 - Comprehensive test coverage for Basics, Collectives, Conjunctives, Exceptionals, and Grammaticals
+- Module documentation with README.md files for all src subdirectories (Abstracts, Atomics, Basics, Collectives, Conjunctives, Contextuals, Disjunctives, Exceptionals, Flowables, Functionals, Grammaticals)
 
 ### Changed
 - Refactor `Box` type to be fully readonly instead of just content property
