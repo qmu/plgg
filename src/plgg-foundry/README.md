@@ -2,7 +2,7 @@
 
 ⚠️ **UNSTABLE** - This is experimental study work focused on functional programming concepts. Primarily intended for our own projects, though publicly available.
 
-**plgg-foundry** is an AI-powered workflow orchestration library that dynamically composes and executes operations based on user requests. It uses OpenAI's structured outputs to generate execution plans (called "Alignments") from a set of available operations you define (called a "Foundry").
+**plgg-foundry** is an AI-powered workflow orchestration library that dynamically composes and executes operations based on user requests. It uses LLM structured outputs to generate execution plans (called "Alignments") from a set of available operations you define (called a "Foundry").
 
 ## Table of Contents
 
@@ -21,48 +21,41 @@
 npm install plgg-foundry plgg
 ```
 
-You'll also need an OpenAI API key with access to the Responses API.
+You'll also need an OpenAI API key with access to structured outputs.
 
 ## Quick Start
 
 ```typescript
-import { run } from "plgg-foundry";
-import { isOk } from "plgg";
+import { runFoundry, newFoundrySpec, newProcessorSpec, newPackerSpec } from "plgg-foundry";
 
 // 1. Define your foundry
-const foundrySpec = {
+const foundrySpec = newFoundrySpec({
   apiKey: process.env.OPENAI_API_KEY,
   description: "A text processing foundry",
-  processors: [
-    {
+  apparatuses: [
+    newProcessorSpec({
       name: "analyze-sentiment",
       description: "Analyzes the sentiment of text",
       arguments: { text: { type: "string" } },
       returns: { sentiment: { type: "string" } },
-      process: async (medium) => {
+      fn: async (medium) => {
         const text = medium.params["text"]?.value;
         // Your processing logic here
         return { sentiment: "positive" };
       }
-    }
-  ],
-  switchers: [],
-  packers: [
-    {
+    }),
+    newPackerSpec({
       result: { type: "string" }
-    }
+    })
   ]
-};
+});
 
-// 2. Create an order
-const orderSpec = {
+// 2. Run the workflow
+const result = await runFoundry(foundrySpec)({
   prompt: "Analyze the sentiment of 'I love this!'"
-};
+});
 
-// 3. Run the workflow
-const result = await run({ foundrySpec, orderSpec });
-
-if (isOk(result)) {
+if (result.isOk()) {
   console.log(result.content.params);
 }
 ```
@@ -73,9 +66,10 @@ if (isOk(result)) {
 
 A **Foundry** is your "factory specification" - it defines what operations are available for the AI to compose into workflows. It consists of:
 
-- **Processors**: Functions that transform data (e.g., "generate-image", "analyze-text")
-- **Switchers**: Functions that validate or branch based on conditions (e.g., "check-validity")
-- **Packers**: Named outputs that declare what results you expect
+- **Apparatuses**: A unified array containing all operations
+  - **Processors**: Functions that transform data (e.g., "generate-image", "analyze-text")
+  - **Switchers**: Functions that validate or branch based on conditions (e.g., "check-validity")
+  - **Packers**: Named outputs that declare what results you expect
 
 Think of a Foundry as a collection of tools that the AI can use to accomplish tasks.
 
@@ -84,7 +78,7 @@ Think of a Foundry as a collection of tools that the AI can use to accomplish ta
 An **Order** is a user request containing:
 
 - **prompt**: A natural language description of what you want to accomplish
-- **files** (optional): Binary files (images, documents, etc.) to process
+- **files** (optional): Array of binary files (images, documents, etc.) to process
 
 ### Alignment
 
@@ -102,64 +96,66 @@ A **Medium** is the execution environment passed to your processor and switcher 
 Here's a complete example of a character design foundry with validation loops:
 
 ```typescript
-import { run } from "plgg-foundry";
-import { isOk, isBin, isVec } from "plgg";
+import {
+  runFoundry,
+  newFoundrySpec,
+  newProcessorSpec,
+  newSwitcherSpec,
+  newPackerSpec
+} from "plgg-foundry";
 
-const foundrySpec = {
+const foundrySpec = newFoundrySpec({
   apiKey: process.env.OPENAI_API_KEY,
   description: "Character design foundry that generates and validates character images",
 
-  processors: [
-    {
+  apparatuses: [
+    newProcessorSpec({
       name: "plan",
       description: "Plans the character design based on the prompt",
       arguments: { prompt: { type: "string" } },
       returns: { plan: { type: "string" } },
-      process: async (medium) => {
+      fn: async (medium) => {
         const prompt = medium.params["prompt"]?.value;
         // Call your LLM or planning logic
         return {
           plan: `Character design plan for: ${prompt}`
         };
       }
-    },
-    {
+    }),
+    newProcessorSpec({
       name: "gen-main",
       description: "Generates the main character image",
       arguments: { description: { type: "string" } },
       returns: { image: { type: "image[]" } },
-      process: async (medium) => {
+      fn: async (medium) => {
         const description = medium.params["description"]?.value;
         // Call your image generation API
         const imageData = await generateImage(description);
         return { image: [imageData] };
       }
-    },
-    {
+    }),
+    newProcessorSpec({
       name: "gen-spread",
       description: "Generates spread images (variations) for the character",
       arguments: { mainImage: { type: "image[]" } },
       returns: { spreadImages: { type: "image[]" } },
-      process: async (medium) => {
+      fn: async (medium) => {
         const mainImage = medium.params["mainImage"]?.value;
         // Generate variations
         const variations = await generateVariations(mainImage);
         return { spreadImages: variations };
       }
-    }
-  ],
-
-  switchers: [
-    {
+    }),
+    newSwitcherSpec({
       name: "check-validity",
       description: "Validates generated images for inappropriate content. If invalid, loops back to planning.",
       arguments: { images: { type: "image[]" } },
       returnsWhenTrue: { validImages: { type: "image[]" } },
       returnsWhenFalse: { feedback: { type: "string" } },
-      check: async (medium) => {
+      fn: async (medium) => {
         const images = medium.params["images"]?.value;
 
-        if (!isVec(images) || !images.every(isBin)) {
+        if (!Array.isArray(images) || !images.every(img => img instanceof Uint8Array)) {
           throw new Error("Invalid images for validation");
         }
 
@@ -173,31 +169,21 @@ const foundrySpec = {
             : { feedback: "Content policy violation detected. Please revise." }
         ];
       }
-    }
-  ],
-
-  packers: [
-    {
-      mainImage: { type: "image[]" }
-    },
-    {
-      spreadImages: { type: "image[]" }
-    },
-    {
+    }),
+    newPackerSpec({
+      mainImage: { type: "image[]" },
+      spreadImages: { type: "image[]" },
       designPlan: { type: "string" }
-    }
+    })
   ]
-};
-
-// Execute the workflow
-const result = await run({
-  foundrySpec,
-  orderSpec: {
-    prompt: "A brave knight with silver armor and a glowing sword"
-  }
 });
 
-if (isOk(result)) {
+// Execute the workflow
+const result = await runFoundry(foundrySpec)({
+  prompt: "A brave knight with silver armor and a glowing sword"
+});
+
+if (result.isOk()) {
   const output = result.content.params;
   // Access outputs by their register addresses
   // The AI determines which registers contain which outputs
@@ -224,7 +210,7 @@ The AI might generate an alignment like this:
 
 ## API Reference
 
-### `run({ foundrySpec, orderSpec })`
+### `runFoundry(foundrySpec)(orderSpec)`
 
 Main entry point that orchestrates the complete workflow.
 
@@ -241,9 +227,11 @@ Main entry point that orchestrates the complete workflow.
 **Example:**
 
 ```typescript
-const result = await run({ foundrySpec, orderSpec });
+const result = await runFoundry(foundrySpec)({
+  prompt: "Generate a character image"
+});
 
-if (isOk(result)) {
+if (result.isOk()) {
   const medium = result.content;
   // Access outputs from medium.params
 } else {
@@ -253,85 +241,85 @@ if (isOk(result)) {
 
 ### FoundrySpec
 
+Created using `newFoundrySpec`:
+
 ```typescript
-type FoundrySpec = {
-  apiKey: string;                           // OpenAI API key
-  description: string;                      // What this foundry does
-  maxOperationLimit?: number;               // Max operations to prevent infinite loops (default: 10)
-  processors: ReadonlyArray<ProcessorSpec>; // Data transformation functions
-  switchers: ReadonlyArray<SwitcherSpec>;   // Validation/branching functions
-  packers: ReadonlyArray<PackerSpec>;       // Named output declarations
-}
+const spec = newFoundrySpec({
+  apiKey: string;                              // LLM API key
+  description: string;                         // What this foundry does
+  maxOperationLimit?: number;                  // Max operations (default: 10)
+  apparatuses: ReadonlyArray<ApparatusSpec>;   // All operations (processors, switchers, packers)
+});
 ```
 
 ### ProcessorSpec
 
-Processors transform data and return outputs.
+Processors transform data and return outputs. Created using `newProcessorSpec`:
 
 ```typescript
-type ProcessorSpec = {
+newProcessorSpec({
   name: string;                    // Opcode identifier (kebab-case)
   description: string;             // What this processor does (shown to AI)
-  arguments?: {                    // Input parameters
+  arguments?: {                    // Input parameters (optional)
     [varName: string]: VirtualTypeSpec;
   };
-  returns?: {                      // Output parameters
+  returns: {                       // Output parameters (required)
     [varName: string]: VirtualTypeSpec;
   };
-  process: (medium: Medium) =>
+  fn: (medium: Medium) =>
     Promise<{ [varName: string]: any }> | { [varName: string]: any };
-}
+})
 ```
 
 **Example:**
 
 ```typescript
-{
+newProcessorSpec({
   name: "summarize-text",
   description: "Summarizes long text into a brief summary",
   arguments: { text: { type: "string" } },
   returns: { summary: { type: "string" } },
-  process: async (medium) => {
+  fn: async (medium) => {
     const text = medium.params["text"]?.value;
     const summary = await callLLM(text);
     return { summary };
   }
-}
+})
 ```
 
 ### SwitcherSpec
 
-Switchers evaluate conditions and can branch execution flow.
+Switchers evaluate conditions and can branch execution flow. Created using `newSwitcherSpec`:
 
 ```typescript
-type SwitcherSpec = {
+newSwitcherSpec({
   name: string;
   description: string;
-  arguments?: {
+  arguments?: {                    // Input parameters (optional)
     [varName: string]: VirtualTypeSpec;
   };
-  returnsWhenTrue?: {              // Outputs when condition is true
+  returnsWhenTrue: {              // Outputs when condition is true
     [varName: string]: VirtualTypeSpec;
   };
-  returnsWhenFalse?: {             // Outputs when condition is false
+  returnsWhenFalse: {             // Outputs when condition is false
     [varName: string]: VirtualTypeSpec;
   };
-  check: (medium: Medium) =>
+  fn: (medium: Medium) =>
     Promise<[boolean, { [varName: string]: any }]> |
     [boolean, { [varName: string]: any }];
-}
+})
 ```
 
 **Example:**
 
 ```typescript
-{
+newSwitcherSpec({
   name: "is-spam",
   description: "Checks if text is spam. If spam, filter it out.",
   arguments: { text: { type: "string" } },
   returnsWhenTrue: { reason: { type: "string" } },
   returnsWhenFalse: { cleanText: { type: "string" } },
-  check: async (medium) => {
+  fn: async (medium) => {
     const text = medium.params["text"]?.value;
     const isSpam = await detectSpam(text);
 
@@ -342,36 +330,34 @@ type SwitcherSpec = {
         : { cleanText: text }
     ];
   }
-}
+})
 ```
 
 ### PackerSpec
 
-Packers define the expected output fields and their types for egress operations.
+Packers define the expected output fields and their types for egress operations. Created using `newPackerSpec`:
 
 ```typescript
-type PackerSpec = Dict<VariableName, VirtualTypeSpec>;
+newPackerSpec({
+  [outputName: string]: VirtualTypeSpec;
+})
 ```
 
 **Example:**
 
 ```typescript
-{
+newPackerSpec({
   finalReport: { type: "string" },
   summary: { type: "string" }
-}
+})
 ```
 
 ### OrderSpec
 
 ```typescript
 type OrderSpec = {
-  prompt: string;              // Natural language request
-  file1?: Uint8Array;         // Optional binary files
-  file2?: Uint8Array;
-  file3?: Uint8Array;
-  file4?: Uint8Array;
-  file5?: Uint8Array;
+  prompt: string;                  // Natural language request
+  files?: Uint8Array[];           // Optional binary files
 }
 ```
 
@@ -383,6 +369,7 @@ Type descriptors for function parameters:
 type VirtualTypeSpec = {
   type: string;           // Type name: "string", "image[]", "number", etc.
   optional?: boolean;     // Whether parameter is optional (default: true)
+  description?: string;   // Human-readable description
 }
 ```
 
@@ -413,7 +400,7 @@ type Param = {
 **Accessing Parameters:**
 
 ```typescript
-process: async (medium) => {
+fn: async (medium) => {
   // Access by parameter name (matches your arguments spec)
   const text = medium.params["text"]?.value;
   const count = medium.params["count"]?.value;
@@ -434,13 +421,13 @@ process: async (medium) => {
 Switchers enable validation loops where the AI can retry operations:
 
 ```typescript
-{
+newSwitcherSpec({
   name: "check-quality",
   description: "Validates output quality. If poor quality, loops back to regenerate.",
   arguments: { output: { type: "string" } },
   returnsWhenTrue: { validOutput: { type: "string" } },
   returnsWhenFalse: { feedback: { type: "string" } },
-  check: async (medium) => {
+  fn: async (medium) => {
     const output = medium.params["output"]?.value;
     const score = await evaluateQuality(output);
 
@@ -451,7 +438,7 @@ Switchers enable validation loops where the AI can retry operations:
         : { feedback: `Quality too low (${score}). Regenerate with more detail.` }
     ];
   }
-}
+})
 ```
 
 The AI can compose an alignment that loops back to earlier operations when validation fails.
@@ -459,12 +446,14 @@ The AI can compose an alignment that loops back to earlier operations when valid
 ### Multiple Input Files
 
 ```typescript
-const orderSpec = {
+const result = await runFoundry(foundrySpec)({
   prompt: "Combine these images into a collage",
-  file1: await readFile("image1.png"),
-  file2: await readFile("image2.png"),
-  file3: await readFile("image3.png")
-};
+  files: [
+    await readFile("image1.png"),
+    await readFile("image2.png"),
+    await readFile("image3.png")
+  ]
+});
 ```
 
 ### Custom Operation Limit
@@ -472,38 +461,37 @@ const orderSpec = {
 Control how many operations can execute (prevents infinite loops):
 
 ```typescript
-const foundrySpec = {
+const foundrySpec = newFoundrySpec({
   apiKey: "...",
   description: "...",
   maxOperationLimit: 20,  // Allow up to 20 operations
-  processors: [...],
-  switchers: [...],
-  packers: [...]
-};
+  apparatuses: [...]
+});
 ```
 
-### Type Safety with plgg
+### Type Safety
 
-Use plgg's type guards for robust parameter validation:
+Use standard TypeScript type guards for robust parameter validation:
 
 ```typescript
-import { isStr, isNum, isVec, isBin } from "plgg";
+newProcessorSpec({
+  name: "process-data",
+  description: "Processes various data types",
+  returns: { result: { type: "string" } },
+  fn: async (medium) => {
+    const value = medium.params["data"]?.value;
 
-process: async (medium) => {
-  const value = medium.params["data"]?.value;
+    if (typeof value === "string") {
+      return { result: value.toUpperCase() };
+    }
 
-  if (isStr(value)) {
-    // TypeScript knows value is string
-    return { result: value.toUpperCase() };
+    if (Array.isArray(value) && value.every(v => v instanceof Uint8Array)) {
+      return { result: processImages(value) };
+    }
+
+    throw new Error("Unexpected parameter type");
   }
-
-  if (isVec(value) && value.every(isBin)) {
-    // TypeScript knows value is Uint8Array[]
-    return { result: processImages(value) };
-  }
-
-  throw new Error("Unexpected parameter type");
-}
+})
 ```
 
 ### Error Handling
@@ -511,7 +499,7 @@ process: async (medium) => {
 All operations should throw errors on failure:
 
 ```typescript
-process: async (medium) => {
+fn: async (medium) => {
   const text = medium.params["text"]?.value;
 
   if (typeof text !== "string") {
@@ -549,7 +537,7 @@ Errors will propagate and cause the workflow to fail with a descriptive error me
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │  3. Blueprint: AI generates Alignment                   │
-│     - Sends foundry capabilities to OpenAI              │
+│     - Sends foundry capabilities to LLM                 │
 │     - AI composes operation sequence                    │
 │     - Returns validated Alignment                       │
 └────────────────────┬────────────────────────────────────┘
@@ -590,7 +578,7 @@ This enables complex workflows with loops, branches, and multiple data paths.
 
 ### AI-Driven Composition
 
-The AI (OpenAI GPT) receives:
+The AI (LLM) receives:
 
 1. Your foundry description and available operations
 2. The user's order prompt
@@ -613,18 +601,18 @@ The AI uses descriptions to understand what operations do:
 
 ```typescript
 // ✅ Good - Clear and specific
-{
+newSwitcherSpec({
   name: "check-validity",
   description: "Validates images for inappropriate content using content moderation API. If invalid, return feedback for regeneration.",
   // ...
-}
+})
 
 // ❌ Bad - Vague
-{
+newSwitcherSpec({
   name: "check",
   description: "Checks stuff",
   // ...
-}
+})
 ```
 
 ### 2. Use Meaningful Names
@@ -648,7 +636,7 @@ Use kebab-case for operation names:
 Always validate parameters in your functions:
 
 ```typescript
-process: async (medium) => {
+fn: async (medium) => {
   const value = medium.params["text"]?.value;
 
   if (typeof value !== "string") {
@@ -664,7 +652,7 @@ process: async (medium) => {
 All processor and switcher functions can be async:
 
 ```typescript
-process: async (medium) => {
+fn: async (medium) => {
   const prompt = medium.params["prompt"]?.value;
   const result = await callExternalAPI(prompt);
   return { output: result };
@@ -677,7 +665,7 @@ When using switchers for validation, provide clear feedback:
 
 ```typescript
 returnsWhenFalse: { feedback: { type: "string" } },
-check: async (medium) => {
+fn: async (medium) => {
   // ...
   return [
     false,
@@ -693,8 +681,8 @@ The AI can use this feedback to adjust subsequent operations.
 ## Limitations
 
 - **Experimental**: This library is in early development and APIs may change
-- **OpenAI Dependency**: Requires OpenAI API access for blueprint generation
-- **Cost**: Each workflow execution calls the OpenAI API (monitor your usage)
+- **LLM Dependency**: Requires LLM API access for blueprint generation
+- **Cost**: Each workflow execution calls the LLM API (monitor your usage)
 - **Operation Limit**: Default limit of 10 operations prevents infinite loops but may constrain complex workflows
 - **Type System**: Limited to the VirtualType system (string, number, image[], etc.)
 
@@ -715,7 +703,7 @@ Your workflow hit the operation limit (default: 10). Either:
 Your processor received unexpected parameter types. Add validation:
 
 ```typescript
-process: async (medium) => {
+fn: async (medium) => {
   const value = medium.params["text"]?.value;
 
   if (typeof value !== "string") {
