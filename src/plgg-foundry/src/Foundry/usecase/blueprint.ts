@@ -9,9 +9,8 @@ import {
   extractOpcodes,
   isProcessor,
   isSwitcher,
-  openai,
 } from "plgg-foundry/index";
-import { generateObject } from "plgg-foundry/LLMs/usecase";
+import { generateObject, openai } from "plgg-kit";
 
 /**
  * Generates an alignment from user order using AI model based on available foundry functions.

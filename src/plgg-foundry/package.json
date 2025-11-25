@@ -30,7 +30,8 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg"
+    "plgg": "file:../plgg",
+    "plgg-kit": "file:../plgg-kit"
   },
   "devDependencies": {
     "@types/node": "^24.0.3",

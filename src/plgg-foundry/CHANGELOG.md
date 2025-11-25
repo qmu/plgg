@@ -5,11 +5,6 @@ All notable changes to this project will be documented in this file.
 ## [0.0.1] - Unreleased
 
 ### Added
-- LLMs module with provider abstractions and vendor implementations
-  - OpenAI vendor integration with structured outputs
-  - Anthropic (Claude) vendor integration with JSON parsing
-  - Google Gemini vendor integration
-  - `generateObject` usecase for AI-powered object generation
 - Comprehensive README.md documentation with examples and API reference
 - JSDoc comments throughout the codebase
 - Type guards for Spec types (`isProcessorSpec`, `isSwitcherSpec`, `isPackerSpec`)
@@ -51,3 +46,4 @@ All notable changes to this project will be documented in this file.
 ### Removed
 - Remove deprecated Foundry vendor files (OpenAI.ts, Claude.ts in Foundry/vendor)
 - Remove Option wrapper from returns fields
+- Extract LLMs module into separate `plgg-kit` package (provider abstractions and vendor implementations for OpenAI, Anthropic, Google, and generateObject utility)
