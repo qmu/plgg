@@ -2,7 +2,7 @@ import { test, expect, assert } from "vitest";
 import {
   Option,
   newSome,
-  newNone,
+  none,
   isSome,
   isNone,
   isOption,
@@ -62,20 +62,20 @@ test("some creates Some option with undefined", () => {
 });
 
 test("none creates None option", () => {
-  const result = newNone();
+  const result = none();
   expect(result.__tag).toBe("None");
   assert(isNone(result));
 });
 
 test("none creates None option with type parameter", () => {
-  const result = newNone();
+  const result = none();
   expect(result.__tag).toBe("None");
   assert(isNone(result));
 });
 
 test("isSome identifies Some options", () => {
   const someResult = newSome("content");
-  const noneResult = newNone();
+  const noneResult = none();
 
   assert(isSome(someResult));
   assert(!isSome(noneResult));
@@ -83,7 +83,7 @@ test("isSome identifies Some options", () => {
 
 test("isNone identifies None options", () => {
   const someResult = newSome("content");
-  const noneResult = newNone();
+  const noneResult = none();
 
   assert(!isNone(someResult));
   assert(isNone(noneResult));
@@ -102,7 +102,7 @@ test("isSome() function returns true for Some instances", () => {
 });
 
 test("isNone() function returns true for None instances", () => {
-  const noneOption = newNone();
+  const noneOption = none();
 
   assert(!isSome(noneOption));
   assert(isNone(noneOption));
@@ -115,7 +115,7 @@ test("isNone() function returns true for None instances", () => {
 
 test("isSome and isNone functions work with Option union type", () => {
   const someOption: Option<number> = newSome(42);
-  const noneOption: Option<number> = newNone();
+  const noneOption: Option<number> = none();
 
   // Some case
   assert(isSome(someOption));
@@ -137,10 +137,8 @@ test("Option can handle different types", () => {
     newSome("hello");
   const numberOption: Option<number> =
     newSome(42);
-  const noneStringOption: Option<string> =
-    newNone();
-  const noneNumberOption: Option<number> =
-    newNone();
+  const noneStringOption: Option<string> = none();
+  const noneNumberOption: Option<number> = none();
 
   assert(isSome(stringOption));
   assert(isSome(numberOption));
@@ -158,7 +156,7 @@ test("Option can handle different types", () => {
 
 test("Option type structure", () => {
   const someOption = newSome(123);
-  const noneOption = newNone();
+  const noneOption = none();
 
   // Test that Some has the expected structure
   expect(someOption).toHaveProperty(
@@ -190,7 +188,7 @@ test("Option with complex types", () => {
     email: "john@example.com",
   };
   const userOption = newSome(user);
-  const noUserOption = newNone();
+  const noUserOption = none();
 
   assert(isSome(userOption));
   assert(isNone(noUserOption));
@@ -208,7 +206,7 @@ test("Option with array contents", () => {
   const numbers = [1, 2, 3, 4, 5];
   const arrayOption = newSome(numbers);
   const emptyArrayOption = newSome([]);
-  const noneArrayOption = newNone();
+  const noneArrayOption = none();
 
   assert(isSome(arrayOption));
   assert(isSome(emptyArrayOption));
@@ -232,7 +230,7 @@ test("Option with array contents", () => {
 test("Option with boolean contents", () => {
   const trueOption = newSome(true);
   const falseOption = newSome(false);
-  const noneBoolOption = newNone();
+  const noneBoolOption = none();
 
   assert(isSome(trueOption));
   assert(isSome(falseOption));
@@ -266,7 +264,7 @@ test("Option with zero contents", () => {
 test("Option Monad - map function", () => {
   const double = (x: number) => x * 2;
   const someNumber = newSome(5);
-  const noneNumber = newNone();
+  const noneNumber = none();
 
   const r1 = pipe(someNumber, mapOption(double));
   const r2 = pipe(noneNumber, mapOption(double));
@@ -280,8 +278,8 @@ test("Option Monad - ap function (applicative)", () => {
   const add = (x: number) => (y: number) => x + y;
   const someAdd3 = newSome(add(3));
   const someNumber = newSome(5);
-  const noneAdd = newNone();
-  const noneNumber = newNone();
+  const noneAdd = none();
+  const noneNumber = none();
 
   const r1 = pipe(
     someNumber,
@@ -324,10 +322,10 @@ test("Option Monad - chain function", () => {
   const safeDivide =
     (y: number) =>
     (x: number): Option<number> =>
-      y === 0 ? newNone() : newSome(x / y);
+      y === 0 ? none() : newSome(x / y);
 
   const someNumber = newSome(10);
-  const noneNumber = newNone();
+  const noneNumber = none();
 
   const r1 = pipe(
     someNumber,
@@ -441,7 +439,7 @@ test("isOption - type guard for Option types", () => {
   expect(isOption(someString)).toBe(true);
 
   // Test with None
-  const noneValue = newNone();
+  const noneValue = none();
   expect(isOption(noneValue)).toBe(true);
 
   // Test with non-Option values

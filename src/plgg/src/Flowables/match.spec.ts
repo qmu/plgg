@@ -13,9 +13,9 @@ import {
   ok,
   err,
   some,
-  none,
+  none$,
   newSome,
-  newNone,
+  none,
   box,
 } from "plgg/index";
 
@@ -233,7 +233,7 @@ test("Option pattern matching", async () => {
     );
 
   const someResult = newSome("hello");
-  const noneResult = newNone();
+  const noneResult = none();
 
   expect(fn(someResult)).equal("Specific hello");
   expect(fn(noneResult)).equal(
@@ -246,7 +246,7 @@ test("Option pattern matching with specific patterns", async () => {
     match(
       a,
       [some(100), () => "The answer!"],
-      [none(), () => "No value"],
+      [none$(), () => "No value"],
       [
         otherwise,
         (value) =>
@@ -255,7 +255,7 @@ test("Option pattern matching with specific patterns", async () => {
     );
 
   expect(fn(newSome(100))).equal("The answer!");
-  expect(fn(newNone())).equal("No value");
+  expect(fn(none())).equal("No value");
 });
 
 test("Option pattern matching with OTHERWISE", async () => {
@@ -276,7 +276,7 @@ test("Option pattern matching with OTHERWISE", async () => {
   expect(fn(newSome("other"))).equal(
     'Fallback: {"__tag":"Some","content":"other"}',
   );
-  expect(fn(newNone())).equal(
+  expect(fn(none())).equal(
     'Fallback: {"__tag":"None","content":"__none__"}',
   );
 });

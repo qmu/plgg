@@ -18,7 +18,7 @@ import {
   foldlResult,
   optionApplicative,
   newSome,
-  newNone,
+  none,
   isSome,
   isNone,
 } from "plgg/index";
@@ -380,7 +380,7 @@ test("User data validation pipeline with optional fields", () => {
   const validateEmail = (email: string) =>
     email.includes("@")
       ? newSome(email.toLowerCase())
-      : newNone();
+      : none();
 
   const processUser = (
     userData: Result<User, string>,
@@ -437,7 +437,7 @@ test("Database query with optional caching", () => {
   const checkCache = (query: string) =>
     query.length < 10
       ? newSome(`cached_${query}`)
-      : newNone();
+      : none();
 
   const executeQuery = (
     queryResult: Result<QueryResult, string>,
@@ -498,7 +498,7 @@ test("sequenceResult - sequence with Option", () => {
   expect(result1.content.content).toBe(42);
 
   // Test successful sequence with None
-  const okWithNone = ok(newNone());
+  const okWithNone = ok(none());
   const result2 = pipe(
     okWithNone,
     sequenceResult(optionApplicative),

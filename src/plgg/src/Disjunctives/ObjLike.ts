@@ -11,7 +11,7 @@ import {
   ok,
   err,
   newSome,
-  newNone,
+  none,
 } from "plgg/index";
 
 /**
@@ -121,7 +121,7 @@ export const forOptionProp =
           )
         : ok({
             ...rec,
-            [key]: newNone(),
+            [key]: none(),
           } as (V extends object ? V : object) &
             Record<T, Option<U>>)
       : err(

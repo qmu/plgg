@@ -27,12 +27,12 @@ export type None = Icon<typeof noneTag>;
  * Pattern constructor for None matching.
  * Used in pattern matching to match None values.
  */
-export const none = () => pattern(noneTag)();
+export const none$ = () => pattern(noneTag)();
 
 /**
  * Creates a None instance representing no value.
  */
-export const newNone = (): None => icon(noneTag);
+export const none = (): None => icon(noneTag);
 
 /**
  * Type guard to check if an Option is a None.

@@ -1,7 +1,7 @@
 import { test, expect, assert } from "vitest";
 import {
   newSome,
-  newNone,
+  none,
   asSome,
   isOk,
   isErr,
@@ -16,7 +16,7 @@ test("asSome - safe casting to Some type", () => {
   expect(result1.content).toBe(someValue);
 
   // Test with non-Some value
-  const noneValue = newNone();
+  const noneValue = none();
   const result2 = pipe(noneValue, asSome);
 
   assert(isErr(result2));

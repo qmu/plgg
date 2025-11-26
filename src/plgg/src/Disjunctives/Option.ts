@@ -9,7 +9,7 @@ import {
   None,
   newSome,
   isSome,
-  newNone,
+  none,
   isNone,
 } from "plgg/index";
 
@@ -43,7 +43,7 @@ export const optionFunctor: Functor1<"Option"> = {
     (fa: Option<A>): Option<B> =>
       isSome(fa)
         ? newSome<B>(f(fa.content))
-        : newNone(),
+        : none(),
 };
 export const { map: mapOption } = optionFunctor;
 
@@ -59,8 +59,8 @@ export const optionApply: Apply1<"Option"> = {
       isSome(fab)
         ? isSome(fa)
           ? newSome<B>(fab.content(fa.content))
-          : newNone()
-        : newNone(),
+          : none()
+        : none(),
 };
 export const { ap: applyOption } = optionApply;
 
@@ -95,7 +95,7 @@ export const optionChain: Chain1<"Option"> = {
   chain:
     <A, B>(f: (a: A) => Option<B>) =>
     (fa: Option<A>): Option<B> =>
-      isSome(fa) ? f(fa.content) : newNone(),
+      isSome(fa) ? f(fa.content) : none(),
 };
 export const { chain: chainOption } = optionChain;
 

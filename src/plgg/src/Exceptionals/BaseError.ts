@@ -1,6 +1,6 @@
 import {
   Option,
-  newNone,
+  none,
   newSome,
 } from "plgg/index";
 
@@ -21,13 +21,13 @@ export class BaseError extends Error {
   /**
    * Optional additional detail about the error.
    */
-  public detail: Option<string> = newNone();
+  public detail: Option<string> = none();
 
   /**
    * Optional parent error for error chaining.
    */
   public parent: Option<BaseError | Error> =
-    newNone();
+    none();
 
   /**
    * Creates a new BaseError instance.
@@ -39,6 +39,6 @@ export class BaseError extends Error {
     super(message);
     this.parent = parent
       ? newSome(parent)
-      : newNone();
+      : none();
   }
 }

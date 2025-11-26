@@ -6,7 +6,7 @@ import {
   toJsonReady,
   fromJsonReady,
   newSome,
-  newNone,
+  none,
   isSome,
   isNone,
   isOptionalDatum,
@@ -99,7 +99,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should serialize and deserialize None OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newNone();
+        none();
 
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
@@ -246,7 +246,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should convert None OptionalDatum to JsonReady and back", () => {
       const original: OptionalDatum<number> =
-        newNone();
+        none();
 
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
@@ -276,7 +276,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should use toJsonReadyOptionalDatum for None OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newNone();
+        none();
 
       const jsonReady =
         toJsonReadyOptionalDatum(original);
@@ -379,7 +379,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const bigintOptional: OptionalDatum<bigint> =
         newSome(456n);
       const noneOptional: OptionalDatum<string> =
-        newNone();
+        none();
 
       const testCases = [
         stringOptional,
@@ -461,7 +461,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should produce expected JSON structure for None OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newNone();
+        none();
 
       const jsonString = jsonEncode(original);
       const parsed = JSON.parse(jsonString);
