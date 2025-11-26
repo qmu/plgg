@@ -7,7 +7,7 @@ import {
   hasProp,
   pipe,
   chainResult,
-  newUntaggedBox,
+  untaggedBox,
   flow,
 } from "plgg/index";
 
@@ -64,7 +64,7 @@ export const asBox = (
 ): Result<Box<string, unknown>, InvalidError> =>
   is<string>(value)
     ? ok(value)
-    : ok(newUntaggedBox(value));
+    : ok(untaggedBox(value));
 
 /**
  * Castable instance for Box safe casting.
