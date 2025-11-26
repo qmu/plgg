@@ -9,7 +9,7 @@ import {
   isOk,
   cast,
   unbox,
-  newBox,
+  box,
   pipe,
 } from "plgg/index";
 
@@ -91,7 +91,7 @@ test("forContent - combined pattern with Obj validation", () => {
 test("unbox - unboxes single Box", () => {
   const result = pipe(
     "hello",
-    newBox("test"),
+    box("test"),
     unbox,
   );
   expect(result).toBe("hello");
@@ -100,8 +100,8 @@ test("unbox - unboxes single Box", () => {
 test("unbox - unboxes nested Boxes", () => {
   const result = pipe(
     "value",
-    newBox("inner"),
-    newBox("outer"),
+    box("inner"),
+    box("outer"),
     unbox,
   );
   expect(result).toBe("value");
@@ -110,9 +110,9 @@ test("unbox - unboxes nested Boxes", () => {
 test("unbox - unboxes deeply nested Boxes", () => {
   const result = pipe(
     42,
-    newBox("c"),
-    newBox("b"),
-    newBox("a"),
+    box("c"),
+    box("b"),
+    box("a"),
     unbox,
   );
   expect(result).toBe(42);

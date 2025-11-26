@@ -8,7 +8,7 @@ import {
   err,
   isBoxWithTag,
   isSoftStr,
-  newBox,
+  box,
 } from "plgg/index";
 
 /**
@@ -63,7 +63,7 @@ export const asSnakeCase = (
   is(value)
     ? ok(value)
     : qualify(value)
-      ? ok(newBox("SnakeCase")(value))
+      ? ok(box("SnakeCase")(value))
       : err(
           new InvalidError({
             message:

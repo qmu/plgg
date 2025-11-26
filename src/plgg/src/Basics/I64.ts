@@ -8,7 +8,7 @@ import {
   err,
   isBoxWithTag,
   isBigInt,
-  newBox,
+  box,
 } from "plgg/index";
 
 /**
@@ -51,7 +51,7 @@ export const asI64 = (
   is(value)
     ? ok(value)
     : qualify(value)
-      ? ok(newBox("I64")(value))
+      ? ok(box("I64")(value))
       : err(
           new InvalidError({
             message:

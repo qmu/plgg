@@ -2,7 +2,7 @@ import {
   Castable,
   Dict,
   Box,
-  newBox,
+  box,
   asDictOf,
   isBoxWithTag,
   forContent,
@@ -76,9 +76,7 @@ export const packerCastable: Castable<
 export const newPackerSpec = (
   spec: PackerSpec["content"],
 ): PackerSpec =>
-  newBox("PackerSpec")<PackerSpec["content"]>(
-    spec,
-  );
+  box("PackerSpec")<PackerSpec["content"]>(spec);
 
 /**
  * Generates human-readable markdown description of packer.

@@ -3,7 +3,7 @@ import {
   Castable,
   Result,
   Box,
-  newBox,
+  box,
   asStr,
   cast,
   forProp,
@@ -50,7 +50,7 @@ export type FoundrySpec = Box<
 export const newFoundrySpec = (
   content: FoundrySpec["content"],
 ): FoundrySpec =>
-  newBox("FoundrySpec")<FoundrySpec["content"]>(
+  box("FoundrySpec")<FoundrySpec["content"]>(
     content,
   );
 

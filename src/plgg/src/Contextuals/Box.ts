@@ -96,18 +96,18 @@ export const forContent =
     ) => Result<U, InvalidError>,
   ) =>
   <V extends Box<string, unknown>>(
-    box: V,
+    b: V,
   ): Result<Box<T, U>, InvalidError> =>
     pipe(
-      box.content,
+      b.content,
       predicate,
-      chainResult(flow(newBox(tag), ok)),
+      chainResult(flow(box(tag), ok)),
     );
 
 /**
  * Creates a new Box with the specified tag and content.
  */
-export const newBox =
+export const box =
   <TAG extends string>(tag: TAG) =>
   <CONTENT>(
     content: CONTENT,

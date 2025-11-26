@@ -7,8 +7,8 @@ import {
   forProp,
   asSoftStr,
   forContent,
-  newBox,
-} from "plgg";
+  box,
+} from 'plgg';
 
 export type Provider =
   | OpenAI
@@ -25,39 +25,39 @@ const asConfig = (v: unknown) =>
   cast(
     v,
     asObj,
-    forProp("modelName", asSoftStr),
-    forProp("apiKey", asSoftStr),
+    forProp('modelName', asSoftStr),
+    forProp('apiKey', asSoftStr)
   );
 
 // -------------
 
-export type OpenAI = Box<"OpenAI", Config>;
-export const patternOpenAI = pattern("OpenAI");
+export type OpenAI = Box<'OpenAI', Config>;
+export const patternOpenAI = pattern('OpenAI');
 export const asOpenAI = (v: unknown) =>
-  cast(v, asBox, forContent("OpenAI", asConfig));
+  cast(v, asBox, forContent('OpenAI', asConfig));
 export const openai = (config: Config): OpenAI =>
-  newBox("OpenAI")(config);
+  box('OpenAI')(config);
 
 // -------------
 
-export type Anthropic = Box<"Anthropic", Config>;
+export type Anthropic = Box<'Anthropic', Config>;
 export const patternAnthropic =
-  pattern("Anthropic");
+  pattern('Anthropic');
 export const asAnthropic = (v: unknown) =>
   cast(
     v,
     asBox,
-    forContent("Anthropic", asConfig),
+    forContent('Anthropic', asConfig)
   );
 export const anthropic = (
-  config: Config,
-): Anthropic => newBox("Anthropic")(config);
+  config: Config
+): Anthropic => box('Anthropic')(config);
 
 // -------------
 
-export type Google = Box<"Google", Config>;
-export const patternGoogle = pattern("Google");
+export type Google = Box<'Google', Config>;
+export const patternGoogle = pattern('Google');
 export const asGoogle = (v: unknown) =>
-  cast(v, asBox, forContent("Google", asConfig));
+  cast(v, asBox, forContent('Google', asConfig));
 export const google = (config: Config): Google =>
-  newBox("Google")(config);
+  box('Google')(config);

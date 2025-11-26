@@ -8,7 +8,7 @@ import {
   hasTag,
   ok,
   pattern,
-  newBox,
+  box,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -48,7 +48,7 @@ export const err$ = <T>(v?: T) =>
  * Creates an Err instance containing an error value.
  */
 export const err = <F>(e: F): Err<F> => ({
-  ...newBox(errTag)(e),
+  ...box(errTag)(e),
   isOk(): false {
     return false;
   },

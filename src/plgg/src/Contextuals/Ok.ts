@@ -8,7 +8,7 @@ import {
   hasTag,
   err,
   pattern,
-  newBox,
+  box,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -48,7 +48,7 @@ export const ok$ = <T>(a?: T) =>
  * Creates an Ok instance containing a success value.
  */
 export const ok = <T>(a: T): Ok<T> => ({
-  ...newBox(okTag)(a),
+  ...box(okTag)(a),
   isOk(): this is Ok<T> {
     return true;
   },

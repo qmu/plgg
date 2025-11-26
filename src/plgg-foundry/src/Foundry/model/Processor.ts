@@ -7,7 +7,7 @@ import {
   Datum,
   Dict,
   Box,
-  newBox,
+  box,
   cast,
   forProp,
   forOptionProp,
@@ -144,9 +144,7 @@ export const newProcessorSpec = <
       : Dict<VariableName, Datum>
   >;
 }): ProcessorSpec =>
-  newBox("ProcessorSpec")<
-    ProcessorSpec["content"]
-  >({
+  box("ProcessorSpec")<ProcessorSpec["content"]>({
     ...spec,
   });
 

@@ -7,7 +7,7 @@ import {
   Datum,
   Dict,
   Box,
-  newBox,
+  box,
   cast,
   forProp,
   forOptionProp,
@@ -184,7 +184,7 @@ export const newSwitcherSpec = <
     ]
   >;
 }): SwitcherSpec =>
-  newBox("SwitcherSpec")<SwitcherSpec["content"]>(
+  box("SwitcherSpec")<SwitcherSpec["content"]>(
     spec,
   );
 

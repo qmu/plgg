@@ -8,7 +8,7 @@ import {
   err,
   isBoxWithTag,
   isSoftStr,
-  newBox,
+  box,
 } from "plgg/index";
 
 /**
@@ -66,7 +66,7 @@ export const asAlphanumeric = (
   is(value)
     ? ok(value)
     : qualify(value)
-      ? ok(newBox("Alphanumeric")(value))
+      ? ok(box("Alphanumeric")(value))
       : err(
           new InvalidError({
             message:

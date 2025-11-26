@@ -16,7 +16,7 @@ import {
   none,
   newSome,
   newNone,
-  newBox,
+  box,
 } from "plgg/index";
 
 test("number", async () => {
@@ -102,7 +102,7 @@ test("Variant1", async () => {
     }
   >;
   const triangle = pattern("Triangle" as const);
-  const newTriangle = newBox("Triangle");
+  const newTriangle = box("Triangle");
   type Shape = Circle | Square | Triangle;
 
   const fn = (a: Shape) =>
@@ -127,7 +127,7 @@ test("Variant2", async () => {
   };
   type AST = Box<"AST", ast>;
   const ast = pattern("AST");
-  const newAST = newBox("AST");
+  const newAST = box("AST");
 
   const fn = (a: AST) =>
     match(

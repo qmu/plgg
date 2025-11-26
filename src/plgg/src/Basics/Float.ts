@@ -8,7 +8,7 @@ import {
   err,
   isBoxWithTag,
   isNum,
-  newBox,
+  box,
 } from "plgg/index";
 
 /**
@@ -49,7 +49,7 @@ export const asFloat = (
   is(value)
     ? ok(value)
     : qualify(value)
-      ? ok(newBox("Float")(value))
+      ? ok(box("Float")(value))
       : err(
           new InvalidError({
             message:

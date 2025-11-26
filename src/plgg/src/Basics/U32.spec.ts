@@ -3,11 +3,11 @@ import {
   asU32,
   isOk,
   isErr,
-  newBox,
+  box,
 } from "plgg/index";
 
 test("asU32 basic validation", () => {
-  const result = asU32(newBox("U32")(100000));
+  const result = asU32(box("U32")(100000));
   assert(isOk(result));
   assert(isErr(asU32(5000000000)));
 });

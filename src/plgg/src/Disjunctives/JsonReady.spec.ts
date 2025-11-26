@@ -5,7 +5,7 @@ import {
   jsonDecode,
   toJsonReady,
   fromJsonReady,
-  newBox,
+  box,
   I8,
   I16,
   I32,
@@ -105,8 +105,7 @@ describe("JsonReady", () => {
       it("should handle I8 values", () => {
         const testValues = [-128, -1, 0, 1, 127];
         testValues.forEach((value) => {
-          const original: I8 =
-            newBox("I8")(value);
+          const original: I8 = box("I8")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -124,8 +123,7 @@ describe("JsonReady", () => {
           -32768, -1000, 0, 1000, 32767,
         ];
         testValues.forEach((value) => {
-          const original: I16 =
-            newBox("I16")(value);
+          const original: I16 = box("I16")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -143,8 +141,7 @@ describe("JsonReady", () => {
           2147483647,
         ];
         testValues.forEach((value) => {
-          const original: I32 =
-            newBox("I32")(value);
+          const original: I32 = box("I32")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -165,8 +162,7 @@ describe("JsonReady", () => {
           9223372036854775807n,
         ];
         testValues.forEach((value) => {
-          const original: I64 =
-            newBox("I64")(value);
+          const original: I64 = box("I64")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -198,7 +194,7 @@ describe("JsonReady", () => {
         ];
         testValues.forEach((value) => {
           const original: I128 =
-            newBox("I128")(value);
+            box("I128")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -225,8 +221,7 @@ describe("JsonReady", () => {
       it("should handle U8 values", () => {
         const testValues = [0, 1, 128, 255];
         testValues.forEach((value) => {
-          const original: U8 =
-            newBox("U8")(value);
+          const original: U8 = box("U8")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -243,8 +238,7 @@ describe("JsonReady", () => {
           0, 1000, 32768, 65535,
         ];
         testValues.forEach((value) => {
-          const original: U16 =
-            newBox("U16")(value);
+          const original: U16 = box("U16")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -261,8 +255,7 @@ describe("JsonReady", () => {
           0, 100000, 2147483648, 4294967295,
         ];
         testValues.forEach((value) => {
-          const original: U32 =
-            newBox("U32")(value);
+          const original: U32 = box("U32")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -282,8 +275,7 @@ describe("JsonReady", () => {
           18446744073709551615n,
         ];
         testValues.forEach((value) => {
-          const original: U64 =
-            newBox("U64")(value);
+          const original: U64 = box("U64")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -314,7 +306,7 @@ describe("JsonReady", () => {
         ];
         testValues.forEach((value) => {
           const original: U128 =
-            newBox("U128")(value);
+            box("U128")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -351,7 +343,7 @@ describe("JsonReady", () => {
         ];
         testValues.forEach((value) => {
           const original: Float =
-            newBox("Float")(value);
+            box("Float")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -384,7 +376,7 @@ describe("JsonReady", () => {
         ];
         testValues.forEach((value) => {
           const original: Float =
-            newBox("Float")(value);
+            box("Float")(value);
           const jsonReady = toJsonReady(original);
           const restored =
             fromJsonReady(jsonReady);
@@ -397,8 +389,7 @@ describe("JsonReady", () => {
       });
 
       it("should handle -0 specially (loses sign through JSON)", () => {
-        const original: Float =
-          newBox("Float")(-0);
+        const original: Float = box("Float")(-0);
         const jsonReady = toJsonReady(original);
         const restored = fromJsonReady(jsonReady);
         expect(restored).toEqual(original);
@@ -406,8 +397,7 @@ describe("JsonReady", () => {
         // Note: -0 becomes +0 through JSON serialization, this is expected behavior
         const json = jsonEncode(original);
         const jsonRestored = jsonDecode(json);
-        const expected: Float =
-          newBox("Float")(0); // -0 becomes +0
+        const expected: Float = box("Float")(0); // -0 becomes +0
         expect(jsonRestored).toEqual(expected);
       });
     });
@@ -415,25 +405,21 @@ describe("JsonReady", () => {
     describe("Mixed Basic types", () => {
       it("should handle objects containing multiple Basic types", () => {
         const original = {
-          i8: newBox("I8")(-128),
-          i16: newBox("I16")(-32768),
-          i32: newBox("I32")(-2147483648),
-          i64: newBox("I64")(
-            -9223372036854775808n,
-          ),
-          i128: newBox("I128")(
+          i8: box("I8")(-128),
+          i16: box("I16")(-32768),
+          i32: box("I32")(-2147483648),
+          i64: box("I64")(-9223372036854775808n),
+          i128: box("I128")(
             -170141183460469231731687303715884105728n,
           ),
-          u8: newBox("U8")(255),
-          u16: newBox("U16")(65535),
-          u32: newBox("U32")(4294967295),
-          u64: newBox("U64")(
-            18446744073709551615n,
-          ),
-          u128: newBox("U128")(
+          u8: box("U8")(255),
+          u16: box("U16")(65535),
+          u32: box("U32")(4294967295),
+          u64: box("U64")(18446744073709551615n),
+          u128: box("U128")(
             340282366920938463463374607431768211455n,
           ),
-          float: newBox("Float")(3.14159),
+          float: box("Float")(3.14159),
         };
 
         const jsonReady = toJsonReady(original);

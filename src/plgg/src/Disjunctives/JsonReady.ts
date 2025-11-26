@@ -26,7 +26,7 @@ import {
   isAtomic,
   newSome,
   newNone,
-  newBox,
+  box,
 } from "plgg/index";
 
 /**
@@ -110,7 +110,7 @@ export const fromJsonReady = (
       : newNone();
   }
   if (isJsonReadyNominalDatum(jsonReady)) {
-    return newBox(jsonReady.__tag)(
+    return box(jsonReady.__tag)(
       fromJsonReadyCore(jsonReady.content),
     );
   }

@@ -8,7 +8,7 @@ import {
   err,
   isBoxWithTag,
   isSoftStr,
-  newBox,
+  box,
 } from "plgg/index";
 
 /**
@@ -67,7 +67,7 @@ export const asPascalCase = (
   is(value)
     ? ok(value)
     : qualify(value)
-      ? ok(newBox("PascalCase")(value))
+      ? ok(box("PascalCase")(value))
       : err(
           new InvalidError({
             message:
