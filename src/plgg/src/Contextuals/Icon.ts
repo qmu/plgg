@@ -44,15 +44,13 @@ export const isIcon = is;
 
 export const hasIconTag =
   <T extends string>(tag: T) =>
-  (
-    value: Icon<string>,
-  ): value is Icon<T> =>
+  (value: Icon<string>): value is Icon<T> =>
     value.__tag === tag;
 
 /**
  * Creates a new Icon with the specified tag.
  */
-export const newIcon = <TAG extends string>(
+export const icon = <TAG extends string>(
   tag: TAG,
 ): Icon<TAG> => ({
   __tag: tag,

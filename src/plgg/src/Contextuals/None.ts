@@ -9,7 +9,7 @@ import {
   hasIconTag,
   ok,
   err,
-  newIcon,
+  icon,
 } from "plgg/index";
 
 /**
@@ -32,8 +32,7 @@ export const none = () => pattern(noneTag)();
 /**
  * Creates a None instance representing no value.
  */
-export const newNone = (): None =>
-  newIcon(noneTag);
+export const newNone = (): None => icon(noneTag);
 
 /**
  * Type guard to check if an Option is a None.
