@@ -37,6 +37,7 @@ All notable changes to this project will be documented in this file.
 - Change Processor and Switcher signatures to pass alignment context
 - Update blueprint schema to generate array-based addresses
 - Adopt plgg type system throughout plgg-foundry
+- Update to use renamed plgg functions: `ok$/err$` pattern matchers and `ok/err` box constructors (breaking change)
 
 ### Fixed
 - Fix Packer Box usage to access content property correctly

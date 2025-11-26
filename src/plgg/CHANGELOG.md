@@ -35,6 +35,8 @@ All notable changes to this project will be documented in this file.
 - Move `conclude` function from Vec to idiom module
 - Refactor idiom module to Functionals directory with individual function files
 - Remove type assertion from `asReadonlyArray` function
+- Rename pattern matchers: `ok` to `ok$`, `err` to `err$` (breaking change)
+- Rename box constructors: `newOk` to `ok`, `newErr` to `err` (breaking change)
 
 ### Fixed
 - Fix `Procedural` type to prevent union type distribution
