@@ -10,7 +10,7 @@ import {
   pipe,
   ok,
   err,
-  newSome,
+  some,
   none,
 } from "plgg/index";
 
@@ -112,7 +112,7 @@ export const forOptionProp =
               > =>
                 ok({
                   ...rec,
-                  [key]: newSome(okValue),
+                  [key]: some(okValue),
                 } as (V extends object
                   ? V
                   : object) &

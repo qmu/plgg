@@ -17,7 +17,7 @@ import {
   foldrResult,
   foldlResult,
   optionApplicative,
-  newSome,
+  some,
   none,
   isSome,
   isNone,
@@ -379,7 +379,7 @@ test("User data validation pipeline with optional fields", () => {
 
   const validateEmail = (email: string) =>
     email.includes("@")
-      ? newSome(email.toLowerCase())
+      ? some(email.toLowerCase())
       : none();
 
   const processUser = (
@@ -391,7 +391,7 @@ test("User data validation pipeline with optional fields", () => {
         (user: User) =>
           user.email
             ? validateEmail(user.email)
-            : newSome(undefined),
+            : some(undefined),
       ),
     );
 
@@ -436,7 +436,7 @@ test("Database query with optional caching", () => {
 
   const checkCache = (query: string) =>
     query.length < 10
-      ? newSome(`cached_${query}`)
+      ? some(`cached_${query}`)
       : none();
 
   const executeQuery = (
@@ -448,7 +448,7 @@ test("Database query with optional caching", () => {
         (result: QueryResult) =>
           result.cached
             ? checkCache(result.data)
-            : newSome(result.data),
+            : some(result.data),
       ),
     );
 
@@ -487,7 +487,7 @@ test("Database query with optional caching", () => {
 
 test("sequenceResult - sequence with Option", () => {
   // Test successful sequence with Some
-  const okWithSome = ok(newSome(42));
+  const okWithSome = ok(some(42));
   const result1 = pipe(
     okWithSome,
     sequenceResult(optionApplicative),

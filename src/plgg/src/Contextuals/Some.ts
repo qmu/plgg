@@ -33,13 +33,13 @@ export type Some<T> = Box<typeof someTag, T>;
  * Pattern constructor for Some matching.
  * Used in pattern matching to match Some values.
  */
-export const some = <T>(a?: T) =>
+export const some$ = <T>(a?: T) =>
   pattern(someTag)(a);
 
 /**
  * Creates a Some instance containing a value.
  */
-export const newSome = <T>(value: T): Some<T> =>
+export const some = <T>(value: T): Some<T> =>
   box(someTag)(value);
 
 /**

@@ -7,7 +7,7 @@ import {
   Chain1,
   Some,
   None,
-  newSome,
+  some,
   isSome,
   none,
   isNone,
@@ -42,7 +42,7 @@ export const optionFunctor: Functor1<"Option"> = {
     <A, B>(f: (a: A) => B) =>
     (fa: Option<A>): Option<B> =>
       isSome(fa)
-        ? newSome<B>(f(fa.content))
+        ? some<B>(f(fa.content))
         : none(),
 };
 export const { map: mapOption } = optionFunctor;
@@ -58,7 +58,7 @@ export const optionApply: Apply1<"Option"> = {
     (fa: Option<A>): Option<B> =>
       isSome(fab)
         ? isSome(fa)
-          ? newSome<B>(fab.content(fa.content))
+          ? some<B>(fab.content(fa.content))
           : none()
         : none(),
 };
@@ -70,7 +70,7 @@ export const { ap: applyOption } = optionApply;
  */
 export const optionPointed: Pointed1<"Option"> = {
   ...optionFunctor,
-  of: <A>(a: A): Option<A> => newSome<A>(a),
+  of: <A>(a: A): Option<A> => some<A>(a),
 };
 export const { of: ofOption } = optionPointed;
 

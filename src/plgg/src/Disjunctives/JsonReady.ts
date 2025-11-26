@@ -24,7 +24,7 @@ import {
   isOptionalDatum,
   isNominalDatum,
   isAtomic,
-  newSome,
+  some,
   none,
   box,
 } from "plgg/index";
@@ -104,9 +104,7 @@ export const fromJsonReady = (
 ): Datum => {
   if (isJsonReadyOptionalDatum(jsonReady)) {
     return isSome(jsonReady)
-      ? newSome(
-          fromJsonReadyCore(jsonReady.content),
-        )
+      ? some(fromJsonReadyCore(jsonReady.content))
       : none();
   }
   if (isJsonReadyNominalDatum(jsonReady)) {

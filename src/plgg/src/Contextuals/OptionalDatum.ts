@@ -7,7 +7,7 @@ import {
   isNone,
   isDatumCore,
   toJsonReadyCore,
-  newSome,
+  some,
   none,
   isJsonReady,
 } from "plgg/index";
@@ -30,7 +30,7 @@ export const toJsonReadyOptionalDatum = <
   value: OptionalDatum<T>,
 ): OptionalDatumJsonReady<JsonReadyCore> =>
   isSome(value)
-    ? newSome(toJsonReadyCore(value.content))
+    ? some(toJsonReadyCore(value.content))
     : none();
 
 // --------------------------------

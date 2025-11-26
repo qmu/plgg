@@ -16,7 +16,7 @@ import {
   foldlMutVec,
   mutVecApplicative,
   optionApplicative,
-  newSome,
+  some,
   none,
   isSome,
   isNone,
@@ -345,7 +345,7 @@ test("MutVec Traversable - sequence with MutVec", () => {
 test("MutVec Traversable - collect results with Option (safe division)", () => {
   // Function that safely divides 10 by n, failing for zero or negative numbers
   const safeDivide = (n: number) =>
-    n > 0 ? newSome(10 / n) : none();
+    n > 0 ? some(10 / n) : none();
 
   // Success case: all divisions succeed, results collected into Some([...])
   const r1 = pipe(

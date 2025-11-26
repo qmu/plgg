@@ -12,9 +12,9 @@ import {
   err$,
   ok,
   err,
-  some,
+  some$,
   none$,
-  newSome,
+  some,
   none,
   box,
 } from "plgg/index";
@@ -224,7 +224,7 @@ test("Option pattern matching", async () => {
   const fn = (a: Option<string>) =>
     match(
       a,
-      [some("hello"), () => "Specific hello"],
+      [some$("hello"), () => "Specific hello"],
       [
         otherwise,
         (value) =>
@@ -232,7 +232,7 @@ test("Option pattern matching", async () => {
       ],
     );
 
-  const someResult = newSome("hello");
+  const someResult = some("hello");
   const noneResult = none();
 
   expect(fn(someResult)).equal("Specific hello");
@@ -245,7 +245,7 @@ test("Option pattern matching with specific patterns", async () => {
   const fn = (a: Option<number>) =>
     match(
       a,
-      [some(100), () => "The answer!"],
+      [some$(100), () => "The answer!"],
       [none$(), () => "No value"],
       [
         otherwise,
@@ -254,7 +254,7 @@ test("Option pattern matching with specific patterns", async () => {
       ],
     );
 
-  expect(fn(newSome(100))).equal("The answer!");
+  expect(fn(some(100))).equal("The answer!");
   expect(fn(none())).equal("No value");
 });
 
@@ -262,7 +262,10 @@ test("Option pattern matching with OTHERWISE", async () => {
   const fn = (a: Option<string>) =>
     match(
       a,
-      [some("success"), () => "Specific success"],
+      [
+        some$("success"),
+        () => "Specific success",
+      ],
       [
         otherwise,
         (value) =>
@@ -270,10 +273,10 @@ test("Option pattern matching with OTHERWISE", async () => {
       ],
     );
 
-  expect(fn(newSome("success"))).equal(
+  expect(fn(some("success"))).equal(
     "Specific success",
   );
-  expect(fn(newSome("other"))).equal(
+  expect(fn(some("other"))).equal(
     'Fallback: {"__tag":"Some","content":"other"}',
   );
   expect(fn(none())).equal(
