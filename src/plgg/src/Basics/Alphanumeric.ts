@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isSoftStr,
   newBox,
@@ -16,7 +16,10 @@ import {
  * Alphanumeric strings contain only letters (uppercase or lowercase) and numbers,
  * no spaces or special characters.
  */
-export type Alphanumeric = Box<"Alphanumeric", string>;
+export type Alphanumeric = Box<
+  "Alphanumeric",
+  string
+>;
 
 /**
  * Validates that a string value contains only alphanumeric characters.
@@ -61,10 +64,10 @@ export const asAlphanumeric = (
   value: unknown,
 ): Result<Alphanumeric, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("Alphanumeric")(value))
-      : newErr(
+      ? ok(newBox("Alphanumeric")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not an Alphanumeric (tag-content pair with valid alphanumeric string)",

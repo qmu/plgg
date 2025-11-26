@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isSoftStr,
   newBox,
@@ -61,10 +61,10 @@ export const asSnakeCase = (
   value: unknown,
 ): Result<SnakeCase, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("SnakeCase")(value))
-      : newErr(
+      ? ok(newBox("SnakeCase")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a SnakeCase (tag-content pair with valid snake_case string)",

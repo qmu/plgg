@@ -2,8 +2,8 @@ import {
   Result,
   InvalidError,
   Refinable,
-  newOk,
-  newErr,
+  ok,
+  err,
   isOk,
 } from "plgg/index";
 
@@ -48,7 +48,7 @@ export const asReadonlyArray =
     value: unknown,
   ): Result<ReadonlyArr<T>, InvalidError> => {
     if (!is(value)) {
-      return newErr(
+      return err(
         new InvalidError({
           message: "Value is not an array",
         }),
@@ -59,7 +59,7 @@ export const asReadonlyArray =
     for (let i = 0; i < value.length; i++) {
       const a = value[i];
       if (a === undefined || a === null) {
-        return newErr(
+        return err(
           new InvalidError({
             message: `Array element at index ${i} is undefined`,
           }),
@@ -69,7 +69,7 @@ export const asReadonlyArray =
       if (isOk(result)) {
         results.push(result.content);
       } else {
-        return newErr(
+        return err(
           new InvalidError({
             message: `Array element at index ${i} failed validation: ${result.content.message}`,
             parent: result.content,
@@ -78,5 +78,5 @@ export const asReadonlyArray =
       }
     }
 
-    return newOk(results);
+    return ok(results);
   };

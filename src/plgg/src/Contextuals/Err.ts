@@ -6,7 +6,7 @@ import {
   Castable1,
   isBox,
   hasTag,
-  newOk,
+  ok,
   pattern,
   newBox,
 } from "plgg/index";
@@ -41,13 +41,13 @@ export type Err<F> = Box<typeof errTag, F> & {
 /**
  * Pattern constructor for matching Err values in pattern matching.
  */
-export const err = <T>(v?: T) =>
+export const err$ = <T>(v?: T) =>
   pattern(errTag)(v);
 
 /**
  * Creates an Err instance containing an error value.
  */
-export const newErr = <F>(e: F): Err<F> => ({
+export const err = <F>(e: F): Err<F> => ({
   ...newBox(errTag)(e),
   isOk(): false {
     return false;
@@ -79,8 +79,8 @@ export const asErr = <A>(
   value: unknown,
 ): Result<Err<A>, InvalidError> =>
   is<A>(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Value is not an Err",
         }),

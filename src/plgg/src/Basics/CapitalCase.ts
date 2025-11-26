@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isSoftStr,
   newBox,
@@ -16,7 +16,10 @@ import {
  * Capital Case strings contain words separated by spaces, with each word starting
  * with an uppercase letter followed by lowercase letters. Only letters and spaces allowed.
  */
-export type CapitalCase = Box<"CapitalCase", string>;
+export type CapitalCase = Box<
+  "CapitalCase",
+  string
+>;
 
 /**
  * Validates that a string value is valid Capital Case.
@@ -41,7 +44,9 @@ const qualify = (
 /**
  * Type guard to check if a value is a CapitalCase.
  */
-const is = (value: unknown): value is CapitalCase =>
+const is = (
+  value: unknown,
+): value is CapitalCase =>
   isBoxWithTag("CapitalCase")(value) &&
   qualify(value.content);
 
@@ -62,10 +67,10 @@ export const asCapitalCase = (
   value: unknown,
 ): Result<CapitalCase, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("CapitalCase")(value))
-      : newErr(
+      ? ok(newBox("CapitalCase")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a CapitalCase (tag-content pair with valid Capital Case string)",

@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isInt,
   newBox,
@@ -49,10 +49,10 @@ export const asI32 = (
   value: unknown,
 ): Result<I32, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("I32")(value))
-      : newErr(
+      ? ok(newBox("I32")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not an I32 (tag-content pair with integer -2147483648 to 2147483647)",

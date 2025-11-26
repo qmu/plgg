@@ -5,9 +5,9 @@ import {
   proc,
   isOk,
   isErr,
-  newOk,
+  ok,
   hold,
-  newErr,
+  err,
   asSoftStr,
 } from "plgg/index";
 
@@ -18,8 +18,8 @@ test("proc composes sync and async functions with early error exit", async () =>
     x: number,
   ): Result<number, InvalidError> =>
     x > 0
-      ? newOk(x)
-      : newErr(
+      ? ok(x)
+      : err(
           new InvalidError({
             message: "Must be positive",
           }),
@@ -51,7 +51,7 @@ test("proc stops processing on first error", async () => {
     _: number,
   ): Promise<Result<number, InvalidError>> =>
     Promise.resolve(
-      newErr(
+      err(
         new InvalidError({
           message: "Validation failed",
         }),
@@ -81,8 +81,8 @@ test("proc handles mixed return types (values, Results, Promises)", async () => 
     str: string,
   ): Result<string, InvalidError> =>
     str.length > 0
-      ? newOk(str)
-      : newErr(
+      ? ok(str)
+      : err(
           new InvalidError({
             message: "Empty input",
           }),
@@ -136,7 +136,7 @@ test("proc gracefully handles exceptions in functions", async () => {
     if (x === 5) {
       throw new Error("Unexpected error");
     }
-    return newOk(`Processed: ${x}`);
+    return ok(`Processed: ${x}`);
   };
 
   const result = await proc<number, string>(
@@ -159,7 +159,7 @@ test("proc handles thrown procError", async () => {
         message: "Domain error thrown",
       });
     }
-    return newOk(`Processed: ${x}`);
+    return ok(`Processed: ${x}`);
   };
 
   const result = await proc<number, string>(
@@ -180,7 +180,7 @@ test("proc handles thrown non-Error values", async () => {
     if (x === 5) {
       throw "String error";
     }
-    return newOk(`Processed: ${x}`);
+    return ok(`Processed: ${x}`);
   };
 
   const result = await proc<number, string>(

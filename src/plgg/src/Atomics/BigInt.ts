@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
   isObj,
   hasProp,
 } from "plgg/index";
@@ -44,30 +44,29 @@ export const asBigInt = (
   value: unknown,
 ): Result<BigInt, InvalidError> => {
   if (is(value)) {
-    return newOk(value);
+    return ok(value);
   }
 
   if (
     typeof value === "number" &&
     Number.isInteger(value)
   ) {
-    return newOk(BigInt(value));
+    return ok(BigInt(value));
   }
 
   if (typeof value === "string") {
     try {
-      return newOk(BigInt(value));
+      return ok(BigInt(value));
     } catch {
-      return newErr(
+      return err(
         new InvalidError({
-          message:
-            "Value is not a valid BigInt",
+          message: "Value is not a valid BigInt",
         }),
       );
     }
   }
 
-  return newErr(
+  return err(
     new InvalidError({
       message: "Value is not a BigInt",
     }),

@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isSoftStr,
   newBox,
@@ -32,8 +32,7 @@ const qualify = (
   // - Must start with lowercase letter
   // - Only letters and numbers allowed
   // - No special characters or spaces
-  const camelCasePattern =
-    /^[a-z][a-zA-Z0-9]*$/;
+  const camelCasePattern = /^[a-z][a-zA-Z0-9]*$/;
   return camelCasePattern.test(value);
 };
 
@@ -61,10 +60,10 @@ export const asCamelCase = (
   value: unknown,
 ): Result<CamelCase, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("CamelCase")(value))
-      : newErr(
+      ? ok(newBox("CamelCase")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a CamelCase (tag-content pair with valid camelCase string)",

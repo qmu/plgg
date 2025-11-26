@@ -1,7 +1,7 @@
 import {
   Result,
-  newOk,
-  newErr,
+  ok,
+  err,
   InvalidError,
   Refinable,
   Castable,
@@ -30,9 +30,10 @@ const is = (value: unknown): value is SoftStr =>
 /**
  * Refinable instance for string type guards.
  */
-export const softStrRefinable: Refinable<SoftStr> = {
-  is,
-};
+export const softStrRefinable: Refinable<SoftStr> =
+  {
+    is,
+  };
 /**
  * Exported type guard function for string values.
  */
@@ -42,8 +43,8 @@ export const asSoftStr = (
   value: unknown,
 ): Result<SoftStr, InvalidError> =>
   is(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: `${value} is not a string`,
         }),
@@ -52,9 +53,10 @@ export const asSoftStr = (
 /**
  * Castable instance for string safe casting.
  */
-export const softStrCastable: Castable<SoftStr> = {
-  as: asSoftStr,
-};
+export const softStrCastable: Castable<SoftStr> =
+  {
+    as: asSoftStr,
+  };
 
 /**
  * Concatenates two strings using curried application.
@@ -86,7 +88,8 @@ export const softStrJsonSerializable: JsonSerializable<
   JsonReadySoftStr
 > = {
   toJsonReady: (value: SoftStr) => value,
-  fromJsonReady: (jsonReady: SoftStr) => jsonReady,
+  fromJsonReady: (jsonReady: SoftStr) =>
+    jsonReady,
 };
 /**
  * Exported JSON serialization functions for SoftStr values.

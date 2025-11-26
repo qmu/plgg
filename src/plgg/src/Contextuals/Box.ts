@@ -3,7 +3,7 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  newOk,
+  ok,
   hasProp,
   pipe,
   chainResult,
@@ -63,8 +63,8 @@ export const asBox = (
   value: unknown,
 ): Result<Box<string, unknown>, InvalidError> =>
   is<string>(value)
-    ? newOk(value)
-    : newOk(newUntaggedBox(value));
+    ? ok(value)
+    : ok(newUntaggedBox(value));
 
 /**
  * Castable instance for Box safe casting.
@@ -101,7 +101,7 @@ export const forContent =
     pipe(
       box.content,
       predicate,
-      chainResult(flow(newBox(tag), newOk)),
+      chainResult(flow(newBox(tag), ok)),
     );
 
 /**

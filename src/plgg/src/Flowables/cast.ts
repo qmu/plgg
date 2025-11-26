@@ -3,8 +3,8 @@ import {
   InvalidError,
   NonNeverFn,
   isOk,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -532,7 +532,7 @@ export function cast(
         }
       })();
       if (isOk(currentResult)) {
-        return newErr(acc.content);
+        return err(acc.content);
       }
       const prevError =
         acc.content.sibling.length > 0
@@ -543,21 +543,21 @@ export function cast(
         ...acc.content.sibling,
         currentResult.content,
       ];
-      return newErr(
+      return err(
         new InvalidError({
           message: `Cast failed at ${sibling.length} of ${fns.length} step(s), see sibling errors for details.`,
           sibling,
         }),
       );
     },
-    newOk<unknown>(value),
+    ok<unknown>(value),
   );
 }
 
 const convUnknownToInvalidError = (
   e: unknown,
 ): Result<never, InvalidError> =>
-  newErr(
+  err(
     new InvalidError({
       message: "Validation failed",
       parent:

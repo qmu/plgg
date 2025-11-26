@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
   isSoftStr,
 } from "plgg/index";
 
@@ -51,10 +51,10 @@ export const asTime = (
   value: unknown,
 ): Result<Time, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : isDateString(value)
-      ? newOk(new Date(value as string))
-      : newErr(
+      ? ok(new Date(value as string))
+      : err(
           new InvalidError({
             message: "Value is not a Date",
           }),
@@ -80,9 +80,13 @@ export type JsonReadyTime = string;
  * Type guard for JSON-ready Time values.
  * Only matches ISO 8601 date strings to avoid false positives.
  */
-export const isJsonReadyTime = (value: unknown): value is JsonReadyTime =>
+export const isJsonReadyTime = (
+  value: unknown,
+): value is JsonReadyTime =>
   isSoftStr(value) &&
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value) &&
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(
+    value,
+  ) &&
   !isNaN(new Date(value).getTime());
 
 /**
@@ -92,8 +96,10 @@ export const timeJsonSerializable: JsonSerializable<
   Time,
   JsonReadyTime
 > = {
-  toJsonReady: (value: Time) => value.toISOString(),
-  fromJsonReady: (jsonReady: string) => new Date(jsonReady),
+  toJsonReady: (value: Time) =>
+    value.toISOString(),
+  fromJsonReady: (jsonReady: string) =>
+    new Date(jsonReady),
 };
 /**
  * Exported JSON serialization functions for Time values.

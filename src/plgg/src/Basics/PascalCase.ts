@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isSoftStr,
   newBox,
@@ -16,7 +16,10 @@ import {
  * PascalCase strings start with an uppercase letter and contain only letters and numbers,
  * with each subsequent word starting with an uppercase letter.
  */
-export type PascalCase = Box<"PascalCase", string>;
+export type PascalCase = Box<
+  "PascalCase",
+  string
+>;
 
 /**
  * Validates that a string value is valid PascalCase.
@@ -32,15 +35,16 @@ const qualify = (
   // - Must start with uppercase letter
   // - Only letters and numbers allowed
   // - No special characters or spaces
-  const pascalCasePattern =
-    /^[A-Z][a-zA-Z0-9]*$/;
+  const pascalCasePattern = /^[A-Z][a-zA-Z0-9]*$/;
   return pascalCasePattern.test(value);
 };
 
 /**
  * Type guard to check if a value is a PascalCase.
  */
-const is = (value: unknown): value is PascalCase =>
+const is = (
+  value: unknown,
+): value is PascalCase =>
   isBoxWithTag("PascalCase")(value) &&
   qualify(value.content);
 
@@ -61,10 +65,10 @@ export const asPascalCase = (
   value: unknown,
 ): Result<PascalCase, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("PascalCase")(value))
-      : newErr(
+      ? ok(newBox("PascalCase")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a PascalCase (tag-content pair with valid PascalCase string)",

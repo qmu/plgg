@@ -1,8 +1,8 @@
 import {
   Result,
   InvalidError,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -19,13 +19,13 @@ export const atProp =
       obj === null ||
       !(key in obj)
     ) {
-      return newErr(
+      return err(
         new InvalidError({
           message: `Cannot access property '${key}'`,
         }),
       );
     }
-    return newOk(
+    return ok(
       (obj as Record<string, unknown>)[key],
     );
   };

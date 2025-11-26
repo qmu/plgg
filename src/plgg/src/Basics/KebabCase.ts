@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isSoftStr,
   newBox,
@@ -61,10 +61,10 @@ export const asKebabCase = (
   value: unknown,
 ): Result<KebabCase, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("KebabCase")(value))
-      : newErr(
+      ? ok(newBox("KebabCase")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a KebabCase (tag-content pair with valid kebab-case string)",

@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isInt,
   newBox,
@@ -23,9 +23,7 @@ export type U16 = Box<"U16", number>;
 const qualify = (
   value: unknown,
 ): value is number =>
-  isInt(value) &&
-  value >= 0 &&
-  value <= 65535;
+  isInt(value) && value >= 0 && value <= 65535;
 
 /**
  * Type guard to check if a value is a U16.
@@ -49,10 +47,10 @@ export const asU16 = (
   value: unknown,
 ): Result<U16, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("U16")(value))
-      : newErr(
+      ? ok(newBox("U16")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a U16 (tag-content pair with integer 0 to 65535)",
@@ -65,4 +63,3 @@ export const asU16 = (
 export const u16Castable: Castable<U16> = {
   as: asU16,
 };
-

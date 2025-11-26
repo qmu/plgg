@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isNum,
   newBox,
@@ -47,10 +47,10 @@ export const asFloat = (
   value: unknown,
 ): Result<Float, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("Float")(value))
-      : newErr(
+      ? ok(newBox("Float")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a Float (tag-content pair with finite number)",
@@ -63,4 +63,3 @@ export const asFloat = (
 export const floatCastable: Castable<Float> = {
   as: asFloat,
 };
-

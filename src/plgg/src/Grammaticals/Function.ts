@@ -1,7 +1,7 @@
 import {
   Result,
-  newOk,
-  newErr,
+  ok,
+  err,
   InvalidError,
   Refinable,
   Castable,
@@ -33,8 +33,8 @@ export const asFunc = (
   value: unknown,
 ): Result<Func, InvalidError> =>
   is(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Value is not a function",
         }),

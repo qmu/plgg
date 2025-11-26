@@ -1,7 +1,7 @@
 import {
   Result,
-  newOk,
-  newErr,
+  ok,
+  err,
   isOk,
   isErr,
 } from "plgg/index";
@@ -20,4 +20,4 @@ export const conclude =
       .map(fn)
       .reduce<
         Result<ReadonlyArray<U>, ReadonlyArray<F>>
-      >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));
+      >((acc, result) => (isOk(result) ? (isOk(acc) ? ok([...acc.content, result.content]) : acc) : isErr(acc) ? err([...acc.content, result.content]) : err([result.content])), ok([]));

@@ -8,8 +8,8 @@ import {
   Castable,
   FunctorDatum,
   FoldableDatum,
-  newOk,
-  newErr,
+  ok,
+  err,
   isErr,
   toJsonReady,
   fromJsonReady,
@@ -49,8 +49,8 @@ export const asVec = (
   value: unknown,
 ): Result<Vec, InvalidError> =>
   is(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Value is not a vector",
         }),
@@ -124,7 +124,7 @@ export const asVecOf =
     value: unknown,
   ): Result<Vec<T>, InvalidError> => {
     if (!is(value)) {
-      return newErr(
+      return err(
         new InvalidError({
           message: "Value is not a vector",
         }),
@@ -135,7 +135,7 @@ export const asVecOf =
     for (let i = 0; i < value.length; i++) {
       const result = asFn(value[i]);
       if (isErr(result)) {
-        return newErr(
+        return err(
           new InvalidError({
             message: `Invalid element at index ${i}: ${result.content.message}`,
           }),
@@ -144,7 +144,7 @@ export const asVecOf =
       results.push(result.content);
     }
 
-    return newOk(results);
+    return ok(results);
   };
 
 // --------------------------------

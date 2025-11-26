@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -44,8 +44,8 @@ export const asNum = (
   value: unknown,
 ): Result<Num, InvalidError> =>
   is(value)
-    ? newOk(Number(value))
-    : newErr(
+    ? ok(Number(value))
+    : err(
         new InvalidError({
           message: "Value is not a number",
         }),

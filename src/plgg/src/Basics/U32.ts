@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isInt,
   newBox,
@@ -49,10 +49,10 @@ export const asU32 = (
   value: unknown,
 ): Result<U32, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("U32")(value))
-      : newErr(
+      ? ok(newBox("U32")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a U32 (tag-content pair with integer 0 to 4294967295)",
@@ -65,4 +65,3 @@ export const asU32 = (
 export const u32Castable: Castable<U32> = {
   as: asU32,
 };
-

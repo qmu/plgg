@@ -15,8 +15,8 @@ import {
   asBool,
   isOk,
   isErr,
-  newOk,
-  newErr,
+  ok,
+  err,
   refine,
 } from "plgg/index";
 
@@ -181,16 +181,16 @@ test("cast stops on first validation failure when not accumulating errors", () =
       asNum,
       (n: number) =>
         n > 0
-          ? newOk(n)
-          : newErr(
+          ? ok(n)
+          : err(
               new InvalidError({
                 message: "Must be positive",
               }),
             ),
       (n: number) =>
         n < 100
-          ? newOk(n)
-          : newErr(
+          ? ok(n)
+          : err(
               new InvalidError({
                 message: "Must be less than 100",
               }),
@@ -279,7 +279,7 @@ test("cast handles non-Error exceptions", () => {
 
 test("cast with maximum parameters (20 functions)", () => {
   // Test with many validation functions to exercise highest-arity overloads
-  const identity = (x: unknown) => newOk(x);
+  const identity = (x: unknown) => ok(x);
 
   const result = cast(
     "test",
@@ -314,7 +314,7 @@ test("cast aggregates multiple validation errors", () => {
   const alwaysFail1 = (
     _: unknown,
   ): Result<unknown, InvalidError> =>
-    newErr(
+    err(
       new InvalidError({
         message: "Error 1",
       }),
@@ -322,7 +322,7 @@ test("cast aggregates multiple validation errors", () => {
   const alwaysFail2 = (
     _: unknown,
   ): Result<unknown, InvalidError> =>
-    newErr(
+    err(
       new InvalidError({
         message: "Error 2",
       }),
@@ -330,7 +330,7 @@ test("cast aggregates multiple validation errors", () => {
   const alwaysFail3 = (
     _: unknown,
   ): Result<unknown, InvalidError> =>
-    newErr(
+    err(
       new InvalidError({
         message: "Error 3",
       }),

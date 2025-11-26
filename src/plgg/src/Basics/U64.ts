@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isBigInt,
   newBox,
@@ -49,10 +49,10 @@ export const asU64 = (
   value: unknown,
 ): Result<U64, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("U64")(value))
-      : newErr(
+      ? ok(newBox("U64")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a U64 (tag-content pair with bigint 0n to 18446744073709551615n)",
@@ -65,4 +65,3 @@ export const asU64 = (
 export const u64Castable: Castable<U64> = {
   as: asU64,
 };
-

@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isBigInt,
   newBox,
@@ -51,10 +51,10 @@ export const asU128 = (
   value: unknown,
 ): Result<U128, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("U128")(value))
-      : newErr(
+      ? ok(newBox("U128")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a U128 (tag-content pair with bigint in 128-bit unsigned range)",
@@ -67,4 +67,3 @@ export const asU128 = (
 export const u128Castable: Castable<U128> = {
   as: asU128,
 };
-

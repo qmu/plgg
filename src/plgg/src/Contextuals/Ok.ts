@@ -6,7 +6,7 @@ import {
   Castable1,
   isBox,
   hasTag,
-  newErr,
+  err,
   pattern,
   newBox,
 } from "plgg/index";
@@ -41,12 +41,13 @@ export type Ok<T> = Box<typeof okTag, T> & {
 /**
  * Pattern constructor for matching Ok values in pattern matching.
  */
-export const ok = <T>(a?: T) => pattern(okTag)(a);
+export const ok$ = <T>(a?: T) =>
+  pattern(okTag)(a);
 
 /**
  * Creates an Ok instance containing a success value.
  */
-export const newOk = <T>(a: T): Ok<T> => ({
+export const ok = <T>(a: T): Ok<T> => ({
   ...newBox(okTag)(a),
   isOk(): this is Ok<T> {
     return true;
@@ -78,8 +79,8 @@ export const asOk = <A>(
   value: unknown,
 ): Result<Ok<A>, InvalidError> =>
   is<A>(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Value is not an Ok",
         }),

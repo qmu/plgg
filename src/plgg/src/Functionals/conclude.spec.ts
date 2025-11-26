@@ -3,8 +3,8 @@ import {
   Result,
   conclude,
   pipe,
-  newOk,
-  newErr,
+  ok,
+  err,
   isOk,
   isErr,
 } from "plgg/index";
@@ -15,8 +15,8 @@ test("conclude - success case with all valid results", () => {
   ): Result<number, Error> => {
     const num = Number(s);
     return isNaN(num)
-      ? newErr(new Error("Invalid number"))
-      : newOk(num);
+      ? err(new Error("Invalid number"))
+      : ok(num);
   };
 
   const r1 = pipe([], conclude(parseNumber));
@@ -44,16 +44,16 @@ test("conclude - failure case with first error returned", () => {
   ): Result<number, Error> => {
     const num = Number(s);
     if (isNaN(num)) {
-      return newErr(
+      return err(
         new Error("Invalid number: " + s),
       );
     }
     if (num <= 0) {
-      return newErr(
+      return err(
         new Error("Non-positive number: " + s),
       );
     }
-    return newOk(num);
+    return ok(num);
   };
 
   const r1 = pipe(
@@ -108,17 +108,17 @@ test("conclude - mixed types transformation", () => {
     x: number,
   ): Result<string, Error> => {
     if (x < 0) {
-      return newErr(
+      return err(
         new Error("Negative value not allowed"),
       );
     }
     if (x === 0) {
-      return newOk("zero");
+      return ok("zero");
     }
     if (x === 1) {
-      return newOk("one");
+      return ok("one");
     }
-    return newOk(`number: ${x}`);
+    return ok(`number: ${x}`);
   };
 
   const r1 = pipe(
@@ -151,9 +151,9 @@ test("conclude - processes all elements but returns first error", () => {
   ): Result<number, Error> => {
     callCount++;
     if (x === 2) {
-      return newErr(new Error("Error at 2"));
+      return err(new Error("Error at 2"));
     }
-    return newOk(x * 10);
+    return ok(x * 10);
   };
 
   callCount = 0;

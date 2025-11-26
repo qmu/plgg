@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -51,8 +51,8 @@ export const asBool = (
   value: unknown,
 ): Result<Bool, InvalidError> =>
   is(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Value is not a boolean",
         }),

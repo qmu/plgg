@@ -2,8 +2,8 @@ import {
   Dict,
   Result,
   Datum,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 export const postJson =
@@ -26,11 +26,11 @@ export const postJson =
       body: JSON.stringify(data),
     });
     if (!res.ok) {
-      return newErr(
+      return err(
         new Error(
           `HTTP Error status: ${res.status}, body: ${await res.text()}`,
         ),
       );
     }
-    return newOk(await res.json());
+    return ok(await res.json());
   };

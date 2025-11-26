@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isInt,
   newBox,
@@ -23,9 +23,7 @@ export type U8 = Box<"U8", number>;
 const qualify = (
   value: unknown,
 ): value is number =>
-  isInt(value) &&
-  value >= 0 &&
-  value <= 255;
+  isInt(value) && value >= 0 && value <= 255;
 
 /**
  * Type guard to check if a value is a U8.
@@ -49,10 +47,10 @@ export const asU8 = (
   value: unknown,
 ): Result<U8, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("U8")(value))
-      : newErr(
+      ? ok(newBox("U8")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a U8 (tag-content pair with integer 0 to 255)",
@@ -65,4 +63,3 @@ export const asU8 = (
 export const u8Castable: Castable<U8> = {
   as: asU8,
 };
-

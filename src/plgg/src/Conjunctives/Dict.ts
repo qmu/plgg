@@ -3,8 +3,8 @@ import {
   Datum,
   Result,
   InvalidError,
-  newOk,
-  newErr,
+  ok,
+  err,
   isErr,
 } from "plgg/index";
 
@@ -34,7 +34,7 @@ export const asDictOf =
       value === null ||
       Array.isArray(value)
     ) {
-      return newErr(
+      return err(
         new InvalidError({
           message: "Value is not a dictionary",
         }),
@@ -53,7 +53,7 @@ export const asDictOf =
           (value as Record<string, unknown>)[key],
         );
         if (isErr(elementResult)) {
-          return newErr(
+          return err(
             new InvalidError({
               message: `Invalid value at key "${key}": ${elementResult.content.message}`,
             }),
@@ -63,5 +63,5 @@ export const asDictOf =
       }
     }
 
-    return newOk(result);
+    return ok(result);
   };

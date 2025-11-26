@@ -1,8 +1,4 @@
-import {
-  Result,
-  newOk,
-  newErr,
-} from "plgg/index";
+import { Result, ok, err } from "plgg/index";
 
 /**
  * Finds the first element in an array that satisfies a predicate function.
@@ -50,11 +46,13 @@ export function find<T>(
       : (arg.errMessage ??
         "No element found matching the predicate");
 
-  return (arr: ReadonlyArray<T>): Result<T, Error> => {
+  return (
+    arr: ReadonlyArray<T>,
+  ): Result<T, Error> => {
     const found = arr.find(predicate);
     if (found === undefined) {
-      return newErr(new Error(errMessage));
+      return err(new Error(errMessage));
     }
-    return newOk(found);
+    return ok(found);
   };
 }

@@ -8,10 +8,10 @@ import {
   match,
   pattern,
   otherwise,
+  ok$,
+  err$,
   ok,
   err,
-  newOk,
-  newErr,
   some,
   none,
   newSome,
@@ -150,7 +150,7 @@ test("Result pattern matching", async () => {
   const fn = (a: Result<string, number>) =>
     match(
       a,
-      [ok("hello"), () => "Specific hello"],
+      [ok$("hello"), () => "Specific hello"],
       [
         otherwise,
         (value) =>
@@ -158,8 +158,8 @@ test("Result pattern matching", async () => {
       ],
     );
 
-  const successResult = newOk("hello");
-  const errorResult = newErr(404);
+  const successResult = ok("hello");
+  const errorResult = err(404);
 
   expect(fn(successResult)).equal(
     "Specific hello",
@@ -173,8 +173,11 @@ test("Result pattern matching with specific patterns", async () => {
   const fn = (a: Result<number, string>) =>
     match(
       a,
-      [ok(42), () => "The answer!"],
-      [err("not_found"), () => "Not found error"],
+      [ok$(42), () => "The answer!"],
+      [
+        err$("not_found"),
+        () => "Not found error",
+      ],
       [
         otherwise,
         (value) =>
@@ -182,14 +185,14 @@ test("Result pattern matching with specific patterns", async () => {
       ],
     );
 
-  expect(fn(newOk(42))).equal("The answer!");
-  expect(fn(newOk(100))).equal(
+  expect(fn(ok(42))).equal("The answer!");
+  expect(fn(ok(100))).equal(
     'Matched: {"__tag":"Ok","content":100}',
   );
-  expect(fn(newErr("not_found"))).equal(
+  expect(fn(err("not_found"))).equal(
     "Not found error",
   );
-  expect(fn(newErr("server_error"))).equal(
+  expect(fn(err("server_error"))).equal(
     'Matched: {"__tag":"Err","content":"server_error"}',
   );
 });
@@ -198,7 +201,7 @@ test("Result pattern matching with OTHERWISE", async () => {
   const fn = (a: Result<string, number>) =>
     match(
       a,
-      [ok("success"), () => "Specific success"],
+      [ok$("success"), () => "Specific success"],
       [
         otherwise,
         (value) =>
@@ -206,13 +209,13 @@ test("Result pattern matching with OTHERWISE", async () => {
       ],
     );
 
-  expect(fn(newOk("success"))).equal(
+  expect(fn(ok("success"))).equal(
     "Specific success",
   );
-  expect(fn(newOk("other"))).equal(
+  expect(fn(ok("other"))).equal(
     'Fallback: {"__tag":"Ok","content":"other"}',
   );
-  expect(fn(newErr(500))).equal(
+  expect(fn(err(500))).equal(
     'Fallback: {"__tag":"Err","content":500}',
   );
 });

@@ -3,8 +3,8 @@ import {
   PromisedResult,
   proc,
   pipe,
-  newOk,
-  newErr,
+  ok,
+  err,
   isOk,
   tryCatch,
   conclude,
@@ -68,7 +68,7 @@ const execute =
       ctx.operationCount >=
       ctx.foundry.maxOperationLimit
     ) {
-      return newErr(
+      return err(
         new Error("Operation limit exceeded"),
       );
     }
@@ -85,7 +85,7 @@ const execute =
     if (isEgressOperation(op)) {
       return execEgress({ op, ctx });
     }
-    return newErr(
+    return err(
       new Error(
         `Unknown operation type for operation`,
       ),
@@ -136,8 +136,8 @@ const loadValueFromEnv =
     addr: string,
   ): Result<[Address, Param], Error> =>
     env[addr]
-      ? newOk([addr, env[addr]])
-      : newErr(
+      ? ok([addr, env[addr]])
+      : err(
           new Error(
             `No value found at load address "${addr}"`,
           ),
@@ -161,7 +161,7 @@ const execSwitch = async ({
     op.opcode,
   );
   if (!isOk(switcherResult)) {
-    return newErr(switcherResult.content);
+    return err(switcherResult.content);
   }
   const switcher = switcherResult.content;
 
@@ -172,7 +172,7 @@ const execSwitch = async ({
     conclude(loadValueFromEnv(env)),
   );
   if (!isOk(addrParams)) {
-    return newErr(
+    return err(
       new Error(
         addrParams.content
           .map((e) => e.message)
@@ -193,7 +193,7 @@ const execSwitch = async ({
   );
 
   if (!isOk(checkResult)) {
-    return newErr(checkResult.content);
+    return err(checkResult.content);
   }
 
   const [isValid, returnedValue] =
@@ -245,7 +245,7 @@ const execSwitch = async ({
         },
         operationCount: ctx.operationCount + 1,
       })(opResult.content)
-    : newErr(opResult.content);
+    : err(opResult.content);
 };
 
 /**
@@ -266,7 +266,7 @@ const execProcess = async ({
     op.opcode,
   );
   if (!isOk(processorResult)) {
-    return newErr(processorResult.content);
+    return err(processorResult.content);
   }
 
   // Step 2: Load input parameters from registers using input NameTable
@@ -276,7 +276,7 @@ const execProcess = async ({
     conclude(loadValueFromEnv(env)),
   );
   if (!isOk(addrParams)) {
-    return newErr(
+    return err(
       new Error(
         addrParams.content
           .map((e) => e.message)
@@ -294,7 +294,7 @@ const execProcess = async ({
   );
 
   if (!isOk(processResult)) {
-    return newErr(processResult.content);
+    return err(processResult.content);
   }
 
   const returnedValue =
@@ -362,7 +362,7 @@ const execEgress = async ({
     conclude(loadValueFromEnv(env)),
   );
   if (!isOk(input)) {
-    return newErr(
+    return err(
       new Error(
         input.content
           .map((e) => e.message)
@@ -402,7 +402,7 @@ const execEgress = async ({
             expectedType.type?.content ?? "";
 
           if (actualTypeStr !== expectedTypeStr) {
-            return newErr(
+            return err(
               new Error(
                 `Type mismatch for output "${outputName}": expected ${expectedTypeStr}, got ${actualTypeStr}`,
               ),
@@ -418,5 +418,5 @@ const execEgress = async ({
     alignment,
     params,
   };
-  return newOk(medium);
+  return ok(medium);
 };

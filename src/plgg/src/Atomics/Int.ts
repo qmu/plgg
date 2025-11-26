@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -24,7 +24,8 @@ export type IsInt<T> = T extends Int
  * Type guard to check if a value is an Int.
  */
 const is = (value: unknown): value is Int =>
-  (typeof value === "number" && Number.isInteger(value)) ||
+  (typeof value === "number" &&
+    Number.isInteger(value)) ||
   (typeof value === "bigint" &&
     value >= Number.MIN_SAFE_INTEGER &&
     value <= Number.MAX_SAFE_INTEGER);
@@ -44,8 +45,8 @@ export const asInt = (
   value: unknown,
 ): Result<Int, InvalidError> =>
   is(value)
-    ? newOk(Number(value))
-    : newErr(
+    ? ok(Number(value))
+    : err(
         new InvalidError({
           message: "Value is not an integer",
         }),
@@ -89,3 +90,4 @@ export const {
   toJsonReady: toJsonReadyInt,
   fromJsonReady: fromJsonReadyInt,
 } = intJsonSerializable;
+

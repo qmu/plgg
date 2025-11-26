@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isInt,
   newBox,
@@ -23,9 +23,7 @@ export type I8 = Box<"I8", number>;
 const qualify = (
   value: unknown,
 ): value is number =>
-  isInt(value) &&
-  value >= -128 &&
-  value <= 127;
+  isInt(value) && value >= -128 && value <= 127;
 
 /**
  * Type guard to check if a value is an I8.
@@ -49,10 +47,10 @@ export const asI8 = (
   value: unknown,
 ): Result<I8, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("I8")(value))
-      : newErr(
+      ? ok(newBox("I8")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not an I8 (tag-content pair with integer -128 to 127)",

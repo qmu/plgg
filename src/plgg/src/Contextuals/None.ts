@@ -7,8 +7,8 @@ import {
   pattern,
   isIcon,
   hasIconTag,
-  newOk,
-  newErr,
+  ok,
+  err,
   newIcon,
 } from "plgg/index";
 
@@ -56,8 +56,8 @@ export const asNone = (
   value: unknown,
 ): Result<None, InvalidError> =>
   is(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Value is not a None",
         }),

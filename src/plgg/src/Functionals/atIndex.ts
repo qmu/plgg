@@ -1,8 +1,8 @@
 import {
   Result,
   InvalidError,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -19,11 +19,11 @@ export const atIndex =
       index < 0 ||
       index >= arr.length
     ) {
-      return newErr(
+      return err(
         new InvalidError({
           message: `Cannot access index ${index}`,
         }),
       );
     }
-    return newOk(arr[index]);
+    return ok(arr[index]);
   };

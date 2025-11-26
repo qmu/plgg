@@ -4,8 +4,8 @@ import {
   Result,
   NonNeverFn,
   isOk,
-  newErr,
-  newOk,
+  err,
+  ok,
   isPlggError,
   isResult,
 } from "plgg/index";
@@ -504,27 +504,27 @@ export async function proc(
         return fn(current);
       } catch (e: unknown) {
         return isPlggError(e)
-          ? newErr(e)
+          ? err(e)
           : e instanceof Error
-            ? newErr(
+            ? err(
                 new Exception(
                   "Unexpected error in proc",
                   e,
                 ),
               )
-            : newErr(
+            : err(
                 new Exception(
                   "Unknown error in proc",
                 ),
               );
       }
     },
-    Promise.resolve(newOk(value)),
+    Promise.resolve(ok(value)),
   );
   if (isResult(result)) {
     return result;
   }
-  return newOk(result);
+  return ok(result);
 }
 
 /**

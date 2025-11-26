@@ -6,8 +6,8 @@ import {
   JsonReady,
   Datum,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
   toJsonReady,
   fromJsonReady,
   isJsonReady,
@@ -48,8 +48,8 @@ export const asObj = (
   value: unknown,
 ): Result<Obj, InvalidError> =>
   is(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Not record",
         }),

@@ -8,8 +8,8 @@ import {
   isRawObj,
   chainResult,
   pipe,
-  newOk,
-  newErr,
+  ok,
+  err,
   newSome,
   newNone,
 } from "plgg/index";
@@ -45,7 +45,8 @@ export const forProp =
   <V>(
     rec: V,
   ): Result<
-    (V extends object ? V : object) & Record<T, U>,
+    (V extends object ? V : object) &
+      Record<T, U>,
     InvalidError
   > =>
     typeof rec === "object" && rec !== null
@@ -61,7 +62,7 @@ export const forProp =
                   Record<T, U>,
                 InvalidError
               > =>
-                newOk({
+                ok({
                   ...rec,
                   [key]: okValue,
                 } as (V extends object
@@ -70,12 +71,12 @@ export const forProp =
                   Record<T, U>),
             ),
           )
-        : newErr(
+        : err(
             new InvalidError({
               message: `Property '${key}' not found`,
             }),
           )
-      : newErr(
+      : err(
           new InvalidError({
             message: "Not an object",
           }),
@@ -109,7 +110,7 @@ export const forOptionProp =
                   Record<T, Option<U>>,
                 InvalidError
               > =>
-                newOk({
+                ok({
                   ...rec,
                   [key]: newSome(okValue),
                 } as (V extends object
@@ -118,12 +119,12 @@ export const forOptionProp =
                   Record<T, Option<U>>),
             ),
           )
-        : newOk({
+        : ok({
             ...rec,
             [key]: newNone(),
           } as (V extends object ? V : object) &
             Record<T, Option<U>>)
-      : newErr(
+      : err(
           new InvalidError({
             message: "Not an object",
           }),

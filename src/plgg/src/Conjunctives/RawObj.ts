@@ -13,8 +13,8 @@ import {
   Monad1,
   KindKeys1,
   Kind1,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -54,8 +54,8 @@ export const asRawObj = <A>(
   value: unknown,
 ): Result<RawObj<A>, InvalidError> =>
   is<A>(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Not record",
         }),

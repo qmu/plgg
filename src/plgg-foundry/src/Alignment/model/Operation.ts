@@ -1,8 +1,8 @@
 import {
   Result,
   InvalidError,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg";
 import {
   EgressOperation,
@@ -39,9 +39,9 @@ export const asOperation = (
   value: unknown,
 ): Result<Operation, InvalidError> => {
   if (isOperation(value)) {
-    return newOk(value);
+    return ok(value);
   }
-  return newErr(
+  return err(
     new InvalidError({
       message: "Value is not a valid Operation",
     }),

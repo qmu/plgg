@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isSoftStr,
   newBox,
@@ -51,16 +51,17 @@ export const alphabetRefinable: Refinable<Alphabet> =
 /**
  * Exported type guard function for Alphabet values.
  */
-export const { is: isAlphabet } = alphabetRefinable;
+export const { is: isAlphabet } =
+  alphabetRefinable;
 
 export const asAlphabet = (
   value: unknown,
 ): Result<Alphabet, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("Alphabet")(value))
-      : newErr(
+      ? ok(newBox("Alphabet")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not an Alphabet (tag-content pair with valid alphabetic string)",
@@ -70,6 +71,7 @@ export const asAlphabet = (
 /**
  * Castable instance for Alphabet safe casting.
  */
-export const alphabetCastable: Castable<Alphabet> = {
-  as: asAlphabet,
-};
+export const alphabetCastable: Castable<Alphabet> =
+  {
+    as: asAlphabet,
+  };

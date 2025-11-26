@@ -6,8 +6,8 @@ import {
   Castable1,
   isBox,
   hasTag,
-  newOk,
-  newErr,
+  ok,
+  err,
   pattern,
   newBox,
 } from "plgg/index";
@@ -64,8 +64,8 @@ export const asSome = <A>(
   value: unknown,
 ): Result<Some<A>, InvalidError> =>
   is<A>(value)
-    ? newOk(value)
-    : newErr(
+    ? ok(value)
+    : err(
         new InvalidError({
           message: "Value is not a Some",
         }),

@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isBigInt,
   newBox,
@@ -52,10 +52,10 @@ export const asI128 = (
   value: unknown,
 ): Result<I128, InvalidError> =>
   is(value)
-    ? newOk(value)
+    ? ok(value)
     : qualify(value)
-      ? newOk(newBox("I128")(value))
-      : newErr(
+      ? ok(newBox("I128")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not an I128 (tag-content pair with bigint in 128-bit signed range)",

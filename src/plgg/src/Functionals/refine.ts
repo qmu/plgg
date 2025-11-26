@@ -1,8 +1,8 @@
 import {
   Result,
   InvalidError,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -15,8 +15,8 @@ export const refine =
   ) =>
   (a: T): Result<T, InvalidError> =>
     predicate(a)
-      ? newOk(a)
-      : newErr(
+      ? ok(a)
+      : err(
           new InvalidError({
             message: errMessage
               ? errMessage

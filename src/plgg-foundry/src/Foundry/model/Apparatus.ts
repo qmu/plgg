@@ -2,7 +2,7 @@ import {
   Castable,
   Result,
   InvalidError,
-  newErr,
+  err,
 } from "plgg";
 import {
   Processor,
@@ -54,7 +54,7 @@ export const asApparatus = (
   if (isPackerSpec(v)) {
     return asPacker(v);
   }
-  return newErr(
+  return err(
     new InvalidError({
       message:
         "Value is not a valid ApparatusSpec",

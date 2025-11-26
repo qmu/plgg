@@ -21,8 +21,8 @@ import {
   isSome,
   isNone,
   concludeMutVec,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 test("MutVec.is should return true for vectors", () => {
@@ -377,8 +377,8 @@ test("concludeMutVec - success case with all valid results", () => {
   ): Result<number, string> => {
     const num = Number(s);
     return isNaN(num)
-      ? newErr("Invalid number")
-      : newOk(num);
+      ? err("Invalid number")
+      : ok(num);
   };
 
   const r1 = pipe(
@@ -409,12 +409,12 @@ test("concludeMutVec - failure case with errors collected", () => {
   ): Result<number, string> => {
     const num = Number(s);
     if (isNaN(num)) {
-      return newErr("Invalid number: " + s);
+      return err("Invalid number: " + s);
     }
     if (num <= 0) {
-      return newErr("Non-positive number: " + s);
+      return err("Non-positive number: " + s);
     }
-    return newOk(num);
+    return ok(num);
   };
 
   const r1 = pipe(

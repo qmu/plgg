@@ -2,8 +2,8 @@ import { test, expect, assert } from "vitest";
 import {
   Result,
   InvalidError,
-  newOk,
-  newErr,
+  ok,
+  err,
   isOk,
   isErr,
   isResult,
@@ -24,7 +24,7 @@ import {
 } from "plgg/index";
 
 test("ok creates Ok result", () => {
-  const result = newOk(42);
+  const result = ok(42);
   expect(result.__tag).toBe("Ok");
   assert(isOk(result));
   if (isOk(result)) {
@@ -33,7 +33,7 @@ test("ok creates Ok result", () => {
 });
 
 test("err creates Err result", () => {
-  const result = newErr("error message");
+  const result = err("error message");
   expect(result.__tag).toBe("Err");
   assert(isErr(result));
   if (isErr(result)) {
@@ -42,24 +42,24 @@ test("err creates Err result", () => {
 });
 
 test("isOk identifies Ok results", () => {
-  const okResult = newOk("success");
-  const errResult = newErr("failure");
+  const okResult = ok("success");
+  const errResult = err("failure");
 
   assert(isOk(okResult));
   assert(!isOk(errResult));
 });
 
 test("isErr identifies Err results", () => {
-  const okResult = newOk("success");
-  const errResult = newErr("failure");
+  const okResult = ok("success");
+  const errResult = err("failure");
 
   assert(!isErr(okResult));
   assert(isErr(errResult));
 });
 
 test("isResult identifies Result types", () => {
-  const okResult = newOk(123);
-  const errResult = newErr("error");
+  const okResult = ok(123);
+  const errResult = err("error");
   const notResult = { random: "object" };
   const nullValue = null;
   const undefinedValue = undefined;
@@ -72,7 +72,7 @@ test("isResult identifies Result types", () => {
 });
 
 test("result.isOk() method returns true for Ok instances", () => {
-  const okResult = newOk("success");
+  const okResult = ok("success");
 
   assert(okResult.isOk());
   assert(!okResult.isErr());
@@ -84,7 +84,7 @@ test("result.isOk() method returns true for Ok instances", () => {
 });
 
 test("result.isErr() method returns true for Err instances", () => {
-  const errResult = newErr("failure");
+  const errResult = err("failure");
 
   assert(!errResult.isOk());
   assert(errResult.isErr());
@@ -96,8 +96,9 @@ test("result.isErr() method returns true for Err instances", () => {
 });
 
 test("result methods work with Result union type", () => {
-  const okResult: Result<number, string> = newOk(42);
-  const errResult: Result<number, string> = newErr("error");
+  const okResult: Result<number, string> = ok(42);
+  const errResult: Result<number, string> =
+    err("error");
 
   // Ok case
   assert(okResult.isOk());
@@ -116,11 +117,11 @@ test("result methods work with Result union type", () => {
 
 test("Result can handle different types", () => {
   const stringResult: Result<string, number> =
-    newOk("hello");
+    ok("hello");
   const numberErrorResult: Result<
     string,
     number
-  > = newErr(404);
+  > = err(404);
 
   assert(isOk(stringResult));
   assert(isErr(numberErrorResult));
@@ -139,10 +140,10 @@ test("mapOk transforms success values while preserving errors", () => {
   const formatPrice = (
     price: number,
   ): Result<string, Error> =>
-    newOk(`$${price.toFixed(2)}`);
+    ok(`$${price.toFixed(2)}`);
 
   const successResult = chainResult(formatPrice)(
-    newOk(29.99),
+    ok(29.99),
   );
   assert(isOk(successResult));
   expect(successResult.content).toBe("$29.99");
@@ -150,7 +151,7 @@ test("mapOk transforms success values while preserving errors", () => {
   const priceError = new InvalidError({
     message: "Invalid price",
   });
-  const e = newErr(priceError);
+  const e = err(priceError);
   const errorResult = chainResult(formatPrice)(e);
   assert(isErr(errorResult));
   expect(errorResult.content.message).toBe(
@@ -160,8 +161,8 @@ test("mapOk transforms success values while preserving errors", () => {
 
 test("Result Monad - map function", () => {
   const double = (x: number) => x * 2;
-  const okValue = newOk(5);
-  const errValue = newErr("error");
+  const okValue = ok(5);
+  const errValue = err("error");
 
   const r1 = pipe(okValue, mapResult(double));
   const r2 = pipe(errValue, mapResult(double));
@@ -177,14 +178,13 @@ test("Result Monad - ap function (applicative)", () => {
   const okAdd3: Result<
     (y: number) => number,
     string
-  > = newOk(add(3));
-  const okNumber: Result<number, string> =
-    newOk(5);
+  > = ok(add(3));
+  const okNumber: Result<number, string> = ok(5);
   const errFunction: Result<
     (y: number) => number,
     string
-  > = newErr("function error");
-  const errValue: Result<number, string> = newErr(
+  > = err("function error");
+  const errValue: Result<number, string> = err(
     "value error",
   );
 
@@ -230,11 +230,11 @@ test("Result Monad - chain function", () => {
     (y: number) =>
     (x: number): Result<number, string> =>
       y === 0
-        ? newErr("Division by zero")
-        : newOk(x / y);
+        ? err("Division by zero")
+        : ok(x / y);
 
-  const okNumber = newOk(10);
-  const errNumber = newErr("Invalid number");
+  const okNumber = ok(10);
+  const errNumber = err("Invalid number");
 
   const r1 = pipe(
     okNumber,
@@ -259,7 +259,7 @@ test("Result Monad - chain function", () => {
 
 test("Result Monad Laws - Left Identity", () => {
   const f = (x: number): Result<number, string> =>
-    newOk(x * 2);
+    ok(x * 2);
   const a = 5;
 
   const r1 = pipe(a, ofResult, chainResult(f));
@@ -270,7 +270,7 @@ test("Result Monad Laws - Left Identity", () => {
 });
 
 test("Result Monad Laws - Right Identity", () => {
-  const m = newOk(42);
+  const m = ok(42);
 
   const r1 = pipe(m, chainResult(ofResult));
   const r2 = m;
@@ -281,10 +281,10 @@ test("Result Monad Laws - Right Identity", () => {
 
 test("Result Monad Laws - Associativity", () => {
   const f = (x: number): Result<number, string> =>
-    newOk(x + 1);
+    ok(x + 1);
   const g = (x: number): Result<number, string> =>
-    newOk(x * 2);
-  const m = newOk(5);
+    ok(x * 2);
+  const m = ok(5);
 
   const r1 = pipe(
     m,
@@ -303,7 +303,7 @@ test("Result Monad Laws - Associativity", () => {
 });
 
 test("Result Functor Laws - Identity", () => {
-  const res = newOk(42);
+  const res = ok(42);
   const identity = <T>(x: T) => x;
 
   const r1 = pipe(res, mapResult(identity));
@@ -313,7 +313,7 @@ test("Result Functor Laws - Identity", () => {
 });
 
 test("Result Functor Laws - Composition", () => {
-  const res = newOk(5);
+  const res = ok(5);
   const f = (x: number) => x * 2;
   const g = (x: number) => x + 1;
 
@@ -335,13 +335,13 @@ test("Result Foldable - foldr function", () => {
   const add = (a: number, b: number) => a + b;
   const concat = (a: string, b: string) => a + b;
 
-  const r1 = pipe(newOk(42), foldrResult(add)(0));
+  const r1 = pipe(ok(42), foldrResult(add)(0));
   const r2 = pipe(
-    newErr("failed"),
+    err("failed"),
     foldrResult(add)(0),
   );
   const r3 = pipe(
-    newOk("hello"),
+    ok("hello"),
     foldrResult(concat)(""),
   );
 
@@ -354,13 +354,13 @@ test("Result Foldable - foldl function", () => {
   const add = (a: number, b: number) => a + b;
   const concat = (a: string, b: string) => a + b;
 
-  const r1 = pipe(newOk(42), foldlResult(add)(0));
+  const r1 = pipe(ok(42), foldlResult(add)(0));
   const r2 = pipe(
-    newErr("failed"),
+    err("failed"),
     foldlResult(add)(0),
   );
   const r3 = pipe(
-    newOk("world"),
+    ok("world"),
     foldlResult(concat)("hello "),
   );
 
@@ -396,7 +396,7 @@ test("User data validation pipeline with optional fields", () => {
     );
 
   // User with valid email - processing succeeds
-  const validUser = newOk({
+  const validUser = ok({
     id: 1,
     name: "Alice",
     email: "ALICE@EXAMPLE.COM",
@@ -409,7 +409,7 @@ test("User data validation pipeline with optional fields", () => {
   );
 
   // User with invalid email - processing fails
-  const invalidEmailUser = newOk({
+  const invalidEmailUser = ok({
     id: 2,
     name: "Bob",
     email: "not-an-email",
@@ -418,7 +418,7 @@ test("User data validation pipeline with optional fields", () => {
   assert(isNone(result2));
 
   // User data parsing failed - error preserved
-  const parseError = newErr("Invalid JSON");
+  const parseError = err("Invalid JSON");
   const result3 = processUser(parseError);
   assert(isSome(result3));
   assert(isErr(result3.content));
@@ -453,7 +453,7 @@ test("Database query with optional caching", () => {
     );
 
   // Cached query succeeds
-  const cachedQuery = newOk({
+  const cachedQuery = ok({
     data: "users",
     cached: true,
   });
@@ -465,7 +465,7 @@ test("Database query with optional caching", () => {
   );
 
   // Non-cached query
-  const directQuery = newOk({
+  const directQuery = ok({
     data: "complex_analytics",
     cached: false,
   });
@@ -477,7 +477,7 @@ test("Database query with optional caching", () => {
   );
 
   // Cached query too long - cache miss
-  const longCachedQuery = newOk({
+  const longCachedQuery = ok({
     data: "very_long_query_name",
     cached: true,
   });
@@ -487,7 +487,7 @@ test("Database query with optional caching", () => {
 
 test("sequenceResult - sequence with Option", () => {
   // Test successful sequence with Some
-  const okWithSome = newOk(newSome(42));
+  const okWithSome = ok(newSome(42));
   const result1 = pipe(
     okWithSome,
     sequenceResult(optionApplicative),
@@ -498,7 +498,7 @@ test("sequenceResult - sequence with Option", () => {
   expect(result1.content.content).toBe(42);
 
   // Test successful sequence with None
-  const okWithNone = newOk(newNone());
+  const okWithNone = ok(newNone());
   const result2 = pipe(
     okWithNone,
     sequenceResult(optionApplicative),
@@ -507,7 +507,7 @@ test("sequenceResult - sequence with Option", () => {
   assert(isNone(result2));
 
   // Test error case - should return Some(Err(...))
-  const errResult = newErr("error");
+  const errResult = err("error");
   const result3 = pipe(
     errResult,
     sequenceResult(optionApplicative),

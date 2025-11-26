@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
   isObj,
   hasProp,
 } from "plgg/index";
@@ -31,10 +31,9 @@ const is = (value: unknown): value is Bin =>
 /**
  * Refinable instance for Bin type guards.
  */
-export const binRefinable: Refinable<Bin> =
-  {
-    is,
-  };
+export const binRefinable: Refinable<Bin> = {
+  is,
+};
 /**
  * Exported type guard function for Bin values.
  */
@@ -44,15 +43,15 @@ export const asBin = (
   value: unknown,
 ): Result<Bin, InvalidError> => {
   if (is(value)) {
-    return newOk(value);
+    return ok(value);
   }
 
   if (value instanceof ArrayBuffer) {
-    return newOk(new Uint8Array(value));
+    return ok(new Uint8Array(value));
   }
 
   if (ArrayBuffer.isView(value)) {
-    return newOk(
+    return ok(
       new Uint8Array(
         value.buffer,
         value.byteOffset,
@@ -63,10 +62,10 @@ export const asBin = (
 
   if (typeof value === "string") {
     const encoder = new TextEncoder();
-    return newOk(encoder.encode(value));
+    return ok(encoder.encode(value));
   }
 
-  return newErr(
+  return err(
     new InvalidError({
       message: "Value is not a Bin",
     }),
@@ -111,9 +110,7 @@ export const binJsonSerializable: JsonSerializable<
   Bin,
   JsonReadyBin
 > = {
-  toJsonReady: (
-    value: Bin,
-  ): JsonReadyBin => {
+  toJsonReady: (value: Bin): JsonReadyBin => {
     const base64 = btoa(
       String.fromCharCode(...value),
     );
@@ -129,7 +126,11 @@ export const binJsonSerializable: JsonSerializable<
     const bytes = new Uint8Array(
       binaryString.length,
     );
-    for (let i = 0; i < binaryString.length; i++) {
+    for (
+      let i = 0;
+      i < binaryString.length;
+      i++
+    ) {
       bytes[i] = binaryString.charCodeAt(i);
     }
     return bytes;

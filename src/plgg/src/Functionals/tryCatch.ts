@@ -1,8 +1,8 @@
 import {
   Result,
   Procedural,
-  newOk,
-  newErr,
+  ok,
+  err,
   isPromise,
 } from "plgg/index";
 
@@ -41,13 +41,13 @@ function tryCatch<T, U, E extends Error = Error>(
       const result = fn(arg);
       if (isPromise(result)) {
         return result.then(
-          (value) => newOk(value as U),
-          (error) => newErr(errorHandler(error)),
+          (value) => ok(value as U),
+          (error) => err(errorHandler(error)),
         );
       }
-      return newOk(result as U);
+      return ok(result as U);
     } catch (error: unknown) {
-      return newErr(errorHandler(error));
+      return err(errorHandler(error));
     }
   };
 }
