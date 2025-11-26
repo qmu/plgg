@@ -5,7 +5,7 @@ import {
   asOrder,
 } from "plgg-foundry/index";
 import { blueprint } from "plgg-foundry/Foundry/usecase";
-import { newTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("Blueprint generation with test foundry", async () => {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -22,7 +22,7 @@ test.skip("Blueprint generation with test foundry", async () => {
 
   const result = await proc(
     apiKey,
-    newTestFoundrySpec,
+    makeTestFoundrySpec,
     asFoundry,
     (foundry) =>
       proc(

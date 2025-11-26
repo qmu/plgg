@@ -1,20 +1,20 @@
 import { isBin, isVec } from "plgg";
 import {
-  newFoundrySpec,
-  newProcessorSpec,
-  newSwitcherSpec,
-  newPackerSpec,
+  makeFoundrySpec,
+  makeProcessorSpec,
+  makeSwitcherSpec,
+  makePackerSpec,
 } from "plgg-foundry/index";
 
-export const newTestFoundrySpec = (
+export const makeTestFoundrySpec = (
   apiKey: string,
 ) =>
-  newFoundrySpec({
+  makeFoundrySpec({
     apiKey,
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
     apparatuses: [
-      newProcessorSpec({
+      makeProcessorSpec({
         name: "plan",
         description:
           "Plans the character design based on the prompt",
@@ -33,7 +33,7 @@ export const newTestFoundrySpec = (
           };
         },
       }),
-      newProcessorSpec({
+      makeProcessorSpec({
         name: "analyze",
         description:
           "Analyzes reference images for character features",
@@ -58,7 +58,7 @@ export const newTestFoundrySpec = (
           };
         },
       }),
-      newProcessorSpec({
+      makeProcessorSpec({
         name: "gen-main",
         description:
           "Generates the main character image",
@@ -79,7 +79,7 @@ export const newTestFoundrySpec = (
           };
         },
       }),
-      newProcessorSpec({
+      makeProcessorSpec({
         name: "gen-spread",
         description:
           "Generates spread images for the character",
@@ -109,7 +109,7 @@ export const newTestFoundrySpec = (
           };
         },
       }),
-      newSwitcherSpec({
+      makeSwitcherSpec({
         name: "check-validity",
         description:
           "Checks for inappropriate content in images, if invalid go back to former step",
@@ -145,7 +145,7 @@ export const newTestFoundrySpec = (
           ];
         },
       }),
-      newPackerSpec({
+      makePackerSpec({
         mainImage: { type: "image[]" },
         spreadImages: { type: "image[]" },
         plannedDescription: { type: "string" },

@@ -26,14 +26,14 @@ You'll also need an OpenAI API key with access to structured outputs.
 ## Quick Start
 
 ```typescript
-import { runFoundry, newFoundrySpec, newProcessorSpec, newPackerSpec } from "plgg-foundry";
+import { runFoundry, makeFoundrySpec, makeProcessorSpec, makePackerSpec } from "plgg-foundry";
 
 // 1. Define your foundry
-const foundrySpec = newFoundrySpec({
+const foundrySpec = makeFoundrySpec({
   apiKey: process.env.OPENAI_API_KEY,
   description: "A text processing foundry",
   apparatuses: [
-    newProcessorSpec({
+    makeProcessorSpec({
       name: "analyze-sentiment",
       description: "Analyzes the sentiment of text",
       arguments: { text: { type: "string" } },
@@ -44,7 +44,7 @@ const foundrySpec = newFoundrySpec({
         return { sentiment: "positive" };
       }
     }),
-    newPackerSpec({
+    makePackerSpec({
       result: { type: "string" }
     })
   ]
@@ -98,18 +98,18 @@ Here's a complete example of a character design foundry with validation loops:
 ```typescript
 import {
   runFoundry,
-  newFoundrySpec,
-  newProcessorSpec,
-  newSwitcherSpec,
-  newPackerSpec
+  makeFoundrySpec,
+  makeProcessorSpec,
+  makeSwitcherSpec,
+  makePackerSpec
 } from "plgg-foundry";
 
-const foundrySpec = newFoundrySpec({
+const foundrySpec = makeFoundrySpec({
   apiKey: process.env.OPENAI_API_KEY,
   description: "Character design foundry that generates and validates character images",
 
   apparatuses: [
-    newProcessorSpec({
+    makeProcessorSpec({
       name: "plan",
       description: "Plans the character design based on the prompt",
       arguments: { prompt: { type: "string" } },
@@ -122,7 +122,7 @@ const foundrySpec = newFoundrySpec({
         };
       }
     }),
-    newProcessorSpec({
+    makeProcessorSpec({
       name: "gen-main",
       description: "Generates the main character image",
       arguments: { description: { type: "string" } },
@@ -134,7 +134,7 @@ const foundrySpec = newFoundrySpec({
         return { image: [imageData] };
       }
     }),
-    newProcessorSpec({
+    makeProcessorSpec({
       name: "gen-spread",
       description: "Generates spread images (variations) for the character",
       arguments: { mainImage: { type: "image[]" } },
@@ -146,7 +146,7 @@ const foundrySpec = newFoundrySpec({
         return { spreadImages: variations };
       }
     }),
-    newSwitcherSpec({
+    makeSwitcherSpec({
       name: "check-validity",
       description: "Validates generated images for inappropriate content. If invalid, loops back to planning.",
       arguments: { images: { type: "image[]" } },
@@ -170,7 +170,7 @@ const foundrySpec = newFoundrySpec({
         ];
       }
     }),
-    newPackerSpec({
+    makePackerSpec({
       mainImage: { type: "image[]" },
       spreadImages: { type: "image[]" },
       designPlan: { type: "string" }
@@ -241,10 +241,10 @@ if (result.isOk()) {
 
 ### FoundrySpec
 
-Created using `newFoundrySpec`:
+Created using `makeFoundrySpec`:
 
 ```typescript
-const spec = newFoundrySpec({
+const spec = makeFoundrySpec({
   apiKey: string;                              // LLM API key
   description: string;                         // What this foundry does
   maxOperationLimit?: number;                  // Max operations (default: 10)
@@ -254,10 +254,10 @@ const spec = newFoundrySpec({
 
 ### ProcessorSpec
 
-Processors transform data and return outputs. Created using `newProcessorSpec`:
+Processors transform data and return outputs. Created using `makeProcessorSpec`:
 
 ```typescript
-newProcessorSpec({
+makeProcessorSpec({
   name: string;                    // Opcode identifier (kebab-case)
   description: string;             // What this processor does (shown to AI)
   arguments?: {                    // Input parameters (optional)
@@ -274,7 +274,7 @@ newProcessorSpec({
 **Example:**
 
 ```typescript
-newProcessorSpec({
+makeProcessorSpec({
   name: "summarize-text",
   description: "Summarizes long text into a brief summary",
   arguments: { text: { type: "string" } },
@@ -289,10 +289,10 @@ newProcessorSpec({
 
 ### SwitcherSpec
 
-Switchers evaluate conditions and can branch execution flow. Created using `newSwitcherSpec`:
+Switchers evaluate conditions and can branch execution flow. Created using `makeSwitcherSpec`:
 
 ```typescript
-newSwitcherSpec({
+makeSwitcherSpec({
   name: string;
   description: string;
   arguments?: {                    // Input parameters (optional)
@@ -313,7 +313,7 @@ newSwitcherSpec({
 **Example:**
 
 ```typescript
-newSwitcherSpec({
+makeSwitcherSpec({
   name: "is-spam",
   description: "Checks if text is spam. If spam, filter it out.",
   arguments: { text: { type: "string" } },
@@ -335,10 +335,10 @@ newSwitcherSpec({
 
 ### PackerSpec
 
-Packers define the expected output fields and their types for egress operations. Created using `newPackerSpec`:
+Packers define the expected output fields and their types for egress operations. Created using `makePackerSpec`:
 
 ```typescript
-newPackerSpec({
+makePackerSpec({
   [outputName: string]: VirtualTypeSpec;
 })
 ```
@@ -346,7 +346,7 @@ newPackerSpec({
 **Example:**
 
 ```typescript
-newPackerSpec({
+makePackerSpec({
   finalReport: { type: "string" },
   summary: { type: "string" }
 })
@@ -421,7 +421,7 @@ fn: async (medium) => {
 Switchers enable validation loops where the AI can retry operations:
 
 ```typescript
-newSwitcherSpec({
+makeSwitcherSpec({
   name: "check-quality",
   description: "Validates output quality. If poor quality, loops back to regenerate.",
   arguments: { output: { type: "string" } },
@@ -461,7 +461,7 @@ const result = await runFoundry(foundrySpec)({
 Control how many operations can execute (prevents infinite loops):
 
 ```typescript
-const foundrySpec = newFoundrySpec({
+const foundrySpec = makeFoundrySpec({
   apiKey: "...",
   description: "...",
   maxOperationLimit: 20,  // Allow up to 20 operations
@@ -474,7 +474,7 @@ const foundrySpec = newFoundrySpec({
 Use standard TypeScript type guards for robust parameter validation:
 
 ```typescript
-newProcessorSpec({
+makeProcessorSpec({
   name: "process-data",
   description: "Processes various data types",
   returns: { result: { type: "string" } },
@@ -601,14 +601,14 @@ The AI uses descriptions to understand what operations do:
 
 ```typescript
 // ✅ Good - Clear and specific
-newSwitcherSpec({
+makeSwitcherSpec({
   name: "check-validity",
   description: "Validates images for inappropriate content using content moderation API. If invalid, return feedback for regeneration.",
   // ...
 })
 
 // ❌ Bad - Vague
-newSwitcherSpec({
+makeSwitcherSpec({
   name: "check",
   description: "Checks stuff",
   // ...

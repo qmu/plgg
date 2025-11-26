@@ -126,7 +126,7 @@ export const processorCastable: Castable<
  * Creates a ProcessorSpec with strict type checking on return type.
  * The process function must return keys matching the returns field.
  */
-export const newProcessorSpec = <
+export const makeProcessorSpec = <
   const R extends Dict<
     VariableName,
     VirtualTypeSpec

@@ -84,7 +84,7 @@ test("Variant1", async () => {
       radius: number;
     }
   >;
-  const circle = pattern("Circle" as const);
+  const circle$ = pattern("Circle" as const);
 
   type Square = Box<
     "Square",
@@ -92,7 +92,7 @@ test("Variant1", async () => {
       side: number;
     }
   >;
-  const square = pattern("Square" as const);
+  const square$ = pattern("Square" as const);
 
   type Triangle = Box<
     "Triangle",
@@ -101,19 +101,19 @@ test("Variant1", async () => {
       height: number;
     }
   >;
-  const triangle = pattern("Triangle" as const);
-  const newTriangle = box("Triangle");
+  const triangle$ = pattern("Triangle" as const);
+  const triangle = box("Triangle");
   type Shape = Circle | Square | Triangle;
 
   const fn = (a: Shape) =>
     match(
       a,
-      [circle(), () => "a"],
-      [square(), () => "b"],
-      [triangle(), () => "c"],
+      [circle$(), () => "a"],
+      [square$(), () => "b"],
+      [triangle$(), () => "c"],
     );
 
-  const realTriangle = newTriangle({
+  const realTriangle = triangle({
     base: 1,
     height: 4,
   });
@@ -126,21 +126,21 @@ test("Variant2", async () => {
     children?: ReadonlyArray<AST>;
   };
   type AST = Box<"AST", ast>;
-  const ast = pattern("AST");
-  const newAST = box("AST");
+  const ast$ = pattern("AST");
+  const ast = box("AST");
 
   const fn = (a: AST) =>
     match(
       a,
-      [ast({ type: "root" }), () => "root"],
-      [ast({ type: "leaf" }), () => "leaf"],
-      [ast({ type: "branch" }), () => "branch"],
+      [ast$({ type: "root" }), () => "root"],
+      [ast$({ type: "leaf" }), () => "leaf"],
+      [ast$({ type: "branch" }), () => "branch"],
       [otherwise, () => "default"],
     );
 
-  const realAst = newAST({
+  const realAst = ast({
     type: "branch" as const,
-    children: [newAST({ type: "leaf" as const })],
+    children: [ast({ type: "leaf" as const })],
   });
 
   expect(fn(realAst)).equal("branch");

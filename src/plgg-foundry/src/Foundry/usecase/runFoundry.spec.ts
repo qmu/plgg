@@ -2,7 +2,7 @@ import { test, assert } from "vitest";
 import { pipe, isErr, isOk } from "plgg";
 import { FoundrySpec } from "plgg-foundry/index";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
-import { newTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("Run Character Image Generation", async () => {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -14,7 +14,7 @@ test.skip("Run Character Image Generation", async () => {
   }
 
   const spec: FoundrySpec =
-    newTestFoundrySpec(apiKey);
+    makeTestFoundrySpec(apiKey);
 
   const result = await pipe(
     {

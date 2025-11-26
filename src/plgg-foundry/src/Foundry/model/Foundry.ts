@@ -47,7 +47,7 @@ export type FoundrySpec = Box<
 /**
  * Creates a new FoundrySpec with type-safe content.
  */
-export const newFoundrySpec = (
+export const makeFoundrySpec = (
   content: FoundrySpec["content"],
 ): FoundrySpec =>
   box("FoundrySpec")<FoundrySpec["content"]>(

@@ -73,7 +73,7 @@ export const packerCastable: Castable<
 /**
  * Creates a new PackerSpec with type-safe content.
  */
-export const newPackerSpec = (
+export const makePackerSpec = (
   spec: PackerSpec["content"],
 ): PackerSpec =>
   box("PackerSpec")<PackerSpec["content"]>(spec);

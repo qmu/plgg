@@ -6,12 +6,11 @@ import {
   asFoundry,
 } from "plgg-foundry/index";
 import { operate } from "plgg-foundry/Foundry/usecase";
-import { newTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("OperationContext: assemble -> operate with example blueprint", async () => {
-  const specArg: FoundrySpec = newTestFoundrySpec(
-    "no api key needed",
-  );
+  const specArg: FoundrySpec =
+    makeTestFoundrySpec("no api key needed");
 
   const maybeAlignment = asAlignment({
     userRequestAnalysis:

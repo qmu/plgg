@@ -3,10 +3,10 @@ import { isOk, isErr, filter, pipe } from "plgg";
 import {
   FoundrySpec,
   asFoundry,
-  newFoundrySpec,
-  newProcessorSpec,
-  newSwitcherSpec,
-  newPackerSpec,
+  makeFoundrySpec,
+  makeProcessorSpec,
+  makeSwitcherSpec,
+  makePackerSpec,
   isProcessor,
   isSwitcher,
 } from "plgg-foundry/index";
@@ -16,11 +16,11 @@ import {
  */
 test("asFoundrySpec validation - valid foundry", () => {
   const validFoundry: FoundrySpec =
-    newFoundrySpec({
+    makeFoundrySpec({
       apiKey: "test-api-key",
       description: "Test foundry description",
       apparatuses: [
-        newProcessorSpec({
+        makeProcessorSpec({
           name: "test-processor",
           description: "A test processor",
           arguments: {
@@ -33,7 +33,7 @@ test("asFoundrySpec validation - valid foundry", () => {
             result: "test-result",
           }),
         }),
-        newSwitcherSpec({
+        makeSwitcherSpec({
           name: "test-switcher",
           description: "A test switcher",
           arguments: {
@@ -52,7 +52,7 @@ test("asFoundrySpec validation - valid foundry", () => {
             },
           ],
         }),
-        newPackerSpec({
+        makePackerSpec({
           result: { type: "string" },
         }),
       ],
@@ -84,11 +84,13 @@ test("asFoundrySpec validation - valid foundry", () => {
  * Tests asFoundrySpec validation with empty apparatuses array.
  */
 test("asFoundrySpec validation - empty apparatuses", () => {
-  const foundryArg: FoundrySpec = newFoundrySpec({
-    apiKey: "test-api-key",
-    description: "Empty foundry",
-    apparatuses: [],
-  });
+  const foundryArg: FoundrySpec = makeFoundrySpec(
+    {
+      apiKey: "test-api-key",
+      description: "Empty foundry",
+      apparatuses: [],
+    },
+  );
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));
@@ -101,74 +103,76 @@ test("asFoundrySpec validation - empty apparatuses", () => {
  * Tests asFoundrySpec validation with multiple processors and switchers.
  */
 test("asFoundrySpec validation - multiple apparatuses", () => {
-  const foundryArg: FoundrySpec = newFoundrySpec({
-    apiKey: "test-api-key",
-    description: "Multi-component foundry",
-    apparatuses: [
-      newProcessorSpec({
-        name: "processor-1",
-        description: "First processor",
-        arguments: {
-          arg: { type: "string" },
-        },
-        returns: {
-          result: { type: "number" },
-        },
-        fn: async () => ({
-          result: 1,
-        }),
-      }),
-      newProcessorSpec({
-        name: "processor-2",
-        description: "Second processor",
-        arguments: {
-          arg: { type: "number" },
-        },
-        returns: {
-          result: { type: "string" },
-        },
-        fn: async () => ({
-          result: "result",
-        }),
-      }),
-      newSwitcherSpec({
-        name: "switcher-1",
-        description: "First switcher",
-        arguments: {
-          arg: { type: "string" },
-        },
-        returnsWhenTrue: {
-          result: { type: "string" },
-        },
-        returnsWhenFalse: {
-          error: { type: "error" },
-        },
-        fn: async () => [
-          true,
-          {
-            result: "test-result",
+  const foundryArg: FoundrySpec = makeFoundrySpec(
+    {
+      apiKey: "test-api-key",
+      description: "Multi-component foundry",
+      apparatuses: [
+        makeProcessorSpec({
+          name: "processor-1",
+          description: "First processor",
+          arguments: {
+            arg: { type: "string" },
           },
-        ],
-      }),
-      newSwitcherSpec({
-        name: "switcher-2",
-        description: "Second switcher",
-        arguments: {
-          value: { type: "number" },
-        },
-        returnsWhenTrue: {
-          result: { type: "number" },
-        },
-        returnsWhenFalse: {
-          error: { type: "error" },
-        },
-        fn: async () => [
-          false,
-          { error: "error" },
-        ],
-      }),
-    ],
-  });
+          returns: {
+            result: { type: "number" },
+          },
+          fn: async () => ({
+            result: 1,
+          }),
+        }),
+        makeProcessorSpec({
+          name: "processor-2",
+          description: "Second processor",
+          arguments: {
+            arg: { type: "number" },
+          },
+          returns: {
+            result: { type: "string" },
+          },
+          fn: async () => ({
+            result: "result",
+          }),
+        }),
+        makeSwitcherSpec({
+          name: "switcher-1",
+          description: "First switcher",
+          arguments: {
+            arg: { type: "string" },
+          },
+          returnsWhenTrue: {
+            result: { type: "string" },
+          },
+          returnsWhenFalse: {
+            error: { type: "error" },
+          },
+          fn: async () => [
+            true,
+            {
+              result: "test-result",
+            },
+          ],
+        }),
+        makeSwitcherSpec({
+          name: "switcher-2",
+          description: "Second switcher",
+          arguments: {
+            value: { type: "number" },
+          },
+          returnsWhenTrue: {
+            result: { type: "number" },
+          },
+          returnsWhenFalse: {
+            error: { type: "error" },
+          },
+          fn: async () => [
+            false,
+            { error: "error" },
+          ],
+        }),
+      ],
+    },
+  );
 
   const result = asFoundry(foundryArg);
   assert(isOk(result));

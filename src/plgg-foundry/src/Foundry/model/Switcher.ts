@@ -141,7 +141,7 @@ export const switcherCastable: Castable<
  * Creates a SwitcherSpec with strict type checking on return types.
  * The check function must return keys matching the returnsWhenTrue and returnsWhenFalse fields.
  */
-export const newSwitcherSpec = <
+export const makeSwitcherSpec = <
   const RT extends Dict<
     VariableName,
     VirtualTypeSpec
