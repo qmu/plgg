@@ -27,10 +27,11 @@ You'll also need an OpenAI API key with access to structured outputs.
 
 ```typescript
 import { runFoundry, makeFoundrySpec, makeProcessorSpec, makePackerSpec } from "plgg-foundry";
+import { openai } from "plgg-kit";
+import { env, proc, isOk } from "plgg";
 
 // 1. Define your foundry
-const foundrySpec = makeFoundrySpec({
-  apiKey: process.env.OPENAI_API_KEY,
+const spec = makeFoundrySpec({
   description: "A text processing foundry",
   apparatuses: [
     makeProcessorSpec({
@@ -50,12 +51,18 @@ const foundrySpec = makeFoundrySpec({
   ]
 });
 
-// 2. Run the workflow
-const result = await runFoundry(foundrySpec)({
-  prompt: "Analyze the sentiment of 'I love this!'"
-});
+// 2. Run the workflow with env for safe API key access
+const result = await proc(
+  env("OPENAI_API_KEY"),
+  (apiKey) => {
+    const provider = openai({ apiKey, modelName: "gpt-4o" });
+    return runFoundry({ spec, provider })({
+      prompt: "Analyze the sentiment of 'I love this!'"
+    });
+  }
+);
 
-if (result.isOk()) {
+if (isOk(result)) {
   console.log(result.content.params);
 }
 ```

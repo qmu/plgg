@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - `unbox` function and `Unbox` type for recursive nested Box content extraction
+- `env` function for safe environment variable access (returns Result, safe for client-side)
+- `UnwrapProcedural` type to auto-extract Result content in proc chain
 - `Dict` type alias and casting functions in Conjunctives module
 - `flow` function for type-safe function composition in Flowables
 - `tap` function for side effects in Functionals module
@@ -35,8 +37,8 @@ All notable changes to this project will be documented in this file.
 - Move `conclude` function from Vec to idiom module
 - Refactor idiom module to Functionals directory with individual function files
 - Remove type assertion from `asReadonlyArray` function
-- Rename pattern matchers: `ok` to `ok$`, `err` to `err$` (breaking change)
-- Rename box constructors: `newOk` to `ok`, `newErr` to `err` (breaking change)
+- Rename pattern matchers to use `$` suffix: `ok` to `ok$`, `err` to `err$`, `none` to `none$`, `some` to `some$` (breaking change)
+- Rename box constructors: `newOk` to `ok`, `newErr` to `err`, `newBox` to `box`, `newIcon` to `icon`, `newNone` to `none`, `newSome` to `some`, `newUntaggedBox` to `untaggedBox` (breaking change)
 
 ### Fixed
 - Fix `Procedural` type to prevent union type distribution
