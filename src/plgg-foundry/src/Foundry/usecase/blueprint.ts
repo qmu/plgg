@@ -198,7 +198,8 @@ Example with validation (validation passes → continue, validation fails → re
                           "variableName",
                           "address",
                         ],
-                        additionalProperties: false,
+                        additionalProperties:
+                          false,
                       },
                     },
                     output: {
@@ -223,7 +224,8 @@ Example with validation (validation passes → continue, validation fails → re
                           "variableName",
                           "address",
                         ],
-                        additionalProperties: false,
+                        additionalProperties:
+                          false,
                       },
                     },
                     next: {
@@ -281,7 +283,8 @@ Example with validation (validation passes → continue, validation fails → re
                           "variableName",
                           "address",
                         ],
-                        additionalProperties: false,
+                        additionalProperties:
+                          false,
                       },
                     },
                     nextWhenTrue: {
@@ -318,7 +321,8 @@ Example with validation (validation passes → continue, validation fails → re
                           "variableName",
                           "address",
                         ],
-                        additionalProperties: false,
+                        additionalProperties:
+                          false,
                       },
                     },
                     outputWhenFalse: {
@@ -343,7 +347,8 @@ Example with validation (validation passes → continue, validation fails → re
                           "variableName",
                           "address",
                         ],
-                        additionalProperties: false,
+                        additionalProperties:
+                          false,
                       },
                     },
                   },

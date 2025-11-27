@@ -200,6 +200,6 @@ export const extractOpcodes = (
     .filter(filter)
     .filter(
       (item): item is Processor | Switcher =>
-        "name" in item,
+        "name" in item.content,
     )
     .map((item) => item.content.name.content);
