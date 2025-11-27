@@ -79,11 +79,23 @@ export const makePackerSpec = (
   box("PackerSpec")<PackerSpec["content"]>(spec);
 
 /**
+ * Formats entries as multiline YAML-like list.
+ */
+const formatEntries = (
+  entries: ReadonlyArray<[string, VirtualType]>,
+): string =>
+  "\n" +
+  entries
+    .map(
+      ([name, vt]) =>
+        `  - ${formatVirtualType(name, vt)}`,
+    )
+    .join("\n");
+
+/**
  * Generates human-readable markdown description of packer.
  */
 export const explainPacker = (packer: Packer) =>
-  `Outputs: ${Object.entries(packer.content)
-    .map(([name, vt]) =>
-      formatVirtualType(name, vt),
-    )
-    .join(", ")}`;
+  `Outputs: ${formatEntries(
+    Object.entries(packer.content),
+  )}`;

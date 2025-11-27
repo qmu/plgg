@@ -149,6 +149,20 @@ export const makeProcessorSpec = <
   });
 
 /**
+ * Formats entries as multiline YAML-like list.
+ */
+const formatEntries = (
+  entries: ReadonlyArray<[string, VirtualType]>,
+): string =>
+  "\n" +
+  entries
+    .map(
+      ([name, vt]) =>
+        `  - ${formatVirtualType(name, vt)}`,
+    )
+    .join("\n");
+
+/**
  * Generates human-readable markdown description of processor.
  */
 export const explainProcessor = (
@@ -158,19 +172,13 @@ export const explainProcessor = (
 - Opcode: \`${processor.content.name.content}\`
 - Arguments: ${
   isSome(processor.content.arguments)
-    ? Object.entries(
-        processor.content.arguments.content,
+    ? formatEntries(
+        Object.entries(
+          processor.content.arguments.content,
+        ),
       )
-        .map(([name, vt]) =>
-          formatVirtualType(name, vt),
-        )
-        .join(", ")
     : "Any"
 }
-- Returns: ${Object.entries(
-  processor.content.returns,
-)
-  .map(([name, vt]) =>
-    formatVirtualType(name, vt),
-  )
-  .join(", ")}`;
+- Returns: ${formatEntries(
+  Object.entries(processor.content.returns),
+)}`;

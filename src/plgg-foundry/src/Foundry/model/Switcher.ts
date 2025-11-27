@@ -189,6 +189,20 @@ export const makeSwitcherSpec = <
   );
 
 /**
+ * Formats entries as multiline YAML-like list.
+ */
+const formatEntries = (
+  entries: ReadonlyArray<[string, VirtualType]>,
+): string =>
+  "\n" +
+  entries
+    .map(
+      ([name, vt]) =>
+        `  - ${formatVirtualType(name, vt)}`,
+    )
+    .join("\n");
+
+/**
  * Generates human-readable markdown description of switcher.
  */
 export const explainSwitcher = (
@@ -199,26 +213,16 @@ export const explainSwitcher = (
 - Opcode: \`${switcher.content.name.content}\`
 - Arguments: ${
     isSome(switcher.content.arguments)
-      ? Object.entries(
-          switcher.content.arguments.content,
+      ? formatEntries(
+          Object.entries(
+            switcher.content.arguments.content,
+          ),
         )
-          .map(([name, vt]) =>
-            formatVirtualType(name, vt),
-          )
-          .join(", ")
       : "Any"
   }
-- Returns When True: ${Object.entries(
-    switcher.content.returnsWhenTrue,
-  )
-    .map(([name, vt]) =>
-      formatVirtualType(name, vt),
-    )
-    .join(", ")}
-- Returns When False: ${Object.entries(
-    switcher.content.returnsWhenFalse,
-  )
-    .map(([name, vt]) =>
-      formatVirtualType(name, vt),
-    )
-    .join(", ")}`;
+- Returns When True: ${formatEntries(
+    Object.entries(switcher.content.returnsWhenTrue),
+  )}
+- Returns When False: ${formatEntries(
+    Object.entries(switcher.content.returnsWhenFalse),
+  )}`;
