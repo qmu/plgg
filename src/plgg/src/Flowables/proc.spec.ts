@@ -193,3 +193,27 @@ test("proc handles thrown non-Error values", async () => {
     "Unknown error in proc",
   );
 });
+
+test("proc unwraps initial Result value at runtime", async () => {
+  // When initial value is already a Result, it should be unwrapped
+  const initialResult = ok("hello");
+  const toUpper = (s: string) => s.toUpperCase();
+
+  const result = await proc(initialResult, toUpper);
+
+  assert(isOk(result));
+  expect(result.content).toBe("HELLO");
+});
+
+test("proc short-circuits on initial Err value", async () => {
+  // When initial value is an Err, it should short-circuit
+  const initialErr = err(
+    new InvalidError({ message: "Initial error" }),
+  );
+  const neverCalled = (_: string) => "should not run";
+
+  const result = await proc(initialErr, neverCalled);
+
+  assert(isErr(result));
+  expect(result.content.message).toBe("Initial error");
+});

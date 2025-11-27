@@ -926,6 +926,11 @@ export async function proc(
   value: unknown,
   ...fns: ReadonlyArray<ChainFn>
 ): Promise<Result<unknown, unknown>> {
+  // If initial value is already a Result, use it directly
+  // Otherwise wrap it in Ok
+  const initialValue = isResult(value)
+    ? value
+    : ok(value);
   const result = await fns.reduce(
     async (
       acc: Procedural<unknown>,
@@ -956,7 +961,7 @@ export async function proc(
               );
       }
     },
-    Promise.resolve(ok(value)),
+    Promise.resolve(initialValue),
   );
   if (isResult(result)) {
     return result;
