@@ -1,5 +1,5 @@
 import { test, assert } from "vitest";
-import { isOk, proc } from "plgg";
+import { isOk, proc, env } from "plgg";
 import { openai } from "plgg-kit";
 import {
   asFoundry,
@@ -9,39 +9,38 @@ import { blueprint } from "plgg-foundry/Foundry/usecase";
 import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("Blueprint generation with test foundry", async () => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    console.log(
-      "Skipping blueprint test (OPENAI_API_KEY not set)",
-    );
-    return;
-  }
-
-  const provider = openai({
-    apiKey,
-    modelName: "gpt-5.1",
-  });
-
-  const spec = makeTestFoundrySpec();
-
-  const orderSpec = {
-    prompt: "Create a fantasy warrior character",
-  };
-
   const result = await proc(
-    { provider, spec },
-    asFoundry,
-    (foundry) =>
+    env("OPENAI_API_KEY"),
+    (apiKey) =>
       proc(
-        orderSpec,
-        asOrder,
-        blueprint(foundry),
+        openai({
+          apiKey,
+          modelName: "gpt-5.1",
+        }),
+        (provider) =>
+          proc(
+            {
+              provider,
+              spec: makeTestFoundrySpec(),
+            },
+            asFoundry,
+            (foundry) =>
+              proc(
+                {
+                  prompt:
+                    "Create a fantasy warrior character",
+                },
+                asOrder,
+                blueprint(foundry),
+              ),
+          ),
       ),
   );
+
   assert(
     isOk(result),
     "Blueprint should generate valid alignment",
   );
 
-  console.log(result.content);
+  console.log(result.content.operations);
 }, 30000);

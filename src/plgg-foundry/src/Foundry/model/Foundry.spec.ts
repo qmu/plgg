@@ -284,21 +284,33 @@ test("explainFoundry with makeTestFoundrySpec", () => {
   );
 
   // Check processors section
-  expect(explanation).toContain("## 2. Processors");
+  expect(explanation).toContain(
+    "## 2. Processors",
+  );
   expect(explanation).toContain("### 2-1. plan");
-  expect(explanation).toContain("### 2-2. analyze");
-  expect(explanation).toContain("### 2-3. gen-main");
-  expect(explanation).toContain("### 2-4. gen-spread");
+  expect(explanation).toContain(
+    "### 2-2. analyze",
+  );
+  expect(explanation).toContain(
+    "### 2-3. gen-main",
+  );
+  expect(explanation).toContain(
+    "### 2-4. gen-spread",
+  );
 
   // Check switchers section
-  expect(explanation).toContain("## 3. Switchers");
+  expect(explanation).toContain(
+    "## 3. Switchers",
+  );
   expect(explanation).toContain(
     "### 3-1. check-validity",
   );
 
   // Check packers section
   expect(explanation).toContain("## 4. Packers");
-  expect(explanation).toContain("### 4-1. Packer 1");
+  expect(explanation).toContain(
+    "### 4-1. Packer 1",
+  );
 
   // Check apparatus details are included
   expect(explanation).toContain(
