@@ -1,5 +1,5 @@
 import { test, assert, expect } from "vitest";
-import { isOk, proc, env } from "plgg";
+import { isOk, proc, env, bind } from "plgg";
 import { openai } from "plgg-kit";
 import {
   asFoundry,
@@ -19,31 +19,36 @@ const makeTestProvider = () =>
 
 test.skip("Blueprint generation with test foundry", async () => {
   const result = await proc(
-    env("OPENAI_API_KEY"),
-    (apiKey) =>
-      proc(
-        openai({
-          apiKey,
-          modelName: "gpt-5.1",
-        }),
-        (provider) =>
-          proc(
-            {
-              provider,
-              spec: makeTestFoundrySpec(),
-            },
-            asFoundry,
-            (foundry) =>
-              proc(
-                {
-                  prompt:
-                    "Create a fantasy warrior character",
-                },
-                asOrder,
-                blueprint(foundry),
-              ),
-          ),
-      ),
+    {},
+    bind(
+      ["apiKey", () => env("OPENAI_API_KEY")],
+      [
+        "provider",
+        ({ apiKey }) =>
+          openai({
+            apiKey,
+            modelName: "gpt-5.1",
+          }),
+      ],
+      [
+        "foundry",
+        ({ provider }) =>
+          asFoundry({
+            provider,
+            spec: makeTestFoundrySpec(),
+          }),
+      ],
+      [
+        "order",
+        () =>
+          asOrder({
+            prompt:
+              "Create a fantasy warrior character",
+          }),
+      ],
+    ),
+    ({ foundry, order }) =>
+      blueprint(foundry)(order),
   );
 
   assert(
