@@ -32,7 +32,7 @@ const asConfig = (v: unknown) =>
 // -------------
 
 export type OpenAI = Box<'OpenAI', Config>;
-export const patternOpenAI = pattern('OpenAI');
+export const openAI$ = pattern('OpenAI');
 export const asOpenAI = (v: unknown) =>
   cast(v, asBox, forContent('OpenAI', asConfig));
 export const openai = (config: Config): OpenAI =>
@@ -41,8 +41,7 @@ export const openai = (config: Config): OpenAI =>
 // -------------
 
 export type Anthropic = Box<'Anthropic', Config>;
-export const patternAnthropic =
-  pattern('Anthropic');
+export const anthropic$ = pattern('Anthropic');
 export const asAnthropic = (v: unknown) =>
   cast(
     v,
@@ -56,7 +55,7 @@ export const anthropic = (
 // -------------
 
 export type Google = Box<'Google', Config>;
-export const patternGoogle = pattern('Google');
+export const google$ = pattern('Google');
 export const asGoogle = (v: unknown) =>
   cast(v, asBox, forContent('Google', asConfig));
 export const google = (config: Config): Google =>

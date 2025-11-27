@@ -1,13 +1,18 @@
-import { PromisedResult, match, Datum } from "plgg";
+import {
+  PromisedResult,
+  Datum,
+  match,
+  unbox,
+} from 'plgg';
 import {
   Provider,
-  patternOpenAI,
-  patternAnthropic,
-  patternGoogle,
-} from "plgg-kit/LLMs/model";
-import { reqObjectGPT } from "plgg-kit/LLMs/vendor/OpenAI";
-import { reqObjectClaude } from "plgg-kit/LLMs/vendor/Anthropic";
-import { reqObjectGemini } from "plgg-kit/LLMs/vendor/Google";
+  openAI$,
+  anthropic$,
+  google$,
+} from 'plgg-kit/LLMs/model';
+import { reqObjectGPT } from 'plgg-kit/LLMs/vendor/OpenAI';
+import { reqObjectClaude } from 'plgg-kit/LLMs/vendor/Anthropic';
+import { reqObjectGemini } from 'plgg-kit/LLMs/vendor/Google';
 
 export const generateObject = ({
   provider,
@@ -23,36 +28,36 @@ export const generateObject = ({
   match(
     provider,
     [
-      patternOpenAI(),
+      openAI$(),
       () =>
         reqObjectGPT({
-          apiKey: provider.content.apiKey,
-          model: provider.content.modelName,
-          instructions: systemPrompt || "",
+          apiKey: unbox(provider).apiKey,
+          model: unbox(provider).modelName,
+          instructions: systemPrompt || '',
           input: userPrompt,
           schema,
         }),
     ],
     [
-      patternAnthropic(),
+      anthropic$(),
       () =>
         reqObjectClaude({
-          apiKey: provider.content.apiKey,
-          model: provider.content.modelName,
-          instructions: systemPrompt || "",
+          apiKey: unbox(provider).apiKey,
+          model: unbox(provider).modelName,
+          instructions: systemPrompt || '',
           input: userPrompt,
           schema,
         }),
     ],
     [
-      patternGoogle(),
+      google$(),
       () =>
         reqObjectGemini({
-          apiKey: provider.content.apiKey,
-          model: provider.content.modelName,
-          instructions: systemPrompt || "",
+          apiKey: unbox(provider).apiKey,
+          model: unbox(provider).modelName,
+          instructions: systemPrompt || '',
           input: userPrompt,
           schema,
         }),
-    ],
+    ]
   );
