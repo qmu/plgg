@@ -6,8 +6,7 @@ import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpe
 
 test.skip("Run Character Image Generation", async () => {
   const result = await proc(
-    "OPENAI_API_KEY",
-    env,
+    env("OPENAI_API_KEY"),
     (apiKey) =>
       proc(
         openai({

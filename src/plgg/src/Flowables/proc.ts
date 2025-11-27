@@ -2,6 +2,8 @@ import {
   Procedural,
   Exception,
   Result,
+  Ok,
+  Err,
   NonNeverFn,
   isOk,
   err,
@@ -11,68 +13,155 @@ import {
 } from "plgg/index";
 
 /**
+ * Extracts the success type from a Procedural return type.
+ * Handles: T, Result<T, E>, Promise<T>, Promise<Result<T, E>>
+ */
+type UnwrapProcedural<T> =
+  T extends Promise<infer U>
+    ? UnwrapProcedural<U>
+    : T extends Ok<infer V>
+      ? V
+      : T extends Err<unknown>
+        ? never
+        : T extends Result<infer V, unknown>
+          ? V
+          : T;
+
+/**
  * Async function composition for Procedural types.
  */
 export function proc<A, B>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-): Promise<Result<B, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+): Promise<Result<UnwrapProcedural<B>, Error>>;
 export function proc<A, B, C>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-): Promise<Result<C, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+): Promise<Result<UnwrapProcedural<C>, Error>>;
 export function proc<A, B, C, D>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-): Promise<Result<D, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+): Promise<Result<UnwrapProcedural<D>, Error>>;
 export function proc<A, B, C, D, E>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-): Promise<Result<E, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+): Promise<Result<UnwrapProcedural<E>, Error>>;
 export function proc<A, B, C, D, E, F>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-): Promise<Result<F, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+): Promise<Result<UnwrapProcedural<F>, Error>>;
 export function proc<A, B, C, D, E, F, G>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-): Promise<Result<G, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+): Promise<Result<UnwrapProcedural<G>, Error>>;
 export function proc<A, B, C, D, E, F, G, H>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-): Promise<Result<H, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+): Promise<Result<UnwrapProcedural<H>, Error>>;
 export function proc<A, B, C, D, E, F, G, H, I>(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-): Promise<Result<I, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+): Promise<Result<UnwrapProcedural<I>, Error>>;
 export function proc<
   A,
   B,
@@ -86,16 +175,34 @@ export function proc<
   J,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-): Promise<Result<J, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+): Promise<Result<UnwrapProcedural<J>, Error>>;
 export function proc<
   A,
   B,
@@ -110,17 +217,37 @@ export function proc<
   K,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-): Promise<Result<K, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+): Promise<Result<UnwrapProcedural<K>, Error>>;
 export function proc<
   A,
   B,
@@ -136,18 +263,40 @@ export function proc<
   L,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-): Promise<Result<L, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+): Promise<Result<UnwrapProcedural<L>, Error>>;
 export function proc<
   A,
   B,
@@ -164,19 +313,43 @@ export function proc<
   M,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-): Promise<Result<M, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+): Promise<Result<UnwrapProcedural<M>, Error>>;
 export function proc<
   A,
   B,
@@ -194,20 +367,46 @@ export function proc<
   N,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-): Promise<Result<N, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+): Promise<Result<UnwrapProcedural<N>, Error>>;
 export function proc<
   A,
   B,
@@ -226,21 +425,49 @@ export function proc<
   O,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-  no: NonNeverFn<(n: N) => Procedural<O>>,
-): Promise<Result<O, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+  no: NonNeverFn<
+    (n: UnwrapProcedural<N>) => Procedural<O>
+  >,
+): Promise<Result<UnwrapProcedural<O>, Error>>;
 export function proc<
   A,
   B,
@@ -260,22 +487,52 @@ export function proc<
   P,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-  no: NonNeverFn<(n: N) => Procedural<O>>,
-  op: NonNeverFn<(o: O) => Procedural<P>>,
-): Promise<Result<P, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+  no: NonNeverFn<
+    (n: UnwrapProcedural<N>) => Procedural<O>
+  >,
+  op: NonNeverFn<
+    (o: UnwrapProcedural<O>) => Procedural<P>
+  >,
+): Promise<Result<UnwrapProcedural<P>, Error>>;
 export function proc<
   A,
   B,
@@ -296,23 +553,55 @@ export function proc<
   Q,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-  no: NonNeverFn<(n: N) => Procedural<O>>,
-  op: NonNeverFn<(o: O) => Procedural<P>>,
-  pq: NonNeverFn<(p: P) => Procedural<Q>>,
-): Promise<Result<Q, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+  no: NonNeverFn<
+    (n: UnwrapProcedural<N>) => Procedural<O>
+  >,
+  op: NonNeverFn<
+    (o: UnwrapProcedural<O>) => Procedural<P>
+  >,
+  pq: NonNeverFn<
+    (p: UnwrapProcedural<P>) => Procedural<Q>
+  >,
+): Promise<Result<UnwrapProcedural<Q>, Error>>;
 export function proc<
   A,
   B,
@@ -334,24 +623,58 @@ export function proc<
   R,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-  no: NonNeverFn<(n: N) => Procedural<O>>,
-  op: NonNeverFn<(o: O) => Procedural<P>>,
-  pq: NonNeverFn<(p: P) => Procedural<Q>>,
-  qr: NonNeverFn<(q: Q) => Procedural<R>>,
-): Promise<Result<R, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+  no: NonNeverFn<
+    (n: UnwrapProcedural<N>) => Procedural<O>
+  >,
+  op: NonNeverFn<
+    (o: UnwrapProcedural<O>) => Procedural<P>
+  >,
+  pq: NonNeverFn<
+    (p: UnwrapProcedural<P>) => Procedural<Q>
+  >,
+  qr: NonNeverFn<
+    (q: UnwrapProcedural<Q>) => Procedural<R>
+  >,
+): Promise<Result<UnwrapProcedural<R>, Error>>;
 export function proc<
   A,
   B,
@@ -374,25 +697,61 @@ export function proc<
   S,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-  no: NonNeverFn<(n: N) => Procedural<O>>,
-  op: NonNeverFn<(o: O) => Procedural<P>>,
-  pq: NonNeverFn<(p: P) => Procedural<Q>>,
-  qr: NonNeverFn<(q: Q) => Procedural<R>>,
-  rs: NonNeverFn<(r: R) => Procedural<S>>,
-): Promise<Result<S, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+  no: NonNeverFn<
+    (n: UnwrapProcedural<N>) => Procedural<O>
+  >,
+  op: NonNeverFn<
+    (o: UnwrapProcedural<O>) => Procedural<P>
+  >,
+  pq: NonNeverFn<
+    (p: UnwrapProcedural<P>) => Procedural<Q>
+  >,
+  qr: NonNeverFn<
+    (q: UnwrapProcedural<Q>) => Procedural<R>
+  >,
+  rs: NonNeverFn<
+    (r: UnwrapProcedural<R>) => Procedural<S>
+  >,
+): Promise<Result<UnwrapProcedural<S>, Error>>;
 export function proc<
   A,
   B,
@@ -416,26 +775,64 @@ export function proc<
   T,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-  no: NonNeverFn<(n: N) => Procedural<O>>,
-  op: NonNeverFn<(o: O) => Procedural<P>>,
-  pq: NonNeverFn<(p: P) => Procedural<Q>>,
-  qr: NonNeverFn<(q: Q) => Procedural<R>>,
-  rs: NonNeverFn<(r: R) => Procedural<S>>,
-  st: NonNeverFn<(s: S) => Procedural<T>>,
-): Promise<Result<T, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+  no: NonNeverFn<
+    (n: UnwrapProcedural<N>) => Procedural<O>
+  >,
+  op: NonNeverFn<
+    (o: UnwrapProcedural<O>) => Procedural<P>
+  >,
+  pq: NonNeverFn<
+    (p: UnwrapProcedural<P>) => Procedural<Q>
+  >,
+  qr: NonNeverFn<
+    (q: UnwrapProcedural<Q>) => Procedural<R>
+  >,
+  rs: NonNeverFn<
+    (r: UnwrapProcedural<R>) => Procedural<S>
+  >,
+  st: NonNeverFn<
+    (s: UnwrapProcedural<S>) => Procedural<T>
+  >,
+): Promise<Result<UnwrapProcedural<T>, Error>>;
 export function proc<
   A,
   B,
@@ -460,27 +857,67 @@ export function proc<
   U,
 >(
   a: A,
-  ab: NonNeverFn<(a: A) => Procedural<B>>,
-  bc: NonNeverFn<(b: B) => Procedural<C>>,
-  cd: NonNeverFn<(c: C) => Procedural<D>>,
-  de: NonNeverFn<(d: D) => Procedural<E>>,
-  ef: NonNeverFn<(e: E) => Procedural<F>>,
-  fg: NonNeverFn<(f: F) => Procedural<G>>,
-  gh: NonNeverFn<(g: G) => Procedural<H>>,
-  hi: NonNeverFn<(h: H) => Procedural<I>>,
-  ij: NonNeverFn<(i: I) => Procedural<J>>,
-  jk: NonNeverFn<(j: J) => Procedural<K>>,
-  kl: NonNeverFn<(k: K) => Procedural<L>>,
-  lm: NonNeverFn<(l: L) => Procedural<M>>,
-  mn: NonNeverFn<(m: M) => Procedural<N>>,
-  no: NonNeverFn<(n: N) => Procedural<O>>,
-  op: NonNeverFn<(o: O) => Procedural<P>>,
-  pq: NonNeverFn<(p: P) => Procedural<Q>>,
-  qr: NonNeverFn<(q: Q) => Procedural<R>>,
-  rs: NonNeverFn<(r: R) => Procedural<S>>,
-  st: NonNeverFn<(s: S) => Procedural<T>>,
-  tu: NonNeverFn<(t: T) => Procedural<U>>,
-): Promise<Result<U, Error>>;
+  ab: NonNeverFn<
+    (a: UnwrapProcedural<A>) => Procedural<B>
+  >,
+  bc: NonNeverFn<
+    (b: UnwrapProcedural<B>) => Procedural<C>
+  >,
+  cd: NonNeverFn<
+    (c: UnwrapProcedural<C>) => Procedural<D>
+  >,
+  de: NonNeverFn<
+    (d: UnwrapProcedural<D>) => Procedural<E>
+  >,
+  ef: NonNeverFn<
+    (e: UnwrapProcedural<E>) => Procedural<F>
+  >,
+  fg: NonNeverFn<
+    (f: UnwrapProcedural<F>) => Procedural<G>
+  >,
+  gh: NonNeverFn<
+    (g: UnwrapProcedural<G>) => Procedural<H>
+  >,
+  hi: NonNeverFn<
+    (h: UnwrapProcedural<H>) => Procedural<I>
+  >,
+  ij: NonNeverFn<
+    (i: UnwrapProcedural<I>) => Procedural<J>
+  >,
+  jk: NonNeverFn<
+    (j: UnwrapProcedural<J>) => Procedural<K>
+  >,
+  kl: NonNeverFn<
+    (k: UnwrapProcedural<K>) => Procedural<L>
+  >,
+  lm: NonNeverFn<
+    (l: UnwrapProcedural<L>) => Procedural<M>
+  >,
+  mn: NonNeverFn<
+    (m: UnwrapProcedural<M>) => Procedural<N>
+  >,
+  no: NonNeverFn<
+    (n: UnwrapProcedural<N>) => Procedural<O>
+  >,
+  op: NonNeverFn<
+    (o: UnwrapProcedural<O>) => Procedural<P>
+  >,
+  pq: NonNeverFn<
+    (p: UnwrapProcedural<P>) => Procedural<Q>
+  >,
+  qr: NonNeverFn<
+    (q: UnwrapProcedural<Q>) => Procedural<R>
+  >,
+  rs: NonNeverFn<
+    (r: UnwrapProcedural<R>) => Procedural<S>
+  >,
+  st: NonNeverFn<
+    (s: UnwrapProcedural<S>) => Procedural<T>
+  >,
+  tu: NonNeverFn<
+    (t: UnwrapProcedural<T>) => Procedural<U>
+  >,
+): Promise<Result<UnwrapProcedural<U>, Error>>;
 
 /**
  * Implementation function that chains Procedural-returning functions.
