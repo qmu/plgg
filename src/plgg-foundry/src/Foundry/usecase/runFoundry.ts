@@ -5,6 +5,7 @@ import {
   asFoundry,
   asOrder,
 } from "plgg-foundry/index";
+import { Provider } from "plgg-kit";
 import {
   blueprint,
   operate,
@@ -20,13 +21,22 @@ import {
  * Returns final medium containing alignment and output parameters.
  */
 export const runFoundry =
-  (foundrySpec: FoundrySpec) =>
+  ({
+    spec,
+    provider,
+  }: {
+    spec: FoundrySpec;
+    provider: Provider;
+  }) =>
   async (orderSpec: OrderSpec) =>
-    proc(foundrySpec, asFoundry, (foundry) =>
-      proc(
-        orderSpec,
-        asOrder,
-        blueprint(foundry),
-        operate(foundry),
-      ),
+    proc(
+      { provider, spec },
+      asFoundry,
+      (foundry) =>
+        proc(
+          orderSpec,
+          asOrder,
+          blueprint(foundry),
+          operate(foundry),
+        ),
     );

@@ -12,6 +12,7 @@ import {
   pipe,
   filter,
 } from "plgg";
+import { Provider } from "plgg-kit";
 import {
   Apparatus,
   ApparatusSpec,
@@ -28,8 +29,8 @@ import {
  * Factory containing available apparatuses (processors, switchers, and packers) for alignment execution.
  */
 export type Foundry = Readonly<{
+  provider: Provider;
   description: Str;
-  apiKey: Str;
   maxOperationLimit: number;
   apparatuses: ReadonlyArray<Apparatus>;
 }>;
@@ -37,7 +38,6 @@ export type Foundry = Readonly<{
 export type FoundrySpec = Box<
   "FoundrySpec",
   Readonly<{
-    apiKey: string;
     description: string;
     maxOperationLimit?: number;
     apparatuses: ReadonlyArray<ApparatusSpec>;
@@ -57,13 +57,19 @@ export const makeFoundrySpec = (
 /**
  * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10.
  */
-export const asFoundry = (spec: FoundrySpec) =>
+export const asFoundry = ({
+  provider,
+  spec,
+}: {
+  provider: Provider;
+  spec: FoundrySpec;
+}) =>
   cast(
     {
+      provider,
       maxOperationLimit: 10,
       ...spec.content,
     },
-    forProp("apiKey", asStr),
     forProp("description", asStr),
     forProp(
       "apparatuses",
@@ -76,7 +82,10 @@ export const asFoundry = (spec: FoundrySpec) =>
  */
 export const foundrySpecCastable: Castable<
   Foundry,
-  FoundrySpec
+  {
+    provider: Provider;
+    spec: FoundrySpec;
+  }
 > = {
   as: asFoundry,
 };

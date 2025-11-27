@@ -1,6 +1,6 @@
 import { test, assert } from "vitest";
 import { pipe, isErr, isOk } from "plgg";
-import { FoundrySpec } from "plgg-foundry/index";
+import { openai } from "plgg-kit";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
@@ -13,15 +13,19 @@ test.skip("Run Character Image Generation", async () => {
     return;
   }
 
-  const spec: FoundrySpec =
-    makeTestFoundrySpec(apiKey);
+  const provider = openai({
+    apiKey,
+    modelName: "gpt-5.1",
+  });
+
+  const spec = makeTestFoundrySpec();
 
   const result = await pipe(
     {
       prompt:
         "A fantasy character with a sword and shield",
     },
-    runFoundry(spec),
+    runFoundry({ provider, spec }),
   );
 
   if (isErr(result)) {

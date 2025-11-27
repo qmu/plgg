@@ -1,5 +1,6 @@
 import { test, assert } from "vitest";
 import { isOk, proc } from "plgg";
+import { openai } from "plgg-kit";
 import {
   asFoundry,
   asOrder,
@@ -16,13 +17,19 @@ test.skip("Blueprint generation with test foundry", async () => {
     return;
   }
 
+  const provider = openai({
+    apiKey,
+    modelName: "gpt-5.1",
+  });
+
+  const spec = makeTestFoundrySpec();
+
   const orderSpec = {
     prompt: "Create a fantasy warrior character",
   };
 
   const result = await proc(
-    apiKey,
-    makeTestFoundrySpec,
+    { provider, spec },
     asFoundry,
     (foundry) =>
       proc(

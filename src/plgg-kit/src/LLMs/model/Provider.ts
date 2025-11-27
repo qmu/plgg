@@ -15,6 +15,14 @@ export type Provider =
   | Anthropic
   | Google;
 
+//export const asProvider = (v: unknown) =>
+//  cast(
+//    v,
+//    asOpenAI,
+//    orCast(asAnthropic),
+//    orCast(asGoogle)
+//  );
+
 // -------------
 
 type Config = Readonly<{

@@ -10,7 +10,7 @@ import {
   isProcessor,
   isSwitcher,
 } from "plgg-foundry/index";
-import { generateObject, openai } from "plgg-kit";
+import { generateObject } from "plgg-kit";
 
 /**
  * Generates an alignment from user order using AI model based on available foundry functions.
@@ -35,10 +35,7 @@ export const blueprint =
       "egress",
     ];
     const reqArg = {
-      provider: openai({
-        apiKey: foundry.apiKey.content,
-        modelName: "gpt-5.1",
-      }),
+      provider: foundry.provider,
       systemPrompt: `Generate an Alignment to fulfill the user request.
 
 ## Alignment

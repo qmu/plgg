@@ -1,7 +1,7 @@
 import { test, assert, expect } from "vitest";
 import { proc, isErr, isOk } from "plgg";
+import { openai } from "plgg-kit";
 import {
-  FoundrySpec,
   asAlignment,
   asFoundry,
 } from "plgg-foundry/index";
@@ -9,8 +9,11 @@ import { operate } from "plgg-foundry/Foundry/usecase";
 import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("OperationContext: assemble -> operate with example blueprint", async () => {
-  const specArg: FoundrySpec =
-    makeTestFoundrySpec("no api key needed");
+  const provider = openai({
+    apiKey: "no key",
+    modelName: "gpt-5.1",
+  });
+  const spec = makeTestFoundrySpec();
 
   const maybeAlignment = asAlignment({
     userRequestAnalysis:
@@ -69,12 +72,12 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
 
   // Test the flow: assemble -> operate
   const result = await proc(
-    specArg,
+    { provider, spec },
     asFoundry,
-    (foundrySpec) =>
+    (foundry) =>
       proc(
         maybeAlignment.content,
-        operate(foundrySpec),
+        operate(foundry),
       ),
   );
 

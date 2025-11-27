@@ -6,11 +6,8 @@ import {
   makePackerSpec,
 } from "plgg-foundry/index";
 
-export const makeTestFoundrySpec = (
-  apiKey: string,
-) =>
+export const makeTestFoundrySpec = () =>
   makeFoundrySpec({
-    apiKey,
     description:
       "This is a foundry for generating character designs based on text prompts and reference images.",
     apparatuses: [
