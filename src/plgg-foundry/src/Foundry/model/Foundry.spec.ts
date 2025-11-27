@@ -9,7 +9,9 @@ import {
   makePackerSpec,
   isProcessor,
   isSwitcher,
+  explainFoundry,
 } from "plgg-foundry/index";
+import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 const provider = openai({
   apiKey: "no key",
@@ -259,5 +261,59 @@ test("asFoundrySpec validation - apparatuses not array", () => {
   assert(isErr(result));
   expect(result.content.message).toContain(
     "Cast failed",
+  );
+});
+
+/**
+ * Tests explainFoundry generates comprehensive markdown documentation.
+ */
+test("explainFoundry with makeTestFoundrySpec", () => {
+  const spec = makeTestFoundrySpec();
+  const result = asFoundry({ provider, spec });
+  assert(isOk(result));
+  const foundry = result.content;
+
+  const explanation = explainFoundry(foundry);
+
+  // Check foundry description section
+  expect(explanation).toContain(
+    "## 1. Foundry Description",
+  );
+  expect(explanation).toContain(
+    "generating character designs",
+  );
+
+  // Check processors section
+  expect(explanation).toContain("## 2. Processors");
+  expect(explanation).toContain("### 2-1. plan");
+  expect(explanation).toContain("### 2-2. analyze");
+  expect(explanation).toContain("### 2-3. gen-main");
+  expect(explanation).toContain("### 2-4. gen-spread");
+
+  // Check switchers section
+  expect(explanation).toContain("## 3. Switchers");
+  expect(explanation).toContain(
+    "### 3-1. check-validity",
+  );
+
+  // Check packers section
+  expect(explanation).toContain("## 4. Packers");
+  expect(explanation).toContain("### 4-1. Packer 1");
+
+  // Check apparatus details are included
+  expect(explanation).toContain(
+    "Plans the character design",
+  );
+  expect(explanation).toContain(
+    "Analyzes reference images",
+  );
+  expect(explanation).toContain(
+    "Generates the main character image",
+  );
+  expect(explanation).toContain(
+    "Generates spread images",
+  );
+  expect(explanation).toContain(
+    "Checks for inappropriate content",
   );
 });
