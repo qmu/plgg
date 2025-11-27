@@ -1,5 +1,6 @@
 export * from "plgg/Functionals/atIndex";
 export * from "plgg/Functionals/atProp";
+export * from "plgg/Functionals/bind";
 export * from "plgg/Functionals/conclude";
 export * from "plgg/Functionals/debug";
 export * from "plgg/Functionals/defined";
