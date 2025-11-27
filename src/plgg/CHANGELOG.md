@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.0.25] - Unreleased
 
 ### Added
+- `bind` function for monadic context accumulation in proc chains with type-safe tuple syntax (supports 1-5 entries) and proper Result type handling
 - `unbox` function and `Unbox` type for recursive nested Box content extraction
 - `env` function for safe environment variable access (returns Result, safe for client-side)
 - `UnwrapProcedural` type to auto-extract Result content in proc chain

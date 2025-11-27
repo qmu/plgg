@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - `explain` functions for Foundry components (Processor, Switcher, Packer)
 
 ### Changed
+- Refactor Blueprint generation test to use `bind` function for context accumulation
 - Refactor to register machine architecture with address-based storage
 - Change Medium params from array to dictionary structure
 - Refactor Processor and Switcher to use `Dict` for arguments/returns
