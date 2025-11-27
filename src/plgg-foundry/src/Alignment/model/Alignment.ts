@@ -64,11 +64,11 @@ export const findIngressOp = (
   );
 
 /**
- * Finds an internal operation (process or switch) by opcode.
+ * Finds an internal operation (process or switch) by name.
  * Used for control flow navigation between operations.
  */
 export const findInternalOp =
-  (opcode: string) =>
+  (name: string) =>
   (
     alignment: Alignment,
   ): Result<InternalOperation, Error> =>
@@ -77,8 +77,8 @@ export const findInternalOp =
       find<Operation, InternalOperation>({
         predicate: (o): o is InternalOperation =>
           isInternalOperation(o) &&
-          o.opcode === opcode,
-        errMessage: `No operation found for processorName "${opcode}"`,
+          o.name === name,
+        errMessage: `No operation found for name "${name}"`,
       }),
     );
 

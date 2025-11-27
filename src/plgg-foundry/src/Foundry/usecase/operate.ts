@@ -158,7 +158,7 @@ const execSwitch = async ({
   // Step 1: Find the switcher function by opcode
   const switcherResult = findSwitcher(
     foundry,
-    op.opcode,
+    op.action,
   );
   if (!isOk(switcherResult)) {
     return err(switcherResult.content);
@@ -218,8 +218,10 @@ const execSwitch = async ({
     // Map each variable name to its register address
     for (const entry of outputs) {
       const { variableName, address } = entry;
-      const virtualType = returnTypes[variableName];
-      const varValue = returnedValue[variableName];
+      const virtualType =
+        returnTypes[variableName];
+      const varValue =
+        returnedValue[variableName];
       if (
         virtualType &&
         variableName in returnedValue &&
@@ -261,7 +263,7 @@ const execProcess = async ({
   // Step 1: Find the processor function by opcode
   const processorResult = findProcessor(
     foundry,
-    op.opcode,
+    op.action,
   );
   if (!isOk(processorResult)) {
     return err(processorResult.content);
@@ -307,8 +309,10 @@ const execProcess = async ({
     // Map each variable name to its register address
     for (const entry of op.output) {
       const { variableName, address } = entry;
-      const virtualType = returnTypes[variableName];
-      const varValue = returnedValue[variableName];
+      const virtualType =
+        returnTypes[variableName];
+      const varValue =
+        returnedValue[variableName];
       if (
         virtualType &&
         variableName in returnedValue &&

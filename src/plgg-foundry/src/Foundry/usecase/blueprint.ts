@@ -29,11 +29,6 @@ export const blueprint =
       foundry.apparatuses,
       isSwitcher,
     );
-    const allOpcodes = [
-      ...processorOpcodes,
-      ...switcherOpcodes,
-      "egress",
-    ];
     const reqArg = {
       provider: foundry.provider,
       systemPrompt: `Generate an Alignment to fulfill the user request.
@@ -44,8 +39,8 @@ An Alignment is a sequence of operations that processes input data into output d
 
 There are 4 operation types:
 - 'ingress': Assigns input data (prompt and files) to register addresses
-- 'process': Loads data from registers using a name table, processes it with a function, and saves the result to registers using a name table
-- 'switch': Evaluates data from registers using a name table and branches to different operations based on the result, saving outputs using name tables
+- 'process': Has a unique 'name' for control flow references and an 'action' specifying which processor to run. Loads data from registers using a name table, processes it with a function, and saves the result to registers using a name table
+- 'switch': Has a unique 'name' for control flow references and an 'action' specifying which switcher to run. Evaluates data from registers using a name table and branches to different operations based on the result, saving outputs using name tables
 - 'egress': Maps register data to output fields
 
 ## Foundry
@@ -76,17 +71,19 @@ Input/output fields are arrays of NameTableEntry objects with {variableName, add
 - 'output': Array mapping function return value names to register addresses (where to write to)
 - 'outputWhenTrue'/'outputWhenFalse': Arrays mapping switcher return value names to register addresses based on condition
 
-## Reachability Rule
+## Operation Naming and Reachability Rules
 
-Every process/switch operation MUST be reachable via control flow (next, nextWhenTrue, nextWhenFalse). Do NOT create orphan operations that are never referenced.
+1. **Unique Names**: Every process/switch operation MUST have a unique 'name'. No two operations can share the same name.
+2. **No Orphans**: Every process/switch operation MUST be reachable via control flow (next, nextWhenTrue, nextWhenFalse). Do NOT create orphan operations that are never referenced.
+3. **Valid References**: 'next', 'nextWhenTrue', 'nextWhenFalse' MUST reference either an existing operation's 'name' or 'egress' to terminate.
 
 Example without validation:
 \`\`\`json
 {
   "operations": [
-    { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "gen-main" },
-    { "type": "process", "opcode": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" },
+    { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+    { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
+    { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -96,10 +93,10 @@ Example with validation (validation passes → continue, validation fails → re
 \`\`\`json
 {
   "operations": [
-    { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "gen-main" },
-    { "type": "process", "opcode": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "check-validity" },
-    { "type": "switch", "opcode": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] },
+    { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+    { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
+    { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "op-check" },
+    { "type": "switch", "name": "op-check", "action": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "op-plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -142,9 +139,8 @@ Example with validation (validation passes → continue, validation fails → re
                     },
                     next: {
                       type: "string",
-                      enum: allOpcodes,
                       description:
-                        "Opcode of next operation to execute.",
+                        "Name of next operation to execute. Use 'egress' to terminate.",
                     },
                     promptAddr: {
                       type: "string",
@@ -170,11 +166,16 @@ Example with validation (validation passes → continue, validation fails → re
                       description:
                         "Operation type.",
                     },
-                    opcode: {
+                    name: {
+                      type: "string",
+                      description:
+                        "Unique identifier for this operation. MUST be unique across all operations. Referenced by 'next', 'nextWhenTrue', 'nextWhenFalse' in other operations. Use format like 'op-plan', 'op-gen', etc.",
+                    },
+                    action: {
                       type: "string",
                       enum: processorOpcodes,
                       description:
-                        "Processor opcode from Available Foundry Functions.",
+                        "Processor action (opcode) from Available Foundry Functions. Specifies which processor to execute.",
                     },
                     input: {
                       type: "array",
@@ -230,14 +231,14 @@ Example with validation (validation passes → continue, validation fails → re
                     },
                     next: {
                       type: "string",
-                      enum: allOpcodes,
                       description:
-                        "Opcode of next operation to execute.",
+                        "Name of next operation to execute. Use 'egress' to terminate.",
                     },
                   },
                   required: [
                     "type",
-                    "opcode",
+                    "name",
+                    "action",
                     "input",
                     "output",
                     "next",
@@ -255,11 +256,16 @@ Example with validation (validation passes → continue, validation fails → re
                       description:
                         "Operation type.",
                     },
-                    opcode: {
+                    name: {
+                      type: "string",
+                      description:
+                        "Unique identifier for this operation. MUST be unique across all operations. Referenced by 'next', 'nextWhenTrue', 'nextWhenFalse' in other operations. Use format like 'op-check', 'op-validate', etc.",
+                    },
+                    action: {
                       type: "string",
                       enum: switcherOpcodes,
                       description:
-                        "Switcher opcode from Available Foundry Functions.",
+                        "Switcher action (opcode) from Available Foundry Functions. Specifies which switcher to execute.",
                     },
                     input: {
                       type: "array",
@@ -289,15 +295,13 @@ Example with validation (validation passes → continue, validation fails → re
                     },
                     nextWhenTrue: {
                       type: "string",
-                      enum: allOpcodes,
                       description:
-                        "Opcode to execute when condition is true.",
+                        "Name of operation to execute when condition is true. Use 'egress' to terminate.",
                     },
                     nextWhenFalse: {
                       type: "string",
-                      enum: allOpcodes,
                       description:
-                        "Opcode to execute when condition is false.",
+                        "Name of operation to execute when condition is false. Use 'egress' to terminate.",
                     },
                     outputWhenTrue: {
                       type: "array",
@@ -354,7 +358,8 @@ Example with validation (validation passes → continue, validation fails → re
                   },
                   required: [
                     "type",
-                    "opcode",
+                    "name",
+                    "action",
                     "input",
                     "nextWhenTrue",
                     "nextWhenFalse",
@@ -396,7 +401,7 @@ Structure: Start with one 'ingress', end with 'egress'. Ingress first, egress la
 
 Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially for file addresses and operation outputs.
 
-Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference opcodes from other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
+Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference 'name' of other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
 
 Data Flow: NameTableEntry arrays map variable names to register addresses. Input arrays reference previously written registers. Output arrays specify where to write results. Flow: ingress → process/switch (using input/output arrays) → egress.`,
           },
