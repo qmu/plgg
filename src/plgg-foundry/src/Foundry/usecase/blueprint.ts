@@ -69,12 +69,12 @@ Switchers evaluate data and return [boolean, Dict<VariableName, Datum>]. The boo
 
 For validation switchers: TRUE means valid → proceed forward. FALSE means invalid → retry or handle error.
 
-## NameTable Semantics
+## NameTableEntry Array Semantics
 
-NameTables map variable names to register addresses:
-- 'input': Maps function argument names to register addresses (where to read from)
-- 'output': Maps function return value names to register addresses (where to write to)
-- 'outputWhenTrue'/'outputWhenFalse': Maps switcher return value names to register addresses based on condition
+Input/output fields are arrays of NameTableEntry objects with {variableName, address}:
+- 'input': Array mapping function argument names to register addresses (where to read from)
+- 'output': Array mapping function return value names to register addresses (where to write to)
+- 'outputWhenTrue'/'outputWhenFalse': Arrays mapping switcher return value names to register addresses based on condition
 
 ## Reachability Rule
 
@@ -85,8 +85,8 @@ Example without validation:
 {
   "operations": [
     { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "input": {"prompt": "r0"}, "output": {"plan": "r1"}, "next": "gen-main" },
-    { "type": "process", "opcode": "gen-main", "input": {"description": "r1"}, "output": {"image": "r2"}, "next": "egress" },
+    { "type": "process", "opcode": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "gen-main" },
+    { "type": "process", "opcode": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -97,9 +97,9 @@ Example with validation (validation passes → continue, validation fails → re
 {
   "operations": [
     { "type": "ingress", "next": "plan", "promptAddr": "r0" },
-    { "type": "process", "opcode": "plan", "input": {"prompt": "r0"}, "output": {"plan": "r1"}, "next": "gen-main" },
-    { "type": "process", "opcode": "gen-main", "input": {"description": "r1"}, "output": {"image": "r2"}, "next": "check-validity" },
-    { "type": "switch", "opcode": "check-validity", "input": {"images": "r2"}, "nextWhenTrue": "egress", "nextWhenFalse": "plan", "outputWhenTrue": {"validImages": "r2"}, "outputWhenFalse": {"feedback": "r3"} },
+    { "type": "process", "opcode": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "gen-main" },
+    { "type": "process", "opcode": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "check-validity" },
+    { "type": "switch", "opcode": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] },
     { "type": "egress", "result": {"mainImage": "r2"} }
   ]
 }
@@ -177,24 +177,54 @@ Example with validation (validation passes → continue, validation fails → re
                         "Processor opcode from Available Foundry Functions.",
                     },
                     input: {
-                      type: "object",
+                      type: "array",
                       description:
-                        "NameTable mapping processor argument names to register addresses (e.g., {'prompt': 'r0', 'description': 'r1'}). All registers must be previously written. Keys must match processor's argument names.",
-                      properties: {},
-                      additionalProperties: {
-                        type: "string",
+                        "Array of NameTableEntry mapping processor argument names to register addresses (e.g., [{variableName: 'prompt', address: 'r0'}]). All registers must be previously written. variableName must match processor's argument names.",
+                      items: {
+                        type: "object",
+                        properties: {
+                          variableName: {
+                            type: "string",
+                            description:
+                              "Variable name matching processor argument name.",
+                          },
+                          address: {
+                            type: "string",
+                            description:
+                              "Register address (e.g., 'r0', 'r1').",
+                          },
+                        },
+                        required: [
+                          "variableName",
+                          "address",
+                        ],
+                        additionalProperties: false,
                       },
-                      required: [],
                     },
                     output: {
-                      type: "object",
+                      type: "array",
                       description:
-                        "NameTable mapping processor return value names to register addresses (e.g., {'plan': 'r2', 'result': 'r3'}). These registers can be referenced by later operations. Keys must match processor's return value names.",
-                      properties: {},
-                      additionalProperties: {
-                        type: "string",
+                        "Array of NameTableEntry mapping processor return value names to register addresses (e.g., [{variableName: 'plan', address: 'r2'}]). These registers can be referenced by later operations. variableName must match processor's return value names.",
+                      items: {
+                        type: "object",
+                        properties: {
+                          variableName: {
+                            type: "string",
+                            description:
+                              "Variable name matching processor return value name.",
+                          },
+                          address: {
+                            type: "string",
+                            description:
+                              "Register address (e.g., 'r0', 'r1').",
+                          },
+                        },
+                        required: [
+                          "variableName",
+                          "address",
+                        ],
+                        additionalProperties: false,
                       },
-                      required: [],
                     },
                     next: {
                       type: "string",
@@ -230,14 +260,29 @@ Example with validation (validation passes → continue, validation fails → re
                         "Switcher opcode from Available Foundry Functions.",
                     },
                     input: {
-                      type: "object",
+                      type: "array",
                       description:
-                        "NameTable mapping switcher argument names to register addresses (e.g., {'images': 'r2', 'data': 'r3'}). All registers must be previously written. Keys must match switcher's argument names.",
-                      properties: {},
-                      additionalProperties: {
-                        type: "string",
+                        "Array of NameTableEntry mapping switcher argument names to register addresses (e.g., [{variableName: 'images', address: 'r2'}]). All registers must be previously written. variableName must match switcher's argument names.",
+                      items: {
+                        type: "object",
+                        properties: {
+                          variableName: {
+                            type: "string",
+                            description:
+                              "Variable name matching switcher argument name.",
+                          },
+                          address: {
+                            type: "string",
+                            description:
+                              "Register address (e.g., 'r0', 'r1').",
+                          },
+                        },
+                        required: [
+                          "variableName",
+                          "address",
+                        ],
+                        additionalProperties: false,
                       },
-                      required: [],
                     },
                     nextWhenTrue: {
                       type: "string",
@@ -252,24 +297,54 @@ Example with validation (validation passes → continue, validation fails → re
                         "Opcode to execute when condition is false.",
                     },
                     outputWhenTrue: {
-                      type: "object",
+                      type: "array",
                       description:
-                        "NameTable mapping switcher return value names to register addresses when true (e.g., {'validImages': 'r4', 'result': 'r5'}). Keys must match switcher's returnsWhenTrue field names.",
-                      properties: {},
-                      additionalProperties: {
-                        type: "string",
+                        "Array of NameTableEntry mapping switcher return value names to register addresses when true (e.g., [{variableName: 'validImages', address: 'r4'}]). variableName must match switcher's returnsWhenTrue field names.",
+                      items: {
+                        type: "object",
+                        properties: {
+                          variableName: {
+                            type: "string",
+                            description:
+                              "Variable name matching switcher returnsWhenTrue field name.",
+                          },
+                          address: {
+                            type: "string",
+                            description:
+                              "Register address (e.g., 'r0', 'r1').",
+                          },
+                        },
+                        required: [
+                          "variableName",
+                          "address",
+                        ],
+                        additionalProperties: false,
                       },
-                      required: [],
                     },
                     outputWhenFalse: {
-                      type: "object",
+                      type: "array",
                       description:
-                        "NameTable mapping switcher return value names to register addresses when false (e.g., {'feedback': 'r6', 'error': 'r7'}). Keys must match switcher's returnsWhenFalse field names.",
-                      properties: {},
-                      additionalProperties: {
-                        type: "string",
+                        "Array of NameTableEntry mapping switcher return value names to register addresses when false (e.g., [{variableName: 'feedback', address: 'r6'}]). variableName must match switcher's returnsWhenFalse field names.",
+                      items: {
+                        type: "object",
+                        properties: {
+                          variableName: {
+                            type: "string",
+                            description:
+                              "Variable name matching switcher returnsWhenFalse field name.",
+                          },
+                          address: {
+                            type: "string",
+                            description:
+                              "Register address (e.g., 'r0', 'r1').",
+                          },
+                        },
+                        required: [
+                          "variableName",
+                          "address",
+                        ],
+                        additionalProperties: false,
                       },
-                      required: [],
                     },
                   },
                   required: [
@@ -318,7 +393,7 @@ Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Incre
 
 Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference opcodes from other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
 
-Data Flow: NameTables map variable names to register addresses. Input NameTables reference previously written registers. Output NameTables specify where to write results. Flow: ingress → process/switch (using input/output NameTables) → egress.`,
+Data Flow: NameTableEntry arrays map variable names to register addresses. Input arrays reference previously written registers. Output arrays specify where to write results. Flow: ingress → process/switch (using input/output arrays) → egress.`,
           },
         },
         required: [

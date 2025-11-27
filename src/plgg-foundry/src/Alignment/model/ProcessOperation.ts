@@ -1,15 +1,15 @@
 import { Obj, isRawObj, hasProp } from "plgg";
-import { NameTable } from "plgg-foundry/index";
+import { NameTableEntry } from "plgg-foundry/index";
 
 /**
  * Operation that executes a processor function.
- * Loads inputs from registers via input NameTable, executes processor, stores outputs via output NameTable.
+ * Loads inputs from registers via input NameTableEntry array, executes processor, stores outputs via output NameTableEntry array.
  */
 export type ProcessOperation = Obj<{
   type: "process";
   opcode: string;
-  input: NameTable;
-  output: NameTable;
+  input: ReadonlyArray<NameTableEntry>;
+  output: ReadonlyArray<NameTableEntry>;
   next: string;
 }>;
 

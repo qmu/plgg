@@ -11,6 +11,14 @@ export type VariableName = string;
 export type Address = string;
 
 /**
+ * Entry mapping a variable name to a register address.
+ */
+export type NameTableEntry = {
+  variableName: VariableName;
+  address: Address;
+};
+
+/**
  * Maps variable names to register addresses for data flow.
  */
 export type NameTable = Obj<

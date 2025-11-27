@@ -165,10 +165,9 @@ const execSwitch = async ({
   }
   const switcher = switcherResult.content;
 
-  // Step 2: Load input parameters from registers using input NameTable
+  // Step 2: Load input parameters from registers using input NameTableEntry array
   const addrParams = pipe(
-    op.input,
-    Object.values,
+    op.input.map((entry) => entry.address),
     conclude(loadValueFromEnv(env)),
   );
   if (!isOk(addrParams)) {
@@ -204,7 +203,7 @@ const execSwitch = async ({
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
   )(alignment);
 
-  // Step 5: Store returned values in registers using appropriate output NameTable
+  // Step 5: Store returned values in registers using appropriate output NameTableEntry array
   const outputs = isValid
     ? op.outputWhenTrue
     : op.outputWhenFalse;
@@ -217,17 +216,16 @@ const execSwitch = async ({
     {};
   if (isObj(returnedValue)) {
     // Map each variable name to its register address
-    for (const [varName, addr] of Object.entries(
-      outputs,
-    )) {
-      const virtualType = returnTypes[varName];
-      const varValue = returnedValue[varName];
+    for (const entry of outputs) {
+      const { variableName, address } = entry;
+      const virtualType = returnTypes[variableName];
+      const varValue = returnedValue[variableName];
       if (
         virtualType &&
-        varName in returnedValue &&
+        variableName in returnedValue &&
         varValue !== undefined
       ) {
-        newEnvEntries[addr] = {
+        newEnvEntries[address] = {
           type: virtualType,
           value: varValue,
         };
@@ -269,10 +267,9 @@ const execProcess = async ({
     return err(processorResult.content);
   }
 
-  // Step 2: Load input parameters from registers using input NameTable
+  // Step 2: Load input parameters from registers using input NameTableEntry array
   const addrParams = pipe(
-    op.input,
-    Object.values,
+    op.input.map((entry) => entry.address),
     conclude(loadValueFromEnv(env)),
   );
   if (!isOk(addrParams)) {
@@ -300,7 +297,7 @@ const execProcess = async ({
   const returnedValue =
     await processResult.content;
 
-  // Step 4: Store returned values in registers using output NameTable
+  // Step 4: Store returned values in registers using output NameTableEntry array
   const returnTypes =
     processorResult.content.content.returns;
 
@@ -308,17 +305,16 @@ const execProcess = async ({
     {};
   if (isObj(returnedValue)) {
     // Map each variable name to its register address
-    for (const [varName, addr] of Object.entries(
-      op.output,
-    )) {
-      const virtualType = returnTypes[varName];
-      const varValue = returnedValue[varName];
+    for (const entry of op.output) {
+      const { variableName, address } = entry;
+      const virtualType = returnTypes[variableName];
+      const varValue = returnedValue[variableName];
       if (
         virtualType &&
-        varName in returnedValue &&
+        variableName in returnedValue &&
         varValue !== undefined
       ) {
-        newEnvEntries[addr] = {
+        newEnvEntries[address] = {
           type: virtualType,
           value: varValue,
         };
