@@ -4,6 +4,7 @@ import { openai } from "plgg-kit";
 import {
   asAlignment,
   asFoundry,
+  asOrder,
 } from "plgg-foundry/index";
 import { operate } from "plgg-foundry/Foundry/usecase";
 import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
@@ -16,12 +17,8 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
   const spec = makeTestFoundrySpec();
 
   const maybeAlignment = asAlignment({
-    userRequestAnalysis:
+    analysis:
       "User wants a fantasy character image with sword and shield",
-    compositionRationale:
-      "Use plan->generate->validate loop to create character",
-    userRequest:
-      "A fantasy character with a sword and shield",
     ingress: {
       type: "ingress",
       next: "plan",
@@ -104,6 +101,11 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
 
   assert(isOk(maybeAlignment));
 
+  const maybeOrder = asOrder({
+    prompt: "A fantasy character with a sword and shield",
+  });
+  assert(isOk(maybeOrder));
+
   // Test the flow: assemble -> operate
   const result = await proc(
     { provider, spec },
@@ -111,7 +113,7 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
     (foundry) =>
       proc(
         maybeAlignment.content,
-        operate(foundry),
+        operate(foundry)(maybeOrder.content),
       ),
   );
 

@@ -14,6 +14,7 @@ import {
 import {
   Foundry,
   Alignment,
+  Order,
   Medium,
   Param,
   Ingress,
@@ -40,6 +41,7 @@ import {
  */
 export const operate =
   (foundry: Foundry) =>
+  (order: Order) =>
   (
     alignment: Alignment,
   ): PromisedResult<Medium, Error> =>
@@ -49,6 +51,7 @@ export const operate =
       execIngress({
         foundry,
         alignment,
+        order,
         env: {},
         operationCount: 0,
       }),
@@ -103,8 +106,7 @@ const execIngress =
               ...ctx.env,
               [op.promptAddr]: {
                 type: argument,
-                value:
-                  ctx.alignment.userRequest.content,
+                value: ctx.order.prompt.content,
               },
             },
             operationCount: ctx.operationCount + 1,

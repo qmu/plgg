@@ -36,7 +36,11 @@ export const runFoundry =
         proc(
           orderSpec,
           asOrder,
-          blueprint(foundry),
-          operate(foundry),
+          (order) =>
+            proc(
+              order,
+              blueprint(foundry),
+              operate(foundry)(order),
+            ),
         ),
     );

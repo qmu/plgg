@@ -27,9 +27,7 @@ import {
  * Contains analysis, rationale, refined user request, and ordered operations.
  */
 export type Alignment = Obj<{
-  userRequestAnalysis: Str;
-  compositionRationale: Str;
-  userRequest: Str;
+  analysis: Str;
   ingress: Ingress;
   internalOperations: Vec<InternalOperation>;
   egress: Egress;
@@ -42,9 +40,7 @@ export const asAlignment = (value: unknown) =>
   cast(
     value,
     asObj,
-    forProp("userRequestAnalysis", asStr),
-    forProp("compositionRationale", asStr),
-    forProp("userRequest", asStr),
+    forProp("analysis", asStr),
     forProp("ingress", asIngress),
     forProp(
       "internalOperations",

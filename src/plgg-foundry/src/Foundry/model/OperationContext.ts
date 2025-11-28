@@ -1,6 +1,7 @@
 import {
   Foundry,
   Alignment,
+  Order,
   Env,
 } from "plgg-foundry/index";
 
@@ -10,6 +11,7 @@ import {
 export type OperationContext = {
   foundry: Foundry;
   alignment: Alignment;
+  order: Order;
   env: Env;
   operationCount: number;
 };

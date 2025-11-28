@@ -105,22 +105,11 @@ Example with validation (validation passes → continue, validation fails → re
       schema: {
         type: "object",
         properties: {
-          userRequestAnalysis: {
+          analysis: {
             type: "string",
             maxLength: 600,
             description:
               "Analysis of the user request and strategy to fulfill it using available Foundry functions. Use the same language as the user request. Must be under 100 words.",
-          },
-          compositionRationale: {
-            type: "string",
-            maxLength: 400,
-            description:
-              "Rationale for the operation sequence based on the analysis. Use the same language as the user request. Must be under 60 words.",
-          },
-          userRequest: {
-            type: "string",
-            description:
-              "Refined user request based on the analysis.",
           },
           ingress: {
             type: "object",
@@ -399,9 +388,7 @@ Data Flow: NameTableEntry arrays map variable names to register addresses. Input
           },
         },
         required: [
-          "userRequestAnalysis",
-          "compositionRationale",
-          "userRequest",
+          "analysis",
           "ingress",
           "internalOperations",
           "egress",
