@@ -22,50 +22,84 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
       "Use plan->generate->validate loop to create character",
     userRequest:
       "A fantasy character with a sword and shield",
-    operations: [
-      {
-        type: "ingress",
-        next: "plan",
-        promptAddr: "r0",
-      },
+    ingress: {
+      type: "ingress",
+      next: "plan",
+      promptAddr: "r0",
+    },
+    internalOperations: [
       {
         type: "process",
-        opcode: "plan",
+        name: "plan",
+        action: "plan",
+        input: [
+          { variableName: "prompt", address: "r0" },
+        ],
+        output: [
+          { variableName: "plan", address: "r1" },
+        ],
         next: "gen-main",
-        loadAddr: "r0",
-        saveAddr: "r1",
       },
       {
         type: "process",
-        opcode: "gen-main",
+        name: "gen-main",
+        action: "gen-main",
+        input: [
+          {
+            variableName: "description",
+            address: "r1",
+          },
+        ],
+        output: [
+          { variableName: "image", address: "r2" },
+        ],
         next: "check-validity",
-        loadAddr: "r1",
-        saveAddr: "r2",
       },
       {
         type: "switch",
-        opcode: "check-validity",
+        name: "check-validity",
+        action: "check-validity",
+        input: [
+          { variableName: "images", address: "r2" },
+        ],
         nextWhenTrue: "gen-spread",
         nextWhenFalse: "plan",
-        loadAddr: "r2",
-        saveAddrTrue: "r3",
-        saveAddrFalse: "r0",
+        outputWhenTrue: [
+          {
+            variableName: "validImages",
+            address: "r3",
+          },
+        ],
+        outputWhenFalse: [
+          {
+            variableName: "feedback",
+            address: "r0",
+          },
+        ],
       },
       {
         type: "process",
-        opcode: "gen-spread",
+        name: "gen-spread",
+        action: "gen-spread",
+        input: [
+          { variableName: "image", address: "r2" },
+        ],
+        output: [
+          {
+            variableName: "spreadImages",
+            address: "r3",
+          },
+        ],
         next: "egress",
-        loadAddr: "r2",
-        saveAddr: "r3",
-      },
-      {
-        type: "egress",
-        result: {
-          mainImage: "r2",
-          spreadImages: "r3",
-        },
       },
     ],
+    egress: {
+      type: "egress",
+      result: {
+        mainImage: "r2",
+        spreadImages: "r3",
+      },
+    },
   });
 
   assert(isOk(maybeAlignment));

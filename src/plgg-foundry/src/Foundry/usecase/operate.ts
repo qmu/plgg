@@ -20,12 +20,10 @@ import {
   Switch,
   Process,
   Egress,
-  Operation,
+  InternalOperation,
   OperationContext,
   Env,
   Address,
-  isIngress,
-  isEgress,
   isSwitch,
   isProcess,
   findInternalOp,
@@ -48,7 +46,7 @@ export const operate =
     proc(
       alignment,
       findIngressOp,
-      execute({
+      execIngress({
         foundry,
         alignment,
         env: {},
@@ -62,7 +60,7 @@ export const operate =
 const execute =
   (ctx: OperationContext) =>
   async (
-    op: Operation,
+    op: InternalOperation | Egress,
   ): PromisedResult<Medium, Error> => {
     if (
       ctx.operationCount >=
@@ -73,59 +71,46 @@ const execute =
       );
     }
 
-    if (isIngress(op)) {
-      return execIngress({ op, ctx });
-    }
     if (isSwitch(op)) {
       return execSwitch({ op, ctx });
     }
     if (isProcess(op)) {
       return execProcess({ op, ctx });
     }
-    if (isEgress(op)) {
-      return execEgress({ op, ctx });
-    }
-    return err(
-      new Error(
-        `Unknown operation type for operation`,
-      ),
-    );
+    // Must be egress
+    return execEgress({ op, ctx });
   };
 
 /**
  * Executes ingress operation by storing user request in register and proceeding to next operation.
  */
-const execIngress = async ({
-  op,
-  ctx,
-}: {
-  op: Ingress;
-  ctx: OperationContext;
-}): PromisedResult<Medium, Error> =>
-  proc(
-    {
-      name: op.promptAddr,
-      type: "string",
-    },
-    asVirtualType,
-    (argument) =>
-      proc(
-        ctx.alignment,
-        findInternalOp(op.next),
-        execute({
-          ...ctx,
-          env: {
-            ...ctx.env,
-            [op.promptAddr]: {
-              type: argument,
-              value:
-                ctx.alignment.userRequest.content,
+const execIngress =
+  (ctx: OperationContext) =>
+  async (op: Ingress): PromisedResult<Medium, Error> =>
+    proc(
+      {
+        name: op.promptAddr,
+        type: "string",
+      },
+      asVirtualType,
+      (argument) =>
+        proc(
+          ctx.alignment,
+          findInternalOp(op.next),
+          execute({
+            ...ctx,
+            env: {
+              ...ctx.env,
+              [op.promptAddr]: {
+                type: argument,
+                value:
+                  ctx.alignment.userRequest.content,
+              },
             },
-          },
-          operationCount: ctx.operationCount + 1,
-        }),
-      ),
-  );
+            operationCount: ctx.operationCount + 1,
+          }),
+        ),
+    );
 
 /**
  * Loads a param from environment by address.
@@ -327,19 +312,27 @@ const execProcess = async ({
   }
 
   // Step 5: Continue to next operation (either egress or another internal op)
+  const nextCtx = {
+    ...ctx,
+    env: {
+      ...env,
+      ...newEnvEntries,
+    },
+    operationCount: ctx.operationCount + 1,
+  };
+
+  if (op.next === "egress") {
+    return proc(
+      alignment,
+      findEgressOp,
+      execute(nextCtx),
+    );
+  }
+
   return proc(
     alignment,
-    op.next === "egress"
-      ? findEgressOp
-      : findInternalOp(op.next),
-    execute({
-      ...ctx,
-      env: {
-        ...env,
-        ...newEnvEntries,
-      },
-      operationCount: ctx.operationCount + 1,
-    }),
+    findInternalOp(op.next),
+    execute(nextCtx),
   );
 };
 

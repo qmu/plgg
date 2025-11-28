@@ -80,25 +80,25 @@ Input/output fields are arrays of NameTableEntry objects with {variableName, add
 Example without validation:
 \`\`\`json
 {
-  "operations": [
-    { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+  "ingress": { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+  "internalOperations": [
     { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
-    { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" },
-    { "type": "egress", "result": {"mainImage": "r2"} }
-  ]
+    { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
+  ],
+  "egress": { "type": "egress", "result": {"mainImage": "r2"} }
 }
 \`\`\`
 
 Example with validation (validation passes → continue, validation fails → retry):
 \`\`\`json
 {
-  "operations": [
-    { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+  "ingress": { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+  "internalOperations": [
     { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "op-check" },
-    { "type": "switch", "name": "op-check", "action": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "op-plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] },
-    { "type": "egress", "result": {"mainImage": "r2"} }
-  ]
+    { "type": "switch", "name": "op-check", "action": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "op-plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] }
+  ],
+  "egress": { "type": "egress", "result": {"mainImage": "r2"} }
 }
 \`\`\``,
       userPrompt: explainOrder(order),
@@ -122,39 +122,41 @@ Example with validation (validation passes → continue, validation fails → re
             description:
               "Refined user request based on the analysis.",
           },
-          operations: {
+          ingress: {
+            type: "object",
+            description:
+              "Ingress operation - Entry point that assigns input to registers. Must appear exactly once.",
+            properties: {
+              type: {
+                type: "string",
+                const: "ingress",
+                description: "Operation type.",
+              },
+              next: {
+                type: "string",
+                description:
+                  "Name of next operation to execute.",
+              },
+              promptAddr: {
+                type: "string",
+                description:
+                  "Register (e.g., 'r0') storing user prompt. Referenced by subsequent input name tables.",
+              },
+            },
+            required: ["type", "next", "promptAddr"],
+            additionalProperties: false,
+          },
+          internalOperations: {
             type: "array",
+            description: `Internal operations (process and switch) that form the processing pipeline.
+
+Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially for file addresses and operation outputs.
+
+Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference 'name' of other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
+
+Data Flow: NameTableEntry arrays map variable names to register addresses. Input arrays reference previously written registers. Output arrays specify where to write results.`,
             items: {
               anyOf: [
-                {
-                  type: "object",
-                  description:
-                    "Ingress operation - Entry point that assigns input to registers. Must be first and appear exactly once.",
-                  properties: {
-                    type: {
-                      type: "string",
-                      const: "ingress",
-                      description:
-                        "Operation type.",
-                    },
-                    next: {
-                      type: "string",
-                      description:
-                        "Name of next operation to execute. Use 'egress' to terminate.",
-                    },
-                    promptAddr: {
-                      type: "string",
-                      description:
-                        "Register (e.g., 'r0') storing user prompt. Referenced by subsequent input name tables.",
-                    },
-                  },
-                  required: [
-                    "type",
-                    "next",
-                    "promptAddr",
-                  ],
-                  additionalProperties: false,
-                },
                 {
                   type: "object",
                   description:
@@ -368,49 +370,41 @@ Example with validation (validation passes → continue, validation fails → re
                   ],
                   additionalProperties: false,
                 },
-                {
-                  type: "object",
-                  description:
-                    "Egress operation - Exit point that maps registers to output fields. Must appear at least once.",
-                  properties: {
-                    type: {
-                      type: "string",
-                      const: "egress",
-                      description:
-                        "Operation type.",
-                    },
-                    result: {
-                      type: "object",
-                      description:
-                        "Maps output names to registers. Keys are output field names (e.g., 'mainImage'), values are registers (e.g., 'r2').",
-                      properties: {},
-                      additionalProperties: {
-                        type: "string",
-                      },
-                      required: [],
-                    },
-                  },
-                  required: ["type", "result"],
-                  additionalProperties: false,
-                },
               ],
             },
-            description: `Operation sequence rules:
-
-Structure: Start with one 'ingress', end with 'egress'. Ingress first, egress last.
-
-Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially for file addresses and operation outputs.
-
-Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference 'name' of other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
-
-Data Flow: NameTableEntry arrays map variable names to register addresses. Input arrays reference previously written registers. Output arrays specify where to write results. Flow: ingress → process/switch (using input/output arrays) → egress.`,
+          },
+          egress: {
+            type: "object",
+            description:
+              "Egress operation - Exit point that maps registers to output fields. Must appear exactly once.",
+            properties: {
+              type: {
+                type: "string",
+                const: "egress",
+                description: "Operation type.",
+              },
+              result: {
+                type: "object",
+                description:
+                  "Maps output names to registers. Keys are output field names (e.g., 'mainImage'), values are registers (e.g., 'r2').",
+                properties: {},
+                additionalProperties: {
+                  type: "string",
+                },
+                required: [],
+              },
+            },
+            required: ["type", "result"],
+            additionalProperties: false,
           },
         },
         required: [
           "userRequestAnalysis",
           "compositionRationale",
           "userRequest",
-          "operations",
+          "ingress",
+          "internalOperations",
+          "egress",
         ],
         additionalProperties: false,
       },

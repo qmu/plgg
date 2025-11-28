@@ -1,4 +1,10 @@
 import {
+  Result,
+  InvalidError,
+  ok,
+  err,
+} from "plgg";
+import {
   Process,
   Switch,
   isProcess,
@@ -18,3 +24,20 @@ export const isInternalOperation = (
   op: unknown,
 ): op is InternalOperation =>
   isProcess(op) || isSwitch(op);
+
+/**
+ * Validates and casts a value to InternalOperation type.
+ */
+export const asInternalOperation = (
+  value: unknown,
+): Result<InternalOperation, InvalidError> => {
+  if (isInternalOperation(value)) {
+    return ok(value);
+  }
+  return err(
+    new InvalidError({
+      message:
+        "Value is not a valid InternalOperation",
+    }),
+  );
+};

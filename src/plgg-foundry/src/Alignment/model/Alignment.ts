@@ -10,15 +10,16 @@ import {
   asReadonlyArray,
   find,
   pipe,
+  ok,
 } from "plgg";
 import {
-  Operation,
   Ingress,
+  Egress,
   InternalOperation,
   isInternalOperation,
-  isIngress,
-  isEgress,
-  asOperation,
+  asIngress,
+  asEgress,
+  asInternalOperation,
 } from "plgg-foundry/index";
 
 /**
@@ -29,7 +30,9 @@ export type Alignment = Obj<{
   userRequestAnalysis: Str;
   compositionRationale: Str;
   userRequest: Str;
-  operations: Vec<Operation>;
+  ingress: Ingress;
+  internalOperations: Vec<InternalOperation>;
+  egress: Egress;
 }>;
 
 /**
@@ -42,26 +45,21 @@ export const asAlignment = (value: unknown) =>
     forProp("userRequestAnalysis", asStr),
     forProp("compositionRationale", asStr),
     forProp("userRequest", asStr),
+    forProp("ingress", asIngress),
     forProp(
-      "operations",
-      asReadonlyArray(asOperation),
+      "internalOperations",
+      asReadonlyArray(asInternalOperation),
     ),
+    forProp("egress", asEgress),
   );
 
 /**
- * Finds the ingress operation (entry point) in alignment.
+ * Returns the ingress operation (entry point) from alignment.
  * Every alignment must have exactly one ingress operation.
  */
 export const findIngressOp = (
   alignment: Alignment,
-): Result<Ingress, Error> =>
-  pipe(
-    alignment.operations,
-    find({
-      predicate: isIngress,
-      errMessage: "No ingress operation found",
-    }),
-  );
+): Result<Ingress, Error> => ok(alignment.ingress);
 
 /**
  * Finds an internal operation (process or switch) by name.
@@ -73,8 +71,8 @@ export const findInternalOp =
     alignment: Alignment,
   ): Result<InternalOperation, Error> =>
     pipe(
-      alignment.operations,
-      find<Operation, InternalOperation>({
+      alignment.internalOperations,
+      find<InternalOperation, InternalOperation>({
         predicate: (o): o is InternalOperation =>
           isInternalOperation(o) &&
           o.name === name,
@@ -83,16 +81,9 @@ export const findInternalOp =
     );
 
 /**
- * Finds the egress operation (exit point) in alignment.
- * Every alignment must have at least one egress operation.
+ * Returns the egress operation (exit point) from alignment.
+ * Every alignment must have exactly one egress operation.
  */
 export const findEgressOp = (
   alignment: Alignment,
-): Result<Operation, Error> =>
-  pipe(
-    alignment.operations,
-    find({
-      predicate: isEgress,
-      errMessage: "No egress operation found",
-    }),
-  );
+): Result<Egress, Error> => ok(alignment.egress);

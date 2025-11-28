@@ -55,7 +55,7 @@ test.skip("Blueprint generation with test foundry", async () => {
     "Blueprint should generate valid alignment",
   );
 
-  console.log(result.content.operations);
+  console.log(result.content);
 }, 30000);
 
 test("extractOpcodes extracts processor opcodes from testFoundrySpec", () => {
