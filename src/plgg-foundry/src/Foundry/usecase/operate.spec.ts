@@ -21,10 +21,16 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
       "User wants a fantasy character image with sword and shield",
     ingress: {
       type: "ingress",
-      next: "plan",
-      promptAddr: "r0",
+      next: "assign-prompt",
     },
     operations: [
+      {
+        type: "assign",
+        name: "assign-prompt",
+        address: "r0",
+        value: "A fantasy character with a sword and shield",
+        next: "plan",
+      },
       {
         type: "process",
         name: "plan",
@@ -114,8 +120,7 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
   assert(isOk(maybeAlignment));
 
   const maybeOrder = asOrder({
-    prompt:
-      "A fantasy character with a sword and shield",
+    text: "A fantasy character with a sword and shield",
   });
   assert(isOk(maybeOrder));
 

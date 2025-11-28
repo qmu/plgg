@@ -11,15 +11,15 @@ import {
 } from "plgg";
 
 /**
- * User request containing prompt and optional file attachments.
+ * User request containing text and optional file attachments.
  */
 export type Order = Obj<{
-  prompt: Str;
+  text: Str;
   files: Vec<Bin>;
 }>;
 
 export type OrderSpec = Obj<{
-  prompt: string;
+  text: string;
   files?: Vec<Uint8Array>;
 }>;
 
@@ -27,12 +27,12 @@ export type OrderSpec = Obj<{
  * Validates and casts an OrderSpec to Order with default empty files array.
  */
 export const asOrder = ({
-  prompt,
+  text,
   files = [],
 }: OrderSpec) =>
   cast(
-    { prompt, files },
-    forProp("prompt", asStr),
+    { text, files },
+    forProp("text", asStr),
     forProp("files", asReadonlyArray(asBin)),
   );
 
@@ -43,15 +43,15 @@ export const explainOrder = (
   order: Order,
 ): string => {
   const fileCount = order.files.length;
-  const promptText = order.prompt.content;
+  const text = order.text.content;
 
   if (fileCount === 0) {
-    return promptText;
+    return text;
   }
 
   const fileText =
     fileCount === 1
       ? "1 file"
       : `${fileCount} files`;
-  return `${promptText}\n\n(${fileText} attached)`;
+  return `${text}\n\n(${fileText} attached)`;
 };

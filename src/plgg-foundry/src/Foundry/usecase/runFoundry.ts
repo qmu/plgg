@@ -33,14 +33,11 @@ export const runFoundry =
       { provider, spec },
       asFoundry,
       (foundry) =>
-        proc(
-          orderSpec,
-          asOrder,
-          (order) =>
-            proc(
-              order,
-              blueprint(foundry),
-              operate(foundry)(order),
-            ),
+        proc(orderSpec, asOrder, (order) =>
+          proc(
+            order,
+            blueprint(foundry),
+            operate(foundry)(order),
+          ),
         ),
     );

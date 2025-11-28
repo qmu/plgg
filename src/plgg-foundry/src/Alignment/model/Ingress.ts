@@ -9,18 +9,12 @@ import {
 } from "plgg";
 
 /**
- * Entry point operation that assigns user input (prompt and files) to registers.
+ * Entry point operation that starts the alignment execution.
  * Must be first operation and appear exactly once in alignment.
  */
 export type Ingress = Obj<{
   type: "ingress";
   next: string;
-  promptAddr: string;
-  file1Addr?: string;
-  file2Addr?: string;
-  file3Addr?: string;
-  file4Addr?: string;
-  file5Addr?: string;
 }>;
 
 /**

@@ -79,8 +79,7 @@ test.skip("Run Character Image Generation", async () => {
         (provider) =>
           proc(
             {
-              prompt:
-                "A fantasy character with a sword and shield",
+              text: "A fantasy character with a sword and shield",
             },
             runFoundry({
               provider,

@@ -41,8 +41,7 @@ test.skip("Blueprint generation with test foundry", async () => {
         "order",
         () =>
           asOrder({
-            prompt:
-              "Create a fantasy warrior character",
+            text: "Create a fantasy warrior character",
           }),
       ],
     ),

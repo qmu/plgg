@@ -29,6 +29,7 @@ import {
   isAssign,
   isSwitch,
   isProcess,
+  isEgress,
   findOperations,
   findEgress,
   findSwitcher,
@@ -85,41 +86,27 @@ const execute =
     if (isProcess(op)) {
       return execProcess({ op, ctx });
     }
-    // Must be egress
-    return execEgress({ op, ctx });
+    if (isEgress(op)) {
+      return execEgress({ op, ctx });
+    }
+    return err(
+      new Error(`Unknown operation type`),
+    );
   };
 
 /**
- * Executes ingress operation by storing user request in register and proceeding to next operation.
+ * Executes ingress operation by proceeding to next operation.
  */
 const execIngress =
   (ctx: OperationContext) =>
-  async (
-    op: Ingress,
-  ): PromisedResult<Medium, Error> =>
+  (op: Ingress): PromisedResult<Medium, Error> =>
     proc(
-      {
-        name: op.promptAddr,
-        type: "string",
-      },
-      asVirtualType,
-      (argument) =>
-        proc(
-          ctx.alignment,
-          findOperations(op.next),
-          execute({
-            ...ctx,
-            env: {
-              ...ctx.env,
-              [op.promptAddr]: {
-                type: argument,
-                value: ctx.order.prompt.content,
-              },
-            },
-            operationCount:
-              ctx.operationCount + 1,
-          }),
-        ),
+      ctx.alignment,
+      findOperations(op.next),
+      execute({
+        ...ctx,
+        operationCount: ctx.operationCount + 1,
+      }),
     );
 
 /**

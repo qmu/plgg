@@ -10,7 +10,7 @@ import { openai } from "plgg-kit";
 import { buildSpec } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-test.skip("Run Character Image Generation", async () => {
+test.skip("TodoFoundry", async () => {
   const result = await proc(
     bind(
       ["apiKey", () => env("OPENAI_API_KEY")],
@@ -27,8 +27,7 @@ test.skip("Run Character Image Generation", async () => {
     ({ spec, provider }) =>
       proc(
         {
-          prompt:
-            "A fantasy character with a sword and shield",
+          text: "I need to go super market to buy milk also check postal mail.",
         },
         runFoundry({
           provider,
@@ -42,6 +41,5 @@ test.skip("Run Character Image Generation", async () => {
       `Process failed: ${result.content.message}`,
     );
   }
-  console.log(result.content);
   assert(isOk(result));
 }, 30000);

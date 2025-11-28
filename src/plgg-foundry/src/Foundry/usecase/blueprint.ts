@@ -81,8 +81,9 @@ Input/output fields are arrays of NameTableEntry objects with {variableName, add
 Example without validation:
 \`\`\`json
 {
-  "ingress": { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+  "ingress": { "type": "ingress", "next": "op-prompt" },
   "operations": [
+    { "type": "assign", "name": "op-prompt", "address": "r0", "value": "user's prompt extracted here", "next": "op-plan" },
     { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
   ],
@@ -93,8 +94,9 @@ Example without validation:
 Example with assign (AI extracts a value from input and assigns it):
 \`\`\`json
 {
-  "ingress": { "type": "ingress", "next": "op-set-style", "promptAddr": "r0" },
+  "ingress": { "type": "ingress", "next": "op-prompt" },
   "operations": [
+    { "type": "assign", "name": "op-prompt", "address": "r0", "value": "a cat playing piano", "next": "op-set-style" },
     { "type": "assign", "name": "op-set-style", "address": "r1", "value": "watercolor", "next": "op-gen" },
     { "type": "process", "name": "op-gen", "action": "gen-image", "input": [{"variableName": "prompt", "address": "r0"}, {"variableName": "style", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
   ],
@@ -105,8 +107,9 @@ Example with assign (AI extracts a value from input and assigns it):
 Example with validation (validation passes → continue, validation fails → retry):
 \`\`\`json
 {
-  "ingress": { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
+  "ingress": { "type": "ingress", "next": "op-prompt" },
   "operations": [
+    { "type": "assign", "name": "op-prompt", "address": "r0", "value": "user's prompt extracted here", "next": "op-plan" },
     { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "op-check" },
     { "type": "switch", "name": "op-check", "action": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "op-plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] }
@@ -127,7 +130,7 @@ Example with validation (validation passes → continue, validation fails → re
           ingress: {
             type: "object",
             description:
-              "Ingress operation - Entry point that assigns input to registers. Must appear exactly once.",
+              "Ingress operation - Entry point that starts the alignment. Must appear exactly once.",
             properties: {
               type: {
                 type: "string",
@@ -139,24 +142,15 @@ Example with validation (validation passes → continue, validation fails → re
                 description:
                   "Name of next operation to execute.",
               },
-              promptAddr: {
-                type: "string",
-                description:
-                  "Register (e.g., 'r0') storing user prompt. Referenced by subsequent input name tables.",
-              },
             },
-            required: [
-              "type",
-              "next",
-              "promptAddr",
-            ],
+            required: ["type", "next"],
             additionalProperties: false,
           },
           operations: {
             type: "array",
             description: `Main operations (assign, process, and switch) that form the processing pipeline.
 
-Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially for file addresses and operation outputs.
+Registers: Use 'r0', 'r1', 'r2'... Increment sequentially for operation outputs.
 
 Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference 'name' of other operations. Can create loops. To terminate, use 'next: "egress"' to jump to egress operation.
 
