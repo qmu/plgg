@@ -1,13 +1,76 @@
 import { test, assert } from "vitest";
-import { proc, isErr, isOk, env } from "plgg";
+import {
+  proc,
+  isErr,
+  isOk,
+  env,
+  bind,
+} from "plgg";
 import { openai } from "plgg-kit";
+import {
+  makeFoundrySpec,
+  makeProcessorSpec,
+  makePackerSpec,
+} from "plgg-foundry/index";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
-import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("Run Character Image Generation", async () => {
   const result = await proc(
-    env("OPENAI_API_KEY"),
-    (apiKey) =>
+    bind(
+      [
+        "examineProcessor",
+        () =>
+          makeProcessorSpec({
+            name: "examine",
+            description: `This processor lets AI examine whole result of alignment.`,
+            arguments: {
+              input: { type: "string" },
+            },
+            returns: {
+              comment: { type: "string" },
+              terminate: { type: "boolean" },
+            },
+            fn: async (medium) => {
+              const value =
+                medium.params["prompt"]?.value;
+              if (typeof value !== "string") {
+                throw new Error(
+                  "Invalid medium value for planning step",
+                );
+              }
+              return {
+                comment: "All good",
+                terminate: false,
+              };
+            },
+          }),
+      ],
+      [
+        "packer",
+        () =>
+          makePackerSpec({
+            mainImage: { type: "image[]" },
+            spreadImages: { type: "image[]" },
+            plannedDescription: {
+              type: "string",
+            },
+          }),
+      ],
+      [
+        "spec",
+        ({ examineProcessor, packer }) =>
+          makeFoundrySpec({
+            description:
+              "This is a foundry for virtual file system.",
+            apparatuses: [
+              examineProcessor,
+              packer,
+            ],
+          }),
+      ],
+      ["apiKey", () => env("OPENAI_API_KEY")],
+    ),
+    ({ spec, apiKey }) =>
       proc(
         openai({
           apiKey,
@@ -21,7 +84,7 @@ test.skip("Run Character Image Generation", async () => {
             },
             runFoundry({
               provider,
-              spec: makeTestFoundrySpec(),
+              spec,
             }),
           ),
       ),
