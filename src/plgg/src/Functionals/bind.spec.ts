@@ -4,8 +4,8 @@ import { proc, ok, err, isOk, box, Box } from "plgg/index";
 
 test("bind adds value to context under specified key", async () => {
   const result = await proc(
-    {},
     bind(["value", () => 42]),
+    (ctx) => ctx,
   );
 
   expect(isOk(result)).toBe(true);
@@ -16,12 +16,12 @@ test("bind adds value to context under specified key", async () => {
 
 test("bind chains multiple values in context", async () => {
   const result = await proc(
-    {},
     bind(
       ["a", () => 1],
       ["b", ({ a }) => a + 1],
       ["c", ({ a, b }) => a + b],
     ),
+    (ctx) => ctx,
   );
 
   expect(isOk(result)).toBe(true);
@@ -36,8 +36,8 @@ test("bind chains multiple values in context", async () => {
 
 test("bind unwraps Ok results", async () => {
   const result = await proc(
-    {},
     bind(["value", () => ok(100)]),
+    (ctx) => ctx,
   );
 
   expect(isOk(result)).toBe(true);
@@ -50,8 +50,8 @@ test("bind unwraps Ok results", async () => {
 
 test("bind propagates Err results", async () => {
   const result = await proc(
-    {},
     bind(["value", () => err(new Error("failed"))]),
+    (ctx) => ctx,
   );
 
   expect(isOk(result)).toBe(false);
@@ -59,7 +59,6 @@ test("bind propagates Err results", async () => {
 
 test("bind works with async functions", async () => {
   const result = await proc(
-    {},
     bind([
       "delayed",
       async () => {
@@ -69,6 +68,7 @@ test("bind works with async functions", async () => {
         return "done";
       },
     ]),
+    (ctx) => ctx,
   );
 
   expect(isOk(result)).toBe(true);
@@ -81,7 +81,6 @@ test("bind works with async functions", async () => {
 
 test("bind preserves context through chain", async () => {
   const result = await proc(
-    {},
     bind(
       ["initial", () => "start"],
       ["first", ({ initial }) => `${initial}-1`],
@@ -91,6 +90,7 @@ test("bind preserves context through chain", async () => {
           `${initial}-${first}-2`,
       ],
     ),
+    (ctx) => ctx,
   );
 
   expect(isOk(result)).toBe(true);
@@ -105,7 +105,6 @@ test("bind preserves context through chain", async () => {
 
 test("bind can be used to extract final value", async () => {
   const result = await proc(
-    {},
     bind(["x", () => 10], ["y", () => 20]),
     ({ x, y }) => x + y,
   );
@@ -131,23 +130,24 @@ test("bind preserves Box types without unwrapping", async () => {
     spec: string;
   }): Foundry => box("Foundry")(args);
 
-  const boundFn = bind(
-    ["config", () => "test-config"],
-    [
-      "provider",
-      ({ config }) => createProvider(config),
-    ],
-    [
-      "foundry",
-      ({ provider }) =>
-        asFoundry({
-          provider,
-          spec: "test-spec",
-        }),
-    ],
+  const result = await proc(
+    bind(
+      ["config", () => "test-config"],
+      [
+        "provider",
+        ({ config }) => createProvider(config),
+      ],
+      [
+        "foundry",
+        ({ provider }) =>
+          asFoundry({
+            provider,
+            spec: "test-spec",
+          }),
+      ],
+    ),
+    (ctx) => ctx,
   );
-
-  const result = await proc({}, boundFn);
 
   expect(isOk(result)).toBe(true);
   if (isOk(result)) {

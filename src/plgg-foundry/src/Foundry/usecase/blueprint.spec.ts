@@ -19,7 +19,6 @@ const makeTestProvider = () =>
 
 test.skip("Blueprint generation with test foundry", async () => {
   const result = await proc(
-    {},
     bind(
       ["apiKey", () => env("OPENAI_API_KEY")],
       [

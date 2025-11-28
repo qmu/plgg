@@ -50,13 +50,12 @@ type BindEntry<
 > = readonly [K, (ctx: Ctx) => R];
 
 /**
- * Creates a context-building function for use with proc.
- * Takes multiple [key, fn] entries and chains them together.
- * Each fn receives accumulated context from previous entries.
+ * Executes a sequence of binding operations, accumulating context.
+ * Each entry receives the accumulated context from previous entries.
+ * Returns a Promise of the final accumulated context wrapped in Result.
  *
  * @example
  * const result = await proc(
- *   {},
  *   bind(
  *     ["apiKey", () => env("OPENAI_API_KEY")],
  *     ["provider", ({ apiKey }) => createProvider({ apiKey })],
@@ -68,23 +67,22 @@ type BindEntry<
 export function bind<
   K1 extends string,
   V1,
-  Ctx extends object = object,
 >(
-  e1: BindEntry<K1, Ctx, V1>,
-): (ctx: Ctx) => Promise<Ctx & Record<K1, UnwrapValue<V1>>>;
+  e1: BindEntry<K1, object, V1>,
+): Promise<Result<Record<K1, UnwrapValue<V1>>, Error>>;
 export function bind<
   K1 extends string,
   V1,
   K2 extends string,
   V2,
-  Ctx extends object = object,
 >(
-  e1: BindEntry<K1, Ctx, V1>,
-  e2: BindEntry<K2, Ctx & Record<K1, UnwrapValue<V1>>, V2>,
-): (
-  ctx: Ctx,
-) => Promise<
-  Ctx & Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>
+  e1: BindEntry<K1, object, V1>,
+  e2: BindEntry<K2, Record<K1, UnwrapValue<V1>>, V2>,
+): Promise<
+  Result<
+    Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
+    Error
+  >
 >;
 export function bind<
   K1 extends string,
@@ -93,22 +91,21 @@ export function bind<
   V2,
   K3 extends string,
   V3,
-  Ctx extends object = object,
 >(
-  e1: BindEntry<K1, Ctx, V1>,
-  e2: BindEntry<K2, Ctx & Record<K1, UnwrapValue<V1>>, V2>,
+  e1: BindEntry<K1, object, V1>,
+  e2: BindEntry<K2, Record<K1, UnwrapValue<V1>>, V2>,
   e3: BindEntry<
     K3,
-    Ctx & Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
+    Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
     V3
   >,
-): (
-  ctx: Ctx,
-) => Promise<
-  Ctx &
+): Promise<
+  Result<
     Record<K1, UnwrapValue<V1>> &
-    Record<K2, UnwrapValue<V2>> &
-    Record<K3, UnwrapValue<V3>>
+      Record<K2, UnwrapValue<V2>> &
+      Record<K3, UnwrapValue<V3>>,
+    Error
+  >
 >;
 export function bind<
   K1 extends string,
@@ -119,31 +116,29 @@ export function bind<
   V3,
   K4 extends string,
   V4,
-  Ctx extends object = object,
 >(
-  e1: BindEntry<K1, Ctx, V1>,
-  e2: BindEntry<K2, Ctx & Record<K1, UnwrapValue<V1>>, V2>,
+  e1: BindEntry<K1, object, V1>,
+  e2: BindEntry<K2, Record<K1, UnwrapValue<V1>>, V2>,
   e3: BindEntry<
     K3,
-    Ctx & Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
+    Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
     V3
   >,
   e4: BindEntry<
     K4,
-    Ctx &
-      Record<K1, UnwrapValue<V1>> &
+    Record<K1, UnwrapValue<V1>> &
       Record<K2, UnwrapValue<V2>> &
       Record<K3, UnwrapValue<V3>>,
     V4
   >,
-): (
-  ctx: Ctx,
-) => Promise<
-  Ctx &
+): Promise<
+  Result<
     Record<K1, UnwrapValue<V1>> &
-    Record<K2, UnwrapValue<V2>> &
-    Record<K3, UnwrapValue<V3>> &
-    Record<K4, UnwrapValue<V4>>
+      Record<K2, UnwrapValue<V2>> &
+      Record<K3, UnwrapValue<V3>> &
+      Record<K4, UnwrapValue<V4>>,
+    Error
+  >
 >;
 export function bind<
   K1 extends string,
@@ -156,73 +151,66 @@ export function bind<
   V4,
   K5 extends string,
   V5,
-  Ctx extends object = object,
 >(
-  e1: BindEntry<K1, Ctx, V1>,
-  e2: BindEntry<K2, Ctx & Record<K1, UnwrapValue<V1>>, V2>,
+  e1: BindEntry<K1, object, V1>,
+  e2: BindEntry<K2, Record<K1, UnwrapValue<V1>>, V2>,
   e3: BindEntry<
     K3,
-    Ctx & Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
+    Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
     V3
   >,
   e4: BindEntry<
     K4,
-    Ctx &
-      Record<K1, UnwrapValue<V1>> &
+    Record<K1, UnwrapValue<V1>> &
       Record<K2, UnwrapValue<V2>> &
       Record<K3, UnwrapValue<V3>>,
     V4
   >,
   e5: BindEntry<
     K5,
-    Ctx &
-      Record<K1, UnwrapValue<V1>> &
+    Record<K1, UnwrapValue<V1>> &
       Record<K2, UnwrapValue<V2>> &
       Record<K3, UnwrapValue<V3>> &
       Record<K4, UnwrapValue<V4>>,
     V5
   >,
-): (
-  ctx: Ctx,
-) => Promise<
-  Ctx &
+): Promise<
+  Result<
     Record<K1, UnwrapValue<V1>> &
-    Record<K2, UnwrapValue<V2>> &
-    Record<K3, UnwrapValue<V3>> &
-    Record<K4, UnwrapValue<V4>> &
-    Record<K5, UnwrapValue<V5>>
+      Record<K2, UnwrapValue<V2>> &
+      Record<K3, UnwrapValue<V3>> &
+      Record<K4, UnwrapValue<V4>> &
+      Record<K5, UnwrapValue<V5>>,
+    Error
+  >
 >;
-export function bind(
+export async function bind(
   ...entries: ReadonlyArray<
     BindEntry<string, object, unknown>
   >
-): (ctx: object) => Promise<Result<object, Error>> {
-  return async (
-    ctx: object,
-  ): Promise<Result<object, Error>> => {
-    let current = ctx;
-    for (const [key, fn] of entries) {
-      const result = await fn(current);
-      if (isResult(result)) {
-        if (isOk(result)) {
-          current = {
-            ...current,
-            [key]: result.content,
-          };
-        } else {
-          return err(
-            result.content instanceof Error
-              ? result.content
-              : new Error(String(result.content)),
-          );
-        }
-      } else {
+): Promise<Result<object, Error>> {
+  let current: object = {};
+  for (const [key, fn] of entries) {
+    const result = await fn(current);
+    if (isResult(result)) {
+      if (isOk(result)) {
         current = {
           ...current,
-          [key]: result,
+          [key]: result.content,
         };
+      } else {
+        return err(
+          result.content instanceof Error
+            ? result.content
+            : new Error(String(result.content)),
+        );
       }
+    } else {
+      current = {
+        ...current,
+        [key]: result,
+      };
     }
-    return ok(current);
-  };
+  }
+  return ok(current);
 }
