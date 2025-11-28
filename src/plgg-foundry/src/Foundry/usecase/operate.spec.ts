@@ -24,13 +24,16 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
       next: "plan",
       promptAddr: "r0",
     },
-    internalOperations: [
+    operations: [
       {
         type: "process",
         name: "plan",
         action: "plan",
         input: [
-          { variableName: "prompt", address: "r0" },
+          {
+            variableName: "prompt",
+            address: "r0",
+          },
         ],
         output: [
           { variableName: "plan", address: "r1" },
@@ -48,7 +51,10 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
           },
         ],
         output: [
-          { variableName: "image", address: "r2" },
+          {
+            variableName: "image",
+            address: "r2",
+          },
         ],
         next: "check-validity",
       },
@@ -57,7 +63,10 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
         name: "check-validity",
         action: "check-validity",
         input: [
-          { variableName: "images", address: "r2" },
+          {
+            variableName: "images",
+            address: "r2",
+          },
         ],
         nextWhenTrue: "gen-spread",
         nextWhenFalse: "plan",
@@ -79,7 +88,10 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
         name: "gen-spread",
         action: "gen-spread",
         input: [
-          { variableName: "image", address: "r2" },
+          {
+            variableName: "image",
+            address: "r2",
+          },
         ],
         output: [
           {
@@ -102,7 +114,8 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
   assert(isOk(maybeAlignment));
 
   const maybeOrder = asOrder({
-    prompt: "A fantasy character with a sword and shield",
+    prompt:
+      "A fantasy character with a sword and shield",
   });
   assert(isOk(maybeOrder));
 

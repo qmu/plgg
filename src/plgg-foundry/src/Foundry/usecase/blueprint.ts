@@ -81,7 +81,7 @@ Example without validation:
 \`\`\`json
 {
   "ingress": { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
-  "internalOperations": [
+  "operations": [
     { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
   ],
@@ -93,7 +93,7 @@ Example with validation (validation passes → continue, validation fails → re
 \`\`\`json
 {
   "ingress": { "type": "ingress", "next": "op-plan", "promptAddr": "r0" },
-  "internalOperations": [
+  "operations": [
     { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "op-check" },
     { "type": "switch", "name": "op-check", "action": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "op-plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] }
@@ -132,12 +132,16 @@ Example with validation (validation passes → continue, validation fails → re
                   "Register (e.g., 'r0') storing user prompt. Referenced by subsequent input name tables.",
               },
             },
-            required: ["type", "next", "promptAddr"],
+            required: [
+              "type",
+              "next",
+              "promptAddr",
+            ],
             additionalProperties: false,
           },
-          internalOperations: {
+          operations: {
             type: "array",
-            description: `Internal operations (process and switch) that form the processing pipeline.
+            description: `Main operations (process and switch) that form the processing pipeline.
 
 Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially for file addresses and operation outputs.
 
@@ -390,7 +394,7 @@ Data Flow: NameTableEntry arrays map variable names to register addresses. Input
         required: [
           "analysis",
           "ingress",
-          "internalOperations",
+          "operations",
           "egress",
         ],
         additionalProperties: false,

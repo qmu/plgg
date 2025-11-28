@@ -15,29 +15,28 @@ import {
  * Union of operations that can be referenced by opcode (process and switch).
  * These operations form the middle of the alignment between ingress and egress.
  */
-export type InternalOperation = Process | Switch;
+export type Operation = Process | Switch;
 
 /**
- * Type guard checking if operation is internal type (process or switch).
+ * Type guard checking if operation is process or switch.
  */
-export const isInternalOperation = (
+export const isOperation = (
   op: unknown,
-): op is InternalOperation =>
+): op is Operation =>
   isProcess(op) || isSwitch(op);
 
 /**
- * Validates and casts a value to InternalOperation type.
+ * Validates and casts a value to Operation type.
  */
-export const asInternalOperation = (
+export const asOperation = (
   value: unknown,
-): Result<InternalOperation, InvalidError> => {
-  if (isInternalOperation(value)) {
+): Result<Operation, InvalidError> => {
+  if (isOperation(value)) {
     return ok(value);
   }
   return err(
     new InvalidError({
-      message:
-        "Value is not a valid InternalOperation",
+      message: "Value is not a valid Operation",
     }),
   );
 };

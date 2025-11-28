@@ -21,13 +21,13 @@ import {
   Switch,
   Process,
   Egress,
-  InternalOperation,
+  Operation,
   OperationContext,
   Env,
   Address,
   isSwitch,
   isProcess,
-  findInternalOp,
+  findOperations,
   findEgressOp,
   findSwitcher,
   findProcessor,
@@ -63,7 +63,7 @@ export const operate =
 const execute =
   (ctx: OperationContext) =>
   async (
-    op: InternalOperation | Egress,
+    op: Operation | Egress,
   ): PromisedResult<Medium, Error> => {
     if (
       ctx.operationCount >=
@@ -89,7 +89,9 @@ const execute =
  */
 const execIngress =
   (ctx: OperationContext) =>
-  async (op: Ingress): PromisedResult<Medium, Error> =>
+  async (
+    op: Ingress,
+  ): PromisedResult<Medium, Error> =>
     proc(
       {
         name: op.promptAddr,
@@ -99,7 +101,7 @@ const execIngress =
       (argument) =>
         proc(
           ctx.alignment,
-          findInternalOp(op.next),
+          findOperations(op.next),
           execute({
             ...ctx,
             env: {
@@ -109,7 +111,8 @@ const execIngress =
                 value: ctx.order.prompt.content,
               },
             },
-            operationCount: ctx.operationCount + 1,
+            operationCount:
+              ctx.operationCount + 1,
           }),
         ),
     );
@@ -186,7 +189,7 @@ const execSwitch = async ({
     await checkResult.content;
 
   // Step 4: Determine next operation based on condition result
-  const opResult = findInternalOp(
+  const opResult = findOperations(
     isValid ? op.nextWhenTrue : op.nextWhenFalse,
   )(alignment);
 
@@ -333,7 +336,7 @@ const execProcess = async ({
 
   return proc(
     alignment,
-    findInternalOp(op.next),
+    findOperations(op.next),
     execute(nextCtx),
   );
 };
