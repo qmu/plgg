@@ -37,8 +37,9 @@ export const blueprint =
 
 An Alignment is a sequence of operations that processes input data into output data, like a factory production line.
 
-There are 4 operation types:
+There are 5 operation types:
 - 'ingress': Assigns input data (prompt and files) to register addresses
+- 'assign': Has a unique 'name' for control flow references. AI extracts/derives a value from context and assigns it directly to a register address. Use when you need to store a specific value without calling a processor
 - 'process': Has a unique 'name' for control flow references and an 'action' specifying which processor to run. Loads data from registers using a name table, processes it with a function, and saves the result to registers using a name table
 - 'switch': Has a unique 'name' for control flow references and an 'action' specifying which switcher to run. Evaluates data from registers using a name table and branches to different operations based on the result, saving outputs using name tables
 - 'egress': Maps register data to output fields
@@ -73,8 +74,8 @@ Input/output fields are arrays of NameTableEntry objects with {variableName, add
 
 ## Operation Naming and Reachability Rules
 
-1. **Unique Names**: Every process/switch operation MUST have a unique 'name'. No two operations can share the same name.
-2. **No Orphans**: Every process/switch operation MUST be reachable via control flow (next, nextWhenTrue, nextWhenFalse). Do NOT create orphan operations that are never referenced.
+1. **Unique Names**: Every assign/process/switch operation MUST have a unique 'name'. No two operations can share the same name.
+2. **No Orphans**: Every assign/process/switch operation MUST be reachable via control flow (next, nextWhenTrue, nextWhenFalse). Do NOT create orphan operations that are never referenced.
 3. **Valid References**: 'next', 'nextWhenTrue', 'nextWhenFalse' MUST reference either an existing operation's 'name' or 'egress' to terminate.
 
 Example without validation:
@@ -86,6 +87,18 @@ Example without validation:
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
   ],
   "egress": { "type": "egress", "result": {"mainImage": "r2"} }
+}
+\`\`\`
+
+Example with assign (AI extracts a value from input and assigns it):
+\`\`\`json
+{
+  "ingress": { "type": "ingress", "next": "op-set-style", "promptAddr": "r0" },
+  "operations": [
+    { "type": "assign", "name": "op-set-style", "address": "r1", "value": "watercolor", "next": "op-gen" },
+    { "type": "process", "name": "op-gen", "action": "gen-image", "input": [{"variableName": "prompt", "address": "r0"}, {"variableName": "style", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
+  ],
+  "egress": { "type": "egress", "result": {"image": "r2"} }
 }
 \`\`\`
 
@@ -141,7 +154,7 @@ Example with validation (validation passes → continue, validation fails → re
           },
           operations: {
             type: "array",
-            description: `Main operations (process and switch) that form the processing pipeline.
+            description: `Main operations (assign, process, and switch) that form the processing pipeline.
 
 Registers: Use 'r0', 'r1', 'r2'... Start with 'r0' for ingress promptAddr. Increment sequentially for file addresses and operation outputs.
 
@@ -150,6 +163,47 @@ Control Flow: 'next', 'nextWhenTrue', 'nextWhenFalse' reference 'name' of other 
 Data Flow: NameTableEntry arrays map variable names to register addresses. Input arrays reference previously written registers. Output arrays specify where to write results.`,
             items: {
               anyOf: [
+                {
+                  type: "object",
+                  description:
+                    "Assign operation - AI extracts/derives a value from input and assigns it to a register.",
+                  properties: {
+                    type: {
+                      type: "string",
+                      const: "assign",
+                      description:
+                        "Operation type.",
+                    },
+                    name: {
+                      type: "string",
+                      description:
+                        "Unique identifier for this operation. MUST be unique across all operations. Referenced by 'next', 'nextWhenTrue', 'nextWhenFalse' in other operations. Use format like 'op-set-style', 'op-assign-mode', etc.",
+                    },
+                    address: {
+                      type: "string",
+                      description:
+                        "Register address to store the value (e.g., 'r1', 'r2').",
+                    },
+                    value: {
+                      type: "string",
+                      description:
+                        "The value to assign. AI should extract or derive this from the user input/context.",
+                    },
+                    next: {
+                      type: "string",
+                      description:
+                        "Name of next operation to execute. Use 'egress' to terminate.",
+                    },
+                  },
+                  required: [
+                    "type",
+                    "name",
+                    "address",
+                    "value",
+                    "next",
+                  ],
+                  additionalProperties: false,
+                },
                 {
                   type: "object",
                   description:

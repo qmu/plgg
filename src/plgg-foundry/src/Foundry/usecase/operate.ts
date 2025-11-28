@@ -18,6 +18,7 @@ import {
   Medium,
   Param,
   Ingress,
+  Assign,
   Switch,
   Process,
   Egress,
@@ -25,13 +26,14 @@ import {
   OperationContext,
   Env,
   Address,
+  isAssign,
   isSwitch,
   isProcess,
   findOperations,
-  findEgressOp,
+  findEgress,
   findSwitcher,
   findProcessor,
-  findIngressOp,
+  findIngress,
   asVirtualType,
   isPacker,
 } from "plgg-foundry/index";
@@ -47,7 +49,7 @@ export const operate =
   ): PromisedResult<Medium, Error> =>
     proc(
       alignment,
-      findIngressOp,
+      findIngress,
       execIngress({
         foundry,
         alignment,
@@ -74,6 +76,9 @@ const execute =
       );
     }
 
+    if (isAssign(op)) {
+      return execAssign({ op, ctx });
+    }
     if (isSwitch(op)) {
       return execSwitch({ op, ctx });
     }
@@ -116,6 +121,48 @@ const execIngress =
           }),
         ),
     );
+
+/**
+ * Executes assign operation by binding a value to a register address.
+ */
+const execAssign = ({
+  op,
+  ctx,
+}: {
+  op: Assign;
+  ctx: OperationContext;
+}): PromisedResult<Medium, Error> =>
+  proc(
+    { name: op.address, type: "string" },
+    asVirtualType,
+    (virtualType) => {
+      const nextCtx = {
+        ...ctx,
+        env: {
+          ...ctx.env,
+          [op.address]: {
+            type: virtualType,
+            value: op.value,
+          },
+        },
+        operationCount: ctx.operationCount + 1,
+      };
+
+      if (op.next === "egress") {
+        return proc(
+          ctx.alignment,
+          findEgress,
+          execute(nextCtx),
+        );
+      }
+
+      return proc(
+        ctx.alignment,
+        findOperations(op.next),
+        execute(nextCtx),
+      );
+    },
+  );
 
 /**
  * Loads a param from environment by address.
@@ -329,7 +376,7 @@ const execProcess = async ({
   if (op.next === "egress") {
     return proc(
       alignment,
-      findEgressOp,
+      findEgress,
       execute(nextCtx),
     );
   }
