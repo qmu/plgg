@@ -5,12 +5,12 @@ import {
   err,
 } from "plgg";
 import {
-  EgressOperation,
-  IngressOperation,
+  Egress,
+  Ingress,
   InternalOperation,
   isInternalOperation,
-  isIngressOperation,
-  isEgressOperation,
+  isIngress,
+  isEgress,
 } from "plgg-foundry/index";
 
 /**
@@ -18,8 +18,8 @@ import {
  * Operations are executed sequentially following control flow.
  */
 export type Operation =
-  | EgressOperation
-  | IngressOperation
+  | Egress
+  | Ingress
   | InternalOperation;
 
 /**
@@ -28,8 +28,8 @@ export type Operation =
 export const isOperation = (
   op: unknown,
 ): op is Operation =>
-  isIngressOperation(op) ||
-  isEgressOperation(op) ||
+  isIngress(op) ||
+  isEgress(op) ||
   isInternalOperation(op);
 
 /**

@@ -13,11 +13,11 @@ import {
 } from "plgg";
 import {
   Operation,
-  IngressOperation,
+  Ingress,
   InternalOperation,
   isInternalOperation,
-  isIngressOperation,
-  isEgressOperation,
+  isIngress,
+  isEgress,
   asOperation,
 } from "plgg-foundry/index";
 
@@ -54,11 +54,11 @@ export const asAlignment = (value: unknown) =>
  */
 export const findIngressOp = (
   alignment: Alignment,
-): Result<IngressOperation, Error> =>
+): Result<Ingress, Error> =>
   pipe(
     alignment.operations,
     find({
-      predicate: isIngressOperation,
+      predicate: isIngress,
       errMessage: "No ingress operation found",
     }),
   );
@@ -92,7 +92,7 @@ export const findEgressOp = (
   pipe(
     alignment.operations,
     find({
-      predicate: isEgressOperation,
+      predicate: isEgress,
       errMessage: "No egress operation found",
     }),
   );

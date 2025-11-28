@@ -8,7 +8,7 @@ import { NameTableEntry } from "plgg-foundry/index";
  * 'name' is the unique identifier for this operation (used by next/nextWhenTrue/nextWhenFalse references).
  * 'action' specifies which switcher function to execute.
  */
-export type SwitchOperation = Obj<{
+export type Switch = Obj<{
   type: "switch";
   name: string;
   action: string;
@@ -22,9 +22,9 @@ export type SwitchOperation = Obj<{
 /**
  * Type guard checking if operation is switch type.
  */
-export const isSwitchOperation = (
+export const isSwitch = (
   op: unknown,
-): op is SwitchOperation =>
+): op is Switch =>
   isRawObj<object>(op) &&
   hasProp(op, "type") &&
   op.type === "switch";

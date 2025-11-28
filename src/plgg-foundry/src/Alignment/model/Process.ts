@@ -7,7 +7,7 @@ import { NameTableEntry } from "plgg-foundry/index";
  * 'name' is the unique identifier for this operation (used by next/nextWhenTrue/nextWhenFalse references).
  * 'action' specifies which processor function to execute.
  */
-export type ProcessOperation = Obj<{
+export type Process = Obj<{
   type: "process";
   name: string;
   action: string;
@@ -19,9 +19,9 @@ export type ProcessOperation = Obj<{
 /**
  * Type guard checking if operation is process type.
  */
-export const isProcessOperation = (
+export const isProcess = (
   op: unknown,
-): op is ProcessOperation =>
+): op is Process =>
   isRawObj<object>(op) &&
   hasProp(op, "type") &&
   op.type === "process";

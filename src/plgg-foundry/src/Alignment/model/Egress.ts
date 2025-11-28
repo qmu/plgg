@@ -9,7 +9,7 @@ import {
  * Exit point operation that maps register addresses to output field names.
  * Must appear at least once in alignment.
  */
-export type EgressOperation = Obj<{
+export type Egress = Obj<{
   type: "egress";
   result: Dict;
 }>;
@@ -17,9 +17,9 @@ export type EgressOperation = Obj<{
 /**
  * Type guard checking if operation is egress type.
  */
-export const isEgressOperation = (
+export const isEgress = (
   op: unknown,
-): op is EgressOperation =>
+): op is Egress =>
   isRawObj<object>(op) &&
   hasProp(op, "type") &&
   op.type === "egress";

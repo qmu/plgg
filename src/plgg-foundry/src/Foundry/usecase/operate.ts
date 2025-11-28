@@ -16,18 +16,18 @@ import {
   Alignment,
   Medium,
   Param,
-  IngressOperation,
-  SwitchOperation,
-  ProcessOperation,
-  EgressOperation,
+  Ingress,
+  Switch,
+  Process,
+  Egress,
   Operation,
   OperationContext,
   Env,
   Address,
-  isIngressOperation,
-  isEgressOperation,
-  isSwitchOperation,
-  isProcessOperation,
+  isIngress,
+  isEgress,
+  isSwitch,
+  isProcess,
   findInternalOp,
   findEgressOp,
   findSwitcher,
@@ -73,16 +73,16 @@ const execute =
       );
     }
 
-    if (isIngressOperation(op)) {
+    if (isIngress(op)) {
       return execIngress({ op, ctx });
     }
-    if (isSwitchOperation(op)) {
+    if (isSwitch(op)) {
       return execSwitch({ op, ctx });
     }
-    if (isProcessOperation(op)) {
+    if (isProcess(op)) {
       return execProcess({ op, ctx });
     }
-    if (isEgressOperation(op)) {
+    if (isEgress(op)) {
       return execEgress({ op, ctx });
     }
     return err(
@@ -99,7 +99,7 @@ const execIngress = async ({
   op,
   ctx,
 }: {
-  op: IngressOperation;
+  op: Ingress;
   ctx: OperationContext;
 }): PromisedResult<Medium, Error> =>
   proc(
@@ -150,7 +150,7 @@ const execSwitch = async ({
   op,
   ctx,
 }: {
-  op: SwitchOperation;
+  op: Switch;
   ctx: OperationContext;
 }): PromisedResult<Medium, Error> => {
   const { foundry, alignment, env } = ctx;
@@ -255,7 +255,7 @@ const execProcess = async ({
   op,
   ctx,
 }: {
-  op: ProcessOperation;
+  op: Process;
   ctx: OperationContext;
 }): PromisedResult<Medium, Error> => {
   const { foundry, alignment, env } = ctx;
@@ -350,7 +350,7 @@ const execEgress = async ({
   op,
   ctx,
 }: {
-  op: EgressOperation;
+  op: Egress;
   ctx: OperationContext;
 }): PromisedResult<Medium, Error> => {
   const { env, alignment, foundry } = ctx;
