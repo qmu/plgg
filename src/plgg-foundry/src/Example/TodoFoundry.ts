@@ -1,41 +1,34 @@
-import { proc, env, bind } from "plgg";
-import { openai } from "plgg-kit";
+import { ok, bind, proc, asStr } from "plgg";
 import {
   makeFoundrySpec,
   makeProcessorSpec,
   makePackerSpec,
 } from "plgg-foundry/index";
-import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-export const runTocoFoundry = async () =>
+export const buildSpec = async () =>
   proc(
     bind(
       [
-        "examineProcessor",
+        "addProcessor",
         () =>
           makeProcessorSpec({
-            name: "examine",
-            description: `This processor lets AI examine whole result of alignment.`,
+            name: "add",
+            description: `Add new task`,
             arguments: {
-              input: { type: "string" },
+              task: { type: "string" },
             },
-            returns: {
-              comment: { type: "string" },
-              terminate: { type: "boolean" },
-            },
-            fn: async (medium) => {
-              const value =
-                medium.params["prompt"]?.value;
-              if (typeof value !== "string") {
-                throw new Error(
-                  "Invalid medium value for planning step",
-                );
-              }
-              return {
-                comment: "All good",
-                terminate: false,
-              };
-            },
+            returns: {},
+            fn: (medium) =>
+              proc(
+                medium.params["task"]?.value,
+                asStr,
+                (v) => {
+                  console.log(
+                    "Side effective todo update with:",
+                    v,
+                  );
+                },
+              ),
           }),
       ],
       [
@@ -49,36 +42,13 @@ export const runTocoFoundry = async () =>
             },
           }),
       ],
-      [
-        "spec",
-        ({ examineProcessor, packer }) =>
-          makeFoundrySpec({
-            description:
-              "This is a foundry for virtual file system.",
-            apparatuses: [
-              examineProcessor,
-              packer,
-            ],
-          }),
-      ],
-      ["apiKey", () => env("OPENAI_API_KEY")],
     ),
-    ({ spec, apiKey }) =>
-      proc(
-        openai({
-          apiKey,
-          modelName: "gpt-5.1",
+    ({ addProcessor, packer }) =>
+      ok(
+        makeFoundrySpec({
+          description:
+            "This is a foundry for virtual file system.",
+          apparatuses: [addProcessor, packer],
         }),
-        (provider) =>
-          proc(
-            {
-              prompt:
-                "A fantasy character with a sword and shield",
-            },
-            runFoundry({
-              provider,
-              spec,
-            }),
-          ),
       ),
   );
