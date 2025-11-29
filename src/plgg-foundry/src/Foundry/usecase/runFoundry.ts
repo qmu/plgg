@@ -1,4 +1,4 @@
-import { proc } from "plgg";
+import { proc, debug } from "plgg";
 import {
   FoundrySpec,
   OrderSpec,
@@ -37,6 +37,7 @@ export const runFoundry =
           proc(
             order,
             blueprint(foundry),
+            debug,
             operate(foundry)(order),
           ),
         ),

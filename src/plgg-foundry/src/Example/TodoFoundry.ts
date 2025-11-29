@@ -4,9 +4,11 @@ import {
   makeProcessorSpec,
 } from "plgg-foundry/index";
 
+export const todos: Array<string> = [];
+
 export const todoFoundrySpec = makeFoundrySpec({
   description:
-    "This is a foundry for virtual file system.",
+    "This is TODO management foundry. This foundry analyzes the input text and divides into small tasks to be added to the TODO list.",
   apparatuses: [
     makeProcessorSpec({
       name: "add",
@@ -20,6 +22,7 @@ export const todoFoundrySpec = makeFoundrySpec({
           medium.params["task"]?.value,
           asStr,
           (v) => {
+            todos.push(v.content);
             console.log(
               "Side effective todo update with:",
               v,

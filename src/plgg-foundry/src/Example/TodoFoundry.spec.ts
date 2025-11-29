@@ -1,16 +1,20 @@
 import { test, assert } from "vitest";
 import { proc, isErr, isOk } from "plgg";
 import { openai } from "plgg-kit";
-import { todoFoundrySpec } from "plgg-foundry/Example";
+import {
+  todoFoundrySpec,
+  todos,
+} from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-test.skip("TodoFoundry", async () => {
+test("TodoFoundry", async () => {
+  console.log("todos:", todos);
   const result = await proc(
     todoFoundrySpec,
     (spec) =>
       proc(
         {
-          text: "I need to go super market to buy milk also check postal mail.",
+          text: "Register ListFile action and Read action as tasks.",
         },
         runFoundry({
           provider: openai({
@@ -20,6 +24,7 @@ test.skip("TodoFoundry", async () => {
         }),
       ),
   );
+  console.log("todos:", todos);
 
   if (isErr(result)) {
     assert.fail(

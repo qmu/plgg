@@ -294,6 +294,7 @@ const execProcess = async ({
   }
 
   // Step 2: Load input parameters from registers using input NameTableEntry array
+  // Map from address to variable name so processors can access by variable name
   const addrParams = pipe(
     op.input.map((entry) => entry.address),
     conclude(loadValueFromEnv(env)),
@@ -307,8 +308,20 @@ const execProcess = async ({
       ),
     );
   }
-  const params: Record<Address, Param> =
-    Object.fromEntries(addrParams.content);
+  // Build params keyed by variable name (not address) for processor fn
+  const addressToVarName = Object.fromEntries(
+    op.input.map((entry) => [
+      entry.address,
+      entry.variableName,
+    ]),
+  );
+  const params: Record<string, Param> =
+    Object.fromEntries(
+      addrParams.content.map(([addr, param]) => [
+        addressToVarName[addr],
+        param,
+      ]),
+    );
 
   // Step 3: Execute the processor function
   const processResult = await proc(
