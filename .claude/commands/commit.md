@@ -2,3 +2,4 @@
 - Only commit staged changes without adding new files.
 - If unrelated changes are included, end with "etc."
 - In the body, summarize the changes as bullet points.
+- Focus on "why" the developer made this change, not just "what" changed. This context is essential for generating meaningful CHANGELOGs later. Include the motivation, problem being solved, or benefit gained.
