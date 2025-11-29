@@ -109,7 +109,34 @@ const execIngress =
     );
 
 /**
+ * Normalizes assign value to JSON string.
+ * Handles backward compatibility with primitive values (number, boolean).
+ */
+const toJsonString = (
+  value: string | number | boolean,
+): string =>
+  typeof value === "string"
+    ? value
+    : JSON.stringify(value);
+
+/**
+ * Parses JSON string to value.
+ * Used when loading values from env for processors/switchers/egress.
+ */
+const parseJsonValue = (value: unknown): unknown => {
+  if (typeof value !== "string") {
+    return value;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+/**
  * Executes assign operation by binding a value to a register address.
+ * Value is stored as JSON-encoded string.
  */
 const execAssign = ({
   op,
@@ -122,13 +149,16 @@ const execAssign = ({
     type: "string",
   });
 
+  // Store value as JSON string for uniform handling
+  const jsonValue = toJsonString(op.value);
+
   const nextCtx = {
     ...ctx,
     env: {
       ...ctx.env,
       [op.address]: {
         type: virtualType,
-        value: op.value,
+        value: jsonValue,
       },
     },
     operationCount: ctx.operationCount + 1,
@@ -202,7 +232,7 @@ const execSwitch = async ({
     );
   }
   // Build params keyed by variable name (not address) for switcher fn
-  // Unwrap the value from { type, value } stored in env
+  // Unwrap the value from { type, value } stored in env and parse JSON
   const addressToVarName = Object.fromEntries(
     op.input.map((entry) => [
       entry.address,
@@ -213,7 +243,9 @@ const execSwitch = async ({
     Object.fromEntries(
       addrParams.content.map(([addr, param]) => [
         addressToVarName[addr],
-        (param as { value: unknown }).value,
+        parseJsonValue(
+          (param as { value: unknown }).value,
+        ),
       ]),
     );
 
@@ -320,7 +352,7 @@ const execProcess = async ({
     );
   }
   // Build params keyed by variable name (not address) for processor fn
-  // Unwrap the value from { type, value } stored in env
+  // Unwrap the value from { type, value } stored in env and parse JSON
   const addressToVarName = Object.fromEntries(
     op.input.map((entry) => [
       entry.address,
@@ -331,7 +363,9 @@ const execProcess = async ({
     Object.fromEntries(
       addrParams.content.map(([addr, param]) => [
         addressToVarName[addr],
-        (param as { value: unknown }).value,
+        parseJsonValue(
+          (param as { value: unknown }).value,
+        ),
       ]),
     );
 
@@ -429,14 +463,15 @@ const execEgress = async ({
     );
   }
 
-  // Build params keyed by output name, unwrapping values from env
+  // Build params keyed by output name, unwrapping values from env and parsing JSON
   const params: Record<string, Param> =
     Object.fromEntries(
       op.result.map((entry, i) => {
         const loaded = input.content[i];
-        const value = loaded
+        const rawValue = loaded
           ? (loaded[1] as { value: unknown }).value
           : undefined;
+        const value = parseJsonValue(rawValue);
         return [entry.name, value];
       }),
     );

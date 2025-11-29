@@ -193,13 +193,9 @@ Data Flow: NameTableEntry arrays map variable names to register addresses. Input
                         "Register address to store the value (e.g., 'r1', 'r2').",
                     },
                     value: {
+                      type: "string",
                       description:
-                        "Value to assign to the register. Can be a string, number, or boolean. AI should extract/derive this value from the user request or context.",
-                      anyOf: [
-                        { type: "string" },
-                        { type: "number" },
-                        { type: "boolean" },
-                      ],
+                        "JSON-encoded value to assign to the register. Can represent any JSON value: string (e.g., '\"hello\"'), number (e.g., '42'), boolean (e.g., 'true'), array (e.g., '[1,2,3]'), or object (e.g., '{\"key\":\"value\"}'). AI should extract/derive and JSON-encode this value from the user request or context.",
                     },
                     next: {
                       type: "string",

@@ -32,7 +32,7 @@ export type RawObj<T = Record<string, unknown>> =
 /**
  * Type guard to check if a value is a MutRec.
  */
-const is = <T>(
+const is = <T = Record<string, unknown>>(
   value: unknown,
 ): value is RawObj<T> =>
   typeof value === "object" && value !== null;

@@ -6,12 +6,14 @@ import { Address } from "plgg-foundry/index";
  * Used for assigning constant values without processor execution.
  * 'name' is the unique identifier for this operation.
  * 'next' specifies the next operation to execute.
+ * 'value' is a JSON-encoded string that can represent any JSON value
+ * (string, number, boolean, array, object).
  */
 export type Assign = Obj<{
   type: "assign";
   name: string;
   address: Address;
-  value: string | number | boolean;
+  value: string;
   next: string;
 }>;
 
