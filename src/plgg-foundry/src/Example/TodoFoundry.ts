@@ -32,5 +32,29 @@ export const todoFoundry = makeFoundry({
           );
         }),
     }),
+    makeProcessor({
+      name: "remove",
+      description: `Removes a task by todo text (not id)`,
+      arguments: {
+        task: {
+          type: "string",
+          description:
+            "The todo text to remove (e.g. 'A', 'B')",
+        },
+      },
+      fn: ({ params }) =>
+        proc(params["task"], asSoftStr, (v) => {
+          const index = todos.findIndex(
+            (t) => t.todo === v,
+          );
+          if (index !== -1) {
+            todos.splice(index, 1);
+            console.log(
+              "Side effective todo removal:",
+              v,
+            );
+          }
+        }),
+    }),
   ],
 });

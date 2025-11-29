@@ -72,11 +72,25 @@ Input/output fields are arrays of NameTableEntry objects with {variableName, add
 - 'output': Array mapping function return value names to register addresses (where to write to)
 - 'outputWhenTrue'/'outputWhenFalse': Arrays mapping switcher return value names to register addresses based on condition
 
-## Operation Naming and Reachability Rules
+## CRITICAL: Register Write-Before-Read Rule
 
-1. **Unique Names**: Every assign/process/switch operation MUST have a unique 'name'. No two operations can share the same name.
-2. **No Orphans**: Every assign/process/switch operation MUST be reachable via control flow (next, nextWhenTrue, nextWhenFalse). Do NOT create orphan operations that are never referenced.
-3. **Valid References**: 'next', 'nextWhenTrue', 'nextWhenFalse' MUST reference either an existing operation's 'name' or 'egress' to terminate.
+**IMPORTANT**: Every register address used in a process/switch 'input' array MUST be written to by a prior assign operation or process output. You CANNOT read from an uninitialized register.
+
+WRONG (reads r0 without prior assign):
+\`\`\`json
+{"ingress": {"next": "op-process"}, "operations": [{"type": "process", "name": "op-process", "input": [{"address": "r0"}], ...}]}
+\`\`\`
+
+CORRECT (assign writes r0, then process reads r0):
+\`\`\`json
+{"ingress": {"next": "op-assign"}, "operations": [{"type": "assign", "name": "op-assign", "address": "r0", "value": "X", "next": "op-process"}, {"type": "process", "name": "op-process", "input": [{"address": "r0"}], ...}]}
+\`\`\`
+
+## Operation Naming Rules
+
+1. **Unique Names**: Every assign/process/switch operation MUST have a unique 'name'.
+2. **No Orphans**: Every operation MUST be reachable via control flow.
+3. **Valid References**: 'next' fields MUST reference an existing operation's 'name' or 'egress'.
 
 Example without validation:
 \`\`\`json
