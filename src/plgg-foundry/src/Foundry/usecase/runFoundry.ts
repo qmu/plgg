@@ -16,11 +16,17 @@ import {
  * 3. Executes alignment operations sequentially (operate)
  *
  * Returns final medium containing alignment and output parameters.
+ *
+ * Accepts either a string (text only) or OrderSpec object.
  */
 export const runFoundry =
   (foundry: Foundry) =>
-  async (orderSpec: OrderSpec) =>
-    proc(orderSpec, asOrder, (order) =>
+  (input: string | OrderSpec) => {
+    const orderSpec: OrderSpec =
+      typeof input === "string"
+        ? { text: input }
+        : input;
+    return proc(orderSpec, asOrder, (order) =>
       proc(
         order,
         blueprint(foundry),
@@ -30,3 +36,4 @@ export const runFoundry =
         operate(foundry)(order),
       ),
     );
+  };

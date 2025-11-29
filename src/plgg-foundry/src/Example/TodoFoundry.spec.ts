@@ -12,13 +12,11 @@ test("TodoFoundry", async () => {
 
   // Step 1: Add tasks A and B
   const result1 = await proc(
-    {
-      text: `Add task A and B
+    `Add task A and B
 ---------------
 current todos:
 ${JSON.stringify(todos, null, 2)}
 `,
-    },
     runFoundry(todoFoundry),
   );
 
@@ -30,13 +28,11 @@ ${JSON.stringify(todos, null, 2)}
 
   // Step 2: Remove task B and add task C
   const result2 = await proc(
-    {
-      text: `Remove task B and add task C
+    `Remove task B and add task C
 ---------------
 current todos:
 ${JSON.stringify(todos, null, 2)}
 `,
-    },
     runFoundry(todoFoundry),
   );
 
@@ -51,13 +47,9 @@ ${JSON.stringify(todos, null, 2)}
 
   // Verify only A and C remain
   expect(todos).toHaveLength(2);
-  expect(
-    todos.map((t) => t.todo),
-  ).toContain("A");
-  expect(
-    todos.map((t) => t.todo),
-  ).toContain("C");
-  expect(
-    todos.map((t) => t.todo),
-  ).not.toContain("B");
+  expect(todos.map((t) => t.todo)).toContain("A");
+  expect(todos.map((t) => t.todo)).toContain("C");
+  expect(todos.map((t) => t.todo)).not.toContain(
+    "B",
+  );
 }, 60000);
