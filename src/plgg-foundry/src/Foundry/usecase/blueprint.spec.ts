@@ -22,8 +22,6 @@ test.skip("Blueprint generation with todoFoundry", async () => {
     isOk(result),
     "Blueprint should generate valid alignment",
   );
-
-  console.log(result.content);
 }, 30000);
 
 test("extractOpcodes extracts processor opcodes from todoFoundry", () => {

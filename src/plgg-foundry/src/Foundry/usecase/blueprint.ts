@@ -74,63 +74,13 @@ Input/output fields are arrays of NameTableEntry objects with {variableName, add
 
 ## CRITICAL: Register Write-Before-Read Rule
 
-**IMPORTANT**: Every register address used in a process/switch 'input' array MUST be written to by a prior assign operation or process output. You CANNOT read from an uninitialized register.
+Every register in 'input' MUST be written first by assign or process output.
 
-WRONG (reads r0 without prior assign):
-\`\`\`json
-{"ingress": {"next": "op-process"}, "operations": [{"type": "process", "name": "op-process", "input": [{"address": "r0"}], ...}]}
-\`\`\`
+## Rules
 
-CORRECT (assign writes r0, then process reads r0):
-\`\`\`json
-{"ingress": {"next": "op-assign"}, "operations": [{"type": "assign", "name": "op-assign", "address": "r0", "value": "X", "next": "op-process"}, {"type": "process", "name": "op-process", "input": [{"address": "r0"}], ...}]}
-\`\`\`
-
-## Operation Naming Rules
-
-1. **Unique Names**: Every assign/process/switch operation MUST have a unique 'name'.
-2. **No Orphans**: Every operation MUST be reachable via control flow.
-3. **Valid References**: 'next' fields MUST reference an existing operation's 'name' or 'egress'.
-
-Example without validation:
-\`\`\`json
-{
-  "ingress": { "type": "ingress", "next": "op-prompt" },
-  "operations": [
-    { "type": "assign", "name": "op-prompt", "address": "r0", "value": "user's prompt extracted here", "next": "op-plan" },
-    { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
-    { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
-  ],
-  "egress": { "type": "egress", "result": [{"name": "mainImage", "address": "r2"}] }
-}
-\`\`\`
-
-Example with assign (AI extracts a value from input and assigns it):
-\`\`\`json
-{
-  "ingress": { "type": "ingress", "next": "op-prompt" },
-  "operations": [
-    { "type": "assign", "name": "op-prompt", "address": "r0", "value": "a cat playing piano", "next": "op-set-style" },
-    { "type": "assign", "name": "op-set-style", "address": "r1", "value": "watercolor", "next": "op-gen" },
-    { "type": "process", "name": "op-gen", "action": "gen-image", "input": [{"variableName": "prompt", "address": "r0"}, {"variableName": "style", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
-  ],
-  "egress": { "type": "egress", "result": [{"name": "image", "address": "r2"}] }
-}
-\`\`\`
-
-Example with validation (validation passes → continue, validation fails → retry):
-\`\`\`json
-{
-  "ingress": { "type": "ingress", "next": "op-prompt" },
-  "operations": [
-    { "type": "assign", "name": "op-prompt", "address": "r0", "value": "user's prompt extracted here", "next": "op-plan" },
-    { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
-    { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "op-check" },
-    { "type": "switch", "name": "op-check", "action": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "op-plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] }
-  ],
-  "egress": { "type": "egress", "result": [{"name": "mainImage", "address": "r2"}] }
-}
-\`\`\``,
+1. Unique 'name' for each operation
+2. All operations reachable via control flow
+3. 'next' must reference existing operation name or 'egress'`,
       userPrompt: explainOrder(order),
       schema: {
         type: "object",

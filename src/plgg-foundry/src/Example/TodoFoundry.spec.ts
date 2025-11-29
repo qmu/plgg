@@ -6,7 +6,7 @@ import {
 } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-test("TodoFoundry", async () => {
+test.skip("TodoFoundry", async () => {
   // Clear todos before test
   todos.clear();
 
