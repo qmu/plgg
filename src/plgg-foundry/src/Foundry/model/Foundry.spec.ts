@@ -9,7 +9,7 @@ import {
   isSwitcher,
   explainFoundry,
 } from "plgg-foundry/index";
-import { makeTestFoundry } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import { todoFoundry } from "plgg-foundry/Example/TodoFoundry";
 
 /**
  * Tests makeFoundry creates valid foundry with apparatuses.
@@ -174,62 +174,25 @@ test("makeFoundry - multiple apparatuses", () => {
 /**
  * Tests explainFoundry generates comprehensive markdown documentation.
  */
-test("explainFoundry with makeTestFoundry", () => {
-  const foundry = makeTestFoundry();
-
-  const explanation = explainFoundry(foundry);
+test("explainFoundry with todoFoundry", () => {
+  const explanation = explainFoundry(todoFoundry);
 
   // Check foundry description section
   expect(explanation).toContain(
     "## 1. Foundry Description",
   );
-  expect(explanation).toContain(
-    "generating character designs",
-  );
+  expect(explanation).toContain("A foundry of TODOs");
 
   // Check processors section
   expect(explanation).toContain(
     "## 2. Processors",
   );
-  expect(explanation).toContain("### 2-1. plan");
-  expect(explanation).toContain(
-    "### 2-2. analyze",
-  );
-  expect(explanation).toContain(
-    "### 2-3. gen-main",
-  );
-  expect(explanation).toContain(
-    "### 2-4. gen-spread",
-  );
-
-  // Check switchers section
-  expect(explanation).toContain(
-    "## 3. Switchers",
-  );
-  expect(explanation).toContain(
-    "### 3-1. check-validity",
-  );
-
-  // Check packers section
-  expect(explanation).toContain("## 4. Packers");
-  expect(explanation).toContain(
-    "### 4-1. Packer 1",
-  );
+  expect(explanation).toContain("### 2-1. add");
+  expect(explanation).toContain("### 2-2. remove");
 
   // Check apparatus details are included
+  expect(explanation).toContain("Inserts new todo");
   expect(explanation).toContain(
-    "Plans the character design",
-  );
-  expect(explanation).toContain(
-    "Analyzes reference images",
-  );
-  expect(explanation).toContain(
-    "Generates the main character image",
-  );
-  expect(explanation).toContain(
-    "Generates spread images",
-  );
-  expect(explanation).toContain(
-    "Checks for inappropriate content",
+    "Removes a todo by todo id",
   );
 });

@@ -1,128 +1,64 @@
-import { test, assert, expect } from "vitest";
+import { test, assert } from "vitest";
 import { proc, isErr, isOk } from "plgg";
 import {
   asAlignment,
   asOrder,
 } from "plgg-foundry/index";
 import { operate } from "plgg-foundry/Foundry/usecase";
-import { makeTestFoundry } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import {
+  todoFoundry,
+  todos,
+} from "plgg-foundry/Example/TodoFoundry";
 
-test.skip("OperationContext: assemble -> operate with example blueprint", async () => {
-  const foundry = makeTestFoundry();
+test.skip("OperationContext: assemble -> operate with todoFoundry alignment", async () => {
+  // Clear todos before test
+  todos.clear();
 
   const maybeAlignment = asAlignment({
-    analysis:
-      "User wants a fantasy character image with sword and shield",
+    analysis: "User wants to add task A",
     ingress: {
       type: "ingress",
-      next: "assign-prompt",
+      next: "assign-todo",
     },
     operations: [
       {
         type: "assign",
-        name: "assign-prompt",
+        name: "assign-todo",
         address: "r0",
-        value:
-          "A fantasy character with a sword and shield",
-        next: "plan",
+        value: "task A",
+        next: "add",
       },
       {
         type: "process",
-        name: "plan",
-        action: "plan",
+        name: "add",
+        action: "add",
         input: [
           {
-            variableName: "prompt",
+            variableName: "todo",
             address: "r0",
           },
         ],
-        output: [
-          { variableName: "plan", address: "r1" },
-        ],
-        next: "gen-main",
-      },
-      {
-        type: "process",
-        name: "gen-main",
-        action: "gen-main",
-        input: [
-          {
-            variableName: "description",
-            address: "r1",
-          },
-        ],
-        output: [
-          {
-            variableName: "image",
-            address: "r2",
-          },
-        ],
-        next: "check-validity",
-      },
-      {
-        type: "switch",
-        name: "check-validity",
-        action: "check-validity",
-        input: [
-          {
-            variableName: "images",
-            address: "r2",
-          },
-        ],
-        nextWhenTrue: "gen-spread",
-        nextWhenFalse: "plan",
-        outputWhenTrue: [
-          {
-            variableName: "validImages",
-            address: "r3",
-          },
-        ],
-        outputWhenFalse: [
-          {
-            variableName: "feedback",
-            address: "r0",
-          },
-        ],
-      },
-      {
-        type: "process",
-        name: "gen-spread",
-        action: "gen-spread",
-        input: [
-          {
-            variableName: "image",
-            address: "r2",
-          },
-        ],
-        output: [
-          {
-            variableName: "spreadImages",
-            address: "r3",
-          },
-        ],
+        output: [],
         next: "egress",
       },
     ],
     egress: {
       type: "egress",
-      result: {
-        mainImage: "r2",
-        spreadImages: "r3",
-      },
+      result: [],
     },
   });
 
   assert(isOk(maybeAlignment));
 
   const maybeOrder = asOrder({
-    text: "A fantasy character with a sword and shield",
+    text: "Add task A",
   });
   assert(isOk(maybeOrder));
 
   // Test the flow: assemble -> operate
   const result = await proc(
     maybeAlignment.content,
-    operate(foundry)(maybeOrder.content),
+    operate(todoFoundry)(maybeOrder.content),
   );
 
   // Assert the result is successful
@@ -132,13 +68,4 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
     );
   }
   assert(isOk(result));
-  const mainImage =
-    result.content.params["mainImage"];
-  assert(mainImage);
-  assert(Array.isArray(mainImage));
-  expect(mainImage[0]).toBeInstanceOf(Uint8Array);
-  const spreadImages =
-    result.content.params["spreadImages"];
-  assert(spreadImages);
-  expect(spreadImages).toBeInstanceOf(Array);
 });

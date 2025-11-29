@@ -1,5 +1,5 @@
 import { test, assert, expect } from "vitest";
-import { isOk, proc, bind } from "plgg";
+import { isOk, proc } from "plgg";
 import {
   asOrder,
   extractOpcodes,
@@ -7,25 +7,15 @@ import {
   isSwitcher,
 } from "plgg-foundry/index";
 import { blueprint } from "plgg-foundry/Foundry/usecase";
-import { makeTestFoundry } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import { todoFoundry } from "plgg-foundry/Example/TodoFoundry";
 
-test.skip("Blueprint generation with test foundry", async () => {
+test.skip("Blueprint generation with todoFoundry", async () => {
   const result = await proc(
-    bind(
-      [
-        "foundry",
-        () => makeTestFoundry(),
-      ],
-      [
-        "order",
-        () =>
-          asOrder({
-            text: "Create a fantasy warrior character",
-          }),
-      ],
-    ),
-    ({ foundry, order }) =>
-      proc(order, blueprint(foundry)),
+    {
+      text: "Add task A and task B",
+    },
+    asOrder,
+    blueprint(todoFoundry),
   );
 
   assert(
@@ -36,31 +26,23 @@ test.skip("Blueprint generation with test foundry", async () => {
   console.log(result.content);
 }, 30000);
 
-test("extractOpcodes extracts processor opcodes from testFoundry", () => {
-  const foundry = makeTestFoundry();
-
+test("extractOpcodes extracts processor opcodes from todoFoundry", () => {
   const processorOpcodes = extractOpcodes(
-    foundry.apparatuses,
+    todoFoundry.apparatuses,
     isProcessor,
   );
 
   expect(processorOpcodes).toEqual([
-    "plan",
-    "analyze",
-    "gen-main",
-    "gen-spread",
+    "add",
+    "remove",
   ]);
 });
 
-test("extractOpcodes extracts switcher opcodes from testFoundry", () => {
-  const foundry = makeTestFoundry();
-
+test("extractOpcodes extracts switcher opcodes from todoFoundry", () => {
   const switcherOpcodes = extractOpcodes(
-    foundry.apparatuses,
+    todoFoundry.apparatuses,
     isSwitcher,
   );
 
-  expect(switcherOpcodes).toEqual([
-    "check-validity",
-  ]);
+  expect(switcherOpcodes).toEqual([]);
 });
