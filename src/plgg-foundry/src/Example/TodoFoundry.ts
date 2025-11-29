@@ -13,18 +13,18 @@ Analyzes and divides input to add and remove TODO.`,
   apparatuses: [
     makeProcessor({
       name: "add",
-      description: `Inserts new task`,
+      description: `Inserts new todo`,
       arguments: {
-        task: { type: "string" },
+        todo: { type: "string" },
       },
       fn: ({ params }) =>
-        proc(params["task"], asSoftStr, (v) => {
+        proc(params["todo"], asSoftStr, (v) => {
           todos.set(++id, v);
         }),
     }),
     makeProcessor({
       name: "remove",
-      description: `Removes a task by todo id`,
+      description: `Removes a todo by todo id`,
       arguments: {
         id: {
           type: "number",

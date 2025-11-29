@@ -6,19 +6,19 @@ import {
 } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-test.skip("TodoFoundry", async () => {
+test("TodoFoundry", async () => {
   // Clear todos before test
   todos.clear();
 
-  // Step 1: Add tasks A and B
+  // Step 1: Add todos A and B
   await proc(
-    `Add task A and B
+    `Add todo A and B
 state: ${JSON.stringify(Array.from(todos))}`,
     runFoundry(todoFoundry),
   );
-  // Step 2: Remove task B and add task C
+  // Step 2: Remove todo B and add todo C
   const result = await proc(
-    `Remove task B and add task C
+    `Remove todo B and add todo C
 state: ${JSON.stringify(Array.from(todos))}`,
     runFoundry(todoFoundry),
   );
