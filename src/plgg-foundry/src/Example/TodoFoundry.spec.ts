@@ -1,36 +1,21 @@
 import { test, assert } from "vitest";
-import {
-  bind,
-  proc,
-  isErr,
-  isOk,
-  env,
-} from "plgg";
+import { proc, isErr, isOk } from "plgg";
 import { openai } from "plgg-kit";
-import { buildSpec } from "plgg-foundry/Example";
+import { todoFoundrySpec } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
 test.skip("TodoFoundry", async () => {
   const result = await proc(
-    bind(
-      ["apiKey", () => env("OPENAI_API_KEY")],
-      ["spec", () => buildSpec()],
-      [
-        "provider",
-        ({ apiKey }) =>
-          openai({
-            apiKey,
-            modelName: "gpt-5.1",
-          }),
-      ],
-    ),
-    ({ spec, provider }) =>
+    todoFoundrySpec,
+    (spec) =>
       proc(
         {
           text: "I need to go super market to buy milk also check postal mail.",
         },
         runFoundry({
-          provider,
+          provider: openai({
+            model: "gpt-5.1",
+          }),
           spec,
         }),
       ),

@@ -1,11 +1,5 @@
 import { test, assert } from "vitest";
-import {
-  proc,
-  isErr,
-  isOk,
-  env,
-  bind,
-} from "plgg";
+import { proc, isErr, isOk, bind } from "plgg";
 import { openai } from "plgg-kit";
 import {
   makeFoundrySpec,
@@ -68,24 +62,18 @@ test.skip("Run Character Image Generation", async () => {
             ],
           }),
       ],
-      ["apiKey", () => env("OPENAI_API_KEY")],
     ),
-    ({ spec, apiKey }) =>
+    ({ spec }) =>
       proc(
-        openai({
-          apiKey,
-          modelName: "gpt-5.1",
+        {
+          text: "A fantasy character with a sword and shield",
+        },
+        runFoundry({
+          provider: openai({
+            model: "gpt-5.1",
+          }),
+          spec,
         }),
-        (provider) =>
-          proc(
-            {
-              text: "A fantasy character with a sword and shield",
-            },
-            runFoundry({
-              provider,
-              spec,
-            }),
-          ),
       ),
   );
 
