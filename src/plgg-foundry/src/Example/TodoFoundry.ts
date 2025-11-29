@@ -1,18 +1,14 @@
-import { proc, asSoftStr } from "plgg";
+import { proc, asSoftStr, asNum } from "plgg";
 import {
   makeFoundry,
   makeProcessor,
 } from "plgg-foundry/index";
 
-export const todos: Array<{
-  id: string;
-  todo: string;
-}> = [];
+export const todos = new Map<number, string>();
 let id = 0;
 
 export const todoFoundry = makeFoundry({
   description: `A foundry of TODOs.
-
 Analyzes and divides input to add and remove TODO.`,
   apparatuses: [
     makeProcessor({
@@ -23,10 +19,7 @@ Analyzes and divides input to add and remove TODO.`,
       },
       fn: ({ params }) =>
         proc(params["task"], asSoftStr, (v) => {
-          todos.push({
-            id: ++id + "",
-            todo: v,
-          });
+          todos.set(++id, v);
         }),
     }),
     makeProcessor({
@@ -34,18 +27,14 @@ Analyzes and divides input to add and remove TODO.`,
       description: `Removes a task by todo id`,
       arguments: {
         id: {
-          type: "string",
-          description: "The todo id to remove",
+          type: "number",
+          description:
+            "The numeric id of the todo to remove",
         },
       },
       fn: ({ params }) =>
-        proc(params["id"], asSoftStr, (v) => {
-          const index = todos.findIndex(
-            (t) => t.id === v,
-          );
-          if (index !== -1) {
-            todos.splice(index, 1);
-          }
+        proc(params["id"], asNum, (v) => {
+          todos.delete(v);
         }),
     }),
   ],

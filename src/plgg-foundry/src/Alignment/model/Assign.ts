@@ -11,7 +11,7 @@ export type Assign = Obj<{
   type: "assign";
   name: string;
   address: Address;
-  value: string;
+  value: string | number | boolean;
   next: string;
 }>;
 
