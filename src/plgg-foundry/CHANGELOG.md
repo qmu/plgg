@@ -19,6 +19,10 @@ All notable changes to this project will be documented in this file.
 - `explain` functions for Foundry components (Processor, Switcher, Packer)
 
 ### Changed
+- Extend `Assign.value` type to support `string | number | boolean` for numeric IDs and boolean flags
+- Update blueprint schema to use `anyOf` for value type in assign processor, enabling AI to assign appropriate primitive types
+- Refactor TodoFoundry to use `Map<number, string>` instead of object array for cleaner id-based lookup and deletion
+- Change remove processor to accept numeric id parameter matching the new data structure
 - Refactor Blueprint generation test to use `bind` function for context accumulation
 - Refactor to register machine architecture with address-based storage
 - Change Medium params from array to dictionary structure
