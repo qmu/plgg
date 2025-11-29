@@ -4,12 +4,15 @@ import {
   OrderSpec,
   asFoundry,
   asOrder,
+  isFoundrySpec,
 } from "plgg-foundry/index";
 import { Provider, openai } from "plgg-kit";
 import {
   blueprint,
   operate,
 } from "plgg-foundry/Foundry/usecase";
+
+type RunFoundryReturn = ReturnType<typeof runFoundryImpl>;
 
 /**
  * Main entry point that orchestrates the complete workflow:
@@ -20,14 +23,27 @@ import {
  *
  * Returns final medium containing alignment and output parameters.
  */
-export const runFoundry =
-  ({
-    spec,
-    provider = openai("gpt-5.1"),
-  }: {
-    spec: FoundrySpec;
-    provider?: Provider;
-  }) =>
+export function runFoundry(spec: FoundrySpec): RunFoundryReturn;
+export function runFoundry(config: {
+  spec: FoundrySpec;
+  provider?: Provider;
+}): RunFoundryReturn;
+export function runFoundry(
+  arg: FoundrySpec | { spec: FoundrySpec; provider?: Provider },
+): RunFoundryReturn {
+  if (isFoundrySpec(arg)) {
+    return runFoundryImpl({ spec: arg });
+  }
+  return runFoundryImpl(arg);
+}
+
+const runFoundryImpl = ({
+  spec,
+  provider = openai("gpt-5.1"),
+}: {
+  spec: FoundrySpec;
+  provider?: Provider;
+}) =>
   async (orderSpec: OrderSpec) =>
     proc(
       { provider, spec },

@@ -11,6 +11,7 @@ import {
   find,
   pipe,
   filter,
+  isBoxWithTag,
 } from "plgg";
 import { Provider } from "plgg-kit";
 import {
@@ -53,6 +54,13 @@ export const makeFoundrySpec = (
   box("FoundrySpec")<FoundrySpec["content"]>(
     content,
   );
+
+/**
+ * Type guard to check if a value is a FoundrySpec.
+ */
+export const isFoundrySpec = (
+  v: unknown,
+): v is FoundrySpec => isBoxWithTag("FoundrySpec")(v);
 
 /**
  * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10.

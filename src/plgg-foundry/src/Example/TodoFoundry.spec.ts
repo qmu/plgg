@@ -12,9 +12,7 @@ test.skip("TodoFoundry", async () => {
     {
       text: "Add task A and B",
     },
-    runFoundry({
-      spec: todoFoundrySpec,
-    }),
+    runFoundry(todoFoundrySpec),
   );
   console.log("todos:", todos);
 
