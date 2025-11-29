@@ -1,78 +1,19 @@
-import { test, assert } from "vitest";
-import { proc, isErr, isOk, bind } from "plgg";
-import { openai } from "plgg-kit";
-import {
-  makeFoundry,
-  makeProcessor,
-  makePacker,
-} from "plgg-foundry/index";
+import { test, assert, expect } from "vitest";
+import { proc, isErr, isOk } from "plgg";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
+import {
+  todoFoundry,
+  todos,
+} from "plgg-foundry/Example/TodoFoundry";
 
-test.skip("Run Character Image Generation", async () => {
+test.skip("runFoundry with todoFoundry", async () => {
+  // Clear todos before test
+  todos.clear();
+
   const result = await proc(
-    bind(
-      [
-        "examineProcessor",
-        () =>
-          makeProcessor({
-            name: "examine",
-            description: `This processor lets AI examine whole result of alignment.`,
-            arguments: {
-              input: { type: "string" },
-            },
-            returns: {
-              comment: { type: "string" },
-              terminate: { type: "boolean" },
-            },
-            fn: async (medium) => {
-              const value =
-                medium.params["prompt"];
-              if (typeof value !== "string") {
-                throw new Error(
-                  "Invalid medium value for planning step",
-                );
-              }
-              return {
-                comment: "All good",
-                terminate: false,
-              };
-            },
-          }),
-      ],
-      [
-        "packer",
-        () =>
-          makePacker({
-            mainImage: { type: "image[]" },
-            spreadImages: { type: "image[]" },
-            plannedDescription: {
-              type: "string",
-            },
-          }),
-      ],
-      [
-        "foundry",
-        ({ examineProcessor, packer }) =>
-          makeFoundry({
-            description:
-              "This is a foundry for virtual file system.",
-            apparatuses: [
-              examineProcessor,
-              packer,
-            ],
-            provider: openai({
-              model: "gpt-5.1",
-            }),
-          }),
-      ],
-    ),
-    ({ foundry }) =>
-      proc(
-        {
-          text: "A fantasy character with a sword and shield",
-        },
-        runFoundry(foundry),
-      ),
+    `Add todo A and todo B
+state: ${JSON.stringify(Array.from(todos))}`,
+    runFoundry(todoFoundry),
   );
 
   if (isErr(result)) {
@@ -81,4 +22,5 @@ test.skip("Run Character Image Generation", async () => {
     );
   }
   assert(isOk(result));
+  expect(todos.size).toBeGreaterThanOrEqual(1);
 }, 30000);
