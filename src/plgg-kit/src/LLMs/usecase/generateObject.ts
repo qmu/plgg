@@ -47,7 +47,7 @@ export const generateObject = ({
             ],
             [
               google$(),
-              () => env("GOOGLE_API_KEY"),
+              () => env("GEMINI_API_KEY"),
             ],
           ),
     (apiKey) =>
