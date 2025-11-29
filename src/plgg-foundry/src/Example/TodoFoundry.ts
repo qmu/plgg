@@ -1,4 +1,4 @@
-import { proc, asStr } from "plgg";
+import { proc, asSoftStr } from "plgg";
 import {
   makeFoundrySpec,
   makeProcessorSpec,
@@ -7,22 +7,22 @@ import {
 export const todos: Array<string> = [];
 
 export const todoFoundrySpec = makeFoundrySpec({
-  description: `This is TODO management foundry. 
-This foundry analyzes the input text and divides into small tasks to be added to the TODO list.`,
+  description: `A foundry of TODOs. 
+
+- Analyzes and divides input to add TODOs.`,
   apparatuses: [
     makeProcessorSpec({
       name: "add",
-      description: `Add new task`,
+      description: `This is a processor to Add new task`,
       arguments: {
         task: { type: "string" },
       },
-      returns: {},
       fn: (medium) =>
         proc(
           medium.params["task"]?.value,
-          asStr,
+          asSoftStr,
           (v) => {
-            todos.push(v.content);
+            todos.push(v);
             console.log(
               "Side effective todo update with:",
               v,

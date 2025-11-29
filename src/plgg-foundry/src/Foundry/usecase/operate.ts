@@ -10,6 +10,7 @@ import {
   conclude,
   isObj,
   filter,
+  isSome,
 } from "plgg";
 import {
   Foundry,
@@ -333,11 +334,10 @@ const execProcess = async ({
     return err(processResult.content);
   }
 
-  const returnedValue =
-    await processResult.content;
+  const returnedValue = processResult.content;
 
   // Step 4: Store returned values in registers using output NameTableEntry array
-  const returnTypes =
+  const returnTypesOpt =
     processorResult.content.content.returns;
 
   const newEnvEntries: Record<Address, Param> =
@@ -346,10 +346,11 @@ const execProcess = async ({
     // Map each variable name to its register address
     for (const entry of op.output) {
       const { variableName, address } = entry;
-      const virtualType =
-        returnTypes[variableName];
       const varValue =
         returnedValue[variableName];
+      const virtualType = isSome(returnTypesOpt)
+        ? returnTypesOpt.content[variableName]
+        : undefined;
       if (
         virtualType &&
         variableName in returnedValue &&

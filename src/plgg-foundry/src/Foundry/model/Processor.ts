@@ -41,12 +41,12 @@ export type Processor = Box<
     arguments: Option<
       Dict<VariableName, VirtualType>
     >;
-    returns: Dict<VariableName, VirtualType>;
+    returns: Option<
+      Dict<VariableName, VirtualType>
+    >;
     fn: (
       medium: Medium,
-    ) => PossiblyPromise<
-      Dict<VariableName, Datum>
-    >;
+    ) => PossiblyPromise<unknown>;
   }>
 >;
 
@@ -59,12 +59,10 @@ export type ProcessorSpec = Box<
       VariableName,
       VirtualTypeSpec
     >;
-    returns: Dict<VariableName, VirtualTypeSpec>;
+    returns?: Dict<VariableName, VirtualTypeSpec>;
     fn: (
       medium: Medium,
-    ) => PossiblyPromise<
-      Dict<VariableName, Datum>
-    >;
+    ) => PossiblyPromise<unknown>;
   }>
 >;
 
@@ -102,7 +100,7 @@ export const asProcessor = (
           "arguments",
           asDictOf(asVirtualType),
         ),
-        forProp(
+        forOptionProp(
           "returns",
           asDictOf(asVirtualType),
         ),
@@ -125,27 +123,29 @@ export const processorCastable: Castable<
 /**
  * Creates a ProcessorSpec with strict type checking on return type.
  * The process function must return keys matching the returns field.
+ * When returns is omitted, fn can return void.
  */
 export const makeProcessorSpec = <
-  const R extends Dict<
-    VariableName,
-    VirtualTypeSpec
-  >,
+  const R extends
+    | Dict<VariableName, VirtualTypeSpec>
+    | undefined,
 >(spec: {
   name: string;
   description: string;
   arguments?: Dict<VariableName, VirtualTypeSpec>;
-  returns: R;
+  returns?: R;
   fn: (
     medium: Medium,
-  ) => PossiblyPromise<
-    R extends Dict<VariableName, VirtualTypeSpec>
-      ? Record<keyof R & VariableName, Datum>
-      : Dict<VariableName, Datum>
-  >;
+  ) => R extends Dict<VariableName, VirtualTypeSpec>
+    ? PossiblyPromise<Record<keyof R & VariableName, Datum>>
+    : PossiblyPromise<unknown>;
 }): ProcessorSpec =>
   box("ProcessorSpec")<ProcessorSpec["content"]>({
-    ...spec,
+    name: spec.name,
+    description: spec.description,
+    fn: spec.fn,
+    ...(spec.arguments && { arguments: spec.arguments }),
+    ...(spec.returns && { returns: spec.returns }),
   });
 
 /**
@@ -179,6 +179,12 @@ export const explainProcessor = (
       )
     : "Any"
 }
-- Returns: ${formatEntries(
-  Object.entries(processor.content.returns),
-)}`;
+- Returns: ${
+  isSome(processor.content.returns)
+    ? formatEntries(
+        Object.entries(
+          processor.content.returns.content,
+        ),
+      )
+    : "Any"
+}`;
