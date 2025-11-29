@@ -11,8 +11,7 @@ import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpe
 
 test.skip("OperationContext: assemble -> operate with example blueprint", async () => {
   const provider = openai({
-    apiKey: "no key",
-    modelName: "gpt-5.1",
+    model: "gpt-5.1",
   });
   const spec = makeTestFoundrySpec();
 
@@ -28,7 +27,8 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
         type: "assign",
         name: "assign-prompt",
         address: "r0",
-        value: "A fantasy character with a sword and shield",
+        value:
+          "A fantasy character with a sword and shield",
         next: "plan",
       },
       {

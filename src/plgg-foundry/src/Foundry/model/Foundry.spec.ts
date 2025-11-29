@@ -14,8 +14,7 @@ import {
 import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 const provider = openai({
-  apiKey: "no key",
-  modelName: "gpt-5.1",
+  model: "gpt-5.1",
 });
 /**
  * Tests asFoundrySpec validation with a valid Foundry object.
