@@ -5,7 +5,7 @@ import {
   asFoundry,
   asOrder,
 } from "plgg-foundry/index";
-import { Provider } from "plgg-kit";
+import { Provider, openai } from "plgg-kit";
 import {
   blueprint,
   operate,
@@ -23,10 +23,10 @@ import {
 export const runFoundry =
   ({
     spec,
-    provider,
+    provider = openai("gpt-5.1"),
   }: {
     spec: FoundrySpec;
-    provider: Provider;
+    provider?: Provider;
   }) =>
   async (orderSpec: OrderSpec) =>
     proc(

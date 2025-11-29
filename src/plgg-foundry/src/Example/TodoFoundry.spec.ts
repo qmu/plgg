@@ -1,6 +1,5 @@
 import { test, assert } from "vitest";
 import { proc, isErr, isOk } from "plgg";
-import { openai } from "plgg-kit";
 import {
   todoFoundrySpec,
   todos,
@@ -14,7 +13,6 @@ test.skip("TodoFoundry", async () => {
       text: "Add task A and B",
     },
     runFoundry({
-      provider: openai("gpt-5.1"),
       spec: todoFoundrySpec,
     }),
   );
