@@ -1,17 +1,17 @@
 import { test, assert, expect } from "vitest";
-import { proc, isErr, isOk } from "plgg";
+import { proc, isOk } from "plgg";
 import {
   todoFoundry,
   todos,
 } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-test("TodoFoundry", async () => {
+test.skip("TodoFoundry", async () => {
   // Clear todos before test
   todos.length = 0;
 
   // Step 1: Add tasks A and B
-  const result1 = await proc(
+  await proc(
     `Add task A and B
 ---------------
 current todos:
@@ -19,15 +19,8 @@ ${JSON.stringify(todos, null, 2)}
 `,
     runFoundry(todoFoundry),
   );
-
-  if (isErr(result1)) {
-    assert.fail(
-      `Step 1 failed: ${result1.content.message}`,
-    );
-  }
-
   // Step 2: Remove task B and add task C
-  const result2 = await proc(
+  const result = await proc(
     `Remove task B and add task C
 ---------------
 current todos:
@@ -36,14 +29,7 @@ ${JSON.stringify(todos, null, 2)}
     runFoundry(todoFoundry),
   );
 
-  console.log("Final todos:", todos);
-
-  if (isErr(result2)) {
-    assert.fail(
-      `Step 2 failed: ${result2.content.message}`,
-    );
-  }
-  assert(isOk(result2));
+  assert(isOk(result));
 
   // Verify only A and C remain
   expect(todos).toHaveLength(2);

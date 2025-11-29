@@ -8,11 +8,12 @@ export const todos: Array<{
   id: string;
   todo: string;
 }> = [];
+let id = 0;
 
 export const todoFoundry = makeFoundry({
   description: `A foundry of TODOs.
 
-- Analyzes and divides input to add TODO.`,
+Analyzes and divides input to add and remove TODO.`,
   apparatuses: [
     makeProcessor({
       name: "add",
@@ -23,36 +24,27 @@ export const todoFoundry = makeFoundry({
       fn: ({ params }) =>
         proc(params["task"], asSoftStr, (v) => {
           todos.push({
-            id: new Date().toISOString(),
+            id: ++id + "",
             todo: v,
           });
-          console.log(
-            "Side effective todo update with:",
-            v,
-          );
         }),
     }),
     makeProcessor({
       name: "remove",
-      description: `Removes a task by todo text (not id)`,
+      description: `Removes a task by todo id`,
       arguments: {
-        task: {
+        id: {
           type: "string",
-          description:
-            "The todo text to remove (e.g. 'A', 'B')",
+          description: "The todo id to remove",
         },
       },
       fn: ({ params }) =>
-        proc(params["task"], asSoftStr, (v) => {
+        proc(params["id"], asSoftStr, (v) => {
           const index = todos.findIndex(
-            (t) => t.todo === v,
+            (t) => t.id === v,
           );
           if (index !== -1) {
             todos.splice(index, 1);
-            console.log(
-              "Side effective todo removal:",
-              v,
-            );
           }
         }),
     }),

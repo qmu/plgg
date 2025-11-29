@@ -1,4 +1,4 @@
-import { proc, tap } from "plgg";
+import { proc } from "plgg";
 import {
   Foundry,
   OrderSpec,
@@ -30,9 +30,6 @@ export const runFoundry =
       proc(
         order,
         blueprint(foundry),
-        tap((v) =>
-          console.log(JSON.stringify(v, null, 2)),
-        ),
         operate(foundry)(order),
       ),
     );
