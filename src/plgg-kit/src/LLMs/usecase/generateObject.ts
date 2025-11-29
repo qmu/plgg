@@ -58,7 +58,7 @@ export const generateObject = ({
           () =>
             reqObjectGPT({
               apiKey,
-              model: unbox(provider).modelName,
+              model: unbox(provider).model,
               instructions: systemPrompt || "",
               input: userPrompt,
               schema,
@@ -69,7 +69,7 @@ export const generateObject = ({
           () =>
             reqObjectClaude({
               apiKey,
-              model: unbox(provider).modelName,
+              model: unbox(provider).model,
               instructions: systemPrompt || "",
               input: userPrompt,
               schema,
@@ -80,7 +80,7 @@ export const generateObject = ({
           () =>
             reqObjectGemini({
               apiKey,
-              model: unbox(provider).modelName,
+              model: unbox(provider).model,
               instructions: systemPrompt || "",
               input: userPrompt,
               schema,

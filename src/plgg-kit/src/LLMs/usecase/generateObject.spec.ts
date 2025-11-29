@@ -38,7 +38,7 @@ test.skip("generateObject with OpenAI provider works", async () => {
   const result = await proc(
     {
       provider: openai({
-        modelName: "gpt-5.1",
+        model: "gpt-5.1",
       }),
       systemPrompt:
         "You are an expert cake maker.",
@@ -61,7 +61,7 @@ test.skip("generateObject with Anthropic provider works", async () => {
   const result = await proc(
     {
       provider: anthropic({
-        modelName: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-5",
       }),
       systemPrompt:
         "You are an expert cake maker.",
@@ -84,7 +84,7 @@ test.skip("generateObject with Google provider works", async () => {
   const result = await proc(
     {
       provider: google({
-        modelName: "gemini-2.5-flash",
+        model: "gemini-2.5-flash",
       }),
       systemPrompt:
         "You are an expert cake maker.",

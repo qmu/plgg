@@ -32,14 +32,14 @@ export type Provider =
 // -------------
 
 type Config = Obj<{
-  modelName: string;
+  model: string;
   apiKey: Option<string>;
 }>;
 const asConfig = (v: unknown) =>
   cast(
     v,
     asObj,
-    forProp("modelName", asSoftStr),
+    forProp("model", asSoftStr),
     forOptionProp("apiKey", asSoftStr),
   );
 
@@ -49,16 +49,17 @@ export type OpenAI = Box<"OpenAI", Config>;
 export const openAI$ = pattern("OpenAI");
 export const asOpenAI = (v: unknown) =>
   cast(v, asBox, forContent("OpenAI", asConfig));
-export const openai = (config: {
-  modelName: string;
+export const openai = ({
+  model,
+  apiKey,
+}: {
+  model: string;
   apiKey?: string;
 }): OpenAI =>
   pipe(
     {
-      modelName: config.modelName,
-      apiKey: config.apiKey
-        ? some(config.apiKey)
-        : none(),
+      model,
+      apiKey: apiKey ? some(apiKey) : none(),
     },
     box("OpenAI"),
   );
@@ -73,16 +74,17 @@ export const asAnthropic = (v: unknown) =>
     asBox,
     forContent("Anthropic", asConfig),
   );
-export const anthropic = (config: {
-  modelName: string;
+export const anthropic = ({
+  model,
+  apiKey,
+}: {
+  model: string;
   apiKey?: string;
 }): Anthropic =>
   pipe(
     {
-      modelName: config.modelName,
-      apiKey: config.apiKey
-        ? some(config.apiKey)
-        : none(),
+      model,
+      apiKey: apiKey ? some(apiKey) : none(),
     },
     box("Anthropic"),
   );
@@ -93,16 +95,17 @@ export type Google = Box<"Google", Config>;
 export const google$ = pattern("Google");
 export const asGoogle = (v: unknown) =>
   cast(v, asBox, forContent("Google", asConfig));
-export const google = (config: {
-  modelName: string;
+export const google = ({
+  model,
+  apiKey,
+}: {
+  model: string;
   apiKey?: string;
 }): Google =>
   pipe(
     {
-      modelName: config.modelName,
-      apiKey: config.apiKey
-        ? some(config.apiKey)
-        : none(),
+      model,
+      apiKey: apiKey ? some(apiKey) : none(),
     },
     box("Google"),
   );
