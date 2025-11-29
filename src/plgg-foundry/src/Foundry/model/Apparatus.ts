@@ -1,28 +1,13 @@
 import {
-  Castable,
-  Result,
-  InvalidError,
-  err,
-} from "plgg";
-import {
   Processor,
-  ProcessorSpec,
   Switcher,
-  SwitcherSpec,
   Packer,
-  PackerSpec,
-  asProcessor,
-  asSwitcher,
-  asPacker,
   explainProcessor,
   explainSwitcher,
   explainPacker,
   isProcessor,
   isSwitcher,
   isPacker,
-  isProcessorSpec,
-  isSwitcherSpec,
-  isPackerSpec,
 } from "plgg-foundry/index";
 
 /**
@@ -33,44 +18,6 @@ export type Apparatus =
   | Processor
   | Switcher
   | Packer;
-
-export type ApparatusSpec =
-  | ProcessorSpec
-  | SwitcherSpec
-  | PackerSpec;
-
-/**
- * Validates and casts an ApparatusSpec to Apparatus.
- */
-export const asApparatus = (
-  v: unknown,
-): Result<Apparatus, InvalidError> => {
-  if (isProcessorSpec(v)) {
-    return asProcessor(v);
-  }
-  if (isSwitcherSpec(v)) {
-    return asSwitcher(v);
-  }
-  if (isPackerSpec(v)) {
-    return asPacker(v);
-  }
-  return err(
-    new InvalidError({
-      message:
-        "Value is not a valid ApparatusSpec",
-    }),
-  );
-};
-
-/**
- * Castable instance for Apparatus safe casting.
- */
-export const apparatusCastable: Castable<
-  Apparatus,
-  ApparatusSpec
-> = {
-  as: asApparatus,
-};
 
 /**
  * Generates human-readable markdown description of apparatus.

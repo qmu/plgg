@@ -3,16 +3,15 @@ import {
   Obj,
   Bool,
   Option,
-  cast,
-  forProp,
-  forOptionProp,
-  asObj,
-  asStr,
-  asBool,
+  Dict,
+  box,
+  some,
+  none,
   pipe,
   isSome,
   unbox,
 } from "plgg";
+import { VariableName } from "plgg-foundry/Foundry/model/NameTable";
 
 /**
  * Type descriptor for function arguments and return values.
@@ -30,15 +29,31 @@ export type VirtualTypeSpec = Obj<{
 }>;
 
 /**
- * Validates and casts a value to VirtualType.
+ * Converts a VirtualTypeSpec to VirtualType.
  */
-export const asVirtualType = (value: unknown) =>
-  cast(
-    value,
-    asObj,
-    forProp("type", asStr),
-    forOptionProp("optional", asBool),
-    forOptionProp("description", asStr),
+export const toVirtualType = (
+  spec: VirtualTypeSpec,
+): VirtualType => ({
+  type: box("Str")(spec.type) as Str,
+  optional: spec.optional !== undefined
+    ? some(spec.optional as Bool)
+    : none(),
+  description: spec.description
+    ? some(box("Str")(spec.description) as Str)
+    : none(),
+});
+
+/**
+ * Converts a Dict of VirtualTypeSpec to Dict of VirtualType.
+ */
+export const toVirtualTypeDict = (
+  specs: Dict<VariableName, VirtualTypeSpec>,
+): Dict<VariableName, VirtualType> =>
+  Object.fromEntries(
+    Object.entries(specs).map(([k, v]) => [
+      k,
+      toVirtualType(v),
+    ]),
   );
 
 /**

@@ -35,7 +35,7 @@ import {
   findSwitcher,
   findProcessor,
   findIngress,
-  asVirtualType,
+  toVirtualType,
 } from "plgg-foundry/index";
 
 /**
@@ -117,38 +117,37 @@ const execAssign = ({
 }: {
   op: Assign;
   ctx: OperationContext;
-}): PromisedResult<Medium, Error> =>
-  proc(
-    { name: op.address, type: "string" },
-    asVirtualType,
-    (virtualType) => {
-      const nextCtx = {
-        ...ctx,
-        env: {
-          ...ctx.env,
-          [op.address]: {
-            type: virtualType,
-            value: op.value,
-          },
-        },
-        operationCount: ctx.operationCount + 1,
-      };
+}): PromisedResult<Medium, Error> => {
+  const virtualType = toVirtualType({
+    type: "string",
+  });
 
-      if (op.next === "egress") {
-        return proc(
-          ctx.alignment,
-          findEgress,
-          execute(nextCtx),
-        );
-      }
-
-      return proc(
-        ctx.alignment,
-        findOperations(op.next),
-        execute(nextCtx),
-      );
+  const nextCtx = {
+    ...ctx,
+    env: {
+      ...ctx.env,
+      [op.address]: {
+        type: virtualType,
+        value: op.value,
+      },
     },
+    operationCount: ctx.operationCount + 1,
+  };
+
+  if (op.next === "egress") {
+    return proc(
+      ctx.alignment,
+      findEgress,
+      execute(nextCtx),
+    );
+  }
+
+  return proc(
+    ctx.alignment,
+    findOperations(op.next),
+    execute(nextCtx),
   );
+};
 
 /**
  * Loads a param from environment by address.

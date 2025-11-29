@@ -1,20 +1,15 @@
 import {
-  Castable,
   Dict,
   Box,
   box,
-  asDictOf,
   isBoxWithTag,
-  forContent,
-  asBox,
-  cast,
 } from "plgg";
 import {
   VirtualType,
   VirtualTypeSpec,
   VariableName,
-  asVirtualType,
   formatVirtualType,
+  toVirtualTypeDict,
 } from "plgg-foundry/index";
 
 /**
@@ -26,11 +21,6 @@ export type Packer = Box<
   Dict<VariableName, VirtualType>
 >;
 
-export type PackerSpec = Box<
-  "PackerSpec",
-  Dict<VariableName, VirtualTypeSpec>
->;
-
 /**
  * Type guard to check if apparatus is a Packer.
  * Packers are plain Dict objects without 'process' or 'check' functions.
@@ -40,43 +30,12 @@ export const isPacker = (
 ): v is Packer => isBoxWithTag("Packer")(v);
 
 /**
- * Type guard to check if apparatus spec is a PackerSpec.
- * PackerSpecs are plain Dict objects without 'process' or 'check' functions.
+ * Creates a new Packer with type-safe content.
  */
-export const isPackerSpec = (
-  v: unknown,
-): v is PackerSpec =>
-  isBoxWithTag("PackerSpec")(v);
-
-/**
- * Validates and casts a PackerSpec to Packer.
- */
-export const asPacker = (value: PackerSpec) =>
-  cast(
-    value.content,
-    asBox,
-    forContent("Packer", (a) =>
-      cast(a, asDictOf(asVirtualType)),
-    ),
-  );
-
-/**
- * Castable instance for Packer safe casting.
- */
-export const packerCastable: Castable<
-  Packer,
-  PackerSpec
-> = {
-  as: asPacker,
-};
-
-/**
- * Creates a new PackerSpec with type-safe content.
- */
-export const makePackerSpec = (
-  spec: PackerSpec["content"],
-): PackerSpec =>
-  box("PackerSpec")<PackerSpec["content"]>(spec);
+export const makePacker = (
+  spec: Dict<VariableName, VirtualTypeSpec>,
+): Packer =>
+  box("Packer")(toVirtualTypeDict(spec));
 
 /**
  * Formats entries as multiline YAML-like list.

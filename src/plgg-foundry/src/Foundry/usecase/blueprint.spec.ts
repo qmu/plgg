@@ -1,39 +1,20 @@
 import { test, assert, expect } from "vitest";
 import { isOk, proc, bind } from "plgg";
-import { openai } from "plgg-kit";
 import {
-  asFoundry,
   asOrder,
   extractOpcodes,
   isProcessor,
   isSwitcher,
 } from "plgg-foundry/index";
 import { blueprint } from "plgg-foundry/Foundry/usecase";
-import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
-
-const makeTestProvider = () =>
-  openai({
-    model: "gpt-4",
-    apiKey: "test-api-key",
-  });
+import { makeTestFoundry } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("Blueprint generation with test foundry", async () => {
   const result = await proc(
     bind(
       [
-        "provider",
-        () =>
-          openai({
-            model: "gpt-5.1",
-          }),
-      ],
-      [
         "foundry",
-        ({ provider }) =>
-          asFoundry({
-            provider,
-            spec: makeTestFoundrySpec(),
-          }),
+        () => makeTestFoundry(),
       ],
       [
         "order",
@@ -55,20 +36,11 @@ test.skip("Blueprint generation with test foundry", async () => {
   console.log(result.content);
 }, 30000);
 
-test("extractOpcodes extracts processor opcodes from testFoundrySpec", () => {
-  const spec = makeTestFoundrySpec();
-  const foundryResult = asFoundry({
-    provider: makeTestProvider(),
-    spec,
-  });
-
-  assert(
-    isOk(foundryResult),
-    "Foundry should be created",
-  );
+test("extractOpcodes extracts processor opcodes from testFoundry", () => {
+  const foundry = makeTestFoundry();
 
   const processorOpcodes = extractOpcodes(
-    foundryResult.content.apparatuses,
+    foundry.apparatuses,
     isProcessor,
   );
 
@@ -80,20 +52,11 @@ test("extractOpcodes extracts processor opcodes from testFoundrySpec", () => {
   ]);
 });
 
-test("extractOpcodes extracts switcher opcodes from testFoundrySpec", () => {
-  const spec = makeTestFoundrySpec();
-  const foundryResult = asFoundry({
-    provider: makeTestProvider(),
-    spec,
-  });
-
-  assert(
-    isOk(foundryResult),
-    "Foundry should be created",
-  );
+test("extractOpcodes extracts switcher opcodes from testFoundry", () => {
+  const foundry = makeTestFoundry();
 
   const switcherOpcodes = extractOpcodes(
-    foundryResult.content.apparatuses,
+    foundry.apparatuses,
     isSwitcher,
   );
 

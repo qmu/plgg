@@ -1,5 +1,4 @@
 import {
-  Castable,
   KebabCase,
   Str,
   Option,
@@ -8,26 +7,18 @@ import {
   Dict,
   Box,
   box,
-  cast,
-  forProp,
-  forOptionProp,
-  asStr,
-  asFunc,
-  asKebabCase,
   isSome,
-  asDictOf,
-  asBox,
-  asRawObj,
-  forContent,
   isBoxWithTag,
+  some,
+  none,
 } from "plgg";
 import {
   Medium,
   VirtualType,
   VirtualTypeSpec,
   VariableName,
-  asVirtualType,
   formatVirtualType,
+  toVirtualTypeDict,
 } from "plgg-foundry/index";
 
 /**
@@ -50,22 +41,6 @@ export type Processor = Box<
   }>
 >;
 
-export type ProcessorSpec = Box<
-  "ProcessorSpec",
-  Readonly<{
-    name: string;
-    description: string;
-    arguments?: Dict<
-      VariableName,
-      VirtualTypeSpec
-    >;
-    returns?: Dict<VariableName, VirtualTypeSpec>;
-    fn: (
-      medium: Medium,
-    ) => PossiblyPromise<unknown>;
-  }>
->;
-
 /**
  * Type guard to check if apparatus is a Processor.
  */
@@ -74,58 +49,11 @@ export const isProcessor = (
 ): v is Processor => isBoxWithTag("Processor")(v);
 
 /**
- * Type guard to check if apparatus spec is a ProcessorSpec.
- */
-export const isProcessorSpec = (
-  v: unknown,
-): v is ProcessorSpec =>
-  isBoxWithTag("ProcessorSpec")(v);
-
-/**
- * Validates and casts a ProcessorSpec to Processor.
- */
-export const asProcessor = (
-  value: ProcessorSpec,
-) =>
-  cast(
-    value.content,
-    asBox,
-    forContent("Processor", (a) =>
-      cast(
-        a,
-        asRawObj,
-        forProp("name", asKebabCase),
-        forProp("description", asStr),
-        forOptionProp(
-          "arguments",
-          asDictOf(asVirtualType),
-        ),
-        forOptionProp(
-          "returns",
-          asDictOf(asVirtualType),
-        ),
-        forProp("fn", asFunc),
-      ),
-    ),
-  );
-
-/**
- *
- * Castable instance for Processor safe casting.
- */
-export const processorCastable: Castable<
-  Processor,
-  ProcessorSpec
-> = {
-  as: asProcessor,
-};
-
-/**
- * Creates a ProcessorSpec with strict type checking on return type.
+ * Creates a Processor with strict type checking on return type.
  * The process function must return keys matching the returns field.
  * When returns is omitted, fn can return void.
  */
-export const makeProcessorSpec = <
+export const makeProcessor = <
   const R extends
     | Dict<VariableName, VirtualTypeSpec>
     | undefined,
@@ -139,13 +67,17 @@ export const makeProcessorSpec = <
   ) => R extends Dict<VariableName, VirtualTypeSpec>
     ? PossiblyPromise<Record<keyof R & VariableName, Datum>>
     : PossiblyPromise<unknown>;
-}): ProcessorSpec =>
-  box("ProcessorSpec")<ProcessorSpec["content"]>({
-    name: spec.name,
-    description: spec.description,
+}): Processor =>
+  box("Processor")({
+    name: box("KebabCase")(spec.name) as KebabCase,
+    description: box("Str")(spec.description) as Str,
+    arguments: spec.arguments
+      ? some(toVirtualTypeDict(spec.arguments))
+      : none(),
+    returns: spec.returns
+      ? some(toVirtualTypeDict(spec.returns))
+      : none(),
     fn: spec.fn,
-    ...(spec.arguments && { arguments: spec.arguments }),
-    ...(spec.returns && { returns: spec.returns }),
   });
 
 /**

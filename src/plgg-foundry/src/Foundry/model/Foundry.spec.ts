@@ -1,29 +1,24 @@
-import { test, expect, assert } from "vitest";
-import { isOk, isErr, filter, pipe } from "plgg";
-import { openai } from "plgg-kit";
+import { test, expect } from "vitest";
+import { filter, pipe } from "plgg";
 import {
-  asFoundry,
-  makeFoundrySpec,
-  makeProcessorSpec,
-  makeSwitcherSpec,
-  makePackerSpec,
+  makeFoundry,
+  makeProcessor,
+  makeSwitcher,
+  makePacker,
   isProcessor,
   isSwitcher,
   explainFoundry,
 } from "plgg-foundry/index";
-import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import { makeTestFoundry } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
-const provider = openai({
-  model: "gpt-5.1",
-});
 /**
- * Tests asFoundrySpec validation with a valid Foundry object.
+ * Tests makeFoundry creates valid foundry with apparatuses.
  */
-test("asFoundrySpec validation - valid foundry", () => {
-  const spec = makeFoundrySpec({
+test("makeFoundry - valid foundry with apparatuses", () => {
+  const foundry = makeFoundry({
     description: "Test foundry description",
     apparatuses: [
-      makeProcessorSpec({
+      makeProcessor({
         name: "test-processor",
         description: "A test processor",
         arguments: {
@@ -36,7 +31,7 @@ test("asFoundrySpec validation - valid foundry", () => {
           result: "test-result",
         }),
       }),
-      makeSwitcherSpec({
+      makeSwitcher({
         name: "test-switcher",
         description: "A test switcher",
         arguments: {
@@ -55,15 +50,12 @@ test("asFoundrySpec validation - valid foundry", () => {
           },
         ],
       }),
-      makePackerSpec({
+      makePacker({
         result: { type: "string" },
       }),
     ],
   });
 
-  const result = asFoundry({ provider, spec });
-  assert(isOk(result));
-  const foundry = result.content;
   expect(foundry.apparatuses).toHaveLength(3);
   const processors = pipe(
     foundry.apparatuses,
@@ -84,28 +76,24 @@ test("asFoundrySpec validation - valid foundry", () => {
 });
 
 /**
- * Tests asFoundrySpec validation with empty apparatuses array.
+ * Tests makeFoundry with empty apparatuses array.
  */
-test("asFoundrySpec validation - empty apparatuses", () => {
-  const spec = makeFoundrySpec({
+test("makeFoundry - empty apparatuses", () => {
+  const foundry = makeFoundry({
     description: "Empty foundry",
     apparatuses: [],
   });
-  const result = asFoundry({ provider, spec });
-  assert(isOk(result));
-  expect(result.content.apparatuses).toHaveLength(
-    0,
-  );
+  expect(foundry.apparatuses).toHaveLength(0);
 });
 
 /**
- * Tests asFoundrySpec validation with multiple processors and switchers.
+ * Tests makeFoundry with multiple processors and switchers.
  */
-test("asFoundrySpec validation - multiple apparatuses", () => {
-  const spec = makeFoundrySpec({
+test("makeFoundry - multiple apparatuses", () => {
+  const foundry = makeFoundry({
     description: "Multi-component foundry",
     apparatuses: [
-      makeProcessorSpec({
+      makeProcessor({
         name: "processor-1",
         description: "First processor",
         arguments: {
@@ -118,7 +106,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
           result: 1,
         }),
       }),
-      makeProcessorSpec({
+      makeProcessor({
         name: "processor-2",
         description: "Second processor",
         arguments: {
@@ -131,7 +119,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
           result: "result",
         }),
       }),
-      makeSwitcherSpec({
+      makeSwitcher({
         name: "switcher-1",
         description: "First switcher",
         arguments: {
@@ -150,7 +138,7 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
           },
         ],
       }),
-      makeSwitcherSpec({
+      makeSwitcher({
         name: "switcher-2",
         description: "Second switcher",
         arguments: {
@@ -170,17 +158,13 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
     ],
   });
 
-  const result = asFoundry({ provider, spec });
-  assert(isOk(result));
-  expect(result.content.apparatuses).toHaveLength(
-    4,
-  );
+  expect(foundry.apparatuses).toHaveLength(4);
   const processors = pipe(
-    result.content.apparatuses,
+    foundry.apparatuses,
     filter(isProcessor),
   );
   const switchers = pipe(
-    result.content.apparatuses,
+    foundry.apparatuses,
     filter(isSwitcher),
   );
   expect(processors).toHaveLength(2);
@@ -188,89 +172,10 @@ test("asFoundrySpec validation - multiple apparatuses", () => {
 });
 
 /**
- * Tests asFoundrySpec validation failure when description is missing.
- */
-test("asFoundrySpec validation - missing description", () => {
-  const spec = {
-    apparatuses: [],
-  };
-  const result = asFoundry({
-    provider,
-    spec: spec as any,
-  });
-  assert(isErr(result));
-  expect(result.content.message).toContain(
-    "Cast failed",
-  );
-});
-
-/**
- * Tests asFoundrySpec validation failure when apparatuses is missing.
- */
-test("asFoundrySpec validation - missing apparatuses", () => {
-  const spec = {
-    description: "Test foundry",
-  };
-  const result = asFoundry({
-    provider,
-    spec: spec as any,
-  });
-  assert(isErr(result));
-  expect(result.content.message).toContain(
-    "Cast failed",
-  );
-});
-
-/**
- * Tests asFoundrySpec validation failure with invalid apparatus structure.
- */
-test("asFoundrySpec validation - invalid apparatus", () => {
-  const spec = {
-    description: "Test foundry",
-    apparatuses: [
-      {
-        id: "test",
-        description: "test",
-        // missing required fields
-      },
-    ],
-  };
-  const result = asFoundry({
-    provider,
-    spec: spec as any,
-  });
-  assert(isErr(result));
-  expect(result.content.message).toContain(
-    "Cast failed",
-  );
-});
-
-/**
- * Tests asFoundrySpec validation failure when apparatuses is not an array.
- */
-test("asFoundrySpec validation - apparatuses not array", () => {
-  const spec = {
-    description: "Test foundry",
-    apparatuses: "not an array",
-  };
-  const result = asFoundry({
-    provider,
-    spec: spec as any,
-  });
-  assert(isErr(result));
-  expect(result.content.message).toContain(
-    "Cast failed",
-  );
-});
-
-/**
  * Tests explainFoundry generates comprehensive markdown documentation.
  */
-test("explainFoundry with makeTestFoundrySpec", () => {
-  const spec = makeTestFoundrySpec();
-  const result = asFoundry({ provider, spec });
-  assert(isOk(result));
-  const foundry = result.content;
+test("explainFoundry with makeTestFoundry", () => {
+  const foundry = makeTestFoundry();
 
   const explanation = explainFoundry(foundry);
 

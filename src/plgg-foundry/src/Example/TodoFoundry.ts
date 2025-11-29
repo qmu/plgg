@@ -1,17 +1,17 @@
 import { proc, asSoftStr } from "plgg";
 import {
-  makeFoundrySpec,
-  makeProcessorSpec,
+  makeFoundry,
+  makeProcessor,
 } from "plgg-foundry/index";
 
 export const todos: Array<string> = [];
 
-export const todoFoundrySpec = makeFoundrySpec({
-  description: `A foundry of TODOs. 
+export const todoFoundry = makeFoundry({
+  description: `A foundry of TODOs.
 
 - Analyzes and divides input to add TODOs.`,
   apparatuses: [
-    makeProcessorSpec({
+    makeProcessor({
       name: "add",
       description: `This is a processor to Add new task`,
       arguments: {

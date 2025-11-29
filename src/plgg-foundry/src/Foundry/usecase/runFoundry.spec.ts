@@ -2,9 +2,9 @@ import { test, assert } from "vitest";
 import { proc, isErr, isOk, bind } from "plgg";
 import { openai } from "plgg-kit";
 import {
-  makeFoundrySpec,
-  makeProcessorSpec,
-  makePackerSpec,
+  makeFoundry,
+  makeProcessor,
+  makePacker,
 } from "plgg-foundry/index";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
@@ -14,7 +14,7 @@ test.skip("Run Character Image Generation", async () => {
       [
         "examineProcessor",
         () =>
-          makeProcessorSpec({
+          makeProcessor({
             name: "examine",
             description: `This processor lets AI examine whole result of alignment.`,
             arguments: {
@@ -42,7 +42,7 @@ test.skip("Run Character Image Generation", async () => {
       [
         "packer",
         () =>
-          makePackerSpec({
+          makePacker({
             mainImage: { type: "image[]" },
             spreadImages: { type: "image[]" },
             plannedDescription: {
@@ -51,29 +51,27 @@ test.skip("Run Character Image Generation", async () => {
           }),
       ],
       [
-        "spec",
+        "foundry",
         ({ examineProcessor, packer }) =>
-          makeFoundrySpec({
+          makeFoundry({
             description:
               "This is a foundry for virtual file system.",
             apparatuses: [
               examineProcessor,
               packer,
             ],
+            provider: openai({
+              model: "gpt-5.1",
+            }),
           }),
       ],
     ),
-    ({ spec }) =>
+    ({ foundry }) =>
       proc(
         {
           text: "A fantasy character with a sword and shield",
         },
-        runFoundry({
-          provider: openai({
-            model: "gpt-5.1",
-          }),
-          spec,
-        }),
+        runFoundry(foundry),
       ),
   );
 

@@ -1,33 +1,24 @@
 import {
   KebabCase,
   Str,
-  Castable,
   Option,
   PossiblyPromise,
   Datum,
   Dict,
   Box,
   box,
-  cast,
-  forProp,
-  forOptionProp,
-  asStr,
-  asFunc,
-  asKebabCase,
   isSome,
-  asDictOf,
-  asBox,
-  asRawObj,
-  forContent,
   isBoxWithTag,
+  some,
+  none,
 } from "plgg";
 import {
   Medium,
   VirtualType,
   VirtualTypeSpec,
   VariableName,
-  asVirtualType,
   formatVirtualType,
+  toVirtualTypeDict,
 } from "plgg-foundry/index";
 
 /**
@@ -53,29 +44,6 @@ export type Switcher = Box<
   }
 >;
 
-export type SwitcherSpec = Box<
-  "SwitcherSpec",
-  Readonly<{
-    name: string;
-    description: string;
-    arguments?: Dict<
-      VariableName,
-      VirtualTypeSpec
-    >;
-    returnsWhenTrue?: Dict<
-      VariableName,
-      VirtualTypeSpec
-    >;
-    returnsWhenFalse?: Dict<
-      VariableName,
-      VirtualTypeSpec
-    >;
-    fn: (
-      medium: Medium,
-    ) => PossiblyPromise<[boolean, unknown]>;
-  }>
->;
-
 /**
  * Type guard to check if apparatus is a Switcher.
  */
@@ -84,59 +52,11 @@ export const isSwitcher = (
 ): v is Switcher => isBoxWithTag("Switcher")(v);
 
 /**
- * Type guard to check if apparatus spec is a SwitcherSpec.
- */
-export const isSwitcherSpec = (
-  v: unknown,
-): v is SwitcherSpec =>
-  isBoxWithTag("SwitcherSpec")(v);
-
-/**
- * Validates and casts a SwitcherSpec to Switcher.
- */
-export const asSwitcher = (value: SwitcherSpec) =>
-  cast(
-    value.content,
-    asBox,
-    forContent("Switcher", (a) =>
-      cast(
-        a,
-        asRawObj,
-        forProp("name", asKebabCase),
-        forProp("description", asStr),
-        forOptionProp(
-          "arguments",
-          asDictOf(asVirtualType),
-        ),
-        forOptionProp(
-          "returnsWhenTrue",
-          asDictOf(asVirtualType),
-        ),
-        forOptionProp(
-          "returnsWhenFalse",
-          asDictOf(asVirtualType),
-        ),
-        forProp("fn", asFunc),
-      ),
-    ),
-  );
-
-/**
- * Castable instance for Switcher safe casting.
- */
-export const switcherCastable: Castable<
-  Switcher,
-  SwitcherSpec
-> = {
-  as: asSwitcher,
-};
-
-/**
- * Creates a SwitcherSpec with strict type checking on return types.
+ * Creates a Switcher with strict type checking on return types.
  * The check function must return keys matching the returnsWhenTrue and returnsWhenFalse fields.
  * When returns fields are omitted, fn can return [boolean, unknown].
  */
-export const makeSwitcherSpec = <
+export const makeSwitcher = <
   const RT extends
     | Dict<VariableName, VirtualTypeSpec>
     | undefined,
@@ -168,18 +88,20 @@ export const makeSwitcherSpec = <
           [boolean, Record<keyof RF & VariableName, Datum>]
         >
       : PossiblyPromise<[boolean, unknown]>;
-}): SwitcherSpec =>
-  box("SwitcherSpec")<SwitcherSpec["content"]>({
-    name: spec.name,
-    description: spec.description,
+}): Switcher =>
+  box("Switcher")({
+    name: box("KebabCase")(spec.name) as KebabCase,
+    description: box("Str")(spec.description) as Str,
+    arguments: spec.arguments
+      ? some(toVirtualTypeDict(spec.arguments))
+      : none(),
+    returnsWhenTrue: spec.returnsWhenTrue
+      ? some(toVirtualTypeDict(spec.returnsWhenTrue))
+      : none(),
+    returnsWhenFalse: spec.returnsWhenFalse
+      ? some(toVirtualTypeDict(spec.returnsWhenFalse))
+      : none(),
     fn: spec.fn,
-    ...(spec.arguments && { arguments: spec.arguments }),
-    ...(spec.returnsWhenTrue && {
-      returnsWhenTrue: spec.returnsWhenTrue,
-    }),
-    ...(spec.returnsWhenFalse && {
-      returnsWhenFalse: spec.returnsWhenFalse,
-    }),
   });
 
 /**

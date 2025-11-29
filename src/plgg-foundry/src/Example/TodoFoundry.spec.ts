@@ -1,7 +1,7 @@
 import { test, assert } from "vitest";
 import { proc, isErr, isOk } from "plgg";
 import {
-  todoFoundrySpec,
+  todoFoundry,
   todos,
 } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
@@ -12,7 +12,7 @@ test.skip("TodoFoundry", async () => {
     {
       text: "Add task A and B",
     },
-    runFoundry(todoFoundrySpec),
+    runFoundry(todoFoundry),
   );
   console.log("todos:", todos);
 

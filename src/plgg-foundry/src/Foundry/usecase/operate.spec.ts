@@ -1,19 +1,14 @@
 import { test, assert, expect } from "vitest";
 import { proc, isErr, isOk } from "plgg";
-import { openai } from "plgg-kit";
 import {
   asAlignment,
-  asFoundry,
   asOrder,
 } from "plgg-foundry/index";
 import { operate } from "plgg-foundry/Foundry/usecase";
-import { makeTestFoundrySpec } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
+import { makeTestFoundry } from "plgg-foundry/Foundry/usecase/testFoundrySpec";
 
 test.skip("OperationContext: assemble -> operate with example blueprint", async () => {
-  const provider = openai({
-    model: "gpt-5.1",
-  });
-  const spec = makeTestFoundrySpec();
+  const foundry = makeTestFoundry();
 
   const maybeAlignment = asAlignment({
     analysis:
@@ -126,13 +121,8 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
 
   // Test the flow: assemble -> operate
   const result = await proc(
-    { provider, spec },
-    asFoundry,
-    (foundry) =>
-      proc(
-        maybeAlignment.content,
-        operate(foundry)(maybeOrder.content),
-      ),
+    maybeAlignment.content,
+    operate(foundry)(maybeOrder.content),
   );
 
   // Assert the result is successful

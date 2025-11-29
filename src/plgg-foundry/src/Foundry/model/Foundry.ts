@@ -1,25 +1,16 @@
 import {
   Str,
-  Castable,
   Result,
-  Box,
   box,
-  asStr,
-  cast,
-  forProp,
-  asReadonlyArray,
   find,
   pipe,
   filter,
-  isBoxWithTag,
 } from "plgg";
-import { Provider } from "plgg-kit";
+import { Provider, openai } from "plgg-kit";
 import {
   Apparatus,
-  ApparatusSpec,
   Processor,
   Switcher,
-  asApparatus,
   isProcessor,
   isSwitcher,
   isPacker,
@@ -36,67 +27,22 @@ export type Foundry = Readonly<{
   apparatuses: ReadonlyArray<Apparatus>;
 }>;
 
-export type FoundrySpec = Box<
-  "FoundrySpec",
-  Readonly<{
-    description: string;
-    maxOperationLimit?: number;
-    apparatuses: ReadonlyArray<ApparatusSpec>;
-  }>
->;
-
 /**
- * Creates a new FoundrySpec with type-safe content.
+ * Creates a new Foundry with the given apparatuses.
+ * Provider defaults to openai("gpt-5.1") if not specified.
+ * maxOperationLimit defaults to 10 if not specified.
  */
-export const makeFoundrySpec = (
-  content: FoundrySpec["content"],
-): FoundrySpec =>
-  box("FoundrySpec")<FoundrySpec["content"]>(
-    content,
-  );
-
-/**
- * Type guard to check if a value is a FoundrySpec.
- */
-export const isFoundrySpec = (
-  v: unknown,
-): v is FoundrySpec => isBoxWithTag("FoundrySpec")(v);
-
-/**
- * Validates and casts a FoundrySpec to Foundry with default maxOperationLimit of 10.
- */
-export const asFoundry = ({
-  provider,
-  spec,
-}: {
-  provider: Provider;
-  spec: FoundrySpec;
-}) =>
-  cast(
-    {
-      provider,
-      maxOperationLimit: 10,
-      ...spec.content,
-    },
-    forProp("description", asStr),
-    forProp(
-      "apparatuses",
-      asReadonlyArray(asApparatus),
-    ),
-  );
-
-/**
- * Castable instance for Foundry safe casting.
- */
-export const foundrySpecCastable: Castable<
-  Foundry,
-  {
-    provider: Provider;
-    spec: FoundrySpec;
-  }
-> = {
-  as: asFoundry,
-};
+export const makeFoundry = (spec: {
+  description: string;
+  apparatuses: ReadonlyArray<Apparatus>;
+  provider?: Provider;
+  maxOperationLimit?: number;
+}): Foundry => ({
+  provider: spec.provider ?? openai("gpt-5.1"),
+  description: box("Str")(spec.description) as Str,
+  maxOperationLimit: spec.maxOperationLimit ?? 10,
+  apparatuses: spec.apparatuses,
+});
 
 /**
  * Finds a switcher by opcode in the foundry apparatuses.
