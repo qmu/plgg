@@ -118,5 +118,5 @@ export const explainProcessor = (
           processor.content.returns.content,
         ),
       )
-    : "Any"
+    : "None"
 }`;

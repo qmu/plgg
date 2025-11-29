@@ -143,7 +143,7 @@ export const explainSwitcher = (
             switcher.content.returnsWhenTrue.content,
           ),
         )
-      : "Any"
+      : "None"
   }
 - Returns When False: ${
     isSome(switcher.content.returnsWhenFalse)
@@ -152,5 +152,5 @@ export const explainSwitcher = (
             switcher.content.returnsWhenFalse.content,
           ),
         )
-      : "Any"
+      : "None"
   }`;

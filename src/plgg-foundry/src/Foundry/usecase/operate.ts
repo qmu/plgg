@@ -201,8 +201,21 @@ const execSwitch = async ({
       ),
     );
   }
-  const params: Record<Address, Param> =
-    Object.fromEntries(addrParams.content);
+  // Build params keyed by variable name (not address) for switcher fn
+  // Unwrap the value from { type, value } stored in env
+  const addressToVarName = Object.fromEntries(
+    op.input.map((entry) => [
+      entry.address,
+      entry.variableName,
+    ]),
+  );
+  const params: Record<string, Param> =
+    Object.fromEntries(
+      addrParams.content.map(([addr, param]) => [
+        addressToVarName[addr],
+        (param as { value: unknown }).value,
+      ]),
+    );
 
   // Step 3: Execute the switcher check function
   const checkResult = await proc(
@@ -307,6 +320,7 @@ const execProcess = async ({
     );
   }
   // Build params keyed by variable name (not address) for processor fn
+  // Unwrap the value from { type, value } stored in env
   const addressToVarName = Object.fromEntries(
     op.input.map((entry) => [
       entry.address,
@@ -317,7 +331,7 @@ const execProcess = async ({
     Object.fromEntries(
       addrParams.content.map(([addr, param]) => [
         addressToVarName[addr],
-        param,
+        (param as { value: unknown }).value,
       ]),
     );
 

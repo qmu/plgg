@@ -10,7 +10,11 @@ test.skip("TodoFoundry", async () => {
   console.log("todos:", todos);
   const result = await proc(
     {
-      text: "Add task A and B",
+      text: `Add task A and B
+---------------
+current todos:
+${JSON.stringify(todos, null, 2)}
+`,
     },
     runFoundry(todoFoundry),
   );

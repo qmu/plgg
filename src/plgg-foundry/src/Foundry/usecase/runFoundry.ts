@@ -1,4 +1,4 @@
-import { proc, debug } from "plgg";
+import { proc, tap } from "plgg";
 import {
   Foundry,
   OrderSpec,
@@ -17,13 +17,16 @@ import {
  *
  * Returns final medium containing alignment and output parameters.
  */
-export const runFoundry = (foundry: Foundry) =>
+export const runFoundry =
+  (foundry: Foundry) =>
   async (orderSpec: OrderSpec) =>
     proc(orderSpec, asOrder, (order) =>
       proc(
         order,
         blueprint(foundry),
-        debug,
+        tap((v) =>
+          console.log(JSON.stringify(v, null, 2)),
+        ),
         operate(foundry)(order),
       ),
     );
