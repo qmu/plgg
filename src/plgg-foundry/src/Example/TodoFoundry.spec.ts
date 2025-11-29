@@ -7,22 +7,16 @@ import {
 } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-test("TodoFoundry", async () => {
+test.skip("TodoFoundry", async () => {
   console.log("todos:", todos);
   const result = await proc(
-    todoFoundrySpec,
-    (spec) =>
-      proc(
-        {
-          text: "Register ListFile action and Read action as tasks.",
-        },
-        runFoundry({
-          provider: openai({
-            model: "gpt-5.1",
-          }),
-          spec,
-        }),
-      ),
+    {
+      text: "Add task A and B",
+    },
+    runFoundry({
+      provider: openai("gpt-5.1"),
+      spec: todoFoundrySpec,
+    }),
   );
   console.log("todos:", todos);
 

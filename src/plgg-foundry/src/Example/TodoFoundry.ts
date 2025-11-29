@@ -7,8 +7,8 @@ import {
 export const todos: Array<string> = [];
 
 export const todoFoundrySpec = makeFoundrySpec({
-  description:
-    "This is TODO management foundry. This foundry analyzes the input text and divides into small tasks to be added to the TODO list.",
+  description: `This is TODO management foundry. 
+This foundry analyzes the input text and divides into small tasks to be added to the TODO list.`,
   apparatuses: [
     makeProcessorSpec({
       name: "add",

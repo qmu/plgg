@@ -49,20 +49,21 @@ export type OpenAI = Box<"OpenAI", Config>;
 export const openAI$ = pattern("OpenAI");
 export const asOpenAI = (v: unknown) =>
   cast(v, asBox, forContent("OpenAI", asConfig));
-export const openai = ({
-  model,
-  apiKey,
-}: {
-  model: string;
-  apiKey?: string;
-}): OpenAI =>
-  pipe(
+export function openai(model: string): OpenAI;
+export function openai(config: { model: string; apiKey?: string }): OpenAI;
+export function openai(
+  arg: string | { model: string; apiKey?: string },
+): OpenAI {
+  const { model, apiKey } =
+    typeof arg === "string" ? { model: arg, apiKey: undefined } : arg;
+  return pipe(
     {
       model,
       apiKey: apiKey ? some(apiKey) : none(),
     },
     box("OpenAI"),
   );
+}
 
 // -------------
 
@@ -74,20 +75,21 @@ export const asAnthropic = (v: unknown) =>
     asBox,
     forContent("Anthropic", asConfig),
   );
-export const anthropic = ({
-  model,
-  apiKey,
-}: {
-  model: string;
-  apiKey?: string;
-}): Anthropic =>
-  pipe(
+export function anthropic(model: string): Anthropic;
+export function anthropic(config: { model: string; apiKey?: string }): Anthropic;
+export function anthropic(
+  arg: string | { model: string; apiKey?: string },
+): Anthropic {
+  const { model, apiKey } =
+    typeof arg === "string" ? { model: arg, apiKey: undefined } : arg;
+  return pipe(
     {
       model,
       apiKey: apiKey ? some(apiKey) : none(),
     },
     box("Anthropic"),
   );
+}
 
 // -------------
 
@@ -95,17 +97,18 @@ export type Google = Box<"Google", Config>;
 export const google$ = pattern("Google");
 export const asGoogle = (v: unknown) =>
   cast(v, asBox, forContent("Google", asConfig));
-export const google = ({
-  model,
-  apiKey,
-}: {
-  model: string;
-  apiKey?: string;
-}): Google =>
-  pipe(
+export function google(model: string): Google;
+export function google(config: { model: string; apiKey?: string }): Google;
+export function google(
+  arg: string | { model: string; apiKey?: string },
+): Google {
+  const { model, apiKey } =
+    typeof arg === "string" ? { model: arg, apiKey: undefined } : arg;
+  return pipe(
     {
       model,
       apiKey: apiKey ? some(apiKey) : none(),
     },
     box("Google"),
   );
+}
