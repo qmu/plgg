@@ -1,6 +1,6 @@
 import {
   Obj,
-  Dict,
+  Vec,
   Result,
   InvalidError,
   isRawObj,
@@ -10,12 +10,20 @@ import {
 } from "plgg";
 
 /**
+ * Entry mapping output name to register address.
+ */
+export type EgressEntry = Obj<{
+  name: string;
+  address: string;
+}>;
+
+/**
  * Exit point operation that maps register addresses to output field names.
  * Must appear at least once in alignment.
  */
 export type Egress = Obj<{
   type: "egress";
-  result: Dict;
+  result: Vec<EgressEntry>;
 }>;
 
 /**

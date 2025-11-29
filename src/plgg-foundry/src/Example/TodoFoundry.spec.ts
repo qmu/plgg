@@ -6,32 +6,24 @@ import {
 } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
-test.skip("TodoFoundry", async () => {
+test("TodoFoundry", async () => {
   // Clear todos before test
   todos.length = 0;
 
   // Step 1: Add tasks A and B
   await proc(
     `Add task A and B
----------------
-current todos:
-${JSON.stringify(todos, null, 2)}
-`,
+state: ${JSON.stringify(todos)}`,
     runFoundry(todoFoundry),
   );
   // Step 2: Remove task B and add task C
   const result = await proc(
     `Remove task B and add task C
----------------
-current todos:
-${JSON.stringify(todos, null, 2)}
-`,
+state: ${JSON.stringify(todos)}`,
     runFoundry(todoFoundry),
   );
 
   assert(isOk(result));
-
-  // Verify only A and C remain
   expect(todos).toHaveLength(2);
   expect(todos.map((t) => t.todo)).toContain("A");
   expect(todos.map((t) => t.todo)).toContain("C");

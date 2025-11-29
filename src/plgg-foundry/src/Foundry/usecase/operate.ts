@@ -411,10 +411,12 @@ const execEgress = async ({
 }): PromisedResult<Medium, Error> => {
   const { env, alignment } = ctx;
 
-  // Step 1: Load output values from registers specified in result mapping
+  // Step 1: Load output values from registers specified in result array
+  const addresses = op.result.map(
+    (entry) => entry.address,
+  );
   const input = pipe(
-    op.result,
-    Object.values,
+    addresses,
     conclude(loadValueFromEnv(env)),
   );
   if (!isOk(input)) {
@@ -427,8 +429,17 @@ const execEgress = async ({
     );
   }
 
-  const params: Record<Address, Param> =
-    Object.fromEntries(input.content);
+  // Build params keyed by output name, unwrapping values from env
+  const params: Record<string, Param> =
+    Object.fromEntries(
+      op.result.map((entry, i) => {
+        const loaded = input.content[i];
+        const value = loaded
+          ? (loaded[1] as { value: unknown }).value
+          : undefined;
+        return [entry.name, value];
+      }),
+    );
 
   // Step 2: Construct final medium with alignment and collected params
   const medium: Medium = {

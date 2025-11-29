@@ -101,7 +101,7 @@ Example without validation:
     { "type": "process", "name": "op-plan", "action": "plan", "input": [{"variableName": "prompt", "address": "r0"}], "output": [{"variableName": "plan", "address": "r1"}], "next": "op-gen-main" },
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
   ],
-  "egress": { "type": "egress", "result": {"mainImage": "r2"} }
+  "egress": { "type": "egress", "result": [{"name": "mainImage", "address": "r2"}] }
 }
 \`\`\`
 
@@ -114,7 +114,7 @@ Example with assign (AI extracts a value from input and assigns it):
     { "type": "assign", "name": "op-set-style", "address": "r1", "value": "watercolor", "next": "op-gen" },
     { "type": "process", "name": "op-gen", "action": "gen-image", "input": [{"variableName": "prompt", "address": "r0"}, {"variableName": "style", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "egress" }
   ],
-  "egress": { "type": "egress", "result": {"image": "r2"} }
+  "egress": { "type": "egress", "result": [{"name": "image", "address": "r2"}] }
 }
 \`\`\`
 
@@ -128,7 +128,7 @@ Example with validation (validation passes → continue, validation fails → re
     { "type": "process", "name": "op-gen-main", "action": "gen-main", "input": [{"variableName": "description", "address": "r1"}], "output": [{"variableName": "image", "address": "r2"}], "next": "op-check" },
     { "type": "switch", "name": "op-check", "action": "check-validity", "input": [{"variableName": "images", "address": "r2"}], "nextWhenTrue": "egress", "nextWhenFalse": "op-plan", "outputWhenTrue": [{"variableName": "validImages", "address": "r2"}], "outputWhenFalse": [{"variableName": "feedback", "address": "r3"}] }
   ],
-  "egress": { "type": "egress", "result": {"mainImage": "r2"} }
+  "egress": { "type": "egress", "result": [{"name": "mainImage", "address": "r2"}] }
 }
 \`\`\``,
       userPrompt: explainOrder(order),
@@ -439,14 +439,26 @@ Data Flow: NameTableEntry arrays map variable names to register addresses. Input
                 description: "Operation type.",
               },
               result: {
-                type: "object",
+                type: "array",
                 description:
-                  "Maps output names to registers. Keys are output field names (e.g., 'mainImage'), values are registers (e.g., 'r2').",
-                properties: {},
-                additionalProperties: {
-                  type: "string",
+                  "Array of output mappings. Each entry maps an output name to a register address. Can be empty if no outputs are needed.",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: {
+                      type: "string",
+                      description:
+                        "Output field name (e.g., 'mainImage').",
+                    },
+                    address: {
+                      type: "string",
+                      description:
+                        "Register address (e.g., 'r2').",
+                    },
+                  },
+                  required: ["name", "address"],
+                  additionalProperties: false,
                 },
-                required: [],
               },
             },
             required: ["type", "result"],

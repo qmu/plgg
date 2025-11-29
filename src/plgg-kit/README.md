@@ -133,7 +133,7 @@ Requires Anthropic API key.
 import { google } from 'plgg-kit';
 
 const provider = google({
-  modelName: 'gemini-2.0-flash',  // or other Gemini models
+  modelName: 'gemini-2.5-flash',  // or other Gemini models
   apiKey: process.env.GOOGLE_API_KEY
 });
 ```
