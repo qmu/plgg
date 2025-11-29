@@ -41,19 +41,15 @@ export type Switcher = Box<
     arguments: Option<
       Dict<VariableName, VirtualType>
     >;
-    returnsWhenTrue: Dict<
-      VariableName,
-      VirtualType
+    returnsWhenTrue: Option<
+      Dict<VariableName, VirtualType>
     >;
-    returnsWhenFalse: Dict<
-      VariableName,
-      VirtualType
+    returnsWhenFalse: Option<
+      Dict<VariableName, VirtualType>
     >;
     fn: (
       medium: Medium,
-    ) => PossiblyPromise<
-      [boolean, Dict<VariableName, Datum>]
-    >;
+    ) => PossiblyPromise<[boolean, unknown]>;
   }
 >;
 
@@ -66,19 +62,17 @@ export type SwitcherSpec = Box<
       VariableName,
       VirtualTypeSpec
     >;
-    returnsWhenTrue: Dict<
+    returnsWhenTrue?: Dict<
       VariableName,
       VirtualTypeSpec
     >;
-    returnsWhenFalse: Dict<
+    returnsWhenFalse?: Dict<
       VariableName,
       VirtualTypeSpec
     >;
     fn: (
       medium: Medium,
-    ) => PossiblyPromise<
-      [boolean, Dict<VariableName, Datum>]
-    >;
+    ) => PossiblyPromise<[boolean, unknown]>;
   }>
 >;
 
@@ -114,11 +108,11 @@ export const asSwitcher = (value: SwitcherSpec) =>
           "arguments",
           asDictOf(asVirtualType),
         ),
-        forProp(
+        forOptionProp(
           "returnsWhenTrue",
           asDictOf(asVirtualType),
         ),
-        forProp(
+        forOptionProp(
           "returnsWhenFalse",
           asDictOf(asVirtualType),
         ),
@@ -140,53 +134,53 @@ export const switcherCastable: Castable<
 /**
  * Creates a SwitcherSpec with strict type checking on return types.
  * The check function must return keys matching the returnsWhenTrue and returnsWhenFalse fields.
+ * When returns fields are omitted, fn can return [boolean, unknown].
  */
 export const makeSwitcherSpec = <
-  const RT extends Dict<
-    VariableName,
-    VirtualTypeSpec
-  >,
-  const RF extends Dict<
-    VariableName,
-    VirtualTypeSpec
-  >,
+  const RT extends
+    | Dict<VariableName, VirtualTypeSpec>
+    | undefined,
+  const RF extends
+    | Dict<VariableName, VirtualTypeSpec>
+    | undefined,
 >(spec: {
   name: string;
   description: string;
   arguments?: Dict<VariableName, VirtualTypeSpec>;
-  returnsWhenTrue: RT;
-  returnsWhenFalse: RF;
+  returnsWhenTrue?: RT;
+  returnsWhenFalse?: RF;
   fn: (
     medium: Medium,
-  ) => PossiblyPromise<
-    [
-      boolean,
-      (
-        | (RT extends Dict<
-            VariableName,
-            VirtualTypeSpec
-          >
-            ? Record<
-                keyof RT & VariableName,
-                Datum
-              >
-            : Dict<VariableName, Datum>)
-        | (RF extends Dict<
-            VariableName,
-            VirtualTypeSpec
-          >
-            ? Record<
-                keyof RF & VariableName,
-                Datum
-              >
-            : Dict<VariableName, Datum>)
-      ),
-    ]
-  >;
+  ) => RT extends Dict<VariableName, VirtualTypeSpec>
+    ? RF extends Dict<VariableName, VirtualTypeSpec>
+      ? PossiblyPromise<
+          [
+            boolean,
+            | Record<keyof RT & VariableName, Datum>
+            | Record<keyof RF & VariableName, Datum>,
+          ]
+        >
+      : PossiblyPromise<
+          [boolean, Record<keyof RT & VariableName, Datum>]
+        >
+    : RF extends Dict<VariableName, VirtualTypeSpec>
+      ? PossiblyPromise<
+          [boolean, Record<keyof RF & VariableName, Datum>]
+        >
+      : PossiblyPromise<[boolean, unknown]>;
 }): SwitcherSpec =>
-  box("SwitcherSpec")<SwitcherSpec["content"]>(
-    spec,
-  );
+  box("SwitcherSpec")<SwitcherSpec["content"]>({
+    name: spec.name,
+    description: spec.description,
+    fn: spec.fn,
+    ...(spec.arguments && { arguments: spec.arguments }),
+    ...(spec.returnsWhenTrue && {
+      returnsWhenTrue: spec.returnsWhenTrue,
+    }),
+    ...(spec.returnsWhenFalse && {
+      returnsWhenFalse: spec.returnsWhenFalse,
+    }),
+  });
 
 /**
  * Formats entries as multiline YAML-like list.
@@ -220,9 +214,21 @@ export const explainSwitcher = (
         )
       : "Any"
   }
-- Returns When True: ${formatEntries(
-    Object.entries(switcher.content.returnsWhenTrue),
-  )}
-- Returns When False: ${formatEntries(
-    Object.entries(switcher.content.returnsWhenFalse),
-  )}`;
+- Returns When True: ${
+    isSome(switcher.content.returnsWhenTrue)
+      ? formatEntries(
+          Object.entries(
+            switcher.content.returnsWhenTrue.content,
+          ),
+        )
+      : "Any"
+  }
+- Returns When False: ${
+    isSome(switcher.content.returnsWhenFalse)
+      ? formatEntries(
+          Object.entries(
+            switcher.content.returnsWhenFalse.content,
+          ),
+        )
+      : "Any"
+  }`;

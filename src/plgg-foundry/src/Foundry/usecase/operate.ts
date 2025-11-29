@@ -233,7 +233,7 @@ const execSwitch = async ({
     ? op.outputWhenTrue
     : op.outputWhenFalse;
 
-  const returnTypes = isValid
+  const returnTypesOpt = isValid
     ? switcher.content.returnsWhenTrue
     : switcher.content.returnsWhenFalse;
 
@@ -243,10 +243,11 @@ const execSwitch = async ({
     // Map each variable name to its register address
     for (const entry of outputs) {
       const { variableName, address } = entry;
-      const virtualType =
-        returnTypes[variableName];
       const varValue =
         returnedValue[variableName];
+      const virtualType = isSome(returnTypesOpt)
+        ? returnTypesOpt.content[variableName]
+        : undefined;
       if (
         virtualType &&
         variableName in returnedValue &&

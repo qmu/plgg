@@ -17,9 +17,9 @@ export const todoFoundrySpec = makeFoundrySpec({
       arguments: {
         task: { type: "string" },
       },
-      fn: (medium) =>
+      fn: ({ params }) =>
         proc(
-          medium.params["task"]?.value,
+          params["task"]?.value,
           asSoftStr,
           (v) => {
             todos.push(v);
