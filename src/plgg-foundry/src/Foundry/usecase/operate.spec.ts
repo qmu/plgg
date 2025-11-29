@@ -143,12 +143,12 @@ test.skip("OperationContext: assemble -> operate with example blueprint", async 
   }
   assert(isOk(result));
   const mainImage =
-    result.content.params["mainImage"]?.value;
+    result.content.params["mainImage"];
   assert(mainImage);
   assert(Array.isArray(mainImage));
   expect(mainImage[0]).toBeInstanceOf(Uint8Array);
   const spreadImages =
-    result.content.params["spreadImages"]?.value;
+    result.content.params["spreadImages"];
   assert(spreadImages);
   expect(spreadImages).toBeInstanceOf(Array);
 });

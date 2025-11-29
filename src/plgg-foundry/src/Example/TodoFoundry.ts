@@ -18,17 +18,13 @@ export const todoFoundrySpec = makeFoundrySpec({
         task: { type: "string" },
       },
       fn: ({ params }) =>
-        proc(
-          params["task"]?.value,
-          asSoftStr,
-          (v) => {
-            todos.push(v);
-            console.log(
-              "Side effective todo update with:",
-              v,
-            );
-          },
-        ),
+        proc(params["task"], asSoftStr, (v) => {
+          todos.push(v);
+          console.log(
+            "Side effective todo update with:",
+            v,
+          );
+        }),
     }),
   ],
 });

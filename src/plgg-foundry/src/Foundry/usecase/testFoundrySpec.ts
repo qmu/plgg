@@ -18,8 +18,7 @@ export const makeTestFoundrySpec = () =>
         arguments: { prompt: { type: "string" } },
         returns: { plan: { type: "string" } },
         fn: async (medium) => {
-          const value =
-            medium.params["prompt"]?.value;
+          const value = medium.params["prompt"];
           if (typeof value !== "string") {
             throw new Error(
               "Invalid medium value for planning step",
@@ -39,8 +38,7 @@ export const makeTestFoundrySpec = () =>
         },
         returns: { features: { type: "string" } },
         fn: async (medium) => {
-          const value =
-            medium.params["images"]?.value;
+          const value = medium.params["images"];
           if (
             !isVec(value) ||
             !value.every(isBin)
@@ -65,7 +63,7 @@ export const makeTestFoundrySpec = () =>
         returns: { image: { type: "image[]" } },
         fn: async (medium) => {
           const value =
-            medium.params["description"]?.value;
+            medium.params["description"];
           if (typeof value !== "string") {
             throw new Error(
               "Invalid medium value for main generation step",
@@ -88,7 +86,7 @@ export const makeTestFoundrySpec = () =>
         },
         fn: async (medium) => {
           const value =
-            medium.params["mainImage"]?.value;
+            medium.params["mainImage"];
           if (
             !isVec(value) ||
             !value.every(isBin)
@@ -120,8 +118,7 @@ export const makeTestFoundrySpec = () =>
           feedback: { type: "string" },
         },
         fn: async (medium) => {
-          const value =
-            medium.params["images"]?.value;
+          const value = medium.params["images"];
           if (
             !isVec(value) ||
             !value.every(isBin)

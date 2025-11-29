@@ -9,7 +9,6 @@ import {
   tryCatch,
   conclude,
   isObj,
-  filter,
   isSome,
 } from "plgg";
 import {
@@ -37,7 +36,6 @@ import {
   findProcessor,
   findIngress,
   asVirtualType,
-  isPacker,
 } from "plgg-foundry/index";
 
 /**
@@ -221,7 +219,7 @@ const execSwitch = async ({
   }
 
   const [isValid, returnedValue] =
-    await checkResult.content;
+    checkResult.content;
 
   // Step 4: Determine next operation based on condition result
   const opResult = findOperations(
@@ -254,7 +252,6 @@ const execSwitch = async ({
         varValue !== undefined
       ) {
         newEnvEntries[address] = {
-          type: virtualType,
           value: varValue,
         };
       }
@@ -358,7 +355,6 @@ const execProcess = async ({
         varValue !== undefined
       ) {
         newEnvEntries[address] = {
-          type: virtualType,
           value: varValue,
         };
       }
@@ -400,7 +396,7 @@ const execEgress = async ({
   op: Egress;
   ctx: OperationContext;
 }): PromisedResult<Medium, Error> => {
-  const { env, alignment, foundry } = ctx;
+  const { env, alignment } = ctx;
 
   // Step 1: Load output values from registers specified in result mapping
   const input = pipe(
@@ -421,46 +417,7 @@ const execEgress = async ({
   const params: Record<Address, Param> =
     Object.fromEntries(input.content);
 
-  // Step 2: Validate outputs against packer specifications
-  const packers = pipe(
-    foundry.apparatuses,
-    filter(isPacker),
-  );
-
-  for (const packer of packers) {
-    for (const [
-      outputName,
-      expectedType,
-    ] of Object.entries(packer.content)) {
-      // Check if this output name exists in the egress result mapping
-      const variableAddr = op.result[outputName];
-      if (
-        variableAddr !== undefined &&
-        typeof variableAddr === "string"
-      ) {
-        // Find the param at this address
-        const param = params[variableAddr];
-        if (param) {
-          // Validate that the param type matches the expected type
-          const actualType = param.type;
-          const actualTypeStr =
-            actualType.type?.content ?? "";
-          const expectedTypeStr =
-            expectedType.type?.content ?? "";
-
-          if (actualTypeStr !== expectedTypeStr) {
-            return err(
-              new Error(
-                `Type mismatch for output "${outputName}": expected ${expectedTypeStr}, got ${actualTypeStr}`,
-              ),
-            );
-          }
-        }
-      }
-    }
-  }
-
-  // Step 3: Construct final medium with alignment and collected params
+  // Step 2: Construct final medium with alignment and collected params
   const medium: Medium = {
     alignment,
     params,

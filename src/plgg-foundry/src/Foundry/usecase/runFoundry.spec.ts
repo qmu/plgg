@@ -26,7 +26,7 @@ test.skip("Run Character Image Generation", async () => {
             },
             fn: async (medium) => {
               const value =
-                medium.params["prompt"]?.value;
+                medium.params["prompt"];
               if (typeof value !== "string") {
                 throw new Error(
                   "Invalid medium value for planning step",
