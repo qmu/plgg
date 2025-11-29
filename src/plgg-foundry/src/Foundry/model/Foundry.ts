@@ -11,11 +11,32 @@ import {
   Apparatus,
   Processor,
   Switcher,
+  Alignment,
+  Medium,
+  Order,
   isProcessor,
   isSwitcher,
   isPacker,
   explainApparatus,
 } from "plgg-foundry/index";
+
+/**
+ * Callback invoked before operations are executed.
+ * Receives the generated alignment (blueprint result).
+ */
+export type BeforeOperations = (ctx: {
+  alignment: Alignment;
+  order: Order;
+}) => void;
+
+/**
+ * Callback invoked after operations are executed.
+ * Receives the final medium containing results.
+ */
+export type AfterOperations = (ctx: {
+  medium: Medium;
+  order: Order;
+}) => void;
 
 /**
  * Factory containing available apparatuses (processors, switchers, and packers) for alignment execution.
@@ -25,6 +46,8 @@ export type Foundry = Readonly<{
   description: Str;
   maxOperationLimit: number;
   apparatuses: ReadonlyArray<Apparatus>;
+  beforeOperations?: BeforeOperations;
+  afterOperations?: AfterOperations;
 }>;
 
 /**
@@ -37,12 +60,25 @@ export const makeFoundry = (spec: {
   apparatuses: ReadonlyArray<Apparatus>;
   provider?: Provider;
   maxOperationLimit?: number;
-}): Foundry => ({
-  provider: spec.provider ?? openai("gpt-5.1"),
-  description: box("Str")(spec.description) as Str,
-  maxOperationLimit: spec.maxOperationLimit ?? 10,
-  apparatuses: spec.apparatuses,
-});
+  beforeOperations?: BeforeOperations;
+  afterOperations?: AfterOperations;
+}): Foundry => {
+  const base = {
+    provider: spec.provider ?? openai("gpt-5.1"),
+    description: box("Str")(spec.description) as Str,
+    maxOperationLimit: spec.maxOperationLimit ?? 10,
+    apparatuses: spec.apparatuses,
+  };
+  return {
+    ...base,
+    ...(spec.beforeOperations && {
+      beforeOperations: spec.beforeOperations,
+    }),
+    ...(spec.afterOperations && {
+      afterOperations: spec.afterOperations,
+    }),
+  };
+};
 
 /**
  * Finds a switcher by opcode in the foundry apparatuses.

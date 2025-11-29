@@ -13,7 +13,9 @@ import {
  * Main entry point that orchestrates the complete workflow:
  * 1. Validates order specification
  * 2. Generates alignment from order using AI (blueprint)
- * 3. Executes alignment operations sequentially (operate)
+ * 3. Calls beforeOperations callback if provided
+ * 4. Executes alignment operations sequentially (operate)
+ * 5. Calls afterOperations callback if provided
  *
  * Returns final medium containing alignment and output parameters.
  *
@@ -27,10 +29,22 @@ export const runFoundry =
         ? { text: input }
         : input;
     return proc(orderSpec, asOrder, (order) =>
-      proc(
-        order,
-        blueprint(foundry),
-        operate(foundry)(order),
-      ),
+      proc(order, blueprint(foundry), (alignment) => {
+        foundry.beforeOperations?.({
+          alignment,
+          order,
+        });
+        return proc(
+          alignment,
+          operate(foundry)(order),
+          (medium) => {
+            foundry.afterOperations?.({
+              medium,
+              order,
+            });
+            return medium;
+          },
+        );
+      }),
     );
   };
