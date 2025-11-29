@@ -1,14 +1,20 @@
 import {
   Box,
+  Obj,
+  Option,
   pattern,
   cast,
   asBox,
   asObj,
   forProp,
+  forOptionProp,
   asSoftStr,
   forContent,
   box,
-} from 'plgg';
+  some,
+  none,
+  pipe,
+} from "plgg";
 
 export type Provider =
   | OpenAI
@@ -25,46 +31,78 @@ export type Provider =
 
 // -------------
 
-type Config = Readonly<{
+type Config = Obj<{
   modelName: string;
-  apiKey: string;
+  apiKey: Option<string>;
 }>;
 const asConfig = (v: unknown) =>
   cast(
     v,
     asObj,
-    forProp('modelName', asSoftStr),
-    forProp('apiKey', asSoftStr)
+    forProp("modelName", asSoftStr),
+    forOptionProp("apiKey", asSoftStr),
   );
 
 // -------------
 
-export type OpenAI = Box<'OpenAI', Config>;
-export const openAI$ = pattern('OpenAI');
+export type OpenAI = Box<"OpenAI", Config>;
+export const openAI$ = pattern("OpenAI");
 export const asOpenAI = (v: unknown) =>
-  cast(v, asBox, forContent('OpenAI', asConfig));
-export const openai = (config: Config): OpenAI =>
-  box('OpenAI')(config);
+  cast(v, asBox, forContent("OpenAI", asConfig));
+export const openai = (config: {
+  modelName: string;
+  apiKey?: string;
+}): OpenAI =>
+  pipe(
+    {
+      modelName: config.modelName,
+      apiKey: config.apiKey
+        ? some(config.apiKey)
+        : none(),
+    },
+    box("OpenAI"),
+  );
 
 // -------------
 
-export type Anthropic = Box<'Anthropic', Config>;
-export const anthropic$ = pattern('Anthropic');
+export type Anthropic = Box<"Anthropic", Config>;
+export const anthropic$ = pattern("Anthropic");
 export const asAnthropic = (v: unknown) =>
   cast(
     v,
     asBox,
-    forContent('Anthropic', asConfig)
+    forContent("Anthropic", asConfig),
   );
-export const anthropic = (
-  config: Config
-): Anthropic => box('Anthropic')(config);
+export const anthropic = (config: {
+  modelName: string;
+  apiKey?: string;
+}): Anthropic =>
+  pipe(
+    {
+      modelName: config.modelName,
+      apiKey: config.apiKey
+        ? some(config.apiKey)
+        : none(),
+    },
+    box("Anthropic"),
+  );
 
 // -------------
 
-export type Google = Box<'Google', Config>;
-export const google$ = pattern('Google');
+export type Google = Box<"Google", Config>;
+export const google$ = pattern("Google");
 export const asGoogle = (v: unknown) =>
-  cast(v, asBox, forContent('Google', asConfig));
-export const google = (config: Config): Google =>
-  box('Google')(config);
+  cast(v, asBox, forContent("Google", asConfig));
+export const google = (config: {
+  modelName: string;
+  apiKey?: string;
+}): Google =>
+  pipe(
+    {
+      modelName: config.modelName,
+      apiKey: config.apiKey
+        ? some(config.apiKey)
+        : none(),
+    },
+    box("Google"),
+  );

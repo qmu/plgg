@@ -1,18 +1,22 @@
 import {
   PromisedResult,
   Datum,
+  proc,
   match,
   unbox,
-} from 'plgg';
+  isSome,
+  ok,
+  env,
+} from "plgg";
 import {
   Provider,
   openAI$,
   anthropic$,
   google$,
-} from 'plgg-kit/LLMs/model';
-import { reqObjectGPT } from 'plgg-kit/LLMs/vendor/OpenAI';
-import { reqObjectClaude } from 'plgg-kit/LLMs/vendor/Anthropic';
-import { reqObjectGemini } from 'plgg-kit/LLMs/vendor/Google';
+} from "plgg-kit/LLMs/model";
+import { reqObjectGPT } from "plgg-kit/LLMs/vendor/OpenAI";
+import { reqObjectClaude } from "plgg-kit/LLMs/vendor/Anthropic";
+import { reqObjectGemini } from "plgg-kit/LLMs/vendor/Google";
 
 export const generateObject = ({
   provider,
@@ -25,39 +29,62 @@ export const generateObject = ({
   userPrompt: string;
   schema: Datum;
 }): PromisedResult<unknown, Error> =>
-  match(
-    provider,
-    [
-      openAI$(),
-      () =>
-        reqObjectGPT({
-          apiKey: unbox(provider).apiKey,
-          model: unbox(provider).modelName,
-          instructions: systemPrompt || '',
-          input: userPrompt,
-          schema,
-        }),
-    ],
-    [
-      anthropic$(),
-      () =>
-        reqObjectClaude({
-          apiKey: unbox(provider).apiKey,
-          model: unbox(provider).modelName,
-          instructions: systemPrompt || '',
-          input: userPrompt,
-          schema,
-        }),
-    ],
-    [
-      google$(),
-      () =>
-        reqObjectGemini({
-          apiKey: unbox(provider).apiKey,
-          model: unbox(provider).modelName,
-          instructions: systemPrompt || '',
-          input: userPrompt,
-          schema,
-        }),
-    ]
+  proc(
+    provider.content,
+    unbox,
+    ({ apiKey }) =>
+      isSome(apiKey)
+        ? ok(apiKey.content)
+        : match(
+            provider,
+            [
+              openAI$(),
+              () => env("OPENAI_API_KEY"),
+            ],
+            [
+              anthropic$(),
+              () => env("ANTHROPIC_API_KEY"),
+            ],
+            [
+              google$(),
+              () => env("GOOGLE_API_KEY"),
+            ],
+          ),
+    (apiKey) =>
+      match(
+        provider,
+        [
+          openAI$(),
+          () =>
+            reqObjectGPT({
+              apiKey,
+              model: unbox(provider).modelName,
+              instructions: systemPrompt || "",
+              input: userPrompt,
+              schema,
+            }),
+        ],
+        [
+          anthropic$(),
+          () =>
+            reqObjectClaude({
+              apiKey,
+              model: unbox(provider).modelName,
+              instructions: systemPrompt || "",
+              input: userPrompt,
+              schema,
+            }),
+        ],
+        [
+          google$(),
+          () =>
+            reqObjectGemini({
+              apiKey,
+              model: unbox(provider).modelName,
+              instructions: systemPrompt || "",
+              input: userPrompt,
+              schema,
+            }),
+        ],
+      ),
   );
