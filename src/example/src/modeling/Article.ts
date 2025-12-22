@@ -1,25 +1,30 @@
 import {
-  asStr,
+  Time,
+  Option,
+  Obj,
+  Str,
+  Result,
+  InvalidError,
+  asSoftStr,
   asObj,
   forProp,
   forOptionProp,
-  Time,
   asTime,
-  Option,
   cast,
   refine,
-  Obj,
+  asStr,
 } from "plgg";
 
 type Id = string;
-const asId = (v: unknown) => cast(v, asStr);
+const asId = (v: unknown) => cast(v, asSoftStr);
 
-type Name = string;
+type Name = Str;
 const asName = (v: unknown) =>
   cast(
     v,
-    asStr,
+    asSoftStr,
     refine((str) => str.length >= 3, "Name must be at least 3 characters long"),
+    asStr,
   );
 
 export type Article = Obj<{
@@ -29,12 +34,12 @@ export type Article = Obj<{
   memo: Option<string>;
 }>;
 
-export const asArticle = (v: unknown) =>
+export const asArticle = (v: unknown): Result<Article, InvalidError> =>
   cast(
     v,
     asObj,
     forProp("id", asId),
     forProp("createdAt", asTime),
     forProp("name", asName),
-    forOptionProp("memo", asStr),
+    forOptionProp("memo", asSoftStr),
   );

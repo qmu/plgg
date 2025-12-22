@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -40,25 +40,23 @@ export const numRefinable: Refinable<Num> = {
  */
 export const { is: isNum } = numRefinable;
 
+export const asNum = (
+  value: unknown,
+): Result<Num, InvalidError> =>
+  is(value)
+    ? ok(Number(value))
+    : err(
+        new InvalidError({
+          message: "Value is not a number",
+        }),
+      );
+
 /**
  * Castable instance for number safe casting.
  */
 export const numCastable: Castable<Num> = {
-  as: (
-    value: unknown,
-  ): Result<Num, InvalidError> =>
-    is(value)
-      ? newOk(Number(value))
-      : newErr(
-          new InvalidError({
-            message: "Value is not a number",
-          }),
-        ),
+  as: asNum,
 };
-/**
- * Exported safe casting function for number values.
- */
-export const { as: asNum } = numCastable;
 
 // --------------------------------
 // JsonReady

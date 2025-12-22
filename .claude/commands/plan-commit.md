@@ -2,3 +2,4 @@
 - Group related changes together
 - Git add/commit one category at a time
 - Continue until all changes are committed
+- For each commit, focus on "why" the developer made this change, not just "what" changed. This context is essential for generating meaningful CHANGELOGs later. Include the motivation, problem being solved, or benefit gained.

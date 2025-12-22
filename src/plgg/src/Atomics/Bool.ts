@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -47,25 +47,23 @@ export const boolRefinable: Refinable<Bool> = {
  */
 export const { is: isBool } = boolRefinable;
 
+export const asBool = (
+  value: unknown,
+): Result<Bool, InvalidError> =>
+  is(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Value is not a boolean",
+        }),
+      );
+
 /**
  * Castable instance for boolean safe casting.
  */
 export const boolCastable: Castable<Bool> = {
-  as: (
-    value: unknown,
-  ): Result<Bool, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a boolean",
-          }),
-        ),
+  as: asBool,
 };
-/**
- * Exported safe casting function for boolean values.
- */
-export const { as: asBool } = boolCastable;
 
 // --------------------------------
 // JsonReady

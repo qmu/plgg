@@ -1,7 +1,7 @@
 import { test, expect, assert } from "vitest";
 import {
-  newSome,
-  newNone,
+  some,
+  none,
   asSome,
   isOk,
   isErr,
@@ -9,14 +9,14 @@ import {
 } from "plgg/index";
 
 test("asSome - safe casting to Some type", () => {
-  const someValue = newSome(42);
+  const someValue = some(42);
   const result1 = pipe(someValue, asSome);
 
   assert(isOk(result1));
   expect(result1.content).toBe(someValue);
 
   // Test with non-Some value
-  const noneValue = newNone();
+  const noneValue = none();
   const result2 = pipe(noneValue, asSome);
 
   assert(isErr(result2));

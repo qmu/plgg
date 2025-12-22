@@ -8,10 +8,10 @@ import {
   isRawObj,
   chainResult,
   pipe,
-  newOk,
-  newErr,
-  newSome,
-  newNone,
+  ok,
+  err,
+  some,
+  none,
 } from "plgg/index";
 
 /**
@@ -38,32 +38,47 @@ export const isObjLike = (
  * Validates and transforms an record property using a predicate.
  */
 export const forProp =
-  <T extends string, U>(
+  <T extends string, U, A>(
     key: T,
-    predicate: (
-      a: unknown,
-    ) => Result<U, InvalidError>,
+    predicate: (a: A) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(
+  <V>(
     rec: V,
-  ): Result<V & Record<T, U>, InvalidError> =>
-    hasProp(rec, key)
-      ? pipe(
-          rec[key],
-          predicate,
-          chainResult(
-            (
-              okValue,
-            ): Result<
-              V & Record<T, U>,
-              InvalidError
-            > =>
-              newOk({ ...rec, [key]: okValue }),
-          ),
-        )
-      : newErr(
+  ): Result<
+    (V extends object ? V : object) &
+      Record<T, U>,
+    InvalidError
+  > =>
+    typeof rec === "object" && rec !== null
+      ? hasProp(rec, key)
+        ? pipe(
+            rec[key] as A, // FIXME
+            predicate,
+            chainResult(
+              (
+                okValue,
+              ): Result<
+                (V extends object ? V : object) &
+                  Record<T, U>,
+                InvalidError
+              > =>
+                ok({
+                  ...rec,
+                  [key]: okValue,
+                } as (V extends object
+                  ? V
+                  : object) &
+                  Record<T, U>),
+            ),
+          )
+        : err(
+            new InvalidError({
+              message: `Property '${key}' not found`,
+            }),
+          )
+      : err(
           new InvalidError({
-            message: `Property '${key}' not found`,
+            message: "Not an object",
           }),
         );
 
@@ -71,37 +86,49 @@ export const forProp =
  * Validates optional record property with predicate.
  */
 export const forOptionProp =
-  <T extends string, U>(
+  <T extends string, U, A>(
     key: T,
-    predicate: (
-      a: unknown,
-    ) => Result<U, InvalidError>,
+    predicate: (a: A) => Result<U, InvalidError>,
   ) =>
-  <V extends object>(
+  <V>(
     rec: V,
   ): Result<
-    V & Record<T, Option<U>>,
+    (V extends object ? V : object) &
+      Record<T, Option<U>>,
     InvalidError
   > =>
-    hasProp(rec, key)
-      ? pipe(
-          rec[key],
-          predicate,
-          chainResult(
-            (
-              okValue,
-            ): Result<
-              V & Record<T, Option<U>>,
-              InvalidError
-            > =>
-              newOk({
-                ...rec,
-                [key]: newSome(okValue),
-              }),
-          ),
-        )
-      : newOk({ ...rec, [key]: newNone() } as V &
-          Record<T, Option<U>>);
+    typeof rec === "object" && rec !== null
+      ? hasProp(rec, key)
+        ? pipe(
+            rec[key] as A, // FIXME
+            predicate,
+            chainResult(
+              (
+                okValue,
+              ): Result<
+                (V extends object ? V : object) &
+                  Record<T, Option<U>>,
+                InvalidError
+              > =>
+                ok({
+                  ...rec,
+                  [key]: some(okValue),
+                } as (V extends object
+                  ? V
+                  : object) &
+                  Record<T, Option<U>>),
+            ),
+          )
+        : ok({
+            ...rec,
+            [key]: none(),
+          } as (V extends object ? V : object) &
+            Record<T, Option<U>>)
+      : err(
+          new InvalidError({
+            message: "Not an object",
+          }),
+        );
 
 /**
  * Type guard for record field existence.

@@ -6,9 +6,9 @@ import {
   Castable1,
   isBox,
   hasTag,
-  newErr,
+  err,
   pattern,
-  newBox,
+  box,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -25,18 +25,37 @@ const okTag = "Ok" as const;
 /**
  * Represents a successful computation containing a success value.
  */
-export type Ok<T> = Box<typeof okTag, T>;
+export type Ok<T> = Box<typeof okTag, T> & {
+  /**
+   * Type guard method to check if this Result is an Ok.
+   * Always returns true for Ok instances.
+   */
+  isOk(): this is Ok<T>;
+  /**
+   * Type guard method to check if this Result is an Err.
+   * Always returns false for Ok instances.
+   */
+  isErr(): false;
+};
 
 /**
  * Pattern constructor for matching Ok values in pattern matching.
  */
-export const ok = <T>(a?: T) => pattern(okTag)(a);
+export const ok$ = <T>(a?: T) =>
+  pattern(okTag)(a);
 
 /**
  * Creates an Ok instance containing a success value.
  */
-export const newOk = <T>(a: T): Ok<T> =>
-  newBox(okTag)(a);
+export const ok = <T>(a: T): Ok<T> => ({
+  ...box(okTag)(a),
+  isOk(): this is Ok<T> {
+    return true;
+  },
+  isErr(): false {
+    return false;
+  },
+});
 
 /**
  * Type guard to check if a Result is an Ok.
@@ -56,23 +75,21 @@ export const okRefinable: Refinable1<"Ok"> = {
  */
 export const { is: isOk } = okRefinable;
 
+export const asOk = <A>(
+  value: unknown,
+): Result<Ok<A>, InvalidError> =>
+  is<A>(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Value is not an Ok",
+        }),
+      );
+
 /**
  * Castable instance for Ok safe casting.
  */
 export const okCastable: Castable1<"Ok"> = {
   KindKey: okTag,
-  as: <A>(
-    value: unknown,
-  ): Result<Ok<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not an Ok",
-          }),
-        ),
+  as: asOk,
 };
-/**
- * Exported safe casting function for Ok values.
- */
-export const { as: asOk } = okCastable;

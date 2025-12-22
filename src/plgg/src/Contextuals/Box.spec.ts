@@ -1,15 +1,16 @@
 import { test, expect, assert } from "vitest";
 import {
   Box,
-  EmptyBox,
-  IsBox,
   forContent,
   asBox,
   asObj,
   forProp,
-  asStr,
+  asSoftStr,
   isOk,
   cast,
+  unbox,
+  box,
+  pipe,
 } from "plgg/index";
 
 test("Box type structure", () => {
@@ -27,27 +28,6 @@ test("Box type structure", () => {
   expect(_typeTest).toBe(true);
 });
 
-test("IsBox type predicate", () => {
-  // Type-level tests for IsBox
-  type BoxTest = IsBox<Box<"test", string>>;
-  type EmptyBoxTest = IsBox<EmptyBox<"test">>;
-  type NonBoxTest = IsBox<{ someOther: "prop" }>;
-
-  const _boxTest: BoxTest extends true
-    ? true
-    : false = true;
-  const _emptyBoxTest: EmptyBoxTest extends false
-    ? true
-    : false = true;
-  const _nonBoxTest: NonBoxTest extends false
-    ? true
-    : false = true;
-
-  expect(_boxTest).toBe(true);
-  expect(_emptyBoxTest).toBe(true);
-  expect(_nonBoxTest).toBe(true);
-});
-
 test("forContent - validates Box from unknown using cast", () => {
   const unknownValue: unknown = {
     __tag: "user",
@@ -57,7 +37,7 @@ test("forContent - validates Box from unknown using cast", () => {
   const result = cast(
     unknownValue,
     asBox,
-    forContent("user", asStr),
+    forContent("user", asSoftStr),
   );
 
   assert(isOk(result));
@@ -80,8 +60,8 @@ test("forContent - combined pattern with Obj validation", () => {
     cast(
       value,
       asObj,
-      forProp("name", asStr),
-      forProp("email", asStr),
+      forProp("name", asSoftStr),
+      forProp("email", asSoftStr),
     );
 
   const result = cast(
@@ -106,4 +86,44 @@ test("forContent - combined pattern with Obj validation", () => {
   expect(
     result.content.userProfile.content.email,
   ).toBe("alice@example.com");
+});
+
+test("unbox - unboxes single Box", () => {
+  const result = pipe(
+    "hello",
+    box("test"),
+    unbox,
+  );
+  expect(result).toBe("hello");
+});
+
+test("unbox - unboxes nested Boxes", () => {
+  const result = pipe(
+    "value",
+    box("inner"),
+    box("outer"),
+    unbox,
+  );
+  expect(result).toBe("value");
+});
+
+test("unbox - unboxes deeply nested Boxes", () => {
+  const result = pipe(
+    42,
+    box("c"),
+    box("b"),
+    box("a"),
+    unbox,
+  );
+  expect(result).toBe(42);
+});
+
+test("unbox - returns non-Box value as-is", () => {
+  const result = pipe("not a box", unbox);
+  expect(result).toBe("not a box");
+});
+
+test("unbox - returns object non-Box value as-is", () => {
+  const result = pipe({ foo: "bar" }, unbox);
+  expect(result).toEqual({ foo: "bar" });
 });

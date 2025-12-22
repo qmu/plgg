@@ -6,8 +6,8 @@ import {
   JsonReady,
   Datum,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
   toJsonReady,
   fromJsonReady,
   isJsonReady,
@@ -44,25 +44,23 @@ export const recRefinable: Refinable<Obj> = {
  */
 export const { is: isObj } = recRefinable;
 
+export const asObj = (
+  value: unknown,
+): Result<Obj, InvalidError> =>
+  is(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Not record",
+        }),
+      );
+
 /**
  * Castable instance for record safe casting.
  */
 export const recCastable: Castable<Obj> = {
-  as: (
-    value: unknown,
-  ): Result<Obj, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Not record",
-          }),
-        ),
+  as: asObj,
 };
-/**
- * Exported safe casting function for record values.
- */
-export const { as: asObj } = recCastable;
 
 // --------------------------------
 // JsonReady

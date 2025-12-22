@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 /**
@@ -24,7 +24,8 @@ export type IsInt<T> = T extends Int
  * Type guard to check if a value is an Int.
  */
 const is = (value: unknown): value is Int =>
-  (typeof value === "number" && Number.isInteger(value)) ||
+  (typeof value === "number" &&
+    Number.isInteger(value)) ||
   (typeof value === "bigint" &&
     value >= Number.MIN_SAFE_INTEGER &&
     value <= Number.MAX_SAFE_INTEGER);
@@ -40,25 +41,23 @@ export const intRefinable: Refinable<Int> = {
  */
 export const { is: isInt } = intRefinable;
 
+export const asInt = (
+  value: unknown,
+): Result<Int, InvalidError> =>
+  is(value)
+    ? ok(Number(value))
+    : err(
+        new InvalidError({
+          message: "Value is not an integer",
+        }),
+      );
+
 /**
  * Castable instance for integer safe casting.
  */
 export const intCastable: Castable<Int> = {
-  as: (
-    value: unknown,
-  ): Result<Int, InvalidError> =>
-    is(value)
-      ? newOk(Number(value))
-      : newErr(
-          new InvalidError({
-            message: "Value is not an integer",
-          }),
-        ),
+  as: asInt,
 };
-/**
- * Exported safe casting function for integer values.
- */
-export const { as: asInt } = intCastable;
 
 // --------------------------------
 // JsonReady
@@ -91,3 +90,4 @@ export const {
   toJsonReady: toJsonReadyInt,
   fromJsonReady: fromJsonReadyInt,
 } = intJsonSerializable;
+

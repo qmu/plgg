@@ -6,9 +6,9 @@ import {
   Castable1,
   isBox,
   hasTag,
-  newOk,
+  ok,
   pattern,
-  newBox,
+  box,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -25,19 +25,37 @@ const errTag = "Err" as const;
 /**
  * Represents a failed computation containing an error value.
  */
-export type Err<F> = Box<typeof errTag, F>;
+export type Err<F> = Box<typeof errTag, F> & {
+  /**
+   * Type guard method to check if this Result is an Ok.
+   * Always returns false for Err instances.
+   */
+  isOk(): false;
+  /**
+   * Type guard method to check if this Result is an Err.
+   * Always returns true for Err instances.
+   */
+  isErr(): this is Err<F>;
+};
 
 /**
  * Pattern constructor for matching Err values in pattern matching.
  */
-export const err = <T>(v?: T) =>
+export const err$ = <T>(v?: T) =>
   pattern(errTag)(v);
 
 /**
  * Creates an Err instance containing an error value.
  */
-export const newErr = <F>(e: F): Err<F> =>
-  newBox(errTag)(e);
+export const err = <F>(e: F): Err<F> => ({
+  ...box(errTag)(e),
+  isOk(): false {
+    return false;
+  },
+  isErr(): this is Err<F> {
+    return true;
+  },
+});
 
 /**
  * Type guard to check if a Result is an Err.
@@ -57,23 +75,21 @@ export const errRefinable: Refinable1<"Err"> = {
  */
 export const { is: isErr } = errRefinable;
 
+export const asErr = <A>(
+  value: unknown,
+): Result<Err<A>, InvalidError> =>
+  is<A>(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Value is not an Err",
+        }),
+      );
+
 /**
  * Castable instance for Err safe casting.
  */
 export const errCastable: Castable1<"Err"> = {
   KindKey: errTag,
-  as: <A>(
-    value: unknown,
-  ): Result<Err<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not an Err",
-          }),
-        ),
+  as: asErr,
 };
-/**
- * Exported safe casting function for Err values.
- */
-export const { as: asErr } = errCastable;

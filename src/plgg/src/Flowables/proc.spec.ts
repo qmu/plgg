@@ -5,10 +5,10 @@ import {
   proc,
   isOk,
   isErr,
-  newOk,
+  ok,
   hold,
-  newErr,
-  asStr,
+  err,
+  asSoftStr,
 } from "plgg/index";
 
 test("proc composes sync and async functions with early error exit", async () => {
@@ -18,8 +18,8 @@ test("proc composes sync and async functions with early error exit", async () =>
     x: number,
   ): Result<number, InvalidError> =>
     x > 0
-      ? newOk(x)
-      : newErr(
+      ? ok(x)
+      : err(
           new InvalidError({
             message: "Must be positive",
           }),
@@ -51,7 +51,7 @@ test("proc stops processing on first error", async () => {
     _: number,
   ): Promise<Result<number, InvalidError>> =>
     Promise.resolve(
-      newErr(
+      err(
         new InvalidError({
           message: "Validation failed",
         }),
@@ -81,8 +81,8 @@ test("proc handles mixed return types (values, Results, Promises)", async () => 
     str: string,
   ): Result<string, InvalidError> =>
     str.length > 0
-      ? newOk(str)
-      : newErr(
+      ? ok(str)
+      : err(
           new InvalidError({
             message: "Empty input",
           }),
@@ -120,7 +120,7 @@ test("proc with type casting and validation chain", async () => {
   const result = await proc(
     userData,
     (data: any) => data.name,
-    asStr,
+    asSoftStr,
     (name: string) => name.toUpperCase(),
     hold((name: string) => `Hello, ${name}!`),
   );
@@ -136,7 +136,7 @@ test("proc gracefully handles exceptions in functions", async () => {
     if (x === 5) {
       throw new Error("Unexpected error");
     }
-    return newOk(`Processed: ${x}`);
+    return ok(`Processed: ${x}`);
   };
 
   const result = await proc<number, string>(
@@ -159,7 +159,7 @@ test("proc handles thrown procError", async () => {
         message: "Domain error thrown",
       });
     }
-    return newOk(`Processed: ${x}`);
+    return ok(`Processed: ${x}`);
   };
 
   const result = await proc<number, string>(
@@ -180,7 +180,7 @@ test("proc handles thrown non-Error values", async () => {
     if (x === 5) {
       throw "String error";
     }
-    return newOk(`Processed: ${x}`);
+    return ok(`Processed: ${x}`);
   };
 
   const result = await proc<number, string>(
@@ -192,4 +192,28 @@ test("proc handles thrown non-Error values", async () => {
   expect(result.content.message).toBe(
     "Unknown error in proc",
   );
+});
+
+test("proc unwraps initial Result value at runtime", async () => {
+  // When initial value is already a Result, it should be unwrapped
+  const initialResult = ok("hello");
+  const toUpper = (s: string) => s.toUpperCase();
+
+  const result = await proc(initialResult, toUpper);
+
+  assert(isOk(result));
+  expect(result.content).toBe("HELLO");
+});
+
+test("proc short-circuits on initial Err value", async () => {
+  // When initial value is an Err, it should short-circuit
+  const initialErr = err(
+    new InvalidError({ message: "Initial error" }),
+  );
+  const neverCalled = (_: string) => "should not run";
+
+  const result = await proc(initialErr, neverCalled);
+
+  assert(isErr(result));
+  expect(result.content.message).toBe("Initial error");
 });

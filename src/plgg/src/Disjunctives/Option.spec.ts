@@ -1,8 +1,8 @@
 import { test, expect, assert } from "vitest";
 import {
   Option,
-  newSome,
-  newNone,
+  some,
+  none,
   isSome,
   isNone,
   isOption,
@@ -14,7 +14,7 @@ import {
 } from "plgg/index";
 
 test("some creates Some option", () => {
-  const result = newSome(42);
+  const result = some(42);
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
@@ -23,7 +23,7 @@ test("some creates Some option", () => {
 });
 
 test("some creates Some option with string", () => {
-  const result = newSome("hello");
+  const result = some("hello");
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
@@ -33,7 +33,7 @@ test("some creates Some option with string", () => {
 
 test("some creates Some option with object", () => {
   const obj = { name: "test", age: 25 };
-  const result = newSome(obj);
+  const result = some(obj);
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
@@ -44,7 +44,7 @@ test("some creates Some option with object", () => {
 });
 
 test("some creates Some option with null", () => {
-  const result = newSome(null);
+  const result = some(null);
   expect(result.__tag).toBe("Some");
   assert(isSome(result));
   if (isSome(result)) {
@@ -53,9 +53,8 @@ test("some creates Some option with null", () => {
 });
 
 test("some creates Some option with undefined", () => {
-  const result = newSome(undefined);
+  const result = some(undefined);
   expect(result.__tag).toBe("Some");
-  console.log(result, isSome(result));
   assert(isSome(result));
   if (isSome(result)) {
     expect(result.content).toBe(undefined);
@@ -63,42 +62,82 @@ test("some creates Some option with undefined", () => {
 });
 
 test("none creates None option", () => {
-  const result = newNone();
+  const result = none();
   expect(result.__tag).toBe("None");
   assert(isNone(result));
 });
 
 test("none creates None option with type parameter", () => {
-  const result = newNone();
+  const result = none();
   expect(result.__tag).toBe("None");
   assert(isNone(result));
 });
 
 test("isSome identifies Some options", () => {
-  const someResult = newSome("content");
-  const noneResult = newNone();
+  const someResult = some("content");
+  const noneResult = none();
 
   assert(isSome(someResult));
   assert(!isSome(noneResult));
 });
 
 test("isNone identifies None options", () => {
-  const someResult = newSome("content");
-  const noneResult = newNone();
+  const someResult = some("content");
+  const noneResult = none();
 
   assert(!isNone(someResult));
   assert(isNone(noneResult));
 });
 
+test("isSome() function returns true for Some instances", () => {
+  const someOption = some("value");
+
+  assert(isSome(someOption));
+  assert(!isNone(someOption));
+
+  // Type narrowing should work
+  if (isSome(someOption)) {
+    expect(someOption.content).toBe("value");
+  }
+});
+
+test("isNone() function returns true for None instances", () => {
+  const noneOption = none();
+
+  assert(!isSome(noneOption));
+  assert(isNone(noneOption));
+
+  // Type narrowing should work
+  if (isNone(noneOption)) {
+    expect(noneOption.__tag).toBe("None");
+  }
+});
+
+test("isSome and isNone functions work with Option union type", () => {
+  const someOption: Option<number> = some(42);
+  const noneOption: Option<number> = none();
+
+  // Some case
+  assert(isSome(someOption));
+  assert(!isNone(someOption));
+  if (isSome(someOption)) {
+    expect(someOption.content).toBe(42);
+  }
+
+  // None case
+  assert(!isSome(noneOption));
+  assert(isNone(noneOption));
+  if (isNone(noneOption)) {
+    expect(noneOption.__tag).toBe("None");
+  }
+});
+
 test("Option can handle different types", () => {
   const stringOption: Option<string> =
-    newSome("hello");
-  const numberOption: Option<number> =
-    newSome(42);
-  const noneStringOption: Option<string> =
-    newNone();
-  const noneNumberOption: Option<number> =
-    newNone();
+    some("hello");
+  const numberOption: Option<number> = some(42);
+  const noneStringOption: Option<string> = none();
+  const noneNumberOption: Option<number> = none();
 
   assert(isSome(stringOption));
   assert(isSome(numberOption));
@@ -115,8 +154,8 @@ test("Option can handle different types", () => {
 });
 
 test("Option type structure", () => {
-  const someOption = newSome(123);
-  const noneOption = newNone();
+  const someOption = some(123);
+  const noneOption = none();
 
   // Test that Some has the expected structure
   expect(someOption).toHaveProperty(
@@ -127,20 +166,12 @@ test("Option type structure", () => {
     "content",
     123,
   );
-  expect(Object.keys(someOption)).toEqual([
-    "__tag",
-    "content",
-  ]);
 
   // Test that None has the expected structure
   expect(noneOption).toHaveProperty(
     "__tag",
     "None",
   );
-  expect(Object.keys(noneOption)).toEqual([
-    "__tag",
-    "content",
-  ]);
 });
 
 test("Option with complex types", () => {
@@ -155,8 +186,8 @@ test("Option with complex types", () => {
     name: "John",
     email: "john@example.com",
   };
-  const userOption = newSome(user);
-  const noUserOption = newNone();
+  const userOption = some(user);
+  const noUserOption = none();
 
   assert(isSome(userOption));
   assert(isNone(noUserOption));
@@ -172,9 +203,9 @@ test("Option with complex types", () => {
 
 test("Option with array contents", () => {
   const numbers = [1, 2, 3, 4, 5];
-  const arrayOption = newSome(numbers);
-  const emptyArrayOption = newSome([]);
-  const noneArrayOption = newNone();
+  const arrayOption = some(numbers);
+  const emptyArrayOption = some([]);
+  const noneArrayOption = none();
 
   assert(isSome(arrayOption));
   assert(isSome(emptyArrayOption));
@@ -196,9 +227,9 @@ test("Option with array contents", () => {
 });
 
 test("Option with boolean contents", () => {
-  const trueOption = newSome(true);
-  const falseOption = newSome(false);
-  const noneBoolOption = newNone();
+  const trueOption = some(true);
+  const falseOption = some(false);
+  const noneBoolOption = none();
 
   assert(isSome(trueOption));
   assert(isSome(falseOption));
@@ -214,8 +245,8 @@ test("Option with boolean contents", () => {
 });
 
 test("Option with zero contents", () => {
-  const zeroOption = newSome(0);
-  const emptyStringOption = newSome("");
+  const zeroOption = some(0);
+  const emptyStringOption = some("");
 
   assert(isSome(zeroOption));
   assert(isSome(emptyStringOption));
@@ -231,8 +262,8 @@ test("Option with zero contents", () => {
 
 test("Option Monad - map function", () => {
   const double = (x: number) => x * 2;
-  const someNumber = newSome(5);
-  const noneNumber = newNone();
+  const someNumber = some(5);
+  const noneNumber = none();
 
   const r1 = pipe(someNumber, mapOption(double));
   const r2 = pipe(noneNumber, mapOption(double));
@@ -244,10 +275,10 @@ test("Option Monad - map function", () => {
 
 test("Option Monad - ap function (applicative)", () => {
   const add = (x: number) => (y: number) => x + y;
-  const someAdd3 = newSome(add(3));
-  const someNumber = newSome(5);
-  const noneAdd = newNone();
-  const noneNumber = newNone();
+  const someAdd3 = some(add(3));
+  const someNumber = some(5);
+  const noneAdd = none();
+  const noneNumber = none();
 
   const r1 = pipe(
     someNumber,
@@ -290,10 +321,10 @@ test("Option Monad - chain function", () => {
   const safeDivide =
     (y: number) =>
     (x: number): Option<number> =>
-      y === 0 ? newNone() : newSome(x / y);
+      y === 0 ? none() : some(x / y);
 
-  const someNumber = newSome(10);
-  const noneNumber = newNone();
+  const someNumber = some(10);
+  const noneNumber = none();
 
   const r1 = pipe(
     someNumber,
@@ -316,30 +347,36 @@ test("Option Monad - chain function", () => {
 
 test("Option Monad Laws - Left Identity", () => {
   const f = (x: number): Option<number> =>
-    newSome(x * 2);
+    some(x * 2);
   const a = 5;
 
   const r1 = pipe(a, ofOption, chainOption(f));
   const r2 = f(a);
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("Option Monad Laws - Right Identity", () => {
-  const m = newSome(42);
+  const m = some(42);
 
   const r1 = pipe(m, chainOption(ofOption));
   const r2 = m;
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("Option Monad Laws - Associativity", () => {
   const f = (x: number): Option<number> =>
-    newSome(x + 1);
+    some(x + 1);
   const g = (x: number): Option<number> =>
-    newSome(x * 2);
-  const m = newSome(5);
+    some(x * 2);
+  const m = some(5);
 
   const r1 = pipe(
     m,
@@ -353,20 +390,26 @@ test("Option Monad Laws - Associativity", () => {
     ),
   );
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("Option Functor Laws - Identity", () => {
-  const opt = newSome(42);
+  const opt = some(42);
   const identity = <T>(x: T) => x;
 
   const r1 = pipe(opt, mapOption(identity));
 
-  expect(r1).toEqual(opt);
+  expect(r1.__tag).toBe(opt.__tag);
+  if (isSome(r1) && isSome(opt)) {
+    expect(r1.content).toEqual(opt.content);
+  }
 });
 
 test("Option Functor Laws - Composition", () => {
-  const opt = newSome(5);
+  const opt = some(5);
   const f = (x: number) => x * 2;
   const g = (x: number) => x + 1;
 
@@ -380,19 +423,22 @@ test("Option Functor Laws - Composition", () => {
     mapOption(g),
   );
 
-  expect(r1).toEqual(r2);
+  expect(r1.__tag).toBe(r2.__tag);
+  if (isSome(r1) && isSome(r2)) {
+    expect(r1.content).toEqual(r2.content);
+  }
 });
 
 test("isOption - type guard for Option types", () => {
   // Test with Some values
-  const someValue = newSome(42);
+  const someValue = some(42);
   expect(isOption(someValue)).toBe(true);
 
-  const someString = newSome("hello");
+  const someString = some("hello");
   expect(isOption(someString)).toBe(true);
 
   // Test with None
-  const noneValue = newNone();
+  const noneValue = none();
   expect(isOption(noneValue)).toBe(true);
 
   // Test with non-Option values

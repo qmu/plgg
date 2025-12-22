@@ -7,17 +7,17 @@ import {
   And,
   ExtractBodyFromBoxPattern,
   IsAtomic,
-  IsPatternEmptyBox,
+  IsPatternIcon,
   IsPattern,
   Or,
   IsBox,
-  IsEmptyBox,
+  IsIcon,
   Box,
   isBox,
   otherwise,
   isPatternAtomic,
   isPatternBoxedObject,
-  isPatternEmptyBox as isPatternEmptyBox,
+  isPatternIcon as isPatternIcon,
   isObjLike,
 } from "plgg/index";
 
@@ -116,7 +116,7 @@ export type ExtractPatternTags<
 export type AreAllTagPatterns<
   ARR extends ReadonlyArray<unknown>,
 > = ARR extends [infer Head, ...infer Tail]
-  ? IsPatternEmptyBox<Head> extends true
+  ? IsPatternIcon<Head> extends true
     ? AreAllTagPatterns<Tail>
     : false
   : true;
@@ -156,7 +156,7 @@ export type CaseDecl<
   PBODY = ExtractBodyFromBoxPattern<PATTERN>,
 > = If<
   And<
-    Or<IsBox<A>, IsEmptyBox<A>>,
+    Or<IsBox<A>, IsIcon<A>>,
     IsPattern<PATTERN>
   >,
   If<
@@ -1288,7 +1288,7 @@ export function match(
         }
         continue;
       }
-      if (isPatternEmptyBox(pattern)) {
+      if (isPatternIcon(pattern)) {
         if (
           isBox(a) &&
           a.__tag === pattern.__tag

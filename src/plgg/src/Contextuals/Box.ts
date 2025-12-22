@@ -1,49 +1,45 @@
 import {
   Result,
   InvalidError,
-  Refinable1,
-  Castable1,
-  newOk,
-  newErr,
+  Refinable,
+  Castable,
+  ok,
   hasProp,
   pipe,
   chainResult,
+  untaggedBox,
+  flow,
 } from "plgg/index";
-
-declare module "plgg/Abstracts/Principals/Kind" {
-  export interface MapKind1<A> {
-    Box: Box<string, A>;
-  }
-}
 
 /**
  * A variant with both a tag and body.
  */
-export type Box<TAG extends string, CONTENT> = {
+export type Box<
+  TAG extends string,
+  CONTENT,
+> = Readonly<{
   __tag: TAG;
   content: CONTENT;
-};
+}>;
 
 /**
  * Type predicate to check if a type is a parametric variant.
  */
 export type IsBox<V> = V extends {
   __tag: infer T;
-  content: infer B;
+  content: unknown;
 }
   ? T extends string
-    ? B extends undefined
-      ? false
-      : true
+    ? true
     : false
   : false;
 
 /**
  * Type guard to check if a value is a Box.
  */
-const is = <TAG extends string, CONTENT>(
+const is = <TAG extends string>(
   value: unknown,
-): value is Box<TAG, CONTENT> =>
+): value is Box<TAG, unknown> =>
   typeof value === "object" &&
   value !== null &&
   hasProp(value, "__tag") &&
@@ -53,8 +49,9 @@ const is = <TAG extends string, CONTENT>(
 /**
  * Refinable instance for Box type guards.
  */
-export const boxRefinable: Refinable1<"Box"> = {
-  KindKey: "Box",
+export const boxRefinable: Refinable<
+  Box<string, unknown>
+> = {
   is,
 };
 /**
@@ -62,26 +59,21 @@ export const boxRefinable: Refinable1<"Box"> = {
  */
 export const { is: isBox } = boxRefinable;
 
+export const asBox = (
+  value: unknown,
+): Result<Box<string, unknown>, InvalidError> =>
+  is<string>(value)
+    ? ok(value)
+    : ok(untaggedBox(value));
+
 /**
  * Castable instance for Box safe casting.
  */
-export const boxCastable: Castable1<"Box"> = {
-  KindKey: "Box",
-  as: <A>(
-    value: unknown,
-  ): Result<Box<string, A>, InvalidError> =>
-    is<string, A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a Box",
-          }),
-        ),
+export const boxCastable: Castable<
+  Box<string, unknown>
+> = {
+  as: asBox,
 };
-/**
- * Exported safe casting function for Box values.
- */
-export const { as: asBox } = boxCastable;
 
 /**
  * Type guard for Box tag existence.
@@ -104,32 +96,18 @@ export const forContent =
     ) => Result<U, InvalidError>,
   ) =>
   <V extends Box<string, unknown>>(
-    box: V,
+    b: V,
   ): Result<Box<T, U>, InvalidError> =>
-    hasTag(tag)(box)
-      ? pipe(
-          box.content,
-          predicate,
-          chainResult(
-            (
-              okValue,
-            ): Result<Box<T, U>, InvalidError> =>
-              newOk({
-                __tag: tag,
-                content: okValue,
-              }),
-          ),
-        )
-      : newErr(
-          new InvalidError({
-            message: `Box tag '${box.__tag}' does not match expected tag '${tag}'`,
-          }),
-        );
+    pipe(
+      b.content,
+      predicate,
+      chainResult(flow(box(tag), ok)),
+    );
 
 /**
  * Creates a new Box with the specified tag and content.
  */
-export const newBox =
+export const box =
   <TAG extends string>(tag: TAG) =>
   <CONTENT>(
     content: CONTENT,
@@ -145,3 +123,22 @@ export const isBoxWithTag =
   <T extends string>(tag: T) =>
   (value: unknown): value is Box<T, unknown> =>
     isBox(value) && hasTag(tag)(value);
+
+/**
+ * Recursively extracts the innermost content from nested Box structures.
+ * If the value is not a Box, returns it as-is.
+ */
+export type Unbox<T> =
+  T extends Box<string, infer C> ? Unbox<C> : T;
+
+/**
+ * Recursively unboxes a value, extracting the innermost content from nested Box structures.
+ * If the value is not a Box, returns it as-is.
+ */
+export function unbox<T>(value: T): Unbox<T>;
+export function unbox(value: unknown): unknown {
+  if (isBox(value)) {
+    return unbox(value.content);
+  }
+  return value;
+}

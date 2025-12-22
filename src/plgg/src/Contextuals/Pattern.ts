@@ -16,7 +16,7 @@ type Pattern<
   ? PatternAtomic<T>
   : T extends Record<string, unknown>
     ? PatternBoxedObject<T>
-    : PatternEmptyBox<TAG>;
+    : PatternIcon<TAG>;
 
 /**
  * Creates a pattern matcher for variant values.
@@ -71,7 +71,7 @@ type PatternBoxedObject<T> = {
 /**
  * Pattern type for matching tag-only values.
  */
-type PatternEmptyBox<T> = {
+type PatternIcon<T> = {
   __tag: T;
   type: "tag";
   body: undefined;
@@ -102,7 +102,7 @@ type IsPatternBoxedObject<P> = P extends {
 /**
  * Type predicate for tag variant patterns.
  */
-export type IsPatternEmptyBox<P> = P extends {
+export type IsPatternIcon<P> = P extends {
   __tag: string;
   type: "tag";
 }
@@ -127,9 +127,9 @@ export const isPatternBoxedObject = <T>(
 /**
  * Runtime check for tag variant patterns.
  */
-export const isPatternEmptyBox = <TAG>(
+export const isPatternIcon = <TAG>(
   p: unknown,
-): p is PatternEmptyBox<TAG> =>
+): p is PatternIcon<TAG> =>
   isMatcherAbstract(p) && p.type === "tag";
 
 /**
@@ -139,7 +139,7 @@ export type IsPattern<P> = Or<
   IsPatternAtomic<P>,
   Or<
     IsPatternBoxedObject<P>,
-    IsPatternEmptyBox<P>
+    IsPatternIcon<P>
   >
 >;
 

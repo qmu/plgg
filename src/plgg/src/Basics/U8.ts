@@ -3,12 +3,12 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isInt,
+  box,
 } from "plgg/index";
 
 /**
@@ -17,13 +17,20 @@ import {
 export type U8 = Box<"U8", number>;
 
 /**
+ * Validates that a value is a valid 8-bit unsigned integer.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is number =>
+  isInt(value) && value >= 0 && value <= 255;
+
+/**
  * Type guard to check if a value is a U8.
  */
 const is = (value: unknown): value is U8 =>
   isBoxWithTag("U8")(value) &&
-  isInt(value.content) &&
-  value.content >= 0 &&
-  value.content <= 255;
+  qualify(value.content);
 
 /**
  * Refinable instance for U8 type guards.
@@ -36,55 +43,23 @@ export const u8Refinable: Refinable<U8> = {
  */
 export const { is: isU8 } = u8Refinable;
 
-/**
- * Castable instance for U8 safe casting.
- */
-export const u8Castable: Castable<U8> = {
-  as: (
-    value: unknown,
-  ): Result<U8, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
+export const asU8 = (
+  value: unknown,
+): Result<U8, InvalidError> =>
+  is(value)
+    ? ok(value)
+    : qualify(value)
+      ? ok(box("U8")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a U8 (tag-content pair with integer 0 to 255)",
           }),
-        ),
+        );
+
+/**
+ * Castable instance for U8 safe casting.
+ */
+export const u8Castable: Castable<U8> = {
+  as: asU8,
 };
-/**
- * Exported safe casting function for U8 values.
- */
-export const { as: asU8 } = u8Castable;
-
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of U8 values.
- */
-export type JsonReadyU8 = U8;
-
-/**
- * Type guard for JSON-ready U8 values.
- */
-export const isJsonReadyU8 = isU8;
-
-/**
- * JsonSerializable instance for U8 values.
- */
-export const u8JsonSerializable: JsonSerializable<
-  U8,
-  JsonReadyU8
-> = {
-  toJsonReady: (value: U8) => value,
-  fromJsonReady: (jsonReady: U8) => jsonReady,
-};
-/**
- * Exported JSON serialization functions for U8 values.
- */
-export const {
-  toJsonReady: toJsonReadyU8,
-  fromJsonReady: fromJsonReadyU8,
-} = u8JsonSerializable;

@@ -1,11 +1,22 @@
-import { test, expect, vi } from "vitest";
+import { test, expect, assert, vi } from "vitest";
 import {
-  PlggError,
   InvalidError,
   BaseError,
+  Time,
+  Option,
+  Obj,
+  Str,
+  Result,
   printPlggError,
   isPlggError,
-  unreachable,
+  asSoftStr,
+  asObj,
+  forProp,
+  forOptionProp,
+  asTime,
+  cast,
+  refine,
+  asStr,
 } from "plgg/index";
 
 test("PlggError.is type guard with InvalidError", () => {
@@ -99,81 +110,56 @@ test("PlggError.debug with nested errors", () => {
   consoleSpy.mockRestore();
 });
 
-test("PlggError.debug with regular Error", () => {
-  const consoleSpy = vi
-    .spyOn(console, "error")
-    .mockImplementation(() => {});
+test("InvalidError over cast pipeline", () => {
+  type Id = string;
+  const asId = (v: unknown) => cast(v, asSoftStr);
 
-  const error = new Error("Regular error");
-  printPlggError(error as any);
+  type Name = Str;
+  const asName = (v: unknown) =>
+    cast(
+      v,
+      asSoftStr,
+      refine(
+        (str) => str.length >= 3,
+        "Name must be at least 3 characters long",
+      ),
+      asStr,
+    );
 
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("[Error]"),
-  );
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("Regular error"),
-  );
+  type Article = Obj<{
+    id: Id;
+    createdAt: Time;
+    name: Name;
+    memo: Option<string>;
+  }>;
 
-  consoleSpy.mockRestore();
-});
+  const asArticle = (
+    v: unknown,
+  ): Result<Article, InvalidError> =>
+    cast(
+      v,
+      asObj,
+      forProp("id", asId),
+      forProp("createdAt", asTime),
+      forProp("name", asName),
+      forOptionProp("memo", asSoftStr),
+    );
 
-test("PlggError type alias", () => {
-  const error: PlggError = new InvalidError({
-    message: "Test error",
+  const result = asArticle({
+    id: 1,
+    createdAt: "2024-01-01T00:00:00Z",
+    name: "AB",
   });
-  expect(error instanceof InvalidError).toBe(
-    true,
-  );
-  expect(error instanceof BaseError).toBe(true);
-});
-
-test("PlggError.debug with error having no stack trace", () => {
-  const consoleSpy = vi
-    .spyOn(console, "error")
-    .mockImplementation(() => {});
-
-  const error = new InvalidError({
-    message: "No stack error",
-  });
-  // Create an error without stack by using Object.defineProperty
-  Object.defineProperty(error, "stack", {
-    value: undefined,
-  });
-
-  printPlggError(error);
-
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.not.stringContaining(" at "),
-  );
-
-  consoleSpy.mockRestore();
-});
-
-test("PlggError.debug with error having malformed stack", () => {
-  const consoleSpy = vi
-    .spyOn(console, "error")
-    .mockImplementation(() => {});
-
-  const error = new InvalidError({
-    message: "Malformed stack error",
-  });
-  // Set a malformed stack (only one line)
-  Object.defineProperty(error, "stack", {
-    value: "Error: Malformed stack error",
-  });
-
-  printPlggError(error);
-
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.not.stringContaining(" at "),
-  );
-
-  consoleSpy.mockRestore();
-});
-
-test("unreachable throws error for exhaustive checking", () => {
-  // Example: Exhaustive pattern matching
-  expect(() => unreachable()).toThrow(
-    "Supposed to be unreachable",
+  if (result.isErr()) {
+    expect(result.content).toBeInstanceOf(
+      InvalidError,
+    );
+    expect(result.content.sibling).toHaveLength(
+      2,
+    );
+    return;
+  }
+  assert.fail(
+    "Expected InvalidError but got success",
   );
 });

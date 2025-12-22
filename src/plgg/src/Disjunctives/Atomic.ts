@@ -1,30 +1,36 @@
 import {
-  Str,
+  SoftStr,
   Num,
   Bool,
   BigInt,
+  Bin,
   Int,
   Time,
-  JsonReadyStr,
+  JsonReadySoftStr,
   JsonReadyNum,
   JsonReadyBool,
   JsonReadyBigInt,
+  JsonReadyBin,
   JsonReadyInt,
   JsonReadyTime,
-  isStr,
+  isSoftStr,
   isNum,
   isBool,
   isBigInt,
+  isBin,
   isInt,
   isTime,
   toJsonReadyBigInt,
   fromJsonReadyBigInt,
+  toJsonReadyBin,
+  fromJsonReadyBin,
   toJsonReadyTime,
   fromJsonReadyTime,
-  isJsonReadyStr,
+  isJsonReadySoftStr,
   isJsonReadyNum,
   isJsonReadyBool,
   isJsonReadyBigInt,
+  isJsonReadyBin,
   isJsonReadyInt,
   isJsonReadyTime,
 } from "plgg/index";
@@ -37,7 +43,8 @@ export type Atomic =
   | Num
   | Int
   | BigInt
-  | Str
+  | Bin
+  | SoftStr
   | Time;
 
 /**
@@ -57,7 +64,8 @@ export const isAtomic = (
   isNum(value) ||
   isInt(value) ||
   isBigInt(value) ||
-  isStr(value) ||
+  isBin(value) ||
+  isSoftStr(value) ||
   isTime(value);
 
 // --------------------------------
@@ -72,7 +80,8 @@ export type JsonReadyAtomic =
   | JsonReadyNum
   | JsonReadyInt
   | JsonReadyBigInt
-  | JsonReadyStr
+  | JsonReadyBin
+  | JsonReadySoftStr
   | JsonReadyTime;
 
 /**
@@ -85,7 +94,8 @@ export const isJsonReadyAtomic = (
   isJsonReadyNum(value) ||
   isJsonReadyInt(value) ||
   isJsonReadyBigInt(value) ||
-  isJsonReadyStr(value) ||
+  isJsonReadyBin(value) ||
+  isJsonReadySoftStr(value) ||
   isJsonReadyTime(value);
 
 /**
@@ -96,6 +106,9 @@ export const toJsonReadyAtomic = (
 ): JsonReadyAtomic => {
   if (isBigInt(value)) {
     return toJsonReadyBigInt(value);
+  }
+  if (isBin(value)) {
+    return toJsonReadyBin(value);
   }
   if (isTime(value)) {
     return toJsonReadyTime(value);
@@ -111,6 +124,9 @@ export const fromJsonReadyAtomic = (
 ): Atomic => {
   if (isJsonReadyBigInt(jsonReady)) {
     return fromJsonReadyBigInt(jsonReady);
+  }
+  if (isJsonReadyBin(jsonReady)) {
+    return fromJsonReadyBin(jsonReady);
   }
   if (isJsonReadyTime(jsonReady)) {
     return fromJsonReadyTime(jsonReady);

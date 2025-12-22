@@ -8,9 +8,8 @@ import {
   Castable,
   FunctorDatum,
   FoldableDatum,
-  newOk,
-  newErr,
-  isOk,
+  ok,
+  err,
   isErr,
   toJsonReady,
   fromJsonReady,
@@ -46,25 +45,23 @@ export const vecRefinable: Refinable<Vec> = {
  */
 export const { is: isVec } = vecRefinable;
 
+export const asVec = (
+  value: unknown,
+): Result<Vec, InvalidError> =>
+  is(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Value is not a vector",
+        }),
+      );
+
 /**
  * Castable instance for vector safe casting.
  */
 export const vecCastable: Castable<Vec> = {
-  as: (
-    value: unknown,
-  ): Result<Vec, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a vector",
-          }),
-        ),
+  as: asVec,
 };
-/**
- * Exported safe casting function for vector values.
- */
-export const { as: asVec } = vecCastable;
 
 /**
  * Functor instance providing mapping operations over vector elements.
@@ -111,22 +108,44 @@ export const {
 } = vecFoldable;
 
 /**
- * Applies function to each element, collecting all results or errors.
+ * Creates a casting function for validating arrays with element type validation.
+ * This can be composed with other casting functions in the cast pipeline.
+ *
+ * @example
+ * forOptionProp("items", asVecOf(asStr))
  */
-export const conclude =
-  <
-    T extends Datum,
-    U extends Datum,
-    F extends Datum,
-  >(
-    fn: (item: T) => Result<U, F>,
+export const asVecOf =
+  <T extends Datum>(
+    asFn: (
+      value: unknown,
+    ) => Result<T, InvalidError>,
   ) =>
-  (vec: Vec<T>): Result<Vec<U>, Vec<F>> =>
-    vec
-      .map(fn)
-      .reduce<
-        Result<Vec<U>, Vec<F>>
-      >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));
+  (
+    value: unknown,
+  ): Result<Vec<T>, InvalidError> => {
+    if (!is(value)) {
+      return err(
+        new InvalidError({
+          message: "Value is not a vector",
+        }),
+      );
+    }
+
+    const results: T[] = [];
+    for (let i = 0; i < value.length; i++) {
+      const result = asFn(value[i]);
+      if (isErr(result)) {
+        return err(
+          new InvalidError({
+            message: `Invalid element at index ${i}: ${result.content.message}`,
+          }),
+        );
+      }
+      results.push(result.content);
+    }
+
+    return ok(results);
+  };
 
 // --------------------------------
 // JsonReady

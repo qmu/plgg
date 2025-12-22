@@ -6,10 +6,10 @@ import {
   Castable1,
   isBox,
   hasTag,
-  newOk,
-  newErr,
+  ok,
+  err,
   pattern,
-  newBox,
+  box,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -33,14 +33,14 @@ export type Some<T> = Box<typeof someTag, T>;
  * Pattern constructor for Some matching.
  * Used in pattern matching to match Some values.
  */
-export const some = <T>(a?: T) =>
+export const some$ = <T>(a?: T) =>
   pattern(someTag)(a);
 
 /**
  * Creates a Some instance containing a value.
  */
-export const newSome = <T>(value: T): Some<T> =>
-  newBox(someTag)(value);
+export const some = <T>(value: T): Some<T> =>
+  box(someTag)(value);
 
 /**
  * Type guard to check if an Option is a Some.
@@ -60,23 +60,21 @@ export const someRefinable: Refinable1<"Some"> = {
  */
 export const { is: isSome } = someRefinable;
 
+export const asSome = <A>(
+  value: unknown,
+): Result<Some<A>, InvalidError> =>
+  is<A>(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Value is not a Some",
+        }),
+      );
+
 /**
  * Castable instance for Some safe casting.
  */
 export const someCastable: Castable1<"Some"> = {
   KindKey: "Some",
-  as: <A>(
-    value: unknown,
-  ): Result<Some<A>, InvalidError> =>
-    is<A>(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a Some",
-          }),
-        ),
+  as: asSome,
 };
-/**
- * Exported safe casting function for Some values.
- */
-export const { as: asSome } = someCastable;

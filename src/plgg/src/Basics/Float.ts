@@ -3,12 +3,12 @@ import {
   InvalidError,
   Refinable,
   Castable,
-  JsonSerializable,
   Box,
-  newOk,
-  newErr,
+  ok,
+  err,
   isBoxWithTag,
   isNum,
+  box,
 } from "plgg/index";
 
 /**
@@ -17,12 +17,20 @@ import {
 export type Float = Box<"Float", number>;
 
 /**
+ * Validates that a value is a valid finite number.
+ * Shared validation logic for type guards and construction.
+ */
+const qualify = (
+  value: unknown,
+): value is number =>
+  isNum(value) && isFinite(value);
+
+/**
  * Type guard to check if a value is a Float.
  */
 const is = (value: unknown): value is Float =>
   isBoxWithTag("Float")(value) &&
-  isNum(value.content) &&
-  isFinite(value.content);
+  qualify(value.content);
 
 /**
  * Refinable instance for Float type guards.
@@ -35,55 +43,23 @@ export const floatRefinable: Refinable<Float> = {
  */
 export const { is: isFloat } = floatRefinable;
 
-/**
- * Castable instance for Float safe casting.
- */
-export const floatCastable: Castable<Float> = {
-  as: (
-    value: unknown,
-  ): Result<Float, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
+export const asFloat = (
+  value: unknown,
+): Result<Float, InvalidError> =>
+  is(value)
+    ? ok(value)
+    : qualify(value)
+      ? ok(box("Float")(value))
+      : err(
           new InvalidError({
             message:
               "Value is not a Float (tag-content pair with finite number)",
           }),
-        ),
+        );
+
+/**
+ * Castable instance for Float safe casting.
+ */
+export const floatCastable: Castable<Float> = {
+  as: asFloat,
 };
-/**
- * Exported safe casting function for Float values.
- */
-export const { as: asFloat } = floatCastable;
-
-// --------------------------------
-// JsonReady
-// --------------------------------
-
-/**
- * JSON-ready representation of Float values.
- */
-export type JsonReadyFloat = Float;
-
-/**
- * Type guard for JSON-ready Float values.
- */
-export const isJsonReadyFloat = isFloat;
-
-/**
- * JsonSerializable instance for Float values.
- */
-export const floatJsonSerializable: JsonSerializable<
-  Float,
-  JsonReadyFloat
-> = {
-  toJsonReady: (value: Float) => value,
-  fromJsonReady: (jsonReady: Float) => jsonReady,
-};
-/**
- * Exported JSON serialization functions for Float values.
- */
-export const {
-  toJsonReady: toJsonReadyFloat,
-  fromJsonReady: fromJsonReadyFloat,
-} = floatJsonSerializable;

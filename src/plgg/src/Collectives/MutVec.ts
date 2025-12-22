@@ -13,8 +13,8 @@ import {
   Traversable1,
   KindKeys1,
   Kind1,
-  newOk,
-  newErr,
+  ok,
+  err,
   isOk,
   isErr,
 } from "plgg/index";
@@ -51,27 +51,25 @@ export const mutVecRefinable: Refinable1<"MutVec"> =
  */
 export const { is: isMutVec } = mutVecRefinable;
 
+export const asMutVec = <A>(
+  value: unknown,
+): Result<MutVec<A>, InvalidError> =>
+  is<A>(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Value is not a vector",
+        }),
+      );
+
 /**
  * Castable instance for mutable vector safe casting.
  */
 export const mutVecCastable: Castable1<"MutVec"> =
   {
     KindKey: "MutVec",
-    as: <A>(
-      value: unknown,
-    ): Result<MutVec<A>, InvalidError> =>
-      is<A>(value)
-        ? newOk(value)
-        : newErr(
-            new InvalidError({
-              message: "Value is not a vector",
-            }),
-          ),
+    as: asMutVec,
   };
-/**
- * Exported safe casting function for mutable vector values.
- */
-export const { as: asMutVec } = mutVecCastable;
 
 /**
  * Functor instance providing mapping operations over mutable vector elements.
@@ -229,4 +227,4 @@ export const concludeMutVec =
       .map(fn)
       .reduce<
         Result<MutVec<U>, MutVec<F>>
-      >((acc, result) => (isOk(result) ? (isOk(acc) ? newOk([...acc.content, result.content]) : acc) : isErr(acc) ? newErr([...acc.content, result.content]) : newErr([result.content])), newOk([]));
+      >((acc, result) => (isOk(result) ? (isOk(acc) ? ok([...acc.content, result.content]) : acc) : isErr(acc) ? err([...acc.content, result.content]) : err([result.content])), ok([]));

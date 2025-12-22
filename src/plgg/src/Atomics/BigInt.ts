@@ -4,8 +4,8 @@ import {
   Refinable,
   Castable,
   JsonSerializable,
-  newOk,
-  newErr,
+  ok,
+  err,
   isObj,
   hasProp,
 } from "plgg/index";
@@ -40,48 +40,45 @@ export const bigIntRefinable: Refinable<BigInt> =
  */
 export const { is: isBigInt } = bigIntRefinable;
 
+export const asBigInt = (
+  value: unknown,
+): Result<BigInt, InvalidError> => {
+  if (is(value)) {
+    return ok(value);
+  }
+
+  if (
+    typeof value === "number" &&
+    Number.isInteger(value)
+  ) {
+    return ok(BigInt(value));
+  }
+
+  if (typeof value === "string") {
+    try {
+      return ok(BigInt(value));
+    } catch {
+      return err(
+        new InvalidError({
+          message: "Value is not a valid BigInt",
+        }),
+      );
+    }
+  }
+
+  return err(
+    new InvalidError({
+      message: "Value is not a BigInt",
+    }),
+  );
+};
+
 /**
  * Castable instance for BigInt safe casting.
  */
 export const bigIntCastable: Castable<BigInt> = {
-  as: (
-    value: unknown,
-  ): Result<BigInt, InvalidError> => {
-    if (is(value)) {
-      return newOk(value);
-    }
-
-    if (
-      typeof value === "number" &&
-      Number.isInteger(value)
-    ) {
-      return newOk(BigInt(value));
-    }
-
-    if (typeof value === "string") {
-      try {
-        return newOk(BigInt(value));
-      } catch {
-        return newErr(
-          new InvalidError({
-            message:
-              "Value is not a valid BigInt",
-          }),
-        );
-      }
-    }
-
-    return newErr(
-      new InvalidError({
-        message: "Value is not a BigInt",
-      }),
-    );
-  },
+  as: asBigInt,
 };
-/**
- * Exported safe casting function for BigInt values.
- */
-export const { as: asBigInt } = bigIntCastable;
 
 // --------------------------------
 // JsonReady

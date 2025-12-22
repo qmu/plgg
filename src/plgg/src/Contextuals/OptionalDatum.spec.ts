@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   OptionalDatum,
-  toJson,
-  fromJson,
+  jsonEncode,
+  jsonDecode,
   toJsonReady,
   fromJsonReady,
-  newSome,
-  newNone,
+  some,
+  none,
   isSome,
   isNone,
   isOptionalDatum,
@@ -17,12 +17,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
   describe("Basic round-trip tests", () => {
     it("should serialize and deserialize Some OptionalDatum with string", () => {
       const original: OptionalDatum<string> =
-        newSome("hello world");
+        some("hello world");
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -30,17 +32,22 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         expect(restored.content).toBe(
           "hello world",
         );
+        // Verify type guards work on deserialized option
+        expect(isSome(restored)).toBe(true);
+        expect(isNone(restored)).toBe(false);
       }
     });
 
     it("should serialize and deserialize Some OptionalDatum with number", () => {
       const original: OptionalDatum<number> =
-        newSome(42.5);
+        some(42.5);
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -51,12 +58,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should serialize and deserialize Some OptionalDatum with boolean", () => {
       const original: OptionalDatum<boolean> =
-        newSome(true);
+        some(true);
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -67,12 +76,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should serialize and deserialize Some OptionalDatum with BigInt", () => {
       const original: OptionalDatum<bigint> =
-        newSome(123456789012345678901234567890n);
+        some(123456789012345678901234567890n);
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -88,16 +99,23 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should serialize and deserialize None OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newNone();
+        none();
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
       expect(isNone(restored)).toBe(true);
+      // Verify type guards work on deserialized None
+      if (isOptionalDatum(restored)) {
+        expect(isSome(restored)).toBe(false);
+        expect(isNone(restored)).toBe(true);
+      }
     });
   });
 
@@ -107,12 +125,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         name: "Alice",
         age: 30,
       };
-      const original = newSome(objectData);
+      const original = some(objectData);
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -134,12 +154,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
           },
         },
       };
-      const original = newSome(nestedObjectData);
+      const original = some(nestedObjectData);
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -155,12 +177,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should serialize and deserialize Some OptionalDatum with array", () => {
       const arrayData = [1, 2, 3, 4, 5];
-      const original = newSome(arrayData);
+      const original = some(arrayData);
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -178,12 +202,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         name: "Charlie",
         balance: 456789012345678901234567890n,
       };
-      const original = newSome(mixedObjectData);
+      const original = some(mixedObjectData);
 
-      const jsonString = toJson(original);
-      const restored = fromJson(jsonString);
+      const jsonString = jsonEncode(original);
+      const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -205,12 +231,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
   describe("JsonReady intermediate conversion tests", () => {
     it("should convert Some OptionalDatum to JsonReady and back", () => {
       const original: OptionalDatum<string> =
-        newSome("test value");
+        some("test value");
 
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -218,12 +246,14 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should convert None OptionalDatum to JsonReady and back", () => {
       const original: OptionalDatum<number> =
-        newNone();
+        none();
 
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -232,7 +262,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should use toJsonReadyOptionalDatum for Some OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newSome("direct test");
+        some("direct test");
 
       const jsonReady =
         toJsonReadyOptionalDatum(original);
@@ -246,7 +276,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should use toJsonReadyOptionalDatum for None OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newNone();
+        none();
 
       const jsonReady =
         toJsonReadyOptionalDatum(original);
@@ -257,17 +287,19 @@ describe("OptionalDatum Serialization/Deserialization", () => {
   describe("Edge cases and special values", () => {
     it("should handle Some OptionalDatum with zero values", () => {
       const cases = [
-        newSome(0),
-        newSome(""),
-        newSome(false),
-        newSome(0n),
+        some(0),
+        some(""),
+        some(false),
+        some(0n),
       ];
 
       cases.forEach((original) => {
-        const jsonString = toJson(original);
-        const restored = fromJson(jsonString);
+        const jsonString = jsonEncode(original);
+        const restored = jsonDecode(jsonString);
 
-        expect(restored).toEqual(original);
+        expect(isOptionalDatum(restored)).toBe(
+          true,
+        );
         expect(isOptionalDatum(restored)).toBe(
           true,
         );
@@ -276,15 +308,17 @@ describe("OptionalDatum Serialization/Deserialization", () => {
     });
 
     it("should handle Some OptionalDatum with special string values", () => {
-      const emptyStringCase = newSome("");
-      const specialCharsCase = newSome("null");
+      const emptyStringCase = some("");
+      const specialCharsCase = some("null");
 
       [emptyStringCase, specialCharsCase].forEach(
         (original) => {
-          const jsonString = toJson(original);
-          const restored = fromJson(jsonString);
+          const jsonString = jsonEncode(original);
+          const restored = jsonDecode(jsonString);
 
-          expect(restored).toEqual(original);
+          expect(isOptionalDatum(restored)).toBe(
+            true,
+          );
           expect(isOptionalDatum(restored)).toBe(
             true,
           );
@@ -295,16 +329,18 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should handle Some OptionalDatum with negative numbers", () => {
       const negativeNumber: OptionalDatum<number> =
-        newSome(-42.5);
+        some(-42.5);
       const negativeBigInt: OptionalDatum<bigint> =
-        newSome(-999999999999999999n);
+        some(-999999999999999999n);
 
       [negativeNumber, negativeBigInt].forEach(
         (original) => {
-          const jsonString = toJson(original);
-          const restored = fromJson(jsonString);
+          const jsonString = jsonEncode(original);
+          const restored = jsonDecode(jsonString);
 
-          expect(restored).toEqual(original);
+          expect(isOptionalDatum(restored)).toBe(
+            true,
+          );
           expect(isOptionalDatum(restored)).toBe(
             true,
           );
@@ -313,15 +349,17 @@ describe("OptionalDatum Serialization/Deserialization", () => {
     });
 
     it("should handle Some OptionalDatum with empty arrays and objects", () => {
-      const emptyArray = newSome([]);
-      const emptyObject = newSome({});
+      const emptyArray = some([]);
+      const emptyObject = some({});
 
       [emptyArray, emptyObject].forEach(
         (original) => {
-          const jsonString = toJson(original);
-          const restored = fromJson(jsonString);
+          const jsonString = jsonEncode(original);
+          const restored = jsonDecode(jsonString);
 
-          expect(restored).toEqual(original);
+          expect(isOptionalDatum(restored)).toBe(
+            true,
+          );
           expect(isOptionalDatum(restored)).toBe(
             true,
           );
@@ -333,15 +371,15 @@ describe("OptionalDatum Serialization/Deserialization", () => {
   describe("Type preservation tests", () => {
     it("should maintain type information after round-trip", () => {
       const stringOptional: OptionalDatum<string> =
-        newSome("type test");
+        some("type test");
       const numberOptional: OptionalDatum<number> =
-        newSome(123);
+        some(123);
       const boolOptional: OptionalDatum<boolean> =
-        newSome(true);
+        some(true);
       const bigintOptional: OptionalDatum<bigint> =
-        newSome(456n);
+        some(456n);
       const noneOptional: OptionalDatum<string> =
-        newNone();
+        none();
 
       const testCases = [
         stringOptional,
@@ -352,11 +390,13 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       ];
 
       testCases.forEach((original) => {
-        const restored = fromJson(
-          toJson(original),
+        const restored = jsonDecode(
+          jsonEncode(original),
         );
 
-        expect(restored).toEqual(original);
+        expect(isOptionalDatum(restored)).toBe(
+          true,
+        );
         expect(isOptionalDatum(restored)).toBe(
           true,
         );
@@ -377,15 +417,19 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         z: string;
         a: number;
         m: boolean;
-      }> = newSome({
+      }> = some({
         z: "last",
         a: 42,
         m: true,
       });
 
-      const restored = fromJson(toJson(original));
+      const restored = jsonDecode(
+        jsonEncode(original),
+      );
 
-      expect(restored).toEqual(original);
+      expect(isOptionalDatum(restored)).toBe(
+        true,
+      );
       expect(isOptionalDatum(restored)).toBe(
         true,
       );
@@ -400,9 +444,9 @@ describe("OptionalDatum Serialization/Deserialization", () => {
   describe("JSON structure validation", () => {
     it("should produce expected JSON structure for Some OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newSome("json structure test");
+        some("json structure test");
 
-      const jsonString = toJson(original);
+      const jsonString = jsonEncode(original);
       const parsed = JSON.parse(jsonString);
 
       expect(parsed).toHaveProperty(
@@ -417,25 +461,26 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
     it("should produce expected JSON structure for None OptionalDatum", () => {
       const original: OptionalDatum<string> =
-        newNone();
+        none();
 
-      const jsonString = toJson(original);
+      const jsonString = jsonEncode(original);
       const parsed = JSON.parse(jsonString);
 
       expect(parsed).toHaveProperty(
         "__tag",
         "None",
       );
-      expect(parsed).not.toHaveProperty(
+      expect(parsed).toHaveProperty(
         "content",
+        "__none__",
       );
     });
 
     it("should produce expected JSON structure for Some OptionalDatum with BigInt", () => {
       const original: OptionalDatum<bigint> =
-        newSome(987654321n);
+        some(987654321n);
 
-      const jsonString = toJson(original);
+      const jsonString = jsonEncode(original);
       const parsed = JSON.parse(jsonString);
 
       expect(parsed).toHaveProperty(

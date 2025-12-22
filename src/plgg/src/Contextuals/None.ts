@@ -1,15 +1,15 @@
 import {
-  EmptyBox,
+  Icon,
   Result,
   InvalidError,
   Refinable,
   Castable,
   pattern,
-  isEmptyBox,
-  hasEmptyBoxTag,
-  newOk,
-  newErr,
-  newEmptyBox,
+  isIcon,
+  hasIconTag,
+  ok,
+  err,
+  icon,
 } from "plgg/index";
 
 /**
@@ -21,25 +21,24 @@ const noneTag = "None" as const;
  * None side of Option, representing the absence of a value.
  * Equivalent to null/undefined but in a type-safe way.
  */
-export type None = EmptyBox<typeof noneTag>;
+export type None = Icon<typeof noneTag>;
 
 /**
  * Pattern constructor for None matching.
  * Used in pattern matching to match None values.
  */
-export const none = () => pattern(noneTag)();
+export const none$ = () => pattern(noneTag)();
 
 /**
  * Creates a None instance representing no value.
  */
-export const newNone = (): None =>
-  newEmptyBox(noneTag);
+export const none = (): None => icon(noneTag);
 
 /**
  * Type guard to check if an Option is a None.
  */
 const is = (e: unknown): e is None =>
-  isEmptyBox(e) && hasEmptyBoxTag(noneTag)(e);
+  isIcon(e) && hasIconTag(noneTag)(e);
 
 /**
  * Refinable instance for None type guards.
@@ -52,22 +51,20 @@ export const noneRefinable: Refinable<None> = {
  */
 export const { is: isNone } = noneRefinable;
 
+export const asNone = (
+  value: unknown,
+): Result<None, InvalidError> =>
+  is(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Value is not a None",
+        }),
+      );
+
 /**
  * Castable instance for None safe casting.
  */
 export const noneCastable: Castable<None> = {
-  as: (
-    value: unknown,
-  ): Result<None, InvalidError> =>
-    is(value)
-      ? newOk(value)
-      : newErr(
-          new InvalidError({
-            message: "Value is not a None",
-          }),
-        ),
+  as: asNone,
 };
-/**
- * Exported safe casting function for None values.
- */
-export const { as: asNone } = noneCastable;

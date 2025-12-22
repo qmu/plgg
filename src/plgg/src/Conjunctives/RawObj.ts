@@ -13,8 +13,8 @@ import {
   Monad1,
   KindKeys1,
   Kind1,
-  newOk,
-  newErr,
+  ok,
+  err,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -32,7 +32,7 @@ export type RawObj<T = Record<string, unknown>> =
 /**
  * Type guard to check if a value is a MutRec.
  */
-const is = <T>(
+const is = <T = Record<string, unknown>>(
   value: unknown,
 ): value is RawObj<T> =>
   typeof value === "object" && value !== null;
@@ -50,30 +50,25 @@ export const mutRecRefinable: Refinable1<"MutRec"> =
  */
 export const { is: isRawObj } = mutRecRefinable;
 
+export const asRawObj = <A>(
+  value: unknown,
+): Result<RawObj<A>, InvalidError> =>
+  is<A>(value)
+    ? ok(value)
+    : err(
+        new InvalidError({
+          message: "Not record",
+        }),
+      );
+
 /**
  * Castable instance for mutable record safe casting.
  */
 export const mutRecCastable: Castable1<"MutRec"> =
   {
     KindKey: "MutRec",
-    as: <A>(
-      value: unknown,
-    ): Result<RawObj<A>, InvalidError> =>
-      is<A>(value)
-        ? newOk(value)
-        : newErr(
-            new InvalidError({
-              message: "Not record",
-            }),
-          ),
+    as: asRawObj,
   };
-/**
- * Exported safe casting function for mutable record values.
- */
-/**
- * Exported safe casting function for mutable record values.
- */
-export const { as: asRawObj } = mutRecCastable;
 
 /**
  * Functor instance providing mapping operations over mutable record values.
