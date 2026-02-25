@@ -2,6 +2,12 @@
 
 All notable changes to the project root (tooling, scripts, CI) will be documented in this file.
 
+## drive-20260226-032733
+
+### Added
+
+- Add .claude/settings.json to the repository ([30b2c95](https://github.com/qmu/plgg/commit/30b2c95d27821f70e9dba188e60f18d74d27eff9)) - [ticket](.workaholic/tickets/archive/drive-20260226-032733/20260226032724-add-claude-settings-json.md)
+
 ## [0.0.25] - Unreleased
 
 ### Added
