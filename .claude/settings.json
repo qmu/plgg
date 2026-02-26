@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "deny": ["Bash(git -C:*)"]
+  },
+  "env": {
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "extraKnownMarketplaces": {
+    "workaholic": {
+      "source": {
+        "source": "github",
+        "repo": "qmu/workaholic"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "core@workaholic": true
+  }
+}

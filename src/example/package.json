@@ -1,13 +1,24 @@
 {
-  "name": "plgg example",
+  "name": "@plgg/example",
   "version": "0.0.2",
   "description": "Example of using plgg",
-  "main": "dist/example.umd.js",
-  "module": "dist/example.mjs",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    "import": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.es.js"
+    },
+    "require": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.cjs.js"
+    }
+  },
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "vite build",
     "test": "tsc --noEmit && vitest --run",
+    "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage",
@@ -24,6 +35,7 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
+    "glob": "^10.5.0",
     "plgg": "file:../plgg"
   },
   "devDependencies": {
@@ -31,6 +43,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
   }
 }

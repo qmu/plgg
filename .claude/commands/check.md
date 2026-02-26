@@ -1,0 +1,4 @@
+- Run sh/check-all.sh to verify tests and type checking pass
+- Use the readme-updater subagent to update README.md based on staged changes
+- Use the changelog-updater subagent to update CHANGELOG.md based on staged changes
+- Use the version-checker subagent to verify package.json versions are incremented when needed

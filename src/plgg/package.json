@@ -1,9 +1,19 @@
 {
   "name": "plgg",
-  "version": "0.0.4",
-  "description": "Pipeline utilities",
-  "main": "dist/plgg.umd.js",
-  "module": "dist/plgg.mjs",
+  "version": "0.0.26",
+  "description": "Pipeline Utility",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    "import": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.es.js"
+    },
+    "require": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.cjs.js"
+    }
+  },
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "vite build",
@@ -12,7 +22,8 @@
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage",
-    "coverage:watch": "vitest --coverage"
+    "coverage:watch": "vitest --coverage",
+    "publish": "vite build && npm publish"
   },
   "repository": {
     "type": "git",
