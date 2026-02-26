@@ -3,9 +3,9 @@ created_at: 2026-02-26T05:37:44+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 7a7903f
+category: Changed
 ---
 
 # Make Comprehensive README.md
@@ -102,3 +102,16 @@ Past tickets that touched similar areas:
 - The `.claude/commands/readme.md` instructs to "respect the original structure" but since this is a comprehensive rewrite, the structure will necessarily change significantly
 - The project's version is 0.0.25 for plgg and 0.0.1 for plgg-kit and plgg-foundry -- the unstable warning should remain prominent (`README.md` line 3)
 - The copyright year in LICENSE is 2025 (`LICENSE` line 3) -- ensure README license section matches
+
+## Final Report
+
+### Changes
+
+- Rewrote `README.md` from 40 lines to a comprehensive monorepo overview with project structure, installation for all 3 packages, core concepts (Result, Option, Box, cast, proc, pipe, match, env) with compilable examples, module organization table for all 11 categories, sub-package summaries, and development commands
+- Rewrote `src/plgg/README.md` from 39 lines to a package-focused reference with Quick Start examples (cast, proc, match, pipe), all 11 module category descriptions, and link back to monorepo README
+- Fixed outdated API references: replaced `chain`/`Obj.cast`/`Obj.prop` with the actual `cast`/`asObj`/`forProp` API surface
+
+### Test Plan
+
+- `sh/tsc-plgg.sh` passed
+- `sh/test-plgg.sh` passed (338/338 tests)
