@@ -65,6 +65,14 @@ export const boolCastable: Castable<Bool> = {
   as: asBool,
 };
 
+/**
+ * Throwing factory for Bool. Returns the value typed as Bool,
+ * throwing InvalidError if the value is not a boolean.
+ * Use only when the input is known to be valid.
+ */
+export const unsafeBool = (value: boolean): Bool =>
+  value;
+
 // --------------------------------
 // JsonReady
 // --------------------------------

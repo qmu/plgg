@@ -63,3 +63,15 @@ export const asStr = (
 export const strCastable: Castable<Str> = {
   as: asStr,
 };
+
+/**
+ * Throwing factory for Str. Validates and returns the unwrapped type,
+ * throwing InvalidError on invalid input. Use only when the input is
+ * known to be valid.
+ */
+export const unsafeStr = (value: string): Str => {
+  if (qualify(value)) return box("Str")(value);
+  throw new InvalidError({
+    message: "Cannot create Str from empty string",
+  });
+};
