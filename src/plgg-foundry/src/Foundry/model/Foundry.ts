@@ -1,12 +1,13 @@
 import {
   Str,
+  Datum,
+  PromisedResult,
   Result,
   find,
   pipe,
   filter,
   unsafeStr,
 } from "plgg";
-import { Provider, openai } from "plgg-kit";
 import {
   Apparatus,
   Processor,
@@ -19,6 +20,16 @@ import {
   isPacker,
   explainApparatus,
 } from "plgg-foundry/index";
+
+/**
+ * Function type for generating alignments from prompts.
+ * Accepts only PLGG types, decoupling Foundry from any specific LLM vendor.
+ */
+export type GenerateAlignmentFn = (args: {
+  systemPrompt: string;
+  userPrompt: string;
+  schema: Datum;
+}) => PromisedResult<unknown, Error>;
 
 /**
  * Callback invoked before operations are executed.
@@ -42,7 +53,7 @@ export type AfterOperations = (ctx: {
  * Factory containing available apparatuses (processors, switchers, and packers) for alignment execution.
  */
 export type Foundry = Readonly<{
-  provider: Provider;
+  generateAlignment: GenerateAlignmentFn;
   description: Str;
   maxOperationLimit: number;
   apparatuses: ReadonlyArray<Apparatus>;
@@ -57,14 +68,14 @@ export type Foundry = Readonly<{
  */
 export const makeFoundry = (spec: {
   description: string;
+  generateAlignment: GenerateAlignmentFn;
   apparatuses: ReadonlyArray<Apparatus>;
-  provider?: Provider;
   maxOperationLimit?: number;
   beforeOperations?: BeforeOperations;
   afterOperations?: AfterOperations;
 }): Foundry => {
   const base = {
-    provider: spec.provider ?? openai("gpt-5.1"),
+    generateAlignment: spec.generateAlignment,
     description: unsafeStr(spec.description),
     maxOperationLimit: spec.maxOperationLimit ?? 10,
     apparatuses: spec.apparatuses,

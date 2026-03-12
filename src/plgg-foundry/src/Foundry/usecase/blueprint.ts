@@ -10,7 +10,6 @@ import {
   isProcessor,
   isSwitcher,
 } from "plgg-foundry/index";
-import { generateObject } from "plgg-kit";
 
 /**
  * Generates an alignment from user order using AI model based on available foundry functions.
@@ -30,7 +29,6 @@ export const blueprint =
       isSwitcher,
     );
     const reqArg = {
-      provider: foundry.provider,
       systemPrompt: `Generate an Alignment to fulfill the user request.
 
 ## Alignment
@@ -426,7 +424,7 @@ Data Flow: NameTableEntry arrays map variable names to register addresses. Input
     };
     return proc(
       reqArg,
-      generateObject,
+      foundry.generateAlignment,
       asAlignment,
     );
   };

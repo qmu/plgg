@@ -2,6 +2,8 @@ import {
   Box,
   Obj,
   Option,
+  Result,
+  InvalidError,
   pattern,
   cast,
   asBox,
@@ -14,6 +16,7 @@ import {
   some,
   none,
   pipe,
+  isOk,
 } from "plgg";
 
 export type Provider =
@@ -21,13 +24,18 @@ export type Provider =
   | Anthropic
   | Google;
 
-//export const asProvider = (v: unknown) =>
-//  cast(
-//    v,
-//    asOpenAI,
-//    orCast(asAnthropic),
-//    orCast(asGoogle)
-//  );
+/**
+ * Casts an unknown value to Provider by trying each vendor type in order.
+ */
+export const asProvider = (
+  v: unknown,
+): Result<Provider, InvalidError> => {
+  const r1 = asOpenAI(v);
+  if (isOk(r1)) return r1;
+  const r2 = asAnthropic(v);
+  if (isOk(r2)) return r2;
+  return asGoogle(v);
+};
 
 // -------------
 
