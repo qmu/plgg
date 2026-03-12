@@ -11,6 +11,8 @@ import {
   isBoxWithTag,
   some,
   none,
+  unsafeKebabCase,
+  unsafeStr,
 } from "plgg";
 import {
   Medium,
@@ -69,8 +71,8 @@ export const makeProcessor = <
     : PossiblyPromise<unknown>;
 }): Processor =>
   box("Processor")({
-    name: box("KebabCase")(spec.name) as KebabCase,
-    description: box("Str")(spec.description) as Str,
+    name: unsafeKebabCase(spec.name),
+    description: unsafeStr(spec.description),
     arguments: spec.arguments
       ? some(toVirtualTypeDict(spec.arguments))
       : none(),

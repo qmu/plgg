@@ -1,10 +1,10 @@
 import {
   Str,
   Result,
-  box,
   find,
   pipe,
   filter,
+  unsafeStr,
 } from "plgg";
 import { Provider, openai } from "plgg-kit";
 import {
@@ -65,7 +65,7 @@ export const makeFoundry = (spec: {
 }): Foundry => {
   const base = {
     provider: spec.provider ?? openai("gpt-5.1"),
-    description: box("Str")(spec.description) as Str,
+    description: unsafeStr(spec.description),
     maxOperationLimit: spec.maxOperationLimit ?? 10,
     apparatuses: spec.apparatuses,
   };
