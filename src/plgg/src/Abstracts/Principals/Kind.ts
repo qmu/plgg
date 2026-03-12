@@ -13,7 +13,6 @@ export interface MapKind2<A, B> {}
 /**
  * Registry for mapping three-parameter type constructor keys to their concrete types.
  */
-// @ts-ignore will have ReaderTaskResult
 export interface MapKind3<A, B, C> {}
 
 /**

@@ -19,7 +19,7 @@ import {
   VirtualType,
   VirtualTypeSpec,
   VariableName,
-  formatVirtualType,
+  formatEntries,
   toVirtualTypeDict,
 } from "plgg-foundry/index";
 
@@ -105,20 +105,6 @@ export const makeSwitcher = <
       : none(),
     fn: spec.fn,
   });
-
-/**
- * Formats entries as multiline YAML-like list.
- */
-const formatEntries = (
-  entries: ReadonlyArray<[string, VirtualType]>,
-): string =>
-  "\n" +
-  entries
-    .map(
-      ([name, vt]) =>
-        `  - ${formatVirtualType(name, vt)}`,
-    )
-    .join("\n");
 
 /**
  * Generates human-readable markdown description of switcher.
