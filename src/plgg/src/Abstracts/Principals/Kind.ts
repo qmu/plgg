@@ -13,6 +13,7 @@ export interface MapKind2<A, B> {}
 /**
  * Registry for mapping three-parameter type constructor keys to their concrete types.
  */
+// @ts-expect-error Type parameters reserved for module augmentation (e.g., ReaderTaskResult)
 export interface MapKind3<A, B, C> {}
 
 /**
