@@ -1,3 +1,0 @@
-- Update README.md in the root directory
-- Respect the original structure of the file
-- 

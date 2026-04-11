@@ -1,7 +1,0 @@
-- Add spec.ts for `$ARGUMENT`
-- If no ARGUMENT is specified, check the coverage rate and improve coverage with the least number of tests.
-- User only `test` (not `describe`, `it`, etc.) in the spec.ts file.
-- Use `expect` and `assert` for assertions.
-- No relative imports, use absolute imports.
-- `sh/test-plgg.sh` to check compilation errors and run unit tests, fix errors if any
-- `sh/coverage-plgg.sh` to ensure 90% for both C1 and C2 by least tests.
