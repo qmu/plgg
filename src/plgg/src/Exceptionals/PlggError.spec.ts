@@ -9,6 +9,8 @@ import {
   Result,
   printPlggError,
   isPlggError,
+  toError,
+  unreachable,
   asSoftStr,
   asObj,
   forProp,
@@ -108,6 +110,68 @@ test("PlggError.debug with nested errors", () => {
   );
 
   consoleSpy.mockRestore();
+});
+
+test("printPlggError with plain Error prints single line", () => {
+  const consoleSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
+
+  const plainError = new Error(
+    "plain error",
+  ) as unknown as InvalidError;
+  printPlggError(plainError);
+
+  expect(consoleSpy).toHaveBeenCalledTimes(1);
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.stringContaining("plain error"),
+  );
+
+  consoleSpy.mockRestore();
+});
+
+test("printPlggError prints no stack location when stack missing", () => {
+  const consoleSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
+
+  const error = new InvalidError({
+    message: "no stack",
+  });
+  // Simulate an environment without stack frame detail.
+  Object.defineProperty(error, "stack", {
+    value: "",
+    configurable: true,
+  });
+  printPlggError(error);
+  expect(consoleSpy).toHaveBeenCalledWith(
+    expect.stringContaining("no stack"),
+  );
+
+  consoleSpy.mockRestore();
+});
+
+test("toError returns the same instance for Error input", () => {
+  const original = new Error("hi");
+  expect(toError(original)).toBe(original);
+});
+
+test("toError wraps non-Error values", () => {
+  expect(toError("oops").message).toBe("oops");
+  expect(toError(42).message).toBe("42");
+  expect(toError({ a: 1 }).message).toContain(
+    "object",
+  );
+  expect(toError(null).message).toBe("null");
+  expect(toError(undefined).message).toBe(
+    "undefined",
+  );
+});
+
+test("unreachable always throws", () => {
+  expect(() => unreachable()).toThrow(
+    "Supposed to be unreachable",
+  );
 });
 
 test("InvalidError over cast pipeline", () => {

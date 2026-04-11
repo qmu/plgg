@@ -12,6 +12,7 @@ import {
   foldlRawObj,
   traverseRawObj,
   sequenceRawObj,
+  mutRecApplicative,
   pipe,
 } from "plgg/index";
 
@@ -251,19 +252,23 @@ test("foldlRawObj - left fold", () => {
 });
 
 /**
- * Verifies traverseRawObj function is exported and available.
+ * Verifies traverseRawObj invokes Applicative.map over the input.
  */
-test("traverseRawObj - function exists", () => {
-  // Verify traverse function availability for mutable record operations
-  expect(typeof traverseRawObj).toBe("function");
-  expect(traverseRawObj).toBeDefined();
+test("traverseRawObj runs the function through the Applicative", () => {
+  const input = { count: 10 };
+  const doubled = traverseRawObj(mutRecApplicative)(
+    (o: typeof input) => ({ count: o.count * 2 }),
+  )(input);
+  expect(doubled).toEqual({ count: 20 });
 });
 
 /**
- * Verifies sequenceRawObj function is exported and available.
+ * Verifies sequenceRawObj lifts the input through the Applicative.
  */
-test("sequenceRawObj - function exists", () => {
-  // Verify sequence function availability for mutable record operations
-  expect(typeof sequenceRawObj).toBe("function");
-  expect(sequenceRawObj).toBeDefined();
+test("sequenceRawObj lifts the input record", () => {
+  const input = { x: 1, y: 2 };
+  const result = sequenceRawObj(mutRecApplicative)(
+    input,
+  );
+  expect(result).toEqual(input);
 });

@@ -56,3 +56,40 @@ test("tryCatch with default error handler", () => {
     "Unexpected error occurred",
   );
 });
+
+test("tryCatch wraps async resolved promise in Ok", async () => {
+  const loader = tryCatch(
+    async (key: string) => `value-for-${key}`,
+  );
+  const result = await loader("a");
+  assert(isOk(result));
+  expect(result.content).toBe("value-for-a");
+});
+
+test("tryCatch wraps async rejected promise in Err", async () => {
+  const loader = tryCatch(
+    async (_key: string) => {
+      throw new Error("async failure");
+    },
+    (error: unknown) =>
+      new InvalidError({
+        message: `async: ${(error as Error).message}`,
+      }),
+  );
+  const result = await loader("a");
+  assert(isErr(result));
+  expect(result.content.message).toContain(
+    "async failure",
+  );
+});
+
+test("tryCatch async uses default error handler", async () => {
+  const loader = tryCatch(async (_: string) => {
+    throw new Error("boom");
+  });
+  const result = await loader("x");
+  assert(isErr(result));
+  expect(result.content.message).toBe(
+    "Operation failed: boom",
+  );
+});

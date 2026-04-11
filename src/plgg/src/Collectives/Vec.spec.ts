@@ -2,6 +2,8 @@ import { test, expect, assert } from "vitest";
 import {
   isVec,
   asVec,
+  asVecOf,
+  asNum,
   isOk,
   isErr,
   mapVec,
@@ -167,4 +169,32 @@ test("Vec Foldable - foldl function", () => {
   expect(r1).toBe(0);
   expect(r2).toBe(6);
   expect(r3).toBe("abc");
+});
+
+test("asVecOf validates each element", () => {
+  const result = asVecOf(asNum)([1, 2, 3]);
+  assert(isOk(result));
+  expect(result.content).toEqual([1, 2, 3]);
+});
+
+test("asVecOf fails when value is not a vector", () => {
+  const result = asVecOf(asNum)("not-a-vector");
+  assert(isErr(result));
+  expect(result.content.message).toBe(
+    "Value is not a vector",
+  );
+});
+
+test("asVecOf fails with index of bad element", () => {
+  const result = asVecOf(asNum)([1, "bad", 3]);
+  assert(isErr(result));
+  expect(result.content.message).toContain(
+    "Invalid element at index 1",
+  );
+});
+
+test("asVecOf accepts empty array", () => {
+  const result = asVecOf(asNum)([]);
+  assert(isOk(result));
+  expect(result.content).toEqual([]);
 });

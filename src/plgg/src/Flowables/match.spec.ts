@@ -36,6 +36,7 @@ test("number", async () => {
   expect(fn(3)).equal("3");
 });
 
+
 test("boolean", async () => {
   const fn = (a: boolean) =>
     match(

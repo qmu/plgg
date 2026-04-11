@@ -277,6 +277,47 @@ test("cast handles non-Error exceptions", () => {
   );
 });
 
+test("cast handles exception thrown in sibling validator after prior Err", () => {
+  // First validator fails with a regular Err, second one throws.
+  // Covers the catch branch that converts the throw while acc is already Err.
+  const firstFail = (
+    _: unknown,
+  ): Result<unknown, InvalidError> =>
+    err(
+      new InvalidError({
+        message: "first failed",
+      }),
+    );
+  const secondThrow = (
+    _: unknown,
+  ): Result<unknown, InvalidError> => {
+    throw new Error("second boomed");
+  };
+
+  const result = cast("input", firstFail, secondThrow);
+  assert(isErr(result));
+  // Both errors should be collected
+  expect(result.content.sibling.length).toBeGreaterThan(
+    0,
+  );
+});
+
+test("cast sibling validator returning Ok propagates prior Err", () => {
+  const firstFail = (
+    _: unknown,
+  ): Result<unknown, InvalidError> =>
+    err(
+      new InvalidError({
+        message: "fail first",
+      }),
+    );
+  const secondOk = (value: unknown) =>
+    ok(value as string);
+  const result = cast("data", firstFail, secondOk);
+  assert(isErr(result));
+  expect(result.content.message).toBe("fail first");
+});
+
 test("cast with maximum parameters (20 functions)", () => {
   // Test with many validation functions to exercise highest-arity overloads
   const identity = (x: unknown) => ok(x);

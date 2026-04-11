@@ -30,3 +30,35 @@ test("env - returns Err for empty environment variable", () => {
   );
   delete process.env.EMPTY_VAR;
 });
+
+test("env - returns Err when process.env is unavailable", () => {
+  const originalEnv = process.env;
+  // @ts-expect-error test scenario: simulate missing process.env
+  process.env = undefined;
+  const result = env("ANY_VAR");
+  process.env = originalEnv;
+  assert(isErr(result));
+  expect(result.content.message).toContain(
+    "process.env unavailable",
+  );
+});
+
+test("env - returns Err when accessing process throws", () => {
+  const originalEnv = process.env;
+  Object.defineProperty(process, "env", {
+    get() {
+      throw new Error("blocked");
+    },
+    configurable: true,
+  });
+  const result = env("ANY_VAR");
+  Object.defineProperty(process, "env", {
+    value: originalEnv,
+    writable: true,
+    configurable: true,
+  });
+  assert(isErr(result));
+  expect(result.content.message).toContain(
+    "Failed to access",
+  );
+});
