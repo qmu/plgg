@@ -13,6 +13,7 @@
     },
     "rootDir": "src",
     "outDir": "dist",
+    "types": ["node"],
     /* Type Checking Rules */
     "strict": true,
     "noUnusedLocals": true,
