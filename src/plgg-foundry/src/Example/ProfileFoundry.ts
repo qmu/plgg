@@ -2,6 +2,7 @@ import {
   isRawObj,
   hasProp,
   isSoftStr,
+  ok,
 } from "plgg";
 import {
   makeFoundry,
@@ -42,6 +43,7 @@ export let lastGreeting = "";
  */
 export const profileFoundry = makeFoundry({
   description: `Greets users based on their profile.`,
+  generateAlignment: async () => ok({}),
   apparatuses: [
     makeProcessor({
       name: "greet",

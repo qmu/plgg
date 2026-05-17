@@ -17,6 +17,7 @@ import {
   Order,
   Medium,
   Param,
+  RegisterEntry,
   Ingress,
   Assign,
   Switch,
@@ -186,14 +187,16 @@ const loadValueFromEnv =
   (env: Env) =>
   (
     addr: string,
-  ): Result<[Address, Param], Error> =>
-    env[addr]
-      ? ok([addr, env[addr]])
+  ): Result<[Address, RegisterEntry], Error> => {
+    const entry = env[addr];
+    return entry
+      ? ok([addr, entry])
       : err(
           new Error(
             `No value found at load address "${addr}"`,
           ),
         );
+  };
 
 /**
  * Executes switch operation by evaluating condition and branching accordingly.
@@ -243,9 +246,7 @@ const execSwitch = async ({
     Object.fromEntries(
       addrParams.content.map(([addr, param]) => [
         addressToVarName[addr],
-        parseJsonValue(
-          (param as { value: unknown }).value,
-        ),
+        parseJsonValue(param.value),
       ]),
     );
 
@@ -279,7 +280,10 @@ const execSwitch = async ({
     ? switcher.content.returnsWhenTrue
     : switcher.content.returnsWhenFalse;
 
-  const newEnvEntries: Record<Address, Param> =
+  const newEnvEntries: Record<
+    Address,
+    RegisterEntry
+  > =
     {};
   if (isObj(returnedValue)) {
     // Map each variable name to its register address
@@ -363,9 +367,7 @@ const execProcess = async ({
     Object.fromEntries(
       addrParams.content.map(([addr, param]) => [
         addressToVarName[addr],
-        parseJsonValue(
-          (param as { value: unknown }).value,
-        ),
+        parseJsonValue(param.value),
       ]),
     );
 
@@ -385,7 +387,10 @@ const execProcess = async ({
   const returnTypesOpt =
     processorResult.content.content.returns;
 
-  const newEnvEntries: Record<Address, Param> =
+  const newEnvEntries: Record<
+    Address,
+    RegisterEntry
+  > =
     {};
   if (isObj(returnedValue)) {
     // Map each variable name to its register address
@@ -469,7 +474,7 @@ const execEgress = async ({
       op.result.map((entry, i) => {
         const loaded = input.content[i];
         const rawValue = loaded
-          ? (loaded[1] as { value: unknown }).value
+          ? loaded[1].value
           : undefined;
         const value = parseJsonValue(rawValue);
         return [entry.name, value];

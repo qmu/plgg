@@ -1,4 +1,9 @@
-import { proc, asSoftStr, asNum } from "plgg";
+import {
+  proc,
+  asSoftStr,
+  asNum,
+  ok,
+} from "plgg";
 import {
   makeFoundry,
   makeProcessor,
@@ -10,6 +15,7 @@ let id = 0;
 export const todoFoundry = makeFoundry({
   description: `A foundry of TODOs.
 Analyzes and divides input to add and remove TODO.`,
+  generateAlignment: async () => ok({}),
   apparatuses: [
     makeProcessor({
       name: "add",

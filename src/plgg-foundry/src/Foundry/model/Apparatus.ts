@@ -2,9 +2,11 @@ import {
   Processor,
   Switcher,
   Packer,
+  VirtualType,
   explainProcessor,
   explainSwitcher,
   explainPacker,
+  formatVirtualType,
   isProcessor,
   isSwitcher,
   isPacker,
@@ -18,6 +20,21 @@ export type Apparatus =
   | Processor
   | Switcher
   | Packer;
+
+/**
+ * Formats entries as multiline YAML-like list.
+ * Shared by Processor and Switcher explain functions.
+ */
+export const formatEntries = (
+  entries: ReadonlyArray<[string, VirtualType]>,
+): string =>
+  "\n" +
+  entries
+    .map(
+      ([name, vt]) =>
+        `  - ${formatVirtualType(name, vt)}`,
+    )
+    .join("\n");
 
 /**
  * Generates human-readable markdown description of apparatus.

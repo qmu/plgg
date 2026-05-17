@@ -11,13 +11,15 @@ import {
   isBoxWithTag,
   some,
   none,
+  unsafeKebabCase,
+  unsafeStr,
 } from "plgg";
 import {
   Medium,
   VirtualType,
   VirtualTypeSpec,
   VariableName,
-  formatVirtualType,
+  formatEntries,
   toVirtualTypeDict,
 } from "plgg-foundry/index";
 
@@ -90,8 +92,8 @@ export const makeSwitcher = <
       : PossiblyPromise<[boolean, unknown]>;
 }): Switcher =>
   box("Switcher")({
-    name: box("KebabCase")(spec.name) as KebabCase,
-    description: box("Str")(spec.description) as Str,
+    name: unsafeKebabCase(spec.name),
+    description: unsafeStr(spec.description),
     arguments: spec.arguments
       ? some(toVirtualTypeDict(spec.arguments))
       : none(),
@@ -103,20 +105,6 @@ export const makeSwitcher = <
       : none(),
     fn: spec.fn,
   });
-
-/**
- * Formats entries as multiline YAML-like list.
- */
-const formatEntries = (
-  entries: ReadonlyArray<[string, VirtualType]>,
-): string =>
-  "\n" +
-  entries
-    .map(
-      ([name, vt]) =>
-        `  - ${formatVirtualType(name, vt)}`,
-    )
-    .join("\n");
 
 /**
  * Generates human-readable markdown description of switcher.

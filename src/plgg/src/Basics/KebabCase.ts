@@ -78,3 +78,18 @@ export const kebabCaseCastable: Castable<KebabCase> =
   {
     as: asKebabCase,
   };
+
+/**
+ * Throwing factory for KebabCase. Validates and returns the unwrapped type,
+ * throwing InvalidError on invalid input. Use only when the input is
+ * known to be valid.
+ */
+export const unsafeKebabCase = (
+  value: string,
+): KebabCase => {
+  if (qualify(value))
+    return box("KebabCase")(value);
+  throw new InvalidError({
+    message: `Cannot create KebabCase from "${value}"`,
+  });
+};

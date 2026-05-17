@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { filter, pipe } from "plgg";
+import { filter, pipe, ok } from "plgg";
 import {
   makeFoundry,
   makeProcessor,
@@ -17,6 +17,7 @@ import { todoFoundry } from "plgg-foundry/Example/TodoFoundry";
 test("makeFoundry - valid foundry with apparatuses", () => {
   const foundry = makeFoundry({
     description: "Test foundry description",
+    generateAlignment: async () => ok({}),
     apparatuses: [
       makeProcessor({
         name: "test-processor",
@@ -81,6 +82,7 @@ test("makeFoundry - valid foundry with apparatuses", () => {
 test("makeFoundry - empty apparatuses", () => {
   const foundry = makeFoundry({
     description: "Empty foundry",
+    generateAlignment: async () => ok({}),
     apparatuses: [],
   });
   expect(foundry.apparatuses).toHaveLength(0);
@@ -92,6 +94,7 @@ test("makeFoundry - empty apparatuses", () => {
 test("makeFoundry - multiple apparatuses", () => {
   const foundry = makeFoundry({
     description: "Multi-component foundry",
+    generateAlignment: async () => ok({}),
     apparatuses: [
       makeProcessor({
         name: "processor-1",

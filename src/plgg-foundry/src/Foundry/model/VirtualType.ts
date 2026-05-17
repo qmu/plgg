@@ -4,12 +4,13 @@ import {
   Bool,
   Option,
   Dict,
-  box,
   some,
   none,
   pipe,
   isSome,
   unbox,
+  unsafeStr,
+  unsafeBool,
 } from "plgg";
 import { VariableName } from "plgg-foundry/Foundry/model/NameTable";
 
@@ -34,12 +35,13 @@ export type VirtualTypeSpec = Obj<{
 export const toVirtualType = (
   spec: VirtualTypeSpec,
 ): VirtualType => ({
-  type: box("Str")(spec.type) as Str,
-  optional: spec.optional !== undefined
-    ? some(spec.optional as Bool)
-    : none(),
+  type: unsafeStr(spec.type),
+  optional:
+    spec.optional !== undefined
+      ? some(unsafeBool(spec.optional))
+      : none(),
   description: spec.description
-    ? some(box("Str")(spec.description) as Str)
+    ? some(unsafeStr(spec.description))
     : none(),
 });
 

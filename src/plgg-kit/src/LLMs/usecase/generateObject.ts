@@ -14,6 +14,29 @@ import {
   anthropic$,
   google$,
 } from "plgg-kit/LLMs/model";
+
+/**
+ * Creates a generate-alignment function from a Kit Provider.
+ * Bridges Kit's generateObject to Foundry's GenerateAlignmentFn interface.
+ * The returned function uses only PLGG types (Datum, PromisedResult).
+ */
+export const asGenerateAlignmentFn =
+  (provider: Provider) =>
+  ({
+    systemPrompt,
+    userPrompt,
+    schema,
+  }: {
+    systemPrompt: string;
+    userPrompt: string;
+    schema: Datum;
+  }): PromisedResult<unknown, Error> =>
+    generateObject({
+      provider,
+      systemPrompt,
+      userPrompt,
+      schema,
+    });
 import { reqObjectGPT } from "plgg-kit/LLMs/vendor/OpenAI";
 import { reqObjectClaude } from "plgg-kit/LLMs/vendor/Anthropic";
 import { reqObjectGemini } from "plgg-kit/LLMs/vendor/Google";
