@@ -3,9 +3,9 @@ created_at: 2026-05-25T20:59:26+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 394f186
+category: Changed
 depends_on:
 ---
 
@@ -68,3 +68,23 @@ Past tickets that touched similar areas:
 - **Public API surface.** Helpers needed by the public type must be exported through `src/plgg/src/index.ts` (currently `match.ts` imports many helpers via `plgg/index`); ensure new exported types reach the root barrel (`.workaholic/constraints/architecture.md` Module Export Convention).
 - **Overload duplication.** The 19 arity overloads (P1~P2 … P1~P20) each repeat the `OTHERWISE_LAST`/`PATTERNS` derivation. Any change to the coverage contract must be applied consistently across all overloads; consider whether a shared helper type can reduce the per-arity repetition without changing inference behavior (`src/plgg/src/Flowables/match.ts` lines 188-1259).
 - **Scope discipline.** This ticket is identification + proposal. Avoid over-reaching into a full rewrite; if multiple independent fixes emerge, split implementation into dependent follow-up tickets keyed off this analysis.
+
+## Final Report
+
+Development completed as planned, scoped to identification + proposal (no fixes shipped).
+
+Delivered three artifacts:
+- `src/plgg/docs/match-type-completeness.md` — inventory of 8 gaps, each classified (false negative / over-restriction / design decision / runtime contract) with a concrete, constraint-compliant type-level fix proposal, a summary table, and recommended follow-up sequencing.
+- `src/plgg/src/Flowables/match.completeness.spec.ts` — compile-checked characterization tests pinning current behavior for 5 gaps + 3 correct baselines.
+- `src/plgg/src/Flowables/match.ts` — exported `ArgMatchable` so its contract is assertable.
+
+### Discovered Insights
+
+- **Insight**: The boolean branch (a) never consults `OTHERWISE_LAST`, so even a semantically exhaustive `[TRUE, otherwise]` boolean match collapses to `never`. This is an over-restriction sitting right next to the false-negative gaps, so any boolean fix should both relax the tuple check (order-independent set test) AND honor `otherwise`.
+  **Context**: It is easy to assume `match`'s gaps are all unsoundness; gap 2 is the opposite (rejects valid code), and conflating the two leads to fixing only half the boolean behavior.
+
+- **Insight**: `OTHERWISE_LAST` is derived from the **last** pattern only, and `PATTERNS` is the post-strip list — so detecting a misplaced (non-final) `otherwise` (gap 3) requires threading the **raw, pre-strip** pattern list into `ArgMatchable`, a signature change that ripples across all 19 arity overloads.
+  **Context**: This is the load-bearing constraint for sequencing the follow-up fixes; gap 3 is far more invasive than gaps 1/2/6 despite sounding similar, because of the per-overload derivation duplication.
+
+- **Insight**: The repo's `noUnusedLocals` does not flag unused type aliases, but the established convention (`Icon.spec.ts`) binds each type-level assertion to a runtime `const _x: Cond = true` checked via `expect`, which both satisfies linting and gives the type test a runtime footprint for coverage.
+  **Context**: Negative type tests here must use this `const`-binding pattern rather than `@ts-expect-error`, which is prohibited.

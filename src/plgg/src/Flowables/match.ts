@@ -27,8 +27,12 @@ import {
 
 /**
  * Type-level computation for pattern matching results.
+ *
+ * Exported so the accepted-argument contract can be asserted directly in
+ * type-level tests (see `match.completeness.spec.ts`). This is the type of
+ * the first argument to `match`, so it is already part of the public surface.
  */
-type ArgMatchable<
+export type ArgMatchable<
   PATTERNS extends ReadonlyArray<unknown>,
   OTHERWISE_LAST extends boolean,
   A,
