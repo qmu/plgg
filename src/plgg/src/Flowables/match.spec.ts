@@ -26,8 +26,7 @@ test("number", async () => {
   type status = typeof s1 | typeof s2 | typeof s3;
 
   const fn = (a: status) =>
-    match(
-      a,
+    match(a)(
       [s1, () => "1"],
       [s2, () => "2"],
       [s3, () => "3"], // should compile error when erased
@@ -36,11 +35,9 @@ test("number", async () => {
   expect(fn(3)).equal("3");
 });
 
-
 test("boolean", async () => {
   const fn = (a: boolean) =>
-    match(
-      a,
+    match(a)(
       [TRUE, () => "true"],
       [FALSE, () => "false"],
     );
@@ -53,8 +50,7 @@ test("string", async () => {
     s3 = "c" as const;
   type Status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: Status) =>
-    match(
-      a,
+    match(a)(
       [s1, () => "a"],
       [s2, () => "b"],
       [s3, () => "c"],
@@ -69,8 +65,7 @@ test("otherwise", async () => {
     s3 = "c" as const;
   type Status = typeof s1 | typeof s2 | typeof s3;
   const fn = (a: Status) =>
-    match(
-      a,
+    match(a)(
       [s1, () => "a"],
       [s2, () => "b"],
       [otherwise, () => "default"], // should compile error when erased
@@ -107,8 +102,7 @@ test("Variant1", async () => {
   type Shape = Circle | Square | Triangle;
 
   const fn = (a: Shape) =>
-    match(
-      a,
+    match(a)(
       [circle$(), () => "a"],
       [square$(), () => "b"],
       [triangle$(), () => "c"],
@@ -131,8 +125,7 @@ test("Variant2", async () => {
   const ast = box("AST");
 
   const fn = (a: AST) =>
-    match(
-      a,
+    match(a)(
       [ast$({ type: "root" }), () => "root"],
       [ast$({ type: "leaf" }), () => "leaf"],
       [ast$({ type: "branch" }), () => "branch"],
@@ -149,8 +142,7 @@ test("Variant2", async () => {
 
 test("Result pattern matching", async () => {
   const fn = (a: Result<string, number>) =>
-    match(
-      a,
+    match(a)(
       [ok$("hello"), () => "Specific hello"],
       [
         otherwise,
@@ -172,8 +164,7 @@ test("Result pattern matching", async () => {
 
 test("Result pattern matching with specific patterns", async () => {
   const fn = (a: Result<number, string>) =>
-    match(
-      a,
+    match(a)(
       [ok$(42), () => "The answer!"],
       [
         err$("not_found"),
@@ -200,8 +191,7 @@ test("Result pattern matching with specific patterns", async () => {
 
 test("Result pattern matching with OTHERWISE", async () => {
   const fn = (a: Result<string, number>) =>
-    match(
-      a,
+    match(a)(
       [ok$("success"), () => "Specific success"],
       [
         otherwise,
@@ -223,8 +213,7 @@ test("Result pattern matching with OTHERWISE", async () => {
 
 test("Option pattern matching", async () => {
   const fn = (a: Option<string>) =>
-    match(
-      a,
+    match(a)(
       [some$("hello"), () => "Specific hello"],
       [
         otherwise,
@@ -244,8 +233,7 @@ test("Option pattern matching", async () => {
 
 test("Option pattern matching with specific patterns", async () => {
   const fn = (a: Option<number>) =>
-    match(
-      a,
+    match(a)(
       [some$(100), () => "The answer!"],
       [none$(), () => "No value"],
       [
@@ -261,8 +249,7 @@ test("Option pattern matching with specific patterns", async () => {
 
 test("Option pattern matching with OTHERWISE", async () => {
   const fn = (a: Option<string>) =>
-    match(
-      a,
+    match(a)(
       [
         some$("success"),
         () => "Specific success",
@@ -282,5 +269,48 @@ test("Option pattern matching with OTHERWISE", async () => {
   );
   expect(fn(none())).equal(
     'Fallback: {"__tag":"None","content":"__none__"}',
+  );
+});
+
+test("tag handlers receive the narrowed box and read typed .content", async () => {
+  type NotFound = Box<"NotFound", string>;
+  type MethodNotAllowed = Box<
+    "MethodNotAllowed",
+    ReadonlyArray<string>
+  >;
+  type ServerError = Box<"ServerError", string>;
+  type HttpError =
+    | NotFound
+    | MethodNotAllowed
+    | ServerError;
+
+  // Each handler reads the matched variant's content with no `as`: a string for
+  // NotFound/ServerError, a ReadonlyArray for MethodNotAllowed.
+  const render = (e: HttpError): string =>
+    match(e)(
+      [
+        pattern("NotFound")(),
+        (b) => `404 ${b.content}`,
+      ],
+      [
+        pattern("MethodNotAllowed")(),
+        (b) => `405 ${b.content.join(", ")}`,
+      ],
+      [
+        pattern("ServerError")(),
+        (b) => `500 ${b.content}`,
+      ],
+    );
+
+  expect(render(box("NotFound")("/x"))).equal(
+    "404 /x",
+  );
+  expect(
+    render(
+      box("MethodNotAllowed")(["GET", "PUT"]),
+    ),
+  ).equal("405 GET, PUT");
+  expect(render(box("ServerError")("boom"))).equal(
+    "500 boom",
   );
 });

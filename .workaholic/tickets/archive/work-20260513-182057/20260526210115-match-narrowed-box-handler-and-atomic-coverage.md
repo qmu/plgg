@@ -3,9 +3,9 @@ created_at: 2026-05-26T21:01:15+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 49a960c
+category: Changed
 depends_on:
 ---
 
@@ -154,3 +154,27 @@ Past tickets that touched this area:
 - **Public API surface.** Any new exported type helper (e.g. an `ExtractPatternTag`) must reach the root barrel `src/plgg/src/index.ts`, consistent with how `match.ts` already imports its helpers via `plgg/index` (`.workaholic/constraints/architecture.md` Module Export Convention). New helpers belong in `Flowables/match.ts` or an existing category — do not add a new top-level category (`.workaholic/constraints/architecture.md` plgg Category Taxonomy).
 - **Coverage thresholds (>90%).** Type-only changes do not move runtime coverage, but the new behavioral test in `match.spec.ts` must exercise the box-content read paths and must not regress the strict statements/branches/functions/lines thresholds (`src/plgg/vite.config.ts`; user memory: coverage must exceed 90%).
 - **Out of scope.** Refactoring `httpErrorToResponse` / plgg-web to actually use `match` is a deliberate follow-up once core supports the fold (`src/plgg-web/src/Http/model/HttpError.ts` lines 65-81). This ticket only fixes the core type machinery and proves it with the acceptance repro.
+
+## Final Report
+
+Development completed, but the diagnosis overturned the ticket's premise and the fix required an API-shape change (accepted by the maintainer since plgg is pre-1.0). A third-party advisor (Codex) was consulted and independently confirmed the root cause and supplied the decisive narrowing technique.
+
+**What shipped:**
+- `match` is now **curried** — `match(value)(...cases)`. The continuation carries the 19 arity overloads.
+- `CaseDecl` types tag/icon handlers as `(a: Extract<A, Box<TAG, unknown>>) => R`, where `TAG extends string = ExtractPatternTag<PATTERN>` is a defaulted (non-inference) generic; the branch is gated on `Or<IsBox<A>, IsIcon<A>>` and `otherwise` is special-cased to receive the whole value.
+- Non-exhaustive cases now yield a `CoverageError<A>` **return type** (exported alongside `MatchCont<A>`). `ArgMatchable` is unchanged.
+- Migrated `match.spec.ts` (+ added a payload-fold test reading typed `.content`), the one production call (`plgg-kit/.../generateObject.ts`), and updated `docs/match-type-completeness.md`.
+
+### Discovered Insights
+
+- **Insight**: Handler-narrowing and value-arg exhaustiveness are irreconcilable in a single positional `match(a, ...cases)` call.
+  **Context**: TypeScript runs inference once per call expression; `A` buried inside `ArgMatchable<…A>` is non-inferable for box unions, and every workaround to make `A` inferable (`A & ArgMatchable<…A>`, guard rest-param, `NoInfer`) either self-references or is defeated by arity being fixed pre-inference. Currying is the structural fix — two call expressions = two inference rounds.
+
+- **Insight**: The "atomic coverage collapses to `never`" item (the ticket's bug 2) was **not** an `ArgMatchable` defect.
+  **Context**: It was a cascade of the handler-argument inference poisoning. Once `A` is fixed (curried) and the handler arg no longer back-infers `PATTERN`, `ArgMatchable` evaluates coverage correctly with no change. The gap analysis's gaps 1–8 are about `ArgMatchable` and remain open.
+
+- **Insight**: A *defaulted* type parameter is not an inference site — this is the lever that severs unwanted back-inference.
+  **Context**: Typing the handler from `TAG = ExtractPatternTag<PATTERN>` (a defaulted generic) instead of inline keeps `PATTERN` inferable solely from the pattern argument. A readability refactor (hoisting the same expression into a shared `Matched<…>` alias) silently broke 3-arity coverage — the inline form must be kept per overload.
+
+- **Insight**: Rejection now lands on the **result's use**, not the call.
+  **Context**: A non-exhaustive `match(...)( ...)` returns `CoverageError<A>`; the error appears where the result is assigned/used. For value-returning matches (all current usage) this is equivalent to the old value-arg error; a match whose result is entirely discarded would not flag.

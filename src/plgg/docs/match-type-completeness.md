@@ -13,6 +13,39 @@ every fix; the implementations should be split into the dependent follow-up
 tickets sketched at the end. All proposals are written to compile under the
 repo's hard constraint — no `as`, `any`, or `@ts-ignore`/`@ts-expect-error`.
 
+## Update (2026-05-27): `match` is now curried; tag handlers narrow
+
+Implemented in the follow-up ticket. Two changes shipped:
+
+1. **Curried call shape — `match(value)(...cases)`.** Dogfooding `match` to fold a
+   payload-carrying box union surfaced a hard inference tension: a tag handler's
+   argument must be typed from the value union `A` (to narrow `.content`), but in
+   the old single-call form `A` was only reachable inside `ArgMatchable<…A>` (a
+   non-inferable conditional), so it collapsed to `never` for box unions. Every
+   single-call workaround failed (guard rest-param — arity is fixed pre-inference;
+   `A & ArgMatchable<…A>` — self-referential collapse; `NoInfer` — `A` → `never`).
+   TypeScript runs inference once per call expression, so there is no ordering
+   that fixes `A` before the exhaustiveness/narrowing conditionals evaluate.
+   Currying splits it into two call expressions: `match(value)` fixes `A` from a
+   plain `a: A`; the continuation then types the cases against the concrete `A`.
+
+2. **Tag/icon handlers receive the narrowed box.** `CaseDecl` now types a tag
+   handler as `(a: Extract<A, Box<TAG, unknown>>) => R`, where `TAG` is a
+   *defaulted* generic (`= ExtractPatternTag<PATTERN>`) — not an inference site,
+   so `PATTERN` stays inferable solely from the pattern argument (TS can no longer
+   back-infer `PATTERN` as a content-bearing box from the handler). The branch is
+   gated on `Or<IsBox<A>, IsIcon<A>>` (resolved once `A` is fixed) rather than on
+   `IsPattern<PATTERN>`, so the raw-value fallback can't poison inference; the
+   `otherwise` catch-all is special-cased to receive the whole value `A`.
+
+3. **Exhaustiveness rejection** moved to the continuation's **return type**:
+   non-exhaustive cases yield `CoverageError<A>` (a non-assignable brand), which
+   errors where the result is used. `ArgMatchable` itself is **unchanged** — the
+   "atomic coverage collapses to `never`" symptom from the analysis was a cascade
+   of the handler-arg inference poisoning, not an `ArgMatchable` defect. The gaps
+   1–8 below concern `ArgMatchable`'s coverage rules and **still stand** as
+   written.
+
 ## The current coverage model
 
 `ArgMatchable<PATTERNS, OTHERWISE_LAST, A>` is the type of `match`'s first

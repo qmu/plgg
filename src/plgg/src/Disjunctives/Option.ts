@@ -7,10 +7,14 @@ import {
   Chain1,
   Some,
   None,
+  Result,
   some,
   isSome,
   none,
   isNone,
+  isOk,
+  ok,
+  err,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -31,6 +35,63 @@ export type Option<T> = Some<T> | None;
 export const isOption = <T>(
   e: unknown,
 ): e is Option<T> => isSome(e) || isNone(e);
+
+/**
+ * Builds an Option from a possibly-nullish value.
+ * `null` and `undefined` become `None`; anything else becomes `Some`.
+ */
+export const fromNullable = <T>(
+  value: T | null | undefined,
+): Option<T> =>
+  value === null || value === undefined
+    ? none()
+    : some(value);
+
+/**
+ * Extracts the value from an Option, falling back to a default for `None`.
+ */
+export const getOr =
+  <T>(fallback: T) =>
+  (option: Option<T>): T =>
+    isSome(option) ? option.content : fallback;
+
+/**
+ * Converts a Result into an Option, discarding the error.
+ */
+export const toOption = <T>(
+  result: Result<T, unknown>,
+): Option<T> =>
+  isOk(result)
+    ? some(result.content)
+    : none();
+
+/**
+ * Case eliminator for Option: folds both cases into a single value, so callers
+ * never branch on `isSome`/`isNone` or reach into `.content` by hand. Data-last
+ * for use in `pipe`.
+ */
+export const matchOption =
+  <T, R>(
+    onNone: () => R,
+    onSome: (value: T) => R,
+  ) =>
+  (option: Option<T>): R =>
+    isSome(option)
+      ? onSome(option.content)
+      : onNone();
+
+/**
+ * Bridges an Option into a Result: `Some` becomes `Ok`, `None` becomes `Err`
+ * carrying the supplied error. The inverse of {@link toOption}. Data-last, so
+ * `pipe(opt, mapOption(f), okOr(error))` turns an absent value into a typed
+ * failure without an `isSome` branch.
+ */
+export const okOr =
+  <E>(error: E) =>
+  <T>(option: Option<T>): Result<T, E> =>
+    isSome(option)
+      ? ok(option.content)
+      : err(error);
 
 /**
  * Functor instance for Option.
