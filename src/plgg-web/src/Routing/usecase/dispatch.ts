@@ -1,5 +1,4 @@
 import {
-  Option,
   PromisedResult,
   SoftStr,
   Dict,
@@ -7,8 +6,8 @@ import {
   err,
   pipe,
   fromNullable,
-  mapOption,
   getOr,
+  matchOption,
 } from "plgg";
 import {
   Route,
@@ -20,19 +19,13 @@ import {
   HttpError,
   makeContext,
   matchSegments,
+  compileRoutes,
+  lookupRoute,
   withParams,
   notFound,
   methodNotAllowed,
   internalError,
 } from "plgg-web/index";
-
-/**
- * A route paired with the result of matching it against the request path.
- */
-type Candidate = Readonly<{
-  route: Route;
-  match: Option<Dict<string, SoftStr>>;
-}>;
 
 /**
  * Folds the middleware stack around the final handler into a single function,
@@ -80,13 +73,43 @@ const runMatched = (
   );
 
 /**
- * Resolves a plgg-native request against the route table and runs the matching
- * handler through the middleware chain. The outcome is a value:
+ * The cold path taken when no route matched the method+path: scans the flat
+ * route list (registration order) for any path match. Any path match means the
+ * method was wrong (405, reporting the allowed methods); none means 404. This
+ * mirrors the original scan exactly, so the `Allow` ordering is preserved.
+ */
+const unmatched = (
+  routes: ReadonlyArray<Route>,
+  request: HttpRequest,
+): PromisedResult<HttpResponse, HttpError> =>
+  pipe(
+    routes.filter((r) =>
+      isSome(matchSegments(r.segments, request.path)),
+    ),
+    (matching) =>
+      Promise.resolve(
+        matching.length > 0
+          ? err(
+              methodNotAllowed(
+                matching.map((r) => r.method),
+              ),
+            )
+          : err(notFound(request.path)),
+      ),
+  );
+
+/**
+ * Resolves a plgg-native request against the compiled route table and runs the
+ * matching handler through the middleware chain. The outcome is a value:
  *
  * - match found → the handler's `Result` (a thrown handler becomes an
  *   `InternalError`)
  * - path matched but method did not → `MethodNotAllowed`
  * - no path matched → `NotFound`
+ *
+ * The table is compiled once per route list (memoized), so a static path is an
+ * `O(1)` map hit and dynamic routes are walked only within the request method —
+ * never a full scan of unrelated routes on the success path.
  */
 export const dispatch = (
   routes: ReadonlyArray<Route>,
@@ -94,47 +117,19 @@ export const dispatch = (
   request: HttpRequest,
 ): PromisedResult<HttpResponse, HttpError> =>
   pipe(
-    routes.map(
-      (route): Candidate => ({
-        route,
-        match: matchSegments(
-          route.segments,
-          request.path,
-        ),
-      }),
+    lookupRoute(
+      compileRoutes(routes),
+      request.method,
+      request.path,
     ),
-    (candidates) =>
-      candidates.filter((c) => isSome(c.match)),
-    (matching) =>
-      pipe(
-        fromNullable(
-          matching.find(
-            (c) => c.route.method === request.method,
-          ),
+    matchOption(
+      () => unmatched(routes, request),
+      (m) =>
+        runMatched(
+          middlewares,
+          request,
+          m.route,
+          m.params,
         ),
-        mapOption((c) =>
-          runMatched(
-            middlewares,
-            request,
-            c.route,
-            pipe(
-              c.match,
-              getOr<Dict<string, SoftStr>>({}),
-            ),
-          ),
-        ),
-        getOr<PromisedResult<HttpResponse, HttpError>>(
-          Promise.resolve(
-            matching.length > 0
-              ? err(
-                  methodNotAllowed(
-                    matching.map(
-                      (c) => c.route.method,
-                    ),
-                  ),
-                )
-              : err(notFound(request.path)),
-          ),
-        ),
-      ),
+    ),
   );

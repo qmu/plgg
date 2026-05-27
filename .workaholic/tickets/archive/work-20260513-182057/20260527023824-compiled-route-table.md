@@ -3,9 +3,9 @@ created_at: 2026-05-27T02:38:24+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: cda70c3
+category: Changed
 depends_on:
 ---
 
@@ -56,3 +56,16 @@ adds structure beyond the flat `routes` array. Match semantics must be identical
 - Coordinate with the scoped-middleware ticket (`20260527023823-scoped-group-middleware.md`): the compiled table is the natural place to associate middleware with route subsets, so that ticket depends on this one.
 - Match results must be byte-for-byte equivalent — this is a performance refactor, not a semantics change. Keep `matchSegments` (or its core) for the param/trie leaves.
 - plgg-web is a study package (`UNSTABLE`); micro-benchmarks are optional, but the structural change (no full scan for static hits) is the deliverable.
+
+## Final Report
+
+Development completed as planned. `compileRoutes.ts` builds a per-method index — an `O(1)` exact-map for fully-static patterns plus an ordered dynamic list for `:param`/`*` — memoized on the routes-array identity via a `WeakMap`. `dispatch` takes the compiled fast path on success and falls back to the original linear scan only for the cold 404/405 path, so the `Allow` header ordering is preserved exactly.
+
+### Discovered Insights
+
+- **Insight**: The original `dispatch` chose the matched route by pure registration order (`candidates.filter(path-match).find(method-match)`), NOT static-before-param precedence. A naive "static map first, then param walk" would silently change which handler runs when a `:param` route is registered before a colliding static route. The compiled lookup carries each route's registration index and picks the lower index across the static and dynamic hits to stay byte-for-byte equivalent.
+  **Context**: This precedence is untested by the existing specs, so the divergence would have been a silent behavior change. The added `compileRoutes.spec.ts` now pins both orderings.
+- **Insight**: Static segment matching compares the *raw* (undecoded) path part to the literal (`parts[i] === seg.content`), and `splitPath` collapses empty/duplicate slashes. So the exact-map key is simply `splitPath(path).join("/")` on both the route (its static segment contents) and the request — percent-decoding only happens for `:param`/`*` captures, never for static keys.
+  **Context**: Keying the static map any other way (e.g. decoding first) would desync it from `matchSegments`' static comparison and break equivalence.
+- **Insight**: The 404/405 cold path deliberately keeps the full linear scan. The `Allow` set must list methods in route-registration order (then deduped by `httpErrorToResponse`'s `unique`), which a per-method map cannot reproduce in general — so the slow path trades (irrelevant) error-path speed for exact-ordering fidelity.
+  **Context**: Optimizing the error path with the method map would reorder `Allow`, an observable regression the "byte-for-byte" constraint forbids.
