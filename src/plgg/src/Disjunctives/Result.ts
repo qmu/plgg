@@ -49,6 +49,31 @@ export const resultFunctor: Functor2<"Result"> = {
 export const { map: mapResult } = resultFunctor;
 
 /**
+ * Maps over the error channel, leaving success values untouched — the mirror of
+ * {@link mapResult}. Data-last, so `pipe(result, mapErr(badRequest))` rewrites a
+ * failure's type at the seam without an `isErr` branch.
+ */
+export const mapErr =
+  <E, F>(f: (e: E) => F) =>
+  <T>(fa: Result<T, E>): Result<T, F> =>
+    isErr(fa) ? err<F>(f(fa.content)) : fa;
+
+/**
+ * Case eliminator for Result: folds both channels into a single value, so
+ * callers never branch on `isOk`/`isErr` or reach into `.content` by hand.
+ * Error-first to parallel {@link matchOption}. Data-last for use in `pipe`.
+ */
+export const matchResult =
+  <T, E, R>(
+    onErr: (error: E) => R,
+    onOk: (value: T) => R,
+  ) =>
+  (result: Result<T, E>): R =>
+    isOk(result)
+      ? onOk(result.content)
+      : onErr(result.content);
+
+/**
  * Apply instance for Result.
  * Applies wrapped functions to wrapped values.
  */

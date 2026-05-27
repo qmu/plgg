@@ -8,6 +8,7 @@ export * from "plgg/Functionals/env";
 export * from "plgg/Functionals/filter";
 export * from "plgg/Functionals/find";
 export * from "plgg/Functionals/hold";
+export * from "plgg/Functionals/jsonCodec";
 export * from "plgg/Functionals/pass";
 export * from "plgg/Functionals/postJson";
 export * from "plgg/Functionals/refine";

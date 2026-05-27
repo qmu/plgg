@@ -51,10 +51,10 @@ import {
   chainOption,
   getOr,
   okOr,
-  toOption,
   mapResult,
+  mapErr,
   chainResult,
-  tryCatch,
+  decodeJson,
   cast,
   asObj,
   asSoftStr,
@@ -91,14 +91,6 @@ const asNewUser = (
         ),
       ),
     ),
-  );
-
-// Safe JSON decode: lift the throwing `JSON.parse` into an `Option` via plgg's
-// `tryCatch` (no hand-rolled try/catch).
-const parseJson = (body: SoftStr): Option<unknown> =>
-  pipe(
-    tryCatch((s: SoftStr) => JSON.parse(s))(body),
-    toOption,
   );
 
 // --- a fake async "store" (stands in for a DB) ---
@@ -163,20 +155,19 @@ const app = pipe(
   ),
 
   // POST body: decode JSON, validate shape, build 201 — each failure becomes a
-  // 400. `chainResult` sequences the two fallible steps in the HttpError channel.
+  // 400 that carries the *real* reason. `decodeJson` and `asNewUser` both yield
+  // `Result<_, InvalidError>`; `mapErr(badRequest)` lifts each message into the
+  // HttpError channel without discarding it, and `chainResult` sequences them.
   post("/users", async (c) =>
     pipe(
       c.req.body,
-      parseJson,
-      okOr(badRequest("body must be JSON")),
+      decodeJson,
+      mapErr((e: InvalidError) => badRequest(e.message)),
       chainResult((v) =>
         pipe(
           asNewUser(v),
-          toOption,
-          okOr(
-            badRequest(
-              "name (>=2) and a valid email are required",
-            ),
+          mapErr((e: InvalidError) =>
+            badRequest(e.message),
           ),
         ),
       ),

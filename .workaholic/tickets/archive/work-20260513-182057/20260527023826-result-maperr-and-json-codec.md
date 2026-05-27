@@ -3,9 +3,9 @@ created_at: 2026-05-27T02:38:26+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 5045f36
+category: Added
 depends_on:
 ---
 
@@ -47,3 +47,14 @@ Goal (plgg core, with knock-on cleanup in plgg-web):
 - This is primarily a **plgg core** change (Domain), with plgg-web as the consumer/acceptance. Keep the additions minimal and orthogonal — `mapErr` is the must-have; the JSON codec is the natural companion for web bodies.
 - A `matchResult`/`foldResult` eliminator complements the recently-added `matchOption`/`okOr`; include it if it stays small. The match-completeness lineage (`src/plgg/docs/match-type-completeness.md`) is unrelated to these value-level combinators.
 - Acceptance: a plgg-web POST handler conveys the real validation message into the 400 with no `as`.
+
+## Final Report
+
+Development completed as planned. Added `mapErr` and `matchResult` to core `Result`, and a `decodeJson`/`encodeJson` codec pair in `Functionals/jsonCodec.ts`. The plgg-web `POST /users` now bridges both fallible steps with `mapErr((e: InvalidError) => badRequest(e.message))`, so a 400 carries the real reason. The `parseJson` helper and the `tryCatch`/`toOption` imports it needed were removed.
+
+### Discovered Insights
+
+- **Insight**: `mapErr` (and any data-last combinator whose only generic appears in the *callback's* parameter) cannot infer that parameter's type from `pipe` position — the curried `mapErr(f)` is type-checked before the input `Result` is known. Callers must annotate the lambda parameter (`mapErr((e: InvalidError) => ...)`).
+  **Context**: `mapResult`'s callback parameter happened to be fine unannotated only because its consumers (`jsonResponse`) accept `unknown`; `mapErr` reads `e.message`, which forces the annotation. This is a usage gotcha, not a bug — expect explicit error-type annotations at every `mapErr` site.
+- **Insight**: plgg's `dist/` is gitignored; plgg-web consumes plgg through a symlink that resolves to `dist/` (via `main`/`module`/`types`). After any change to plgg core, you MUST run `npm run build` in `src/plgg` before plgg-web's tsc/vitest will see the new exports — but the rebuilt `dist/` is never committed.
+  **Context**: Forgetting the rebuild yields confusing "module has no exported member" errors in plgg-web against perfectly valid core source.
