@@ -18,7 +18,6 @@ import {
   SoftStr,
   pipe,
   match,
-  pattern,
   matchResult,
   cast,
   asObj,
@@ -32,8 +31,19 @@ import {
   post,
   decodeJsonBody,
   ClientError,
+  networkError$,
 } from "plgg-http-client/index";
-import { HttpResponse } from "plgg-http-router";
+import {
+  HttpResponse,
+  notFound$,
+  methodNotAllowed$,
+  badRequest$,
+  unsupported$,
+  unauthorized$,
+  forbidden$,
+  statusError$,
+  internalError$,
+} from "plgg-http-router";
 
 // --- domain: validate the user the server returns, with plgg `cast` (no `as`) ---
 type User = Obj<{ name: SoftStr; email: SoftStr }>;
@@ -82,66 +92,66 @@ const report =
         (error: ClientError) =>
           match(error)(
             [
-              pattern("NetworkError")(),
+              networkError$(),
               (e) =>
                 console.error(
-                  `${label}: network error — ${e.content}`,
+                  `${label}: network error — ${e.content.message}`,
                 ),
             ],
             [
-              pattern("NotFound")(),
+              notFound$(),
               (e) =>
                 console.error(
-                  `${label}: not found — ${e.content}`,
+                  `${label}: not found — ${e.content.path}`,
                 ),
             ],
             [
-              pattern("MethodNotAllowed")(),
+              methodNotAllowed$(),
               (e) =>
                 console.error(
-                  `${label}: method not allowed; allowed: ${e.content.join(", ")}`,
+                  `${label}: method not allowed; allowed: ${e.content.allowed.join(", ")}`,
                 ),
             ],
             [
-              pattern("BadRequest")(),
+              badRequest$(),
               (e) =>
                 console.error(
-                  `${label}: bad request — ${e.content}`,
+                  `${label}: bad request — ${e.content.message}`,
                 ),
             ],
             [
-              pattern("Unsupported")(),
+              unsupported$(),
               (e) =>
                 console.error(
-                  `${label}: unsupported — ${e.content}`,
+                  `${label}: unsupported — ${e.content.message}`,
                 ),
             ],
             [
-              pattern("Unauthorized")(),
+              unauthorized$(),
               (e) =>
                 console.error(
-                  `${label}: unauthorized — ${e.content}`,
+                  `${label}: unauthorized — ${e.content.message}`,
                 ),
             ],
             [
-              pattern("Forbidden")(),
+              forbidden$(),
               (e) =>
                 console.error(
-                  `${label}: forbidden — ${e.content}`,
+                  `${label}: forbidden — ${e.content.message}`,
                 ),
             ],
             [
-              pattern("StatusError")(),
+              statusError$(),
               (e) =>
                 console.error(
                   `${label}: status ${e.content.status.content} — ${e.content.message}`,
                 ),
             ],
             [
-              pattern("InternalError")(),
+              internalError$(),
               (e) =>
                 console.error(
-                  `${label}: internal error — ${e.content}`,
+                  `${label}: internal error — ${e.content.message}`,
                 ),
             ],
           ),

@@ -2,11 +2,21 @@ import { test, expect, assert, vi } from "vitest";
 import {
   InvalidError,
   BaseError,
+  Exception,
+  SerializeError,
+  DeserializeError,
+  PlggError,
+  invalidError$,
+  exception$,
+  serializeError$,
+  deserializeError$,
   Time,
   Option,
   Obj,
   Str,
   Result,
+  match,
+  isBox,
   printPlggError,
   isPlggError,
   toError,
@@ -225,5 +235,69 @@ test("InvalidError over cast pipeline", () => {
   }
   assert.fail(
     "Expected InvalidError but got success",
+  );
+});
+
+test("a plgg error satisfies isBox and exposes its tag and structured content", () => {
+  const e = new InvalidError({ message: "bad input" });
+  expect(isBox(e)).toBe(true);
+  expect(e.__tag).toBe("InvalidError");
+  // content is a structured object payload, not the bare message string.
+  expect(e.content).toEqual({
+    message: "bad input",
+    sibling: [],
+  });
+});
+
+test("a PlggError folds exhaustively through match by tag", () => {
+  // Omitting any one arm is a compile-time CoverageError — the union is
+  // match-exhaustive. Each handler receives the variant narrowed to its class.
+  const render = (e: PlggError): string =>
+    match(e)(
+      [
+        invalidError$(),
+        // content widened with sibling[] for the validation variant.
+        (x) =>
+          `invalid: ${x.content.message} (${x.content.sibling.length})`,
+      ],
+      [
+        exception$(),
+        (x) => `exception: ${x.content.message}`,
+      ],
+      [
+        serializeError$(),
+        (x) => `serialize: ${x.content.message}`,
+      ],
+      [
+        deserializeError$(),
+        (x) => `deserialize: ${x.content.message}`,
+      ],
+    );
+
+  expect(
+    render(new InvalidError({ message: "bad" })),
+  ).equal("invalid: bad (0)");
+  expect(render(new Exception("boom"))).equal(
+    "exception: boom",
+  );
+  expect(
+    render(new SerializeError({ message: "ser" })),
+  ).equal("serialize: ser");
+  expect(
+    render(new DeserializeError({ message: "des" })),
+  ).equal("deserialize: des");
+});
+
+test("the Box face is non-enumerable and the error stays a thrown Error", () => {
+  const e = new InvalidError({ message: "bad" });
+  // Still a real Error (stack traces, instanceof, throwability preserved).
+  expect(e).toBeInstanceOf(Error);
+  // __tag/content are prototype getters, not own enumerable fields, so they do
+  // not change enumeration or JSON output.
+  const ownKeys = Object.keys(e);
+  expect(ownKeys).not.toContain("__tag");
+  expect(ownKeys).not.toContain("content");
+  expect("__tag" in JSON.parse(JSON.stringify(e))).toBe(
+    false,
   );
 });

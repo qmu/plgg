@@ -83,7 +83,7 @@ test("a transport rejection folds to a NetworkError", async () => {
   if (isErr(result)) {
     expect(isNetworkError(result.content)).toBe(true);
     if (isNetworkError(result.content)) {
-      expect(result.content.content).toContain(
+      expect(result.content.content.message).toContain(
         "connection refused",
       );
     }
@@ -97,7 +97,9 @@ test("a non-Error rejection still yields a NetworkError (messageOf String path)"
   const result = await get("http://example.test/");
   expect(isErr(result)).toBe(true);
   if (isErr(result) && isNetworkError(result.content)) {
-    expect(result.content.content).toBe("plain failure");
+    expect(result.content.content.message).toBe(
+      "plain failure",
+    );
   }
 });
 

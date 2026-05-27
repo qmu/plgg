@@ -1,5 +1,7 @@
 import { test, expect } from "vitest";
+import { match } from "plgg";
 import {
+  HttpError,
   notFound,
   methodNotAllowed,
   badRequest,
@@ -10,6 +12,14 @@ import {
   internalError,
   httpErrorToResponse,
   statusOf,
+  notFound$,
+  methodNotAllowed$,
+  badRequest$,
+  unsupported$,
+  unauthorized$,
+  forbidden$,
+  statusError$,
+  internalError$,
 } from "plgg-http-router/index";
 
 test("notFound -> 404", () => {
@@ -88,5 +98,58 @@ test("constructors tag the Box variants", () => {
   );
   expect(internalError("").__tag).toBe(
     "InternalError",
+  );
+});
+
+test("HttpError folds exhaustively through match via the $ patterns", () => {
+  // Match by named ADT pattern (notFound$()), not by a bare tag string. Each
+  // arm receives the variant narrowed to its structured content; omitting one
+  // is a compile-time CoverageError.
+  const describe = (e: HttpError): string =>
+    match(e)(
+      [notFound$(), (x) => `404 ${x.content.path}`],
+      [
+        methodNotAllowed$(),
+        (x) => `405 ${x.content.allowed.join(",")}`,
+      ],
+      [
+        badRequest$(),
+        (x) => `400 ${x.content.message}`,
+      ],
+      [
+        unsupported$(),
+        (x) => `501 ${x.content.message}`,
+      ],
+      [
+        unauthorized$(),
+        (x) => `401 ${x.content.message}`,
+      ],
+      [forbidden$(), (x) => `403 ${x.content.message}`],
+      [
+        statusError$(),
+        (x) =>
+          `${x.content.status.content} ${x.content.message}`,
+      ],
+      [
+        internalError$(),
+        (x) => `500 ${x.content.message}`,
+      ],
+    );
+
+  expect(describe(notFound("/x"))).toBe("404 /x");
+  expect(
+    describe(methodNotAllowed(["GET", "PUT"])),
+  ).toBe("405 GET,PUT");
+  expect(describe(badRequest("bad"))).toBe("400 bad");
+  expect(describe(unsupported("no"))).toBe("501 no");
+  expect(describe(unauthorized("auth"))).toBe(
+    "401 auth",
+  );
+  expect(describe(forbidden("nope"))).toBe("403 nope");
+  expect(
+    describe(statusError(statusOf(418), "teapot")),
+  ).toBe("418 teapot");
+  expect(describe(internalError("boom"))).toBe(
+    "500 boom",
   );
 });

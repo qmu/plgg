@@ -2,10 +2,10 @@
 created_at: 2026-05-27T17:54:27+09:00
 author: a@qmu.jp
 type: enhancement
-layer: [Domain]
-effort:
-commit_hash:
-category:
+layer: [Domain, Infrastructure]
+effort: 2h
+commit_hash: 2245358
+category: Changed
 depends_on:
 ---
 
@@ -93,8 +93,18 @@ the core `Exceptionals`, building on the `Result` error-channel plumbing.
    Prefer **(a)** if it can satisfy `isBox` additively without disturbing
    `instanceof Error`, `printPlggError`, or `toError`.
 2. Add stable `__tag`s: `"InvalidError"`, `"Exception"`, `"SerializeError"`,
-   `"DeserializeError"`. Expose `content` so `match`'s tag arms receive a typed
-   payload (preserve `.message`/`.parent`/`.sibling` access for `cast`).
+   `"DeserializeError"`. Expose `content` as a **structured object payload per
+   variant** — NOT the raw `message` string. Error content is heterogeneous (the
+   existing `HttpError` vocabulary already carries `Method[]` for
+   `MethodNotAllowed` and `{ status, message }` for `StatusError`), so the core
+   `content` must be object-shaped and variant-specific so future errors carry
+   richer `Box`-wrapped objects:
+   - `BaseError` → `content: { message: SoftStr }` (the common payload).
+   - `InvalidError` → `content: { message: SoftStr; sibling: ReadonlyArray<InvalidError> }`.
+   - others inherit the base object.
+   Preserve `.message`/`.parent`/`.sibling` instance access for `cast` (the
+   handler still receives the narrowed class instance, with `.content` as its
+   structured payload).
 3. Resolve the `PlggError` union: include `DeserializeError` (or document why
    not). Ensure `ExtractBoxTag<PlggError>` is the full tag set so `match` can
    certify exhaustiveness over `PlggError` without `otherwise`.
@@ -133,3 +143,105 @@ the core `Exceptionals`, building on the `Result` error-channel plumbing.
 - **Sibling ticket.** Coordinate the `Box`/`CoverageError` vocabulary with
   `unify-match-nonexhaustive-runtime-with-coverageerror` so match's own error and
   domain errors are the same comparable expression.
+- **Content is object-shaped, not a string.** A `Box` error's `content` is the
+  structured payload the variant carries (an object), mirroring `HttpError`'s
+  `Method[]` / `{ status, message }` contents — do not collapse it to the bare
+  `message` string (`src/plgg/src/Exceptionals/BaseError.ts`).
+
+## Discussion
+
+### Revision 1 — 2026-05-27T20:58:00+09:00
+
+**User feedback**: "Error is not always string, will write more error object
+wrapped by Box."
+
+**Ticket updates**: Rewrote Implementation Step 2 — `content` is now a
+**structured object payload per variant** (`BaseError` → `{ message }`,
+`InvalidError` → `{ message, sibling }`), not the raw `message` string. Added a
+Considerations bullet making this explicit.
+
+**Direction change**: The first implementation made `BaseError.content` a
+`get content(): string` returning `this.message`, which wrongly assumes an
+error's content is always a string. Errors carry heterogeneous structured data
+(as `HttpError` already shows: `Method[]`, `{ status, message }`). The boxed
+core error's `content` must therefore be an object so it composes with the
+broader `Box`-wrapped-object error vocabulary. Re-implement the `content` getters
+to return the structured object; keep `__tag` literals, the `extends Error`
+seam, and instance-field access (`.message`/`.sibling`) unchanged.
+
+### Revision 2 — 2026-05-27T21:15:00+09:00
+
+**User feedback**: The `plgg-http-client` `example.ts` still folds errors whose
+`content` is a bare string (`${e.content}` for `NetworkError`/`NotFound`,
+`.join` for `MethodNotAllowed`). The object-content principle must apply to the
+**HTTP error vocabularies** too, not just core.
+
+**Ticket updates**: Expanded scope (and `layer` → `[Domain, Infrastructure]`) to
+reshape the HTTP error vocabularies to object content:
+- `plgg-http-router` `HttpError`: each variant carries an object —
+  `NotFound: { path }`, `MethodNotAllowed: { allowed }`, `BadRequest`/
+  `Unsupported`/`Unauthorized`/`Forbidden`/`InternalError: { message }`,
+  `StatusError: { status, message }` (already an object). Constructor signatures
+  unchanged (they wrap args into the object); update the `httpErrorToResponse`
+  fold to read `.content.<field>` and update `HttpError.spec.ts`.
+- `plgg-http-client` `NetworkError: { message }`; update the seam/request usage
+  and specs (`result.content.content` → `result.content.message`).
+- `example.ts`: each arm reads the structured field (`e.content.message`,
+  `e.content.path`, `e.content.allowed.join(", ")`, …).
+
+**Direction change**: One object-content error vocabulary end-to-end — core
+`Exceptionals` and the HTTP errors alike. Rebuild `plgg-http-router` before
+`plgg-http-client` (the client consumes the router's reshaped `HttpError` types
+via its `dist`). Preserve constructor signatures so the router/client call sites
+(`notFound(path)`, `badRequest(msg)`, `networkError(msg)`) are unchanged.
+
+### Revision 3 — 2026-05-27T21:40:00+09:00
+
+**User feedback**: "I don't wanna see that string based pattern matching anymore
+… but like the ADT pattern matching." (Objecting to `pattern("NetworkError")()`
+spelling the tag as a string literal at the match site.)
+
+**Ticket updates**: Every error variant now exports a `$`-suffixed ADT pattern
+(the established `ok$`/`err$`/`none$` convention, `() => pattern(tag)()`), and
+all match sites reference them instead of inline `pattern("Tag")()`:
+- core: `invalidError$`, `exception$`, `serializeError$`, `deserializeError$`
+- router `HttpError`: `notFound$`, `methodNotAllowed$`, `badRequest$`,
+  `unsupported$`, `unauthorized$`, `forbidden$`, `statusError$`, `internalError$`
+- client: `networkError$`
+- `example.ts`, `PlggError.spec.ts`, `HttpError.spec.ts`, `ClientError.spec.ts`
+  fold via the `$` patterns.
+
+**Direction change**: ADT-style pattern matching — match arms name the variant
+(`[networkError$(), …]`), never a bare tag string. Tag constants infer as
+literals so narrowing/exhaustiveness hold without `as const`.
+
+## Final Report
+
+Development completed, with three revisions driven by review (object content,
+HTTP-vocabulary expansion, ADT `$` patterns). One object-content, `Box`-tagged
+error vocabulary end-to-end — core `Exceptionals`, router `HttpError`, client
+`NetworkError` — each variant matchable by a named `$` ADT pattern, all folds
+exhaustive, `extends Error` preserved. plgg 452/452, router 88/88, client 25/25,
+all coverage > 90%; example type-checks; all three packages build.
+
+### Discovered Insights
+
+- **Insight**: Over a `Box`-tag union, `match`'s `otherwise` does **not** backfill
+  uncovered variants — the all-box-pattern path requires the explicit tags to
+  already cover the union (`match.completeness.spec.ts`, GAP 5). So an
+  error-union fold must enumerate every variant; a 2-arm "one tag + otherwise"
+  is a `CoverageError`.
+  **Context**: This is why both the example and the `ClientError`/`HttpError`
+  spec folds list all variants — exhaustiveness is the feature, not a nuisance.
+- **Insight**: Making the `Error` classes satisfy `isBox` is a *global*
+  reclassification, but it is safe here because `isOk`/`isErr`/`isSome` check a
+  specific tag, `asBox`/`unbox` have no external callers, and `content`/`__tag`
+  are non-enumerable getters (JSON output unchanged). The full suite (incl.
+  `NominalDatum`/serialization specs) confirmed no regression.
+  **Context**: When bolting a structural face onto existing instances, prefer
+  non-enumerable getters and lean on the existing specs to prove containment.
+- **Insight**: `content` must be a structured **object** per variant, never the
+  bare `message` string — error payloads are heterogeneous (`Method[]`,
+  `{ status, message }`), and a string content forces a lossy mold. This (and the
+  `$`-pattern ADT style) should have been agreed *before* coding; the three
+  re-passes trace directly to not fixing the design with the maintainer first.

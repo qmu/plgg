@@ -2,17 +2,23 @@ import {
   Exception,
   InvalidError,
   SerializeError,
+  DeserializeError,
   isSome,
   isObj,
 } from "plgg/index";
 
 /**
- * Union type representing domain errors in the application.
+ * Union type representing domain errors in the application. Every arm carries a
+ * literal `__tag` (and inherits a `content` getter from `BaseError`), so a
+ * `PlggError` folds exhaustively through `match` — e.g.
+ * `match(e)([pattern("InvalidError")(), …], …)` — while remaining a thrown
+ * `Error` subclass.
  */
 export type PlggError =
   | InvalidError
   | Exception
-  | SerializeError;
+  | SerializeError
+  | DeserializeError;
 
 /*
  * Color helper functions

@@ -1,4 +1,4 @@
-import { Box, SoftStr, box } from "plgg";
+import { Box, SoftStr, box, pattern } from "plgg";
 import { HttpError } from "plgg-http-router";
 
 /**
@@ -7,14 +7,20 @@ import { HttpError } from "plgg-http-router";
  * read). Distinct from any {@link HttpError} the *server* models — a non-2xx
  * status is still a perfectly valid {@link HttpResponse}, not this.
  */
-export type NetworkError = Box<"NetworkError", SoftStr>;
+export type NetworkError = Box<
+  "NetworkError",
+  { message: SoftStr }
+>;
 
 /**
- * Constructs a {@link NetworkError} carrying the underlying failure message.
+ * Constructs a {@link NetworkError} carrying the underlying failure message as a
+ * structured object payload (matching the rest of the `Box`-wrapped error
+ * vocabulary).
  */
 export const networkError = (
   message: SoftStr,
-): NetworkError => box("NetworkError")(message);
+): NetworkError =>
+  box("NetworkError")({ message });
 
 /**
  * The client's error vocabulary: the shared {@link HttpError} model reused from
@@ -24,6 +30,14 @@ export const networkError = (
  * itself — while client and server still share one `HttpError` vocabulary.
  */
 export type ClientError = HttpError | NetworkError;
+
+/**
+ * Pattern matcher for folding a {@link ClientError} with `match`, so call sites
+ * reference the variant by name (`match(e)([networkError$(), …])`) rather than a
+ * bare tag string.
+ */
+export const networkError$ = () =>
+  pattern("NetworkError")();
 
 /**
  * Type guard for the client-only {@link NetworkError} variant.

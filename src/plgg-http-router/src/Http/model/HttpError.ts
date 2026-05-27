@@ -1,4 +1,4 @@
-import { Box, SoftStr, box } from "plgg";
+import { Box, SoftStr, box, pattern } from "plgg";
 import {
   Method,
   HttpStatus,
@@ -8,45 +8,54 @@ import {
 
 /**
  * Routing/handling failures as values, modeled as a plgg `Box` union so they
- * can be carried through `Result` and folded into a response at the seam.
+ * can be carried through `Result` and folded into a response at the seam. Each
+ * variant's `content` is a structured object payload (not a bare string), so the
+ * vocabulary composes with the rest of the `Box`-wrapped error model.
  */
 export type HttpError =
-  | Box<"NotFound", SoftStr>
-  | Box<"MethodNotAllowed", ReadonlyArray<Method>>
-  | Box<"BadRequest", SoftStr>
-  | Box<"Unsupported", SoftStr>
-  | Box<"Unauthorized", SoftStr>
-  | Box<"Forbidden", SoftStr>
-  | Box<"StatusError", { status: HttpStatus; message: SoftStr }>
-  | Box<"InternalError", SoftStr>;
+  | Box<"NotFound", { path: SoftStr }>
+  | Box<
+      "MethodNotAllowed",
+      { allowed: ReadonlyArray<Method> }
+    >
+  | Box<"BadRequest", { message: SoftStr }>
+  | Box<"Unsupported", { message: SoftStr }>
+  | Box<"Unauthorized", { message: SoftStr }>
+  | Box<"Forbidden", { message: SoftStr }>
+  | Box<
+      "StatusError",
+      { status: HttpStatus; message: SoftStr }
+    >
+  | Box<"InternalError", { message: SoftStr }>;
 
 /**
  * No route matched the request path.
  */
 export const notFound = (
   path: SoftStr,
-): HttpError => box("NotFound")(path);
+): HttpError => box("NotFound")({ path });
 
 /**
  * The path matched but no route accepts the request method.
  */
 export const methodNotAllowed = (
   allowed: ReadonlyArray<Method>,
-): HttpError => box("MethodNotAllowed")(allowed);
+): HttpError =>
+  box("MethodNotAllowed")({ allowed });
 
 /**
  * The request was malformed.
  */
 export const badRequest = (
   message: SoftStr,
-): HttpError => box("BadRequest")(message);
+): HttpError => box("BadRequest")({ message });
 
 /**
  * The request method is not supported by this server.
  */
 export const unsupported = (
   message: SoftStr,
-): HttpError => box("Unsupported")(message);
+): HttpError => box("Unsupported")({ message });
 
 /**
  * The request lacks valid authentication credentials (401). Distinct from
@@ -54,14 +63,14 @@ export const unsupported = (
  */
 export const unauthorized = (
   message: SoftStr,
-): HttpError => box("Unauthorized")(message);
+): HttpError => box("Unauthorized")({ message });
 
 /**
  * The client is authenticated but not permitted to access the resource (403).
  */
 export const forbidden = (
   message: SoftStr,
-): HttpError => box("Forbidden")(message);
+): HttpError => box("Forbidden")({ message });
 
 /**
  * A failure at an arbitrary status code, for cases the explicit variants do
@@ -70,14 +79,37 @@ export const forbidden = (
 export const statusError = (
   status: HttpStatus,
   message: SoftStr,
-): HttpError => box("StatusError")({ status, message });
+): HttpError =>
+  box("StatusError")({ status, message });
 
 /**
  * An unexpected failure occurred while handling the request.
  */
 export const internalError = (
   message: SoftStr,
-): HttpError => box("InternalError")(message);
+): HttpError => box("InternalError")({ message });
+
+/*
+ * Pattern matchers for folding an {@link HttpError} with `match`, so call sites
+ * reference the variant by name (`match(e)([notFound$(), …])`) rather than a
+ * bare tag string. Each mirrors its constructor above.
+ */
+export const notFound$ = () =>
+  pattern("NotFound")();
+export const methodNotAllowed$ = () =>
+  pattern("MethodNotAllowed")();
+export const badRequest$ = () =>
+  pattern("BadRequest")();
+export const unsupported$ = () =>
+  pattern("Unsupported")();
+export const unauthorized$ = () =>
+  pattern("Unauthorized")();
+export const forbidden$ = () =>
+  pattern("Forbidden")();
+export const statusError$ = () =>
+  pattern("StatusError")();
+export const internalError$ = () =>
+  pattern("InternalError")();
 
 /**
  * De-duplicates while preserving first-seen order.
@@ -97,16 +129,21 @@ export const httpErrorToResponse = (
     ? textResponse("Not Found", 404)
     : error.__tag === "MethodNotAllowed"
       ? textResponse("Method Not Allowed", 405, {
-          allow: unique(error.content).join(", "),
+          allow: unique(
+            error.content.allowed,
+          ).join(", "),
         })
       : error.__tag === "BadRequest"
-        ? textResponse(error.content, 400)
+        ? textResponse(error.content.message, 400)
         : error.__tag === "Unsupported"
-          ? textResponse(error.content, 501)
+          ? textResponse(error.content.message, 501)
           : error.__tag === "Unauthorized"
-            ? textResponse(error.content, 401)
+            ? textResponse(error.content.message, 401)
             : error.__tag === "Forbidden"
-              ? textResponse(error.content, 403)
+              ? textResponse(
+                  error.content.message,
+                  403,
+                )
               : error.__tag === "StatusError"
                 ? textResponse(
                     error.content.message,
