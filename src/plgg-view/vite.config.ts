@@ -42,9 +42,16 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      entry: "src/index.ts",
-      name: "plgg-view",
-      fileName: (format) => `index.${format}.js`,
+      // Three entry points so a real consumer can resolve the package itself
+      // (`plgg-view`) and the automatic JSX runtime subpaths
+      // (`plgg-view/jsx-runtime`, `plgg-view/jsx-dev-runtime`) — the same
+      // layout React/Preact expose. Shared code is code-split into chunks.
+      entry: {
+        index: "src/index.ts",
+        "jsx-runtime": "src/jsx-runtime.ts",
+        "jsx-dev-runtime": "src/jsx-dev-runtime.ts",
+      },
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
       formats: ["es", "cjs"],
     },
     rollupOptions: {

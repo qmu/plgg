@@ -8,3 +8,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./sh/test-plgg-view.sh
 ./sh/tsc-example.sh
 ./sh/build.sh
+# Runs after build.sh: example-view consumes plgg-view's built dist as a real
+# package dependency, so the library must be built first.
+./sh/test-example-view.sh
