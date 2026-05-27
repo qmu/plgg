@@ -9,7 +9,7 @@
  *   curl localhost:3000/users
  *   curl -X POST localhost:3000/users -d '{"name":"Ada","email":"ada@x.io"}'
  *   curl -X POST localhost:3000/users -d '{"name":"A","email":"nope"}'     # 400 (validation)
- *   curl -X POST localhost:3000/users -d '{"name":"Ada II","email":"ada@x.io"}'  # 409-ish, rolled back
+ *   curl -i -X POST localhost:3000/users -d '{"name":"Ada II","email":"ada@x.io"}'  # 409 Conflict, rolled back
  *   curl localhost:3000/users/1                                            # found
  *   curl -i localhost:3000/users/999                                       # 404
  *
@@ -52,6 +52,8 @@ import {
   notFound,
   badRequest,
   internalError,
+  statusError,
+  statusOf,
   HttpError,
 } from "plgg-web";
 import {
@@ -141,10 +143,17 @@ const firstOr404 = (
     ),
   );
 
-// fold any pipeline error into the HTTP error channel at the edge
+// Fold any pipeline error into the HTTP error channel at the edge. This is the
+// one place the app decides status codes: a unique/constraint violation is a
+// client conflict (409), other SQL failures are 500, a missing row is 404, and
+// everything else (validation) is 400. The "constraint" check is a deliberately
+// simple SQLite-message heuristic; a production app would key off a driver
+// error code carried on the SqlError.
 const toHttpError = (e: Error): HttpError =>
   e instanceof SqlError
-    ? internalError("database error")
+    ? e.message.includes("constraint")
+      ? statusError(statusOf(409), "that value is already taken")
+      : internalError("database error")
     : e instanceof NotFound
       ? notFound("user not found")
       : badRequest(e.message);

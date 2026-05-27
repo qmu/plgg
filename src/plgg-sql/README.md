@@ -36,8 +36,17 @@ validation fails, or the `INSERT` violates a constraint, the chain stops — and
 `transaction` **rolls back** because the inner result is an `Err`, **commits**
 when it is `Ok`. Errors as values drive the transaction; no try/catch.
 
-See [`example.ts`](./example.ts) for a runnable version against real SQLite
-(`npx tsx src/plgg-sql/example.ts`).
+## Runnable examples
+
+Both run against a real in-memory SQLite database via Node's built-in
+`node:sqlite` (no npm dependency):
+
+- [`example.ts`](./example.ts) — start here. The database pipeline on its own
+  (validate → INSERT → read-back → map, atomic; plus a read), driven by `proc`.
+  `npx tsx src/plgg-sql/example.ts`
+- [`example-web.ts`](./example-web.ts) — the whole vision: a tiny HTTP API where
+  each handler is one `proc` chain mixing plgg-web steps (`param`/`jsonResponse`)
+  with plgg-sql steps. `npx tsx src/plgg-sql/example-web.ts`, then `curl` it.
 
 ## The vocabulary plgg-sql adds
 
@@ -46,7 +55,8 @@ See [`example.ts`](./example.ts) for a runnable version against real SQLite
 | `` sql`…` `` | → `Sql` | build safe parameterized SQL; each `${value}` is a bound `?` param (`None` = SQL `NULL`), an interpolated `Sql` fragment splices |
 | `query(db)` | `Sql → PromisedResult<unknown[], SqlError>` | run a `SELECT`, return raw rows |
 | `exec(db)` | `Sql → PromisedResult<ExecResult, SqlError>` | run `INSERT`/`UPDATE`/`DELETE` → `{ changes, lastInsertId }` |
-| `decodeRow(asRow)` / `decodeRows(asRow)` | `unknown[] → Result<T \| T[], InvalidError>` | map raw rows into typed records via plgg `cast` |
+| `decodeRows(asRow)` | `unknown[] → Result<T[], InvalidError>` | map every raw row into a typed record via plgg `cast` |
+| `decodeRow(asRow)` | `unknown[] → Result<T, InvalidError>` | map the first row; an empty result set is an error |
 | `transaction(db, work)` | `A → PromisedResult<T, …>` | run a sub-pipe atomically; commit on `Ok`, roll back on `Err` |
 
 **Validation and mapping are not new vocabulary** — they are plgg core's
@@ -72,6 +82,23 @@ type Db = {
 Swapping SQLite for Postgres (or an async pooled driver) means rewriting only
 this seam; the `sql` you write, your validators/decoders, and every
 `query`/`exec`/`transaction` step are untouched.
+
+## Reliability guarantees
+
+- **Injection-safe by construction.** A `${value}` in `` sql`…` `` can only ever
+  become a bound parameter (`?`); it never reaches the SQL text. There is no API
+  for concatenating a value into the string.
+- **No `null`/`undefined` in the model.** Absence is `Option` (`None` = SQL
+  `NULL`); a raw `null` appears only at the driver seam.
+- **Errors are values.** Driver failures are `SqlError`, shape mismatches are
+  `InvalidError` — both flow through `Result`/`proc`, so nothing throws past the
+  seam. A handler folds them to its own error channel with one `mapErr`.
+- **Transactions are result-driven.** `transaction` commits iff the inner
+  pipeline is `Ok` and rolls back on any `Err` (validation, mapping, or SQL),
+  including a thrown one — proven in both examples by a duplicate-key insert that
+  leaves no partial data behind.
+- **Typed rows or a typed error.** `decodeRow(s)` never hand back `unknown` or a
+  silently-wrong `as`-cast; a row that does not match `asRow` is an error value.
 
 ## Out of scope (POC)
 

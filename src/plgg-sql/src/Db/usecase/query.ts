@@ -10,9 +10,9 @@ import {
 /**
  * A pipeline step that runs a `SELECT` through the {@link Db} seam and yields
  * its raw rows as a `Result` — config-first (`query(db)`), data-last (`(sql)`),
- * so it drops straight into a `proc`/`pipe` chain. A driver failure becomes a
- * value-level {@link SqlError}; pair it with `decodeRow`/`decodeRows` to type
- * the rows.
+ * so it drops straight into a `proc`/`pipe` chain. A rejected driver call folds
+ * into a value-level {@link SqlError}; pair it with `decodeRow`/`decodeRows` to
+ * type the rows.
  */
 export const query =
   (db: Db) =>
@@ -34,7 +34,6 @@ export const exec =
   (db: Db) =>
   (sql: Sql): PromisedResult<ExecResult, SqlError> =>
     db.run(sql).then(
-      (result): Result<ExecResult, SqlError> =>
-        ok(result),
+      (result): Result<ExecResult, SqlError> => ok(result),
       (cause: unknown) => err(toSqlError(cause)),
     );

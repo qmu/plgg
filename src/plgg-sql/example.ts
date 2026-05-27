@@ -155,17 +155,6 @@ const main = async (): Promise<void> => {
 
 main();
 
-// The same steps slot into a plgg-web handler unchanged — `param`/`jsonResponse`
-// are just more links in the same proc chain:
-//
-//   post("/users", (c) =>
-//     proc(
-//       c.req.body, decodeJson, asNewUser,
-//       transaction(db, (u) => proc(
-//         sql`INSERT INTO users (name, email) VALUES (${u.name}, ${u.email})`,
-//         exec(db),
-//         (r) => sql`SELECT id, name, email FROM users WHERE id = ${r.lastInsertId}`,
-//         query(db), decodeRow(asUser),
-//       )),
-//       (user) => jsonResponse(user, 201),
-//     ))
+// These same steps drop into a plgg-web HTTP handler unchanged — `param` and
+// `jsonResponse` are just more links in the same proc chain. See the runnable
+// `example-web.ts` next to this file for the full request → DB → response demo.
