@@ -1,18 +1,12 @@
 {
-  "name": "plgg-http-router",
+  "name": "plgg-http-client",
   "version": "0.0.1",
-  "description": "Server-side HTTP router and handler built from scratch on the plgg framework",
+  "description": "Typed HTTP client built from scratch on the plgg framework, symmetric with plgg-http-router",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
-    "import": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.es.js"
-    },
-    "require": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.cjs.js"
-    }
+    "import": "./dist/index.es.js",
+    "require": "./dist/index.cjs.js"
   },
   "types": "dist/index.d.ts",
   "scripts": {
@@ -36,7 +30,8 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg"
+    "plgg": "file:../plgg",
+    "plgg-http-router": "file:../plgg-http-router"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

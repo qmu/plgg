@@ -12,6 +12,7 @@ This is a monorepo containing:
 - **[`src/plgg-kit/`](src/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
 - **[`src/plgg-foundry/`](src/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
 - **[`src/plgg-http-router/`](src/plgg-http-router/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
+- **[`src/plgg-http-client/`](src/plgg-http-client/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-http-router (`fetch` seam, errors as values)
 - **[`src/example/`](src/example/)** - Example usage project
 
 ## Installation
@@ -28,6 +29,9 @@ npm install plgg-foundry
 
 # Web router and HTTP handler (depends on plgg)
 npm install plgg-http-router
+
+# Typed HTTP client (depends on plgg and plgg-http-router)
+npm install plgg-http-client
 ```
 
 ## Core Concepts
@@ -214,6 +218,12 @@ A server-side web router and HTTP request handler built from scratch on plgg —
 
 See [src/plgg-http-router/README.md](src/plgg-http-router/README.md) for details.
 
+### plgg-http-client
+
+A typed HTTP client built from scratch on plgg — the symmetric companion of plgg-http-router. `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
+
+See [src/plgg-http-client/README.md](src/plgg-http-client/README.md) for details.
+
 ## Development
 
 ```bash
@@ -236,6 +246,7 @@ sh/build.sh
 sh/test-plgg-kit.sh
 sh/test-plgg-foundry.sh
 sh/test-plgg-http-router.sh
+sh/test-plgg-http-client.sh
 
 # Run all checks (type check + test for all packages)
 sh/check-all.sh

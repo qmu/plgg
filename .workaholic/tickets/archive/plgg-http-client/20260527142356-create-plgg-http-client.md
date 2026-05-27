@@ -3,9 +3,9 @@ created_at: 2026-05-27T14:23:56+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 324c6a5
+category: Added
 ---
 
 # Create `plgg-http-client` — typed HTTP client (POC)
@@ -77,3 +77,43 @@ only at the seam; strict coverage > 90%.
   the rename exists).
 - `npm install` needed per package in this worktree (worktrees don't share
   `node_modules`); after editing `src/plgg/src`, `npm run build` in `src/plgg`.
+
+## Final Report
+
+Development completed as planned. New `src/plgg-http-client` package: reuses the
+router's HTTP model, `request`/`get`/`post`/`put`/`patch`/`del` returning
+`PromisedResult<HttpResponse, ClientError>`, a single `fetch` seam
+(`toFetchRequest`/`fromFetchResponse`), and a `decodeJsonBody` helper on plgg
+`cast`. tsc clean (incl. `example.ts`), **24 tests / 100% coverage**, both `es`
+and `cjs` builds succeed.
+
+### Discovered Insights
+
+- **Insight**: A NodeNext consumer cannot see a `file:` dependency's types unless
+  that package's `exports` map carries a `types` condition — the top-level
+  `"types"` field is ignored once an `exports` map exists. `plgg-http-router`'s
+  flat `exports` (`{ import, require }`) had to be nested into
+  `{ import: { types, default }, require: { types, default } }` (mirroring
+  `plgg`) before the client compiled. The router's own `tsc`/tests never caught
+  this because it imports its own sources via the `plgg-http-router/*` path alias,
+  not the built package.
+  **Context**: Any future package that depends on a sibling via `file:` must
+  ensure the sibling's `exports` exposes `types`; otherwise tsc reports an
+  implicit-`any` module with no obvious cause.
+- **Insight**: plgg's `tryCatch` has a sync overload declared before the async
+  one, and a function returning `Promise<U>` matches the sync overload first
+  (`Result<Promise<U>, E>`), so `tryCatch` is unreliable for wrapping async work.
+  The seam therefore uses native `promise.then(onOk, onErr)` directly (the same
+  pattern the router's `toHttpRequest` uses) — a sync throw inside a `.then`
+  callback (e.g. a bad-URL `new URL()`) is converted to a rejection and caught by
+  the next handler, so the whole build-and-fetch chain folds to `NetworkError`.
+  **Context**: Prefer `.then(onOk, onErr)` over `tryCatch` for `Promise`-returning
+  functions in this codebase until the overload order is revisited.
+- **Insight**: `NetworkError` was kept as a client-side union member
+  (`ClientError = HttpError | NetworkError`) rather than added to the router's
+  shared `HttpError`. A transport failure is meaningless server-side (a server
+  never has a network error answering itself) and would have become a dead branch
+  in `httpErrorToResponse`. This preserves layer segregation while still sharing
+  one HTTP vocabulary.
+  **Context**: When a failure is intrinsic to one side of a shared model, extend
+  the vocabulary at that layer rather than widening the shared type.
