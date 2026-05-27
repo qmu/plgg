@@ -11,6 +11,9 @@ lerna-debug.log*
 **/dist/
 **/coverage/
 
+# Git worktrees (created under the repo per the workaholic/trippin convention)
+.worktrees/
+
 # Environment files
 .env
 .env.*
