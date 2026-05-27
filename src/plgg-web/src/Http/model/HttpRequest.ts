@@ -10,6 +10,10 @@ import { Method } from "plgg-web/index";
  * A plgg-native HTTP request. Built from a Web-standard `Request` only at the
  * seam; every field is a plgg type, optionality is via `Option`, and maps are
  * `Dict`s rather than raw records.
+ *
+ * `body` is the decoded text (empty for a binary request); `bytes` carries the
+ * raw bytes as `Some` only when the body was ingested as binary (per its
+ * content-type), keeping the text path untouched for existing handlers.
  */
 export type HttpRequest = Readonly<{
   method: Method;
@@ -18,6 +22,7 @@ export type HttpRequest = Readonly<{
   headers: Dict<string, SoftStr>;
   params: Dict<string, SoftStr>;
   body: SoftStr;
+  bytes: Option<Uint8Array>;
 }>;
 
 /**
@@ -55,3 +60,10 @@ export const getParam = (
   name: SoftStr,
 ): Option<SoftStr> =>
   fromNullable(request.params[name]);
+
+/**
+ * The raw request bytes, present only when the body was ingested as binary.
+ */
+export const getBytes = (
+  request: HttpRequest,
+): Option<Uint8Array> => request.bytes;

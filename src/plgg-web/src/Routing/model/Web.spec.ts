@@ -4,6 +4,7 @@ import {
   isOk,
   ok,
   err,
+  none,
   mapOption,
   getOr,
   matchOption,
@@ -80,6 +81,7 @@ test("handle() is the plgg-native entry, returning a Result", async () => {
     headers: {},
     params: {},
     body: "",
+    bytes: none(),
   });
   expect(isOk(result)).toBe(true);
   if (isOk(result)) {

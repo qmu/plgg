@@ -1,10 +1,18 @@
 import { test, expect } from "vitest";
-import { isSome, isNone, SoftStr, Dict } from "plgg";
+import {
+  isSome,
+  isNone,
+  some,
+  none,
+  SoftStr,
+  Dict,
+} from "plgg";
 import {
   HttpRequest,
   getHeader,
   getQuery,
   getParam,
+  getBytes,
   withParams,
 } from "plgg-web/index";
 
@@ -17,6 +25,7 @@ const req = (
   headers: {},
   params: {},
   body: "",
+  bytes: none(),
   ...over,
 });
 
@@ -48,6 +57,18 @@ test("getParam returns Option", () => {
     expect(found.content).toBe("7");
   }
   expect(isNone(getParam(r, "missing"))).toBe(true);
+});
+
+test("getBytes is None for a text request and Some for a binary one", () => {
+  expect(isNone(getBytes(req()))).toBe(true);
+  const binary = req({
+    bytes: some(new Uint8Array([1, 2, 3])),
+  });
+  const found = getBytes(binary);
+  expect(isSome(found)).toBe(true);
+  if (isSome(found)) {
+    expect(Array.from(found.content)).toEqual([1, 2, 3]);
+  }
 });
 
 test("withParams attaches params immutably", () => {

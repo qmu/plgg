@@ -7,7 +7,7 @@ import {
   request as httpRequest,
   type Server,
 } from "node:http";
-import { pipe, ok, getOr } from "plgg";
+import { pipe, ok, getOr, matchOption } from "plgg";
 import {
   web,
   get,
@@ -16,10 +16,18 @@ import {
   serve,
   param,
   header,
+  getBytes,
   textResponse,
   jsonResponse,
+  bytesResponse,
+  streamResponse,
   Fetch,
 } from "plgg-web/index";
+
+async function* threeBytes(): AsyncIterable<Uint8Array> {
+  yield new Uint8Array([1]);
+  yield new Uint8Array([2, 3]);
+}
 
 const servers: Array<Server> = [];
 
@@ -172,6 +180,70 @@ test("multi-valued request headers are joined", async () => {
     },
   );
   expect(body).toBe("a, b");
+});
+
+test("serves a binary response carrying a Content-Length", async () => {
+  const app = pipe(
+    web(),
+    get("/blob", async () =>
+      ok(bytesResponse(new Uint8Array([5, 6, 7, 8]))),
+    ),
+  );
+  const port = await start(toFetch(app));
+  const res = await fetch(
+    `http://127.0.0.1:${port}/blob`,
+  );
+  expect(res.headers.get("content-length")).toBe("4");
+  expect(res.headers.get("content-type")).toBe(
+    "application/octet-stream",
+  );
+  const buf = new Uint8Array(await res.arrayBuffer());
+  expect(Array.from(buf)).toEqual([5, 6, 7, 8]);
+});
+
+test("serves a streamed response chunk by chunk", async () => {
+  const app = pipe(
+    web(),
+    get("/stream", async () =>
+      ok(streamResponse(threeBytes())),
+    ),
+  );
+  const port = await start(toFetch(app));
+  const res = await fetch(
+    `http://127.0.0.1:${port}/stream`,
+  );
+  const buf = new Uint8Array(await res.arrayBuffer());
+  expect(Array.from(buf)).toEqual([1, 2, 3]);
+});
+
+test("reads a binary request body and reports its byte length", async () => {
+  const app = pipe(
+    web(),
+    post("/upload", async (c) =>
+      pipe(
+        c.req,
+        getBytes,
+        matchOption(
+          () => "no bytes",
+          (b) => `${b.byteLength} bytes`,
+        ),
+        textResponse,
+        ok,
+      ),
+    ),
+  );
+  const port = await start(toFetch(app));
+  const res = await fetch(
+    `http://127.0.0.1:${port}/upload`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/octet-stream",
+      },
+      body: new Uint8Array([1, 2, 3, 4, 5]),
+    },
+  );
+  await expect(res.text()).resolves.toBe("5 bytes");
 });
 
 test("a rejecting handler surfaces as a 500 from the adapter", async () => {

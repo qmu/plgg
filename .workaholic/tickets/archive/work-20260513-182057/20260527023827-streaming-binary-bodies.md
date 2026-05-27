@@ -3,9 +3,9 @@ created_at: 2026-05-27T02:38:27+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: daadcdb
+category: Changed
 depends_on:
 ---
 
@@ -50,3 +50,16 @@ path must be unchanged for existing handlers.
 - Largest scope here — consider sub-phasing: (a) binary `Uint8Array` bodies first (finite length, simplest), (b) streaming second.
 - The `node:http` adapter (`serve.ts`) is already the acknowledged imperative seam (EventEmitter → Promise, ServerResponse mutation); streaming naturally lives there. Keep `Request`/`Response`/stream types out of the domain model.
 - No dependency on the other four tickets.
+
+## Final Report
+
+Development completed as planned, covering both sub-phases (binary bytes and streaming). The response body widened to a `ResponseBody` union, request binary support was added via a separate `bytes` field (not by widening `body`), and the seam converters plus `serve`'s write path were extended. All platform stream/`BodyInit`/`ReadableStream` types stay in `Http/usecase` and `Serving/usecase`.
+
+### Discovered Insights
+
+- **Insight**: Request binary support was added as a *new* `bytes: Option<Uint8Array>` field rather than by widening `HttpRequest.body` to a union. Widening `body` would have broken `example.ts`'s `decodeJson(c.req.body)` (which needs `SoftStr`) and every handler reading `c.req.body` as text. Keeping `body` as text and adding `bytes` alongside preserves the text path with zero handler churn — the "keep the text path intact" constraint forced this shape.
+  **Context**: The response side could widen `body` safely because text stays a bare `SoftStr` within the union (only bytes/stream are `Box`-tagged), so `r.body === "hi"` still holds; the request side could not, because `decodeJson`'s parameter type is invariant.
+- **Insight**: `new Response(uint8Array, ...)` fails to typecheck under the current lib's `Uint8Array<ArrayBufferLike>` generic (not assignable to `BodyInit`), even though `new Request(url, { body: arrayBuffer })` is fine. The fix is to copy the view into a standalone `ArrayBuffer` at the seam (the same pattern `serve.ts`'s `collectBody` already uses) — no `as` needed.
+  **Context**: A future contributor hitting the same `BodyInit` error should reach for the `ArrayBuffer` copy, not a cast.
+- **Insight**: `writeResponse` now streams `response.body` through its `ReadableStream` reader (promise-chained recursion) instead of buffering via `arrayBuffer()`. This unifies all three body kinds: text/bytes carry an explicit `Content-Length` (set in `toNativeResponse`) and stream bodies fall back to chunked transfer-encoding automatically when no length header is present.
+  **Context**: An empty body (e.g. a redirect) yields `response.body === null`, handled by a plain `res.end()`; the reader path is skipped.

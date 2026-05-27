@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { pipe, isSome, isNone } from "plgg";
+import { pipe, isSome, isNone, none } from "plgg";
 import {
   makeContext,
   param,
@@ -23,6 +23,7 @@ const req = (
   headers: {},
   params: {},
   body: "",
+  bytes: none(),
   ...over,
 });
 

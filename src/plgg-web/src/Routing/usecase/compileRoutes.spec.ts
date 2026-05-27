@@ -1,5 +1,12 @@
 import { test, expect } from "vitest";
-import { isSome, isNone, isOk, pipe, ok } from "plgg";
+import {
+  isSome,
+  isNone,
+  isOk,
+  none,
+  pipe,
+  ok,
+} from "plgg";
 import {
   web,
   get,
@@ -192,6 +199,7 @@ test("the first of two identical static routes (same method+path) wins", async (
     headers: {},
     params: {},
     body: "",
+    bytes: none(),
   });
   expect(isOk(result)).toBe(true);
   if (isOk(result)) {

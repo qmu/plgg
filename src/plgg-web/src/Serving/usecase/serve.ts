@@ -87,20 +87,46 @@ export const toRequest = (
   );
 
 /**
- * Writes a Web-standard Response back onto a Node ServerResponse. Ordered
+ * Pumps a Web `ReadableStream` of bytes onto the Node response, chunk by chunk —
+ * the imperative read seam. The recursion is promise-chained, so a long stream
+ * does not grow the call stack, and the payload is never buffered whole.
+ */
+const pump = (
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  res: ServerResponse,
+): Promise<void> =>
+  reader.read().then((chunk) =>
+    chunk.done
+      ? new Promise<void>((resolve) =>
+          res.end(() => resolve()),
+        )
+      : new Promise<void>((resolve, reject) =>
+          res.write(Buffer.from(chunk.value), (e) =>
+            e ? reject(e) : resolve(),
+          ),
+        ).then(() => pump(reader, res)),
+  );
+
+/**
+ * Writes a Web-standard Response back onto a Node ServerResponse: status and
+ * headers first, then the body streamed through its reader so binary and
+ * chunked bodies pass through without buffering the whole payload. Ordered
  * mutations on the mutable `ServerResponse` — the imperative write seam.
  */
 export const writeResponse = (
   res: ServerResponse,
   response: Response,
-): Promise<void> =>
-  response.arrayBuffer().then((buf) => {
-    res.statusCode = response.status;
-    response.headers.forEach((value, key) =>
-      res.setHeader(key, value),
-    );
-    res.end(Buffer.from(new Uint8Array(buf)));
-  });
+): Promise<void> => {
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) =>
+    res.setHeader(key, value),
+  );
+  return response.body === null
+    ? new Promise<void>((resolve) =>
+        res.end(() => resolve()),
+      )
+    : pump(response.body.getReader(), res);
+};
 
 /**
  * Last-resort 500 when the adapter itself fails.
