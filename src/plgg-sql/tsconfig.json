@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    /* Compiler Option */
+    "target": "ES2021",
+    "module": "NodeNext",
+    "lib": [
+      "ES2021"
+    ],
+    "types": [
+      "node"
+    ],
+    "noEmit": true,
+    "paths": {
+      "plgg-sql*": [
+        "./src/*"
+      ]
+    },
+    /* Type Checking Rules */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowJs": false,
+    "erasableSyntaxOnly": true
+  },
+  "include": [
+    "src/**/*",
+    "example.ts",
+    "example-web.ts"
+  ]
+}
