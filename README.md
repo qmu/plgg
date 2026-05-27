@@ -11,6 +11,7 @@ This is a monorepo containing:
 - **[`src/plgg/`](src/plgg/)** - Core library: type-safe functional primitives (Result, Option, pipelines, branded types, numeric types)
 - **[`src/plgg-kit/`](src/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
 - **[`src/plgg-foundry/`](src/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
+- **[`src/plgg-web/`](src/plgg-web/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
 - **[`src/example/`](src/example/)** - Example usage project
 
 ## Installation
@@ -24,6 +25,9 @@ npm install plgg-kit
 
 # AI workflow orchestration (depends on plgg and plgg-kit)
 npm install plgg-foundry
+
+# Web router and HTTP handler (depends on plgg)
+npm install plgg-web
 ```
 
 ## Core Concepts
@@ -204,6 +208,12 @@ AI-powered workflow orchestration using a register machine model. Define operati
 
 See [src/plgg-foundry/README.md](src/plgg-foundry/README.md) for details.
 
+### plgg-web
+
+A server-side web router and HTTP request handler built from scratch on plgg — no external HTTP framework. The app is a pure-data `Web` value assembled through `pipe` (data-last `get`/`post`/`use`/`route` transformers, no method chaining); `handle` runs it plgg-natively while `toFetch` is the Web-standard `Request`/`Response` seam. Path params/wildcards, onion-model middleware, and a `node:http` adapter (`serve`).
+
+See [src/plgg-web/README.md](src/plgg-web/README.md) for details.
+
 ## Development
 
 ```bash
@@ -225,6 +235,7 @@ sh/build.sh
 # Sub-package tests
 sh/test-plgg-kit.sh
 sh/test-plgg-foundry.sh
+sh/test-plgg-web.sh
 
 # Run all checks (type check + test for all packages)
 sh/check-all.sh

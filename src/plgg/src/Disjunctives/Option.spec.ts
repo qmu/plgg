@@ -10,6 +10,15 @@ import {
   applyOption,
   ofOption,
   chainOption,
+  fromNullable,
+  getOr,
+  toOption,
+  matchOption,
+  okOr,
+  isOk,
+  isErr,
+  ok,
+  err,
   pipe,
 } from "plgg/index";
 
@@ -448,4 +457,49 @@ test("isOption - type guard for Option types", () => {
   expect(isOption(undefined)).toBe(false);
   expect(isOption({})).toBe(false);
   expect(isOption([])).toBe(false);
+});
+
+test("fromNullable wraps non-nullish values in Some", () => {
+  const s = fromNullable("x");
+  assert(isSome(s));
+  expect(s.content).toBe("x");
+  // 0 and "" are not nullish.
+  assert(isSome(fromNullable(0)));
+  assert(isSome(fromNullable("")));
+});
+
+test("fromNullable maps null and undefined to None", () => {
+  expect(isNone(fromNullable(null))).toBe(true);
+  expect(isNone(fromNullable(undefined))).toBe(true);
+});
+
+test("getOr returns the contained value or the fallback", () => {
+  expect(pipe(some(7), getOr(0))).toBe(7);
+  expect(pipe(none(), getOr(0))).toBe(0);
+});
+
+test("toOption keeps Ok content and drops Err", () => {
+  const s = toOption(ok(42));
+  assert(isSome(s));
+  expect(s.content).toBe(42);
+  expect(isNone(toOption(err("boom")))).toBe(true);
+});
+
+test("matchOption folds both cases into one value", () => {
+  const label = matchOption(
+    () => "none",
+    (n: number) => `some:${n}`,
+  );
+  expect(pipe(some(7), label)).toBe("some:7");
+  expect(pipe(none(), label)).toBe("none");
+});
+
+test("okOr turns Some into Ok and None into Err", () => {
+  const present = pipe(some(7), okOr("missing"));
+  assert(isOk(present));
+  expect(present.content).toBe(7);
+
+  const absent = pipe(none(), okOr("missing"));
+  assert(isErr(absent));
+  expect(absent.content).toBe("missing");
 });

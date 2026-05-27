@@ -35,8 +35,7 @@ export const generateObject = ({
     ({ apiKey }) =>
       isSome(apiKey)
         ? ok(apiKey.content)
-        : match(
-            provider,
+        : match(provider)(
             [
               openAI$(),
               () => env("OPENAI_API_KEY"),
@@ -51,8 +50,7 @@ export const generateObject = ({
             ],
           ),
     (apiKey) =>
-      match(
-        provider,
+      match(provider)(
         [
           openAI$(),
           () =>

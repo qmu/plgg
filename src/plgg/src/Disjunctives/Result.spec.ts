@@ -9,6 +9,8 @@ import {
   isResult,
   chainResult,
   mapResult,
+  mapErr,
+  matchResult,
   applyResult,
   ofResult,
   pipe,
@@ -171,6 +173,31 @@ test("Result Monad - map function", () => {
   expect(r1.content).toBe(10);
   assert(isErr(r2));
   expect(r2.content).toBe("error");
+});
+
+test("mapErr transforms error values while preserving successes", () => {
+  const toLength = (e: string) => e.length;
+  const okValue: Result<number, string> = ok(5);
+  const errValue: Result<number, string> =
+    err("boom");
+
+  const r1 = pipe(okValue, mapErr(toLength));
+  const r2 = pipe(errValue, mapErr(toLength));
+
+  assert(isOk(r1));
+  expect(r1.content).toBe(5);
+  assert(isErr(r2));
+  expect(r2.content).toBe(4);
+});
+
+test("matchResult folds both channels into one value", () => {
+  const fold = matchResult(
+    (e: string) => `err:${e}`,
+    (v: number) => `ok:${v}`,
+  );
+
+  expect(fold(ok(7))).toBe("ok:7");
+  expect(fold(err("nope"))).toBe("err:nope");
 });
 
 test("Result Monad - ap function (applicative)", () => {
