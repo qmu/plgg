@@ -17,7 +17,6 @@ test("Greeting interpolates text around a nested element", () => {
 test("Badge coerces number/boolean props to attributes", () => {
   const shown: VNode = <Badge count={3} muted={false} />;
   if (shown.__tag === "Element") {
-    // muted=false drops aria-hidden; count stringifies
     expect(shown.content.props).toEqual({
       class: "badge",
       "data-count": "3",

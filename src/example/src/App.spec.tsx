@@ -10,7 +10,6 @@ test("SSR: the server renders App to an HTML string", () => {
   const html = renderToString(App());
   expect(html).toContain("plgg-web isomorphic demo");
   expect(html).toContain("Server-side rendering");
-  // three feature <li>s
   expect(html.match(/<li class="/g)?.length).toBe(3);
 });
 

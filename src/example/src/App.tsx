@@ -1,9 +1,10 @@
 import { VNode } from "plgg-view";
 
 /**
- * The shared view — authored once, rendered on **both** the server (to HTML)
- * and the client (to DOM). That is the whole point of an isomorphic app: one
- * component tree, two renderers (both from plgg-web, both over plgg-view).
+ * The shared view — authored once, rendered on **both** the server (to HTML, see
+ * [ssr/server.ts]) and the client (to DOM, see [csr/client.tsx]). One component
+ * tree, two renderers (both from plgg-web, both over plgg-view): that is what
+ * makes the app isomorphic.
  */
 type Feature = Readonly<{ name: string; done: boolean }>;
 

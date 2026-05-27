@@ -9,18 +9,18 @@ import {
   pageResponse,
   javascriptResponse,
 } from "plgg-web";
-import { App } from "./App";
+import { App } from "../App";
 
 /**
- * Isomorphic server. `GET /` renders `App` to a full HTML document (SSR) and
- * points the page at `/client.js`; `GET /client.js` serves the client bundle
- * (built by `vite build` into ../dist/client.js) which re-renders the same
- * `App` in the browser (CSR).
+ * (1) Server-side rendering. `GET /` renders `App` to a full HTML document with
+ * `pageResponse` (SSR) and points the page at `/client.js`; `GET /client.js`
+ * serves the client bundle (built by `vite build` into ../../dist/client.js)
+ * which re-renders the same `App` in the browser (CSR).
  *
- * Run: build the client bundle, then `npx tsx src/server.ts`.
+ * Run: `npm run build` then `npm run serve` (tsx src/ssr/server.ts).
  */
 const clientBundle = readFileSync(
-  join(__dirname, "..", "dist", "client.js"),
+  join(__dirname, "..", "..", "dist", "client.js"),
   "utf8",
 );
 
