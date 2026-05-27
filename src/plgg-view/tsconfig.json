@@ -11,12 +11,15 @@
     "types": [
       "node"
     ],
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "rootDir": "src",
-    "outDir": "dist",
-    /* JSX resolves to the installed plgg-view package (real consumer). */
+    "noEmit": true,
+    "paths": {
+      "plgg-view*": [
+        "./src/*"
+      ]
+    },
+    /* JSX: the automatic runtime resolves `jsx`/`jsxs`/`Fragment` (and the
+       `JSX` namespace) from `plgg-view/jsx-runtime`, so `.tsx` compiles
+       against this package's own hyperscript with no React/Preact dependency. */
     "jsx": "react-jsx",
     "jsxImportSource": "plgg-view",
     /* Type Checking Rules */
@@ -33,9 +36,10 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "allowJs": false,
-    "erasableSyntaxOnly": false
+    "erasableSyntaxOnly": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "example.tsx"
   ]
 }

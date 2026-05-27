@@ -7,9 +7,12 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   resolve: {
     alias: {
-      "plgg-web": path.resolve(__dirname, "./src"),
+      "plgg-view": path.resolve(__dirname, "./src"),
     },
   },
+  // `.tsx` specs compile through the automatic JSX runtime: Vite reads `jsx`
+  // and `jsxImportSource` from tsconfig.json (so transforms resolve this
+  // package's own jsx-runtime), and the `resolve.alias` above maps it to ./src.
   test: {
     coverage: {
       all: true,
@@ -23,8 +26,8 @@ export default defineConfig({
         "**/*.spec.tsx",
         "**/*.test.ts",
         "**/index.ts",
-        "client.ts",
-        "src/client.ts",
+        "**/jsx-runtime.ts",
+        "**/jsx-dev-runtime.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -39,18 +42,20 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      // Two entries: the server library (`index`) and the client-only DOM
-      // renderer (`client`, the `plgg-web/client` subpath) — so server code
-      // never bundles the DOM renderer. Shared code is code-split into chunks.
+      // Three entry points so a real consumer can resolve the package itself
+      // (`plgg-view`) and the automatic JSX runtime subpaths
+      // (`plgg-view/jsx-runtime`, `plgg-view/jsx-dev-runtime`) — the same
+      // layout React/Preact expose. Shared code is code-split into chunks.
       entry: {
         index: "src/index.ts",
-        client: "src/client.ts",
+        "jsx-runtime": "src/jsx-runtime.ts",
+        "jsx-dev-runtime": "src/jsx-dev-runtime.ts",
       },
       fileName: (format, entryName) => `${entryName}.${format}.js`,
       formats: ["es", "cjs"],
     },
     rollupOptions: {
-      external: ["node:http", "node:stream"],
+      external: [],
       output: {
         globals: {},
         exports: "named",
