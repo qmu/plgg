@@ -17,6 +17,8 @@ import {
   InvalidError,
   SoftStr,
   pipe,
+  match,
+  pattern,
   matchResult,
   cast,
   asObj,
@@ -29,7 +31,6 @@ import {
   get,
   post,
   decodeJsonBody,
-  isNetworkError,
   ClientError,
 } from "plgg-http-client/index";
 import { HttpResponse } from "plgg-http-router";
@@ -75,14 +76,75 @@ const report =
     pipe(
       result,
       matchResult(
+        // Exhaustively fold the ClientError vocabulary with plgg `match`: each
+        // arm receives the box narrowed to its tag (typed `.content`), and the
+        // set must cover every variant — leaving one out is a compile error.
         (error: ClientError) =>
-          isNetworkError(error)
-            ? console.error(
-                `${label}: network error — ${error.content}`,
-              )
-            : console.error(
-                `${label}: request error — ${error.__tag}`,
-              ),
+          match(error)(
+            [
+              pattern("NetworkError")(),
+              (e) =>
+                console.error(
+                  `${label}: network error — ${e.content}`,
+                ),
+            ],
+            [
+              pattern("NotFound")(),
+              (e) =>
+                console.error(
+                  `${label}: not found — ${e.content}`,
+                ),
+            ],
+            [
+              pattern("MethodNotAllowed")(),
+              (e) =>
+                console.error(
+                  `${label}: method not allowed; allowed: ${e.content.join(", ")}`,
+                ),
+            ],
+            [
+              pattern("BadRequest")(),
+              (e) =>
+                console.error(
+                  `${label}: bad request — ${e.content}`,
+                ),
+            ],
+            [
+              pattern("Unsupported")(),
+              (e) =>
+                console.error(
+                  `${label}: unsupported — ${e.content}`,
+                ),
+            ],
+            [
+              pattern("Unauthorized")(),
+              (e) =>
+                console.error(
+                  `${label}: unauthorized — ${e.content}`,
+                ),
+            ],
+            [
+              pattern("Forbidden")(),
+              (e) =>
+                console.error(
+                  `${label}: forbidden — ${e.content}`,
+                ),
+            ],
+            [
+              pattern("StatusError")(),
+              (e) =>
+                console.error(
+                  `${label}: status ${e.content.status.content} — ${e.content.message}`,
+                ),
+            ],
+            [
+              pattern("InternalError")(),
+              (e) =>
+                console.error(
+                  `${label}: internal error — ${e.content}`,
+                ),
+            ],
+          ),
         (response: HttpResponse) =>
           pipe(
             response,
