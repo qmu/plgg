@@ -12,7 +12,7 @@ import {
   isOk,
   isErr,
 } from "plgg";
-import { decodeRows } from "plgg-sql/index";
+import { decodeRows, decodeRow } from "plgg-sql/index";
 
 type User = { id: Num; name: SoftStr };
 
@@ -71,4 +71,28 @@ test("every failing row is gathered as a sibling error", () => {
     expect(result.content.message).toContain("2 of 2");
     expect(result.content.sibling).toHaveLength(2);
   }
+});
+
+test("decodeRow decodes the first row of a result set", () => {
+  const result = decodeRow(asUser)([
+    { id: 1, name: "Ada" },
+    { id: 2, name: "Linus" },
+  ]);
+  expect(isOk(result)).toBe(true);
+  if (isOk(result)) {
+    expect(result.content).toEqual({ id: 1, name: "Ada" });
+  }
+});
+
+test("decodeRow errors on an empty result set", () => {
+  const result = decodeRow(asUser)([]);
+  expect(isErr(result)).toBe(true);
+  if (isErr(result)) {
+    expect(result.content.message).toContain("empty");
+  }
+});
+
+test("decodeRow surfaces a malformed first row as an error", () => {
+  const result = decodeRow(asUser)([{ id: "nope", name: "Ada" }]);
+  expect(isErr(result)).toBe(true);
 });

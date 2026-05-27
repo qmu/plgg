@@ -1,4 +1,5 @@
 import { test, expect } from "vitest";
+import { some, none } from "plgg";
 import { sql, isSql } from "plgg-sql/index";
 
 test("a template with no interpolation is trusted text with no params", () => {
@@ -8,13 +9,13 @@ test("a template with no interpolation is trusted text with no params", () => {
   });
 });
 
-test("an interpolated value becomes a ? placeholder bound in params", () => {
+test("an interpolated value binds as a ? placeholder, lifted into Some", () => {
   const id = 7;
   expect(
     sql`SELECT * FROM users WHERE id = ${id}`.content,
   ).toEqual({
     text: "SELECT * FROM users WHERE id = ?",
-    params: [7],
+    params: [some(7)],
   });
 });
 
@@ -24,17 +25,27 @@ test("multiple interpolations bind left-to-right", () => {
       .content,
   ).toEqual({
     text: "SELECT * FROM users WHERE active = ? AND age > ?",
-    params: [true, 18],
+    params: [some(true), some(18)],
   });
 });
 
-test("string, number, boolean and null all bind as parameters", () => {
+test("string, number and boolean all bind as Some parameters", () => {
   expect(
-    sql`INSERT INTO t VALUES (${"Ada"}, ${42}, ${false}, ${null})`
+    sql`INSERT INTO t VALUES (${"Ada"}, ${42}, ${false})`
       .content,
   ).toEqual({
-    text: "INSERT INTO t VALUES (?, ?, ?, ?)",
-    params: ["Ada", 42, false, null],
+    text: "INSERT INTO t VALUES (?, ?, ?)",
+    params: [some("Ada"), some(42), some(false)],
+  });
+});
+
+test("an Option value binds through; None is SQL NULL (no raw null)", () => {
+  expect(
+    sql`UPDATE users SET name = ${some("Ada")}, deleted_at = ${none()} WHERE id = ${1}`
+      .content,
+  ).toEqual({
+    text: "UPDATE users SET name = ?, deleted_at = ? WHERE id = ?",
+    params: [some("Ada"), none(), some(1)],
   });
 });
 
@@ -43,7 +54,7 @@ test("an interpolated Sql fragment is spliced, not bound", () => {
   const query = sql`SELECT * FROM users WHERE ${predicate}`;
   expect(query.content).toEqual({
     text: "SELECT * FROM users WHERE age > ?",
-    params: [18],
+    params: [some(18)],
   });
 });
 
@@ -53,7 +64,7 @@ test("splicing merges text and params across fragments in order", () => {
   const query = sql`SELECT id FROM users WHERE ${active} AND ${adult} ORDER BY id`;
   expect(query.content).toEqual({
     text: "SELECT id FROM users WHERE active = ? AND age >= ? ORDER BY id",
-    params: [true, 18],
+    params: [some(true), some(18)],
   });
 });
 
@@ -61,7 +72,7 @@ test("isSql distinguishes fragments from plain values", () => {
   expect(isSql(sql`SELECT 1`)).toBe(true);
   expect(isSql(7)).toBe(false);
   expect(isSql("SELECT 1")).toBe(false);
-  expect(isSql(null)).toBe(false);
+  expect(isSql(some(1))).toBe(false);
   expect(isSql({ __tag: "Other", content: {} })).toBe(false);
 });
 
@@ -71,5 +82,5 @@ test("a malicious value never reaches the SQL text (injection safety)", () => {
     .content;
   expect(text).toBe("SELECT * FROM users WHERE name = ?");
   expect(text).not.toContain("DROP TABLE");
-  expect(params).toEqual([name]);
+  expect(params).toEqual([some(name)]);
 });

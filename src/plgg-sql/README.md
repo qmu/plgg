@@ -2,109 +2,79 @@
 
 > **UNSTABLE** — Experimental study work (POC). Part of the [plgg monorepo](../../README.md).
 
-A **safe SQL evaluator** — *not* an ORM and *not* a query-builder AST — built
-**from scratch on the [plgg](../plgg/) framework**. You write the SQL (trusted in
-your application); `plgg-sql` is the safety helper around three jobs:
+Database work as **pipeline steps**, built **from scratch on [plgg](../plgg/)**.
+Not an ORM and not a query-builder AST — plgg-sql gives you a handful of
+data-last steps (build SQL, run it, run it in a transaction, map rows to types)
+that drop straight into a plgg `proc`/`pipe` chain. Because they speak the same
+vocabulary as a [plgg-web](../plgg-web/) HTTP handler, a DB step and a web step
+are **interchangeable links in the same pipe** — `request → validate → query →
+map → response` is one chain. The only runtime dependency is `plgg`; the
+database driver lives entirely at a seam the application supplies.
 
-1. **Build** the SQL string with interpolated values bound as parameters — never
-   string-concatenated, so injection-safe by construction.
-2. **Execute** it through a caller-supplied driver seam (the library ships no
-   driver).
-3. **Map** the raw result rows into typed plgg records.
-
-Like [`plgg-web`](../plgg-web/), this is a dogfooding exercise: the SQL value is a
-plgg `Box`, mapping uses plgg `cast`, failures are values (`Result`), and the
-database lives **outside as a seam**. The only runtime dependency is `plgg`.
-
-## The plgg-native model
-
-| Concern | Type |
-|--------|------|
-| a piece of SQL | `Sql` = `Box<"Sql", { text: SoftStr; params: ReadonlyArray<SqlValue> }>` |
-| a bound value | `SqlValue` = `SoftStr \| Num \| Bool \| null` |
-| sync driver seam | `Executor` = `(sql: Sql) => ReadonlyArray<unknown>` |
-| async driver seam | `AsyncExecutor` = `(sql: Sql) => Promise<ReadonlyArray<unknown>>` |
-| evaluation result | `Result<ReadonlyArray<Row>, InvalidError>` (or `PromisedResult<…>`) |
-
-## 1. Safe SQL building — the `sql` tagged template
+## One handler, one pipe
 
 ```typescript
-import { sql } from "plgg-sql";
-
-const id = 7;
-const q = sql`SELECT id, name FROM users WHERE id = ${id} AND active = ${true}`;
-// q.content.text   === "SELECT id, name FROM users WHERE id = ? AND active = ?"
-// q.content.params === [7, true]
+post("/users", (c) =>
+  proc(
+    c.req.body,
+    decodeJson,                                    // core:    text → unknown
+    asNewUser,                                     // core:    validate → NewUser  (cast/forProp/refine)
+    transaction(db, (u) =>                          // plgg-sql: everything inside is atomic
+      proc(
+        sql`INSERT INTO users (name, email) VALUES (${u.name}, ${u.email})`,
+        exec(db),                                  // plgg-sql: DML → ExecResult
+        (r) => query(db)(
+          sql`SELECT id, name, email FROM users WHERE id = ${r.lastInsertId}`),
+        decodeRow(asUser),                          // plgg-sql: rows → User
+      )),
+    (user) => jsonResponse(user, 201),             // web:     User → HttpResponse
+  ))
 ```
 
-The static chunks are trusted, developer-authored text. Each `${value}` becomes
-a `?` placeholder and is pushed onto `params` — user values never reach the SQL
-string. Because you write raw SQL, `INSERT`/`UPDATE`/`DELETE`, joins, grouping
-and ordering all work without dedicated builders.
+`proc` awaits each async step and short-circuits on the first `Err`. If
+validation fails, or the `INSERT` violates a constraint, the chain stops — and
+`transaction` **rolls back** because the inner result is an `Err`, **commits**
+when it is `Ok`. Errors as values drive the transaction; no try/catch.
 
-### Fragment composition
+See [`example.ts`](./example.ts) for a runnable version against real SQLite
+(`npx tsx src/plgg-sql/example.ts`).
 
-Interpolating another `Sql` fragment **splices** it (text + params merged);
-interpolating a plain value **binds** it. This makes reusable / conditional
-clauses safe to assemble:
+## The vocabulary plgg-sql adds
+
+| Step | Shape | What it does |
+|---|---|---|
+| `` sql`…` `` | → `Sql` | build safe parameterized SQL; each `${value}` is a bound `?` param (`None` = SQL `NULL`), an interpolated `Sql` fragment splices |
+| `query(db)` | `Sql → PromisedResult<unknown[], SqlError>` | run a `SELECT`, return raw rows |
+| `exec(db)` | `Sql → PromisedResult<ExecResult, SqlError>` | run `INSERT`/`UPDATE`/`DELETE` → `{ changes, lastInsertId }` |
+| `decodeRow(asRow)` / `decodeRows(asRow)` | `unknown[] → Result<T \| T[], InvalidError>` | map raw rows into typed records via plgg `cast` |
+| `transaction(db, work)` | `A → PromisedResult<T, …>` | run a sub-pipe atomically; commit on `Ok`, roll back on `Err` |
+
+**Validation and mapping are not new vocabulary** — they are plgg core's
+`cast`/`asObj`/`forProp`/`refine`, the same words a plgg-web handler already
+uses. plgg-sql only adds `sql`, `query`, `exec`, `transaction`.
+
+## The database seam
+
+The library imports **no driver**. `query`/`exec`/`transaction` work against a
+small `Db` interface the application implements — the one place that knows which
+database you use (the example wires `node:sqlite`):
 
 ```typescript
-const active = sql`active = ${true}`;
-const adult = sql`age >= ${18}`;
-const q = sql`SELECT id FROM users WHERE ${active} AND ${adult}`;
-// "SELECT id FROM users WHERE active = ? AND age >= ?", params [true, 18]
+type Db = {
+  all: (sql: Sql) => Promise<ReadonlyArray<unknown>>;   // SELECT → rows
+  run: (sql: Sql) => Promise<ExecResult>;               // DML → { changes, lastInsertId }
+  begin: () => Promise<void>;
+  commit: () => Promise<void>;
+  rollback: () => Promise<void>;
+};
 ```
 
-## 2. Execution — the `Executor` seam + `run`
-
-The library imports **no driver**. You supply an `Executor`; `run` (sync) and
-`runAsync` (async) compose it with the row decoder and hand back a `Result`:
-
-```typescript
-import { run, runAsync } from "plgg-sql";
-
-const users = run(execute, asUser)(q);            // Result<ReadonlyArray<User>, InvalidError>
-const users = await runAsync(executeAsync, asUser)(q); // PromisedResult<…>
-```
-
-## 3. Mapping — `decodeRows`
-
-`decodeRows` (which `run` uses internally) lifts raw `unknown` driver rows into
-typed records with plgg `cast` — no `as`, no exceptions. A shape mismatch becomes
-a value-level `InvalidError` (failures gathered into its `sibling` array):
-
-```typescript
-import { decodeRows } from "plgg-sql";
-import { cast, asObj, forProp, asNum, asSoftStr } from "plgg";
-
-type User = { id: number; name: string };
-const asUser = (row: unknown) =>
-  cast(row, asObj, forProp("id", asNum), forProp("name", asSoftStr));
-```
-
-## End-to-end against real SQLite
-
-[`example.ts`](./example.ts) is a **runnable** demo (`npx tsx src/plgg-sql/example.ts`)
-that wires Node's built-in `node:sqlite` (no npm dependency) — the only code
-aware of the database is the `Executor`:
-
-```typescript
-import { DatabaseSync } from "node:sqlite";
-
-const db = new DatabaseSync(":memory:");
-// ... create table + seed rows (via sql writes too) ...
-
-// the seam: coerce booleans to 0/1 (SQLite has no boolean) and run
-const execute = (s: Sql): ReadonlyArray<unknown> =>
-  db.prepare(s.content.text).all(...s.content.params.map(toBindable));
-
-const result = run(execute, asUser)(
-  sql`SELECT id, name, age FROM users WHERE active = ${true} AND age > ${18}`,
-);
-```
+Swapping SQLite for Postgres (or an async pooled driver) means rewriting only
+this seam; the `sql` you write, your validators/decoders, and every
+`query`/`exec`/`transaction` step are untouched.
 
 ## Out of scope (POC)
 
-Dynamic identifiers (table / column names interpolated as values — only literal
-values bind for now), transactions, a real connection pool, migrations, and
-multi-dialect rendering (SQLite `?` only). These are intentionally deferred.
+Dynamic identifiers (table/column names as values — only literal values bind),
+a real connection pool, migrations, and multi-dialect rendering (SQLite `?`
+only). These are intentionally deferred.

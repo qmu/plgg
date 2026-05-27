@@ -1,16 +1,12 @@
 /**
- * plgg-sql example — a *living*, runnable demo of the safe SQL evaluator against
- * a real SQLite database. This is how an application is meant to use it:
+ * plgg-sql — database work as pipeline steps.
  *
- *     author SQL with `sql`  ->  run/runAsync (the Executor seam: node:sqlite)
- *     ->  decoded, typed records.
- *
- * Run it:
  *   npx tsx src/plgg-sql/example.ts
  *
- * Uses Node's built-in `node:sqlite` (no npm dependency). The library stays
- * driver-agnostic — the only code that knows about SQLite is the `execute`
- * seam below. Both the sync (`run`) and async (`runAsync`) paths are shown.
+ * Each handler below is ONE `proc` chain. Validation, SQL building, DML, the
+ * transaction, and row mapping are all just steps in it — the same vocabulary a
+ * plgg-web HTTP handler uses, so a DB step and a web step are interchangeable
+ * links in the same pipe. The only driver-aware code is the `open` seam.
  */
 import { DatabaseSync } from "node:sqlite";
 import {
@@ -18,105 +14,158 @@ import {
   InvalidError,
   Num,
   SoftStr,
+  proc,
   cast,
   asObj,
   forProp,
   asNum,
   asSoftStr,
+  refine,
+  decodeJson,
+  some,
   matchResult,
+  matchOption,
 } from "plgg";
 import {
+  Db,
+  ExecResult,
   Sql,
   SqlValue,
   sql,
-  run,
-  runAsync,
+  query,
+  exec,
+  transaction,
+  decodeRow,
+  decodeRows,
 } from "plgg-sql/index";
 
-// --- the application's domain type and its plgg decoder (no `as`) ---
-type User = { id: Num; name: SoftStr; age: Num };
+// ── the SQLite seam: the only code that knows which driver we use ──
+const open = (path: SoftStr): Db => {
+  const conn = new DatabaseSync(path);
+  const bind = (
+    s: Sql,
+  ): ReadonlyArray<string | number | null> =>
+    s.content.params.map(
+      matchOption(
+        () => null,
+        (v: SqlValue) =>
+          typeof v === "boolean" ? (v ? 1 : 0) : v,
+      ),
+    );
+  // async so a driver throw (e.g. a constraint violation) becomes a rejected
+  // promise that `query`/`exec` fold into a value-level SqlError.
+  return {
+    all: async (s) => conn.prepare(s.content.text).all(...bind(s)),
+    run: async (s): Promise<ExecResult> => {
+      const r = conn.prepare(s.content.text).run(...bind(s));
+      return {
+        changes: Number(r.changes),
+        lastInsertId: some(Number(r.lastInsertRowid)),
+      };
+    },
+    begin: async () => {
+      conn.exec("BEGIN");
+    },
+    commit: async () => {
+      conn.exec("COMMIT");
+    },
+    rollback: async () => {
+      conn.exec("ROLLBACK");
+    },
+  };
+};
 
-const asUser = (
-  row: unknown,
-): Result<User, InvalidError> =>
+// ── validation + mapping: plain plgg core, no plgg-sql needed ──
+type NewUser = { name: SoftStr; email: SoftStr };
+const asNewUser = (v: unknown): Result<NewUser, InvalidError> =>
+  cast(
+    v,
+    asObj,
+    forProp("name", (x) =>
+      cast(x, asSoftStr, refine((s) => s.length >= 2, "name too short")),
+    ),
+    forProp("email", (x) =>
+      cast(x, asSoftStr, refine((s) => s.includes("@"), "email invalid")),
+    ),
+  );
+
+type User = { id: Num; name: SoftStr; email: SoftStr };
+const asUser = (row: unknown): Result<User, InvalidError> =>
   cast(
     row,
     asObj,
     forProp("id", asNum),
     forProp("name", asSoftStr),
-    forProp("age", asNum),
+    forProp("email", asSoftStr),
   );
 
-// --- the Executor seam: the ONLY code that knows it is talking to SQLite ---
-// SQLite has no boolean type, so the seam coerces booleans to 0/1 — exactly the
-// kind of dialect detail the library leaves to the driver boundary.
-const db = new DatabaseSync(":memory:");
+const db = open(":memory:");
 
-const toBindable = (
-  value: SqlValue,
-): string | number | null =>
-  typeof value === "boolean" ? (value ? 1 : 0) : value;
-
-const execute = (s: Sql): ReadonlyArray<unknown> =>
-  db
-    .prepare(s.content.text)
-    .all(...s.content.params.map(toBindable));
-
-// --- schema + seed: writes are authored with `sql` too (values stay bound) ---
-db.exec(
-  `CREATE TABLE users (
-     id     INTEGER PRIMARY KEY,
-     name   TEXT    NOT NULL,
-     age    INTEGER NOT NULL,
-     active INTEGER NOT NULL
-   )`,
-);
-const seed = (
-  id: Num,
-  name: SoftStr,
-  age: Num,
-  active: boolean,
-): void =>
-  void execute(
-    sql`INSERT INTO users (id, name, age, active) VALUES (${id}, ${name}, ${age}, ${active})`,
+// ── a write: validate → INSERT → read back, all atomic, one pipe ──
+const createUser = (
+  payload: SoftStr,
+): Promise<Result<User, Error>> =>
+  proc(
+    payload,
+    decodeJson, // text  → unknown
+    asNewUser, // validate → NewUser  (or short-circuits here)
+    transaction(db, (u: NewUser) =>
+      proc(
+        sql`INSERT INTO users (name, email) VALUES (${u.name}, ${u.email})`,
+        exec(db), // DML → ExecResult
+        (r: ExecResult) =>
+          query(db)(
+            sql`SELECT id, name, email FROM users WHERE id = ${r.lastInsertId}`,
+          ), // build + run the read-back → rows
+        decodeRow(asUser), // rows → User
+      ),
+    ),
   );
-seed(1, "Ada", 36, true);
-seed(2, "Linus", 17, true);
-seed(3, "Grace", 45, false);
 
-// --- author a query with `sql`; conditional clauses splice safely ---
-const minAge = 18;
-const activeOnly = sql`active = ${true}`;
-const query = sql`SELECT id, name, age FROM users WHERE ${activeOnly} AND age > ${minAge}`;
+// ── a read: build → run → map a list ──
+const listUsers = (): Promise<
+  Result<ReadonlyArray<User>, Error>
+> =>
+  proc(
+    sql`SELECT id, name, email FROM users ORDER BY id`,
+    query(db),
+    decodeRows(asUser),
+  );
 
-console.log("text:  ", query.content.text);
-console.log("params:", query.content.params);
-// text:   SELECT id, name, age FROM users WHERE active = ? AND age > ?
-// params: [ true, 18 ]
-
-// --- sync evaluation: run the seam, decode rows into typed records ---
-console.log("\n[run] active users older than", minAge, ":");
-matchResult(
-  (e: InvalidError) => console.error("decode failed:", e.message),
-  (users: ReadonlyArray<User>) => console.log(users),
-)(run(execute, asUser)(query));
-// [ { id: 1, name: 'Ada', age: 36 } ]
-// (Linus is 17, Grace is inactive — both correctly excluded.)
-
-// --- async evaluation: same query, an async executor, awaited ---
-const executeAsync = (
-  s: Sql,
-): Promise<ReadonlyArray<unknown>> =>
-  Promise.resolve(execute(s));
-
-runAsync(executeAsync, asUser)(query).then(
+const render = (r: Result<unknown, Error>): SoftStr =>
   matchResult(
-    (e: InvalidError) =>
-      console.error("[runAsync] decode failed:", e.message),
-    (users: ReadonlyArray<User>) => {
-      console.log("\n[runAsync] same result:");
-      console.log(users);
-      db.close();
-    },
-  ),
-);
+    (e: Error) => `Err — ${e.message}`,
+    (v: unknown) => `Ok  — ${JSON.stringify(v)}`,
+  )(r);
+
+const main = async (): Promise<void> => {
+  await db.run(
+    sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE)`,
+  );
+
+  // happy path: created and read back as a typed User
+  console.log("create Ada       :", render(await createUser('{"name":"Ada","email":"ada@x.io"}')));
+  // validation fails before any SQL runs
+  console.log("create invalid   :", render(await createUser('{"name":"A","email":"nope"}')));
+  // duplicate email → INSERT throws → transaction ROLLS BACK, nothing persisted
+  console.log("create duplicate :", render(await createUser('{"name":"Ada II","email":"ada@x.io"}')));
+  // proof of rollback: only the first Ada is there
+  console.log("list everyone    :", render(await listUsers()));
+};
+
+main();
+
+// The same steps slot into a plgg-web handler unchanged — `param`/`jsonResponse`
+// are just more links in the same proc chain:
+//
+//   post("/users", (c) =>
+//     proc(
+//       c.req.body, decodeJson, asNewUser,
+//       transaction(db, (u) => proc(
+//         sql`INSERT INTO users (name, email) VALUES (${u.name}, ${u.email})`,
+//         exec(db),
+//         (r) => sql`SELECT id, name, email FROM users WHERE id = ${r.lastInsertId}`,
+//         query(db), decodeRow(asUser),
+//       )),
+//       (user) => jsonResponse(user, 201),
+//     ))

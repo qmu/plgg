@@ -4,6 +4,9 @@ import {
   pipe,
   conclude,
   mapErr,
+  fromNullable,
+  matchOption,
+  err,
 } from "plgg";
 
 /**
@@ -34,3 +37,28 @@ export const decodeRows =
           }),
       ),
     );
+
+/**
+ * Maps the *first* raw row into a typed record, for queries expected to return
+ * one (a lookup by id, an `INSERT ... RETURNING`, etc.). An empty result set is
+ * a value-level {@link InvalidError} rather than a silent `undefined`.
+ *
+ * Data-last: `decodeRow(asUser)(rows)`.
+ */
+export const decodeRow =
+  <T>(asRow: (row: unknown) => Result<T, InvalidError>) =>
+  (rows: ReadonlyArray<unknown>): Result<T, InvalidError> =>
+    pipe(
+      fromNullable(rows[0]),
+      matchOption(
+        () =>
+          err(
+            new InvalidError({
+              message:
+                "Expected a row, but the result set was empty",
+            }),
+          ),
+        asRow,
+      ),
+    );
+
