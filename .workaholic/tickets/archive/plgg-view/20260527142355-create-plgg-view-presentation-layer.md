@@ -3,9 +3,9 @@ created_at: 2026-05-27T14:23:55+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 769597a
+category: Added
 ---
 
 # Create `plgg-view` — presentation layer (JSX-style rendering, POC)
@@ -81,3 +81,38 @@ values; platform types (DOM) only at the seam; strict coverage > 90%.
   dist) — same gotcha documented for `plgg-web`.
 - Specs should import from `"plgg-view/index"` (bare `"plgg-view"` resolves
   inconsistently under tsconfig `paths`), matching the `plgg-web` convention.
+
+## Final Report
+
+Development completed as planned. The package mirrors `plgg-web`: a `Vnode`
+feature (model `VNode` `Box` union + `h`/`jsx` builders) and a `Render` feature
+(`renderToString` + escaping), `export *` barrels, the tsconfig split, and a
+`vite.config.ts` with coverage thresholds 91. `tsc` is clean, 26 tests pass at
+100% coverage, the es+cjs+dts build is green, and the runnable example renders
+with correct escaping.
+
+### Discovered Insights
+
+- **Insight**: Vite 8 transforms with **oxc**, not esbuild, so an `esbuild: {}`
+  block in `vite.config.ts` is silently ignored (it warns). The automatic JSX
+  runtime still works because Vite reads `jsx`/`jsxImportSource` from
+  `tsconfig.json` and the `resolve.alias` maps `plgg-view` → `./src`. No
+  per-tool JSX config is needed in `vite.config.ts`.
+  **Context**: A future `plgg-view` reviewer (or anyone copying this config for
+  a browser-facing plgg package) should configure JSX via `tsconfig.json`, not
+  `vite.config.ts`.
+- **Insight**: TS type-checks `.tsx` against `plgg-view/jsx-runtime`'s `JSX`
+  namespace and emits `jsx`/`jsxs` calls, while Vite/oxc in test (dev) mode
+  emits `jsxDEV` from `plgg-view/jsx-dev-runtime`. **Both** entry modules must
+  exist; the `JSX` namespace lives only in `jsx-runtime` (the compiler always
+  reads it from there, never from the dev runtime).
+  **Context**: Explains why this POC ships two near-identical runtime files; the
+  dev one is not redundant — vitest needs it to run the `.tsx` specs.
+- **Insight**: Under the current Node (`v24`), `npx tsx src/plgg-view/example.ts`
+  from the repo root fails with `ERR_PACKAGE_PATH_NOT_EXPORTED` because Node's
+  package self-reference (`trySelf`) intercepts the internal `plgg-view/*`
+  imports before tsx applies tsconfig `paths`. Running from the package dir
+  (`cd src/plgg-view && npx tsx example.ts`) makes tsx resolve the paths and it
+  works. `plgg-web`'s example has the identical pre-existing limitation.
+  **Context**: The README documents the working invocation; don't "fix" the
+  example by switching it off the `plgg-view/index` convention.

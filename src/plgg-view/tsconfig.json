@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    /* Compiler Option */
+    "target": "ES2021",
+    "module": "NodeNext",
+    "lib": [
+      "ES2021",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ],
+    "noEmit": true,
+    "paths": {
+      "plgg-view*": [
+        "./src/*"
+      ]
+    },
+    /* JSX: the automatic runtime resolves `jsx`/`jsxs`/`Fragment` (and the
+       `JSX` namespace) from `plgg-view/jsx-runtime`, so `.tsx` compiles
+       against this package's own hyperscript with no React/Preact dependency. */
+    "jsx": "react-jsx",
+    "jsxImportSource": "plgg-view",
+    /* Type Checking Rules */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowJs": false,
+    "erasableSyntaxOnly": true
+  },
+  "include": [
+    "src/**/*",
+    "example.ts"
+  ]
+}
