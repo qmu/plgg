@@ -4,8 +4,12 @@ import {
   methodNotAllowed,
   badRequest,
   unsupported,
+  unauthorized,
+  forbidden,
+  statusError,
   internalError,
   httpErrorToResponse,
+  statusOf,
 } from "plgg-web/index";
 
 test("notFound -> 404", () => {
@@ -38,6 +42,30 @@ test("unsupported -> 501 carrying its message", () => {
   expect(r.body).toBe("TRACE not supported");
 });
 
+test("unauthorized -> 401 carrying its message", () => {
+  const r = httpErrorToResponse(
+    unauthorized("Unauthorized"),
+  );
+  expect(r.status.content).toBe(401);
+  expect(r.body).toBe("Unauthorized");
+});
+
+test("forbidden -> 403 carrying its message", () => {
+  const r = httpErrorToResponse(
+    forbidden("not your resource"),
+  );
+  expect(r.status.content).toBe(403);
+  expect(r.body).toBe("not your resource");
+});
+
+test("statusError -> its carried status and message", () => {
+  const r = httpErrorToResponse(
+    statusError(statusOf(429), "slow down"),
+  );
+  expect(r.status.content).toBe(429);
+  expect(r.body).toBe("slow down");
+});
+
 test("internalError -> 500 with a generic body", () => {
   const r = httpErrorToResponse(
     internalError("details hidden"),
@@ -53,6 +81,11 @@ test("constructors tag the Box variants", () => {
   );
   expect(badRequest("").__tag).toBe("BadRequest");
   expect(unsupported("").__tag).toBe("Unsupported");
+  expect(unauthorized("").__tag).toBe("Unauthorized");
+  expect(forbidden("").__tag).toBe("Forbidden");
+  expect(statusError(statusOf(418), "").__tag).toBe(
+    "StatusError",
+  );
   expect(internalError("").__tag).toBe(
     "InternalError",
   );

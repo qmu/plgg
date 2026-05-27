@@ -3,9 +3,9 @@ created_at: 2026-05-27T02:38:25+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 6d969cc
+category: Changed
 depends_on:
 ---
 
@@ -50,3 +50,14 @@ and `httpErrorToResponse` folds each to the correct status.
 - Engage the `leading-security` lens: 401 vs 403 semantics (unauthenticated vs unauthorized), and avoid leaking detail in messages.
 - Decide between explicit variants (`unauthorized`/`forbidden`) vs a single generic `statusError`; explicit variants read better and keep the fold exhaustive, a generic one is open-ended. Both can coexist.
 - Small, self-contained ticket — no dependency on the routing tickets.
+
+## Final Report
+
+Development completed as planned. Both explicit variants (`unauthorized`/`forbidden`) and the generic `statusError` were added — they coexist as the ticket suggested, with the explicit variants keeping the fold readable and `statusError` covering arbitrary codes.
+
+### Discovered Insights
+
+- **Insight**: The `httpErrorToResponse` fold relies on the final `else` branch implicitly meaning `InternalError`; new variants must be inserted *before* that fallback, never after, or they become unreachable.
+  **Context**: There is no `CoverageError`/exhaustiveness guard on this ternary chain (unlike `match`), so the type checker will not catch a variant accidentally folded into the 500 fallback. Reviewers must verify each new tag has its own branch.
+- **Insight**: `statusError` carries an already-branded `HttpStatus`, so callers pass `statusOf(429)` rather than a raw number; the fold reads `error.content.status.content` to recover the code.
+  **Context**: This keeps the status in the validated 100–599 range at construction time rather than at the seam, consistent with how `textResponse` brands via `statusOf`.

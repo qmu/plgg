@@ -1,6 +1,7 @@
 import { Box, SoftStr, box } from "plgg";
 import {
   Method,
+  HttpStatus,
   HttpResponse,
   textResponse,
 } from "plgg-web/index";
@@ -14,6 +15,9 @@ export type HttpError =
   | Box<"MethodNotAllowed", ReadonlyArray<Method>>
   | Box<"BadRequest", SoftStr>
   | Box<"Unsupported", SoftStr>
+  | Box<"Unauthorized", SoftStr>
+  | Box<"Forbidden", SoftStr>
+  | Box<"StatusError", { status: HttpStatus; message: SoftStr }>
   | Box<"InternalError", SoftStr>;
 
 /**
@@ -43,6 +47,30 @@ export const badRequest = (
 export const unsupported = (
   message: SoftStr,
 ): HttpError => box("Unsupported")(message);
+
+/**
+ * The request lacks valid authentication credentials (401). Distinct from
+ * {@link forbidden}: the client is unauthenticated, not merely under-privileged.
+ */
+export const unauthorized = (
+  message: SoftStr,
+): HttpError => box("Unauthorized")(message);
+
+/**
+ * The client is authenticated but not permitted to access the resource (403).
+ */
+export const forbidden = (
+  message: SoftStr,
+): HttpError => box("Forbidden")(message);
+
+/**
+ * A failure at an arbitrary status code, for cases the explicit variants do
+ * not cover. The carried {@link HttpStatus} keeps the code in valid range.
+ */
+export const statusError = (
+  status: HttpStatus,
+  message: SoftStr,
+): HttpError => box("StatusError")({ status, message });
 
 /**
  * An unexpected failure occurred while handling the request.
@@ -75,7 +103,16 @@ export const httpErrorToResponse = (
         ? textResponse(error.content, 400)
         : error.__tag === "Unsupported"
           ? textResponse(error.content, 501)
-          : textResponse(
-              "Internal Server Error",
-              500,
-            );
+          : error.__tag === "Unauthorized"
+            ? textResponse(error.content, 401)
+            : error.__tag === "Forbidden"
+              ? textResponse(error.content, 403)
+              : error.__tag === "StatusError"
+                ? textResponse(
+                    error.content.message,
+                    error.content.status.content,
+                  )
+                : textResponse(
+                    "Internal Server Error",
+                    500,
+                  );
