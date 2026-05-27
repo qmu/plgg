@@ -100,17 +100,20 @@ const store: Readonly<Record<string, NewUser>> = {
 const findUser = (id: SoftStr): Option<NewUser> =>
   fromNullable(store[id]);
 
-// The /api group. NOTE: plgg-web has no group-scoped middleware — a `use()`
-// inside this sub-app would leak to the whole app once mounted (see analysis).
-// So the bearer-token gate is an inline guard. A missing/invalid token is a
-// failure value: `err(unauthorized(...))` folds to 401 at the seam.
+// The /api group. Its `use(...)` guard is scoped to this sub-app: once mounted
+// under `/api`, it runs for every `/api` route and nowhere else (it does NOT
+// leak to `/`). A missing/invalid bearer token short-circuits the onion with
+// `err(unauthorized(...))`, which folds to 401 at the seam.
 const api = pipe(
   web(),
-  get("/me", async (c) =>
+  use(async (c, next) =>
     pipe(c, header("authorization"), getOr("")) ===
     "Bearer secret"
-      ? ok(jsonResponse({ me: "ada" }))
+      ? next()
       : err(unauthorized("Unauthorized")),
+  ),
+  get("/me", async () =>
+    ok(jsonResponse({ me: "ada" })),
   ),
 );
 

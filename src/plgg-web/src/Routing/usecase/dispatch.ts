@@ -55,7 +55,10 @@ const compose = (
 
 /**
  * Runs a matched route's handler through the middleware chain, turning a thrown
- * handler into an `InternalError` value.
+ * handler into an `InternalError` value. The onion is the global middleware
+ * (outermost) wrapping the route's scoped group middleware wrapping the
+ * handler, so top-level `use()` runs for every route and group middleware runs
+ * only for the routes it was mounted onto.
  */
 const runMatched = (
   middlewares: ReadonlyArray<Middleware>,
@@ -65,7 +68,10 @@ const runMatched = (
 ): PromisedResult<HttpResponse, HttpError> =>
   pipe(
     makeContext(withParams(request, params)),
-    compose(middlewares, route.handler),
+    compose(
+      [...middlewares, ...route.middlewares],
+      route.handler,
+    ),
     (settled) =>
       settled.catch(() =>
         err(internalError("handler threw")),

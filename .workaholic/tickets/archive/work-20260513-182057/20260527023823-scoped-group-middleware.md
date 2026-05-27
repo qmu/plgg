@@ -3,9 +3,9 @@ created_at: 2026-05-27T02:38:23+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 54df2f3
+category: Changed
 depends_on: [20260527023824-compiled-route-table.md]
 ---
 
@@ -53,3 +53,14 @@ preserved.
 - **Depends on** the compiled route table (`20260527023824-compiled-route-table.md`): associating middleware with route subsets is cleanest once routes are a structured table rather than a flat list. Sequence this after that ticket.
 - Consider whether to also expose per-route middleware (e.g. an `on`/verb variant taking middleware) or keep it group-only via `route()`. Group-only is the minimum that fixes the leak.
 - Preserve the existing security-relevant behavior expectation: a guard mounted on `/api` must not run for `/`, and—critically—must actually run for everything under `/api` (no gaps). Engage the `leading-security` lens for the auth-gating semantics.
+
+## Final Report
+
+Development completed as planned, group-only (no per-route middleware variant — that stays out of scope as the minimum that fixes the leak). `Route` now carries a `middlewares` stack; `route()` binds a sub-app's `use()` middleware to its rebased routes instead of merging into the parent global stack; `dispatch` composes global → group → handler. The example's `/api` now uses the scoped guard, removing the inline workaround the leak previously forced.
+
+### Discovered Insights
+
+- **Insight**: The fix cleanly separates two middleware lifetimes by *where* they live: top-level `use()` stays in `Web.middlewares` (applied globally at dispatch via `app.middlewares`), while a mounted sub-app's `use()` is copied onto each rebased route's `Route.middlewares` at `route()` time and never touches the parent's global stack. The onion at dispatch is `[...global, ...route.middlewares]`, so group middleware is strictly inner to global.
+  **Context**: This preserves the security guarantee with no gaps — every route under `/api` carries the guard in its own stack — while a sibling like `/` simply never receives it. There is no runtime prefix-matching of middleware; scoping is resolved structurally at registration.
+- **Insight**: Group middleware accumulates outer-to-inner across nested `route()` mounts via `[...sub.middlewares, ...r.middlewares]`: at each mount the enclosing sub-app's stack is prepended ahead of whatever the route already carries from deeper mounts. So `route("/out", route("/in", inner))` yields `[outer, inner]` on the leaf route, composing as outer-wraps-inner-wraps-handler.
+  **Context**: Depends on the compiled-route-table ticket only incidentally — the per-route `middlewares` field rides along on the `Route` objects the table already stores, so `compileRoutes`/`lookupRoute` needed no change; `dispatch` reads `matched.route.middlewares`.

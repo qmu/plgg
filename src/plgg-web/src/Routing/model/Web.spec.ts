@@ -327,3 +327,119 @@ test("route() mounts a sub-app under a base path and merges middleware", async (
   const item = await send(GET("/api/items/5"));
   await expect(item.text()).resolves.toBe("5");
 });
+
+test("group middleware runs only under its mounted prefix, not app-wide", async () => {
+  const seen: Array<string> = [];
+  const guard: Middleware = async (c, next) => {
+    seen.push(c.req.path);
+    return next();
+  };
+  const api = pipe(
+    web(),
+    use(guard),
+    get("/me", async () => pipe("me", textResponse, ok)),
+  );
+  const app = pipe(
+    web(),
+    get("/", async () => pipe("root", textResponse, ok)),
+    route("/api", api),
+  );
+  const send = toFetch(app);
+
+  const root = await send(GET("/"));
+  await expect(root.text()).resolves.toBe("root");
+  expect(seen).toEqual([]); // guard did NOT leak to /
+
+  await send(GET("/api/me"));
+  expect(seen).toEqual(["/api/me"]); // guard ran for the group
+});
+
+test("top-level use() stays global across grouped and ungrouped routes", async () => {
+  const hits: Array<string> = [];
+  const log: Middleware = async (c, next) => {
+    hits.push(c.req.path);
+    return next();
+  };
+  const api = pipe(
+    web(),
+    get("/me", async () => pipe("me", textResponse, ok)),
+  );
+  const app = pipe(
+    web(),
+    use(log),
+    get("/", async () => pipe("root", textResponse, ok)),
+    route("/api", api),
+  );
+  const send = toFetch(app);
+
+  await send(GET("/"));
+  await send(GET("/api/me"));
+  expect(hits).toEqual(["/", "/api/me"]);
+});
+
+test("global and group middleware compose in onion order (global outer, group inner)", async () => {
+  const order: Array<string> = [];
+  const tag =
+    (label: string): Middleware =>
+    async (_c, next) => {
+      order.push(`${label}-in`);
+      const res = await next();
+      order.push(`${label}-out`);
+      return res;
+    };
+  const api = pipe(
+    web(),
+    use(tag("group")),
+    get("/x", async () => {
+      order.push("handler");
+      return pipe("x", textResponse, ok);
+    }),
+  );
+  const app = pipe(
+    web(),
+    use(tag("global")),
+    route("/api", api),
+  );
+
+  await toFetch(app)(GET("/api/x"));
+  expect(order).toEqual([
+    "global-in",
+    "group-in",
+    "handler",
+    "group-out",
+    "global-out",
+  ]);
+});
+
+test("nested route() groups stack their middleware outer-to-inner", async () => {
+  const order: Array<string> = [];
+  const tag =
+    (label: string): Middleware =>
+    async (_c, next) => {
+      order.push(`${label}-in`);
+      const res = await next();
+      order.push(`${label}-out`);
+      return res;
+    };
+  const inner = pipe(
+    web(),
+    use(tag("inner")),
+    get("/leaf", async () =>
+      pipe("leaf", textResponse, ok),
+    ),
+  );
+  const outer = pipe(
+    web(),
+    use(tag("outer")),
+    route("/in", inner),
+  );
+  const app = pipe(web(), route("/out", outer));
+
+  await toFetch(app)(GET("/out/in/leaf"));
+  expect(order).toEqual([
+    "outer-in",
+    "inner-in",
+    "inner-out",
+    "outer-out",
+  ]);
+});

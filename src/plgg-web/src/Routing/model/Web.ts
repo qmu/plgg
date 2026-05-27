@@ -108,24 +108,29 @@ const joinPath = (
   ].join("/");
 
 /**
- * Mounts a sub-application under a base path, rebasing its routes and merging
- * its middleware. Data-last `Web => Web`.
+ * Mounts a sub-application under a base path, rebasing its routes and scoping
+ * its middleware to those routes only — the sub-app's `use()` stack is bound to
+ * each rebased route (outermost first, ahead of any middleware the route
+ * already carries from deeper mounts) and is NOT merged into the parent's
+ * global stack. So a guard registered inside `sub` runs for `sub`'s prefix and
+ * nowhere else, while top-level `use()` stays global. Data-last `Web => Web`.
  */
 export const route =
   (basePath: string, sub: Web) =>
   (app: Web): Web => ({
     routes: [
       ...app.routes,
-      ...sub.routes.map((r) =>
-        makeRoute(
+      ...sub.routes.map((r) => ({
+        ...makeRoute(
           r.method,
           joinPath(basePath, r.pattern),
           r.handler,
         ),
-      ),
+        middlewares: [
+          ...sub.middlewares,
+          ...r.middlewares,
+        ],
+      })),
     ],
-    middlewares: [
-      ...app.middlewares,
-      ...sub.middlewares,
-    ],
+    middlewares: app.middlewares,
   });
