@@ -225,6 +225,29 @@ export type CoverageError<A> = Readonly<{
 }>;
 
 /**
+ * Runtime constructor for {@link CoverageError}. In well-typed code the match
+ * continuation's no-case-matched branch is unreachable — a non-exhaustive set of
+ * cases is already a compile error via the {@link CoverageError} return type. If
+ * it is reached anyway (an untyped or forced call, or a runtime value outside
+ * the declared union), the continuation now returns this faithful value carrying
+ * the unmatched input, consistent with the type-level contract, rather than a
+ * bare `Error`.
+ */
+export const coverageError = <A>(
+  value: A,
+): CoverageError<A> => ({ __nonExhaustiveMatch: value });
+
+/**
+ * Type guard for a {@link CoverageError} value, so a caller that reaches the
+ * non-exhaustive branch at runtime can detect it as a value instead of probing
+ * for an `Error`.
+ */
+export const isCoverageError = (
+  value: unknown,
+): value is CoverageError<unknown> =>
+  isObjLike(value) && "__nonExhaustiveMatch" in value;
+
+/**
  * The match continuation produced by `match(value)`. Its call overloads accept
  * 2..20 `[pattern, handler]` cases. The matched type `A` is already fixed, so
  * tag/icon handlers receive the box narrowed to their tag (typed `.content`),
@@ -1226,9 +1249,7 @@ export function match(
         return fn(a);
       }
     }
-    return new Error(
-      `Unexpectedly no match for value: ${JSON.stringify(a)}`,
-    );
+    return coverageError(a);
   };
 }
 

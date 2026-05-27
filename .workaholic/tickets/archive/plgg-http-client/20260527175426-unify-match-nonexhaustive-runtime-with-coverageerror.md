@@ -3,9 +3,9 @@ created_at: 2026-05-27T17:54:26+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 6592dd7
+category: Changed
 depends_on:
 ---
 
@@ -109,3 +109,40 @@ three-ticket lineage; this closes the one gap that lineage explicitly left open.
 - **Sibling ticket.** `box-tagged-core-error-face-for-match` makes domain errors
   (InvalidError/PlggError) match-foldable; keep the `Box` vocabulary chosen here
   consistent with that ticket so the two error worlds share one expression.
+
+## Discussion
+
+### Decision — Step 1 fallthrough contract
+
+Chose **(a) return a `CoverageError` value** over (b) `unreachable()`/throw (the
+doc's original proposal). The fallthrough now returns `coverageError(a)`, keeping
+match's runtime output assignable to its declared `CoverageError<A>` type and
+preserving "errors as values" instead of reintroducing a throw at a seam the
+type contract says is unreachable. `CoverageError` stays the single term.
+
+## Final Report
+
+Development completed as planned. `match`'s no-case-matched fallthrough now
+returns `coverageError(a)` — structurally the declared `CoverageError<A>` — so
+runtime and type contract agree. Added `coverageError` (constructor) and
+`isCoverageError` (guard) beside the `CoverageError<A>` type; 3 new tests; gap #8
+marked resolved in `docs/match-type-completeness.md`. `tsc-plgg` clean, 449/449
+tests pass, coverage thresholds met (98% stmts / 92.5% branches), plgg rebuilt,
+and both `plgg-http-router`/`plgg-http-client` still compile.
+
+### Discovered Insights
+
+- **Insight**: The `MatchCont<A>` overloads accept **2–20** cases — a single-case
+  `match(x)([p, fn])` fails to type-check ("Expected 2-20 arguments, but got 1").
+  To exercise the runtime non-exhaustive branch you need ≥2 cases that leave a
+  variant uncovered (a 3-tag `Box` union with 2 arms covered).
+  **Context**: A non-exhaustive call is *not* itself a type error — its return
+  type is `CoverageError<A>`, a perfectly valid type; it only errors when that
+  result is consumed where `R` is expected. So the runtime branch is reachable
+  and testable without any `as`/`@ts-ignore` (which the repo bans).
+- **Insight**: With `vite-plugin-dts` and `rollupTypes: false`, new core exports
+  land in their per-module d.ts (`dist/Flowables/match.d.ts`) and reach consumers
+  via `dist/index.d.ts`'s `export * from './Flowables'` — grepping `index.d.ts`
+  directly for the symbol returns nothing even though the export resolves.
+  **Context**: Verify new-export reachability against the per-module d.ts, not
+  the barrel.

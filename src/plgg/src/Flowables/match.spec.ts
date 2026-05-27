@@ -8,6 +8,8 @@ import {
   match,
   pattern,
   otherwise,
+  coverageError,
+  isCoverageError,
   ok$,
   err$,
   ok,
@@ -313,4 +315,35 @@ test("tag handlers receive the narrowed box and read typed .content", async () =
   expect(render(box("ServerError")("boom"))).equal(
     "500 boom",
   );
+});
+
+test("coverageError builds a CoverageError value carrying the input", () => {
+  const e = coverageError(42);
+  expect(e.__nonExhaustiveMatch).equal(42);
+  expect(isCoverageError(e)).equal(true);
+});
+
+test("isCoverageError is false for non-CoverageError values", () => {
+  expect(isCoverageError(new Error("x"))).equal(false);
+  expect(isCoverageError({ foo: 1 })).equal(false);
+  expect(isCoverageError(null)).equal(false);
+  expect(isCoverageError("nope")).equal(false);
+});
+
+test("a runtime non-exhaustive match returns a CoverageError value, not an Error", () => {
+  type ABC =
+    | Box<"A", number>
+    | Box<"B", string>
+    | Box<"C", boolean>;
+  const value: ABC = box("A")(1);
+  // Only "B" and "C" are covered, so the call is non-exhaustive: its type is
+  // CoverageError<ABC>, and at runtime the unmatched "A" box falls through.
+  const result = match(value)(
+    [pattern("B")(), () => "b"],
+    [pattern("C")(), () => "c"],
+  );
+  expect(isCoverageError(result)).equal(true);
+  if (isCoverageError(result)) {
+    expect(result.__nonExhaustiveMatch).equal(value);
+  }
 });
