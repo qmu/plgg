@@ -11,15 +11,14 @@ import {
 } from "plgg";
 
 /**
- * Element attributes, modeled the plgg way as a string-valued map. Values are
- * `SoftStr` because the only sink in this POC is `renderToString`, which emits
- * them as escaped attribute text; richer prop kinds (numbers, booleans) are
- * coerced to `SoftStr` at the `h`/`jsx` seam before they reach the model.
+ * Element attributes — a string-valued plgg map. Richer JSX prop kinds (numbers,
+ * booleans) are coerced to `SoftStr` by the runtime ({@link coercePropValue})
+ * before they land here, so the view tree stays plain data.
  */
 export type Props = Dict<string, SoftStr>;
 
 /**
- * The content of an {@link Element} node: a tag name, its attributes, and its
+ * The content of an intrinsic `Element` node: a tag, its attributes, and its
  * already-normalized children.
  */
 export type ElementContent = Readonly<{
@@ -29,10 +28,11 @@ export type ElementContent = Readonly<{
 }>;
 
 /**
- * The virtual-DOM node — the whole view as pure data, expressed as a plgg `Box`
- * union. An `Element` is a tag with attributes and children; a `Text` node is
- * escaped at render time; a `Fragment` groups children with no wrapping tag.
- * The type is recursive: children are themselves `VNode`s.
+ * The view as **pure data** — the result of processing `.tsx`. A plgg `Box`
+ * union: an intrinsic `Element`, a `Text` leaf, or a `Fragment` that groups
+ * children with no wrapper. Function components are resolved away into this
+ * tree by the runtime, so a `VNode` only ever describes host structure. There
+ * is no class, no HTML string, no DOM node — those are not this library's job.
  */
 export type VNode =
   | Box<"Element", ElementContent>
@@ -40,8 +40,16 @@ export type VNode =
   | Box<"Fragment", Readonly<{ children: ReadonlyArray<VNode> }>>;
 
 /**
- * Anything accepted as a child before normalization: a node, a primitive that
- * lifts to a `Text` node, a "nothing" (`false`/`null`/`undefined` drop out so
+ * A function component: props in, a {@link VNode} out. This is the unit of
+ * composition — you write these in `.tsx` and the runtime invokes them. `P` is
+ * the component's own props type (unconstrained: components take any props,
+ * unlike intrinsic elements whose attributes are strings).
+ */
+export type Component<P = Readonly<{}>> = (props: P) => VNode;
+
+/**
+ * Anything accepted in child position before normalization: a node, a primitive
+ * that lifts to `Text`, a "nothing" (`false`/`null`/`undefined` drop, so
  * `cond && <x/>` works), or a (possibly nested) array of the same.
  */
 export type Child =
@@ -54,33 +62,6 @@ export type Child =
   | ReadonlyArray<Child>;
 
 /**
- * Builds an {@link Element} node.
- */
-export const element = (
-  tag: SoftStr,
-  props: Props,
-  children: ReadonlyArray<VNode>,
-): Box<"Element", ElementContent> =>
-  box("Element")({ tag, props, children });
-
-/**
- * Lifts a string into a {@link VNode} `Text` node. Its value is escaped only at
- * render time, never here, so the model stays raw.
- */
-export const text = (
-  value: SoftStr,
-): Box<"Text", Readonly<{ value: SoftStr }>> =>
-  box("Text")({ value });
-
-/**
- * Groups children under no wrapping tag.
- */
-export const fragment = (
-  children: ReadonlyArray<VNode>,
-): Box<"Fragment", Readonly<{ children: ReadonlyArray<VNode> }>> =>
-  box("Fragment")({ children });
-
-/**
  * Type guard for {@link VNode} — one of the three tagged boxes.
  */
 export const isVNode = (value: unknown): value is VNode =>
@@ -89,11 +70,10 @@ export const isVNode = (value: unknown): value is VNode =>
   isBoxWithTag("Fragment")(value);
 
 /**
- * Lifts a single raw child value into zero or more {@link VNode}s. Accepts
- * `unknown` so it also absorbs the loosely-typed `children` the JSX runtime
- * hands back: existing nodes pass through, strings/finite numbers become `Text`,
- * arrays flatten recursively, and everything else (booleans, `null`,
- * `undefined`, functions) drops out.
+ * Lifts one raw child value into zero or more {@link VNode}s. Accepts `unknown`
+ * because the JSX runtime hands children back loosely typed: existing nodes pass
+ * through, strings/finite numbers become `Text`, arrays flatten recursively, and
+ * everything else (booleans, `null`, `undefined`, functions) drops out.
  */
 export const normalizeChild = (
   value: unknown,
@@ -101,9 +81,9 @@ export const normalizeChild = (
   isVNode(value)
     ? [value]
     : isSoftStr(value)
-      ? [text(value)]
+      ? [box("Text")({ value })]
       : typeof value === "number" && Number.isFinite(value)
-        ? [text(String(value))]
+        ? [box("Text")({ value: String(value) })]
         : Array.isArray(value)
           ? value.flatMap(normalizeChild)
           : [];
@@ -116,10 +96,10 @@ export const normalizeChildren = (
 ): ReadonlyArray<VNode> => children.flatMap(normalizeChild);
 
 /**
- * Coerces one raw prop value into a `SoftStr`, or `None` when it should be
- * dropped: strings pass through, finite numbers stringify, `true` becomes the
- * empty string (a present boolean attribute) while `false` drops, and anything
- * else (functions, `null`, `undefined`, objects) drops.
+ * Coerces one raw prop value into a `SoftStr` attribute, or `None` when it
+ * should be dropped: strings pass through, finite numbers stringify, `true`
+ * becomes the empty string (a present boolean attribute) while `false` drops,
+ * and anything else (functions, `null`, `undefined`, objects) drops.
  */
 export const coercePropValue = (
   value: unknown,

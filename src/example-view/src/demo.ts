@@ -1,10 +1,12 @@
-import { renderApp } from "./index";
+import { App } from "./index";
 
 /**
- * Node demo — see the output without a browser:
+ * Node demo — see what plgg-view produces from the .tsx components:
  *
  *   cd src/example-view && npx tsx src/demo.ts
  *
- * Prints the same HTML string the browser entry ([./mount.tsx]) would inject.
+ * `App()` is the processed view — a pure-data plgg `VNode` tree. There is no
+ * HTML and no DOM in this POC; printing the tree as JSON shows exactly what the
+ * components compiled to.
  */
-console.log(renderApp());
+console.log(JSON.stringify(App(), null, 2));

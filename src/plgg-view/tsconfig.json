@@ -40,6 +40,6 @@
   },
   "include": [
     "src/**/*",
-    "example.ts"
+    "example.tsx"
   ]
 }

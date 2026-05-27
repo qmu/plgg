@@ -12,9 +12,9 @@ export type Todo = Readonly<{
 
 /**
  * A function component: props in, a {@link VNode} out. No class, no hooks. The
- * `class` attribute is just a string expression, and the leading marker plus
- * the label are text children — both are HTML-escaped by `renderToString`, so a
- * label containing `<`, `>` or `&` is safe with no extra work.
+ * `class` attribute is just a string expression, and the marker and label are
+ * text children — they become `Text` nodes in the view tree, holding their raw
+ * value (this library does not serialize, so it does no escaping).
  */
 export const TodoItem = (props: { todo: Todo }): VNode => (
   <li class={props.todo.done ? "todo done" : "todo"}>
