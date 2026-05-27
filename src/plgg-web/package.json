@@ -5,8 +5,26 @@
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
-    "import": "./dist/index.es.js",
-    "require": "./dist/index.cjs.js"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    },
+    "./client": {
+      "import": {
+        "types": "./dist/client.d.ts",
+        "default": "./dist/client.es.js"
+      },
+      "require": {
+        "types": "./dist/client.d.ts",
+        "default": "./dist/client.cjs.js"
+      }
+    }
   },
   "types": "dist/index.d.ts",
   "scripts": {
@@ -30,11 +48,13 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg"
+    "plgg": "file:../plgg",
+    "plgg-view": "file:../plgg-view"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.5",
+    "happy-dom": "^15.0.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vite-plugin-dts": "^5.0.0",

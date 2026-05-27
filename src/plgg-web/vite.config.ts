@@ -20,8 +20,11 @@ export default defineConfig({
         "dist/**",
         "coverage/**",
         "**/*.spec.ts",
+        "**/*.spec.tsx",
         "**/*.test.ts",
         "**/index.ts",
+        "client.ts",
+        "src/client.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -36,9 +39,14 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      entry: "src/index.ts",
-      name: "plgg-web",
-      fileName: (format) => `index.${format}.js`,
+      // Two entries: the server library (`index`) and the client-only DOM
+      // renderer (`client`, the `plgg-web/client` subpath) — so server code
+      // never bundles the DOM renderer. Shared code is code-split into chunks.
+      entry: {
+        index: "src/index.ts",
+        client: "src/client.ts",
+      },
+      fileName: (format, entryName) => `${entryName}.${format}.js`,
       formats: ["es", "cjs"],
     },
     rollupOptions: {

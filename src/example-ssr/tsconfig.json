@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    /* Compiler Option */
     "target": "ES2021",
     "module": "NodeNext",
     "lib": [
@@ -11,18 +10,14 @@
     "types": [
       "node"
     ],
-    "noEmit": true,
-    "paths": {
-      "plgg-web*": [
-        "./src/*"
-      ]
-    },
-    /* JSX: SSR/CSR specs author `VNode` trees with JSX, processed by the
-       plgg-view runtime. The library sources stay plain `.ts` (they operate on
-       `VNode`); only the specs use `.tsx`. */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    /* JSX resolves to the installed plgg-view package (real consumer). */
     "jsx": "react-jsx",
     "jsxImportSource": "plgg-view",
-    /* Type Checking Rules */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -39,7 +34,6 @@
     "erasableSyntaxOnly": true
   },
   "include": [
-    "src/**/*",
-    "example.ts"
+    "src/**/*"
   ]
 }
