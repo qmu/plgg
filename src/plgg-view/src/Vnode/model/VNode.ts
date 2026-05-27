@@ -2,11 +2,15 @@ import {
   Box,
   Dict,
   SoftStr,
+  Num,
+  Bool,
   Option,
   box,
   some,
   none,
   isSoftStr,
+  isNum,
+  isBool,
   isBoxWithTag,
 } from "plgg";
 
@@ -49,14 +53,19 @@ export type Component<P = Readonly<{}>> = (props: P) => VNode;
 
 /**
  * Anything accepted in child position before normalization: a node, a primitive
- * that lifts to `Text`, a "nothing" (`false`/`null`/`undefined` drop, so
- * `cond && <x/>` works), or a (possibly nested) array of the same.
+ * that lifts to `Text` (`SoftStr`/`Num`), or a "nothing".
+ *
+ * `Bool`/`null`/`undefined` are the "nothing" cases (so `cond && <x/>` and
+ * `x ?? null` work) — they drop during normalization. plgg models absence as
+ * `Option`, not a dedicated type, and JSX yields these language-native values
+ * directly in child position; they live only here, at the seam, and never enter
+ * the {@link VNode} model.
  */
 export type Child =
   | VNode
   | SoftStr
-  | number
-  | boolean
+  | Num
+  | Bool
   | null
   | undefined
   | ReadonlyArray<Child>;
@@ -82,7 +91,7 @@ export const normalizeChild = (
     ? [value]
     : isSoftStr(value)
       ? [box("Text")({ value })]
-      : typeof value === "number" && Number.isFinite(value)
+      : isNum(value) && Number.isFinite(value)
         ? [box("Text")({ value: String(value) })]
         : Array.isArray(value)
           ? value.flatMap(normalizeChild)
@@ -106,9 +115,9 @@ export const coercePropValue = (
 ): Option<SoftStr> =>
   isSoftStr(value)
     ? some(value)
-    : typeof value === "number" && Number.isFinite(value)
+    : isNum(value) && Number.isFinite(value)
       ? some(String(value))
-      : typeof value === "boolean"
+      : isBool(value)
         ? value
           ? some("")
           : none()

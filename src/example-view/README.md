@@ -24,6 +24,20 @@ no DOM mounting (deferred) — so the demo prints the resulting tree.
 | Consuming the view tree (collecting text) | [`App.spec.tsx`](./src/App.spec.tsx) |
 | Seeing the processed tree | [`demo.ts`](./src/demo.ts) |
 
+### A gallery of focused examples
+
+The [`examples/`](./src/examples/) folder has one small component per capability
+(see [`examples.spec.tsx`](./src/examples/examples.spec.tsx) for each one's
+output):
+
+| Example | Shows |
+|--------|-------|
+| [`Greeting`](./src/examples/Greeting.tsx) | a prop + text interpolated around a nested element |
+| [`Badge`](./src/examples/Badge.tsx) | `Num`/`Bool` props coerced to attributes (stringify, bare-true, drop-false) |
+| [`Card`](./src/examples/Card.tsx) | a generic wrapper that places `children` in a slot |
+| [`Menu`](./src/examples/Menu.tsx) | a top-level fragment + list rendering with `.map` |
+| [`Notice`](./src/examples/Notice.tsx) | conditional children (`? :` and `cond && <x/>`) |
+
 Every component imports its types from the package:
 
 ```tsx
