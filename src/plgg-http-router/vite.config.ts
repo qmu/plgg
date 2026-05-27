@@ -7,7 +7,10 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   resolve: {
     alias: {
-      "plgg-http-router": path.resolve(__dirname, "./src"),
+      "plgg-http-router": path.resolve(
+        __dirname,
+        "./src",
+      ),
     },
   },
   test: {
@@ -20,8 +23,11 @@ export default defineConfig({
         "dist/**",
         "coverage/**",
         "**/*.spec.ts",
+        "**/*.spec.tsx",
         "**/*.test.ts",
         "**/index.ts",
+        "client.ts",
+        "src/client.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -36,9 +42,15 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      entry: "src/index.ts",
-      name: "plgg-http-router",
-      fileName: (format) => `index.${format}.js`,
+      // Two entries: the server library (`index`) and the client-only DOM
+      // renderer (`client`, the `plgg-http-router/client` subpath) — so server
+      // code never bundles the DOM renderer. Shared code is code-split.
+      entry: {
+        index: "src/index.ts",
+        client: "src/client.ts",
+      },
+      fileName: (format, entryName) =>
+        `${entryName}.${format}.js`,
       formats: ["es", "cjs"],
     },
     rollupOptions: {
