@@ -3,9 +3,9 @@ created_at: 2026-05-28T09:13:47+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 620a9a2
+category: Added
 depends_on:
 ---
 
@@ -147,3 +147,44 @@ prior art.
   `example-*` package.
 - **Test against real components**: use a real `:memory:` sqlite `Db` and a real
   served response rather than mocks.
+
+## Final Report
+
+Development completed. `src/example` is now one end-to-end full-stack demo:
+`src/db/open.ts` (node:sqlite → plgg-sql `Db`, seeded), `src/server/app.ts`
+(`proc` chains: query → `decodeRows(asArticle)` → SSR `pageResponse` / JSON API),
+a data-driven `App.tsx`, `ssr/server.ts`, a native-`fetch` `csr/client.tsx`
+hydrate, and `src/client/main.ts` (the plgg-http-client demo with an exhaustive
+`ClientError` `$`-pattern fold). `asArticle`/`asArticles` is reused at every
+boundary. example 10/10 tests, `tsc` clean, CSR bundle builds; ran the server +
+`npm run client` end-to-end (`got 3 article(s)`), SSR page renders the DB rows;
+plgg-sql 23/23 and plgg-http-client 25/25 unaffected.
+
+### Discovered Insights
+
+- **Insight**: A decoded domain `Article` cannot round-trip through JSON — its
+  `memo: Option` is a `Box` (`{__tag,content}`) and `Time` is a `Date`. The fix
+  was to make the **wire shape the raw (compacted) DB row** (plain JSON = exactly
+  `asArticle`'s input) and run `asArticle` at each *consumer* (SSR server, browser
+  hydrate, node client), never serializing the decoded domain object.
+  **Context**: For any plgg HTTP API, decode at the boundary; don't put branded/
+  `Box`/`Option` domain values directly on the wire.
+- **Insight**: `Name = Str` made `article.name` a branded `Str` `Box`, which
+  plgg-view rendered as an empty `<h2></h2>` — latent because the prior example
+  never rendered the name. Modeling renderable text as `SoftStr` (plain string)
+  fixed it.
+  **Context**: Values destined for the view should be plain `SoftStr`, not branded
+  `Str` boxes, unless the view explicitly unwraps `.content`.
+- **Insight**: A NodeNext consumer can't see a `file:` dep's types unless that
+  package's `exports` map carries a `types` condition (the top-level `types` field
+  is ignored once `exports` exists). `plgg-sql` and `plgg-http-client` needed the
+  same nesting `plgg-http-router` already had.
+  **Context**: Recurring monorepo gotcha — every publishable package's `exports`
+  must expose `types`.
+- **Insight**: `plgg-http-client`'s seam transitively imports `node:http` (via the
+  router top barrel), so it must stay out of the browser CSR bundle. The CSR
+  hydrate uses the browser-native `fetch` instead; plgg-http-client is exercised
+  in the node `client` script. The `proc` error channel is typed `Error`, so the
+  edge `toHttpError` takes `(error: Error)`.
+  **Context**: Keep node-only seams off the browser bundle; match the framework's
+  `Error`-typed pipeline channel at the edge fold.
