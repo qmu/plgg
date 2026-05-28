@@ -25,7 +25,6 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "glob": "^13.0.6",
     "plgg": "file:../plgg",
     "plgg-view": "file:../plgg-view",
     "plgg-http-router": "file:../plgg-http-router",
