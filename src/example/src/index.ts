@@ -1,5 +1,5 @@
-// Non-side-effect surface (the ssr/server and csr/client entries are excluded —
-// they run, they aren't imported).
-export * from "./modeling";
+// Non-side-effect library surface — the runtime entries (`server.ts`,
+// `client.tsx`) are excluded because they run, they aren't imported.
+export * from "./models";
 export * from "./view";
-export * from "./App";
+export * from "./controller";

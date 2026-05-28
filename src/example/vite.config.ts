@@ -10,7 +10,7 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     lib: {
-      entry: "src/csr/client.tsx",
+      entry: "src/client.tsx",
       fileName: () => "client.js",
       formats: ["es"],
     },

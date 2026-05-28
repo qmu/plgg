@@ -1,4 +1,4 @@
-import { VNode } from "plgg-view";
+import { VNode } from "plgg-view/index";
 
 type Link = Readonly<{ href: string; label: string }>;
 

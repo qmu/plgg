@@ -1,4 +1,4 @@
-import { VNode } from "plgg-view";
+import { VNode } from "plgg-view/index";
 
 /**
  * Conditional children two ways: a ternary that picks an element, and the

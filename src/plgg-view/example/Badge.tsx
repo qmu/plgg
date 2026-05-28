@@ -1,4 +1,4 @@
-import { VNode } from "plgg-view";
+import { VNode } from "plgg-view/index";
 
 /**
  * Prop coercion at the JSX seam: a `Num` attribute stringifies, a `Bool` `true`

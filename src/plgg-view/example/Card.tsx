@@ -1,4 +1,4 @@
-import { VNode, Child } from "plgg-view";
+import { VNode, Child } from "plgg-view/index";
 
 /**
  * Composition via children: whatever JSX is nested inside `<Card>…</Card>`

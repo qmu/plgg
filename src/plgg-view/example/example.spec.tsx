@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { VNode } from "plgg-view";
+import { VNode } from "plgg-view/index";
 import { Greeting, Badge, Card, Menu, Notice } from "./index";
 
 /** Collect every Text value in the tree, in order. */

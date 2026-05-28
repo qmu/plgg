@@ -3,9 +3,9 @@ created_at: 2026-05-28T21:31:09+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain, Infrastructure, DB]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 1efd304
+category: Changed
 depends_on:
 ---
 
@@ -224,3 +224,43 @@ The rewrite is one large coherent change. Land it as a single commit so the pack
 - **Single-example-package policy.** Per `.workaholic/policies/`, the To-Do app stays inside `src/example/`. The plgg-view gallery moves to `src/plgg-view/example/` because those demos belong to plgg-view, not because we're creating a new example package.
 - **Naming for the plgg-fetch CLI demo.** `cli.ts` was chosen because the file IS a Node CLI tool (with subcommands), and "CLI" describes its real-world category. Alternative `fetch.ts` (naming the library it demos) is also defensible. The previous attempt's `fetch.ts` was rejected as too abstract; `cli.ts` is more concrete. Confirm during `/drive` if you prefer one over the other (`src/example/src/cli.ts`).
 - **Test coverage.** The rewrite ADDS spec files (`models/Todo.spec.ts`, `db/open.spec.ts`, expanded `controller/app.spec.ts`). The project floor is ≥90% per `.workaholic/constraints/quality.md`; the new code should exceed that, not regress it.
+
+## Discussion
+
+### Revision 1 - 2026-05-28T21:35:00+09:00
+
+**User feedback**: At /drive kickoff the user rejected the separate plgg-fetch CLI demo: *"I don't get why you stick with this file. I don't need a CLI; I want you to use the plgg-fetch library in the client-side (CSR, client-side rendering) version."* The other two decisions confirmed: full CRUD; move the plgg-view feature demos to `src/plgg-view/example/`.
+
+**Ticket updates**:
+
+- **Drop `cli.ts` entirely.** No third runtime entry, no separate plgg-fetch demo script. The package has TWO runtime entries: `server.ts` (Node SSR) and `client.tsx` (browser CSR).
+- **`client.tsx` uses `plgg-fetch`** for all `/api/todos` calls (list refresh, POST create, PATCH toggle, DELETE) — not native browser `fetch`. plgg-fetch's typed surface (`get`/`post`/`patch`/`del` + `decodeJsonBody(asTodo[s])` + `match(ClientError)`) is exercised by the actual app, not by an orphan demo script.
+- **package.json scripts**: only `serve` and `build` (and the standard tsc/test/coverage); drop the `client`/`cli`/`fetch` script.
+- **Implementation Steps**: step 7 collapses from three entries to two; step 9 drops the `cli` script line; step 11 (README) frames it as "**SSR + CSR-with-plgg-fetch**", not "three patterns". Steps 1–6 (gallery move, models, db, controller, view) are unchanged.
+
+**Direction change**: The previous design (native browser fetch + Node CLI demo) over-separated the two HTTP-client concerns to demonstrate them in isolation. The new design weaves plgg-fetch into the real app — so its typed-client surface and `ClientError` fold are used for the same calls the user would make in any real SPA. The "three patterns" the user originally listed (SPA, SSR, Ajax) are still all present, but they collapse into two runtime entries: `server.ts` (SSR) and `client.tsx` (SPA hydration + Ajax via plgg-fetch).
+
+**Architectural consideration that emerges from this change.** `client.tsx` now imports from `plgg-fetch`, which imports `HttpError` types from `plgg-server`. The example's vite browser bundle therefore drags `plgg-server`'s main entry into the browser — including the `serve`/`toFetch` functions that import `node:http`. The current `csr/client.tsx` avoided this by using native browser `fetch` and importing only from `plgg-server/client` (the browser-safe subpath). After this change, the example's vite.config.ts may need `rollupOptions.external: [/^node:/]` (or plgg-server may need `"sideEffects": false` so the bundler can tree-shake the node-only code, or plgg-fetch may need to import HttpError from a browser-safe subpath of plgg-server). **The implementation step "build and serve" is the early-warning: if `npm run build` fails with a `node:http` resolution error, that's the trigger to address the bundling architecture in this same ticket (or split into a prerequisite ticket if the fix is non-trivial).**
+
+## Final Report
+
+Development completed with three meaningful departures from the original plan, all confirmed during implementation.
+
+1. **Dropped `cli.ts` entirely.** At /drive kickoff the user rejected the separate plgg-fetch CLI demo (*"I don't get why you stick with this file"*) and asked for plgg-fetch to drive the CSR-side Ajax calls instead. The package ended with TWO runtime entries (`server.ts`, `client.tsx`) instead of three. The "Ajax API handling pattern" the user originally listed is demonstrated INSIDE the SPA, not in an orphan script — which is what a real-world plgg-fetch consumer would actually look like.
+2. **Replaced 204 No Content with 200 + `{deleted: id}` for DELETE.** plgg-server's `toFetch` builds the native `Response` by passing the body string (`""`) directly to the constructor, which the Fetch spec rejects for null-body statuses (204/205/304). Working around this in the controller would have meant adding a sentinel/branching in `toNativeResponse`; out of scope for this ticket. A `200 OK` with a small confirmation body is RESTful enough and lets the CSR side handle success uniformly with the other mutations.
+3. **The `node:http` bundling concern flagged in the Discussion did NOT materialize as a blocker.** Vite + rollup tree-shook `serve`/`toFetch` out of the browser bundle (verified with `grep` against `dist/client.js`); the only "node:http externalized" message was a build-time warning, not a runtime error. No changes to plgg-server, plgg-fetch, or `vite.config.ts` were needed.
+
+The CRUD smoke test (`curl` against a running `npm run serve`) confirmed all six routes work end-to-end: SSR HTML page, JSON list, POST (with server-generated UUID and ISO timestamps), PATCH toggle (setting/clearing `completedAt`), DELETE with `{deleted: id}` confirmation. The full `sh/check-all.sh` suite passes with 656 tests (up from 633 — net +23 after redistributing the gallery from the example to plgg-view and adding 22 new example specs across `models/`, `db/`, `controller/`, and `view/`).
+
+### Discovered Insights
+
+- **Insight**: The wire shape for a value with an `Option`-typed field must OMIT the key when `None`, not emit `null`. `forOptionProp` reads a present-but-`null` value as a failed cast (it tries the predicate on `null`), only an absent key decodes to `None`. The pattern `compactRow` establishes server-side (strip null keys from the SQL row) must be applied to the JSON wire shape too — either by re-using `compactRow` on the output, or by structurally omitting the key (the approach taken in `controller/app.ts`'s `toWireTodo`). Naive JSON serialization of `Option` (e.g. `completedAt: matchOption(() => null, ...)`) fails the consumer's decode.
+  **Context**: A trap that lives at every plgg-server ↔ plgg-fetch boundary that carries an `Option`. Worth a one-liner in `plgg-fetch`'s README or `decodeJsonBody` doc — the symmetric server/client contract IS that the key is absent when `None`, not that it's null.
+- **Insight**: plgg-server has no `noContent`/`204` response helper, and `toNativeResponse` can't produce a null-body native `Response` (it always passes `body` to the constructor). Returning a `204 No Content` from a route fails at the seam with `TypeError: Response constructor: Invalid response status code 204`. The pragmatic workaround in this ticket was to return `200 + {deleted: id}`; the principled fix would be a `noContent()` helper in plgg-server that yields a `HttpResponse` whose body the seam translates to `null` (or omits) when the status mandates it.
+  **Context**: Filing as carry-over for plgg-server. RESTful DELETE 204 should not require the consumer to invent a workaround in every route.
+- **Insight**: `proc`'s error type is fixed at `Error` (`Promise<Result<T, Error>>`). That makes `proc` ergonomic on the server side (where SQL/decode failures ARE `Error` subclasses) but unusable on the client side, because plgg-fetch's `ClientError` is a plgg `Box` union, not an `Error`. The canonical client-side pattern (per `plgg-fetch/example.ts`) is `pipe(await get(url), matchResult(onErr, onOk))` — direct promise chaining instead of `proc`. Trying to thread `ClientError` through `proc` produces a wall of "ClientError not assignable to Error" diagnostics.
+  **Context**: Worth surfacing in plgg-fetch's README: "Use `pipe + matchResult`, not `proc`, when chaining plgg-fetch calls — `proc`'s error type is `Error`, plgg-fetch's is `ClientError`." Several minutes of TS-error spelunking went into rediscovering this.
+- **Insight**: A "real-app demo" reads completely differently from an "abstract-pattern showcase". The previous attempt (`Article` with three rows + one read route) couldn't motivate a meaningful directory structure — there was nothing for the layers to organize. Switching to a To-Do CRUD app made the MVC layout self-evident: `models/Todo.ts` IS the domain, `db/open.ts` IS the persistence seam, `controller/app.ts` IS the HTTP surface, `view/{App,TodoItem,TodoForm}.tsx` IS the presentation. The structure follows from the work; abstract examples are structure-resistant.
+  **Context**: Future examples should start from a recognizable app (To-Do, blog, calendar, timer, …), not abstract domain shapes. The first question in a /ticket conversation about a new example should be "what real app does this demonstrate?" — the layout question answers itself afterward.
+- **Insight**: TypeScript's `matchOption` inference fails silently when both branches don't have explicit return types and the some-branch parameter has no annotation. The error reports `'t' is of type 'unknown'` (rather than something clearer like "couldn't unify R"), and the fix is `matchOption((): T => ..., (x: U): T => ...)` — explicit types on both lambdas. Likely an `R` unification limit when the some-branch's parameter must be inferred from the surrounding `Option<U>`.
+  **Context**: When you see a `matchOption` error referencing `unknown`, the fix is annotations on BOTH branches' parameters and return types — not just one.

@@ -2,7 +2,7 @@
   "name": "@plgg/example",
   "version": "0.0.2",
   "private": true,
-  "description": "Examples for the plgg monorepo: a full-stack demo over plgg-view, plgg-sql, plgg-server (SSR/CSR), and plgg-fetch",
+  "description": "A To-Do app demo for the plgg monorepo — classic MVC over plgg-server, plgg-sql, plgg-view, and plgg-fetch (typed HTTP on both sides of the wire).",
   "scripts": {
     "build": "vite build",
     "test": "tsc --noEmit && vitest --run",
@@ -11,8 +11,7 @@
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage",
     "coverage:watch": "vitest --coverage",
-    "serve": "tsx src/ssr/server.ts",
-    "client": "tsx src/client/main.ts"
+    "serve": "tsx src/server.ts"
   },
   "repository": {
     "type": "git",

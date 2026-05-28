@@ -1,4 +1,4 @@
-import { VNode } from "plgg-view";
+import { VNode } from "plgg-view/index";
 
 /**
  * Basics: a function component with a typed prop, and text interpolated around
