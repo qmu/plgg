@@ -50,6 +50,13 @@ Point the compiler at this runtime (already set in this package's
 "jsxImportSource": "plgg-view"
 ```
 
+> **Why this line exists.** TypeScript's `react-jsx` mode defaults
+> `jsxImportSource` to the literal string `"react"` — that's why React projects
+> never write it. Any other runtime (Preact uses `"preact"`, Solid uses
+> `"solid-js"`, plgg-view uses `"plgg-view"`) must set it explicitly so the
+> compiler resolves `jsx`/`jsxs`/`Fragment` from `<package>/jsx-runtime`. The
+> name React is just one entry in this list, not a special case in reverse.
+
 Then write `.tsx` — no imports needed for JSX itself; bring in `VNode` (and
 `Component`) to type your components:
 
