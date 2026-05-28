@@ -283,6 +283,15 @@ runtime branch that must be covered by a test (note line 1315 of `match.ts` is
 currently uncovered). Defer to a dedicated follow-up so the coverage work travels
 with the behavior change.
 
+**Resolved (2026-05-27):** Rather than `throw`, the fallthrough now returns a
+value of the *declared* type — `coverageError(a)`, structurally a
+`CoverageError<A> = { __nonExhaustiveMatch: A }` — so the runtime output and the
+type-level contract are the same, comparable expression (and "errors as values"
+is preserved instead of reintroducing a throw). Added `coverageError`
+(constructor) and `isCoverageError` (guard) next to the `CoverageError` type, and
+a runtime test that drives the non-exhaustive branch. `CoverageError` remains the
+single term for non-exhaustiveness.
+
 ## Summary
 
 | Gap | Kind | Closeable at type level? |
@@ -294,7 +303,7 @@ with the behavior change.
 | 5. Mixed families | false negative | yes, but depends on 1 & 4 |
 | 6. Foreign discriminant tags | false negative | yes — `TagsSubsetOf` in `CaseDecl` |
 | 7. Heterogeneous returns | design decision | n/a — keep union, document |
-| 8. No-match `Error` return | runtime contract | runtime fix (`throw`) |
+| 8. No-match `Error` return | runtime contract | ✅ resolved — returns `coverageError(a)` value |
 
 ## Recommended follow-up ticket sequencing
 

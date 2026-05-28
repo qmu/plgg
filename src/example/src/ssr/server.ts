@@ -1,49 +1,31 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pipe, ok } from "plgg";
-import {
-  web,
-  get,
-  toFetch,
-  serve,
-  pageResponse,
-  javascriptResponse,
-} from "plgg-web";
-import { App } from "../App";
+import { pipe } from "plgg";
+import { toFetch, serve } from "plgg-http-router";
+import { createArticlesDb } from "../db/open";
+import { buildApp } from "../server/app";
 
 /**
- * (1) Server-side rendering. `GET /` renders `App` to a full HTML document with
- * `pageResponse` (SSR) and points the page at `/client.js`; `GET /client.js`
- * serves the client bundle (built by `vite build` into ../../dist/client.js)
- * which re-renders the same `App` in the browser (CSR).
+ * The full-stack demo server. It opens a seeded plgg-sql (node:sqlite) database,
+ * builds the app (SSR page + JSON API + CSR bundle), and serves it. The browser
+ * hydrates from `/api/articles`; `npm run client` runs the plgg-http-client demo
+ * against the same API.
  *
- * Run: `npm run build` then `npm run serve` (tsx src/ssr/server.ts).
+ * Run: `npm run build` (bundles dist/client.js) then `npm run serve`.
  */
 const clientBundle = readFileSync(
   join(__dirname, "..", "..", "dist", "client.js"),
   "utf8",
 );
 
-const app = pipe(
-  web(),
-  get("/", async () =>
-    ok(
-      pageResponse({
-        title: "plgg-web isomorphic demo",
-        root: App(),
-        clientEntry: "/client.js",
-      }),
+createArticlesDb().then((db) =>
+  pipe(
+    buildApp(db, clientBundle),
+    toFetch,
+    serve({ port: 3000 }, () =>
+      console.log(
+        "listening on http://localhost:3000",
+      ),
     ),
-  ),
-  get("/client.js", async () =>
-    ok(javascriptResponse(clientBundle)),
-  ),
-);
-
-pipe(
-  app,
-  toFetch,
-  serve({ port: 3000 }, () =>
-    console.log("listening on http://localhost:3000"),
   ),
 );

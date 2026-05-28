@@ -6,7 +6,7 @@ Database work as **pipeline steps**, built **from scratch on [plgg](../plgg/)**.
 Not an ORM and not a query-builder AST — plgg-sql gives you a handful of
 data-last steps (build SQL, run it, run it in a transaction, map rows to types)
 that drop straight into a plgg `proc`/`pipe` chain. Because they speak the same
-vocabulary as a [plgg-web](../plgg-web/) HTTP handler, a DB step and a web step
+vocabulary as a [plgg-http-router](../plgg-http-router/) HTTP handler, a DB step and a web step
 are **interchangeable links in the same pipe** — `request → validate → query →
 map → response` is one chain. The only runtime dependency is `plgg`; the
 database driver lives entirely at a seam the application supplies.
@@ -45,7 +45,7 @@ Both run against a real in-memory SQLite database via Node's built-in
   (validate → INSERT → read-back → map, atomic; plus a read), driven by `proc`.
   `npx tsx src/plgg-sql/example.ts`
 - [`example-web.ts`](./example-web.ts) — the whole vision: a tiny HTTP API where
-  each handler is one `proc` chain mixing plgg-web steps (`param`/`jsonResponse`)
+  each handler is one `proc` chain mixing plgg-http-router steps (`param`/`jsonResponse`)
   with plgg-sql steps. `npx tsx src/plgg-sql/example-web.ts`, then `curl` it.
 
 ## The vocabulary plgg-sql adds
@@ -60,7 +60,7 @@ Both run against a real in-memory SQLite database via Node's built-in
 | `transaction(db, work)` | `A → PromisedResult<T, …>` | run a sub-pipe atomically; commit on `Ok`, roll back on `Err` |
 
 **Validation and mapping are not new vocabulary** — they are plgg core's
-`cast`/`asObj`/`forProp`/`refine`, the same words a plgg-web handler already
+`cast`/`asObj`/`forProp`/`refine`, the same words a plgg-http-router handler already
 uses. plgg-sql only adds `sql`, `query`, `exec`, `transaction`.
 
 ## The database seam
