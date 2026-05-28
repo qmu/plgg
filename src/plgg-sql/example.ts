@@ -5,7 +5,7 @@
  *
  * Each handler below is ONE `proc` chain. Validation, SQL building, DML, the
  * transaction, and row mapping are all just steps in it — the same vocabulary a
- * plgg-http-router HTTP handler uses, so a DB step and a web step are interchangeable
+ * plgg-server HTTP handler uses, so a DB step and a web step are interchangeable
  * links in the same pipe. The only driver-aware code is the `open` seam.
  */
 import { DatabaseSync } from "node:sqlite";
@@ -155,6 +155,6 @@ const main = async (): Promise<void> => {
 
 main();
 
-// These same steps drop into a plgg-http-router HTTP handler unchanged — `param` and
+// These same steps drop into a plgg-server HTTP handler unchanged — `param` and
 // `jsonResponse` are just more links in the same proc chain. See the runnable
 // `example-web.ts` next to this file for the full request → DB → response demo.

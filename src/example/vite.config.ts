@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   // `build` produces the CSR client bundle (dist/client.js) that the SSR server
-  // serves at /client.js. plgg-view and plgg-http-router/client are bundled in (not
+  // serves at /client.js. plgg-view and plgg-server/client are bundled in (not
   // externalized) so it runs in the browser; JSX config is read from tsconfig.
   build: {
     outDir: "dist",

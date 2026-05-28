@@ -1,5 +1,5 @@
 import { Box, SoftStr, box, pattern } from "plgg";
-import { HttpError } from "plgg-http-router";
+import { HttpError } from "plgg-server";
 
 /**
  * A transport-level failure on the client: the request never produced an HTTP
@@ -24,7 +24,7 @@ export const networkError = (
 
 /**
  * The client's error vocabulary: the shared {@link HttpError} model reused from
- * `plgg-http-router`, widened with the client-only {@link NetworkError}. Keeping
+ * `plgg-server`, widened with the client-only {@link NetworkError}. Keeping
  * `NetworkError` here rather than in the router's union leaves the server's
  * error fold untouched — a server never has a transport failure talking to
  * itself — while client and server still share one `HttpError` vocabulary.

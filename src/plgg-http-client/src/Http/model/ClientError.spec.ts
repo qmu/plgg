@@ -10,7 +10,7 @@ import {
   forbidden$,
   statusError$,
   internalError$,
-} from "plgg-http-router";
+} from "plgg-server";
 import {
   ClientError,
   networkError,

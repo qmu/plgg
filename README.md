@@ -11,7 +11,7 @@ A functional programming toolkit for TypeScript with type-safe pipelines, Result
 ```typescript
 // server.ts — draft → stamped → tx{insert; read-back} → 201, in one expression.
 import { pipe, proc, mapErr, decodeJson, ok, newId, now } from "plgg";
-import { web, post, jsonResponse } from "plgg-http-router";
+import { web, post, jsonResponse } from "plgg-server";
 import { sql, exec, query, transaction, decodeRow } from "plgg-sql";
 
 const app = pipe(
@@ -41,7 +41,7 @@ const app = pipe(
 // client.tsx — GET the list, map each article to a <li>, mount the result.
 import { pipe, proc, match, matchResult, matchOption, otherwise } from "plgg";
 import { get, decodeJsonBody, networkError$ } from "plgg-http-client";
-import { render } from "plgg-http-router/client";
+import { render } from "plgg-server/client";
 import { VNode } from "plgg-view";
 
 const view: VNode = pipe(
@@ -81,8 +81,8 @@ This is a monorepo containing:
 - **[`src/plgg/`](src/plgg/)** - Core library: type-safe functional primitives (Result, Option, pipelines, branded types, numeric types)
 - **[`src/plgg-kit/`](src/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
 - **[`src/plgg-foundry/`](src/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
-- **[`src/plgg-http-router/`](src/plgg-http-router/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
-- **[`src/plgg-http-client/`](src/plgg-http-client/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-http-router (`fetch` seam, errors as values)
+- **[`src/plgg-server/`](src/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
+- **[`src/plgg-http-client/`](src/plgg-http-client/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
 - **[`src/example/`](src/example/)** - Example usage project
 
 ## Installation
@@ -98,9 +98,9 @@ npm install plgg-kit
 npm install plgg-foundry
 
 # Web router and HTTP handler (depends on plgg)
-npm install plgg-http-router
+npm install plgg-server
 
-# Typed HTTP client (depends on plgg and plgg-http-router)
+# Typed HTTP client (depends on plgg and plgg-server)
 npm install plgg-http-client
 ```
 
@@ -282,15 +282,15 @@ AI-powered workflow orchestration using a register machine model. Define operati
 
 See [src/plgg-foundry/README.md](src/plgg-foundry/README.md) for details.
 
-### plgg-http-router
+### plgg-server
 
 A server-side web router and HTTP request handler built from scratch on plgg — no external HTTP framework. The app is a pure-data `Web` value assembled through `pipe` (data-last `get`/`post`/`use`/`route` transformers, no method chaining); `handle` runs it plgg-natively while `toFetch` is the Web-standard `Request`/`Response` seam. Path params/wildcards, onion-model middleware, and a `node:http` adapter (`serve`).
 
-See [src/plgg-http-router/README.md](src/plgg-http-router/README.md) for details.
+See [src/plgg-server/README.md](src/plgg-server/README.md) for details.
 
 ### plgg-http-client
 
-A typed HTTP client built from scratch on plgg — the symmetric companion of plgg-http-router. `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
+A typed HTTP client built from scratch on plgg — the symmetric companion of plgg-server. `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
 
 See [src/plgg-http-client/README.md](src/plgg-http-client/README.md) for details.
 
@@ -315,7 +315,7 @@ sh/build.sh
 # Sub-package tests
 sh/test-plgg-kit.sh
 sh/test-plgg-foundry.sh
-sh/test-plgg-http-router.sh
+sh/test-plgg-server.sh
 sh/test-plgg-http-client.sh
 
 # Run all checks (type check + test for all packages)

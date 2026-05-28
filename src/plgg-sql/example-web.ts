@@ -1,5 +1,5 @@
 /**
- * plgg-http-router + plgg-sql — the whole point: an HTTP handler and a database query
+ * plgg-server + plgg-sql — the whole point: an HTTP handler and a database query
  * are the SAME kind of pipeline step, so one `proc` chain runs
  * request → validate → SQL → map → response.
  *
@@ -13,7 +13,7 @@
  *   curl localhost:3000/users/1                                            # found
  *   curl -i localhost:3000/users/999                                       # 404
  *
- * The only driver-aware code is `open`. plgg-http-router supplies `param`/`jsonResponse`;
+ * The only driver-aware code is `open`. plgg-server supplies `param`/`jsonResponse`;
  * plgg-sql supplies `sql`/`query`/`exec`/`transaction`; plgg core supplies
  * `decodeJson`/`cast`/`proc`. They interleave as one chain.
  */
@@ -55,7 +55,7 @@ import {
   statusError,
   statusOf,
   HttpError,
-} from "plgg-http-router";
+} from "plgg-server";
 import {
   Db,
   ExecResult,

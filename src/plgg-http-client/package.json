@@ -1,7 +1,7 @@
 {
   "name": "plgg-http-client",
   "version": "0.0.1",
-  "description": "Typed HTTP client built from scratch on the plgg framework, symmetric with plgg-http-router",
+  "description": "Typed HTTP client built from scratch on the plgg framework, symmetric with plgg-server",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
@@ -37,7 +37,7 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
-    "plgg-http-router": "file:../plgg-http-router"
+    "plgg-server": "file:../plgg-server"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

@@ -7,7 +7,7 @@ import {
   decodeJson,
   chainResult,
 } from "plgg";
-import { render } from "plgg-http-router/client";
+import { render } from "plgg-server/client";
 import { App } from "../App";
 import { asArticles } from "../modeling/Article";
 

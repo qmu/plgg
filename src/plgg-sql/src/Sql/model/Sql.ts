@@ -17,7 +17,7 @@ import {
  * A concrete value that may be bound as a SQL parameter. Always *present* — SQL
  * `NULL` is not modeled here as a raw `null` but as the absence of a value
  * (`Option`'s `None`), keeping this union free of `null`/`undefined` in line
- * with the plgg discipline (cf. `plgg-http-router`'s `Option<Uint8Array>` body).
+ * with the plgg discipline (cf. `plgg-server`'s `Option<Uint8Array>` body).
  */
 export type SqlValue = SoftStr | Num | Bool;
 

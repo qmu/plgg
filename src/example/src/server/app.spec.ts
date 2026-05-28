@@ -5,7 +5,7 @@ import {
   decodeJson,
   chainResult,
 } from "plgg";
-import { toFetch } from "plgg-http-router";
+import { toFetch } from "plgg-server";
 import { createArticlesDb } from "../db/open";
 import { buildApp } from "./app";
 import { asArticles } from "../modeling/Article";

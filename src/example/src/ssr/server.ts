@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pipe } from "plgg";
-import { toFetch, serve } from "plgg-http-router";
+import { toFetch, serve } from "plgg-server";
 import { createArticlesDb } from "../db/open";
 import { buildApp } from "../server/app";
 

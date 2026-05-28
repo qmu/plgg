@@ -1,8 +1,8 @@
 /**
- * plgg-http-client example — calls the plgg-http-router example server.
+ * plgg-http-client example — calls the plgg-server example server.
  *
  * In one terminal, start the server:
- *   npx tsx src/plgg-http-router/example.ts
+ *   npx tsx src/plgg-server/example.ts
  * then run this client:
  *   npx tsx src/plgg-http-client/example.ts
  *
@@ -43,7 +43,7 @@ import {
   forbidden$,
   statusError$,
   internalError$,
-} from "plgg-http-router";
+} from "plgg-server";
 
 // --- domain: validate the user the server returns, with plgg `cast` (no `as`) ---
 type User = Obj<{ name: SoftStr; email: SoftStr }>;

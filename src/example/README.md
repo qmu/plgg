@@ -4,7 +4,7 @@
 > that demonstrates how to use the libraries lives here — there are no separate
 > `example-*` packages.
 
-It consumes `plgg`, `plgg-view`, `plgg-http-router`, `plgg-http-client`, and
+It consumes `plgg`, `plgg-view`, `plgg-server`, `plgg-http-client`, and
 `plgg-sql` as real dependencies (`file:`), so the imports below are exactly what
 an app outside this repo would write.
 
@@ -47,8 +47,8 @@ to round-trip through JSON. Failures fold to one shared `HttpError` vocabulary.
 
 ```ts
 import { proc, pipe, decodeJson, chainResult } from "plgg";
-import { web, get, serve, toFetch, jsonResponse, pageResponse } from "plgg-http-router";
-import { render } from "plgg-http-router/client";          // CSR (browser)
+import { web, get, serve, toFetch, jsonResponse, pageResponse } from "plgg-server";
+import { render } from "plgg-server/client";          // CSR (browser)
 import { sql, query, decodeRows } from "plgg-sql";          // DB pipeline steps
 import { get as httpGet, decodeJsonBody } from "plgg-http-client"; // typed client
 ```

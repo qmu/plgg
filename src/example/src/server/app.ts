@@ -15,7 +15,7 @@ import {
   HttpError,
   internalError,
   badRequest,
-} from "plgg-http-router";
+} from "plgg-server";
 import {
   Db,
   SqlError,

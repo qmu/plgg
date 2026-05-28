@@ -15,7 +15,7 @@ import {
   HttpResponse,
   statusOf,
   bytesBody,
-} from "plgg-http-router";
+} from "plgg-server";
 import { decodeJsonBody } from "plgg-http-client/index";
 
 type User = Obj<{ name: SoftStr }>;

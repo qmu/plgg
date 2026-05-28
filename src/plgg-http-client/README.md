@@ -2,7 +2,7 @@
 
 A **typed HTTP client** built from scratch on [plgg](../plgg/), for the
 presentation layer to call a server. It is the symmetric companion of
-[`plgg-http-router`](../plgg-http-router/): both speak the same plgg-native HTTP
+[`plgg-server`](../plgg-server/): both speak the same plgg-native HTTP
 model, requests/responses are pure plgg data, failures are values, and the
 native `fetch`/`Request`/`Response` types appear **only at one seam**.
 
@@ -55,7 +55,7 @@ const body = encodeJson({ name: "Grace", email: "grace@x.io" });
 
 All return `PromisedResult<HttpResponse, ClientError>`, where
 `ClientError = HttpError | NetworkError` — the shared `HttpError` vocabulary from
-`plgg-http-router`, widened with the client-only `NetworkError`.
+`plgg-server`, widened with the client-only `NetworkError`.
 
 - `decodeJsonBody(as)(response)` — read the text body, `decodeJson`, then run a
   `cast`-based parser; the whole chain is a `Result<T, InvalidError>`.
@@ -92,11 +92,11 @@ and request cancellation are intentionally omitted.
 
 ## Example
 
-A runnable example (a `GET` and a `POST` against the `plgg-http-router` example
+A runnable example (a `GET` and a `POST` against the `plgg-server` example
 server) lives in [`example.ts`](example.ts):
 
 ```bash
-npx tsx src/plgg-http-router/example.ts   # terminal 1: start the server
+npx tsx src/plgg-server/example.ts   # terminal 1: start the server
 npx tsx src/plgg-http-client/example.ts   # terminal 2: run the client
 ```
 

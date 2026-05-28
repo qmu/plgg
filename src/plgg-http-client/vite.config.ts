@@ -6,15 +6,15 @@ import dts from "vite-plugin-dts";
 
 /**
  * The framework dependencies are kept external so the client bundle does not
- * inline `plgg` / `plgg-http-router`; consumers dedupe them. There are no Web
+ * inline `plgg` / `plgg-server`; consumers dedupe them. There are no Web
  * platform modules to externalize — `fetch`/`Request`/`Response` are globals
  * touched only at the seam, never imported.
  */
 const isFrameworkDep = (id: string): boolean =>
   id === "plgg" ||
   id.startsWith("plgg/") ||
-  id === "plgg-http-router" ||
-  id.startsWith("plgg-http-router/");
+  id === "plgg-server" ||
+  id.startsWith("plgg-server/");
 
 export default defineConfig({
   resolve: {

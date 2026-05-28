@@ -115,7 +115,7 @@ is exactly what such a renderer would consume.
 ## Conventions
 
 - Specs import from `"plgg-view/index"` (bare `"plgg-view"` resolves
-  inconsistently under tsconfig `paths`), matching the `plgg-http-router` convention.
+  inconsistently under tsconfig `paths`), matching the `plgg-server` convention.
 - `as` / `any` / `ts-ignore` are prohibited (see root `CLAUDE.md`); unknown
   inputs are narrowed with plgg type guards and `Option`.
 - After editing `plgg` core, run `npm run build` in `src/plgg` or this package

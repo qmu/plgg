@@ -11,7 +11,7 @@ import {
 import {
   HttpResponse,
   ResponseBody,
-} from "plgg-http-router";
+} from "plgg-server";
 
 /**
  * Narrows a {@link ResponseBody} to its text. The client seam only ever

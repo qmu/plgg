@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { test, expect } from "vitest";
 import { isOk } from "plgg";
-import { renderToString } from "plgg-http-router";
-import { render } from "plgg-http-router/client";
+import { renderToString } from "plgg-server";
+import { render } from "plgg-server/client";
 import { App } from "./App";
 import { asArticles } from "./modeling/Article";
 
