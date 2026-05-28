@@ -8,9 +8,12 @@ domain is expressed in plgg types and combinators, and where plgg lacked a
 primitive it was added to plgg core (e.g. `fromNullable`, `getOr`, `toOption`
 for `Option`). The only runtime dependency is `plgg`.
 
-Platform types (Web-standard `Request`/`Response`, `node:http`) appear **only at
-the seam** — two converter functions and the `node:http` adapter. Everything
-inward is plgg.
+Platform types (Web-standard `Request`/`Response`, `node:http`, `Bun.serve`,
+`Deno.serve`) appear **only at the seam** — two converter functions and a
+single adapter file per host runtime. Everything inward is plgg, and the root
+entry imports nothing runtime-specific, so the same `plgg-server` core runs on
+Node, Bun, Deno, Cloudflare Workers, Deno Deploy, and any other Web-standard JS
+runtime.
 
 ## The plgg-native model
 
@@ -35,9 +38,10 @@ The app is built the plgg way — a `pipe` of data-last `Web => Web` transformer
 
 ```typescript
 import {
-  web, use, get, post, toFetch, serve,
+  web, use, get, post, toFetch,
   param, textResponse, jsonResponse, notFound,
 } from "plgg-server";
+import { serve } from "plgg-server/node";
 import { pipe, ok, mapOption, getOr, okOr } from "plgg";
 
 const app = pipe(
@@ -65,6 +69,8 @@ const app = pipe(
 );
 
 // Serve over node:http (Web Request/Response live only at this seam).
+// Swap `plgg-server/node` for `plgg-server/bun` or `plgg-server/deno` to
+// deploy on those runtimes without touching `app`.
 pipe(
   app,
   toFetch,
@@ -141,10 +147,28 @@ and middleware threads it downstream via `next(pipe(c, setState(...)))`.
 
 `httpErrorToResponse` folds any `HttpError` into its `HttpResponse`.
 
-## node:http adapter
+## Runtime adapters
 
-`serve({ port, hostname? }, onListen?)` is data-last in its handler, so it ends a
-routing pipeline: `pipe(app, toFetch, serve({ port: 3000 }))` returns the
-`http.Server`. The converters `toRequest` / `writeResponse` bridge `node:http` ↔
-Web `Request`/`Response`, lifting nullable platform fields through plgg's
+The root entry (`plgg-server`) is runtime-neutral: it ships the request
+pipeline, the routing, the View helpers, and `toFetch`. To bind that core to a
+real HTTP server, import the adapter for the host runtime — each one exposes the
+same data-last `serve(options, onListen?)(handler)` shape, so the only line that
+changes between deployments is the `import`:
+
+| Runtime | Import | Notes |
+|--|--|--|
+| Node | `import { serve } from "plgg-server/node"` | Backed by `node:http` (`createServer`, `req.on('data')`, `res.write`). Returns `http.Server`. |
+| Bun | `import { serve } from "plgg-server/bun"` | Backed by `Bun.serve`. Returns `Bun.Server`. |
+| Deno | `import { serve } from "plgg-server/deno"` | Backed by `Deno.serve`. Returns `Deno.HttpServer`. |
+| Cloudflare Workers / Deno Deploy / browser fetch | `import { toFetch } from "plgg-server"` and `export default { fetch: toFetch(app) }` | `toFetch(app)` *is* a Web-standard `(Request) => Promise<Response>` handler. No adapter file needed — the runtime's `fetch` event consumes it directly. |
+
+Each `serve` is data-last in its handler so it terminates a routing pipeline:
+
+```typescript
+pipe(app, toFetch, serve({ port: 3000 }))
+```
+
+The converters `toRequest` / `writeResponse` (Node) and `toHttpRequest` /
+`toNativeResponse` (Web-standard, shared) bridge platform types ↔ plgg's
+`HttpRequest` / `HttpResponse`, lifting nullable platform fields through plgg's
 `Option` (`fromNullable` / `getOr`) rather than ad-hoc defaulting.

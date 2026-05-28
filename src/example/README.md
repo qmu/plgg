@@ -59,7 +59,8 @@ Failures fold to one shared vocabulary: `HttpError` on the server, widened to
 
 ```ts
 import { proc, pipe, decodeJson, chainResult, encodeJson } from "plgg";
-import { web, get, post, patch, del, serve, toFetch, jsonResponse, pageResponse } from "plgg-server";
+import { web, get, post, patch, del, toFetch, jsonResponse, pageResponse } from "plgg-server";
+import { serve } from "plgg-server/node";                 // node:http adapter
 import { render } from "plgg-server/client";              // CSR (browser)
 import { sql, query, exec, decodeRows } from "plgg-sql";  // DB pipeline steps
 import { get as fetchGet, post as fetchPost, patch as fetchPatch, del as fetchDel, decodeJsonBody } from "plgg-fetch";

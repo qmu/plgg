@@ -13,7 +13,6 @@ import {
   get,
   post,
   toFetch,
-  serve,
   param,
   header,
   getBytes,
@@ -23,6 +22,7 @@ import {
   streamResponse,
   Fetch,
 } from "plgg-server/index";
+import { serve } from "plgg-server/node";
 
 async function* threeBytes(): AsyncIterable<Uint8Array> {
   yield new Uint8Array([1]);

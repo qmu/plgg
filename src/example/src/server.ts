@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pipe } from "plgg";
-import { toFetch, serve } from "plgg-server";
+import { toFetch } from "plgg-server";
+import { serve } from "plgg-server/node";
 import { createTodosDb } from "./db";
 import { buildApp } from "./controller";
 

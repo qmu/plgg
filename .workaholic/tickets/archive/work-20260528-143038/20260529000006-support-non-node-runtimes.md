@@ -3,9 +3,9 @@ created_at: 2026-05-29T00:00:06+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 836cb09
+category: Changed
 depends_on:
 ---
 
@@ -195,3 +195,16 @@ Past tickets that touched similar areas:
 
 - Should `serve` keep its name across `plgg-server/{node,bun,deno}` (consistent verb) or be runtime-suffixed (`serveNode`, `serveBun`, `serveDeno`) so a single file can import multiple for testing? Recommend: keep `serve` per subpath — matches the `./client` precedent, where the local name is the verb and the subpath is the qualifier.
 - Should `node:http` move from `Serving/usecase/serve.ts` into a new `src/Node/` directory (and `bun.ts` / `deno.ts` into `src/Bun/` / `src/Deno/`)? Recommend: stay flat (`src/node.ts` / `src/bun.ts` / `src/deno.ts`) until there is more than one file per runtime — simpler diff, mirrors `src/client.ts`.
+
+## Final Report
+
+Development completed as planned. Five-entry build (`index`, `client`, `node`, `bun`, `deno`) produced; bundle inspection confirmed `index`/`bun`/`deno`/`client` carry zero `node:` imports while `node.es.js` carries the expected `node:http`. plgg-server coverage stayed at 98.79%/96.69%/98.02%/99.04% (≥91% threshold). plgg-sql, example, and plgg-fetch downstream tests pass unchanged. No new runtime or devDependencies were added.
+
+### Discovered Insights
+
+- **Insight**: The Node adapter's pure conversion helpers (`toRequest`, `writeResponse`, `collectBody`, `pump`) and the curried `serve` could be tested at module scope without a real socket if needed — the integration test in `serve.spec.ts` chose to boot a real server only because the conversion logic is interleaved with the `node:http` callbacks. For the Bun/Deno adapters, factoring the platform-call out into an injected `impl` (the `createAdapter(impl)` pattern) was sufficient to unit-test the option-shaping and `onListen` semantics under vitest's Node pool without running Bun or Deno.
+  **Context**: Future runtime adapters (Cloudflare Workers `addEventListener('fetch')`, `node:http2`, AWS Lambda function URL, etc.) can follow the same `createAdapter(impl)` shape and be fully unit-tested, keeping the package's ≥91% coverage threshold without a per-runtime CI matrix. The only file that needs an integration test is the Node adapter, because it touches the imperative `IncomingMessage`/`ServerResponse` stream API directly rather than delegating to a runtime-provided `(opts, fetch) => Server` call.
+- **Insight**: vite-plugin-dts emits one `.d.ts` per entry by default — `dist/{index,client,node,bun,deno}.d.ts` — so the dual ESM/CJS `exports` map's `types` fields resolve correctly without extra config. The existing `rollupOptions.external: ["node:http", "node:stream"]` is global across entries but harmless on entries that never import them, so per-entry `external` arrays were not needed.
+  **Context**: Adding a future runtime entry requires only (a) a new `src/<runtime>.ts` source file, (b) a new line in `build.lib.entry`, (c) a new subpath block in `package.json` `exports`, and (d) a coverage `exclude` if the file binds runtime globals it cannot test under Node. No build-tool surgery beyond that.
+- **Insight**: `Serving/index.ts` and `Serving/usecase/index.ts` were thin re-export barrels left over from before `node:http` was identified as the platform seam. Deleting them (rather than emptying them) prevents `plgg-server/Serving` from remaining a working import path; the new `plgg-server/node` subpath is now the only sanctioned route to `serve`.
+  **Context**: When tightening a public surface, removing internal barrels is as important as adjusting the top-level barrel — leaving stale barrels in place keeps the old import path silently working through the path alias, which would mask migration drift.

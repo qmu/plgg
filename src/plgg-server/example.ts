@@ -25,7 +25,6 @@ import {
   post,
   route,
   toFetch,
-  serve,
   param,
   query,
   header,
@@ -37,6 +36,7 @@ import {
   badRequest,
   unauthorized,
 } from "plgg-server/index";
+import { serve } from "plgg-server/node";
 import {
   Obj,
   Option,

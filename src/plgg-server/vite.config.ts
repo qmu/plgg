@@ -28,6 +28,9 @@ export default defineConfig({
         "**/index.ts",
         "client.ts",
         "src/client.ts",
+        "src/node.ts",
+        "src/bun.ts",
+        "src/deno.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -42,12 +45,19 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      // Two entries: the server library (`index`) and the client-only DOM
-      // renderer (`client`, the `plgg-server/client` subpath) — so server
-      // code never bundles the DOM renderer. Shared code is code-split.
+      // Five entries: the runtime-neutral core (`index` — Http + Routing +
+      // View, with the `Fetch` type and `toFetch` as the portable seam), the
+      // client-only DOM renderer (`client`), and one entry per host runtime
+      // (`node`, `bun`, `deno`). Runtime-coupled code (`node:http`, `Bun.serve`,
+      // `Deno.serve`) never leaks into the core or sibling runtime entries.
+      // Workers/Deno-Deploy/browser-fetch consume `toFetch(app)` directly from
+      // the core — they need no adapter file.
       entry: {
         index: "src/index.ts",
         client: "src/client.ts",
+        node: "src/node.ts",
+        bun: "src/bun.ts",
+        deno: "src/deno.ts",
       },
       fileName: (format, entryName) =>
         `${entryName}.${format}.js`,

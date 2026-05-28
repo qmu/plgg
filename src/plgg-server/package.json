@@ -24,6 +24,36 @@
         "types": "./dist/client.d.ts",
         "default": "./dist/client.cjs.js"
       }
+    },
+    "./node": {
+      "import": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.es.js"
+      },
+      "require": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.cjs.js"
+      }
+    },
+    "./bun": {
+      "import": {
+        "types": "./dist/bun.d.ts",
+        "default": "./dist/bun.es.js"
+      },
+      "require": {
+        "types": "./dist/bun.d.ts",
+        "default": "./dist/bun.cjs.js"
+      }
+    },
+    "./deno": {
+      "import": {
+        "types": "./dist/deno.d.ts",
+        "default": "./dist/deno.es.js"
+      },
+      "require": {
+        "types": "./dist/deno.d.ts",
+        "default": "./dist/deno.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

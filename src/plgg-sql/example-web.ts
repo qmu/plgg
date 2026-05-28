@@ -46,7 +46,6 @@ import {
   get,
   post,
   toFetch,
-  serve,
   param,
   jsonResponse,
   notFound,
@@ -56,6 +55,7 @@ import {
   statusOf,
   HttpError,
 } from "plgg-server";
+import { serve } from "plgg-server/node";
 import {
   Db,
   ExecResult,
