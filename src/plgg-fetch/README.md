@@ -1,4 +1,4 @@
-# plgg-http-client
+# plgg-fetch
 
 A **typed HTTP client** built from scratch on [plgg](../plgg/), for the
 presentation layer to call a server. It is the symmetric companion of
@@ -14,13 +14,13 @@ native `fetch`/`Request`/`Response` types appear **only at one seam**.
 ## Install
 
 ```bash
-npm install plgg-http-client
+npm install plgg-fetch
 ```
 
 ## Usage
 
 ```ts
-import { get, post, decodeJsonBody } from "plgg-http-client";
+import { get, post, decodeJsonBody } from "plgg-fetch";
 import { pipe, matchResult, cast, asObj, asSoftStr, forProp, encodeJson } from "plgg";
 
 // A 2xx or non-2xx both come back as a successful HttpResponse:
@@ -97,12 +97,12 @@ server) lives in [`example.ts`](example.ts):
 
 ```bash
 npx tsx src/plgg-server/example.ts   # terminal 1: start the server
-npx tsx src/plgg-http-client/example.ts   # terminal 2: run the client
+npx tsx src/plgg-fetch/example.ts   # terminal 2: run the client
 ```
 
 ## Develop
 
 ```bash
-sh/tsc-plgg-http-client.sh     # type-check
-sh/test-plgg-http-client.sh    # type-check + tests
+sh/tsc-plgg-fetch.sh     # type-check
+sh/test-plgg-fetch.sh    # type-check + tests
 ```

@@ -52,7 +52,7 @@ export const asArticle = (v: unknown): Result<Article, InvalidError> =>
 /**
  * Decodes an array of articles — the shape of the `/api/articles` JSON body and
  * of a `SELECT ... FROM articles` result. Reused by both the browser hydrate
- * path and the plgg-http-client demo.
+ * path and the plgg-fetch demo.
  */
 export const asArticles = (
   v: unknown,

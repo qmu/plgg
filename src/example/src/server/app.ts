@@ -45,7 +45,7 @@ const toHttpError = (error: Error): HttpError =>
  * that is exactly `asArticle`'s input. The server never serializes the decoded
  * domain `Article` (its `memo: Option` is a `Box` that would not round-trip);
  * instead `asArticle` is applied at every *consumer* boundary: here for SSR, in
- * the browser hydrate, and in the plgg-http-client demo. One model, decoded
+ * the browser hydrate, and in the plgg-fetch demo. One model, decoded
  * wherever data enters the domain.
  */
 const ARTICLES_SQL = sql`SELECT id, createdAt, name, memo FROM articles ORDER BY id`;

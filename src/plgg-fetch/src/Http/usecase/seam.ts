@@ -16,7 +16,7 @@ import {
 import {
   ClientError,
   networkError,
-} from "plgg-http-client/Http/model/ClientError";
+} from "plgg-fetch/Http/model/ClientError";
 
 /**
  * Extracts a human-readable message from an unknown thrown value.

@@ -36,7 +36,7 @@ export const App = (props: {
     <p>
       These articles were read from a plgg-sql (node:sqlite) database, rendered
       to HTML on the server with plgg-view, and re-rendered in the browser by the
-      same component tree. A plgg-http-client script consumes the same JSON API.
+      same component tree. A plgg-fetch script consumes the same JSON API.
     </p>
     <ul class="articles">
       {props.articles.map((article) => (

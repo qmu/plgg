@@ -8,7 +8,7 @@ import {
   toFetchRequest,
   fromFetchResponse,
   messageOf,
-} from "plgg-http-client/index";
+} from "plgg-fetch/index";
 
 const baseRequest = (
   overrides: Partial<HttpRequest>,

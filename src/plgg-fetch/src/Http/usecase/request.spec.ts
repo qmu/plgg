@@ -13,7 +13,7 @@ import {
   patch,
   del,
   isNetworkError,
-} from "plgg-http-client/index";
+} from "plgg-fetch/index";
 
 type FetchImpl = (
   request: Request,

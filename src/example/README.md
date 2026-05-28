@@ -4,7 +4,7 @@
 > that demonstrates how to use the libraries lives here — there are no separate
 > `example-*` packages.
 
-It consumes `plgg`, `plgg-view`, `plgg-server`, `plgg-http-client`, and
+It consumes `plgg`, `plgg-view`, `plgg-server`, `plgg-fetch`, and
 `plgg-sql` as real dependencies (`file:`), so the imports below are exactly what
 an app outside this repo would write.
 
@@ -19,7 +19,7 @@ A single end-to-end full-stack demo where all four libraries meet:
 | 2 | **Server** — `proc` chains: query (plgg-sql) → decode → SSR page / JSON | [`src/server/app.ts`](./src/server/app.ts) |
 | 3 | **SSR** — `App` rendered to HTML from DB rows, served | [`src/ssr/server.ts`](./src/ssr/server.ts) |
 | 4 | **CSR / hydrate** — fetch `/api/articles`, decode, re-render the same `App` | [`src/csr/client.tsx`](./src/csr/client.tsx) |
-| 5 | **Typed client** — plgg-http-client calls the JSON API, decodes, folds errors | [`src/client/main.ts`](./src/client/main.ts) |
+| 5 | **Typed client** — plgg-fetch calls the JSON API, decodes, folds errors | [`src/client/main.ts`](./src/client/main.ts) |
 | — | plgg-view gallery (standalone components) | [`src/view/`](./src/view/) |
 
 `src/App.tsx` is the one component tree shared by SSR and CSR — author once,
@@ -36,7 +36,7 @@ node:sqlite ──(plgg-sql Db seam)──> server route (proc: query → decode
    │                                      └─ GET /api/articles → JSON (raw wire rows)
    ▼
 browser: fetch /api/articles → decodeJson → asArticles → plgg-view render (CSR)
-node:    plgg-http-client get(/api/articles) → decodeJsonBody(asArticles) → match(ClientError)
+node:    plgg-fetch get(/api/articles) → decodeJsonBody(asArticles) → match(ClientError)
 ```
 
 The wire shape is the raw row (plain JSON = `asArticle`'s input); the domain
@@ -50,7 +50,7 @@ import { proc, pipe, decodeJson, chainResult } from "plgg";
 import { web, get, serve, toFetch, jsonResponse, pageResponse } from "plgg-server";
 import { render } from "plgg-server/client";          // CSR (browser)
 import { sql, query, decodeRows } from "plgg-sql";          // DB pipeline steps
-import { get as httpGet, decodeJsonBody } from "plgg-http-client"; // typed client
+import { get as httpGet, decodeJsonBody } from "plgg-fetch"; // typed client
 ```
 
 JSX (`<p>…</p>`) resolves to `plgg-view/jsx-runtime` via `tsconfig.json`
@@ -70,7 +70,7 @@ Then, in another terminal:
 ```sh
 curl localhost:3000/              # SSR HTML document (DB-backed, references /client.js)
 curl localhost:3000/api/articles  # the JSON API
-npm run client                    # plgg-http-client demo against the running server
+npm run client                    # plgg-fetch demo against the running server
 ```
 
 Open `http://localhost:3000` in a browser: the server-rendered article list

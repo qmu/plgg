@@ -1,5 +1,5 @@
 /**
- * plgg-http-client demo — calls the full-stack example server's JSON API and
+ * plgg-fetch demo — calls the full-stack example server's JSON API and
  * decodes the response into typed `Article`s.
  *
  * Run (in another terminal, after `npm run build` + `npm run serve`):
@@ -21,7 +21,7 @@ import {
   decodeJsonBody,
   ClientError,
   networkError$,
-} from "plgg-http-client";
+} from "plgg-fetch";
 import {
   HttpResponse,
   notFound$,

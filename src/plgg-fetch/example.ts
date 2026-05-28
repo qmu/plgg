@@ -1,10 +1,10 @@
 /**
- * plgg-http-client example — calls the plgg-server example server.
+ * plgg-fetch example — calls the plgg-server example server.
  *
  * In one terminal, start the server:
  *   npx tsx src/plgg-server/example.ts
  * then run this client:
- *   npx tsx src/plgg-http-client/example.ts
+ *   npx tsx src/plgg-fetch/example.ts
  *
  * Everything is a value: `request`/`get`/`post` return
  * `PromisedResult<HttpResponse, ClientError>`; a transport failure is a
@@ -32,7 +32,7 @@ import {
   decodeJsonBody,
   ClientError,
   networkError$,
-} from "plgg-http-client/index";
+} from "plgg-fetch/index";
 import {
   HttpResponse,
   notFound$,

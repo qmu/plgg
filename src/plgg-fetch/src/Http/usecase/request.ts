@@ -16,12 +16,12 @@ import {
 import {
   ClientError,
   networkError,
-} from "plgg-http-client/Http/model/ClientError";
+} from "plgg-fetch/Http/model/ClientError";
 import {
   toFetchRequest,
   fromFetchResponse,
   messageOf,
-} from "plgg-http-client/Http/usecase/seam";
+} from "plgg-fetch/Http/usecase/seam";
 
 /**
  * Per-call request options. `query` is merged onto the URL, `headers` are sent

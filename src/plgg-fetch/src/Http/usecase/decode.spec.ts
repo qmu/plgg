@@ -16,7 +16,7 @@ import {
   statusOf,
   bytesBody,
 } from "plgg-server";
-import { decodeJsonBody } from "plgg-http-client/index";
+import { decodeJsonBody } from "plgg-fetch/index";
 
 type User = Obj<{ name: SoftStr }>;
 

@@ -40,7 +40,7 @@ const app = pipe(
 ```tsx
 // client.tsx — GET the list, map each article to a <li>, mount the result.
 import { pipe, proc, match, matchResult, matchOption, otherwise } from "plgg";
-import { get, decodeJsonBody, networkError$ } from "plgg-http-client";
+import { get, decodeJsonBody, networkError$ } from "plgg-fetch";
 import { render } from "plgg-server/client";
 import { VNode } from "plgg-view";
 
@@ -72,7 +72,7 @@ render(view, document.body);
 
 `mapErr(toHttpError)` lives once at the server edge — `SqlError`, `InvalidError`, anything else folds to the same `HttpError` vocabulary the client matches over. On the client, the same pipeline that fetches and decodes also branches *into JSX*: `matchResult` produces a `<p>` for the error case and a `<ul>` for the success case, and `matchOption` decides whether each article emits an `<em>` memo. The view, the request, and the error are all just values flowing through `pipe`.
 
-The runnable signup-style server is [`src/plgg-sql/example-web.ts`](src/plgg-sql/example-web.ts); the full SSR + JSON + CSR + `plgg-http-client` round-trip is in [`src/example/`](src/example/).
+The runnable signup-style server is [`src/plgg-sql/example-web.ts`](src/plgg-sql/example-web.ts); the full SSR + JSON + CSR + `plgg-fetch` round-trip is in [`src/example/`](src/example/).
 
 ## Project Structure
 
@@ -82,7 +82,7 @@ This is a monorepo containing:
 - **[`src/plgg-kit/`](src/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
 - **[`src/plgg-foundry/`](src/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
 - **[`src/plgg-server/`](src/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
-- **[`src/plgg-http-client/`](src/plgg-http-client/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
+- **[`src/plgg-fetch/`](src/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
 - **[`src/example/`](src/example/)** - Example usage project
 
 ## Installation
@@ -101,7 +101,7 @@ npm install plgg-foundry
 npm install plgg-server
 
 # Typed HTTP client (depends on plgg and plgg-server)
-npm install plgg-http-client
+npm install plgg-fetch
 ```
 
 ## Core Concepts
@@ -288,11 +288,11 @@ A server-side web router and HTTP request handler built from scratch on plgg —
 
 See [src/plgg-server/README.md](src/plgg-server/README.md) for details.
 
-### plgg-http-client
+### plgg-fetch
 
 A typed HTTP client built from scratch on plgg — the symmetric companion of plgg-server. `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
 
-See [src/plgg-http-client/README.md](src/plgg-http-client/README.md) for details.
+See [src/plgg-fetch/README.md](src/plgg-fetch/README.md) for details.
 
 ## Development
 
@@ -316,7 +316,7 @@ sh/build.sh
 sh/test-plgg-kit.sh
 sh/test-plgg-foundry.sh
 sh/test-plgg-server.sh
-sh/test-plgg-http-client.sh
+sh/test-plgg-fetch.sh
 
 # Run all checks (type check + test for all packages)
 sh/check-all.sh

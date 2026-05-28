@@ -3,9 +3,9 @@ created_at: 2026-05-28T19:33:21+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain, Config]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 444f0e9
+category: Changed
 depends_on: [20260528193320-rename-plgg-http-router-to-plgg-server.md]
 ---
 
@@ -86,3 +86,16 @@ This ticket re-uses the procedure pioneered by `plgg-web → plgg-http-router` a
 - **Naming-symmetry copy** — `README.md` line ~293 says "symmetric companion of plgg-http-router"; after both renames the most natural rephrase is "plgg-fetch ↔ plgg-server" or simply "symmetric companion of plgg-server". Decide once and apply consistently across `README.md`, `src/plgg-fetch/README.md`, and the package.json `description` (`README.md`, `src/plgg-fetch/package.json`).
 - **Version stays at 0.0.1** — unpublished experimental package; no semver bump.
 - **Subpath imports** — unlike the server rename, the client has no `/client`-style subpath; only the bare name is exported. Less risk of missed subpath references.
+
+## Final Report
+
+Development completed as planned. The procedure mirrored Ticket 1 (`plgg-http-router → plgg-server`) exactly, just with a smaller blast radius (one fewer downstream consumer, no `/client` subpath, no `isFrameworkDep` predicate to retune). The "symmetric companion" copy in `README.md` and the package `description` strings were resolved by simple find-replace — the resulting prose ("plgg-fetch ↔ plgg-server", "symmetric companion of plgg-server") reads naturally without needing a manual rephrase.
+
+### Discovered Insights
+
+- **Insight**: The blanket token-swap pattern (`find … | xargs sed -i 's/<old>/<new>/g'`) established in Ticket 1 worked the second time with no surprises — the new name `plgg-fetch` is also a unique token across the live codebase. Two passes with the same shape of rename suggest this is the canonical procedure to document, not a one-off.
+  **Context**: Future plgg-* renames can follow the same 16-step playbook these two tickets used. A consolidated "package rename" guide in `.workaholic/policies/` would save the ticket author from re-deriving it each time.
+- **Insight**: `src/plgg-view/README.md` had a stale cross-reference to `plgg-http-client` that the sweep caught — the cross-reference wasn't visible from any dependency graph (plgg-view doesn't depend on plgg-fetch). README narratives across sibling packages are a quiet rename surface that only `grep -rln` reliably finds.
+  **Context**: Confirms the Ticket 1 insight: "include any package whose docs cross-link the renamed one, not just direct dependents." A pure grep is the source of truth.
+- **Insight**: The mid-rename detour to add a `jsxImportSource` clarification to `src/plgg-view/README.md` (commit `0ac3989`) is the kind of side-quest the precedent ticket (plgg-web → plgg-http-router) did not encounter. Documenting *why* a config exists (not just *what* to set) pays back when future contributors hit the same confusion.
+  **Context**: Worth folding the JSX/jsxImportSource explanation into the canonical "TS gotchas" section of the root README on a later branch, so plgg-view's README isn't the only place future contributors find it.

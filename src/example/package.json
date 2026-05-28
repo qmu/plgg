@@ -2,7 +2,7 @@
   "name": "@plgg/example",
   "version": "0.0.2",
   "private": true,
-  "description": "Examples for the plgg monorepo: a full-stack demo over plgg-view, plgg-sql, plgg-server (SSR/CSR), and plgg-http-client",
+  "description": "Examples for the plgg monorepo: a full-stack demo over plgg-view, plgg-sql, plgg-server (SSR/CSR), and plgg-fetch",
   "scripts": {
     "build": "vite build",
     "test": "tsc --noEmit && vitest --run",
@@ -28,7 +28,7 @@
     "plgg": "file:../plgg",
     "plgg-view": "file:../plgg-view",
     "plgg-server": "file:../plgg-server",
-    "plgg-http-client": "file:../plgg-http-client",
+    "plgg-fetch": "file:../plgg-fetch",
     "plgg-sql": "file:../plgg-sql"
   },
   "devDependencies": {

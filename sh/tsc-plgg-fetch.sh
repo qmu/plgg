@@ -1,6 +1,6 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
-echo "=== Running 'npm run tsc' in src/plgg-http-client ==="
-cd $REPO_ROOT/src/plgg-http-client && npm run tsc
+echo "=== Running 'npm run tsc' in src/plgg-fetch ==="
+cd $REPO_ROOT/src/plgg-fetch && npm run tsc
 echo "\n=== All shell scripts have been executed successfully ==="

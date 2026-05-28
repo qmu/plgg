@@ -19,7 +19,7 @@ const isFrameworkDep = (id: string): boolean =>
 export default defineConfig({
   resolve: {
     alias: {
-      "plgg-http-client": path.resolve(__dirname, "./src"),
+      "plgg-fetch": path.resolve(__dirname, "./src"),
     },
   },
   test: {
@@ -49,7 +49,7 @@ export default defineConfig({
     minify: true,
     lib: {
       entry: "src/index.ts",
-      name: "plgg-http-client",
+      name: "plgg-fetch",
       fileName: (format) => `index.${format}.js`,
       formats: ["es", "cjs"],
     },

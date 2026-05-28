@@ -13,7 +13,7 @@
     ],
     "noEmit": true,
     "paths": {
-      "plgg-http-client*": [
+      "plgg-fetch*": [
         "./src/*"
       ]
     },

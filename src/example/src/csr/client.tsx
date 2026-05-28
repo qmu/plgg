@@ -16,7 +16,7 @@ import { asArticles } from "../modeling/Article";
  * dist/client.js, which the SSR document loads via `<script type="module">`. It
  * fetches the same `/api/articles` data the server rendered from — native
  * `fetch` (a browser global) keeps `node:http` out of this bundle; the typed
- * plgg-http-client is used by the node `client` demo instead — decodes it the
+ * plgg-fetch is used by the node `client` demo instead — decodes it the
  * plgg way (`decodeJson` → `asArticles`), and re-renders the same `App` into the
  * server-rendered `#root`, taking over the markup.
  */

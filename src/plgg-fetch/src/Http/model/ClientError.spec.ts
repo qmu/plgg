@@ -16,7 +16,7 @@ import {
   networkError,
   networkError$,
   isNetworkError,
-} from "plgg-http-client/index";
+} from "plgg-fetch/index";
 
 test("networkError carries its message under the NetworkError tag", () => {
   const error = networkError("connection refused");
