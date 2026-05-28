@@ -38,15 +38,17 @@ when it is `Ok`. Errors as values drive the transaction; no try/catch.
 
 ## Runnable examples
 
-Both run against a real in-memory SQLite database via Node's built-in
+Runs against a real in-memory SQLite database via Node's built-in
 `node:sqlite` (no npm dependency):
 
-- [`example.ts`](./example.ts) — start here. The database pipeline on its own
-  (validate → INSERT → read-back → map, atomic; plus a read), driven by `proc`.
+- [`example.ts`](./example.ts) — the database pipeline (validate → INSERT →
+  read-back → map, atomic; plus a read), driven by `proc`.
   `npx tsx src/plgg-sql/example.ts`
-- [`example-web.ts`](./example-web.ts) — the whole vision: a tiny HTTP API where
-  each handler is one `proc` chain mixing plgg-server steps (`param`/`jsonResponse`)
-  with plgg-sql steps. `npx tsx src/plgg-sql/example-web.ts`, then `curl` it.
+
+The same steps drop into a plgg-server HTTP handler unchanged — `param` and
+`jsonResponse` become more links in the same `proc` chain. See
+[`src/example/`](../example/) for the full SSR + JSON + CSR + `plgg-fetch`
+round-trip demo.
 
 ## The vocabulary plgg-sql adds
 

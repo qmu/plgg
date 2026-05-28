@@ -72,7 +72,7 @@ render(view, document.body);
 
 `mapErr(toHttpError)` lives once at the server edge — `SqlError`, `InvalidError`, anything else folds to the same `HttpError` vocabulary the client matches over. On the client, the same pipeline that fetches and decodes also branches *into JSX*: `matchResult` produces a `<p>` for the error case and a `<ul>` for the success case, and `matchOption` decides whether each article emits an `<em>` memo. The view, the request, and the error are all just values flowing through `pipe`.
 
-The runnable signup-style server is [`src/plgg-sql/example-web.ts`](src/plgg-sql/example-web.ts); the full SSR + JSON + CSR + `plgg-fetch` round-trip is in [`src/example/`](src/example/).
+The full SSR + JSON + CSR + `plgg-fetch` round-trip is in [`src/example/`](src/example/).
 
 ## Project Structure
 

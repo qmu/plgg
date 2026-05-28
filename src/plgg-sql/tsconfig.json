@@ -33,7 +33,6 @@
   },
   "include": [
     "src/**/*",
-    "example.ts",
-    "example-web.ts"
+    "example.ts"
   ]
 }

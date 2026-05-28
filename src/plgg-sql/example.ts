@@ -156,5 +156,5 @@ const main = async (): Promise<void> => {
 main();
 
 // These same steps drop into a plgg-server HTTP handler unchanged — `param` and
-// `jsonResponse` are just more links in the same proc chain. See the runnable
-// `example-web.ts` next to this file for the full request → DB → response demo.
+// `jsonResponse` are just more links in the same proc chain. See `src/example/`
+// for the full request → DB → response demo.
