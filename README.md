@@ -4,6 +4,76 @@
 
 A functional programming toolkit for TypeScript with type-safe pipelines, Result/Option monads, and AI workflow orchestration.
 
+## Web development as one pipeline
+
+`POST /articles`: validate the draft, stamp it with an id + timestamp, INSERT inside a transaction, return the saved row. One `proc` chain. The client posts the same draft, decodes the saved row, and folds the outcome with `match`.
+
+```typescript
+// server.ts — draft → stamped → tx{insert; read-back} → 201, in one expression.
+import { pipe, proc, mapErr, decodeJson, ok, newId, now } from "plgg";
+import { web, post, jsonResponse } from "plgg-http-router";
+import { sql, exec, query, transaction, decodeRow } from "plgg-sql";
+
+const app = pipe(
+  web(),
+  post("/articles", (c) =>
+    proc(
+      c.req.body,
+      decodeJson,                                                       // text → unknown
+      asNewArticle,                                                     // → { name, memo: Option<string> }
+      (a) => ok({ ...a, id: newId(), createdAt: now() }),               // stamp
+      transaction(db, (a) =>
+        proc(
+          sql`INSERT INTO articles (id, createdAt, name, memo)
+              VALUES (${a.id}, ${a.createdAt}, ${a.name}, ${a.memo})`,
+          exec(db),
+          () => query(db)(sql`SELECT id, createdAt, name, memo FROM articles WHERE id = ${a.id}`),
+          decodeRow(asArticle),
+        ),
+      ),
+      (article) => jsonResponse(article, 201),
+    ).then(mapErr(toHttpError)),                                        // any error → HttpError, once, at the edge
+  ),
+);
+```
+
+```tsx
+// client.tsx — GET the list, map each article to a <li>, mount the result.
+import { pipe, proc, match, matchResult, matchOption, otherwise } from "plgg";
+import { get, decodeJsonBody, networkError$ } from "plgg-http-client";
+import { render } from "plgg-http-router/client";
+import { VNode } from "plgg-view";
+
+const view: VNode = pipe(
+  await proc(
+    get("http://localhost:3000/articles"),
+    decodeJsonBody(asArticles),
+  ),
+  matchResult(
+    (e) => match(e)(
+      [networkError$(), (e) => <p>offline — {e.content.message}</p>],
+      [otherwise,       (e) => <p>error — {e.message}</p>],
+    ),
+    (articles) => (
+      <ul>
+        {articles.map((a) => (
+          <li>
+            <strong>{a.name}</strong>
+            {pipe(a.memo, matchOption(() => null, (m) => <em> — {m}</em>))}
+          </li>
+        ))}
+      </ul>
+    ),
+  ),
+);
+
+render(view, document.body);
+```
+
+`mapErr(toHttpError)` lives once at the server edge — `SqlError`, `InvalidError`, anything else folds to the same `HttpError` vocabulary the client matches over. On the client, the same pipeline that fetches and decodes also branches *into JSX*: `matchResult` produces a `<p>` for the error case and a `<ul>` for the success case, and `matchOption` decides whether each article emits an `<em>` memo. The view, the request, and the error are all just values flowing through `pipe`.
+
+The runnable signup-style server is [`src/plgg-sql/example-web.ts`](src/plgg-sql/example-web.ts); the full SSR + JSON + CSR + `plgg-http-client` round-trip is in [`src/example/`](src/example/).
+
 ## Project Structure
 
 This is a monorepo containing:
