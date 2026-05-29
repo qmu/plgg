@@ -64,10 +64,18 @@ event/refresh wiring entirely.
   + DOM `render`. 46 tests (incl. a happy-dom counter sandbox) at ≥91% coverage;
   `scripts/check-all.sh` green (VNode and all consumers untouched). `happy-dom`
   added to plgg-view devDeps; `./client` entry added to package.json/vite.
-- **Phases 2–6 — TODO**: `application` routing runtime; plgg-server `View`→`Html`;
-  example rewritten as a TEA app (resolve the HTTP/effects tension — recommend a
-  client-only TEA demo); plgg-router shrink to its pure path toolkit; remove the
-  legacy VNode/jsx-runtime. Resume with `/drive`.
+- **Phase 2 — DONE** (committed milestone; ticket kept). Added the `application`
+  routing runtime on the `plgg-view/client` subpath: a minimal `Url` model
+  (`{ path, search }`) and `application({ init, update, view, onUrlChange })` that
+  owns `popstate` + in-app `<a>` link interception (link guards cloned from
+  plgg-router — peer packages define in parallel, not import) and pushes/dispatches
+  `onUrlChange` on navigation. No `Cmd` — link-driven only. happy-dom spec covers
+  link nav, popstate, modifier/cross-origin/non-anchor pass-through, and cleanup;
+  ≥91% coverage; `scripts/check-all.sh` green (still coexists with VNode).
+- **Phases 3–6 — TODO**: plgg-server `View`→`Html`; example rewritten as a TEA
+  app (resolve the HTTP/effects tension — recommend a client-only TEA demo);
+  plgg-router shrink to its pure path toolkit; remove the legacy VNode/jsx-runtime.
+  Resume with `/drive`.
 
 ## The architecture (the design to build)
 
