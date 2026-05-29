@@ -20,7 +20,7 @@ A spec is a structured reference document in `.workaholic/specs/` that captures 
 
 ## changelog
 
-A changelog is the `CHANGELOG.md` file maintained at the root of each publishable package (`src/plgg/`, `src/plgg-foundry/`, `src/plgg-kit/`). It follows Keep a Changelog conventions with `## [Unreleased]` and versioned sections. An Unreleased entry must be replaced with a dated release entry before a package version merges to `main` — this is a project constraint documented in `.workaholic/constraints/project.md`. Currently all three packages have Unreleased entries, blocking the release candidate PR #6.
+A changelog is the `CHANGELOG.md` file maintained at the root of each publishable package (`packages/plgg/`, `packages/plgg-foundry/`, `packages/plgg-kit/`). It follows Keep a Changelog conventions with `## [Unreleased]` and versioned sections. An Unreleased entry must be replaced with a dated release entry before a package version merges to `main` — this is a project constraint documented in `.workaholic/constraints/project.md`. Currently all three packages have Unreleased entries, blocking the release candidate PR #6.
 
 ## settings.json
 

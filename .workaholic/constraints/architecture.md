@@ -13,9 +13,9 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 
 **Rationale**: The dependency stack (`plgg` → `plgg-kit` → `plgg-foundry`) ensures that the foundational type system is free of AI-specific or vendor-specific concerns. Reversing or skipping levels would collapse the abstraction layers and create coupling that prevents independent versioning.
 
-**Affects**: All leader agents modifying `src/plgg/`, `src/plgg-kit/`, `src/plgg-foundry/`, or `src/example/`.
+**Affects**: All leader agents modifying `packages/plgg/`, `packages/plgg-kit/`, `packages/plgg-foundry/`, or `packages/example/`.
 
-**Criterion**: A compliance check passes if no `import` statement in `src/plgg/src/` references `plgg-kit` or `plgg-foundry`, and no `import` in `src/plgg-kit/src/` references `plgg-foundry`. Verifiable via static import analysis or TypeScript compilation.
+**Criterion**: A compliance check passes if no `import` statement in `packages/plgg/src/` references `plgg-kit` or `plgg-foundry`, and no `import` in `packages/plgg-kit/src/` references `plgg-foundry`. Verifiable via static import analysis or TypeScript compilation.
 
 **Review trigger**: Revisit if a new package is added to the monorepo or if `plgg-kit` grows beyond vendor adapters.
 
@@ -39,7 +39,7 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 
 **Affects**: All leader agents writing TypeScript in any package.
 
-**Criterion**: `sh/tsc-plgg.sh` (and equivalent scripts for other packages) must exit with code 0. Any `as`, `any`, or `@ts-ignore` in source files constitutes a violation.
+**Criterion**: `scripts/tsc-plgg.sh` (and equivalent scripts for other packages) must exit with code 0. Any `as`, `any`, or `@ts-ignore` in source files constitutes a violation.
 
 **Review trigger**: Revisit when upgrading TypeScript major versions or when a new TypeScript feature would provide a safer alternative to a currently-avoided pattern.
 
@@ -51,7 +51,7 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 
 **Affects**: Leader agents working on `plgg` feature additions.
 
-**Criterion**: A new file added to `src/plgg/src/` must reside under one of the eleven existing category directories. Verifiable by directory listing.
+**Criterion**: A new file added to `packages/plgg/src/` must reside under one of the eleven existing category directories. Verifiable by directory listing.
 
 **Review trigger**: Revisit when adding a fundamentally new type class family (e.g., Reader, Writer, State monads) that does not fit an existing category.
 
@@ -61,9 +61,9 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 
 **Rationale**: Applications define custom apparatus functions that depend on these contracts. A breaking change would silently mismatch the runtime contract without TypeScript catching it if the user's function is typed permissively.
 
-**Affects**: Leader agents modifying `src/plgg-foundry/src/Foundry/model/` or `src/plgg-foundry/src/Alignment/model/`.
+**Affects**: Leader agents modifying `packages/plgg-foundry/src/Foundry/model/` or `packages/plgg-foundry/src/Alignment/model/`.
 
-**Criterion**: The existing `TodoFoundry.spec.ts` and `ProfileFoundry.spec.ts` tests must continue to pass after any change to the apparatus interfaces. Verifiable via `sh/test-plgg-foundry.sh`.
+**Criterion**: The existing `TodoFoundry.spec.ts` and `ProfileFoundry.spec.ts` tests must continue to pass after any change to the apparatus interfaces. Verifiable via `scripts/test-plgg-foundry.sh`.
 
 **Review trigger**: Revisit when a major version bump of `plgg-foundry` is planned or when the Alignment schema requires a structural change.
 
@@ -75,6 +75,6 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 
 **Affects**: Leader agents adding new LLM integrations or modifying the blueprint execution in `plgg-foundry`.
 
-**Criterion**: No `import` from an LLM vendor SDK (e.g., `openai`, `@anthropic-ai/sdk`, `@google/generative-ai`) appears in `src/plgg-foundry/src/`. Verifiable via static import analysis.
+**Criterion**: No `import` from an LLM vendor SDK (e.g., `openai`, `@anthropic-ai/sdk`, `@google/generative-ai`) appears in `packages/plgg-foundry/src/`. Verifiable via static import analysis.
 
 **Review trigger**: Revisit when adding a new LLM vendor or when `plgg-kit` is split into separate vendor packages.

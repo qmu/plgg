@@ -12,15 +12,15 @@ commit_hash: ddbb696
 
 ## plgg
 
-plgg is the root package of the monorepo and also the name of the overall project. As a package, `plgg` (at `src/plgg/`) provides a TypeScript functional programming type system and pipeline primitive library organized into eleven named categories: Abstracts, Atomics, Basics, Collectives, Conjunctives, Contextuals, Disjunctives, Exceptionals, Flowables, Functionals, and Grammaticals. As a project name, "plgg" refers to the entire monorepo hosted at `github.com/qmu/plgg`, which contains the `plgg`, `plgg-foundry`, and `plgg-kit` packages along with an unpublished `example` package. The project is explicitly marked UNSTABLE and is primarily intended for internal use.
+plgg is the root package of the monorepo and also the name of the overall project. As a package, `plgg` (at `packages/plgg/`) provides a TypeScript functional programming type system and pipeline primitive library organized into eleven named categories: Abstracts, Atomics, Basics, Collectives, Conjunctives, Contextuals, Disjunctives, Exceptionals, Flowables, Functionals, and Grammaticals. As a project name, "plgg" refers to the entire monorepo hosted at `github.com/qmu/plgg`, which contains the `plgg`, `plgg-foundry`, and `plgg-kit` packages along with an unpublished `example` package. The project is explicitly marked UNSTABLE and is primarily intended for internal use.
 
 ## plgg-foundry
 
-plgg-foundry is the AI-driven workflow orchestration package located at `src/plgg-foundry/`. It accepts a `Foundry` configuration (a collection of named `Apparatus` units) and an `Order` (natural-language instruction), then uses an LLM provider to generate an `Alignment` (structured operation plan), and executes that plan against the registered apparatuses. The public API is `runFoundry(foundry)(order)`, which composes the `blueprint` and `operate` functions internally. plgg-foundry depends on `plgg` for its type system and on `plgg-kit` for LLM provider access.
+plgg-foundry is the AI-driven workflow orchestration package located at `packages/plgg-foundry/`. It accepts a `Foundry` configuration (a collection of named `Apparatus` units) and an `Order` (natural-language instruction), then uses an LLM provider to generate an `Alignment` (structured operation plan), and executes that plan against the registered apparatuses. The public API is `runFoundry(foundry)(order)`, which composes the `blueprint` and `operate` functions internally. plgg-foundry depends on `plgg` for its type system and on `plgg-kit` for LLM provider access.
 
 ## plgg-kit
 
-plgg-kit is the LLM vendor abstraction package located at `src/plgg-kit/`. It defines a `Provider` union type (`OpenAI | Anthropic | Google`), each constructed via a factory function (`openai()`, `anthropic()`, `google()`). The primary export is a `generateObject` function that dispatches to the appropriate vendor adapter based on the provider type. plgg-kit was extracted from `plgg-foundry` to allow independent reuse of LLM access without depending on the full workflow orchestration layer.
+plgg-kit is the LLM vendor abstraction package located at `packages/plgg-kit/`. It defines a `Provider` union type (`OpenAI | Anthropic | Google`), each constructed via a factory function (`openai()`, `anthropic()`, `google()`). The primary export is a `generateObject` function that dispatches to the appropriate vendor adapter based on the provider type. plgg-kit was extracted from `plgg-foundry` to allow independent reuse of LLM access without depending on the full workflow orchestration layer.
 
 ## apparatus
 

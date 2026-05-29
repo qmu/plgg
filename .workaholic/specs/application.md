@@ -142,7 +142,7 @@ Error handling is uniform across the runtime. `PlggError` is the domain error un
 ## Assumptions
 
 - **[Explicit]** Package dependency graph is declared in `package.json` files: `plgg-foundry` depends on `plgg` and `plgg-kit` via `file:` links.
-- **[Explicit]** `runFoundry` is the public API entry point, as observed in `src/plgg-foundry/src/Foundry/usecase/runFoundry.ts`.
+- **[Explicit]** `runFoundry` is the public API entry point, as observed in `packages/plgg-foundry/src/Foundry/usecase/runFoundry.ts`.
 - **[Explicit]** `maxOperationLimit` defaults to 10 as hardcoded in `makeFoundry`.
 - **[Explicit]** Default LLM provider is `openai("gpt-5.1")` as hardcoded in `makeFoundry`.
 - **[Explicit]** `beforeOperations` and `afterOperations` are optional lifecycle callbacks called synchronously around the `operate` phase.

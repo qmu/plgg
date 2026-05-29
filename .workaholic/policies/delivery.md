@@ -58,8 +58,8 @@ identical build stack: Vite with `vite-plugin-dts`. The `build` npm script in ea
 `package.json` runs `vite build`, producing dual CJS and ESM outputs (`dist/index.cjs.js`
 and `dist/index.es.js`) along with TypeScript declaration files (`dist/index.d.ts`).
 
-The `sh/build.sh` script runs `npm run build` for `src/plgg` and `src/plgg-kit` in
-sequence. It does not build `src/plgg-foundry` or `src/example`.
+The `scripts/build.sh` script runs `npm run build` for `packages/plgg` and `packages/plgg-kit` in
+sequence. It does not build `packages/plgg-foundry` or `packages/example`.
 
 TypeScript compilation is enforced with a strict configuration in each package's
 `tsconfig.json`. The `plgg` package enforces `strict`, `noUnusedLocals`,
@@ -72,12 +72,12 @@ The CI pipeline (`run-tests` workflow) mirrors local build verification: it runs
 `npx tsc --noEmit` before executing tests and then runs `npm run build` to confirm the
 production artifact compiles cleanly.
 
-The `sh/check-all.sh` script provides a local full-suite check: it chains
+The `scripts/check-all.sh` script provides a local full-suite check: it chains
 `test-plgg.sh`, `test-plgg-kit.sh`, `test-plgg-foundry.sh`, `tsc-example.sh`, and
 `build.sh` in sequence.
 
-Dependencies are installed across all four packages by `sh/npm-install.sh`, which runs
-`npm install` in `src/plgg`, `src/plgg-kit`, `src/plgg-foundry`, and `src/example` in
+Dependencies are installed across all four packages by `scripts/npm-install.sh`, which runs
+`npm install` in `packages/plgg`, `packages/plgg-kit`, `packages/plgg-foundry`, and `packages/example` in
 order.
 
 ## Deployment Strategy
@@ -86,8 +86,8 @@ The `deployment` job in the `release` workflow contains only `echo "Deployment p
 step, or environment promotion logic is wired into the release workflow.
 
 The `publish` npm script (`vite build && npm publish`) exists in all three package
-`package.json` files, and a dedicated `sh/publish-plgg.sh` shell script runs
-`npm run publish` in `src/plgg`. However, neither of these is called from any GitHub
+`package.json` files, and a dedicated `scripts/publish-plgg.sh` shell script runs
+`npm run publish` in `packages/plgg`. However, neither of these is called from any GitHub
 Actions workflow. npm publishing is not automated.
 
 Deployment to environments other than npm (e.g., staging or production servers) is not
@@ -115,7 +115,7 @@ Version strings follow CalVer: `{YEAR}.{MM}.week{WEEK}.release{N}`. The release 
 categorizes pull requests by labels into sections: Addition, Modification, Refactoring,
 and Fix (`release-drafter-config.yml`).
 
-Manual npm publishing exists (`sh/publish-plgg.sh`, `npm run publish`) but is not
+Manual npm publishing exists (`scripts/publish-plgg.sh`, `npm run publish`) but is not
 integrated into the automated release workflow.
 
 ## Observations
@@ -126,7 +126,7 @@ and a GitHub Release publication step (via `release-drafter`). The CI test gate 
 conditional on the `ci-testing` label, which provides control over when the suite runs
 during review cycles. The three-branch promotion model (`feature -> main -> release`) is
 consistently enforced through workflow triggers. TypeScript compilation is verified both
-locally (via `sh/tsc-plgg.sh` and `sh/check-all.sh`) and in CI (via the `run-tests`
+locally (via `scripts/tsc-plgg.sh` and `scripts/check-all.sh`) and in CI (via the `run-tests`
 workflow).
 
 One significant gap exists: the actual deployment step in the `release` workflow is
@@ -138,7 +138,7 @@ connected to the automated release pipeline.
 - **Deployment target**: The `deployment` job in `.github/workflows/release.yml` contains
   only `echo "Deployment pipeline here"`. No actual publish or deploy step is implemented in
   the automated pipeline. Not observed.
-- **Automated npm publish**: The `npm run publish` script and `sh/publish-plgg.sh` exist
+- **Automated npm publish**: The `npm run publish` script and `scripts/publish-plgg.sh` exist
   but are not called from any workflow. Automated npm publishing is not observed.
 - **Environment promotion**: Staging or production environment concepts, environment
   variables per deployment target, and environment-specific configuration are not observed.

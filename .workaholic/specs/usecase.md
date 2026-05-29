@@ -284,8 +284,8 @@ const asUsername = (v: unknown) =>
 
 ## Assumptions
 
-- **[Explicit]** The `TodoFoundry.ts` example in `src/plgg-foundry/src/Example/` demonstrates the `makeFoundry` + `makeProcessor` + `runFoundry` workflow with an in-memory `Map`.
-- **[Explicit]** `runFoundry` accepts both `string` and `OrderSpec` as verified in `src/plgg-foundry/src/Foundry/usecase/runFoundry.ts`.
-- **[Explicit]** `Medium` is `{alignment: Alignment; params: Record<string, Param>}` as observed in `src/plgg-foundry/src/Foundry/model/Medium.ts`.
+- **[Explicit]** The `TodoFoundry.ts` example in `packages/plgg-foundry/src/Example/` demonstrates the `makeFoundry` + `makeProcessor` + `runFoundry` workflow with an in-memory `Map`.
+- **[Explicit]** `runFoundry` accepts both `string` and `OrderSpec` as verified in `packages/plgg-foundry/src/Foundry/usecase/runFoundry.ts`.
+- **[Explicit]** `Medium` is `{alignment: Alignment; params: Record<string, Param>}` as observed in `packages/plgg-foundry/src/Foundry/model/Medium.ts`.
 - **[Inferred]** `OrderSpec` carries at minimum `{text: string}` based on the string-to-OrderSpec coercion in `runFoundry`; file attachment fields are not confirmed from observed code.
 - **[Inferred]** No CLI entry point or HTTP server is present; all use cases are library API calls from user application code.

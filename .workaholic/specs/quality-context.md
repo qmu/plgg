@@ -29,7 +29,7 @@ This document captures the quality framework observable from project configurati
 - `isolatedModules: true`
 - `erasableSyntaxOnly: true`
 
-**Evidence**: `src/plgg/tsconfig.json`, `src/plgg-foundry/tsconfig.json`, `src/plgg-kit/tsconfig.json`, `CLAUDE.md`
+**Evidence**: `packages/plgg/tsconfig.json`, `packages/plgg-foundry/tsconfig.json`, `packages/plgg-kit/tsconfig.json`, `CLAUDE.md`
 
 **Enforcement**: Automated — `tsc --noEmit` runs in CI (`run-tests.yml` step "Run TypeScript compilation check") and is the first step in `npm run test` in all three packages.
 
@@ -43,7 +43,7 @@ This document captures the quality framework observable from project configurati
 - `trailingComma: "all"`
 - `bracketSameLine: false`
 
-**Evidence**: `src/plgg/.prettierrc.json`, `src/plgg-foundry/.prettierrc.json`, `src/plgg-kit/.prettierrc.json`
+**Evidence**: `packages/plgg/.prettierrc.json`, `packages/plgg-foundry/.prettierrc.json`, `packages/plgg-kit/.prettierrc.json`
 
 **Enforcement**: Standard without enforcement. Prettier is configured but no automated formatter check runs in CI or via pre-commit hooks. Formatting compliance is manual.
 
@@ -51,19 +51,19 @@ This document captures the quality framework observable from project configurati
 
 **Standard**: All tests must pass before merge. The `npm run test` script runs `tsc --noEmit && vitest --run` in the `plgg` package.
 
-**Evidence**: `src/plgg/package.json` scripts, `src/plgg-foundry/package.json` scripts, `src/plgg-kit/package.json` scripts
+**Evidence**: `packages/plgg/package.json` scripts, `packages/plgg-foundry/package.json` scripts, `packages/plgg-kit/package.json` scripts
 
-**Enforcement**: Automated — CI workflow `run-tests.yml` executes `npm test` in `src/plgg`.
+**Enforcement**: Automated — CI workflow `run-tests.yml` executes `npm test` in `packages/plgg`.
 
 **Observed metric**: 338 tests passing across 61 spec files in `plgg` (observed 2026-02-26).
 
-**Gap**: `plgg-kit` and `plgg-foundry` tests are not executed in CI. Only `src/plgg` tests run in the `run-tests.yml` workflow.
+**Gap**: `plgg-kit` and `plgg-foundry` tests are not executed in CI. Only `packages/plgg` tests run in the `run-tests.yml` workflow.
 
 ### Test Coverage
 
 **Standard (plgg)**: 90% thresholds for statements, branches, functions, and lines enforced via vitest v8 provider.
 
-**Evidence**: `src/plgg/vite.config.ts` — `thresholds: { statements: 90, branches: 90, functions: 90, lines: 90 }`
+**Evidence**: `packages/plgg/vite.config.ts` — `thresholds: { statements: 90, branches: 90, functions: 90, lines: 90 }`
 
 **Enforcement**: Automated — CI `run-tests.yml` step "Run tests with coverage" runs `npm run coverage`.
 
@@ -71,7 +71,7 @@ This document captures the quality framework observable from project configurati
 
 **Standard (plgg-foundry, plgg-kit)**: No thresholds configured. `coverage: { all: true }` is set but thresholds are absent.
 
-**Evidence**: `src/plgg-foundry/vite.config.ts`, `src/plgg-kit/vite.config.ts`
+**Evidence**: `packages/plgg-foundry/vite.config.ts`, `packages/plgg-kit/vite.config.ts`
 
 **Enforcement**: Standard without enforcement for `plgg-foundry` and `plgg-kit`. Coverage can be run manually but no CI step or threshold gates these packages.
 
@@ -79,9 +79,9 @@ This document captures the quality framework observable from project configurati
 
 **Standard**: The library must build successfully with `vite build` before release.
 
-**Evidence**: `src/plgg/package.json` build script, `run-tests.yml` step "Build library"
+**Evidence**: `packages/plgg/package.json` build script, `run-tests.yml` step "Build library"
 
-**Enforcement**: Automated — CI runs `npm run build` in `src/plgg` on every qualifying PR and push to main.
+**Enforcement**: Automated — CI runs `npm run build` in `packages/plgg` on every qualifying PR and push to main.
 
 ### Code Linting
 
@@ -119,7 +119,7 @@ This document captures the quality framework observable from project configurati
 
 **Trigger**: Pull request events `review_requested`, `synchronize` (when `ci-testing` label is present), `labeled` with `ci-testing`; push to `main`.
 
-**Scope**: `src/plgg` package only.
+**Scope**: `packages/plgg` package only.
 
 **Enforcement mechanism**: Sequential GitHub Actions steps — TypeScript compilation check, test run, build, coverage with thresholds.
 
@@ -178,9 +178,9 @@ This document captures the quality framework observable from project configurati
 | Branch coverage (plgg) | 92.24% | Local run 2026-02-26 | Yes |
 | Function coverage (plgg) | 90.2% | Local run 2026-02-26 | Yes |
 | Line coverage (plgg) | 89.81% | Local run 2026-02-26 | Yes |
-| Coverage threshold (plgg) | 90% all dimensions | `src/plgg/vite.config.ts` | Yes |
-| Coverage threshold (plgg-foundry) | None set | `src/plgg-foundry/vite.config.ts` | Yes |
-| Coverage threshold (plgg-kit) | None set | `src/plgg-kit/vite.config.ts` | Yes |
+| Coverage threshold (plgg) | 90% all dimensions | `packages/plgg/vite.config.ts` | Yes |
+| Coverage threshold (plgg-foundry) | None set | `packages/plgg-foundry/vite.config.ts` | Yes |
+| Coverage threshold (plgg-kit) | None set | `packages/plgg-kit/vite.config.ts` | Yes |
 | CI test scope | plgg only | `run-tests.yml` | Yes |
 | Pre-commit hooks | None | Filesystem | Yes |
 | Lint tooling | None | Filesystem | Yes |
@@ -191,7 +191,7 @@ This document captures the quality framework observable from project configurati
 
 ### Gap 1: Coverage Thresholds Below Passing in plgg
 
-**Expected standard**: 90% statements, branches, functions, lines (`src/plgg/vite.config.ts`)
+**Expected standard**: 90% statements, branches, functions, lines (`packages/plgg/vite.config.ts`)
 
 **Missing enforcement**: Statements and lines are at 89.81%, below the 90% threshold. The abstract interface files under `Abstracts/Principals` and `Abstracts/Servables` contribute 0% coverage and are not excluded from the coverage scope.
 
@@ -201,7 +201,7 @@ This document captures the quality framework observable from project configurati
 
 **Expected standard**: Coverage thresholds consistent with plgg's 90% standard.
 
-**Missing enforcement**: `src/plgg-foundry/vite.config.ts` and `src/plgg-kit/vite.config.ts` configure `coverage: { all: true }` but omit `thresholds`. No CI step runs coverage for these packages.
+**Missing enforcement**: `packages/plgg-foundry/vite.config.ts` and `packages/plgg-kit/vite.config.ts` configure `coverage: { all: true }` but omit `thresholds`. No CI step runs coverage for these packages.
 
 **Affects**: quality-lead, test-lead
 
@@ -209,7 +209,7 @@ This document captures the quality framework observable from project configurati
 
 **Expected standard**: All package tests should run in CI.
 
-**Missing enforcement**: `run-tests.yml` only installs dependencies and runs tests in `src/plgg`. `plgg-kit` and `plgg-foundry` test suites are not executed.
+**Missing enforcement**: `run-tests.yml` only installs dependencies and runs tests in `packages/plgg`. `plgg-kit` and `plgg-foundry` test suites are not executed.
 
 **Affects**: quality-lead, test-lead
 
@@ -253,7 +253,7 @@ This document captures the quality framework observable from project configurati
 
 **Connection**: When `npm run coverage` exits non-zero in `run-tests.yml`, the workflow fails. This prevents the PR from being considered ready for merge if branch protection requires CI to pass.
 
-**Evidence**: `run-tests.yml` step "Run tests with coverage"; `src/plgg/vite.config.ts` thresholds
+**Evidence**: `run-tests.yml` step "Run tests with coverage"; `packages/plgg/vite.config.ts` thresholds
 
 **Limitation**: Coverage thresholds are currently not passing (89.81% < 90% for statements/lines). If branch protection does not enforce CI status, this feedback loop is advisory only.
 
@@ -261,7 +261,7 @@ This document captures the quality framework observable from project configurati
 
 **Connection**: `npm run test` in plgg runs `tsc --noEmit` before vitest. A compilation failure stops the test run immediately, providing fast feedback on type errors.
 
-**Evidence**: `src/plgg/package.json` test script
+**Evidence**: `packages/plgg/package.json` test script
 
 ### Review Request Triggers CI
 

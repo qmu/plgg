@@ -15,7 +15,7 @@ The quality manager's territory spans type correctness, test coverage, formattin
 
 **Affects**: All leader agents modifying TypeScript source files (quality-lead, any implementation leader).
 
-**Criterion**: A source file is compliant if `git grep -n 'as any\|@ts-ignore\| as .*[A-Z]' src/` returns no results in project source directories. `tsc --noEmit` must exit 0. Compliant if both conditions hold.
+**Criterion**: A source file is compliant if `git grep -n 'as any\|@ts-ignore\| as .*[A-Z]' packages/` returns no results in project source directories. `tsc --noEmit` must exit 0. Compliant if both conditions hold.
 
 **Review trigger**: Revisit if a new TypeScript major version introduces safer alternatives (e.g., `satisfies` operator already exists; any future constructs should be evaluated before adding exceptions).
 
@@ -23,13 +23,13 @@ The quality manager's territory spans type correctness, test coverage, formattin
 
 ## TypeScript Strict Mode
 
-**Bounds**: All packages must maintain the full strict compiler flag set defined in `src/plgg/tsconfig.json`. No flag in this set may be removed or set to `false`. The set includes: `strict`, `noUnusedLocals`, `noUnusedParameters`, `noUncheckedIndexedAccess`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `exactOptionalPropertyTypes`, `allowUnreachableCode: false`, `allowUnusedLabels: false`, `allowJs: false`, `isolatedModules`, `erasableSyntaxOnly`.
+**Bounds**: All packages must maintain the full strict compiler flag set defined in `packages/plgg/tsconfig.json`. No flag in this set may be removed or set to `false`. The set includes: `strict`, `noUnusedLocals`, `noUnusedParameters`, `noUncheckedIndexedAccess`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `exactOptionalPropertyTypes`, `allowUnreachableCode: false`, `allowUnusedLabels: false`, `allowJs: false`, `isolatedModules`, `erasableSyntaxOnly`.
 
 **Rationale**: Consistent strict mode across packages ensures that types are portable between `plgg`, `plgg-kit`, and `plgg-foundry` without silent coercion. Allowing relaxed flags in one package creates boundary mismatches.
 
 **Affects**: quality-lead, any leader modifying `tsconfig.json` files.
 
-**Criterion**: Compliant if `diff src/plgg/tsconfig.json src/plgg-foundry/tsconfig.json` and `diff src/plgg/tsconfig.json src/plgg-kit/tsconfig.json` show no differences in `compilerOptions` flags (path-specific fields like `paths`, `rootDir`, `outDir` are excluded).
+**Criterion**: Compliant if `diff packages/plgg/tsconfig.json packages/plgg-foundry/tsconfig.json` and `diff packages/plgg/tsconfig.json packages/plgg-kit/tsconfig.json` show no differences in `compilerOptions` flags (path-specific fields like `paths`, `rootDir`, `outDir` are excluded).
 
 **Review trigger**: Revisit when TypeScript releases a new flag that becomes part of `strict` or that the project adopts.
 
@@ -37,13 +37,13 @@ The quality manager's territory spans type correctness, test coverage, formattin
 
 ## Test Coverage Thresholds
 
-**Bounds**: All packages (`plgg`, `plgg-foundry`, `plgg-kit`) must configure vitest coverage thresholds of at minimum 90% for statements, branches, functions, and lines. The `plgg` package already enforces this in `src/plgg/vite.config.ts`. `plgg-foundry` and `plgg-kit` are currently unconstrained.
+**Bounds**: All packages (`plgg`, `plgg-foundry`, `plgg-kit`) must configure vitest coverage thresholds of at minimum 90% for statements, branches, functions, and lines. The `plgg` package already enforces this in `packages/plgg/vite.config.ts`. `plgg-foundry` and `plgg-kit` are currently unconstrained.
 
 **Rationale**: Unconstrained coverage in satellite packages (`plgg-kit`, `plgg-foundry`) creates an asymmetric quality bar. Changes to these packages can regress without any automated signal.
 
 **Affects**: quality-lead, test-lead.
 
-**Criterion**: Compliant if `src/plgg-foundry/vite.config.ts` and `src/plgg-kit/vite.config.ts` each contain a `thresholds` block with `statements`, `branches`, `functions`, and `lines` all set to at least 90, AND `npm run coverage` exits 0 in each package.
+**Criterion**: Compliant if `packages/plgg-foundry/vite.config.ts` and `packages/plgg-kit/vite.config.ts` each contain a `thresholds` block with `statements`, `branches`, `functions`, and `lines` all set to at least 90, AND `npm run coverage` exits 0 in each package.
 
 **Review trigger**: Revisit after the `Abstracts/Principals` and `Abstracts/Servables` coverage exclusion issue in `plgg` is resolved. Consider whether 90% remains the appropriate floor or should increase.
 
@@ -57,7 +57,7 @@ The quality manager's territory spans type correctness, test coverage, formattin
 
 **Affects**: quality-lead, test-lead.
 
-**Criterion**: Compliant if `npm run coverage` exits 0 in `src/plgg` AND all files with 0% coverage in the report are files that contain only type-level constructs (interfaces, type aliases, abstract declarations with no implementation).
+**Criterion**: Compliant if `npm run coverage` exits 0 in `packages/plgg` AND all files with 0% coverage in the report are files that contain only type-level constructs (interfaces, type aliases, abstract declarations with no implementation).
 
 **Review trigger**: Revisit whenever a new abstract-only module is added to any package, to ensure the exclusion list remains complete.
 
@@ -65,13 +65,13 @@ The quality manager's territory spans type correctness, test coverage, formattin
 
 ## CI Test Scope
 
-**Bounds**: The CI workflow `run-tests.yml` must execute tests for all packages that have a test suite. Currently, only `src/plgg` is tested in CI. `src/plgg-kit` and `src/plgg-foundry` are unconstrained — their tests are not run in CI.
+**Bounds**: The CI workflow `run-tests.yml` must execute tests for all packages that have a test suite. Currently, only `packages/plgg` is tested in CI. `packages/plgg-kit` and `packages/plgg-foundry` are unconstrained — their tests are not run in CI.
 
 **Rationale**: Changes to `plgg-kit` or `plgg-foundry` can break their own test suites without any CI signal. The absence of CI coverage for these packages means regressions are only detected locally.
 
 **Affects**: quality-lead, test-lead.
 
-**Criterion**: Compliant if `.github/workflows/run-tests.yml` contains steps that install dependencies and run `npm test` for each of `src/plgg`, `src/plgg-kit`, and `src/plgg-foundry`.
+**Criterion**: Compliant if `.github/workflows/run-tests.yml` contains steps that install dependencies and run `npm test` for each of `packages/plgg`, `packages/plgg-kit`, and `packages/plgg-foundry`.
 
 **Review trigger**: Revisit when `plgg-foundry` test suite depends on external services (e.g., LLM APIs); decide whether to run with mocks or skip in CI.
 

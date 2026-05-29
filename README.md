@@ -72,19 +72,19 @@ render(view, document.body);
 
 `mapErr(toHttpError)` lives once at the server edge — `SqlError`, `InvalidError`, anything else folds to the same `HttpError` vocabulary the client matches over. On the client, the same pipeline that fetches and decodes also branches *into JSX*: `matchResult` produces a `<p>` for the error case and a `<ul>` for the success case, and `matchOption` decides whether each article emits an `<em>` memo. The view, the request, and the error are all just values flowing through `pipe`.
 
-The full SSR + JSON + CSR + `plgg-fetch` round-trip is in [`src/example/`](src/example/).
+The full SSR + JSON + CSR + `plgg-fetch` round-trip is in [`packages/example/`](packages/example/).
 
 ## Project Structure
 
 This is a monorepo containing:
 
-- **[`src/plgg/`](src/plgg/)** - Core library: type-safe functional primitives (Result, Option, pipelines, branded types, numeric types)
-- **[`src/plgg-kit/`](src/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
-- **[`src/plgg-foundry/`](src/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
-- **[`src/plgg-server/`](src/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
-- **[`src/plgg-fetch/`](src/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
-- **[`src/plgg-router/`](src/plgg-router/)** - Lightweight SPA client-side router on plgg-view (path → `VNode`). plgg-server's `Routing` is server-side path → `HttpResponse` matching; plgg-router is the client-side mirror (`Location` → `VNode`), sharing the `Segment`/`:param`/`*` vocabulary by parallel definition. History API + `./client` DOM seam.
-- **[`src/example/`](src/example/)** - Example usage project
+- **[`packages/plgg/`](packages/plgg/)** - Core library: type-safe functional primitives (Result, Option, pipelines, branded types, numeric types)
+- **[`packages/plgg-kit/`](packages/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
+- **[`packages/plgg-foundry/`](packages/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
+- **[`packages/plgg-server/`](packages/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
+- **[`packages/plgg-fetch/`](packages/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
+- **[`packages/plgg-router/`](packages/plgg-router/)** - Lightweight SPA client-side router on plgg-view (path → `VNode`). plgg-server's `Routing` is server-side path → `HttpResponse` matching; plgg-router is the client-side mirror (`Location` → `VNode`), sharing the `Segment`/`:param`/`*` vocabulary by parallel definition. History API + `./client` DOM seam.
+- **[`packages/example/`](packages/example/)** - Example usage project
 
 ## Installation
 
@@ -278,52 +278,52 @@ plgg exports 11 module categories, all available as top-level imports from `"plg
 
 LLM provider abstractions with a unified `generateObject` interface supporting OpenAI, Anthropic, and Google. Provides type-safe structured output generation.
 
-See [src/plgg-kit/README.md](src/plgg-kit/README.md) for details.
+See [packages/plgg-kit/README.md](packages/plgg-kit/README.md) for details.
 
 ### plgg-foundry
 
 AI-powered workflow orchestration using a register machine model. Define operations as `Processor`, `Switcher`, and `Packer` apparatus, and let an LLM generate an execution plan (`Alignment`) from a natural language request.
 
-See [src/plgg-foundry/README.md](src/plgg-foundry/README.md) for details.
+See [packages/plgg-foundry/README.md](packages/plgg-foundry/README.md) for details.
 
 ### plgg-server
 
 A server-side web router and HTTP request handler built from scratch on plgg — no external HTTP framework. The app is a pure-data `Web` value assembled through `pipe` (data-last `get`/`post`/`use`/`route` transformers, no method chaining); `handle` runs it plgg-natively while `toFetch` is the Web-standard `Request`/`Response` seam. Path params/wildcards, onion-model middleware, and a `node:http` adapter (`serve`).
 
-See [src/plgg-server/README.md](src/plgg-server/README.md) for details.
+See [packages/plgg-server/README.md](packages/plgg-server/README.md) for details.
 
 ### plgg-fetch
 
 A typed HTTP client built from scratch on plgg — the symmetric companion of plgg-server. `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
 
-See [src/plgg-fetch/README.md](src/plgg-fetch/README.md) for details.
+See [packages/plgg-fetch/README.md](packages/plgg-fetch/README.md) for details.
 
 ## Development
 
 ```bash
 # Install dependencies for all packages
-sh/npm-install.sh
+scripts/npm-install.sh
 
 # Type check
-sh/tsc-plgg.sh
+scripts/tsc-plgg.sh
 
 # Run tests
-sh/test-plgg.sh
+scripts/test-plgg.sh
 
 # Run tests with coverage
-sh/coverage-plgg.sh
+scripts/coverage-plgg.sh
 
 # Build all packages
-sh/build.sh
+scripts/build.sh
 
 # Sub-package tests
-sh/test-plgg-kit.sh
-sh/test-plgg-foundry.sh
-sh/test-plgg-server.sh
-sh/test-plgg-fetch.sh
+scripts/test-plgg-kit.sh
+scripts/test-plgg-foundry.sh
+scripts/test-plgg-server.sh
+scripts/test-plgg-fetch.sh
 
 # Run all checks (type check + test for all packages)
-sh/check-all.sh
+scripts/check-all.sh
 ```
 
 ## License

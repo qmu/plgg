@@ -194,7 +194,7 @@ All packages share an identical strict TypeScript configuration:
 
 ## Assumptions
 
-- **[Explicit]** `maxOperationLimit` defaults to 10 and `provider` defaults to `openai("gpt-5.1")` as hardcoded in `src/plgg-foundry/src/Foundry/model/Foundry.ts`.
+- **[Explicit]** `maxOperationLimit` defaults to 10 and `provider` defaults to `openai("gpt-5.1")` as hardcoded in `packages/plgg-foundry/src/Foundry/model/Foundry.ts`.
 - **[Explicit]** The three supported LLM vendors are confirmed by the vendor directory listing: `OpenAI.ts`, `Anthropic.ts`, `Google.ts`.
 - **[Explicit]** TypeScript configuration flags are read directly from each package's `tsconfig.json`.
 - **[Inferred]** `Packer` apparatus type's role in egress schema is inferred from the blueprint prompt structure and `explainApparatus` usage; no dedicated `makePacker` implementation was observed in the explored files.
