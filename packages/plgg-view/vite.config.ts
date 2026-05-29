@@ -28,6 +28,7 @@ export default defineConfig({
         "**/index.ts",
         "**/jsx-runtime.ts",
         "**/jsx-dev-runtime.ts",
+        "src/client.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -42,12 +43,14 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      // Three entry points so a real consumer can resolve the package itself
-      // (`plgg-view`) and the automatic JSX runtime subpaths
-      // (`plgg-view/jsx-runtime`, `plgg-view/jsx-dev-runtime`) — the same
-      // layout React/Preact expose. Shared code is code-split into chunks.
+      // Entry points: the runtime-neutral core (`plgg-view` — Html model, folds,
+      // SSR renderToString), the browser-only Elm-Architecture runtime
+      // (`plgg-view/client` — sandbox + DOM render), and the legacy automatic
+      // JSX runtime subpaths (kept during the VNode→Html migration). Window/DOM
+      // code lives only behind `./client`, so the core entry stays SSR-safe.
       entry: {
         index: "src/index.ts",
+        client: "src/client.ts",
         "jsx-runtime": "src/jsx-runtime.ts",
         "jsx-dev-runtime": "src/jsx-dev-runtime.ts",
       },

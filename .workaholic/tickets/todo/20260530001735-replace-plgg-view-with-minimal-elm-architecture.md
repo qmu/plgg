@@ -53,6 +53,22 @@ functions, immutable data, errors/events as values, one runtime seam. The
 thing that is still recognizably TEA and removes the example's hand-rolled
 event/refresh wiring entirely.
 
+## Progress
+
+- **Phase 1 — DONE** (committed as a standalone green milestone; ticket kept in
+  `todo/` for the rest). plgg-view now ships the TEA core **coexisting with the
+  legacy VNode**: `Html<Msg>` + `Attribute<Msg>` (static attrs + `onClick`/
+  `onInput`/`onChange`/`onSubmit`/`on` handlers), Elm hyperscript builders
+  (`div`/`button`/`text`/…), `foldHtml`, `mapHtml`, pure `renderToString` (SSR,
+  handlers dropped), and a `plgg-view/client` subpath with the `sandbox` runtime
+  + DOM `render`. 46 tests (incl. a happy-dom counter sandbox) at ≥91% coverage;
+  `scripts/check-all.sh` green (VNode and all consumers untouched). `happy-dom`
+  added to plgg-view devDeps; `./client` entry added to package.json/vite.
+- **Phases 2–6 — TODO**: `application` routing runtime; plgg-server `View`→`Html`;
+  example rewritten as a TEA app (resolve the HTTP/effects tension — recommend a
+  client-only TEA demo); plgg-router shrink to its pure path toolkit; remove the
+  legacy VNode/jsx-runtime. Resume with `/drive`.
+
 ## The architecture (the design to build)
 
 ### 1. `Html<Msg>` — the view tree (clean-slate, replaces `VNode`)
