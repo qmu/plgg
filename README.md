@@ -83,6 +83,7 @@ This is a monorepo containing:
 - **[`src/plgg-foundry/`](src/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
 - **[`src/plgg-server/`](src/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
 - **[`src/plgg-fetch/`](src/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
+- **[`src/plgg-router/`](src/plgg-router/)** - Lightweight SPA client-side router on plgg-view (path → `VNode`). plgg-server's `Routing` is server-side path → `HttpResponse` matching; plgg-router is the client-side mirror (`Location` → `VNode`), sharing the `Segment`/`:param`/`*` vocabulary by parallel definition. History API + `./client` DOM seam.
 - **[`src/example/`](src/example/)** - Example usage project
 
 ## Installation
@@ -102,6 +103,9 @@ npm install plgg-server
 
 # Typed HTTP client (depends on plgg and plgg-server)
 npm install plgg-fetch
+
+# SPA client-side router (depends on plgg and plgg-view)
+npm install plgg-router
 ```
 
 ## Core Concepts

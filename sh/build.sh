@@ -1,11 +1,13 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
-echo "=== Running 'npm run build' in src/plgg, src/plgg-kit, src/plgg-view, src/plgg-server, src/plgg-fetch, and src/plgg-sql ==="
+echo "=== Running 'npm run build' in src/plgg, src/plgg-kit, src/plgg-view, src/plgg-router, src/plgg-server, src/plgg-fetch, and src/plgg-sql ==="
 cd $REPO_ROOT/src/plgg && npm run build
 cd $REPO_ROOT/src/plgg-kit && npm run build
 # plgg-view before plgg-server: the router's View feature depends on plgg-view's dist.
 cd $REPO_ROOT/src/plgg-view && npm run build
+# plgg-router after plgg-view: the client router resolves routes to VNode (plgg-view's dist).
+cd $REPO_ROOT/src/plgg-router && npm run build
 cd $REPO_ROOT/src/plgg-server && npm run build
 # plgg-fetch after plgg-server: it consumes the router's dist.
 cd $REPO_ROOT/src/plgg-fetch && npm run build
