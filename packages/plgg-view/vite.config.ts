@@ -20,7 +20,6 @@ export default defineConfig({
         "dist/**",
         "coverage/**",
         "**/*.spec.ts",
-        "**/*.spec.tsx",
         "**/*.test.ts",
         "**/index.ts",
         "src/client.ts",

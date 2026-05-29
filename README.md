@@ -37,42 +37,33 @@ const app = pipe(
 );
 ```
 
-```tsx
-// client.tsx — GET the list, map each article to a <li>, mount the result.
-import { pipe, proc, match, matchResult, matchOption, otherwise } from "plgg";
-import { get, decodeJsonBody, networkError$ } from "plgg-fetch";
-import { render } from "plgg-server/client";
-import { VNode } from "plgg-view";
+```typescript
+// app.ts — the client is one Elm-Architecture program (plgg-view): an immutable
+// Model, a pure `update` folding each Msg, and a pure `view(model): Html<Msg>`.
+// No JSX — Elm-style hyperscript builders, and handlers are typed to produce Msg.
+import { div, h1, button, text, onClick, type Html } from "plgg-view";
+import { sandbox } from "plgg-view/client";
 
-const view: VNode = pipe(
-  await proc(
-    get("http://localhost:3000/articles"),
-    decodeJsonBody(asArticles),
-  ),
-  matchResult(
-    (e) => match(e)(
-      [networkError$(), (e) => <p>offline — {e.content.message}</p>],
-      [otherwise,       (e) => <p>error — {e.message}</p>],
-    ),
-    (articles) => (
-      <ul>
-        {articles.map((a) => (
-          <li>
-            <strong>{a.name}</strong>
-            {pipe(a.memo, matchOption(() => null, (m) => <em> — {m}</em>))}
-          </li>
-        ))}
-      </ul>
-    ),
-  ),
-);
+type Model = Readonly<{ count: number }>;
+type Msg = "Inc" | "Dec";
 
-render(view, document.body);
+const update = (msg: Msg, m: Model): Model =>
+  msg === "Inc" ? { count: m.count + 1 } : { count: m.count - 1 };
+
+const view = (m: Model): Html<Msg> =>
+  div([], [
+    h1([], [text(`count: ${m.count}`)]),
+    button([onClick<Msg>("Dec")], [text("-")]),
+    button([onClick<Msg>("Inc")], [text("+")]),
+  ]);
+
+// the runtime owns state + the DOM; mount renders view(init), each Msg re-renders.
+sandbox({ init: { count: 0 }, update, view })(document.body);
 ```
 
-`mapErr(toHttpError)` lives once at the server edge — `SqlError`, `InvalidError`, anything else folds to the same `HttpError` vocabulary the client matches over. On the client, the same pipeline that fetches and decodes also branches *into JSX*: `matchResult` produces a `<p>` for the error case and a `<ul>` for the success case, and `matchOption` decides whether each article emits an `<em>` memo. The view, the request, and the error are all just values flowing through `pipe`.
+On the server, `mapErr(toHttpError)` lives once at the edge — `SqlError`, `InvalidError`, anything else folds to the same `HttpError` vocabulary. On the client, the `Model`, the `Msg`, and the `view` are all just plgg values flowing through pure functions. The **same** `view` renders both ways: plgg-server's `pageResponse({ root: view(init), clientEntry })` folds `Html<Msg>` through plgg-view's `renderToString` for server-side first paint, then ships a script that boots the client `sandbox` to take over the same DOM node. (Live JSON still flows as values — `plgg-fetch`'s typed `get`/`post` return `PromisedResult<HttpResponse, ClientError>` — wiring those into `update` awaits a `Cmd` effect phase.)
 
-The full SSR + JSON + CSR + `plgg-fetch` round-trip is in [`packages/example/`](packages/example/).
+The SSR + CSR round-trip over one Elm-Architecture program is in [`packages/example/`](packages/example/).
 
 ## Project Structure
 
@@ -83,7 +74,8 @@ This is a monorepo containing:
 - **[`packages/plgg-foundry/`](packages/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
 - **[`packages/plgg-server/`](packages/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
 - **[`packages/plgg-fetch/`](packages/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
-- **[`packages/plgg-router/`](packages/plgg-router/)** - Lightweight SPA client-side router on plgg-view (path → `VNode`). plgg-server's `Routing` is server-side path → `HttpResponse` matching; plgg-router is the client-side mirror (`Location` → `VNode`), sharing the `Segment`/`:param`/`*` vocabulary by parallel definition. History API + `./client` DOM seam.
+- **[`packages/plgg-view/`](packages/plgg-view/)** - Minimal Elm Architecture (TEA) for the browser: a typed `Html<Msg>` view tree (Elm-style hyperscript builders, no JSX), pure `sandbox`/`application` runtimes, and SSR `renderToString`. Built on plgg only.
+- **[`packages/plgg-router/`](packages/plgg-router/)** - Pure client-side path toolkit: compile/match path patterns (`:param`/`*wildcard`) and parse the query string into `Location` data — view-free and DOM-free. Consumed by plgg-view's `application` runtime, which owns the History/render loop. plgg-server's `Routing` is the server-side path → `HttpResponse` matcher; plgg-router shares its `Segment`/`:param`/`*` vocabulary by parallel definition.
 - **[`packages/example/`](packages/example/)** - Example usage project
 
 ## Installation
@@ -104,7 +96,10 @@ npm install plgg-server
 # Typed HTTP client (depends on plgg and plgg-server)
 npm install plgg-fetch
 
-# SPA client-side router (depends on plgg and plgg-view)
+# Minimal Elm Architecture view layer (depends on plgg)
+npm install plgg-view
+
+# Pure client-side path toolkit (depends on plgg)
 npm install plgg-router
 ```
 
@@ -297,6 +292,18 @@ See [packages/plgg-server/README.md](packages/plgg-server/README.md) for details
 A typed HTTP client built from scratch on plgg — the symmetric companion of plgg-server. `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
 
 See [packages/plgg-fetch/README.md](packages/plgg-fetch/README.md) for details.
+
+### plgg-view
+
+A minimal Elm Architecture (TEA) for the browser. An app is three pure values — an immutable `Model`, an `update: (Msg, Model) => Model`, and a `view: (Model) => Html<Msg>` — driven by a tiny runtime. The view is a typed `Html<Msg>` tree authored with Elm-style hyperscript builders (`div`/`button`/`text`/…, no JSX) whose handlers produce `Msg`. Ships two entries: the SSR-safe core (`Html`, folds, `renderToString`) and `plgg-view/client` (the `sandbox`/`application` runtimes + DOM render).
+
+See [packages/plgg-view/README.md](packages/plgg-view/README.md) for details.
+
+### plgg-router
+
+A pure client-side path toolkit: `compilePattern`/`matchSegments`/`parseQuery`/`param`/`query` turn a URL into `Location` data (captured `:param`s + parsed query), returning data and never a view. View-free and DOM-free — plgg-view's `application` runtime consumes it for routing while owning the History/render loop. Shares the `Segment`/`:param`/`*wildcard` vocabulary with plgg-server's server-side `Routing` by parallel definition (no import edge).
+
+See [packages/plgg-router/README.md](packages/plgg-router/README.md) for details.
 
 ## Development
 

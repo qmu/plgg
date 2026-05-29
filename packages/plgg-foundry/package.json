@@ -1,7 +1,7 @@
 {
   "name": "plgg-foundry",
   "version": "0.0.1",
-  "description": "",
+  "description": "AI-powered workflow orchestration built on the plgg framework: an LLM composes an execution plan (Alignment) from a register-machine set of operations (a Foundry)",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {

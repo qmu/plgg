@@ -4,8 +4,8 @@ import { Box, SoftStr, box, pattern } from "plgg";
  * A single attribute on an {@link Html} element, parameterized by the app's
  * `Msg`. Either a static `name`/`value` pair, or an event handler that turns a
  * DOM event payload (an input's value, or `""` for click/submit) into a `Msg`.
- * This handler channel is what makes the view tree `Html<Msg>` rather than the
- * passive, string-only `VNode` it replaces.
+ * This handler channel is what makes the view tree `Html<Msg>` rather than a
+ * passive, string-only view tree — events flow back to the app as `Msg` data.
  */
 export type Attribute<Msg> =
   | Box<

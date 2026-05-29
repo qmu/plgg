@@ -2,9 +2,9 @@ import { Box, SoftStr, pattern } from "plgg";
 import { Attribute } from "plgg-view/Html/model/Attribute";
 
 /**
- * The view as **pure data**, parameterized by the app's `Msg` — the clean-slate
- * successor to `VNode`. A `Box` union: an intrinsic `Element` (tag + attributes
- * carrying event handlers + children) or a `Text` leaf. Function "components"
+ * The view as **pure data**, parameterized by the app's `Msg`. A `Box` union: an
+ * intrinsic `Element` (tag + attributes carrying event handlers + children) or a
+ * `Text` leaf. Function "components"
  * are just functions returning `Html<Msg>`; there is no class, no DOM node — the
  * runtime turns this into DOM (client) or a string (SSR).
  */
