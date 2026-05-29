@@ -13,10 +13,6 @@ export default defineConfig({
       ),
     },
   },
-  // `.tsx` specs/example compile through the automatic JSX runtime: Vite reads
-  // `jsx` and `jsxImportSource` from tsconfig.json (so transforms resolve
-  // plgg-view's jsx-runtime), and the `resolve.alias` above maps the package to
-  // ./src.
   test: {
     coverage: {
       all: true,
@@ -30,7 +26,6 @@ export default defineConfig({
         "**/*.spec.tsx",
         "**/*.test.ts",
         "**/index.ts",
-        "src/client.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -45,20 +40,19 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      // Two entries: the runtime-neutral core (`index` — the Routing model and
-      // the pure path/resolve usecases) and the browser-only DOM/History seam
-      // (`client`). Window/History/Document code never leaks into the core
-      // entry, so the package's root import is environment-agnostic.
+      // One entry: the runtime-neutral core (`index` — the `Segment`/`Location`
+      // model and the pure path usecases: `compilePattern`/`matchSegments`/
+      // `parseQuery`/`param`/`query`). No DOM/History code, no view dependency —
+      // the package is pure data, consumed by plgg-view's `application` runtime.
       entry: {
         index: "src/index.ts",
-        client: "src/client.ts",
       },
       fileName: (format, entryName) =>
         `${entryName}.${format}.js`,
       formats: ["es", "cjs"],
     },
     rollupOptions: {
-      // No `node:*` to externalize — the package is browser-native end to end.
+      // Nothing platform-specific to externalize — pure data, no `node:*`/DOM.
       external: [],
       output: {
         globals: {},

@@ -1,7 +1,7 @@
 {
   "name": "plgg-router",
   "version": "0.0.1",
-  "description": "A lightweight SPA client-side router (path -> VNode) built from scratch on the plgg framework and plgg-view",
+  "description": "A pure client-side path toolkit (compile/match patterns, parse query) built from scratch on the plgg framework, consumed by plgg-view's application runtime",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
@@ -13,16 +13,6 @@
       "require": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.cjs.js"
-      }
-    },
-    "./client": {
-      "import": {
-        "types": "./dist/client.d.ts",
-        "default": "./dist/client.es.js"
-      },
-      "require": {
-        "types": "./dist/client.d.ts",
-        "default": "./dist/client.cjs.js"
       }
     }
   },
@@ -48,13 +38,11 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg",
-    "plgg-view": "file:../plgg-view"
+    "plgg": "file:../plgg"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.5",
-    "happy-dom": "^15.0.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vite-plugin-dts": "^5.0.0",

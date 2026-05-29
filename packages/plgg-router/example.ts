@@ -1,109 +1,94 @@
 /**
- * plgg-router example — a tiny client-side SPA router, run without a browser.
+ * plgg-router example — the pure client-side path toolkit, run without a
+ * browser.
  *
  * Run it:
  *   npx tsx src/plgg-router/example.ts
  *
- * It builds a router (home, a parametric user page, a search page reading the
- * query string, a mounted `/admin` sub-router, and a `*` not-found), then
- * `resolve`s several locations and prints the `VNode` each produces as HTML.
+ * plgg-router is now just the **pure path machinery**: it compiles a pattern to
+ * `Segment`s, matches a concrete pathname (capturing `:param`s and a trailing
+ * `*wildcard`), and parses the query string. It returns *data* — a `Location` —
+ * never a view. The DOM/History loop and the `Url -> Model -> Html` wiring live
+ * in plgg-view's `application` runtime; an app maps each matched route to a
+ * `Msg`/`Model` there. This file demonstrates exactly the data that runtime
+ * folds in.
  *
- * This exercises the runtime-neutral CORE end to end: router building, path
- * matching, `:param` + query extraction, sub-router mounting, first-match-wins,
- * and the wildcard not-found. The DOM/History seam (`start`/`push`/`replace`,
- * link interception, `popstate`) needs a real History API and is exercised in
- * `client.spec.ts` under happy-dom. A real app authors handlers as JSX in
- * `.tsx`; here VNodes are built by hand so the demo stays one dependency-free
- * `.ts` file.
+ * It builds a tiny route table (home, a parametric user page, a search page, a
+ * mounted `/admin` route, and a `*` catch-all), then resolves several locations
+ * to a label + the params/query each captures — first-match-wins, like a real
+ * router's resolution order.
  */
 import {
-  Dict,
   SoftStr,
-  box,
+  Option,
+  none,
+  isSome,
   pipe,
   getOr,
   mapOption,
 } from "plgg";
 import {
-  VNode,
-  VNodeAlgebra,
-  foldVNode,
-} from "plgg-view";
-import {
-  router,
-  get,
-  route,
-  resolve,
+  Segment,
+  Location,
+  makeLocation,
+  compilePattern,
+  matchSegments,
+  parseQuery,
   param,
   query,
-  makeLocation,
-  parseQuery,
 } from "plgg-router/index";
 
-// --- minimal VNode constructors + an HTML-string fold (stands in for the DOM
-//     renderer a real host injects via `start`'s `render` option) ---
-const text = (value: SoftStr): VNode =>
-  box("Text")({ value });
+// --- a route table: a compiled pattern + a label-from-location, pure data ---
+type Route = Readonly<{
+  segments: ReadonlyArray<Segment>;
+  label: (loc: Location) => SoftStr;
+}>;
 
-const el = (
-  tag: SoftStr,
-  children: ReadonlyArray<VNode>,
-  props: Dict<string, SoftStr> = {},
-): VNode => box("Element")({ tag, props, children });
+const makeRoute = (
+  pattern: SoftStr,
+  label: (loc: Location) => SoftStr,
+): Route => ({
+  segments: compilePattern(pattern),
+  label,
+});
 
-const toHtml: VNodeAlgebra<string> = {
-  text: (value) => value,
-  fragment: (children) => children.join(""),
-  element: (tag, props, children) => {
-    const attrs = Object.entries(props)
-      .map(([k, v]) => ` ${k}="${v}"`)
-      .join("");
-    return `<${tag}${attrs}>${children.join("")}</${tag}>`;
-  },
-};
-const html = (node: VNode): string =>
-  foldVNode(toHtml)(node);
-
-// --- a mounted sub-router: every route gains the `/admin` prefix ---
-const admin = pipe(
-  router(),
-  get("/dashboard", () =>
-    el("h1", [text("Admin Dashboard")]),
+const routes: ReadonlyArray<Route> = [
+  makeRoute("/", () => "Home"),
+  makeRoute("/users/:id", (loc) =>
+    pipe(
+      loc,
+      param("id"),
+      mapOption((id) => `User ${id}`),
+      getOr("User ?"),
+    ),
   ),
-);
-
-// --- the app: data-last builders through `pipe`, exactly like plgg-server ---
-const app = pipe(
-  router(),
-  get("/", () => el("h1", [text("Home")])),
-  get("/users/:id", (loc) =>
-    el("h1", [
-      text(
-        pipe(
-          loc,
-          param("id"),
-          mapOption((id) => `User ${id}`),
-          getOr("User ?"),
-        ),
-      ),
-    ]),
+  makeRoute("/search", (loc) =>
+    pipe(
+      loc,
+      query("q"),
+      mapOption((q) => `Results for "${q}"`),
+      getOr("No query"),
+    ),
   ),
-  get("/search", (loc) =>
-    el("p", [
-      text(
-        pipe(
-          loc,
-          query("q"),
-          mapOption((q) => `Results for "${q}"`),
-          getOr("No query"),
-        ),
-      ),
-    ]),
-  ),
-  route("/admin", admin),
+  makeRoute("/admin/dashboard", () => "Admin Dashboard"),
   // first-match-wins, so the catch-all wildcard is registered last
-  get("*", () => el("h1", [text("Not Found")])),
-);
+  makeRoute("*", () => "Not Found"),
+];
+
+// --- resolve a location to the first matching route's label ---
+const resolve = (loc: Location): Option<SoftStr> =>
+  routes.reduce<Option<SoftStr>>(
+    (acc, route) =>
+      isSome(acc)
+        ? acc
+        : pipe(
+            matchSegments(route.segments, loc.path),
+            mapOption((params) =>
+              route.label({ ...loc, params }),
+            ),
+          ),
+    none(),
+  );
 
 const show = (
   path: SoftStr,
@@ -112,10 +97,8 @@ const show = (
   console.log(
     `${path}${search}  ->  ${pipe(
       resolve(
-        app,
         makeLocation(path, {}, parseQuery(search)),
       ),
-      mapOption(html),
       getOr("<no match>"),
     )}`,
   );
