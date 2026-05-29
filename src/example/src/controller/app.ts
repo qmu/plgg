@@ -42,6 +42,10 @@ import {
 } from "plgg-sql";
 import { App } from "../view/App";
 import {
+  TodoDetail,
+  TodoNotFound,
+} from "../view/TodoDetail";
+import {
   Todo,
   asTodo,
   asNewTodo,
@@ -247,6 +251,43 @@ export const buildApp = (
     // (2) CSR bundle.
     get("/client.js", async () =>
       ok(javascriptResponse(clientBundle)),
+    ),
+    // (2b) SSR deep-link for a single todo. Serves the SPA shell with the
+    // detail view so a hard refresh / shared `/todos/:id` link is valid HTML
+    // (the client router re-renders the same view on hydrate). A missing id
+    // renders the not-found view in-shell at 200, not a hard 404, so the SPA
+    // stays navigable. This is one ordinary plgg-server route that happens to
+    // render the same plgg-view component the client route does — NOT an
+    // SSR↔plgg-router handoff (the two routers stay independent).
+    get("/todos/:id", (c) =>
+      proc(
+        requireParam(c, "id"),
+        (id: SoftStr) =>
+          proc(
+            getTodoByIdSql(id),
+            query(db),
+            compactRows,
+            decodeRows(asTodo),
+            (
+              todos: ReadonlyArray<Todo>,
+            ): Result<HttpResponse, Error> => {
+              const todo = todos[0];
+              return ok(
+                pageResponse({
+                  title:
+                    todo === undefined
+                      ? "Not found — plgg To-Do"
+                      : `${todo.title} — plgg To-Do`,
+                  root:
+                    todo === undefined
+                      ? TodoNotFound()
+                      : TodoDetail({ todo }),
+                  clientEntry: "/client.js",
+                }),
+              );
+            },
+          ),
+      ).then(mapErr(toHttpError)),
     ),
     // (3) JSON list — consumed by `client.tsx` after each mutation.
     get("/api/todos", () =>

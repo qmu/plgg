@@ -23,9 +23,12 @@ export const TodoItem = (props: { todo: Todo }): VNode => (
       data-todo-id={props.todo.id}
       checked={props.todo.completed}
     />
-    <span class="todo-title">
+    <a
+      class="todo-title"
+      href={`/todos/${props.todo.id}`}
+    >
       {props.todo.title}
-    </span>
+    </a>
     {pipe(
       props.todo.completedAt,
       matchOption(

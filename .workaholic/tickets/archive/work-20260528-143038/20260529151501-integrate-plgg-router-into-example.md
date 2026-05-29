@@ -3,9 +3,9 @@ created_at: 2026-05-29T15:15:01+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: d4391c4
+category: Changed
 depends_on:
 ---
 
@@ -233,3 +233,69 @@ on plgg-router would use, so it is worth establishing here.
   The former is more direct and avoids a spurious history op.
 - **Not-found presentation**: a styled in-shell "Todo not found" VNode (200) vs.
   a real 404 on the server route. Recommend the in-shell view for demo clarity.
+
+## Final Report
+
+Wired plgg-router into the example as a two-route SPA (`/` list, `/todos/:id`
+detail). `tsc` clean, **43 specs pass** (was 33), zero `as`/`any`/`@ts-ignore`,
+`dist/client.js` confirmed free of `node:` imports, and a live server smoke test
+verified `/` (SSR list with title links), `/todos/t1` (SSR detail deep-link with
+`<title>` set and back-link), `/todos/zzz` (in-shell not-found at **200**),
+`/api/todos` (JSON), and that a truly-unknown path 404s server-side.
+
+**Open questions resolved:**
+- **Detail data source** — derived from the client-side `todos` cache (no
+  `GET /api/todos/:id` added). The bootstrap loads the list, then `rerender`
+  shows the detail; `param("id")` + `Array.find` + `fromNullable` give the
+  `Option<Todo>`. The *server* deep-link route fetches the single row via the
+  existing `getTodoByIdSql`/`fetchTodoById` for its SSR render.
+- **SSR of the detail route** — chose **isomorphic SSR**: `get("/todos/:id")`
+  SSR-renders the same `TodoDetail` component the client route renders, so a hard
+  refresh shows the real detail (not a list flash). This is one ordinary
+  plgg-server route, not an SSR↔plgg-router handoff (the routers stay separate).
+- **Re-render trigger** — the public `resolve` + `render` `rerender()`, not a
+  `replace()` bounce — direct, no spurious history op.
+- **Not-found presentation** — in-shell view at **200** (server + client), so the
+  SPA stays navigable; a hard 404 is reserved for paths with no server route at
+  all (e.g. `/totally/unknown`).
+
+### Discovered Insights
+
+- **Insight**: The route handlers must read a **live getter** (`buildClientRouter(()
+  => todos)`), not a `todos` snapshot. `start(router, ...)` captures the router
+  **once**; if handlers closed over a snapshot, every later navigation would
+  resolve against the data present at `start()` time (empty). The getter is what
+  makes "build the router once, let data flow under it" work — this is the core
+  async-data ↔ synchronous-`Handler` reconciliation and belongs in any plgg-router
+  app, not just this one.
+  **Context**: `src/example/src/clientRouter.ts` exists as a separate module
+  precisely so this pure route table is unit-testable without `client.tsx`'s
+  bootstrap side effects.
+- **Insight**: plgg-fetch already exports `get` (HTTP GET), so importing
+  plgg-router's `get` route-builder into `client.tsx` collides. Use plgg-router's
+  `on` (the documented alias of its `get`) instead — no rename, no shadowing.
+  **Context**: Any host that uses both packages in one module hits this; `on` is
+  the clean escape.
+- **Insight**: The router's `start` click listener (on `document`) and the
+  example's delegated mutation listeners (on `#root`) coexist without conflict:
+  a title `<a>` click is an anchor → `start` intercepts and the `#root` listeners
+  ignore it (not a button/checkbox); a delete-button click is not an anchor →
+  `start` ignores it and the `#root` delegate handles it. Both survive every
+  re-render because `render` only replaces `#root`'s children, not `#root` itself.
+  **Context**: This is why the existing `wire()` delegation was kept as-is rather
+  than folded into the router.
+- **Insight**: A hard load of a *non-`/todos/:id*` client path (e.g. a future
+  client-only route) would 404 server-side — only `/`, `/client.js`, `/api/*`,
+  and `/todos/:id` are server routes. The client router's `notFound` only applies
+  to *client-side* navigation. Adding more client routes means adding matching
+  server shell routes (or a catch-all) to keep deep links working.
+
+### Deferred (unchanged from plgg-router v1)
+
+- Focus management on route change and `aria-live` route announcements — the
+  example demonstrates real `<a href>` link semantics + History back/forward +
+  per-route `document.title`, but defers screen-reader focus/announcement to a
+  follow-up (noted so it isn't read as a missed requirement).
+- `.workaholic/policies/accessibility.md` / `quality.md` still say "accessibility
+  not applicable (no UI)" — now stale for a routed example; a follow-up should
+  refresh those docs.

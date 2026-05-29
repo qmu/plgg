@@ -28,6 +28,7 @@
     "plgg-view": "file:../plgg-view",
     "plgg-server": "file:../plgg-server",
     "plgg-fetch": "file:../plgg-fetch",
+    "plgg-router": "file:../plgg-router",
     "plgg-sql": "file:../plgg-sql"
   },
   "devDependencies": {

@@ -4,6 +4,7 @@ import {
   pipe,
   fromNullable,
   mapOption,
+  getOr,
   match,
   matchResult,
   encodeJson,
@@ -29,8 +30,16 @@ import {
   ClientError,
   networkError$,
 } from "plgg-fetch";
-import { App } from "./view/App";
-import { asTodos } from "./models/Todo";
+import { resolve } from "plgg-router";
+import {
+  start,
+  currentLocation,
+} from "plgg-router/client";
+import {
+  buildClientRouter,
+  notFoundView,
+} from "./clientRouter";
+import { Todo, asTodos } from "./models/Todo";
 
 /**
  * The CSR side of the To-Do app. plgg-fetch is the HTTP client end-to-end (no
@@ -110,22 +119,50 @@ const reportDecode =
     );
 
 /**
- * Re-fetch the typed-Todo list (`decodeJsonBody(asTodos)` — same caster the
- * server used to decode rows) and re-render `App` into `root`. Called once on
- * hydrate (to prove SSR ↔ CSR isomorphism) and after every successful mutation.
+ * The route handlers are pure, synchronous `(loc) => VNode` (plgg-router's
+ * contract), but the To-Do data is fetched asynchronously. The reconciliation:
+ * a module-level cache the handlers read synchronously (via the getter passed to
+ * `buildClientRouter`), kept fresh by `loadTodos` out of band. The router is
+ * built once; the data flows under it.
  */
-const refresh = (root: Element): Promise<void> =>
+let todos: ReadonlyArray<Todo> = [];
+
+const appRouter = buildClientRouter(() => todos);
+
+/**
+ * Re-render the route matching the current location from the (possibly updated)
+ * `todos` cache, using plgg-router's public `resolve` + plgg-server's `render`.
+ * This is the data-update re-render path (mutations call it via `loadTodos`);
+ * navigation re-renders are driven by `start`.
+ */
+const rerender = (root: Element): void =>
+  render(
+    pipe(
+      resolve(appRouter, currentLocation()),
+      getOr(notFoundView),
+    ),
+    root,
+  );
+
+/**
+ * Re-fetch the typed-Todo list (`decodeJsonBody(asTodos)` — same caster the
+ * server used to decode rows), update the cache, and re-render the current
+ * route. Called once on hydrate (to prove SSR ↔ CSR isomorphism) and after
+ * every successful mutation.
+ */
+const loadTodos = (root: Element): Promise<void> =>
   get(`${BASE}/api/todos`).then(
     matchResult(
-      reportClient("refresh"),
+      reportClient("load"),
       (response: HttpResponse) =>
         pipe(
           response,
           decodeJsonBody(asTodos),
           matchResult(
-            reportDecode("refresh"),
-            (todos) => {
-              render(App({ todos }), root);
+            reportDecode("load"),
+            (loaded) => {
+              todos = loaded;
+              rerender(root);
             },
           ),
         ),
@@ -155,7 +192,7 @@ const createTodo = (
               Promise.resolve(
                 reportClient("create")(error),
               ),
-            () => refresh(root),
+            () => loadTodos(root),
           ),
         ),
     ),
@@ -185,7 +222,7 @@ const toggleTodo = (
               Promise.resolve(
                 reportClient("toggle")(error),
               ),
-            () => refresh(root),
+            () => loadTodos(root),
           ),
         ),
     ),
@@ -201,7 +238,7 @@ const deleteTodo = (
         Promise.resolve(
           reportClient("delete")(error),
         ),
-      () => refresh(root),
+      () => loadTodos(root),
     ),
   );
 
@@ -252,7 +289,17 @@ const wire = (root: Element): void => {
 pipe(
   fromNullable(document.getElementById("root")),
   mapOption((root: HTMLElement): void => {
+    // Delegated mutation listeners stay on the persistent `#root`, so they
+    // survive every router/data re-render (which only replaces root's children).
     wire(root);
-    void refresh(root);
+    // `start` renders the current route now (from the empty cache) and re-renders
+    // on popstate / programmatic nav / intercepted in-app `<a>` clicks. `render`
+    // is host-injected from plgg-server/client — plgg-router never imports it.
+    start(appRouter, root, {
+      render,
+      notFound: notFoundView,
+    });
+    // Then fill the cache and re-render the matched route with real data.
+    void loadTodos(root);
   }),
 );

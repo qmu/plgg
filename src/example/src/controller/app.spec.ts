@@ -32,6 +32,32 @@ test("GET / renders the seeded todos as an SSR page (including the completed one
   expect(html).toContain('class="todo done"');
 });
 
+test("GET /todos/:id SSR-renders the detail page for a known todo in the SPA shell", async () => {
+  const handler = await makeHandler();
+  const res = await handler(
+    new Request("http://test/todos/t1"),
+  );
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  // t1 is the seeded "Wire the pipeline" todo (completed).
+  expect(html).toContain("Wire the pipeline");
+  expect(html).toContain("Completed");
+  // Same SPA shell as `/` so the client router takes over on hydrate.
+  expect(html).toContain("/client.js");
+});
+
+test("GET /todos/:id renders the not-found view in-shell at 200 for an unknown id", async () => {
+  const handler = await makeHandler();
+  const res = await handler(
+    new Request("http://test/todos/zzz"),
+  );
+  // In-shell not-found (not a hard 404), so the SPA stays navigable.
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).toContain("Not found");
+  expect(html).toContain("/client.js");
+});
+
 test("GET /client.js serves the bundle as text/javascript", async () => {
   const handler = await makeHandler();
   const res = await handler(
