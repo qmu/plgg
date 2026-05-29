@@ -90,8 +90,8 @@ export const makeSwitcher = <
       : PossiblyPromise<[boolean, unknown]>;
 }): Switcher =>
   box("Switcher")({
-    name: box("KebabCase")(spec.name) as KebabCase,
-    description: box("Str")(spec.description) as Str,
+    name: box("KebabCase")(spec.name),
+    description: box("Str")(spec.description),
     arguments: spec.arguments
       ? some(toVirtualTypeDict(spec.arguments))
       : none(),

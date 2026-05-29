@@ -3,9 +3,9 @@ created_at: 2026-05-29T23:18:24+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 0b25737
+category: Changed
 depends_on:
 ---
 
@@ -106,3 +106,47 @@ rest of the repo already meets. No feature change — pure conformance.
   former). Decide in step 1; record in Final Report.
 - Whether to model Operations as `Box` unions (enabling `match` + `$` matchers in
   `operate.ts`) now, or defer that larger remodel to a follow-up.
+
+## Final Report
+
+plgg-foundry is now escape-hatch-free. `scripts/tsc-plgg-foundry.sh` is clean,
+`scripts/test-plgg-foundry.sh` passes (6 passed, 5 skipped live-AI), and
+`git grep` for `as`/`any`/`@ts-ignore`/`throw`/module-`let` in foundry src is
+clean. The skill's "Do NOT emulate" list no longer names plgg-foundry.
+
+### Open questions resolved
+- **Constructor shape — neither option was needed.** The 8 model-file casts were
+  **redundant**, not lies: `Str`/`KebabCase` are `Box<…, string>` (so
+  `box("Str")(x)` already *is* `Str`) and `Bool = true | false` (so a bare
+  `boolean` already *is* `Bool`). Dropping the `as` keeps identical runtime
+  behavior with zero signature ripple — `makeProcessor`/`makeSwitcher`/
+  `makeFoundry`/`toVirtualType` stayed total constructors. The ticket's feared
+  Result-threading ripple did not materialize.
+- **`as Bool` was not a latent bug after all** — since `Bool = true | false`,
+  `some(spec.optional)` (spec.optional is `boolean`) is exactly `Option<Bool>`.
+- **operate.ts `match`-dispatch remodel deferred** — the three `.value` casts were
+  the HARD items and are fixed via a small `cellValue` (`isRawObj`+`hasProp`)
+  guard; the larger `if`-chain → `match` + Operations-as-`Box`-unions remodel is
+  out of scope here (a follow-up if desired).
+
+### Discovered Insights
+
+- **Insight**: A `box("Tag")(x)` call already produces `Box<"Tag", typeof x>`, so
+  `box("Str")(s) as Str` / `box("KebabCase")(s) as KebabCase` are **redundant**
+  casts, not validation bypasses in disguise — TypeScript already types them
+  correctly. The reviewer (and the skill's "do not emulate" note) assumed these
+  needed `asStr`/`asKebabCase`; in fact deleting the `as` is a complete,
+  ripple-free fix. The distinction matters: only `as` between *unrelated* types
+  (like the old `(param as { value })` on `unknown`) needs a guard/caster.
+  **Context**: When auditing `box(TAG)(x) as T`, check whether `T = Box<TAG, typeof x>`
+  first — if so, the cast is just deletable.
+- **Insight**: A plgg processor `fn` with a `returns` schema is typed to return
+  the record (`Record<keyof R, Datum>`), so it **cannot** return a `proc(...)`
+  (a `Result`); only a `fn` *without* `returns` (like TodoFoundry's) can. To make
+  ProfileFoundry throw-free via `proc(params.profile, asProfile, …)`, its
+  `returns` field was dropped — matching TodoFoundry's established processor
+  shape. The framework (`operate`) `tryCatch`-wraps every `fn`, so a `fn` may
+  signal failure either by throwing (record-returning fns) or by returning a
+  `proc`/`Result` (schemaless fns); the latter is the skill-preferred form.
+  **Context**: `packages/plgg-foundry/src/Foundry/usecase/operate.ts` wraps
+  `processor.content.fn` in `tryCatch` and proc-threads the result.

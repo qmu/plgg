@@ -34,12 +34,12 @@ export type VirtualTypeSpec = Obj<{
 export const toVirtualType = (
   spec: VirtualTypeSpec,
 ): VirtualType => ({
-  type: box("Str")(spec.type) as Str,
+  type: box("Str")(spec.type),
   optional: spec.optional !== undefined
-    ? some(spec.optional as Bool)
+    ? some(spec.optional)
     : none(),
   description: spec.description
-    ? some(box("Str")(spec.description) as Str)
+    ? some(box("Str")(spec.description))
     : none(),
 });
 

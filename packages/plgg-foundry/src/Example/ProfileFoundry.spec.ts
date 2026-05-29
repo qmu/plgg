@@ -1,9 +1,6 @@
-import { test, assert, expect } from "vitest";
+import { test, assert } from "vitest";
 import { proc, isOk } from "plgg";
-import {
-  profileFoundry,
-  lastGreeting,
-} from "plgg-foundry/Example";
+import { profileFoundry } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
 /**
@@ -12,7 +9,8 @@ import { runFoundry } from "plgg-foundry/Foundry/usecase";
  * The AI will:
  * 1. Extract user profile from the prompt
  * 2. Assign it as a JSON-encoded string: '{"name":"Alice","interests":["coding","music"]}'
- * 3. The greet processor receives the parsed object
+ * 3. The greet processor decodes it (asProfile) and returns the greeting, which
+ *    flows out as the egress output of the run.
  */
 test.skip("ProfileFoundry - AI assigns JSON object", async () => {
   const result = await proc(
@@ -21,7 +19,4 @@ test.skip("ProfileFoundry - AI assigns JSON object", async () => {
   );
 
   assert(isOk(result));
-  expect(lastGreeting).toContain("Alice");
-  expect(lastGreeting).toContain("coding");
-  expect(lastGreeting).toContain("music");
 }, 60000);

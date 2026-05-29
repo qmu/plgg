@@ -1,4 +1,9 @@
 import {
+  Result,
+  InvalidError,
+  proc,
+  ok,
+  err,
   isRawObj,
   hasProp,
   isSoftStr,
@@ -19,26 +24,34 @@ type Profile = {
 /**
  * Type guard for Profile.
  */
-const isProfile = (v: unknown): v is Profile => {
-  return (
-    isRawObj<object>(v) &&
-    hasProp(v, "name") &&
-    hasProp(v, "interests") &&
-    isSoftStr(v["name"]) &&
-    Array.isArray(v["interests"]) &&
-    v["interests"].every(isSoftStr)
-  );
-};
+const isProfile = (v: unknown): v is Profile =>
+  isRawObj<object>(v) &&
+  hasProp(v, "name") &&
+  hasProp(v, "interests") &&
+  isSoftStr(v["name"]) &&
+  Array.isArray(v["interests"]) &&
+  v["interests"].every(isSoftStr);
 
 /**
- * Stores the last greeting generated.
+ * Decodes an AI-assigned profile as a value — a malformed profile becomes an
+ * `InvalidError` on the Result channel rather than a thrown exception.
  */
-export let lastGreeting = "";
+const asProfile = (
+  v: unknown,
+): Result<Profile, InvalidError> =>
+  isProfile(v)
+    ? ok(v)
+    : err(
+        new InvalidError({
+          message: "Invalid profile object",
+        }),
+      );
 
 /**
  * ProfileFoundry demonstrates AI assigning JSON objects.
  * The AI extracts user profile from input and assigns it as JSON,
- * then the greet processor uses the parsed object.
+ * then the greet processor decodes it (via `asProfile`, errors-as-values) and
+ * returns the personalized greeting.
  */
 export const profileFoundry = makeFoundry({
   description: `Greets users based on their profile.`,
@@ -51,20 +64,14 @@ export const profileFoundry = makeFoundry({
           type: '{ "name": string, "interests": string[] }',
         },
       },
-      returns: {
-        greeting: { type: "string" },
-      },
-      fn: ({ params }) => {
-        const v = params["profile"];
-        if (!isProfile(v)) {
-          throw new Error(
-            "Invalid profile object",
-          );
-        }
-        const interests = v.interests.join(", ");
-        lastGreeting = `Hello ${v.name}! You like: ${interests}.`;
-        return { greeting: lastGreeting };
-      },
+      fn: ({ params }) =>
+        proc(
+          params["profile"],
+          asProfile,
+          (p) => ({
+            greeting: `Hello ${p.name}! You like: ${p.interests.join(", ")}.`,
+          }),
+        ),
     }),
   ],
 });

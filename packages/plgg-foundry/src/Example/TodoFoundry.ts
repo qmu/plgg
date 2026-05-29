@@ -5,7 +5,17 @@ import {
 } from "plgg-foundry/index";
 
 export const todos = new Map<number, string>();
-let id = 0;
+
+/**
+ * Next id derived from the store (max key + 1) — no mutable counter to drift out
+ * of sync with the map.
+ */
+const nextId = (
+  store: Map<number, string>,
+): number =>
+  (store.size === 0
+    ? 0
+    : Math.max(...store.keys())) + 1;
 
 export const todoFoundry = makeFoundry({
   description: `A foundry of TODOs.
@@ -19,7 +29,7 @@ Analyzes and divides input to add and remove TODO.`,
       },
       fn: ({ params }) =>
         proc(params["todo"], asSoftStr, (v) => {
-          todos.set(++id, v);
+          todos.set(nextId(todos), v);
         }),
     }),
     makeProcessor({

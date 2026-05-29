@@ -65,7 +65,7 @@ export const makeFoundry = (spec: {
 }): Foundry => {
   const base = {
     provider: spec.provider ?? openai("gpt-5.1"),
-    description: box("Str")(spec.description) as Str,
+    description: box("Str")(spec.description),
     maxOperationLimit: spec.maxOperationLimit ?? 10,
     apparatuses: spec.apparatuses,
   };

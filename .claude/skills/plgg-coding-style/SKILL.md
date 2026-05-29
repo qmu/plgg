@@ -178,8 +178,6 @@ small pure functions, not a separate chore.
 
 ## Do NOT emulate
 
-- `packages/plgg-foundry/src/Foundry/model/*` (`as Str` / `as KebabCase` casts)
-  and `TodoFoundry.ts` (`let id = 0`) — non-canonical, pending cleanup.
 - A few plgg-core seams use escape hatches by necessity (`Functionals/tryCatch.ts`,
   `Abstracts/Principals/Kind.ts` HKT `@ts-ignore`, `Grammaticals/NonNeverFn.ts`
   `any[]`). They are **grandfathered exceptions** — don't add new ones, don't

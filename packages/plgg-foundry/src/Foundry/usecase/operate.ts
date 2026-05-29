@@ -7,8 +7,12 @@ import {
   err,
   isOk,
   tryCatch,
+  toOption,
+  getOr,
   conclude,
   isObj,
+  isRawObj,
+  hasProp,
   isSome,
 } from "plgg";
 import {
@@ -123,16 +127,28 @@ const toJsonString = (
  * Parses JSON string to value.
  * Used when loading values from env for processors/switchers/egress.
  */
-const parseJsonValue = (value: unknown): unknown => {
-  if (typeof value !== "string") {
-    return value;
-  }
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-};
+const parseJsonValue = (value: unknown): unknown =>
+  typeof value !== "string"
+    ? value
+    : pipe(
+        tryCatch((s: string): unknown =>
+          JSON.parse(s),
+        )(value),
+        toOption,
+        getOr<unknown>(value),
+      );
+
+/**
+ * Reads the stored value out of an env register cell (`{ type, value }`, as
+ * written by {@link execAssign}). Narrows the opaque {@link Param} with guards
+ * rather than a cast; a non-cell param (which should not occur) degrades to the
+ * raw param.
+ */
+const cellValue = (param: Param): unknown =>
+  isRawObj<object>(param) &&
+  hasProp(param, "value")
+    ? param.value
+    : param;
 
 /**
  * Executes assign operation by binding a value to a register address.
@@ -243,9 +259,7 @@ const execSwitch = async ({
     Object.fromEntries(
       addrParams.content.map(([addr, param]) => [
         addressToVarName[addr],
-        parseJsonValue(
-          (param as { value: unknown }).value,
-        ),
+        parseJsonValue(cellValue(param)),
       ]),
     );
 
@@ -363,9 +377,7 @@ const execProcess = async ({
     Object.fromEntries(
       addrParams.content.map(([addr, param]) => [
         addressToVarName[addr],
-        parseJsonValue(
-          (param as { value: unknown }).value,
-        ),
+        parseJsonValue(cellValue(param)),
       ]),
     );
 
@@ -468,10 +480,9 @@ const execEgress = async ({
     Object.fromEntries(
       op.result.map((entry, i) => {
         const loaded = input.content[i];
-        const rawValue = loaded
-          ? (loaded[1] as { value: unknown }).value
+        const value = loaded
+          ? parseJsonValue(cellValue(loaded[1]))
           : undefined;
-        const value = parseJsonValue(rawValue);
         return [entry.name, value];
       }),
     );
