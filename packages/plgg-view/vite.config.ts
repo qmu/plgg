@@ -51,6 +51,7 @@ export default defineConfig({
       entry: {
         index: "src/index.ts",
         client: "src/client.ts",
+        html: "src/html.ts",
         "jsx-runtime": "src/jsx-runtime.ts",
         "jsx-dev-runtime": "src/jsx-dev-runtime.ts",
       },

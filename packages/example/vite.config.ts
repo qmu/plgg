@@ -2,26 +2,22 @@
 
 import { defineConfig } from "vite";
 
+// A plain client-side app build (index.html is the entry) — no SSR/lib mode.
+// The To-Do app is a client-only Elm-Architecture program mounted from
+// src/main.ts.
 export default defineConfig({
-  // `build` produces the CSR client bundle (dist/client.js) that the SSR server
-  // serves at /client.js. plgg-view and plgg-server/client are bundled in (not
-  // externalized) so it runs in the browser; JSX config is read from tsconfig.
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-    lib: {
-      entry: "src/client.tsx",
-      fileName: () => "client.js",
-      formats: ["es"],
-    },
-    rollupOptions: {
-      external: [],
-      output: { exports: "named" },
-    },
-  },
   test: {
     coverage: {
       all: true,
+      provider: "v8",
+      exclude: [
+        "node_modules/**",
+        "dist/**",
+        "coverage/**",
+        "**/*.spec.ts",
+        "src/main.ts",
+        "vite.config.ts",
+      ],
     },
   },
 });

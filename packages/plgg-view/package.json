@@ -44,6 +44,16 @@
         "types": "./dist/client.d.ts",
         "default": "./dist/client.cjs.js"
       }
+    },
+    "./html": {
+      "import": {
+        "types": "./dist/html.d.ts",
+        "default": "./dist/html.es.js"
+      },
+      "require": {
+        "types": "./dist/html.d.ts",
+        "default": "./dist/html.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

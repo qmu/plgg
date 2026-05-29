@@ -72,10 +72,19 @@ event/refresh wiring entirely.
   `onUrlChange` on navigation. No `Cmd` — link-driven only. happy-dom spec covers
   link nav, popstate, modifier/cross-origin/non-anchor pass-through, and cleanup;
   ≥91% coverage; `scripts/check-all.sh` green (still coexists with VNode).
-- **Phases 3–6 — TODO**: plgg-server `View`→`Html`; example rewritten as a TEA
-  app (resolve the HTTP/effects tension — recommend a client-only TEA demo);
-  plgg-router shrink to its pure path toolkit; remove the legacy VNode/jsx-runtime.
-  Resume with `/drive`.
+- **Phase 4 (example rewrite) — DONE, reordered first** (it was the linchpin:
+  once the example stops using VNode/plgg-server SSR/plgg-router resolve, those
+  can shrink/be removed). The example is now a **client-only TEA To-Do app**
+  (`Model`/`Msg`/pure `update`/`view` over `sandbox`) — `src/{Todo,app,main}.ts`
+  + `index.html`; deleted the SSR controller, SQL db, plgg-fetch client, VNode
+  views, and the router wiring. Deps trimmed to plgg + plgg-view; HTTP/effects
+  tension resolved by going client-only (an HTTP-backed app waits for a `Cmd`
+  phase). Added `plgg-view/html` public subpath so the builders are importable
+  (the root `.` stays VNode-only during coexistence). 7 specs (pure update + view
+  renderToString + a happy-dom add-a-todo run); `scripts/check-all.sh` green.
+- **Phases 3, 5, 6 — TODO (now unblocked)**: plgg-server `View`→`Html`;
+  plgg-router shrink to its pure path toolkit; remove the legacy VNode/jsx-runtime
+  (+ swap plgg-view root `.` to `Html`). Resume with `/drive`.
 
 ## The architecture (the design to build)
 

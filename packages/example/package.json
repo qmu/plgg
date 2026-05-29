@@ -2,7 +2,7 @@
   "name": "@plgg/example",
   "version": "0.0.2",
   "private": true,
-  "description": "A To-Do app demo for the plgg monorepo — classic MVC over plgg-server, plgg-sql, plgg-view, and plgg-fetch (typed HTTP on both sides of the wire).",
+  "description": "A To-Do app demo for the plgg monorepo — a client-only Elm-Architecture app (Model/update/view) on plgg-view's minimal runtime.",
   "scripts": {
     "build": "vite build",
     "test": "tsc --noEmit && vitest --run",
@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage",
     "coverage:watch": "vitest --coverage",
-    "serve": "tsx src/server.ts"
+    "serve": "vite"
   },
   "repository": {
     "type": "git",
@@ -25,17 +25,12 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
-    "plgg-view": "file:../plgg-view",
-    "plgg-server": "file:../plgg-server",
-    "plgg-fetch": "file:../plgg-fetch",
-    "plgg-router": "file:../plgg-router",
-    "plgg-sql": "file:../plgg-sql"
+    "plgg-view": "file:../plgg-view"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.5",
     "happy-dom": "^15.0.0",
-    "tsx": "^4.0.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vitest": "^4.1.5"
