@@ -2,6 +2,7 @@
 import { test, expect } from "vitest";
 import { renderToString } from "plgg-view";
 import { sandbox } from "plgg-view/client";
+import { pageResponse } from "plgg-server";
 import {
   init,
   update,
@@ -65,6 +66,35 @@ test("view renders the title, the add form, and each todo", () => {
   expect(html).toContain("plgg To-Do");
   expect(html).toContain('type="submit"');
   expect(html).toContain("Wire it");
+});
+
+// --- SSR: the same view through plgg-server (Html → full document) ---
+
+test("SSR pageResponse wraps view(init) in a document and injects the client entry", () => {
+  const r = pageResponse({
+    title: "plgg To-Do — SSR + CSR",
+    root: view(init),
+    clientEntry: "/main.js",
+  });
+  expect(r.headers["content-type"]).toBe(
+    "text/html; charset=utf-8",
+  );
+  // the body is the same markup the client's `view(init)` produces, wrapped in
+  // a document with the #root mount point and the CSR boot script
+  expect(
+    typeof r.body === "string" ? r.body : "",
+  ).toContain("<!doctype html>");
+  expect(
+    typeof r.body === "string" ? r.body : "",
+  ).toContain('<div id="root">');
+  expect(
+    typeof r.body === "string" ? r.body : "",
+  ).toContain("plgg To-Do");
+  expect(
+    typeof r.body === "string" ? r.body : "",
+  ).toContain(
+    '<script type="module" src="/main.js">',
+  );
 });
 
 // --- the running app (sandbox over the real DOM) ---

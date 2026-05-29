@@ -144,7 +144,7 @@ export const view = (model: Model): Html<Msg> =>
             [],
             [
               text(
-                "A client-only Model/update/view app on plgg-view's minimal Elm Architecture.",
+                "One pure Model/update/view, rendered on the server (SSR) and taken over by the client (CSR) on plgg-view's minimal Elm Architecture.",
               ),
             ],
           ),
@@ -179,8 +179,10 @@ export const view = (model: Model): Html<Msg> =>
   );
 
 /**
- * The Elm-Architecture program: pure `init`/`update`/`view`. Run it with
- * `sandbox(app)(container)` from `plgg-view/client`.
+ * The Elm-Architecture program: pure `init`/`update`/`view`. The client runs it
+ * with `sandbox(app)(container)` (`plgg-view/client`, see `main.ts`); the server
+ * renders the same `view(init)` to HTML with plgg-server's `pageResponse` (see
+ * `server.ts`). One program, two render targets.
  */
 export const app: Sandbox<Model, Msg> = {
   init,

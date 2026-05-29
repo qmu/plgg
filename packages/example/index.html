@@ -9,7 +9,9 @@
     <title>plgg To-Do — Elm Architecture</title>
   </head>
   <body>
-    <div id="app"></div>
+    <!-- CSR-only dev entry (`npm run serve`). The SSR server (src/server.ts)
+         emits its own document with the same #root mount point. -->
+    <div id="root"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

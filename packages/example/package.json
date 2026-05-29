@@ -2,7 +2,7 @@
   "name": "@plgg/example",
   "version": "0.0.2",
   "private": true,
-  "description": "A To-Do app demo for the plgg monorepo — a client-only Elm-Architecture app (Model/update/view) on plgg-view's minimal runtime.",
+  "description": "A To-Do app demo for the plgg monorepo — one Elm-Architecture program (Model/update/view) rendered both server-side (SSR via plgg-server) and client-side (CSR via plgg-view's runtime).",
   "scripts": {
     "build": "vite build",
     "test": "tsc --noEmit && vitest --run",
@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "coverage": "vitest --run --coverage",
     "coverage:watch": "vitest --coverage",
-    "serve": "vite"
+    "serve": "vite",
+    "serve:ssr": "tsx src/server.ts"
   },
   "repository": {
     "type": "git",
@@ -25,12 +26,14 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
-    "plgg-view": "file:../plgg-view"
+    "plgg-view": "file:../plgg-view",
+    "plgg-server": "file:../plgg-server"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.5",
     "happy-dom": "^15.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vitest": "^4.1.5"

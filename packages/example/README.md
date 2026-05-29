@@ -3,99 +3,93 @@
 > A To-Do app demo for the [plgg monorepo](../../README.md). The single
 > examples package — no separate `example-*` packages.
 
-A working To-Do list: add, toggle completion, delete. The same component tree
-renders on the server (SSR HTML) and the client (CSR/SPA); the same
-`asTodo`/`asTodos` caster decodes at every wire boundary; the same
-`HttpError`/`ClientError` vocabulary is folded on both sides. plgg-fetch drives
-every `/api/todos` call from the browser — the typed HTTP client is the same
-on the server (`plgg-server`) and on the client (`plgg-fetch`).
+A working To-Do list (add, toggle, delete) built as a **minimal Elm Architecture**
+program on plgg-view. The point of the demo: **one pure `view` renders both ways**
+— server-side to an HTML string (SSR, via plgg-server), and client-side into the
+live DOM (CSR, via plgg-view's `sandbox`). State is one immutable `Model`, every
+change is a `Msg`, and `update`/`view` are pure functions.
 
-## Layout — classic MVC
+## Layout
 
 ```
-packages/example/src/
-├── models/          # Domain types and casters — Todo, asTodo, asNewTodo, asTodoPatch.
-├── db/              # node:sqlite seam — schema, seed data, SQL strings.
-├── controller/      # plgg-server `Web` — the five CRUD routes + SSR page + bundle.
-├── view/            # plgg-view JSX components — App, TodoItem, TodoForm.
-├── index.ts         # Library surface — re-exports models, view, controller.
-├── server.ts        # `npm run serve` — Node SSR/API runtime entry.
-└── client.tsx       # Browser bundle entry — hydrates, then drives Ajax via plgg-fetch.
+packages/example/
+├── index.html       # CSR-only dev entry (vite) — a #root div + the client module
+└── src/
+    ├── Todo.ts       # the Todo domain type (pure data)
+    ├── app.ts        # the program: Model, Msg, pure init/update/view  ← the shared core
+    ├── main.ts       # CSR entry — sandbox(app) mounts on #root
+    └── server.ts     # SSR entry — plgg-server renders view(init) + serves the client bundle
 ```
 
-| Layer | File | Role |
+| Piece | File | Role |
 |---|---|---|
-| **Model** | [`models/Todo.ts`](./src/models/Todo.ts) | `Todo` type + `asTodo`/`asTodos` decoders. Same caster used by SQL row decode (server), JSON body decode (browser), and request-body validation. |
-| **DB** | [`db/open.ts`](./src/db/open.ts) | `createTodosDb` (in-memory `node:sqlite`, seeded with three rows), `compactRow` (strips NULLs / coerces `completed` 0/1 → boolean), and SQL strings for list/get/insert/update/delete. |
-| **Controller** | [`controller/app.ts`](./src/controller/app.ts) | `buildApp(db, bundle)` — six routes: `GET /` (SSR HTML), `GET /client.js`, `GET /api/todos`, `POST /api/todos`, `PATCH /api/todos/:id`, `DELETE /api/todos/:id`. Every handler is one `proc` chain ending in `mapErr(toHttpError)`. |
-| **View** | [`view/App.tsx`](./src/view/App.tsx), [`view/TodoItem.tsx`](./src/view/TodoItem.tsx), [`view/TodoForm.tsx`](./src/view/TodoForm.tsx) | The same component tree the SSR HTML is rendered from and the CSR bundle re-renders into. Data-driven props; the CSR side wires interactions on `#root` via event delegation. |
-| **SSR entry** | [`server.ts`](./src/server.ts) | Opens the DB, builds the controller, runs `pipe(app, toFetch, serve({ port: 3000 }))`. |
-| **CSR entry** | [`client.tsx`](./src/client.tsx) | Bundled to `dist/client.js`. Hydrates from `/api/todos`, then handles `submit`/`change`/`click` events by calling plgg-fetch's typed `get`/`post`/`patch`/`del` and re-rendering. |
+| **Program** | [`app.ts`](./src/app.ts) | `Model` (todos + draft + nextId), `Msg` (DraftChanged/Added/Toggled/Deleted), pure `update`, pure `view(model): Html<Msg>`. Handlers in the tree (`onInput`/`onSubmit`/`onChange`/`onClick`) produce `Msg`s. This is the one source of truth both render targets share. |
+| **CSR entry** | [`main.ts`](./src/main.ts) | `sandbox(app)(#root)` from `plgg-view/client` — holds the live model, re-renders the whole `Html` tree into the DOM on every `Msg`. |
+| **SSR entry** | [`server.ts`](./src/server.ts) | A plgg-server `web()` app: `GET /` → `pageResponse({ root: view(init), clientEntry: "/main.js" })` (folds `Html` → HTML string via plgg-view's `renderToString`); `GET /main.js` → the built client bundle. Served with `serve` (`plgg-server/node`). |
 
-## The pattern
+## SSR + CSR, one `view`
 
 ```
-node:sqlite ──(plgg-sql Db seam)──> controller route (proc: decode → SQL → respond)
-   │                                      ├─ GET /                → plgg-view SSR page
-   │                                      ├─ GET /client.js       → CSR bundle
-   │                                      ├─ GET    /api/todos     → JSON list
-   │                                      ├─ POST   /api/todos     → JSON created
-   │                                      ├─ PATCH  /api/todos/:id → JSON updated
-   │                                      └─ DELETE /api/todos/:id → JSON deleted
-   ▼
-browser (client.tsx): plgg-fetch get/post/patch/del → decodeJsonBody(asTodo[s]) → re-render
+            view(init): Html<Msg>
+           /                      \
+   SSR (server)                CSR (client)
+   renderToString          render → live DOM
+   (handlers dropped)      (sandbox dispatches Msg → update → re-render)
+           \                      /
+        same markup in <div id="root">
+   server paints it; the client sandbox takes over
 ```
 
-`Todo`'s `completedAt: Option<Time>` is a plgg `Box` value that does NOT survive
-`JSON.stringify`. The wire shape **omits** the `completedAt` key when the To-Do
-is open (matching what `compactRow` does to the SQL row), so the consumer's
-`forOptionProp` reads it as `None`. One model, one decoder, every boundary.
-
-Failures fold to one shared vocabulary: `HttpError` on the server, widened to
-`ClientError = HttpError | NetworkError` on the client. Both sides match by name
-(`notFound$()`, `badRequest$()`, `networkError$()`, …) rather than by tag string.
+`pageResponse` wraps `view(init)` in a full document with the markup inside
+`<div id="root">` and a `<script type="module" src="/main.js">` that boots the
+client. `main.ts` mounts `sandbox(app)` on that **same** `#root`, so the client
+re-renders into the server's node and takes over. In this minimum the takeover
+is a full re-render from `init` (no diffing, no hydration, no `Cmd` — those are
+named follow-ups), so the To-Do list starts empty and is driven client-side.
 
 ## Imports at a glance
 
 ```ts
-import { proc, pipe, decodeJson, chainResult, encodeJson } from "plgg";
-import { web, get, post, patch, del, toFetch, jsonResponse, pageResponse } from "plgg-server";
-import { serve } from "plgg-server/node";                 // node:http adapter
-import { render } from "plgg-server/client";              // CSR (browser)
-import { sql, query, exec, decodeRows } from "plgg-sql";  // DB pipeline steps
-import { get as fetchGet, post as fetchPost, patch as fetchPatch, del as fetchDel, decodeJsonBody } from "plgg-fetch";
+// the shared program
+import { div, form, input, button, ul, li, text, onSubmit, onInput, onClick, type Html } from "plgg-view";
+// CSR
+import { sandbox } from "plgg-view/client";
+// SSR
+import { web, get, toFetch, pageResponse, javascriptResponse, notFound } from "plgg-server";
+import { serve } from "plgg-server/node";   // node:http adapter
 ```
 
-JSX (`<form>…</form>`) resolves to `plgg-view/jsx-runtime` via `tsconfig.json`
-(`"jsx": "react-jsx"`, `"jsxImportSource": "plgg-view"`). See
-[`packages/plgg-view/README.md`](../plgg-view/README.md#usage) for why this line is
-required (TypeScript's `react-jsx` mode defaults the source to `"react"`).
+No JSX — views are written with Elm-style hyperscript builders (`div([attrs],
+[children])`), and handlers (`onClick<Msg>(msg)`) are typed to produce the app's
+`Msg`. See [`packages/plgg-view/README.md`](../plgg-view/README.md) for the
+architecture.
 
-## Run the To-Do app
+## Run it
+
+CSR-only (fastest — Vite dev server, no Node server):
 
 ```sh
 cd packages/example
 npm install
-npm run build      # bundle the CSR entry → dist/client.js
-npm run serve      # tsx src/server.ts → http://localhost:3000
+npm run serve        # vite → http://localhost:5173 (mounts on #root)
 ```
 
-Open `http://localhost:3000` in a browser: the SSR list appears immediately,
-then `client.js` hydrates and takes over. Add a To-Do via the form, toggle the
-checkbox, click delete — every action is a plgg-fetch call, decoded on return
-with the same `asTodo` the server used to decode the row.
-
-Or hit the API directly:
+Full SSR + CSR:
 
 ```sh
-curl localhost:3000/api/todos
-curl -X POST -H 'content-type: application/json' \
-  -d '{"title":"Buy milk"}' localhost:3000/api/todos
-curl -X PATCH -H 'content-type: application/json' \
-  -d '{"completed":true}' localhost:3000/api/todos/t2
-curl -X DELETE localhost:3000/api/todos/t2
+npm run build        # bundle the client → dist/main.js (the SSR page loads this)
+npm run serve:ssr    # tsx src/server.ts → http://localhost:3000
 ```
 
-`npm test` runs the four spec files: `models/Todo.spec.ts` (decoder), `db/open.spec.ts`
-(seeded DB round-trip), `controller/app.spec.ts` (integration tests over `toFetch`
-with a real in-memory DB), and `view/App.spec.tsx` (SSR + CSR isomorphism).
+Open `http://localhost:3000`: the server-rendered To-Do shell appears immediately
+(view `curl -s localhost:3000/` to see the raw SSR HTML), then `/main.js` boots
+the client `sandbox` and the form becomes interactive — add a To-Do, toggle the
+checkbox, click delete.
+
+## Tests
+
+`npm test` runs [`app.spec.ts`](./src/app.spec.ts): the pure `update` transitions,
+the `view` → HTML string (SSR through plgg-view's `renderToString`), the full SSR
+page through plgg-server's `pageResponse`, and the running app over the real DOM
+(`sandbox` under happy-dom — add-a-todo through the form). One program, validated
+on both render paths.
