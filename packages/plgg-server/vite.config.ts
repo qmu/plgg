@@ -26,8 +26,6 @@ export default defineConfig({
         "**/*.spec.tsx",
         "**/*.test.ts",
         "**/index.ts",
-        "client.ts",
-        "src/client.ts",
         "src/node.ts",
         "src/bun.ts",
         "src/deno.ts",
@@ -45,16 +43,15 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      // Five entries: the runtime-neutral core (`index` — Http + Routing +
-      // View, with the `Fetch` type and `toFetch` as the portable seam), the
-      // client-only DOM renderer (`client`), and one entry per host runtime
-      // (`node`, `bun`, `deno`). Runtime-coupled code (`node:http`, `Bun.serve`,
-      // `Deno.serve`) never leaks into the core or sibling runtime entries.
-      // Workers/Deno-Deploy/browser-fetch consume `toFetch(app)` directly from
-      // the core — they need no adapter file.
+      // Four entries: the runtime-neutral core (`index` — Http + Routing +
+      // View, with the `Fetch` type and `toFetch` as the portable seam) and one
+      // entry per host runtime (`node`, `bun`, `deno`). Runtime-coupled code
+      // (`node:http`, `Bun.serve`, `Deno.serve`) never leaks into the core or
+      // sibling runtime entries. Workers/Deno-Deploy/browser-fetch consume
+      // `toFetch(app)` directly from the core — they need no adapter file.
+      // (Client-side DOM rendering now lives in plgg-view's `./client` runtime.)
       entry: {
         index: "src/index.ts",
-        client: "src/client.ts",
         node: "src/node.ts",
         bun: "src/bun.ts",
         deno: "src/deno.ts",

@@ -1,5 +1,5 @@
 import { SoftStr, Dict } from "plgg";
-import { VNode } from "plgg-view";
+import { Html } from "plgg-view/html";
 import {
   HttpResponse,
   htmlResponse,
@@ -10,11 +10,12 @@ import {
 } from "plgg-server/index";
 
 /**
- * Renders a {@link VNode} to HTML and returns it as a `text/html` response — the
- * SSR seam from the view layer to the HTTP layer. For a bare fragment of markup.
+ * Renders an {@link Html} tree to HTML and returns it as a `text/html` response
+ * — the SSR seam from the view layer to the HTTP layer. For a bare fragment of
+ * markup.
  */
-export const viewResponse = (
-  node: VNode,
+export const viewResponse = <Msg>(
+  node: Html<Msg>,
   status: number = 200,
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse =>
@@ -24,8 +25,8 @@ export const viewResponse = (
  * Renders a full HTML document (see {@link htmlDocument}) and returns it as a
  * `text/html` response — the usual SSR entry for a page.
  */
-export const pageResponse = (
-  opts: HtmlDocumentOptions,
+export const pageResponse = <Msg>(
+  opts: HtmlDocumentOptions<Msg>,
   status: number = 200,
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse =>

@@ -1,4 +1,5 @@
 import { test, expect } from "vitest";
+import { p, main_, text } from "plgg-view/html";
 import {
   viewResponse,
   pageResponse,
@@ -6,7 +7,7 @@ import {
 } from "plgg-server/index";
 
 test("viewResponse is a text/html response carrying the rendered markup", () => {
-  const r = viewResponse(<p>hi</p>);
+  const r = viewResponse(p([], [text("hi")]));
   expect(r.status.content).toBe(200);
   expect(r.headers["content-type"]).toBe(
     "text/html; charset=utf-8",
@@ -15,7 +16,10 @@ test("viewResponse is a text/html response carrying the rendered markup", () => 
 });
 
 test("pageResponse renders a full document", () => {
-  const r = pageResponse({ title: "T", root: <main>m</main> });
+  const r = pageResponse({
+    title: "T",
+    root: main_([], [text("m")]),
+  });
   expect(r.headers["content-type"]).toBe(
     "text/html; charset=utf-8",
   );

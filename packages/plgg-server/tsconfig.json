@@ -17,11 +17,6 @@
         "./src/*"
       ]
     },
-    /* JSX: SSR/CSR specs author `VNode` trees with JSX, processed by the
-       plgg-view runtime. The library sources stay plain `.ts` (they operate on
-       `VNode`); only the specs use `.tsx`. */
-    "jsx": "react-jsx",
-    "jsxImportSource": "plgg-view",
     /* Type Checking Rules */
     "strict": true,
     "noUnusedLocals": true,
