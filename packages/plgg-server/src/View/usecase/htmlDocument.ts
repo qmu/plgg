@@ -1,5 +1,5 @@
 import { SoftStr } from "plgg";
-import { Html } from "plgg-view/html";
+import { Html } from "plgg-view";
 import {
   renderToString,
   escapeText,

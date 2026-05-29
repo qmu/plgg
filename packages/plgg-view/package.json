@@ -1,7 +1,7 @@
 {
   "name": "plgg-view",
   "version": "0.0.1",
-  "description": "A small, Preact-like component-oriented JSX runtime built from scratch on the plgg framework",
+  "description": "A minimal Elm Architecture (TEA) for the browser built from scratch on the plgg framework: a typed Html<Msg> view tree, pure sandbox/application runtimes, and SSR renderToString",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
@@ -15,26 +15,6 @@
         "default": "./dist/index.cjs.js"
       }
     },
-    "./jsx-runtime": {
-      "import": {
-        "types": "./dist/jsx-runtime.d.ts",
-        "default": "./dist/jsx-runtime.es.js"
-      },
-      "require": {
-        "types": "./dist/jsx-runtime.d.ts",
-        "default": "./dist/jsx-runtime.cjs.js"
-      }
-    },
-    "./jsx-dev-runtime": {
-      "import": {
-        "types": "./dist/jsx-dev-runtime.d.ts",
-        "default": "./dist/jsx-dev-runtime.es.js"
-      },
-      "require": {
-        "types": "./dist/jsx-dev-runtime.d.ts",
-        "default": "./dist/jsx-dev-runtime.cjs.js"
-      }
-    },
     "./client": {
       "import": {
         "types": "./dist/client.d.ts",
@@ -43,16 +23,6 @@
       "require": {
         "types": "./dist/client.d.ts",
         "default": "./dist/client.cjs.js"
-      }
-    },
-    "./html": {
-      "import": {
-        "types": "./dist/html.d.ts",
-        "default": "./dist/html.es.js"
-      },
-      "require": {
-        "types": "./dist/html.d.ts",
-        "default": "./dist/html.cjs.js"
       }
     }
   },

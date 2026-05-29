@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { test, expect } from "vitest";
-import { renderToString } from "plgg-view/html";
+import { renderToString } from "plgg-view";
 import { sandbox } from "plgg-view/client";
 import {
   init,

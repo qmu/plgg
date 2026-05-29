@@ -3,127 +3,120 @@
 > **UNSTABLE / EXPERIMENTAL POC** - Study work. Part of the
 > [plgg monorepo](../../README.md).
 
-A small, **Preact-like, component-oriented JSX runtime** built **from scratch on
-[plgg](../plgg/)**. It is the library a `.tsx` file is processed *through*: set
-`jsxImportSource: "plgg-view"` and the compiler emits `jsx`/`jsxs`/`Fragment`
-calls into this package, which turn your function components into a **pure-data
-plgg view tree**. No React/Preact dependency — the only runtime dependency is
-`plgg`.
+A **minimal Elm Architecture (TEA)** built **from scratch on [plgg](../plgg/)**.
+An app is three pure values — an immutable `Model`, an `update: (Msg, Model) =>
+Model`, and a `view: (Model) => Html<Msg>` — driven by a tiny runtime. State is
+one value, every change flows through `update` as data (`Msg`), and the view is
+a pure function of the model. It fits plgg's ethos exactly: pure functions,
+immutable data, events as values, one runtime seam. The only runtime dependency
+is `plgg`.
 
-It is intentionally a **subset** of JSX/TSX, and it is **not** an HTML or DOM
-builder. There is no `renderToString`, no `h` hyperscript, no manual element
-builders — you write `.tsx`, and the result is a `VNode` value.
+This is the **minimum** that is still recognizably TEA: `sandbox` + full
+re-render, **no `Cmd`/`Sub`, no virtual-DOM diffing**. Effects (HTTP, timers,
+programmatic navigation) are a deliberate non-goal of this minimum.
 
 ## What it is (and isn't)
 
 | | |
 |--|--|
-| ✅ processes `.tsx` (the JSX automatic runtime) | ❌ no HTML string output |
-| ✅ function components `(props) => VNode` | ❌ no DOM building / mounting (deferred) |
-| ✅ the view as pure plgg data (`VNode` `Box` union) | ❌ no `h` / `fragment` / `element` builders |
-| ✅ fragments, props, children, list/conditional | ❌ no reactivity / state / hooks / diffing |
+| ✅ `Model` / `Msg` / pure `update` / pure `view` | ❌ no `Cmd` / `Sub` / effects |
+| ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style hyperscript builders instead) |
+| ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no virtual-DOM diffing (full re-render) |
+| ✅ pure SSR `renderToString(Html)` | ❌ no hydration (mount re-renders from `init`) |
 
-## The view tree
+## The view tree — `Html<Msg>`
 
-Processing a component yields a plgg `Box` union — pure data, never a class
-instance or a DOM node:
+A plgg `Box` union — pure data, never a class instance or DOM node — parameterized
+by the app's `Msg`:
 
 | Node | Type |
 |------|------|
-| intrinsic element | `Box<"Element", { tag, props, children }>` |
+| intrinsic element | `Box<"Element", { tag, attributes, children }>` |
 | text leaf | `Box<"Text", { value: SoftStr }>` |
-| fragment (no wrapper) | `Box<"Fragment", { children }>` |
-| the union | `VNode` |
-| attributes | `Props` = `Dict<string, SoftStr>` |
+| the union | `Html<Msg>` |
+| an attribute | `Attribute<Msg>` = a static `attr` **or** an event `Handler` producing `Msg` |
 
-Function components are **resolved away** into this tree as it is built (eager,
-since this POC has no re-render), so a `VNode` only ever describes host
-structure.
+The **handler channel** on `Attribute<Msg>` is what makes the tree `Html<Msg>`
+rather than a passive string tree. Build it with Elm-style hyperscript:
 
-## Usage
+- elements: `el(tag, attrs, children)` and helpers `div`/`button`/`input`/`ul`/
+  `li`/`a`/`span`/`h1`/`p`/`form`/`main_`/… , plus `text(value)`.
+- static attributes: `attr(name, value)` and helpers `class_`/`href`/`type_`/
+  `value_`/`name_`.
+- event handlers: `on(event, toMsg)` and helpers `onClick(msg)`,
+  `onInput((value) => msg)`, `onChange(...)`, `onSubmit(msg)`.
 
-Point the compiler at this runtime (already set in this package's
-`tsconfig.json`, and what a consumer sets too):
+`Html<Msg>` is a **functor over `Msg`**: `mapHtml(f)(html)` lets a parent embed a
+child component's view (Elm's `Html.map`).
 
-```jsonc
-"jsx": "react-jsx",
-"jsxImportSource": "plgg-view"
+## The runtimes (browser seam — `plgg-view/client`)
+
+```ts
+import { sandbox, application } from "plgg-view/client";
+
+// sandbox: the purest TEA — no routing
+const stop = sandbox({ init, update, view })(container); // → cleanup
+
+// application: routing-aware (Browser.application-style, still no Cmd)
+const stop = application({ init, update, view, onUrlChange })(container);
 ```
 
-> **Why this line exists.** TypeScript's `react-jsx` mode defaults
-> `jsxImportSource` to the literal string `"react"` — that's why React projects
-> never write it. Any other runtime (Preact uses `"preact"`, Solid uses
-> `"solid-js"`, plgg-view uses `"plgg-view"`) must set it explicitly so the
-> compiler resolves `jsx`/`jsxs`/`Fragment` from `<package>/jsx-runtime`. The
-> name React is just one entry in this list, not a special case in reverse.
+- **`sandbox`** holds the live `Model` in a closure (the single justified mutable
+  seam — Elm's runtime is imperative here too). A `dispatch(msg)` sets
+  `model = update(msg, model)` and re-renders the whole tree (`replaceChildren`,
+  no diffing); handlers are re-attached each render.
+- **`application`** additionally owns the URL: it reads the entry `Url` into
+  `init`, intercepts same-origin in-app `<a>` clicks (preserving browser defaults
+  for modifier-clicks, `target`/`download`/pass-through `rel`, cross-origin and
+  non-`http(s)` links), `pushState`s, and turns navigation + `popstate` into
+  `onUrlChange(url): Msg`. The app maps `Url { path, search }` to its own route
+  value using plgg-router's pure `compilePattern`/`matchSegments`/`parseQuery`,
+  so navigation is just data flowing through `update`. Programmatic push is a
+  non-goal of this minimum (it needs an effect seam).
 
-Then write `.tsx` — no imports needed for JSX itself; bring in `VNode` (and
-`Component`) to type your components:
+Both are shipped on the `plgg-view/client` subpath so `window`/DOM code never
+reaches the SSR-safe core entry.
 
-```tsx
-import { VNode } from "plgg-view";
+## SSR — `renderToString` (core, SSR-safe)
 
-const Item = (props: { label: string }): VNode => (
-  <li class="item">{props.label}</li>
-);
+```ts
+import { renderToString } from "plgg-view";
 
-const List = (props: { items: ReadonlyArray<string> }): VNode => (
-  <ul class="list">
-    {props.items.map((label) => (
-      <Item label={label} />
-    ))}
-  </ul>
-);
-
-// `view` is a plgg VNode tree — the processed result of the .tsx above.
-const view: VNode = <List items={["a", "b"]} />;
+renderToString(view(init)); // Html<Msg> → escaped HTML string; handlers dropped
 ```
 
-`view` is:
+A pure `Html<Msg> => SoftStr` fold (text + attribute values escaped, unsafe
+attribute names dropped, void elements self-closing). Event handlers are dropped
+— there are no events on the server. The server renders `view(init)` for first
+paint; the client runtime then takes over (the minimum re-renders from `init` on
+mount — true hydration is a follow-up). plgg-server's `View` is a thin wrapper
+over this.
 
-```jsonc
-{ "__tag": "Element", "content": {
-  "tag": "ul", "props": { "class": "list" }, "children": [
-    { "__tag": "Element", "content": { "tag": "li", "props": { "class": "item" },
-      "children": [ { "__tag": "Text", "content": { "value": "a" } } ] } },
-    { "__tag": "Element", "content": { "tag": "li", "props": { "class": "item" },
-      "children": [ { "__tag": "Text", "content": { "value": "b" } } ] } }
-  ] } }
-```
+## Two entry points
 
-At the JSX seam, prop values are coerced to attribute strings: strings pass
-through, finite numbers stringify, `true` becomes a bare attribute and `false`
-drops; non-coercible values (functions, objects, `null`) drop. Children are
-normalized: primitives lift to `Text`, arrays flatten, `false`/`null`/
-`undefined` drop (so `cond && <x/>` works).
-
-## Public surface
-
-- The JSX runtime: `plgg-view/jsx-runtime` (`jsx`, `jsxs`, `Fragment`, and the
-  `JSX` namespace) and `plgg-view/jsx-dev-runtime` — resolved by the compiler,
-  not called by hand.
-- Types: `VNode`, `Component<P>`, `Props`, `Child`, plus the `isVNode` guard.
+- **`plgg-view`** (core) — the `Html<Msg>`/`Attribute<Msg>` model, the builders,
+  `foldHtml`, `mapHtml`, and the pure SSR `renderToString`/`escape`. No DOM —
+  SSR-safe, importable anywhere.
+- **`plgg-view/client`** (browser seam) — `sandbox`, `application`, `render`
+  (Html→DOM), and the `Url` model. The only code that touches browser globals.
 
 ## Run the example
 
 ```sh
-cd packages/plgg-view && npx tsx example.tsx
+cd packages/plgg-view && npx tsx example.ts   # type-checks; the demo mounts in a browser
 ```
 
-Writes a small component tree and prints the resulting `VNode` as JSON. A fuller
-consumer example lives in [`../example-view`](../example-view/).
-
-## Deferred (out of scope for this POC)
-
-A renderer that walks the `VNode` tree into the **live DOM** (mounting), plus
-reactivity / state / hooks / diffing. The pure-data tree this library produces
-is exactly what such a renderer would consume.
+[`example.ts`](./example.ts) is a TEA counter (`Model`/`Msg`/pure `update`/`view`
+over `sandbox`). A fuller client-only TEA To-Do app lives in
+[`../example`](../example/).
 
 ## Conventions
 
-- Specs import from `"plgg-view/index"` (bare `"plgg-view"` resolves
-  inconsistently under tsconfig `paths`), matching the `plgg-server` convention.
+- Specs import from `"plgg-view"` / `"plgg-view/client"`; internal modules use
+  the `"plgg-view/…"` path alias, matching the `plgg-server` convention.
 - `as` / `any` / `ts-ignore` are prohibited (see root `CLAUDE.md`); unknown
-  inputs are narrowed with plgg type guards and `Option`.
+  inputs are narrowed with plgg type guards and `Option`. The runtime's mutable
+  model ref is the one justified imperative seam (confined to `sandbox`/
+  `application`, commented).
 - After editing `plgg` core, run `npm run build` in `packages/plgg` or this package
   won't see new exports (the dependency is a symlinked `file:` dist).

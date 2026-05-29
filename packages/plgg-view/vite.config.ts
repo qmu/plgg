@@ -10,9 +10,6 @@ export default defineConfig({
       "plgg-view": path.resolve(__dirname, "./src"),
     },
   },
-  // `.tsx` specs compile through the automatic JSX runtime: Vite reads `jsx`
-  // and `jsxImportSource` from tsconfig.json (so transforms resolve this
-  // package's own jsx-runtime), and the `resolve.alias` above maps it to ./src.
   test: {
     coverage: {
       all: true,
@@ -26,8 +23,6 @@ export default defineConfig({
         "**/*.spec.tsx",
         "**/*.test.ts",
         "**/index.ts",
-        "**/jsx-runtime.ts",
-        "**/jsx-dev-runtime.ts",
         "src/client.ts",
         "vite.config.ts",
       ],
@@ -43,17 +38,14 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      // Entry points: the runtime-neutral core (`plgg-view` — Html model, folds,
-      // SSR renderToString), the browser-only Elm-Architecture runtime
-      // (`plgg-view/client` — sandbox + DOM render), and the legacy automatic
-      // JSX runtime subpaths (kept during the VNode→Html migration). Window/DOM
-      // code lives only behind `./client`, so the core entry stays SSR-safe.
+      // Two entries: the runtime-neutral core (`plgg-view` — the Html<Msg> model,
+      // folds, mapHtml, and the pure SSR renderToString) and the browser-only
+      // Elm-Architecture runtime (`plgg-view/client` — sandbox + application +
+      // DOM render). Window/DOM code lives only behind `./client`, so the core
+      // entry stays SSR-safe.
       entry: {
         index: "src/index.ts",
         client: "src/client.ts",
-        html: "src/html.ts",
-        "jsx-runtime": "src/jsx-runtime.ts",
-        "jsx-dev-runtime": "src/jsx-dev-runtime.ts",
       },
       fileName: (format, entryName) => `${entryName}.${format}.js`,
       formats: ["es", "cjs"],

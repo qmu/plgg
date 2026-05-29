@@ -9,4 +9,4 @@ export {
   escapeText,
   escapeAttr,
   isSafeAttrName,
-} from "plgg-view/html";
+} from "plgg-view";

@@ -17,11 +17,6 @@
         "./src/*"
       ]
     },
-    /* JSX: the automatic runtime resolves `jsx`/`jsxs`/`Fragment` (and the
-       `JSX` namespace) from `plgg-view/jsx-runtime`, so `.tsx` compiles
-       against this package's own hyperscript with no React/Preact dependency. */
-    "jsx": "react-jsx",
-    "jsxImportSource": "plgg-view",
     /* Type Checking Rules */
     "strict": true,
     "noUnusedLocals": true,
@@ -40,6 +35,6 @@
   },
   "include": [
     "src/**/*",
-    "example/**/*"
+    "example.ts"
   ]
 }

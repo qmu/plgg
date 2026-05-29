@@ -4,4 +4,4 @@
  * HTTP layer keeps one import surface for turning a view into a response, and
  * the escaping logic has a single home (plgg-view), not a duplicate per package.
  */
-export { renderToString } from "plgg-view/html";
+export { renderToString } from "plgg-view";

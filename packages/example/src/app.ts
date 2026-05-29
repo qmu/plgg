@@ -22,7 +22,7 @@ import {
   onSubmit,
   onClick,
   onChange,
-} from "plgg-view/html";
+} from "plgg-view";
 import { Todo } from "./Todo";
 
 /**

@@ -16,9 +16,6 @@
     "sourceMap": true,
     "rootDir": "src",
     "outDir": "dist",
-    /* JSX resolves to the installed plgg-view package (real consumer). */
-    "jsx": "react-jsx",
-    "jsxImportSource": "plgg-view",
     /* Type Checking Rules */
     "strict": true,
     "noUnusedLocals": true,

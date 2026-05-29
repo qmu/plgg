@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { el, a, p, text, attr } from "plgg-view/html";
+import { el, a, p, text, attr } from "plgg-view";
 import { renderToString } from "plgg-server/index";
 
 // plgg-server re-exports plgg-view's pure SSR fold; these confirm the package

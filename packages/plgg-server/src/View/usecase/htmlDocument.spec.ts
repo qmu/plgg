@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { h1, p, text } from "plgg-view/html";
+import { h1, p, text } from "plgg-view";
 import { htmlDocument } from "plgg-server/index";
 
 test("wraps the root in a full document with a #root mount point", () => {

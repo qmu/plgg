@@ -3,9 +3,9 @@ created_at: 2026-05-30T00:17:35+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 5e957ad
+category: Changed
 depends_on:
 ---
 
@@ -318,3 +318,50 @@ plgg-view's routing module? Recommend it stays in plgg-router as a pure lib.)
 - **Should this be one ticket or an epic?** It is written as one phased design;
   if the team prefers, phases 1–2 (plgg-view TEA + application) can be one ticket
   and 3–6 (stack migration + legacy removal) a second. Decide before driving.
+
+## Final Report
+
+All six phases delivered; the VNode/JSX view layer is fully replaced by the
+minimal Elm Architecture. This session completed the remaining stack migration:
+Phase 3 (plgg-server `View` → `Html`), Phase 5 (plgg-router shrunk to its pure
+path toolkit), Phase 6 (legacy `VNode`/jsx-runtime removed, plgg-view root `.`
+swapped to `Html`). `scripts/check-all.sh` is green end-to-end after every phase
+commit (plgg-view 33 tests/97.5%, plgg-router 27/97.7%, plgg-server 104/98.7%,
+example 7).
+
+### Open Questions — resolutions
+
+- **HTTP/effects tension** — resolved per the recommendation: the demo is a
+  **client-only** TEA (counter in plgg-view's `example.ts`, To-Do in the
+  `example` package). An HTTP-backed app is explicitly deferred to a future
+  `Cmd`/`element` phase. Pure `sandbox`/`application` `update` stays effect-free.
+- **JSX vs. hyperscript** — chose **hyperscript builders** (`el`/`div`/`text`/…);
+  the jsx-runtime, jsx-dev-runtime, and all `jsxImportSource` tsconfig wiring are
+  deleted across plgg-view, plgg-server, plgg-router, and example.
+- **Where the matcher / `renderToString` live** — `renderToString` lives in
+  plgg-view (pure `Html`→string); plgg-server's `View` is a thin re-export
+  wrapper. The pure path matcher stays in plgg-router; plgg-view's `application`
+  consumes it without importing the package (parallel definition, no dep edge).
+- **`./html` subpath** — retired. With the root `.` now exporting `Html`, the
+  transitional `plgg-view/html` subpath was redundant; all consumers repointed
+  to `plgg-view`. plgg-view now ships exactly two entries: `.` (SSR-safe core)
+  and `./client` (DOM runtime), mirroring plgg-router's single-core shape.
+- **`Fragment`, hydration** — unchanged from the design: no `Fragment` in the
+  minimum (single-root `view`), mount re-renders from `init` (no hydration).
+  Both remain named follow-ups.
+
+### Discovered Insights
+
+- **Insight**: plgg-router no longer depends on plgg-view at all (dependency
+  edge removed in Phase 5); the direction inverted — plgg-view's `application`
+  now *consumes* plgg-router's pure matcher, not vice-versa.
+  **Context**: `scripts/build.sh` still builds plgg-view before plgg-router for
+  historical ordering, but that order is no longer required by plgg-router. A
+  future cleanup could reorder or note this; it is currently harmless.
+- **Insight**: HTML escaping (`escapeText`/`escapeAttr`/`isSafeAttrName`) now has
+  a single home in plgg-view; plgg-server re-exports it. The render-side
+  "import escape directly to avoid the node:http barrel" workaround is gone
+  because plgg-server's client DOM renderer was removed (plgg-view/client owns
+  Html→DOM).
+  **Context**: any future server-side markup helper should escape through
+  plgg-view's exports, never reintroduce a local copy.

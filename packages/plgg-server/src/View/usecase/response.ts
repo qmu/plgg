@@ -1,5 +1,5 @@
 import { SoftStr, Dict } from "plgg";
-import { Html } from "plgg-view/html";
+import { Html } from "plgg-view";
 import {
   HttpResponse,
   htmlResponse,

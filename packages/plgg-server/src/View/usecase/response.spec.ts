@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { p, main_, text } from "plgg-view/html";
+import { p, main_, text } from "plgg-view";
 import {
   viewResponse,
   pageResponse,
