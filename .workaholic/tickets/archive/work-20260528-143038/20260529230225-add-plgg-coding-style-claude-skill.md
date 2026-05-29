@@ -3,9 +3,9 @@ created_at: 2026-05-29T23:02:25+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: bbef650
+category: Added
 depends_on:
 ---
 
@@ -219,3 +219,56 @@ listed under "Exemplars".
 - **Nominal-type guidance** — recommend `Box<"Name", primitive>` for new nominal
   scalars (matching Atomics/Basics); note `Grammaticals/Brand` exists but is used
   mainly in specs. Confirm during implementation by surveying current usage.
+
+## Final Report
+
+Created the repo's first project-local Claude Code skill at
+`.claude/skills/plgg-coding-style/` — `SKILL.md` (trigger-phrased frontmatter,
+top Hard-Rules block, scannable idiom sections each with a faithful before/after
+snippet, a "Do NOT emulate" section, and a See-also authority list) plus
+`reference.md` (combinator cheat-sheet, the full Str triad + HttpError `$`-matcher
+examples, the `proc`-vs-`pipe+matchResult` rule, an exemplar-file map, and a
+structure-vs-style boundary note). The skill is committed (not git-ignored), so
+it ships with the repo; it already shows up as an available skill in-session.
+
+Snippets were drawn verbatim-in-spirit from real exemplars (`Str.ts`, `Box.ts`,
+`compilePattern.ts`, `client.ts` `findAnchor`, `Todo.ts`, `app.ts`) and audited:
+escape-hatch tokens (`as`/`any`/`@ts-ignore`) appear only in the prohibition, the
+anti-pattern section, and the cheat-sheet "Not" column — never in a code example.
+All paths use `packages/`/`scripts/` (post-rename). No TypeScript was touched, so
+the tsc/test/build gates are unaffected.
+
+### Open questions resolved
+- **One file vs two** — went with SKILL.md **+** reference.md; SKILL.md alone
+  would have been too long for comfortable progressive disclosure, so the
+  exhaustive catalog lives in the sibling.
+- **"Expression bodies" phrasing** — used the **softened** form ("prefer
+  expression bodies; `let`/loops/blocks only at an irreducible imperative seam
+  with a justifying comment"), with the `findAnchor` DOM-walk shown as the
+  canonical exception, since core files legitimately use statements.
+- **Nominal-type guidance** — recommended `Box<"Name", primitive>` for new
+  nominal scalars and noted `Grammaticals/Brand` as mostly spec-only.
+
+### Discovered Insights
+
+- **Insight**: `.claude/` was deliberately emptied of local commands/agents in
+  commit `8841831` when the project adopted the workaholic plugins — so this is
+  the **first** authored `.claude/` component in the current tree. The skill is
+  positioned to fill the one gap the plugins don't cover (house *coding* style),
+  explicitly linking `standards:leading-validity`/`CLAUDE.md` rather than forking
+  them, so it doesn't recreate the local-vs-plugin duplication that `8841831`
+  removed.
+  **Context**: Anyone tempted to add more local `.claude/` components should
+  first check whether a plugin already owns that concern.
+- **Insight**: A `SKILL.md` is source/config, not a `.workaholic/` artifact — so
+  it correctly omits the `.workaholic/` conventions (`_ja.md` translation,
+  `commit_hash`/`category` frontmatter, kebab-case-doc rules). The dir name must
+  equal the frontmatter `name` (`plgg-coding-style`) for discovery.
+  **Context**: Future project skills follow the same `.claude/skills/<name>/SKILL.md`
+  shape, committed like `.claude/settings.json`.
+
+### Deferred (unchanged)
+- Cleaning the pre-existing `as <Type>` casts and `let id = 0` in `plgg-foundry`
+  (the skill names them as "do not emulate"); a separate cleanup ticket.
+- Refreshing the stale package counts in `infrastructure.md`/`component.md`
+  (carried over from the rename ticket).
