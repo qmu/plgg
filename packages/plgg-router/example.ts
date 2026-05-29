@@ -70,19 +70,27 @@ const routes: ReadonlyArray<Route> = [
       getOr("No query"),
     ),
   ),
-  makeRoute("/admin/dashboard", () => "Admin Dashboard"),
+  makeRoute(
+    "/admin/dashboard",
+    () => "Admin Dashboard",
+  ),
   // first-match-wins, so the catch-all wildcard is registered last
   makeRoute("*", () => "Not Found"),
 ];
 
 // --- resolve a location to the first matching route's label ---
-const resolve = (loc: Location): Option<SoftStr> =>
+const resolve = (
+  loc: Location,
+): Option<SoftStr> =>
   routes.reduce<Option<SoftStr>>(
     (acc, route) =>
       isSome(acc)
         ? acc
         : pipe(
-            matchSegments(route.segments, loc.path),
+            matchSegments(
+              route.segments,
+              loc.path,
+            ),
             mapOption((params) =>
               route.label({ ...loc, params }),
             ),
@@ -97,7 +105,11 @@ const show = (
   console.log(
     `${path}${search}  ->  ${pipe(
       resolve(
-        makeLocation(path, {}, parseQuery(search)),
+        makeLocation(
+          path,
+          {},
+          parseQuery(search),
+        ),
       ),
       getOr("<no match>"),
     )}`,
