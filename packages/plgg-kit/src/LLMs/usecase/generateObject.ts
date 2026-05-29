@@ -7,6 +7,9 @@ import {
   isSome,
   ok,
   env,
+  pipe,
+  fromNullable,
+  getOr,
 } from "plgg";
 import {
   Provider,
@@ -28,8 +31,15 @@ export const generateObject = ({
   systemPrompt?: string;
   userPrompt: string;
   schema: Datum;
-}): PromisedResult<unknown, Error> =>
-  proc(
+}): PromisedResult<unknown, Error> => {
+  // Bind once: model is the same regardless of branch; instructions default to
+  // "" via Option (not `|| ""`).
+  const model = unbox(provider).model;
+  const instructions = pipe(
+    fromNullable(systemPrompt),
+    getOr(""),
+  );
+  return proc(
     provider.content,
     unbox,
     ({ apiKey }) =>
@@ -56,8 +66,8 @@ export const generateObject = ({
           () =>
             reqObjectGPT({
               apiKey,
-              model: unbox(provider).model,
-              instructions: systemPrompt || "",
+              model,
+              instructions,
               input: userPrompt,
               schema,
             }),
@@ -67,8 +77,8 @@ export const generateObject = ({
           () =>
             reqObjectClaude({
               apiKey,
-              model: unbox(provider).model,
-              instructions: systemPrompt || "",
+              model,
+              instructions,
               input: userPrompt,
               schema,
             }),
@@ -78,11 +88,12 @@ export const generateObject = ({
           () =>
             reqObjectGemini({
               apiKey,
-              model: unbox(provider).model,
-              instructions: systemPrompt || "",
+              model,
+              instructions,
               input: userPrompt,
               schema,
             }),
         ],
       ),
   );
+};

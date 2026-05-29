@@ -11,8 +11,8 @@ import {
   asSoftStr,
   forContent,
   box,
-  some,
   none,
+  fromNullable,
   pipe,
 } from "plgg";
 
@@ -20,14 +20,6 @@ export type Provider =
   | OpenAI
   | Anthropic
   | Google;
-
-//export const asProvider = (v: unknown) =>
-//  cast(
-//    v,
-//    asOpenAI,
-//    orCast(asAnthropic),
-//    orCast(asGoogle)
-//  );
 
 // -------------
 
@@ -43,6 +35,21 @@ const asConfig = (v: unknown) =>
     forOptionProp("apiKey", asSoftStr),
   );
 
+/**
+ * Normalizes a constructor argument (a bare model string, or a
+ * `{ model, apiKey? }` object) into a {@link Config} — the optional `apiKey`
+ * becomes an `Option` via `fromNullable`, never an `undefined` literal.
+ */
+const toConfig = (
+  arg: string | { model: string; apiKey?: string },
+): Config =>
+  typeof arg === "string"
+    ? { model: arg, apiKey: none() }
+    : {
+        model: arg.model,
+        apiKey: fromNullable(arg.apiKey),
+      };
+
 // -------------
 
 export type OpenAI = Box<"OpenAI", Config>;
@@ -54,15 +61,7 @@ export function openai(config: { model: string; apiKey?: string }): OpenAI;
 export function openai(
   arg: string | { model: string; apiKey?: string },
 ): OpenAI {
-  const { model, apiKey } =
-    typeof arg === "string" ? { model: arg, apiKey: undefined } : arg;
-  return pipe(
-    {
-      model,
-      apiKey: apiKey ? some(apiKey) : none(),
-    },
-    box("OpenAI"),
-  );
+  return pipe(toConfig(arg), box("OpenAI"));
 }
 
 // -------------
@@ -80,15 +79,7 @@ export function anthropic(config: { model: string; apiKey?: string }): Anthropic
 export function anthropic(
   arg: string | { model: string; apiKey?: string },
 ): Anthropic {
-  const { model, apiKey } =
-    typeof arg === "string" ? { model: arg, apiKey: undefined } : arg;
-  return pipe(
-    {
-      model,
-      apiKey: apiKey ? some(apiKey) : none(),
-    },
-    box("Anthropic"),
-  );
+  return pipe(toConfig(arg), box("Anthropic"));
 }
 
 // -------------
@@ -102,13 +93,5 @@ export function google(config: { model: string; apiKey?: string }): Google;
 export function google(
   arg: string | { model: string; apiKey?: string },
 ): Google {
-  const { model, apiKey } =
-    typeof arg === "string" ? { model: arg, apiKey: undefined } : arg;
-  return pipe(
-    {
-      model,
-      apiKey: apiKey ? some(apiKey) : none(),
-    },
-    box("Google"),
-  );
+  return pipe(toConfig(arg), box("Google"));
 }

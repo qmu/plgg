@@ -3,9 +3,9 @@ created_at: 2026-05-29T23:18:25+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 79b77a7
+category: Changed
 depends_on:
 ---
 
@@ -113,3 +113,60 @@ bodies, and they materialize raw `undefined` literals to model an optional
 - Whether to implement `asProvider` now (completes the triad) or delete the dead
   comment — recommend implementing if a real union-cast combinator exists,
   otherwise delete and note it.
+
+## Final Report
+
+plgg-kit went from **0 offline tests** (entire suite `test.skip`) to **12**, and
+the provider model is now expression-style and `undefined`-free.
+`scripts/tsc-plgg-kit.sh` is clean and `scripts/test-plgg-kit.sh` passes (12
+offline + 6 skipped live), escape-hatch/`undefined`/`|| ""` greps clean.
+
+### What changed
+- **Provider.ts**: a shared `toConfig(arg)` normalizer builds the `Config`
+  (`apiKey` via `fromNullable`, never an `undefined` literal); each of
+  `openai`/`anthropic`/`google` collapsed to a single
+  `pipe(toConfig(arg), box("Tag"))` expression. Deleted the dead `asProvider`/
+  `orCast` comment block (no such combinator exists; `Provider` is constructed,
+  not decoded from `unknown`, so the union caster wasn't needed).
+- **generateObject.ts**: `model` and `instructions` bound once (was recomputed in
+  all three branches); `systemPrompt || ""` → `pipe(fromNullable(systemPrompt),
+  getOr(""))`.
+- **Tests**: new `Provider.spec.ts` (constructors string-vs-config + apiKey
+  some/none; casters against raw boxes and invalid input). `generateObject.spec.ts`
+  gained four offline tests covering all three vendor request-assembly+decode
+  paths and the env-fallback branch, plus the existing three live tests kept
+  `test.skip`.
+
+### Open questions resolved
+- **Stub `postJson`, not `fetch`** — the adapters call `postJson` directly, so a
+  `vi.mock("plgg", importOriginal)` partial mock overriding only `postJson`
+  (URL-branched to return each vendor's envelope shape) was the clean seam; it
+  exercises provider dispatch → apiKey resolution → request assembly → decode
+  end to end, offline.
+- **Deleted the `asProvider` comment** rather than implementing it — no real
+  union-cast combinator exists and nothing decodes a `Provider` from `unknown`.
+- **`match` return-type annotation / double-match fold**: left as-is — the two
+  matches infer correctly and compile clean (the skill's annotation rule targets
+  inference-to-`unknown`, which doesn't occur here); folding the two into one was
+  judged not worth the churn. `maxTokens = 1024` default left as an acceptable
+  internal-seam default. The `unknown` vendor-decode return is documented as
+  intentionally caller-re-decoded.
+
+### Discovered Insights
+
+- **Insight**: The provider `asX` casters (`asOpenAI` etc., via
+  `forContent("Tag", asConfig)`) decode **raw external** input where `apiKey` is a
+  plain string (or absent → `forOptionProp` → `None`). They do **not** round-trip
+  a *built* provider, whose `apiKey` is already an `Option` box — feeding
+  `openai({apiKey:"k"})` back through `asOpenAI` fails `asConfig` (a `Some` box is
+  not a string). So `Config`'s wire shape (`apiKey?: string`) differs from its
+  in-memory shape (`apiKey: Option<string>`); the constructor bridges the two.
+  **Context**: When testing these casters, feed raw `box("Tag")({model, apiKey?})`
+  literals, not constructor output.
+- **Insight**: `vi.mock("plgg", importOriginal)` cleanly stubs just the network
+  seam (`postJson`) while keeping every other plgg export real via `...actual` —
+  the right pattern for offline-testing the vendor adapters. Two gotchas: inline
+  any constants used inside the factory (it is hoisted above module-level
+  `const`s), and use `vi.stubEnv` (not `process.env`) for the env-fallback test
+  since plgg-kit's spec tsconfig has no `node` types.
+  **Context**: `packages/plgg-kit/src/LLMs/usecase/generateObject.spec.ts`.
