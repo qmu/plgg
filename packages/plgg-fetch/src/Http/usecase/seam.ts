@@ -35,18 +35,21 @@ const hasBody = (
   body !== "" && method !== "GET" && method !== "HEAD";
 
 /**
- * Folds the plgg `query` {@link Dict} back onto a `URL`'s search params — the
- * inverse of the router seam, which split a native URL into `path` + `query`.
+ * Folds the plgg `query` {@link Dict} back onto a copy of the URL's search
+ * params — the inverse of the router seam, which split a native URL into
+ * `path` + `query`. `URLSearchParams.set` is an imperative native API (an
+ * irreducible seam), so this mutates a fresh `URL`, never the caller's.
  */
 const withQuery = (
   url: URL,
   query: Dict<string, SoftStr>,
-): URL => (
+): URL => {
+  const next = new URL(url.href);
   Object.entries(query).forEach(([key, value]) =>
-    url.searchParams.set(key, value),
-  ),
-  url
-);
+    next.searchParams.set(key, value),
+  );
+  return next;
+};
 
 /**
  * Builds the native `RequestInit`, including `body` only when the method
@@ -54,17 +57,15 @@ const withQuery = (
  */
 const toRequestInit = (
   request: HttpRequest,
-): RequestInit =>
-  hasBody(request.method, request.body)
-    ? {
-        method: request.method,
-        headers: new Headers({ ...request.headers }),
-        body: request.body,
-      }
-    : {
-        method: request.method,
-        headers: new Headers({ ...request.headers }),
-      };
+): RequestInit => {
+  const base: RequestInit = {
+    method: request.method,
+    headers: new Headers({ ...request.headers }),
+  };
+  return hasBody(request.method, request.body)
+    ? { ...base, body: request.body }
+    : base;
+};
 
 /**
  * Converts a plgg-native {@link HttpRequest} into a Web-standard `Request`.

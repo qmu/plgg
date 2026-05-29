@@ -1,5 +1,11 @@
-import { SoftStr } from "plgg";
-import { VNode, Props } from "plgg-view/index";
+import { SoftStr, match } from "plgg";
+import {
+  VNode,
+  Props,
+  element$,
+  text$,
+  fragment$,
+} from "plgg-view/index";
 
 /**
  * An algebra for folding a {@link VNode} tree into some result `R` — one handler
@@ -27,12 +33,25 @@ export type VNodeAlgebra<R> = Readonly<{
 export const foldVNode =
   <R>(alg: VNodeAlgebra<R>) =>
   (node: VNode): R =>
-    node.__tag === "Text"
-      ? alg.text(node.content.value)
-      : node.__tag === "Fragment"
-        ? alg.fragment(node.content.children.map(foldVNode(alg)))
-        : alg.element(
-            node.content.tag,
-            node.content.props,
-            node.content.children.map(foldVNode(alg)),
-          );
+    match(node)(
+      [
+        element$(),
+        ({ content }): R =>
+          alg.element(
+            content.tag,
+            content.props,
+            content.children.map(foldVNode(alg)),
+          ),
+      ],
+      [
+        text$(),
+        ({ content }): R => alg.text(content.value),
+      ],
+      [
+        fragment$(),
+        ({ content }): R =>
+          alg.fragment(
+            content.children.map(foldVNode(alg)),
+          ),
+      ],
+    );

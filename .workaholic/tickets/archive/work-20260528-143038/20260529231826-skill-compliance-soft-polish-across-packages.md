@@ -3,9 +3,9 @@ created_at: 2026-05-29T23:18:26+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: d1c5f2b
+category: Changed
 depends_on:
 ---
 
@@ -145,3 +145,60 @@ else is local and behavior-preserving.
   is the riskiest change). Decide by diff size; record in Final Report.
 - Drop `isNetworkError` (if unused) vs reimplement via `isBoxWithTag` — confirm
   consumers during implementation.
+
+## Final Report
+
+Swept the soft findings across five of the six packages; the full
+`scripts/check-all.sh` is green end-to-end (build in dependency order + all nine
+suites + example), no new escape hatches, no behavior change.
+
+### Done
+- **plgg-server**: `httpErrorToResponse` rewritten as `match(error)([notFound$(),
+  …], …)` (using the `$` matchers the file already exported); `compileRoutes`'s
+  `?? remember(…)` → `pipe(fromNullable(cache.get(routes)), matchOption(() =>
+  remember(…), (t) => t))` (lazy build preserved); `Method.ts` import hoisted.
+- **plgg-fetch**: `isNetworkError` → `isBoxWithTag` (kept — specs consume it);
+  `withQuery` now builds a fresh `URL` copy (no caller mutation) with a seam
+  comment; `toRequestInit` computes a shared `base` once (single `Headers`).
+- **plgg-router**: `navTarget` folded to a single expression via an
+  `isPlainLeftClick` predicate.
+- **example**: `fetchTodoById` and the `/todos/:id` SSR block use
+  `fromNullable`/`matchOption` instead of `=== undefined`; the three `proc`
+  callbacks annotated (`NewTodo`/`TodoPatch`/`ExecResult`); `wire` got the
+  DOM-event-seam comment and folds the `data-todo-id` lookup through
+  `fromNullable`/`mapOption`; `asId`/`asTitle` return-typed.
+- **plgg-view**: added `text`/`element`/`fragment` constructors and
+  `text$`/`element$`/`fragment$` matchers; `normalizeChild` and `jsx` now use the
+  constructors; `foldVNode` rewritten as an exhaustive `match(node)([element$(),
+  …], [text$(), …], [fragment$(), …])`.
+
+### Deferred (recorded; not done)
+- **plgg-sql** both items: `asExecResult` would re-validate a typed `ExecResult`
+  at a seam the driver adapter already owns (debatable value, real ripple), and
+  the `SqlError` `__tag`/`sqlError$` matcher is explicitly low-priority (nothing
+  folds `SqlError` via `match`; `instanceof` is accepted narrowing). plgg-sql was
+  already hard-rule-clean; these are marginal. A follow-up if desired.
+- **example `toWireTodo`**: left as-is — the `const base` dedup across the two
+  `matchOption` branches is the more readable form than duplicating the literal.
+- **plgg-router `start`/`push`/`replace` seam comments** and the `makeLocation`
+  `{}` default: left as-is (their JSDoc already explains the History/DOM seam;
+  the empty-object default is the defensible seed).
+
+### Discovered Insights
+
+- **Insight**: `foldVNode` is the single fold every renderer (SSR string, CSR
+  DOM) runs on every node, and three packages consume it through plgg-view's
+  built `dist/` — so the `match` rewrite had to be verified by rebuilding
+  plgg-view and re-running plgg-server + example, not just plgg-view's own specs.
+  `scripts/check-all.sh` (build-in-order + all suites) is the correct gate for any
+  change to a primitive that dependents resolve via `dist/`.
+  **Context**: A passing `scripts/test-plgg-view.sh` alone would NOT have caught a
+  dist-level break in consumers.
+- **Insight**: `match`'s handlers receive the **narrowed** variant, so
+  `match(node)([element$(), ({ content }) => …content.tag…])` type-checks with
+  full access to the variant's content — the same pattern `httpErrorToResponse`
+  now uses for `HttpError`. This is the idiomatic replacement for a
+  `node.__tag === "…"` ternary and makes the fold exhaustive (a new variant
+  without a matcher arm fails to compile).
+  **Context**: pairs the new `$` matchers in `VNode.ts`/`HttpError.ts` with
+  `match` at the fold site.

@@ -1,4 +1,10 @@
-import { Box, SoftStr, box, pattern } from "plgg";
+import {
+  Box,
+  SoftStr,
+  box,
+  pattern,
+  isBoxWithTag,
+} from "plgg";
 import { HttpError } from "plgg-server";
 
 /**
@@ -45,4 +51,4 @@ export const networkError$ = () =>
 export const isNetworkError = (
   error: ClientError,
 ): error is NetworkError =>
-  error.__tag === "NetworkError";
+  isBoxWithTag("NetworkError")(error);

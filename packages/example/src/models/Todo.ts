@@ -18,12 +18,16 @@ import {
 } from "plgg";
 
 type Id = SoftStr;
-const asId = (v: unknown) => cast(v, asSoftStr);
+const asId = (
+  v: unknown,
+): Result<Id, InvalidError> => cast(v, asSoftStr);
 
 // Plain string (SoftStr, not the branded `Str`) so the view can render the
 // title directly — title flows DB → cast → VNode text without unwrapping a box.
 type Title = SoftStr;
-const asTitle = (v: unknown) =>
+const asTitle = (
+  v: unknown,
+): Result<Title, InvalidError> =>
   cast(
     v,
     asSoftStr,

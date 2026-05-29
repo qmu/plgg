@@ -1,3 +1,10 @@
+import {
+  Result,
+  InvalidError,
+  ok,
+  err,
+} from "plgg";
+
 /**
  * HTTP request methods recognized by the router.
  */
@@ -22,13 +29,6 @@ export const METHODS: ReadonlyArray<Method> = [
   "HEAD",
   "OPTIONS",
 ];
-
-import {
-  Result,
-  InvalidError,
-  ok,
-  err,
-} from "plgg";
 
 /**
  * Type guard for recognized HTTP methods.

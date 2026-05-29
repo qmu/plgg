@@ -7,6 +7,7 @@ import {
   pipe,
   fromNullable,
   mapOption,
+  matchOption,
   chainOption,
 } from "plgg";
 import {
@@ -193,8 +194,13 @@ const remember = (
 export const compileRoutes = (
   routes: ReadonlyArray<Route>,
 ): RouteTable =>
-  cache.get(routes) ??
-  remember(routes, buildTable(routes));
+  pipe(
+    fromNullable(cache.get(routes)),
+    matchOption(
+      () => remember(routes, buildTable(routes)),
+      (table: RouteTable) => table,
+    ),
+  );
 
 /**
  * A scored match: a {@link Matched} plus the registration index used to break

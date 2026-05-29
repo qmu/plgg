@@ -246,6 +246,10 @@ const deleteTodo = (
  * Attach delegated listeners to `root` so dynamic re-renders don't lose them.
  * `submit` handles the add-form; `change` on a `data-action="toggle"` checkbox
  * is the toggle; `click` on a `data-action="delete"` button is the delete.
+ *
+ * This is the irreducible imperative DOM-event seam: the `instanceof` / dataset
+ * guards narrow the event target (no casts), and the `data-todo-id` lookup is
+ * eliminated through `Option` rather than a raw `=== undefined` check.
  */
 const wire = (root: Element): void => {
   root.addEventListener("submit", (event) => {
@@ -268,9 +272,12 @@ const wire = (root: Element): void => {
       return;
     const input = event.target;
     if (input.dataset["action"] !== "toggle") return;
-    const id = input.dataset["todoId"];
-    if (id === undefined) return;
-    toggleTodo(id, input.checked, root);
+    pipe(
+      fromNullable(input.dataset["todoId"]),
+      mapOption((id: SoftStr) =>
+        toggleTodo(id, input.checked, root),
+      ),
+    );
   });
 
   root.addEventListener("click", (event) => {
@@ -280,9 +287,12 @@ const wire = (root: Element): void => {
       return;
     const button = event.target;
     if (button.dataset["action"] !== "delete") return;
-    const id = button.dataset["todoId"];
-    if (id === undefined) return;
-    deleteTodo(id, root);
+    pipe(
+      fromNullable(button.dataset["todoId"]),
+      mapOption((id: SoftStr) =>
+        deleteTodo(id, root),
+      ),
+    );
   });
 };
 

@@ -128,6 +128,21 @@ const relPassesThrough = (
     );
 
 /**
+ * Whether a click is a plain in-app navigation candidate: left button, no
+ * modifier keys, not already handled. A modifier/middle/handled click is left
+ * to the browser.
+ */
+const isPlainLeftClick = (
+  event: MouseEvent,
+): boolean =>
+  !event.defaultPrevented &&
+  event.button === 0 &&
+  !event.metaKey &&
+  !event.ctrlKey &&
+  !event.shiftKey &&
+  !event.altKey;
+
+/**
  * Decides the in-app path a click should navigate to, or `none()` when the
  * browser default must be preserved. Preserves defaults for: modifier-clicks,
  * non-left-button clicks, already-handled events, anchors with `target` /
@@ -136,37 +151,30 @@ const relPassesThrough = (
  */
 const navTarget = (
   event: MouseEvent,
-): Option<SoftStr> => {
-  if (
-    event.defaultPrevented ||
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey
-  ) {
-    return none();
-  }
-  return pipe(
-    findAnchor(event.target),
-    chainOption((anchor: HTMLAnchorElement) =>
-      anchor.target !== "" ||
-      anchor.hasAttribute("download") ||
-      relPassesThrough(anchor)
-        ? none()
-        : fromNullable(anchor.getAttribute("href")),
-    ),
-    chainOption(toUrl),
-    chainOption((url: URL) =>
-      isHttp(url) &&
-      url.origin === window.location.origin
-        ? some(
-            url.pathname + url.search + url.hash,
-          )
-        : none(),
-    ),
-  );
-};
+): Option<SoftStr> =>
+  isPlainLeftClick(event)
+    ? pipe(
+        findAnchor(event.target),
+        chainOption((anchor: HTMLAnchorElement) =>
+          anchor.target !== "" ||
+          anchor.hasAttribute("download") ||
+          relPassesThrough(anchor)
+            ? none()
+            : fromNullable(
+                anchor.getAttribute("href"),
+              ),
+        ),
+        chainOption(toUrl),
+        chainOption((url: URL) =>
+          isHttp(url) &&
+          url.origin === window.location.origin
+            ? some(
+                url.pathname + url.search + url.hash,
+              )
+            : none(),
+        ),
+      )
+    : none();
 
 /**
  * Programmatic navigation: pushes a new history entry and re-renders. No-ops if

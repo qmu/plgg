@@ -13,6 +13,7 @@ import {
   mapErr,
   chainResult,
   decodeJson,
+  fromNullable,
   matchOption,
 } from "plgg";
 import {
@@ -36,6 +37,7 @@ import {
 import {
   Db,
   SqlError,
+  ExecResult,
   query,
   exec,
   decodeRows,
@@ -47,6 +49,8 @@ import {
 } from "../view/TodoDetail";
 import {
   Todo,
+  NewTodo,
+  TodoPatch,
   asTodo,
   asNewTodo,
   asTodoPatch,
@@ -165,9 +169,18 @@ const fetchTodoById = (
     compactRows,
     decodeRows(asTodo),
     (todos: ReadonlyArray<Todo>) =>
-      todos[0] === undefined
-        ? err(new RowNotFoundError(`/api/todos/${id}`))
-        : ok(todos[0]),
+      pipe(
+        fromNullable(todos[0]),
+        matchOption(
+          (): Result<Todo, Error> =>
+            err(
+              new RowNotFoundError(
+                `/api/todos/${id}`,
+              ),
+            ),
+          (todo: Todo) => ok(todo),
+        ),
+      ),
   );
 
 const insertAndReadBack = (
@@ -196,7 +209,7 @@ const updateAndReadBack = (
   return proc(
     updateTodoCompletionSql(id, completed, completedAt),
     exec(db),
-    (result) =>
+    (result: ExecResult) =>
       result.changes === 0
         ? err(new RowNotFoundError(`/api/todos/${id}`))
         : ok(undefined),
@@ -212,7 +225,7 @@ const deleteIfFound = (
   proc(
     deleteTodoSql(id),
     exec(db),
-    (result) =>
+    (result: ExecResult) =>
       result.changes === 0
         ? err(new RowNotFoundError(`/api/todos/${id}`))
         : ok(jsonResponse({ deleted: id })),
@@ -270,22 +283,26 @@ export const buildApp = (
             decodeRows(asTodo),
             (
               todos: ReadonlyArray<Todo>,
-            ): Result<HttpResponse, Error> => {
-              const todo = todos[0];
-              return ok(
-                pageResponse({
-                  title:
-                    todo === undefined
-                      ? "Not found — plgg To-Do"
-                      : `${todo.title} — plgg To-Do`,
-                  root:
-                    todo === undefined
-                      ? TodoNotFound()
-                      : TodoDetail({ todo }),
-                  clientEntry: "/client.js",
-                }),
-              );
-            },
+            ): Result<HttpResponse, Error> =>
+              ok(
+                pipe(
+                  fromNullable(todos[0]),
+                  matchOption(
+                    (): HttpResponse =>
+                      pageResponse({
+                        title: "Not found — plgg To-Do",
+                        root: TodoNotFound(),
+                        clientEntry: "/client.js",
+                      }),
+                    (todo: Todo): HttpResponse =>
+                      pageResponse({
+                        title: `${todo.title} — plgg To-Do`,
+                        root: TodoDetail({ todo }),
+                        clientEntry: "/client.js",
+                      }),
+                  ),
+                ),
+              ),
           ),
       ).then(mapErr(toHttpError)),
     ),
@@ -305,7 +322,7 @@ export const buildApp = (
       proc(
         ok(c),
         decodeBody(asNewTodo),
-        (newTodo) =>
+        (newTodo: NewTodo) =>
           insertAndReadBack(db, newTodo.title),
       ).then(mapErr(toHttpError)),
     ),
@@ -317,7 +334,7 @@ export const buildApp = (
           proc(
             ok(c),
             decodeBody(asTodoPatch),
-            (body) =>
+            (body: TodoPatch) =>
               updateAndReadBack(
                 db,
                 id,

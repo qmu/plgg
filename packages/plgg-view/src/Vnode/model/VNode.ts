@@ -6,6 +6,7 @@ import {
   Bool,
   Option,
   box,
+  pattern,
   some,
   none,
   isSoftStr,
@@ -42,6 +43,35 @@ export type VNode =
   | Box<"Element", ElementContent>
   | Box<"Text", Readonly<{ value: SoftStr }>>
   | Box<"Fragment", Readonly<{ children: ReadonlyArray<VNode> }>>;
+
+/**
+ * Constructs an intrinsic `Element` node.
+ */
+export const element = (
+  content: ElementContent,
+): VNode => box("Element")(content);
+
+/**
+ * Constructs a `Text` leaf.
+ */
+export const text = (value: SoftStr): VNode =>
+  box("Text")({ value });
+
+/**
+ * Constructs a `Fragment` grouping children with no wrapper.
+ */
+export const fragment = (
+  children: ReadonlyArray<VNode>,
+): VNode => box("Fragment")({ children });
+
+/**
+ * Pattern matchers for folding a {@link VNode} with `match`, so a fold
+ * references each variant by name rather than a bare `__tag` string and stays
+ * exhaustive over the three node kinds.
+ */
+export const element$ = () => pattern("Element")();
+export const text$ = () => pattern("Text")();
+export const fragment$ = () => pattern("Fragment")();
 
 /**
  * A function component: props in, a {@link VNode} out. This is the unit of
@@ -90,9 +120,9 @@ export const normalizeChild = (
   isVNode(value)
     ? [value]
     : isSoftStr(value)
-      ? [box("Text")({ value })]
+      ? [text(value)]
       : isNum(value) && Number.isFinite(value)
-        ? [box("Text")({ value: String(value) })]
+        ? [text(String(value))]
         : Array.isArray(value)
           ? value.flatMap(normalizeChild)
           : [];

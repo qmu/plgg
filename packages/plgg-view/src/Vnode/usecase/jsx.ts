@@ -1,12 +1,13 @@
 import {
   SoftStr,
-  box,
   pipe,
   matchOption,
 } from "plgg";
 import {
   VNode,
   Props,
+  element,
+  fragment,
   normalizeChild,
   coercePropValue,
 } from "plgg-view/index";
@@ -79,10 +80,8 @@ export const jsx = (
   typeof type === "function"
     ? type(props)
     : type === Fragment
-      ? box("Fragment")({
-          children: normalizeChild(props["children"]),
-        })
-      : box("Element")({
+      ? fragment(normalizeChild(props["children"]))
+      : element({
           tag: type,
           props: toProps(props),
           children: normalizeChild(props["children"]),

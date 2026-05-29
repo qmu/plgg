@@ -1,4 +1,10 @@
-import { Box, SoftStr, box, pattern } from "plgg";
+import {
+  Box,
+  SoftStr,
+  box,
+  pattern,
+  match,
+} from "plgg";
 import {
   Method,
   HttpStatus,
@@ -125,31 +131,50 @@ const unique = (
 export const httpErrorToResponse = (
   error: HttpError,
 ): HttpResponse =>
-  error.__tag === "NotFound"
-    ? textResponse("Not Found", 404)
-    : error.__tag === "MethodNotAllowed"
-      ? textResponse("Method Not Allowed", 405, {
-          allow: unique(
-            error.content.allowed,
-          ).join(", "),
-        })
-      : error.__tag === "BadRequest"
-        ? textResponse(error.content.message, 400)
-        : error.__tag === "Unsupported"
-          ? textResponse(error.content.message, 501)
-          : error.__tag === "Unauthorized"
-            ? textResponse(error.content.message, 401)
-            : error.__tag === "Forbidden"
-              ? textResponse(
-                  error.content.message,
-                  403,
-                )
-              : error.__tag === "StatusError"
-                ? textResponse(
-                    error.content.message,
-                    error.content.status.content,
-                  )
-                : textResponse(
-                    "Internal Server Error",
-                    500,
-                  );
+  match(error)(
+    [
+      notFound$(),
+      (): HttpResponse =>
+        textResponse("Not Found", 404),
+    ],
+    [
+      methodNotAllowed$(),
+      (e): HttpResponse =>
+        textResponse("Method Not Allowed", 405, {
+          allow: unique(e.content.allowed).join(", "),
+        }),
+    ],
+    [
+      badRequest$(),
+      (e): HttpResponse =>
+        textResponse(e.content.message, 400),
+    ],
+    [
+      unsupported$(),
+      (e): HttpResponse =>
+        textResponse(e.content.message, 501),
+    ],
+    [
+      unauthorized$(),
+      (e): HttpResponse =>
+        textResponse(e.content.message, 401),
+    ],
+    [
+      forbidden$(),
+      (e): HttpResponse =>
+        textResponse(e.content.message, 403),
+    ],
+    [
+      statusError$(),
+      (e): HttpResponse =>
+        textResponse(
+          e.content.message,
+          e.content.status.content,
+        ),
+    ],
+    [
+      internalError$(),
+      (): HttpResponse =>
+        textResponse("Internal Server Error", 500),
+    ],
+  );
