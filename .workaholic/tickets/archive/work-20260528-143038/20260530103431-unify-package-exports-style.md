@@ -3,8 +3,9 @@ created_at: 2026-05-30T10:34:31+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Config]
-effort:
-commit_hash:
+effort: 0.25h
+commit_hash: db0dce2
+category: Changed
 depends_on:
 ---
 
@@ -106,3 +107,23 @@ separately (it touches core, hence excluded here). Note this in the Final Report
   wants zero drift.
 - **Drop the legacy `main`/`module`/`types` fields?** Recommend keeping them
   (belt-and-suspenders for old resolvers); out of scope for this ticket.
+
+## Final Report
+
+Converted the four non-core packages to the canonical `.`-keyed `exports` shape:
+plgg-kit, plgg-sql, plgg-fetch (flat → `.`-keyed) and plgg-foundry (flat without
+`types` → `.`-keyed with the `types`+`default` conditions restored). Every
+non-core package now uses the same shape (plgg-view/router/server were already
+canonical; plgg-http was authored canonical in the sibling ticket). `main`/
+`module`/`types` top-level fields kept. `scripts/check-all.sh` green end-to-end —
+all `file:` dependents still resolve their dependencies' `exports`.
+
+### Open Questions — resolutions
+
+- **Include core?** No — `packages/plgg` stays flat per the "all except core"
+  directive, so it is now the lone flat package. Aligning it is a trivial
+  one-file follow-up the developer can opt into separately.
+- **Drop legacy `main`/`module`/`types`?** No — kept for non-`exports`-aware tooling.
+
+Development completed as planned; no surprises (the change is behavior-preserving,
+the one substantive fix being plgg-foundry regaining explicit `types` conditions).
