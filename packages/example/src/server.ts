@@ -5,8 +5,9 @@
  * via plgg-server's `pageResponse` (which folds `Html<Msg>` through plgg-view's
  * `renderToString`, dropping handlers). The page embeds `<div id="root">` with
  * the server-rendered markup plus a `<script src="/main.js">` that boots the
- * client `sandbox`; the client then re-renders `view(init)` into the same node
- * and takes over (full re-render — true hydration waits for a `Cmd` phase).
+ * client `sandbox`; the client then rebuilds `view(init)` into the same node on
+ * mount and takes over (a full first paint, not hydration — reusing the server's
+ * markup waits for a hydration pass; subsequent re-renders diff/patch in place).
  *
  * Run it:
  *   npm run build      # bundles the client to dist/main.js (served below)

@@ -11,9 +11,9 @@ a pure function of the model. It fits plgg's ethos exactly: pure functions,
 immutable data, events as values, one runtime seam. The only runtime dependency
 is `plgg`.
 
-This is the **minimum** that is still recognizably TEA: `sandbox` + full
-re-render, **no `Cmd`/`Sub`, no virtual-DOM diffing**. Effects (HTTP, timers,
-programmatic navigation) are a deliberate non-goal of this minimum.
+This is the **minimum** that is still recognizably TEA: `sandbox`/`application`
+over an in-place **diff/patch renderer**, **no `Cmd`/`Sub`**. Effects (HTTP,
+timers, programmatic navigation) are a deliberate non-goal of this minimum.
 
 ## What it is (and isn't)
 
@@ -21,8 +21,9 @@ programmatic navigation) are a deliberate non-goal of this minimum.
 |--|--|
 | ✅ `Model` / `Msg` / pure `update` / pure `view` | ❌ no `Cmd` / `Sub` / effects |
 | ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style hyperscript builders instead) |
-| ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no virtual-DOM diffing (full re-render) |
-| ✅ pure SSR `renderToString(Html)` | ❌ no hydration (mount re-renders from `init`) |
+| ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no keyed-list reconcile or render batching (follow-ups) |
+| ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | ❌ no hydration (mount re-renders from `init`) |
+| ✅ pure SSR `renderToString(Html)` | |
 
 ## The view tree — `Html<Msg>`
 
@@ -63,8 +64,11 @@ const stop = application({ init, update, view, onUrlChange })(container);
 
 - **`sandbox`** holds the live `Model` in a closure (the single justified mutable
   seam — Elm's runtime is imperative here too). A `dispatch(msg)` sets
-  `model = update(msg, model)` and re-renders the whole tree (`replaceChildren`,
-  no diffing); handlers are re-attached each render.
+  `model = update(msg, model)` and re-renders by **diffing** the new `Html<Msg>`
+  against the last and patching only what changed (`makeRenderer`), so a re-render
+  is O(changes) and a focused input keeps its focus, caret, and IME state. Event
+  listeners are wired once per node and re-pointed in place — never duplicated,
+  never stale (the live handler is read on each event from a per-node registry).
 - **`application`** additionally owns the URL: it reads the entry `Url` into
   `init`, intercepts same-origin in-app `<a>` clicks (preserving browser defaults
   for modifier-clicks, `target`/`download`/pass-through `rel`, cross-origin and
@@ -97,8 +101,9 @@ over this.
 - **`plgg-view`** (core) — the `Html<Msg>`/`Attribute<Msg>` model, the builders,
   `foldHtml`, `mapHtml`, and the pure SSR `renderToString`/`escape`. No DOM —
   SSR-safe, importable anywhere.
-- **`plgg-view/client`** (browser seam) — `sandbox`, `application`, `render`
-  (Html→DOM), and the `Url` model. The only code that touches browser globals.
+- **`plgg-view/client`** (browser seam) — `sandbox`, `application`, `makeRenderer`
+  (the diffing Html→DOM renderer), and the `Url` model. The only code that touches
+  browser globals.
 
 ## Run the example
 
@@ -116,7 +121,7 @@ over `sandbox`). A fuller client-only TEA To-Do app lives in
   the `"plgg-view/…"` path alias, matching the `plgg-server` convention.
 - `as` / `any` / `ts-ignore` are prohibited (see root `CLAUDE.md`); unknown
   inputs are narrowed with plgg type guards and `Option`. The runtime's mutable
-  model ref is the one justified imperative seam (confined to `sandbox`/
-  `application`, commented).
+  model ref and the renderer's previous-tree ref / DOM mutation are the justified
+  imperative seams (confined to `sandbox`/`application`/`render`, commented).
 - After editing `plgg` core, run `npm run build` in `packages/plgg` or this package
   won't see new exports (the dependency is a symlinked `file:` dist).

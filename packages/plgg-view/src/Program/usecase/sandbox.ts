@@ -1,5 +1,5 @@
 import { Html } from "plgg-view/Html/model/Html";
-import { render } from "plgg-view/Program/usecase/render";
+import { makeRenderer } from "plgg-view/Program/usecase/render";
 
 /**
  * The minimal Elm Architecture program: an initial `Model`, a **pure**
@@ -15,8 +15,9 @@ export type Sandbox<Model, Msg> = Readonly<{
 
 /**
  * Runs a {@link Sandbox} against a DOM container: renders `view(init)`, then on
- * every dispatched `Msg` computes `update(msg, model)` and re-renders the whole
- * tree (full re-render — no diffing). Returns a cleanup that empties the
+ * every dispatched `Msg` computes `update(msg, model)` and re-renders through
+ * the diffing {@link makeRenderer} — only the changed DOM is touched, so a
+ * focused input keeps its focus and caret. Returns a cleanup that empties the
  * container.
  *
  * The live `model` is the runtime's single mutable seam — the Elm Architecture
@@ -29,12 +30,9 @@ export const sandbox =
     let model: Model = program.init;
     const dispatch = (msg: Msg): void => {
       model = program.update(msg, model);
-      render(
-        program.view(model),
-        container,
-        dispatch,
-      );
+      render(program.view(model));
     };
-    render(program.view(model), container, dispatch);
+    const render = makeRenderer(container, dispatch);
+    render(program.view(model));
     return () => container.replaceChildren();
   };

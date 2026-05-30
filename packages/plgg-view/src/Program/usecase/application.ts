@@ -15,7 +15,7 @@ import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
-import { render } from "plgg-view/Program/usecase/render";
+import { makeRenderer } from "plgg-view/Program/usecase/render";
 
 /**
  * A routing-aware Elm-Architecture program (Browser.application-style), kept
@@ -146,12 +146,9 @@ export const application =
     let model: Model = program.init(currentUrl());
     const dispatch = (msg: Msg): void => {
       model = program.update(msg, model);
-      render(
-        program.view(model),
-        container,
-        dispatch,
-      );
+      render(program.view(model));
     };
+    const render = makeRenderer(container, dispatch);
     const go = (url: Url): void =>
       dispatch(program.onUrlChange(url));
 
@@ -173,7 +170,7 @@ export const application =
       );
     const onPopState = (): void => go(currentUrl());
 
-    render(program.view(model), container, dispatch);
+    render(program.view(model));
     window.addEventListener("popstate", onPopState);
     document.addEventListener("click", onClick);
 

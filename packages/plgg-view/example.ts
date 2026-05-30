@@ -7,8 +7,9 @@
  * Everything the app author writes is **pure**: an immutable `Model`, an
  * `update` that folds a `Msg` into the next model, and a `view` from the model
  * to `Html<Msg>`. The one imperative seam — the live model + DOM — is owned by
- * `sandbox`, the runtime. There is no `Cmd`/`Sub` and no virtual-DOM diffing:
- * every `Msg` recomputes `update` and re-renders the whole tree.
+ * `sandbox`, the runtime. There is no `Cmd`/`Sub`; every `Msg` recomputes
+ * `update`, and the runtime diffs the new `Html<Msg>` against the last and
+ * patches only what changed.
  *
  * For SSR, the same `view(init)` folds to a string through `renderToString`
  * (handlers dropped) — see `Html/usecase/renderToString.spec.ts`.
