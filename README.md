@@ -72,8 +72,9 @@ This is a monorepo containing:
 - **[`packages/plgg/`](packages/plgg/)** - Core library: type-safe functional primitives (Result, Option, pipelines, branded types, numeric types)
 - **[`packages/plgg-kit/`](packages/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
 - **[`packages/plgg-foundry/`](packages/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
-- **[`packages/plgg-server/`](packages/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter)
-- **[`packages/plgg-fetch/`](packages/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric with plgg-server (`fetch` seam, errors as values)
+- **[`packages/plgg-http/`](packages/plgg-http/)** - Runtime-neutral HTTP model (request/response/status/method/error) — pure data + builders, no `node:http`/`fetch`. The shared base both plgg-server and plgg-fetch build on, so neither imports the other.
+- **[`packages/plgg-server/`](packages/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter), consuming plgg-http's model
+- **[`packages/plgg-fetch/`](packages/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric peer of plgg-server — both share plgg-http's model (`fetch` seam, errors as values)
 - **[`packages/plgg-view/`](packages/plgg-view/)** - Minimal Elm Architecture (TEA) for the browser: a typed `Html<Msg>` view tree (Elm-style hyperscript builders, no JSX), pure `sandbox`/`application` runtimes, and SSR `renderToString`. Built on plgg only.
 - **[`packages/plgg-router/`](packages/plgg-router/)** - Pure client-side path toolkit: compile/match path patterns (`:param`/`*wildcard`) and parse the query string into `Location` data — view-free and DOM-free. Consumed by plgg-view's `application` runtime, which owns the History/render loop. plgg-server's `Routing` is the server-side path → `HttpResponse` matcher; plgg-router shares its `Segment`/`:param`/`*` vocabulary by parallel definition.
 - **[`packages/example/`](packages/example/)** - Example usage project
@@ -90,10 +91,13 @@ npm install plgg-kit
 # AI workflow orchestration (depends on plgg and plgg-kit)
 npm install plgg-foundry
 
-# Web router and HTTP handler (depends on plgg)
+# Runtime-neutral HTTP model (depends on plgg)
+npm install plgg-http
+
+# Web router and HTTP handler (depends on plgg, plgg-http, plgg-view)
 npm install plgg-server
 
-# Typed HTTP client (depends on plgg and plgg-server)
+# Typed HTTP client (depends on plgg and plgg-http)
 npm install plgg-fetch
 
 # Minimal Elm Architecture view layer (depends on plgg)
@@ -281,6 +285,12 @@ AI-powered workflow orchestration using a register machine model. Define operati
 
 See [packages/plgg-foundry/README.md](packages/plgg-foundry/README.md) for details.
 
+### plgg-http
+
+The runtime-neutral HTTP model both plgg-server and plgg-fetch build on: `Method`, `HttpStatus`/`statusOf`, `HttpRequest`, `HttpResponse`/`ResponseBody` (+ `textResponse`/`jsonResponse`/…), and the `HttpError` failure vocabulary (`notFound$`/`badRequest$`/… + `httpErrorToResponse`) — pure plgg data and builders, no `node:http`/`fetch`/DOM. Extracting it below both packages keeps them true peers (neither imports the other).
+
+See [packages/plgg-http/README.md](packages/plgg-http/README.md) for details.
+
 ### plgg-server
 
 A server-side web router and HTTP request handler built from scratch on plgg — no external HTTP framework. The app is a pure-data `Web` value assembled through `pipe` (data-last `get`/`post`/`use`/`route` transformers, no method chaining); `handle` runs it plgg-natively while `toFetch` is the Web-standard `Request`/`Response` seam. Path params/wildcards, onion-model middleware, and a `node:http` adapter (`serve`).
@@ -289,7 +299,7 @@ See [packages/plgg-server/README.md](packages/plgg-server/README.md) for details
 
 ### plgg-fetch
 
-A typed HTTP client built from scratch on plgg — the symmetric companion of plgg-server. `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
+A typed HTTP client built from scratch on plgg — the symmetric peer of plgg-server (both build on plgg-http's shared model; neither imports the other). `request`/`get`/`post`/`put`/`patch`/`del` return `PromisedResult<HttpResponse, ClientError>`; the native `fetch`/`Request`/`Response` types live only at one seam (`toFetchRequest`/`fromFetchResponse`). A non-2xx status is a valid `HttpResponse`; only a transport failure folds to a `NetworkError`.
 
 See [packages/plgg-fetch/README.md](packages/plgg-fetch/README.md) for details.
 

@@ -43,7 +43,7 @@ import {
   forbidden$,
   statusError$,
   internalError$,
-} from "plgg-server";
+} from "plgg-http";
 
 // --- domain: validate the user the server returns, with plgg `cast` (no `as`) ---
 type User = Obj<{ name: SoftStr; email: SoftStr }>;

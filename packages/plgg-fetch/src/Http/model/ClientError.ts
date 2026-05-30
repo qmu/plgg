@@ -5,7 +5,7 @@ import {
   pattern,
   isBoxWithTag,
 } from "plgg";
-import { HttpError } from "plgg-server";
+import { HttpError } from "plgg-http";
 
 /**
  * A transport-level failure on the client: the request never produced an HTTP
@@ -29,11 +29,11 @@ export const networkError = (
   box("NetworkError")({ message });
 
 /**
- * The client's error vocabulary: the shared {@link HttpError} model reused from
- * `plgg-server`, widened with the client-only {@link NetworkError}. Keeping
- * `NetworkError` here rather than in the router's union leaves the server's
- * error fold untouched — a server never has a transport failure talking to
- * itself — while client and server still share one `HttpError` vocabulary.
+ * The client's error vocabulary: the shared {@link HttpError} model from
+ * `plgg-http`, widened with the client-only {@link NetworkError}. Keeping
+ * `NetworkError` here rather than in the shared model leaves the server's error
+ * fold untouched — a server never has a transport failure talking to itself —
+ * while client and server still share one `HttpError` vocabulary (via plgg-http).
  */
 export type ClientError = HttpError | NetworkError;
 

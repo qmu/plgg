@@ -3,7 +3,7 @@ import { isOk, isErr, none } from "plgg";
 import {
   HttpRequest,
   bytesBody,
-} from "plgg-server";
+} from "plgg-http";
 import {
   toFetchRequest,
   fromFetchResponse,

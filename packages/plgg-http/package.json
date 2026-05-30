@@ -1,7 +1,7 @@
 {
-  "name": "plgg-server",
+  "name": "plgg-http",
   "version": "0.0.1",
-  "description": "Server-side HTTP router, handler, and view layer built from scratch on the plgg framework",
+  "description": "Runtime-neutral HTTP model (request/response/status/method/error) built from scratch on the plgg framework — the shared base of plgg-server and plgg-fetch",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
@@ -13,36 +13,6 @@
       "require": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.cjs.js"
-      }
-    },
-    "./node": {
-      "import": {
-        "types": "./dist/node.d.ts",
-        "default": "./dist/node.es.js"
-      },
-      "require": {
-        "types": "./dist/node.d.ts",
-        "default": "./dist/node.cjs.js"
-      }
-    },
-    "./bun": {
-      "import": {
-        "types": "./dist/bun.d.ts",
-        "default": "./dist/bun.es.js"
-      },
-      "require": {
-        "types": "./dist/bun.d.ts",
-        "default": "./dist/bun.cjs.js"
-      }
-    },
-    "./deno": {
-      "import": {
-        "types": "./dist/deno.d.ts",
-        "default": "./dist/deno.es.js"
-      },
-      "require": {
-        "types": "./dist/deno.d.ts",
-        "default": "./dist/deno.cjs.js"
       }
     }
   },
@@ -68,14 +38,11 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg",
-    "plgg-http": "file:../plgg-http",
-    "plgg-view": "file:../plgg-view"
+    "plgg": "file:../plgg"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.5",
-    "happy-dom": "^15.0.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vite-plugin-dts": "^5.0.0",

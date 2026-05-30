@@ -2,7 +2,7 @@ import { Box, SoftStr, Dict, box } from "plgg";
 import {
   HttpStatus,
   statusOf,
-} from "plgg-server/index";
+} from "plgg-http/index";
 
 /**
  * A plgg-native response body. Text stays a bare `SoftStr` so existing handlers

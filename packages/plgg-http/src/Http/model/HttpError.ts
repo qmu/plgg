@@ -10,7 +10,7 @@ import {
   HttpStatus,
   HttpResponse,
   textResponse,
-} from "plgg-server/index";
+} from "plgg-http/index";
 
 /**
  * Routing/handling failures as values, modeled as a plgg `Box` union so they

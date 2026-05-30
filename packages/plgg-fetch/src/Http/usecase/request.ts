@@ -12,7 +12,7 @@ import {
   HttpRequest,
   HttpResponse,
   Method,
-} from "plgg-server";
+} from "plgg-http";
 import {
   ClientError,
   networkError,

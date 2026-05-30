@@ -4,7 +4,7 @@ import {
   isMethod,
   asMethod,
   METHODS,
-} from "plgg-server/index";
+} from "plgg-http/index";
 
 test("isMethod accepts every recognized method and rejects others", () => {
   for (const m of METHODS) {

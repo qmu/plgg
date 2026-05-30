@@ -20,7 +20,7 @@ import {
   forbidden$,
   statusError$,
   internalError$,
-} from "plgg-server/index";
+} from "plgg-http/index";
 
 test("notFound -> 404", () => {
   const r = httpErrorToResponse(notFound("/x"));

@@ -4,7 +4,7 @@ import {
   Dict,
   fromNullable,
 } from "plgg";
-import { Method } from "plgg-server/index";
+import { Method } from "plgg-http/index";
 
 /**
  * A plgg-native HTTP request. Built from a Web-standard `Request` only at the

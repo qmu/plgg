@@ -4,7 +4,7 @@ import {
   asHttpStatus,
   isHttpStatus,
   statusOf,
-} from "plgg-server/index";
+} from "plgg-http/index";
 
 test("asHttpStatus accepts codes in 100-599", () => {
   const r = asHttpStatus(404);

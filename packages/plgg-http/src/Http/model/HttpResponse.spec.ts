@@ -6,7 +6,7 @@ import {
   bytesResponse,
   streamResponse,
   redirectResponse,
-} from "plgg-server/index";
+} from "plgg-http/index";
 
 async function* twoChunks(): AsyncIterable<Uint8Array> {
   yield new Uint8Array([1, 2]);

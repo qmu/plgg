@@ -1,10 +1,12 @@
 # plgg-fetch
 
 A **typed HTTP client** built from scratch on [plgg](../plgg/), for the
-presentation layer to call a server. It is the symmetric companion of
-[`plgg-server`](../plgg-server/): both speak the same plgg-native HTTP
-model, requests/responses are pure plgg data, failures are values, and the
-native `fetch`/`Request`/`Response` types appear **only at one seam**.
+presentation layer to call a server. It is the symmetric peer of
+[`plgg-server`](../plgg-server/): both build on the shared HTTP model in
+[`plgg-http`](../plgg-http/) — so neither imports the other — requests/responses
+are pure plgg data, failures are values, and the native `fetch`/`Request`/
+`Response` types appear **only at one seam**. plgg-fetch's runtime dependencies
+are `plgg` and `plgg-http` (no `plgg-server`).
 
 > **UNSTABLE / EXPERIMENTAL POC.** The public surface may still change. plgg
 > discipline is non-negotiable: dogfood plgg types/combinators, errors as
@@ -55,7 +57,7 @@ const body = encodeJson({ name: "Grace", email: "grace@x.io" });
 
 All return `PromisedResult<HttpResponse, ClientError>`, where
 `ClientError = HttpError | NetworkError` — the shared `HttpError` vocabulary from
-`plgg-server`, widened with the client-only `NetworkError`.
+`plgg-http`, widened with the client-only `NetworkError`.
 
 - `decodeJsonBody(as)(response)` — read the text body, `decodeJson`, then run a
   `cast`-based parser; the whole chain is a `Result<T, InvalidError>`.

@@ -1,7 +1,7 @@
-export * from "plgg-server/Http/model/Method";
-export * from "plgg-server/Http/model/HttpStatus";
-export * from "plgg-server/Http/model/HttpRequest";
-export * from "plgg-server/Http/model/HttpResponse";
-export * from "plgg-server/Http/model/HttpError";
+// The runtime-neutral HTTP model (Method/HttpStatus/HttpRequest/HttpResponse/
+// HttpError) now lives in plgg-http, shared with plgg-fetch. Re-export it so
+// every server-side consumer keeps importing the model from "plgg-server".
+export * from "plgg-http";
+// Server-only middleware concepts stay here.
 export * from "plgg-server/Http/model/Context";
 export * from "plgg-server/Http/model/Handler";

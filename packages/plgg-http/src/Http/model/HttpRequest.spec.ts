@@ -14,7 +14,7 @@ import {
   getParam,
   getBytes,
   withParams,
-} from "plgg-server/index";
+} from "plgg-http/index";
 
 const req = (
   over: Partial<HttpRequest> = {},

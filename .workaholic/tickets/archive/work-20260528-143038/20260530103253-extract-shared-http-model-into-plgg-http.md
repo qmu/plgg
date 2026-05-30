@@ -3,9 +3,9 @@ created_at: 2026-05-30T10:32:53+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 341e970
+category: Changed
 depends_on:
 ---
 
@@ -158,3 +158,40 @@ importing `HttpError`/`HttpResponse`/… from `"plgg-server"` unchanged.
 - **Re-export vs. direct imports in plgg-server.** Recommend plgg-server *re-exports*
   plgg-http from its barrel (zero call-site churn). Optionally, a follow-up could
   repoint server-internal imports straight at plgg-http; not required here.
+
+## Final Report
+
+Done in one pass (phases 1–2 together, then 3, then 4), green at the end of each.
+The new `plgg-http` package holds the runtime-neutral HTTP model; `plgg-server`
+re-exports it; `plgg-fetch` consumes it and **no longer depends on plgg-server**.
+`scripts/check-all.sh` green end-to-end: plgg-http 31 tests / 100% coverage,
+plgg-server 73 (12 files), plgg-fetch 25, all other packages unchanged.
+
+### Open Questions — resolutions
+
+- **Package name** → `plgg-http` (matches the `plgg-server`/`plgg-fetch` family).
+- **Home** → a new package (not plgg core, kept general + frozen; not a core
+  submodule, which would still bloat core).
+- **Context / Handler** → stay in plgg-server (server-only middleware concepts;
+  plgg-fetch imports none of them — confirmed).
+- **Re-export vs. direct imports** → plgg-server **re-exports** plgg-http from its
+  `Http/model` barrel, so zero server-internal call sites changed. Repointing them
+  directly at plgg-http is a possible future cleanup, not done here.
+
+### Discovered Insights
+
+- **Insight**: the five model files only cross-referenced each other through the
+  `plgg-server/index` *barrel*; the only specific-path imports of them lived in
+  `Http/model/index.ts` itself. **Context**: that made the move a clean `git mv`
+  + a single `plgg-server → plgg-http` path rewrite, with no consumer edits beyond
+  the barrel — a useful signal that the HTTP model was already a well-isolated
+  sub-module ripe for extraction.
+- **Insight**: both `plgg-fetch/example.ts` and the model files imported the HTTP
+  vocabulary; the example needed repointing to plgg-http too (it imports the
+  `HttpError` matchers, though it *runs* against the plgg-server example server —
+  a runtime relationship, not a dependency). **Context**: "example runs against
+  plgg-server" ≠ "package depends on plgg-server"; the dependency is now severed
+  while the runnable demo still talks to a real server.
+- **Insight**: this is the documented complement of the plgg-router/`Segment`
+  decision — *parallel-define small clones, extract-below large shared
+  vocabularies* — now captured in plgg-http's README.
