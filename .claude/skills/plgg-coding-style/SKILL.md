@@ -158,6 +158,11 @@ pipe(
 
 `match*` needs an explicit return type and param annotations on **both** branches.
 
+Prefer one annotation at the boundary — a function's return type — and let
+contextual typing carry it inward, over repeating a generic at every call site.
+Keep a local hint only where inference can't unify (e.g. one call mixing several
+type-param variants across its own arguments).
+
 ## Naming & docs
 
 `asX` caster · `isX` guard · `makeX` / lowercase-noun constructor (`box`, `web`,

@@ -92,6 +92,8 @@ pipe(
   app,
   toFetch,
   serve({ port: 3000 }, () =>
-    console.log("listening on http://localhost:3000"),
+    console.log(
+      "listening on http://localhost:3000",
+    ),
   ),
 );

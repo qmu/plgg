@@ -46,7 +46,10 @@ import {
 } from "plgg-http";
 
 // --- domain: validate the user the server returns, with plgg `cast` (no `as`) ---
-type User = Obj<{ name: SoftStr; email: SoftStr }>;
+type User = Obj<{
+  name: SoftStr;
+  email: SoftStr;
+}>;
 
 const asUser = (
   value: unknown,
@@ -82,7 +85,9 @@ const BASE = "http://localhost:3000";
 // body — each handled as a value rather than a thrown exception.
 const report =
   (label: SoftStr) =>
-  (result: Result<HttpResponse, ClientError>): void =>
+  (
+    result: Result<HttpResponse, ClientError>,
+  ): void =>
     pipe(
       result,
       matchResult(
@@ -189,7 +194,10 @@ const main = async (): Promise<void> => {
 
   // POST a new user. Encode the JSON body with plgg's codec, set content-type.
   await pipe(
-    encodeJson({ name: "Grace", email: "grace@x.io" }),
+    encodeJson({
+      name: "Grace",
+      email: "grace@x.io",
+    }),
     matchResult(
       (error: InvalidError): Promise<void> =>
         Promise.resolve(

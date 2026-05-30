@@ -63,7 +63,10 @@ import {
 } from "plgg";
 
 // --- domain: validate an incoming user with plgg `cast` (no `as`) ---
-type NewUser = Obj<{ name: SoftStr; email: SoftStr }>;
+type NewUser = Obj<{
+  name: SoftStr;
+  email: SoftStr;
+}>;
 
 const asNewUser = (
   v: unknown,
@@ -107,8 +110,11 @@ const findUser = (id: SoftStr): Option<NewUser> =>
 const api = pipe(
   web(),
   use(async (c, next) =>
-    pipe(c, header("authorization"), getOr("")) ===
-    "Bearer secret"
+    pipe(
+      c,
+      header("authorization"),
+      getOr(""),
+    ) === "Bearer secret"
       ? next()
       : err(unauthorized("Unauthorized")),
   ),
@@ -128,7 +134,9 @@ const app = pipe(
         console.log(
           `[${rid}] -> ${c.req.method} ${c.req.path}`,
         );
-        return next(pipe(c, setState("rid", rid)));
+        return next(
+          pipe(c, setState("rid", rid)),
+        );
       },
     ),
   ),
@@ -165,7 +173,9 @@ const app = pipe(
     pipe(
       c.req.body,
       decodeJson,
-      mapErr((e: InvalidError) => badRequest(e.message)),
+      mapErr((e: InvalidError) =>
+        badRequest(e.message),
+      ),
       chainResult((v) =>
         pipe(
           asNewUser(v),
@@ -199,6 +209,8 @@ pipe(
   app,
   toFetch,
   serve({ port: 3000 }, () =>
-    console.log("listening on http://localhost:3000"),
+    console.log(
+      "listening on http://localhost:3000",
+    ),
   ),
 );

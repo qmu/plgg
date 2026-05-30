@@ -38,7 +38,10 @@ export type Model = Readonly<{
 
 /** Everything that can happen, as data. */
 export type Msg =
-  | Readonly<{ kind: "DraftChanged"; value: SoftStr }>
+  | Readonly<{
+      kind: "DraftChanged";
+      value: SoftStr;
+    }>
   | Readonly<{ kind: "Added" }>
   | Readonly<{ kind: "Toggled"; id: number }>
   | Readonly<{ kind: "Deleted"; id: number }>;
@@ -95,7 +98,11 @@ export const update = (
 
 const viewTodo = (todo: Todo): Html<Msg> =>
   li(
-    [class_(todo.completed ? "todo done" : "todo")],
+    [
+      class_(
+        todo.completed ? "todo done" : "todo",
+      ),
+    ],
     [
       input(
         [
@@ -110,7 +117,10 @@ const viewTodo = (todo: Todo): Html<Msg> =>
         ],
         [],
       ),
-      span([class_("todo-title")], [text(todo.title)]),
+      span(
+        [class_("todo-title")],
+        [text(todo.title)],
+      ),
       button(
         [
           class_("todo-delete"),
@@ -138,7 +148,11 @@ export const view = (model: Model): Html<Msg> =>
         [
           h1(
             [],
-            [text("plgg To-Do — Elm Architecture")],
+            [
+              text(
+                "plgg To-Do — Elm Architecture",
+              ),
+            ],
           ),
           p(
             [],
@@ -168,7 +182,10 @@ export const view = (model: Model): Html<Msg> =>
             ],
             [],
           ),
-          button([type_("submit")], [text("Add")]),
+          button(
+            [type_("submit")],
+            [text("Add")],
+          ),
         ],
       ),
       ul(

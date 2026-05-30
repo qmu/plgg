@@ -1,4 +1,8 @@
-import { pipe, fromNullable, mapOption } from "plgg";
+import {
+  pipe,
+  fromNullable,
+  mapOption,
+} from "plgg";
 import { sandbox } from "plgg-view/client";
 import { app } from "./app";
 

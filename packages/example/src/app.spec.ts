@@ -23,8 +23,10 @@ const seed: Model = {
 
 test("DraftChanged sets the draft", () => {
   expect(
-    update({ kind: "DraftChanged", value: "hi" }, init)
-      .draft,
+    update(
+      { kind: "DraftChanged", value: "hi" },
+      init,
+    ).draft,
   ).toBe("hi");
 });
 
@@ -34,7 +36,11 @@ test("Added appends a todo, clears the draft, and bumps nextId", () => {
     { ...init, draft: "Buy milk" },
   );
   expect(next.todos).toEqual([
-    { id: 1, title: "Buy milk", completed: false },
+    {
+      id: 1,
+      title: "Buy milk",
+      completed: false,
+    },
   ]);
   expect(next.draft).toBe("");
   expect(next.nextId).toBe(2);
@@ -42,20 +48,24 @@ test("Added appends a todo, clears the draft, and bumps nextId", () => {
 
 test("Added is a no-op for a blank draft", () => {
   expect(
-    update({ kind: "Added" }, { ...init, draft: "   " }),
+    update(
+      { kind: "Added" },
+      { ...init, draft: "   " },
+    ),
   ).toEqual({ ...init, draft: "   " });
 });
 
 test("Toggled flips the matching todo's completed flag", () => {
   expect(
-    update({ kind: "Toggled", id: 1 }, seed).todos[0]
-      ?.completed,
+    update({ kind: "Toggled", id: 1 }, seed)
+      .todos[0]?.completed,
   ).toBe(true);
 });
 
 test("Deleted removes the matching todo", () => {
   expect(
-    update({ kind: "Deleted", id: 1 }, seed).todos,
+    update({ kind: "Deleted", id: 1 }, seed)
+      .todos,
   ).toEqual([]);
 });
 
@@ -114,8 +124,8 @@ test("adding a todo through the form updates the list", () => {
       new Event("submit", { cancelable: true }),
     );
 
-  expect(root.querySelectorAll("li.todo")).toHaveLength(
-    1,
-  );
+  expect(
+    root.querySelectorAll("li.todo"),
+  ).toHaveLength(1);
   expect(root.textContent).toContain("Ship it");
 });
