@@ -16,21 +16,21 @@ This document describes the observability practices implemented in the plgg mono
 
 The project provides two pipeline-level logging utilities exported from the `plgg` core package.
 
-`debug` is a pass-through function that calls `console.debug` with the input value and returns the value unchanged. It is intended for use inside functional pipelines where a value must be inspected without interrupting the chain. It is implemented in `src/plgg/src/Functionals/debug.ts` and exported publicly from `src/plgg/src/Functionals/index.ts`.
+`debug` is a pass-through function that calls `console.debug` with the input value and returns the value unchanged. It is intended for use inside functional pipelines where a value must be inspected without interrupting the chain. It is implemented in `packages/plgg/src/Functionals/debug.ts` and exported publicly from `packages/plgg/src/Functionals/index.ts`.
 
-`tap` is a higher-order pass-through function that accepts any side-effect function and returns a function that applies the side effect to a value and returns that value unchanged. Its documented use case includes logging within processing pipelines, as shown in test cases where `console.log` and custom logger functions are passed as the side-effect argument. It is implemented in `src/plgg/src/Functionals/tap.ts` and exported publicly from `src/plgg/src/Functionals/index.ts`.
+`tap` is a higher-order pass-through function that accepts any side-effect function and returns a function that applies the side effect to a value and returns that value unchanged. Its documented use case includes logging within processing pipelines, as shown in test cases where `console.log` and custom logger functions are passed as the side-effect argument. It is implemented in `packages/plgg/src/Functionals/tap.ts` and exported publicly from `packages/plgg/src/Functionals/index.ts`.
 
-`printPlggError` is a formatted error reporting function in `src/plgg/src/Exceptionals/PlggError.ts`. It collects the chain of nested `PlggError` instances and prints each to `console.error` using ANSI color codes: red for the outermost error constructor name, gray for call-site location and nested error names. This function is the designated mechanism for presenting domain error chains to a console.
+`printPlggError` is a formatted error reporting function in `packages/plgg/src/Exceptionals/PlggError.ts`. It collects the chain of nested `PlggError` instances and prints each to `console.error` using ANSI color codes: red for the outermost error constructor name, gray for call-site location and nested error names. This function is the designated mechanism for presenting domain error chains to a console.
 
 There is no structured logging framework (e.g., Winston, Pino, Bunyan) in any package. Log calls are exclusively to the native `console` API (`console.debug`, `console.error`, `console.log`). No log levels beyond what the native `console` API provides are defined. No log formatting middleware or transport configuration exists.
 
-The `plgg-kit` package includes a file `src/plgg-kit/TodoFoundry.ts` that calls `console.log` from inside a processor's side-effect function. This is a development-time example artifact, not a production logging convention.
+The `plgg-kit` package includes a file `packages/plgg-kit/TodoFoundry.ts` that calls `console.log` from inside a processor's side-effect function. This is a development-time example artifact, not a production logging convention.
 
-The `plgg-foundry` package configures its vitest environment to load a `.env` file via `dotenv` (`src/plgg-foundry/vite.config.ts`), making environment variables (including potential API keys) available to tests. No logging configuration is influenced by environment variables in the observed codebase.
+The `plgg-foundry` package configures its vitest environment to load a `.env` file via `dotenv` (`packages/plgg-foundry/vite.config.ts`), making environment variables (including potential API keys) available to tests. No logging configuration is influenced by environment variables in the observed codebase.
 
 ## Metrics Collection
 
-Code coverage metrics are collected for the `plgg` package using vitest's v8 coverage provider. The reporters configured are `text`, `lcov`, and `html` (`src/plgg/vite.config.ts`). Coverage is collected for all files not excluded by the configured exclude list (node_modules, dist, coverage, spec files, index files, and the vite config itself). Enforced thresholds are 90% for statements, branches, functions, and lines.
+Code coverage metrics are collected for the `plgg` package using vitest's v8 coverage provider. The reporters configured are `text`, `lcov`, and `html` (`packages/plgg/vite.config.ts`). Coverage is collected for all files not excluded by the configured exclude list (node_modules, dist, coverage, spec files, index files, and the vite config itself). Enforced thresholds are 90% for statements, branches, functions, and lines.
 
 Coverage metrics are uploaded as a CI artifact implicitly through the workflow step output in `run-tests.yml`. The CI step "Run tests with coverage" runs `npm run coverage` and will fail the workflow when any threshold is not met.
 

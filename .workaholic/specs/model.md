@@ -325,14 +325,14 @@ flowchart TD
 
 ## Assumptions
 
-- **[Explicit]** `Datum` is defined recursively in `src/plgg/src/Disjunctives/Datum.ts` as `DatumCore | OptionalDatum<DatumCore> | NominalDatum<string, DatumCore>` where `DatumCore = Atomic | Basic | Obj | ReadonlyArray<Datum>`.
-- **[Explicit]** `Box<TAG, CONTENT>` is the universal variant type, defined in `src/plgg/src/Contextuals/Box.ts` with `__tag: TAG` and `content: CONTENT` as the only fields.
-- **[Explicit]** `Result<T, E> = Ok<T> | Err<E>` and `Option<T> = Some<T> | None` are defined in `src/plgg/src/Disjunctives/`.
-- **[Explicit]** `cast` accumulates sibling errors on multi-validator failure as verified in `src/plgg/src/Flowables/cast.ts` lines 527–551.
-- **[Explicit]** `Processor.content.name` is typed as `KebabCase` as verified in `src/plgg-foundry/src/Foundry/model/Processor.ts`.
-- **[Explicit]** `Param = unknown` — register values are untyped at the model level, as verified in `src/plgg-foundry/src/Foundry/model/Param.ts`.
-- **[Explicit]** Pattern witness functions use `$` suffix (`ok$`, `err$`, `openAI$`, `anthropic$`, `google$`) as verified in `src/plgg/src/Contextuals/Ok.ts` and `src/plgg-kit/src/LLMs/model/Provider.ts`.
-- **[Explicit]** `Foundry.maxOperationLimit` defaults to 10, `provider` defaults to `openai("gpt-5.1")`, as verified in `src/plgg-foundry/src/Foundry/model/Foundry.ts` lines 67–68.
+- **[Explicit]** `Datum` is defined recursively in `packages/plgg/src/Disjunctives/Datum.ts` as `DatumCore | OptionalDatum<DatumCore> | NominalDatum<string, DatumCore>` where `DatumCore = Atomic | Basic | Obj | ReadonlyArray<Datum>`.
+- **[Explicit]** `Box<TAG, CONTENT>` is the universal variant type, defined in `packages/plgg/src/Contextuals/Box.ts` with `__tag: TAG` and `content: CONTENT` as the only fields.
+- **[Explicit]** `Result<T, E> = Ok<T> | Err<E>` and `Option<T> = Some<T> | None` are defined in `packages/plgg/src/Disjunctives/`.
+- **[Explicit]** `cast` accumulates sibling errors on multi-validator failure as verified in `packages/plgg/src/Flowables/cast.ts` lines 527–551.
+- **[Explicit]** `Processor.content.name` is typed as `KebabCase` as verified in `packages/plgg-foundry/src/Foundry/model/Processor.ts`.
+- **[Explicit]** `Param = unknown` — register values are untyped at the model level, as verified in `packages/plgg-foundry/src/Foundry/model/Param.ts`.
+- **[Explicit]** Pattern witness functions use `$` suffix (`ok$`, `err$`, `openAI$`, `anthropic$`, `google$`) as verified in `packages/plgg/src/Contextuals/Ok.ts` and `packages/plgg-kit/src/LLMs/model/Provider.ts`.
+- **[Explicit]** `Foundry.maxOperationLimit` defaults to 10, `provider` defaults to `openai("gpt-5.1")`, as verified in `packages/plgg-foundry/src/Foundry/model/Foundry.ts` lines 67–68.
 - **[Inferred]** The category names in `plgg` (`Atomics`, `Conjunctives`, `Disjunctives`, etc.) follow a Latin-derived grammatical convention: "Atomics" (elemental), "Conjunctives" (joining), "Disjunctives" (branching), "Contextuals" (wrapping), etc. This naming scheme encodes the structural role each category plays in the type algebra, not just what it contains.
 - **[Inferred]** `Some<T>` is implemented as `Box<"Some", T>` and `None` as `Icon<"None">`, consistent with the universal `Box` pattern, though not explicitly cross-referenced in comments — inferred from structural analysis of `Ok.ts` and `Some.ts`.
 - **[Inferred]** The `$` suffix for pattern witnesses distinguishes them from constructors intentionally: `ok(value)` constructs an `Ok<T>`, while `ok$(value)` creates a pattern for matching. This intentional disambiguation is inferred from the symmetry of the naming pattern across all variant types.

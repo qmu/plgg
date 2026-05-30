@@ -20,14 +20,14 @@ codebase evidence are marked "not observed."
 No JavaScript or TypeScript linter (ESLint, Biome, or equivalent) is configured
 in any package. The role of static analysis is entirely fulfilled by the
 TypeScript compiler operating under strict mode. No linter configuration file
-exists under `src/plgg/`, `src/plgg-kit/`, or `src/plgg-foundry/`.
+exists under `packages/plgg/`, `packages/plgg-kit/`, or `packages/plgg-foundry/`.
 
 Prettier is configured identically across all three packages via
 `.prettierrc.json` files in each package root. The shared configuration
 enforces: `printWidth: 50`, `semi: true`, `singleQuote: false`,
 `trailingComma: "all"`, `bracketSameLine: false` (source:
-`src/plgg/.prettierrc.json`, `src/plgg-kit/.prettierrc.json`,
-`src/plgg-foundry/.prettierrc.json`). No automated formatter check runs in CI
+`packages/plgg/.prettierrc.json`, `packages/plgg-kit/.prettierrc.json`,
+`packages/plgg-foundry/.prettierrc.json`). No automated formatter check runs in CI
 or via a pre-commit hook. Formatting compliance is enforced by convention only.
 
 ## Code Review
@@ -55,10 +55,10 @@ submitted with an incomplete checklist.
 
 The `plgg` package enforces coverage thresholds at 90% for all four dimensions:
 statements, branches, functions, and lines. These thresholds are configured in
-`src/plgg/vite.config.ts` under the vitest `test.coverage.thresholds` block
+`packages/plgg/vite.config.ts` under the vitest `test.coverage.thresholds` block
 and use the v8 provider. Coverage output formats are `text`, `lcov`, and
 `html`. The threshold check runs in CI as part of the `run-tests` workflow step
-"Run tests with coverage" (`npm run coverage` in `src/plgg`).
+"Run tests with coverage" (`npm run coverage` in `packages/plgg`).
 
 The `plgg-foundry` and `plgg-kit` packages configure `coverage: { all: true }`
 in their `vite.config.ts` files but define no `thresholds` block. No CI step
@@ -75,8 +75,8 @@ force are: `strict`, `noUnusedLocals`, `noUnusedParameters`,
 `noUncheckedIndexedAccess`, `noImplicitReturns`, `noFallthroughCasesInSwitch`,
 `allowUnusedLabels: false`, `allowUnreachableCode: false`,
 `exactOptionalPropertyTypes`, `skipLibCheck`, `isolatedModules`, `allowJs:
-false`, and `erasableSyntaxOnly` (source: `src/plgg/tsconfig.json`,
-`src/plgg-foundry/tsconfig.json`, `src/plgg-kit/tsconfig.json`).
+false`, and `erasableSyntaxOnly` (source: `packages/plgg/tsconfig.json`,
+`packages/plgg-foundry/tsconfig.json`, `packages/plgg-kit/tsconfig.json`).
 
 The root `CLAUDE.md` declares as the highest-priority rule that `as`, `any`,
 and `@ts-ignore` are strictly prohibited as solutions to type errors under any
@@ -88,8 +88,8 @@ packages runs `tsc --noEmit` before invoking vitest (source: `scripts.test` in
 each `package.json`). A compilation failure stops the test run immediately.
 Second, the CI `run-tests` workflow (`.github/workflows/run-tests.yml`)
 executes a dedicated step "Run TypeScript compilation check" (`npx tsc
---noEmit`) in `src/plgg` before the test step. The local shell scripts
-`sh/tsc-plgg.sh` and `sh/tsc-plgg-foundry.sh` and `sh/tsc-plgg-kit.sh`
+--noEmit`) in `packages/plgg` before the test step. The local shell scripts
+`scripts/tsc-plgg.sh` and `scripts/tsc-plgg-foundry.sh` and `scripts/tsc-plgg-kit.sh`
 provide package-specific compilation gates for local use.
 
 ## Observations
@@ -127,8 +127,8 @@ configure `coverage: { all: true }` but define no `thresholds` block in their
 Not observed.
 
 **CI test scope limited to plgg**: The `run-tests.yml` workflow installs
-dependencies and runs tests only in `src/plgg`. Tests for `src/plgg-kit` and
-`src/plgg-foundry` do not run in CI. Not observed for those packages.
+dependencies and runs tests only in `packages/plgg`. Tests for `packages/plgg-kit` and
+`packages/plgg-foundry` do not run in CI. Not observed for those packages.
 
 **No dependency vulnerability scanning**: No `npm audit` or equivalent runs in
 any CI workflow. Dependency vulnerabilities are not detected automatically. Not

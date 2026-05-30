@@ -20,11 +20,11 @@ Archive refers to the action of moving a completed ticket from its active locati
 
 ## blueprint
 
-blueprint is a function in `plgg-foundry` (`src/plgg-foundry/src/Foundry/usecase/blueprint.ts`) that generates an `Alignment` from a `Foundry` configuration and an `Order`. It calls the LLM provider via `plgg-kit`'s `generateObject`, using the foundry's description and apparatus definitions to construct the system prompt. The resulting alignment is validated and returned as a `PromisedResult`. Blueprint is the AI planning phase in the two-phase `runFoundry` execution model (plan then operate).
+blueprint is a function in `plgg-foundry` (`packages/plgg-foundry/src/Foundry/usecase/blueprint.ts`) that generates an `Alignment` from a `Foundry` configuration and an `Order`. It calls the LLM provider via `plgg-kit`'s `generateObject`, using the foundry's description and apparatus definitions to construct the system prompt. The resulting alignment is validated and returned as a `PromisedResult`. Blueprint is the AI planning phase in the two-phase `runFoundry` execution model (plan then operate).
 
 ## operate
 
-operate is a function in `plgg-foundry` (`src/plgg-foundry/src/Foundry/usecase/operate.ts`) that executes an `Alignment` against a `Foundry` by walking the operation graph from `ingress` through each `Operation` node to `egress`. It maintains an `Env` register file that maps addresses to `Param` values and resolves apparatus names to their implementations at runtime. operate is the execution phase in `runFoundry`, called after `blueprint` produces the plan.
+operate is a function in `plgg-foundry` (`packages/plgg-foundry/src/Foundry/usecase/operate.ts`) that executes an `Alignment` against a `Foundry` by walking the operation graph from `ingress` through each `Operation` node to `egress`. It maintains an `Env` register file that maps addresses to `Param` values and resolves apparatus names to their implementations at runtime. operate is the execution phase in `runFoundry`, called after `blueprint` produces the plan.
 
 ## release
 

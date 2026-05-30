@@ -33,8 +33,8 @@ LLM-driven workflow generation that removes the need to hand-write execution gra
 study work focused on functional programming concepts. Primarily intended for our own projects,
 though publicly available."
 
-**Source**: `README.md` line 3, `src/plgg/package.json`, `src/plgg-foundry/package.json`,
-`src/plgg-kit/package.json`.
+**Source**: `README.md` line 3, `packages/plgg/package.json`, `packages/plgg-foundry/package.json`,
+`packages/plgg-kit/package.json`.
 
 **Confidence**: high
 
@@ -104,9 +104,9 @@ auto-merge disabled. The checklist shows two incomplete items. No packages have 
 ### Issue 2: Dependabot PRs Unmerged (Severity: Medium)
 
 Three Dependabot PRs are open:
-- PR #8: `glob` bump in `src/example` (open since 2025-11-20)
-- PR #9: `glob` bump in `src/plgg-foundry` (open since 2025-12-22)
-- PR #10: `lodash` bump in `src/example` (open since 2026-01-23)
+- PR #8: `glob` bump in `packages/example` (open since 2025-11-20)
+- PR #9: `glob` bump in `packages/plgg-foundry` (open since 2025-12-22)
+- PR #10: `lodash` bump in `packages/example` (open since 2026-01-23)
 
 `lodash` bump is a potential security concern (`lodash` 4.17.21 has known prototype pollution
 vulnerabilities).
@@ -121,27 +121,27 @@ architecture viewpoint documents (`stakeholder.md`, `component.md`, etc.) exist 
 
 **Source**: gather.sh output `=== SPECS ===` (empty).
 
-### Issue 4: `src/plgg/README.md` Does Not Reflect Current Monorepo (Severity: Low)
+### Issue 4: `packages/plgg/README.md` Does Not Reflect Current Monorepo (Severity: Low)
 
-`src/plgg/README.md` describes only `src/plgg/` and `src/example/` in its Project Structure
+`packages/plgg/README.md` describes only `packages/plgg/` and `packages/example/` in its Project Structure
 section. It omits `plgg-kit` and `plgg-foundry`, which are established packages. The root
 `README.md` is accurate.
 
-**Source**: `src/plgg/README.md` lines 6-12 vs. root `README.md` lines 6-13.
+**Source**: `packages/plgg/README.md` lines 6-12 vs. root `README.md` lines 6-13.
 
 ### Issue 5: `plgg-foundry` README Uses Outdated API Pattern (Severity: Low)
 
-`src/plgg-foundry/README.md` Complete Example (line 189) calls `runFoundry(foundrySpec)(orderSpec)` and calls `result.isOk()` as a method. However, the plgg v0.0.25 CHANGELOG notes a breaking change renaming box constructors and pattern matchers (e.g., `ok$`/`err$` pattern). The example may not compile against the current API without verification.
+`packages/plgg-foundry/README.md` Complete Example (line 189) calls `runFoundry(foundrySpec)(orderSpec)` and calls `result.isOk()` as a method. However, the plgg v0.0.25 CHANGELOG notes a breaking change renaming box constructors and pattern matchers (e.g., `ok$`/`err$` pattern). The example may not compile against the current API without verification.
 
-**Source**: `src/plgg-foundry/README.md` lines 188-199, `src/plgg/CHANGELOG.md` lines 41-42.
+**Source**: `packages/plgg-foundry/README.md` lines 188-199, `packages/plgg/CHANGELOG.md` lines 41-42.
 
 ### Issue 6: `plgg-kit` README Uses `result.isOk()` Method Pattern (Severity: Low)
 
-Same as Issue 5 — `src/plgg-kit/README.md` line 53 calls `result.isOk()`. This method-style
+Same as Issue 5 — `packages/plgg-kit/README.md` line 53 calls `result.isOk()`. This method-style
 pattern may not match the current `plgg` Result API (which uses `ok$`/`err$` pattern matchers
 and functional style).
 
-**Source**: `src/plgg-kit/README.md` line 53.
+**Source**: `packages/plgg-kit/README.md` line 53.
 
 **Confidence**: high for issues 1–4; medium for issues 5–6 (requires TypeScript compilation
 check to confirm)
@@ -169,15 +169,15 @@ Initialize the 8 viewpoint spec files (`stakeholder.md`, `model.md`, `usecase.md
 `.workaholic/specs/` using the write-spec skill. This is a documentation sprint task, not
 a code change.
 
-### For Issue 4 (`src/plgg/README.md` Stale)
+### For Issue 4 (`packages/plgg/README.md` Stale)
 
-Update `src/plgg/README.md` Project Structure section to list all four source packages
+Update `packages/plgg/README.md` Project Structure section to list all four source packages
 (`plgg`, `plgg-foundry`, `plgg-kit`, `example`). Low effort change; can accompany the next
 commit.
 
 ### For Issues 5 and 6 (API Pattern Verification)
 
-Run `sh/tsc-plgg.sh` against the example usage to confirm whether the `result.isOk()`
+Run `scripts/tsc-plgg.sh` against the example usage to confirm whether the `result.isOk()`
 method pattern still compiles. If it does not, update README code examples to use the
 current `ok$`/`err$` functional pattern. If it does, document that `isOk()` method is
 retained for compatibility.

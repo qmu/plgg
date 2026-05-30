@@ -1,0 +1,188 @@
+import {
+  Option,
+  SoftStr,
+  some,
+  none,
+  pipe,
+  tryCatch,
+  toOption,
+  chainOption,
+  matchOption,
+  fromNullable,
+} from "plgg";
+import { Html } from "plgg-view/Html/model/Html";
+import {
+  Url,
+  makeUrl,
+} from "plgg-view/Program/model/Url";
+import { render } from "plgg-view/Program/usecase/render";
+
+/**
+ * A routing-aware Elm-Architecture program (Browser.application-style), kept
+ * pure-sandbox-compatible (no `Cmd`). `init` seeds the model from the entry URL;
+ * `onUrlChange` turns a navigation (an intercepted in-app `<a>` click, or
+ * back/forward) into a `Msg` the pure `update` folds in. Navigation is
+ * link-driven — programmatic push is a non-goal of this minimum.
+ */
+export type Application<Model, Msg> = Readonly<{
+  init: (url: Url) => Model;
+  update: (msg: Msg, model: Model) => Model;
+  view: (model: Model) => Html<Msg>;
+  onUrlChange: (url: Url) => Msg;
+}>;
+
+/** Reads the browser's current location into a {@link Url}. */
+const currentUrl = (): Url =>
+  makeUrl(
+    window.location.pathname,
+    window.location.search,
+  );
+
+/**
+ * `rel` tokens whose presence means "let the browser handle this link".
+ */
+const PASSTHROUGH_REL = [
+  "external",
+  "noopener",
+  "noreferrer",
+];
+
+/**
+ * Whether a click is a plain in-app navigation candidate (left button, no
+ * modifier keys, not already handled). Cloned from plgg-router's link guard —
+ * peer experimental packages define this in parallel rather than import.
+ */
+const isPlainLeftClick = (
+  event: MouseEvent,
+): boolean =>
+  !event.defaultPrevented &&
+  event.button === 0 &&
+  !event.metaKey &&
+  !event.ctrlKey &&
+  !event.shiftKey &&
+  !event.altKey;
+
+/** Walks up to the nearest enclosing `<a>` (instanceof, no cast). */
+const findAnchor = (
+  target: EventTarget | null,
+): Option<HTMLAnchorElement> => {
+  let el: Element | null =
+    target instanceof Element ? target : null;
+  while (el !== null) {
+    if (el instanceof HTMLAnchorElement) {
+      return some(el);
+    }
+    el = el.parentElement;
+  }
+  return none();
+};
+
+const relPassesThrough = (
+  anchor: HTMLAnchorElement,
+): boolean =>
+  anchor.rel
+    .split(/\s+/)
+    .some((token) =>
+      PASSTHROUGH_REL.includes(token),
+    );
+
+const toUrl = (href: SoftStr): Option<URL> =>
+  pipe(
+    tryCatch(
+      (h: SoftStr) =>
+        new URL(h, window.location.href),
+    )(href),
+    toOption,
+  );
+
+const isHttp = (url: URL): boolean =>
+  url.protocol === "http:" ||
+  url.protocol === "https:";
+
+/**
+ * The in-app {@link Url} a click should navigate to, or `none()` when the
+ * browser default must be preserved (modifier-clicks, `target`/`download`/
+ * pass-through `rel`, hrefless, malformed/non-`http(s)`, cross-origin).
+ */
+const navTarget = (
+  event: MouseEvent,
+): Option<Url> =>
+  isPlainLeftClick(event)
+    ? pipe(
+        findAnchor(event.target),
+        chainOption((anchor: HTMLAnchorElement) =>
+          anchor.target !== "" ||
+          anchor.hasAttribute("download") ||
+          relPassesThrough(anchor)
+            ? none()
+            : fromNullable(
+                anchor.getAttribute("href"),
+              ),
+        ),
+        chainOption(toUrl),
+        chainOption((url: URL) =>
+          isHttp(url) &&
+          url.origin === window.location.origin
+            ? some(makeUrl(url.pathname, url.search))
+            : none(),
+        ),
+      )
+    : none();
+
+/**
+ * Runs an {@link Application} against a DOM container: renders `view(init(url))`,
+ * re-renders on every dispatched `Msg`, intercepts in-app `<a>` clicks (push +
+ * `onUrlChange`), and handles back/forward via `popstate`. Returns a cleanup
+ * that removes the listeners and empties the container.
+ *
+ * The live `model` is the runtime's single mutable seam (as in {@link sandbox});
+ * the History/DOM listeners are the irreducible imperative seam.
+ */
+export const application =
+  <Model, Msg>(
+    program: Application<Model, Msg>,
+  ) =>
+  (container: Element): (() => void) => {
+    let model: Model = program.init(currentUrl());
+    const dispatch = (msg: Msg): void => {
+      model = program.update(msg, model);
+      render(
+        program.view(model),
+        container,
+        dispatch,
+      );
+    };
+    const go = (url: Url): void =>
+      dispatch(program.onUrlChange(url));
+
+    const onClick = (event: MouseEvent): void =>
+      pipe(
+        navTarget(event),
+        matchOption(
+          () => undefined,
+          (url) => {
+            event.preventDefault();
+            window.history.pushState(
+              null,
+              "",
+              url.path + url.search,
+            );
+            go(url);
+          },
+        ),
+      );
+    const onPopState = (): void => go(currentUrl());
+
+    render(program.view(model), container, dispatch);
+    window.addEventListener("popstate", onPopState);
+    document.addEventListener("click", onClick);
+
+    return () => {
+      window.removeEventListener(
+        "popstate",
+        onPopState,
+      );
+      document.removeEventListener("click", onClick);
+      container.replaceChildren();
+    };
+  };

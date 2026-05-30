@@ -84,8 +84,8 @@ plgg/                          # repository root
 │   ├── specs/                 # Developer architecture specs
 │   ├── terms/                 # Glossary terms
 │   └── tickets/               # Work tickets (active and archived)
-├── sh/                        # Shell scripts for development tasks
-├── src/                       # Source packages
+├── scripts/                   # Shell scripts for development tasks
+├── packages/                  # Source packages
 │   ├── plgg/                  # Core functional type system
 │   ├── plgg-foundry/          # AI operation engine
 │   ├── plgg-kit/              # LLM vendor adapters
@@ -96,10 +96,10 @@ plgg/                          # repository root
 
 ### Per-Package Layout
 
-Each of the four packages under `src/` follows an identical directory convention:
+Each of the four packages under `packages/` follows an identical directory convention:
 
 ```
-src/<package>/
+packages/<package>/
 ├── src/
 │   └── index.ts               # Public API barrel
 ├── package.json               # Package manifest
@@ -117,43 +117,43 @@ graph TD
   root["plgg/ (repo root)"]
   claude[".claude/"]
   workaholic[".workaholic/"]
-  sh["sh/"]
-  src["src/"]
-  plgg_pkg["src/plgg/"]
-  kit_pkg["src/plgg-kit/"]
-  foundry_pkg["src/plgg-foundry/"]
-  example_pkg["src/example/"]
+  scripts["scripts/"]
+  packages["packages/"]
+  plgg_pkg["packages/plgg/"]
+  kit_pkg["packages/plgg-kit/"]
+  foundry_pkg["packages/plgg-foundry/"]
+  example_pkg["packages/example/"]
 
   root --> claude
   root --> workaholic
-  root --> sh
-  root --> src
-  src --> plgg_pkg
-  src --> kit_pkg
-  src --> foundry_pkg
-  src --> example_pkg
+  root --> scripts
+  root --> packages
+  packages --> plgg_pkg
+  packages --> kit_pkg
+  packages --> foundry_pkg
+  packages --> example_pkg
 ```
 
 ## Installation
 
-No root-level `package.json` exists; the monorepo does not use npm workspaces. Each package is installed independently. The script `sh/npm-install.sh` automates sequential installation across all four packages:
+No root-level `package.json` exists; the monorepo does not use npm workspaces. Each package is installed independently. The script `scripts/npm-install.sh` automates sequential installation across all four packages:
 
 ```sh
-cd $REPO_ROOT/src/plgg && npm install
-cd $REPO_ROOT/src/plgg-kit && npm install
-cd $REPO_ROOT/src/plgg-foundry && npm install
-cd $REPO_ROOT/src/example && npm install
+cd $REPO_ROOT/packages/plgg && npm install
+cd $REPO_ROOT/packages/plgg-kit && npm install
+cd $REPO_ROOT/packages/plgg-foundry && npm install
+cd $REPO_ROOT/packages/example && npm install
 ```
 
 The order matters because `plgg-kit`, `plgg-foundry`, and `example` reference `plgg` via a `file:` symlink; `plgg`'s `node_modules` must be present before dependent packages resolve it.
 
 ### Build Process
 
-`sh/build.sh` builds `plgg` and `plgg-kit` using Vite:
+`scripts/build.sh` builds `plgg` and `plgg-kit` using Vite:
 
 ```sh
-cd $REPO_ROOT/src/plgg && npm run build
-cd $REPO_ROOT/src/plgg-kit && npm run build
+cd $REPO_ROOT/packages/plgg && npm run build
+cd $REPO_ROOT/packages/plgg-kit && npm run build
 ```
 
 Each package's `vite.config.ts` configures Vite in library mode with two output formats: ES module (`index.es.js`) and CommonJS (`index.cjs.js`). `vite-plugin-dts` generates TypeScript declaration files (`dist/index.d.ts`). The `plgg` build uses `rollupTypes: false` (individual `.d.ts` files per module), while `plgg-foundry` and `plgg-kit` use `rollupTypes: true` (a single rolled-up declaration file).
@@ -172,11 +172,11 @@ Each package emits output to its `dist/` directory (git-ignored):
 
 ### Publishing
 
-`sh/publish-plgg.sh` publishes `plgg` to npm by running `npm run publish` in `src/plgg`, which executes `vite build && npm publish`. Only `plgg` has a `publish` script; `plgg-foundry`, `plgg-kit`, and `example` do not have top-level publish automation via `sh/`.
+`scripts/publish-plgg.sh` publishes `plgg` to npm by running `npm run publish` in `packages/plgg`, which executes `vite build && npm publish`. Only `plgg` has a `publish` script; `plgg-foundry`, `plgg-kit`, and `example` do not have top-level publish automation via `scripts/`.
 
 ## Development Workflow
 
-The `sh/` directory contains 20 shell scripts covering the full development lifecycle. All scripts use `#!/bin/sh -eu` and resolve the repository root via `git rev-parse --show-toplevel`.
+The `scripts/` directory contains 20 shell scripts covering the full development lifecycle. All scripts use `#!/bin/sh -eu` and resolve the repository root via `git rev-parse --show-toplevel`.
 
 ### Script Inventory
 
@@ -286,7 +286,7 @@ The use of `as`, `any`, and `@ts-ignore` is explicitly prohibited by `CLAUDE.md`
 - **[Explicit]** `file:` links in `package.json` are used for intra-monorepo dependencies: `plgg-kit` and `plgg-foundry` reference `plgg` as `"plgg": "file:../plgg"`, and `plgg-foundry` references `plgg-kit` as `"plgg-kit": "file:../plgg-kit"`. Verified in all package manifests.
 - **[Explicit]** `.claude/settings.json` is tracked in version control and applies project-level Claude Code settings to all contributors. Verified by commit `ddbb696`.
 - **[Explicit]** The `.gitignore` excludes `node_modules/`, `**/dist/`, `**/coverage/`, `.env`, `.env.*`, and `.claude/settings.local.json`. Verified by reading `.gitignore`.
-- **[Explicit]** `sh/check-all.sh` is the full integration gate, combining test, type-check, and build steps. Verified by reading the script.
+- **[Explicit]** `scripts/check-all.sh` is the full integration gate, combining test, type-check, and build steps. Verified by reading the script.
 - **[Inferred]** No root-level `package.json` implies the monorepo does not use npm workspaces. Each package manages its own `node_modules`. This is consistent with independent versioning and publishing of each package.
 - **[Inferred]** The absence of a `.nvmrc` or `engines` field suggests that no specific Node version constraint is formally enforced; the observed `v24.13.1` is the development environment version but is not guaranteed to be the minimum supported version.
 - **[Inferred]** `dotenv` as a dev-only dependency (not in `dependencies`) confirms that API key loading from `.env` files is a test-time behavior only. Production consumers are expected to supply API keys via environment variables or inline configuration.

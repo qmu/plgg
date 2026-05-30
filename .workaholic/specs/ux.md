@@ -43,7 +43,7 @@ graph TD
 
 The internal developer and npm consumer both follow this journey when integrating `plgg` into domain model definitions. The journey begins with an `unknown` value from external input (parsed JSON, API response, form data) and ends with a strongly typed domain object wrapped in `Result`.
 
-The developer imports types (`Obj`, `Str`, `Time`, `Option`) and cast functions (`asObj`, `asStr`, `asTime`, `asSoftStr`, `cast`, `refine`, `forProp`, `forOptionProp`) from `plgg`. They define a domain type using `Obj<T>` and a validator function using `cast` composition. The `src/example/src/modeling/Article.ts` file demonstrates this pattern: `Article` is defined as `Obj<{id, createdAt, name, memo}>` and `asArticle` chains `asObj`, three `forProp` calls, and one `forOptionProp` call.
+The developer imports types (`Obj`, `Str`, `Time`, `Option`) and cast functions (`asObj`, `asStr`, `asTime`, `asSoftStr`, `cast`, `refine`, `forProp`, `forOptionProp`) from `plgg`. They define a domain type using `Obj<T>` and a validator function using `cast` composition. The `packages/example/src/modeling/Article.ts` file demonstrates this pattern: `Article` is defined as `Obj<{id, createdAt, name, memo}>` and `asArticle` chains `asObj`, three `forProp` calls, and one `forOptionProp` call.
 
 When validation succeeds, the caller receives `Ok(article)`. When validation fails on multiple fields simultaneously, `cast` accumulates sibling errors in an `InvalidError` so the caller can present comprehensive error feedback in one pass.
 
@@ -83,7 +83,7 @@ This is the primary journey for the AI-integrating developer user type. It proce
 
 4. **Handle the result**: The caller receives `Promise<Result<Medium, Error>>`. On success, `medium.params` contains the final register values. On failure, the error describes which phase failed (order validation, blueprint generation, or operation execution).
 
-The `src/plgg-foundry/src/Example/TodoFoundry.ts` file shows the simplest observable implementation: a foundry with two processors (`add`, `remove`) backed by an in-memory `Map`, with no explicit provider (defaults to `openai("gpt-5.1")`).
+The `packages/plgg-foundry/src/Example/TodoFoundry.ts` file shows the simplest observable implementation: a foundry with two processors (`add`, `remove`) backed by an in-memory `Map`, with no explicit provider (defaults to `openai("gpt-5.1")`).
 
 ### Foundry Journey Sequence
 
@@ -118,7 +118,7 @@ The `plgg-kit` README documents three providers with identical call signatures, 
 
 The two most prominent entry points (`runFoundry`, `pipe`, `cast`, `proc`) follow a curried or variadic pattern that enables partial application. `runFoundry(foundry)` returns a function, so the developer can name the bound function and reuse it. `pipe(value, ...fns)` is variadic but always proceeds immediately. This pattern keeps call sites concise and allows construction-time configuration to be separated from runtime invocation.
 
-**Evidence**: `src/plgg-foundry/src/Foundry/usecase/runFoundry.ts`, `usecase.md` examples throughout.
+**Evidence**: `packages/plgg-foundry/src/Foundry/usecase/runFoundry.ts`, `usecase.md` examples throughout.
 
 ### Pattern 2: Result-Typed Returns Everywhere
 
@@ -140,13 +140,13 @@ Both `isOk` and `isErr` are exported from `plgg` as type guards that narrow the 
 
 All apparatus and foundry values are created via `make*` factory functions (`makeFoundry`, `makeProcessor`, `makeSwitcher`). No `new` keyword or class constructor is observable in the public API. This matches the overall library style where type construction uses `as*` cast functions and value construction uses `make*` or direct constructor functions (`ok`, `err`, `some`, `none`, `openai`, `anthropic`, `google`).
 
-**Evidence**: `src/plgg-foundry/src/Example/TodoFoundry.ts`, `usecase.md` all examples.
+**Evidence**: `packages/plgg-foundry/src/Example/TodoFoundry.ts`, `usecase.md` all examples.
 
 ### Pattern 4: Named Register Addressing for Inter-Operation Data Flow
 
 Within `plgg-foundry`, data flows between operations through string-addressed registers (`r0`, `r1`, etc.). The developer does not write register addresses manually — the LLM assigns them in the generated Alignment. However, within apparatus `fn` implementations, the developer accesses input values as `medium.params["argumentName"]?.value`. The parameter name matches the `arguments` key declared in the apparatus spec, not the register address. This indirection is managed automatically by the operation executor.
 
-**Evidence**: `src/plgg-foundry/src/Example/TodoFoundry.ts` lines 21–22, 34–35.
+**Evidence**: `packages/plgg-foundry/src/Example/TodoFoundry.ts` lines 21–22, 34–35.
 
 ## Onboarding Paths
 
@@ -159,7 +159,7 @@ The minimal onboarding for `plgg` alone:
 3. Import types and cast functions from `plgg` and write a validator function using `cast` + `forProp`.
 4. Use `isOk` / `isErr` to handle the result.
 
-The `src/example/src/modeling/Article.ts` is the canonical reference for this path, as it is the only non-test, non-library TypeScript file modeling a real domain type.
+The `packages/example/src/modeling/Article.ts` is the canonical reference for this path, as it is the only non-test, non-library TypeScript file modeling a real domain type.
 
 **Gap**: No dedicated getting-started guide exists in `.workaholic/guides/`. The README Quick Start is the sole onboarding artifact for npm consumers, and it uses an API pattern that may not match the current implementation (see `project-context.md` Issues 5 and 6).
 
@@ -167,7 +167,7 @@ The `src/example/src/modeling/Article.ts` is the canonical reference for this pa
 
 1. Run `npm install plgg-kit plgg`.
 2. Obtain an API key for the chosen provider.
-3. Read `src/plgg-kit/README.md`. Import `generateObject` and a provider constructor (`openai`, `anthropic`, or `google`).
+3. Read `packages/plgg-kit/README.md`. Import `generateObject` and a provider constructor (`openai`, `anthropic`, or `google`).
 4. Call `generateObject({provider, userPrompt, schema})` and handle the `Result`.
 
 This path does not require `plgg-foundry`. It is the right entry point for developers who want LLM structured output without AI-orchestrated workflows.
@@ -182,7 +182,7 @@ This path does not require `plgg-foundry`. It is the right entry point for devel
 4. Assemble with `makeFoundry`.
 5. Call `runFoundry(foundry)(orderText)` and handle the `Result<Medium, Error>`.
 
-The `plgg-foundry` README provides a complete character-design example with validation loops as the primary onboarding scenario. The `src/plgg-foundry/src/Example/TodoFoundry.ts` file provides a simpler in-package reference.
+The `plgg-foundry` README provides a complete character-design example with validation loops as the primary onboarding scenario. The `packages/plgg-foundry/src/Example/TodoFoundry.ts` file provides a simpler in-package reference.
 
 **Gap**: The `plgg-foundry` README Quick Start (lines 28–68) uses `makeFoundrySpec`, `makeProcessorSpec`, `runFoundry({spec, provider})({prompt})` — a different call signature from the current implementation (`makeFoundry`, `makeProcessor`, `runFoundry(foundry)(text)`). This divergence will cause onboarding failures for any developer who copies the Quick Start directly.
 
@@ -201,8 +201,8 @@ flowchart TD
 
 - **[Explicit]** The root `README.md` (line 3) declares the library "UNSTABLE" and "primarily intended for our own projects." This directly informs the internal developer as primary user type.
 - **[Explicit]** Three npm package names (`plgg`, `plgg-foundry`, `plgg-kit`) with `npm install` instructions appear in package README files, confirming npm consumer as a user type.
-- **[Explicit]** `src/plgg-foundry/src/Example/TodoFoundry.ts` is the canonical minimal implementation of the Foundry journey, using `makeFoundry` and `makeProcessor`.
-- **[Explicit]** `src/example/src/modeling/Article.ts` is the canonical domain modeling example, using `cast`, `forProp`, `forOptionProp`, and `refine`.
+- **[Explicit]** `packages/plgg-foundry/src/Example/TodoFoundry.ts` is the canonical minimal implementation of the Foundry journey, using `makeFoundry` and `makeProcessor`.
+- **[Explicit]** `packages/example/src/modeling/Article.ts` is the canonical domain modeling example, using `cast`, `forProp`, `forOptionProp`, and `refine`.
 - **[Explicit]** The `plgg-foundry` README (line 193) and `plgg-kit` README (line 53) use `result.isOk()` method-call syntax rather than the functional `isOk(result)` pattern used in `usecase.md`. This is an observable inconsistency, not an inference.
 - **[Explicit]** The `plgg-foundry` README Quick Start uses `makeFoundrySpec`/`makeProcessorSpec` and `runFoundry({spec, provider})({prompt})`, while `TodoFoundry.ts` and `usecase.md` use `makeFoundry`/`makeProcessor` and `runFoundry(foundry)(text)`. These are two distinct API surfaces; which reflects the current implementation is not resolvable from documentation alone.
 - **[Inferred]** No CLI entry point or web UI exists. All interaction patterns are TypeScript library API calls. This is inferred from the absence of any CLI binary declarations in `package.json` files and any HTTP server or routing code in the observed source.

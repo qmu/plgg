@@ -16,7 +16,7 @@ This document describes the internationalization support, language coverage, tra
 
 No internationalization (i18n) framework or localization (l10n) library is configured in any package within this monorepo. plgg is a TypeScript functional programming utility library with no UI layer. The packages (`plgg`, `plgg-foundry`, `plgg-kit`) expose TypeScript APIs consumed programmatically; there are no user-facing rendered strings requiring locale-aware formatting or translation.
 
-One incidental language-awareness pattern exists in `plgg-foundry`: the LLM blueprint generation prompt instructs the model to "Use the same language as the user request" for a diagnostic analysis field (source: `src/plgg-foundry/src/Foundry/usecase/blueprint.ts`, line 92). This is a prompt engineering instruction passed to an external LLM, not an i18n mechanism in the application code. No `Intl` API usage, locale configuration, or message catalog exists in the TypeScript source.
+One incidental language-awareness pattern exists in `plgg-foundry`: the LLM blueprint generation prompt instructs the model to "Use the same language as the user request" for a diagnostic analysis field (source: `packages/plgg-foundry/src/Foundry/usecase/blueprint.ts`, line 92). This is a prompt engineering instruction passed to an external LLM, not an i18n mechanism in the application code. No `Intl` API usage, locale configuration, or message catalog exists in the TypeScript source.
 
 ## Supported Languages
 

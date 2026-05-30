@@ -1,0 +1,17 @@
+{
+  /* Declaration-emit config for the library build (vite-plugin-dts).
+     The base tsconfig.json is type-check only; this build config turns emit
+     back on so .d.ts files land under dist/. */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

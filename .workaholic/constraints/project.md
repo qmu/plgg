@@ -20,7 +20,7 @@ guarantees.
 
 **Affects**: delivery-lead, any leader or developer writing TypeScript source code.
 
-**Criterion**: `sh/tsc-plgg.sh` exits 0 with no suppressed type errors. No `as`, `any`, or
+**Criterion**: `scripts/tsc-plgg.sh` exits 0 with no suppressed type errors. No `as`, `any`, or
 `@ts-ignore` appears as a fix in committed source files.
 
 **Review trigger**: Revisit if TypeScript introduces a built-in mechanism that provides
@@ -33,12 +33,12 @@ equivalent safety without suppression.
 **Bounds**: No commit to `main` or any integration branch may leave the TypeScript compiler
 or test suite in a failing state.
 
-**Rationale**: CLAUDE.md specifies `sh/tsc-plgg.sh` for compilation and `sh/test-plgg.sh`
+**Rationale**: CLAUDE.md specifies `scripts/tsc-plgg.sh` for compilation and `scripts/test-plgg.sh`
 for testing. These are the project's defined quality gates.
 
 **Affects**: delivery-lead, any agent or developer producing commits.
 
-**Criterion**: Both `sh/tsc-plgg.sh` and `sh/test-plgg.sh` exit 0 before merging.
+**Criterion**: Both `scripts/tsc-plgg.sh` and `scripts/test-plgg.sh` exit 0 before merging.
 
 **Review trigger**: Revisit if additional packages (beyond plgg) get their own dedicated gate
 scripts.
