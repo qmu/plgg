@@ -20,7 +20,7 @@ timers, programmatic navigation) are a deliberate non-goal of this minimum.
 | | |
 |--|--|
 | ✅ `Model` / `Msg` / pure `update` / pure `view` | ❌ no `Cmd` / `Sub` / effects |
-| ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style hyperscript builders instead) |
+| ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style element builder functions instead) |
 | ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no keyed-list reconcile or render batching (follow-ups) |
 | ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | ❌ no hydration (mount re-renders from `init`) |
 | ✅ pure SSR `renderToString(Html)` | |
@@ -38,7 +38,8 @@ by the app's `Msg`:
 | an attribute | `Attribute<Msg>` = a static `attr` **or** an event `Handler` producing `Msg` |
 
 The **handler channel** on `Attribute<Msg>` is what makes the tree `Html<Msg>`
-rather than a passive string tree. Build it with Elm-style hyperscript:
+rather than a passive string tree. Build it with Elm-style element builder
+functions:
 
 - elements: `el(tag, attrs, children)` and helpers `div`/`button`/`input`/`ul`/
   `li`/`a`/`span`/`h1`/`p`/`form`/`main_`/… , plus `text(value)`.

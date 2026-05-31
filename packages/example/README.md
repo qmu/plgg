@@ -59,8 +59,8 @@ import { web, get, toFetch, pageResponse, javascriptResponse, notFound } from "p
 import { serve } from "plgg-server/node";   // node:http adapter
 ```
 
-No JSX — views are written with Elm-style hyperscript builders (`div([attrs],
-[children])`), and handlers (`onClick<Msg>(msg)`) are typed to produce the app's
+No JSX — views are written with Elm-style element builder functions
+(`div([attrs], [children])`), and handlers (`onClick<Msg>(msg)`) are typed to produce the app's
 `Msg`. See [`packages/plgg-view/README.md`](../plgg-view/README.md) for the
 architecture.
 

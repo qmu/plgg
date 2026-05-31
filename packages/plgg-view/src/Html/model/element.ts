@@ -4,7 +4,8 @@ import { Attribute } from "plgg-view/Html/model/Attribute";
 
 /**
  * Constructs an intrinsic element node — the general builder. Tag-specific
- * helpers below are thin wrappers, mirroring Elm's `div`/`button`/… hyperscript.
+ * helpers below are thin wrappers, mirroring Elm's `div`/`button`/… element
+ * functions.
  */
 export const el = <Msg>(
   tag: SoftStr,
