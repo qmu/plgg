@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { el, a, p, text, attr } from "plgg-view";
+import { el, p, text, attr } from "plgg-view";
 import { renderToString } from "plgg-server/index";
 
 // plgg-server re-exports plgg-view's pure SSR fold; these confirm the package
@@ -9,12 +9,20 @@ import { renderToString } from "plgg-server/index";
 test("renders an element with escaped attributes and children", () => {
   expect(
     renderToString(
-      a(
+      // The outer element is the escape hatch `el` too: an `el(...)` node is
+      // string-branded, so it does not fit a typed builder's child slot (e.g.
+      // `a`/`div`). Untyped (`el`) subtrees stay contiguous — typed islands and
+      // escape-hatch islands do not interleave.
+      el(
+        "a",
         [
           attr("href", "/x"),
           attr("title", '"&<'),
         ],
-        [text("go & "), el("b", [], [text("bold")])],
+        [
+          text("go & "),
+          el("b", [], [text("bold")]),
+        ],
       ),
     ),
   ).toBe(
@@ -24,7 +32,9 @@ test("renders an element with escaped attributes and children", () => {
 
 test("void elements self-close and text is escaped (XSS-safe)", () => {
   expect(
-    renderToString(el("img", [attr("src", "/a.png")], [])),
+    renderToString(
+      el("img", [attr("src", "/a.png")], []),
+    ),
   ).toBe('<img src="/a.png" />');
   expect(
     renderToString(p([], [text("<x> & </x>")])),
@@ -36,7 +46,10 @@ test("unsafe attribute names are dropped, safe ones kept", () => {
     renderToString(
       el(
         "div",
-        [attr("data-ok", "1"), attr("bad name", "2")],
+        [
+          attr("data-ok", "1"),
+          attr("bad name", "2"),
+        ],
         [],
       ),
     ),

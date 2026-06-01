@@ -25,16 +25,16 @@ timers, programmatic navigation) are a deliberate non-goal of this minimum.
 | ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | ❌ no hydration (mount re-renders from `init`) |
 | ✅ pure SSR `renderToString(Html)` | |
 
-## The view tree — `Html<Msg>`
+## The view tree — `Html<Msg, T>`
 
-A plgg `Box` union — pure data, never a class instance or DOM node — parameterized
-by the app's `Msg`:
+A plgg `Box` union — pure data, never a class instance or DOM node —
+parameterized by the app's `Msg` and the element's tag `T`:
 
 | Node | Type |
 |------|------|
 | intrinsic element | `Box<"Element", { tag, attributes, children }>` |
 | text leaf | `Box<"Text", { value: SoftStr }>` |
-| the union | `Html<Msg>` |
+| the union | `Html<Msg, T>` (`T` defaults to `string`) |
 | an attribute | `Attribute<Msg>` = a static `attr` **or** an event `Handler` producing `Msg` |
 
 The **handler channel** on `Attribute<Msg>` is what makes the tree `Html<Msg>`
@@ -50,6 +50,72 @@ functions:
 
 `Html<Msg>` is a **functor over `Msg`**: `mapHtml(f)(html)` lets a parent embed a
 child component's view (Elm's `Html.map`).
+
+## Typed content model — `T` restricts children
+
+The second type parameter `T` brands an element's tag *at the type level* (the
+tag is already stored as data, so the brand is real — no cast). Each builder
+declares **what it is** (its branded return type) and **what it accepts** (its
+children parameter), so illegal structure is a compile error, not a runtime bug:
+
+```ts
+ul([], [li([], [text("a")])]);   // ✅
+ul([], [div([], [])]);           // ❌ "div" is not assignable to "li"
+span([], [ul([], [])]);          // ❌ ul is flow, not phrasing
+input([type_("text")], []);      // ✅ void: children must be `readonly []`
+```
+
+The categories are small tag-unions, applied **selectively** (not a full HTML
+content-model lattice — see *type-driven-design*, "introduce rich typing where
+confusion can occur, not over every value"):
+
+| Category | Tags | Containers that accept it |
+|----------|------|----------------------------|
+| `Phrasing<Msg>` | inline: `span`/`a`/`strong`/`em`/`label`/`button`/`input`/text | `span`/`strong`/`em`/`label`/`button`/`h1`/`h2`/`p` |
+| `Flow<Msg>` | block ∪ phrasing (excludes `li`) | `div`/`section`/`header`/`main_`/`form`/`li`/`a` |
+| `ListItem<Msg>` | `li` only | `ul` |
+| `readonly []` | none (void) | `input` |
+
+**Restriction is producer-side.** Unlike React/TSX — where each container must
+remember to constrain its own `children` prop and an intrinsic `<li>` collapses
+to `ReactNode` — here a value's *own type* says `Html<Msg, "li">`, so every
+container that accepts `li` enforces it automatically. A custom component opts
+into a strict slot by simply declaring what it is:
+
+```ts
+// declares it IS an <li>, so it drops into ul's li-only slot:
+const todoItem = (t: Todo): Html<Msg, "li"> =>
+  li([class_("todo")], [text(t.title)]);
+
+ul([], todos.map(todoItem));     // ✅
+```
+
+A component left as the bare `Html<Msg>` (i.e. `Html<Msg, string>`) is **rejected
+by default** from strict slots — you must positively declare the tag. That
+"opt-in to strictness" is the safer default.
+
+**Cardinality** is the second, independent axis — set by the children *shape*:
+
+| Want | Children type |
+|------|---------------|
+| exactly one `B` | a single value `Html<Msg, "b">` (or `One<Msg, "b">` in array form) |
+| fixed/ordered `[B, C]` | `readonly [Html<Msg, "b">, Html<Msg, "c">]` |
+| one or more `B` | `NonEmpty<Msg, "b">` |
+| zero (void) | `readonly []` |
+| zero or more | `ReadonlyArray<Flow<Msg>>` (the default array form) |
+
+### `el` is the escape hatch — and its honest limit
+
+`el(tag, attrs, children)` stays permissive: any children, tag branded only as
+`string`. Because the brand is *honest* (it equals the real runtime tag, and `el`
+takes a dynamic tag), an `el(...)` node is `Html<Msg, string>` and therefore does
+**not** fit a typed builder's child slot — there is no cast to fake a category.
+The mental model is **typed islands vs. escape-hatch islands**: a raw `el` child
+does not interleave into a typed parent; build the whole untyped subtree with
+`el` (its parent included). Use `el` for tags the model does not cover (`<b>`,
+`<img>`, tables/selects) or transparency cases (`<a>`'s content depends on its
+parent — left unmodeled). Likewise `mapHtml` rebuilds nodes at the default brand,
+so a mapped child is `Html<Msg, string>` and won't re-enter a strict slot.
 
 ## The runtimes (browser seam — `plgg-view/client`)
 

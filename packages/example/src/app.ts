@@ -96,7 +96,10 @@ export const update = (
             ),
           };
 
-const viewTodo = (todo: Todo): Html<Msg> =>
+// The return type is the narrowed `Html<Msg, "li">`, not the bare `Html<Msg>`:
+// that is what lets `viewTodo` drop into `ul`'s `li`-only children slot below.
+// A plain `Html<Msg>` here would be a compile error at the `ul(...)` call.
+const viewTodo = (todo: Todo): Html<Msg, "li"> =>
   li(
     [
       class_(

@@ -1,5 +1,11 @@
 # plgg-view — a presentation layer for plgg (SSR + CSR), POC
 
+> **Note (2026-06):** The sections below describe the original **JSX/VNode**
+> iteration (and the since-renamed `plgg-web`). plgg-view has since been rebuilt
+> as a minimal **Elm Architecture** with a pure `Html<Msg>` tree (no JSX). For
+> the current authoritative design of the typed content-model feature, see
+> **"Typed content model — child & arity constraints"** at the end of this file.
+
 ## Overview
 
 This branch adds a client-side **presentation layer** built functionally on
@@ -91,3 +97,75 @@ Three things landed:
 - Real-consumer examples: the example package imports the published package
   surface (`plgg-view`, `plgg-web`, `plgg-web/client`), exactly as an external
   app would.
+
+---
+
+## Typed content model — child & arity constraints (2026-06)
+
+### The idea
+
+Give the `Html` view tree a **type-level content model**: illegal child
+structure becomes a compile error instead of a runtime bug. `Html` gains a
+second type parameter, `Html<Msg, T>`, where `T` brands the element's tag. The
+tag is *already stored as data*, so the brand is real — there is **no cast**
+anywhere (the house no-escape-hatch rule holds). Each builder declares **what it
+is** (branded return type) and **what it accepts** (children parameter typed by
+content category and/or cardinality). The runtime payload is unchanged, so the
+diff/patch renderer, `foldHtml`, `mapHtml`, and `renderToString` keep treating
+children uniformly as `ReadonlyArray<Html<Msg>>`.
+
+Two independent axes:
+
+- **Which children** — element type. `ul` accepts only `li`; `span` accepts only
+  phrasing; categories are small tag-unions (`Phrasing`, `Flow`, `ListItem`).
+- **How many** — cardinality. Exactly-one via a single-value parameter,
+  fixed/ordered arity via tuples, non-empty via a head+rest tuple, void via the
+  empty tuple `readonly []`, unbounded via the array form.
+
+### Why this is the difference from JSX/TSX
+
+Restriction is **producer-side**. In React/TSX each container must remember to
+constrain its own `children` prop, and an intrinsic `<li>` collapses to
+`ReactNode` (untagged, arity-blind). Here a value's *own type* says
+`Html<Msg, "li">`, so every container that accepts `li` enforces it
+automatically, and a custom component opts into a strict slot by declaring what
+it is (`viewTodo: Html<Msg, "li">`). A bare `Html<Msg>` is rejected from strict
+slots by default — opt-in strictness.
+
+### Policy lens (`standards:implementation`)
+
+This is *type-driven-design* made concrete — "the compiler is AI's most accurate
+and cheapest feedback path." It moves a class of structural correctness onto the
+type, which matters doubly for an agent whose inner loop is edit → `tsc` → fix:
+fewer plausible-but-wrong constructions survive, and the rule surfaces at the
+exact call site. The same policy's **paired constraint** bounds the design: rich
+typing is applied **selectively** (a handful of category unions, not a full HTML
+content-model lattice) and kept **within a readable range** — no multi-stage
+conditional-type towers, no mass-produced near-duplicate per-tag types. When a
+constraint would strain (transparency, tables), we leave it to the `el` escape
+hatch rather than widen or fake it.
+
+### Honest limits (documented, not chased)
+
+- **`el` is string-branded**, so an escape-hatch node does not fit a typed slot
+  (honest branding admits no cast). Mental model: *typed islands vs.
+  escape-hatch islands* — a raw `el` child does not interleave into a typed
+  parent; build the untyped subtree (parent included) with `el`.
+- **Transparency** (`<a>` content depends on parent) is unmodeled; `a` is a flow
+  container by approximation.
+- **`mapHtml` rebuilds at the default brand**, so a mapped child is
+  `Html<Msg, string>` and won't re-enter a strict slot.
+- Tags without a typed builder yet (`table`/`tr`/`td`, `select`/`option`, `dl`)
+  are future, additive work; use `el` meanwhile.
+
+### Where it landed
+
+- `Html.ts` — `Html<Msg, T = string>` + `ElementContent<Msg, T = string>`.
+- `element.ts` — `Phrasing`/`Flow`/`ListItem` categories, `One`/`NonEmpty`
+  cardinality aliases, four pinned cast-free factories
+  (`flowEl`/`phrasingEl`/`listEl`/`voidEl`), retyped builders, permissive `el`.
+- `element.spec.ts` — runtime coverage + type-level assertions (negatives proven
+  as positive booleans, since `@ts-expect-error` is banned).
+- `packages/plgg-view/README.md` — user-facing reference.
+- Consumers: `packages/example` (`viewTodo` now declares `Html<Msg, "li">`),
+  `plgg-server` SSR spec (escape-hatch nesting made contiguous).
