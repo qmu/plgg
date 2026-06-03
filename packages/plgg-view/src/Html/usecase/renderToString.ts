@@ -4,6 +4,7 @@ import {
   Attribute,
   attr$,
   handler$,
+  anim$,
 } from "plgg-view/Html/model/Attribute";
 import { foldHtml } from "plgg-view/Html/usecase/foldHtml";
 import {
@@ -34,9 +35,10 @@ const VOID_TAGS: ReadonlyArray<SoftStr> = [
 
 /**
  * Renders one {@link Attribute} to its leading-space markup — a static attr
- * becomes `name="escaped"` (unsafe names dropped); an event handler emits
- * nothing (the server has no events). The single HTML output seam, so the
- * result is XSS-safe by construction.
+ * becomes `name="escaped"` (unsafe names dropped); an event handler and an
+ * animation directive both emit nothing (the server has no events and no
+ * animation). The single HTML output seam, so the result is XSS-safe by
+ * construction.
  */
 const renderAttribute = <Msg>(
   attribute: Attribute<Msg>,
@@ -50,6 +52,7 @@ const renderAttribute = <Msg>(
           : "",
     ],
     [handler$(), (): SoftStr => ""],
+    [anim$(), (): SoftStr => ""],
   );
 
 /**
@@ -66,5 +69,7 @@ export const renderToString = <Msg>(
         ? `<${tag}${attributes.map(renderAttribute).join("")} />`
         : `<${tag}${attributes
             .map(renderAttribute)
-            .join("")}>${children.join("")}</${tag}>`,
+            .join(
+              "",
+            )}>${children.join("")}</${tag}>`,
   })(node);

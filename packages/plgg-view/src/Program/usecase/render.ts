@@ -6,6 +6,7 @@ import {
   pipe,
   match,
   fromNullable,
+  chainOption,
   matchOption,
 } from "plgg";
 import {
@@ -16,8 +17,11 @@ import {
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
+  Motion,
+  Frame,
   attr$,
   handler$,
+  anim$,
 } from "plgg-view/Html/model/Attribute";
 import { isSafeAttrName } from "plgg-view/Html/usecase/escape";
 
@@ -54,6 +58,7 @@ type NodeWiring<Msg> = Readonly<{
 export type Wiring<Msg> = Readonly<{
   dispatch: (msg: Msg) => void;
   registry: WeakMap<Element, NodeWiring<Msg>>;
+  play: Play;
 }>;
 
 /** The node's {@link NodeWiring}, created and registered on first use. */
@@ -225,7 +230,139 @@ const applyAttribute =
             content.toMsg,
           ),
       ],
+      // an animation directive is not a DOM attribute: the enter motion is
+      // played in createNode once the node and its children exist.
+      [anim$(), (): void => undefined],
     );
+
+/**
+ * The enter (node-creation) {@link Motion} carried by an attribute list, if any
+ * — the {@link handlersOf} counterpart for the {@link anim$} channel.
+ */
+const enterOf = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+): Option<Motion> =>
+  attributes.reduce<Option<Motion>>(
+    (acc, attribute) =>
+      match(attribute)(
+        [attr$(), (): Option<Motion> => acc],
+        [handler$(), (): Option<Motion> => acc],
+        [
+          anim$(),
+          ({ content }): Option<Motion> =>
+            content.enter,
+        ],
+      ),
+    none(),
+  );
+
+/** The exit (node-removal) {@link Motion} of an attribute list, if any. */
+const exitOf = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+): Option<Motion> =>
+  attributes.reduce<Option<Motion>>(
+    (acc, attribute) =>
+      match(attribute)(
+        [attr$(), (): Option<Motion> => acc],
+        [handler$(), (): Option<Motion> => acc],
+        [
+          anim$(),
+          ({ content }): Option<Motion> =>
+            content.exit,
+        ],
+      ),
+    none(),
+  );
+
+/**
+ * The exit {@link Motion} of a vnode — `none` for a text leaf or an element
+ * with no exit directive.
+ */
+const exitMotionOf = <Msg>(
+  vnode: Html<Msg>,
+): Option<Motion> =>
+  match(vnode)(
+    [text$(), (): Option<Motion> => none()],
+    [
+      element$(),
+      ({ content }): Option<Motion> =>
+        exitOf(content.attributes),
+    ],
+  );
+
+/**
+ * One {@link Frame} as a WAAPI keyframe — each present property contributed by
+ * an {@link Option} spread, so nothing is set unless the frame names it.
+ */
+const frameToKeyframe = (
+  frame: Frame,
+): Keyframe => ({
+  ...matchOption(
+    () => ({}),
+    (opacity: number) => ({ opacity }),
+  )(frame.opacity),
+  ...matchOption(
+    () => ({}),
+    (transform: SoftStr) => ({ transform }),
+  )(frame.transform),
+});
+
+/** A {@link Motion}'s two endpoints as WAAPI keyframes. */
+const framesOf = (
+  motion: Motion,
+): ReadonlyArray<Keyframe> => [
+  frameToKeyframe(motion.from),
+  frameToKeyframe(motion.to),
+];
+
+/** A {@link Motion}'s timing as WAAPI options (end state retained). */
+const optsOf = (
+  motion: Motion,
+): KeyframeAnimationOptions => ({
+  duration: motion.durationMs,
+  easing: motion.easing,
+  fill: "forwards",
+});
+
+/**
+ * Whether the user has asked to reduce motion (WCAG 2.2 AA). A missing
+ * `matchMedia` reads as "motion allowed".
+ */
+const prefersReducedMotion = (): boolean =>
+  typeof window.matchMedia === "function" &&
+  window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+/**
+ * Plays a {@link Motion} on a node, resolving when it finishes — the renderer's
+ * one animation seam. The default {@link waapiPlay} drives the Web Animations
+ * API; {@link makeRenderer} accepts an alternative so a WAAPI-less test DOM can
+ * inject a controllable stand-in.
+ */
+export type Play = (
+  node: Element,
+  motion: Motion,
+) => Promise<void>;
+
+/**
+ * The default {@link Play}: feature-detects WAAPI and honours reduced-motion, so
+ * it no-ops gracefully (a resolved promise, nothing animated) when motion is
+ * unavailable or unwanted, and otherwise GPU-composites the tween.
+ */
+export const waapiPlay: Play = (node, motion) =>
+  typeof node.animate === "function" &&
+  !prefersReducedMotion()
+    ? node
+        .animate(
+          [...framesOf(motion)],
+          optsOf(motion),
+        )
+        .finished.then(
+          () => undefined,
+          () => undefined,
+        )
+    : Promise.resolve();
 
 /**
  * Builds a fresh DOM node from an {@link Html} tree — text becomes a `Text`
@@ -255,6 +392,18 @@ export const createNode =
               createNode(wiring)(child),
             ),
           );
+          // confined DOM seam: play the enter motion on the freshly built node
+          // (a no-op when none is declared or motion is unavailable). Fire and
+          // forget — the Model is uninvolved.
+          pipe(
+            enterOf(content.attributes),
+            matchOption(
+              (): void => undefined,
+              (motion: Motion): void => {
+                void wiring.play(el, motion);
+              },
+            ),
+          );
           return el;
         },
       ],
@@ -274,6 +423,10 @@ const staticAttrsOf = <Msg>(
         ],
         [
           handler$(),
+          (): Map<SoftStr, SoftStr> => acc,
+        ],
+        [
+          anim$(),
           (): Map<SoftStr, SoftStr> => acc,
         ],
       ),
@@ -304,6 +457,13 @@ const handlersOf = <Msg>(
           > =>
             acc.set(content.event, content.toMsg),
         ],
+        [
+          anim$(),
+          (): Map<
+            SoftStr,
+            (payload: SoftStr) => Msg
+          > => acc,
+        ],
       ),
     new Map<SoftStr, (payload: SoftStr) => Msg>(),
   );
@@ -316,8 +476,12 @@ const patchAttributes =
     oldAttributes: ReadonlyArray<Attribute<Msg>>,
     newAttributes: ReadonlyArray<Attribute<Msg>>,
   ): void => {
-    const oldStatic = staticAttrsOf(oldAttributes);
-    const newStatic = staticAttrsOf(newAttributes);
+    const oldStatic = staticAttrsOf(
+      oldAttributes,
+    );
+    const newStatic = staticAttrsOf(
+      newAttributes,
+    );
     newStatic.forEach((value, name) => {
       if (oldStatic.get(name) !== value) {
         setStaticAttr(node, name, value);
@@ -419,7 +583,8 @@ export const reconcile =
               ({ content: oldContent }): void => {
                 if (
                   domNode instanceof Element &&
-                  oldContent.tag === newContent.tag
+                  oldContent.tag ===
+                    newContent.tag
                 ) {
                   patchElement(wiring)(
                     domNode,
@@ -483,9 +648,35 @@ const patchChildren =
     );
     Array.from(parent.childNodes)
       .slice(newChildren.length)
-      .forEach((surplus) =>
-        parent.removeChild(surplus),
-      );
+      .forEach((surplus, offset) => {
+        if (surplus instanceof Element) {
+          pipe(
+            chainOption(exitMotionOf)(
+              fromNullable(
+                oldChildren[
+                  newChildren.length + offset
+                ],
+              ),
+            ),
+            matchOption(
+              (): void => {
+                surplus.remove();
+              },
+              (motion: Motion): void => {
+                // confined DOM seam: hold the node until its exit motion
+                // ends, then detach (`remove` tolerates concurrent churn).
+                void wiring
+                  .play(surplus, motion)
+                  .then(() => {
+                    surplus.remove();
+                  });
+              },
+            ),
+          );
+        } else {
+          surplus.remove();
+        }
+      });
   };
 
 /**
@@ -501,10 +692,12 @@ const patchChildren =
 export const makeRenderer = <Msg>(
   container: Element,
   dispatch: (msg: Msg) => void,
+  play: Play = waapiPlay,
 ): ((next: Html<Msg>) => void) => {
   const wiring: Wiring<Msg> = {
     dispatch,
     registry: new WeakMap(),
+    play,
   };
   // mutable seam: the last tree rendered into `container` (none until first paint)
   let previous: Option<Html<Msg>> = none();

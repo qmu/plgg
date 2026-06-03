@@ -23,6 +23,7 @@ timers, programmatic navigation) are a deliberate non-goal of this minimum.
 | ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style element builder functions instead) |
 | ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no keyed-list reconcile or render batching (follow-ups) |
 | ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | ❌ no hydration (mount re-renders from `init`) |
+| ✅ declarative enter/exit transitions (WAAPI, `prefers-reduced-motion`-aware) | ❌ no spring physics, keyed-FLIP reorder, or exit-while-list-churns (follow-ups) |
 | ✅ pure SSR `renderToString(Html)` | |
 
 ## The view tree — `Html<Msg, T>`
@@ -47,6 +48,14 @@ functions:
   `value_`/`name_`.
 - event handlers: `on(event, toMsg)` and helpers `onClick(msg)`,
   `onInput((value) => msg)`, `onChange(...)`, `onSubmit(msg)`.
+- transitions: `transition({ enter, exit })` and presets `fadeIn(ms)`/
+  `fadeOut(ms)`/`slideIn(offset, ms)` — pure `Anim` data (no `Msg`), so they drop
+  into any attribute list. SSR drops them; the client renderer plays the enter
+  motion on node creation and defers a node's removal until its exit motion ends,
+  via the Web Animations API and honouring `prefers-reduced-motion`. The Model
+  never learns animation exists, so the "no `Cmd`/`Sub`" boundary holds. A node
+  mid-exit still occupies its child slot, so rapid list churn can collide — the
+  outroing-set + keyed-FLIP fix is a follow-up.
 
 `Html<Msg>` is a **functor over `Msg`**: `mapHtml(f)(html)` lets a parent embed a
 child component's view (Elm's `Html.map`).

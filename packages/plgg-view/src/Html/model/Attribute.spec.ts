@@ -1,4 +1,5 @@
 import { test, expect } from "vitest";
+import { some, none } from "plgg";
 import {
   attr,
   on,
@@ -7,6 +8,10 @@ import {
   onSubmit,
   class_,
   href,
+  fadeIn,
+  fadeOut,
+  slideIn,
+  transition,
 } from "plgg-view/Html/model/Attribute";
 
 type Msg =
@@ -65,5 +70,83 @@ test("onSubmit builds a submit handler; on builds a raw handler", () => {
   }));
   if (raw.__tag === "Handler") {
     expect(raw.content.event).toBe("focus");
+  }
+});
+
+test("fadeIn builds an enter-only Anim directive", () => {
+  expect(fadeIn(150)).toEqual({
+    __tag: "Anim",
+    content: {
+      enter: some({
+        from: {
+          opacity: some(0),
+          transform: none(),
+        },
+        to: {
+          opacity: some(1),
+          transform: none(),
+        },
+        durationMs: 150,
+        easing: "ease-out",
+      }),
+      exit: none(),
+    },
+  });
+});
+
+test("fadeOut builds an exit-only Anim directive", () => {
+  const a = fadeOut(120);
+  expect(a.__tag).toBe("Anim");
+  if (a.__tag === "Anim") {
+    expect(a.content.enter).toEqual(none());
+    expect(a.content.exit).toEqual(
+      some({
+        from: {
+          opacity: some(1),
+          transform: none(),
+        },
+        to: {
+          opacity: some(0),
+          transform: none(),
+        },
+        durationMs: 120,
+        easing: "ease-in",
+      }),
+    );
+  }
+});
+
+test("slideIn carries a transform on both endpoints", () => {
+  const a = slideIn("12px", 200);
+  if (a.__tag === "Anim") {
+    expect(a.content.exit).toEqual(none());
+    expect(a.content.enter).toEqual(
+      some({
+        from: {
+          opacity: some(0),
+          transform: some("translateY(12px)"),
+        },
+        to: {
+          opacity: some(1),
+          transform: some("translateY(0)"),
+        },
+        durationMs: 200,
+        easing: "ease-out",
+      }),
+    );
+  }
+});
+
+test("transition carries both directions when given", () => {
+  const enter = {
+    from: { opacity: some(0), transform: none() },
+    to: { opacity: some(1), transform: none() },
+    durationMs: 100,
+    easing: "linear",
+  };
+  const a = transition({ enter, exit: enter });
+  if (a.__tag === "Anim") {
+    expect(a.content.enter).toEqual(some(enter));
+    expect(a.content.exit).toEqual(some(enter));
   }
 });

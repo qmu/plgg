@@ -9,6 +9,7 @@ import {
   class_,
   attr,
   onClick,
+  fadeIn,
 } from "plgg-view/Html/model/Attribute";
 import { renderToString } from "plgg-view/Html/usecase/renderToString";
 
@@ -33,6 +34,17 @@ test("drops event handlers (no events on the server)", () => {
   );
 });
 
+test("drops animation directives (no animation on the server)", () => {
+  const html = el(
+    "div",
+    [fadeIn(150), class_("box")],
+    [text("Hi")],
+  );
+  expect(renderToString(html)).toBe(
+    '<div class="box">Hi</div>',
+  );
+});
+
 test("self-closes void elements", () => {
   expect(
     renderToString(
@@ -52,11 +64,9 @@ test("drops attributes with unsafe names", () => {
 test("escapes attribute values that try to break out", () => {
   expect(
     renderToString(
-      el(
-        "a",
-        [attr("title", '"><script>')],
-        [],
-      ),
+      el("a", [attr("title", '"><script>')], []),
     ),
-  ).toBe('<a title="&quot;&gt;&lt;script&gt;"></a>');
+  ).toBe(
+    '<a title="&quot;&gt;&lt;script&gt;"></a>',
+  );
 });
