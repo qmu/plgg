@@ -151,6 +151,8 @@ export const border: Styles = decl(
 );
 export const borderColor = (c: Color): Styles =>
   decl("border-color", colorValue(c));
+export const outline = (c: Color): Styles =>
+  decl("outline", `2px solid ${colorValue(c)}`);
 
 // --- effects -------------------------------------------------------------
 

@@ -180,17 +180,19 @@ const FILTERS: ReadonlyArray<Filter> = [
   "completed",
 ];
 
-// Reusable inline-style attributes (composed once, dropped into many elements).
-const controlStyle = sx.style_(
+// Reusable styles. `style_` is inline (static layout); `css()` is class-based
+// and adds interaction states (:hover / :focus) the fold extracts into <head>.
+const inputCss = sx.css(
   sx.grow,
   sx.px(3),
   sx.py(2),
   sx.rounded("md"),
   sx.border,
   sx.text("base"),
+  sx.focus(sx.outline("primary")),
 );
 
-const primaryButtonStyle = sx.style_(
+const primaryButtonCss = sx.css(
   sx.px(4),
   sx.py(2),
   sx.rounded("md"),
@@ -198,6 +200,8 @@ const primaryButtonStyle = sx.style_(
   sx.color("primary-text"),
   sx.weight(600),
   sx.pointer,
+  sx.hover(sx.shadow("md")),
+  sx.focus(sx.outline("primary")),
 );
 
 // Returns `Html<Msg, "div">` (not the bare `Html<Msg>`) so it drops into the
@@ -213,20 +217,20 @@ const viewFilters = (
     FILTERS.map((filter) =>
       button(
         [
-          class_(
+          // css(): the hook string keeps the `.filter`/`.selected` test
+          // selectors; atoms + a :hover lift + a :focus ring extract to <head>.
+          sx.css(
             model.filter === filter
               ? "filter selected"
               : "filter",
-          ),
-          // conditional styles: the selected filter inverts to the primary
-          // color (last-wins dedup makes the override compose cleanly)
-          sx.style_(
             sx.px(3),
             sx.py(1),
             sx.rounded("md"),
             sx.border,
             sx.pointer,
             sx.text("sm"),
+            sx.hover(sx.shadow("sm")),
+            sx.focus(sx.outline("primary")),
             ...(model.filter === filter
               ? [
                   sx.bg("primary"),
@@ -297,8 +301,8 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
       ),
       button(
         [
-          class_("todo-delete"),
-          sx.style_(
+          sx.css(
+            "todo-delete",
             sx.px(3),
             sx.py(1),
             sx.rounded("md"),
@@ -306,6 +310,8 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
             sx.color("primary-text"),
             sx.pointer,
             sx.text("sm"),
+            sx.hover(sx.shadow("md")),
+            sx.focus(sx.outline("danger")),
           ),
           onClick<Msg>({
             kind: "Deleted",
@@ -390,7 +396,7 @@ export const view = (model: Model): Html<Msg> =>
                   type_("text"),
                   name_("title"),
                   value_(model.draft),
-                  controlStyle,
+                  inputCss,
                   onInput<Msg>((value) => ({
                     kind: "DraftChanged",
                     value,
@@ -401,7 +407,7 @@ export const view = (model: Model): Html<Msg> =>
               button(
                 [
                   type_("submit"),
-                  primaryButtonStyle,
+                  primaryButtonCss,
                 ],
                 [text("Add")],
               ),
@@ -423,7 +429,7 @@ export const view = (model: Model): Html<Msg> =>
                   type_("search"),
                   name_("q"),
                   value_(model.q),
-                  controlStyle,
+                  inputCss,
                   onInput<Msg>((value) => ({
                     kind: "SearchChanged",
                     value,

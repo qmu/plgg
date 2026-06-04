@@ -41,6 +41,7 @@ import {
   rounded,
   border,
   borderColor,
+  outline,
   shadow,
   opacity,
   pointer,
@@ -164,6 +165,12 @@ test("background and border utilities map tokens to values", () => {
   expect(borderColor("danger")[0]?.value).toBe(
     "#dc2626",
   );
+  expect(outline("primary")).toEqual([
+    {
+      prop: "outline",
+      value: "2px solid #2563eb",
+    },
+  ]);
 });
 
 test("effect utilities", () => {

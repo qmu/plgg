@@ -3,9 +3,9 @@ created_at: 2026-06-04T18:28:43+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 4166039
+category: Changed
 depends_on: [20260604182842-plgg-view-atomic-css-extraction.md]
 ---
 
@@ -92,3 +92,35 @@ buttons and rows gaining real hover/focus feedback — then redeployed so
 - **Escaping** — `collectCss` output goes inside `<style>`; values come from typed
   tokens (no user input), so injection is not a concern here, but keep token
   values free of `</style>`-breaking content (`htmlDocument.ts`).
+
+## Final Report
+
+Development completed as planned, plus one small plgg-view utility added for the
+demo (`outline`, for an accessible `:focus` ring). `htmlDocument` inlines
+`collectCss(root)` into `<head>` (omitted when empty); `collectCss` is re-exported
+through plgg-server's render surface. The example's interactive elements moved to
+`css()` with `:hover` (shadow lift) + `:focus` (outline) states. Redeployed:
+`plgg-example.qmu.dev`'s served `<head>` carries the atomic sheet with `:hover`/
+`:focus` rules and the body carries the atomic classes. plgg-server tsc + 75
+tests, example tsc + 17 tests, plgg-view 99, core tsc clean.
+
+### Discovered Insights
+
+- **Insight**: `css()` and `class_` both own the element's `class`, so they
+  collide (last-wins) — but `css()` and `style_` do **not** (different attributes:
+  `class` vs `style`). **Context**: in the demo, interactive elements that need
+  hover/focus use `css("hook", …)` (the hook string preserves the test selectors
+  and replaces `class_`), while static-layout elements keep `class_` + `style_`
+  unchanged. Knowing which pairs collide lets you mix the two styling modes per
+  element without a renderer-level class-merge.
+- **Insight**: the SSR-injected `<head><style>` and the client `<style
+  data-plgg-style>` both end up in the DOM, carrying **identical** rules (same
+  content hash from the same atoms), so the duplication is harmless and there is
+  no FOUC — the server sheet already styles the first paint before the client
+  runtime mounts. A future refinement could have the client adopt the server sheet
+  instead of adding its own (`htmlDocument.ts` + the client injection).
+- **Insight**: re-exporting `collectCss` through plgg-server's existing
+  `View/usecase/renderToString.ts` thin re-export (next to `renderToString`) keeps
+  `htmlDocument` on one import surface (`plgg-server/index`) and mirrors how SSR
+  already borrowed `renderToString` from plgg-view — the same tree is folded twice
+  (markup + sheet), cheaply.
