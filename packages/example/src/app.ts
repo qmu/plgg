@@ -36,6 +36,9 @@ import {
   queryStr,
   writeField,
 } from "plgg-router";
+// Namespaced so the Tailwind-style names (`p`, `text`, …) coexist with the Html
+// element builders of the same name imported above.
+import * as sx from "plgg-view/style";
 import { Todo } from "./Todo";
 
 /** Which todos the list shows — reflected to the URL as `?filter=…`. */
@@ -177,13 +180,36 @@ const FILTERS: ReadonlyArray<Filter> = [
   "completed",
 ];
 
+// Reusable inline-style attributes (composed once, dropped into many elements).
+const controlStyle = sx.style_(
+  sx.grow,
+  sx.px(3),
+  sx.py(2),
+  sx.rounded("md"),
+  sx.border,
+  sx.text("base"),
+);
+
+const primaryButtonStyle = sx.style_(
+  sx.px(4),
+  sx.py(2),
+  sx.rounded("md"),
+  sx.bg("primary"),
+  sx.color("primary-text"),
+  sx.weight(600),
+  sx.pointer,
+);
+
 // Returns `Html<Msg, "div">` (not the bare `Html<Msg>`) so it drops into the
 // flow-content toolbar below — a bare `Html<Msg>` would be a compile error.
 const viewFilters = (
   model: Model,
 ): Html<Msg, "div"> =>
   div(
-    [class_("todo-filters")],
+    [
+      class_("todo-filters"),
+      sx.style_(sx.flex, sx.gap(2)),
+    ],
     FILTERS.map((filter) =>
       button(
         [
@@ -191,6 +217,25 @@ const viewFilters = (
             model.filter === filter
               ? "filter selected"
               : "filter",
+          ),
+          // conditional styles: the selected filter inverts to the primary
+          // color (last-wins dedup makes the override compose cleanly)
+          sx.style_(
+            sx.px(3),
+            sx.py(1),
+            sx.rounded("md"),
+            sx.border,
+            sx.pointer,
+            sx.text("sm"),
+            ...(model.filter === filter
+              ? [
+                  sx.bg("primary"),
+                  sx.color("primary-text"),
+                ]
+              : [
+                  sx.bg("surface"),
+                  sx.color("text"),
+                ]),
           ),
           onClick<Msg>({
             kind: "FilterChanged",
@@ -209,6 +254,15 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
     [
       class_(
         todo.completed ? "todo done" : "todo",
+      ),
+      sx.style_(
+        sx.flex,
+        sx.items("center"),
+        sx.gap(3),
+        sx.p(3),
+        sx.rounded("md"),
+        sx.border,
+        sx.bg("surface"),
       ),
       // a new item fades in; a removed / filtered-out one fades out before the
       // renderer detaches it (the deferred-removal exit lifecycle)
@@ -230,12 +284,29 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
         [],
       ),
       span(
-        [class_("todo-title")],
+        [
+          class_("todo-title"),
+          sx.style_(
+            sx.grow,
+            ...(todo.completed
+              ? [sx.color("muted")]
+              : []),
+          ),
+        ],
         [text(todo.title)],
       ),
       button(
         [
           class_("todo-delete"),
+          sx.style_(
+            sx.px(3),
+            sx.py(1),
+            sx.rounded("md"),
+            sx.bg("danger"),
+            sx.color("primary-text"),
+            sx.pointer,
+            sx.text("sm"),
+          ),
           onClick<Msg>({
             kind: "Deleted",
             id: todo.id,
@@ -254,74 +325,128 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
  */
 export const view = (model: Model): Html<Msg> =>
   div(
-    [class_("todos")],
+    // full-width page wrapper that centers the card
     [
-      header(
-        [class_("todos-header")],
-        [
-          h1(
-            [],
-            [
-              text(
-                "plgg To-Do — Elm Architecture",
-              ),
-            ],
-          ),
-          p(
-            [],
-            [
-              text(
-                "One pure Model/update/view, rendered on the server (SSR) and taken over by the client (CSR) on plgg-view's minimal Elm Architecture. The filter and search are reflected to the URL.",
-              ),
-            ],
-          ),
-        ],
+      sx.style_(
+        sx.flex,
+        sx.justify("center"),
+        sx.p(4),
+        sx.color("text"),
       ),
-      form(
-        [
-          class_("todo-form"),
-          onSubmit<Msg>({ kind: "Added" }),
-        ],
-        [
-          input(
-            [
-              type_("text"),
-              name_("title"),
-              value_(model.draft),
-              onInput<Msg>((value) => ({
-                kind: "DraftChanged",
-                value,
-              })),
-            ],
-            [],
-          ),
-          button(
-            [type_("submit")],
-            [text("Add")],
-          ),
-        ],
-      ),
+    ],
+    [
       div(
-        [class_("todo-toolbar")],
         [
-          viewFilters(model),
-          input(
-            [
-              type_("search"),
-              name_("q"),
-              value_(model.q),
-              onInput<Msg>((value) => ({
-                kind: "SearchChanged",
-                value,
-              })),
-            ],
-            [],
+          class_("todos"),
+          sx.style_(
+            sx.wFull,
+            sx.maxW(160),
+            sx.flexCol,
+            sx.gap(4),
           ),
         ],
-      ),
-      ul(
-        [class_("todo-list")],
-        visibleTodos(model).map(viewTodo),
+        [
+          header(
+            [class_("todos-header")],
+            [
+              h1(
+                [
+                  sx.style_(
+                    sx.text("2xl"),
+                    sx.weight(700),
+                    sx.mb(1),
+                  ),
+                ],
+                [
+                  text(
+                    "plgg To-Do — Elm Architecture",
+                  ),
+                ],
+              ),
+              p(
+                [
+                  sx.style_(
+                    sx.color("muted"),
+                    sx.text("sm"),
+                  ),
+                ],
+                [
+                  text(
+                    "One pure Model/update/view, rendered on the server (SSR) and taken over by the client (CSR) on plgg-view's minimal Elm Architecture. The filter and search are reflected to the URL.",
+                  ),
+                ],
+              ),
+            ],
+          ),
+          form(
+            [
+              class_("todo-form"),
+              sx.style_(sx.flex, sx.gap(2)),
+              onSubmit<Msg>({ kind: "Added" }),
+            ],
+            [
+              input(
+                [
+                  type_("text"),
+                  name_("title"),
+                  value_(model.draft),
+                  controlStyle,
+                  onInput<Msg>((value) => ({
+                    kind: "DraftChanged",
+                    value,
+                  })),
+                ],
+                [],
+              ),
+              button(
+                [
+                  type_("submit"),
+                  primaryButtonStyle,
+                ],
+                [text("Add")],
+              ),
+            ],
+          ),
+          div(
+            [
+              class_("todo-toolbar"),
+              sx.style_(
+                sx.flex,
+                sx.items("center"),
+                sx.gap(2),
+              ),
+            ],
+            [
+              viewFilters(model),
+              input(
+                [
+                  type_("search"),
+                  name_("q"),
+                  value_(model.q),
+                  controlStyle,
+                  onInput<Msg>((value) => ({
+                    kind: "SearchChanged",
+                    value,
+                  })),
+                ],
+                [],
+              ),
+            ],
+          ),
+          ul(
+            [
+              class_("todo-list"),
+              sx.style_(
+                sx.flexCol,
+                sx.gap(2),
+                sx.listNone,
+                sx.p(0),
+                sx.m(0),
+              ),
+            ],
+            visibleTodos(model).map(viewTodo),
+          ),
+        ],
       ),
     ],
   );

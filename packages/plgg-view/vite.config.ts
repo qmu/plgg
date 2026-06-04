@@ -7,7 +7,10 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   resolve: {
     alias: {
-      "plgg-view": path.resolve(__dirname, "./src"),
+      "plgg-view": path.resolve(
+        __dirname,
+        "./src",
+      ),
     },
   },
   test: {
@@ -23,6 +26,7 @@ export default defineConfig({
         "**/*.test.ts",
         "**/index.ts",
         "src/client.ts",
+        "src/style.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -37,16 +41,20 @@ export default defineConfig({
     outDir: "dist",
     minify: true,
     lib: {
-      // Two entries: the runtime-neutral core (`plgg-view` — the Html<Msg> model,
-      // folds, mapHtml, and the pure SSR renderToString) and the browser-only
+      // Entries: the runtime-neutral core (`plgg-view` — the Html<Msg> model,
+      // folds, mapHtml, and the pure SSR renderToString); the browser-only
       // Elm-Architecture runtime (`plgg-view/client` — sandbox + application +
-      // DOM render). Window/DOM code lives only behind `./client`, so the core
-      // entry stays SSR-safe.
+      // DOM render); and the pure inline-style utilities (`plgg-view/style` —
+      // `style_` + the Tailwind-style vocabulary, kept on its own specifier so
+      // its names don't collide with the Html builders). Window/DOM code lives
+      // only behind `./client`, so the core and `./style` entries stay SSR-safe.
       entry: {
         index: "src/index.ts",
         client: "src/client.ts",
+        style: "src/style.ts",
       },
-      fileName: (format, entryName) => `${entryName}.${format}.js`,
+      fileName: (format, entryName) =>
+        `${entryName}.${format}.js`,
       formats: ["es", "cjs"],
     },
     rollupOptions: {

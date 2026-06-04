@@ -15,13 +15,16 @@ COPY . .
 
 # Install + build the example's dependency chain, in order. Each plgg-* package
 # is a `file:` dependency symlinked to its built dist, so it must be built before
-# the server starts: plgg -> plgg-http -> plgg-view -> plgg-server, then the
-# example client bundle. (plgg-server's build bundles plgg-http + plgg-view, so
-# they must exist first; at runtime the server only resolves plgg / plgg-view /
-# plgg-server.)
+# the server starts: plgg -> plgg-http -> plgg-view -> plgg-router -> plgg-server,
+# then the example client bundle. (plgg-server's build bundles plgg-http +
+# plgg-view, so they must exist first; plgg-router is independent (only needs
+# plgg) but the example's client bundle AND its server.ts -> app.ts both import
+# it, so it must be built too; at runtime the server resolves plgg / plgg-view /
+# plgg-router / plgg-server.)
 RUN cd packages/plgg        && npm install && npm run build \
  && cd ../plgg-http         && npm install && npm run build \
  && cd ../plgg-view         && npm install && npm run build \
+ && cd ../plgg-router       && npm install && npm run build \
  && cd ../plgg-server       && npm install && npm run build \
  && cd ../example           && npm install && npm run build
 

@@ -23,6 +23,11 @@ import {
   type Motion,
 } from "plgg-view/Html/model/Attribute";
 import { Html } from "plgg-view/Html/model/Html";
+import { style_ } from "plgg-view/Style/usecase/style_";
+import {
+  p,
+  bg,
+} from "plgg-view/Style/usecase/utilities";
 import {
   makeRenderer,
   waapiPlay,
@@ -466,6 +471,23 @@ test("tolerates externally-added child nodes when growing a list", () => {
   expect(
     (ul?.querySelectorAll("li").length ?? 0) >= 2,
   ).toBe(true);
+});
+
+test("an inline-style utility sets and updates the style attribute", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(el("div", [style_(p(2))], []));
+  const node = root.firstElementChild;
+  expect(node?.getAttribute("style")).toBe(
+    "padding:0.5rem",
+  );
+  render(
+    el("div", [style_(p(4), bg("primary"))], []),
+  );
+  expect(root.firstElementChild).toBe(node);
+  expect(node?.getAttribute("style")).toBe(
+    "padding:1rem;background-color:#2563eb",
+  );
 });
 
 // --- animation: enter / exit transitions ---------------------------------

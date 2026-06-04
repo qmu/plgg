@@ -13,8 +13,13 @@ plgg-server), and client-side into the live DOM (CSR, via plgg-view's
 It also exercises the rest of the plgg-view/-router surface: the `filter`/search
 slice is **reflected to the URL** (`?filter=…&q=…`, deep-linkable, back/forward
 works) via plgg-router's typed query codec and plgg-view's `toUrl`/`historyMode`
-seam — no imperative URL setters; and list items **animate in/out** via the
-declarative `fadeIn`/`fadeOut` transition directives.
+seam — no imperative URL setters; list items **animate in/out** via the
+declarative `fadeIn`/`fadeOut` transition directives; and the whole UI is styled
+with plgg-view's **typed inline-style utilities** (`import * as sx from
+"plgg-view/style"` → `sx.style_(sx.flex, sx.p(3), sx.bg("primary"))`) — a
+zero-dependency, Tailwind-flavoured vocabulary that compiles to `style="…"` (no
+stylesheet, no build step; the `sx.` namespace avoids clashing with the `p`/
+`text` element builders).
 
 ## Layout
 
