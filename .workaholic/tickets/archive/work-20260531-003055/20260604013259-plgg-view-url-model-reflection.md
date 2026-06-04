@@ -3,9 +3,9 @@ created_at: 2026-06-04T01:32:59+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: c671bb4
+category: Changed
 depends_on: [20260604013258-plgg-router-query-codec.md]
 ---
 
@@ -163,3 +163,40 @@ direction. Todo/icebox empty.
   (`packages/example/src/main.ts`, `app.ts`).
 - **Depends on ticket 1** — `serializeQuery` + `QueryCodec` must exist and be
   built into plgg-router's `dist` before the example can consume them.
+
+## Final Report
+
+Development completed as planned. `Application` gained `toUrl?`/`historyMode?`;
+the runtime reflects the model into the URL after each dispatch via a string-diff-
+gated `reflectUrl` + an `applyHistory` (replace/push/none) seam, with no `Cmd`.
+The example was converted `Sandbox`→`Application` and now deep-links
+`?filter=…&q=…` (filter change pushes history, search typing replaces). plgg-view
+73 tests pass (application.ts 100% stmts/funcs/lines); example 17 tests pass
+(100/93/100/100); plgg-router 38 tests still green; core `plgg` tsc clean.
+
+### Discovered Insights
+
+- **Insight**: the model→URL reflection needed **no new effect channel** — it
+  slots into the `application` `dispatch` closure as a post-`render` step,
+  precisely mirroring how the diff/patch renderer already treats the DOM as a
+  projection of the model. **Context**: this is the load-bearing design idea —
+  "the URL is to the model what the DOM is to the model." Any future
+  reflected-output (document title, `localStorage`, `<meta>`) follows the same
+  shape: a pure `model → X` projection reconciled in the runtime seam, gated on a
+  diff for loop-freedom. It also means the "no `Cmd`/`Sub`" boundary genuinely
+  still holds.
+- **Insight**: distinguishing `pushState` vs `replaceState` in a happy-dom test
+  can't be done from `window.location` (both update it identically). **Context**:
+  spy both via `Object.defineProperty(window.history, "pushState", { value: … })`
+  — its `value` is untyped, so the recording stub stands in with **no cast** — and
+  call through to the originals so the loop-free gate (which reads
+  `window.location`) still works. Restore in `afterEach`. Reusable for any
+  history-API assertion.
+- **Insight**: the example had to convert from `sandbox` to `application`
+  end-to-end (`main.ts` rewire, `app.spec.ts` mount switch, a new
+  `plgg-router` `file:` dep) and keep `init` as a `Model` **constant** so
+  `server.ts`'s `view(init)` SSR path kept working, while `Application.init`
+  became `(url) => ({ ...init, ...codec.decode(parseQuery(url.search)) })`.
+  **Context**: when adding URL-seeding to an app shared by SSR + CSR, keep the
+  zero-arg default model for the server and layer the URL decode only in the
+  client `init` — don't make the server reconstruct a `Url`.

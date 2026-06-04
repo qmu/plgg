@@ -3,18 +3,20 @@ import {
   fromNullable,
   mapOption,
 } from "plgg";
-import { sandbox } from "plgg-view/client";
+import { application } from "plgg-view/client";
 import { app } from "./app";
 
 /**
  * CSR entry — the client half of the isomorphic demo. Mounts the To-Do app onto
  * `#root` (the same node the SSR `pageResponse` fills with server-rendered
- * markup), so the client `sandbox` takes over the server's output. The runtime
- * owns state and re-rendering; this is the only side-effecting line.
+ * markup), so the client `application` runtime takes over the server's output.
+ * `application` (not `sandbox`) so the runtime owns the URL too — `filter`/`q`
+ * are reflected to the address bar and seeded back from a deep link. This is the
+ * only side-effecting line.
  */
 pipe(
   fromNullable(document.getElementById("root")),
   mapOption((root: HTMLElement) =>
-    sandbox(app)(root),
+    application(app)(root),
   ),
 );

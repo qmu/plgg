@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { test, expect } from "vitest";
 import { renderToString } from "plgg-view";
-import { sandbox } from "plgg-view/client";
+import { application } from "plgg-view/client";
 import { pageResponse } from "plgg-server";
 import {
   init,
@@ -17,6 +17,8 @@ const seed: Model = {
   ],
   draft: "",
   nextId: 2,
+  filter: "all",
+  q: "",
 };
 
 // --- pure update ---
@@ -107,13 +109,16 @@ test("SSR pageResponse wraps view(init) in a document and injects the client ent
   );
 });
 
-// --- the running app (sandbox over the real DOM) ---
+// --- the running app (application over the real DOM) ---
 
 test("adding a todo through the form updates the list", () => {
+  window.history.replaceState(null, "", "/");
   const root = document.createElement("div");
-  sandbox(app)(root);
+  const stop = application(app)(root);
 
-  const field = root.querySelector("input");
+  const field = root.querySelector(
+    "input[name=title]",
+  );
   if (field instanceof HTMLInputElement) {
     field.value = "Ship it";
     field.dispatchEvent(new Event("input"));
@@ -128,4 +133,182 @@ test("adding a todo through the form updates the list", () => {
     root.querySelectorAll("li.todo"),
   ).toHaveLength(1);
   expect(root.textContent).toContain("Ship it");
+  stop();
+});
+
+// --- pure update: the URL-reflected slice ---
+
+test("FilterChanged and SearchChanged fold into the model", () => {
+  expect(
+    update(
+      { kind: "FilterChanged", filter: "active" },
+      init,
+    ).filter,
+  ).toBe("active");
+  expect(
+    update(
+      { kind: "SearchChanged", value: "milk" },
+      init,
+    ).q,
+  ).toBe("milk");
+});
+
+test("UrlChanged seeds filter and q together (a deep link / back-forward)", () => {
+  const next = update(
+    {
+      kind: "UrlChanged",
+      filter: "completed",
+      q: "buy",
+    },
+    init,
+  );
+  expect(next.filter).toBe("completed");
+  expect(next.q).toBe("buy");
+});
+
+test("the view shows only todos matching the filter and search", () => {
+  const model: Model = {
+    todos: [
+      {
+        id: 1,
+        title: "Buy milk",
+        completed: false,
+      },
+      {
+        id: 2,
+        title: "Buy eggs",
+        completed: true,
+      },
+      {
+        id: 3,
+        title: "Call mom",
+        completed: false,
+      },
+    ],
+    draft: "",
+    nextId: 4,
+    filter: "active",
+    q: "buy",
+  };
+  const html = renderToString(view(model));
+  expect(html).toContain("Buy milk"); // active + matches "buy"
+  expect(html).not.toContain("Buy eggs"); // completed, filtered out
+  expect(html).not.toContain("Call mom"); // active but no "buy"
+});
+
+// --- the running app: model state is reflected into the URL ---
+
+test("clicking a filter pushes the reflected query to the address bar", () => {
+  window.history.replaceState(null, "", "/");
+  const root = document.createElement("div");
+  const stop = application(app)(root);
+
+  const activeButton = Array.from(
+    root.querySelectorAll(".todo-filters button"),
+  ).find((el) => el.textContent === "active");
+  activeButton?.dispatchEvent(
+    new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    }),
+  );
+
+  expect(window.location.search).toBe(
+    "?filter=active",
+  );
+  stop();
+});
+
+test("the app seeds its filter from the entry query (deep link)", () => {
+  window.history.replaceState(
+    null,
+    "",
+    "/?filter=completed",
+  );
+  const root = document.createElement("div");
+  const stop = application(app)(root);
+  // the completed filter is reflected as selected in the rendered toolbar
+  const selected = root.querySelector(
+    ".todo-filters button.filter.selected",
+  );
+  expect(selected?.textContent).toBe("completed");
+  stop();
+});
+
+test("typing in search reflects q to the URL with replace", () => {
+  window.history.replaceState(null, "", "/");
+  const root = document.createElement("div");
+  const stop = application(app)(root);
+  const search = root.querySelector(
+    "input[name=q]",
+  );
+  if (search instanceof HTMLInputElement) {
+    search.value = "milk";
+    search.dispatchEvent(new Event("input"));
+  }
+  expect(window.location.search).toBe("?q=milk");
+  stop();
+});
+
+test("popstate navigation updates the filter from the URL", () => {
+  window.history.replaceState(
+    null,
+    "",
+    "/?filter=active",
+  );
+  const root = document.createElement("div");
+  const stop = application(app)(root);
+  window.history.replaceState(
+    null,
+    "",
+    "/?filter=completed",
+  );
+  window.dispatchEvent(new Event("popstate"));
+  const selected = root.querySelector(
+    ".todo-filters button.filter.selected",
+  );
+  expect(selected?.textContent).toBe("completed");
+  stop();
+});
+
+test("toggling a todo's checkbox flips it in the running app", () => {
+  window.history.replaceState(null, "", "/");
+  const root = document.createElement("div");
+  const stop = application(app)(root);
+  const field = root.querySelector(
+    "input[name=title]",
+  );
+  if (field instanceof HTMLInputElement) {
+    field.value = "Toggle me";
+    field.dispatchEvent(new Event("input"));
+  }
+  root
+    .querySelector("form")
+    ?.dispatchEvent(
+      new Event("submit", { cancelable: true }),
+    );
+  const box = root.querySelector(
+    "li.todo input[type=checkbox]",
+  );
+  box?.dispatchEvent(new Event("change"));
+  expect(
+    root.querySelector("li.todo.done"),
+  ).not.toBeNull();
+  stop();
+});
+
+test("a completed todo renders with a checked box", () => {
+  const model: Model = {
+    todos: [
+      { id: 1, title: "Done", completed: true },
+    ],
+    draft: "",
+    nextId: 2,
+    filter: "all",
+    q: "",
+  };
+  const html = renderToString(view(model));
+  expect(html).toContain("checked");
+  expect(html).toContain("Done");
 });

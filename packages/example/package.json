@@ -27,6 +27,7 @@
   "dependencies": {
     "plgg": "file:../plgg",
     "plgg-view": "file:../plgg-view",
+    "plgg-router": "file:../plgg-router",
     "plgg-server": "file:../plgg-server"
   },
   "devDependencies": {
