@@ -29,7 +29,7 @@ import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
-import { css } from "plgg-view/Style/usecase/css";
+import { style_ } from "plgg-view/Style/usecase/style_";
 import { p } from "plgg-view/Style/usecase/utilities";
 
 declare global {
@@ -360,11 +360,11 @@ test("does not write when the reflected URL is unchanged (loop-free)", () => {
   expect(root.textContent).toContain("n=1");
 });
 
-test("the runtime injects a <style> sheet for the tree's css() atoms", () => {
+test("the runtime injects a <style> sheet for the tree's style_() atoms", () => {
   const styleApp: Application<Url, Msg> = {
     init: (url) => url,
     update: (msg) => msg.url,
-    view: () => div([css(p(2))], [text("x")]),
+    view: () => div([style_(p(2))], [text("x")]),
     onUrlChange: (url) => ({ url }),
   };
   mountApp(styleApp);

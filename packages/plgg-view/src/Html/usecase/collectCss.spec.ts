@@ -9,10 +9,10 @@ import {
   fadeIn,
 } from "plgg-view/Html/model/Attribute";
 import {
-  css,
+  style_,
   hover,
   hashClass,
-} from "plgg-view/Style/usecase/css";
+} from "plgg-view/Style/usecase/style_";
 import {
   p,
   bg,
@@ -22,7 +22,7 @@ import { collectCss } from "plgg-view/Html/usecase/collectCss";
 test("collectCss renders the atomic rules of a tree (base + :hover)", () => {
   const tree = el(
     "div",
-    [css(p(3), hover(bg("primary")))],
+    [style_(p(3), hover(bg("primary")))],
     [text("x")],
   );
   const sheet = collectCss(tree);
@@ -39,8 +39,8 @@ test("collectCss dedups an atom used on many elements", () => {
     "ul",
     [],
     [
-      el("li", [css(p(3))], []),
-      el("li", [css(p(3))], []),
+      el("li", [style_(p(3))], []),
+      el("li", [style_(p(3))], []),
     ],
   );
   const cls = hashClass("|padding:0.75rem");
@@ -58,7 +58,7 @@ test("collectCss skips static attrs, handlers, animations, and text", () => {
       class_("x"),
       onClick<string>("go"),
       fadeIn(100),
-      css(p(2)),
+      style_(p(2)),
     ],
     [text("Go")],
   );
@@ -67,7 +67,7 @@ test("collectCss skips static attrs, handlers, animations, and text", () => {
   );
 });
 
-test("a tree with no css() atoms yields an empty sheet", () => {
+test("a tree with no style_() atoms yields an empty sheet", () => {
   expect(
     collectCss(
       el("div", [class_("x")], [text("hi")]),

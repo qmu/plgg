@@ -13,9 +13,9 @@ import {
 } from "plgg-view/Html/model/Attribute";
 import { renderToString } from "plgg-view/Html/usecase/renderToString";
 import {
-  css,
+  style_,
   hashClass,
-} from "plgg-view/Style/usecase/css";
+} from "plgg-view/Style/usecase/style_";
 import { p } from "plgg-view/Style/usecase/utilities";
 
 test("renders an element with escaped attributes and children", () => {
@@ -50,12 +50,12 @@ test("drops animation directives (no animation on the server)", () => {
   );
 });
 
-test("emits css() atomic classes as a class attribute", () => {
+test("emits style_() atomic classes as a class attribute", () => {
   expect(
     renderToString(
       el(
         "div",
-        [css("todo", p(2))],
+        [style_("todo", p(2))],
         [text("hi")],
       ),
     ),
@@ -64,10 +64,10 @@ test("emits css() atomic classes as a class attribute", () => {
   );
 });
 
-test("a css() with no classes emits no class attribute", () => {
+test("a style_() with no classes emits no class attribute", () => {
   expect(
     renderToString(
-      el("div", [css()], [text("x")]),
+      el("div", [style_()], [text("x")]),
     ),
   ).toBe("<div>x</div>");
 });

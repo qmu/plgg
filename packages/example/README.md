@@ -15,14 +15,15 @@ slice is **reflected to the URL** (`?filter=…&q=…`, deep-linkable, back/forw
 works) via plgg-router's typed query codec and plgg-view's `toUrl`/`historyMode`
 seam — no imperative URL setters; list items **animate in/out** via the
 declarative `fadeIn`/`fadeOut` transition directives; and the whole UI is styled
-with plgg-view's **typed style utilities** (`import * as sx from
-"plgg-view/style"`) — a zero-dependency, Tailwind-flavoured vocabulary with two
-modes: `sx.style_(…)` compiles to inline `style="…"` (static layout), and
-`sx.css(…, sx.hover(…), sx.focus(…))` compiles to content-hashed **atomic
-classes** whose exact stylesheet the SSR fold (`collectCss`) inlines into
-`<head>` — so the buttons get real `:hover`/`:focus` states with no separate CSS
-file, no build step, and no unused rules. The `sx.` namespace avoids clashing
-with the `p`/`text` element builders.
+with plgg-view's **one styling primitive**, `sx.style_(…)` (`import * as sx from
+"plgg-view/style"`) — a zero-dependency, Tailwind-flavoured vocabulary. A call is
+`style_("hook", p(3), bg("primary"), hover(shadow("md")), focus(outline("primary")))`:
+typed atoms (＋ optional `:hover`/`:focus`/`:active` variants) compile to
+content-hashed **atomic classes**, and the SSR fold (`collectCss`) inlines the
+exact stylesheet into `<head>` — real interaction states, no separate CSS file,
+no build step, no unused rules. (For a genuinely dynamic inline value,
+`attr("style", …)` is the escape hatch.) The `sx.` namespace avoids clashing with
+the `p`/`text` element builders.
 
 ## Layout
 

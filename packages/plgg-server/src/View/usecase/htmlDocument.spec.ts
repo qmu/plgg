@@ -32,7 +32,7 @@ test("injects a module script when clientEntry is given", () => {
 test("inlines the root's css() atoms as a <style> in the head", () => {
   const html = htmlDocument({
     title: "x",
-    root: div([sx.css(sx.p(2))], [text("y")]),
+    root: div([sx.style_(sx.p(2))], [text("y")]),
   });
   expect(html).toContain("<style>");
   expect(html).toContain("padding:0.5rem}");

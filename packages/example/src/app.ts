@@ -180,9 +180,10 @@ const FILTERS: ReadonlyArray<Filter> = [
   "completed",
 ];
 
-// Reusable styles. `style_` is inline (static layout); `css()` is class-based
-// and adds interaction states (:hover / :focus) the fold extracts into <head>.
-const inputCss = sx.css(
+// Reusable styles composed once. `style_` is the one styling primitive: a hook
+// string + atoms + variants (`:hover`/`:focus`) → atomic classes the fold emits
+// into <head>. (For a dynamic inline value, `attr("style", …)` is the escape.)
+const inputStyle = sx.style_(
   sx.grow,
   sx.px(3),
   sx.py(2),
@@ -192,7 +193,7 @@ const inputCss = sx.css(
   sx.focus(sx.outline("primary")),
 );
 
-const primaryButtonCss = sx.css(
+const primaryButtonStyle = sx.style_(
   sx.px(4),
   sx.py(2),
   sx.rounded("md"),
@@ -211,15 +212,18 @@ const viewFilters = (
 ): Html<Msg, "div"> =>
   div(
     [
-      class_("todo-filters"),
-      sx.style_(sx.flex, sx.gap(2)),
+      sx.style_(
+        "todo-filters",
+        sx.flex,
+        sx.gap(2),
+      ),
     ],
     FILTERS.map((filter) =>
       button(
         [
-          // css(): the hook string keeps the `.filter`/`.selected` test
-          // selectors; atoms + a :hover lift + a :focus ring extract to <head>.
-          sx.css(
+          // one styling primitive: the hook string keeps the `.filter`/`.selected`
+          // test selectors; atoms + a :hover lift + a :focus ring extract to <head>.
+          sx.style_(
             model.filter === filter
               ? "filter selected"
               : "filter",
@@ -256,10 +260,8 @@ const viewFilters = (
 const viewTodo = (todo: Todo): Html<Msg, "li"> =>
   li(
     [
-      class_(
-        todo.completed ? "todo done" : "todo",
-      ),
       sx.style_(
+        todo.completed ? "todo done" : "todo",
         sx.flex,
         sx.items("center"),
         sx.gap(3),
@@ -289,8 +291,8 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
       ),
       span(
         [
-          class_("todo-title"),
           sx.style_(
+            "todo-title",
             sx.grow,
             ...(todo.completed
               ? [sx.color("muted")]
@@ -301,7 +303,7 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
       ),
       button(
         [
-          sx.css(
+          sx.style_(
             "todo-delete",
             sx.px(3),
             sx.py(1),
@@ -343,8 +345,8 @@ export const view = (model: Model): Html<Msg> =>
     [
       div(
         [
-          class_("todos"),
           sx.style_(
+            "todos",
             sx.wFull,
             sx.maxW(160),
             sx.flexCol,
@@ -386,8 +388,11 @@ export const view = (model: Model): Html<Msg> =>
           ),
           form(
             [
-              class_("todo-form"),
-              sx.style_(sx.flex, sx.gap(2)),
+              sx.style_(
+                "todo-form",
+                sx.flex,
+                sx.gap(2),
+              ),
               onSubmit<Msg>({ kind: "Added" }),
             ],
             [
@@ -396,7 +401,7 @@ export const view = (model: Model): Html<Msg> =>
                   type_("text"),
                   name_("title"),
                   value_(model.draft),
-                  inputCss,
+                  inputStyle,
                   onInput<Msg>((value) => ({
                     kind: "DraftChanged",
                     value,
@@ -407,7 +412,7 @@ export const view = (model: Model): Html<Msg> =>
               button(
                 [
                   type_("submit"),
-                  primaryButtonCss,
+                  primaryButtonStyle,
                 ],
                 [text("Add")],
               ),
@@ -415,8 +420,8 @@ export const view = (model: Model): Html<Msg> =>
           ),
           div(
             [
-              class_("todo-toolbar"),
               sx.style_(
+                "todo-toolbar",
                 sx.flex,
                 sx.items("center"),
                 sx.gap(2),
@@ -429,7 +434,7 @@ export const view = (model: Model): Html<Msg> =>
                   type_("search"),
                   name_("q"),
                   value_(model.q),
-                  inputCss,
+                  inputStyle,
                   onInput<Msg>((value) => ({
                     kind: "SearchChanged",
                     value,
@@ -441,8 +446,8 @@ export const view = (model: Model): Html<Msg> =>
           ),
           ul(
             [
-              class_("todo-list"),
               sx.style_(
+                "todo-list",
                 sx.flexCol,
                 sx.gap(2),
                 sx.listNone,
