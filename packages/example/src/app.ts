@@ -25,6 +25,8 @@ import {
   onSubmit,
   onClick,
   onChange,
+  fadeIn,
+  fadeOut,
 } from "plgg-view";
 import {
   QueryCodec,
@@ -208,6 +210,10 @@ const viewTodo = (todo: Todo): Html<Msg, "li"> =>
       class_(
         todo.completed ? "todo done" : "todo",
       ),
+      // a new item fades in; a removed / filtered-out one fades out before the
+      // renderer detaches it (the deferred-removal exit lifecycle)
+      fadeIn(150),
+      fadeOut(150),
     ],
     [
       input(
