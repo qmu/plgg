@@ -1,5 +1,7 @@
 import { Html } from "plgg-view/Html/model/Html";
+import { collectCss } from "plgg-view/Html/usecase/collectCss";
 import { makeRenderer } from "plgg-view/Program/usecase/render";
+import { makeSheet } from "plgg-view/Program/usecase/sheet";
 
 /**
  * The minimal Elm Architecture program: an initial `Model`, a **pure**
@@ -28,11 +30,23 @@ export const sandbox =
   <Model, Msg>(program: Sandbox<Model, Msg>) =>
   (container: Element): (() => void) => {
     let model: Model = program.init;
+    const sheet = makeSheet();
     const dispatch = (msg: Msg): void => {
       model = program.update(msg, model);
-      render(program.view(model));
+      paint(program.view(model));
     };
-    const render = makeRenderer(container, dispatch);
-    render(program.view(model));
-    return () => container.replaceChildren();
+    const render = makeRenderer(
+      container,
+      dispatch,
+    );
+    // render the DOM, then mirror the tree's atomic CSS into the managed sheet
+    const paint = (html: Html<Msg>): void => {
+      render(html);
+      sheet.set(collectCss(html));
+    };
+    paint(program.view(model));
+    return () => {
+      container.replaceChildren();
+      sheet.dispose();
+    };
   };

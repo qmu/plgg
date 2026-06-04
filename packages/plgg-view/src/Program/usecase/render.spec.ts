@@ -25,6 +25,10 @@ import {
 import { Html } from "plgg-view/Html/model/Html";
 import { style_ } from "plgg-view/Style/usecase/style_";
 import {
+  css,
+  hashClass,
+} from "plgg-view/Style/usecase/css";
+import {
   p,
   bg,
 } from "plgg-view/Style/usecase/utilities";
@@ -487,6 +491,21 @@ test("an inline-style utility sets and updates the style attribute", () => {
   expect(root.firstElementChild).toBe(node);
   expect(node?.getAttribute("style")).toBe(
     "padding:1rem;background-color:#2563eb",
+  );
+});
+
+test("a css() directive sets and patches the class attribute", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(el("div", [css("box", p(2))], []));
+  const node = root.firstElementChild;
+  expect(node?.getAttribute("class")).toBe(
+    `box ${hashClass("|padding:0.5rem")}`,
+  );
+  render(el("div", [css(p(4))], []));
+  expect(root.firstElementChild).toBe(node);
+  expect(node?.getAttribute("class")).toBe(
+    hashClass("|padding:1rem"),
   );
 });
 

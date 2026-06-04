@@ -59,13 +59,35 @@ export type Attribute<Msg> =
         enter: Option<Motion>;
         exit: Option<Motion>;
       }>
+    >
+  | Box<
+      "Css",
+      Readonly<{
+        classes: SoftStr;
+        rules: ReadonlyArray<CssRule>;
+      }>
     >;
+
+/**
+ * One atomic CSS rule as pure data: a content-hashed `className`, an optional
+ * `selector` suffix (`""`, `":hover"`, …), and a single declaration. The
+ * client renderer / SSR `class` attribute carries the className; `collectCss`
+ * folds the rules of a tree into the deduped stylesheet. Defined here (not in
+ * `Style`) so `Html` does not depend on `Style`.
+ */
+export type CssRule = Readonly<{
+  className: SoftStr;
+  selector: SoftStr;
+  prop: SoftStr;
+  value: SoftStr;
+}>;
 
 /** Pattern matchers for folding an {@link Attribute} with `match`. */
 export const attr$ = () => pattern("Attr")();
 export const handler$ = () =>
   pattern("Handler")();
 export const anim$ = () => pattern("Anim")();
+export const css$ = () => pattern("Css")();
 
 /**
  * A static attribute. Carries no `Msg`, so it is `Attribute<never>` — usable in

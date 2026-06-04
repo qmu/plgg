@@ -5,6 +5,7 @@ import {
   attr$,
   handler$,
   anim$,
+  css$,
 } from "plgg-view/Html/model/Attribute";
 import { foldHtml } from "plgg-view/Html/usecase/foldHtml";
 import {
@@ -53,6 +54,13 @@ const renderAttribute = <Msg>(
     ],
     [handler$(), (): SoftStr => ""],
     [anim$(), (): SoftStr => ""],
+    [
+      css$(),
+      ({ content }): SoftStr =>
+        content.classes === ""
+          ? ""
+          : ` class="${escapeAttr(content.classes)}"`,
+    ],
   );
 
 /**

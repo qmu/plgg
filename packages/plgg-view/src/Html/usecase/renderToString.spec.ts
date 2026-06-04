@@ -12,6 +12,11 @@ import {
   fadeIn,
 } from "plgg-view/Html/model/Attribute";
 import { renderToString } from "plgg-view/Html/usecase/renderToString";
+import {
+  css,
+  hashClass,
+} from "plgg-view/Style/usecase/css";
+import { p } from "plgg-view/Style/usecase/utilities";
 
 test("renders an element with escaped attributes and children", () => {
   const html = div(
@@ -43,6 +48,28 @@ test("drops animation directives (no animation on the server)", () => {
   expect(renderToString(html)).toBe(
     '<div class="box">Hi</div>',
   );
+});
+
+test("emits css() atomic classes as a class attribute", () => {
+  expect(
+    renderToString(
+      el(
+        "div",
+        [css("todo", p(2))],
+        [text("hi")],
+      ),
+    ),
+  ).toBe(
+    `<div class="todo ${hashClass("|padding:0.5rem")}">hi</div>`,
+  );
+});
+
+test("a css() with no classes emits no class attribute", () => {
+  expect(
+    renderToString(
+      el("div", [css()], [text("x")]),
+    ),
+  ).toBe("<div>x</div>");
 });
 
 test("self-closes void elements", () => {

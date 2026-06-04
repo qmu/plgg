@@ -22,6 +22,7 @@ import {
   attr$,
   handler$,
   anim$,
+  css$,
 } from "plgg-view/Html/model/Attribute";
 import { isSafeAttrName } from "plgg-view/Html/usecase/escape";
 
@@ -233,6 +234,16 @@ const applyAttribute =
       // an animation directive is not a DOM attribute: the enter motion is
       // played in createNode once the node and its children exist.
       [anim$(), (): void => undefined],
+      // a css() directive contributes the element's `class` (atomic names).
+      [
+        css$(),
+        ({ content }): void =>
+          setStaticAttr(
+            node,
+            "class",
+            content.classes,
+          ),
+      ],
     );
 
 /**
@@ -252,6 +263,7 @@ const enterOf = <Msg>(
           ({ content }): Option<Motion> =>
             content.enter,
         ],
+        [css$(), (): Option<Motion> => acc],
       ),
     none(),
   );
@@ -270,6 +282,7 @@ const exitOf = <Msg>(
           ({ content }): Option<Motion> =>
             content.exit,
         ],
+        [css$(), (): Option<Motion> => acc],
       ),
     none(),
   );
@@ -429,6 +442,11 @@ const staticAttrsOf = <Msg>(
           anim$(),
           (): Map<SoftStr, SoftStr> => acc,
         ],
+        [
+          css$(),
+          ({ content }): Map<SoftStr, SoftStr> =>
+            acc.set("class", content.classes),
+        ],
       ),
     new Map<SoftStr, SoftStr>(),
   );
@@ -459,6 +477,13 @@ const handlersOf = <Msg>(
         ],
         [
           anim$(),
+          (): Map<
+            SoftStr,
+            (payload: SoftStr) => Msg
+          > => acc,
+        ],
+        [
+          css$(),
           (): Map<
             SoftStr,
             (payload: SoftStr) => Msg

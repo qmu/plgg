@@ -29,6 +29,8 @@ import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
+import { css } from "plgg-view/Style/usecase/css";
+import { p } from "plgg-view/Style/usecase/utilities";
 
 declare global {
   interface Window {
@@ -356,6 +358,22 @@ test("does not write when the reflected URL is unchanged (loop-free)", () => {
   window.dispatchEvent(new Event("popstate"));
   expect(historyCalls).toEqual([]);
   expect(root.textContent).toContain("n=1");
+});
+
+test("the runtime injects a <style> sheet for the tree's css() atoms", () => {
+  const styleApp: Application<Url, Msg> = {
+    init: (url) => url,
+    update: (msg) => msg.url,
+    view: () => div([css(p(2))], [text("x")]),
+    onUrlChange: (url) => ({ url }),
+  };
+  mountApp(styleApp);
+  const sheet = document.head.querySelector(
+    "style[data-plgg-style]",
+  );
+  expect(sheet?.textContent).toContain(
+    "padding:0.5rem",
+  );
 });
 
 test("an app without toUrl never writes history on dispatch", () => {

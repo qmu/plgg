@@ -9,6 +9,7 @@ import {
   attr$,
   handler$,
   anim$,
+  css$,
 } from "plgg-view/Html/model/Attribute";
 
 /**
@@ -38,6 +39,11 @@ const mapAttribute =
         anim$(),
         ({ content }): Attribute<B> =>
           box("Anim")(content),
+      ],
+      [
+        css$(),
+        ({ content }): Attribute<B> =>
+          box("Css")(content),
       ],
     );
 

@@ -11,11 +11,13 @@ import {
   fromNullable,
 } from "plgg";
 import { Html } from "plgg-view/Html/model/Html";
+import { collectCss } from "plgg-view/Html/usecase/collectCss";
 import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
 import { makeRenderer } from "plgg-view/Program/usecase/render";
+import { makeSheet } from "plgg-view/Program/usecase/sheet";
 
 /**
  * A routing-aware Elm-Architecture program (Browser.application-style), kept
@@ -182,16 +184,22 @@ export const application =
   ) =>
   (container: Element): (() => void) => {
     let model: Model = program.init(currentUrl());
+    const sheet = makeSheet();
     const dispatch = (msg: Msg): void => {
       const prev = model;
       model = program.update(msg, model);
-      render(program.view(model));
+      paint(program.view(model));
       reflectUrl(prev, model);
     };
     const render = makeRenderer(
       container,
       dispatch,
     );
+    // render the DOM, then mirror the tree's atomic CSS into the managed sheet
+    const paint = (html: Html<Msg>): void => {
+      render(html);
+      sheet.set(collectCss(html));
+    };
     // model→URL reflection: a render-time effect (NOT a Cmd) confined to this
     // seam. Gated on a string diff so it never loops — a URL the user drove in
     // via onUrlChange already equals toUrl(model), so no spurious write.
@@ -247,7 +255,7 @@ export const application =
     const onPopState = (): void =>
       go(currentUrl());
 
-    render(program.view(model));
+    paint(program.view(model));
     window.addEventListener(
       "popstate",
       onPopState,
@@ -264,5 +272,6 @@ export const application =
         onClick,
       );
       container.replaceChildren();
+      sheet.dispose();
     };
   };
