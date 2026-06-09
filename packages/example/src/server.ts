@@ -16,6 +16,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import {
   Result,
   SoftStr,
@@ -53,6 +54,24 @@ const readBundle = tryCatch((path: SoftStr) =>
   readFileSync(path, "utf8"),
 );
 
+/**
+ * A content hash of the client bundle, computed once at startup. Stamped into
+ * the `/main.js?v=…` script URL and the `ETag`, so a new build always busts
+ * every caching layer (browser and CDN edge) instead of serving stale client
+ * JS over fresh SSR markup. A missing bundle degrades to a constant token.
+ */
+const bundleVersion: SoftStr = pipe(
+  tryCatch((path: SoftStr) =>
+    createHash("sha256")
+      .update(readFileSync(path))
+      .digest("hex"),
+  )(BUNDLE_PATH),
+  matchResult(
+    (): SoftStr => "dev",
+    (hex: SoftStr): SoftStr => hex.slice(0, 16),
+  ),
+);
+
 const app = pipe(
   web(),
 
@@ -63,7 +82,7 @@ const app = pipe(
       pageResponse({
         title: "plgg To-Do — SSR + CSR",
         root: view(init),
-        clientEntry: "/main.js",
+        clientEntry: `/main.js?v=${bundleVersion}`,
       }),
     ),
   ),
@@ -83,7 +102,12 @@ const app = pipe(
         (
           body: SoftStr,
         ): Result<HttpResponse, HttpError> =>
-          ok(javascriptResponse(body)),
+          ok(
+            javascriptResponse(body, 200, {
+              "cache-control": "no-cache",
+              etag: `"${bundleVersion}"`,
+            }),
+          ),
       ),
     ),
   ),

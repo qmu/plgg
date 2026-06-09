@@ -3,9 +3,9 @@ created_at: 2026-06-09T19:53:34+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 556d000
+category: Changed
 depends_on:
 ---
 
@@ -86,3 +86,33 @@ and send revalidation headers so no layer serves a stale copy.
 - **Reverting the diagnostic** — the temporary red wrapper color
   (`sx.color("danger")` in `app.ts`) is unrelated to this ticket and is reverted
   separately once delivery is confirmed working.
+
+## Final Report
+
+Development completed as planned. Implemented exactly per the steps: a startup
+SHA-256 of `dist/main.js` (first 16 hex) stamped into both `clientEntry`
+(`/main.js?v=<hash>`) and an `ETag`, with `Cache-Control: no-cache` on the
+bundle response — all via `node:crypto` + the existing `Result`/`pipe`/
+`matchResult` style, no escape hatches. Verified on the origin: SSR HTML emits
+`src="/main.js?v=f772e26ad8eb4e42"` and `/main.js` returns
+`cache-control: no-cache` + matching `ETag`. The developer confirmed the page
+stops reverting to the stale bundle after a reload of the public (Cloudflare
+Access + tunnel) URL.
+
+### Discovered Insights
+
+- **Insight**: The SSR+CSR demo's "changes don't show up" was never a code or
+  cache-_setting_ problem — it was the unversioned, header-less `/main.js`
+  letting the browser **and Cloudflare's edge** serve a stale bundle.
+  **Context**: The tell is a brief flash of correct SSR output that then snaps
+  to the old state when the stale client bundle hydrates over it. Because
+  styling is atomic/content-hashed, fresh client code reuses the same class and
+  stays correct; a revert proves the *client bytes* are stale, not the render
+  logic. Future client-visible changes to the demo should be verified through
+  the public URL only after confirming the `?v=` token changed.
+- **Insight**: The dev Docker image (`workloads/development/Dockerfile`) bakes
+  source at build time (`COPY . .` + `npm run build`, no volume mount), so a
+  container *restart* never picks up edits — the image must be rebuilt and the
+  container recreated. **Context**: Combined with the cache bug above, this made
+  iteration especially opaque; a future improvement is a volume-mounted dev
+  container with a watcher (out of scope here).
