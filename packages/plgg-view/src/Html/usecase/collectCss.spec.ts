@@ -13,6 +13,7 @@ import {
   hover,
   hashClass,
 } from "plgg-view/Style/usecase/style_";
+import { decl } from "plgg-view/Style/model/Style";
 import {
   p,
   bg,
@@ -73,4 +74,48 @@ test("a tree with no style_() atoms yields an empty sheet", () => {
       el("div", [class_("x")], [text("hi")]),
     ),
   ).toBe("");
+});
+
+test("collectCss escapes a malicious declaration value (no </style> or } breakout)", () => {
+  const tree = el(
+    "div",
+    [
+      style_(
+        decl(
+          "color",
+          "red}</style><script>alert(1)</script>",
+        ),
+      ),
+    ],
+    [text("x")],
+  );
+  const sheet = collectCss(tree);
+  // the breakout characters are CSS-hex-escaped, never emitted raw
+  expect(sheet).not.toContain("</style>");
+  expect(sheet).not.toContain("}<");
+  expect(sheet).not.toContain(
+    "<script>",
+  );
+  // a single closing brace per rule (the one renderCssRule writes)
+  expect(sheet.split("}").length - 1).toBe(1);
+});
+
+test("collectCss preserves legitimate selector combinators and url() values", () => {
+  const sheet = collectCss(
+    el(
+      "div",
+      [
+        style_(
+          decl(
+            "background",
+            "url(https://example.com/a.png)",
+          ),
+        ),
+      ],
+      [text("x")],
+    ),
+  );
+  expect(sheet).toContain(
+    "background:url(https://example.com/a.png)",
+  );
 });

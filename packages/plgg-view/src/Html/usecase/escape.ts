@@ -34,3 +34,25 @@ export const isSafeAttrName = (
   name: SoftStr,
 ): boolean =>
   /^[A-Za-z_:][-A-Za-z0-9_:.]*$/.test(name);
+
+/**
+ * Neutralizes the characters by which a CSS selector/property/value could
+ * escape its declaration block or the surrounding `<style>` element, replacing
+ * each with its CSS hex escape (a valid, inert literal). Declaration values are
+ * the `value`-analog of {@link escapeAttr} — author data (`decl(prop, value)`)
+ * can reach them, and the rule is interpolated raw into `<style>…</style>` on
+ * the server, so an unescaped `}`/`</style` would close the block/element and
+ * inject arbitrary rules or markup. Backslash is escaped first so it cannot
+ * recombine with the escapes that follow. `>` is intentionally left alone so
+ * legitimate selector combinators survive: `</style>` is killed by escaping
+ * `<`, and block breakout by escaping `{`/`}`, neither of which needs `>`.
+ */
+export const escapeCss = (
+  value: SoftStr,
+): SoftStr =>
+  value
+    .replace(/\\/g, "\\\\")
+    .replace(/</g, "\\3c ")
+    .replace(/\{/g, "\\7b ")
+    .replace(/\}/g, "\\7d ")
+    .replace(/;/g, "\\3b ");

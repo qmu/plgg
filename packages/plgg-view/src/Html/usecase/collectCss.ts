@@ -7,8 +7,10 @@ import {
   handler$,
   anim$,
   css$,
+  key$,
 } from "plgg-view/Html/model/Attribute";
 import { foldHtml } from "plgg-view/Html/usecase/foldHtml";
+import { escapeCss } from "plgg-view/Html/usecase/escape";
 
 /** The atomic {@link CssRule}s an attribute list contributes (only `Css` does). */
 const rulesOf = <Msg>(
@@ -27,19 +29,38 @@ const rulesOf = <Msg>(
         ({ content }): ReadonlyArray<CssRule> =>
           content.rules,
       ],
+      [key$(), (): ReadonlyArray<CssRule> => []],
     ),
   );
 
 /**
- * Folds an {@link Html} tree into the exact stylesheet its `css()` atoms need —
- * a `foldHtml` algebra gathers every node's {@link CssRule}s, deduped by
- * content-hashed `className` (so an atom used N times emits one rule), rendered
- * as `.cls{prop:value}` / `.cls:hover{…}`. Pure and SSR-safe: this is what the
- * server injects into `<head>` and the client mirrors into a `<style>`.
+ * One {@link CssRule} as its stylesheet text. The content-hashed `className` is
+ * safe by construction; `selector`/`prop`/`value` are {@link escapeCss}'d — the
+ * single serialization chokepoint shared by the SSR fold ({@link collectCss})
+ * and the client sheet, so neither can emit a `}`/`</style` breakout even when
+ * an author feeds `decl()` untrusted data.
  */
-export const collectCss = <Msg>(
+export const renderCssRule = (
+  rule: CssRule,
+): SoftStr =>
+  `.${rule.className}${escapeCss(
+    rule.selector,
+  )}{${escapeCss(rule.prop)}:${escapeCss(
+    rule.value,
+  )}}`;
+
+/**
+ * Folds an {@link Html} tree into the exact {@link CssRule}s its `css()` atoms
+ * need — a `foldHtml` algebra gathers every node's rules, deduped by
+ * content-hashed `className` (so an atom used N times yields one rule). Pure;
+ * the data form lets the client sheet *accumulate* rules across renders — an
+ * atom is immutable by construction (same class, same declaration), so a union
+ * is always correct, and rules must outlive a tree that drops them while an
+ * exiting node still wears their classes.
+ */
+export const collectCssRules = <Msg>(
   node: Html<Msg>,
-): SoftStr => {
+): ReadonlyArray<CssRule> => {
   const rules = foldHtml<
     Msg,
     ReadonlyArray<CssRule>
@@ -58,10 +79,17 @@ export const collectCss = <Msg>(
     (acc, rule) => acc.set(rule.className, rule),
     new Map<SoftStr, CssRule>(),
   );
-  return Array.from(unique.values())
-    .map(
-      (rule) =>
-        `.${rule.className}${rule.selector}{${rule.prop}:${rule.value}}`,
-    )
-    .join("");
+  return Array.from(unique.values());
 };
+
+/**
+ * {@link collectCssRules} rendered as one stylesheet string —
+ * `.cls{prop:value}` / `.cls:hover{…}`. SSR-safe: this is what the server
+ * injects into `<head>`.
+ */
+export const collectCss = <Msg>(
+  node: Html<Msg>,
+): SoftStr =>
+  collectCssRules(node)
+    .map(renderCssRule)
+    .join("");

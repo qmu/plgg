@@ -3,9 +3,9 @@ created_at: 2026-06-10T12:29:27+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: f1a6e7d
+category: Changed
 depends_on:
 ---
 
@@ -73,3 +73,27 @@ fix.
 - Keep the fix declarative and signature-evident per **Preferring Declarative Code** — a `CssRule` that exists should be safe to interpolate by construction. (`packages/plgg-view/src/Html/usecase/collectCss.ts`)
 - Content-hashed `className` is already safe (djb2 → `c<base36>`); do not touch it. (`packages/plgg-view/src/Style/usecase/style_.ts` lines 41-52)
 - Strict no-`as`/`any`/`ts-ignore` rule applies (CLAUDE.md). Coverage must stay above the project's >90% threshold; cover both the accepted and the dropped-rule branches.
+
+## Final Report
+
+Development completed as planned, with one deliberate design decision on the
+sanitization strategy.
+
+### Discovered Insights
+
+- **Insight**: Chose to **escape** (CSS-hex-escape `\ < { } ;`) rather than
+  **drop** unsafe rules. The ticket suggested drop-and-validate "mirroring
+  `isSafeAttrName`", but the closer siblings of a CSS *value* are `escapeText`/
+  `escapeAttr`, which *escape* their value-analogs — `isSafeAttrName` guards a
+  structural *name* (the `className`, already a safe hash). Escaping preserves
+  legitimate styling (a user's dynamic color/width still renders) instead of
+  silently dropping it, matching the surrounding escaping discipline.
+  **Context**: A future contributor extending CSS safety should keep the
+  name/value split — names are validated, values are escaped.
+- **Insight**: `renderCssRule` is the single serialization chokepoint for **both**
+  SSR (`collectCss`) and the client (`sheet.ts` calls it via `.map(renderCssRule)`),
+  so escaping there covers both paths from one place — no need to touch `ruleOf`.
+  `>` is intentionally left unescaped so selector combinators survive; `</style>`
+  is defeated by escaping `<` alone, and block breakout by `{`/`}`.
+  **Context**: `packages/plgg-view/src/Program/usecase/sheet.ts:41` is the
+  non-obvious second consumer that makes the chokepoint choice correct.
