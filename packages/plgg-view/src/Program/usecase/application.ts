@@ -11,7 +11,7 @@ import {
   fromNullable,
 } from "plgg";
 import { Html } from "plgg-view/Html/model/Html";
-import { collectCss } from "plgg-view/Html/usecase/collectCss";
+import { collectCssRules } from "plgg-view/Html/usecase/collectCss";
 import {
   Url,
   makeUrl,
@@ -195,10 +195,11 @@ export const application =
       container,
       dispatch,
     );
-    // render the DOM, then mirror the tree's atomic CSS into the managed sheet
+    // render the DOM, then merge the tree's atomic CSS into the managed sheet
+    // (insert-only: exiting nodes still wear classes the new tree dropped)
     const paint = (html: Html<Msg>): void => {
       render(html);
-      sheet.set(collectCss(html));
+      sheet.add(collectCssRules(html));
     };
     // model→URL reflection: a render-time effect (NOT a Cmd) confined to this
     // seam. Gated on a string diff so it never loops — a URL the user drove in

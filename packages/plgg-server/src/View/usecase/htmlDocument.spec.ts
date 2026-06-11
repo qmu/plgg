@@ -15,6 +15,10 @@ test("wraps the root in a full document with a #root mount point", () => {
   expect(html).toContain(
     '<div id="root"><h1>Home</h1></div>',
   );
+  // mobile viewport meta so phones lay out at device width, not ~980px desktop
+  expect(html).toContain(
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+  );
   expect(html).not.toContain("<script");
 });
 

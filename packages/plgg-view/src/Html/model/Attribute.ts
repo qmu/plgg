@@ -66,6 +66,10 @@ export type Attribute<Msg> =
         classes: SoftStr;
         rules: ReadonlyArray<CssRule>;
       }>
+    >
+  | Box<
+      "Key",
+      Readonly<{ value: SoftStr }>
     >;
 
 /**
@@ -88,6 +92,7 @@ export const handler$ = () =>
   pattern("Handler")();
 export const anim$ = () => pattern("Anim")();
 export const css$ = () => pattern("Css")();
+export const key$ = () => pattern("Key")();
 
 /**
  * A static attribute. Carries no `Msg`, so it is `Attribute<never>` — usable in
@@ -153,6 +158,19 @@ export const value_ = (
 export const name_ = (
   value: SoftStr,
 ): Attribute<never> => attr("name", value);
+
+/**
+ * Stable identity for keyed reconciliation. Carries no `Msg` (like
+ * {@link class_}/{@link transition}), so it drops into any attribute list; SSR
+ * drops it (the server has no re-renders) and the client renderer reads it to
+ * match a node to its previous self across renders. Keying a list's children is
+ * what lets the renderer move/insert/remove the *right* node — so the *right*
+ * element plays its enter/exit motion and survivors FLIP into place — instead of
+ * the index-based fallback rewriting slots in place.
+ */
+export const key = (
+  value: SoftStr,
+): Attribute<never> => box("Key")({ value });
 
 /** A {@link Frame} from its two optional properties. */
 const frame = (

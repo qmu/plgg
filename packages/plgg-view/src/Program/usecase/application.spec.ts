@@ -376,6 +376,36 @@ test("the runtime injects a <style> sheet for the tree's style_() atoms", () => 
   );
 });
 
+test("the sheet keeps a rule the new tree dropped (exiting nodes still wear it)", () => {
+  // view styles the node only in the initial state; the dispatched Msg
+  // re-renders to an UNSTYLED tree — the rule must survive, because a
+  // deferred-removal exit can still be wearing the class mid-animation.
+  const styleApp: Application<Url, Msg> = {
+    init: (url) => url,
+    update: (msg) => msg.url,
+    view: (model) =>
+      model.path === "/users/9"
+        ? div([], [text("bare")])
+        : div([style_(p(4))], [text("styled")]),
+    onUrlChange: (url) => ({ url }),
+  };
+  const root = mountApp(styleApp);
+  const sheet = document.head.querySelector(
+    "style[data-plgg-style]",
+  );
+  expect(sheet?.textContent).toContain(
+    "padding:1rem",
+  );
+  // navigate → unstyled tree
+  window.history.pushState(null, "", "/users/9");
+  window.dispatchEvent(new Event("popstate"));
+  expect(root.textContent).toContain("bare");
+  // insert-only: the dropped atom's rule is still in the sheet
+  expect(sheet?.textContent).toContain(
+    "padding:1rem",
+  );
+});
+
 test("an app without toUrl never writes history on dispatch", () => {
   spyHistory();
   const root = mount();

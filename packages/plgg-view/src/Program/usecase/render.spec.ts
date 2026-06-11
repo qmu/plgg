@@ -9,7 +9,7 @@ import {
   input,
   form,
 } from "plgg-view/Html/model/element";
-import { some, none } from "plgg";
+import { some, none, isSome } from "plgg";
 import {
   attr,
   class_,
@@ -18,6 +18,7 @@ import {
   onClick,
   onInput,
   onSubmit,
+  key,
   fadeIn,
   fadeOut,
   type Motion,
@@ -550,6 +551,49 @@ test("an enter motion is played on a newly created node", () => {
   expect(plays[0]?.motion.durationMs).toBe(150);
 });
 
+test("an element with BOTH fadeIn and fadeOut plays enter on create and exit on removal", async () => {
+  // regression: enterOf/exitOf must collect from any Anim directive, so a later
+  // fadeOut (enter:none) must not clobber an earlier fadeIn's enter motion.
+  const root = document.createElement("div");
+  const plays: Array<{
+    node: Element;
+    motion: Motion;
+  }> = [];
+  let settle: () => void = () => undefined;
+  const play: Play = (_node, motion) => {
+    plays.push({ node: _node, motion });
+    return new Promise<void>((resolve) => {
+      settle = () => resolve();
+    });
+  };
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
+  render(
+    el(
+      "ul",
+      [],
+      [
+        el(
+          "li",
+          [fadeIn(150), fadeOut(120)],
+          [text("a")],
+        ),
+      ],
+    ),
+  );
+  // enter (fadeIn) fired on create — was dropped before the keepSome fix
+  expect(plays.length).toBe(1);
+  expect(plays[0]?.motion.durationMs).toBe(150);
+  settle();
+  // remove it → exit (fadeOut) fires
+  render(el("ul", [], []));
+  expect(plays.length).toBe(2);
+  expect(plays[1]?.motion.durationMs).toBe(120);
+});
+
 test("a node without an enter motion is not animated", () => {
   const root = document.createElement("div");
   let called = 0;
@@ -724,4 +768,325 @@ test("waapiPlay treats absent matchMedia as motion-allowed", async () => {
     value: original,
   });
   expect(animated).toBe(true);
+});
+
+// --- keyed reconcile + FLIP ----------------------------------------------
+
+/** A keyed `li` carrying `k`, its text, and any extra attributes. */
+const kli = (
+  k: string,
+  txt: string,
+  ...extra: ReadonlyArray<
+    ReturnType<typeof key> | ReturnType<typeof fadeOut>
+  >
+) => el("li", [key(k), ...extra], [text(txt)]);
+
+const kul = (
+  ...kids: ReadonlyArray<ReturnType<typeof kli>>
+) => el("ul", [], kids);
+
+/** Records every play call so a test can assert what animated and with what. */
+const spyPlay = () => {
+  const calls: Array<{ node: Element; motion: Motion }> = [];
+  const play: Play = (node, motion) => {
+    calls.push({ node, motion });
+    return Promise.resolve();
+  };
+  return { calls, play };
+};
+
+test("keyed children are reused and reordered by key, not index", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(kul(kli("a", "A"), kli("b", "B"), kli("c", "C")));
+  const ul = root.firstElementChild;
+  const [a, b, c] = Array.from(ul?.children ?? []);
+  render(kul(kli("c", "C"), kli("a", "A"), kli("b", "B")));
+  const after = Array.from(ul?.children ?? []);
+  // the SAME node objects, now in the new order — moved, not rebuilt
+  expect(after).toEqual([c, a, b]);
+  expect(
+    after.map((n) => n.textContent).join(""),
+  ).toBe("CAB");
+});
+
+test("a new keyed child fires enter; reused siblings do not", () => {
+  const root = document.createElement("div");
+  const { calls, play } = spyPlay();
+  const render = makeRenderer<never>(root, noop, play);
+  render(kul(kli("a", "A")));
+  calls.length = 0; // ignore the first paint's enters
+  render(kul(kli("a", "A"), kli("b", "B", fadeIn(150))));
+  const ul = root.firstElementChild;
+  const b = ul?.children[1];
+  expect(calls.length).toBe(1);
+  expect(calls[0]?.node).toBe(b);
+  expect(calls[0]?.motion.durationMs).toBe(150);
+});
+
+test("deleting a middle keyed child fades that node, then detaches it", async () => {
+  const root = document.createElement("div");
+  let settle: () => void = () => undefined;
+  const play: Play = (node) =>
+    node instanceof HTMLLIElement
+      ? new Promise<void>((resolve) => {
+          settle = () => resolve();
+        })
+      : Promise.resolve();
+  const render = makeRenderer<never>(root, noop, play);
+  render(
+    kul(
+      kli("a", "A", fadeOut(120)),
+      kli("b", "B", fadeOut(120)),
+      kli("c", "C", fadeOut(120)),
+    ),
+  );
+  const ul = root.firstElementChild;
+  const b = Array.from(ul?.children ?? [])[1];
+  render(
+    kul(
+      kli("a", "A", fadeOut(120)),
+      kli("c", "C", fadeOut(120)),
+    ),
+  );
+  // b is the row that leaves — held in the DOM until its exit (fade) finishes
+  expect(b).toBeInstanceOf(HTMLLIElement);
+  if (b instanceof HTMLElement) {
+    expect(ul?.contains(b)).toBe(true);
+  }
+  settle();
+  await Promise.resolve();
+  await Promise.resolve();
+  const remaining = Array.from(ul?.children ?? []);
+  expect(
+    remaining.map((n) => n.textContent).join(""),
+  ).toBe("AC");
+});
+
+test("a keyed exit collapses the leaving row's height in flow (overflow hidden + height keyframes)", () => {
+  const root = document.createElement("div");
+  const calls: Array<{
+    frames: ReadonlyArray<Keyframe>;
+    opts: KeyframeAnimationOptions;
+  }> = [];
+  // play never settles, so the node is held in the DOM for inspection
+  const play: Play = () =>
+    new Promise<void>(() => undefined);
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
+  render(
+    kul(
+      kli("a", "A", fadeOut(120)),
+      kli("b", "B", fadeOut(120)),
+    ),
+  );
+  const ul = root.firstElementChild;
+  // remove "a" — the leaving row collapses in flow
+  const a = Array.from(ul?.children ?? [])[0];
+  // give the leaving node a WAAPI stub so startCollapse can run under happy-dom
+  if (a instanceof HTMLElement) {
+    Object.defineProperty(a, "animate", {
+      configurable: true,
+      value: (
+        frames: ReadonlyArray<Keyframe>,
+        opts: KeyframeAnimationOptions,
+      ) => {
+        calls.push({ frames, opts });
+        return { finished: Promise.resolve() };
+      },
+    });
+  }
+  render(kul(kli("b", "B", fadeOut(120))));
+  // the leaving row collapses in flow: overflow clipped + a height tween
+  if (a instanceof HTMLElement) {
+    expect(a.style.overflow).toBe("hidden");
+  }
+  expect(calls.length).toBe(1);
+  // the end keyframe zeroes the whole vertical footprint (not just height)
+  expect(calls[0]?.frames[1]).toMatchObject({
+    height: "0px",
+    paddingTop: "0px",
+    paddingBottom: "0px",
+    borderTopWidth: "0px",
+    borderBottomWidth: "0px",
+  });
+  expect(calls[0]?.opts.duration).toBe(120);
+});
+
+test("an exiting middle row keeps its DOM position — survivors don't leapfrog it", () => {
+  const root = document.createElement("div");
+  // play never settles, so the exiting node is held in the DOM for inspection
+  const play: Play = () =>
+    new Promise<void>(() => undefined);
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
+  render(
+    kul(
+      kli("a", "A", fadeOut(120)),
+      kli("b", "B", fadeOut(120)),
+      kli("c", "C", fadeOut(120)),
+    ),
+  );
+  const ul = root.firstElementChild;
+  const [a, b, c] = Array.from(
+    ul?.children ?? [],
+  );
+  // delete the middle row — it collapses IN PLACE, so the reorder walk must
+  // not move "c" in front of it (the old walk teleported "b" to the bottom)
+  render(
+    kul(
+      kli("a", "A", fadeOut(120)),
+      kli("c", "C", fadeOut(120)),
+    ),
+  );
+  expect(Array.from(ul?.children ?? [])).toEqual([
+    a,
+    b,
+    c,
+  ]);
+});
+
+test("deleting the ONLY remaining keyed row still exits via the keyed path (collapse, no snap)", () => {
+  const root = document.createElement("div");
+  const calls: Array<{
+    frames: ReadonlyArray<Keyframe>;
+  }> = [];
+  // play never settles, so the node is held in the DOM for inspection
+  const play: Play = () =>
+    new Promise<void>(() => undefined);
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
+  render(kul(kli("a", "A", fadeOut(120))));
+  const ul = root.firstElementChild;
+  const a = Array.from(ul?.children ?? [])[0];
+  if (a instanceof HTMLElement) {
+    Object.defineProperty(a, "animate", {
+      configurable: true,
+      value: (
+        frames: ReadonlyArray<Keyframe>,
+      ) => {
+        calls.push({ frames });
+        return { finished: Promise.resolve() };
+      },
+    });
+  }
+  // empty the list — an emptied fully-keyed list must NOT fall back to the
+  // index path's bare surplus removal (fade, then footprint snaps on detach)
+  render(kul());
+  if (a instanceof HTMLElement) {
+    expect(a.style.overflow).toBe("hidden");
+    expect(ul?.contains(a)).toBe(true);
+  }
+  expect(calls.length).toBe(1);
+  expect(calls[0]?.frames[1]).toMatchObject({
+    height: "0px",
+    paddingTop: "0px",
+    paddingBottom: "0px",
+  });
+});
+
+test("deleting a keyed child with no exit motion detaches it at once", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(kul(kli("a", "A"), kli("b", "B")));
+  const ul = root.firstElementChild;
+  render(kul(kli("a", "A")));
+  expect(ul?.children.length).toBe(1);
+  expect(ul?.textContent).toBe("A");
+});
+
+test("a reused key with a changed tag is replaced, not patched", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(kul(kli("a", "A")));
+  const ul = root.firstElementChild;
+  const oldNode = ul?.firstElementChild;
+  render(
+    el("ul", [], [el("p", [key("a")], [text("A2")])]),
+  );
+  const newNode = ul?.firstElementChild;
+  expect(newNode).not.toBe(oldNode);
+  expect(newNode?.tagName).toBe("P");
+  expect(newNode?.textContent).toBe("A2");
+});
+
+test("a reused key with the same tag patches in place", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(kul(kli("a", "A")));
+  const ul = root.firstElementChild;
+  const node = ul?.firstElementChild;
+  render(kul(kli("a", "A-edited")));
+  expect(ul?.firstElementChild).toBe(node);
+  expect(node?.textContent).toBe("A-edited");
+});
+
+test("a node mid-exit is skipped when its key returns (fresh node, not the fading one)", async () => {
+  const root = document.createElement("div");
+  let settle: () => void = () => undefined;
+  const play: Play = () =>
+    new Promise<void>((resolve) => {
+      settle = () => resolve();
+    });
+  const render = makeRenderer<never>(root, noop, play);
+  render(kul(kli("a", "A", fadeOut(120))));
+  const ul = root.firstElementChild;
+  const exiting = ul?.firstElementChild;
+  render(el("ul", [], [])); // 'a' starts exiting (held in DOM)
+  render(kul(kli("a", "A", fadeOut(120)))); // 'a' returns
+  const live = Array.from(ul?.children ?? []).filter(
+    (n) => n !== exiting,
+  );
+  // a brand-new node serves the returning key — not the one fading away
+  expect(live.length).toBe(1);
+  expect(live[0]).not.toBe(exiting);
+  settle();
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(ul?.children.length).toBe(1);
+});
+
+test("a survivor FLIPs from its old box to its new one when it moves", () => {
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  const { calls, play } = spyPlay();
+  const render = makeRenderer<never>(root, noop, play);
+  render(kul(kli("a", "A"), kli("b", "B")));
+  const ul = root.firstElementChild;
+  // stub layout: each row's top tracks its live sibling index, so a reorder
+  // makes getBoundingClientRect report a real positional delta (happy-dom
+  // otherwise returns all-zero rects and FLIP would never trigger).
+  const stub = (el: Element): void => {
+    Object.defineProperty(el, "getBoundingClientRect", {
+      configurable: true,
+      value: (): DOMRect =>
+        new DOMRect(
+          0,
+          Array.from(
+            el.parentElement?.children ?? [],
+          ).indexOf(el) * 10,
+          0,
+          0,
+        ),
+    });
+  };
+  Array.from(ul?.children ?? []).forEach(stub);
+  calls.length = 0;
+  render(kul(kli("b", "B"), kli("a", "A")));
+  // both survivors moved one slot → each gets a transform-only FLIP motion
+  const flips = calls.filter((c) =>
+    isSome(c.motion.from.transform),
+  );
+  expect(flips.length).toBe(2);
+  expect(flips[0]?.motion.durationMs).toBe(200);
+  document.body.removeChild(root);
 });

@@ -1,5 +1,5 @@
 import { Html } from "plgg-view/Html/model/Html";
-import { collectCss } from "plgg-view/Html/usecase/collectCss";
+import { collectCssRules } from "plgg-view/Html/usecase/collectCss";
 import { makeRenderer } from "plgg-view/Program/usecase/render";
 import { makeSheet } from "plgg-view/Program/usecase/sheet";
 
@@ -39,10 +39,11 @@ export const sandbox =
       container,
       dispatch,
     );
-    // render the DOM, then mirror the tree's atomic CSS into the managed sheet
+    // render the DOM, then merge the tree's atomic CSS into the managed sheet
+    // (insert-only: exiting nodes still wear classes the new tree dropped)
     const paint = (html: Html<Msg>): void => {
       render(html);
-      sheet.set(collectCss(html));
+      sheet.add(collectCssRules(html));
     };
     paint(program.view(model));
     return () => {

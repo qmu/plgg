@@ -10,6 +10,7 @@ import {
   handler$,
   anim$,
   css$,
+  key$,
 } from "plgg-view/Html/model/Attribute";
 
 /**
@@ -44,6 +45,11 @@ const mapAttribute =
         css$(),
         ({ content }): Attribute<B> =>
           box("Css")(content),
+      ],
+      [
+        key$(),
+        ({ content }): Attribute<B> =>
+          box("Key")(content),
       ],
     );
 

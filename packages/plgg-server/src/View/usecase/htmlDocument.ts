@@ -30,7 +30,7 @@ export type HtmlDocumentOptions<Msg> = Readonly<{
 export const htmlDocument = <Msg>(
   opts: HtmlDocumentOptions<Msg>,
 ): SoftStr =>
-  `<!doctype html><html><head><meta charset="utf-8"><title>${escapeText(
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeText(
     opts.title,
   )}</title>${
     collectCss(opts.root) === ""

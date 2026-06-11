@@ -6,6 +6,7 @@ import {
   handler$,
   anim$,
   css$,
+  key$,
 } from "plgg-view/Html/model/Attribute";
 import { foldHtml } from "plgg-view/Html/usecase/foldHtml";
 import {
@@ -54,6 +55,7 @@ const renderAttribute = <Msg>(
     ],
     [handler$(), (): SoftStr => ""],
     [anim$(), (): SoftStr => ""],
+    [key$(), (): SoftStr => ""],
     [
       css$(),
       ({ content }): SoftStr =>

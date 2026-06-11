@@ -23,6 +23,7 @@ import {
   handler$,
   anim$,
   css$,
+  key$,
 } from "plgg-view/Html/model/Attribute";
 import { isSafeAttrName } from "plgg-view/Html/usecase/escape";
 
@@ -60,6 +61,13 @@ export type Wiring<Msg> = Readonly<{
   dispatch: (msg: Msg) => void;
   registry: WeakMap<Element, NodeWiring<Msg>>;
   play: Play;
+  // a keyed node remembers its `key` here (off the node, no expando/cast) so the
+  // keyed child reconcile can match a live DOM node to its vnode across renders.
+  keyed: WeakMap<Element, SoftStr>;
+  // nodes mid-exit: held in the DOM until their exit motion ends. The keyed
+  // reconcile skips them when matching so a node leaving is never mistaken for a
+  // survivor (and a re-add lands on a fresh node, not the one fading away).
+  exiting: WeakSet<Element>;
 }>;
 
 /** The node's {@link NodeWiring}, created and registered on first use. */
@@ -244,7 +252,26 @@ const applyAttribute =
             content.classes,
           ),
       ],
+      // a key() is identity metadata, not a DOM attribute: recorded on the node
+      // (createNode) and read by the keyed reconcile, never written to the DOM.
+      [key$(), (): void => undefined],
     );
+
+/**
+ * Folds two {@link Option}s "last-some-wins": a later `none` preserves an earlier
+ * `some`. Lets {@link enterOf}/{@link exitOf} collect the enter/exit motion from
+ * *any* `Anim` directive in the list — so an element carrying both `fadeIn`
+ * (enter-only) and `fadeOut` (exit-only) keeps each channel, instead of a later
+ * directive's absent channel clobbering an earlier directive's present one.
+ */
+const keepSome = <T>(
+  previous: Option<T>,
+  next: Option<T>,
+): Option<T> =>
+  matchOption(
+    (): Option<T> => previous,
+    (value: T): Option<T> => some(value),
+  )(next);
 
 /**
  * The enter (node-creation) {@link Motion} carried by an attribute list, if any
@@ -261,9 +288,10 @@ const enterOf = <Msg>(
         [
           anim$(),
           ({ content }): Option<Motion> =>
-            content.enter,
+            keepSome(acc, content.enter),
         ],
         [css$(), (): Option<Motion> => acc],
+        [key$(), (): Option<Motion> => acc],
       ),
     none(),
   );
@@ -280,9 +308,10 @@ const exitOf = <Msg>(
         [
           anim$(),
           ({ content }): Option<Motion> =>
-            content.exit,
+            keepSome(acc, content.exit),
         ],
         [css$(), (): Option<Motion> => acc],
+        [key$(), (): Option<Motion> => acc],
       ),
     none(),
   );
@@ -300,6 +329,39 @@ const exitMotionOf = <Msg>(
       element$(),
       ({ content }): Option<Motion> =>
         exitOf(content.attributes),
+    ],
+  );
+
+/** The {@link key} carried by an attribute list, if any. */
+const keyOf = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+): Option<SoftStr> =>
+  attributes.reduce<Option<SoftStr>>(
+    (acc, attribute) =>
+      match(attribute)(
+        [attr$(), (): Option<SoftStr> => acc],
+        [handler$(), (): Option<SoftStr> => acc],
+        [anim$(), (): Option<SoftStr> => acc],
+        [css$(), (): Option<SoftStr> => acc],
+        [
+          key$(),
+          ({ content }): Option<SoftStr> =>
+            some(content.value),
+        ],
+      ),
+    none(),
+  );
+
+/** The {@link key} of a vnode — `none` for a text leaf or an unkeyed element. */
+const keyOfVnode = <Msg>(
+  vnode: Html<Msg>,
+): Option<SoftStr> =>
+  match(vnode)(
+    [text$(), (): Option<SoftStr> => none()],
+    [
+      element$(),
+      ({ content }): Option<SoftStr> =>
+        keyOf(content.attributes),
     ],
   );
 
@@ -400,6 +462,16 @@ export const createNode =
           content.attributes.forEach(
             applyAttribute(wiring, el),
           );
+          // remember the node's key (if any) for the keyed child reconcile
+          pipe(
+            keyOf(content.attributes),
+            matchOption(
+              (): void => undefined,
+              (k: SoftStr): void => {
+                wiring.keyed.set(el, k);
+              },
+            ),
+          );
           content.children.forEach((child) =>
             el.appendChild(
               createNode(wiring)(child),
@@ -447,6 +519,10 @@ const staticAttrsOf = <Msg>(
           ({ content }): Map<SoftStr, SoftStr> =>
             acc.set("class", content.classes),
         ],
+        [
+          key$(),
+          (): Map<SoftStr, SoftStr> => acc,
+        ],
       ),
     new Map<SoftStr, SoftStr>(),
   );
@@ -484,6 +560,13 @@ const handlersOf = <Msg>(
         ],
         [
           css$(),
+          (): Map<
+            SoftStr,
+            (payload: SoftStr) => Msg
+          > => acc,
+        ],
+        [
+          key$(),
           (): Map<
             SoftStr,
             (payload: SoftStr) => Msg
@@ -629,10 +712,12 @@ export const reconcile =
 
 /**
  * Index-based child reconcile: pair `new[i]` with the DOM node and old vnode at
- * `i`, append when the slot is new, then drop any surplus trailing nodes. (Keyed
- * matching — needed for correct reuse on list *reorders* — is a follow-up.)
+ * `i`, append when the slot is new, then drop any surplus trailing nodes. The
+ * fallback path for unkeyed children (a static-shape list — a toolbar, a form);
+ * a list whose every child carries a {@link key} takes {@link keyedPatchChildren}
+ * instead, which reuses by identity (correct under reorder/insert/delete).
  */
-const patchChildren =
+const indexPatchChildren =
   <Msg>(wiring: Wiring<Msg>) =>
   (
     parent: Node,
@@ -704,6 +789,362 @@ const patchChildren =
       });
   };
 
+/** How long a FLIP move glides; `ease` matches the enter/exit easings. */
+const FLIP_DURATION_MS = 200;
+
+/**
+ * The FLIP {@link Motion} for a node that moved `(dx, dy)` from its old box: it
+ * starts at the inverse offset and tweens to identity, so the node *appears* to
+ * glide from where it was to where it now is. Touches transform only (opacity
+ * left to any enter/exit), so it composites on the GPU like the rest.
+ */
+const flipMotion = (
+  dx: number,
+  dy: number,
+): Motion => ({
+  from: {
+    opacity: none(),
+    transform: some(
+      `translate(${dx}px, ${dy}px)`,
+    ),
+  },
+  to: {
+    opacity: none(),
+    transform: some("translate(0px, 0px)"),
+  },
+  durationMs: FLIP_DURATION_MS,
+  easing: "ease",
+});
+
+/**
+ * Collapses an exiting node's height to 0 *in flow* over `durationMs`, so the
+ * gap it leaves closes by natural layout reflow — its in-flow survivors slide up
+ * as it shrinks, no out-of-flow trick and no box jump. A confined DOM seam
+ * alongside {@link waapiPlay}: feature-detects WAAPI and honours reduced-motion
+ * (a no-op when motion is unavailable/unwanted, leaving removal to the caller).
+ * `overflow: hidden` clips the contents as the box shrinks. Narrowed to
+ * `HTMLElement` for the offset/style seam — never cast.
+ */
+const startCollapse = (
+  node: Element,
+  durationMs: number,
+): void => {
+  if (
+    node instanceof HTMLElement &&
+    typeof node.animate === "function" &&
+    !prefersReducedMotion()
+  ) {
+    // collapse the WHOLE vertical footprint, not just the content height:
+    // padding/border/margin must shrink too, or (under content-box) they stay
+    // at full size and snap away on detach — the "padding suddenly shrinks" bug.
+    const style = window.getComputedStyle(node);
+    node.style.overflow = "hidden";
+    void node.animate(
+      [
+        {
+          height: style.height,
+          paddingTop: style.paddingTop,
+          paddingBottom: style.paddingBottom,
+          marginTop: style.marginTop,
+          marginBottom: style.marginBottom,
+          borderTopWidth: style.borderTopWidth,
+          borderBottomWidth:
+            style.borderBottomWidth,
+        },
+        {
+          height: "0px",
+          paddingTop: "0px",
+          paddingBottom: "0px",
+          marginTop: "0px",
+          marginBottom: "0px",
+          borderTopWidth: "0px",
+          borderBottomWidth: "0px",
+        },
+      ],
+      {
+        duration: durationMs,
+        easing: "ease-in",
+        fill: "forwards",
+      },
+    ).finished.then(
+      () => undefined,
+      () => undefined,
+    );
+  }
+};
+
+/**
+ * Removes a keyed node the new tree dropped: with no exit motion it detaches at
+ * once; with one it is marked exiting (and left in place — the reorder walk
+ * skips it), its declared opacity/transform exit plays through the {@link Play}
+ * seam, and its whole vertical footprint collapses concurrently
+ * ({@link startCollapse}) so followers — or the container's bottom edge — close
+ * the gap smoothly instead of snapping when the node detaches. Detaches when
+ * the exit finishes; removal is gated on the injectable `Play` (testable).
+ */
+const playKeyedExit = <Msg>(
+  wiring: Wiring<Msg>,
+  node: Element,
+  motionOpt: Option<Motion>,
+): void =>
+  matchOption(
+    (): void => {
+      node.remove();
+    },
+    (motion: Motion): void => {
+      wiring.exiting.add(node);
+      // confined DOM seam: shrink the row so the gap closes by layout
+      startCollapse(node, motion.durationMs);
+      // fade via the seam; detach once the exit finishes
+      void wiring
+        .play(node, motion)
+        .then(() => {
+          node.remove();
+        });
+    },
+  )(motionOpt);
+
+/**
+ * Patches a reused keyed node in place and returns the resulting node: same node
+ * when its kind/tag still match (the focus-preserving reuse), a freshly built
+ * replacement otherwise. The {@link reconcile} counterpart that *returns* the
+ * node, so {@link keyedPatchChildren} can then position it.
+ */
+const patchKeyed =
+  <Msg>(wiring: Wiring<Msg>) =>
+  (
+    parent: Node,
+    node: Element,
+    oldVnode: Html<Msg>,
+    newVnode: Html<Msg>,
+  ): Node => {
+    const replace = (): Node => {
+      const fresh = createNode(wiring)(newVnode);
+      parent.replaceChild(fresh, node);
+      return fresh;
+    };
+    return match(newVnode)(
+      [text$(), (): Node => replace()],
+      [
+        element$(),
+        ({ content: newContent }): Node =>
+          match(oldVnode)(
+            [text$(), (): Node => replace()],
+            [
+              element$(),
+              ({
+                content: oldContent,
+              }): Node => {
+                if (
+                  oldContent.tag ===
+                  newContent.tag
+                ) {
+                  patchElement(wiring)(
+                    node,
+                    oldContent,
+                    newContent,
+                  );
+                  return node;
+                }
+                return replace();
+              },
+            ],
+          ),
+      ],
+    );
+  };
+
+/**
+ * Keyed child reconcile — the smooth path. Matches each new child to its old
+ * self by {@link key} (not by index): the genuinely new ones are created (enter
+ * motion fires), the genuinely gone ones fade + collapse and detach
+ * ({@link playKeyedExit}), and survivors that change position in the *synchronous*
+ * reorder FLIP from their old box to the new one. Deleting a middle item fades
+ * and collapses *that* row while the rest slide up by natural layout reflow (the
+ * collapse), and a reorder glides the moved rows (FLIP) — the fix for the index
+ * path's "wrong element fades, the rest snap".
+ */
+const keyedPatchChildren =
+  <Msg>(wiring: Wiring<Msg>) =>
+  (
+    parent: Node,
+    oldChildren: ReadonlyArray<Html<Msg>>,
+    newChildren: ReadonlyArray<Html<Msg>>,
+  ): void => {
+    // old vnode by key (to diff a reused node against), live DOM node by key
+    // (skipping nodes mid-exit), and the set of keys the new tree keeps.
+    const oldByKey = new Map<SoftStr, Html<Msg>>();
+    oldChildren.forEach((child) =>
+      matchOption(
+        (): void => undefined,
+        (k: SoftStr): void => {
+          oldByKey.set(k, child);
+        },
+      )(keyOfVnode(child)),
+    );
+    const domByKey = new Map<SoftStr, Element>();
+    Array.from(parent.childNodes).forEach(
+      (domChild) => {
+        if (
+          domChild instanceof Element &&
+          !wiring.exiting.has(domChild)
+        ) {
+          matchOption(
+            (): void => undefined,
+            (k: SoftStr): void => {
+              domByKey.set(k, domChild);
+            },
+          )(
+            fromNullable(
+              wiring.keyed.get(domChild),
+            ),
+          );
+        }
+      },
+    );
+    const newKeys = new Set<SoftStr>();
+    newChildren.forEach((child) =>
+      matchOption(
+        (): void => undefined,
+        (k: SoftStr): void => {
+          newKeys.add(k);
+        },
+      )(keyOfVnode(child)),
+    );
+
+    // FLIP step 1: snapshot every survivor's box before any mutation.
+    const firstRects = new Map<Element, DOMRect>();
+    domByKey.forEach((node, k) => {
+      if (newKeys.has(k)) {
+        firstRects.set(
+          node,
+          node.getBoundingClientRect(),
+        );
+      }
+    });
+
+    // exits first, so the layout has collapsed before survivors are measured.
+    domByKey.forEach((node, k) => {
+      if (!newKeys.has(k)) {
+        playKeyedExit(
+          wiring,
+          node,
+          chainOption(exitMotionOf)(
+            fromNullable(oldByKey.get(k)),
+          ),
+        );
+      }
+    });
+
+    // reuse-or-create each new child's node, in new order.
+    const finalNodes: ReadonlyArray<Node> =
+      newChildren.map((child) =>
+        matchOption(
+          (): Node => createNode(wiring)(child),
+          (k: SoftStr): Node =>
+            matchOption(
+              (): Node =>
+                createNode(wiring)(child),
+              (node: Element): Node =>
+                matchOption(
+                  (): Node =>
+                    createNode(wiring)(child),
+                  (oldVnode: Html<Msg>): Node =>
+                    patchKeyed(wiring)(
+                      parent,
+                      node,
+                      oldVnode,
+                      child,
+                    ),
+                )(fromNullable(oldByKey.get(k))),
+            )(fromNullable(domByKey.get(k))),
+        )(keyOfVnode(child)),
+      );
+
+    // position the survivors/new nodes in order, leaving exiting nodes WHERE
+    // THEY ARE: they collapse in flow, so displacing them (the old walk made
+    // survivors leapfrog over them, teleporting the dying row to the bottom)
+    // would break the very motion the collapse provides. The anchor walk skips
+    // mid-exit siblings instead of inserting in front of them.
+    const pastExiting = (
+      from: Node | null,
+    ): Node | null => {
+      let cursor = from;
+      while (
+        cursor instanceof Element &&
+        wiring.exiting.has(cursor)
+      ) {
+        cursor = cursor.nextSibling;
+      }
+      return cursor;
+    };
+    let anchor: Node | null = pastExiting(
+      parent.firstChild,
+    );
+    finalNodes.forEach((node) => {
+      if (anchor !== null && node === anchor) {
+        anchor = pastExiting(anchor.nextSibling);
+      } else {
+        parent.insertBefore(node, anchor);
+      }
+    });
+
+    // FLIP step 2: glide each survivor from its old box to its new one.
+    firstRects.forEach((first, node) => {
+      const last = node.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (dx !== 0 || dy !== 0) {
+        void wiring.play(
+          node,
+          flipMotion(dx, dy),
+        );
+      }
+    });
+  };
+
+/** Whether a children list is non-empty and keyed throughout. */
+const allKeyed = <Msg>(
+  children: ReadonlyArray<Html<Msg>>,
+): boolean =>
+  children.length > 0 &&
+  children.every((child) =>
+    matchOption(
+      (): boolean => false,
+      (): boolean => true,
+    )(keyOfVnode(child)),
+  );
+
+/**
+ * Reconciles a parent's children: the {@link keyedPatchChildren} identity path
+ * when every new child carries a {@link key} — or when a fully-keyed list
+ * *empties*, so the last row still exits through the keyed fade + collapse
+ * rather than the index path's bare surplus removal (which would snap its
+ * footprint away on detach). Else the {@link indexPatchChildren} positional
+ * fallback. Keying is thus opt-in per list — exactly the lists that
+ * reorder/insert/delete (and want smooth motion) ask for it.
+ */
+const patchChildren =
+  <Msg>(wiring: Wiring<Msg>) =>
+  (
+    parent: Node,
+    oldChildren: ReadonlyArray<Html<Msg>>,
+    newChildren: ReadonlyArray<Html<Msg>>,
+  ): void =>
+    allKeyed(newChildren) ||
+    (newChildren.length === 0 &&
+      allKeyed(oldChildren))
+      ? keyedPatchChildren(wiring)(
+          parent,
+          oldChildren,
+          newChildren,
+        )
+      : indexPatchChildren(wiring)(
+          parent,
+          oldChildren,
+          newChildren,
+        );
+
 /**
  * Builds a stateful renderer for `container`: each call diffs the next
  * {@link Html} tree against the previously rendered one and patches the DOM in
@@ -723,6 +1164,8 @@ export const makeRenderer = <Msg>(
     dispatch,
     registry: new WeakMap(),
     play,
+    keyed: new WeakMap(),
+    exiting: new WeakSet(),
   };
   // mutable seam: the last tree rendered into `container` (none until first paint)
   let previous: Option<Html<Msg>> = none();
