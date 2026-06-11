@@ -19,6 +19,10 @@ const seed: Model = {
   nextId: 2,
   filter: "all",
   q: "",
+  toasts: [],
+  toastSeq: 1,
+  expanded: [],
+  confirmClear: false,
 };
 
 // --- pure update ---
@@ -189,6 +193,10 @@ test("the view shows only todos matching the filter and search", () => {
     nextId: 4,
     filter: "active",
     q: "buy",
+    toasts: [],
+    toastSeq: 1,
+    expanded: [],
+    confirmClear: false,
   };
   const html = renderToString(view(model));
   expect(html).toContain("Buy milk"); // active + matches "buy"
@@ -307,8 +315,124 @@ test("a completed todo renders with a checked box", () => {
     nextId: 2,
     filter: "all",
     q: "",
+    toasts: [],
+    toastSeq: 1,
+    expanded: [],
+    confirmClear: false,
   };
   const html = renderToString(view(model));
   expect(html).toContain("checked");
   expect(html).toContain("Done");
+});
+
+// --- micro-interactions: toaster / accordion / modal (pure update + view) ---
+
+test("Added pushes a success toast and bumps toastSeq", () => {
+  const next = update(
+    { kind: "Added" },
+    { ...init, draft: "Buy milk" },
+  );
+  expect(next.toasts).toHaveLength(1);
+  expect(next.toasts[0]?.tone).toBe("success");
+  expect(next.toasts[0]?.message).toContain(
+    "Buy milk",
+  );
+  expect(next.toastSeq).toBe(2);
+});
+
+test("Deleted pushes a danger toast and drops the id from expanded", () => {
+  const next = update(
+    { kind: "Deleted", id: 1 },
+    { ...seed, expanded: [1] },
+  );
+  expect(next.toasts[0]?.tone).toBe("danger");
+  expect(next.expanded).toEqual([]);
+});
+
+test("ToastDismissed removes the matching toast", () => {
+  const withToast = update(
+    { kind: "Added" },
+    { ...init, draft: "x" },
+  );
+  const id = withToast.toasts[0]?.id ?? -1;
+  expect(
+    update(
+      { kind: "ToastDismissed", id },
+      withToast,
+    ).toasts,
+  ).toEqual([]);
+});
+
+test("ExpandToggled adds then removes a todo id (accordion)", () => {
+  const open = update(
+    { kind: "ExpandToggled", id: 1 },
+    seed,
+  );
+  expect(open.expanded).toEqual([1]);
+  expect(
+    update({ kind: "ExpandToggled", id: 1 }, open)
+      .expanded,
+  ).toEqual([]);
+});
+
+test("the clear-completed modal flow opens, cancels, and confirms", () => {
+  const base: Model = {
+    ...seed,
+    todos: [
+      { id: 1, title: "a", completed: true },
+      { id: 2, title: "b", completed: false },
+    ],
+  };
+  expect(
+    update({ kind: "ClearRequested" }, base)
+      .confirmClear,
+  ).toBe(true);
+  expect(
+    update(
+      { kind: "ClearCancelled" },
+      { ...base, confirmClear: true },
+    ).confirmClear,
+  ).toBe(false);
+  const cleared = update(
+    { kind: "ClearConfirmed" },
+    { ...base, confirmClear: true },
+  );
+  expect(cleared.todos).toEqual([
+    { id: 2, title: "b", completed: false },
+  ]);
+  expect(cleared.confirmClear).toBe(false);
+  expect(cleared.toasts[0]?.message).toContain(
+    "1 completed",
+  );
+});
+
+test("an open accordion renders the details panel; the modal renders when confirming", () => {
+  const open = renderToString(
+    view({ ...seed, expanded: [1] }),
+  );
+  expect(open).toContain("todo-details");
+  expect(open).toContain("click the title again");
+
+  const modal = renderToString(
+    view({ ...seed, confirmClear: true }),
+  );
+  expect(modal).toContain("modal-backdrop");
+  expect(modal).toContain("Clear completed?");
+});
+
+test("a toast in the model renders in the toaster stack", () => {
+  const html = renderToString(
+    view({
+      ...seed,
+      toasts: [
+        {
+          id: 1,
+          tone: "success",
+          message: "Saved",
+        },
+      ],
+    }),
+  );
+  expect(html).toContain("toaster");
+  expect(html).toContain("Saved");
 });

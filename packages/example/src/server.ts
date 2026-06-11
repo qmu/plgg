@@ -113,12 +113,17 @@ const app = pipe(
   ),
 );
 
+// Port is env-configurable (default 3000) so the demo can match whatever the
+// local tunnel/ingress points at — the cloudflared route for
+// `plgg-example.qmu.dev` forwards to 3001, so run with `PORT=3001`.
+const PORT = Number(process.env.PORT ?? 3000);
+
 pipe(
   app,
   toFetch,
-  serve({ port: 3000 }, () =>
+  serve({ port: PORT }, () =>
     console.log(
-      "listening on http://localhost:3000",
+      `listening on http://localhost:${PORT}`,
     ),
   ),
 );
