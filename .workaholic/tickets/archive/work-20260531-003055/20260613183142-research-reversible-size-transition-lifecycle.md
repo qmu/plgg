@@ -3,9 +3,9 @@ created_at: 2026-06-13T18:31:42+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 4173f63
+category: Added
 depends_on:
 ---
 
@@ -60,3 +60,47 @@ primitive.
 - **Preferring Declarative Code / minimize complexity**: if the CSS `grid-rows` recipe is genuinely as good, the *least* the library can do (a small utility) may beat a JS size animator — weigh "more capability" against "more renderer complexity."
 - **Cross-ticket**: a measure-based approach depends on [[20260613183139-research-ref-post-paint-hook]] (post-paint measurement); sequenced/staggered disclosures depend on [[20260613183140-research-effects-and-subscriptions]] (orchestration).
 - No `as`/`any`/`ts-ignore` (CLAUDE.md); coverage >90% on follow-ups.
+
+## Recommendation
+
+**Bless the CSS `grid-template-rows: 0fr ⇄ 1fr` recipe as a small `disclosure`
+primitive** (option b-lite) — do **not** add a JS measure-and-animate size
+animator.
+
+- **Why not measure+animate**: animating `height` needs a post-paint measure
+  (depends on [[20260613183139-research-ref-post-paint-hook]]), runs JS per frame
+  or manages a WAAPI `height` tween, and re-introduces the out-of-flow/jump class
+  of bugs the keyed-exit work fought through six revisions. The CSS `grid-rows`
+  recipe (already proven in the example accordion) needs **no measurement and no
+  per-frame JS** — the renderer just patches one class and the browser tweens it.
+  For a LOW-complexity win that's strictly better, the library should not own a
+  size animator.
+- **Shape**: a `disclosure(open: boolean)` helper (or a `collapsible` attribute)
+  that emits the two-element grid recipe (`display:grid;grid-template-rows:0fr|1fr;
+  transition` + an `overflow:hidden;min-height:0` inner track) through the style
+  system, plus the right semantics (`aria-expanded`/`hidden`). This turns the
+  example's hand-rolled `attr("style", …)` workaround into one declarative call,
+  emergent-design-system style (one rule per interaction).
+- **Reduced motion**: the recipe must drop the `transition` under
+  `prefers-reduced-motion` (instant open/close) — a media-query the style system
+  can emit, consistent with the WAAPI path's feature-detection.
+- **Keep `Motion` opacity+transform-only**: do not add a `height` channel to
+  `Frame`/`Motion` — height isn't GPU-composited and `auto` isn't animatable, so
+  it doesn't belong in the same model as the WAAPI tweens.
+
+**Note**: this leaves the keyed-list *exit* collapse (measure `offsetHeight → 0`)
+as-is — that's a removal lifecycle, distinct from a mounted node disclosing.
+Staggered/sequenced disclosures still need orchestration from
+[[20260613183140-research-effects-and-subscriptions]].
+
+**Follow-up impl ticket**: add the `disclosure`/`collapsible` style helper +
+reduced-motion handling + aria semantics; replace the example accordion's raw CSS
+with it.
+
+## Final Report
+
+Research spike complete — recommendation above; no runtime code changed.
+Recommendation: a small declarative `disclosure` helper over the pure-CSS
+grid-rows recipe (no JS size animator, `Motion` stays opacity+transform-only),
+with reduced-motion + aria folded in. Follow-up implementation ticket to be
+opened before coding.
