@@ -3,9 +3,9 @@ created_at: 2026-06-13T18:31:40+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, UX]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: c480fb2
+category: Added
 depends_on:
 ---
 
@@ -64,3 +64,45 @@ and ongoing **subscriptions** (`Sub`) — to the Elm-Architecture runtime, keepi
 - **Scope discipline / minimize complexity**: this can sprawl — recommend the *smallest* set that unblocks the example (timer + interval + global event), and stage the rest. Do not import Elm wholesale without justifying each piece.
 - **Cross-ticket**: subsumes the *global* keyboard case (window keydown `Sub`); element-level event richness is [[20260613183141-research-event-payload-and-preventdefault-model]]. DOM-task commands overlap [[20260613183139-research-ref-post-paint-hook]]; animationend orchestration unblocks [[20260613183142-research-reversible-size-transition-lifecycle]].
 - No `as`/`any`/`ts-ignore` (CLAUDE.md); coverage >90% on shipped follow-ups.
+
+## Recommendation
+
+**Adopt Elm's `Browser.element` model, staged** — keep `sandbox` pure; add a new
+`element`-style program where `update` returns `[Model, Cmd<Msg>]` and a
+`subscriptions: (model) => Sub<Msg>` function exists. `Cmd`/`Sub` are **data**
+interpreted by an injectable runtime seam (mirrors the existing "URL reflection
+interpreted by the runtime" and the `play` seam), so `update` stays a pure,
+unit-testable function.
+
+- **Don't touch `sandbox`/`Application`'s pure `update`** (`(msg, model) => Model`).
+  Introduce `element` alongside, and an adapter so an `Application` can opt in.
+  This preserves the 25 example tests and the pure-reducer ergonomics.
+- **Stage 1 — `Cmd`** (ship first): `none`, `batch([...])`, `after(ms) → Msg`
+  (the toast auto-dismiss driver), and `perform`/`fetch` via plgg-fetch (no new
+  vendor coupling). Cancellation via *keyed* commands (`after(key, ms)`) so a
+  later keystroke cancels an earlier debounce timer — model cancellation
+  explicitly from the start; it's the part that's painful to retrofit.
+- **Stage 2 — `Sub`**: `every(ms) → Msg` (live clock), `onWindow(event, decoder)
+  → Msg` (global Escape — pairs with the decoder from
+  [[20260613183141-research-event-payload-and-preventdefault-model]]), and
+  `onAnimationEnd` (unblocks the staggered-reveal orchestration deferred by the
+  transition tickets and [[20260613183142-research-reversible-size-transition-lifecycle]]).
+  Subs are diffed across renders by key and torn down via the existing `stop()`
+  cleanup precedent.
+- **Interpreter seam**: an injectable `Effects` record (timers/interval/
+  window-events/fetch) defaulting to the real implementations, swapped for a test
+  clock/stub — so `update` returning a `Cmd` is asserted without performing it.
+
+**Rejected**: importing Elm wholesale (ports, `Task` chains, `Process`) — over
+the "minimize complexity" budget; add only the three drivers the example needs.
+
+**Follow-up**: split into two impl tickets (Cmd first, Sub second). DOM-task
+commands (focus/scroll) should reuse [[20260613183139-research-ref-post-paint-hook]]
+rather than duplicate DOM access.
+
+## Final Report
+
+Research spike complete — recommendation above; no runtime code changed.
+Recommendation: staged Elm `Browser.element` (`Cmd` then `Sub`), effects-as-data
+behind an injectable interpreter, `sandbox` stays pure, cancellation modeled from
+day one. Two follow-up implementation tickets to be opened before coding.
