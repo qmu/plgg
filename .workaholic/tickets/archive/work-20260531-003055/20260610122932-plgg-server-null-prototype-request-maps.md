@@ -3,9 +3,9 @@ created_at: 2026-06-10T12:29:32+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Infrastructure, Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 38700d3
+category: Changed
 depends_on:
 ---
 
@@ -44,3 +44,23 @@ Severity: **LOW** (correctness / defense-in-depth, not memory corruption).
 - **Domain Layer Separation**: this lives in the thin HTTP entry layer; keep the null-prototype construction there so domain handlers receive trustworthy `Option` lookups. (`packages/plgg-server/src/Http/usecase/toHttpRequest.ts`)
 - Confirm `match`/spread over these maps elsewhere still behaves with a null-prototype object (no reliance on `Object.prototype` methods on them).
 - Strict no-`as`/`any`/`ts-ignore` (CLAUDE.md); keep coverage >90%.
+
+## Final Report
+
+Fixed via the **accessor-guard** alternative (not null-prototype construction).
+tsc clean; plgg-http 32 tests, plgg-router 39 (each +1) pass.
+
+### Discovered Insights
+
+- **Insight**: Chose the `Object.hasOwn` guard in the accessors over building the
+  maps with `Object.create(null)`. The null-prototype route is defeated by the
+  router's own param accumulation, which uses object-literal spread
+  (`{ ...captured, [seg]: v }`) — a spread literal **always** produces an
+  `Object.prototype`-having object, so the null prototype wouldn't survive the
+  build without rewriting the spreads as `Object.assign(Object.create(null), …)`.
+  Guarding the four accessors (`getHeader`/`getQuery`/`getParam` in plgg-http,
+  `param`/`query` in plgg-router) fixes the actual defect (lookup soundness) in
+  one place per package and is robust regardless of how the map was built.
+  **Context**: the `HttpRequest` model now lives in `plgg-http` (the ticket's
+  path predated the extraction); plgg-server consumes the re-exported accessors,
+  so the single plgg-http fix covers the server too.

@@ -3,6 +3,7 @@ import {
   SoftStr,
   Dict,
   fromNullable,
+  none,
 } from "plgg";
 import { Method } from "plgg-http/index";
 
@@ -35,13 +36,28 @@ export const withParams = (
 ): HttpRequest => ({ ...request, params });
 
 /**
+ * Looks up an own key in a request map as an `Option`. The `Object.hasOwn`
+ * guard is what makes the `Option` honest: these maps are built from untrusted
+ * request keys and inherit `Object.prototype`, so a bare `map[name]` for a key
+ * the client never sent (`"constructor"`, `"toString"`, `"__proto__"`) would
+ * return the inherited function — a spurious `Some`. Only own keys count.
+ */
+const lookup = (
+  map: Dict<string, SoftStr>,
+  name: SoftStr,
+): Option<SoftStr> =>
+  Object.hasOwn(map, name)
+    ? fromNullable(map[name])
+    : none();
+
+/**
  * Looks up a request header (case-insensitive) as an `Option`.
  */
 export const getHeader = (
   request: HttpRequest,
   name: SoftStr,
 ): Option<SoftStr> =>
-  fromNullable(request.headers[name.toLowerCase()]);
+  lookup(request.headers, name.toLowerCase());
 
 /**
  * Looks up a query parameter as an `Option`.
@@ -49,8 +65,7 @@ export const getHeader = (
 export const getQuery = (
   request: HttpRequest,
   name: SoftStr,
-): Option<SoftStr> =>
-  fromNullable(request.query[name]);
+): Option<SoftStr> => lookup(request.query, name);
 
 /**
  * Looks up a path parameter as an `Option`.
@@ -59,7 +74,7 @@ export const getParam = (
   request: HttpRequest,
   name: SoftStr,
 ): Option<SoftStr> =>
-  fromNullable(request.params[name]);
+  lookup(request.params, name);
 
 /**
  * The raw request bytes, present only when the body was ingested as binary.
