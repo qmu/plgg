@@ -3,9 +3,9 @@ created_at: 2026-06-10T03:41:05+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 0.1h
+commit_hash: 3c39d3e
+category: Changed
 depends_on:
 ---
 
@@ -63,3 +63,21 @@ needed — keeps the Style system simple).
   XSS-safe (static meta tag, no interpolation).
 - **Server excluded from coverage** — `htmlDocument` has unit tests in
   plgg-server; update/extend if one asserts the exact head markup.
+
+## Final Report
+
+**Already satisfied by prior work — no code change required.** Verified both of
+the ticket's changes are present and tested:
+
+- The viewport meta is emitted at `plgg-server/.../htmlDocument.ts:33`
+  (`<meta name="viewport" content="width=device-width, initial-scale=1">`) and is
+  asserted in `htmlDocument.spec.ts:18-20`.
+- `sx.wrap` is on the `todo-toolbar` row in `example/src/app.ts` (so the filter
+  group + search reflow on a narrow screen); the card is fluid (`wFull` + `maxW`).
+
+The viewport meta landed during the SSR-document evolution and the toolbar wrap
+was added with the example's mobile-reflow comment. The later micro-interaction
+work also made the new overlays mobile-safe (`max-width:calc(100vw - 2rem)` on
+the toaster and modal dialog). plgg-server View suite (10 tests) passes.
+
+Archived to record the verification; effort 0.1h (confirmation only).
