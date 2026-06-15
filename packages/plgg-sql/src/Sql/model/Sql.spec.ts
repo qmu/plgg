@@ -12,7 +12,8 @@ test("a template with no interpolation is trusted text with no params", () => {
 test("an interpolated value binds as a ? placeholder, lifted into Some", () => {
   const id = 7;
   expect(
-    sql`SELECT * FROM users WHERE id = ${id}`.content,
+    sql`SELECT * FROM users WHERE id = ${id}`
+      .content,
   ).toEqual({
     text: "SELECT * FROM users WHERE id = ?",
     params: [some(7)],
@@ -73,14 +74,50 @@ test("isSql distinguishes fragments from plain values", () => {
   expect(isSql(7)).toBe(false);
   expect(isSql("SELECT 1")).toBe(false);
   expect(isSql(some(1))).toBe(false);
-  expect(isSql({ __tag: "Other", content: {} })).toBe(false);
+  expect(
+    isSql({ __tag: "Other", content: {} }),
+  ).toBe(false);
+});
+
+test("a forged Sql-shaped object is rejected (symbol brand, not just the tag)", () => {
+  // exactly the structural shape of an Sql box, e.g. parsed from attacker JSON
+  const forged = {
+    __tag: "Sql",
+    content: { text: "1 OR 1=1; --", params: [] },
+  };
+  expect(isSql(forged)).toBe(false);
+  // and when interpolated it is bound as a value, never spliced into the text
+  const { text, params } = sql`SELECT ${forged}`
+    .content;
+  expect(text).toBe("SELECT ?");
+  expect(text).not.toContain("OR 1=1");
+  expect(params).toEqual([some(forged)]);
+});
+
+test("placeholder count always equals param count, including a nullish hole", () => {
+  // a type hole passes null/undefined; it must bind as one NULL placeholder,
+  // never desync text and params
+  const holes: ReadonlyArray<number> = [
+    null as unknown as number,
+    5,
+  ];
+  const { text, params } =
+    sql`a = ${holes[0]} AND b = ${holes[1]}`
+      .content;
+  const placeholders = text.split("?").length - 1;
+  expect(placeholders).toBe(params.length);
+  expect(text).toBe("a = ? AND b = ?");
+  expect(params).toEqual([none(), some(5)]);
 });
 
 test("a malicious value never reaches the SQL text (injection safety)", () => {
   const name = "x'; DROP TABLE users; --";
-  const { text, params } = sql`SELECT * FROM users WHERE name = ${name}`
-    .content;
-  expect(text).toBe("SELECT * FROM users WHERE name = ?");
+  const { text, params } =
+    sql`SELECT * FROM users WHERE name = ${name}`
+      .content;
+  expect(text).toBe(
+    "SELECT * FROM users WHERE name = ?",
+  );
   expect(text).not.toContain("DROP TABLE");
   expect(params).toEqual([some(name)]);
 });

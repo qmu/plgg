@@ -3,9 +3,9 @@ created_at: 2026-06-10T12:29:33+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 392a954
+category: Changed
 depends_on:
 ---
 
@@ -51,3 +51,23 @@ weakens a guarantee that should hold by construction, not by caller discipline.
 - A symbol brand for `Sql` may motivate the same treatment for other `Box` tags if they guard a security boundary; scope this ticket to `Sql` and note the pattern. (`packages/plgg/src/Contextuals/Box.ts`)
 - No LIKE-escape helper exists; `%`/`_` in bound values still act as wildcards (enumeration, not injection). Out of scope here — note for a future ticket if a LIKE use case appears.
 - Strict no-`as`/`any`/`ts-ignore` (CLAUDE.md); keep coverage >90%.
+
+## Final Report
+
+Both hardening items done. tsc clean; plgg-sql 25 tests pass (2 new).
+
+### Discovered Insights
+
+- **Insight**: The symbol brand stamps via `Object.defineProperty(box("Sql")(c),
+  SQL_BRAND, { value: true })` — non-enumerable, so it survives splicing (read by
+  property, not spread) but never appears in `JSON.stringify`/spread, and `isSql`
+  checks `SQL_BRAND in value` with no `as` (narrowed by `typeof === "object"` +
+  `!== null`). A forged JSON box lacks the symbol → bound as a value, never
+  spliced.
+- **Insight**: The placeholder/param invariant now holds *by construction*: a
+  single `normalized = values.map(v => v ?? none())` feeds **both** the text and
+  params builders, so they can't diverge. The earlier bug came from text using
+  `fromNullable(values[i])` (which dropped a nullish value) while params lifted it
+  to `[some(null)]`. `??` (not `fromNullable`) preserves falsy-but-valid binds
+  (`0`/`false`/`""`); only `null`/`undefined` become a NULL param.
+  **Context**: `packages/plgg-sql/src/Sql/model/Sql.ts`.
