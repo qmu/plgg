@@ -16,13 +16,18 @@ import {
 import {
   ClientError,
   networkError,
+  redirectError,
 } from "plgg-fetch/Http/model/ClientError";
 
 /**
  * Extracts a human-readable message from an unknown thrown value.
  */
-export const messageOf = (error: unknown): SoftStr =>
-  error instanceof Error ? error.message : String(error);
+export const messageOf = (
+  error: unknown,
+): SoftStr =>
+  error instanceof Error
+    ? error.message
+    : String(error);
 
 /**
  * Whether a request method may carry a body. `GET`/`HEAD` must not (the
@@ -32,7 +37,9 @@ const hasBody = (
   method: Method,
   body: SoftStr,
 ): boolean =>
-  body !== "" && method !== "GET" && method !== "HEAD";
+  body !== "" &&
+  method !== "GET" &&
+  method !== "HEAD";
 
 /**
  * Folds the plgg `query` {@link Dict} back onto a copy of the URL's search
@@ -61,6 +68,9 @@ const toRequestInit = (
   const base: RequestInit = {
     method: request.method,
     headers: new Headers({ ...request.headers }),
+    // never auto-follow: a 3xx must not silently re-send custom auth headers to
+    // the redirect target. A redirect surfaces as a typed RedirectError instead.
+    redirect: "manual",
   };
   return hasBody(request.method, request.body)
     ? { ...base, body: request.body }
@@ -81,7 +91,8 @@ export const toFetchRequest = (
   pipe(
     new URL(request.path),
     (url) => withQuery(url, request.query),
-    (url) => new Request(url, toRequestInit(request)),
+    (url) =>
+      new Request(url, toRequestInit(request)),
   );
 
 /**
@@ -105,18 +116,33 @@ const toResponseHeaders = (
  * The second seam function: the status is lifted through `statusOf` (always in
  * range), headers are copied into a `Dict`, and the body is read as text. A
  * non-2xx status is **not** an error here — it yields a valid `HttpResponse`;
- * only a failed body read folds to a {@link NetworkError}.
+ * only a failed body read folds to a {@link NetworkError}. A redirect (opaque
+ * under the `manual` policy) folds to a {@link RedirectError} — never followed.
  */
 export const fromFetchResponse = (
   response: Response,
 ): PromisedResult<HttpResponse, ClientError> =>
-  response.text().then(
-    (body: string): Result<HttpResponse, ClientError> =>
-      ok({
-        status: statusOf(response.status),
-        headers: toResponseHeaders(response.headers),
-        body,
-      }),
-    (error: unknown): Result<HttpResponse, ClientError> =>
-      err(networkError(messageOf(error))),
-  );
+  response.type === "opaqueredirect"
+    ? Promise.resolve(
+        err(
+          redirectError(
+            "response was a redirect; not followed (manual redirect policy)",
+          ),
+        ),
+      )
+    : response.text().then(
+        (
+          body: string,
+        ): Result<HttpResponse, ClientError> =>
+          ok({
+            status: statusOf(response.status),
+            headers: toResponseHeaders(
+              response.headers,
+            ),
+            body,
+          }),
+        (
+          error: unknown,
+        ): Result<HttpResponse, ClientError> =>
+          err(networkError(messageOf(error))),
+      );

@@ -24,7 +24,9 @@ const baseRequest = (
 });
 
 test("messageOf reads an Error's message and stringifies anything else", () => {
-  expect(messageOf(new Error("boom"))).toBe("boom");
+  expect(messageOf(new Error("boom"))).toBe(
+    "boom",
+  );
   expect(messageOf("oops")).toBe("oops");
   expect(messageOf(42)).toBe("42");
 });
@@ -35,7 +37,9 @@ test("toFetchRequest builds a native Request with method, query, headers, and bo
       method: "POST",
       path: "http://example.test/users",
       query: { q: "cat", page: "2" },
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+      },
       body: '{"name":"Ada"}',
     }),
   );
@@ -53,7 +57,10 @@ test("toFetchRequest builds a native Request with method, query, headers, and bo
 
 test("toFetchRequest omits the body on a GET, even if one is supplied", async () => {
   const native = toFetchRequest(
-    baseRequest({ method: "GET", body: "ignored" }),
+    baseRequest({
+      method: "GET",
+      body: "ignored",
+    }),
   );
   expect(native.method).toBe("GET");
   await expect(native.text()).resolves.toBe("");
@@ -61,7 +68,9 @@ test("toFetchRequest omits the body on a GET, even if one is supplied", async ()
 
 test("toFetchRequest throws on a malformed URL", () => {
   expect(() =>
-    toFetchRequest(baseRequest({ path: "not a url" })),
+    toFetchRequest(
+      baseRequest({ path: "not a url" }),
+    ),
   ).toThrow();
 });
 
@@ -74,8 +83,12 @@ test("fromFetchResponse lifts status, headers, and body into an HttpResponse", a
   );
   expect(isOk(result)).toBe(true);
   if (isOk(result)) {
-    expect(result.content.status.content).toBe(201);
-    expect(result.content.headers["x-extra"]).toBe("v");
+    expect(result.content.status.content).toBe(
+      201,
+    );
+    expect(
+      result.content.headers["x-extra"],
+    ).toBe("v");
     expect(result.content.body).toBe("hi");
   }
 });
@@ -86,7 +99,9 @@ test("fromFetchResponse treats a non-2xx status as a valid response, not an erro
   );
   expect(isOk(result)).toBe(true);
   if (isOk(result)) {
-    expect(result.content.status.content).toBe(404);
+    expect(result.content.status.content).toBe(
+      404,
+    );
     expect(result.content.body).toBe("Not Found");
   }
 });
@@ -101,14 +116,34 @@ test("fromFetchResponse folds a failed body read into a NetworkError", async () 
   );
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content.__tag).toBe("NetworkError");
+    expect(result.content.__tag).toBe(
+      "NetworkError",
+    );
+  }
+});
+
+test("toFetchRequest sets redirect:manual so a 3xx is never auto-followed", () => {
+  const native = toFetchRequest(baseRequest({}));
+  expect(native.redirect).toBe("manual");
+});
+
+test("fromFetchResponse folds an opaque redirect into a RedirectError", async () => {
+  const result = await fromFetchResponse({
+    type: "opaqueredirect",
+    text: async () => "",
+  } as unknown as Response);
+  expect(isErr(result)).toBe(true);
+  if (isErr(result)) {
+    expect(result.content.__tag).toBe(
+      "RedirectError",
+    );
   }
 });
 
 test("bytesBody is the reused router type the client never produces", () => {
   // documents that the client's text seam and the router's binary body share
   // one ResponseBody union — the client simply stays on the text path.
-  expect(bytesBody(new Uint8Array([1])).__tag).toBe(
-    "Bytes",
-  );
+  expect(
+    bytesBody(new Uint8Array([1])).__tag,
+  ).toBe("Bytes");
 });

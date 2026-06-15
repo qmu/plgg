@@ -3,9 +3,9 @@ created_at: 2026-06-10T12:29:29+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: b5fdbb8
+category: Changed
 depends_on:
 ---
 
@@ -47,3 +47,22 @@ Severity: **MEDIUM**.
 - SSRF note (out of scope but related): `plgg-fetch` does no URL scheme allow-listing or block of link-local/metadata addresses. Acceptable for a low-level client, but document it as a caller responsibility; a separate hardening ticket can add an optional allow-list hook.
 - `postJson` also embeds the full upstream error body into its `Error` message (line 28-34), which can put prompt content/PII into logs — fold a redaction/truncation into this change or note it for a follow-up. (`packages/plgg/src/Functionals/postJson.ts`)
 - Strict no-`as`/`any`/`ts-ignore` (CLAUDE.md); keep coverage >90%.
+
+## Final Report
+
+Development completed as planned, including the optional consideration (error-body
+truncation). tsc clean; plgg 453 tests, plgg-fetch 27 (100% branch), plgg-kit 12
+— all pass.
+
+### Discovered Insights
+
+- **Insight**: Under `redirect: "manual"`, `fetch` returns an *opaque* response
+  (`type === "opaqueredirect"`, `status === 0`, body unreadable) — so the
+  concrete 3xx status and `Location` are NOT recoverable. The honest surface is
+  therefore a `RedirectError` ("a redirect happened, not followed"), not a
+  reconstructed `HttpResponse` with the real status. Both seams detect the opaque
+  marker rather than trying to read a status.
+  **Context**: if a caller ever needs to follow a redirect deliberately, the
+  request type would need an explicit opt-in `redirect` field (noted in the
+  ticket) — there's no way to recover the target from the opaque response after
+  the fact. (`packages/plgg-fetch/src/Http/usecase/seam.ts`)
