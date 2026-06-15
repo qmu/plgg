@@ -3,9 +3,9 @@ created_at: 2026-06-13T18:31:39+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: c3211d4
+category: Added
 depends_on:
 ---
 
@@ -66,3 +66,46 @@ The renderer and animation work built the seams this would extend and left DOM-a
 - **Accessibility** (`standards:design`): focus management (move focus into an opened modal, back on close; focus the new item) is a WCAG 2.2 concern — this primitive is the enabler, so fold a11y use cases into the design.
 - **Relationship to other research**: if [[20260613183140-research-effects-and-subscriptions]] lands a `Cmd` channel first, option (c)/(d) (DOM access as a command/task) may be strictly better than a callback ref — sequence the design discussion accordingly. Measuring for [[20260613183142-research-reversible-size-transition-lifecycle]] also needs this post-paint access.
 - No `as`/`any`/`ts-ignore` (CLAUDE.md); keep coverage >90% on whatever ships from the follow-up.
+
+## Recommendation
+
+**Adopt a `ref` `Attribute` variant** (option a/b), not a key-addressed command
+and not the Elm `Cmd`-task route — for now.
+
+- **Shape**: `ref((node: Element) => void): Attribute<never>` — a `Box<"Ref">`
+  carrying a callback, `Msg`-less like `key`/`transition`, so it drops into any
+  attribute list. SSR drops it; only the client renderer runs it.
+- **Firing point**: synchronously at the end of the commit for that node — in
+  `createNode` after children are attached, and in `patchElement` after
+  attributes/children are patched — so the node and its subtree exist when the
+  callback runs, and it composes with keyed reconcile (fires on the
+  reused-or-created node). Run it *after* the paint completes for the whole tree
+  is the alternative; per-node-after-commit is simpler and sufficient for
+  scroll/focus. Not `requestAnimationFrame` (would race the app's next dispatch).
+- **Testability**: route the invocation through a seam on `Wiring` (like `play`)
+  so happy-dom tests assert it fired with the right node.
+- **Purity**: the callback is a confined DOM escape hatch, exactly like the
+  handler channel — `view`/`update` stay DOM-free; the callback only *reads/acts
+  on* a node, it does not produce a `Msg`. Document it as the imperative seam.
+
+**Rejected / deferred**:
+- *Key-addressed post-paint command* (option c) and *Elm `Browser.Dom` task as a
+  `Cmd`* (option d) are cleaner long-term (data, not a closure) but both need the
+  effects channel from [[20260613183140-research-effects-and-subscriptions]].
+  Recommendation: ship the `ref` variant now (zero new subsystems); once `Cmd`
+  exists, a `Dom.focus`/`Dom.scrollIntoView` command can layer on top and `ref`
+  remains the low-level escape hatch.
+
+**Follow-up impl ticket** should: add the `Box<"Ref">` variant + `ref` builder;
+add the `key$()`-style exhaustive arm to every `Attribute` fold (`renderToString`
+→ `""`, `collectCss` → `[]`, `mapHtml` → re-box, `render.ts` apply/enter/exit/
+static/handlers → run-or-noop); fire via a `Wiring` seam; wire the example
+auto-scroll-to-new-todo and focus-after-add (+ focus-the-modal-on-open for a11y).
+
+## Final Report
+
+Research spike complete — deliverable is the design recommendation above; no
+runtime code changed (renderer changes await review, per the agreed sequencing).
+Recommendation: smallest viable primitive (`ref` variant), with the
+command/task route deferred behind the effects ticket. A follow-up
+implementation ticket should be opened from the recommendation before coding.
