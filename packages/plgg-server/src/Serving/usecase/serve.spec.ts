@@ -1,13 +1,14 @@
-import {
-  test,
-  expect,
-  afterEach,
-} from "vitest";
+import { test, expect, afterEach } from "vitest";
 import {
   request as httpRequest,
   type Server,
 } from "node:http";
-import { pipe, ok, getOr, matchOption } from "plgg";
+import {
+  pipe,
+  ok,
+  getOr,
+  matchOption,
+} from "plgg";
 import {
   web,
   get,
@@ -57,7 +58,8 @@ const start = (
       serve(options, () => {
         const addr = server.address();
         resolve(
-          typeof addr === "object" && addr !== null
+          typeof addr === "object" &&
+            addr !== null
             ? addr.port
             : 0,
         );
@@ -80,7 +82,11 @@ test("serves GET and POST over a real socket", async () => {
       ),
     ),
     post("/echo", async (c) =>
-      pipe({ body: c.req.body }, jsonResponse, ok),
+      pipe(
+        { body: c.req.body },
+        jsonResponse,
+        ok,
+      ),
     ),
   );
 
@@ -90,7 +96,9 @@ test("serves GET and POST over a real socket", async () => {
     `http://127.0.0.1:${port}/hello/sam`,
   );
   expect(got.status).toBe(200);
-  await expect(got.text()).resolves.toBe("hi sam");
+  await expect(got.text()).resolves.toBe(
+    "hi sam",
+  );
 
   const posted = await fetch(
     `http://127.0.0.1:${port}/echo`,
@@ -109,9 +117,14 @@ test("serves GET and POST over a real socket", async () => {
 test("serve honors an explicit hostname", async () => {
   const app = pipe(
     web(),
-    get("/", async () => pipe("ok", textResponse, ok)),
+    get("/", async () =>
+      pipe("ok", textResponse, ok),
+    ),
   );
-  const port = await start(toFetch(app), "127.0.0.1");
+  const port = await start(
+    toFetch(app),
+    "127.0.0.1",
+  );
   const res = await fetch(
     `http://127.0.0.1:${port}/`,
   );
@@ -121,7 +134,9 @@ test("serve honors an explicit hostname", async () => {
 test("serve works without an onListen callback", async () => {
   const app = pipe(
     web(),
-    get("/", async () => pipe("ok", textResponse, ok)),
+    get("/", async () =>
+      pipe("ok", textResponse, ok),
+    ),
   );
   const server = pipe(
     toFetch(app),
@@ -186,18 +201,26 @@ test("serves a binary response carrying a Content-Length", async () => {
   const app = pipe(
     web(),
     get("/blob", async () =>
-      ok(bytesResponse(new Uint8Array([5, 6, 7, 8]))),
+      ok(
+        bytesResponse(
+          new Uint8Array([5, 6, 7, 8]),
+        ),
+      ),
     ),
   );
   const port = await start(toFetch(app));
   const res = await fetch(
     `http://127.0.0.1:${port}/blob`,
   );
-  expect(res.headers.get("content-length")).toBe("4");
+  expect(res.headers.get("content-length")).toBe(
+    "4",
+  );
   expect(res.headers.get("content-type")).toBe(
     "application/octet-stream",
   );
-  const buf = new Uint8Array(await res.arrayBuffer());
+  const buf = new Uint8Array(
+    await res.arrayBuffer(),
+  );
   expect(Array.from(buf)).toEqual([5, 6, 7, 8]);
 });
 
@@ -212,7 +235,9 @@ test("serves a streamed response chunk by chunk", async () => {
   const res = await fetch(
     `http://127.0.0.1:${port}/stream`,
   );
-  const buf = new Uint8Array(await res.arrayBuffer());
+  const buf = new Uint8Array(
+    await res.arrayBuffer(),
+  );
   expect(Array.from(buf)).toEqual([1, 2, 3]);
 });
 
@@ -238,12 +263,81 @@ test("reads a binary request body and reports its byte length", async () => {
     {
       method: "POST",
       headers: {
-        "content-type": "application/octet-stream",
+        "content-type":
+          "application/octet-stream",
       },
       body: new Uint8Array([1, 2, 3, 4, 5]),
     },
   );
-  await expect(res.text()).resolves.toBe("5 bytes");
+  await expect(res.text()).resolves.toBe(
+    "5 bytes",
+  );
+});
+
+test("a body within maxBodyBytes is served; one over the cap is 413", async () => {
+  const app = pipe(
+    web(),
+    post("/upload", async (c) =>
+      pipe(
+        c.req,
+        getBytes,
+        matchOption(
+          () => "no bytes",
+          (b) => `${b.byteLength} bytes`,
+        ),
+        textResponse,
+        ok,
+      ),
+    ),
+  );
+  const server = pipe(
+    toFetch(app),
+    serve({ port: 0, maxBodyBytes: 8 }),
+  );
+  servers.push(server);
+  const port = await new Promise<number>(
+    (resolve) =>
+      server.on("listening", () => {
+        const addr = server.address();
+        resolve(
+          typeof addr === "object" &&
+            addr !== null
+            ? addr.port
+            : 0,
+        );
+      }),
+  );
+
+  const small = await fetch(
+    `http://127.0.0.1:${port}/upload`,
+    {
+      method: "POST",
+      headers: {
+        "content-type":
+          "application/octet-stream",
+      },
+      body: new Uint8Array([1, 2, 3]),
+    },
+  );
+  await expect(small.text()).resolves.toBe(
+    "3 bytes",
+  );
+
+  const big = await fetch(
+    `http://127.0.0.1:${port}/upload`,
+    {
+      method: "POST",
+      headers: {
+        "content-type":
+          "application/octet-stream",
+      },
+      body: new Uint8Array(64),
+    },
+  );
+  expect(big.status).toBe(413);
+  await expect(big.text()).resolves.toBe(
+    "Payload Too Large",
+  );
 });
 
 test("a rejecting handler surfaces as a 500 from the adapter", async () => {

@@ -3,9 +3,9 @@ created_at: 2026-06-10T12:29:28+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 2df878a
+category: Changed
 depends_on:
 ---
 
@@ -51,3 +51,20 @@ new `ServeOptions` surface for request hardening.
 - Touches **Observability and Self-Healing** (`standards:operation`): rejecting oversized/slow requests is a self-healing input; make the rejection observable (typed error, not a silent drop). 
 - Keep the Bun/Deno adapters in mind: they hand the native `Request` to the runtime and don't share `collectBody`; document that the cap/timeouts here are node-adapter-specific (or thread equivalent options where the runtimes expose them) so behavior is not silently divergent. (`packages/plgg-server/src/bun.ts`, `deno.ts`)
 - Use the existing `HttpError` typed vocabulary and `Result`/`Option` channels — strict no-`as`/`any`/`ts-ignore` (CLAUDE.md). Keep coverage >90% including the new branches.
+
+## Final Report
+
+Development completed as planned. tsc clean, 76 plgg-server tests pass (1 new),
+coverage 97.6% stmts / 93.3% branch (above the gate).
+
+### Discovered Insights
+
+- **Insight**: Order matters — `req.destroy()` must happen *after* the 413 is
+  written/flushed, not when the cap is first crossed. Destroying the socket on
+  overflow (the ticket's first-draft suggestion) resets the connection and the
+  client sees a network error instead of the 413. `collectBody` therefore only
+  *stops accumulating* on overflow (an `overflowed` guard keeps memory bounded)
+  and resolves a `too-large` outcome; `serve` writes the 413 and *then* destroys
+  the socket.
+  **Context**: any future early-rejection (e.g. a 431 for oversized headers)
+  must follow the same respond-then-destroy ordering. (`packages/plgg-server/src/Serving/usecase/serve.ts`)
