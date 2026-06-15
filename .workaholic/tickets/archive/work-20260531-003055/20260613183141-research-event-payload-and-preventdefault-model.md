@@ -3,9 +3,9 @@ created_at: 2026-06-13T18:31:41+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: e4f3c2d
+category: Added
 depends_on:
 ---
 
@@ -60,3 +60,47 @@ subscription, handled in [[20260613183140-research-effects-and-subscriptions]].)
 - **Accessibility** (`standards:design`): proper keyboard handling (Escape, Enter/Space activation, arrow-key navigation) is WCAG 2.2 AA — this channel is the enabler; fold keyboard-operability use cases into the design.
 - **Cross-ticket**: global/window events → [[20260613183140-research-effects-and-subscriptions]] (`Sub`); drag-to-reorder may also want post-paint measurement from [[20260613183139-research-ref-post-paint-hook]].
 - Exhaustive `match` across every `Attribute` fold; no `as`/`any`/`ts-ignore` (CLAUDE.md); coverage >90% on follow-ups.
+
+## Recommendation
+
+**Adopt typed event decoders + a `custom` handler** (Elm's `Html.Events`), added
+*alongside* today's `onClick`/`onInput`/`onChange`/`onSubmit` so nothing breaks.
+
+- **Decoder channel**: `on(event, decoder): Attribute<Msg>` where a `Decoder<a>`
+  is a small composable extractor (`field("key")`, `field("clientX")`,
+  `at(["dataTransfer","..."])`, `targetValue`, `targetChecked`) that pulls named
+  fields out of the DOM `Event` and yields a `Result`/`Option`. The pure core
+  only names the fields it wants; the raw `Event` never escapes the `render.ts`
+  seam — this is the type-driven answer (no `Event` bag, no `as`). The current
+  value-or-`""` `payloadOf` becomes the `targetValue` decoder.
+- **prevent/stop**: `custom(event, decoder): Decoder<{message, preventDefault,
+  stopPropagation}>` — replaces the hard-coded `submit`-only `preventDefault` in
+  `setHandler` and lets the modal use `stopPropagation` instead of the
+  separate-sibling hack. Keep the current `submit`-prevents-default default for
+  `onSubmit` so existing apps are unchanged.
+- **Boundary**: decoders run at the `render.ts` seam over the real `Event`; the
+  `Decoder` combinators live in the pure model and describe *what* to read.
+
+**Scope line**: this ticket is **element-level** richness. *Global*/window
+listeners (app-wide Escape) are a `Sub`
+([[20260613183140-research-effects-and-subscriptions]]); drag-to-reorder uses
+the decoder (`dataTransfer`) + `custom` (`preventDefault` on `dragover`) here,
+and may also want post-paint measurement from
+[[20260613183139-research-ref-post-paint-hook]].
+
+**Rejected**: widening the fixed payload to a bigger fixed record (e.g. always
+pass `{value, key, checked}`) — leaks DOM shape into the core and still can't
+cover `dataTransfer`/pointer; decoders are open-ended and typed.
+
+**Follow-up impl ticket**: add `Decoder` combinators + `on`/`custom`; thread the
+decoder through `setHandler` (run decoder, honor prevent/stop, dispatch on
+success); keep the four typed helpers as decoders over the new channel; demo
+Escape-closes-modal, click-outside via `stopPropagation`, and a drag-reorder
+proof to compare with the shipped ▲▼ click reorder.
+
+## Final Report
+
+Research spike complete — recommendation above; no runtime code changed.
+Recommendation: typed event decoders + `custom` (prevent/stop), added beside the
+existing typed helpers; element-level only, global events deferred to the `Sub`
+ticket. Follow-up implementation ticket to be opened before coding.
