@@ -3,9 +3,9 @@ created_at: 2026-06-10T12:29:30+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 1dd80fb
+category: Changed
 depends_on:
 ---
 
@@ -55,3 +55,22 @@ injection.
 - **Accessibility for Humans and AI** (`standards:design`/`standards:implementation`): keep legitimate `mailto:`/`tel:`/relative links working — the allow-list must not break valid reachable navigation.
 - SSR and client must enforce identical rules or an attacker picks the weaker path; assert parity in tests. (`renderToString.ts`, `render.ts`)
 - Strict no-`as`/`any`/`ts-ignore` (CLAUDE.md); keep coverage >90% across the new drop branches.
+
+## Final Report
+
+All three gaps closed. tsc clean; plgg-view 115 tests pass (5 new SSR + 2 new
+client parity); coverage 97.3% stmts / 97.2% branch.
+
+### Discovered Insights
+
+- **Insight**: A single shared `safeAttrValue(name, value)` in `escape.ts` is
+  the parity mechanism — both `renderToString` (SSR) and `setStaticAttr`
+  (client) call it, so the URL policy physically cannot drift between render
+  targets. `isSafeAttrName` (now also rejecting `on*`) is already shared the same
+  way. Future render targets should route attribute output through these two.
+  **Context**: the URL allow-list lives in one place; don't re-validate at sinks.
+- **Insight**: `safeUrl` strips control/space chars by char code
+  (`Array.from(v).filter(c => c.charCodeAt(0) > 0x20)`) rather than a regex
+  character class — this avoids a literal-control-char or escape in the source
+  and still defeats the `java\\tscript:` bypass that browsers normalize away.
+  **Context**: `packages/plgg-view/src/Html/usecase/escape.ts`.

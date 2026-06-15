@@ -90,6 +90,36 @@ test("attributes with unsafe names are dropped", () => {
   ).toBe(false);
 });
 
+test("client neutralizes a javascript: URL (parity with SSR)", () => {
+  const root = document.createElement("div");
+  makeRenderer<never>(
+    root,
+    noop,
+  )(
+    el(
+      "a",
+      [attr("href", "javascript:alert(1)")],
+      [],
+    ),
+  );
+  expect(
+    root.firstElementChild?.getAttribute("href"),
+  ).toBe("#");
+});
+
+test("client drops an on* attribute name", () => {
+  const root = document.createElement("div");
+  makeRenderer<never>(
+    root,
+    noop,
+  )(el("img", [attr("onerror", "alert(1)")], []));
+  expect(
+    root.firstElementChild?.hasAttribute(
+      "onerror",
+    ),
+  ).toBe(false);
+});
+
 // --- handlers ------------------------------------------------------------
 
 test("a click handler dispatches its Msg", () => {
@@ -777,7 +807,8 @@ const kli = (
   k: string,
   txt: string,
   ...extra: ReadonlyArray<
-    ReturnType<typeof key> | ReturnType<typeof fadeOut>
+    | ReturnType<typeof key>
+    | ReturnType<typeof fadeOut>
   >
 ) => el("li", [key(k), ...extra], [text(txt)]);
 
@@ -787,7 +818,10 @@ const kul = (
 
 /** Records every play call so a test can assert what animated and with what. */
 const spyPlay = () => {
-  const calls: Array<{ node: Element; motion: Motion }> = [];
+  const calls: Array<{
+    node: Element;
+    motion: Motion;
+  }> = [];
   const play: Play = (node, motion) => {
     calls.push({ node, motion });
     return Promise.resolve();
@@ -798,10 +832,24 @@ const spyPlay = () => {
 test("keyed children are reused and reordered by key, not index", () => {
   const root = document.createElement("div");
   const render = makeRenderer<never>(root, noop);
-  render(kul(kli("a", "A"), kli("b", "B"), kli("c", "C")));
+  render(
+    kul(
+      kli("a", "A"),
+      kli("b", "B"),
+      kli("c", "C"),
+    ),
+  );
   const ul = root.firstElementChild;
-  const [a, b, c] = Array.from(ul?.children ?? []);
-  render(kul(kli("c", "C"), kli("a", "A"), kli("b", "B")));
+  const [a, b, c] = Array.from(
+    ul?.children ?? [],
+  );
+  render(
+    kul(
+      kli("c", "C"),
+      kli("a", "A"),
+      kli("b", "B"),
+    ),
+  );
   const after = Array.from(ul?.children ?? []);
   // the SAME node objects, now in the new order — moved, not rebuilt
   expect(after).toEqual([c, a, b]);
@@ -813,10 +861,19 @@ test("keyed children are reused and reordered by key, not index", () => {
 test("a new keyed child fires enter; reused siblings do not", () => {
   const root = document.createElement("div");
   const { calls, play } = spyPlay();
-  const render = makeRenderer<never>(root, noop, play);
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
   render(kul(kli("a", "A")));
   calls.length = 0; // ignore the first paint's enters
-  render(kul(kli("a", "A"), kli("b", "B", fadeIn(150))));
+  render(
+    kul(
+      kli("a", "A"),
+      kli("b", "B", fadeIn(150)),
+    ),
+  );
   const ul = root.firstElementChild;
   const b = ul?.children[1];
   expect(calls.length).toBe(1);
@@ -833,7 +890,11 @@ test("deleting a middle keyed child fades that node, then detaches it", async ()
           settle = () => resolve();
         })
       : Promise.resolve();
-  const render = makeRenderer<never>(root, noop, play);
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
   render(
     kul(
       kli("a", "A", fadeOut(120)),
@@ -857,7 +918,9 @@ test("deleting a middle keyed child fades that node, then detaches it", async ()
   settle();
   await Promise.resolve();
   await Promise.resolve();
-  const remaining = Array.from(ul?.children ?? []);
+  const remaining = Array.from(
+    ul?.children ?? [],
+  );
   expect(
     remaining.map((n) => n.textContent).join(""),
   ).toBe("AC");
@@ -1011,7 +1074,11 @@ test("a reused key with a changed tag is replaced, not patched", () => {
   const ul = root.firstElementChild;
   const oldNode = ul?.firstElementChild;
   render(
-    el("ul", [], [el("p", [key("a")], [text("A2")])]),
+    el(
+      "ul",
+      [],
+      [el("p", [key("a")], [text("A2")])],
+    ),
   );
   const newNode = ul?.firstElementChild;
   expect(newNode).not.toBe(oldNode);
@@ -1037,15 +1104,19 @@ test("a node mid-exit is skipped when its key returns (fresh node, not the fadin
     new Promise<void>((resolve) => {
       settle = () => resolve();
     });
-  const render = makeRenderer<never>(root, noop, play);
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
   render(kul(kli("a", "A", fadeOut(120))));
   const ul = root.firstElementChild;
   const exiting = ul?.firstElementChild;
   render(el("ul", [], [])); // 'a' starts exiting (held in DOM)
   render(kul(kli("a", "A", fadeOut(120)))); // 'a' returns
-  const live = Array.from(ul?.children ?? []).filter(
-    (n) => n !== exiting,
-  );
+  const live = Array.from(
+    ul?.children ?? [],
+  ).filter((n) => n !== exiting);
   // a brand-new node serves the returning key — not the one fading away
   expect(live.length).toBe(1);
   expect(live[0]).not.toBe(exiting);
@@ -1059,25 +1130,33 @@ test("a survivor FLIPs from its old box to its new one when it moves", () => {
   const root = document.createElement("div");
   document.body.appendChild(root);
   const { calls, play } = spyPlay();
-  const render = makeRenderer<never>(root, noop, play);
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
   render(kul(kli("a", "A"), kli("b", "B")));
   const ul = root.firstElementChild;
   // stub layout: each row's top tracks its live sibling index, so a reorder
   // makes getBoundingClientRect report a real positional delta (happy-dom
   // otherwise returns all-zero rects and FLIP would never trigger).
   const stub = (el: Element): void => {
-    Object.defineProperty(el, "getBoundingClientRect", {
-      configurable: true,
-      value: (): DOMRect =>
-        new DOMRect(
-          0,
-          Array.from(
-            el.parentElement?.children ?? [],
-          ).indexOf(el) * 10,
-          0,
-          0,
-        ),
-    });
+    Object.defineProperty(
+      el,
+      "getBoundingClientRect",
+      {
+        configurable: true,
+        value: (): DOMRect =>
+          new DOMRect(
+            0,
+            Array.from(
+              el.parentElement?.children ?? [],
+            ).indexOf(el) * 10,
+            0,
+            0,
+          ),
+      },
+    );
   };
   Array.from(ul?.children ?? []).forEach(stub);
   calls.length = 0;

@@ -13,6 +13,8 @@ import {
   escapeText,
   escapeAttr,
   isSafeAttrName,
+  isSafeTag,
+  safeAttrValue,
 } from "plgg-view/Html/usecase/escape";
 
 /**
@@ -50,7 +52,7 @@ const renderAttribute = <Msg>(
       attr$(),
       ({ content }): SoftStr =>
         isSafeAttrName(content.name)
-          ? ` ${content.name}="${escapeAttr(content.value)}"`
+          ? ` ${content.name}="${escapeAttr(safeAttrValue(content.name, content.value))}"`
           : "",
     ],
     [handler$(), (): SoftStr => ""],
@@ -75,11 +77,16 @@ export const renderToString = <Msg>(
   foldHtml<Msg, SoftStr>({
     text: (value) => escapeText(value),
     element: (tag, attributes, children) =>
-      VOID_TAGS.some((t) => t === tag)
-        ? `<${tag}${attributes.map(renderAttribute).join("")} />`
-        : `<${tag}${attributes
-            .map(renderAttribute)
-            .join(
-              "",
-            )}>${children.join("")}</${tag}>`,
+      // an unsafe tag (only reachable via the `el(tag, …)` hatch) is dropped
+      // whole — it could otherwise inject markup, and there is no safe way to
+      // emit an arbitrary tag string
+      !isSafeTag(tag)
+        ? ""
+        : VOID_TAGS.some((t) => t === tag)
+          ? `<${tag}${attributes.map(renderAttribute).join("")} />`
+          : `<${tag}${attributes
+              .map(renderAttribute)
+              .join(
+                "",
+              )}>${children.join("")}</${tag}>`,
   })(node);

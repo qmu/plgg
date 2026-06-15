@@ -25,7 +25,10 @@ import {
   css$,
   key$,
 } from "plgg-view/Html/model/Attribute";
-import { isSafeAttrName } from "plgg-view/Html/usecase/escape";
+import {
+  isSafeAttrName,
+  safeAttrValue,
+} from "plgg-view/Html/usecase/escape";
 
 /**
  * The DOM event payload a handler receives: the target's `value` where it has
@@ -199,8 +202,11 @@ const setStaticAttr = (
   value: SoftStr,
 ): void => {
   if (isSafeAttrName(name)) {
-    node.setAttribute(name, value);
-    syncSetProperty(node, name, value);
+    // same URL-scheme guard as SSR (one shared `safeAttrValue`) so a
+    // `javascript:` href/src can't execute after the client takes over
+    const safe = safeAttrValue(name, value);
+    node.setAttribute(name, safe);
+    syncSetProperty(node, name, safe);
   }
 };
 
@@ -839,37 +845,39 @@ const startCollapse = (
     // at full size and snap away on detach — the "padding suddenly shrinks" bug.
     const style = window.getComputedStyle(node);
     node.style.overflow = "hidden";
-    void node.animate(
-      [
+    void node
+      .animate(
+        [
+          {
+            height: style.height,
+            paddingTop: style.paddingTop,
+            paddingBottom: style.paddingBottom,
+            marginTop: style.marginTop,
+            marginBottom: style.marginBottom,
+            borderTopWidth: style.borderTopWidth,
+            borderBottomWidth:
+              style.borderBottomWidth,
+          },
+          {
+            height: "0px",
+            paddingTop: "0px",
+            paddingBottom: "0px",
+            marginTop: "0px",
+            marginBottom: "0px",
+            borderTopWidth: "0px",
+            borderBottomWidth: "0px",
+          },
+        ],
         {
-          height: style.height,
-          paddingTop: style.paddingTop,
-          paddingBottom: style.paddingBottom,
-          marginTop: style.marginTop,
-          marginBottom: style.marginBottom,
-          borderTopWidth: style.borderTopWidth,
-          borderBottomWidth:
-            style.borderBottomWidth,
+          duration: durationMs,
+          easing: "ease-in",
+          fill: "forwards",
         },
-        {
-          height: "0px",
-          paddingTop: "0px",
-          paddingBottom: "0px",
-          marginTop: "0px",
-          marginBottom: "0px",
-          borderTopWidth: "0px",
-          borderBottomWidth: "0px",
-        },
-      ],
-      {
-        duration: durationMs,
-        easing: "ease-in",
-        fill: "forwards",
-      },
-    ).finished.then(
-      () => undefined,
-      () => undefined,
-    );
+      )
+      .finished.then(
+        () => undefined,
+        () => undefined,
+      );
   }
 };
 
@@ -896,11 +904,9 @@ const playKeyedExit = <Msg>(
       // confined DOM seam: shrink the row so the gap closes by layout
       startCollapse(node, motion.durationMs);
       // fade via the seam; detach once the exit finishes
-      void wiring
-        .play(node, motion)
-        .then(() => {
-          node.remove();
-        });
+      void wiring.play(node, motion).then(() => {
+        node.remove();
+      });
     },
   )(motionOpt);
 
@@ -932,9 +938,7 @@ const patchKeyed =
             [text$(), (): Node => replace()],
             [
               element$(),
-              ({
-                content: oldContent,
-              }): Node => {
+              ({ content: oldContent }): Node => {
                 if (
                   oldContent.tag ===
                   newContent.tag
@@ -973,7 +977,10 @@ const keyedPatchChildren =
   ): void => {
     // old vnode by key (to diff a reused node against), live DOM node by key
     // (skipping nodes mid-exit), and the set of keys the new tree keeps.
-    const oldByKey = new Map<SoftStr, Html<Msg>>();
+    const oldByKey = new Map<
+      SoftStr,
+      Html<Msg>
+    >();
     oldChildren.forEach((child) =>
       matchOption(
         (): void => undefined,
@@ -1013,7 +1020,10 @@ const keyedPatchChildren =
     );
 
     // FLIP step 1: snapshot every survivor's box before any mutation.
-    const firstRects = new Map<Element, DOMRect>();
+    const firstRects = new Map<
+      Element,
+      DOMRect
+    >();
     domByKey.forEach((node, k) => {
       if (newKeys.has(k)) {
         firstRects.set(

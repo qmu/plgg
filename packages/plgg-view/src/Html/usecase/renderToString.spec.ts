@@ -28,6 +28,64 @@ test("renders an element with escaped attributes and children", () => {
   );
 });
 
+test("neutralizes a javascript: URL on a URL-bearing attribute", () => {
+  const out = renderToString(
+    el(
+      "a",
+      [attr("href", "javascript:alert(1)")],
+      [text("x")],
+    ),
+  );
+  expect(out).toContain('href="#"');
+  expect(out).not.toContain("javascript:");
+});
+
+test("preserves legitimate http/mailto/relative URLs", () => {
+  expect(
+    renderToString(
+      el(
+        "a",
+        [
+          attr(
+            "href",
+            "https://example.com/p?q=1",
+          ),
+        ],
+        [],
+      ),
+    ),
+  ).toContain('href="https://example.com/p?q=1"');
+  expect(
+    renderToString(
+      el(
+        "a",
+        [attr("href", "mailto:a@b.co")],
+        [],
+      ),
+    ),
+  ).toContain('href="mailto:a@b.co"');
+  expect(
+    renderToString(
+      el("a", [attr("href", "/local/path")], []),
+    ),
+  ).toContain('href="/local/path"');
+});
+
+test("drops an on* event-handler attribute name", () => {
+  const out = renderToString(
+    el("img", [attr("onerror", "alert(1)")], []),
+  );
+  expect(out).not.toContain("onerror");
+});
+
+test("drops an unsafe tag emitted via the el() hatch", () => {
+  expect(
+    renderToString(
+      el("div onload=alert(1)", [], [text("x")]),
+    ),
+  ).toBe("");
+});
+
 test("drops event handlers (no events on the server)", () => {
   const html = el(
     "button",
