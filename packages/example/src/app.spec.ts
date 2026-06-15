@@ -363,6 +363,35 @@ test("ToastDismissed removes the matching toast", () => {
   ).toEqual([]);
 });
 
+test("Moved swaps a todo with its neighbour and is a no-op at the edges", () => {
+  const three: Model = {
+    ...seed,
+    todos: [
+      { id: 1, title: "a", completed: false },
+      { id: 2, title: "b", completed: false },
+      { id: 3, title: "c", completed: false },
+    ],
+  };
+  expect(
+    update(
+      { kind: "Moved", id: 2, delta: -1 },
+      three,
+    ).todos.map((t) => t.id),
+  ).toEqual([2, 1, 3]);
+  expect(
+    update(
+      { kind: "Moved", id: 3, delta: 1 },
+      three,
+    ).todos.map((t) => t.id),
+  ).toEqual([1, 2, 3]);
+  expect(
+    update(
+      { kind: "Moved", id: 1, delta: -1 },
+      three,
+    ).todos.map((t) => t.id),
+  ).toEqual([1, 2, 3]);
+});
+
 test("ExpandToggled adds then removes a todo id (accordion)", () => {
   const open = update(
     { kind: "ExpandToggled", id: 1 },

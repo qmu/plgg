@@ -118,6 +118,12 @@ export type Msg =
       kind: "ExpandToggled";
       id: number;
     }>
+  // reorder: move a todo up (delta -1) or down (+1) — drives the FLIP path
+  | Readonly<{
+      kind: "Moved";
+      id: number;
+      delta: number;
+    }>
   // toaster: a toast dismissed by its close button
   | Readonly<{
       kind: "ToastDismissed";
@@ -138,6 +144,27 @@ export const init: Model = {
   toastSeq: 1,
   expanded: [],
   confirmClear: false,
+};
+
+/**
+ * Move the todo `id` by `delta` positions (clamped), swapping it with its
+ * neighbour. Pure and bounds-guarded — out-of-range returns the list unchanged.
+ * The keyed list means this swap is what the renderer animates as a FLIP.
+ */
+const move = (
+  todos: ReadonlyArray<Todo>,
+  id: number,
+  delta: number,
+): ReadonlyArray<Todo> => {
+  const i = todos.findIndex((t) => t.id === id);
+  const j = i + delta;
+  const a = todos[i];
+  const b = todos[j];
+  return a === undefined || b === undefined
+    ? todos
+    : todos.map((t, k) =>
+        k === i ? b : k === j ? a : t,
+      );
 };
 
 /** Append a toast, minting its id from `toastSeq`. Pure. */
@@ -242,6 +269,15 @@ export const update = (
             )
           : [...model.expanded, msg.id],
       };
+    case "Moved":
+      return {
+        ...model,
+        todos: move(
+          model.todos,
+          msg.id,
+          msg.delta,
+        ),
+      };
     case "ToastDismissed":
       return {
         ...model,
@@ -325,6 +361,12 @@ const primaryButtonStyle = sx.style_(
   sx.hover(sx.shadow("md")),
   sx.focus(sx.outline("primary")),
 );
+
+// Tiny chevron reorder button. Inline because the style system has no
+// transparent-background / borderless utility (another small gap these
+// controls surface).
+const REORDER_BTN_STYLE =
+  "background:transparent;border:none;cursor:pointer;color:#6b7280;font-size:0.7rem;line-height:1;padding:0 4px";
 
 // ── Toaster ──────────────────────────────────────────────────────────────────
 // A toast slides in from the right edge and slides back out as it leaves. Built
@@ -695,6 +737,45 @@ const viewTodo = (
               }),
             ],
             [text(todo.title)],
+          ),
+          // reorder controls — clicking drives a keyed swap the renderer FLIPs
+          div(
+            [
+              class_("todo-reorder"),
+              sx.style_(sx.flexCol),
+            ],
+            [
+              button(
+                [
+                  class_("todo-up"),
+                  attr(
+                    "style",
+                    REORDER_BTN_STYLE,
+                  ),
+                  onClick<Msg>({
+                    kind: "Moved",
+                    id: todo.id,
+                    delta: -1,
+                  }),
+                ],
+                [text("▲")],
+              ),
+              button(
+                [
+                  class_("todo-down"),
+                  attr(
+                    "style",
+                    REORDER_BTN_STYLE,
+                  ),
+                  onClick<Msg>({
+                    kind: "Moved",
+                    id: todo.id,
+                    delta: 1,
+                  }),
+                ],
+                [text("▼")],
+              ),
+            ],
           ),
           button(
             [
