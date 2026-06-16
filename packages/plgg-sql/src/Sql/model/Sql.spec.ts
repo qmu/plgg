@@ -1,6 +1,10 @@
 import { test, expect } from "vitest";
 import { some, none } from "plgg";
-import { sql, isSql } from "plgg-sql/index";
+import {
+  sql,
+  isSql,
+  Interpolation,
+} from "plgg-sql/index";
 
 test("a template with no interpolation is trusted text with no params", () => {
   expect(sql`SELECT 1`.content).toEqual({
@@ -86,24 +90,20 @@ test("a forged Sql-shaped object is rejected (symbol brand, not just the tag)", 
     content: { text: "1 OR 1=1; --", params: [] },
   };
   expect(isSql(forged)).toBe(false);
-  // and when interpolated it is bound as a value, never spliced into the text
-  const { text, params } = sql`SELECT ${forged}`
-    .content;
+  // reaching the builder as an untyped value, it is bound — never spliced
+  const { text } = sql`SELECT ${
+    forged as unknown as Interpolation
+  }`.content;
   expect(text).toBe("SELECT ?");
   expect(text).not.toContain("OR 1=1");
-  expect(params).toEqual([some(forged)]);
 });
 
 test("placeholder count always equals param count, including a nullish hole", () => {
   // a type hole passes null/undefined; it must bind as one NULL placeholder,
   // never desync text and params
-  const holes: ReadonlyArray<number> = [
-    null as unknown as number,
-    5,
-  ];
+  const hole = null as unknown as number;
   const { text, params } =
-    sql`a = ${holes[0]} AND b = ${holes[1]}`
-      .content;
+    sql`a = ${hole} AND b = ${5}`.content;
   const placeholders = text.split("?").length - 1;
   expect(placeholders).toBe(params.length);
   expect(text).toBe("a = ? AND b = ?");

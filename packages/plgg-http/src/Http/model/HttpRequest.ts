@@ -46,7 +46,7 @@ const lookup = (
   map: Dict<string, SoftStr>,
   name: SoftStr,
 ): Option<SoftStr> =>
-  Object.hasOwn(map, name)
+  Object.prototype.hasOwnProperty.call(map, name)
     ? fromNullable(map[name])
     : none();
 
