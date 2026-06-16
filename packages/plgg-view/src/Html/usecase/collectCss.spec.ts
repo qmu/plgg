@@ -31,7 +31,7 @@ test("collectCss renders the atomic rules of a tree (base + :hover)", () => {
     `.${hashClass("|padding:0.75rem")}{padding:0.75rem}`,
   );
   expect(sheet).toContain(
-    ":hover{background-color:#2563eb}",
+    ":hover{background-color:#1f6b54}",
   );
 });
 

@@ -12,6 +12,8 @@ import {
   fadeOut,
   slideIn,
   transition,
+  easeOut,
+  easeIn,
 } from "plgg-view/Html/model/Attribute";
 
 type Msg =
@@ -87,7 +89,7 @@ test("fadeIn builds an enter-only Anim directive", () => {
           transform: none(),
         },
         durationMs: 150,
-        easing: "ease-out",
+        easing: easeOut,
       }),
       exit: none(),
     },
@@ -110,7 +112,7 @@ test("fadeOut builds an exit-only Anim directive", () => {
           transform: none(),
         },
         durationMs: 120,
-        easing: "ease-in",
+        easing: easeIn,
       }),
     );
   }
@@ -131,7 +133,7 @@ test("slideIn carries a transform on both endpoints", () => {
           transform: some("translateY(0)"),
         },
         durationMs: 200,
-        easing: "ease-out",
+        easing: easeOut,
       }),
     );
   }

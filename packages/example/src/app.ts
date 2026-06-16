@@ -34,6 +34,8 @@ import {
   fadeIn,
   fadeOut,
   transition,
+  easeOut,
+  easeIn,
 } from "plgg-view";
 import {
   QueryCodec,
@@ -337,36 +339,43 @@ const FILTERS: ReadonlyArray<Filter> = [
   "completed",
 ];
 
-// Reusable styles composed once. `style_` is the one styling primitive: a hook
-// string + atoms + variants (`:hover`/`:focus`) → atomic classes the fold emits
-// into <head>. (For a dynamic inline value, `attr("style", …)` is the escape.)
+// Flat, square, borderless chrome — an intentional editorial look, not the
+// default bordered/rounded/shadowed buttons. Geometry goes through the
+// `attr("style", …)` escape (the style system has no border-reset / underline
+// utilities); `bg`/`hover`/`focus` stay in `sx` so hover can still swap the fill
+// (an inline `background` would beat a `:hover` rule and break it).
+
+// Underline text field: no box, just a hairline rule that the focus ring lifts.
+const FIELD_GEO =
+  "appearance:none;border:0;border-bottom:1.5px solid #d8ccb4;border-radius:0;background:transparent;color:#2a241d;font:inherit;padding:0.5rem 0.15rem";
 const inputStyle = sx.style_(
   sx.grow,
-  sx.px(3),
-  sx.py(2),
-  sx.rounded("md"),
-  sx.border,
   sx.text("base"),
   sx.focus(sx.outline("primary")),
 );
 
+// Solid accent block; the fill flips to ink on hover (sx variant, not inline).
+const PRIMARY_BTN_GEO =
+  "appearance:none;border:0;border-radius:0;color:#fbfaf3;font:inherit;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;font-size:0.78rem;padding:0.7rem 1.4rem;cursor:pointer";
 const primaryButtonStyle = sx.style_(
-  sx.px(4),
-  sx.py(2),
-  sx.rounded("md"),
   sx.bg("primary"),
-  sx.color("primary-text"),
-  sx.weight(600),
-  sx.pointer,
-  sx.hover(sx.shadow("md")),
+  sx.hover(sx.bg("text")),
   sx.focus(sx.outline("primary")),
 );
+
+// Borderless text button (clear, delete) — flat, square, uppercase.
+const GHOST_BTN_GEO =
+  "appearance:none;border:0;border-radius:0;background:transparent;font:inherit;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.72rem;padding:0.5rem 0.7rem;cursor:pointer";
+
+// Filter-pill geometry — no `background` so the sx fill (selected vs hover) wins.
+const FILTER_GEO =
+  "appearance:none;border:0;border-radius:0;font:inherit;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;font-size:0.72rem;padding:0.5rem 0.85rem;cursor:pointer";
 
 // Tiny chevron reorder button. Inline because the style system has no
 // transparent-background / borderless utility (another small gap these
 // controls surface).
 const REORDER_BTN_STYLE =
-  "background:transparent;border:none;cursor:pointer;color:#6b7280;font-size:0.7rem;line-height:1;padding:0 4px";
+  "background:transparent;border:none;border-radius:0;cursor:pointer;color:#8a8073;font-size:0.7rem;line-height:1;padding:0 4px";
 
 // ── Toaster ──────────────────────────────────────────────────────────────────
 // A toast slides in from the right edge and slides back out as it leaves. Built
@@ -384,8 +393,8 @@ const toastMotion = transition({
       opacity: some(1),
       transform: some("translateX(0)"),
     },
-    durationMs: 220,
-    easing: "ease-out",
+    durationMs: 300,
+    easing: easeOut,
   },
   exit: {
     from: {
@@ -396,8 +405,8 @@ const toastMotion = transition({
       opacity: some(0),
       transform: some("translateX(110%)"),
     },
-    durationMs: 200,
-    easing: "ease-in",
+    durationMs: 220,
+    easing: easeIn,
   },
 });
 
@@ -415,7 +424,6 @@ const viewToast = (
         sx.gap(3),
         sx.px(4),
         sx.py(3),
-        sx.rounded("md"),
         sx.shadow("md"),
         ...(toast.tone === "danger"
           ? [
@@ -507,8 +515,8 @@ const viewModal = (
               "style",
               "position:fixed;inset:0;z-index:40;background:rgba(15,23,42,0.45)",
             ),
-            fadeIn(160),
-            fadeOut(160),
+            fadeIn(220),
+            fadeOut(180),
             onClick<Msg>({
               kind: "ClearCancelled",
             }),
@@ -527,13 +535,12 @@ const viewModal = (
               sx.bg("surface"),
               sx.color("text"),
               sx.p(5),
-              sx.rounded("md"),
               sx.shadow("md"),
               sx.flexCol,
               sx.gap(3),
             ),
-            fadeIn(160),
-            fadeOut(160),
+            fadeIn(220),
+            fadeOut(180),
           ],
           [
             h2(
@@ -570,17 +577,15 @@ const viewModal = (
               [
                 button(
                   [
+                    class_("modal-cancel"),
                     sx.style_(
-                      "modal-cancel",
-                      sx.px(4),
-                      sx.py(2),
-                      sx.rounded("md"),
-                      sx.border,
-                      sx.bg("surface"),
-                      sx.color("text"),
-                      sx.pointer,
-                      sx.hover(sx.shadow("sm")),
+                      sx.color("muted"),
+                      sx.hover(sx.color("text")),
+                      sx.focus(
+                        sx.outline("primary"),
+                      ),
                     ),
+                    attr("style", GHOST_BTN_GEO),
                     onClick<Msg>({
                       kind: "ClearCancelled",
                     }),
@@ -589,17 +594,14 @@ const viewModal = (
                 ),
                 button(
                   [
+                    class_("modal-confirm"),
+                    // solid danger block, flat — fill flips to ink on hover
                     sx.style_(
-                      "modal-confirm",
-                      sx.px(4),
-                      sx.py(2),
-                      sx.rounded("md"),
                       sx.bg("danger"),
-                      sx.color("primary-text"),
-                      sx.weight(600),
-                      sx.pointer,
-                      sx.hover(sx.shadow("md")),
+                      sx.hover(sx.bg("text")),
+                      sx.focus(sx.outline("danger")),
                     ),
+                    attr("style", PRIMARY_BTN_GEO),
                     onClick<Msg>({
                       kind: "ClearConfirmed",
                     }),
@@ -629,19 +631,12 @@ const viewFilters = (
     FILTERS.map((filter) =>
       button(
         [
-          // one styling primitive: the hook string keeps the `.filter`/`.selected`
-          // test selectors; atoms + a :hover lift + a :focus ring extract to <head>.
+          // the hook string keeps the `.filter`/`.selected` test selectors;
+          // selected = solid accent, unselected = muted text with a sand hover.
           sx.style_(
             model.filter === filter
               ? "filter selected"
               : "filter",
-            sx.px(3),
-            sx.py(1),
-            sx.rounded("md"),
-            sx.border,
-            sx.pointer,
-            sx.text("sm"),
-            sx.hover(sx.shadow("sm")),
             sx.focus(sx.outline("primary")),
             ...(model.filter === filter
               ? [
@@ -649,10 +644,11 @@ const viewFilters = (
                   sx.color("primary-text"),
                 ]
               : [
-                  sx.bg("surface"),
-                  sx.color("text"),
+                  sx.color("muted"),
+                  sx.hover(sx.bg("surface-2")),
                 ]),
           ),
+          attr("style", FILTER_GEO),
           onClick<Msg>({
             kind: "FilterChanged",
             filter,
@@ -687,14 +683,18 @@ const viewTodo = (
         // row spacing as margin (not list gap) so the exit collapse can shrink
         // it to 0 — a flex gap can't be animated per-item and would leave a jump.
         sx.mb(2),
-        sx.rounded("md"),
-        sx.border,
-        sx.bg("surface"),
+        // flat sand blocks (no border, no radius) on the white sheet; a left
+        // accent rule gives each row a crisp edge
+        sx.bg("surface-2"),
+      ),
+      attr(
+        "style",
+        "border-left:3px solid #1f6b54;padding-left:0.9rem",
       ),
       // a new item fades in; a removed / filtered-out one fades out before the
       // renderer detaches it (the deferred-removal exit lifecycle)
-      fadeIn(150),
-      fadeOut(150),
+      fadeIn(240),
+      fadeOut(200),
     ],
     [
       div(
@@ -779,24 +779,20 @@ const viewTodo = (
           ),
           button(
             [
+              class_("todo-delete"),
+              // ghost: brick text that darkens to ink on hover — no heavy block
               sx.style_(
-                "todo-delete",
-                sx.px(3),
-                sx.py(1),
-                sx.rounded("md"),
-                sx.bg("danger"),
-                sx.color("primary-text"),
-                sx.pointer,
-                sx.text("sm"),
-                sx.hover(sx.shadow("md")),
+                sx.color("danger"),
+                sx.hover(sx.color("text")),
                 sx.focus(sx.outline("danger")),
               ),
+              attr("style", GHOST_BTN_GEO),
               onClick<Msg>({
                 kind: "Deleted",
                 id: todo.id,
               }),
             ],
-            [text("delete")],
+            [text("Delete")],
           ),
         ],
       ),
@@ -816,7 +812,7 @@ const viewTodo = (
           ),
           attr(
             "style",
-            `display:grid;grid-template-rows:${isOpen ? "1fr" : "0fr"};transition:grid-template-rows 220ms ease`,
+            `display:grid;grid-template-rows:${isOpen ? "1fr" : "0fr"};transition:grid-template-rows 300ms ${easeOut}`,
           ),
         ],
         [
@@ -857,13 +853,13 @@ const viewTodo = (
  */
 export const view = (model: Model): Html<Msg> =>
   div(
-    // full-width page wrapper that centers the card
+    // full-width page wrapper: cream "paper" canvas, centered card, humanist
+    // sans body. The editorial palette comes from the design tokens.
     [
-      sx.style_(
-        sx.flex,
-        sx.justify("center"),
-        sx.p(4),
-        sx.color("text"),
+      sx.style_(sx.flex, sx.justify("center")),
+      attr(
+        "style",
+        "min-height:100vh;padding:clamp(2rem,6vw,5rem) 1.5rem;background:#f4ecda;color:#2a241d;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif",
       ),
     ],
     [
@@ -877,26 +873,41 @@ export const view = (model: Model): Html<Msg> =>
             sx.wFull,
             sx.maxW(160),
             sx.flexCol,
-            sx.gap(4),
+            sx.gap(5),
+            sx.bg("surface"),
+          ),
+          // a flat framed sheet: square, a single hairline rule, no soft shadow
+          attr(
+            "style",
+            "padding:clamp(1.5rem,4vw,2.75rem);border:1px solid #e6dcc8",
           ),
         ],
         [
           header(
-            [class_("todos-header")],
             [
+              class_("todos-header"),
+              sx.style_(sx.flexCol, sx.gap(2)),
+            ],
+            [
+              // monospace eyebrow — a small editorial label in the accent
+              span(
+                [
+                  attr(
+                    "style",
+                    "font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:0.7rem;letter-spacing:0.22em;text-transform:uppercase;color:#1f6b54;font-weight:600",
+                  ),
+                ],
+                [text("A plgg demo · SSR + CSR")],
+              ),
               h1(
                 [
-                  sx.style_(
-                    sx.text("2xl"),
-                    sx.weight(700),
-                    sx.mb(1),
+                  // serif display title — characterful, tight tracking
+                  attr(
+                    "style",
+                    "margin:0;font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,ui-serif,serif;font-size:clamp(1.9rem,5vw,2.4rem);line-height:1.05;letter-spacing:-0.02em;font-weight:600",
                   ),
                 ],
-                [
-                  text(
-                    "plgg To-Do — Elm Architecture",
-                  ),
-                ],
+                [text("Things to do")],
               ),
               p(
                 [
@@ -904,10 +915,14 @@ export const view = (model: Model): Html<Msg> =>
                     sx.color("muted"),
                     sx.text("sm"),
                   ),
+                  attr(
+                    "style",
+                    "margin:0;line-height:1.55;max-width:46ch",
+                  ),
                 ],
                 [
                   text(
-                    "One pure Model/update/view, rendered on the server (SSR) and taken over by the client (CSR) on plgg-view's minimal Elm Architecture. The filter and search are reflected to the URL.",
+                    "One pure Model/update/view, rendered on the server and taken over by the client on plgg-view. Add, reorder, expand, and clear — filter and search reflect to the URL.",
                   ),
                 ],
               ),
@@ -929,6 +944,7 @@ export const view = (model: Model): Html<Msg> =>
                   name_("title"),
                   value_(model.draft),
                   inputStyle,
+                  attr("style", FIELD_GEO),
                   onInput<Msg>((value) => ({
                     kind: "DraftChanged",
                     value,
@@ -940,6 +956,7 @@ export const view = (model: Model): Html<Msg> =>
                 [
                   type_("submit"),
                   primaryButtonStyle,
+                  attr("style", PRIMARY_BTN_GEO),
                 ],
                 [text("Add")],
               ),
@@ -965,6 +982,7 @@ export const view = (model: Model): Html<Msg> =>
                   name_("q"),
                   value_(model.q),
                   inputStyle,
+                  attr("style", FIELD_GEO),
                   onInput<Msg>((value) => ({
                     kind: "SearchChanged",
                     value,
@@ -972,22 +990,16 @@ export const view = (model: Model): Html<Msg> =>
                 ],
                 [],
               ),
-              // opens the clear-completed confirmation modal
+              // opens the clear-completed confirmation modal — a quiet ghost link
               button(
                 [
+                  class_("clear-completed"),
                   sx.style_(
-                    "clear-completed",
-                    sx.px(3),
-                    sx.py(1),
-                    sx.rounded("md"),
-                    sx.border,
-                    sx.bg("surface"),
-                    sx.color("text"),
-                    sx.pointer,
-                    sx.text("sm"),
-                    sx.hover(sx.shadow("sm")),
+                    sx.color("muted"),
+                    sx.hover(sx.color("danger")),
                     sx.focus(sx.outline("danger")),
                   ),
+                  attr("style", GHOST_BTN_GEO),
                   onClick<Msg>({
                     kind: "ClearRequested",
                   }),

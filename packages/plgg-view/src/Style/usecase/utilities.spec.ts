@@ -139,7 +139,7 @@ test("typography utilities", () => {
     { prop: "font-weight", value: "600" },
   ]);
   expect(color("text")).toEqual([
-    { prop: "color", value: "#111827" },
+    { prop: "color", value: "#2a241d" },
   ]);
   expect(center[0]?.value).toBe("center");
   expect(left[0]?.value).toBe("left");
@@ -150,7 +150,7 @@ test("background and border utilities map tokens to values", () => {
   expect(bg("primary")).toEqual([
     {
       prop: "background-color",
-      value: "#2563eb",
+      value: "#1f6b54",
     },
   ]);
   expect(rounded("md")).toEqual([
@@ -159,16 +159,16 @@ test("background and border utilities map tokens to values", () => {
   expect(border).toEqual([
     {
       prop: "border",
-      value: "1px solid #e5e7eb",
+      value: "1px solid #e6dcc8",
     },
   ]);
   expect(borderColor("danger")[0]?.value).toBe(
-    "#dc2626",
+    "#b23a2a",
   );
   expect(outline("primary")).toEqual([
     {
       prop: "outline",
-      value: "2px solid #2563eb",
+      value: "2px solid #1f6b54",
     },
   ]);
 });

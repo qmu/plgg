@@ -520,7 +520,7 @@ test("style_ sets and patches the class attribute (hook + atoms)", () => {
   );
   expect(root.firstElementChild).toBe(node);
   expect(node?.getAttribute("class")).toBe(
-    `${hashClass("|padding:1rem")} ${hashClass("|background-color:#2563eb")}`,
+    `${hashClass("|padding:1rem")} ${hashClass("|background-color:#1f6b54")}`,
   );
 });
 
@@ -926,12 +926,8 @@ test("deleting a middle keyed child fades that node, then detaches it", async ()
   ).toBe("AC");
 });
 
-test("a keyed exit collapses the leaving row's height in flow (overflow hidden + height keyframes)", () => {
+test("a keyed exit lifts the leaving row out of flow so survivors take its space (it fades in place)", () => {
   const root = document.createElement("div");
-  const calls: Array<{
-    frames: ReadonlyArray<Keyframe>;
-    opts: KeyframeAnimationOptions;
-  }> = [];
   // play never settles, so the node is held in the DOM for inspection
   const play: Play = () =>
     new Promise<void>(() => undefined);
@@ -947,36 +943,17 @@ test("a keyed exit collapses the leaving row's height in flow (overflow hidden +
     ),
   );
   const ul = root.firstElementChild;
-  // remove "a" — the leaving row collapses in flow
+  // remove "a" — the leaving row is taken out of flow (absolute, border-box at
+  // its current box) so its followers immediately close up and FLIP into place;
+  // it fades where it was rather than collapsing/squishing.
   const a = Array.from(ul?.children ?? [])[0];
-  // give the leaving node a WAAPI stub so startCollapse can run under happy-dom
-  if (a instanceof HTMLElement) {
-    Object.defineProperty(a, "animate", {
-      configurable: true,
-      value: (
-        frames: ReadonlyArray<Keyframe>,
-        opts: KeyframeAnimationOptions,
-      ) => {
-        calls.push({ frames, opts });
-        return { finished: Promise.resolve() };
-      },
-    });
-  }
   render(kul(kli("b", "B", fadeOut(120))));
-  // the leaving row collapses in flow: overflow clipped + a height tween
   if (a instanceof HTMLElement) {
-    expect(a.style.overflow).toBe("hidden");
+    expect(a.style.position).toBe("absolute");
+    expect(a.style.boxSizing).toBe("border-box");
   }
-  expect(calls.length).toBe(1);
-  // the end keyframe zeroes the whole vertical footprint (not just height)
-  expect(calls[0]?.frames[1]).toMatchObject({
-    height: "0px",
-    paddingTop: "0px",
-    paddingBottom: "0px",
-    borderTopWidth: "0px",
-    borderBottomWidth: "0px",
-  });
-  expect(calls[0]?.opts.duration).toBe(120);
+  // held in the DOM until its fade finishes (play never settles in this test)
+  expect(ul?.contains(a ?? null)).toBe(true);
 });
 
 test("an exiting middle row keeps its DOM position — survivors don't leapfrog it", () => {
@@ -1015,11 +992,8 @@ test("an exiting middle row keeps its DOM position — survivors don't leapfrog 
   ]);
 });
 
-test("deleting the ONLY remaining keyed row still exits via the keyed path (collapse, no snap)", () => {
+test("deleting the ONLY remaining keyed row still exits via the keyed path (out of flow + fade, not a bare detach)", () => {
   const root = document.createElement("div");
-  const calls: Array<{
-    frames: ReadonlyArray<Keyframe>;
-  }> = [];
   // play never settles, so the node is held in the DOM for inspection
   const play: Play = () =>
     new Promise<void>(() => undefined);
@@ -1031,30 +1005,15 @@ test("deleting the ONLY remaining keyed row still exits via the keyed path (coll
   render(kul(kli("a", "A", fadeOut(120))));
   const ul = root.firstElementChild;
   const a = Array.from(ul?.children ?? [])[0];
-  if (a instanceof HTMLElement) {
-    Object.defineProperty(a, "animate", {
-      configurable: true,
-      value: (
-        frames: ReadonlyArray<Keyframe>,
-      ) => {
-        calls.push({ frames });
-        return { finished: Promise.resolve() };
-      },
-    });
-  }
   // empty the list — an emptied fully-keyed list must NOT fall back to the
-  // index path's bare surplus removal (fade, then footprint snaps on detach)
+  // index path's bare surplus removal (which would detach with no fade). It
+  // takes the keyed path: lifted out of flow and faded, held until the fade ends
+  // (the container's height eases shut around it at runtime).
   render(kul());
   if (a instanceof HTMLElement) {
-    expect(a.style.overflow).toBe("hidden");
+    expect(a.style.position).toBe("absolute");
     expect(ul?.contains(a)).toBe(true);
   }
-  expect(calls.length).toBe(1);
-  expect(calls[0]?.frames[1]).toMatchObject({
-    height: "0px",
-    paddingTop: "0px",
-    paddingBottom: "0px",
-  });
 });
 
 test("deleting a keyed child with no exit motion detaches it at once", () => {

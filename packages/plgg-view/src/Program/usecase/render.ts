@@ -24,6 +24,8 @@ import {
   anim$,
   css$,
   key$,
+  easeOut,
+  easeInOut,
 } from "plgg-view/Html/model/Attribute";
 import {
   isSafeAttrName,
@@ -396,14 +398,26 @@ const framesOf = (
   frameToKeyframe(motion.to),
 ];
 
-/** A {@link Motion}'s timing as WAAPI options (end state retained). */
+/**
+ * A {@link Motion}'s timing as WAAPI options (end state retained). With a delay,
+ * `fill: "both"` holds the `from` frame through the wait (a held survivor), then
+ * settles on the end state; with no delay, plain `forwards`.
+ */
 const optsOf = (
   motion: Motion,
-): KeyframeAnimationOptions => ({
-  duration: motion.durationMs,
-  easing: motion.easing,
-  fill: "forwards",
-});
+): KeyframeAnimationOptions =>
+  motion.delayMs !== undefined && motion.delayMs > 0
+    ? {
+        duration: motion.durationMs,
+        easing: motion.easing,
+        delay: motion.delayMs,
+        fill: "both",
+      }
+    : {
+        duration: motion.durationMs,
+        easing: motion.easing,
+        fill: "forwards",
+      };
 
 /**
  * Whether the user has asked to reduce motion (WCAG 2.2 AA). A missing
@@ -795,7 +809,7 @@ const indexPatchChildren =
       });
   };
 
-/** How long a FLIP move glides; `ease` matches the enter/exit easings. */
+/** How long a FLIP move glides; eased to match the enter/exit curves. */
 const FLIP_DURATION_MS = 200;
 
 /**
@@ -807,6 +821,7 @@ const FLIP_DURATION_MS = 200;
 const flipMotion = (
   dx: number,
   dy: number,
+  delayMs: number,
 ): Motion => ({
   from: {
     opacity: none(),
@@ -819,94 +834,122 @@ const flipMotion = (
     transform: some("translate(0px, 0px)"),
   },
   durationMs: FLIP_DURATION_MS,
-  easing: "ease",
+  easing: easeInOut,
+  // when a row is leaving, hold survivors at their old box until it has faded,
+  // then slide — so they never glide over the still-visible deleted row.
+  delayMs,
 });
 
 /**
- * Collapses an exiting node's height to 0 *in flow* over `durationMs`, so the
- * gap it leaves closes by natural layout reflow — its in-flow survivors slide up
- * as it shrinks, no out-of-flow trick and no box jump. A confined DOM seam
- * alongside {@link waapiPlay}: feature-detects WAAPI and honours reduced-motion
- * (a no-op when motion is unavailable/unwanted, leaving removal to the caller).
- * `overflow: hidden` clips the contents as the box shrinks. Narrowed to
- * `HTMLElement` for the offset/style seam — never cast.
+ * Lifts an exiting node *out of flow* so its in-flow followers immediately take
+ * its space — which the survivor FLIP then animates into, so the row fades in
+ * place (no squish) while the others slide up. Pinned with `box-sizing:
+ * border-box` at its current offset box, so `width`/`height` set to the
+ * border-box `offset*` values keep it visually put with no padding jump (the
+ * defect that sank the earlier out-of-flow attempt). The parent is made a
+ * positioning context if it is `static`. Narrowed to `HTMLElement` — never cast.
  */
-const startCollapse = (
-  node: Element,
+const takeOutOfFlow = (node: Element): void => {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  const parent = node.parentElement;
+  if (
+    parent instanceof HTMLElement &&
+    window.getComputedStyle(parent).position ===
+      "static"
+  ) {
+    parent.style.position = "relative";
+  }
+  const top = node.offsetTop;
+  const left = node.offsetLeft;
+  const width = node.offsetWidth;
+  const height = node.offsetHeight;
+  node.style.boxSizing = "border-box";
+  node.style.position = "absolute";
+  node.style.margin = "0";
+  node.style.top = `${top}px`;
+  node.style.left = `${left}px`;
+  node.style.width = `${width}px`;
+  node.style.height = `${height}px`;
+  node.style.pointerEvents = "none";
+};
+
+/**
+ * Animates a parent's height from `fromH` to its current (post-removal) height,
+ * so the container's bottom edge closes smoothly instead of snapping when a row
+ * leaves the flow (incl. deleting the last row). No `fill`, so height reverts to
+ * `auto` once done — and the natural height already equals the target, so there
+ * is no end jump. `overflow: hidden` is restored after. A confined DOM seam:
+ * feature-detects WAAPI and honours reduced-motion.
+ */
+const animateParentHeight = (
+  parent: Node,
+  fromH: number,
   durationMs: number,
+  delayMs: number,
 ): void => {
   if (
-    node instanceof HTMLElement &&
-    typeof node.animate === "function" &&
+    parent instanceof HTMLElement &&
+    typeof parent.animate === "function" &&
     !prefersReducedMotion()
   ) {
-    // collapse the WHOLE vertical footprint, not just the content height:
-    // padding/border/margin must shrink too, or (under content-box) they stay
-    // at full size and snap away on detach — the "padding suddenly shrinks" bug.
-    const style = window.getComputedStyle(node);
-    node.style.overflow = "hidden";
-    void node
+    const toH =
+      parent.getBoundingClientRect().height;
+    if (toH === fromH) {
+      return;
+    }
+    const prevOverflow = parent.style.overflow;
+    parent.style.overflow = "hidden";
+    const restore = (): void => {
+      parent.style.overflow = prevOverflow;
+    };
+    void parent
       .animate(
         [
-          {
-            height: style.height,
-            paddingTop: style.paddingTop,
-            paddingBottom: style.paddingBottom,
-            marginTop: style.marginTop,
-            marginBottom: style.marginBottom,
-            borderTopWidth: style.borderTopWidth,
-            borderBottomWidth:
-              style.borderBottomWidth,
-          },
-          {
-            height: "0px",
-            paddingTop: "0px",
-            paddingBottom: "0px",
-            marginTop: "0px",
-            marginBottom: "0px",
-            borderTopWidth: "0px",
-            borderBottomWidth: "0px",
-          },
+          { height: `${fromH}px` },
+          { height: `${toH}px` },
         ],
         {
           duration: durationMs,
-          easing: "ease-in",
-          fill: "forwards",
+          delay: delayMs,
+          // hold the old height during the fade, then ease shut
+          easing: easeOut,
+          fill: "both",
         },
       )
-      .finished.then(
-        () => undefined,
-        () => undefined,
-      );
+      .finished.then(restore, restore);
   }
 };
 
 /**
- * Removes a keyed node the new tree dropped: with no exit motion it detaches at
- * once; with one it is marked exiting (and left in place — the reorder walk
- * skips it), its declared opacity/transform exit plays through the {@link Play}
- * seam, and its whole vertical footprint collapses concurrently
- * ({@link startCollapse}) so followers — or the container's bottom edge — close
- * the gap smoothly instead of snapping when the node detaches. Detaches when
- * the exit finishes; removal is gated on the injectable `Play` (testable).
+ * Removes a keyed node the new tree dropped, returning the exit's duration (0
+ * when none) so the caller can size the container's height close. With no exit
+ * motion it detaches at once; with one it is marked exiting, lifted out of flow
+ * ({@link takeOutOfFlow}) so its in-flow followers immediately close up — which
+ * the survivor FLIP animates as a slide — while its declared opacity/transform
+ * exit fades it in place through the {@link Play} seam. Detaches when the exit
+ * finishes; removal is gated on the injectable `Play` (testable).
  */
 const playKeyedExit = <Msg>(
   wiring: Wiring<Msg>,
   node: Element,
   motionOpt: Option<Motion>,
-): void =>
+): number =>
   matchOption(
-    (): void => {
+    (): number => {
       node.remove();
+      return 0;
     },
-    (motion: Motion): void => {
+    (motion: Motion): number => {
       wiring.exiting.add(node);
-      // confined DOM seam: shrink the row so the gap closes by layout
-      startCollapse(node, motion.durationMs);
-      // fade via the seam; detach once the exit finishes
+      // confined DOM seam: out of flow so survivors take the space (and FLIP
+      // into it), then fade in place via the seam; detach when the fade ends
+      takeOutOfFlow(node);
       void wiring.play(node, motion).then(() => {
         node.remove();
       });
+      return motion.durationMs;
     },
   )(motionOpt);
 
@@ -1032,15 +1075,25 @@ const keyedPatchChildren =
         );
       }
     });
+    // the parent's height before any exit, to close it down smoothly after.
+    const firstParentHeight =
+      parent instanceof HTMLElement
+        ? parent.getBoundingClientRect().height
+        : 0;
 
-    // exits first, so the layout has collapsed before survivors are measured.
+    // exits first (out of flow), so the layout has already closed when the
+    // survivors are measured below — they then FLIP from old box to new (slide).
+    let exitDuration = 0;
     domByKey.forEach((node, k) => {
       if (!newKeys.has(k)) {
-        playKeyedExit(
-          wiring,
-          node,
-          chainOption(exitMotionOf)(
-            fromNullable(oldByKey.get(k)),
+        exitDuration = Math.max(
+          exitDuration,
+          playKeyedExit(
+            wiring,
+            node,
+            chainOption(exitMotionOf)(
+              fromNullable(oldByKey.get(k)),
+            ),
           ),
         );
       }
@@ -1099,7 +1152,9 @@ const keyedPatchChildren =
       }
     });
 
-    // FLIP step 2: glide each survivor from its old box to its new one.
+    // FLIP step 2: glide each survivor from its old box to its new one. When a
+    // row is leaving, the slide is delayed by its fade so survivors hold their
+    // old spots first, then slide into the cleared space (never over the row).
     firstRects.forEach((first, node) => {
       const last = node.getBoundingClientRect();
       const dx = first.left - last.left;
@@ -1107,10 +1162,22 @@ const keyedPatchChildren =
       if (dx !== 0 || dy !== 0) {
         void wiring.play(
           node,
-          flipMotion(dx, dy),
+          flipMotion(dx, dy, exitDuration),
         );
       }
     });
+
+    // close the container's height to its new (smaller) layout — also after the
+    // fade — so the bottom edge holds, then eases shut as the survivors slide,
+    // instead of snapping when the exiting row(s) left the flow.
+    if (exitDuration > 0) {
+      animateParentHeight(
+        parent,
+        firstParentHeight,
+        FLIP_DURATION_MS,
+        exitDuration,
+      );
+    }
   };
 
 /** Whether a children list is non-empty and keyed throughout. */

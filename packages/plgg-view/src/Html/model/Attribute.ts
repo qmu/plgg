@@ -30,6 +30,12 @@ export type Motion = Readonly<{
   to: Frame;
   durationMs: number;
   easing: SoftStr;
+  /**
+   * Optional start delay. With a delay the renderer holds the `from` frame
+   * during the wait (WAAPI `fill: "both"`), so e.g. a survivor can sit at its
+   * old position while a deleted row fades, then slide — never *over* it.
+   */
+  delayMs?: number;
 }>;
 
 /**
@@ -172,6 +178,18 @@ export const key = (
   value: SoftStr,
 ): Attribute<never> => box("Key")({ value });
 
+/**
+ * Refined easing curves — the single source of truth for motion feel, so the
+ * whole system reads consistently instead of leaning on the browser's cheap
+ * `ease`/`ease-in`/`ease-out` defaults. `easeOut` (expo-out) gives a confident,
+ * smooth settle for things arriving/moving; `easeIn` a clean quick exit;
+ * `easeInOut` a balanced glide for repositioning (FLIP).
+ */
+export const easeOut = "cubic-bezier(0.16, 1, 0.3, 1)";
+export const easeIn = "cubic-bezier(0.5, 0, 0.75, 0)";
+export const easeInOut =
+  "cubic-bezier(0.65, 0, 0.35, 1)";
+
 /** A {@link Frame} from its two optional properties. */
 const frame = (
   opacity: Option<number>,
@@ -203,7 +221,7 @@ export const fadeIn = (
       from: frame(some(0), none()),
       to: frame(some(1), none()),
       durationMs,
-      easing: "ease-out",
+      easing: easeOut,
     },
   });
 
@@ -216,7 +234,7 @@ export const fadeOut = (
       from: frame(some(1), none()),
       to: frame(some(0), none()),
       durationMs,
-      easing: "ease-in",
+      easing: easeIn,
     },
   });
 
@@ -235,6 +253,6 @@ export const slideIn = (
       ),
       to: frame(some(1), some("translateY(0)")),
       durationMs,
-      easing: "ease-out",
+      easing: easeOut,
     },
   });

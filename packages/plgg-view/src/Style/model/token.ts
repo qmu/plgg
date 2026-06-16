@@ -24,15 +24,17 @@ export type Color =
   | "border"
   | "danger";
 
+// Warm editorial palette: ink on cream paper with a confident pine accent and a
+// distinct brick for danger. A characterful default, not generic blue-on-white.
 const COLOR: Record<Color, SoftStr> = {
-  surface: "#ffffff",
-  "surface-2": "#f3f4f6",
-  primary: "#2563eb",
-  "primary-text": "#ffffff",
-  text: "#111827",
-  muted: "#6b7280",
-  border: "#e5e7eb",
-  danger: "#dc2626",
+  surface: "#fffdf7",
+  "surface-2": "#f0e9d8",
+  primary: "#1f6b54",
+  "primary-text": "#fbfaf3",
+  text: "#2a241d",
+  muted: "#8a8073",
+  border: "#e6dcc8",
+  danger: "#b23a2a",
 };
 
 /** A {@link Color} token's concrete value (`Record` makes the map exhaustive). */

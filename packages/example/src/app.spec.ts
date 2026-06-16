@@ -79,7 +79,7 @@ test("Deleted removes the matching todo", () => {
 
 test("view renders the title, the add form, and each todo", () => {
   const html = renderToString(view(seed));
-  expect(html).toContain("plgg To-Do");
+  expect(html).toContain("Things to do");
   expect(html).toContain('type="submit"');
   expect(html).toContain("Wire it");
 });
