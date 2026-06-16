@@ -1,0 +1,13 @@
+# Run the plgg `example` demo (SSR + CSR To-Do) in one command:
+#
+#   docker compose -f workloads/development/compose.yaml up --build
+#
+# then open http://localhost:3000
+services:
+  example:
+    build:
+      # Build context is the repo root so the Dockerfile can reach every package.
+      context: ../..
+      dockerfile: workloads/development/Dockerfile
+    ports:
+      - "3000:3000"

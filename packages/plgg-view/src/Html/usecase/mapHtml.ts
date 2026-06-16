@@ -8,11 +8,15 @@ import {
   Attribute,
   attr$,
   handler$,
+  anim$,
+  css$,
+  key$,
 } from "plgg-view/Html/model/Attribute";
 
 /**
- * Re-tags an {@link Attribute}'s `Msg` through `f` — static attrs pass through,
- * a handler's `toMsg` is post-composed with `f`.
+ * Re-tags an {@link Attribute}'s `Msg` through `f` — static attrs and animation
+ * directives carry no `Msg` so they pass through, a handler's `toMsg` is
+ * post-composed with `f`.
  */
 const mapAttribute =
   <A, B>(f: (a: A) => B) =>
@@ -31,6 +35,21 @@ const mapAttribute =
             toMsg: (payload) =>
               f(content.toMsg(payload)),
           }),
+      ],
+      [
+        anim$(),
+        ({ content }): Attribute<B> =>
+          box("Anim")(content),
+      ],
+      [
+        css$(),
+        ({ content }): Attribute<B> =>
+          box("Css")(content),
+      ],
+      [
+        key$(),
+        ({ content }): Attribute<B> =>
+          box("Key")(content),
       ],
     );
 
@@ -51,8 +70,9 @@ export const mapHtml =
             attributes: content.attributes.map(
               mapAttribute(f),
             ),
-            children:
-              content.children.map(mapHtml(f)),
+            children: content.children.map(
+              mapHtml(f),
+            ),
           }),
       ],
       [

@@ -15,6 +15,8 @@ import {
   ClientError,
   networkError,
   networkError$,
+  redirectError,
+  redirectError$,
   isNetworkError,
 } from "plgg-fetch/index";
 
@@ -43,6 +45,10 @@ test("ClientError folds exhaustively via the $ patterns (no tag strings)", () =>
       [
         networkError$(),
         (x) => `network: ${x.content.message}`,
+      ],
+      [
+        redirectError$(),
+        (x) => `redirect: ${x.content.message}`,
       ],
       [
         notFound$(),
@@ -74,6 +80,9 @@ test("ClientError folds exhaustively via the $ patterns (no tag strings)", () =>
 
   expect(describe(networkError("down"))).toBe(
     "network: down",
+  );
+  expect(describe(redirectError("moved"))).toBe(
+    "redirect: moved",
   );
   expect(describe(notFound("/x"))).toBe(
     "not found: /x",

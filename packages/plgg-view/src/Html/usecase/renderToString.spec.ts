@@ -9,8 +9,14 @@ import {
   class_,
   attr,
   onClick,
+  fadeIn,
 } from "plgg-view/Html/model/Attribute";
 import { renderToString } from "plgg-view/Html/usecase/renderToString";
+import {
+  style_,
+  hashClass,
+} from "plgg-view/Style/usecase/style_";
+import { p } from "plgg-view/Style/usecase/utilities";
 
 test("renders an element with escaped attributes and children", () => {
   const html = div(
@@ -22,6 +28,64 @@ test("renders an element with escaped attributes and children", () => {
   );
 });
 
+test("neutralizes a javascript: URL on a URL-bearing attribute", () => {
+  const out = renderToString(
+    el(
+      "a",
+      [attr("href", "javascript:alert(1)")],
+      [text("x")],
+    ),
+  );
+  expect(out).toContain('href="#"');
+  expect(out).not.toContain("javascript:");
+});
+
+test("preserves legitimate http/mailto/relative URLs", () => {
+  expect(
+    renderToString(
+      el(
+        "a",
+        [
+          attr(
+            "href",
+            "https://example.com/p?q=1",
+          ),
+        ],
+        [],
+      ),
+    ),
+  ).toContain('href="https://example.com/p?q=1"');
+  expect(
+    renderToString(
+      el(
+        "a",
+        [attr("href", "mailto:a@b.co")],
+        [],
+      ),
+    ),
+  ).toContain('href="mailto:a@b.co"');
+  expect(
+    renderToString(
+      el("a", [attr("href", "/local/path")], []),
+    ),
+  ).toContain('href="/local/path"');
+});
+
+test("drops an on* event-handler attribute name", () => {
+  const out = renderToString(
+    el("img", [attr("onerror", "alert(1)")], []),
+  );
+  expect(out).not.toContain("onerror");
+});
+
+test("drops an unsafe tag emitted via the el() hatch", () => {
+  expect(
+    renderToString(
+      el("div onload=alert(1)", [], [text("x")]),
+    ),
+  ).toBe("");
+});
+
 test("drops event handlers (no events on the server)", () => {
   const html = el(
     "button",
@@ -31,6 +95,39 @@ test("drops event handlers (no events on the server)", () => {
   expect(renderToString(html)).toBe(
     '<button class="b">Go</button>',
   );
+});
+
+test("drops animation directives (no animation on the server)", () => {
+  const html = el(
+    "div",
+    [fadeIn(150), class_("box")],
+    [text("Hi")],
+  );
+  expect(renderToString(html)).toBe(
+    '<div class="box">Hi</div>',
+  );
+});
+
+test("emits style_() atomic classes as a class attribute", () => {
+  expect(
+    renderToString(
+      el(
+        "div",
+        [style_("todo", p(2))],
+        [text("hi")],
+      ),
+    ),
+  ).toBe(
+    `<div class="todo ${hashClass("|padding:0.5rem")}">hi</div>`,
+  );
+});
+
+test("a style_() with no classes emits no class attribute", () => {
+  expect(
+    renderToString(
+      el("div", [style_()], [text("x")]),
+    ),
+  ).toBe("<div>x</div>");
 });
 
 test("self-closes void elements", () => {
@@ -52,11 +149,9 @@ test("drops attributes with unsafe names", () => {
 test("escapes attribute values that try to break out", () => {
   expect(
     renderToString(
-      el(
-        "a",
-        [attr("title", '"><script>')],
-        [],
-      ),
+      el("a", [attr("title", '"><script>')], []),
     ),
-  ).toBe('<a title="&quot;&gt;&lt;script&gt;"></a>');
+  ).toBe(
+    '<a title="&quot;&gt;&lt;script&gt;"></a>',
+  );
 });

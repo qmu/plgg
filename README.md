@@ -53,8 +53,8 @@ const update = (msg: Msg, m: Model): Model =>
 const view = (m: Model): Html<Msg> =>
   div([], [
     h1([], [text(`count: ${m.count}`)]),
-    button([onClick<Msg>("Dec")], [text("-")]),
-    button([onClick<Msg>("Inc")], [text("+")]),
+    button([onClick("Dec")], [text("-")]),
+    button([onClick("Inc")], [text("+")]),
   ]);
 
 // the runtime owns state + the DOM; mount renders view(init), each Msg re-renders.

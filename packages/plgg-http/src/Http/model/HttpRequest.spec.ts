@@ -30,13 +30,33 @@ const req = (
 });
 
 test("getHeader is case-insensitive and returns Option", () => {
-  const r = req({ headers: { "x-token": "abc" } });
+  const r = req({
+    headers: { "x-token": "abc" },
+  });
   const found = getHeader(r, "X-Token");
   expect(isSome(found)).toBe(true);
   if (isSome(found)) {
     expect(found.content).toBe("abc");
   }
-  expect(isNone(getHeader(r, "absent"))).toBe(true);
+  expect(isNone(getHeader(r, "absent"))).toBe(
+    true,
+  );
+});
+
+test("inherited Object.prototype keys are not spurious Somes", () => {
+  const r = req();
+  expect(isNone(getQuery(r, "constructor"))).toBe(
+    true,
+  );
+  expect(isNone(getQuery(r, "__proto__"))).toBe(
+    true,
+  );
+  expect(isNone(getHeader(r, "toString"))).toBe(
+    true,
+  );
+  expect(
+    isNone(getParam(r, "hasOwnProperty")),
+  ).toBe(true);
 });
 
 test("getQuery returns Option", () => {
@@ -56,7 +76,9 @@ test("getParam returns Option", () => {
   if (isSome(found)) {
     expect(found.content).toBe("7");
   }
-  expect(isNone(getParam(r, "missing"))).toBe(true);
+  expect(isNone(getParam(r, "missing"))).toBe(
+    true,
+  );
 });
 
 test("getBytes is None for a text request and Some for a binary one", () => {
@@ -67,13 +89,17 @@ test("getBytes is None for a text request and Some for a binary one", () => {
   const found = getBytes(binary);
   expect(isSome(found)).toBe(true);
   if (isSome(found)) {
-    expect(Array.from(found.content)).toEqual([1, 2, 3]);
+    expect(Array.from(found.content)).toEqual([
+      1, 2, 3,
+    ]);
   }
 });
 
 test("withParams attaches params immutably", () => {
   const base = req();
-  const params: Dict<string, SoftStr> = { id: "9" };
+  const params: Dict<string, SoftStr> = {
+    id: "9",
+  };
   const next = withParams(base, params);
   expect(next.params).toEqual({ id: "9" });
   expect(base.params).toEqual({});

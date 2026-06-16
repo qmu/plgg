@@ -1,4 +1,7 @@
-export { render } from "plgg-view/Program/usecase/render";
+export {
+  makeRenderer,
+  type Wiring,
+} from "plgg-view/Program/usecase/render";
 export {
   sandbox,
   type Sandbox,

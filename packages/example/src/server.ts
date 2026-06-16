@@ -5,8 +5,9 @@
  * via plgg-server's `pageResponse` (which folds `Html<Msg>` through plgg-view's
  * `renderToString`, dropping handlers). The page embeds `<div id="root">` with
  * the server-rendered markup plus a `<script src="/main.js">` that boots the
- * client `sandbox`; the client then re-renders `view(init)` into the same node
- * and takes over (full re-render — true hydration waits for a `Cmd` phase).
+ * client `sandbox`; the client then rebuilds `view(init)` into the same node on
+ * mount and takes over (a full first paint, not hydration — reusing the server's
+ * markup waits for a hydration pass; subsequent re-renders diff/patch in place).
  *
  * Run it:
  *   npm run build      # bundles the client to dist/main.js (served below)
@@ -15,6 +16,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import {
   Result,
   SoftStr,
@@ -52,6 +54,24 @@ const readBundle = tryCatch((path: SoftStr) =>
   readFileSync(path, "utf8"),
 );
 
+/**
+ * A content hash of the client bundle, computed once at startup. Stamped into
+ * the `/main.js?v=…` script URL and the `ETag`, so a new build always busts
+ * every caching layer (browser and CDN edge) instead of serving stale client
+ * JS over fresh SSR markup. A missing bundle degrades to a constant token.
+ */
+const bundleVersion: SoftStr = pipe(
+  tryCatch((path: SoftStr) =>
+    createHash("sha256")
+      .update(readFileSync(path))
+      .digest("hex"),
+  )(BUNDLE_PATH),
+  matchResult(
+    (): SoftStr => "dev",
+    (hex: SoftStr): SoftStr => hex.slice(0, 16),
+  ),
+);
+
 const app = pipe(
   web(),
 
@@ -62,7 +82,7 @@ const app = pipe(
       pageResponse({
         title: "plgg To-Do — SSR + CSR",
         root: view(init),
-        clientEntry: "/main.js",
+        clientEntry: `/main.js?v=${bundleVersion}`,
       }),
     ),
   ),
@@ -82,16 +102,28 @@ const app = pipe(
         (
           body: SoftStr,
         ): Result<HttpResponse, HttpError> =>
-          ok(javascriptResponse(body)),
+          ok(
+            javascriptResponse(body, 200, {
+              "cache-control": "no-cache",
+              etag: `"${bundleVersion}"`,
+            }),
+          ),
       ),
     ),
   ),
 );
 
+// Port is env-configurable (default 3000) so the demo can match whatever the
+// local tunnel/ingress points at — the cloudflared route for
+// `plgg-example.qmu.dev` forwards to 3001, so run with `PORT=3001`.
+const PORT = Number(process.env.PORT ?? 3000);
+
 pipe(
   app,
   toFetch,
-  serve({ port: 3000 }, () =>
-    console.log("listening on http://localhost:3000"),
+  serve({ port: PORT }, () =>
+    console.log(
+      `listening on http://localhost:${PORT}`,
+    ),
   ),
 );

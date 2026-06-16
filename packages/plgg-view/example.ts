@@ -7,13 +7,15 @@
  * Everything the app author writes is **pure**: an immutable `Model`, an
  * `update` that folds a `Msg` into the next model, and a `view` from the model
  * to `Html<Msg>`. The one imperative seam — the live model + DOM — is owned by
- * `sandbox`, the runtime. There is no `Cmd`/`Sub` and no virtual-DOM diffing:
- * every `Msg` recomputes `update` and re-renders the whole tree.
+ * `sandbox`, the runtime. There is no `Cmd`/`Sub`; every `Msg` recomputes
+ * `update`, and the runtime diffs the new `Html<Msg>` against the last and
+ * patches only what changed.
  *
  * For SSR, the same `view(init)` folds to a string through `renderToString`
  * (handlers dropped) — see `Html/usecase/renderToString.spec.ts`.
  */
 import {
+  Html,
   div,
   button,
   span,
@@ -21,6 +23,7 @@ import {
   onClick,
 } from "plgg-view/index";
 import { sandbox } from "plgg-view/client";
+import { match } from "plgg";
 
 // --- Model: the whole app state is one immutable number ---
 type Model = number;
@@ -31,21 +34,29 @@ type Msg = "Increment" | "Decrement" | "Reset";
 const init: Model = 0;
 
 // --- update: pure (Msg, Model) => Model ---
+// `match` is exhaustive over the `Msg` literal union — drop a case and it is a
+// compile error — so it fits plain string-tagged messages, not only Box ADTs.
 const update = (msg: Msg, model: Model): Model =>
-  msg === "Increment"
-    ? model + 1
-    : msg === "Decrement"
-      ? model - 1
-      : 0;
+  match(msg)(
+    ["Increment" as const, () => model + 1],
+    ["Decrement" as const, () => model - 1],
+    ["Reset" as const, () => 0],
+  );
 
 // --- view: pure Model => Html<Msg>; handlers produce Msg ---
-const view = (model: Model) =>
-  div([], [
-    button([onClick<Msg>("Decrement")], [text("-")]),
-    span([], [text(` ${model} `)]),
-    button([onClick<Msg>("Increment")], [text("+")]),
-    button([onClick<Msg>("Reset")], [text("reset")]),
-  ]);
+// The `Html<Msg>` return annotation is the one type hint: it flows down as the
+// contextual type for `div`/`button`/`onClick`, so each handler's `Msg` is the
+// app union — no per-call `onClick<Msg>` needed.
+const view = (model: Model): Html<Msg> =>
+  div(
+    [],
+    [
+      button([onClick("Decrement")], [text("-")]),
+      span([], [text(` ${model} `)]),
+      button([onClick("Increment")], [text("+")]),
+      button([onClick("Reset")], [text("reset")]),
+    ],
+  );
 
 // --- the one imperative seam: mount the sandbox on #app ---
 const root = document.getElementById("app");

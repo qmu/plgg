@@ -1,5 +1,6 @@
 import { test, expect } from "vitest";
-import { h1, p, text } from "plgg-view";
+import { div, h1, p, text } from "plgg-view";
+import * as sx from "plgg-view/style";
 import { htmlDocument } from "plgg-server/index";
 
 test("wraps the root in a full document with a #root mount point", () => {
@@ -14,6 +15,10 @@ test("wraps the root in a full document with a #root mount point", () => {
   expect(html).toContain(
     '<div id="root"><h1>Home</h1></div>',
   );
+  // mobile viewport meta so phones lay out at device width, not ~980px desktop
+  expect(html).toContain(
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+  );
   expect(html).not.toContain("<script");
 });
 
@@ -26,4 +31,23 @@ test("injects a module script when clientEntry is given", () => {
   expect(html).toContain(
     '<script type="module" src="/client.js"></script>',
   );
+});
+
+test("inlines the root's css() atoms as a <style> in the head", () => {
+  const html = htmlDocument({
+    title: "x",
+    root: div([sx.style_(sx.p(2))], [text("y")]),
+  });
+  expect(html).toContain("<style>");
+  expect(html).toContain("padding:0.5rem}");
+  // the atomic class also rides in the body markup
+  expect(html).toContain('<div class="');
+});
+
+test("omits the <style> when the root has no css() atoms", () => {
+  const html = htmlDocument({
+    title: "x",
+    root: p([], [text("y")]),
+  });
+  expect(html).not.toContain("<style>");
 });

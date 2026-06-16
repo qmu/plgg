@@ -24,11 +24,30 @@ export const postJson =
         ...headers,
       },
       body: JSON.stringify(data),
+      // never auto-follow a redirect: custom auth headers (e.g. an LLM
+      // `x-api-key`) survive a same-site redirect and would leak to the target.
+      redirect: "manual",
     });
-    if (!res.ok) {
+    if (
+      res.type === "opaqueredirect" ||
+      res.status === 0
+    ) {
       return err(
         new Error(
-          `HTTP Error status: ${res.status}, body: ${await res.text()}`,
+          "HTTP redirect not followed (manual redirect policy)",
+        ),
+      );
+    }
+    if (!res.ok) {
+      // truncate the upstream body so prompt/PII content can't bloat logs
+      const body = await res.text();
+      const snippet =
+        body.length > 500
+          ? `${body.slice(0, 500)}…`
+          : body;
+      return err(
+        new Error(
+          `HTTP Error status: ${res.status}, body: ${snippet}`,
         ),
       );
     }

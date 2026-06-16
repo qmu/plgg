@@ -10,6 +10,7 @@
  */
 import { DatabaseSync } from "node:sqlite";
 import {
+  Obj,
   Result,
   InvalidError,
   Num,
@@ -49,18 +50,29 @@ const open = (path: SoftStr): Db => {
       matchOption(
         () => null,
         (v: SqlValue) =>
-          typeof v === "boolean" ? (v ? 1 : 0) : v,
+          typeof v === "boolean"
+            ? v
+              ? 1
+              : 0
+            : v,
       ),
     );
   // async so a driver throw (e.g. a constraint violation) becomes a rejected
   // promise that `query`/`exec` fold into a value-level SqlError.
   return {
-    all: async (s) => conn.prepare(s.content.text).all(...bind(s)),
+    all: async (s) =>
+      conn
+        .prepare(s.content.text)
+        .all(...bind(s)),
     run: async (s): Promise<ExecResult> => {
-      const r = conn.prepare(s.content.text).run(...bind(s));
+      const r = conn
+        .prepare(s.content.text)
+        .run(...bind(s));
       return {
         changes: Number(r.changes),
-        lastInsertId: some(Number(r.lastInsertRowid)),
+        lastInsertId: some(
+          Number(r.lastInsertRowid),
+        ),
       };
     },
     begin: async () => {
@@ -76,21 +88,46 @@ const open = (path: SoftStr): Db => {
 };
 
 // ── validation + mapping: plain plgg core, no plgg-sql needed ──
-type NewUser = { name: SoftStr; email: SoftStr };
-const asNewUser = (v: unknown): Result<NewUser, InvalidError> =>
+type NewUser = Obj<{
+  name: SoftStr;
+  email: SoftStr;
+}>;
+const asNewUser = (
+  v: unknown,
+): Result<NewUser, InvalidError> =>
   cast(
     v,
     asObj,
     forProp("name", (x) =>
-      cast(x, asSoftStr, refine((s) => s.length >= 2, "name too short")),
+      cast(
+        x,
+        asSoftStr,
+        refine(
+          (s) => s.length >= 2,
+          "name too short",
+        ),
+      ),
     ),
     forProp("email", (x) =>
-      cast(x, asSoftStr, refine((s) => s.includes("@"), "email invalid")),
+      cast(
+        x,
+        asSoftStr,
+        refine(
+          (s) => s.includes("@"),
+          "email invalid",
+        ),
+      ),
     ),
   );
 
-type User = { id: Num; name: SoftStr; email: SoftStr };
-const asUser = (row: unknown): Result<User, InvalidError> =>
+type User = Obj<{
+  id: Num;
+  name: SoftStr;
+  email: SoftStr;
+}>;
+const asUser = (
+  row: unknown,
+): Result<User, InvalidError> =>
   cast(
     row,
     asObj,
@@ -132,7 +169,9 @@ const listUsers = (): Promise<
     decodeRows(asUser),
   );
 
-const render = (r: Result<unknown, Error>): SoftStr =>
+const render = (
+  r: Result<unknown, Error>,
+): SoftStr =>
   matchResult(
     (e: Error) => `Err — ${e.message}`,
     (v: unknown) => `Ok  — ${JSON.stringify(v)}`,
@@ -144,13 +183,37 @@ const main = async (): Promise<void> => {
   );
 
   // happy path: created and read back as a typed User
-  console.log("create Ada       :", render(await createUser('{"name":"Ada","email":"ada@x.io"}')));
+  console.log(
+    "create Ada       :",
+    render(
+      await createUser(
+        '{"name":"Ada","email":"ada@x.io"}',
+      ),
+    ),
+  );
   // validation fails before any SQL runs
-  console.log("create invalid   :", render(await createUser('{"name":"A","email":"nope"}')));
+  console.log(
+    "create invalid   :",
+    render(
+      await createUser(
+        '{"name":"A","email":"nope"}',
+      ),
+    ),
+  );
   // duplicate email → INSERT throws → transaction ROLLS BACK, nothing persisted
-  console.log("create duplicate :", render(await createUser('{"name":"Ada II","email":"ada@x.io"}')));
+  console.log(
+    "create duplicate :",
+    render(
+      await createUser(
+        '{"name":"Ada II","email":"ada@x.io"}',
+      ),
+    ),
+  );
   // proof of rollback: only the first Ada is there
-  console.log("list everyone    :", render(await listUsers()));
+  console.log(
+    "list everyone    :",
+    render(await listUsers()),
+  );
 };
 
 main();

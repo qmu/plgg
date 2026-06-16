@@ -11,11 +11,13 @@ import {
   fromNullable,
 } from "plgg";
 import { Html } from "plgg-view/Html/model/Html";
+import { collectCssRules } from "plgg-view/Html/usecase/collectCss";
 import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
-import { render } from "plgg-view/Program/usecase/render";
+import { makeRenderer } from "plgg-view/Program/usecase/render";
+import { makeSheet } from "plgg-view/Program/usecase/sheet";
 
 /**
  * A routing-aware Elm-Architecture program (Browser.application-style), kept
@@ -29,6 +31,24 @@ export type Application<Model, Msg> = Readonly<{
   update: (msg: Msg, model: Model) => Model;
   view: (model: Model) => Html<Msg>;
   onUrlChange: (url: Url) => Msg;
+  /**
+   * The model→URL projection (inverse of {@link onUrlChange}): after each
+   * dispatch the runtime reconciles the address bar against `toUrl(model)`, so a
+   * slice of the model is *reflected* into the query (nuqs-style) without any
+   * imperative URL setter and without a `Cmd`. Omit for a URL that only the user
+   * (links/back/forward) drives.
+   */
+  toUrl?: (model: Model) => Url;
+  /**
+   * How a model→URL reflection affects history. Defaults to `"replace"` (the
+   * nuqs default — typing/filtering does not spam history); return `"push"` to
+   * mark a real navigation (so back/forward traverses it) or `"none"` to skip the
+   * write for a given transition.
+   */
+  historyMode?: (
+    prev: Model,
+    next: Model,
+  ) => "push" | "replace" | "none";
 }>;
 
 /** Reads the browser's current location into a {@link Url}. */
@@ -37,6 +57,23 @@ const currentUrl = (): Url =>
     window.location.pathname,
     window.location.search,
   );
+
+/**
+ * Applies one history write for a model→URL reflection: `"replace"` rewrites the
+ * current entry (the default — no history spam), `"push"` adds one (so
+ * back/forward traverses it), `"none"` skips. The confined imperative seam for
+ * the reflection direction.
+ */
+const applyHistory = (
+  mode: "push" | "replace" | "none",
+  target: SoftStr,
+): void => {
+  if (mode === "push") {
+    window.history.pushState(null, "", target);
+  } else if (mode === "replace") {
+    window.history.replaceState(null, "", target);
+  }
+};
 
 /**
  * `rel` tokens whose presence means "let the browser handle this link".
@@ -110,20 +147,23 @@ const navTarget = (
   isPlainLeftClick(event)
     ? pipe(
         findAnchor(event.target),
-        chainOption((anchor: HTMLAnchorElement) =>
-          anchor.target !== "" ||
-          anchor.hasAttribute("download") ||
-          relPassesThrough(anchor)
-            ? none()
-            : fromNullable(
-                anchor.getAttribute("href"),
-              ),
+        chainOption(
+          (anchor: HTMLAnchorElement) =>
+            anchor.target !== "" ||
+            anchor.hasAttribute("download") ||
+            relPassesThrough(anchor)
+              ? none()
+              : fromNullable(
+                  anchor.getAttribute("href"),
+                ),
         ),
         chainOption(toUrl),
         chainOption((url: URL) =>
           isHttp(url) &&
           url.origin === window.location.origin
-            ? some(makeUrl(url.pathname, url.search))
+            ? some(
+                makeUrl(url.pathname, url.search),
+              )
             : none(),
         ),
       )
@@ -144,14 +184,56 @@ export const application =
   ) =>
   (container: Element): (() => void) => {
     let model: Model = program.init(currentUrl());
+    const sheet = makeSheet();
     const dispatch = (msg: Msg): void => {
+      const prev = model;
       model = program.update(msg, model);
-      render(
-        program.view(model),
-        container,
-        dispatch,
-      );
+      paint(program.view(model));
+      reflectUrl(prev, model);
     };
+    const render = makeRenderer(
+      container,
+      dispatch,
+    );
+    // render the DOM, then merge the tree's atomic CSS into the managed sheet
+    // (insert-only: exiting nodes still wear classes the new tree dropped)
+    const paint = (html: Html<Msg>): void => {
+      render(html);
+      sheet.add(collectCssRules(html));
+    };
+    // model→URL reflection: a render-time effect (NOT a Cmd) confined to this
+    // seam. Gated on a string diff so it never loops — a URL the user drove in
+    // via onUrlChange already equals toUrl(model), so no spurious write.
+    const reflectUrl = (
+      prev: Model,
+      next: Model,
+    ): void =>
+      pipe(
+        fromNullable(program.toUrl),
+        matchOption(
+          () => undefined,
+          (toUrl: (model: Model) => Url) => {
+            const target = toUrl(next);
+            const targetStr =
+              target.path + target.search;
+            if (
+              targetStr !==
+              window.location.pathname +
+                window.location.search
+            ) {
+              applyHistory(
+                program.historyMode
+                  ? program.historyMode(
+                      prev,
+                      next,
+                    )
+                  : "replace",
+                targetStr,
+              );
+            }
+          },
+        ),
+      );
     const go = (url: Url): void =>
       dispatch(program.onUrlChange(url));
 
@@ -171,10 +253,14 @@ export const application =
           },
         ),
       );
-    const onPopState = (): void => go(currentUrl());
+    const onPopState = (): void =>
+      go(currentUrl());
 
-    render(program.view(model), container, dispatch);
-    window.addEventListener("popstate", onPopState);
+    paint(program.view(model));
+    window.addEventListener(
+      "popstate",
+      onPopState,
+    );
     document.addEventListener("click", onClick);
 
     return () => {
@@ -182,7 +268,11 @@ export const application =
         "popstate",
         onPopState,
       );
-      document.removeEventListener("click", onClick);
+      document.removeEventListener(
+        "click",
+        onClick,
+      );
       container.replaceChildren();
+      sheet.dispose();
     };
   };

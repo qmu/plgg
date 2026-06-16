@@ -5,7 +5,11 @@ import {
   vi,
   afterEach,
 } from "vitest";
-import { postJson, isOk, isErr } from "plgg/index";
+import {
+  postJson,
+  isOk,
+  isErr,
+} from "plgg/index";
 
 const originalFetch = globalThis.fetch;
 
@@ -74,5 +78,32 @@ test("postJson returns Err for non-2xx response", async () => {
   );
   expect(result.content.message).toContain(
     "server blew up",
+  );
+});
+
+test("postJson does not follow a redirect (manual policy)", async () => {
+  const mockFetch = vi.fn(async (_url, init) => {
+    // the request must opt out of auto-following
+    expect(init?.redirect).toBe("manual");
+    // an opaque-redirect response (what fetch returns under redirect:manual)
+    return {
+      ok: false,
+      status: 0,
+      type: "opaqueredirect",
+      text: async () => "",
+      json: async () => ({}),
+    } as unknown as Response;
+  });
+  globalThis.fetch =
+    mockFetch as unknown as typeof fetch;
+
+  const result = await postJson({
+    url: "https://example.test/api",
+    headers: { "x-api-key": "secret" },
+  })({ attempt: 1 });
+
+  assert(isErr(result));
+  expect(result.content.message).toContain(
+    "redirect not followed",
   );
 });

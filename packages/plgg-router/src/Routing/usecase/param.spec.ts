@@ -8,9 +8,9 @@ import {
 
 test("param reads a present path parameter", () => {
   const loc = makeLocation("/u/1", { id: "1" });
-  expect(pipe(loc, param("id"), getOr("none"))).toBe(
-    "1",
-  );
+  expect(
+    pipe(loc, param("id"), getOr("none")),
+  ).toBe("1");
 });
 
 test("param of a missing key is none", () => {
@@ -20,14 +20,31 @@ test("param of a missing key is none", () => {
 });
 
 test("query reads a present query parameter", () => {
-  const loc = makeLocation("/s", {}, { q: "plgg" });
-  expect(pipe(loc, query("q"), getOr("none"))).toBe(
-    "plgg",
+  const loc = makeLocation(
+    "/s",
+    {},
+    { q: "plgg" },
   );
+  expect(
+    pipe(loc, query("q"), getOr("none")),
+  ).toBe("plgg");
 });
 
 test("query of a missing key is none", () => {
   expect(
     isNone(pipe(makeLocation("/"), query("q"))),
+  ).toBe(true);
+});
+
+test("inherited Object.prototype keys are not spurious Somes", () => {
+  const loc = makeLocation("/s", {}, {});
+  expect(
+    isNone(pipe(loc, query("constructor"))),
+  ).toBe(true);
+  expect(
+    isNone(pipe(loc, param("__proto__"))),
+  ).toBe(true);
+  expect(
+    isNone(pipe(loc, query("toString"))),
   ).toBe(true);
 });

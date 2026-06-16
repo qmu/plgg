@@ -6,6 +6,7 @@ import {
   Option,
   box,
   some,
+  none,
   isOption,
   isBoxWithTag,
   fromNullable,
@@ -35,19 +36,59 @@ export type SqlParam = Option<SqlValue>;
  */
 export type Sql = Box<
   "Sql",
-  { text: SoftStr; params: ReadonlyArray<SqlParam> }
+  {
+    text: SoftStr;
+    params: ReadonlyArray<SqlParam>;
+  }
 >;
 
 /**
  * What a single interpolation may be: a concrete value, an already-optional
  * value (`None` → SQL `NULL`), or a nested {@link Sql} fragment to splice.
  */
-export type Interpolation = SqlValue | SqlParam | Sql;
+export type Interpolation =
+  | SqlValue
+  | SqlParam
+  | Sql;
+
+/**
+ * A module-private brand stamped on every {@link Sql} the {@link sql} builder
+ * makes. `isSql` checks it, so a plain object shaped like an `Sql` box (e.g. one
+ * parsed from attacker JSON: `{"__tag":"Sql","content":{"text":"…"}}`) cannot
+ * masquerade as a fragment and get its `text` spliced into a query — the only
+ * way to obtain the symbol is through this module's constructor.
+ */
+const SQL_BRAND = Symbol("plgg-sql/Sql");
+
+/** The inner payload of an {@link Sql} box. */
+type SqlContent = {
+  text: SoftStr;
+  params: ReadonlyArray<SqlParam>;
+};
+
+/**
+ * The sole {@link Sql} constructor: a tagged box stamped with the private
+ * {@link SQL_BRAND} (non-enumerable, so it never appears in JSON or a spread).
+ */
+const makeSql = (content: SqlContent): Sql =>
+  Object.defineProperty(
+    box("Sql")(content),
+    SQL_BRAND,
+    { value: true },
+  );
 
 /**
  * Type guard for {@link Sql} values, used by {@link sql} to decide splice-vs-bind.
+ * Requires the private {@link SQL_BRAND} (not just the structural `"Sql"` tag),
+ * so only genuine builder output passes — a forged box is rejected and bound as
+ * a value, never spliced.
  */
-export const isSql = (value: unknown): value is Sql =>
+export const isSql = (
+  value: unknown,
+): value is Sql =>
+  typeof value === "object" &&
+  value !== null &&
+  SQL_BRAND in value &&
   isBoxWithTag("Sql")(value);
 
 /**
@@ -56,7 +97,8 @@ export const isSql = (value: unknown): value is Sql =>
  */
 const placeholderText = (
   value: Interpolation,
-): SoftStr => (isSql(value) ? value.content.text : "?");
+): SoftStr =>
+  isSql(value) ? value.content.text : "?";
 
 /**
  * The params a single interpolation contributes: a spliced fragment's params, a
@@ -87,18 +129,27 @@ const placeholderParams = (
  * - any other value is **bound** as a `?` placeholder, lifted into `Some`.
  *
  * User values therefore never reach the SQL string — injection-safe by
- * construction. The trailing static chunk (which has no interpolation after it)
- * is recovered via `fromNullable`, so no raw `undefined` is handled.
+ * construction. A nullish interpolation (only reachable through a type hole) is
+ * normalized to `None` so it binds as SQL `NULL`: text and params both derive
+ * from the same normalized values, so the placeholder count and the param count
+ * can never diverge (the invariant a downstream driver relies on).
  */
 export const sql = (
   strings: TemplateStringsArray,
   ...values: ReadonlyArray<Interpolation>
-): Sql =>
-  box("Sql")({
+): Sql => {
+  // a nullish interpolation → SQL NULL; a falsy-but-valid value (0/false/"") is
+  // kept. `??` only catches null/undefined, so bound values are untouched.
+  const normalized: ReadonlyArray<Interpolation> =
+    values.map((value) => value ?? none());
+  return makeSql({
+    // strings.length === normalized.length + 1: each chunk but the last is
+    // followed by exactly one interpolation → exactly one placeholder. The
+    // trailing chunk (no interpolation) is the `None` arm.
     text: strings
       .map((chunk, i) =>
         pipe(
-          fromNullable(values[i]),
+          fromNullable(normalized[i]),
           matchOption(
             () => chunk,
             (value: Interpolation) =>
@@ -107,7 +158,8 @@ export const sql = (
         ),
       )
       .join(""),
-    params: values.flatMap((value) =>
+    params: normalized.flatMap((value) =>
       placeholderParams(value),
     ),
   });
+};

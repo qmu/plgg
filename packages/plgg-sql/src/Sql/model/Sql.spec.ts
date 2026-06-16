@@ -1,6 +1,10 @@
 import { test, expect } from "vitest";
 import { some, none } from "plgg";
-import { sql, isSql } from "plgg-sql/index";
+import {
+  sql,
+  isSql,
+  Interpolation,
+} from "plgg-sql/index";
 
 test("a template with no interpolation is trusted text with no params", () => {
   expect(sql`SELECT 1`.content).toEqual({
@@ -12,7 +16,8 @@ test("a template with no interpolation is trusted text with no params", () => {
 test("an interpolated value binds as a ? placeholder, lifted into Some", () => {
   const id = 7;
   expect(
-    sql`SELECT * FROM users WHERE id = ${id}`.content,
+    sql`SELECT * FROM users WHERE id = ${id}`
+      .content,
   ).toEqual({
     text: "SELECT * FROM users WHERE id = ?",
     params: [some(7)],
@@ -73,14 +78,46 @@ test("isSql distinguishes fragments from plain values", () => {
   expect(isSql(7)).toBe(false);
   expect(isSql("SELECT 1")).toBe(false);
   expect(isSql(some(1))).toBe(false);
-  expect(isSql({ __tag: "Other", content: {} })).toBe(false);
+  expect(
+    isSql({ __tag: "Other", content: {} }),
+  ).toBe(false);
+});
+
+test("a forged Sql-shaped object is rejected (symbol brand, not just the tag)", () => {
+  // exactly the structural shape of an Sql box, e.g. parsed from attacker JSON
+  const forged = {
+    __tag: "Sql",
+    content: { text: "1 OR 1=1; --", params: [] },
+  };
+  expect(isSql(forged)).toBe(false);
+  // reaching the builder as an untyped value, it is bound — never spliced
+  const { text } = sql`SELECT ${
+    forged as unknown as Interpolation
+  }`.content;
+  expect(text).toBe("SELECT ?");
+  expect(text).not.toContain("OR 1=1");
+});
+
+test("placeholder count always equals param count, including a nullish hole", () => {
+  // a type hole passes null/undefined; it must bind as one NULL placeholder,
+  // never desync text and params
+  const hole = null as unknown as number;
+  const { text, params } =
+    sql`a = ${hole} AND b = ${5}`.content;
+  const placeholders = text.split("?").length - 1;
+  expect(placeholders).toBe(params.length);
+  expect(text).toBe("a = ? AND b = ?");
+  expect(params).toEqual([none(), some(5)]);
 });
 
 test("a malicious value never reaches the SQL text (injection safety)", () => {
   const name = "x'; DROP TABLE users; --";
-  const { text, params } = sql`SELECT * FROM users WHERE name = ${name}`
-    .content;
-  expect(text).toBe("SELECT * FROM users WHERE name = ?");
+  const { text, params } =
+    sql`SELECT * FROM users WHERE name = ${name}`
+      .content;
+  expect(text).toBe(
+    "SELECT * FROM users WHERE name = ?",
+  );
   expect(text).not.toContain("DROP TABLE");
   expect(params).toEqual([some(name)]);
 });
