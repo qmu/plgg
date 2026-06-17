@@ -3,9 +3,9 @@ created_at: 2026-06-17T08:12:21+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 94ea7b9
+category: Changed
 depends_on: [20260617081220-errors-as-data-migration.md]
 ---
 
@@ -89,3 +89,47 @@ Unblocks the proc-native form of the SSG ticket
   collapse moves here; if after, SSG is written proc-native from the start and
   this ticket only touches `proc` + HTTP. Set the SSG ticket's `depends_on`
   accordingly.
+
+## Final Report
+
+Development completed. The precise per-step error-union inference **landed
+cleanly** — `proc(a, f1, f2, …)` now infers
+`Result<UnwrapProcedural<RLast>, ProcErr<A> | ProcErr<RB> | … | Defect>` with
+the full monorepo green (tsc 0, all tests) and **zero `as`/`any`/`ts-ignore`**.
+A type-level assertion in `proc.spec.ts` locks the inferred union so a future
+refactor can't silently collapse it back to `unknown`.
+
+### Discovered Insights
+
+- **Insight**: the dual-inference collapse was sidestepped by **not inferring
+  `E` against the `Procedural<T,E>` union target at all**.
+  **Context**: the overload type params became the *raw return types*
+  (`RB`, `RC`, …) inferred from each step function's actual return (always
+  unambiguous, one type var), then decomposed afterward — `UnwrapProcedural<R>`
+  for success and a new `ProcErr<R> = ProcErrInner<Awaited<R>>` for the error
+  (non-distributive at entry, then distributes over the `Ok|Err` union so
+  `Err<infer E>` recovers `E`). Inferring the whole concrete return type and
+  decomposing it dodges the bare-`T`-arm ambiguity that collapses `E` to
+  `unknown`.
+- **Insight**: `ProcErr<A>` is included for the **seed** argument, not just the
+  steps.
+  **Context**: a `proc` seed can itself be a `Procedural` carrying an error
+  (e.g. `bind()` returns `Result<_, Error>`); omitting the seed's error narrowed
+  the union and broke a pre-existing `bind.spec.ts` cast. Unioning `ProcErr<A>`
+  recovers it.
+- **Insight**: the only caller-facing change is **cosmetic** — `proc`'s explicit
+  type args now denote raw-return types, not success types. No real call site
+  (in or out of the repo) passes explicit args; downstream annotates
+  `PromisedResult<_, unknown>`, to which the precise union is assignable, so
+  nothing broke. The 3 explicit-arg calls in `proc.spec.ts` were fixed by
+  letting inference run.
+- **Insight**: the "collapse SSG/HTTP onto `proc`" half of this ticket is a
+  **no-op right now** — SSG doesn't exist yet and HTTP handlers already annotate
+  their precise channels. SSG will be born `proc`-native on the precise union;
+  dropping any `mapErr(toHttpError)` tails is folded into that ticket.
+- **Insight**: a higher-perspective multi-lens review of the whole error
+  redesign confirmed the design is sound but surfaced foundation defects to fix
+  before SSG — two **P0**s (`printPlggError` cycle crash; `bind`/`tryCatch` still
+  minting raw `Error` + pre-existing `as` casts) and several P1s (tag-only
+  `isPlggError`, `Defect` cause lost across JSON, `cast` throw-stack loss, no
+  error-message accessor). Captured as follow-up tickets.

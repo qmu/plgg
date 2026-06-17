@@ -2,6 +2,8 @@ import { test, expect, assert } from "vitest";
 import {
   InvalidError,
   invalidError,
+  SerializeError,
+  Defect,
   Result,
   proc,
   isOk,
@@ -12,6 +14,44 @@ import {
   asSoftStr,
   isPlggError,
 } from "plgg/index";
+
+/**
+ * Type-level equality (order-insensitive for unions). `Expect<Equal<…>>` is a
+ * compile error unless the two types match exactly — checked by `tsc --noEmit`,
+ * not at runtime.
+ */
+type Equal<X, Y> =
+  (<T>() => T extends X ? 1 : 2) extends <
+    T,
+  >() => T extends Y ? 1 : 2
+    ? true
+    : false;
+type Expect<T extends true> = T;
+
+test("proc infers the PRECISE per-step error union, not unknown", () => {
+  const validatePositive = (
+    x: number,
+  ): Result<number, InvalidError> =>
+    x > 0
+      ? ok(x)
+      : err(invalidError({ message: "neg" }));
+  const ser = (
+    x: number,
+  ): Result<string, SerializeError> =>
+    ok(`${x}`);
+
+  const run = () =>
+    proc(5, validatePositive, ser);
+  type Got = Awaited<ReturnType<typeof run>>;
+  type Want = Result<
+    string,
+    InvalidError | SerializeError | Defect
+  >;
+  // Fails tsc if proc's error channel ever collapses back to `unknown`.
+  type _Locked = Expect<Equal<Got, Want>>;
+  const locked: _Locked = true;
+  expect(locked).toBe(true);
+});
 
 test("proc composes sync and async functions with early error exit", async () => {
   // Example: Processing user input through validation pipeline
@@ -142,7 +182,7 @@ test("proc gracefully handles exceptions in functions", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await proc<number, string>(
+  const result = await proc(
     5,
     processWithError,
   );
@@ -166,7 +206,7 @@ test("proc handles thrown procError", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await proc<number, string>(
+  const result = await proc(
     5,
     processWithprocError,
   );
@@ -188,7 +228,7 @@ test("proc handles thrown non-Error values", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await proc<number, string>(
+  const result = await proc(
     5,
     processWithStringError,
   );
