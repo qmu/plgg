@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   proc,
   ok,
   err,
@@ -42,7 +43,7 @@ const asProfile = (
   isProfile(v)
     ? ok(v)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Invalid profile object",
         }),
       );

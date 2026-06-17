@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   ok,
   err,
 } from "plgg";
@@ -48,7 +49,7 @@ export const asMethod = (
   isMethod(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: `${String(value)} is not a supported HTTP method`,
         }),
       );

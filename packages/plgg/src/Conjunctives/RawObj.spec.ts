@@ -54,25 +54,25 @@ test("asRawObj validation", async () => {
 
   const nullResult = asRawObj(null);
   assert(isErr(nullResult));
-  expect(nullResult.content.message).toBe(
+  expect(nullResult.content.content.message).toBe(
     "Not record",
   );
 
   const undefinedResult = asRawObj(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.content.message).toBe(
+  expect(undefinedResult.content.content.message).toBe(
     "Not record",
   );
 
   const stringResult = asRawObj("test");
   assert(isErr(stringResult));
-  expect(stringResult.content.message).toBe(
+  expect(stringResult.content.content.message).toBe(
     "Not record",
   );
 
   const numberResult = asRawObj(123);
   assert(isErr(numberResult));
-  expect(numberResult.content.message).toBe(
+  expect(numberResult.content.content.message).toBe(
     "Not record",
   );
 });

@@ -59,36 +59,36 @@ test("Time.cast validation with invalid inputs", async () => {
     asTime("not-a-date");
   assert(isErr(invalidStringResult));
   expect(
-    invalidStringResult.content.message,
+    invalidStringResult.content.content.message,
   ).toBe("Value is not a Date");
 
   const numberResult = asTime(1672531200000);
   assert(isErr(numberResult));
-  expect(numberResult.content.message).toBe(
+  expect(numberResult.content.content.message).toBe(
     "Value is not a Date",
   );
 
   const boolResult = asTime(true);
   assert(isErr(boolResult));
-  expect(boolResult.content.message).toBe(
+  expect(boolResult.content.content.message).toBe(
     "Value is not a Date",
   );
 
   const nullResult = asTime(null);
   assert(isErr(nullResult));
-  expect(nullResult.content.message).toBe(
+  expect(nullResult.content.content.message).toBe(
     "Value is not a Date",
   );
 
   const undefinedResult = asTime(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.content.message).toBe(
+  expect(undefinedResult.content.content.message).toBe(
     "Value is not a Date",
   );
 
   const emptyStringResult = asTime("");
   assert(isErr(emptyStringResult));
-  expect(emptyStringResult.content.message).toBe(
+  expect(emptyStringResult.content.content.message).toBe(
     "Value is not a Date",
   );
 });

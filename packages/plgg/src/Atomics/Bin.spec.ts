@@ -4,6 +4,9 @@ import {
   asBin,
   isOk,
   isErr,
+  err,
+  ok,
+  invalidError,
 } from "plgg/index";
 
 test("isBin correctly identifies Bin values", () => {
@@ -94,25 +97,25 @@ test("asBin validates and converts Bin values", () => {
   // Invalid conversions
   const numberValue = asBin(123);
   assert(isErr(numberValue));
-  expect(numberValue.content.message).toBe(
+  expect(numberValue.content.content.message).toBe(
     "Value is not a Bin",
   );
 
   const booleanInput = asBin(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.content.message).toBe(
+  expect(booleanInput.content.content.message).toBe(
     "Value is not a Bin",
   );
 
   const nullInput = asBin(null);
   assert(isErr(nullInput));
-  expect(nullInput.content.message).toBe(
+  expect(nullInput.content.content.message).toBe(
     "Value is not a Bin",
   );
 
   const arrayInput = asBin([1, 2, 3]);
   assert(isErr(arrayInput));
-  expect(arrayInput.content.message).toBe(
+  expect(arrayInput.content.content.message).toBe(
     "Value is not a Bin",
   );
 });
@@ -125,25 +128,21 @@ test("asBin works in validation pipelines", () => {
 
     const data = binResult.content;
     if (data.length === 0) {
-      return {
-        __tag: "Err" as const,
-        content: new Error(
-          "Binary data cannot be empty",
-        ),
-      };
+      return err(
+        invalidError({
+          message: "Binary data cannot be empty",
+        }),
+      );
     }
     if (data.length > 1024) {
-      return {
-        __tag: "Err" as const,
-        content: new Error(
-          "Binary data too large (max 1KB)",
-        ),
-      };
+      return err(
+        invalidError({
+          message:
+            "Binary data too large (max 1KB)",
+        }),
+      );
     }
-    return {
-      __tag: "Ok" as const,
-      content: data,
-    };
+    return ok(data);
   };
 
   const validData = validateBinaryData(
@@ -162,7 +161,7 @@ test("asBin works in validation pipelines", () => {
 
   const invalidType = validateBinaryData(123);
   assert(isErr(invalidType));
-  expect(invalidType.content.message).toBe(
+  expect(invalidType.content.content.message).toBe(
     "Value is not a Bin",
   );
 
@@ -170,7 +169,7 @@ test("asBin works in validation pipelines", () => {
     new Uint8Array(0),
   );
   assert(isErr(emptyData));
-  expect(emptyData.content.message).toBe(
+  expect(emptyData.content.content.message).toBe(
     "Binary data cannot be empty",
   );
 
@@ -178,7 +177,7 @@ test("asBin works in validation pipelines", () => {
     new Uint8Array(2000),
   );
   assert(isErr(largeData));
-  expect(largeData.content.message).toBe(
+  expect(largeData.content.content.message).toBe(
     "Binary data too large (max 1KB)",
   );
 });

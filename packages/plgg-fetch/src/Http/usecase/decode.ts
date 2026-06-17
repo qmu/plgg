@@ -2,6 +2,7 @@ import {
   Result,
   SoftStr,
   InvalidError,
+  invalidError,
   ok,
   err,
   pipe,
@@ -24,7 +25,7 @@ const asText = (
   typeof body === "string"
     ? ok(body)
     : err(
-        new InvalidError({
+        invalidError({
           message: "response body is not text",
         }),
       );

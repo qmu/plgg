@@ -29,19 +29,19 @@ test("Bool.cast validation", async () => {
 
   const stringResult = asBool("true");
   assert(isErr(stringResult));
-  expect(stringResult.content.message).toBe(
+  expect(stringResult.content.content.message).toBe(
     "Value is not a boolean",
   );
 
   const numberResult = asBool(1);
   assert(isErr(numberResult));
-  expect(numberResult.content.message).toBe(
+  expect(numberResult.content.content.message).toBe(
     "Value is not a boolean",
   );
 
   const nullResult = asBool(null);
   assert(isErr(nullResult));
-  expect(nullResult.content.message).toBe(
+  expect(nullResult.content.content.message).toBe(
     "Value is not a boolean",
   );
 });

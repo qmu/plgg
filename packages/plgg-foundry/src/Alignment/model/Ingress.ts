@@ -2,6 +2,7 @@ import {
   Obj,
   Result,
   InvalidError,
+  invalidError,
   isRawObj,
   hasProp,
   ok,
@@ -37,7 +38,7 @@ export const asIngress = (
     return ok(value);
   }
   return err(
-    new InvalidError({
+    invalidError({
       message: "Value is not a valid Ingress",
     }),
   );

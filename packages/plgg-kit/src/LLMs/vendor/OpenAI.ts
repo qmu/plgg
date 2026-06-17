@@ -23,7 +23,7 @@ export const reqObjectGPT = ({
   instructions: string;
   input: string;
   schema: Datum;
-}): PromisedResult<unknown, Error> =>
+}): PromisedResult<unknown, unknown> =>
   proc(
     {
       model,

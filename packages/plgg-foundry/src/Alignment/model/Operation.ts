@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   ok,
   err,
 } from "plgg";
@@ -37,7 +38,7 @@ export const asOperation = (
     return ok(value);
   }
   return err(
-    new InvalidError({
+    invalidError({
       message: "Value is not a valid Operation",
     }),
   );

@@ -5,6 +5,9 @@ import {
   isOk,
   isErr,
   concat,
+  err,
+  ok,
+  invalidError,
 } from "plgg/index";
 
 test("isSoftStr correctly identifies string values", () => {
@@ -42,25 +45,25 @@ test("asSoftStr validates and returns string values", () => {
   // Example: API response validation
   const numberInput = asSoftStr(123);
   assert(isErr(numberInput));
-  expect(numberInput.content.message).toBe(
+  expect(numberInput.content.content.message).toBe(
     "123 is not a string",
   );
 
   const booleanInput = asSoftStr(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.content.message).toBe(
+  expect(booleanInput.content.content.message).toBe(
     "true is not a string",
   );
 
   const nullInput = asSoftStr(null);
   assert(isErr(nullInput));
-  expect(nullInput.content.message).toBe(
+  expect(nullInput.content.content.message).toBe(
     "null is not a string",
   );
 
   const undefinedInput = asSoftStr(undefined);
   assert(isErr(undefinedInput));
-  expect(undefinedInput.content.message).toBe(
+  expect(undefinedInput.content.content.message).toBe(
     "undefined is not a string",
   );
 });
@@ -74,13 +77,12 @@ test("asSoftStr works in validation pipelines", () => {
     const email = strResult.content;
     return email.includes("@") &&
       email.includes(".")
-      ? { __tag: "Ok" as const, content: email }
-      : {
-          __tag: "Err" as const,
-          content: new Error(
-            "Invalid email format",
-          ),
-        };
+      ? ok(email)
+      : err(
+          invalidError({
+            message: "Invalid email format",
+          }),
+        );
   };
 
   const validEmail = validateEmail(
@@ -93,7 +95,7 @@ test("asSoftStr works in validation pipelines", () => {
 
   const invalidType = validateEmail(123);
   assert(isErr(invalidType));
-  expect(invalidType.content.message).toBe(
+  expect(invalidType.content.content.message).toBe(
     "123 is not a string",
   );
 
@@ -101,7 +103,7 @@ test("asSoftStr works in validation pipelines", () => {
     "not-an-email",
   );
   assert(isErr(invalidFormat));
-  expect(invalidFormat.content.message).toBe(
+  expect(invalidFormat.content.content.message).toBe(
     "Invalid email format",
   );
 });

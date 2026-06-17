@@ -2,7 +2,8 @@ import {
   Result,
   ok,
   err,
-  Exception,
+  Defect,
+  defect,
 } from "plgg/index";
 
 /**
@@ -12,14 +13,14 @@ import {
  */
 export const env = (
   key: string,
-): Result<string, Exception> => {
+): Result<string, Defect> => {
   try {
     if (
       typeof process === "undefined" ||
       typeof process.env === "undefined"
     ) {
       return err(
-        new Exception(
+        defect(
           `Environment variable "${key}" is not accessible (process.env unavailable)`,
         ),
       );
@@ -27,7 +28,7 @@ export const env = (
     const value = process.env[key];
     if (value === undefined || value === "") {
       return err(
-        new Exception(
+        defect(
           `Environment variable "${key}" is not set`,
         ),
       );
@@ -35,7 +36,7 @@ export const env = (
     return ok(value);
   } catch {
     return err(
-      new Exception(
+      defect(
         `Failed to access environment variable "${key}"`,
       ),
     );

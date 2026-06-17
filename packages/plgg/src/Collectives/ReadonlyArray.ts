@@ -1,6 +1,8 @@
 import {
   Result,
   InvalidError,
+  invalidError,
+  plggErrorMessage,
   Refinable,
   ok,
   err,
@@ -49,7 +51,7 @@ export const asReadonlyArray =
   ): Result<ReadonlyArr<T>, InvalidError> => {
     if (!is(value)) {
       return err(
-        new InvalidError({
+        invalidError({
           message: "Value is not an array",
         }),
       );
@@ -60,7 +62,7 @@ export const asReadonlyArray =
       const a = value[i];
       if (a === undefined || a === null) {
         return err(
-          new InvalidError({
+          invalidError({
             message: `Array element at index ${i} is undefined`,
           }),
         );
@@ -70,9 +72,9 @@ export const asReadonlyArray =
         results.push(result.content);
       } else {
         return err(
-          new InvalidError({
-            message: `Array element at index ${i} failed validation: ${result.content.message}`,
-            parent: result.content,
+          invalidError({
+            message: `Array element at index ${i} failed validation: ${plggErrorMessage(result.content)}`,
+            sibling: [result.content],
           }),
         );
       }

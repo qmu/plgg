@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -62,7 +63,7 @@ export const asAlphabet = (
     : qualify(value)
       ? ok(box("Alphabet")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not an Alphabet (tag-content pair with valid alphabetic string)",
           }),

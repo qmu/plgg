@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   JsonSerializable,
@@ -66,7 +67,7 @@ export const asBin = (
   }
 
   return err(
-    new InvalidError({
+    invalidError({
       message: "Value is not a Bin",
     }),
   );

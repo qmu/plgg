@@ -4,7 +4,6 @@ import {
   encodeJson,
   isOk,
   isErr,
-  InvalidError,
 } from "plgg/index";
 
 test("decodeJson parses valid JSON into Ok", () => {
@@ -16,8 +15,8 @@ test("decodeJson parses valid JSON into Ok", () => {
 test("decodeJson lifts a parse failure into an InvalidError", () => {
   const r = decodeJson("not json");
   assert(isErr(r));
-  expect(r.content).toBeInstanceOf(InvalidError);
-  expect(r.content.message.length).toBeGreaterThan(0);
+  expect(r.content.__tag).toBe("InvalidError");
+  expect(r.content.content.message.length).toBeGreaterThan(0);
 });
 
 test("encodeJson serializes a value into Ok", () => {
@@ -31,7 +30,7 @@ test("encodeJson lifts a non-serializable value into an InvalidError", () => {
   cyclic.self = cyclic;
   const r = encodeJson(cyclic);
   assert(isErr(r));
-  expect(r.content).toBeInstanceOf(InvalidError);
+  expect(r.content.__tag).toBe("InvalidError");
 });
 
 test("decodeJson then encodeJson round-trips a value", () => {

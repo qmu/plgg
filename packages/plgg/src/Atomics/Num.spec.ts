@@ -4,6 +4,9 @@ import {
   asNum,
   isOk,
   isErr,
+  err,
+  ok,
+  invalidError,
 } from "plgg/index";
 
 test("isNum correctly identifies numeric values", () => {
@@ -67,19 +70,19 @@ test("asNum validates and converts numeric values", () => {
   // Example: API response validation
   const stringInput = asNum("123");
   assert(isErr(stringInput));
-  expect(stringInput.content.message).toBe(
+  expect(stringInput.content.content.message).toBe(
     "Value is not a number",
   );
 
   const booleanInput = asNum(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.content.message).toBe(
+  expect(booleanInput.content.content.message).toBe(
     "Value is not a number",
   );
 
   const nullInput = asNum(null);
   assert(isErr(nullInput));
-  expect(nullInput.content.message).toBe(
+  expect(nullInput.content.content.message).toBe(
     "Value is not a number",
   );
 });
@@ -92,23 +95,20 @@ test("asNum works in validation pipelines", () => {
 
     const price = numResult.content;
     if (price < 0) {
-      return {
-        __tag: "Err" as const,
-        content: new Error(
-          "Price cannot be negative",
-        ),
-      };
+      return err(
+        invalidError({
+          message: "Price cannot be negative",
+        }),
+      );
     }
     if (price > 10000) {
-      return {
-        __tag: "Err" as const,
-        content: new Error("Price too high"),
-      };
+      return err(
+        invalidError({
+          message: "Price too high",
+        }),
+      );
     }
-    return {
-      __tag: "Ok" as const,
-      content: price,
-    };
+    return ok(price);
   };
 
   const validPrice = validatePrice(29.99);
@@ -119,19 +119,19 @@ test("asNum works in validation pipelines", () => {
     "not-a-number",
   );
   assert(isErr(invalidType));
-  expect(invalidType.content.message).toBe(
+  expect(invalidType.content.content.message).toBe(
     "Value is not a number",
   );
 
   const negativePrice = validatePrice(-5);
   assert(isErr(negativePrice));
-  expect(negativePrice.content.message).toBe(
+  expect(negativePrice.content.content.message).toBe(
     "Price cannot be negative",
   );
 
   const expensivePrice = validatePrice(15000);
   assert(isErr(expensivePrice));
-  expect(expensivePrice.content.message).toBe(
+  expect(expensivePrice.content.content.message).toBe(
     "Price too high",
   );
 });

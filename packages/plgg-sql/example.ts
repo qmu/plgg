@@ -26,6 +26,8 @@ import {
   some,
   matchResult,
   matchOption,
+  isPlggError,
+  printPlggError,
 } from "plgg";
 import {
   Db,
@@ -141,7 +143,7 @@ const db = open(":memory:");
 // ── a write: validate → INSERT → read back, all atomic, one pipe ──
 const createUser = (
   payload: SoftStr,
-): Promise<Result<User, Error>> =>
+): Promise<Result<User, unknown>> =>
   proc(
     payload,
     decodeJson, // text  → unknown
@@ -161,7 +163,7 @@ const createUser = (
 
 // ── a read: build → run → map a list ──
 const listUsers = (): Promise<
-  Result<ReadonlyArray<User>, Error>
+  Result<ReadonlyArray<User>, unknown>
 > =>
   proc(
     sql`SELECT id, name, email FROM users ORDER BY id`,
@@ -170,10 +172,15 @@ const listUsers = (): Promise<
   );
 
 const render = (
-  r: Result<unknown, Error>,
+  r: Result<unknown, unknown>,
 ): SoftStr =>
   matchResult(
-    (e: Error) => `Err — ${e.message}`,
+    (e: unknown) =>
+      `Err — ${
+        isPlggError(e)
+          ? printPlggError(e)
+          : String(e)
+      }`,
     (v: unknown) => `Ok  — ${JSON.stringify(v)}`,
   )(r);
 

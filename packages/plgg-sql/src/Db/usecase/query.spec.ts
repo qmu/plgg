@@ -3,7 +3,6 @@ import { none, isOk, isErr } from "plgg";
 import {
   Db,
   ExecResult,
-  SqlError,
   sql,
   query,
   exec,
@@ -39,8 +38,10 @@ test("query folds a driver throw into a value-level SqlError", async () => {
   )(sql`SELECT 1`);
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content).toBeInstanceOf(SqlError);
-    expect(result.content.message).toBe("connection lost");
+    expect(result.content.__tag).toBe("SqlError");
+    expect(result.content.content.message).toBe(
+      "connection lost",
+    );
   }
 });
 
@@ -68,7 +69,9 @@ test("exec folds a non-Error throw into a generic SqlError", async () => {
   )(sql`INSERT INTO users (name) VALUES (${"Ada"})`);
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content).toBeInstanceOf(SqlError);
-    expect(result.content.message).toBe("SQL execution failed");
+    expect(result.content.__tag).toBe("SqlError");
+    expect(result.content.content.message).toBe(
+      "SQL execution failed",
+    );
   }
 });

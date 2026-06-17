@@ -174,13 +174,13 @@ const app = pipe(
       c.req.body,
       decodeJson,
       mapErr((e: InvalidError) =>
-        badRequest(e.message),
+        badRequest(e.content.message),
       ),
       chainResult((v) =>
         pipe(
           asNewUser(v),
           mapErr((e: InvalidError) =>
-            badRequest(e.message),
+            badRequest(e.content.message),
           ),
         ),
       ),

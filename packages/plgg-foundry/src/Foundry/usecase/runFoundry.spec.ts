@@ -1,5 +1,11 @@
 import { test, assert, expect } from "vitest";
-import { proc, isErr, isOk } from "plgg";
+import {
+  proc,
+  isErr,
+  isOk,
+  isPlggError,
+  printPlggError,
+} from "plgg";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 import {
   todoFoundry,
@@ -18,7 +24,11 @@ state: ${JSON.stringify(Array.from(todos))}`,
 
   if (isErr(result)) {
     assert.fail(
-      `Process failed: ${result.content.message}`,
+      `Process failed: ${
+        isPlggError(result.content)
+          ? printPlggError(result.content)
+          : String(result.content)
+      }`,
     );
   }
   assert(isOk(result));

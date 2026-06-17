@@ -87,31 +87,31 @@ test("MutVec.cast should succeed for vectors", () => {
 test("MutVec.cast should fail for non-vectors", () => {
   const result1 = asMutVec(null);
   assert(isErr(result1));
-  expect(result1.content.message).toBe(
+  expect(result1.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result2 = asMutVec(undefined);
   assert(isErr(result2));
-  expect(result2.content.message).toBe(
+  expect(result2.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result3 = asMutVec({});
   assert(isErr(result3));
-  expect(result3.content.message).toBe(
+  expect(result3.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result4 = asMutVec("vector");
   assert(isErr(result4));
-  expect(result4.content.message).toBe(
+  expect(result4.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result5 = asMutVec(123);
   assert(isErr(result5));
-  expect(result5.content.message).toBe(
+  expect(result5.content.content.message).toBe(
     "Value is not a vector",
   );
 });

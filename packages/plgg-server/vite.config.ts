@@ -28,6 +28,7 @@ export default defineConfig({
         "src/node.ts",
         "src/bun.ts",
         "src/deno.ts",
+        "src/ssg.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -54,13 +55,19 @@ export default defineConfig({
         node: "src/node.ts",
         bun: "src/bun.ts",
         deno: "src/deno.ts",
+        ssg: "src/ssg.ts",
       },
       fileName: (format, entryName) =>
         `${entryName}.${format}.js`,
       formats: ["es", "cjs"],
     },
     rollupOptions: {
-      external: ["node:http", "node:stream"],
+      external: [
+        "node:http",
+        "node:stream",
+        "node:fs/promises",
+        "node:path",
+      ],
       output: {
         globals: {},
         exports: "named",

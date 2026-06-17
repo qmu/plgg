@@ -19,7 +19,7 @@ export const blueprint =
   (foundry: Foundry) =>
   async (
     order: Order,
-  ): PromisedResult<Alignment, Error> => {
+  ): PromisedResult<Alignment, unknown> => {
     // Extract available opcodes for enum constraints
     const processorOpcodes = extractOpcodes(
       foundry.apparatuses,

@@ -2,6 +2,7 @@ import { test, assert, expect } from "vitest";
 import {
   Result,
   InvalidError,
+  invalidError,
   SoftStr,
   Time,
   Num,
@@ -82,7 +83,7 @@ test("cast accumulates validation errors for multiple invalid properties", () =>
 
   const result = asProduct(invalidData);
   assert(isErr(result));
-  expect(result.content.sibling.length).toBe(3); // All three properties failed
+  expect(result.content.content.sibling.length).toBe(3); // All three properties failed
 });
 
 test("cast processes validation chain sequentially", () => {
@@ -115,7 +116,7 @@ test("cast processes validation chain sequentially", () => {
   const invalidForm = { username: "  ab  " };
   const result2 = processFormData(invalidForm);
   assert(isErr(result2));
-  expect(result2.content.message).toBe(
+  expect(result2.content.content.message).toBe(
     "Username too short",
   );
 });
@@ -183,7 +184,7 @@ test("cast stops on first validation failure when not accumulating errors", () =
         n > 0
           ? ok(n)
           : err(
-              new InvalidError({
+              invalidError({
                 message: "Must be positive",
               }),
             ),
@@ -191,7 +192,7 @@ test("cast stops on first validation failure when not accumulating errors", () =
         n < 100
           ? ok(n)
           : err(
-              new InvalidError({
+              invalidError({
                 message: "Must be less than 100",
               }),
             ),
@@ -199,7 +200,7 @@ test("cast stops on first validation failure when not accumulating errors", () =
 
   const result = validateSequentially(-5);
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.content.content.message).toBe(
     "Must be positive",
   );
 });
@@ -257,8 +258,8 @@ test("cast handles functions that throw exceptions", () => {
 
   const result = cast("test", throwingValidator);
   assert(isErr(result));
-  expect(result.content.message).toBe(
-    "Validation failed",
+  expect(result.content.content.message).toBe(
+    "Validation failed: Validation exception",
   );
 });
 
@@ -272,8 +273,8 @@ test("cast handles non-Error exceptions", () => {
 
   const result = cast("test", throwingValidator);
   assert(isErr(result));
-  expect(result.content.message).toBe(
-    "Validation failed",
+  expect(result.content.content.message).toBe(
+    "Validation failed: String exception",
   );
 });
 
@@ -284,7 +285,7 @@ test("cast handles exception thrown in sibling validator after prior Err", () =>
     _: unknown,
   ): Result<unknown, InvalidError> =>
     err(
-      new InvalidError({
+      invalidError({
         message: "first failed",
       }),
     );
@@ -297,7 +298,7 @@ test("cast handles exception thrown in sibling validator after prior Err", () =>
   const result = cast("input", firstFail, secondThrow);
   assert(isErr(result));
   // Both errors should be collected
-  expect(result.content.sibling.length).toBeGreaterThan(
+  expect(result.content.content.sibling.length).toBeGreaterThan(
     0,
   );
 });
@@ -307,7 +308,7 @@ test("cast sibling validator returning Ok propagates prior Err", () => {
     _: unknown,
   ): Result<unknown, InvalidError> =>
     err(
-      new InvalidError({
+      invalidError({
         message: "fail first",
       }),
     );
@@ -315,7 +316,7 @@ test("cast sibling validator returning Ok propagates prior Err", () => {
     ok(value as string);
   const result = cast("data", firstFail, secondOk);
   assert(isErr(result));
-  expect(result.content.message).toBe("fail first");
+  expect(result.content.content.message).toBe("fail first");
 });
 
 test("cast with maximum parameters (20 functions)", () => {
@@ -356,7 +357,7 @@ test("cast aggregates multiple validation errors", () => {
     _: unknown,
   ): Result<unknown, InvalidError> =>
     err(
-      new InvalidError({
+      invalidError({
         message: "Error 1",
       }),
     );
@@ -364,7 +365,7 @@ test("cast aggregates multiple validation errors", () => {
     _: unknown,
   ): Result<unknown, InvalidError> =>
     err(
-      new InvalidError({
+      invalidError({
         message: "Error 2",
       }),
     );
@@ -372,7 +373,7 @@ test("cast aggregates multiple validation errors", () => {
     _: unknown,
   ): Result<unknown, InvalidError> =>
     err(
-      new InvalidError({
+      invalidError({
         message: "Error 3",
       }),
     );
@@ -384,14 +385,17 @@ test("cast aggregates multiple validation errors", () => {
     alwaysFail3,
   );
   assert(isErr(result));
-  expect(result.content.sibling?.length).toBe(3);
+  expect(result.content.content.sibling?.length).toBe(3);
   expect(
-    result.content.sibling?.[0]?.message,
+    result.content.content.sibling?.[0]?.content
+      .message,
   ).toBe("Error 1");
   expect(
-    result.content.sibling?.[1]?.message,
+    result.content.content.sibling?.[1]?.content
+      .message,
   ).toBe("Error 2");
   expect(
-    result.content.sibling?.[2]?.message,
+    result.content.content.sibling?.[2]?.content
+      .message,
   ).toBe("Error 3");
 });

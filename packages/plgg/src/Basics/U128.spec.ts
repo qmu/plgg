@@ -51,7 +51,7 @@ test("asU128 fails for bigint above range", () => {
     340282366920938463463374607431768211456n;
   const result = asU128(outOfRange);
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Value is not a U128",
   );
 });

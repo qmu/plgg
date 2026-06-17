@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable1,
   Castable1,
   Functor1,
@@ -56,7 +57,7 @@ export const asRawObj = <A>(
   is<A>(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Not record",
         }),
       );

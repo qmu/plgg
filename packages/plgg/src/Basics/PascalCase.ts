@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -69,7 +70,7 @@ export const asPascalCase = (
     : qualify(value)
       ? ok(box("PascalCase")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a PascalCase (tag-content pair with valid PascalCase string)",
           }),

@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -64,7 +65,7 @@ export const asCamelCase = (
     : qualify(value)
       ? ok(box("CamelCase")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a CamelCase (tag-content pair with valid camelCase string)",
           }),

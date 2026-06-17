@@ -1,63 +1,51 @@
-import { BaseError } from "plgg/Exceptionals/BaseError";
-import { SoftStr, pattern } from "plgg/index";
+import {
+  Box,
+  SoftStr,
+  Option,
+  Cause,
+  box,
+  pattern,
+  toCauseOption,
+} from "plgg/index";
 
 /**
- * Error class for validation failures.
+ * Validation failure as pure tagged data — a `Box`, not an `Error` subclass.
+ * `sibling` carries the nested per-field failures aggregated during a `cast`.
+ * `cause` is a serializable {@link Cause} snapshot, set only when an *unexpected*
+ * throw inside a validation step is caught (normal validation failures have
+ * none). Stackless otherwise: an expected validation failure is control flow.
  */
-export class InvalidError extends BaseError {
-  /**
-   * Error name identifier.
-   */
-  public name = "InvalidError";
-
-  /**
-   * Box tag, so `match(error)([pattern("InvalidError")(), …])` folds this
-   * variant by tag. Non-enumerable getter — does not affect JSON output.
-   */
-  public get __tag(): "InvalidError" {
-    return "InvalidError";
-  }
-
-  /**
-   * Sibling errors that occurred during validation.
-   */
-  public sibling: ReadonlyArray<InvalidError> =
-    [];
-
-  /**
-   * Box content — widens the base payload with the validation `sibling`s, so a
-   * `match` arm on `"InvalidError"` reads the structured failure (message +
-   * nested errors), not just a string. Non-enumerable getter.
-   */
-  public override get content(): Readonly<{
+export type InvalidError = Box<
+  "InvalidError",
+  {
     message: SoftStr;
     sibling: ReadonlyArray<InvalidError>;
-  }> {
-    return {
-      message: this.message,
-      sibling: this.sibling,
-    };
+    cause: Option<Cause>;
   }
-
-  /**
-   * Creates a new InvalidError instance.
-   */
-  constructor({
-    message,
-    parent,
-    sibling,
-  }: {
-    message: string;
-    parent?: BaseError | Error;
-    sibling?: ReadonlyArray<InvalidError>;
-  }) {
-    super(message, parent);
-    this.sibling = sibling || [];
-  }
-}
+>;
 
 /**
- * Pattern matcher for folding an {@link InvalidError} with `match` by name.
+ * Constructs an {@link InvalidError}. Object-arg (mirroring the former class
+ * constructor) so existing call sites migrate by dropping `new`. `cause` is an
+ * unexpected thrown value, snapshotted through {@link Cause}.
+ */
+export const invalidError = ({
+  message,
+  sibling = [],
+  cause,
+}: {
+  message: SoftStr;
+  sibling?: ReadonlyArray<InvalidError>;
+  cause?: unknown;
+}): InvalidError =>
+  box("InvalidError")({
+    message,
+    sibling,
+    cause: toCauseOption(cause),
+  });
+
+/**
+ * Pattern matcher for folding an {@link InvalidError} with `match` by tag.
  */
 export const invalidError$ = () =>
   pattern("InvalidError")();

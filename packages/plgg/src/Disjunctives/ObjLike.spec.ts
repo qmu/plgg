@@ -40,7 +40,7 @@ test("forProp fails for missing property", () => {
     present: 1,
   });
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Property 'missing' not found",
   );
 });
@@ -50,7 +50,7 @@ test("forProp fails for non-object input", () => {
     "not an object",
   );
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.content.content.message).toBe(
     "Not an object",
   );
 });
@@ -58,7 +58,7 @@ test("forProp fails for non-object input", () => {
 test("forProp fails for null input", () => {
   const result = forProp("key", asNum)(null);
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.content.content.message).toBe(
     "Not an object",
   );
 });
@@ -91,7 +91,7 @@ test("forOptionProp fails for non-object input", () => {
     asStr,
   )("scalar");
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.content.content.message).toBe(
     "Not an object",
   );
 });
@@ -99,7 +99,7 @@ test("forOptionProp fails for non-object input", () => {
 test("forOptionProp fails for null input", () => {
   const result = forOptionProp("key", asStr)(null);
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.content.content.message).toBe(
     "Not an object",
   );
 });

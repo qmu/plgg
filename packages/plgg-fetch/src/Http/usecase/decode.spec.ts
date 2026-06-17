@@ -67,7 +67,7 @@ test("decodeJsonBody rejects a non-text (bytes) body", () => {
   );
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content.message).toContain(
+    expect(result.content.content.message).toContain(
       "not text",
     );
   }

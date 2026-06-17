@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -53,7 +54,7 @@ export const asI64 = (
     : qualify(value)
       ? ok(box("I64")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not an I64 (tag-content pair with bigint -9223372036854775808n to 9223372036854775807n)",
           }),

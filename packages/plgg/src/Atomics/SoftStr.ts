@@ -3,6 +3,7 @@ import {
   ok,
   err,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   JsonSerializable,
@@ -45,7 +46,7 @@ export const asSoftStr = (
   is(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: `${value} is not a string`,
         }),
       );

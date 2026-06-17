@@ -1,6 +1,6 @@
 {
   "name": "plgg-server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Server-side HTTP router, handler, and view layer built from scratch on the plgg framework",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -43,6 +43,16 @@
       "require": {
         "types": "./dist/deno.d.ts",
         "default": "./dist/deno.cjs.js"
+      }
+    },
+    "./ssg": {
+      "import": {
+        "types": "./dist/ssg.d.ts",
+        "default": "./dist/ssg.es.js"
+      },
+      "require": {
+        "types": "./dist/ssg.d.ts",
+        "default": "./dist/ssg.cjs.js"
       }
     }
   },

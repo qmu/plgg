@@ -1,8 +1,8 @@
 import { test, expect } from "vitest";
-import { SerializeError } from "plgg/index";
+import { serializeError } from "plgg/index";
 
 test("SerializeError basic usage", () => {
-  const error = new SerializeError({ message: "test error" });
-  expect(error.message).toBe("test error");
-  expect(error.name).toBe("SerializeError");
+  const error = serializeError({ message: "test error" });
+  expect(error.content.message).toBe("test error");
+  expect(error.__tag).toBe("SerializeError");
 });

@@ -2,6 +2,7 @@ import {
   Box,
   Result,
   InvalidError,
+  invalidError,
   Refinable1,
   Castable1,
   isBox,
@@ -81,7 +82,7 @@ export const asOk = <A>(
   is<A>(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Value is not an Ok",
         }),
       );

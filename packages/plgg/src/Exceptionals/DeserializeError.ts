@@ -1,39 +1,32 @@
-import { BaseError } from "plgg/Exceptionals/BaseError";
-import { pattern } from "plgg/index";
+import {
+  Box,
+  SoftStr,
+  box,
+  pattern,
+} from "plgg/index";
 
 /**
- * Error class for deserialization failures.
+ * Deserialization failure as pure tagged data — a `Box`, not an `Error`
+ * subclass.
  */
-export class DeserializeError extends BaseError {
-  /**
-   * Error name identifier.
-   */
-  public name = "DeserializeError";
-
-  /**
-   * Box tag, so this variant folds by tag through `match`. Non-enumerable
-   * getter — does not affect JSON output.
-   */
-  public get __tag(): "DeserializeError" {
-    return "DeserializeError";
-  }
-
-  /**
-   * Creates a new DeserializeError instance.
-   */
-  constructor({
-    message,
-    parent,
-  }: {
-    message: string;
-    parent?: BaseError | Error;
-  }) {
-    super(message, parent);
-  }
-}
+export type DeserializeError = Box<
+  "DeserializeError",
+  { message: SoftStr }
+>;
 
 /**
- * Pattern matcher for folding a {@link DeserializeError} with `match` by name.
+ * Constructs a {@link DeserializeError}. Object-arg so call sites migrate by
+ * dropping `new`.
+ */
+export const deserializeError = ({
+  message,
+}: {
+  message: SoftStr;
+}): DeserializeError =>
+  box("DeserializeError")({ message });
+
+/**
+ * Pattern matcher for folding a {@link DeserializeError} with `match` by tag.
  */
 export const deserializeError$ = () =>
   pattern("DeserializeError")();

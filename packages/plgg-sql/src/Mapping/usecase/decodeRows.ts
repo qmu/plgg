@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   pipe,
   conclude,
   mapErr,
@@ -31,7 +32,7 @@ export const decodeRows =
         (
           errors: ReadonlyArray<InvalidError>,
         ): InvalidError =>
-          new InvalidError({
+          invalidError({
             message: `Failed to decode ${errors.length} of ${rows.length} row(s)`,
             sibling: errors,
           }),
@@ -53,7 +54,7 @@ export const decodeRow =
       matchOption(
         () =>
           err(
-            new InvalidError({
+            invalidError({
               message:
                 "Expected a row, but the result set was empty",
             }),

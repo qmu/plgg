@@ -72,31 +72,31 @@ test("Vec.cast should succeed for vectors", () => {
 test("Vec.cast should fail for non-vectors", () => {
   const result1 = asVec(null);
   assert(isErr(result1));
-  expect(result1.content.message).toBe(
+  expect(result1.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result2 = asVec(undefined);
   assert(isErr(result2));
-  expect(result2.content.message).toBe(
+  expect(result2.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result3 = asVec({});
   assert(isErr(result3));
-  expect(result3.content.message).toBe(
+  expect(result3.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result4 = asVec("vector");
   assert(isErr(result4));
-  expect(result4.content.message).toBe(
+  expect(result4.content.content.message).toBe(
     "Value is not a vector",
   );
 
   const result5 = asVec(123);
   assert(isErr(result5));
-  expect(result5.content.message).toBe(
+  expect(result5.content.content.message).toBe(
     "Value is not a vector",
   );
 });
@@ -180,7 +180,7 @@ test("asVecOf validates each element", () => {
 test("asVecOf fails when value is not a vector", () => {
   const result = asVecOf(asNum)("not-a-vector");
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.content.content.message).toBe(
     "Value is not a vector",
   );
 });
@@ -188,7 +188,7 @@ test("asVecOf fails when value is not a vector", () => {
 test("asVecOf fails with index of bad element", () => {
   const result = asVecOf(asNum)([1, "bad", 3]);
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Invalid element at index 1",
   );
 });

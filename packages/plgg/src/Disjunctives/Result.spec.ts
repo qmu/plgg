@@ -2,6 +2,7 @@ import { test, expect, assert } from "vitest";
 import {
   Result,
   InvalidError,
+  invalidError,
   ok,
   err,
   isOk,
@@ -141,7 +142,7 @@ test("mapOk transforms success values while preserving errors", () => {
   // Example: Processing successful API responses
   const formatPrice = (
     price: number,
-  ): Result<string, Error> =>
+  ): Result<string, InvalidError> =>
     ok(`$${price.toFixed(2)}`);
 
   const successResult = chainResult(formatPrice)(
@@ -150,13 +151,13 @@ test("mapOk transforms success values while preserving errors", () => {
   assert(isOk(successResult));
   expect(successResult.content).toBe("$29.99");
 
-  const priceError = new InvalidError({
+  const priceError = invalidError({
     message: "Invalid price",
   });
   const e = err(priceError);
   const errorResult = chainResult(formatPrice)(e);
   assert(isErr(errorResult));
-  expect(errorResult.content.message).toBe(
+  expect(errorResult.content.content.message).toBe(
     "Invalid price",
   );
 });

@@ -1,5 +1,11 @@
 import { test, assert } from "vitest";
-import { proc, isErr, isOk } from "plgg";
+import {
+  proc,
+  isErr,
+  isOk,
+  isPlggError,
+  printPlggError,
+} from "plgg";
 import {
   asAlignment,
   asOrder,
@@ -64,7 +70,11 @@ test.skip("OperationContext: assemble -> operate with todoFoundry alignment", as
   // Assert the result is successful
   if (isErr(result)) {
     assert.fail(
-      `Process failed: ${result.content.message}`,
+      `Process failed: ${
+        isPlggError(result.content)
+          ? printPlggError(result.content)
+          : String(result.content)
+      }`,
     );
   }
   assert(isOk(result));

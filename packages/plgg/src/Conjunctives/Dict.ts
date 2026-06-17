@@ -3,6 +3,8 @@ import {
   Datum,
   Result,
   InvalidError,
+  invalidError,
+  plggErrorMessage,
   ok,
   err,
   isErr,
@@ -35,7 +37,7 @@ export const asDictOf =
       Array.isArray(value)
     ) {
       return err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a dictionary",
         }),
       );
@@ -54,8 +56,8 @@ export const asDictOf =
         );
         if (isErr(elementResult)) {
           return err(
-            new InvalidError({
-              message: `Invalid value at key "${key}": ${elementResult.content.message}`,
+            invalidError({
+              message: `Invalid value at key "${key}": ${plggErrorMessage(elementResult.content)}`,
             }),
           );
         }

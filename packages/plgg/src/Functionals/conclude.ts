@@ -10,7 +10,7 @@ import {
  * Applies function to each element, collecting all results or errors.
  */
 export const conclude =
-  <T, U, F extends Error>(
+  <T, U, F>(
     fn: (item: T) => Result<U, F>,
   ) =>
   (

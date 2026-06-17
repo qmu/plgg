@@ -31,7 +31,7 @@ test("asFunc returns Err for non-function values", () => {
   for (const value of cases) {
     const result = asFunc(value);
     assert(isErr(result));
-    expect(result.content.message).toBe(
+    expect(result.content.content.message).toBe(
       "Value is not a function",
     );
   }

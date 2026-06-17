@@ -1,6 +1,8 @@
 import {
   Result,
   InvalidError,
+  invalidError,
+  plggErrorMessage,
   JsonSerializable,
   JsonReady,
   Datum,
@@ -51,7 +53,7 @@ export const asVec = (
   is(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a vector",
         }),
       );
@@ -125,7 +127,7 @@ export const asVecOf =
   ): Result<Vec<T>, InvalidError> => {
     if (!is(value)) {
       return err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a vector",
         }),
       );
@@ -136,8 +138,8 @@ export const asVecOf =
       const result = asFn(value[i]);
       if (isErr(result)) {
         return err(
-          new InvalidError({
-            message: `Invalid element at index ${i}: ${result.content.message}`,
+          invalidError({
+            message: `Invalid element at index ${i}: ${plggErrorMessage(result.content)}`,
           }),
         );
       }

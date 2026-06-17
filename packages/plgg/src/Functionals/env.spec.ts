@@ -13,10 +13,10 @@ test("env - returns Err for missing environment variable", () => {
   delete process.env.NONEXISTENT_VAR;
   const result = env("NONEXISTENT_VAR");
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "NONEXISTENT_VAR",
   );
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "not set",
   );
 });
@@ -25,7 +25,7 @@ test("env - returns Err for empty environment variable", () => {
   process.env.EMPTY_VAR = "";
   const result = env("EMPTY_VAR");
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "EMPTY_VAR",
   );
   delete process.env.EMPTY_VAR;
@@ -38,7 +38,7 @@ test("env - returns Err when process.env is unavailable", () => {
   const result = env("ANY_VAR");
   process.env = originalEnv;
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "process.env unavailable",
   );
 });
@@ -58,7 +58,7 @@ test("env - returns Err when accessing process throws", () => {
     configurable: true,
   });
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Failed to access",
   );
 });

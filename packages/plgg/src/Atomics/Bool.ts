@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   JsonSerializable,
@@ -53,7 +54,7 @@ export const asBool = (
   is(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a boolean",
         }),
       );

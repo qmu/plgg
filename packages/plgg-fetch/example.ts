@@ -32,6 +32,7 @@ import {
   decodeJsonBody,
   ClientError,
   networkError$,
+  redirectError$,
 } from "plgg-fetch/index";
 import {
   HttpResponse,
@@ -104,6 +105,13 @@ const report =
                 ),
             ],
             [
+              redirectError$(),
+              (e) =>
+                console.error(
+                  `${label}: redirect error — ${e.content.message}`,
+                ),
+            ],
+            [
               notFound$(),
               (e) =>
                 console.error(
@@ -167,7 +175,7 @@ const report =
             matchResult(
               (decodeError: InvalidError) =>
                 console.log(
-                  `${label}: status ${response.status.content}, body not a User (${decodeError.message})`,
+                  `${label}: status ${response.status.content}, body not a User (${decodeError.content.message})`,
                 ),
               (user: User) =>
                 console.log(
@@ -202,7 +210,7 @@ const main = async (): Promise<void> => {
       (error: InvalidError): Promise<void> =>
         Promise.resolve(
           console.error(
-            `POST /users: could not encode body — ${error.message}`,
+            `POST /users: could not encode body — ${error.content.message}`,
           ),
         ),
       (body: SoftStr): Promise<void> =>

@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -51,7 +52,7 @@ export const asStr = (
     : qualify(value)
       ? ok(box("Str")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a Str (tag-content pair with non-empty string)",
           }),

@@ -1,15 +1,16 @@
 import { test, expect, assert, vi } from "vitest";
 import {
-  InvalidError,
-  BaseError,
-  Exception,
-  SerializeError,
-  DeserializeError,
   PlggError,
+  InvalidError,
+  invalidError,
   invalidError$,
-  exception$,
+  serializeError,
   serializeError$,
+  deserializeError,
   deserializeError$,
+  defect,
+  defect$,
+  box,
   Time,
   Option,
   Obj,
@@ -17,9 +18,16 @@ import {
   Result,
   match,
   isBox,
+  isSome,
+  ok,
+  err,
   printPlggError,
   isPlggError,
+  plggErrorMessage,
+  matchPlggError,
+  resultErrorMessage,
   toError,
+  panic,
   unreachable,
   asSoftStr,
   asObj,
@@ -31,134 +39,119 @@ import {
   asStr,
 } from "plgg/index";
 
-test("PlggError.is type guard with InvalidError", () => {
-  const error = new InvalidError({
-    message: "Test error",
-  });
-  expect(isPlggError(error)).toBe(true);
+test("isPlggError recognizes every core error variant", () => {
+  expect(
+    isPlggError(invalidError({ message: "x" })),
+  ).toBe(true);
+  expect(
+    isPlggError(serializeError({ message: "x" })),
+  ).toBe(true);
+  expect(
+    isPlggError(deserializeError({ message: "x" })),
+  ).toBe(true);
+  expect(isPlggError(defect("x"))).toBe(true);
 });
 
-test("PlggError.is type guard with BaseError", () => {
-  const error = new BaseError("Test error");
-  expect(isPlggError(error)).toBe(true);
-});
-
-test("PlggError.is type guard with regular Error", () => {
-  const error = new Error("Test error");
-  expect(isPlggError(error)).toBe(false);
-});
-
-test("PlggError.is type guard with non-error objects", () => {
+test("isPlggError rejects non-plgg values", () => {
+  expect(isPlggError(new Error("x"))).toBe(false);
   expect(isPlggError({})).toBe(false);
   expect(isPlggError(null)).toBe(false);
   expect(isPlggError(undefined)).toBe(false);
   expect(isPlggError("string")).toBe(false);
   expect(isPlggError(123)).toBe(false);
   expect(isPlggError([])).toBe(false);
+  // a Box with a non-core tag is not a PlggError
+  expect(isPlggError(box("Other")({}))).toBe(
+    false,
+  );
+  // a tag-colliding box without a string message is rejected (shape guard)
+  expect(
+    isPlggError(
+      box("InvalidError")({ totally: "wrong" }),
+    ),
+  ).toBe(false);
+  expect(isPlggError(box("Defect")({}))).toBe(
+    false,
+  );
 });
 
-test("PlggError.is checks brand property", () => {
-  const validError = {
-    __: "PlggError",
-    message: "test",
+test("cast captures an unexpected step throw as a serializable cause", () => {
+  const boom = (
+    _v: unknown,
+  ): Result<number, InvalidError> => {
+    throw new Error("kaboom");
   };
-  expect(isPlggError(validError)).toBe(true);
-
-  const invalidError = {
-    __: "SomeOtherError",
-    message: "test",
-  };
-  expect(isPlggError(invalidError)).toBe(false);
-
-  const noBrandError = { message: "test" };
-  expect(isPlggError(noBrandError)).toBe(false);
+  const result = cast(1, boom);
+  assert(result.isErr());
+  expect(result.content.__tag).toBe(
+    "InvalidError",
+  );
+  expect(
+    result.content.content.message,
+  ).toContain("kaboom");
+  // the origin is retained as a serializable cause, not flattened away
+  expect(
+    isSome(result.content.content.cause),
+  ).toBe(true);
 });
 
-test("PlggError.debug with InvalidError", () => {
-  const consoleSpy = vi
+test("printPlggError prints tag and message", () => {
+  const spy = vi
     .spyOn(console, "error")
     .mockImplementation(() => {});
-
-  const error = new InvalidError({
-    message: "Test validation error",
-  });
-  printPlggError(error);
-
-  expect(consoleSpy).toHaveBeenCalledWith(
+  printPlggError(
+    invalidError({
+      message: "Test validation error",
+    }),
+  );
+  expect(spy).toHaveBeenCalledWith(
     expect.stringContaining("[InvalidError]"),
   );
-  expect(consoleSpy).toHaveBeenCalledWith(
+  expect(spy).toHaveBeenCalledWith(
     expect.stringContaining(
       "Test validation error",
     ),
   );
-
-  consoleSpy.mockRestore();
+  spy.mockRestore();
 });
 
-test("PlggError.debug with nested errors", () => {
-  const consoleSpy = vi
+test("printPlggError walks validation siblings", () => {
+  const spy = vi
     .spyOn(console, "error")
     .mockImplementation(() => {});
-
-  const parentError = new InvalidError({
-    message: "Parent error",
-  });
-  const childError = new InvalidError({
+  const child = invalidError({
     message: "Child error",
-    parent: parentError,
   });
-
-  printPlggError(childError);
-
-  expect(consoleSpy).toHaveBeenCalledTimes(2);
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("Child error"),
-  );
-  expect(consoleSpy).toHaveBeenCalledWith(
+  const parent = invalidError({
+    message: "Parent error",
+    sibling: [child],
+  });
+  printPlggError(parent);
+  expect(spy).toHaveBeenCalledTimes(2);
+  expect(spy).toHaveBeenCalledWith(
     expect.stringContaining("Parent error"),
   );
-
-  consoleSpy.mockRestore();
+  expect(spy).toHaveBeenCalledWith(
+    expect.stringContaining("Child error"),
+  );
+  spy.mockRestore();
 });
 
-test("printPlggError with plain Error prints single line", () => {
-  const consoleSpy = vi
+test("printPlggError unwraps a Defect's Error cause", () => {
+  const spy = vi
     .spyOn(console, "error")
     .mockImplementation(() => {});
-
-  const plainError = new Error(
-    "plain error",
-  ) as unknown as InvalidError;
-  printPlggError(plainError);
-
-  expect(consoleSpy).toHaveBeenCalledTimes(1);
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("plain error"),
+  printPlggError(
+    defect("wrapped", new Error("root cause")),
   );
-
-  consoleSpy.mockRestore();
-});
-
-test("printPlggError prints no stack location when stack missing", () => {
-  const consoleSpy = vi
-    .spyOn(console, "error")
-    .mockImplementation(() => {});
-
-  const error = new InvalidError({
-    message: "no stack",
-  });
-  // Simulate an environment without stack frame detail.
-  Object.defineProperty(error, "stack", {
-    value: "",
-    configurable: true,
-  });
-  printPlggError(error);
-  expect(consoleSpy).toHaveBeenCalledWith(
-    expect.stringContaining("no stack"),
+  expect(spy).toHaveBeenCalledTimes(2);
+  expect(spy).toHaveBeenCalledWith(
+    expect.stringContaining("wrapped"),
   );
-
-  consoleSpy.mockRestore();
+  expect(spy).toHaveBeenCalledWith(
+    expect.stringContaining("root cause"),
+  );
+  spy.mockRestore();
 });
 
 test("toError returns the same instance for Error input", () => {
@@ -166,16 +159,20 @@ test("toError returns the same instance for Error input", () => {
   expect(toError(original)).toBe(original);
 });
 
-test("toError wraps non-Error values", () => {
+test("toError synthesizes for tagged data and primitives", () => {
+  expect(
+    toError(invalidError({ message: "bad" }))
+      .message,
+  ).toContain("InvalidError");
   expect(toError("oops").message).toBe("oops");
   expect(toError(42).message).toBe("42");
-  expect(toError({ a: 1 }).message).toContain(
-    "object",
-  );
   expect(toError(null).message).toBe("null");
-  expect(toError(undefined).message).toBe(
-    "undefined",
-  );
+});
+
+test("panic throws the extracted Error", () => {
+  expect(() =>
+    panic(invalidError({ message: "boom" })),
+  ).toThrow("InvalidError");
 });
 
 test("unreachable always throws", () => {
@@ -186,7 +183,8 @@ test("unreachable always throws", () => {
 
 test("InvalidError over cast pipeline", () => {
   type Id = string;
-  const asId = (v: unknown) => cast(v, asSoftStr);
+  const asId = (v: unknown) =>
+    cast(v, asSoftStr);
 
   type Name = Str;
   const asName = (v: unknown) =>
@@ -225,10 +223,10 @@ test("InvalidError over cast pipeline", () => {
     name: "AB",
   });
   if (result.isErr()) {
-    expect(result.content).toBeInstanceOf(
-      InvalidError,
+    expect(result.content.__tag).toBe(
+      "InvalidError",
     );
-    expect(result.content.sibling).toHaveLength(
+    expect(result.content.content.sibling).toHaveLength(
       2,
     );
     return;
@@ -239,65 +237,119 @@ test("InvalidError over cast pipeline", () => {
 });
 
 test("a plgg error satisfies isBox and exposes its tag and structured content", () => {
-  const e = new InvalidError({ message: "bad input" });
+  const e = invalidError({
+    message: "bad input",
+  });
   expect(isBox(e)).toBe(true);
   expect(e.__tag).toBe("InvalidError");
-  // content is a structured object payload, not the bare message string.
-  expect(e.content).toEqual({
-    message: "bad input",
-    sibling: [],
-  });
+  expect(e.content.message).toBe("bad input");
+  expect(e.content.sibling).toEqual([]);
 });
 
 test("a PlggError folds exhaustively through match by tag", () => {
-  // Omitting any one arm is a compile-time CoverageError — the union is
-  // match-exhaustive. Each handler receives the variant narrowed to its class.
   const render = (e: PlggError): string =>
     match(e)(
       [
         invalidError$(),
-        // content widened with sibling[] for the validation variant.
-        (x) =>
+        (x): string =>
           `invalid: ${x.content.message} (${x.content.sibling.length})`,
       ],
       [
-        exception$(),
-        (x) => `exception: ${x.content.message}`,
+        defect$(),
+        (x): string =>
+          `defect: ${x.content.message}`,
       ],
       [
         serializeError$(),
-        (x) => `serialize: ${x.content.message}`,
+        (x): string =>
+          `serialize: ${x.content.message}`,
       ],
       [
         deserializeError$(),
-        (x) => `deserialize: ${x.content.message}`,
+        (x): string =>
+          `deserialize: ${x.content.message}`,
       ],
     );
 
   expect(
-    render(new InvalidError({ message: "bad" })),
+    render(invalidError({ message: "bad" })),
   ).equal("invalid: bad (0)");
-  expect(render(new Exception("boom"))).equal(
-    "exception: boom",
+  expect(render(defect("boom"))).equal(
+    "defect: boom",
   );
   expect(
-    render(new SerializeError({ message: "ser" })),
+    render(serializeError({ message: "ser" })),
   ).equal("serialize: ser");
   expect(
-    render(new DeserializeError({ message: "des" })),
+    render(deserializeError({ message: "des" })),
   ).equal("deserialize: des");
 });
 
-test("the Box face is non-enumerable and the error stays a thrown Error", () => {
-  const e = new InvalidError({ message: "bad" });
-  // Still a real Error (stack traces, instanceof, throwability preserved).
-  expect(e).toBeInstanceOf(Error);
-  // __tag/content are prototype getters, not own enumerable fields, so they do
-  // not change enumeration or JSON output.
-  const ownKeys = Object.keys(e);
-  expect(ownKeys).not.toContain("__tag");
-  expect(ownKeys).not.toContain("content");
-  expect("__tag" in JSON.parse(JSON.stringify(e))).toBe(
-    false,
+test("a plgg error is plain tagged data, not an Error", () => {
+  const e = invalidError({ message: "bad" });
+  expect(e).not.toBeInstanceOf(Error);
+  const json = JSON.parse(JSON.stringify(e));
+  expect(json.__tag).toBe("InvalidError");
+  expect(json.content.message).toBe("bad");
+});
+
+test("plggErrorMessage reads any variant's message", () => {
+  expect(
+    plggErrorMessage(invalidError({ message: "a" })),
+  ).toBe("a");
+  expect(plggErrorMessage(defect("b"))).toBe("b");
+});
+
+test("matchPlggError folds by variant via the $-matchers", () => {
+  const label = matchPlggError({
+    invalid: (): string => "invalid",
+    serialize: (): string => "serialize",
+    deserialize: (): string => "deserialize",
+    defect: (): string => "defect",
+  });
+  expect(
+    label(invalidError({ message: "x" })),
+  ).toBe("invalid");
+  expect(
+    label(serializeError({ message: "x" })),
+  ).toBe("serialize");
+  expect(
+    label(deserializeError({ message: "x" })),
+  ).toBe("deserialize");
+  expect(label(defect("x"))).toBe("defect");
+});
+
+test("resultErrorMessage folds a Result's error message", () => {
+  const failed = resultErrorMessage(
+    err(invalidError({ message: "boom" })),
   );
+  assert(isSome(failed));
+  expect(failed.content).toBe("boom");
+  expect(
+    isSome(resultErrorMessage(ok(1))),
+  ).toBe(false);
+});
+
+test("printPlggError terminates on a sibling cycle", () => {
+  const spy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
+  // box() does not freeze content, so a self-referential sibling cycle is
+  // constructible: a -> b -> a.
+  const aSiblings: Array<InvalidError> = [];
+  const a = invalidError({
+    message: "a",
+    sibling: aSiblings,
+  });
+  const b = invalidError({
+    message: "b",
+    sibling: [a],
+  });
+  aSiblings.push(b);
+  // must not infinite-loop / RangeError
+  printPlggError(a);
+  expect(spy).toHaveBeenCalledWith(
+    expect.stringContaining("<cycle>"),
+  );
+  spy.mockRestore();
 });

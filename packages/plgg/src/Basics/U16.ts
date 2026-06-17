@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -51,7 +52,7 @@ export const asU16 = (
     : qualify(value)
       ? ok(box("U16")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a U16 (tag-content pair with integer 0 to 65535)",
           }),

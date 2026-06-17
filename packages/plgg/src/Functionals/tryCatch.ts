@@ -1,53 +1,71 @@
 import {
   Result,
-  Procedural,
+  Defect,
   ok,
   err,
+  defect,
   isPromise,
 } from "plgg/index";
 
 /**
- * Wraps a function to catch exceptions and return Result.
- * Supports both sync and async functions via Procedural.
+ * Wraps a function so a thrown value becomes a `Result` instead of an
+ * exception. With no `errorHandler` the thrown value is normalized to a
+ * {@link Defect} (the model's bottom for an unexpected throw); a custom handler
+ * maps the caught `unknown` to any error type `E`.
+ *
+ * The async overloads are listed first so a `Promise`-returning `fn` matches
+ * them (a sync `fn`'s return is not assignable to `Promise<U>`, so it falls
+ * through to the sync overloads) — otherwise `(arg) => U` would greedily match
+ * an async `fn` with `U = Promise<…>` and never flatten.
  */
-// Overload for synchronous functions
-function tryCatch<T, U, E = Error>(
-  fn: (arg: T) => U,
-  errorHandler?: (error: unknown) => E,
-): (arg: T) => Result<U, E>;
-// Overload for async functions
-function tryCatch<T, U, E = Error>(
+// Async, default error channel -> Defect
+function tryCatch<T, U>(
   fn: (arg: T) => Promise<U>,
-  errorHandler?: (error: unknown) => E,
+): (arg: T) => Promise<Result<U, Defect>>;
+// Sync, default error channel -> Defect
+function tryCatch<T, U>(
+  fn: (arg: T) => U,
+): (arg: T) => Result<U, Defect>;
+// Async, custom error channel -> E
+function tryCatch<T, U, E>(
+  fn: (arg: T) => Promise<U>,
+  errorHandler: (error: unknown) => E,
 ): (arg: T) => Promise<Result<U, E>>;
+// Sync, custom error channel -> E
+function tryCatch<T, U, E>(
+  fn: (arg: T) => U,
+  errorHandler: (error: unknown) => E,
+): (arg: T) => Result<U, E>;
 // Implementation
-function tryCatch<T, U, E extends Error = Error>(
-  fn: (arg: T) => Procedural<U, E>,
-  errorHandler: (error: unknown) => E = (
+function tryCatch<T, U, E>(
+  fn: (arg: T) => U | Promise<U>,
+  errorHandler?: (error: unknown) => E,
+): (
+  arg: T,
+) =>
+  | Result<U, E | Defect>
+  | Promise<Result<U, E | Defect>> {
+  // `errorHandler(error)` is `E`; the fallback is a `Defect` — the union is
+  // exact, so the implementation needs no cast.
+  const handle = (
     error: unknown,
-  ) => {
-    if (error instanceof Error) {
-      return new Error(
-        `Operation failed: ${error.message}`,
-      ) as unknown as E;
-    }
-    return new Error(
-      "Unexpected error occurred",
-    ) as unknown as E;
-  },
-): (arg: T) => Procedural<Result<U, E>, E> {
+  ): E | Defect =>
+    errorHandler
+      ? errorHandler(error)
+      : defect("Operation failed", error);
   return (arg: T) => {
     try {
       const result = fn(arg);
-      if (isPromise(result)) {
-        return result.then(
-          (value) => ok(value as U),
-          (error) => err(errorHandler(error)),
-        );
-      }
-      return ok(result as U);
+      return isPromise(result)
+        ? result.then(
+            (value): Result<U, E | Defect> =>
+              ok(value),
+            (error): Result<U, E | Defect> =>
+              err(handle(error)),
+          )
+        : ok<U>(result);
     } catch (error: unknown) {
-      return err(errorHandler(error));
+      return err(handle(error));
     }
   };
 }

@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -51,7 +52,7 @@ export const asI8 = (
     : qualify(value)
       ? ok(box("I8")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not an I8 (tag-content pair with integer -128 to 127)",
           }),
