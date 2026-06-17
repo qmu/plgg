@@ -172,3 +172,51 @@ The converters `toRequest` / `writeResponse` (Node) and `toHttpRequest` /
 `toNativeResponse` (Web-standard, shared) bridge platform types ↔ plgg's
 `HttpRequest` / `HttpResponse`, lifting nullable platform fields through plgg's
 `Option` (`fromNullable` / `getOr`) rather than ad-hoc defaulting.
+
+## Static site generation (`plgg-server/ssg`)
+
+`generateStatic` renders a set of routes to static HTML files at build time,
+reusing the **real router** and the SSR render path. For each path it
+synthesizes a GET request, runs `handle(app, req)` (so routing + middleware
+execute and the output is byte-identical to live SSR), and writes the page to
+`<outDir>/<path>/index.html`.
+
+```typescript
+import { web, get, pageResponse } from "plgg-server";
+import { generateStatic } from "plgg-server/ssg";
+import { pipe, ok, matchResult } from "plgg";
+
+const app = pipe(
+  web(),
+  get("/", async () =>
+    ok(pageResponse({ title: "Home", root: view(init) })),
+  ),
+);
+
+await generateStatic(app)({
+  paths: ["/", "/about"], // concrete paths (incl. expanded dynamic ones)
+  outDir: "dist/site",
+}).then(
+  matchResult(
+    (e) => console.error("build failed", e),
+    (files) => console.log("wrote", files),
+  ),
+);
+```
+
+- **Crawl via `handle`** — output equals live SSR; your handlers are the single
+  source of truth (no second route→view table).
+- **Explicit `paths`** — the compiled route table has no `params→paths` inverse,
+  so concrete paths are the input (no auto-discovery in v1).
+- **Strict** — a non-2xx status, a non-string (`Bytes`/`Stream`) body, an
+  `HttpError`, or a failed write folds to a typed `SsgError` and fails the whole
+  build: `generateStatic(app)(config)` returns
+  `PromisedResult<ReadonlyArray<SoftStr>, SsgError | Defect>`.
+- **Directory-index output** (`/about` → `about/index.html`) with a
+  path-traversal guard.
+- **`node:fs` confined** to the `plgg-server/ssg` entry (mirroring how
+  `plgg-server/node` confines `node:http`); the runtime-neutral root stays
+  Workers/Deno-portable.
+- **HTML only** — the client JS bundle and other assets are produced by your
+  existing build; plgg-view does not hydrate, so SSG output is first-paint /
+  SEO / no-JS. See [`example/src/build.ts`](../example/src/build.ts).

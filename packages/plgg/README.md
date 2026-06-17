@@ -145,7 +145,15 @@ Union types and protocols: `Result<T, E>`, `Option<T>`, `Datum`, `JsonReady`, `A
 
 ### Exceptionals
 
-Error types: `BaseError`, `Exception`, `InvalidError`, `PlggError`, `DeserializeError`, `SerializeError`.
+Errors are **pure tagged data** (`Box` unions), not `Error` subclasses —
+expected failures are values that fold through `match`/`matchResult` by tag, and
+flow through `Result`/`proc` with their precise type preserved. Variants:
+`InvalidError`, `SerializeError`, `DeserializeError`, and `Defect` — the bottom
+for an *unexpected* throw, carrying a serializable `Cause` (`{ name, message,
+stack }`); the union is `PlggError`. Helpers: `isPlggError`, `plggErrorMessage`,
+`matchPlggError`, `resultErrorMessage`, `printPlggError`, and the `Error`-interop
+seam `toError` / `panic` (for handing a value-error to an `Error`-expecting
+boundary).
 
 ### Flowables
 
