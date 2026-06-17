@@ -40,6 +40,36 @@ export default defineConfig({
           {
             text: "Core concepts",
             link: "/concepts/",
+            items: [
+              {
+                text: "Tagged data (Box)",
+                link: "/concepts/tagged-data",
+              },
+              {
+                text: "Option, not null",
+                link: "/concepts/option",
+              },
+              {
+                text: "Result, not throw",
+                link: "/concepts/result",
+              },
+              {
+                text: "Validation with cast",
+                link: "/concepts/validation",
+              },
+              {
+                text: "Async with proc",
+                link: "/concepts/async",
+              },
+              {
+                text: "Exhaustive match",
+                link: "/concepts/match",
+              },
+              {
+                text: "Data-last composition",
+                link: "/concepts/composition",
+              },
+            ],
           },
         ],
       },

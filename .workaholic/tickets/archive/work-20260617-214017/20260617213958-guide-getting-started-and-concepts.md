@@ -3,9 +3,9 @@ created_at: 2026-06-17T21:39:58+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: ea31884
+category: Changed
 depends_on: [20260617213957-guide-scaffold-and-container.md]
 ---
 
@@ -61,3 +61,29 @@ re-explaining `Option`/`Result`/`pipe`/`cast`/`proc`/`match` in each section.
   (`packages/plgg/src/Exceptionals/`)
 - Design lens (`standards:design`): the on-ramp is the primary *reach* into the
   whole family — keep it modeless and progressively disclosed (concept → API).
+
+## Final Report
+
+Development completed as planned. Authored `getting-started.md`, a
+`concepts/index.md` that states the ethos and links out, and seven concept pages
+(tagged-data, option, result, validation, async, match, composition). Every
+snippet was verified against `packages/plgg` source and `.spec.ts` tests.
+
+### Discovered Insights
+
+- **Insight**: `plgg`'s `match` is **curried** — `match(value)(...cases)` — but
+  `packages/plgg/README.md`'s "Pattern Matching with match" example shows the
+  non-curried `match(r, [...], ...)` form, which no longer compiles against the
+  shipped `MatchCont` interface.
+  **Context**: The README is stale on this point. The guide follows the real
+  code (per the T1 doc-conventions "samples from real code" rule). Fixing the
+  README is a separate change and should get its own ticket — do not silently
+  edit it from a guide ticket (ticket-first workflow).
+- **Insight**: The concept pages are the single source of truth; T3–T7 must
+  **link** here rather than restate Option/Result/cast/proc/match. The concept
+  sub-pages live under the existing "Core concepts" sidebar node — an additive,
+  ticket-driven IA fill, not a restructure.
+- **Insight**: `Defect` is the only error a correct domain function never
+  constructs itself — `proc` mints it when a step *throws* unexpectedly (a
+  thrown `PlggError` keeps its identity). Documenting it as "the bottom" keeps
+  the errors-as-values contract legible.
