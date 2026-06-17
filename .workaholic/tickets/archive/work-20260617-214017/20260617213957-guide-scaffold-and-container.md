@@ -3,9 +3,9 @@ created_at: 2026-06-17T21:39:57+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 43ed966
+category: Changed
 depends_on:
 ---
 
@@ -88,3 +88,26 @@ ships the skeleton + dev container + IA only — **no per-package content yet**
   (plain Docker Compose), and leave production build/deploy to T8.
 - Layer: `Infrastructure` (container/build) + `UX` (the guide is the user's
   reach into the API; the IA shapes that reach — `standards:design`).
+
+## Final Report
+
+Development completed as planned.
+
+### Discovered Insights
+
+- **Insight**: VitePress 1.x is ESM-only, so `packages/guide/package.json`
+  **must** declare `"type": "module"` or `vitepress build` fails loading
+  `.vitepress/config.ts` (`require` of an ESM file).
+  **Context**: The other packages omit `type: module` (they ship dual CJS/ESM
+  dist via Vite), so this guide package is the first in the repo that requires
+  it. Later guide tickets editing the config should keep it.
+- **Insight**: `vitepress build` fails the build on dead internal links by
+  default, so a clean build is a free check that the whole sidebar IA resolves.
+  **Context**: This makes the IA self-verifying — T2–T8 will get an immediate
+  build failure if they remove or rename a page another node links to.
+- **Insight**: The guide container mounts the repo over `/app` for hot-reload,
+  so it needs an anonymous volume (`/app/packages/guide/node_modules`) to keep
+  the image's installed VitePress from being shadowed by the host (which has no
+  `node_modules`). This differs from `workloads/development`, which never mounts.
+  **Context**: Any future dev workload that both installs deps and mounts source
+  must apply the same anonymous-volume pattern.

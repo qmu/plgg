@@ -1,0 +1,22 @@
+# Serve the plgg family guide (VitePress) with hot-reload
+# in one command:
+#
+#   docker compose -f workloads/guide/compose.yaml up --build
+#
+# then open http://localhost:5173
+services:
+  guide:
+    build:
+      # Build context is the repo root so the Dockerfile
+      # can reach every package.
+      context: ../..
+      dockerfile: workloads/guide/Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount the repo for live editing — changing any
+      # guide Markdown reloads the dev server.
+      - ../..:/app
+      # Keep the image's installed deps; the host has no
+      # node_modules to shadow them with.
+      - /app/packages/guide/node_modules

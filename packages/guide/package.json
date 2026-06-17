@@ -1,0 +1,25 @@
+{
+  "name": "@plgg/guide",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "The official user guide for plgg and the plgg family — a VitePress site. Content is authored in Markdown; code samples are drawn from the real packages and tested examples.",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}
