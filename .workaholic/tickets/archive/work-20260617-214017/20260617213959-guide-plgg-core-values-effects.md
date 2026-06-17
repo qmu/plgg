@@ -3,9 +3,9 @@ created_at: 2026-06-17T21:39:59+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: f557d25
+category: Changed
 depends_on: [20260617213958-guide-getting-started-and-concepts.md]
 ---
 
@@ -57,3 +57,24 @@ auto-generated reference (every symbol) comes in T8, so this ticket curates the
   ([[20260617214004-guide-api-autogen-and-ci]])
 - Pairs with T4 (structures/errors/abstracts); together they cover plgg core.
   Keep page structure consistent across both. ([[20260617214000-guide-plgg-core-structures-errors]])
+
+## Final Report
+
+Development completed as planned. Wrote `values-effects.md` as a curated,
+by-category tour (Atomics, Basics, Disjunctives, Contextuals, Flowables,
+Functionals) with signature tables and source-verified examples; links to the
+concept pages rather than restating them, and defers the exhaustive listing to
+the T8 auto-gen reference.
+
+### Discovered Insights
+
+- **Insight**: Atomics and Basics differ structurally — Atomics (`Num`,
+  `SoftStr`, `Int`, `Time`, …) are *bare* TS primitives (`type Num = number`)
+  given an `asX`/`isX` validation seam, whereas Basics (`Str = Box<"Str",
+  string>`, `Float`, the ranged ints) are *branded boxes* that carry proof of
+  refinement in the type. Documenting the two categories together would blur
+  this; the page keeps them as separate sections.
+- **Insight**: `proc` and `cast` differ in their error model — `cast` is sync
+  and its error channel is always `InvalidError`; `proc` is async and infers a
+  *union* of every step's error plus `Defect`. This is why validation chains use
+  `cast` and effectful chains use `proc`.
