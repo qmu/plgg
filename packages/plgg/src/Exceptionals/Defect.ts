@@ -2,27 +2,28 @@ import {
   Box,
   SoftStr,
   Option,
+  Cause,
   box,
   pattern,
-  fromNullable,
+  toCauseOption,
 } from "plgg/index";
 
 /**
  * The bottom error: an *unexpected* throw, normalized to data at a
  * throw-boundary (`proc`'s catch, `tryCatch`'s default). Domain code returns
- * `err(typedError)` and never produces a `Defect` itself. `cause` keeps the
- * original thrown value — usually a JS `Error` with a stack — so a bug stays
- * debuggable while expected failures carry no stack noise (locked decision A:
- * typed errors are stackless, only `Defect` holds an origin stack).
+ * `err(typedError)` and never produces a `Defect` itself. `cause` is a
+ * serializable {@link Cause} snapshot of the thrown value (name/message/stack) —
+ * so a bug stays debuggable and survives a wire boundary, while expected
+ * failures carry no cause (locked decision A: typed errors are stackless).
  */
 export type Defect = Box<
   "Defect",
-  { message: SoftStr; cause: Option<unknown> }
+  { message: SoftStr; cause: Option<Cause> }
 >;
 
 /**
- * Constructs a {@link Defect}. `cause` is lifted through `Option` — absent when
- * the throw carried no value.
+ * Constructs a {@link Defect}. `cause` is snapshotted through {@link Cause} —
+ * absent when the throw carried no value.
  */
 export const defect = (
   message: SoftStr,
@@ -30,7 +31,7 @@ export const defect = (
 ): Defect =>
   box("Defect")({
     message,
-    cause: fromNullable(cause),
+    cause: toCauseOption(cause),
   });
 
 /**

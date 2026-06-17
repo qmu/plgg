@@ -1,9 +1,12 @@
 import {
   Box,
+  Cause,
   Defect,
   InvalidError,
   SerializeError,
   DeserializeError,
+  Option,
+  none,
   isSome,
   isObj,
   isBox,
@@ -41,7 +44,10 @@ const CORE_ERROR_TAGS: ReadonlyArray<string> = [
 ];
 
 /**
- * Type guard for a {@link PlggError}: a `Box` whose tag is a core error tag.
+ * Type guard for a {@link PlggError}: a `Box` whose tag is a core error tag
+ * **and** whose `content` has a string `message`. The shape check keeps the
+ * `value is PlggError` claim honest — a foreign/malformed `Box` with a colliding
+ * tag (but no `message`) is rejected, so downstream reads never see `undefined`.
  */
 export const isPlggError = (
   value: unknown,
@@ -49,37 +55,34 @@ export const isPlggError = (
   isBox(value) &&
   CORE_ERROR_TAGS.some(
     (tag) => tag === value.__tag,
-  );
+  ) &&
+  isObj(value.content) &&
+  "message" in value.content &&
+  typeof value.content.message === "string";
 
 /**
- * The nested errors a {@link PlggError} carries: an `InvalidError`'s validation
- * `sibling`s, or a `Defect`'s `Error` `cause`. Other variants are leaves.
+ * The validation `sibling`s a {@link PlggError} carries (only `InvalidError`
+ * nests; every other variant is a leaf). Defensive: a malformed box whose
+ * `sibling` is not an array yields no children rather than throwing.
  */
 const childrenOf = (
   error: PlggError,
-): ReadonlyArray<PlggError | Error> =>
-  error.__tag === "InvalidError"
+): ReadonlyArray<PlggError> =>
+  error.__tag === "InvalidError" &&
+  Array.isArray(error.content.sibling)
     ? error.content.sibling
-    : error.__tag === "Defect" &&
-        isSome(error.content.cause) &&
-        error.content.cause.content instanceof
-          Error
-      ? [error.content.cause.content]
-      : [];
+    : [];
 
 /**
- * The first stack frame of a real `Error`, formatted for display — `""` for a
- * stackless tagged error (every variant but a `Defect`'s `Error` cause).
+ * The serializable {@link Cause} a `Defect`/`InvalidError` carries, if any.
  */
-const locationOf = (
-  e: PlggError | Error,
-): string =>
-  e instanceof Error && e.stack !== undefined
-    ? (e.stack
-        .split("\n")[1]
-        ?.trim()
-        .replace(/^at /, "") ?? "")
-    : "";
+const causeOf = (
+  error: PlggError,
+): Option<Cause> =>
+  error.__tag === "Defect" ||
+  error.__tag === "InvalidError"
+    ? error.content.cause
+    : none();
 
 /**
  * Pretty-prints a {@link PlggError} and its nested children (validation
@@ -88,35 +91,33 @@ const locationOf = (
 export const printPlggError = (
   error: PlggError,
 ): void => {
-  // A visited set guards against a sibling/cause cycle: `box()` does not freeze
+  // A visited set guards against a sibling cycle: `box()` does not freeze
   // content and `InvalidError.sibling` is self-referential by type, so a cycle
   // is constructible — and a printer that loops while *reporting* an error is
   // the worst time to crash.
   const seen = new WeakSet<object>();
   const walk = (
-    e: PlggError | Error,
+    e: PlggError,
     depth: number,
   ): void => {
-    const tag = isPlggError(e)
-      ? e.__tag
-      : e.constructor.name;
-    const message = isPlggError(e)
-      ? e.content.message
-      : e.message;
-    const loc = locationOf(e);
+    // typed errors are stackless (decision A); the cause carries the origin.
     console.error(
       depth === 0
-        ? `${red(`[${tag}]`)}: ${message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`
-        : ` - ${gray(`${tag}`)}: ${message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`,
+        ? `${red(`[${e.__tag}]`)}: ${e.content.message}`
+        : ` - ${gray(e.__tag)}: ${e.content.message}`,
     );
-    seen.add(e);
-    if (isPlggError(e)) {
-      childrenOf(e).forEach((child) =>
-        seen.has(child)
-          ? console.error(` - ${gray("<cycle>")}`)
-          : walk(child, depth + 1),
+    const cause = causeOf(e);
+    if (isSome(cause)) {
+      console.error(
+        ` - ${gray(`${cause.content.name}: ${cause.content.message}`)}`,
       );
     }
+    seen.add(e);
+    childrenOf(e).forEach((child) =>
+      seen.has(child)
+        ? console.error(` - ${gray("<cycle>")}`)
+        : walk(child, depth + 1),
+    );
   };
   walk(error, 0);
 };
@@ -130,29 +131,30 @@ const messageOf = (content: unknown): string =>
     : "";
 
 /**
- * A {@link Defect}'s real `Error`: its `cause` when that is an `Error` (origin
- * stack preserved), else a synthesized one carrying the defect message.
+ * The message of a tagged box's serializable `cause`, if present — else its own
+ * message. Used to synthesize an `Error` that carries the origin failure.
  */
-const defectToError = (
+const causeMessageOf = (
   content: unknown,
-): Error =>
+): string =>
   isObj(content) &&
   "cause" in content &&
   isSome(content.cause) &&
-  content.cause.content instanceof Error
-    ? content.cause.content
-    : new Error(messageOf(content));
+  isObj(content.cause.content) &&
+  "message" in content.cause.content
+    ? String(content.cause.content.message)
+    : messageOf(content);
 
 /**
- * A tagged error `Box` as an `Error`: a `Defect` yields its `cause` Error;
- * any other tagged error synthesizes `[Tag] message` (boundary stack — typed
- * errors are stackless by decision A).
+ * A tagged error `Box` as an `Error`: a `Defect` carries its `cause`'s message
+ * (the origin failure); any other tagged error synthesizes `[Tag] message`.
+ * Synthesized — typed errors are stackless by decision A.
  */
 const boxToError = (
   e: Box<string, unknown>,
 ): Error =>
   e.__tag === "Defect"
-    ? defectToError(e.content)
+    ? new Error(causeMessageOf(e.content))
     : new Error(
         `[${e.__tag}] ${messageOf(e.content)}`,
       );

@@ -23,9 +23,23 @@ test("defect carries an Error cause as Some", () => {
   expect(isSome(d.content.cause)).toBe(true);
 });
 
-test("toError unwraps a Defect's Error cause", () => {
+test("toError carries a Defect's cause message", () => {
   const e = new Error("orig");
-  expect(toError(defect("wrapped", e))).toBe(e);
+  expect(
+    toError(defect("wrapped", e)).message,
+  ).toBe("orig");
+});
+
+test("a Defect's cause survives JSON serialization", () => {
+  const d = defect("boom", new Error("orig"));
+  const json = JSON.parse(JSON.stringify(d));
+  // a raw Error would collapse to {}; the Cause snapshot keeps the detail.
+  expect(json.content.cause.content.name).toBe(
+    "Error",
+  );
+  expect(
+    json.content.cause.content.message,
+  ).toBe("orig");
 });
 
 test("toError synthesizes when no Error cause", () => {

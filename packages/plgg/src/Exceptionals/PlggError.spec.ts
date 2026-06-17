@@ -18,6 +18,7 @@ import {
   Result,
   match,
   isBox,
+  isSome,
   printPlggError,
   isPlggError,
   toError,
@@ -58,6 +59,35 @@ test("isPlggError rejects non-plgg values", () => {
   expect(isPlggError(box("Other")({}))).toBe(
     false,
   );
+  // a tag-colliding box without a string message is rejected (shape guard)
+  expect(
+    isPlggError(
+      box("InvalidError")({ totally: "wrong" }),
+    ),
+  ).toBe(false);
+  expect(isPlggError(box("Defect")({}))).toBe(
+    false,
+  );
+});
+
+test("cast captures an unexpected step throw as a serializable cause", () => {
+  const boom = (
+    _v: unknown,
+  ): Result<number, InvalidError> => {
+    throw new Error("kaboom");
+  };
+  const result = cast(1, boom);
+  assert(result.isErr());
+  expect(result.content.__tag).toBe(
+    "InvalidError",
+  );
+  expect(
+    result.content.content.message,
+  ).toContain("kaboom");
+  // the origin is retained as a serializable cause, not flattened away
+  expect(
+    isSome(result.content.content.cause),
+  ).toBe(true);
 });
 
 test("printPlggError prints tag and message", () => {
@@ -207,10 +237,8 @@ test("a plgg error satisfies isBox and exposes its tag and structured content", 
   });
   expect(isBox(e)).toBe(true);
   expect(e.__tag).toBe("InvalidError");
-  expect(e.content).toEqual({
-    message: "bad input",
-    sibling: [],
-  });
+  expect(e.content.message).toBe("bad input");
+  expect(e.content.sibling).toEqual([]);
 });
 
 test("a PlggError folds exhaustively through match by tag", () => {

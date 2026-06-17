@@ -560,9 +560,12 @@ const convUnknownToInvalidError = (
 ): Result<never, InvalidError> =>
   err(
     invalidError({
+      // an unexpected throw inside a validation step: keep the origin in `cause`
+      // (serializable) rather than flattening it to a stackless string.
       message: `Validation failed: ${
         e instanceof Error ? e.message : String(e)
       }`,
+      cause: e,
     }),
   );
 
