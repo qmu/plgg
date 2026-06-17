@@ -89,8 +89,7 @@ import type { Result } from "plgg";
 const describe = (
   r: Result<string, number>,
 ): string =>
-  match(
-    r,
+  match(r)(
     [ok$("hello"), () => "Greeting"],
     [err$(404), () => "Not found"],
     [otherwise, () => "Something else"],
