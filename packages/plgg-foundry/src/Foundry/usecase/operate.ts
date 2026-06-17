@@ -269,7 +269,11 @@ const execSwitch = async ({
       alignment,
       params,
     } satisfies Medium,
-    tryCatch(switcher.content.fn),
+    // normalize the sync-or-async check fn to a Promise so tryCatch's async
+    // overload flattens the tuple type (proc awaits the result either way)
+    tryCatch((medium: Medium) =>
+      Promise.resolve(switcher.content.fn(medium)),
+    ),
   );
 
   if (!isOk(checkResult)) {

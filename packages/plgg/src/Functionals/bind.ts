@@ -69,7 +69,7 @@ export function bind<
   V1,
 >(
   e1: BindEntry<K1, object, V1>,
-): Promise<Result<Record<K1, UnwrapValue<V1>>, Error>>;
+): Promise<Result<Record<K1, UnwrapValue<V1>>, unknown>>;
 export function bind<
   K1 extends string,
   V1,
@@ -81,7 +81,7 @@ export function bind<
 ): Promise<
   Result<
     Record<K1, UnwrapValue<V1>> & Record<K2, UnwrapValue<V2>>,
-    Error
+    unknown
   >
 >;
 export function bind<
@@ -104,7 +104,7 @@ export function bind<
     Record<K1, UnwrapValue<V1>> &
       Record<K2, UnwrapValue<V2>> &
       Record<K3, UnwrapValue<V3>>,
-    Error
+    unknown
   >
 >;
 export function bind<
@@ -137,7 +137,7 @@ export function bind<
       Record<K2, UnwrapValue<V2>> &
       Record<K3, UnwrapValue<V3>> &
       Record<K4, UnwrapValue<V4>>,
-    Error
+    unknown
   >
 >;
 export function bind<
@@ -181,14 +181,14 @@ export function bind<
       Record<K3, UnwrapValue<V3>> &
       Record<K4, UnwrapValue<V4>> &
       Record<K5, UnwrapValue<V5>>,
-    Error
+    unknown
   >
 >;
 export async function bind(
   ...entries: ReadonlyArray<
     BindEntry<string, object, unknown>
   >
-): Promise<Result<object, Error>> {
+): Promise<Result<object, unknown>> {
   let current: object = {};
   for (const [key, fn] of entries) {
     const result = await fn(current);
@@ -199,11 +199,9 @@ export async function bind(
           [key]: result.content,
         };
       } else {
-        return err(
-          result.content instanceof Error
-            ? result.content
-            : new Error(String(result.content)),
-        );
+        // Pass the failure through as data — never mint an `Error` (the model:
+        // expected failures are values; only `Defect` carries a real `Error`).
+        return err(result.content);
       }
     } else {
       current = {

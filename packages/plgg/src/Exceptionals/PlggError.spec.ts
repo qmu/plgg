@@ -259,3 +259,27 @@ test("a plgg error is plain tagged data, not an Error", () => {
   expect(json.__tag).toBe("InvalidError");
   expect(json.content.message).toBe("bad");
 });
+
+test("printPlggError terminates on a sibling cycle", () => {
+  const spy = vi
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
+  // box() does not freeze content, so a self-referential sibling cycle is
+  // constructible: a -> b -> a.
+  const aSiblings: Array<InvalidError> = [];
+  const a = invalidError({
+    message: "a",
+    sibling: aSiblings,
+  });
+  const b = invalidError({
+    message: "b",
+    sibling: [a],
+  });
+  aSiblings.push(b);
+  // must not infinite-loop / RangeError
+  printPlggError(a);
+  expect(spy).toHaveBeenCalledWith(
+    expect.stringContaining("<cycle>"),
+  );
+  spy.mockRestore();
+});

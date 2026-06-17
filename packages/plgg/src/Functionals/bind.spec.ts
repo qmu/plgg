@@ -57,16 +57,14 @@ test("bind propagates Err results", async () => {
   expect(isOk(result)).toBe(false);
 });
 
-test("bind wraps non-Error Err content as Error", async () => {
+test("bind passes a non-Error Err value through as data", async () => {
   const result = await proc(
     bind(["value", () => err("string error")]),
     (ctx) => ctx,
   );
   expect(isOk(result)).toBe(false);
-  expect(result.content).toBeInstanceOf(Error);
-  expect(
-    (result.content as Error).message,
-  ).toBe("string error");
+  // bind no longer mints an Error; the failure flows through unchanged.
+  expect(result.content).toBe("string error");
 });
 
 test("bind works with async functions", async () => {

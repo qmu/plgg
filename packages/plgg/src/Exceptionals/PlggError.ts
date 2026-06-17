@@ -88,6 +88,11 @@ const locationOf = (
 export const printPlggError = (
   error: PlggError,
 ): void => {
+  // A visited set guards against a sibling/cause cycle: `box()` does not freeze
+  // content and `InvalidError.sibling` is self-referential by type, so a cycle
+  // is constructible — and a printer that loops while *reporting* an error is
+  // the worst time to crash.
+  const seen = new WeakSet<object>();
   const walk = (
     e: PlggError | Error,
     depth: number,
@@ -104,9 +109,12 @@ export const printPlggError = (
         ? `${red(`[${tag}]`)}: ${message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`
         : ` - ${gray(`${tag}`)}: ${message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`,
     );
+    seen.add(e);
     if (isPlggError(e)) {
       childrenOf(e).forEach((child) =>
-        walk(child, depth + 1),
+        seen.has(child)
+          ? console.error(` - ${gray("<cycle>")}`)
+          : walk(child, depth + 1),
       );
     }
   };

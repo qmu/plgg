@@ -45,16 +45,17 @@ test("tryCatch with default error handler", () => {
 
   const errorResult = safeThrowing("error");
   assert(isErr(errorResult));
-  expect(errorResult.content.message).toBe(
-    "Operation failed: Custom error",
-  );
+  // default handler now yields a Defect (message + original in cause)
+  expect(
+    errorResult.content.content.message,
+  ).toBe("Operation failed");
 
   const stringErrorResult =
     safeThrowing("string");
   assert(isErr(stringErrorResult));
-  expect(stringErrorResult.content.message).toBe(
-    "Unexpected error occurred",
-  );
+  expect(
+    stringErrorResult.content.content.message,
+  ).toBe("Operation failed");
 });
 
 test("tryCatch wraps async resolved promise in Ok", async () => {
@@ -89,7 +90,7 @@ test("tryCatch async uses default error handler", async () => {
   });
   const result = await loader("x");
   assert(isErr(result));
-  expect(result.content.message).toBe(
-    "Operation failed: boom",
+  expect(result.content.content.message).toBe(
+    "Operation failed",
   );
 });
