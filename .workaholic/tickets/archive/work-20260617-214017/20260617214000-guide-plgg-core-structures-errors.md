@@ -3,9 +3,9 @@ created_at: 2026-06-17T21:40:00+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 8a3eec5
+category: Changed
 depends_on: [20260617213958-guide-getting-started-and-concepts.md]
 ---
 
@@ -59,3 +59,27 @@ typeclass layer. Completes the guided plgg-core coverage begun in T3.
 - Sibling of T3; keep the page template identical.
   ([[20260617213959-guide-plgg-core-values-effects]])
 - Pull examples from the `Exceptionals`/`Collectives`/`Conjunctives` specs.
+
+## Final Report
+
+Development completed as planned. Wrote `structures-errors.md` covering
+Collectives (Vec/MutVec/asVecOf + conclude accumulation), Conjunctives
+(Obj/Dict/RawObj), the Exceptionals error model (PlggError union, Decision A,
+the named accessors, toError/panic seam), Grammaticals (Procedural/
+PromisedResult/NonNeverFn/Brand), and the optional Abstracts typeclass layer.
+All shapes verified against source.
+
+### Discovered Insights
+
+- **Insight**: The shipped error model carries `Cause` as
+  `{ name; message; stack: Option<SoftStr> }`, and only `Defect` populates it —
+  `InvalidError`/`SerializeError`/`DeserializeError` are stackless by design
+  (Decision A). The guide documents this as why typed failures are cheap and
+  wire-safe.
+- **Insight**: `toError`/`panic` are the *only* sanctioned throw in the codebase
+  — an outer-seam adapter, not for domain use. Documenting them as a boundary
+  seam (not a general utility) keeps the errors-as-values contract intact.
+- **Insight**: The abstract/HKT layer contains a few grandfathered `as`-based
+  escape hatches that are intentional and internal; the page explicitly marks
+  them as not-to-emulate so readers don't take them as license against the
+  strict no-`as` rule.
