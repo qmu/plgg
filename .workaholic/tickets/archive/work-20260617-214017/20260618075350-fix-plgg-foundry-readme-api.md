@@ -3,9 +3,9 @@ created_at: 2026-06-18T07:53:50+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: f868872
+category: Changed
 depends_on:
 ---
 
@@ -85,3 +85,26 @@ the correct surface; this ticket fixes the canonical package README.
   ([[20260618075349-fix-plgg-readme-match-curried]]); both correct stale package
   READMEs surfaced by the guide work, but they touch different files and have no
   ordering dependency.
+
+## Final Report
+
+Development completed as planned. Aligned `packages/plgg-foundry/README.md` with
+the shipped source: globally renamed `make*Spec` → `make*`, rewrote the Quick
+Start and Complete Example to `runFoundry(foundry)(input)` with the plgg-kit
+`provider` (default `openai("gpt-5.1")`) instead of an `apiKey` field, replaced
+`result.isOk()` method calls with value-style `isOk`/`matchResult`, corrected the
+order shape to `{ text, files? }`, and fixed the API-reference signatures. The
+conceptual sections (Core Concepts, register machine, How It Works, Best
+Practices, Limitations, Troubleshooting) were preserved.
+
+### Discovered Insights
+
+- **Insight**: `VirtualTypeSpec` *is* a real exported type (used in the
+  `make*` signatures as `Dict<VariableName, VirtualTypeSpec>`), so the
+  `### …Spec` argument/return headings and `VirtualTypeSpec` code references are
+  correct and were intentionally left — only the `make*Spec` *factory* names and
+  the `apiKey`/`{ prompt }`/`.isOk()` usages were stale.
+- **Insight**: `makeFoundry` carries the `provider`; `runFoundry` is curried
+  `runFoundry(foundry)(input)` and takes a bare prompt string or an
+  `OrderSpec { text, files? }`. The README previously threaded `{ spec, provider }`
+  into `runFoundry`, which never matched the shipped `runFoundry(foundry)(...)`.

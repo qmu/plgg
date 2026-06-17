@@ -26,15 +26,18 @@ You'll also need an OpenAI API key with access to structured outputs.
 ## Quick Start
 
 ```typescript
-import { runFoundry, makeFoundrySpec, makeProcessorSpec, makePackerSpec } from "plgg-foundry";
+import { runFoundry, makeFoundry, makeProcessor, makePacker } from "plgg-foundry";
 import { openai } from "plgg-kit";
-import { env, proc, isOk } from "plgg";
+import { isOk } from "plgg";
 
-// 1. Define your foundry
-const spec = makeFoundrySpec({
+// 1. Define your foundry. The LLM `provider` comes from plgg-kit; omit it to
+//    use the default (`openai("gpt-5.1")`). A provider's apiKey falls back to
+//    the environment when not given.
+const foundry = makeFoundry({
   description: "A text processing foundry",
+  provider: openai("gpt-4o"),
   apparatuses: [
-    makeProcessorSpec({
+    makeProcessor({
       name: "analyze-sentiment",
       description: "Analyzes the sentiment of text",
       arguments: { text: { type: "string" } },
@@ -45,23 +48,18 @@ const spec = makeFoundrySpec({
         return { sentiment: "positive" };
       }
     }),
-    makePackerSpec({
+    makePacker({
       result: { type: "string" }
     })
   ]
 });
 
-// 2. Run the workflow with env for safe API key access
-const result = await proc(
-  env("OPENAI_API_KEY"),
-  (apiKey) => {
-    const provider = openai({ apiKey, modelName: "gpt-4o" });
-    return runFoundry({ spec, provider })({
-      prompt: "Analyze the sentiment of 'I love this!'"
-    });
-  }
+// 2. Run the workflow — pass a prompt string (or an OrderSpec `{ text, files? }`).
+const result = await runFoundry(foundry)(
+  "Analyze the sentiment of 'I love this!'"
 );
 
+// Results are values: fold with isOk/matchResult, not a `.isOk()` method.
 if (isOk(result)) {
   console.log(result.content.params);
 }
@@ -105,18 +103,20 @@ Here's a complete example of a character design foundry with validation loops:
 ```typescript
 import {
   runFoundry,
-  makeFoundrySpec,
-  makeProcessorSpec,
-  makeSwitcherSpec,
-  makePackerSpec
+  makeFoundry,
+  makeProcessor,
+  makeSwitcher,
+  makePacker
 } from "plgg-foundry";
+import { openai } from "plgg-kit";
+import { matchResult } from "plgg";
 
-const foundrySpec = makeFoundrySpec({
-  apiKey: process.env.OPENAI_API_KEY,
+const foundry = makeFoundry({
   description: "Character design foundry that generates and validates character images",
+  provider: openai("gpt-5.1"), // from plgg-kit; this is also the default
 
   apparatuses: [
-    makeProcessorSpec({
+    makeProcessor({
       name: "plan",
       description: "Plans the character design based on the prompt",
       arguments: { prompt: { type: "string" } },
@@ -129,7 +129,7 @@ const foundrySpec = makeFoundrySpec({
         };
       }
     }),
-    makeProcessorSpec({
+    makeProcessor({
       name: "gen-main",
       description: "Generates the main character image",
       arguments: { description: { type: "string" } },
@@ -141,7 +141,7 @@ const foundrySpec = makeFoundrySpec({
         return { image: [imageData] };
       }
     }),
-    makeProcessorSpec({
+    makeProcessor({
       name: "gen-spread",
       description: "Generates spread images (variations) for the character",
       arguments: { mainImage: { type: "image[]" } },
@@ -153,7 +153,7 @@ const foundrySpec = makeFoundrySpec({
         return { spreadImages: variations };
       }
     }),
-    makeSwitcherSpec({
+    makeSwitcher({
       name: "check-validity",
       description: "Validates generated images for inappropriate content. If invalid, loops back to planning.",
       arguments: { images: { type: "image[]" } },
@@ -177,7 +177,7 @@ const foundrySpec = makeFoundrySpec({
         ];
       }
     }),
-    makePackerSpec({
+    makePacker({
       mainImage: { type: "image[]" },
       spreadImages: { type: "image[]" },
       designPlan: { type: "string" }
@@ -185,19 +185,20 @@ const foundrySpec = makeFoundrySpec({
   ]
 });
 
-// Execute the workflow
-const result = await runFoundry(foundrySpec)({
-  prompt: "A brave knight with silver armor and a glowing sword"
-});
+// Execute the workflow — a prompt string, or an OrderSpec `{ text, files? }`.
+const result = await runFoundry(foundry)(
+  "A brave knight with silver armor and a glowing sword"
+);
 
-if (result.isOk()) {
-  const output = result.content.params;
-  // Access outputs by their register addresses
-  // The AI determines which registers contain which outputs
-  console.log("Workflow completed:", output);
-} else {
-  console.error("Workflow failed:", result.content.message);
-}
+// Errors are values — fold the Result with matchResult (or isOk/isErr).
+matchResult(
+  (e) => console.error("Workflow failed:", e),
+  (medium) => {
+    // Access outputs by their register addresses; the AI determines which
+    // registers hold which outputs.
+    console.log("Workflow completed:", medium.params);
+  },
+)(result);
 ```
 
 ### Expected Workflow
@@ -217,54 +218,58 @@ The AI might generate an alignment like this:
 
 ## API Reference
 
-### `runFoundry(foundrySpec)(orderSpec)`
+### `runFoundry(foundry)(input)`
 
-Main entry point that orchestrates the complete workflow.
+Main entry point that orchestrates the complete workflow. Curried: it takes the
+foundry first, then the request.
 
 **Parameters:**
 
-- `foundrySpec: FoundrySpec` - Your foundry specification
-- `orderSpec: OrderSpec` - User request
+- `foundry: Foundry` - the value returned by `makeFoundry`
+- `input: string | OrderSpec` - a prompt string, or an `OrderSpec`
+  (`{ text, files? }`)
 
-**Returns:** `Promise<Result<Medium, Error>>`
+**Returns:** `Promise<Result<Medium, PlggError>>` — errors are **values** on the
+Result channel (no exceptions); fold with `matchResult`/`isOk`.
 
 - On success: `Medium` containing the final execution state with output parameters
-- On failure: `Error` describing what went wrong
+- On failure: a `PlggError` describing what went wrong
 
 **Example:**
 
 ```typescript
-const result = await runFoundry(foundrySpec)({
-  prompt: "Generate a character image"
-});
+import { matchResult } from "plgg";
 
-if (result.isOk()) {
-  const medium = result.content;
-  // Access outputs from medium.params
-} else {
-  console.error(result.content.message);
-}
+const result = await runFoundry(foundry)("Generate a character image");
+
+matchResult(
+  (e) => console.error(e),
+  (medium) => {
+    // Access outputs from medium.params
+  },
+)(result);
 ```
 
-### FoundrySpec
-
-Created using `makeFoundrySpec`:
+### Foundry spec (`makeFoundry`)
 
 ```typescript
-const spec = makeFoundrySpec({
-  apiKey: string;                              // LLM API key
+const foundry = makeFoundry({
   description: string;                         // What this foundry does
+  apparatuses: ReadonlyArray<Apparatus>;       // All operations (processors, switchers, packers)
+  provider?: Provider;                         // plgg-kit provider; default openai("gpt-5.1")
   maxOperationLimit?: number;                  // Max operations (default: 10)
-  apparatuses: ReadonlyArray<ApparatusSpec>;   // All operations (processors, switchers, packers)
 });
 ```
+
+The LLM `provider` is a plgg-kit value (`openai(...)`, `anthropic(...)`, or
+`google(...)`), so switching vendors is a one-line change.
 
 ### ProcessorSpec
 
-Processors transform data and return outputs. Created using `makeProcessorSpec`:
+Processors transform data and return outputs. Created using `makeProcessor`:
 
 ```typescript
-makeProcessorSpec({
+makeProcessor({
   name: string;                    // Opcode identifier (kebab-case)
   description: string;             // What this processor does (shown to AI)
   arguments?: {                    // Input parameters (optional)
@@ -281,7 +286,7 @@ makeProcessorSpec({
 **Example:**
 
 ```typescript
-makeProcessorSpec({
+makeProcessor({
   name: "summarize-text",
   description: "Summarizes long text into a brief summary",
   arguments: { text: { type: "string" } },
@@ -296,10 +301,10 @@ makeProcessorSpec({
 
 ### SwitcherSpec
 
-Switchers evaluate conditions and can branch execution flow. Created using `makeSwitcherSpec`:
+Switchers evaluate conditions and can branch execution flow. Created using `makeSwitcher`:
 
 ```typescript
-makeSwitcherSpec({
+makeSwitcher({
   name: string;
   description: string;
   arguments?: {                    // Input parameters (optional)
@@ -320,7 +325,7 @@ makeSwitcherSpec({
 **Example:**
 
 ```typescript
-makeSwitcherSpec({
+makeSwitcher({
   name: "is-spam",
   description: "Checks if text is spam. If spam, filter it out.",
   arguments: { text: { type: "string" } },
@@ -342,10 +347,10 @@ makeSwitcherSpec({
 
 ### PackerSpec
 
-Packers define the expected output fields and their types for egress operations. Created using `makePackerSpec`:
+Packers define the expected output fields and their types for egress operations. Created using `makePacker`:
 
 ```typescript
-makePackerSpec({
+makePacker({
   [outputName: string]: VirtualTypeSpec;
 })
 ```
@@ -353,7 +358,7 @@ makePackerSpec({
 **Example:**
 
 ```typescript
-makePackerSpec({
+makePacker({
   finalReport: { type: "string" },
   summary: { type: "string" }
 })
@@ -363,7 +368,7 @@ makePackerSpec({
 
 ```typescript
 type OrderSpec = {
-  prompt: string;                  // Natural language request
+  text: string;                    // Natural language request
   files?: Uint8Array[];           // Optional binary files
 }
 ```
@@ -428,7 +433,7 @@ fn: async (medium) => {
 Switchers enable validation loops where the AI can retry operations:
 
 ```typescript
-makeSwitcherSpec({
+makeSwitcher({
   name: "check-quality",
   description: "Validates output quality. If poor quality, loops back to regenerate.",
   arguments: { output: { type: "string" } },
@@ -453,8 +458,8 @@ The AI can compose an alignment that loops back to earlier operations when valid
 ### Multiple Input Files
 
 ```typescript
-const result = await runFoundry(foundrySpec)({
-  prompt: "Combine these images into a collage",
+const result = await runFoundry(foundry)({
+  text: "Combine these images into a collage",
   files: [
     await readFile("image1.png"),
     await readFile("image2.png"),
@@ -468,8 +473,7 @@ const result = await runFoundry(foundrySpec)({
 Control how many operations can execute (prevents infinite loops):
 
 ```typescript
-const foundrySpec = makeFoundrySpec({
-  apiKey: "...",
+const foundry = makeFoundry({
   description: "...",
   maxOperationLimit: 20,  // Allow up to 20 operations
   apparatuses: [...]
@@ -481,7 +485,7 @@ const foundrySpec = makeFoundrySpec({
 Use standard TypeScript type guards for robust parameter validation:
 
 ```typescript
-makeProcessorSpec({
+makeProcessor({
   name: "process-data",
   description: "Processes various data types",
   returns: { result: { type: "string" } },
@@ -608,14 +612,14 @@ The AI uses descriptions to understand what operations do:
 
 ```typescript
 // ✅ Good - Clear and specific
-makeSwitcherSpec({
+makeSwitcher({
   name: "check-validity",
   description: "Validates images for inappropriate content using content moderation API. If invalid, return feedback for regeneration.",
   // ...
 })
 
 // ❌ Bad - Vague
-makeSwitcherSpec({
+makeSwitcher({
   name: "check",
   description: "Checks stuff",
   // ...
