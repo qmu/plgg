@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   JsonSerializable,
@@ -55,7 +56,7 @@ export const asTime = (
     : isDateString(value)
       ? ok(new Date(value as string))
       : err(
-          new InvalidError({
+          invalidError({
             message: "Value is not a Date",
           }),
         );

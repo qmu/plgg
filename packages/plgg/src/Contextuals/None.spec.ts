@@ -20,27 +20,27 @@ test("asNone - safe casting to None type", () => {
   const result2 = pipe(someValue, asNone);
 
   assert(isErr(result2));
-  expect(result2.content.message).toBe(
+  expect(result2.content.content.message).toBe(
     "Value is not a None",
   );
 
   // Test with non-Option value
   const result3 = pipe(42, asNone);
   assert(isErr(result3));
-  expect(result3.content.message).toBe(
+  expect(result3.content.content.message).toBe(
     "Value is not a None",
   );
 
   // Test with null/undefined
   const result4 = pipe(null, asNone);
   assert(isErr(result4));
-  expect(result4.content.message).toBe(
+  expect(result4.content.content.message).toBe(
     "Value is not a None",
   );
 
   const result5 = pipe(undefined, asNone);
   assert(isErr(result5));
-  expect(result5.content.message).toBe(
+  expect(result5.content.content.message).toBe(
     "Value is not a None",
   );
 });

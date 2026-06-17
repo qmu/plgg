@@ -4,6 +4,9 @@ import {
   asBigInt,
   isOk,
   isErr,
+  err,
+  ok,
+  invalidError,
 } from "plgg/index";
 
 test("isBigInt correctly identifies BigInt values", () => {
@@ -84,25 +87,25 @@ test("asBigInt validates and converts BigInt values", () => {
   // Invalid conversions
   const floatValue = asBigInt(3.14);
   assert(isErr(floatValue));
-  expect(floatValue.content.message).toBe(
+  expect(floatValue.content.content.message).toBe(
     "Value is not a BigInt",
   );
 
   const invalidString = asBigInt("not-a-number");
   assert(isErr(invalidString));
-  expect(invalidString.content.message).toBe(
+  expect(invalidString.content.content.message).toBe(
     "Value is not a valid BigInt",
   );
 
   const booleanInput = asBigInt(true);
   assert(isErr(booleanInput));
-  expect(booleanInput.content.message).toBe(
+  expect(booleanInput.content.content.message).toBe(
     "Value is not a BigInt",
   );
 
   const nullInput = asBigInt(null);
   assert(isErr(nullInput));
-  expect(nullInput.content.message).toBe(
+  expect(nullInput.content.content.message).toBe(
     "Value is not a BigInt",
   );
 });
@@ -115,23 +118,20 @@ test("asBigInt works in validation pipelines", () => {
 
     const userId = bigIntResult.content;
     if (userId < 1n) {
-      return {
-        __tag: "Err" as const,
-        content: new Error(
-          "User ID must be positive",
-        ),
-      };
+      return err(
+        invalidError({
+          message: "User ID must be positive",
+        }),
+      );
     }
     if (userId > BigInt("9999999999999999")) {
-      return {
-        __tag: "Err" as const,
-        content: new Error("User ID too large"),
-      };
+      return err(
+        invalidError({
+          message: "User ID too large",
+        }),
+      );
     }
-    return {
-      __tag: "Ok" as const,
-      content: userId,
-    };
+    return ok(userId);
   };
 
   const validUserId = validateUserId(
@@ -151,7 +151,7 @@ test("asBigInt works in validation pipelines", () => {
     "not-a-number",
   );
   assert(isErr(invalidType));
-  expect(invalidType.content.message).toBe(
+  expect(invalidType.content.content.message).toBe(
     "Value is not a valid BigInt",
   );
 
@@ -159,7 +159,7 @@ test("asBigInt works in validation pipelines", () => {
     BigInt(-1),
   );
   assert(isErr(negativeUserId));
-  expect(negativeUserId.content.message).toBe(
+  expect(negativeUserId.content.content.message).toBe(
     "User ID must be positive",
   );
 
@@ -167,7 +167,7 @@ test("asBigInt works in validation pipelines", () => {
     BigInt("99999999999999999"),
   );
   assert(isErr(tooLargeUserId));
-  expect(tooLargeUserId.content.message).toBe(
+  expect(tooLargeUserId.content.content.message).toBe(
     "User ID too large",
   );
 });

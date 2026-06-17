@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   JsonSerializable,
@@ -59,7 +60,7 @@ export const asBigInt = (
       return ok(BigInt(value));
     } catch {
       return err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a valid BigInt",
         }),
       );
@@ -67,7 +68,7 @@ export const asBigInt = (
   }
 
   return err(
-    new InvalidError({
+    invalidError({
       message: "Value is not a BigInt",
     }),
   );

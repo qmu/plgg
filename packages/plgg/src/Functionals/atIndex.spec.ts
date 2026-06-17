@@ -16,7 +16,7 @@ test("atIndex returns Ok at the first index", () => {
 test("atIndex returns Err for negative index", () => {
   const result = atIndex(-1)([1, 2, 3]);
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Cannot access index -1",
   );
 });
@@ -24,7 +24,7 @@ test("atIndex returns Err for negative index", () => {
 test("atIndex returns Err for out-of-bounds index", () => {
   const result = atIndex(5)([1, 2, 3]);
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Cannot access index 5",
   );
 });
@@ -32,7 +32,7 @@ test("atIndex returns Err for out-of-bounds index", () => {
 test("atIndex returns Err for non-array value", () => {
   const result = atIndex(0)("not-an-array");
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Cannot access index 0",
   );
 });

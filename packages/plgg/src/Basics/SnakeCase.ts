@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -65,7 +66,7 @@ export const asSnakeCase = (
     : qualify(value)
       ? ok(box("SnakeCase")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a SnakeCase (tag-content pair with valid snake_case string)",
           }),

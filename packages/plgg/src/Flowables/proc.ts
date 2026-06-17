@@ -1,6 +1,6 @@
 import {
   Procedural,
-  Exception,
+  defect,
   Result,
   Ok,
   Err,
@@ -35,7 +35,7 @@ export function proc<A, B>(
   ab: NonNeverFn<
     (a: UnwrapProcedural<A>) => Procedural<B>
   >,
-): Promise<Result<UnwrapProcedural<B>, Error>>;
+): Promise<Result<UnwrapProcedural<B>, unknown>>;
 export function proc<A, B, C>(
   a: A,
   ab: NonNeverFn<
@@ -44,7 +44,7 @@ export function proc<A, B, C>(
   bc: NonNeverFn<
     (b: UnwrapProcedural<B>) => Procedural<C>
   >,
-): Promise<Result<UnwrapProcedural<C>, Error>>;
+): Promise<Result<UnwrapProcedural<C>, unknown>>;
 export function proc<A, B, C, D>(
   a: A,
   ab: NonNeverFn<
@@ -56,7 +56,7 @@ export function proc<A, B, C, D>(
   cd: NonNeverFn<
     (c: UnwrapProcedural<C>) => Procedural<D>
   >,
-): Promise<Result<UnwrapProcedural<D>, Error>>;
+): Promise<Result<UnwrapProcedural<D>, unknown>>;
 export function proc<A, B, C, D, E>(
   a: A,
   ab: NonNeverFn<
@@ -71,7 +71,7 @@ export function proc<A, B, C, D, E>(
   de: NonNeverFn<
     (d: UnwrapProcedural<D>) => Procedural<E>
   >,
-): Promise<Result<UnwrapProcedural<E>, Error>>;
+): Promise<Result<UnwrapProcedural<E>, unknown>>;
 export function proc<A, B, C, D, E, F>(
   a: A,
   ab: NonNeverFn<
@@ -89,7 +89,7 @@ export function proc<A, B, C, D, E, F>(
   ef: NonNeverFn<
     (e: UnwrapProcedural<E>) => Procedural<F>
   >,
-): Promise<Result<UnwrapProcedural<F>, Error>>;
+): Promise<Result<UnwrapProcedural<F>, unknown>>;
 export function proc<A, B, C, D, E, F, G>(
   a: A,
   ab: NonNeverFn<
@@ -110,7 +110,7 @@ export function proc<A, B, C, D, E, F, G>(
   fg: NonNeverFn<
     (f: UnwrapProcedural<F>) => Procedural<G>
   >,
-): Promise<Result<UnwrapProcedural<G>, Error>>;
+): Promise<Result<UnwrapProcedural<G>, unknown>>;
 export function proc<A, B, C, D, E, F, G, H>(
   a: A,
   ab: NonNeverFn<
@@ -134,7 +134,7 @@ export function proc<A, B, C, D, E, F, G, H>(
   gh: NonNeverFn<
     (g: UnwrapProcedural<G>) => Procedural<H>
   >,
-): Promise<Result<UnwrapProcedural<H>, Error>>;
+): Promise<Result<UnwrapProcedural<H>, unknown>>;
 export function proc<A, B, C, D, E, F, G, H, I>(
   a: A,
   ab: NonNeverFn<
@@ -161,7 +161,7 @@ export function proc<A, B, C, D, E, F, G, H, I>(
   hi: NonNeverFn<
     (h: UnwrapProcedural<H>) => Procedural<I>
   >,
-): Promise<Result<UnwrapProcedural<I>, Error>>;
+): Promise<Result<UnwrapProcedural<I>, unknown>>;
 export function proc<
   A,
   B,
@@ -202,7 +202,7 @@ export function proc<
   ij: NonNeverFn<
     (i: UnwrapProcedural<I>) => Procedural<J>
   >,
-): Promise<Result<UnwrapProcedural<J>, Error>>;
+): Promise<Result<UnwrapProcedural<J>, unknown>>;
 export function proc<
   A,
   B,
@@ -247,7 +247,7 @@ export function proc<
   jk: NonNeverFn<
     (j: UnwrapProcedural<J>) => Procedural<K>
   >,
-): Promise<Result<UnwrapProcedural<K>, Error>>;
+): Promise<Result<UnwrapProcedural<K>, unknown>>;
 export function proc<
   A,
   B,
@@ -296,7 +296,7 @@ export function proc<
   kl: NonNeverFn<
     (k: UnwrapProcedural<K>) => Procedural<L>
   >,
-): Promise<Result<UnwrapProcedural<L>, Error>>;
+): Promise<Result<UnwrapProcedural<L>, unknown>>;
 export function proc<
   A,
   B,
@@ -349,7 +349,7 @@ export function proc<
   lm: NonNeverFn<
     (l: UnwrapProcedural<L>) => Procedural<M>
   >,
-): Promise<Result<UnwrapProcedural<M>, Error>>;
+): Promise<Result<UnwrapProcedural<M>, unknown>>;
 export function proc<
   A,
   B,
@@ -406,7 +406,7 @@ export function proc<
   mn: NonNeverFn<
     (m: UnwrapProcedural<M>) => Procedural<N>
   >,
-): Promise<Result<UnwrapProcedural<N>, Error>>;
+): Promise<Result<UnwrapProcedural<N>, unknown>>;
 export function proc<
   A,
   B,
@@ -467,7 +467,7 @@ export function proc<
   no: NonNeverFn<
     (n: UnwrapProcedural<N>) => Procedural<O>
   >,
-): Promise<Result<UnwrapProcedural<O>, Error>>;
+): Promise<Result<UnwrapProcedural<O>, unknown>>;
 export function proc<
   A,
   B,
@@ -532,7 +532,7 @@ export function proc<
   op: NonNeverFn<
     (o: UnwrapProcedural<O>) => Procedural<P>
   >,
-): Promise<Result<UnwrapProcedural<P>, Error>>;
+): Promise<Result<UnwrapProcedural<P>, unknown>>;
 export function proc<
   A,
   B,
@@ -601,7 +601,7 @@ export function proc<
   pq: NonNeverFn<
     (p: UnwrapProcedural<P>) => Procedural<Q>
   >,
-): Promise<Result<UnwrapProcedural<Q>, Error>>;
+): Promise<Result<UnwrapProcedural<Q>, unknown>>;
 export function proc<
   A,
   B,
@@ -674,7 +674,7 @@ export function proc<
   qr: NonNeverFn<
     (q: UnwrapProcedural<Q>) => Procedural<R>
   >,
-): Promise<Result<UnwrapProcedural<R>, Error>>;
+): Promise<Result<UnwrapProcedural<R>, unknown>>;
 export function proc<
   A,
   B,
@@ -751,7 +751,7 @@ export function proc<
   rs: NonNeverFn<
     (r: UnwrapProcedural<R>) => Procedural<S>
   >,
-): Promise<Result<UnwrapProcedural<S>, Error>>;
+): Promise<Result<UnwrapProcedural<S>, unknown>>;
 export function proc<
   A,
   B,
@@ -832,7 +832,7 @@ export function proc<
   st: NonNeverFn<
     (s: UnwrapProcedural<S>) => Procedural<T>
   >,
-): Promise<Result<UnwrapProcedural<T>, Error>>;
+): Promise<Result<UnwrapProcedural<T>, unknown>>;
 export function proc<
   A,
   B,
@@ -917,7 +917,7 @@ export function proc<
   tu: NonNeverFn<
     (t: UnwrapProcedural<T>) => Procedural<U>
   >,
-): Promise<Result<UnwrapProcedural<U>, Error>>;
+): Promise<Result<UnwrapProcedural<U>, unknown>>;
 
 /**
  * Implementation function that chains Procedural-returning functions.
@@ -947,20 +947,13 @@ export async function proc(
         }
         return fn(current);
       } catch (e: unknown) {
+        // A thrown plgg error keeps its identity; any other throw is an
+        // unexpected defect (domain code returns `err(...)`, never throws).
         return isPlggError(e)
           ? err(e)
-          : e instanceof Error
-            ? err(
-                new Exception(
-                  "Unexpected error in proc",
-                  e,
-                ),
-              )
-            : err(
-                new Exception(
-                  "Unknown error in proc",
-                ),
-              );
+          : err(
+              defect("Unhandled throw in proc", e),
+            );
       }
     },
     Promise.resolve(initialValue),

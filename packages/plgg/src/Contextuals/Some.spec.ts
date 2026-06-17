@@ -20,27 +20,27 @@ test("asSome - safe casting to Some type", () => {
   const result2 = pipe(noneValue, asSome);
 
   assert(isErr(result2));
-  expect(result2.content.message).toBe(
+  expect(result2.content.content.message).toBe(
     "Value is not a Some",
   );
 
   // Test with non-Option value
   const result3 = pipe(42, asSome);
   assert(isErr(result3));
-  expect(result3.content.message).toBe(
+  expect(result3.content.content.message).toBe(
     "Value is not a Some",
   );
 
   // Test with null/undefined
   const result4 = pipe(null, asSome);
   assert(isErr(result4));
-  expect(result4.content.message).toBe(
+  expect(result4.content.content.message).toBe(
     "Value is not a Some",
   );
 
   const result5 = pipe(undefined, asSome);
   assert(isErr(result5));
-  expect(result5.content.message).toBe(
+  expect(result5.content.content.message).toBe(
     "Value is not a Some",
   );
 });

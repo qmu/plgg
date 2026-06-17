@@ -3,6 +3,7 @@ import {
   Vec,
   Result,
   InvalidError,
+  invalidError,
   isRawObj,
   hasProp,
   ok,
@@ -46,7 +47,7 @@ export const asEgress = (
     return ok(value);
   }
   return err(
-    new InvalidError({
+    invalidError({
       message: "Value is not a valid Egress",
     }),
   );

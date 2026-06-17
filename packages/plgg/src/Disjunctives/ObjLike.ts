@@ -3,6 +3,7 @@ import {
   RawObj,
   Result,
   InvalidError,
+  invalidError,
   Option,
   isObj,
   isRawObj,
@@ -72,12 +73,12 @@ export const forProp =
             ),
           )
         : err(
-            new InvalidError({
+            invalidError({
               message: `Property '${key}' not found`,
             }),
           )
       : err(
-          new InvalidError({
+          invalidError({
             message: "Not an object",
           }),
         );
@@ -125,7 +126,7 @@ export const forOptionProp =
           } as (V extends object ? V : object) &
             Record<T, Option<U>>)
       : err(
-          new InvalidError({
+          invalidError({
             message: "Not an object",
           }),
         );

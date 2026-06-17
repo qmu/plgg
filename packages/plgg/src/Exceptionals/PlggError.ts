@@ -1,6 +1,6 @@
 import {
   Box,
-  Exception,
+  Defect,
   InvalidError,
   SerializeError,
   DeserializeError,
@@ -10,17 +10,16 @@ import {
 } from "plgg/index";
 
 /**
- * Union type representing domain errors in the application. Every arm carries a
- * literal `__tag` (and inherits a `content` getter from `BaseError`), so a
- * `PlggError` folds exhaustively through `match` — e.g.
- * `match(e)([pattern("InvalidError")(), …], …)` — while remaining a thrown
- * `Error` subclass.
+ * Union of plgg's core domain errors — pure tagged data (`Box`), each folding
+ * through `match` by `__tag`. No longer `Error` subclasses: expected failures
+ * are values, and the only error carrying a real `Error` (with a stack) is
+ * {@link Defect}, the bottom for unexpected throws.
  */
 export type PlggError =
   | InvalidError
-  | Exception
   | SerializeError
-  | DeserializeError;
+  | DeserializeError
+  | Defect;
 
 /*
  * Color helper functions
@@ -31,44 +30,87 @@ const gray = (text: string): string =>
   `\x1b[90m${text}\x1b[0m`;
 
 /**
- * Type guard to check if a value is a PlggError.
+ * The core error tags. Membership — not a class brand — is what identifies a
+ * {@link PlggError} now that errors are plain `Box` data.
+ */
+const CORE_ERROR_TAGS: ReadonlyArray<string> = [
+  "InvalidError",
+  "SerializeError",
+  "DeserializeError",
+  "Defect",
+];
+
+/**
+ * Type guard for a {@link PlggError}: a `Box` whose tag is a core error tag.
  */
 export const isPlggError = (
   value: unknown,
 ): value is PlggError =>
-  isObj(value) &&
-  "__" in value &&
-  value.__ === "PlggError";
+  isBox(value) &&
+  CORE_ERROR_TAGS.some(
+    (tag) => tag === value.__tag,
+  );
 
 /**
- * Pretty prints a PlggError with nested error information.
+ * The nested errors a {@link PlggError} carries: an `InvalidError`'s validation
+ * `sibling`s, or a `Defect`'s `Error` `cause`. Other variants are leaves.
+ */
+const childrenOf = (
+  error: PlggError,
+): ReadonlyArray<PlggError | Error> =>
+  error.__tag === "InvalidError"
+    ? error.content.sibling
+    : error.__tag === "Defect" &&
+        isSome(error.content.cause) &&
+        error.content.cause.content instanceof
+          Error
+      ? [error.content.cause.content]
+      : [];
+
+/**
+ * The first stack frame of a real `Error`, formatted for display — `""` for a
+ * stackless tagged error (every variant but a `Defect`'s `Error` cause).
+ */
+const locationOf = (
+  e: PlggError | Error,
+): string =>
+  e instanceof Error && e.stack !== undefined
+    ? (e.stack
+        .split("\n")[1]
+        ?.trim()
+        .replace(/^at /, "") ?? "")
+    : "";
+
+/**
+ * Pretty-prints a {@link PlggError} and its nested children (validation
+ * siblings / defect cause), one line each.
  */
 export const printPlggError = (
   error: PlggError,
 ): void => {
-  const collectErrors = (
-    err: PlggError | Error,
-  ): ReadonlyArray<PlggError | Error> =>
-    isPlggError(err)
-      ? isSome(err.parent)
-        ? [
-            err,
-            ...collectErrors(err.parent.content),
-          ]
-        : [err]
-      : [err];
-  collectErrors(error).forEach((err, index) => {
-    const loc =
-      err.stack
-        ?.split("\n")[1]
-        ?.trim()
-        .replace(/^at /, "") || "";
-    const output =
-      index === 0
-        ? `${red(`[${err.constructor.name}]`)}: ${err.message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`
-        : ` - ${gray(`${err.constructor.name}`)}: ${err.message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`;
-    console.error(output);
-  });
+  const walk = (
+    e: PlggError | Error,
+    depth: number,
+  ): void => {
+    const tag = isPlggError(e)
+      ? e.__tag
+      : e.constructor.name;
+    const message = isPlggError(e)
+      ? e.content.message
+      : e.message;
+    const loc = locationOf(e);
+    console.error(
+      depth === 0
+        ? `${red(`[${tag}]`)}: ${message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`
+        : ` - ${gray(`${tag}`)}: ${message}${loc ? ` ${gray(`at ${loc}`)}` : ""}`,
+    );
+    if (isPlggError(e)) {
+      childrenOf(e).forEach((child) =>
+        walk(child, depth + 1),
+      );
+    }
+  };
+  walk(error, 0);
 };
 
 /**

@@ -1,6 +1,6 @@
 import { test, expect, assert } from "vitest";
 import {
-  InvalidError,
+  invalidError,
   tryCatch,
   isOk,
   isErr,
@@ -16,7 +16,7 @@ test("tryCatch wraps functions to handle exceptions", () => {
       return num;
     },
     (error: unknown) =>
-      new InvalidError({
+      invalidError({
         message: `Parse error: ${error}`,
       }),
   );
@@ -27,7 +27,7 @@ test("tryCatch wraps functions to handle exceptions", () => {
 
   const errorResult = parseNumber("abc");
   assert(isErr(errorResult));
-  expect(errorResult.content.message).toContain(
+  expect(errorResult.content.content.message).toContain(
     "Parse error",
   );
 });
@@ -72,13 +72,13 @@ test("tryCatch wraps async rejected promise in Err", async () => {
       throw new Error("async failure");
     },
     (error: unknown) =>
-      new InvalidError({
+      invalidError({
         message: `async: ${(error as Error).message}`,
       }),
   );
   const result = await loader("a");
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "async failure",
   );
 });

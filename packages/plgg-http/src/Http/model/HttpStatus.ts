@@ -2,6 +2,7 @@ import {
   Box,
   Result,
   InvalidError,
+  invalidError,
   ok,
   err,
   isInt,
@@ -45,7 +46,7 @@ export const asHttpStatus = (
     : qualify(value)
       ? ok(box("HttpStatus")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message: `${String(value)} is not a valid HTTP status (100-599)`,
           }),
         );

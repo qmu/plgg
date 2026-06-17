@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   JsonReady,
@@ -50,7 +51,7 @@ export const asObj = (
   is(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Not record",
         }),
       );

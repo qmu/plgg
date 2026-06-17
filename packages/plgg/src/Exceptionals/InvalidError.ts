@@ -1,63 +1,39 @@
-import { BaseError } from "plgg/Exceptionals/BaseError";
-import { SoftStr, pattern } from "plgg/index";
+import {
+  Box,
+  SoftStr,
+  box,
+  pattern,
+} from "plgg/index";
 
 /**
- * Error class for validation failures.
+ * Validation failure as pure tagged data — a `Box`, not an `Error` subclass.
+ * `sibling` carries the nested per-field failures aggregated during a `cast`
+ * (so a `match` arm reads the structured failure, not just a string). Stackless
+ * by design: an expected validation failure is control flow, not a bug.
  */
-export class InvalidError extends BaseError {
-  /**
-   * Error name identifier.
-   */
-  public name = "InvalidError";
-
-  /**
-   * Box tag, so `match(error)([pattern("InvalidError")(), …])` folds this
-   * variant by tag. Non-enumerable getter — does not affect JSON output.
-   */
-  public get __tag(): "InvalidError" {
-    return "InvalidError";
-  }
-
-  /**
-   * Sibling errors that occurred during validation.
-   */
-  public sibling: ReadonlyArray<InvalidError> =
-    [];
-
-  /**
-   * Box content — widens the base payload with the validation `sibling`s, so a
-   * `match` arm on `"InvalidError"` reads the structured failure (message +
-   * nested errors), not just a string. Non-enumerable getter.
-   */
-  public override get content(): Readonly<{
+export type InvalidError = Box<
+  "InvalidError",
+  {
     message: SoftStr;
     sibling: ReadonlyArray<InvalidError>;
-  }> {
-    return {
-      message: this.message,
-      sibling: this.sibling,
-    };
   }
-
-  /**
-   * Creates a new InvalidError instance.
-   */
-  constructor({
-    message,
-    parent,
-    sibling,
-  }: {
-    message: string;
-    parent?: BaseError | Error;
-    sibling?: ReadonlyArray<InvalidError>;
-  }) {
-    super(message, parent);
-    this.sibling = sibling || [];
-  }
-}
+>;
 
 /**
- * Pattern matcher for folding an {@link InvalidError} with `match` by name.
+ * Constructs an {@link InvalidError}. Object-arg (mirroring the former class
+ * constructor) so existing call sites migrate by dropping `new`.
+ */
+export const invalidError = ({
+  message,
+  sibling = [],
+}: {
+  message: SoftStr;
+  sibling?: ReadonlyArray<InvalidError>;
+}): InvalidError =>
+  box("InvalidError")({ message, sibling });
+
+/**
+ * Pattern matcher for folding an {@link InvalidError} with `match` by tag.
  */
 export const invalidError$ = () =>
   pattern("InvalidError")();

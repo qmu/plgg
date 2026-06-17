@@ -22,7 +22,7 @@ export type PossiblyResult<T, U> = [T] extends [
  */
 export type Procedural<
   T,
-  E = Error,
+  E = unknown,
 > = [T] extends [never]
   ? never
   : PossiblyPromise<PossiblyResult<T, E>>;

@@ -1,4 +1,12 @@
-import { BaseError, Num, Option } from "plgg";
+import {
+  Box,
+  SoftStr,
+  Num,
+  Option,
+  box,
+  pattern,
+  fromNullable,
+} from "plgg";
 import { Sql } from "plgg-sql/Sql/model/Sql";
 
 /**
@@ -30,17 +38,36 @@ export type Db = {
 };
 
 /**
- * A failure raised while executing SQL against the {@link Db}. Extends plgg's
- * `BaseError` so it rides the `Result`/`proc` error channel like any plgg error.
+ * A failure raised while executing SQL against the {@link Db}. Pure tagged data
+ * (a `Box`, not an `Error` subclass) so it rides the `Result`/`proc` error
+ * channel like any plgg error.
  */
-export class SqlError extends BaseError {
-  public name = "SqlError";
-}
+export type SqlError = Box<
+  "SqlError",
+  { message: SoftStr; cause: Option<unknown> }
+>;
+
+/**
+ * Constructs a {@link SqlError}.
+ */
+export const sqlError = (
+  message: SoftStr,
+  cause?: unknown,
+): SqlError =>
+  box("SqlError")({
+    message,
+    cause: fromNullable(cause),
+  });
+
+/**
+ * Pattern matcher for folding a {@link SqlError} with `match` by tag.
+ */
+export const sqlError$ = () => pattern("SqlError")();
 
 /**
  * Lifts an unknown thrown cause into a {@link SqlError}, preserving the chain.
  */
 export const toSqlError = (cause: unknown): SqlError =>
   cause instanceof Error
-    ? new SqlError(cause.message, cause)
-    : new SqlError("SQL execution failed");
+    ? sqlError(cause.message, cause)
+    : sqlError("SQL execution failed");

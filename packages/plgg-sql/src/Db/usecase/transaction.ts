@@ -18,7 +18,7 @@ import {
  * atomic unit is itself one step in an outer `proc`/`pipe` chain.
  */
 export const transaction =
-  <A, T, E extends Error>(
+  <A, T, E>(
     db: Db,
     work: (input: A) => PromisedResult<T, E>,
   ) =>

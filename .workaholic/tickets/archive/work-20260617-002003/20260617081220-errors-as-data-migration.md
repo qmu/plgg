@@ -3,9 +3,9 @@ created_at: 2026-06-17T08:12:20+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 7b93ab7
+category: Changed
 depends_on: [20260617081219-error-core-defect-and-relaxed-bounds.md]
 ---
 
@@ -121,3 +121,35 @@ export const invalidError$ = () =>
   safe after a `match`/guard; never cast `unknown` content.
 - **Tests carry ~30 construction sites** — migrate them in the same commit so
   `test-plgg.sh` stays green.
+
+## Final Report
+
+Development completed as planned. Full repo green via `scripts/check-all.sh`
+(all 8 packages build; plgg 458, view 115, server 76, router 39, http 32,
+fetch 27, sql 25, kit 12, foundry 6, example 25 tests pass). Zero
+`as`/`any`/`ts-ignore` introduced.
+
+### Discovered Insights
+
+- **Insight**: constructors were made **object-arg** (`invalidError({ message })`),
+  not positional as the patch sketched.
+  **Context**: the old class constructors were object-arg, so dropping `new`
+  turned the ~85-site migration into a near-mechanical `new InvalidError(` →
+  `invalidError(` rename instead of risky positional extraction from multi-line,
+  printWidth-50-wrapped call sites.
+- **Insight**: deleting `Exception` **forced** `proc`'s error channel (and
+  `Procedural`'s default) to broaden from `Error` to `unknown` in *this* ticket,
+  not T3.
+  **Context**: once `InvalidError` is data (not an `Error`), a `proc` step
+  returning `Result<_, InvalidError>` no longer satisfies a `Result<_, Error>`
+  channel. T2 and T3 are entangled here; T2 broadens to `unknown`, T3 makes it
+  the precise inferred union.
+- **Insight**: a `Result` whose error is a data error reads its message at
+  `result.content.content.message` — **double `.content`**.
+  **Context**: `Err<InvalidError>.content` is the InvalidError box, whose payload
+  is at `.content`. This is the single most common migration edit (one extra
+  `.content` on every error-message assertion); the compiler flags each site
+  exactly.
+- **Insight**: `match` requires **≥2 arms**; library `printPlggError` walks
+  `InvalidError.sibling` and `Defect.cause` (an `Error`) instead of the deleted
+  class `parent` chain.

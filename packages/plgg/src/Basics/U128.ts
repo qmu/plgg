@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -55,7 +56,7 @@ export const asU128 = (
     : qualify(value)
       ? ok(box("U128")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a U128 (tag-content pair with bigint in 128-bit unsigned range)",
           }),

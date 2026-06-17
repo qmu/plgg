@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -53,7 +54,7 @@ export const asU64 = (
     : qualify(value)
       ? ok(box("U64")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a U64 (tag-content pair with bigint 0n to 18446744073709551615n)",
           }),

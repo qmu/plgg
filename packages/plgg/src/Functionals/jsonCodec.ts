@@ -2,6 +2,7 @@ import {
   Result,
   SoftStr,
   InvalidError,
+  invalidError,
   tryCatch,
 } from "plgg/index";
 
@@ -12,7 +13,7 @@ import {
 const asInvalid =
   (fallback: SoftStr) =>
   (error: unknown): InvalidError =>
-    new InvalidError({
+    invalidError({
       message:
         error instanceof Error
           ? error.message

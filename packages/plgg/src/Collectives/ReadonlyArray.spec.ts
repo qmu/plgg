@@ -26,7 +26,7 @@ test("asReadonlyArray fails when value is not an array", () => {
     "not an array",
   );
   assert(isErr(result));
-  expect(result.content.message).toBe(
+  expect(result.content.content.message).toBe(
     "Value is not an array",
   );
 });
@@ -38,7 +38,7 @@ test("asReadonlyArray fails for null element", () => {
     3,
   ]);
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "index 1 is undefined",
   );
 });
@@ -50,7 +50,7 @@ test("asReadonlyArray fails for undefined element", () => {
     3,
   ]);
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "index 1 is undefined",
   );
 });
@@ -58,10 +58,12 @@ test("asReadonlyArray fails for undefined element", () => {
 test("asReadonlyArray failure carries parent error", () => {
   const result = asReadonlyArray(asNum)([1, "no", 3]);
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "index 1 failed validation",
   );
-  expect(result.content.parent).toBeDefined();
+  expect(
+    result.content.content.sibling,
+  ).toBeDefined();
 });
 
 test("asReadonlyArray succeeds on empty array", () => {

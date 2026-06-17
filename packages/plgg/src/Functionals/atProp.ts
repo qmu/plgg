@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   ok,
   err,
 } from "plgg/index";
@@ -20,7 +21,7 @@ export const atProp =
       !(key in obj)
     ) {
       return err(
-        new InvalidError({
+        invalidError({
           message: `Cannot access property '${key}'`,
         }),
       );

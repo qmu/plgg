@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -65,7 +66,7 @@ export const asKebabCase = (
     : qualify(value)
       ? ok(box("KebabCase")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a KebabCase (tag-content pair with valid kebab-case string)",
           }),

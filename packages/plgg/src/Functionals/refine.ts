@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   ok,
   err,
 } from "plgg/index";
@@ -17,7 +18,7 @@ export const refine =
     predicate(a)
       ? ok(a)
       : err(
-          new InvalidError({
+          invalidError({
             message: errMessage
               ? errMessage
               : `The value ${a} is not valid according to the predicate`,

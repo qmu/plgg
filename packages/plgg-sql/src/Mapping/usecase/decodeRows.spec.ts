@@ -55,9 +55,13 @@ test("a single shape mismatch is an InvalidError, not a throw", () => {
   ]);
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content).toBeInstanceOf(InvalidError);
-    expect(result.content.message).toContain("1 of 2");
-    expect(result.content.sibling).toHaveLength(1);
+    expect(result.content.__tag).toBe("InvalidError");
+    expect(result.content.content.message).toContain(
+      "1 of 2",
+    );
+    expect(
+      result.content.content.sibling,
+    ).toHaveLength(1);
   }
 });
 
@@ -68,8 +72,12 @@ test("every failing row is gathered as a sibling error", () => {
   ]);
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content.message).toContain("2 of 2");
-    expect(result.content.sibling).toHaveLength(2);
+    expect(result.content.content.message).toContain(
+      "2 of 2",
+    );
+    expect(
+      result.content.content.sibling,
+    ).toHaveLength(2);
   }
 });
 
@@ -88,7 +96,9 @@ test("decodeRow errors on an empty result set", () => {
   const result = decodeRow(asUser)([]);
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content.message).toContain("empty");
+    expect(result.content.content.message).toContain(
+      "empty",
+    );
   }
 });
 

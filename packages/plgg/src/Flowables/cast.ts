@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   NonNeverFn,
   isOk,
   ok,
@@ -535,16 +536,16 @@ export function cast(
         return err(acc.content);
       }
       const prevError =
-        acc.content.sibling.length > 0
+        acc.content.content.sibling.length > 0
           ? []
           : [acc.content];
       const sibling = [
         ...prevError,
-        ...acc.content.sibling,
+        ...acc.content.content.sibling,
         currentResult.content,
       ];
       return err(
-        new InvalidError({
+        invalidError({
           message: `Cast failed at ${sibling.length} of ${fns.length} step(s), see sibling errors for details.`,
           sibling,
         }),
@@ -558,12 +559,10 @@ const convUnknownToInvalidError = (
   e: unknown,
 ): Result<never, InvalidError> =>
   err(
-    new InvalidError({
-      message: "Validation failed",
-      parent:
-        e instanceof Error
-          ? e
-          : new Error(String(e)),
+    invalidError({
+      message: `Validation failed: ${
+        e instanceof Error ? e.message : String(e)
+      }`,
     }),
   );
 

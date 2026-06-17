@@ -20,7 +20,7 @@ test("atProp returns nested object value", () => {
 test("atProp returns Err for missing property", () => {
   const result = atProp("missing")({ present: 1 });
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Cannot access property 'missing'",
   );
 });
@@ -28,7 +28,7 @@ test("atProp returns Err for missing property", () => {
 test("atProp returns Err for non-object value", () => {
   const result = atProp("name")("not-object");
   assert(isErr(result));
-  expect(result.content.message).toContain(
+  expect(result.content.content.message).toContain(
     "Cannot access property 'name'",
   );
 });

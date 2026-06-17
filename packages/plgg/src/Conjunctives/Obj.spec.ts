@@ -50,25 +50,25 @@ test("asObj validation", async () => {
 
   const nullResult = asObj(null);
   assert(isErr(nullResult));
-  expect(nullResult.content.message).toBe(
+  expect(nullResult.content.content.message).toBe(
     "Not record",
   );
 
   const undefinedResult = asObj(undefined);
   assert(isErr(undefinedResult));
-  expect(undefinedResult.content.message).toBe(
+  expect(undefinedResult.content.content.message).toBe(
     "Not record",
   );
 
   const stringResult = asObj("test");
   assert(isErr(stringResult));
-  expect(stringResult.content.message).toBe(
+  expect(stringResult.content.content.message).toBe(
     "Not record",
   );
 
   const numberResult = asObj(123);
   assert(isErr(numberResult));
-  expect(numberResult.content.message).toBe(
+  expect(numberResult.content.content.message).toBe(
     "Not record",
   );
 });
@@ -102,7 +102,7 @@ test("Obj.prop validation - missing property", async () => {
 
   const ageResult = forProp("age", asNum)(rec);
   assert(isErr(ageResult));
-  expect(ageResult.content.message).toBe(
+  expect(ageResult.content.content.message).toBe(
     "Property 'age' not found",
   );
 });
@@ -115,7 +115,7 @@ test("Obj.prop validation - invalid property type", async () => {
 
   const ageResult = forProp("age", asNum)(rec);
   assert(isErr(ageResult));
-  expect(ageResult.content.message).toBe(
+  expect(ageResult.content.content.message).toBe(
     "Value is not a number",
   );
 });
@@ -190,7 +190,7 @@ test("Obj.optional validation - invalid property type", async () => {
     asNum,
   )(rec);
   assert(isErr(ageResult));
-  expect(ageResult.content.message).toBe(
+  expect(ageResult.content.content.message).toBe(
     "Value is not a number",
   );
 });

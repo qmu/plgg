@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -68,7 +69,7 @@ export const asAlphanumeric = (
     : qualify(value)
       ? ok(box("Alphanumeric")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not an Alphanumeric (tag-content pair with valid alphanumeric string)",
           }),

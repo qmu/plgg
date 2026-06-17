@@ -3,6 +3,7 @@ import {
   ok,
   err,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
 } from "plgg/index";
@@ -35,7 +36,7 @@ export const asFunc = (
   is(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a function",
         }),
       );

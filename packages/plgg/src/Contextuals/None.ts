@@ -2,6 +2,7 @@ import {
   Icon,
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   pattern,
@@ -57,7 +58,7 @@ export const asNone = (
   is(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a None",
         }),
       );

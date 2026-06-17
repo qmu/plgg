@@ -25,7 +25,7 @@ export const reqObjectClaude = ({
   input: string;
   schema: Datum;
   maxTokens?: number;
-}): PromisedResult<unknown, Error> =>
+}): PromisedResult<unknown, unknown> =>
   proc(
     {
       model,

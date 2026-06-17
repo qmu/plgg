@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -51,7 +52,7 @@ export const asFloat = (
     : qualify(value)
       ? ok(box("Float")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a Float (tag-content pair with finite number)",
           }),

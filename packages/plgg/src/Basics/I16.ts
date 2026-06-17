@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -53,7 +54,7 @@ export const asI16 = (
     : qualify(value)
       ? ok(box("I16")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not an I16 (tag-content pair with integer -32768 to 32767)",
           }),

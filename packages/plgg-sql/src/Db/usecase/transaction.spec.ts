@@ -2,12 +2,13 @@ import { test, expect } from "vitest";
 import {
   Result,
   InvalidError,
+  invalidError,
   ok,
   err,
   isOk,
   isErr,
 } from "plgg";
-import { Db, SqlError, transaction } from "plgg-sql/index";
+import { Db, transaction } from "plgg-sql/index";
 
 // A Db that records the transaction control calls in order.
 const recordingDb = (): {
@@ -49,7 +50,7 @@ test("commits and returns the value when the work succeeds", async () => {
 
 test("rolls back and preserves the Err when the work fails", async () => {
   const { db, log } = recordingDb();
-  const failure = new InvalidError({ message: "nope" });
+  const failure = invalidError({ message: "nope" });
   const result = await transaction(
     db,
     (): Promise<Result<number, InvalidError>> =>
@@ -72,7 +73,7 @@ test("rolls back and folds a thrown error into a SqlError", async () => {
   )("input");
   expect(isErr(result)).toBe(true);
   if (isErr(result)) {
-    expect(result.content).toBeInstanceOf(SqlError);
+    expect(result.content.__tag).toBe("SqlError");
   }
   expect(log).toEqual(["begin", "rollback"]);
 });

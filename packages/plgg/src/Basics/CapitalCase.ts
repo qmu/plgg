@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -71,7 +72,7 @@ export const asCapitalCase = (
     : qualify(value)
       ? ok(box("CapitalCase")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a CapitalCase (tag-content pair with valid Capital Case string)",
           }),

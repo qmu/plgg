@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   Box,
@@ -53,7 +54,7 @@ export const asU32 = (
     : qualify(value)
       ? ok(box("U32")(value))
       : err(
-          new InvalidError({
+          invalidError({
             message:
               "Value is not a U32 (tag-content pair with integer 0 to 4294967295)",
           }),

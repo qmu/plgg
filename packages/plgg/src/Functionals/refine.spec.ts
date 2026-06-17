@@ -15,7 +15,7 @@ test("refine validates values with custom predicates", () => {
 
   const invalidResult = validatePositive(-3);
   assert(isErr(invalidResult));
-  expect(invalidResult.content.message).toBe(
+  expect(invalidResult.content.content.message).toBe(
     "Number must be positive",
   );
 });
@@ -27,7 +27,7 @@ test("refine with default error message", () => {
 
   const invalidResult = validatePositive(-5);
   assert(isErr(invalidResult));
-  expect(invalidResult.content.message).toBe(
+  expect(invalidResult.content.content.message).toBe(
     "The value -5 is not valid according to the predicate",
   );
 });

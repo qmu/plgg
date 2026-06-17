@@ -50,7 +50,7 @@ export const operate =
   (order: Order) =>
   (
     alignment: Alignment,
-  ): PromisedResult<Medium, Error> =>
+  ): PromisedResult<Medium, unknown> =>
     proc(
       alignment,
       findIngress,
@@ -70,7 +70,7 @@ const execute =
   (ctx: OperationContext) =>
   async (
     op: Operation | Egress,
-  ): PromisedResult<Medium, Error> => {
+  ): PromisedResult<Medium, unknown> => {
     if (
       ctx.operationCount >=
       ctx.foundry.maxOperationLimit
@@ -102,7 +102,7 @@ const execute =
  */
 const execIngress =
   (ctx: OperationContext) =>
-  (op: Ingress): PromisedResult<Medium, Error> =>
+  (op: Ingress): PromisedResult<Medium, unknown> =>
     proc(
       ctx.alignment,
       findOperations(op.next),
@@ -160,7 +160,7 @@ const execAssign = ({
 }: {
   op: Assign;
   ctx: OperationContext;
-}): PromisedResult<Medium, Error> => {
+}): PromisedResult<Medium, unknown> => {
   const virtualType = toVirtualType({
     type: "string",
   });
@@ -220,7 +220,7 @@ const execSwitch = async ({
 }: {
   op: Switch;
   ctx: OperationContext;
-}): PromisedResult<Medium, Error> => {
+}): PromisedResult<Medium, unknown> => {
   const { foundry, alignment, env } = ctx;
 
   // Step 1: Find the switcher function by opcode
@@ -338,7 +338,7 @@ const execProcess = async ({
 }: {
   op: Process;
   ctx: OperationContext;
-}): PromisedResult<Medium, Error> => {
+}): PromisedResult<Medium, unknown> => {
   const { foundry, alignment, env } = ctx;
 
   // Step 1: Find the processor function by opcode
@@ -454,7 +454,7 @@ const execEgress = async ({
 }: {
   op: Egress;
   ctx: OperationContext;
-}): PromisedResult<Medium, Error> => {
+}): PromisedResult<Medium, unknown> => {
   const { env, alignment } = ctx;
 
   // Step 1: Load output values from registers specified in result array

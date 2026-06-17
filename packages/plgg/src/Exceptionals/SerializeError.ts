@@ -1,39 +1,31 @@
-import { BaseError } from "plgg/Exceptionals/BaseError";
-import { pattern } from "plgg/index";
+import {
+  Box,
+  SoftStr,
+  box,
+  pattern,
+} from "plgg/index";
 
 /**
- * Error class for serialization failures.
+ * Serialization failure as pure tagged data — a `Box`, not an `Error` subclass.
  */
-export class SerializeError extends BaseError {
-  /**
-   * Error name identifier.
-   */
-  public name = "SerializeError";
-
-  /**
-   * Box tag, so this variant folds by tag through `match`. Non-enumerable
-   * getter — does not affect JSON output.
-   */
-  public get __tag(): "SerializeError" {
-    return "SerializeError";
-  }
-
-  /**
-   * Creates a new SerializeError instance.
-   */
-  constructor({
-    message,
-    parent,
-  }: {
-    message: string;
-    parent?: BaseError | Error;
-  }) {
-    super(message, parent);
-  }
-}
+export type SerializeError = Box<
+  "SerializeError",
+  { message: SoftStr }
+>;
 
 /**
- * Pattern matcher for folding a {@link SerializeError} with `match` by name.
+ * Constructs a {@link SerializeError}. Object-arg so call sites migrate by
+ * dropping `new`.
+ */
+export const serializeError = ({
+  message,
+}: {
+  message: SoftStr;
+}): SerializeError =>
+  box("SerializeError")({ message });
+
+/**
+ * Pattern matcher for folding a {@link SerializeError} with `match` by tag.
  */
 export const serializeError$ = () =>
   pattern("SerializeError")();

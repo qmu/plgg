@@ -31,7 +31,7 @@ export const generateObject = ({
   systemPrompt?: string;
   userPrompt: string;
   schema: Datum;
-}): PromisedResult<unknown, Error> => {
+}): PromisedResult<unknown, unknown> => {
   // Bind once: model is the same regardless of branch; instructions default to
   // "" via Option (not `|| ""`).
   const model = unbox(provider).model;

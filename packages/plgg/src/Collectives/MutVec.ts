@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable1,
   Castable1,
   Monad1,
@@ -57,7 +58,7 @@ export const asMutVec = <A>(
   is<A>(value)
     ? ok(value)
     : err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a vector",
         }),
       );

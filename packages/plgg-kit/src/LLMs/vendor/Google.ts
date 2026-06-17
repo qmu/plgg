@@ -24,7 +24,7 @@ export const reqObjectGemini = ({
   instructions: string;
   input: string;
   schema: Datum;
-}): PromisedResult<unknown, Error> =>
+}): PromisedResult<unknown, unknown> =>
   proc(
     {
       system_instruction: {

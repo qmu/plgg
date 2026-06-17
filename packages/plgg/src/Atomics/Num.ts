@@ -1,6 +1,7 @@
 import {
   Result,
   InvalidError,
+  invalidError,
   Refinable,
   Castable,
   JsonSerializable,
@@ -46,7 +47,7 @@ export const asNum = (
   is(value)
     ? ok(Number(value))
     : err(
-        new InvalidError({
+        invalidError({
           message: "Value is not a number",
         }),
       );
