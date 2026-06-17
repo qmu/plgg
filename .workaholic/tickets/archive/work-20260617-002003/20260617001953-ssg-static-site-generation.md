@@ -3,9 +3,9 @@ created_at: 2026-06-17T00:19:53+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 86af347
+category: Added
 depends_on: [20260617081221-proc-error-union-and-collapse.md]
 ---
 
@@ -795,3 +795,32 @@ generateStatic(app)({
 - **Follow-ups (not this ticket):** `staticPaths(app)` auto-discovery of
   fully-`Static` GET routes; a per-pattern param expander; a lenient
   skip-and-report mode; client hydration in plgg-view.
+
+## Final Report
+
+Development completed. `scripts/check-all.sh` green (plgg-server 86 tests, +10
+for SSG); plgg-server coverage 96.4%; zero `as`/`any`/`ts-ignore`.
+
+### Discovered Insights
+
+- **Insight**: `renderPath` shipped **`proc`-native**, not the hand-threaded
+  `await`+`mapErr`+`chainResult` form the original patch sketched.
+  **Context**: the error-model redesign (T1–T3) landed first, so `proc` now
+  carries a precise error union. `renderPath` is
+  `proc(getRequest(path), (req) => handle(app, req).then(mapErr(renderFailed)), toPage(path))`
+  — the `handle` step lifts its `HttpError` into an `SsgError` so the channel
+  stays domain-typed, and `proc` adds `Defect` for any unexpected throw. The
+  inferred type is `Result<SsgPage, SsgError | Defect>` — exactly the T3 payoff,
+  demonstrated end to end.
+- **Insight**: the `node:fs` seam is confined to `writeStatic.ts`, surfaced
+  ONLY through the new node-only `plgg-server/ssg` entry — `src/Ssg/usecase/index.ts`
+  deliberately does NOT re-export `writeStatic`, so the runtime-neutral `Ssg`
+  barrel (re-exported by the root) never pulls in `node:fs`. Mirrors how
+  `serve.ts`/`node.ts` confine `node:http`.
+- **Insight**: `SsgConfig`/`generateStatic`'s error type is `SsgError | Defect`
+  (not just `SsgError`) because `proc` honestly injects `Defect` for unexpected
+  throws. Consumers `matchResult` and fold by `__tag`.
+- **Insight**: the `./ssg` build entry needs `node:fs/promises` + `node:path` in
+  vite `rollupOptions.external` (alongside the existing `node:http`/`node:stream`)
+  and a `package.json` `./ssg` export block + coverage-exclude — mirroring the
+  `./node` wiring exactly.
