@@ -4,6 +4,7 @@ import {
   Result,
   InvalidError,
   invalidError,
+  plggErrorMessage,
   ok,
   err,
   isErr,
@@ -56,7 +57,7 @@ export const asDictOf =
         if (isErr(elementResult)) {
           return err(
             invalidError({
-              message: `Invalid value at key "${key}": ${elementResult.content.content.message}`,
+              message: `Invalid value at key "${key}": ${plggErrorMessage(elementResult.content)}`,
             }),
           );
         }

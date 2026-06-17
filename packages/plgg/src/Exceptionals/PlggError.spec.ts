@@ -19,8 +19,13 @@ import {
   match,
   isBox,
   isSome,
+  ok,
+  err,
   printPlggError,
   isPlggError,
+  plggErrorMessage,
+  matchPlggError,
+  resultErrorMessage,
   toError,
   panic,
   unreachable,
@@ -286,6 +291,43 @@ test("a plgg error is plain tagged data, not an Error", () => {
   const json = JSON.parse(JSON.stringify(e));
   expect(json.__tag).toBe("InvalidError");
   expect(json.content.message).toBe("bad");
+});
+
+test("plggErrorMessage reads any variant's message", () => {
+  expect(
+    plggErrorMessage(invalidError({ message: "a" })),
+  ).toBe("a");
+  expect(plggErrorMessage(defect("b"))).toBe("b");
+});
+
+test("matchPlggError folds by variant via the $-matchers", () => {
+  const label = matchPlggError({
+    invalid: (): string => "invalid",
+    serialize: (): string => "serialize",
+    deserialize: (): string => "deserialize",
+    defect: (): string => "defect",
+  });
+  expect(
+    label(invalidError({ message: "x" })),
+  ).toBe("invalid");
+  expect(
+    label(serializeError({ message: "x" })),
+  ).toBe("serialize");
+  expect(
+    label(deserializeError({ message: "x" })),
+  ).toBe("deserialize");
+  expect(label(defect("x"))).toBe("defect");
+});
+
+test("resultErrorMessage folds a Result's error message", () => {
+  const failed = resultErrorMessage(
+    err(invalidError({ message: "boom" })),
+  );
+  assert(isSome(failed));
+  expect(failed.content).toBe("boom");
+  expect(
+    isSome(resultErrorMessage(ok(1))),
+  ).toBe(false);
 });
 
 test("printPlggError terminates on a sibling cycle", () => {

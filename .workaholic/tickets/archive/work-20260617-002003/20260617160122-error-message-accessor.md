@@ -3,9 +3,9 @@ created_at: 2026-06-17T16:01:22+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: f376b12
+category: Added
 depends_on:
 ---
 
@@ -61,4 +61,24 @@ is the de-facto public API.
   constructor + a single `liftThrow(tag)(cause)` helper — so `Defect`/`SqlError`
   (and future `HttpError`/`ClientError`) stop re-implementing the same
   `instanceof Error ? …` lifter. (review: design-altitude lens; "don't clone
-  garbage".)
+  garbage".) The `Cause` type added in the P1 ticket is the seed of this.
+
+## Final Report
+
+Development completed. `scripts/check-all.sh` green (plgg 465 tests, +3). Zero
+`as`/`any`/`ts-ignore`.
+
+### Discovered Insights
+
+- **Insight**: `plggErrorMessage` is a one-liner (`error.content.message`)
+  because every `PlggError` variant's `content` carries a `message` — the union
+  is uniform there, so no `match` is needed for the message; `matchPlggError` is
+  the dispatcher for variant-specific folds.
+- **Insight**: `matchPlggError` is what finally gives the `$`-matchers
+  (`invalidError$`/`serializeError$`/`deserializeError$`/`defect$`) real callers
+  — they were exported-but-dead surface flagged by the review. The accessor now
+  routes the library message-builders (`Vec`/`Dict`/`ReadonlyArray`) off the
+  `result.content.content.message` double-hop.
+- **Insight**: scope was kept to the accessor + the three representative library
+  conversions; existing specs were not churned (they read error content
+  directly, which still works). New code should prefer the accessor.

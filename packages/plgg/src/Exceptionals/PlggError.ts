@@ -5,8 +5,17 @@ import {
   InvalidError,
   SerializeError,
   DeserializeError,
+  SoftStr,
+  Result,
   Option,
+  some,
   none,
+  match,
+  matchResult,
+  invalidError$,
+  serializeError$,
+  deserializeError$,
+  defect$,
   isSome,
   isObj,
   isBox,
@@ -178,6 +187,49 @@ export const toError = (e: unknown): Error =>
 export const panic = (e: unknown): never => {
   throw toError(e);
 };
+
+/**
+ * The message of any {@link PlggError} — every variant's `content` carries one.
+ * The named accessor so call sites stop reaching `e.content.message` by hand.
+ */
+export const plggErrorMessage = (
+  error: PlggError,
+): SoftStr => error.content.message;
+
+/**
+ * Folds a {@link PlggError} by variant through its `$`-matchers — the ergonomic
+ * path that replaces a manual `match`/`.content` reach at call sites.
+ */
+export const matchPlggError =
+  <R>(handlers: {
+    invalid: (e: InvalidError) => R;
+    serialize: (e: SerializeError) => R;
+    deserialize: (e: DeserializeError) => R;
+    defect: (e: Defect) => R;
+  }) =>
+  (error: PlggError): R =>
+    match(error)(
+      [invalidError$(), handlers.invalid],
+      [serializeError$(), handlers.serialize],
+      [
+        deserializeError$(),
+        handlers.deserialize,
+      ],
+      [defect$(), handlers.defect],
+    );
+
+/**
+ * The error message of a failed `Result<_, PlggError>` as an `Option` — folds
+ * both channels with no manual `isErr`/`.content.content` reach.
+ */
+export const resultErrorMessage = <T>(
+  result: Result<T, PlggError>,
+): Option<SoftStr> =>
+  matchResult(
+    (e: PlggError): Option<SoftStr> =>
+      some(plggErrorMessage(e)),
+    (): Option<SoftStr> => none(),
+  )(result);
 
 /**
  * Utility function for exhaustive checks and unreachable code paths.

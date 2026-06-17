@@ -2,6 +2,7 @@ import {
   Result,
   InvalidError,
   invalidError,
+  plggErrorMessage,
   Refinable,
   ok,
   err,
@@ -72,7 +73,7 @@ export const asReadonlyArray =
       } else {
         return err(
           invalidError({
-            message: `Array element at index ${i} failed validation: ${result.content.content.message}`,
+            message: `Array element at index ${i} failed validation: ${plggErrorMessage(result.content)}`,
             sibling: [result.content],
           }),
         );

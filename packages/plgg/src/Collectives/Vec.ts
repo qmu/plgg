@@ -2,6 +2,7 @@ import {
   Result,
   InvalidError,
   invalidError,
+  plggErrorMessage,
   JsonSerializable,
   JsonReady,
   Datum,
@@ -138,7 +139,7 @@ export const asVecOf =
       if (isErr(result)) {
         return err(
           invalidError({
-            message: `Invalid element at index ${i}: ${result.content.content.message}`,
+            message: `Invalid element at index ${i}: ${plggErrorMessage(result.content)}`,
           }),
         );
       }
