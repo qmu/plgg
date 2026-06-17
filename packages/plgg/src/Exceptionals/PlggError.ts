@@ -1,10 +1,12 @@
 import {
+  Box,
   Exception,
   InvalidError,
   SerializeError,
   DeserializeError,
   isSome,
   isObj,
+  isBox,
 } from "plgg/index";
 
 /**
@@ -70,12 +72,60 @@ export const printPlggError = (
 };
 
 /**
- * Converts unknown error to Error instance.
+ * Reads a string message off an unknown `content` payload — `""` when absent.
  */
-export const toError = (err: unknown): Error =>
-  err instanceof Error
-    ? err
-    : new Error(String(err));
+const messageOf = (content: unknown): string =>
+  isObj(content) && "message" in content
+    ? String(content.message)
+    : "";
+
+/**
+ * A {@link Defect}'s real `Error`: its `cause` when that is an `Error` (origin
+ * stack preserved), else a synthesized one carrying the defect message.
+ */
+const defectToError = (
+  content: unknown,
+): Error =>
+  isObj(content) &&
+  "cause" in content &&
+  isSome(content.cause) &&
+  content.cause.content instanceof Error
+    ? content.cause.content
+    : new Error(messageOf(content));
+
+/**
+ * A tagged error `Box` as an `Error`: a `Defect` yields its `cause` Error;
+ * any other tagged error synthesizes `[Tag] message` (boundary stack — typed
+ * errors are stackless by decision A).
+ */
+const boxToError = (
+  e: Box<string, unknown>,
+): Error =>
+  e.__tag === "Defect"
+    ? defectToError(e.content)
+    : new Error(
+        `[${e.__tag}] ${messageOf(e.content)}`,
+      );
+
+/**
+ * Extracts or synthesizes a real `Error` from any value, for handing to
+ * `Error`-expecting systems (loggers, framework handlers). A real `Error`
+ * passes through; a tagged error `Box` is folded by {@link boxToError}.
+ */
+export const toError = (e: unknown): Error =>
+  e instanceof Error
+    ? e
+    : isBox(e)
+      ? boxToError(e)
+      : new Error(String(e));
+
+/**
+ * Throws at an outer seam that demands a thrown `Error` (a framework boundary).
+ * Domain code inward returns `err(...)`; this is the only sanctioned throw.
+ */
+export const panic = (e: unknown): never => {
+  throw toError(e);
+};
 
 /**
  * Utility function for exhaustive checks and unreachable code paths.

@@ -21,7 +21,7 @@ function tryCatch<T, U, E = Error>(
   errorHandler?: (error: unknown) => E,
 ): (arg: T) => Promise<Result<U, E>>;
 // Implementation
-function tryCatch<T, U, E extends Error = Error>(
+function tryCatch<T, U, E = Error>(
   fn: (arg: T) => Procedural<U, E>,
   errorHandler: (error: unknown) => E = (
     error: unknown,
