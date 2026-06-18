@@ -3,9 +3,9 @@ created_at: 2026-06-18T17:52:27+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 16c8d4d
+category: Changed
 depends_on:
 ---
 
@@ -109,3 +109,49 @@ Then, for either approach:
   (`asI8`…`asU128`, the functor/monad derived fns, JSON-ready codecs) if even the
   compact list reads as too long — the user chose the comprehensive compact index
   for now, not curation.
+
+## Final Report
+
+Implemented **approach A** (post-process). `packages/guide/scripts/gen-api.mjs`
+now transforms each TypeDoc-generated `index.md` into a compact signature index:
+for every public symbol it keeps the heading, the signature code block, and the
+one-line summary, and **deletes the `#### Type Parameters` / `Parameters` /
+`Returns` / `Type Declaration` / `Properties` / `Index Signature` sub-tables**
+(plus the `***` separators and the old kind-group `##` headings). The strip is
+**fence-aware** so `#`/`***` inside a ```ts``` block is never mistaken for
+structure. Entries are then **regrouped under `## <Category>` headings** in the
+README's order (Atomics, Basics, Disjunctives, Contextuals, Conjunctives,
+Collectives, Exceptionals, Flowables, Functionals; everything else, then "Other"
+last). A **lossless guard** throws if the transform would drop any symbol.
+
+Category for each symbol is derived from its `src/<Category>/` declaration site
+by a static source scan (handles `export const/function/type/…`, destructured
+`export const { chain: chainOption } = …`, and local `export { … }` blocks),
+with cross-package `export * from "<pkg>"` re-exports (e.g. plgg-server pulling
+in plgg-http/plgg-view) resolved against the target package's own symbol set so
+they categorise under the aggregator's taxonomy rather than falling to "Other".
+
+Result: every public symbol still listed, **`Other = 0` across all 9 packages**,
+and the plgg page drops **8204 → 3140 lines** (~2.6×). The markdown plugin is
+kept (its signatures are reused), so no devDep pruning. `npm run build` passes
+with no dead links.
+
+### Discovered Insights
+
+- **TypeDoc escapes heading text.** Screaming-snake constants render as
+  `### ICON\_CONTENT` (escaped underscore), so matching the heading name against
+  the source-derived map needs the backslash-escapes stripped first — otherwise
+  they silently fall into "Other".
+- **Derived combinators are destructured exports.** `mapOption`/`chainOption`/
+  `foldlResult`/`isBool`… are emitted as `export const { map: mapOption } = …`,
+  not `export const mapOption`, so the category scan must parse the destructuring
+  pattern (and take the renamed target) to categorise the bulk of the surface.
+- **Aggregator packages re-export across packages with `export *`.** plgg-server
+  surfaces plgg-http/plgg-view via `export * from "plgg-http"` (no names in the
+  source), so categorising those 40+ symbols needs the target package's own
+  symbol set, keyed to the re-exporting file's directory — not a same-file scan.
+- **The generated signature block is already the desired one-liner**, which is
+  why approach A beats re-emitting from JSON: no type-to-string helper needed.
+  Verbose return types (e.g. the full `InvalidError` expansion) remain inside the
+  signature block — acceptable per the ticket; this change is about removing the
+  ceremony sub-tables, not reformatting types.
