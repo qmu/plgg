@@ -6,6 +6,11 @@
 not an API to learn in depth; it is the seam where
 external AI vendors enter the plgg world as plain data.
 
+::: tip Full API reference
+For every export with its signature, see the
+**[plgg-kit API reference](/api/plgg-kit/)**.
+:::
+
 ## LLM providers
 
 A provider is a tagged [`Box`](/concepts/tagged-data)

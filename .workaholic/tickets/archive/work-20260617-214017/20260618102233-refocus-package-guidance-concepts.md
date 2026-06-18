@@ -3,9 +3,9 @@ created_at: 2026-06-18T10:22:33+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: b201a4b
+category: Changed
 depends_on: [20260618102232-condense-curate-api-reference.md]
 ---
 
@@ -84,3 +84,36 @@ and stays as-is; this ticket only refocuses the per-package pages.
 - Sibling to the reference-quality ticket; together they implement the
   guidance-vs-reference differentiation.
   ([[20260618102232-condense-curate-api-reference]])
+
+## Final Report
+
+Development completed. Refocused the guidance pages on concepts + organization
+and pointed each at its condensed reference.
+
+- **plgg core** (`values-effects.md`, `structures-errors.md`, `index.md`):
+  replaced the exhaustive Atomics/Functionals/Collectives enumerations with a
+  "how the vocabulary is organized" category overview, kept the genuinely
+  conceptual content (the Atomics-vs-Basics distinction, the errors-as-data model
+  + Decision A + the accessor pattern) and the tested examples, and demoted the
+  type-level/typeclass layers to a short "advanced, kept out of the reference"
+  note.
+- **Per-package pages** (plgg-http, plgg-server, plgg-fetch, plgg-router,
+  plgg-view, plgg-sql, plgg-kit, plgg-foundry): added a prominent
+  "Full API reference → /api/<pkg>/" admonition near the top; trimmed plgg-http's
+  exhaustive model table to an organizational summary. The other pages were
+  already concept/how-to oriented (verb helpers, Context, runtime adapters, SSG,
+  TEA) so their teaching tables were kept per the "keep conceptual tables, drop
+  per-symbol enumerations" rule.
+- Verified `npm run build` (generate + vitepress build) passes with no dead
+  links; every `/api/<pkg>/` link resolves against the condensed reference.
+
+### Discovered Insights
+
+- **Insight**: Most per-package guidance pages were already guidance, not
+  reference — the exhaustive dumping was concentrated in the two plgg-core pages
+  (every Atomic/Basic/Functional). So this ticket was mostly (a) trimming those
+  two pages and (b) adding the reference link everywhere, not a wholesale rewrite.
+- **Insight**: Because ticket 1 excluded `Grammaticals`/`Abstracts` from the
+  reference, the guidance pages are now the **only** place those advanced layers
+  are documented — so `structures-errors.md` keeps a short conceptual note on them
+  (rather than dropping them entirely) to avoid losing them from the docs.

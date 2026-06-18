@@ -1,145 +1,76 @@
 # plgg — values & effects
 
-This is a **guided** tour of the half of the `plgg` core
-API you reach for most: the value types and the
-composition combinators. It curates the surface by
-module category; the exhaustive symbol-by-symbol listing
-is the auto-generated [API reference](/api/) (T8).
+A **guided** tour of the half of the `plgg` core you reach
+for most — the value types and the composition
+combinators — and **how that vocabulary is organized**.
+This page teaches the shape; it does not enumerate every
+symbol.
 
-It assumes the [Core concepts](/concepts/) — `Option`,
-`Result`, `cast`, `proc`, `match` are explained there and
-only used here. Its companion page,
+::: tip Full API reference
+For the complete, signature-level vocabulary of `plgg`,
+see the **[plgg API reference](/api/plgg/)**.
+:::
+
+It assumes the [Core concepts](/concepts/) —
+[`Option`](/concepts/option), [`Result`](/concepts/result),
+[`cast`](/concepts/validation), [`proc`](/concepts/async),
+and [`match`](/concepts/match) are explained there and only
+used here. Its companion,
 [Structures & errors](/packages/plgg/structures-errors),
-covers records, collections, the error types, and the
+covers records, collections, the error model, and the
 typeclass abstracts.
 
-All symbols are top-level imports from `"plgg"`.
+## How the vocabulary is organized
 
-## Atomics — validated bare primitives
+`plgg` is one flat import surface (`import { … } from "plgg"`),
+but it is organized into categories. The ones you reach for
+when handling **values and effects**:
 
-Atomics are plain TypeScript primitives given a
-**validation seam**: the type is the native type, and an
-`asX` caster turns `unknown` into a `Result`, with an
-`isX` guard alongside. Define the type first, then parse
-into it at the boundary.
+| Category | What it is for |
+|----------|----------------|
+| **Atomics** | validated bare primitives — native types (`Num`, `SoftStr`, `Time`, `Bool`, …) given an `asX`/`isX` validation seam |
+| **Basics** | refined **branded** types — proof-carrying values (`Str`, `Float`, the ranged ints `I8`…`U128`, the case-strings) each with `asX`/`isX` |
+| **Disjunctives** | the union types everything flows through: [`Option`](/concepts/option) and [`Result`](/concepts/result), with their `map`/`chain`/`match`/`getOr` combinators |
+| **Contextuals** | the tagged carriers behind the unions — `box`/`pattern`/`isBox`/`hasTag`, `Ok`/`Err`, `Some`/`None` |
+| **Flowables** | the composition core — `pipe`, `flow`, `cast`, `proc`, `match` |
+| **Functionals** | small `proc`-friendly effect helpers — `tryCatch`, `env`, `refine`, `bind`, `conclude`, `atProp`/`atIndex`, `decodeJson`/`encodeJson` |
 
-| Type | Underlying | Caster / guard |
-|------|-----------|----------------|
-| `Num` | `number` | `asNum` / `isNum` |
-| `Int` | `number` (integral) | `asInt` / `isInt` |
-| `SoftStr` | `string` | `asSoftStr` / `isSoftStr` |
-| `Bool` | `boolean` | `asBool` / `isBool` |
-| `Time` | `Date` | `asTime` / `isTime` |
-| `BigInt` | `bigint` | `asBigInt` / `isBigInt` |
-| `Bin` | `Uint8Array` | `asBin` / `isBin` |
+The per-category symbol lists (every Atomic, every
+Functional, exact signatures) live in the
+[API reference](/api/plgg/).
 
-```typescript
-import { asNum, isOk } from "plgg";
+## Atomics vs Basics — the one distinction worth learning
 
-const r = asNum("42"); // Result<Num, InvalidError>
-isOk(r); // false — asNum does not coerce strings
-```
+The two value categories differ structurally, and that
+difference is the whole idea:
 
-## Basics — refined branded types
-
-Basics are **branded** [boxes](/concepts/tagged-data)
-(`Box<"Str", string>`, `Box<"Float", number>`, …): a
-value that has passed a refinement carries proof of it in
-its type, so an unvalidated `string` cannot be used where
-a `Str` is required. They include the refined strings
-(`Str`, `Alphabet`, `Alphanumeric`, `CamelCase`,
-`PascalCase`, `KebabCase`, `SnakeCase`, `CapitalCase`),
-`Float`, and the ranged integers (`I8`…`I128`,
-`U8`…`U128`), each with its own `asX`/`isX`.
+- An **Atomic** *is* the native type — `Num` is `number`.
+  `asNum` validates `unknown` into it; nothing is branded.
+- A **Basic** is a **branded box** — `Str` is
+  `Box<"Str", string>`. A value only becomes a `Str` by
+  passing `asStr`, so the type itself is proof of
+  refinement and an unvalidated `string` won't fit.
 
 ```typescript
-import { asStr, asFloat } from "plgg";
-// asStr(x): Result<Str, InvalidError>
-// Str = Box<"Str", string>
+import { asNum, asStr, isOk } from "plgg";
+
+asNum("42"); // Err — asNum does not coerce strings
+isOk(asNum(42)); // true
+// asStr(x): Result<Str, InvalidError>, Str = Box<"Str", string>
 ```
 
-## Disjunctives — Option & Result
+## Effects — compose, don't enumerate
 
-The two union types the whole family flows through. See
-[Option](/concepts/option) and [Result](/concepts/result)
-for the narrative; the combinators:
-
-| `Option<T>` | `Result<T, E>` |
-|-------------|----------------|
-| `some` / `none` | `ok` / `err` |
-| `isSome` / `isNone` | `isOk` / `isErr` |
-| `fromNullable`, `getOr` | `mapErr` |
-| `mapOption`, `chainOption` | `mapResult`, `chainResult` |
-| `matchOption` | `matchResult` |
-| `okOr`, `toOption` | `foldlResult`, `foldrResult` |
-
-Both expose typeclass instances (`Functor`, `Apply`,
-`Applicative`, `Chain`, `Monad`; `Result` also
-`Foldable`/`Traversable`) — see
-[Structures & errors](/packages/plgg/structures-errors#abstracts).
-
-## Contextuals — the tagged carriers
-
-The concrete box/icon constructors behind the unions:
-`box(tag)(content)`, `pattern(tag)(body?)` for matching,
-`isBox`/`hasTag`/`isBoxWithTag`, and `unbox` to extract
-nested content. `Ok`/`Err` and `Some`/`None` are the
-specializations, with `ok$`/`err$`/`some$`/`none$` as
-their match patterns.
-
-```typescript
-import { box, pattern, hasTag } from "plgg";
-
-const e = box("NotFound")("/x"); // Box<"NotFound", string>
-hasTag("NotFound")(e); // true
-```
-
-## Flowables — the composition core
-
-| Combinator | Purpose |
-|-----------|---------|
-| `pipe(v, …fns)` | thread a value through functions |
-| `flow(…fns)` | point-free composition |
-| `cast(v, …)` | sync validation chain → `Result<_, InvalidError>` |
-| `proc(v, …)` | async pipeline → `Promise<Result<_, E… \| Defect>>` |
-| `match(v)(…cases)` | exhaustive pattern match |
-| `hold(fn)` | wrap a unary fn (composition helper) |
-
-The detail and tested examples live in
+The Flowables and Functionals are meant to be **composed**,
+so the concepts pages carry the worked examples:
 [Validation with cast](/concepts/validation),
 [Async with proc](/concepts/async),
 [Exhaustive match](/concepts/match), and
-[Data-last composition](/concepts/composition). The key
-property to remember: **`proc` infers the precise error
+[Data-last composition](/concepts/composition). The one
+property to keep in mind: **`proc` infers the precise error
 union** — each step contributes its own error type and
 `Defect` is appended for unexpected throws, so you get
-`Result<Out, E₁ | … | Defect>` rather than
-`Result<Out, Error>` or `unknown`.
-
-## Functionals — effect utilities
-
-Small, `proc`-friendly helpers. Each returns data
-(`Result`/`Option`), never throws:
-
-| Function | Signature (abbreviated) | Notes |
-|----------|------------------------|-------|
-| `tryCatch(fn, onErr?)` | `(arg) => Result<U, Defect>` | throw → `Result`; defaults the error to `Defect`, or maps it with `onErr` |
-| `env(key)` | `Result<string, Defect>` | read an environment variable as data |
-| `refine(pred, msg?)` | `(a) => Result<T, InvalidError>` | lift a predicate into a validator |
-| `bind(...entries)` | `Promise<Result<Record<…>, unknown>>` | accumulate a context object step by step |
-| `conclude(fn)` | `(vec) => Result<U[], F[]>` | map a `Result`-returning fn over an array, collecting all oks or all errs |
-| `atProp(key)` / `atIndex(i)` | `(x) => Result<unknown, InvalidError>` | safe property / index access |
-| `decodeJson` / `encodeJson` | `Result<unknown \| string, InvalidError>` | `JSON.parse`/`stringify` as a `Result` |
-
-```typescript
-import { tryCatch } from "plgg";
-
-const parse = tryCatch(
-  (s: string): number => JSON.parse(s),
-);
-// parse("not json") -> Err(Defect)
-// parse("42")       -> Ok(42)
-```
+`Result<Out, E₁ | … | Defect>`, never `Result<Out, Error>`.
 
 `bind` is the readable way to assemble a context across
 async steps — each entry sees the keys bound before it:
@@ -160,5 +91,6 @@ const result = await proc(
 
 [Structures & errors](/packages/plgg/structures-errors)
 covers the other half of plgg core: records and
-collections, the error vocabulary, and the typeclass
-abstracts.
+collections, the error model, and the typeclass abstracts.
+For every symbol with its signature, the
+[plgg API reference](/api/plgg/) is the comprehensive index.

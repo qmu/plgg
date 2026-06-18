@@ -12,6 +12,11 @@ and a web step are **interchangeable links in the same
 pipe**. Its only runtime dependency is `plgg`; the driver
 lives entirely at a seam the application supplies.
 
+::: tip Full API reference
+For every export with its signature, see the
+**[plgg-sql API reference](/api/plgg-sql/)**.
+:::
+
 ## One handler, one pipe
 
 ```typescript

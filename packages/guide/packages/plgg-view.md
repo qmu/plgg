@@ -15,6 +15,11 @@ renderer, with **no `Cmd`/`Sub`**. Effects (HTTP, timers,
 programmatic navigation) are a deliberate non-goal of
 this minimum.
 
+::: tip Full API reference
+For every builder, type, and runtime export with its
+signature, see the **[plgg-view API reference](/api/plgg-view/)**.
+:::
+
 ## What it is (and isn't)
 
 | ✅ | ❌ |

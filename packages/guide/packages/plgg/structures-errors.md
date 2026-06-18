@@ -1,28 +1,29 @@
 # plgg — structures & errors
 
-The second half of the `plgg` core reference: structured
-collections, the **error model**, the type-level
-vocabulary, and the abstract typeclass layer. It
-completes the guided coverage begun in
-[Values & effects](/packages/plgg/values-effects) and
-follows the same shape — curated, with the exhaustive
-listing deferred to the [API reference](/api/) (T8).
+The other half of plgg core: the structured collections,
+the **error model** (plgg's flagship decision), and the
+type-level/typeclass layers. This page teaches the model;
+the per-symbol vocabulary lives in the reference.
 
-All symbols are top-level imports from `"plgg"`.
+::: tip Full API reference
+For the complete, signature-level vocabulary of `plgg`,
+see the **[plgg API reference](/api/plgg/)**.
+:::
 
-## Collectives — arrays
+## Structures — Collectives & Conjunctives
 
-| Type | Meaning | Caster / guard |
-|------|---------|----------------|
-| `Vec<A>` | readonly array of `Datum` | `asVec` / `isVec`, `asVecOf(asA)` |
-| `MutVec<T>` | mutable array | `asMutVec` |
-| `ReadonlyArray` | the TS built-in, re-exported in type roles | — |
+Two more categories of the core vocabulary:
 
-`asVecOf(caster)` validates every element, and
-`conclude` (from [Functionals](/packages/plgg/values-effects#functionals-effect-utilities))
-maps a `Result`-returning function across an array while
-**accumulating** — collecting either all successes or all
-failures:
+- **Collectives** — arrays: `Vec<A>` (readonly), `MutVec`,
+  and `asVecOf(caster)` to validate every element.
+- **Conjunctives** — objects: `Obj` (validated record),
+  `Dict<K, V>` (string-keyed map), `RawObj` (unvalidated).
+
+Both are decoded with the same
+[`cast`](/concepts/validation) vocabulary you already
+know — there is nothing new to learn, just new shapes.
+`conclude` maps a `Result`-returning function across an
+array while **accumulating** all successes or all errors:
 
 ```typescript
 import { conclude, asNum } from "plgg";
@@ -32,18 +33,6 @@ const allNums = conclude(asNum);
 // allNums([1, "x", "y"]) -> Err([InvalidError, InvalidError])
 ```
 
-## Conjunctives — objects
-
-| Type | Meaning |
-|------|---------|
-| `Obj<T>` | readonly validated record (all values are `Datum`) |
-| `Dict<K, V>` | string-keyed map; `asDictOf(asV)` validates values |
-| `RawObj<T>` | an unvalidated object shape |
-
-Decode an object shape by piping `asObj` into `forProp` /
-`forOptionProp` steps — the aggregation pattern from
-[Validation with cast](/concepts/validation):
-
 ```typescript
 import { cast, asObj, forProp, asSoftStr } from "plgg";
 
@@ -51,9 +40,12 @@ const asNamed = (data: unknown) =>
   cast(data, asObj, forProp("name", asSoftStr));
 ```
 
-## Exceptionals — the error model
+(Exact types and the full `asVecOf`/`asDictOf`/`forProp`
+surface are in the [API reference](/api/plgg/).)
 
-This is plgg's flagship decision: **errors are tagged
+## The error model — errors as data
+
+plgg's flagship decision: **errors are tagged
 [`Box`](/concepts/tagged-data) data, not `Error`
 subclasses.** An expected failure is a value on a
 `Result`'s error channel; it folds by tag and survives a
@@ -67,32 +59,23 @@ export type PlggError =
   | Defect;           // Box<"Defect", { message; cause }>
 ```
 
-- **`InvalidError`** — validation failure; `sibling`
-  holds the per-field failures `cast` accumulates.
+- **`InvalidError`** — validation failure; `sibling` holds
+  the per-field failures `cast` accumulates.
 - **`SerializeError` / `DeserializeError`** — encode /
   decode failures.
 - **`Defect`** — the **bottom**: an *unexpected* throw
-  normalized to data at a boundary, carrying a
-  serializable `Cause` (`{ name, message, stack }`).
+  normalized to data at a boundary, carrying a serializable
+  `Cause` (`{ name, message, stack }`).
 
 **Decision A — typed errors are stackless.** Expected
 failures are control flow and carry no stack; only a
-`Defect` (an actual bug) snapshots a `Cause` with the
-stack. This keeps normal failures cheap and serializable.
+`Defect` (an actual bug) snapshots a `Cause`. This keeps
+normal failures cheap and serializable.
 
-### Accessors — fold without the double-hop
-
-Use the named accessors instead of reaching into
-`error.content.message` (or worse,
-`result.content.content.message`):
-
-| Accessor | Returns |
-|----------|---------|
-| `plggErrorMessage(e)` | the `message` of any `PlggError` |
-| `matchPlggError({ invalid, serialize, deserialize, defect })` | fold by variant |
-| `resultErrorMessage(result)` | `Option<SoftStr>` of a failed `Result`'s message |
-| `printPlggError(e)` | a formatted, colorized string |
-| `isPlggError(value)` | type guard |
+Fold a `PlggError` with the named accessors
+(`plggErrorMessage`, `matchPlggError`, `resultErrorMessage`,
+`printPlggError`) instead of reaching into
+`error.content.message` by hand:
 
 ```typescript
 import { matchPlggError } from "plgg";
@@ -105,57 +88,34 @@ const explain = matchPlggError({
 });
 ```
 
-### The `Error`-interop seam
+At an outer boundary that *demands* a thrown `Error`,
+convert at the edge with `toError(value)` / `panic(value)`
+— the **only sanctioned throw**; domain code inward always
+returns `err(...)`.
 
-At an outer boundary that *demands* a thrown `Error` (a
-framework that catches exceptions), convert at the edge:
+## The type-level & typeclass layers (advanced)
 
-- **`toError(value)`** — turn any value/box into an
-  `Error`.
-- **`panic(value)`** — `throw toError(value)`. This is the
-  **only sanctioned throw**; domain code inward always
-  returns `err(...)`.
-
-## Grammaticals — the type-level vocabulary
-
-The type constructs that shape the combinator signatures:
-
-| Type | Role |
-|------|------|
-| `Procedural<T, E>` | a `proc` step's return: `PossiblyPromise<PossiblyResult<T, E>>` |
-| `PromisedResult<T, E>` | `Promise<Result<T, E>>` |
-| `NonNeverFn<F>` | excludes functions returning `never` (keeps `pipe`/`cast`/`proc` honest) |
-| `Brand<T, U>` | nominal typing — the basis of the [Basics](/packages/plgg/values-effects#basics-refined-branded-types) brands |
-| `Function` | the general function type used in composition |
-
-These are why `proc` can accept a step that returns a
-bare value, a `Promise`, a `Result`, or a
-`Promise<Result>` interchangeably.
-
-## Abstracts — the typeclass layer (optional)
-
-::: tip Advanced, optional reading
-You never need this layer to use plgg. It is here for
-those who want the lawful structure behind the
-combinators.
+::: tip Optional reading
+You never need these to use plgg, and they are intentionally
+kept **out of the API reference** as internal/advanced
+machinery.
 :::
 
-plgg models higher-kinded types via a `Kind` registry and
-exposes the standard typeclass **instances** for its
-containers — most legibly through `Option` and `Result`:
+- **Grammaticals** — the type-level constructs that shape
+  the combinator signatures (`Procedural<T, E>`,
+  `PromisedResult<T, E>`, `Brand<T, U>`, `NonNeverFn`).
+  They are why `proc` accepts a step returning a bare
+  value, a `Promise`, a `Result`, or a `Promise<Result>`
+  interchangeably.
+- **Abstracts** — higher-kinded types (a `Kind` registry)
+  and the standard typeclass **instances** for the
+  containers, seen most legibly through `Option`/`Result`
+  (`Functor` = `mapOption`/`mapResult`, `Monad` =
+  `chainOption`/`chainResult`, etc.). The `Castable` /
+  `Refinable` service interfaces are what the `asX`/`isX`
+  pairs implement.
 
-- `Functor` (`mapOption` / `mapResult`)
-- `Apply` / `Applicative` (`applyOption`, `ofResult`, …)
-- `Chain` / `Monad` (`chainOption` / `chainResult`)
-- `Foldable` / `Traversable` (`Result`: `foldlResult`,
-  `traverseResult`, `sequenceResult`)
-
-The service interfaces `Castable` / `Refinable` are what
-the `asX` / `isX` pairs implement.
-
-::: warning
 A few grandfathered escape-hatch seams exist inside the
-abstract layer for HKT encoding. They are intentional and
-internal — **not** a pattern to emulate. Application code
-follows the strict no-`as`/`any` rule.
-:::
+abstract layer for HKT encoding — intentional and internal,
+**not** a pattern to emulate; application code follows the
+strict no-`as`/`any` rule.
