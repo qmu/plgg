@@ -21,17 +21,17 @@ Compose validation functions that return `Result`, with automatic error accumula
 ```typescript
 import {
   cast, asObj, forProp,
-  asNum, asSoftStr, asTime,
+  asNum, asStr, asTime,
   isOk,
 } from "plgg";
 import type {
-  Num, SoftStr, Time,
+  Num, Str, Time,
   Result, InvalidError,
 } from "plgg";
 
 type UserProfile = {
   id: Num;
-  email: SoftStr;
+  email: Str;
   createdAt: Time;
 };
 
@@ -42,7 +42,7 @@ const asUserProfile = (
     data,
     asObj,
     forProp("id", asNum),
-    forProp("email", asSoftStr),
+    forProp("email", asStr),
     forProp("createdAt", asTime),
   );
 

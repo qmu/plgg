@@ -59,6 +59,29 @@ isOk(asNum(42)); // true
 // asStr(x): Result<Str, InvalidError>, Str = Box<"Str", string>
 ```
 
+## Prefer `Str` for strings
+
+For string values, reach for the branded **`Str`** (a
+Basic), not the bare **`SoftStr`** (an Atomic). This is a
+deliberate convention:
+
+- **`Str`** (`Box<"Str", string>`) is the **robust,
+  recommended** string type — distinct at the type level
+  *and* in its runtime structure (a tagged box), so a value
+  only becomes a `Str` by passing `asStr`. Use it for your
+  domain's string fields.
+- **`SoftStr`** is just `string` — the bare primitive. Its
+  name is **intentionally long and redundant** to nudge you
+  *away* from it, the same way the codebase avoids raw
+  `string`. Reach for it only at a boundary where a value
+  genuinely is an unrefined string.
+
+So default to `Str`/`asStr`; treat `SoftStr` as the
+low-level escape hatch, not the everyday choice. (Some
+shipped APIs do type fields as `SoftStr` — e.g. HTTP
+header/param maps — and those are described as-is on their
+pages; the preference here is for *your* new code.)
+
 ## Effects — compose, don't enumerate
 
 The Flowables and Functionals are meant to be **composed**,

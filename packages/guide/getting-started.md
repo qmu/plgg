@@ -40,24 +40,26 @@ untrusted input into a typed value, returning a
 async steps, short-circuiting on the first failure.
 
 Validate an unknown payload into a typed record — note
-`asNum`/`asSoftStr`/`asTime` each return a `Result`, and
+`asNum`/`asStr`/`asTime` each return a `Result`, and
 `forProp` threads them onto the object, accumulating
-sibling errors rather than failing on the first:
+sibling errors rather than failing on the first. Use the
+branded [`Str`](/packages/plgg/values-effects#prefer-str-for-strings)
+for string fields (not the bare `SoftStr`):
 
 ```typescript
 import {
   cast, asObj, forProp,
-  asNum, asSoftStr, asTime,
+  asNum, asStr, asTime,
   isOk,
 } from "plgg";
 import type {
-  Num, SoftStr, Time,
+  Num, Str, Time,
   Result, InvalidError,
 } from "plgg";
 
 type UserProfile = {
   id: Num;
-  email: SoftStr;
+  email: Str;
   createdAt: Time;
 };
 
@@ -68,7 +70,7 @@ const asUserProfile = (
     data,
     asObj,
     forProp("id", asNum),
-    forProp("email", asSoftStr),
+    forProp("email", asStr),
     forProp("createdAt", asTime),
   );
 

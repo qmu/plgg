@@ -9,16 +9,16 @@ at the boundary, never `as`:
 ```typescript
 import {
   cast, asObj, forProp,
-  asNum, asSoftStr, asTime,
+  asNum, asStr, asTime,
 } from "plgg";
 import type {
-  Num, SoftStr, Time,
+  Num, Str, Time,
   Result, InvalidError,
 } from "plgg";
 
 type UserProfile = {
   id: Num;
-  email: SoftStr;
+  email: Str;
   createdAt: Time;
 };
 
@@ -29,17 +29,20 @@ const asUserProfile = (
     data,
     asObj,
     forProp("id", asNum),
-    forProp("email", asSoftStr),
+    forProp("email", asStr),
     forProp("createdAt", asTime),
   );
 ```
 
 ## Casters, props, and refinements
 
-- **`asX` casters** — `asNum`, `asSoftStr`, `asTime`,
+- **`asX` casters** — `asNum`, `asStr`, `asTime`,
   `asObj`, … each take `unknown` and return a `Result`.
   They come from plgg's validated primitive types (see
   [Structures & errors](/packages/plgg/structures-errors)).
+  Prefer the branded
+  [`Str`](/packages/plgg/values-effects#prefer-str-for-strings)
+  (`asStr`) for string fields over the bare `SoftStr`.
 - **`forProp(key, caster)`** validates one property and
   threads it onto the record; `forOptionProp` does the
   same but yields an [`Option`](/concepts/option) for a

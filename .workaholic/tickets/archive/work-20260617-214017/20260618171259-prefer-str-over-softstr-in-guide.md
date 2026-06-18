@@ -3,9 +3,9 @@ created_at: 2026-06-18T17:12:59+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: a53f7d1
+category: Changed
 depends_on:
 ---
 
@@ -83,3 +83,28 @@ rationale rather than modelling `asSoftStr` as the default for string fields.
   primitive available (and clearly labelled) for when it is genuinely needed.
 - **Samples from real code** (doc-conventions rule): verify the `asStr`/`Str`
   snippets against `packages/plgg/src/Basics/Str.ts` so they stay correct.
+
+## Final Report
+
+Development completed. Added a **"Prefer `Str` for strings"** section to
+`values-effects.md` explaining the design intent (`SoftStr` named verbosely on
+purpose; `Str` is the recommended branded type, distinct at type *and* runtime
+level), and switched the user-modelled examples to `Str`/`asStr` in
+`getting-started.md`, `concepts/validation.md`, and `structures-errors.md`
+(the `asNamed` example), plus aligned the canonical `plgg/README.md` Quick Start.
+Verified `asStr(x): Result<Str, InvalidError>` against `Basics/Str.ts`.
+
+### Discovered Insights
+
+- **Insight**: The `Str`-over-`SoftStr` preference is a deliberate design lever,
+  not a style nit — `SoftStr`'s verbose name *is* the nudge. Recorded as a
+  persistent memory so future doc/code work defaults to `Str`.
+- **Insight**: Per-package pages legitimately keep `SoftStr` where it names a
+  shipped type (`Dict<string, SoftStr>` for HTTP header/param maps,
+  `ResponseBody`'s `SoftStr | Bytes | Stream`, `InvalidError.message: SoftStr`,
+  router `Location` strings). Those were left as-is — the preference is for *new
+  user code*, and misrepresenting shipped signatures would be wrong.
+- **Insight (still open)**: leading by example fully would mean migrating the
+  packages' own public string fields from `SoftStr` to `Str` — a larger breaking
+  change across plgg core and the HTTP stack. Deliberately left as a separate
+  design ticket; this one is docs-only.

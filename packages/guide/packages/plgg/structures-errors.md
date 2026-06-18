@@ -34,10 +34,10 @@ const allNums = conclude(asNum);
 ```
 
 ```typescript
-import { cast, asObj, forProp, asSoftStr } from "plgg";
+import { cast, asObj, forProp, asStr } from "plgg";
 
 const asNamed = (data: unknown) =>
-  cast(data, asObj, forProp("name", asSoftStr));
+  cast(data, asObj, forProp("name", asStr));
 ```
 
 (Exact types and the full `asVecOf`/`asDictOf`/`forProp`
