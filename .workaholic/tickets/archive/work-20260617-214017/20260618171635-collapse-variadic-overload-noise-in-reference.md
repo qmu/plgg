@@ -3,9 +3,9 @@ created_at: 2026-06-18T17:16:35+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 0ba9fb8
+category: Changed
 depends_on:
 ---
 
@@ -77,3 +77,32 @@ This continues the reference-quality line of work
   the typing, not user-facing vocabulary.
 - **Operation policy (`standards:operation`).** Generation stays reproducible and
   regenerated on build by the deploy workflow.
+
+## Final Report
+
+Development completed. `pipe`/`cast`/`proc`/`flow` now each render as a **single
+representative signature** with a variadic note instead of ~20 overloads.
+`typedoc.base.json` gained `disableSources: true` + `parametersFormat`/
+`indexFormat: "table"`. Type-Parameters sections on the plgg page dropped
+226 → 150 (the remainder are genuinely-generic public symbols), and the source
+links are gone. `npm run build` passes (no dead links), `scripts/tsc-plgg.sh`
+passes, `scripts/test-plgg.sh` passes (74 files, 465 tests).
+
+### Discovered Insights
+
+- **Insight (the gotcha that almost shipped broken)**: marking the **implementation
+  signature** `@internal` makes TypeDoc drop the *entire* function. A first pass
+  tagged "all but the first overload" with `^export function <fn>\b`, which also
+  matched the non-async implementations of `pipe`/`cast`/`flow` — so they vanished
+  from the reference entirely. `proc` survived only because its implementation is
+  `export async function` (didn't match the pattern). Fix: keep BOTH the first
+  overload AND the implementation public; only the intermediate overload
+  *signatures* get `@internal`. With one public overload + public impl, TypeDoc
+  inlines a single signature (no repeated "Call Signature" blocks).
+- **Insight**: `typeParametersFormat` is not a valid option in this
+  typedoc-plugin-markdown version (it hard-errors generation). The overload
+  collapse — not a type-param format option — is what removes the "A,B,C…" walls;
+  `parametersFormat`/`indexFormat: "table"` only compact the remainder.
+- **Insight**: doc-only as intended — every overload remains in the `.d.ts` (no
+  `stripInternal`), so `pipe(a, b, c, …)` still type-checks for consumers; the
+  465-test suite is unchanged.

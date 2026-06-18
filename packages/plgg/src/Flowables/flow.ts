@@ -1,26 +1,32 @@
 import { NonNeverFn } from "plgg/index";
 
 /**
- * Type-safe function composition.
+ * Type-safe point-free composition: compose a sequence of functions into a
+ * single function. Variadic — 2–20 functions (only the 2-function arity is
+ * shown here; the higher arities are equivalent).
  */
 export function flow<A, B>(
   ab: (a: A) => NonNeverFn<B>,
 ): (a: A) => NonNeverFn<B>;
+/** @internal */
 export function flow<A, B, C>(
   ab: (a: A) => NonNeverFn<B>,
   bc: (b: B) => NonNeverFn<C>,
 ): (a: A) => NonNeverFn<C>;
+/** @internal */
 export function flow<A, B, C, D>(
   ab: (a: A) => NonNeverFn<B>,
   bc: (b: B) => NonNeverFn<C>,
   cd: (c: C) => NonNeverFn<D>,
 ): (a: A) => NonNeverFn<D>;
+/** @internal */
 export function flow<A, B, C, D, E>(
   ab: (a: A) => NonNeverFn<B>,
   bc: (b: B) => NonNeverFn<C>,
   cd: (c: C) => NonNeverFn<D>,
   de: (d: D) => NonNeverFn<E>,
 ): (a: A) => NonNeverFn<E>;
+/** @internal */
 export function flow<A, B, C, D, E, F>(
   ab: (a: A) => NonNeverFn<B>,
   bc: (b: B) => NonNeverFn<C>,
@@ -28,6 +34,7 @@ export function flow<A, B, C, D, E, F>(
   de: (d: D) => NonNeverFn<E>,
   ef: (e: E) => NonNeverFn<F>,
 ): (a: A) => NonNeverFn<F>;
+/** @internal */
 export function flow<A, B, C, D, E, F, G>(
   ab: (a: A) => NonNeverFn<B>,
   bc: (b: B) => NonNeverFn<C>,
@@ -36,6 +43,7 @@ export function flow<A, B, C, D, E, F, G>(
   ef: (e: E) => NonNeverFn<F>,
   fg: (f: F) => NonNeverFn<G>,
 ): (a: A) => NonNeverFn<G>;
+/** @internal */
 export function flow<A, B, C, D, E, F, G, H>(
   ab: (a: A) => NonNeverFn<B>,
   bc: (b: B) => NonNeverFn<C>,
@@ -45,6 +53,7 @@ export function flow<A, B, C, D, E, F, G, H>(
   fg: (f: F) => NonNeverFn<G>,
   gh: (g: G) => NonNeverFn<H>,
 ): (a: A) => NonNeverFn<H>;
+/** @internal */
 export function flow<A, B, C, D, E, F, G, H, I>(
   ab: (a: A) => NonNeverFn<B>,
   bc: (b: B) => NonNeverFn<C>,
@@ -55,6 +64,7 @@ export function flow<A, B, C, D, E, F, G, H, I>(
   gh: (g: G) => NonNeverFn<H>,
   hi: (h: H) => NonNeverFn<I>,
 ): (a: A) => NonNeverFn<I>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -77,6 +87,7 @@ export function flow<
   hi: (h: H) => NonNeverFn<I>,
   ij: (i: I) => NonNeverFn<J>,
 ): (a: A) => NonNeverFn<J>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -101,6 +112,7 @@ export function flow<
   ij: (i: I) => NonNeverFn<J>,
   jk: (j: J) => NonNeverFn<K>,
 ): (a: A) => NonNeverFn<K>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -127,6 +139,7 @@ export function flow<
   jk: (j: J) => NonNeverFn<K>,
   kl: (k: K) => NonNeverFn<L>,
 ): (a: A) => NonNeverFn<L>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -155,6 +168,7 @@ export function flow<
   kl: (k: K) => NonNeverFn<L>,
   lm: (l: L) => NonNeverFn<M>,
 ): (a: A) => NonNeverFn<M>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -185,6 +199,7 @@ export function flow<
   lm: (l: L) => NonNeverFn<M>,
   mn: (m: M) => NonNeverFn<N>,
 ): (a: A) => NonNeverFn<N>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -217,6 +232,7 @@ export function flow<
   mn: (m: M) => NonNeverFn<N>,
   no: (n: N) => NonNeverFn<O>,
 ): (a: A) => NonNeverFn<O>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -251,6 +267,7 @@ export function flow<
   no: (n: N) => NonNeverFn<O>,
   op: (o: O) => NonNeverFn<P>,
 ): (a: A) => NonNeverFn<P>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -287,6 +304,7 @@ export function flow<
   op: (o: O) => NonNeverFn<P>,
   pq: (p: P) => NonNeverFn<Q>,
 ): (a: A) => NonNeverFn<Q>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -325,6 +343,7 @@ export function flow<
   pq: (p: P) => NonNeverFn<Q>,
   qr: (q: Q) => NonNeverFn<R>,
 ): (a: A) => NonNeverFn<R>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -365,6 +384,7 @@ export function flow<
   qr: (q: Q) => NonNeverFn<R>,
   rs: (r: R) => NonNeverFn<S>,
 ): (a: A) => NonNeverFn<S>;
+/** @internal */
 export function flow<
   A,
   B,
@@ -407,6 +427,7 @@ export function flow<
   rs: (r: R) => NonNeverFn<S>,
   st: (s: S) => NonNeverFn<T>,
 ): (a: A) => NonNeverFn<T>;
+/** @internal */
 export function flow<
   A,
   B,
