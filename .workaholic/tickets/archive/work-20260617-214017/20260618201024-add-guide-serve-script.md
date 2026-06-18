@@ -3,9 +3,9 @@ created_at: 2026-06-18T20:10:24+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 74ed35f
+category: Added
 depends_on:
 ---
 
@@ -106,3 +106,34 @@ Past tickets that touched this area:
 - **Out of scope (possible follow-up).** `workloads/development` (the example
   demo on port 3000) also has no `scripts/` wrapper. A peer `serve-example.sh`
   would close the same ergonomic gap, but is a separate ticket.
+
+## Final Report
+
+Added `scripts/serve-guide.sh` as a **pure launcher** (the ticket's recommended
+default): it `exec`s `docker compose -f workloads/guide/compose.yaml up --build`
+after `cd`-ing to the repo root, matching the `scripts/build.sh` house style
+(`#!/bin/sh -eu`, `REPO_ROOT=$(git rev-parse --show-toplevel)`). API regeneration
+was deliberately left out — `npm run docs:api` depends on the dependency-ordered
+`dist` build, which the dev workflow doesn't guarantee, so baking it in would add
+a step that can fail silently. The script carries a comment noting it is a
+long-running foreground server (Ctrl-C to stop, no success-banner tail) and that
+the dev container does not refresh the API pages. `workloads/guide/README.md`'s
+"Run it" section now leads with `bash scripts/serve-guide.sh`, keeping the raw
+compose and plain-Docker forms as the documented equivalents.
+
+Verified: `chmod +x` (perms match the sibling wrappers), `sh -n` parses,
+`menu.sh`'s discovery loop lists it, and `docker compose … config` validates the
+invocation. The server itself was not launched (foreground; would block).
+
+### Discovered Insights
+
+- **`menu.sh` runs scripts to completion**, so this foreground server holds the
+  menu screen until Ctrl-C, then falls through to its "press any key" prompt —
+  acceptable, and the script's header comment calls the behavior out.
+- **Policy tension is real and was accepted by the user, not resolved.** This
+  bespoke `scripts/*.sh` runs against `implementation/command-scripts` (which
+  prescribes one canonical runner — npm/Makefile/Taskfile — over per-command
+  shell scripts); an earlier revision of this ticket was dropped on exactly that
+  ground (commit `3a24c8f`) before the user restored it (`49f3900`) and approved
+  shipping it as-is. The conformant alternative (a named target in a canonical
+  runner) remains available if the repo later consolidates its `scripts/`.

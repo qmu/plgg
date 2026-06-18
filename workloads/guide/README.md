@@ -14,12 +14,19 @@ The static production build and deploy are T8.
 From the repo root:
 
 ```sh
-docker compose -f workloads/guide/compose.yaml up --build
+bash scripts/serve-guide.sh
 ```
 
 Then open <http://localhost:5173>. Editing any Markdown
 under `packages/guide/` reloads the page live (the repo
 is mounted into the container).
+
+The script is a thin wrapper over the underlying compose
+command (also runnable directly from the repo root):
+
+```sh
+docker compose -f workloads/guide/compose.yaml up --build
+```
 
 Plain Docker equivalent (also from the repo root, so the
 build context is the whole monorepo):
