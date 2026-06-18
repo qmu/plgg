@@ -41,6 +41,14 @@ const base = process.env.DOCS_BASE ?? "/";
 // restructure navigation.
 export default defineConfig({
   base,
+  // The dev server is reached through the Cloudflare tunnel hostname; Vite
+  // blocks unknown Host headers by default, so allow it (localhost/127.0.0.1
+  // stay allowed automatically). Affects `vitepress dev` only.
+  vite: {
+    server: {
+      allowedHosts: ["plgg-guide.qmu.dev"],
+    },
+  },
   title: "plgg",
   description:
     "The official guide for plgg and the " +

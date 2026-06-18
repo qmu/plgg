@@ -13,10 +13,8 @@
 
 import { execFileSync } from "node:child_process";
 import {
-  readFileSync,
   writeFileSync,
   rmSync,
-  existsSync,
 } from "node:fs";
 import {
   dirname,
@@ -68,24 +66,14 @@ const generate = (pkg) => {
   );
 };
 
-// The per-package theme output writes a `typedoc-sidebar.json` of groups
-// already linked under `/api/<pkg>/…`; wrap each as one collapsible group.
-const collectSidebar = (pkg) => {
-  const file = join(
-    apiDir,
-    pkg,
-    "typedoc-sidebar.json",
-  );
-  const items = existsSync(file)
-    ? JSON.parse(readFileSync(file, "utf8"))
-    : [];
-  return {
-    text: pkg,
-    collapsed: true,
-    link: `/api/${pkg}/`,
-    items,
-  };
-};
+// With `outputFileStrategy: "modules"` each package renders as a single dense
+// page at `/api/<pkg>/`, so the reference sidebar is one flat link per package
+// (in-page anchors handle within-package navigation) — not a deep per-symbol
+// tree. We intentionally discard the theme's per-symbol `typedoc-sidebar.json`.
+const collectSidebar = (pkg) => ({
+  text: pkg,
+  link: `/api/${pkg}/`,
+});
 
 for (const pkg of PACKAGES) {
   generate(pkg);

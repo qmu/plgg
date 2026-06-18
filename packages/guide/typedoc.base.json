@@ -10,5 +10,10 @@
   "excludePrivate": true,
   "hideBreadcrumbs": true,
   "useCodeBlocks": true,
-  "docsRoot": "."
+  "docsRoot": ".",
+  "outputFileStrategy": "modules",
+  "exclude": [
+    "**/Grammaticals/**",
+    "**/Abstracts/**"
+  ]
 }
