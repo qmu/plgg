@@ -21,6 +21,7 @@ const is = (value: unknown): value is Func =>
 
 /**
  * Refinable instance for function type guards.
+ * @internal
  */
 export const funcRefinable: Refinable<Func> = {
   is,
@@ -43,6 +44,7 @@ export const asFunc = (
 
 /**
  * Castable instance for function safe casting.
+ * @internal
  */
 export const funcCastable: Castable<Func> = {
   as: asFunc,

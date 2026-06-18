@@ -35,6 +35,7 @@ const is = (value: unknown): value is Float =>
 
 /**
  * Refinable instance for Float type guards.
+ * @internal
  */
 export const floatRefinable: Refinable<Float> = {
   is,
@@ -60,6 +61,7 @@ export const asFloat = (
 
 /**
  * Castable instance for Float safe casting.
+ * @internal
  */
 export const floatCastable: Castable<Float> = {
   as: asFloat,

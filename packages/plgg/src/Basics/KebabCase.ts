@@ -47,6 +47,7 @@ const is = (value: unknown): value is KebabCase =>
 
 /**
  * Refinable instance for KebabCase type guards.
+ * @internal
  */
 export const kebabCaseRefinable: Refinable<KebabCase> =
   {
@@ -74,6 +75,7 @@ export const asKebabCase = (
 
 /**
  * Castable instance for KebabCase safe casting.
+ * @internal
  */
 export const kebabCaseCastable: Castable<KebabCase> =
   {

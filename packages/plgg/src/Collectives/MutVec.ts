@@ -41,6 +41,7 @@ const is = <T>(
 
 /**
  * Refinable instance for mutable vector type guards.
+ * @internal
  */
 export const mutVecRefinable: Refinable1<"MutVec"> =
   {
@@ -65,6 +66,7 @@ export const asMutVec = <A>(
 
 /**
  * Castable instance for mutable vector safe casting.
+ * @internal
  */
 export const mutVecCastable: Castable1<"MutVec"> =
   {
@@ -74,6 +76,7 @@ export const mutVecCastable: Castable1<"MutVec"> =
 
 /**
  * Functor instance providing mapping operations over mutable vector elements.
+ * @internal
  */
 export const mutVecFunctor: Functor1<"MutVec"> = {
   KindKey: "MutVec",
@@ -89,6 +92,7 @@ export const { map: mapMutVec } = mutVecFunctor;
 
 /**
  * Apply instance enabling application of wrapped functions to wrapped values.
+ * @internal
  */
 export const mutVecApply: Apply1<"MutVec"> = {
   ...mutVecFunctor,
@@ -104,6 +108,7 @@ export const { ap: applyMutVec } = mutVecApply;
 
 /**
  * Pointed instance enabling wrapping of values in mutable vector context.
+ * @internal
  */
 export const mutVecPointed: Pointed1<"MutVec"> = {
   ...mutVecFunctor,
@@ -117,6 +122,7 @@ export const { of: ofMutVec } = mutVecPointed;
 
 /**
  * Applicative instance combining Apply and Pointed for mutable vectors.
+ * @internal
  */
 export const mutVecApplicative: Applicative1<"MutVec"> =
   {
@@ -127,6 +133,7 @@ export const mutVecApplicative: Applicative1<"MutVec"> =
 
 /**
  * Chain instance enabling chaining of operations that return mutable vectors.
+ * @internal
  */
 export const mutVecChain: Chain1<"MutVec"> = {
   ...mutVecFunctor,
@@ -144,6 +151,7 @@ export const { chain: chainMutVec } = mutVecChain;
 
 /**
  * Monad instance providing full monadic interface for mutable vectors.
+ * @internal
  */
 export const mutVecMonad: Monad1<"MutVec"> = {
   ...mutVecApplicative,
@@ -152,6 +160,7 @@ export const mutVecMonad: Monad1<"MutVec"> = {
 
 /**
  * Foldable instance providing fold operations for mutable vectors.
+ * @internal
  */
 export const mutVecFoldable: Foldable1<"MutVec"> =
   {
@@ -180,6 +189,7 @@ export const {
 
 /**
  * Traversable instance providing structure-preserving traversal for mutable vectors.
+ * @internal
  */
 export const mutVecTraversable: Traversable1<"MutVec"> =
   {

@@ -50,6 +50,7 @@ const is = (
 
 /**
  * Refinable instance for Alphanumeric type guards.
+ * @internal
  */
 export const alphanumericRefinable: Refinable<Alphanumeric> =
   {
@@ -77,6 +78,7 @@ export const asAlphanumeric = (
 
 /**
  * Castable instance for Alphanumeric safe casting.
+ * @internal
  */
 export const alphanumericCastable: Castable<Alphanumeric> =
   {

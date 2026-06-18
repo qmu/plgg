@@ -47,6 +47,7 @@ const is = (value: unknown): value is SnakeCase =>
 
 /**
  * Refinable instance for SnakeCase type guards.
+ * @internal
  */
 export const snakeCaseRefinable: Refinable<SnakeCase> =
   {
@@ -74,6 +75,7 @@ export const asSnakeCase = (
 
 /**
  * Castable instance for SnakeCase safe casting.
+ * @internal
  */
 export const snakeCaseCastable: Castable<SnakeCase> =
   {

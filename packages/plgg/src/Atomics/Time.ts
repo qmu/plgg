@@ -39,6 +39,7 @@ const is = (value: unknown): value is Time =>
 
 /**
  * Refinable instance for Time type guards.
+ * @internal
  */
 export const timeRefinable: Refinable<Time> = {
   is,
@@ -63,6 +64,7 @@ export const asTime = (
 
 /**
  * Castable instance for Time safe casting.
+ * @internal
  */
 export const timeCastable: Castable<Time> = {
   as: asTime,
@@ -92,6 +94,7 @@ export const isJsonReadyTime = (
 
 /**
  * JsonSerializable instance for Time values.
+ * @internal
  */
 export const timeJsonSerializable: JsonSerializable<
   Time,

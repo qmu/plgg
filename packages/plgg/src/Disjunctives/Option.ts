@@ -96,6 +96,7 @@ export const okOr =
 /**
  * Functor instance for Option.
  * Maps functions over optional values.
+ * @internal
  */
 export const optionFunctor: Functor1<"Option"> = {
   KindKey: "Option",
@@ -111,6 +112,7 @@ export const { map: mapOption } = optionFunctor;
 /**
  * Apply instance for Option.
  * Applies wrapped functions to wrapped values.
+ * @internal
  */
 export const optionApply: Apply1<"Option"> = {
   ...optionFunctor,
@@ -128,6 +130,7 @@ export const { ap: applyOption } = optionApply;
 /**
  * Pointed instance for Option.
  * Wraps values in Some context.
+ * @internal
  */
 export const optionPointed: Pointed1<"Option"> = {
   ...optionFunctor,
@@ -137,6 +140,7 @@ export const { of: ofOption } = optionPointed;
 
 /**
  * Applicative instance for Option.
+ * @internal
  */
 export const optionApplicative: Applicative1<"Option"> =
   {
@@ -148,6 +152,7 @@ export const optionApplicative: Applicative1<"Option"> =
 /**
  * Chain instance for Option.
  * Chains operations that return Options.
+ * @internal
  */
 export const optionChain: Chain1<"Option"> = {
   ...optionFunctor,
@@ -162,6 +167,7 @@ export const { chain: chainOption } = optionChain;
 
 /**
  * Monad instance for Option.
+ * @internal
  */
 export const optionMonad: Monad1<"Option"> = {
   ...optionApplicative,

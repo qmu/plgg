@@ -33,6 +33,7 @@ const is = (value: unknown): value is Int =>
 
 /**
  * Refinable instance for integer type guards.
+ * @internal
  */
 export const intRefinable: Refinable<Int> = {
   is,
@@ -55,6 +56,7 @@ export const asInt = (
 
 /**
  * Castable instance for integer safe casting.
+ * @internal
  */
 export const intCastable: Castable<Int> = {
   as: asInt,
@@ -76,6 +78,7 @@ export const isJsonReadyInt = isInt;
 
 /**
  * Datum instance for integer values.
+ * @internal
  */
 export const intJsonSerializable: JsonSerializable<
   Int,

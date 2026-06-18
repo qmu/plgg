@@ -37,6 +37,7 @@ const is = (value: unknown): value is I16 =>
 
 /**
  * Refinable instance for I16 type guards.
+ * @internal
  */
 export const i16Refinable: Refinable<I16> = {
   is,
@@ -62,6 +63,7 @@ export const asI16 = (
 
 /**
  * Castable instance for I16 safe casting.
+ * @internal
  */
 export const i16Castable: Castable<I16> = {
   as: asI16,

@@ -30,6 +30,7 @@ const is = (value: unknown): value is SoftStr =>
 
 /**
  * Refinable instance for string type guards.
+ * @internal
  */
 export const softStrRefinable: Refinable<SoftStr> =
   {
@@ -53,6 +54,7 @@ export const asSoftStr = (
 
 /**
  * Castable instance for string safe casting.
+ * @internal
  */
 export const softStrCastable: Castable<SoftStr> =
   {
@@ -83,6 +85,7 @@ export const isJsonReadySoftStr = isSoftStr;
 
 /**
  * Datum instance for string values.
+ * @internal
  */
 export const softStrJsonSerializable: JsonSerializable<
   SoftStr,

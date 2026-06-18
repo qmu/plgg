@@ -38,6 +38,7 @@ const is = (value: unknown): value is Vec =>
 
 /**
  * Refinable instance for vector type guards.
+ * @internal
  */
 export const vecRefinable: Refinable<Vec> = {
   is,
@@ -60,6 +61,7 @@ export const asVec = (
 
 /**
  * Castable instance for vector safe casting.
+ * @internal
  */
 export const vecCastable: Castable<Vec> = {
   as: asVec,
@@ -67,6 +69,7 @@ export const vecCastable: Castable<Vec> = {
 
 /**
  * Functor instance providing mapping operations over vector elements.
+ * @internal
  */
 export const vecFunctor: FunctorDatum<"Vec"> = {
   KindKey: "Vec",
@@ -84,6 +87,7 @@ export const { map: mapVec } = vecFunctor;
 
 /**
  * Foldable instance providing fold operations for vectors.
+ * @internal
  */
 export const vecFoldable: FoldableDatum<"Vec"> = {
   KindKey: "Vec",

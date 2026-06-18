@@ -48,6 +48,7 @@ const is = <TAG extends string>(
 
 /**
  * Refinable instance for Box type guards.
+ * @internal
  */
 export const boxRefinable: Refinable<
   Box<string, unknown>
@@ -68,6 +69,7 @@ export const asBox = (
 
 /**
  * Castable instance for Box safe casting.
+ * @internal
  */
 export const boxCastable: Castable<
   Box<string, unknown>

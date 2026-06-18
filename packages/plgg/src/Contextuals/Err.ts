@@ -66,6 +66,7 @@ const is = <F>(e: unknown): e is Err<F> =>
 
 /**
  * Refinable instance for Err type guards.
+ * @internal
  */
 export const errRefinable: Refinable1<"Err"> = {
   KindKey: errTag,
@@ -89,6 +90,7 @@ export const asErr = <A>(
 
 /**
  * Castable instance for Err safe casting.
+ * @internal
  */
 export const errCastable: Castable1<"Err"> = {
   KindKey: errTag,

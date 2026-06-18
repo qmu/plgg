@@ -35,6 +35,7 @@ const is = (value: unknown): value is Str =>
 
 /**
  * Refinable instance for Str type guards.
+ * @internal
  */
 export const strRefinable: Refinable<Str> = {
   is,
@@ -60,6 +61,7 @@ export const asStr = (
 
 /**
  * Castable instance for Str safe casting.
+ * @internal
  */
 export const strCastable: Castable<Str> = {
   as: asStr,

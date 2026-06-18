@@ -51,6 +51,7 @@ const is = <T>(e: unknown): e is Some<T> =>
 
 /**
  * Refinable instance for Some type guards.
+ * @internal
  */
 export const someRefinable: Refinable1<"Some"> = {
   KindKey: "Some",
@@ -74,6 +75,7 @@ export const asSome = <A>(
 
 /**
  * Castable instance for Some safe casting.
+ * @internal
  */
 export const someCastable: Castable1<"Some"> = {
   KindKey: "Some",

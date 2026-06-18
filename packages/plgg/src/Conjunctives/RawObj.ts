@@ -40,6 +40,7 @@ const is = <T = Record<string, unknown>>(
 
 /**
  * Refinable instance for mutable record type guards.
+ * @internal
  */
 export const mutRecRefinable: Refinable1<"MutRec"> =
   {
@@ -64,6 +65,7 @@ export const asRawObj = <A>(
 
 /**
  * Castable instance for mutable record safe casting.
+ * @internal
  */
 export const mutRecCastable: Castable1<"MutRec"> =
   {
@@ -73,6 +75,7 @@ export const mutRecCastable: Castable1<"MutRec"> =
 
 /**
  * Functor instance providing mapping operations over mutable record values.
+ * @internal
  */
 export const mutRecFunctor: Functor1<"MutRec"> = {
   KindKey: "MutRec",
@@ -88,6 +91,7 @@ export const { map: mapRawObj } = mutRecFunctor;
 
 /**
  * Apply instance enabling application of wrapped functions to wrapped values.
+ * @internal
  */
 export const mutRecApply: Apply1<"MutRec"> = {
   ...mutRecFunctor,
@@ -103,6 +107,7 @@ export const { ap: applyRawObj } = mutRecApply;
 
 /**
  * Pointed instance enabling wrapping of values in mutable record context.
+ * @internal
  */
 export const mutRecPointed: Pointed1<"MutRec"> = {
   ...mutRecFunctor,
@@ -115,6 +120,7 @@ export const { of: ofRawObj } = mutRecPointed;
 
 /**
  * Applicative instance combining Apply and Pointed for mutable records.
+ * @internal
  */
 export const mutRecApplicative: Applicative1<"MutRec"> =
   {
@@ -125,6 +131,7 @@ export const mutRecApplicative: Applicative1<"MutRec"> =
 
 /**
  * Chain instance enabling chaining of operations that return objects.
+ * @internal
  */
 export const mutRecChain: Chain1<"MutRec"> = {
   ...mutRecFunctor,
@@ -142,6 +149,7 @@ export const { chain: chainRawObj } = mutRecChain;
 
 /**
  * Monad instance providing full monadic interface for mutable records.
+ * @internal
  */
 export const mutRecMonad: Monad1<"MutRec"> = {
   ...mutRecApplicative,
@@ -150,6 +158,7 @@ export const mutRecMonad: Monad1<"MutRec"> = {
 
 /**
  * Foldable instance providing fold operations for mutable records.
+ * @internal
  */
 export const mutRecFoldable: Foldable1<"MutRec"> =
   {
@@ -175,6 +184,7 @@ export const {
 
 /**
  * Traversable instance providing structure-preserving traversal for mutable records.
+ * @internal
  */
 export const mutRecTraversable: Traversable1<"MutRec"> =
   {

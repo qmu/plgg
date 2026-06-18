@@ -36,6 +36,7 @@ const is = (value: unknown): value is Obj =>
 
 /**
  * Refinable instance for record type guards.
+ * @internal
  */
 export const recRefinable: Refinable<Obj> = {
   is,
@@ -58,6 +59,7 @@ export const asObj = (
 
 /**
  * Castable instance for record safe casting.
+ * @internal
  */
 export const recCastable: Castable<Obj> = {
   as: asObj,
