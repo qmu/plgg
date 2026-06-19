@@ -3,7 +3,9 @@
 #
 #   docker compose -f workloads/guide/compose.yaml up --build
 #
-# then open http://localhost:5173
+# then open http://localhost:5181
+# (host port 5181 matches the cloudflared tunnel route
+# for plgg-guide.qmu.dev; the container still serves 5173)
 services:
   guide:
     build:
@@ -12,7 +14,7 @@ services:
       context: ../..
       dockerfile: workloads/guide/Dockerfile
     ports:
-      - "5173:5173"
+      - "5181:5173"
     volumes:
       # Mount the repo for live editing — changing any
       # guide Markdown reloads the dev server.

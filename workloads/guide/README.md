@@ -17,7 +17,7 @@ From the repo root:
 bash scripts/serve-guide.sh
 ```
 
-Then open <http://localhost:5173>. Editing any Markdown
+Then open <http://localhost:5181>. Editing any Markdown
 under `packages/guide/` reloads the page live (the repo
 is mounted into the container).
 
@@ -33,7 +33,7 @@ build context is the whole monorepo):
 
 ```sh
 docker build -f workloads/guide/Dockerfile -t plgg-guide .
-docker run --rm -p 5173:5173 \
+docker run --rm -p 5181:5173 \
   -v "$PWD":/app -v /app/packages/guide/node_modules \
   plgg-guide
 ```
@@ -50,6 +50,8 @@ against this stable tree.
 
 ## Coexists with the example demo
 
-This workload uses port **5173**, while
+This workload publishes host port **5181** (matching the
+cloudflared tunnel route for `plgg-guide.qmu.dev`; the
+container itself still serves 5173), while
 [`workloads/development`](../development/) runs the
 `example` demo on **3000**, so both can run at once.
