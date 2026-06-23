@@ -1,4 +1,4 @@
-import { test, assert } from "vitest";
+import { test, assert } from "plgg-test";
 import {
   asI16,
   isOk,

@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { atIndex, isOk, isErr } from "plgg/index";
 
 test("atIndex returns Ok with element at valid index", () => {

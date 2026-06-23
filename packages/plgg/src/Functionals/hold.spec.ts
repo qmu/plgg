@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "plgg-test";
 import { hold } from "plgg/index";
 
 test("bind applies function to values in pipelines", () => {

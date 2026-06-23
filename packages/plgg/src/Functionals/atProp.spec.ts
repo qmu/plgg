@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { atProp, isOk, isErr } from "plgg/index";
 
 test("atProp returns Ok for existing property", () => {

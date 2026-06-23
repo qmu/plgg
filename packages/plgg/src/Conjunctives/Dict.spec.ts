@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { asDictOf, asNum, isOk, isErr } from "plgg/index";
 
 test("asDictOf basic validation", () => {

@@ -1,4 +1,4 @@
-import { test, expect, vi } from "vitest";
+import { test, expect, vi } from "plgg-test";
 import { debug } from "plgg/index";
 
 test("debug logs values without changing them", () => {

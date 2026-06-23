@@ -4,7 +4,7 @@ import {
   assert,
   vi,
   afterEach,
-} from "vitest";
+} from "plgg-test";
 import {
   postJson,
   isOk,
@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 test("postJson returns Ok for 2xx response", async () => {
-  const mockFetch = vi.fn(async (_url, init) => {
+  const mockFetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
     expect(init?.method).toBe("POST");
     const headers = init?.headers as Record<
       string,
@@ -82,7 +82,7 @@ test("postJson returns Err for non-2xx response", async () => {
 });
 
 test("postJson does not follow a redirect (manual policy)", async () => {
-  const mockFetch = vi.fn(async (_url, init) => {
+  const mockFetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
     // the request must opt out of auto-following
     expect(init?.redirect).toBe("manual");
     // an opaque-redirect response (what fetch returns under redirect:manual)

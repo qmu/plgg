@@ -1,4 +1,4 @@
-import { test, assert, expect } from "vitest";
+import { test, assert, expect } from "plgg-test";
 import {
   Result,
   InvalidError,

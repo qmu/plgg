@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { isInt, asInt, isOk, isErr } from "plgg/index";
 
 test("isInt and asInt basic validation", () => {

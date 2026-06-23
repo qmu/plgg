@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "plgg-test";
 import { deserializeError } from "plgg/index";
 
 test("DeserializeError basic usage", () => {
