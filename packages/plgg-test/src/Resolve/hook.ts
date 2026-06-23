@@ -102,16 +102,61 @@ type NextResolve = (
   context: ResolveContext,
 ) => ResolveResult | Promise<ResolveResult>;
 
+// Relative ESM specifiers carry an explicit `.js` extension (NodeNext
+// style, required so the emitted dist `.d.ts` re-exports resolve under
+// the consumer's `module: NodeNext`). At runtime the on-disk file is the
+// `.ts` source, so a `./Foo.js` import from a local `.ts` parent must be
+// redirected to `./Foo.ts`. Native `--experimental-strip-types`
+// resolution would do this, but our `load` hook owns `.ts` transpilation
+// (proper import elision, see below), so we mirror the `.js`->`.ts`
+// redirect here for relative specifiers under a local parent.
+const rewriteRelativeTs = (
+  specifier: string,
+  parentURL: string | undefined,
+): string => {
+  if (
+    parentURL === undefined ||
+    !parentURL.startsWith("file:") ||
+    !parentURL.endsWith(".ts") ||
+    !(
+      specifier.startsWith("./") ||
+      specifier.startsWith("../")
+    ) ||
+    !specifier.endsWith(".js")
+  ) {
+    return "";
+  }
+  const target = new URL(specifier, parentURL);
+  const tsHref = target.href.replace(
+    /\.js$/,
+    ".ts",
+  );
+  return existsSync(fileURLToPath(tsHref))
+    ? tsHref
+    : "";
+};
+
 export const resolve = async (
   specifier: string,
   context: ResolveContext,
   next: NextResolve,
 ): Promise<ResolveResult> => {
   const rewritten = rewrite(specifier);
-  return rewritten === ""
+  if (rewritten !== "") {
+    return {
+      url: rewritten,
+      shortCircuit: true,
+      format: "module",
+    };
+  }
+  const relTs = rewriteRelativeTs(
+    specifier,
+    context.parentURL,
+  );
+  return relTs === ""
     ? next(specifier, context)
     : {
-        url: rewritten,
+        url: relTs,
         shortCircuit: true,
         format: "module",
       };
