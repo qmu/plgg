@@ -17,3 +17,4 @@ Create a new package plgg-test — a from-scratch minimal test framework for the
 ## Progress
 
 - [x] [Planner] Drafted `directions/direction-v1.md` — business vision for the plgg-test from-scratch test framework (value proposition, personas, business risks with mitigations, "minimum but real" definition, success criteria).
+- [x] [Architect] Drafted `models/model-v1.md` — structural model grounded in the current vitest setup: business-need→component coherence map, domain model (Suite/Test/Hook/Expect/Matcher/Runner/Discovery/Reporter/Watcher/Coverage/TestDouble), translation-fidelity analysis (closed matcher set from the 132-file corpus; import-source rewrite; the single `vi.mock` outlier; `toEqual` as the false-green vector), dependency boundary (`plgg` + Node built-ins only; Node native strip-types over tsx), and ranked structural risks (in-house V8 coverage, alias resolution, deep-equality fidelity, module mocking, watch reliability).
