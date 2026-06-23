@@ -165,3 +165,48 @@ test("toHaveBeenCalledOnce", () => {
   fn();
   expect(fn).toHaveBeenCalledOnce();
 });
+
+test("matchers on wrong actual types fail (not crash)", () => {
+  expect(
+    throws(() => expect(42).toContain(1)),
+  ).toBe(true);
+  expect(
+    throws(() => expect(42).toHaveLength(2)),
+  ).toBe(true);
+  expect(throws(() => expect(42).toThrow())).toBe(
+    true,
+  );
+  expect(
+    throws(() => expect(42).toHaveBeenCalled()),
+  ).toBe(true);
+});
+
+test("toThrow matches by Error-instance message; fails on no-throw", () => {
+  expect(() => {
+    throw new Error("disk full");
+  }).toThrow(new Error("disk full"));
+  expect(
+    throws(() => expect(() => 1).toThrow()),
+  ).toBe(true);
+});
+
+test("comparison matchers on non-numbers fail", () => {
+  expect(
+    throws(() => expect("x").toBeGreaterThan(1)),
+  ).toBe(true);
+  expect(
+    throws(() =>
+      expect("x").toBeGreaterThanOrEqual(1),
+    ),
+  ).toBe(true);
+});
+
+test("toHaveProperty deep-path miss fails", () => {
+  expect(
+    throws(() =>
+      expect({
+        a: 1,
+      }).toHaveProperty("a.b.c"),
+    ),
+  ).toBe(true);
+});

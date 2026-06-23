@@ -77,3 +77,20 @@ test("stubEnv then unstubAllEnvs restores", () => {
     process.env.PLGG_TEST_PROBE,
   ).toBeUndefined();
 });
+
+test("stubEnv restores a pre-existing env value", () => {
+  process.env.PLGG_PREEXIST = "old";
+  vi.stubEnv("PLGG_PREEXIST", "new");
+  expect(process.env.PLGG_PREEXIST).toBe("new");
+  vi.unstubAllEnvs();
+  expect(process.env.PLGG_PREEXIST).toBe("old");
+  delete process.env.PLGG_PREEXIST;
+});
+
+test("spyOn a non-function property returns a no-impl spy", () => {
+  const obj: { n: unknown } = { n: 5 };
+  const spy = vi.spyOn(obj, "n");
+  expect(typeof obj.n).toBe("function");
+  spy.mockRestore();
+  expect(obj.n).toBe(5);
+});

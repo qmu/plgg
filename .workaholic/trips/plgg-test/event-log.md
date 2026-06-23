@@ -19,3 +19,4 @@
 | 2026-06-23T18:44:40+09:00 | Planner | test-executed | reviews/coding-e2e-planner.md | E2E+parity: 465/465 verdict parity, 74/74 file-set, exit-code+watch pass; coverage lines-only >90 gap flagged |
 | 2026-06-23T18:46:54+09:00 | Lead | iteration-start | plan.md | Coding review passed (parity perfect); Iteration 1 fix list recorded (coverage four-metric, watch cache, O2/O3) |
 | 2026-06-23T18:51:00+09:00 | Planner | test-executed | reviews/coding-e2e-planner-plgg-kit.md | plgg-kit smoke: cross-package resolution + verdict parity PASS (8/0/3); vi.mock->postJson injection NOT done (multi-file refactor, Constructor) |
+| 2026-06-23T19:08:38+09:00 | Constructor | milestone | Iteration-1: four-metric per-package coverage, fresh-process watch, unhandled-rejection window, cycle caveat |  |

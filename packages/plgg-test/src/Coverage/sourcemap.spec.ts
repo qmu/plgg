@@ -55,3 +55,19 @@ test("relative source-line deltas accumulate", () => {
   expect(lines?.has(0)).toBe(true);
   expect(lines?.has(1)).toBe(true);
 });
+
+test("empty lines and short segments are skipped", () => {
+  // ";" => empty generated line (skipped). "A" => 1-field segment (no
+  // source mapping). The trailing real segment still maps.
+  const map = generatedToSource(";A,AAAA");
+  expect(map.has(0)).toBe(false);
+  expect(map.get(1)?.has(0)).toBe(true);
+});
+
+test("negative source-line delta decodes", () => {
+  // "AACA" => srcLine +1; next line "AADA" => srcLine -1 back to 0,
+  // exercising the VLQ sign branch.
+  const map = generatedToSource("AACA;AADA");
+  expect(map.get(0)?.has(1)).toBe(true);
+  expect(map.get(1)?.has(0)).toBe(true);
+});

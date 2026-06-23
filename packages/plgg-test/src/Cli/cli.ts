@@ -6,61 +6,32 @@ import {
   tally,
   exitCodeFor,
 } from "plgg-test/Core/Reporter";
-import { watch } from "plgg-test/Watch/watch";
-import type { TestResult } from "plgg-test/Core/types";
 
 /**
- * In-process CLI: discovers specs, runs them, prints the report, and
- * sets the exit code. Coverage re-exec is handled OUTSIDE this file by
- * the bin launcher (Plan Amendment 1); when running under coverage the
- * launcher passes the same args minus `--coverage`, so this file only
- * ever does discovery+run+report+watch.
+ * In-process CLI: a SINGLE run — discover specs, run them, print the
+ * report, set the exit code. It does NOT handle `--watch` or
+ * `--coverage`: both are orchestrated by the bin launcher as fresh
+ * CHILD processes (Iteration-1 + Amendment 1). Watch re-execs this CLI
+ * per change so every run gets a clean ESM module graph — that is what
+ * makes SOURCE-file edits reflect (an in-process re-run would reuse
+ * Node's module cache and report stale results).
  */
 const main = async (): Promise<void> => {
   const args = parseArgs(process.argv.slice(2));
-
-  const runOnce = async (): Promise<
-    ReadonlyArray<TestResult>
-  > => {
-    const files = discover(args.roots);
-    // The discovered SET is part of the parity contract; print it so
-    // the launcher / parity harness can compare against vitest.
-    if (
-      process.env.PLGG_TEST_PRINT_FILES === "1"
-    ) {
-      files.forEach((f) =>
-        process.stdout.write(`FILE ${f}\n`),
-      );
-    }
-    const results = (
-      await sequence(
-        files.map((f) => () => runFile(f)),
-      )
-    ).flat();
-    process.stdout.write(report(results) + "\n");
-    return results;
-  };
-
-  if (args.watch) {
-    process.stdout.write(
-      "plgg-test: watch mode — editing a file re-runs the suite\n",
+  const files = discover(args.roots);
+  // The discovered SET is part of the parity contract; print it so the
+  // launcher / parity harness can compare against vitest.
+  if (process.env.PLGG_TEST_PRINT_FILES === "1") {
+    files.forEach((f) =>
+      process.stdout.write(`FILE ${f}\n`),
     );
-    await runOnce();
-    watch(
-      args.roots,
-      async () => {
-        process.stdout.write(
-          "\nplgg-test: change detected, re-running…\n",
-        );
-        await runOnce();
-      },
-      100,
-    );
-    // Keep the process alive for the watcher.
-    return new Promise(() => undefined);
   }
-
-  const results = await runOnce();
+  const results = (
+    await sequence(
+      files.map((f) => () => runFile(f)),
+    )
+  ).flat();
+  process.stdout.write(report(results) + "\n");
   process.exitCode = exitCodeFor(tally(results));
 };
 

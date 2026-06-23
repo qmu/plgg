@@ -184,80 +184,126 @@ const runTest = async (
       };
 };
 
+type StepResult = Readonly<{
+  failed: boolean;
+  message: string;
+  stack: string;
+}>;
+
+const PASS: StepResult = {
+  failed: false,
+  message: "",
+  stack: "",
+};
+
 // Runs beforeEach hooks, the test body, then afterEach hooks (always,
-// even if the body failed), capturing the first failure. Also fails
-// the test on an escaped unhandled rejection during the body window.
+// even if the body failed), capturing the first failure. The body runs
+// inside an UNHANDLED-REJECTION WINDOW so a fire-and-forget rejection
+// (a promise the test starts but never awaits) still fails the test
+// instead of escaping uncaught (O2). Precedence: a thrown/awaited
+// failure first, then an escaped rejection, then a teardown failure.
 const execute = async (
   body: TestFn,
   hooks: Hooks,
-): Promise<
-  Readonly<{
-    failed: boolean;
-    message: string;
-    stack: string;
-  }>
-> => {
+): Promise<StepResult> => {
   const before = await runSteps(hooks.beforeEach);
   const main = before.failed
     ? before
-    : await guard(body);
+    : await guardWithRejectionWindow(body);
   const after = await runSteps(hooks.afterEach);
-  // The body/before failure takes precedence; a teardown failure only
-  // surfaces if the test was otherwise green.
   return main.failed ? main : after;
+};
+
+// A per-test rejection-capture window. Windows form a STACK so that
+// nested runs (a test that itself runs `runFile`, e.g. plgg-test's own
+// Runner.spec) attribute a fire-and-forget rejection to the INNERMOST
+// active test only — a single process listener routes each event to
+// the top window, instead of every overlapping listener double-failing.
+type RejectionWindow = {
+  captured: boolean;
+  escaped: unknown;
+};
+
+// Imperative seam: process-level rejection capture is inherently
+// effectful and stateful. The single listener is installed lazily once.
+const windowStack: Array<RejectionWindow> = [];
+let listenerInstalled = false;
+
+const ensureListener = (): void => {
+  if (listenerInstalled) {
+    return;
+  }
+  listenerInstalled = true;
+  process.on(
+    "unhandledRejection",
+    (reason: unknown) => {
+      const top =
+        windowStack[windowStack.length - 1];
+      if (top !== undefined && !top.captured) {
+        top.captured = true;
+        top.escaped = reason;
+      }
+    },
+  );
+};
+
+// Wraps {@link guard} with a rejection window. After the body settles
+// we yield to the event loop so any not-awaited rejection is delivered,
+// then fail the test if this window captured one.
+const guardWithRejectionWindow = async (
+  fn: TestFn,
+): Promise<StepResult> => {
+  ensureListener();
+  const win: RejectionWindow = {
+    captured: false,
+    escaped: undefined,
+  };
+  windowStack.push(win);
+  try {
+    const direct = await guard(fn);
+    // Flush the microtask + macrotask queues so a not-awaited
+    // rejection surfaces before we judge the test.
+    await new Promise<void>((r) =>
+      setTimeout(r, 0),
+    );
+    return direct.failed
+      ? direct
+      : win.captured
+        ? {
+            failed: true,
+            message: `unhandled promise rejection: ${messageOf(win.escaped)}`,
+            stack: stackOf(win.escaped),
+          }
+        : PASS;
+  } finally {
+    windowStack.pop();
+  }
 };
 
 const runSteps = async (
   steps: ReadonlyArray<TestFn>,
-): Promise<
-  Readonly<{
-    failed: boolean;
-    message: string;
-    stack: string;
-  }>
-> =>
-  steps.reduce<
-    Promise<
-      Readonly<{
-        failed: boolean;
-        message: string;
-        stack: string;
-      }>
-    >
-  >(
+): Promise<StepResult> =>
+  steps.reduce<Promise<StepResult>>(
     async (accP, step) => {
       const acc = await accP;
       return acc.failed ? acc : guard(step);
     },
-    Promise.resolve({
-      failed: false,
-      message: "",
-      stack: "",
-    }),
+    Promise.resolve(PASS),
   );
 
-// Awaits a test/hook fn, converting any throw OR promise rejection
-// into a captured failure. This is THE false-negative guard (Plan
-// Amendment / design): an async body whose promise rejects must fail,
-// never silently pass.
+// Awaits a test/hook fn, converting any throw OR awaited promise
+// rejection into a captured failure. This is THE false-negative guard
+// (design): an async body whose returned promise rejects must fail,
+// never silently pass. (Fire-and-forget rejections are caught by the
+// rejection window in {@link guardWithRejectionWindow}.)
 const guard = async (
   fn: TestFn,
-): Promise<
-  Readonly<{
-    failed: boolean;
-    message: string;
-    stack: string;
-  }>
-> => {
+): Promise<StepResult> => {
   // Boundary seam: capturing a test's thrown/rejected outcome is the
   // runner's core duty, so try/catch is irreducible here.
   try {
     await fn();
-    return {
-      failed: false,
-      message: "",
-      stack: "",
-    };
+    return PASS;
   } catch (e) {
     return {
       failed: true,

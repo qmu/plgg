@@ -59,3 +59,32 @@ test("null vs object", () => {
   expect(deepEqual(null, {})).toBe(false);
   expect(deepEqual(null, null)).toBe(true);
 });
+
+test("mismatched object tags are unequal", () => {
+  expect(deepEqual([1], { 0: 1 })).toBe(false);
+  expect(deepEqual(new Date(0), {})).toBe(false);
+  expect(deepEqual(new Map(), new Set())).toBe(
+    false,
+  );
+});
+
+test("differing Date times and Map sizes are unequal", () => {
+  expect(
+    deepEqual(new Date(0), new Date(1)),
+  ).toBe(false);
+  expect(
+    deepEqual(new Map([["a", 1]]), new Map()),
+  ).toBe(false);
+  expect(
+    deepEqual(
+      new Map([["a", 1]]),
+      new Map([["b", 1]]),
+    ),
+  ).toBe(false);
+});
+
+test("objects with differing key counts are unequal", () => {
+  expect(
+    deepEqual({ a: 1, b: 2 }, { a: 1 }),
+  ).toBe(false);
+});

@@ -48,3 +48,12 @@ test("a spec that fails to load turns red", async () => {
   const v = tally(results);
   expect(v.failed).toBe(1);
 });
+
+test("a fire-and-forget rejection fails the test (O2 window)", async () => {
+  const results = await runFile(
+    fixture("_unhandledFixture.spec.ts"),
+  );
+  const v = tally(results);
+  expect(v.passed).toBe(1);
+  expect(v.failed).toBe(1);
+});

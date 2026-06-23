@@ -17,6 +17,12 @@
  *   `{ a: undefined }` and `{}` as equal). This matters for plgg's
  *   optional props.
  * - Date by time value, RegExp by source+flags, Map/Set structurally.
+ *
+ * CAVEAT: assumes ACYCLIC inputs. There is no visited-set cycle guard,
+ * so a self-referential value would recurse until the stack overflows.
+ * The plgg corpus only compares finite acyclic data (Result/Option/
+ * Datum/Dict trees), so this is intentionally out of scope; add a
+ * visited-pair set if cyclic test data is ever introduced.
  */
 export const deepEqual = (
   a: unknown,

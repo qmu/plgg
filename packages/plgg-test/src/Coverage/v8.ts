@@ -8,37 +8,56 @@ import { transpile } from "plgg-test/Resolve/hook";
 import { generatedToSource } from "plgg-test/Coverage/sourcemap";
 
 /**
- * V8 coverage fold + threshold gate.
+ * V8 coverage fold + four-metric threshold gate.
  *
  * COLLECTION PROCESS (Plan Amendment 1, named explicitly): coverage is
  * collected via `NODE_V8_COVERAGE=<dir>` with a CLI self-re-exec (see
  * Cli + bin launcher). The child runs the suite and V8 dumps raw range
  * coverage JSON; this module is the PARENT post-pass that folds those
- * ranges into per-file LINE coverage and gates against the >90%
- * threshold. `node:inspector` Session is the documented fallback only.
+ * ranges into per-file metrics and gates against per-package
+ * thresholds. `node:inspector` Session is the documented fallback only.
  *
- * ACCURACY: specs/sources execute as TRANSPILED JS (the load hook runs
- * `ts.transpileModule`, which reflows code), so V8 ranges are over the
- * OUTPUT bytes. To attribute coverage to the ORIGINAL source lines we
- * re-transpile each file the same way to recover its source map, map
- * V8's covered OUTPUT lines, then remap them to source lines through
- * the map. The denominator is the set of source lines the map
- * references (i.e. real code lines), so the percentage tracks vitest's
- * line metric closely. The >90% gate is the contract.
+ * FOUR METRICS (Iteration-1: restore parity with the vitest config it
+ * replaces, which gated statements/branches/functions/lines):
+ *  - functions: a V8 `function` is covered iff its OUTER range count>0.
+ *    This is what fixes the edge case where a never-CALLED top-level
+ *    function would otherwise score as line-covered — its outer range
+ *    has count 0, so it counts against function coverage AND its lines
+ *    resolve to an enclosing count-0 range (uncovered).
+ *  - branches: each BLOCK range inside a function (the ranges past the
+ *    function's first/outer range) is a branch; covered iff count>0.
+ *  - lines / statements: line granularity, attributed to ORIGINAL
+ *    source lines through the transpile source map (V8 records against
+ *    the transpiled output). `statements` mirrors `lines` here — V8 is
+ *    range/block based, not statement-AST based, so per design §1.8 the
+ *    statement metric is the line metric (an honest proxy; the gate is
+ *    the contract, not byte-identical vitest numbers).
+ *
+ * ACCURACY: specs/sources execute as TRANSPILED JS, so V8 ranges are
+ * over OUTPUT bytes; we re-transpile each file identically to recover
+ * its source map and remap covered output lines back to source lines.
  */
 
-export type CoverageReport = Readonly<{
-  files: ReadonlyArray<
-    Readonly<{
-      path: string;
-      totalLines: number;
-      coveredLines: number;
-      pct: number;
-    }>
-  >;
-  totalLines: number;
-  coveredLines: number;
+export type Metric = Readonly<{
+  covered: number;
+  total: number;
   pct: number;
+}>;
+
+export type FileCoverage = Readonly<{
+  path: string;
+  statements: Metric;
+  branches: Metric;
+  functions: Metric;
+  lines: Metric;
+}>;
+
+export type CoverageReport = Readonly<{
+  files: ReadonlyArray<FileCoverage>;
+  statements: Metric;
+  branches: Metric;
+  functions: Metric;
+  lines: Metric;
 }>;
 
 type V8Range = Readonly<{
@@ -48,7 +67,9 @@ type V8Range = Readonly<{
 }>;
 
 type V8Function = Readonly<{
+  functionName: string;
   ranges: ReadonlyArray<V8Range>;
+  isBlockCoverage: boolean;
 }>;
 
 type V8Script = Readonly<{
@@ -56,13 +77,33 @@ type V8Script = Readonly<{
   functions: ReadonlyArray<V8Function>;
 }>;
 
+const isV8Range = (v: unknown): v is V8Range =>
+  typeof v === "object" &&
+  v !== null &&
+  "startOffset" in v &&
+  typeof v.startOffset === "number" &&
+  "endOffset" in v &&
+  typeof v.endOffset === "number" &&
+  "count" in v &&
+  typeof v.count === "number";
+
+const isV8Function = (
+  v: unknown,
+): v is V8Function =>
+  typeof v === "object" &&
+  v !== null &&
+  "ranges" in v &&
+  Array.isArray(v.ranges) &&
+  v.ranges.every(isV8Range);
+
 const isV8Script = (v: unknown): v is V8Script =>
   typeof v === "object" &&
   v !== null &&
   "url" in v &&
   typeof v.url === "string" &&
   "functions" in v &&
-  Array.isArray(v.functions);
+  Array.isArray(v.functions) &&
+  v.functions.every(isV8Function);
 
 export const collect = (
   covDir: string,
@@ -75,19 +116,36 @@ export const collect = (
     ),
   );
   const files = scripts.map(fileCoverage);
-  const totalLines = files.reduce(
-    (n, f) => n + f.totalLines,
+  return {
+    files,
+    statements: sumMetric(
+      files.map((f) => f.statements),
+    ),
+    branches: sumMetric(
+      files.map((f) => f.branches),
+    ),
+    functions: sumMetric(
+      files.map((f) => f.functions),
+    ),
+    lines: sumMetric(files.map((f) => f.lines)),
+  };
+};
+
+const sumMetric = (
+  ms: ReadonlyArray<Metric>,
+): Metric => {
+  const covered = ms.reduce(
+    (n, m) => n + m.covered,
     0,
   );
-  const coveredLines = files.reduce(
-    (n, f) => n + f.coveredLines,
+  const total = ms.reduce(
+    (n, m) => n + m.total,
     0,
   );
   return {
-    files,
-    totalLines,
-    coveredLines,
-    pct: percent(coveredLines, totalLines),
+    covered,
+    total,
+    pct: percent(covered, total),
   };
 };
 
@@ -161,30 +219,43 @@ const dedupeByPath = (
   return [...byPath.values()];
 };
 
-// Per-file: transpile the source the same way the load hook does to
-// recover the output + its inline source map, compute V8-covered
-// OUTPUT lines, then attribute to ORIGINAL source lines via the map.
 const fileCoverage = (
   script: V8Script,
-): Readonly<{
-  path: string;
-  totalLines: number;
-  coveredLines: number;
-  pct: number;
-}> => {
+): FileCoverage => {
   const path = toPath(script.url);
   const source = readSource(path);
   const output = transpile(source, path);
   const mapping = generatedToSource(
     extractMappings(output),
   );
+  const spans = lineSpans(output);
+  return {
+    path,
+    statements: lineMetric(
+      script,
+      spans,
+      mapping,
+    ),
+    lines: lineMetric(script, spans, mapping),
+    functions: functionMetric(script),
+    branches: branchMetric(script),
+  };
+};
+
+// Lines/statements: a source line is covered iff some generated line
+// mapping to it falls in a count>0 INNERMOST range.
+const lineMetric = (
+  script: V8Script,
+  spans: ReadonlyArray<LineSpan>,
+  mapping: ReadonlyMap<
+    number,
+    ReadonlySet<number>
+  >,
+): Metric => {
   const coveredOut = coveredOutputLines(
     script,
-    output,
+    spans,
   );
-  // All source lines the map references == the real code lines (the
-  // denominator); a source line is covered when any generated line
-  // mapping to it executed.
   const sourceLineHits = new Map<
     number,
     boolean
@@ -203,9 +274,51 @@ const fileCoverage = (
     ...sourceLineHits.values(),
   ].filter(Boolean).length;
   return {
-    path,
-    totalLines: total,
-    coveredLines: covered,
+    covered,
+    total,
+    pct: percent(covered, total),
+  };
+};
+
+// Functions: V8 lists every function; its FIRST range is the function
+// body range. Covered iff that range's count > 0. The synthetic
+// top-level module wrapper (empty functionName spanning the file) is
+// excluded so it neither inflates nor deflates the metric.
+const functionMetric = (
+  script: V8Script,
+): Metric => {
+  const fns = script.functions.filter(
+    (f, idx) =>
+      !(idx === 0 && f.functionName === ""),
+  );
+  const total = fns.length;
+  const covered = fns.filter((f) => {
+    const outer = f.ranges[0];
+    return outer !== undefined && outer.count > 0;
+  }).length;
+  return {
+    covered,
+    total,
+    pct: percent(covered, total),
+  };
+};
+
+// Branches: every BLOCK range past a function's outer range is a
+// branch arm; covered iff count>0. Only block-coverage functions carry
+// branch sub-ranges.
+const branchMetric = (
+  script: V8Script,
+): Metric => {
+  const branchRanges = script.functions.flatMap(
+    (f) => f.ranges.slice(1),
+  );
+  const total = branchRanges.length;
+  const covered = branchRanges.filter(
+    (r) => r.count > 0,
+  ).length;
+  return {
+    covered,
+    total,
     pct: percent(covered, total),
   };
 };
@@ -218,9 +331,6 @@ const readSource = (path: string): string => {
   }
 };
 
-// Pulls the base64 `mappings` out of an inline source map appended by
-// `transpileModule` (a `//# sourceMappingURL=data:...;base64,<b64>`
-// trailer).
 const extractMappings = (
   output: string,
 ): string => {
@@ -254,18 +364,12 @@ type Range = Readonly<{
   count: number;
 }>;
 
-// Generated (output) line numbers (0-based) that V8 marks executed.
-//
-// V8 emits NESTED ranges: a function's whole body is one count>0
-// range, with deeper count==0 ranges carving out branches that did not
-// run. So a byte's coverage is decided by the INNERMOST (smallest)
-// range enclosing it — taking "any count>0 overlap" would wrongly mark
-// uncovered branches as covered (and inflate the percentage toward
-// 100%). We pick, per line, the smallest enclosing range and honor its
-// count.
+// Generated (output) line numbers (0-based) V8 marks executed, by the
+// INNERMOST enclosing range's count (so uncovered branches/uncalled
+// functions, whose innermost range is count 0, are NOT counted).
 const coveredOutputLines = (
   script: V8Script,
-  output: string,
+  spans: ReadonlyArray<LineSpan>,
 ): ReadonlySet<number> => {
   const ranges: ReadonlyArray<Range> =
     script.functions
@@ -275,21 +379,17 @@ const coveredOutputLines = (
         end: r.endOffset,
         count: r.count,
       }));
-  const spans = lineSpans(output);
   const hit = new Set<number>();
   spans.forEach((span, idx) => {
-    // Probe at the line's first non-space byte; find the innermost
-    // range covering it; covered iff that range's count > 0.
     const probe = span.start;
-    const enclosing = ranges
+    const innermost = ranges
       .filter(
         (r) => r.start <= probe && r.end > probe,
       )
       .sort(
         (a, b) =>
           a.end - a.start - (b.end - b.start),
-      );
-    const innermost = enclosing[0];
+      )[0];
     if (
       innermost !== undefined &&
       innermost.count > 0
@@ -305,7 +405,6 @@ type LineSpan = Readonly<{
   end: number;
 }>;
 
-// Byte spans of each line (0-based index) in the given text.
 const lineSpans = (
   text: string,
 ): ReadonlyArray<LineSpan> =>
@@ -330,9 +429,14 @@ const percent = (
   total === 0 ? 100 : (covered / total) * 100;
 
 /**
- * Applies the >90% gate (strictly greater, matching the existing rule).
+ * Per-metric gate: every metric must be strictly greater than the
+ * threshold (matching the existing >N rule).
  */
 export const passesThreshold = (
   report: CoverageReport,
   threshold: number,
-): boolean => report.pct > threshold;
+): boolean =>
+  report.statements.pct > threshold &&
+  report.branches.pct > threshold &&
+  report.functions.pct > threshold &&
+  report.lines.pct > threshold;

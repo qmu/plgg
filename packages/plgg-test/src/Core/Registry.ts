@@ -39,21 +39,15 @@ const makeMutSuite = (
   afterEach: [],
 });
 
-// The registration cursor stack. The last element is the suite that
-// `test`/hook calls currently attach to. The root (index 0) is the
-// per-file root suite, reset between files by `resetRegistry`.
-let stack: Array<MutSuite> = [
-  makeMutSuite("", "run"),
-];
+// Registration state. `root` is the per-file root suite (always a
+// defined MutSuite — never indexed out of an array, so there are no
+// unreachable "?? fallback" branches). `cursor` is the suite that
+// `test`/hook calls currently attach to; `describe` re-points it while
+// running a group body. Both reset between files.
+let root: MutSuite = makeMutSuite("", "run");
+let cursor: MutSuite = root;
 
-const current = (): MutSuite => {
-  // stack always has the root; this is the irreducible imperative
-  // seam, so the non-empty invariant is maintained by construction.
-  const top = stack[stack.length - 1];
-  return (
-    top ?? stack[0] ?? makeMutSuite("", "run")
-  );
-};
+const current = (): MutSuite => cursor;
 
 /**
  * Clears the registry to a fresh root suite. Called by the runner
@@ -61,7 +55,8 @@ const current = (): MutSuite => {
  * files.
  */
 export const resetRegistry = (): void => {
-  stack = [makeMutSuite("", "run")];
+  root = makeMutSuite("", "run");
+  cursor = root;
 };
 
 const freeze = (m: MutSuite): Suite => ({
@@ -84,7 +79,7 @@ const freeze = (m: MutSuite): Suite => ({
  * runner calls this after importing a file.
  */
 export const takeRootSuite = (): Suite =>
-  freeze(stack[0] ?? makeMutSuite("", "run"));
+  freeze(root);
 
 const addTest = (
   name: string,
@@ -103,12 +98,13 @@ const addSuite = (
   mode: TestMode,
 ): void => {
   const node = makeMutSuite(name, mode);
-  current().suites.push(node);
-  // Push the new node, run its body (which registers children), then
-  // pop — the classic describe-nesting walk.
-  stack.push(node);
+  const parent = cursor;
+  parent.suites.push(node);
+  // Re-point the cursor to the new node, run its body (which registers
+  // children), then restore the parent — the describe-nesting walk.
+  cursor = node;
   fn();
-  stack.pop();
+  cursor = parent;
 };
 
 /**
