@@ -14,3 +14,4 @@
 | 2026-06-23T17:22:22+09:00 | Planner | test-prepared | vitest baseline installed; SC6 baseline captured (124 locked pkgs, 77MB node_modules, 74 spec files) |  |
 | 2026-06-23T17:30:48+09:00 | Constructor | artifact-created | packages/plgg-test | plgg-test core engine scaffolded and meta-harness green |
 | 2026-06-23T17:58:47+09:00 | Constructor | milestone | plgg migrated; parity gate green (74 files, 465/0); coverage source-map remapped |  |
+| 2026-06-23T18:26:31+09:00 | Constructor | milestone | plgg-test implemented; plgg migrated+parity green; coverage+watch working; tsc/lint clean |  |
