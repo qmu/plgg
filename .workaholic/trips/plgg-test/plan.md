@@ -1,9 +1,9 @@
 ---
 instruction: "Create a new package plgg-test — a from-scratch minimal test framework for the plgg monorepo to drop the vitest dependency and avoid Dependabot churn. Traditional describe/it/expect-style API for minimal test migration. Minimum but real implementation. Must include a --watch option (re-run on file change). Coverage support may need to be addressed/corrected. plgg house style (Option/Result, no as/any/ts-ignore). plgg is its own only consumer; breaking changes fine."
-phase: coding
-step: iteration-1
+phase: complete
+step: done
 iteration: 1
-updated_at: 2026-06-23T18:40:00+09:00
+updated_at: 2026-06-23T19:20:00+09:00
 ---
 
 # Trip Plan
@@ -117,6 +117,43 @@ and the `vi.mock`→`postJson`-injection conversion (Amendment 2), the one item
 not yet exercised. Full-corpus migration of the remaining 58 spec files and the
 final vitest/`@vitest/coverage-v8` devDep removal (SC6) remain the last
 migration step after parity is proven package-by-package.
+
+### 2026-06-23T19:20 — [Lead] Trip complete (complete/done)
+
+Iteration-1 re-review and re-test both passed: Architect **Approve** (`d8907f0`
+— O1 four-metric coverage CLOSED, O2/O3 done, fresh-process watch sound, boundary
+intact); Planner re-test **PASS** (`e42aaa8` — plgg gates S 99.10 / B 91.86 /
+F 97.56 / L 99.10 at per-package 91 from config; uncalled-function edge fixed;
+gate fails on under-execution; watch source-edit freshness fixed; parity still
+74/465/0, no regression). All QA gates satisfied; no rollback proposed. **The
+trip's core deliverable is met:** a from-scratch, zero-third-party-runtime-dep
+test framework (`packages/plgg-test`), vitest-compatible API, proven by
+test-for-test parity with vitest on the real `plgg` corpus, with `--watch` and
+corrected four-metric per-package coverage, built in house style with no
+escape hatches.
+
+**Explicitly DEFERRED to a named follow-up (recorded, not a silent gap — this is
+the boundary of the "minimum but real" scope the user set):**
+
+1. **Full-corpus migration** of the remaining 8 packages' specs (58 files still
+   `import … from "vitest"`). The codemod + parity gate exist and are proven on
+   plgg; rolling them package-by-package is mechanical except for item 2.
+2. **plgg-kit `vi.mock`→`postJson` dependency-injection refactor.** Planner's
+   smoke (`4a5c3d0`) found this is **not** the single-file edit Amendment 2
+   assumed: `generateObject` has no injection seam and `postJson` is buried inside
+   the three `reqObject*` builders, so it is a multi-layer, behavior-sensitive
+   product-code refactor (keep "real default still calls real postJson"). It is
+   the one spec blocking plgg-kit's vitest drop. Cross-package bare `"plgg"`
+   resolution itself is already PROVEN (plgg-kit smoke: 8/0/3, parity with
+   vitest).
+3. **Final SC6 dependency removal** — drop `vitest` + `@vitest/coverage-v8` (+
+   `vite`/`vite-plugin-dts` if unused for build) once all packages are migrated;
+   then demonstrate the lockfile-subtree shrink against Planner's captured
+   baseline (124 locked pkgs / 77 MB / vitest+@vitest+vite ≈ 5.8 MB).
+
+Until (1)–(3) land, vitest stays installed (the parity gate needs both runners),
+so the Dependabot-surface reduction is proven-feasible but not yet realized — the
+honest status to carry into `/report`.
 
 ## Progress
 
