@@ -12,6 +12,7 @@ import {
   pass,
   fail,
 } from "plgg-test/Matchers/Assertion";
+import type { Matcher } from "plgg-test/Matchers/matchers";
 import { formatValue } from "plgg-test/Expect/format";
 
 /**
@@ -76,4 +77,57 @@ export const shouldBeNone =
           expected: "None",
           actual: formatValue(o),
           message: `expected None, got ${formatValue(o)}`,
+        });
+
+/**
+ * `okThen(matcher)` — the ergonomic narrowing form: asserts the value
+ * is `Ok` AND applies `matcher` to the unwrapped inner value, in one
+ * data-last matcher. Fully type-inferring (matcher-first), so it reads
+ * cleanly and needs no annotation:
+ *
+ *   check(asInt("42"), okThen(toBe(int(42))))
+ *   check(asBool("x"), errThen(toBe(invalidBoolMsg)))   // on the error
+ *
+ * This is the direct replacement for `assert(isOk(r)); <check r.content>`.
+ */
+export const okThen =
+  <T>(
+    inner: Matcher<T>,
+  ): (<E>(r: Result<T, E>) => Assertion<T>) =>
+  (r) =>
+    isOk(r)
+      ? inner(r.content)
+      : fail({
+          matcher: "okThen",
+          expected: "Ok(_)",
+          actual: formatValue(r),
+          message: `expected Ok, got ${formatValue(r)}`,
+        });
+
+export const errThen =
+  <E>(
+    inner: Matcher<E>,
+  ): (<T>(r: Result<T, E>) => Assertion<E>) =>
+  (r) =>
+    isErr(r)
+      ? inner(r.content)
+      : fail({
+          matcher: "errThen",
+          expected: "Err(_)",
+          actual: formatValue(r),
+          message: `expected Err, got ${formatValue(r)}`,
+        });
+
+export const someThen =
+  <T>(
+    inner: Matcher<T>,
+  ): ((o: Option<T>) => Assertion<T>) =>
+  (o) =>
+    isSome(o)
+      ? inner(o.content)
+      : fail({
+          matcher: "someThen",
+          expected: "Some(_)",
+          actual: formatValue(o),
+          message: `expected Some, got ${formatValue(o)}`,
         });

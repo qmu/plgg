@@ -51,6 +51,9 @@ export {
   shouldBeErr,
   shouldBeSome,
   shouldBeNone,
+  okThen,
+  errThen,
+  someThen,
 } from "plgg-test/Matchers/unwrap";
 
 // Combinators + the terse `check` entry.
