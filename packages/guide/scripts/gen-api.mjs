@@ -60,6 +60,7 @@ const PACKAGES = [
   "plgg-sql",
   "plgg-kit",
   "plgg-foundry",
+  "plgg-test",
 ];
 
 // Top-level `src/<Dir>/` directories that TypeDoc excludes from the docs

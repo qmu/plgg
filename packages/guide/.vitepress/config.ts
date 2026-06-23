@@ -89,6 +89,11 @@ const PACKAGE_GROUPS = [
     overview: "/packages/plgg-foundry",
   },
   {
+    key: "plgg-test",
+    text: "plgg-test",
+    overview: "/packages/plgg-test",
+  },
+  {
     key: "example",
     text: "example (tutorial)",
     overview: "/packages/example",
