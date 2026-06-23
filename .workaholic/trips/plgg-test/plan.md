@@ -1,9 +1,9 @@
 ---
 instruction: "Create a new package plgg-test — a from-scratch minimal test framework for the plgg monorepo to drop the vitest dependency and avoid Dependabot churn. Traditional describe/it/expect-style API for minimal test migration. Minimum but real implementation. Must include a --watch option (re-run on file change). Coverage support may need to be addressed/corrected. plgg house style (Option/Result, no as/any/ts-ignore). plgg is its own only consumer; breaking changes fine."
-phase: planning
-step: not-started
+phase: coding
+step: concurrent-launch
 iteration: 0
-updated_at: 2026-06-23T17:04:26+09:00
+updated_at: 2026-06-23T17:16:00+09:00
 ---
 
 # Trip Plan
@@ -13,6 +13,63 @@ updated_at: 2026-06-23T17:04:26+09:00
 Create a new package plgg-test — a from-scratch minimal test framework for the plgg monorepo to drop the vitest dependency and avoid Dependabot churn. Traditional describe/it/expect-style API for minimal test migration. Minimum but real implementation. Must include a --watch option (re-run on file change). Coverage support may need to be addressed/corrected. plgg house style (Option/Result, no as/any/ts-ignore). plgg is its own only consumer; breaking changes fine.
 
 ## Plan Amendments
+
+### 2026-06-23T17:16 — [Lead] Planning consensus reached; plan fixed for Coding Phase
+
+All three round-1 reviews are **approvals** ("Approve with observations" /
+"Approve with minor suggestions") — no "Request revision" — so the Consensus
+Gate is met without Steps 3–4 (respond/escalate/moderate). The plan is fixed.
+The reviews converged on a small set of build-binding guardrails; the team
+must honor these in the Coding Phase (they are accepted, not optional):
+
+1. **Coverage collection process (resolves the one technical fork).** The
+   Constructor design (`NODE_V8_COVERAGE`) and the Architect review
+   (in-process `node:inspector`) conflicted. **Decision: `NODE_V8_COVERAGE`
+   with an explicit self-re-exec.** When `--coverage` is passed and the env
+   var is unset, the CLI re-execs itself as a child with
+   `NODE_V8_COVERAGE=<tmpdir>` **plus** the `--experimental-strip-types
+   --import <register>` flags, runs the suite in-process in that child, then a
+   parent post-pass reads/folds the dumped V8 JSON and applies the gate.
+   `node:inspector` `Session` is the documented in-process fallback only if
+   re-exec proves problematic. The collected-from process MUST be named in
+   the code/comments (closes the Architect boundary ambiguity).
+2. **Migration is two-tier (SC1).** A checked-in **codemod/script** rewrites
+   the import source `"vitest"` → `"plgg-test"` across all spec files (no hand
+   edits), **plus** an enumerated short list of hand-touched specs — exactly
+   one today: `plgg-kit/.../generateObject.spec.ts` (`vi.mock`). Resolve that
+   seam by **dependency injection** (inject `postJson`, default real) and
+   delete the `vi.mock`; do NOT build an ESM module-mock engine in v1 (named
+   follow-up only). Decide/apply this before building the runner so it can't
+   bleed scope.
+3. **Parity gate covers the spec-file SET, on the REAL corpus.** Before
+   removing vitest, run both runners and require (a) the same set of
+   discovered spec files (closes the partial-discovery false green) and (b)
+   identical per-test pass/fail verdicts, exercised against the real
+   `Datum`/`Dict`/Result/Option shapes (not synthetic cases).
+4. **`toEqual` deep-equal and the resolver hook are gated checks, not
+   hopeful bullets.** Add `toEqual` (the #1 false-green vector, 348 calls) to
+   the plain-`throw` meta-harness's explicit primitive checks. Elevate the
+   `module.register` resolver to its own acceptance fixture exercising all
+   three specifier shapes (self-`/index`, self-`/deep/path`, cross-package
+   bare `"plgg"`) that must import+run before any migration.
+5. **The assertion boundary throws — by design.** `expect`/`assert` throw
+   `AssertionError` (the framework contract and the precondition for `assert`'s
+   `asserts cond` narrowing). Option/Result/`match` govern internal runner
+   orchestration only — do NOT "Result-ify" the matchers. State this in code.
+6. **Coverage is a per-package ship-or-defer verdict.** Existing config is
+   uneven (`plgg` gates at 91; `plgg-kit` has `all: true` with no thresholds).
+   The definition of done records, per migrated package, whether the >90% gate
+   ([[feedback_coverage_threshold]]) is enforced — accurate number or an
+   explicit named deferral, never an ambiguous silent gap.
+7. **Housekeeping.** Reconcile the file-count vs call-count figures before any
+   number is carried downstream (e.g. `assert` 64 files / 448 calls; `test`
+   125 files / 744 calls). Confirm exact policy slugs against the
+   `implementation`/`operation` skill indexes during the build.
+
+Exit-code contract (0 only on all-pass; non-zero on any failure or zero
+expected tests) and the command-scripts-compliant integration (extend the
+canonical per-package runner family; change only what npm scripts invoke) are
+adopted as-is from the design.
 
 ## Progress
 
