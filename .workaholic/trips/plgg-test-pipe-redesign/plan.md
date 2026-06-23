@@ -1,9 +1,9 @@
 ---
 instruction: "Redesign plgg-test FROM THE DESIGN PHASE so its public authoring/assertion API embodies plgg's pipe-style data-last functional composition (pipe/cast/proc/flow, Option/Result, exhaustive match) — NOT the fluent expect(x).toBe(y) method-chain of the first attempt. Assertions should be composable data-last functions returning Result, piped, not a stateful chainable object that throws. Idiomatic composition is prioritized OVER drop-in vitest migration. Keep a real minimal runner with --watch and four-metric coverage; the existing plgg-test plumbing (runner/discovery/reporter/resolver/coverage/watch) is prior art to reuse/refactor. House style mandatory; breaking changes fine."
-phase: coding
-step: concurrent-launch
-iteration: 0
-updated_at: 2026-06-23T22:00:00+09:00
+phase: complete
+step: done
+iteration: 1
+updated_at: 2026-06-24T09:00:00+09:00
 ---
 
 # Trip Plan
@@ -13,6 +13,41 @@ updated_at: 2026-06-23T22:00:00+09:00
 Redesign plgg-test FROM THE DESIGN PHASE so its public authoring/assertion API embodies plgg's pipe-style data-last functional composition (pipe/cast/proc/flow, Option/Result, exhaustive match) — NOT the fluent expect(x).toBe(y) method-chain of the first attempt. Assertions should be composable data-last functions returning Result, piped, not a stateful chainable object that throws. Idiomatic composition is prioritized OVER drop-in vitest migration. Keep a real minimal runner with --watch and four-metric coverage; the existing plgg-test plumbing (runner/discovery/reporter/resolver/coverage/watch) is prior art to reuse/refactor. House style mandatory; breaking changes fine.
 
 ## Plan Amendments
+
+### 2026-06-24T09:00 — [Lead] Trip complete (complete/done), verified
+
+The pipe-style redesign is **complete and lead-verified** at `db6b2b1`. The
+plgg-test package embodies plgg's idiom: an assertion is a branded `Result`
+(`Assertion = Result<Pass, Fail>`, `Box`-tagged), matchers are data-last
+(`pipe(actual, toBe(expected))` / `check(actual, ...matchers)`), `all`
+aggregates every failure, narrowing is data-flow via value-carrying matchers
+(`shouldBeOk`/`okThen`), and `proc` carries async — no fluent chain, no
+throw-on-mismatch.
+
+Two consumer-side blockers were found AFTER the package was built (the package
+itself was always type-clean) and fixed by Constructor:
+1. **plgg-test resolved to `any` from plgg.** plgg-test is ESM (`type:module`),
+   so under `module:NodeNext` plgg could not resolve plgg-test's *extensionless*
+   dist `.d.ts` re-exports → every import degraded to `any` (the old fluent API
+   hid this; the pipe API's lambdas exposed it as 187 implicit-any). Fixed by
+   converting plgg-test's 29 internal source imports from the `plgg-test/*`
+   tsconfig-path alias to relative NodeNext-style `./X/Y.js` imports, so
+   vite-plugin-dts emits ESM-resolvable re-exports; the runtime loader hook
+   (`Resolve/hook.ts`) gained a relative-`.js`→`.ts` redirect so the CLI still
+   runs from source.
+2. **Matcher over-constraint.** `toBe`/`toEqual` made the *actual* generic on
+   application (`(expected) => (actual) => Assertion`) so a wider actual than the
+   expected literal no longer conflicts (cleared 233 errors); `errThen` made
+   `<E = InvalidError>` (default applies for bare lambdas once types resolve,
+   matcher-first infers other error channels). A handful of spec-level fixes
+   (export `deepEqual`, an `isRequestInit` guard, `atProp` for `Datum` access —
+   which even removed a pre-existing `restored as any`).
+
+**Verified (lead):** `tsc-plgg-test` 0 errors; `tsc-plgg` 0 errors; **no `as`/
+`any`/`ts-ignore` added** (`git diff 5852ed8..db6b2b1`); `npx plgg-test src` →
+**465 passed / 0 failed / 74 files**, exact parity with the captured oracle;
+mutation spot-check (flip 3 expectations) → 461 passed / 4 failed with the
+mutated messages, proving the rewrites have force. Ready to ship.
 
 ### 2026-06-23T22:00 — [Lead] Planning consensus; plan fixed for Coding Phase
 

@@ -13,3 +13,4 @@
 | 2026-06-23T21:55:59+09:00 | Architect | note-created | reviews/coding-review-checklist.md | Coding-review checklist grounded in re-verified plgg primitives + 9 guardrails |
 | 2026-06-23T21:59:10+09:00 | Planner | test-prepared | Installs done; per-test oracle captured from base ec9bb22 (74 files/465 tests/all-pass); mutation slice fixed |  |
 | 2026-06-23T22:09:47+09:00 | Constructor | milestone | L0 pipe-style assertion layer + branded Assertion + runner fold-seam; meta-harness green |  |
+| 2026-06-24T08:49:07+09:00 | Lead | phase-transition | plan.md | Trip complete & verified: pipe-style plgg-test, tsc clean both pkgs, parity 465/0, mutation-proven |
