@@ -3,9 +3,9 @@ created_at: 2026-06-23T15:10:23+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 0.25h
+commit_hash: 5c81153
+category: Changed
 depends_on:
 ---
 
@@ -117,3 +117,21 @@ example (tutorial)
    shows a **Guide** item and (where applicable) an **API reference**
    item; `plgg` core's Guide expands to Values & effects + Structures &
    errors; `example` shows only Guide.
+
+## Final Report
+
+Development completed as planned. Added `guideNode(group)` next to
+`apiReferenceNode(group)` and rewrote `packageGroup(group)` to return
+`{ text, items: [guideNode(group), ...apiReferenceNode(group)] }` with no
+header link. `config.ts`-only change; Prettier reported it already matched
+`printWidth: 50`. Full `npm run build` passes with no dead links.
+
+### Discovered Insights
+
+- **Insight**: `guideNode` and `apiReferenceNode` are deliberately the two
+  symmetric halves of a package group — Guide first (prose), API reference
+  last (generated). Future per-package navigation tweaks should keep that
+  parallel: add to one helper, mirror in the other.
+  **Context**: The group header no longer carries a `link`, so the Guide
+  child is the *only* path to a package's Overview prose — don't drop it
+  when editing, or the Overview page becomes unreachable from the sidebar.

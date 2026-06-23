@@ -123,22 +123,32 @@ const apiReferenceNode = (group) => {
     : [node];
 };
 
-// Assemble one package's top-level sidebar group: header links to its overview
-// prose page, items are the extra prose pages then the API reference. A package
-// with no nested items (e.g. example in dev) collapses to a plain link.
-const packageGroup = (group) => {
-  const items = [
-    ...(group.docs ?? []),
-    ...apiReferenceNode(group),
-  ];
-  return items.length
-    ? {
-        text: group.text,
-        link: group.overview,
-        items,
-      }
-    : { text: group.text, link: group.overview };
+// The "Guide" node spliced at the START of a package group: the package's prose,
+// surfaced as a first-class sidebar item parallel to "API reference". When the
+// package has extra prose pages (only plgg core today) it is a collapsible
+// subgroup linking the Overview with those pages beneath; otherwise it is a
+// plain link to the single prose page.
+const guideNode = (group) => {
+  const node = {
+    text: "Guide",
+    link: group.overview,
+  };
+  const docs = group.docs ?? [];
+  return docs.length
+    ? { ...node, collapsed: true, items: docs }
+    : node;
 };
+
+// Assemble one package's top-level sidebar group: its children are the Guide
+// (prose) then the API reference, the two reading paths shown side by side. The
+// group header itself toggles the group — the Guide child carries the prose link.
+const packageGroup = (group) => ({
+  text: group.text,
+  items: [
+    guideNode(group),
+    ...apiReferenceNode(group),
+  ],
+});
 
 // GitHub Pages serves a project site under `/<repo>/`; the deploy workflow sets
 // DOCS_BASE so links resolve there, while local dev/preview stay at root.
