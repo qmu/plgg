@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "plgg-test";
 import { bind } from "plgg/Functionals/bind";
 import { proc, ok, err, isOk, box, Box } from "plgg/index";
 

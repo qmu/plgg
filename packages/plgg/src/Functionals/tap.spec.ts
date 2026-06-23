@@ -1,4 +1,4 @@
-import { test, expect, vi } from "vitest";
+import { test, expect, vi } from "plgg-test";
 import { tap } from "plgg/index";
 
 test("tap executes side effect and returns value unchanged", () => {

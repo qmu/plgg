@@ -23,6 +23,8 @@ export const deepEqual = (
   b: unknown,
 ): boolean => eq(a, b);
 
+import { isAsymmetric } from "plgg-test/Expect/asymmetric";
+
 const tagOf = (v: unknown): string =>
   Object.prototype.toString.call(v);
 
@@ -34,14 +36,22 @@ const entriesOf = (
   Object.entries(o);
 
 const eq = (a: unknown, b: unknown): boolean =>
-  Object.is(a, b)
-    ? true
-    : typeof a !== "object" ||
-        typeof b !== "object" ||
-        a === null ||
-        b === null
-      ? false
-      : eqObjects(a, b);
+  // An asymmetric matcher (e.g. `expect.stringContaining`) on either
+  // side delegates to its own predicate rather than structural
+  // equality — this is how `toHaveBeenCalledWith(expect.stringContaining(...))`
+  // works.
+  isAsymmetric(b)
+    ? b.test(a)
+    : isAsymmetric(a)
+      ? a.test(b)
+      : Object.is(a, b)
+        ? true
+        : typeof a !== "object" ||
+            typeof b !== "object" ||
+            a === null ||
+            b === null
+          ? false
+          : eqObjects(a, b);
 
 const eqObjects = (
   a: object,

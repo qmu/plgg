@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "plgg-test";
 import { pass } from "plgg/index";
 
 test("pass returns its argument unchanged (identity function)", () => {

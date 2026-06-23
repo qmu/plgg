@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "plgg-test";
 import { Box, Icon, IsIcon, ICON_CONTENT } from "plgg/index";
 
 test("Icon type structure", () => {

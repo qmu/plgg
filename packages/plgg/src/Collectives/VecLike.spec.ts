@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "plgg-test";
 import { isVecLike } from "plgg/index";
 
 test("isVecLike returns true for arrays", () => {

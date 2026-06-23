@@ -1,6 +1,13 @@
-import { existsSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+} from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import {
+  pathToFileURL,
+  fileURLToPath,
+} from "node:url";
+import ts from "typescript";
 
 /**
  * ESM resolver hook (Plan Amendment 4: a gated acceptance fixture
@@ -101,14 +108,96 @@ export const resolve = async (
   next: NextResolve,
 ): Promise<ResolveResult> => {
   const rewritten = rewrite(specifier);
-  // Do NOT set `format`: leaving it undefined lets Node's native
-  // type-stripping loader classify the resolved `.ts` file and strip
-  // it. Forcing `format: "module"` would skip stripping and feed raw
-  // TS to the JS parser.
   return rewritten === ""
     ? next(specifier, context)
     : {
         url: rewritten,
         shortCircuit: true,
+        format: "module",
       };
+};
+
+// The Node loader-hook `load` contract.
+type LoadContext = {
+  format?: string;
+  conditions: ReadonlyArray<string>;
+  importAttributes: Record<string, string>;
+};
+
+type LoadResult = {
+  format: string;
+  source: string;
+  shortCircuit?: boolean;
+};
+
+type NextLoad = (
+  url: string,
+  context: LoadContext,
+) => LoadResult | Promise<LoadResult>;
+
+/**
+ * `load` hook: transpiles `.ts` modules with the TypeScript compiler
+ * (already a devDep of every package — NOT a new third-party runtime
+ * dep). We use `ts.transpileModule` instead of Node's native
+ * `--experimental-strip-types` because native stripping only removes
+ * syntactic types and `import type`, leaving MIXED type+value imports
+ * intact (`import { ok, Apply1 }`); plgg's source is not
+ * `verbatimModuleSyntax`-clean, so those unused type imports would
+ * crash at runtime. `transpileModule` performs proper import elision,
+ * letting us run the real source (and measure coverage on it) without
+ * rewriting the library.
+ *
+ * The query-string cache-bust the runner appends (`?t=N`) is stripped
+ * before reading the file from disk.
+ */
+export const load = async (
+  url: string,
+  context: LoadContext,
+  next: NextLoad,
+): Promise<LoadResult> => {
+  if (!isLocalTs(url)) {
+    return next(url, context);
+  }
+  const file = fileURLToPath(stripQuery(url));
+  const source = readFileSync(file, "utf8");
+  return {
+    format: "module",
+    source: transpile(source, file),
+    shortCircuit: true,
+  };
+};
+
+/**
+ * Transpiles a `.ts` source to ESM JS with an INLINE source map. The
+ * source map is what makes coverage accurate: `transpileModule`
+ * reflows multi-line constructs (so output line numbers differ from
+ * source), and the coverage collector remaps V8's output-line hits
+ * back to original source lines through this map. Shared with the
+ * coverage collector so both transpile identically.
+ */
+export const transpile = (
+  source: string,
+  file: string,
+): string =>
+  ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+      inlineSourceMap: true,
+      verbatimModuleSyntax: false,
+    },
+    fileName: file,
+  }).outputText;
+
+const isLocalTs = (url: string): boolean => {
+  const path = stripQuery(url);
+  return (
+    path.startsWith("file:") &&
+    path.endsWith(".ts")
+  );
+};
+
+const stripQuery = (url: string): string => {
+  const q = url.indexOf("?");
+  return q === -1 ? url : url.slice(0, q);
 };

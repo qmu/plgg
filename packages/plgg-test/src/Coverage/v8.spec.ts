@@ -1,8 +1,4 @@
-import {
-  test,
-  expect,
-  afterEach,
-} from "plgg-test/index";
+import { test, expect } from "plgg-test/index";
 import {
   collect,
   passesThreshold,
@@ -16,84 +12,90 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-// Each test builds a throwaway src file + a V8 coverage JSON pointing
-// at it, so the fold runs against real bytes. Dirs are cleaned up.
-const dirs: Array<string> = [];
-
-const scratch = (): string => {
-  const d = mkdtempSync(
+// A real end-to-end fold: write a `.ts` source, hand V8-style coverage
+// JSON whose ranges cover the WHOLE transpiled output, and confirm
+// collect() reconstructs the source map and reports full coverage for
+// that file. (Range→line precision is covered by sourcemap.spec.ts;
+// here we prove the wiring: read dir, keep .ts, remap, gate.)
+const withScratch = <T>(
+  fn: (dir: string) => T,
+): T => {
+  const dir = mkdtempSync(
     join(tmpdir(), "plgg-cov-"),
   );
-  dirs.push(d);
-  return d;
-};
-
-afterEach(() => {
-  dirs.splice(0).forEach((d) =>
-    rmSync(d, {
+  try {
+    return fn(dir);
+  } finally {
+    rmSync(dir, {
       recursive: true,
       force: true,
+    });
+  }
+};
+
+test("collect remaps full-coverage ranges to a source file", () => {
+  withScratch((srcDir) =>
+    withScratch((covDir) => {
+      const tsPath = join(srcDir, "mod.ts");
+      const source =
+        "export const f = (\n  n: number,\n): number => n + 1;\n";
+      writeFileSync(tsPath, source);
+      // A range from 0..big covers every output byte → every mapped
+      // source line counts as covered.
+      writeFileSync(
+        join(covDir, "c.json"),
+        JSON.stringify({
+          result: [
+            {
+              url: pathToFileURL(tsPath).href,
+              functions: [
+                {
+                  ranges: [
+                    {
+                      startOffset: 0,
+                      endOffset: 100000,
+                      count: 1,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      const rep = collect(covDir, srcDir, []);
+      expect(rep.files.length).toBe(1);
+      expect(rep.pct).toBe(100);
     }),
   );
 });
 
-const writeCov = (
-  covDir: string,
-  url: string,
-  ranges: ReadonlyArray<{
-    startOffset: number;
-    endOffset: number;
-    count: number;
-  }>,
-): void =>
-  writeFileSync(
-    join(covDir, "cov.json"),
-    JSON.stringify({
-      result: [
-        {
-          url,
-          functions: [{ ranges }],
-        },
-      ],
+test("collect honors the exclude list", () => {
+  withScratch((srcDir) =>
+    withScratch((covDir) => {
+      const tsPath = join(
+        srcDir,
+        "Abstracts",
+        "x.ts",
+      );
+      // Excluded by fragment; expect no files.
+      writeFileSync(
+        join(covDir, "c.json"),
+        JSON.stringify({
+          result: [
+            {
+              url: pathToFileURL(tsPath).href,
+              functions: [],
+            },
+          ],
+        }),
+      );
+      const rep = collect(covDir, srcDir, [
+        "/Abstracts/",
+      ]);
+      expect(rep.files).toEqual([]);
     }),
   );
-
-test("computes line coverage from ranges", () => {
-  const srcDir = scratch();
-  const covDir = scratch();
-  const src = join(srcDir, "mod.ts");
-  // Two code lines.
-  const text = "const a = 1;\nconst b = 2;\n";
-  writeFileSync(src, text);
-  // Cover only the first line (offsets 0..12).
-  writeCov(covDir, pathToFileURL(src).href, [
-    {
-      startOffset: 0,
-      endOffset: 12,
-      count: 1,
-    },
-  ]);
-  const rep = collect(covDir, srcDir, []);
-  expect(rep.files.length).toBe(1);
-  expect(rep.files[0]?.coveredLines).toBe(1);
-  expect(rep.files[0]?.totalLines).toBe(2);
-  expect(rep.pct).toBe(50);
-});
-
-test("excludes matched paths and spec files", () => {
-  const srcDir = scratch();
-  const covDir = scratch();
-  const spec = join(srcDir, "mod.spec.ts");
-  writeFileSync(spec, "const a = 1;\n");
-  writeCov(covDir, pathToFileURL(spec).href, [
-    {
-      startOffset: 0,
-      endOffset: 12,
-      count: 1,
-    },
-  ]);
-  const rep = collect(covDir, srcDir, []);
-  expect(rep.files.length).toBe(0);
 });
 
 test("threshold gate is strictly greater", () => {
@@ -123,7 +125,7 @@ test("threshold gate is strictly greater", () => {
 
 test("missing coverage dir yields empty report", () => {
   const rep = collect(
-    join(scratch(), "nope"),
+    "/no/such/dir/here",
     "/x",
     [],
   );

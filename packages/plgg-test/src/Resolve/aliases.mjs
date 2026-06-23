@@ -19,16 +19,73 @@ const stripStar = (s) =>
     ? s.slice(0, -1).replace(/\/$/, "")
     : s;
 
-// Minimal JSONC-tolerant parse: strip // and /* */ comments, then
-// JSON.parse. tsconfig files in this repo are comment-bearing.
+// JSONC-tolerant parse. A naive regex stripper is wrong here: path
+// alias targets like "./src/*" contain the substring `/*`, which a
+// block-comment regex would mistake for a comment start. So we scan
+// char-by-char, tracking whether we're inside a string, and only treat
+// `//` and `/* */` as comments OUTSIDE strings. Trailing commas are
+// then dropped before JSON.parse.
+const stripComments = (text) => {
+  let out = "";
+  let i = 0;
+  let inStr = false;
+  while (i < text.length) {
+    const c = text[i];
+    const n = text[i + 1];
+    if (inStr) {
+      out += c;
+      if (c === "\\") {
+        out += n ?? "";
+        i += 2;
+        continue;
+      }
+      if (c === '"') {
+        inStr = false;
+      }
+      i += 1;
+      continue;
+    }
+    if (c === '"') {
+      inStr = true;
+      out += c;
+      i += 1;
+      continue;
+    }
+    if (c === "/" && n === "/") {
+      while (
+        i < text.length &&
+        text[i] !== "\n"
+      ) {
+        i += 1;
+      }
+      continue;
+    }
+    if (c === "/" && n === "*") {
+      i += 2;
+      while (
+        i < text.length &&
+        !(
+          text[i] === "*" &&
+          text[i + 1] === "/"
+        )
+      ) {
+        i += 1;
+      }
+      i += 2;
+      continue;
+    }
+    out += c;
+    i += 1;
+  }
+  return out;
+};
+
 const parseJsonc = (text) =>
   JSON.parse(
-    text
-      .replace(
-        /\/\*[\s\S]*?\*\//g,
-        "",
-      )
-      .replace(/(^|\s)\/\/.*$/gm, "$1"),
+    stripComments(text).replace(
+      /,(\s*[}\]])/g,
+      "$1",
+    ),
   );
 
 export const deriveAliases = (

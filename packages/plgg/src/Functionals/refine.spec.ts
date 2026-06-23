@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { refine, isOk, isErr } from "plgg/index";
 
 test("refine validates values with custom predicates", () => {

@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, expect } from "plgg-test";
 import { filter, pipe } from "plgg/index";
 
 test("filter keeps elements matching predicate", () => {

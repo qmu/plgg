@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { defined, isOk, isErr } from "plgg/index";
 
 test("defined checks for non-undefined values", () => {

@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { find, isOk, isErr } from "plgg/index";
 
 test("find with predicate function returns Ok when found", () => {

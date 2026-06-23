@@ -4,7 +4,7 @@ import {
   assert,
   vi,
   afterEach,
-} from "vitest";
+} from "plgg-test";
 import {
   postJson,
   isOk,

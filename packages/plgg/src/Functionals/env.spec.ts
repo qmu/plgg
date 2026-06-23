@@ -1,4 +1,4 @@
-import { test, expect, assert } from "vitest";
+import { test, expect, assert } from "plgg-test";
 import { env, isOk, isErr } from "plgg/index";
 
 test("env - returns Ok for existing environment variable", () => {

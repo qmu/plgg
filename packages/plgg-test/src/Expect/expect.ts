@@ -15,6 +15,10 @@ import {
 } from "plgg-test/Expect/matchers";
 import { formatValue } from "plgg-test/Expect/format";
 import { deepEqual } from "plgg-test/Expect/equals";
+import {
+  stringContaining,
+  type Asymmetric,
+} from "plgg-test/Expect/asymmetric";
 import { isSpy } from "plgg-test/Mock/vi";
 
 /**
@@ -43,6 +47,8 @@ const settle = (
  */
 export type Matchers = Readonly<{
   toBe: (expected: unknown) => void;
+  // chai-style alias the corpus uses; strict `===` like `toBe`.
+  equal: (expected: unknown) => void;
   toEqual: (expected: unknown) => void;
   toContain: (expected: unknown) => void;
   toHaveLength: (expected: number) => void;
@@ -77,6 +83,8 @@ const buildMatchers = (
   negate: boolean,
 ): Matchers => ({
   toBe: (expected) =>
+    settle(toBe(actual, expected), negate),
+  equal: (expected) =>
     settle(toBe(actual, expected), negate),
   toEqual: (expected) =>
     settle(toEqual(actual, expected), negate),
@@ -335,13 +343,25 @@ const toPromise = (
     : Promise.resolve(actual);
 
 /**
- * `expect(actual)` — the entry of the assertion boundary.
+ * `expect(actual)` — the entry of the assertion boundary. Also carries
+ * the asymmetric-matcher factory `expect.stringContaining`, used as an
+ * argument to `toHaveBeenCalledWith`.
  */
-export const expect = (
+export const expect: ((
   actual: unknown,
-): Expectation => ({
-  ...buildMatchers(actual, false),
-  not: buildMatchers(actual, true),
-  resolves: buildAsync(toPromise(actual), false),
-  rejects: buildAsync(toPromise(actual), true),
-});
+) => Expectation) & {
+  stringContaining: (
+    substring: string,
+  ) => Asymmetric;
+} = Object.assign(
+  (actual: unknown): Expectation => ({
+    ...buildMatchers(actual, false),
+    not: buildMatchers(actual, true),
+    resolves: buildAsync(
+      toPromise(actual),
+      false,
+    ),
+    rejects: buildAsync(toPromise(actual), true),
+  }),
+  { stringContaining },
+);

@@ -45,11 +45,11 @@
     "node": ">=22.6"
   },
   "dependencies": {
-    "plgg": "file:../plgg"
+    "plgg": "file:../plgg",
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "typescript": "^6.0.3",
     "vite": "^8.0.10",
     "vite-plugin-dts": "^5.0.0"
   }

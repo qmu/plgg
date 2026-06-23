@@ -1,4 +1,4 @@
-import { test, expect, assert, vi } from "vitest";
+import { test, expect, assert, vi } from "plgg-test";
 import {
   PlggError,
   InvalidError,

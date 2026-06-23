@@ -4,23 +4,27 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { transpile } from "plgg-test/Resolve/hook";
+import { generatedToSource } from "plgg-test/Coverage/sourcemap";
 
 /**
  * V8 coverage fold + threshold gate.
  *
- * COLLECTION PROCESS (Plan Amendment 1, named explicitly): coverage
- * is collected via the `NODE_V8_COVERAGE=<dir>` env var with a CLI
- * self-re-exec (see Cli/cli.ts). The child process runs the suite and
- * V8 dumps raw range coverage JSON into `<dir>` on exit; this module
- * is the PARENT post-pass that reads those JSON files, folds them to
- * per-file line coverage, applies the package `exclude` list, and
- * gates against the >90% threshold. `node:inspector` Session is the
- * documented in-process fallback only — it is not used here.
+ * COLLECTION PROCESS (Plan Amendment 1, named explicitly): coverage is
+ * collected via `NODE_V8_COVERAGE=<dir>` with a CLI self-re-exec (see
+ * Cli + bin launcher). The child runs the suite and V8 dumps raw range
+ * coverage JSON; this module is the PARENT post-pass that folds those
+ * ranges into per-file LINE coverage and gates against the >90%
+ * threshold. `node:inspector` Session is the documented fallback only.
  *
- * Granularity note (design §1.8): V8 reports byte-range block
- * coverage. We derive LINE coverage from the executed ranges (a line
- * counts as covered when any covered range overlaps it). The >90% gate
- * is the contract; exact vitest numeric parity is best-effort.
+ * ACCURACY: specs/sources execute as TRANSPILED JS (the load hook runs
+ * `ts.transpileModule`, which reflows code), so V8 ranges are over the
+ * OUTPUT bytes. To attribute coverage to the ORIGINAL source lines we
+ * re-transpile each file the same way to recover its source map, map
+ * V8's covered OUTPUT lines, then remap them to source lines through
+ * the map. The denominator is the set of source lines the map
+ * references (i.e. real code lines), so the percentage tracks vitest's
+ * line metric closely. The >90% gate is the contract.
  */
 
 export type CoverageReport = Readonly<{
@@ -60,23 +64,17 @@ const isV8Script = (v: unknown): v is V8Script =>
   "functions" in v &&
   Array.isArray(v.functions);
 
-/**
- * Reads + folds every coverage JSON file in `covDir`, keeping only
- * scripts whose file path is under `srcRoot` and not matched by
- * `exclude` (substring match against the absolute path, mirroring the
- * existing vite `exclude` globs closely enough for the gate).
- */
 export const collect = (
   covDir: string,
   srcRoot: string,
   exclude: ReadonlyArray<string>,
 ): CoverageReport => {
-  const scripts = readCovDir(covDir).filter((s) =>
-    keep(toPath(s.url), srcRoot, exclude),
+  const scripts = dedupeByPath(
+    readCovDir(covDir).filter((s) =>
+      keep(toPath(s.url), srcRoot, exclude),
+    ),
   );
-  const files = dedupeByPath(scripts).map((s) =>
-    fileCoverage(s),
-  );
+  const files = scripts.map(fileCoverage);
   const totalLines = files.reduce(
     (n, f) => n + f.totalLines,
     0,
@@ -95,20 +93,17 @@ export const collect = (
 
 const readCovDir = (
   covDir: string,
-): ReadonlyArray<V8Script> => {
-  const names = safeReaddir(covDir);
-  return names
+): ReadonlyArray<V8Script> =>
+  safeReaddir(covDir)
     .filter((n) => n.endsWith(".json"))
     .flatMap((n) =>
       parseScripts(join(covDir, n)),
     );
-};
 
 const safeReaddir = (
   dir: string,
 ): ReadonlyArray<string> => {
-  // Filesystem seam: a missing coverage dir means "no data", not a
-  // crash.
+  // Filesystem seam: a missing coverage dir means "no data".
   try {
     return readdirSync(dir);
   } catch {
@@ -119,8 +114,7 @@ const safeReaddir = (
 const parseScripts = (
   file: string,
 ): ReadonlyArray<V8Script> => {
-  // Boundary seam: parsing untrusted JSON; a bad file contributes no
-  // scripts rather than throwing.
+  // Boundary seam: a bad JSON file contributes no scripts.
   try {
     const parsed: unknown = JSON.parse(
       readFileSync(file, "utf8"),
@@ -136,10 +130,15 @@ const parseScripts = (
   }
 };
 
-const toPath = (url: string): string =>
-  url.startsWith("file:")
-    ? fileURLToPath(url)
-    : url;
+const toPath = (url: string): string => {
+  const noQuery =
+    url.indexOf("?") === -1
+      ? url
+      : url.slice(0, url.indexOf("?"));
+  return noQuery.startsWith("file:")
+    ? fileURLToPath(noQuery)
+    : noQuery;
+};
 
 const keep = (
   path: string,
@@ -152,8 +151,6 @@ const keep = (
   !path.endsWith(".test.ts") &&
   !exclude.some((frag) => path.includes(frag));
 
-// Keep one script entry per path (V8 may emit duplicates); the last
-// wins, which carries the fullest range set for our purpose.
 const dedupeByPath = (
   scripts: ReadonlyArray<V8Script>,
 ): ReadonlyArray<V8Script> => {
@@ -164,9 +161,9 @@ const dedupeByPath = (
   return [...byPath.values()];
 };
 
-// Computes line coverage for one script: read its source, build a
-// covered-byte set from ranges with count>0, then a line is covered
-// when any of its non-whitespace bytes is covered.
+// Per-file: transpile the source the same way the load hook does to
+// recover the output + its inline source map, compute V8-covered
+// OUTPUT lines, then attribute to ORIGINAL source lines via the map.
 const fileCoverage = (
   script: V8Script,
 ): Readonly<{
@@ -177,17 +174,39 @@ const fileCoverage = (
 }> => {
   const path = toPath(script.url);
   const source = readSource(path);
-  const covered = coveredOffsets(script);
-  const lines = lineSpans(source);
-  const counted = lines.filter((ln) => ln.code);
-  const coveredLines = counted.filter((ln) =>
-    anyCovered(ln, covered),
-  ).length;
+  const output = transpile(source, path);
+  const mapping = generatedToSource(
+    extractMappings(output),
+  );
+  const coveredOut = coveredOutputLines(
+    script,
+    output,
+  );
+  // All source lines the map references == the real code lines (the
+  // denominator); a source line is covered when any generated line
+  // mapping to it executed.
+  const sourceLineHits = new Map<
+    number,
+    boolean
+  >();
+  mapping.forEach((srcLines, genLine) => {
+    const hit = coveredOut.has(genLine);
+    srcLines.forEach((sl) =>
+      sourceLineHits.set(
+        sl,
+        (sourceLineHits.get(sl) ?? false) || hit,
+      ),
+    );
+  });
+  const total = sourceLineHits.size;
+  const covered = [
+    ...sourceLineHits.values(),
+  ].filter(Boolean).length;
   return {
     path,
-    totalLines: counted.length,
-    coveredLines,
-    pct: percent(coveredLines, counted.length),
+    totalLines: total,
+    coveredLines: covered,
+    pct: percent(covered, total),
   };
 };
 
@@ -199,80 +218,110 @@ const readSource = (path: string): string => {
   }
 };
 
-// A covered-byte predicate built from the union of count>0 ranges.
-// Stored as sorted [start,end) intervals; membership via scan (range
-// counts are small per file).
-type Interval = Readonly<{
+// Pulls the base64 `mappings` out of an inline source map appended by
+// `transpileModule` (a `//# sourceMappingURL=data:...;base64,<b64>`
+// trailer).
+const extractMappings = (
+  output: string,
+): string => {
+  const marker =
+    "sourceMappingURL=data:application/json;base64,";
+  const at = output.lastIndexOf(marker);
+  if (at === -1) {
+    return "";
+  }
+  const b64 = output
+    .slice(at + marker.length)
+    .trim();
+  try {
+    const json: unknown = JSON.parse(
+      Buffer.from(b64, "base64").toString("utf8"),
+    );
+    return typeof json === "object" &&
+      json !== null &&
+      "mappings" in json &&
+      typeof json.mappings === "string"
+      ? json.mappings
+      : "";
+  } catch {
+    return "";
+  }
+};
+
+type Range = Readonly<{
   start: number;
   end: number;
+  count: number;
 }>;
 
-const coveredOffsets = (
+// Generated (output) line numbers (0-based) that V8 marks executed.
+//
+// V8 emits NESTED ranges: a function's whole body is one count>0
+// range, with deeper count==0 ranges carving out branches that did not
+// run. So a byte's coverage is decided by the INNERMOST (smallest)
+// range enclosing it — taking "any count>0 overlap" would wrongly mark
+// uncovered branches as covered (and inflate the percentage toward
+// 100%). We pick, per line, the smallest enclosing range and honor its
+// count.
+const coveredOutputLines = (
   script: V8Script,
-): ReadonlyArray<Interval> =>
-  script.functions
-    .flatMap((f) => f.ranges)
-    .filter((r) => r.count > 0)
-    .map((r) => ({
-      start: r.startOffset,
-      end: r.endOffset,
-    }));
+  output: string,
+): ReadonlySet<number> => {
+  const ranges: ReadonlyArray<Range> =
+    script.functions
+      .flatMap((f) => f.ranges)
+      .map((r) => ({
+        start: r.startOffset,
+        end: r.endOffset,
+        count: r.count,
+      }));
+  const spans = lineSpans(output);
+  const hit = new Set<number>();
+  spans.forEach((span, idx) => {
+    // Probe at the line's first non-space byte; find the innermost
+    // range covering it; covered iff that range's count > 0.
+    const probe = span.start;
+    const enclosing = ranges
+      .filter(
+        (r) => r.start <= probe && r.end > probe,
+      )
+      .sort(
+        (a, b) =>
+          a.end - a.start - (b.end - b.start),
+      );
+    const innermost = enclosing[0];
+    if (
+      innermost !== undefined &&
+      innermost.count > 0
+    ) {
+      hit.add(idx);
+    }
+  });
+  return hit;
+};
 
 type LineSpan = Readonly<{
   start: number;
   end: number;
-  code: boolean;
 }>;
 
-// Splits source into line spans (byte offsets), flagging lines that
-// carry executable-ish code (non-blank, not a pure comment/brace) so
-// the denominator approximates vitest's line metric.
+// Byte spans of each line (0-based index) in the given text.
 const lineSpans = (
-  source: string,
-): ReadonlyArray<LineSpan> => {
-  const parts = source.split("\n");
-  return parts.reduce<{
+  text: string,
+): ReadonlyArray<LineSpan> =>
+  text.split("\n").reduce<{
     offset: number;
     spans: Array<LineSpan>;
   }>(
     (acc, raw) => {
       const start = acc.offset;
       const end = start + raw.length;
-      acc.spans.push({
-        start,
-        end,
-        code: isCodeLine(raw),
-      });
-      // +1 for the consumed newline.
+      acc.spans.push({ start, end });
       acc.offset = end + 1;
       return acc;
     },
     { offset: 0, spans: [] },
   ).spans;
-};
-
-const isCodeLine = (raw: string): boolean => {
-  const t = raw.trim();
-  return (
-    t.length > 0 &&
-    !t.startsWith("//") &&
-    !t.startsWith("*") &&
-    !t.startsWith("/*") &&
-    t !== "}" &&
-    t !== "{" &&
-    t !== "})" &&
-    t !== ");"
-  );
-};
-
-const anyCovered = (
-  line: LineSpan,
-  covered: ReadonlyArray<Interval>,
-): boolean =>
-  covered.some(
-    (iv) =>
-      iv.start < line.end && iv.end > line.start,
-  );
 
 const percent = (
   covered: number,
@@ -281,8 +330,7 @@ const percent = (
   total === 0 ? 100 : (covered / total) * 100;
 
 /**
- * Applies the >90% gate. Returns whether the report passes the
- * threshold (strictly greater, matching the existing rule).
+ * Applies the >90% gate (strictly greater, matching the existing rule).
  */
 export const passesThreshold = (
   report: CoverageReport,
