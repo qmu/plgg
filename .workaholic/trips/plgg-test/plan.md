@@ -1,9 +1,9 @@
 ---
 instruction: "Create a new package plgg-test — a from-scratch minimal test framework for the plgg monorepo to drop the vitest dependency and avoid Dependabot churn. Traditional describe/it/expect-style API for minimal test migration. Minimum but real implementation. Must include a --watch option (re-run on file change). Coverage support may need to be addressed/corrected. plgg house style (Option/Result, no as/any/ts-ignore). plgg is its own only consumer; breaking changes fine."
 phase: coding
-step: concurrent-launch
-iteration: 0
-updated_at: 2026-06-23T17:16:00+09:00
+step: iteration-1
+iteration: 1
+updated_at: 2026-06-23T18:40:00+09:00
 ---
 
 # Trip Plan
@@ -70,6 +70,53 @@ Exit-code contract (0 only on all-pass; non-zero on any failure or zero
 expected tests) and the command-scripts-compliant integration (extend the
 canonical per-package runner family; change only what npm scripts invoke) are
 adopted as-is from the design.
+
+### 2026-06-23T18:40 — [Lead] Coding review passed; Iteration 1 fix list
+
+Both Coding-Phase reviews are **approvals** (Architect: "Approve with
+observations", `a4209e5`; Planner E2E: headline **PASS**, `32ce653`). The
+implementation is trustworthy: **perfect test-for-test parity with vitest on
+plgg's real corpus — 74 files == 74, 465/465 verdicts, 0 divergence**; exit-code
+contract holds (both false-green guards); `--watch` works; `NODE_V8_COVERAGE`
+child re-exec confirmed; THE MOST IMPORTANT RULE holds (no `as`/`any`/`ts-ignore`);
+dependency boundary intact (only runtime dep is `plgg`; `typescript` is a
+pre-existing devDep used for transpile only). Neither reviewer requested a
+revision, so this is a normal Iteration-1 polish, not a rollback.
+
+Iteration-1 fixes routed to Constructor (Architect re-reviews + Planner
+re-tests after):
+
+1. **Coverage scope — RESTORE four-metric parity (headline; the user's
+   explicit "coverage needs to be corrected").** The gate hardcodes
+   `THRESHOLD=90` and computes **lines only**; the vitest config it replaces
+   gated **statements/branches/functions/lines each at 91**, and design §1.8
+   promised all four via V8 ranges. **Decision: close the gap, don't defer.**
+   Compute all four metrics from the V8 ranges already collected, make the
+   threshold **per-package-config-aware** (read each package's own number —
+   plgg 91, plgg-http 90, the three ungated packages none — not a hardcoded 90),
+   and fix the V8 edge case where a never-CALLED top-level function scores as
+   line-covered (use function-coverage data). If any single metric genuinely
+   can't reach parity in this iteration, record an explicit per-package
+   ship-or-defer verdict (Amendment 6) — never a silent narrowing.
+2. **Watch stale module cache on source edits (watch is first-class, SC4).**
+   In-process re-runs reuse Node's ESM module cache, so a changed *source* file
+   re-runs but reports STALE results (spec edits are fine). Fix it — preferred:
+   re-exec a fresh child per watch run (mirrors the coverage re-exec pattern,
+   gets a clean module graph). If a fresh-process-per-run is rejected, bust the
+   cache via import cache-busting; at minimum it must reflect source edits.
+3. **O2 — unhandled-rejection window.** `Runner.ts` guard only catches the
+   awaited `fn()`; a fire-and-forget rejection after the body escapes. Either
+   install a per-test `unhandledRejection` window to honor the comment, or
+   soften the comment to the actual await-only guarantee.
+4. **O3 — deep-equal cycle caveat.** `equals.ts` has no cycle guard (fine for
+   the acyclic corpus). Add a one-line header caveat.
+
+Parallel: Planner runs the **plgg-kit cross-package smoke** (with the
+`scripts/build.sh` dist build) to validate cross-package bare `"plgg"` resolution
+and the `vi.mock`→`postJson`-injection conversion (Amendment 2), the one item
+not yet exercised. Full-corpus migration of the remaining 58 spec files and the
+final vitest/`@vitest/coverage-v8` devDep removal (SC6) remain the last
+migration step after parity is proven package-by-package.
 
 ## Progress
 

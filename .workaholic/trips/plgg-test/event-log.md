@@ -17,3 +17,4 @@
 | 2026-06-23T18:26:31+09:00 | Constructor | milestone | plgg-test implemented; plgg migrated+parity green; coverage+watch working; tsc/lint clean |  |
 | 2026-06-23T18:31:49+09:00 | Architect | review-submitted | reviews/coding-review-architect.md | Approve with observations; primary: coverage gate downgrade (91→90, line-only) must be recorded per-package (Amendment 6) |
 | 2026-06-23T18:44:40+09:00 | Planner | test-executed | reviews/coding-e2e-planner.md | E2E+parity: 465/465 verdict parity, 74/74 file-set, exit-code+watch pass; coverage lines-only >90 gap flagged |
+| 2026-06-23T18:46:54+09:00 | Lead | iteration-start | plan.md | Coding review passed (parity perfect); Iteration 1 fix list recorded (coverage four-metric, watch cache, O2/O3) |
