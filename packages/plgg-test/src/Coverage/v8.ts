@@ -52,9 +52,7 @@ type V8Script = Readonly<{
   functions: ReadonlyArray<V8Function>;
 }>;
 
-const isV8Script = (
-  v: unknown,
-): v is V8Script =>
+const isV8Script = (v: unknown): v is V8Script =>
   typeof v === "object" &&
   v !== null &&
   "url" in v &&
@@ -73,18 +71,10 @@ export const collect = (
   srcRoot: string,
   exclude: ReadonlyArray<string>,
 ): CoverageReport => {
-  const scripts = readCovDir(
-    covDir,
-  ).filter((s) =>
-    keep(
-      toPath(s.url),
-      srcRoot,
-      exclude,
-    ),
+  const scripts = readCovDir(covDir).filter((s) =>
+    keep(toPath(s.url), srcRoot, exclude),
   );
-  const files = dedupeByPath(
-    scripts,
-  ).map((s) =>
+  const files = dedupeByPath(scripts).map((s) =>
     fileCoverage(s),
   );
   const totalLines = files.reduce(
@@ -99,10 +89,7 @@ export const collect = (
     files,
     totalLines,
     coveredLines,
-    pct: percent(
-      coveredLines,
-      totalLines,
-    ),
+    pct: percent(coveredLines, totalLines),
   };
 };
 
@@ -111,13 +98,9 @@ const readCovDir = (
 ): ReadonlyArray<V8Script> => {
   const names = safeReaddir(covDir);
   return names
-    .filter((n) =>
-      n.endsWith(".json"),
-    )
+    .filter((n) => n.endsWith(".json"))
     .flatMap((n) =>
-      parseScripts(
-        join(covDir, n),
-      ),
+      parseScripts(join(covDir, n)),
     );
 };
 
@@ -139,27 +122,21 @@ const parseScripts = (
   // Boundary seam: parsing untrusted JSON; a bad file contributes no
   // scripts rather than throwing.
   try {
-    const parsed: unknown =
-      JSON.parse(
-        readFileSync(file, "utf8"),
-      );
-    return typeof parsed ===
-      "object" &&
+    const parsed: unknown = JSON.parse(
+      readFileSync(file, "utf8"),
+    );
+    return typeof parsed === "object" &&
       parsed !== null &&
       "result" in parsed &&
       Array.isArray(parsed.result)
-      ? parsed.result.filter(
-          isV8Script,
-        )
+      ? parsed.result.filter(isV8Script)
       : [];
   } catch {
     return [];
   }
 };
 
-const toPath = (
-  url: string,
-): string =>
+const toPath = (url: string): string =>
   url.startsWith("file:")
     ? fileURLToPath(url)
     : url;
@@ -173,19 +150,14 @@ const keep = (
   path.endsWith(".ts") &&
   !path.endsWith(".spec.ts") &&
   !path.endsWith(".test.ts") &&
-  !exclude.some((frag) =>
-    path.includes(frag),
-  );
+  !exclude.some((frag) => path.includes(frag));
 
 // Keep one script entry per path (V8 may emit duplicates); the last
 // wins, which carries the fullest range set for our purpose.
 const dedupeByPath = (
   scripts: ReadonlyArray<V8Script>,
 ): ReadonlyArray<V8Script> => {
-  const byPath = new Map<
-    string,
-    V8Script
-  >();
+  const byPath = new Map<string, V8Script>();
   scripts.forEach((s) =>
     byPath.set(toPath(s.url), s),
   );
@@ -205,36 +177,23 @@ const fileCoverage = (
 }> => {
   const path = toPath(script.url);
   const source = readSource(path);
-  const covered = coveredOffsets(
-    script,
-  );
+  const covered = coveredOffsets(script);
   const lines = lineSpans(source);
-  const counted = lines.filter(
-    (ln) => ln.code,
-  );
-  const coveredLines =
-    counted.filter((ln) =>
-      anyCovered(ln, covered),
-    ).length;
+  const counted = lines.filter((ln) => ln.code);
+  const coveredLines = counted.filter((ln) =>
+    anyCovered(ln, covered),
+  ).length;
   return {
     path,
     totalLines: counted.length,
     coveredLines,
-    pct: percent(
-      coveredLines,
-      counted.length,
-    ),
+    pct: percent(coveredLines, counted.length),
   };
 };
 
-const readSource = (
-  path: string,
-): string => {
+const readSource = (path: string): string => {
   try {
-    return readFileSync(
-      path,
-      "utf8",
-    );
+    return readFileSync(path, "utf8");
   } catch {
     return "";
   }
@@ -278,8 +237,7 @@ const lineSpans = (
   }>(
     (acc, raw) => {
       const start = acc.offset;
-      const end =
-        start + raw.length;
+      const end = start + raw.length;
       acc.spans.push({
         start,
         end,
@@ -293,9 +251,7 @@ const lineSpans = (
   ).spans;
 };
 
-const isCodeLine = (
-  raw: string,
-): boolean => {
+const isCodeLine = (raw: string): boolean => {
   const t = raw.trim();
   return (
     t.length > 0 &&
@@ -315,17 +271,14 @@ const anyCovered = (
 ): boolean =>
   covered.some(
     (iv) =>
-      iv.start < line.end &&
-      iv.end > line.start,
+      iv.start < line.end && iv.end > line.start,
   );
 
 const percent = (
   covered: number,
   total: number,
 ): number =>
-  total === 0
-    ? 100
-    : (covered / total) * 100;
+  total === 0 ? 100 : (covered / total) * 100;
 
 /**
  * Applies the >90% gate. Returns whether the report passes the
@@ -334,5 +287,4 @@ const percent = (
 export const passesThreshold = (
   report: CoverageReport,
   threshold: number,
-): boolean =>
-  report.pct > threshold;
+): boolean => report.pct > threshold;

@@ -15,6 +15,4 @@ export { assertWithFail as assert } from "plgg-test/Assert/assert";
 
 export { vi } from "plgg-test/Mock/vi";
 
-export {
-  AssertionError,
-} from "plgg-test/Core/AssertionError";
+export { AssertionError } from "plgg-test/Core/AssertionError";

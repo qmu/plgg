@@ -30,14 +30,10 @@ const tagOf = (v: unknown): string =>
 // `unknown`-valued record view that `Object.entries` already exposes.
 const entriesOf = (
   o: object,
-): ReadonlyArray<
-  readonly [string, unknown]
-> => Object.entries(o);
+): ReadonlyArray<readonly [string, unknown]> =>
+  Object.entries(o);
 
-const eq = (
-  a: unknown,
-  b: unknown,
-): boolean =>
+const eq = (a: unknown, b: unknown): boolean =>
   Object.is(a, b)
     ? true
     : typeof a !== "object" ||
@@ -53,21 +49,16 @@ const eqObjects = (
 ): boolean =>
   tagOf(a) !== tagOf(b)
     ? false
-    : a instanceof Date &&
-        b instanceof Date
+    : a instanceof Date && b instanceof Date
       ? a.getTime() === b.getTime()
-      : a instanceof RegExp &&
-          b instanceof RegExp
+      : a instanceof RegExp && b instanceof RegExp
         ? a.source === b.source &&
           a.flags === b.flags
-        : Array.isArray(a) &&
-            Array.isArray(b)
+        : Array.isArray(a) && Array.isArray(b)
           ? eqArray(a, b)
-          : a instanceof Map &&
-              b instanceof Map
+          : a instanceof Map && b instanceof Map
             ? eqMap(a, b)
-            : a instanceof Set &&
-                b instanceof Set
+            : a instanceof Set && b instanceof Set
               ? eqSet(a, b)
               : eqPlain(a, b);
 
@@ -86,9 +77,7 @@ const eqMap = (
   a.size !== b.size
     ? false
     : [...a.entries()].every(
-        ([k, v]) =>
-          b.has(k) &&
-          eq(v, b.get(k)),
+        ([k, v]) => b.has(k) && eq(v, b.get(k)),
       );
 
 const eqSet = (
@@ -111,13 +100,10 @@ const eqSet = (
 //    so we drop functions from the structural comparison.
 const definedEntries = (
   o: object,
-): ReadonlyArray<
-  readonly [string, unknown]
-> =>
+): ReadonlyArray<readonly [string, unknown]> =>
   entriesOf(o).filter(
     ([, v]) =>
-      v !== undefined &&
-      typeof v !== "function",
+      v !== undefined && typeof v !== "function",
   );
 
 const eqPlain = (
@@ -130,7 +116,6 @@ const eqPlain = (
   return ea.length !== eb.length
     ? false
     : ea.every(
-        ([k, v]) =>
-          mb.has(k) && eq(v, mb.get(k)),
+        ([k, v]) => mb.has(k) && eq(v, mb.get(k)),
       );
 };

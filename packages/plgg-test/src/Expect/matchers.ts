@@ -50,8 +50,7 @@ export const toContain = (
 ): MatchResult => ({
   pass:
     typeof actual === "string"
-      ? typeof expected ===
-          "string" &&
+      ? typeof expected === "string" &&
         actual.includes(expected)
       : Array.isArray(actual)
         ? actual.some((v) =>
@@ -67,14 +66,22 @@ export const toHaveLength = (
   expected: number,
 ): MatchResult => ({
   pass:
-    has(actual, "length") &&
-    typeof actual === "object" &&
-    actual !== null &&
-    "length" in actual &&
-    actual.length === expected,
+    typeof actual === "string"
+      ? actual.length === expected
+      : Array.isArray(actual)
+        ? actual.length === expected
+        : has(actual, "length") &&
+          lengthOf(actual) === expected,
   message: `expected ${formatValue(actual)} to have length ${expected}`,
   notMessage: `expected ${formatValue(actual)} not to have length ${expected}`,
 });
+
+// Reads a `.length` off an array-like object known (by `has`) to carry
+// it, without an `as` cast.
+const lengthOf = (value: unknown): unknown =>
+  typeof value === "object" && value !== null
+    ? new Map(Object.entries(value)).get("length")
+    : undefined;
 
 // `toHaveProperty(path)` or `toHaveProperty(path, value)`. Path may be
 // dotted (`a.b.c`).
@@ -115,14 +122,10 @@ const resolvePath = (
     }>
   >(
     (acc, key) =>
-      acc.present &&
-      has(acc.value, key)
+      acc.present && has(acc.value, key)
         ? {
             present: true,
-            value: readProp(
-              acc.value,
-              key,
-            ),
+            value: readProp(acc.value, key),
           }
         : { present: false, value: undefined },
     { present: true, value: root },
@@ -135,9 +138,7 @@ const readProp = (
   key: string,
 ): unknown =>
   typeof o === "object" && o !== null
-    ? new Map(Object.entries(o)).get(
-        key,
-      )
+    ? new Map(Object.entries(o)).get(key)
     : undefined;
 
 export const toBeInstanceOf = (
@@ -185,16 +186,14 @@ export const toBeGreaterThan = (
   notMessage: `expected ${formatValue(actual)} not to be greater than ${formatValue(expected)}`,
 });
 
-export const toBeGreaterThanOrEqual =
-  (
-    actual: unknown,
-    expected: number | bigint,
-  ): MatchResult => ({
-    pass:
-      (typeof actual === "number" ||
-        typeof actual ===
-          "bigint") &&
-      actual >= expected,
-    message: `expected ${formatValue(actual)} to be >= ${formatValue(expected)}`,
-    notMessage: `expected ${formatValue(actual)} not to be >= ${formatValue(expected)}`,
-  });
+export const toBeGreaterThanOrEqual = (
+  actual: unknown,
+  expected: number | bigint,
+): MatchResult => ({
+  pass:
+    (typeof actual === "number" ||
+      typeof actual === "bigint") &&
+    actual >= expected,
+  message: `expected ${formatValue(actual)} to be >= ${formatValue(expected)}`,
+  notMessage: `expected ${formatValue(actual)} not to be >= ${formatValue(expected)}`,
+});

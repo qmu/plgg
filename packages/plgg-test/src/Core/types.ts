@@ -3,9 +3,7 @@
  * awaits the returned value, so a rejected promise fails the owning
  * test (the headline false-negative guard).
  */
-export type TestFn = () =>
-  | void
-  | Promise<void>;
+export type TestFn = () => void | Promise<void>;
 
 /**
  * How a registered test should be treated by the runner.

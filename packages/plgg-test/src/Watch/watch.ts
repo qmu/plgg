@@ -46,23 +46,15 @@ export const watch = (
     if (timer !== null) {
       clearTimeout(timer);
     }
-    timer = setTimeout(
-      fire,
-      debounceMs,
-    );
+    timer = setTimeout(fire, debounceMs);
   };
 
   const watchers = roots.map((root) =>
-    fsWatch(
-      root,
-      { recursive: true },
-      () => schedule(),
+    fsWatch(root, { recursive: true }, () =>
+      schedule(),
     ),
   );
 
   // Returns a disposer that tears down every watcher.
-  return () =>
-    watchers.forEach((w) =>
-      w.close(),
-    );
+  return () => watchers.forEach((w) => w.close());
 };

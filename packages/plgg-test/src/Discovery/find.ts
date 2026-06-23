@@ -1,8 +1,5 @@
 import { readdirSync } from "node:fs";
-import {
-  join,
-  resolve,
-} from "node:path";
+import { join, resolve } from "node:path";
 
 /**
  * Walks the given roots and returns the sorted, absolute paths of all
@@ -28,9 +25,7 @@ const PRUNE = new Set([
   "coverage",
 ]);
 
-const isSpec = (
-  name: string,
-): boolean =>
+const isSpec = (name: string): boolean =>
   name.endsWith(".spec.ts") ||
   name.endsWith(".test.ts");
 
@@ -44,11 +39,8 @@ const walk = (
     entry.isDirectory()
       ? PRUNE.has(entry.name)
         ? []
-        : walk(
-            join(dir, entry.name),
-          )
-      : entry.isFile() &&
-          isSpec(entry.name)
+        : walk(join(dir, entry.name))
+      : entry.isFile() && isSpec(entry.name)
         ? [join(dir, entry.name)]
         : [],
   );

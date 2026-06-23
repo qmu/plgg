@@ -1,6 +1,4 @@
-import {
-  AssertionError,
-} from "plgg-test/Core/AssertionError";
+import { AssertionError } from "plgg-test/Core/AssertionError";
 import type { MatchResult } from "plgg-test/Expect/matchers";
 import {
   toBe,
@@ -45,22 +43,14 @@ const settle = (
  */
 export type Matchers = Readonly<{
   toBe: (expected: unknown) => void;
-  toEqual: (
-    expected: unknown,
-  ) => void;
-  toContain: (
-    expected: unknown,
-  ) => void;
-  toHaveLength: (
-    expected: number,
-  ) => void;
+  toEqual: (expected: unknown) => void;
+  toContain: (expected: unknown) => void;
+  toHaveLength: (expected: number) => void;
   toHaveProperty: (
     path: string,
     value?: unknown,
   ) => void;
-  toBeInstanceOf: (
-    ctor: Function,
-  ) => void;
+  toBeInstanceOf: (ctor: Function) => void;
   toBeUndefined: () => void;
   toBeDefined: () => void;
   toBeNull: () => void;
@@ -70,14 +60,10 @@ export type Matchers = Readonly<{
   toBeGreaterThanOrEqual: (
     expected: number | bigint,
   ) => void;
-  toThrow: (
-    expected?: unknown,
-  ) => void;
+  toThrow: (expected?: unknown) => void;
   toHaveBeenCalled: () => void;
   toHaveBeenCalledOnce: () => void;
-  toHaveBeenCalledTimes: (
-    n: number,
-  ) => void;
+  toHaveBeenCalledTimes: (n: number) => void;
   toHaveBeenCalledWith: (
     ...args: ReadonlyArray<unknown>
   ) => void;
@@ -91,20 +77,11 @@ const buildMatchers = (
   negate: boolean,
 ): Matchers => ({
   toBe: (expected) =>
-    settle(
-      toBe(actual, expected),
-      negate,
-    ),
+    settle(toBe(actual, expected), negate),
   toEqual: (expected) =>
-    settle(
-      toEqual(actual, expected),
-      negate,
-    ),
+    settle(toEqual(actual, expected), negate),
   toContain: (expected) =>
-    settle(
-      toContain(actual, expected),
-      negate,
-    ),
+    settle(toContain(actual, expected), negate),
   toHaveLength: (expected) =>
     settle(
       toHaveLength(actual, expected),
@@ -121,20 +98,11 @@ const buildMatchers = (
       negate,
     ),
   toBeInstanceOf: (ctor) =>
-    settle(
-      toBeInstanceOf(actual, ctor),
-      negate,
-    ),
+    settle(toBeInstanceOf(actual, ctor), negate),
   toBeUndefined: () =>
-    settle(
-      toBeUndefined(actual),
-      negate,
-    ),
+    settle(toBeUndefined(actual), negate),
   toBeDefined: () =>
-    settle(
-      toBeDefined(actual),
-      negate,
-    ),
+    settle(toBeDefined(actual), negate),
   toBeNull: () =>
     settle(toBeNull(actual), negate),
   toBeGreaterThan: (expected) =>
@@ -144,37 +112,19 @@ const buildMatchers = (
     ),
   toBeGreaterThanOrEqual: (expected) =>
     settle(
-      toBeGreaterThanOrEqual(
-        actual,
-        expected,
-      ),
+      toBeGreaterThanOrEqual(actual, expected),
       negate,
     ),
   toThrow: (expected) =>
-    settle(
-      matchThrow(actual, expected),
-      negate,
-    ),
+    settle(matchThrow(actual, expected), negate),
   toHaveBeenCalled: () =>
-    settle(
-      matchCalled(actual),
-      negate,
-    ),
+    settle(matchCalled(actual), negate),
   toHaveBeenCalledOnce: () =>
-    settle(
-      matchCalledTimes(actual, 1),
-      negate,
-    ),
+    settle(matchCalledTimes(actual, 1), negate),
   toHaveBeenCalledTimes: (n) =>
-    settle(
-      matchCalledTimes(actual, n),
-      negate,
-    ),
+    settle(matchCalledTimes(actual, n), negate),
   toHaveBeenCalledWith: (...args) =>
-    settle(
-      matchCalledWith(actual, args),
-      negate,
-    ),
+    settle(matchCalledWith(actual, args), negate),
 });
 
 // `toThrow`: `actual` must be a thunk. Calls it; passes if it threw,
@@ -185,9 +135,7 @@ const matchThrow = (
   actual: unknown,
   expected: unknown,
 ): MatchResult => {
-  if (
-    typeof actual !== "function"
-  ) {
+  if (typeof actual !== "function") {
     return {
       pass: false,
       message: `toThrow expects a function, received ${formatValue(actual)}`,
@@ -237,11 +185,8 @@ const throwMatches = (
   expected === undefined
     ? true
     : typeof expected === "string"
-      ? messageOf(error).includes(
-          expected,
-        )
-      : typeof expected ===
-          "function"
+      ? messageOf(error).includes(expected)
+      : typeof expected === "function"
         ? error instanceof expected
         : expected instanceof Error
           ? messageOf(error).includes(
@@ -249,9 +194,7 @@ const throwMatches = (
             )
           : false;
 
-const messageOf = (
-  error: unknown,
-): string =>
+const messageOf = (error: unknown): string =>
   error instanceof Error
     ? error.message
     : String(error);
@@ -260,8 +203,7 @@ const matchCalled = (
   actual: unknown,
 ): MatchResult => ({
   pass:
-    isSpy(actual) &&
-    actual.mock.calls.length > 0,
+    isSpy(actual) && actual.mock.calls.length > 0,
   message: `expected spy to have been called`,
   notMessage: `expected spy not to have been called`,
 });
@@ -296,9 +238,7 @@ const argsEqual = (
   b: ReadonlyArray<unknown>,
 ): boolean =>
   a.length === b.length &&
-  a.every((v, i) =>
-    deepEqual(v, b[i]),
-  );
+  a.every((v, i) => deepEqual(v, b[i]));
 
 /**
  * The async adapter for `.resolves` / `.rejects`. Awaits the promise,
@@ -307,12 +247,8 @@ const argsEqual = (
  * must `await` — the corpus does (`await expect(p).resolves.toBe(x)`).
  */
 export type AsyncMatchers = Readonly<{
-  toBe: (
-    expected: unknown,
-  ) => Promise<void>;
-  toEqual: (
-    expected: unknown,
-  ) => Promise<void>;
+  toBe: (expected: unknown) => Promise<void>;
+  toEqual: (expected: unknown) => Promise<void>;
   toBeUndefined: () => Promise<void>;
 }>;
 
@@ -323,9 +259,7 @@ const settleAsync = async (
 ): Promise<void> => {
   // Boundary seam: adapting a Promise to a sync matcher is exactly
   // an await + observe-rejection, so try/catch is irreducible here.
-  const outcome = await observe(
-    promise,
-  );
+  const outcome = await observe(promise);
   if (wantReject) {
     if (!outcome.rejected) {
       throw new AssertionError({
@@ -369,30 +303,16 @@ const buildAsync = (
   wantReject: boolean,
 ): AsyncMatchers => ({
   toBe: (expected) =>
-    settleAsync(
-      promise,
-      wantReject,
-      (v) => settle(toBe(v, expected), false),
+    settleAsync(promise, wantReject, (v) =>
+      settle(toBe(v, expected), false),
     ),
   toEqual: (expected) =>
-    settleAsync(
-      promise,
-      wantReject,
-      (v) =>
-        settle(
-          toEqual(v, expected),
-          false,
-        ),
+    settleAsync(promise, wantReject, (v) =>
+      settle(toEqual(v, expected), false),
     ),
   toBeUndefined: () =>
-    settleAsync(
-      promise,
-      wantReject,
-      (v) =>
-        settle(
-          toBeUndefined(v),
-          false,
-        ),
+    settleAsync(promise, wantReject, (v) =>
+      settle(toBeUndefined(v), false),
     ),
 });
 
@@ -422,12 +342,6 @@ export const expect = (
 ): Expectation => ({
   ...buildMatchers(actual, false),
   not: buildMatchers(actual, true),
-  resolves: buildAsync(
-    toPromise(actual),
-    false,
-  ),
-  rejects: buildAsync(
-    toPromise(actual),
-    true,
-  ),
+  resolves: buildAsync(toPromise(actual), false),
+  rejects: buildAsync(toPromise(actual), true),
 });

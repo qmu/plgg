@@ -50,7 +50,9 @@ const current = (): MutSuite => {
   // stack always has the root; this is the irreducible imperative
   // seam, so the non-empty invariant is maintained by construction.
   const top = stack[stack.length - 1];
-  return top ?? stack[0] ?? makeMutSuite("", "run");
+  return (
+    top ?? stack[0] ?? makeMutSuite("", "run")
+  );
 };
 
 /**
@@ -115,18 +117,13 @@ const addSuite = (
  */
 export const test: {
   (name: string, fn: TestFn): void;
-  skip: (
-    name: string,
-    fn: TestFn,
-  ) => void;
+  skip: (name: string, fn: TestFn) => void;
 } = Object.assign(
   (name: string, fn: TestFn): void =>
     addTest(name, fn, "run"),
   {
-    skip: (
-      name: string,
-      fn: TestFn,
-    ): void => addTest(name, fn, "skip"),
+    skip: (name: string, fn: TestFn): void =>
+      addTest(name, fn, "skip"),
   },
 );
 
@@ -141,20 +138,12 @@ export const it = test;
  */
 export const describe: {
   (name: string, fn: () => void): void;
-  skip: (
-    name: string,
-    fn: () => void,
-  ) => void;
+  skip: (name: string, fn: () => void) => void;
 } = Object.assign(
-  (
-    name: string,
-    fn: () => void,
-  ): void => addSuite(name, fn, "run"),
+  (name: string, fn: () => void): void =>
+    addSuite(name, fn, "run"),
   {
-    skip: (
-      name: string,
-      fn: () => void,
-    ): void =>
+    skip: (name: string, fn: () => void): void =>
       addSuite(name, fn, "skip"),
   },
 );
@@ -162,15 +151,11 @@ export const describe: {
 /**
  * Registers a `beforeEach` hook on the current suite.
  */
-export const beforeEach = (
-  fn: TestFn,
-): void =>
+export const beforeEach = (fn: TestFn): void =>
   void current().beforeEach.push(fn);
 
 /**
  * Registers an `afterEach` hook on the current suite.
  */
-export const afterEach = (
-  fn: TestFn,
-): void =>
+export const afterEach = (fn: TestFn): void =>
   void current().afterEach.push(fn);

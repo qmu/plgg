@@ -1,6 +1,4 @@
-import {
-  AssertionError,
-} from "plgg-test/Core/AssertionError";
+import { AssertionError } from "plgg-test/Core/AssertionError";
 
 /**
  * `assert(cond)` — a TYPE-NARROWING assertion (used 448× across the
@@ -29,12 +27,9 @@ export function assert(
  * property carrying a `never` return so callers can use it in
  * exhaustive positions.
  */
-const fail = (
-  message?: string,
-): never => {
+const fail = (message?: string): never => {
   throw new AssertionError({
-    message:
-      message ?? "assert.fail()",
+    message: message ?? "assert.fail()",
   });
 };
 

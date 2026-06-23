@@ -16,9 +16,7 @@ export type Spy = ((
   ...args: ReadonlyArray<unknown>
 ) => unknown) & {
   mock: {
-    calls: Array<
-      ReadonlyArray<unknown>
-    >;
+    calls: Array<ReadonlyArray<unknown>>;
   };
 };
 
@@ -41,16 +39,12 @@ const makeFn = (
     ...args: ReadonlyArray<unknown>
   ) => unknown,
 ): Spy => {
-  const calls: Array<
-    ReadonlyArray<unknown>
-  > = [];
+  const calls: Array<ReadonlyArray<unknown>> = [];
   const spy = (
     ...args: ReadonlyArray<unknown>
   ): unknown => {
     calls.push(args);
-    return impl
-      ? impl(...args)
-      : undefined;
+    return impl ? impl(...args) : undefined;
   };
   // The spy must carry its own `mock` record; attaching it after
   // construction is the irreducible imperative seam for a callable
@@ -89,41 +83,27 @@ const stubGlobal = (
   value: unknown,
 ): void => {
   if (!savedGlobals.has(key)) {
-    savedGlobals.set(
-      key,
-      readGlobal(key),
-    );
+    savedGlobals.set(key, readGlobal(key));
   }
-  Object.defineProperty(
-    globalThis,
-    key,
-    {
-      value,
-      writable: true,
-      configurable: true,
-      enumerable: true,
-    },
-  );
+  Object.defineProperty(globalThis, key, {
+    value,
+    writable: true,
+    configurable: true,
+    enumerable: true,
+  });
 };
 
 const unstubAllGlobals = (): void => {
   savedGlobals.forEach((saved, key) => {
     if (saved.present) {
-      Object.defineProperty(
-        globalThis,
-        key,
-        {
-          value: saved.value,
-          writable: true,
-          configurable: true,
-          enumerable: true,
-        },
-      );
+      Object.defineProperty(globalThis, key, {
+        value: saved.value,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
     } else {
-      Reflect.deleteProperty(
-        globalThis,
-        key,
-      );
+      Reflect.deleteProperty(globalThis, key);
     }
   });
   savedGlobals.clear();
@@ -150,10 +130,7 @@ const unstubAllEnvs = (): void => {
     if (saved.present) {
       process.env[key] = saved.value;
     } else {
-      Reflect.deleteProperty(
-        process.env,
-        key,
-      );
+      Reflect.deleteProperty(process.env, key);
     }
   });
   savedEnv.clear();

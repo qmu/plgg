@@ -21,13 +21,8 @@ export const parseArgs = (
     (a) => !a.startsWith("--"),
   );
   return {
-    roots:
-      roots.length > 0
-        ? roots
-        : ["src"],
+    roots: roots.length > 0 ? roots : ["src"],
     watch: flags.includes("--watch"),
-    coverage: flags.includes(
-      "--coverage",
-    ),
+    coverage: flags.includes("--coverage"),
   };
 };

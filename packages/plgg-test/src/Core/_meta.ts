@@ -22,13 +22,8 @@ import { runFile } from "plgg-test/Core/Runner";
 import { exitCodeFor } from "plgg-test/Core/Reporter";
 import { tally } from "plgg-test/Core/Reporter";
 import { ok, some } from "plgg";
-import {
-  fileURLToPath,
-} from "node:url";
-import {
-  dirname,
-  join,
-} from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 // Plain assertion helper — deliberately not from plgg-test.
 const check = (
@@ -36,16 +31,12 @@ const check = (
   cond: boolean,
 ): void => {
   if (!cond) {
-    console.error(
-      `META FAIL: ${label}`,
-    );
+    console.error(`META FAIL: ${label}`);
     process.exit(1);
   }
 };
 
-const threw = (
-  fn: () => void,
-): boolean => {
+const threw = (fn: () => void): boolean => {
   try {
     fn();
     return false;
@@ -58,35 +49,23 @@ const main = async (): Promise<void> => {
   // 1. failing expect throws
   check(
     "failing expect throws",
-    threw(() =>
-      expect(1).toBe(2),
-    ),
+    threw(() => expect(1).toBe(2)),
   );
 
   // 2. passing expect does not throw
   check(
     "passing expect does not throw",
-    !threw(() =>
-      expect(1).toBe(1),
-    ),
+    !threw(() => expect(1).toBe(1)),
   );
 
   // 5. toEqual deep-equals real plgg shapes (Box-shaped Ok/Some)
   check(
     "toEqual on plgg Ok",
-    !threw(() =>
-      expect(ok(42)).toEqual(
-        ok(42),
-      ),
-    ),
+    !threw(() => expect(ok(42)).toEqual(ok(42))),
   );
   check(
     "toEqual distinguishes plgg shapes",
-    threw(() =>
-      expect(ok(42)).toEqual(
-        some(42),
-      ),
-    ),
+    threw(() => expect(ok(42)).toEqual(some(42))),
   );
 
   // 3 & 4. run a real fixture file with a passing, a failing, and an
@@ -101,14 +80,9 @@ const main = async (): Promise<void> => {
     "fixtures",
     "_metaFixture.spec.ts",
   );
-  const results = await runFile(
-    fixture,
-  );
+  const results = await runFile(fixture);
   const v = tally(results);
-  check(
-    "runner counts 1 pass",
-    v.passed === 1,
-  );
+  check("runner counts 1 pass", v.passed === 1);
   check(
     "runner counts 2 fails (sync + async reject)",
     v.failed === 2,

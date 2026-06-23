@@ -17,39 +17,27 @@ import type { TestResult } from "plgg-test/Core/types";
  * ever does discovery+run+report+watch.
  */
 const main = async (): Promise<void> => {
-  const args = parseArgs(
-    process.argv.slice(2),
-  );
+  const args = parseArgs(process.argv.slice(2));
 
   const runOnce = async (): Promise<
     ReadonlyArray<TestResult>
   > => {
-    const files = discover(
-      args.roots,
-    );
+    const files = discover(args.roots);
     // The discovered SET is part of the parity contract; print it so
     // the launcher / parity harness can compare against vitest.
     if (
-      process.env
-        .PLGG_TEST_PRINT_FILES ===
-      "1"
+      process.env.PLGG_TEST_PRINT_FILES === "1"
     ) {
       files.forEach((f) =>
-        process.stdout.write(
-          `FILE ${f}\n`,
-        ),
+        process.stdout.write(`FILE ${f}\n`),
       );
     }
     const results = (
       await sequence(
-        files.map(
-          (f) => () => runFile(f),
-        ),
+        files.map((f) => () => runFile(f)),
       )
     ).flat();
-    process.stdout.write(
-      report(results) + "\n",
-    );
+    process.stdout.write(report(results) + "\n");
     return results;
   };
 
@@ -73,15 +61,11 @@ const main = async (): Promise<void> => {
   }
 
   const results = await runOnce();
-  process.exitCode = exitCodeFor(
-    tally(results),
-  );
+  process.exitCode = exitCodeFor(tally(results));
 };
 
 const sequence = <T>(
-  thunks: ReadonlyArray<
-    () => Promise<T>
-  >,
+  thunks: ReadonlyArray<() => Promise<T>>,
 ): Promise<ReadonlyArray<T>> =>
   thunks.reduce<Promise<Array<T>>>(
     async (accP, thunk) => {

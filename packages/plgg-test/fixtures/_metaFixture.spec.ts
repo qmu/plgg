@@ -3,10 +3,7 @@
 // failing tests, so it lives under `fixtures/` (outside `src`) and is
 // never picked up by the normal self-test discovery — only loaded by
 // the meta-harness via an explicit path.
-import {
-  test,
-  expect,
-} from "plgg-test/index";
+import { test, expect } from "plgg-test/index";
 
 test("passes", () => {
   expect(1).toBe(1);
@@ -17,7 +14,5 @@ test("fails synchronously", () => {
 });
 
 test("fails by async rejection", async () => {
-  await Promise.reject(
-    new Error("boom"),
-  );
+  await Promise.reject(new Error("boom"));
 });

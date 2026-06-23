@@ -21,17 +21,13 @@ const render = (
         ? JSON.stringify(value)
         : typeof value === "bigint"
           ? `${value.toString()}n`
-          : typeof value ===
-                "function"
+          : typeof value === "function"
             ? `[Function ${value.name || "anonymous"}]`
             : typeof value !== "object"
               ? String(value)
               : depth >= MAX_DEPTH
                 ? "[…]"
-                : renderObject(
-                    value,
-                    depth,
-                  );
+                : renderObject(value, depth);
 
 const renderObject = (
   value: object,
@@ -41,9 +37,7 @@ const renderObject = (
     ? `[${value.name}: ${value.message}]`
     : Array.isArray(value)
       ? `[${value
-          .map((v) =>
-            render(v, depth + 1),
-          )
+          .map((v) => render(v, depth + 1))
           .join(", ")}]`
       : `{ ${Object.entries(value)
           .map(

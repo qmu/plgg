@@ -13,19 +13,13 @@ export const tally = (
     (v, r) => ({
       passed:
         v.passed +
-        (r.outcome === "passed"
-          ? 1
-          : 0),
+        (r.outcome === "passed" ? 1 : 0),
       failed:
         v.failed +
-        (r.outcome === "failed"
-          ? 1
-          : 0),
+        (r.outcome === "failed" ? 1 : 0),
       skipped:
         v.skipped +
-        (r.outcome === "skipped"
-          ? 1
-          : 0),
+        (r.outcome === "skipped" ? 1 : 0),
     }),
     { passed: 0, failed: 0, skipped: 0 },
   );
@@ -61,29 +55,20 @@ export const report = (
   const failBlock =
     failures.length === 0
       ? ""
-      : failures
-          .map(formatFailure)
-          .join("\n") + "\n\n";
+      : failures.map(formatFailure).join("\n") +
+        "\n\n";
   return (
-    failBlock +
-    summaryLine(v) +
-    emptyNote(v)
+    failBlock + summaryLine(v) + emptyNote(v)
   );
 };
 
-const formatFailure = (
-  r: TestResult,
-): string =>
+const formatFailure = (r: TestResult): string =>
   `✗ ${r.names.join(" › ")}\n    ${r.message}`;
 
-const summaryLine = (
-  v: Verdict,
-): string =>
+const summaryLine = (v: Verdict): string =>
   `${v.passed} passed, ${v.failed} failed, ${v.skipped} skipped`;
 
-const emptyNote = (
-  v: Verdict,
-): string =>
+const emptyNote = (v: Verdict): string =>
   v.passed + v.failed === 0
     ? "\nno tests were executed (treated as failure)"
     : "";

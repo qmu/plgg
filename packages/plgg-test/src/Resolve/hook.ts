@@ -1,12 +1,6 @@
-import {
-  existsSync,
-} from "node:fs";
-import {
-  join,
-} from "node:path";
-import {
-  pathToFileURL,
-} from "node:url";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 /**
  * ESM resolver hook (Plan Amendment 4: a gated acceptance fixture
@@ -48,9 +42,7 @@ const parseAliases = (): ReadonlyArray<Alias> =>
         : [
             {
               prefix: line.slice(0, eq),
-              srcRoot: line.slice(
-                eq + 1,
-              ),
+              srcRoot: line.slice(eq + 1),
             },
           ];
     });
@@ -60,15 +52,11 @@ const ALIASES = parseAliases();
 // Resolves a self-alias specifier to a concrete src file URL, trying
 // `<path>.ts` then `<path>/index.ts`. Returns the matched URL or the
 // empty string when no alias applies (fall through).
-const rewrite = (
-  specifier: string,
-): string => {
+const rewrite = (specifier: string): string => {
   const hit = ALIASES.find(
     (a) =>
       specifier === a.prefix ||
-      specifier.startsWith(
-        a.prefix + "/",
-      ),
+      specifier.startsWith(a.prefix + "/"),
   );
   if (hit === undefined) {
     return "";
@@ -76,9 +64,7 @@ const rewrite = (
   const rel =
     specifier === hit.prefix
       ? ""
-      : specifier.slice(
-          hit.prefix.length + 1,
-        );
+      : specifier.slice(hit.prefix.length + 1);
   const base =
     rel === ""
       ? hit.srcRoot
@@ -86,22 +72,15 @@ const rewrite = (
   const asTs = base + ".ts";
   return existsSync(asTs)
     ? pathToFileURL(asTs).href
-    : existsSync(
-          join(base, "index.ts"),
-        )
-      ? pathToFileURL(
-          join(base, "index.ts"),
-        ).href
+    : existsSync(join(base, "index.ts"))
+      ? pathToFileURL(join(base, "index.ts")).href
       : "";
 };
 
 // The Node loader-hook `resolve` contract.
 type ResolveContext = {
   conditions: ReadonlyArray<string>;
-  importAttributes: Record<
-    string,
-    string
-  >;
+  importAttributes: Record<string, string>;
   parentURL?: string;
 };
 
@@ -114,17 +93,14 @@ type ResolveResult = {
 type NextResolve = (
   specifier: string,
   context: ResolveContext,
-) =>
-  | ResolveResult
-  | Promise<ResolveResult>;
+) => ResolveResult | Promise<ResolveResult>;
 
 export const resolve = async (
   specifier: string,
   context: ResolveContext,
   next: NextResolve,
 ): Promise<ResolveResult> => {
-  const rewritten =
-    rewrite(specifier);
+  const rewritten = rewrite(specifier);
   // Do NOT set `format`: leaving it undefined lets Node's native
   // type-stripping loader classify the resolved `.ts` file and strip
   // it. Forcing `format: "module"` would skip stripping and feed raw

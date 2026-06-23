@@ -37,11 +37,7 @@ const main = (): void => {
     process.exitCode = 1;
     return;
   }
-  const rep = collect(
-    covDir,
-    srcRoot,
-    EXCLUDE,
-  );
+  const rep = collect(covDir, srcRoot, EXCLUDE);
   rep.files.forEach((f) =>
     process.stdout.write(
       `${f.pct.toFixed(2).padStart(6)}%  ${f.path}\n`,
@@ -50,10 +46,7 @@ const main = (): void => {
   process.stdout.write(
     `\nTotal line coverage: ${rep.pct.toFixed(2)}% (${rep.coveredLines}/${rep.totalLines})\n`,
   );
-  const ok = passesThreshold(
-    rep,
-    THRESHOLD,
-  );
+  const ok = passesThreshold(rep, THRESHOLD);
   process.stdout.write(
     ok
       ? `Coverage gate passed (> ${THRESHOLD}%)\n`

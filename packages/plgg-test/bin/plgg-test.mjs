@@ -15,10 +15,7 @@
 //      applies the >90% gate. `node:inspector` Session is the
 //      documented fallback only; not used here.
 import { spawnSync } from "node:child_process";
-import {
-  mkdtempSync,
-  rmSync,
-} from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import {
   dirname,
@@ -43,15 +40,10 @@ const registerPath = join(
   "Resolve",
   "register.mjs",
 );
-const cliPath = join(
-  srcRoot,
-  "Cli",
-  "cli.ts",
-);
+const cliPath = join(srcRoot, "Cli", "cli.ts");
 
 const argv = process.argv.slice(2);
-const wantsCoverage =
-  argv.includes("--coverage");
+const wantsCoverage = argv.includes("--coverage");
 const childArgv = argv.filter(
   (a) => a !== "--coverage",
 );
@@ -72,9 +64,7 @@ const aliases = [
 
 function safeDerive(tsconfigPath) {
   try {
-    return deriveAliases(
-      tsconfigPath,
-    );
+    return deriveAliases(tsconfigPath);
   } catch {
     return "";
   }
@@ -142,6 +132,5 @@ rmSync(covDir, {
 
 // Fail if either the tests failed or the coverage gate failed.
 process.exit(
-  (r.status ?? 1) ||
-    (gate.status ?? 1),
+  (r.status ?? 1) || (gate.status ?? 1),
 );

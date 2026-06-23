@@ -25,24 +25,29 @@ import {
  * surfaced as a single synthetic failed result, never swallowed — a
  * spec that fails to load must turn the run red.
  */
+// Monotonic counter making every `runFile` load a UNIQUE module URL.
+// ES modules evaluate once per URL, so without this a second run of
+// the same spec (a watch re-run, or one test that itself runs another
+// spec via runFile) would hit the cached module and skip its top-level
+// `test`/`describe` registrations. A fresh token per call forces
+// re-evaluation of the spec module; its own imports stay cached, which
+// is correct (we only want the spec body to re-register).
+let loadSeq = 0;
+
 export const runFile = async (
   file: string,
-): Promise<
-  ReadonlyArray<TestResult>
-> => {
+): Promise<ReadonlyArray<TestResult>> => {
   resetRegistry();
+  loadSeq = loadSeq + 1;
   const loaded = await loadModule(
     file,
+    String(loadSeq),
   );
   return loaded.ok
-    ? runSuite(
-        takeRootSuite(),
-        [],
-        {
-          beforeEach: [],
-          afterEach: [],
-        },
-      )
+    ? runSuite(takeRootSuite(), [], {
+        beforeEach: [],
+        afterEach: [],
+      })
     : [
         {
           names: [file],
@@ -56,6 +61,7 @@ export const runFile = async (
 
 const loadModule = async (
   file: string,
+  cacheBust: string,
 ): Promise<
   Readonly<{
     ok: boolean;
@@ -66,10 +72,9 @@ const loadModule = async (
   // Boundary seam: dynamic import is the effect; a load failure must
   // be captured (not thrown into the runner), so try/catch is
   // irreducible here.
+  const url = `${pathToFileURL(file).href}?t=${cacheBust}`;
   try {
-    await import(
-      pathToFileURL(file).href
-    );
+    await import(url);
     return {
       ok: true,
       message: "",
@@ -104,15 +109,12 @@ const runSuite = async (
   suite: Suite,
   ancestry: ReadonlyArray<string>,
   inherited: Hooks,
-): Promise<
-  ReadonlyArray<TestResult>
-> => {
+): Promise<ReadonlyArray<TestResult>> => {
   const path =
     suite.name === ""
       ? ancestry
       : [...ancestry, suite.name];
-  const skipped =
-    suite.mode === "skip";
+  const skipped = suite.mode === "skip";
   const hooks = concatHooks(
     inherited,
     suite.hooks,
@@ -120,41 +122,28 @@ const runSuite = async (
   // Run this suite's own tests, then recurse into child suites,
   // preserving registration order. Sequential by design: stubGlobal
   // mutates shared globals, so parallelism would race.
-  const ownResults =
-    await sequence(
-      suite.tests.map(
-        (t) => () =>
-          runTest(
-            t,
-            path,
-            hooks,
-            skipped,
-          ),
-      ),
-    );
+  const ownResults = await sequence(
+    suite.tests.map(
+      (t) => () =>
+        runTest(t, path, hooks, skipped),
+    ),
+  );
   const childResults = await sequence(
     suite.suites.map(
       (child) => () =>
         runSuite(
           child,
           path,
-          skipped
-            ? markSkipHooks(hooks)
-            : hooks,
+          skipped ? markSkipHooks(hooks) : hooks,
         ),
     ),
   );
-  return [
-    ...ownResults,
-    ...childResults.flat(),
-  ];
+  return [...ownResults, ...childResults.flat()];
 };
 
 // When a parent describe is skipped, children inherit skip; their
 // hooks should not run, so we hand down empty hook lists.
-const markSkipHooks = (
-  _hooks: Hooks,
-): Hooks => ({
+const markSkipHooks = (_hooks: Hooks): Hooks => ({
   beforeEach: [],
   afterEach: [],
 });
@@ -165,14 +154,8 @@ const runTest = async (
   hooks: Hooks,
   inheritedSkip: boolean,
 ): Promise<TestResult> => {
-  const names = [
-    ...ancestry,
-    test.name,
-  ];
-  if (
-    inheritedSkip ||
-    test.mode === "skip"
-  ) {
+  const names = [...ancestry, test.name];
+  if (inheritedSkip || test.mode === "skip") {
     return {
       names,
       outcome: "skipped",
@@ -182,10 +165,7 @@ const runTest = async (
     };
   }
   const started = now();
-  const failure = await execute(
-    test.fn,
-    hooks,
-  );
+  const failure = await execute(test.fn, hooks);
   const durationMs = now() - started;
   return failure.failed
     ? {
@@ -217,20 +197,14 @@ const execute = async (
     stack: string;
   }>
 > => {
-  const before = await runSteps(
-    hooks.beforeEach,
-  );
+  const before = await runSteps(hooks.beforeEach);
   const main = before.failed
     ? before
     : await guard(body);
-  const after = await runSteps(
-    hooks.afterEach,
-  );
+  const after = await runSteps(hooks.afterEach);
   // The body/before failure takes precedence; a teardown failure only
   // surfaces if the test was otherwise green.
-  return main.failed
-    ? main
-    : after;
+  return main.failed ? main : after;
 };
 
 const runSteps = async (
@@ -253,9 +227,7 @@ const runSteps = async (
   >(
     async (accP, step) => {
       const acc = await accP;
-      return acc.failed
-        ? acc
-        : guard(step);
+      return acc.failed ? acc : guard(step);
     },
     Promise.resolve({
       failed: false,
@@ -299,9 +271,7 @@ const guard = async (
 
 // Sequences an array of thunks returning promises, in order.
 const sequence = <T>(
-  thunks: ReadonlyArray<
-    () => Promise<T>
-  >,
+  thunks: ReadonlyArray<() => Promise<T>>,
 ): Promise<ReadonlyArray<T>> =>
   thunks.reduce<Promise<Array<T>>>(
     async (accP, thunk) => {
@@ -312,25 +282,18 @@ const sequence = <T>(
     Promise.resolve([]),
   );
 
-const messageOf = (
-  e: unknown,
-): string =>
+const messageOf = (e: unknown): string =>
   e instanceof Error
     ? e.message
     : typeof e === "string"
       ? e
       : `non-error thrown: ${String(e)}`;
 
-const stackOf = (
-  e: unknown,
-): string =>
-  e instanceof Error && e.stack
-    ? e.stack
-    : "";
+const stackOf = (e: unknown): string =>
+  e instanceof Error && e.stack ? e.stack : "";
 
 const now = (): number =>
-  Number(process.hrtime.bigint()) /
-  1_000_000;
+  Number(process.hrtime.bigint()) / 1_000_000;
 
 // Re-export so the meta-harness can construct the same error type.
 export { AssertionError };

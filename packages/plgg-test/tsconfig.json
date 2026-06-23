@@ -2,14 +2,19 @@
   "compilerOptions": {
     /* Compiler Option */
     "target": "ES2021",
-    "module": "NodeNext",
+    /* plgg-test runs its `.ts` directly via Node's native
+       type-stripping (ESM), and uses `import.meta.url` to locate
+       fixtures. ESNext + Bundler resolution lets the source use the
+       repo's extensionless self-alias specifiers (`plgg-test/Core/…`)
+       while still emitting/treating modules as ESM — without forcing
+       `.js` suffixes everywhere that NodeNext+type:module would. */
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "paths": {
-      "plgg-test*": [
-        "./src/*"
-      ]
+      "plgg-test/*": ["./src/*"]
     },
     "rootDir": "src",
     "outDir": "dist",
@@ -30,7 +35,5 @@
     "allowJs": false,
     "erasableSyntaxOnly": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }
