@@ -1,7 +1,9 @@
 import {
   test,
-  expect,
-  assert,
+  check,
+  all,
+  toBe,
+  toEqual,
 } from "plgg-test/index";
 import { readConfig } from "plgg-test/Coverage/config";
 import { isSome, isNone } from "plgg";
@@ -29,7 +31,7 @@ const withDir = <T>(
   }
 };
 
-test("reads threshold and exclude from config", () => {
+test("reads threshold and exclude from config", () =>
   withDir((dir) => {
     writeFileSync(
       join(dir, "plgg-test.config.json"),
@@ -41,21 +43,31 @@ test("reads threshold and exclude from config", () => {
       }),
     );
     const c = readConfig(dir);
-    assert(isSome(c.threshold));
-    expect(c.threshold.content).toBe(91);
-    expect(c.exclude).toEqual(["/Foo/"]);
-  });
-});
+    return all([
+      check(isSome(c.threshold), toBe(true)),
+      check(
+        isSome(c.threshold)
+          ? c.threshold.content
+          : undefined,
+        toBe<number | undefined>(91),
+      ),
+      check(
+        c.exclude,
+        toEqual<readonly string[]>(["/Foo/"]),
+      ),
+    ]);
+  }));
 
-test("missing config => ungated with default excludes", () => {
+test("missing config => ungated with default excludes", () =>
   withDir((dir) => {
     const c = readConfig(dir);
-    expect(isNone(c.threshold)).toBe(true);
-    expect(c.exclude.length > 0).toBe(true);
-  });
-});
+    return all([
+      check(isNone(c.threshold), toBe(true)),
+      check(c.exclude.length > 0, toBe(true)),
+    ]);
+  }));
 
-test("config without threshold => ungated", () => {
+test("config without threshold => ungated", () =>
   withDir((dir) => {
     writeFileSync(
       join(dir, "plgg-test.config.json"),
@@ -66,7 +78,11 @@ test("config without threshold => ungated", () => {
       }),
     );
     const c = readConfig(dir);
-    expect(isNone(c.threshold)).toBe(true);
-    expect(c.exclude).toEqual(["/Bar/"]);
-  });
-});
+    return all([
+      check(isNone(c.threshold), toBe(true)),
+      check(
+        c.exclude,
+        toEqual<readonly string[]>(["/Bar/"]),
+      ),
+    ]);
+  }));

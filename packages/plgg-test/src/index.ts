@@ -58,6 +58,7 @@ export {
   not,
   all,
   allAsync,
+  andThen,
   check,
 } from "plgg-test/Matchers/combinators";
 

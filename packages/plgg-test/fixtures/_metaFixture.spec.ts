@@ -20,9 +20,8 @@ import type { Assertion } from "plgg-test/index";
 import { ok } from "plgg";
 
 // Produces a value typed `Assertion` but actually `value` at runtime.
-const wrong = (
-  value: string,
-): Assertion => JSON.parse(value);
+const wrong = (value: string): Assertion =>
+  JSON.parse(value);
 
 // Happy paths.
 test("returns a passing assertion", () =>
@@ -44,15 +43,11 @@ test("returns a bare domain Result not an assertion", () =>
 const wrongResult = (): Assertion =>
   // `ok(1)` is a real plgg Result a body might return by mistake; route
   // it through a type the runner must reject (it is not branded).
-  JSON.parse(
-    JSON.stringify(ok(1)),
-  );
+  JSON.parse(JSON.stringify(ok(1)));
 
 // (c) fires an async assertion without returning/awaiting it.
 test("fires an async assertion without returning it", () => {
-  void Promise.resolve(
-    check(1, toBe(2)),
-  );
+  void Promise.resolve(check(1, toBe(2)));
   return wrong("null");
 });
 

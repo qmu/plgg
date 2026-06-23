@@ -27,9 +27,5 @@ test("second test sees prior after then before", () =>
   // By now: before, after(first), before(this)
   check(
     log,
-    toEqual([
-      "before",
-      "after",
-      "before",
-    ]),
+    toEqual(["before", "after", "before"]),
   ));

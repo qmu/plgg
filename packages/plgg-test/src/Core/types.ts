@@ -18,9 +18,7 @@ export type TestBody = () =>
  * assertions, so they stay side-effecting; a throw/rejection in a hook
  * still fails the owning test (the defect safety net).
  */
-export type HookFn = () =>
-  | void
-  | Promise<void>;
+export type HookFn = () => void | Promise<void>;
 
 /**
  * How a registered test should be treated by the runner.

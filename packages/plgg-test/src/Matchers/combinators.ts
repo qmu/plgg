@@ -1,8 +1,4 @@
-import {
-  isOk,
-  isErr,
-  matchResult,
-} from "plgg";
+import { isOk, isErr, matchResult } from "plgg";
 import {
   Assertion,
   Fail,
@@ -11,6 +7,37 @@ import {
   failOf,
 } from "plgg-test/Matchers/Assertion";
 import { Matcher } from "plgg-test/Matchers/matchers";
+import { Pass } from "plgg-test/Matchers/Assertion";
+
+/**
+ * `andThen(assertion, next)` — value-THREADING composition. If
+ * `assertion` passed, applies `next` to its CARRIED value (unwrapped
+ * from `Pass`); if it failed, short-circuits. This is how a
+ * value-carrying matcher feeds the next check without a cast:
+ *
+ *   andThen(shouldBeOk()(asInt("42")), (n) => toBe(int(42))(n))
+ *
+ * Typed end-to-end: `next` receives exactly the carried `A`.
+ */
+export const andThen = <A, B>(
+  assertion: Assertion<A>,
+  next: (value: A) => Assertion<B>,
+): Assertion<B> =>
+  matchResult<Pass<A>, Fail, Assertion<B>>(
+    (f) => failPassthrough(f),
+    (p) => next(p.content),
+  )(assertion);
+
+const failPassthrough = (
+  f: Fail,
+): Assertion<never> =>
+  fail({
+    matcher: failOf(f).matcher,
+    expected: failOf(f).expected,
+    actual: failOf(f).actual,
+    message: failOf(f).message,
+    sibling: failOf(f).sibling,
+  });
 
 /**
  * `not(matcher)` — inverts a matcher: the inner failing becomes a pass
@@ -20,7 +47,7 @@ import { Matcher } from "plgg-test/Matchers/matchers";
 export const not =
   <A>(m: Matcher<A>): Matcher<A> =>
   (actual) =>
-    matchResult<unknown, Fail, Assertion<A>>(
+    matchResult<Pass<A>, Fail, Assertion<A>>(
       () => pass(actual),
       () =>
         fail({
@@ -46,9 +73,7 @@ const describeActual = (
  * reports all failed checks at once, not just the first.
  */
 export const all = (
-  assertions: ReadonlyArray<
-    Assertion
-  >,
+  assertions: ReadonlyArray<Assertion>,
 ): Assertion => {
   // Collect every Err's `Fail` content. `flatMap` + the `isErr` guard
   // narrows each element to `Err<Fail>`, so `.content` is `Fail` with no
@@ -63,9 +88,7 @@ export const all = (
         matcher: "all",
         expected: `${assertions.length} assertions to pass`,
         actual: `${failures.length} failed`,
-        message: combinedMessage(
-          failures,
-        ),
+        message: combinedMessage(failures),
         sibling: failures,
       });
 };
@@ -74,10 +97,7 @@ const combinedMessage = (
   failures: ReadonlyArray<Fail>,
 ): string =>
   failures
-    .map(
-      (f) =>
-        `• ${failOf(f).message}`,
-    )
+    .map((f) => `• ${failOf(f).message}`)
     .join("\n");
 
 /**
@@ -85,9 +105,7 @@ const combinedMessage = (
  * circuit), then folds with the sync {@link all}.
  */
 export const allAsync = async (
-  assertions: ReadonlyArray<
-    Promise<Assertion>
-  >,
+  assertions: ReadonlyArray<Promise<Assertion>>,
 ): Promise<Assertion> =>
   all(await Promise.all(assertions));
 
@@ -101,13 +119,9 @@ export const allAsync = async (
  */
 export const check = <A>(
   actual: A,
-  ...matchers: ReadonlyArray<
-    Matcher<A>
-  >
+  ...matchers: ReadonlyArray<Matcher<A>>
 ): Assertion =>
-  all(
-    matchers.map((m) => m(actual)),
-  );
+  all(matchers.map((m) => m(actual)));
 
 // Re-export the brand guards used by callers building custom verdicts.
 export { isOk, isErr };

@@ -26,10 +26,7 @@ import {
  * It is still a real plgg `Result` (composes in pipe/cast/proc), just
  * runtime-distinguishable from domain Results.
  */
-export type Pass<T> = Box<
-  "AssertionPass",
-  T
->;
+export type Pass<T> = Box<"AssertionPass", T>;
 
 /**
  * A failure record. ALL fields are pre-formatted strings (guardrail 4),
@@ -55,16 +52,16 @@ export type Fail = Box<
  * (the single-matcher `pipe`/`cast` path keeps the precise type; `all`
  * erases it to `unknown`).
  */
-export type Assertion<T = unknown> =
-  Result<Pass<T>, Fail>;
+export type Assertion<T = unknown> = Result<
+  Pass<T>,
+  Fail
+>;
 
 /**
  * Builds a passing verdict carrying `value` (flows to the next pipe
  * step).
  */
-export const pass = <T>(
-  value: T,
-): Assertion<T> =>
+export const pass = <T>(value: T): Assertion<T> =>
   ok(box("AssertionPass")(value));
 
 /**
@@ -87,12 +84,8 @@ export const fail = (args: {
     }),
   );
 
-const isPass = isBoxWithTag(
-  "AssertionPass",
-);
-const isFail = isBoxWithTag(
-  "AssertionFail",
-);
+const isPass = isBoxWithTag("AssertionPass");
+const isFail = isBoxWithTag("AssertionFail");
 
 /**
  * Runtime guard: is `value` a branded Assertion (NOT a bare domain

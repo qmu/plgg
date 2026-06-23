@@ -13,8 +13,7 @@ suite("outer", () => {
     check(1, toBe(1)));
 
   suite("inner", () => {
-    it("nested passes", () =>
-      check(2, toBe(2)));
+    it("nested passes", () => check(2, toBe(2)));
   });
 
   test.skip("skipped test", () =>

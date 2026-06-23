@@ -12,7 +12,7 @@ import {
   toBeNull,
   isAssertion,
 } from "plgg-test/index";
-import { isOk, isErr, pipe } from "plgg";
+import { isOk, isErr } from "plgg";
 
 // We are testing the matchers themselves, so we inspect their output
 // Assertion's Ok/Err directly.
@@ -23,26 +23,19 @@ test("toBe passes on Object.is, fails otherwise", () =>
     check(isErr(toBe(1)(2)), toBe(true)),
   ]));
 
-test("toBe carries the actual value through on pass", () =>
-  pipe(
-    7,
-    toBe(7),
-    // value flows: the next matcher receives 7
-    toBeGreaterThan(6),
-  ));
+test("check fans several matchers over the same actual", () =>
+  // `check` applies each matcher to the SAME actual (independent
+  // fan-out) and aggregates — the common multi-check shape.
+  check(7, toBe(7), toBeGreaterThan(6)));
 
 test("toEqual deep-equals structures", () =>
   all([
     check(
-      isOk(
-        toEqual({ a: [1] })({ a: [1] }),
-      ),
+      isOk(toEqual({ a: [1] })({ a: [1] })),
       toBe(true),
     ),
     check(
-      isErr(
-        toEqual({ a: 1 })({ a: 2 }),
-      ),
+      isErr(toEqual({ a: 1 })({ a: 2 })),
       toBe(true),
     ),
   ]));
@@ -54,15 +47,10 @@ test("toContain on strings and arrays", () =>
       toBe(true),
     ),
     check(
-      isOk(
-        toContain(2)([1, 2, 3]),
-      ),
+      isOk(toContain(2)([1, 2, 3])),
       toBe(true),
     ),
-    check(
-      isErr(toContain(9)([1])),
-      toBe(true),
-    ),
+    check(isErr(toContain(9)([1])), toBe(true)),
   ]));
 
 test("toHaveLength", () =>
@@ -91,11 +79,7 @@ test("toBeGreaterThan", () =>
 
 test("toBeInstanceOf", () =>
   check(
-    isOk(
-      toBeInstanceOf(Error)(
-        new Error("x"),
-      ),
-    ),
+    isOk(toBeInstanceOf(Error)(new Error("x"))),
     toBe(true),
   ));
 
@@ -105,12 +89,6 @@ test("toBeUndefined / toBeNull", () =>
       isOk(toBeUndefined()(undefined)),
       toBe(true),
     ),
-    check(
-      isOk(toBeNull()(null)),
-      toBe(true),
-    ),
-    check(
-      isErr(toBeNull()(0)),
-      toBe(true),
-    ),
+    check(isOk(toBeNull()(null)), toBe(true)),
+    check(isErr(toBeNull()(0)), toBe(true)),
   ]));

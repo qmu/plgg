@@ -114,18 +114,12 @@ const addSuite = (
  */
 export const test: {
   (name: string, fn: TestBody): void;
-  skip: (
-    name: string,
-    fn: TestBody,
-  ) => void;
+  skip: (name: string, fn: TestBody) => void;
 } = Object.assign(
   (name: string, fn: TestBody): void =>
     addTest(name, fn, "run"),
   {
-    skip: (
-      name: string,
-      fn: TestBody,
-    ): void =>
+    skip: (name: string, fn: TestBody): void =>
       addTest(name, fn, "skip"),
   },
 );
@@ -142,18 +136,12 @@ export const it = test;
  */
 export const suite: {
   (name: string, fn: () => void): void;
-  skip: (
-    name: string,
-    fn: () => void,
-  ) => void;
+  skip: (name: string, fn: () => void) => void;
 } = Object.assign(
   (name: string, fn: () => void): void =>
     addSuite(name, fn, "run"),
   {
-    skip: (
-      name: string,
-      fn: () => void,
-    ): void =>
+    skip: (name: string, fn: () => void): void =>
       addSuite(name, fn, "skip"),
   },
 );
@@ -166,15 +154,11 @@ export const describe = suite;
 /**
  * Registers a `beforeEach` hook on the current suite.
  */
-export const beforeEach = (
-  fn: HookFn,
-): void =>
+export const beforeEach = (fn: HookFn): void =>
   void current().beforeEach.push(fn);
 
 /**
  * Registers an `afterEach` hook on the current suite.
  */
-export const afterEach = (
-  fn: HookFn,
-): void =>
+export const afterEach = (fn: HookFn): void =>
   void current().afterEach.push(fn);

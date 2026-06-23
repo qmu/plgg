@@ -2,6 +2,7 @@ import {
   test,
   check,
   all,
+  andThen,
   toBe,
   shouldBeOk,
   shouldBeErr,
@@ -15,12 +16,14 @@ import {
   none,
   isOk,
   isErr,
-  cast,
 } from "plgg";
 
 test("shouldBeOk asserts Ok AND carries the inner value forward", () =>
-  // Data-flow narrowing: the inner value flows to the next matcher.
-  cast(ok(42), shouldBeOk(), toBe(42)));
+  // Data-flow narrowing: `andThen` threads the unwrapped inner value
+  // (42) from the value-carrying matcher into the next check.
+  andThen(shouldBeOk()(ok(42)), (n) =>
+    toBe(42)(n),
+  ));
 
 test("shouldBeOk fails on Err", () =>
   check(
@@ -29,18 +32,14 @@ test("shouldBeOk fails on Err", () =>
   ));
 
 test("shouldBeErr asserts Err and carries the error forward", () =>
-  cast(
-    err("boom"),
-    shouldBeErr(),
-    toBe("boom"),
+  andThen(shouldBeErr()(err("boom")), (e) =>
+    toBe("boom")(e),
   ));
 
 test("shouldBeSome carries the inner value; shouldBeNone matches None", () =>
   all([
-    cast(
-      some(7),
-      shouldBeSome(),
-      toBe(7),
+    andThen(shouldBeSome()(some(7)), (n) =>
+      toBe(7)(n),
     ),
     check(
       isOk(shouldBeNone()(none())),

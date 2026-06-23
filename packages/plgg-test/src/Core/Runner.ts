@@ -209,17 +209,11 @@ const execute = async (
   body: TestBody,
   hooks: Hooks,
 ): Promise<StepResult> => {
-  const before = await runSteps(
-    hooks.beforeEach,
-  );
+  const before = await runSteps(hooks.beforeEach);
   const main = before.failed
     ? before
-    : await foldBodyWithRejectionWindow(
-        body,
-      );
-  const after = await runSteps(
-    hooks.afterEach,
-  );
+    : await foldBodyWithRejectionWindow(body);
+  const after = await runSteps(hooks.afterEach);
   return main.failed ? main : after;
 };
 
@@ -264,40 +258,36 @@ const ensureListener = (): void => {
 //     → fail "body did not return an assertion" — this is the
 //     anti-false-green guard (a computed-but-dropped assertion can't
 //     read green because the body then didn't RETURN an Assertion).
-const foldBodyWithRejectionWindow =
-  async (
-    body: TestBody,
-  ): Promise<StepResult> => {
-    ensureListener();
-    const win: RejectionWindow = {
-      captured: false,
-      escaped: undefined,
-    };
-    windowStack.push(win);
-    try {
-      // Boundary seam: a body may throw/reject; capturing that is the
-      // runner's duty, so try/catch is irreducible here.
-      const direct =
-        await runBody(body);
-      // Flush queues so a not-awaited rejection surfaces before verdict.
-      await new Promise<void>((r) =>
-        setTimeout(r, 0),
-      );
-      return direct.failed
-        ? direct
-        : win.captured
-          ? {
-              failed: true,
-              message: `unhandled promise rejection: ${messageOf(win.escaped)}`,
-              stack: stackOf(
-                win.escaped,
-              ),
-            }
-          : PASS;
-    } finally {
-      windowStack.pop();
-    }
+const foldBodyWithRejectionWindow = async (
+  body: TestBody,
+): Promise<StepResult> => {
+  ensureListener();
+  const win: RejectionWindow = {
+    captured: false,
+    escaped: undefined,
   };
+  windowStack.push(win);
+  try {
+    // Boundary seam: a body may throw/reject; capturing that is the
+    // runner's duty, so try/catch is irreducible here.
+    const direct = await runBody(body);
+    // Flush queues so a not-awaited rejection surfaces before verdict.
+    await new Promise<void>((r) =>
+      setTimeout(r, 0),
+    );
+    return direct.failed
+      ? direct
+      : win.captured
+        ? {
+            failed: true,
+            message: `unhandled promise rejection: ${messageOf(win.escaped)}`,
+            stack: stackOf(win.escaped),
+          }
+        : PASS;
+  } finally {
+    windowStack.pop();
+  }
+};
 
 const runBody = async (
   body: TestBody,
@@ -330,9 +320,8 @@ const foldAssertion = (
       ? PASS
       : {
           failed: true,
-          message: failOf(
-            returned.content,
-          ).message,
+          message: failOf(returned.content)
+            .message,
           stack: "",
         };
 
@@ -344,9 +333,7 @@ const runSteps = async (
   steps.reduce<Promise<StepResult>>(
     async (accP, step) => {
       const acc = await accP;
-      return acc.failed
-        ? acc
-        : guardHook(step);
+      return acc.failed ? acc : guardHook(step);
     },
     Promise.resolve(PASS),
   );

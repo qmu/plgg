@@ -27,11 +27,12 @@ import { formatValue } from "plgg-test/Expect/format";
  *   cast(asInt("x"),  shouldBeErr(), (e) => toContain("…")(e.message))
  */
 
+// The type params live on the INNER (returned) function so they infer
+// from the value at application time — `shouldBeOk()(ok(42))` infers
+// `T = number`, carrying `42` forward, with no explicit type args.
 export const shouldBeOk =
-  <T, E>(): ((
-    r: Result<T, E>,
-  ) => Assertion<T>) =>
-  (r) =>
+  () =>
+  <T, E>(r: Result<T, E>): Assertion<T> =>
     isOk(r)
       ? pass(r.content)
       : fail({
@@ -42,10 +43,8 @@ export const shouldBeOk =
         });
 
 export const shouldBeErr =
-  <T, E>(): ((
-    r: Result<T, E>,
-  ) => Assertion<E>) =>
-  (r) =>
+  () =>
+  <T, E>(r: Result<T, E>): Assertion<E> =>
     isErr(r)
       ? pass(r.content)
       : fail({
@@ -56,10 +55,8 @@ export const shouldBeErr =
         });
 
 export const shouldBeSome =
-  <T>(): ((
-    o: Option<T>,
-  ) => Assertion<T>) =>
-  (o) =>
+  () =>
+  <T>(o: Option<T>): Assertion<T> =>
     isSome(o)
       ? pass(o.content)
       : fail({
@@ -70,10 +67,8 @@ export const shouldBeSome =
         });
 
 export const shouldBeNone =
-  <T>(): ((
-    o: Option<T>,
-  ) => Assertion<None>) =>
-  (o) =>
+  () =>
+  <T>(o: Option<T>): Assertion<None> =>
     isNone(o)
       ? pass(o)
       : fail({

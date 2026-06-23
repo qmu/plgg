@@ -9,24 +9,32 @@
 //   1. self `<alias>/index`        — `plgg-test/index`
 //   2. self `<alias>/Deep/Path`    — `plgg-test/Expect/equals`
 //   3. cross-package bare `"plgg"` — falls through to node_modules
-import { test, expect } from "plgg-test/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test/index";
 import { deepEqual } from "plgg-test/Expect/equals";
 import { ok, isOk } from "plgg";
 
-test("resolves self-package /index specifier", () => {
-  // `expect`/`test` themselves came through `plgg-test/index`.
-  expect(typeof test).toBe("function");
-  expect(typeof expect).toBe("function");
-});
+test("resolves self-package /index specifier", () =>
+  all([
+    // `check`/`test` themselves came through `plgg-test/index`.
+    check(typeof test, toBe<string>("function")),
+    check(typeof check, toBe<string>("function")),
+  ]));
 
-test("resolves self-package deep path specifier", () => {
-  expect(deepEqual(1, 1)).toBe(true);
-  expect(deepEqual({ a: 1 }, { a: 1 })).toBe(
-    true,
-  );
-});
+test("resolves self-package deep path specifier", () =>
+  all([
+    check(deepEqual(1, 1), toBe(true)),
+    check(
+      deepEqual({ a: 1 }, { a: 1 }),
+      toBe(true),
+    ),
+  ]));
 
 test("resolves cross-package bare 'plgg' specifier", () => {
   const r = ok(7);
-  expect(isOk(r)).toBe(true);
+  return check(isOk(r), toBe(true));
 });
