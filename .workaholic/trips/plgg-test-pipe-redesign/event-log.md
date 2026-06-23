@@ -6,3 +6,4 @@
 | 2026-06-23T21:46:03+09:00 | Architect | artifact-created | models/model-v1.md | Structural model for pipe-style plgg-test |
 | 2026-06-23T21:46:33+09:00 | Constructor | artifact-created | designs/design-v1.md | Technical design for pipe-style plgg-test |
 | 2026-06-23T21:50:05+09:00 | Planner | review-submitted | reviews/round-1-planner.md | Planner one-turn review: anti-false-green guard not airtight (wrong/partial verdict + sentinel escape); add mutation spot-check to parity oracle |
+| 2026-06-23T21:50:21+09:00 | Architect | review-submitted | reviews/round-1-architect.md | Architect one-turn review: both Approve with observations; primary push to make value-carrying matchers the sole narrowing path and drop the throwing narrow |
