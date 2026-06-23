@@ -1,11 +1,11 @@
-import { parseArgs } from "plgg-test/Cli/args";
-import { discover } from "plgg-test/Discovery/find";
-import { runFile } from "plgg-test/Core/Runner";
+import { parseArgs } from "./args.js";
+import { discover } from "../Discovery/find.js";
+import { runFile } from "../Core/Runner.js";
 import {
   report,
   tally,
   exitCodeFor,
-} from "plgg-test/Core/Reporter";
+} from "../Core/Reporter.js";
 
 /**
  * In-process CLI: a SINGLE run — discover specs, run them, print the

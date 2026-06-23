@@ -2,9 +2,9 @@ import {
   Assertion,
   pass,
   fail,
-} from "plgg-test/Matchers/Assertion";
-import { deepEqual } from "plgg-test/Expect/equals";
-import { formatValue } from "plgg-test/Expect/format";
+} from "./Assertion.js";
+import { deepEqual } from "../Expect/equals.js";
+import { formatValue } from "../Expect/format.js";
 
 /**
  * A matcher: a data-last function from an actual value to an

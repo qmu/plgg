@@ -3,8 +3,8 @@ import {
   check,
   all,
   toBe,
-} from "plgg-test/index";
-import { deepEqual } from "plgg-test/Expect/equals";
+} from "../index.js";
+import { deepEqual } from "./equals.js";
 
 test("primitives via Object.is", () =>
   all([

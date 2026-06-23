@@ -4,12 +4,12 @@ import {
   all,
   toBe,
   toHaveLength,
-} from "plgg-test/index";
+} from "../index.js";
 import {
   collect,
   passesThreshold,
-} from "plgg-test/Coverage/v8";
-import type { CoverageReport } from "plgg-test/Coverage/v8";
+} from "./v8.js";
+import type { CoverageReport } from "./v8.js";
 import {
   mkdtempSync,
   writeFileSync,

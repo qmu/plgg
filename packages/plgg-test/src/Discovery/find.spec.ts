@@ -5,8 +5,8 @@ import {
   toBe,
   toEqual,
   toHaveLength,
-} from "plgg-test/index";
-import { discover } from "plgg-test/Discovery/find";
+} from "../index.js";
+import { discover } from "./find.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 

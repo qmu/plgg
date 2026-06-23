@@ -18,19 +18,19 @@ export {
   it,
   beforeEach,
   afterEach,
-} from "plgg-test/Core/Registry";
+} from "./Core/Registry.js";
 
 // The verdict type + builders + brand guard.
 export {
   pass,
   fail,
   isAssertion,
-} from "plgg-test/Matchers/Assertion";
+} from "./Matchers/Assertion.js";
 export type {
   Assertion,
   Pass,
   Fail,
-} from "plgg-test/Matchers/Assertion";
+} from "./Matchers/Assertion.js";
 
 // Matchers (data-last; value flows through on success).
 export {
@@ -42,8 +42,8 @@ export {
   toBeInstanceOf,
   toBeUndefined,
   toBeNull,
-} from "plgg-test/Matchers/matchers";
-export type { Matcher } from "plgg-test/Matchers/matchers";
+} from "./Matchers/matchers.js";
+export type { Matcher } from "./Matchers/matchers.js";
 
 // Value-carrying Option/Result assertions (the narrowing replacement).
 export {
@@ -54,7 +54,7 @@ export {
   okThen,
   errThen,
   someThen,
-} from "plgg-test/Matchers/unwrap";
+} from "./Matchers/unwrap.js";
 
 // Combinators + the terse `check` entry.
 export {
@@ -63,7 +63,7 @@ export {
   allAsync,
   andThen,
   check,
-} from "plgg-test/Matchers/combinators";
+} from "./Matchers/combinators.js";
 
 // Spies (style-agnostic test doubles).
-export { vi } from "plgg-test/Mock/vi";
+export { vi } from "./Mock/vi.js";

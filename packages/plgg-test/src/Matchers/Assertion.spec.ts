@@ -6,7 +6,7 @@ import {
   pass,
   fail,
   isAssertion,
-} from "plgg-test/index";
+} from "../index.js";
 import { ok, err, some } from "plgg";
 
 test("pass/fail build branded assertions", () =>

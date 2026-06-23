@@ -14,8 +14,8 @@ import {
   Assertion,
   pass,
   fail,
-} from "plgg-test/Matchers/Assertion";
-import { formatValue } from "plgg-test/Expect/format";
+} from "./Assertion.js";
+import { formatValue } from "../Expect/format.js";
 
 /**
  * Value-carrying assertions — the narrowing replacement (guardrail 2).

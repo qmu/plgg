@@ -16,8 +16,8 @@
  * Run: node --import <register> src/Core/_meta.ts → "META OK" + exit 0
  * only if every property holds.
  */
-import { runFile } from "plgg-test/Core/Runner";
-import { tally } from "plgg-test/Core/Reporter";
+import { runFile } from "./Runner.js";
+import { tally } from "./Reporter.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 

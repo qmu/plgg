@@ -4,8 +4,8 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { transpile } from "plgg-test/Resolve/hook";
-import { generatedToSource } from "plgg-test/Coverage/sourcemap";
+import { transpile } from "../Resolve/hook.js";
+import { generatedToSource } from "./sourcemap.js";
 
 /**
  * V8 coverage fold + four-metric threshold gate.

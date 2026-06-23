@@ -7,16 +7,16 @@ import type {
   HookFn,
   TestResult,
   Hooks,
-} from "plgg-test/Core/types";
+} from "./types.js";
 import {
   resetRegistry,
   takeRootSuite,
-} from "plgg-test/Core/Registry";
+} from "./Registry.js";
 import {
   isAssertion,
   failOf,
-} from "plgg-test/Matchers/Assertion";
-import type { Assertion } from "plgg-test/Matchers/Assertion";
+} from "../Matchers/Assertion.js";
+import type { Assertion } from "../Matchers/Assertion.js";
 
 /**
  * Imports one spec file and returns its registered suite tree. The

@@ -4,8 +4,8 @@ import {
   all,
   toBe,
   toContain,
-} from "plgg-test/index";
-import { formatValue } from "plgg-test/Expect/format";
+} from "../index.js";
+import { formatValue } from "./format.js";
 
 test("primitives", () =>
   all([
