@@ -4,8 +4,8 @@ import {
   all,
   toBe,
   vi,
+  deepEqual,
 } from "plgg-test";
-import { deepEqual } from "plgg-test/Expect/equals";
 import { debug } from "plgg/index";
 
 test("debug logs values without changing them", () => {

@@ -8,7 +8,6 @@ import {
   toHaveLength,
   not,
   toBeInstanceOf,
-  okThen,
   errThen,
   someThen,
   vi,

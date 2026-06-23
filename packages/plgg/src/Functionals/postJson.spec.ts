@@ -14,6 +14,15 @@ import { postJson } from "plgg/index";
 
 const originalFetch = globalThis.fetch;
 
+// The spy hands `init` back as `unknown` (its recorded arg type).
+// Every `RequestInit` field is optional, so any non-null object is a
+// structurally valid `RequestInit` — this guard narrows soundly with
+// no cast.
+const isRequestInit = (
+  v: unknown,
+): v is RequestInit =>
+  typeof v === "object" && v !== null;
+
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
@@ -21,8 +30,13 @@ afterEach(() => {
 test("postJson returns Ok for 2xx response", async () => {
   let captured: RequestInit | undefined;
   const mockFetch = vi.fn(
-    async (_url: unknown, init?: RequestInit) => {
-      captured = init;
+    async (
+      _url: unknown,
+      init?: unknown,
+    ) => {
+      captured = isRequestInit(init)
+        ? init
+        : undefined;
       return new Response(
         JSON.stringify({
           ok: true,
@@ -112,8 +126,10 @@ test("postJson returns Err for non-2xx response", async () => {
 test("postJson does not follow a redirect (manual policy)", async () => {
   let captured: RequestInit | undefined;
   const mockFetch = vi.fn(
-    async (_url: unknown, init?: RequestInit) => {
-      captured = init;
+    async (_url: unknown, init?: unknown) => {
+      captured = isRequestInit(init)
+        ? init
+        : undefined;
       // an opaque-redirect response (what fetch returns under redirect:manual)
       return {
         ok: false,

@@ -32,7 +32,6 @@ import {
   optionApplicative,
   some,
   none,
-  isSome,
   isNone,
 } from "plgg/index";
 

@@ -5,8 +5,8 @@ import {
   toBe,
   toEqual,
   vi,
+  deepEqual,
 } from "plgg-test";
-import { deepEqual } from "plgg-test/Expect/equals";
 import { tap } from "plgg/index";
 
 test("tap executes side effect and returns value unchanged", () => {

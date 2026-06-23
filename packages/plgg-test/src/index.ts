@@ -65,5 +65,10 @@ export {
   check,
 } from "./Matchers/combinators.js";
 
+// Structural equality predicate — the same one `toEqual` uses,
+// exposed for specs that assert over collections (e.g. a spy's
+// `mock.calls.some((c) => deepEqual(c, [...]))`).
+export { deepEqual } from "./Expect/equals.js";
+
 // Spies (style-agnostic test doubles).
 export { vi } from "./Mock/vi.js";

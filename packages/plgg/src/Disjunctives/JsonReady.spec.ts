@@ -31,7 +31,23 @@ import {
   isFloat,
   isObjLike,
   hasProp,
+  atProp,
+  matchResult,
 } from "plgg/index";
+
+// Reads a dynamic property off an unknown value as `unknown`, or
+// `undefined` if the value is not an object or lacks the key. Uses the
+// idiomatic `atProp` accessor (which returns a `Result`) so the dynamic
+// index stays type-safe — no string-keyed indexing of the `Datum`
+// union, no cast.
+const readProp = (
+  value: unknown,
+  key: string,
+): unknown =>
+  matchResult<unknown, unknown, unknown>(
+    () => undefined,
+    (v) => v,
+  )(atProp(key)(value));
 
 describe("JsonReady", () => {
   describe("Atomic types round-trip", () => {
@@ -574,13 +590,7 @@ describe("JsonReady", () => {
           value: Datum,
           key: string,
         ): string | undefined => {
-          if (
-            !isObjLike(value) ||
-            !hasProp(value, key)
-          ) {
-            return undefined;
-          }
-          const field = value[key];
+          const field = readProp(value, key);
           return isObjLike(field) &&
             hasProp(field, "content")
             ? typeof field.content
@@ -676,7 +686,7 @@ describe("JsonReady", () => {
         key: string,
       ): string | undefined =>
         isObjLike(value) && hasProp(value, key)
-          ? typeof value[key]
+          ? typeof readProp(value, key)
           : undefined;
 
       return all([
@@ -845,18 +855,8 @@ describe("JsonReady", () => {
         value: Datum,
         section: string,
         key: string,
-      ): unknown => {
-        if (
-          !isObjLike(value) ||
-          !hasProp(value, section)
-        ) {
-          return undefined;
-        }
-        const sec = value[section];
-        return isObjLike(sec) && hasProp(sec, key)
-          ? sec[key]
-          : undefined;
-      };
+      ): unknown =>
+        readProp(readProp(value, section), key);
 
       const timestamp = sectionProp(
         restored,
