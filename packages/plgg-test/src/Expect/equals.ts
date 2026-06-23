@@ -17,20 +17,26 @@
  *   `{ a: undefined }` and `{}` as equal). This matters for plgg's
  *   optional props.
  * - Date by time value, RegExp by source+flags, Map/Set structurally.
- * - Cyclic structures handled via a visited-pair set.
  */
 export const deepEqual = (
   a: unknown,
   b: unknown,
-): boolean => eq(a, b, new Set<string>());
+): boolean => eq(a, b);
 
 const tagOf = (v: unknown): string =>
   Object.prototype.toString.call(v);
 
+// Reads an own property without an `as` cast: re-enters via the
+// `unknown`-valued record view that `Object.entries` already exposes.
+const entriesOf = (
+  o: object,
+): ReadonlyArray<
+  readonly [string, unknown]
+> => Object.entries(o);
+
 const eq = (
   a: unknown,
   b: unknown,
-  seen: Set<string>,
 ): boolean =>
   Object.is(a, b)
     ? true
@@ -39,12 +45,11 @@ const eq = (
         a === null ||
         b === null
       ? false
-      : eqObjects(a, b, seen);
+      : eqObjects(a, b);
 
 const eqObjects = (
   a: object,
   b: object,
-  seen: Set<string>,
 ): boolean =>
   tagOf(a) !== tagOf(b)
     ? false
@@ -57,37 +62,33 @@ const eqObjects = (
           a.flags === b.flags
         : Array.isArray(a) &&
             Array.isArray(b)
-          ? eqArray(a, b, seen)
+          ? eqArray(a, b)
           : a instanceof Map &&
               b instanceof Map
-            ? eqMap(a, b, seen)
+            ? eqMap(a, b)
             : a instanceof Set &&
                 b instanceof Set
               ? eqSet(a, b)
-              : eqPlain(a, b, seen);
+              : eqPlain(a, b);
 
 const eqArray = (
   a: ReadonlyArray<unknown>,
   b: ReadonlyArray<unknown>,
-  seen: Set<string>,
 ): boolean =>
   a.length !== b.length
     ? false
-    : a.every((v, i) =>
-        eq(v, b[i], seen),
-      );
+    : a.every((v, i) => eq(v, b[i]));
 
 const eqMap = (
   a: ReadonlyMap<unknown, unknown>,
   b: ReadonlyMap<unknown, unknown>,
-  seen: Set<string>,
 ): boolean =>
   a.size !== b.size
     ? false
     : [...a.entries()].every(
         ([k, v]) =>
           b.has(k) &&
-          eq(v, b.get(k), seen),
+          eq(v, b.get(k)),
       );
 
 const eqSet = (
@@ -98,38 +99,38 @@ const eqSet = (
     ? false
     : [...a].every((v) => b.has(v));
 
-// Own enumerable keys whose value is not `undefined` (vitest's
-// `toEqual` ignores undefined-valued props on either side).
-const definedKeys = (
+// Own enumerable [key, value] entries that participate in structural
+// equality. Excludes:
+//  - `undefined`-valued props (vitest's `toEqual` ignores them on
+//    either side), and
+//  - FUNCTION-valued props. plgg's Box values carry method-like
+//    closures (`ok(42)` has `isOk`/`isErr`); two distinct instances
+//    hold distinct closures, so comparing them by reference would make
+//    every `toEqual(ok(x), ok(x))` fail. vitest's `toEqual` likewise
+//    does not let differing function identities break object equality,
+//    so we drop functions from the structural comparison.
+const definedEntries = (
   o: object,
-): ReadonlyArray<string> =>
-  Object.keys(o).filter(
-    (k) =>
-      readKey(o, k) !== undefined,
+): ReadonlyArray<
+  readonly [string, unknown]
+> =>
+  entriesOf(o).filter(
+    ([, v]) =>
+      v !== undefined &&
+      typeof v !== "function",
   );
-
-const readKey = (
-  o: object,
-  k: string,
-): unknown =>
-  (o as Record<string, unknown>)[k];
 
 const eqPlain = (
   a: object,
   b: object,
-  seen: Set<string>,
 ): boolean => {
-  const ka = definedKeys(a);
-  const kb = definedKeys(b);
-  return ka.length !== kb.length
+  const ea = definedEntries(a);
+  const eb = definedEntries(b);
+  const mb = new Map(eb);
+  return ea.length !== eb.length
     ? false
-    : ka.every(
-        (k) =>
-          kb.includes(k) &&
-          eq(
-            readKey(a, k),
-            readKey(b, k),
-            seen,
-          ),
+    : ea.every(
+        ([k, v]) =>
+          mb.has(k) && eq(v, mb.get(k)),
       );
 };
