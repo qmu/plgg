@@ -15,3 +15,4 @@
 | 2026-06-23T17:30:48+09:00 | Constructor | artifact-created | packages/plgg-test | plgg-test core engine scaffolded and meta-harness green |
 | 2026-06-23T17:58:47+09:00 | Constructor | milestone | plgg migrated; parity gate green (74 files, 465/0); coverage source-map remapped |  |
 | 2026-06-23T18:26:31+09:00 | Constructor | milestone | plgg-test implemented; plgg migrated+parity green; coverage+watch working; tsc/lint clean |  |
+| 2026-06-23T18:31:49+09:00 | Architect | review-submitted | reviews/coding-review-architect.md | Approve with observations; primary: coverage gate downgrade (91→90, line-only) must be recorded per-package (Amendment 6) |
