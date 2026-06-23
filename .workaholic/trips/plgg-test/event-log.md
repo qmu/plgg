@@ -6,3 +6,4 @@
 | 2026-06-23T17:10:01+09:00 | Architect | artifact-created | models/model-v1.md | Structural model for plgg-test drafted |
 | 2026-06-23T17:11:06+09:00 | Constructor | artifact-created | designs/design-v1.md | Technical design for plgg-test drafted |
 | 2026-06-23T17:13:27+09:00 | Planner | review-submitted | reviews/round-1-planner.md | Planner one-turn review of model and design |
+| 2026-06-23T17:13:56+09:00 | Architect | review-submitted | reviews/round-1-architect.md | Architect one-turn review of direction and design |
