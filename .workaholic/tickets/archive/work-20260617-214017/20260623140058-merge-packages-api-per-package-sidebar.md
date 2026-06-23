@@ -3,9 +3,9 @@ created_at: 2026-06-23T14:00:58+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX, Config]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: e470729
+category: Changed
 depends_on:
 ---
 
@@ -201,3 +201,33 @@ now-archived tickets; this change rewires what they produced:
    still renders prose-only groups when generation hasn't run.
 4. Spot-check: `plgg` shows 9 category pages; `example` is prose-only;
    single-category packages collapse to one reference link.
+
+## Final Report
+
+Development completed as planned. `compact()` was refactored to return
+`{ title, pages }`; the final loop writes one `<slug>.md` per category
+plus a landing `index.md` (single-category packages write their one
+category straight to `index.md`), and emits `typedoc-sidebar.json` as a
+per-package map. `config.ts` replaced the two flat groups with a
+`PACKAGE_GROUPS` descriptor list and pure `apiReferenceNode`/`packageGroup`
+builders. `npm run docs:api` and full `npm run build` both pass with no
+dead links: plgg → 9 category pages, plgg-server 4, plgg-sql 3,
+plgg-foundry 2, the rest collapse to one link, `example` prose-only.
+
+### Discovered Insights
+
+- **Insight**: The generated API output is gitignored
+  (`packages/guide/.gitignore`: `api/*/` and `api/typedoc-sidebar.json`),
+  so this change commits only the two source files — the per-category
+  pages and the sidebar map are rebuilt on every `npm run build`.
+  **Context**: The generator and its consumer (`config.ts`) are coupled
+  only through the on-disk JSON contract, which is never committed; the
+  shapes must be changed together (they were) or dev/CI silently diverge.
+- **Insight**: Single-category packages intentionally have no `<slug>.md`
+  — their one category renders directly as the `/api/<pkg>/` landing, and
+  the sidebar entry carries an empty `items: []` so `config.ts` emits a
+  plain "API reference" link (no collapsible). Multi-category packages get
+  a link-list landing plus a collapsed subtree.
+  **Context**: Prose pages link to `/api/<pkg>/` via "Full API reference"
+  tips, so a landing must always exist at that path regardless of category
+  count; this keeps those links resolving.

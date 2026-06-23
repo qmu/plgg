@@ -1,24 +1,27 @@
 // Auto-generate the API reference for every plgg-family package as a *compact
-// signature index* and assemble a single VitePress sidebar for the
-// "API reference" section.
+// signature index*, split one page per category, and emit a per-package
+// VitePress sidebar map that `.vitepress/config.ts` splices under each package.
 //
 // For each package we run TypeDoc (markdown + VitePress theme) against the
 // package's OWN source `index.ts` using its OWN tsconfig, so cross-package
 // types resolve through the built `dist` symlinks (the dependency-ordered build
 // is a prerequisite — see workloads/development/Dockerfile and the deploy CI).
-// Output lands in `api/<pkg>/`; each run also emits a `typedoc-sidebar.json`,
-// which we wrap into a per-package group and merge into `api/typedoc-sidebar.json`.
-// `.vitepress/config.ts` loads that merged file when present.
+// Output lands in `api/<pkg>/`: one page per source-derived category
+// (`atomics.md`, `basics.md`, …) plus a landing `index.md` at `/api/<pkg>/`
+// (single-category packages skip the landing — their one page IS the landing).
+// Each run also rewrites `api/typedoc-sidebar.json` as a per-package map keyed
+// by package name, each entry carrying the landing link and one leaf per
+// category; `.vitepress/config.ts` loads that map when present.
 //
 // TypeDoc renders every symbol with full `#### Type Parameters` / `#### Parameters`
 // / `#### Returns` sub-tables. For a functional library the signature already
 // says everything, so we POST-PROCESS each generated `index.md` into a compact
 // index: per public symbol we keep the heading, the signature code block, and
 // the one-line summary, drop the sub-tables, and regroup entries under the
-// source-derived README categories (Atomics, Basics, Disjunctives, …). The page
-// stays comprehensive (every public symbol still listed) and auto-generated, but
-// is ~5× shorter and scannable. The `@internal`/`exclude` curation upstream
-// still decides what is public.
+// source-derived README categories (Atomics, Basics, Disjunctives, …), emitting
+// each category as its OWN page. The reference stays comprehensive (every public
+// symbol still listed) and auto-generated, but is far shorter and scannable.
+// The `@internal`/`exclude` curation upstream still decides what is public.
 //
 // Run: `npm run docs:api` (invoked by `npm run build` before `vitepress build`).
 
@@ -347,11 +350,21 @@ const orderCategories = (present) => {
   return [...ordered, ...rest, ...tail];
 };
 
-// Transform one TypeDoc `index.md` into the compact signature index: drop the
+// URL-safe slug for a category's own reference page (e.g. "Atomics" ->
+// "atomics"), used for the `/api/<pkg>/<slug>` page links and sidebar leaves.
+const categorySlug = (category) =>
+  category
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+// Transform one TypeDoc `index.md` into the compact signature index — drop the
 // `#### …` sub-tables and the `***` separators / kind-group `##` headings, keep
-// each symbol's heading + signature + one-line summary, and regroup entries
-// under their `## <Category>` heading. Fence-aware so `#`/`***` inside a ```ts
-// code block are never mistaken for structure.
+// each symbol's heading + signature + one-line summary — and split it into one
+// page per source-derived category. Returns `{ title, pages }` where `pages` is
+// ordered (orderCategories) and each page is `{ category, slug, content }`; the
+// caller writes the pages and builds the sidebar. Fence-aware so `#`/`***`
+// inside a ```ts code block are never mistaken for structure.
 const compact = (md, categoryMap, pkg) => {
   const lines = md.split("\n");
   const title =
@@ -464,34 +477,54 @@ const compact = (md, categoryMap, pkg) => {
     byCategory.get(block.category).push(block);
   }
 
-  const out = [title, ""];
-  for (const category of orderCategories(
+  const pages = orderCategories(
     new Set(byCategory.keys()),
-  )) {
-    out.push(`## ${category}`, "");
+  ).map((category) => {
+    const out = [`# ${category}`, ""];
     for (const block of byCategory.get(
       category,
     )) {
-      out.push(block.heading, "");
+      // The category is now the page `#` heading, so promote each symbol to a
+      // top-level `##` heading (it shows in the page outline that way).
+      out.push(
+        block.heading.replace(/^### /, "## "),
+        "",
+      );
       out.push(...block.body, "");
     }
-  }
-  return (
-    out
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trimEnd() + "\n"
-  );
+    return {
+      category,
+      slug: categorySlug(category),
+      content:
+        out
+          .join("\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .trimEnd() + "\n",
+    };
+  });
+  return { title, pages };
 };
 
-// With `outputFileStrategy: "modules"` each package renders as a single dense
-// page at `/api/<pkg>/`, so the reference sidebar is one flat link per package
-// (in-page anchors handle within-package navigation) — not a deep per-symbol
-// tree. We intentionally discard the theme's per-symbol `typedoc-sidebar.json`.
-const collectSidebar = (pkg) => ({
-  text: pkg,
-  link: `/api/${pkg}/`,
-});
+// The landing page at `/api/<pkg>/` for a multi-category package: the package
+// title plus a link list into the per-category pages. Single-category packages
+// skip this — their one category page is written directly as the landing.
+const landingPage = (title, pkg, pages) =>
+  [
+    title,
+    "",
+    `The \`${pkg}\` API reference, by category.`,
+    "",
+    ...pages.map(
+      (page) =>
+        `- [${page.category}](/api/${pkg}/${page.slug})`,
+    ),
+  ].join("\n") + "\n";
+
+// The reference sidebar is generated as a per-package map keyed by package name;
+// `.vitepress/config.ts` looks up each package's entry and splices it (the
+// landing link plus the per-category leaves) under that package's group. We
+// intentionally discard the theme's per-symbol `typedoc-sidebar.json`.
+const apiSidebar = {};
 
 // Analyse every package first so cross-package `export *` re-exports can be
 // resolved against the target package's own symbol set.
@@ -505,23 +538,56 @@ for (const pkg of PACKAGES) {
 
 for (const pkg of PACKAGES) {
   generate(pkg);
-  const indexPath = join(apiDir, pkg, "index.md");
+  const out = join(apiDir, pkg);
+  const indexPath = join(out, "index.md");
   const categoryMap = resolveCategoryMap(
     pkg,
     analyses,
   );
-  const compacted = compact(
+  const { title, pages } = compact(
     readFileSync(indexPath, "utf8"),
     categoryMap,
     pkg,
   );
-  writeFileSync(indexPath, compacted);
+  if (pages.length <= 1) {
+    // One (or zero) category: the single page IS the landing at `/api/<pkg>/`,
+    // so the sidebar entry is just the package link with no category leaves.
+    writeFileSync(
+      indexPath,
+      pages.length
+        ? pages[0].content
+        : `${title}\n`,
+    );
+    apiSidebar[pkg] = {
+      link: `/api/${pkg}/`,
+      items: [],
+    };
+    continue;
+  }
+  // Multiple categories: one page per category plus a landing index linking into
+  // them; the sidebar entry carries one leaf per category.
+  for (const page of pages) {
+    writeFileSync(
+      join(out, `${page.slug}.md`),
+      page.content,
+    );
+  }
+  writeFileSync(
+    indexPath,
+    landingPage(title, pkg, pages),
+  );
+  apiSidebar[pkg] = {
+    link: `/api/${pkg}/`,
+    items: pages.map((page) => ({
+      text: page.category,
+      link: `/api/${pkg}/${page.slug}`,
+    })),
+  };
 }
 
-const sidebar = PACKAGES.map(collectSidebar);
 writeFileSync(
   join(apiDir, "typedoc-sidebar.json"),
-  JSON.stringify(sidebar, null, 2) + "\n",
+  JSON.stringify(apiSidebar, null, 2) + "\n",
 );
 
 console.log(
