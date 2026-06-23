@@ -3,109 +3,108 @@
 The family's **own test runner**, built from scratch on
 [plgg](/packages/plgg/) so the monorepo can drop its
 dependency on a large third-party test framework (and the
-recurring Dependabot churn that comes with it). The public
-API is deliberately close to the traditional one
-(`describe`/`it`/`expect`), so migrating a spec is mostly
-changing its import source.
+recurring Dependabot churn that comes with it).
+
+Unlike a traditional runner, plgg-test is **pipe-style**:
+an assertion is a data-last function you pipe a value
+through, returning a branded plgg `Result`. A test body
+*returns* its assertion and the runner collects it. There
+is no fluent `expect(x).toBe(y)` chain and no throw-on-
+mismatch — the test API reads exactly like the rest of
+plgg.
 
 ::: tip Full API reference
 For every export with its signature, see the
 **[plgg-test API reference](/api/plgg-test/)**.
 :::
 
-## Why it exists
-
-The test runner decides every green/red verdict, yet a
-third-party runner sits at the centre of the workflow
-outside the family's control and drags a large dependency
-subtree. `plgg-test` removes that maintenance tax: its only
-runtime dependency is `plgg` itself — everything effectful
-rides Node built-ins (`node:fs`, `node:module`,
-`node:child_process`, …), and TypeScript is used only to
-transpile test files, never shipped.
-
-It is intentionally **minimum but real**: the surface is
-dictated by what the existing test corpus actually uses, not
-by a runner's full catalogue.
-
 ## Writing a test
 
-You import the API from `plgg-test` and write `test` /
-`expect` exactly as you would expect. This is a **real,
-unedited spec from the `plgg` package** — it runs under
-`plgg-test` today:
+The common case is one `check` call — `check(actual, ...matchers)`:
 
 ```ts
-import { test, expect, assert } from "plgg-test";
+import { test, check, toBe } from "plgg-test";
+
+test("adds", () => check(2 + 2, toBe(4)));
+```
+
+`toBe(4)` is a data-last matcher (`(actual) => Assertion`);
+`check` applies it to the actual and returns the verdict.
+Several matchers on one value compose — and every failure is
+reported, not just the first:
+
+```ts
+import { test, check, toBe, toBeGreaterThan } from "plgg-test";
+
+test("checks many properties at once", () =>
+  check(42, toBe(42), toBeGreaterThan(10)));
+```
+
+For several independent assertions, return them with `all`
+(which aggregates every failure as siblings, the way plgg's
+`cast` accumulates validation errors). This is a **real,
+unedited spec from the `plgg` package**:
+
+```ts
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  shouldBeErr,
+} from "plgg-test";
 import {
   isAlphanumeric,
   asAlphanumeric,
-  isOk,
-  isErr,
   box,
 } from "plgg/index";
 
-test("isAlphanumeric and asAlphanumeric basic validation", () => {
-  expect(
-    isAlphanumeric(box("Alphanumeric")("test123")),
-  ).toBe(true);
-
-  const result = asAlphanumeric("abc123");
-  assert(isOk(result)); // narrows result to the Ok branch
-  expect(result.content.content).toBe("abc123");
-
-  assert(isErr(asAlphanumeric("test-123")));
-});
+test("isAlphanumeric and asAlphanumeric basic validation", () =>
+  all([
+    check(
+      isAlphanumeric(box("Alphanumeric")("test123")),
+      toBe(true),
+    ),
+    check(
+      asAlphanumeric("abc123"),
+      okThen((b) => toBe("abc123")(b.content)),
+    ),
+    check(asAlphanumeric("test-123"), shouldBeErr()),
+  ]));
 ```
 
-Two things worth calling out:
+## Narrowing is data-flow, not control-flow
 
-- **`assert` is a real `asserts cond` function**, not a
-  boolean check. After `assert(isOk(result))` the compiler
-  *narrows* `result` to its `Ok` branch, so
-  `result.content` type-checks — which is why the codebase
-  can keep its no-`as`/no-`any` rule. (`tsc --noEmit` runs
-  before the tests as the pre-gate.)
-- **`toEqual` deep-equals plgg shapes**, including `Result`
-  / `Option` boxes:
+The traditional `assert(isOk(r)); r.content` narrows by
+*throwing*. plgg-test has no throwing assertion. Instead the
+value-carrying matchers (`shouldBeOk`, `shouldBeErr`,
+`shouldBeSome`, …) unwrap the inner value **into the
+pipeline**, so you keep composing with plgg's own `cast`:
 
 ```ts
-import { test, expect } from "plgg-test";
-import { ok, some } from "plgg";
+import { test, shouldBeOk, toBe } from "plgg-test";
+import { cast, asInt, int } from "plgg";
 
-test("toEqual deep-equals nested structures", () => {
-  expect({ a: [1, 2] }).toEqual({ a: [1, 2] });
-  expect(ok(some(3))).toEqual(ok(some(3)));
-});
-
-test("async is awaited; .resolves unwraps", async () => {
-  await expect(Promise.resolve(42)).resolves.toBe(42);
-});
+test("parses", () =>
+  cast(asInt("42"), shouldBeOk(), toBe(int(42))));
 ```
 
-## Test doubles (`vi`)
+`shouldBeOk()` yields the unwrapped value on success (and a
+`Fail` otherwise), which `toBe(int(42))` then checks — a
+single plgg pipeline, no `as`, no escape hatch.
 
-A scoped `vi` covers the spy/stub surface the corpus uses —
-again, a real `plgg-test` self-test:
+## Combinators
 
-```ts
-import { test, expect, vi } from "plgg-test";
-
-test("vi.spyOn records, calls original, and restores", () => {
-  const obj = { greet: (n: unknown) => `hi ${n}` };
-
-  const spy = vi.spyOn(obj, "greet");
-  expect(obj.greet("x")).toBe("hi x"); // original still runs
-  expect(spy).toHaveBeenCalledWith("x");
-
-  spy.mockRestore(); // original restored, spy stops recording
-});
-```
+`not` inverts a matcher; `all` aggregates; `allAsync` awaits
+a list of async assertions; async bodies are just `proc`
+chains. They are functions, not `.not`/`.resolves` chain
+segments.
 
 ## Running it
 
-The CLI takes the source roots to scan for `*.spec.ts`. The
-`plgg` package wires it straight into its npm scripts:
+The CLI scans source roots for `*.spec.ts`. The `plgg`
+package wires it into its npm scripts:
 
 ```sh
 # one-shot run (tsc gate first, then the suite)
@@ -120,17 +119,17 @@ plgg-test src --watch
 plgg-test src --coverage
 ```
 
-The process exits non-zero on any failure (or on zero
+The process exits non-zero on any failure (or zero
 discovered tests), so it is a correct CI / agent gate.
 
 ## Trust by demonstration
 
-`plgg-test` is validated against the previous runner
-**test-for-test** on the real `plgg` corpus — **74 spec
-files, 465 tests, identical pass/fail verdicts on both
-runners, zero divergence**. The switch is proven, not
-asserted. It also tests itself, bootstrapped by a tiny
-plain-`throw` meta-harness that verifies the primitives
-(a failing `expect` really throws, async rejection is
-caught, the exit code is right) *without* trusting the code
-under test.
+An assertion is a **branded** `Result` (tagged with plgg's
+own `Box`), so the runner can tell a real verdict from a
+domain `Result` a body happens to return: a body that
+doesn't return a genuine assertion **fails** rather than
+passing vacuously — the false-green hole a return-based
+model would otherwise open. The drop-shape cases (forgotten
+return, un-awaited promise, swallowed `Err`, …) are each
+proven to fail by a plain-`throw` meta-harness that doesn't
+trust the code under test.

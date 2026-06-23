@@ -1,33 +1,45 @@
-import { test, expect } from "plgg-test/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toContain,
+} from "plgg-test/index";
 import { formatValue } from "plgg-test/Expect/format";
 
-test("primitives", () => {
-  expect(formatValue(null)).toBe("null");
-  expect(formatValue(undefined)).toBe(
-    "undefined",
-  );
-  expect(formatValue("x")).toBe('"x"');
-  expect(formatValue(42)).toBe("42");
-  expect(formatValue(7n)).toBe("7n");
-  expect(formatValue(true)).toBe("true");
-});
+test("primitives", () =>
+  all([
+    check(formatValue(null), toBe("null")),
+    check(
+      formatValue(undefined),
+      toBe("undefined"),
+    ),
+    check(formatValue("x"), toBe('"x"')),
+    check(formatValue(42), toBe("42")),
+    check(formatValue(7n), toBe("7n")),
+    check(formatValue(true), toBe("true")),
+  ]));
 
-test("functions", () => {
-  expect(formatValue(function named() {})).toBe(
-    "[Function named]",
-  );
-});
+test("functions", () =>
+  check(
+    formatValue(function named() {}),
+    toBe("[Function named]"),
+  ));
 
-test("arrays and objects", () => {
-  expect(formatValue([1, 2])).toBe("[1, 2]");
-  expect(formatValue({ a: 1 })).toBe("{ a: 1 }");
-});
+test("arrays and objects", () =>
+  all([
+    check(formatValue([1, 2]), toBe("[1, 2]")),
+    check(
+      formatValue({ a: 1 }),
+      toBe("{ a: 1 }"),
+    ),
+  ]));
 
-test("errors", () => {
-  expect(formatValue(new Error("boom"))).toBe(
-    "[Error: boom]",
-  );
-});
+test("errors", () =>
+  check(
+    formatValue(new Error("boom")),
+    toBe("[Error: boom]"),
+  ));
 
 test("depth guard caps nesting", () => {
   const deep = {
@@ -35,5 +47,8 @@ test("depth guard caps nesting", () => {
       b: { c: { d: { e: 1 } } },
     },
   };
-  expect(formatValue(deep)).toContain("[…]");
+  return check(
+    formatValue(deep),
+    toContain("[…]"),
+  );
 });

@@ -1,11 +1,22 @@
-import { test, expect } from "plgg-test/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+} from "plgg-test/index";
 import { parseArgs } from "plgg-test/Cli/args";
 
 test("defaults roots to src", () => {
   const a = parseArgs([]);
-  expect(a.roots).toEqual(["src"]);
-  expect(a.watch).toBe(false);
-  expect(a.coverage).toBe(false);
+  return all([
+    check(
+      a.roots,
+      toEqual<ReadonlyArray<string>>(["src"]),
+    ),
+    check(a.watch, toBe(false)),
+    check(a.coverage, toBe(false)),
+  ]);
 });
 
 test("parses roots and flags", () => {
@@ -15,13 +26,26 @@ test("parses roots and flags", () => {
     "--watch",
     "--coverage",
   ]);
-  expect(a.roots).toEqual(["src", "lib"]);
-  expect(a.watch).toBe(true);
-  expect(a.coverage).toBe(true);
+  return all([
+    check(
+      a.roots,
+      toEqual<ReadonlyArray<string>>([
+        "src",
+        "lib",
+      ]),
+    ),
+    check(a.watch, toBe(true)),
+    check(a.coverage, toBe(true)),
+  ]);
 });
 
 test("flags only keeps default root", () => {
   const a = parseArgs(["--watch"]);
-  expect(a.roots).toEqual(["src"]);
-  expect(a.watch).toBe(true);
+  return all([
+    check(
+      a.roots,
+      toEqual<ReadonlyArray<string>>(["src"]),
+    ),
+    check(a.watch, toBe(true)),
+  ]);
 });

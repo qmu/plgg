@@ -1,8 +1,10 @@
 import { pathToFileURL } from "node:url";
+import { isOk } from "plgg";
 import type {
   Suite,
   TestCase,
-  TestFn,
+  TestBody,
+  HookFn,
   TestResult,
   Hooks,
 } from "plgg-test/Core/types";
@@ -11,9 +13,10 @@ import {
   takeRootSuite,
 } from "plgg-test/Core/Registry";
 import {
-  AssertionError,
-  isAssertionError,
-} from "plgg-test/Core/AssertionError";
+  isAssertion,
+  failOf,
+} from "plgg-test/Matchers/Assertion";
+import type { Assertion } from "plgg-test/Matchers/Assertion";
 
 /**
  * Imports one spec file and returns its registered suite tree. The
@@ -203,13 +206,13 @@ const PASS: StepResult = {
 // instead of escaping uncaught (O2). Precedence: a thrown/awaited
 // failure first, then an escaped rejection, then a teardown failure.
 const execute = async (
-  body: TestFn,
+  body: TestBody,
   hooks: Hooks,
 ): Promise<StepResult> => {
   const before = await runSteps(hooks.beforeEach);
   const main = before.failed
     ? before
-    : await guardWithRejectionWindow(body);
+    : await foldBodyWithRejectionWindow(body);
   const after = await runSteps(hooks.afterEach);
   return main.failed ? main : after;
 };
@@ -247,11 +250,16 @@ const ensureListener = (): void => {
   );
 };
 
-// Wraps {@link guard} with a rejection window. After the body settles
-// we yield to the event loop so any not-awaited rejection is delivered,
-// then fail the test if this window captured one.
-const guardWithRejectionWindow = async (
-  fn: TestFn,
+// Runs a test BODY inside the rejection window and FOLDS its returned
+// value into a StepResult. The body's return IS the verdict:
+//   - a branded Assertion → Ok=pass, Err=fail (message from Fail);
+//   - a THROW / rejected promise → fail (defect safety net);
+//   - ANYTHING ELSE (void, a bare domain Result, a non-Result truthy)
+//     → fail "body did not return an assertion" — this is the
+//     anti-false-green guard (a computed-but-dropped assertion can't
+//     read green because the body then didn't RETURN an Assertion).
+const foldBodyWithRejectionWindow = async (
+  body: TestBody,
 ): Promise<StepResult> => {
   ensureListener();
   const win: RejectionWindow = {
@@ -260,9 +268,10 @@ const guardWithRejectionWindow = async (
   };
   windowStack.push(win);
   try {
-    const direct = await guard(fn);
-    // Flush the microtask + macrotask queues so a not-awaited
-    // rejection surfaces before we judge the test.
+    // Boundary seam: a body may throw/reject; capturing that is the
+    // runner's duty, so try/catch is irreducible here.
+    const direct = await runBody(body);
+    // Flush queues so a not-awaited rejection surfaces before verdict.
     await new Promise<void>((r) =>
       setTimeout(r, 0),
     );
@@ -280,36 +289,67 @@ const guardWithRejectionWindow = async (
   }
 };
 
+const runBody = async (
+  body: TestBody,
+): Promise<StepResult> => {
+  try {
+    const returned = await body();
+    return foldAssertion(returned);
+  } catch (e) {
+    return {
+      failed: true,
+      message: messageOf(e),
+      stack: stackOf(e),
+    };
+  }
+};
+
+// Folds the body's resolved RETURN VALUE. Only a branded Assertion is
+// accepted as a verdict; everything else fails (guardrail 1 + 6).
+const foldAssertion = (
+  returned: Assertion,
+): StepResult =>
+  !isAssertion(returned)
+    ? {
+        failed: true,
+        message:
+          "test body did not return an assertion (it returned a non-Assertion value — a dropped/ignored assertion reads as failure, never green)",
+        stack: "",
+      }
+    : isOk(returned)
+      ? PASS
+      : {
+          failed: true,
+          message: failOf(returned.content)
+            .message,
+          stack: "",
+        };
+
+// Runs the beforeEach/afterEach HOOKS (side-effecting, not assertions).
+// A hook that throws/rejects fails the owning test (the defect net).
 const runSteps = async (
-  steps: ReadonlyArray<TestFn>,
+  steps: ReadonlyArray<HookFn>,
 ): Promise<StepResult> =>
   steps.reduce<Promise<StepResult>>(
     async (accP, step) => {
       const acc = await accP;
-      return acc.failed ? acc : guard(step);
+      return acc.failed ? acc : guardHook(step);
     },
     Promise.resolve(PASS),
   );
 
-// Awaits a test/hook fn, converting any throw OR awaited promise
-// rejection into a captured failure. This is THE false-negative guard
-// (design): an async body whose returned promise rejects must fail,
-// never silently pass. (Fire-and-forget rejections are caught by the
-// rejection window in {@link guardWithRejectionWindow}.)
-const guard = async (
-  fn: TestFn,
+const guardHook = async (
+  fn: HookFn,
 ): Promise<StepResult> => {
-  // Boundary seam: capturing a test's thrown/rejected outcome is the
-  // runner's core duty, so try/catch is irreducible here.
+  // Boundary seam: capturing a hook's thrown/rejected outcome is the
+  // runner's duty, so try/catch is irreducible here.
   try {
     await fn();
     return PASS;
   } catch (e) {
     return {
       failed: true,
-      message: isAssertionError(e)
-        ? e.message
-        : messageOf(e),
+      message: messageOf(e),
       stack: stackOf(e),
     };
   }
@@ -340,6 +380,3 @@ const stackOf = (e: unknown): string =>
 
 const now = (): number =>
   Number(process.hrtime.bigint()) / 1_000_000;
-
-// Re-export so the meta-harness can construct the same error type.
-export { AssertionError };

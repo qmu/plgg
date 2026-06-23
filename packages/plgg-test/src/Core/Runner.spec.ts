@@ -1,4 +1,9 @@
-import { test, expect } from "plgg-test/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test/index";
 import { runFile } from "plgg-test/Core/Runner";
 import { tally } from "plgg-test/Core/Reporter";
 import { fileURLToPath } from "node:url";
@@ -13,13 +18,15 @@ const fixture = (name: string): string =>
     name,
   );
 
-test("runs a mixed fixture: pass/fail/skip + async reject", async () => {
+test("runs a mixed fixture: pass + sync fail + async reject", async () => {
   const results = await runFile(
-    fixture("_metaFixture.spec.ts"),
+    fixture("_mixedFixture.spec.ts"),
   );
   const v = tally(results);
-  expect(v.passed).toBe(1);
-  expect(v.failed).toBe(2);
+  return all([
+    check(v.passed, toBe(1)),
+    check(v.failed, toBe(2)),
+  ]);
 });
 
 test("hooks run around each test in order", async () => {
@@ -28,8 +35,10 @@ test("hooks run around each test in order", async () => {
   );
   const v = tally(results);
   // The fixture asserts hook ordering internally; all its tests pass.
-  expect(v.failed).toBe(0);
-  expect(v.passed).toBe(2);
+  return all([
+    check(v.failed, toBe(0)),
+    check(v.passed, toBe(2)),
+  ]);
 });
 
 test("describe nesting and skip", async () => {
@@ -37,8 +46,10 @@ test("describe nesting and skip", async () => {
     fixture("_nestingFixture.spec.ts"),
   );
   const v = tally(results);
-  expect(v.skipped).toBe(1);
-  expect(v.passed).toBe(2);
+  return all([
+    check(v.skipped, toBe(1)),
+    check(v.passed, toBe(2)),
+  ]);
 });
 
 test("a spec that fails to load turns red", async () => {
@@ -46,7 +57,7 @@ test("a spec that fails to load turns red", async () => {
     fixture("_loadErrorFixture.spec.ts"),
   );
   const v = tally(results);
-  expect(v.failed).toBe(1);
+  return check(v.failed, toBe(1));
 });
 
 test("a fire-and-forget rejection fails the test (O2 window)", async () => {
@@ -54,6 +65,8 @@ test("a fire-and-forget rejection fails the test (O2 window)", async () => {
     fixture("_unhandledFixture.spec.ts"),
   );
   const v = tally(results);
-  expect(v.passed).toBe(1);
-  expect(v.failed).toBe(1);
+  return all([
+    check(v.passed, toBe(1)),
+    check(v.failed, toBe(1)),
+  ]);
 });

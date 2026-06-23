@@ -93,21 +93,48 @@ const generate = (pkg) => {
   const out = join(apiDir, pkg);
   // Clean stale output so removed exports don't linger.
   rmSync(out, { recursive: true, force: true });
-  execFileSync(
-    "npx",
-    [
-      "typedoc",
-      "--options",
-      join(guideRoot, "typedoc.base.json"),
-      "--tsconfig",
-      join(pkgRoot, "tsconfig.json"),
-      "--entryPoints",
-      join(pkgRoot, "src", "index.ts"),
-      "--out",
-      out,
-    ],
-    { cwd: guideRoot, stdio: "inherit" },
+  // The API reference documents a package's public surface (`index.ts`), never
+  // its tests. Compile TypeDoc through a transient tsconfig that excludes
+  // `*.spec.ts`, so doc generation never depends on test-spec type health (a
+  // spec that doesn't type-check must not break the published reference).
+  const docsTsconfig = join(
+    pkgRoot,
+    "tsconfig.typedoc.json",
   );
+  writeFileSync(
+    docsTsconfig,
+    JSON.stringify(
+      {
+        extends: "./tsconfig.json",
+        include: ["src/**/*.ts"],
+        exclude: [
+          "**/*.spec.ts",
+          "**/*.test.ts",
+        ],
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+  try {
+    execFileSync(
+      "npx",
+      [
+        "typedoc",
+        "--options",
+        join(guideRoot, "typedoc.base.json"),
+        "--tsconfig",
+        docsTsconfig,
+        "--entryPoints",
+        join(pkgRoot, "src", "index.ts"),
+        "--out",
+        out,
+      ],
+      { cwd: guideRoot, stdio: "inherit" },
+    );
+  } finally {
+    rmSync(docsTsconfig, { force: true });
+  }
 };
 
 // Recursively list every non-spec `.ts` source file under `dir`.

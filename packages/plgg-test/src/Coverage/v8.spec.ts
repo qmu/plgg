@@ -1,4 +1,10 @@
-import { test, expect } from "plgg-test/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toHaveLength,
+} from "plgg-test/index";
 import {
   collect,
   passesThreshold,
@@ -59,7 +65,7 @@ const report = (
   lines: { ...m, pct: pcts.lines },
 });
 
-test("collect folds full-coverage ranges into four metrics", () => {
+test("collect folds full-coverage ranges into four metrics", () =>
   withScratch((srcDir) =>
     withScratch((covDir) => {
       const tsPath = join(srcDir, "mod.ts");
@@ -102,14 +108,15 @@ test("collect folds full-coverage ranges into four metrics", () => {
         }),
       );
       const rep = collect(covDir, srcDir, []);
-      expect(rep.files.length).toBe(1);
-      expect(rep.lines.pct).toBe(100);
-      expect(rep.functions.pct).toBe(100);
+      return all([
+        check(rep.files.length, toBe(1)),
+        check(rep.lines.pct, toBe(100)),
+        check(rep.functions.pct, toBe(100)),
+      ]);
     }),
-  );
-});
+  ));
 
-test("an uncalled function counts against function coverage", () => {
+test("an uncalled function counts against function coverage", () =>
   withScratch((srcDir) =>
     withScratch((covDir) => {
       const tsPath = join(srcDir, "mod.ts");
@@ -164,36 +171,38 @@ test("an uncalled function counts against function coverage", () => {
       );
       const rep = collect(covDir, srcDir, []);
       // 1 of 2 declared functions executed → 50%, never 100%.
-      expect(rep.functions.pct).toBe(50);
+      return check(rep.functions.pct, toBe(50));
     }),
-  );
-});
+  ));
 
-test("threshold gate requires ALL four metrics strictly greater", () => {
-  expect(
-    passesThreshold(
-      report({
-        statements: 100,
-        branches: 100,
-        functions: 100,
-        lines: 100,
-      }),
-      90,
+test("threshold gate requires ALL four metrics strictly greater", () =>
+  all([
+    check(
+      passesThreshold(
+        report({
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100,
+        }),
+        90,
+      ),
+      toBe(true),
     ),
-  ).toBe(true);
-  // One metric exactly at the threshold (not strictly greater) fails.
-  expect(
-    passesThreshold(
-      report({
-        statements: 100,
-        branches: 90,
-        functions: 100,
-        lines: 100,
-      }),
-      90,
+    // One metric exactly at the threshold (not strictly greater) fails.
+    check(
+      passesThreshold(
+        report({
+          statements: 100,
+          branches: 90,
+          functions: 100,
+          lines: 100,
+        }),
+        90,
+      ),
+      toBe(false),
     ),
-  ).toBe(false);
-});
+  ]));
 
 test("missing coverage dir yields an empty report", () => {
   const rep = collect(
@@ -201,11 +210,13 @@ test("missing coverage dir yields an empty report", () => {
     "/x",
     [],
   );
-  expect(rep.files).toEqual([]);
-  expect(rep.lines.pct).toBe(100);
+  return all([
+    check(rep.files, toHaveLength(0)),
+    check(rep.lines.pct, toBe(100)),
+  ]);
 });
 
-test("collect honors the exclude list", () => {
+test("collect honors the exclude list", () =>
   withScratch((srcDir) =>
     withScratch((covDir) => {
       const tsPath = join(
@@ -227,12 +238,11 @@ test("collect honors the exclude list", () => {
       const rep = collect(covDir, srcDir, [
         "/Abstracts/",
       ]);
-      expect(rep.files).toEqual([]);
+      return check(rep.files, toHaveLength(0));
     }),
-  );
-});
+  ));
 
-test("malformed coverage JSON contributes no scripts", () => {
+test("malformed coverage JSON contributes no scripts", () =>
   withScratch((srcDir) =>
     withScratch((covDir) => {
       writeFileSync(
@@ -248,12 +258,11 @@ test("malformed coverage JSON contributes no scripts", () => {
         "ignored",
       );
       const rep = collect(covDir, srcDir, []);
-      expect(rep.files).toEqual([]);
+      return check(rep.files, toHaveLength(0));
     }),
-  );
-});
+  ));
 
-test("a script whose source is unreadable yields zero-line file", () => {
+test("a script whose source is unreadable yields zero-line file", () =>
   withScratch((covDir) => {
     // Point at a .ts path that does not exist on disk.
     writeFileSync(
@@ -278,7 +287,8 @@ test("a script whose source is unreadable yields zero-line file", () => {
       "/tmp/plgg-missing-src-x",
       [],
     );
-    expect(rep.files.length).toBe(1);
-    expect(rep.lines.total).toBe(0);
-  });
-});
+    return all([
+      check(rep.files.length, toBe(1)),
+      check(rep.lines.total, toBe(0)),
+    ]);
+  }));

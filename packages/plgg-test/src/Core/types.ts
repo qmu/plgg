@@ -1,9 +1,24 @@
+import type { Assertion } from "plgg-test/Matchers/Assertion";
+
 /**
- * The body of a test or hook. May be sync or async; the runner always
- * awaits the returned value, so a rejected promise fails the owning
- * test (the headline false-negative guard).
+ * A TEST body. Pipe-style redesign: the body RETURNS its assertion
+ * verdict (an {@link Assertion}, sync or async) and the runner reads
+ * that return value as the verdict — the body's return IS the verdict,
+ * so a failing assertion can't be silently dropped. A body that
+ * resolves to anything that is NOT a branded Assertion (void, a bare
+ * domain Result, a non-Result) is FAILED by the runner ("body did not
+ * return an assertion").
  */
-export type TestFn = () => void | Promise<void>;
+export type TestBody = () =>
+  | Assertion
+  | Promise<Assertion>;
+
+/**
+ * A HOOK body (beforeEach/afterEach). Hooks do setup/teardown, not
+ * assertions, so they stay side-effecting; a throw/rejection in a hook
+ * still fails the owning test (the defect safety net).
+ */
+export type HookFn = () => void | Promise<void>;
 
 /**
  * How a registered test should be treated by the runner.
@@ -16,7 +31,7 @@ export type TestMode = "run" | "skip";
  */
 export type TestCase = Readonly<{
   name: string;
-  fn: TestFn;
+  fn: TestBody;
   mode: TestMode;
 }>;
 
@@ -26,8 +41,8 @@ export type TestCase = Readonly<{
  * scope for v1.
  */
 export type Hooks = Readonly<{
-  beforeEach: ReadonlyArray<TestFn>;
-  afterEach: ReadonlyArray<TestFn>;
+  beforeEach: ReadonlyArray<HookFn>;
+  afterEach: ReadonlyArray<HookFn>;
 }>;
 
 /**
