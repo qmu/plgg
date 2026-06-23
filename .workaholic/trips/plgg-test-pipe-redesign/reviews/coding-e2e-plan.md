@@ -210,6 +210,56 @@ green") is judged honestly before the full rewrite is locked.
   plgg parity (plgg specs import plgg's own src); flag if the rewritten
   corpus changes that.
 
+## Prior-verdict ORACLE — captured (2026-06-23)
+
+Per the lead's direction, the oracle is the OLD fluent plgg-test's
+PER-TEST verdicts (name SET + outcome), NOT the bare aggregate — so a
+rewrite that silently drops/renames/skips a test is caught (an added
+test can't mask a dropped one in a count).
+
+- **Source:** the prior trip worktree `work-20260623-170403` at
+  `ec9bb22` — exactly the BASE of this branch (`work-20260623-214128`
+  was cut from it). It holds the 74 pre-rewrite specs importing the OLD
+  fluent plgg-test, deps installed, bin present.
+- **Capture method:** a harness reusing the OLD runner's
+  `discover` + `runFile`, keyed `relfile :: names.join(" > ")` →
+  outcome (same approach validated in the prior trip).
+- **Captured baseline:** **74 files / 465 tests / all passed.** Saved
+  as the per-test name+verdict set (scratchpad `oracle-verdicts.json`).
+  The rewritten corpus must match this test-for-test (same 74-file set,
+  same 465 named tests, same all-pass) AFTER the rewrite lands.
+
+## Mutation spot-check slice — FIXED
+
+Rewrite has NOT started yet (0 plgg specs use the new pipe matchers; 68
+still fluent — Constructor is building the matcher layer first). So
+parity (§7), mutation (§8), and ergonomics (§9) run AFTER the rewrite,
+post-gate. The fixed slice (chosen now from the oracle file list so it
+is idiom-spanning AND high-signal):
+
+- **High-`toBe` density:** `Disjunctives/JsonReady.spec.ts` (densest,
+  ~102 checks) and `Disjunctives/Option.spec.ts` (~70) — trivial-check
+  ergonomics + the most mutation targets.
+- **Async / `proc`:** `Flowables/proc.spec.ts` — the async body shape.
+- **Result/Option narrowing:** `Disjunctives/Result.spec.ts` /
+  `Atomics/BigInt.spec.ts` — the value-carrying `shouldBeOk()` /
+  `okContent()` narrowing idiom (must show NO throwing `narrow`, G2).
+
+Mutation operators on a TEMP COPY of the slice: `shouldBe(n)` →
+`shouldBe(n+1)` for numerics; junk-suffix string literals inside
+`shouldBe`/`shouldEqual`; swap `true`/`false`; bump
+`shouldHaveLength(n)`→`n+1`. One mutation per test where feasible;
+require every mutated test to FLIP to FAIL; any survivor = a force-less
+assertion, reported with spec/line. (Exact operators finalized once the
+real rewritten matcher names are visible.)
+
+## Install status (both blockers cleared)
+
+- `packages/plgg-test` deps installed (plgg linked, typescript present)
+  — CLI can run.
+- `packages/plgg` deps installed (plgg-test linked for rewritten specs).
+- No vitest, no dist build needed for the headline plgg parity.
+
 ## Review Notes
 
 (none yet)
