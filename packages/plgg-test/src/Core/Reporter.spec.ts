@@ -4,13 +4,13 @@ import {
   all,
   toBe,
   toContain,
-} from "plgg-test/index";
+} from "../index.js";
 import {
   tally,
   exitCodeFor,
   report,
-} from "plgg-test/Core/Reporter";
-import type { TestResult } from "plgg-test/Core/types";
+} from "./Reporter.js";
+import type { TestResult } from "./types.js";
 
 const r = (
   outcome: TestResult["outcome"],

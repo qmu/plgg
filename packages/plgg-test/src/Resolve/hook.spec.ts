@@ -14,8 +14,8 @@ import {
   check,
   all,
   toBe,
-} from "plgg-test/index";
-import { deepEqual } from "plgg-test/Expect/equals";
+} from "../index.js";
+import { deepEqual } from "../Expect/equals.js";
 import { ok, isOk } from "plgg";
 
 test("resolves self-package /index specifier", () =>

@@ -1,10 +1,10 @@
 import {
   collect,
   passesThreshold,
-} from "plgg-test/Coverage/v8";
-import { readConfig } from "plgg-test/Coverage/config";
+} from "./v8.js";
+import { readConfig } from "./config.js";
 import { matchOption } from "plgg";
-import type { Metric } from "plgg-test/Coverage/v8";
+import type { Metric } from "./v8.js";
 
 /**
  * Coverage gate entry, invoked by the bin launcher as the parent

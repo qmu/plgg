@@ -2,9 +2,9 @@ import {
   Assertion,
   pass,
   fail,
-} from "plgg-test/Matchers/Assertion";
-import { deepEqual } from "plgg-test/Expect/equals";
-import { formatValue } from "plgg-test/Expect/format";
+} from "./Assertion.js";
+import { deepEqual } from "../Expect/equals.js";
+import { formatValue } from "../Expect/format.js";
 
 /**
  * A matcher: a data-last function from an actual value to an
@@ -40,29 +40,37 @@ const matcher =
           message: describe(actual).message,
         });
 
-export const toBe = <A>(
-  expected: A,
-): Matcher<A> =>
-  matcher(
-    "toBe",
-    (actual) => Object.is(actual, expected),
-    (actual) => ({
-      expected: formatValue(expected),
-      message: `expected ${formatValue(actual)} to be ${formatValue(expected)}`,
-    }),
-  );
+// `toBe`/`toEqual` are RUNTIME equality checks: the `expected` value
+// fixes the comparand, but the `actual` is left generic on the inner
+// (application) function so it can be wider than — or simply unrelated
+// to — `expected`'s static type. A test legitimately asserts that a
+// value statically typed `Datum` equals the literal `"hello"`; pinning
+// `actual` to `typeof expected` would reject that even though it holds
+// at runtime. The actual's type `X` still threads through `Assertion<X>`
+// so value-carrying composition keeps its precise type.
+export const toBe =
+  <A>(expected: A) =>
+  <X>(actual: X): Assertion<X> =>
+    Object.is(actual, expected)
+      ? pass(actual)
+      : fail({
+          matcher: "toBe",
+          expected: formatValue(expected),
+          actual: formatValue(actual),
+          message: `expected ${formatValue(actual)} to be ${formatValue(expected)}`,
+        });
 
-export const toEqual = <A>(
-  expected: A,
-): Matcher<A> =>
-  matcher(
-    "toEqual",
-    (actual) => deepEqual(actual, expected),
-    (actual) => ({
-      expected: formatValue(expected),
-      message: `expected ${formatValue(actual)} to deeply equal ${formatValue(expected)}`,
-    }),
-  );
+export const toEqual =
+  <A>(expected: A) =>
+  <X>(actual: X): Assertion<X> =>
+    deepEqual(actual, expected)
+      ? pass(actual)
+      : fail({
+          matcher: "toEqual",
+          expected: formatValue(expected),
+          actual: formatValue(actual),
+          message: `expected ${formatValue(actual)} to deeply equal ${formatValue(expected)}`,
+        });
 
 // `toContain`: substring for strings, membership (Object.is) for
 // arrays. Typed over the two actual shapes the corpus uses.

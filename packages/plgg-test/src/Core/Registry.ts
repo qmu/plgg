@@ -3,7 +3,7 @@ import type {
   TestBody,
   HookFn,
   TestMode,
-} from "plgg-test/Core/types";
+} from "./types.js";
 
 /**
  * Mutable counterpart of {@link Suite} used only while a spec module

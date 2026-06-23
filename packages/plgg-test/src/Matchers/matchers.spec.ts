@@ -11,7 +11,7 @@ import {
   toBeUndefined,
   toBeNull,
   isAssertion,
-} from "plgg-test/index";
+} from "../index.js";
 import { isOk, isErr } from "plgg";
 
 // We are testing the matchers themselves, so we inspect their output

@@ -8,9 +8,9 @@ import {
   fail,
   pass,
   isAssertion,
-} from "plgg-test/index";
+} from "../index.js";
 import { isOk, isErr } from "plgg";
-import { failOf } from "plgg-test/Matchers/Assertion";
+import { failOf } from "./Assertion.js";
 
 test("not inverts a matcher", () =>
   all([

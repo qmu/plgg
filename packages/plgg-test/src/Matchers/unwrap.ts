@@ -14,8 +14,8 @@ import {
   Assertion,
   pass,
   fail,
-} from "plgg-test/Matchers/Assertion";
-import { formatValue } from "plgg-test/Expect/format";
+} from "./Assertion.js";
+import { formatValue } from "../Expect/format.js";
 
 /**
  * Value-carrying assertions — the narrowing replacement (guardrail 2).
@@ -106,12 +106,16 @@ export const okThen =
           message: `expected Ok, got ${formatValue(r)}`,
         });
 
+// `E` is generic but DEFAULTS to `InvalidError` — the dominant error
+// channel in this corpus. A bare `errThen((e) => …)` lambda yields no
+// inference candidate for `E`, so the default applies and `e` is typed
+// `InvalidError` with no annotation. A matcher-first `errThen(toBe(s))`
+// infers `E` from the matcher's parameter (`E = string` here), so the
+// error channel need not be `InvalidError`. Both forms read clean.
 export const errThen =
-  (
-    inner: (error: InvalidError) => Assertion,
-  ): (<T>(
-    r: Result<T, InvalidError>,
-  ) => Assertion) =>
+  <E = InvalidError>(
+    inner: (error: E) => Assertion,
+  ): (<T>(r: Result<T, E>) => Assertion) =>
   (r) =>
     isErr(r)
       ? inner(r.content)

@@ -4,8 +4,8 @@ import {
   all,
   toBe,
   toEqual,
-} from "plgg-test/index";
-import { readConfig } from "plgg-test/Coverage/config";
+} from "../index.js";
+import { readConfig } from "./config.js";
 import { isSome, isNone } from "plgg";
 import {
   mkdtempSync,

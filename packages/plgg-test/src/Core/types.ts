@@ -1,4 +1,4 @@
-import type { Assertion } from "plgg-test/Matchers/Assertion";
+import type { Assertion } from "../Matchers/Assertion.js";
 
 /**
  * A TEST body. Pipe-style redesign: the body RETURNS its assertion

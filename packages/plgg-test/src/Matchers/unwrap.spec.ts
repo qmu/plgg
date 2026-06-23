@@ -8,7 +8,7 @@ import {
   shouldBeErr,
   shouldBeSome,
   shouldBeNone,
-} from "plgg-test/index";
+} from "../index.js";
 import {
   ok,
   err,

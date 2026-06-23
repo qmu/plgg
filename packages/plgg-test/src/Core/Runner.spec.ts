@@ -3,9 +3,9 @@ import {
   check,
   all,
   toBe,
-} from "plgg-test/index";
-import { runFile } from "plgg-test/Core/Runner";
-import { tally } from "plgg-test/Core/Reporter";
+} from "../index.js";
+import { runFile } from "./Runner.js";
+import { tally } from "./Reporter.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 

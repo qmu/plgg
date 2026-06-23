@@ -1,7 +1,7 @@
 import type {
   TestResult,
   Verdict,
-} from "plgg-test/Core/types";
+} from "./types.js";
 
 /**
  * Folds results into the aggregate verdict.

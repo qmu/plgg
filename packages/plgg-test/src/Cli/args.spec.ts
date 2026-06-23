@@ -4,8 +4,8 @@ import {
   all,
   toBe,
   toEqual,
-} from "plgg-test/index";
-import { parseArgs } from "plgg-test/Cli/args";
+} from "../index.js";
+import { parseArgs } from "./args.js";
 
 test("defaults roots to src", () => {
   const a = parseArgs([]);

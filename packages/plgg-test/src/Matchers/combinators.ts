@@ -5,9 +5,9 @@ import {
   pass,
   fail,
   failOf,
-} from "plgg-test/Matchers/Assertion";
-import { Matcher } from "plgg-test/Matchers/matchers";
-import { Pass } from "plgg-test/Matchers/Assertion";
+} from "./Assertion.js";
+import { Matcher } from "./matchers.js";
+import { Pass } from "./Assertion.js";
 
 /**
  * `andThen(assertion, next)` — value-THREADING composition. If

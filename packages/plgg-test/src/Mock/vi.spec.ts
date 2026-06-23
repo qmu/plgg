@@ -4,8 +4,8 @@ import {
   all,
   toBe,
   vi,
-} from "plgg-test/index";
-import { deepEqual } from "plgg-test/Expect/equals";
+} from "../index.js";
+import { deepEqual } from "../Expect/equals.js";
 
 test("vi.fn mockImplementation swaps the body", () => {
   const fn = vi.fn(() => 1);

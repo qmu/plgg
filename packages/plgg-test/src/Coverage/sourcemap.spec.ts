@@ -3,9 +3,9 @@ import {
   check,
   all,
   toBe,
-} from "plgg-test/index";
-import { generatedToSource } from "plgg-test/Coverage/sourcemap";
-import { transpile } from "plgg-test/Resolve/hook";
+} from "../index.js";
+import { generatedToSource } from "./sourcemap.js";
+import { transpile } from "../Resolve/hook.js";
 
 // Round-trips a real source map produced by the transpiler: each
 // generated line should map back to a plausible original line, and the
