@@ -4,6 +4,38 @@ import {
   vi,
 } from "plgg-test/index";
 
+test("vi.fn mockImplementation swaps the body", () => {
+  const fn = vi.fn(() => 1);
+  expect(fn()).toBe(1);
+  fn.mockImplementation(() => 2);
+  expect(fn()).toBe(2);
+  expect(fn).toHaveBeenCalledTimes(2);
+});
+
+test("vi.spyOn records, calls original, and restores", () => {
+  const obj = {
+    greet: (n: unknown) => `hi ${n}`,
+  };
+  const spy = vi.spyOn(obj, "greet");
+  const out = obj.greet("x");
+  expect(out).toBe("hi x");
+  expect(spy).toHaveBeenCalledWith("x");
+  spy.mockRestore();
+  // After restore the original is back (spy no longer records).
+  obj.greet("y");
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+test("vi.spyOn mockImplementation overrides the original", () => {
+  const obj = { f: () => "real" };
+  const spy = vi
+    .spyOn(obj, "f")
+    .mockImplementation(() => "fake");
+  expect(obj.f()).toBe("fake");
+  spy.mockRestore();
+  expect(obj.f()).toBe("real");
+});
+
 test("vi.fn records calls and returns impl result", () => {
   const fn = vi.fn(
     (a: unknown, b: unknown) =>

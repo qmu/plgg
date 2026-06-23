@@ -6,6 +6,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/build.sh
 
 ./scripts/test-plgg.sh
+./scripts/test-plgg-test.sh
 ./scripts/test-plgg-kit.sh
 ./scripts/test-plgg-foundry.sh
 ./scripts/test-plgg-http.sh

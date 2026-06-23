@@ -79,12 +79,14 @@ const makeFn = (impl?: Impl): Spy => {
 // `spyOn(target, key)` replaces `target[key]` with a spy that, by
 // default, still calls the original; `mockImplementation` overrides it
 // and `mockRestore` puts the original back. Only the shapes the corpus
-// uses (spying on `console.log/error/debug`) are needed.
-const spyOn = (
-  target: Record<string, unknown>,
-  key: string,
+// uses (spying on `console.log/error/debug`) are needed. `Reflect`
+// get/set are used for the swap so the property mutation type-checks
+// over an arbitrary object key without an `as` cast.
+const spyOn = <T extends object>(
+  target: T,
+  key: keyof T,
 ): Spy => {
-  const original = target[key];
+  const original = Reflect.get(target, key);
   const spy = makeFn(
     typeof original === "function"
       ? (...args) =>
@@ -92,9 +94,9 @@ const spyOn = (
       : undefined,
   );
   spy.mockRestore = (): void =>
-    void (target[key] = original);
+    void Reflect.set(target, key, original);
   // Patch the target. This mutation is the whole point of `spyOn`.
-  target[key] = spy;
+  Reflect.set(target, key, spy);
   return spy;
 };
 

@@ -11,7 +11,7 @@ export {
 
 export { expect } from "plgg-test/Expect/expect";
 
-export { assertWithFail as assert } from "plgg-test/Assert/assert";
+export { assert } from "plgg-test/Assert/assert";
 
 export { vi } from "plgg-test/Mock/vi";
 

@@ -32,8 +32,7 @@
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    "allowJs": false,
-    "erasableSyntaxOnly": true
+    "allowJs": false
   },
   "include": ["src/**/*"]
 }

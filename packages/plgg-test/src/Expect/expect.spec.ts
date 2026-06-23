@@ -2,6 +2,7 @@ import {
   test,
   expect,
   assert,
+  vi,
 } from "plgg-test/index";
 import { ok, some, none } from "plgg";
 import { AssertionError } from "plgg-test/Core/AssertionError";
@@ -135,4 +136,32 @@ test("assert.fail always throws", () => {
 
 test("matchers distinguish Option variants", () => {
   expect(some(1)).not.toEqual(none());
+});
+
+test("equal is a strict alias of toBe", () => {
+  expect(1).equal(1);
+  expect(throws(() => expect(1).equal(2))).toBe(
+    true,
+  );
+});
+
+test("expect.stringContaining matches in toHaveBeenCalledWith", () => {
+  const fn = vi.fn();
+  fn("hello world");
+  expect(fn).toHaveBeenCalledWith(
+    expect.stringContaining("world"),
+  );
+  expect(
+    throws(() =>
+      expect(fn).toHaveBeenCalledWith(
+        expect.stringContaining("nope"),
+      ),
+    ),
+  ).toBe(true);
+});
+
+test("toHaveBeenCalledOnce", () => {
+  const fn = vi.fn();
+  fn();
+  expect(fn).toHaveBeenCalledOnce();
 });

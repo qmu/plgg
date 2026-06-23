@@ -7,6 +7,16 @@ import { AssertionError } from "plgg-test/Core/AssertionError";
  * `as` cast in a no-escape-hatch codebase. A `Result`-returning
  * variant could not narrow, so this is necessarily a THROW boundary
  * (Plan Amendment 5).
+ *
+ * It is exported as a plain `function` declaration (NOT a `const` of an
+ * intersection type): TypeScript only honors an `asserts` call
+ * signature on a function declaration / function+namespace merge — a
+ * `const assert: typeof fn & {…}` silently loses the assertion and
+ * narrowing breaks (TS2775). `assert.fail` is attached via a
+ * declaration-merged namespace, keeping the call signature a real
+ * assertion. (plgg-test runs `.ts` through `ts.transpileModule`, which
+ * compiles the namespace, so `erasableSyntaxOnly` is intentionally NOT
+ * set for this package.)
  */
 export function assert(
   condition: unknown,
@@ -21,20 +31,13 @@ export function assert(
   }
 }
 
-/**
- * `assert.fail(msg)` — unconditionally fails the current test. The
- * `asserts` signature lives on the callable; `fail` is a sibling
- * property carrying a `never` return so callers can use it in
- * exhaustive positions.
- */
-const fail = (message?: string): never => {
-  throw new AssertionError({
-    message: message ?? "assert.fail()",
-  });
-};
-
-// Attach `fail` to the assertion function. `assert` keeps its
-// `asserts condition` call signature; `assert.fail` is the sibling.
-export const assertWithFail: typeof assert & {
-  fail: (message?: string) => never;
-} = Object.assign(assert, { fail });
+export namespace assert {
+  /**
+   * `assert.fail(msg)` — unconditionally fails the current test.
+   */
+  export function fail(message?: string): never {
+    throw new AssertionError({
+      message: message ?? "assert.fail()",
+    });
+  }
+}
