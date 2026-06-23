@@ -8,16 +8,16 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./types/index.d.ts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/index.es.js"
       },
       "require": {
-        "types": "./types/index.d.ts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/index.cjs.js"
       }
     }
   },
-  "types": "types/index.d.ts",
+  "types": "dist/index.d.ts",
   "bin": {
     "plgg-test": "./bin/plgg-test.mjs"
   },

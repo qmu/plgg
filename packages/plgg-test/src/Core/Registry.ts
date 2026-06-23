@@ -1,6 +1,7 @@
 import type {
   Suite,
-  TestFn,
+  TestBody,
+  HookFn,
   TestMode,
 } from "plgg-test/Core/types";
 
@@ -19,12 +20,12 @@ type MutSuite = {
   mode: TestMode;
   tests: Array<{
     name: string;
-    fn: TestFn;
+    fn: TestBody;
     mode: TestMode;
   }>;
   suites: Array<MutSuite>;
-  beforeEach: Array<TestFn>;
-  afterEach: Array<TestFn>;
+  beforeEach: Array<HookFn>;
+  afterEach: Array<HookFn>;
 };
 
 const makeMutSuite = (
@@ -83,7 +84,7 @@ export const takeRootSuite = (): Suite =>
 
 const addTest = (
   name: string,
-  fn: TestFn,
+  fn: TestBody,
   mode: TestMode,
 ): void =>
   void current().tests.push({
@@ -112,13 +113,19 @@ const addSuite = (
  * `test.skip(name, fn)` registers it as skipped.
  */
 export const test: {
-  (name: string, fn: TestFn): void;
-  skip: (name: string, fn: TestFn) => void;
+  (name: string, fn: TestBody): void;
+  skip: (
+    name: string,
+    fn: TestBody,
+  ) => void;
 } = Object.assign(
-  (name: string, fn: TestFn): void =>
+  (name: string, fn: TestBody): void =>
     addTest(name, fn, "run"),
   {
-    skip: (name: string, fn: TestFn): void =>
+    skip: (
+      name: string,
+      fn: TestBody,
+    ): void =>
       addTest(name, fn, "skip"),
   },
 );
@@ -129,29 +136,45 @@ export const test: {
 export const it = test;
 
 /**
- * `describe(name, fn)` — opens a grouping suite; `fn` registers its
- * children. `describe.skip` marks the whole group skipped.
+ * `suite(name, fn)` — opens a grouping suite; `fn` registers its
+ * children. `suite.skip` marks the whole group skipped. (Named `suite`
+ * in the pipe-style idiom; `describe` is kept as an alias.)
  */
-export const describe: {
+export const suite: {
   (name: string, fn: () => void): void;
-  skip: (name: string, fn: () => void) => void;
+  skip: (
+    name: string,
+    fn: () => void,
+  ) => void;
 } = Object.assign(
   (name: string, fn: () => void): void =>
     addSuite(name, fn, "run"),
   {
-    skip: (name: string, fn: () => void): void =>
+    skip: (
+      name: string,
+      fn: () => void,
+    ): void =>
       addSuite(name, fn, "skip"),
   },
 );
 
 /**
+ * `describe` — alias of {@link suite}.
+ */
+export const describe = suite;
+
+/**
  * Registers a `beforeEach` hook on the current suite.
  */
-export const beforeEach = (fn: TestFn): void =>
+export const beforeEach = (
+  fn: HookFn,
+): void =>
   void current().beforeEach.push(fn);
 
 /**
  * Registers an `afterEach` hook on the current suite.
  */
-export const afterEach = (fn: TestFn): void =>
+export const afterEach = (
+  fn: HookFn,
+): void =>
   void current().afterEach.push(fn);

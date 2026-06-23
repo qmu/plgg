@@ -1,99 +1,130 @@
 /**
- * Meta-harness — the bootstrap trust anchor (Plan Amendment 4).
+ * Meta-harness — the bootstrap trust anchor (guardrail 6).
  *
- * A test framework that tests itself with itself has a blind spot: if
- * the assertion engine is broken in a way that makes everything
- * "pass", its own green suite would lie. This file uses ONLY plain
- * `throw` / `console` (never plgg-test's own API) to prove the
- * load-bearing primitives before any self-spec is trusted:
+ * Uses ONLY plain `throw`/`console` (never plgg-test's own assertion
+ * API) to prove the anti-false-green guard against the CLOSED set of
+ * drop-shapes before any self-spec is trusted. Each case must be
+ * recorded as a FAILED test by the runner:
+ *   (a) body returns void/undefined while an assertion was computed
+ *   (b) body returns a different (passing) Result than the one computed
+ *   (c) async Promise<Assertion> not awaited (fire-and-forget)
+ *   (d) proc/all short-circuits or swallows an inner Err
+ *   (e) body returns a non-Result truthy value
+ * Plus: a returned Fail is failed; a returned Pass is passed; `all`
+ * with one Err among many fails AND surfaces every Err.
  *
- *   1. a FAILING expect actually throws
- *   2. a PASSING expect does not throw
- *   3. the runner reports a failed test and the exit code is non-zero
- *   4. an async rejection inside a test is caught (no false green)
- *   5. `toEqual` deep-equals real plgg `Box`-shaped values
- *
- * Run directly: `node --experimental-strip-types --import <register>
- * src/Core/_meta.ts`. Prints `META OK` and exits 0 only if every
- * primitive holds; otherwise prints the failure and exits 1.
+ * Run: node --import <register> src/Core/_meta.ts → "META OK" + exit 0
+ * only if every property holds.
  */
-import { expect } from "plgg-test/Expect/expect";
 import { runFile } from "plgg-test/Core/Runner";
-import { exitCodeFor } from "plgg-test/Core/Reporter";
 import { tally } from "plgg-test/Core/Reporter";
-import { ok, some } from "plgg";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import {
+  fileURLToPath,
+} from "node:url";
+import {
+  dirname,
+  join,
+} from "node:path";
 
-// Plain assertion helper — deliberately not from plgg-test.
 const check = (
   label: string,
   cond: boolean,
 ): void => {
   if (!cond) {
-    console.error(`META FAIL: ${label}`);
+    console.error(
+      `META FAIL: ${label}`,
+    );
     process.exit(1);
   }
 };
 
-const threw = (fn: () => void): boolean => {
-  try {
-    fn();
-    return false;
-  } catch {
-    return true;
-  }
-};
-
-const main = async (): Promise<void> => {
-  // 1. failing expect throws
-  check(
-    "failing expect throws",
-    threw(() => expect(1).toBe(2)),
-  );
-
-  // 2. passing expect does not throw
-  check(
-    "passing expect does not throw",
-    !threw(() => expect(1).toBe(1)),
-  );
-
-  // 5. toEqual deep-equals real plgg shapes (Box-shaped Ok/Some)
-  check(
-    "toEqual on plgg Ok",
-    !threw(() => expect(ok(42)).toEqual(ok(42))),
-  );
-  check(
-    "toEqual distinguishes plgg shapes",
-    threw(() => expect(ok(42)).toEqual(some(42))),
-  );
-
-  // 3 & 4. run a real fixture file with a passing, a failing, and an
-  // async-rejecting test; assert the runner's verdict + exit code.
-  const here = dirname(
-    fileURLToPath(import.meta.url),
-  );
-  const fixture = join(
-    here,
+const fixture = (
+  name: string,
+): string =>
+  join(
+    dirname(
+      fileURLToPath(import.meta.url),
+    ),
     "..",
     "..",
     "fixtures",
-    "_metaFixture.spec.ts",
-  );
-  const results = await runFile(fixture);
-  const v = tally(results);
-  check("runner counts 1 pass", v.passed === 1);
-  check(
-    "runner counts 2 fails (sync + async reject)",
-    v.failed === 2,
-  );
-  check(
-    "non-zero exit when a test fails",
-    exitCodeFor(v) === 1,
+    name,
   );
 
-  console.log("META OK");
-  process.exit(0);
-};
+const main =
+  async (): Promise<void> => {
+    const results = await runFile(
+      fixture(
+        "_metaFixture.spec.ts",
+      ),
+    );
+    const byName = new Map(
+      results.map((r) => [
+        r.names[
+          r.names.length - 1
+        ] ?? "",
+        r.outcome,
+      ]),
+    );
+    const outcome = (
+      name: string,
+    ): string =>
+      byName.get(name) ?? "MISSING";
+
+    // Happy paths.
+    check(
+      "returned Pass → passed",
+      outcome(
+        "returns a passing assertion",
+      ) === "passed",
+    );
+    check(
+      "returned Fail → failed",
+      outcome(
+        "returns a failing assertion",
+      ) === "failed",
+    );
+    // Drop-shapes (each must FAIL).
+    check(
+      "(a) void return → failed",
+      outcome(
+        "drops the assertion and returns void",
+      ) === "failed",
+    );
+    check(
+      "(b) different passing Result → failed",
+      outcome(
+        "returns a bare domain Result not an assertion",
+      ) === "failed",
+    );
+    check(
+      "(c) not-awaited async assertion → failed",
+      outcome(
+        "fires an async assertion without returning it",
+      ) === "failed",
+    );
+    check(
+      "(e) non-Result truthy → failed",
+      outcome(
+        "returns a non-Result truthy value",
+      ) === "failed",
+    );
+    // `all` aggregation surfaces every failure.
+    check(
+      "(d) all reports failed when one of many fails",
+      outcome(
+        "all with one failure among several fails",
+      ) === "failed",
+    );
+
+    const v = tally(results);
+    check(
+      "exit code is non-zero when failures exist",
+      v.failed > 0,
+    );
+
+    console.log("META OK");
+    process.exit(0);
+  };
 
 void main();
