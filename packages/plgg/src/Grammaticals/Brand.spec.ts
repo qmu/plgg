@@ -1,4 +1,10 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+} from "plgg-test";
 import { Brand } from "plgg/index";
 
 // Define test brand types
@@ -19,29 +25,34 @@ test("Brand creates nominal type for strings", () => {
   const userId = createUserId("user123");
   const regularString = "user123";
 
-  // Both have the same runtime value
-  expect(userId).toBe("user123");
-  expect(userId).toBe(regularString);
-
   // But TypeScript treats them as different types
   const processUserId = (id: UserId): string =>
     id;
-  expect(processUserId(userId)).toBe("user123");
+  return all([
+    // Both have the same runtime value
+    check(userId, toBe("user123")),
+    check(userId, toBe(regularString)),
+    check(
+      processUserId(userId),
+      toBe("user123"),
+    ),
+  ]);
 });
 
 test("Brand creates nominal type for numbers", () => {
   const productId = createProductId(42);
   const regularNumber = 42;
 
-  // Both have the same runtime value
-  expect(productId).toBe(42);
-  expect(productId).toBe(regularNumber);
-
   // But TypeScript treats them as different types
   const processProductId = (
     id: ProductId,
   ): number => id;
-  expect(processProductId(productId)).toBe(42);
+  return all([
+    // Both have the same runtime value
+    check(productId, toBe(42)),
+    check(productId, toBe(regularNumber)),
+    check(processProductId(productId), toBe(42)),
+  ]);
 });
 
 test("Different brand types are distinct", () => {
@@ -50,10 +61,6 @@ test("Different brand types are distinct", () => {
     "user@example.com",
   );
 
-  // Runtime values can be compared
-  expect(typeof userId).toBe("string");
-  expect(typeof emailAddress).toBe("string");
-
   // But they represent different concepts
   const processUserId = (id: UserId): string =>
     `User: ${id}`;
@@ -61,34 +68,50 @@ test("Different brand types are distinct", () => {
     email: EmailAddress,
   ): string => `Email: ${email}`;
 
-  expect(processUserId(userId)).toBe("User: 123");
-  expect(processEmail(emailAddress)).toBe(
-    "Email: user@example.com",
-  );
+  return all([
+    // Runtime values can be compared
+    check(typeof userId, toBe("string")),
+    check(typeof emailAddress, toBe("string")),
+    check(
+      processUserId(userId),
+      toBe("User: 123"),
+    ),
+    check(
+      processEmail(emailAddress),
+      toBe("Email: user@example.com"),
+    ),
+  ]);
 });
 
 test("Brand preserves underlying type operations", () => {
   const userId1 = createUserId("user123");
   const userId2 = createUserId("user456");
 
-  // String operations work
-  expect(userId1.length).toBe(7);
-  expect(userId1.toUpperCase() as UserId).toBe(
-    "USER123",
-  );
-  expect((userId1 + userId2) as UserId).toBe(
-    "user123user456",
-  );
-
   const productId1 = createProductId(10);
   const productId2 = createProductId(20);
 
-  // Number operations work
-  expect(
-    (productId1 + productId2) as ProductId,
-  ).toBe(30);
-  expect((productId1 * 2) as ProductId).toBe(20);
-  expect(productId1.toString()).toBe("10");
+  return all([
+    // String operations work
+    check(userId1.length, toBe(7)),
+    check(
+      userId1.toUpperCase() as UserId,
+      toBe("USER123"),
+    ),
+    check(
+      (userId1 + userId2) as UserId,
+      toBe("user123user456"),
+    ),
+    // Number operations work
+    check(
+      (productId1 + productId2) as ProductId,
+      toBe(30),
+    ),
+    check(
+      (productId1 * 2) as ProductId,
+      toBe(20),
+    ),
+    check(productId1.toString(), toBe("10")),
+  ]);
 });
 
 test("Brand with complex underlying types", () => {
@@ -118,19 +141,20 @@ test("Brand with complex underlying types", () => {
     port: 3000,
   });
 
-  expect(userData.id).toBe("123");
-  expect(userData.name).toBe("John");
-  expect(configData.debug).toBe(true);
-  expect(configData.port).toBe(3000);
-
-  // Object operations work
-  expect(Object.keys(userData)).toEqual([
-    "id",
-    "name",
-  ]);
-  expect(Object.keys(configData)).toEqual([
-    "debug",
-    "port",
+  return all([
+    check(userData.id, toBe("123")),
+    check(userData.name, toBe("John")),
+    check(configData.debug, toBe(true)),
+    check(configData.port, toBe(3000)),
+    // Object operations work
+    check(
+      Object.keys(userData),
+      toEqual(["id", "name"]),
+    ),
+    check(
+      Object.keys(configData),
+      toEqual(["debug", "port"]),
+    ),
   ]);
 });
 
@@ -152,18 +176,23 @@ test("Brand with array types", () => {
   ]);
   const scores = createScoreList([95, 87, 92]);
 
-  expect(tags.length).toBe(3);
-  expect(tags[0]).toBe("typescript");
-  expect(scores.length).toBe(3);
-  expect(scores[0]).toBe(95);
-
-  // Array methods work
-  expect(tags.join(", ")).toBe(
-    "typescript, functional, programming",
-  );
-  expect(scores.reduce((a, b) => a + b, 0)).toBe(
-    274,
-  );
+  return all([
+    check(tags.length, toBe(3)),
+    check(tags[0], toBe("typescript")),
+    check(scores.length, toBe(3)),
+    check(scores[0], toBe(95)),
+    // Array methods work
+    check(
+      tags.join(", "),
+      toBe(
+        "typescript, functional, programming",
+      ),
+    ),
+    check(
+      scores.reduce((a, b) => a + b, 0),
+      toBe(274),
+    ),
+  ]);
 });
 
 test("Brand with primitive wrapper types", () => {
@@ -183,12 +212,13 @@ test("Brand with primitive wrapper types", () => {
   const safeNum = createSafeNumber(42);
   const safeBool = createSafeBoolean(true);
 
-  expect(safeNum).toBe(42);
-  expect(safeBool).toBe(true);
-
-  // Type checking works
-  expect(typeof safeNum).toBe("number");
-  expect(typeof safeBool).toBe("boolean");
+  return all([
+    check(safeNum, toBe(42)),
+    check(safeBool, toBe(true)),
+    // Type checking works
+    check(typeof safeNum, toBe("number")),
+    check(typeof safeBool, toBe("boolean")),
+  ]);
 });
 
 test("Brand type can be null or undefined", () => {
@@ -206,12 +236,16 @@ test("Brand type can be null or undefined", () => {
   const undefinedId =
     createOptionalUserId(undefined);
 
-  expect(validId).toBe("user123");
-  expect(nullId).toBe(null);
-  expect(undefinedId).toBe(undefined);
-
-  // Null checks work
-  assert(validId !== null);
-  assert(nullId === null);
-  assert(undefinedId === undefined);
+  return all([
+    check(validId, toBe("user123")),
+    check(nullId, toBe(null)),
+    check(undefinedId, toBe(undefined)),
+    // Null checks work
+    check(validId !== null, toBe(true)),
+    check(nullId === null, toBe(true)),
+    check(
+      undefinedId === undefined,
+      toBe(true),
+    ),
+  ]);
 });

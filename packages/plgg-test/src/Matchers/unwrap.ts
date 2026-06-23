@@ -6,13 +6,15 @@ import {
   isSome,
   isNone,
 } from "plgg";
-import type { None } from "plgg";
+import type {
+  None,
+  InvalidError,
+} from "plgg";
 import {
   Assertion,
   pass,
   fail,
 } from "plgg-test/Matchers/Assertion";
-import type { Matcher } from "plgg-test/Matchers/matchers";
 import { formatValue } from "plgg-test/Expect/format";
 
 /**
@@ -92,8 +94,8 @@ export const shouldBeNone =
  */
 export const okThen =
   <T>(
-    inner: Matcher<T>,
-  ): (<E>(r: Result<T, E>) => Assertion<T>) =>
+    inner: (value: T) => Assertion,
+  ): (<E>(r: Result<T, E>) => Assertion) =>
   (r) =>
     isOk(r)
       ? inner(r.content)
@@ -105,9 +107,11 @@ export const okThen =
         });
 
 export const errThen =
-  <E>(
-    inner: Matcher<E>,
-  ): (<T>(r: Result<T, E>) => Assertion<E>) =>
+  (
+    inner: (error: InvalidError) => Assertion,
+  ): (<T>(
+    r: Result<T, InvalidError>,
+  ) => Assertion) =>
   (r) =>
     isErr(r)
       ? inner(r.content)
@@ -120,8 +124,8 @@ export const errThen =
 
 export const someThen =
   <T>(
-    inner: Matcher<T>,
-  ): ((o: Option<T>) => Assertion<T>) =>
+    inner: (value: T) => Assertion,
+  ): ((o: Option<T>) => Assertion) =>
   (o) =>
     isSome(o)
       ? inner(o.content)

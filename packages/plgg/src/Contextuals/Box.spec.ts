@@ -1,4 +1,11 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+} from "plgg-test";
 import {
   Box,
   forContent,
@@ -6,7 +13,6 @@ import {
   asObj,
   forProp,
   asSoftStr,
-  isOk,
   cast,
   unbox,
   box,
@@ -25,7 +31,7 @@ test("Box type structure", () => {
   const _typeTest: TestBox extends ExpectedStructure
     ? true
     : false = true;
-  expect(_typeTest).toBe(true);
+  return check(_typeTest, toBe(true));
 });
 
 test("forContent - validates Box from unknown using cast", () => {
@@ -40,9 +46,15 @@ test("forContent - validates Box from unknown using cast", () => {
     forContent("user", asSoftStr),
   );
 
-  assert(isOk(result));
-  expect(result.content.__tag).toBe("user");
-  expect(result.content.content).toBe("john");
+  return check(
+    result,
+    okThen((c) =>
+      all([
+        check(c.__tag, toBe("user")),
+        check(c.content, toBe("john")),
+      ]),
+    ),
+  );
 });
 
 test("forContent - combined pattern with Obj validation", () => {
@@ -76,16 +88,25 @@ test("forContent - combined pattern with Obj validation", () => {
     ),
   );
 
-  assert(isOk(result));
-  expect(result.content.userProfile.__tag).toBe(
-    "profile",
+  return check(
+    result,
+    okThen((c) =>
+      all([
+        check(
+          c.userProfile.__tag,
+          toBe("profile"),
+        ),
+        check(
+          c.userProfile.content.name,
+          toBe("Alice"),
+        ),
+        check(
+          c.userProfile.content.email,
+          toBe("alice@example.com"),
+        ),
+      ]),
+    ),
   );
-  expect(
-    result.content.userProfile.content.name,
-  ).toBe("Alice");
-  expect(
-    result.content.userProfile.content.email,
-  ).toBe("alice@example.com");
 });
 
 test("unbox - unboxes single Box", () => {
@@ -94,7 +115,7 @@ test("unbox - unboxes single Box", () => {
     box("test"),
     unbox,
   );
-  expect(result).toBe("hello");
+  return check(result, toBe("hello"));
 });
 
 test("unbox - unboxes nested Boxes", () => {
@@ -104,7 +125,7 @@ test("unbox - unboxes nested Boxes", () => {
     box("outer"),
     unbox,
   );
-  expect(result).toBe("value");
+  return check(result, toBe("value"));
 });
 
 test("unbox - unboxes deeply nested Boxes", () => {
@@ -115,15 +136,15 @@ test("unbox - unboxes deeply nested Boxes", () => {
     box("a"),
     unbox,
   );
-  expect(result).toBe(42);
+  return check(result, toBe(42));
 });
 
 test("unbox - returns non-Box value as-is", () => {
   const result = pipe("not a box", unbox);
-  expect(result).toBe("not a box");
+  return check(result, toBe("not a box"));
 });
 
 test("unbox - returns object non-Box value as-is", () => {
   const result = pipe({ foo: "bar" }, unbox);
-  expect(result).toEqual({ foo: "bar" });
+  return check(result, toEqual({ foo: "bar" }));
 });

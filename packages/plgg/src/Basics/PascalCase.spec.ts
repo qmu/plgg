@@ -1,20 +1,33 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+} from "plgg-test";
 import {
   isPascalCase,
   asPascalCase,
-  isOk,
   isErr,
   box,
 } from "plgg/index";
 
-test("isPascalCase and asPascalCase basic validation", () => {
-  expect(
-    isPascalCase(box("PascalCase")("PascalCase")),
-  ).toBe(true);
-  const result = asPascalCase("TestValue");
-  assert(isOk(result));
-  expect(result.content.content).toBe(
-    "TestValue",
-  );
-  assert(isErr(asPascalCase("camelCase")));
-});
+test("isPascalCase and asPascalCase basic validation", () =>
+  all([
+    check(
+      isPascalCase(
+        box("PascalCase")("PascalCase"),
+      ),
+      toBe(true),
+    ),
+    check(
+      asPascalCase("TestValue"),
+      okThen((v) =>
+        toBe("TestValue")(v.content),
+      ),
+    ),
+    check(
+      isErr(asPascalCase("camelCase")),
+      toBe(true),
+    ),
+  ]));

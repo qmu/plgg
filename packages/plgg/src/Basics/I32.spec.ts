@@ -1,13 +1,17 @@
-import { test, assert } from "plgg-test";
 import {
-  asI32,
-  isOk,
-  isErr,
-  box,
-} from "plgg/index";
+  test,
+  check,
+  all,
+  shouldBeOk,
+  shouldBeErr,
+} from "plgg-test";
+import { asI32, box } from "plgg/index";
 
-test("asI32 basic validation", () => {
-  const result = asI32(box("I32")(100000));
-  assert(isOk(result));
-  assert(isErr(asI32(3000000000)));
-});
+test("asI32 basic validation", () =>
+  all([
+    check(
+      asI32(box("I32")(100000)),
+      shouldBeOk(),
+    ),
+    check(asI32(3000000000), shouldBeErr()),
+  ]));

@@ -1,4 +1,13 @@
-import { test, assert, expect } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toBeInstanceOf,
+  toBeGreaterThan,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   Result,
   InvalidError,
@@ -14,8 +23,6 @@ import {
   asTime,
   asSoftStr,
   asBool,
-  isOk,
-  isErr,
   ok,
   err,
   refine,
@@ -47,13 +54,15 @@ test("cast validates object structure with multiple properties", () => {
   };
 
   const result = asUserProfile(validData);
-  assert(isOk(result));
-  expect(result.content.id).toBe(123);
-  expect(result.content.email).toBe(
-    "user@example.com",
-  );
-  expect(result.content.createdAt).toBeInstanceOf(
-    Date,
+  return check(
+    result,
+    okThen((v) =>
+      all([
+        check(v.id, toBe(123)),
+        check(v.email, toBe("user@example.com")),
+        check(v.createdAt, toBeInstanceOf(Date)),
+      ]),
+    ),
   );
 });
 
@@ -82,8 +91,13 @@ test("cast accumulates validation errors for multiple invalid properties", () =>
   };
 
   const result = asProduct(invalidData);
-  assert(isErr(result));
-  expect(result.content.content.sibling.length).toBe(3); // All three properties failed
+  return check(
+    result,
+    errThen((e) =>
+      // All three properties failed
+      check(e.content.sibling.length, toBe(3)),
+    ),
+  );
 });
 
 test("cast processes validation chain sequentially", () => {
@@ -108,17 +122,25 @@ test("cast processes validation chain sequentially", () => {
 
   const validForm = { username: "  johndoe  " };
   const result = processFormData(validForm);
-  assert(isOk(result));
-  expect(result.content.username).toBe(
-    "  johndoe  ",
-  );
 
   const invalidForm = { username: "  ab  " };
   const result2 = processFormData(invalidForm);
-  assert(isErr(result2));
-  expect(result2.content.content.message).toBe(
-    "Username too short",
-  );
+  return all([
+    check(
+      result,
+      okThen((v) =>
+        check(v.username, toBe("  johndoe  ")),
+      ),
+    ),
+    check(
+      result2,
+      errThen((e) =>
+        toBe("Username too short")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]);
 });
 
 test("cast handles nested object validation", () => {
@@ -165,10 +187,17 @@ test("cast handles nested object validation", () => {
   };
 
   const result = asUser(userData);
-  assert(isOk(result));
-  expect(result.content.name).toBe("John Doe");
-  expect(result.content.address.street).toBe(
-    "123 Main St",
+  return check(
+    result,
+    okThen((v) =>
+      all([
+        check(v.name, toBe("John Doe")),
+        check(
+          v.address.street,
+          toBe("123 Main St"),
+        ),
+      ]),
+    ),
   );
 });
 
@@ -199,9 +228,11 @@ test("cast stops on first validation failure when not accumulating errors", () =
     );
 
   const result = validateSequentially(-5);
-  assert(isErr(result));
-  expect(result.content.content.message).toBe(
-    "Must be positive",
+  return check(
+    result,
+    errThen((e) =>
+      toBe("Must be positive")(e.content.message),
+    ),
   );
 });
 
@@ -243,9 +274,15 @@ test("cast with higher arity functions (5+ parameters)", () => {
   };
 
   const result = asComplexObject(validData);
-  assert(isOk(result));
-  expect(result.content.field1).toBe("test1");
-  expect(result.content.field7).toBe("test3");
+  return check(
+    result,
+    okThen((v) =>
+      all([
+        check(v.field1, toBe("test1")),
+        check(v.field7, toBe("test3")),
+      ]),
+    ),
+  );
 });
 
 test("cast handles functions that throw exceptions", () => {
@@ -257,9 +294,13 @@ test("cast handles functions that throw exceptions", () => {
   };
 
   const result = cast("test", throwingValidator);
-  assert(isErr(result));
-  expect(result.content.content.message).toBe(
-    "Validation failed: Validation exception",
+  return check(
+    result,
+    errThen((e) =>
+      toBe(
+        "Validation failed: Validation exception",
+      )(e.content.message),
+    ),
   );
 });
 
@@ -272,9 +313,13 @@ test("cast handles non-Error exceptions", () => {
   };
 
   const result = cast("test", throwingValidator);
-  assert(isErr(result));
-  expect(result.content.content.message).toBe(
-    "Validation failed: String exception",
+  return check(
+    result,
+    errThen((e) =>
+      toBe("Validation failed: String exception")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
@@ -295,11 +340,19 @@ test("cast handles exception thrown in sibling validator after prior Err", () =>
     throw new Error("second boomed");
   };
 
-  const result = cast("input", firstFail, secondThrow);
-  assert(isErr(result));
+  const result = cast(
+    "input",
+    firstFail,
+    secondThrow,
+  );
   // Both errors should be collected
-  expect(result.content.content.sibling.length).toBeGreaterThan(
-    0,
+  return check(
+    result,
+    errThen((e) =>
+      toBeGreaterThan(0)(
+        e.content.sibling.length,
+      ),
+    ),
   );
 });
 
@@ -314,9 +367,17 @@ test("cast sibling validator returning Ok propagates prior Err", () => {
     );
   const secondOk = (value: unknown) =>
     ok(value as string);
-  const result = cast("data", firstFail, secondOk);
-  assert(isErr(result));
-  expect(result.content.content.message).toBe("fail first");
+  const result = cast(
+    "data",
+    firstFail,
+    secondOk,
+  );
+  return check(
+    result,
+    errThen((e) =>
+      toBe("fail first")(e.content.message),
+    ),
+  );
 });
 
 test("cast with maximum parameters (20 functions)", () => {
@@ -347,8 +408,7 @@ test("cast with maximum parameters (20 functions)", () => {
     identity,
   );
 
-  assert(isOk(result));
-  expect(result.content).toBe("test");
+  return check(result, okThen(toBe("test")));
 });
 
 test("cast aggregates multiple validation errors", () => {
@@ -384,18 +444,24 @@ test("cast aggregates multiple validation errors", () => {
     alwaysFail2,
     alwaysFail3,
   );
-  assert(isErr(result));
-  expect(result.content.content.sibling?.length).toBe(3);
-  expect(
-    result.content.content.sibling?.[0]?.content
-      .message,
-  ).toBe("Error 1");
-  expect(
-    result.content.content.sibling?.[1]?.content
-      .message,
-  ).toBe("Error 2");
-  expect(
-    result.content.content.sibling?.[2]?.content
-      .message,
-  ).toBe("Error 3");
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(e.content.sibling?.length, toBe(3)),
+        check(
+          e.content.sibling?.[0]?.content.message,
+          toBe("Error 1"),
+        ),
+        check(
+          e.content.sibling?.[1]?.content.message,
+          toBe("Error 2"),
+        ),
+        check(
+          e.content.sibling?.[2]?.content.message,
+          toBe("Error 3"),
+        ),
+      ]),
+    ),
+  );
 });

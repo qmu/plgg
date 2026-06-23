@@ -1,4 +1,9 @@
-import { test, expect } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import {
   Box,
   Result,
@@ -34,7 +39,7 @@ test("number", async () => {
       [s3, () => "3"], // should compile error when erased
       //[4 as const, () => "4"], // should compile error when uncommented
     );
-  expect(fn(3)).equal("3");
+  return check(fn(3), toBe("3"));
 });
 
 test("boolean", async () => {
@@ -43,7 +48,7 @@ test("boolean", async () => {
       [TRUE, () => "true"],
       [FALSE, () => "false"],
     );
-  expect(fn(true)).equal("true");
+  return check(fn(true), toBe("true"));
 });
 
 test("string", async () => {
@@ -58,7 +63,7 @@ test("string", async () => {
       [s3, () => "c"],
       // ["d" as const, () => "d"], // should compile error when uncommented
     );
-  expect(fn("c")).equal("c");
+  return check(fn("c"), toBe("c"));
 });
 
 test("otherwise", async () => {
@@ -72,7 +77,7 @@ test("otherwise", async () => {
       [s2, () => "b"],
       [otherwise, () => "default"], // should compile error when erased
     );
-  expect(fn("c")).equal("default");
+  return check(fn("c"), toBe("default"));
 });
 
 test("Variant1", async () => {
@@ -114,7 +119,7 @@ test("Variant1", async () => {
     base: 1,
     height: 4,
   });
-  expect(fn(realTriangle)).equal("c");
+  return check(fn(realTriangle), toBe("c"));
 });
 
 test("Variant2", async () => {
@@ -139,7 +144,7 @@ test("Variant2", async () => {
     children: [ast({ type: "leaf" as const })],
   });
 
-  expect(fn(realAst)).equal("branch");
+  return check(fn(realAst), toBe("branch"));
 });
 
 test("Result pattern matching", async () => {
@@ -156,12 +161,18 @@ test("Result pattern matching", async () => {
   const successResult = ok("hello");
   const errorResult = err(404);
 
-  expect(fn(successResult)).equal(
-    "Specific hello",
-  );
-  expect(fn(errorResult)).equal(
-    'Matched: {"__tag":"Err","content":404}',
-  );
+  return all([
+    check(
+      fn(successResult),
+      toBe("Specific hello"),
+    ),
+    check(
+      fn(errorResult),
+      toBe(
+        'Matched: {"__tag":"Err","content":404}',
+      ),
+    ),
+  ]);
 });
 
 test("Result pattern matching with specific patterns", async () => {
@@ -179,16 +190,25 @@ test("Result pattern matching with specific patterns", async () => {
       ],
     );
 
-  expect(fn(ok(42))).equal("The answer!");
-  expect(fn(ok(100))).equal(
-    'Matched: {"__tag":"Ok","content":100}',
-  );
-  expect(fn(err("not_found"))).equal(
-    "Not found error",
-  );
-  expect(fn(err("server_error"))).equal(
-    'Matched: {"__tag":"Err","content":"server_error"}',
-  );
+  return all([
+    check(fn(ok(42)), toBe("The answer!")),
+    check(
+      fn(ok(100)),
+      toBe(
+        'Matched: {"__tag":"Ok","content":100}',
+      ),
+    ),
+    check(
+      fn(err("not_found")),
+      toBe("Not found error"),
+    ),
+    check(
+      fn(err("server_error")),
+      toBe(
+        'Matched: {"__tag":"Err","content":"server_error"}',
+      ),
+    ),
+  ]);
 });
 
 test("Result pattern matching with OTHERWISE", async () => {
@@ -202,15 +222,24 @@ test("Result pattern matching with OTHERWISE", async () => {
       ],
     );
 
-  expect(fn(ok("success"))).equal(
-    "Specific success",
-  );
-  expect(fn(ok("other"))).equal(
-    'Fallback: {"__tag":"Ok","content":"other"}',
-  );
-  expect(fn(err(500))).equal(
-    'Fallback: {"__tag":"Err","content":500}',
-  );
+  return all([
+    check(
+      fn(ok("success")),
+      toBe("Specific success"),
+    ),
+    check(
+      fn(ok("other")),
+      toBe(
+        'Fallback: {"__tag":"Ok","content":"other"}',
+      ),
+    ),
+    check(
+      fn(err(500)),
+      toBe(
+        'Fallback: {"__tag":"Err","content":500}',
+      ),
+    ),
+  ]);
 });
 
 test("Option pattern matching", async () => {
@@ -227,10 +256,15 @@ test("Option pattern matching", async () => {
   const someResult = some("hello");
   const noneResult = none();
 
-  expect(fn(someResult)).equal("Specific hello");
-  expect(fn(noneResult)).equal(
-    'Matched: {"__tag":"None","content":"__none__"}',
-  );
+  return all([
+    check(fn(someResult), toBe("Specific hello")),
+    check(
+      fn(noneResult),
+      toBe(
+        'Matched: {"__tag":"None","content":"__none__"}',
+      ),
+    ),
+  ]);
 });
 
 test("Option pattern matching with specific patterns", async () => {
@@ -245,8 +279,10 @@ test("Option pattern matching with specific patterns", async () => {
       ],
     );
 
-  expect(fn(some(100))).equal("The answer!");
-  expect(fn(none())).equal("No value");
+  return all([
+    check(fn(some(100)), toBe("The answer!")),
+    check(fn(none()), toBe("No value")),
+  ]);
 });
 
 test("Option pattern matching with OTHERWISE", async () => {
@@ -263,15 +299,24 @@ test("Option pattern matching with OTHERWISE", async () => {
       ],
     );
 
-  expect(fn(some("success"))).equal(
-    "Specific success",
-  );
-  expect(fn(some("other"))).equal(
-    'Fallback: {"__tag":"Some","content":"other"}',
-  );
-  expect(fn(none())).equal(
-    'Fallback: {"__tag":"None","content":"__none__"}',
-  );
+  return all([
+    check(
+      fn(some("success")),
+      toBe("Specific success"),
+    ),
+    check(
+      fn(some("other")),
+      toBe(
+        'Fallback: {"__tag":"Some","content":"other"}',
+      ),
+    ),
+    check(
+      fn(none()),
+      toBe(
+        'Fallback: {"__tag":"None","content":"__none__"}',
+      ),
+    ),
+  ]);
 });
 
 test("tag handlers receive the narrowed box and read typed .content", async () => {
@@ -304,31 +349,45 @@ test("tag handlers receive the narrowed box and read typed .content", async () =
       ],
     );
 
-  expect(render(box("NotFound")("/x"))).equal(
-    "404 /x",
-  );
-  expect(
-    render(
-      box("MethodNotAllowed")(["GET", "PUT"]),
+  return all([
+    check(
+      render(box("NotFound")("/x")),
+      toBe("404 /x"),
     ),
-  ).equal("405 GET, PUT");
-  expect(render(box("ServerError")("boom"))).equal(
-    "500 boom",
-  );
+    check(
+      render(
+        box("MethodNotAllowed")(["GET", "PUT"]),
+      ),
+      toBe("405 GET, PUT"),
+    ),
+    check(
+      render(box("ServerError")("boom")),
+      toBe("500 boom"),
+    ),
+  ]);
 });
 
 test("coverageError builds a CoverageError value carrying the input", () => {
   const e = coverageError(42);
-  expect(e.__nonExhaustiveMatch).equal(42);
-  expect(isCoverageError(e)).equal(true);
+  return all([
+    check(e.__nonExhaustiveMatch, toBe(42)),
+    check(isCoverageError(e), toBe(true)),
+  ]);
 });
 
-test("isCoverageError is false for non-CoverageError values", () => {
-  expect(isCoverageError(new Error("x"))).equal(false);
-  expect(isCoverageError({ foo: 1 })).equal(false);
-  expect(isCoverageError(null)).equal(false);
-  expect(isCoverageError("nope")).equal(false);
-});
+test("isCoverageError is false for non-CoverageError values", () =>
+  all([
+    check(
+      isCoverageError(new Error("x")),
+      toBe(false),
+    ),
+    check(
+      isCoverageError({ foo: 1 }),
+      toBe(false),
+    ),
+    check(isCoverageError(null), toBe(false)),
+    check(isCoverageError("nope"), toBe(false)),
+  ]));
 
 test("a runtime non-exhaustive match returns a CoverageError value, not an Error", () => {
   type ABC =
@@ -342,8 +401,13 @@ test("a runtime non-exhaustive match returns a CoverageError value, not an Error
     [pattern("B")(), () => "b"],
     [pattern("C")(), () => "c"],
   );
-  expect(isCoverageError(result)).equal(true);
-  if (isCoverageError(result)) {
-    expect(result.__nonExhaustiveMatch).equal(value);
-  }
+  return all([
+    check(isCoverageError(result), toBe(true)),
+    check(
+      isCoverageError(result)
+        ? result.__nonExhaustiveMatch
+        : undefined,
+      toBe(value),
+    ),
+  ]);
 });

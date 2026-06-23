@@ -1,43 +1,54 @@
-import { test, expect, assert } from "plgg-test";
-import { atIndex, isOk, isErr } from "plgg/index";
+import {
+  test,
+  check,
+  toBe,
+  toContain,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { atIndex, isErr } from "plgg/index";
 
-test("atIndex returns Ok with element at valid index", () => {
-  const result = atIndex(1)([10, 20, 30]);
-  assert(isOk(result));
-  expect(result.content).toBe(20);
-});
+test("atIndex returns Ok with element at valid index", () =>
+  check(
+    atIndex(1)([10, 20, 30]),
+    okThen(toBe(20)),
+  ));
 
-test("atIndex returns Ok at the first index", () => {
-  const result = atIndex(0)(["a", "b"]);
-  assert(isOk(result));
-  expect(result.content).toBe("a");
-});
+test("atIndex returns Ok at the first index", () =>
+  check(
+    atIndex(0)(["a", "b"]),
+    okThen(toBe("a")),
+  ));
 
-test("atIndex returns Err for negative index", () => {
-  const result = atIndex(-1)([1, 2, 3]);
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "Cannot access index -1",
-  );
-});
+test("atIndex returns Err for negative index", () =>
+  check(
+    atIndex(-1)([1, 2, 3]),
+    errThen((e) =>
+      toContain("Cannot access index -1")(
+        e.content.message,
+      ),
+    ),
+  ));
 
-test("atIndex returns Err for out-of-bounds index", () => {
-  const result = atIndex(5)([1, 2, 3]);
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "Cannot access index 5",
-  );
-});
+test("atIndex returns Err for out-of-bounds index", () =>
+  check(
+    atIndex(5)([1, 2, 3]),
+    errThen((e) =>
+      toContain("Cannot access index 5")(
+        e.content.message,
+      ),
+    ),
+  ));
 
-test("atIndex returns Err for non-array value", () => {
-  const result = atIndex(0)("not-an-array");
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "Cannot access index 0",
-  );
-});
+test("atIndex returns Err for non-array value", () =>
+  check(
+    atIndex(0)("not-an-array"),
+    errThen((e) =>
+      toContain("Cannot access index 0")(
+        e.content.message,
+      ),
+    ),
+  ));
 
-test("atIndex returns Err for null", () => {
-  const result = atIndex(0)(null);
-  assert(isErr(result));
-});
+test("atIndex returns Err for null", () =>
+  check(isErr(atIndex(0)(null)), toBe(true)));

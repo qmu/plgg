@@ -1,9 +1,15 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   isRawObj,
   asRawObj,
-  isOk,
-  isErr,
   mapRawObj,
   applyRawObj,
   ofRawObj,
@@ -19,63 +25,61 @@ import {
 /**
  * Validates isMutRec type guard for various value types.
  */
-test("isMutRec type guard", () => {
-  expect(isRawObj({})).toBe(true);
-  expect(isRawObj({ a: 1 })).toBe(true);
-  expect(
-    isRawObj({ a: "test", b: 123, c: true }),
-  ).toBe(true);
-  expect(isRawObj([])).toBe(true); // Arrays are records in JavaScript runtime
-  expect(isRawObj(null)).toBe(false);
-  expect(isRawObj(undefined)).toBe(false);
-  expect(isRawObj("string")).toBe(false);
-  expect(isRawObj(123)).toBe(false);
-  expect(isRawObj(true)).toBe(false);
-});
+test("isMutRec type guard", () =>
+  all([
+    check(isRawObj({}), toBe(true)),
+    check(isRawObj({ a: 1 }), toBe(true)),
+    check(
+      isRawObj({ a: "test", b: 123, c: true }),
+      toBe(true),
+    ),
+    check(isRawObj([]), toBe(true)), // Arrays are records in JavaScript runtime
+    check(isRawObj(null), toBe(false)),
+    check(isRawObj(undefined), toBe(false)),
+    check(isRawObj("string"), toBe(false)),
+    check(isRawObj(123), toBe(false)),
+    check(isRawObj(true), toBe(false)),
+  ]));
 
 /**
  * Tests asRawObj validation for records and non-record types.
  */
-test("asRawObj validation", async () => {
-  const emptyResult = asRawObj({});
-  assert(isOk(emptyResult));
-  expect(emptyResult.content).toEqual({});
-
-  const recResult = asRawObj({ a: 1, b: "test" });
-  assert(isOk(recResult));
-  expect(recResult.content).toEqual({
-    a: 1,
-    b: "test",
-  });
-
-  const arrayResult = asRawObj([1, 2, 3]);
-  assert(isOk(arrayResult));
-  expect(arrayResult.content).toEqual([1, 2, 3]);
-
-  const nullResult = asRawObj(null);
-  assert(isErr(nullResult));
-  expect(nullResult.content.content.message).toBe(
-    "Not record",
-  );
-
-  const undefinedResult = asRawObj(undefined);
-  assert(isErr(undefinedResult));
-  expect(undefinedResult.content.content.message).toBe(
-    "Not record",
-  );
-
-  const stringResult = asRawObj("test");
-  assert(isErr(stringResult));
-  expect(stringResult.content.content.message).toBe(
-    "Not record",
-  );
-
-  const numberResult = asRawObj(123);
-  assert(isErr(numberResult));
-  expect(numberResult.content.content.message).toBe(
-    "Not record",
-  );
-});
+test("asRawObj validation", async () =>
+  all([
+    check(asRawObj({}), okThen(toEqual({}))),
+    check(
+      asRawObj({ a: 1, b: "test" }),
+      okThen(toEqual({ a: 1, b: "test" })),
+    ),
+    check(
+      asRawObj([1, 2, 3]),
+      okThen(toEqual([1, 2, 3])),
+    ),
+    check(
+      asRawObj(null),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+    check(
+      asRawObj(undefined),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+    check(
+      asRawObj("test"),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+    check(
+      asRawObj(123),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+  ]));
 
 /**
  * Tests mutable record mapping functionality through Functor instance.
@@ -91,7 +95,6 @@ test("mapRawObj - Functor instance", () => {
       y: double(o.y),
     })),
   );
-  expect(result).toEqual({ x: 2, y: 4 });
 
   const toString = (n: number) => n.toString();
   const stringResult = pipe(
@@ -101,10 +104,14 @@ test("mapRawObj - Functor instance", () => {
       y: toString(o.y),
     })),
   );
-  expect(stringResult).toEqual({
-    x: "1",
-    y: "2",
-  });
+
+  return all([
+    check(result, toEqual({ x: 2, y: 4 })),
+    check(
+      stringResult,
+      toEqual({ x: "1", y: "2" }),
+    ),
+  ]);
 });
 
 /**
@@ -113,15 +120,21 @@ test("mapRawObj - Functor instance", () => {
 test("ofRawObj - Pointed instance", () => {
   const rec = { name: "test", value: 42 };
   const result = pipe(rec, ofRawObj);
-  expect(result).toEqual(rec);
-  expect(result).toBe(rec);
 
   const primitiveRec = { count: 0 };
   const primitiveResult = pipe(
     primitiveRec,
     ofRawObj,
   );
-  expect(primitiveResult).toEqual(primitiveRec);
+
+  return all([
+    check(result, toEqual(rec)),
+    check(result, toBe(rec)),
+    check(
+      primitiveResult,
+      toEqual(primitiveRec),
+    ),
+  ]);
 });
 
 /**
@@ -138,7 +151,6 @@ test("applyRawObj - Apply instance", () => {
     rec,
     applyRawObj(addValues),
   );
-  expect(result).toBe(8);
 
   const transformRec = (rec: {
     name: string;
@@ -153,10 +165,17 @@ test("applyRawObj - Apply instance", () => {
     personRec,
     applyRawObj(transformRec),
   );
-  expect(transformResult).toEqual({
-    fullName: "ALICE",
-    isAdult: true,
-  });
+
+  return all([
+    check(result, toBe(8)),
+    check(
+      transformResult,
+      toEqual({
+        fullName: "ALICE",
+        isAdult: true,
+      }),
+    ),
+  ]);
 });
 
 /**
@@ -172,7 +191,6 @@ test("chainRawObj - Chain instance", () => {
     rec,
     chainRawObj(multiplyAndWrap),
   );
-  expect(result).toEqual({ result: 20 });
 
   const addFieldsAndWrap = (o: {
     x: number;
@@ -186,11 +204,18 @@ test("chainRawObj - Chain instance", () => {
     numberRec,
     chainRawObj(addFieldsAndWrap),
   );
-  expect(chainResult).toEqual({
-    original: 3,
-    doubled: 6,
-    squared: 9,
-  });
+
+  return all([
+    check(result, toEqual({ result: 20 })),
+    check(
+      chainResult,
+      toEqual({
+        original: 3,
+        doubled: 6,
+        squared: 9,
+      }),
+    ),
+  ]);
 });
 
 /**
@@ -207,9 +232,6 @@ test("foldrRawObj - right fold", () => {
     rec,
     foldrRawObj(concatenateValues)("start:"),
   );
-  expect(result).toBe(
-    'start:{"name":"Alice","age":30}',
-  );
 
   const sumNumericFields = (
     o: { a: number; b: number },
@@ -220,7 +242,14 @@ test("foldrRawObj - right fold", () => {
     numRec,
     foldrRawObj(sumNumericFields)(0),
   );
-  expect(sumResult).toBe(15);
+
+  return all([
+    check(
+      result,
+      toBe('start:{"name":"Alice","age":30}'),
+    ),
+    check(sumResult, toBe(15)),
+  ]);
 });
 
 /**
@@ -237,7 +266,6 @@ test("foldlRawObj - left fold", () => {
     rec,
     foldlRawObj(multiplyValues)(1),
   );
-  expect(result).toBe(6);
 
   const appendrecord = (
     acc: string,
@@ -248,7 +276,11 @@ test("foldlRawObj - left fold", () => {
     nameRec,
     foldlRawObj(appendrecord)("Hello "),
   );
-  expect(appendResult).toBe("Hello World");
+
+  return all([
+    check(result, toBe(6)),
+    check(appendResult, toBe("Hello World")),
+  ]);
 });
 
 /**
@@ -256,10 +288,12 @@ test("foldlRawObj - left fold", () => {
  */
 test("traverseRawObj runs the function through the Applicative", () => {
   const input = { count: 10 };
-  const doubled = traverseRawObj(mutRecApplicative)(
-    (o: typeof input) => ({ count: o.count * 2 }),
-  )(input);
-  expect(doubled).toEqual({ count: 20 });
+  const doubled = traverseRawObj(
+    mutRecApplicative,
+  )((o: typeof input) => ({
+    count: o.count * 2,
+  }))(input);
+  return check(doubled, toEqual({ count: 20 }));
 });
 
 /**
@@ -267,8 +301,8 @@ test("traverseRawObj runs the function through the Applicative", () => {
  */
 test("sequenceRawObj lifts the input record", () => {
   const input = { x: 1, y: 2 };
-  const result = sequenceRawObj(mutRecApplicative)(
-    input,
-  );
-  expect(result).toEqual(input);
+  const result = sequenceRawObj(
+    mutRecApplicative,
+  )(input);
+  return check(result, toEqual(input));
 });

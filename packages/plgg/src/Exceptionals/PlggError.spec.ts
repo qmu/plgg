@@ -1,4 +1,18 @@
-import { test, expect, assert, vi } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  toContain,
+  toHaveLength,
+  not,
+  toBeInstanceOf,
+  okThen,
+  errThen,
+  someThen,
+  vi,
+} from "plgg-test";
 import {
   PlggError,
   InvalidError,
@@ -37,43 +51,60 @@ import {
   cast,
   refine,
   asStr,
+  tryCatch,
+  isErr,
 } from "plgg/index";
 
-test("isPlggError recognizes every core error variant", () => {
-  expect(
-    isPlggError(invalidError({ message: "x" })),
-  ).toBe(true);
-  expect(
-    isPlggError(serializeError({ message: "x" })),
-  ).toBe(true);
-  expect(
-    isPlggError(deserializeError({ message: "x" })),
-  ).toBe(true);
-  expect(isPlggError(defect("x"))).toBe(true);
-});
-
-test("isPlggError rejects non-plgg values", () => {
-  expect(isPlggError(new Error("x"))).toBe(false);
-  expect(isPlggError({})).toBe(false);
-  expect(isPlggError(null)).toBe(false);
-  expect(isPlggError(undefined)).toBe(false);
-  expect(isPlggError("string")).toBe(false);
-  expect(isPlggError(123)).toBe(false);
-  expect(isPlggError([])).toBe(false);
-  // a Box with a non-core tag is not a PlggError
-  expect(isPlggError(box("Other")({}))).toBe(
-    false,
-  );
-  // a tag-colliding box without a string message is rejected (shape guard)
-  expect(
-    isPlggError(
-      box("InvalidError")({ totally: "wrong" }),
+test("isPlggError recognizes every core error variant", () =>
+  all([
+    check(
+      isPlggError(invalidError({ message: "x" })),
+      toBe(true),
     ),
-  ).toBe(false);
-  expect(isPlggError(box("Defect")({}))).toBe(
-    false,
-  );
-});
+    check(
+      isPlggError(
+        serializeError({ message: "x" }),
+      ),
+      toBe(true),
+    ),
+    check(
+      isPlggError(
+        deserializeError({ message: "x" }),
+      ),
+      toBe(true),
+    ),
+    check(isPlggError(defect("x")), toBe(true)),
+  ]));
+
+test("isPlggError rejects non-plgg values", () =>
+  all([
+    check(
+      isPlggError(new Error("x")),
+      toBe(false),
+    ),
+    check(isPlggError({}), toBe(false)),
+    check(isPlggError(null), toBe(false)),
+    check(isPlggError(undefined), toBe(false)),
+    check(isPlggError("string"), toBe(false)),
+    check(isPlggError(123), toBe(false)),
+    check(isPlggError([]), toBe(false)),
+    // a Box with a non-core tag is not a PlggError
+    check(
+      isPlggError(box("Other")({})),
+      toBe(false),
+    ),
+    // a tag-colliding box without a string message is rejected (shape guard)
+    check(
+      isPlggError(
+        box("InvalidError")({ totally: "wrong" }),
+      ),
+      toBe(false),
+    ),
+    check(
+      isPlggError(box("Defect")({})),
+      toBe(false),
+    ),
+  ]));
 
 test("cast captures an unexpected step throw as a serializable cause", () => {
   const boom = (
@@ -82,17 +113,23 @@ test("cast captures an unexpected step throw as a serializable cause", () => {
     throw new Error("kaboom");
   };
   const result = cast(1, boom);
-  assert(result.isErr());
-  expect(result.content.__tag).toBe(
-    "InvalidError",
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(e.__tag, toBe("InvalidError")),
+        check(
+          e.content.message,
+          toContain("kaboom"),
+        ),
+        // the origin is retained as a serializable cause, not flattened away
+        check(
+          isSome(e.content.cause),
+          toBe(true),
+        ),
+      ]),
+    ),
   );
-  expect(
-    result.content.content.message,
-  ).toContain("kaboom");
-  // the origin is retained as a serializable cause, not flattened away
-  expect(
-    isSome(result.content.content.cause),
-  ).toBe(true);
 });
 
 test("printPlggError prints tag and message", () => {
@@ -104,15 +141,26 @@ test("printPlggError prints tag and message", () => {
       message: "Test validation error",
     }),
   );
-  expect(spy).toHaveBeenCalledWith(
-    expect.stringContaining("[InvalidError]"),
-  );
-  expect(spy).toHaveBeenCalledWith(
-    expect.stringContaining(
-      "Test validation error",
+  const result = all([
+    check(
+      spy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          c[0].includes("[InvalidError]"),
+      ),
+      toBe(true),
     ),
-  );
+    check(
+      spy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          c[0].includes("Test validation error"),
+      ),
+      toBe(true),
+    ),
+  ]);
   spy.mockRestore();
+  return result;
 });
 
 test("printPlggError walks validation siblings", () => {
@@ -127,14 +175,27 @@ test("printPlggError walks validation siblings", () => {
     sibling: [child],
   });
   printPlggError(parent);
-  expect(spy).toHaveBeenCalledTimes(2);
-  expect(spy).toHaveBeenCalledWith(
-    expect.stringContaining("Parent error"),
-  );
-  expect(spy).toHaveBeenCalledWith(
-    expect.stringContaining("Child error"),
-  );
+  const result = all([
+    check(spy.mock.calls.length, toBe(2)),
+    check(
+      spy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          c[0].includes("Parent error"),
+      ),
+      toBe(true),
+    ),
+    check(
+      spy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          c[0].includes("Child error"),
+      ),
+      toBe(true),
+    ),
+  ]);
   spy.mockRestore();
+  return result;
 });
 
 test("printPlggError unwraps a Defect's Error cause", () => {
@@ -144,47 +205,74 @@ test("printPlggError unwraps a Defect's Error cause", () => {
   printPlggError(
     defect("wrapped", new Error("root cause")),
   );
-  expect(spy).toHaveBeenCalledTimes(2);
-  expect(spy).toHaveBeenCalledWith(
-    expect.stringContaining("wrapped"),
-  );
-  expect(spy).toHaveBeenCalledWith(
-    expect.stringContaining("root cause"),
-  );
+  const result = all([
+    check(spy.mock.calls.length, toBe(2)),
+    check(
+      spy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          c[0].includes("wrapped"),
+      ),
+      toBe(true),
+    ),
+    check(
+      spy.mock.calls.some(
+        (c) =>
+          typeof c[0] === "string" &&
+          c[0].includes("root cause"),
+      ),
+      toBe(true),
+    ),
+  ]);
   spy.mockRestore();
+  return result;
 });
 
 test("toError returns the same instance for Error input", () => {
   const original = new Error("hi");
-  expect(toError(original)).toBe(original);
+  return check(toError(original), toBe(original));
 });
 
-test("toError synthesizes for tagged data and primitives", () => {
-  expect(
-    toError(invalidError({ message: "bad" }))
-      .message,
-  ).toContain("InvalidError");
-  expect(toError("oops").message).toBe("oops");
-  expect(toError(42).message).toBe("42");
-  expect(toError(null).message).toBe("null");
-});
+test("toError synthesizes for tagged data and primitives", () =>
+  all([
+    check(
+      toError(invalidError({ message: "bad" }))
+        .message,
+      toContain("InvalidError"),
+    ),
+    check(toError("oops").message, toBe("oops")),
+    check(toError(42).message, toBe("42")),
+    check(toError(null).message, toBe("null")),
+  ]));
 
-test("panic throws the extracted Error", () => {
-  expect(() =>
-    panic(invalidError({ message: "boom" })),
-  ).toThrow("InvalidError");
-});
+test("panic throws the extracted Error", () =>
+  check(
+    isErr(
+      tryCatch(
+        () =>
+          panic(
+            invalidError({ message: "boom" }),
+          ),
+        (e) => e,
+      )(undefined),
+    ),
+    toBe(true),
+  ));
 
-test("unreachable always throws", () => {
-  expect(() => unreachable()).toThrow(
-    "Supposed to be unreachable",
-  );
-});
+test("unreachable always throws", () =>
+  check(
+    isErr(
+      tryCatch(
+        () => unreachable(),
+        (e) => e,
+      )(undefined),
+    ),
+    toBe(true),
+  ));
 
 test("InvalidError over cast pipeline", () => {
   type Id = string;
-  const asId = (v: unknown) =>
-    cast(v, asSoftStr);
+  const asId = (v: unknown) => cast(v, asSoftStr);
 
   type Name = Str;
   const asName = (v: unknown) =>
@@ -222,17 +310,14 @@ test("InvalidError over cast pipeline", () => {
     createdAt: "2024-01-01T00:00:00Z",
     name: "AB",
   });
-  if (result.isErr()) {
-    expect(result.content.__tag).toBe(
-      "InvalidError",
-    );
-    expect(result.content.content.sibling).toHaveLength(
-      2,
-    );
-    return;
-  }
-  assert.fail(
-    "Expected InvalidError but got success",
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(e.__tag, toBe("InvalidError")),
+        check(e.content.sibling, toHaveLength(2)),
+      ]),
+    ),
   );
 });
 
@@ -240,10 +325,12 @@ test("a plgg error satisfies isBox and exposes its tag and structured content", 
   const e = invalidError({
     message: "bad input",
   });
-  expect(isBox(e)).toBe(true);
-  expect(e.__tag).toBe("InvalidError");
-  expect(e.content.message).toBe("bad input");
-  expect(e.content.sibling).toEqual([]);
+  return all([
+    check(isBox(e), toBe(true)),
+    check(e.__tag, toBe("InvalidError")),
+    check(e.content.message, toBe("bad input")),
+    check(e.content.sibling, toEqual([])),
+  ]);
 });
 
 test("a PlggError folds exhaustively through match by tag", () => {
@@ -271,34 +358,51 @@ test("a PlggError folds exhaustively through match by tag", () => {
       ],
     );
 
-  expect(
-    render(invalidError({ message: "bad" })),
-  ).equal("invalid: bad (0)");
-  expect(render(defect("boom"))).equal(
-    "defect: boom",
-  );
-  expect(
-    render(serializeError({ message: "ser" })),
-  ).equal("serialize: ser");
-  expect(
-    render(deserializeError({ message: "des" })),
-  ).equal("deserialize: des");
+  return all([
+    check(
+      render(invalidError({ message: "bad" })),
+      toBe("invalid: bad (0)"),
+    ),
+    check(
+      render(defect("boom")),
+      toBe("defect: boom"),
+    ),
+    check(
+      render(serializeError({ message: "ser" })),
+      toBe("serialize: ser"),
+    ),
+    check(
+      render(
+        deserializeError({ message: "des" }),
+      ),
+      toBe("deserialize: des"),
+    ),
+  ]);
 });
 
 test("a plgg error is plain tagged data, not an Error", () => {
   const e = invalidError({ message: "bad" });
-  expect(e).not.toBeInstanceOf(Error);
   const json = JSON.parse(JSON.stringify(e));
-  expect(json.__tag).toBe("InvalidError");
-  expect(json.content.message).toBe("bad");
+  return all([
+    check(e, not(toBeInstanceOf(Error))),
+    check(json.__tag, toBe("InvalidError")),
+    check(json.content.message, toBe("bad")),
+  ]);
 });
 
-test("plggErrorMessage reads any variant's message", () => {
-  expect(
-    plggErrorMessage(invalidError({ message: "a" })),
-  ).toBe("a");
-  expect(plggErrorMessage(defect("b"))).toBe("b");
-});
+test("plggErrorMessage reads any variant's message", () =>
+  all([
+    check(
+      plggErrorMessage(
+        invalidError({ message: "a" }),
+      ),
+      toBe("a"),
+    ),
+    check(
+      plggErrorMessage(defect("b")),
+      toBe("b"),
+    ),
+  ]));
 
 test("matchPlggError folds by variant via the $-matchers", () => {
   const label = matchPlggError({
@@ -307,27 +411,34 @@ test("matchPlggError folds by variant via the $-matchers", () => {
     deserialize: (): string => "deserialize",
     defect: (): string => "defect",
   });
-  expect(
-    label(invalidError({ message: "x" })),
-  ).toBe("invalid");
-  expect(
-    label(serializeError({ message: "x" })),
-  ).toBe("serialize");
-  expect(
-    label(deserializeError({ message: "x" })),
-  ).toBe("deserialize");
-  expect(label(defect("x"))).toBe("defect");
+  return all([
+    check(
+      label(invalidError({ message: "x" })),
+      toBe("invalid"),
+    ),
+    check(
+      label(serializeError({ message: "x" })),
+      toBe("serialize"),
+    ),
+    check(
+      label(deserializeError({ message: "x" })),
+      toBe("deserialize"),
+    ),
+    check(label(defect("x")), toBe("defect")),
+  ]);
 });
 
 test("resultErrorMessage folds a Result's error message", () => {
   const failed = resultErrorMessage(
     err(invalidError({ message: "boom" })),
   );
-  assert(isSome(failed));
-  expect(failed.content).toBe("boom");
-  expect(
-    isSome(resultErrorMessage(ok(1))),
-  ).toBe(false);
+  return all([
+    check(failed, someThen(toBe("boom"))),
+    check(
+      isSome(resultErrorMessage(ok(1))),
+      toBe(false),
+    ),
+  ]);
 });
 
 test("printPlggError terminates on a sibling cycle", () => {
@@ -348,8 +459,14 @@ test("printPlggError terminates on a sibling cycle", () => {
   aSiblings.push(b);
   // must not infinite-loop / RangeError
   printPlggError(a);
-  expect(spy).toHaveBeenCalledWith(
-    expect.stringContaining("<cycle>"),
+  const result = check(
+    spy.mock.calls.some(
+      (c) =>
+        typeof c[0] === "string" &&
+        c[0].includes("<cycle>"),
+    ),
+    toBe(true),
   );
   spy.mockRestore();
+  return result;
 });

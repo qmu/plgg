@@ -1,44 +1,58 @@
-import { test, expect, assert } from "plgg-test";
-import { atProp, isOk, isErr } from "plgg/index";
+import {
+  test,
+  check,
+  toBe,
+  toContain,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { atProp, isErr } from "plgg/index";
 
-test("atProp returns Ok for existing property", () => {
-  const result = atProp("name")({
-    name: "Alice",
-    age: 30,
-  });
-  assert(isOk(result));
-  expect(result.content).toBe("Alice");
-});
+test("atProp returns Ok for existing property", () =>
+  check(
+    atProp("name")({
+      name: "Alice",
+      age: 30,
+    }),
+    okThen(toBe("Alice")),
+  ));
 
 test("atProp returns nested object value", () => {
   const nested = { a: 1 };
-  const result = atProp("data")({ data: nested });
-  assert(isOk(result));
-  expect(result.content).toBe(nested);
-});
-
-test("atProp returns Err for missing property", () => {
-  const result = atProp("missing")({ present: 1 });
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "Cannot access property 'missing'",
+  return check(
+    atProp("data")({ data: nested }),
+    okThen(toBe(nested)),
   );
 });
 
-test("atProp returns Err for non-object value", () => {
-  const result = atProp("name")("not-object");
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "Cannot access property 'name'",
-  );
-});
+test("atProp returns Err for missing property", () =>
+  check(
+    atProp("missing")({ present: 1 }),
+    errThen((e) =>
+      toContain(
+        "Cannot access property 'missing'",
+      )(e.content.message),
+    ),
+  ));
 
-test("atProp returns Err for null", () => {
-  const result = atProp("name")(null);
-  assert(isErr(result));
-});
+test("atProp returns Err for non-object value", () =>
+  check(
+    atProp("name")("not-object"),
+    errThen((e) =>
+      toContain(
+        "Cannot access property 'name'",
+      )(e.content.message),
+    ),
+  ));
 
-test("atProp returns Err for undefined", () => {
-  const result = atProp("name")(undefined);
-  assert(isErr(result));
-});
+test("atProp returns Err for null", () =>
+  check(
+    isErr(atProp("name")(null)),
+    toBe(true),
+  ));
+
+test("atProp returns Err for undefined", () =>
+  check(
+    isErr(atProp("name")(undefined)),
+    toBe(true),
+  ));

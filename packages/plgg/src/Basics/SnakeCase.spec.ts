@@ -1,20 +1,33 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+} from "plgg-test";
 import {
   isSnakeCase,
   asSnakeCase,
-  isOk,
   isErr,
   box,
 } from "plgg/index";
 
-test("isSnakeCase and asSnakeCase basic validation", () => {
-  expect(
-    isSnakeCase(box("SnakeCase")("snake_case")),
-  ).toBe(true);
-  const result = asSnakeCase("test_value");
-  assert(isOk(result));
-  expect(result.content.content).toBe(
-    "test_value",
-  );
-  assert(isErr(asSnakeCase("camelCase")));
-});
+test("isSnakeCase and asSnakeCase basic validation", () =>
+  all([
+    check(
+      isSnakeCase(
+        box("SnakeCase")("snake_case"),
+      ),
+      toBe(true),
+    ),
+    check(
+      asSnakeCase("test_value"),
+      okThen((v) =>
+        toBe("test_value")(v.content),
+      ),
+    ),
+    check(
+      isErr(asSnakeCase("camelCase")),
+      toBe(true),
+    ),
+  ]));

@@ -1,16 +1,26 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  shouldBeErr,
+} from "plgg-test";
 import {
   isFloat,
   asFloat,
-  isOk,
-  isErr,
   box,
 } from "plgg/index";
 
-test("isFloat and asFloat basic validation", () => {
-  expect(isFloat(box("Float")(3.14))).toBe(true);
-  const result = asFloat(box("Float")(2.5));
-  assert(isOk(result));
-  expect(result.content.content).toBe(2.5);
-  assert(isErr(asFloat("test")));
-});
+test("isFloat and asFloat basic validation", () =>
+  all([
+    check(
+      isFloat(box("Float")(3.14)),
+      toBe(true),
+    ),
+    check(
+      asFloat(box("Float")(2.5)),
+      okThen((b) => toBe(2.5)(b.content)),
+    ),
+    check(asFloat("test"), shouldBeErr()),
+  ]));

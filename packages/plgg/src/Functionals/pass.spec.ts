@@ -1,24 +1,29 @@
-import { test, expect } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import { pass } from "plgg/index";
 
 test("pass returns its argument unchanged (identity function)", () => {
-  // Test with different types
-  expect(pass(42)).toBe(42);
-  expect(pass("hello")).toBe("hello");
-  expect(pass(true)).toBe(true);
-  expect(pass(false)).toBe(false);
-  expect(pass(null)).toBe(null);
-  expect(pass(undefined)).toBe(undefined);
-
   // Test with objects (should return same reference)
   const obj = { foo: "bar" };
-  expect(pass(obj)).toBe(obj);
-
   // Test with arrays (should return same reference)
   const arr = [1, 2, 3];
-  expect(pass(arr)).toBe(arr);
-
   // Test with functions
   const fn = () => "test";
-  expect(pass(fn)).toBe(fn);
+
+  return all([
+    // Test with different types
+    check(pass(42), toBe(42)),
+    check(pass("hello"), toBe("hello")),
+    check(pass(true), toBe(true)),
+    check(pass(false), toBe(false)),
+    check(pass(null), toBe(null)),
+    check(pass(undefined), toBe(undefined)),
+    check(pass(obj), toBe(obj)),
+    check(pass(arr), toBe(arr)),
+    check(pass(fn), toBe(fn)),
+  ]);
 });

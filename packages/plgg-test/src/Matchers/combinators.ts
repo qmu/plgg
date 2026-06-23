@@ -119,7 +119,9 @@ export const allAsync = async (
  */
 export const check = <A>(
   actual: A,
-  ...matchers: ReadonlyArray<Matcher<A>>
+  ...matchers: ReadonlyArray<
+    (actual: A) => Assertion
+  >
 ): Assertion =>
   all(matchers.map((m) => m(actual)));
 

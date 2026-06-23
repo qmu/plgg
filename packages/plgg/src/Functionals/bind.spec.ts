@@ -1,129 +1,147 @@
-import { test, expect } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+} from "plgg-test";
 import { bind } from "plgg/Functionals/bind";
-import { proc, ok, err, isOk, box, Box } from "plgg/index";
+import {
+  proc,
+  ok,
+  err,
+  box,
+  Box,
+  isOk,
+} from "plgg/index";
 
-test("bind adds value to context under specified key", async () => {
-  const result = await proc(
-    bind(["value", () => 42]),
-    (ctx) => ctx,
-  );
-
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content).toEqual({ value: 42 });
-  }
-});
-
-test("bind chains multiple values in context", async () => {
-  const result = await proc(
-    bind(
-      ["a", () => 1],
-      ["b", ({ a }) => a + 1],
-      ["c", ({ a, b }) => a + b],
+test("bind adds value to context under specified key", async () =>
+  check(
+    await proc(
+      bind(["value", () => 42]),
+      (ctx) => ctx,
     ),
-    (ctx) => ctx,
-  );
+    okThen(toEqual({ value: 42 })),
+  ));
 
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content).toEqual({
-      a: 1,
-      b: 2,
-      c: 3,
-    });
-  }
-});
+test("bind chains multiple values in context", async () =>
+  check(
+    await proc(
+      bind(
+        ["a", () => 1],
+        ["b", ({ a }) => a + 1],
+        ["c", ({ a, b }) => a + b],
+      ),
+      (ctx) => ctx,
+    ),
+    okThen(
+      toEqual({
+        a: 1,
+        b: 2,
+        c: 3,
+      }),
+    ),
+  ));
 
-test("bind unwraps Ok results", async () => {
-  const result = await proc(
-    bind(["value", () => ok(100)]),
-    (ctx) => ctx,
-  );
+test("bind unwraps Ok results", async () =>
+  check(
+    await proc(
+      bind(["value", () => ok(100)]),
+      (ctx) => ctx,
+    ),
+    okThen(
+      toEqual({
+        value: 100,
+      }),
+    ),
+  ));
 
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content).toEqual({
-      value: 100,
-    });
-  }
-});
-
-test("bind propagates Err results", async () => {
-  const result = await proc(
-    bind(["value", () => err(new Error("failed"))]),
-    (ctx) => ctx,
-  );
-
-  expect(isOk(result)).toBe(false);
-});
+test("bind propagates Err results", async () =>
+  check(
+    isOk(
+      await proc(
+        bind([
+          "value",
+          () => err(new Error("failed")),
+        ]),
+        (ctx) => ctx,
+      ),
+    ),
+    toBe(false),
+  ));
 
 test("bind passes a non-Error Err value through as data", async () => {
   const result = await proc(
     bind(["value", () => err("string error")]),
     (ctx) => ctx,
   );
-  expect(isOk(result)).toBe(false);
   // bind no longer mints an Error; the failure flows through unchanged.
-  expect(result.content).toBe("string error");
-});
-
-test("bind works with async functions", async () => {
-  const result = await proc(
-    bind([
-      "delayed",
-      async () => {
-        await new Promise((r) =>
-          setTimeout(r, 10),
-        );
-        return "done";
-      },
-    ]),
-    (ctx) => ctx,
-  );
-
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content).toEqual({
-      delayed: "done",
-    });
-  }
-});
-
-test("bind preserves context through chain", async () => {
-  const result = await proc(
-    bind(
-      ["initial", () => "start"],
-      ["first", ({ initial }) => `${initial}-1`],
-      [
-        "second",
-        ({ initial, first }) =>
-          `${initial}-${first}-2`,
-      ],
+  return all([
+    check(isOk(result), toBe(false)),
+    check(
+      result,
+      errThen(toBe("string error")),
     ),
-    (ctx) => ctx,
-  );
-
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content).toEqual({
-      initial: "start",
-      first: "start-1",
-      second: "start-start-1-2",
-    });
-  }
+  ]);
 });
 
-test("bind can be used to extract final value", async () => {
-  const result = await proc(
-    bind(["x", () => 10], ["y", () => 20]),
-    ({ x, y }) => x + y,
-  );
+test("bind works with async functions", async () =>
+  check(
+    await proc(
+      bind([
+        "delayed",
+        async () => {
+          await new Promise((r) =>
+            setTimeout(r, 10),
+          );
+          return "done";
+        },
+      ]),
+      (ctx) => ctx,
+    ),
+    okThen(
+      toEqual({
+        delayed: "done",
+      }),
+    ),
+  ));
 
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content).toBe(30);
-  }
-});
+test("bind preserves context through chain", async () =>
+  check(
+    await proc(
+      bind(
+        ["initial", () => "start"],
+        [
+          "first",
+          ({ initial }) => `${initial}-1`,
+        ],
+        [
+          "second",
+          ({ initial, first }) =>
+            `${initial}-${first}-2`,
+        ],
+      ),
+      (ctx) => ctx,
+    ),
+    okThen(
+      toEqual({
+        initial: "start",
+        first: "start-1",
+        second: "start-start-1-2",
+      }),
+    ),
+  ));
+
+test("bind can be used to extract final value", async () =>
+  check(
+    await proc(
+      bind(["x", () => 10], ["y", () => 20]),
+      ({ x, y }) => x + y,
+    ),
+    okThen(toBe(30)),
+  ));
 
 test("bind preserves Box types without unwrapping", async () => {
   type Provider = Box<"Provider", { name: string }>;
@@ -159,18 +177,28 @@ test("bind preserves Box types without unwrapping", async () => {
     (ctx) => ctx,
   );
 
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    const ctx = result.content;
-    expect(ctx.foundry.__tag).toBe("Foundry");
-    expect(ctx.foundry.content.spec).toBe(
-      "test-spec",
-    );
-    expect(
-      ctx.foundry.content.provider.__tag,
-    ).toBe("Provider");
-    expect(
-      ctx.foundry.content.provider.content.name,
-    ).toBe("test-config");
-  }
+  return check(
+    result,
+    okThen((ctx) =>
+      all([
+        check(
+          ctx.foundry.__tag,
+          toBe("Foundry"),
+        ),
+        check(
+          ctx.foundry.content.spec,
+          toBe("test-spec"),
+        ),
+        check(
+          ctx.foundry.content.provider.__tag,
+          toBe("Provider"),
+        ),
+        check(
+          ctx.foundry.content.provider.content
+            .name,
+          toBe("test-config"),
+        ),
+      ]),
+    ),
+  );
 });

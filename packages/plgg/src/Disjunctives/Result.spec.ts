@@ -1,4 +1,14 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+  someThen,
+  shouldBeNone,
+} from "plgg-test";
 import {
   Result,
   InvalidError,
@@ -28,36 +38,36 @@ import {
 
 test("ok creates Ok result", () => {
   const result = ok(42);
-  expect(result.__tag).toBe("Ok");
-  assert(isOk(result));
-  if (isOk(result)) {
-    expect(result.content).toBe(42);
-  }
+  return all([
+    check(result.__tag, toBe("Ok")),
+    check(result, okThen(toBe(42))),
+  ]);
 });
 
 test("err creates Err result", () => {
   const result = err("error message");
-  expect(result.__tag).toBe("Err");
-  assert(isErr(result));
-  if (isErr(result)) {
-    expect(result.content).toBe("error message");
-  }
+  return all([
+    check(result.__tag, toBe("Err")),
+    check(result, errThen(toBe("error message"))),
+  ]);
 });
 
 test("isOk identifies Ok results", () => {
   const okResult = ok("success");
   const errResult = err("failure");
-
-  assert(isOk(okResult));
-  assert(!isOk(errResult));
+  return all([
+    check(isOk(okResult), toBe(true)),
+    check(isOk(errResult), toBe(false)),
+  ]);
 });
 
 test("isErr identifies Err results", () => {
   const okResult = ok("success");
   const errResult = err("failure");
-
-  assert(!isErr(okResult));
-  assert(isErr(errResult));
+  return all([
+    check(isErr(okResult), toBe(false)),
+    check(isErr(errResult), toBe(true)),
+  ]);
 });
 
 test("isResult identifies Result types", () => {
@@ -66,56 +76,45 @@ test("isResult identifies Result types", () => {
   const notResult = { random: "object" };
   const nullValue = null;
   const undefinedValue = undefined;
-
-  assert(isResult(okResult));
-  assert(isResult(errResult));
-  assert(!isResult(notResult));
-  assert(!isResult(nullValue));
-  assert(!isResult(undefinedValue));
+  return all([
+    check(isResult(okResult), toBe(true)),
+    check(isResult(errResult), toBe(true)),
+    check(isResult(notResult), toBe(false)),
+    check(isResult(nullValue), toBe(false)),
+    check(isResult(undefinedValue), toBe(false)),
+  ]);
 });
 
 test("result.isOk() method returns true for Ok instances", () => {
   const okResult = ok("success");
-
-  assert(okResult.isOk());
-  assert(!okResult.isErr());
-
-  // Type narrowing should work
-  if (okResult.isOk()) {
-    expect(okResult.content).toBe("success");
-  }
+  return all([
+    check(isOk(okResult), toBe(true)),
+    check(isErr(okResult), toBe(false)),
+    check(okResult, okThen(toBe("success"))),
+  ]);
 });
 
 test("result.isErr() method returns true for Err instances", () => {
   const errResult = err("failure");
-
-  assert(!errResult.isOk());
-  assert(errResult.isErr());
-
-  // Type narrowing should work
-  if (errResult.isErr()) {
-    expect(errResult.content).toBe("failure");
-  }
+  return all([
+    check(isOk(errResult), toBe(false)),
+    check(isErr(errResult), toBe(true)),
+    check(errResult, errThen(toBe("failure"))),
+  ]);
 });
 
 test("result methods work with Result union type", () => {
   const okResult: Result<number, string> = ok(42);
   const errResult: Result<number, string> =
     err("error");
-
-  // Ok case
-  assert(okResult.isOk());
-  assert(!okResult.isErr());
-  if (okResult.isOk()) {
-    expect(okResult.content).toBe(42);
-  }
-
-  // Err case
-  assert(!errResult.isOk());
-  assert(errResult.isErr());
-  if (errResult.isErr()) {
-    expect(errResult.content).toBe("error");
-  }
+  return all([
+    check(isOk(okResult), toBe(true)),
+    check(isErr(okResult), toBe(false)),
+    check(okResult, okThen(toBe(42))),
+    check(isOk(errResult), toBe(false)),
+    check(isErr(errResult), toBe(true)),
+    check(errResult, errThen(toBe("error"))),
+  ]);
 });
 
 test("Result can handle different types", () => {
@@ -125,21 +124,15 @@ test("Result can handle different types", () => {
     string,
     number
   > = err(404);
-
-  assert(isOk(stringResult));
-  assert(isErr(numberErrorResult));
-
-  if (isOk(stringResult)) {
-    expect(stringResult.content).toBe("hello");
-  }
-
-  if (isErr(numberErrorResult)) {
-    expect(numberErrorResult.content).toBe(404);
-  }
+  return all([
+    check(isOk(stringResult), toBe(true)),
+    check(isErr(numberErrorResult), toBe(true)),
+    check(stringResult, okThen(toBe("hello"))),
+    check(numberErrorResult, errThen(toBe(404))),
+  ]);
 });
 
 test("mapOk transforms success values while preserving errors", () => {
-  // Example: Processing successful API responses
   const formatPrice = (
     price: number,
   ): Result<string, InvalidError> =>
@@ -148,18 +141,21 @@ test("mapOk transforms success values while preserving errors", () => {
   const successResult = chainResult(formatPrice)(
     ok(29.99),
   );
-  assert(isOk(successResult));
-  expect(successResult.content).toBe("$29.99");
 
   const priceError = invalidError({
     message: "Invalid price",
   });
   const e = err(priceError);
   const errorResult = chainResult(formatPrice)(e);
-  assert(isErr(errorResult));
-  expect(errorResult.content.content.message).toBe(
-    "Invalid price",
-  );
+  return all([
+    check(successResult, okThen(toBe("$29.99"))),
+    check(
+      errorResult,
+      errThen((er) =>
+        toBe("Invalid price")(er.content.message),
+      ),
+    ),
+  ]);
 });
 
 test("Result Monad - map function", () => {
@@ -169,11 +165,10 @@ test("Result Monad - map function", () => {
 
   const r1 = pipe(okValue, mapResult(double));
   const r2 = pipe(errValue, mapResult(double));
-
-  assert(isOk(r1));
-  expect(r1.content).toBe(10);
-  assert(isErr(r2));
-  expect(r2.content).toBe("error");
+  return all([
+    check(r1, okThen(toBe(10))),
+    check(r2, errThen(toBe("error"))),
+  ]);
 });
 
 test("mapErr transforms error values while preserving successes", () => {
@@ -184,11 +179,10 @@ test("mapErr transforms error values while preserving successes", () => {
 
   const r1 = pipe(okValue, mapErr(toLength));
   const r2 = pipe(errValue, mapErr(toLength));
-
-  assert(isOk(r1));
-  expect(r1.content).toBe(5);
-  assert(isErr(r2));
-  expect(r2.content).toBe(4);
+  return all([
+    check(r1, okThen(toBe(5))),
+    check(r2, errThen(toBe(4))),
+  ]);
 });
 
 test("matchResult folds both channels into one value", () => {
@@ -196,9 +190,10 @@ test("matchResult folds both channels into one value", () => {
     (e: string) => `err:${e}`,
     (v: number) => `ok:${v}`,
   );
-
-  expect(fold(ok(7))).toBe("ok:7");
-  expect(fold(err("nope"))).toBe("err:nope");
+  return all([
+    check(fold(ok(7)), toBe("ok:7")),
+    check(fold(err("nope")), toBe("err:nope")),
+  ]);
 });
 
 test("Result Monad - ap function (applicative)", () => {
@@ -229,28 +224,23 @@ test("Result Monad - ap function (applicative)", () => {
     errValue,
     applyResult(errFunction),
   );
-
-  assert(isOk(r1));
-  expect(r1.content).toBe(8);
-  assert(isErr(r2));
-  expect(r2.content).toBe("function error");
-  assert(isErr(r3));
-  expect(r3.content).toBe("value error");
-  assert(isErr(r4));
-  expect(r4.content).toBe("function error");
+  return all([
+    check(r1, okThen(toBe(8))),
+    check(r2, errThen(toBe("function error"))),
+    check(r3, errThen(toBe("value error"))),
+    check(r4, errThen(toBe("function error"))),
+  ]);
 });
 
 test("Result Monad - of function", () => {
   const r1 = pipe(42, ofResult);
   const r2 = pipe("hello", ofResult);
   const r3 = pipe(null, ofResult);
-
-  assert(isOk(r1));
-  expect(r1.content).toBe(42);
-  assert(isOk(r2));
-  expect(r2.content).toBe("hello");
-  assert(isOk(r3));
-  expect(r3.content).toBe(null);
+  return all([
+    check(r1, okThen(toBe(42))),
+    check(r2, okThen(toBe("hello"))),
+    check(r3, okThen(toBe(null))),
+  ]);
 });
 
 test("Result Monad - chain function", () => {
@@ -276,13 +266,11 @@ test("Result Monad - chain function", () => {
     errNumber,
     chainResult(safeDivide(2)),
   );
-
-  assert(isOk(r1));
-  expect(r1.content).toBe(5);
-  assert(isErr(r2));
-  expect(r2.content).toBe("Division by zero");
-  assert(isErr(r3));
-  expect(r3.content).toBe("Invalid number");
+  return all([
+    check(r1, okThen(toBe(5))),
+    check(r2, errThen(toBe("Division by zero"))),
+    check(r3, errThen(toBe("Invalid number"))),
+  ]);
 });
 
 test("Result Monad Laws - Left Identity", () => {
@@ -292,9 +280,10 @@ test("Result Monad Laws - Left Identity", () => {
 
   const r1 = pipe(a, ofResult, chainResult(f));
   const r2 = f(a);
-
-  expect(r1.__tag).toBe(r2.__tag);
-  expect(r1.content).toEqual(r2.content);
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    check(r1.content, toEqual(r2.content)),
+  ]);
 });
 
 test("Result Monad Laws - Right Identity", () => {
@@ -302,9 +291,10 @@ test("Result Monad Laws - Right Identity", () => {
 
   const r1 = pipe(m, chainResult(ofResult));
   const r2 = m;
-
-  expect(r1.__tag).toBe(r2.__tag);
-  expect(r1.content).toEqual(r2.content);
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    check(r1.content, toEqual(r2.content)),
+  ]);
 });
 
 test("Result Monad Laws - Associativity", () => {
@@ -325,9 +315,10 @@ test("Result Monad Laws - Associativity", () => {
       pipe(x, f, chainResult(g)),
     ),
   );
-
-  expect(r1.__tag).toBe(r2.__tag);
-  expect(r1.content).toEqual(r2.content);
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    check(r1.content, toEqual(r2.content)),
+  ]);
 });
 
 test("Result Functor Laws - Identity", () => {
@@ -335,9 +326,10 @@ test("Result Functor Laws - Identity", () => {
   const identity = <T>(x: T) => x;
 
   const r1 = pipe(res, mapResult(identity));
-
-  expect(r1.__tag).toBe(res.__tag);
-  expect(r1.content).toEqual(res.content);
+  return all([
+    check(r1.__tag, toBe(res.__tag)),
+    check(r1.content, toEqual(res.content)),
+  ]);
 });
 
 test("Result Functor Laws - Composition", () => {
@@ -354,9 +346,10 @@ test("Result Functor Laws - Composition", () => {
     mapResult(f),
     mapResult(g),
   );
-
-  expect(r1.__tag).toBe(r2.__tag);
-  expect(r1.content).toEqual(r2.content);
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    check(r1.content, toEqual(r2.content)),
+  ]);
 });
 
 test("Result Foldable - foldr function", () => {
@@ -372,10 +365,11 @@ test("Result Foldable - foldr function", () => {
     ok("hello"),
     foldrResult(concat)(""),
   );
-
-  expect(r1).toBe(42);
-  expect(r2).toBe(0);
-  expect(r3).toBe("hello");
+  return all([
+    check(r1, toBe(42)),
+    check(r2, toBe(0)),
+    check(r3, toBe("hello")),
+  ]);
 });
 
 test("Result Foldable - foldl function", () => {
@@ -391,14 +385,14 @@ test("Result Foldable - foldl function", () => {
     ok("world"),
     foldlResult(concat)("hello "),
   );
-
-  expect(r1).toBe(42);
-  expect(r2).toBe(0);
-  expect(r3).toBe("hello world");
+  return all([
+    check(r1, toBe(42)),
+    check(r2, toBe(0)),
+    check(r3, toBe("hello world")),
+  ]);
 });
 
 test("User data validation pipeline with optional fields", () => {
-  // Real scenario: Processing user data where some fields are optional
   type User = {
     id: number;
     name: string;
@@ -423,40 +417,43 @@ test("User data validation pipeline with optional fields", () => {
       ),
     );
 
-  // User with valid email - processing succeeds
   const validUser = ok({
     id: 1,
     name: "Alice",
     email: "ALICE@EXAMPLE.COM",
   });
   const result1 = processUser(validUser);
-  assert(isSome(result1));
-  assert(isOk(result1.content));
-  expect(result1.content.content).toBe(
-    "alice@example.com",
-  );
 
-  // User with invalid email - processing fails
   const invalidEmailUser = ok({
     id: 2,
     name: "Bob",
     email: "not-an-email",
   });
   const result2 = processUser(invalidEmailUser);
-  assert(isNone(result2));
 
-  // User data parsing failed - error preserved
   const parseError = err("Invalid JSON");
   const result3 = processUser(parseError);
-  assert(isSome(result3));
-  assert(isErr(result3.content));
-  expect(result3.content.content).toBe(
-    "Invalid JSON",
-  );
+  return all([
+    check(
+      result1,
+      someThen((r) =>
+        check(
+          r,
+          okThen(toBe("alice@example.com")),
+        ),
+      ),
+    ),
+    check(isNone(result2), toBe(true)),
+    check(
+      result3,
+      someThen((r) =>
+        check(r, errThen(toBe("Invalid JSON"))),
+      ),
+    ),
+  ]);
 });
 
 test("Database query with optional caching", () => {
-  // Real scenario: Database query that might hit cache or fail
   type QueryResult = {
     data: string;
     cached: boolean;
@@ -480,68 +477,72 @@ test("Database query with optional caching", () => {
       ),
     );
 
-  // Cached query succeeds
   const cachedQuery = ok({
     data: "users",
     cached: true,
   });
   const result1 = executeQuery(cachedQuery);
-  assert(isSome(result1));
-  assert(isOk(result1.content));
-  expect(result1.content.content).toBe(
-    "cached_users",
-  );
 
-  // Non-cached query
   const directQuery = ok({
     data: "complex_analytics",
     cached: false,
   });
   const result2 = executeQuery(directQuery);
-  assert(isSome(result2));
-  assert(isOk(result2.content));
-  expect(result2.content.content).toBe(
-    "complex_analytics",
-  );
 
-  // Cached query too long - cache miss
   const longCachedQuery = ok({
     data: "very_long_query_name",
     cached: true,
   });
   const result3 = executeQuery(longCachedQuery);
-  assert(isNone(result3));
+  return all([
+    check(
+      result1,
+      someThen((r) =>
+        check(r, okThen(toBe("cached_users"))),
+      ),
+    ),
+    check(
+      result2,
+      someThen((r) =>
+        check(
+          r,
+          okThen(toBe("complex_analytics")),
+        ),
+      ),
+    ),
+    check(isNone(result3), toBe(true)),
+  ]);
 });
 
 test("sequenceResult - sequence with Option", () => {
-  // Test successful sequence with Some
   const okWithSome = ok(some(42));
   const result1 = pipe(
     okWithSome,
     sequenceResult(optionApplicative),
   );
 
-  assert(isSome(result1));
-  assert(isOk(result1.content));
-  expect(result1.content.content).toBe(42);
-
-  // Test successful sequence with None
   const okWithNone = ok(none());
   const result2 = pipe(
     okWithNone,
     sequenceResult(optionApplicative),
   );
 
-  assert(isNone(result2));
-
-  // Test error case - should return Some(Err(...))
   const errResult = err("error");
   const result3 = pipe(
     errResult,
     sequenceResult(optionApplicative),
   );
-
-  assert(isSome(result3));
-  assert(isErr(result3.content));
-  expect(result3.content.content).toBe("error");
+  return all([
+    check(
+      result1,
+      someThen((r) => check(r, okThen(toBe(42)))),
+    ),
+    check(result2, shouldBeNone()),
+    check(
+      result3,
+      someThen((r) =>
+        check(r, errThen(toBe("error"))),
+      ),
+    ),
+  ]);
 });

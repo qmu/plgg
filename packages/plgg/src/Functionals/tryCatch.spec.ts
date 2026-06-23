@@ -1,9 +1,15 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toContain,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   invalidError,
   tryCatch,
-  isOk,
-  isErr,
 } from "plgg/index";
 
 test("tryCatch wraps functions to handle exceptions", () => {
@@ -21,15 +27,17 @@ test("tryCatch wraps functions to handle exceptions", () => {
       }),
   );
 
-  const successResult = parseNumber("123");
-  assert(isOk(successResult));
-  expect(successResult.content).toBe(123);
-
-  const errorResult = parseNumber("abc");
-  assert(isErr(errorResult));
-  expect(errorResult.content.content.message).toContain(
-    "Parse error",
-  );
+  return all([
+    check(parseNumber("123"), okThen(toBe(123))),
+    check(
+      parseNumber("abc"),
+      errThen((e) =>
+        toContain("Parse error")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]);
 });
 
 test("tryCatch with default error handler", () => {
@@ -43,28 +51,35 @@ test("tryCatch with default error handler", () => {
 
   const safeThrowing = tryCatch(throwingFunction);
 
-  const errorResult = safeThrowing("error");
-  assert(isErr(errorResult));
-  // default handler now yields a Defect (message + original in cause)
-  expect(
-    errorResult.content.content.message,
-  ).toBe("Operation failed");
-
-  const stringErrorResult =
-    safeThrowing("string");
-  assert(isErr(stringErrorResult));
-  expect(
-    stringErrorResult.content.content.message,
-  ).toBe("Operation failed");
+  return all([
+    // default handler now yields a Defect (message + original in cause)
+    check(
+      safeThrowing("error"),
+      errThen((e) =>
+        toBe("Operation failed")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      safeThrowing("string"),
+      errThen((e) =>
+        toBe("Operation failed")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]);
 });
 
 test("tryCatch wraps async resolved promise in Ok", async () => {
   const loader = tryCatch(
     async (key: string) => `value-for-${key}`,
   );
-  const result = await loader("a");
-  assert(isOk(result));
-  expect(result.content).toBe("value-for-a");
+  return check(
+    await loader("a"),
+    okThen(toBe("value-for-a")),
+  );
 });
 
 test("tryCatch wraps async rejected promise in Err", async () => {
@@ -77,10 +92,13 @@ test("tryCatch wraps async rejected promise in Err", async () => {
         message: `async: ${(error as Error).message}`,
       }),
   );
-  const result = await loader("a");
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "async failure",
+  return check(
+    await loader("a"),
+    errThen((e) =>
+      toContain("async failure")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
@@ -88,9 +106,12 @@ test("tryCatch async uses default error handler", async () => {
   const loader = tryCatch(async (_: string) => {
     throw new Error("boom");
   });
-  const result = await loader("x");
-  assert(isErr(result));
-  expect(result.content.content.message).toBe(
-    "Operation failed",
+  return check(
+    await loader("x"),
+    errThen((e) =>
+      toBe("Operation failed")(
+        e.content.message,
+      ),
+    ),
   );
 });

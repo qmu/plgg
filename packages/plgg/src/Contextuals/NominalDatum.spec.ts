@@ -1,4 +1,12 @@
-import { describe, it, expect } from "plgg-test";
+import {
+  describe,
+  it,
+  check,
+  all,
+  toBe,
+  toEqual,
+  not,
+} from "plgg-test";
 import {
   createNominalDatum,
   isNominalDatum,
@@ -20,9 +28,14 @@ describe("NominalDatum", () => {
         "user-123",
       );
 
-      expect(nominal.__tag).toBe("UserId");
-      expect(nominal.content).toBe("user-123");
-      expect(isNominalDatum(nominal)).toBe(true);
+      return all([
+        check(nominal.__tag, toBe("UserId")),
+        check(nominal.content, toBe("user-123")),
+        check(
+          isNominalDatum(nominal),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should create a nominal datum with number value", () => {
@@ -31,9 +44,14 @@ describe("NominalDatum", () => {
         42.99,
       );
 
-      expect(nominal.__tag).toBe("Price");
-      expect(nominal.content).toBe(42.99);
-      expect(isNominalDatum(nominal)).toBe(true);
+      return all([
+        check(nominal.__tag, toBe("Price")),
+        check(nominal.content, toBe(42.99)),
+        check(
+          isNominalDatum(nominal),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should create a nominal datum with boolean value", () => {
@@ -42,9 +60,14 @@ describe("NominalDatum", () => {
         true,
       );
 
-      expect(nominal.__tag).toBe("IsActive");
-      expect(nominal.content).toBe(true);
-      expect(isNominalDatum(nominal)).toBe(true);
+      return all([
+        check(nominal.__tag, toBe("IsActive")),
+        check(nominal.content, toBe(true)),
+        check(
+          isNominalDatum(nominal),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should create a nominal datum with BigInt value", () => {
@@ -53,14 +76,21 @@ describe("NominalDatum", () => {
         123456789012345678901234567890n,
       );
 
-      expect(nominal.__tag).toBe("LargeId");
-      expect(nominal.content).toBe(
-        123456789012345678901234567890n,
-      );
-      expect(typeof nominal.content).toBe(
-        "bigint",
-      );
-      expect(isNominalDatum(nominal)).toBe(true);
+      return all([
+        check(nominal.__tag, toBe("LargeId")),
+        check(
+          nominal.content,
+          toBe(123456789012345678901234567890n),
+        ),
+        check(
+          typeof nominal.content,
+          toBe("bigint"),
+        ),
+        check(
+          isNominalDatum(nominal),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should create a nominal datum with object value", () => {
@@ -73,9 +103,14 @@ describe("NominalDatum", () => {
         userData,
       );
 
-      expect(nominal.__tag).toBe("UserData");
-      expect(nominal.content).toEqual(userData);
-      expect(isNominalDatum(nominal)).toBe(true);
+      return all([
+        check(nominal.__tag, toBe("UserData")),
+        check(nominal.content, toEqual(userData)),
+        check(
+          isNominalDatum(nominal),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should create a nominal datum with array value", () => {
@@ -85,9 +120,14 @@ describe("NominalDatum", () => {
         scores,
       );
 
-      expect(nominal.__tag).toBe("Scores");
-      expect(nominal.content).toEqual(scores);
-      expect(isNominalDatum(nominal)).toBe(true);
+      return all([
+        check(nominal.__tag, toBe("Scores")),
+        check(nominal.content, toEqual(scores)),
+        check(
+          isNominalDatum(nominal),
+          toBe(true),
+        ),
+      ]);
     });
   });
 
@@ -97,15 +137,20 @@ describe("NominalDatum", () => {
       const plainObject = { value: 42 };
       const wrongStructure = { __tag: "Test" }; // missing content
 
-      expect(isNominalDatum(plainValue)).toBe(
-        false,
-      );
-      expect(isNominalDatum(plainObject)).toBe(
-        false,
-      );
-      expect(isNominalDatum(wrongStructure)).toBe(
-        false,
-      );
+      return all([
+        check(
+          isNominalDatum(plainValue),
+          toBe(false),
+        ),
+        check(
+          isNominalDatum(plainObject),
+          toBe(false),
+        ),
+        check(
+          isNominalDatum(wrongStructure),
+          toBe(false),
+        ),
+      ]);
     });
 
     it("should reject nominal datum with non-datum content", () => {
@@ -114,8 +159,9 @@ describe("NominalDatum", () => {
         content: undefined, // undefined is not a valid DatumCore
       };
 
-      expect(isNominalDatum(invalidNominal)).toBe(
-        false,
+      return check(
+        isNominalDatum(invalidNominal),
+        toBe(false),
       );
     });
   });
@@ -129,8 +175,10 @@ describe("NominalDatum", () => {
       const unwrapped =
         unwrapNominalDatum(nominal);
 
-      expect(unwrapped).toBe("user-456");
-      expect(typeof unwrapped).toBe("string");
+      return all([
+        check(unwrapped, toBe("user-456")),
+        check(typeof unwrapped, toBe("string")),
+      ]);
     });
 
     it("should unwrap number value", () => {
@@ -141,8 +189,10 @@ describe("NominalDatum", () => {
       const unwrapped =
         unwrapNominalDatum(nominal);
 
-      expect(unwrapped).toBe(99.99);
-      expect(typeof unwrapped).toBe("number");
+      return all([
+        check(unwrapped, toBe(99.99)),
+        check(typeof unwrapped, toBe("number")),
+      ]);
     });
 
     it("should unwrap BigInt value", () => {
@@ -153,10 +203,13 @@ describe("NominalDatum", () => {
       const unwrapped =
         unwrapNominalDatum(nominal);
 
-      expect(unwrapped).toBe(
-        1234567890123456789n,
-      );
-      expect(typeof unwrapped).toBe("bigint");
+      return all([
+        check(
+          unwrapped,
+          toBe(1234567890123456789n),
+        ),
+        check(typeof unwrapped, toBe("bigint")),
+      ]);
     });
 
     it("should unwrap object value", () => {
@@ -172,7 +225,7 @@ describe("NominalDatum", () => {
       const unwrapped =
         unwrapNominalDatum(nominal);
 
-      expect(unwrapped).toEqual(userData);
+      return check(unwrapped, toEqual(userData));
     });
   });
 
@@ -187,9 +240,14 @@ describe("NominalDatum", () => {
       );
       const mapped = mapper(nominal);
 
-      expect(mapped.__tag).toBe("Name");
-      expect(mapped.content).toBe("ALICE");
-      expect(isNominalDatum(mapped)).toBe(true);
+      return all([
+        check(mapped.__tag, toBe("Name")),
+        check(mapped.content, toBe("ALICE")),
+        check(
+          isNominalDatum(mapped),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should map over number content", () => {
@@ -202,9 +260,14 @@ describe("NominalDatum", () => {
       );
       const mapped = mapper(nominal);
 
-      expect(mapped.__tag).toBe("Count");
-      expect(mapped.content).toBe(10);
-      expect(isNominalDatum(mapped)).toBe(true);
+      return all([
+        check(mapped.__tag, toBe("Count")),
+        check(mapped.content, toBe(10)),
+        check(
+          isNominalDatum(mapped),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should map from one type to another", () => {
@@ -217,11 +280,14 @@ describe("NominalDatum", () => {
       );
       const mapped = mapper(nominal);
 
-      expect(mapped.__tag).toBe("IntValue");
-      expect(mapped.content).toBe("42");
-      expect(typeof mapped.content).toBe(
-        "string",
-      );
+      return all([
+        check(mapped.__tag, toBe("IntValue")),
+        check(mapped.content, toBe("42")),
+        check(
+          typeof mapped.content,
+          toBe("string"),
+        ),
+      ]);
     });
 
     it("should preserve brand when mapping", () => {
@@ -234,11 +300,17 @@ describe("NominalDatum", () => {
       );
       const mapped = mapper(nominal);
 
-      expect(mapped.__tag).toBe("CustomBrand");
-      expect(mapped.content).toEqual([
-        1, 2, 3, 4,
+      return all([
+        check(mapped.__tag, toBe("CustomBrand")),
+        check(
+          mapped.content,
+          toEqual([1, 2, 3, 4]),
+        ),
+        check(
+          isNominalDatum(mapped),
+          toBe(true),
+        ),
       ]);
-      expect(isNominalDatum(mapped)).toBe(true);
     });
   });
 
@@ -252,12 +324,17 @@ describe("NominalDatum", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
-      if (isNominalDatum(restored)) {
-        expect(unwrapNominalDatum(restored)).toBe(
-          "test@example.com",
-        );
-      }
+      return all([
+        check(restored, toEqual(original)),
+        ...(isNominalDatum(restored)
+          ? [
+              check(
+                unwrapNominalDatum(restored),
+                toBe("test@example.com"),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize nominal datum with number", () => {
@@ -269,8 +346,13 @@ describe("NominalDatum", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
-      expect(isNominalDatum(restored)).toBe(true);
+      return all([
+        check(restored, toEqual(original)),
+        check(
+          isNominalDatum(restored),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should serialize and deserialize nominal datum with BigInt", () => {
@@ -282,16 +364,29 @@ describe("NominalDatum", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
-      expect(isNominalDatum(restored)).toBe(true);
-      if (isNominalDatum(restored)) {
-        expect(
-          typeof unwrapNominalDatum(restored),
-        ).toBe("bigint");
-        expect(unwrapNominalDatum(restored)).toBe(
-          999888777666555444333222111n,
-        );
-      }
+      return all([
+        check(restored, toEqual(original)),
+        check(
+          isNominalDatum(restored),
+          toBe(true),
+        ),
+        ...(isNominalDatum(restored)
+          ? [
+              check(
+                typeof unwrapNominalDatum(
+                  restored,
+                ),
+                toBe("bigint"),
+              ),
+              check(
+                unwrapNominalDatum(restored),
+                toBe(
+                  999888777666555444333222111n,
+                ),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize nominal datum with object", () => {
@@ -308,8 +403,13 @@ describe("NominalDatum", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
-      expect(isNominalDatum(restored)).toBe(true);
+      return all([
+        check(restored, toEqual(original)),
+        check(
+          isNominalDatum(restored),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should serialize and deserialize nominal datum with array", () => {
@@ -326,8 +426,13 @@ describe("NominalDatum", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(restored).toEqual(original);
-      expect(isNominalDatum(restored)).toBe(true);
+      return all([
+        check(restored, toEqual(original)),
+        check(
+          isNominalDatum(restored),
+          toBe(true),
+        ),
+      ]);
     });
   });
 
@@ -341,8 +446,13 @@ describe("NominalDatum", () => {
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
 
-      expect(restored).toEqual(original);
-      expect(isNominalDatum(restored)).toBe(true);
+      return all([
+        check(restored, toEqual(original)),
+        check(
+          isNominalDatum(restored),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should use toJsonReadyNominalDatum directly", () => {
@@ -353,11 +463,17 @@ describe("NominalDatum", () => {
 
       const jsonReady =
         toJsonReadyNominalDatum(original);
-      expect(jsonReady.__tag).toBe("OrderId");
-      expect(jsonReady.content).toBe("order-456");
-      expect(
-        isJsonReadyNominalDatum(jsonReady),
-      ).toBe(true);
+      return all([
+        check(jsonReady.__tag, toBe("OrderId")),
+        check(
+          jsonReady.content,
+          toBe("order-456"),
+        ),
+        check(
+          isJsonReadyNominalDatum(jsonReady),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should convert BigInt nominal datum to JsonReady", () => {
@@ -368,10 +484,16 @@ describe("NominalDatum", () => {
 
       const jsonReady =
         toJsonReadyNominalDatum(original);
-      expect(jsonReady.__tag).toBe("BlockNumber");
-      expect(
-        isJsonReadyNominalDatum(jsonReady),
-      ).toBe(true);
+      return all([
+        check(
+          jsonReady.__tag,
+          toBe("BlockNumber"),
+        ),
+        check(
+          isJsonReadyNominalDatum(jsonReady),
+          toBe(true),
+        ),
+      ]);
     });
   });
 
@@ -387,12 +509,21 @@ describe("NominalDatum", () => {
       );
 
       // Both have string content but different brands
-      expect(userId.content).toBe("user-123");
-      expect(productId.content).toBe("prod-456");
-      expect(isNominalDatum(userId)).toBe(true);
-      expect(isNominalDatum(productId)).toBe(
-        true,
-      );
+      return all([
+        check(userId.content, toBe("user-123")),
+        check(
+          productId.content,
+          toBe("prod-456"),
+        ),
+        check(
+          isNominalDatum(userId),
+          toBe(true),
+        ),
+        check(
+          isNominalDatum(productId),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should allow same content with different brands", () => {
@@ -405,10 +536,12 @@ describe("NominalDatum", () => {
         "same-value",
       );
 
-      expect(id1.content).toBe(id2.content);
-      expect(id1.__tag).not.toBe(id2.__tag);
-      expect(isNominalDatum(id1)).toBe(true);
-      expect(isNominalDatum(id2)).toBe(true);
+      return all([
+        check(id1.content, toBe(id2.content)),
+        check(id1.__tag, not(toBe(id2.__tag))),
+        check(isNominalDatum(id1), toBe(true)),
+        check(isNominalDatum(id2), toBe(true)),
+      ]);
     });
   });
 
@@ -419,9 +552,17 @@ describe("NominalDatum", () => {
         "",
       );
 
-      expect(nominal.__tag).toBe("EmptyContent");
-      expect(nominal.content).toBe("");
-      expect(isNominalDatum(nominal)).toBe(true);
+      return all([
+        check(
+          nominal.__tag,
+          toBe("EmptyContent"),
+        ),
+        check(nominal.content, toBe("")),
+        check(
+          isNominalDatum(nominal),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should handle zero values", () => {
@@ -438,25 +579,32 @@ describe("NominalDatum", () => {
         false,
       );
 
-      expect(isNominalDatum(zeroNumber)).toBe(
-        true,
-      );
-      expect(isNominalDatum(zeroBigInt)).toBe(
-        true,
-      );
-      expect(isNominalDatum(falseBool)).toBe(
-        true,
-      );
-
-      expect(unwrapNominalDatum(zeroNumber)).toBe(
-        0,
-      );
-      expect(unwrapNominalDatum(zeroBigInt)).toBe(
-        0n,
-      );
-      expect(unwrapNominalDatum(falseBool)).toBe(
-        false,
-      );
+      return all([
+        check(
+          isNominalDatum(zeroNumber),
+          toBe(true),
+        ),
+        check(
+          isNominalDatum(zeroBigInt),
+          toBe(true),
+        ),
+        check(
+          isNominalDatum(falseBool),
+          toBe(true),
+        ),
+        check(
+          unwrapNominalDatum(zeroNumber),
+          toBe(0),
+        ),
+        check(
+          unwrapNominalDatum(zeroBigInt),
+          toBe(0n),
+        ),
+        check(
+          unwrapNominalDatum(falseBool),
+          toBe(false),
+        ),
+      ]);
     });
 
     it("should handle empty arrays and objects", () => {
@@ -469,18 +617,24 @@ describe("NominalDatum", () => {
         {},
       );
 
-      expect(isNominalDatum(emptyArray)).toBe(
-        true,
-      );
-      expect(isNominalDatum(emptyObject)).toBe(
-        true,
-      );
-      expect(
-        unwrapNominalDatum(emptyArray),
-      ).toEqual([]);
-      expect(
-        unwrapNominalDatum(emptyObject),
-      ).toEqual({});
+      return all([
+        check(
+          isNominalDatum(emptyArray),
+          toBe(true),
+        ),
+        check(
+          isNominalDatum(emptyObject),
+          toBe(true),
+        ),
+        check(
+          unwrapNominalDatum(emptyArray),
+          toEqual([]),
+        ),
+        check(
+          unwrapNominalDatum(emptyObject),
+          toEqual({}),
+        ),
+      ]);
     });
   });
 });
