@@ -11,3 +11,4 @@
 | 2026-06-23T17:15:50+09:00 | Lead | phase-transition | plan.md | Planning consensus reached; build guardrails recorded; entering Coding Phase |
 | 2026-06-23T17:18:47+09:00 | Planner | artifact-created | reviews/planner-e2e-plan.md | E2E + parity scenario plan staged for coding phase |
 | 2026-06-23T17:20:08+09:00 | Architect | note-created | reviews/architect-review-checklist.md | Review checklist + integration-surface discovery |
+| 2026-06-23T17:22:22+09:00 | Planner | test-prepared | vitest baseline installed; SC6 baseline captured (124 locked pkgs, 77MB node_modules, 74 spec files) |  |

@@ -180,6 +180,42 @@ Dependabot surface measurably shrinks (capture a before/after dep count).
 - I will NOT run anything against Constructor's code until the team lead
   confirms the concurrent-launch gate has cleared.
 
+## SC6 Baseline — captured pre-removal (2026-06-23, packages/plgg)
+
+Captured after `npm install` in `packages/plgg` (vitest baseline now
+runnable here: `vitest/4.1.5`). These are the BEFORE numbers; SC6
+(dependency reduction) is demonstrated by re-capturing AFTER vitest is
+dropped and showing the delta.
+
+- **Locked packages** (`package-lock.json` `node_modules/*` entries):
+  **124**.
+- **node_modules total size**: **77 MB**.
+- **package-lock.json**: 1919 lines / 64 KB.
+- **Test-tooling subtree (the removable mass)**: `node_modules/vitest`
+  2.2 MB + `node_modules/@vitest` 1.3 MB + `node_modules/vite` 2.3 MB
+  (esbuild lives nested under these). These plus their transitive deps
+  are what dropping `vitest` + `@vitest/coverage-v8` (+ possibly
+  `vite`/`vite-plugin-dts` if unused for build) reclaims.
+- **devDeps today**: `@types/node`, `@vitest/coverage-v8`,
+  `typescript`, `vite`, `vite-plugin-dts`, `vitest`. (`typescript`
+  stays for `tsc --noEmit`; `@types/node` stays. The test-attributable
+  removals are `vitest`, `@vitest/coverage-v8`, and `vite`/
+  `vite-plugin-dts` if the build no longer needs them.)
+- **Parity file-SET baseline**: `vitest list` reports **74** discovered
+  spec files in `packages/plgg/src` — matches the filesystem count.
+  This 74 is the denominator for parity scenario 4a.
+
+## Dist-build note for the plgg-kit smoke (scenario 5)
+
+Confirmed: the **headline plgg parity needs NO dist build** — plgg's
+own specs import plgg's own `src` (resolved by the plgg-test resolver
+hook / vitest alias), so both runners run against source directly. The
+dist build is only needed for the **cross-package smoke (scenario 5)**,
+where plgg-kit specs do bare `from "plgg"` resolving to plgg's built
+`dist` via `file:../plgg`. So scenario 5 — and only scenario 5 — will
+require `scripts/build.sh` (dependency-ordered dist build) first; I
+will flag/run it at that point, not before.
+
 ## Review Notes
 
 (none yet)
