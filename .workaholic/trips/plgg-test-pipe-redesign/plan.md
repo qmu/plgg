@@ -1,9 +1,9 @@
 ---
 instruction: "Redesign plgg-test FROM THE DESIGN PHASE so its public authoring/assertion API embodies plgg's pipe-style data-last functional composition (pipe/cast/proc/flow, Option/Result, exhaustive match) — NOT the fluent expect(x).toBe(y) method-chain of the first attempt. Assertions should be composable data-last functions returning Result, piped, not a stateful chainable object that throws. Idiomatic composition is prioritized OVER drop-in vitest migration. Keep a real minimal runner with --watch and four-metric coverage; the existing plgg-test plumbing (runner/discovery/reporter/resolver/coverage/watch) is prior art to reuse/refactor. House style mandatory; breaking changes fine."
-phase: planning
-step: not-started
+phase: coding
+step: concurrent-launch
 iteration: 0
-updated_at: 2026-06-23T21:41:42+09:00
+updated_at: 2026-06-23T22:00:00+09:00
 ---
 
 # Trip Plan
@@ -13,6 +13,75 @@ updated_at: 2026-06-23T21:41:42+09:00
 Redesign plgg-test FROM THE DESIGN PHASE so its public authoring/assertion API embodies plgg's pipe-style data-last functional composition (pipe/cast/proc/flow, Option/Result, exhaustive match) — NOT the fluent expect(x).toBe(y) method-chain of the first attempt. Assertions should be composable data-last functions returning Result, piped, not a stateful chainable object that throws. Idiomatic composition is prioritized OVER drop-in vitest migration. Keep a real minimal runner with --watch and four-metric coverage; the existing plgg-test plumbing (runner/discovery/reporter/resolver/coverage/watch) is prior art to reuse/refactor. House style mandatory; breaking changes fine.
 
 ## Plan Amendments
+
+### 2026-06-23T22:00 — [Lead] Planning consensus; plan fixed for Coding Phase
+
+All three round-1 reviews are approvals (Planner `2f5bfcf`, Architect `d620b3d`,
+Constructor `f32fbc5`) — no "Request revision" — so the Consensus Gate is met.
+The pipe-style design is sound: assertions ARE plgg pipelines
+(`pipe(actual, toBe(expected))`), built on plgg's own `Result`/`refine`/`cast`/
+`tryCatch`/`matchResult`. The reviews converged on a precise set of
+build-binding guardrails (accepted, not optional):
+
+1. **`Assertion` is a BRANDED `Result` (the keystone).** A plain `Result` is
+   NOT sufficient: the runner must distinguish a verdict from a domain `Result`
+   a body legitimately returns, or the anti-false-green guard is unbuildable AND
+   a new false-green class appears (a body that returns `asInt("x")` would be
+   read as a verdict). Brand it with plgg's own `Box` tag (still plgg
+   vocabulary, still a composable `Result`), and detect it via `isBox`/a guard —
+   **no `as` cast**. The runner's guard: the body's resolved value must be a
+   branded `Assertion`; a bare domain `Result`, `void`, or any non-Assertion
+   fails the test as "body did not return an assertion."
+2. **Narrowing = value-carrying matchers ONLY; DROP the throwing `narrow`.**
+   `shouldBeOk`/`shouldBeErr`/`shouldBeSome`/`shouldBeNone` (and `okContent`)
+   return the unwrapped inner value inside `Pass`, so narrowing is **data-flow**
+   (`cast(x, okContent(), shouldBe(...))`), not control-flow. No `asserts cond`,
+   no sanctioned throw — this deletes the whole ambient-`.d.ts` fragility class
+   from the first trip. A throwing primitive is a named follow-up ONLY if a real
+   corpus site proves it's needed.
+3. **`all` aggregates, never short-circuits** (the inverse of `cast`): it runs
+   every assertion and folds EVERY `Err`, reusing plgg's existing
+   `InvalidError`/`Box` sibling-accumulation (no bespoke aggregate DSL). It is a
+   gated meta-harness primitive: "one Err among many → reports failed AND
+   surfaces every Err" (sync and the `Promise<Result>`-awaiting async form).
+4. **`Fail` fields pre-formatted to strings at the matcher boundary** (reuse
+   `format.ts`): `Fail = Readonly<{matcher; expected; actual; message: string}>`.
+   So `Assertion` is non-generic in the actual type at composition boundaries and
+   `all(ReadonlyArray<Assertion>)` type-checks with no `as`/`any`. `Pass<T>`
+   keeps the precise value type on the single-matcher (`pipe`/`cast`) path.
+5. **Async fold handles `AssertionError | Defect`.** A `proc` body yields
+   `Result<unknown, AssertionError | Defect>`; the runner fold maps BOTH error
+   arms to failed (a caught throw surfaces as `Defect`). Correct the design's
+   "error channel fixed to Error" note.
+6. **Anti-false-green is proven against a CLOSED drop-shape set** (meta-harness,
+   plain-throw, must each prove-fails): (a) body returns void/undefined while an
+   assertion was computed; (b) body returns a different (passing) Result than the
+   one computed; (c) async `Promise<Assertion>` not awaited; (d) `proc`/`all`
+   short-circuits or swallows an inner `Err`; (e) body returns a non-Result
+   truthy value. Make this the measurable form of the direction's SC2.
+7. **Single returned expression is THE idiom; combinators are the only
+   multi-assert path.** `check(actual, ...matchers) = all(ms.map(m => m(actual)))`
+   is the documented default terse entry (one call for the common single check,
+   on par with the old fluent form, strictly more composable); bare
+   `pipe(actual, matcher)` when a matcher's `Pass` value feeds a further step.
+   Avoid statement-sequence bodies that drop assertions; if any `pass()` sentinel
+   exists, make it conspicuous (require a reason).
+8. **Verdict-parity is necessary but not sufficient — add a mutation
+   spot-check.** Parity vs the OLD plgg-test on plgg's corpus (74/465/0) proves
+   same conclusions, but a rewrite that quietly WEAKENS an assertion still shows
+   green. On a representative slice, flip expected values and confirm those tests
+   now FAIL — proving the rewritten assertions' FORCE, not just their color.
+9. **Ergonomic judgment on a fixed, idiom-spanning slice** (a high-`toBe`-density
+   spec + an async/`proc` spec + a Result-narrowing spec), rewritten early before
+   committing to the full rewrite, to validate "reads like plgg" honestly.
+
+Reuse, unchanged: Discovery, Reporter, `Resolve/hook.ts` (module.register +
+ts.transpileModule), `Coverage/*` (four-metric per-package), bin-launcher
+watch/coverage re-exec, `Cli/args.ts`, `equals.ts`, `format.ts`, Registry tree
+mechanics. The ONE substantive plumbing change is the Runner fold-seam
+(catch-throw → collect-returned-branded-Assertion, with the throw-capture kept
+as the defect safety net). Dependency boundary unchanged: runtime dep = `plgg`
+only; `typescript` devDep for the load hook.
 
 ## Progress
 
