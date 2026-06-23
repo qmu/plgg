@@ -10,3 +10,4 @@
 | 2026-06-23T17:14:08+09:00 | Constructor | review-submitted | reviews/round-1-constructor.md | Constructor one-turn review of direction and model |
 | 2026-06-23T17:15:50+09:00 | Lead | phase-transition | plan.md | Planning consensus reached; build guardrails recorded; entering Coding Phase |
 | 2026-06-23T17:18:47+09:00 | Planner | artifact-created | reviews/planner-e2e-plan.md | E2E + parity scenario plan staged for coding phase |
+| 2026-06-23T17:20:08+09:00 | Architect | note-created | reviews/architect-review-checklist.md | Review checklist + integration-surface discovery |
