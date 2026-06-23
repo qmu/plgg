@@ -20,3 +20,4 @@
 | 2026-06-23T18:46:54+09:00 | Lead | iteration-start | plan.md | Coding review passed (parity perfect); Iteration 1 fix list recorded (coverage four-metric, watch cache, O2/O3) |
 | 2026-06-23T18:51:00+09:00 | Planner | test-executed | reviews/coding-e2e-planner-plgg-kit.md | plgg-kit smoke: cross-package resolution + verdict parity PASS (8/0/3); vi.mock->postJson injection NOT done (multi-file refactor, Constructor) |
 | 2026-06-23T19:08:38+09:00 | Constructor | milestone | Iteration-1: four-metric per-package coverage, fresh-process watch, unhandled-rejection window, cycle caveat |  |
+| 2026-06-23T19:12:18+09:00 | Architect | review-submitted | reviews/coding-review-architect-iter1.md | Iteration-1 re-review: O1 closed (four metrics, per-package threshold, never-called-fn fixed); O2 unhandled-rejection window implemented; O3 cycle caveat added; watch fresh-process sound; no new escape hatches. Approve. |
