@@ -43,7 +43,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: packages/plgg
-        
+
+      # plgg's specs now import the plgg-test runner, so plgg's type-check and
+      # tests need plgg-test's built dist (its `types` entry). plgg-test in turn
+      # depends on plgg's dist, so build plgg first, then install + build
+      # plgg-test, before running plgg's tsc/test/coverage below.
+      - name: Build plgg (dependency of plgg-test)
+        run: npm run build
+        working-directory: packages/plgg
+
+      - name: Install plgg-test dependencies
+        run: npm ci
+        working-directory: packages/plgg-test
+
+      - name: Build plgg-test (provides the test-runner types/runtime for plgg)
+        run: npm run build
+        working-directory: packages/plgg-test
+
       - name: Run TypeScript compilation check
         run: npx tsc --noEmit
         working-directory: packages/plgg
