@@ -50,6 +50,16 @@ Other launch facts: system-safety `system_changes_authorized=false` (project-loc
 - [x] [Architect] model-v1 → model-v2 (approved)
 - [x] [Constructor] design-v1 → design-v2 (approved)
 - [x] One-turn review round (round-1 ×3) + responses
-- [x] [Constructor] Decomposition: design-v2 → 11 tickets (4b9d141)
-- [ ] [Coding] Concurrent launch (dev-env / codebase discovery / queue reconfirm)
-- [ ] [Coding] Per-ticket drive loop: U1 → 9×U2 → U3
+- [x] [Constructor] Decomposition: design-v2 → 11 tickets (4b9d141), amended to 13 (6bb3247)
+- [x] [Coding] Concurrent launch (dev-env / codebase discovery / queue reconfirm) — 3 blockers found
+- [x] [Coding] U1 foundation archived (81681f0): Finding A fix (self-suite 0→84), R1 matcher, Gate B parity (deepEqual≡toEqual, no divergence)
+- [x] [Coding] U1-dom archived (e5400ba): leak-proof DOM-environment seam (self-suite 84→86), 1 revision cycle (window/self/top leak caught by Architect, fixed)
+- [ ] [Coding] U0-fix-fs-case-collision (production source: style.ts/Style, ssg.ts/Ssg)
+- [ ] [Coding] U2 per-package ×9 (leaf-first: http,kit,router,sql,fetch,foundry,view,server,example)
+- [ ] [Coding] U3 cleanup + final grep gate (+ carry-overs below)
+
+### Coding-phase carry-overs (to fold into later reviews / U3 final acceptance)
+
+From U1: (a) direct rewriteRelativeTs resolver assertion for a ?t=-carrying parent; (b) mixed number/bigint >= case; (c) undefined-vs-absent-inside-Box deepEqual assertion.
+From U1-dom: (d) document the Node-version-dependent skip-if-present interop assumption + possible force-install allow-list; (e) count/added-set-empty leak assertion (future-proof beyond the 4-name list); (f) mark fixtures/ as runFile-only or anchor Discovery/find.ts glob to src.
+From U1 (Planner): (g) at U3 final acceptance, surface every coverage exclude + lowered threshold as explicit ship-or-defer line items (criterion-2 audit).

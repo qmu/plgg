@@ -28,7 +28,7 @@ export default defineConfig({
         "src/node.ts",
         "src/bun.ts",
         "src/deno.ts",
-        "src/ssg.ts",
+        "src/ssgEntry.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -55,7 +55,11 @@ export default defineConfig({
         node: "src/node.ts",
         bun: "src/bun.ts",
         deno: "src/deno.ts",
-        ssg: "src/ssg.ts",
+        // Output name is `ssgEntry` (not `ssg`) so the emitted
+        // `dist/ssgEntry.*` does NOT collide with the `dist/Ssg/` type
+        // tree on a case-insensitive filesystem — the published `./ssg`
+        // subpath (package.json `exports`) still points here.
+        ssgEntry: "src/ssgEntry.ts",
       },
       fileName: (format, entryName) =>
         `${entryName}.${format}.js`,

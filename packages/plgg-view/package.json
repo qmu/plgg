@@ -27,12 +27,12 @@
     },
     "./style": {
       "import": {
-        "types": "./dist/style.d.ts",
-        "default": "./dist/style.es.js"
+        "types": "./dist/styleEntry.d.ts",
+        "default": "./dist/styleEntry.es.js"
       },
       "require": {
-        "types": "./dist/style.d.ts",
-        "default": "./dist/style.cjs.js"
+        "types": "./dist/styleEntry.d.ts",
+        "default": "./dist/styleEntry.cjs.js"
       }
     }
   },

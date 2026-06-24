@@ -47,12 +47,12 @@
     },
     "./ssg": {
       "import": {
-        "types": "./dist/ssg.d.ts",
-        "default": "./dist/ssg.es.js"
+        "types": "./dist/ssgEntry.d.ts",
+        "default": "./dist/ssgEntry.es.js"
       },
       "require": {
-        "types": "./dist/ssg.d.ts",
-        "default": "./dist/ssg.cjs.js"
+        "types": "./dist/ssgEntry.d.ts",
+        "default": "./dist/ssgEntry.cjs.js"
       }
     }
   },

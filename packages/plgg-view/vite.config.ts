@@ -26,7 +26,7 @@ export default defineConfig({
         "**/*.test.ts",
         "**/index.ts",
         "src/client.ts",
-        "src/style.ts",
+        "src/styleEntry.ts",
         "vite.config.ts",
       ],
       thresholds: {
@@ -51,7 +51,11 @@ export default defineConfig({
       entry: {
         index: "src/index.ts",
         client: "src/client.ts",
-        style: "src/style.ts",
+        // Output name is `styleEntry` (not `style`) so the emitted
+        // `dist/styleEntry.*` does NOT collide with the `dist/Style/`
+        // type tree on a case-insensitive filesystem — the published
+        // `./style` subpath (package.json `exports`) still points here.
+        styleEntry: "src/styleEntry.ts",
       },
       fileName: (format, entryName) =>
         `${entryName}.${format}.js`,
