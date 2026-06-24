@@ -1,5 +1,3 @@
-/// <reference types="vitest" />
-
 import { defineConfig } from "vite";
 
 // SSR + CSR demo. `vite` (npm run serve) serves index.html for CSR-only dev.
@@ -13,21 +11,6 @@ export default defineConfig({
       entry: "src/main.ts",
       formats: ["es"],
       fileName: () => "main.js",
-    },
-  },
-  test: {
-    coverage: {
-      all: true,
-      provider: "v8",
-      exclude: [
-        "node_modules/**",
-        "dist/**",
-        "coverage/**",
-        "**/*.spec.ts",
-        "src/main.ts",
-        "src/server.ts",
-        "vite.config.ts",
-      ],
     },
   },
 });

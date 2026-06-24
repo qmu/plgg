@@ -1,5 +1,15 @@
 // @vitest-environment happy-dom
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  toContain,
+  toHaveLength,
+  toBeNull,
+  not,
+} from "plgg-test";
 import { renderToString } from "plgg-view";
 import { application } from "plgg-view/client";
 import { pageResponse } from "plgg-server";
@@ -9,7 +19,7 @@ import {
   view,
   app,
   Model,
-} from "./app";
+} from "./app.js";
 
 const seed: Model = {
   todos: [
@@ -27,61 +37,64 @@ const seed: Model = {
 
 // --- pure update ---
 
-test("DraftChanged sets the draft", () => {
-  expect(
+test("DraftChanged sets the draft", () =>
+  check(
     update(
       { kind: "DraftChanged", value: "hi" },
       init,
     ).draft,
-  ).toBe("hi");
-});
+    toBe("hi"),
+  ));
 
 test("Added appends a todo, clears the draft, and bumps nextId", () => {
   const next = update(
     { kind: "Added" },
     { ...init, draft: "Buy milk" },
   );
-  expect(next.todos).toEqual([
-    {
-      id: 1,
-      title: "Buy milk",
-      completed: false,
-    },
+  return all([
+    check(next.todos, toEqual([
+      {
+        id: 1,
+        title: "Buy milk",
+        completed: false,
+      },
+    ])),
+    check(next.draft, toBe("")),
+    check(next.nextId, toBe(2)),
   ]);
-  expect(next.draft).toBe("");
-  expect(next.nextId).toBe(2);
 });
 
-test("Added is a no-op for a blank draft", () => {
-  expect(
+test("Added is a no-op for a blank draft", () =>
+  check(
     update(
       { kind: "Added" },
       { ...init, draft: "   " },
     ),
-  ).toEqual({ ...init, draft: "   " });
-});
+    toEqual({ ...init, draft: "   " }),
+  ));
 
-test("Toggled flips the matching todo's completed flag", () => {
-  expect(
+test("Toggled flips the matching todo's completed flag", () =>
+  check(
     update({ kind: "Toggled", id: 1 }, seed)
       .todos[0]?.completed,
-  ).toBe(true);
-});
+    toBe(true),
+  ));
 
-test("Deleted removes the matching todo", () => {
-  expect(
-    update({ kind: "Deleted", id: 1 }, seed)
-      .todos,
-  ).toEqual([]);
-});
+test("Deleted removes the matching todo", () =>
+  check(
+    update({ kind: "Deleted", id: 1 }, seed).todos,
+    toEqual([]),
+  ));
 
 // --- view (pure → HTML string) ---
 
 test("view renders the title, the add form, and each todo", () => {
   const html = renderToString(view(seed));
-  expect(html).toContain("Things to do");
-  expect(html).toContain('type="submit"');
-  expect(html).toContain("Wire it");
+  return all([
+    check(html, toContain("Things to do")),
+    check(html, toContain('type="submit"')),
+    check(html, toContain("Wire it")),
+  ]);
 });
 
 // --- SSR: the same view through plgg-server (Html → full document) ---
@@ -92,25 +105,25 @@ test("SSR pageResponse wraps view(init) in a document and injects the client ent
     root: view(init),
     clientEntry: "/main.js",
   });
-  expect(r.headers["content-type"]).toBe(
-    "text/html; charset=utf-8",
-  );
-  // the body is the same markup the client's `view(init)` produces, wrapped in
-  // a document with the #root mount point and the CSR boot script
-  expect(
-    typeof r.body === "string" ? r.body : "",
-  ).toContain("<!doctype html>");
-  expect(
-    typeof r.body === "string" ? r.body : "",
-  ).toContain('<div id="root">');
-  expect(
-    typeof r.body === "string" ? r.body : "",
-  ).toContain("plgg To-Do");
-  expect(
-    typeof r.body === "string" ? r.body : "",
-  ).toContain(
-    '<script type="module" src="/main.js">',
-  );
+  const body =
+    typeof r.body === "string" ? r.body : "";
+  return all([
+    check(
+      r.headers["content-type"],
+      toBe("text/html; charset=utf-8"),
+    ),
+    // the body is the same markup the client's `view(init)` produces, wrapped in
+    // a document with the #root mount point and the CSR boot script
+    check(body, toContain("<!doctype html>")),
+    check(body, toContain('<div id="root">')),
+    check(body, toContain("plgg To-Do")),
+    check(
+      body,
+      toContain(
+        '<script type="module" src="/main.js">',
+      ),
+    ),
+  ]);
 });
 
 // --- the running app (application over the real DOM) ---
@@ -133,29 +146,40 @@ test("adding a todo through the form updates the list", () => {
       new Event("submit", { cancelable: true }),
     );
 
-  expect(
-    root.querySelectorAll("li.todo"),
-  ).toHaveLength(1);
-  expect(root.textContent).toContain("Ship it");
+  const a1 = check(
+    Array.from(root.querySelectorAll("li.todo")),
+    toHaveLength(1),
+  );
+  const a2 = check(
+    root.textContent ?? "",
+    toContain("Ship it"),
+  );
   stop();
+  return all([a1, a2]);
 });
 
 // --- pure update: the URL-reflected slice ---
 
-test("FilterChanged and SearchChanged fold into the model", () => {
-  expect(
-    update(
-      { kind: "FilterChanged", filter: "active" },
-      init,
-    ).filter,
-  ).toBe("active");
-  expect(
-    update(
-      { kind: "SearchChanged", value: "milk" },
-      init,
-    ).q,
-  ).toBe("milk");
-});
+test("FilterChanged and SearchChanged fold into the model", () =>
+  all([
+    check(
+      update(
+        {
+          kind: "FilterChanged",
+          filter: "active",
+        },
+        init,
+      ).filter,
+      toBe("active"),
+    ),
+    check(
+      update(
+        { kind: "SearchChanged", value: "milk" },
+        init,
+      ).q,
+      toBe("milk"),
+    ),
+  ]));
 
 test("UrlChanged seeds filter and q together (a deep link / back-forward)", () => {
   const next = update(
@@ -166,8 +190,10 @@ test("UrlChanged seeds filter and q together (a deep link / back-forward)", () =
     },
     init,
   );
-  expect(next.filter).toBe("completed");
-  expect(next.q).toBe("buy");
+  return all([
+    check(next.filter, toBe("completed")),
+    check(next.q, toBe("buy")),
+  ]);
 });
 
 test("the view shows only todos matching the filter and search", () => {
@@ -199,9 +225,11 @@ test("the view shows only todos matching the filter and search", () => {
     confirmClear: false,
   };
   const html = renderToString(view(model));
-  expect(html).toContain("Buy milk"); // active + matches "buy"
-  expect(html).not.toContain("Buy eggs"); // completed, filtered out
-  expect(html).not.toContain("Call mom"); // active but no "buy"
+  return all([
+    check(html, toContain("Buy milk")), // active + matches "buy"
+    check(html, not(toContain("Buy eggs"))), // completed, filtered out
+    check(html, not(toContain("Call mom"))), // active but no "buy"
+  ]);
 });
 
 // --- the running app: model state is reflected into the URL ---
@@ -222,10 +250,12 @@ test("clicking a filter pushes the reflected query to the address bar", () => {
     }),
   );
 
-  expect(window.location.search).toBe(
-    "?filter=active",
+  const verdict = check(
+    window.location.search,
+    toBe("?filter=active"),
   );
   stop();
+  return verdict;
 });
 
 test("the app seeds its filter from the entry query (deep link)", () => {
@@ -240,8 +270,12 @@ test("the app seeds its filter from the entry query (deep link)", () => {
   const selected = root.querySelector(
     ".todo-filters button.filter.selected",
   );
-  expect(selected?.textContent).toBe("completed");
+  const verdict = check(
+    selected?.textContent ?? "",
+    toBe("completed"),
+  );
   stop();
+  return verdict;
 });
 
 test("typing in search reflects q to the URL with replace", () => {
@@ -255,8 +289,12 @@ test("typing in search reflects q to the URL with replace", () => {
     search.value = "milk";
     search.dispatchEvent(new Event("input"));
   }
-  expect(window.location.search).toBe("?q=milk");
+  const verdict = check(
+    window.location.search,
+    toBe("?q=milk"),
+  );
   stop();
+  return verdict;
 });
 
 test("popstate navigation updates the filter from the URL", () => {
@@ -276,8 +314,12 @@ test("popstate navigation updates the filter from the URL", () => {
   const selected = root.querySelector(
     ".todo-filters button.filter.selected",
   );
-  expect(selected?.textContent).toBe("completed");
+  const verdict = check(
+    selected?.textContent ?? "",
+    toBe("completed"),
+  );
   stop();
+  return verdict;
 });
 
 test("toggling a todo's checkbox flips it in the running app", () => {
@@ -300,10 +342,12 @@ test("toggling a todo's checkbox flips it in the running app", () => {
     "li.todo input[type=checkbox]",
   );
   box?.dispatchEvent(new Event("change"));
-  expect(
+  const verdict = check(
     root.querySelector("li.todo.done"),
-  ).not.toBeNull();
+    not(toBeNull()),
+  );
   stop();
+  return verdict;
 });
 
 test("a completed todo renders with a checked box", () => {
@@ -321,8 +365,10 @@ test("a completed todo renders with a checked box", () => {
     confirmClear: false,
   };
   const html = renderToString(view(model));
-  expect(html).toContain("checked");
-  expect(html).toContain("Done");
+  return all([
+    check(html, toContain("checked")),
+    check(html, toContain("Done")),
+  ]);
 });
 
 // --- micro-interactions: toaster / accordion / modal (pure update + view) ---
@@ -332,12 +378,15 @@ test("Added pushes a success toast and bumps toastSeq", () => {
     { kind: "Added" },
     { ...init, draft: "Buy milk" },
   );
-  expect(next.toasts).toHaveLength(1);
-  expect(next.toasts[0]?.tone).toBe("success");
-  expect(next.toasts[0]?.message).toContain(
-    "Buy milk",
-  );
-  expect(next.toastSeq).toBe(2);
+  return all([
+    check(next.toasts, toHaveLength(1)),
+    check(next.toasts[0]?.tone, toBe("success")),
+    check(
+      next.toasts[0]?.message ?? "",
+      toContain("Buy milk"),
+    ),
+    check(next.toastSeq, toBe(2)),
+  ]);
 });
 
 test("Deleted pushes a danger toast and drops the id from expanded", () => {
@@ -345,8 +394,10 @@ test("Deleted pushes a danger toast and drops the id from expanded", () => {
     { kind: "Deleted", id: 1 },
     { ...seed, expanded: [1] },
   );
-  expect(next.toasts[0]?.tone).toBe("danger");
-  expect(next.expanded).toEqual([]);
+  return all([
+    check(next.toasts[0]?.tone, toBe("danger")),
+    check(next.expanded, toEqual([])),
+  ]);
 });
 
 test("ToastDismissed removes the matching toast", () => {
@@ -355,12 +406,13 @@ test("ToastDismissed removes the matching toast", () => {
     { ...init, draft: "x" },
   );
   const id = withToast.toasts[0]?.id ?? -1;
-  expect(
+  return check(
     update(
       { kind: "ToastDismissed", id },
       withToast,
     ).toasts,
-  ).toEqual([]);
+    toEqual([]),
+  );
 });
 
 test("Moved swaps a todo with its neighbour and is a no-op at the edges", () => {
@@ -372,24 +424,29 @@ test("Moved swaps a todo with its neighbour and is a no-op at the edges", () => 
       { id: 3, title: "c", completed: false },
     ],
   };
-  expect(
-    update(
-      { kind: "Moved", id: 2, delta: -1 },
-      three,
-    ).todos.map((t) => t.id),
-  ).toEqual([2, 1, 3]);
-  expect(
-    update(
-      { kind: "Moved", id: 3, delta: 1 },
-      three,
-    ).todos.map((t) => t.id),
-  ).toEqual([1, 2, 3]);
-  expect(
-    update(
-      { kind: "Moved", id: 1, delta: -1 },
-      three,
-    ).todos.map((t) => t.id),
-  ).toEqual([1, 2, 3]);
+  return all([
+    check(
+      update(
+        { kind: "Moved", id: 2, delta: -1 },
+        three,
+      ).todos.map((t) => t.id),
+      toEqual([2, 1, 3]),
+    ),
+    check(
+      update(
+        { kind: "Moved", id: 3, delta: 1 },
+        three,
+      ).todos.map((t) => t.id),
+      toEqual([1, 2, 3]),
+    ),
+    check(
+      update(
+        { kind: "Moved", id: 1, delta: -1 },
+        three,
+      ).todos.map((t) => t.id),
+      toEqual([1, 2, 3]),
+    ),
+  ]);
 });
 
 test("ExpandToggled adds then removes a todo id (accordion)", () => {
@@ -397,11 +454,14 @@ test("ExpandToggled adds then removes a todo id (accordion)", () => {
     { kind: "ExpandToggled", id: 1 },
     seed,
   );
-  expect(open.expanded).toEqual([1]);
-  expect(
-    update({ kind: "ExpandToggled", id: 1 }, open)
-      .expanded,
-  ).toEqual([]);
+  return all([
+    check(open.expanded, toEqual([1])),
+    check(
+      update({ kind: "ExpandToggled", id: 1 }, open)
+        .expanded,
+      toEqual([]),
+    ),
+  ]);
 });
 
 test("the clear-completed modal flow opens, cancels, and confirms", () => {
@@ -412,41 +472,50 @@ test("the clear-completed modal flow opens, cancels, and confirms", () => {
       { id: 2, title: "b", completed: false },
     ],
   };
-  expect(
-    update({ kind: "ClearRequested" }, base)
-      .confirmClear,
-  ).toBe(true);
-  expect(
-    update(
-      { kind: "ClearCancelled" },
-      { ...base, confirmClear: true },
-    ).confirmClear,
-  ).toBe(false);
   const cleared = update(
     { kind: "ClearConfirmed" },
     { ...base, confirmClear: true },
   );
-  expect(cleared.todos).toEqual([
-    { id: 2, title: "b", completed: false },
+  return all([
+    check(
+      update({ kind: "ClearRequested" }, base)
+        .confirmClear,
+      toBe(true),
+    ),
+    check(
+      update(
+        { kind: "ClearCancelled" },
+        { ...base, confirmClear: true },
+      ).confirmClear,
+      toBe(false),
+    ),
+    check(cleared.todos, toEqual([
+      { id: 2, title: "b", completed: false },
+    ])),
+    check(cleared.confirmClear, toBe(false)),
+    check(
+      cleared.toasts[0]?.message ?? "",
+      toContain("1 completed"),
+    ),
   ]);
-  expect(cleared.confirmClear).toBe(false);
-  expect(cleared.toasts[0]?.message).toContain(
-    "1 completed",
-  );
 });
 
 test("an open accordion renders the details panel; the modal renders when confirming", () => {
   const open = renderToString(
     view({ ...seed, expanded: [1] }),
   );
-  expect(open).toContain("todo-details");
-  expect(open).toContain("click the title again");
-
   const modal = renderToString(
     view({ ...seed, confirmClear: true }),
   );
-  expect(modal).toContain("modal-backdrop");
-  expect(modal).toContain("Clear completed?");
+  return all([
+    check(open, toContain("todo-details")),
+    check(
+      open,
+      toContain("click the title again"),
+    ),
+    check(modal, toContain("modal-backdrop")),
+    check(modal, toContain("Clear completed?")),
+  ]);
 });
 
 test("a toast in the model renders in the toaster stack", () => {
@@ -462,6 +531,8 @@ test("a toast in the model renders in the toaster stack", () => {
       ],
     }),
   );
-  expect(html).toContain("toaster");
-  expect(html).toContain("Saved");
+  return all([
+    check(html, toContain("toaster")),
+    check(html, toContain("Saved")),
+  ]);
 });
