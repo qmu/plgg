@@ -5,6 +5,7 @@ import {
   toBe,
 } from "../index.js";
 import { deepEqual } from "./equals.js";
+import { ok, err, some, none } from "plgg";
 
 test("primitives via Object.is", () =>
   all([
@@ -113,3 +114,70 @@ test("objects with differing key counts are unequal", () =>
     deepEqual({ a: 1, b: 2 }, { a: 1 }),
     toBe(false),
   ));
+
+// Gate B — `deepEqual` ≡ vitest `toEqual` on the plgg domain values the
+// corpus actually asserts over (81 `toEqual` sites). Box-tagged
+// Option/Result are plain `{ __tag, content }` records, so structural
+// `deepEqual` must compare them by tag AND content, including when
+// nested. This is the parity the bulk U2 rewrite relies on.
+test("Box-tagged Result/Option equal by tag + content", () =>
+  all([
+    check(deepEqual(ok(1), ok(1)), toBe(true)),
+    check(deepEqual(err(1), err(1)), toBe(true)),
+    check(
+      deepEqual(some("x"), some("x")),
+      toBe(true),
+    ),
+    check(deepEqual(none(), none()), toBe(true)),
+    // same content, different tag must NOT be equal (Ok 1 ≠ Err 1).
+    check(deepEqual(ok(1), err(1)), toBe(false)),
+    // same tag, different content.
+    check(deepEqual(ok(1), ok(2)), toBe(false)),
+    // Some(x) ≠ None.
+    check(
+      deepEqual(some("x"), none()),
+      toBe(false),
+    ),
+  ]));
+
+test("nested Box-tagged values equal recursively", () =>
+  all([
+    check(
+      deepEqual(ok(some(1)), ok(some(1))),
+      toBe(true),
+    ),
+    check(
+      deepEqual(
+        ok({ items: [some(1), none()] }),
+        ok({ items: [some(1), none()] }),
+      ),
+      toBe(true),
+    ),
+    check(
+      deepEqual(ok(some(1)), ok(some(2))),
+      toBe(false),
+    ),
+    check(
+      deepEqual(ok(some(1)), ok(none())),
+      toBe(false),
+    ),
+  ]));
+
+test("class instances compare by own enumerable fields", () => {
+  class Point {
+    constructor(
+      readonly x: number,
+      readonly y: number,
+    ) {}
+  }
+  return all([
+    check(
+      deepEqual(new Point(1, 2), new Point(1, 2)),
+      toBe(true),
+    ),
+    check(
+      deepEqual(new Point(1, 2), new Point(1, 3)),
+      toBe(false),
+    ),
+  ]);
+});

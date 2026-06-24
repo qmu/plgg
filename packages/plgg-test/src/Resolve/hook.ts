@@ -114,10 +114,20 @@ const rewriteRelativeTs = (
   specifier: string,
   parentURL: string | undefined,
 ): string => {
+  // The Runner imports each spec with a `?t=<cacheBust>` query
+  // (Runner.ts), so the `parentURL` a relative import sees is
+  // `…spec.ts?t=123` — NOT ending in `.ts`. Strip the query before the
+  // guards and before resolving, mirroring the `load` hook, so a
+  // spec's own `../index.js` redirects to `../index.ts` even on a
+  // cache-busted re-import.
+  const parent =
+    parentURL === undefined
+      ? undefined
+      : stripQuery(parentURL);
   if (
-    parentURL === undefined ||
-    !parentURL.startsWith("file:") ||
-    !parentURL.endsWith(".ts") ||
+    parent === undefined ||
+    !parent.startsWith("file:") ||
+    !parent.endsWith(".ts") ||
     !(
       specifier.startsWith("./") ||
       specifier.startsWith("../")
@@ -126,7 +136,7 @@ const rewriteRelativeTs = (
   ) {
     return "";
   }
-  const target = new URL(specifier, parentURL);
+  const target = new URL(specifier, parent);
   const tsHref = target.href.replace(
     /\.js$/,
     ".ts",

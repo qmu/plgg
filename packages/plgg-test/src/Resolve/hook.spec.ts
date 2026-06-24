@@ -38,3 +38,21 @@ test("resolves cross-package bare 'plgg' specifier", () => {
   const r = ok(7);
   return check(isOk(r), toBe(true));
 });
+
+// Finding A regression: this spec's OWN top-of-file imports are
+// relative `.js` specifiers (`../index.js`, `../Expect/equals.js`).
+// The Runner imports every spec with a `?t=<cacheBust>` query, so the
+// resolver sees a `parentURL` of `…hook.spec.ts?t=N` — which does NOT
+// end in `.ts`. Before the fix, `rewriteRelativeTs` skipped the
+// `.js`→`.ts` redirect for such parents and the import failed with
+// "Cannot find module …/index.js" (the whole self-suite was 0/15).
+// That this file imported, loaded, and these symbols are callable
+// proves the cache-busted relative-`.js` redirect now works.
+test("relative .js self-imports resolve under a cache-busted parent", () =>
+  all([
+    check(typeof all, toBe<string>("function")),
+    check(
+      typeof deepEqual,
+      toBe<string>("function"),
+    ),
+  ]));

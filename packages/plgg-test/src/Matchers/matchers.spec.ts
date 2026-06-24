@@ -7,6 +7,7 @@ import {
   toContain,
   toHaveLength,
   toBeGreaterThan,
+  toBeGreaterThanOrEqual,
   toBeInstanceOf,
   toBeUndefined,
   toBeNull,
@@ -73,6 +74,22 @@ test("toBeGreaterThan", () =>
     ),
     check(
       isErr(toBeGreaterThan(3)(3)),
+      toBe(true),
+    ),
+  ]));
+
+test("toBeGreaterThanOrEqual", () =>
+  all([
+    check(
+      isOk(toBeGreaterThanOrEqual(2)(3)),
+      toBe(true),
+    ),
+    check(
+      isOk(toBeGreaterThanOrEqual(3)(3)),
+      toBe(true),
+    ),
+    check(
+      isErr(toBeGreaterThanOrEqual(4)(3)),
       toBe(true),
     ),
   ]));
