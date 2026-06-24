@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, check, toBe } from "plgg-test";
 import {
   el,
   text,
@@ -22,9 +22,8 @@ test("foldHtml recurses children first (catamorphism)", () => {
     ],
   );
   // ul + 2 li + 2 text = 5
-  expect(countNodes(tree)).toBe(5);
+  return check(countNodes(tree), toBe(5));
 });
 
-test("foldHtml folds a bare text node", () => {
-  expect(countNodes(text("x"))).toBe(1);
-});
+test("foldHtml folds a bare text node", () =>
+  check(countNodes(text("x")), toBe(1)));

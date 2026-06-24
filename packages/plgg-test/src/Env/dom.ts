@@ -95,6 +95,23 @@ export const installEnvironment = async (
   );
 };
 
+// DOM globals happy-dom must OWN even though Node predefines them. Node
+// 23 ships its own `Event`/`EventTarget` family; if the install left
+// Node's in place, a spec's `new Event(...)` would be Node's class, which
+// happy-dom dispatches (the listener fires) but never sets `.target` on —
+// so `event.target` reads null and handlers see an empty value. Forcing
+// happy-dom's event classes makes the dispatched event and the DOM agree.
+// These are saved and restored on teardown (unlike the install-only-absent
+// additions, which are deleted). Only configurable Node globals are
+// overridden — a locked intrinsic is never touched.
+const FORCE_INSTALL: ReadonlyArray<string> = [
+  "Event",
+  "CustomEvent",
+  "EventTarget",
+  "MessageEvent",
+  "CloseEvent",
+];
+
 // Mirrors a freshly-constructed happy-dom `GlobalWindow`'s DOM
 // additions onto `globalThis` and returns a teardown that removes
 // exactly those additions. The happy-dom module is imported dynamically
@@ -104,7 +121,13 @@ const installHappyDom =
     const { GlobalWindow } = await import(
       "happy-dom"
     );
-    const win = new GlobalWindow();
+    // Seed the same default base URL vitest's happy-dom environment uses,
+    // so `window.location`/`history` start at `http://localhost/` (path
+    // "/") rather than happy-dom's bare `about:blank` — navigation and
+    // History-API specs depend on a real same-origin base.
+    const win = new GlobalWindow({
+      url: "http://localhost/",
+    });
     const added: Array<string> = [];
 
     // happy-dom's `GlobalWindow` carries TWO kinds of own properties:
@@ -135,6 +158,40 @@ const installHappyDom =
       }
     });
 
+    // Force happy-dom's event family over Node's predefined classes,
+    // saving the prior descriptor so teardown restores Node's exactly.
+    const overridden: Array<{
+      key: string;
+      prior: PropertyDescriptor | undefined;
+    }> = [];
+    FORCE_INSTALL.forEach((key) => {
+      if (added.includes(key)) {
+        return;
+      }
+      const descriptor =
+        Object.getOwnPropertyDescriptor(win, key);
+      if (descriptor === undefined) {
+        return;
+      }
+      const prior =
+        Object.getOwnPropertyDescriptor(
+          globalThis,
+          key,
+        );
+      if (
+        prior !== undefined &&
+        prior.configurable === false
+      ) {
+        return;
+      }
+      Object.defineProperty(
+        globalThis,
+        key,
+        descriptor,
+      );
+      overridden.push({ key, prior });
+    });
+
     return async () => {
       // Abort happy-dom's pending async tasks (timers, the document
       // `readyState` transition) and close the window BEFORE detaching
@@ -145,6 +202,18 @@ const installHappyDom =
       // next file.
       added.forEach((key) => {
         Reflect.deleteProperty(globalThis, key);
+      });
+      // Restore Node's prior event classes (or remove if absent before).
+      overridden.forEach(({ key, prior }) => {
+        if (prior === undefined) {
+          Reflect.deleteProperty(globalThis, key);
+        } else {
+          Object.defineProperty(
+            globalThis,
+            key,
+            prior,
+          );
+        }
       });
     };
   };
