@@ -1,9 +1,9 @@
 ---
 instruction: "to replace all tests by plgg-test in this repository (no more vitest), if you cannot, refine plgg-test to make this happen"
-phase: planning
-step: decomposition
+phase: coding
+step: concurrent-launch
 iteration: 1
-updated_at: 2026-06-24T14:16:00+09:00
+updated_at: 2026-06-24T14:18:00+09:00
 ---
 
 # Trip Plan
@@ -36,4 +36,6 @@ Delivery: **U1** (R1 + Gate B) → **U2** (9 per-package migrations, leaf-first,
 - [x] [Architect] model-v1 → model-v2 (approved)
 - [x] [Constructor] design-v1 → design-v2 (approved)
 - [x] One-turn review round (round-1 ×3) + responses
-- [ ] [Constructor] Decomposition: design-v2 → tickets
+- [x] [Constructor] Decomposition: design-v2 → 11 tickets (4b9d141)
+- [ ] [Coding] Concurrent launch (dev-env / codebase discovery / queue reconfirm)
+- [ ] [Coding] Per-ticket drive loop: U1 → 9×U2 → U3
