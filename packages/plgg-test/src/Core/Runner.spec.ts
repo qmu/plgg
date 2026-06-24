@@ -70,3 +70,35 @@ test("a fire-and-forget rejection fails the test (O2 window)", async () => {
     check(v.failed, toBe(1)),
   ]);
 });
+
+// DOM-environment seam (U1-dom). The fixture builds an element at
+// module-eval time, so it loads at all only if happy-dom is installed
+// BEFORE the import — its 3 tests passing proves the load-before-import
+// guarantee end to end.
+test("a @plgg-test-environment happy-dom spec gets a DOM", async () => {
+  const results = await runFile(
+    fixture("_domFixture.spec.ts"),
+  );
+  const v = tally(results);
+  return all([
+    check(v.passed, toBe(3)),
+    check(v.failed, toBe(0)),
+  ]);
+});
+
+// A no-directive spec runs under plain Node (no `document`), AND running
+// it immediately AFTER the DOM fixture proves the per-file teardown
+// restored `globalThis` — the DOM did not leak across files.
+test("no-directive spec stays DOM-free even right after a DOM spec", async () => {
+  await runFile(fixture("_domFixture.spec.ts"));
+  const results = await runFile(
+    fixture("_noDomFixture.spec.ts"),
+  );
+  const v = tally(results);
+  return all([
+    check(v.passed, toBe(1)),
+    check(v.failed, toBe(0)),
+    // The runner process itself is clean after teardown.
+    check("document" in globalThis, toBe(false)),
+  ]);
+});

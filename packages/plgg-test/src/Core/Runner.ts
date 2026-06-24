@@ -17,6 +17,10 @@ import {
   failOf,
 } from "../Matchers/Assertion.js";
 import type { Assertion } from "../Matchers/Assertion.js";
+import {
+  environmentOf,
+  installEnvironment,
+} from "../Env/dom.js";
 
 /**
  * Imports one spec file and returns its registered suite tree. The
@@ -42,24 +46,38 @@ export const runFile = async (
 ): Promise<ReadonlyArray<TestResult>> => {
   resetRegistry();
   loadSeq = loadSeq + 1;
-  const loaded = await loadModule(
-    file,
-    String(loadSeq),
+  // A DOM-needing spec declares its environment with a first-lines
+  // directive; install it BEFORE the import so module-eval-time DOM
+  // access (reading `window.happyDOM`, building elements at the top
+  // level) resolves — AND keep it installed across `runSuite`, since the
+  // test BODIES touch the DOM too. Teardown runs in `finally` so the
+  // global is restored even if the spec fails to load: no leak into the
+  // next file.
+  const restore = await installEnvironment(
+    environmentOf(file),
   );
-  return loaded.ok
-    ? runSuite(takeRootSuite(), [], {
-        beforeEach: [],
-        afterEach: [],
-      })
-    : [
-        {
-          names: [file],
-          outcome: "failed",
-          durationMs: 0,
-          message: `failed to load spec: ${loaded.message}`,
-          stack: loaded.stack,
-        },
-      ];
+  try {
+    const loaded = await loadModule(
+      file,
+      String(loadSeq),
+    );
+    return loaded.ok
+      ? await runSuite(takeRootSuite(), [], {
+          beforeEach: [],
+          afterEach: [],
+        })
+      : [
+          {
+            names: [file],
+            outcome: "failed",
+            durationMs: 0,
+            message: `failed to load spec: ${loaded.message}`,
+            stack: loaded.stack,
+          },
+        ];
+  } finally {
+    await restore();
+  }
 };
 
 const loadModule = async (
