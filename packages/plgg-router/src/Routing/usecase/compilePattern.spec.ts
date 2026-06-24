@@ -1,34 +1,47 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toEqual,
+} from "plgg-test";
 import {
   compilePattern,
   splitPath,
 } from "plgg-router/Routing/usecase/compilePattern";
 
-test("splitPath drops empty segments from slashes", () => {
-  expect(splitPath("/a/b/")).toEqual(["a", "b"]);
-  expect(splitPath("//a//b")).toEqual(["a", "b"]);
-  expect(splitPath("/")).toEqual([]);
-  expect(splitPath("")).toEqual([]);
-});
+test("splitPath drops empty segments from slashes", () =>
+  all([
+    check(
+      splitPath("/a/b/"),
+      toEqual(["a", "b"]),
+    ),
+    check(
+      splitPath("//a//b"),
+      toEqual(["a", "b"]),
+    ),
+    check(splitPath("/"), toEqual([])),
+    check(splitPath(""), toEqual([])),
+  ]));
 
-test("compilePattern produces tagged Box segments", () => {
-  expect(
+test("compilePattern produces tagged Box segments", () =>
+  check(
     compilePattern("/users/:id/posts/*"),
-  ).toEqual([
-    { __tag: "Static", content: "users" },
-    { __tag: "Param", content: "id" },
-    { __tag: "Static", content: "posts" },
-    { __tag: "Wildcard", content: "*" },
-  ]);
-});
+    toEqual([
+      { __tag: "Static", content: "users" },
+      { __tag: "Param", content: "id" },
+      { __tag: "Static", content: "posts" },
+      { __tag: "Wildcard", content: "*" },
+    ]),
+  ));
 
-test("compilePattern supports a named wildcard", () => {
-  expect(compilePattern("/files/*path")).toEqual([
-    { __tag: "Static", content: "files" },
-    { __tag: "Wildcard", content: "path" },
-  ]);
-});
+test("compilePattern supports a named wildcard", () =>
+  check(
+    compilePattern("/files/*path"),
+    toEqual([
+      { __tag: "Static", content: "files" },
+      { __tag: "Wildcard", content: "path" },
+    ]),
+  ));
 
-test("compilePattern of root is empty", () => {
-  expect(compilePattern("/")).toEqual([]);
-});
+test("compilePattern of root is empty", () =>
+  check(compilePattern("/"), toEqual([])));
