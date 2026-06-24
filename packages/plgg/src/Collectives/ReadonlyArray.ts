@@ -24,6 +24,7 @@ const is = (
 
 /**
  * Refinable instance for readonly array type guards.
+ * @internal
  */
 export const readonlyArrayRefinable: Refinable<ReadonlyArr> =
   {

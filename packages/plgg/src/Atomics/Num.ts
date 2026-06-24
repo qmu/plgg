@@ -32,6 +32,7 @@ const is = (value: unknown): value is Num =>
 
 /**
  * Refinable instance for number type guards.
+ * @internal
  */
 export const numRefinable: Refinable<Num> = {
   is,
@@ -54,6 +55,7 @@ export const asNum = (
 
 /**
  * Castable instance for number safe casting.
+ * @internal
  */
 export const numCastable: Castable<Num> = {
   as: asNum,
@@ -75,6 +77,7 @@ export const isJsonReadyNum = isNum;
 
 /**
  * Datum instance for number values.
+ * @internal
  */
 export const numJsonSerializable: JsonSerializable<
   Num,

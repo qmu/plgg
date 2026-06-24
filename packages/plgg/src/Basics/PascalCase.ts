@@ -51,6 +51,7 @@ const is = (
 
 /**
  * Refinable instance for PascalCase type guards.
+ * @internal
  */
 export const pascalCaseRefinable: Refinable<PascalCase> =
   {
@@ -78,6 +79,7 @@ export const asPascalCase = (
 
 /**
  * Castable instance for PascalCase safe casting.
+ * @internal
  */
 export const pascalCaseCastable: Castable<PascalCase> =
   {

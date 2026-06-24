@@ -31,6 +31,7 @@ const is = (value: unknown): value is BigInt =>
 
 /**
  * Refinable instance for BigInt type guards.
+ * @internal
  */
 export const bigIntRefinable: Refinable<BigInt> =
   {
@@ -76,6 +77,7 @@ export const asBigInt = (
 
 /**
  * Castable instance for BigInt safe casting.
+ * @internal
  */
 export const bigIntCastable: Castable<BigInt> = {
   as: asBigInt,
@@ -107,6 +109,7 @@ export const isJsonReadyBigInt = (
 
 /**
  * Datum instance for BigInt values.
+ * @internal
  */
 export const bigIntJsonSerializable: JsonSerializable<
   BigInt,

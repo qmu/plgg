@@ -50,7 +50,9 @@ type ProcErrInner<R> =
         : never;
 
 /**
- * Async function composition for Procedural types.
+ * Async function composition for Procedural types. Variadic — a seed followed
+ * by 2–19 steps (only the 2-argument arity is shown here; the higher arities
+ * are equivalent).
  *
  * Each step (and the seed) is inferred at its raw type (A, RB, RC, ...) so
  * that both the success type (via UnwrapProcedural) and the precise error
@@ -67,6 +69,7 @@ export function proc<A, RB>(
     ProcErr<A> | ProcErr<RB> | Defect
   >
 >;
+/** @internal */
 export function proc<A, RB, RC>(
   a: A,
   ab: NonNeverFn<(a: UnwrapProcedural<A>) => RB>,
@@ -80,6 +83,7 @@ export function proc<A, RB, RC>(
     | Defect
   >
 >;
+/** @internal */
 export function proc<A, RB, RC, RD>(
   a: A,
   ab: NonNeverFn<(a: UnwrapProcedural<A>) => RB>,
@@ -95,6 +99,7 @@ export function proc<A, RB, RC, RD>(
     | Defect
   >
 >;
+/** @internal */
 export function proc<A, RB, RC, RD, RE>(
   a: A,
   ab: NonNeverFn<(a: UnwrapProcedural<A>) => RB>,
@@ -112,6 +117,7 @@ export function proc<A, RB, RC, RD, RE>(
     | Defect
   >
 >;
+/** @internal */
 export function proc<A, RB, RC, RD, RE, RF>(
   a: A,
   ab: NonNeverFn<(a: UnwrapProcedural<A>) => RB>,
@@ -131,6 +137,7 @@ export function proc<A, RB, RC, RD, RE, RF>(
     | Defect
   >
 >;
+/** @internal */
 export function proc<A, RB, RC, RD, RE, RF, RG>(
   a: A,
   ab: NonNeverFn<(a: UnwrapProcedural<A>) => RB>,
@@ -152,6 +159,7 @@ export function proc<A, RB, RC, RD, RE, RF, RG>(
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -184,6 +192,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -219,6 +228,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -257,6 +267,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -298,6 +309,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -342,6 +354,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -389,6 +402,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -439,6 +453,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -492,6 +507,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -548,6 +564,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -607,6 +624,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -669,6 +687,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -734,6 +753,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,
@@ -802,6 +822,7 @@ export function proc<
     | Defect
   >
 >;
+/** @internal */
 export function proc<
   A,
   RB,

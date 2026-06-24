@@ -53,6 +53,7 @@ const is = (
 
 /**
  * Refinable instance for CapitalCase type guards.
+ * @internal
  */
 export const capitalCaseRefinable: Refinable<CapitalCase> =
   {
@@ -80,6 +81,7 @@ export const asCapitalCase = (
 
 /**
  * Castable instance for CapitalCase safe casting.
+ * @internal
  */
 export const capitalCaseCastable: Castable<CapitalCase> =
   {

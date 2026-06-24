@@ -9,7 +9,10 @@ import {
 } from "plgg/index";
 
 /**
- * Synchronous function composition for Result types.
+ * Synchronous validation composition for `Result` types: thread a value through
+ * a chain of `Result`-returning steps, short-circuiting on the first `Err`.
+ * Variadic — a value followed by 2–20 steps (only the 2-step arity is shown
+ * here; the higher arities are equivalent).
  */
 export function cast<A, B, ERR>(
   a: A,
@@ -18,17 +21,20 @@ export function cast<A, B, ERR>(
 /**
  * Two-step function composition for Result types.
  */
+/** @internal */
 export function cast<A, B, C, ERR>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
 ): Result<C, ERR>;
+/** @internal */
 export function cast<A, B, C, D, ERR>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
   bc: NonNeverFn<(b: B) => Result<C, ERR>>,
   cd: NonNeverFn<(c: C) => Result<D, ERR>>,
 ): Result<D, ERR>;
+/** @internal */
 export function cast<A, B, C, D, E, ERR>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
@@ -36,6 +42,7 @@ export function cast<A, B, C, D, E, ERR>(
   cd: NonNeverFn<(c: C) => Result<D, ERR>>,
   de: NonNeverFn<(d: D) => Result<E, ERR>>,
 ): Result<E, ERR>;
+/** @internal */
 export function cast<A, B, C, D, E, F, ERR>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
@@ -44,6 +51,7 @@ export function cast<A, B, C, D, E, F, ERR>(
   de: NonNeverFn<(d: D) => Result<E, ERR>>,
   ef: NonNeverFn<(e: E) => Result<F, ERR>>,
 ): Result<F, ERR>;
+/** @internal */
 export function cast<A, B, C, D, E, F, G, ERR>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
@@ -53,6 +61,7 @@ export function cast<A, B, C, D, E, F, G, ERR>(
   ef: NonNeverFn<(e: E) => Result<F, ERR>>,
   fg: NonNeverFn<(f: F) => Result<G, ERR>>,
 ): Result<G, ERR>;
+/** @internal */
 export function cast<A, B, C, D, E, F, G, H, ERR>(
   a: A,
   ab: NonNeverFn<(a: A) => Result<B, ERR>>,
@@ -63,6 +72,7 @@ export function cast<A, B, C, D, E, F, G, H, ERR>(
   fg: NonNeverFn<(f: F) => Result<G, ERR>>,
   gh: NonNeverFn<(g: G) => Result<H, ERR>>,
 ): Result<H, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -85,6 +95,7 @@ export function cast<
   gh: NonNeverFn<(g: G) => Result<H, ERR>>,
   hi: NonNeverFn<(h: H) => Result<I, ERR>>,
 ): Result<I, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -109,6 +120,7 @@ export function cast<
   hi: NonNeverFn<(h: H) => Result<I, ERR>>,
   ij: NonNeverFn<(i: I) => Result<J, ERR>>,
 ): Result<J, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -135,6 +147,7 @@ export function cast<
   ij: NonNeverFn<(i: I) => Result<J, ERR>>,
   jk: NonNeverFn<(j: J) => Result<K, ERR>>,
 ): Result<K, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -163,6 +176,7 @@ export function cast<
   jk: NonNeverFn<(j: J) => Result<K, ERR>>,
   kl: NonNeverFn<(k: K) => Result<L, ERR>>,
 ): Result<L, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -193,6 +207,7 @@ export function cast<
   kl: NonNeverFn<(k: K) => Result<L, ERR>>,
   lm: NonNeverFn<(l: L) => Result<M, ERR>>,
 ): Result<M, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -225,6 +240,7 @@ export function cast<
   lm: NonNeverFn<(l: L) => Result<M, ERR>>,
   mn: NonNeverFn<(m: M) => Result<N, ERR>>,
 ): Result<N, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -259,6 +275,7 @@ export function cast<
   mn: NonNeverFn<(m: M) => Result<N, ERR>>,
   no: NonNeverFn<(n: N) => Result<O, ERR>>,
 ): Result<O, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -295,6 +312,7 @@ export function cast<
   no: NonNeverFn<(n: N) => Result<O, ERR>>,
   op: NonNeverFn<(o: O) => Result<P, ERR>>,
 ): Result<P, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -333,6 +351,7 @@ export function cast<
   op: NonNeverFn<(o: O) => Result<P, ERR>>,
   pq: NonNeverFn<(p: P) => Result<Q, ERR>>,
 ): Result<Q, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -373,6 +392,7 @@ export function cast<
   pq: NonNeverFn<(p: P) => Result<Q, ERR>>,
   qr: NonNeverFn<(q: Q) => Result<R, ERR>>,
 ): Result<R, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -415,6 +435,7 @@ export function cast<
   qr: NonNeverFn<(q: Q) => Result<R, ERR>>,
   rs: NonNeverFn<(r: R) => Result<S, ERR>>,
 ): Result<S, ERR>;
+/** @internal */
 export function cast<
   A,
   B,
@@ -459,6 +480,7 @@ export function cast<
   rs: NonNeverFn<(r: R) => Result<S, ERR>>,
   st: NonNeverFn<(s: S) => Result<T, ERR>>,
 ): Result<T, ERR>;
+/** @internal */
 export function cast<
   A,
   B,

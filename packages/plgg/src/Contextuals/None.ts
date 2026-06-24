@@ -43,6 +43,7 @@ const is = (e: unknown): e is None =>
 
 /**
  * Refinable instance for None type guards.
+ * @internal
  */
 export const noneRefinable: Refinable<None> = {
   is,
@@ -65,6 +66,7 @@ export const asNone = (
 
 /**
  * Castable instance for None safe casting.
+ * @internal
  */
 export const noneCastable: Castable<None> = {
   as: asNone,

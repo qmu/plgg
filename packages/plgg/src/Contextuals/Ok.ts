@@ -66,6 +66,7 @@ const is = <T>(e: unknown): e is Ok<T> =>
 
 /**
  * Refinable instance for Ok type guards.
+ * @internal
  */
 export const okRefinable: Refinable1<"Ok"> = {
   KindKey: okTag,
@@ -89,6 +90,7 @@ export const asOk = <A>(
 
 /**
  * Castable instance for Ok safe casting.
+ * @internal
  */
 export const okCastable: Castable1<"Ok"> = {
   KindKey: okTag,

@@ -1,23 +1,28 @@
 import { NonNeverFn } from "plgg/index";
 
 /**
- * Type-safe function composition.
+ * Type-safe function composition: thread a value left-to-right through a
+ * sequence of functions. Variadic — a value followed by 2–20 functions (only
+ * the 2-argument arity is shown here; the higher arities are equivalent).
  */
 export function pipe<A, B>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
 ): B;
+/** @internal */
 export function pipe<A, B, C>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
 ): C;
+/** @internal */
 export function pipe<A, B, C, D>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
   bc: NonNeverFn<(b: B) => C>,
   cd: NonNeverFn<(c: C) => D>,
 ): D;
+/** @internal */
 export function pipe<A, B, C, D, E>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
@@ -25,6 +30,7 @@ export function pipe<A, B, C, D, E>(
   cd: NonNeverFn<(c: C) => D>,
   de: NonNeverFn<(d: D) => E>,
 ): E;
+/** @internal */
 export function pipe<A, B, C, D, E, F>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
@@ -33,6 +39,7 @@ export function pipe<A, B, C, D, E, F>(
   de: NonNeverFn<(d: D) => E>,
   ef: NonNeverFn<(e: E) => F>,
 ): F;
+/** @internal */
 export function pipe<A, B, C, D, E, F, G>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
@@ -42,6 +49,7 @@ export function pipe<A, B, C, D, E, F, G>(
   ef: NonNeverFn<(e: E) => F>,
   fg: NonNeverFn<(f: F) => G>,
 ): G;
+/** @internal */
 export function pipe<A, B, C, D, E, F, G, H>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
@@ -52,6 +60,7 @@ export function pipe<A, B, C, D, E, F, G, H>(
   fg: NonNeverFn<(f: F) => G>,
   gh: NonNeverFn<(g: G) => H>,
 ): H;
+/** @internal */
 export function pipe<A, B, C, D, E, F, G, H, I>(
   a: A,
   ab: NonNeverFn<(a: A) => B>,
@@ -63,6 +72,7 @@ export function pipe<A, B, C, D, E, F, G, H, I>(
   gh: NonNeverFn<(g: G) => H>,
   hi: NonNeverFn<(h: H) => I>,
 ): I;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -86,6 +96,7 @@ export function pipe<
   hi: NonNeverFn<(h: H) => I>,
   ij: NonNeverFn<(i: I) => J>,
 ): J;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -111,6 +122,7 @@ export function pipe<
   ij: NonNeverFn<(i: I) => J>,
   jk: NonNeverFn<(j: J) => K>,
 ): K;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -138,6 +150,7 @@ export function pipe<
   jk: NonNeverFn<(j: J) => K>,
   kl: NonNeverFn<(k: K) => L>,
 ): L;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -167,6 +180,7 @@ export function pipe<
   kl: NonNeverFn<(k: K) => L>,
   lm: NonNeverFn<(l: L) => M>,
 ): M;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -198,6 +212,7 @@ export function pipe<
   lm: NonNeverFn<(l: L) => M>,
   mn: NonNeverFn<(m: M) => N>,
 ): N;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -231,6 +246,7 @@ export function pipe<
   mn: NonNeverFn<(m: M) => N>,
   no: NonNeverFn<(n: N) => O>,
 ): O;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -266,6 +282,7 @@ export function pipe<
   no: NonNeverFn<(n: N) => O>,
   op: NonNeverFn<(o: O) => P>,
 ): P;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -303,6 +320,7 @@ export function pipe<
   op: NonNeverFn<(o: O) => P>,
   pq: NonNeverFn<(p: P) => Q>,
 ): Q;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -342,6 +360,7 @@ export function pipe<
   pq: NonNeverFn<(p: P) => Q>,
   qr: NonNeverFn<(q: Q) => R>,
 ): R;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -383,6 +402,7 @@ export function pipe<
   qr: NonNeverFn<(q: Q) => R>,
   rs: NonNeverFn<(r: R) => S>,
 ): S;
+/** @internal */
 export function pipe<
   A,
   B,
@@ -426,6 +446,7 @@ export function pipe<
   rs: NonNeverFn<(r: R) => S>,
   st: NonNeverFn<(s: S) => T>,
 ): T;
+/** @internal */
 export function pipe<
   A,
   B,

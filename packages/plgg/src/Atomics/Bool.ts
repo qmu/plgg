@@ -39,6 +39,7 @@ const is = (value: unknown): value is Bool =>
 
 /**
  * Refinable instance for boolean type guards.
+ * @internal
  */
 export const boolRefinable: Refinable<Bool> = {
   is,
@@ -61,6 +62,7 @@ export const asBool = (
 
 /**
  * Castable instance for boolean safe casting.
+ * @internal
  */
 export const boolCastable: Castable<Bool> = {
   as: asBool,
@@ -82,6 +84,7 @@ export const isJsonReadyBool = isBool;
 
 /**
  * Datum instance for boolean values.
+ * @internal
  */
 export const boolJsonSerializable: JsonSerializable<
   Bool,

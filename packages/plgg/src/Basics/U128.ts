@@ -39,6 +39,7 @@ const is = (value: unknown): value is U128 =>
 
 /**
  * Refinable instance for U128 type guards.
+ * @internal
  */
 export const u128Refinable: Refinable<U128> = {
   is,
@@ -64,6 +65,7 @@ export const asU128 = (
 
 /**
  * Castable instance for U128 safe casting.
+ * @internal
  */
 export const u128Castable: Castable<U128> = {
   as: asU128,

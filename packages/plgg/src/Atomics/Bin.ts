@@ -31,6 +31,7 @@ const is = (value: unknown): value is Bin =>
 
 /**
  * Refinable instance for Bin type guards.
+ * @internal
  */
 export const binRefinable: Refinable<Bin> = {
   is,
@@ -75,6 +76,7 @@ export const asBin = (
 
 /**
  * Castable instance for Bin safe casting.
+ * @internal
  */
 export const binCastable: Castable<Bin> = {
   as: asBin,
@@ -106,6 +108,7 @@ export const isJsonReadyBin = (
 
 /**
  * Datum instance for Bin values.
+ * @internal
  */
 export const binJsonSerializable: JsonSerializable<
   Bin,

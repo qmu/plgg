@@ -46,6 +46,7 @@ const is = (value: unknown): value is CamelCase =>
 
 /**
  * Refinable instance for CamelCase type guards.
+ * @internal
  */
 export const camelCaseRefinable: Refinable<CamelCase> =
   {
@@ -73,6 +74,7 @@ export const asCamelCase = (
 
 /**
  * Castable instance for CamelCase safe casting.
+ * @internal
  */
 export const camelCaseCastable: Castable<CamelCase> =
   {

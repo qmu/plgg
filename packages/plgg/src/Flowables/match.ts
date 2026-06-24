@@ -31,6 +31,8 @@ import {
  * Exported so the accepted-argument contract can be asserted directly in
  * type-level tests (see `match.completeness.spec.ts`). This is the type of
  * the first argument to `match`, so it is already part of the public surface.
+ *
+ * @internal
  */
 export type ArgMatchable<
   PATTERNS extends ReadonlyArray<unknown>,
@@ -82,6 +84,8 @@ export type ArgMatchable<
 
 /**
  * Checks if box patterns provide full coverage of union A.
+ *
+ * @internal
  */
 export type FullCoveragedBoxes<
   A,
@@ -100,6 +104,8 @@ export type FullCoveragedBoxes<
 
 /**
  * Extract box tags from a union of boxes.
+ *
+ * @internal
  */
 export type ExtractBoxTag<T> = T extends {
   __tag: infer Tag;
@@ -107,6 +113,7 @@ export type ExtractBoxTag<T> = T extends {
   ? Tag
   : never;
 
+/** @internal */
 export type ExtractPatternTags<
   PATTERNS extends ReadonlyArray<unknown>,
 > = PATTERNS extends [infer Head, ...infer Tail]
@@ -117,6 +124,8 @@ export type ExtractPatternTags<
 
 /**
  * Checks if all elements in array are tag patterns.
+ *
+ * @internal
  */
 export type AreAllTagPatterns<
   ARR extends ReadonlyArray<unknown>,
@@ -128,6 +137,8 @@ export type AreAllTagPatterns<
 
 /**
  * Recursively checks if all elements in array are atomic types.
+ *
+ * @internal
  */
 export type IsAllAtomic<
   ARR extends ReadonlyArray<unknown>,
@@ -139,6 +150,8 @@ export type IsAllAtomic<
 
 /**
  * Recursively checks if all elements in array are boxes.
+ *
+ * @internal
  */
 export type IsAllBoxPattern<
   ARR extends ReadonlyArray<unknown>,
@@ -150,6 +163,8 @@ export type IsAllBoxPattern<
 
 /**
  * Represents a pattern-handler pair for matching.
+ *
+ * @internal
  */
 export type CaseDecl<
   A,
@@ -252,6 +267,8 @@ export const isCoverageError = (
  * 2..20 `[pattern, handler]` cases. The matched type `A` is already fixed, so
  * tag/icon handlers receive the box narrowed to their tag (typed `.content`),
  * and a non-exhaustive set of cases makes the call return {@link CoverageError}.
+ *
+ * @internal
  */
 export interface MatchCont<A> {
   <P1, P2, R>(

@@ -38,6 +38,7 @@ export const isResult = <T, F>(
 
 /**
  * Functor instance for mapping over successful values while preserving errors.
+ * @internal
  */
 export const resultFunctor: Functor2<"Result"> = {
   KindKey: "Result",
@@ -76,6 +77,7 @@ export const matchResult =
 /**
  * Apply instance for Result.
  * Applies wrapped functions to wrapped values.
+ * @internal
  */
 export const resultApply: Apply2<"Result"> = {
   ...resultFunctor,
@@ -93,6 +95,7 @@ export const { ap: applyResult } = resultApply;
 /**
  * Pointed instance for Result.
  * Wraps values in successful Result context.
+ * @internal
  */
 export const resultPointed: Pointed2<"Result"> = {
   ...resultFunctor,
@@ -104,6 +107,7 @@ export const { of: ofResult } = resultPointed;
 
 /**
  * Applicative instance for Result.
+ * @internal
  */
 export const resultApplicative: Applicative2<"Result"> =
   {
@@ -115,6 +119,7 @@ export const resultApplicative: Applicative2<"Result"> =
 /**
  * Chain instance for Result.
  * Chains operations that return Results.
+ * @internal
  */
 export const resultChain: Chain2<"Result"> = {
   ...resultFunctor,
@@ -132,6 +137,7 @@ export const { chain: chainResult } = resultChain;
 
 /**
  * Monad instance for Result.
+ * @internal
  */
 export const resultMonad: Monad2<"Result"> = {
   ...resultApplicative,
@@ -141,6 +147,7 @@ export const resultMonad: Monad2<"Result"> = {
 /**
  * Foldable instance for Result.
  * Folds over success values only; errors are ignored.
+ * @internal
  */
 export const resultFoldable: Foldable2<"Result"> =
   {
@@ -168,6 +175,7 @@ export const {
 
 /**
  * Traversable instance for Result.
+ * @internal
  */
 export const resultTraversable: Traversable2<"Result"> =
   {

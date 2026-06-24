@@ -1,0 +1,76 @@
+name: Deploy Guide
+
+# Build the VitePress guide (packages/guide) — including the auto-generated,
+# per-package API reference — and publish it to GitHub Pages.
+#
+# Independent of the CalVer release pipeline (prepare-release/release): the docs
+# follow the code, so this runs on any push to main that touches the packages or
+# the guide itself, plus on-demand via workflow_dispatch.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "packages/**"
+      - ".github/workflows/deploy-guide.yml"
+  workflow_dispatch:
+
+# Allow the deploy job to publish to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One in-flight deploy at a time; don't cancel a running publish.
+concurrency:
+  group: deploy-guide
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      # The API generator reads each package's source with its own tsconfig;
+      # cross-package types resolve through the `file:` dist symlinks, so every
+      # package must be built first, in dependency order (same order as
+      # workloads/development/Dockerfile, extended to the full family).
+      - name: Build package dists (dependency order)
+        run: |
+          set -e
+          for pkg in plgg plgg-http plgg-router plgg-view plgg-kit \
+                     plgg-server plgg-fetch plgg-sql plgg-foundry; do
+            echo "::group::build $pkg"
+            (cd "packages/$pkg" && npm install && npm run build)
+            echo "::endgroup::"
+          done
+
+      - name: Build the guide (generate API + VitePress)
+        # DOCS_BASE makes links resolve under the project Pages path.
+        env:
+          DOCS_BASE: /plgg/
+        run: |
+          npm ci
+          npm run build
+        working-directory: packages/guide
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/guide/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

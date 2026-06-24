@@ -44,6 +44,7 @@ const is = (value: unknown): value is Alphabet =>
 
 /**
  * Refinable instance for Alphabet type guards.
+ * @internal
  */
 export const alphabetRefinable: Refinable<Alphabet> =
   {
@@ -71,6 +72,7 @@ export const asAlphabet = (
 
 /**
  * Castable instance for Alphabet safe casting.
+ * @internal
  */
 export const alphabetCastable: Castable<Alphabet> =
   {
