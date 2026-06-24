@@ -98,7 +98,14 @@ test("no-directive spec stays DOM-free even right after a DOM spec", async () =>
   return all([
     check(v.passed, toBe(1)),
     check(v.failed, toBe(0)),
-    // The runner process itself is clean after teardown.
+    // The runner process itself is clean after teardown — NOT just
+    // `document`: `window`/`self`/`top` are happy-dom own-props too, and
+    // a save/restore bug on any of them would re-install the closed
+    // window and flip `typeof window` undefined→object for the next
+    // (no-DOM) spec. Asserting they are all gone closes that blind spot.
     check("document" in globalThis, toBe(false)),
+    check("window" in globalThis, toBe(false)),
+    check("self" in globalThis, toBe(false)),
+    check("top" in globalThis, toBe(false)),
   ]);
 });

@@ -27,29 +27,47 @@ const DIRECTIVE =
  * Reads the requested environment name from a spec file's source, if
  * any. Pure (a single file read, no globals touched). Returns the
  * environment token (e.g. `"happy-dom"`) or `undefined` when the spec
- * declares none — i.e. it runs under plain Node.
+ * declares none — i.e. it runs under plain Node. The directive must
+ * live in the LEADING comment block (matching the "first-lines" doc):
+ * we scan only the run of blank/`//`-comment lines at the top and stop
+ * at the first code line, so a directive-shaped substring inside a
+ * later string or comment is not a false positive.
  */
 export const environmentOf = (
   file: string,
 ): string | undefined => {
-  // Only the directive token matters; scanning the whole source keeps
-  // this robust to a leading license banner above the directive.
   const match = DIRECTIVE.exec(
-    readFileSync(file, "utf8"),
+    leadingComments(readFileSync(file, "utf8")),
   );
-  return match === undefined || match === null
-    ? undefined
-    : match[1];
+  return match === null ? undefined : match[1];
+};
+
+// The contiguous block of blank and `//`-comment lines at the top of a
+// source file, joined back into a string. Stops at the first line that
+// is neither blank nor a line comment (i.e. the first code).
+const leadingComments = (
+  source: string,
+): string => {
+  const lines = source.split("\n");
+  const end = lines.findIndex((line) => {
+    const trimmed = line.trim();
+    return (
+      trimmed !== "" && !trimmed.startsWith("//")
+    );
+  });
+  return (
+    end === -1 ? lines : lines.slice(0, end)
+  ).join("\n");
 };
 
 /**
- * A teardown handle: calling it restores `globalThis` to exactly the
- * state it had before {@link installEnvironment}, so a DOM installed for
- * one file never leaks into the next (mirrors the Runner's per-file
- * `resetRegistry` isolation). Async because happy-dom must abort its
- * pending async tasks (timers, the readyState transition) before its
- * window is detached — otherwise a late task crashes on a torn-down
- * document.
+ * A teardown handle: calling it returns `globalThis` to its prior
+ * (DOM-free) shape by removing exactly the additions installed, so a DOM
+ * installed for one file never leaks into the next (mirrors the Runner's
+ * per-file `resetRegistry` isolation). Async because happy-dom must
+ * abort its pending async tasks (timers, the readyState transition)
+ * before its window is detached — otherwise a late task crashes on a
+ * torn-down document.
  */
 export type RestoreEnv = () => Promise<void>;
 
@@ -77,35 +95,34 @@ export const installEnvironment = async (
   );
 };
 
-// Copies a freshly-constructed happy-dom `GlobalWindow`'s own
-// properties onto `globalThis` and returns a teardown that restores the
-// prior descriptors. The happy-dom module is imported dynamically so it
-// is pulled in only for DOM specs.
+// Mirrors a freshly-constructed happy-dom `GlobalWindow`'s DOM
+// additions onto `globalThis` and returns a teardown that removes
+// exactly those additions. The happy-dom module is imported dynamically
+// so it is pulled in only for DOM specs.
 const installHappyDom =
   async (): Promise<RestoreEnv> => {
     const { GlobalWindow } = await import(
       "happy-dom"
     );
     const win = new GlobalWindow();
-    const saved = new Map<
-      string,
-      PropertyDescriptor | undefined
-    >();
+    const added: Array<string> = [];
 
-    // `window` and `globalThis` must both point at the DOM window, and
-    // every own property of the happy-dom window (document, HTMLElement,
-    // matchMedia, getComputedStyle, …) is mirrored onto the global so
-    // module-eval-time access resolves. We record each prior descriptor
-    // to restore it exactly on teardown.
-    const keys = Object.getOwnPropertyNames(win);
+    // happy-dom's `GlobalWindow` carries TWO kinds of own properties:
+    // the JS intrinsics it re-exposes (`Array`, `Infinity`, `globalThis`,
+    // …) and the genuine DOM additions (`document`, `window`, `self`,
+    // `top`, `HTMLElement`, `getComputedStyle`, …). We install ONLY keys
+    // that do not already exist on the Node global — i.e. the DOM
+    // additions. Skipping pre-existing keys (a) never touches a
+    // non-configurable intrinsic like `Infinity` (which would throw on
+    // redefine), (b) never reassigns the real `globalThis`, and (c)
+    // makes teardown a clean delete of exactly what we added, with no
+    // prior-descriptor bookkeeping to get wrong. `window`/`self`/`top`
+    // ARE new on the Node global, so they install and point at the
+    // window (a spec can read `window.happyDOM`).
+    const keys = Object.getOwnPropertyNames(
+      win,
+    ).filter((key) => !(key in globalThis));
     keys.forEach((key) => {
-      saved.set(
-        key,
-        Object.getOwnPropertyDescriptor(
-          globalThis,
-          key,
-        ),
-      );
       const descriptor =
         Object.getOwnPropertyDescriptor(win, key);
       if (descriptor !== undefined) {
@@ -114,22 +131,8 @@ const installHappyDom =
           key,
           descriptor,
         );
+        added.push(key);
       }
-    });
-
-    // Expose `window` itself (some specs read `window.happyDOM`).
-    saved.set(
-      "window",
-      Object.getOwnPropertyDescriptor(
-        globalThis,
-        "window",
-      ),
-    );
-    Object.defineProperty(globalThis, "window", {
-      value: win,
-      writable: true,
-      enumerable: true,
-      configurable: true,
     });
 
     return async () => {
@@ -137,17 +140,11 @@ const installHappyDom =
       // `readyState` transition) and close the window BEFORE detaching
       // its globals, so no late task fires against a torn-down document.
       await win.happyDOM.close();
-      saved.forEach((descriptor, key) => {
-        if (descriptor === undefined) {
-          // The key did not exist before — remove it.
-          Reflect.deleteProperty(globalThis, key);
-        } else {
-          Object.defineProperty(
-            globalThis,
-            key,
-            descriptor,
-          );
-        }
+      // Remove exactly the DOM additions we installed, restoring the
+      // Node global to its prior (DOM-free) shape — no leak into the
+      // next file.
+      added.forEach((key) => {
+        Reflect.deleteProperty(globalThis, key);
       });
     };
   };
