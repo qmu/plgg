@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toHaveLength,
+  toContain,
+} from "plgg-test";
 import { filter, pipe } from "plgg";
 import {
   makeFoundry,
@@ -56,7 +63,6 @@ test("makeFoundry - valid foundry with apparatuses", () => {
     ],
   });
 
-  expect(foundry.apparatuses).toHaveLength(3);
   const processors = pipe(
     foundry.apparatuses,
     filter(isProcessor),
@@ -65,14 +71,19 @@ test("makeFoundry - valid foundry with apparatuses", () => {
     foundry.apparatuses,
     filter(isSwitcher),
   );
-  expect(processors).toHaveLength(1);
-  expect(switchers).toHaveLength(1);
-  expect(
-    processors[0]?.content.name.content,
-  ).toBe("test-processor");
-  expect(switchers[0]?.content.name.content).toBe(
-    "test-switcher",
-  );
+  return all([
+    check(foundry.apparatuses, toHaveLength(3)),
+    check(processors, toHaveLength(1)),
+    check(switchers, toHaveLength(1)),
+    check(
+      processors[0]?.content.name.content,
+      toBe("test-processor"),
+    ),
+    check(
+      switchers[0]?.content.name.content,
+      toBe("test-switcher"),
+    ),
+  ]);
 });
 
 /**
@@ -83,7 +94,10 @@ test("makeFoundry - empty apparatuses", () => {
     description: "Empty foundry",
     apparatuses: [],
   });
-  expect(foundry.apparatuses).toHaveLength(0);
+  return check(
+    foundry.apparatuses,
+    toHaveLength(0),
+  );
 });
 
 /**
@@ -158,7 +172,6 @@ test("makeFoundry - multiple apparatuses", () => {
     ],
   });
 
-  expect(foundry.apparatuses).toHaveLength(4);
   const processors = pipe(
     foundry.apparatuses,
     filter(isProcessor),
@@ -167,8 +180,11 @@ test("makeFoundry - multiple apparatuses", () => {
     foundry.apparatuses,
     filter(isSwitcher),
   );
-  expect(processors).toHaveLength(2);
-  expect(switchers).toHaveLength(2);
+  return all([
+    check(foundry.apparatuses, toHaveLength(4)),
+    check(processors, toHaveLength(2)),
+    check(switchers, toHaveLength(2)),
+  ]);
 });
 
 /**
@@ -177,22 +193,34 @@ test("makeFoundry - multiple apparatuses", () => {
 test("explainFoundry with todoFoundry", () => {
   const explanation = explainFoundry(todoFoundry);
 
-  // Check foundry description section
-  expect(explanation).toContain(
-    "## 1. Foundry Description",
-  );
-  expect(explanation).toContain("A foundry of TODOs");
-
-  // Check processors section
-  expect(explanation).toContain(
-    "## 2. Processors",
-  );
-  expect(explanation).toContain("### 2-1. add");
-  expect(explanation).toContain("### 2-2. remove");
-
-  // Check apparatus details are included
-  expect(explanation).toContain("Inserts new todo");
-  expect(explanation).toContain(
-    "Removes a todo by todo id",
-  );
+  return all([
+    check(
+      explanation,
+      toContain("## 1. Foundry Description"),
+    ),
+    check(
+      explanation,
+      toContain("A foundry of TODOs"),
+    ),
+    check(
+      explanation,
+      toContain("## 2. Processors"),
+    ),
+    check(
+      explanation,
+      toContain("### 2-1. add"),
+    ),
+    check(
+      explanation,
+      toContain("### 2-2. remove"),
+    ),
+    check(
+      explanation,
+      toContain("Inserts new todo"),
+    ),
+    check(
+      explanation,
+      toContain("Removes a todo by todo id"),
+    ),
+  ]);
 });
