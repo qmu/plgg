@@ -54,8 +54,9 @@ Other launch facts: system-safety `system_changes_authorized=false` (project-loc
 - [x] [Coding] Concurrent launch (dev-env / codebase discovery / queue reconfirm) — 3 blockers found
 - [x] [Coding] U1 foundation archived (81681f0): Finding A fix (self-suite 0→84), R1 matcher, Gate B parity (deepEqual≡toEqual, no divergence)
 - [x] [Coding] U1-dom archived (e5400ba): leak-proof DOM-environment seam (self-suite 84→86), 1 revision cycle (window/self/top leak caught by Architect, fixed)
-- [ ] [Coding] U0-fix-fs-case-collision (production source: style.ts/Style, ssg.ts/Ssg)
+- [x] [Coding] U0-fix-fs-case-collision archived (5acdbbc): style.ts→styleEntry.ts, ssg.ts→ssgEntry.ts, public API preserved, Finding B cleared
 - [ ] [Coding] U2 per-package ×9 (leaf-first: http,kit,router,sql,fetch,foundry,view,server,example)
+  - [ ] http  - [ ] kit  - [ ] router  - [ ] sql  - [ ] fetch  - [ ] foundry  - [ ] view  - [ ] server  - [ ] example
 - [ ] [Coding] U3 cleanup + final grep gate (+ carry-overs below)
 
 ### Coding-phase carry-overs (to fold into later reviews / U3 final acceptance)

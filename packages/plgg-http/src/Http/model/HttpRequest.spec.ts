@@ -1,12 +1,13 @@
-import { test, expect } from "vitest";
 import {
-  isSome,
-  isNone,
-  some,
-  none,
-  SoftStr,
-  Dict,
-} from "plgg";
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  someThen,
+  shouldBeNone,
+} from "plgg-test";
+import { some, none, SoftStr, Dict } from "plgg";
 import {
   HttpRequest,
   getHeader,
@@ -33,66 +34,72 @@ test("getHeader is case-insensitive and returns Option", () => {
   const r = req({
     headers: { "x-token": "abc" },
   });
-  const found = getHeader(r, "X-Token");
-  expect(isSome(found)).toBe(true);
-  if (isSome(found)) {
-    expect(found.content).toBe("abc");
-  }
-  expect(isNone(getHeader(r, "absent"))).toBe(
-    true,
-  );
+  return all([
+    check(
+      getHeader(r, "X-Token"),
+      someThen((v) => toBe("abc")(v)),
+    ),
+    check(getHeader(r, "absent"), shouldBeNone()),
+  ]);
 });
 
 test("inherited Object.prototype keys are not spurious Somes", () => {
   const r = req();
-  expect(isNone(getQuery(r, "constructor"))).toBe(
-    true,
-  );
-  expect(isNone(getQuery(r, "__proto__"))).toBe(
-    true,
-  );
-  expect(isNone(getHeader(r, "toString"))).toBe(
-    true,
-  );
-  expect(
-    isNone(getParam(r, "hasOwnProperty")),
-  ).toBe(true);
+  return all([
+    check(
+      getQuery(r, "constructor"),
+      shouldBeNone(),
+    ),
+    check(
+      getQuery(r, "__proto__"),
+      shouldBeNone(),
+    ),
+    check(
+      getHeader(r, "toString"),
+      shouldBeNone(),
+    ),
+    check(
+      getParam(r, "hasOwnProperty"),
+      shouldBeNone(),
+    ),
+  ]);
 });
 
 test("getQuery returns Option", () => {
   const r = req({ query: { q: "cat" } });
-  const found = getQuery(r, "q");
-  expect(isSome(found)).toBe(true);
-  if (isSome(found)) {
-    expect(found.content).toBe("cat");
-  }
-  expect(isNone(getQuery(r, "z"))).toBe(true);
+  return all([
+    check(
+      getQuery(r, "q"),
+      someThen((v) => toBe("cat")(v)),
+    ),
+    check(getQuery(r, "z"), shouldBeNone()),
+  ]);
 });
 
 test("getParam returns Option", () => {
   const r = req({ params: { id: "7" } });
-  const found = getParam(r, "id");
-  expect(isSome(found)).toBe(true);
-  if (isSome(found)) {
-    expect(found.content).toBe("7");
-  }
-  expect(isNone(getParam(r, "missing"))).toBe(
-    true,
-  );
+  return all([
+    check(
+      getParam(r, "id"),
+      someThen((v) => toBe("7")(v)),
+    ),
+    check(getParam(r, "missing"), shouldBeNone()),
+  ]);
 });
 
 test("getBytes is None for a text request and Some for a binary one", () => {
-  expect(isNone(getBytes(req()))).toBe(true);
   const binary = req({
     bytes: some(new Uint8Array([1, 2, 3])),
   });
-  const found = getBytes(binary);
-  expect(isSome(found)).toBe(true);
-  if (isSome(found)) {
-    expect(Array.from(found.content)).toEqual([
-      1, 2, 3,
-    ]);
-  }
+  return all([
+    check(getBytes(req()), shouldBeNone()),
+    check(
+      getBytes(binary),
+      someThen((v) =>
+        toEqual([1, 2, 3])(Array.from(v)),
+      ),
+    ),
+  ]);
 });
 
 test("withParams attaches params immutably", () => {
@@ -101,6 +108,8 @@ test("withParams attaches params immutably", () => {
     id: "9",
   };
   const next = withParams(base, params);
-  expect(next.params).toEqual({ id: "9" });
-  expect(base.params).toEqual({});
+  return all([
+    check(next.params, toEqual({ id: "9" })),
+    check(base.params, toEqual({})),
+  ]);
 });
