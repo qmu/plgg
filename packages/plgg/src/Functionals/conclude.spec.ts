@@ -1,12 +1,18 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   Result,
   conclude,
   pipe,
   ok,
   err,
-  isOk,
-  isErr,
 } from "plgg/index";
 
 test("conclude - success case with all valid results", () => {
@@ -19,23 +25,26 @@ test("conclude - success case with all valid results", () => {
       : ok(num);
   };
 
-  const r1 = pipe([], conclude(parseNumber));
-  assert(isOk(r1));
-  expect(r1.content).toEqual([]);
-
-  const r2 = pipe(
-    ["1", "2", "3"],
-    conclude(parseNumber),
-  );
-  assert(isOk(r2));
-  expect(r2.content).toEqual([1, 2, 3]);
-
-  const r3 = pipe(
-    ["42", "3.14", "0"],
-    conclude(parseNumber),
-  );
-  assert(isOk(r3));
-  expect(r3.content).toEqual([42, 3.14, 0]);
+  return all([
+    check(
+      pipe([], conclude(parseNumber)),
+      okThen(toEqual([])),
+    ),
+    check(
+      pipe(
+        ["1", "2", "3"],
+        conclude(parseNumber),
+      ),
+      okThen(toEqual([1, 2, 3])),
+    ),
+    check(
+      pipe(
+        ["42", "3.14", "0"],
+        conclude(parseNumber),
+      ),
+      okThen(toEqual([42, 3.14, 0])),
+    ),
+  ]);
 });
 
 test("conclude - failure case with first error returned", () => {
@@ -56,51 +65,76 @@ test("conclude - failure case with first error returned", () => {
     return ok(num);
   };
 
-  const r1 = pipe(
-    ["invalid"],
-    conclude(parsePositiveNumber),
-  );
-  assert(isErr(r1));
-  expect(r1.content.length).toBe(1);
-  expect(r1.content[0]?.message).toBe(
-    "Invalid number: invalid",
-  );
-
-  const r2 = pipe(
-    ["1", "invalid", "3"],
-    conclude(parsePositiveNumber),
-  );
-  assert(isErr(r2));
-  expect(r2.content.length).toBe(1);
-  expect(r2.content[0]?.message).toBe(
-    "Invalid number: invalid",
-  );
-
-  const r3 = pipe(
-    ["1", "-5", "3"],
-    conclude(parsePositiveNumber),
-  );
-  assert(isErr(r3));
-  expect(r3.content.length).toBe(1);
-  expect(r3.content[0]?.message).toBe(
-    "Non-positive number: -5",
-  );
-
-  const r4 = pipe(
-    ["-1", "invalid", "0"],
-    conclude(parsePositiveNumber),
-  );
-  assert(isErr(r4));
-  expect(r4.content.length).toBe(3);
-  expect(r4.content[0]?.message).toBe(
-    "Non-positive number: -1",
-  );
-  expect(r4.content[1]?.message).toBe(
-    "Invalid number: invalid",
-  );
-  expect(r4.content[2]?.message).toBe(
-    "Non-positive number: 0",
-  );
+  return all([
+    check(
+      pipe(
+        ["invalid"],
+        conclude(parsePositiveNumber),
+      ),
+      errThen((e) =>
+        all([
+          check(e.length, toBe(1)),
+          check(
+            e[0]?.message,
+            toBe("Invalid number: invalid"),
+          ),
+        ]),
+      ),
+    ),
+    check(
+      pipe(
+        ["1", "invalid", "3"],
+        conclude(parsePositiveNumber),
+      ),
+      errThen((e) =>
+        all([
+          check(e.length, toBe(1)),
+          check(
+            e[0]?.message,
+            toBe("Invalid number: invalid"),
+          ),
+        ]),
+      ),
+    ),
+    check(
+      pipe(
+        ["1", "-5", "3"],
+        conclude(parsePositiveNumber),
+      ),
+      errThen((e) =>
+        all([
+          check(e.length, toBe(1)),
+          check(
+            e[0]?.message,
+            toBe("Non-positive number: -5"),
+          ),
+        ]),
+      ),
+    ),
+    check(
+      pipe(
+        ["-1", "invalid", "0"],
+        conclude(parsePositiveNumber),
+      ),
+      errThen((e) =>
+        all([
+          check(e.length, toBe(3)),
+          check(
+            e[0]?.message,
+            toBe("Non-positive number: -1"),
+          ),
+          check(
+            e[1]?.message,
+            toBe("Invalid number: invalid"),
+          ),
+          check(
+            e[2]?.message,
+            toBe("Non-positive number: 0"),
+          ),
+        ]),
+      ),
+    ),
+  ]);
 });
 
 test("conclude - mixed types transformation", () => {
@@ -121,27 +155,34 @@ test("conclude - mixed types transformation", () => {
     return ok(`number: ${x}`);
   };
 
-  const r1 = pipe(
-    [0, 1, 2, 10],
-    conclude(processValue),
-  );
-  assert(isOk(r1));
-  expect(r1.content).toEqual([
-    "zero",
-    "one",
-    "number: 2",
-    "number: 10",
+  return all([
+    check(
+      pipe(
+        [0, 1, 2, 10],
+        conclude(processValue),
+      ),
+      okThen(
+        toEqual([
+          "zero",
+          "one",
+          "number: 2",
+          "number: 10",
+        ]),
+      ),
+    ),
+    check(
+      pipe([1, -1, 2], conclude(processValue)),
+      errThen((e) =>
+        all([
+          check(e.length, toBe(1)),
+          check(
+            e[0]?.message,
+            toBe("Negative value not allowed"),
+          ),
+        ]),
+      ),
+    ),
   ]);
-
-  const r2 = pipe(
-    [1, -1, 2],
-    conclude(processValue),
-  );
-  assert(isErr(r2));
-  expect(r2.content.length).toBe(1);
-  expect(r2.content[0]?.message).toBe(
-    "Negative value not allowed",
-  );
 });
 
 test("conclude - processes all elements but returns first error", () => {
@@ -161,19 +202,31 @@ test("conclude - processes all elements but returns first error", () => {
     [1, 2, 3, 4],
     conclude(trackingFunction),
   );
-  assert(isErr(r1));
-  expect(r1.content.length).toBe(1);
-  expect(r1.content[0]?.message).toBe(
-    "Error at 2",
-  );
-  expect(callCount).toBe(4);
+  const a1 = all([
+    check(
+      r1,
+      errThen((e) =>
+        all([
+          check(e.length, toBe(1)),
+          check(
+            e[0]?.message,
+            toBe("Error at 2"),
+          ),
+        ]),
+      ),
+    ),
+    check(callCount, toBe(4)),
+  ]);
 
   callCount = 0;
   const r2 = pipe(
     [1, 3, 4],
     conclude(trackingFunction),
   );
-  assert(isOk(r2));
-  expect(r2.content).toEqual([10, 30, 40]);
-  expect(callCount).toBe(3);
+  const a2 = all([
+    check(r2, okThen(toEqual([10, 30, 40]))),
+    check(callCount, toBe(3)),
+  ]);
+
+  return all([a1, a2]);
 });

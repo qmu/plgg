@@ -1,17 +1,27 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+} from "plgg-test";
 import {
   isStr,
   asStr,
-  isOk,
   isErr,
   box,
 } from "plgg/index";
 
-test("isStr and asStr basic validation", () => {
-  expect(isStr(box("Str")("hello"))).toBe(true);
-  const result = asStr("test");
-  assert(isOk(result));
-  expect(result.content.content).toBe("test");
-  assert(isErr(asStr("")));
-  assert(isErr(asStr(123)));
-});
+test("isStr and asStr basic validation", () =>
+  all([
+    check(
+      isStr(box("Str")("hello")),
+      toBe(true),
+    ),
+    check(
+      asStr("test"),
+      okThen((v) => toBe("test")(v.content)),
+    ),
+    check(isErr(asStr("")), toBe(true)),
+    check(isErr(asStr(123)), toBe(true)),
+  ]));

@@ -1,4 +1,9 @@
-import { test, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import {
   asU32,
   isOk,
@@ -6,8 +11,14 @@ import {
   box,
 } from "plgg/index";
 
-test("asU32 basic validation", () => {
-  const result = asU32(box("U32")(100000));
-  assert(isOk(result));
-  assert(isErr(asU32(5000000000)));
-});
+test("asU32 basic validation", () =>
+  all([
+    check(
+      isOk(asU32(box("U32")(100000))),
+      toBe(true),
+    ),
+    check(
+      isErr(asU32(5000000000)),
+      toBe(true),
+    ),
+  ]));

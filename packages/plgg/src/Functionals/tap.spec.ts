@@ -1,4 +1,12 @@
-import { test, expect, vi } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  vi,
+  deepEqual,
+} from "plgg-test";
 import { tap } from "plgg/index";
 
 test("tap executes side effect and returns value unchanged", () => {
@@ -8,11 +16,19 @@ test("tap executes side effect and returns value unchanged", () => {
 
   const result = tapper("test-value");
 
-  expect(result).toBe("test-value");
-  expect(sideEffectFn).toHaveBeenCalledWith(
-    "test-value",
-  );
-  expect(sideEffectFn).toHaveBeenCalledTimes(1);
+  return all([
+    check(result, toBe("test-value")),
+    check(
+      sideEffectFn.mock.calls.some((c) =>
+        deepEqual(c, ["test-value"]),
+      ),
+      toBe(true),
+    ),
+    check(
+      sideEffectFn.mock.calls.length,
+      toBe(1),
+    ),
+  ]);
 });
 
 test("tap works with console.log", () => {
@@ -23,10 +39,18 @@ test("tap works with console.log", () => {
   const logTap = tap(console.log);
   const result = logTap(42);
 
-  expect(result).toBe(42);
-  expect(consoleSpy).toHaveBeenCalledWith(42);
+  const assertion = all([
+    check(result, toBe(42)),
+    check(
+      consoleSpy.mock.calls.some((c) =>
+        deepEqual(c, [42]),
+      ),
+      toBe(true),
+    ),
+  ]);
 
   consoleSpy.mockRestore();
+  return assertion;
 });
 
 test("tap preserves object references", () => {
@@ -35,19 +59,29 @@ test("tap preserves object references", () => {
 
   const result = tap(sideEffectFn)(obj);
 
-  expect(result).toBe(obj);
-  expect(sideEffectFn).toHaveBeenCalledWith(obj);
+  return all([
+    check(result, toBe(obj)),
+    check(
+      sideEffectFn.mock.calls.some((c) =>
+        deepEqual(c, [obj]),
+      ),
+      toBe(true),
+    ),
+  ]);
 });
 
 test("tap can be used for debugging in pipelines", () => {
   const logs: unknown[] = [];
-  const logger = (value: unknown) => logs.push(value);
+  const logger = (value: unknown) =>
+    logs.push(value);
 
   const processValue = (x: number) =>
     tap(logger)(x * 2);
 
   const result = processValue(5);
 
-  expect(result).toBe(10);
-  expect(logs).toEqual([10]);
+  return all([
+    check(result, toBe(10)),
+    check(logs, toEqual([10])),
+  ]);
 });

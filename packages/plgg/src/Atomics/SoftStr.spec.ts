@@ -1,8 +1,14 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   isSoftStr,
   asSoftStr,
-  isOk,
   isErr,
   concat,
   err,
@@ -10,63 +16,75 @@ import {
   invalidError,
 } from "plgg/index";
 
-test("isSoftStr correctly identifies string values", () => {
-  // Valid strings
-  expect(isSoftStr("hello")).toBe(true);
-  expect(isSoftStr("")).toBe(true);
-  expect(isSoftStr("123")).toBe(true);
-  expect(isSoftStr(" whitespace ")).toBe(true);
-  expect(isSoftStr("special chars: !@#$%")).toBe(
-    true,
-  );
+test("isSoftStr correctly identifies string values", () =>
+  all([
+    // Valid strings
+    check(isSoftStr("hello"), toBe(true)),
+    check(isSoftStr(""), toBe(true)),
+    check(isSoftStr("123"), toBe(true)),
+    check(
+      isSoftStr(" whitespace "),
+      toBe(true),
+    ),
+    check(
+      isSoftStr("special chars: !@#$%"),
+      toBe(true),
+    ),
+    // Invalid types
+    check(isSoftStr(123), toBe(false)),
+    check(isSoftStr(true), toBe(false)),
+    check(isSoftStr(null), toBe(false)),
+    check(isSoftStr(undefined), toBe(false)),
+    check(isSoftStr({}), toBe(false)),
+    check(isSoftStr([]), toBe(false)),
+    check(
+      isSoftStr(Symbol("test")),
+      toBe(false),
+    ),
+  ]));
 
-  // Invalid types
-  expect(isSoftStr(123)).toBe(false);
-  expect(isSoftStr(true)).toBe(false);
-  expect(isSoftStr(null)).toBe(false);
-  expect(isSoftStr(undefined)).toBe(false);
-  expect(isSoftStr({})).toBe(false);
-  expect(isSoftStr([])).toBe(false);
-  expect(isSoftStr(Symbol("test"))).toBe(false);
-});
-
-test("asSoftStr validates and returns string values", () => {
-  // Example: User input validation
-  const validString = asSoftStr("user@example.com");
-  assert(isOk(validString));
-  expect(validString.content).toBe(
-    "user@example.com",
-  );
-
-  const emptyString = asSoftStr("");
-  assert(isOk(emptyString));
-  expect(emptyString.content).toBe("");
-
-  // Example: API response validation
-  const numberInput = asSoftStr(123);
-  assert(isErr(numberInput));
-  expect(numberInput.content.content.message).toBe(
-    "123 is not a string",
-  );
-
-  const booleanInput = asSoftStr(true);
-  assert(isErr(booleanInput));
-  expect(booleanInput.content.content.message).toBe(
-    "true is not a string",
-  );
-
-  const nullInput = asSoftStr(null);
-  assert(isErr(nullInput));
-  expect(nullInput.content.content.message).toBe(
-    "null is not a string",
-  );
-
-  const undefinedInput = asSoftStr(undefined);
-  assert(isErr(undefinedInput));
-  expect(undefinedInput.content.content.message).toBe(
-    "undefined is not a string",
-  );
-});
+test("asSoftStr validates and returns string values", () =>
+  all([
+    // Example: User input validation
+    check(
+      asSoftStr("user@example.com"),
+      okThen(toBe("user@example.com")),
+    ),
+    check(asSoftStr(""), okThen(toBe(""))),
+    // Example: API response validation
+    check(
+      asSoftStr(123),
+      errThen((e) =>
+        toBe("123 is not a string")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asSoftStr(true),
+      errThen((e) =>
+        toBe("true is not a string")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asSoftStr(null),
+      errThen((e) =>
+        toBe("null is not a string")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asSoftStr(undefined),
+      errThen((e) =>
+        toBe("undefined is not a string")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]));
 
 test("asSoftStr works in validation pipelines", () => {
   // Example: Email validation pipeline
@@ -85,44 +103,45 @@ test("asSoftStr works in validation pipelines", () => {
         );
   };
 
-  const validEmail = validateEmail(
-    "user@example.com",
-  );
-  assert(isOk(validEmail));
-  expect(validEmail.content).toBe(
-    "user@example.com",
-  );
-
-  const invalidType = validateEmail(123);
-  assert(isErr(invalidType));
-  expect(invalidType.content.content.message).toBe(
-    "123 is not a string",
-  );
-
-  const invalidFormat = validateEmail(
-    "not-an-email",
-  );
-  assert(isErr(invalidFormat));
-  expect(invalidFormat.content.content.message).toBe(
-    "Invalid email format",
-  );
+  return all([
+    check(
+      validateEmail("user@example.com"),
+      okThen(toBe("user@example.com")),
+    ),
+    check(
+      validateEmail(123),
+      errThen((e) =>
+        toBe("123 is not a string")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      validateEmail("not-an-email"),
+      errThen((e) =>
+        toBe("Invalid email format")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]);
 });
 
-test("concat concatenates strings correctly", () => {
-  // Basic concatenation
-  expect(concat(" world")("hello")).toBe(
-    "hello world",
-  );
-  expect(concat("")("test")).toBe("test");
-
-  // Concatenating special characters
-  expect(concat("!@#$%")("special")).toBe(
-    "special!@#$%",
-  );
-
-  // Concatenating with empty strings
-  expect(concat("")("")).toBe("");
-
-  // Concatenating with numbers as strings
-  expect(concat("123")("456")).toBe("456123");
-});
+test("concat concatenates strings correctly", () =>
+  all([
+    // Basic concatenation
+    check(
+      concat(" world")("hello"),
+      toBe("hello world"),
+    ),
+    check(concat("")("test"), toBe("test")),
+    // Concatenating special characters
+    check(
+      concat("!@#$%")("special"),
+      toBe("special!@#$%"),
+    ),
+    // Concatenating with empty strings
+    check(concat("")(""), toBe("")),
+    // Concatenating with numbers as strings
+    check(concat("123")("456"), toBe("456123")),
+  ]));

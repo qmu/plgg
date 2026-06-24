@@ -1,91 +1,93 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   isNum,
   asNum,
-  isOk,
   isErr,
   err,
   ok,
   invalidError,
 } from "plgg/index";
 
-test("isNum correctly identifies numeric values", () => {
-  // Valid numbers
-  expect(isNum(123)).toBe(true);
-  expect(isNum(0)).toBe(true);
-  expect(isNum(-123)).toBe(true);
-  expect(isNum(3.14)).toBe(true);
-  expect(isNum(Number.MAX_SAFE_INTEGER)).toBe(
-    true,
-  );
-  expect(isNum(Number.MIN_SAFE_INTEGER)).toBe(
-    true,
-  );
-  expect(isNum(Infinity)).toBe(true);
-  expect(isNum(-Infinity)).toBe(true);
-  expect(isNum(NaN)).toBe(true);
+test("isNum correctly identifies numeric values", () =>
+  all([
+    // Valid numbers
+    check(isNum(123), toBe(true)),
+    check(isNum(0), toBe(true)),
+    check(isNum(-123), toBe(true)),
+    check(isNum(3.14), toBe(true)),
+    check(
+      isNum(Number.MAX_SAFE_INTEGER),
+      toBe(true),
+    ),
+    check(
+      isNum(Number.MIN_SAFE_INTEGER),
+      toBe(true),
+    ),
+    check(isNum(Infinity), toBe(true)),
+    check(isNum(-Infinity), toBe(true)),
+    check(isNum(NaN), toBe(true)),
+    // BigInt values within safe range
+    check(isNum(BigInt(123)), toBe(true)),
+    check(
+      isNum(BigInt(Number.MAX_SAFE_INTEGER)),
+      toBe(true),
+    ),
+    check(
+      isNum(BigInt(Number.MIN_SAFE_INTEGER)),
+      toBe(true),
+    ),
+    // Invalid types
+    check(isNum("123"), toBe(false)),
+    check(isNum(true), toBe(false)),
+    check(isNum(null), toBe(false)),
+    check(isNum(undefined), toBe(false)),
+    check(isNum({}), toBe(false)),
+    check(isNum([]), toBe(false)),
+    check(isNum(Symbol("test")), toBe(false)),
+  ]));
 
-  // BigInt values within safe range
-  expect(isNum(BigInt(123))).toBe(true);
-  expect(
-    isNum(BigInt(Number.MAX_SAFE_INTEGER)),
-  ).toBe(true);
-  expect(
-    isNum(BigInt(Number.MIN_SAFE_INTEGER)),
-  ).toBe(true);
-
-  // Invalid types
-  expect(isNum("123")).toBe(false);
-  expect(isNum(true)).toBe(false);
-  expect(isNum(null)).toBe(false);
-  expect(isNum(undefined)).toBe(false);
-  expect(isNum({})).toBe(false);
-  expect(isNum([])).toBe(false);
-  expect(isNum(Symbol("test"))).toBe(false);
-});
-
-test("asNum validates and converts numeric values", () => {
-  // Example: Age validation
-  const validAge = asNum(25);
-  assert(isOk(validAge));
-  expect(validAge.content).toBe(25);
-
-  const zeroAge = asNum(0);
-  assert(isOk(zeroAge));
-  expect(zeroAge.content).toBe(0);
-
-  const negativeValue = asNum(-123);
-  assert(isOk(negativeValue));
-  expect(negativeValue.content).toBe(-123);
-
-  const floatValue = asNum(3.14);
-  assert(isOk(floatValue));
-  expect(floatValue.content).toBe(3.14);
-
-  // BigInt conversion
-  const bigIntValue = asNum(BigInt(42));
-  assert(isOk(bigIntValue));
-  expect(bigIntValue.content).toBe(42);
-
-  // Example: API response validation
-  const stringInput = asNum("123");
-  assert(isErr(stringInput));
-  expect(stringInput.content.content.message).toBe(
-    "Value is not a number",
-  );
-
-  const booleanInput = asNum(true);
-  assert(isErr(booleanInput));
-  expect(booleanInput.content.content.message).toBe(
-    "Value is not a number",
-  );
-
-  const nullInput = asNum(null);
-  assert(isErr(nullInput));
-  expect(nullInput.content.content.message).toBe(
-    "Value is not a number",
-  );
-});
+test("asNum validates and converts numeric values", () =>
+  all([
+    // Example: Age validation
+    check(asNum(25), okThen(toBe(25))),
+    check(asNum(0), okThen(toBe(0))),
+    check(asNum(-123), okThen(toBe(-123))),
+    check(asNum(3.14), okThen(toBe(3.14))),
+    // BigInt conversion
+    check(asNum(BigInt(42)), okThen(toBe(42))),
+    // Example: API response validation
+    check(
+      asNum("123"),
+      errThen((e) =>
+        toBe("Value is not a number")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asNum(true),
+      errThen((e) =>
+        toBe("Value is not a number")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asNum(null),
+      errThen((e) =>
+        toBe("Value is not a number")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]));
 
 test("asNum works in validation pipelines", () => {
   // Example: Price validation with business rules
@@ -111,46 +113,54 @@ test("asNum works in validation pipelines", () => {
     return ok(price);
   };
 
-  const validPrice = validatePrice(29.99);
-  assert(isOk(validPrice));
-  expect(validPrice.content).toBe(29.99);
-
-  const invalidType = validatePrice(
-    "not-a-number",
-  );
-  assert(isErr(invalidType));
-  expect(invalidType.content.content.message).toBe(
-    "Value is not a number",
-  );
-
-  const negativePrice = validatePrice(-5);
-  assert(isErr(negativePrice));
-  expect(negativePrice.content.content.message).toBe(
-    "Price cannot be negative",
-  );
-
-  const expensivePrice = validatePrice(15000);
-  assert(isErr(expensivePrice));
-  expect(expensivePrice.content.content.message).toBe(
-    "Price too high",
-  );
+  return all([
+    check(
+      validatePrice(29.99),
+      okThen(toBe(29.99)),
+    ),
+    check(
+      validatePrice("not-a-number"),
+      errThen((e) =>
+        toBe("Value is not a number")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      validatePrice(-5),
+      errThen((e) =>
+        toBe("Price cannot be negative")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      validatePrice(15000),
+      errThen((e) =>
+        toBe("Price too high")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]);
 });
 
-test("asNum handles special numeric values", () => {
-  // Example: Mathematical operations that might produce special values
-  const infinityResult = asNum(Infinity);
-  assert(isOk(infinityResult));
-  expect(infinityResult.content).toBe(Infinity);
-
-  const negativeInfinityResult = asNum(-Infinity);
-  assert(isOk(negativeInfinityResult));
-  expect(negativeInfinityResult.content).toBe(
-    -Infinity,
-  );
-
-  const nanResult = asNum(NaN);
-  assert(isOk(nanResult));
-  expect(Number.isNaN(nanResult.content)).toBe(
-    true,
-  );
-});
+test("asNum handles special numeric values", () =>
+  all([
+    // Example: Mathematical operations that
+    // might produce special values
+    check(
+      asNum(Infinity),
+      okThen(toBe(Infinity)),
+    ),
+    check(
+      asNum(-Infinity),
+      okThen(toBe(-Infinity)),
+    ),
+    check(
+      asNum(NaN),
+      okThen((n) =>
+        toBe(true)(Number.isNaN(n)),
+      ),
+    ),
+  ]));

@@ -1,4 +1,11 @@
-import { describe, it, expect } from "plgg-test";
+import {
+  describe,
+  it,
+  check,
+  all,
+  toBe,
+  toEqual,
+} from "plgg-test";
 import {
   OptionalDatum,
   jsonEncode,
@@ -22,20 +29,33 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        expect(restored.content).toBe(
-          "hello world",
-        );
-        // Verify type guards work on deserialized option
-        expect(isSome(restored)).toBe(true);
-        expect(isNone(restored)).toBe(false);
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [
+              check(
+                restored.content,
+                toBe("hello world"),
+              ),
+              // Verify type guards work on deserialized option
+              check(
+                isSome(restored),
+                toBe(true),
+              ),
+              check(
+                isNone(restored),
+                toBe(false),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize Some OptionalDatum with number", () => {
@@ -45,15 +65,19 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        expect(restored.content).toBe(42.5);
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [check(restored.content, toBe(42.5))]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize Some OptionalDatum with boolean", () => {
@@ -63,15 +87,19 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        expect(restored.content).toBe(true);
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [check(restored.content, toBe(true))]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize Some OptionalDatum with BigInt", () => {
@@ -81,20 +109,30 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        expect(restored.content).toBe(
-          123456789012345678901234567890n,
-        );
-        expect(typeof restored.content).toBe(
-          "bigint",
-        );
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [
+              check(
+                restored.content,
+                toBe(
+                  123456789012345678901234567890n,
+                ),
+              ),
+              check(
+                typeof restored.content,
+                toBe("bigint"),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize None OptionalDatum", () => {
@@ -104,18 +142,30 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isNone(restored)).toBe(true);
-      // Verify type guards work on deserialized None
-      if (isOptionalDatum(restored)) {
-        expect(isSome(restored)).toBe(false);
-        expect(isNone(restored)).toBe(true);
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(isNone(restored), toBe(true)),
+        // Verify type guards work on deserialized None
+        ...(isOptionalDatum(restored)
+          ? [
+              check(
+                isSome(restored),
+                toBe(false),
+              ),
+              check(
+                isNone(restored),
+                toBe(true),
+              ),
+            ]
+          : []),
+      ]);
     });
   });
 
@@ -130,18 +180,27 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        expect(restored.content).toEqual({
-          name: "Alice",
-          age: 30,
-        });
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [
+              check(
+                restored.content,
+                toEqual({
+                  name: "Alice",
+                  age: 30,
+                }),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize Some OptionalDatum with nested object", () => {
@@ -159,20 +218,24 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        const content = restored.content as any;
-        expect(content.user.name).toBe("Bob");
-        expect(content.user.details.age).toBe(25);
-        expect(content.user.details.active).toBe(
-          true,
-        );
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [
+              check(
+                restored.content,
+                toEqual(nestedObjectData),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize Some OptionalDatum with array", () => {
@@ -182,18 +245,28 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        const content = restored.content as any;
-        expect(content).toEqual([1, 2, 3, 4, 5]);
-        expect(Array.isArray(content)).toBe(true);
-        expect(content.length).toBe(5);
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [
+              check(
+                restored.content,
+                toEqual([1, 2, 3, 4, 5]),
+              ),
+              check(
+                Array.isArray(restored.content),
+                toBe(true),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should serialize and deserialize Some OptionalDatum with mixed object containing BigInt", () => {
@@ -207,24 +280,24 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const restored = jsonDecode(jsonString);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        const content = restored.content as any;
-        expect(content.id).toBe(123n);
-        expect(typeof content.id).toBe("bigint");
-        expect(content.name).toBe("Charlie");
-        expect(content.balance).toBe(
-          456789012345678901234567890n,
-        );
-        expect(typeof content.balance).toBe(
-          "bigint",
-        );
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [
+              check(
+                restored.content,
+                toEqual(mixedObjectData),
+              ),
+            ]
+          : []),
+      ]);
     });
   });
 
@@ -236,12 +309,16 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+      ]);
     });
 
     it("should convert None OptionalDatum to JsonReady and back", () => {
@@ -251,13 +328,17 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonReady = toJsonReady(original);
       const restored = fromJsonReady(jsonReady);
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isNone(restored)).toBe(true);
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(isNone(restored), toBe(true)),
+      ]);
     });
 
     it("should use toJsonReadyOptionalDatum for Some OptionalDatum", () => {
@@ -266,12 +347,17 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
       const jsonReady =
         toJsonReadyOptionalDatum(original);
-      expect(isSome(jsonReady)).toBe(true);
-      if (isSome(jsonReady)) {
-        expect(jsonReady.content).toBe(
-          "direct test",
-        );
-      }
+      return all([
+        check(isSome(jsonReady), toBe(true)),
+        ...(isSome(jsonReady)
+          ? [
+              check(
+                jsonReady.content,
+                toBe("direct test"),
+              ),
+            ]
+          : []),
+      ]);
     });
 
     it("should use toJsonReadyOptionalDatum for None OptionalDatum", () => {
@@ -280,7 +366,7 @@ describe("OptionalDatum Serialization/Deserialization", () => {
 
       const jsonReady =
         toJsonReadyOptionalDatum(original);
-      expect(isNone(jsonReady)).toBe(true);
+      return check(isNone(jsonReady), toBe(true));
     });
   });
 
@@ -293,37 +379,59 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         some(0n),
       ];
 
-      cases.forEach((original) => {
-        const jsonString = jsonEncode(original);
-        const restored = jsonDecode(jsonString);
+      return all(
+        cases.map((original) => {
+          const jsonString =
+            jsonEncode(original);
+          const restored =
+            jsonDecode(jsonString);
 
-        expect(isOptionalDatum(restored)).toBe(
-          true,
-        );
-        expect(isOptionalDatum(restored)).toBe(
-          true,
-        );
-        expect(isSome(restored)).toBe(true);
-      });
+          return all([
+            check(
+              isOptionalDatum(restored),
+              toBe(true),
+            ),
+            check(
+              isOptionalDatum(restored),
+              toBe(true),
+            ),
+            check(
+              isSome(restored),
+              toBe(true),
+            ),
+          ]);
+        }),
+      );
     });
 
     it("should handle Some OptionalDatum with special string values", () => {
       const emptyStringCase = some("");
       const specialCharsCase = some("null");
 
-      [emptyStringCase, specialCharsCase].forEach(
-        (original) => {
-          const jsonString = jsonEncode(original);
-          const restored = jsonDecode(jsonString);
+      return all(
+        [emptyStringCase, specialCharsCase].map(
+          (original) => {
+            const jsonString =
+              jsonEncode(original);
+            const restored =
+              jsonDecode(jsonString);
 
-          expect(isOptionalDatum(restored)).toBe(
-            true,
-          );
-          expect(isOptionalDatum(restored)).toBe(
-            true,
-          );
-          expect(isSome(restored)).toBe(true);
-        },
+            return all([
+              check(
+                isOptionalDatum(restored),
+                toBe(true),
+              ),
+              check(
+                isOptionalDatum(restored),
+                toBe(true),
+              ),
+              check(
+                isSome(restored),
+                toBe(true),
+              ),
+            ]);
+          },
+        ),
       );
     });
 
@@ -333,18 +441,26 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const negativeBigInt: OptionalDatum<bigint> =
         some(-999999999999999999n);
 
-      [negativeNumber, negativeBigInt].forEach(
-        (original) => {
-          const jsonString = jsonEncode(original);
-          const restored = jsonDecode(jsonString);
+      return all(
+        [negativeNumber, negativeBigInt].map(
+          (original) => {
+            const jsonString =
+              jsonEncode(original);
+            const restored =
+              jsonDecode(jsonString);
 
-          expect(isOptionalDatum(restored)).toBe(
-            true,
-          );
-          expect(isOptionalDatum(restored)).toBe(
-            true,
-          );
-        },
+            return all([
+              check(
+                isOptionalDatum(restored),
+                toBe(true),
+              ),
+              check(
+                isOptionalDatum(restored),
+                toBe(true),
+              ),
+            ]);
+          },
+        ),
       );
     });
 
@@ -352,18 +468,26 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const emptyArray = some([]);
       const emptyObject = some({});
 
-      [emptyArray, emptyObject].forEach(
-        (original) => {
-          const jsonString = jsonEncode(original);
-          const restored = jsonDecode(jsonString);
+      return all(
+        [emptyArray, emptyObject].map(
+          (original) => {
+            const jsonString =
+              jsonEncode(original);
+            const restored =
+              jsonDecode(jsonString);
 
-          expect(isOptionalDatum(restored)).toBe(
-            true,
-          );
-          expect(isOptionalDatum(restored)).toBe(
-            true,
-          );
-        },
+            return all([
+              check(
+                isOptionalDatum(restored),
+                toBe(true),
+              ),
+              check(
+                isOptionalDatum(restored),
+                toBe(true),
+              ),
+            ]);
+          },
+        ),
       );
     });
   });
@@ -389,27 +513,35 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         noneOptional,
       ];
 
-      testCases.forEach((original) => {
-        const restored = jsonDecode(
-          jsonEncode(original),
-        );
-
-        expect(isOptionalDatum(restored)).toBe(
-          true,
-        );
-        expect(isOptionalDatum(restored)).toBe(
-          true,
-        );
-
-        if (
-          isSome(original) &&
-          isSome(restored)
-        ) {
-          expect(typeof restored.content).toBe(
-            typeof original.content,
+      return all(
+        testCases.map((original) => {
+          const restored = jsonDecode(
+            jsonEncode(original),
           );
-        }
-      });
+
+          return all([
+            check(
+              isOptionalDatum(restored),
+              toBe(true),
+            ),
+            check(
+              isOptionalDatum(restored),
+              toBe(true),
+            ),
+            ...(isSome(original) &&
+            isSome(restored)
+              ? [
+                  check(
+                    typeof restored.content,
+                    toBe(
+                      typeof original.content,
+                    ),
+                  ),
+                ]
+              : []),
+          ]);
+        }),
+      );
     });
 
     it("should preserve object structure and property order", () => {
@@ -427,17 +559,26 @@ describe("OptionalDatum Serialization/Deserialization", () => {
         jsonEncode(original),
       );
 
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      expect(isOptionalDatum(restored)).toBe(
-        true,
-      );
-      if (isSome(restored)) {
-        expect(
-          Object.keys(restored.content),
-        ).toEqual(Object.keys(original.content));
-      }
+      return all([
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        check(
+          isOptionalDatum(restored),
+          toBe(true),
+        ),
+        ...(isSome(restored)
+          ? [
+              check(
+                Object.keys(restored.content),
+                toEqual(
+                  Object.keys(original.content),
+                ),
+              ),
+            ]
+          : []),
+      ]);
     });
   });
 
@@ -449,14 +590,13 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const parsed = JSON.parse(jsonString);
 
-      expect(parsed).toHaveProperty(
-        "__tag",
-        "Some",
-      );
-      expect(parsed).toHaveProperty(
-        "content",
-        "json structure test",
-      );
+      return all([
+        check(parsed.__tag, toBe("Some")),
+        check(
+          parsed.content,
+          toBe("json structure test"),
+        ),
+      ]);
     });
 
     it("should produce expected JSON structure for None OptionalDatum", () => {
@@ -466,14 +606,10 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const parsed = JSON.parse(jsonString);
 
-      expect(parsed).toHaveProperty(
-        "__tag",
-        "None",
-      );
-      expect(parsed).toHaveProperty(
-        "content",
-        "__none__",
-      );
+      return all([
+        check(parsed.__tag, toBe("None")),
+        check(parsed.content, toBe("__none__")),
+      ]);
     });
 
     it("should produce expected JSON structure for Some OptionalDatum with BigInt", () => {
@@ -483,14 +619,16 @@ describe("OptionalDatum Serialization/Deserialization", () => {
       const jsonString = jsonEncode(original);
       const parsed = JSON.parse(jsonString);
 
-      expect(parsed).toHaveProperty(
-        "__tag",
-        "Some",
-      );
-      expect(parsed.content).toEqual({
-        type: "bigint",
-        value: "987654321",
-      });
+      return all([
+        check(parsed.__tag, toBe("Some")),
+        check(
+          parsed.content,
+          toEqual({
+            type: "bigint",
+            value: "987654321",
+          }),
+        ),
+      ]);
     });
   });
 });

@@ -1,10 +1,17 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+  someThen,
+} from "plgg-test";
 import {
   Result,
   isMutVec,
   asMutVec,
-  isOk,
-  isErr,
   mapMutVec,
   applyMutVec,
   ofMutVec,
@@ -18,103 +25,106 @@ import {
   optionApplicative,
   some,
   none,
-  isSome,
   isNone,
   concludeMutVec,
   ok,
   err,
 } from "plgg/index";
 
-test("MutVec.is should return true for vectors", () => {
-  expect(isMutVec([])).toBe(true);
-  expect(isMutVec([1, 2, 3])).toBe(true);
-  expect(isMutVec(["a", "b", "c"])).toBe(true);
-  expect(isMutVec([1, "a", true, null])).toBe(
-    true,
-  );
-  expect(isMutVec(new Array(5))).toBe(true);
-  expect(
-    isMutVec(
-      Array.from({
-        length: 3,
-      }),
+test("MutVec.is should return true for vectors", () =>
+  all([
+    check(isMutVec([]), toBe(true)),
+    check(isMutVec([1, 2, 3]), toBe(true)),
+    check(
+      isMutVec(["a", "b", "c"]),
+      toBe(true),
     ),
-  ).toBe(true);
-});
+    check(
+      isMutVec([1, "a", true, null]),
+      toBe(true),
+    ),
+    check(isMutVec(new Array(5)), toBe(true)),
+    check(
+      isMutVec(Array.from({ length: 3 })),
+      toBe(true),
+    ),
+  ]));
 
-test("MutVec.is should return false for non-vectors", () => {
-  expect(isMutVec(null)).toBe(false);
-  expect(isMutVec(undefined)).toBe(false);
-  expect(isMutVec({})).toBe(false);
-  expect(isMutVec("vector")).toBe(false);
-  expect(isMutVec(123)).toBe(false);
-  expect(isMutVec(true)).toBe(false);
-  expect(
-    isMutVec({
-      length: 0,
-    }),
-  ).toBe(false);
-  expect(isMutVec("")).toBe(false);
-});
+test("MutVec.is should return false for non-vectors", () =>
+  all([
+    check(isMutVec(null), toBe(false)),
+    check(isMutVec(undefined), toBe(false)),
+    check(isMutVec({}), toBe(false)),
+    check(isMutVec("vector"), toBe(false)),
+    check(isMutVec(123), toBe(false)),
+    check(isMutVec(true), toBe(false)),
+    check(
+      isMutVec({ length: 0 }),
+      toBe(false),
+    ),
+    check(isMutVec(""), toBe(false)),
+  ]));
 
-test("MutVec.cast should succeed for vectors", () => {
-  const result1 = asMutVec([]);
-  assert(isOk(result1));
-  expect(result1.content).toEqual([]);
+test("MutVec.cast should succeed for vectors", () =>
+  all([
+    check(asMutVec([]), okThen(toEqual([]))),
+    check(
+      asMutVec([1, 2, 3]),
+      okThen(toEqual([1, 2, 3])),
+    ),
+    check(
+      asMutVec(["a", "b", "c"]),
+      okThen(toEqual(["a", "b", "c"])),
+    ),
+    check(
+      asMutVec([1, "a", true, null]),
+      okThen(toEqual([1, "a", true, null])),
+    ),
+  ]));
 
-  const result2 = asMutVec([1, 2, 3]);
-  assert(isOk(result2));
-  expect(result2.content).toEqual([1, 2, 3]);
-
-  const result3 = asMutVec(["a", "b", "c"]);
-  assert(isOk(result3));
-  expect(result3.content).toEqual([
-    "a",
-    "b",
-    "c",
-  ]);
-
-  const result4 = asMutVec([1, "a", true, null]);
-  assert(isOk(result4));
-  expect(result4.content).toEqual([
-    1,
-    "a",
-    true,
-    null,
-  ]);
-});
-
-test("MutVec.cast should fail for non-vectors", () => {
-  const result1 = asMutVec(null);
-  assert(isErr(result1));
-  expect(result1.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result2 = asMutVec(undefined);
-  assert(isErr(result2));
-  expect(result2.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result3 = asMutVec({});
-  assert(isErr(result3));
-  expect(result3.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result4 = asMutVec("vector");
-  assert(isErr(result4));
-  expect(result4.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result5 = asMutVec(123);
-  assert(isErr(result5));
-  expect(result5.content.content.message).toBe(
-    "Value is not a vector",
-  );
-});
+test("MutVec.cast should fail for non-vectors", () =>
+  all([
+    check(
+      asMutVec(null),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asMutVec(undefined),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asMutVec({}),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asMutVec("vector"),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asMutVec(123),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]));
 
 test("MutVec Monad - map function", () => {
   const double = (x: number) => x * 2;
@@ -124,9 +134,11 @@ test("MutVec Monad - map function", () => {
   const r2 = pipe([1, 2, 3], mapMutVec(double));
   const r3 = pipe([1, 2, 3], mapMutVec(toString));
 
-  expect(r1).toEqual([]);
-  expect(r2).toEqual([2, 4, 6]);
-  expect(r3).toEqual(["1", "2", "3"]);
+  return all([
+    check(r1, toEqual([])),
+    check(r2, toEqual([2, 4, 6])),
+    check(r3, toEqual(["1", "2", "3"])),
+  ]);
 });
 
 test("MutVec Monad - of function", () => {
@@ -134,9 +146,11 @@ test("MutVec Monad - of function", () => {
   const r2 = pipe("hello", ofMutVec);
   const r3 = pipe(null, ofMutVec);
 
-  expect(r1).toEqual([1]);
-  expect(r2).toEqual(["hello"]);
-  expect(r3).toEqual([null]);
+  return all([
+    check(r1, toEqual([1])),
+    check(r2, toEqual(["hello"])),
+    check(r3, toEqual([null])),
+  ]);
 });
 
 test("MutVec Monad - chain function (flatMap)", () => {
@@ -151,9 +165,11 @@ test("MutVec Monad - chain function (flatMap)", () => {
   );
   const r3 = pipe([2, 3, 1], chainMutVec(range));
 
-  expect(r1).toEqual([]);
-  expect(r2).toEqual([1, 1, 2, 2, 3, 3]);
-  expect(r3).toEqual([0, 1, 0, 1, 2, 0]);
+  return all([
+    check(r1, toEqual([])),
+    check(r2, toEqual([1, 1, 2, 2, 3, 3])),
+    check(r3, toEqual([0, 1, 0, 1, 2, 0])),
+  ]);
 });
 
 test("MutVec Monad - ap function (applicative)", () => {
@@ -178,14 +194,19 @@ test("MutVec Monad - ap function (applicative)", () => {
     ]),
   );
 
-  expect(r1).toEqual([2, 3, 2, 4]);
-  expect(r2).toEqual([]);
-  expect(r3).toEqual([]);
-  expect(r4).toEqual([
-    "hello world",
-    "hello there",
-    "hi world",
-    "hi there",
+  return all([
+    check(r1, toEqual([2, 3, 2, 4])),
+    check(r2, toEqual([])),
+    check(r3, toEqual([])),
+    check(
+      r4,
+      toEqual([
+        "hello world",
+        "hello there",
+        "hi world",
+        "hi there",
+      ]),
+    ),
   ]);
 });
 
@@ -196,7 +217,7 @@ test("MutVec Monad Laws - Left Identity", () => {
   const r1 = pipe(a, ofMutVec, chainMutVec(f));
   const r2 = f(a);
 
-  expect(r1).toEqual(r2);
+  return check(r1, toEqual(r2));
 });
 
 test("MutVec Monad Laws - Right Identity", () => {
@@ -205,7 +226,7 @@ test("MutVec Monad Laws - Right Identity", () => {
   const r1 = pipe(m, chainMutVec(ofMutVec));
   const r2 = m;
 
-  expect(r1).toEqual(r2);
+  return check(r1, toEqual(r2));
 });
 
 test("MutVec Monad Laws - Associativity", () => {
@@ -225,7 +246,7 @@ test("MutVec Monad Laws - Associativity", () => {
     ),
   );
 
-  expect(r1).toEqual(r2);
+  return check(r1, toEqual(r2));
 });
 
 test("MutVec Functor Laws - Identity", () => {
@@ -234,7 +255,7 @@ test("MutVec Functor Laws - Identity", () => {
 
   const r1 = pipe(vec, mapMutVec(identity));
 
-  expect(r1).toEqual(vec);
+  return check(r1, toEqual(vec));
 });
 
 test("MutVec Functor Laws - Composition", () => {
@@ -252,7 +273,7 @@ test("MutVec Functor Laws - Composition", () => {
     mapMutVec(g),
   );
 
-  expect(r1).toEqual(r2);
+  return check(r1, toEqual(r2));
 });
 
 test("MutVec Foldable - foldr function", () => {
@@ -267,9 +288,11 @@ test("MutVec Foldable - foldr function", () => {
     foldrMutVec(concat)(""),
   );
 
-  expect(r1).toBe(0);
-  expect(r2).toBe(6);
-  expect(r3).toBe("abc");
+  return all([
+    check(r1, toBe(0)),
+    check(r2, toBe(6)),
+    check(r3, toBe("abc")),
+  ]);
 });
 
 test("MutVec Foldable - foldl function", () => {
@@ -284,9 +307,11 @@ test("MutVec Foldable - foldl function", () => {
     foldlMutVec(concat)(""),
   );
 
-  expect(r1).toBe(0);
-  expect(r2).toBe(6);
-  expect(r3).toBe("abc");
+  return all([
+    check(r1, toBe(0)),
+    check(r2, toBe(6)),
+    check(r3, toBe("abc")),
+  ]);
 });
 
 test("MutVec Traversable - traverse with MutVec", () => {
@@ -296,7 +321,6 @@ test("MutVec Traversable - traverse with MutVec", () => {
     [],
     traverseMutVec(mutVecApplicative)(choices),
   );
-  expect(r1).toEqual([[]]);
 
   // For [1, 2] with choices (x => [x, x + 10]):
   // choices(1) = [1, 11], choices(2) = [2, 12]
@@ -306,11 +330,18 @@ test("MutVec Traversable - traverse with MutVec", () => {
     [1, 2],
     traverseMutVec(mutVecApplicative)(choices),
   );
-  expect(r2).toEqual([
-    [1, 2],
-    [1, 12],
-    [11, 2],
-    [11, 12],
+
+  return all([
+    check(r1, toEqual([[]])),
+    check(
+      r2,
+      toEqual([
+        [1, 2],
+        [1, 12],
+        [11, 2],
+        [11, 12],
+      ]),
+    ),
   ]);
 });
 
@@ -322,24 +353,30 @@ test("MutVec Traversable - sequence with MutVec", () => {
     ],
     sequenceMutVec(mutVecApplicative),
   );
-  expect(r1).toEqual([
-    [1, 3],
-    [1, 4],
-    [2, 3],
-    [2, 4],
-  ]);
 
   const r2 = pipe(
     [],
     sequenceMutVec(mutVecApplicative),
   );
-  expect(r2).toEqual([[]]);
 
   const r3 = pipe(
     [[]],
     sequenceMutVec(mutVecApplicative),
   );
-  expect(r3).toEqual([]);
+
+  return all([
+    check(
+      r1,
+      toEqual([
+        [1, 3],
+        [1, 4],
+        [2, 3],
+        [2, 4],
+      ]),
+    ),
+    check(r2, toEqual([[]])),
+    check(r3, toEqual([])),
+  ]);
 });
 
 test("MutVec Traversable - collect results with Option (safe division)", () => {
@@ -352,23 +389,24 @@ test("MutVec Traversable - collect results with Option (safe division)", () => {
     [1, 2, 5],
     traverseMutVec(optionApplicative)(safeDivide),
   );
-  assert(isSome(r1));
-  expect(r1.content).toEqual([10, 5, 2]);
 
   // Failure case: one division fails, entire traversal fails with None
   const r2 = pipe(
     [1, 0, 5],
     traverseMutVec(optionApplicative)(safeDivide),
   );
-  assert(isNone(r2));
 
   // Edge case: empty vector always succeeds
   const r3 = pipe(
     [],
     traverseMutVec(optionApplicative)(safeDivide),
   );
-  assert(isSome(r3));
-  expect(r3.content).toEqual([]);
+
+  return all([
+    check(r1, someThen(toEqual([10, 5, 2]))),
+    check(isNone(r2), toBe(true)),
+    check(r3, someThen(toEqual([]))),
+  ]);
 });
 
 test("concludeMutVec - success case with all valid results", () => {
@@ -385,22 +423,22 @@ test("concludeMutVec - success case with all valid results", () => {
     [],
     concludeMutVec(parseNumber),
   );
-  assert(isOk(r1));
-  expect(r1.content).toEqual([]);
 
   const r2 = pipe(
     ["1", "2", "3"],
     concludeMutVec(parseNumber),
   );
-  assert(isOk(r2));
-  expect(r2.content).toEqual([1, 2, 3]);
 
   const r3 = pipe(
     ["42", "3.14", "0"],
     concludeMutVec(parseNumber),
   );
-  assert(isOk(r3));
-  expect(r3.content).toEqual([42, 3.14, 0]);
+
+  return all([
+    check(r1, okThen(toEqual([]))),
+    check(r2, okThen(toEqual([1, 2, 3]))),
+    check(r3, okThen(toEqual([42, 3.14, 0]))),
+  ]);
 });
 
 test("concludeMutVec - failure case with errors collected", () => {
@@ -421,46 +459,71 @@ test("concludeMutVec - failure case with errors collected", () => {
     ["invalid"],
     concludeMutVec(parsePositiveNumber),
   );
-  assert(isErr(r1));
-  expect(r1.content).toEqual([
-    "Invalid number: invalid",
-  ]);
 
   const r2 = pipe(
     ["1", "invalid", "3"],
     concludeMutVec(parsePositiveNumber),
   );
-  assert(isErr(r2));
-  expect(r2.content).toEqual([
-    "Invalid number: invalid",
-  ]);
 
   const r3 = pipe(
     ["-1", "invalid", "0"],
     concludeMutVec(parsePositiveNumber),
   );
-  assert(isErr(r3));
-  expect(r3.content).toEqual([
-    "Non-positive number: -1",
-    "Invalid number: invalid",
-    "Non-positive number: 0",
+
+  return all([
+    check(
+      r1,
+      errThen(
+        toEqual(["Invalid number: invalid"]),
+      ),
+    ),
+    check(
+      r2,
+      errThen(
+        toEqual(["Invalid number: invalid"]),
+      ),
+    ),
+    check(
+      r3,
+      errThen(
+        toEqual([
+          "Non-positive number: -1",
+          "Invalid number: invalid",
+          "Non-positive number: 0",
+        ]),
+      ),
+    ),
   ]);
 });
 
 /**
  * Verifies traverseMutVec function is exported and available.
  */
-test("traverseMutVec - function exists", () => {
+test("traverseMutVec - function exists", () =>
   // Verify traverse function availability for mutable vector operations
-  expect(typeof traverseMutVec).toBe("function");
-  expect(traverseMutVec).toBeDefined();
-});
+  all([
+    check(
+      typeof traverseMutVec,
+      toBe("function"),
+    ),
+    check(
+      traverseMutVec !== undefined,
+      toBe(true),
+    ),
+  ]));
 
 /**
  * Verifies sequenceMutVec function is exported and available.
  */
-test("sequenceMutVec - function exists", () => {
+test("sequenceMutVec - function exists", () =>
   // Verify sequence function availability for mutable vector operations
-  expect(typeof sequenceMutVec).toBe("function");
-  expect(sequenceMutVec).toBeDefined();
-});
+  all([
+    check(
+      typeof sequenceMutVec,
+      toBe("function"),
+    ),
+    check(
+      sequenceMutVec !== undefined,
+      toBe(true),
+    ),
+  ]));

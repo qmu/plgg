@@ -1,5 +1,10 @@
-import { test, expect } from "plgg-test";
-import { Box, Icon, IsIcon, ICON_CONTENT } from "plgg/index";
+import { test, check, all, toBe } from "plgg-test";
+import {
+  Box,
+  Icon,
+  IsIcon,
+  ICON_CONTENT,
+} from "plgg/index";
 
 test("Icon type structure", () => {
   // These are compile-time tests - if they compile, the types work correctly
@@ -10,8 +15,10 @@ test("Icon type structure", () => {
   };
 
   // Type-level assertion that Icon has the correct structure
-  const _typeTest: TestIcon extends ExpectedStructure ? true : false = true;
-  expect(_typeTest).toBe(true);
+  const _typeTest: TestIcon extends ExpectedStructure
+    ? true
+    : false = true;
+  return check(_typeTest, toBe(true));
 });
 
 test("IsIcon type predicate", () => {
@@ -20,20 +27,33 @@ test("IsIcon type predicate", () => {
   type BoxTest = IsIcon<Box<"test", string>>;
   type NonBoxTest = IsIcon<{ someOther: "prop" }>;
 
-  const _iconTest: IconTest extends true ? true : false = true;
-  const _boxTest: BoxTest extends false ? true : false = true;
-  const _nonBoxTest: NonBoxTest extends false ? true : false = true;
+  const _iconTest: IconTest extends true
+    ? true
+    : false = true;
+  const _boxTest: BoxTest extends false
+    ? true
+    : false = true;
+  const _nonBoxTest: NonBoxTest extends false
+    ? true
+    : false = true;
 
-  expect(_iconTest).toBe(true);
-  expect(_boxTest).toBe(true);
-  expect(_nonBoxTest).toBe(true);
+  return all([
+    check(_iconTest, toBe(true)),
+    check(_boxTest, toBe(true)),
+    check(_nonBoxTest, toBe(true)),
+  ]);
 });
 
 test("Box and Icon relationship", () => {
   // Test that Icon is properly defined as Box<TAG, ICON_CONTENT>
   type TestIcon = Icon<"loading">;
-  type ExpectedType = Box<"loading", typeof ICON_CONTENT>;
+  type ExpectedType = Box<
+    "loading",
+    typeof ICON_CONTENT
+  >;
 
-  const _typeTest: TestIcon extends ExpectedType ? true : false = true;
-  expect(_typeTest).toBe(true);
+  const _typeTest: TestIcon extends ExpectedType
+    ? true
+    : false = true;
+  return check(_typeTest, toBe(true));
 });

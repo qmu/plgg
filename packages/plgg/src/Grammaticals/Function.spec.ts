@@ -1,21 +1,41 @@
-import { test, expect, assert } from "plgg-test";
-import { isFunc, asFunc, isOk, isErr } from "plgg/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { isFunc, asFunc } from "plgg/index";
+import type {
+  Func,
+  InvalidError,
+} from "plgg/index";
 
-test("isFunc basic validation", () => {
-  expect(isFunc(() => {})).toBe(true);
-  expect(isFunc(function () {})).toBe(true);
-  expect(isFunc((x: number) => x + 1)).toBe(true);
-  expect(isFunc("not a function")).toBe(false);
-  expect(isFunc(123)).toBe(false);
-  expect(isFunc(null)).toBe(false);
-});
+test("isFunc basic validation", () =>
+  all([
+    check(isFunc(() => {}), toBe(true)),
+    check(isFunc(function () {}), toBe(true)),
+    check(
+      isFunc((x: number) => x + 1),
+      toBe(true),
+    ),
+    check(isFunc("not a function"), toBe(false)),
+    check(isFunc(123), toBe(false)),
+    check(isFunc(null), toBe(false)),
+  ]));
 
 test("asFunc returns Ok for functions", () => {
   const fn = (x: number) => x * 2;
-  const result = asFunc(fn);
-  assert(isOk(result));
-  expect(result.content).toBe(fn);
-  expect(result.content(3)).toBe(6);
+  return check(
+    asFunc(fn),
+    okThen((f: Func) =>
+      all([
+        check(f, toBe(fn)),
+        check(f(3), toBe(6)),
+      ]),
+    ),
+  );
 });
 
 test("asFunc returns Err for non-function values", () => {
@@ -28,11 +48,16 @@ test("asFunc returns Err for non-function values", () => {
     [],
     true,
   ];
-  for (const value of cases) {
-    const result = asFunc(value);
-    assert(isErr(result));
-    expect(result.content.content.message).toBe(
-      "Value is not a function",
-    );
-  }
+  return all(
+    cases.map((value) =>
+      check(
+        asFunc(value),
+        errThen((e: InvalidError) =>
+          toBe("Value is not a function")(
+            e.content.message,
+          ),
+        ),
+      ),
+    ),
+  );
 });

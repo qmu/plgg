@@ -1,4 +1,12 @@
-import { test, expect, assert } from "plgg-test";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toContain,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   InvalidError,
   invalidError,
@@ -6,8 +14,6 @@ import {
   Defect,
   Result,
   proc,
-  isOk,
-  isErr,
   ok,
   hold,
   err,
@@ -37,8 +43,7 @@ test("proc infers the PRECISE per-step error union, not unknown", () => {
       : err(invalidError({ message: "neg" }));
   const ser = (
     x: number,
-  ): Result<string, SerializeError> =>
-    ok(`${x}`);
+  ): Result<string, SerializeError> => ok(`${x}`);
 
   const run = () =>
     proc(5, validatePositive, ser);
@@ -50,7 +55,7 @@ test("proc infers the PRECISE per-step error union, not unknown", () => {
   // Fails tsc if proc's error channel ever collapses back to `unknown`.
   type _Locked = Expect<Equal<Got, Want>>;
   const locked: _Locked = true;
-  expect(locked).toBe(true);
+  return check(locked, toBe(true));
 });
 
 test("proc composes sync and async functions with early error exit", async () => {
@@ -83,8 +88,10 @@ test("proc composes sync and async functions with early error exit", async () =>
     formatResult,
   );
 
-  assert(isOk(result));
-  expect(result.content).toBe("Result: 12");
+  return check(
+    result,
+    okThen(toBe("Result: 12")),
+  );
 });
 
 test("proc stops processing on first error", async () => {
@@ -109,10 +116,19 @@ test("proc stops processing on first error", async () => {
     neverCalled as any,
   );
 
-  assert(isErr(result));
-  assert(isPlggError(result.content));
-  expect(result.content.content.message).toBe(
-    "Validation failed",
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(isPlggError(e), toBe(true)),
+        check(
+          isPlggError(e)
+            ? e.content.message
+            : undefined,
+          toBe("Validation failed"),
+        ),
+      ]),
+    ),
   );
 });
 
@@ -152,8 +168,7 @@ test("proc handles mixed return types (values, Results, Promises)", async () => 
     extractValue,
   );
 
-  assert(isOk(result));
-  expect(result.content).toBe(42);
+  return check(result, okThen(toBe(42)));
 });
 
 test("proc with type casting and validation chain", async () => {
@@ -168,8 +183,10 @@ test("proc with type casting and validation chain", async () => {
     hold((name: string) => `Hello, ${name}!`),
   );
 
-  assert(isOk(result));
-  expect(result.content).toBe("Hello, JOHN!");
+  return check(
+    result,
+    okThen(toBe("Hello, JOHN!")),
+  );
 });
 
 test("proc gracefully handles exceptions in functions", async () => {
@@ -182,15 +199,19 @@ test("proc gracefully handles exceptions in functions", async () => {
     return ok(`Processed: ${x}`);
   };
 
-  const result = await proc(
-    5,
-    processWithError,
-  );
+  const result = await proc(5, processWithError);
 
-  assert(isErr(result));
-  assert(isPlggError(result.content));
-  expect(result.content.content.message).toContain(
-    "Unhandled throw in proc",
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(isPlggError(e), toBe(true)),
+        check(
+          isPlggError(e) ? e.content.message : "",
+          toContain("Unhandled throw in proc"),
+        ),
+      ]),
+    ),
   );
 });
 
@@ -211,10 +232,19 @@ test("proc handles thrown procError", async () => {
     processWithprocError,
   );
 
-  assert(isErr(result));
-  assert(isPlggError(result.content));
-  expect(result.content.content.message).toBe(
-    "Domain error thrown",
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(isPlggError(e), toBe(true)),
+        check(
+          isPlggError(e)
+            ? e.content.message
+            : undefined,
+          toBe("Domain error thrown"),
+        ),
+      ]),
+    ),
   );
 });
 
@@ -233,10 +263,19 @@ test("proc handles thrown non-Error values", async () => {
     processWithStringError,
   );
 
-  assert(isErr(result));
-  assert(isPlggError(result.content));
-  expect(result.content.content.message).toBe(
-    "Unhandled throw in proc",
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(isPlggError(e), toBe(true)),
+        check(
+          isPlggError(e)
+            ? e.content.message
+            : undefined,
+          toBe("Unhandled throw in proc"),
+        ),
+      ]),
+    ),
   );
 });
 
@@ -245,10 +284,12 @@ test("proc unwraps initial Result value at runtime", async () => {
   const initialResult = ok("hello");
   const toUpper = (s: string) => s.toUpperCase();
 
-  const result = await proc(initialResult, toUpper);
+  const result = await proc(
+    initialResult,
+    toUpper,
+  );
 
-  assert(isOk(result));
-  expect(result.content).toBe("HELLO");
+  return check(result, okThen(toBe("HELLO")));
 });
 
 test("proc short-circuits on initial Err value", async () => {
@@ -256,11 +297,26 @@ test("proc short-circuits on initial Err value", async () => {
   const initialErr = err(
     invalidError({ message: "Initial error" }),
   );
-  const neverCalled = (_: string) => "should not run";
+  const neverCalled = (_: string) =>
+    "should not run";
 
-  const result = await proc(initialErr, neverCalled);
+  const result = await proc(
+    initialErr,
+    neverCalled,
+  );
 
-  assert(isErr(result));
-  assert(isPlggError(result.content));
-  expect(result.content.content.message).toBe("Initial error");
+  return check(
+    result,
+    errThen((e) =>
+      all([
+        check(isPlggError(e), toBe(true)),
+        check(
+          isPlggError(e)
+            ? e.content.message
+            : undefined,
+          toBe("Initial error"),
+        ),
+      ]),
+    ),
+  );
 });

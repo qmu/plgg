@@ -1,6 +1,6 @@
 {
   "name": "plgg-test",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Minimal in-house test runner for the plgg monorepo",
   "type": "module",
   "main": "dist/index.cjs.js",
