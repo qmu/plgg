@@ -1,4 +1,9 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import { el, p, text, attr } from "plgg-view";
 import { renderToString } from "plgg-server/index";
 
@@ -6,8 +11,8 @@ import { renderToString } from "plgg-server/index";
 // surface escapes and self-closes correctly (the exhaustive cases live in
 // plgg-view's own spec).
 
-test("renders an element with escaped attributes and children", () => {
-  expect(
+test("renders an element with escaped attributes and children", () =>
+  check(
     renderToString(
       // The outer element is the escape hatch `el` too: an `el(...)` node is
       // string-branded, so it does not fit a typed builder's child slot (e.g.
@@ -25,24 +30,29 @@ test("renders an element with escaped attributes and children", () => {
         ],
       ),
     ),
-  ).toBe(
-    '<a href="/x" title="&quot;&amp;&lt;">go &amp; <b>bold</b></a>',
-  );
-});
-
-test("void elements self-close and text is escaped (XSS-safe)", () => {
-  expect(
-    renderToString(
-      el("img", [attr("src", "/a.png")], []),
+    toBe(
+      '<a href="/x" title="&quot;&amp;&lt;">go &amp; <b>bold</b></a>',
     ),
-  ).toBe('<img src="/a.png" />');
-  expect(
-    renderToString(p([], [text("<x> & </x>")])),
-  ).toBe("<p>&lt;x&gt; &amp; &lt;/x&gt;</p>");
-});
+  ));
 
-test("unsafe attribute names are dropped, safe ones kept", () => {
-  expect(
+test("void elements self-close and text is escaped (XSS-safe)", () =>
+  all([
+    check(
+      renderToString(
+        el("img", [attr("src", "/a.png")], []),
+      ),
+      toBe('<img src="/a.png" />'),
+    ),
+    check(
+      renderToString(
+        p([], [text("<x> & </x>")]),
+      ),
+      toBe("<p>&lt;x&gt; &amp; &lt;/x&gt;</p>"),
+    ),
+  ]));
+
+test("unsafe attribute names are dropped, safe ones kept", () =>
+  check(
     renderToString(
       el(
         "div",
@@ -53,5 +63,5 @@ test("unsafe attribute names are dropped, safe ones kept", () => {
         [],
       ),
     ),
-  ).toBe('<div data-ok="1"></div>');
-});
+    toBe('<div data-ok="1"></div>'),
+  ));

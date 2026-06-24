@@ -1,4 +1,11 @@
-import { test, expect, afterEach } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  afterEach,
+} from "plgg-test";
 import {
   request as httpRequest,
   type Server,
@@ -95,23 +102,30 @@ test("serves GET and POST over a real socket", async () => {
   const got = await fetch(
     `http://127.0.0.1:${port}/hello/sam`,
   );
-  expect(got.status).toBe(200);
-  await expect(got.text()).resolves.toBe(
-    "hi sam",
+  const a1 = check(got.status, toBe(200));
+  const a2 = check(
+    await got.text(),
+    toBe("hi sam"),
   );
 
   const posted = await fetch(
     `http://127.0.0.1:${port}/echo`,
     { method: "POST", body: "ping" },
   );
-  await expect(posted.json()).resolves.toEqual({
-    body: "ping",
-  });
+  const a3 = check(
+    await posted.json(),
+    toEqual({ body: "ping" }),
+  );
 
   const notFound = await fetch(
     `http://127.0.0.1:${port}/nope`,
   );
-  expect(notFound.status).toBe(404);
+  return all([
+    a1,
+    a2,
+    a3,
+    check(notFound.status, toBe(404)),
+  ]);
 });
 
 test("serve honors an explicit hostname", async () => {
@@ -128,7 +142,7 @@ test("serve honors an explicit hostname", async () => {
   const res = await fetch(
     `http://127.0.0.1:${port}/`,
   );
-  await expect(res.text()).resolves.toBe("ok");
+  return check(await res.text(), toBe("ok"));
 });
 
 test("serve works without an onListen callback", async () => {
@@ -154,7 +168,7 @@ test("serve works without an onListen callback", async () => {
   const res = await fetch(
     `http://127.0.0.1:${port}/`,
   );
-  await expect(res.text()).resolves.toBe("ok");
+  return check(await res.text(), toBe("ok"));
 });
 
 test("multi-valued request headers are joined", async () => {
@@ -194,7 +208,7 @@ test("multi-valued request headers are joined", async () => {
       req.end();
     },
   );
-  expect(body).toBe("a, b");
+  return check(body, toBe("a, b"));
 });
 
 test("serves a binary response carrying a Content-Length", async () => {
@@ -212,16 +226,22 @@ test("serves a binary response carrying a Content-Length", async () => {
   const res = await fetch(
     `http://127.0.0.1:${port}/blob`,
   );
-  expect(res.headers.get("content-length")).toBe(
-    "4",
+  const a1 = check(
+    res.headers.get("content-length"),
+    toBe("4"),
   );
-  expect(res.headers.get("content-type")).toBe(
-    "application/octet-stream",
+  const a2 = check(
+    res.headers.get("content-type"),
+    toBe("application/octet-stream"),
   );
   const buf = new Uint8Array(
     await res.arrayBuffer(),
   );
-  expect(Array.from(buf)).toEqual([5, 6, 7, 8]);
+  return all([
+    a1,
+    a2,
+    check(Array.from(buf), toEqual([5, 6, 7, 8])),
+  ]);
 });
 
 test("serves a streamed response chunk by chunk", async () => {
@@ -238,7 +258,10 @@ test("serves a streamed response chunk by chunk", async () => {
   const buf = new Uint8Array(
     await res.arrayBuffer(),
   );
-  expect(Array.from(buf)).toEqual([1, 2, 3]);
+  return check(
+    Array.from(buf),
+    toEqual([1, 2, 3]),
+  );
 });
 
 test("reads a binary request body and reports its byte length", async () => {
@@ -269,9 +292,7 @@ test("reads a binary request body and reports its byte length", async () => {
       body: new Uint8Array([1, 2, 3, 4, 5]),
     },
   );
-  await expect(res.text()).resolves.toBe(
-    "5 bytes",
-  );
+  return check(await res.text(), toBe("5 bytes"));
 });
 
 test("a body within maxBodyBytes is served; one over the cap is 413", async () => {
@@ -319,8 +340,9 @@ test("a body within maxBodyBytes is served; one over the cap is 413", async () =
       body: new Uint8Array([1, 2, 3]),
     },
   );
-  await expect(small.text()).resolves.toBe(
-    "3 bytes",
+  const a1 = check(
+    await small.text(),
+    toBe("3 bytes"),
   );
 
   const big = await fetch(
@@ -334,10 +356,15 @@ test("a body within maxBodyBytes is served; one over the cap is 413", async () =
       body: new Uint8Array(64),
     },
   );
-  expect(big.status).toBe(413);
-  await expect(big.text()).resolves.toBe(
-    "Payload Too Large",
-  );
+  const a2 = check(big.status, toBe(413));
+  return all([
+    a1,
+    a2,
+    check(
+      await big.text(),
+      toBe("Payload Too Large"),
+    ),
+  ]);
 });
 
 test("a rejecting handler surfaces as a 500 from the adapter", async () => {
@@ -347,8 +374,12 @@ test("a rejecting handler surfaces as a 500 from the adapter", async () => {
   const res = await fetch(
     `http://127.0.0.1:${port}/anything`,
   );
-  expect(res.status).toBe(500);
-  await expect(res.text()).resolves.toBe(
-    "Internal Server Error",
-  );
+  const a1 = check(res.status, toBe(500));
+  return all([
+    a1,
+    check(
+      await res.text(),
+      toBe("Internal Server Error"),
+    ),
+  ]);
 });

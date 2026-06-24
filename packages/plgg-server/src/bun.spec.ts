@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toHaveLength,
+  toBeUndefined,
+} from "plgg-test";
 import { pipe } from "plgg";
 import {
   createAdapter,
@@ -22,11 +29,13 @@ test("bun adapter forwards port and handler to the impl", () => {
     handler,
     createAdapter(impl)({ port: 3000 }),
   );
-  expect(server).toBe(fakeServer);
-  expect(calls).toHaveLength(1);
-  expect(calls[0]?.port).toBe(3000);
-  expect(calls[0]?.hostname).toBeUndefined();
-  expect(calls[0]?.fetch).toBe(handler);
+  return all([
+    check(server, toBe(fakeServer)),
+    check(calls, toHaveLength(1)),
+    check(calls[0]?.port, toBe(3000)),
+    check(calls[0]?.hostname, toBeUndefined()),
+    check(calls[0]?.fetch, toBe(handler)),
+  ]);
 });
 
 test("bun adapter forwards an explicit hostname", () => {
@@ -40,7 +49,10 @@ test("bun adapter forwards an explicit hostname", () => {
     port: 3000,
     hostname: "127.0.0.1",
   })(handler);
-  expect(calls[0]?.hostname).toBe("127.0.0.1");
+  return check(
+    calls[0]?.hostname,
+    toBe("127.0.0.1"),
+  );
 });
 
 test("bun adapter invokes onListen after the server starts", () => {
@@ -49,12 +61,16 @@ test("bun adapter invokes onListen after the server starts", () => {
   createAdapter(impl)({ port: 0 }, () => {
     listened++;
   })(handler);
-  expect(listened).toBe(1);
+  return check(listened, toBe(1));
 });
 
 test("bun adapter omits onListen when not provided", () => {
   const impl: BunServeImpl = () => fakeServer;
-  expect(() =>
-    createAdapter(impl)({ port: 0 })(handler),
-  ).not.toThrow();
+  let threw = false;
+  try {
+    createAdapter(impl)({ port: 0 })(handler);
+  } catch {
+    threw = true;
+  }
+  return check(threw, toBe(false));
 });

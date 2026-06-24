@@ -1,12 +1,15 @@
-import { test, expect } from "vitest";
 import {
-  isSome,
-  isNone,
-  isOk,
-  none,
-  pipe,
-  ok,
-} from "plgg";
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  someThen,
+  shouldBeSome,
+  shouldBeNone,
+  okThen,
+} from "plgg-test";
+import { none, pipe, ok } from "plgg";
 import {
   web,
   get,
@@ -33,12 +36,15 @@ test("a static path resolves to its own route regardless of how many unrelated r
   const app = get("/target", h)(many);
   const table = compileRoutes(app.routes);
 
-  const hit = lookupRoute(table, "GET", "/target");
-  expect(isSome(hit)).toBe(true);
-  if (isSome(hit)) {
-    expect(hit.content.route.pattern).toBe("/target");
-    expect(hit.content.params).toEqual({});
-  }
+  return check(
+    lookupRoute(table, "GET", "/target"),
+    someThen((m) =>
+      all([
+        check(m.route.pattern, toBe("/target")),
+        check(m.params, toEqual({})),
+      ]),
+    ),
+  );
 });
 
 test("static lookup is order-independent: same result whether registered first or last", () => {
@@ -55,35 +61,42 @@ test("static lookup is order-independent: same result whether registered first o
     get("/a", h),
   );
 
-  const fromFirst = lookupRoute(
-    compileRoutes(first.routes),
-    "GET",
-    "/b",
-  );
-  const fromLast = lookupRoute(
-    compileRoutes(last.routes),
-    "GET",
-    "/b",
-  );
-  expect(isSome(fromFirst)).toBe(true);
-  expect(isSome(fromLast)).toBe(true);
-  if (isSome(fromFirst) && isSome(fromLast)) {
-    expect(fromFirst.content.route.pattern).toBe("/b");
-    expect(fromLast.content.route.pattern).toBe("/b");
-  }
+  return all([
+    check(
+      lookupRoute(
+        compileRoutes(first.routes),
+        "GET",
+        "/b",
+      ),
+      someThen((m) =>
+        check(m.route.pattern, toBe("/b")),
+      ),
+    ),
+    check(
+      lookupRoute(
+        compileRoutes(last.routes),
+        "GET",
+        "/b",
+      ),
+      someThen((m) =>
+        check(m.route.pattern, toBe("/b")),
+      ),
+    ),
+  ]);
 });
 
 test("param captures survive the compiled lookup", () => {
   const app = pipe(web(), get("/users/:id", h));
-  const hit = lookupRoute(
-    compileRoutes(app.routes),
-    "GET",
-    "/users/42",
+  return check(
+    lookupRoute(
+      compileRoutes(app.routes),
+      "GET",
+      "/users/42",
+    ),
+    someThen((m) =>
+      check(m.params, toEqual({ id: "42" })),
+    ),
   );
-  expect(isSome(hit)).toBe(true);
-  if (isSome(hit)) {
-    expect(hit.content.params).toEqual({ id: "42" });
-  }
 });
 
 test("when a param route is registered before a colliding static route, registration order wins (param)", () => {
@@ -92,16 +105,22 @@ test("when a param route is registered before a colliding static route, registra
     get("/users/:id", h),
     get("/users/me", h),
   );
-  const hit = lookupRoute(
-    compileRoutes(app.routes),
-    "GET",
-    "/users/me",
+  return check(
+    lookupRoute(
+      compileRoutes(app.routes),
+      "GET",
+      "/users/me",
+    ),
+    someThen((m) =>
+      all([
+        check(
+          m.route.pattern,
+          toBe("/users/:id"),
+        ),
+        check(m.params, toEqual({ id: "me" })),
+      ]),
+    ),
   );
-  expect(isSome(hit)).toBe(true);
-  if (isSome(hit)) {
-    expect(hit.content.route.pattern).toBe("/users/:id");
-    expect(hit.content.params).toEqual({ id: "me" });
-  }
 });
 
 test("when a static route is registered before a colliding param route, the static wins", () => {
@@ -110,16 +129,22 @@ test("when a static route is registered before a colliding param route, the stat
     get("/users/me", h),
     get("/users/:id", h),
   );
-  const hit = lookupRoute(
-    compileRoutes(app.routes),
-    "GET",
-    "/users/me",
+  return check(
+    lookupRoute(
+      compileRoutes(app.routes),
+      "GET",
+      "/users/me",
+    ),
+    someThen((m) =>
+      all([
+        check(
+          m.route.pattern,
+          toBe("/users/me"),
+        ),
+        check(m.params, toEqual({})),
+      ]),
+    ),
   );
-  expect(isSome(hit)).toBe(true);
-  if (isSome(hit)) {
-    expect(hit.content.route.pattern).toBe("/users/me");
-    expect(hit.content.params).toEqual({});
-  }
 });
 
 test("when two dynamic routes both match, the first-registered wins", () => {
@@ -128,57 +153,60 @@ test("when two dynamic routes both match, the first-registered wins", () => {
     get("/x/:a", h),
     get("/x/:b", h),
   );
-  const hit = lookupRoute(
-    compileRoutes(app.routes),
-    "GET",
-    "/x/1",
+  return check(
+    lookupRoute(
+      compileRoutes(app.routes),
+      "GET",
+      "/x/1",
+    ),
+    someThen((m) =>
+      all([
+        check(m.route.pattern, toBe("/x/:a")),
+        check(m.params, toEqual({ a: "1" })),
+      ]),
+    ),
   );
-  expect(isSome(hit)).toBe(true);
-  if (isSome(hit)) {
-    expect(hit.content.route.pattern).toBe("/x/:a");
-    expect(hit.content.params).toEqual({ a: "1" });
-  }
 });
 
 test("lookup is indexed by method: a path registered only under another method does not match", () => {
   const app = pipe(web(), post("/things", h));
-  expect(
-    isNone(
+  return all([
+    check(
       lookupRoute(
         compileRoutes(app.routes),
         "GET",
         "/things",
       ),
+      shouldBeNone(),
     ),
-  ).toBe(true);
-  expect(
-    isSome(
+    check(
       lookupRoute(
         compileRoutes(app.routes),
         "POST",
         "/things",
       ),
+      shouldBeSome(),
     ),
-  ).toBe(true);
+  ]);
 });
 
 test("an unmatched path resolves to None", () => {
   const app = pipe(web(), get("/a", h), put("/a", h));
-  expect(
-    isNone(
-      lookupRoute(
-        compileRoutes(app.routes),
-        "GET",
-        "/missing",
-      ),
+  return check(
+    lookupRoute(
+      compileRoutes(app.routes),
+      "GET",
+      "/missing",
     ),
-  ).toBe(true);
+    shouldBeNone(),
+  );
 });
 
 test("the compiled table is memoized on the routes array identity", () => {
   const app = pipe(web(), get("/a", h));
-  expect(compileRoutes(app.routes)).toBe(
+  return check(
     compileRoutes(app.routes),
+    toBe(compileRoutes(app.routes)),
   );
 });
 
@@ -192,17 +220,16 @@ test("the first of two identical static routes (same method+path) wins", async (
       pipe("second", textResponse, ok),
     ),
   );
-  const result = await handle(app, {
-    method: "GET",
-    path: "/dup",
-    query: {},
-    headers: {},
-    params: {},
-    body: "",
-    bytes: none(),
-  });
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content.body).toBe("first");
-  }
+  return check(
+    await handle(app, {
+      method: "GET",
+      path: "/dup",
+      query: {},
+      headers: {},
+      params: {},
+      body: "",
+      bytes: none(),
+    }),
+    okThen((r) => check(r.body, toBe("first"))),
+  );
 });

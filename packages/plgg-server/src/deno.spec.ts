@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toHaveLength,
+  toBeUndefined,
+} from "plgg-test";
 import { pipe } from "plgg";
 import {
   createAdapter,
@@ -26,11 +33,16 @@ test("deno adapter forwards port and handler to the impl", () => {
     handler,
     createAdapter(impl)({ port: 3000 }),
   );
-  expect(server).toBe(fakeServer);
-  expect(calls).toHaveLength(1);
-  expect(calls[0]?.options.port).toBe(3000);
-  expect(calls[0]?.options.hostname).toBeUndefined();
-  expect(calls[0]?.handler).toBe(handler);
+  return all([
+    check(server, toBe(fakeServer)),
+    check(calls, toHaveLength(1)),
+    check(calls[0]?.options.port, toBe(3000)),
+    check(
+      calls[0]?.options.hostname,
+      toBeUndefined(),
+    ),
+    check(calls[0]?.handler, toBe(handler)),
+  ]);
 });
 
 test("deno adapter forwards an explicit hostname", () => {
@@ -44,7 +56,10 @@ test("deno adapter forwards an explicit hostname", () => {
     port: 3000,
     hostname: "127.0.0.1",
   })(handler);
-  expect(calls[0]?.hostname).toBe("127.0.0.1");
+  return check(
+    calls[0]?.hostname,
+    toBe("127.0.0.1"),
+  );
 });
 
 test("deno adapter invokes onListen after the server starts", () => {
@@ -53,12 +68,16 @@ test("deno adapter invokes onListen after the server starts", () => {
   createAdapter(impl)({ port: 0 }, () => {
     listened++;
   })(handler);
-  expect(listened).toBe(1);
+  return check(listened, toBe(1));
 });
 
 test("deno adapter omits onListen when not provided", () => {
   const impl: DenoServeImpl = () => fakeServer;
-  expect(() =>
-    createAdapter(impl)({ port: 0 })(handler),
-  ).not.toThrow();
+  let threw = false;
+  try {
+    createAdapter(impl)({ port: 0 })(handler);
+  } catch {
+    threw = true;
+  }
+  return check(threw, toBe(false));
 });
