@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: housekeeping
 layer: [Config]
 effort:
-commit_hash:
-category:
+commit_hash: e45b507
+category: Changed
 depends_on: [20260624141656-u2-migrate-example.md, 20260624141657-u2-migrate-plgg-http.md, 20260624141658-u2-migrate-plgg-view.md, 20260624141659-u2-migrate-plgg-router.md, 20260624141700-u2-migrate-plgg-sql.md, 20260624141701-u2-migrate-plgg-fetch.md, 20260624141702-u2-migrate-plgg-server.md, 20260624141703-u2-migrate-plgg-kit.md, 20260624141704-u2-migrate-plgg-foundry.md]
 ---
 
