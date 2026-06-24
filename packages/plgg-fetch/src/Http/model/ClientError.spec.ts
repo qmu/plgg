@@ -1,4 +1,9 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import { match } from "plgg";
 import {
   notFound,
@@ -22,19 +27,26 @@ import {
 
 test("networkError carries its message under the NetworkError tag", () => {
   const error = networkError("connection refused");
-  expect(error.__tag).toBe("NetworkError");
-  expect(error.content.message).toBe(
-    "connection refused",
-  );
+  return all([
+    check(error.__tag, toBe("NetworkError")),
+    check(
+      error.content.message,
+      toBe("connection refused"),
+    ),
+  ]);
 });
 
-test("isNetworkError is true for a NetworkError", () => {
-  expect(isNetworkError(networkError("down"))).toBe(true);
-});
+test("isNetworkError is true for a NetworkError", () =>
+  check(
+    isNetworkError(networkError("down")),
+    toBe(true),
+  ));
 
-test("isNetworkError is false for a reused HttpError variant", () => {
-  expect(isNetworkError(notFound("/missing"))).toBe(false);
-});
+test("isNetworkError is false for a reused HttpError variant", () =>
+  check(
+    isNetworkError(notFound("/missing")),
+    toBe(false),
+  ));
 
 test("ClientError folds exhaustively via the $ patterns (no tag strings)", () => {
   // Match by named ADT pattern: networkError$ from the client, the rest from
@@ -58,7 +70,10 @@ test("ClientError folds exhaustively via the $ patterns (no tag strings)", () =>
         methodNotAllowed$(),
         (x) => `405 ${x.content.allowed.length}`,
       ],
-      [badRequest$(), (x) => `400 ${x.content.message}`],
+      [
+        badRequest$(),
+        (x) => `400 ${x.content.message}`,
+      ],
       [
         unsupported$(),
         (x) => `501 ${x.content.message}`,
@@ -67,7 +82,10 @@ test("ClientError folds exhaustively via the $ patterns (no tag strings)", () =>
         unauthorized$(),
         (x) => `401 ${x.content.message}`,
       ],
-      [forbidden$(), (x) => `403 ${x.content.message}`],
+      [
+        forbidden$(),
+        (x) => `403 ${x.content.message}`,
+      ],
       [
         statusError$(),
         (x) => `${x.content.status.content}`,
@@ -78,13 +96,18 @@ test("ClientError folds exhaustively via the $ patterns (no tag strings)", () =>
       ],
     );
 
-  expect(describe(networkError("down"))).toBe(
-    "network: down",
-  );
-  expect(describe(redirectError("moved"))).toBe(
-    "redirect: moved",
-  );
-  expect(describe(notFound("/x"))).toBe(
-    "not found: /x",
-  );
+  return all([
+    check(
+      describe(networkError("down")),
+      toBe("network: down"),
+    ),
+    check(
+      describe(redirectError("moved")),
+      toBe("redirect: moved"),
+    ),
+    check(
+      describe(notFound("/x")),
+      toBe("not found: /x"),
+    ),
+  ]);
 });
