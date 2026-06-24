@@ -44,6 +44,14 @@ Revised foundation order: **U0-fs-collision** + **U1** (R1 + Finding A fix + Gat
 
 Other launch facts: system-safety `system_changes_authorized=false` (project-local only — fine); baseline greens = plgg/kit/foundry/sql/http/router/fetch; coverage gates 91 (fetch/router/server/sql/view), 90 (http), ungated (example/foundry/kit); 58 vitest spec imports + 10 package.json vitest devDeps (incl. plgg) + 10 vite.config vitest blocks to remove. Gate A (Runner fails-not-crashes) confirmed.
 
+### Amendment 3 — Developer ruling: 2 adversarial `as` casts in plgg-sql are an approved exception
+
+plgg-sql `Sql.spec.ts` has 2 SQL-injection-defense tests that intentionally inject type-forbidden values (a forged unbranded `Sql`-shaped object; a raw `null`) to prove the runtime brand-check rejects them. The casts are **irreducible** (no cast-free way to express "a value that bypassed the compiler reaches this slot" — the forged object lacks the runtime brand the type guarantees), **pre-existing** (present in the vitest original AND the plgg reference's proc.spec/postJson.spec), and the migration keeps the count **unchanged (2)**, localized in one documented `asInterpolation` helper.
+
+**Developer decision: KEEP the 2 documented casts.** Rationale: they are the test's deliberate subject (constructing a type violation the runtime must catch), not a "solution to a type error" — so they fall outside the spirit of CLAUDE.md's no-`as` rule, which targets papering over type errors. Both injection-safety regression tests are preserved.
+
+**Impact on U3:** the final grep gate proves zero **NEW** `as`/`any`/`ts-ignore` introduced by the migration. These 2 casts are pre-existing and approved — U3 must account for them explicitly (they are not a migration-introduced violation). No other package may introduce casts.
+
 ## Progress
 
 - [x] [Planner] direction-v1 → direction-v2 (approved)
