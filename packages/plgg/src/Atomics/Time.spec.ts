@@ -1,94 +1,113 @@
-import { test, expect, assert } from "vitest";
 import {
-  isTime,
-  isOk,
-  isErr,
-  asTime,
-} from "plgg/index";
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { isTime, asTime } from "plgg/index";
 
-test("Time.is type guard", () => {
-  expect(isTime(new Date())).toBe(true);
-  expect(isTime(new Date("2023-01-01"))).toBe(
-    true,
-  );
-  expect(isTime("2023-01-01")).toBe(false);
-  expect(isTime(1672531200000)).toBe(false);
-  expect(isTime(null)).toBe(false);
-  expect(isTime(undefined)).toBe(false);
-  expect(isTime({})).toBe(false);
-  expect(isTime([])).toBe(false);
-});
+test("Time.is type guard", () =>
+  all([
+    check(isTime(new Date()), toBe(true)),
+    check(
+      isTime(new Date("2023-01-01")),
+      toBe(true),
+    ),
+    check(isTime("2023-01-01"), toBe(false)),
+    check(isTime(1672531200000), toBe(false)),
+    check(isTime(null), toBe(false)),
+    check(isTime(undefined), toBe(false)),
+    check(isTime({}), toBe(false)),
+    check(isTime([]), toBe(false)),
+  ]));
 
-test("Time.cast validation with Date objects", async () => {
+test("Time.cast validation with Date objects", () => {
   const date = new Date("2023-01-01");
-  const validResult = asTime(date);
-  assert(isOk(validResult));
-  expect(validResult.content).toBe(date);
-
   const currentDate = new Date();
-  const currentResult = asTime(currentDate);
-  assert(isOk(currentResult));
-  expect(currentResult.content).toBe(currentDate);
+  return all([
+    check(asTime(date), okThen(toBe(date))),
+    check(
+      asTime(currentDate),
+      okThen(toBe(currentDate)),
+    ),
+  ]);
 });
 
-test("Time.cast validation with date strings", async () => {
-  const iso8601Result = asTime(
-    "2023-01-01T00:00:00.000Z",
-  );
-  assert(isOk(iso8601Result));
-  expect(iso8601Result.content).toEqual(
-    new Date("2023-01-01T00:00:00.000Z"),
-  );
+test("Time.cast validation with date strings", () =>
+  all([
+    check(
+      asTime("2023-01-01T00:00:00.000Z"),
+      okThen(
+        toEqual(
+          new Date("2023-01-01T00:00:00.000Z"),
+        ),
+      ),
+    ),
+    check(
+      asTime("2023-01-01"),
+      okThen(
+        toEqual(new Date("2023-01-01")),
+      ),
+    ),
+    check(
+      asTime("01/01/2023"),
+      okThen(
+        toEqual(new Date("01/01/2023")),
+      ),
+    ),
+  ]));
 
-  const simpleDateResult = asTime("2023-01-01");
-  assert(isOk(simpleDateResult));
-  expect(simpleDateResult.content).toEqual(
-    new Date("2023-01-01"),
-  );
-
-  const americanFormatResult =
-    asTime("01/01/2023");
-  assert(isOk(americanFormatResult));
-  expect(americanFormatResult.content).toEqual(
-    new Date("01/01/2023"),
-  );
-});
-
-test("Time.cast validation with invalid inputs", async () => {
-  const invalidStringResult =
-    asTime("not-a-date");
-  assert(isErr(invalidStringResult));
-  expect(
-    invalidStringResult.content.content.message,
-  ).toBe("Value is not a Date");
-
-  const numberResult = asTime(1672531200000);
-  assert(isErr(numberResult));
-  expect(numberResult.content.content.message).toBe(
-    "Value is not a Date",
-  );
-
-  const boolResult = asTime(true);
-  assert(isErr(boolResult));
-  expect(boolResult.content.content.message).toBe(
-    "Value is not a Date",
-  );
-
-  const nullResult = asTime(null);
-  assert(isErr(nullResult));
-  expect(nullResult.content.content.message).toBe(
-    "Value is not a Date",
-  );
-
-  const undefinedResult = asTime(undefined);
-  assert(isErr(undefinedResult));
-  expect(undefinedResult.content.content.message).toBe(
-    "Value is not a Date",
-  );
-
-  const emptyStringResult = asTime("");
-  assert(isErr(emptyStringResult));
-  expect(emptyStringResult.content.content.message).toBe(
-    "Value is not a Date",
-  );
-});
+test("Time.cast validation with invalid inputs", () =>
+  all([
+    check(
+      asTime("not-a-date"),
+      errThen((e) =>
+        toBe("Value is not a Date")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asTime(1672531200000),
+      errThen((e) =>
+        toBe("Value is not a Date")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asTime(true),
+      errThen((e) =>
+        toBe("Value is not a Date")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asTime(null),
+      errThen((e) =>
+        toBe("Value is not a Date")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asTime(undefined),
+      errThen((e) =>
+        toBe("Value is not a Date")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asTime(""),
+      errThen((e) =>
+        toBe("Value is not a Date")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]));

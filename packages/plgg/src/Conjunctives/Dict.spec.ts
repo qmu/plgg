@@ -1,11 +1,33 @@
-import { test, expect, assert } from "vitest";
-import { asDictOf, asNum, isOk, isErr } from "plgg/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+} from "plgg-test";
+import { asDictOf, asNum, isErr } from "plgg/index";
 
 test("asDictOf basic validation", () => {
   const result = asDictOf(asNum)({ a: 1, b: 2 });
-  assert(isOk(result));
-  expect(result.content).toEqual({ a: 1, b: 2 });
 
-  assert(isErr(asDictOf(asNum)({ a: "not", b: "numbers" })));
-  assert(isErr(asDictOf(asNum)([])));
+  return all([
+    check(
+      result,
+      okThen(toEqual({ a: 1, b: 2 })),
+    ),
+    check(
+      isErr(
+        asDictOf(asNum)({
+          a: "not",
+          b: "numbers",
+        }),
+      ),
+      toBe(true),
+    ),
+    check(
+      isErr(asDictOf(asNum)([])),
+      toBe(true),
+    ),
+  ]);
 });

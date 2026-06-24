@@ -1,34 +1,55 @@
-import { test, expect, assert } from "vitest";
-import { env, isOk, isErr } from "plgg/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toContain,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { env } from "plgg/index";
 
 test("env - returns Ok for existing environment variable", () => {
   process.env.TEST_VAR = "test-value";
   const result = env("TEST_VAR");
-  assert(isOk(result));
-  expect(result.content).toBe("test-value");
+  const assertion = check(
+    result,
+    okThen(toBe("test-value")),
+  );
   delete process.env.TEST_VAR;
+  return assertion;
 });
 
 test("env - returns Err for missing environment variable", () => {
   delete process.env.NONEXISTENT_VAR;
-  const result = env("NONEXISTENT_VAR");
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "NONEXISTENT_VAR",
-  );
-  expect(result.content.content.message).toContain(
-    "not set",
+  return check(
+    env("NONEXISTENT_VAR"),
+    errThen((e) =>
+      all([
+        check(
+          e.content.message,
+          toContain("NONEXISTENT_VAR"),
+        ),
+        check(
+          e.content.message,
+          toContain("not set"),
+        ),
+      ]),
+    ),
   );
 });
 
 test("env - returns Err for empty environment variable", () => {
   process.env.EMPTY_VAR = "";
   const result = env("EMPTY_VAR");
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "EMPTY_VAR",
+  const assertion = check(
+    result,
+    errThen((e) =>
+      toContain("EMPTY_VAR")(e.content.message),
+    ),
   );
   delete process.env.EMPTY_VAR;
+  return assertion;
 });
 
 test("env - returns Err when process.env is unavailable", () => {
@@ -37,9 +58,13 @@ test("env - returns Err when process.env is unavailable", () => {
   process.env = undefined;
   const result = env("ANY_VAR");
   process.env = originalEnv;
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "process.env unavailable",
+  return check(
+    result,
+    errThen((e) =>
+      toContain("process.env unavailable")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
@@ -57,8 +82,12 @@ test("env - returns Err when accessing process throws", () => {
     writable: true,
     configurable: true,
   });
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "Failed to access",
+  return check(
+    result,
+    errThen((e) =>
+      toContain("Failed to access")(
+        e.content.message,
+      ),
+    ),
   );
 });

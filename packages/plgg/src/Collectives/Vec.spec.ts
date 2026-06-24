@@ -1,105 +1,112 @@
-import { test, expect, assert } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  toContain,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   isVec,
   asVec,
   asVecOf,
   asNum,
-  isOk,
-  isErr,
   mapVec,
   pipe,
   foldrVec,
   foldlVec,
 } from "plgg/index";
 
-test("Vec.is should return true for vectors", () => {
-  expect(isVec([])).toBe(true);
-  expect(isVec([1, 2, 3])).toBe(true);
-  expect(isVec(["a", "b", "c"])).toBe(true);
-  expect(isVec([1, "a", true, null])).toBe(true);
-  expect(isVec(new Array(5))).toBe(true);
-  expect(
-    isVec(
-      Array.from({
-        length: 3,
-      }),
+test("Vec.is should return true for vectors", () =>
+  all([
+    check(isVec([]), toBe(true)),
+    check(isVec([1, 2, 3]), toBe(true)),
+    check(isVec(["a", "b", "c"]), toBe(true)),
+    check(
+      isVec([1, "a", true, null]),
+      toBe(true),
     ),
-  ).toBe(true);
-});
+    check(isVec(new Array(5)), toBe(true)),
+    check(
+      isVec(Array.from({ length: 3 })),
+      toBe(true),
+    ),
+  ]));
 
-test("Vec.is should return false for non-vectors", () => {
-  expect(isVec(null)).toBe(false);
-  expect(isVec(undefined)).toBe(false);
-  expect(isVec({})).toBe(false);
-  expect(isVec("vector")).toBe(false);
-  expect(isVec(123)).toBe(false);
-  expect(isVec(true)).toBe(false);
-  expect(
-    isVec({
-      length: 0,
-    }),
-  ).toBe(false);
-  expect(isVec("")).toBe(false);
-});
+test("Vec.is should return false for non-vectors", () =>
+  all([
+    check(isVec(null), toBe(false)),
+    check(isVec(undefined), toBe(false)),
+    check(isVec({}), toBe(false)),
+    check(isVec("vector"), toBe(false)),
+    check(isVec(123), toBe(false)),
+    check(isVec(true), toBe(false)),
+    check(isVec({ length: 0 }), toBe(false)),
+    check(isVec(""), toBe(false)),
+  ]));
 
-test("Vec.cast should succeed for vectors", () => {
-  const result1 = asVec([]);
-  assert(isOk(result1));
-  expect(result1.content).toEqual([]);
+test("Vec.cast should succeed for vectors", () =>
+  all([
+    check(asVec([]), okThen(toEqual([]))),
+    check(
+      asVec([1, 2, 3]),
+      okThen(toEqual([1, 2, 3])),
+    ),
+    check(
+      asVec(["a", "b", "c"]),
+      okThen(toEqual(["a", "b", "c"])),
+    ),
+    check(
+      asVec([1, "a", true, null]),
+      okThen(toEqual([1, "a", true, null])),
+    ),
+  ]));
 
-  const result2 = asVec([1, 2, 3]);
-  assert(isOk(result2));
-  expect(result2.content).toEqual([1, 2, 3]);
-
-  const result3 = asVec(["a", "b", "c"]);
-  assert(isOk(result3));
-  expect(result3.content).toEqual([
-    "a",
-    "b",
-    "c",
-  ]);
-
-  const result4 = asVec([1, "a", true, null]);
-  assert(isOk(result4));
-  expect(result4.content).toEqual([
-    1,
-    "a",
-    true,
-    null,
-  ]);
-});
-
-test("Vec.cast should fail for non-vectors", () => {
-  const result1 = asVec(null);
-  assert(isErr(result1));
-  expect(result1.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result2 = asVec(undefined);
-  assert(isErr(result2));
-  expect(result2.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result3 = asVec({});
-  assert(isErr(result3));
-  expect(result3.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result4 = asVec("vector");
-  assert(isErr(result4));
-  expect(result4.content.content.message).toBe(
-    "Value is not a vector",
-  );
-
-  const result5 = asVec(123);
-  assert(isErr(result5));
-  expect(result5.content.content.message).toBe(
-    "Value is not a vector",
-  );
-});
+test("Vec.cast should fail for non-vectors", () =>
+  all([
+    check(
+      asVec(null),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asVec(undefined),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asVec({}),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asVec("vector"),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+    check(
+      asVec(123),
+      errThen((e) =>
+        toBe("Value is not a vector")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]));
 
 test("Vec Monad - map function", () => {
   const double = (x: number) => x * 2;
@@ -109,9 +116,11 @@ test("Vec Monad - map function", () => {
   const r2 = pipe([1, 2, 3], mapVec(double));
   const r3 = pipe([1, 2, 3], mapVec(toString));
 
-  expect(r1).toEqual([]);
-  expect(r2).toEqual([2, 4, 6]);
-  expect(r3).toEqual(["1", "2", "3"]);
+  return all([
+    check(r1, toEqual([])),
+    check(r2, toEqual([2, 4, 6])),
+    check(r3, toEqual(["1", "2", "3"])),
+  ]);
 });
 
 test("Vec Functor Laws - Identity", () => {
@@ -120,7 +129,7 @@ test("Vec Functor Laws - Identity", () => {
 
   const r1 = pipe(vec, mapVec(identity));
 
-  expect(r1).toEqual(vec);
+  return check(r1, toEqual(vec));
 });
 
 test("Vec Functor Laws - Composition", () => {
@@ -134,7 +143,7 @@ test("Vec Functor Laws - Composition", () => {
   );
   const r2 = pipe(vec, mapVec(f), mapVec(g));
 
-  expect(r1).toEqual(r2);
+  return check(r1, toEqual(r2));
 });
 
 test("Vec Foldable - foldr function", () => {
@@ -149,9 +158,11 @@ test("Vec Foldable - foldr function", () => {
     foldrVec(concat)(""),
   );
 
-  expect(r1).toBe(0);
-  expect(r2).toBe(6);
-  expect(r3).toBe("abc");
+  return all([
+    check(r1, toBe(0)),
+    check(r2, toBe(6)),
+    check(r3, toBe("abc")),
+  ]);
 });
 
 test("Vec Foldable - foldl function", () => {
@@ -166,35 +177,43 @@ test("Vec Foldable - foldl function", () => {
     foldlVec(concat)(""),
   );
 
-  expect(r1).toBe(0);
-  expect(r2).toBe(6);
-  expect(r3).toBe("abc");
+  return all([
+    check(r1, toBe(0)),
+    check(r2, toBe(6)),
+    check(r3, toBe("abc")),
+  ]);
 });
 
 test("asVecOf validates each element", () => {
   const result = asVecOf(asNum)([1, 2, 3]);
-  assert(isOk(result));
-  expect(result.content).toEqual([1, 2, 3]);
+  return check(result, okThen(toEqual([1, 2, 3])));
 });
 
 test("asVecOf fails when value is not a vector", () => {
   const result = asVecOf(asNum)("not-a-vector");
-  assert(isErr(result));
-  expect(result.content.content.message).toBe(
-    "Value is not a vector",
+  return check(
+    result,
+    errThen((e) =>
+      toBe("Value is not a vector")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
 test("asVecOf fails with index of bad element", () => {
   const result = asVecOf(asNum)([1, "bad", 3]);
-  assert(isErr(result));
-  expect(result.content.content.message).toContain(
-    "Invalid element at index 1",
+  return check(
+    result,
+    errThen((e) =>
+      toContain("Invalid element at index 1")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
 test("asVecOf accepts empty array", () => {
   const result = asVecOf(asNum)([]);
-  assert(isOk(result));
-  expect(result.content).toEqual([]);
+  return check(result, okThen(toEqual([])));
 });

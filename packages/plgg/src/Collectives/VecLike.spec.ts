@@ -1,21 +1,24 @@
-import { test, expect } from "vitest";
+import { test, check, all, toBe } from "plgg-test";
 import { isVecLike } from "plgg/index";
 
 test("isVecLike returns true for arrays", () => {
-  expect(isVecLike([])).toBe(true);
-  expect(isVecLike([1, 2, 3])).toBe(true);
-  expect(isVecLike(["a"])).toBe(true);
   const mut: number[] = [];
   mut.push(1);
-  expect(isVecLike(mut)).toBe(true);
+  return all([
+    check(isVecLike([]), toBe(true)),
+    check(isVecLike([1, 2, 3]), toBe(true)),
+    check(isVecLike(["a"]), toBe(true)),
+    check(isVecLike(mut), toBe(true)),
+  ]);
 });
 
-test("isVecLike returns false for non-vector values", () => {
-  expect(isVecLike(null)).toBe(false);
-  expect(isVecLike(undefined)).toBe(false);
-  expect(isVecLike({})).toBe(false);
-  expect(isVecLike("string")).toBe(false);
-  expect(isVecLike(42)).toBe(false);
-  expect(isVecLike(true)).toBe(false);
-  expect(isVecLike(0n)).toBe(false);
-});
+test("isVecLike returns false for non-vector values", () =>
+  all([
+    check(isVecLike(null), toBe(false)),
+    check(isVecLike(undefined), toBe(false)),
+    check(isVecLike({}), toBe(false)),
+    check(isVecLike("string"), toBe(false)),
+    check(isVecLike(42), toBe(false)),
+    check(isVecLike(true), toBe(false)),
+    check(isVecLike(0n), toBe(false)),
+  ]));

@@ -1,40 +1,36 @@
-import { test, expect, assert } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   PossiblyPromise,
   isPromise,
-  isResult,
   ok,
   err,
-  isOk,
 } from "plgg/index";
 
-test("success creates successful Procedural", () => {
-  const result = ok("test value");
-  assert(isOk(result));
-  expect(result.content).toBe("test value");
-});
+test("success creates successful Procedural", () =>
+  check(ok("test value"), okThen(toBe("test value"))));
 
 test("fail creates failed Procedural", () => {
   const error = new Error("test error");
-  const result = err(error);
-  if (!isResult(result) || isOk(result)) {
-    assert.fail(
-      "Expected error, but got success",
-    );
-  }
-  expect(result.content).toBe(error);
+  return check(err(error), errThen(toBe(error)));
 });
 
 test("PossiblyPromise accepts synchronous values", () => {
   const syncValue: PossiblyPromise<string> =
     "hello";
-  expect(syncValue).toBe("hello");
+  return check(syncValue, toBe("hello"));
 });
 
 test("PossiblyPromise accepts asynchronous values", async () => {
   const asyncValue: PossiblyPromise<string> =
     Promise.resolve("hello");
-  expect(await asyncValue).toBe("hello");
+  return check(await asyncValue, toBe("hello"));
 });
 
 test("isPromise correctly identifies Promise objects", () => {
@@ -43,15 +39,20 @@ test("isPromise correctly identifies Promise objects", () => {
   const asyncValue: PossiblyPromise<number> =
     Promise.resolve(42);
 
-  expect(isPromise(syncValue)).toBe(false);
-  expect(isPromise(asyncValue)).toBe(true);
-
   // Test rejected promise without causing unhandled rejection
   const rejectedPromise = Promise.reject(
     new Error(),
   );
   rejectedPromise.catch(() => {}); // Handle the rejection
-  expect(isPromise(rejectedPromise)).toBe(true);
+
+  return all([
+    check(isPromise(syncValue), toBe(false)),
+    check(isPromise(asyncValue), toBe(true)),
+    check(
+      isPromise(rejectedPromise),
+      toBe(true),
+    ),
+  ]);
 });
 
 test("isPromise identifies thenable objects", () => {
@@ -60,13 +61,16 @@ test("isPromise identifies thenable objects", () => {
   const notThenable = { then: "not a function" };
   const objectWithThen = { then: () => {} };
 
-  expect(isPromise(actualPromise)).toBe(true);
-  expect(isPromise(objectWithThen)).toBe(true); // This is a thenable
-  expect(isPromise(notThenable)).toBe(false);
-  expect(isPromise(null)).toBe(false);
-  expect(isPromise(undefined)).toBe(false);
-  expect(isPromise("string")).toBe(false);
-  expect(isPromise(123)).toBe(false);
+  return all([
+    check(isPromise(actualPromise), toBe(true)),
+    // This is a thenable
+    check(isPromise(objectWithThen), toBe(true)),
+    check(isPromise(notThenable), toBe(false)),
+    check(isPromise(null), toBe(false)),
+    check(isPromise(undefined), toBe(false)),
+    check(isPromise("string"), toBe(false)),
+    check(isPromise(123), toBe(false)),
+  ]);
 });
 
 test("isPromise works in async composition patterns", async () => {
@@ -81,11 +85,16 @@ test("isPromise works in async composition patterns", async () => {
     return `sync: ${value}`;
   };
 
-  const syncResult = await processValue("hello");
-  expect(syncResult).toBe("sync: hello");
-
-  const asyncResult = await processValue(
-    Promise.resolve("world"),
-  );
-  expect(asyncResult).toBe("async: world");
+  return all([
+    check(
+      await processValue("hello"),
+      toBe("sync: hello"),
+    ),
+    check(
+      await processValue(
+        Promise.resolve("world"),
+      ),
+      toBe("async: world"),
+    ),
+  ]);
 });

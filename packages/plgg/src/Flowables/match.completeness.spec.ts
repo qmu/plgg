@@ -1,4 +1,9 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import {
   ArgMatchable,
   IsEqual,
@@ -31,22 +36,34 @@ import {
 
 test("baseline: exhaustive atomic union is accepted", () => {
   // A = 1 | 2 | 3 fully covered by [1, 2, 3] -> accepted as the input union.
-  type Accepted = ArgMatchable<[1, 2, 3], false, 1 | 2 | 3>;
+  type Accepted = ArgMatchable<
+    [1, 2, 3],
+    false,
+    1 | 2 | 3
+  >;
   const _ok: IsEqual<Accepted, 1 | 2 | 3> = true;
-  expect(_ok).toBe(true);
+  return check(_ok, toBe(true));
 });
 
 test("baseline: canonical boolean tuple [true, false] is accepted", () => {
-  type Accepted = ArgMatchable<[true, false], false, boolean>;
+  type Accepted = ArgMatchable<
+    [true, false],
+    false,
+    boolean
+  >;
   const _ok: IsEqual<Accepted, boolean> = true;
-  expect(_ok).toBe(true);
+  return check(_ok, toBe(true));
 });
 
 test("baseline: missing atomic case collapses the argument to never", () => {
   // A = 1 | 2 | 3 but only [1, 2] provided, no otherwise -> never (rejected).
-  type Accepted = ArgMatchable<[1, 2], false, 1 | 2 | 3>;
+  type Accepted = ArgMatchable<
+    [1, 2],
+    false,
+    1 | 2 | 3
+  >;
   const _ok: IsEqual<Accepted, never> = true;
-  expect(_ok).toBe(true);
+  return check(_ok, toBe(true));
 });
 
 // -------------------------
@@ -57,15 +74,21 @@ test("GAP: duplicate atomic patterns are not flagged", () => {
   // [1, 2, 3, 3] repeats `3`; the trailing branch is unreachable at runtime.
   // Coverage uses IsEqual<TupleToUnion<PATTERNS>, A>, and TupleToUnion collapses
   // the duplicate, so the union still equals A and the call is accepted.
-  type Accepted = ArgMatchable<[1, 2, 3, 3], false, 1 | 2 | 3>;
+  type Accepted = ArgMatchable<
+    [1, 2, 3, 3],
+    false,
+    1 | 2 | 3
+  >;
   const _gap: IsEqual<Accepted, 1 | 2 | 3> = true;
-  expect(_gap).toBe(true);
 
   // The same blindness at the helper level: the duplicate vanishes from the
   // extracted pattern set, so nothing downstream can observe the redundancy.
   type Dup = IsAllAtomic<[1, 2, 3, 3]>;
   const _allAtomic: IsEqual<Dup, true> = true;
-  expect(_allAtomic).toBe(true);
+  return all([
+    check(_gap, toBe(true)),
+    check(_allAtomic, toBe(true)),
+  ]);
 });
 
 // -------------------------
@@ -76,17 +99,25 @@ test("GAP: duplicate atomic patterns are not flagged", () => {
 test("GAP: order-flipped boolean tuple [false, true] is wrongly rejected", () => {
   // Semantically exhaustive (both branches present) but Is<PATTERNS,[true,false]>
   // only accepts the exact tuple, so a flipped order collapses to never.
-  type Accepted = ArgMatchable<[false, true], false, boolean>;
+  type Accepted = ArgMatchable<
+    [false, true],
+    false,
+    boolean
+  >;
   const _gap: IsEqual<Accepted, never> = true;
-  expect(_gap).toBe(true);
+  return check(_gap, toBe(true));
 });
 
 test("GAP: boolean closed with otherwise is wrongly rejected", () => {
   // match(a: boolean, [TRUE, ...], [otherwise, ...]) is exhaustive, but the
   // boolean branch ignores OTHERWISE_LAST entirely and demands [true, false].
-  type Accepted = ArgMatchable<[true], true, boolean>;
+  type Accepted = ArgMatchable<
+    [true],
+    true,
+    boolean
+  >;
   const _gap: IsEqual<Accepted, never> = true;
-  expect(_gap).toBe(true);
+  return check(_gap, toBe(true));
 });
 
 // -------------------------
@@ -106,7 +137,7 @@ test("GAP: a non-final otherwise is not detected as misplaced", () => {
     1 | 2 | 3
   >;
   const _gap: IsEqual<Accepted, never> = true;
-  expect(_gap).toBe(true);
+  return check(_gap, toBe(true));
 });
 
 // -------------------------
@@ -128,14 +159,16 @@ test("GAP: object-body box pattern is not a tag pattern, so coverage is not prov
     [ObjectPattern]
   >;
   const _gap: IsEqual<Covered, false> = true;
-  expect(_gap).toBe(true);
 
   // ExtractPatternTags only collects `__tag` from patterns that carry a literal
   // tag; an object-body pattern with a widened `__tag: string` contributes
   // `string`, which cannot discriminate a finite variant union.
   type Tags = ExtractPatternTags<[ObjectPattern]>;
   const _tags: IsEqual<Tags, [string]> = true;
-  expect(_tags).toBe(true);
+  return all([
+    check(_gap, toBe(true)),
+    check(_tags, toBe(true)),
+  ]);
 });
 
 // -------------------------
@@ -160,8 +193,10 @@ test("GAP: mixed families are 'checked' only by the presence of a trailing other
     true,
     number
   >;
-  const _accepted: IsEqual<WithOtherwise, number> = true;
-  expect(_accepted).toBe(true);
+  const _accepted: IsEqual<
+    WithOtherwise,
+    number
+  > = true;
 
   // No otherwise -> rejected wholesale, even if the patterns were exhaustive.
   type WithoutOtherwise = ArgMatchable<
@@ -169,6 +204,12 @@ test("GAP: mixed families are 'checked' only by the presence of a trailing other
     false,
     number
   >;
-  const _rejected: IsEqual<WithoutOtherwise, never> = true;
-  expect(_rejected).toBe(true);
+  const _rejected: IsEqual<
+    WithoutOtherwise,
+    never
+  > = true;
+  return all([
+    check(_accepted, toBe(true)),
+    check(_rejected, toBe(true)),
+  ]);
 });

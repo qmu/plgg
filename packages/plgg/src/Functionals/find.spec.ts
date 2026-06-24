@@ -1,5 +1,11 @@
-import { test, expect, assert } from "vitest";
-import { find, isOk, isErr } from "plgg/index";
+import {
+  test,
+  check,
+  toBe,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { find } from "plgg/index";
 
 test("find with predicate function returns Ok when found", () => {
   const numbers = [1, 2, 3, 4, 5];
@@ -7,9 +13,10 @@ test("find with predicate function returns Ok when found", () => {
     (n: number) => n % 2 === 0,
   );
 
-  const result = findEven(numbers);
-  assert(isOk(result));
-  expect(result.content).toBe(2);
+  return check(
+    findEven(numbers),
+    okThen(toBe(2)),
+  );
 });
 
 test("find with predicate function returns Err when not found", () => {
@@ -18,10 +25,13 @@ test("find with predicate function returns Err when not found", () => {
     (n: number) => n % 2 === 0,
   );
 
-  const result = findEven(numbers);
-  assert(isErr(result));
-  expect(result.content.message).toBe(
-    "No element found matching the predicate",
+  return check(
+    findEven(numbers),
+    errThen((e) =>
+      toBe(
+        "No element found matching the predicate",
+      )(e.message),
+    ),
   );
 });
 
@@ -32,10 +42,13 @@ test("find with object and custom error message", () => {
     errMessage: "No negative number found",
   });
 
-  const result = findNegative(numbers);
-  assert(isErr(result));
-  expect(result.content.message).toBe(
-    "No negative number found",
+  return check(
+    findNegative(numbers),
+    errThen((e) =>
+      toBe("No negative number found")(
+        e.message,
+      ),
+    ),
   );
 });
 
@@ -45,10 +58,13 @@ test("find with object without custom error message", () => {
     predicate: (n) => n > 100,
   });
 
-  const result = findLarge(numbers);
-  assert(isErr(result));
-  expect(result.content.message).toBe(
-    "No element found matching the predicate",
+  return check(
+    findLarge(numbers),
+    errThen((e) =>
+      toBe(
+        "No element found matching the predicate",
+      )(e.message),
+    ),
   );
 });
 
@@ -59,7 +75,8 @@ test("find with object returns Ok when found", () => {
     errMessage: "Two not found",
   });
 
-  const result = findTwo(numbers);
-  assert(isOk(result));
-  expect(result.content).toBe(2);
+  return check(
+    findTwo(numbers),
+    okThen(toBe(2)),
+  );
 });

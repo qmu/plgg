@@ -1,20 +1,33 @@
-import { test, expect, assert } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+} from "plgg-test";
 import {
   isKebabCase,
   asKebabCase,
-  isOk,
   isErr,
   box,
 } from "plgg/index";
 
-test("isKebabCase and asKebabCase basic validation", () => {
-  expect(
-    isKebabCase(box("KebabCase")("kebab-case")),
-  ).toBe(true);
-  const result = asKebabCase("test-value");
-  assert(isOk(result));
-  expect(result.content.content).toBe(
-    "test-value",
-  );
-  assert(isErr(asKebabCase("camelCase")));
-});
+test("isKebabCase and asKebabCase basic validation", () =>
+  all([
+    check(
+      isKebabCase(
+        box("KebabCase")("kebab-case"),
+      ),
+      toBe(true),
+    ),
+    check(
+      asKebabCase("test-value"),
+      okThen((v) =>
+        toBe("test-value")(v.content),
+      ),
+    ),
+    check(
+      isErr(asKebabCase("camelCase")),
+      toBe(true),
+    ),
+  ]));

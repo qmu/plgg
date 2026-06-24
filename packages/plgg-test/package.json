@@ -1,0 +1,57 @@
+{
+  "name": "plgg-test",
+  "version": "0.0.2",
+  "description": "Minimal in-house test runner for the plgg monorepo",
+  "type": "module",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "bin": {
+    "plgg-test": "./bin/plgg-test.mjs"
+  },
+  "scripts": {
+    "build": "vite build",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test": "tsc --noEmit && node ./bin/plgg-test.mjs src",
+    "test:watch": "node ./bin/plgg-test.mjs src --watch",
+    "coverage": "tsc --noEmit && node ./bin/plgg-test.mjs src --coverage",
+    "coverage:watch": "node ./bin/plgg-test.mjs src --coverage --watch",
+    "publish": "vite build && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@microsoft/api-extractor": "^7.58.9",
+    "@types/node": "^25.6.0",
+    "vite": "^8.0.10",
+    "vite-plugin-dts": "^5.0.0"
+  }
+}

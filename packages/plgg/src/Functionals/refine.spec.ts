@@ -1,5 +1,12 @@
-import { test, expect, assert } from "vitest";
-import { refine, isOk, isErr } from "plgg/index";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { refine } from "plgg/index";
 
 test("refine validates values with custom predicates", () => {
   // Example: Custom validation rules
@@ -9,15 +16,20 @@ test("refine validates values with custom predicates", () => {
     "Number must be positive",
   );
 
-  const validResult = validatePositive(5);
-  assert(isOk(validResult));
-  expect(validResult.content).toBe(5);
-
-  const invalidResult = validatePositive(-3);
-  assert(isErr(invalidResult));
-  expect(invalidResult.content.content.message).toBe(
-    "Number must be positive",
-  );
+  return all([
+    check(
+      validatePositive(5),
+      okThen(toBe(5)),
+    ),
+    check(
+      validatePositive(-3),
+      errThen((e) =>
+        toBe("Number must be positive")(
+          e.content.message,
+        ),
+      ),
+    ),
+  ]);
 });
 
 test("refine with default error message", () => {
@@ -25,9 +37,12 @@ test("refine with default error message", () => {
   const isPositive = (n: number) => n > 0;
   const validatePositive = refine(isPositive);
 
-  const invalidResult = validatePositive(-5);
-  assert(isErr(invalidResult));
-  expect(invalidResult.content.content.message).toBe(
-    "The value -5 is not valid according to the predicate",
+  return check(
+    validatePositive(-5),
+    errThen((e) =>
+      toBe(
+        "The value -5 is not valid according to the predicate",
+      )(e.content.message),
+    ),
   );
 });

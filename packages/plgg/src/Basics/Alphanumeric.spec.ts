@@ -1,20 +1,31 @@
-import { test, expect, assert } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  okThen,
+  shouldBeErr,
+} from "plgg-test";
 import {
   isAlphanumeric,
   asAlphanumeric,
-  isOk,
-  isErr,
   box,
 } from "plgg/index";
 
-test("isAlphanumeric and asAlphanumeric basic validation", () => {
-  expect(
-    isAlphanumeric(
-      box("Alphanumeric")("test123"),
+test("isAlphanumeric and asAlphanumeric basic validation", () =>
+  all([
+    check(
+      isAlphanumeric(
+        box("Alphanumeric")("test123"),
+      ),
+      toBe(true),
     ),
-  ).toBe(true);
-  const result = asAlphanumeric("abc123");
-  assert(isOk(result));
-  expect(result.content.content).toBe("abc123");
-  assert(isErr(asAlphanumeric("test-123")));
-});
+    check(
+      asAlphanumeric("abc123"),
+      okThen((b) => toBe("abc123")(b.content)),
+    ),
+    check(
+      asAlphanumeric("test-123"),
+      shouldBeErr(),
+    ),
+  ]));

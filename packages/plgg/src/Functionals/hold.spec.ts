@@ -1,4 +1,4 @@
-import { test, expect } from "vitest";
+import { test, check, toBe } from "plgg-test";
 import { hold } from "plgg/index";
 
 test("bind applies function to values in pipelines", () => {
@@ -6,6 +6,8 @@ test("bind applies function to values in pipelines", () => {
   const uppercase = (s: string) =>
     s.toUpperCase();
 
-  const result = hold(uppercase)("hello");
-  expect(result).toBe("HELLO");
+  return check(
+    hold(uppercase)("hello"),
+    toBe("HELLO"),
+  );
 });

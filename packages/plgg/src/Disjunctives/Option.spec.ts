@@ -1,4 +1,15 @@
-import { test, expect, assert } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  toHaveLength,
+  someThen,
+  shouldBeNone,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   Option,
   some,
@@ -15,8 +26,6 @@ import {
   toOption,
   matchOption,
   okOr,
-  isOk,
-  isErr,
   ok,
   err,
   pipe,
@@ -24,121 +33,117 @@ import {
 
 test("some creates Some option", () => {
   const result = some(42);
-  expect(result.__tag).toBe("Some");
-  assert(isSome(result));
-  if (isSome(result)) {
-    expect(result.content).toBe(42);
-  }
+  return all([
+    check(result.__tag, toBe("Some")),
+    check(result, someThen(toBe(42))),
+  ]);
 });
 
 test("some creates Some option with string", () => {
   const result = some("hello");
-  expect(result.__tag).toBe("Some");
-  assert(isSome(result));
-  if (isSome(result)) {
-    expect(result.content).toBe("hello");
-  }
+  return all([
+    check(result.__tag, toBe("Some")),
+    check(result, someThen(toBe("hello"))),
+  ]);
 });
 
 test("some creates Some option with object", () => {
   const obj = { name: "test", age: 25 };
   const result = some(obj);
-  expect(result.__tag).toBe("Some");
-  assert(isSome(result));
-  if (isSome(result)) {
-    expect(result.content).toBe(obj);
-    expect(result.content.name).toBe("test");
-    expect(result.content.age).toBe(25);
-  }
+  return all([
+    check(result.__tag, toBe("Some")),
+    check(
+      result,
+      someThen((c) =>
+        all([
+          check(c, toBe(obj)),
+          check(c.name, toBe("test")),
+          check(c.age, toBe(25)),
+        ]),
+      ),
+    ),
+  ]);
 });
 
 test("some creates Some option with null", () => {
   const result = some(null);
-  expect(result.__tag).toBe("Some");
-  assert(isSome(result));
-  if (isSome(result)) {
-    expect(result.content).toBe(null);
-  }
+  return all([
+    check(result.__tag, toBe("Some")),
+    check(result, someThen(toBe(null))),
+  ]);
 });
 
 test("some creates Some option with undefined", () => {
   const result = some(undefined);
-  expect(result.__tag).toBe("Some");
-  assert(isSome(result));
-  if (isSome(result)) {
-    expect(result.content).toBe(undefined);
-  }
+  return all([
+    check(result.__tag, toBe("Some")),
+    check(result, someThen(toBe(undefined))),
+  ]);
 });
 
 test("none creates None option", () => {
   const result = none();
-  expect(result.__tag).toBe("None");
-  assert(isNone(result));
+  return all([
+    check(result.__tag, toBe("None")),
+    check(isNone(result), toBe(true)),
+  ]);
 });
 
 test("none creates None option with type parameter", () => {
   const result = none();
-  expect(result.__tag).toBe("None");
-  assert(isNone(result));
+  return all([
+    check(result.__tag, toBe("None")),
+    check(isNone(result), toBe(true)),
+  ]);
 });
 
 test("isSome identifies Some options", () => {
   const someResult = some("content");
   const noneResult = none();
-
-  assert(isSome(someResult));
-  assert(!isSome(noneResult));
+  return all([
+    check(isSome(someResult), toBe(true)),
+    check(isSome(noneResult), toBe(false)),
+  ]);
 });
 
 test("isNone identifies None options", () => {
   const someResult = some("content");
   const noneResult = none();
-
-  assert(!isNone(someResult));
-  assert(isNone(noneResult));
+  return all([
+    check(isNone(someResult), toBe(false)),
+    check(isNone(noneResult), toBe(true)),
+  ]);
 });
 
 test("isSome() function returns true for Some instances", () => {
   const someOption = some("value");
-
-  assert(isSome(someOption));
-  assert(!isNone(someOption));
-
-  // Type narrowing should work
-  if (isSome(someOption)) {
-    expect(someOption.content).toBe("value");
-  }
+  return all([
+    check(isSome(someOption), toBe(true)),
+    check(isNone(someOption), toBe(false)),
+    check(someOption, someThen(toBe("value"))),
+  ]);
 });
 
 test("isNone() function returns true for None instances", () => {
   const noneOption = none();
-
-  assert(!isSome(noneOption));
-  assert(isNone(noneOption));
-
-  // Type narrowing should work
-  if (isNone(noneOption)) {
-    expect(noneOption.__tag).toBe("None");
-  }
+  return all([
+    check(isSome(noneOption), toBe(false)),
+    check(isNone(noneOption), toBe(true)),
+    check(noneOption.__tag, toBe("None")),
+  ]);
 });
 
 test("isSome and isNone functions work with Option union type", () => {
   const someOption: Option<number> = some(42);
   const noneOption: Option<number> = none();
-
-  // Some case
-  assert(isSome(someOption));
-  assert(!isNone(someOption));
-  if (isSome(someOption)) {
-    expect(someOption.content).toBe(42);
-  }
-
-  // None case
-  assert(!isSome(noneOption));
-  assert(isNone(noneOption));
-  if (isNone(noneOption)) {
-    expect(noneOption.__tag).toBe("None");
-  }
+  return all([
+    check(isSome(someOption), toBe(true)),
+    check(isNone(someOption), toBe(false)),
+    check(someOption, someThen(toBe(42))),
+    check(isSome(noneOption), toBe(false)),
+    check(isNone(noneOption), toBe(true)),
+    check(noneOption, shouldBeNone()),
+  ]);
 });
 
 test("Option can handle different types", () => {
@@ -147,40 +152,24 @@ test("Option can handle different types", () => {
   const numberOption: Option<number> = some(42);
   const noneStringOption: Option<string> = none();
   const noneNumberOption: Option<number> = none();
-
-  assert(isSome(stringOption));
-  assert(isSome(numberOption));
-  assert(isNone(noneStringOption));
-  assert(isNone(noneNumberOption));
-
-  if (isSome(stringOption)) {
-    expect(stringOption.content).toBe("hello");
-  }
-
-  if (isSome(numberOption)) {
-    expect(numberOption.content).toBe(42);
-  }
+  return all([
+    check(isSome(stringOption), toBe(true)),
+    check(isSome(numberOption), toBe(true)),
+    check(isNone(noneStringOption), toBe(true)),
+    check(isNone(noneNumberOption), toBe(true)),
+    check(stringOption, someThen(toBe("hello"))),
+    check(numberOption, someThen(toBe(42))),
+  ]);
 });
 
 test("Option type structure", () => {
   const someOption = some(123);
   const noneOption = none();
-
-  // Test that Some has the expected structure
-  expect(someOption).toHaveProperty(
-    "__tag",
-    "Some",
-  );
-  expect(someOption).toHaveProperty(
-    "content",
-    123,
-  );
-
-  // Test that None has the expected structure
-  expect(noneOption).toHaveProperty(
-    "__tag",
-    "None",
-  );
+  return all([
+    check(someOption.__tag, toBe("Some")),
+    check(someOption.content, toBe(123)),
+    check(noneOption.__tag, toBe("None")),
+  ]);
 });
 
 test("Option with complex types", () => {
@@ -197,17 +186,23 @@ test("Option with complex types", () => {
   };
   const userOption = some(user);
   const noUserOption = none();
-
-  assert(isSome(userOption));
-  assert(isNone(noUserOption));
-
-  if (isSome(userOption)) {
-    expect(userOption.content.id).toBe(1);
-    expect(userOption.content.name).toBe("John");
-    expect(userOption.content.email).toBe(
-      "john@example.com",
-    );
-  }
+  return all([
+    check(isSome(userOption), toBe(true)),
+    check(isNone(noUserOption), toBe(true)),
+    check(
+      userOption,
+      someThen((c) =>
+        all([
+          check(c.id, toBe(1)),
+          check(c.name, toBe("John")),
+          check(
+            c.email,
+            toBe("john@example.com"),
+          ),
+        ]),
+      ),
+    ),
+  ]);
 });
 
 test("Option with array contents", () => {
@@ -215,58 +210,53 @@ test("Option with array contents", () => {
   const arrayOption = some(numbers);
   const emptyArrayOption = some([]);
   const noneArrayOption = none();
-
-  assert(isSome(arrayOption));
-  assert(isSome(emptyArrayOption));
-  assert(isNone(noneArrayOption));
-
-  if (isSome(arrayOption)) {
-    expect(arrayOption.content).toEqual([
-      1, 2, 3, 4, 5,
-    ]);
-    expect(arrayOption.content.length).toBe(5);
-  }
-
-  if (isSome(emptyArrayOption)) {
-    expect(emptyArrayOption.content).toEqual([]);
-    expect(emptyArrayOption.content.length).toBe(
-      0,
-    );
-  }
+  return all([
+    check(isSome(arrayOption), toBe(true)),
+    check(isSome(emptyArrayOption), toBe(true)),
+    check(isNone(noneArrayOption), toBe(true)),
+    check(
+      arrayOption,
+      someThen((c) =>
+        all([
+          check(c, toEqual([1, 2, 3, 4, 5])),
+          check(c, toHaveLength(5)),
+        ]),
+      ),
+    ),
+    check(
+      emptyArrayOption,
+      someThen((c) =>
+        all([
+          check(c, toEqual([])),
+          check(c, toHaveLength(0)),
+        ]),
+      ),
+    ),
+  ]);
 });
 
 test("Option with boolean contents", () => {
   const trueOption = some(true);
   const falseOption = some(false);
   const noneBoolOption = none();
-
-  assert(isSome(trueOption));
-  assert(isSome(falseOption));
-  assert(isNone(noneBoolOption));
-
-  if (isSome(trueOption)) {
-    expect(trueOption.content).toBe(true);
-  }
-
-  if (isSome(falseOption)) {
-    expect(falseOption.content).toBe(false);
-  }
+  return all([
+    check(isSome(trueOption), toBe(true)),
+    check(isSome(falseOption), toBe(true)),
+    check(isNone(noneBoolOption), toBe(true)),
+    check(trueOption, someThen(toBe(true))),
+    check(falseOption, someThen(toBe(false))),
+  ]);
 });
 
 test("Option with zero contents", () => {
   const zeroOption = some(0);
   const emptyStringOption = some("");
-
-  assert(isSome(zeroOption));
-  assert(isSome(emptyStringOption));
-
-  if (isSome(zeroOption)) {
-    expect(zeroOption.content).toBe(0);
-  }
-
-  if (isSome(emptyStringOption)) {
-    expect(emptyStringOption.content).toBe("");
-  }
+  return all([
+    check(isSome(zeroOption), toBe(true)),
+    check(isSome(emptyStringOption), toBe(true)),
+    check(zeroOption, someThen(toBe(0))),
+    check(emptyStringOption, someThen(toBe(""))),
+  ]);
 });
 
 test("Option Monad - map function", () => {
@@ -276,10 +266,10 @@ test("Option Monad - map function", () => {
 
   const r1 = pipe(someNumber, mapOption(double));
   const r2 = pipe(noneNumber, mapOption(double));
-
-  assert(isSome(r1));
-  expect(r1.content).toBe(10);
-  assert(isNone(r2));
+  return all([
+    check(r1, someThen(toBe(10))),
+    check(isNone(r2), toBe(true)),
+  ]);
 });
 
 test("Option Monad - ap function (applicative)", () => {
@@ -305,25 +295,23 @@ test("Option Monad - ap function (applicative)", () => {
     noneNumber,
     applyOption(noneAdd),
   );
-
-  assert(isSome(r1));
-  expect(r1.content).toBe(8);
-  assert(isNone(r2));
-  assert(isNone(r3));
-  assert(isNone(r4));
+  return all([
+    check(r1, someThen(toBe(8))),
+    check(isNone(r2), toBe(true)),
+    check(isNone(r3), toBe(true)),
+    check(isNone(r4), toBe(true)),
+  ]);
 });
 
 test("Option Monad - of function", () => {
   const r1 = pipe(42, ofOption);
   const r2 = pipe("hello", ofOption);
   const r3 = pipe(null, ofOption);
-
-  assert(isSome(r1));
-  expect(r1.content).toBe(42);
-  assert(isSome(r2));
-  expect(r2.content).toBe("hello");
-  assert(isSome(r3));
-  expect(r3.content).toBe(null);
+  return all([
+    check(r1, someThen(toBe(42))),
+    check(r2, someThen(toBe("hello"))),
+    check(r3, someThen(toBe(null))),
+  ]);
 });
 
 test("Option Monad - chain function", () => {
@@ -347,11 +335,11 @@ test("Option Monad - chain function", () => {
     noneNumber,
     chainOption(safeDivide(2)),
   );
-
-  assert(isSome(r1));
-  expect(r1.content).toBe(5);
-  assert(isNone(r2));
-  assert(isNone(r3));
+  return all([
+    check(r1, someThen(toBe(5))),
+    check(isNone(r2), toBe(true)),
+    check(isNone(r3), toBe(true)),
+  ]);
 });
 
 test("Option Monad Laws - Left Identity", () => {
@@ -361,11 +349,12 @@ test("Option Monad Laws - Left Identity", () => {
 
   const r1 = pipe(a, ofOption, chainOption(f));
   const r2 = f(a);
-
-  expect(r1.__tag).toBe(r2.__tag);
-  if (isSome(r1) && isSome(r2)) {
-    expect(r1.content).toEqual(r2.content);
-  }
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    isSome(r1) && isSome(r2)
+      ? check(r1.content, toEqual(r2.content))
+      : check(true, toBe(true)),
+  ]);
 });
 
 test("Option Monad Laws - Right Identity", () => {
@@ -373,11 +362,12 @@ test("Option Monad Laws - Right Identity", () => {
 
   const r1 = pipe(m, chainOption(ofOption));
   const r2 = m;
-
-  expect(r1.__tag).toBe(r2.__tag);
-  if (isSome(r1) && isSome(r2)) {
-    expect(r1.content).toEqual(r2.content);
-  }
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    isSome(r1) && isSome(r2)
+      ? check(r1.content, toEqual(r2.content))
+      : check(true, toBe(true)),
+  ]);
 });
 
 test("Option Monad Laws - Associativity", () => {
@@ -398,11 +388,12 @@ test("Option Monad Laws - Associativity", () => {
       pipe(x, f, chainOption(g)),
     ),
   );
-
-  expect(r1.__tag).toBe(r2.__tag);
-  if (isSome(r1) && isSome(r2)) {
-    expect(r1.content).toEqual(r2.content);
-  }
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    isSome(r1) && isSome(r2)
+      ? check(r1.content, toEqual(r2.content))
+      : check(true, toBe(true)),
+  ]);
 });
 
 test("Option Functor Laws - Identity", () => {
@@ -410,11 +401,12 @@ test("Option Functor Laws - Identity", () => {
   const identity = <T>(x: T) => x;
 
   const r1 = pipe(opt, mapOption(identity));
-
-  expect(r1.__tag).toBe(opt.__tag);
-  if (isSome(r1) && isSome(opt)) {
-    expect(r1.content).toEqual(opt.content);
-  }
+  return all([
+    check(r1.__tag, toBe(opt.__tag)),
+    isSome(r1) && isSome(opt)
+      ? check(r1.content, toEqual(opt.content))
+      : check(true, toBe(true)),
+  ]);
 });
 
 test("Option Functor Laws - Composition", () => {
@@ -431,58 +423,64 @@ test("Option Functor Laws - Composition", () => {
     mapOption(f),
     mapOption(g),
   );
-
-  expect(r1.__tag).toBe(r2.__tag);
-  if (isSome(r1) && isSome(r2)) {
-    expect(r1.content).toEqual(r2.content);
-  }
+  return all([
+    check(r1.__tag, toBe(r2.__tag)),
+    isSome(r1) && isSome(r2)
+      ? check(r1.content, toEqual(r2.content))
+      : check(true, toBe(true)),
+  ]);
 });
 
 test("isOption - type guard for Option types", () => {
-  // Test with Some values
   const someValue = some(42);
-  expect(isOption(someValue)).toBe(true);
-
   const someString = some("hello");
-  expect(isOption(someString)).toBe(true);
-
-  // Test with None
   const noneValue = none();
-  expect(isOption(noneValue)).toBe(true);
-
-  // Test with non-Option values
-  expect(isOption(42)).toBe(false);
-  expect(isOption("string")).toBe(false);
-  expect(isOption(null)).toBe(false);
-  expect(isOption(undefined)).toBe(false);
-  expect(isOption({})).toBe(false);
-  expect(isOption([])).toBe(false);
+  return all([
+    check(isOption(someValue), toBe(true)),
+    check(isOption(someString), toBe(true)),
+    check(isOption(noneValue), toBe(true)),
+    check(isOption(42), toBe(false)),
+    check(isOption("string"), toBe(false)),
+    check(isOption(null), toBe(false)),
+    check(isOption(undefined), toBe(false)),
+    check(isOption({}), toBe(false)),
+    check(isOption([]), toBe(false)),
+  ]);
 });
 
 test("fromNullable wraps non-nullish values in Some", () => {
   const s = fromNullable("x");
-  assert(isSome(s));
-  expect(s.content).toBe("x");
-  // 0 and "" are not nullish.
-  assert(isSome(fromNullable(0)));
-  assert(isSome(fromNullable("")));
+  return all([
+    check(s, someThen(toBe("x"))),
+    check(isSome(fromNullable(0)), toBe(true)),
+    check(isSome(fromNullable("")), toBe(true)),
+  ]);
 });
 
-test("fromNullable maps null and undefined to None", () => {
-  expect(isNone(fromNullable(null))).toBe(true);
-  expect(isNone(fromNullable(undefined))).toBe(true);
-});
+test("fromNullable maps null and undefined to None", () =>
+  all([
+    check(isNone(fromNullable(null)), toBe(true)),
+    check(
+      isNone(fromNullable(undefined)),
+      toBe(true),
+    ),
+  ]));
 
-test("getOr returns the contained value or the fallback", () => {
-  expect(pipe(some(7), getOr(0))).toBe(7);
-  expect(pipe(none(), getOr(0))).toBe(0);
-});
+test("getOr returns the contained value or the fallback", () =>
+  all([
+    check(pipe(some(7), getOr(0)), toBe(7)),
+    check(pipe(none(), getOr(0)), toBe(0)),
+  ]));
 
 test("toOption keeps Ok content and drops Err", () => {
   const s = toOption(ok(42));
-  assert(isSome(s));
-  expect(s.content).toBe(42);
-  expect(isNone(toOption(err("boom")))).toBe(true);
+  return all([
+    check(s, someThen(toBe(42))),
+    check(
+      isNone(toOption(err("boom"))),
+      toBe(true),
+    ),
+  ]);
 });
 
 test("matchOption folds both cases into one value", () => {
@@ -490,16 +488,17 @@ test("matchOption folds both cases into one value", () => {
     () => "none",
     (n: number) => `some:${n}`,
   );
-  expect(pipe(some(7), label)).toBe("some:7");
-  expect(pipe(none(), label)).toBe("none");
+  return all([
+    check(pipe(some(7), label), toBe("some:7")),
+    check(pipe(none(), label), toBe("none")),
+  ]);
 });
 
 test("okOr turns Some into Ok and None into Err", () => {
   const present = pipe(some(7), okOr("missing"));
-  assert(isOk(present));
-  expect(present.content).toBe(7);
-
   const absent = pipe(none(), okOr("missing"));
-  assert(isErr(absent));
-  expect(absent.content).toBe("missing");
+  return all([
+    check(present, okThen(toBe(7))),
+    check(absent, errThen(toBe("missing"))),
+  ]);
 });

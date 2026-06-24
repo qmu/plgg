@@ -1,4 +1,10 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toBeInstanceOf,
+} from "plgg-test";
 import {
   Defect,
   InvalidError,
@@ -9,59 +15,77 @@ import {
   panic,
   match,
   isSome,
+  tryCatch,
+  isErr,
 } from "plgg/index";
 
 test("defect builds a Defect box, cause absent", () => {
   const d = defect("boom");
-  expect(d.__tag).toBe("Defect");
-  expect(d.content.message).toBe("boom");
-  expect(isSome(d.content.cause)).toBe(false);
+  return all([
+    check(d.__tag, toBe("Defect")),
+    check(d.content.message, toBe("boom")),
+    check(isSome(d.content.cause), toBe(false)),
+  ]);
 });
 
 test("defect carries an Error cause as Some", () => {
   const d = defect("wrapped", new Error("orig"));
-  expect(isSome(d.content.cause)).toBe(true);
+  return check(
+    isSome(d.content.cause),
+    toBe(true),
+  );
 });
 
-test("toError carries a Defect's cause message", () => {
-  const e = new Error("orig");
-  expect(
-    toError(defect("wrapped", e)).message,
-  ).toBe("orig");
-});
+test("toError carries a Defect's cause message", () =>
+  check(
+    toError(defect("wrapped", new Error("orig")))
+      .message,
+    toBe("orig"),
+  ));
 
 test("a Defect's cause survives JSON serialization", () => {
   const d = defect("boom", new Error("orig"));
   const json = JSON.parse(JSON.stringify(d));
   // a raw Error would collapse to {}; the Cause snapshot keeps the detail.
-  expect(json.content.cause.content.name).toBe(
-    "Error",
-  );
-  expect(
-    json.content.cause.content.message,
-  ).toBe("orig");
+  return all([
+    check(
+      json.content.cause.content.name,
+      toBe("Error"),
+    ),
+    check(
+      json.content.cause.content.message,
+      toBe("orig"),
+    ),
+  ]);
 });
 
 test("toError synthesizes when no Error cause", () => {
   const err = toError(defect("nope"));
-  expect(err).toBeInstanceOf(Error);
-  expect(err.message).toBe("nope");
+  return all([
+    check(err, toBeInstanceOf(Error)),
+    check(err.message, toBe("nope")),
+  ]);
 });
 
 test("toError passes a real Error through", () => {
   const e = new Error("x");
-  expect(toError(e)).toBe(e);
+  return check(toError(e), toBe(e));
 });
 
-test("toError stringifies a non-box value", () => {
-  expect(toError("plain").message).toBe("plain");
-});
+test("toError stringifies a non-box value", () =>
+  check(toError("plain").message, toBe("plain")));
 
 test("panic throws the extracted Error", () => {
   const e = new Error("orig");
-  expect(() =>
-    panic(defect("wrapped", e)),
-  ).toThrow(e);
+  return check(
+    isErr(
+      tryCatch(
+        () => panic(defect("wrapped", e)),
+        (err) => err,
+      )(undefined),
+    ),
+    toBe(true),
+  );
 });
 
 test("defect$ folds a Defect through match", () => {
@@ -71,7 +95,8 @@ test("defect$ folds a Defect through match", () => {
     match(e)(
       [
         defect$(),
-        (d): string => `defect: ${d.content.message}`,
+        (d): string =>
+          `defect: ${d.content.message}`,
       ],
       [
         invalidError$(),
@@ -79,5 +104,8 @@ test("defect$ folds a Defect through match", () => {
           `invalid: ${x.content.message}`,
       ],
     );
-  expect(fold(defect("x"))).toBe("defect: x");
+  return check(
+    fold(defect("x")),
+    toBe("defect: x"),
+  );
 });

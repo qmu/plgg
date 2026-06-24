@@ -1,4 +1,14 @@
-import { test, expect, assert } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+  someThen,
+  shouldBeNone,
+} from "plgg-test";
 import {
   isObj,
   asObj,
@@ -6,72 +16,66 @@ import {
   forProp,
   asSoftStr,
   asNum,
-  isOk,
-  isErr,
-  isSome,
-  isNone,
 } from "plgg/index";
 
 /**
  * Validates isObj type guard for various value types.
  */
-test("isObj type guard", () => {
-  expect(isObj({})).toBe(true);
-  expect(isObj({ a: 1 })).toBe(true);
-  expect(
-    isObj({ a: "test", b: 123, c: true }),
-  ).toBe(true);
-  expect(isObj([])).toBe(true); // Arrays are records in JavaScript runtime
-  expect(isObj(null)).toBe(false);
-  expect(isObj(undefined)).toBe(false);
-  expect(isObj("string")).toBe(false);
-  expect(isObj(123)).toBe(false);
-  expect(isObj(true)).toBe(false);
-});
+test("isObj type guard", () =>
+  all([
+    check(isObj({}), toBe(true)),
+    check(isObj({ a: 1 }), toBe(true)),
+    check(
+      isObj({ a: "test", b: 123, c: true }),
+      toBe(true),
+    ),
+    check(isObj([]), toBe(true)), // Arrays are records in JavaScript runtime
+    check(isObj(null), toBe(false)),
+    check(isObj(undefined), toBe(false)),
+    check(isObj("string"), toBe(false)),
+    check(isObj(123), toBe(false)),
+    check(isObj(true), toBe(false)),
+  ]));
 
 /**
  * Tests asObj validation for records and non-record types.
  */
-test("asObj validation", async () => {
-  const emptyResult = asObj({});
-  assert(isOk(emptyResult));
-  expect(emptyResult.content).toEqual({});
-
-  const recResult = asObj({ a: 1, b: "test" });
-  assert(isOk(recResult));
-  expect(recResult.content).toEqual({
-    a: 1,
-    b: "test",
-  });
-
-  const arrayResult = asObj([1, 2, 3]);
-  assert(isOk(arrayResult));
-  expect(arrayResult.content).toEqual([1, 2, 3]);
-
-  const nullResult = asObj(null);
-  assert(isErr(nullResult));
-  expect(nullResult.content.content.message).toBe(
-    "Not record",
-  );
-
-  const undefinedResult = asObj(undefined);
-  assert(isErr(undefinedResult));
-  expect(undefinedResult.content.content.message).toBe(
-    "Not record",
-  );
-
-  const stringResult = asObj("test");
-  assert(isErr(stringResult));
-  expect(stringResult.content.content.message).toBe(
-    "Not record",
-  );
-
-  const numberResult = asObj(123);
-  assert(isErr(numberResult));
-  expect(numberResult.content.content.message).toBe(
-    "Not record",
-  );
-});
+test("asObj validation", async () =>
+  all([
+    check(asObj({}), okThen(toEqual({}))),
+    check(
+      asObj({ a: 1, b: "test" }),
+      okThen(toEqual({ a: 1, b: "test" })),
+    ),
+    check(
+      asObj([1, 2, 3]),
+      okThen(toEqual([1, 2, 3])),
+    ),
+    check(
+      asObj(null),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+    check(
+      asObj(undefined),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+    check(
+      asObj("test"),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+    check(
+      asObj(123),
+      errThen((e) =>
+        toBe("Not record")(e.content.message),
+      ),
+    ),
+  ]));
 
 /**
  * Validates property extraction from records with successful cases.
@@ -79,19 +83,16 @@ test("asObj validation", async () => {
 test("Obj.prop validation - success cases", async () => {
   const rec = { name: "John", age: 30 };
 
-  const nameResult = forProp("name", asSoftStr)(rec);
-  assert(isOk(nameResult));
-  expect(nameResult.content).toEqual({
-    name: "John",
-    age: 30,
-  });
-
-  const ageResult = forProp("age", asNum)(rec);
-  assert(isOk(ageResult));
-  expect(ageResult.content).toEqual({
-    name: "John",
-    age: 30,
-  });
+  return all([
+    check(
+      forProp("name", asSoftStr)(rec),
+      okThen(toEqual({ name: "John", age: 30 })),
+    ),
+    check(
+      forProp("age", asNum)(rec),
+      okThen(toEqual({ name: "John", age: 30 })),
+    ),
+  ]);
 });
 
 /**
@@ -100,10 +101,13 @@ test("Obj.prop validation - success cases", async () => {
 test("Obj.prop validation - missing property", async () => {
   const rec = { name: "John" };
 
-  const ageResult = forProp("age", asNum)(rec);
-  assert(isErr(ageResult));
-  expect(ageResult.content.content.message).toBe(
-    "Property 'age' not found",
+  return check(
+    forProp("age", asNum)(rec),
+    errThen((e) =>
+      toBe("Property 'age' not found")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
@@ -113,10 +117,13 @@ test("Obj.prop validation - missing property", async () => {
 test("Obj.prop validation - invalid property type", async () => {
   const rec = { name: "John", age: "thirty" };
 
-  const ageResult = forProp("age", asNum)(rec);
-  assert(isErr(ageResult));
-  expect(ageResult.content.content.message).toBe(
-    "Value is not a number",
+  return check(
+    forProp("age", asNum)(rec),
+    errThen((e) =>
+      toBe("Value is not a number")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
@@ -127,15 +134,18 @@ test("Obj.prop validation - adds property to record type", async () => {
   const rec = { existing: "value" };
   const newKey = "newProp";
 
-  const result = forProp(
-    newKey,
-    asSoftStr,
-  )({ ...rec, [newKey]: "test" });
-  assert(isOk(result));
-  expect(result.content).toEqual({
-    existing: "value",
-    newProp: "test",
-  });
+  return check(
+    forProp(
+      newKey,
+      asSoftStr,
+    )({ ...rec, [newKey]: "test" }),
+    okThen(
+      toEqual({
+        existing: "value",
+        newProp: "test",
+      }),
+    ),
+  );
 });
 
 /**
@@ -144,24 +154,26 @@ test("Obj.prop validation - adds property to record type", async () => {
 test("Obj.optional validation - property exists", async () => {
   const rec = { name: "John", age: 30 };
 
-  const nameResult = forOptionProp(
-    "name",
-    asSoftStr,
-  )(rec);
-  assert(isOk(nameResult));
-  assert(isSome(nameResult.content.name));
-  expect(nameResult.content.name.content).toBe(
-    "John",
-  );
-  expect(nameResult.content.age).toBe(30);
-
-  const ageResult = forOptionProp(
-    "age",
-    asNum,
-  )(rec);
-  assert(isOk(ageResult));
-  assert(isSome(ageResult.content.age));
-  expect(ageResult.content.age.content).toBe(30);
+  return all([
+    check(
+      forOptionProp("name", asSoftStr)(rec),
+      okThen((c) =>
+        all([
+          check(
+            c.name,
+            someThen(toBe("John")),
+          ),
+          check(c.age, toBe(30)),
+        ]),
+      ),
+    ),
+    check(
+      forOptionProp("age", asNum)(rec),
+      okThen((c) =>
+        check(c.age, someThen(toBe(30))),
+      ),
+    ),
+  ]);
 });
 
 /**
@@ -170,13 +182,15 @@ test("Obj.optional validation - property exists", async () => {
 test("Obj.optional validation - property missing", async () => {
   const rec = { name: "John" };
 
-  const ageResult = forOptionProp(
-    "age",
-    asNum,
-  )(rec);
-  assert(isOk(ageResult));
-  assert(isNone(ageResult.content.age));
-  expect(ageResult.content.name).toBe("John");
+  return check(
+    forOptionProp("age", asNum)(rec),
+    okThen((c) =>
+      all([
+        check(c.age, shouldBeNone()),
+        check(c.name, toBe("John")),
+      ]),
+    ),
+  );
 });
 
 /**
@@ -185,13 +199,13 @@ test("Obj.optional validation - property missing", async () => {
 test("Obj.optional validation - invalid property type", async () => {
   const rec = { name: "John", age: "thirty" };
 
-  const ageResult = forOptionProp(
-    "age",
-    asNum,
-  )(rec);
-  assert(isErr(ageResult));
-  expect(ageResult.content.content.message).toBe(
-    "Value is not a number",
+  return check(
+    forOptionProp("age", asNum)(rec),
+    errThen((e) =>
+      toBe("Value is not a number")(
+        e.content.message,
+      ),
+    ),
   );
 });
 
@@ -201,13 +215,18 @@ test("Obj.optional validation - invalid property type", async () => {
 test("Obj.optional validation - adds optional property to record type", async () => {
   const rec = { existing: "value" };
 
-  const result = forOptionProp(
-    "optionalProp",
-    asSoftStr,
-  )(rec);
-  assert(isOk(result));
-  assert(isNone(result.content.optionalProp));
-  expect(result.content.existing).toBe("value");
+  return check(
+    forOptionProp("optionalProp", asSoftStr)(rec),
+    okThen((c) =>
+      all([
+        check(
+          c.optionalProp,
+          shouldBeNone(),
+        ),
+        check(c.existing, toBe("value")),
+      ]),
+    ),
+  );
 });
 
 /**
@@ -221,22 +240,28 @@ test("Complex record validation with multiple properties", async () => {
   };
 
   // Demonstrates chained property validation workflow
-  const nameResult = forProp("name", asSoftStr)(rec);
-  assert(isOk(nameResult));
-
-  const ageResult = forProp(
-    "age",
-    asNum,
-  )(nameResult.content);
-  assert(isOk(ageResult));
-
-  const emailResult = forOptionProp(
-    "email",
-    asSoftStr,
-  )(ageResult.content);
-  assert(isOk(emailResult));
-  assert(isSome(emailResult.content.email));
-  expect(emailResult.content.email.content).toBe(
-    "john@example.com",
+  return check(
+    forProp("name", asSoftStr)(rec),
+    okThen((named) =>
+      check(
+        forProp("age", asNum)(named),
+        okThen((aged) =>
+          check(
+            forOptionProp(
+              "email",
+              asSoftStr,
+            )(aged),
+            okThen((c) =>
+              check(
+                c.email,
+                someThen(
+                  toBe("john@example.com"),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 });
