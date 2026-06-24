@@ -18,12 +18,16 @@ export const reqObjectGemini = ({
   instructions,
   input,
   schema,
+  // The network seam, injectable for offline tests (defaults to the real
+  // `postJson`; typed as `typeof postJson` so a fake must match it).
+  post = postJson,
 }: {
   apiKey: string;
   model: string;
   instructions: string;
   input: string;
   schema: Datum;
+  post?: typeof postJson;
 }): PromisedResult<unknown, unknown> =>
   proc(
     {
@@ -48,7 +52,7 @@ export const reqObjectGemini = ({
         responseJsonSchema: schema,
       },
     },
-    postJson({
+    post({
       url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       headers: {
         "x-goog-api-key": apiKey,
