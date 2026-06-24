@@ -1,9 +1,9 @@
 ---
 instruction: "to replace all tests by plgg-test in this repository (no more vitest), if you cannot, refine plgg-test to make this happen"
-phase: coding
-step: concurrent-launch
+phase: complete
+step: done
 iteration: 1
-updated_at: 2026-06-24T14:18:00+09:00
+updated_at: 2026-06-24T22:00:00+09:00
 ---
 
 # Trip Plan
@@ -64,7 +64,18 @@ plgg-sql `Sql.spec.ts` has 2 SQL-injection-defense tests that intentionally inje
 - [x] [Coding] U1-dom archived (e5400ba): leak-proof DOM-environment seam (self-suite 84→86), 1 revision cycle (window/self/top leak caught by Architect, fixed)
 - [x] [Coding] U0-fix-fs-case-collision archived (5acdbbc): style.ts→styleEntry.ts, ssg.ts→ssgEntry.ts, public API preserved, Finding B cleared
 - [ ] [Coding] U2 per-package ×9 (leaf-first: http,kit,router,sql,fetch,foundry,view,server,example)
-  - [ ] http  - [ ] kit  - [ ] router  - [ ] sql  - [ ] fetch  - [ ] foundry  - [ ] view  - [ ] server  - [ ] example
+  - [x] http(32) - [x] kit(12/6) - [x] router(39) - [x] sql(25) - [x] fetch(27) - [x] foundry(6/5) - [x] view(115) - [x] server(86) - [x] example(25)
+- [x] [Coding] U3 cleanup + final grep gate (e45b507) — vitest fully removed
+
+### COMPLETE — vitest fully removed from the monorepo
+
+Whole repo green under plgg-test (`scripts/check-all.sh`): **918 passed / 0 failed / 11 skipped** across all 11 packages (plgg 465, plgg-test 86, kit 12+6, foundry 6+5, http 32, view 115, router 39, server 86, fetch 27, sql 25, example 25).
+
+Grep gates PASS: zero `from "vitest"` imports, zero vitest in any package.json, zero vitest vite.config remnants. Escape-hatch audit: only 3 pre-existing approved casts (2 sql Amendment-3 adversarial + 1 fetch opaqueredirect test-double); zero migration-introduced.
+
+plgg-test refinements landed (instruction's "refine plgg-test" clause): R1 `toBeGreaterThanOrEqual`; Finding A self-suite resolution fix; DOM-environment seam (`Env/dom.ts`) with default URL + event-family force-install.
+
+**Note:** the Agent Teams (Planner/Architect/Constructor) drove Planning + foundation + http/kit/router/sql; the developer then dissolved the team and the lead completed fetch/foundry/view/server/example + U3 directly.
 - [ ] [Coding] U3 cleanup + final grep gate (+ carry-overs below)
 
 ### Coding-phase carry-overs (to fold into later reviews / U3 final acceptance)
