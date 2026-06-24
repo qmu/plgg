@@ -11,6 +11,9 @@ lerna-debug.log*
 **/dist/
 **/coverage/
 
+# Generated artifacts (docs site, typedoc, etc.)
+/outputs/
+
 # Git worktrees (created under the repo per the workaholic/trippin convention)
 .worktrees/
 
