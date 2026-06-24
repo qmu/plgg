@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: refactoring
 layer: [Domain]
 effort:
-commit_hash:
-category:
+commit_hash: f9cfb09
+category: Changed
 depends_on: [20260624141655-u1-plgg-test-refinement-and-fidelity-gate.md, 20260624141654-u0-fix-fs-case-collision.md, 20260624141710-u1-dom-environment-seam.md]
 ---
 
