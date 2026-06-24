@@ -101,29 +101,33 @@ whose result the Runner would never see. No false-green-by-non-return.
 
 ## Concern / trade-off (one, as required)
 
-**The `plgg-test.config.json` `exclude: ["/index.ts"]` substring rule is
-correct here but is a sharper tool than the vitest glob it replaces, and
-this is the package that sets the precedent for 8 more.** vitest excluded
-`**/index.ts` (every barrel at any depth). The plgg-test config uses
-`"/index.ts"` — which, depending on how `Coverage/config.ts` matches
-(substring vs. anchored), could exclude **any path containing
-`/index.ts`** (every `Foo/index.ts` barrel) OR only a top-level one. For
-plgg-http the only `index.ts` is the façade so the outcome is right
-either way, but for the larger packages (plgg-server, plgg-view) there
-are nested `index.ts` barrels *and* potentially real logic, and an
-over-broad substring exclude could silently drop a file that has logic.
+**The `plgg-test.config.json` `exclude: ["/index.ts"]` rule is correct
+for plgg-http but is a BARE-SUBSTRING match (confirmed), so it will
+over-exclude in the coverage-heavy packages downstream — and this is the
+package that sets the precedent for 8 more.** I read the matcher:
+`Coverage/v8.ts:210` is `!exclude.some((frag) => path.includes(frag))` —
+a bare `String.includes`, not an anchored suffix or glob. So
+`"/index.ts"` excludes **every path containing `/index.ts`** — i.e.
+*every* `Foo/index.ts` barrel at any depth, not just the top-level
+façade. vitest's `**/index.ts` glob had the same breadth, so for
+plgg-http (whose only `index.ts` is the pure re-export façade) the
+outcome matches the prior behavior and is correct. **But** plgg-server
+and plgg-view have many nested `index.ts` files, and if any nested
+`index.ts` carries real logic (not just re-exports), `"/index.ts"` would
+silently drop it from coverage — a file-for-file protection regression
+the Direction's criterion 2 forbids.
 
-- **Constructive proposal**: confirm (one read of
-  `plgg-test/src/Coverage/config.ts`) whether `exclude` matches as an
-  anchored suffix/glob or a bare substring, and document the intended
-  semantics in the review bar for U2. If it is a bare substring,
-  establish the rule now — for every package, the `exclude` list must
-  name only genuine zero-logic re-export barrels, verified file-by-file,
-  not a blanket `/index.ts` that could mask a logic-bearing nested
-  `index.ts`. plgg-http is fine; I'm flagging it so the *pattern* is
-  pinned before plgg-server/plgg-view inherit it. (This is the
-  Direction's "coverage preserved file-for-file" criterion in
-  operational form.)
+- **Constructive proposal**: pin the rule now, before plgg-server/
+  plgg-view inherit the pattern: for every package, the `exclude` list
+  must be verified file-by-file to name only genuine zero-logic
+  re-export barrels. Where a nested `index.ts` contains logic, exclude
+  it by a more specific fragment (e.g. `"/Http/model/index.ts"`) or do
+  not exclude it at all — never a blanket `"/index.ts"` that case-folds
+  every barrel out of the gate. plgg-http is fine as-is; I'm flagging it
+  so the *pattern* is constrained before the packages where it actually
+  bites. (This is the Direction's "coverage preserved file-for-file"
+  criterion in operational form, and it ties to the U3 ship-or-defer
+  coverage audit.)
 
 ## The bar for the remaining 8 U2 packages
 
@@ -143,6 +147,10 @@ From this exemplary migration, the review checklist I'll apply to U2-2…9:
    package's original vitest number; `exclude` names only real barrels.
 7. Zero `as`/`any`/`ts-ignore`, including not copied from plgg reference
    specs.
+8. `plgg-test.config.json` `exclude` (bare-substring `path.includes`,
+   per `Coverage/v8.ts:210`): each fragment must name only a genuine
+   zero-logic re-export barrel; no blanket `"/index.ts"` in packages
+   with logic-bearing nested `index.ts` (plgg-server, plgg-view).
 
 ## Decision rationale
 
