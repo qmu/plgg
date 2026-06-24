@@ -73,6 +73,13 @@ export default defineConfig({
     dts({
       tsconfigPath: "tsconfig.build.json",
       insertTypesEntry: true,
+      // `rollupTypes: false` emits the per-file `.d.ts` tree, so the
+      // `Style/` directory ships as `dist/Style/`. The `style` subpath's
+      // output is deliberately named `styleEntry` (see `lib.entry`
+      // above) so `dist/styleEntry.*` does not case-collide with that
+      // `dist/Style/`. If this is ever switched to `rollupTypes: true`,
+      // re-check that constraint — a single rolled-up `style.d.ts` could
+      // collide with `Style/` again on case-insensitive filesystems.
       rollupTypes: false,
     }),
   ],

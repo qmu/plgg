@@ -82,6 +82,13 @@ export default defineConfig({
     dts({
       tsconfigPath: "tsconfig.build.json",
       insertTypesEntry: true,
+      // `rollupTypes: false` emits the per-file `.d.ts` tree, so the
+      // `Ssg/` directory ships as `dist/Ssg/`. The `ssg` subpath's
+      // output is deliberately named `ssgEntry` (see `lib.entry` above)
+      // so `dist/ssgEntry.*` does not case-collide with that
+      // `dist/Ssg/`. If this is ever switched to `rollupTypes: true`,
+      // re-check that constraint — a single rolled-up `ssg.d.ts` could
+      // collide with `Ssg/` again on case-insensitive filesystems.
       rollupTypes: false,
     }),
   ],
