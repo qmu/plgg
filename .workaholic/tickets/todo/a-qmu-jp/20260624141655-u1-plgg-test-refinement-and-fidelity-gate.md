@@ -9,27 +9,49 @@ category:
 depends_on:
 ---
 
-# U1 — plgg-test refinement (toBeGreaterThanOrEqual) + toEqual/deepEqual fidelity gate
+# U1 — plgg-test self-suite fix (Finding A) + toBeGreaterThanOrEqual + toEqual/deepEqual fidelity gate
 
 ## Overview
 
 The trip replaces vitest with `plgg-test` across 9 packages. Before any
-per-package migration begins, two things must land in `plgg-test`: the
-one matcher the corpus needs that does not yet exist, and a verified
-guarantee that `plgg-test`'s `toEqual`/`deepEqual` agrees with vitest's
-`toEqual` on the plgg domain values the corpus asserts over. This ticket
-is the **foundation** — every U2 package-migration ticket depends on it.
+per-package migration begins, three things must land in `plgg-test`: the
+self-suite resolution fix (Finding A) so plgg-test's own tests run at all
+and Gate B can even be observed, the one matcher the corpus needs that
+does not yet exist (R1), and a verified guarantee that `plgg-test`'s
+`toEqual`/`deepEqual` agrees with vitest's `toEqual` on the plgg domain
+values the corpus asserts over (Gate B). This ticket is the
+**foundation** — every U2 package-migration ticket depends on it.
 
 **Trip Origin:** `.workaholic/trips/replace-vitest-with-plgg-test/designs/design-v2.md`
-§3 (R1, Gate A, Gate B).
+§3 (R1, Gate A, Gate B) + plan.md Amendment 2 (Finding A — IN MANDATE,
+fixed within U1 ahead of Gate B).
 
-Two deliverables:
+Three deliverables, in order:
+
+0. **Finding A — fix the plgg-test self-suite resolution (PREREQUISITE,
+   do first).** `npm run test` in plgg-test currently fails **all 15**
+   specs with `Cannot find module .../src/index.js`. Gate B's parity
+   spec lives in this same suite, so it cannot be observed until this is
+   fixed. **Root cause (diagnosed):** plgg-test's own specs import
+   `from "../index.js"` (relative, `.js`-extension NodeNext style). The
+   resolver hook (`Resolve/hook.ts`) already has a `rewriteRelativeTs`
+   that redirects a relative `./Foo.js`→`./Foo.ts` — BUT it guards on
+   `parentURL.endsWith(".ts")`, and the Runner imports each spec as
+   `file://…/foo.spec.ts?t=<cacheBust>` (a cache-bust query). So the
+   parent URL the resolver sees is `…foo.spec.ts?t=123`, which does NOT
+   end in `.ts`, the redirect is skipped, and `../index.js` falls
+   through to native Node which has no `index.js` on disk. **Fix:** strip
+   the `?t=` query before the `.endsWith(".ts")` check in
+   `rewriteRelativeTs` (the `load` hook already strips the query via
+   `stripQuery` — mirror that tolerance in the `resolve` guard). Minimal,
+   typed, no `as`/`any`. Success: `npm run test` in plgg-test goes from
+   0/15 to fully green.
 
 1. **R1 — add `toBeGreaterThanOrEqual` matcher.** Exactly one corpus
    site (`plgg-foundry/.../runFoundry.spec.ts:35`,
    `expect(todos.size).toBeGreaterThanOrEqual(1)`) needs a `>=` matcher.
-   `toBeGreaterThan` exists; `>=` does not. This is the ONLY plgg-test
-   source-code change in the entire trip.
+   `toBeGreaterThan` exists; `>=` does not. This is the ONLY new matcher
+   in the entire trip.
 
 2. **Gate B (hard entry gate) — `deepEqual` ≡ vitest `toEqual`.** 81
    `toEqual` sites across the corpus assert over Box-tagged
@@ -51,6 +73,18 @@ spec only if not already covered.
 
 ## Key Files
 
+- `packages/plgg-test/src/Resolve/hook.ts` — **Finding A fix**: in
+  `rewriteRelativeTs`, strip the `?t=` cache-bust query from
+  `parentURL` before the `.endsWith(".ts")` guard (mirror the `load`
+  hook's `stripQuery`). This is the change that takes the self-suite
+  from 0/15 to green.
+- `packages/plgg-test/src/Core/Runner.ts` — reference for Finding A
+  (line 78 appends `?t=${cacheBust}` to the spec URL, which becomes the
+  resolver's `parentURL`) and Gate A evidence (lines 202-268; no change
+  unless a regression spec is missing).
+- `packages/plgg-test/src/Resolve/hook.spec.ts` — extend with a case
+  proving a relative `.js` import resolves when the parent URL carries a
+  `?t=` query (the Finding A regression).
 - `packages/plgg-test/src/Matchers/matchers.ts` — add the matcher beside
   `toBeGreaterThan` (same `matcher(...)` helper, predicate
   `actual >= expected`, typed `A extends number | bigint`).
@@ -68,9 +102,16 @@ spec only if not already covered.
 
 ## Implementation Steps
 
-1. Add `toBeGreaterThanOrEqual` to `matchers.ts` mirroring
+1. **Finding A (do first)**: in `Resolve/hook.ts` `rewriteRelativeTs`,
+   strip the `?t=…` query off `parentURL` before checking
+   `.endsWith(".ts")` (and before building the relative target). Add a
+   `hook.spec.ts` case for a `?t=`-carrying parent. Run
+   `cd packages/plgg-test && npm run test` and confirm it goes from 0/15
+   to fully green (this is the success bar for Finding A and the gate
+   that makes Gate B observable).
+2. Add `toBeGreaterThanOrEqual` to `matchers.ts` mirroring
    `toBeGreaterThan` exactly; re-export from `index.ts`.
-2. Add its unit test in `matchers.spec.ts` (cover `>`, `=`, `<`).
+3. Add its unit test in `matchers.spec.ts` (cover `>`, `=`, `<`).
 3. Read `Expect/equals.spec.ts`; add a parity block asserting
    `deepEqual` matches vitest `toEqual` semantics on: a nested
    Box-tagged `Ok`/`Err`/`Some`/`None`, a class instance, a `Map` and a

@@ -30,6 +30,20 @@ Reconciled facts (settled by re-grepping during review):
 
 Delivery: **U1** (R1 + Gate B) → **U2** (9 per-package migrations, leaf-first, with R3/R4/R5 placed in the fetch/server/kit/foundry tickets) → **U3** (plgg cleanup + final grep gate proving zero `from "vitest"` and zero new `as`/`any`).
 
+### Amendment 2 — Three Coding-Phase launch blockers (leader-verified) + scope decision
+
+The concurrent launch surfaced three blockers, all confirmed by the leader against the real repo:
+
+1. **Finding A — plgg-test self-suite is red (0/15).** Every plgg-test self-spec fails `Cannot find module .../src/index.js`; the specs import `from "../index.js"` (relative) and the self-resolve hook does not map the `.js`-suffixed relative import to the `.ts` source. Blocks observing Gate B (equals.spec / Runner.spec are among the failing). Migrated specs import `from "plgg-test"` (the alias, like plgg's 465 passing tests) and are unaffected — this is specifically a self-suite resolution gap. **IN MANDATE** ("refine plgg-test"): fix as the first action of U1; Gate B cannot be observed until plgg-test's own suite runs.
+
+2. **DOM environment seam — missing.** 4 specs (`example/src/app.spec.ts`, plgg-view `render`/`application`/`sandbox`.spec.ts) use `// @vitest-environment happy-dom` + a live DOM; plgg-test runs under plain Node with no env seam → `document is not defined`. **IN MANDATE** ("refine plgg-test"): add a DOM-environment capability to plgg-test (new foundation ticket).
+
+3. **Finding B — pre-existing FS case collision (OUT of original scope).** Volume is case-insensitive; repo tracks both `src/style.ts` + `src/Style/` (plgg-view) and `src/ssg.ts` + `src/Ssg/` (plgg-server) → `TS1149` "differs only in casing", failing `tsc --noEmit` for plgg-view → plgg-server → example. Pre-existing on `main` (c3cd50f), independent of the runner, passes on case-sensitive CI. **DEVELOPER DECISION: fix in-scope** — rename the colliding lowercase barrel files / merge into the `Style/`/`Ssg/` directories, preserving public exports. New foundation ticket; view/server/example U2 tickets depend on it.
+
+Revised foundation order: **U0-fs-collision** + **U1** (R1 + Finding A fix + Gate B) + **U1-dom** (DOM seam) → U2 (9 per-package) → U3 (cleanup + grep gate).
+
+Other launch facts: system-safety `system_changes_authorized=false` (project-local only — fine); baseline greens = plgg/kit/foundry/sql/http/router/fetch; coverage gates 91 (fetch/router/server/sql/view), 90 (http), ungated (example/foundry/kit); 58 vitest spec imports + 10 package.json vitest devDeps (incl. plgg) + 10 vite.config vitest blocks to remove. Gate A (Runner fails-not-crashes) confirmed.
+
 ## Progress
 
 - [x] [Planner] direction-v1 → direction-v2 (approved)

@@ -6,7 +6,7 @@ layer: [Domain]
 effort:
 commit_hash:
 category:
-depends_on: [20260624141655-u1-plgg-test-refinement-and-fidelity-gate.md]
+depends_on: [20260624141655-u1-plgg-test-refinement-and-fidelity-gate.md, 20260624141654-u0-fix-fs-case-collision.md]
 ---
 
 # U2 — Migrate `plgg-server` from vitest to plgg-test (incl. R3 toThrow ×2)
