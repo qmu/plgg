@@ -7,12 +7,13 @@ import {
   errThen,
 } from "plgg-test";
 import {
+  Num,
   isNum,
   asNum,
-  isErr,
-  err,
-  ok,
-  invalidError,
+  pipe,
+  cast,
+  chainResult,
+  refine,
 } from "plgg/index";
 
 test("isNum correctly identifies numeric values", () =>
@@ -91,27 +92,23 @@ test("asNum validates and converts numeric values", () =>
 
 test("asNum works in validation pipelines", () => {
   // Example: Price validation with business rules
-  const validatePrice = (input: unknown) => {
-    const numResult = asNum(input);
-    if (isErr(numResult)) return numResult;
-
-    const price = numResult.content;
-    if (price < 0) {
-      return err(
-        invalidError({
-          message: "Price cannot be negative",
-        }),
-      );
-    }
-    if (price > 10000) {
-      return err(
-        invalidError({
-          message: "Price too high",
-        }),
-      );
-    }
-    return ok(price);
-  };
+  const validatePrice = (input: unknown) =>
+    pipe(
+      asNum(input),
+      chainResult((price: Num) =>
+        cast(
+          price,
+          refine(
+            (x: Num) => x >= 0,
+            "Price cannot be negative",
+          ),
+          refine(
+            (x: Num) => x <= 10000,
+            "Price too high",
+          ),
+        ),
+      ),
+    );
 
   return all([
     check(
@@ -137,9 +134,7 @@ test("asNum works in validation pipelines", () => {
     check(
       validatePrice(15000),
       errThen((e) =>
-        toBe("Price too high")(
-          e.content.message,
-        ),
+        toBe("Price too high")(e.content.message),
       ),
     ),
   ]);
@@ -159,8 +154,6 @@ test("asNum handles special numeric values", () =>
     ),
     check(
       asNum(NaN),
-      okThen((n) =>
-        toBe(true)(Number.isNaN(n)),
-      ),
+      okThen((n) => toBe(true)(Number.isNaN(n))),
     ),
   ]));

@@ -6,13 +6,14 @@ import {
   okThen,
   errThen,
 } from "plgg-test";
+import type { BigInt } from "plgg/index";
 import {
   isBigInt,
   asBigInt,
-  isErr,
-  err,
-  ok,
-  invalidError,
+  pipe,
+  cast,
+  chainResult,
+  refine,
 } from "plgg/index";
 
 test("isBigInt correctly identifies BigInt values", () =>
@@ -43,10 +44,7 @@ test("isBigInt correctly identifies BigInt values", () =>
     check(isBigInt(undefined), toBe(false)),
     check(isBigInt({}), toBe(false)),
     check(isBigInt([]), toBe(false)),
-    check(
-      isBigInt(Symbol("test")),
-      toBe(false),
-    ),
+    check(isBigInt(Symbol("test")), toBe(false)),
     check(isBigInt(3.14), toBe(false)),
     check(isBigInt(Infinity), toBe(false)),
     check(isBigInt(NaN), toBe(false)),
@@ -68,23 +66,15 @@ test("asBigInt validates and converts BigInt values", () =>
       okThen(toBe(BigInt(-456))),
     ),
     // Integer number conversion
-    check(
-      asBigInt(42),
-      okThen(toBe(BigInt(42))),
-    ),
-    check(
-      asBigInt(0),
-      okThen(toBe(BigInt(0))),
-    ),
+    check(asBigInt(42), okThen(toBe(BigInt(42)))),
+    check(asBigInt(0), okThen(toBe(BigInt(0)))),
     check(
       asBigInt(-789),
       okThen(toBe(BigInt(-789))),
     ),
     // String conversion
     check(
-      asBigInt(
-        "123456789012345678901234567890",
-      ),
+      asBigInt("123456789012345678901234567890"),
       okThen(
         toBe(
           BigInt(
@@ -93,10 +83,7 @@ test("asBigInt validates and converts BigInt values", () =>
         ),
       ),
     ),
-    check(
-      asBigInt("0"),
-      okThen(toBe(BigInt(0))),
-    ),
+    check(asBigInt("0"), okThen(toBe(BigInt(0)))),
     // Invalid conversions
     check(
       asBigInt(3.14),
@@ -134,27 +121,30 @@ test("asBigInt validates and converts BigInt values", () =>
 
 test("asBigInt works in validation pipelines", () => {
   // Example: ID validation with business rules
-  const validateUserId = (input: unknown) => {
-    const bigIntResult = asBigInt(input);
-    if (isErr(bigIntResult)) return bigIntResult;
-
-    const userId = bigIntResult.content;
-    if (userId < 1n) {
-      return err(
-        invalidError({
-          message: "User ID must be positive",
-        }),
-      );
-    }
-    if (userId > BigInt("9999999999999999")) {
-      return err(
-        invalidError({
-          message: "User ID too large",
-        }),
-      );
-    }
-    return ok(userId);
-  };
+  // Caster on the outside (asBigInt via
+  // chainResult), business-rule refines cast
+  // on the unwrapped value inside: sequential
+  // type-then-rules. A bad type short-circuits
+  // at the caster with its own message; a single
+  // failing rule is the only failing cast step,
+  // so its message surfaces unwrapped.
+  const validateUserId = (input: unknown) =>
+    pipe(
+      asBigInt(input),
+      chainResult((id: BigInt) =>
+        cast(
+          id,
+          refine(
+            (x: BigInt) => x >= 1n,
+            "User ID must be positive",
+          ),
+          refine(
+            (x: BigInt) => x <= 9999999999999999n,
+            "User ID too large",
+          ),
+        ),
+      ),
+    );
 
   return all([
     check(
@@ -182,9 +172,7 @@ test("asBigInt works in validation pipelines", () => {
       ),
     ),
     check(
-      validateUserId(
-        BigInt("99999999999999999"),
-      ),
+      validateUserId(BigInt("99999999999999999")),
       errThen((e) =>
         toBe("User ID too large")(
           e.content.message,
@@ -199,9 +187,7 @@ test("asBigInt handles large values beyond Number.MAX_SAFE_INTEGER", () =>
     // Example: Large integer values that exceed
     // JavaScript number precision
     check(
-      asBigInt(
-        "123456789012345678901234567890",
-      ),
+      asBigInt("123456789012345678901234567890"),
       okThen(
         toBe(
           BigInt(
@@ -211,9 +197,7 @@ test("asBigInt handles large values beyond Number.MAX_SAFE_INTEGER", () =>
       ),
     ),
     check(
-      asBigInt(
-        "-987654321098765432109876543210",
-      ),
+      asBigInt("-987654321098765432109876543210"),
       okThen(
         toBe(
           BigInt(

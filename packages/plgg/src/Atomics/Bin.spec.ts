@@ -10,12 +10,13 @@ import {
   toBeGreaterThan,
 } from "plgg-test";
 import {
+  Bin,
   isBin,
   asBin,
-  isErr,
-  err,
-  ok,
-  invalidError,
+  pipe,
+  cast,
+  chainResult,
+  refine,
 } from "plgg/index";
 
 test("isBin correctly identifies Bin values", () =>
@@ -32,9 +33,7 @@ test("isBin correctly identifies Bin values", () =>
     ),
     check(
       isBin(
-        new Uint8Array([
-          72, 101, 108, 108, 111,
-        ]),
+        new Uint8Array([72, 101, 108, 108, 111]),
       ),
       toBe(true),
     ),
@@ -156,28 +155,23 @@ test("asBin validates and converts Bin values", () => {
 test("asBin works in validation pipelines", () => {
   // Example: Binary data validation with
   // size constraints
-  const validateBinaryData = (input: unknown) => {
-    const binResult = asBin(input);
-    if (isErr(binResult)) return binResult;
-
-    const data = binResult.content;
-    if (data.length === 0) {
-      return err(
-        invalidError({
-          message: "Binary data cannot be empty",
-        }),
-      );
-    }
-    if (data.length > 1024) {
-      return err(
-        invalidError({
-          message:
+  const validateBinaryData = (input: unknown) =>
+    pipe(
+      asBin(input),
+      chainResult((data: Bin) =>
+        cast(
+          data,
+          refine(
+            (x: Bin) => x.length > 0,
+            "Binary data cannot be empty",
+          ),
+          refine(
+            (x: Bin) => x.length <= 1024,
             "Binary data too large (max 1KB)",
-        }),
-      );
-    }
-    return ok(data);
-  };
+          ),
+        ),
+      ),
+    );
 
   return all([
     check(
@@ -185,9 +179,7 @@ test("asBin works in validation pipelines", () => {
         new Uint8Array([1, 2, 3, 4, 5]),
       ),
       okThen(
-        toEqual(
-          new Uint8Array([1, 2, 3, 4, 5]),
-        ),
+        toEqual(new Uint8Array([1, 2, 3, 4, 5])),
       ),
     ),
     check(
@@ -217,9 +209,9 @@ test("asBin works in validation pipelines", () => {
     check(
       validateBinaryData(new Uint8Array(2000)),
       errThen((e) =>
-        toBe(
-          "Binary data too large (max 1KB)",
-        )(e.content.message),
+        toBe("Binary data too large (max 1KB)")(
+          e.content.message,
+        ),
       ),
     ),
   ]);
@@ -243,9 +235,7 @@ test("asBin handles various binary data formats", () => {
     // Unicode handling via TextEncoder
     check(
       asBin("こんにちは"),
-      okThen((b) =>
-        toBeGreaterThan(5)(b.length),
-      ),
+      okThen((b) => toBeGreaterThan(5)(b.length)),
     ),
     check(
       asBin(buffer),

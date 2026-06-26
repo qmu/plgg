@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: refactoring
 layer: [Domain]
 effort:
-commit_hash:
-category:
+commit_hash: 7fccc98
+category: Changed
 depends_on:
 ---
 
