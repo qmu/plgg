@@ -1,5 +1,14 @@
-import { test, expect } from "vitest";
-import { isOk, isErr, isSome, isNone, box } from "plgg";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  shouldBeOk,
+  shouldBeErr,
+  someThen,
+  shouldBeNone,
+} from "plgg-test";
+import { box } from "plgg";
 import {
   openai,
   anthropic,
@@ -13,9 +22,11 @@ import {
 
 test("openai(string) builds an OpenAI with model and no apiKey", () => {
   const p = openai("gpt-5.1");
-  expect(p.__tag).toBe("OpenAI");
-  expect(p.content.model).toBe("gpt-5.1");
-  expect(isNone(p.content.apiKey)).toBe(true);
+  return all([
+    check(p.__tag, toBe("OpenAI")),
+    check(p.content.model, toBe("gpt-5.1")),
+    check(p.content.apiKey, shouldBeNone()),
+  ]);
 });
 
 test("openai({ model, apiKey }) carries the apiKey as Some", () => {
@@ -23,74 +34,85 @@ test("openai({ model, apiKey }) carries the apiKey as Some", () => {
     model: "gpt-5.1",
     apiKey: "sk-test",
   });
-  expect(p.content.model).toBe("gpt-5.1");
-  expect(isSome(p.content.apiKey)).toBe(true);
-  if (isSome(p.content.apiKey)) {
-    expect(p.content.apiKey.content).toBe("sk-test");
-  }
+  return all([
+    check(p.content.model, toBe("gpt-5.1")),
+    check(
+      p.content.apiKey,
+      someThen((k) => toBe("sk-test")(k)),
+    ),
+  ]);
 });
 
-test("openai({ model }) without apiKey is None", () => {
-  expect(
-    isNone(openai({ model: "gpt-5.1" }).content.apiKey),
-  ).toBe(true);
-});
+test("openai({ model }) without apiKey is None", () =>
+  check(
+    openai({ model: "gpt-5.1" }).content.apiKey,
+    shouldBeNone(),
+  ));
 
-test("anthropic and google build their respective tags", () => {
-  expect(anthropic("claude-sonnet-4-5").__tag).toBe(
-    "Anthropic",
-  );
-  expect(google("gemini-2.5-flash").__tag).toBe(
-    "Google",
-  );
-  expect(
-    isSome(
+test("anthropic and google build their respective tags", () =>
+  all([
+    check(
+      anthropic("claude-sonnet-4-5").__tag,
+      toBe("Anthropic"),
+    ),
+    check(
+      google("gemini-2.5-flash").__tag,
+      toBe("Google"),
+    ),
+    check(
       anthropic({
         model: "claude",
         apiKey: "k",
       }).content.apiKey,
+      someThen((k) => toBe("k")(k)),
     ),
-  ).toBe(true);
-});
+  ]));
 
 // --- casters: decode RAW input (a box whose content is { model, apiKey? } with
 //     a plain-string apiKey or none) — not a built provider, whose apiKey is
 //     already an Option box. ---
 
-test("asOpenAI decodes a raw box (apiKey optional, plain string)", () => {
-  expect(
-    isOk(asOpenAI(box("OpenAI")({ model: "m" }))),
-  ).toBe(true);
-  expect(
-    isOk(
-      asOpenAI(
-        box("OpenAI")({ model: "m", apiKey: "k" }),
-      ),
+test("asOpenAI decodes a raw box (apiKey optional, plain string)", () =>
+  all([
+    check(
+      asOpenAI(box("OpenAI")({ model: "m" })),
+      shouldBeOk(),
     ),
-  ).toBe(true);
-});
+    check(
+      asOpenAI(
+        box("OpenAI")({
+          model: "m",
+          apiKey: "k",
+        }),
+      ),
+      shouldBeOk(),
+    ),
+  ]));
 
-test("asAnthropic and asGoogle decode their raw boxes", () => {
-  expect(
-    isOk(
+test("asAnthropic and asGoogle decode their raw boxes", () =>
+  all([
+    check(
       asAnthropic(
         box("Anthropic")({ model: "claude" }),
       ),
+      shouldBeOk(),
     ),
-  ).toBe(true);
-  expect(
-    isOk(asGoogle(box("Google")({ model: "gemini" }))),
-  ).toBe(true);
-});
+    check(
+      asGoogle(
+        box("Google")({ model: "gemini" }),
+      ),
+      shouldBeOk(),
+    ),
+  ]));
 
-test("asOpenAI rejects a non-object content", () => {
-  expect(isErr(asOpenAI("not-a-provider"))).toBe(
-    true,
-  );
-});
+test("asOpenAI rejects a non-object content", () =>
+  check(
+    asOpenAI("not-a-provider"),
+    shouldBeErr(),
+  ));
 
-test("asOpenAI rejects a box whose Config is missing model", () => {
-  expect(isErr(asOpenAI(box("OpenAI")({})))).toBe(
-    true,
-  );
-});
+test("asOpenAI rejects a box whose Config is missing model", () =>
+  check(
+    asOpenAI(box("OpenAI")({})),
+    shouldBeErr(),
+  ));

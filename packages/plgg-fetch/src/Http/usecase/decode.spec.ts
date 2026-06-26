@@ -1,11 +1,17 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  toBe,
+  toContain,
+  okThen,
+  errThen,
+  shouldBeErr,
+} from "plgg-test";
 import {
   Obj,
   Result,
   InvalidError,
   SoftStr,
-  isOk,
-  isErr,
   cast,
   asObj,
   asSoftStr,
@@ -37,38 +43,41 @@ const responseWith = (
   body,
 });
 
-test("decodeJsonBody parses a JSON body into a typed value", () => {
-  const result = decodeJsonBody(asUser)(
-    responseWith('{"name":"Ada"}'),
-  );
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content.name).toBe("Ada");
-  }
-});
+test("decodeJsonBody parses a JSON body into a typed value", () =>
+  check(
+    decodeJsonBody(asUser)(
+      responseWith('{"name":"Ada"}'),
+    ),
+    okThen((u) => check(u.name, toBe("Ada"))),
+  ));
 
-test("decodeJsonBody surfaces a JSON syntax error as InvalidError", () => {
-  const result = decodeJsonBody(asUser)(
-    responseWith("not json"),
-  );
-  expect(isErr(result)).toBe(true);
-});
+test("decodeJsonBody surfaces a JSON syntax error as InvalidError", () =>
+  check(
+    decodeJsonBody(asUser)(
+      responseWith("not json"),
+    ),
+    shouldBeErr(),
+  ));
 
-test("decodeJsonBody surfaces a shape mismatch as InvalidError", () => {
-  const result = decodeJsonBody(asUser)(
-    responseWith('{"name":123}'),
-  );
-  expect(isErr(result)).toBe(true);
-});
+test("decodeJsonBody surfaces a shape mismatch as InvalidError", () =>
+  check(
+    decodeJsonBody(asUser)(
+      responseWith('{"name":123}'),
+    ),
+    shouldBeErr(),
+  ));
 
-test("decodeJsonBody rejects a non-text (bytes) body", () => {
-  const result = decodeJsonBody(asUser)(
-    responseWith(bytesBody(new Uint8Array([1, 2]))),
-  );
-  expect(isErr(result)).toBe(true);
-  if (isErr(result)) {
-    expect(result.content.content.message).toContain(
-      "not text",
-    );
-  }
-});
+test("decodeJsonBody rejects a non-text (bytes) body", () =>
+  check(
+    decodeJsonBody(asUser)(
+      responseWith(
+        bytesBody(new Uint8Array([1, 2])),
+      ),
+    ),
+    errThen((e) =>
+      check(
+        e.content.message,
+        toContain("not text"),
+      ),
+    ),
+  ));

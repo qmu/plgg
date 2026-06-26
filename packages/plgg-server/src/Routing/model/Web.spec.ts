@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+} from "plgg-test";
 import {
   pipe,
   isOk,
@@ -58,13 +65,17 @@ test("routes by method and path, returning the handler response", async () => {
   const send = toFetch(app);
 
   const home = await send(GET("/"));
-  expect(home.status).toBe(200);
-  await expect(home.text()).resolves.toBe("home");
-
+  const a1 = check(home.status, toBe(200));
+  const a2 = check(
+    await home.text(),
+    toBe("home"),
+  );
   const user = await send(GET("/users/9"));
-  await expect(user.json()).resolves.toEqual({
-    id: "9",
-  });
+  return all([
+    a1,
+    a2,
+    check(await user.json(), toEqual({ id: "9" })),
+  ]);
 });
 
 test("handle() is the plgg-native entry, returning a Result", async () => {
@@ -74,53 +85,67 @@ test("handle() is the plgg-native entry, returning a Result", async () => {
       pipe("pong", textResponse, ok),
     ),
   );
-  const result = await handle(app, {
-    method: "GET",
-    path: "/ping",
-    query: {},
-    headers: {},
-    params: {},
-    body: "",
-    bytes: none(),
-  });
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content.body).toBe("pong");
-  }
+  return check(
+    await handle(app, {
+      method: "GET",
+      path: "/ping",
+      query: {},
+      headers: {},
+      params: {},
+      body: "",
+      bytes: none(),
+    }),
+    okThen((r) => check(r.body, toBe("pong"))),
+  );
 });
 
 test("unmatched path yields 404", async () => {
   const app = pipe(
     web(),
-    get("/a", async () => pipe("a", textResponse, ok)),
+    get("/a", async () =>
+      pipe("a", textResponse, ok),
+    ),
   );
   const res = await toFetch(app)(GET("/missing"));
-  expect(res.status).toBe(404);
+  return check(res.status, toBe(404));
 });
 
 test("matched path with wrong method yields 405 and a deduped Allow header", async () => {
   const app = pipe(
     web(),
-    get("/x", async () => pipe("g", textResponse, ok)),
-    get("/x", async () => pipe("g2", textResponse, ok)),
-    put("/x", async () => pipe("p", textResponse, ok)),
+    get("/x", async () =>
+      pipe("g", textResponse, ok),
+    ),
+    get("/x", async () =>
+      pipe("g2", textResponse, ok),
+    ),
+    put("/x", async () =>
+      pipe("p", textResponse, ok),
+    ),
   );
   const res = await toFetch(app)(
     new Request("http://x/x", { method: "PATCH" }),
   );
-  expect(res.status).toBe(405);
-  expect(res.headers.get("allow")).toBe("GET, PUT");
+  return all([
+    check(res.status, toBe(405)),
+    check(
+      res.headers.get("allow"),
+      toBe("GET, PUT"),
+    ),
+  ]);
 });
 
 test("an unsupported request method yields 501", async () => {
   const app = pipe(
     web(),
-    get("/x", async () => pipe("x", textResponse, ok)),
+    get("/x", async () =>
+      pipe("x", textResponse, ok),
+    ),
   );
   const res = await toFetch(app)(
     new Request("http://x/x", { method: "PURGE" }),
   );
-  expect(res.status).toBe(501);
+  return check(res.status, toBe(501));
 });
 
 test("query parameters are readable from the context", async () => {
@@ -139,7 +164,7 @@ test("query parameters are readable from the context", async () => {
   const res = await toFetch(app)(
     GET("/search?q=plgg"),
   );
-  await expect(res.text()).resolves.toBe("plgg");
+  return check(await res.text(), toBe("plgg"));
 });
 
 test("async handler can read a JSON body via the request model", async () => {
@@ -159,9 +184,10 @@ test("async handler can read a JSON body via the request model", async () => {
       body: "hello",
     }),
   );
-  await expect(res.json()).resolves.toEqual({
-    received: "hello",
-  });
+  return check(
+    await res.json(),
+    toEqual({ received: "hello" }),
+  );
 });
 
 test("middleware runs in onion order around the handler", async () => {
@@ -186,13 +212,16 @@ test("middleware runs in onion order around the handler", async () => {
   );
 
   await toFetch(app)(GET("/"));
-  expect(order).toEqual([
-    "m1-in",
-    "m2-in",
-    "handler",
-    "m2-out",
-    "m1-out",
-  ]);
+  return check(
+    order,
+    toEqual([
+      "m1-in",
+      "m2-in",
+      "handler",
+      "m2-out",
+      "m1-out",
+    ]),
+  );
 });
 
 test("middleware threads enriched state into the handler", async () => {
@@ -213,7 +242,7 @@ test("middleware threads enriched state into the handler", async () => {
     ),
   );
   const res = await toFetch(app)(GET("/"));
-  await expect(res.text()).resolves.toBe("alice");
+  return check(await res.text(), toBe("alice"));
 });
 
 test("middleware may transform a successful response", async () => {
@@ -231,10 +260,12 @@ test("middleware may transform a successful response", async () => {
           })
         : res;
     }),
-    get("/", async () => pipe("hi", textResponse, ok)),
+    get("/", async () =>
+      pipe("hi", textResponse, ok),
+    ),
   );
   const res = await toFetch(app)(GET("/"));
-  expect(res.headers.get("x-mw")).toBe("1");
+  return check(res.headers.get("x-mw"), toBe("1"));
 });
 
 test("a handler returning Err is folded into a response", async () => {
@@ -245,7 +276,7 @@ test("a handler returning Err is folded into a response", async () => {
     ),
   );
   const res = await toFetch(app)(GET("/boom"));
-  expect(res.status).toBe(500);
+  return check(res.status, toBe(500));
 });
 
 test("a throwing handler becomes 500", async () => {
@@ -256,21 +287,27 @@ test("a throwing handler becomes 500", async () => {
     }),
   );
   const res = await toFetch(app)(GET("/throw"));
-  expect(res.status).toBe(500);
+  return check(res.status, toBe(500));
 });
 
 test("every verb helper and the generic `on` register routes", async () => {
   const app = pipe(
     web(),
-    post("/r", async () => pipe("post", textResponse, ok)),
-    put("/r", async () => pipe("put", textResponse, ok)),
+    post("/r", async () =>
+      pipe("post", textResponse, ok),
+    ),
+    put("/r", async () =>
+      pipe("put", textResponse, ok),
+    ),
     patch("/r", async () =>
       pipe("patch", textResponse, ok),
     ),
     del("/r", async () =>
       pipe("delete", textResponse, ok),
     ),
-    head("/r", async () => pipe("head", textResponse, ok)),
+    head("/r", async () =>
+      pipe("head", textResponse, ok),
+    ),
     options("/r", async () =>
       pipe("options", textResponse, ok),
     ),
@@ -280,7 +317,7 @@ test("every verb helper and the generic `on` register routes", async () => {
   );
   const send = toFetch(app);
 
-  for (const method of [
+  const methods = [
     "POST",
     "PUT",
     "PATCH",
@@ -288,16 +325,25 @@ test("every verb helper and the generic `on` register routes", async () => {
     "HEAD",
     "OPTIONS",
     "GET",
-  ]) {
-    const res = await send(
-      new Request("http://x/r", { method }),
-    );
-    expect(res.status).toBe(200);
-    await expect(res.text()).resolves.toBe(
-      method.toLowerCase(),
-    );
-  }
-  expect(app.routes.length).toBe(7);
+  ];
+  const perMethod = await Promise.all(
+    methods.map(async (method) => {
+      const res = await send(
+        new Request("http://x/r", { method }),
+      );
+      return all([
+        check(res.status, toBe(200)),
+        check(
+          await res.text(),
+          toBe(method.toLowerCase()),
+        ),
+      ]);
+    }),
+  );
+  return all([
+    ...perMethod,
+    check(app.routes.length, toBe(7)),
+  ]);
 });
 
 test("route() mounts a sub-app under a base path and merges middleware", async () => {
@@ -312,7 +358,13 @@ test("route() mounts a sub-app under a base path and merges middleware", async (
       pipe("list", textResponse, ok),
     ),
     get("/items/:id", async (c) =>
-      pipe(c, param("id"), getOr(""), textResponse, ok),
+      pipe(
+        c,
+        param("id"),
+        getOr(""),
+        textResponse,
+        ok,
+      ),
     ),
   );
 
@@ -320,12 +372,20 @@ test("route() mounts a sub-app under a base path and merges middleware", async (
   const send = toFetch(app);
 
   const list = await send(GET("/api/list"));
-  expect(list.status).toBe(200);
-  await expect(list.text()).resolves.toBe("list");
-  expect(mwRan).toBe(true);
+  const a1 = check(list.status, toBe(200));
+  const a2 = check(
+    await list.text(),
+    toBe("list"),
+  );
+  const a3 = check(mwRan, toBe(true));
 
   const item = await send(GET("/api/items/5"));
-  await expect(item.text()).resolves.toBe("5");
+  return all([
+    a1,
+    a2,
+    a3,
+    check(await item.text(), toBe("5")),
+  ]);
 });
 
 test("group middleware runs only under its mounted prefix, not app-wide", async () => {
@@ -337,21 +397,32 @@ test("group middleware runs only under its mounted prefix, not app-wide", async 
   const api = pipe(
     web(),
     use(guard),
-    get("/me", async () => pipe("me", textResponse, ok)),
+    get("/me", async () =>
+      pipe("me", textResponse, ok),
+    ),
   );
   const app = pipe(
     web(),
-    get("/", async () => pipe("root", textResponse, ok)),
+    get("/", async () =>
+      pipe("root", textResponse, ok),
+    ),
     route("/api", api),
   );
   const send = toFetch(app);
 
   const root = await send(GET("/"));
-  await expect(root.text()).resolves.toBe("root");
-  expect(seen).toEqual([]); // guard did NOT leak to /
+  const a1 = check(
+    await root.text(),
+    toBe("root"),
+  );
+  const a2 = check(seen, toEqual([])); // guard did NOT leak to /
 
   await send(GET("/api/me"));
-  expect(seen).toEqual(["/api/me"]); // guard ran for the group
+  return all([
+    a1,
+    a2,
+    check(seen, toEqual(["/api/me"])), // guard ran for the group
+  ]);
 });
 
 test("top-level use() stays global across grouped and ungrouped routes", async () => {
@@ -362,19 +433,26 @@ test("top-level use() stays global across grouped and ungrouped routes", async (
   };
   const api = pipe(
     web(),
-    get("/me", async () => pipe("me", textResponse, ok)),
+    get("/me", async () =>
+      pipe("me", textResponse, ok),
+    ),
   );
   const app = pipe(
     web(),
     use(log),
-    get("/", async () => pipe("root", textResponse, ok)),
+    get("/", async () =>
+      pipe("root", textResponse, ok),
+    ),
     route("/api", api),
   );
   const send = toFetch(app);
 
   await send(GET("/"));
   await send(GET("/api/me"));
-  expect(hits).toEqual(["/", "/api/me"]);
+  return check(
+    hits,
+    toEqual(["/", "/api/me"]),
+  );
 });
 
 test("global and group middleware compose in onion order (global outer, group inner)", async () => {
@@ -402,13 +480,16 @@ test("global and group middleware compose in onion order (global outer, group in
   );
 
   await toFetch(app)(GET("/api/x"));
-  expect(order).toEqual([
-    "global-in",
-    "group-in",
-    "handler",
-    "group-out",
-    "global-out",
-  ]);
+  return check(
+    order,
+    toEqual([
+      "global-in",
+      "group-in",
+      "handler",
+      "group-out",
+      "global-out",
+    ]),
+  );
 });
 
 test("nested route() groups stack their middleware outer-to-inner", async () => {
@@ -436,10 +517,13 @@ test("nested route() groups stack their middleware outer-to-inner", async () => 
   const app = pipe(web(), route("/out", outer));
 
   await toFetch(app)(GET("/out/in/leaf"));
-  expect(order).toEqual([
-    "outer-in",
-    "inner-in",
-    "inner-out",
-    "outer-out",
-  ]);
+  return check(
+    order,
+    toEqual([
+      "outer-in",
+      "inner-in",
+      "inner-out",
+      "outer-out",
+    ]),
+  );
 });

@@ -1,11 +1,10 @@
-import { test, assert, expect } from "vitest";
 import {
-  proc,
-  isErr,
-  isOk,
-  isPlggError,
-  printPlggError,
-} from "plgg";
+  test,
+  check,
+  shouldBeOk,
+  toBeGreaterThanOrEqual,
+} from "plgg-test";
+import { proc, isOk } from "plgg";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 import {
   todoFoundry,
@@ -22,15 +21,11 @@ state: ${JSON.stringify(Array.from(todos))}`,
     runFoundry(todoFoundry),
   );
 
-  if (isErr(result)) {
-    assert.fail(
-      `Process failed: ${
-        isPlggError(result.content)
-          ? printPlggError(result.content)
-          : String(result.content)
-      }`,
-    );
+  if (!isOk(result)) {
+    return check(result, shouldBeOk());
   }
-  assert(isOk(result));
-  expect(todos.size).toBeGreaterThanOrEqual(1);
-}, 30000);
+  return check(
+    todos.size,
+    toBeGreaterThanOrEqual(1),
+  );
+});

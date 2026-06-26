@@ -1,63 +1,87 @@
-import { test, expect } from "vitest";
-import { isSome, isNone } from "plgg";
+import {
+  test,
+  check,
+  all,
+  toEqual,
+  someThen,
+  shouldBeSome,
+  shouldBeNone,
+} from "plgg-test";
 import { compilePattern } from "plgg-router/Routing/usecase/compilePattern";
 import { matchSegments } from "plgg-router/Routing/usecase/matchSegments";
 
 const match = (pattern: string, path: string) =>
   matchSegments(compilePattern(pattern), path);
 
-test("static path matches exactly", () => {
-  expect(isSome(match("/health", "/health"))).toBe(
-    true,
-  );
-  expect(isNone(match("/health", "/nope"))).toBe(
-    true,
-  );
-});
+test("static path matches exactly", () =>
+  all([
+    check(
+      match("/health", "/health"),
+      shouldBeSome(),
+    ),
+    check(
+      match("/health", "/nope"),
+      shouldBeNone(),
+    ),
+  ]));
 
-test("root pattern matches only root, capturing nothing", () => {
-  const r = match("/", "/");
-  expect(isSome(r)).toBe(true);
-  if (isSome(r)) {
-    expect(r.content).toEqual({});
-  }
-  expect(isNone(match("/", "/a"))).toBe(true);
-});
+test("root pattern matches only root, capturing nothing", () =>
+  all([
+    check(
+      match("/", "/"),
+      someThen((caps) => toEqual({})(caps)),
+    ),
+    check(match("/", "/a"), shouldBeNone()),
+  ]));
 
-test("param captures and decodes a single segment", () => {
-  const r = match("/users/:id", "/users/42");
-  if (isSome(r)) {
-    expect(r.content).toEqual({ id: "42" });
-  }
-  const r2 = match("/u/:name", "/u/a%20b");
-  if (isSome(r2)) {
-    expect(r2.content).toEqual({ name: "a b" });
-  }
-});
+test("param captures and decodes a single segment", () =>
+  all([
+    check(
+      match("/users/:id", "/users/42"),
+      someThen((caps) =>
+        toEqual({ id: "42" })(caps),
+      ),
+    ),
+    check(
+      match("/u/:name", "/u/a%20b"),
+      someThen((caps) =>
+        toEqual({ name: "a b" })(caps),
+      ),
+    ),
+  ]));
 
-test("too-few and too-many parts do not match", () => {
-  expect(isNone(match("/users/:id", "/users"))).toBe(
-    true,
-  );
-  expect(
-    isNone(match("/users/:id", "/users/1/extra")),
-  ).toBe(true);
-});
+test("too-few and too-many parts do not match", () =>
+  all([
+    check(
+      match("/users/:id", "/users"),
+      shouldBeNone(),
+    ),
+    check(
+      match("/users/:id", "/users/1/extra"),
+      shouldBeNone(),
+    ),
+  ]));
 
-test("wildcard captures the remainder, including empty", () => {
-  const r = match("/files/*", "/files/a/b/c");
-  if (isSome(r)) {
-    expect(r.content).toEqual({ "*": "a/b/c" });
-  }
-  const empty = match("/files/*", "/files");
-  if (isSome(empty)) {
-    expect(empty.content).toEqual({ "*": "" });
-  }
-});
+test("wildcard captures the remainder, including empty", () =>
+  all([
+    check(
+      match("/files/*", "/files/a/b/c"),
+      someThen((caps) =>
+        toEqual({ "*": "a/b/c" })(caps),
+      ),
+    ),
+    check(
+      match("/files/*", "/files"),
+      someThen((caps) =>
+        toEqual({ "*": "" })(caps),
+      ),
+    ),
+  ]));
 
-test("malformed percent-encoding falls back to the raw part", () => {
-  const r = match("/x/:v", "/x/%E0%A4%A");
-  if (isSome(r)) {
-    expect(r.content).toEqual({ v: "%E0%A4%A" });
-  }
-});
+test("malformed percent-encoding falls back to the raw part", () =>
+  check(
+    match("/x/:v", "/x/%E0%A4%A"),
+    someThen((caps) =>
+      toEqual({ v: "%E0%A4%A" })(caps),
+    ),
+  ));

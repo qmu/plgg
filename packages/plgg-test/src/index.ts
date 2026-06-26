@@ -39,6 +39,7 @@ export {
   toContain,
   toHaveLength,
   toBeGreaterThan,
+  toBeGreaterThanOrEqual,
   toBeInstanceOf,
   toBeUndefined,
   toBeNull,

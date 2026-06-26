@@ -1,11 +1,9 @@
-import { test, assert } from "vitest";
 import {
-  proc,
-  isErr,
-  isOk,
-  isPlggError,
-  printPlggError,
-} from "plgg";
+  test,
+  check,
+  shouldBeOk,
+} from "plgg-test";
+import { proc, isOk } from "plgg";
 import {
   asAlignment,
   asOrder,
@@ -54,12 +52,16 @@ test.skip("OperationContext: assemble -> operate with todoFoundry alignment", as
     },
   });
 
-  assert(isOk(maybeAlignment));
+  if (!isOk(maybeAlignment)) {
+    return check(maybeAlignment, shouldBeOk());
+  }
 
   const maybeOrder = asOrder({
     text: "Add task A",
   });
-  assert(isOk(maybeOrder));
+  if (!isOk(maybeOrder)) {
+    return check(maybeOrder, shouldBeOk());
+  }
 
   // Test the flow: assemble -> operate
   const result = await proc(
@@ -67,15 +69,5 @@ test.skip("OperationContext: assemble -> operate with todoFoundry alignment", as
     operate(todoFoundry)(maybeOrder.content),
   );
 
-  // Assert the result is successful
-  if (isErr(result)) {
-    assert.fail(
-      `Process failed: ${
-        isPlggError(result.content)
-          ? printPlggError(result.content)
-          : String(result.content)
-      }`,
-    );
-  }
-  assert(isOk(result));
+  return check(result, shouldBeOk());
 });

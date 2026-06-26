@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  someThen,
+} from "plgg-test";
 import { pipe, isSome, isNone, none } from "plgg";
 import {
   makeContext,
@@ -36,38 +43,71 @@ test("param/query/header are standalone Option lookups over the context", () => 
     }),
   );
   const id = pipe(c, param("id"));
-  expect(isSome(id) && id.content === "7").toBe(true);
   const q = pipe(c, query("q"));
-  expect(isSome(q) && q.content === "x").toBe(true);
   const h = pipe(c, header("x-a"));
-  expect(isSome(h) && h.content === "b").toBe(true);
-  expect(isNone(pipe(c, param("nope")))).toBe(true);
+  return all([
+    check(
+      isSome(id) && id.content === "7",
+      toBe(true),
+    ),
+    check(
+      isSome(q) && q.content === "x",
+      toBe(true),
+    ),
+    check(
+      isSome(h) && h.content === "b",
+      toBe(true),
+    ),
+    check(
+      isNone(pipe(c, param("nope"))),
+      toBe(true),
+    ),
+  ]);
 });
 
 test("state bag is immutable: setState returns a new context", () => {
   const c = makeContext(req());
-  expect(isNone(pipe(c, getState("user")))).toBe(true);
-
+  const a1 = check(
+    isNone(pipe(c, getState("user"))),
+    toBe(true),
+  );
   const c2 = pipe(c, setState("user", { id: 1 }));
   // original is untouched
-  expect(isNone(pipe(c, getState("user")))).toBe(true);
-
-  const got = pipe(c2, getState("user"));
-  expect(isSome(got)).toBe(true);
-  if (isSome(got)) {
-    expect(got.content).toEqual({ id: 1 });
-  }
-});
-
-test("response builders are standalone HttpResponse constructors", () => {
-  expect(jsonResponse({ ok: true }).body).toBe(
-    '{"ok":true}',
+  const a2 = check(
+    isNone(pipe(c, getState("user"))),
+    toBe(true),
   );
-  expect(textResponse("hi").status.content).toBe(200);
-  expect(
-    htmlResponse("<b/>", 201).headers["content-type"],
-  ).toBe("text/html; charset=utf-8");
-  expect(
-    redirectResponse("/login").status.content,
-  ).toBe(302);
+  const got = pipe(c2, getState("user"));
+  return all([
+    a1,
+    a2,
+    check(
+      got,
+      someThen((v) =>
+        check(v, toEqual({ id: 1 })),
+      ),
+    ),
+  ]);
 });
+
+test("response builders are standalone HttpResponse constructors", () =>
+  all([
+    check(
+      jsonResponse({ ok: true }).body,
+      toBe('{"ok":true}'),
+    ),
+    check(
+      textResponse("hi").status.content,
+      toBe(200),
+    ),
+    check(
+      htmlResponse("<b/>", 201).headers[
+        "content-type"
+      ],
+      toBe("text/html; charset=utf-8"),
+    ),
+    check(
+      redirectResponse("/login").status.content,
+      toBe(302),
+    ),
+  ]));

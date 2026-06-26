@@ -1,5 +1,10 @@
 // @vitest-environment happy-dom
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import {
   div,
   button,
@@ -41,9 +46,10 @@ const buttons = (root: Element) =>
 test("sandbox renders the initial view", () => {
   const root = document.createElement("div");
   sandbox(counter)(root);
-  expect(
+  return check(
     root.querySelector("span")?.textContent,
-  ).toBe("0");
+    toBe("0"),
+  );
 });
 
 test("dispatching from a click updates the model and re-renders", () => {
@@ -52,30 +58,42 @@ test("dispatching from a click updates the model and re-renders", () => {
   const [dec, inc] = buttons(root);
   inc?.dispatchEvent(new Event("click"));
   inc?.dispatchEvent(new Event("click"));
-  expect(
+  const a1 = check(
     root.querySelector("span")?.textContent,
-  ).toBe("2");
+    toBe("2"),
+  );
   dec?.dispatchEvent(new Event("click"));
-  expect(
-    root.querySelector("span")?.textContent,
-  ).toBe("1");
+  return all([
+    a1,
+    check(
+      root.querySelector("span")?.textContent,
+      toBe("1"),
+    ),
+  ]);
 });
 
 test("handlers survive re-render (full re-render re-wires them)", () => {
   const root = document.createElement("div");
   sandbox(counter)(root);
   // click the freshly-rendered button each time
-  buttons(root)[1]?.dispatchEvent(new Event("click"));
-  buttons(root)[1]?.dispatchEvent(new Event("click"));
-  buttons(root)[1]?.dispatchEvent(new Event("click"));
-  expect(
+  buttons(root)[1]?.dispatchEvent(
+    new Event("click"),
+  );
+  buttons(root)[1]?.dispatchEvent(
+    new Event("click"),
+  );
+  buttons(root)[1]?.dispatchEvent(
+    new Event("click"),
+  );
+  return check(
     root.querySelector("span")?.textContent,
-  ).toBe("3");
+    toBe("3"),
+  );
 });
 
 test("the cleanup function empties the container", () => {
   const root = document.createElement("div");
   const stop = sandbox(counter)(root);
   stop();
-  expect(root.children.length).toBe(0);
+  return check(root.children.length, toBe(0));
 });

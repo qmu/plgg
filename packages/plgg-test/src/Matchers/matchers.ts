@@ -123,6 +123,20 @@ export const toBeGreaterThan = <
     }),
   );
 
+export const toBeGreaterThanOrEqual = <
+  A extends number | bigint,
+>(
+  expected: number | bigint,
+): Matcher<A> =>
+  matcher(
+    "toBeGreaterThanOrEqual",
+    (actual) => actual >= expected,
+    (actual) => ({
+      expected: formatValue(expected),
+      message: `expected ${formatValue(actual)} to be greater than or equal to ${formatValue(expected)}`,
+    }),
+  );
+
 export const toBeInstanceOf = <A>(
   ctor: Function,
 ): Matcher<A> =>

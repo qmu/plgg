@@ -5,9 +5,9 @@ origin_branch: work-20260617-002003
 origin_commit: 8351741
 created_at: 2026-06-17T21:31:52+09:00
 severity: low
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 00c1dc8
+resolved_by_commit: 
 ---
 
 # Existing specs still read error content by hand

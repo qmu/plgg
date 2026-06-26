@@ -1,5 +1,3 @@
-/// <reference types="vitest" />
-
 import path from "path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
@@ -11,30 +9,6 @@ export default defineConfig({
         __dirname,
         "./src",
       ),
-    },
-  },
-  test: {
-    coverage: {
-      all: true,
-      provider: "v8",
-      reporter: ["text", "lcov", "html"],
-      exclude: [
-        "node_modules/**",
-        "dist/**",
-        "coverage/**",
-        "**/*.spec.ts",
-        "**/*.test.ts",
-        "**/index.ts",
-        "src/client.ts",
-        "src/style.ts",
-        "vite.config.ts",
-      ],
-      thresholds: {
-        statements: 91,
-        branches: 91,
-        functions: 91,
-        lines: 91,
-      },
     },
   },
   build: {
@@ -51,7 +25,11 @@ export default defineConfig({
       entry: {
         index: "src/index.ts",
         client: "src/client.ts",
-        style: "src/style.ts",
+        // Output name is `styleEntry` (not `style`) so the emitted
+        // `dist/styleEntry.*` does NOT collide with the `dist/Style/`
+        // type tree on a case-insensitive filesystem — the published
+        // `./style` subpath (package.json `exports`) still points here.
+        styleEntry: "src/styleEntry.ts",
       },
       fileName: (format, entryName) =>
         `${entryName}.${format}.js`,
@@ -69,6 +47,13 @@ export default defineConfig({
     dts({
       tsconfigPath: "tsconfig.build.json",
       insertTypesEntry: true,
+      // `rollupTypes: false` emits the per-file `.d.ts` tree, so the
+      // `Style/` directory ships as `dist/Style/`. The `style` subpath's
+      // output is deliberately named `styleEntry` (see `lib.entry`
+      // above) so `dist/styleEntry.*` does not case-collide with that
+      // `dist/Style/`. If this is ever switched to `rollupTypes: true`,
+      // re-check that constraint — a single rolled-up `style.d.ts` could
+      // collide with `Style/` again on case-insensitive filesystems.
       rollupTypes: false,
     }),
   ],

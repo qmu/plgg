@@ -17,12 +17,18 @@ export const reqObjectGPT = ({
   instructions,
   input,
   schema,
+  // The network seam, injectable for offline tests. Defaults to the
+  // real `postJson`; a spec passes a typed fake to exercise the request
+  // assembly + response decode without hitting the API. Typed as
+  // `typeof postJson`, so any fake must satisfy the real signature.
+  post = postJson,
 }: {
   apiKey: string;
   model: string;
   instructions: string;
   input: string;
   schema: Datum;
+  post?: typeof postJson;
 }): PromisedResult<unknown, unknown> =>
   proc(
     {
@@ -40,7 +46,7 @@ export const reqObjectGPT = ({
         },
       },
     },
-    postJson({
+    post({
       url: "https://api.openai.com/v1/responses",
       headers: {
         Authorization: `Bearer ${apiKey}`,

@@ -1,9 +1,6 @@
-/// <reference types="vitest" />
-
 import path from "path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
-import dotenv from "dotenv";
 
 export default defineConfig({
   resolve: {
@@ -12,12 +9,6 @@ export default defineConfig({
         __dirname,
         "./src",
       ),
-    },
-  },
-  test: {
-    env: dotenv.config({ path: ".env" }).parsed,
-    coverage: {
-      all: true,
     },
   },
   build: {

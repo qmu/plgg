@@ -27,24 +27,24 @@
     },
     "./style": {
       "import": {
-        "types": "./dist/style.d.ts",
-        "default": "./dist/style.es.js"
+        "types": "./dist/styleEntry.d.ts",
+        "default": "./dist/styleEntry.es.js"
       },
       "require": {
-        "types": "./dist/style.d.ts",
-        "default": "./dist/style.cjs.js"
+        "types": "./dist/styleEntry.d.ts",
+        "default": "./dist/styleEntry.cjs.js"
       }
     }
   },
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "vite build",
-    "test": "tsc --noEmit && vitest --run",
+    "test": "tsc --noEmit && plgg-test src",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
-    "test:watch": "vitest",
-    "coverage": "vitest --run --coverage",
-    "coverage:watch": "vitest --coverage",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch",
     "publish": "vite build && npm publish"
   },
   "repository": {
@@ -62,11 +62,10 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "@vitest/coverage-v8": "^4.1.5",
     "happy-dom": "^15.0.0",
+    "plgg-test": "file:../plgg-test",
     "typescript": "^6.0.3",
     "vite": "^8.0.10",
-    "vite-plugin-dts": "^5.0.0",
-    "vitest": "^4.1.5"
+    "vite-plugin-dts": "^5.0.0"
   }
 }

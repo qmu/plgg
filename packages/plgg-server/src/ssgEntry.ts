@@ -1,3 +1,9 @@
+// Renamed from `ssg.ts` to avoid a case collision with the `Ssg/`
+// directory on case-insensitive filesystems (a lowercase `ssg.ts`
+// beside `Ssg/` makes `tsc` fail with TS1149). The public
+// `plgg-server/ssg` subpath is preserved via `package.json` `exports`
+// (which point at `dist/ssgEntry.*`). Do NOT rename this back to
+// `ssg.ts`.
 import {
   PromisedResult,
   SoftStr,

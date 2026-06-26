@@ -1,4 +1,12 @@
-import { test, expect, assert } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toHaveLength,
+  shouldBeOk,
+  errThen,
+} from "plgg-test";
 import {
   mkdtemp,
   readFile,
@@ -6,7 +14,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isOk, isErr } from "plgg";
+import { isOk } from "plgg";
 import { ssgPage } from "plgg-server/Ssg/model/Ssg";
 import { writeStatic } from "plgg-server/Ssg/usecase/writeStatic";
 
@@ -18,24 +26,31 @@ test("writeStatic writes directory-index files", async () => {
     ssgPage("/", "<i>root</i>"),
     ssgPage("/about", "<i>about</i>"),
   ]);
-  assert(isOk(result));
-  expect(result.content).toHaveLength(2);
-  expect(
-    await readFile(
-      join(out, "index.html"),
-      "utf8",
-    ),
-  ).toBe("<i>root</i>");
-  expect(
-    await readFile(
-      join(out, "about", "index.html"),
-      "utf8",
-    ),
-  ).toBe("<i>about</i>");
-  await rm(out, {
-    recursive: true,
-    force: true,
-  });
+  if (!isOk(result)) {
+    await rm(out, {
+      recursive: true,
+      force: true,
+    });
+    return check(result, shouldBeOk());
+  }
+  const a1 = check(
+    result.content,
+    toHaveLength(2),
+  );
+  const root = await readFile(
+    join(out, "index.html"),
+    "utf8",
+  );
+  const about = await readFile(
+    join(out, "about", "index.html"),
+    "utf8",
+  );
+  await rm(out, { recursive: true, force: true });
+  return all([
+    a1,
+    check(root, toBe("<i>root</i>")),
+    check(about, toBe("<i>about</i>")),
+  ]);
 });
 
 test("writeStatic rejects a path escaping outDir", async () => {
@@ -45,12 +60,12 @@ test("writeStatic rejects a path escaping outDir", async () => {
   const result = await writeStatic(out)([
     ssgPage("/../evil", "x"),
   ]);
-  assert(isErr(result));
-  expect(result.content.__tag).toBe(
-    "WriteFailed",
+  const verdict = check(
+    result,
+    errThen((e) =>
+      check(e.__tag, toBe("WriteFailed")),
+    ),
   );
-  await rm(out, {
-    recursive: true,
-    force: true,
-  });
+  await rm(out, { recursive: true, force: true });
+  return verdict;
 });

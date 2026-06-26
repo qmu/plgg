@@ -1,4 +1,12 @@
-import { test, assert, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toContain,
+  not,
+  shouldBeOk,
+} from "plgg-test";
 import { proc, isOk } from "plgg";
 import {
   todoFoundry,
@@ -23,9 +31,16 @@ state: ${JSON.stringify(Array.from(todos))}`,
     runFoundry(todoFoundry),
   );
 
-  assert(isOk(result));
-  expect(todos.size).toBe(2);
-  expect([...todos.values()]).toContain("A");
-  expect([...todos.values()]).toContain("C");
-  expect([...todos.values()]).not.toContain("B");
-}, 60000);
+  if (!isOk(result)) {
+    return check(result, shouldBeOk());
+  }
+  return all([
+    check(todos.size, toBe(2)),
+    check([...todos.values()], toContain("A")),
+    check([...todos.values()], toContain("C")),
+    check(
+      [...todos.values()],
+      not(toContain("B")),
+    ),
+  ]);
+});

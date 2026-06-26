@@ -1,5 +1,3 @@
-/// <reference types="vitest" />
-
 import path from "path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
@@ -11,32 +9,6 @@ export default defineConfig({
         __dirname,
         "./src",
       ),
-    },
-  },
-  test: {
-    coverage: {
-      all: true,
-      provider: "v8",
-      reporter: ["text", "lcov", "html"],
-      exclude: [
-        "node_modules/**",
-        "dist/**",
-        "coverage/**",
-        "**/*.spec.ts",
-        "**/*.test.ts",
-        "**/index.ts",
-        "src/node.ts",
-        "src/bun.ts",
-        "src/deno.ts",
-        "src/ssg.ts",
-        "vite.config.ts",
-      ],
-      thresholds: {
-        statements: 91,
-        branches: 91,
-        functions: 91,
-        lines: 91,
-      },
     },
   },
   build: {
@@ -55,7 +27,11 @@ export default defineConfig({
         node: "src/node.ts",
         bun: "src/bun.ts",
         deno: "src/deno.ts",
-        ssg: "src/ssg.ts",
+        // Output name is `ssgEntry` (not `ssg`) so the emitted
+        // `dist/ssgEntry.*` does NOT collide with the `dist/Ssg/` type
+        // tree on a case-insensitive filesystem — the published `./ssg`
+        // subpath (package.json `exports`) still points here.
+        ssgEntry: "src/ssgEntry.ts",
       },
       fileName: (format, entryName) =>
         `${entryName}.${format}.js`,
@@ -78,6 +54,13 @@ export default defineConfig({
     dts({
       tsconfigPath: "tsconfig.build.json",
       insertTypesEntry: true,
+      // `rollupTypes: false` emits the per-file `.d.ts` tree, so the
+      // `Ssg/` directory ships as `dist/Ssg/`. The `ssg` subpath's
+      // output is deliberately named `ssgEntry` (see `lib.entry` above)
+      // so `dist/ssgEntry.*` does not case-collide with that
+      // `dist/Ssg/`. If this is ever switched to `rollupTypes: true`,
+      // re-check that constraint — a single rolled-up `ssg.d.ts` could
+      // collide with `Ssg/` again on case-insensitive filesystems.
       rollupTypes: false,
     }),
   ],

@@ -1,4 +1,9 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
 import { match } from "plgg";
 import {
   HttpError,
@@ -24,82 +29,111 @@ import {
 
 test("notFound -> 404", () => {
   const r = httpErrorToResponse(notFound("/x"));
-  expect(r.status.content).toBe(404);
-  expect(r.body).toBe("Not Found");
+  return all([
+    check(r.status.content, toBe(404)),
+    check(r.body, toBe("Not Found")),
+  ]);
 });
 
 test("methodNotAllowed -> 405 with a deduped Allow header", () => {
   const r = httpErrorToResponse(
     methodNotAllowed(["GET", "GET", "PUT"]),
   );
-  expect(r.status.content).toBe(405);
-  expect(r.headers["allow"]).toBe("GET, PUT");
+  return all([
+    check(r.status.content, toBe(405)),
+    check(r.headers["allow"], toBe("GET, PUT")),
+  ]);
 });
 
 test("badRequest -> 400 carrying its message", () => {
   const r = httpErrorToResponse(
     badRequest("bad input"),
   );
-  expect(r.status.content).toBe(400);
-  expect(r.body).toBe("bad input");
+  return all([
+    check(r.status.content, toBe(400)),
+    check(r.body, toBe("bad input")),
+  ]);
 });
 
 test("unsupported -> 501 carrying its message", () => {
   const r = httpErrorToResponse(
     unsupported("TRACE not supported"),
   );
-  expect(r.status.content).toBe(501);
-  expect(r.body).toBe("TRACE not supported");
+  return all([
+    check(r.status.content, toBe(501)),
+    check(r.body, toBe("TRACE not supported")),
+  ]);
 });
 
 test("unauthorized -> 401 carrying its message", () => {
   const r = httpErrorToResponse(
     unauthorized("Unauthorized"),
   );
-  expect(r.status.content).toBe(401);
-  expect(r.body).toBe("Unauthorized");
+  return all([
+    check(r.status.content, toBe(401)),
+    check(r.body, toBe("Unauthorized")),
+  ]);
 });
 
 test("forbidden -> 403 carrying its message", () => {
   const r = httpErrorToResponse(
     forbidden("not your resource"),
   );
-  expect(r.status.content).toBe(403);
-  expect(r.body).toBe("not your resource");
+  return all([
+    check(r.status.content, toBe(403)),
+    check(r.body, toBe("not your resource")),
+  ]);
 });
 
 test("statusError -> its carried status and message", () => {
   const r = httpErrorToResponse(
     statusError(statusOf(429), "slow down"),
   );
-  expect(r.status.content).toBe(429);
-  expect(r.body).toBe("slow down");
+  return all([
+    check(r.status.content, toBe(429)),
+    check(r.body, toBe("slow down")),
+  ]);
 });
 
 test("internalError -> 500 with a generic body", () => {
   const r = httpErrorToResponse(
     internalError("details hidden"),
   );
-  expect(r.status.content).toBe(500);
-  expect(r.body).toBe("Internal Server Error");
+  return all([
+    check(r.status.content, toBe(500)),
+    check(r.body, toBe("Internal Server Error")),
+  ]);
 });
 
-test("constructors tag the Box variants", () => {
-  expect(notFound("/").__tag).toBe("NotFound");
-  expect(methodNotAllowed([]).__tag).toBe(
-    "MethodNotAllowed",
-  );
-  expect(badRequest("").__tag).toBe("BadRequest");
-  expect(unsupported("").__tag).toBe("Unsupported");
-  expect(unauthorized("").__tag).toBe("Unauthorized");
-  expect(forbidden("").__tag).toBe("Forbidden");
-  expect(statusError(statusOf(418), "").__tag).toBe(
-    "StatusError",
-  );
-  expect(internalError("").__tag).toBe(
-    "InternalError",
-  );
-});
+test("constructors tag the Box variants", () =>
+  all([
+    check(notFound("/").__tag, toBe("NotFound")),
+    check(
+      methodNotAllowed([]).__tag,
+      toBe("MethodNotAllowed"),
+    ),
+    check(
+      badRequest("").__tag,
+      toBe("BadRequest"),
+    ),
+    check(
+      unsupported("").__tag,
+      toBe("Unsupported"),
+    ),
+    check(
+      unauthorized("").__tag,
+      toBe("Unauthorized"),
+    ),
+    check(forbidden("").__tag, toBe("Forbidden")),
+    check(
+      statusError(statusOf(418), "").__tag,
+      toBe("StatusError"),
+    ),
+    check(
+      internalError("").__tag,
+      toBe("InternalError"),
+    ),
+  ]));
 
 test("HttpError folds exhaustively through match via the $ patterns", () => {
   // Match by named ADT pattern (notFound$()), not by a bare tag string. Each
@@ -107,10 +141,14 @@ test("HttpError folds exhaustively through match via the $ patterns", () => {
   // is a compile-time CoverageError.
   const describe = (e: HttpError): string =>
     match(e)(
-      [notFound$(), (x) => `404 ${x.content.path}`],
+      [
+        notFound$(),
+        (x) => `404 ${x.content.path}`,
+      ],
       [
         methodNotAllowed$(),
-        (x) => `405 ${x.content.allowed.join(",")}`,
+        (x) =>
+          `405 ${x.content.allowed.join(",")}`,
       ],
       [
         badRequest$(),
@@ -124,7 +162,10 @@ test("HttpError folds exhaustively through match via the $ patterns", () => {
         unauthorized$(),
         (x) => `401 ${x.content.message}`,
       ],
-      [forbidden$(), (x) => `403 ${x.content.message}`],
+      [
+        forbidden$(),
+        (x) => `403 ${x.content.message}`,
+      ],
       [
         statusError$(),
         (x) =>
@@ -136,20 +177,40 @@ test("HttpError folds exhaustively through match via the $ patterns", () => {
       ],
     );
 
-  expect(describe(notFound("/x"))).toBe("404 /x");
-  expect(
-    describe(methodNotAllowed(["GET", "PUT"])),
-  ).toBe("405 GET,PUT");
-  expect(describe(badRequest("bad"))).toBe("400 bad");
-  expect(describe(unsupported("no"))).toBe("501 no");
-  expect(describe(unauthorized("auth"))).toBe(
-    "401 auth",
-  );
-  expect(describe(forbidden("nope"))).toBe("403 nope");
-  expect(
-    describe(statusError(statusOf(418), "teapot")),
-  ).toBe("418 teapot");
-  expect(describe(internalError("boom"))).toBe(
-    "500 boom",
-  );
+  return all([
+    check(
+      describe(notFound("/x")),
+      toBe("404 /x"),
+    ),
+    check(
+      describe(methodNotAllowed(["GET", "PUT"])),
+      toBe("405 GET,PUT"),
+    ),
+    check(
+      describe(badRequest("bad")),
+      toBe("400 bad"),
+    ),
+    check(
+      describe(unsupported("no")),
+      toBe("501 no"),
+    ),
+    check(
+      describe(unauthorized("auth")),
+      toBe("401 auth"),
+    ),
+    check(
+      describe(forbidden("nope")),
+      toBe("403 nope"),
+    ),
+    check(
+      describe(
+        statusError(statusOf(418), "teapot"),
+      ),
+      toBe("418 teapot"),
+    ),
+    check(
+      describe(internalError("boom")),
+      toBe("500 boom"),
+    ),
+  ]);
 });

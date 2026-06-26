@@ -10,6 +10,7 @@ import {
   pipe,
   fromNullable,
   getOr,
+  postJson,
 } from "plgg";
 import {
   Provider,
@@ -26,11 +27,16 @@ export const generateObject = ({
   systemPrompt,
   userPrompt,
   schema,
+  // The network seam, threaded down to the vendor request builders.
+  // Injectable for offline tests; defaults to the real `postJson`, so
+  // production behavior is unchanged. Typed as `typeof postJson`.
+  post = postJson,
 }: {
   provider: Provider;
   systemPrompt?: string;
   userPrompt: string;
   schema: Datum;
+  post?: typeof postJson;
 }): PromisedResult<unknown, unknown> => {
   // Bind once: model is the same regardless of branch; instructions default to
   // "" via Option (not `|| ""`).
@@ -70,6 +76,7 @@ export const generateObject = ({
               instructions,
               input: userPrompt,
               schema,
+              post,
             }),
         ],
         [
@@ -81,6 +88,7 @@ export const generateObject = ({
               instructions,
               input: userPrompt,
               schema,
+              post,
             }),
         ],
         [
@@ -92,6 +100,7 @@ export const generateObject = ({
               instructions,
               input: userPrompt,
               schema,
+              post,
             }),
         ],
       ),

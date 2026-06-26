@@ -1,6 +1,12 @@
-import { test, expect, assert } from "vitest";
 import {
-  isOk,
+  test,
+  check,
+  all,
+  toBe,
+  toContain,
+  okThen,
+} from "plgg-test";
+import {
   proc,
   atProp,
   asReadonlyArray,
@@ -46,8 +52,13 @@ test.skip("Gemini API invocation works", async () => {
         asReadonlyArray(asSoftStr),
       ),
   );
-  expect(isOk(result)).toBe(true);
-  assert(isOk(result));
-  expect(result.content.length).toBe(3);
-  expect(result.content).toContain("pineapple");
-}, 20000);
+  return check(
+    result,
+    okThen((fruits) =>
+      all([
+        check(fruits.length, toBe(3)),
+        check(fruits, toContain("pineapple")),
+      ]),
+    ),
+  );
+});

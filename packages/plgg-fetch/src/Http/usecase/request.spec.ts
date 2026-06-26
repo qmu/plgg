@@ -1,10 +1,15 @@
 import {
   test,
-  expect,
+  check,
+  all,
+  toBe,
+  toEqual,
+  toContain,
+  okThen,
+  errThen,
   vi,
   afterEach,
-} from "vitest";
-import { isOk, isErr } from "plgg";
+} from "plgg-test";
 import {
   request,
   get,
@@ -20,7 +25,7 @@ type FetchImpl = (
 ) => Promise<Response>;
 
 const stubFetch = (impl: FetchImpl): void =>
-  void vi.stubGlobal("fetch", vi.fn(impl));
+  vi.stubGlobal("fetch", impl);
 
 const captureFetch = (): {
   seen: () => Request;
@@ -52,12 +57,15 @@ test("get returns a successful HttpResponse for a 2xx", async () => {
         headers: { "content-type": "text/plain" },
       }),
   );
-  const result = await get("http://example.test/");
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content.status.content).toBe(200);
-    expect(result.content.body).toBe("hello");
-  }
+  return check(
+    await get("http://example.test/"),
+    okThen((r) =>
+      all([
+        check(r.status.content, toBe(200)),
+        check(r.body, toBe("hello")),
+      ]),
+    ),
+  );
 });
 
 test("a non-2xx status comes back as Ok, for the caller to decide", async () => {
@@ -65,42 +73,52 @@ test("a non-2xx status comes back as Ok, for the caller to decide", async () => 
     async () =>
       new Response("nope", { status: 404 }),
   );
-  const result = await get(
-    "http://example.test/missing",
+  return check(
+    await get("http://example.test/missing"),
+    okThen((r) =>
+      check(r.status.content, toBe(404)),
+    ),
   );
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content.status.content).toBe(404);
-  }
 });
 
 test("a transport rejection folds to a NetworkError", async () => {
   stubFetch(async () => {
     throw new Error("connection refused");
   });
-  const result = await get("http://example.test/");
-  expect(isErr(result)).toBe(true);
-  if (isErr(result)) {
-    expect(isNetworkError(result.content)).toBe(true);
-    if (isNetworkError(result.content)) {
-      expect(result.content.content.message).toContain(
-        "connection refused",
-      );
-    }
-  }
+  return check(
+    await get("http://example.test/"),
+    errThen((e) =>
+      all([
+        check(isNetworkError(e), toBe(true)),
+        check(
+          isNetworkError(e)
+            ? e.content.message
+            : "",
+          toContain("connection refused"),
+        ),
+      ]),
+    ),
+  );
 });
 
 test("a non-Error rejection still yields a NetworkError (messageOf String path)", async () => {
   stubFetch(async () => {
     throw "plain failure";
   });
-  const result = await get("http://example.test/");
-  expect(isErr(result)).toBe(true);
-  if (isErr(result) && isNetworkError(result.content)) {
-    expect(result.content.content.message).toBe(
-      "plain failure",
-    );
-  }
+  return check(
+    await get("http://example.test/"),
+    errThen((e) =>
+      all([
+        check(isNetworkError(e), toBe(true)),
+        check(
+          isNetworkError(e)
+            ? e.content.message
+            : "",
+          toBe("plain failure"),
+        ),
+      ]),
+    ),
+  );
 });
 
 test("a malformed URL folds to a NetworkError before fetch is reached", async () => {
@@ -108,12 +126,15 @@ test("a malformed URL folds to a NetworkError before fetch is reached", async ()
     async () => new Response("unused"),
   );
   vi.stubGlobal("fetch", fetchSpy);
-  const result = await get("not a url");
-  expect(isErr(result)).toBe(true);
-  if (isErr(result)) {
-    expect(result.content.__tag).toBe("NetworkError");
-  }
-  expect(fetchSpy).not.toHaveBeenCalled();
+  return all([
+    check(
+      await get("not a url"),
+      errThen((e) =>
+        check(e.__tag, toBe("NetworkError")),
+      ),
+    ),
+    check(fetchSpy.mock.calls.length, toBe(0)),
+  ]);
 });
 
 test("post sends the method, merged query, headers, and body", async () => {
@@ -124,23 +145,29 @@ test("post sends the method, merged query, headers, and body", async () => {
     query: { debug: "1" },
   });
   const req = fetched.seen();
-  expect(req.method).toBe("POST");
-  expect(
-    new URL(req.url).searchParams.get("debug"),
-  ).toBe("1");
-  expect(req.headers.get("content-type")).toBe(
-    "application/json",
-  );
-  await expect(req.text()).resolves.toBe('{"a":1}');
+  return all([
+    check(req.method, toBe("POST")),
+    check(
+      new URL(req.url).searchParams.get("debug"),
+      toBe("1"),
+    ),
+    check(
+      req.headers.get("content-type"),
+      toBe("application/json"),
+    ),
+    check(await req.text(), toBe('{"a":1}')),
+  ]);
 });
 
 test("get defaults query/headers/body when no options are given", async () => {
   const fetched = captureFetch();
   await get("http://example.test/");
   const req = fetched.seen();
-  expect(req.method).toBe("GET");
-  expect(new URL(req.url).search).toBe("");
-  await expect(req.text()).resolves.toBe("");
+  return all([
+    check(req.method, toBe("GET")),
+    check(new URL(req.url).search, toBe("")),
+    check(await req.text(), toBe("")),
+  ]);
 });
 
 test("put, patch, and del issue their respective methods", async () => {
@@ -150,13 +177,21 @@ test("put, patch, and del issue their respective methods", async () => {
     return new Response("ok");
   });
   await put("http://example.test/a", { body: "x" });
-  await patch("http://example.test/a", { body: "x" });
+  await patch("http://example.test/a", {
+    body: "x",
+  });
   await del("http://example.test/a");
-  expect(seen).toEqual(["PUT", "PATCH", "DELETE"]);
+  return check(
+    seen,
+    toEqual(["PUT", "PATCH", "DELETE"]),
+  );
 });
 
 test("request is callable directly with an explicit method", async () => {
   const fetched = captureFetch();
   await request("PATCH", "http://example.test/r");
-  expect(fetched.seen().method).toBe("PATCH");
+  return check(
+    fetched.seen().method,
+    toBe("PATCH"),
+  );
 });

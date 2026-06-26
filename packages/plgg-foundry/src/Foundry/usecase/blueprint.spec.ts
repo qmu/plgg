@@ -1,5 +1,10 @@
-import { test, assert, expect } from "vitest";
-import { isOk, proc } from "plgg";
+import {
+  test,
+  check,
+  toEqual,
+  shouldBeOk,
+} from "plgg-test";
+import { proc } from "plgg";
 import {
   asOrder,
   extractOpcodes,
@@ -18,29 +23,23 @@ test.skip("Blueprint generation with todoFoundry", async () => {
     blueprint(todoFoundry),
   );
 
-  assert(
-    isOk(result),
-    "Blueprint should generate valid alignment",
-  );
-}, 30000);
-
-test("extractOpcodes extracts processor opcodes from todoFoundry", () => {
-  const processorOpcodes = extractOpcodes(
-    todoFoundry.apparatuses,
-    isProcessor,
-  );
-
-  expect(processorOpcodes).toEqual([
-    "add",
-    "remove",
-  ]);
+  return check(result, shouldBeOk());
 });
 
-test("extractOpcodes extracts switcher opcodes from todoFoundry", () => {
-  const switcherOpcodes = extractOpcodes(
-    todoFoundry.apparatuses,
-    isSwitcher,
-  );
+test("extractOpcodes extracts processor opcodes from todoFoundry", () =>
+  check(
+    extractOpcodes(
+      todoFoundry.apparatuses,
+      isProcessor,
+    ),
+    toEqual(["add", "remove"]),
+  ));
 
-  expect(switcherOpcodes).toEqual([]);
-});
+test("extractOpcodes extracts switcher opcodes from todoFoundry", () =>
+  check(
+    extractOpcodes(
+      todoFoundry.apparatuses,
+      isSwitcher,
+    ),
+    toEqual([]),
+  ));

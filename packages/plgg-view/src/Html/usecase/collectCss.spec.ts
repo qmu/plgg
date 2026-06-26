@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toContain,
+  not,
+} from "plgg-test";
 import {
   el,
   text,
@@ -27,12 +34,20 @@ test("collectCss renders the atomic rules of a tree (base + :hover)", () => {
     [text("x")],
   );
   const sheet = collectCss(tree);
-  expect(sheet).toContain(
-    `.${hashClass("|padding:0.75rem")}{padding:0.75rem}`,
-  );
-  expect(sheet).toContain(
-    ":hover{background-color:#1f6b54}",
-  );
+  return all([
+    check(
+      sheet,
+      toContain(
+        `.${hashClass("|padding:0.75rem")}{padding:0.75rem}`,
+      ),
+    ),
+    check(
+      sheet,
+      toContain(
+        ":hover{background-color:#1f6b54}",
+      ),
+    ),
+  ]);
 });
 
 test("collectCss dedups an atom used on many elements", () => {
@@ -47,8 +62,9 @@ test("collectCss dedups an atom used on many elements", () => {
   const cls = hashClass("|padding:0.75rem");
   const sheet = collectCss(tree);
   // the rule body appears exactly once despite two uses
-  expect(sheet.split(`.${cls}{`).length - 1).toBe(
-    1,
+  return check(
+    sheet.split(`.${cls}{`).length - 1,
+    toBe(1),
   );
 });
 
@@ -63,18 +79,21 @@ test("collectCss skips static attrs, handlers, animations, and text", () => {
     ],
     [text("Go")],
   );
-  expect(collectCss(tree)).toBe(
-    `.${hashClass("|padding:0.5rem")}{padding:0.5rem}`,
+  return check(
+    collectCss(tree),
+    toBe(
+      `.${hashClass("|padding:0.5rem")}{padding:0.5rem}`,
+    ),
   );
 });
 
-test("a tree with no style_() atoms yields an empty sheet", () => {
-  expect(
+test("a tree with no style_() atoms yields an empty sheet", () =>
+  check(
     collectCss(
       el("div", [class_("x")], [text("hi")]),
     ),
-  ).toBe("");
-});
+    toBe(""),
+  ));
 
 test("collectCss escapes a malicious declaration value (no </style> or } breakout)", () => {
   const tree = el(
@@ -91,31 +110,32 @@ test("collectCss escapes a malicious declaration value (no </style> or } breakou
   );
   const sheet = collectCss(tree);
   // the breakout characters are CSS-hex-escaped, never emitted raw
-  expect(sheet).not.toContain("</style>");
-  expect(sheet).not.toContain("}<");
-  expect(sheet).not.toContain(
-    "<script>",
-  );
-  // a single closing brace per rule (the one renderCssRule writes)
-  expect(sheet.split("}").length - 1).toBe(1);
+  return all([
+    check(sheet, not(toContain("</style>"))),
+    check(sheet, not(toContain("}<"))),
+    check(sheet, not(toContain("<script>"))),
+    // a single closing brace per rule (the one renderCssRule writes)
+    check(sheet.split("}").length - 1, toBe(1)),
+  ]);
 });
 
-test("collectCss preserves legitimate selector combinators and url() values", () => {
-  const sheet = collectCss(
-    el(
-      "div",
-      [
-        style_(
-          decl(
-            "background",
-            "url(https://example.com/a.png)",
+test("collectCss preserves legitimate selector combinators and url() values", () =>
+  check(
+    collectCss(
+      el(
+        "div",
+        [
+          style_(
+            decl(
+              "background",
+              "url(https://example.com/a.png)",
+            ),
           ),
-        ),
-      ],
-      [text("x")],
+        ],
+        [text("x")],
+      ),
     ),
-  );
-  expect(sheet).toContain(
-    "background:url(https://example.com/a.png)",
-  );
-});
+    toContain(
+      "background:url(https://example.com/a.png)",
+    ),
+  ));

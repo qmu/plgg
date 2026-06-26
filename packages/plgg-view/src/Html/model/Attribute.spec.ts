@@ -1,4 +1,10 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+} from "plgg-test";
 import { some, none } from "plgg";
 import {
   attr,
@@ -20,33 +26,38 @@ type Msg =
   | { kind: "Clicked" }
   | { kind: "Typed"; value: string };
 
-test("attr builds a static name/value pair", () => {
-  expect(attr("data-x", "1")).toEqual({
+test("attr builds a static name/value pair", () =>
+  check(attr("data-x", "1"), toEqual({
     __tag: "Attr",
     content: { name: "data-x", value: "1" },
-  });
-});
+  })));
 
-test("class_ and href are attr shortcuts", () => {
-  expect(class_("done")).toEqual({
-    __tag: "Attr",
-    content: { name: "class", value: "done" },
-  });
-  expect(href("/a")).toEqual({
-    __tag: "Attr",
-    content: { name: "href", value: "/a" },
-  });
-});
+test("class_ and href are attr shortcuts", () =>
+  all([
+    check(class_("done"), toEqual({
+      __tag: "Attr",
+      content: {
+        name: "class",
+        value: "done",
+      },
+    })),
+    check(href("/a"), toEqual({
+      __tag: "Attr",
+      content: { name: "href", value: "/a" },
+    })),
+  ]));
 
 test("onClick builds a click handler that ignores the payload", () => {
   const a = onClick<Msg>({ kind: "Clicked" });
-  expect(a.__tag).toBe("Handler");
-  if (a.__tag === "Handler") {
-    expect(a.content.event).toBe("click");
-    expect(a.content.toMsg("ignored")).toEqual({
-      kind: "Clicked",
-    });
-  }
+  return a.__tag === "Handler"
+    ? all([
+        check(a.content.event, toBe("click")),
+        check(
+          a.content.toMsg("ignored"),
+          toEqual({ kind: "Clicked" }),
+        ),
+      ])
+    : check(a.__tag, toBe("Handler"));
 });
 
 test("onInput builds an input handler that receives the value", () => {
@@ -54,29 +65,34 @@ test("onInput builds an input handler that receives the value", () => {
     kind: "Typed",
     value,
   }));
-  if (a.__tag === "Handler") {
-    expect(a.content.event).toBe("input");
-    expect(a.content.toMsg("hi")).toEqual({
-      kind: "Typed",
-      value: "hi",
-    });
-  }
+  return a.__tag === "Handler"
+    ? all([
+        check(a.content.event, toBe("input")),
+        check(
+          a.content.toMsg("hi"),
+          toEqual({ kind: "Typed", value: "hi" }),
+        ),
+      ])
+    : check(a.__tag, toBe("Handler"));
 });
 
 test("onSubmit builds a submit handler; on builds a raw handler", () => {
-  expect(
-    onSubmit<Msg>({ kind: "Clicked" }).__tag,
-  ).toBe("Handler");
   const raw = on<Msg>("focus", () => ({
     kind: "Clicked",
   }));
-  if (raw.__tag === "Handler") {
-    expect(raw.content.event).toBe("focus");
-  }
+  return all([
+    check(
+      onSubmit<Msg>({ kind: "Clicked" }).__tag,
+      toBe("Handler"),
+    ),
+    raw.__tag === "Handler"
+      ? check(raw.content.event, toBe("focus"))
+      : check(raw.__tag, toBe("Handler")),
+  ]);
 });
 
-test("fadeIn builds an enter-only Anim directive", () => {
-  expect(fadeIn(150)).toEqual({
+test("fadeIn builds an enter-only Anim directive", () =>
+  check(fadeIn(150), toEqual({
     __tag: "Anim",
     content: {
       enter: some({
@@ -93,50 +109,60 @@ test("fadeIn builds an enter-only Anim directive", () => {
       }),
       exit: none(),
     },
-  });
-});
+  })));
 
 test("fadeOut builds an exit-only Anim directive", () => {
   const a = fadeOut(120);
-  expect(a.__tag).toBe("Anim");
-  if (a.__tag === "Anim") {
-    expect(a.content.enter).toEqual(none());
-    expect(a.content.exit).toEqual(
-      some({
-        from: {
-          opacity: some(1),
-          transform: none(),
-        },
-        to: {
-          opacity: some(0),
-          transform: none(),
-        },
-        durationMs: 120,
-        easing: easeIn,
-      }),
-    );
-  }
+  return a.__tag === "Anim"
+    ? all([
+        check(a.content.enter, toEqual(none())),
+        check(
+          a.content.exit,
+          toEqual(
+            some({
+              from: {
+                opacity: some(1),
+                transform: none(),
+              },
+              to: {
+                opacity: some(0),
+                transform: none(),
+              },
+              durationMs: 120,
+              easing: easeIn,
+            }),
+          ),
+        ),
+      ])
+    : check(a.__tag, toBe("Anim"));
 });
 
 test("slideIn carries a transform on both endpoints", () => {
   const a = slideIn("12px", 200);
-  if (a.__tag === "Anim") {
-    expect(a.content.exit).toEqual(none());
-    expect(a.content.enter).toEqual(
-      some({
-        from: {
-          opacity: some(0),
-          transform: some("translateY(12px)"),
-        },
-        to: {
-          opacity: some(1),
-          transform: some("translateY(0)"),
-        },
-        durationMs: 200,
-        easing: easeOut,
-      }),
-    );
-  }
+  return a.__tag === "Anim"
+    ? all([
+        check(a.content.exit, toEqual(none())),
+        check(
+          a.content.enter,
+          toEqual(
+            some({
+              from: {
+                opacity: some(0),
+                transform: some(
+                  "translateY(12px)",
+                ),
+              },
+              to: {
+                opacity: some(1),
+                transform: some("translateY(0)"),
+              },
+              durationMs: 200,
+              easing: easeOut,
+            }),
+          ),
+        ),
+      ])
+    : check(a.__tag, toBe("Anim"));
 });
 
 test("transition carries both directions when given", () => {
@@ -147,8 +173,16 @@ test("transition carries both directions when given", () => {
     easing: "linear",
   };
   const a = transition({ enter, exit: enter });
-  if (a.__tag === "Anim") {
-    expect(a.content.enter).toEqual(some(enter));
-    expect(a.content.exit).toEqual(some(enter));
-  }
+  return a.__tag === "Anim"
+    ? all([
+        check(
+          a.content.enter,
+          toEqual(some(enter)),
+        ),
+        check(
+          a.content.exit,
+          toEqual(some(enter)),
+        ),
+      ])
+    : check(a.__tag, toBe("Anim"));
 });

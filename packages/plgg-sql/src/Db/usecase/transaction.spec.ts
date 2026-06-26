@@ -1,12 +1,18 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+} from "plgg-test";
 import {
   Result,
   InvalidError,
   invalidError,
   ok,
   err,
-  isOk,
-  isErr,
 } from "plgg";
 import { Db, transaction } from "plgg-sql/index";
 
@@ -41,26 +47,32 @@ test("commits and returns the value when the work succeeds", async () => {
     (): Promise<Result<number, InvalidError>> =>
       Promise.resolve(ok(42)),
   )("input");
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content).toBe(42);
-  }
-  expect(log).toEqual(["begin", "commit"]);
+  return all([
+    check(
+      result,
+      okThen((value) => toBe(42)(value)),
+    ),
+    check(log, toEqual(["begin", "commit"])),
+  ]);
 });
 
 test("rolls back and preserves the Err when the work fails", async () => {
   const { db, log } = recordingDb();
-  const failure = invalidError({ message: "nope" });
+  const failure = invalidError({
+    message: "nope",
+  });
   const result = await transaction(
     db,
     (): Promise<Result<number, InvalidError>> =>
       Promise.resolve(err(failure)),
   )("input");
-  expect(isErr(result)).toBe(true);
-  if (isErr(result)) {
-    expect(result.content).toBe(failure);
-  }
-  expect(log).toEqual(["begin", "rollback"]);
+  return all([
+    check(
+      result,
+      errThen((e) => toBe(failure)(e)),
+    ),
+    check(log, toEqual(["begin", "rollback"])),
+  ]);
 });
 
 test("rolls back and folds a thrown error into a SqlError", async () => {
@@ -71,9 +83,11 @@ test("rolls back and folds a thrown error into a SqlError", async () => {
       throw new Error("mid-transaction crash");
     },
   )("input");
-  expect(isErr(result)).toBe(true);
-  if (isErr(result)) {
-    expect(result.content.__tag).toBe("SqlError");
-  }
-  expect(log).toEqual(["begin", "rollback"]);
+  return all([
+    check(
+      result,
+      errThen((e) => toBe("SqlError")(e.__tag)),
+    ),
+    check(log, toEqual(["begin", "rollback"])),
+  ]);
 });

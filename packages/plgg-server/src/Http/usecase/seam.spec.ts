@@ -1,5 +1,13 @@
-import { test, expect } from "vitest";
-import { isOk, isErr, isSome } from "plgg";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  okThen,
+  errThen,
+} from "plgg-test";
+import { isSome } from "plgg";
 import {
   toHttpRequest,
   toNativeResponse,
@@ -22,29 +30,32 @@ test("toHttpRequest lifts method, path, query, headers, and body", async () => {
       body: "payload",
     },
   );
-  const result = await toHttpRequest(native);
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    const r = result.content;
-    expect(r.method).toBe("POST");
-    expect(r.path).toBe("/users/7");
-    expect(r.query).toEqual({ q: "cat" });
-    // header keys are lowercased
-    expect(r.headers["x-token"]).toBe("abc");
-    expect(r.params).toEqual({});
-    expect(r.body).toBe("payload");
-  }
+  return check(
+    await toHttpRequest(native),
+    okThen((r) =>
+      all([
+        check(r.method, toBe("POST")),
+        check(r.path, toBe("/users/7")),
+        check(r.query, toEqual({ q: "cat" })),
+        // header keys are lowercased
+        check(r.headers["x-token"], toBe("abc")),
+        check(r.params, toEqual({})),
+        check(r.body, toBe("payload")),
+      ]),
+    ),
+  );
 });
 
 test("toHttpRequest rejects an unsupported method as Unsupported", async () => {
   const native = new Request("http://x/", {
     method: "PURGE",
   });
-  const result = await toHttpRequest(native);
-  expect(isErr(result)).toBe(true);
-  if (isErr(result)) {
-    expect(result.content.__tag).toBe("Unsupported");
-  }
+  return check(
+    await toHttpRequest(native),
+    errThen((e) =>
+      check(e.__tag, toBe("Unsupported")),
+    ),
+  );
 });
 
 test("toNativeResponse unwraps status, headers, and body", async () => {
@@ -54,22 +65,31 @@ test("toNativeResponse unwraps status, headers, and body", async () => {
       "x-extra": "1",
     }),
   );
-  expect(native.status).toBe(201);
-  expect(native.headers.get("x-extra")).toBe("1");
-  await expect(native.text()).resolves.toBe("hello");
+  return all([
+    check(native.status, toBe(201)),
+    check(
+      native.headers.get("x-extra"),
+      toBe("1"),
+    ),
+    check(await native.text(), toBe("hello")),
+  ]);
 });
 
 test("toNativeResponse maps a bytes body and sets Content-Length", async () => {
   const native = toNativeResponse(
     bytesResponse(new Uint8Array([7, 8, 9])),
   );
-  expect(native.headers.get("content-length")).toBe(
-    "3",
+  const a1 = check(
+    native.headers.get("content-length"),
+    toBe("3"),
   );
   const buf = new Uint8Array(
     await native.arrayBuffer(),
   );
-  expect(Array.from(buf)).toEqual([7, 8, 9]);
+  return all([
+    a1,
+    check(Array.from(buf), toEqual([7, 8, 9])),
+  ]);
 });
 
 test("toNativeResponse preserves a caller-supplied Content-Length on a bytes body", () => {
@@ -78,8 +98,9 @@ test("toNativeResponse preserves a caller-supplied Content-Length on a bytes bod
       "content-length": "99",
     }),
   );
-  expect(native.headers.get("content-length")).toBe(
-    "99",
+  return check(
+    native.headers.get("content-length"),
+    toBe("99"),
   );
 });
 
@@ -90,7 +111,10 @@ test("toNativeResponse streams a stream body", async () => {
   const buf = new Uint8Array(
     await native.arrayBuffer(),
   );
-  expect(Array.from(buf)).toEqual([1, 2, 3]);
+  return check(
+    Array.from(buf),
+    toEqual([1, 2, 3]),
+  );
 });
 
 test("toHttpRequest surfaces a non-text body as bytes, leaving body empty", async () => {
@@ -101,17 +125,21 @@ test("toHttpRequest surfaces a non-text body as bytes, leaving body empty", asyn
     },
     body: new Uint8Array([1, 2, 3, 4]),
   });
-  const result = await toHttpRequest(native);
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content.body).toBe("");
-    expect(isSome(result.content.bytes)).toBe(true);
-    if (isSome(result.content.bytes)) {
-      expect(
-        Array.from(result.content.bytes.content),
-      ).toEqual([1, 2, 3, 4]);
-    }
-  }
+  return check(
+    await toHttpRequest(native),
+    okThen((r) =>
+      all([
+        check(r.body, toBe("")),
+        check(isSome(r.bytes), toBe(true)),
+        check(
+          isSome(r.bytes)
+            ? Array.from(r.bytes.content)
+            : [],
+          toEqual([1, 2, 3, 4]),
+        ),
+      ]),
+    ),
+  );
 });
 
 test("toHttpRequest keeps a JSON body as decoded text (no bytes)", async () => {
@@ -120,10 +148,13 @@ test("toHttpRequest keeps a JSON body as decoded text (no bytes)", async () => {
     headers: { "content-type": "application/json" },
     body: '{"a":1}',
   });
-  const result = await toHttpRequest(native);
-  expect(isOk(result)).toBe(true);
-  if (isOk(result)) {
-    expect(result.content.body).toBe('{"a":1}');
-    expect(isSome(result.content.bytes)).toBe(false);
-  }
+  return check(
+    await toHttpRequest(native),
+    okThen((r) =>
+      all([
+        check(r.body, toBe('{"a":1}')),
+        check(isSome(r.bytes), toBe(false)),
+      ]),
+    ),
+  );
 });

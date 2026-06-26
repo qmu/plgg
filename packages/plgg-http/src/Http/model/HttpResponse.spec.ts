@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  not,
+} from "plgg-test";
 import {
   textResponse,
   htmlResponse,
@@ -15,81 +22,114 @@ async function* twoChunks(): AsyncIterable<Uint8Array> {
 
 test("textResponse defaults status 200 and text/plain content-type", () => {
   const r = textResponse("hi");
-  expect(r.status.content).toBe(200);
-  expect(r.headers["content-type"]).toBe(
-    "text/plain; charset=utf-8",
-  );
-  expect(r.body).toBe("hi");
+  return all([
+    check(r.status.content, toBe(200)),
+    check(
+      r.headers["content-type"],
+      toBe("text/plain; charset=utf-8"),
+    ),
+    check(r.body, toBe("hi")),
+  ]);
 });
 
 test("htmlResponse sets text/html", () => {
   const r = htmlResponse("<b>x</b>", 201);
-  expect(r.status.content).toBe(201);
-  expect(r.headers["content-type"]).toBe(
-    "text/html; charset=utf-8",
-  );
+  return all([
+    check(r.status.content, toBe(201)),
+    check(
+      r.headers["content-type"],
+      toBe("text/html; charset=utf-8"),
+    ),
+  ]);
 });
 
 test("jsonResponse serializes and sets application/json", () => {
   const r = jsonResponse({ a: 1 }, 201);
-  expect(r.status.content).toBe(201);
-  expect(r.headers["content-type"]).toBe(
-    "application/json; charset=utf-8",
-  );
-  expect(r.body).toBe('{"a":1}');
+  return all([
+    check(r.status.content, toBe(201)),
+    check(
+      r.headers["content-type"],
+      toBe("application/json; charset=utf-8"),
+    ),
+    check(r.body, toBe('{"a":1}')),
+  ]);
 });
 
 test("a caller-supplied content-type is preserved", () => {
   const r = jsonResponse({}, 200, {
     "content-type": "application/ld+json",
   });
-  expect(r.headers["content-type"]).toBe(
-    "application/ld+json",
+  return check(
+    r.headers["content-type"],
+    toBe("application/ld+json"),
   );
 });
 
 test("bytesResponse defaults 200 and octet-stream, wrapping a Bytes body", () => {
-  const r = bytesResponse(new Uint8Array([1, 2, 3]));
-  expect(r.status.content).toBe(200);
-  expect(r.headers["content-type"]).toBe(
-    "application/octet-stream",
+  const r = bytesResponse(
+    new Uint8Array([1, 2, 3]),
   );
-  expect(typeof r.body).not.toBe("string");
-  if (
+  // Narrow the body to its `Bytes` variant before reading `.content` —
+  // a guard, not a cast.
+  const bytes =
     typeof r.body !== "string" &&
     r.body.__tag === "Bytes"
-  ) {
-    expect(Array.from(r.body.content)).toEqual([
-      1, 2, 3,
-    ]);
-  }
+      ? Array.from(r.body.content)
+      : [];
+  return all([
+    check(r.status.content, toBe(200)),
+    check(
+      r.headers["content-type"],
+      toBe("application/octet-stream"),
+    ),
+    check(typeof r.body, not(toBe("string"))),
+    check(bytes, toEqual([1, 2, 3])),
+  ]);
 });
 
 test("bytesResponse honors an explicit status and content-type", () => {
-  const r = bytesResponse(new Uint8Array([0]), 206, {
-    "content-type": "image/png",
-  });
-  expect(r.status.content).toBe(206);
-  expect(r.headers["content-type"]).toBe("image/png");
+  const r = bytesResponse(
+    new Uint8Array([0]),
+    206,
+    {
+      "content-type": "image/png",
+    },
+  );
+  return all([
+    check(r.status.content, toBe(206)),
+    check(
+      r.headers["content-type"],
+      toBe("image/png"),
+    ),
+  ]);
 });
 
 test("streamResponse wraps a Stream body and defaults octet-stream", () => {
   const r = streamResponse(twoChunks());
-  expect(r.headers["content-type"]).toBe(
-    "application/octet-stream",
-  );
-  expect(typeof r.body).not.toBe("string");
-  if (typeof r.body !== "string") {
-    expect(r.body.__tag).toBe("Stream");
-  }
+  // Narrow the body off the string arm before reading `.__tag`.
+  const tag =
+    typeof r.body !== "string"
+      ? r.body.__tag
+      : "";
+  return all([
+    check(
+      r.headers["content-type"],
+      toBe("application/octet-stream"),
+    ),
+    check(typeof r.body, not(toBe("string"))),
+    check(tag, toBe("Stream")),
+  ]);
 });
 
 test("redirectResponse defaults 302 and sets location", () => {
   const r = redirectResponse("/login");
-  expect(r.status.content).toBe(302);
-  expect(r.headers["location"]).toBe("/login");
-  expect(r.body).toBe("");
-  expect(redirectResponse("/x", 301).status.content).toBe(
-    301,
-  );
+  return all([
+    check(r.status.content, toBe(302)),
+    check(r.headers["location"], toBe("/login")),
+    check(r.body, toBe("")),
+    check(
+      redirectResponse("/x", 301).status.content,
+      toBe(301),
+    ),
+  ]);
 });

@@ -1,5 +1,14 @@
 // @vitest-environment happy-dom
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  toBeInstanceOf,
+  toBeUndefined,
+  not,
+} from "plgg-test";
 import {
   el,
   text,
@@ -70,11 +79,14 @@ test("first paint builds DOM with text and safe attributes", () => {
     ),
   );
   const p = root.firstElementChild;
-  expect(p?.tagName).toBe("P");
-  expect(p?.getAttribute("class")).toBe(
-    "greeting",
-  );
-  expect(p?.textContent).toBe("hi & bye");
+  return all([
+    check(p?.tagName, toBe("P")),
+    check(
+      p?.getAttribute("class"),
+      toBe("greeting"),
+    ),
+    check(p?.textContent, toBe("hi & bye")),
+  ]);
 });
 
 test("attributes with unsafe names are dropped", () => {
@@ -83,11 +95,12 @@ test("attributes with unsafe names are dropped", () => {
     root,
     noop,
   )(el("div", [attr("bad name", "x")], []));
-  expect(
+  return check(
     root.firstElementChild?.hasAttribute(
       "bad name",
     ),
-  ).toBe(false);
+    toBe(false),
+  );
 });
 
 test("client neutralizes a javascript: URL (parity with SSR)", () => {
@@ -102,9 +115,10 @@ test("client neutralizes a javascript: URL (parity with SSR)", () => {
       [],
     ),
   );
-  expect(
+  return check(
     root.firstElementChild?.getAttribute("href"),
-  ).toBe("#");
+    toBe("#"),
+  );
 });
 
 test("client drops an on* attribute name", () => {
@@ -113,11 +127,12 @@ test("client drops an on* attribute name", () => {
     root,
     noop,
   )(el("img", [attr("onerror", "alert(1)")], []));
-  expect(
+  return check(
     root.firstElementChild?.hasAttribute(
       "onerror",
     ),
-  ).toBe(false);
+    toBe(false),
+  );
 });
 
 // --- handlers ------------------------------------------------------------
@@ -142,9 +157,10 @@ test("a click handler dispatches its Msg", () => {
   root.firstElementChild?.dispatchEvent(
     new Event("click"),
   );
-  expect(msgs).toEqual([
-    { kind: "Clicked", tag: "a" },
-  ]);
+  return check(
+    msgs,
+    toEqual([{ kind: "Clicked", tag: "a" }]),
+  );
 });
 
 test("an input handler dispatches with the target value", () => {
@@ -169,9 +185,10 @@ test("an input handler dispatches with the target value", () => {
     node.value = "abc";
     node.dispatchEvent(new Event("input"));
   }
-  expect(msgs).toEqual([
-    { kind: "Typed", value: "abc" },
-  ]);
+  return check(
+    msgs,
+    toEqual([{ kind: "Typed", value: "abc" }]),
+  );
 });
 
 test("a submit handler prevents default and dispatches", () => {
@@ -190,8 +207,10 @@ test("a submit handler prevents default and dispatches", () => {
     cancelable: true,
   });
   root.firstElementChild?.dispatchEvent(evt);
-  expect(evt.defaultPrevented).toBe(true);
-  expect(msgs).toEqual([{ kind: "Submitted" }]);
+  return all([
+    check(evt.defaultPrevented, toBe(true)),
+    check(msgs, toEqual([{ kind: "Submitted" }])),
+  ]);
 });
 
 test("a re-render re-points a handler without duplicating or going stale", () => {
@@ -226,11 +245,20 @@ test("a re-render re-points a handler without duplicating or going stale", () =>
       [text("Go")],
     ),
   );
-  expect(root.firstElementChild).toBe(node);
+  const a1 = check(
+    root.firstElementChild,
+    toBe(node),
+  );
   node?.dispatchEvent(new Event("click"));
-  expect(msgs).toEqual([
-    { kind: "Clicked", tag: "a" },
-    { kind: "Clicked", tag: "b" },
+  return all([
+    a1,
+    check(
+      msgs,
+      toEqual([
+        { kind: "Clicked", tag: "a" },
+        { kind: "Clicked", tag: "b" },
+      ]),
+    ),
   ]);
 });
 
@@ -255,7 +283,7 @@ test("a dropped handler stops dispatching", () => {
   const node = root.firstElementChild;
   render(button([], [text("Go")]));
   node?.dispatchEvent(new Event("click"));
-  expect(msgs).toEqual([]);
+  return check(msgs, toEqual([]));
 });
 
 // --- the reliability win: node reuse preserves focus ---------------------
@@ -283,19 +311,37 @@ test("re-render reuses the input node and preserves focus + caret", () => {
     );
   render(viewOf(""));
   const first = root.querySelector("input");
-  expect(first).toBeInstanceOf(HTMLInputElement);
-  if (first instanceof HTMLInputElement) {
-    first.focus();
-    expect(document.activeElement).toBe(first);
-    render(viewOf("ab"));
-    // the SAME node is reused — a full re-render would have lost focus here
-    expect(root.querySelector("input")).toBe(
+  if (!(first instanceof HTMLInputElement)) {
+    document.body.removeChild(root);
+    return check(
       first,
+      toBeInstanceOf(HTMLInputElement),
     );
-    expect(document.activeElement).toBe(first);
-    expect(first.value).toBe("ab");
   }
+  first.focus();
+  const a1 = check(
+    document.activeElement,
+    toBe(first),
+  );
+  render(viewOf("ab"));
+  // the SAME node is reused — a full re-render would have lost focus here
+  const a2 = check(
+    root.querySelector("input"),
+    toBe(first),
+  );
+  const a3 = check(
+    document.activeElement,
+    toBe(first),
+  );
+  const a4 = check(first.value, toBe("ab"));
   document.body.removeChild(root);
+  return all([
+    check(first, toBeInstanceOf(HTMLInputElement)),
+    a1,
+    a2,
+    a3,
+    a4,
+  ]);
 });
 
 // --- diffing internals ---------------------------------------------------
@@ -307,10 +353,13 @@ test("a text node is reused and only its data updated", () => {
   const textNode =
     root.firstElementChild?.firstChild;
   render(el("p", [], [text("b")]));
-  expect(root.firstElementChild?.firstChild).toBe(
-    textNode,
-  );
-  expect(root.textContent).toBe("b");
+  return all([
+    check(
+      root.firstElementChild?.firstChild,
+      toBe(textNode),
+    ),
+    check(root.textContent, toBe("b")),
+  ]);
 });
 
 test("a changed attribute is patched and a dropped one removed", () => {
@@ -321,9 +370,14 @@ test("a changed attribute is patched and a dropped one removed", () => {
   );
   const node = root.firstElementChild;
   render(el("div", [class_("b")], []));
-  expect(root.firstElementChild).toBe(node);
-  expect(node?.getAttribute("class")).toBe("b");
-  expect(node?.hasAttribute("id")).toBe(false);
+  return all([
+    check(root.firstElementChild, toBe(node)),
+    check(
+      node?.getAttribute("class"),
+      toBe("b"),
+    ),
+    check(node?.hasAttribute("id"), toBe(false)),
+  ]);
 });
 
 test("a tag change replaces the node", () => {
@@ -333,8 +387,10 @@ test("a tag change replaces the node", () => {
   const node = root.firstElementChild;
   render(span([], [text("x")]));
   const next = root.firstElementChild;
-  expect(next).not.toBe(node);
-  expect(next?.tagName).toBe("SPAN");
+  return all([
+    check(next, not(toBe(node))),
+    check(next?.tagName, toBe("SPAN")),
+  ]);
 });
 
 test("a text<->element swap replaces the node both ways", () => {
@@ -342,12 +398,16 @@ test("a text<->element swap replaces the node both ways", () => {
   const render = makeRenderer<never>(root, noop);
   render(el("p", [], [text("x")]));
   render(el("p", [], [div([], [])]));
-  expect(
+  const a1 = check(
     root.firstElementChild?.firstElementChild
       ?.tagName,
-  ).toBe("DIV");
+    toBe("DIV"),
+  );
   render(el("p", [], [text("y")]));
-  expect(root.textContent).toBe("y");
+  return all([
+    a1,
+    check(root.textContent, toBe("y")),
+  ]);
 });
 
 test("children are appended and surplus removed", () => {
@@ -367,10 +427,17 @@ test("children are appended and surplus removed", () => {
       ],
     ),
   );
-  expect(ul?.children.length).toBe(2);
-  expect(ul?.children[1]?.textContent).toBe("2");
+  const a1 = check(ul?.children.length, toBe(2));
+  const a2 = check(
+    ul?.children[1]?.textContent,
+    toBe("2"),
+  );
   render(el("ul", [], []));
-  expect(ul?.children.length).toBe(0);
+  return all([
+    a1,
+    a2,
+    check(ul?.children.length, toBe(0)),
+  ]);
 });
 
 // --- controlled form properties (value / checked) ------------------------
@@ -380,15 +447,20 @@ test("the value property is driven so a reset clears the input", () => {
   const render = makeRenderer<never>(root, noop);
   render(input([value_("hello")], []));
   const node = root.firstElementChild;
-  expect(
+  const a1 = check(
     node instanceof HTMLInputElement &&
       node.value,
-  ).toBe("hello");
+    toBe("hello"),
+  );
   render(input([value_("")], []));
-  expect(
-    node instanceof HTMLInputElement &&
-      node.value,
-  ).toBe("");
+  return all([
+    a1,
+    check(
+      node instanceof HTMLInputElement &&
+        node.value,
+      toBe(""),
+    ),
+  ]);
 });
 
 test("removing the value attribute resets the property", () => {
@@ -397,10 +469,11 @@ test("removing the value attribute resets the property", () => {
   render(input([value_("hello")], []));
   const node = root.firstElementChild;
   render(input([], []));
-  expect(
+  return check(
     node instanceof HTMLInputElement &&
       node.value,
-  ).toBe("");
+    toBe(""),
+  );
 });
 
 test("a textarea's value is also driven as a property", () => {
@@ -408,21 +481,28 @@ test("a textarea's value is also driven as a property", () => {
   const render = makeRenderer<never>(root, noop);
   render(el("textarea", [value_("a")], []));
   const node = root.firstElementChild;
-  expect(
+  const a1 = check(
     node instanceof HTMLTextAreaElement &&
       node.value,
-  ).toBe("a");
+    toBe("a"),
+  );
   // re-render with the SAME value — the no-op guard skips the write
   render(el("textarea", [value_("a")], []));
-  expect(
+  const a2 = check(
     node instanceof HTMLTextAreaElement &&
       node.value,
-  ).toBe("a");
+    toBe("a"),
+  );
   render(el("textarea", [value_("b")], []));
-  expect(
-    node instanceof HTMLTextAreaElement &&
-      node.value,
-  ).toBe("b");
+  return all([
+    a1,
+    a2,
+    check(
+      node instanceof HTMLTextAreaElement &&
+        node.value,
+      toBe("b"),
+    ),
+  ]);
 });
 
 test("an already-checked box stays checked across a re-render", () => {
@@ -435,10 +515,11 @@ test("an already-checked box stays checked across a re-render", () => {
   render(checkbox);
   const node = root.firstElementChild;
   render(checkbox); // checked already true — the guard skips the write
-  expect(
+  return check(
     node instanceof HTMLInputElement &&
       node.checked,
-  ).toBe(true);
+    toBe(true),
+  );
 });
 
 test("the checked property toggles with the attribute's presence", () => {
@@ -451,15 +532,20 @@ test("the checked property toggles with the attribute's presence", () => {
     ),
   );
   const node = root.firstElementChild;
-  expect(
+  const a1 = check(
     node instanceof HTMLInputElement &&
       node.checked,
-  ).toBe(true);
+    toBe(true),
+  );
   render(input([type_("checkbox")], []));
-  expect(
-    node instanceof HTMLInputElement &&
-      node.checked,
-  ).toBe(false);
+  return all([
+    a1,
+    check(
+      node instanceof HTMLInputElement &&
+        node.checked,
+      toBe(false),
+    ),
+  ]);
 });
 
 // --- robustness: tolerate DOM drift --------------------------------------
@@ -470,7 +556,7 @@ test("rebuilds when the container was externally emptied", () => {
   render(el("p", [], [text("a")]));
   root.replaceChildren(); // external clear between renders
   render(el("p", [], [text("b")]));
-  expect(root.textContent).toBe("b");
+  return check(root.textContent, toBe("b"));
 });
 
 test("replaces when the DOM node drifted from the old vnode kind", () => {
@@ -481,7 +567,7 @@ test("replaces when the DOM node drifted from the old vnode kind", () => {
   // swap the child text node for an element behind the renderer's back
   p?.replaceChildren(document.createElement("b"));
   render(el("p", [], [text("c")]));
-  expect(p?.textContent).toBe("c");
+  return check(p?.textContent, toBe("c"));
 });
 
 test("tolerates externally-added child nodes when growing a list", () => {
@@ -502,9 +588,10 @@ test("tolerates externally-added child nodes when growing a list", () => {
       ],
     ),
   );
-  expect(
+  return check(
     (ul?.querySelectorAll("li").length ?? 0) >= 2,
-  ).toBe(true);
+    toBe(true),
+  );
 });
 
 test("style_ sets and patches the class attribute (hook + atoms)", () => {
@@ -512,16 +599,27 @@ test("style_ sets and patches the class attribute (hook + atoms)", () => {
   const render = makeRenderer<never>(root, noop);
   render(el("div", [style_("box", p(2))], []));
   const node = root.firstElementChild;
-  expect(node?.getAttribute("class")).toBe(
-    `box ${hashClass("|padding:0.5rem")}`,
+  const a1 = check(
+    node?.getAttribute("class"),
+    toBe(`box ${hashClass("|padding:0.5rem")}`),
   );
   render(
     el("div", [style_(p(4), bg("primary"))], []),
   );
-  expect(root.firstElementChild).toBe(node);
-  expect(node?.getAttribute("class")).toBe(
-    `${hashClass("|padding:1rem")} ${hashClass("|background-color:#1f6b54")}`,
+  const a2 = check(
+    root.firstElementChild,
+    toBe(node),
   );
+  return all([
+    a1,
+    a2,
+    check(
+      node?.getAttribute("class"),
+      toBe(
+        `${hashClass("|padding:1rem")} ${hashClass("|background-color:#1f6b54")}`,
+      ),
+    ),
+  ]);
 });
 
 // --- animation: enter / exit transitions ---------------------------------
@@ -574,11 +672,14 @@ test("an enter motion is played on a newly created node", () => {
       [text("hi")],
     ),
   );
-  expect(plays.length).toBe(1);
-  expect(plays[0]?.node).toBe(
-    root.firstElementChild,
-  );
-  expect(plays[0]?.motion.durationMs).toBe(150);
+  return all([
+    check(plays.length, toBe(1)),
+    check(
+      plays[0]?.node,
+      toBe(root.firstElementChild),
+    ),
+    check(plays[0]?.motion.durationMs, toBe(150)),
+  ]);
 });
 
 test("an element with BOTH fadeIn and fadeOut plays enter on create and exit on removal", async () => {
@@ -615,13 +716,20 @@ test("an element with BOTH fadeIn and fadeOut plays enter on create and exit on 
     ),
   );
   // enter (fadeIn) fired on create — was dropped before the keepSome fix
-  expect(plays.length).toBe(1);
-  expect(plays[0]?.motion.durationMs).toBe(150);
+  const a1 = check(plays.length, toBe(1));
+  const a2 = check(
+    plays[0]?.motion.durationMs,
+    toBe(150),
+  );
   settle();
   // remove it → exit (fadeOut) fires
   render(el("ul", [], []));
-  expect(plays.length).toBe(2);
-  expect(plays[1]?.motion.durationMs).toBe(120);
+  return all([
+    a1,
+    a2,
+    check(plays.length, toBe(2)),
+    check(plays[1]?.motion.durationMs, toBe(120)),
+  ]);
 });
 
 test("a node without an enter motion is not animated", () => {
@@ -636,7 +744,7 @@ test("a node without an enter motion is not animated", () => {
     noop,
     play,
   )(div([], [text("hi")]));
-  expect(called).toBe(0);
+  return check(called, toBe(0));
 });
 
 test("an exit motion defers removal until it finishes", async () => {
@@ -672,11 +780,14 @@ test("an exit motion defers removal until it finishes", async () => {
   const ul = root.firstElementChild;
   render(el("ul", [], []));
   // still present — removal awaits the exit animation
-  expect(ul?.children.length).toBe(1);
+  const a1 = check(ul?.children.length, toBe(1));
   settle();
   await Promise.resolve();
   await Promise.resolve();
-  expect(ul?.children.length).toBe(0);
+  return all([
+    a1,
+    check(ul?.children.length, toBe(0)),
+  ]);
 });
 
 test("a surplus non-element child is removed immediately", () => {
@@ -685,8 +796,10 @@ test("a surplus non-element child is removed immediately", () => {
   render(el("p", [], [text("a"), text("b")]));
   const p = root.firstElementChild;
   render(el("p", [], [text("a")]));
-  expect(p?.childNodes.length).toBe(1);
-  expect(p?.textContent).toBe("a");
+  return all([
+    check(p?.childNodes.length, toBe(1)),
+    check(p?.textContent, toBe("a")),
+  ]);
 });
 
 test("a drifted element surplus with a text vnode is removed", () => {
@@ -697,16 +810,17 @@ test("a drifted element surplus with a text vnode is removed", () => {
   // drift: swap the text node for an element behind the renderer's back
   p?.replaceChildren(document.createElement("b"));
   render(el("p", [], []));
-  expect(p?.childNodes.length).toBe(0);
+  return check(p?.childNodes.length, toBe(0));
 });
 
 // --- waapiPlay: the default Web Animations seam ---------------------------
 
 test("waapiPlay no-ops when the DOM lacks the Web Animations API", async () => {
   const node = document.createElement("div");
-  await expect(
-    waapiPlay(node, fadeMotion),
-  ).resolves.toBeUndefined();
+  return check(
+    await waapiPlay(node, fadeMotion),
+    toBeUndefined(),
+  );
 });
 
 test("waapiPlay drives the WAAPI with translated keyframes and options", async () => {
@@ -724,18 +838,20 @@ test("waapiPlay drives the WAAPI with translated keyframes and options", async (
   });
   await waapiPlay(node, fadeMotion);
   await waapiPlay(node, scaleMotion);
-  expect(calls[0]?.frames).toEqual([
-    { opacity: 0 },
-    { opacity: 1, transform: "translateY(0)" },
-  ]);
-  expect(calls[0]?.opts).toEqual({
-    duration: 100,
-    easing: "ease-out",
-    fill: "forwards",
-  });
-  expect(calls[1]?.frames).toEqual([
-    { transform: "scale(0.5)" },
-    { transform: "scale(1)" },
+  return all([
+    check(calls[0]?.frames, toEqual([
+      { opacity: 0 },
+      { opacity: 1, transform: "translateY(0)" },
+    ])),
+    check(calls[0]?.opts, toEqual({
+      duration: 100,
+      easing: "ease-out",
+      fill: "forwards",
+    })),
+    check(calls[1]?.frames, toEqual([
+      { transform: "scale(0.5)" },
+      { transform: "scale(1)" },
+    ])),
   ]);
 });
 
@@ -749,9 +865,10 @@ test("waapiPlay swallows a cancelled animation", async () => {
       ),
     }),
   });
-  await expect(
-    waapiPlay(node, fadeMotion),
-  ).resolves.toBeUndefined();
+  return check(
+    await waapiPlay(node, fadeMotion),
+    toBeUndefined(),
+  );
 });
 
 test("waapiPlay honours prefers-reduced-motion", async () => {
@@ -774,7 +891,7 @@ test("waapiPlay honours prefers-reduced-motion", async () => {
     configurable: true,
     value: original,
   });
-  expect(animated).toBe(false);
+  return check(animated, toBe(false));
 });
 
 test("waapiPlay treats absent matchMedia as motion-allowed", async () => {
@@ -797,7 +914,7 @@ test("waapiPlay treats absent matchMedia as motion-allowed", async () => {
     configurable: true,
     value: original,
   });
-  expect(animated).toBe(true);
+  return check(animated, toBe(true));
 });
 
 // --- keyed reconcile + FLIP ----------------------------------------------
@@ -852,10 +969,13 @@ test("keyed children are reused and reordered by key, not index", () => {
   );
   const after = Array.from(ul?.children ?? []);
   // the SAME node objects, now in the new order — moved, not rebuilt
-  expect(after).toEqual([c, a, b]);
-  expect(
-    after.map((n) => n.textContent).join(""),
-  ).toBe("CAB");
+  return all([
+    check(after, toEqual([c, a, b])),
+    check(
+      after.map((n) => n.textContent).join(""),
+      toBe("CAB"),
+    ),
+  ]);
 });
 
 test("a new keyed child fires enter; reused siblings do not", () => {
@@ -876,9 +996,11 @@ test("a new keyed child fires enter; reused siblings do not", () => {
   );
   const ul = root.firstElementChild;
   const b = ul?.children[1];
-  expect(calls.length).toBe(1);
-  expect(calls[0]?.node).toBe(b);
-  expect(calls[0]?.motion.durationMs).toBe(150);
+  return all([
+    check(calls.length, toBe(1)),
+    check(calls[0]?.node, toBe(b)),
+    check(calls[0]?.motion.durationMs, toBe(150)),
+  ]);
 });
 
 test("deleting a middle keyed child fades that node, then detaches it", async () => {
@@ -911,19 +1033,30 @@ test("deleting a middle keyed child fades that node, then detaches it", async ()
     ),
   );
   // b is the row that leaves — held in the DOM until its exit (fade) finishes
-  expect(b).toBeInstanceOf(HTMLLIElement);
-  if (b instanceof HTMLElement) {
-    expect(ul?.contains(b)).toBe(true);
-  }
+  const a1 = check(
+    b,
+    toBeInstanceOf(HTMLLIElement),
+  );
+  const a2 =
+    b instanceof HTMLElement
+      ? check(ul?.contains(b), toBe(true))
+      : check(true, toBe(true));
   settle();
   await Promise.resolve();
   await Promise.resolve();
   const remaining = Array.from(
     ul?.children ?? [],
   );
-  expect(
-    remaining.map((n) => n.textContent).join(""),
-  ).toBe("AC");
+  return all([
+    a1,
+    a2,
+    check(
+      remaining
+        .map((n) => n.textContent)
+        .join(""),
+      toBe("AC"),
+    ),
+  ]);
 });
 
 test("a keyed exit lifts the leaving row out of flow so survivors take its space (it fades in place)", () => {
@@ -948,12 +1081,21 @@ test("a keyed exit lifts the leaving row out of flow so survivors take its space
   // it fades where it was rather than collapsing/squishing.
   const a = Array.from(ul?.children ?? [])[0];
   render(kul(kli("b", "B", fadeOut(120))));
-  if (a instanceof HTMLElement) {
-    expect(a.style.position).toBe("absolute");
-    expect(a.style.boxSizing).toBe("border-box");
-  }
+  const guard =
+    a instanceof HTMLElement
+      ? all([
+          check(a.style.position, toBe("absolute")),
+          check(
+            a.style.boxSizing,
+            toBe("border-box"),
+          ),
+        ])
+      : check(true, toBe(true));
   // held in the DOM until its fade finishes (play never settles in this test)
-  expect(ul?.contains(a ?? null)).toBe(true);
+  return all([
+    guard,
+    check(ul?.contains(a ?? null), toBe(true)),
+  ]);
 });
 
 test("an exiting middle row keeps its DOM position — survivors don't leapfrog it", () => {
@@ -985,11 +1127,10 @@ test("an exiting middle row keeps its DOM position — survivors don't leapfrog 
       kli("c", "C", fadeOut(120)),
     ),
   );
-  expect(Array.from(ul?.children ?? [])).toEqual([
-    a,
-    b,
-    c,
-  ]);
+  return check(
+    Array.from(ul?.children ?? []),
+    toEqual([a, b, c]),
+  );
 });
 
 test("deleting the ONLY remaining keyed row still exits via the keyed path (out of flow + fade, not a bare detach)", () => {
@@ -1010,10 +1151,12 @@ test("deleting the ONLY remaining keyed row still exits via the keyed path (out 
   // takes the keyed path: lifted out of flow and faded, held until the fade ends
   // (the container's height eases shut around it at runtime).
   render(kul());
-  if (a instanceof HTMLElement) {
-    expect(a.style.position).toBe("absolute");
-    expect(ul?.contains(a)).toBe(true);
-  }
+  return a instanceof HTMLElement
+    ? all([
+        check(a.style.position, toBe("absolute")),
+        check(ul?.contains(a), toBe(true)),
+      ])
+    : check(true, toBe(true));
 });
 
 test("deleting a keyed child with no exit motion detaches it at once", () => {
@@ -1022,8 +1165,10 @@ test("deleting a keyed child with no exit motion detaches it at once", () => {
   render(kul(kli("a", "A"), kli("b", "B")));
   const ul = root.firstElementChild;
   render(kul(kli("a", "A")));
-  expect(ul?.children.length).toBe(1);
-  expect(ul?.textContent).toBe("A");
+  return all([
+    check(ul?.children.length, toBe(1)),
+    check(ul?.textContent, toBe("A")),
+  ]);
 });
 
 test("a reused key with a changed tag is replaced, not patched", () => {
@@ -1040,9 +1185,11 @@ test("a reused key with a changed tag is replaced, not patched", () => {
     ),
   );
   const newNode = ul?.firstElementChild;
-  expect(newNode).not.toBe(oldNode);
-  expect(newNode?.tagName).toBe("P");
-  expect(newNode?.textContent).toBe("A2");
+  return all([
+    check(newNode, not(toBe(oldNode))),
+    check(newNode?.tagName, toBe("P")),
+    check(newNode?.textContent, toBe("A2")),
+  ]);
 });
 
 test("a reused key with the same tag patches in place", () => {
@@ -1052,8 +1199,10 @@ test("a reused key with the same tag patches in place", () => {
   const ul = root.firstElementChild;
   const node = ul?.firstElementChild;
   render(kul(kli("a", "A-edited")));
-  expect(ul?.firstElementChild).toBe(node);
-  expect(node?.textContent).toBe("A-edited");
+  return all([
+    check(ul?.firstElementChild, toBe(node)),
+    check(node?.textContent, toBe("A-edited")),
+  ]);
 });
 
 test("a node mid-exit is skipped when its key returns (fresh node, not the fading one)", async () => {
@@ -1077,12 +1226,16 @@ test("a node mid-exit is skipped when its key returns (fresh node, not the fadin
     ul?.children ?? [],
   ).filter((n) => n !== exiting);
   // a brand-new node serves the returning key — not the one fading away
-  expect(live.length).toBe(1);
-  expect(live[0]).not.toBe(exiting);
+  const a1 = check(live.length, toBe(1));
+  const a2 = check(live[0], not(toBe(exiting)));
   settle();
   await Promise.resolve();
   await Promise.resolve();
-  expect(ul?.children.length).toBe(1);
+  return all([
+    a1,
+    a2,
+    check(ul?.children.length, toBe(1)),
+  ]);
 });
 
 test("a survivor FLIPs from its old box to its new one when it moves", () => {
@@ -1124,7 +1277,11 @@ test("a survivor FLIPs from its old box to its new one when it moves", () => {
   const flips = calls.filter((c) =>
     isSome(c.motion.from.transform),
   );
-  expect(flips.length).toBe(2);
-  expect(flips[0]?.motion.durationMs).toBe(200);
+  const a1 = check(flips.length, toBe(2));
+  const a2 = check(
+    flips[0]?.motion.durationMs,
+    toBe(200),
+  );
   document.body.removeChild(root);
+  return all([a1, a2]);
 });

@@ -1,4 +1,10 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+} from "plgg-test";
 import {
   text,
   button,
@@ -18,34 +24,37 @@ test("mapHtml re-tags handler messages and preserves structure", () => {
     (n: number): string => `child:${n}`,
   )(child);
 
-  expect(wrapped.__tag).toBe("Element");
-  if (wrapped.__tag === "Element") {
-    const [handler, staticAttr] =
-      wrapped.content.attributes;
+  if (wrapped.__tag !== "Element") {
+    return check(wrapped.__tag, toBe("Element"));
+  }
+  const [handler, staticAttr] =
+    wrapped.content.attributes;
+  return all([
     // the click handler's Msg is now a string
-    if (handler && handler.__tag === "Handler") {
-      expect(handler.content.toMsg("")).toBe(
-        "child:1",
-      );
-    }
+    handler && handler.__tag === "Handler"
+      ? check(
+          handler.content.toMsg(""),
+          toBe("child:1"),
+        )
+      : check("not-handler", toBe("Handler")),
     // static attrs pass through untouched
-    expect(staticAttr).toEqual({
+    check(staticAttr, toEqual({
       __tag: "Attr",
       content: { name: "class", value: "inc" },
-    });
+    })),
     // text child preserved
-    expect(wrapped.content.children[0]).toEqual({
+    check(wrapped.content.children[0], toEqual({
       __tag: "Text",
       content: { value: "+" },
-    });
-  }
+    })),
+  ]);
 });
 
-test("mapHtml on a bare text node is identity-ish", () => {
-  expect(
+test("mapHtml on a bare text node is identity-ish", () =>
+  check(
     mapHtml((n: number) => n)(text("hi")),
-  ).toEqual({
-    __tag: "Text",
-    content: { value: "hi" },
-  });
-});
+    toEqual({
+      __tag: "Text",
+      content: { value: "hi" },
+    }),
+  ));

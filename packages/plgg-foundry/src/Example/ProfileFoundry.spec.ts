@@ -1,5 +1,9 @@
-import { test, assert } from "vitest";
-import { proc, isOk } from "plgg";
+import {
+  test,
+  check,
+  shouldBeOk,
+} from "plgg-test";
+import { proc } from "plgg";
 import { profileFoundry } from "plgg-foundry/Example";
 import { runFoundry } from "plgg-foundry/Foundry/usecase";
 
@@ -18,5 +22,5 @@ test.skip("ProfileFoundry - AI assigns JSON object", async () => {
     runFoundry(profileFoundry),
   );
 
-  assert(isOk(result));
-}, 60000);
+  return check(result, shouldBeOk());
+});

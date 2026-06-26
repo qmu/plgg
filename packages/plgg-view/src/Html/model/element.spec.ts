@@ -1,4 +1,11 @@
-import { test, expect } from "vitest";
+import {
+  test,
+  check,
+  all,
+  toBe,
+  toEqual,
+  toHaveLength,
+} from "plgg-test";
 import {
   el,
   text,
@@ -17,12 +24,11 @@ import {
 import { type Html } from "plgg-view/Html/model/Html";
 import { class_ } from "plgg-view/Html/model/Attribute";
 
-test("text builds a Text leaf", () => {
-  expect(text("hello")).toEqual({
+test("text builds a Text leaf", () =>
+  check(text("hello"), toEqual({
     __tag: "Text",
     content: { value: "hello" },
-  });
-});
+  })));
 
 test("el builds an Element with tag, attributes, children", () => {
   const node = el(
@@ -30,45 +36,62 @@ test("el builds an Element with tag, attributes, children", () => {
     [class_("box")],
     [text("hi")],
   );
-  expect(node.__tag).toBe("Element");
-  if (node.__tag === "Element") {
-    expect(node.content.tag).toBe("section");
-    expect(node.content.attributes).toHaveLength(
-      1,
-    );
-    expect(node.content.children).toHaveLength(1);
-  }
+  return node.__tag === "Element"
+    ? all([
+        check(node.content.tag, toBe("section")),
+        check(
+          node.content.attributes,
+          toHaveLength(1),
+        ),
+        check(
+          node.content.children,
+          toHaveLength(1),
+        ),
+      ])
+    : check(node.__tag, toBe("Element"));
 });
 
 test("tag helpers set the tag name", () => {
-  expect(div([], []).__tag).toBe("Element");
   const b = button([], [text("ok")]);
-  if (b.__tag === "Element") {
-    expect(b.content.tag).toBe("button");
-  }
+  return all([
+    check(div([], []).__tag, toBe("Element")),
+    b.__tag === "Element"
+      ? check(b.content.tag, toBe("button"))
+      : check(b.__tag, toBe("Element")),
+  ]);
 });
 
 test("ul/li build a list (content-model factories)", () => {
   const list = ul([], [li([], [text("x")])]);
-  expect(list.__tag).toBe("Element");
-  if (list.__tag === "Element") {
-    expect(list.content.tag).toBe("ul");
-    const [item] = list.content.children;
-    if (item && item.__tag === "Element") {
-      expect(item.content.tag).toBe("li");
-    }
+  if (list.__tag !== "Element") {
+    return check(list.__tag, toBe("Element"));
   }
+  const [item] = list.content.children;
+  return all([
+    check(list.content.tag, toBe("ul")),
+    item && item.__tag === "Element"
+      ? check(item.content.tag, toBe("li"))
+      : check("not-element", toBe("Element")),
+  ]);
 });
 
 test("span (phrasing) and input (void) build", () => {
-  expect(span([], [text("i")]).__tag).toBe(
-    "Element",
-  );
   const inp = input([class_("x")], []);
-  if (inp.__tag === "Element") {
-    expect(inp.content.tag).toBe("input");
-    expect(inp.content.children).toHaveLength(0);
-  }
+  return all([
+    check(
+      span([], [text("i")]).__tag,
+      toBe("Element"),
+    ),
+    inp.__tag === "Element"
+      ? all([
+          check(inp.content.tag, toBe("input")),
+          check(
+            inp.content.children,
+            toHaveLength(0),
+          ),
+        ])
+      : check(inp.__tag, toBe("Element")),
+  ]);
 });
 
 // --- type-level checks ----------------------------
@@ -139,7 +162,7 @@ test("content categories enforce which children fit", () => {
     >
   >();
 
-  expect(true).toBe(true);
+  return check(true, toBe(true));
 });
 
 test("cardinality aliases pin arity", () => {
@@ -170,5 +193,5 @@ test("cardinality aliases pin arity", () => {
       >
     >
   >();
-  expect(true).toBe(true);
+  return check(true, toBe(true));
 });

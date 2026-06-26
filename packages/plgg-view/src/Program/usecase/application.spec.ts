@@ -7,10 +7,14 @@
 // popstate listeners never leak into the next test.
 import {
   test,
-  expect,
+  check,
+  all,
+  toBe,
+  toContain,
+  toEqual,
   beforeEach,
   afterEach,
-} from "vitest";
+} from "plgg-test";
 import {
   div,
   a,
@@ -191,7 +195,10 @@ afterEach(() => {
 
 test("renders the route for the entry URL", () => {
   const root = mount();
-  expect(root.textContent).toContain("user 1");
+  return check(
+    root.textContent,
+    toContain("user 1"),
+  );
 });
 
 test("intercepts an in-app link click: pushes, re-renders the new route", () => {
@@ -200,11 +207,17 @@ test("intercepts an in-app link click: pushes, re-renders the new route", () => 
   const evt = link
     ? click(link)
     : new MouseEvent("click");
-  expect(evt.defaultPrevented).toBe(true);
-  expect(window.location.pathname).toBe(
-    "/users/1",
-  );
-  expect(root.textContent).toContain("user page");
+  return all([
+    check(evt.defaultPrevented, toBe(true)),
+    check(
+      window.location.pathname,
+      toBe("/users/1"),
+    ),
+    check(
+      root.textContent,
+      toContain("user page"),
+    ),
+  ]);
 });
 
 test("popstate re-renders the current route", () => {
@@ -215,7 +228,10 @@ test("popstate re-renders the current route", () => {
     "/users/1",
   );
   window.dispatchEvent(new Event("popstate"));
-  expect(root.textContent).toContain("user page");
+  return check(
+    root.textContent,
+    toContain("user page"),
+  );
 });
 
 test("preserves the browser default for a modifier-click", () => {
@@ -224,8 +240,10 @@ test("preserves the browser default for a modifier-click", () => {
   const evt = link
     ? click(link, { metaKey: true })
     : new MouseEvent("click");
-  expect(evt.defaultPrevented).toBe(false);
-  expect(window.location.pathname).toBe("/");
+  return all([
+    check(evt.defaultPrevented, toBe(false)),
+    check(window.location.pathname, toBe("/")),
+  ]);
 });
 
 test("preserves the browser default for a cross-origin link", () => {
@@ -240,19 +258,19 @@ test("preserves the browser default for a cross-origin link", () => {
   const evt = link
     ? click(link)
     : new MouseEvent("click");
-  expect(evt.defaultPrevented).toBe(false);
+  return check(evt.defaultPrevented, toBe(false));
 });
 
 test("ignores a click that is not inside an anchor", () => {
   const root = mount();
   const evt = click(root);
-  expect(evt.defaultPrevented).toBe(false);
+  return check(evt.defaultPrevented, toBe(false));
 });
 
 test("cleanup removes listeners and empties the container", () => {
   const root = mount();
   stop();
-  expect(root.children.length).toBe(0);
+  const a1 = check(root.children.length, toBe(0));
   // a popstate after cleanup must not re-render
   window.history.replaceState(
     null,
@@ -260,7 +278,10 @@ test("cleanup removes listeners and empties the container", () => {
     "/users/1",
   );
   window.dispatchEvent(new Event("popstate"));
-  expect(root.textContent).toBe("");
+  return all([
+    a1,
+    check(root.textContent, toBe("")),
+  ]);
 });
 
 // --- model→URL reflection (nuqs-style) -----------------------------------
@@ -326,27 +347,34 @@ test("reflects a model change into the URL via replaceState by default", () => {
   spyHistory();
   const root = mountApp(baseCountApp);
   clickButton(root);
-  expect(historyCalls).toEqual([
-    ["replace", "/?n=1"],
+  return all([
+    check(historyCalls, toEqual([
+      ["replace", "/?n=1"],
+    ])),
+    check(
+      window.location.search,
+      toBe("?n=1"),
+    ),
   ]);
-  expect(window.location.search).toBe("?n=1");
 });
 
 test("historyMode push adds a history entry instead of replacing", () => {
   spyHistory();
   const root = mountApp(countAppWith("push"));
   clickButton(root);
-  expect(historyCalls).toEqual([
+  return check(historyCalls, toEqual([
     ["push", "/?n=1"],
-  ]);
+  ]));
 });
 
 test("historyMode none skips the URL write but still updates the model", () => {
   spyHistory();
   const root = mountApp(countAppWith("none"));
   clickButton(root);
-  expect(historyCalls).toEqual([]);
-  expect(root.textContent).toContain("n=1");
+  return all([
+    check(historyCalls, toEqual([])),
+    check(root.textContent, toContain("n=1")),
+  ]);
 });
 
 test("does not write when the reflected URL is unchanged (loop-free)", () => {
@@ -356,8 +384,10 @@ test("does not write when the reflected URL is unchanged (loop-free)", () => {
   // a popstate round-trip to the same URL: onUrlChange → update → toUrl equals
   // the current location → no spurious write
   window.dispatchEvent(new Event("popstate"));
-  expect(historyCalls).toEqual([]);
-  expect(root.textContent).toContain("n=1");
+  return all([
+    check(historyCalls, toEqual([])),
+    check(root.textContent, toContain("n=1")),
+  ]);
 });
 
 test("the runtime injects a <style> sheet for the tree's style_() atoms", () => {
@@ -371,8 +401,9 @@ test("the runtime injects a <style> sheet for the tree's style_() atoms", () => 
   const sheet = document.head.querySelector(
     "style[data-plgg-style]",
   );
-  expect(sheet?.textContent).toContain(
-    "padding:0.5rem",
+  return check(
+    sheet?.textContent ?? "",
+    toContain("padding:0.5rem"),
   );
 });
 
@@ -393,17 +424,22 @@ test("the sheet keeps a rule the new tree dropped (exiting nodes still wear it)"
   const sheet = document.head.querySelector(
     "style[data-plgg-style]",
   );
-  expect(sheet?.textContent).toContain(
-    "padding:1rem",
+  const a1 = check(
+    sheet?.textContent ?? "",
+    toContain("padding:1rem"),
   );
   // navigate → unstyled tree
   window.history.pushState(null, "", "/users/9");
   window.dispatchEvent(new Event("popstate"));
-  expect(root.textContent).toContain("bare");
-  // insert-only: the dropped atom's rule is still in the sheet
-  expect(sheet?.textContent).toContain(
-    "padding:1rem",
-  );
+  return all([
+    a1,
+    check(root.textContent, toContain("bare")),
+    // insert-only: the dropped atom's rule is still in the sheet
+    check(
+      sheet?.textContent ?? "",
+      toContain("padding:1rem"),
+    ),
+  ]);
 });
 
 test("an app without toUrl never writes history on dispatch", () => {
@@ -414,7 +450,7 @@ test("an app without toUrl never writes history on dispatch", () => {
     click(link);
   }
   // the link's own pushState is recorded, but no reflection write follows it
-  expect(historyCalls).toEqual([
+  return check(historyCalls, toEqual([
     ["push", "/users/1"],
-  ]);
+  ]));
 });
