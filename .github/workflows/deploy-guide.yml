@@ -43,13 +43,23 @@ jobs:
       # plgg-test is included so `npm install` provides the @types/node +
       # typescript its source (e.g. src/Resolve/hook.ts) needs when TypeDoc
       # generates its API reference; it depends only on plgg, so it follows it.
+      # The committed package-lock.json files were last regenerated on a
+      # darwin-arm64 host, so each lock carries an installable node for only the
+      # @rolldown/binding-darwin-arm64 optional native binding; every other
+      # platform (incl. linux-x64-gnu, what this runner needs) survives only as a
+      # bare optionalDependencies reference with no resolved node. Honoring such a
+      # lock here makes `npm install` skip the linux binding and rolldown fails to
+      # load (npm/cli#4828). Dropping the lock before install lets npm re-resolve
+      # optional bindings for the runner platform — exactly the remedy npm's own
+      # error prescribes, and no reproducibility is lost (this step uses
+      # `npm install`, not `npm ci`).
       - name: Build package dists (dependency order)
         run: |
           set -e
           for pkg in plgg plgg-test plgg-http plgg-router plgg-view plgg-kit \
                      plgg-server plgg-fetch plgg-sql plgg-foundry; do
             echo "::group::build $pkg"
-            (cd "packages/$pkg" && npm install && npm run build)
+            (cd "packages/$pkg" && rm -f package-lock.json && npm install && npm run build)
             echo "::endgroup::"
           done
 
