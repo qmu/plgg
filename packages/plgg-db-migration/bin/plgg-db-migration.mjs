@@ -32,8 +32,19 @@ const loadConfig = () => {
   return import(pathToFileURL(configPath).href);
 };
 
-const { run } = await import(
-  join(here, "..", "dist", "cli.es.js")
+const cliPath = join(
+  here,
+  "..",
+  "dist",
+  "cli.es.js",
 );
+if (!existsSync(cliPath)) {
+  process.stderr.write(
+    "plgg-db-migration: build required — run `npm run build` (dist/cli.es.js missing)\n",
+  );
+  process.exit(1);
+}
+
+const { run } = await import(cliPath);
 
 await run(loadConfig, process.argv);
