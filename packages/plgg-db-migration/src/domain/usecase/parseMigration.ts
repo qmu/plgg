@@ -63,6 +63,12 @@ const transactional = (line: SoftStr): Bool =>
  * splitting on `;`), to be applied as one trusted script via `plgg-sql`'s
  * `runScript`. A missing `-- migrate:up` section is a `ParseFailure`; a missing
  * `-- migrate:down` section yields `down: None` (an irreversible migration).
+ *
+ * Any non-whitespace content **before** the first `-- migrate:up` marker is also
+ * a `ParseFailure`: such SQL would otherwise be silently dropped while the
+ * version is still recorded as applied — a "successful" migration that ran
+ * nothing and quietly lost authored schema. An empty up *body* (the marker with
+ * no SQL under it) is allowed: it is an explicit no-op, not dropped content.
  */
 export const parseMigration = (
   text: SoftStr,
@@ -81,32 +87,39 @@ export const parseMigration = (
           "migration is missing a '-- migrate:up' section",
         ),
       )
-    : ok({
-        up: section(
-          lines,
-          upIndex,
-          downIndex < 0
-            ? lines.length
-            : downIndex,
-        ),
-        down:
-          downIndex < 0
-            ? none()
-            : some(
-                section(
-                  lines,
-                  downIndex,
-                  lines.length,
+    : lines.slice(0, upIndex).join("\n").trim()
+          .length > 0
+      ? err(
+          parseFailure(
+            "SQL found before the '-- migrate:up' marker — move it into the up section",
+          ),
+        )
+      : ok({
+          up: section(
+            lines,
+            upIndex,
+            downIndex < 0
+              ? lines.length
+              : downIndex,
+          ),
+          down:
+            downIndex < 0
+              ? none()
+              : some(
+                  section(
+                    lines,
+                    downIndex,
+                    lines.length,
+                  ),
                 ),
-              ),
-        upTransaction: transactional(
-          markerLine(lines, upIndex),
-        ),
-        downTransaction:
-          downIndex < 0
-            ? true
-            : transactional(
-                markerLine(lines, downIndex),
-              ),
-      });
+          upTransaction: transactional(
+            markerLine(lines, upIndex),
+          ),
+          downTransaction:
+            downIndex < 0
+              ? true
+              : transactional(
+                  markerLine(lines, downIndex),
+                ),
+        });
 };

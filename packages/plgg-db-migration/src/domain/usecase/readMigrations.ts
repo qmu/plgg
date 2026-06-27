@@ -45,9 +45,7 @@ const sequenceResults = <T, E>(
           err(e),
         (list: ReadonlyArray<T>) =>
           matchResult(
-            (
-              e: E,
-            ): Result<ReadonlyArray<T>, E> =>
+            (e: E): Result<ReadonlyArray<T>, E> =>
               err(e),
             (value: T) => ok([...list, value]),
           )(current),
@@ -114,8 +112,10 @@ const readAll = (
   dir: SoftStr,
   files: ReadonlyArray<SoftStr>,
 ): PromisedResult<MigrationDir, MigrationError> =>
+  // Sort filenames first so that, on a parse/version error in more than one
+  // file, which error surfaces is deterministic (not readdir/OS-order-dependent).
   Promise.all(
-    files.map((file) =>
+    [...files].sort().map((file) =>
       readFileText(joinPath(dir, file)).then(
         (read) =>
           matchResult(

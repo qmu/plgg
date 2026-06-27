@@ -61,6 +61,37 @@ test("a missing up section is a ParseFailure", () =>
     ),
   ));
 
+test("SQL before the first -- migrate:up marker is a ParseFailure (never silently dropped)", () =>
+  check(
+    parseMigration(
+      "CREATE TABLE oops (id INTEGER);\n-- migrate:up\nCREATE TABLE t (id INTEGER);\n",
+    ),
+    errThen((e) =>
+      check(e.content.kind, toBe("ParseFailure")),
+    ),
+  ));
+
+test("leading blank lines before the up marker are allowed (whitespace, not content)", () =>
+  check(
+    parseMigration(
+      "\n\n-- migrate:up\nCREATE TABLE t (id INTEGER);\n",
+    ),
+    okThen((m) =>
+      check(
+        m.up,
+        toBe("CREATE TABLE t (id INTEGER);"),
+      ),
+    ),
+  ));
+
+test("an empty up body is allowed and parses to an empty up (explicit no-op)", () =>
+  check(
+    parseMigration(
+      "-- migrate:up\n-- migrate:down\nDROP TABLE t;\n",
+    ),
+    okThen((m) => check(m.up, toBe(""))),
+  ));
+
 test("the transaction:false directive disables wrapping per section", () =>
   check(
     parseMigration(

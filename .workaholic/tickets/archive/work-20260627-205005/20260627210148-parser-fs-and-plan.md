@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, DB]
 effort:
-commit_hash:
-category:
+commit_hash: bcc3ef4
+category: Added
 depends_on: [20260627210147-domain-models.md]
 ---
 
