@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: housekeeping
 layer: [Infrastructure, Config]
 effort:
-commit_hash:
-category:
+commit_hash: 18ed056
+category: Changed
 depends_on: [20260627002334-migrate-library-builds-to-in-house-bundler.md, 20260627002335-replace-example-vite-dev-server-and-app-bundle.md]
 ---
 

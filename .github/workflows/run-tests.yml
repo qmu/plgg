@@ -39,7 +39,13 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
           cache-dependency-path: 'packages/plgg/package-lock.json'
-          
+
+      # Fail the PR if a direct vite dep/config/build-import is reintroduced.
+      # Same canonical gate scripts/check-all.sh runs locally — no duplicated
+      # logic, scoped to exclude the guide's transitive VitePress.
+      - name: Gate — no direct vite
+        run: ./scripts/gate-vite.sh
+
       - name: Install dependencies
         run: npm ci
         working-directory: packages/plgg

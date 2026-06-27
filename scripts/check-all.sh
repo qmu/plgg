@@ -1,6 +1,10 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
+# Gate: no DIRECT vite — the canonical gate, shared verbatim with the
+# run-tests CI workflow (scripts/gate-vite.sh) so it can't drift.
+./scripts/gate-vite.sh
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh

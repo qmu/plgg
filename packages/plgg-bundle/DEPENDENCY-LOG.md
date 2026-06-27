@@ -201,3 +201,34 @@ never a silent `any`, and it did not occur in 25/25 builds under an aggressive
 concurrent rebuilder. Fully eliminating even this microsecond (a stable `dist`
 with symlink-swap, so the path is never absent) is deferred — not worth the
 published-artifact-as-symlink complexity for a loud-fail, rare, non-CI case.
+
+---
+
+## Final status — vite fully shed (Ticket 5)
+
+The sovereignty move is complete. **`vite` and `vite-plugin-dts` are removed
+as direct dependencies from every package** (plgg, plgg-kit, plgg-foundry,
+plgg-http, plgg-router, plgg-view, plgg-server, plgg-fetch, plgg-sql,
+plgg-test; example de-vited in Ticket 4). The in-house `plgg-bundle` is the
+sole build tool — every package's `build` script is `plgg-bundle`, driven by
+`scripts/build.sh`. **Net dependency change: −2 (vite, vite-plugin-dts), +0.**
+
+- **Native binding retired.** vite's rolldown optional native binding (the
+  darwin-only `@rolldown/binding-*` skew that broke the Deploy Guide CI) is
+  gone from every non-guide `package-lock.json` — the locks were regenerated
+  clean, and the `rm -f package-lock.json` deploy-guide workaround is removed.
+  The bundler is pure JS (`ts.transpileModule` + `tsc`), reproducible on any
+  platform with no optional-binding rot.
+- **Intentionally retained:** `packages/guide` keeps `vitepress` (vite is its
+  transitive dep) — the docs site is out of scope for the build-tool move.
+
+**Monitoring (the gate).** `scripts/check-all.sh` runs a fail-fast grep gate
+asserting zero DIRECT vite: no `vite`/`vite-plugin-dts` devDeps, no
+`vite.config.*`, no `from "vite"` build import — scoped to exclude the guide's
+transitive VitePress. A reintroduced direct vite dep fails the gate.
+
+**Exit strategy.** If the in-house bundler ever proves insufficient, the
+return path is adding a bundler devDep back to the affected package's
+`package.json` + a config; the per-package `build` script is the single seam.
+Prefer a pure-JS / zero-native-binding tool to preserve cross-platform CI
+reproducibility (the failure mode this whole effort retired).

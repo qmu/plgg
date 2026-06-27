@@ -40,26 +40,21 @@ jobs:
       # cross-package types resolve through the `file:` dist symlinks, so every
       # package must be built first, in dependency order (same order as
       # workloads/development/Dockerfile, extended to the full family).
-      # plgg-test is included so `npm install` provides the @types/node +
+      # plgg-test is included so `npm ci` provides the @types/node +
       # typescript its source (e.g. src/Resolve/hook.ts) needs when TypeDoc
       # generates its API reference; it depends only on plgg, so it follows it.
-      # The committed package-lock.json files were last regenerated on a
-      # darwin-arm64 host, so each lock carries an installable node for only the
-      # @rolldown/binding-darwin-arm64 optional native binding; every other
-      # platform (incl. linux-x64-gnu, what this runner needs) survives only as a
-      # bare optionalDependencies reference with no resolved node. Honoring such a
-      # lock here makes `npm install` skip the linux binding and rolldown fails to
-      # load (npm/cli#4828). Dropping the lock before install lets npm re-resolve
-      # optional bindings for the runner platform — exactly the remedy npm's own
-      # error prescribes, and no reproducibility is lost (this step uses
-      # `npm install`, not `npm ci`).
+      # Builds run on the in-house bundler now — pure JS, no rolldown, no native
+      # binding — so the committed locks are platform-neutral and `npm ci`
+      # installs deterministically on this linux runner. The former
+      # `rm -f package-lock.json` workaround (a darwin-only @rolldown/binding
+      # skew that broke install here) is retired with vite itself.
       - name: Build package dists (dependency order)
         run: |
           set -e
           for pkg in plgg plgg-test plgg-http plgg-router plgg-view plgg-kit \
                      plgg-server plgg-fetch plgg-sql plgg-foundry; do
             echo "::group::build $pkg"
-            (cd "packages/$pkg" && rm -f package-lock.json && npm install && npm run build)
+            (cd "packages/$pkg" && npm ci && npm run build)
             echo "::endgroup::"
           done
 
