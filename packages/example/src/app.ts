@@ -1,14 +1,14 @@
 import {
-  SoftStr,
+  type SoftStr,
   fromNullable,
   some,
 } from "plgg";
 import {
-  Application,
+  type Application,
   makeUrl,
 } from "plgg-view/client";
 import {
-  Html,
+  type Html,
   div,
   header,
   h1,
@@ -38,7 +38,7 @@ import {
   easeIn,
 } from "plgg-view";
 import {
-  QueryCodec,
+  type QueryCodec,
   parseQuery,
   serializeQuery,
   queryEnum,
@@ -48,7 +48,7 @@ import {
 // Namespaced so the Tailwind-style names (`p`, `text`, …) coexist with the Html
 // element builders of the same name imported above.
 import * as sx from "plgg-view/style";
-import { Todo } from "./Todo";
+import type { Todo } from "./Todo.ts";
 
 /** Which todos the list shows — reflected to the URL as `?filter=…`. */
 export type Filter =
@@ -599,9 +599,14 @@ const viewModal = (
                     sx.style_(
                       sx.bg("danger"),
                       sx.hover(sx.bg("text")),
-                      sx.focus(sx.outline("danger")),
+                      sx.focus(
+                        sx.outline("danger"),
+                      ),
                     ),
-                    attr("style", PRIMARY_BTN_GEO),
+                    attr(
+                      "style",
+                      PRIMARY_BTN_GEO,
+                    ),
                     onClick<Msg>({
                       kind: "ClearConfirmed",
                     }),
@@ -997,7 +1002,9 @@ export const view = (model: Model): Html<Msg> =>
                   sx.style_(
                     sx.color("muted"),
                     sx.hover(sx.color("danger")),
-                    sx.focus(sx.outline("danger")),
+                    sx.focus(
+                      sx.outline("danger"),
+                    ),
                   ),
                   attr("style", GHOST_BTN_GEO),
                   onClick<Msg>({

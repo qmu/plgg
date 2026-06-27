@@ -1,9 +1,24 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
-echo "=== Running 'npm run build' in packages/plgg, packages/plgg-kit, packages/plgg-http, packages/plgg-router, packages/plgg-view, packages/plgg-server, packages/plgg-fetch, and packages/plgg-sql ==="
+# Bootstrap the build TOOL's own deps before any package builds. plgg-bundle is
+# the bundler every package's `build` runs through, and it imports `typescript`
+# from its OWN path — but a `file:` link does not install the linked package's
+# node_modules, so a clean checkout/runner has no plgg-bundle/node_modules and
+# the build fails with `Cannot find package 'typescript'`. Installing it here
+# (the one canonical bootstrap) makes the local path reproduce CI. Idempotent:
+# only when absent, so warm rebuilds stay fast.
+if [ ! -d "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript" ]; then
+  echo "=== Bootstrapping plgg-bundle deps (the build tool) ==="
+  cd "$REPO_ROOT/packages/plgg-bundle" && npm ci && cd "$REPO_ROOT"
+fi
+
+echo "=== Building every library dist with the in-house bundler (npm run build), in dependency order ==="
 cd $REPO_ROOT/packages/plgg && npm run build
 cd $REPO_ROOT/packages/plgg-kit && npm run build
+# plgg-foundry after plgg-kit: it consumes plgg-kit's dist (and plgg core).
+# Now built in-house, so it joins the ordered set (was previously ad-hoc).
+cd $REPO_ROOT/packages/plgg-foundry && npm run build
 # plgg-http: the shared runtime-neutral HTTP model; depends only on plgg core.
 # Built before plgg-server and plgg-fetch, which both consume its dist.
 cd $REPO_ROOT/packages/plgg-http && npm run build
@@ -16,4 +31,11 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
 cd $REPO_ROOT/packages/plgg-sql && npm run build
+# plgg-test's published dist library (depends only on plgg core). Its test
+# RUNNER is separate and untouched; this just builds its consumer-facing API.
+cd $REPO_ROOT/packages/plgg-test && npm run build
+# example: the leaf CSR app bundle (dist/main.js). Built last — it consumes
+# plgg + plgg-view + plgg-router (+ plgg-server's view types) and inlines them
+# from source via the in-house bundler's app target.
+cd $REPO_ROOT/packages/example && npm run build
 echo "\n=== All shell scripts have been executed successfully ==="

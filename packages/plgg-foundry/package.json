@@ -18,14 +18,14 @@
   },
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "vite build",
+    "build": "plgg-bundle",
     "test": "tsc --noEmit && plgg-test src",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "plgg-test src --watch",
     "coverage": "tsc --noEmit && plgg-test src --coverage",
     "coverage:watch": "plgg-test src --coverage --watch",
-    "publish": "vite build && npm publish"
+    "publish": "npm run build && npm publish"
   },
   "repository": {
     "type": "git",
@@ -44,9 +44,8 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "dotenv": "^17.4.2",
+    "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.10",
-    "vite-plugin-dts": "^5.0.0"
+    "typescript": "^6.0.3"
   }
 }

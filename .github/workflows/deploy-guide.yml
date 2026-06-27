@@ -40,16 +40,28 @@ jobs:
       # cross-package types resolve through the `file:` dist symlinks, so every
       # package must be built first, in dependency order (same order as
       # workloads/development/Dockerfile, extended to the full family).
-      # plgg-test is included so `npm install` provides the @types/node +
+      # plgg-test is included so `npm ci` provides the @types/node +
       # typescript its source (e.g. src/Resolve/hook.ts) needs when TypeDoc
       # generates its API reference; it depends only on plgg, so it follows it.
+      # Builds run on the in-house bundler now — pure JS, no rolldown, no native
+      # binding — so the committed locks are platform-neutral and `npm ci`
+      # installs deterministically on this linux runner. The former
+      # `rm -f package-lock.json` workaround (a darwin-only @rolldown/binding
+      # skew that broke install here) is retired with vite itself.
+      # The in-house bundler imports typescript from its own path; the `file:`
+      # link doesn't install plgg-bundle's node_modules, so install the build
+      # tool's deps once before the loop builds every package through it.
+      - name: Install build-tool (plgg-bundle) dependencies
+        run: npm ci
+        working-directory: packages/plgg-bundle
+
       - name: Build package dists (dependency order)
         run: |
           set -e
           for pkg in plgg plgg-test plgg-http plgg-router plgg-view plgg-kit \
                      plgg-server plgg-fetch plgg-sql plgg-foundry; do
             echo "::group::build $pkg"
-            (cd "packages/$pkg" && npm install && npm run build)
+            (cd "packages/$pkg" && npm ci && npm run build)
             echo "::endgroup::"
           done
 

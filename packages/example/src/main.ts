@@ -4,7 +4,7 @@ import {
   mapOption,
 } from "plgg";
 import { application } from "plgg-view/client";
-import { app } from "./app";
+import { app } from "./app.ts";
 
 /**
  * CSR entry — the client half of the isomorphic demo. Mounts the To-Do app onto

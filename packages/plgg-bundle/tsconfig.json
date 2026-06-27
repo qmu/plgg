@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    /* Compiler Option */
+    "target": "ES2021",
+    /* Like plgg-test, plgg-bundle runs its `.ts`
+       directly via Node's native type-stripping
+       (ESM) from a `.mjs` bin. ESNext + Bundler
+       resolution lets the source use the repo's
+       extensionless self-alias specifiers
+       (`plgg-bundle/...`) while treating modules
+       as ESM. */
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "plgg-bundle/*": ["./src/*"]
+    },
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"],
+    /* Type Checking Rules */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowJs": false,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["src/**/*"]
+}

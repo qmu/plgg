@@ -11,11 +11,20 @@
     "types": [
       "node"
     ],
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
     "rootDir": "src",
-    "outDir": "dist",
+    /* The in-house bundler builds dist now (not tsc), so
+       tsc is type-check only. allowImportingTsExtensions
+       lets the entries import `./app.ts` directly, which
+       is what `node` (type-stripping) needs at runtime —
+       no tsx. */
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    /* node (type-stripping) is not type-aware, so a
+       type imported value-style would become a real,
+       failing runtime import. verbatimModuleSyntax makes
+       tsc enforce `import type` / inline `type`, so the
+       entries run under plain `node`. */
+    "verbatimModuleSyntax": true,
     /* Type Checking Rules */
     "strict": true,
     "noUnusedLocals": true,
@@ -30,7 +39,7 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "allowJs": false,
-    "erasableSyntaxOnly": false
+    "erasableSyntaxOnly": true
   },
   "include": [
     "src/**/*"

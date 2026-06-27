@@ -18,7 +18,7 @@ import {
   update,
   view,
   app,
-  Model,
+  type Model,
 } from "./app.js";
 
 const seed: Model = {
@@ -52,13 +52,16 @@ test("Added appends a todo, clears the draft, and bumps nextId", () => {
     { ...init, draft: "Buy milk" },
   );
   return all([
-    check(next.todos, toEqual([
-      {
-        id: 1,
-        title: "Buy milk",
-        completed: false,
-      },
-    ])),
+    check(
+      next.todos,
+      toEqual([
+        {
+          id: 1,
+          title: "Buy milk",
+          completed: false,
+        },
+      ]),
+    ),
     check(next.draft, toBe("")),
     check(next.nextId, toBe(2)),
   ]);
@@ -82,7 +85,8 @@ test("Toggled flips the matching todo's completed flag", () =>
 
 test("Deleted removes the matching todo", () =>
   check(
-    update({ kind: "Deleted", id: 1 }, seed).todos,
+    update({ kind: "Deleted", id: 1 }, seed)
+      .todos,
     toEqual([]),
   ));
 
@@ -457,8 +461,10 @@ test("ExpandToggled adds then removes a todo id (accordion)", () => {
   return all([
     check(open.expanded, toEqual([1])),
     check(
-      update({ kind: "ExpandToggled", id: 1 }, open)
-        .expanded,
+      update(
+        { kind: "ExpandToggled", id: 1 },
+        open,
+      ).expanded,
       toEqual([]),
     ),
   ]);
@@ -489,9 +495,12 @@ test("the clear-completed modal flow opens, cancels, and confirms", () => {
       ).confirmClear,
       toBe(false),
     ),
-    check(cleared.todos, toEqual([
-      { id: 2, title: "b", completed: false },
-    ])),
+    check(
+      cleared.todos,
+      toEqual([
+        { id: 2, title: "b", completed: false },
+      ]),
+    ),
     check(cleared.confirmClear, toBe(false)),
     check(
       cleared.toasts[0]?.message ?? "",

@@ -7,13 +7,14 @@ import {
   errThen,
 } from "plgg-test";
 import {
+  SoftStr,
   isSoftStr,
   asSoftStr,
-  isErr,
+  pipe,
+  cast,
+  chainResult,
+  refine,
   concat,
-  err,
-  ok,
-  invalidError,
 } from "plgg/index";
 
 test("isSoftStr correctly identifies string values", () =>
@@ -22,10 +23,7 @@ test("isSoftStr correctly identifies string values", () =>
     check(isSoftStr("hello"), toBe(true)),
     check(isSoftStr(""), toBe(true)),
     check(isSoftStr("123"), toBe(true)),
-    check(
-      isSoftStr(" whitespace "),
-      toBe(true),
-    ),
+    check(isSoftStr(" whitespace "), toBe(true)),
     check(
       isSoftStr("special chars: !@#$%"),
       toBe(true),
@@ -37,10 +35,7 @@ test("isSoftStr correctly identifies string values", () =>
     check(isSoftStr(undefined), toBe(false)),
     check(isSoftStr({}), toBe(false)),
     check(isSoftStr([]), toBe(false)),
-    check(
-      isSoftStr(Symbol("test")),
-      toBe(false),
-    ),
+    check(isSoftStr(Symbol("test")), toBe(false)),
   ]));
 
 test("asSoftStr validates and returns string values", () =>
@@ -88,20 +83,20 @@ test("asSoftStr validates and returns string values", () =>
 
 test("asSoftStr works in validation pipelines", () => {
   // Example: Email validation pipeline
-  const validateEmail = (input: unknown) => {
-    const strResult = asSoftStr(input);
-    if (isErr(strResult)) return strResult;
-
-    const email = strResult.content;
-    return email.includes("@") &&
-      email.includes(".")
-      ? ok(email)
-      : err(
-          invalidError({
-            message: "Invalid email format",
-          }),
-        );
-  };
+  const validateEmail = (input: unknown) =>
+    pipe(
+      asSoftStr(input),
+      chainResult((email: SoftStr) =>
+        cast(
+          email,
+          refine(
+            (x: SoftStr) =>
+              x.includes("@") && x.includes("."),
+            "Invalid email format",
+          ),
+        ),
+      ),
+    );
 
   return all([
     check(
