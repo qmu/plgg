@@ -148,3 +148,56 @@ must be addressed before the externals-bearing packages cut over.
    runs it over more packages, anchor the rewrite to import/export specifier
    positions (`from "…"` / `import("…")`) so a literal string-type
    `"plgg/…"` appearing in a declaration cannot be corrupted.
+
+---
+
+## Ticket 3 — build determinism (root cause + fix)
+
+**Symptom.** `scripts/build.sh` failed intermittently (Planner ~33%, four
+signatures) — a consumer package's build could not see an upstream sibling's
+`dist`: `EvalError: Cannot find module …/plgg/dist/index.cjs.js`, tsc
+`TS7016` (`plgg → index.cjs.js` implicit-any), `TS2305` (incomplete barrel),
+and `ENOENT scandir …/dist`.
+
+**Root cause.** Under externalization (ruling B) each bundle reads its sibling
+dists at build time, at TWO points: (1) export-surface discovery executes the
+CJS bundle (`vendors/runner.ts`), which `require`s siblings; (2) the tsc dts
+emit resolves each sibling's `.d.ts`. The destructive rebuild —
+`build.ts:emptyDir` doing `rm -rf dist; mkdir dist` then refilling file-by-file
+— left a multi-second window where a package's `dist` was missing or partial.
+On a shared working tree (parallel agents, the test harness, overlapping/
+orphaned `build.sh` invocations) a concurrent reader hit that window and tore.
+Proven: against a STABLE sibling dist the consumer build is deterministic
+(plgg-http 20/20, plgg-kit 30/30); with an active concurrent sibling rebuilder
+it fails (~24%) with exactly the four signatures.
+
+**Fix (atomic publish).** Each package now builds into a private `dist.stage`
+(both the JS bundles and the tsc dts emit, via an `outDir` override in
+`emitDts.ts`), then swaps it into place with `swapIntoPlace` in `build.ts`
+(rename `dist→dist.old`, rename `dist.stage→dist`, rm `dist.old`; cold builds
+skip step 1 and are gap-free). The destructive window shrinks from the whole
+build to a single same-filesystem `rename`, so a concurrent reader observes
+only a complete old or complete new `dist` — never torn. The loud guards
+remain: `runner.ts` throws `EvalError` and `emitDts.ts` throws `DtsError`
+(surfacing tsc's `TS7016`) rather than emitting `any`. Result: cold
+`build.sh` 10/10; consumer-under-concurrent-rebuilder 25/25.
+
+**Gap #2 disposition (DEFERRED, not required).** Static export-surface
+discovery — deriving the entry's export names from the module graph / emitted
+`.d.ts` instead of executing the CJS bundle — would remove reader point (1)
+and the "execute freshly-built code at build time" smell. It is recorded as a
+future architectural cleanup but is NOT needed for determinism: it addresses
+only reader (1), while the tsc dts emit (reader (2)) reads sibling `.d.ts`
+regardless; atomic publish closes BOTH. Leader-accepted deferral.
+
+**Known residual (warm concurrent rebuild).** The COLD path — `dist` absent,
+which is how `check-all`/CI run (dist is cleaned first) — publishes via a
+single atomic `rename(dist.stage→dist)`: ZERO absence window, the production
+gate is fully closed. A WARM rebuild (an existing `dist`) uses the two-rename
+dance, which has a ~microsecond window where `dist` is briefly ABSENT (between
+`rename(dist→dist.old)` and `rename(dist.stage→dist)`). A concurrent reader
+hitting exactly that window gets ENOENT → a LOUD fail (EvalError/DtsError),
+never a silent `any`, and it did not occur in 25/25 builds under an aggressive
+concurrent rebuilder. Fully eliminating even this microsecond (a stable `dist`
+with symlink-swap, so the path is never absent) is deferred — not worth the
+published-artifact-as-symlink complexity for a loud-fail, rare, non-CI case.

@@ -5,6 +5,9 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# plgg-bundle is the in-house build tool every package builds through, so it is
+# tested in the same gate.
+./scripts/test-plgg-bundle.sh
 ./scripts/test-plgg.sh
 ./scripts/test-plgg-test.sh
 ./scripts/test-plgg-kit.sh

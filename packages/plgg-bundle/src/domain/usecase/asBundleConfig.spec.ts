@@ -6,7 +6,7 @@ import {
 } from "plgg-test";
 import { asBundleConfig } from "plgg-bundle/domain/usecase/asBundleConfig";
 
-const base = {
+const valid = {
   root: "/pkg",
   rootDir: "src",
   outDir: "dist",
@@ -15,8 +15,6 @@ const base = {
   formats: ["es", "cjs"],
   alias: { prefix: "plgg", srcRoot: "src" },
 };
-
-const valid = { ...base, external: [] };
 
 /**
  * True when `asBundleConfig(input)` throws a ConfigError
@@ -63,12 +61,3 @@ test("asBundleConfig rejects an invalid format", () =>
     rejects({ ...valid, formats: ["es", "umd"] }),
     toBe(true),
   ));
-
-test("asBundleConfig defaults an absent external to empty", () => {
-  const c = asBundleConfig(base);
-  return check(
-    Array.isArray(c.external) &&
-      c.external.length === 0,
-    toBe(true),
-  );
-});

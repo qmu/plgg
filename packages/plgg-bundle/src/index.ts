@@ -6,6 +6,7 @@ export * from "plgg-bundle/domain/model/BundleConfig";
 export * from "plgg-bundle/domain/usecase/asBundleConfig";
 export * from "plgg-bundle/domain/usecase/build";
 export * from "plgg-bundle/domain/usecase/collectModules";
+export * from "plgg-bundle/domain/usecase/deriveExternal";
 export * from "plgg-bundle/domain/usecase/emitBundle";
 export * from "plgg-bundle/domain/usecase/emitDts";
 export * from "plgg-bundle/domain/usecase/isExternal";

@@ -22,14 +22,14 @@
     "plgg-test": "./bin/plgg-test.mjs"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "plgg-bundle",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
     "test": "tsc --noEmit && node ./bin/plgg-test.mjs src",
     "test:watch": "node ./bin/plgg-test.mjs src --watch",
     "coverage": "tsc --noEmit && node ./bin/plgg-test.mjs src --coverage",
     "coverage:watch": "node ./bin/plgg-test.mjs src --coverage --watch",
-    "publish": "vite build && npm publish"
+    "publish": "npm run build && npm publish"
   },
   "repository": {
     "type": "git",
@@ -61,6 +61,7 @@
     "@types/node": "^25.6.0",
     "happy-dom": "^15.0.0",
     "vite": "^8.0.10",
-    "vite-plugin-dts": "^5.0.0"
+    "vite-plugin-dts": "^5.0.0",
+    "plgg-bundle": "file:../plgg-bundle"
   }
 }

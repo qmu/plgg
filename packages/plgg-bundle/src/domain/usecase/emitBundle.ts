@@ -15,22 +15,24 @@ import {
  * needs none of rolldown's scope-hoisting/renaming and
  * stays pure JS.
  *
- * - CJS (`cjs`): the runtime, then
- *   `module.exports = __require(entry)`. Unknown
- *   (external) ids fall through to the host `require`.
- * - ESM (`es`): the runtime, then static
- *   `export const NAME = __entry.NAME;` for each name
- *   in `exportNames`, so `import { x } from "pkg"`
- *   resolves. ESM cannot declare exports dynamically,
- *   so the orchestrator computes `exportNames` from the
- *   built CJS bundle's own keys and passes them here.
+ * Externals (specifiers left out of the bundle —
+ * `node:*`, sibling `plgg*` packages, …) are handled
+ * per format:
+ * - CJS: an un-rewritten `require("<external>")` in a
+ *   module body falls through the registry to the host
+ *   `require`.
+ * - ESM: there is no host `require`, so the bundle emits
+ *   a real top-level `import * as __extN from
+ *   "<external>"` for each distinct external and the
+ *   registry routes `__require("<external>")` to that
+ *   namespace.
  */
 export const emitCjsBundle = (
   graph: Graph,
 ): string =>
   [
     `"use strict";`,
-    runtime(graph, "require"),
+    runtime(graph, `return require(id);`),
     `module.exports = __require(${entryArg(
       graph,
     )});`,
@@ -39,26 +41,28 @@ export const emitCjsBundle = (
 /**
  * ESM bundle. `exportNames` is the exact public surface
  * (the entry's enumerable export keys), supplied by the
- * orchestrator from the CJS bundle's runtime keys. An
- * external id reached from a pure-ESM bundle is a build
- * mistake (plgg core has no externals), so the host
- * fallback throws rather than silently resolving.
+ * orchestrator from the CJS bundle's runtime keys —
+ * ESM cannot declare exports dynamically. Externals are
+ * imported as namespaces at the top and resolved by the
+ * registry; an id that is neither a bundled module nor a
+ * declared external is a build mistake and throws.
  */
 export const emitEsmBundle = (
   graph: Graph,
   exportNames: ReadonlyArray<string>,
-): string =>
-  [
-    runtime(graph, "__hostRequire"),
-    `function __hostRequire(id) {`,
-    `  throw new Error("Cannot require external '" + id + "' from ESM bundle");`,
-    `}`,
+): string => {
+  const externals = collectExternals(graph);
+  return [
+    externalImports(externals),
+    externalTable(externals),
+    runtime(graph, externalFallback()),
     `const __entry = __require(${entryArg(
       graph,
     )});`,
     `export default __entry;`,
     namedExports(exportNames),
   ].join("\n");
+};
 
 /**
  * Dispatch on format for callers that hold the names
@@ -76,12 +80,13 @@ export const emitBundle = (
 /**
  * The shared registry runtime: a module table plus a
  * caching `__require` that runs a module body once and
- * memoizes its `exports`. Unknown ids fall through to
- * the host loader (externals).
+ * memoizes its `exports`. An id with no bundled module
+ * runs `unknownBody` (the format-specific external
+ * fallback).
  */
 const runtime = (
   graph: Graph,
-  hostRequire: string,
+  unknownBody: string,
 ): string =>
   [
     `const __modules = {`,
@@ -91,13 +96,77 @@ const runtime = (
     `function __require(id) {`,
     `  if (id in __cache) return __cache[id].exports;`,
     `  const fn = __modules[id];`,
-    `  if (!fn) { return ${hostRequire}(id); }`,
+    `  if (!fn) { ${unknownBody} }`,
     `  const module = { exports: {} };`,
     `  __cache[id] = module;`,
     `  fn(module, module.exports, __require);`,
     `  return module.exports;`,
     `}`,
   ].join("\n");
+
+/**
+ * The ESM fallback body for an id with no bundled
+ * module: resolve it from the external namespace table
+ * (interop: a CJS consumer reads named members off the
+ * namespace; `default` carries the whole module).
+ */
+const externalFallback = (): string =>
+  [
+    `if (id in __externals) return __externals[id];`,
+    `throw new Error("Cannot resolve external '" + id + "'");`,
+  ].join(" ");
+
+/**
+ * Distinct external specifiers across the whole graph,
+ * sorted for deterministic output.
+ */
+const collectExternals = (
+  graph: Graph,
+): ReadonlyArray<string> =>
+  [
+    ...new Set(
+      graph.modules.flatMap((m) => m.externals),
+    ),
+  ].sort();
+
+/**
+ * Top-level namespace imports, one per external, named
+ * `__ext0`, `__ext1`, … in the externals' sorted order.
+ */
+const externalImports = (
+  externals: ReadonlyArray<string>,
+): string =>
+  externals
+    .map(
+      (spec, i) =>
+        `import * as ${extVar(i)} from ${JSON.stringify(
+          spec,
+        )};`,
+    )
+    .join("\n");
+
+/**
+ * The `__externals` lookup mapping each specifier to its
+ * imported namespace var.
+ */
+const externalTable = (
+  externals: ReadonlyArray<string>,
+): string =>
+  [
+    `const __externals = {`,
+    externals
+      .map(
+        (spec, i) =>
+          `  ${JSON.stringify(spec)}: ${extVar(i)}`,
+      )
+      .join(",\n"),
+    `};`,
+  ].join("\n");
+
+/**
+ * The namespace variable name for the i-th external.
+ */
+const extVar = (i: number): string => `__ext${i}`;
 
 /**
  * One module's registry entry: `"id": function (module,

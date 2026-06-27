@@ -69,8 +69,6 @@ export type BundleConfig = Readonly<{
    * vite's `index.${format}.js` / `${name}.${format}.js`.
    */
   fileNamePattern: string;
-  /** Which imports stay external. */
-  external: External;
   /**
    * The package self-alias prefix and its source root,
    * e.g. `{ prefix: "plgg", srcRoot: "src" }` so

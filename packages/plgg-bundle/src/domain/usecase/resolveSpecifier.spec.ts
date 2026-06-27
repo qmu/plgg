@@ -69,6 +69,28 @@ test("resolveSpecifier resolves a relative path", () =>
     ),
   ));
 
+test("resolveSpecifier maps a .js specifier to its .ts source (NodeNext)", () =>
+  check(
+    resolveSpecifier({
+      specifier: "./isExternal.js",
+      fromFile: join(
+        srcRoot,
+        "domain",
+        "usecase",
+        "collectModules.ts",
+      ),
+      ...aliasArgs,
+    }),
+    toBe(
+      join(
+        srcRoot,
+        "domain",
+        "usecase",
+        "isExternal.ts",
+      ),
+    ),
+  ));
+
 test("resolveSpecifier returns undefined for an external specifier", () =>
   all([
     check(

@@ -91,12 +91,32 @@ const isFile = (p: string): boolean =>
   existsSync(p) && statSync(p).isFile();
 
 /**
- * The ordered candidate file paths for a base path.
+ * The ordered candidate file paths for a base path. A
+ * `.js`/`.mjs`/`.jsx` specifier is the NodeNext/ESM way
+ * to reference a TypeScript sibling (`./X.js` → `X.ts`),
+ * so its `.ts`/`.mts`/`.tsx` form is tried first.
  */
 const candidates = (
   base: string,
 ): ReadonlyArray<string> => [
+  ...tsForJs(base),
   base,
   `${base}.ts`,
   join(base, "index.ts"),
 ];
+
+/**
+ * The TypeScript-source path implied by a JS-extension
+ * specifier, or nothing if `base` carries no such
+ * extension.
+ */
+const tsForJs = (
+  base: string,
+): ReadonlyArray<string> =>
+  base.endsWith(".js")
+    ? [`${base.slice(0, -3)}.ts`]
+    : base.endsWith(".mjs")
+      ? [`${base.slice(0, -4)}.mts`]
+      : base.endsWith(".jsx")
+        ? [`${base.slice(0, -4)}.tsx`]
+        : [];

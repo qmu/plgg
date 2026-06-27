@@ -1,7 +1,6 @@
 import {
   type BundleConfig,
   type Entry,
-  type External,
   type Format,
 } from "plgg-bundle/domain/model/BundleConfig";
 
@@ -10,14 +9,14 @@ import {
  * config module's default export) into a typed
  * {@link BundleConfig}. The config is the bundler's
  * `unknown` boundary, so every field is narrowed with a
- * real guard (`typeof`, `Array.isArray`, `instanceof`)
- * — no `as`, no `any`. Throws a `ConfigError` on the
- * first invalid field.
+ * real guard (`typeof`, `Array.isArray`) — no `as`, no
+ * `any`. Throws a `ConfigError` on the first invalid
+ * field.
  *
- * `fileNamePattern` is data, so the only callable field
- * is a predicate `external`; an unknown function's `any`
- * return is contained to `unknown` immediately and
- * compared to `true`, never widening the surface.
+ * Externals are NOT a config field: the bundler derives
+ * them from the package's `package.json` dependency
+ * graph (see `deriveExternal`), so they cannot drift
+ * from the manifest.
  */
 export const asBundleConfig = (
   value: unknown,
@@ -35,7 +34,6 @@ export const asBundleConfig = (
     ),
     entries: entries(value),
     formats: formats(value),
-    external: external(value),
     alias: alias(value),
   };
 };
@@ -108,46 +106,6 @@ const format = (raw: unknown): Format =>
   raw === "es" || raw === "cjs"
     ? raw
     : fail(`each format must be "es" or "cjs"`);
-
-/**
- * The `external` declaration in any of its three forms:
- * a string array, a `RegExp`, or a predicate function.
- * An absent `external` defaults to "no externals".
- */
-const external = (
-  o: Record<string, unknown>,
-): External => {
-  const raw = o["external"];
-  if (raw === undefined) {
-    return [];
-  }
-  if (typeof raw === "function") {
-    return wrapPredicate(raw);
-  }
-  if (raw instanceof RegExp) {
-    return raw;
-  }
-  return Array.isArray(raw) &&
-    raw.every((s) => typeof s === "string")
-    ? raw.flatMap((s) =>
-        typeof s === "string" ? [s] : [],
-      )
-    : fail(
-        `"external" must be a string[], RegExp, or predicate`,
-      );
-};
-
-/**
- * Wrap an unknown function as a typed predicate: its
- * `any` return is contained to `unknown` at once and
- * compared to `true`, so no `any` escapes.
- */
-const wrapPredicate =
-  (fn: Function) =>
-  (specifier: string): boolean => {
-    const out: unknown = fn(specifier);
-    return out === true;
-  };
 
 /**
  * The `alias` object: string `prefix` and `srcRoot`.

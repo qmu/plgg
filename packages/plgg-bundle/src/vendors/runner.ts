@@ -1,5 +1,7 @@
 import vm from "node:vm";
 import { createRequire } from "node:module";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 /**
  * Run a self-contained CJS bundle in an isolated VM
@@ -9,17 +11,22 @@ import { createRequire } from "node:module";
  * ESM cannot declare exports dynamically. Re-throws
  * with context on failure.
  *
+ * `resolveBase` is the TARGET package's root: the
+ * bundle's external `require("plgg")` / `require("node:*")`
+ * must resolve against the target package's own
+ * node_modules (not the bundler's), so the require is
+ * rooted there. Upstream dists exist in build order, so
+ * the externals resolve.
+ *
  * Isolated in `src/vendors/` because executing generated
- * code is an effectful boundary, not domain logic. The
- * bundle must be self-contained (no externals) for this
- * to be safe — true for a library entry whose imports
- * are all intra-bundle.
+ * code is an effectful boundary, not domain logic.
  */
 export const readExportNames = (
   cjsCode: string,
+  resolveBase: string,
 ): ReadonlyArray<string> => {
   try {
-    return keysOf(evalCjs(cjsCode));
+    return keysOf(evalCjs(cjsCode, resolveBase));
   } catch (cause) {
     throw new Error(
       `EvalError: failed to read export surface: ${
@@ -32,19 +39,26 @@ export const readExportNames = (
 };
 
 /**
- * Evaluate CJS source in a fresh context with a real
- * `require` (for any host fall-through) and an empty
- * `module`/`exports`, returning the populated
- * `module.exports`.
+ * Evaluate CJS source in a fresh context with a `require`
+ * rooted at the target package, an empty
+ * `module`/`exports`, and `console`, returning the
+ * populated `module.exports`.
  */
-const evalCjs = (code: string): object => {
+const evalCjs = (
+  code: string,
+  resolveBase: string,
+): object => {
   const moduleObj: { exports: object } = {
     exports: {},
   };
   const context = vm.createContext({
     module: moduleObj,
     exports: moduleObj.exports,
-    require: createRequire(import.meta.url),
+    require: createRequire(
+      pathToFileURL(
+        join(resolveBase, "package.json"),
+      ),
+    ),
     console,
   });
   vm.runInContext(code, context);

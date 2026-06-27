@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: refactoring
 layer: [Infrastructure, Config]
 effort:
-commit_hash:
-category:
+commit_hash: 4ece26d
+category: Changed
 depends_on: [20260627002333-bundler-foundation-poc-against-plgg-core.md]
 ---
 

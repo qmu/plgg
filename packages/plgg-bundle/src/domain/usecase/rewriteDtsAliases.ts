@@ -31,7 +31,7 @@ export const rewriteDtsAliases = (
   // fs walk seam: visit every emitted declaration and
   // relativize its alias imports in place.
   for (const file of dtsFiles(distDir)) {
-    const rewritten = rewriteOne(
+    const rewritten = rewriteDtsContent(
       file,
       readFileSync(file, "utf8"),
       distDir,
@@ -42,9 +42,14 @@ export const rewriteDtsAliases = (
 };
 
 /**
- * Rewrite a single declaration file's alias specifiers.
+ * Rewrite a single declaration file's alias specifiers
+ * (pure string transform, exposed for unit testing). The
+ * match is ANCHORED to import/export specifier positions
+ * — preceded by `from ` or `import(` — so a literal
+ * string-type value like `type T = "plgg/x"` in a
+ * `.d.ts` is left untouched (gap #7).
  */
-const rewriteOne = (
+export const rewriteDtsContent = (
   file: string,
   content: string,
   distDir: string,
@@ -52,8 +57,13 @@ const rewriteOne = (
 ): string =>
   content.replace(
     aliasPattern(aliasPrefix),
-    (_match, quote: string, sub: string) =>
-      `${quote}${toRelative(
+    (
+      _match,
+      lead: string,
+      quote: string,
+      sub: string,
+    ) =>
+      `${lead}${quote}${toRelative(
         file,
         distDir,
         sub,
@@ -61,18 +71,19 @@ const rewriteOne = (
   );
 
 /**
- * A specifier-matching regex for `"<prefix>/<sub>"` or
- * `'<prefix>/<sub>'`, capturing the quote and the
- * sub-path. The prefix is escaped so a regex-special
- * character in a package name is literal.
+ * A specifier-matching regex for `<prefix>/<sub>` only
+ * in an import/export specifier position: immediately
+ * after `from ` or `import(`. Captures the lead, the
+ * quote, and the sub-path. The prefix is escaped so a
+ * regex-special character in a package name is literal.
  */
 const aliasPattern = (
   aliasPrefix: string,
 ): RegExp =>
   new RegExp(
-    `(["'])${escapeRegExp(
+    `(from\\s+|import\\s*\\()(["'])${escapeRegExp(
       aliasPrefix,
-    )}\\/([^"']+)\\1`,
+    )}\\/([^"']+)\\2`,
     "g",
   );
 
