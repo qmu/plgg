@@ -31,6 +31,9 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
 cd $REPO_ROOT/packages/plgg-sql && npm run build
+# plgg-db-migration after plgg-sql: the migration engine builds on plgg + the
+# plgg-sql Db seam (both marked external; built earlier for resolution order).
+cd $REPO_ROOT/packages/plgg-db-migration && npm run build
 # plgg-test's published dist library (depends only on plgg core). Its test
 # RUNNER is separate and untouched; this just builds its consumer-facing API.
 cd $REPO_ROOT/packages/plgg-test && npm run build

@@ -39,7 +39,7 @@ export type Db = {
    * statement cannot execute as one call (e.g. a migration body). Pair it with
    * the `runScript` step to fold a driver rejection into a {@link SqlError}.
    */
-  execScript: (sql: SoftStr) => Promise<void>;
+  execScript: (text: SoftStr) => Promise<void>;
   /** Begin a transaction. */
   begin: () => Promise<void>;
   /** Commit the current transaction. */
