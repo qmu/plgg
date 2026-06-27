@@ -1,4 +1,5 @@
-// Public API barrel for plgg-db-migration. The domain
-// model is published now; usecase exports (parser,
-// apply/rollback, per-tenant) are added by later tickets.
+// Public API barrel for plgg-db-migration. Domain model
+// + usecases (parser, readMigrations) are published now;
+// apply/rollback + per-tenant land in later tickets.
 export * from "plgg-db-migration/domain/model";
+export * from "plgg-db-migration/domain/usecase";

@@ -12,6 +12,7 @@ import {
   dialectMismatch,
   versionShape,
   tenantShape,
+  ioFailure,
 } from "plgg-db-migration/domain/model/MigrationError";
 
 const causeTag = matchOption(
@@ -48,6 +49,10 @@ test("each constructor tags a MigrationError with its kind", () =>
     check(
       tenantShape("x").content.kind,
       toBe("TenantShape"),
+    ),
+    check(
+      ioFailure("x").content.kind,
+      toBe("IoFailure"),
     ),
   ]));
 

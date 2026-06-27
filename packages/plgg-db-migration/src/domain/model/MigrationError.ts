@@ -17,7 +17,8 @@ export type MigrationErrorKind =
   | "IrreversibleDown"
   | "DialectMismatch"
   | "VersionShape"
-  | "TenantShape";
+  | "TenantShape"
+  | "IoFailure";
 
 /**
  * A failure raised while reading, planning, or applying migrations. Pure tagged
@@ -74,6 +75,9 @@ export const versionShape = make("VersionShape");
 
 /** A tenant identifier was not a non-empty string. */
 export const tenantShape = make("TenantShape");
+
+/** A filesystem operation (read dir, read/write file) failed. */
+export const ioFailure = make("IoFailure");
 
 /**
  * Pattern matcher for folding a {@link MigrationError} with `match` by tag,
