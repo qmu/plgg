@@ -9,3 +9,4 @@ export * from "plgg-db-migration/domain/model/Dialect";
 export * from "plgg-db-migration/domain/model/TenantId";
 export * from "plgg-db-migration/domain/model/TenantDb";
 export * from "plgg-db-migration/domain/model/Migrator";
+export * from "plgg-db-migration/domain/model/MigrateConfig";
