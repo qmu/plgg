@@ -34,8 +34,8 @@ dependencies, no native binding**. Model the package shape on `plgg-bundle`
 
 ## Trip Origin
 
-`.workaholic/trips/plgg-db-migration/designs/design-v1.md` §1.3 (component
-inventory / package layout) and §4 step 1 (package scaffold).
+`.workaholic/trips/plgg-db-migration/designs/design-v2.md` §1.3 (component
+inventory / package layout) and §4 ticket 2 (scaffold + domain models).
 
 ## Key Files
 
@@ -84,4 +84,3 @@ inventory / package layout) and §4 step 1 (package scaffold).
 - Keep the `bin/hook.mjs` alias prefix correct (`plgg-db-migration/*`), or the
   CLI's `import` of `src/...` specifiers will not resolve at runtime
   (`packages/plgg-db-migration/bin/`).
-</content>

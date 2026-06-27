@@ -42,12 +42,12 @@ meeting a stated contract, shown by a reference Postgres adapter that is
 
 ## Trip Origin
 
-`.workaholic/trips/plgg-db-migration/designs/design-v1.md` §4 step 7 (example +
-README) and §5 (placeholder-mismatch risk; driver-scope-creep governance), as
-resolved in `reviews/round-1-constructor.md` (SQLite-first phasing; document the
-`Db`-adapter contract; reference Postgres adapter example-only; schema-dump out
-of v1) — the agreed resolution of the one cross-artifact fracture vs
-`directions/direction-v1.md`'s "migrate any database" headline.
+`.workaholic/trips/plgg-db-migration/designs/design-v2.md` §2.3 (SQLite-first
+framing + the `Db`-adapter contract + the example-only Postgres adapter), §4
+ticket 7 (example + docs), and §5 (placeholder-mismatch risk; driver-scope-creep
+governance; schema-dump v1 non-goal) — the consensus resolution of the one
+cross-artifact fracture vs `directions/direction-v1.md`'s "migrate any database"
+headline.
 
 ## Key Files
 
@@ -86,4 +86,3 @@ of v1) — the agreed resolution of the one cross-artifact fracture vs
 - The example's migrations belong in a `databases/` layout, not inside the
   package, to model the real consumer placement
   (`packages/plgg-db-migration/example.ts`).
-</content>

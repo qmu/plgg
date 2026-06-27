@@ -9,16 +9,17 @@ category:
 depends_on: [20260627210145-plgg-sql-execscript-seam.md, 20260627210148-parser-fs-and-plan.md]
 ---
 
-# Implement `schema_migrations` tracking and apply/rollback (SQLite dialect)
+# Implement `schema_migrations`, `planMigrations` (dry-run), and apply/rollback (SQLite dialect)
 
 ## Overview
 
-The engine of the tool: create and read the `schema_migrations` ledger, and
-apply/roll back migrations against it through the `plgg-sql` `Db` seam, all as
-`proc`/`pipe` steps that fold to `Result`. SQLite is the first (and only fully
-runnable) dialect; the `Dialect`-specific SQL is built in the **domain** layer
-(it is pure, no I/O — not a `vendors/` concern), structured so Postgres/MySQL
-add only a new dialect value, not a new code path.
+The engine of the tool: create and read the `schema_migrations` ledger, compute
+the pure `planMigrations` diff (the dry-run/preview foundation), and apply/roll
+back migrations against the `plgg-sql` `Db` seam, all as `proc`/`pipe` steps that
+fold to `Result`. SQLite is the first (and only fully runnable) dialect; the
+`Dialect`-specific SQL is built in the **domain** layer (it is pure, no I/O — not
+a `vendors/` concern), structured so Postgres/MySQL add only a new dialect value,
+not a new code path.
 
 ## Policies
 
@@ -42,11 +43,12 @@ add only a new dialect value, not a new code path.
 
 ## Trip Origin
 
-`.workaholic/trips/plgg-db-migration/designs/design-v1.md` §2.2 (schema_migrations
-+ apply/rollback) and §2.3 (dialect strategy), refined by `reviews/round-1-
-constructor.md` (dialect SQL belongs in domain not vendors; wrap predicate =
-`dialect.supportsTransactionalDdl && migration.upTransaction`; down = last-applied
-only) and `models/model-v1.md` Risk B (transactional-DDL divergence).
+`.workaholic/trips/plgg-db-migration/designs/design-v2.md` §2.2 (schema_migrations
++ apply/rollback), §2.3 (dialect strategy), §2.4 (the `planMigrations` dry-run
+surface), and §5 (Risk B). Wrap predicate =
+`dialect.supportsTransactionalDdl && migration.upTransaction`; dialect SQL in
+domain not vendors; down = last-applied-only with `--to <version>` supported
+(per `reviews/round-1-constructor.md`).
 
 ## Key Files
 
@@ -70,17 +72,23 @@ only) and `models/model-v1.md` Risk B (transactional-DDL divergence).
    schema_migrations (...)`; idempotent.
 3. `listApplied(db)` — `SELECT version, applied_at FROM schema_migrations ORDER
    BY version` → `decodeRows` → `SchemaMigrations`.
-4. `applyMigration(migrator)(migration)` — run the `up` body via `runScript`,
+4. `planMigrations(dir, applied): Plan` — pure diff of `MigrationDir` against
+   `SchemaMigrations`: the ordered `pending` up-migrations plus the applied set;
+   for down, select the most-recent-applied migration (or down-to a `--to`
+   target). This pure function is the **dry-run/preview** data the CLI `status`
+   and `--dry-run` consume — it performs no I/O and mutates nothing.
+5. `applyMigration(migrator)(migration)` — run the `up` body via `runScript`,
    then `INSERT` the version. Wrap in `plgg-sql`'s `transaction` **iff**
    `dialect.supportsTransactionalDdl && migration.upTransaction`; otherwise run
    fail-forward. The down counterpart runs the `down` body (`None` →
    `Err(IrreversibleMigration)`) then `DELETE` the version.
-5. `migrateUp(migrator)` — `planUp` → fold `pending` through `applyMigration`,
-   stop at first `Err`. `migrateDown(migrator)` — roll back the single
-   most-recent applied migration (optional `--to <version>` recorded as a later
-   extension).
-6. `status(migrator)` — render applied vs pending, flagging down-less migrations.
-7. Tests per Implementation Policy `test.md`; coverage > 90%.
+6. `migrateUp(migrator)` — `planMigrations` → fold `pending` through
+   `applyMigration`, stop at first `Err`. `migrateDown(migrator, to?)` — roll
+   back the single most-recent applied migration by default, or down to `to`.
+7. `status(migrator)` — render `planMigrations` (applied vs pending), flagging
+   down-less migrations; non-mutating.
+8. Tests per Implementation Policy `test.md` (incl. `planMigrations` for empty /
+   partial / full / down-target); coverage > 90%.
 
 ## Considerations
 
@@ -94,4 +102,6 @@ only) and `models/model-v1.md` Risk B (transactional-DDL divergence).
   double-apply (`schema_migrations` ledger).
 - `runScript` carries trusted text only; user input never reaches it — migration
   bodies are developer-authored (`packages/plgg-sql/.../execScript`).
-</content>
+- `planMigrations` must stay pure (no `Db` access): it takes the already-fetched
+  `SchemaMigrations` so the dry-run surface never mutates and is trivially tested
+  (`packages/plgg-db-migration/src/domain/usecase/planMigrations.ts`).

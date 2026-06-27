@@ -57,12 +57,12 @@ removing.
 
 ## Trip Origin
 
-`.workaholic/trips/plgg-db-migration/designs/design-v1.md` §2.1/§2.2 (applying
-trusted multi-statement migration bodies) and §5 (the "naive `;` splitting"
-risk this removes), as ratified in `reviews/round-1-architect.md` (Boundary 1)
-and `reviews/round-1-constructor.md` (the `Db`-seam weighing — required, not
-optional; named `execScript` to avoid colliding with the existing `exec`
-usecase; owned by `plgg-sql` as the seam owner).
+`.workaholic/trips/plgg-db-migration/designs/design-v2.md` §0 item 1 + §1.2 (the
+required `execScript` seam + `runScript` step; the `;`-splitter dropped
+entirely) and §5 (driver/placeholder risks), the consensus folding of
+`reviews/round-1-architect.md` (Boundary 1) and `reviews/round-1-constructor.md`
+(required not optional; named `execScript` to avoid colliding with the existing
+`exec` usecase; owned by `plgg-sql` as the seam owner).
 
 ## Key Files
 
@@ -99,4 +99,3 @@ usecase; owned by `plgg-sql` as the seam owner).
   distinct to avoid call-site confusion (`packages/plgg-sql/src/Db/usecase/`).
 - This is a prerequisite for every `plgg-db-migration` apply step; it must land
   and be published (`file:` dep) before those tickets build.
-</content>

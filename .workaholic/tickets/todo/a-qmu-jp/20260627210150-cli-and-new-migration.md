@@ -9,7 +9,7 @@ category:
 depends_on: [20260627210149-schema-migrations-apply-rollback.md]
 ---
 
-# Implement the CLI (`new`/`up`/`down`/`status`) and `newMigration` scaffold
+# Implement the CLI (`new`/`up`/`down`/`status` + `--dry-run`) and `newMigration` scaffold
 
 ## Overview
 
@@ -17,7 +17,9 @@ Expose the dbmate-shaped command surface. The programmatic API **is** the domain
 layer (`migrateUp`/`migrateDown`/`status`/`newMigration`), config-first/data-last
 so it drops into a caller's `proc` chain. The CLI is a thin shell over it — the
 single place `throw`/`process.exit` lives (the framework edge), turning a
-`Result` into an exit code, modeled on `plgg-bundle`'s CLI.
+`Result` into an exit code, modeled on `plgg-bundle`'s CLI. A `--dry-run` flag on
+`up`/`down` (and `status`) prints the `planMigrations` preview without applying —
+the destructive-op-trust mitigation and the AI-agent-operator surface.
 
 ## Policies
 
@@ -31,13 +33,15 @@ single place `throw`/`process.exit` lives (the framework edge), turning a
   edge.
 - `workaholic:operation` / `policies/ci-cd.md` — `up` is idempotent and
   CI-runnable; the CLI returns proper non-zero exit codes so a deploy pipeline
-  can gate on it; state (`status`) is machine-readable for an AI/ops operator.
+  can gate on it; `status` / `--dry-run` make state machine-readable for an
+  AI/ops operator (observable, idempotent, previewable).
 
 ## Trip Origin
 
-`.workaholic/trips/plgg-db-migration/designs/design-v1.md` §2.4 (CLI / programmatic
-API) and §4 step 5, with the thin-shell exit-code pattern from `models/model-v1.md`
-§3 (dbmate `new`/`up`/`down`/`status` fidelity).
+`.workaholic/trips/plgg-db-migration/designs/design-v2.md` §2.4 (CLI /
+programmatic API + dry-run / plan-preview) and §4 ticket 5, with the thin-shell
+exit-code pattern from `models/model-v1.md` §3 (dbmate `new`/`up`/`down`/`status`
+fidelity).
 
 ## Key Files
 
@@ -54,9 +58,11 @@ API) and §4 step 5, with the thin-shell exit-code pattern from `models/model-v1
    `-- migrate:down` skeleton; return the path.
 2. `entrypoints/cli.ts` — dispatch on `process.argv[2]`:
    - `new <name>` → `newMigration`;
-   - `up` → `ensureSchemaMigrations` then `migrateUp`, print each applied version;
-   - `down [--to <version>]` → `migrateDown`;
-   - `status` → `status`.
+   - `up [--dry-run]` → `ensureSchemaMigrations` then `migrateUp`; `--dry-run`
+     prints the `planMigrations` pending list and applies nothing;
+   - `down [--to <version>] [--dry-run]` → `migrateDown`; `--dry-run` previews
+     what would roll back;
+   - `status` → render `planMigrations` (non-mutating).
    The `Db` + `Dialect` + migrations dir come from a small project config the CLI
    dynamic-imports (the `plgg-bundle` `bundle.config.ts` pattern), keeping the
    package driver-free.
@@ -71,6 +77,6 @@ API) and §4 step 5, with the thin-shell exit-code pattern from `models/model-v1
   (`packages/plgg-db-migration/src/entrypoints/cli.ts`); this is the same
   separation `plgg-bundle` uses for `bundle.config.ts`.
 - Keep commands idempotent and their output parseable so an AI agent operator
-  (per the direction's Persona C) can run and interpret them
+  (per the direction's Persona C) can run and interpret them; `--dry-run` lets an
+  operator preview a destructive `down` before running it
   (`packages/plgg-db-migration/src/entrypoints/cli.ts`).
-</content>
