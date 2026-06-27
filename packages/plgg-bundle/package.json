@@ -1,0 +1,25 @@
+{
+  "name": "plgg-bundle",
+  "version": "0.0.1",
+  "description": "In-house minimal library bundler for the plgg monorepo (ESM+CJS dual output, per-file .d.ts tree), zero new dependencies — reuses the project's own TypeScript, no native binding.",
+  "type": "module",
+  "bin": {
+    "plgg-bundle": "bin/plgg-bundle.mjs"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "tsc": "tsc --noEmit",
+    "test": "tsc --noEmit && plgg-test src"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-test": "file:../plgg-test"
+  }
+}
