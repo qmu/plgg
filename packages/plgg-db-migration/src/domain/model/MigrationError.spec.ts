@@ -13,6 +13,8 @@ import {
   versionShape,
   tenantShape,
   ioFailure,
+  ledgerCorrupt,
+  missingMigration,
 } from "plgg-db-migration/domain/model/MigrationError";
 
 const causeTag = matchOption(
@@ -49,6 +51,14 @@ test("each constructor tags a MigrationError with its kind", () =>
     check(
       tenantShape("x").content.kind,
       toBe("TenantShape"),
+    ),
+    check(
+      ledgerCorrupt("x").content.kind,
+      toBe("LedgerCorrupt"),
+    ),
+    check(
+      missingMigration("x").content.kind,
+      toBe("MissingMigration"),
     ),
     check(
       ioFailure("x").content.kind,

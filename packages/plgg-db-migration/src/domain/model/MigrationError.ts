@@ -18,7 +18,9 @@ export type MigrationErrorKind =
   | "DialectMismatch"
   | "VersionShape"
   | "TenantShape"
-  | "IoFailure";
+  | "IoFailure"
+  | "LedgerCorrupt"
+  | "MissingMigration";
 
 /**
  * A failure raised while reading, planning, or applying migrations. Pure tagged
@@ -78,6 +80,16 @@ export const tenantShape = make("TenantShape");
 
 /** A filesystem operation (read dir, read/write file) failed. */
 export const ioFailure = make("IoFailure");
+
+/** A `schema_migrations` ledger row could not be decoded. */
+export const ledgerCorrupt = make(
+  "LedgerCorrupt",
+);
+
+/** An applied version has no corresponding migration file to roll back. */
+export const missingMigration = make(
+  "MissingMigration",
+);
 
 /**
  * Pattern matcher for folding a {@link MigrationError} with `match` by tag,

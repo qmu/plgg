@@ -1,6 +1,10 @@
 {
   "coverage": {
     "threshold": 91,
-    "exclude": ["/index.ts", "/entrypoints/"]
+    "exclude": [
+      "/index.ts",
+      "/entrypoints/",
+      "/testkit/"
+    ]
   }
 }
