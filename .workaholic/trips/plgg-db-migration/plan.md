@@ -1,7 +1,7 @@
 ---
 instruction: "to design plgg-db-migration, same developer experience as the one that can apply incremental query having both up/down in a single sqlfile, and schema_migrations in a table, supports major database, smaller better, and consider on demand by-tenant-db migration to sqlite"
-phase: planning
-step: planning/decomposition
+phase: complete
+step: complete/done
 iteration: 0
 updated_at: 2026-06-27T21:10:00+09:00
 ---
