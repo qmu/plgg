@@ -75,6 +75,7 @@ database you use (the example wires `node:sqlite`):
 type Db = {
   all: (sql: Sql) => Promise<ReadonlyArray<unknown>>;   // SELECT → rows
   run: (sql: Sql) => Promise<ExecResult>;               // DML → { changes, lastInsertId }
+  execScript: (sql: SoftStr) => Promise<void>;          // trusted raw script (DDL/seed) — never user input
   begin: () => Promise<void>;
   commit: () => Promise<void>;
   rollback: () => Promise<void>;

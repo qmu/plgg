@@ -68,6 +68,7 @@ example wires `node:sqlite`):
 type Db = {
   all: (sql: Sql) => Promise<ReadonlyArray<unknown>>;
   run: (sql: Sql) => Promise<ExecResult>;
+  execScript: (sql: SoftStr) => Promise<void>;
   begin: () => Promise<void>;
   commit: () => Promise<void>;
   rollback: () => Promise<void>;

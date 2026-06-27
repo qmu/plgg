@@ -29,6 +29,17 @@ export type Db = {
   all: (sql: Sql) => Promise<ReadonlyArray<unknown>>;
   /** Run a DML statement and return its {@link ExecResult}. */
   run: (sql: Sql) => Promise<ExecResult>;
+  /**
+   * Run a trusted, possibly multi-statement SQL script.
+   *
+   * For developer-authored scripts only — schema migrations, seeds, fixtures —
+   * whose `text` is executed verbatim and so **bypasses the parameterized
+   * {@link Sql} box**: it must NEVER carry user input. `run` stays the path for
+   * value-bound, single-statement DML; this is the path for raw DDL a prepared
+   * statement cannot execute as one call (e.g. a migration body). Pair it with
+   * the `runScript` step to fold a driver rejection into a {@link SqlError}.
+   */
+  execScript: (sql: SoftStr) => Promise<void>;
   /** Begin a transaction. */
   begin: () => Promise<void>;
   /** Commit the current transaction. */

@@ -22,6 +22,7 @@ const stub = (over: Partial<Db>): Db => ({
     changes: 0,
     lastInsertId: none(),
   }),
+  execScript: async () => {},
   begin: async () => {},
   commit: async () => {},
   rollback: async () => {},

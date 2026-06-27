@@ -77,6 +77,11 @@ const open = (path: SoftStr): Db => {
         ),
       };
     },
+    // trusted multi-statement scripts (DDL/seed) run verbatim through
+    // node:sqlite's `exec`, which a single prepared statement cannot do.
+    execScript: async (text) => {
+      conn.exec(text);
+    },
     begin: async () => {
       conn.exec("BEGIN");
     },

@@ -27,6 +27,7 @@ const recordingDb = (): {
     run: async () => {
       throw new Error("unused");
     },
+    execScript: async () => {},
     begin: async () => {
       log.push("begin");
     },
