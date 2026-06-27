@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, DB]
 effort:
-commit_hash:
-category:
+commit_hash: 0f7a00d
+category: Added
 depends_on: [20260627210145-plgg-sql-execscript-seam.md, 20260627210148-parser-fs-and-plan.md]
 ---
 
