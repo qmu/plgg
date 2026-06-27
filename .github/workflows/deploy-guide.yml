@@ -48,6 +48,13 @@ jobs:
       # installs deterministically on this linux runner. The former
       # `rm -f package-lock.json` workaround (a darwin-only @rolldown/binding
       # skew that broke install here) is retired with vite itself.
+      # The in-house bundler imports typescript from its own path; the `file:`
+      # link doesn't install plgg-bundle's node_modules, so install the build
+      # tool's deps once before the loop builds every package through it.
+      - name: Install build-tool (plgg-bundle) dependencies
+        run: npm ci
+        working-directory: packages/plgg-bundle
+
       - name: Build package dists (dependency order)
         run: |
           set -e

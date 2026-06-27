@@ -50,6 +50,13 @@ jobs:
         run: npm ci
         working-directory: packages/plgg
 
+      # The in-house bundler (`npm run build` → plgg-bundle) imports typescript
+      # from its OWN path; the `file:` link does not install plgg-bundle's
+      # node_modules, so its deps must be installed explicitly before any build.
+      - name: Install build-tool (plgg-bundle) dependencies
+        run: npm ci
+        working-directory: packages/plgg-bundle
+
       # plgg's specs now import the plgg-test runner, so plgg's type-check and
       # tests need plgg-test's built dist (its `types` entry). plgg-test in turn
       # depends on plgg's dist, so build plgg first, then install + build

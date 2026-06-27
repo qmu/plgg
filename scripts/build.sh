@@ -1,6 +1,18 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
+# Bootstrap the build TOOL's own deps before any package builds. plgg-bundle is
+# the bundler every package's `build` runs through, and it imports `typescript`
+# from its OWN path — but a `file:` link does not install the linked package's
+# node_modules, so a clean checkout/runner has no plgg-bundle/node_modules and
+# the build fails with `Cannot find package 'typescript'`. Installing it here
+# (the one canonical bootstrap) makes the local path reproduce CI. Idempotent:
+# only when absent, so warm rebuilds stay fast.
+if [ ! -d "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript" ]; then
+  echo "=== Bootstrapping plgg-bundle deps (the build tool) ==="
+  cd "$REPO_ROOT/packages/plgg-bundle" && npm ci && cd "$REPO_ROOT"
+fi
+
 echo "=== Building every library dist with the in-house bundler (npm run build), in dependency order ==="
 cd $REPO_ROOT/packages/plgg && npm run build
 cd $REPO_ROOT/packages/plgg-kit && npm run build
