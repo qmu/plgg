@@ -22,19 +22,19 @@ import {
 import { emitDts } from "plgg-bundle/domain/usecase/emitDts";
 import { deriveExternal } from "plgg-bundle/domain/usecase/deriveExternal";
 import { readExportNames } from "plgg-bundle/vendors/runner";
+import { discoverWorkspace } from "plgg-bundle/domain/usecase/discoverWorkspace";
+import { resolveWorkspaceSpecifier } from "plgg-bundle/domain/usecase/resolveWorkspaceSpecifier";
 
 /**
  * Build one package's `dist` from its
- * {@link BundleConfig}: for every entry × format emit
- * the dual JS bundle (in-house registry), then the
- * per-file `.d.ts` tree (via tsc). Returns the relative
+ * {@link BundleConfig}. Dispatches on the config
+ * `target`: a `"library"` (dual `es`/`cjs` per entry +
+ * per-file `.d.ts`, deps external) or the `"app"` leaf (a
+ * single self-contained `es` bundle, siblings inlined, no
+ * `.d.ts`). Both build into a private staging dir and
+ * publish with one atomic swap. Returns the relative
  * paths written. Throws on the first failure (caught at
  * the bin boundary). Fully synchronous.
- *
- * Order per entry: CJS first (self-contained, runnable),
- * execute it to read the exact export-name set, then ESM
- * with those static named exports. Declarations run once
- * for the package.
  */
 export const build = (
   config: BundleConfig,
@@ -55,10 +55,27 @@ export const build = (
   // window from the whole build to a single rename.
   const stageDir = `${outDir}.stage`;
   emptyDir(stageDir);
-  // Externals come from the package's declared dependency
-  // graph (+ node:*), not the config — so a bundle stays
-  // faithful to what its package.json says it depends on,
-  // and an undeclared import fails loudly (ruling B).
+  const written =
+    config.target === "app"
+      ? buildApp(config, stageDir)
+      : buildLibrary(config, stageDir);
+  swapIntoPlace(stageDir, outDir);
+  return written;
+};
+
+/**
+ * Library build: per entry, emit the dual `es`/`cjs`
+ * bundle (CJS first so its runtime keys give ESM its
+ * export surface), then the per-file `.d.ts` tree once.
+ * Deps are external (ruling B), derived from the
+ * package's declared dependency graph (+ `node:*`) so a
+ * bundle stays faithful to its manifest and an undeclared
+ * import fails loudly.
+ */
+const buildLibrary = (
+  config: BundleConfig,
+  stageDir: string,
+): ReadonlyArray<string> => {
   const external = deriveExternal(config.root);
   const written: string[] = [];
   for (const entry of config.entries) {
@@ -91,9 +108,65 @@ export const build = (
     outDir: stageDir,
     aliasPrefix: config.alias.prefix,
   });
-  swapIntoPlace(stageDir, outDir);
   return written;
 };
+
+/**
+ * App build: a single self-contained `es` bundle per
+ * entry with every workspace sibling INLINED from source
+ * (the mirror of the library externalization — a browser
+ * cannot resolve a bare `import "plgg"`). Only `node:*`
+ * stays external. No CJS, no export-surface discovery
+ * (an app entry has side effects and no exports, and the
+ * vm sandbox has no DOM to run it), and no `.d.ts`
+ * (nothing consumes the app).
+ */
+const buildApp = (
+  config: BundleConfig,
+  stageDir: string,
+): ReadonlyArray<string> => {
+  const packages = discoverWorkspace(config.root);
+  const written: string[] = [];
+  for (const entry of config.entries) {
+    const graph = collectModules({
+      entryFile: join(
+        config.root,
+        config.rootDir,
+        entry.input,
+      ),
+      root: config.root,
+      aliasPrefix: config.alias.prefix,
+      aliasSrcRoot: join(
+        config.root,
+        config.alias.srcRoot,
+      ),
+      external: NODE_EXTERNAL,
+      resolve: (specifier, fromFile) =>
+        resolveWorkspaceSpecifier({
+          specifier,
+          fromFile,
+          packages,
+        }),
+    });
+    const rel = applyFileName(
+      config.fileNamePattern,
+      entry.name,
+      "es",
+    );
+    writeOut(
+      join(stageDir, rel),
+      emitEsmBundle(graph, []),
+    );
+    written.push(rel);
+  }
+  return written;
+};
+
+/**
+ * The app's only external: Node built-ins. Everything
+ * else (plgg + siblings) is inlined.
+ */
+const NODE_EXTERNAL = /^node:/;
 
 /**
  * Replace `outDir` with the freshly-built `stageDir` in a

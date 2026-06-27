@@ -1,7 +1,7 @@
 ---
 instruction: "over tickets (queue-execute)"
 phase: coding
-step: coding/ticket-20260627002334
+step: coding/ticket-20260627002335
 iteration: 0
 updated_at: 2026-06-27T01:02:54+09:00
 ---
@@ -133,6 +133,12 @@ existing 5-ticket todo queue with three-agent QA on the current branch
   check-all green through the bin. Decision (a): keep it. B5's invocation item is
   now a NO-OP (nothing to swap). Verified on disk by Leader.
 
+- **Invocation form CONFIRMED uniform = B (post-T4 ground-truth).** All 11
+  packages (10 libs + example) have `"build": "plgg-bundle"`; no uncommitted lib
+  package.json changes → T3 committed form B for the libraries (earlier "form A"
+  reads were stale mid-edit snapshots). Whole monorepo invokes the bundler one
+  way; B5 invocation item is a genuine no-op.
+
 - **Ticket 3 SOLE REMAINING GATE — flaky dts emit (determinism).** Planner E2E
   REJECT: `build.sh` fails ~33% (2/6 runs, different packages) — a consumer's
   dts emit intermittently resolves `plgg`/sibling to its `index.cjs.js` (implicit
@@ -190,6 +196,6 @@ existing 5-ticket todo queue with three-agent QA on the current branch
 - [x] concurrent-launch (Leader + Planner/Architect/Constructor)
 - [x] ticket-1: spec validateX refactor — Option D, archived 49bd283 (consensus: Constructor green, Architect approve, Planner E2E approve)
 - [x] ticket-2: bundler foundation PoC — archived b3d9590 (zero-new-dep, plain-TS no-plgg-dep / OBS-3 fixed, dist reproduced, 465/0; after 2 dev/QA interventions). B2 prereqs in DEPENDENCY-LOG.
-- [~] ticket-3: migrate library builds — B/externalize impl correct (Architect approve-w-obs; externalization all 3 forms + styleEntry/ssgEntry renames verified). **Planner E2E REJECT: build is FLAKY (~33% fail)** — dts-emit (emitDts.ts) intermittently can't resolve `plgg`'s declaration (resolves to index.cjs.js as implicit-any instead of its `types`); not package-specific. Constructor fixing (root-cause: likely npx-tsc + tsbuildinfo cache / types-resolution); must pass 10× builds 0-fail. Minor open: plgg-test CJS enumerates 0 named keys vs plgg-http's 36. Invocation A→B swap deferred to T5.
+- [x] ticket-3: migrate library builds — archived d77ce03 (10 pkgs → in-house bundler, B/externalize, invocation-B, atomic-publish flake fix; consensus: Constructor green, Architect approve-w-obs, Planner E2E approve 10/10+25/25) — B/externalize impl correct (Architect approve-w-obs; externalization all 3 forms + styleEntry/ssgEntry renames verified). **Planner E2E REJECT: build is FLAKY (~33% fail)** — dts-emit (emitDts.ts) intermittently can't resolve `plgg`'s declaration (resolves to index.cjs.js as implicit-any instead of its `types`); not package-specific. Constructor fixing (root-cause: likely npx-tsc + tsbuildinfo cache / types-resolution); must pass 10× builds 0-fail. Minor open: plgg-test CJS enumerates 0 named keys vs plgg-http's 36. Invocation A→B swap deferred to T5.
 - [ ] ticket-4: replace example vite
 - [ ] ticket-5: purge vite + grep gate

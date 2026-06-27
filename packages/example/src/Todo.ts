@@ -1,4 +1,4 @@
-import { SoftStr } from "plgg";
+import type { SoftStr } from "plgg";
 
 /**
  * A single to-do item — pure client-side data. This demo keeps todos in the

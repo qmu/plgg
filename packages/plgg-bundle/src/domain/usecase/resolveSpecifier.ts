@@ -41,9 +41,12 @@ export const resolveSpecifier = (args: {
 
 /**
  * Whether the specifier is a relative path (`./` or
- * `../`).
+ * `../`). Exported for the app-mode workspace resolver,
+ * which shares this relative-import handling.
  */
-const isRelative = (specifier: string): boolean =>
+export const isRelative = (
+  specifier: string,
+): boolean =>
   specifier.startsWith("./") ||
   specifier.startsWith("../");
 
@@ -74,9 +77,11 @@ const aliasTarget = (args: {
 /**
  * Given a base path with no extension, pick the
  * existing source file: the path as-is, then `base.ts`,
- * then `base/index.ts`.
+ * then `base/index.ts`. Exported so the app-mode
+ * workspace resolver picks sibling source files the same
+ * way.
  */
-const pickExisting = (
+export const pickExisting = (
   base: string,
 ): string | undefined =>
   candidates(base).find(isFile);

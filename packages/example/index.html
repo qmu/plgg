@@ -9,9 +9,11 @@
     <title>plgg To-Do — Elm Architecture</title>
   </head>
   <body>
-    <!-- CSR-only dev entry (`npm run serve`). The SSR server (src/server.ts)
-         emits its own document with the same #root mount point. -->
+    <!-- CSR-only dev entry (`npm run serve`). The dev server bundles
+         src/main.ts to /main.js (the in-house app bundler) and serves it
+         here. The SSR server (src/server.ts) emits its own document with the
+         same #root mount point. -->
     <div id="root"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/main.js"></script>
   </body>
 </html>

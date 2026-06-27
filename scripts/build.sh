@@ -22,4 +22,8 @@ cd $REPO_ROOT/packages/plgg-sql && npm run build
 # plgg-test's published dist library (depends only on plgg core). Its test
 # RUNNER is separate and untouched; this just builds its consumer-facing API.
 cd $REPO_ROOT/packages/plgg-test && npm run build
+# example: the leaf CSR app bundle (dist/main.js). Built last — it consumes
+# plgg + plgg-view + plgg-router (+ plgg-server's view types) and inlines them
+# from source via the in-house bundler's app target.
+cd $REPO_ROOT/packages/example && npm run build
 echo "\n=== All shell scripts have been executed successfully ==="

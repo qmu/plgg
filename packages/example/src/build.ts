@@ -8,12 +8,12 @@
  * HTML only: this build does not copy the client JS bundle, images, or fonts.
  *
  * Run it:
- *   npx tsx src/build.ts
+ *   node src/build.ts
  *   open dist/site/index.html
  */
 import { join } from "node:path";
 import {
-  Defect,
+  type Defect,
   pipe,
   ok,
   matchResult,
@@ -25,9 +25,9 @@ import {
 } from "plgg-server";
 import {
   generateStatic,
-  SsgError,
+  type SsgError,
 } from "plgg-server/ssg";
-import { view, init } from "./app";
+import { view, init } from "./app.ts";
 
 const app = pipe(
   web(),

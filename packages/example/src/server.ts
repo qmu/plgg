@@ -11,15 +11,15 @@
  *
  * Run it:
  *   npm run build      # bundles the client to dist/main.js (served below)
- *   npx tsx src/server.ts
+ *   node src/server.ts
  *   open http://localhost:3000
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
-  Result,
-  SoftStr,
+  type Result,
+  type SoftStr,
   pipe,
   ok,
   err,
@@ -33,11 +33,11 @@ import {
   pageResponse,
   javascriptResponse,
   notFound,
-  HttpResponse,
-  HttpError,
+  type HttpResponse,
+  type HttpError,
 } from "plgg-server";
 import { serve } from "plgg-server/node";
-import { view, init } from "./app";
+import { view, init } from "./app.ts";
 
 /**
  * The built client bundle the SSR page points its module script at. Resolved

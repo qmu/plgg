@@ -29,7 +29,7 @@ the `p`/`text` element builders.
 
 ```
 packages/example/
-├── index.html       # CSR-only dev entry (vite) — a #root div + the client module
+├── index.html       # CSR-only dev entry (dev server) — a #root div + the client module
 └── src/
     ├── Todo.ts       # the Todo domain type (pure data)
     ├── app.ts        # the program: Model, Msg, pure init/update/view  ← the shared core
@@ -101,19 +101,19 @@ architecture.
 
 ## Run it
 
-CSR-only (fastest — Vite dev server, no Node server):
+CSR-only (fastest — in-house dev server, no framework):
 
 ```sh
 cd packages/example
 npm install
-npm run serve        # vite → http://localhost:5173 (mounts on #root)
+npm run serve        # node src/serve.ts → http://localhost:5173 (mounts on #root)
 ```
 
 Full SSR + CSR:
 
 ```sh
-npm run build        # bundle the client → dist/main.js (the SSR page loads this)
-npm run serve:ssr    # tsx src/server.ts → http://localhost:3000
+npm run build        # in-house app bundler → dist/main.js (the SSR page loads this)
+npm run serve:ssr    # node src/server.ts → http://localhost:3000
 ```
 
 Open `http://localhost:3000`: the server-rendered To-Do shell appears immediately

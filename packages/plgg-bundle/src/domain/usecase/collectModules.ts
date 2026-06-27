@@ -44,9 +44,29 @@ export const collectModules = (args: {
   aliasPrefix: string;
   aliasSrcRoot: string;
   external: External;
+  /**
+   * App-mode override: resolve a specifier to a source
+   * file (inlining workspace siblings). When absent, the
+   * library default resolves only relative imports and
+   * the package's own self-alias.
+   */
+  resolve?: Resolve;
 }): Graph => {
+  const ctx: Ctx = {
+    root: args.root,
+    external: args.external,
+    resolve:
+      args.resolve ??
+      ((specifier, fromFile) =>
+        resolveSpecifier({
+          specifier,
+          fromFile,
+          aliasPrefix: args.aliasPrefix,
+          aliasSrcRoot: args.aliasSrcRoot,
+        })),
+  };
   const acc = new Map<string, Module>();
-  walk(args, args.entryFile, acc);
+  walk(ctx, args.entryFile, acc);
   return {
     entryId: idOf(args.root, args.entryFile),
     modules: [...acc.values()],
@@ -54,20 +74,35 @@ export const collectModules = (args: {
 };
 
 /**
+ * Resolve an import specifier (from `fromFile`) to an
+ * absolute source file, or `undefined` if it is not a
+ * bundled module (external / unresolvable).
+ */
+export type Resolve = (
+  specifier: string,
+  fromFile: string,
+) => string | undefined;
+
+/**
+ * The threaded walk context: the package root (for ids),
+ * the external predicate, and the resolver.
+ */
+type Ctx = Readonly<{
+  root: string;
+  external: External;
+  resolve: Resolve;
+}>;
+
+/**
  * Depth-first accumulation into a Map keyed by id, so a
  * diamond import is transpiled once. Mutates `acc`.
  */
 const walk = (
-  args: {
-    root: string;
-    aliasPrefix: string;
-    aliasSrcRoot: string;
-    external: External;
-  },
+  ctx: Ctx,
   file: string,
   acc: Map<string, Module>,
 ): void => {
-  const id = idOf(args.root, file);
+  const id = idOf(ctx.root, file);
   if (acc.has(id)) {
     return;
   }
@@ -76,14 +111,14 @@ const walk = (
     readSource(file),
   );
   const deps = linkModule(
-    args,
+    ctx,
     file,
     id,
     cjs,
     acc,
   );
   for (const depFile of deps) {
-    walk(args, depFile, acc);
+    walk(ctx, depFile, acc);
   }
 };
 
@@ -94,12 +129,7 @@ const walk = (
  * Throws on an unresolvable (non-external) specifier.
  */
 const linkModule = (
-  args: {
-    root: string;
-    aliasPrefix: string;
-    aliasSrcRoot: string;
-    external: External;
-  },
+  ctx: Ctx,
   file: string,
   id: string,
   cjs: string,
@@ -110,16 +140,11 @@ const linkModule = (
   const deps: string[] = [];
   let rewritten = cjs;
   for (const spec of specifiers) {
-    if (isExternal(args.external, spec)) {
+    if (isExternal(ctx.external, spec)) {
       externals.push(spec);
       continue;
     }
-    const resolved = resolveSpecifier({
-      specifier: spec,
-      fromFile: file,
-      aliasPrefix: args.aliasPrefix,
-      aliasSrcRoot: args.aliasSrcRoot,
-    });
+    const resolved = ctx.resolve(spec, file);
     if (resolved === undefined) {
       throw new Error(
         `ResolveError: cannot resolve "${spec}" from ${id}`,
@@ -129,7 +154,7 @@ const linkModule = (
     rewritten = replaceRequire(
       rewritten,
       spec,
-      idOf(args.root, resolved),
+      idOf(ctx.root, resolved),
     );
   }
   acc.set(id, {

@@ -14,6 +14,22 @@
 export type Format = "es" | "cjs";
 
 /**
+ * What kind of artifact a config builds.
+ * - `"library"` (default): a consumed package — dual
+ *   `es`/`cjs` per entry, a per-file `.d.ts` tree, and
+ *   sibling/`node:*` deps left EXTERNAL (ruling B), so the
+ *   bundle stays faithful to its declared dependencies.
+ * - `"app"`: the leaf application (the `example` client) —
+ *   a single self-contained `es` bundle with every
+ *   workspace sibling INLINED from source (the mirror of
+ *   the library decision: the app is where bundling deps
+ *   is correct, since a browser cannot resolve a bare
+ *   `import "plgg"`). No `.d.ts` (nothing consumes it) and
+ *   only `node:*` stays external.
+ */
+export type Target = "library" | "app";
+
+/**
  * A way to decide whether an imported specifier is
  * *external* (left as a runtime `import`/`require`,
  * not inlined into the bundle). Mirrors the three
@@ -50,6 +66,11 @@ export type Entry = {
  * `asBundleConfig` before any build runs.
  */
 export type BundleConfig = Readonly<{
+  /**
+   * The artifact kind (see {@link Target}). Optional in
+   * the config file; defaults to `"library"`.
+   */
+  target: Target;
   /** Package root (absolute). */
   root: string;
   /** Source root under `root` (e.g. "src"). */

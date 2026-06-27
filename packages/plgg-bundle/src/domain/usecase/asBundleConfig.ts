@@ -2,6 +2,7 @@ import {
   type BundleConfig,
   type Entry,
   type Format,
+  type Target,
 } from "plgg-bundle/domain/model/BundleConfig";
 
 /**
@@ -25,6 +26,7 @@ export const asBundleConfig = (
     return fail("config is not an object");
   }
   return {
+    target: target(value),
     root: str(value, "root"),
     rootDir: str(value, "rootDir"),
     outDir: str(value, "outDir"),
@@ -36,6 +38,24 @@ export const asBundleConfig = (
     formats: formats(value),
     alias: alias(value),
   };
+};
+
+/**
+ * The optional `target` field — `"library"` (default) or
+ * `"app"`. Absent means a library, so the existing
+ * library configs need no change.
+ */
+const target = (
+  o: Record<string, unknown>,
+): Target => {
+  const v = o["target"];
+  return v === undefined || v === "library"
+    ? "library"
+    : v === "app"
+      ? "app"
+      : fail(
+          `"target" must be "library" or "app"`,
+        );
 };
 
 /**
