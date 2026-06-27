@@ -9,3 +9,4 @@ export * from "plgg-db-migration/domain/usecase/migrateUp";
 export * from "plgg-db-migration/domain/usecase/migrateDown";
 export * from "plgg-db-migration/domain/usecase/status";
 export * from "plgg-db-migration/domain/usecase/newMigration";
+export * from "plgg-db-migration/domain/usecase/migrateTenant";
