@@ -95,7 +95,10 @@ test("a .sql file missing its up section is a ParseFailure", async () => {
 test("a missing directory is an IoFailure", async () =>
   check(
     await readMigrations(
-      joinPath(tmpdir(), "plgg-dbm-missing-xyz-123"),
+      joinPath(
+        tmpdir(),
+        "plgg-dbm-missing-xyz-123",
+      ),
     ),
     errThen((e) =>
       check(e.content.kind, toBe("IoFailure")),

@@ -20,7 +20,10 @@ test("isApplied is true for a recorded version, false otherwise", () =>
             check(
               isApplied(
                 [
-                  appliedVersion(applied, "2026-01-01"),
+                  appliedVersion(
+                    applied,
+                    "2026-01-01",
+                  ),
                 ],
                 applied,
               ),
@@ -29,13 +32,19 @@ test("isApplied is true for a recorded version, false otherwise", () =>
             check(
               isApplied(
                 [
-                  appliedVersion(applied, "2026-01-01"),
+                  appliedVersion(
+                    applied,
+                    "2026-01-01",
+                  ),
                 ],
                 pending,
               ),
               toBe(false),
             ),
-            check(isApplied([], applied), toBe(false)),
+            check(
+              isApplied([], applied),
+              toBe(false),
+            ),
           ]),
         ),
       ),

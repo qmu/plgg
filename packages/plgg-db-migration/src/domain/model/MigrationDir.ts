@@ -1,10 +1,4 @@
-import {
-  Box,
-  Result,
-  ok,
-  err,
-  box,
-} from "plgg";
+import { Box, Result, ok, err, box } from "plgg";
 import { Migration } from "plgg-db-migration/domain/model/Migration";
 import {
   compareVersion,

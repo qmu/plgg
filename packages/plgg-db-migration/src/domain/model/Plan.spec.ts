@@ -29,7 +29,12 @@ test("plan carries the pending migrations and the applied rows", () =>
                 downTransaction: true,
               }),
             ],
-            [appliedVersion(applied, "2026-01-01")],
+            [
+              appliedVersion(
+                applied,
+                "2026-01-01",
+              ),
+            ],
           );
           return all([
             check(p.pending.length, toBe(1)),

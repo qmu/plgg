@@ -28,13 +28,19 @@ test("asTenantId rejects an empty string and a non-string", () =>
     check(
       asTenantId(""),
       errThen((e) =>
-        check(e.content.kind, toBe("TenantShape")),
+        check(
+          e.content.kind,
+          toBe("TenantShape"),
+        ),
       ),
     ),
     check(
       asTenantId(42),
       errThen((e) =>
-        check(e.content.kind, toBe("TenantShape")),
+        check(
+          e.content.kind,
+          toBe("TenantShape"),
+        ),
       ),
     ),
   ]));
@@ -49,7 +55,10 @@ test("asTenantId is idempotent; isTenantId guards branded values", () =>
         check(
           asTenantId(t),
           okThen((again) =>
-            check(tenantIdString(again), toBe("acme")),
+            check(
+              tenantIdString(again),
+              toBe("acme"),
+            ),
           ),
         ),
       ]),

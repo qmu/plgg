@@ -29,19 +29,28 @@ test("asVersion rejects wrong length, non-digit, and non-string", () =>
     check(
       asVersion("2026"),
       errThen((e) =>
-        check(e.content.kind, toBe("VersionShape")),
+        check(
+          e.content.kind,
+          toBe("VersionShape"),
+        ),
       ),
     ),
     check(
       asVersion("2026062718150X"),
       errThen((e) =>
-        check(e.content.kind, toBe("VersionShape")),
+        check(
+          e.content.kind,
+          toBe("VersionShape"),
+        ),
       ),
     ),
     check(
       asVersion(20260627181500),
       errThen((e) =>
-        check(e.content.kind, toBe("VersionShape")),
+        check(
+          e.content.kind,
+          toBe("VersionShape"),
+        ),
       ),
     ),
   ]));
@@ -70,7 +79,9 @@ test("isVersion guards branded values only", () =>
     ),
     check(
       asVersion("20260627181500"),
-      okThen((v) => check(isVersion(v), toBe(true))),
+      okThen((v) =>
+        check(isVersion(v), toBe(true)),
+      ),
     ),
   ]));
 

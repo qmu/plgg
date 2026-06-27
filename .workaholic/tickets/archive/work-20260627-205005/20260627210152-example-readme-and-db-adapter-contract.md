@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, DB]
 effort:
-commit_hash:
-category:
+commit_hash: b9eb8b7
+category: Added
 depends_on: [20260627210150-cli-and-new-migration.md, 20260627210151-per-tenant-sqlite-migrator.md]
 ---
 

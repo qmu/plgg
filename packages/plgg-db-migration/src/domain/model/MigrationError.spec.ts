@@ -78,8 +78,8 @@ test("the message is carried, and cause is None without one / Some with one", ()
     ),
     check(
       causeTag(
-        parseFailure("x", new Error("e"))
-          .content.cause,
+        parseFailure("x", new Error("e")).content
+          .cause,
       ),
       toBe("some"),
     ),
