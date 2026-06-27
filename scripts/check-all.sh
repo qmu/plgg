@@ -22,4 +22,5 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-server.sh
 ./scripts/test-plgg-fetch.sh
 ./scripts/test-plgg-sql.sh
+./scripts/test-plgg-db-migration.sh
 ./scripts/test-example.sh

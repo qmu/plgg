@@ -2,7 +2,14 @@
   "compilerOptions": {
     /* Compiler Option */
     "target": "ES2021",
-    "module": "NodeNext",
+    /* `type: module` package run via Node type-stripping
+       (the CLI) + dual-bundled library. ESNext + Bundler
+       resolution lets src use extensionless self-alias
+       specifiers (`plgg-db-migration/domain/…`) while
+       treating modules as ESM — without the `.js` suffixes
+       NodeNext+type:module would force. Mirrors plgg-test. */
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "lib": [
       "ES2021"
     ],
@@ -11,7 +18,7 @@
     ],
     "noEmit": true,
     "paths": {
-      "plgg-db-migration*": [
+      "plgg-db-migration/*": [
         "./src/*"
       ]
     },
