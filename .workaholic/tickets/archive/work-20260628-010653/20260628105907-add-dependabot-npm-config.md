@@ -3,9 +3,9 @@ created_at: 2026-06-28T10:59:07+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 0.25h
+commit_hash: 8993dfc
+category: Added
 depends_on:
 ---
 
@@ -101,3 +101,16 @@ Speculative — the concrete config to create. The `directories` glob is the rec
 - **PR volume.** Enabling version updates across 13 packages may open several PRs on the first weekly run (notably duplicate `happy-dom` bumps across `plgg-test`/`example`/`plgg-view`). This is expected and acceptable; do not add grouping config unless the user later asks for it. (`.github/dependabot.yml`)
 - **Zero-new-dependency invariant.** Resolving the `happy-dom` advisory (whenever the bump PR lands) must be by update or removal only — never by swapping in a new dependency or native binding (vendor-neutrality / `feedback_vendor_neutrality_zero_new_deps`). (`packages/{plgg-test,example,plgg-view}/package.json`)
 - **Must not collide with the CalVer release flow.** The config only opens dependency PRs; it must not interfere with the CI-owned `prepare-release`/`release` CalVer pipeline. (`.github/workflows/prepare-release.yml`, `.github/workflows/release.yml`)
+
+## Final Report
+
+Development completed as planned. Created `.github/dependabot.yml` exactly as specified (npm ecosystem, `directories: ["/packages/*"]`, weekly). YAML validated locally as well-formed and schema-correct via a `yaml.safe_load` + field-assertion check; no `registries`/`.npmrc` block added.
+
+### Discovered Insights
+
+- **Insight**: The failing job was Dependabot's GitHub-managed **security-update** flow, not any file in `.github/workflows/`. There is no repo-side workflow to inspect for it — the only on-disk lever is the presence/shape of `.github/dependabot.yml`.
+  **Context**: When a Dependabot job goes red, grepping the workflows directory finds nothing; the fix lives in the (previously absent) `dependabot.yml`, and the diagnosis comes from `gh run view --log-failed`, not the workflow YAML.
+- **Insight**: The `private_registry_config_not_found` abort was self-inflicted by Dependabot's `automatic-github-packages-auth` experiment injecting an `npm.pkg.github.com` credential into a repo that never uses GitHub Packages. Simply declaring `package-ecosystem: "npm"` explicitly is enough to take the public-registry path — no `.npmrc` or `registries:` block is needed.
+  **Context**: The error message suggests adding a `.npmrc` or `scope`/`replaces-base`, which would wrongly imply the repo depends on GitHub Packages. The minimal, correct fix is just an explicit npm ecosystem declaration.
+- **Insight**: This change is only verifiable server-side. Local checks confirm YAML/schema validity but cannot prove the Dependabot run succeeds — that requires a real run after merge to `main`.
+  **Context**: The drive report should not claim the failure is "fixed" until a post-merge Dependabot run is confirmed green and the blocked `happy-dom` security PR(s) open.

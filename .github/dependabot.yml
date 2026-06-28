@@ -1,0 +1,15 @@
+# Dependabot configuration.
+# Declaring the npm ecosystem explicitly resolves every manifest against the
+# public registry (registry.npmjs.org) and short-circuits the automatic
+# GitHub Packages auth path that was aborting security updates with
+# `private_registry_config_not_found`. The repo does not use GitHub Packages.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    # No root package.json/workspaces: each packages/* dir is its own
+    # install root (own package.json + package-lock.json). The glob covers
+    # them all and stays in sync as packages are added or removed.
+    directories:
+      - "/packages/*"
+    schedule:
+      interval: "weekly"
