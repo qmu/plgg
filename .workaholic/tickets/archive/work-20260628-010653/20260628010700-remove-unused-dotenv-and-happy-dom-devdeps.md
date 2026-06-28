@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: housekeeping
 layer: [Config]
 effort:
-commit_hash:
-category:
+commit_hash: 1ee26c7
+category: Removed
 depends_on:
 ---
 
