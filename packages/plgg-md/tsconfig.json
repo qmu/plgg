@@ -9,6 +9,7 @@
     "types": [
       "node"
     ],
+    "rootDir": "src",
     "noEmit": true,
     "paths": {
       "plgg-md*": [
