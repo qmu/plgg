@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:16+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 6d5bb11
+category: Changed
 depends_on: [20260630013509-plgg-press-dev-server-live-reload.md, 20260630013514-guide-remove-vitepress-depend-on-plgg-press-only.md]
 ---
 
@@ -51,3 +51,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Bind-mount ordering is the crux: dists built during image build are hidden once the host repo mounts over /app — build after the mount or use named volumes (item 22).
 - plgg-highlight's typescript clean-runner masking applies here too: install it where the in-container build runs.
 - Sequence after the vitepress-removal ticket so the container targets plgg-press, not VitePress.
+
+## Final Report
+
+Development completed as planned (last ticket of the migration). The bind-mount masking is fixed via a post-mount entrypoint build (Option A): workloads/guide/dev-entrypoint.sh installs each package's own node_modules in dependency order (the plgg-highlight install is the typescript clean-runner fix), runs scripts/build.sh so the 7 sibling dists land on the MOUNTED tree, then execs PORT=5173 npm run dev (plgg-press dev). Dockerfile de-VitePress'd (adds git for build.sh's git rev-parse; ENTRYPOINT; Node 22; EXPOSE 5173). compose.yaml keeps 5181:5173 + tunnel, per-package node_modules volumes isolate container deps while dists land on the mount. README documents the new flow.
+
+### Discovered Insights
+
+- **Insight**: `npm install` in packages/guide does NOT cascade — its node_modules holds only a plgg-press symlink + typescript. plgg-press's runtime graph relies on each package's OWN node_modules (the per-package model scripts/npm-install.sh uses), so the container must install each package in dependency order, not just the guide. The plgg-highlight install provides its own-path typescript (the clean-runner masking).
+  **Context**: Named-volume seeding goes stale on rebuild and needs ~18 volumes; the entrypoint build always reflects current source and reuses scripts/build.sh.
+- **Insight**: Docker is NOT installed in this environment, so `docker compose up --build` / `docker compose config` could not run headless. Verified equivalently: build.sh produces all 7 dists; plgg-press dev serves the guide (HTTP 200, <title>plgg</title>, full nav, live-reload EventSource, Host plgg-guide.qmu.dev 200 / evil 403); Node 22 native type-stripping is compatible. The actual container bring-up must be confirmed where Docker runs (the deploy/ship step).
+  **Context**: A pre-existing foreign vitepress dev container still holds :5173 on this host — it predates the migration and will be replaced when the new container is brought up at ship.
