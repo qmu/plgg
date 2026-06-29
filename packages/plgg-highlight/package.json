@@ -1,0 +1,54 @@
+{
+  "name": "plgg-highlight",
+  "version": "0.0.1",
+  "description": "Zero-new-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's Highlighter seam, driving the already-present typescript compiler's ts.createScanner to tokenize code into classified plgg-view Html<never> spans; alias-normalizes the fence language and falls back to escaped pre>code for everything else",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch",
+    "publish": "npm run build && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-md": "file:../plgg-md",
+    "plgg-view": "file:../plgg-view"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:03+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: b0425e0
+category: Added
 depends_on: [20260630013458-md-corpus-spike-and-decisions.md, 20260630013502-plgg-md-inline-fold-to-html.md]
 ---
 
@@ -53,3 +53,16 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - The TS scanner is lexical-only (single file, no type-check), so isolated-transpilation edge cases never bite; exotic TSX may mis-tokenize but only cosmetically.
 - Like plgg-bundle, this package imports typescript from its own node_modules (clean-runner masking) — it must be installed wherever the guide builds, reached via plgg-press (handled in the deploy + dev-container tickets).
 - Non-TS fences are intentionally unstyled (acceptable; the guide is overwhelmingly ```ts).
+
+## Final Report
+
+Development completed as planned. New package packages/plgg-highlight satisfies plgg-md's Highlighter seam via the TS scanner with zero new third-party deps. Verified: tsc clean; build emits index.d.ts; 21 passed/0 failed; coverage 100/95.45/100/100; typescript externalized (import * as __ext2) not inlined; no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: The bundled context needs `import * as ts from "typescript"` (namespace), NOT the `import ts from` default form transpiler.ts uses — the bundler transpiles to CJS with esModuleInterop:false, so a default import emits `typescript_1.default.createScanner` and crashes (typescript is a CJS `export =` with no `.default`). The default form only works for plgg-bundle because it runs from source under Node ESM, not bundled.
+  **Context**: Any bundled sibling importing typescript (or any CJS `export =` module) must use the namespace form; this is a general plgg-bundle interop rule.
+- **Insight**: typescript must be in BOTH peerDependencies and devDependencies. deriveExternal externalizes dependencies/peer/optional but NOT devDependencies; with typescript only a devDep the bundler's graph walk throws ResolveError on the import. peer externalizes it (host provides, reuses existing ^6.0.3 — zero new vendor) while devDep installs it for local tsc/test/build + clean-runner.
+  **Context**: plgg-press (which injects asHighlighter) and any package wrapping a build-time compiler must follow this peer+dev pattern.
+- **Insight**: plgg-view's Style runtime lives only on the `plgg-view/style` subpath, which the in-house bundler (exact-bare-name externals, no subpaths) cannot externalize at runtime; so token colors import Styles/Color TYPE-ONLY (erased) and highlightCss(kind) returns per-kind Styles asserted against plgg-view's real color() so palette drift fails tests.
+  **Context**: The theme (ticket 8/9) must source token colors via highlightCss(kind) and merge them; a no-arg whole-stylesheet form isn't expressible given flat Styles.
