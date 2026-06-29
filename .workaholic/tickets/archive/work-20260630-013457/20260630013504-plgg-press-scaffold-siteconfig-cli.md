@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:04+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: a02b75a
+category: Added
 depends_on: [20260630013502-plgg-md-inline-fold-to-html.md, 20260630013503-plgg-highlight-ts-scanner.md]
 ---
 
@@ -56,3 +56,16 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - PressOptions/SiteConfig.dev.allowedHosts (item 7) is consumed by the dev-server ticket and set by the guide instance (port-5181 / plgg-guide.qmu.dev tunnel host).
 - CLI config loading (item 8) reuses plgg-bundle's existing TS import hook (bin/plgg-bundle.mjs:11-16) — no new dep, no separate transpile; config-load failures are Result-style ConfigLoadErrors, never throws.
 - href is the ONE base-path rewrite site for the whole facade; plgg-md and the theme must route every link through it — never reconstruct base logic elsewhere.
+
+## Final Report
+
+Development completed as planned. New package packages/plgg-press lands the facade contract + CLI skeleton with build()/dev() as clean typed stubs. Verified: tsc clean; build emits index.d.ts; 19 passed/0 failed; coverage 100/94.12/100/100; CLI prints usage; no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: plgg-press is a CLI TOOL (like plgg-bundle), so it mirrors plgg-bundle's package shape: `type: module`, ESM-only output (formats:["es"]), tsconfig module:ESNext + moduleResolution:Bundler + verbatimModuleSyntax:true (with rootDir:src). NodeNext could not resolve the extensionless `plgg-press/*` self-alias; the bin uses a hook.mjs self-alias resolver mirroring plgg-bundle.
+  **Context**: Tool packages run via the bin (Node type-stripping) follow this pattern, NOT the library CJS+ESM/NodeNext pattern. The theme/build/dev tickets extend this same package.
+- **Insight**: verbatimModuleSyntax:true is LOAD-BEARING — without it, Node's type-stripping emitted erased types (e.g. InvalidError) as runtime named imports and the bin crashed. Type-only imports must be `import type`.
+  **Context**: Any TS run through Node type-stripping (the config loader loads the consumer's site.config.ts this way) must use inline `type` on type-only imports.
+- **Insight**: href(base)(path) is the SINGLE base-path rewrite for the whole facade (external scheme://, //host, and bare #frag untouched; root-absolute internal prefixed; .md / /index.md normalized; trailing fragment preserved). SiteConfig owns home DATA (HomeConfig) + dev.allowedHosts; defineSite is a no-as boundary caster from per-field sub-casters; loadConfig folds missing/throw/validation-miss into a typed ConfigLoadError.
+  **Context**: The theme + build + dev tickets must inject href into plgg-md and consume SiteConfig/allowedHosts — never reconstruct base logic or re-parse config.
