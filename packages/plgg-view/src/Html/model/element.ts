@@ -21,6 +21,33 @@ export const el = <Msg>(
   box("Element")({ tag, attributes, children });
 
 /**
+ * A content slot — a flow-positioned container for
+ * ALREADY-BUILT Html of any tag (a rendered Markdown
+ * body, opaque highlighter output). Pins its own tag
+ * to `"div"` so the slot is itself valid {@link Flow}
+ * content and nests in the typed containers, while
+ * accepting the permissive `Html<Msg>` children the
+ * content model cannot statically constrain. Unlike
+ * {@link el} it keeps a concrete tag brand (so it
+ * stays {@link Flow}-assignable); unlike {@link
+ * flowEl} it does not narrow its children. Type-sound
+ * because {@link ElementContent} already stores
+ * children as `ReadonlyArray<Html<Msg>>` — the
+ * content-model restriction lives only in the other
+ * builders' signatures. This is the typed seam for
+ * handing a rendered fragment to the document shell.
+ */
+export const slot = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  children: ReadonlyArray<Html<Msg>>,
+): Html<Msg, "div"> =>
+  box("Element")<ElementContent<Msg, "div">>({
+    tag: "div",
+    attributes,
+    children,
+  });
+
+/**
  * A text leaf. Branded `"#text"` and carrying no
  * `Msg`, so it is usable in any `Html<Msg>` tree
  * and slots into any phrasing/flow position.

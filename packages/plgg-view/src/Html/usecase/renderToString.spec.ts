@@ -8,6 +8,7 @@ import {
 } from "plgg-test";
 import {
   el,
+  slot,
   text,
   div,
   input,
@@ -393,5 +394,23 @@ test("escapes a </style> breakout attempt in style text", () =>
     ),
     toBe(
       "<style>a{}&lt;/style&gt;&lt;script&gt;</style>",
+    ),
+  ));
+
+test("slot wraps an el-built fragment under a typed body", () =>
+  check(
+    renderToString(
+      body(
+        [],
+        [
+          slot(
+            [],
+            [el("div", [], [text("md body")])],
+          ),
+        ],
+      ),
+    ),
+    toBe(
+      "<body><div><div>md body</div></div></body>",
     ),
   ));
