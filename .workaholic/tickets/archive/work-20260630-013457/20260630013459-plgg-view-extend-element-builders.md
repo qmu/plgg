@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:34:59+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 06aa1dc
+category: Added
 depends_on:
 ---
 
@@ -48,3 +48,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Client-side renderer changes are out of scope (v1 is SSR/zero-JS); only the SSR path and types need to cover the new tags.
 - Match the existing curried (attributes, children) shape and tag-literal pinning so brands survive without casts.
 - style/meta/link only need to serialize on the SSR path; document-shell tags are never client-hydrated in v1.
+
+## Final Report
+
+Development completed as planned. All new builders are first-class typed builders (no `el()` carve-out); `escape.ts` needed no change (its `^[a-zA-Z][a-zA-Z0-9-]*$` tag grammar already admits the new tags). Verified green: `tsc-plgg-view.sh` clean, `test-plgg-view.sh` 126 passed/0 failed, coverage 98.32% stmts / 90.10% branches / 95.21% funcs / 98.32% lines (element.ts + renderToString.ts at 100%). No `as`/`any`/`ts-ignore` introduced.
+
+### Discovered Insights
+
+- **Insight**: `renderToString` already self-closes void tags via a `VOID_TAGS` list, so `meta`/`link`/`img`/`br`/`hr` needed only union/builder additions, not serializer special-casing; the one serializer change was emitting a leading `<!doctype html>` for the `html` shell.
+  **Context**: The document-shell builders compose a full `<html>` document from typed nodes; the doctype is the only thing the tree can't express, so it lives in the serializer.
+- **Insight**: Content models are expressed as small typed unions (PreContent, TableContent/TableRow/TableCell, DetailsContent, DocumentContent, HeadContent) rather than widening to a generic child — this is what lets Markdown/theme nodes nest without `el()`, and is the pattern the plgg-md fold and theme will build on.
+  **Context**: A `</style>` breakout-escape test confirms text-only children (title/style) stay XSS-safe through the existing escape chokepoint.

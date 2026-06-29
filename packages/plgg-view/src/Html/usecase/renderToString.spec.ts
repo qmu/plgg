@@ -11,6 +11,36 @@ import {
   text,
   div,
   input,
+  h1,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  ol,
+  li,
+  code,
+  pre,
+  img,
+  br,
+  hr,
+  blockquote,
+  nav,
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td,
+  details,
+  summary,
+  html,
+  head,
+  body,
+  title,
+  meta,
+  link,
+  style,
 } from "plgg-view/Html/model/element";
 import {
   class_,
@@ -83,7 +113,11 @@ test("preserves legitimate http/mailto/relative URLs", () =>
     ),
     check(
       renderToString(
-        el("a", [attr("href", "/local/path")], []),
+        el(
+          "a",
+          [attr("href", "/local/path")],
+          [],
+        ),
       ),
       toContain('href="/local/path"'),
     ),
@@ -92,7 +126,11 @@ test("preserves legitimate http/mailto/relative URLs", () =>
 test("drops an on* event-handler attribute name", () =>
   check(
     renderToString(
-      el("img", [attr("onerror", "alert(1)")], []),
+      el(
+        "img",
+        [attr("onerror", "alert(1)")],
+        [],
+      ),
     ),
     not(toContain("onerror")),
   ));
@@ -174,5 +212,186 @@ test("escapes attribute values that try to break out", () =>
     ),
     toBe(
       '<a title="&quot;&gt;&lt;script&gt;"></a>',
+    ),
+  ));
+
+// --- new builders -----------------------------------
+
+test("renders headings h3-h6", () =>
+  all([
+    check(
+      renderToString(h3([], [text("a")])),
+      toBe("<h3>a</h3>"),
+    ),
+    check(
+      renderToString(h4([], [text("b")])),
+      toBe("<h4>b</h4>"),
+    ),
+    check(
+      renderToString(h5([], [text("c")])),
+      toBe("<h5>c</h5>"),
+    ),
+    check(
+      renderToString(h6([], [text("d")])),
+      toBe("<h6>d</h6>"),
+    ),
+  ]));
+
+test("renders an ordered list", () =>
+  check(
+    renderToString(
+      ol(
+        [],
+        [
+          li([], [text("one")]),
+          li([], [text("two")]),
+        ],
+      ),
+    ),
+    toBe("<ol><li>one</li><li>two</li></ol>"),
+  ));
+
+test("renders pre>code (fenced block shape)", () =>
+  check(
+    renderToString(
+      pre([], [code([], [text("x = 1")])]),
+    ),
+    toBe("<pre><code>x = 1</code></pre>"),
+  ));
+
+test("renders pre wrapping bare text", () =>
+  check(
+    renderToString(pre([], [text("raw <b>")])),
+    toBe("<pre>raw &lt;b&gt;</pre>"),
+  ));
+
+test("renders a blockquote", () =>
+  check(
+    renderToString(
+      blockquote([], [div([], [text("quote")])]),
+    ),
+    toBe(
+      "<blockquote><div>quote</div></blockquote>",
+    ),
+  ));
+
+test("self-closes img, br, hr void elements", () =>
+  all([
+    check(
+      renderToString(
+        img([attr("src", "/a.png")], []),
+      ),
+      toBe('<img src="/a.png" />'),
+    ),
+    check(
+      renderToString(br([], [])),
+      toBe("<br />"),
+    ),
+    check(
+      renderToString(hr([], [])),
+      toBe("<hr />"),
+    ),
+  ]));
+
+test("renders a nav container", () =>
+  check(
+    renderToString(
+      nav([], [a([], [text("Home")])]),
+    ),
+    toBe("<nav><a>Home</a></nav>"),
+  ));
+
+test("renders a nested table (thead/tbody/tr/th/td)", () =>
+  check(
+    renderToString(
+      table(
+        [],
+        [
+          thead(
+            [],
+            [tr([], [th([], [text("H")])])],
+          ),
+          tbody(
+            [],
+            [tr([], [td([], [text("D")])])],
+          ),
+        ],
+      ),
+    ),
+    toBe(
+      "<table>" +
+        "<thead><tr><th>H</th></tr></thead>" +
+        "<tbody><tr><td>D</td></tr></tbody>" +
+        "</table>",
+    ),
+  ));
+
+test("renders details with a summary child plus flow", () =>
+  check(
+    renderToString(
+      details(
+        [],
+        [
+          summary([], [text("More")]),
+          div([], [text("body")]),
+        ],
+      ),
+    ),
+    toBe(
+      "<details>" +
+        "<summary>More</summary>" +
+        "<div>body</div>" +
+        "</details>",
+    ),
+  ));
+
+test("renders a full html document shell with a leading doctype", () =>
+  check(
+    renderToString(
+      html(
+        [],
+        [
+          head(
+            [],
+            [
+              title([], [text("Doc")]),
+              meta(
+                [attr("charset", "utf-8")],
+                [],
+              ),
+              link(
+                [
+                  attr("rel", "stylesheet"),
+                  attr("href", "/s.css"),
+                ],
+                [],
+              ),
+              style([], [text("body{margin:0}")]),
+            ],
+          ),
+          body([], [h1([], [text("Hi")])]),
+        ],
+      ),
+    ),
+    toBe(
+      "<!doctype html><html>" +
+        "<head>" +
+        "<title>Doc</title>" +
+        '<meta charset="utf-8" />' +
+        '<link rel="stylesheet" href="/s.css" />' +
+        "<style>body{margin:0}</style>" +
+        "</head>" +
+        "<body><h1>Hi</h1></body>" +
+        "</html>",
+    ),
+  ));
+
+test("escapes a </style> breakout attempt in style text", () =>
+  check(
+    renderToString(
+      style([], [text("a{}</style><script>")]),
+    ),
+    toBe(
+      "<style>a{}&lt;/style&gt;&lt;script&gt;</style>",
     ),
   ));

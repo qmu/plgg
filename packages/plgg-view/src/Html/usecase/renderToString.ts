@@ -84,7 +84,9 @@ export const renderToString = <Msg>(
         ? ""
         : VOID_TAGS.some((t) => t === tag)
           ? `<${tag}${attributes.map(renderAttribute).join("")} />`
-          : `<${tag}${attributes
+          : // the `html` shell leads with a doctype so
+            // the document renders in standards mode
+            `${tag === "html" ? "<!doctype html>" : ""}<${tag}${attributes
               .map(renderAttribute)
               .join(
                 "",
