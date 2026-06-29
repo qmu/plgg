@@ -4,6 +4,8 @@ import {
   type PromisedResult,
   type Defect,
   ok,
+  isOk,
+  pipe,
   proc,
   mapResult,
 } from "plgg";
@@ -21,6 +23,12 @@ import {
 } from "plgg-press/Press/model/PressOptions";
 import { pressRouter } from "plgg-press/router/pressRouter";
 import { notFound } from "plgg-press/theme/notFound";
+import {
+  type PageLinks,
+  type BrokenLinks,
+} from "plgg-press/CheckLinks/model/CheckLinks";
+import { collectPageLinks } from "plgg-press/CheckLinks/usecase/collectPageLinks";
+import { checkLinks } from "plgg-press/CheckLinks/usecase/checkLinks";
 
 /**
  * Build the static site from a content corpus into
@@ -29,6 +37,11 @@ import { notFound } from "plgg-press/theme/notFound";
  *
  * 1. {@link discoverPaths} crawls the corpus for `*.md`
  *    route paths;
+ * 1b. {@link collectPageLinks} + {@link checkLinks}
+ *    validate every internal link and `#anchor` against
+ *    the discovered routes and emitted heading slugs — a
+ *    broken link fails the build (a {@link BrokenLinks})
+ *    BEFORE anything is written;
  * 2. {@link generateStatic} renders every path through the
  *    internal {@link pressRouter} (Markdown → highlight →
  *    theme) and writes each to `outDir/<path>/index.html`,
@@ -47,10 +60,41 @@ export const build = (
   opts: PressOptions,
 ): PromisedResult<
   BuildReport,
-  SsgError | Defect
+  SsgError | Defect | BrokenLinks
 > =>
   proc(
     discoverPaths(opts.contentDir),
+    (
+      paths: ReadonlyArray<SoftStr>,
+    ): PromisedResult<
+      ReadonlyArray<SoftStr>,
+      Defect | BrokenLinks
+    > =>
+      collectPageLinks(
+        opts.contentDir,
+        opts.base,
+      )(paths).then(
+        (
+          collected: Result<
+            ReadonlyArray<PageLinks>,
+            Defect
+          >,
+        ): Result<
+          ReadonlyArray<SoftStr>,
+          Defect | BrokenLinks
+        > =>
+          isOk(collected)
+            ? pipe(
+                checkLinks(opts.base)(
+                  collected.content,
+                ),
+                mapResult(
+                  (): ReadonlyArray<SoftStr> =>
+                    paths,
+                ),
+              )
+            : collected,
+      ),
     (
       paths: ReadonlyArray<SoftStr>,
     ): PromisedResult<

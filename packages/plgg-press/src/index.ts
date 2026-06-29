@@ -42,6 +42,18 @@ export {
   configLoadError$,
 } from "plgg-press/Press/model/PressError";
 
+export {
+  type PageLinks,
+  type BrokenLink,
+  type BrokenLinks,
+  pageLinks,
+  brokenLink,
+  brokenLinks,
+  brokenLinks$,
+} from "plgg-press/CheckLinks/model/CheckLinks";
+export { checkLinks } from "plgg-press/CheckLinks/usecase/checkLinks";
+export { collectPageLinks } from "plgg-press/CheckLinks/usecase/collectPageLinks";
+
 export { build } from "plgg-press/build";
 export { dev } from "plgg-press/dev";
 export { loadConfig } from "plgg-press/Config/usecase/loadConfig";

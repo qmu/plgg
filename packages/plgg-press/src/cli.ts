@@ -22,6 +22,10 @@ import {
   type ConfigLoadError,
   type NotImplementedError,
 } from "plgg-press/Press/model/PressError";
+import {
+  type BrokenLink,
+  type BrokenLinks,
+} from "plgg-press/CheckLinks/model/CheckLinks";
 import { loadConfig } from "plgg-press/Config/usecase/loadConfig";
 import { build } from "plgg-press/build";
 import { dev } from "plgg-press/dev";
@@ -116,13 +120,20 @@ const configPathOf = (
  * cast — so each variant surfaces its most useful field.
  */
 const formatBuildError = (
-  e: SsgError | Defect,
+  e: SsgError | Defect | BrokenLinks,
 ): SoftStr =>
   e.__tag === "Defect"
     ? e.content.message
-    : e.__tag === "WriteFailed"
-      ? `${e.content.path}: ${e.content.message}`
-      : `${e.__tag}: ${e.content.path}`;
+    : e.__tag === "BrokenLinks"
+      ? `${e.content.broken.length} broken link(s): ${e.content.broken
+          .map(
+            (b: BrokenLink): SoftStr =>
+              `${b.source} -> ${b.href} (${b.reason})`,
+          )
+          .join("; ")}`
+      : e.__tag === "WriteFailed"
+        ? `${e.content.path}: ${e.content.message}`
+        : `${e.__tag}: ${e.content.path}`;
 
 /**
  * `build` dispatch: load the config, then run the build,
@@ -143,7 +154,7 @@ const runBuild = (
         ).then(
           matchResult(
             (
-              be: SsgError | Defect,
+              be: SsgError | Defect | BrokenLinks,
             ): void =>
               fail(formatBuildError(be)),
             (r: BuildReport): void =>

@@ -11,6 +11,7 @@ import {
   check,
   all,
   okThen,
+  errThen,
   toBe,
   toContain,
   not,
@@ -226,6 +227,51 @@ test("writes the 404 through the theme shell", () =>
       toContain("Page not found"),
     ),
   ]));
+
+// A corpus whose guide links to a route that does not
+// exist — the dead-link checker must fail the build before
+// anything is written.
+const buildBrokenFixture = async () => {
+  const root = await mkdtemp(
+    join(tmpdir(), "plgg-press-broken-"),
+  );
+  const contentDir = join(root, "content");
+  const outDir = join(root, "out");
+  await mkdir(contentDir, { recursive: true });
+  await writeFile(
+    join(contentDir, "index.md"),
+    HOME_MD,
+    "utf8",
+  );
+  await writeFile(
+    join(contentDir, "guide.md"),
+    [
+      "# Guide",
+      "",
+      "A [dead link](/concepts/ghost.md).",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  const opts: PressOptions = {
+    contentDir,
+    outDir,
+    assetsDir: join(contentDir, "public"),
+    config,
+    base: config.base,
+    dev: false,
+    allowedHosts: [],
+  };
+  return build(opts);
+};
+
+test("fails the build with BrokenLinks when a link points at a missing route", async () =>
+  check(
+    await buildBrokenFixture(),
+    errThen((e) =>
+      toBe("BrokenLinks")(e.__tag),
+    ),
+  ));
 
 test("PRODUCTION emit is zero-client-JS: no <script>, no EventSource anywhere", () =>
   all(

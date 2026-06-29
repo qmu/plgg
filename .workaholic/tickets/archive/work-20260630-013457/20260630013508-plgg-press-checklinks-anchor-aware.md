@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:08+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: e9b6201
+category: Changed
 depends_on: [20260630013507-plgg-press-build-pipeline.md]
 ---
 
@@ -49,3 +49,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Compare unprefixed routes — links are base-prefixed via href, the route set is not.
 - The 404 page is excluded from route-link expectations (item 14); keep the checker pure (operates on collected data), no fs access.
 - This check must exist before vitepress removal (items 11 & 21) so dead-link detection is never lost in the cutover window.
+
+## Final Report
+
+Development completed as planned. checkLinks is a pure anchor-aware dead-link checker wired into build() BEFORE generateStatic, so a broken link fails the build before any write. Verified: tsc clean; build dts; 69 passed/0 failed; coverage 100/93.22/98.53/100; checker has no node:fs; no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: collectPageLinks re-renders each page's Markdown separately from generateStatic's HTML render (with the compiler-free plainHighlighter) to harvest links+slugs, because plgg-server's crawl boundary carries only the HTML string. The checker itself stays pure over the collected array; this is the only dead-link step touching node:fs.
+  **Context**: A second cheap parse per page is the cost of keeping the checker pure + plgg-server unchanged — acceptable for a doc build. A future generateStatic that surfaces per-page metadata could remove the double parse.
+- **Insight**: Links are compared UNPREFIXED (base stripped) against the route set, with trailing-slash/index equivalence; #fragments validate against the TARGET page's slug set (same slug function that emits ids); external/asset/synthetic-404 links are excluded. This replaces VitePress dead-link detection and exists BEFORE removal, so the cutover never loses the check.
+  **Context**: Catches exactly the broken-anchor class the spike flagged (the 4 pre-existing em-dash anchors would be caught if authored against generated slugs).

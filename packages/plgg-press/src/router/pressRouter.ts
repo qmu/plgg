@@ -54,7 +54,7 @@ import { homeHero } from "plgg-press/theme/homeHero";
  * handler generic — it reconstructs the file from the
  * request path alone, so one handler serves every route.
  */
-const candidateFiles = (
+export const candidateFiles = (
   contentDir: SoftStr,
   path: SoftStr,
 ): ReadonlyArray<SoftStr> =>
