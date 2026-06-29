@@ -25,9 +25,19 @@ cd $REPO_ROOT/packages/plgg-http && npm run build
 # plgg-router: a pure path toolkit depending only on plgg core (no plgg-view).
 cd $REPO_ROOT/packages/plgg-router && npm run build
 cd $REPO_ROOT/packages/plgg-view && npm run build
+# plgg-md after plgg-view: its AST->Html fold emits plgg-view's Html and it takes
+# an injected Highlighter seam (filled by plgg-highlight, built next).
+cd $REPO_ROOT/packages/plgg-md && npm run build
+# plgg-highlight after plgg-md: the zero-dep TS/TSX highlighter that satisfies
+# plgg-md's injected Highlighter seam.
+cd $REPO_ROOT/packages/plgg-highlight && npm run build
 # plgg-server after plgg-view + plgg-http: its View renders plgg-view's Html and
 # its Http layer builds on plgg-http's model.
 cd $REPO_ROOT/packages/plgg-server && npm run build
+# plgg-press after plgg-server and plgg-http: the static-site/dev-server tool that
+# depends on plgg-md, plgg-highlight, plgg-view, plgg-server, and plgg-http (all
+# built earlier so it can resolve their dists).
+cd $REPO_ROOT/packages/plgg-press && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
 cd $REPO_ROOT/packages/plgg-sql && npm run build

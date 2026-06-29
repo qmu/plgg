@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:13+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Config, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: a3983fd
+category: Changed
 depends_on: [20260630013502-plgg-md-inline-fold-to-html.md, 20260630013503-plgg-highlight-ts-scanner.md, 20260630013508-plgg-press-checklinks-anchor-aware.md, 20260630013509-plgg-press-dev-server-live-reload.md]
 ---
 
@@ -58,3 +58,12 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - MEMORY mandates >90% coverage for the new packages via their own plgg-test.config.json; the existing plgg-view threshold of 89 is a documented V8-ruler exception, not the target for new packages.
 - Be accurate about CI (item 18): check-all.sh is the local authoritative gate, not a CI step today.
 - The deploy workflow build loop is handled in the deploy-rewire ticket.
+
+## Final Report
+
+Development completed as planned. build.sh now builds plgg-md (after plgg-view), plgg-highlight (after plgg-md), and plgg-press (after plgg-server+plgg-http) in exact dependency order; new test + coverage runners mirror the siblings; check-all.sh lists the 3 new test runners. Verified: `bash scripts/check-all.sh` exits 0 — gate-vite + all 16 packages' dists build in order + every package tsc/test green (plgg-md 68, plgg-highlight 21, plgg-press 80; all 13 existing pass). New packages' plgg-test.config.json set threshold 90 (strict >90%).
+
+### Discovered Insights
+
+- **Insight**: The plgg-test coverage gate compares strictly greater (report.x.pct > threshold), so `threshold: 90` enforces strict >90% on all four metrics. check-all.sh invokes only the per-package TEST runners (not coverage) — matched that exactly; coverage runners exist for manual/CI use.
+  **Context**: check-all.sh is the AUTHORITATIVE LOCAL gate; run-tests.yml in CI still runs only gate-vite + plgg's tsc/test/coverage (CI enforcement of the new packages is a run-tests.yml follow-up, noted for the deploy ticket).
