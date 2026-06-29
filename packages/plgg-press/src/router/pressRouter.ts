@@ -42,6 +42,7 @@ import {
 } from "plgg-press/SiteConfig/model/SiteConfig";
 import { href } from "plgg-press/Href/usecase/href";
 import { shell } from "plgg-press/theme/shell";
+import { page } from "plgg-press/theme/page";
 import { homeHero } from "plgg-press/theme/homeHero";
 
 /**
@@ -129,14 +130,14 @@ const isHome = (doc: MarkdownDoc): boolean =>
   );
 
 /**
- * The body to wrap: the generic {@link homeHero} rendered
- * from `config.home` DATA when the page is `layout: home`
- * AND the config carries home data, otherwise the rendered
- * Markdown body. A `layout: home` page with no configured
- * home data degrades to its Markdown body rather than
- * failing.
+ * The content region to wrap: the generic
+ * {@link homeHero} rendered from `config.home` DATA when
+ * the page is `layout: home` AND the config carries home
+ * data, otherwise the rendered Markdown body. A
+ * `layout: home` page with no configured home data
+ * degrades to its Markdown body rather than failing.
  */
-const bodyOf = (
+const contentOf = (
   config: SiteConfig,
   base: SoftStr,
   doc: MarkdownDoc,
@@ -153,16 +154,32 @@ const bodyOf = (
     : doc.body;
 
 /**
- * Composes one page: pick the body, wrap it in the theme
- * document {@link shell} (which derives the `<title>` and
- * inlines the collected atomic CSS).
+ * Composes one page: pick the content region, wrap it in
+ * the {@link page} layout (top {@link navBar} + the
+ * {@link sidebarTree} marked at the route being rendered,
+ * or the full-width hero for `layout: home`), then in the
+ * theme document {@link shell} (which derives the
+ * `<title>` and inlines the collected atomic CSS). `route`
+ * is the path being rendered — the `activePath` the chrome
+ * marks — threaded from the per-route handler.
  */
 const pageView = (
   config: SiteConfig,
   base: SoftStr,
   doc: MarkdownDoc,
+  route: SoftStr,
 ): Html<never> =>
-  shell(config, doc, bodyOf(config, base, doc));
+  shell(
+    config,
+    doc,
+    page(
+      config,
+      doc,
+      contentOf(config, base, doc),
+      route,
+      base,
+    ),
+  );
 
 /**
  * The shared route handler: read the route's source file,
@@ -203,7 +220,12 @@ const pageHandler =
               (doc: MarkdownDoc): HttpResponse =>
                 htmlResponse(
                   renderToString(
-                    pageView(config, base, doc),
+                    pageView(
+                      config,
+                      base,
+                      doc,
+                      c.req.path,
+                    ),
                   ),
                 ),
             ),

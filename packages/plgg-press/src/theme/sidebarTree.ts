@@ -26,7 +26,10 @@ import {
   type SidebarGroup,
   type SidebarItem,
 } from "plgg-press/SiteConfig/model/SiteConfig";
-import { href } from "plgg-press/Href/usecase/href";
+import {
+  href,
+  samePath,
+} from "plgg-press/Href/usecase/href";
 
 /**
  * The documentation sidebar as a nested, CSS-only
@@ -48,8 +51,9 @@ export const sidebarTree = (
   base: SoftStr,
 ): Html<never, "nav"> => {
   const hrefOf = href(base);
+  const sameAsActive = samePath(base);
   const isActive = (link: SoftStr): boolean =>
-    hrefOf(link) === hrefOf(activePath);
+    sameAsActive(link, activePath);
   // Whether the active page lives anywhere in this
   // subtree, so its ancestor disclosures open at build.
   const holdsActive = (

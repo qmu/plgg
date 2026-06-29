@@ -20,7 +20,10 @@ import {
   bg,
 } from "plgg-view/style";
 import { type SiteConfig } from "plgg-press/SiteConfig/model/SiteConfig";
-import { href } from "plgg-press/Href/usecase/href";
+import {
+  href,
+  samePath,
+} from "plgg-press/Href/usecase/href";
 
 /**
  * The top navigation bar built purely from
@@ -38,8 +41,9 @@ export const navBar = (
   activePath: SoftStr,
 ): Html<never, "nav"> => {
   const hrefOf = href(config.base);
+  const sameAsActive = samePath(config.base);
   const isActive = (link: SoftStr): boolean =>
-    hrefOf(link) === hrefOf(activePath);
+    sameAsActive(link, activePath);
   const linkAttrs = (
     link: SoftStr,
   ): ReadonlyArray<Attribute<never>> =>

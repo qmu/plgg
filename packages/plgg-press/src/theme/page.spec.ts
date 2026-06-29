@@ -19,12 +19,8 @@ import {
 } from "plgg-md";
 import { type SiteConfig } from "plgg-press/SiteConfig/model/SiteConfig";
 import { shell } from "plgg-press/theme/shell";
-import { navBar } from "plgg-press/theme/navBar";
-import { sidebarTree } from "plgg-press/theme/sidebarTree";
+import { page } from "plgg-press/theme/page";
 
-// The whole content chrome of one page, composed the way
-// the build pipeline will: nav + sidebar + rendered body,
-// handed to the document shell.
 const config: SiteConfig = {
   title: "plgg Guide",
   description: "The plgg static guide",
@@ -61,29 +57,53 @@ const content: Html<never, "div"> = div(
 
 const activePath = "/getting-started";
 
-const body: Html<never> = div(
-  [],
-  [
-    navBar(config, activePath),
-    sidebarTree(
-      config.sidebar,
-      activePath,
-      config.base,
-    ),
-    content,
-  ],
-);
-
-const doc: MarkdownDoc = {
+// A normal content page: navBar + sidebarTree + body.
+const contentDoc: MarkdownDoc = {
   frontmatter: frontmatter(none()),
   firstHeading: some("Getting Started"),
-  body,
+  body: content,
   links: [],
   slugs: [],
 };
 
+// A home page (layout: home): full-width hero, no
+// sidebar.
+const homeDoc: MarkdownDoc = {
+  frontmatter: frontmatter(some("home")),
+  firstHeading: none(),
+  body: content,
+  links: [],
+  slugs: [],
+};
+
+// The page layout composed exactly the way the build
+// pipeline wires it: page() → shell().
 const rendered = renderToString(
-  shell(config, doc, body),
+  shell(
+    config,
+    contentDoc,
+    page(
+      config,
+      contentDoc,
+      content,
+      activePath,
+      config.base,
+    ),
+  ),
+);
+
+const renderedHome = renderToString(
+  shell(
+    config,
+    homeDoc,
+    page(
+      config,
+      homeDoc,
+      content,
+      activePath,
+      config.base,
+    ),
+  ),
 );
 
 test("composes nav, sidebar and content inside the shell document", () =>
@@ -105,6 +125,12 @@ test("composes nav, sidebar and content inside the shell document", () =>
 
 test("includes a CSS-only <details> sidebar with an active-marked link", () =>
   all([
+    check(
+      rendered,
+      toContain(
+        'aria-label="Sidebar navigation"',
+      ),
+    ),
     check(rendered, toContain("<details")),
     check(rendered, toContain("<summary")),
     check(
@@ -123,5 +149,26 @@ test("base-prefixes both nav and sidebar links", () =>
     check(
       rendered,
       toContain('href="/plgg/concepts/"'),
+    ),
+  ]));
+
+test("home page renders the hero content with NO sidebar", () =>
+  all([
+    check(renderedHome, toContain("<nav")),
+    check(
+      renderedHome,
+      toContain("Article content here"),
+    ),
+    check(
+      renderedHome,
+      not(
+        toContain(
+          'aria-label="Sidebar navigation"',
+        ),
+      ),
+    ),
+    check(
+      renderedHome,
+      not(toContain("<details")),
     ),
   ]));

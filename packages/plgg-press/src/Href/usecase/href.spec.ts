@@ -1,5 +1,13 @@
-import { test, check, all, toBe } from "plgg-test";
-import { href } from "plgg-press/Href/usecase/href";
+import {
+  test,
+  check,
+  all,
+  toBe,
+} from "plgg-test";
+import {
+  href,
+  samePath,
+} from "plgg-press/Href/usecase/href";
 
 test("prefixes an internal root-absolute path with base", () =>
   check(
@@ -68,3 +76,37 @@ test("leaves a file-relative link unprefixed", () =>
     href("/plgg/")("./neighbour.md"),
     toBe("./neighbour"),
   ));
+
+test("samePath matches a link and the trailing-slash route for the same page", () =>
+  all([
+    // the discoverPaths route carries a trailing
+    // slash the authored link omits
+    check(
+      samePath("/plgg/")(
+        "/getting-started",
+        "/getting-started/",
+      ),
+      toBe(true),
+    ),
+    // exact-equal links match
+    check(
+      samePath("/plgg/")(
+        "/concepts/",
+        "/concepts/",
+      ),
+      toBe(true),
+    ),
+    // the bare root stays distinct from a child
+    check(
+      samePath("/plgg/")("/", "/getting-started/"),
+      toBe(false),
+    ),
+    // different pages never match
+    check(
+      samePath("/plgg/")(
+        "/getting-started/",
+        "/concepts/",
+      ),
+      toBe(false),
+    ),
+  ]));
