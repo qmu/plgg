@@ -8,7 +8,8 @@
     "dev": "vitepress dev",
     "docs:api": "node scripts/gen-api.mjs",
     "build": "npm run docs:api && vitepress build",
-    "preview": "vitepress preview"
+    "preview": "vitepress preview",
+    "verify:render": "node scripts/verify-render.mjs"
   },
   "repository": {
     "type": "git",

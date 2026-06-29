@@ -94,7 +94,7 @@ export type SqlError = Box<
 
 Shape mismatches are `InvalidError`. Both flow through
 `Result`/`proc` (see the
-[core error model](/packages/plgg/structures-errors#exceptionals-the-error-model)),
+[core error model](/packages/plgg/structures-errors#the-error-model-—-errors-as-data)),
 so nothing throws past the seam — a handler folds them to
 its own channel with one `mapErr`. `SqlError` follows the
 same `Box`-union idiom as the core errors; a future shared
