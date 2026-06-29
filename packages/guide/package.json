@@ -3,12 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "The official user guide for plgg and the plgg family — a VitePress site. Content is authored in Markdown; code samples are drawn from the real packages and tested examples.",
+  "description": "The official user guide for plgg and the plgg family. Content is authored in Markdown; code samples are drawn from the real packages and tested examples.",
   "scripts": {
-    "dev": "vitepress dev",
+    "dev": "plgg-press dev --config site.config.ts --contentDir .",
     "docs:api": "node scripts/gen-api.mjs",
-    "build": "npm run docs:api && vitepress build",
-    "preview": "vitepress preview",
+    "build": "npm run docs:api && plgg-press build --config site.config.ts --contentDir . --outDir dist",
+    "preview": "python3 -m http.server --directory dist",
     "verify:render": "node scripts/verify-render.mjs"
   },
   "repository": {
@@ -26,8 +26,6 @@
   },
   "devDependencies": {
     "typedoc": "^0.28.19",
-    "typedoc-plugin-markdown": "^4.12.0",
-    "typedoc-vitepress-theme": "^1.1.3",
-    "vitepress": "^1.6.3"
+    "typedoc-plugin-markdown": "^4.12.0"
   }
 }

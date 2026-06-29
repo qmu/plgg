@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:14+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 67363da
+category: Removed
 depends_on: [20260630013507-plgg-press-build-pipeline.md, 20260630013508-plgg-press-checklinks-anchor-aware.md, 20260630013509-plgg-press-dev-server-live-reload.md, 20260630013510-typedoc-drop-theme-emit-manifest.md, 20260630013511-guide-site-config-instance.md]
 ---
 
@@ -53,3 +53,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Do this only AFTER build, checkLinks, and dev are proven (items 11 & 21: dead-link checking must exist before cutover), to avoid a broken guide mid-migration.
 - The guide's SOLE site/runtime dependency is plgg-press — the facade's whole point. plgg-press's package.json carries the six sibling file: deps; the guide must NOT re-list them.
 - gate-vite.sh still exempts /guide/ at this point; tightening it is the deploy-rewire ticket to avoid a red gate before CI is updated.
+
+## Final Report
+
+VITEPRESS REMOVED. packages/guide now depends ONLY on plgg-press (file:), keeps typedoc + typedoc-plugin-markdown devDeps, repoints dev/build/preview to plgg-press, deletes the entire .vitepress/ directory, and converts index.md to the flat `layout: home` marker. npm install removed 124 packages; lockfile has zero vitepress/vite and no new third-party top-level dep. `npm run build` emits 58 pages + 404.html with zero <script>; gate-vite and check-all both exit 0.
+
+### Discovered Insights
+
+- **Insight**: A latent plgg-press bug surfaced at cutover — bin/plgg-press.mjs was tracked mode 100644 while sibling bins are 100755, so the npm .bin symlink could not execute it once a consumer (the guide) invoked it via the dep bin. Fixed to 100755 (git update-index --chmod=+x); rides in this commit.
+  **Context**: Any new package shipping a bin must track it executable (100755), matching plgg-bundle/plgg-test.
+- **Insight**: The guide's SOLE site/runtime dependency is now plgg-press — the facade encapsulates the six sibling deps, so the guide does not list them. preview uses `python3 -m http.server --directory dist` (zero new dep). gate-vite still exempts /guide/ (tightened in the deploy-rewire ticket); deploy-guide.yml still calls vitepress build (rewired next) — do not run deploy until ticket 18 lands.
+  **Context**: The goal (replace VitePress) is met for the guide source; CI/deploy + dev container rewiring (tickets 18-19) make the deployed/dev paths use plgg-press too.
