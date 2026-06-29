@@ -13,7 +13,7 @@ depends_on:
 
 ## Overview
 
-Risk-first gate for the whole migration. Before any parser code is written, enumerate the EXACT Markdown construct set used across (a) authored prose/concept/package pages and (b) a regeneration of the typedoc API Markdown with typedoc-vitepress-theme removed. Produce a written subset spec AND record three downstream-blocking decisions: (1) the heading-slug algorithm that reproduces existing #anchor links, (2) ownership of the home hero/features content (theme homeHero, not nested-YAML parsing), (3) handling of raw angle-bracket/HTML sequences in prose. Capture current VitePress-rendered HTML as golden snapshots for later regression. Proves the keep-typedoc/drop-theme decision and bounds the parser scope.
+Risk-first gate for the whole migration. Before any parser code is written, enumerate the EXACT Markdown construct set used across (a) authored prose/concept/package pages and (b) a regeneration of the typedoc API Markdown with typedoc-vitepress-theme removed. Produce a written subset spec AND record three downstream-blocking decisions: (1) the heading-slug algorithm that reproduces existing #anchor links, (2) ownership of the home hero/features content (the plgg-press theme homeHero, not nested-YAML parsing), (3) handling of raw angle-bracket/HTML sequences in prose. Capture current VitePress-rendered HTML as golden snapshots for later regression. Proves the keep-typedoc/drop-theme decision and bounds the parser scope.
 
 **Proof of value:** A written subset spec + construct-frequency inventory + recorded slug algorithm, hero-ownership, and raw-HTML decisions, plus a theme-on-vs-theme-off typedoc diff and golden HTML snapshots in the scratchpad — demonstrably bounding the parser grammar and anchor convention.
 
@@ -21,8 +21,9 @@ Risk-first gate for the whole migration. Before any parser code is written, enum
 
 The standard engineering policies this ticket answers to. The implementing session MUST read each linked policy before writing code and keep the change defensible against its Goal / Responsibility / Practices.
 
-- `workaholic:implementation` / `policies/directory-structure.md` — spike artifacts must live in a conventional location
-- `workaholic:implementation` / `policies/vendor-neutrality.md` — the spike confirms the zero-new-dep constraint is satisfiable by enumerating constructs we must hand-roll
+- `workaholic:implementation` / `policies/directory-structure.md` — spike artifacts must live in a conventional scratch location, not littered through packages
+- `workaholic:implementation` / `policies/coding-standards.md` — the recorded subset/slug/hero decisions bind later code to house style, so they are framed in coding-standard terms
+- `workaholic:implementation` / `policies/vendor-neutrality.md` — the spike confirms the zero-new-dep constraint is satisfiable by enumerating the constructs we must hand-roll
 - `workaholic:operation` / `policies/ci-cd.md` — the typedoc regen must leave the repo green; restoring config is an ops concern
 
 ## Key Files
@@ -36,14 +37,13 @@ The standard engineering policies this ticket answers to. The implementing sessi
 ## Implementation Steps
 
 1. Grep the whole packages/guide tree for Markdown features: ATX headings (incl. h3/h4 from gen-api), fenced code with lang, pipe tables, ordered/unordered/nested lists, blockquotes, hr, inline bold/italic/code, links (note root-absolute vs relative/.md forms), images, raw angle-brackets/HTML, ::: containers, frontmatter keys; record counts per construct.
-2. Temporarily remove 'typedoc-vitepress-theme' from typedoc.base.json's plugin array, run `npm run docs:api`, and diff against theme-on output to identify what the theme changed (link forms, anchors, sidebar JSON, any raw HTML); confirm gen-api.mjs still emits ###/#### headings, ```ts fences, and its sidebar manifest.
+2. Temporarily remove 'typedoc-vitepress-theme' from typedoc.base.json's plugin array, run `npm run docs:api`, and diff against theme-on output to identify what the theme changed (link forms, anchors, sidebar JSON, raw HTML); confirm gen-api.mjs still emits ###/#### headings, ```ts fences, and its sidebar manifest.
 3. Build the current VitePress site and save rendered HTML for ~5 prose pages + 2 API pages as golden snapshots under the scratchpad.
-4. RECORD DECISIONS: (a) the heading-slug algorithm reproducing existing #fragment anchors (cite concrete corpus anchors), (b) home hero/features content is owned by the theme homeHero (frontmatter parser only detects flat `layout: home`), (c) raw angle-bracket/HTML handling (escape via inline text vs guarded passthrough).
-5. Write the SUBSET SPEC enumerating the exact block + inline constructs plgg-md must support, container/frontmatter handling, and the out-of-subset fallback strategy; restore typedoc.base.json to its committed state (theme removal lands in ticket 7).
-6. Flag any typedoc link form (file-relative/.md) the href helper must handle.
+4. RECORD DECISIONS: (a) the heading-slug algorithm reproducing existing #fragment anchors (cite concrete corpus anchors), (b) home hero/features content is owned by the plgg-press theme homeHero (frontmatter parser only detects flat `layout: home`), (c) raw angle-bracket/HTML handling (escape via inline text vs guarded passthrough).
+5. Write the SUBSET SPEC enumerating the exact block + inline constructs plgg-md must support, container/frontmatter handling, and the out-of-subset fallback; record any typedoc link form (file-relative/.md) the plgg-press href helper must handle; restore typedoc.base.json to its committed state (the theme removal lands in ticket 12).
 
 ## Considerations
 
 - The make-or-break risk is hand-rolling a CommonMark-enough parser with zero deps; this spike must bound the grammar and pin the slug algorithm BEFORE coding.
 - No production code changes land here; typedoc.base.json must be restored so the repo stays green.
-- Slug-parity and hero-ownership decisions directly unblock tickets 3, 4, 9, 14 — they must be written down, not left implicit.
+- Slug-parity and hero-ownership decisions directly unblock the plgg-md fold, the plgg-press theme, the guide site.config instance, and VitePress removal — they must be written down, not left implicit.
