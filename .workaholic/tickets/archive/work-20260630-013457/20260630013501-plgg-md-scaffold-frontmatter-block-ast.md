@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:01+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 12e4e73
+category: Added
 depends_on: [20260630013458-md-corpus-spike-and-decisions.md]
 ---
 
@@ -54,3 +54,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Frontmatter is layout-marker only — the home hero/features data lives in SiteConfig (rendered by the theme), resolving the nested-YAML mismatch.
 - Raw HTML is NOT a node (item 3): out-of-subset/raw-angle-bracket lines become Para text, escaped by plgg-view at render.
 - Rendering and inline parsing are deferred to the fold ticket to keep this commit reviewable.
+
+## Final Report
+
+Development completed as planned. New package `packages/plgg-md` parses to typed data only (no rendering). Verified: tsc clean; 39 passed/0 failed; coverage 98.47/93.52/100/98.47; deps are only plgg + plgg-view via `file:` (no markdown library); no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: package.json must OMIT `"type": "module"` (mirroring plgg-view). With it set, NodeNext applies exports-gating to the package's own `plgg-md/...` path-mapped imports and they fail to resolve — the same reason plgg-view omits it.
+  **Context**: A non-obvious monorepo build gotcha every new plgg package must follow; worth knowing before scaffolding plgg-highlight and plgg-press.
+- **Insight**: The tokenizer is a single commented imperative line-scan returning `Result<ReadonlyArray<Block>, InvalidError>`; `:{3,}` containers match by exact colon count so `::::` nests `:::`. Raw HTML rides as `Para` text (no AST node), escaped later by plgg-view.
+  **Context**: The Block AST shape (Heading/Para/CodeFence/List/Quote/Table/Callout/ThematicBreak with `$` matchers) is the contract the ticket-5 fold consumes; `Frontmatter` exposes only `layout: Option<SoftStr>`.
