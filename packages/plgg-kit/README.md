@@ -164,9 +164,11 @@ const validateProvider = (provider: unknown) => {
 
 Store API keys securely:
 
+Load `.env` with Node's native support — `node --env-file=.env app.js`,
+or call `process.loadEnvFile()` at startup. No `dotenv` dependency needed.
+
 ```typescript
-import dotenv from 'dotenv';
-dotenv.config();
+process.loadEnvFile(); // Node-native .env loader (or use --env-file)
 
 const provider = openai({
   modelName: 'gpt-4-turbo',
