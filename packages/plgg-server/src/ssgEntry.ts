@@ -24,7 +24,12 @@ import { writeStatic } from "plgg-server/Ssg/usecase/writeStatic";
  * `index.ts` never gains a filesystem dependency — mirrors how `node.ts`
  * surfaces `serve`.
  */
-export { writeStatic } from "plgg-server/Ssg/usecase/writeStatic";
+export {
+  writeStatic,
+  discoverPaths,
+  copyAssets,
+  write404,
+} from "plgg-server/Ssg/usecase/writeStatic";
 export {
   ssgPage,
   renderFailed,

@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:00+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 9707a25
+category: Changed
 depends_on:
 ---
 
@@ -48,3 +48,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Route-path convention must match the discovered tree exactly so plgg-press's dead-link check and build handler agree.
 - copyAssets is speculative for the current guide (no public/ dir) but kept generic; the no-op-on-missing-dir behaviour keeps the build green.
 - write404 only writes bytes; the 404 page MODEL/render lives in the theme + build tickets (item 14 is spread across Ssg/theme/build/checkLinks).
+
+## Final Report
+
+Development completed as planned. discoverPaths/copyAssets/write404 live beside writeStatic.ts and are surfaced only via ssgEntry.ts; the runtime-neutral Ssg/usecase/index.ts barrel stays node:fs-free (asserted by a spec). Verified: tsc-plgg-server clean; test-plgg-server 95 passed/0 failed (+9 new); no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: The route-path convention (index.md → directory root, foo.md → /foo/) is the contract plgg-press's build handler AND the anchor-aware dead-link checker must both agree on; it is fixed here in discoverPaths and downstream tickets must consume it verbatim.
+  **Context**: A mismatch would surface as phantom dead links or 404s, so this helper is the single source of truth for the route set.
+- **Insight**: copyAssets no-ops on a missing source dir by design (the current guide has no public/ dir), keeping the build green while staying generic for future assets.
+  **Context**: write404 only writes bytes; the 404 page is rendered by the plgg-press theme shell and passed in (the model lives in the theme/build tickets).
