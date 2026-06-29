@@ -14,9 +14,15 @@ import { type External } from "plgg-bundle/domain/model/BundleConfig";
  * inlining or externalizing it.
  *
  * Declared = keys of `dependencies` + `peerDependencies`
- * + `optionalDependencies`. Imports are bare specifiers
- * (no subpaths in this repo), matched exactly; `node:*`
- * is matched by prefix.
+ * + `optionalDependencies`. A specifier is external when
+ * it is a declared dep exactly (`plgg-view`) OR a PUBLIC
+ * SUBPATH export of one (`plgg-view/style`,
+ * `plgg-server/ssg`) — the consumer resolves the subpath
+ * at runtime via the dep's own `exports` map, so a library
+ * bundle must never inline it. `node:*` is matched by
+ * prefix. An undeclared specifier (neither a dep nor a
+ * dep subpath nor `node:*`) still fails the graph walk
+ * loudly.
  */
 export const deriveExternal = (
   root: string,
@@ -24,6 +30,9 @@ export const deriveExternal = (
   const declared = declaredDeps(root);
   return (specifier: string): boolean =>
     declared.has(specifier) ||
+    [...declared].some((dep: string): boolean =>
+      specifier.startsWith(`${dep}/`),
+    ) ||
     specifier.startsWith("node:");
 };
 

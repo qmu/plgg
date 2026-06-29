@@ -2,12 +2,14 @@ import { resolve } from "node:path";
 import {
   type SoftStr,
   type Option,
+  type Defect,
   none,
   fromNullable,
   pipe,
   getOr,
   matchResult,
 } from "plgg";
+import { type SsgError } from "plgg-server/ssg";
 import {
   type SiteConfig,
 } from "plgg-press/SiteConfig/model/SiteConfig";
@@ -109,6 +111,20 @@ const configPathOf = (
   );
 
 /**
+ * Renders a build failure as a one-line shell message. The
+ * tagged `SsgError`/`Defect` union narrows on `__tag` — no
+ * cast — so each variant surfaces its most useful field.
+ */
+const formatBuildError = (
+  e: SsgError | Defect,
+): SoftStr =>
+  e.__tag === "Defect"
+    ? e.content.message
+    : e.__tag === "WriteFailed"
+      ? `${e.content.path}: ${e.content.message}`
+      : `${e.__tag}: ${e.content.path}`;
+
+/**
  * `build` dispatch: load the config, then run the build,
  * folding both error channels to the shell.
  */
@@ -127,9 +143,9 @@ const runBuild = (
         ).then(
           matchResult(
             (
-              be: NotImplementedError,
+              be: SsgError | Defect,
             ): void =>
-              fail(be.content.message),
+              fail(formatBuildError(be)),
             (r: BuildReport): void =>
               print(
                 `built ${r.pages.length} page(s) to ${r.outDir}`,

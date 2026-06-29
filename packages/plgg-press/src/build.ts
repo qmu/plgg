@@ -1,33 +1,114 @@
-import { type PromisedResult, err } from "plgg";
+import {
+  type SoftStr,
+  type Result,
+  type PromisedResult,
+  type Defect,
+  ok,
+  proc,
+  mapResult,
+} from "plgg";
+import { renderToString } from "plgg-view";
+import {
+  type SsgError,
+  generateStatic,
+  discoverPaths,
+  copyAssets,
+  write404,
+} from "plgg-server/ssg";
 import {
   type PressOptions,
   type BuildReport,
 } from "plgg-press/Press/model/PressOptions";
-import {
-  type NotImplementedError,
-  notImplementedError,
-} from "plgg-press/Press/model/PressError";
+import { pressRouter } from "plgg-press/router/pressRouter";
+import { notFound } from "plgg-press/theme/notFound";
 
 /**
  * Build the static site from a content corpus into
- * `opts.outDir`. STUB for this scaffold ticket: the
- * facade's contract is fixed here (signature + error
- * channel), but the pipeline body — read corpus, fold
- * Markdown through plgg-md routed by `href(opts.base)`,
- * render via plgg-view, write HTML — lands in a later
- * ticket. Returns a typed {@link NotImplementedError}
- * rather than throwing, keeping a clean review boundary.
+ * `opts.outDir`, as one typed transform pipeline that
+ * never throws:
+ *
+ * 1. {@link discoverPaths} crawls the corpus for `*.md`
+ *    route paths;
+ * 2. {@link generateStatic} renders every path through the
+ *    internal {@link pressRouter} (Markdown → highlight →
+ *    theme) and writes each to `outDir/<path>/index.html`,
+ *    short-circuiting on the first render failure;
+ * 3. {@link copyAssets} mirrors `assetsDir` verbatim;
+ * 4. {@link write404} persists the theme `notFound` view as
+ *    `outDir/404.html`.
+ *
+ * `opts.base` is threaded into the theme + injected `href`
+ * resolver so the deploy base is applied in exactly one
+ * place. The error channel folds to `SsgError | Defect` at
+ * the edge — a render miss, a non-2xx page, an unsafe
+ * write, or an unexpected throw all surface as data.
  */
 export const build = (
   opts: PressOptions,
 ): PromisedResult<
   BuildReport,
-  NotImplementedError
+  SsgError | Defect
 > =>
-  Promise.resolve(
-    err(
-      notImplementedError(
-        `build() is not implemented yet (outDir ${opts.outDir})`,
+  proc(
+    discoverPaths(opts.contentDir),
+    (
+      paths: ReadonlyArray<SoftStr>,
+    ): PromisedResult<
+      ReadonlyArray<SoftStr>,
+      SsgError | Defect
+    > =>
+      generateStatic(
+        pressRouter(
+          opts.contentDir,
+          opts.config,
+          opts.base,
+          paths,
+        ),
+      )({
+        paths,
+        outDir: opts.outDir,
+      }),
+    (
+      pages: ReadonlyArray<SoftStr>,
+    ): PromisedResult<
+      ReadonlyArray<SoftStr>,
+      SsgError
+    > =>
+      copyAssets(opts.assetsDir)(
+        opts.outDir,
+      ).then(
+        mapResult(
+          (
+            assets: ReadonlyArray<SoftStr>,
+          ): ReadonlyArray<SoftStr> => [
+            ...pages,
+            ...assets,
+          ],
+        ),
       ),
-    ),
+    (
+      files: ReadonlyArray<SoftStr>,
+    ): PromisedResult<
+      ReadonlyArray<SoftStr>,
+      SsgError
+    > =>
+      write404(opts.outDir)(
+        renderToString(notFound(opts.config)),
+      ).then(
+        mapResult(
+          (
+            file: SoftStr,
+          ): ReadonlyArray<SoftStr> => [
+            ...files,
+            file,
+          ],
+        ),
+      ),
+    (
+      files: ReadonlyArray<SoftStr>,
+    ): Result<BuildReport, never> =>
+      ok<BuildReport>({
+        outDir: opts.outDir,
+        pages: files,
+      }),
   );

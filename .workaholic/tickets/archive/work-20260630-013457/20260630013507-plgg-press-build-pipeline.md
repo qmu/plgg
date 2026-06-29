@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:07+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: c01802f
+category: Changed
 depends_on: [20260630013500-ssg-discover-paths-copy-assets-404.md, 20260630013503-plgg-highlight-ts-scanner.md, 20260630013504-plgg-press-scaffold-siteconfig-cli.md, 20260630013505-plgg-press-theme-document-shell.md, 20260630013506-plgg-press-theme-nav-sidebar-home-callout.md]
 ---
 
@@ -56,3 +56,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - File reads happen inside plgg-press's own router handler (async PromisedResult) — acceptable node:fs use in the build tool, not the pure Ssg core.
 - renderMarkdown returning Err for any page aborts the build via SsgError short-circuit — the desired loud failure.
 - build() must emit ZERO client JS — assert no <script>/EventSource here; the 404 (item 14) is rendered via the theme notFound view and persisted by write404.
+
+## Final Report
+
+Development completed as planned. build() is the plgg-native replacement for `vitepress build`: discoverPaths -> pressRouter(generateStatic) -> copyAssets -> write404, proven on a generic fixture. Verified: plgg-press tsc clean + build dts + 55 passed/0 failed + coverage 100/93.55/100/100; plgg-bundle 35 passed; zero <script>/EventSource in emitted pages; no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: pressRouter needs the discovered `paths` threaded in as a 4th param — discoverPaths is async while web() is sync, so routes can't be registered from inside web(). The handler reconstructs candidate files (index.md for /, else <segs>.md then <segs>/index.md) as the exact inverse of discoverPaths' collapse; a mismatch would 404 during the crawl.
+  **Context**: The route-path<->file mapping is the contract; checkLinks (next ticket) validates against the same discovered set.
+- **Insight**: REQUIRED out-of-scope plgg-bundle fix — deriveExternal matched declared deps by EXACT name only ("no subpaths in this repo"). build() is the first LIBRARY build to import cross-package SUBPATHS (plgg-server/ssg, plgg-view/style, which are subpath-exports-only), so it failed ResolveError. Generalized to externalize a specifier equal to a dep OR starting with `<dep>/` (the trailing slash prevents false matches like plgg-view vs plgg). Strictly more permissive, hatch-free, with a spec; undeclared specifiers still fail loudly.
+  **Context**: Any future library that imports a sibling's subpath export depends on this fix; it shipped in this commit.
