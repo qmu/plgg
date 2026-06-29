@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:34:58+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: d75e3be
+category: Changed
 depends_on:
 ---
 
@@ -50,3 +50,18 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - The make-or-break risk is hand-rolling a CommonMark-enough parser with zero deps; this spike must bound the grammar, pin the EXACT slug algorithm, and inventory fence languages BEFORE coding.
 - No production code changes land here; typedoc.base.json must be restored so the repo stays green.
 - Slug-parity (exact anchors), hero-ownership (SiteConfig data), raw-HTML-as-text, and language-inventory decisions directly unblock the plgg-md fold, the plgg-highlight aliases, the plgg-press theme, the guide site.config instance, and VitePress removal — they must be written down, not left implicit.
+
+## Final Report
+
+Development completed as planned. The durable spec lives at `docs/plgg-press-migration/spike-decisions.md`; golden HTML + theme-on/off API snapshots are in the scratchpad. `typedoc.base.json` was edited then restored (empty diff); generated `api/*` is gitignored.
+
+### Discovered Insights
+
+- **Insight**: The corpus is far narrower than full CommonMark — measured: h1/h2 only (zero h3–h6 in authored prose; API h2 only after compaction), 53 fenced blocks, 11 pipe tables, lists incl. nested, **zero blockquotes/HRs/images/raw-HTML, and `:::` containers are run=3 ONLY (zero `::::`)**.
+  **Context**: Codex flagged `::::` as a risk; the spike measured it never occurs in the real corpus, so the `3+`-colon rule is forward-proofing, not a present need. The parser grammar can be bounded tightly.
+- **Insight**: VitePress slugify (`@mdit-vue/shared`) RETAINS em-/en-dashes and non-ASCII; per-page dedup is `-1`/`-2`; verified 843/843 against a live build. Consequently **4 of 5 authored cross-page `#fragment` anchors are ALREADY broken** in current VitePress (only `#prefer-str-for-strings` resolves); the 137 API xrefs are same-page and fine.
+  **Context**: "Slug parity" therefore means reproducing VitePress EXACTLY (preserves the one working anchor + all API xrefs); the 4 pre-existing content-anchor bugs are a separate content fix, not a parser requirement.
+- **Insight**: Fence languages in the corpus are only `typescript`/`ts` (+`bash`/`sh`/unlabeled); only `typescript`/`ts`→`ts` reach the TS scanner today, everything else is plain escaped `<pre><code>`.
+  **Context**: plgg-highlight's TS-scanner path covers ~100% of highlighted code; the alias map stays tiny.
+- **Insight**: Dropping `typedoc-vitepress-theme` makes TypeDoc emit `README.md` (not `index.md`) and hard-error on the theme-only `docsRoot` option. The theme-drop ticket MUST teach `gen-api.mjs` to read `README.md` and remove `docsRoot`; raw theme-off output still has the `###`/`####` + ` ```ts ` that `compact()` consumes.
+  **Context**: Directly shapes the typedoc-drop ticket — not a no-op config edit.
