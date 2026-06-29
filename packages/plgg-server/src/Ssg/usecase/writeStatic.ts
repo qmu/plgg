@@ -260,9 +260,77 @@ const toRoutePath = (rel: SoftStr): SoftStr =>
   fromSegments(routeSegments(rel));
 
 /**
- * Recursively walks `rootDir` and returns the route paths of every `*.md`
- * file (skipping {@link EXCLUDED_DIRS}). fs errors (e.g. a missing `rootDir`)
- * are lifted into a `writeFailed`-style {@link SsgError}. Feeds `renderRoutes`.
+ * Maps one directory entry to the route paths it contributes: a real,
+ * non-{@link EXCLUDED_DIRS}, non-symlink subdirectory recurses via {@link walk}
+ * (so excluded/cyclic subtrees are never entered); an `*.md` file yields its
+ * one route; anything else (symlinks, non-md files) yields nothing.
+ */
+const fromEntry =
+  (rootDir: SoftStr) =>
+  (dir: SoftStr) =>
+  (
+    entry: Dirent,
+  ): Promise<ReadonlyArray<SoftStr>> => {
+    const full = join(dir, entry.name);
+    return entry.isSymbolicLink()
+      ? Promise.resolve([])
+      : entry.isDirectory()
+        ? EXCLUDED_DIRS.includes(entry.name)
+          ? Promise.resolve([])
+          : walk(rootDir)(full)
+        : entry.isFile() &&
+            entry.name.endsWith(".md")
+          ? Promise.resolve([
+              toRoutePath(
+                relative(rootDir, full),
+              ),
+            ])
+          : Promise.resolve([]);
+  };
+
+/**
+ * Explicit, non-recursive-`readdir` walk: lists `dir` one level with file
+ * types, then descends only into real, non-excluded, non-symlink directories.
+ * Because symlinked directories are never followed, a content root carrying a
+ * `node_modules` `file:`-link cycle cannot explode the crawl.
+ */
+const walk =
+  (rootDir: SoftStr) =>
+  (
+    dir: SoftStr,
+  ): Promise<ReadonlyArray<SoftStr>> =>
+    readdir(dir, {
+      withFileTypes: true,
+    })
+      .then(
+        (
+          entries: ReadonlyArray<Dirent>,
+        ): Promise<
+          ReadonlyArray<
+            ReadonlyArray<SoftStr>
+          >
+        > =>
+          Promise.all(
+            entries.map(
+              fromEntry(rootDir)(dir),
+            ),
+          ),
+      )
+      .then(
+        (
+          nested: ReadonlyArray<
+            ReadonlyArray<SoftStr>
+          >,
+        ): ReadonlyArray<SoftStr> =>
+          nested.flat(),
+      );
+
+/**
+ * Walks `rootDir` and returns the route paths of every `*.md` file, pruning
+ * {@link EXCLUDED_DIRS} and symlinked directories DURING traversal (never a
+ * post-filter), so a symlink cycle under the root cannot OOM/`ELOOP` the crawl.
+ * fs errors (e.g. a missing `rootDir`) are lifted into a `writeFailed`-style
+ * {@link SsgError}. Feeds `renderRoutes`.
  */
 export const discoverPaths = (
   rootDir: SoftStr,
@@ -271,30 +339,7 @@ export const discoverPaths = (
   SsgError
 > =>
   tryCatch(
-    (
-      dir: SoftStr,
-    ): Promise<ReadonlyArray<SoftStr>> =>
-      readdir(dir, {
-        recursive: true,
-      }).then(
-        (
-          entries: ReadonlyArray<SoftStr>,
-        ): ReadonlyArray<SoftStr> =>
-          entries
-            .filter((e: SoftStr): boolean =>
-              e.endsWith(".md"),
-            )
-            .filter(
-              (e: SoftStr): boolean =>
-                !e
-                  .split(sep)
-                  .some(
-                    (s: SoftStr): boolean =>
-                      EXCLUDED_DIRS.includes(s),
-                  ),
-            )
-            .map(toRoutePath),
-      ),
+    walk(rootDir),
     (error: unknown): SsgError =>
       writeFailed(rootDir, String(error)),
   )(rootDir);
