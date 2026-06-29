@@ -386,6 +386,55 @@ const categorySlug = (category) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+// Reproduce plgg-md's heading-slug fold EXACTLY (see
+// `packages/plgg-md/src/Render/usecase/slugify.ts` and
+// `docs/plgg-press-migration/spike-decisions.md` §3) so the
+// anchors we rewrite below resolve against the ids plgg-press
+// emits: NFKD-normalize, drop combining/control chars,
+// collapse every run of the special set to `-` (em-/en-dash
+// RETAINED, `_` and ASCII `'` ARE special), collapse `-`,
+// trim, digit-prefix `_`, lowercase.
+const COMBINING_RE = /[̀-ͯ]/g;
+const CONTROL_RE = /[ -]/g;
+const SPECIAL_RE =
+  /[\s~`!@#$%^&*()+=[\]{}|\\;:"'<>,.?/_“”‘’-]+/g;
+const slugify = (text) =>
+  text
+    .normalize("NFKD")
+    .replace(COMBINING_RE, "")
+    .replace(CONTROL_RE, "")
+    .replace(SPECIAL_RE, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/^(\d)/, "_$1")
+    .toLowerCase();
+
+// plgg-md's per-page de-dup scheme (`makeSluggers`): the
+// first occurrence of a base slug is bare, each collision
+// appends `-1`, `-2`, … (`Defect` ×3 -> `defect`, `defect-1`,
+// `defect-2`). One slugger per page; the counter resets.
+const makeSlugger = () => {
+  const counts = new Map();
+  return (headingText) => {
+    const base = slugify(headingText);
+    const seen = counts.get(base) ?? 0;
+    counts.set(base, seen + 1);
+    return seen === 0 ? base : `${base}-${seen}`;
+  };
+};
+
+// The plain text plgg-md slugs a heading from: strip the ATX
+// `#` marker, unwrap inline-code backticks (their text is
+// kept), and resolve TypeDoc's backslash escapes (`class\_()`
+// -> `class_()`). Matches `plainText(renderInline(...))` for
+// the symbol/category headings this script emits.
+const headingPlainText = (headingLine) =>
+  headingLine
+    .replace(/^#+\s+/, "")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\\(.)/g, "$1")
+    .trim();
+
 // Normalize residual out-of-subset constructs the dropped VitePress theme used
 // to fix up before the markdown reaches `compact()`. Today the only such
 // residual the spike flagged is the `@example` fence token: theme-off,
@@ -523,9 +572,65 @@ const compact = (md, categoryMap, pkg) => {
     byCategory.get(block.category).push(block);
   }
 
-  const pages = orderCategories(
+  const ordered = orderCategories(
     new Set(byCategory.keys()),
-  ).map((category) => {
+  );
+
+  // TypeDoc emits every symbol cross-reference as a SAME-PAGE
+  // `#fragment`, but `compact()` splits one TypeDoc page into
+  // many category pages — so a ref to a symbol that landed on
+  // another page is now a broken cross-page anchor, and even a
+  // same-page ref breaks when TypeDoc's fragment differs from
+  // plgg-md's slug (`class_()` -> TypeDoc `#class_`, plgg-md
+  // `#class`). Replicate plgg-md's per-page slugging (a fresh
+  // deduping slugger over the `# category` h1 then each `##`
+  // symbol heading, in document order) to learn, per symbol,
+  // its owning category page and the FINAL slug plgg-md emits.
+  const symbolCategory = new Map();
+  const symbolSlug = new Map();
+  for (const category of ordered) {
+    const slugger = makeSlugger();
+    slugger(category);
+    for (const block of byCategory.get(
+      category,
+    )) {
+      const anchor = slugger(
+        headingPlainText(block.heading),
+      );
+      symbolCategory.set(block.name, category);
+      symbolSlug.set(block.name, anchor);
+    }
+  }
+
+  // Rewrite a symbol xref `[name](#frag)` to where the symbol
+  // is actually defined, with the slug plgg-md emits there:
+  // same-category targets stay bare `#slug` (fixing fragments
+  // whose plgg-md slug differs from TypeDoc's), cross-category
+  // targets become `/api/<pkg>/<category>#slug`. Names that
+  // aren't documented symbols (so not in the map) are left
+  // untouched. The link text carries the symbol name (TypeDoc
+  // escapes it, e.g. `class\_`), so unescape before lookup.
+  const rewriteXrefs = (line, category) =>
+    line.replace(
+      /\[([^\]]*)\]\(#([^)]*)\)/g,
+      (whole, text) => {
+        const name = text.replace(/\\(.)/g, "$1");
+        const owner = symbolCategory.get(name);
+        if (owner === undefined) {
+          return whole;
+        }
+        const anchor = symbolSlug.get(name);
+        const href =
+          owner === category
+            ? `#${anchor}`
+            : `/api/${pkg}/${categorySlug(
+                owner,
+              )}#${anchor}`;
+        return `[${text}](${href})`;
+      },
+    );
+
+  const pages = ordered.map((category) => {
     const out = [`# ${category}`, ""];
     for (const block of byCategory.get(
       category,
@@ -536,7 +641,12 @@ const compact = (md, categoryMap, pkg) => {
         block.heading.replace(/^### /, "## "),
         "",
       );
-      out.push(...block.body, "");
+      out.push(
+        ...block.body.map((bodyLine) =>
+          rewriteXrefs(bodyLine, category),
+        ),
+        "",
+      );
     }
     return {
       category,
