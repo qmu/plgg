@@ -18,10 +18,7 @@ import {
   type BuildReport,
   type DevServer,
 } from "plgg-press/Press/model/PressOptions";
-import {
-  type ConfigLoadError,
-  type NotImplementedError,
-} from "plgg-press/Press/model/PressError";
+import { type ConfigLoadError } from "plgg-press/Press/model/PressError";
 import {
   type BrokenLink,
   type BrokenLinks,
@@ -184,10 +181,8 @@ const runDev = (
           optionsFrom(argv, config, true),
         ).then(
           matchResult(
-            (
-              de: NotImplementedError,
-            ): void =>
-              fail(de.content.message),
+            (de: SsgError): void =>
+              fail(formatBuildError(de)),
             (s: DevServer): void =>
               print(
                 `dev server at ${s.url}`,

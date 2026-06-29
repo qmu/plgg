@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:09+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 5917685
+category: Changed
 depends_on: [20260630013504-plgg-press-scaffold-siteconfig-cli.md, 20260630013507-plgg-press-build-pipeline.md]
 ---
 
@@ -52,3 +52,16 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - allowedHosts now comes from PressOptions/SiteConfig (item 7), preserving the tunnel-safety VitePress gave; the guide instance supplies plgg-guide.qmu.dev.
 - The dev-only script MUST be provably absent from production output — the dev flag gating is the one place client JS exists. This is live-reload, NOT HMR.
 - Keep node:http confined to this seam; the render path stays shared with build().
+
+## Final Report
+
+Development completed as planned. dev() hosts pressRouter over plgg-server's node:http serve() with a Host allowlist, debounced fs.watch rebuild, and a dev-only SSE live-reload. Verified: tsc clean; build dts; 78 passed/0 failed; coverage 99.15/92.75/96/99.15; the EventSource/script literal exists ONLY in dev.ts; no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: The live-reload <script> is string-appended before </body> by decorateDevHtml INSIDE the dev seam only (renderToString escapes text nodes, so a <script> can't go through the typed tree). build()/pressRouter never reference it, so "production emits no client JS" is structurally guaranteed (the literal is only in dev.ts:70). Tests assert prod=0, dev=exactly 1.
+  **Context**: This is the one place client JS exists; it is live-reload (full reload), not HMR.
+- **Insight**: The testable core is createDevHandle(opts) -> {fetch, rebuild, clients} (no port, no watcher), so specs exercise host-403/SSE/rebuild without binding a socket. rebuild() hot-swaps the pressRouter and pushes a 'reload' SSE frame; a transient discovery miss keeps the last good router.
+  **Context**: allowedHosts comes from SiteConfig.dev.allowedHosts (guide adds plgg-guide.qmu.dev). Run command: `PORT=5181 plgg-press dev --config site.config.ts --contentDir docs`.
+- **Insight**: A top-level `new TextEncoder()` broke the build — plgg-bundle's export-surface eval has no platform globals; defer such instantiations into a function (encodeUtf8).
+  **Context**: A plgg-bundle build-time gotcha for any package using platform globals at module scope.
