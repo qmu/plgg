@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:02+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 6535880
+category: Changed
 depends_on: [20260630013459-plgg-view-extend-element-builders.md, 20260630013501-plgg-md-scaffold-frontmatter-block-ast.md]
 ---
 
@@ -53,3 +53,16 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Slug parity is a tested requirement against the EXACT captured anchors (broken #anchors would ship silently otherwise) (item 4).
 - firstHeading (Option) is the single source the theme uses for prose-page <title>, with config.title fallback handled in the theme (item 15).
 - The Highlighter AND link-resolver seams keep plgg-md compiler-free and base-path-agnostic; plgg-md must not import typescript and must not know about DOCS_BASE.
+
+## Final Report
+
+Development completed as planned. The Markdown engine is complete: inline parser, slug parity, injected Highlighter + LinkResolver seams, firstHeading, and the Block/Inline → Html<never> fold. Verified: tsc clean; 68 passed/0 failed; coverage 99.27/95.76/99.40/99.27; no compiler import / no DOCS_BASE in plgg-md; no as/any/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: Slug parity required reproducing `@mdit-vue/shared` EXACTLY incl. RETAINING em-/en-dashes — verified against the spike oracle (e.g. `The view tree — \`Html<Msg,T>\`` → `the-view-tree-—-html-msg-t`, duplicate `Defect` → `defect`/`defect-1`, digit-prefix `_3-little-words`). `doc.slugs` equals the body's heading ids, which is exactly what plgg-press's dead-link checker consumes.
+  **Context**: Confirms the spike finding that 4 of 5 authored cross-page anchors are pre-existing content bugs; the renderer is faithful, the anchors are the content's problem.
+- **Insight**: Containers that may hold the highlighter's opaque `Html<never>` (blockquote, callout div, root) are built with the general-purpose typed `el` builder rather than the narrow content-model builders, because the injected highlighter output isn't assignable into the specific Flow unions. Still pure Html data escaped by renderToString — no hand-assembled strings, no `as`/`any`.
+  **Context**: A reasonable seam between the narrow typed builders and opaque injected content; could be tightened later if plgg-view exposes a wider "any-Html child" container, but not required.
+- **Insight**: plgg's `match` coverage requires full tag enumeration for icon (tag-only) folds (no bare `otherwise`); the fold enumerates variants and uses a `__tag` discriminant for the single-variant nested-list pick.
+  **Context**: A house-style detail for exhaustive folds future renderer/theme code will hit.
