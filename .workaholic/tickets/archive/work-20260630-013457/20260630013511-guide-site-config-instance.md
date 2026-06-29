@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:11+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Config, Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 1ab256e
+category: Changed
 depends_on: [20260630013504-plgg-press-scaffold-siteconfig-cli.md, 20260630013510-typedoc-drop-theme-emit-manifest.md]
 ---
 
@@ -50,3 +50,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - home data lives in SiteConfig (item 6); the theme renders it generically — the guide does NOT hard-code hero markup.
 - dev.allowedHosts (item 7) is supplied here and consumed by plgg-press's dev server at the node:http layer (no Vite allowedHosts equivalent needed).
 - base must thread DOCS_BASE consistently; plgg-press's href helper is the single rewrite site — the guide does NOT reconstruct base logic.
+
+## Final Report
+
+Development completed as planned. packages/guide/site.config.ts is a thin, typed plgg-press consumer: full IA ported from .vitepress/config.ts, home data from index.md, dev.allowedHosts (incl. plgg-guide.qmu.dev), API sidebar spliced from api/typedoc-sidebar.json. Verified: tsc clean; defineSite/loadConfig => Ok (home Some, 3 actions, 6 features, allowedHosts incl. tunnel host, plgg=9 spliced API leaves); no vitepress import; no as/any/ts-ignore. plgg-press added as a guide file: dep (vitepress removal is the next-but-one ticket).
+
+### Discovered Insights
+
+- **Insight**: The plgg-press CLI must load site.config.ts from SOURCE (via bin/hook.mjs's TS resolver), NOT the built dist — plgg-bundle rewrites dynamic import() into a bundle runtime that throws "Cannot resolve external" for arbitrary file paths. The bin already imports the TS CLI from source, so config loading works; the dist loadConfig is unusable for arbitrary config paths.
+  **Context**: ticket 15 (golden verify) and ticket 18 (deploy/serve) run plgg-press via the bin (source) — correct. Never invoke the dist loadConfig on a consumer path.
+- **Insight**: site.config exports both `site = defineSite(config)` (author-time validation) and `default config` (raw DATA), because loadConfig calls defineSite(default) itself — the default must stay raw. Sidebar nodes carry explicit items:[] (SidebarItem.items is required, link is Option); the API manifest is spliced via an isApiEntry type guard (no as).
+  **Context**: home reuses the site title for the hero name (HomeConfig has no name field) per item 15; base = process.env.DOCS_BASE ?? "/".

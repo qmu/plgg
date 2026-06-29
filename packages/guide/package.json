@@ -20,6 +20,9 @@
     "url": "https://github.com/qmu/plgg/issues"
   },
   "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg-press": "file:../plgg-press"
+  },
   "devDependencies": {
     "typedoc": "^0.28.19",
     "typedoc-plugin-markdown": "^4.12.0",
