@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:05+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: accb8e7
+category: Changed
 depends_on: [20260630013459-plgg-view-extend-element-builders.md, 20260630013504-plgg-press-scaffold-siteconfig-cli.md]
 ---
 
@@ -52,3 +52,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - plgg-view has NO hydration and NO effects — a fully static, zero-client-JS shell sidesteps that gap; do not introduce a client runtime.
 - <style> text must stay within the atomic-utility subset (no raw < > &) to survive renderToString escaping; the dev-only live-reload <script> is added by the dev ticket, never here.
 - Title derivation is the single consumer of MarkdownDoc.firstHeading (item 15); home uses config.title.
+
+## Final Report
+
+Development completed as planned (after the slot prerequisite unblocked it). shell(config, doc, body) builds the full <html> document from typed plgg-view builders + the new slot; <body><main><slot/></main></body> wraps the Markdown body with no el()/as. Verified: tsc clean; build emits dts; 25 passed/0 failed; coverage 100/94.12/100/100.
+
+### Discovered Insights
+
+- **Insight**: The shell wraps the opaque Markdown body via `bodyEl([], [main_([], [slot([], [body])])])` — slot is the typed seam (div-pinned, Flow-assignable, permissive children) inside a semantic <main> landmark. No el() in the shell.
+  **Context**: This is the canonical pattern for embedding any rendered Html<never> fragment (markdown body, future widgets) into a typed document.
+- **Insight**: title = pipe(doc.firstHeading, getOr(config.title)); home/heading-less pages fall back to config.title. The single <style> = text(collectCss(body)) ONLY — no highlightCss merge, because plgg-highlight colors tokens inline (attr style) so there is no class-based highlight stylesheet; collectCss already captures every atomic rule. collectCss output (.cHASH{prop:value}) is escape-safe through renderToString.
+  **Context**: The next theme ticket (nav/sidebar/home/callout) and the build pipeline reuse shell(); they must keep CSS in the atomic-utility subset (no < > &) so the text() <style> survives escaping.
