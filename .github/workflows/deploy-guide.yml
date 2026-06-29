@@ -1,6 +1,6 @@
 name: Deploy Guide
 
-# Build the VitePress guide (packages/guide) — including the auto-generated,
+# Build the plgg-press guide (packages/guide) — including the auto-generated,
 # per-package API reference — and publish it to GitHub Pages.
 #
 # Independent of the CalVer release pipeline (prepare-release/release): the docs
@@ -55,29 +55,38 @@ jobs:
         run: npm ci
         working-directory: packages/plgg-bundle
 
+      # plgg-highlight imports typescript from its OWN path (same clean-runner
+      # masking as plgg-bundle): the `file:` link doesn't install its
+      # node_modules, so install them once before the loop. plgg-highlight is
+      # reached transitively via plgg-press, whose build needs the highlighter.
+      - name: Install plgg-highlight dependencies
+        run: npm ci
+        working-directory: packages/plgg-highlight
+
       - name: Build package dists (dependency order)
         run: |
           set -e
           for pkg in plgg plgg-test plgg-http plgg-router plgg-view plgg-kit \
-                     plgg-server plgg-fetch plgg-sql plgg-foundry; do
+                     plgg-server plgg-fetch plgg-sql plgg-foundry \
+                     plgg-md plgg-highlight plgg-press; do
             echo "::group::build $pkg"
             (cd "packages/$pkg" && npm ci && npm run build)
             echo "::endgroup::"
           done
 
-      - name: Build the guide (generate API + VitePress)
+      - name: Build the guide (generate API + plgg-press)
         # DOCS_BASE makes links resolve under the project Pages path.
         env:
           DOCS_BASE: /plgg/
         run: |
           npm ci
-          npm run build
+          npm run docs:api && npx plgg-press build --config site.config.ts --contentDir . --outDir dist
         working-directory: packages/guide
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: packages/guide/.vitepress/dist
+          path: packages/guide/dist
 
   deploy:
     needs: build

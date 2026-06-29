@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:15+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Config, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: e022013
+category: Changed
 depends_on: [20260630013509-plgg-press-dev-server-live-reload.md, 20260630013513-wire-new-packages-into-gate.md, 20260630013514-guide-remove-vitepress-depend-on-plgg-press-only.md]
 ---
 
@@ -51,3 +51,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - plgg-highlight imports typescript from its own node_modules (clean-runner masking, same as plgg-bundle): the deploy workflow MUST install it where the build runs (reached transitively via plgg-press), or highlighting silently breaks only in CI.
 - Sequence after the vitepress-removal ticket so vitepress is already gone before the gate exemption is removed — no red-gate window.
 - The local Docker dev-container bind-mount masking is a SEPARATE ticket (items 16 & 22).
+
+## Final Report
+
+Development completed as planned. deploy-guide.yml builds plgg-md/plgg-highlight/plgg-press in dependency order, installs plgg-highlight's typescript on the clean runner (mirroring the plgg-bundle fix), replaces the VitePress build with `npx plgg-press build --config site.config.ts --contentDir . --outDir dist` (DOCS_BASE=/plgg/), and uploads packages/guide/dist. serve-guide.sh points at plgg-press dev. gate-vite.sh drops both /guide/ exemptions and asserts vitepress + typedoc-vitepress-theme absent from every package.json. Verified: gate-vite exit 0 ("vitepress fully retired"); check-all exit 0; DOCS_BASE=/plgg/ build => 58 pages with /plgg/-prefixed links, highlighted API pages, 404, zero <script>.
+
+### Discovered Insights
+
+- **Insight**: A bare `plgg-press` is not on PATH in a raw workflow `run:` block (npm only augments PATH for the script it spawns, not the parent shell). Used `npx plgg-press build` so the file:-linked local bin resolves on the clean runner — functionally identical to `npm run build`.
+  **Context**: Any CI step invoking a file:-linked package bin directly must use npx (or `npm run`), not the bare name.
+- **Insight**: plgg-highlight imports typescript from its own node_modules (clean-runner masking, same as plgg-bundle), so deploy MUST `npm ci` in packages/plgg-highlight or highlighting silently breaks only in CI. serve-guide.sh delegates to the docker dev container whose Dockerfile CMD swap is the separate dev-container ticket.
+  **Context**: gate-vite now enforces zero direct vite repo-wide; the only remaining rewire is the local Docker dev container (next ticket).
