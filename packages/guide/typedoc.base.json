@@ -1,9 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "plugin": [
-    "typedoc-plugin-markdown",
-    "typedoc-vitepress-theme"
-  ],
+  "plugin": ["typedoc-plugin-markdown"],
   "readme": "none",
   "githubPages": false,
   "excludeInternal": true,
@@ -11,9 +8,8 @@
   "hideBreadcrumbs": true,
   "useCodeBlocks": true,
   "disableSources": true,
-  "parametersFormat": "table",
-  "indexFormat": "table",
-  "docsRoot": ".",
+  "parametersFormat": "list",
+  "indexFormat": "list",
   "outputFileStrategy": "modules",
   "exclude": [
     "**/Grammaticals/**",

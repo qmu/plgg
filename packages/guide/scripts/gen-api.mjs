@@ -1,17 +1,20 @@
 // Auto-generate the API reference for every plgg-family package as a *compact
-// signature index*, split one page per category, and emit a per-package
-// VitePress sidebar map that `.vitepress/config.ts` splices under each package.
+// signature index*, split one page per category, and emit a per-package API
+// sidebar manifest that the site config splices under each package.
 //
-// For each package we run TypeDoc (markdown + VitePress theme) against the
-// package's OWN source `index.ts` using its OWN tsconfig, so cross-package
-// types resolve through the built `dist` symlinks (the dependency-ordered build
-// is a prerequisite — see workloads/development/Dockerfile and the deploy CI).
+// For each package we run TypeDoc (the `typedoc-plugin-markdown` plugin, no
+// renderer theme) against the package's OWN source `index.ts` using its OWN
+// tsconfig, so cross-package types resolve through the built `dist` symlinks
+// (the dependency-ordered build is a prerequisite — see
+// workloads/development/Dockerfile and the deploy CI). Theme-off, the plugin
+// emits each module landing as `README.md` (the dropped VitePress theme used to
+// rename it `index.md`); we read that, compact it, and write our own `index.md`.
 // Output lands in `api/<pkg>/`: one page per source-derived category
 // (`atomics.md`, `basics.md`, …) plus a landing `index.md` at `/api/<pkg>/`
 // (single-category packages skip the landing — their one page IS the landing).
-// Each run also rewrites `api/typedoc-sidebar.json` as a per-package map keyed
-// by package name, each entry carrying the landing link and one leaf per
-// category; `.vitepress/config.ts` loads that map when present.
+// Each run also rewrites `api/typedoc-sidebar.json` as a plain per-package JSON
+// manifest keyed by package name, each entry carrying the landing link and one
+// leaf per category; the site config loads that manifest when present.
 //
 // TypeDoc renders every symbol with full `#### Type Parameters` / `#### Parameters`
 // / `#### Returns` sub-tables. For a functional library the signature already
@@ -107,10 +110,7 @@ const generate = (pkg) => {
       {
         extends: "./tsconfig.json",
         include: ["src/**/*.ts"],
-        exclude: [
-          "**/*.spec.ts",
-          "**/*.test.ts",
-        ],
+        exclude: ["**/*.spec.ts", "**/*.test.ts"],
       },
       null,
       2,
@@ -386,6 +386,24 @@ const categorySlug = (category) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+// Normalize residual out-of-subset constructs the dropped VitePress theme used
+// to fix up before the markdown reaches `compact()`. Today the only such
+// residual the spike flagged is the `@example` fence token: theme-off,
+// `typedoc-plugin-markdown` can emit ```typescript, while the plgg-md subset /
+// `plgg-highlight` key on the `ts` alias (the theme normalized this for us). We
+// fold the opening-fence alias to `ts`; bodies are left verbatim. Closing fences
+// carry no language token, so only opening fences ever match.
+const normalize = (md) =>
+  md
+    .split("\n")
+    .map((line) =>
+      line.replace(
+        /^(\s*```)typescript\b/,
+        "$1ts",
+      ),
+    )
+    .join("\n");
+
 // Transform one TypeDoc `index.md` into the compact signature index — drop the
 // `#### …` sub-tables and the `***` separators / kind-group `##` headings, keep
 // each symbol's heading + signature + one-line summary — and split it into one
@@ -548,10 +566,11 @@ const landingPage = (title, pkg, pages) =>
     ),
   ].join("\n") + "\n";
 
-// The reference sidebar is generated as a per-package map keyed by package name;
-// `.vitepress/config.ts` looks up each package's entry and splices it (the
-// landing link plus the per-category leaves) under that package's group. We
-// intentionally discard the theme's per-symbol `typedoc-sidebar.json`.
+// The reference sidebar is emitted as a plain per-package JSON manifest keyed by
+// package name; the site config looks up each package's entry and splices it
+// (the landing link plus the per-category leaves) under that package's group.
+// Each entry is `{ link, items: [{ text, link }] }` — extension-less
+// root-absolute `/api/<pkg>/…` links the site config consumes directly.
 const apiSidebar = {};
 
 // Analyse every package first so cross-package `export *` re-exports can be
@@ -567,16 +586,21 @@ for (const pkg of PACKAGES) {
 for (const pkg of PACKAGES) {
   generate(pkg);
   const out = join(apiDir, pkg);
+  // Theme-off `typedoc-plugin-markdown` emits the module landing as `README.md`
+  // (the VitePress theme used to rename it `index.md`). Read that, then write our
+  // compacted landing back as `index.md` and drop the raw `README.md`.
+  const readmePath = join(out, "README.md");
   const indexPath = join(out, "index.md");
   const categoryMap = resolveCategoryMap(
     pkg,
     analyses,
   );
   const { title, pages } = compact(
-    readFileSync(indexPath, "utf8"),
+    normalize(readFileSync(readmePath, "utf8")),
     categoryMap,
     pkg,
   );
+  rmSync(readmePath, { force: true });
   if (pages.length <= 1) {
     // One (or zero) category: the single page IS the landing at `/api/<pkg>/`,
     // so the sidebar entry is just the package link with no category leaves.

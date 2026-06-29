@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:10+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 76bd41c
+category: Changed
 depends_on: [20260630013458-md-corpus-spike-and-decisions.md]
 ---
 
@@ -47,3 +47,14 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - Tight coupling between typedoc output shape and the parser: a typedoc minor bump can drift; the build later fails loudly (renderMarkdown -> Err) rather than emitting broken HTML.
 - Flattening to 'list' may lengthen some API pages; acceptable for v1, tunable in the theme.
 - The plgg-md render-VERIFICATION of regenerated pages against golden snapshots is the separate guide/TypeDoc ticket, so this ticket depends only on the spike.
+
+## Final Report
+
+Development completed as planned. Dropped typedoc-vitepress-theme (kept typedoc-plugin-markdown), removed the theme-only docsRoot, set parametersFormat/indexFormat to list, and rewired gen-api.mjs for theme-off output. Verified: `npm run docs:api` EXIT 0; regenerated 32 api/*.md within the plgg-md subset (only h1/h2 + ts fences; no raw HTML/tables/h3-h6); only 2 tracked files changed; api/* stays gitignored.
+
+### Discovered Insights
+
+- **Insight**: Theme-off, typedoc-plugin-markdown emits the module landing as README.md (not index.md) and hard-errors on the theme-only docsRoot option (both spike findings confirmed). gen-api now reads README.md, compacts it, writes index.md, and removes the raw README.md. A fence-aware normalize() folds the `typescript` @example fence alias to `ts` before compact().
+  **Context**: This shapes what the guide/TypeDoc golden-verification ticket (next) and the plgg-press build render; the JSON sidebar manifest (api/typedoc-sidebar.json) is kept for site.config.ts to import.
+- **Insight**: typedoc output shape is tightly coupled to the parser; a typedoc minor bump can drift, but the plgg-press build fails loudly (renderMarkdown -> Err) rather than emitting broken HTML.
+  **Context**: Acceptable for v1; list format lengthens some API pages, tunable in the theme later.
