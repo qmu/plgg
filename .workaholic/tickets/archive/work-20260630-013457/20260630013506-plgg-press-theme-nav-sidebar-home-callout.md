@@ -3,9 +3,9 @@ created_at: 2026-06-30T01:35:06+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: b579f79
+category: Changed
 depends_on: [20260630013505-plgg-press-theme-document-shell.md]
 ---
 
@@ -53,3 +53,16 @@ The standard engineering policies this ticket answers to. The implementing sessi
 - The 404 view (item 14) reuses the shell and base-prefixed nav; it is rendered in the build ticket, written via write404 (Ssg ticket), and excluded by checkLinks.
 - plgg-view style utilities are immature for responsive/dark-mode; accept single-theme/limited-responsive for v1.
 - The theme lives in plgg-press, NOT the guide — the site looks plainer than VitePress and drops the right-hand outline (accepted).
+
+## Final Report
+
+Development completed as planned. The content chrome (navBar, sidebarTree, callout, homeHero, notFound) is pure plgg-view view-functions composed into the shell. Verified: tsc clean; build emits dts; 45 passed/0 failed; coverage 100/92/100/100; no el()/as/ts-ignore.
+
+### Discovered Insights
+
+- **Insight**: The CSS-only sidebar uses native <details>/<summary>; the active leaf is resolved at build time (href(base)(link) === href(base)(activePath)), marked aria-current=page, and a recursive holdsActive opens every ancestor disclosure — zero client JS (specs assert no <script>).
+  **Context**: This is how the v1 site gets collapsible navigation without hydration; the build pipeline supplies activePath per page.
+- **Insight**: Two signatures gained build-time params the ticket omitted: navBar(config, activePath) and homeHero(home, base) — the active-link resolution and href routing need them. homeHero is fully data-driven from SiteConfig.home (tested with non-guide "Acme Docs" data). The features grid uses flex/wrap utilities since plgg-view ships no grid-template utility yet.
+  **Context**: The build pipeline (ticket 10) must pass activePath + base into the theme; home rendering is selected when frontmatter.layout == home.
+- **Insight**: callout matches kind (tip/warning/danger) exhaustively via a Record palette; callout and notFound embed pre-rendered Html via slot. notFound renders through the SAME shell with a synthetic MarkdownDoc (firstHeading -> <title>).
+  **Context**: The build ticket renders notFound and write404 (Ssg) persists it; checkLinks excludes /404 from route expectations.
