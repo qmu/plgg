@@ -72,3 +72,21 @@ test("marks no entry current when path is off-route", () =>
     renderToString(navBar(config, "/nowhere")),
     not(toContain('aria-current="page"')),
   ));
+
+test("renders the right-aligned group with the theme toggle and mobile menu control", () =>
+  all([
+    // links + controls share a right-aligned group
+    check(rendered, toContain("vp-nav-right")),
+    // the appearance toggle button + its sun/moon glyphs
+    check(
+      rendered,
+      toContain('class="vp-theme-toggle"'),
+    ),
+    check(rendered, toContain("vp-sun")),
+    check(rendered, toContain("vp-moon")),
+    // the CSS-only mobile sidebar control
+    check(
+      rendered,
+      toContain('for="vp-menu-toggle"'),
+    ),
+  ]));

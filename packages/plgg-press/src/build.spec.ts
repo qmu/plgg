@@ -275,7 +275,13 @@ test("fails the build with BrokenLinks when a link points at a missing route", a
     ),
   ));
 
-test("PRODUCTION emit is zero-client-JS: no <script>, no EventSource anywhere", () =>
+// The dark-mode toggle is the ONE deliberate production
+// script: every emitted page (the three content pages AND
+// the 404) carries the theme scripts — a `<script>` keyed
+// on the `vp-appearance` persistence key that flips the
+// `dark` class via `classList`. The dev-only live-reload
+// `EventSource` must NEVER leak into the production emit.
+test("PRODUCTION emit ships the theme toggle on every page and never leaks the dev live-reload", () =>
   all(
     [
       built.home,
@@ -283,7 +289,9 @@ test("PRODUCTION emit is zero-client-JS: no <script>, no EventSource anywhere", 
       built.intro,
       built.notFound,
     ].flatMap((page: string) => [
-      check(page, not(toContain("<script"))),
+      check(page, toContain("<script")),
+      check(page, toContain("vp-appearance")),
+      check(page, toContain("classList")),
       check(
         page,
         not(toContain("EventSource")),

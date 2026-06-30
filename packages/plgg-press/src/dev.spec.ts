@@ -153,7 +153,7 @@ test("isAllowedHost accepts localhost + configured hosts (port-insensitive), rej
   ]);
 });
 
-test("dev handler renders the shared page WITH exactly one injected live-reload script", async () => {
+test("dev handler renders the shared page WITH the theme script AND exactly one injected live-reload script", async () => {
   const handle = await handleFor(
     await writeCorpus(),
   );
@@ -163,7 +163,10 @@ test("dev handler renders the shared page WITH exactly one injected live-reload 
   const body = await res.text();
   return all([
     check(res.status, toBe(200)),
-    check(occurrences(body, "<script"), toBe(1)),
+    // the shared render path still ships the theme toggle
+    check(body, toContain("vp-appearance")),
+    // and dev adds exactly one live-reload EventSource on
+    // top of it
     check(
       occurrences(body, "EventSource"),
       toBe(1),
@@ -228,7 +231,7 @@ test("dev SSE endpoint streams text/event-stream and pushes reload after a rebui
   ]);
 });
 
-test("PRODUCTION build() render path emits NO <script> and NO EventSource; dev path emits exactly one", async () => {
+test("PRODUCTION build() render path ships the theme script but NO EventSource; dev path adds exactly one EventSource", async () => {
   const opts = optsFor(
     await writeCorpus(),
     false,
@@ -238,7 +241,7 @@ test("PRODUCTION build() render path emits NO <script> and NO EventSource; dev p
     throw new Error("build failed");
   }
   // What build() actually wrote: the shared render path
-  // with NO dev seam.
+  // with the theme toggle but NO dev seam.
   const prod = await readFile(
     join(opts.outDir, "index.html"),
     "utf8",
@@ -252,14 +255,14 @@ test("PRODUCTION build() render path emits NO <script> and NO EventSource; dev p
     )
   ).text();
   return all([
-    check(occurrences(prod, "<script"), toBe(0)),
+    check(prod, toContain("vp-appearance")),
     check(
       occurrences(prod, "EventSource"),
       toBe(0),
     ),
     check(
-      occurrences(devPage, "<script"),
-      toBe(1),
+      devPage,
+      toContain("vp-appearance"),
     ),
     check(
       occurrences(devPage, "EventSource"),

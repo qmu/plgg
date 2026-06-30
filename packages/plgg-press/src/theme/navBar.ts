@@ -5,6 +5,8 @@ import {
   nav,
   div,
   a,
+  button,
+  span,
   label,
   text,
   attr,
@@ -18,17 +20,21 @@ import {
 
 /**
  * The top navigation bar built purely from
- * `config.nav`. Every link is routed through the single
- * {@link href} resolver (so the deploy `base` is applied
- * in exactly one place), and the entry whose resolved
- * target equals the resolved current `activePath` is
- * marked active at build time with `aria-current="page"`
- * (styled by {@link baseCss}) — so the chrome needs no
- * client JS to highlight the current page. The trailing
- * `☰` label targets the page layout's hidden
- * `#vp-menu-toggle` checkbox, driving the CSS-only mobile
- * sidebar disclosure. Returns a semantic `<nav>`
- * landmark.
+ * `config.nav`. The brand sits left; a right-aligned
+ * group holds the nav links, the appearance toggle, and
+ * (on mobile) the `☰` menu label. Every link is routed
+ * through the single {@link href} resolver, and the
+ * entry whose resolved target equals the resolved
+ * current `activePath` is marked active at build time
+ * with `aria-current="page"` (styled by {@link baseCss})
+ * — so highlighting needs no client JS.
+ *
+ * The `.vp-theme-toggle` button shows a sun (light) or
+ * moon (dark) glyph, swapped by CSS on `html.dark`; the
+ * themeScript wires its click to flip + persist the
+ * theme. The `☰` label targets the page layout's hidden
+ * `#vp-menu-toggle` checkbox (CSS-only mobile sidebar).
+ * Returns a semantic `<nav>` landmark.
  */
 export const navBar = (
   config: SiteConfig,
@@ -59,20 +65,39 @@ export const navBar = (
         [text(config.title)],
       ),
       div(
-        [class_("vp-nav-links")],
-        config.nav.map((item) =>
-          a(linkAttrs(item.link), [
-            text(item.text),
-          ]),
-        ),
-      ),
-      label(
+        [class_("vp-nav-right")],
         [
-          attr("for", "vp-menu-toggle"),
-          class_("vp-menu-btn"),
-          attr("aria-label", "Toggle menu"),
+          div(
+            [class_("vp-nav-links")],
+            config.nav.map((item) =>
+              a(linkAttrs(item.link), [
+                text(item.text),
+              ]),
+            ),
+          ),
+          button(
+            [
+              class_("vp-theme-toggle"),
+              attr("type", "button"),
+              attr(
+                "aria-label",
+                "Toggle dark mode",
+              ),
+            ],
+            [
+              span([class_("vp-sun")], [text("☀")]),
+              span([class_("vp-moon")], [text("☾")]),
+            ],
+          ),
+          label(
+            [
+              attr("for", "vp-menu-toggle"),
+              class_("vp-menu-btn"),
+              attr("aria-label", "Toggle menu"),
+            ],
+            [text("☰")],
+          ),
         ],
-        [text("☰")],
       ),
     ],
   );

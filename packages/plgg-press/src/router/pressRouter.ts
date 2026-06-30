@@ -41,6 +41,7 @@ import {
   type HomeConfig,
 } from "plgg-press/SiteConfig/model/SiteConfig";
 import { href } from "plgg-press/Href/usecase/href";
+import { injectThemeScripts } from "plgg-press/theme/themeScript";
 import { shell } from "plgg-press/theme/shell";
 import { page } from "plgg-press/theme/page";
 import { homeHero } from "plgg-press/theme/homeHero";
@@ -219,12 +220,14 @@ const pageHandler =
             mapResult(
               (doc: MarkdownDoc): HttpResponse =>
                 htmlResponse(
-                  renderToString(
-                    pageView(
-                      config,
-                      base,
-                      doc,
-                      c.req.path,
+                  injectThemeScripts(
+                    renderToString(
+                      pageView(
+                        config,
+                        base,
+                        doc,
+                        c.req.path,
+                      ),
                     ),
                   ),
                 ),

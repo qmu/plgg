@@ -23,6 +23,7 @@ import {
 } from "plgg-press/Press/model/PressOptions";
 import { pressRouter } from "plgg-press/router/pressRouter";
 import { notFound } from "plgg-press/theme/notFound";
+import { injectThemeScripts } from "plgg-press/theme/themeScript";
 import {
   type PageLinks,
   type BrokenLinks,
@@ -137,7 +138,9 @@ export const build = (
       SsgError
     > =>
       write404(opts.outDir)(
-        renderToString(notFound(opts.config)),
+        injectThemeScripts(
+          renderToString(notFound(opts.config)),
+        ),
       ).then(
         mapResult(
           (
