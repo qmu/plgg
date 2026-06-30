@@ -347,12 +347,14 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
   padding:3.5rem 1.5rem 5rem}
 .vp-hero{text-align:center;padding:2.5rem 0 2rem}
 .vp-hero-title{
-  font-size:3.2rem;font-weight:800;line-height:1.1;
+  font-size:clamp(2.1rem,6vw,3.2rem);
+  font-weight:800;line-height:1.1;
   margin:0 0 1rem;color:var(--vp-brand);
   letter-spacing:-0.02em;
 }
 .vp-hero-tagline{
-  font-size:1.3rem;color:var(--vp-muted);
+  font-size:clamp(1.05rem,2.6vw,1.3rem);
+  color:var(--vp-muted);
   max-width:660px;margin:0 auto 2rem;line-height:1.5;
 }
 .vp-actions{
@@ -405,7 +407,19 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
 .vp-feature p{margin:0;color:var(--vp-muted);
   font-size:0.95rem}
 
-/* responsive: collapse sidebar behind the ☰ menu */
+/* responsive: mid-range (tablet / small laptop) — narrow the sidebar and
+   trim the content gutters BEFORE the full mobile collapse, so the doc
+   column stays readable in the ~769-1024px band the single old breakpoint
+   left cramped. */
+@media (max-width:1024px){
+  .vp-layout{--vp-sidebar-w:216px}
+  .vp-sidebar{padding:1.5rem 0.85rem 4rem 1.25rem}
+  .vp-content{padding:2rem 1.75rem 4.5rem}
+  .vp-nav{padding:0 1.25rem}
+  .vp-nav-right{gap:1rem}
+}
+
+/* responsive: collapse sidebar AND nav links behind the ☰ menu */
 @media (max-width:768px){
   .vp-menu-btn{display:inline-block}
   .vp-layout{flex-direction:column}
@@ -421,10 +435,22 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
   }
   .vp-content{padding:1.5rem 1.25rem 4rem}
   .vp-doc{max-width:100%}
-  .vp-hero-title{font-size:2.3rem}
-  .vp-hero-tagline{font-size:1.1rem}
   .vp-nav{padding:0 1rem}
   .vp-nav-right{gap:0.75rem}
-  .vp-nav-links{display:none}
+  /* nav links fold into the ☰ panel instead of vanishing: hidden until the
+     menu checkbox (a sibling of the nav) is checked, then a full-width
+     dropdown beneath the sticky bar — still zero client JavaScript. */
+  .vp-nav-links{
+    display:none;position:absolute;
+    top:var(--vp-nav-h);left:0;right:0;
+    flex-direction:column;align-items:stretch;
+    gap:0;z-index:29;padding:0.25rem 1rem 0.75rem;
+    background:var(--vp-bg);
+    border-bottom:1px solid var(--vp-divider);
+  }
+  .vp-menu-cb:checked ~ .vp-nav .vp-nav-links{
+    display:flex;
+  }
+  .vp-nav-links a{padding:0.6rem 0}
 }
 `;

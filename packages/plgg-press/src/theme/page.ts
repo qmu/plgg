@@ -47,6 +47,21 @@ const isHome = (doc: MarkdownDoc): boolean =>
  * typed flow/`slot` builders — no general-builder escape
  * hatch.
  */
+/**
+ * The hidden checkbox the `☰` label toggles. A sibling of the nav (and, on
+ * content pages, the layout) so {@link baseCss}'s general-sibling rules can
+ * reveal the mobile nav-link dropdown and the sidebar with zero client JS.
+ */
+const menuToggle = input(
+  [
+    class_("vp-menu-cb"),
+    attr("type", "checkbox"),
+    attr("id", "vp-menu-toggle"),
+    attr("aria-hidden", "true"),
+  ],
+  [],
+);
+
 export const page = (
   config: SiteConfig,
   doc: MarkdownDoc,
@@ -58,6 +73,9 @@ export const page = (
     ? div(
         [class_("vp-shell")],
         [
+          // even with no sidebar, the home page carries the menu checkbox so
+          // the ☰ button can reveal the nav links on mobile.
+          menuToggle,
           navBar(config, activePath),
           div(
             [class_("vp-home")],
@@ -68,15 +86,7 @@ export const page = (
     : div(
         [class_("vp-shell")],
         [
-          input(
-            [
-              class_("vp-menu-cb"),
-              attr("type", "checkbox"),
-              attr("id", "vp-menu-toggle"),
-              attr("aria-hidden", "true"),
-            ],
-            [],
-          ),
+          menuToggle,
           navBar(config, activePath),
           div(
             [class_("vp-layout")],
