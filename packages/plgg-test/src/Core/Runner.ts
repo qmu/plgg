@@ -48,8 +48,8 @@ export const runFile = async (
   loadSeq = loadSeq + 1;
   // A DOM-needing spec declares its environment with a first-lines
   // directive; install it BEFORE the import so module-eval-time DOM
-  // access (reading `window.happyDOM`, building elements at the top
-  // level) resolves — AND keep it installed across `runSuite`, since the
+  // access (building elements at the top level) resolves — AND keep it
+  // installed across `runSuite`, since the
   // test BODIES touch the DOM too. Teardown runs in `finally` so the
   // global is restored even if the spec fails to load: no leak into the
   // next file.
