@@ -91,9 +91,12 @@ export const sidebarTree = (
     ],
     groups.map((group) =>
       details(
-        [attr("open", "")],
+        [class_("vp-group"), attr("open", "")],
         [
-          summary([], [text(group.text)]),
+          summary(
+            [class_("vp-group-title")],
+            [text(group.text)],
+          ),
           ...group.items.map((item) =>
             renderItem(item),
           ),
