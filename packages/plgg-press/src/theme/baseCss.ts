@@ -114,23 +114,54 @@ body.vp{
   justify-content:center;width:38px;height:38px;
   border-radius:50%;border:1px solid var(--vp-border);
   background:var(--vp-bg-alt);cursor:pointer;
-  font-size:1.05rem;line-height:1;color:var(--vp-text);
-  padding:0;transition:background-color 0.25s,
+  color:var(--vp-text);padding:0;
+  transition:background-color 0.25s,
     border-color 0.25s,transform 0.15s;
 }
 .vp-theme-toggle:hover{
   border-color:var(--vp-brand);transform:scale(1.06);
 }
+/* CSS-drawn sun: a disc with four rays */
+.vp-sun{
+  position:relative;display:inline-block;
+  width:8px;height:8px;border-radius:50%;
+  background:currentColor;
+}
+.vp-sun::before,.vp-sun::after{
+  content:"";position:absolute;
+  background:currentColor;
+}
+.vp-sun::before{
+  left:50%;top:-5px;margin-left:-1px;
+  width:2px;height:18px;
+}
+.vp-sun::after{
+  top:50%;left:-5px;margin-top:-1px;
+  height:2px;width:18px;
+}
+/* CSS-drawn crescent moon */
+.vp-moon{
+  display:inline-block;width:15px;height:15px;
+  border-radius:50%;
+  box-shadow:inset -4px -2px 0 0 currentColor;
+}
 .vp-theme-toggle .vp-moon{display:none}
 html.dark .vp-theme-toggle .vp-sun{display:none}
-html.dark .vp-theme-toggle .vp-moon{display:inline}
-.vp-menu-btn{
-  display:none;cursor:pointer;font-size:1.4rem;
-  line-height:1;padding:0.25rem 0.4rem;
-  color:var(--vp-text);user-select:none;border-radius:6px;
-  transition:background-color 0.25s;
+html.dark .vp-theme-toggle .vp-moon{
+  display:inline-block;
 }
-.vp-menu-btn:hover{background:var(--vp-bg-alt)}
+/* CSS-drawn 3-bar hamburger (no glyph font) */
+.vp-menu-btn{
+  display:none;width:22px;height:16px;
+  cursor:pointer;color:var(--vp-text);
+  background-image:linear-gradient(
+      currentColor,currentColor),
+    linear-gradient(currentColor,currentColor),
+    linear-gradient(currentColor,currentColor);
+  background-size:100% 2px;
+  background-position:0 1px,0 7px,0 13px;
+  background-repeat:no-repeat;
+}
 
 /* layout */
 .vp-layout{

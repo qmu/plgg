@@ -85,8 +85,11 @@ export const navBar = (
               ),
             ],
             [
-              span([class_("vp-sun")], [text("☀")]),
-              span([class_("vp-moon")], [text("☾")]),
+              // icons are CSS-drawn (no fragile glyph
+              // fonts); the sun shows in light, the
+              // moon in dark via html.dark
+              span([class_("vp-sun")], []),
+              span([class_("vp-moon")], []),
             ],
           ),
           label(
@@ -94,8 +97,10 @@ export const navBar = (
               attr("for", "vp-menu-toggle"),
               class_("vp-menu-btn"),
               attr("aria-label", "Toggle menu"),
+              attr("role", "button"),
             ],
-            [text("☰")],
+            // a CSS-drawn 3-bar icon, not a glyph
+            [],
           ),
         ],
       ),
