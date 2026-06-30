@@ -123,7 +123,7 @@ test("composes nav, sidebar and content inside the shell document", () =>
     ),
   ]));
 
-test("includes a CSS-only <details> sidebar with an active-marked link", () =>
+test("includes the sidebar with always-open section headers and an active-marked link", () =>
   all([
     check(
       rendered,
@@ -131,8 +131,13 @@ test("includes a CSS-only <details> sidebar with an active-marked link", () =>
         'aria-label="Sidebar navigation"',
       ),
     ),
-    check(rendered, toContain("<details")),
-    check(rendered, toContain("<summary")),
+    // top-level sections are always-open headers (no
+    // collapse), so the group is a .vp-group-title,
+    // not a <details>/<summary>
+    check(
+      rendered,
+      toContain('class="vp-group-title"'),
+    ),
     check(
       rendered,
       toContain('aria-current="page"'),

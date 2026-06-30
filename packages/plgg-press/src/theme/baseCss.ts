@@ -167,15 +167,12 @@ html.dark .vp-theme-toggle .vp-moon{display:inline}
 .vp-group{margin-top:0.65rem}
 .vp-group:first-child{margin-top:0}
 .vp-group-title{
-  display:flex;align-items:center;
-  padding:0.26rem 0;font-size:0.9rem;
+  padding:0.28rem 0 0.12rem;font-size:0.86rem;
   font-weight:700;color:var(--vp-text);
-  transition:color 0.25s;
 }
-.vp-group-title:hover{color:var(--vp-brand)}
 /* every leaf link + nested toggle shares one rhythm */
 .vp-sidebar a,
-.vp-sidebar details details summary{
+.vp-sidebar details summary{
   display:flex;align-items:center;
   padding:0.17rem 0 0.17rem 0.85rem;
   font-size:0.875rem;font-weight:400;
@@ -184,21 +181,21 @@ html.dark .vp-theme-toggle .vp-moon{display:inline}
   transition:color 0.25s,border-color 0.25s;
 }
 .vp-sidebar a:hover,
-.vp-sidebar details details summary:hover{
+.vp-sidebar details summary:hover{
   color:var(--vp-text);text-decoration:none;
   border-left-color:var(--vp-muted);
 }
-.vp-sidebar details details summary{font-weight:500}
+.vp-sidebar details summary{font-weight:500}
 .vp-sidebar a[aria-current]{
   color:var(--vp-brand);font-weight:600;
   border-left:2px solid var(--vp-brand);
   padding-left:calc(0.85rem - 1px);
 }
 /* one extra indent step for items inside a nested group */
-.vp-sidebar details details a{
+.vp-sidebar details a{
   padding-left:1.6rem;
 }
-.vp-sidebar details details a[aria-current]{
+.vp-sidebar details a[aria-current]{
   padding-left:calc(1.6rem - 1px);
 }
 

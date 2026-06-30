@@ -94,12 +94,13 @@ test("marks the active leaf and opens its ancestors", () =>
       rendered,
       toContain('aria-current="page"'),
     ),
-    // the top group is always open and the nested
-    // "Concepts" group opens because it holds the
-    // active leaf — two open disclosures
+    // top-level groups are NOT collapsible (plain
+    // .vp-group headers, no <details>), so the only
+    // open disclosure is the nested "Concepts" group,
+    // which opens because it holds the active leaf
     check(
       rendered.split('open=""').length - 1,
-      toBe(2),
+      toBe(1),
     ),
   ]));
 

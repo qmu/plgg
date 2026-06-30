@@ -4,6 +4,7 @@ import {
   type Flow,
   type Attribute,
   nav,
+  div,
   details,
   summary,
   a,
@@ -33,9 +34,15 @@ import {
  * (`aria-current="page"`, styled by {@link baseCss}), and
  * any disclosure on the path to it is rendered `open` so
  * the current page is revealed without scripting.
- * Presentation (indent, hierarchy, active highlight) is
- * owned by {@link baseCss} via the `.vp-sidebar` class.
- * Returns a semantic `<nav>` landmark.
+ *
+ * Top-level GROUPS are NOT collapsible — they render as
+ * always-visible section headers (a plain `.vp-group`
+ * div, no `<details>`/caret), so navigating never
+ * collapses them. The rotating collapse caret lives only
+ * on NESTED groups (a group item that itself has
+ * children). Presentation (indent, hierarchy, active
+ * highlight) is owned by {@link baseCss}. Returns a
+ * semantic `<nav>` landmark.
  */
 export const sidebarTree = (
   groups: ReadonlyArray<SidebarGroup>,
@@ -90,10 +97,10 @@ export const sidebarTree = (
       attr("aria-label", "Sidebar navigation"),
     ],
     groups.map((group) =>
-      details(
-        [class_("vp-group"), attr("open", "")],
+      div(
+        [class_("vp-group")],
         [
-          summary(
+          div(
             [class_("vp-group-title")],
             [text(group.text)],
           ),
