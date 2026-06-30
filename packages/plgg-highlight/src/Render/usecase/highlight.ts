@@ -11,12 +11,8 @@ import {
   code,
   span,
   text,
-  attr,
+  class_,
 } from "plgg-view";
-import {
-  type Styles,
-  type Color,
-} from "plgg-view/style";
 import { type Highlighter } from "plgg-md";
 import {
   Token,
@@ -35,98 +31,55 @@ import { tokenize } from "plgg-highlight/Token/usecase/tokenize";
 import { normalizeLang } from "plgg-highlight/Lang/usecase/normalizeLang";
 
 /**
- * The concrete value of each `plgg-view` {@link Color}
- * token. A boundary mirror of
- * `plgg-view/Style/model/token.ts`'s palette: `plgg-view`'s
- * Style RUNTIME (`color`/`colorValue`/`style_`) lives only
- * on the `plgg-view/style` SUBPATH, which the in-house
- * bundler — externals matched by exact bare name, no
- * subpaths — cannot externalize from a bundled sibling. So
- * the {@link Color} type is imported type-only (erased at
- * build) and its value re-resolved here. Keep in sync with
- * plgg-view; a drift is caught by `highlight.spec.ts`,
- * which asserts against plgg-view's own `color()`.
+ * Map a {@link TokenKind} to its CSS class — the single
+ * token-class authority, exhaustively `match`ed over the
+ * nine kinds so adding a kind is a compile error until it
+ * is classed. Tokens carry only a semantic `tok-<kind>`
+ * class, NOT an inline colour: the actual colours live in
+ * the consuming theme's stylesheet (plgg-press `baseCss`),
+ * which can therefore give them DIFFERENT palettes in
+ * light and dark mode. (Inline colours could not adapt to
+ * `html.dark` and could not be overridden by CSS, which is
+ * why highlighting looked flat in dark mode.)
  */
-const COLOR_VALUE: Readonly<
-  Record<Color, SoftStr>
-> = {
-  surface: "#fffdf7",
-  "surface-2": "#f0e9d8",
-  primary: "#1f6b54",
-  "primary-text": "#fbfaf3",
-  text: "#2a241d",
-  muted: "#8a8073",
-  border: "#e6dcc8",
-  danger: "#b23a2a",
-};
-
-/**
- * Map a {@link TokenKind} to its `plgg-view` {@link Color}
- * token — the single token-color authority, exhaustively
- * `match`ed over the nine kinds so adding a kind is a
- * compile error until it is colored.
- */
-const tokenColor = (kind: TokenKind): Color =>
+const tokenClass = (kind: TokenKind): SoftStr =>
   match(kind)(
-    [keyword$(), (): Color => "primary"],
-    [stringKind$(), (): Color => "danger"],
-    [numberKind$(), (): Color => "danger"],
-    [comment$(), (): Color => "muted"],
-    [identifier$(), (): Color => "text"],
-    [punctuation$(), (): Color => "muted"],
-    [regex$(), (): Color => "danger"],
-    [template$(), (): Color => "danger"],
-    [plain$(), (): Color => "text"],
+    [keyword$(), (): SoftStr => "tok-keyword"],
+    [stringKind$(), (): SoftStr => "tok-string"],
+    [numberKind$(), (): SoftStr => "tok-number"],
+    [comment$(), (): SoftStr => "tok-comment"],
+    [
+      identifier$(),
+      (): SoftStr => "tok-identifier",
+    ],
+    [
+      punctuation$(),
+      (): SoftStr => "tok-punctuation",
+    ],
+    [regex$(), (): SoftStr => "tok-regex"],
+    [template$(), (): SoftStr => "tok-template"],
+    [plain$(), (): SoftStr => "tok-plain"],
   );
 
 /**
- * The `plgg-view` {@link Styles} for a {@link TokenKind} —
- * a single `color` declaration on the kind's
- * {@link tokenColor}. Takes the kind because `Styles` is a
- * flat declaration list and cannot carry the per-kind
- * selectors a whole stylesheet would need; the
- * `plgg-press` theme calls it per kind to merge token
- * colors into the page stylesheet.
- */
-export const highlightCss = (
-  kind: TokenKind,
-): Styles => [
-  {
-    prop: "color",
-    value: COLOR_VALUE[tokenColor(kind)],
-  },
-];
-
-/** One token kind's {@link highlightCss} as an inline `style` value. */
-const inlineStyle = (
-  kind: TokenKind,
-): SoftStr =>
-  highlightCss(kind)
-    .map((d) => `${d.prop}:${d.value}`)
-    .join(";");
-
-/**
- * Fold one {@link Token} into a styled phrasing span: the
+ * Fold one {@link Token} into a phrasing span: the
  * verbatim text (escaped at render) wrapped in a `span`
- * carrying the kind's color as an inline `style`. (Inline
- * `style` — `plgg-view`'s documented attribute hatch —
- * because its atomic `style_`/`collectCss` system is on the
- * un-bundleable `plgg-view/style` subpath; see
- * {@link COLOR_VALUE}.)
+ * carrying the kind's `tok-<kind>` class. The theme
+ * stylesheet colours the class per light/dark.
  */
 const tokenToHtml = (
   tok: Token,
 ): Phrasing<never> =>
   span(
-    [attr("style", inlineStyle(tok.content.kind))],
+    [class_(tokenClass(tok.content.kind))],
     [text(tok.content.text)],
   );
 
 /**
  * Highlight TypeScript-family source: the
- * {@link tokenize} stream folded into styled `span` leaves
- * inside a typed `pre > code`. Carries no `Msg`, so it
- * slots into any `plgg-md` tree.
+ * {@link tokenize} stream folded into classed `span`
+ * leaves inside a typed `pre > code`. Carries no `Msg`, so
+ * it slots into any `plgg-md` tree.
  */
 export const highlightTs = (
   src: SoftStr,
@@ -138,7 +91,7 @@ export const highlightTs = (
 
 /**
  * The plain fallback: an escaped `pre > code` with no
- * token coloring (the body is a single HTML-escaped text
+ * token classes (the body is a single HTML-escaped text
  * leaf — the XSS-safe default of `spike-decisions.md` §2).
  */
 export const highlightPlain = (

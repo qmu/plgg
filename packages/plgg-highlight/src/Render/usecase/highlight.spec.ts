@@ -4,27 +4,11 @@ import {
   all,
   not,
   toContain,
-  toEqual,
 } from "plgg-test";
 import { some, none, SoftStr } from "plgg";
 import { renderToString } from "plgg-view";
-import { color } from "plgg-view/style";
 import { type Highlighter } from "plgg-md";
-import {
-  asHighlighter,
-  highlightCss,
-} from "plgg-highlight/Render/usecase/highlight";
-import {
-  keyword,
-  stringKind,
-  numberKind,
-  comment,
-  identifier,
-  punctuation,
-  regex,
-  template,
-  plain,
-} from "plgg-highlight/Token/model/Token";
+import { asHighlighter } from "plgg-highlight/Render/usecase/highlight";
 
 /** The seam under test, applied and rendered to a string. */
 const render = (
@@ -33,7 +17,7 @@ const render = (
 ): SoftStr =>
   renderToString(asHighlighter()(lang, src));
 
-test("the ts alias takes the scanner path: pre>code with styled spans", () =>
+test("the ts alias takes the scanner path: pre>code with classed spans", () =>
   all([
     check(
       render(some("typescript"), "const x = 1"),
@@ -47,21 +31,27 @@ test("the ts alias takes the scanner path: pre>code with styled spans", () =>
       render(some("typescript"), "const x = 1"),
       toContain("<span"),
     ),
-    // `primary` (#1f6b54) is the keyword color; its
-    // presence on a span proves classification + styling.
+    // `const` is a keyword -> a tok-keyword class span,
+    // proving classification. Colours live in the theme
+    // stylesheet (light/dark), NOT inline here.
     check(
       render(some("typescript"), "const x = 1"),
-      toContain("color:#1f6b54"),
+      toContain("tok-keyword"),
+    ),
+    // no inline colour is baked onto tokens anymore
+    check(
+      render(some("typescript"), "const x = 1"),
+      not(toContain("style=")),
     ),
   ]));
 
 test("the javascript alias also takes the scanner path", () =>
   check(
     render(some("javascript"), "let y = 2"),
-    toContain("<span"),
+    toContain("tok-keyword"),
   ));
 
-test("a bash fence takes the plain fallback: no spans, no token colors", () =>
+test("a bash fence takes the plain fallback: no spans, no token classes", () =>
   all([
     check(
       render(some("bash"), "echo hi"),
@@ -73,7 +63,7 @@ test("a bash fence takes the plain fallback: no spans, no token colors", () =>
     ),
     check(
       render(some("bash"), "echo hi"),
-      not(toContain("color:")),
+      not(toContain("tok-")),
     ),
   ]));
 
@@ -98,46 +88,6 @@ test("the plain fallback HTML-escapes its body", () =>
     check(
       render(none(), "a < b & c"),
       toContain("&amp;"),
-    ),
-  ]));
-
-test("highlightCss maps every TokenKind to a plgg-view color token", () =>
-  all([
-    check(
-      highlightCss(keyword()),
-      toEqual(color("primary")),
-    ),
-    check(
-      highlightCss(stringKind()),
-      toEqual(color("danger")),
-    ),
-    check(
-      highlightCss(numberKind()),
-      toEqual(color("danger")),
-    ),
-    check(
-      highlightCss(comment()),
-      toEqual(color("muted")),
-    ),
-    check(
-      highlightCss(identifier()),
-      toEqual(color("text")),
-    ),
-    check(
-      highlightCss(punctuation()),
-      toEqual(color("muted")),
-    ),
-    check(
-      highlightCss(regex()),
-      toEqual(color("danger")),
-    ),
-    check(
-      highlightCss(template()),
-      toEqual(color("danger")),
-    ),
-    check(
-      highlightCss(plain()),
-      toEqual(color("text")),
     ),
   ]));
 
