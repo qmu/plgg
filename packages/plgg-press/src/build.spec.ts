@@ -161,7 +161,9 @@ test("renders the home page through the theme shell from SiteConfig home data", 
       built.home.slice(0, 15),
       toContain("<!doctype html>"),
     ),
-    check(built.home, toContain("<main")),
+    // the home layout is the full-width hero variant
+    // (vp-home, no sidebar/<main> column)
+    check(built.home, toContain("vp-home")),
     check(
       built.home,
       toContain("Welcome to Fixture"),

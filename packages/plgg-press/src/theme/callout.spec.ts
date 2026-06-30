@@ -8,7 +8,6 @@ import {
   type Html,
   div,
   text,
-  collectCss,
   renderToString,
 } from "plgg-view";
 import { callout } from "plgg-press/theme/callout";
@@ -39,21 +38,26 @@ test("embeds the pre-rendered body and a kind label", () =>
     ),
   ]));
 
-test("styles each kind with its own accent token", () =>
+test("tags each kind with its own vp-callout class (accent owned by baseCss)", () =>
   all([
-    // tip → primary pine accent
     check(
-      collectCss(callout("tip", body)),
-      toContain("#1f6b54"),
+      renderToString(callout("tip", body)),
+      toContain(
+        'class="vp-callout vp-callout-tip"',
+      ),
     ),
-    // warning → muted accent
     check(
-      collectCss(callout("warning", body)),
-      toContain("#8a8073"),
+      renderToString(
+        callout("warning", body),
+      ),
+      toContain(
+        'class="vp-callout vp-callout-warning"',
+      ),
     ),
-    // danger → brick accent
     check(
-      collectCss(callout("danger", body)),
-      toContain("#b23a2a"),
+      renderToString(callout("danger", body)),
+      toContain(
+        'class="vp-callout vp-callout-danger"',
+      ),
     ),
   ]));

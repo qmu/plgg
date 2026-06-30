@@ -33,7 +33,10 @@ test("renders through the full document shell", () =>
       toBe("<!doctype html><html>"),
     ),
     check(rendered, toContain("<head>")),
-    check(rendered, toContain("<body><main>")),
+    check(
+      rendered,
+      toContain('<body class="vp">'),
+    ),
     check(
       rendered.slice(-14),
       toBe("</body></html>"),

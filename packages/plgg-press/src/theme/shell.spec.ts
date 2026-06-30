@@ -4,6 +4,7 @@ import {
   all,
   toBe,
   toContain,
+  not,
 } from "plgg-test";
 import { some, none } from "plgg";
 import {
@@ -71,9 +72,10 @@ test("emits a leading doctype + complete <html> document", () =>
     ),
     check(rendered, toContain("<head>")),
     check(rendered, toContain("</head>")),
+    // the root carries the `vp` scope class
     check(
       rendered,
-      toContain("<body><main>"),
+      toContain('<body class="vp">'),
     ),
     check(
       rendered.slice(-14),
@@ -81,29 +83,41 @@ test("emits a leading doctype + complete <html> document", () =>
     ),
   ]));
 
-test("wraps the pre-rendered body in a slot <div> inside <main>", () =>
+test("wraps the pre-rendered body in a slot <div> under <body class=\"vp\">", () =>
   all([
+    // the opaque body rides into the typed shell through
+    // the slot <div>, directly inside <body class="vp">
+    // (page.ts owns any <main>, the shell adds none)
     check(
       rendered,
-      toContain("<main><div"),
+      toContain('<body class="vp"><div'),
+    ),
+    check(
+      rendered,
+      not(toContain("<main")),
     ),
     check(
       rendered,
       toContain(
-        "Hello body</div></div></main></body>",
+        "Hello body</div></div></body>",
       ),
     ),
   ]));
 
-test("inlines the body's collected CSS byte-for-byte in a single <style>", () => {
+test("inlines baseCss ahead of the body's collected CSS in one <style>", () => {
   const sheet = collectCss(bodyFixture);
   return all([
     // the fixture really contributes an atomic rule
     check(sheet, toContain("padding")),
-    // and the <style> text equals it exactly
+    // the static theme sheet is injected (a stable
+    // baseCss marker + a custom property)
+    check(rendered, toContain(".vp-nav{")),
+    check(rendered, toContain("--vp-brand")),
+    // and the body's atomic CSS closes the single
+    // <style> block, byte-for-byte
     check(
       rendered,
-      toContain(`<style>${sheet}</style>`),
+      toContain(`${sheet}</style>`),
     ),
   ]);
 });
@@ -124,20 +138,21 @@ test("falls back to config.title when firstHeading is None", () =>
     toContain("<title>plgg Guide</title>"),
   ));
 
-test("routes every <link> href through href(config.base)", () =>
+test("emits only a base-routed canonical <link>, no external stylesheet", () =>
   all([
+    // canonical is routed through href(config.base)
     check(
       rendered,
       toContain(
-        `<link rel="stylesheet" href="${href(
+        `<link rel="canonical" href="${href(
           "/plgg/",
-        )("/assets/style.css")}" />`,
+        )("/")}" />`,
       ),
     ),
+    // the restyle inlines the theme, so no external
+    // stylesheet link remains
     check(
       rendered,
-      toContain(
-        '<link rel="canonical" href="/plgg/" />',
-      ),
+      not(toContain('rel="stylesheet"')),
     ),
   ]));

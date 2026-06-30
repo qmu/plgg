@@ -2,17 +2,12 @@ import { type SoftStr, matchOption } from "plgg";
 import {
   type Html,
   div,
+  main_,
+  input,
   slot,
+  attr,
+  class_,
 } from "plgg-view";
-import {
-  style_,
-  flex,
-  items,
-  grow,
-  gap,
-  px,
-  py,
-} from "plgg-view/style";
 import { type MarkdownDoc } from "plgg-md";
 import { type SiteConfig } from "plgg-press/SiteConfig/model/SiteConfig";
 import { navBar } from "plgg-press/theme/navBar";
@@ -32,21 +27,25 @@ const isHome = (doc: MarkdownDoc): boolean =>
   )(doc.frontmatter.layout);
 
 /**
- * The in-body PAGE LAYOUT — the missing composition
- * seam between the typed chrome builders and the
- * document {@link shell}. Wraps one already-rendered
- * `content` region (an opaque `Html<never>` the
- * content model can't statically constrain, embedded
- * through the typed {@link slot}) in the site chrome:
- * the top {@link navBar} marked at `activePath`, and —
- * for content/API pages — the {@link sidebarTree}
- * beside the content, with the entry on the way to
- * `activePath` marked active and revealed. A
- * `layout: home` page renders the hero full-width with
- * NO sidebar. Authored purely from the typed
- * flow/`slot` builders — no general-builder escape
- * hatch — so the page stays a semantically complete,
- * JS-free landmark tree.
+ * The in-body PAGE LAYOUT — the composition seam between
+ * the typed chrome builders and the document
+ * {@link shell}. Wraps one already-rendered `content`
+ * region (an opaque `Html<never>`, embedded through the
+ * typed {@link slot}) in the site chrome: the top
+ * {@link navBar} marked at `activePath`, and — for
+ * content/API pages — the {@link sidebarTree} beside a
+ * `<main class="vp-content">` whose `.vp-doc` column
+ * holds the rendered Markdown. A `layout: home` page
+ * renders the hero full-width with NO sidebar.
+ *
+ * The mobile sidebar collapse is CSS-only: a hidden
+ * `#vp-menu-toggle` checkbox sits as a sibling of the
+ * layout (the `☰` label lives in the nav), so {@link
+ * baseCss}'s `.vp-menu-cb:checked ~ .vp-layout
+ * .vp-sidebar` general-sibling rule reveals the sidebar
+ * with zero client JavaScript. Authored purely from the
+ * typed flow/`slot` builders — no general-builder escape
+ * hatch.
  */
 export const page = (
   config: SiteConfig,
@@ -57,35 +56,44 @@ export const page = (
 ): Html<never> =>
   isHome(doc)
     ? div(
-        [],
-        [
-          navBar(config, activePath),
-          slot([], [content]),
-        ],
-      )
-    : div(
-        [],
+        [class_("vp-shell")],
         [
           navBar(config, activePath),
           div(
+            [class_("vp-home")],
+            [slot([], [content])],
+          ),
+        ],
+      )
+    : div(
+        [class_("vp-shell")],
+        [
+          input(
             [
-              style_(
-                flex,
-                items("start"),
-                gap(6),
-                px(4),
-                py(4),
-              ),
+              class_("vp-menu-cb"),
+              attr("type", "checkbox"),
+              attr("id", "vp-menu-toggle"),
+              attr("aria-hidden", "true"),
             ],
+            [],
+          ),
+          navBar(config, activePath),
+          div(
+            [class_("vp-layout")],
             [
               sidebarTree(
                 config.sidebar,
                 activePath,
                 base,
               ),
-              div(
-                [style_(grow)],
-                [slot([], [content])],
+              main_(
+                [class_("vp-content")],
+                [
+                  div(
+                    [class_("vp-doc")],
+                    [slot([], [content])],
+                  ),
+                ],
               ),
             ],
           ),

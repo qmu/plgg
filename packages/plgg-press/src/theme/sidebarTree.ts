@@ -10,18 +10,8 @@ import {
   span,
   text,
   attr,
+  class_,
 } from "plgg-view";
-import {
-  style_,
-  flexCol,
-  gap,
-  p as pad,
-  py,
-  block,
-  weight,
-  pointer,
-  color,
-} from "plgg-view/style";
 import {
   type SidebarGroup,
   type SidebarItem,
@@ -40,10 +30,12 @@ import {
  * Leaves are links routed through the single {@link href}
  * resolver; the link whose resolved target equals the
  * resolved `activePath` is marked active at build time
- * (`aria-current="page"` + the primary accent), and any
- * disclosure on the path to it is rendered `open` so the
- * current page is revealed without scripting. Returns a
- * semantic `<nav>` landmark.
+ * (`aria-current="page"`, styled by {@link baseCss}), and
+ * any disclosure on the path to it is rendered `open` so
+ * the current page is revealed without scripting.
+ * Presentation (indent, hierarchy, active highlight) is
+ * owned by {@link baseCss} via the `.vp-sidebar` class.
+ * Returns a semantic `<nav>` landmark.
  */
 export const sidebarTree = (
   groups: ReadonlyArray<SidebarGroup>,
@@ -67,36 +59,19 @@ export const sidebarTree = (
     on: boolean,
   ): ReadonlyArray<Attribute<never>> =>
     on ? [attr("open", "")] : [];
+  const linkAttrs = (
+    link: SoftStr,
+  ): ReadonlyArray<Attribute<never>> =>
+    isActive(link)
+      ? [
+          attr("href", hrefOf(link)),
+          attr("aria-current", "page"),
+        ]
+      : [attr("href", hrefOf(link))];
   const leaf = (item: SidebarItem): Flow<never> =>
     matchOption<SoftStr, Flow<never>>(
-      () =>
-        span(
-          [style_(block, py(1), color("muted"))],
-          [text(item.text)],
-        ),
-      (link) =>
-        a(
-          isActive(link)
-            ? [
-                attr("href", hrefOf(link)),
-                attr("aria-current", "page"),
-                style_(
-                  block,
-                  py(1),
-                  color("primary"),
-                  weight(600),
-                ),
-              ]
-            : [
-                attr("href", hrefOf(link)),
-                style_(
-                  block,
-                  py(1),
-                  color("text"),
-                ),
-              ],
-          [text(item.text)],
-        ),
+      () => span([], [text(item.text)]),
+      (link) => a(linkAttrs(link), [text(item.text)]),
     )(item.link);
   const renderItem = (
     item: SidebarItem,
@@ -104,27 +79,21 @@ export const sidebarTree = (
     item.items.length === 0
       ? leaf(item)
       : details(openAttrs(holdsActive(item)), [
-          summary(
-            [style_(py(1), pointer, weight(500))],
-            [text(item.text)],
-          ),
+          summary([], [text(item.text)]),
           ...item.items.map((child) =>
             renderItem(child),
           ),
         ]);
   return nav(
     [
+      class_("vp-sidebar"),
       attr("aria-label", "Sidebar navigation"),
-      style_(flexCol, gap(1), pad(4)),
     ],
     groups.map((group) =>
       details(
         [attr("open", "")],
         [
-          summary(
-            [style_(py(1), pointer, weight(700))],
-            [text(group.text)],
-          ),
+          summary([], [text(group.text)]),
           ...group.items.map((item) =>
             renderItem(item),
           ),

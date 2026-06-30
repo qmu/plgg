@@ -9,28 +9,8 @@ import {
   a,
   text,
   attr,
+  class_,
 } from "plgg-view";
-import {
-  style_,
-  flex,
-  flexCol,
-  wrap,
-  grow,
-  gap,
-  px,
-  py,
-  p as pad,
-  mb,
-  minW,
-  maxW,
-  center,
-  weight,
-  color,
-  bg,
-  border,
-  rounded,
-  text as fontSize,
-} from "plgg-view/style";
 import {
   type HomeConfig,
   type HomeAction,
@@ -43,13 +23,14 @@ import { href } from "plgg-press/Href/usecase/href";
  * GENERICALLY from the injected {@link HomeConfig} DATA —
  * the theme hard-codes no copy. The hero shows the
  * config's `title`/`tagline` and maps every `action` to a
- * call-to-action link (routed through {@link href} so the
- * deploy `base` applies once); the feature grid maps
- * every `feature` to a card. Built from the curated
- * flex/wrap atomic utilities (plgg-view ships no
- * grid-template utility yet — the wrapping flex row is the
- * v1 grid), so any consumer's home data renders without
- * theme changes.
+ * call-to-action button (the first is the primary accent,
+ * the rest are alternate; all routed through {@link href}
+ * so the deploy `base` applies once); each `feature`
+ * becomes a card. Presentation — the centred hero, the
+ * button styles, and the responsive card GRID — is owned
+ * by {@link baseCss} via the `.vp-hero` / `.vp-actions` /
+ * `.vp-features` classes, so any consumer's home data
+ * renders without theme changes.
  */
 export const homeHero = (
   home: HomeConfig,
@@ -58,17 +39,15 @@ export const homeHero = (
   const hrefOf = href(base);
   const action = (
     item: HomeAction,
+    index: number,
   ): Html<never, "a"> =>
     a(
       [
         attr("href", hrefOf(item.link)),
-        style_(
-          px(4),
-          py(2),
-          rounded("md"),
-          bg("primary"),
-          color("primary-text"),
-          weight(600),
+        class_(
+          index === 0
+            ? "vp-action vp-action-primary"
+            : "vp-action vp-action-alt",
         ),
       ],
       [text(item.text)],
@@ -77,70 +56,37 @@ export const homeHero = (
     item: HomeFeature,
   ): Html<never, "div"> =>
     div(
+      [class_("vp-feature")],
       [
-        style_(
-          flexCol,
-          grow,
-          minW(56),
-          border,
-          rounded("md"),
-          pad(4),
-          bg("surface"),
-        ),
-      ],
-      [
-        h3(
-          [style_(fontSize("lg"), mb(2))],
-          [text(item.title)],
-        ),
-        p(
-          [style_(color("muted"))],
-          [text(item.details)],
-        ),
+        h3([], [text(item.title)]),
+        p([], [text(item.details)]),
       ],
     );
   return section(
-    [style_(maxW(240), py(12), px(4))],
+    [],
     [
-      h1(
+      div(
+        [class_("vp-hero")],
         [
-          style_(
-            fontSize("2xl"),
-            weight(700),
-            center,
-            mb(4),
+          h1(
+            [class_("vp-hero-title")],
+            [text(home.title)],
+          ),
+          p(
+            [class_("vp-hero-tagline")],
+            [text(home.tagline)],
+          ),
+          div(
+            [class_("vp-actions")],
+            home.actions.map((item, index) =>
+              action(item, index),
+            ),
           ),
         ],
-        [text(home.title)],
-      ),
-      p(
-        [
-          style_(
-            fontSize("lg"),
-            color("muted"),
-            center,
-            mb(8),
-          ),
-        ],
-        [text(home.tagline)],
       ),
       div(
-        [
-          style_(
-            flex,
-            wrap,
-            gap(3),
-            center,
-            mb(12),
-          ),
-        ],
-        home.actions.map((item) => action(item)),
-      ),
-      div(
-        [style_(flex, wrap, gap(4))],
-        home.features.map((item) =>
-          feature(item),
-        ),
+        [class_("vp-features")],
+        home.features.map((item) => feature(item)),
       ),
     ],
   );
