@@ -21,8 +21,9 @@ import {
  * The `window`/`document` pair and the History/Location surface plgg's
  * application runtime drives. Navigation is INERT by default — an anchor
  * click never auto-changes `location`; only `history.pushState`/
- * `replaceState` do (which the runtime calls explicitly). That replaces
- * happy-dom's `settings.navigation.disableMainFrameNavigation` knob.
+ * `replaceState` do (which the runtime calls explicitly). So a navigation
+ * spec sees exactly the History-API state the runtime sets, with no
+ * navigation-disable knob to configure.
  */
 
 export type DomLocation = {

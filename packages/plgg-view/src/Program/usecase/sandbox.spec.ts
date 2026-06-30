@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+// @plgg-test-environment dom
 import {
   test,
   check,

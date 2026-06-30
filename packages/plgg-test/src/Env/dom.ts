@@ -14,11 +14,8 @@ import { installDom } from "./Dom/install.js";
  */
 
 // A spec opts in with a first-lines comment `// @plgg-test-environment dom`.
-// The legacy `happy-dom` token and the `@vitest-environment` alias are still
-// honored transitionally, so specs not yet migrated keep getting a DOM; a
-// follow-up retires them once every spec uses `dom`.
 const DIRECTIVE =
-  /\/\/\s*@(?:plgg-test|vitest)-environment\s+(\S+)/;
+  /\/\/\s*@plgg-test-environment\s+(\S+)/;
 
 /**
  * Reads the requested environment name from a spec file's source, if
@@ -70,12 +67,8 @@ export type RestoreEnv = () => Promise<void>;
 const NO_RESTORE: RestoreEnv = async () =>
   undefined;
 
-// The tokens that select the in-house DOM. `dom` is canonical; `happy-dom`
-// is the transitional legacy alias (retired once all specs migrate).
-const DOM_TOKENS: ReadonlyArray<string> = [
-  "dom",
-  "happy-dom",
-];
+// The only token that selects a DOM environment.
+const DOM_TOKEN = "dom";
 
 /**
  * Installs the requested environment onto `globalThis` and returns a
@@ -89,7 +82,7 @@ export const installEnvironment = async (
   if (environment === undefined) {
     return NO_RESTORE;
   }
-  if (DOM_TOKENS.includes(environment)) {
+  if (environment === DOM_TOKEN) {
     return installDom();
   }
   throw new Error(

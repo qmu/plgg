@@ -5,6 +5,10 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # run-tests CI workflow (scripts/gate-vite.sh) so it can't drift.
 ./scripts/gate-vite.sh
 
+# Gate: no happy-dom — shed for plgg-test's in-house DOM environment. Same
+# shared-with-CI canonical gate (scripts/gate-happy-dom.sh).
+./scripts/gate-happy-dom.sh
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh

@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+// @plgg-test-environment dom
 import {
   test,
   check,
@@ -1250,7 +1250,7 @@ test("a survivor FLIPs from its old box to its new one when it moves", () => {
   render(kul(kli("a", "A"), kli("b", "B")));
   const ul = root.firstElementChild;
   // stub layout: each row's top tracks its live sibling index, so a reorder
-  // makes getBoundingClientRect report a real positional delta (happy-dom
+  // makes getBoundingClientRect report a real positional delta (the test DOM
   // otherwise returns all-zero rects and FLIP would never trigger).
   const stub = (el: Element): void => {
     Object.defineProperty(
