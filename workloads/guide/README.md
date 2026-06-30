@@ -29,6 +29,12 @@ command (also runnable directly from the repo root):
 docker compose -f workloads/guide/compose.yaml up --build
 ```
 
+Either engine works: `scripts/serve-guide.sh` auto-detects
+`docker` or `podman` (a `docker`→`podman` shell alias is
+interactive-only, so the script resolves a real binary).
+The compose file is engine-agnostic; on a podman host run
+`podman compose -f workloads/guide/compose.yaml up --build`.
+
 ## How the container resolves plgg-press's siblings
 
 `plgg-press` is not a single self-contained package: it
