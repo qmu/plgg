@@ -92,10 +92,11 @@ body.vp{
 }
 .vp-nav-right{
   display:flex;align-items:center;
-  gap:1.5rem;margin-left:auto;
+  gap:1.5rem;margin-left:1.5rem;
 }
 .vp-nav-links{
   display:flex;align-items:center;gap:1.4rem;
+  margin-left:auto;
 }
 .vp-nav-links a{
   color:var(--vp-text-2);font-weight:500;
@@ -435,22 +436,32 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
   }
   .vp-content{padding:1.5rem 1.25rem 4rem}
   .vp-doc{max-width:100%}
-  .vp-nav{padding:0 1rem}
-  .vp-nav-right{gap:0.75rem}
+  .vp-nav{padding:0 1rem;flex-wrap:wrap}
+  .vp-nav-right{gap:0.75rem;margin-left:auto}
   /* nav links fold into the ☰ panel instead of vanishing: hidden until the
-     menu checkbox (a sibling of the nav) is checked, then a full-width
-     dropdown beneath the sticky bar — still zero client JavaScript. */
-  .vp-nav-links{
-    display:none;position:absolute;
-    top:var(--vp-nav-h);left:0;right:0;
-    flex-direction:column;align-items:stretch;
-    gap:0;z-index:29;padding:0.25rem 1rem 0.75rem;
-    background:var(--vp-bg);
-    border-bottom:1px solid var(--vp-divider);
+     menu checkbox (a sibling of the nav) is checked, then they stack as a
+     full-width row IN NORMAL FLOW below the bar — the sticky header simply
+     grows and the page below moves down, so nothing is overlaid. Zero JS. */
+  .vp-nav-links{display:none}
+  /* opening the menu lets the sticky bar grow to fit the stacked links, so
+     it occupies real flow height and the page below moves down (no overlap). */
+  .vp-menu-cb:checked ~ .vp-nav{
+    height:auto;align-items:flex-start;
+    padding-top:0.9rem;padding-bottom:0.6rem;
+  }
+  .vp-menu-cb:checked ~ .vp-nav .vp-nav-brand,
+  .vp-menu-cb:checked ~ .vp-nav .vp-nav-right{
+    line-height:1.4;
   }
   .vp-menu-cb:checked ~ .vp-nav .vp-nav-links{
-    display:flex;
+    display:flex;order:3;flex-basis:100%;
+    flex-direction:column;align-items:stretch;
+    gap:0;margin:0.6rem 0 0;
+    padding-top:0.5rem;
+    border-top:1px solid var(--vp-divider);
   }
-  .vp-nav-links a{padding:0.6rem 0}
+  .vp-menu-cb:checked ~ .vp-nav .vp-nav-links a{
+    padding:0.55rem 0;
+  }
 }
 `;

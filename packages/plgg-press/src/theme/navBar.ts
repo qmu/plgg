@@ -64,17 +64,21 @@ export const navBar = (
         ],
         [text(config.title)],
       ),
+      // the nav links are a DIRECT child of the nav (not nested in
+      // `.vp-nav-right`) so the mobile `☰` panel can wrap them to a
+      // full-width row in normal flow — pushing the page down rather than
+      // overlaying it. On desktop `margin-left:auto` right-aligns them.
+      div(
+        [class_("vp-nav-links")],
+        config.nav.map((item) =>
+          a(linkAttrs(item.link), [
+            text(item.text),
+          ]),
+        ),
+      ),
       div(
         [class_("vp-nav-right")],
         [
-          div(
-            [class_("vp-nav-links")],
-            config.nav.map((item) =>
-              a(linkAttrs(item.link), [
-                text(item.text),
-              ]),
-            ),
-          ),
           button(
             [
               class_("vp-theme-toggle"),
