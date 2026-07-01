@@ -3,8 +3,8 @@
 // "plgg-test"`). The test RUNNER is separate (its own
 // CLI, Node type-stripping) and is untouched. Single
 // `index` entry, ESM + CJS, per-file `.d.ts` tree;
-// externals (plgg, typescript, happy-dom + node:*) are
-// derived from package.json.
+// externals (plgg, typescript + node:*) are derived
+// from package.json.
 export default {
   root: import.meta.dirname,
   rootDir: "src",

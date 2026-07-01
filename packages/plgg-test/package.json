@@ -48,18 +48,8 @@
     "plgg": "file:../plgg",
     "typescript": "^6.0.3"
   },
-  "peerDependencies": {
-    "happy-dom": "^15.0.0"
-  },
-  "peerDependenciesMeta": {
-    "happy-dom": {
-      "optional": true
-    }
-  },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.58.9",
     "@types/node": "^25.6.0",
-    "happy-dom": "^15.0.0",
     "plgg-bundle": "file:../plgg-bundle"
   }
 }

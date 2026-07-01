@@ -682,9 +682,9 @@ export const reconcile =
             [
               text$(),
               (): void => {
-                // `CharacterData` (not `Text`) — `Text extends CharacterData`,
-                // exposes the writable `.data`, and unlike `Text` is honoured by
-                // happy-dom's `instanceof`
+                // `CharacterData` (not `Text`) — `Text extends CharacterData`
+                // and exposes the writable `.data`; the test DOM brands text
+                // nodes as `CharacterData`, so this is the reliable guard
                 if (
                   domNode instanceof CharacterData
                 ) {

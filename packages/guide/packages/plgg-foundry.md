@@ -14,11 +14,6 @@ operations (a **Foundry**); an LLM composes them into an
 execution plan (an **Alignment**) from a natural-language
 request, and a register machine runs it.
 
-::: tip Full API reference
-For every export with its signature, see the
-**[plgg-foundry API reference](/api/plgg-foundry/)**.
-:::
-
 ## The model
 
 - **Foundry** — your "factory spec": the operations
@@ -87,7 +82,7 @@ and `maxOperationLimit` (default 10, a loop guard).
 Operation `fn`s return data — decode untrusted register
 values with a `cast`-based guard so a bad shape becomes an
 `InvalidError` rather than a throw, consistent with the
-[core error model](/packages/plgg/structures-errors#exceptionals-the-error-model).
+[core error model](/packages/plgg/structures-errors#the-error-model-—-errors-as-data).
 
 ## The LLM provider boundary
 

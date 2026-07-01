@@ -1,9 +1,9 @@
-// @vitest-environment happy-dom
+// @plgg-test-environment dom
 //
-// happy-dom would otherwise synchronously navigate on an un-prevented same-origin
-// click; disabling main-frame navigation + the setURL fallback isolates each test
-// to the History-API state the runtime drives. (Typed Window augmentation, not a
-// cast.) Each mounted app is torn down in afterEach so its document-level click /
+// The in-house test DOM is navigation-inert: an un-prevented same-origin
+// anchor click never auto-changes `location`, so each test sees only the
+// History-API state the runtime drives — no navigation-disable knob needed.
+// Each mounted app is torn down in afterEach so its document-level click /
 // popstate listeners never leak into the next test.
 import {
   test,
@@ -35,23 +35,6 @@ import {
 } from "plgg-view/Program/model/Url";
 import { style_ } from "plgg-view/Style/usecase/style_";
 import { p } from "plgg-view/Style/usecase/utilities";
-
-declare global {
-  interface Window {
-    happyDOM?: {
-      settings: {
-        navigation: {
-          disableMainFrameNavigation: boolean;
-          disableFallbackToSetURL: boolean;
-        };
-      };
-    };
-  }
-}
-if (window.happyDOM) {
-  window.happyDOM.settings.navigation.disableMainFrameNavigation = true;
-  window.happyDOM.settings.navigation.disableFallbackToSetURL = true;
-}
 
 type Model = Url;
 type Msg = Readonly<{ url: Url }>;

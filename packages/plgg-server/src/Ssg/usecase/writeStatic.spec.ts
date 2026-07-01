@@ -53,6 +53,25 @@ test("writeStatic writes directory-index files", async () => {
   ]);
 });
 
+test("writeStatic short-circuits to the first failing page", async () => {
+  const out = await mkdtemp(
+    join(tmpdir(), "ssg-"),
+  );
+  // first page fails the guard; the second is never reached
+  const result = await writeStatic(out)([
+    ssgPage("/../evil", "x"),
+    ssgPage("/ok", "<i>ok</i>"),
+  ]);
+  const verdict = check(
+    result,
+    errThen((e) =>
+      check(e.__tag, toBe("WriteFailed")),
+    ),
+  );
+  await rm(out, { recursive: true, force: true });
+  return verdict;
+});
+
 test("writeStatic rejects a path escaping outDir", async () => {
   const out = await mkdtemp(
     join(tmpdir(), "ssg-"),

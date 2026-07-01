@@ -6,11 +6,6 @@ requests, responses, statuses, methods, and the HTTP
 failure vocabulary — **no `node:http`, no `fetch`, no
 DOM**. Its only runtime dependency is `plgg`.
 
-::: tip Full API reference
-For every type and builder with its signature, see the
-**[plgg-http API reference](/api/plgg-http/)**.
-:::
-
 ## Why it exists
 
 [plgg-server](/packages/plgg-server) and
@@ -53,5 +48,4 @@ Everything is pure plgg data: lookups are
 matched **by name**, never by tag string — with no
 platform globals, so it imports safely on a server, in a
 browser, or under SSR. The exact types and the full
-builder/matcher list are in the
-[API reference](/api/plgg-http/).
+builder/matcher list live in the `plgg-http` source.

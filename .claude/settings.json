@@ -1,8 +1,11 @@
 {
-  "permissions": {},
   "env": {
     "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {},
+  "enabledPlugins": {
+    "workaholic@workaholic": true
   },
   "extraKnownMarketplaces": {
     "workaholic": {
@@ -11,10 +14,5 @@
         "repo": "qmu/workaholic"
       }
     }
-  },
-  "enabledPlugins": {
-    "core@workaholic": true,
-    "standards@workaholic": true,
-    "work@workaholic": true
   }
 }

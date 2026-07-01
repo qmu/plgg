@@ -46,6 +46,11 @@ jobs:
       - name: Gate — no direct vite
         run: ./scripts/gate-vite.sh
 
+      # Fail the PR if happy-dom is reintroduced — plgg-test ships its own
+      # in-house DOM. Same canonical gate scripts/check-all.sh runs locally.
+      - name: Gate — no happy-dom
+        run: ./scripts/gate-happy-dom.sh
+
       - name: Install dependencies
         run: npm ci
         working-directory: packages/plgg

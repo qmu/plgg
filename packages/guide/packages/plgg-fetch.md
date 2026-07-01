@@ -10,11 +10,6 @@ plgg data, failures are values, and native
 `fetch`/`Request`/`Response` appear **only at one seam**.
 Runtime deps: `plgg` and `plgg-http`.
 
-::: tip Full API reference
-For every export with its signature, see the
-**[plgg-fetch API reference](/api/plgg-fetch/)**.
-:::
-
 ## Usage
 
 ```typescript
@@ -54,7 +49,7 @@ pipe(
   conveniences over `request` (`del`, since `delete` is
   reserved).
 - **`decodeJsonBody(as)(response)`** — read the text
-  body, [`decodeJson`](/packages/plgg/values-effects#functionals-effect-utilities),
+  body, [`decodeJson`](/packages/plgg/values-effects#effects-—-compose-don-t-enumerate),
   then run a `cast`-based parser; the chain is a
   `Result<T, InvalidError>`.
 

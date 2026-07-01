@@ -71,11 +71,11 @@ test("a fire-and-forget rejection fails the test (O2 window)", async () => {
   ]);
 });
 
-// DOM-environment seam (U1-dom). The fixture builds an element at
-// module-eval time, so it loads at all only if happy-dom is installed
-// BEFORE the import — its 3 tests passing proves the load-before-import
+// DOM-environment seam. The fixture builds an element at module-eval
+// time, so it loads at all only if the in-house DOM is installed BEFORE
+// the import — its 3 tests passing proves the load-before-import
 // guarantee end to end.
-test("a @plgg-test-environment happy-dom spec gets a DOM", async () => {
+test("a @plgg-test-environment dom spec gets a DOM", async () => {
   const results = await runFile(
     fixture("_domFixture.spec.ts"),
   );
@@ -99,10 +99,10 @@ test("no-directive spec stays DOM-free even right after a DOM spec", async () =>
     check(v.passed, toBe(1)),
     check(v.failed, toBe(0)),
     // The runner process itself is clean after teardown — NOT just
-    // `document`: `window`/`self`/`top` are happy-dom own-props too, and
-    // a save/restore bug on any of them would re-install the closed
-    // window and flip `typeof window` undefined→object for the next
-    // (no-DOM) spec. Asserting they are all gone closes that blind spot.
+    // `document`: `window`/`self`/`top` are installed own-props too, and
+    // a teardown bug on any of them would leave the window in place and
+    // flip `typeof window` undefined→object for the next (no-DOM) spec.
+    // Asserting they are all gone closes that blind spot.
     check("document" in globalThis, toBe(false)),
     check("window" in globalThis, toBe(false)),
     check("self" in globalThis, toBe(false)),

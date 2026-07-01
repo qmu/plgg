@@ -17,8 +17,8 @@ readers always know where to look:
 3. **Concepts** — the handful of ideas a reader needs
    before the API makes sense.
 4. **API tables** — the exported functions and types,
-   tabulated. In the [API reference](/api/) these are
-   auto-generated (T8); package pages may summarize.
+   tabulated; package pages summarize the key exports,
+   with each package's source as the source of truth.
 5. **Examples** — runnable usage, building on the
    concepts above.
 

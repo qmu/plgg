@@ -19,7 +19,7 @@ The whole app is pure plgg data and pure functions:
 - **`update(msg, model): Model`** — folds each `Msg` into
   the next model.
 - **`view(model): Html<Msg>`** — renders the model with
-  the [typed element builders](/packages/plgg-view#the-view-tree-html-msg-t);
+  the [typed element builders](/packages/plgg-view#the-view-tree-—-html-msg-t);
   event handlers produce `Msg`.
 
 The URL filter (`?filter=all|active|completed`) is part
@@ -66,7 +66,7 @@ await generateStatic(app)({ paths: ["/"], outDir: "dist/site" })
 SSR and SSG produce a full first paint; on mount the
 client re-renders from `view(init)` rather than adopting
 the server DOM (plgg-view does not hydrate yet — see
-[the caveat](/packages/plgg-view#ssr-rendertostring)).
+[the caveat](/packages/plgg-view#ssr-—-rendertostring)).
 Subsequent re-renders diff/patch in place.
 :::
 

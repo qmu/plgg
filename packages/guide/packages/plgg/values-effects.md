@@ -6,11 +6,6 @@ combinators — and **how that vocabulary is organized**.
 This page teaches the shape; it does not enumerate every
 symbol.
 
-::: tip Full API reference
-For the complete, signature-level vocabulary of `plgg`,
-see the **[plgg API reference](/api/plgg/)**.
-:::
-
 It assumes the [Core concepts](/concepts/) —
 [`Option`](/concepts/option), [`Result`](/concepts/result),
 [`cast`](/concepts/validation), [`proc`](/concepts/async),
@@ -36,8 +31,7 @@ when handling **values and effects**:
 | **Functionals** | small `proc`-friendly effect helpers — `tryCatch`, `env`, `refine`, `bind`, `conclude`, `atProp`/`atIndex`, `decodeJson`/`encodeJson` |
 
 The per-category symbol lists (every Atomic, every
-Functional, exact signatures) live in the
-[API reference](/api/plgg/).
+Functional, exact signatures) live in the `plgg` source.
 
 ## Atomics vs Basics — the one distinction worth learning
 
@@ -115,5 +109,3 @@ const result = await proc(
 [Structures & errors](/packages/plgg/structures-errors)
 covers the other half of plgg core: records and
 collections, the error model, and the typeclass abstracts.
-For every symbol with its signature, the
-[plgg API reference](/api/plgg/) is the comprehensive index.

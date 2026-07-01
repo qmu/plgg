@@ -34,6 +34,15 @@ test("deriveExternal externalizes declared deps and node builtins", () =>
     ),
   ]));
 
+test("deriveExternal externalizes a PUBLIC SUBPATH of a declared dep", () =>
+  // `typescript/lib/...` is a subpath of the declared
+  // `typescript` dep → external (resolved at runtime via
+  // the dep's own exports), mirroring `plgg-server/ssg`.
+  check(
+    isExternal(external, "typescript/lib/typescript"),
+    toBe(true),
+  ));
+
 test("deriveExternal does NOT externalize undeclared / own-source specifiers", () =>
   all([
     // plgg is not a dependency of plgg-bundle → not

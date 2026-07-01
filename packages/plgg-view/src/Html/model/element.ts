@@ -21,6 +21,33 @@ export const el = <Msg>(
   box("Element")({ tag, attributes, children });
 
 /**
+ * A content slot — a flow-positioned container for
+ * ALREADY-BUILT Html of any tag (a rendered Markdown
+ * body, opaque highlighter output). Pins its own tag
+ * to `"div"` so the slot is itself valid {@link Flow}
+ * content and nests in the typed containers, while
+ * accepting the permissive `Html<Msg>` children the
+ * content model cannot statically constrain. Unlike
+ * {@link el} it keeps a concrete tag brand (so it
+ * stays {@link Flow}-assignable); unlike {@link
+ * flowEl} it does not narrow its children. Type-sound
+ * because {@link ElementContent} already stores
+ * children as `ReadonlyArray<Html<Msg>>` — the
+ * content-model restriction lives only in the other
+ * builders' signatures. This is the typed seam for
+ * handing a rendered fragment to the document shell.
+ */
+export const slot = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  children: ReadonlyArray<Html<Msg>>,
+): Html<Msg, "div"> =>
+  box("Element")<ElementContent<Msg, "div">>({
+    tag: "div",
+    attributes,
+    children,
+  });
+
+/**
  * A text leaf. Branded `"#text"` and carrying no
  * `Msg`, so it is usable in any `Html<Msg>` tree
  * and slots into any phrasing/flow position.
@@ -44,6 +71,9 @@ export type Phrasing<Msg> = Html<
   | "label"
   | "button"
   | "input"
+  | "code"
+  | "img"
+  | "br"
   | "#text"
 >;
 
@@ -61,7 +91,18 @@ export type Flow<Msg> =
       | "p"
       | "h1"
       | "h2"
+      | "h3"
+      | "h4"
+      | "h5"
+      | "h6"
       | "ul"
+      | "ol"
+      | "pre"
+      | "hr"
+      | "blockquote"
+      | "nav"
+      | "details"
+      | "table"
       | "section"
       | "header"
       | "main"
@@ -72,6 +113,69 @@ export type Flow<Msg> =
  * A list item — the only child `ul`/`ol` accept.
  */
 export type ListItem<Msg> = Html<Msg, "li">;
+
+/**
+ * The content of `pre`: either a single `code`
+ * element (the fenced-block shape `pre>code`) or
+ * raw text. Per the plgg-press spike, a code fence
+ * renders as `<pre><code>…</code></pre>` and an
+ * unhighlighted block as `<pre>text</pre>`.
+ */
+export type PreContent<Msg> = Html<
+  Msg,
+  "code" | "#text"
+>;
+
+/**
+ * What a `table` accepts directly: row groups
+ * (`thead`/`tbody`) or bare rows (`tr`).
+ */
+export type TableContent<Msg> = Html<
+  Msg,
+  "thead" | "tbody" | "tr"
+>;
+
+/**
+ * A table row — the only child a row group
+ * (`thead`/`tbody`) or a `tr`-bearing `table`
+ * accepts.
+ */
+export type TableRow<Msg> = Html<Msg, "tr">;
+
+/**
+ * A table cell — header (`th`) or data (`td`), the
+ * only children a `tr` accepts.
+ */
+export type TableCell<Msg> = Html<
+  Msg,
+  "th" | "td"
+>;
+
+/**
+ * What `details` accepts: its `summary` label plus
+ * any {@link Flow} content (the disclosure body).
+ */
+export type DetailsContent<Msg> =
+  | Html<Msg, "summary">
+  | Flow<Msg>;
+
+/**
+ * What the `html` document root accepts: the `head`
+ * and the `body`.
+ */
+export type DocumentContent<Msg> = Html<
+  Msg,
+  "head" | "body"
+>;
+
+/**
+ * What `head` accepts: document metadata —
+ * `title`, `meta`, `link`, `style`.
+ */
+export type HeadContent<Msg> = Html<
+  Msg,
+  "title" | "meta" | "link" | "style"
+>;
 
 /**
  * Exactly one child of tag `T`, for a container
@@ -168,6 +272,137 @@ const voidEl =
       children,
     });
 
+/**
+ * A text-only container (`title`/`style`): accepts
+ * only {@link text} leaves, so the SSR escaper is
+ * the sole gate on its contents.
+ */
+const textEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<Html<Msg, "#text">>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * A `pre` container: accepts {@link PreContent} — a
+ * `code` child or text — so `pre>code` and a bare
+ * `pre` text block are both typed, no `el()` hatch.
+ */
+const preEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<PreContent<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * A `table` container: accepts {@link TableContent}
+ * (row groups or bare rows).
+ */
+const tableEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<TableContent<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * A row-group container (`thead`/`tbody`): accepts
+ * only {@link TableRow} children.
+ */
+const rowGroupEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<TableRow<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * A `tr` container: accepts only {@link TableCell}
+ * children (`th`/`td`).
+ */
+const rowEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<TableCell<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * A `details` container: accepts
+ * {@link DetailsContent} — a `summary` label plus
+ * {@link Flow} body content.
+ */
+const detailsEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<DetailsContent<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * The `html` document root: accepts
+ * {@link DocumentContent} — `head` and `body`.
+ */
+const documentEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<DocumentContent<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * The `head` container: accepts {@link HeadContent}
+ * — `title`/`meta`/`link`/`style` metadata.
+ */
+const headEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<HeadContent<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
 // Flow-content containers.
 export const div = flowEl("div");
 export const section = flowEl("section");
@@ -177,6 +412,12 @@ export const form = flowEl("form");
 export const li = flowEl("li");
 export const a = flowEl("a");
 
+export const blockquote = flowEl("blockquote");
+export const nav = flowEl("nav");
+export const th = flowEl("th");
+export const td = flowEl("td");
+export const body = flowEl("body");
+
 // Phrasing-content containers.
 export const span = phrasingEl("span");
 export const strong = phrasingEl("strong");
@@ -185,10 +426,40 @@ export const label = phrasingEl("label");
 export const button = phrasingEl("button");
 export const h1 = phrasingEl("h1");
 export const h2 = phrasingEl("h2");
+export const h3 = phrasingEl("h3");
+export const h4 = phrasingEl("h4");
+export const h5 = phrasingEl("h5");
+export const h6 = phrasingEl("h6");
 export const p = phrasingEl("p");
+export const code = phrasingEl("code");
+export const summary = phrasingEl("summary");
 
-// List container — only `li` children.
+// List containers — only `li` children.
 export const ul = listEl("ul");
+export const ol = listEl("ol");
 
-// Void element — no children.
+// Void elements — no children.
 export const input = voidEl("input");
+export const img = voidEl("img");
+export const br = voidEl("br");
+export const hr = voidEl("hr");
+export const meta = voidEl("meta");
+export const link = voidEl("link");
+
+// `pre` — a `code` child or text.
+export const pre = preEl("pre");
+
+// Table family — typed content-model containers.
+export const table = tableEl("table");
+export const thead = rowGroupEl("thead");
+export const tbody = rowGroupEl("tbody");
+export const tr = rowEl("tr");
+
+// Disclosure — `details` holds a `summary` + flow.
+export const details = detailsEl("details");
+
+// Document shell — first-class typed builders.
+export const html = documentEl("html");
+export const head = headEl("head");
+export const title = textEl("title");
+export const style = textEl("style");
