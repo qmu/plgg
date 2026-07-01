@@ -3,9 +3,9 @@ created_at: 2026-07-01T21:18:40+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 3b50893
+category: Changed
 depends_on: [20260701211839-plgg-press-tokens-typography-match-qmu.md]
 ---
 
@@ -98,3 +98,21 @@ qmu.co.jp (reference, read-only):
 - **Always-expanded nav removes logic.** Dropping `<details>` simplifies `sidebarTree.ts` but changes its spec; ensure deep trees stay usable without collapse (scroll, not fold) (`packages/plgg-press/src/theme/sidebarTree.ts`).
 - **`baseCss` escape-safety** still applies to all new layout selectors — no `>` child combinators (`packages/plgg-press/src/theme/baseCss.ts`).
 - **TOC deferred.** qmu's right-rail/mobile TOC is out of scope; if wanted, a follow-up ticket adds a `toc` builder + `page.ts` slot (reference `packages/astro/src/components/react/Toc.tsx`).
+
+## Final Report (part 2 sidebar-first layout — code complete + guide builds; visual sign-off pending human)
+
+Restructured plgg-press's default layout from top-header to qmu.co.jp's **sidebar-first app shell**, all in `packages/plgg-press/src/theme/` (+ one caller line in `router/pressRouter.ts`):
+
+- **`navBar.ts` → chrome rail + mobile bar.** Dropped the top nav. Now exports `chromeRail(config)` — the far-left 48px rail (lg+) with the appearance toggle + social links pinned to the bottom by a flex spacer — and `mobileBar(config, activePath, showMenu)` — the below-lg sticky bar (☰ menu button, wordmark home link, toggle). Shared `themeToggle()` + `socialLinks()` helpers; `showMenu` is false on drawer-less pages (home, 404). GitHub renders as an accessible text link (plgg-view has no SVG builder — see below); in the rail its label rides vertically to fit 48px.
+- **`sidebarTree.ts` → always-expanded.** Removed the `<details>`/`<summary>` collapse tree entirely; top-level groups are plain `.vp-group` headers, nested groups render their header + children indented and always visible, leaves are inverted-pill links (active = permanent pill via `--vp-hover`/`--vp-hover-ink`), `aria-current` retained, link-less leaves as `<span>`. Zero JS.
+- **`page.ts` → app shell.** `.vp-shell` wraps the CSS-only menu checkbox + `mobileBar` + backdrop + `.vp-app` row (chrome rail + sidebar column + `<main>`). The sidebar column carries the wordmark home link (inverted when current), the tree, and the below-lg social copy. `<main>` holds `.vp-doc` (left-aligned `max-w-3xl` prose) or `.vp-home` (home) + a centred `role="contentinfo"` footer. `layout: home` keeps the sidebar-less branch (per ticket).
+- **`homeHero.ts` → left, no CTA.** Left-aligned weight-400 name + muted tagline, **CTA buttons dropped** (the `actions` data is intentionally unrendered), flat `bg-bg-soft` feature cards (no border/hover-lift). Dropped the now-unused `base` param (updated the one `pressRouter` caller).
+- **`notFound.ts`** rebuilt on the same shell (rail + drawerless mobile bar + centred monochrome message).
+- **`themeScript.ts`** now wires **every** `.vp-theme-toggle` (rail + mobile bar) via `querySelectorAll`.
+- **`baseCss.ts`** layout section fully rewritten: app-shell (`max-w-1440`, lg+ `h-screen`/`overflow-hidden` with independently-scrolling rail/sidebar/content columns), chrome rail, mobile bar, off-canvas drawer (`transform` translate revealed by `.vp-menu-cb:checked ~ .vp-app .vp-sidebar`) + dimmed backdrop, wordmark, inverted-pill sidebar links, left-aligned content, centred footer, left hero, flat cards, 404 — all escape-safe (descendant selectors only, no `>`/`<`/`&`; the lg breakpoint comment reworded to avoid `>=`). The 211839 typography/code/tables/callouts kept verbatim.
+
+**Scope notes / deferred:** TOC out of scope (unchanged). `config.nav` (the old top-nav links) is now **unrendered** — navigation is the sidebar tree; the data stays in the model. A faithful **GitHub octocat SVG** needs `svg`/`path` builders (and Flow-union entries) that plgg-view doesn't have; rather than ripple the plgg-view content model, GitHub is a labelled text link — a clean follow-up would add SVG support to plgg-view. Storage key stays `vp-appearance` (invisible to the match).
+
+**Verification:** `packages/plgg-press` tsc clean, **84 passed** (specs for `navBar`/`page`/`sidebarTree`/`homeHero`/`notFound`/`shell`/`build` rewritten to the new structure); coverage 99.06% st / 93.98% br / 95.63% fn / 99.06% ln (all >90%); `baseCss` escape-safe. **The full guide built end-to-end from source — 25 pages:** `dist/index.html` = hero, sidebar-less; content pages (`dist/getting-started/index.html`) = sidebar-first with `aria-current` active marking; `dist/404.html` renders. So the new theme renders real content without crashing.
+
+**Pending (external blocker, by author instruction):** the Playwright side-by-side vs qmu.co.jp (lg + mobile, light + dark) + keyboard walkthrough is a **human sign-off** ("this step needs a human at the screen / don't self-approve the visual match"). Code is delivered, green, and the guide builds; the visual parity confirmation is left for the user to drive on resume.

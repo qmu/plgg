@@ -2,25 +2,30 @@ import { type SoftStr } from "plgg";
 
 /**
  * The static, hand-authored base stylesheet for the
- * default theme — a VitePress-like theme with a
- * light/dark palette (custom properties redefined under
- * `html.dark`), a right-aligned header with an
- * appearance toggle, a collapse-caret sidebar, and
- * micro-interaction transitions. It OWNS layout,
- * typography, and responsiveness (the `@media` the
- * atomic `style_` utilities cannot express) and is
- * injected INLINE into the document `<style>` (ahead of
- * the body's collected atomic CSS) by {@link shell}, so
- * it stays escape-safe: NO raw `<`, `>`, or `&` — only
- * class/descendant selectors, `@media`, and custom
- * properties (no child `>` combinators, no `&` nesting)
- * — surviving the SSR `text()` escaper byte-for-byte.
+ * default theme — the qmu.co.jp sidebar-first app shell
+ * with a monochrome light/dark palette (custom properties
+ * redefined under `html.dark`): a far-left 48px chrome
+ * rail (appearance toggle + social), a `w-64` sidebar with
+ * the wordmark home link and an always-expanded nav tree
+ * (inverted-pill active/hover), and a left-aligned
+ * `max-w-3xl` content column with a centred footer. On lg+
+ * the row fills the viewport and each column scrolls
+ * independently; below lg the rail hides, a sticky mobile
+ * bar appears, and the sidebar becomes an off-canvas
+ * drawer. It OWNS layout, typography, and responsiveness
+ * (the `@media` the atomic `style_` utilities cannot
+ * express) and is injected INLINE into the document
+ * `<style>` (ahead of the body's collected atomic CSS) by
+ * {@link shell}, so it stays escape-safe: NO raw `<`, `>`,
+ * or `&` — only class/descendant selectors, `@media`, and
+ * custom properties (no child `>` combinators, no `&`
+ * nesting) — surviving the SSR `text()` escaper
+ * byte-for-byte.
  *
- * Light/dark is driven by the `dark` class on
- * `<html>`, set by the no-FOUC head script and toggled
- * by the header `.vp-theme-toggle` (see themeScript).
- * The mobile sidebar collapse stays CSS-only (a hidden
- * `#vp-menu-toggle` checkbox).
+ * Light/dark is driven by the `dark` class on `<html>`,
+ * set by the no-FOUC head script and toggled by every
+ * `.vp-theme-toggle` (see themeScript). The mobile drawer
+ * stays CSS-only (a hidden `#vp-menu-toggle` checkbox).
  */
 export const baseCss: SoftStr = `
 :root{
@@ -39,8 +44,9 @@ export const baseCss: SoftStr = `
   --vp-hover:#111111;
   --vp-hover-ink:#ffffff;
   --vp-shadow:none;
-  --vp-nav-h:64px;
-  --vp-sidebar-w:272px;
+  --vp-rail-w:48px;
+  --vp-sidebar-w:256px;
+  --vp-shell-max:1440px;
 }
 html.dark{
   --vp-brand:#f5f5f7;
@@ -98,40 +104,61 @@ body.vp{
   text-decoration:none;
 }
 
-/* header */
-.vp-nav{
-  position:sticky;top:0;z-index:30;
-  display:flex;align-items:center;
-  height:var(--vp-nav-h);padding:0 1.75rem;
+/* app shell: a max-1440 row centred in the viewport. On
+   lg+ it fills the screen and does not page-scroll (each
+   column scrolls on its own); below lg it collapses to
+   normal page flow with a sticky mobile bar + off-canvas
+   drawer. */
+.vp-shell{position:relative}
+.vp-app{
+  display:flex;align-items:flex-start;
+  max-width:var(--vp-shell-max);margin:0 auto;
+  padding:0 1rem;
+}
+/* far-left chrome rail (lg+ only): appearance toggle +
+   social links pinned to the bottom by a flex spacer.
+   Carries no navigation. */
+.vp-rail{
+  display:none;flex:0 0 var(--vp-rail-w);
+  width:var(--vp-rail-w);height:100vh;
+  flex-direction:column;align-items:center;
+  padding:0 0 0.75rem;
+}
+.vp-rail-spacer{flex:1 1 auto}
+.vp-rail-controls{
+  display:flex;flex-direction:column;
+  align-items:center;gap:0.5rem;
+}
+.vp-rail-social{
+  display:flex;flex-direction:column;
+  align-items:center;gap:0.4rem;
+}
+/* sticky mobile bar (below lg only): menu button (when the
+   page has a drawer), wordmark home link, appearance
+   toggle. Hidden on lg+. */
+.vp-mobilebar{
+  display:none;position:sticky;top:0;z-index:30;
+  align-items:center;gap:0.6rem;
+  height:52px;padding:0 1rem;
   background:var(--vp-bg);
   border-bottom:1px solid var(--vp-divider);
-  transition:background-color 0.25s,
-    border-color 0.25s;
 }
-.vp-nav-brand{
-  font-weight:700;font-size:1.2rem;
-  color:var(--vp-text);letter-spacing:-0.01em;
+.vp-mobilebar-home{
+  font-weight:500;font-size:1.05rem;
+  color:var(--vp-text);
+  padding:0.1rem 0.4rem;border-radius:6px;
 }
-.vp-nav-right{
-  display:flex;align-items:center;
-  gap:1.5rem;margin-left:1.5rem;
+.vp-mobilebar-home[aria-current]{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
 }
-.vp-nav-links{
-  display:flex;align-items:center;gap:1.4rem;
-  margin-left:auto;
+.vp-mobilebar .vp-theme-toggle{margin-left:auto}
+/* dimmed backdrop behind an open mobile drawer */
+.vp-backdrop{
+  display:none;position:fixed;inset:0;z-index:40;
+  background:rgba(0,0,0,0.4);
 }
-.vp-nav-links a{
-  color:var(--vp-text-2);font-weight:500;
-  font-size:0.92rem;padding:0.3rem 0;
-  border-bottom:2px solid transparent;
-  transition:color 0.25s,border-color 0.25s;
-}
-.vp-nav-links a:hover{
-  color:var(--vp-text);text-decoration:none;
-}
-.vp-nav-links a[aria-current]{
-  color:var(--vp-brand);font-weight:600;
-}
+
+/* appearance toggle (shared by the chrome rail + mobile bar) */
 .vp-theme-toggle{
   display:inline-flex;align-items:center;
   justify-content:center;width:38px;height:38px;
@@ -186,79 +213,110 @@ html.dark .vp-theme-toggle .vp-moon{
   background-repeat:no-repeat;
 }
 
-/* layout */
-.vp-layout{
-  display:flex;align-items:flex-start;
-  max-width:1440px;margin:0 auto;
-}
+/* sidebar column (the nav): a permanent independent-scroll
+   column on lg+, an off-canvas drawer below lg. Holds the
+   wordmark home link, the always-expanded tree, and (below
+   lg) the social links the rail carries on lg+. */
 .vp-sidebar{
   flex:0 0 var(--vp-sidebar-w);
   width:var(--vp-sidebar-w);
-  padding:1.75rem 1rem 4rem 1.75rem;
-  border-right:1px solid var(--vp-divider);
-  position:sticky;top:var(--vp-nav-h);
-  max-height:calc(100vh - var(--vp-nav-h));
-  overflow-y:auto;font-size:0.9rem;
-  transition:border-color 0.25s;
+  padding:1.75rem 1rem 2.5rem;
+  font-size:0.9rem;
 }
-.vp-sidebar summary{list-style:none;cursor:pointer}
-.vp-sidebar summary::-webkit-details-marker{
-  display:none;
+.vp-wordmark{
+  display:block;width:fit-content;
+  margin:0 0 1.25rem;padding:0.1rem 0.5rem;
+  border-radius:6px;font-size:1.05rem;
+  font-weight:500;color:var(--vp-text);
+  transition:background-color 0.2s,color 0.2s;
 }
-/* the caret: a chevron that rotates open->down */
-.vp-sidebar summary::after{
-  content:"";margin-left:auto;flex:0 0 auto;
-  width:0;height:0;
-  border-left:5px solid currentColor;
-  border-top:4px solid transparent;
-  border-bottom:4px solid transparent;
-  opacity:0.45;transition:transform 0.2s;
+.vp-wordmark:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
 }
-.vp-sidebar details[open] summary::after{
-  transform:rotate(90deg);
+.vp-wordmark[aria-current]{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
 }
-/* top-level section */
-.vp-group{margin-top:0.65rem}
-.vp-group:first-child{margin-top:0}
+.vp-sidebar-nav{display:block}
+/* top-level section header — always visible, no collapse */
+.vp-group{margin-top:1rem}
+.vp-group:first-child{margin-top:0.25rem}
 .vp-group-title{
-  padding:0.28rem 0 0.12rem;font-size:0.86rem;
-  font-weight:700;color:var(--vp-text);
+  padding:0.25rem 0.5rem;font-size:0.86rem;
+  font-weight:600;color:var(--vp-text);
 }
-/* every leaf link + nested toggle shares one rhythm */
-.vp-sidebar a,
-.vp-sidebar details summary{
-  display:flex;align-items:center;
-  padding:0.17rem 0 0.17rem 0.85rem;
-  font-size:0.875rem;font-weight:400;
-  color:var(--vp-text-2);
-  border-left:1px solid var(--vp-divider);
-  transition:color 0.25s,border-color 0.25s;
+/* leaves + subgroup headers: an inverted pill on hover;
+   the active leaf wears the same pill permanently (both
+   tokens flip under dark). Active and inactive share one
+   box so the current page never reflows its neighbours. */
+.vp-sidebar-link{
+  display:block;width:fit-content;
+  padding:0.2rem 0.5rem;border-radius:6px;
+  font-size:0.875rem;color:var(--vp-text-2);
+  transition:background-color 0.2s,color 0.2s;
 }
-.vp-sidebar a:hover,
-.vp-sidebar details summary:hover{
-  color:var(--vp-text);text-decoration:none;
-  border-left-color:var(--vp-muted);
+.vp-sidebar-link:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
 }
-.vp-sidebar details summary{font-weight:500}
-.vp-sidebar a[aria-current]{
-  color:var(--vp-brand);font-weight:600;
-  border-left:2px solid var(--vp-brand);
-  padding-left:calc(0.85rem - 1px);
+.vp-sidebar-link[aria-current]{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  font-weight:500;
 }
-/* one extra indent step for items inside a nested group */
-.vp-sidebar details a{
-  padding-left:1.6rem;
+.vp-sidebar-flat{
+  display:block;padding:0.2rem 0.5rem;
+  font-size:0.875rem;color:var(--vp-muted);
 }
-.vp-sidebar details a[aria-current]{
-  padding-left:calc(1.6rem - 1px);
+/* a nested group: its header, then its children indented,
+   always shown (no disclosure). */
+.vp-subgroup{margin:0.1rem 0}
+.vp-subgroup-title{
+  padding:0.2rem 0.5rem;font-size:0.875rem;
+  font-weight:500;color:var(--vp-text);
+}
+.vp-subgroup .vp-sidebar-link,
+.vp-subgroup .vp-sidebar-flat,
+.vp-subgroup .vp-subgroup-title{
+  margin-left:0.75rem;
+}
+/* social links: shown in the sidebar only below lg (the
+   rail carries them on lg+). */
+.vp-sidebar-social{
+  display:none;margin-top:1.5rem;
+  padding-top:1rem;
+  border-top:1px solid var(--vp-divider);
+}
+.vp-social{
+  display:inline-flex;align-items:center;
+  padding:0.25rem 0.4rem;border-radius:6px;
+  font-size:0.8rem;color:var(--vp-muted);
+  transition:background-color 0.2s,color 0.2s;
+}
+.vp-social:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
+}
+/* in the narrow rail the label rides vertically so the
+   full name fits the 48px column. */
+.vp-rail-social .vp-social-label{
+  writing-mode:vertical-rl;letter-spacing:0.02em;
 }
 
-/* content */
+/* content column: independent-scroll on lg+, LEFT-aligned
+   prose capped at max-w-3xl, with the footer confined to
+   this column. */
 .vp-content{
   flex:1 1 auto;min-width:0;
-  padding:2.25rem 3.25rem 5rem 3.25rem;
+  padding:2.25rem 3rem 3rem;
 }
-.vp-doc{max-width:728px;margin:0 auto}
+.vp-doc{max-width:48rem;margin:0}
+.vp-footer{
+  margin-top:3rem;padding:1.5rem 0;
+  text-align:center;
+}
+.vp-footer-text{
+  margin:0;font-size:0.8rem;color:var(--vp-muted);
+}
 .vp-doc h1{
   font-size:1.875rem;font-weight:400;
   line-height:1.25;margin:0 0 1.25rem;
@@ -378,136 +436,95 @@ html.dark .vp-callout-tip .vp-callout-title{color:#34d399}
 }
 .vp-callout-danger .vp-callout-title{color:#cf5c5c}
 
-/* home */
-.vp-home{max-width:1152px;margin:0 auto;
-  padding:3.5rem 1.5rem 5rem}
-.vp-hero{text-align:center;padding:2.5rem 0 2rem}
+/* home: LEFT-aligned hero (weight-400 name + muted
+   tagline, NO call-to-action) and a FLAT feature grid
+   (bg-bg-soft, rounded, no border/hover-lift). */
+.vp-home{max-width:64rem;margin:0;
+  padding:1rem 0 3rem}
+.vp-hero-wrap{display:block}
+.vp-hero{text-align:left;padding:2rem 0 1.5rem}
 .vp-hero-title{
-  font-size:clamp(2.1rem,6vw,3.2rem);
-  font-weight:800;line-height:1.1;
-  margin:0 0 1rem;color:var(--vp-brand);
-  letter-spacing:-0.02em;
+  font-size:clamp(1.9rem,4vw,2.6rem);
+  font-weight:400;line-height:1.15;
+  margin:0 0 1rem;color:var(--vp-text);
+  letter-spacing:-0.015em;
 }
 .vp-hero-tagline{
-  font-size:clamp(1.05rem,2.6vw,1.3rem);
+  font-size:clamp(1rem,2vw,1.2rem);
   color:var(--vp-muted);
-  max-width:660px;margin:0 auto 2rem;line-height:1.5;
-}
-.vp-actions{
-  display:flex;gap:0.75rem;
-  justify-content:center;flex-wrap:wrap;
-}
-.vp-action{
-  display:inline-block;padding:0.62rem 1.5rem;
-  border-radius:22px;font-weight:600;font-size:0.95rem;
-  border:1px solid transparent;
-  transition:background-color 0.25s,color 0.25s,
-    border-color 0.25s,transform 0.15s;
-}
-.vp-action:hover{transform:translateY(-1px)}
-.vp a.vp-action-primary{
-  background:var(--vp-brand);color:#ffffff;
-  border-color:var(--vp-brand);
-}
-.vp a.vp-action-primary:hover{
-  background:var(--vp-brand-2);
-  border-color:var(--vp-brand-2);
-  text-decoration:none;
-}
-.vp a.vp-action-alt{
-  background:var(--vp-bg-alt);color:var(--vp-text);
-  border-color:var(--vp-border);
-}
-.vp a.vp-action-alt:hover{
-  border-color:var(--vp-brand);
-  color:var(--vp-brand);text-decoration:none;
+  max-width:42rem;margin:0;line-height:1.55;
 }
 .vp-features{
   display:grid;
   grid-template-columns:repeat(
-    auto-fit,minmax(252px,1fr));
-  gap:1.5rem;margin-top:3.5rem;
+    auto-fit,minmax(240px,1fr));
+  gap:1rem;margin-top:2.5rem;
 }
 .vp-feature{
-  border:1px solid var(--vp-border);
-  border-radius:12px;padding:1.5rem;
+  border-radius:10px;padding:1.25rem;
   background:var(--vp-bg-alt);
-  transition:border-color 0.25s,box-shadow 0.25s,
-    transform 0.15s,background-color 0.25s;
 }
-.vp-feature:hover{
-  border-color:var(--vp-brand);
-  box-shadow:var(--vp-shadow);transform:translateY(-2px);
+.vp-feature-title{
+  margin:0 0 0.4rem;font-size:1.02rem;
+  font-weight:500;color:var(--vp-text);
 }
-.vp-feature h3{margin:0 0 0.5rem;font-size:1.1rem}
-.vp-feature p{margin:0;color:var(--vp-muted);
-  font-size:0.95rem}
-
-/* responsive: mid-range (tablet / small laptop) — narrow the sidebar and
-   trim the content gutters BEFORE the full mobile collapse, so the doc
-   column stays readable in the ~769-1024px band the single old breakpoint
-   left cramped. */
-@media (max-width:1024px){
-  .vp-layout{--vp-sidebar-w:216px}
-  .vp-sidebar{padding:1.5rem 0.85rem 4rem 1.25rem}
-  .vp-content{padding:2rem 1.75rem 4.5rem}
-  .vp-nav{padding:0 1.25rem}
-  .vp-nav-right{gap:1rem}
+.vp-feature-text{
+  margin:0;color:var(--vp-muted);
+  font-size:0.92rem;line-height:1.5;
 }
 
-/* responsive: collapse sidebar AND nav links behind the ☰ menu */
-@media (max-width:768px){
+/* 404 */
+.vp-notfound{max-width:36rem;margin:0;padding:3rem 0}
+.vp-notfound h1{
+  font-size:1.875rem;font-weight:400;
+  margin:0 0 1rem;color:var(--vp-text);
+}
+.vp-notfound p{
+  margin:0 0 1.5rem;color:var(--vp-muted);
+}
+.vp-notfound a{
+  color:var(--vp-text);text-decoration:underline;
+  text-underline-offset:2px;
+}
+
+/* lg+ (min-width 1024px): the app shell is ON — the row fills the
+   viewport and does not page-scroll; the rail, sidebar,
+   and content each scroll independently. lg:pl-0 drops the
+   left gutter so the rail sits flush to the column start. */
+@media (min-width:1024px){
+  .vp-app{
+    height:100vh;overflow:hidden;padding-left:0;
+  }
+  .vp-rail{display:flex}
+  .vp-sidebar{height:100vh;overflow-y:auto}
+  .vp-content{height:100vh;overflow-y:auto}
+}
+
+/* below lg: no rail; a sticky mobile bar + an off-canvas
+   drawer (the sidebar), the page scrolls normally. The
+   drawer is revealed by the CSS-only menu checkbox and the
+   backdrop dims the page — zero client JavaScript. */
+@media (max-width:1023px){
   .vp-menu-btn{display:inline-block}
-  /* the column layout must hold a DEFINITE width: without it a flex item's
-     cross size floors at its min-content, and a wide white-space:pre code
-     block (API type signatures) balloons the column past the viewport and
-     the whole page scrolls sideways. width:100% + min-width:0 pins it so the
-     code block scrolls inside its own box instead. */
-  .vp-layout{
-    flex-direction:column;width:100%;min-width:0;
-  }
-  .vp-sidebar{
-    display:none;width:100%;flex-basis:auto;
-    position:static;max-height:none;
-    border-right:none;
-    border-bottom:1px solid var(--vp-border);
-    padding:1rem 1.25rem;
-  }
-  .vp-menu-cb:checked ~ .vp-layout .vp-sidebar{
-    display:block;
-  }
+  .vp-mobilebar{display:flex}
   .vp-content{
-    width:100%;min-width:0;
-    padding:1.5rem 1.25rem 4rem;
+    min-width:0;padding:1.5rem 1.25rem 3rem;
   }
   .vp-doc{max-width:100%}
   .vp-doc pre{max-width:100%}
-  .vp-nav{padding:0 1rem;flex-wrap:wrap}
-  .vp-nav-right{gap:0.75rem;margin-left:auto}
-  /* nav links fold into the ☰ panel instead of vanishing: hidden until the
-     menu checkbox (a sibling of the nav) is checked, then they stack as a
-     full-width row IN NORMAL FLOW below the bar — the sticky header simply
-     grows and the page below moves down, so nothing is overlaid. Zero JS. */
-  .vp-nav-links{display:none}
-  /* opening the menu lets the sticky bar grow to fit the stacked links, so
-     it occupies real flow height and the page below moves down (no overlap). */
-  .vp-menu-cb:checked ~ .vp-nav{
-    height:auto;align-items:flex-start;
-    padding-top:0.9rem;padding-bottom:0.6rem;
+  .vp-sidebar{
+    position:fixed;top:0;left:0;z-index:50;
+    height:100vh;width:17rem;max-width:82vw;
+    overflow-y:auto;
+    background:var(--vp-surface);
+    border-right:1px solid var(--vp-divider);
+    transform:translateX(-100%);
+    transition:transform 0.2s ease-out;
   }
-  .vp-menu-cb:checked ~ .vp-nav .vp-nav-brand,
-  .vp-menu-cb:checked ~ .vp-nav .vp-nav-right{
-    line-height:1.4;
+  .vp-menu-cb:checked ~ .vp-app .vp-sidebar{
+    transform:translateX(0);
   }
-  .vp-menu-cb:checked ~ .vp-nav .vp-nav-links{
-    display:flex;order:3;flex-basis:100%;
-    flex-direction:column;align-items:stretch;
-    gap:0;margin:0.6rem 0 0;
-    padding-top:0.5rem;
-    border-top:1px solid var(--vp-divider);
-  }
-  .vp-menu-cb:checked ~ .vp-nav .vp-nav-links a{
-    padding:0.55rem 0;
-  }
+  .vp-menu-cb:checked ~ .vp-backdrop{display:block}
+  .vp-sidebar-social{display:block}
 }
 `;

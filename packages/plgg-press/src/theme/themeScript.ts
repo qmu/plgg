@@ -26,13 +26,13 @@ const HEAD_SCRIPT: SoftStr =
  */
 const BODY_SCRIPT: SoftStr =
   "<script>(function(){" +
-  "var b=document.querySelector('.vp-theme-toggle');" +
-  "if(!b){return;}" +
-  "b.addEventListener('click',function(){" +
+  "var t=document.querySelectorAll('.vp-theme-toggle');" +
+  "for(var i=0;i<t.length;i++){" +
+  "t[i].addEventListener('click',function(){" +
   "var d=document.documentElement.classList" +
   ".toggle('dark');try{localStorage.setItem(" +
   "'vp-appearance',d?'dark':'light');}" +
-  "catch(e){}});})();</script>";
+  "catch(e){}});}})();</script>";
 
 /**
  * Inject the appearance scripts into a rendered page at

@@ -26,8 +26,8 @@ const groups: ReadonlyArray<SidebarGroup> = [
         link: none(),
         items: [],
       },
-      // a link-less header WITH children (a nested
-      // disclosure)
+      // a link-less header WITH children (a nested,
+      // always-expanded subgroup)
       {
         text: "Concepts",
         link: none(),
@@ -56,26 +56,32 @@ const rendered = renderToString(
   ),
 );
 
-test("renders a CSS-only <details> disclosure tree", () =>
+test("renders an always-expanded tree — no <details> collapse, no script", () =>
   all([
-    check(rendered, toContain("<details")),
-    check(rendered, toContain("<summary")),
-    // a labelled sidebar landmark, no client script
     check(
       rendered,
       toContain(
         'aria-label="Sidebar navigation"',
       ),
     ),
+    // the top-level group is a plain always-visible header
+    check(
+      rendered,
+      toContain('class="vp-group-title"'),
+    ),
+    // no disclosure widgets, no client script
+    check(rendered, not(toContain("<details"))),
+    check(rendered, not(toContain("<summary"))),
     check(rendered, not(toContain("<script"))),
   ]));
 
-test("base-prefixes every leaf link", () =>
+test("base-prefixes every leaf link, including nested ones", () =>
   all([
     check(
       rendered,
       toContain('href="/plgg/getting-started"'),
     ),
+    // the nested subgroup's children are always rendered
     check(
       rendered,
       toContain(
@@ -88,18 +94,20 @@ test("base-prefixes every leaf link", () =>
     ),
   ]));
 
-test("marks the active leaf and opens its ancestors", () =>
+test("marks exactly the active leaf current with the inverted-pill class", () =>
   all([
     check(
       rendered,
       toContain('aria-current="page"'),
     ),
-    // top-level groups are NOT collapsible (plain
-    // .vp-group headers, no <details>), so the only
-    // open disclosure is the nested "Concepts" group,
-    // which opens because it holds the active leaf
     check(
-      rendered.split('open=""').length - 1,
+      rendered,
+      toContain('class="vp-sidebar-link"'),
+    ),
+    // only one entry carries the active marker
+    check(
+      rendered.split('aria-current="page"')
+        .length - 1,
       toBe(1),
     ),
   ]));

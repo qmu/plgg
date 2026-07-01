@@ -3,6 +3,7 @@ import {
   check,
   all,
   toContain,
+  not,
 } from "plgg-test";
 import { renderToString } from "plgg-view";
 import { type HomeConfig } from "plgg-press/SiteConfig/model/SiteConfig";
@@ -36,9 +37,7 @@ const home: HomeConfig = {
   ],
 };
 
-const rendered = renderToString(
-  homeHero(home, "/docs/"),
-);
+const rendered = renderToString(homeHero(home));
 
 test("renders the hero title and tagline from data", () =>
   all([
@@ -47,22 +46,22 @@ test("renders the hero title and tagline from data", () =>
       rendered,
       toContain("Everything you need, fast."),
     ),
+    // the name is the weight-400 hero title
+    check(
+      rendered,
+      toContain('class="vp-hero-title"'),
+    ),
   ]));
 
-test("renders every action, base-prefixing internal links", () =>
+test("renders NO call-to-action buttons (qmu: no CTA)", () =>
   all([
+    // the action data is intentionally not rendered
+    check(rendered, not(toContain("vp-action"))),
     check(
       rendered,
-      toContain('href="/docs/start"'),
+      not(toContain('href="/docs/start"')),
     ),
-    check(rendered, toContain(">Get started<")),
-    // external links pass through untouched
-    check(
-      rendered,
-      toContain(
-        'href="https://github.com/acme/acme"',
-      ),
-    ),
+    check(rendered, not(toContain(">Get started<"))),
   ]));
 
 test("renders the feature grid generically from injected data", () =>

@@ -159,11 +159,12 @@ test("base-prefixes both nav and sidebar links", () =>
 
 test("home page renders the hero content with NO sidebar", () =>
   all([
-    check(renderedHome, toContain("<nav")),
     check(
       renderedHome,
       toContain("Article content here"),
     ),
+    // the home layout drops the sidebar (hero owns the
+    // content column) — no sidebar nav, no disclosure
     check(
       renderedHome,
       not(
@@ -175,5 +176,10 @@ test("home page renders the hero content with NO sidebar", () =>
     check(
       renderedHome,
       not(toContain("<details")),
+    ),
+    // it renders the hero column, not the prose column
+    check(
+      renderedHome,
+      toContain('class="vp-home"'),
     ),
   ]));

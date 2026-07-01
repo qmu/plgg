@@ -223,7 +223,10 @@ test("writes the 404 through the theme shell", () =>
       built.notFound.slice(0, 15),
       toContain("<!doctype html>"),
     ),
-    check(built.notFound, toContain("<nav")),
+    check(
+      built.notFound,
+      toContain("vp-notfound"),
+    ),
     check(
       built.notFound,
       toContain("Page not found"),

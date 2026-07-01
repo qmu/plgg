@@ -140,7 +140,6 @@ const isHome = (doc: MarkdownDoc): boolean =>
  */
 const contentOf = (
   config: SiteConfig,
-  base: SoftStr,
   doc: MarkdownDoc,
 ): Html<never> =>
   isHome(doc)
@@ -149,7 +148,7 @@ const contentOf = (
         matchOption(
           (): Html<never> => doc.body,
           (home: HomeConfig): Html<never> =>
-            homeHero(home, base),
+            homeHero(home),
         ),
       )
     : doc.body;
@@ -176,7 +175,7 @@ const pageView = (
     page(
       config,
       doc,
-      contentOf(config, base, doc),
+      contentOf(config, doc),
       route,
       base,
     ),

@@ -2,23 +2,14 @@ import { some, none } from "plgg";
 import {
   type Html,
   div,
-  section,
+  main_,
   h1,
   p,
   a,
   text,
   attr,
+  class_,
 } from "plgg-view";
-import {
-  style_,
-  py,
-  px,
-  mb,
-  center,
-  color,
-  weight,
-  text as fontSize,
-} from "plgg-view/style";
 import {
   type MarkdownDoc,
   frontmatter,
@@ -26,17 +17,21 @@ import {
 import { type SiteConfig } from "plgg-press/SiteConfig/model/SiteConfig";
 import { href } from "plgg-press/Href/usecase/href";
 import { shell } from "plgg-press/theme/shell";
-import { navBar } from "plgg-press/theme/navBar";
+import {
+  chromeRail,
+  mobileBar,
+} from "plgg-press/theme/navBar";
 
 /**
  * The 404 page, rendered through the SAME document
  * {@link shell} as every content page so it inherits the
- * site chrome and style injection. Its nav links are
- * base-prefixed via {@link navBar} (the build ticket
- * persists this with `write404`, and the dead-link
- * checker excludes it from route expectations). The
- * `activePath` is a sentinel no real route matches, so no
- * nav entry is marked current. The synthetic
+ * site chrome and style injection. Like the home page it
+ * is sidebar-less: the far-left chrome rail (lg+) and the
+ * sticky mobile bar (below lg, with no menu button since
+ * there is no drawer) frame a centred, monochrome
+ * not-found message whose only link is base-prefixed home.
+ * The `activePath` is a sentinel no real route matches, so
+ * the wordmark is never marked current. The synthetic
  * {@link MarkdownDoc} carries a `firstHeading` so the
  * shell derives a meaningful `<title>`.
  */
@@ -45,39 +40,38 @@ export const notFound = (
 ): Html<never> => {
   const hrefOf = href(config.base);
   const body = div(
-    [],
+    [class_("vp-shell")],
     [
-      navBar(config, "/404"),
-      section(
-        [style_(py(16), px(4), center)],
+      mobileBar(config, "/404", false),
+      div(
+        [class_("vp-app")],
         [
-          h1(
+          chromeRail(config),
+          main_(
+            [class_("vp-content")],
             [
-              style_(
-                fontSize("2xl"),
-                weight(400),
-                mb(4),
+              div(
+                [class_("vp-notfound")],
+                [
+                  h1(
+                    [],
+                    [text("Page not found")],
+                  ),
+                  p(
+                    [],
+                    [
+                      text(
+                        "The page you were looking for does not exist.",
+                      ),
+                    ],
+                  ),
+                  a(
+                    [attr("href", hrefOf("/"))],
+                    [text("Go to the home page")],
+                  ),
+                ],
               ),
             ],
-            [text("Page not found")],
-          ),
-          p(
-            [style_(color("muted"), mb(8))],
-            [
-              text(
-                "The page you were looking for does not exist.",
-              ),
-            ],
-          ),
-          a(
-            [
-              attr("href", hrefOf("/")),
-              style_(
-                color("text"),
-                weight(400),
-              ),
-            ],
-            [text("Go to the home page")],
           ),
         ],
       ),

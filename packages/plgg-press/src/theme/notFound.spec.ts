@@ -49,18 +49,18 @@ test("derives a not-found <title>", () =>
     toContain("<title>Page not found</title>"),
   ));
 
-test("includes base-prefixed nav links", () =>
+test("renders the monochrome message with a base-prefixed home link", () =>
   all([
-    check(rendered, toContain("<nav")),
+    check(rendered, toContain("vp-notfound")),
     check(
       rendered,
-      toContain('href="/plgg/getting-started"'),
+      toContain(">Go to the home page<"),
     ),
-    // and a base-prefixed home link in the body
+    // the only link is base-prefixed home
     check(rendered, toContain('href="/plgg/"')),
   ]));
 
-test("marks no nav entry current (off-route sentinel)", () =>
+test("marks nothing current (off-route sentinel)", () =>
   check(
     rendered,
     not(toContain('aria-current="page"')),

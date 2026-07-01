@@ -2,91 +2,100 @@ import {
   test,
   check,
   all,
-  toBe,
   toContain,
   not,
 } from "plgg-test";
 import { none } from "plgg";
 import { renderToString } from "plgg-view";
 import { type SiteConfig } from "plgg-press/SiteConfig/model/SiteConfig";
-import { navBar } from "plgg-press/theme/navBar";
+import {
+  chromeRail,
+  mobileBar,
+} from "plgg-press/theme/navBar";
 
 const config: SiteConfig = {
   title: "plgg Guide",
   description: "The plgg static guide",
   base: "/plgg/",
-  nav: [
-    { text: "Guide", link: "/getting-started" },
-    { text: "Concepts", link: "/concepts/" },
-  ],
+  nav: [],
   sidebar: [],
-  social: [],
+  social: [
+    {
+      icon: "github",
+      link: "https://github.com/qmu/plgg",
+    },
+  ],
   home: none(),
   dev: { allowedHosts: [] },
 };
 
-const rendered = renderToString(
-  navBar(config, "/getting-started"),
+const rail = renderToString(chromeRail(config));
+
+test("chrome rail carries the appearance toggle and social links, no nav", () =>
+  all([
+    check(rail, toContain('class="vp-rail"')),
+    check(
+      rail,
+      toContain('class="vp-theme-toggle"'),
+    ),
+    check(rail, toContain("vp-sun")),
+    check(rail, toContain("vp-moon")),
+    // the GitHub social link with an accessible label
+    check(rail, toContain("vp-rail-social")),
+    check(
+      rail,
+      toContain(
+        'href="https://github.com/qmu/plgg"',
+      ),
+    ),
+    check(rail, toContain('aria-label="GitHub"')),
+    // the rail is chrome, not a navigation landmark
+    check(rail, not(toContain("<nav"))),
+  ]));
+
+const barContent = renderToString(
+  mobileBar(config, "/getting-started", true),
 );
 
-test("renders a labelled <nav> landmark", () =>
+test("mobile bar shows the ☰ menu button, wordmark home link, and toggle", () =>
   all([
-    check(rendered, toContain("<nav")),
     check(
-      rendered,
-      toContain('aria-label="Main navigation"'),
+      barContent,
+      toContain('class="vp-mobilebar"'),
+    ),
+    // the CSS-only drawer control targets the checkbox
+    check(
+      barContent,
+      toContain('for="vp-menu-toggle"'),
+    ),
+    // the wordmark links to the base root
+    check(
+      barContent,
+      toContain('href="/plgg/"'),
+    ),
+    check(barContent, toContain(">plgg Guide<")),
+    check(
+      barContent,
+      toContain('class="vp-theme-toggle"'),
     ),
   ]));
 
-test("routes every nav link through href(base)", () =>
-  all([
-    check(
-      rendered,
-      toContain('href="/plgg/getting-started"'),
-    ),
-    check(
-      rendered,
-      toContain('href="/plgg/concepts/"'),
-    ),
-    // the site-title brand links to the base root
-    check(rendered, toContain('href="/plgg/"')),
-    check(rendered, toContain(">plgg Guide<")),
-  ]));
-
-test("marks exactly the active entry current", () =>
-  all([
-    check(
-      rendered,
-      toContain('aria-current="page"'),
-    ),
-    // exactly one entry carries the marker
-    check(
-      rendered.split('aria-current="page"')
-        .length - 1,
-      toBe(1),
-    ),
-  ]));
-
-test("marks no entry current when path is off-route", () =>
+test("mobile bar marks the wordmark current on the home route", () =>
   check(
-    renderToString(navBar(config, "/nowhere")),
+    renderToString(mobileBar(config, "/", true)),
+    toContain('aria-current="page"'),
+  ));
+
+test("mobile bar off the home route marks nothing current", () =>
+  check(
+    renderToString(
+      mobileBar(config, "/getting-started", true),
+    ),
     not(toContain('aria-current="page"')),
   ));
 
-test("renders the right-aligned group with the theme toggle and mobile menu control", () =>
-  all([
-    // links + controls share a right-aligned group
-    check(rendered, toContain("vp-nav-right")),
-    // the appearance toggle button + its sun/moon glyphs
-    check(
-      rendered,
-      toContain('class="vp-theme-toggle"'),
-    ),
-    check(rendered, toContain("vp-sun")),
-    check(rendered, toContain("vp-moon")),
-    // the CSS-only mobile sidebar control
-    check(
-      rendered,
-      toContain('for="vp-menu-toggle"'),
-    ),
-  ]));
+test("mobile bar omits the ☰ button when the page has no drawer", () =>
+  check(
+    renderToString(mobileBar(config, "/404", false)),
+    not(toContain('for="vp-menu-toggle"')),
+  ));

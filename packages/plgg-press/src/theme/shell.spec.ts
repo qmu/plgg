@@ -111,7 +111,7 @@ test("inlines baseCss ahead of the body's collected CSS in one <style>", () => {
     check(sheet, toContain("padding")),
     // the static theme sheet is injected (a stable
     // baseCss marker + a custom property)
-    check(rendered, toContain(".vp-nav{")),
+    check(rendered, toContain(".vp-app{")),
     check(rendered, toContain("--vp-brand")),
     // and the body's atomic CSS closes the single
     // <style> block, byte-for-byte

@@ -1,8 +1,9 @@
 import { type SoftStr } from "plgg";
 import {
   type Html,
+  type Flow,
   type Attribute,
-  nav,
+  header,
   div,
   a,
   button,
@@ -12,90 +13,136 @@ import {
   attr,
   class_,
 } from "plgg-view";
-import { type SiteConfig } from "plgg-press/SiteConfig/model/SiteConfig";
+import {
+  type SiteConfig,
+  type SocialLink,
+} from "plgg-press/SiteConfig/model/SiteConfig";
 import {
   href,
   samePath,
 } from "plgg-press/Href/usecase/href";
 
 /**
- * The top navigation bar built purely from
- * `config.nav`. The brand sits left; a right-aligned
- * group holds the nav links, the appearance toggle, and
- * (on mobile) the `☰` menu label. Every link is routed
- * through the single {@link href} resolver, and the
- * entry whose resolved target equals the resolved
- * current `activePath` is marked active at build time
- * with `aria-current="page"` (styled by {@link baseCss})
- * — so highlighting needs no client JS.
- *
- * The `.vp-theme-toggle` button shows a sun (light) or
- * moon (dark) glyph, swapped by CSS on `html.dark`; the
- * themeScript wires its click to flip + persist the
- * theme. The `☰` label targets the page layout's hidden
- * `#vp-menu-toggle` checkbox (CSS-only mobile sidebar).
- * Returns a semantic `<nav>` landmark.
+ * The appearance toggle — a CSS-drawn sun (light) / moon
+ * (dark) button, swapped on `html.dark` by {@link baseCss}
+ * and wired to flip + persist by the themeScript. Shared
+ * by the far-left chrome rail (lg+) and the mobile bar
+ * (below lg), so both breakpoints can toggle the theme;
+ * the themeScript binds EVERY `.vp-theme-toggle`.
  */
-export const navBar = (
-  config: SiteConfig,
-  activePath: SoftStr,
-): Html<never, "nav"> => {
-  const hrefOf = href(config.base);
-  const sameAsActive = samePath(config.base);
-  const linkAttrs = (
-    link: SoftStr,
-  ): ReadonlyArray<Attribute<never>> =>
-    sameAsActive(link, activePath)
-      ? [
-          attr("href", hrefOf(link)),
-          attr("aria-current", "page"),
-        ]
-      : [attr("href", hrefOf(link))];
-  return nav(
+const themeToggle = (): Html<never, "button"> =>
+  button(
     [
-      class_("vp-nav"),
-      attr("aria-label", "Main navigation"),
+      class_("vp-theme-toggle"),
+      attr("type", "button"),
+      attr("aria-label", "Toggle dark mode"),
     ],
     [
-      a(
+      span([class_("vp-sun")], []),
+      span([class_("vp-moon")], []),
+    ],
+  );
+
+/** The visible label for a social icon (plgg-view has no
+ * SVG builder, so the mark is an accessible text label
+ * styled by {@link baseCss}; the aria-label carries the
+ * full name). */
+const socialName = (icon: SoftStr): SoftStr =>
+  icon === "github" ? "GitHub" : icon;
+
+/** One external, labelled social link. */
+const socialLink = (
+  item: SocialLink,
+): Html<never, "a"> =>
+  a(
+    [
+      attr("href", item.link),
+      attr("target", "_blank"),
+      attr("rel", "noopener noreferrer"),
+      attr("aria-label", socialName(item.icon)),
+      class_("vp-social"),
+    ],
+    [
+      span(
+        [class_("vp-social-label")],
+        [text(socialName(item.icon))],
+      ),
+    ],
+  );
+
+/**
+ * The site's social links in a wrapper the given class
+ * shows/hides per breakpoint — the rail carries them on
+ * lg+, the sidebar drawer below lg — so GitHub stays
+ * reachable when the rail is hidden.
+ */
+export const socialLinks = (
+  config: SiteConfig,
+  wrapClass: SoftStr,
+): Html<never, "div"> =>
+  div(
+    [class_(wrapClass)],
+    config.social.map(socialLink),
+  );
+
+/**
+ * The far-left CHROME RAIL (lg+ only): a 48px column with
+ * the appearance toggle + social links pinned to the
+ * bottom by a flex spacer. Carries NO navigation and no
+ * wordmark — the nav tree and the home link both live in
+ * the sidebar column to its right. Hidden below lg (its
+ * controls move to the mobile bar + drawer).
+ */
+export const chromeRail = (
+  config: SiteConfig,
+): Html<never, "div"> =>
+  div(
+    [class_("vp-rail")],
+    [
+      div([class_("vp-rail-spacer")], []),
+      div(
+        [class_("vp-rail-controls")],
         [
-          attr("href", hrefOf("/")),
-          class_("vp-nav-brand"),
+          themeToggle(),
+          socialLinks(config, "vp-rail-social"),
         ],
-        [text(config.title)],
       ),
-      // the nav links are a DIRECT child of the nav (not nested in
-      // `.vp-nav-right`) so the mobile `☰` panel can wrap them to a
-      // full-width row in normal flow — pushing the page down rather than
-      // overlaying it. On desktop `margin-left:auto` right-aligns them.
-      div(
-        [class_("vp-nav-links")],
-        config.nav.map((item) =>
-          a(linkAttrs(item.link), [
-            text(item.text),
-          ]),
-        ),
-      ),
-      div(
-        [class_("vp-nav-right")],
-        [
-          button(
-            [
-              class_("vp-theme-toggle"),
-              attr("type", "button"),
-              attr(
-                "aria-label",
-                "Toggle dark mode",
-              ),
-            ],
-            [
-              // icons are CSS-drawn (no fragile glyph
-              // fonts); the sun shows in light, the
-              // moon in dark via html.dark
-              span([class_("vp-sun")], []),
-              span([class_("vp-moon")], []),
-            ],
-          ),
+    ],
+  );
+
+/**
+ * The sticky MOBILE BAR (below lg only): the `☰` menu
+ * button (a label targeting the layout's hidden
+ * `#vp-menu-toggle` checkbox — the CSS-only drawer), the
+ * wordmark home link (marked current on the home page),
+ * and the appearance toggle. `showMenu` is false on pages
+ * with no sidebar (home, 404), so the button opens no
+ * empty drawer. Hidden on lg+ (the sidebar is permanent
+ * and the chrome lives in the rail). Returns a `<header>`
+ * banner, not a nav landmark — navigation is the sidebar.
+ */
+export const mobileBar = (
+  config: SiteConfig,
+  activePath: SoftStr,
+  showMenu: boolean,
+): Html<never, "header"> => {
+  const hrefOf = href(config.base);
+  const sameAsActive = samePath(config.base);
+  const homeAttrs: ReadonlyArray<
+    Attribute<never>
+  > = sameAsActive("/", activePath)
+    ? [
+        attr("href", hrefOf("/")),
+        attr("aria-current", "page"),
+        class_("vp-mobilebar-home"),
+      ]
+    : [
+        attr("href", hrefOf("/")),
+        class_("vp-mobilebar-home"),
+      ];
+  const menuBtn: ReadonlyArray<Flow<never>> =
+    showMenu
+      ? [
           label(
             [
               attr("for", "vp-menu-toggle"),
@@ -103,11 +150,16 @@ export const navBar = (
               attr("aria-label", "Toggle menu"),
               attr("role", "button"),
             ],
-            // a CSS-drawn 3-bar icon, not a glyph
             [],
           ),
-        ],
-      ),
+        ]
+      : [];
+  return header(
+    [class_("vp-mobilebar")],
+    [
+      ...menuBtn,
+      a(homeAttrs, [text(config.title)]),
+      themeToggle(),
     ],
   );
 };
