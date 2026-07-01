@@ -7,7 +7,6 @@ import {
   jsonDecode,
   postJson,
   Datum,
-  box,
 } from "plgg";
 
 // https://platform.openai.com/docs/api-reference/responses
@@ -48,9 +47,7 @@ export const reqObjectGPT = ({
       },
     },
     post({
-      url: box("Str")(
-        "https://api.openai.com/v1/responses",
-      ),
+      url: "https://api.openai.com/v1/responses",
       headers: {
         Authorization: `Bearer ${apiKey}`,
       },

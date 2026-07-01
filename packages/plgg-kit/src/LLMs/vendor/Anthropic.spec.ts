@@ -12,13 +12,12 @@ import {
   asReadonlyArray,
   asSoftStr,
   env,
-  box,
 } from "plgg";
 import { reqObjectClaude } from "plgg-kit/LLMs/vendor/Anthropic";
 
 test.skip("Claude API invocation works", async () => {
   const result = await proc(
-    env(box("Str")("ANTHROPIC_API_KEY")),
+    env("ANTHROPIC_API_KEY"),
     (apiKey) =>
       proc(
         {

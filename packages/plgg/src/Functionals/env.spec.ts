@@ -7,11 +7,11 @@ import {
   okThen,
   errThen,
 } from "plgg-test";
-import { env, box } from "plgg/index";
+import { env } from "plgg/index";
 
 test("env - returns Ok for existing environment variable", () => {
   process.env.TEST_VAR = "test-value";
-  const result = env(box("Str")("TEST_VAR"));
+  const result = env("TEST_VAR");
   const assertion = check(
     result,
     okThen(toBe("test-value")),
@@ -23,7 +23,7 @@ test("env - returns Ok for existing environment variable", () => {
 test("env - returns Err for missing environment variable", () => {
   delete process.env.NONEXISTENT_VAR;
   return check(
-    env(box("Str")("NONEXISTENT_VAR")),
+    env("NONEXISTENT_VAR"),
     errThen((e) =>
       all([
         check(
@@ -41,7 +41,7 @@ test("env - returns Err for missing environment variable", () => {
 
 test("env - returns Err for empty environment variable", () => {
   process.env.EMPTY_VAR = "";
-  const result = env(box("Str")("EMPTY_VAR"));
+  const result = env("EMPTY_VAR");
   const assertion = check(
     result,
     errThen((e) =>
@@ -56,7 +56,7 @@ test("env - returns Err when process.env is unavailable", () => {
   const originalEnv = process.env;
   // @ts-expect-error test scenario: simulate missing process.env
   process.env = undefined;
-  const result = env(box("Str")("ANY_VAR"));
+  const result = env("ANY_VAR");
   process.env = originalEnv;
   return check(
     result,
@@ -76,7 +76,7 @@ test("env - returns Err when accessing process throws", () => {
     },
     configurable: true,
   });
-  const result = env(box("Str")("ANY_VAR"));
+  const result = env("ANY_VAR");
   Object.defineProperty(process, "env", {
     value: originalEnv,
     writable: true,

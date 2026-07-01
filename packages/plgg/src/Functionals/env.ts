@@ -1,6 +1,5 @@
 import {
   Result,
-  Str,
   ok,
   err,
   Defect,
@@ -13,7 +12,7 @@ import {
  * Safe to use in both server and client environments.
  */
 export const env = (
-  key: Str,
+  key: string,
 ): Result<string, Defect> => {
   try {
     if (
@@ -22,15 +21,15 @@ export const env = (
     ) {
       return err(
         defect(
-          `Environment variable "${key.content}" is not accessible (process.env unavailable)`,
+          `Environment variable "${key}" is not accessible (process.env unavailable)`,
         ),
       );
     }
-    const value = process.env[key.content];
+    const value = process.env[key];
     if (value === undefined || value === "") {
       return err(
         defect(
-          `Environment variable "${key.content}" is not set`,
+          `Environment variable "${key}" is not set`,
         ),
       );
     }
@@ -38,7 +37,7 @@ export const env = (
   } catch {
     return err(
       defect(
-        `Failed to access environment variable "${key.content}"`,
+        `Failed to access environment variable "${key}"`,
       ),
     );
   }

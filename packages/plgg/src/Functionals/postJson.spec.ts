@@ -10,7 +10,7 @@ import {
   vi,
   afterEach,
 } from "plgg-test";
-import { postJson, box } from "plgg/index";
+import { postJson } from "plgg/index";
 
 const originalFetch = globalThis.fetch;
 
@@ -55,7 +55,7 @@ test("postJson returns Ok for 2xx response", async () => {
     mockFetch as unknown as typeof fetch;
 
   const result = await postJson({
-    url: box("Str")("https://example.test/api"),
+    url: "https://example.test/api",
     headers: { "X-Trace": "abc" },
   })({ hello: "world" });
 
@@ -102,7 +102,7 @@ test("postJson returns Err for non-2xx response", async () => {
     mockFetch as unknown as typeof fetch;
 
   const result = await postJson({
-    url: box("Str")("https://example.test/api"),
+    url: "https://example.test/api",
     headers: {},
   })({ attempt: 1 });
 
@@ -144,7 +144,7 @@ test("postJson does not follow a redirect (manual policy)", async () => {
     mockFetch as unknown as typeof fetch;
 
   const result = await postJson({
-    url: box("Str")("https://example.test/api"),
+    url: "https://example.test/api",
     headers: { "x-api-key": "secret" },
   })({ attempt: 1 });
 

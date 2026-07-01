@@ -1,7 +1,6 @@
 import {
   PromisedResult,
   Datum,
-  box,
   proc,
   match,
   unbox,
@@ -55,20 +54,15 @@ export const generateObject = ({
         : match(provider)(
             [
               openAI$(),
-              () =>
-                env(box("Str")("OPENAI_API_KEY")),
+              () => env("OPENAI_API_KEY"),
             ],
             [
               anthropic$(),
-              () =>
-                env(
-                  box("Str")("ANTHROPIC_API_KEY"),
-                ),
+              () => env("ANTHROPIC_API_KEY"),
             ],
             [
               google$(),
-              () =>
-                env(box("Str")("GEMINI_API_KEY")),
+              () => env("GEMINI_API_KEY"),
             ],
           ),
     (apiKey) =>

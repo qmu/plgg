@@ -7,7 +7,6 @@ import {
   jsonDecode,
   postJson,
   Datum,
-  box,
 } from "plgg";
 
 // https://ai.google.dev/api/generate-content?hl=ja#json-mode
@@ -54,9 +53,7 @@ export const reqObjectGemini = ({
       },
     },
     post({
-      url: box("Str")(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      ),
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       headers: {
         "x-goog-api-key": apiKey,
       },
