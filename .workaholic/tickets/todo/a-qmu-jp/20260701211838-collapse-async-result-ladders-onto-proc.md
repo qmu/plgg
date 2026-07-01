@@ -99,3 +99,19 @@ Foundation combinators the migration targets (do not modify — just consume):
 - **`proc` vs `chainResult`.** Use `proc` when a seed threads through async steps; use `pipe(..., chainResult(...))` when the flow is already a `pipe` and only needs `Result`-aware chaining. Don't force everything into `proc` if `chainResult` reads better at a given site.
 - **Ergonomics signal, deferred.** If the 2-step case feels heavier than the `.then` it replaces, that is evidence for a lighter `proc` sibling — record it for a separate design ticket rather than blocking this refactor.
 - Sibling to the four audit-spawned foundation tickets (`20260701204204`-`204207`); this one is consumer-side adoption, not a foundation addition, so it has no `depends_on` on them.
+
+## Drive Finding (2026-07-01) — blocked as specified, needs rescope
+
+Attempted during `/drive`. **The ladders are deliberate, not accidental.** Evidence in-repo:
+
+- `packages/plgg-db-migration/src/domain/usecase/readMigrations.ts:149` explicitly documents the intent: *"channel is exactly `MigrationError`, not `… | Defect`"*.
+- The db-migration usecases declare **precise** error unions (`MigrationError | SqlError`), and `entrypoints/cli.ts` folds them with `matchResult` over that exact union.
+
+`proc` **structurally adds `Defect`** to its result error channel (see `proc.ts` overloads: every arity returns `… | Defect`), and `bind` erases the error type to `unknown`. So *no existing combinator* can reproduce these ladders' exact error type — adopting `proc` would widen every signature to `… | Defect` and break the CLI's exhaustive `matchResult`. The `.then(res => isOk(res) ? next : res)` ladder is precisely the promise-aware `Result` bind that keeps the channel exact; it exists to avoid `Defect` pollution.
+
+**This ticket cannot be implemented as written** ("strictly adopt existing `proc`/`chainResult`, no new primitive, behavior-identical") without regressing the deliberate exact-error-channel design. Rescope options for a follow-up decision:
+1. **Add a promise-aware `chainResult` combinator** (`PromisedResult<A,E> → (A → PromisedResult<B,E>) → PromisedResult<B,E>`, no `Defect`) and migrate the ladders to it — the honest collapse, but it needs a *new* primitive (which this ticket forbade).
+2. **Accept `| Defect`** in the migration error model and handle it at the CLI edge — a deliberate error-model change, not "behavior-identical".
+3. **Keep the ladders** — they are correct given the exact-error-channel requirement; close as won't-do.
+
+Left in `todo` pending that decision. The plgg-server (`writeStatic`/`toFetch`) and plgg-sql (`transaction`) sites may or may not share the no-`Defect` intent — assess per-site under whichever option is chosen.
