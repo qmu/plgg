@@ -3,8 +3,8 @@ created_at: 2026-07-01T01:33:03+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
+effort: 1h
+commit_hash: c32284a
 category: Changed
 depends_on: [20260701013302-refine-number-to-int-ids-counts.md]
 ---
@@ -130,3 +130,24 @@ The `/drive` approval gate requires **all** of:
 - The fields are **author-facing total-constructor inputs** (`serve({ port: 3000 })`, `fadeIn(300)`). Branding them forces the author to either construct a `Result` (`asU16` — breaks the total, ergonomic API) or accept `getOr(box("U16")(dflt))(asU16(n))` boilerplate at **every** call site. There is no clean, ergonomic, no-op-free resolution — the same tension as the (deferred) proc-ladder and the statusOf-degradation removal.
 
 **Recommended rescope (a design decision):** either (a) keep author-facing config numeric and brand **internally at the outermost boundary only** (one `asU16`/`asU32` fold per option in `serve`/animation/kit, not at author call sites) — the pragmatic ergonomic choice; or (b) accept the brand in the public signatures and provide branded default constructors + author-side helpers. Pick one and apply consistently. The HttpStatus half already committed is independent and stands regardless.
+
+## Final Report (rescoped under principle (a): brand boundaries, not author-facing inputs)
+
+Per the author's decision — *利用者が直接書く部分 shouldn't be too strict* — sized brands are applied only at genuine **untrusted-input boundaries**, never on developer-typed literals or ergonomic config APIs.
+
+**Done + committed (`8faa5da`): HttpStatus.** The response builders take a `HttpStatus` brand (a small, closed, well-known domain), and the one genuine untrusted boundary — a network response's status in `plgg-fetch` `seam.ts:138` — is validated through `statusOf`. This removes the arbitrary-number coercion at the builder boundary.
+
+**Intentionally left numeric (principle (a)):** every remaining U16/U32 target is **author-facing config or an internal default**, not an untrusted boundary:
+- `ServeOptions.port`/`maxBodyBytes`/timeouts — `serve({ port: PORT })` (author/env config)
+- `Motion.durationMs`/`delayMs` — `fadeIn(220)` (author literal)
+- `maxTokens` — `openai({ maxTokens })`, default 1024 (author config)
+- press `devPort`, foundry `operationCount`/`maxOperationLimit` — author config / internal counters
+
+Branding these would force `asU16`/`getOr(box(...))` boilerplate at ergonomic call sites for **no safety gain** (a developer writing `serve({ port: 3000 })` or `fadeIn(220)` cannot produce an out-of-range value that a brand would catch — and validating an internal counter is redundant). The `Int` integral-refinement (ticket 013302) already covers the "is-an-integer" aspect where it matters.
+
+Verification: HttpStatus half green across plgg-http 32, plgg-server 96, plgg-fetch 27, plgg-press 84. No `as`/`any`/`ts-ignore`.
+
+### Discovered Insight
+
+- **Insight**: A brand pays off only where an **untrusted value crosses a boundary** (a parsed request, a network response, a config decode). On a developer-typed literal (`fadeIn(220)`, `serve({port:3000})`) or an internally-computed value, the brand is a no-op box that only adds ergonomic friction — so those stay plain and validation lives at the true edge (e.g. `statusOf` on an incoming response status).
+  **Context**: This is the operating rule for the whole number/string refinement axis under principle (a): brand at edges, keep author APIs plain.
