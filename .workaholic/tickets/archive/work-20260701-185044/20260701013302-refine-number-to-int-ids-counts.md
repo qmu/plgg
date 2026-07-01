@@ -3,8 +3,8 @@ created_at: 2026-07-01T01:33:02+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
+effort: 1h
+commit_hash: fd18a63
 category: Changed
 depends_on:
 ---
@@ -112,3 +112,18 @@ The `/drive` approval gate requires **all** of:
   integrality guards with a type boundary that fails at compile time.
 - `workaholic:implementation` / `policies/directory-structure.md` — changes stay
   in existing `model/` + `usecase/` role files.
+
+## Final Report
+
+Refined integral domain fields from `number`/`Num` to `Int` across four packages: `example` (`Todo.id`, and app-state `id`/`delta`/`nextId`/`toastSeq`/`expanded` + the `Msg` union id/delta fields), `plgg-sql` (`ExecResult.changes` + `lastInsertId` → `Int`/`Option<Int>`), `plgg-md` (`indentOf` return + `ListMark.indent`), and `plgg-router` `queryInt` (`FieldCodec<Int>`).
+
+**The meaningful enforcement is at `queryInt`.** `Int` is a *structural* alias (`type Int = number`, `packages/plgg/src/Atomics/Int.ts`), so the field annotations are documentational and carry zero type-ripple (no `.content` unwrap, number literals still assign). The one real boundary — `queryInt`'s decode — now routes the parsed token through `asInt` (via `matchResult`), so the integrality check **is** the `Int` construction rather than a separate `Number.isInteger` guard sitting beside a loose `number` (the ticket's "move the check, don't duplicate it").
+
+Boundary tightening is already proven by the existing spec `queryCodec.spec.ts:41` — `codec.decode(some("3.5"))` falls back to the default — which now passes through `asInt` (a fractional value is rejected). Kept internal tokenizer cursors and combinator indices as `number` per Scope.
+
+Verification: example 25, plgg-sql 27, plgg-md 68, plgg-router 39 — all green. No `as`/`any`/`ts-ignore`; construction via `asInt`.
+
+### Discovered Insights
+
+- **Insight**: plgg's `Atomics` scalars (`Int`, `Num`) are *soft* aliases of `number` — real nominal branding lives in `Basics`/`Grammaticals` (`Str`, `Float` are `Box<…>`). So an `Int` refinement is documentational + boundary-enforced (via `asInt`), not compile-time-nominal: assigning a raw `number` to an `Int` field does not error.
+  **Context**: This is why the number-axis tickets are low-ripple annotation swaps whose real teeth are only at the `asX` boundaries, unlike the string/`Float` axes where the `Box` brand forces `.content` unwrapping and blocks raw assignment.

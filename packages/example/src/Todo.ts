@@ -1,4 +1,4 @@
-import type { SoftStr } from "plgg";
+import type { SoftStr, Int } from "plgg";
 
 /**
  * A single to-do item — pure client-side data. This demo keeps todos in the
@@ -6,7 +6,7 @@ import type { SoftStr } from "plgg";
  * for a future plgg-view `Cmd`/effects phase.
  */
 export type Todo = Readonly<{
-  id: number;
+  id: Int;
   title: SoftStr;
   completed: boolean;
 }>;

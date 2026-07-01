@@ -1,6 +1,6 @@
 import {
   SoftStr,
-  Num,
+  Int,
   Option,
   fromNullable,
   foldThrown,
@@ -13,8 +13,8 @@ import { Sql } from "plgg-sql/Sql/model/Sql";
  * changed, and the id of an inserted row when there is one (`None` otherwise).
  */
 export type ExecResult = {
-  changes: Num;
-  lastInsertId: Option<Num>;
+  changes: Int;
+  lastInsertId: Option<Int>;
 };
 
 /**

@@ -1,5 +1,6 @@
 import {
   type SoftStr,
+  type Int,
   fromNullable,
   some,
 } from "plgg";
@@ -63,7 +64,7 @@ export type Filter =
  * FLIPs the rest of the stack up to close the gap.
  */
 export type Toast = Readonly<{
-  id: number;
+  id: Int;
   tone: "success" | "info" | "danger";
   message: SoftStr;
 }>;
@@ -80,15 +81,15 @@ export type Toast = Readonly<{
 export type Model = Readonly<{
   todos: ReadonlyArray<Todo>;
   draft: SoftStr;
-  nextId: number;
+  nextId: Int;
   filter: Filter;
   q: SoftStr;
   /** The toaster stack (newest last); rendered as a keyed list. */
   toasts: ReadonlyArray<Toast>;
   /** Monotonic id for the next toast. */
-  toastSeq: number;
+  toastSeq: Int;
   /** Todo ids whose accordion details panel is open. */
-  expanded: ReadonlyArray<number>;
+  expanded: ReadonlyArray<Int>;
   /** Whether the clear-completed confirmation modal is open. */
   confirmClear: boolean;
 }>;
@@ -100,8 +101,8 @@ export type Msg =
       value: SoftStr;
     }>
   | Readonly<{ kind: "Added" }>
-  | Readonly<{ kind: "Toggled"; id: number }>
-  | Readonly<{ kind: "Deleted"; id: number }>
+  | Readonly<{ kind: "Toggled"; id: Int }>
+  | Readonly<{ kind: "Deleted"; id: Int }>
   | Readonly<{
       kind: "FilterChanged";
       filter: Filter;
@@ -118,18 +119,18 @@ export type Msg =
   // accordion: toggle a todo's details panel open/closed
   | Readonly<{
       kind: "ExpandToggled";
-      id: number;
+      id: Int;
     }>
   // reorder: move a todo up (delta -1) or down (+1) — drives the FLIP path
   | Readonly<{
       kind: "Moved";
-      id: number;
-      delta: number;
+      id: Int;
+      delta: Int;
     }>
   // toaster: a toast dismissed by its close button
   | Readonly<{
       kind: "ToastDismissed";
-      id: number;
+      id: Int;
     }>
   // modal: open / cancel / confirm the clear-completed dialog
   | Readonly<{ kind: "ClearRequested" }>
@@ -155,8 +156,8 @@ export const init: Model = {
  */
 const move = (
   todos: ReadonlyArray<Todo>,
-  id: number,
-  delta: number,
+  id: Int,
+  delta: Int,
 ): ReadonlyArray<Todo> => {
   const i = todos.findIndex((t) => t.id === id);
   const j = i + delta;
