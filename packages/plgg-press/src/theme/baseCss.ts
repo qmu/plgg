@@ -423,7 +423,14 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
 /* responsive: collapse sidebar AND nav links behind the ☰ menu */
 @media (max-width:768px){
   .vp-menu-btn{display:inline-block}
-  .vp-layout{flex-direction:column}
+  /* the column layout must hold a DEFINITE width: without it a flex item's
+     cross size floors at its min-content, and a wide white-space:pre code
+     block (API type signatures) balloons the column past the viewport and
+     the whole page scrolls sideways. width:100% + min-width:0 pins it so the
+     code block scrolls inside its own box instead. */
+  .vp-layout{
+    flex-direction:column;width:100%;min-width:0;
+  }
   .vp-sidebar{
     display:none;width:100%;flex-basis:auto;
     position:static;max-height:none;
@@ -434,8 +441,12 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
   .vp-menu-cb:checked ~ .vp-layout .vp-sidebar{
     display:block;
   }
-  .vp-content{padding:1.5rem 1.25rem 4rem}
+  .vp-content{
+    width:100%;min-width:0;
+    padding:1.5rem 1.25rem 4rem;
+  }
   .vp-doc{max-width:100%}
+  .vp-doc pre{max-width:100%}
   .vp-nav{padding:0 1rem;flex-wrap:wrap}
   .vp-nav-right{gap:0.75rem;margin-left:auto}
   /* nav links fold into the ☰ panel instead of vanishing: hidden until the
