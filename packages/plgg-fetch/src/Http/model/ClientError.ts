@@ -1,10 +1,4 @@
-import {
-  Box,
-  SoftStr,
-  box,
-  pattern,
-  isBoxWithTag,
-} from "plgg";
+import { SoftStr, defineVariant } from "plgg";
 import { HttpError } from "plgg-http";
 
 /**
@@ -13,9 +7,12 @@ import { HttpError } from "plgg-http";
  * read). Distinct from any {@link HttpError} the *server* models — a non-2xx
  * status is still a perfectly valid {@link HttpResponse}, not this.
  */
-export type NetworkError = Box<
-  "NetworkError",
-  { message: SoftStr }
+const Network = defineVariant("NetworkError")<{
+  message: SoftStr;
+}>();
+
+export type NetworkError = ReturnType<
+  typeof Network.make
 >;
 
 /**
@@ -25,8 +22,7 @@ export type NetworkError = Box<
  */
 export const networkError = (
   message: SoftStr,
-): NetworkError =>
-  box("NetworkError")({ message });
+): NetworkError => Network.make({ message });
 
 /**
  * The client refused to follow a redirect. The client sends every request with
@@ -36,9 +32,12 @@ export const networkError = (
  * inspect rather than being silently chased. (`redirect: "manual"` yields an
  * opaque response, so the concrete 3xx status / `Location` are not available.)
  */
-export type RedirectError = Box<
-  "RedirectError",
-  { message: SoftStr }
+const Redirect = defineVariant("RedirectError")<{
+  message: SoftStr;
+}>();
+
+export type RedirectError = ReturnType<
+  typeof Redirect.make
 >;
 
 /**
@@ -46,8 +45,7 @@ export type RedirectError = Box<
  */
 export const redirectError = (
   message: SoftStr,
-): RedirectError =>
-  box("RedirectError")({ message });
+): RedirectError => Redirect.make({ message });
 
 /**
  * The client's error vocabulary: the shared {@link HttpError} model from
@@ -67,27 +65,23 @@ export type ClientError =
  * reference the variant by name (`match(e)([networkError$(), …])`) rather than a
  * bare tag string.
  */
-export const networkError$ = () =>
-  pattern("NetworkError")();
+export const networkError$ = Network.pattern;
 
 /**
  * Pattern matcher for the {@link RedirectError} variant.
  */
-export const redirectError$ = () =>
-  pattern("RedirectError")();
+export const redirectError$ = Redirect.pattern;
 
 /**
  * Type guard for the client-only {@link NetworkError} variant.
  */
 export const isNetworkError = (
   error: ClientError,
-): error is NetworkError =>
-  isBoxWithTag("NetworkError")(error);
+): error is NetworkError => Network.is(error);
 
 /**
  * Type guard for the client-only {@link RedirectError} variant.
  */
 export const isRedirectError = (
   error: ClientError,
-): error is RedirectError =>
-  isBoxWithTag("RedirectError")(error);
+): error is RedirectError => Redirect.is(error);

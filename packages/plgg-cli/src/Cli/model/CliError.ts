@@ -1,10 +1,7 @@
 import {
-  Box,
   SoftStr,
-  box,
   match,
-  pattern,
-  isBoxWithTag,
+  defineVariant,
 } from "plgg";
 
 /**
@@ -13,9 +10,12 @@ import {
  * argument). The toolkit is strict about this rather than
  * silently treating the option as absent.
  */
-export type MissingOptionValue = Box<
+const MissingOption = defineVariant(
   "MissingOptionValue",
-  { option: SoftStr }
+)<{ option: SoftStr }>();
+
+export type MissingOptionValue = ReturnType<
+  typeof MissingOption.make
 >;
 
 /**
@@ -24,16 +24,19 @@ export type MissingOptionValue = Box<
 export const missingOptionValue = (
   option: SoftStr,
 ): MissingOptionValue =>
-  box("MissingOptionValue")({ option });
+  MissingOption.make({ option });
 
 /**
  * A `--flag` was supplied that the command does not
  * declare. Surfaced as a typed error rather than being
  * silently ignored.
  */
-export type UnknownOption = Box<
-  "UnknownOption",
-  { option: SoftStr }
+const UnknownOpt = defineVariant("UnknownOption")<{
+  option: SoftStr;
+}>();
+
+export type UnknownOption = ReturnType<
+  typeof UnknownOpt.make
 >;
 
 /**
@@ -41,8 +44,7 @@ export type UnknownOption = Box<
  */
 export const unknownOption = (
   option: SoftStr,
-): UnknownOption =>
-  box("UnknownOption")({ option });
+): UnknownOption => UnknownOpt.make({ option });
 
 /**
  * The parser's error vocabulary. Both variants are
@@ -57,14 +59,13 @@ export type CliError =
  * Pattern matcher for the {@link MissingOptionValue}
  * variant, for folding a {@link CliError} with `match`.
  */
-export const missingOptionValue$ = () =>
-  pattern("MissingOptionValue")();
+export const missingOptionValue$ =
+  MissingOption.pattern;
 
 /**
  * Pattern matcher for the {@link UnknownOption} variant.
  */
-export const unknownOption$ = () =>
-  pattern("UnknownOption")();
+export const unknownOption$ = UnknownOpt.pattern;
 
 /**
  * Type guard for the {@link MissingOptionValue} variant.
@@ -72,15 +73,14 @@ export const unknownOption$ = () =>
 export const isMissingOptionValue = (
   error: CliError,
 ): error is MissingOptionValue =>
-  isBoxWithTag("MissingOptionValue")(error);
+  MissingOption.is(error);
 
 /**
  * Type guard for the {@link UnknownOption} variant.
  */
 export const isUnknownOption = (
   error: CliError,
-): error is UnknownOption =>
-  isBoxWithTag("UnknownOption")(error);
+): error is UnknownOption => UnknownOpt.is(error);
 
 /**
  * Renders a {@link CliError} as a one-line shell message.

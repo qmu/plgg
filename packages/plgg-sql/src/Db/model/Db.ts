@@ -1,12 +1,10 @@
 import {
-  Box,
   SoftStr,
   Num,
   Option,
-  box,
-  pattern,
   fromNullable,
   foldThrown,
+  defineVariant,
 } from "plgg";
 import { Sql } from "plgg-sql/Sql/model/Sql";
 
@@ -54,9 +52,13 @@ export type Db = {
  * (a `Box`, not an `Error` subclass) so it rides the `Result`/`proc` error
  * channel like any plgg error.
  */
-export type SqlError = Box<
-  "SqlError",
-  { message: SoftStr; cause: Option<unknown> }
+const SqlErrorV = defineVariant("SqlError")<{
+  message: SoftStr;
+  cause: Option<unknown>;
+}>();
+
+export type SqlError = ReturnType<
+  typeof SqlErrorV.make
 >;
 
 /**
@@ -66,7 +68,7 @@ export const sqlError = (
   message: SoftStr,
   cause?: unknown,
 ): SqlError =>
-  box("SqlError")({
+  SqlErrorV.make({
     message,
     cause: fromNullable(cause),
   });
@@ -74,7 +76,7 @@ export const sqlError = (
 /**
  * Pattern matcher for folding a {@link SqlError} with `match` by tag.
  */
-export const sqlError$ = () => pattern("SqlError")();
+export const sqlError$ = SqlErrorV.pattern;
 
 /**
  * Lifts an unknown thrown cause into a {@link SqlError}, preserving the chain.

@@ -1,4 +1,4 @@
-import { Box, SoftStr, box } from "plgg";
+import { SoftStr, defineVariant } from "plgg";
 
 /**
  * A compiled path segment, modeled as a plgg `Box` union.
@@ -11,28 +11,33 @@ import { Box, SoftStr, box } from "plgg";
  * defined verbatim by design (see README "Naming"), not imported, because peer
  * experimental packages do not depend on each other.
  */
+const Static = defineVariant("Static")<SoftStr>();
+const Param = defineVariant("Param")<SoftStr>();
+const Wildcard =
+  defineVariant("Wildcard")<SoftStr>();
+
 export type Segment =
-  | Box<"Static", SoftStr>
-  | Box<"Param", SoftStr>
-  | Box<"Wildcard", SoftStr>;
+  | ReturnType<typeof Static.make>
+  | ReturnType<typeof Param.make>
+  | ReturnType<typeof Wildcard.make>;
 
 /**
  * Constructs a static segment.
  */
 export const staticSegment = (
   value: SoftStr,
-): Segment => box("Static")(value);
+): Segment => Static.make(value);
 
 /**
  * Constructs a named parameter segment.
  */
 export const paramSegment = (
   name: SoftStr,
-): Segment => box("Param")(name);
+): Segment => Param.make(name);
 
 /**
  * Constructs a wildcard segment capturing the path remainder.
  */
 export const wildcardSegment = (
   name: SoftStr,
-): Segment => box("Wildcard")(name);
+): Segment => Wildcard.make(name);

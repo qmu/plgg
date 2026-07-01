@@ -3,9 +3,9 @@ created_at: 2026-07-01T20:42:04+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 85ca1be
+category: Added
 depends_on:
 ---
 
@@ -124,3 +124,26 @@ Repetition sites to migrate (each cited by the audit):
 - `refinedBrand` (sibling ticket 20260701204205) may build on `defineVariant`; keep `make`/`is` composable so it can, but do not couple the two — `refinedBrand` can also call `box`/`isBoxWithTag` directly.
 - Provider's un-thunked `pattern("OpenAI")` vs the `xxx$ = () => pattern(...)()` thunk elsewhere is an existing inconsistency this migration should normalize (`packages/plgg-kit/src/LLMs/model/Provider.ts`).
 - Breaking changes are acceptable (plgg is its own only consumer), but keep each migrated file's public export names stable to keep the diff reviewable.
+
+## Final Report
+
+Development completed. Added `packages/plgg/src/Contextuals/Variant.ts` — `defineVariant("Xxx")<Payload>()` returning `{ tag, make, pattern, is }`, with `const TAG` holding the tag literal and `is` narrowing to `Box<TAG, unknown>` (the honest, escape-hatch-free signature; full-content narrowing is recovered per-site via a typed guard wrapper). Colocated `Variant.spec.ts` covers make/tag/is(+/-)/pattern-through-match.
+
+Migrated **6 of the 7** listed sites, each single-sourcing its tag literal and preserving every public export name + signature:
+- `plgg-cli` CliError, `plgg-fetch` ClientError, `plgg-http` HttpError (8 variants), `plgg-router` Segment, `plgg-kit` Provider, `plgg-sql` Db `SqlError`.
+
+**Excluded (documented): `plgg-view` Html.** `Html<Msg, T>` is a *generic* variant; `defineVariant`'s non-generic `CONTENT` cannot derive the generic `Html<Msg, T>` type via `ReturnType<typeof make>`, so forcing it would drop the generics. Per the ticket's "ship the reduced helper or record the gap — never an escape hatch" rule, Html keeps its inline union. `defineVariant` is for non-generic variants.
+
+Public-surface preservation techniques (no escape hatch):
+- Typed guard wrapper `(e: Union): e is Variant => V.is(e)` — an annotation, not a cast — keeps the original within-union content narrowing (verified: `plgg-fetch/.../request.spec.ts` accesses `.content` after `isNetworkError`).
+- Constructor wrappers `(arg) => V.make({ … })` preserve the original argument shape.
+- `openAI$`/`anthropic$`/`google$` were un-thunked `pattern(tag)`; call sites always invoke them as `openAI$()`, so `= V.pattern` (a `() => PatternIcon` thunk) is call-compatible — normalizing the prior inconsistency.
+
+Verification: `test-plgg.sh` 483 (+ Variant specs); plgg-cli 42, plgg-fetch 27, plgg-http 32, plgg-router 39, plgg-kit 12, plgg-sql 27, plgg-server 96, plgg-foundry 6, plgg-view 127, plgg-md 68 — all green after rebuilding plgg + plgg-http dist. No `as`/`any`/`@ts-ignore` in any touched file.
+
+### Discovered Insights
+
+- **Insight**: `defineVariant` fits **non-generic** tagged variants only. A variant whose payload is parameterized by the enclosing type's generics (like `Html<Msg, T>`) cannot derive its type from `ReturnType<typeof make>` because `make` is monomorphic — such variants stay hand-written.
+  **Context**: This is the natural boundary of the combinator; the audit's "collapse the four-fold scaffold" applies to concrete variants (errors, routing segments, providers), not generic view nodes.
+- **Insight**: The weaker `is: v is Box<TAG, unknown>` signature is not a regression — within a closed union a tag check *is* a sound discriminator, so each site re-declares the full-content narrowing with a one-line typed guard wrapper (`(e: Union): e is Variant => V.is(e)`). The annotation is a type predicate, not a cast, so it stays inside the no-escape-hatch rule.
+  **Context**: This is why the combinator can ship the honest `unknown`-check signature while call sites keep their precise narrowing.
