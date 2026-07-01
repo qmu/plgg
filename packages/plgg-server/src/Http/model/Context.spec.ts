@@ -18,6 +18,7 @@ import {
   htmlResponse,
   jsonResponse,
   redirectResponse,
+  statusOf,
   HttpRequest,
 } from "plgg-server/index";
 
@@ -101,7 +102,7 @@ test("response builders are standalone HttpResponse constructors", () =>
       toBe(200),
     ),
     check(
-      htmlResponse("<b/>", 201).headers[
+      htmlResponse("<b/>", statusOf(201)).headers[
         "content-type"
       ],
       toBe("text/html; charset=utf-8"),

@@ -13,6 +13,7 @@ import {
   bytesResponse,
   streamResponse,
   redirectResponse,
+  statusOf,
 } from "plgg-http/index";
 
 async function* twoChunks(): AsyncIterable<Uint8Array> {
@@ -33,7 +34,10 @@ test("textResponse defaults status 200 and text/plain content-type", () => {
 });
 
 test("htmlResponse sets text/html", () => {
-  const r = htmlResponse("<b>x</b>", 201);
+  const r = htmlResponse(
+    "<b>x</b>",
+    statusOf(201),
+  );
   return all([
     check(r.status.content, toBe(201)),
     check(
@@ -44,7 +48,10 @@ test("htmlResponse sets text/html", () => {
 });
 
 test("jsonResponse serializes and sets application/json", () => {
-  const r = jsonResponse({ a: 1 }, 201);
+  const r = jsonResponse(
+    { a: 1 },
+    statusOf(201),
+  );
   return all([
     check(r.status.content, toBe(201)),
     check(
@@ -56,7 +63,7 @@ test("jsonResponse serializes and sets application/json", () => {
 });
 
 test("a caller-supplied content-type is preserved", () => {
-  const r = jsonResponse({}, 200, {
+  const r = jsonResponse({}, statusOf(200), {
     "content-type": "application/ld+json",
   });
   return check(
@@ -90,7 +97,7 @@ test("bytesResponse defaults 200 and octet-stream, wrapping a Bytes body", () =>
 test("bytesResponse honors an explicit status and content-type", () => {
   const r = bytesResponse(
     new Uint8Array([0]),
-    206,
+    statusOf(206),
     {
       "content-type": "image/png",
     },
@@ -128,7 +135,8 @@ test("redirectResponse defaults 302 and sets location", () => {
     check(r.headers["location"], toBe("/login")),
     check(r.body, toBe("")),
     check(
-      redirectResponse("/x", 301).status.content,
+      redirectResponse("/x", statusOf(301)).status
+        .content,
       toBe(301),
     ),
   ]);

@@ -32,6 +32,7 @@ import {
   toFetch,
   pageResponse,
   javascriptResponse,
+  statusOf,
   notFound,
   type HttpResponse,
   type HttpError,
@@ -103,7 +104,7 @@ const app = pipe(
           body: SoftStr,
         ): Result<HttpResponse, HttpError> =>
           ok(
-            javascriptResponse(body, 200, {
+            javascriptResponse(body, statusOf(200), {
               "cache-control": "no-cache",
               etag: `"${bundleVersion}"`,
             }),

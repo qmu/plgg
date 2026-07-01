@@ -4,6 +4,7 @@ import {
   HttpStatus,
   HttpResponse,
   textResponse,
+  statusOf,
 } from "plgg-http/index";
 
 /*
@@ -145,46 +146,67 @@ export const httpErrorToResponse = (
     [
       notFound$(),
       (): HttpResponse =>
-        textResponse("Not Found", 404),
+        textResponse("Not Found", statusOf(404)),
     ],
     [
       methodNotAllowed$(),
       (e): HttpResponse =>
-        textResponse("Method Not Allowed", 405, {
-          allow: unique(e.content.allowed).join(", "),
-        }),
+        textResponse(
+          "Method Not Allowed",
+          statusOf(405),
+          {
+            allow: unique(e.content.allowed).join(
+              ", ",
+            ),
+          },
+        ),
     ],
     [
       badRequest$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 400),
+        textResponse(
+          e.content.message,
+          statusOf(400),
+        ),
     ],
     [
       unsupported$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 501),
+        textResponse(
+          e.content.message,
+          statusOf(501),
+        ),
     ],
     [
       unauthorized$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 401),
+        textResponse(
+          e.content.message,
+          statusOf(401),
+        ),
     ],
     [
       forbidden$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 403),
+        textResponse(
+          e.content.message,
+          statusOf(403),
+        ),
     ],
     [
       statusError$(),
       (e): HttpResponse =>
         textResponse(
           e.content.message,
-          e.content.status.content,
+          e.content.status,
         ),
     ],
     [
       internalError$(),
       (): HttpResponse =>
-        textResponse("Internal Server Error", 500),
+        textResponse(
+          "Internal Server Error",
+          statusOf(500),
+        ),
     ],
   );
