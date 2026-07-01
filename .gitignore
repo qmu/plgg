@@ -35,3 +35,7 @@ lerna-debug.log*
 *.sw?
 *.local
 **/.claude/settings.local.json
+
+# Playwright MCP session output (screenshots, snapshots, console logs)
+.playwright-mcp/
+**/.playwright-mcp/
