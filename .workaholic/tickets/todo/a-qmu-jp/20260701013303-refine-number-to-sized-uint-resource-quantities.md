@@ -119,3 +119,14 @@ The `/drive` approval gate requires **all** of:
   range clamps and silent degradation with a type boundary that fails early.
 - `workaholic:operation` / `policies/observability.md` — an out-of-range status/
   port should surface as an explicit error, not a silent 500/default at runtime.
+
+## Drive Progress (2026-07-01)
+
+**Done + committed (`8faa5da`): the HttpStatus builder-brand half.** The six `plgg-http` response builders (`textResponse`/`htmlResponse`/`jsonResponse`/`bytesResponse`/`streamResponse`/`redirectResponse`) and the two `plgg-server` wrappers (`pageResponse`/`javascriptResponse`) now take a `HttpStatus` brand instead of a raw `number`, so a status is constructed once via `statusOf` at the call site rather than each builder silently coercing an arbitrary number. All callers updated (`httpErrorToResponse`'s 8 arms, example servers, specs). Green: plgg-http 32, plgg-server 96, plgg-fetch 27, plgg-press 84.
+
+**Remaining: the U16/U32 resource-quantity sites** (`ServeOptions.port`→U16, `maxBodyBytes`/timeouts→U32; `Motion.durationMs`/`delayMs`→U32; `maxTokens`→U32; foundry counts→U32; press `devPort`→U16). These are **not** a clean mechanical refactor:
+
+- `U16`/`U32` are **Box brands** (`Box<"U16"|"U32", number>`), so every read site needs `.content` and every `?? default` needs the default branded.
+- The fields are **author-facing total-constructor inputs** (`serve({ port: 3000 })`, `fadeIn(300)`). Branding them forces the author to either construct a `Result` (`asU16` — breaks the total, ergonomic API) or accept `getOr(box("U16")(dflt))(asU16(n))` boilerplate at **every** call site. There is no clean, ergonomic, no-op-free resolution — the same tension as the (deferred) proc-ladder and the statusOf-degradation removal.
+
+**Recommended rescope (a design decision):** either (a) keep author-facing config numeric and brand **internally at the outermost boundary only** (one `asU16`/`asU32` fold per option in `serve`/animation/kit, not at author call sites) — the pragmatic ergonomic choice; or (b) accept the brand in the public signatures and provide branded default constructors + author-side helpers. Pick one and apply consistently. The HttpStatus half already committed is independent and stands regardless.
