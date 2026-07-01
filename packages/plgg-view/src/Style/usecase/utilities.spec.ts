@@ -5,6 +5,7 @@ import {
   toBe,
   toEqual,
 } from "plgg-test";
+import { box, asFloat, isOk } from "plgg";
 import {
   flex,
   flexCol,
@@ -199,12 +200,22 @@ test("background and border utilities map tokens to values", () =>
 test("effect utilities", () =>
   all([
     check(shadow("sm")[0]?.prop, toBe("box-shadow")),
-    check(opacity(0.5), toEqual([
+    check(opacity(box("Float")(0.5)), toEqual([
       { prop: "opacity", value: "0.5" },
     ])),
     check(pointer, toEqual([
       { prop: "cursor", value: "pointer" },
     ])),
+  ]));
+
+test("opacity boundary rejects non-finite", () =>
+  all([
+    check(isOk(asFloat(0.5)), toBe(true)),
+    check(
+      isOk(asFloat(Number.POSITIVE_INFINITY)),
+      toBe(false),
+    ),
+    check(isOk(asFloat(NaN)), toBe(false)),
   ]));
 
 test("wFull and hFull are 100%", () =>

@@ -3,8 +3,8 @@ created_at: 2026-07-01T01:33:04+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
+effort: 0.5h
+commit_hash: 7e5f7e1
 category: Changed
 depends_on:
 ---
@@ -83,3 +83,11 @@ The `/drive` approval gate requires **all** of:
   documented `0..1` invariant into a checkable type boundary.
 - `workaholic:implementation` / `policies/directory-structure.md` — changes stay
   in plgg-view's existing `model/` + `usecase/` role files.
+
+## Final Report
+
+Refined CSS opacity from bare `number` to `Float` in plgg-view: `Attribute.Frame.opacity` and the `frame()` param → `Option<Float>`; the `opacity()` style utility → `Float` param (stringified via `.content`). `render.ts` `frameToKeyframe` unwraps the `Float` back to a `number` for the WAAPI keyframe. Internal animation presets (`fadeIn`/`fadeOut`/`slideIn`) construct their compile-time-constant `0`/`1` opacities via `box("Float")(…)` (the sanctioned Box constructor — not an escape hatch — for statically-valid literals). Updated the two fixture specs (`Attribute.spec`, `render.spec`) to build `Float` opacities.
+
+**Float is finite-only, not `0..1`.** Per the ticket's Consideration, I did not claim a tighter guarantee than the brand provides: `Float` brands "finite number" (`packages/plgg/src/Basics/Float.ts`), so the enforced tightening is rejection of non-finite values (`NaN`/`Infinity`) that the prior `number` field silently accepted. The `0..1` range remains documented in JSDoc, not type-enforced (a true unit-interval brand would be separate, out of scope).
+
+Verification: `scripts/test-plgg-view.sh` 128 passed (+1: `"opacity boundary rejects non-finite"` asserts `asFloat(0.5)` ok, `asFloat(Infinity)`/`asFloat(NaN)` not ok). No `as`/`any`/`ts-ignore`. Contained entirely to plgg-view (no external consumers of `Frame`/`opacity`).
