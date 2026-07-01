@@ -8,10 +8,7 @@ import {
   matchResult,
   mapResult,
 } from "plgg";
-import {
-  type Fetch,
-  toFetch,
-} from "plgg-server";
+import { type Fetch, toFetch } from "plgg-server";
 import {
   type SsgError,
   discoverPaths,
@@ -78,9 +75,8 @@ const LIVE_RELOAD_SCRIPT =
  * bundler's export-surface eval — which has no platform
  * globals — never touches it.
  */
-const encodeUtf8 = (
-  text: SoftStr,
-): Uint8Array => new TextEncoder().encode(text);
+const encodeUtf8 = (text: SoftStr): Uint8Array =>
+  new TextEncoder().encode(text);
 
 /** SSE stream opener — keeps the connection from idling. */
 const SSE_PRELUDE = ": connected\n\n";
@@ -123,19 +119,32 @@ type DevState = {
 };
 
 /**
- * Drops `content-length` from a header set so a rewritten
- * (longer) body re-computes it — one expression over the
- * mutable platform `Headers`.
+ * The header set for a decorated dev HTML page: drops
+ * `content-length` (the appended live-reload script grew
+ * the body, so it must re-compute) and forces
+ * `cache-control: no-store`. The dev server sits behind a
+ * CDN/tunnel (the guide's `plgg-guide.qmu.dev`); each page
+ * inlines the theme CSS, so a cached page would keep
+ * serving STALE styles after a theme edit — no-store keeps
+ * every edit visible on a plain refresh, no purge needed.
  */
-const withoutContentLength = (
+const devHtmlHeaders = (
   headers: Headers,
-): Headers =>
-  new Headers(
+): Headers => {
+  const next = new Headers(
     [...headers].filter(
-      ([key]: [string, string]): boolean =>
-        key.toLowerCase() !== "content-length",
+      ([key]: [string, string]): boolean => {
+        const lower = key.toLowerCase();
+        return (
+          lower !== "content-length" &&
+          lower !== "cache-control"
+        );
+      },
     ),
   );
+  next.set("cache-control", "no-store");
+  return next;
+};
 
 /**
  * Whether a response carries an HTML body — the only
@@ -185,7 +194,7 @@ const decorateHtmlResponse = (
         (html: SoftStr): Response =>
           new Response(decorateDevHtml(html), {
             status: response.status,
-            headers: withoutContentLength(
+            headers: devHtmlHeaders(
               response.headers,
             ),
           }),
@@ -224,8 +233,7 @@ const forbiddenResponse = (): Response =>
   new Response("Forbidden", {
     status: 403,
     headers: {
-      "content-type":
-        "text/plain; charset=utf-8",
+      "content-type": "text/plain; charset=utf-8",
     },
   });
 
@@ -336,9 +344,7 @@ const rebuild = (
   discoverPaths(opts.contentDir).then(
     matchResult(
       (_e: SsgError): void => undefined,
-      (
-        paths: ReadonlyArray<SoftStr>,
-      ): void => {
+      (paths: ReadonlyArray<SoftStr>): void => {
         // The mutable seam: hot-swap routes, then ping
         // every open EventSource to reload.
         state.fetch = buildFetch(opts, paths);
@@ -389,20 +395,17 @@ export const devPort = (): number =>
     matchOption(
       (): number => DEFAULT_PORT,
       (raw: SoftStr): number =>
-        pipe(
-          Number(raw),
-          (n: number): number =>
-            Number.isInteger(n) && n >= 0
-              ? n
-              : DEFAULT_PORT,
+        pipe(Number(raw), (n: number): number =>
+          Number.isInteger(n) && n >= 0
+            ? n
+            : DEFAULT_PORT,
         ),
     ),
   );
 
 /** The URL the dev server is reachable at. */
-export const devUrl = (
-  port: number,
-): SoftStr => `http://localhost:${port}/`;
+export const devUrl = (port: number): SoftStr =>
+  `http://localhost:${port}/`;
 
 /**
  * Debounced fs.watch over the content tree: one save can
