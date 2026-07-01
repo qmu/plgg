@@ -8,12 +8,18 @@ import {
 } from "plgg-view";
 
 /**
- * The closed callout kind set — exactly the admonitions
- * plgg-md emits (`tip`/`warning`/`danger`). A union (not a
+ * The closed callout kind set — the five qmu.co.jp
+ * admonitions: the two monochrome `info`/`note`, the
+ * emerald `tip`, plus `warning`/`danger`. A union (not a
  * free `SoftStr`), so an unknown kind is a compile error
  * and {@link LABEL} stays exhaustive by construction.
+ * (plgg-md's own renderer emits `tip`/`warning`/`danger`;
+ * `info`/`note` extend the theme surface for authored
+ * callouts.)
  */
 export type CalloutKind =
+  | "info"
+  | "note"
   | "tip"
   | "warning"
   | "danger";
@@ -27,6 +33,8 @@ export type CalloutKind =
  * `vp-callout-<kind>` class), not encoded here.
  */
 const LABEL: Record<CalloutKind, string> = {
+  info: "Info",
+  note: "Note",
   tip: "Tip",
   warning: "Warning",
   danger: "Danger",

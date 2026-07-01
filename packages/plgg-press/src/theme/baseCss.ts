@@ -77,6 +77,26 @@ body.vp{
 }
 .vp a:hover{text-decoration:underline}
 .vp-menu-cb{display:none}
+/* prose links: ink + underline at rest, hover inverts to
+   the near-black highlighter with light text (qmu's
+   box-highlight, re-expressed without child combinators).
+   The small inset padding + equal negative margin keeps
+   surrounding text from shifting when the block paints. */
+.vp-doc a{
+  color:var(--vp-text);
+  text-decoration:underline;
+  text-decoration-thickness:1px;
+  text-underline-offset:2px;
+  padding:0.05em 0.15em;
+  margin:0 -0.15em;
+  border-radius:3px;
+  transition:background-color 0.2s,color 0.2s;
+}
+.vp-doc a:hover{
+  background:var(--vp-hover);
+  color:var(--vp-hover-ink);
+  text-decoration:none;
+}
 
 /* header */
 .vp-nav{
@@ -277,8 +297,10 @@ html.dark .vp-theme-toggle .vp-moon{
   font-family:"SF Mono",Menlo,Consolas,
     "Liberation Mono",monospace;
   font-size:0.85em;background:var(--vp-inline);
+  border:1px solid var(--vp-border);
   padding:0.15em 0.4em;border-radius:4px;
-  transition:background-color 0.25s;
+  transition:background-color 0.25s,
+    border-color 0.25s;
 }
 .vp-doc pre{
   background:var(--vp-code-bg);
@@ -291,7 +313,7 @@ html.dark .vp-theme-toggle .vp-moon{
 }
 .vp-doc pre code{
   background:none;padding:0;border-radius:0;
-  font-size:inherit;
+  border:none;font-size:inherit;
 }
 /* syntax tokens (tok-* classes from plgg-highlight) —
    themed here so they adapt to light/dark; identifier
@@ -330,11 +352,23 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
 }
 .vp-callout-title{font-weight:650;margin:0 0 0.35rem}
 .vp-callout p{margin:0.35rem 0}
-.vp-callout-tip{
+/* info/note: monochrome — ink border on the soft
+   surface, ink title (both driven by tokens so dark
+   flips with the rest of the palette). */
+.vp-callout-info,.vp-callout-note{
   background:var(--vp-bg-alt);
   border-color:var(--vp-brand);
 }
-.vp-callout-tip .vp-callout-title{color:var(--vp-brand)}
+.vp-callout-info .vp-callout-title,
+.vp-callout-note .vp-callout-title{color:var(--vp-text)}
+/* tip: the one sanctioned hue — emerald, deep enough for
+   AA on the light surface, brightened under dark. */
+.vp-callout-tip{
+  background:var(--vp-bg-alt);
+  border-color:#10b981;
+}
+.vp-callout-tip .vp-callout-title{color:#047857}
+html.dark .vp-callout-tip .vp-callout-title{color:#34d399}
 .vp-callout-warning{
   background:var(--vp-bg-alt);border-color:#e0a106;
 }

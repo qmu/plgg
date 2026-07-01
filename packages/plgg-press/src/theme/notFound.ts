@@ -55,7 +55,7 @@ export const notFound = (
             [
               style_(
                 fontSize("2xl"),
-                weight(700),
+                weight(400),
                 mb(4),
               ),
             ],
@@ -73,8 +73,8 @@ export const notFound = (
             [
               attr("href", hrefOf("/")),
               style_(
-                color("primary"),
-                weight(600),
+                color("text"),
+                weight(400),
               ),
             ],
             [text("Go to the home page")],

@@ -25,6 +25,14 @@ test("embeds the pre-rendered body and a kind label", () =>
       toContain("admonition body"),
     ),
     check(
+      renderToString(callout("info", body)),
+      toContain(">Info<"),
+    ),
+    check(
+      renderToString(callout("note", body)),
+      toContain(">Note<"),
+    ),
+    check(
       renderToString(callout("tip", body)),
       toContain(">Tip<"),
     ),
@@ -40,6 +48,18 @@ test("embeds the pre-rendered body and a kind label", () =>
 
 test("tags each kind with its own vp-callout class (accent owned by baseCss)", () =>
   all([
+    check(
+      renderToString(callout("info", body)),
+      toContain(
+        'class="vp-callout vp-callout-info"',
+      ),
+    ),
+    check(
+      renderToString(callout("note", body)),
+      toContain(
+        'class="vp-callout vp-callout-note"',
+      ),
+    ),
     check(
       renderToString(callout("tip", body)),
       toContain(
