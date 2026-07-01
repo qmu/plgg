@@ -1,18 +1,18 @@
 {
-  "name": "plgg-press",
+  "name": "plgg-cli",
   "version": "0.0.1",
-  "description": "A reusable VitePress-like static-site generator built from scratch on the plgg family: a typed SiteConfig contract (IA + home data), a single base-path href resolver, and a config-loading CLI.",
-  "type": "module",
-  "bin": {
-    "plgg-press": "bin/plgg-press.mjs"
-  },
-  "main": "dist/index.es.js",
+  "description": "A plgg-style toolkit for building command-line program wrappers: typed commands, options, argv parsing, and a Result-to-exit-code fold",
+  "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
       }
     }
   },
@@ -38,13 +38,7 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg",
-    "plgg-cli": "file:../plgg-cli",
-    "plgg-view": "file:../plgg-view",
-    "plgg-md": "file:../plgg-md",
-    "plgg-highlight": "file:../plgg-highlight",
-    "plgg-server": "file:../plgg-server",
-    "plgg-http": "file:../plgg-http"
+    "plgg": "file:../plgg"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

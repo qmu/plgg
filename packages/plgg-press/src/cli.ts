@@ -1,14 +1,24 @@
 import { resolve } from "node:path";
 import {
   type SoftStr,
-  type Option,
   type Defect,
-  none,
-  fromNullable,
+  type Result,
+  type PromisedResult,
+  ok,
+  err,
   pipe,
   getOr,
   matchResult,
 } from "plgg";
+import {
+  type Program,
+  type Invocation,
+  program,
+  command,
+  option,
+  optionOf,
+  runCli,
+} from "plgg-cli";
 import { type SsgError } from "plgg-server/ssg";
 import {
   type SiteConfig,
@@ -28,67 +38,45 @@ import { build } from "plgg-press/build";
 import { dev } from "plgg-press/dev";
 
 /**
- * The CLI usage banner.
+ * The `site.config.ts` flags every command accepts, as
+ * plgg-cli value-options.
  */
-const USAGE = `plgg-press — static site generator
-
-Usage:
-  plgg-press build [--config <path>] [--contentDir <path>] [--outDir <path>]
-  plgg-press dev   [--config <path>] [--contentDir <path>] [--outDir <path>]
-`;
-
-/**
- * Write a line to stdout.
- */
-const print = (message: SoftStr): void => {
-  process.stdout.write(`${message}\n`);
-};
-
-/**
- * Report an error to stderr and set a non-zero exit
- * code — the single place a Result `Err` becomes a shell
- * failure.
- */
-const fail = (message: SoftStr): void => {
-  process.stderr.write(
-    `plgg-press: ${message}\n`,
-  );
-  process.exitCode = 1;
-};
-
-/**
- * Read the value following a `--<name>` flag, if present.
- */
-const flag = (
-  argv: ReadonlyArray<SoftStr>,
-  name: SoftStr,
-): Option<SoftStr> =>
-  pipe(
-    argv.indexOf(`--${name}`),
-    (i: number): Option<SoftStr> =>
-      i >= 0
-        ? fromNullable(argv[i + 1])
-        : none(),
-  );
+const configOptions = [
+  option(
+    "config",
+    "path",
+    "path to site.config.ts",
+  ),
+  option(
+    "contentDir",
+    "path",
+    "content source directory",
+  ),
+  option(
+    "outDir",
+    "path",
+    "output directory",
+  ),
+];
 
 /**
  * Resolve {@link PressOptions} from cwd defaults, the
- * parsed flags, and the loaded config.
+ * parsed invocation, and the loaded config.
  */
 const optionsFrom = (
-  argv: ReadonlyArray<SoftStr>,
+  invocation: Invocation,
   config: SiteConfig,
   devRun: boolean,
 ): PressOptions => {
   const cwd = process.cwd();
   const contentDir = pipe(
-    flag(argv, "contentDir"),
+    optionOf("contentDir")(invocation),
     getOr(cwd),
   );
   return {
     contentDir,
     outDir: pipe(
-      flag(argv, "outDir"),
+      optionOf("outDir")(invocation),
       getOr(resolve(cwd, "dist")),
     ),
     assetsDir: resolve(contentDir, "public"),
@@ -104,11 +92,13 @@ const optionsFrom = (
  * cwd default.
  */
 const configPathOf = (
-  argv: ReadonlyArray<SoftStr>,
+  invocation: Invocation,
 ): SoftStr =>
   pipe(
-    flag(argv, "config"),
-    getOr(resolve(process.cwd(), "site.config.ts")),
+    optionOf("config")(invocation),
+    getOr(
+      resolve(process.cwd(), "site.config.ts"),
+    ),
   );
 
 /**
@@ -133,29 +123,38 @@ const formatBuildError = (
         : `${e.__tag}: ${e.content.path}`;
 
 /**
- * `build` dispatch: load the config, then run the build,
- * folding both error channels to the shell.
+ * `build` handler: load the config, then run the build,
+ * folding both error channels to a shell outcome — an
+ * `Err` message becomes stderr + a non-zero exit, an `Ok`
+ * message becomes a stdout line.
  */
 const runBuild = (
-  argv: ReadonlyArray<SoftStr>,
-): Promise<void> =>
-  loadConfig(configPathOf(argv)).then(
+  invocation: Invocation,
+): PromisedResult<SoftStr, SoftStr> =>
+  loadConfig(configPathOf(invocation)).then(
     matchResult(
-      (e: ConfigLoadError): Promise<void> =>
-        Promise.resolve(
-          fail(e.content.message),
-        ),
-      (config: SiteConfig): Promise<void> =>
+      (
+        e: ConfigLoadError,
+      ): PromisedResult<SoftStr, SoftStr> =>
+        Promise.resolve(err(e.content.message)),
+      (
+        config: SiteConfig,
+      ): PromisedResult<SoftStr, SoftStr> =>
         build(
-          optionsFrom(argv, config, false),
+          optionsFrom(invocation, config, false),
         ).then(
           matchResult(
             (
-              be: SsgError | Defect | BrokenLinks,
-            ): void =>
-              fail(formatBuildError(be)),
-            (r: BuildReport): void =>
-              print(
+              be:
+                | SsgError
+                | Defect
+                | BrokenLinks,
+            ): Result<SoftStr, SoftStr> =>
+              err(formatBuildError(be)),
+            (
+              r: BuildReport,
+            ): Result<SoftStr, SoftStr> =>
+              ok(
                 `built ${r.pages.length} page(s) to ${r.outDir}`,
               ),
           ),
@@ -164,46 +163,62 @@ const runBuild = (
   );
 
 /**
- * `dev` dispatch: load the config, then start the dev
- * server, folding both error channels to the shell.
+ * `dev` handler: load the config, then start the dev
+ * server, folding both error channels to a shell outcome.
  */
 const runDev = (
-  argv: ReadonlyArray<SoftStr>,
-): Promise<void> =>
-  loadConfig(configPathOf(argv)).then(
+  invocation: Invocation,
+): PromisedResult<SoftStr, SoftStr> =>
+  loadConfig(configPathOf(invocation)).then(
     matchResult(
-      (e: ConfigLoadError): Promise<void> =>
-        Promise.resolve(
-          fail(e.content.message),
-        ),
-      (config: SiteConfig): Promise<void> =>
+      (
+        e: ConfigLoadError,
+      ): PromisedResult<SoftStr, SoftStr> =>
+        Promise.resolve(err(e.content.message)),
+      (
+        config: SiteConfig,
+      ): PromisedResult<SoftStr, SoftStr> =>
         dev(
-          optionsFrom(argv, config, true),
+          optionsFrom(invocation, config, true),
         ).then(
           matchResult(
-            (de: SsgError): void =>
-              fail(formatBuildError(de)),
-            (s: DevServer): void =>
-              print(
-                `dev server at ${s.url}`,
-              ),
+            (
+              de: SsgError,
+            ): Result<SoftStr, SoftStr> =>
+              err(formatBuildError(de)),
+            (
+              s: DevServer,
+            ): Result<SoftStr, SoftStr> =>
+              ok(`dev server at ${s.url}`),
           ),
         ),
     ),
   );
 
 /**
- * Dispatch on the first positional argument:
- * `build` → build, `dev` → dev, anything else → usage.
+ * The plgg-press program: `build` and `dev`, each taking
+ * the shared config flags. Argv parsing, command dispatch,
+ * the usage banner, and the `Result`→exit-code fold are
+ * all owned by plgg-cli's {@link runCli}.
  */
-const main = (): Promise<void> => {
-  const argv = process.argv.slice(2);
-  const command = argv[0];
-  return command === "build"
-    ? runBuild(argv)
-    : command === "dev"
-      ? runDev(argv)
-      : Promise.resolve(print(USAGE));
-};
+const app: Program = program(
+  "plgg-press",
+  "static site generator",
+  [
+    command(
+      "build",
+      "build the site into static files",
+      configOptions,
+    ),
+    command(
+      "dev",
+      "run the dev server",
+      configOptions,
+    ),
+  ],
+);
 
-await main();
+await runCli(app, {
+  build: runBuild,
+  dev: runDev,
+});

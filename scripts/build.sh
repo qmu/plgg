@@ -34,9 +34,12 @@ cd $REPO_ROOT/packages/plgg-highlight && npm run build
 # plgg-server after plgg-view + plgg-http: its View renders plgg-view's Html and
 # its Http layer builds on plgg-http's model.
 cd $REPO_ROOT/packages/plgg-server && npm run build
+# plgg-cli before plgg-press: the CLI-wrapper toolkit (depends only on plgg
+# core), consumed by plgg-press's cli.ts, so its dist must exist first.
+cd $REPO_ROOT/packages/plgg-cli && npm run build
 # plgg-press after plgg-server and plgg-http: the static-site/dev-server tool that
-# depends on plgg-md, plgg-highlight, plgg-view, plgg-server, and plgg-http (all
-# built earlier so it can resolve their dists).
+# depends on plgg-md, plgg-highlight, plgg-view, plgg-server, plgg-http, and
+# plgg-cli (all built earlier so it can resolve their dists).
 cd $REPO_ROOT/packages/plgg-press && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build

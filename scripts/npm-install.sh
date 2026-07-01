@@ -11,6 +11,7 @@ cd $REPO_ROOT/packages/plgg-test && npm install
 cd $REPO_ROOT/packages/plgg-kit && npm install
 cd $REPO_ROOT/packages/plgg-foundry && npm install
 cd $REPO_ROOT/packages/plgg-http && npm install
+cd $REPO_ROOT/packages/plgg-cli && npm install
 cd $REPO_ROOT/packages/plgg-router && npm install
 cd $REPO_ROOT/packages/plgg-view && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
