@@ -24,46 +24,48 @@ import { type SoftStr } from "plgg";
  */
 export const baseCss: SoftStr = `
 :root{
-  --vp-brand:#2e8b57;
-  --vp-brand-2:#236b43;
+  --vp-brand:#111111;
+  --vp-brand-2:#000000;
   --vp-bg:#ffffff;
-  --vp-bg-alt:#f6f7f9;
+  --vp-bg-alt:#f6f6f7;
   --vp-surface:#ffffff;
-  --vp-text:#2c3e50;
-  --vp-text-2:#5c6b7a;
-  --vp-muted:#7b8694;
-  --vp-border:#e4e7ec;
-  --vp-divider:#eceff3;
-  --vp-code-bg:#f6f7f9;
-  --vp-inline:#eef1f4;
-  --vp-shadow:0 1px 2px rgba(0,0,0,0.04),
-    0 4px 12px rgba(0,0,0,0.05);
+  --vp-text:#1f1f22;
+  --vp-text-2:#5b5b61;
+  --vp-muted:#5b5b61;
+  --vp-border:#ededee;
+  --vp-divider:#ededee;
+  --vp-code-bg:#f6f6f7;
+  --vp-inline:#f6f6f7;
+  --vp-hover:#111111;
+  --vp-hover-ink:#ffffff;
+  --vp-shadow:none;
   --vp-nav-h:64px;
   --vp-sidebar-w:272px;
 }
 html.dark{
-  --vp-brand:#3fb27f;
-  --vp-brand-2:#5fc99a;
+  --vp-brand:#f5f5f7;
+  --vp-brand-2:#ffffff;
   --vp-bg:#1b1b1f;
-  --vp-bg-alt:#161618;
+  --vp-bg-alt:#202127;
   --vp-surface:#202127;
-  --vp-text:#dfdfd6;
-  --vp-text-2:#b9b9bd;
-  --vp-muted:#90909a;
+  --vp-text:#e6e6e9;
+  --vp-text-2:#a0a0a8;
+  --vp-muted:#a0a0a8;
   --vp-border:#2e2e34;
   --vp-divider:#2a2a30;
-  --vp-code-bg:#161618;
-  --vp-inline:#2c2c32;
-  --vp-shadow:0 1px 2px rgba(0,0,0,0.3),
-    0 6px 16px rgba(0,0,0,0.4);
+  --vp-code-bg:#202127;
+  --vp-inline:#202127;
+  --vp-hover:#ffffff;
+  --vp-hover-ink:#1b1b1f;
+  --vp-shadow:none;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body.vp{
   margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,
-    "Segoe UI",Roboto,"Helvetica Neue",Arial,
-    sans-serif;
+  font-family:"Inter",-apple-system,
+    BlinkMacSystemFont,"Segoe UI",Roboto,
+    "Helvetica Neue",Arial,sans-serif;
   font-size:16px;line-height:1.65;
   color:var(--vp-text);background:var(--vp-bg);
   -webkit-font-smoothing:antialiased;
@@ -238,18 +240,17 @@ html.dark .vp-theme-toggle .vp-moon{
 }
 .vp-doc{max-width:728px;margin:0 auto}
 .vp-doc h1{
-  font-size:2.05rem;font-weight:700;
+  font-size:1.875rem;font-weight:400;
   line-height:1.25;margin:0 0 1.25rem;
-  letter-spacing:-0.018em;
+  letter-spacing:-0.011em;
 }
 .vp-doc h2{
-  font-size:1.5rem;font-weight:650;
-  margin:2.85rem 0 1.1rem;padding-top:1.6rem;
-  border-top:1px solid var(--vp-divider);
-  letter-spacing:-0.01em;
+  font-size:1.5rem;font-weight:400;
+  margin:2.85rem 0 1.1rem;
+  letter-spacing:-0.006em;
 }
 .vp-doc h3{
-  font-size:1.2rem;font-weight:600;
+  font-size:1.1875rem;font-weight:400;
   margin:2rem 0 0.75rem;
 }
 .vp-doc h4{font-size:1.03rem;margin:1.5rem 0 0.5rem}
@@ -258,7 +259,7 @@ html.dark .vp-theme-toggle .vp-moon{
   padding-left:1.35rem;margin:1rem 0;
 }
 .vp-doc li{margin:0.45rem 0}
-.vp-doc strong{font-weight:650;color:var(--vp-text)}
+.vp-doc strong{font-weight:400;color:var(--vp-text)}
 .vp-doc blockquote{
   margin:1rem 0;padding:0.25rem 1rem;
   border-left:3px solid var(--vp-border);
