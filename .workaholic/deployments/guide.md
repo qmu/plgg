@@ -1,4 +1,4 @@
-# Deployment: plgg guide (VitePress docs site)
+# Deployment: plgg guide (plgg-press docs site)
 
 The official documentation site under `packages/guide/`. Two surfaces:
 
@@ -27,5 +27,9 @@ If a future deploy fails at the `deploy` job, re-check that Pages is still enabl
 ## Verify (post-merge)
 
 1. Confirm the `Deploy Guide` run for the merge commit **succeeded** (`gh run list --workflow=deploy-guide.yml`, then `gh run watch <id>`).
-2. Confirm the canonical site **renders**: `https://qmu.github.io/plgg/` returns HTTP 200 and shows the new content (e.g. the per-package Guide/API sidebar split and the plgg-test page).
+2. Confirm the canonical site **renders**: `https://qmu.github.io/plgg/` returns HTTP 200 and shows the new content (e.g. the Guide / Packages nav and the per-package prose pages — there is no API reference section as of 2026-07-01).
 3. (Optional, dev) If the local preview is wanted, run `scripts/serve-guide.sh` on this host and check `https://plgg-guide.qmu.dev` (cloudflared tunnel → :5181). This surface is only live while that container runs; it is not the CI-published site.
+
+## Confirmations
+
+- **2026-07-01 — PR #50 (`work-20260630-013457`), merge `6cc1a12`.** `Deploy Guide` run 28506802516 succeeded. Verified `https://qmu.github.io/plgg/` → HTTP 200; nav is Guide / Packages / GitHub (API reference removed with typedoc); `/api/` → 404; home hero renders. plgg-press replaced VitePress; monorepo third-party surface now `typescript` + `@types/node` only.
