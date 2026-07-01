@@ -83,11 +83,10 @@ tunnel (and rejects unknown Hosts with a 403).
 ## What you should see
 
 The guide's landing page, with the full nav and sidebar
-information architecture (Guide / Packages / API /
+information architecture (Guide / Packages /
 Contributing) navigable end to end. The dev container runs
-`plgg-press dev` only — it does **not** regenerate the API
-reference (`npm run docs:api`), so the API pages served are
-whatever is already on disk under `packages/guide/api/`.
+`plgg-press dev` and serves the guide's Markdown content
+directly.
 
 ## Coexists with the example demo
 

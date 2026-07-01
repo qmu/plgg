@@ -9,11 +9,6 @@ inward is plgg. The runtime-neutral root imports nothing
 platform-specific, so the same core runs on Node, Bun,
 Deno, Cloudflare Workers, and any Web-standard runtime.
 
-::: tip Full API reference
-For every export with its signature, see the
-**[plgg-server API reference](/api/plgg-server/)**.
-:::
-
 ## The model
 
 | Concern | Type |

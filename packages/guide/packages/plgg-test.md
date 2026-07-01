@@ -13,11 +13,6 @@ is no fluent `expect(x).toBe(y)` chain and no throw-on-
 mismatch — the test API reads exactly like the rest of
 plgg.
 
-::: tip Full API reference
-For every export with its signature, see the
-**[plgg-test API reference](/api/plgg-test/)**.
-:::
-
 ## Writing a test
 
 The common case is one `check` call — `check(actual, ...matchers)`:

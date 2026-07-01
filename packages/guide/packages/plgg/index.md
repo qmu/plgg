@@ -16,9 +16,3 @@ vocabulary is *for*:
 - **[Structures & errors](/packages/plgg/structures-errors)**
   — collections, the errors-as-data model, and the
   advanced type-level/typeclass layers.
-
-::: tip Full API reference
-These pages teach the shape and the concepts. For the
-complete, signature-level vocabulary, see the
-**[plgg API reference](/api/plgg/)**.
-:::

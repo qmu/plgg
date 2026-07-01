@@ -10,11 +10,6 @@ plgg data, failures are values, and native
 `fetch`/`Request`/`Response` appear **only at one seam**.
 Runtime deps: `plgg` and `plgg-http`.
 
-::: tip Full API reference
-For every export with its signature, see the
-**[plgg-fetch API reference](/api/plgg-fetch/)**.
-:::
-
 ## Usage
 
 ```typescript

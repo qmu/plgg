@@ -5,11 +5,6 @@ the **error model** (plgg's flagship decision), and the
 type-level/typeclass layers. This page teaches the model;
 the per-symbol vocabulary lives in the reference.
 
-::: tip Full API reference
-For the complete, signature-level vocabulary of `plgg`,
-see the **[plgg API reference](/api/plgg/)**.
-:::
-
 ## Structures — Collectives & Conjunctives
 
 Two more categories of the core vocabulary:
@@ -41,7 +36,7 @@ const asNamed = (data: unknown) =>
 ```
 
 (Exact types and the full `asVecOf`/`asDictOf`/`forProp`
-surface are in the [API reference](/api/plgg/).)
+surface live in the `plgg` source.)
 
 ## The error model — errors as data
 

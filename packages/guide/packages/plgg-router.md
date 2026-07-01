@@ -7,11 +7,6 @@ into `Segment`s, matches a concrete pathname (capturing
 query string — returning **data, never a view**. No DOM,
 no History API; its only runtime dependency is `plgg`.
 
-::: tip Full API reference
-For every export with its signature, see the
-**[plgg-router API reference](/api/plgg-router/)**.
-:::
-
 ## plgg-router vs plgg-server's `Routing`
 
 - **plgg-server's `Routing`** is *server-side*: it

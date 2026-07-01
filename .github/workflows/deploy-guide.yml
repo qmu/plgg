@@ -74,13 +74,13 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Build the guide (generate API + plgg-press)
+      - name: Build the guide (plgg-press)
         # DOCS_BASE makes links resolve under the project Pages path.
         env:
           DOCS_BASE: /plgg/
         run: |
           npm ci
-          npm run docs:api && npx plgg-press build --config site.config.ts --contentDir . --outDir dist
+          npx plgg-press build --config site.config.ts --contentDir . --outDir dist
         working-directory: packages/guide
 
       - name: Upload Pages artifact
