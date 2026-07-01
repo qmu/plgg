@@ -1,7 +1,0 @@
-- Add spec.ts for `$ARGUMENT`
-- When the comment above is "Add spec.ts for ``", the user did not provide a specific argument, so you ask the user to provide one.
-- User only `test` (not `describe`, `it`, etc.) in the spec.ts file.
-- Use `expect` and `assert` for assertions.
-- No relative imports, use absolute imports.
-- `sh/test-plgg.sh` to check compilation errors and run unit tests, fix errors if any
-- `sh/coverage-plgg.sh` to ensure 100% for both C1 and C2 by least tests.

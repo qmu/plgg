@@ -1,0 +1,121 @@
+---
+created_at: 2026-07-01T01:33:03+09:00
+author: a@qmu.jp
+type: enhancement
+layer: [Domain]
+effort:
+commit_hash:
+category: Changed
+depends_on: [20260701013302-refine-number-to-int-ids-counts.md]
+---
+
+# Bounded resource quantities: `number` → sized unsigned ints (`U16` / `U32`)
+
+## Overview
+
+Beyond "is an integer" lies "is a *bounded, non-negative* integer." Network and
+resource quantities — TCP ports, HTTP status codes, byte caps, millisecond
+durations, token budgets — are non-negative integers with hard ranges, yet the
+monorepo sweep found **~33 sites** across 7 packages typing them as raw `number`.
+The sized unsigned brands already exist (`packages/plgg/src/Basics/U8..U128.ts`);
+`U16` (0–65535) fits ports and HTTP status, `U32` fits byte/ms counts and token
+budgets. Several call sites **already hand-validate the range today** (the dev
+port clamp; `statusOf` silently degrading junk to 500) — a sized type moves that
+guard to the type boundary and removes the silent-degradation behavior.
+
+This is the precision tail of the number axis. It **depends on**
+`[20260701013302-refine-number-to-int-ids-counts.md]` (establish the integral
+brand first), and within this ticket plgg-http's `HttpStatus` work should land
+**before** plgg-server's status sites so the latter reuses the brand instead of
+re-deriving `U16`.
+
+## Scope (this ticket)
+
+In scope: non-negative **bounded** integer quantities refined `number` → `U16`
+or `U32` (or the existing `HttpStatus` brand for status codes):
+
+- Ports (0–65535) → `U16`; HTTP status (100–599) → existing `HttpStatus` /`U16`.
+- Byte caps / Content-Length, millisecond timeouts, animation durations/delays,
+  max-token budgets, operation-count limits, font-weight → `U32` (or tighter
+  where an obvious smaller bound applies).
+
+Out of scope (sweep-excluded): `plgg-http` `HttpStatus.ts:21` Box content
+re-brand to `U16` — that is the package's own nominal-scalar definition (like
+plgg's Atomics), borderline over-engineering, **leave it**; plain integral ids/
+counts (the `Int` ticket); fractional values.
+
+## Key Files
+
+- `packages/plgg-server/src/Serving/usecase/serve.ts:22` — `port: number` → `U16`
+  (also `bun.ts` / `deno.ts` adapters). `maxBodyBytes` and timeout fields in the
+  same serving layer → `U32`. **Densest cluster.**
+- `packages/plgg-http/src/Http/model/HttpStatus.ts:58` — `statusOf(n: number)`
+  currently a **total constructor that silently degrades junk to 500**. Make the
+  status argument on every response-builder accept the `HttpStatus`/`U16` brand so
+  out-of-range/non-integral values are rejected at the boundary instead of
+  coerced. **Do this before the plgg-server status sites** so they reuse it.
+- `packages/plgg-view/src/Html/model/Attribute.ts:31` — `durationMs: number` →
+  `U32` (WAAPI cannot use negative/fractional durations); animation delays too.
+- `packages/plgg-kit/src/LLMs/vendor/Anthropic.ts:30` — `maxTokens?: number` →
+  `U32` (strictly positive token budget).
+- `packages/plgg-press` dev server — `devPort` return / `devUrl` param `number` →
+  `U16` (a bounded port that is already range-checked today).
+- `packages/plgg-foundry` `maxOperationLimit` / `operationCount` `number` → `U32`
+  (non-negative integer counters/limits).
+
+## Implementation Steps
+
+1. **Confirm the `Int` ticket landed** (number-axis foundation).
+2. **plgg-http `HttpStatus` first:** make response-builder status args take the
+   `HttpStatus`/`U16` brand; replace the silent `→ 500` degradation in `statusOf`
+   with a real `Result`/validated construction at the boundary. Land + commit.
+3. **plgg-server:** `port` → `U16`, `maxBodyBytes`/timeouts → `U32` across the
+   node:http / Bun / Deno adapters; **reuse** the `HttpStatus` brand for status,
+   don't re-derive `U16`. Construct from config/CLI at the serving boundary.
+4. **plgg-press dev server, plgg-view durations, plgg-kit maxTokens,
+   plgg-foundry limits:** refine each to `U16`/`U32`, constructing where the value
+   enters (CLI/config/animation spec/request build); fold any existing range
+   clamp into the brand construction.
+5. Per package: `scripts/tsc-plgg.sh` clean, `scripts/test-plgg.sh` green.
+6. Add specs proving the boundary now **rejects** out-of-range/negative/fractional
+   inputs the prior `number` accepted — e.g. port `70000` and `statusOf(999)` /
+   `statusOf(200.5)` no longer silently succeed or degrade to 500.
+
+## Considerations
+
+- **Removing silent degradation is the headline.** `statusOf` coercing junk to
+  500 is exactly the bug class a brand prevents — make the invalid case a
+  `Result` error at construction, not a quiet substitution. Audit callers for any
+  that *relied* on the degrade-to-500 behavior and convert them to handle the
+  `Result`.
+- **Pick the tightest sensible brand.** Ports and status are genuinely `U16`;
+  bytes/ms/tokens are `U32`. Don't reach past available brands — if a value
+  needs >32-bit range use `U64`, but don't manufacture new brands here.
+- **Share `HttpStatus`** across http/server rather than re-introducing `U16` at
+  each site — same value, one brand, sequenced http-before-server for that reason.
+- **No escape hatches:** construct via `asU16`/`asU32`/`asHttpStatus`; never
+  `as`/`any`/`ts-ignore`.
+- Tooling: `scripts/tsc-plgg.sh` / `scripts/test-plgg.sh`; Prettier 50.
+
+## Quality Gate
+
+The `/drive` approval gate requires **all** of:
+
+1. **tsc + tests green:** `scripts/tsc-plgg.sh` clean, `scripts/test-plgg.sh`
+   passing, >90% coverage thresholds intact.
+2. **No new escape hatches:** zero `as`/`any`/`ts-ignore`; all bridges via
+   `asU16`/`asU32`/`asHttpStatus`.
+3. **Boundary actually tightened:** specs show out-of-range/negative/fractional
+   inputs are **rejected** (port `70000`, `statusOf(999)`/`statusOf(200.5)`),
+   and `statusOf` no longer silently degrades junk to 500.
+4. **Loose-type count drops:** in-scope port/status/byte/ms/budget fields are no
+   longer bare `number`; any left loose matches a Scope exclusion.
+
+## Policies
+
+- `workaholic:implementation` / `policies/coding-standards.md` — refine to the
+  tightest numeric brand; no `as`/`any`/`ts-ignore`; Result over silent coercion.
+- `workaholic:implementation` / `policies/type-driven-design.md` — replace runtime
+  range clamps and silent degradation with a type boundary that fails early.
+- `workaholic:operation` / `policies/observability.md` — an out-of-range status/
+  port should surface as an explicit error, not a silent 500/default at runtime.

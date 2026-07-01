@@ -3,11 +3,13 @@ on:
   push:
     branches:
       - main
+permissions:
+  contents: read
+  pull-requests: write
 jobs:
   prepare-release:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
       pull-requests: write
     steps:
@@ -17,7 +19,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.1
-      - run: gem install --no-document faraday-retry git-pr-release
+      - run: gem install --no-document faraday-retry:2.4.0 git-pr-release:2.5.0
       - run: git-pr-release --squashed
         env:
           GIT_PR_RELEASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -9,7 +9,14 @@ lerna-debug.log*
 
 # Build outputs
 **/dist/
+# Transient staging/backup dirs from plgg-bundle's atomic dist publish
+# (normally renamed/removed within a build; only linger if one is killed).
+**/dist.stage/
+**/dist.old/
 **/coverage/
+
+# Git worktrees (created under the repo per the workaholic/trippin convention)
+.worktrees/
 
 # Environment files
 .env
@@ -28,3 +35,7 @@ lerna-debug.log*
 *.sw?
 *.local
 **/.claude/settings.local.json
+
+# Playwright MCP session output (screenshots, snapshots, console logs)
+.playwright-mcp/
+**/.playwright-mcp/

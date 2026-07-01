@@ -1,0 +1,40 @@
+{
+  "name": "@plgg/example",
+  "version": "0.0.2",
+  "private": true,
+  "type": "module",
+  "description": "A To-Do app demo for the plgg monorepo — one Elm-Architecture program (Model/update/view) rendered both server-side (SSR via plgg-server) and client-side (CSR via plgg-view's runtime).",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch",
+    "serve": "node src/serve.ts",
+    "serve:ssr": "node src/server.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-view": "file:../plgg-view",
+    "plgg-router": "file:../plgg-router",
+    "plgg-server": "file:../plgg-server"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

@@ -11,9 +11,9 @@ jobs:
       REPO: ${{ github.repository }}
       ISSUE_NUM: ${{ github.event.issue.number }}
       ISSUE_TITLE: ${{ github.event.issue.title }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
-      id-token: write
       issues: write
       contents: write
       pull-requests: write
@@ -51,7 +51,7 @@ jobs:
       # Terminate if the issue has "idea" or "epic" label
       - name: Check issue type
         run: |
-          if echo "${{ env.LABELS }}" | grep -q "idea\|epic"; then
+          if echo "$LABELS" | grep -q "idea\|epic"; then
             echo "Issue type is either 'idea' or 'epic'. Exiting..."
             exit 1
           else
@@ -103,13 +103,13 @@ jobs:
           )
           git config user.name  "GitHub Actions"
           git config user.email "action@github.com"
-          git checkout -b "${{ env.NEW_BRANCH_NAME }}"
-          git commit --allow-empty -m "Initial commit for the issue #${{ github.event.issue.number }}"
-          git push origin "${{ env.NEW_BRANCH_NAME }}"
+          git checkout -b "$NEW_BRANCH_NAME"
+          git commit --allow-empty -m "Initial commit for the issue #${ISSUE_NUM}"
+          git push origin "$NEW_BRANCH_NAME"
           gh pr create \
-            --head "${{ env.NEW_BRANCH_NAME }}" \
-            --base "${{ github.event.repository.default_branch }}" \
+            --head "$NEW_BRANCH_NAME" \
+            --base "$DEFAULT_BRANCH" \
             --title "$ISSUE_TITLE" \
-            --label "${{ env.LABELS }}" \
-            --assignee "${{ env.ASSIGNEES }}" \
+            --label "$LABELS" \
+            --assignee "$ASSIGNEES" \
             --body "$body"

@@ -1,0 +1,57 @@
+{
+  "name": "plgg-db-migration",
+  "version": "0.0.1",
+  "description": "Minimal, dependency-free schema-migration tool — dbmate-style single-file up/down, a schema_migrations ledger, and on-demand per-tenant SQLite — built from scratch on plgg + plgg-sql",
+  "type": "module",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "bin": {
+    "plgg-db-migration": "bin/plgg-db-migration.mjs"
+  },
+  "scripts": {
+    "build": "plgg-bundle",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test": "tsc --noEmit && plgg-test src",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch",
+    "publish": "npm run build && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-sql": "file:../plgg-sql"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

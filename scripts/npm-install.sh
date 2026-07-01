@@ -1,0 +1,21 @@
+#!/bin/sh -eu
+REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
+
+echo "=== Running 'npm install' in every package ==="
+# plgg-bundle first: it is the build tool every other package builds through,
+# and it imports typescript from its OWN path (a `file:` link does not install
+# the linked package's deps).
+cd $REPO_ROOT/packages/plgg-bundle && npm install
+cd $REPO_ROOT/packages/plgg && npm install
+cd $REPO_ROOT/packages/plgg-test && npm install
+cd $REPO_ROOT/packages/plgg-kit && npm install
+cd $REPO_ROOT/packages/plgg-foundry && npm install
+cd $REPO_ROOT/packages/plgg-http && npm install
+cd $REPO_ROOT/packages/plgg-router && npm install
+cd $REPO_ROOT/packages/plgg-view && npm install
+cd $REPO_ROOT/packages/plgg-server && npm install
+cd $REPO_ROOT/packages/plgg-fetch && npm install
+cd $REPO_ROOT/packages/plgg-sql && npm install
+cd $REPO_ROOT/packages/plgg-db-migration && npm install
+cd $REPO_ROOT/packages/example && npm install
+echo "\n=== All shell scripts have been executed successfully ==="

@@ -1,0 +1,25 @@
+{
+  "name": "@plgg/guide",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "The official user guide for plgg and the plgg family. Content is authored in Markdown; code samples are drawn from the real packages and tested examples.",
+  "scripts": {
+    "dev": "plgg-press dev --config site.config.ts --contentDir .",
+    "build": "plgg-press build --config site.config.ts --contentDir . --outDir dist",
+    "preview": "python3 -m http.server --directory dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg-press": "file:../plgg-press"
+  }
+}

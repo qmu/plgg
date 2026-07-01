@@ -1,1 +1,0 @@
-- `sh/test-plgg.sh` to check compilation errors and run unit tests, fix errors if any
