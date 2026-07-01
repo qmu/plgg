@@ -3,9 +3,9 @@ created_at: 2026-07-01T20:42:06+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: a931c0b
+category: Added
 depends_on:
 ---
 
@@ -113,3 +113,14 @@ Repetition sites to migrate:
 - **`Ordering` as data.** Returning `-1 | 0 | 1` (not `number`) lets callers `match` on the result later; do not widen to `number` for `Array.sort` convenience — `.sort` accepts the narrower type fine.
 - **Two-way vs three-way.** The router site's missing `0` case is a latent instability; migrating it is a behavior fix, acceptable since plgg is its own consumer — note it in the commit `Changes`.
 - Whether to also provide `reverse`/`thenComparing` combinators is deferred; add only if a second-key sort site appears (single-site rule).
+
+## Final Report
+
+Development completed as planned. Added `Ordering`/`Comparable<T>` in `Abstracts/Servables/Comparable.ts` and `compare`/`comparing`/`sortBy` in `Functionals/compare.ts`, wired both barrels. Migrated `compareVersion` to `comparing<Version, string>((v) => v.content)` (return type tightened to `Ordering`) and the router `serializeQuery` sort to `compare(a, b)` — the latter now returns `0` for equal keys, fixing the prior two-way comparator's missing-`0` instability. Used the inline `compare(a, b)` at the router site rather than restructuring the chain into `sortBy` — smaller diff, same `0`-case fix.
+
+Verification: rebuilt plgg dist; `scripts/test-plgg.sh` 474 passed (+6 from `compare.spec.ts` covering the three orderings on string/number/bigint, projection, and `sortBy` non-mutation + equal elements); `scripts/test-plgg-router.sh` 39 passed; `scripts/test-plgg-db-migration.sh` 75 passed. No `as`/`any`/`@ts-ignore` in the touched files.
+
+### Discovered Insights
+
+- **Insight**: `Comparable.ts` is type-only (a `type` + an `interface`), so it contributes no executable lines and needs no colocated spec to satisfy the coverage gate — mirroring the other `Servables` interface files.
+  **Context**: New foundation typeclasses can ship without a spec; only the runtime helpers (`compare`/`comparing`/`sortBy`) need coverage.

@@ -1,4 +1,4 @@
-import { Dict, SoftStr } from "plgg";
+import { Dict, SoftStr, compare } from "plgg";
 
 /**
  * The canonical inverse of {@link parseQuery}: a query {@link Dict} → a
@@ -17,7 +17,7 @@ export const serializeQuery = (
 ): SoftStr => {
   const pairs = Object.entries(query)
     .filter(([, value]) => value !== "")
-    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .sort(([a], [b]) => compare(a, b))
     .map(
       ([key, value]) =>
         `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,

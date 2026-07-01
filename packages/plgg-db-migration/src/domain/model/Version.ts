@@ -2,11 +2,13 @@ import {
   Box,
   SoftStr,
   Result,
+  Ordering,
   ok,
   err,
   box,
   isBoxWithTag,
   isSoftStr,
+  comparing,
 } from "plgg";
 import {
   MigrationError,
@@ -66,9 +68,7 @@ export const versionString = (
 export const compareVersion = (
   a: Version,
   b: Version,
-): number =>
-  a.content < b.content
-    ? -1
-    : a.content > b.content
-      ? 1
-      : 0;
+): Ordering =>
+  comparing<Version, string>(
+    (v) => v.content,
+  )(a, b);
