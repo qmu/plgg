@@ -6,6 +6,7 @@ import {
   box,
   pattern,
   fromNullable,
+  foldThrown,
 } from "plgg";
 import { Sql } from "plgg-sql/Sql/model/Sql";
 
@@ -79,6 +80,7 @@ export const sqlError$ = () => pattern("SqlError")();
  * Lifts an unknown thrown cause into a {@link SqlError}, preserving the chain.
  */
 export const toSqlError = (cause: unknown): SqlError =>
-  cause instanceof Error
-    ? sqlError(cause.message, cause)
-    : sqlError("SQL execution failed");
+  foldThrown<SqlError>(
+    (e) => sqlError(e.message, e),
+    () => sqlError("SQL execution failed"),
+  )(cause);

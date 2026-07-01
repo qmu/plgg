@@ -3,9 +3,9 @@ created_at: 2026-07-01T20:42:07+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 965009e
+category: Added
 depends_on:
 ---
 
@@ -99,3 +99,14 @@ Repo constraints: `.workaholic/constraints/architecture.md`, `.workaholic/constr
 - **Scope of the fork only.** `toError` also branches on `isBox`; keep that inside `onOther` rather than growing `foldThrown` into a three-way — the shared, repeated shape is strictly the `Error`-vs-not fork. Adding a `Box` arm would over-fit one caller (`packages/plgg/src/Exceptionals/PlggError.ts`).
 - **`toCause` as the reduction target.** Consider whether `toSqlError` should route its non-`Error` branch through `toCause` for a consistent snapshot instead of a bare string; a behavior change, acceptable but call it out in the commit `Changes` (`packages/plgg-sql/src/Db/model/Db.ts`).
 - **Cross-package rebuild.** `toSqlError` lives in `plgg-sql`; after editing plgg core, rebuild dependents (strictly-upward dependency direction) before running its tests.
+
+## Final Report
+
+Development completed as planned. Added `packages/plgg/src/Exceptionals/foldThrown.ts` (config-first `(onError, onOther) => (value) => R`, `Error`-narrowing with no escape hatch), wired it through the Exceptionals barrel, and migrated all three `unknown → domain-error` adapters (`toCause`, `toError`, `toSqlError`) to it with byte-identical behavior. `toError`'s inner `isBox → boxToError` branch stayed inside `onOther` as scoped. Colocated `foldThrown.spec.ts` covers Error/string/number/null/undefined/object inputs plus subtype narrowing.
+
+Verification: `scripts/tsc-plgg.sh` clean; `scripts/test-plgg.sh` 468 passed; rebuilt plgg dist and `scripts/test-plgg-sql.sh` 27 passed (confirming the new export resolves downstream). No `as`/`any`/`@ts-ignore` in the touched files.
+
+### Discovered Insights
+
+- **Insight**: A source edit that consumes a **new** plgg export from another package (here plgg-sql using `foldThrown`) requires rebuilding plgg's `dist/` first — downstream packages resolve `plgg` via a `node_modules` symlink to `dist/index.*.js`+`dist/index.d.ts`, not to source.
+  **Context**: `packages/plgg/dist` is gitignored, so the rebuild isn't committed, but skipping it makes the consumer's `tsc` fail with "no exported member" even though plgg's own tsc is green. Any cross-package foundation-addition ticket must `npm run build` in `packages/plgg` before running the consumer's suite.
