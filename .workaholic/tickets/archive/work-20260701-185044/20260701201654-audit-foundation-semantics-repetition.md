@@ -3,9 +3,9 @@ created_at: 2026-07-01T20:16:54+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: b2e25a0
+category: Changed
 depends_on:
 ---
 
@@ -131,3 +131,28 @@ The deliverable is follow-up tickets, not code. The gate below is what `/drive` 
 - **Breaking changes are allowed but must be sequenced.** plgg is its own only consumer, so a combinator can replace an idiom outright — but the follow-up tickets must order the core addition before the call-site migrations via `depends_on`, and rebuild dependents after core edits (dependency direction is strictly upward).
 - **Branded-type boundary.** `refinedBrand` and `Ord`/`compare` sit adjacent to the deferred `Str`/`Int`/`Uint`/`Float` tickets; the survey must interoperate with (not duplicate) them — e.g. a `compare` primitive should compose with those branded scalars once they exist (`todo/a-qmu-jp/20260701013302-*.md` and siblings).
 - **The research ticket produces tickets when driven.** `/drive` on this ticket writes new todo files rather than editing code; the archive step still commits normally, but the commit's substance is tickets + the analysis record, and `Verify:` should assert the empty `packages/` diff.
+
+## Final Report
+
+Development completed as planned. Surveyed the plgg foundation and consumer packages on the combinator/core-semantics axis (branded-type axis deferred to the six existing loose-type-sweep tickets), validated candidates against the ≥2-site + repro + named-category + no-escape-hatch bar, and emitted one drivable follow-up ticket per accepted finding. Zero changes under `packages/`.
+
+### Analysis Record
+
+**Accepted findings → follow-up tickets** (each ≥2 cited sites, a named plgg category, a no-escape-hatch signature sketch, and its own Quality Gate):
+
+- **`defineVariant`** (Contextuals) → `20260701204204-define-variant-combinator-collapse-box-scaffold.md`. Collapses the four-fold Box-variant scaffold (type + `box(tag)` + `pattern(tag)()` + `isBoxWithTag(tag)`). Sites: `plgg-cli/.../CliError.ts` (2 full four-folds incl. guards), `plgg-http/.../HttpError.ts` (8× constructor+matcher, lines 42-118), `plgg-fetch/.../ClientError.ts`, `plgg-kit/.../Provider.ts`, `plgg-router/.../Segment.ts`, `plgg-view/.../Html.ts`, `plgg-sql/.../Db.ts`. Crux: `const TAG` literal inference (TS ^6.0.3 supports it).
+- **`refinedBrand`** (Grammaticals) → `20260701204205-refined-brand-smart-constructor-factory.md`. Collapses the five-part refined-brand idiom. Sites: `Version.ts`, `TenantId.ts` (near-identical modulo tag/qualify/error).
+- **`Ord`/`compare`** (Abstracts/Servables + Functionals) → `20260701204206-ord-compare-total-order-primitive.md`. Replaces hand-rolled `-1/0/1` comparators; also fixes the router site's missing `0` case. Sites: `Version.ts:66` (`compareVersion`), `serializeQuery.ts:20`.
+- **`foldThrown`** (Exceptionals) → `20260701204207-fold-thrown-unknown-error-adapter.md`. Unifies the repeated `value instanceof Error ? … : …` fork in the `unknown → domain-error` adapters. Sites: `Cause.ts:25` (`toCause`), `Db.ts:81` (`toSqlError`), `PlggError.ts:176` (`toError`).
+
+**Rejected / deferred candidates** (recorded so coverage is auditable):
+
+- **`defineUnion` / dedicated fold helper** — rejected. Once `defineVariant` supplies `.pattern`, the existing `match(...)` already collapses the fold at `httpErrorToResponse`/`formatCliError` with no residual ceremony; a separate union-fold helper removes no net boilerplate. Folded into `defineVariant`'s scope instead.
+- **`narrow-or-InvalidError` helper** (the `asText`→`InvalidError` shape in `plgg-fetch/.../decode.ts`) — rejected. Single-site; fails the ≥2-site bar. Revisit if a second site appears.
+- **Branded-type refinement axis** (`SoftStr`→`Str`, `number`→`Int`/`Uint`/`Float`, case-shaped brands, typed `defineSite`) — deferred by scope decision to the six existing `todo/a-qmu-jp/` tickets from the prior loose-type sweep; `refinedBrand` and `Ord`/`compare` are written to compose with them.
+
+### Discovered Insights
+
+- **Insight**: The redundancy in plgg-style code lives at the *type/variant definition* layer, not the *flow* layer. **Context**: The `Option`/`Result` map/chain/match surface and the `cast`/`forProp`/`forOptionProp`/`refine` object-validation path are already idiomatic — manual `isOk`/`isSome` branching is nearly absent (only `transaction.ts`, `dispatch.ts`). Proposing eliminators there would add ceremony; the real gaps are the definition-site scaffolds (`defineVariant`, `refinedBrand`) and two genuinely-missing primitives (`Ord`/`compare`, `foldThrown`).
+- **Insight**: The four repetition families each restate a **tag literal** (or an `instanceof`/comparator shape) N times per site. **Context**: The single-source-the-tag principle is the through-line — `defineVariant` writes the tag once per variant, `refinedBrand` once per brand; both hinge on `const` type parameters (TS ^6.0.3) holding the literal without `as`. If a future `typescript` downgrade drops const type params, all four combinators silently weaken.
+- **Insight**: An existing cross-site inconsistency surfaced — Provider uses `pattern("OpenAI")` un-thunked while every other site uses `xxx$ = () => pattern(tag)()`. **Context**: The `defineVariant` migration is the natural place to normalize the matcher shape repo-wide.
