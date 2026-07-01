@@ -3,9 +3,9 @@ created_at: 2026-07-01T21:18:38+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 4da0ac1
+category: Changed
 depends_on:
 ---
 
@@ -115,3 +115,28 @@ Attempted during `/drive`. **The ladders are deliberate, not accidental.** Evide
 3. **Keep the ladders** — they are correct given the exact-error-channel requirement; close as won't-do.
 
 Left in `todo` pending that decision. The plgg-server (`writeStatic`/`toFetch`) and plgg-sql (`transaction`) sites may or may not share the no-`Defect` intent — assess per-site under whichever option is chosen.
+
+## Final Report (rescope: option 2 — accept `| Defect`, handle at the edge)
+
+The earlier Drive Finding correctly identified that `proc` structurally injects `Defect` and the db-migration channel was deliberately `Defect`-free. The author chose **option 2**: adopt `proc`, let the error channel become `… | Defect`, and handle `Defect` **once at the CLI edge**. Implemented accordingly.
+
+**Converted to `proc`** (genuine async-`Result` fail-fast chains):
+- `plgg-db-migration`: `runThenRecord`, `migrateUp` (main chain), `migrateDown` (main chain), `status`, `listApplied`, and `migrateTenant`'s clean chains (`applyPendingLocked`, `runTenant`).
+- `plgg-server`: `copyAssets` (`listAssetFiles → collectSeq`).
+
+**`Defect` handled once at the edge:** the CLI's `render`/`messageOf` now fold `MigrationError | SqlError | Defect` — every variant carries `content.message`, so an unexpected throw surfaces its message via the exit-code path instead of escaping. The domain usecases carry `… | Defect` through untouched (no per-usecase `mapErr`).
+
+**Kept as legitimate non-`proc` patterns** (documented, not ladders `proc` can express):
+- **Array folds** — `applyPending`/`rollbackEach`/`applyEachLocked`/`collectSeq` (sequential reduce over an array; `proc` is fixed-arity).
+- **Transactions with error-path cleanup** — `plgg-sql` `transaction` and `migrateLocked` (commit-vs-rollback driven by the inner *result*; `proc` can't express "on `Err`, run ROLLBACK, then return the original error").
+- **Response-edge fold** — `toFetch` (folds `Result → native Response`; `proc` there would force an awkward `Defect → 500` contortion for no gain).
+- **fs-boundary Promise chains** — `writeStatic`'s `walk`/`writePage`/`copyOne` (`mkdir().then(writeFile)` etc. are raw `Promise`, lifted via `tryCatch`, not async-`Result` ladders). Note: the audit's "12 `.then`" for `writeStatic` over-counted — most are fs chains, only `copyAssets` was a real ladder.
+
+Verification: plgg-db-migration 75, plgg-server 96, plgg-sql 27 — all green. No `as`/`any`/`@ts-ignore`; the manual `isOk` narrowing is gone from every converted chain (folds retain it by their nature).
+
+### Discovered Insights
+
+- **Insight**: Not every `.then`/`isOk` is a `proc` candidate. Three shapes legitimately resist `proc`: **array folds** (variable arity), **transactions** (error-path cleanup — commit/rollback keyed off the result), and **edge folds** (`Result →` a non-`Result` like `Response`). The audit's raw `.then`/`isOk` counts conflate these with true fail-fast chains.
+  **Context**: `proc`'s value is fixed-arity fail-fast composition; a fold needs `reduce`, a transaction needs its cleanup branch, and an edge needs `matchResult`. Collapsing everything onto `proc` would be wrong.
+- **Insight**: Option 2 keeps the domain code clean — `Defect` rides the channel untouched through every usecase and is folded exactly once at the CLI's `messageOf`, because `MigrationError`/`SqlError`/`Defect` all share `content.message`. No per-usecase `mapErr` boilerplate is needed.
+  **Context**: This is why "handle at the edge" is cheap here — the shared `content.message` shape makes the edge fold a one-line type widening.
