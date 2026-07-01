@@ -3,9 +3,9 @@ created_at: 2026-07-01T20:42:05+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 4368a0d
+category: Added
 depends_on:
 ---
 
@@ -105,3 +105,14 @@ Repetition sites to migrate:
 - **Interop with the deferred branded-type tickets.** `Str`/`Int`/`Uint`/`Float` (tickets 20260701013300-04) are the call sites; `refinedBrand` is infrastructure they can adopt. Keep it general enough (`CONTENT` not fixed to `string`) that a numeric brand can use it, but do not migrate those sites here.
 - **`errorFor` shape.** Version/TenantId build a `MigrationError`; the factory must not assume a specific error type — keep `E` free so each consumer supplies its own (`packages/plgg-db-migration/src/domain/model/MigrationError.ts`).
 - May build on `defineVariant` (ticket 20260701204204) for the box/guard half; optional, not a hard dependency.
+
+## Final Report
+
+Development completed as planned. Added `packages/plgg/src/Grammaticals/RefinedBrand.ts` — `refinedBrand<const TAG, CONTENT, E>(tag, qualify, errorFor)` returning `{ is, as, unwrap }` with the exact three-branch `as` semantics (already-branded → ok, bare-qualifying → ok(box), else err) and no escape hatch. Kept it `Box`-based (`CONTENT` generic, not fixed to string) so numeric brands can adopt it later. Migrated `Version.ts` and `TenantId.ts`, each now one `refinedBrand(...)` call + the type alias + thin `is`/`as`/`unwrap` re-exports; public names and `MigrationError` shape-error wiring unchanged. `compareVersion` untouched (owned by 204206).
+
+Verification: `scripts/test-plgg.sh` 479 passed (+5 from `RefinedBrand.spec.ts` covering the three `as` branches, `is` +/-, and `unwrap`); rebuilt plgg dist; `scripts/test-plgg-db-migration.sh` 75 passed (Version/TenantId specs green as the migration oracle). No `as`/`any`/`@ts-ignore` in the touched files.
+
+### Discovered Insights
+
+- **Insight**: The `as` caster must reuse the `is` guard (not re-inline `isBoxWithTag(tag)(v) && qualify(v.content)`) so TypeScript narrows `v` to `Box<TAG, CONTENT>` on the ok branch — inlining leaves `v` as `Box<TAG, unknown>` and `ok(v)` fails to type against `Result<Box<TAG, CONTENT>, E>`.
+  **Context**: The factory extracts `const is = …` first, then `as` calls `is(v)`; this is why the sketch's object-literal-with-inlined-`is` needed the small refactor to compile without a cast.

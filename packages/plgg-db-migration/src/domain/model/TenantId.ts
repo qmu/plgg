@@ -1,11 +1,6 @@
 import {
   Box,
-  SoftStr,
-  Result,
-  ok,
-  err,
-  box,
-  isBoxWithTag,
+  refinedBrand,
   isSoftStr,
 } from "plgg";
 import {
@@ -20,38 +15,29 @@ import {
  */
 export type TenantId = Box<"TenantId", string>;
 
-/** A value qualifies as a tenant id iff it is a non-empty string. */
-const qualify = (
-  value: unknown,
-): value is string =>
-  isSoftStr(value) && value.length > 0;
+const tenantId = refinedBrand<
+  "TenantId",
+  string,
+  MigrationError
+>(
+  "TenantId",
+  (v): v is string =>
+    isSoftStr(v) && v.length > 0,
+  (v) =>
+    tenantShape(
+      "a tenant id must be a non-empty string",
+      v,
+    ),
+);
 
 /** Type guard for {@link TenantId}. */
-export const isTenantId = (
-  value: unknown,
-): value is TenantId =>
-  isBoxWithTag("TenantId")(value) &&
-  qualify(value.content);
+export const isTenantId = tenantId.is;
 
 /**
  * Validates an unknown value into a {@link TenantId}, or fails with a
  * `TenantShape` {@link MigrationError}.
  */
-export const asTenantId = (
-  value: unknown,
-): Result<TenantId, MigrationError> =>
-  isTenantId(value)
-    ? ok(value)
-    : qualify(value)
-      ? ok(box("TenantId")(value))
-      : err(
-          tenantShape(
-            "a tenant id must be a non-empty string",
-            value,
-          ),
-        );
+export const asTenantId = tenantId.as;
 
 /** The underlying string of a {@link TenantId}. */
-export const tenantIdString = (
-  tenantId: TenantId,
-): SoftStr => tenantId.content;
+export const tenantIdString = tenantId.unwrap;
