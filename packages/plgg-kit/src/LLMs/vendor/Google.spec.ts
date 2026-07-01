@@ -12,12 +12,13 @@ import {
   asReadonlyArray,
   asSoftStr,
   env,
+  box,
 } from "plgg";
 import { reqObjectGemini } from "plgg-kit/LLMs/vendor/Google";
 
 test.skip("Gemini API invocation works", async () => {
   const result = await proc(
-    env("GEMINI_API_KEY"),
+    env(box("Str")("GEMINI_API_KEY")),
     (apiKey) =>
       proc(
         {

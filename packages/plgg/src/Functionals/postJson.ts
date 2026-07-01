@@ -2,6 +2,7 @@ import {
   Dict,
   Result,
   Datum,
+  Str,
   ok,
   err,
 } from "plgg/index";
@@ -11,13 +12,13 @@ export const postJson =
     url,
     headers,
   }: {
-    url: string;
+    url: Str;
     headers: Dict;
   }) =>
   async (
     data: Datum,
   ): Promise<Result<unknown, Error>> => {
-    const res = await fetch(url, {
+    const res = await fetch(url.content, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

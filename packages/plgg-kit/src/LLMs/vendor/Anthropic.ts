@@ -7,6 +7,7 @@ import {
   jsonDecode,
   postJson,
   Datum,
+  box,
 } from "plgg";
 
 // https://platform.claude.com/docs/en/api/messages/create
@@ -44,7 +45,9 @@ export const reqObjectClaude = ({
       },
     },
     post({
-      url: "https://api.anthropic.com/v1/messages",
+      url: box("Str")(
+        "https://api.anthropic.com/v1/messages",
+      ),
       headers: {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",

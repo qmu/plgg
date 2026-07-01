@@ -12,12 +12,13 @@ import {
   asReadonlyArray,
   asSoftStr,
   env,
+  box,
 } from "plgg";
 import { reqObjectGPT } from "plgg-kit/LLMs/vendor/OpenAI";
 
 test.skip("OpenAI API invocation works", async () => {
   const result = await proc(
-    env("OPENAI_API_KEY"),
+    env(box("Str")("OPENAI_API_KEY")),
     (apiKey) =>
       proc(
         {

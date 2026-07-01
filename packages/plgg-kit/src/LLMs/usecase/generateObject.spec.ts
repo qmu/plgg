@@ -13,6 +13,7 @@ import {
   ok,
   Datum,
   Dict,
+  Str,
 } from "plgg";
 import {
   openai,
@@ -49,9 +50,11 @@ const responseFor = (url: string): unknown =>
         };
 
 const fakePost =
-  ({ url }: { url: string; headers: Dict }) =>
+  ({ url }: { url: Str; headers: Dict }) =>
   (_data: Datum) =>
-    Promise.resolve(ok(responseFor(url)));
+    Promise.resolve(
+      ok(responseFor(url.content)),
+    );
 
 const testSchema = {
   type: "object",
