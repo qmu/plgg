@@ -1,8 +1,10 @@
 import {
   SoftStr,
   PromisedResult,
+  Defect,
   ok,
   isOk,
+  proc,
   pipe,
   fromNullable,
   matchOption,
@@ -45,7 +47,7 @@ export type TenantMigrationConfig = Readonly<{
 
 type TenantResult = PromisedResult<
   ReadonlyArray<Version>,
-  MigrationError | SqlError
+  MigrationError | SqlError | Defect
 >;
 
 // In-process keyed mutex: concurrent requests for the same tenant await one run,
@@ -87,16 +89,14 @@ const applyPendingLocked = (
   config: TenantMigrationConfig,
   db: Db,
 ): TenantResult =>
-  listApplied(db).then((appliedRes) =>
-    isOk(appliedRes)
-      ? applyEachLocked(
-          db,
-          planMigrations(
-            config.dir,
-            appliedRes.content,
-          ).pending,
-        )
-      : appliedRes,
+  proc(
+    listApplied(db),
+    (applied) =>
+      applyEachLocked(
+        db,
+        planMigrations(config.dir, applied)
+          .pending,
+      ),
   );
 
 /**
@@ -142,16 +142,11 @@ const runTenant = (
   config: TenantMigrationConfig,
   tenantId: TenantId,
 ): TenantResult =>
-  config
-    .resolveTenantDb(tenantId)
-    .then((resolved) =>
-      isOk(resolved)
-        ? migrateLocked(
-            config,
-            resolved.content.db,
-          )
-        : resolved,
-    );
+  proc(
+    config.resolveTenantDb(tenantId),
+    (resolved) =>
+      migrateLocked(config, resolved.db),
+  );
 
 /** Start a run for a tenant, registering + clearing the keyed-mutex entry. */
 const start = (
