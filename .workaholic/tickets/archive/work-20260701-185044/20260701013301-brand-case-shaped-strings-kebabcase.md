@@ -3,8 +3,8 @@ created_at: 2026-07-01T01:33:01+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
+effort: 0.1h
+commit_hash: 211991a
 category: Changed
 depends_on: [20260701013300-refine-softstr-to-str-domain-strings.md]
 ---
@@ -111,3 +111,11 @@ The `/drive` approval gate requires **all** of:
   opcode brand with its dispatch table so mismatches fail at compile time.
 - `workaholic:implementation` / `policies/directory-structure.md` — changes stay
   in existing `model/` + `usecase/` role files.
+
+## Final Report (superseded under principle (a))
+
+Depended on 013300 (the `SoftStr → Str` sweep), which was **resolved as superseded under principle (a)** — author-facing strings stay plain, genuine boundaries already validate. This ticket's targets are the case-shaped subset (CSS classes, opcodes, `tok-*` output, style props), which are **developer-typed literals or already-structured dispatch keys** — exactly the author-facing values principle (a) keeps plain.
+
+Branding a CSS class literal (`"flex"`, `"kebab-case"`) or an opcode to `KebabCase` forces a no-op constructor at every developer-written site (the literal is self-evidently well-formed) — the same friction the reverted 013300 seed demonstrated. Where a case-shaped string genuinely crosses an untrusted boundary, the existing caster is the right place to validate; a blanket re-brand is not warranted.
+
+Superseded — no branding applied. `KebabCase`/`asKebabCase` remains available for a true untrusted boundary should one arise.
