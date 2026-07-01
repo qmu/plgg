@@ -37,6 +37,10 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-cli before plgg-press: the CLI-wrapper toolkit (depends only on plgg
 # core), consumed by plgg-press's cli.ts, so its dist must exist first.
 cd $REPO_ROOT/packages/plgg-cli && npm run build
+# plggmatic after the plgg libs it composes (plgg, plgg-http, plgg-server,
+# plgg-cli) and before plgg-press: the composable full-stack framework whose
+# generalized seam plgg-press consumes.
+cd $REPO_ROOT/packages/plggmatic && npm run build
 # plgg-press after plgg-server and plgg-http: the static-site/dev-server tool that
 # depends on plgg-md, plgg-highlight, plgg-view, plgg-server, plgg-http, and
 # plgg-cli (all built earlier so it can resolve their dists).

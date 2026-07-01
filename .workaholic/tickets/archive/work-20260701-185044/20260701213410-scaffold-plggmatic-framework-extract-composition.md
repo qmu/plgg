@@ -3,9 +3,9 @@ created_at: 2026-07-01T21:34:10+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 1f35945
+category: Added
 depends_on: [20260701013300-refine-softstr-to-str-domain-strings.md, 20260701013301-brand-case-shaped-strings-kebabcase.md, 20260701013302-refine-number-to-int-ids-counts.md, 20260701013303-refine-number-to-sized-uint-resource-quantities.md, 20260701013304-refine-opacity-number-to-float.md, 20260701195048-defineSite-typed-author-facing-input.md, 20260701204204-define-variant-combinator-collapse-box-scaffold.md, 20260701204205-refined-brand-smart-constructor-factory.md, 20260701204206-ord-compare-total-order-primitive.md, 20260701204207-fold-thrown-unknown-error-adapter.md, 20260701211838-collapse-async-result-ladders-onto-proc.md, 20260701211839-plgg-press-tokens-typography-match-qmu.md, 20260701211840-plgg-press-sidebar-first-layout-match-qmu.md]
 ---
 
@@ -113,3 +113,36 @@ Scaffolding template (mirror the smallest clean package):
 - **Coverage placement.** `index.ts`/`cli.ts` are coverage-excluded; ensure build/dev/router/config logic lives in coverable `usecase` modules (`packages/plgg-press/plgg-test.config.json` shows the exclusion convention).
 - **Deferred surface is real.** SSR/dynamic routes + `plgg-sql` data wiring are explicitly out; when added, they extend `plggmatic` without breaking the SSG surface — note the extension seam but don't build it.
 - Tickets B (reimplement plgg-press on `plggmatic`) and C (rename → `plggpress`) depend on this; the two qmu.co.jp theming tickets land first (carry-over), so B ports the finished theme forward verbatim.
+
+## Final Report (plggmatic scaffolded + generic seam extracted; plgg-press untouched + green)
+
+### Framework⇄app boundary (design note, agreed before extraction)
+
+**plggmatic owns (framework-generic):** config import+validate+typed-error machinery; the router-assembly fold; the static-build orchestration; the dev-server loop (host allowlist, fs.watch → debounced rebuild, SSE live-reload); the app-options shape; the pre-organized CLI wiring (`build`/`dev` + `Result`→exit).
+
+**The app supplies (specifics):** its config type + boundary caster; the single `Handler` that turns a request path into a rendered response (content-source → renderer → layout); the already-rendered 404 body; any link-check policy; and the `base`/`allowedHosts` it reads from its own config. The line is exactly *"press supplies schema + theme + content specifics; plggmatic supplies wiring."*
+
+### Package (`packages/plggmatic`, `"type": "module"`, ESM-only bundle)
+
+Scaffolded from the plgg-cli template: `package.json` (deps `plgg`, `plgg-http`, `plgg-server`, `plgg-cli` — deliberately **no** plgg-view/md/highlight, since the framework never renders), `tsconfig.json` (`plggmatic/*` alias, ESNext + Bundler, full strict set), `bundle.config.ts` (alias prefix `plggmatic`), `plgg-test.config.json` (threshold 90, excludes `index.ts`/`runApp.ts`/fixtures), `.prettierrc.json`, `src/index.ts` barrel.
+
+Extracted, generalized modules:
+- **`Config/usecase/loadConfig`** — `loadConfig<T>(path, cast)`: dynamic-import + default-pick + caller-supplied caster → `T` | `ConfigLoadError`.
+- **`Routing/usecase/buildRouter`** — `buildRouter(paths, handler): Web`: one GET route per path, all bound to the app handler.
+- **`Build/usecase/build`** — `build(opts, spec)`: discover → optional `linkCheck` (an injected `Option` hook) → `generateStatic(spec.router)` → `copyAssets` → `write404(spec.notFoundHtml)`, one `proc`; error `SsgError | Defect | E`.
+- **`Dev/usecase/dev`** — the whole dev loop generalized over an injected `router` factory (reload path `/__plggmatic_reload`).
+- **`App/model/AppOptions`** (`AppOptions`/`BuildReport`/`DevServer`) + **`App/model/AppError`** (`ConfigLoadError`, generalized off press).
+- **`Cli/usecase/resolveOptions`** (`configPathOf`/`resolveOptions`, coverable) + **`Cli/usecase/runApp`** (`runApp(AppDefinition)` — the thin, coverage-excluded CLI wiring an app's `cli.ts` reduces to `await runApp(def)`).
+
+### Registration
+`scripts/build.sh` (plggmatic builds after plgg-cli, before plgg-press), `scripts/check-all.sh` (test step added), new `scripts/test-plggmatic.sh` + `scripts/coverage-plggmatic.sh`. CI note: `run-tests.yml` runs only plgg-core + the gates; `check-all.sh` is the canonical multi-package gate (where plgg-press lives too), so plggmatic joins it there — no per-package `run-tests.yml` entry exists to add.
+
+### Verification
+- `packages/plggmatic` tsc clean, **25 passed**; coverage **97.19% st / 92.86% br / 92.19% fn / 97.19% ln** (all >90%).
+- `plgg-bundle` builds `dist/index.es.js` + `.d.ts` cleanly.
+- `git grep -nE "plgg-press|plggpress|/example|/guide" packages/plggmatic/src` → **empty** (upward-only deps, no cycle).
+- `git grep -nE "as any|@ts-ignore| as [A-Z]" packages/plggmatic/src` → **empty**.
+- **plgg-press untouched** (no `git status` changes under it) — additive ticket; the rewire is ticket B (213411).
+
+### Deferred (noted, not built)
+SSR/dynamic routes and `plgg-sql` data wiring stay out (PoC-first) — they extend plggmatic later without breaking the SSG surface. plggmatic ships **no bin** (its consumer app carries the launcher/hook); a bin can be added if a future app wants `plggmatic`-the-CLI directly.
