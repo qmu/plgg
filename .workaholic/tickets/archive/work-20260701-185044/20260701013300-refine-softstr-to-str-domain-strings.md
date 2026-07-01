@@ -3,8 +3,8 @@ created_at: 2026-07-01T01:33:00+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
+effort: 0.5h
+commit_hash: ae6eb00
 category: Changed
 depends_on:
 ---
@@ -186,3 +186,18 @@ The `/drive` approval gate for **each package milestone** requires **all** of:
 - `workaholic:implementation` / `policies/directory-structure.md` — refinement
   lands in each package's existing `model/` + `usecase/` role files; no new
   structure.
+
+## Final Report (resolved under principle (a): brand boundaries, not author-facing inputs)
+
+The author's decision — *利用者が書く引数をブランド化 shouldn't be too strict* — supersedes this ticket's original premise (branding ~115 domain string fields to `Str`).
+
+**Empirical evidence (why (a) is right here):** the plgg seed was attempted first — `postJson.url` and `env` key → `Str` — and it immediately rippled `box("Str")("literal")` into ~10 files: every developer-typed literal (`env("OPENAI_API_KEY")`, endpoint URLs) got a **no-op box** that validates nothing (a compile-time literal is self-evidently non-empty), only adding friction. That seed was **reverted** (`9920ef2`).
+
+**Applying (a) to the ticket's key files:**
+- `plgg-fetch` request `url`, LLM endpoint URLs, `env` keys — **developer-written literals** → stay `SoftStr`/`string`.
+- `plgg-press` `SiteConfig` fields — **author config**; the author already writes plain strings via `SiteConfigInput` (ticket 195048), and the values are validated at the `asSiteConfig` caster. Branding the internal `SiteConfig` type to `Str` would ripple `.content` across the whole theme for a non-emptiness guarantee the caster already provides.
+- `HttpRequest.path`, router segments, parsed md URLs — **already validated** at their decode casters (`asSoftStr`/`cast`) and non-empty by construction; a `Str` re-brand is a wide `.content` ripple for marginal gain.
+
+**Conclusion:** under (a), no new `Str` branding is warranted — author-facing strings stay plain, and the genuine untrusted-string boundaries already validate through existing casters. The `Str`/`asStr` primitive remains the right tool *when a new untrusted non-empty string enters the system*; this ticket's blanket domain-wide sweep is superseded. Same reasoning applies to the dependent case-shaped ticket (013301).
+
+Verification: seed revert green (plgg 483, plgg-kit 12). No code branded; `env`/`postJson` remain plain `string`.
