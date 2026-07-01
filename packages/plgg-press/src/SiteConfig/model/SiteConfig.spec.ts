@@ -10,6 +10,8 @@ import {
 import { isSome } from "plgg";
 import {
   type SiteConfig,
+  type SiteConfigInput,
+  asSiteConfig,
   defineSite,
 } from "plgg-press/SiteConfig/model/SiteConfig";
 
@@ -88,14 +90,35 @@ test("defineSite accepts a valid config with home data + allowedHosts", () =>
 test("defineSite rejects a malformed config with an InvalidError", () =>
   all([
     check(
-      defineSite({ title: 123 }),
+      asSiteConfig({ title: 123 }),
       shouldBeErr(),
     ),
     check(
-      defineSite({ title: 123 }),
+      asSiteConfig({ title: 123 }),
       errThen((e) =>
         toBe("InvalidError")(e.__tag),
       ),
     ),
-    check(defineSite(null), shouldBeErr()),
+    check(asSiteConfig(null), shouldBeErr()),
   ]));
+
+test("defineSite accepts a typed input, home absent → none", () => {
+  const input: SiteConfigInput = {
+    title: "t",
+    description: "d",
+    base: "/",
+    nav: [],
+    sidebar: [],
+    social: [],
+    dev: { allowedHosts: [] },
+  };
+  return check(
+    defineSite(input),
+    okThen((c: SiteConfig) =>
+      all([
+        toBe("t")(c.title),
+        toBe(false)(isSome(c.home)),
+      ]),
+    ),
+  );
+});

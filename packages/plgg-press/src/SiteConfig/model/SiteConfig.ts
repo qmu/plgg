@@ -232,14 +232,77 @@ export const asDevConfig = (
   );
 
 /**
+ * The author-facing shape of a `site.config.ts`: plain
+ * `string` (not branded), `ReadonlyArray`, and a genuine
+ * optional `?:` wherever the domain {@link SiteConfig}
+ * uses `Option` (`home`, a sidebar item's `link`). This
+ * is what the editor type-checks a config against, giving
+ * autocomplete and misspelled/wrong-typed-key errors at
+ * *authoring* time — the ergonomics of Vite's
+ * `defineConfig` without giving up runtime validation.
+ */
+export type NavItemInput = Readonly<{
+  text: string;
+  link: string;
+}>;
+
+export type SocialLinkInput = Readonly<{
+  icon: string;
+  link: string;
+}>;
+
+export type HomeActionInput = Readonly<{
+  text: string;
+  link: string;
+}>;
+
+export type HomeFeatureInput = Readonly<{
+  title: string;
+  details: string;
+}>;
+
+export type SidebarItemInput = Readonly<{
+  text: string;
+  link?: string;
+  items: ReadonlyArray<SidebarItemInput>;
+}>;
+
+export type SidebarGroupInput = Readonly<{
+  text: string;
+  items: ReadonlyArray<SidebarItemInput>;
+}>;
+
+export type HomeConfigInput = Readonly<{
+  title: string;
+  tagline: string;
+  actions: ReadonlyArray<HomeActionInput>;
+  features: ReadonlyArray<HomeFeatureInput>;
+}>;
+
+export type DevConfigInput = Readonly<{
+  allowedHosts: ReadonlyArray<string>;
+}>;
+
+export type SiteConfigInput = Readonly<{
+  title: string;
+  description: string;
+  base: string;
+  nav: ReadonlyArray<NavItemInput>;
+  sidebar: ReadonlyArray<SidebarGroupInput>;
+  social: ReadonlyArray<SocialLinkInput>;
+  home?: HomeConfigInput;
+  dev: DevConfigInput;
+}>;
+
+/**
  * The public, no-`as` boundary caster: validate an
  * `unknown` value (a loaded config module's default
  * export) into a fully-typed {@link SiteConfig}, or a
  * {@link InvalidError} naming the offending field. This
  * is the one place untrusted config data crosses into
- * the typed core.
+ * the typed core (used by the loader).
  */
-export const defineSite = (
+export const asSiteConfig = (
   value: unknown,
 ): Result<SiteConfig, InvalidError> =>
   cast(
@@ -263,3 +326,16 @@ export const defineSite = (
     forOptionProp("home", asHomeConfig),
     forProp("dev", asDevConfig),
   );
+
+/**
+ * The typed authoring façade over {@link asSiteConfig}:
+ * takes a statically-checked {@link SiteConfigInput} so a
+ * `site.config.ts` is sound in the editor before the CLI
+ * runs, and still returns a validated `Result` (a
+ * `SiteConfigInput` is assignable to `unknown`, so the
+ * delegation needs no `as`).
+ */
+export const defineSite = (
+  input: SiteConfigInput,
+): Result<SiteConfig, InvalidError> =>
+  asSiteConfig(input);

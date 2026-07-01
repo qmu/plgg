@@ -3,8 +3,8 @@ created_at: 2026-07-01T19:50:48+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Config]
-effort:
-commit_hash:
+effort: 1h
+commit_hash: 747daca
 category: Changed
 depends_on:
 ---
@@ -241,3 +241,14 @@ The `/drive` approval gate is met only when **all** hold:
 with `home` present *and* absent (→ `some`/`none`); a sidebar item with and
 without `link` (→ `some`/`none`); and the loader path on a malformed `unknown`
 (number `title`, `null`) → `Err`.
+
+## Final Report
+
+Split `defineSite` into a typed authoring façade + an `unknown` boundary caster. Added `SiteConfigInput` (and the nested `NavItemInput`/`SocialLinkInput`/`HomeActionInput`/`HomeFeatureInput`/`SidebarItemInput`/`SidebarGroupInput`/`HomeConfigInput`/`DevConfigInput`) — author-ergonomic shapes: plain `string`, `ReadonlyArray`, and genuine optional `?:` where the domain uses `Option` (`home?`, sidebar `link?`), respecting `exactOptionalPropertyTypes`. Renamed the old `defineSite` body to `asSiteConfig(value: unknown): Result<SiteConfig, InvalidError>` (unchanged validation) and made `defineSite(input: SiteConfigInput): Result<SiteConfig, InvalidError> = asSiteConfig(input)` — delegation needs no `as` since `SiteConfigInput` is assignable to `unknown`. Pointed `loadConfig` at `asSiteConfig`, exported the new surface from the barrel, and rewrote `guide/site.config.ts` to author against `SidebarItemInput` (deleting the hand-rolled local `Node` type; `leaf`/`guideNode` now return `SidebarItemInput`).
+
+Verification: `scripts/test-plgg-press.sh` 84 passed — malformed/`unknown` cases (`{ title: 123 }`, `null`) re-homed onto `asSiteConfig` and still reject with `InvalidError`; new typed-`defineSite` happy-path proves the author shape compiles and validates with `home` absent → `none`. `guide` `tsc --noEmit` clean — `defineSite(config)` now type-checks the authored config with no `as`. Loader boundary intact; no new deps; no escape hatches.
+
+### Discovered Insights
+
+- **Insight**: A typed façade delegating to an `unknown` caster (`defineSite(input: SiteConfigInput) => asSiteConfig(input)`) is the clean no-`as` way to give authors editor help while keeping one runtime-validation source of truth — the typed param is assignable to `unknown`, so no cast bridges the two.
+  **Context**: This is the reusable pattern for any plgg boundary that has both an author path (statically-typed) and a loader path (genuinely `unknown`): keep `asX` as the validator, add a typed façade over it, never widen the façade to `Input | unknown`.

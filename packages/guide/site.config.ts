@@ -7,7 +7,10 @@
 // `SiteConfig` TYPE and the `defineSite` validator; this
 // file supplies only the guide's values (ported verbatim
 // from the former `.vitepress/config.ts` and `index.md`).
-import { defineSite } from "plgg-press";
+import {
+  defineSite,
+  type SidebarItemInput,
+} from "plgg-press";
 
 // GitHub Pages serves a project site under `/<repo>/`; the
 // deploy workflow sets DOCS_BASE so links resolve there,
@@ -17,18 +20,16 @@ const base = process.env.DOCS_BASE ?? "/";
 
 // A sidebar node as authored here: every node carries an
 // explicit `items` array (the leaf case is `[]`) so it
-// validates against plgg-press's `SidebarItem`, whose
+// validates against plgg-press's `SidebarItemInput`, whose
 // `items` is required and whose `link` is optional.
-type Node = {
-  text: string;
-  link?: string;
-  items: ReadonlyArray<Node>;
-};
-
 const leaf = (
   text: string,
   link: string,
-): Node => ({ text, link, items: [] });
+): SidebarItemInput => ({
+  text,
+  link,
+  items: [],
+});
 
 // One top-level sidebar group per package. The group header
 // links to nothing itself; its child is the package's prose
@@ -39,7 +40,7 @@ type PackageGroup = {
   key: string;
   text: string;
   overview: string;
-  docs?: ReadonlyArray<Node>;
+  docs?: ReadonlyArray<SidebarItemInput>;
 };
 
 const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
@@ -115,7 +116,9 @@ const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
 // the package's prose. With extra prose pages (only plgg
 // core today) it nests them beneath the Overview; otherwise
 // it is a plain link to the single prose page.
-const guideNode = (group: PackageGroup): Node => {
+const guideNode = (
+  group: PackageGroup,
+): SidebarItemInput => {
   const docs = group.docs ?? [];
   return {
     text: "Guide",
@@ -130,7 +133,7 @@ const packageGroup = (
   group: PackageGroup,
 ): {
   text: string;
-  items: ReadonlyArray<Node>;
+  items: ReadonlyArray<SidebarItemInput>;
 } => ({
   text: group.text,
   items: [guideNode(group)],

@@ -11,6 +11,15 @@ export {
   type HomeConfig,
   type DevConfig,
   type SiteConfig,
+  type NavItemInput,
+  type SocialLinkInput,
+  type HomeActionInput,
+  type HomeFeatureInput,
+  type SidebarItemInput,
+  type SidebarGroupInput,
+  type HomeConfigInput,
+  type DevConfigInput,
+  type SiteConfigInput,
   asNavItem,
   asSidebarItem,
   asSidebarGroup,
@@ -19,6 +28,7 @@ export {
   asHomeFeature,
   asHomeConfig,
   asDevConfig,
+  asSiteConfig,
   defineSite,
 } from "plgg-press/SiteConfig/model/SiteConfig";
 

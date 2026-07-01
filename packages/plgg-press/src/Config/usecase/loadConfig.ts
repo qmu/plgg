@@ -12,7 +12,7 @@ import {
 } from "plgg";
 import {
   type SiteConfig,
-  defineSite,
+  asSiteConfig,
 } from "plgg-press/SiteConfig/model/SiteConfig";
 import {
   type ConfigLoadError,
@@ -41,7 +41,7 @@ const validate = (
   value: unknown,
 ): Result<SiteConfig, ConfigLoadError> =>
   pipe(
-    defineSite(value),
+    asSiteConfig(value),
     matchResult(
       (
         e: InvalidError,
