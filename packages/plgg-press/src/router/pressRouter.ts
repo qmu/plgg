@@ -29,13 +29,12 @@ import {
   type Context,
   type HttpResponse,
   type HttpError,
-  web,
-  get,
   splitPath,
   htmlResponse,
   internalError,
   notFound,
 } from "plgg-server";
+import { buildRouter } from "plggmatic";
 import {
   type SiteConfig,
   type HomeConfig,
@@ -82,9 +81,12 @@ const readOne = (
   file: SoftStr,
 ): PromisedResult<SoftStr, HttpError> =>
   readFile(file, "utf8").then(
-    (source: SoftStr): Result<SoftStr, HttpError> =>
-      ok(source),
-    (error: unknown): Result<SoftStr, HttpError> =>
+    (
+      source: SoftStr,
+    ): Result<SoftStr, HttpError> => ok(source),
+    (
+      error: unknown,
+    ): Result<SoftStr, HttpError> =>
       err(internalError(String(error))),
   );
 
@@ -236,12 +238,13 @@ const pageHandler =
     );
 
 /**
- * The internal content router: ONE GET route per
+ * The internal content router: `plggmatic`'s
+ * {@link buildRouter} assembly — ONE GET route per
  * `discoverPaths` result, every route bound to the shared
- * {@link pageHandler}. Built data-last over the discovered
- * paths through `web()`/`get()`, so feeding the same
- * `paths` to `generateStatic` renders exactly the routes
- * registered here — the crawl can never 404. Pure data; no
+ * {@link pageHandler} (the press content→render→layout
+ * specifics). Feeding the same `paths` to
+ * `generateStatic` renders exactly the routes registered
+ * here — the crawl can never 404. Pure data; no
  * filesystem touch until a handler runs (acceptable
  * `node:fs` in the build tool, never in the pure Ssg
  * core).
@@ -252,11 +255,7 @@ export const pressRouter = (
   base: SoftStr,
   paths: ReadonlyArray<SoftStr>,
 ): Web =>
-  paths.reduce(
-    (app: Web, path: SoftStr): Web =>
-      get(
-        path,
-        pageHandler(contentDir, config, base),
-      )(app),
-    web(),
+  buildRouter(
+    paths,
+    pageHandler(contentDir, config, base),
   );

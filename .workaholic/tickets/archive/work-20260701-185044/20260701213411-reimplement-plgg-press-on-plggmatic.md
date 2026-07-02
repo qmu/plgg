@@ -3,9 +3,9 @@ created_at: 2026-07-01T21:34:11+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: ad7b769
+category: Changed
 depends_on: [20260701213410-scaffold-plggmatic-framework-extract-composition.md, 20260702032000-resume-plggmatic-rewire-blocked-on-bundle-dynamic-import.md, 20260702041501-replace-plgg-press-dev-with-plgg-bundle.md]
 ---
 

@@ -37,17 +37,14 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-cli before plgg-press: the CLI-wrapper toolkit (depends only on plgg
 # core), consumed by plgg-press's cli.ts, so its dist must exist first.
 cd $REPO_ROOT/packages/plgg-cli && npm run build
-# NOTE: plggmatic is deliberately NOT built here yet. Nothing consumes its dist
-# until the plgg-press-on-plggmatic rewire lands (ticket 213411, currently
-# blocked — see the resume ticket). Building it here would require its
-# node_modules wherever build.sh runs (the guide dev container's entrypoint does
-# not provision it), so it is left out of the ordered dist builder until a
-# consumer needs it. Re-add it (after plgg-cli, before plgg-press) AND provision
-# it in workloads/guide (entrypoint install list + compose volumes) when 213411
-# lands. plggmatic's own suite still runs via scripts/test-plggmatic.sh.
-# plgg-press after plgg-server and plgg-http: the static-site/dev-server tool that
-# depends on plgg-md, plgg-highlight, plgg-view, plgg-server, plgg-http, and
-# plgg-cli (all built earlier so it can resolve their dists).
+# plggmatic after plgg-cli + plgg-server: the framework facade (config load,
+# router builder, static-build orchestration, pre-organized CLI) whose dist
+# plgg-press consumes; the guide dev container provisions its node_modules
+# (entrypoint install list + compose volumes).
+cd $REPO_ROOT/packages/plggmatic && npm run build
+# plgg-press after plggmatic: the static-site tool is a thin plggmatic consumer
+# and still imports plgg-md, plgg-highlight, plgg-view, plgg-server, and
+# plgg-http directly (all built earlier so it can resolve their dists).
 cd $REPO_ROOT/packages/plgg-press && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build

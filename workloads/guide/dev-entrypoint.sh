@@ -4,10 +4,11 @@
 # bind-mounts the host repo over /app, and that ordering is
 # the whole point of this file: anything built into the
 # image at build time is HIDDEN the moment the mount goes
-# live, so the seven sibling dists plgg-press imports
+# live, so the sibling dists plgg-press imports
 # (plgg, plgg-view, plgg-server, plgg-http, plgg-md,
-# plgg-highlight, plgg-press) have to be (re)built HERE, on
-# the mounted tree, where Node will actually resolve them.
+# plgg-highlight, plggmatic, plgg-press) have to be
+# (re)built HERE, on the mounted tree, where Node will
+# actually resolve them.
 #
 # Two install facts this script encodes:
 #
@@ -37,6 +38,7 @@ for pkg in \
   plgg-md \
   plgg-highlight \
   plgg-server \
+  plggmatic \
   plgg-press \
   guide
 do

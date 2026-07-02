@@ -39,7 +39,7 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
-    "plgg-cli": "file:../plgg-cli",
+    "plggmatic": "file:../plggmatic",
     "plgg-view": "file:../plgg-view",
     "plgg-md": "file:../plgg-md",
     "plgg-highlight": "file:../plgg-highlight",

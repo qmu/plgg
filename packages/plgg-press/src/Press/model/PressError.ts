@@ -1,12 +1,21 @@
 import {
   type Box,
   type SoftStr,
-  type Option,
-  type InvalidError,
   box,
   pattern,
-  fromNullable,
 } from "plgg";
+
+/**
+ * The config-load failure is `plggmatic`'s — plgg-press
+ * re-exports the framework's typed error so its public
+ * surface (and every existing consumer import) is
+ * unchanged by the rewire onto the framework.
+ */
+export {
+  type ConfigLoadError,
+  configLoadError,
+  configLoadError$,
+} from "plggmatic";
 
 /**
  * A pipeline stage whose body is not yet implemented —
@@ -33,42 +42,3 @@ export const notImplementedError = (
  */
 export const notImplementedError$ = () =>
   pattern("NotImplementedError")();
-
-/**
- * A failure while loading the consumer's `site.config`:
- * the file was missing, threw on import, or its default
- * export did not validate as a {@link SiteConfig}.
- * `cause` carries the underlying {@link InvalidError}
- * when the failure was a validation miss. Result-style,
- * so config loading never throws.
- */
-export type ConfigLoadError = Box<
-  "ConfigLoadError",
-  {
-    message: SoftStr;
-    cause: Option<InvalidError>;
-  }
->;
-
-/**
- * Constructs a {@link ConfigLoadError}. `cause` is the
- * validation error when present.
- */
-export const configLoadError = ({
-  message,
-  cause,
-}: {
-  message: SoftStr;
-  cause?: InvalidError;
-}): ConfigLoadError =>
-  box("ConfigLoadError")({
-    message,
-    cause: fromNullable(cause),
-  });
-
-/**
- * Pattern matcher for folding a {@link ConfigLoadError}
- * with `match` by tag.
- */
-export const configLoadError$ = () =>
-  pattern("ConfigLoadError")();
