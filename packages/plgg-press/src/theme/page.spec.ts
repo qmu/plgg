@@ -157,29 +157,28 @@ test("base-prefixes both nav and sidebar links", () =>
     ),
   ]));
 
-test("home page renders the hero content with NO sidebar", () =>
+test("home page renders the hero WITH the sidebar (articles reachable from /)", () =>
   all([
     check(
       renderedHome,
       toContain("Article content here"),
     ),
-    // the home layout drops the sidebar (hero owns the
-    // content column) — no sidebar nav, no disclosure
+    // with no top nav, the sidebar is the only path to
+    // articles — the home page must carry it
     check(
       renderedHome,
-      not(
-        toContain(
-          'aria-label="Sidebar navigation"',
-        ),
+      toContain(
+        'aria-label="Sidebar navigation"',
       ),
-    ),
-    check(
-      renderedHome,
-      not(toContain("<details")),
     ),
     // it renders the hero column, not the prose column
     check(
       renderedHome,
       toContain('class="vp-home"'),
+    ),
+    // the tree is always-expanded (no disclosure widget)
+    check(
+      renderedHome,
+      not(toContain("<details")),
     ),
   ]));

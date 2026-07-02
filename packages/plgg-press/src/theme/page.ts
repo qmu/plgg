@@ -170,17 +170,21 @@ export const page = (
     [class_("vp-shell")],
     [
       menuToggle,
-      mobileBar(config, activePath, !home),
+      // The home page carries the sidebar too (qmu.co.jp
+      // renders its landing page through the same shell):
+      // with no top nav, the sidebar is the ONLY way to
+      // reach articles, so a sidebar-less home is a
+      // navigation dead-end. The `☰` drawer is enabled on
+      // every page for the same reason.
+      mobileBar(config, activePath, true),
       backdrop,
       div(
         [class_("vp-app")],
-        home
-          ? [chromeRail(config), contentColumn]
-          : [
-              chromeRail(config),
-              sidebarColumn(config, activePath, base),
-              contentColumn,
-            ],
+        [
+          chromeRail(config),
+          sidebarColumn(config, activePath, base),
+          contentColumn,
+        ],
       ),
     ],
   );
