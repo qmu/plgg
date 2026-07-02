@@ -97,3 +97,11 @@ Consumer (unchanged behavior): `packages/guide/site.config.ts` + guide `build`/`
 - **Don't rename yet.** Keep the package name/bin/alias as `plgg-press` here to isolate the risky re-layering from the mechanical rename (ticket C); a green guide build is the handoff point.
 - **defineSite carry-forward.** The typed `defineSite` (ticket 195048) is in the SiteConfig boundary that stays; ensure the `plggmatic` generic loadConfig accepts that caster unchanged (`packages/plgg-press/src/SiteConfig/model/SiteConfig.ts`).
 - Ticket C (rename → `plggpress`) depends on this landing green.
+
+## UPDATE (2026-07-02): dev-loop portion superseded — dev is now a toolchain concern
+
+Author decision (2026-07-02): hot-reload / dev server is a **toolchain** concern, not the app's nor the framework's. So this ticket's plan to route plgg-press's dev through `plggmatic.frameworkDev` (and to keep a `Dev/usecase/dev` in plggmatic) is **superseded** by:
+- [20260702041500-plgg-bundle-dev-server-module-runner-hot-reload.md](.workaholic/tickets/todo/a-qmu-jp/20260702041500-plgg-bundle-dev-server-module-runner-hot-reload.md) — the dev server (with true module-runner hot-reload) is built in `plgg-bundle`.
+- [20260702041501-replace-plgg-press-dev-with-plgg-bundle.md](.workaholic/tickets/todo/a-qmu-jp/20260702041501-replace-plgg-press-dev-with-plgg-bundle.md) — plgg-press consumes it; plgg-press's `dev.ts` AND plggmatic's `Dev/usecase/dev.ts` are removed.
+
+**Still valid in this ticket:** the config-load / router-builder / static-`build` rewire of plgg-press onto plggmatic — everything EXCEPT the dev loop. That remainder is still blocked on the `plgg-bundle` `__require` dynamic-import fix (see `20260702032000`). When reworking this ticket, drop steps 4/8's dev wiring (dev is gone from plggmatic).
