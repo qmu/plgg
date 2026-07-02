@@ -17,7 +17,7 @@ Put the plgg guide (GitHub Pages, repo `qmu/plgg`) on the custom domain `plgg.qm
 
 Three coordinated pieces:
 
-1. **DNS (Cloudflare, zone qmu.co.jp):** `CNAME plgg → qmu.github.io` (DNS-only/grey-cloud until the GitHub certificate is issued; can be proxied later). Needs either a scoped Cloudflare API token from the developer or the developer adds the record.
+1. **DNS (Cloudflare, zone qmu.co.jp):** `CNAME plgg → qmu.github.io` (DNS-only/grey-cloud until the GitHub certificate is issued; can be proxied later). Owned by the **corporate repository**: ticket `20260703022248-cloudflare-dns-terraform-plgg-qmu-co-jp.md` (branch work-20260703-022248) brings the zone under Terraform (`infra/terraform/cloudflare-dns/`) and applies this record. This ticket BLOCKS on that record resolving.
 2. **GitHub Pages custom domain:** `gh api -X PUT repos/qmu/plgg/pages -f cname=plgg.qmu.co.jp` (build_type stays `workflow`), then enforce HTTPS once the cert is provisioned (`-F https_enforced=true`).
 3. **Repo:** `.github/workflows/deploy-guide.yml` `DOCS_BASE` changes `/plgg/` → `/`; update `.workaholic/deployments/guide.md` (canonical URL becomes https://plgg.qmu.co.jp/, verify steps probe it); update any hardcoded `qmu.github.io/plgg` references (README, guide content) to the new canonical URL.
 
@@ -36,8 +36,8 @@ Three coordinated pieces:
 
 ## Implementation Steps
 
-1. Confirm with the developer: DNS via provided API token or manual record; proxy mode (recommend DNS-only until cert issued).
-2. Add the CNAME in Cloudflare (or hand the exact record to the developer and wait for confirmation): `plgg.qmu.co.jp CNAME qmu.github.io`, DNS-only.
+1. Wait for the corporate-repo Terraform ticket (`corporate` @ work-20260703-022248, `20260703022248-cloudflare-dns-terraform-plgg-qmu-co-jp.md`) to apply the CNAME.
+2. Verify the record resolves: `dig +short plgg.qmu.co.jp CNAME` → `qmu.github.io.` (DNS-only/grey cloud).
 3. Set the Pages custom domain: `gh api -X PUT repos/qmu/plgg/pages -f cname=plgg.qmu.co.jp`; poll `gh api repos/qmu/plgg/pages` until the certificate state is issued; then `gh api -X PUT repos/qmu/plgg/pages -F https_enforced=true`.
 4. Change `DOCS_BASE` to `/` in deploy-guide.yml; sweep hardcoded URL references.
 5. Merge (workflow-file change triggers Deploy Guide); watch the run; probe `https://plgg.qmu.co.jp/` (200, correct content, internal links resolve at the new base) and confirm `https://qmu.github.io/plgg/` redirects.
