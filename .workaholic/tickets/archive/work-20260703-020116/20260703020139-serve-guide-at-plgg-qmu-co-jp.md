@@ -3,9 +3,9 @@ created_at: 2026-07-03T02:01:39+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: f5d8889
+category: Changed
 depends_on: [20260703020138-deploy-guide-build-plggmatic-before-plggpress.md]
 ---
 
@@ -62,3 +62,12 @@ Three coordinated pieces:
 - Until the GitHub Pages certificate is issued, https://plgg.qmu.co.jp serves a certificate error — sequence DNS → Pages cname → wait for cert → enforce HTTPS → then flip DOCS_BASE, or accept a short window where the old URL is canonical
 - The old base `/plgg/` is baked into published artifacts (search-engine links); GitHub's automatic redirect covers qmu.github.io/plgg/* paths
 - The plgg-guide.qmu.dev tunnel preview (dev surface) is unaffected — different zone, different mechanism
+
+## Final Report
+
+Development completed as planned. DNS landed via the corporate repo's Terraform stack (infra/terraform/cloudflare-dns/, all 15 qmu.co.jp records drift-zero, record id 903f3b17…); dig verified. Pages custom domain set via gh api (cname plgg.qmu.co.jp, build_type workflow, cert provisioning started); deploy-guide.yml no longer sets DOCS_BASE (root base is site.config's default); deployment contract canonical URL and verify steps moved to https://plgg.qmu.co.jp/. Local guide build at base "/" is green: 33 pages, zero old-base links. Post-merge: watch Deploy Guide, probe 200+TLS and the 301, then https_enforced=true.
+
+### Discovered Insights
+
+- **Insight**: Setting the Pages custom domain immediately degrades the currently-deployed artifact — qmu.github.io/plgg starts redirecting to the custom domain while the served build still bakes the old /plgg/ base, so its internal links 404 until the root-base deploy lands.
+  **Context**: The cname flip and the DOCS_BASE ship should be as close together as possible; there is no zero-window ordering, only a short one. Also: PUT /pages with a cname silently resets https_enforced to false — it must be re-enabled after the certificate issues.

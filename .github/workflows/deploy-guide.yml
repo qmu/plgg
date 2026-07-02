@@ -75,9 +75,9 @@ jobs:
           done
 
       - name: Build the guide (plggpress)
-        # DOCS_BASE makes links resolve under the project Pages path.
-        env:
-          DOCS_BASE: /plgg/
+        # The site serves at the domain root: the Pages custom domain
+        # plgg.qmu.co.jp is set on the repo, so no DOCS_BASE is needed
+        # (site.config.ts defaults the base to "/").
         run: |
           npm ci
           npx plggpress build --config site.config.ts --contentDir . --outDir dist
