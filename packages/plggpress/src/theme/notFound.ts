@@ -9,11 +9,11 @@ import {
   text,
   attr,
   class_,
-} from "plgg-view";
+} from "plggmatic";
 import {
   type MarkdownDoc,
   frontmatter,
-} from "plgg-md";
+} from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { shell } from "plggpress/theme/shell";

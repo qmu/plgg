@@ -11,8 +11,8 @@ import {
   text,
   attr,
   class_,
-} from "plgg-view";
-import { type MarkdownDoc } from "plgg-md";
+} from "plggmatic";
+import { type MarkdownDoc } from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,

@@ -6,7 +6,7 @@ import {
   not,
 } from "plgg-test";
 import { none } from "plgg";
-import { renderToString } from "plgg-view";
+import { renderToString } from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,

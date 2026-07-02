@@ -1,5 +1,5 @@
 import { type SoftStr, type Defect } from "plgg";
-import { type SsgError } from "plgg-server/ssg";
+import { type SsgError } from "plggmatic/ssg";
 import {
   type AppOptions,
   type AppRunContext,

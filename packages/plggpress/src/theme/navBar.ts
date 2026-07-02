@@ -12,7 +12,7 @@ import {
   text,
   attr,
   class_,
-} from "plgg-view";
+} from "plggmatic";
 import {
   type SiteConfig,
   type SocialLink,

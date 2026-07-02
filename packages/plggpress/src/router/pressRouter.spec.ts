@@ -17,7 +17,7 @@ import {
   type HttpRequest,
   type HttpResponse,
   handle,
-} from "plgg-server";
+} from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { pressRouter } from "plggpress/router/pressRouter";
 

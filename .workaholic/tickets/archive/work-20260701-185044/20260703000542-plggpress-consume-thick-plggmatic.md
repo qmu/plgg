@@ -3,9 +3,9 @@ created_at: 2026-07-03T00:05:42+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain, Config]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 0f20ef6
+category: Changed
 depends_on: [20260703000541-thicken-plggmatic-reexport-facade.md]
 ---
 
@@ -90,3 +90,14 @@ Captured from the proposed gate (developer was away; recommended defaults record
 - `devEntry.ts` is coverage-excluded but graph-walked: its `plggmatic/ssg` import is the main subpath consumer and the first thing to break if the facade's exports map is wrong (`packages/plggpress/src/devEntry.ts`)
 - The guide (`packages/guide`) needs no changes — it already imports only from `plggpress`; its unchanged build is the end-to-end proof that the whole facade chain (guide → plggpress → plggmatic → mid-libs) resolves (`packages/guide/package.json`)
 - Depends on `20260703000541-thicken-plggmatic-reexport-facade.md` — the facade must exist and export the full inventory before any plggpress import can move; do not start this ticket with the prerequisite unmerged into the working tree
+
+## Final Report
+
+Development completed as planned. All 22 plggpress files (sources and specs) now import through the plggmatic facade; package.json collapsed from 7 plgg-family deps to {plgg, plggmatic}; plgg-http was dropped without any import rewrite (confirmed never imported directly). Verified: grep proof empty; guide build byte-identical to the pre-rewire oracle (33 files, sha256); tsc-plgg.sh clean; fresh check-all.sh exit 0 (78 plggpress tests, coverage + README gates).
+
+### Discovered Insights
+
+- **Insight**: The import rewrite is pure specifier substitution — no symbol renames were needed anywhere, including the two subpath cases (`plgg-server/ssg` → `plggmatic/ssg`, `plgg-view/style` → `plggmatic/style`), because the facade preserves every name.
+  **Context**: Facade fidelity (same names, mirrored subpaths) is what makes consumer migration mechanical; a flattened/aliased facade would have made this a per-symbol judgment call.
+- **Insight**: npm prune after the dep drop leaves plggpress's node_modules with only plgg + plggmatic symlinks, yet type-check and runtime still resolve the wrapped libraries — through plggmatic's own node_modules via realpath resolution.
+  **Context**: Confirms end-to-end the resolution mechanism ticket 000541 relied on; the guide (depending on plggpress alone) building byte-identical proves the whole facade chain guide → plggpress → plggmatic → mid-libs.

@@ -6,8 +6,8 @@ import {
   some,
   chainResult,
 } from "plgg";
-import { renderToString } from "plgg-view";
-import { type Web } from "plgg-server";
+import { renderToString } from "plggmatic";
+import { type Web } from "plggmatic";
 import { type BuildSpec } from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {

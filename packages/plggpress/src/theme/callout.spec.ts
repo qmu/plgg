@@ -9,7 +9,7 @@ import {
   div,
   text,
   renderToString,
-} from "plgg-view";
+} from "plggmatic";
 import { callout } from "plggpress/theme/callout";
 
 // An opaque pre-rendered body, as plgg-md would hand it.

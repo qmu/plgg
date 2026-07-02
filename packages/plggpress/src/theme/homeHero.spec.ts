@@ -5,7 +5,7 @@ import {
   toContain,
   not,
 } from "plgg-test";
-import { renderToString } from "plgg-view";
+import { renderToString } from "plggmatic";
 import { type HomeConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { homeHero } from "plggpress/theme/homeHero";
 

@@ -12,15 +12,16 @@ engine that builds [the guide](../guide/).
 
 ## Why this package exists
 
-plggmatic supplies the framework skeleton; plggpress supplies
-the docs-site specifics on top of it — the `SiteConfig` type
-and the `defineSite` validator a site's `site.config.ts`
-imports, plus the content pipeline that turns Markdown into
-pages:
+plggmatic supplies the framework skeleton **and wraps the
+whole mid-library stack** (view, server/http, md, highlight);
+plggpress supplies the docs-site specifics on top of it — the
+`SiteConfig` type and the `defineSite` validator a site's
+`site.config.ts` imports, plus the content pipeline that turns
+Markdown into pages. Its dependencies are just
+`{plgg, plggmatic}`:
 
 ```
-plggmatic ── plggpress ── a docs site (e.g. the guide)
-   plgg-md · plgg-highlight ─┘ (content)
+plgg ── plggmatic ── plggpress ── a docs site (e.g. the guide)
 ```
 
 ## How it's organized
@@ -39,8 +40,10 @@ plggmatic ── plggpress ── a docs site (e.g. the guide)
 
 Content is parsed by [`plgg-md`](../plgg-md/) and highlighted
 by [`plgg-highlight`](../plgg-highlight/); the output is served
-through [`plgg-server`](../plgg-server/). plggpress is
-ESM-only.
+through [`plgg-server`](../plgg-server/) — all reached through
+the [`plggmatic`](../plggmatic/) facade (including its
+`plggmatic/ssg` and `plggmatic/style` subpaths), not as direct
+dependencies. plggpress is ESM-only.
 
 ## Usage
 

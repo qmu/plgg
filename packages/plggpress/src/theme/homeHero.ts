@@ -7,7 +7,7 @@ import {
   p,
   text,
   class_,
-} from "plgg-view";
+} from "plggmatic";
 import {
   type HomeConfig,
   type HomeFeature,

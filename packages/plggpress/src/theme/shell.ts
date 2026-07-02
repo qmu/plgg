@@ -13,8 +13,8 @@ import {
   attr,
   class_,
   collectCss,
-} from "plgg-view";
-import { type MarkdownDoc } from "plgg-md";
+} from "plggmatic";
+import { type MarkdownDoc } from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { baseCss } from "plggpress/theme/baseCss";

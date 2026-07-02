@@ -17,12 +17,12 @@ import {
 import {
   type Html,
   renderToString,
-} from "plgg-view";
+} from "plggmatic";
 import {
   type MarkdownDoc,
   renderMarkdownWith,
-} from "plgg-md";
-import { asHighlighter } from "plgg-highlight";
+} from "plggmatic";
+import { asHighlighter } from "plggmatic";
 import {
   type Web,
   type Handler,
@@ -33,7 +33,7 @@ import {
   htmlResponse,
   internalError,
   notFound,
-} from "plgg-server";
+} from "plggmatic";
 import { buildRouter } from "plggmatic";
 import {
   type SiteConfig,

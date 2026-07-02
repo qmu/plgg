@@ -5,7 +5,7 @@ import {
   text,
   slot,
   class_,
-} from "plgg-view";
+} from "plggmatic";
 
 /**
  * The closed callout kind set — the five qmu.co.jp
