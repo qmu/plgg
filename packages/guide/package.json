@@ -6,7 +6,7 @@
   "description": "The official user guide for plgg and the plgg family. Content is authored in Markdown; code samples are drawn from the real packages and tested examples.",
   "scripts": {
     "dev": "plgg-bundle dev bundle.config.ts",
-    "build": "plgg-press build --config site.config.ts --contentDir . --outDir dist",
+    "build": "plggpress build --config site.config.ts --contentDir . --outDir dist",
     "preview": "python3 -m http.server --directory dist"
   },
   "repository": {
@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg-press": "file:../plgg-press"
+    "plggpress": "file:../plggpress"
   },
   "devDependencies": {
     "plgg-bundle": "file:../plgg-bundle"

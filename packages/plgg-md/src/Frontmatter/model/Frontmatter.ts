@@ -3,7 +3,7 @@ import { SoftStr, Option } from "plgg";
 /**
  * The parsed leading frontmatter, modelled as a flat
  * **layout marker only** (see
- * `docs/plgg-press-migration/spike-decisions.md` §6b):
+ * `docs/plggpress-migration/spike-decisions.md` §6b):
  * the sole corpus frontmatter is `index.md`'s
  * `layout: home`, whose `hero`/`features` content is
  * owned by the `SiteConfig` home data and rendered by

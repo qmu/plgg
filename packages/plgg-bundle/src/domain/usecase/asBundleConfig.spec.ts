@@ -192,18 +192,18 @@ test("asBundleConfig accepts dev.sourceAliases", () => {
     dev: {
       ...validDev,
       sourceAliases: [
-        { prefix: "plgg-press", srcDir: "../plgg-press/src" },
+        { prefix: "plggpress", srcDir: "../plggpress/src" },
       ],
     },
   });
   return all([
     check(
       c.dev?.sourceAliases[0]?.prefix,
-      toBe("plgg-press"),
+      toBe("plggpress"),
     ),
     check(
       c.dev?.sourceAliases[0]?.srcDir,
-      toBe("../plgg-press/src"),
+      toBe("../plggpress/src"),
     ),
   ]);
 });

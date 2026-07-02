@@ -1,4 +1,4 @@
-# Serve the plgg family guide (plgg-press) with hot-reload
+# Serve the plgg family guide (plggpress) with hot-reload
 # in one command:
 #
 #   docker compose -f workloads/guide/compose.yaml up --build
@@ -17,10 +17,10 @@ services:
       - "5181:5173"
     volumes:
       # Mount the repo for live editing — editing guide
-      # Markdown OR plgg-press theme `.ts` hot-reloads the
+      # Markdown OR plggpress theme `.ts` hot-reloads the
       # dev server (the toolchain re-evaluates changed source
       # across the package boundary; see bundle.config.ts).
-      # plgg-press's sibling dists are (re)built onto THIS
+      # plggpress's sibling dists are (re)built onto THIS
       # mounted tree by the entrypoint, after the mount is
       # live, so they are not hidden by it.
       - ../..:/app
@@ -40,6 +40,6 @@ services:
       - /app/packages/plgg-highlight/node_modules
       - /app/packages/plgg-server/node_modules
       - /app/packages/plggmatic/node_modules
-      - /app/packages/plgg-press/node_modules
+      - /app/packages/plggpress/node_modules
       - /app/packages/plgg-bundle/node_modules
       - /app/packages/guide/node_modules

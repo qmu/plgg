@@ -3,7 +3,7 @@
 // pushed over it. Kept as pure constants/string builders
 // (no `node:*`, no sockets) so the transport shape is
 // unit-testable and the node adapter only owns the socket
-// registry. Mirrors plgg-press's hand-rolled SSE reload,
+// registry. Mirrors plggpress's hand-rolled SSE reload,
 // reproduced here plgg-free in the toolchain.
 
 /** The dev-only Server-Sent-Events live-reload route. */

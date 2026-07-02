@@ -1,4 +1,4 @@
-# Deployment: plgg guide (plgg-press docs site)
+# Deployment: plgg guide (plggpress docs site)
 
 The official documentation site under `packages/guide/`. Two surfaces:
 

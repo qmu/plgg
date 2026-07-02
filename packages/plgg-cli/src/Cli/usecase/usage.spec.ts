@@ -13,7 +13,7 @@ import {
 } from "plgg-cli/index";
 
 const app = program(
-  "plgg-press",
+  "plggpress",
   "static site generator",
   [
     command("build", "build", [
@@ -27,7 +27,7 @@ const app = program(
 test("usage renders the program name and summary header", () =>
   check(
     usage(app).includes(
-      "plgg-press — static site generator",
+      "plggpress — static site generator",
     ),
     toBe(true),
   ));
@@ -47,11 +47,11 @@ test("usage renders a boolean flag as [--name]", () =>
 test("usage lists a line per command", () =>
   all([
     check(
-      usage(app).includes("plgg-press build"),
+      usage(app).includes("plggpress build"),
       toBe(true),
     ),
     check(
-      usage(app).includes("plgg-press dev"),
+      usage(app).includes("plggpress dev"),
       toBe(true),
     ),
   ]));

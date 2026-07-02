@@ -117,7 +117,7 @@ export type ListItem<Msg> = Html<Msg, "li">;
 /**
  * The content of `pre`: either a single `code`
  * element (the fenced-block shape `pre>code`) or
- * raw text. Per the plgg-press spike, a code fence
+ * raw text. Per the plggpress spike, a code fence
  * renders as `<pre><code>…</code></pre>` and an
  * unhighlighted block as `<pre>text</pre>`.
  */

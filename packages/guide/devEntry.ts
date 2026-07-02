@@ -1,11 +1,11 @@
 import { join } from "node:path";
-import { pressDevEntry } from "plgg-press/devEntry";
+import { pressDevEntry } from "plggpress/devEntry";
 
 // The guide's dev entry for `plgg-bundle dev`: bind
-// plgg-press's render factory to the guide's own content
+// plggpress's render factory to the guide's own content
 // root, `site.config.ts`, and deploy base. plgg-bundle
 // re-imports this module on every watched edit — and
-// because `plgg-press/*` resolves to plgg-press's SOURCE
+// because `plggpress/*` resolves to plggpress's SOURCE
 // here (see bundle.config.ts `dev.sourceAliases`), a theme
 // `.ts` edit re-evaluates and a content edit re-discovers,
 // so both hot-reload in the browser with no restart.

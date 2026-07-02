@@ -26,7 +26,7 @@ export const hostName = (
 /**
  * The Host allowlist check (data-last): loopback plus the
  * config-supplied `allowedHosts`. Reproduces the tunnel
- * safety plgg-press's dev server gave — the guide adds its
+ * safety plggpress's dev server gave — the guide adds its
  * `*.qmu.dev` tunnel host so the Cloudflare tunnel is
  * accepted while arbitrary Host headers are refused.
  */

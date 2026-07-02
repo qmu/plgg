@@ -9,7 +9,7 @@ import { Frontmatter } from "plgg-md/Frontmatter/model/Frontmatter";
  * home/no-H1 case — see `spike-decisions.md` §6e), the
  * `plgg-view` body tree (an `Html<never>` ready for
  * `renderToString`/`collectCss`), and two flat surfaces
- * for `plgg-press`'s tooling: every emitted link target
+ * for `plggpress`'s tooling: every emitted link target
  * (`links`, post-resolver) and every heading id (`slugs`,
  * exactly the ids carried in `body`) for its dead-link
  * checker.

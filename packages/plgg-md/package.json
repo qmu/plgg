@@ -1,7 +1,7 @@
 {
   "name": "plgg-md",
   "version": "0.0.1",
-  "description": "A Markdown-to-typed-data parser built from scratch on the plgg framework: a layout-marker frontmatter splitter and a block tokenizer for the plgg-press subset that produce an immutable Box-union AST (Result, never throw)",
+  "description": "A Markdown-to-typed-data parser built from scratch on the plgg framework: a layout-marker frontmatter splitter and a block tokenizer for the plggpress subset that produce an immutable Box-union AST (Result, never throw)",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {

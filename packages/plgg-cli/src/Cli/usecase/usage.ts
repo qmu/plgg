@@ -21,7 +21,7 @@ const optionUsage = (
 
 /**
  * Renders one command's usage line, e.g.
- * `  plgg-press build [--config <path>]`.
+ * `  plggpress build [--config <path>]`.
  */
 const commandUsage =
   (program: Program) =>

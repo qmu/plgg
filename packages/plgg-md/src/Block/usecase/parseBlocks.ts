@@ -34,7 +34,7 @@ import {
 } from "plgg-md/Block/model/Block";
 
 // ---------------------------------------------------------------------------
-// Line grammar — the bounded plgg-press subset
+// Line grammar — the bounded plggpress subset
 // (`spike-decisions.md` §7). Everything outside it
 // falls through to a paragraph (raw HTML included).
 // ---------------------------------------------------------------------------
@@ -112,7 +112,7 @@ type Span = Readonly<{
 
 /**
  * Parses a Markdown body into a flat {@link Block}
- * sequence over the plgg-press subset. Inline markup is
+ * sequence over the plggpress subset. Inline markup is
  * NOT parsed here (that is the render ticket); raw HTML
  * and any out-of-subset line ride along as {@link para}
  * text. Failures — an unterminated fence, a

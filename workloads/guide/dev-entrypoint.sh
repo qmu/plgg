@@ -4,19 +4,19 @@
 # bind-mounts the host repo over /app, and that ordering is
 # the whole point of this file: anything built into the
 # image at build time is HIDDEN the moment the mount goes
-# live, so the sibling dists plgg-press imports
+# live, so the sibling dists plggpress imports
 # (plgg, plgg-view, plgg-server, plgg-http, plgg-md,
-# plgg-highlight, plggmatic, plgg-press) have to be
+# plgg-highlight, plggmatic, plggpress) have to be
 # (re)built HERE, on the mounted tree, where Node will
 # actually resolve them.
 #
 # Two install facts this script encodes:
 #
 #   * `file:` deps do NOT install the linked package's own
-#     node_modules, so every package in plgg-press's runtime
+#     node_modules, so every package in plggpress's runtime
 #     graph needs its OWN `npm install` (the per-package
 #     model scripts/npm-install.sh uses). A single install
-#     in packages/guide only symlinks plgg-press; it never
+#     in packages/guide only symlinks plggpress; it never
 #     populates the siblings it depends on.
 #
 #   * plgg-highlight imports `typescript` from its OWN
@@ -27,7 +27,7 @@
 cd /app
 
 # 1. Install the runtime symlink graph, in dependency order,
-#    for the packages plgg-press resolves when it serves the
+#    for the packages plggpress resolves when it serves the
 #    guide. Each `file:` package needs its own node_modules
 #    because file: links do not cascade; plgg-highlight's
 #    install is what puts typescript on its resolution path.
@@ -39,7 +39,7 @@ for pkg in \
   plgg-highlight \
   plgg-server \
   plggmatic \
-  plgg-press \
+  plggpress \
   guide
 do
   echo "=== npm install packages/${pkg} ==="
@@ -50,7 +50,7 @@ done
 #    dependency-ordered builder. It bootstraps plgg-bundle
 #    (the build tool, which imports typescript from its own
 #    path) and writes each dist onto the mounted tree, where
-#    plgg-press resolves it — so the dists survive the mount.
+#    plggpress resolves it — so the dists survive the mount.
 echo "=== building sibling dists (scripts/build.sh) ==="
 sh scripts/build.sh
 
@@ -59,12 +59,12 @@ sh scripts/build.sh
 #    5173 (compose maps host 5181 -> 5173, the cloudflared
 #    tunnel route for plgg-guide.qmu.dev). The port, the
 #    allowedHosts (localhost + plgg-guide.qmu.dev), the
-#    watched roots (guide content + plgg-press theme source),
-#    and the `plgg-press` source alias all come from
+#    watched roots (guide content + plggpress theme source),
+#    and the `plggpress` source alias all come from
 #    bundle.config.ts — so a theme `.ts` edit hot-reloads in
 #    the browser with NO restart, not just Markdown. Runs
 #    from source, so plgg-bundle's own node_modules (built by
-#    scripts/build.sh's npm ci above) and plgg-press's must
+#    scripts/build.sh's npm ci above) and plggpress's must
 #    be present — both are. node:http binds all interfaces,
 #    so the port is reachable from the host.
 echo "=== plgg-bundle dev on :5173 ==="

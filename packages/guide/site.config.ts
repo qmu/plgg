@@ -1,8 +1,8 @@
 // The guide's single information-architecture + home-data
-// instance: pure data validated through plgg-press's
+// instance: pure data validated through plggpress's
 // `defineSite` boundary caster. This replaces the old
 // VitePress `defineConfig` — there is deliberately no
-// dependency on the `vitepress` package here. plgg-press
+// dependency on the `vitepress` package here. plggpress
 // owns the
 // `SiteConfig` TYPE and the `defineSite` validator; this
 // file supplies only the guide's values (ported verbatim
@@ -10,17 +10,17 @@
 import {
   defineSite,
   type SidebarItemInput,
-} from "plgg-press";
+} from "plggpress";
 
 // GitHub Pages serves a project site under `/<repo>/`; the
 // deploy workflow sets DOCS_BASE so links resolve there,
-// while local dev/preview stay at root. plgg-press's href
+// while local dev/preview stay at root. plggpress's href
 // helper is the single rewrite site downstream.
 const base = process.env.DOCS_BASE ?? "/";
 
 // A sidebar node as authored here: every node carries an
 // explicit `items` array (the leaf case is `[]`) so it
-// validates against plgg-press's `SidebarItemInput`, whose
+// validates against plggpress's `SidebarItemInput`, whose
 // `items` is required and whose `link` is optional.
 const leaf = (
   text: string,
@@ -295,7 +295,7 @@ const config = {
     ],
   },
   // dev.allowedHosts (spike item 7): the extra Host headers
-  // plgg-press's node:http dev server accepts. localhost for
+  // plggpress's node:http dev server accepts. localhost for
   // local work; plgg-guide.qmu.dev for the port-5181
   // Cloudflare tunnel.
   dev: {
@@ -308,10 +308,10 @@ const config = {
 
 // Author-time validation through the boundary caster: an Ok
 // is the typed `SiteConfig`, an Err names the offending
-// field. Exported so a check / plgg-press can assert it.
+// field. Exported so a check / plggpress can assert it.
 export const site = defineSite(config);
 
-// The raw config DATA is the default export plgg-press's
+// The raw config DATA is the default export plggpress's
 // `loadConfig` reads and validates through `defineSite` at
 // build/dev time (the one place untrusted config crosses
 // into the typed core).

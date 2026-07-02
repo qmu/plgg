@@ -7,7 +7,7 @@ import { LIVE_RELOAD_SCRIPT } from "plgg-bundle/Dev/model/Protocol";
  * surgery on rendered HTML OUTPUT — never inside a typed
  * render tree (which would escape the `<script>`), and
  * never in a production build path. This is the plgg-free
- * toolchain counterpart to plgg-press's old
+ * toolchain counterpart to plggpress's old
  * `decorateDevHtml`.
  */
 export const decorateDevHtml = (

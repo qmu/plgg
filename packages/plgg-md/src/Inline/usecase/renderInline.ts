@@ -104,7 +104,7 @@ const findCodeClose = (
 /**
  * Scans a single (already block-stripped) source line
  * into an ordered {@link Inline} sequence over the
- * plgg-press inline subset: `` `code` ``, `**strong**`,
+ * plggpress inline subset: `` `code` ``, `**strong**`,
  * `*emph*`, `[text](href)`, `![alt](src)`, and hard line
  * breaks (a trailing `\` or two spaces before a
  * newline). Everything else — including any raw `<`/`>`
