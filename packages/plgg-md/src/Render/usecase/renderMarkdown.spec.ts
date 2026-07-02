@@ -385,3 +385,63 @@ test("unterminated frontmatter fails before block parsing", () =>
       ),
     ),
   ));
+
+test("headings carries depth + text + the exact body slugs, in document order", () =>
+  check(
+    renderMarkdown(
+      src(
+        "# Title",
+        "",
+        "## First section",
+        "",
+        "### Sub point",
+        "",
+        "## First section",
+        "",
+        "::: tip",
+        "#### Inside a callout",
+        ":::",
+      ),
+    ),
+    okThen((doc) =>
+      all([
+        toEqual([
+          {
+            level: 1,
+            text: "Title",
+            slug: "title",
+          },
+          {
+            level: 2,
+            text: "First section",
+            slug: "first-section",
+          },
+          {
+            level: 3,
+            text: "Sub point",
+            slug: "sub-point",
+          },
+          {
+            level: 2,
+            text: "First section",
+            slug: "first-section-1",
+          },
+          {
+            level: 4,
+            text: "Inside a callout",
+            slug: "inside-a-callout",
+          },
+        ])(doc.headings),
+        // slugs derives from headings — lock-step by
+        // construction
+        toEqual(
+          doc.headings.map((h) => h.slug),
+        )(doc.slugs),
+        // the body carries the very same ids
+        check(
+          renderToString(doc.body),
+          toContain('id="first-section-1"'),
+        ),
+      ]),
+    ),
+  ));

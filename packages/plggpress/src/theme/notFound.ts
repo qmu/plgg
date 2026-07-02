@@ -69,6 +69,7 @@ export const notFound = (
     body,
     links: [],
     slugs: [],
+    headings: [],
   };
   return shell(config, doc, body);
 };

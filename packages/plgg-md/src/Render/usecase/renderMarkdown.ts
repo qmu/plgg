@@ -27,6 +27,7 @@ import {
 } from "plgg-md/Inline/usecase/renderInline";
 import {
   Block,
+  HeadingLevel,
   ListItem,
   heading$,
   para$,
@@ -39,7 +40,10 @@ import {
 } from "plgg-md/Block/model/Block";
 import { parseFrontmatter } from "plgg-md/Frontmatter/usecase/parseFrontmatter";
 import { parseBlocks } from "plgg-md/Block/usecase/parseBlocks";
-import { MarkdownDoc } from "plgg-md/Render/model/MarkdownDoc";
+import {
+  MarkdownDoc,
+  MdHeading,
+} from "plgg-md/Render/model/MarkdownDoc";
 import {
   Highlighter,
   LinkResolver,
@@ -110,67 +114,91 @@ const firstH1Text = (
     none(),
   );
 
+/** A heading's depth + plain text, pre-slugging. */
+type HeadingEntry = Readonly<{
+  level: HeadingLevel;
+  text: SoftStr;
+}>;
+
 /**
- * Every heading's plain text in document order — the
- * exact sequence the renderer slugs, so the page's
- * `slugs` list and the `body`'s heading ids stay in
- * lock-step (both run the identical slugger over this
- * order).
+ * Every heading's depth + plain text in document order —
+ * the exact sequence the renderer slugs, so the page's
+ * `slugs`/`headings` lists and the `body`'s heading ids
+ * stay in lock-step (both run the identical slugger over
+ * this order).
  */
-const headingTexts = (
+const headingEntries = (
   blocks: ReadonlyArray<Block>,
-): ReadonlyArray<SoftStr> =>
+): ReadonlyArray<HeadingEntry> =>
   blocks.flatMap(
-    (block): ReadonlyArray<SoftStr> =>
+    (block): ReadonlyArray<HeadingEntry> =>
       match(block)(
         [
           heading$(),
           ({
             content,
-          }): ReadonlyArray<SoftStr> => [
-            plainText(renderInline(content.text)),
+          }): ReadonlyArray<HeadingEntry> => [
+            {
+              level: content.level,
+              text: plainText(
+                renderInline(content.text),
+              ),
+            },
           ],
         ],
         [
           callout$(),
-          ({ content }): ReadonlyArray<SoftStr> =>
-            headingTexts(content.children),
+          ({
+            content,
+          }): ReadonlyArray<HeadingEntry> =>
+            headingEntries(content.children),
         ],
         [
           quote$(),
-          ({ content }): ReadonlyArray<SoftStr> =>
-            headingTexts(content.children),
+          ({
+            content,
+          }): ReadonlyArray<HeadingEntry> =>
+            headingEntries(content.children),
         ],
         [
           para$(),
-          (): ReadonlyArray<SoftStr> => [],
+          (): ReadonlyArray<HeadingEntry> => [],
         ],
         [
           list$(),
-          (): ReadonlyArray<SoftStr> => [],
+          (): ReadonlyArray<HeadingEntry> => [],
         ],
         [
           table$(),
-          (): ReadonlyArray<SoftStr> => [],
+          (): ReadonlyArray<HeadingEntry> => [],
         ],
         [
           codeFence$(),
-          (): ReadonlyArray<SoftStr> => [],
+          (): ReadonlyArray<HeadingEntry> => [],
         ],
         [
           thematicBreak$(),
-          (): ReadonlyArray<SoftStr> => [],
+          (): ReadonlyArray<HeadingEntry> => [],
         ],
       ),
   );
 
-/** The page's deduped heading slugs (matches the body ids). */
-const collectSlugs = (
+/**
+ * The typed heading list (depth + text + slug) — ONE
+ * slugger run over the document order, so the slugs here
+ * ARE the ids the body carries; `slugs` derives from this
+ * list and cannot drift.
+ */
+const collectHeadings = (
   blocks: ReadonlyArray<Block>,
-): ReadonlyArray<SoftStr> => {
+): ReadonlyArray<MdHeading> => {
   const slug = makeSluggers();
-  return headingTexts(blocks).map((t) =>
-    slug.next(t),
+  return headingEntries(blocks).map(
+    (entry): MdHeading => ({
+      level: entry.level,
+      text: entry.text,
+      slug: slug.next(entry.text),
+    }),
   );
 };
 
@@ -313,17 +341,26 @@ export const renderMarkdownWith =
         pipe(
           parseBlocks(parsed.body),
           mapResult(
-            (blocks): MarkdownDoc => ({
-              frontmatter: parsed.frontmatter,
-              firstHeading: firstH1Text(blocks),
-              body: mdToHtml(
-                highlighter,
-                resolveLink,
-              )(blocks),
-              links:
-                collectLinks(resolveLink)(blocks),
-              slugs: collectSlugs(blocks),
-            }),
+            (blocks): MarkdownDoc => {
+              const headings =
+                collectHeadings(blocks);
+              return {
+                frontmatter: parsed.frontmatter,
+                firstHeading: firstH1Text(blocks),
+                body: mdToHtml(
+                  highlighter,
+                  resolveLink,
+                )(blocks),
+                links:
+                  collectLinks(resolveLink)(
+                    blocks,
+                  ),
+                slugs: headings.map(
+                  (h) => h.slug,
+                ),
+                headings,
+              };
+            },
           ),
         ),
       ),

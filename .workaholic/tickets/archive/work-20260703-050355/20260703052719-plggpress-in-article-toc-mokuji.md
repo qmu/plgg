@@ -3,9 +3,9 @@ created_at: 2026-07-03T05:27:19+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 954ebc4
+category: Changed
 depends_on: [20260703052717-plggpress-reconcile-tokens-a11y-qmu-oracle.md]
 ---
 
@@ -68,3 +68,19 @@ Recommended defaults recorded while the developer was away — confirm at the `/
 - The xl right-rail Toc remains a recorded divergence from the oracle (defer; revisit if the in-article variant proves insufficient)
 - `interpolate-size` is new CSS — verify it degrades gracefully (instant open/close) in browsers without it; never gate functionality on it
 - After plgg-view/plgg-md changes, stale dists mask consumer drift — fresh check-all is mandatory, and plggmatic's dist must be rebuilt for the facade to expose the new builders (`scripts/check-all.sh`)
+
+## Final Report
+
+Development completed as planned. plgg-md's MarkdownDoc gained a typed `headings` list (MdHeading: level + text + slug) produced by ONE slugger run that `slugs` now derives from — parity by construction, spec-asserted incl. duplicate-slug dedup and callout/quote nesting. plgg-view needed nothing: `details`/`summary` builders already existed with a typed content model, and the plggmatic facade exposed both the new type and the builders without changes (star re-exports; probe-verified). plggpress renders the collapsible 目次 above the article body when a page has ≥2 section headings (h2–h4; the h1 title is excluded), styled from the oracle's mobile-toc with the interpolate-size open/close animation behind @supports + the reduced-motion guard. The guide's dead-link checker validates every TOC fragment against the emitted heading ids, so anchor integrity is enforced at build time forever.
+
+### Recorded divergences
+
+- The 目次 sits at the top of the prose column (above the H1) rather than qmu's after-the-H1 position: the rendered body is an opaque typed tree with no splice point. Revisit if plgg-view ever grows a tree-surgery combinator.
+- The xl right-rail Toc stays deferred, as scoped.
+
+### Discovered Insights
+
+- **Insight**: Deriving `slugs` FROM `headings` (rather than running two parallel collectors) made the lock-step guarantee structural instead of disciplinary — the two lists cannot drift because one is a projection of the other.
+  **Context**: When two data surfaces must agree, make one derive from the other; parallel computation + a comment is how they drift.
+- **Insight**: plgg-view's typed content models (DetailsContent = one summary + Flow) forced the TOC's return type to carry its tag (`Html<never, "details">`) — a generic `Html<never>` annotation erases the tag and fails Flow assignment.
+  **Context**: In tag-typed element trees, over-widening a return annotation is the compile error; keep builders' natural narrow types.

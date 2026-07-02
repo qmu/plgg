@@ -63,6 +63,7 @@ const contentDoc: MarkdownDoc = {
   body: content,
   links: [],
   slugs: [],
+  headings: [],
 };
 
 // The landing page: ordinary prose through the same
@@ -73,6 +74,7 @@ const homeDoc: MarkdownDoc = {
   body: content,
   links: [],
   slugs: [],
+  headings: [],
 };
 
 // The page layout composed exactly the way the build
