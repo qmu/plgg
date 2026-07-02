@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: bugfix
 layer: [Domain, DB]
 effort:
-commit_hash: ebbab75
+commit_hash: 4ec5d51
 category: Changed
 depends_on: []
 ---

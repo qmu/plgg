@@ -18,6 +18,7 @@ export type MigrationErrorKind =
   | "DialectMismatch"
   | "VersionShape"
   | "TenantShape"
+  | "NameShape"
   | "IoFailure"
   | "LedgerCorrupt"
   | "MissingMigration";
@@ -75,8 +76,11 @@ export const dialectMismatch = make(
 /** A migration version was not a 14-digit `YYYYMMDDHHMMSS` timestamp. */
 export const versionShape = make("VersionShape");
 
-/** A tenant identifier was not a non-empty string. */
+/** A tenant identifier was not a safe single path segment. */
 export const tenantShape = make("TenantShape");
+
+/** A new-migration name was not a safe single filename segment. */
+export const nameShape = make("NameShape");
 
 /** A filesystem operation (read dir, read/write file) failed. */
 export const ioFailure = make("IoFailure");

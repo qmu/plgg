@@ -1,5 +1,12 @@
-import { SoftStr, PromisedResult } from "plgg";
-import { MigrationError } from "plgg-db-migration/domain/model/MigrationError";
+import {
+  SoftStr,
+  PromisedResult,
+  err,
+} from "plgg";
+import {
+  MigrationError,
+  nameShape,
+} from "plgg-db-migration/domain/model/MigrationError";
 import {
   joinPath,
   writeFileText,
@@ -28,20 +35,38 @@ export const formatTimestamp = (
 const SKELETON: SoftStr =
   "-- migrate:up\n\n\n-- migrate:down\n\n";
 
+// A migration name becomes one filename segment joined onto `dir`, so it is
+// held to the same safe charset as a path segment: no separators, dot segments,
+// or NUL that a `join(dir, ...)` would let escape the migrations directory.
+const NAME = /^[A-Za-z0-9_-]{1,64}$/;
+
 /**
  * Scaffold a new migration file `<dir>/<YYYYMMDDHHMMSS>_<name>.sql` with the
  * dbmate up/down skeleton, returning its path. The clock is injected as `now`,
  * so the function is deterministic and testable; the CLI passes `new Date()`.
+ *
+ * An unsafe `name` (containing `/`, `\`, `.`/`..`, NUL, or other punctuation)
+ * fails with a `NameShape` {@link MigrationError} and writes nothing, so the
+ * scaffold can never land outside `dir`.
  */
 export const newMigration = (
   dir: SoftStr,
   name: SoftStr,
   now: Date,
 ): PromisedResult<SoftStr, MigrationError> =>
-  writeFileText(
-    joinPath(
-      dir,
-      `${formatTimestamp(now)}_${name}.sql`,
-    ),
-    SKELETON,
-  );
+  NAME.test(name)
+    ? writeFileText(
+        joinPath(
+          dir,
+          `${formatTimestamp(now)}_${name}.sql`,
+        ),
+        SKELETON,
+      )
+    : Promise.resolve(
+        err(
+          nameShape(
+            "a migration name must be 1–64 characters of letters, digits, hyphen, or underscore",
+            name,
+          ),
+        ),
+      );
