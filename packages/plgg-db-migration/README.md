@@ -1,5 +1,7 @@
 # plgg-db-migration
 
+> **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
+
 dbmate-style schema migrations for the plgg stack — each migration is **one
 `.sql` file with both `up` and `down`**, tracked in a `schema_migrations` table,
 applied incrementally. Built as first-class plgg code: **zero new external

@@ -1,5 +1,7 @@
 # plgg-bundle
 
+> **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
+
 The in-house minimal library bundler for the plgg monorepo. It reproduces what
 `vite build` + `vite-plugin-dts` produced for a library package — dual ESM+CJS
 output plus a per-file `.d.ts` tree — with **zero new dependencies** and **no

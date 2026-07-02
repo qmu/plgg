@@ -1,5 +1,7 @@
 # plgg-cli
 
+> **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
+
 A plgg-style toolkit for **building command-line program wrappers** — the
 `commander.js` idea done in [plgg](../plgg/): declare a program's commands and
 options as typed data, parse `process.argv` into a validated

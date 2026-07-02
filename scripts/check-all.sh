@@ -9,6 +9,10 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # shared-with-CI canonical gate (scripts/gate-happy-dom.sh).
 ./scripts/gate-happy-dom.sh
 
+# Gate: every package is documented and linked top-to-bottom — presence, the
+# root README index, back-links, and no dead links (scripts/gate-readme.sh).
+./scripts/gate-readme.sh
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh
