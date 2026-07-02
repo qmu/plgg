@@ -18,8 +18,8 @@ The official documentation site under `packages/guide/`. Two surfaces:
 
 - **Workflow:** `.github/workflows/deploy-guide.yml` (`Deploy Guide`).
 - **Trigger:** push to `main` touching `packages/**` or the workflow file, plus `workflow_dispatch`. **Post-merge only** — there is no pre-merge deploy; the docs follow the code onto `main`.
-- **Independent of the CalVer release pipeline** — docs ship on their own cadence.
-- **Build:** builds all package dists in dependency order (`plgg plgg-http plgg-router plgg-view plgg-kit plgg-server plgg-fetch plgg-sql plgg-foundry`), then `npm run build` in `packages/guide` with `DOCS_BASE=/plgg/`, then `upload-pages-artifact` + `deploy-pages`.
+- **Independent of releases** — docs ship on their own cadence (releases are script-driven from `/ship`; see `release.md`).
+- **Build:** `./scripts/npm-install.sh` then `./scripts/build.sh` (the canonical dependency-ordered build — the workflow holds no copy of the topology), then `npx plggpress build` in `packages/guide` (root base; the Pages custom domain serves at `/`), then `upload-pages-artifact` + `deploy-pages`.
 
 ## Prerequisite (one-time, satisfied 2026-06-24)
 

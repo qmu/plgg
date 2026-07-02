@@ -3,9 +3,9 @@ created_at: 2026-07-03T05:03:55+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Config, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 0c8239e
+category: Changed
 depends_on:
 ---
 
@@ -89,3 +89,14 @@ Recommended defaults recorded while the developer was away — confirm at the `/
 - The `release` branch and `release-candidate` label become orphans on GitHub; leave them (harmless) but note them so nobody mistakes them for live machinery
 - `run-tests.yml`'s current `permissions: issues/pull-requests: write` exist only for the label automation — drop to `contents: read` in the slim gate (least privilege)
 - Branch protection/required checks (if any) may reference the old job name — verify after merge that the required-check name still matches (`gh api repos/qmu/plgg/branches/main/protection`, may 404 without perms)
+
+## Final Report
+
+Development completed as planned. Five workflows reduced to two: run-tests.yml is the thin backstop gate (npm-install.sh + check-all.sh on every PR and main push; label machinery and write permissions dropped), deploy-guide.yml keeps only the OIDC deploy with its build collapsed onto scripts/build.sh. The CalVer release pair, start-pull-request.yml, release-drafter config and RELEASE_PR_TEMPLATE are deleted; releases are script-driven from /ship per the new .workaholic/deployments/release.md contract (CalVer tag scheme preserved). scripts/npm-install.sh gained plgg-md, plgg-highlight, plggmatic, plggpress and guide. Verified: mechanical no-inline-logic check (zero multi-line run blocks, every step whitelisted), YAML parse, fresh check-all.sh exit 0, main unprotected (no required-check rename risk).
+
+### Discovered Insights
+
+- **Insight**: run-tests.yml had quietly become WEAKER than the local gate — it built and tested only plgg + plgg-test while check-all.sh covers all 18 packages — so the "backstop" was gating a subset while looking authoritative.
+  **Context**: Inline CI logic doesn't just duplicate the canonical runner, it decays independently of it; the thin-caller form makes that divergence structurally impossible.
+- **Insight**: release.yml's deployment job was a literal `echo "Deployment pipeline here"` placeholder — the hosted "CD" never deployed anything; only tags/notes were real.
+  **Context**: The CI-owned-CalVer memory overstated what CI owned; moving releases to /ship's publish-release.sh loses nothing operational. The release-flow memory must be updated when this ships.

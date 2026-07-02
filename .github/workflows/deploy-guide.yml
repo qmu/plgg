@@ -36,51 +36,23 @@ jobs:
         with:
           node-version: "22.x"
 
-      # The API generator reads each package's source with its own tsconfig;
-      # cross-package types resolve through the `file:` dist symlinks, so every
-      # package must be built first, in dependency order (same order as
-      # workloads/development/Dockerfile, extended to the full family).
-      # plgg-test is included so `npm ci` provides the @types/node +
-      # typescript its source (e.g. src/Resolve/hook.ts) needs when TypeDoc
-      # generates its API reference; it depends only on plgg, so it follows it.
-      # Builds run on the in-house bundler now — pure JS, no rolldown, no native
-      # binding — so the committed locks are platform-neutral and `npm ci`
-      # installs deterministically on this linux runner. The former
-      # `rm -f package-lock.json` workaround (a darwin-only @rolldown/binding
-      # skew that broke install here) is retired with vite itself.
-      # The in-house bundler imports typescript from its own path; the `file:`
-      # link doesn't install plgg-bundle's node_modules, so install the build
-      # tool's deps once before the loop builds every package through it.
-      - name: Install build-tool (plgg-bundle) dependencies
-        run: npm ci
-        working-directory: packages/plgg-bundle
-
-      # plgg-highlight imports typescript from its OWN path (same clean-runner
-      # masking as plgg-bundle): the `file:` link doesn't install its
-      # node_modules, so install them once before the loop. plgg-highlight is
-      # reached transitively via plggpress, whose build needs the highlighter.
-      - name: Install plgg-highlight dependencies
-        run: npm ci
-        working-directory: packages/plgg-highlight
+      # The canonical scripts own the topology: npm-install.sh installs every
+      # package's deps (the `file:` links install nothing on a clean runner),
+      # and build.sh builds every dist in dependency order — the same commands
+      # a developer runs locally, so this workflow can never hold a second,
+      # divergent copy of the dependency graph (the failure class behind the
+      # PR #51 deploy incident).
+      - name: Install every package's dependencies
+        run: ./scripts/npm-install.sh
 
       - name: Build package dists (dependency order)
-        run: |
-          set -e
-          for pkg in plgg plgg-test plgg-http plgg-router plgg-view plgg-kit \
-                     plgg-server plgg-fetch plgg-sql plgg-foundry \
-                     plgg-md plgg-highlight plgg-cli plggmatic plggpress; do
-            echo "::group::build $pkg"
-            (cd "packages/$pkg" && npm ci && npm run build)
-            echo "::endgroup::"
-          done
+        run: ./scripts/build.sh
 
       - name: Build the guide (plggpress)
         # The site serves at the domain root: the Pages custom domain
         # plgg.qmu.co.jp is set on the repo, so no DOCS_BASE is needed
         # (site.config.ts defaults the base to "/").
-        run: |
-          npm ci
-          npx plggpress build --config site.config.ts --contentDir . --outDir dist
+        run: npx plggpress build --config site.config.ts --contentDir . --outDir dist
         working-directory: packages/guide
 
       - name: Upload Pages artifact
