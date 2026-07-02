@@ -1,3 +1,10 @@
+---
+title: plgg guide (plggpress docs site)
+environment: production
+confirmation_method: api-probe
+url: https://qmu.github.io/plgg/
+---
+
 # Deployment: plgg guide (plggpress docs site)
 
 The official documentation site under `packages/guide/`. Two surfaces:
@@ -24,7 +31,15 @@ gh api -X POST repos/qmu/plgg/pages -f build_type=workflow
 
 If a future deploy fails at the `deploy` job, re-check that Pages is still enabled with the `workflow` build type.
 
-## Verify (post-merge)
+## Procedure
+
+Deploy-on-merge: merging the PR to `main` IS the deployment — the `Deploy Guide` workflow builds and publishes the site from the merge commit. There is no pre-merge deploy step. The pre-merge readiness proof is a green `scripts/check-all.sh` (fresh rebuild + full test suite) on the branch.
+
+## Confirmation
+
+**Pre-merge (readiness):** `scripts/check-all.sh` passes on the work branch.
+
+**Post-merge (promotion):**
 
 1. Confirm the `Deploy Guide` run for the merge commit **succeeded** (`gh run list --workflow=deploy-guide.yml`, then `gh run watch <id>`).
 2. Confirm the canonical site **renders**: `https://qmu.github.io/plgg/` returns HTTP 200 and shows the new content (e.g. the Guide / Packages nav and the per-package prose pages — there is no API reference section as of 2026-07-01).
