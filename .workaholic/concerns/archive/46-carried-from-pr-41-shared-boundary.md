@@ -5,9 +5,9 @@ origin_branch: work-20260624-135934
 origin_commit: c4dc8f1
 created_at: 2026-06-26T21:43:57+09:00
 severity: moderate
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: a8cf932
+resolved_by_commit: 
 ---
 
 # (carried from PR #41) Shared boundary error primitive not yet factored
