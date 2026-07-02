@@ -1,34 +1,35 @@
 // The guide's single information-architecture + home-data
-// instance: pure data validated through plgg-press's
+// instance: pure data validated through plggpress's
 // `defineSite` boundary caster. This replaces the old
 // VitePress `defineConfig` — there is deliberately no
-// dependency on the `vitepress` package here. plgg-press
+// dependency on the `vitepress` package here. plggpress
 // owns the
 // `SiteConfig` TYPE and the `defineSite` validator; this
 // file supplies only the guide's values (ported verbatim
 // from the former `.vitepress/config.ts` and `index.md`).
-import { defineSite } from "plgg-press";
+import {
+  defineSite,
+  type SidebarItemInput,
+} from "plggpress";
 
 // GitHub Pages serves a project site under `/<repo>/`; the
 // deploy workflow sets DOCS_BASE so links resolve there,
-// while local dev/preview stay at root. plgg-press's href
+// while local dev/preview stay at root. plggpress's href
 // helper is the single rewrite site downstream.
 const base = process.env.DOCS_BASE ?? "/";
 
 // A sidebar node as authored here: every node carries an
 // explicit `items` array (the leaf case is `[]`) so it
-// validates against plgg-press's `SidebarItem`, whose
+// validates against plggpress's `SidebarItemInput`, whose
 // `items` is required and whose `link` is optional.
-type Node = {
-  text: string;
-  link?: string;
-  items: ReadonlyArray<Node>;
-};
-
 const leaf = (
   text: string,
   link: string,
-): Node => ({ text, link, items: [] });
+): SidebarItemInput => ({
+  text,
+  link,
+  items: [],
+});
 
 // One top-level sidebar group per package. The group header
 // links to nothing itself; its child is the package's prose
@@ -39,7 +40,7 @@ type PackageGroup = {
   key: string;
   text: string;
   overview: string;
-  docs?: ReadonlyArray<Node>;
+  docs?: ReadonlyArray<SidebarItemInput>;
 };
 
 const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
@@ -90,6 +91,11 @@ const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
       overview: "/packages/plgg-sql",
     },
     {
+      key: "plgg-db-migration",
+      text: "plgg-db-migration",
+      overview: "/packages/plgg-db-migration",
+    },
+    {
       key: "plgg-kit",
       text: "plgg-kit",
       overview: "/packages/plgg-kit",
@@ -98,6 +104,36 @@ const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
       key: "plgg-foundry",
       text: "plgg-foundry",
       overview: "/packages/plgg-foundry",
+    },
+    {
+      key: "plgg-cli",
+      text: "plgg-cli",
+      overview: "/packages/plgg-cli",
+    },
+    {
+      key: "plgg-md",
+      text: "plgg-md",
+      overview: "/packages/plgg-md",
+    },
+    {
+      key: "plgg-highlight",
+      text: "plgg-highlight",
+      overview: "/packages/plgg-highlight",
+    },
+    {
+      key: "plgg-bundle",
+      text: "plgg-bundle",
+      overview: "/packages/plgg-bundle",
+    },
+    {
+      key: "plggmatic",
+      text: "plggmatic",
+      overview: "/packages/plggmatic",
+    },
+    {
+      key: "plggpress",
+      text: "plggpress",
+      overview: "/packages/plggpress",
     },
     {
       key: "plgg-test",
@@ -115,7 +151,9 @@ const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
 // the package's prose. With extra prose pages (only plgg
 // core today) it nests them beneath the Overview; otherwise
 // it is a plain link to the single prose page.
-const guideNode = (group: PackageGroup): Node => {
+const guideNode = (
+  group: PackageGroup,
+): SidebarItemInput => {
   const docs = group.docs ?? [];
   return {
     text: "Guide",
@@ -130,7 +168,7 @@ const packageGroup = (
   group: PackageGroup,
 ): {
   text: string;
-  items: ReadonlyArray<Node>;
+  items: ReadonlyArray<SidebarItemInput>;
 } => ({
   text: group.text,
   items: [guideNode(group)],
@@ -292,7 +330,7 @@ const config = {
     ],
   },
   // dev.allowedHosts (spike item 7): the extra Host headers
-  // plgg-press's node:http dev server accepts. localhost for
+  // plggpress's node:http dev server accepts. localhost for
   // local work; plgg-guide.qmu.dev for the port-5181
   // Cloudflare tunnel.
   dev: {
@@ -305,10 +343,10 @@ const config = {
 
 // Author-time validation through the boundary caster: an Ok
 // is the typed `SiteConfig`, an Err names the offending
-// field. Exported so a check / plgg-press can assert it.
+// field. Exported so a check / plggpress can assert it.
 export const site = defineSite(config);
 
-// The raw config DATA is the default export plgg-press's
+// The raw config DATA is the default export plggpress's
 // `loadConfig` reads and validates through `defineSite` at
 // build/dev time (the one place untrusted config crosses
 // into the typed core).

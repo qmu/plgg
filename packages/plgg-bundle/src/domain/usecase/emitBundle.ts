@@ -45,7 +45,8 @@ export const emitCjsBundle = (
  * ESM cannot declare exports dynamically. Externals are
  * imported as namespaces at the top and resolved by the
  * registry; an id that is neither a bundled module nor a
- * declared external is a build mistake and throws.
+ * declared external falls back to a native dynamic
+ * `import(id)` (see {@link externalFallback}).
  */
 export const emitEsmBundle = (
   graph: Graph,
@@ -108,12 +109,23 @@ const runtime = (
  * The ESM fallback body for an id with no bundled
  * module: resolve it from the external namespace table
  * (interop: a CJS consumer reads named members off the
- * namespace; `default` carries the whole module).
+ * namespace; `default` carries the whole module), or
+ * fall back to a native dynamic `import(id)`. Static
+ * imports are always bundled or declared external, so
+ * only a transpiled dynamic `import(x)` — emitted as
+ * `Promise.resolve(x).then(s => __require(s))`, an
+ * async context where the returned Promise flattens —
+ * ever reaches the fallback; it lets bundled code load
+ * runtime files (e.g. a user's config) the registry
+ * cannot know. The CJS runtime keeps its host
+ * `require(id)` fall-through instead: its unknown-id
+ * branch is also reached by synchronous requires, where
+ * a returned Promise would corrupt the module value.
  */
 const externalFallback = (): string =>
   [
     `if (id in __externals) return __externals[id];`,
-    `throw new Error("Cannot resolve external '" + id + "'");`,
+    `return import(id);`,
   ].join(" ");
 
 /**

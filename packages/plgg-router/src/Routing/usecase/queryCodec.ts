@@ -2,11 +2,14 @@ import {
   Dict,
   Option,
   SoftStr,
+  Int,
   some,
   none,
   pipe,
   getOr,
   matchOption,
+  matchResult,
+  asInt,
 } from "plgg";
 
 /**
@@ -50,19 +53,18 @@ export const queryStr = (
  * do not parse strings), falling back on a missing or non-integer token.
  */
 export const queryInt = (
-  fallback: number,
-): FieldCodec<number> => ({
+  fallback: Int,
+): FieldCodec<Int> => ({
   decode: (token) =>
     pipe(
       token,
       matchOption(
         () => fallback,
-        (raw: SoftStr) => {
-          const parsed = Number(raw);
-          return Number.isInteger(parsed)
-            ? parsed
-            : fallback;
-        },
+        (raw: SoftStr) =>
+          matchResult(
+            () => fallback,
+            (i: Int) => i,
+          )(asInt(Number(raw))),
       ),
     ),
   encode: (value) =>

@@ -1,6 +1,6 @@
 name: Deploy Guide
 
-# Build the plgg-press guide (packages/guide) — including the auto-generated,
+# Build the plggpress guide (packages/guide) — including the auto-generated,
 # per-package API reference — and publish it to GitHub Pages.
 #
 # Independent of the CalVer release pipeline (prepare-release/release): the docs
@@ -58,7 +58,7 @@ jobs:
       # plgg-highlight imports typescript from its OWN path (same clean-runner
       # masking as plgg-bundle): the `file:` link doesn't install its
       # node_modules, so install them once before the loop. plgg-highlight is
-      # reached transitively via plgg-press, whose build needs the highlighter.
+      # reached transitively via plggpress, whose build needs the highlighter.
       - name: Install plgg-highlight dependencies
         run: npm ci
         working-directory: packages/plgg-highlight
@@ -68,19 +68,19 @@ jobs:
           set -e
           for pkg in plgg plgg-test plgg-http plgg-router plgg-view plgg-kit \
                      plgg-server plgg-fetch plgg-sql plgg-foundry \
-                     plgg-md plgg-highlight plgg-press; do
+                     plgg-md plgg-highlight plggpress; do
             echo "::group::build $pkg"
             (cd "packages/$pkg" && npm ci && npm run build)
             echo "::endgroup::"
           done
 
-      - name: Build the guide (plgg-press)
+      - name: Build the guide (plggpress)
         # DOCS_BASE makes links resolve under the project Pages path.
         env:
           DOCS_BASE: /plgg/
         run: |
           npm ci
-          npx plgg-press build --config site.config.ts --contentDir . --outDir dist
+          npx plggpress build --config site.config.ts --contentDir . --outDir dist
         working-directory: packages/guide
 
       - name: Upload Pages artifact

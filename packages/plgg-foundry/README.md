@@ -1,6 +1,6 @@
 # plgg-foundry
 
-⚠️ **UNSTABLE** - This is experimental study work focused on functional programming concepts. Primarily intended for our own projects, though publicly available.
+⚠️ **UNSTABLE** - This is experimental study work focused on functional programming concepts. Primarily intended for our own projects, though publicly available. Part of the [plgg monorepo](../../README.md).
 
 **plgg-foundry** is an AI-powered workflow orchestration library that dynamically composes and executes operations based on user requests. It uses LLM structured outputs to generate execution plans (called "Alignments") from a set of available operations you define (called a "Foundry").
 

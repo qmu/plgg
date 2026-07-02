@@ -27,7 +27,7 @@ const app = pipe(
     ok(textResponse("<h1>home</h1>")),
   ),
   get("/missing", async () =>
-    ok(textResponse("gone", 404)),
+    ok(textResponse("gone", statusOf(404))),
   ),
 );
 

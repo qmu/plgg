@@ -93,3 +93,9 @@ jobs:
       - name: Run tests with coverage
         run: npm run coverage
         working-directory: packages/plgg
+
+      # The in-house bundler grew a dev-server (module-runner
+      # hot-reload); gate its own suite + coverage in CI so
+      # the new toolchain code compiles + tests reproducibly.
+      - name: Run plgg-bundle coverage
+        run: ./scripts/coverage-plgg-bundle.sh

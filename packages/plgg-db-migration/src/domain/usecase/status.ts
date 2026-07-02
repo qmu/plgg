@@ -1,4 +1,9 @@
-import { PromisedResult, ok, isOk } from "plgg";
+import {
+  PromisedResult,
+  Defect,
+  ok,
+  proc,
+} from "plgg";
 import { SqlError } from "plgg-sql";
 import { Migrator } from "plgg-db-migration/domain/model/Migrator";
 import { Plan } from "plgg-db-migration/domain/model/Plan";
@@ -17,23 +22,14 @@ export const status = (
   migrator: Migrator,
 ): PromisedResult<
   Plan,
-  MigrationError | SqlError
+  MigrationError | SqlError | Defect
 > =>
-  ensureSchemaMigrations(
-    migrator.db,
-    migrator.dialect,
-  ).then((ensured) =>
-    isOk(ensured)
-      ? listApplied(migrator.db).then(
-          (appliedRes) =>
-            isOk(appliedRes)
-              ? ok(
-                  planMigrations(
-                    migrator.dir,
-                    appliedRes.content,
-                  ),
-                )
-              : appliedRes,
-        )
-      : ensured,
+  proc(
+    ensureSchemaMigrations(
+      migrator.db,
+      migrator.dialect,
+    ),
+    () => listApplied(migrator.db),
+    (applied) =>
+      ok(planMigrations(migrator.dir, applied)),
   );

@@ -1,0 +1,13 @@
+{
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/index.ts",
+      "/runApp.ts",
+      "/valid.config.ts",
+      "/invalid.config.ts",
+      "/named-only.config.ts",
+      "/throws.config.ts"
+    ]
+  }
+}

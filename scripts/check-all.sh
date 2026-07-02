@@ -9,6 +9,10 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # shared-with-CI canonical gate (scripts/gate-happy-dom.sh).
 ./scripts/gate-happy-dom.sh
 
+# Gate: every package is documented and linked top-to-bottom — presence, the
+# root README index, back-links, and no dead links (scripts/gate-readme.sh).
+./scripts/gate-readme.sh
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh
@@ -26,7 +30,9 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-highlight.sh
 ./scripts/test-plgg-router.sh
 ./scripts/test-plgg-server.sh
-./scripts/test-plgg-press.sh
+./scripts/test-plgg-cli.sh
+./scripts/test-plggmatic.sh
+./scripts/test-plggpress.sh
 ./scripts/test-plgg-fetch.sh
 ./scripts/test-plgg-sql.sh
 ./scripts/test-plgg-db-migration.sh

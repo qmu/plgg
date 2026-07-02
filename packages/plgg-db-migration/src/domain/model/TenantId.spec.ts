@@ -45,6 +45,59 @@ test("asTenantId rejects an empty string and a non-string", () =>
     ),
   ]));
 
+test("asTenantId rejects path-traversal and separator ids", () =>
+  all(
+    [
+      "..",
+      "../x",
+      "a/b",
+      "a\\b",
+      "a\0b",
+      ".hidden",
+      "a b",
+      "a.b",
+      "%2e%2e",
+      "x".repeat(65),
+    ].map((bad) =>
+      check(
+        asTenantId(bad),
+        errThen((e) =>
+          check(
+            e.content.kind,
+            toBe("TenantShape"),
+          ),
+        ),
+      ),
+    ),
+  ));
+
+test("asTenantId accepts the 64-char boundary but rejects 65", () =>
+  all([
+    check(
+      asTenantId("x".repeat(64)),
+      okThen((t) =>
+        check(tenantIdString(t).length, toBe(64)),
+      ),
+    ),
+    check(
+      asTenantId("x".repeat(65)),
+      errThen((e) =>
+        check(
+          e.content.kind,
+          toBe("TenantShape"),
+        ),
+      ),
+    ),
+  ]));
+
+test("a traversal id never yields an Ok TenantId", () =>
+  check(
+    asTenantId("../tenant-victim/db"),
+    errThen((e) =>
+      check(e.content.kind, toBe("TenantShape")),
+    ),
+  ));
+
 test("asTenantId is idempotent; isTenantId guards branded values", () =>
   check(
     asTenantId("acme"),

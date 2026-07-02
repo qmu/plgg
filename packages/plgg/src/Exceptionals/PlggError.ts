@@ -19,6 +19,7 @@ import {
   isSome,
   isObj,
   isBox,
+  foldThrown,
 } from "plgg/index";
 
 /**
@@ -174,11 +175,13 @@ const boxToError = (
  * passes through; a tagged error `Box` is folded by {@link boxToError}.
  */
 export const toError = (e: unknown): Error =>
-  e instanceof Error
-    ? e
-    : isBox(e)
-      ? boxToError(e)
-      : new Error(String(e));
+  foldThrown<Error>(
+    (err) => err,
+    (v) =>
+      isBox(v)
+        ? boxToError(v)
+        : new Error(String(v)),
+  )(e);
 
 /**
  * Throws at an outer seam that demands a thrown `Error` (a framework boundary).

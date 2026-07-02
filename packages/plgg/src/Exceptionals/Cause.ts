@@ -4,6 +4,7 @@ import {
   none,
   some,
   fromNullable,
+  foldThrown,
 } from "plgg/index";
 
 /**
@@ -23,17 +24,18 @@ export type Cause = Readonly<{
  * Snapshots an unknown thrown value into a serializable {@link Cause}.
  */
 export const toCause = (value: unknown): Cause =>
-  value instanceof Error
-    ? {
-        name: value.name,
-        message: value.message,
-        stack: fromNullable(value.stack),
-      }
-    : {
-        name: "NonError",
-        message: String(value),
-        stack: none(),
-      };
+  foldThrown<Cause>(
+    (e) => ({
+      name: e.name,
+      message: e.message,
+      stack: fromNullable(e.stack),
+    }),
+    (v) => ({
+      name: "NonError",
+      message: String(v),
+      stack: none(),
+    }),
+  )(value);
 
 /**
  * Lifts an optional thrown value into an `Option<Cause>` — `none` when absent.

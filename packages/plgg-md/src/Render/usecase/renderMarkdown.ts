@@ -332,7 +332,7 @@ export const renderMarkdownWith =
 /**
  * Renders Markdown with the default seams — the plain
  * (compiler-free) highlighter and the identity link
- * resolver. `plgg-press`/`plgg-highlight` inject the real
+ * resolver. `plggpress`/`plgg-highlight` inject the real
  * ones via {@link renderMarkdownWith}.
  */
 export const renderMarkdown = (

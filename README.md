@@ -67,17 +67,51 @@ The SSR + CSR round-trip over one Elm-Architecture program is in [`packages/exam
 
 ## Project Structure
 
-This is a monorepo containing:
+This is a monorepo. Every package below has its own `README.md` (linked from
+its name); this section is the top-level index that links down to each.
+
+**Core**
 
 - **[`packages/plgg/`](packages/plgg/)** - Core library: type-safe functional primitives (Result, Option, pipelines, branded types, numeric types)
-- **[`packages/plgg-kit/`](packages/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
-- **[`packages/plgg-foundry/`](packages/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
+
+**HTTP family**
+
 - **[`packages/plgg-http/`](packages/plgg-http/)** - Runtime-neutral HTTP model (request/response/status/method/error) — pure data + builders, no `node:http`/`fetch`. The shared base both plgg-server and plgg-fetch build on, so neither imports the other.
 - **[`packages/plgg-server/`](packages/plgg-server/)** - Server-side web router and HTTP handler built from scratch on plgg (pipeline-composed `Web`, node:http adapter), consuming plgg-http's model
 - **[`packages/plgg-fetch/`](packages/plgg-fetch/)** - Typed HTTP client built from scratch on plgg, symmetric peer of plgg-server — both share plgg-http's model (`fetch` seam, errors as values)
+
+**View & routing**
+
 - **[`packages/plgg-view/`](packages/plgg-view/)** - Minimal Elm Architecture (TEA) for the browser: a typed `Html<Msg>` view tree (Elm-style hyperscript builders, no JSX), pure `sandbox`/`application` runtimes, and SSR `renderToString`. Built on plgg only.
 - **[`packages/plgg-router/`](packages/plgg-router/)** - Pure client-side path toolkit: compile/match path patterns (`:param`/`*wildcard`) and parse the query string into `Location` data — view-free and DOM-free. Consumed by plgg-view's `application` runtime, which owns the History/render loop. plgg-server's `Routing` is the server-side path → `HttpResponse` matcher; plgg-router shares its `Segment`/`:param`/`*` vocabulary by parallel definition.
-- **[`packages/example/`](packages/example/)** - Example usage project
+
+**Data**
+
+- **[`packages/plgg-sql/`](packages/plgg-sql/)** - SQL as data-last pipeline steps built from scratch on plgg: tagged-template queries, transactions, and typed row mapping that drop into a `proc`/`pipe` chain; the database driver lives at an app-supplied seam
+- **[`packages/plgg-db-migration/`](packages/plgg-db-migration/)** - Minimal dbmate-style schema-migration tool on plgg + plgg-sql: single-file up/down migrations, a `schema_migrations` ledger, on-demand per-tenant SQLite, zero new dependencies
+
+**AI**
+
+- **[`packages/plgg-kit/`](packages/plgg-kit/)** - LLM provider abstractions (OpenAI, Anthropic, Google) with structured output support
+- **[`packages/plgg-foundry/`](packages/plgg-foundry/)** - AI-powered workflow orchestration with a register machine model
+
+**CLI**
+
+- **[`packages/plgg-cli/`](packages/plgg-cli/)** - Toolkit for building command-line program wrappers on plgg: typed commands/options, argv parsing, and a Result-to-exit-code fold with an auto-generated usage banner
+
+**Docs & build toolchain**
+
+- **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
+- **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-new-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, driving the vendored `typescript` scanner into classified plgg-view `Html` spans
+- **[`packages/plggmatic/`](packages/plggmatic/)** - Pre-organized, composable full-stack web-application framework on the plgg family: config loading, a router builder, static-build orchestration, and a pre-organized CLI
+- **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator built on plggmatic: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide
+- **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
+- **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
+
+**Site & tutorial**
+
+- **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
+- **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
 
 ## Installation
 
@@ -314,6 +348,60 @@ See [packages/plgg-view/README.md](packages/plgg-view/README.md) for details.
 A pure client-side path toolkit: `compilePattern`/`matchSegments`/`parseQuery`/`param`/`query` turn a URL into `Location` data (captured `:param`s + parsed query), returning data and never a view. View-free and DOM-free — plgg-view's `application` runtime consumes it for routing while owning the History/render loop. Shares the `Segment`/`:param`/`*wildcard` vocabulary with plgg-server's server-side `Routing` by parallel definition (no import edge).
 
 See [packages/plgg-router/README.md](packages/plgg-router/README.md) for details.
+
+### plgg-sql
+
+SQL as data-last pipeline steps built from scratch on plgg: tagged-template queries, transactions, and typed row mapping that drop into a `proc`/`pipe` chain. The database driver lives entirely at an app-supplied seam; the only runtime dependency is plgg.
+
+See [packages/plgg-sql/README.md](packages/plgg-sql/README.md) for details.
+
+### plgg-db-migration
+
+A minimal, dbmate-style schema-migration tool on plgg + plgg-sql: single-file `up`/`down` migrations, a `schema_migrations` ledger, and on-demand per-tenant SQLite. Ships a `plgg-db-migration` CLI bin.
+
+See [packages/plgg-db-migration/README.md](packages/plgg-db-migration/README.md) for details.
+
+### plgg-cli
+
+A toolkit for building command-line program wrappers on plgg: declare commands and options as typed data, parse `process.argv` into a validated invocation, and fold the handler's `Result` into a shell outcome.
+
+See [packages/plgg-cli/README.md](packages/plgg-cli/README.md) for details.
+
+### plgg-md
+
+A Markdown-to-typed-data parser on plgg: a frontmatter splitter and a block tokenizer for the plggpress subset that produce an immutable `Box`-union AST (`Result`, never throws). Underpins plggpress content parsing.
+
+See [packages/plgg-md/README.md](packages/plgg-md/README.md) for details.
+
+### plgg-highlight
+
+Zero-new-dependency TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, driving the vendored `typescript` scanner into classified plgg-view `Html<never>` spans, with an escaped `<pre><code>` fallback.
+
+See [packages/plgg-highlight/README.md](packages/plgg-highlight/README.md) for details.
+
+### plggmatic
+
+A pre-organized, composable full-stack web-application framework on the plgg family: config loading, a router builder, static-build orchestration, and a pre-organized CLI — the framework-generic seam an app supplies its content/render specifics to.
+
+See [packages/plggmatic/README.md](packages/plggmatic/README.md) for details.
+
+### plggpress
+
+A VitePress-like static-site generator built on plggmatic: a typed `SiteConfig` contract, a single base-path href resolver, a config-loading CLI, and a build pipeline with a build-time dead-link checker. It is the engine that builds this guide.
+
+See [packages/plggpress/README.md](packages/plggpress/README.md) for details.
+
+### plgg-bundle
+
+The monorepo's in-house minimal library bundler (dual ESM+CJS output plus a per-file `.d.ts` tree) and dev server — plgg-free with zero new dependencies, reusing the project's own TypeScript.
+
+See [packages/plgg-bundle/README.md](packages/plgg-bundle/README.md) for details.
+
+### plgg-test
+
+The in-house minimal test runner — the `plgg-test` bin every package's test/coverage scripts call: spec discovery, assertions and matchers, mocks, and a coverage threshold gate.
+
+See [packages/plgg-test/README.md](packages/plgg-test/README.md) for details.
 
 ## Development
 

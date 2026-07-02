@@ -1,6 +1,7 @@
 import {
   Option,
   SoftStr,
+  Float,
   some,
   none,
   pipe,
@@ -382,7 +383,9 @@ const frameToKeyframe = (
 ): Keyframe => ({
   ...matchOption(
     () => ({}),
-    (opacity: number) => ({ opacity }),
+    (opacity: Float) => ({
+      opacity: opacity.content,
+    }),
   )(frame.opacity),
   ...matchOption(
     () => ({}),

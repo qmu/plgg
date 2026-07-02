@@ -36,7 +36,7 @@ import { normalizeLang } from "plgg-highlight/Lang/usecase/normalizeLang";
  * nine kinds so adding a kind is a compile error until it
  * is classed. Tokens carry only a semantic `tok-<kind>`
  * class, NOT an inline colour: the actual colours live in
- * the consuming theme's stylesheet (plgg-press `baseCss`),
+ * the consuming theme's stylesheet (plggpress `baseCss`),
  * which can therefore give them DIFFERENT palettes in
  * light and dark mode. (Inline colours could not adapt to
  * `html.dark` and could not be overridden by CSS, which is

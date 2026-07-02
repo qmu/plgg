@@ -16,9 +16,11 @@ import {
   SoftStr,
   Result,
   PromisedResult,
+  Defect,
   ok,
   err,
   isOk,
+  proc,
   tryCatch,
 } from "plgg";
 import { splitPath } from "plgg-server/index";
@@ -440,23 +442,14 @@ export const copyAssets =
     outDir: SoftStr,
   ): PromisedResult<
     ReadonlyArray<SoftStr>,
-    SsgError
+    SsgError | Defect
   > =>
-    listAssetFiles(srcDir).then(
-      (
-        listed: Result<
-          ReadonlyArray<Dirent>,
-          SsgError
-        >,
-      ): PromisedResult<
-        ReadonlyArray<SoftStr>,
-        SsgError
-      > =>
-        isOk(listed)
-          ? collectSeq(
-              copyOne(srcDir)(outDir),
-            )(listed.content)
-          : Promise.resolve(listed),
+    proc(
+      listAssetFiles(srcDir),
+      (listed: ReadonlyArray<Dirent>) =>
+        collectSeq(copyOne(srcDir)(outDir))(
+          listed,
+        ),
     );
 
 /**

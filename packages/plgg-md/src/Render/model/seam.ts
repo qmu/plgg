@@ -28,7 +28,7 @@ export type Highlighter = (
  * `plgg-md` ships only the {@link identityResolver};
  * the base-path-aware resolver (e.g. prefixing the deploy
  * base path, resolving `#fragment`s) is injected by
- * `plgg-press`, so this package owns NO base-path logic.
+ * `plggpress`, so this package owns NO base-path logic.
  */
 export type LinkResolver = (
   href: SoftStr,
@@ -54,7 +54,7 @@ export const plainHighlighter: Highlighter = (
 };
 
 /**
- * The default link resolver: identity. `plgg-press`
+ * The default link resolver: identity. `plggpress`
  * overrides it with its base-aware `href()` helper.
  */
 export const identityResolver: LinkResolver = (

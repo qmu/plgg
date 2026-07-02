@@ -1,0 +1,47 @@
+{
+  "name": "plggmatic",
+  "version": "0.0.1",
+  "description": "A pre-organized, lightweight, composable full-stack web application framework built on the plgg family: config loading, a router builder, static-build + dev-server orchestration, and a pre-organized CLI — the framework-generic seam an app supplies its content/render specifics to.",
+  "type": "module",
+  "main": "dist/index.es.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.es.js"
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch",
+    "publish": "npm run build && npm publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-http": "file:../plgg-http",
+    "plgg-server": "file:../plgg-server",
+    "plgg-cli": "file:../plgg-cli"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

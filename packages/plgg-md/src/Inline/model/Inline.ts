@@ -11,8 +11,8 @@ import {
  * Produced by `renderInline` from a single line of
  * source and folded to a `plgg-view` phrasing tree by
  * the renderer. A `Box` union over the bounded
- * plgg-press inline subset (see
- * `docs/plgg-press-migration/spike-decisions.md` §7).
+ * plggpress inline subset (see
+ * `docs/plggpress-migration/spike-decisions.md` §7).
  *
  * There is intentionally **no** raw-HTML variant: a
  * stray `<`/`>` rides along inside {@link Text} and is

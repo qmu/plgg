@@ -5,7 +5,7 @@ import {
   toBe,
   toEqual,
 } from "plgg-test";
-import { some, none } from "plgg";
+import { some, none, box } from "plgg";
 import {
   attr,
   on,
@@ -97,11 +97,11 @@ test("fadeIn builds an enter-only Anim directive", () =>
     content: {
       enter: some({
         from: {
-          opacity: some(0),
+          opacity: some(box("Float")(0)),
           transform: none(),
         },
         to: {
-          opacity: some(1),
+          opacity: some(box("Float")(1)),
           transform: none(),
         },
         durationMs: 150,
@@ -121,11 +121,11 @@ test("fadeOut builds an exit-only Anim directive", () => {
           toEqual(
             some({
               from: {
-                opacity: some(1),
+                opacity: some(box("Float")(1)),
                 transform: none(),
               },
               to: {
-                opacity: some(0),
+                opacity: some(box("Float")(0)),
                 transform: none(),
               },
               durationMs: 120,
@@ -147,13 +147,13 @@ test("slideIn carries a transform on both endpoints", () => {
           toEqual(
             some({
               from: {
-                opacity: some(0),
+                opacity: some(box("Float")(0)),
                 transform: some(
                   "translateY(12px)",
                 ),
               },
               to: {
-                opacity: some(1),
+                opacity: some(box("Float")(1)),
                 transform: some("translateY(0)"),
               },
               durationMs: 200,
@@ -167,8 +167,8 @@ test("slideIn carries a transform on both endpoints", () => {
 
 test("transition carries both directions when given", () => {
   const enter = {
-    from: { opacity: some(0), transform: none() },
-    to: { opacity: some(1), transform: none() },
+    from: { opacity: some(box("Float")(0)), transform: none() },
+    to: { opacity: some(box("Float")(1)), transform: none() },
     durationMs: 100,
     easing: "linear",
   };

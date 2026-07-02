@@ -2,11 +2,11 @@
 
 A **development workload**: one container that serves the
 [`guide`](../../packages/guide/) site through
-[`plgg-press`](../../packages/plgg-press/) with hot-reload —
+[`plggpress`](../../packages/plggpress/) with hot-reload —
 so you can read and edit the official plgg family guide
 locally without installing the toolchain on the host.
 
-This is a dev image (it runs the `plgg-press dev` server).
+This is a dev image (it runs the `plggpress dev` server).
 The static production build and deploy are T8.
 
 ## Run it
@@ -19,7 +19,7 @@ bash scripts/serve-guide.sh
 
 Then open <http://localhost:5181>. Editing any Markdown
 under `packages/guide/` reloads the page live (the repo is
-mounted into the container and `plgg-press dev` watches the
+mounted into the container and `plggpress dev` watches the
 content tree, pushing reloads over SSE).
 
 The script is a thin wrapper over the underlying compose
@@ -35,12 +35,12 @@ interactive-only, so the script resolves a real binary).
 The compose file is engine-agnostic; on a podman host run
 `podman compose -f workloads/guide/compose.yaml up --build`.
 
-## How the container resolves plgg-press's siblings
+## How the container resolves plggpress's siblings
 
-`plgg-press` is not a single self-contained package: it
+`plggpress` is not a single self-contained package: it
 imports seven sibling built dists — `plgg`, `plgg-view`,
 `plgg-server`, `plgg-http`, `plgg-md`, `plgg-highlight`,
-and `plgg-press` itself. The old single-package VitePress
+and `plggpress` itself. The old single-package VitePress
 install never needed them, so the container has to provide
 them now.
 
@@ -52,7 +52,7 @@ tree, where Node actually resolves them. That work lives in
 [`dev-entrypoint.sh`](dev-entrypoint.sh), which on startup:
 
 1. **Installs the runtime symlink graph** — `npm install`
-   in each package in plgg-press's runtime graph, in
+   in each package in plggpress's runtime graph, in
    dependency order. `file:` deps do not cascade, so every
    package needs its own `node_modules`; in particular
    `plgg-highlight` is where `typescript` (which it imports
@@ -63,7 +63,7 @@ tree, where Node actually resolves them. That work lives in
    dependency-ordered, in-house bundler build. Because this
    runs after the mount, the dists are written onto the
    mounted tree and survive it.
-3. **Serves the guide** with `plgg-press dev` on the
+3. **Serves the guide** with `plggpress dev` on the
    container's internal port **5173**.
 
 Each `node_modules` the entrypoint installs into is an
@@ -85,7 +85,7 @@ tunnel (and rejects unknown Hosts with a 403).
 The guide's landing page, with the full nav and sidebar
 information architecture (Guide / Packages /
 Contributing) navigable end to end. The dev container runs
-`plgg-press dev` and serves the guide's Markdown content
+`plggpress dev` and serves the guide's Markdown content
 directly.
 
 ## Coexists with the example demo

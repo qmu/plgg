@@ -12,6 +12,7 @@ import {
   dialectMismatch,
   versionShape,
   tenantShape,
+  nameShape,
   ioFailure,
   ledgerCorrupt,
   missingMigration,
@@ -51,6 +52,10 @@ test("each constructor tags a MigrationError with its kind", () =>
     check(
       tenantShape("x").content.kind,
       toBe("TenantShape"),
+    ),
+    check(
+      nameShape("x").content.kind,
+      toBe("NameShape"),
     ),
     check(
       ledgerCorrupt("x").content.kind,

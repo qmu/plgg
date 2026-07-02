@@ -1,67 +1,85 @@
-import {
-  Box,
-  SoftStr,
-  box,
-  pattern,
-  match,
-} from "plgg";
+import { SoftStr, match, defineVariant } from "plgg";
 import {
   Method,
   HttpStatus,
   HttpResponse,
   textResponse,
+  statusOf,
 } from "plgg-http/index";
 
-/**
+/*
  * Routing/handling failures as values, modeled as a plgg `Box` union so they
  * can be carried through `Result` and folded into a response at the seam. Each
  * variant's `content` is a structured object payload (not a bare string), so the
- * vocabulary composes with the rest of the `Box`-wrapped error model.
+ * vocabulary composes with the rest of the `Box`-wrapped error model. Each
+ * variant is a `defineVariant` so its tag literal is written exactly once.
+ */
+const NotFound = defineVariant("NotFound")<{
+  path: SoftStr;
+}>();
+const MethodNotAllowed = defineVariant(
+  "MethodNotAllowed",
+)<{ allowed: ReadonlyArray<Method> }>();
+const BadRequest = defineVariant("BadRequest")<{
+  message: SoftStr;
+}>();
+const Unsupported = defineVariant("Unsupported")<{
+  message: SoftStr;
+}>();
+const Unauthorized = defineVariant("Unauthorized")<{
+  message: SoftStr;
+}>();
+const Forbidden = defineVariant("Forbidden")<{
+  message: SoftStr;
+}>();
+const StatusError = defineVariant("StatusError")<{
+  status: HttpStatus;
+  message: SoftStr;
+}>();
+const InternalError = defineVariant(
+  "InternalError",
+)<{ message: SoftStr }>();
+
+/**
+ * The union of routing/handling failures.
  */
 export type HttpError =
-  | Box<"NotFound", { path: SoftStr }>
-  | Box<
-      "MethodNotAllowed",
-      { allowed: ReadonlyArray<Method> }
-    >
-  | Box<"BadRequest", { message: SoftStr }>
-  | Box<"Unsupported", { message: SoftStr }>
-  | Box<"Unauthorized", { message: SoftStr }>
-  | Box<"Forbidden", { message: SoftStr }>
-  | Box<
-      "StatusError",
-      { status: HttpStatus; message: SoftStr }
-    >
-  | Box<"InternalError", { message: SoftStr }>;
+  | ReturnType<typeof NotFound.make>
+  | ReturnType<typeof MethodNotAllowed.make>
+  | ReturnType<typeof BadRequest.make>
+  | ReturnType<typeof Unsupported.make>
+  | ReturnType<typeof Unauthorized.make>
+  | ReturnType<typeof Forbidden.make>
+  | ReturnType<typeof StatusError.make>
+  | ReturnType<typeof InternalError.make>;
 
 /**
  * No route matched the request path.
  */
 export const notFound = (
   path: SoftStr,
-): HttpError => box("NotFound")({ path });
+): HttpError => NotFound.make({ path });
 
 /**
  * The path matched but no route accepts the request method.
  */
 export const methodNotAllowed = (
   allowed: ReadonlyArray<Method>,
-): HttpError =>
-  box("MethodNotAllowed")({ allowed });
+): HttpError => MethodNotAllowed.make({ allowed });
 
 /**
  * The request was malformed.
  */
 export const badRequest = (
   message: SoftStr,
-): HttpError => box("BadRequest")({ message });
+): HttpError => BadRequest.make({ message });
 
 /**
  * The request method is not supported by this server.
  */
 export const unsupported = (
   message: SoftStr,
-): HttpError => box("Unsupported")({ message });
+): HttpError => Unsupported.make({ message });
 
 /**
  * The request lacks valid authentication credentials (401). Distinct from
@@ -69,14 +87,14 @@ export const unsupported = (
  */
 export const unauthorized = (
   message: SoftStr,
-): HttpError => box("Unauthorized")({ message });
+): HttpError => Unauthorized.make({ message });
 
 /**
  * The client is authenticated but not permitted to access the resource (403).
  */
 export const forbidden = (
   message: SoftStr,
-): HttpError => box("Forbidden")({ message });
+): HttpError => Forbidden.make({ message });
 
 /**
  * A failure at an arbitrary status code, for cases the explicit variants do
@@ -86,36 +104,29 @@ export const statusError = (
   status: HttpStatus,
   message: SoftStr,
 ): HttpError =>
-  box("StatusError")({ status, message });
+  StatusError.make({ status, message });
 
 /**
  * An unexpected failure occurred while handling the request.
  */
 export const internalError = (
   message: SoftStr,
-): HttpError => box("InternalError")({ message });
+): HttpError => InternalError.make({ message });
 
 /*
  * Pattern matchers for folding an {@link HttpError} with `match`, so call sites
  * reference the variant by name (`match(e)([notFound$(), …])`) rather than a
  * bare tag string. Each mirrors its constructor above.
  */
-export const notFound$ = () =>
-  pattern("NotFound")();
-export const methodNotAllowed$ = () =>
-  pattern("MethodNotAllowed")();
-export const badRequest$ = () =>
-  pattern("BadRequest")();
-export const unsupported$ = () =>
-  pattern("Unsupported")();
-export const unauthorized$ = () =>
-  pattern("Unauthorized")();
-export const forbidden$ = () =>
-  pattern("Forbidden")();
-export const statusError$ = () =>
-  pattern("StatusError")();
-export const internalError$ = () =>
-  pattern("InternalError")();
+export const notFound$ = NotFound.pattern;
+export const methodNotAllowed$ =
+  MethodNotAllowed.pattern;
+export const badRequest$ = BadRequest.pattern;
+export const unsupported$ = Unsupported.pattern;
+export const unauthorized$ = Unauthorized.pattern;
+export const forbidden$ = Forbidden.pattern;
+export const statusError$ = StatusError.pattern;
+export const internalError$ = InternalError.pattern;
 
 /**
  * De-duplicates while preserving first-seen order.
@@ -135,46 +146,67 @@ export const httpErrorToResponse = (
     [
       notFound$(),
       (): HttpResponse =>
-        textResponse("Not Found", 404),
+        textResponse("Not Found", statusOf(404)),
     ],
     [
       methodNotAllowed$(),
       (e): HttpResponse =>
-        textResponse("Method Not Allowed", 405, {
-          allow: unique(e.content.allowed).join(", "),
-        }),
+        textResponse(
+          "Method Not Allowed",
+          statusOf(405),
+          {
+            allow: unique(e.content.allowed).join(
+              ", ",
+            ),
+          },
+        ),
     ],
     [
       badRequest$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 400),
+        textResponse(
+          e.content.message,
+          statusOf(400),
+        ),
     ],
     [
       unsupported$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 501),
+        textResponse(
+          e.content.message,
+          statusOf(501),
+        ),
     ],
     [
       unauthorized$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 401),
+        textResponse(
+          e.content.message,
+          statusOf(401),
+        ),
     ],
     [
       forbidden$(),
       (e): HttpResponse =>
-        textResponse(e.content.message, 403),
+        textResponse(
+          e.content.message,
+          statusOf(403),
+        ),
     ],
     [
       statusError$(),
       (e): HttpResponse =>
         textResponse(
           e.content.message,
-          e.content.status.content,
+          e.content.status,
         ),
     ],
     [
       internalError$(),
       (): HttpResponse =>
-        textResponse("Internal Server Error", 500),
+        textResponse(
+          "Internal Server Error",
+          statusOf(500),
+        ),
     ],
   );

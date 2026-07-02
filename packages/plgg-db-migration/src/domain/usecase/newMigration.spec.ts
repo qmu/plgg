@@ -4,9 +4,13 @@ import {
   all,
   toBe,
   okThen,
+  errThen,
 } from "plgg-test";
 import { isOk } from "plgg";
-import { mkdtempSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import {
   newMigration,
@@ -60,4 +64,50 @@ test("newMigration writes a timestamped up/down skeleton and returns its path", 
       ),
     ),
   ]);
+});
+
+test("newMigration rejects a traversal name and writes nothing", async () => {
+  const dir = mkdtempSync(
+    joinPath(tmpdir(), "plgg-dbm-bad-"),
+  );
+  const result = await newMigration(
+    dir,
+    "../evil",
+    new Date(Date.UTC(2026, 0, 1, 0, 0, 0)),
+  );
+  return all([
+    check(
+      result,
+      errThen((e) =>
+        check(e.content.kind, toBe("NameShape")),
+      ),
+    ),
+    check(readdirSync(dir).length, toBe(0)),
+  ]);
+});
+
+test("newMigration rejects separators, dot names, and blanks", async () => {
+  const results = await Promise.all(
+    ["a/b", "a\\b", "..", ".", "a b", ""].map(
+      (bad) =>
+        newMigration(
+          "unused-dir",
+          bad,
+          new Date(Date.UTC(2026, 0, 1)),
+        ),
+    ),
+  );
+  return all(
+    results.map((result) =>
+      check(
+        result,
+        errThen((e) =>
+          check(
+            e.content.kind,
+            toBe("NameShape"),
+          ),
+        ),
+      ),
+    ),
+  );
 });
