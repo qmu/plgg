@@ -3,9 +3,9 @@ created_at: 2026-07-03T00:05:41+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain, Config]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 0da6a45
+category: Changed
 depends_on:
 ---
 
@@ -95,3 +95,14 @@ Captured from the proposed gate (developer was away; recommended defaults record
 - Zero new external dependencies: this ticket adds re-export surface, not runtime weight; nothing outside the plgg family enters any package.json
 - Do NOT touch plggpress in this ticket — the consumer rewire is `20260703000542-plggpress-consume-thick-plggmatic.md`, which depends on this one; splitting keeps each change independently verifiable (mirrors the proven 213410→213411 split)
 - plggmatic must never depend on plggpress or any consumer; dependency direction stays foundation → mid-libs → framework → consumer
+
+## Final Report
+
+Development completed as planned. plggmatic now wraps all five mid-library surfaces (main barrel + `plggmatic/ssg` + `plggmatic/style` mirrors), with the boundary amendment recorded in its README. Verified: `tsc-plgg.sh` clean; fresh `check-all.sh` exit 0; a compiler-API probe proved all 62 consumer-inventory symbols (values and types) resolve from the facade (338 root / 17 ssg / 67 style exports, none missing); escape-hatch grep clean.
+
+### Discovered Insights
+
+- **Insight**: plgg-server's per-file d.ts re-exports plgg-http and plgg-view by specifier, so their shared names are the SAME TypeScript symbols — `export *` from both is unambiguous. plgg-http's entire surface (42 names) is covered by plgg-server's re-exports.
+  **Context**: Star-export ambiguity only bites where declarations genuinely differ. Of ~56 name collisions across the five libs, only 9 are distinct symbols (`head`/`header`/`on` view-vs-server; `link`/`strong`/`table`/`text$`/`ListItem`/`TableRow` view-vs-md); ESM/TS silently drops those from star exports, so the facade re-exports the plgg-view variant explicitly. Any future facade work should re-run the symbol-identity check (TS compiler API, `getAliasedSymbol`) rather than trusting name-level collision lists.
+- **Insight**: plgg-bundle's `emitDts` preserves external module specifiers in the emitted d.ts, so a consumer resolves `export * from "plgg-view"` through plggmatic's OWN node_modules (npm `file:` symlinks resolve from the realpath).
+  **Context**: This is what makes the dep collapse work: plggpress can drop plgg-view et al. from its node_modules because plggmatic's node_modules supplies them at both type-check and runtime.

@@ -3,6 +3,8 @@
     "threshold": 90,
     "exclude": [
       "/index.ts",
+      "/ssg.ts",
+      "/style.ts",
       "/runApp.ts",
       "/valid.config.ts",
       "/invalid.config.ts",

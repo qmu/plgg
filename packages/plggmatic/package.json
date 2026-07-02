@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.es.js"
+    },
+    "./ssg": {
+      "types": "./dist/ssg.d.ts",
+      "default": "./dist/ssg.es.js"
+    },
+    "./style": {
+      "types": "./dist/style.d.ts",
+      "default": "./dist/style.es.js"
     }
   },
   "types": "dist/index.d.ts",
@@ -36,6 +44,9 @@
     "plgg": "file:../plgg",
     "plgg-http": "file:../plgg-http",
     "plgg-server": "file:../plgg-server",
+    "plgg-view": "file:../plgg-view",
+    "plgg-md": "file:../plgg-md",
+    "plgg-highlight": "file:../plgg-highlight",
     "plgg-cli": "file:../plgg-cli"
   },
   "devDependencies": {
