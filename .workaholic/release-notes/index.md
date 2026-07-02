@@ -11,3 +11,4 @@
 * [Foundation work validated: plgg-test self-suite, fidelity gate, and DOM seam etc](work-20260624-135934.md)
 * [Remove unused devDeps and add dependabot.yml to unblock security updates etc](work-20260628-010653.md)
 * [Add four foundation combinators to eliminate repetitive type scaffolding etc](work-20260701-185044.md)
+* [Deploy Guide builds plggmatic before plggpress; guide served at plgg.qmu.co.jp](work-20260703-020116.md)
