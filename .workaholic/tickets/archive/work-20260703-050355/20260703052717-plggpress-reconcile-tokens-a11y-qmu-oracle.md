@@ -3,9 +3,9 @@ created_at: 2026-07-03T05:27:17+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: a4e2c57
+category: Changed
 depends_on:
 ---
 
@@ -103,3 +103,16 @@ Recommended defaults recorded while the developer was away — confirm at the `/
 - The oracle repo is READ-ONLY for this work; discrepancies resolve by changing plggpress, never qmu-co-jp
 - Dark rgba values over dark backgrounds change effective contrast — spot-check WCAG AA for body/muted text after adoption (`accessibility-first`)
 - The guide build's byte-oracle from earlier tickets is obsolete for this change (output SHOULD differ); the regression instrument is the spec pinning + screenshots, not byte-identity
+
+## Final Report
+
+Development completed as planned. The diff table burned down in baseCss.ts: dark palette adopted qmu's exact translucent inks + single divider + WCAG-tuned knob; qmu sans stack and 1.75 body leading; heading scale corrections (h4 1.0625rem, letter-spacings removed, H1 3rem symmetry with content pt 3rem, sub-640px downscale, scroll-margin 3.75rem); prose links weight 500 with qmu's hit-area and wrap-clone; :focus-visible parity on every inversion; reduced-motion guard; translucent overlay inline-code badge with hover; tinted callouts with dark pairs; sidebar leaves at full ink on 4px pills; wordmark 1rem / footer 13px. 11 new value-pinning tests (baseCss.spec.ts) lock the oracle values.
+
+Re-affirmed exceptions: Inter local-only (vendor-neutrality, no font CDN); plggpress's own .tok-* highlight theme (plgg-highlight owns syntax color; qmu delegates to Shiki); zero-JS CSS-only controls (deliberate plggpress design vs qmu's React islands); h2/h3 margin rhythm stays hand-set (upstream is typography-plugin em-derived; not exactly reproducible without the plugin). Reassigned: heading-anchor #/##/### depth markers move to ticket 20260703052719 (they need renderer markup — plgg-md emits heading ids but no anchor links).
+
+### Discovered Insights
+
+- **Insight**: The discovery agent's "homeHero.spec latent contradiction" was a false alarm — the spec asserts not(toContain("vp-action")), i.e. it correctly requires actions NOT to render.
+  **Context**: Negative assertions read like expectations in a grep; verify polarity before "fixing" specs.
+- **Insight**: qmu's dark palette alphas (rgba over #1b1b1f) are part of the spec, not a rendering detail — the earlier opaque approximations shifted both contrast and hue subtly.
+  **Context**: When porting a token system, copy the value form (alpha vs opaque), not just the perceived color.
