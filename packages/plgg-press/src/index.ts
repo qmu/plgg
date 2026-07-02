@@ -40,7 +40,6 @@ export {
 export {
   type PressOptions,
   type BuildReport,
-  type DevServer,
 } from "plgg-press/Press/model/PressOptions";
 
 export {
@@ -65,5 +64,8 @@ export { checkLinks } from "plgg-press/CheckLinks/usecase/checkLinks";
 export { collectPageLinks } from "plgg-press/CheckLinks/usecase/collectPageLinks";
 
 export { build } from "plgg-press/build";
-export { dev } from "plgg-press/dev";
+export {
+  type DevEntryOptions,
+  pressDevEntry,
+} from "plgg-press/devEntry";
 export { loadConfig } from "plgg-press/Config/usecase/loadConfig";

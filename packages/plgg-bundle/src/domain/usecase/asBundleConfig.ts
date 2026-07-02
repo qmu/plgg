@@ -1,6 +1,7 @@
 import {
   type BundleConfig,
   type DevConfig,
+  type SourceAlias,
   type Entry,
   type Format,
   type Target,
@@ -71,8 +72,40 @@ const dev = (
       raw,
       "allowedHosts",
     ),
+    sourceAliases: sourceAliases(raw),
   };
 };
+
+/**
+ * The optional `sourceAliases` array (defaults to `[]`):
+ * each element `{ prefix, srcDir }` — both strings.
+ */
+const sourceAliases = (
+  o: Record<string, unknown>,
+): ReadonlyArray<SourceAlias> => {
+  const raw = o["sourceAliases"];
+  return raw === undefined
+    ? []
+    : Array.isArray(raw)
+      ? raw.map(sourceAlias)
+      : fail(
+          `"sourceAliases" must be an array`,
+        );
+};
+
+const sourceAlias = (
+  raw: unknown,
+): SourceAlias =>
+  isRecord(raw) &&
+  typeof raw["prefix"] === "string" &&
+  typeof raw["srcDir"] === "string"
+    ? {
+        prefix: raw["prefix"],
+        srcDir: raw["srcDir"],
+      }
+    : fail(
+        `each sourceAlias needs string "prefix" and "srcDir"`,
+      );
 
 /**
  * A required finite-number field.

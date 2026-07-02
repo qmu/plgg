@@ -11,14 +11,13 @@ import {
 import { type AppOptions } from "plggmatic/App/model/AppOptions";
 
 /**
- * The app-specific bits the framework cannot derive from
- * cwd + flags: the deploy `base` and the dev Host
- * allowlist, both read from the app's validated config.
- * The framework fills every other {@link AppOptions} field.
+ * The app-specific bit the framework cannot derive from
+ * cwd + flags: the deploy `base`, read from the app's
+ * validated config. The framework fills every other
+ * {@link AppOptions} field.
  */
 export type AppRunContext = Readonly<{
   base: SoftStr;
-  allowedHosts: ReadonlyArray<SoftStr>;
 }>;
 
 /**
@@ -45,7 +44,6 @@ export const configPathOf = (
 export const resolveOptions = (
   invocation: Invocation,
   ctx: AppRunContext,
-  devRun: boolean,
 ): AppOptions => {
   const cwd = process.cwd();
   const contentDir = pipe(
@@ -60,7 +58,5 @@ export const resolveOptions = (
     ),
     assetsDir: resolve(contentDir, "public"),
     base: ctx.base,
-    dev: devRun,
-    allowedHosts: ctx.allowedHosts,
   };
 };

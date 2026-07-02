@@ -78,3 +78,12 @@ test("loadConfig falls back to the module object when there is no default export
       toBe("ConfigLoadError")(e.__tag),
     ),
   ));
+
+test("loadConfig returns Err when the config throws a non-Error at eval", async () =>
+  check(
+    await loadConfig(
+      fixture("throws.config.ts"),
+      asCfg,
+    ),
+    shouldBeErr(),
+  ));

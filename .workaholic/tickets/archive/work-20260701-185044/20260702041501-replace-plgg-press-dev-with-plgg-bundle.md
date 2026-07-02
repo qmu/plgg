@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: refactoring
 layer: [Infrastructure, Domain]
 effort: 4h
-commit_hash:
+commit_hash: 4c5360a
 category: Changed
 depends_on: [20260702041500-plgg-bundle-dev-server-module-runner-hot-reload.md]
 ---

@@ -23,11 +23,23 @@ test("shouldReload is true for an imported file (graph value)", () =>
     toBe(true),
   ));
 
-test("shouldReload is false for a file outside the served graph", () =>
+test("shouldReload is false for a source file outside the served graph", () =>
   check(
     shouldReload(graph, "/unrelated.ts"),
     toBe(false),
   ));
+
+test("shouldReload is true for a content (non-code) file edit", () =>
+  all([
+    check(
+      shouldReload(graph, "/docs/guide.md"),
+      toBe(true),
+    ),
+    check(
+      shouldReload(graph, "/assets/x.css"),
+      toBe(true),
+    ),
+  ]));
 
 test("shouldReload falls back to true for an empty graph", () =>
   all([

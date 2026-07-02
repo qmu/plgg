@@ -23,7 +23,6 @@ const invOf = (
 
 const ctx: AppRunContext = {
   base: "/plgg/",
-  allowedHosts: ["press.example"],
 };
 
 test("configPathOf uses --config when supplied", () =>
@@ -42,32 +41,25 @@ test("configPathOf falls back to the cwd default filename", () =>
   ));
 
 test("resolveOptions fills cwd defaults + threads the app context", () => {
-  const opts = resolveOptions(invOf({}), ctx, false);
+  const opts = resolveOptions(invOf({}), ctx);
   return all([
     check(opts.base, toBe("/plgg/")),
-    check(opts.dev, toBe(false)),
-    check(
-      opts.allowedHosts.length,
-      toBe(1),
-    ),
     check(opts.outDir, toContain("dist")),
     check(opts.assetsDir, toContain("public")),
   ]);
 });
 
-test("resolveOptions honors --contentDir/--outDir and the dev flag", () => {
+test("resolveOptions honors --contentDir/--outDir", () => {
   const opts = resolveOptions(
     invOf({
       contentDir: "/work/docs",
       outDir: "/work/site",
     }),
     ctx,
-    true,
   );
   return all([
     check(opts.contentDir, toBe("/work/docs")),
     check(opts.outDir, toBe("/work/site")),
-    check(opts.dev, toBe(true)),
     check(
       opts.assetsDir,
       toBe("/work/docs/public"),

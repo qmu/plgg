@@ -19,17 +19,12 @@ import { type SsgError } from "plgg-server/ssg";
 import {
   type AppOptions,
   type BuildReport,
-  type DevServer,
 } from "plggmatic/App/model/AppOptions";
 import { type ConfigLoadError } from "plggmatic/App/model/AppError";
 import {
   type BuildSpec,
   build,
 } from "plggmatic/Build/usecase/build";
-import {
-  type DevSpec,
-  dev,
-} from "plggmatic/Dev/usecase/dev";
 import {
   type AppRunContext,
   configPathOf,
@@ -60,10 +55,6 @@ export type AppDefinition<Config, E> = Readonly<{
     config: Config,
     opts: AppOptions,
   ) => BuildSpec<E>;
-  devSpec: (
-    config: Config,
-    opts: AppOptions,
-  ) => DevSpec;
   formatError: (
     e: SsgError | Defect | E,
   ) => SoftStr;
@@ -118,7 +109,6 @@ const runBuild =
             const opts = resolveOptions(
               invocation,
               def.context(config),
-              false,
             );
             return build(
               opts,
@@ -142,61 +132,14 @@ const runBuild =
       );
 
 /**
- * `dev` handler: load the config, then start the framework
- * dev server, folding both error channels to a shell
- * outcome.
- */
-const runDev =
-  <Config, E>(def: AppDefinition<Config, E>) =>
-  (
-    invocation: Invocation,
-  ): PromisedResult<SoftStr, SoftStr> =>
-    def
-      .loadConfig(
-        configPathOf(invocation, def.configFile),
-      )
-      .then(
-        matchResult(
-          (
-            e: ConfigLoadError,
-          ): PromisedResult<SoftStr, SoftStr> =>
-            Promise.resolve(
-              err(e.content.message),
-            ),
-          (
-            config: Config,
-          ): PromisedResult<SoftStr, SoftStr> => {
-            const opts = resolveOptions(
-              invocation,
-              def.context(config),
-              true,
-            );
-            return dev(
-              opts,
-              def.devSpec(config, opts),
-            ).then(
-              matchResult(
-                (
-                  de: SsgError,
-                ): Result<SoftStr, SoftStr> =>
-                  err(def.formatError(de)),
-                (
-                  s: DevServer,
-                ): Result<SoftStr, SoftStr> =>
-                  ok(`dev server at ${s.url}`),
-              ),
-            );
-          },
-        ),
-      );
-
-/**
- * The pre-organized CLI: wire a plgg-cli `build`/`dev`
- * program onto the framework build/dev from an
- * {@link AppDefinition}, and hand it to plgg-cli's
- * {@link runCli} (which owns argv parsing, dispatch, the
- * usage banner, and the `Result`→exit-code fold). An app's
- * `cli.ts` is then just `await runApp(definition)`.
+ * The pre-organized CLI: wire a plgg-cli `build` program
+ * onto the framework build from an {@link AppDefinition},
+ * and hand it to plgg-cli's {@link runCli} (which owns argv
+ * parsing, dispatch, the usage banner, and the
+ * `Result`→exit-code fold). An app's `cli.ts` is then just
+ * `await runApp(definition)`. Dev/hot-reload is a toolchain
+ * concern (`plgg-bundle dev`), not the framework's, so
+ * there is no `dev` command.
  */
 export const runApp = <Config, E>(
   def: AppDefinition<Config, E>,
@@ -210,15 +153,9 @@ export const runApp = <Config, E>(
         "build the site into static files",
         configOptions,
       ),
-      command(
-        "dev",
-        "run the dev server",
-        configOptions,
-      ),
     ],
   );
   return runCli(app, {
     build: runBuild(def),
-    dev: runDev(def),
   });
 };

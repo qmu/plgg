@@ -4,6 +4,7 @@
     "exclude": [
       "/index.ts",
       "/cli.ts",
+      "/devEntry.ts",
       "/valid.config.ts",
       "/invalid.config.ts",
       "/named-only.config.ts"

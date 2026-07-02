@@ -178,3 +178,53 @@ test("asBundleConfig rejects a non-string format element", () =>
     rejects({ ...valid, formats: [7] }),
     toBe(true),
   ));
+
+test("asBundleConfig defaults dev.sourceAliases to [] when absent", () =>
+  check(
+    asBundleConfig({ ...valid, dev: validDev })
+      .dev?.sourceAliases.length,
+    toBe(0),
+  ));
+
+test("asBundleConfig accepts dev.sourceAliases", () => {
+  const c = asBundleConfig({
+    ...valid,
+    dev: {
+      ...validDev,
+      sourceAliases: [
+        { prefix: "plgg-press", srcDir: "../plgg-press/src" },
+      ],
+    },
+  });
+  return all([
+    check(
+      c.dev?.sourceAliases[0]?.prefix,
+      toBe("plgg-press"),
+    ),
+    check(
+      c.dev?.sourceAliases[0]?.srcDir,
+      toBe("../plgg-press/src"),
+    ),
+  ]);
+});
+
+test("asBundleConfig rejects a non-array sourceAliases", () =>
+  check(
+    rejects({
+      ...valid,
+      dev: { ...validDev, sourceAliases: "nope" },
+    }),
+    toBe(true),
+  ));
+
+test("asBundleConfig rejects a malformed sourceAlias element", () =>
+  check(
+    rejects({
+      ...valid,
+      dev: {
+        ...validDev,
+        sourceAliases: [{ prefix: "x" }],
+      },
+    }),
+    toBe(true),
+  ));

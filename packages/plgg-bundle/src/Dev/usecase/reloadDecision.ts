@@ -1,28 +1,50 @@
 import { type ModuleGraph } from "plgg-bundle/Dev/model/ModuleGraph";
 
 /**
- * Whether a changed file warrants a hot-reload: true when
- * the file participates in the app's served
- * {@link ModuleGraph} — either it imports something local
- * (a graph key) or something local imports it (a graph
- * value). A save to a file under the watch roots that the
- * app never imports (a stray scratch file, an unreferenced
- * asset sibling) is ignored, so the browser only reloads
- * on edits that can actually change the output.
+ * Source-code extensions — the files the module graph
+ * tracks. A changed file with any OTHER extension is
+ * content (Markdown, an asset) whose edit the app re-reads
+ * at render time, so it always warrants a reload.
+ */
+const SOURCE_EXT: ReadonlyArray<string> = [
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".js",
+  ".mjs",
+];
+
+/**
+ * Whether a changed file warrants a hot-reload:
+ *
+ *  - content (non-source-code, e.g. `.md`) → always, since
+ *    the render re-reads it;
+ *  - source code that participates in the app's served
+ *    {@link ModuleGraph} (a graph key it imports from, or a
+ *    graph value something imports) → yes;
+ *  - source code the app never imports (a stray scratch
+ *    `.ts`) → ignored, so the browser only reloads on edits
+ *    that can change the output.
  *
  * Conservative fallback: an EMPTY graph means the scan
- * could not map the app (e.g. the entry failed to read),
- * so every change reloads rather than silently going
- * stale. Pure decision over the graph — the adapter owns
- * the fs.
+ * could not map the app, so every change reloads rather
+ * than silently going stale. Pure decision over the graph —
+ * the adapter owns the fs.
  */
 export const shouldReload = (
   graph: ModuleGraph,
   changed: string,
 ): boolean =>
+  !isSourceCode(changed) ||
   graph.size === 0 ||
   graph.has(changed) ||
   importsSomewhere(graph, changed);
+
+/** Whether a path is a tracked source-code file (by extension). */
+const isSourceCode = (
+  changed: string,
+): boolean =>
+  SOURCE_EXT.some((e) => changed.endsWith(e));
 
 /**
  * Whether any node in the graph imports `changed` (i.e. it

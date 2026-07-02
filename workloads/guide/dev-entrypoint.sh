@@ -52,13 +52,19 @@ done
 echo "=== building sibling dists (scripts/build.sh) ==="
 sh scripts/build.sh
 
-# 3. Serve the guide with plgg-press dev on the container's
-#    internal port 5173 (compose maps host 5181 -> 5173, the
-#    cloudflared tunnel route for plgg-guide.qmu.dev). PORT
-#    overrides plgg-press's 5181 default; allowedHosts
-#    (localhost + plgg-guide.qmu.dev) come from site.config.ts
-#    so the tunnel Host header is accepted. node:http binds
-#    all interfaces, so the port is reachable from the host.
-echo "=== plgg-press dev on :5173 ==="
+# 3. Serve the guide with the TOOLCHAIN dev server
+#    (`plgg-bundle dev`) on the container's internal port
+#    5173 (compose maps host 5181 -> 5173, the cloudflared
+#    tunnel route for plgg-guide.qmu.dev). The port, the
+#    allowedHosts (localhost + plgg-guide.qmu.dev), the
+#    watched roots (guide content + plgg-press theme source),
+#    and the `plgg-press` source alias all come from
+#    bundle.config.ts — so a theme `.ts` edit hot-reloads in
+#    the browser with NO restart, not just Markdown. Runs
+#    from source, so plgg-bundle's own node_modules (built by
+#    scripts/build.sh's npm ci above) and plgg-press's must
+#    be present — both are. node:http binds all interfaces,
+#    so the port is reachable from the host.
+echo "=== plgg-bundle dev on :5173 ==="
 cd packages/guide
-exec env PORT=5173 npm run dev
+exec npm run dev

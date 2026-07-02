@@ -1,11 +1,12 @@
 // Public barrel for plggmatic — the framework facade an
 // app (the content/render specifics) composes onto: config
-// loading, the router builder, static-build + dev-server
+// loading, the router builder, the static-build
 // orchestration, app-options, and the pre-organized CLI.
+// (Dev/hot-reload is a toolchain concern — `plgg-bundle
+// dev` — not the framework's.)
 export {
   type AppOptions,
   type BuildReport,
-  type DevServer,
 } from "plggmatic/App/model/AppOptions";
 
 export {
@@ -22,19 +23,6 @@ export {
   type BuildSpec,
   build,
 } from "plggmatic/Build/usecase/build";
-
-export {
-  type Clients,
-  type DevHandle,
-  type DevSpec,
-  dev,
-  createDevHandle,
-  decorateDevHtml,
-  isAllowedHost,
-  devPort,
-  devUrl,
-  watchContent,
-} from "plggmatic/Dev/usecase/dev";
 
 export {
   type AppRunContext,

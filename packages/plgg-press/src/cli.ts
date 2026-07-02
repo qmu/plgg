@@ -26,7 +26,6 @@ import {
 import {
   type PressOptions,
   type BuildReport,
-  type DevServer,
 } from "plgg-press/Press/model/PressOptions";
 import { type ConfigLoadError } from "plgg-press/Press/model/PressError";
 import {
@@ -35,7 +34,6 @@ import {
 } from "plgg-press/CheckLinks/model/CheckLinks";
 import { loadConfig } from "plgg-press/Config/usecase/loadConfig";
 import { build } from "plgg-press/build";
-import { dev } from "plgg-press/dev";
 
 /**
  * The `site.config.ts` flags every command accepts, as
@@ -66,7 +64,6 @@ const configOptions = [
 const optionsFrom = (
   invocation: Invocation,
   config: SiteConfig,
-  devRun: boolean,
 ): PressOptions => {
   const cwd = process.cwd();
   const contentDir = pipe(
@@ -82,8 +79,6 @@ const optionsFrom = (
     assetsDir: resolve(contentDir, "public"),
     config,
     base: config.base,
-    dev: devRun,
-    allowedHosts: config.dev.allowedHosts,
   };
 };
 
@@ -141,7 +136,7 @@ const runBuild = (
         config: SiteConfig,
       ): PromisedResult<SoftStr, SoftStr> =>
         build(
-          optionsFrom(invocation, config, false),
+          optionsFrom(invocation, config),
         ).then(
           matchResult(
             (
@@ -163,43 +158,12 @@ const runBuild = (
   );
 
 /**
- * `dev` handler: load the config, then start the dev
- * server, folding both error channels to a shell outcome.
- */
-const runDev = (
-  invocation: Invocation,
-): PromisedResult<SoftStr, SoftStr> =>
-  loadConfig(configPathOf(invocation)).then(
-    matchResult(
-      (
-        e: ConfigLoadError,
-      ): PromisedResult<SoftStr, SoftStr> =>
-        Promise.resolve(err(e.content.message)),
-      (
-        config: SiteConfig,
-      ): PromisedResult<SoftStr, SoftStr> =>
-        dev(
-          optionsFrom(invocation, config, true),
-        ).then(
-          matchResult(
-            (
-              de: SsgError,
-            ): Result<SoftStr, SoftStr> =>
-              err(formatBuildError(de)),
-            (
-              s: DevServer,
-            ): Result<SoftStr, SoftStr> =>
-              ok(`dev server at ${s.url}`),
-          ),
-        ),
-    ),
-  );
-
-/**
- * The plgg-press program: `build` and `dev`, each taking
- * the shared config flags. Argv parsing, command dispatch,
- * the usage banner, and the `Result`→exit-code fold are
- * all owned by plgg-cli's {@link runCli}.
+ * The plgg-press program: `build` takes the shared config
+ * flags. Argv parsing, command dispatch, the usage banner,
+ * and the `Result`→exit-code fold are all owned by
+ * plgg-cli's {@link runCli}. Dev/hot-reload is a toolchain
+ * concern now — `plgg-bundle dev` serves the site (see
+ * `devEntry`), so plgg-press ships no `dev` command.
  */
 const app: Program = program(
   "plgg-press",
@@ -210,15 +174,9 @@ const app: Program = program(
       "build the site into static files",
       configOptions,
     ),
-    command(
-      "dev",
-      "run the dev server",
-      configOptions,
-    ),
   ],
 );
 
 await runCli(app, {
   build: runBuild,
-  dev: runDev,
 });

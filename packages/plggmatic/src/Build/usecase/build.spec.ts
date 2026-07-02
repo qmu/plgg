@@ -86,8 +86,6 @@ const writeCorpus = async (): Promise<AppOptions> => {
     outDir: join(root, "out"),
     assetsDir: join(contentDir, "public"),
     base: "/",
-    dev: false,
-    allowedHosts: [],
   };
 };
 

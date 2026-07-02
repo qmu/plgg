@@ -120,8 +120,6 @@ const buildFixture = async () => {
     assetsDir: join(contentDir, "public"),
     config,
     base: config.base,
-    dev: false,
-    allowedHosts: [],
   };
   const report = await build(opts);
   const read = (
@@ -264,8 +262,6 @@ const buildBrokenFixture = async () => {
     assetsDir: join(contentDir, "public"),
     config,
     base: config.base,
-    dev: false,
-    allowedHosts: [],
   };
   return build(opts);
 };

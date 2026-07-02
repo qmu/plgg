@@ -14,17 +14,12 @@ import { type SoftStr } from "plgg";
  * - `outDir` — where the built site is written.
  * - `assetsDir` — static files copied verbatim.
  * - `base` — the deploy base path (e.g. `/plgg/`).
- * - `dev` — whether this is a dev (watch/serve) run.
- * - `allowedHosts` — extra Host headers the dev server
- *   accepts on top of localhost/127.0.0.1.
  */
 export type AppOptions = Readonly<{
   contentDir: SoftStr;
   outDir: SoftStr;
   assetsDir: SoftStr;
   base: SoftStr;
-  dev: boolean;
-  allowedHosts: ReadonlyArray<SoftStr>;
 }>;
 
 /**
@@ -34,11 +29,4 @@ export type AppOptions = Readonly<{
 export type BuildReport = Readonly<{
   outDir: SoftStr;
   pages: ReadonlyArray<SoftStr>;
-}>;
-
-/**
- * A running dev server handle: the URL it is reachable at.
- */
-export type DevServer = Readonly<{
-  url: SoftStr;
 }>;

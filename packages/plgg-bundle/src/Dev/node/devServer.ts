@@ -1,9 +1,11 @@
 import {
   resolve,
   isAbsolute,
+  join,
 } from "node:path";
 import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { register } from "node:module";
 import { type Server } from "node:http";
 import { type Fetch } from "plgg-bundle/Dev/model/Fetch";
 import { type ModuleGraph } from "plgg-bundle/Dev/model/ModuleGraph";
@@ -294,6 +296,30 @@ const under = (
     : resolve(root, path);
 
 /**
+ * Register the dev-only cross-package source resolver
+ * (`bin/appAliasHook.mjs`) with the alias rules, so a
+ * dependency's `<prefix>/*` imports load from source and
+ * hot-reload. Registered later than the package's own hook
+ * so it runs first and short-circuits on an alias hit.
+ */
+const registerSourceAliases = (
+  aliases: ReadonlyArray<Alias>,
+): void => {
+  const hookUrl = new URL(
+    "../../../bin/appAliasHook.mjs",
+    import.meta.url,
+  ).href;
+  register(hookUrl, import.meta.url, {
+    data: {
+      aliases: aliases.map((a) => ({
+        prefix: a.prefix,
+        srcDir: a.srcDir,
+      })),
+    },
+  });
+};
+
+/**
  * Map an fs.watch filename (relative to some watched root)
  * to an absolute path by probing each root, or null when
  * it matches none (a deletion) — the reload decision then
@@ -324,10 +350,10 @@ const reload = async (
   state: DevState,
   entryUrl: string,
   watchAbs: ReadonlyArray<string>,
-  alias: Alias,
+  aliases: ReadonlyArray<Alias>,
   filename: string,
 ): Promise<void> => {
-  state.graph = scanGraph(watchAbs, alias);
+  state.graph = scanGraph(watchAbs, aliases);
   const changed = toChanged(watchAbs, filename);
   if (
     changed !== null &&
@@ -404,15 +430,34 @@ export const runDevServer = async (
   const watchAbs = dev.watch.map((w) =>
     under(config.root, w),
   );
-  const alias: Alias = {
-    prefix: config.alias.prefix,
-    root: config.root,
-    srcRoot: config.alias.srcRoot,
-  };
+  // The app's own self-alias (source), plus any
+  // cross-package `sourceAliases` — the resolution rules for
+  // both the module graph AND the loader hook.
+  const aliases: ReadonlyArray<Alias> = [
+    {
+      prefix: config.alias.prefix,
+      srcDir: join(
+        config.root,
+        config.alias.srcRoot,
+      ),
+    },
+    ...dev.sourceAliases.map((a) => ({
+      prefix: a.prefix,
+      srcDir: under(config.root, a.srcDir),
+    })),
+  ];
+  // Register the cross-package source resolver BEFORE the
+  // first entry import, so a dependency's `<prefix>/*`
+  // loads from source and hot-reloads. Only needed when the
+  // app pulls another package's source (a self-contained
+  // app resolves everything relatively / via its own hook).
+  if (dev.sourceAliases.length > 0) {
+    registerSourceAliases(aliases);
+  }
   const state: DevState = {
     version: 1,
     appFetch: await load(entryUrl, 1),
-    graph: scanGraph(watchAbs, alias),
+    graph: scanGraph(watchAbs, aliases),
     clients: new Set(),
   };
   const handler = devHandler(
@@ -442,7 +487,7 @@ export const runDevServer = async (
         state,
         entryUrl,
         watchAbs,
-        alias,
+        aliases,
         filename,
       );
     },

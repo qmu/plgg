@@ -1,7 +1,7 @@
 import {
   readdirSync,
   readFileSync,
-  existsSync,
+  statSync,
 } from "node:fs";
 import {
   resolve,
@@ -28,26 +28,32 @@ const SOURCE_EXT: ReadonlyArray<string> = [
   ".mjs",
 ];
 
-/** The app self-alias used to resolve non-relative local edges. */
+/**
+ * A self-alias resolution rule: `<prefix>`/`<prefix>/<sub>`
+ * → `<srcDir>`/`<srcDir>/<sub>`. One per package whose
+ * source participates in dev (the app's own, plus any
+ * cross-package `sourceAliases`).
+ */
 export type Alias = Readonly<{
   prefix: string;
-  root: string;
-  srcRoot: string;
+  srcDir: string;
 }>;
 
 /**
  * Scan the watch roots and build the local
- * {@link ModuleGraph}. Unreadable roots/files are skipped
- * (a scan is best-effort — the reload decision falls back
- * to reloading when the graph is empty).
+ * {@link ModuleGraph}, resolving relative AND aliased
+ * imports (every rule in `aliases`) so cross-package source
+ * edges are captured. Unreadable roots/files are skipped (a
+ * scan is best-effort — the reload decision falls back to
+ * reloading when the graph is empty).
  */
 export const scanGraph = (
   roots: ReadonlyArray<string>,
-  alias: Alias,
+  aliases: ReadonlyArray<Alias>,
 ): ModuleGraph =>
   buildGraph(
     sourceFiles(roots).flatMap((file) =>
-      edgesOf(file, alias),
+      edgesOf(file, aliases),
     ),
   );
 
@@ -64,38 +70,61 @@ const sourceFiles = (
   return [...seen];
 };
 
-/** Recursively list source files under a directory. */
+/**
+ * Directories never descended into during the graph scan —
+ * dependency trees, build output, VCS. A watch root of `.`
+ * (a package dir) would otherwise pull thousands of
+ * `node_modules` files into the graph.
+ */
+const SKIP_DIRS: ReadonlyArray<string> = [
+  "node_modules",
+  "dist",
+  ".git",
+];
+
+/**
+ * Recursively list source files under a directory, pruning
+ * {@link SKIP_DIRS}. A manual walk (not `readdirSync`'s
+ * `recursive`) so a huge `node_modules` is never read.
+ */
 const walk = (
   root: string,
 ): ReadonlyArray<string> => {
+  let entries;
   try {
-    return readdirSync(root, {
-      recursive: true,
+    entries = readdirSync(root, {
       withFileTypes: true,
-    }).flatMap((entry) =>
-      entry.isFile() &&
-      SOURCE_EXT.some((e) =>
-        entry.name.endsWith(e),
-      )
-        ? [join(entry.parentPath, entry.name)]
-        : [],
-    );
+    });
   } catch {
     return [];
   }
+  return entries.flatMap((entry) => {
+    const abs = join(root, entry.name);
+    if (entry.isDirectory()) {
+      return SKIP_DIRS.includes(entry.name)
+        ? []
+        : walk(abs);
+    }
+    return entry.isFile() &&
+      SOURCE_EXT.some((e) =>
+        entry.name.endsWith(e),
+      )
+      ? [abs]
+      : [];
+  });
 };
 
 /** The resolved local edges a single file imports. */
 const edgesOf = (
   file: string,
-  alias: Alias,
+  aliases: ReadonlyArray<Alias>,
 ): ReadonlyArray<{ from: string; to: string }> => {
   const source = read(file);
   if (source === null) {
     return [];
   }
   return parseImports(source).flatMap((spec) => {
-    const to = resolveLocal(file, spec, alias);
+    const to = resolveLocal(file, spec, aliases);
     return to === null
       ? []
       : [{ from: file, to }];
@@ -114,15 +143,15 @@ const read = (file: string): string | null => {
 /**
  * Resolve a specifier to an absolute local file, or null
  * for a package / `node:` specifier. Handles relative
- * paths and the app's self-alias (`prefix` / `prefix/…`);
- * tries the path itself, `.ts`, and `/index.ts`.
+ * paths and every alias rule (`prefix` / `prefix/…`); tries
+ * the path itself, `.ts`, and `/index.ts`.
  */
 const resolveLocal = (
   from: string,
   spec: string,
-  alias: Alias,
+  aliases: ReadonlyArray<Alias>,
 ): string | null => {
-  const base = baseOf(from, spec, alias);
+  const base = baseOf(from, spec, aliases);
   if (base === null) {
     return null;
   }
@@ -131,17 +160,27 @@ const resolveLocal = (
     `${base}.ts`,
     join(base, "index.ts"),
   ];
+  // A FILE, never a directory: a bare `<prefix>` base is
+  // the src dir (which exists) — prefer its `index.ts`.
   return (
-    candidates.find((c) => existsSync(c)) ??
-    null
+    candidates.find(isFile) ?? null
   );
+};
+
+/** Whether a path exists and is a regular file. */
+const isFile = (path: string): boolean => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
 };
 
 /** The pre-extension base path a specifier points at. */
 const baseOf = (
   from: string,
   spec: string,
-  alias: Alias,
+  aliases: ReadonlyArray<Alias>,
 ): string | null => {
   if (
     spec.startsWith("./") ||
@@ -149,15 +188,16 @@ const baseOf = (
   ) {
     return resolve(dirname(from), spec);
   }
-  if (spec === alias.prefix) {
-    return join(alias.root, alias.srcRoot);
-  }
-  if (spec.startsWith(`${alias.prefix}/`)) {
-    return join(
-      alias.root,
-      alias.srcRoot,
-      spec.slice(alias.prefix.length + 1),
-    );
+  for (const alias of aliases) {
+    if (spec === alias.prefix) {
+      return alias.srcDir;
+    }
+    if (spec.startsWith(`${alias.prefix}/`)) {
+      return join(
+        alias.srcDir,
+        spec.slice(alias.prefix.length + 1),
+      );
+    }
   }
   return null;
 };

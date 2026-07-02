@@ -16,11 +16,13 @@ services:
     ports:
       - "5181:5173"
     volumes:
-      # Mount the repo for live editing — changing any
-      # guide Markdown reloads the dev server. plgg-press's
-      # sibling dists are (re)built onto THIS mounted tree
-      # by the entrypoint, after the mount is live, so they
-      # are not hidden by it.
+      # Mount the repo for live editing — editing guide
+      # Markdown OR plgg-press theme `.ts` hot-reloads the
+      # dev server (the toolchain re-evaluates changed source
+      # across the package boundary; see bundle.config.ts).
+      # plgg-press's sibling dists are (re)built onto THIS
+      # mounted tree by the entrypoint, after the mount is
+      # live, so they are not hidden by it.
       - ../..:/app
       # Isolate every node_modules the entrypoint installs
       # into: anonymous volumes keep the container's deps
