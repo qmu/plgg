@@ -1,6 +1,7 @@
 import {
   type SoftStr,
   type Int,
+  box,
   fromNullable,
   some,
 } from "plgg";
@@ -387,11 +388,11 @@ const REORDER_BTN_STYLE =
 const toastMotion = transition({
   enter: {
     from: {
-      opacity: some(0),
+      opacity: some(box("Float")(0)),
       transform: some("translateX(110%)"),
     },
     to: {
-      opacity: some(1),
+      opacity: some(box("Float")(1)),
       transform: some("translateX(0)"),
     },
     durationMs: 300,
@@ -399,11 +400,11 @@ const toastMotion = transition({
   },
   exit: {
     from: {
-      opacity: some(1),
+      opacity: some(box("Float")(1)),
       transform: some("translateX(0)"),
     },
     to: {
-      opacity: some(0),
+      opacity: some(box("Float")(0)),
       transform: some("translateX(110%)"),
     },
     durationMs: 220,

@@ -119,7 +119,7 @@ export const build = <E>(
       pages: ReadonlyArray<SoftStr>,
     ): PromisedResult<
       ReadonlyArray<SoftStr>,
-      SsgError
+      SsgError | Defect
     > =>
       copyAssets(opts.assetsDir)(
         opts.outDir,
