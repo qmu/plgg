@@ -5,8 +5,35 @@ import {
   toBe,
 } from "plgg-test";
 import { join } from "node:path";
+import {
+  mkdtempSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { deriveExternal } from "plgg-bundle/domain/usecase/deriveExternal";
 import { isExternal } from "plgg-bundle/domain/usecase/isExternal";
+
+/** True when `deriveExternal(root)` throws an Error. */
+const rejects = (root: string): boolean => {
+  try {
+    deriveExternal(root);
+    return false;
+  } catch (e) {
+    return e instanceof Error;
+  }
+};
+
+/** A temp dir carrying a specific package.json body. */
+const withManifest = (body: string): string => {
+  const dir = mkdtempSync(
+    join(tmpdir(), "plgg-derive-"),
+  );
+  writeFileSync(
+    join(dir, "package.json"),
+    body,
+  );
+  return dir;
+};
 
 // plgg-bundle's own root: its package.json declares
 // `typescript` as the sole dependency.
@@ -63,3 +90,36 @@ test("deriveExternal does NOT externalize undeclared / own-source specifiers", (
       toBe(false),
     ),
   ]));
+
+test("deriveExternal throws when package.json is missing", () =>
+  check(
+    rejects(
+      join(tmpdir(), "plgg-derive-missing-xyz"),
+    ),
+    toBe(true),
+  ));
+
+test("deriveExternal throws on an unparseable package.json", () =>
+  check(
+    rejects(withManifest("{ not valid json")),
+    toBe(true),
+  ));
+
+test("deriveExternal treats a non-object manifest as zero declared deps", () => {
+  const ext = deriveExternal(
+    withManifest(`"just a string"`),
+  );
+  return all([
+    // node:* is still external by prefix …
+    check(
+      isExternal(ext, "node:fs"),
+      toBe(true),
+    ),
+    // … but nothing is declared, so any package specifier
+    // is undeclared (not external).
+    check(
+      isExternal(ext, "whatever"),
+      toBe(false),
+    ),
+  ]);
+});

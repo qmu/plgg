@@ -1,0 +1,13 @@
+{
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/index.ts",
+      "/entrypoints/cli.ts",
+      "/Dev/node/",
+      "/Dev/fixtures/",
+      "/vendors/",
+      "/discoverWorkspace.ts"
+    ]
+  }
+}

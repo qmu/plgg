@@ -1,10 +1,24 @@
-// ESM resolver hook: rewrite the package self-alias
-// `plgg-bundle/<sub>` to the on-disk `src/<sub>` file
-// (`.ts` or `/index.ts`), so the bundler's own source
-// can use extensionless self-alias specifiers the same
-// way the rest of the monorepo does. Everything else
-// (typescript, node:*) falls through to Node's default
-// resolution.
+// ESM resolver hook, two jobs:
+//
+// 1. Self-alias: rewrite `plgg-bundle/<sub>` to the
+//    on-disk `src/<sub>` file (`.ts` or `/index.ts`) so
+//    the bundler's own source uses extensionless
+//    self-alias specifiers like the rest of the monorepo.
+//
+// 2. Dev hot-reload version propagation: when the importer
+//    (`context.parentURL`) carries a `?v=<n>` query, append
+//    the SAME query to a resolved LOCAL file. `plgg-bundle
+//    dev` re-imports the app's dev entry as `entry?v=<n>`
+//    after a source edit; this propagation carries the
+//    version down the whole local import subgraph so Node
+//    re-evaluates every affected module (not just the
+//    entry) — real code hot-reload, no process restart.
+//    `node:*` and `node_modules` are never versioned (they
+//    don't change during a dev session), so they stay
+//    cached.
+//
+// Everything else (typescript, node:*) falls through to
+// Node's default resolution.
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
@@ -22,23 +36,59 @@ const pick = (base) => {
   return candidates.find((c) => existsSync(c));
 };
 
-export const resolve = (
+// The `?v=<n>` dev version carried by an importer URL, or
+// null when absent.
+const versionOf = (url) => {
+  if (!url) {
+    return null;
+  }
+  const match = url.match(/[?&]v=([^&]+)/);
+  return match ? match[1] : null;
+};
+
+// Append a dev version query to a resolved URL, respecting
+// an existing query string.
+const withVersion = (url, version) =>
+  `${url}${url.includes("?") ? "&" : "?"}v=${version}`;
+
+// Whether a resolved URL is a workspace-local source file
+// (a `file:` URL outside node_modules) — the only modules
+// that participate in hot-reload.
+const isLocalSource = (url) =>
+  url.startsWith("file:") &&
+  !url.includes("/node_modules/");
+
+export const resolve = async (
   specifier,
   context,
   nextResolve,
 ) => {
+  const version = versionOf(context.parentURL);
   if (specifier.startsWith(prefix)) {
-    const base = join(
-      srcRoot,
-      specifier.slice(prefix.length),
-    );
-    const file = pick(base);
+    // Drop any propagated `?v=` before the on-disk lookup,
+    // then re-attach it so a versioned parent still busts
+    // a self-aliased child's module cache.
+    const [sub] = specifier
+      .slice(prefix.length)
+      .split("?");
+    const file = pick(join(srcRoot, sub));
     if (file) {
+      const url = pathToFileURL(file).href;
       return {
-        url: pathToFileURL(file).href,
+        url:
+          version === null
+            ? url
+            : withVersion(url, version),
         shortCircuit: true,
       };
     }
   }
-  return nextResolve(specifier, context);
+  const resolved = await nextResolve(
+    specifier,
+    context,
+  );
+  return version !== null &&
+    isLocalSource(resolved.url)
+    ? { ...resolved, url: withVersion(resolved.url, version) }
+    : resolved;
 };

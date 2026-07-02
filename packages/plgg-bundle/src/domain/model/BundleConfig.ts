@@ -60,6 +60,27 @@ export type Entry = {
 };
 
 /**
+ * The optional `dev` section: everything `plgg-bundle dev`
+ * needs to serve + hot-reload an app. Absent for a plain
+ * library config (build-only), so existing configs need no
+ * change.
+ *
+ * - `entry` — the app's dev-entry module (absolute or
+ *   `root`-relative), default-exporting a `FetchFactory`.
+ * - `port` — the port the node:http server binds.
+ * - `watch` — source roots (absolute or `root`-relative)
+ *   watched for code/content edits.
+ * - `allowedHosts` — extra `Host` headers accepted beyond
+ *   loopback (e.g. a tunnel domain).
+ */
+export type DevConfig = Readonly<{
+  entry: string;
+  port: number;
+  watch: ReadonlyArray<string>;
+  allowedHosts: ReadonlyArray<string>;
+}>;
+
+/**
  * The bundler's typed configuration, replacing
  * vite.config's `lib` + `rollupOptions`. Parsed and
  * validated at the `unknown` boundary by
@@ -99,6 +120,12 @@ export type BundleConfig = Readonly<{
     prefix: string;
     srcRoot: string;
   }>;
+  /**
+   * The dev-server section. Present only for a config that
+   * `plgg-bundle dev` serves; a build-only library omits
+   * it. See {@link DevConfig}.
+   */
+  dev?: DevConfig;
 }>;
 
 /**

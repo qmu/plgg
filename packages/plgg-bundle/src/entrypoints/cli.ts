@@ -1,36 +1,78 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { existsSync } from "node:fs";
+import { type BundleConfig } from "plgg-bundle/domain/model/BundleConfig";
 import { asBundleConfig } from "plgg-bundle/domain/usecase/asBundleConfig";
 import { build } from "plgg-bundle/domain/usecase/build";
+import { runDevServer } from "plgg-bundle/Dev/node/devServer";
 
 /**
- * CLI entry: resolve the target package's bundle config
- * (`bundle.config.ts` in cwd, or an explicit path arg),
- * dynamically import it (Node strips its types),
- * validate it, run the build, and exit non-zero on
- * failure. The shell stays thin and is the single
- * place a thrown build error is turned into an exit
- * code — the plain-TS counterpart to a `Result` edge.
+ * CLI entry with two modes:
+ *
+ *  - `plgg-bundle [config]` — the one-shot build (default):
+ *    validate the config and emit the bundle.
+ *  - `plgg-bundle dev [config]` — the dev server: serve the
+ *    config's dev entry over node:http, watch its source,
+ *    and hot-reload the browser on a code edit.
+ *
+ * The shell stays thin and is the single place a thrown
+ * error becomes a non-zero exit — the plain-TS counterpart
+ * to a `Result` edge. The `dev` server itself runs for the
+ * process lifetime (it never resolves).
  */
-const main = async (): Promise<void> => {
-  const configPath = resolve(
-    process.cwd(),
-    process.argv[2] ?? "bundle.config.ts",
-  );
-  if (!existsSync(configPath)) {
-    return fail(
-      `config not found: ${configPath}`,
-    );
+const main = async (): Promise<void> =>
+  process.argv[2] === "dev"
+    ? runDev(process.argv[3])
+    : runBuild(process.argv[2]);
+
+/** The one-shot build mode. */
+const runBuild = async (
+  arg: string | undefined,
+): Promise<void> => {
+  const config = await loadConfig(arg);
+  if (config === null) {
+    return;
   }
-  const mod: unknown = await import(
-    pathToFileURL(configPath).href
-  );
-  const config = asBundleConfig(pickDefault(mod));
   const files = build(config);
   process.stdout.write(
     `plgg-bundle: wrote ${files.length} file(s) to ${config.outDir}\n`,
   );
+};
+
+/** The dev-server mode. */
+const runDev = async (
+  arg: string | undefined,
+): Promise<void> => {
+  const config = await loadConfig(arg);
+  if (config === null) {
+    return;
+  }
+  const server = await runDevServer(config);
+  process.stdout.write(
+    `plgg-bundle: dev server at ${server.url}\n`,
+  );
+};
+
+/**
+ * Resolve, import (Node strips its types), and validate
+ * the bundle config, or set a non-zero exit and return
+ * null when it is missing. Shared by both modes.
+ */
+const loadConfig = async (
+  arg: string | undefined,
+): Promise<BundleConfig | null> => {
+  const configPath = resolve(
+    process.cwd(),
+    arg ?? "bundle.config.ts",
+  );
+  if (!existsSync(configPath)) {
+    fail(`config not found: ${configPath}`);
+    return null;
+  }
+  const mod: unknown = await import(
+    pathToFileURL(configPath).href
+  );
+  return asBundleConfig(pickDefault(mod));
 };
 
 /**

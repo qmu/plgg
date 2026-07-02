@@ -1,5 +1,6 @@
 import {
   type BundleConfig,
+  type DevConfig,
   type Entry,
   type Format,
   type Target,
@@ -25,6 +26,7 @@ export const asBundleConfig = (
   if (!isRecord(value)) {
     return fail("config is not an object");
   }
+  const devSection = dev(value);
   return {
     target: target(value),
     root: str(value, "root"),
@@ -37,8 +39,80 @@ export const asBundleConfig = (
     entries: entries(value),
     formats: formats(value),
     alias: alias(value),
+    // `exactOptionalPropertyTypes`: only attach `dev` when
+    // the config actually declared it (never `dev:
+    // undefined`).
+    ...(devSection === undefined
+      ? {}
+      : { dev: devSection }),
   };
 };
+
+/**
+ * The optional `dev` section (see {@link DevConfig}).
+ * Absent → `undefined` (a build-only library). Present →
+ * every field narrowed at the boundary.
+ */
+const dev = (
+  o: Record<string, unknown>,
+): DevConfig | undefined => {
+  const raw = o["dev"];
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    return fail(`"dev" must be an object`);
+  }
+  return {
+    entry: str(raw, "entry"),
+    port: num(raw, "port"),
+    watch: strArray(raw, "watch"),
+    allowedHosts: strArray(
+      raw,
+      "allowedHosts",
+    ),
+  };
+};
+
+/**
+ * A required finite-number field.
+ */
+const num = (
+  o: Record<string, unknown>,
+  key: string,
+): number => {
+  const v = o[key];
+  return typeof v === "number" &&
+    Number.isFinite(v)
+    ? v
+    : fail(`"${key}" must be a number`);
+};
+
+/**
+ * A required array-of-strings field. Maps each element
+ * through a string guard (mirroring `entries`/`formats`)
+ * so the result is a real `string[]` — never a leaked
+ * `any[]` from `Array.isArray`.
+ */
+const strArray = (
+  o: Record<string, unknown>,
+  key: string,
+): ReadonlyArray<string> => {
+  const v = o[key];
+  return Array.isArray(v)
+    ? v.map((e) => strElem(e, key))
+    : fail(`"${key}" must be an array`);
+};
+
+const strElem = (
+  e: unknown,
+  key: string,
+): string =>
+  typeof e === "string"
+    ? e
+    : fail(
+        `each "${key}" entry must be a string`,
+      );
 
 /**
  * The optional `target` field — `"library"` (default) or
