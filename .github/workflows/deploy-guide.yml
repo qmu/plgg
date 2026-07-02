@@ -68,7 +68,7 @@ jobs:
           set -e
           for pkg in plgg plgg-test plgg-http plgg-router plgg-view plgg-kit \
                      plgg-server plgg-fetch plgg-sql plgg-foundry \
-                     plgg-md plgg-highlight plggpress; do
+                     plgg-md plgg-highlight plgg-cli plggmatic plggpress; do
             echo "::group::build $pkg"
             (cd "packages/$pkg" && npm ci && npm run build)
             echo "::endgroup::"

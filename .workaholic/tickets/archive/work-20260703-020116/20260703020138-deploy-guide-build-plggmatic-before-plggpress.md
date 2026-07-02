@@ -3,9 +3,9 @@ created_at: 2026-07-03T02:01:38+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 0.25h
+commit_hash: ea2afcc
+category: Changed
 depends_on:
 ---
 
@@ -59,3 +59,12 @@ The `Deploy Guide` workflow run for merge commit `efd21c0` (PR #51) **failed**: 
 
 - The hard-coded list is a standing fragility: any future consumer/dep change can silently break CI again while check-all stays green. A follow-up could derive the order from package.json topology (one canonical runner per the command-scripts policy) — out of scope here, note as deferred concern
 - Do NOT add plggmatic node_modules install steps unless the build fails without them — plggmatic's build imports only from its own src and plgg-bundle (which already gets its install step); its `npm install` happens inside the loop like every other package
+
+## Final Report
+
+Development completed as planned. `plgg-cli` and `plggmatic` inserted into deploy-guide.yml's dist build list before `plggpress`; the failed run 28607344216 and its root cause recorded in `.workaholic/deployments/guide.md`. Pre-merge gate verified: mechanical check confirms every listed package's plgg-family dependencies build earlier in the list. Post-merge gate (green Deploy Guide run + site probe) executes when this ships and doubles as PR #51's pending production confirmation.
+
+### Discovered Insights
+
+- **Insight**: deploy-guide.yml's hard-coded build list is a second, independent copy of the dependency topology (besides scripts/build.sh and check-all.sh) — any package.json dep change can break it while every local gate stays green, and only the post-merge clean runner reveals it.
+  **Context**: Third instance of the clean-runner masking class (after plgg-bundle and plgg-highlight node_modules). A follow-up deriving the CI build order from package.json topology via one canonical runner would eliminate the class; recorded as a Concern for the branch story.
