@@ -91,6 +91,11 @@ const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
       overview: "/packages/plgg-sql",
     },
     {
+      key: "plgg-db-migration",
+      text: "plgg-db-migration",
+      overview: "/packages/plgg-db-migration",
+    },
+    {
       key: "plgg-kit",
       text: "plgg-kit",
       overview: "/packages/plgg-kit",
@@ -99,6 +104,36 @@ const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
       key: "plgg-foundry",
       text: "plgg-foundry",
       overview: "/packages/plgg-foundry",
+    },
+    {
+      key: "plgg-cli",
+      text: "plgg-cli",
+      overview: "/packages/plgg-cli",
+    },
+    {
+      key: "plgg-md",
+      text: "plgg-md",
+      overview: "/packages/plgg-md",
+    },
+    {
+      key: "plgg-highlight",
+      text: "plgg-highlight",
+      overview: "/packages/plgg-highlight",
+    },
+    {
+      key: "plgg-bundle",
+      text: "plgg-bundle",
+      overview: "/packages/plgg-bundle",
+    },
+    {
+      key: "plggmatic",
+      text: "plggmatic",
+      overview: "/packages/plggmatic",
+    },
+    {
+      key: "plggpress",
+      text: "plggpress",
+      overview: "/packages/plggpress",
     },
     {
       key: "plgg-test",
