@@ -47,3 +47,13 @@ The container still runs the OLD dev server. To switch to the toolchain dev serv
 
 - **Visual sign-off** of the qmu theme + home sidebar on the live guide (Playwright light/dark, lg/mobile) — reserved as a human step since the qmu-theme tickets (211839/211840).
 - **The live-guide deploy of 041501** (priority 1) — a container restart of a live tunnel'd service; author decision.
+
+## UPDATE (2026-07-02, /drive): the `__require` chain is DONE — only the human items above remain
+
+Priority 2 landed in full this session; the queue this map tracks is drained:
+
+- **032000** (`951f034`) — plgg-bundle's ESM `__require` fallback now returns native `import(id)` (CJS deliberately keeps host `require`); proven end-to-end (bundled plggmatic `loadConfig` loads a runtime config).
+- **213411** (`21af849`) — plgg-press rewired as a thin plggmatic consumer (guide build byte-identical, 25 files; check-all green). plggmatic joined `scripts/build.sh` and the guide container provisioning. plggmatic's exports map widened to `types`+`default` (Node `require(esm)` needs a matching condition for plgg-bundle's export-surface reader).
+- **213412** (`41f24e1`) — the package is now **`plggpress`** everywhere (dir, bin, alias, scripts, CI, workloads, docs; old name greps to zero outside historical records).
+
+**Priority 1 is now the ONLY open item, and the rename changes its verification paths:** after `docker restart guide_guide_1` (which now also installs `packages/plggpress` + `plggmatic` via the updated entrypoint), verify hot-reload by touching a `packages/plggpress/src/theme/*.ts` (NOT `plgg-press`) and confirming `plgg-guide.qmu.dev` refreshes with no restart. Archive this ticket once the restart + visual sign-off are done.
