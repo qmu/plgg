@@ -142,3 +142,18 @@ test("the sans stack leads with Inter then qmu's system chain", () =>
     css,
     toContain('"Inter",ui-sans-serif,system-ui'),
   ));
+
+test("the 目次 panel and its disclosure animation are styled", () =>
+  all([
+    check(css, toContain(".vp-toc{")),
+    check(
+      css,
+      toContain(
+        "@supports (interpolate-size: allow-keywords)",
+      ),
+    ),
+    check(
+      css,
+      toContain(".vp-toc a:focus-visible"),
+    ),
+  ]));

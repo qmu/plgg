@@ -517,6 +517,65 @@ html.dark .vp-callout-danger{
   color:#fee2e2;
 }
 
+/* in-article collapsible 目次 (qmu's mobile-toc): a soft
+   panel wrapping a native details/summary disclosure. The
+   link rules override the .vp-doc prose-link treatment
+   (same specificity, later in the sheet): quiet muted
+   links that invert on hover/focus like the sidebar. */
+.vp-toc{
+  margin:1.25rem 0 1.5rem;
+  padding:0.5rem 1rem;
+  border:1px solid var(--vp-divider);
+  border-radius:0.5rem;
+  background:var(--vp-bg-alt);
+  font-size:0.9rem;
+}
+.vp-toc summary{
+  cursor:pointer;padding:0.25rem 0;
+  color:var(--vp-text);font-weight:600;
+}
+.vp-toc nav{margin-top:0.25rem}
+.vp-toc ul{
+  margin:0;padding:0;list-style:none;
+}
+.vp-toc li{margin:0.4rem 0;padding:0}
+.vp-toc li.vp-toc-sub{padding-left:1rem}
+.vp-toc a{
+  display:inline-block;
+  color:var(--vp-muted);font-weight:400;
+  text-decoration:none;border-radius:0.2em;
+  padding:0 0.25em;margin-inline:0;
+  transition:background-color 0.15s,color 0.15s;
+}
+.vp-toc a:hover{
+  color:var(--vp-hover-ink);
+  background:var(--vp-hover);
+}
+.vp-toc a:focus-visible{
+  color:var(--vp-hover-ink);
+  background:var(--vp-hover);
+}
+/* Animated open/close for the disclosure (qmu global.css):
+   interpolate-size animates the intrinsic height; browsers
+   without it just toggle instantly, and native details
+   keeps its a11y semantics either way. Disabled under
+   prefers-reduced-motion. */
+@supports (interpolate-size: allow-keywords){
+  @media not (prefers-reduced-motion: reduce){
+    :root{interpolate-size:allow-keywords}
+    .vp-toc::details-content{
+      height:0;overflow:clip;
+      content-visibility:hidden;
+      transition:height 0.25s ease,
+        content-visibility 0.25s ease
+          allow-discrete;
+    }
+    .vp-toc[open]::details-content{
+      height:auto;content-visibility:visible;
+    }
+  }
+}
+
 /* below sm (qmu's 639px block): the prose headings render
    oversized relative to the phone column; scale them down.
    Body text keeps its base size. */
