@@ -1,0 +1,14 @@
+# release-notes
+
+* [Release Notes: drive-20260226-032733](drive-20260226-032733.md)
+* [Add plgg-http-client and unify the error vocabulary as Box-tagged ADTs etc](plgg-http-client.md)
+* [Curry match so tag handlers receive the narrowed box, with CoverageError exhaustiveness](work-20260513-182057.md)
+* [Combine plgg-view + plgg-sql + plgg-http-client into one runnable example, lead the README with the picture](work-20260528-011843.md)
+* [Minimal Elm Architecture for plgg-view + plgg-http extraction + HTTP package renames etc](work-20260528-143038.md)
+* [plgg-view micro-interactions + security hardening + editorial redesign](work-20260531-003055.md)
+* [Errors as tagged data + precise proc inference, plus an SSG generator etc](work-20260617-002003.md)
+* [Official VitePress guide for the plgg family (packages/guide/)](work-20260623-int-guide-plgg-test.md)
+* [Foundation work validated: plgg-test self-suite, fidelity gate, and DOM seam etc](work-20260624-135934.md)
+* [Remove unused devDeps and add dependabot.yml to unblock security updates etc](work-20260628-010653.md)
+* [Add four foundation combinators to eliminate repetitive type scaffolding etc](work-20260701-185044.md)
+* [Deploy Guide builds plggmatic before plggpress; guide served at plgg.qmu.co.jp](work-20260703-020116.md)
