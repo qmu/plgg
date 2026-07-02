@@ -74,5 +74,9 @@
 * [Principle (a) design change: author-facing strings stay plain](51-principle-a-design-change-author-facing.md)
 * [Proc error channel adopted only in plgg-db-migration](51-proc-error-channel-adopted-only-in.md)
 * [Stale committed dists mask type drift until a fresh rebuild](51-stale-committed-dists-mask-type-drift.md)
+* [74 standing deferred concerns carried (PRs #31–#51)](52-74-standing-deferred-concerns-carried-prs.md)
+* [Degraded window between cname flip and root-base deploy](52-degraded-window-between-cname-flip-and.md)
+* [Deploy Guide's hard-coded build list is a second copy of the dependency topology](52-deploy-guide-s-hard-coded-build.md)
+* [HTTPS enforcement and proxied-mode follow-ups for plgg.qmu.co.jp](52-https-enforcement-and-proxied-mode-follow.md)
 
 * [archive/](archive/)
