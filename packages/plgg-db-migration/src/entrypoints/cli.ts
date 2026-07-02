@@ -1,6 +1,7 @@
 import {
   Result,
   SoftStr,
+  Defect,
   ok,
   err,
   isOk,
@@ -132,19 +133,28 @@ const done = (message: SoftStr): void => {
   process.stdout.write(`${message}\n`);
 };
 
-/** The message of any error riding this CLI's channel. */
+/**
+ * The message of any error riding this CLI's channel. Includes `Defect` — the
+ * unexpected-throw bottom that `proc` folds into the channel — so an unexpected
+ * failure surfaces its message here rather than escaping (handled once, at this
+ * edge; the domain usecases carry `… | Defect` through untouched).
+ */
 const messageOf = (
-  e: MigrationError | SqlError,
+  e: MigrationError | SqlError | Defect,
 ): SoftStr => e.content.message;
 
 /** Fold a domain result into stdout / exit-code. */
 const render = <T>(
-  result: Result<T, MigrationError | SqlError>,
+  result: Result<
+    T,
+    MigrationError | SqlError | Defect
+  >,
   onOk: (value: T) => SoftStr,
 ): void =>
   matchResult(
-    (e: MigrationError | SqlError): void =>
-      fail(messageOf(e)),
+    (
+      e: MigrationError | SqlError | Defect,
+    ): void => fail(messageOf(e)),
     (value: T): void => done(onOk(value)),
   )(result);
 

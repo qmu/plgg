@@ -1,5 +1,7 @@
 # plgg-fetch
 
+> **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
+
 A **typed HTTP client** built from scratch on [plgg](../plgg/), for the
 presentation layer to call a server. It is the symmetric peer of
 [`plgg-server`](../plgg-server/): both build on the shared HTTP model in

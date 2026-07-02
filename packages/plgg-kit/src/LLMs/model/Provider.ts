@@ -1,8 +1,6 @@
 import {
-  Box,
   Obj,
   Option,
-  pattern,
   cast,
   asBox,
   asObj,
@@ -10,10 +8,9 @@ import {
   forOptionProp,
   asSoftStr,
   forContent,
-  box,
   none,
   fromNullable,
-  pipe,
+  defineVariant,
 } from "plgg";
 
 export type Provider =
@@ -52,46 +49,64 @@ const toConfig = (
 
 // -------------
 
-export type OpenAI = Box<"OpenAI", Config>;
-export const openAI$ = pattern("OpenAI");
+const OpenAIV = defineVariant("OpenAI")<Config>();
+export type OpenAI = ReturnType<
+  typeof OpenAIV.make
+>;
+export const openAI$ = OpenAIV.pattern;
 export const asOpenAI = (v: unknown) =>
-  cast(v, asBox, forContent("OpenAI", asConfig));
+  cast(
+    v,
+    asBox,
+    forContent(OpenAIV.tag, asConfig),
+  );
 export function openai(model: string): OpenAI;
 export function openai(config: { model: string; apiKey?: string }): OpenAI;
 export function openai(
   arg: string | { model: string; apiKey?: string },
 ): OpenAI {
-  return pipe(toConfig(arg), box("OpenAI"));
+  return OpenAIV.make(toConfig(arg));
 }
 
 // -------------
 
-export type Anthropic = Box<"Anthropic", Config>;
-export const anthropic$ = pattern("Anthropic");
+const AnthropicV =
+  defineVariant("Anthropic")<Config>();
+export type Anthropic = ReturnType<
+  typeof AnthropicV.make
+>;
+export const anthropic$ = AnthropicV.pattern;
 export const asAnthropic = (v: unknown) =>
   cast(
     v,
     asBox,
-    forContent("Anthropic", asConfig),
+    forContent(AnthropicV.tag, asConfig),
   );
 export function anthropic(model: string): Anthropic;
 export function anthropic(config: { model: string; apiKey?: string }): Anthropic;
 export function anthropic(
   arg: string | { model: string; apiKey?: string },
 ): Anthropic {
-  return pipe(toConfig(arg), box("Anthropic"));
+  return AnthropicV.make(toConfig(arg));
 }
 
 // -------------
 
-export type Google = Box<"Google", Config>;
-export const google$ = pattern("Google");
+const GoogleV = defineVariant("Google")<Config>();
+export type Google = ReturnType<
+  typeof GoogleV.make
+>;
+export const google$ = GoogleV.pattern;
 export const asGoogle = (v: unknown) =>
-  cast(v, asBox, forContent("Google", asConfig));
+  cast(
+    v,
+    asBox,
+    forContent(GoogleV.tag, asConfig),
+  );
 export function google(model: string): Google;
 export function google(config: { model: string; apiKey?: string }): Google;
 export function google(
   arg: string | { model: string; apiKey?: string },
 ): Google {
-  return pipe(toConfig(arg), box("Google"));
+  return GoogleV.make(toConfig(arg));
 }

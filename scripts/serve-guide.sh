@@ -1,10 +1,10 @@
 #!/bin/sh -eu
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
-# Launch the plgg family guide (plgg-press) dev container with hot-reload.
+# Launch the plgg family guide (plggpress) dev container with hot-reload.
 # This is a long-running FOREGROUND server, not a task that completes: it holds
 # the terminal until you stop it with Ctrl-C (so there is no success-banner tail
-# like the build/test scripts have). The dev container runs `plgg-press dev`
+# like the build/test scripts have). The dev container runs `plggpress dev`
 # and serves the guide's Markdown content directly.
 # External access maps to http://localhost:5181 via the cloudflared tunnel.
 echo "=== Serving the guide at http://localhost:5181 (Ctrl-C to stop) ==="

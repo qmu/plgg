@@ -11,7 +11,8 @@
   "scripts": {
     "build": "tsc",
     "tsc": "tsc --noEmit",
-    "test": "tsc --noEmit && plgg-test src"
+    "test": "tsc --noEmit && plgg-test src",
+    "coverage": "tsc --noEmit && plgg-test src --coverage"
   },
   "author": "qmu",
   "license": "MIT",

@@ -58,10 +58,10 @@ const withContentType = (
  */
 export const textResponse = (
   body: SoftStr,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse => ({
-  status: statusOf(status),
+  status,
   headers: withContentType(
     headers,
     "text/plain; charset=utf-8",
@@ -74,10 +74,10 @@ export const textResponse = (
  */
 export const htmlResponse = (
   body: SoftStr,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse => ({
-  status: statusOf(status),
+  status,
   headers: withContentType(
     headers,
     "text/html; charset=utf-8",
@@ -90,10 +90,10 @@ export const htmlResponse = (
  */
 export const jsonResponse = (
   data: unknown,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse => ({
-  status: statusOf(status),
+  status,
   headers: withContentType(
     headers,
     "application/json; charset=utf-8",
@@ -108,10 +108,10 @@ export const jsonResponse = (
  */
 export const bytesResponse = (
   data: Uint8Array,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse => ({
-  status: statusOf(status),
+  status,
   headers: withContentType(
     headers,
     "application/octet-stream",
@@ -126,10 +126,10 @@ export const bytesResponse = (
  */
 export const streamResponse = (
   chunks: AsyncIterable<Uint8Array>,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse => ({
-  status: statusOf(status),
+  status,
   headers: withContentType(
     headers,
     "application/octet-stream",
@@ -142,10 +142,10 @@ export const streamResponse = (
  */
 export const redirectResponse = (
   location: SoftStr,
-  status: number = 302,
+  status: HttpStatus = statusOf(302),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse => ({
-  status: statusOf(status),
+  status,
   headers: { ...headers, location },
   body: "",
 });

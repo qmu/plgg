@@ -2,6 +2,7 @@ import {
   Box,
   Option,
   SoftStr,
+  Float,
   box,
   pattern,
   some,
@@ -16,7 +17,7 @@ import {
  * where confusion can occur), never an arbitrary CSS bag.
  */
 export type Frame = Readonly<{
-  opacity: Option<number>;
+  opacity: Option<Float>;
   transform: Option<SoftStr>;
 }>;
 
@@ -192,7 +193,7 @@ export const easeInOut =
 
 /** A {@link Frame} from its two optional properties. */
 const frame = (
-  opacity: Option<number>,
+  opacity: Option<Float>,
   transform: Option<SoftStr>,
 ): Frame => ({ opacity, transform });
 
@@ -218,8 +219,8 @@ export const fadeIn = (
 ): Attribute<never> =>
   transition({
     enter: {
-      from: frame(some(0), none()),
-      to: frame(some(1), none()),
+      from: frame(some(box("Float")(0)), none()),
+      to: frame(some(box("Float")(1)), none()),
       durationMs,
       easing: easeOut,
     },
@@ -231,8 +232,8 @@ export const fadeOut = (
 ): Attribute<never> =>
   transition({
     exit: {
-      from: frame(some(1), none()),
-      to: frame(some(0), none()),
+      from: frame(some(box("Float")(1)), none()),
+      to: frame(some(box("Float")(0)), none()),
       durationMs,
       easing: easeIn,
     },
@@ -248,10 +249,13 @@ export const slideIn = (
   transition({
     enter: {
       from: frame(
-        some(0),
+        some(box("Float")(0)),
         some(`translateY(${from})`),
       ),
-      to: frame(some(1), some("translateY(0)")),
+      to: frame(
+        some(box("Float")(1)),
+        some("translateY(0)"),
+      ),
       durationMs,
       easing: easeOut,
     },

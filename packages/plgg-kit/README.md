@@ -1,5 +1,7 @@
 # plgg-kit
 
+> **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
+
 Vendor dependencies for plgg projects - LLM provider abstractions and utilities.
 
 **plgg-kit** provides a unified interface for interacting with multiple LLM providers (OpenAI, Anthropic, Google) with structured output support.

@@ -32,6 +32,7 @@ import {
   setState,
   textResponse,
   jsonResponse,
+  statusOf,
   notFound,
   badRequest,
   unauthorized,
@@ -185,7 +186,10 @@ const app = pipe(
         ),
       ),
       mapResult((user) =>
-        jsonResponse({ created: user }, 201),
+        jsonResponse(
+          { created: user },
+          statusOf(201),
+        ),
       ),
     ),
   ),

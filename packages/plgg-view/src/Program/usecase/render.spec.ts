@@ -18,7 +18,7 @@ import {
   input,
   form,
 } from "plgg-view/Html/model/element";
-import { some, none, isSome } from "plgg";
+import { some, none, isSome, box } from "plgg";
 import {
   attr,
   class_,
@@ -625,9 +625,9 @@ test("style_ sets and patches the class attribute (hook + atoms)", () => {
 // --- animation: enter / exit transitions ---------------------------------
 
 const fadeMotion: Motion = {
-  from: { opacity: some(0), transform: none() },
+  from: { opacity: some(box("Float")(0)), transform: none() },
   to: {
-    opacity: some(1),
+    opacity: some(box("Float")(1)),
     transform: some("translateY(0)"),
   },
   durationMs: 100,

@@ -1,11 +1,8 @@
 import {
   Box,
-  SoftStr,
-  Result,
-  ok,
-  err,
-  box,
-  isBoxWithTag,
+  Ordering,
+  comparing,
+  refinedBrand,
   isSoftStr,
 } from "plgg";
 import {
@@ -21,43 +18,34 @@ import {
  */
 export type Version = Box<"Version", string>;
 
-/** A value qualifies as a version iff it is a 14-digit timestamp string. */
-const qualify = (
-  value: unknown,
-): value is string =>
-  isSoftStr(value) && /^\d{14}$/.test(value);
+const version = refinedBrand<
+  "Version",
+  string,
+  MigrationError
+>(
+  "Version",
+  (v): v is string =>
+    isSoftStr(v) && /^\d{14}$/.test(v),
+  (v) =>
+    versionShape(
+      "a migration version must be a 14-digit YYYYMMDDHHMMSS timestamp",
+      v,
+    ),
+);
 
 /**
  * Type guard for {@link Version} (a `"Version"` box whose content qualifies).
  */
-export const isVersion = (
-  value: unknown,
-): value is Version =>
-  isBoxWithTag("Version")(value) &&
-  qualify(value.content);
+export const isVersion = version.is;
 
 /**
  * Validates an unknown value into a {@link Version} at the filesystem boundary,
  * or fails with a `VersionShape` {@link MigrationError}.
  */
-export const asVersion = (
-  value: unknown,
-): Result<Version, MigrationError> =>
-  isVersion(value)
-    ? ok(value)
-    : qualify(value)
-      ? ok(box("Version")(value))
-      : err(
-          versionShape(
-            "a migration version must be a 14-digit YYYYMMDDHHMMSS timestamp",
-            value,
-          ),
-        );
+export const asVersion = version.as;
 
 /** The underlying 14-digit string of a {@link Version}. */
-export const versionString = (
-  version: Version,
-): SoftStr => version.content;
+export const versionString = version.unwrap;
 
 /**
  * Total ordering over {@link Version} (ascending, chronological). Suitable as
@@ -66,9 +54,7 @@ export const versionString = (
 export const compareVersion = (
   a: Version,
   b: Version,
-): number =>
-  a.content < b.content
-    ? -1
-    : a.content > b.content
-      ? 1
-      : 0;
+): Ordering =>
+  comparing<Version, string>(
+    (v) => v.content,
+  )(a, b);

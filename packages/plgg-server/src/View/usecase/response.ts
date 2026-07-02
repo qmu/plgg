@@ -2,6 +2,8 @@ import { SoftStr, Dict } from "plgg";
 import { Html } from "plgg-view";
 import {
   HttpResponse,
+  HttpStatus,
+  statusOf,
   htmlResponse,
   textResponse,
   renderToString,
@@ -16,7 +18,7 @@ import {
  */
 export const viewResponse = <Msg>(
   node: Html<Msg>,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse =>
   htmlResponse(renderToString(node), status, headers);
@@ -27,7 +29,7 @@ export const viewResponse = <Msg>(
  */
 export const pageResponse = <Msg>(
   opts: HtmlDocumentOptions<Msg>,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse =>
   htmlResponse(htmlDocument(opts), status, headers);
@@ -39,7 +41,7 @@ export const pageResponse = <Msg>(
  */
 export const javascriptResponse = (
   body: SoftStr,
-  status: number = 200,
+  status: HttpStatus = statusOf(200),
   headers: Dict<string, SoftStr> = {},
 ): HttpResponse =>
   textResponse(body, status, {

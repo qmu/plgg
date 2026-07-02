@@ -20,8 +20,8 @@ import {
  * never an ad-hoc literal, so the shape stays a single
  * source of truth for the later renderer.
  *
- * A `Box` union over the plgg-press subset (see
- * `docs/plgg-press-migration/spike-decisions.md` §7).
+ * A `Box` union over the plggpress subset (see
+ * `docs/plggpress-migration/spike-decisions.md` §7).
  * There is intentionally **no** raw-HTML variant: any
  * stray angle-brackets ride along inside {@link Para}
  * text and are HTML-escaped at render (v1 decision).

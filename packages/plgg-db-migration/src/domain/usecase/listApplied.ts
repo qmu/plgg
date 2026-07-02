@@ -3,10 +3,12 @@ import {
   Result,
   PromisedResult,
   InvalidError,
+  Defect,
   SoftStr,
   ok,
   err,
-  isOk,
+  proc,
+  matchResult,
   cast,
   asObj,
   forProp,
@@ -73,34 +75,31 @@ export const listApplied = (
   db: Db,
 ): PromisedResult<
   SchemaMigrations,
-  MigrationError | SqlError
+  MigrationError | SqlError | Defect
 > =>
-  query(db)(selectAppliedSql()).then((rowsRes) =>
-    isOk(rowsRes)
-      ? pipe(
-          decodeRows(asLedgerRow)(
-            rowsRes.content,
+  proc(
+    query(db)(selectAppliedSql()),
+    (rows) =>
+      matchResult(
+        (): Result<
+          SchemaMigrations,
+          MigrationError
+        > =>
+          err(
+            ledgerCorrupt(
+              "a schema_migrations row could not be decoded",
+            ),
           ),
-          (
-            decoded,
-          ): Result<
-            SchemaMigrations,
-            MigrationError | SqlError
-          > =>
-            isOk(decoded)
-              ? ok(
-                  decoded.content.map((r) =>
-                    appliedVersion(
-                      r.version,
-                      r.applied_at,
-                    ),
-                  ),
-                )
-              : err(
-                  ledgerCorrupt(
-                    "a schema_migrations row could not be decoded",
-                  ),
-                ),
-        )
-      : rowsRes,
+        (
+          decoded: ReadonlyArray<LedgerRow>,
+        ): Result<SchemaMigrations, MigrationError> =>
+          ok(
+            decoded.map((r) =>
+              appliedVersion(
+                r.version,
+                r.applied_at,
+              ),
+            ),
+          ),
+      )(decodeRows(asLedgerRow)(rows)),
   );

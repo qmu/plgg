@@ -1,9 +1,10 @@
 import {
   PromisedResult,
   SoftStr,
+  Defect,
   ok,
   err,
-  isOk,
+  proc,
   matchOption,
 } from "plgg";
 import {
@@ -35,15 +36,11 @@ const runThenRecord = (
   db: Db,
   script: SoftStr,
   record: Sql,
-): PromisedResult<void, SqlError> =>
-  runScript(db)(script).then((scriptRes) =>
-    isOk(scriptRes)
-      ? exec(db)(record).then((recordRes) =>
-          isOk(recordRes)
-            ? ok(undefined)
-            : recordRes,
-        )
-      : scriptRes,
+): PromisedResult<void, SqlError | Defect> =>
+  proc(
+    runScript(db)(script),
+    () => exec(db)(record),
+    () => ok(undefined),
   );
 
 /**
@@ -57,8 +54,8 @@ const runThenRecord = (
 const run = (
   migrator: Migrator,
   atomic: boolean,
-  op: () => PromisedResult<void, SqlError>,
-): PromisedResult<void, SqlError> =>
+  op: () => PromisedResult<void, SqlError | Defect>,
+): PromisedResult<void, SqlError | Defect> =>
   atomic
     ? transaction(migrator.db, () => op())(
         undefined,
@@ -73,7 +70,7 @@ export const applyMigration =
   (migrator: Migrator) =>
   (
     m: Migration,
-  ): PromisedResult<void, SqlError> =>
+  ): PromisedResult<void, SqlError | Defect> =>
     run(
       migrator,
       migrator.dialect.supportsTransactionalDdl &&
@@ -96,12 +93,12 @@ export const rollbackMigration =
     m: Migration,
   ): PromisedResult<
     void,
-    MigrationError | SqlError
+    MigrationError | SqlError | Defect
   > =>
     matchOption(
       (): PromisedResult<
         void,
-        MigrationError | SqlError
+        MigrationError | SqlError | Defect
       > =>
         Promise.resolve(
           err(

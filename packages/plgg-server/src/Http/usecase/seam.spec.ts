@@ -14,6 +14,7 @@ import {
   textResponse,
   bytesResponse,
   streamResponse,
+  statusOf,
 } from "plgg-server/index";
 
 async function* bytesStream(): AsyncIterable<Uint8Array> {
@@ -60,7 +61,7 @@ test("toHttpRequest rejects an unsupported method as Unsupported", async () => {
 
 test("toNativeResponse unwraps status, headers, and body", async () => {
   const native = toNativeResponse(
-    textResponse("hello", 201, {
+    textResponse("hello", statusOf(201), {
       "content-type": "text/plain",
       "x-extra": "1",
     }),
@@ -94,7 +95,10 @@ test("toNativeResponse maps a bytes body and sets Content-Length", async () => {
 
 test("toNativeResponse preserves a caller-supplied Content-Length on a bytes body", () => {
   const native = toNativeResponse(
-    bytesResponse(new Uint8Array([1, 2, 3]), 200, {
+    bytesResponse(
+      new Uint8Array([1, 2, 3]),
+      statusOf(200),
+      {
       "content-length": "99",
     }),
   );

@@ -1,4 +1,4 @@
-import { SoftStr } from "plgg";
+import { SoftStr, Float } from "plgg";
 import {
   Styles,
   decl,
@@ -158,9 +158,9 @@ export const outline = (c: Color): Styles =>
 
 export const shadow = (s: Shadow): Styles =>
   decl("box-shadow", shadowValue(s));
-/** Opacity in the `0..1` range. */
-export const opacity = (n: number): Styles =>
-  decl("opacity", `${n}`);
+/** Opacity as a finite {@link Float} (documented `0..1`). */
+export const opacity = (n: Float): Styles =>
+  decl("opacity", `${n.content}`);
 export const pointer: Styles = decl(
   "cursor",
   "pointer",

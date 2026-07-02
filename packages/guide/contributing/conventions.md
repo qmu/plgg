@@ -36,8 +36,10 @@ full source so the reader can see it compile and run.
 
 ## Information architecture is the contract
 
-The nav and sidebar tree in `.vitepress/config.ts` is
-fixed by T1. Content tickets fill pages under existing
-nodes; they do not restructure navigation. If a genuinely
-new node is needed, change the IA deliberately and update
-this page alongside it.
+The nav and sidebar tree lives in `site.config.ts`, whose
+`PACKAGE_GROUPS` / `sidebar` / `nav` data is validated
+through plggpress's `defineSite`. Content tickets fill
+pages under existing nodes; they do not restructure
+navigation. If a genuinely new node is needed, change the
+IA deliberately (add its `PACKAGE_GROUPS` entry) and
+update this page alongside it.

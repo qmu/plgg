@@ -3,7 +3,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 
 # Canonical "no direct vite" gate — vite is shed for the in-house bundler.
 # Asserts vite is gone as a DIRECT dependency / config / build import across
-# EVERY package, the guide included: now that the guide is built by plgg-press
+# EVERY package, the guide included: now that the guide is built by plggpress
 # (VitePress removed), there is no transitive vite anywhere left to exempt. One
 # source of truth, reused by scripts/check-all.sh AND the run-tests CI workflow,
 # so a PR reintroducing a direct vite dep fails both locally and in CI.

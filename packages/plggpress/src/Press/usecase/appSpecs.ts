@@ -1,0 +1,64 @@
+import {
+  type SoftStr,
+  type Defect,
+  type Result,
+  type PromisedResult,
+  some,
+  chainResult,
+} from "plgg";
+import { renderToString } from "plggmatic";
+import { type Web } from "plggmatic";
+import { type BuildSpec } from "plggmatic";
+import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
+import {
+  type PageLinks,
+  type BrokenLinks,
+} from "plggpress/CheckLinks/model/CheckLinks";
+import { collectPageLinks } from "plggpress/CheckLinks/usecase/collectPageLinks";
+import { checkLinks } from "plggpress/CheckLinks/usecase/checkLinks";
+import { pressRouter } from "plggpress/router/pressRouter";
+import { notFound } from "plggpress/theme/notFound";
+import { injectThemeScripts } from "plggpress/theme/themeScript";
+
+/**
+ * The press build declaration, stated once for every
+ * entry point (`build`, the CLI): what plggpress — the
+ * docs app — supplies to `plggmatic`'s static build. The
+ * router factory closes the validated config over
+ * {@link pressRouter} (Markdown → highlight → theme), the
+ * 404 body is the rendered theme {@link notFound} page,
+ * and the link check is the press
+ * {@link collectPageLinks} → {@link checkLinks} policy —
+ * a broken internal link or `#anchor` fails the build
+ * before anything is written.
+ */
+export const buildSpecOf = (
+  config: SiteConfig,
+  contentDir: SoftStr,
+  base: SoftStr,
+): BuildSpec<Defect | BrokenLinks> => ({
+  router: (paths: ReadonlyArray<SoftStr>): Web =>
+    pressRouter(contentDir, config, base, paths),
+  notFoundHtml: injectThemeScripts(
+    renderToString(notFound(config)),
+  ),
+  linkCheck: some(
+    (
+      paths: ReadonlyArray<SoftStr>,
+    ): PromisedResult<
+      unknown,
+      Defect | BrokenLinks
+    > =>
+      collectPageLinks(
+        contentDir,
+        base,
+      )(paths).then(
+        chainResult(
+          (
+            pages: ReadonlyArray<PageLinks>,
+          ): Result<void, Defect | BrokenLinks> =>
+            checkLinks(base)(pages),
+        ),
+      ),
+  ),
+});

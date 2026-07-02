@@ -1,9 +1,11 @@
 import {
   Result,
   PromisedResult,
+  Defect,
   ok,
   err,
   isOk,
+  proc,
   pipe,
   fromNullable,
   matchOption,
@@ -74,18 +76,21 @@ const findMigration = (
     ),
   );
 
-/** Roll back the target versions in order, stopping at the first failure. */
+/**
+ * Roll back the target versions in order, stopping at the first failure. A
+ * sequential fold over the array (not a fixed-arity `proc` chain).
+ */
 const rollbackEach = (
   migrator: Migrator,
   versions: ReadonlyArray<Version>,
 ): PromisedResult<
   ReadonlyArray<Version>,
-  MigrationError | SqlError
+  MigrationError | SqlError | Defect
 > =>
   versions.reduce<
     PromisedResult<
       ReadonlyArray<Version>,
-      MigrationError | SqlError
+      MigrationError | SqlError | Defect
     >
   >(
     (accP, version) =>
@@ -96,7 +101,7 @@ const rollbackEach = (
                 e: MigrationError,
               ): PromisedResult<
                 ReadonlyArray<Version>,
-                MigrationError | SqlError
+                MigrationError | SqlError | Defect
               > => Promise.resolve(err(e)),
               (m: Migration) =>
                 rollbackMigration(migrator)(
@@ -130,24 +135,17 @@ export const migrateDown = (
   to?: Version,
 ): PromisedResult<
   ReadonlyArray<Version>,
-  MigrationError | SqlError
+  MigrationError | SqlError | Defect
 > =>
-  ensureSchemaMigrations(
-    migrator.db,
-    migrator.dialect,
-  ).then((ensured) =>
-    isOk(ensured)
-      ? listApplied(migrator.db).then(
-          (appliedRes) =>
-            isOk(appliedRes)
-              ? rollbackEach(
-                  migrator,
-                  rollbackTargets(
-                    appliedRes.content,
-                    to,
-                  ),
-                )
-              : appliedRes,
-        )
-      : ensured,
+  proc(
+    ensureSchemaMigrations(
+      migrator.db,
+      migrator.dialect,
+    ),
+    () => listApplied(migrator.db),
+    (applied) =>
+      rollbackEach(
+        migrator,
+        rollbackTargets(applied, to),
+      ),
   );
