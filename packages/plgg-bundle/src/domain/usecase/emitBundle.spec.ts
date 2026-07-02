@@ -124,6 +124,25 @@ test("emitEsmBundle imports externals and routes the registry to them", () =>
     ),
   ]));
 
+test("emitEsmBundle falls back to native dynamic import for unresolved ids", () =>
+  all([
+    // A runtime-only id (e.g. a config file path from a
+    // transpiled dynamic import) resolves natively …
+    check(
+      emitEsmBundle(externalGraph, [
+        "read",
+      ]).includes("return import(id);"),
+      toBe(true),
+    ),
+    // … instead of throwing as a build mistake.
+    check(
+      emitEsmBundle(externalGraph, [
+        "read",
+      ]).includes("Cannot resolve external"),
+      toBe(false),
+    ),
+  ]));
+
 test("emitCjsBundle leaves externals to the host require", () =>
   all([
     // No external import machinery in CJS …

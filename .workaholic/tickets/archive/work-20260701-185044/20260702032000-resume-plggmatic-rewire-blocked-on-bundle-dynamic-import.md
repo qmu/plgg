@@ -3,9 +3,9 @@ created_at: 2026-07-02T03:20:00+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Infrastructure, Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: db3fce0
+category: Changed
 depends_on:
 ---
 
