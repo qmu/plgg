@@ -73,6 +73,14 @@ The reverted 213411 attempt proved the rest of the rewire is sound (everything e
 - `packages/plgg-press/src/{build,dev,cli,router/pressRouter,Config/usecase/loadConfig,Press/model/*}.ts` — the 213411 rewire surface (all currently at HEAD).
 - `.workaholic/tickets/todo/a-qmu-jp/20260701213411-*.md`, `20260701213412-*.md` — the two blocked tickets (still in todo).
 
+## When 213411 lands: re-wire the build
+
+213410 registered plggmatic in `scripts/build.sh`, but that was **backed out** (a follow-up commit) because nothing consumes plggmatic's dist yet and the guide dev container's entrypoint (`workloads/guide/dev-entrypoint.sh` → `scripts/build.sh`) does **not** provision plggmatic's `node_modules` — a clean `docker compose up --build` would fail at `cd packages/plggmatic && npm run build` (`Cannot find plgg-bundle`). It only survived a restart because the host mount exposed the host's `node_modules`. So when 213411 lands:
+
+1. Re-add the `plggmatic` build line to `scripts/build.sh` (after `plgg-cli`, before `plgg-press`).
+2. Provision it in the guide dev container: add `plggmatic` to `dev-entrypoint.sh`'s install loop and `/app/packages/plggmatic/node_modules` to `compose.yaml`'s anonymous-volume list (image rebuild needed).
+3. Heads-up (pre-existing, tolerated): `plgg-press`'s `npm run build` already logs a non-fatal `plgg-bundle: DtsError` (declaration-emit type mismatch in `build.ts`'s proc/Defect pipeline); `plgg-bundle` exits 0 and emits JS, and the dev server runs from source so it is unaffected. plggmatic's `build.ts` inherits the same tolerated pattern — worth cleaning up when the declaration-emit typing is addressed repo-wide.
+
 ## Considerations
 
 - **Repo is green and clean at HEAD `2c6839b`.** plggmatic (213410) is landed, additive, and does not affect plgg-press, which still builds the guide byte-identically. Nothing is half-applied.
