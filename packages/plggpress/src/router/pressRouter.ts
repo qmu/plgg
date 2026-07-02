@@ -12,7 +12,6 @@ import {
   mapErr,
   mapResult,
   chainResult,
-  matchOption,
 } from "plgg";
 import {
   type Html,
@@ -35,15 +34,11 @@ import {
   notFound,
 } from "plggmatic";
 import { buildRouter } from "plggmatic";
-import {
-  type SiteConfig,
-  type HomeConfig,
-} from "plggpress/SiteConfig/model/SiteConfig";
+import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { injectThemeScripts } from "plggpress/theme/themeScript";
 import { shell } from "plggpress/theme/shell";
 import { page } from "plggpress/theme/page";
-import { homeHero } from "plggpress/theme/homeHero";
 
 /**
  * The source `*.md` candidates a route path can have come
@@ -119,48 +114,11 @@ const readSource = (
   );
 
 /**
- * Whether the page opted into the generic home layout via
- * its `layout: home` frontmatter marker.
- */
-const isHome = (doc: MarkdownDoc): boolean =>
-  pipe(
-    doc.frontmatter.layout,
-    matchOption(
-      (): boolean => false,
-      (layout: SoftStr): boolean =>
-        layout === "home",
-    ),
-  );
-
-/**
- * The content region to wrap: the generic
- * {@link homeHero} rendered from `config.home` DATA when
- * the page is `layout: home` AND the config carries home
- * data, otherwise the rendered Markdown body. A
- * `layout: home` page with no configured home data
- * degrades to its Markdown body rather than failing.
- */
-const contentOf = (
-  config: SiteConfig,
-  doc: MarkdownDoc,
-): Html<never> =>
-  isHome(doc)
-    ? pipe(
-        config.home,
-        matchOption(
-          (): Html<never> => doc.body,
-          (home: HomeConfig): Html<never> =>
-            homeHero(home),
-        ),
-      )
-    : doc.body;
-
-/**
- * Composes one page: pick the content region, wrap it in
- * the {@link page} layout (top {@link navBar} + the
- * {@link sidebarTree} marked at the route being rendered,
- * or the full-width hero for `layout: home`), then in the
- * theme document {@link shell} (which derives the
+ * Composes one page: wrap the rendered Markdown body in
+ * the {@link page} layout (the sidebar-first shell marked
+ * at the route being rendered — the landing page renders
+ * as ordinary prose through the same shell, qmu.co.jp's
+ * model), then in the theme document {@link shell} (which derives the
  * `<title>` and inlines the collected atomic CSS). `route`
  * is the path being rendered — the `activePath` the chrome
  * marks — threaded from the per-route handler.
@@ -174,13 +132,7 @@ const pageView = (
   shell(
     config,
     doc,
-    page(
-      config,
-      doc,
-      contentOf(config, doc),
-      route,
-      base,
-    ),
+    page(config, doc.body, route, base),
   );
 
 /**

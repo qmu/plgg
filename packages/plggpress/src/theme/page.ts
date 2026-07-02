@@ -1,4 +1,4 @@
-import { type SoftStr, matchOption } from "plgg";
+import { type SoftStr } from "plgg";
 import {
   type Html,
   div,
@@ -12,7 +12,6 @@ import {
   attr,
   class_,
 } from "plggmatic";
-import { type MarkdownDoc } from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,
@@ -24,19 +23,6 @@ import {
   href,
   samePath,
 } from "plggpress/Href/usecase/href";
-
-/**
- * Whether the page opted into the full-width home layout
- * via its `layout: home` frontmatter marker — the one
- * variant rendered WITHOUT the sidebar (the hero owns the
- * whole content column).
- */
-const isHome = (doc: MarkdownDoc): boolean =>
-  matchOption<SoftStr, boolean>(
-    (): boolean => false,
-    (layout: SoftStr): boolean =>
-      layout === "home",
-  )(doc.frontmatter.layout);
 
 /**
  * The hidden checkbox the `☰` mobile-bar label toggles. A
@@ -138,9 +124,10 @@ const sidebarColumn = (
  * {@link chromeRail} (lg+), the {@link sidebarColumn}, and
  * a `<main>` holding the rendered `content` (an opaque
  * `Html<never>` embedded through the typed {@link slot})
- * plus the {@link siteFooter}. A `layout: home` page drops
- * the sidebar and renders the hero full-width in `.vp-home`
- * instead of the `.vp-doc` prose column. Below lg the rail
+ * plus the {@link siteFooter}. EVERY page — the landing
+ * page included — renders as the `.vp-doc` prose column
+ * through this one shell (qmu.co.jp's home is ordinary
+ * prose; there is no hero variant). Below lg the rail
  * hides, a sticky {@link mobileBar} appears, and the
  * sidebar becomes a CSS-only off-canvas drawer driven by
  * the hidden {@link menuToggle} checkbox. Authored purely
@@ -149,24 +136,17 @@ const sidebarColumn = (
  */
 export const page = (
   config: SiteConfig,
-  doc: MarkdownDoc,
   content: Html<never>,
   activePath: SoftStr,
   base: SoftStr,
 ): Html<never> => {
-  const home = isHome(doc);
   const contentColumn = main_(
     [class_("vp-content")],
     [
-      home
-        ? div(
-            [class_("vp-home")],
-            [slot([], [content])],
-          )
-        : div(
-            [class_("vp-doc")],
-            [slot([], [content])],
-          ),
+      div(
+        [class_("vp-doc")],
+        [slot([], [content])],
+      ),
       siteFooter(config),
     ],
   );

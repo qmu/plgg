@@ -517,57 +517,6 @@ html.dark .vp-callout-danger{
   color:#fee2e2;
 }
 
-/* home: LEFT-aligned hero (weight-400 name + muted
-   tagline, NO call-to-action) and a FLAT feature grid
-   (bg-bg-soft, rounded, no border/hover-lift). */
-.vp-home{max-width:64rem;margin:0;
-  padding:1rem 0 3rem}
-.vp-hero-wrap{display:block}
-.vp-hero{text-align:left;padding:2rem 0 1.5rem}
-.vp-hero-title{
-  font-size:clamp(1.9rem,4vw,2.6rem);
-  font-weight:400;line-height:1.15;
-  margin:0 0 1rem;color:var(--vp-text);
-  letter-spacing:-0.015em;
-}
-.vp-hero-tagline{
-  font-size:clamp(1rem,2vw,1.2rem);
-  color:var(--vp-muted);
-  max-width:42rem;margin:0;line-height:1.55;
-}
-.vp-features{
-  display:grid;
-  grid-template-columns:repeat(
-    auto-fit,minmax(240px,1fr));
-  gap:1rem;margin-top:2.5rem;
-}
-.vp-feature{
-  border-radius:10px;padding:1.25rem;
-  background:var(--vp-bg-alt);
-}
-.vp-feature-title{
-  margin:0 0 0.4rem;font-size:1.02rem;
-  font-weight:500;color:var(--vp-text);
-}
-.vp-feature-text{
-  margin:0;color:var(--vp-muted);
-  font-size:0.92rem;line-height:1.5;
-}
-
-/* 404 */
-.vp-notfound{max-width:36rem;margin:0;padding:3rem 0}
-.vp-notfound h1{
-  font-size:1.875rem;font-weight:400;
-  margin:0 0 1rem;color:var(--vp-text);
-}
-.vp-notfound p{
-  margin:0 0 1.5rem;color:var(--vp-muted);
-}
-.vp-notfound a{
-  color:var(--vp-text);text-decoration:underline;
-  text-underline-offset:2px;
-}
-
 /* below sm (qmu's 639px block): the prose headings render
    oversized relative to the phone column; scale them down.
    Body text keeps its base size. */

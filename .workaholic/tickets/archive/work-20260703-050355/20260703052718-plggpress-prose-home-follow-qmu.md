@@ -3,9 +3,9 @@ created_at: 2026-07-03T05:27:18+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 2721825
+category: Changed
 depends_on: [20260703052717-plggpress-reconcile-tokens-a11y-qmu-oracle.md]
 ---
 
@@ -66,3 +66,14 @@ Recommended defaults recorded while the developer was away — confirm at the `/
 - This is a visible breaking change to the guide's landing page — deliberate oracle-following, recorded here (breaking changes OK: plgg is its own only consumer)
 - homeHero removal must not orphan `collectCss` styles or the theme barrel exports (`packages/plggpress/src/index.ts`)
 - If the guide's home content relies on hero-only data (taglines, action buttons), that content moves INTO the prose — nothing is silently dropped
+
+## Final Report
+
+Development completed as planned. The hero/feature-grid landing model is fully retired: homeHero.ts + spec deleted, the `.vp-hero`/`.vp-features`/`.vp-notfound` style blocks removed, page() renders every page (landing included) as the `.vp-doc` prose column through the one shell, and the 404 goes through the same page() shell (sidebar included, matching qmu's DocsLayout-prose 404). The SiteConfig Home vocabulary (HomeAction/HomeFeature/HomeConfig + Input types + casters + the `home` field) is removed end to end — model, barrel, defineSite, and every spec fixture. The guide's home is rewritten as qmu-idiom prose (H1 tagline, intro links, six `##` sections carrying the former feature copy verbatim); its title now derives from the H1. page()'s unused `doc` parameter fell out with the branch removal (signature narrowed; both callers updated).
+
+### Discovered Insights
+
+- **Insight**: The `layout: home` frontmatter marker is now inert everywhere — pages that still carry it simply render as prose, so downstream sites degrade gracefully rather than breaking.
+  **Context**: Removing a layout VARIANT is safer than removing a layout FIELD; the frontmatter stays parseable, only its interpretation vanished.
+- **Insight**: The hero's content was config DATA (site.config home block) while the prose home is CONTENT (index.md) — the retirement moved copy across that boundary, which is exactly the qmu model: the landing page is authored like any article, not configured.
+  **Context**: SiteConfig shrank to pure information-architecture; anything renderable now lives in markdown.

@@ -50,35 +50,6 @@ export type SocialLink = Readonly<{
 }>;
 
 /**
- * A call-to-action button on the home hero.
- */
-export type HomeAction = Readonly<{
-  text: SoftStr;
-  link: SoftStr;
-}>;
-
-/**
- * A feature card on the home page.
- */
-export type HomeFeature = Readonly<{
-  title: SoftStr;
-  details: SoftStr;
-}>;
-
-/**
- * The landing-page DATA, owned by the config rather than
- * parsed from a Markdown `layout: home` frontmatter block
- * (spike decision §6b). The theme renders these fields
- * generically into the hero + feature grid.
- */
-export type HomeConfig = Readonly<{
-  title: SoftStr;
-  tagline: SoftStr;
-  actions: ReadonlyArray<HomeAction>;
-  features: ReadonlyArray<HomeFeature>;
-}>;
-
-/**
  * Dev-server settings. `allowedHosts` lists the extra
  * Host headers the dev server accepts (the guide sets the
  * Cloudflare tunnel hostname here).
@@ -88,11 +59,11 @@ export type DevConfig = Readonly<{
 }>;
 
 /**
- * The single information-architecture + home-data
- * contract for the whole facade. Consumed by the theme
- * and the build/dev pipelines, and authored as the
- * guide's `site.config.ts` default export. Pure data —
- * no rendering logic lives here.
+ * The single information-architecture contract for the
+ * whole facade. Consumed by the theme and the build/dev
+ * pipelines, and authored as the guide's `site.config.ts`
+ * default export. Pure data — no rendering logic lives
+ * here.
  */
 export type SiteConfig = Readonly<{
   title: SoftStr;
@@ -101,7 +72,6 @@ export type SiteConfig = Readonly<{
   nav: ReadonlyArray<NavItem>;
   sidebar: ReadonlyArray<SidebarGroup>;
   social: ReadonlyArray<SocialLink>;
-  home: Option<HomeConfig>;
   dev: DevConfig;
 }>;
 
@@ -170,53 +140,6 @@ export const asSocialLink = (
   );
 
 /**
- * Boundary caster for a {@link HomeAction}.
- */
-export const asHomeAction = (
-  value: unknown,
-): Result<HomeAction, InvalidError> =>
-  cast(
-    value,
-    asObj,
-    forProp("text", asSoftStr),
-    forProp("link", asSoftStr),
-  );
-
-/**
- * Boundary caster for a {@link HomeFeature}.
- */
-export const asHomeFeature = (
-  value: unknown,
-): Result<HomeFeature, InvalidError> =>
-  cast(
-    value,
-    asObj,
-    forProp("title", asSoftStr),
-    forProp("details", asSoftStr),
-  );
-
-/**
- * Boundary caster for a {@link HomeConfig}.
- */
-export const asHomeConfig = (
-  value: unknown,
-): Result<HomeConfig, InvalidError> =>
-  cast(
-    value,
-    asObj,
-    forProp("title", asSoftStr),
-    forProp("tagline", asSoftStr),
-    forProp(
-      "actions",
-      asReadonlyArray(asHomeAction),
-    ),
-    forProp(
-      "features",
-      asReadonlyArray(asHomeFeature),
-    ),
-  );
-
-/**
  * Boundary caster for a {@link DevConfig}.
  */
 export const asDevConfig = (
@@ -235,7 +158,7 @@ export const asDevConfig = (
  * The author-facing shape of a `site.config.ts`: plain
  * `string` (not branded), `ReadonlyArray`, and a genuine
  * optional `?:` wherever the domain {@link SiteConfig}
- * uses `Option` (`home`, a sidebar item's `link`). This
+ * uses `Option` (a sidebar item's `link`). This
  * is what the editor type-checks a config against, giving
  * autocomplete and misspelled/wrong-typed-key errors at
  * *authoring* time — the ergonomics of Vite's
@@ -251,16 +174,6 @@ export type SocialLinkInput = Readonly<{
   link: string;
 }>;
 
-export type HomeActionInput = Readonly<{
-  text: string;
-  link: string;
-}>;
-
-export type HomeFeatureInput = Readonly<{
-  title: string;
-  details: string;
-}>;
-
 export type SidebarItemInput = Readonly<{
   text: string;
   link?: string;
@@ -270,13 +183,6 @@ export type SidebarItemInput = Readonly<{
 export type SidebarGroupInput = Readonly<{
   text: string;
   items: ReadonlyArray<SidebarItemInput>;
-}>;
-
-export type HomeConfigInput = Readonly<{
-  title: string;
-  tagline: string;
-  actions: ReadonlyArray<HomeActionInput>;
-  features: ReadonlyArray<HomeFeatureInput>;
 }>;
 
 export type DevConfigInput = Readonly<{
@@ -290,7 +196,6 @@ export type SiteConfigInput = Readonly<{
   nav: ReadonlyArray<NavItemInput>;
   sidebar: ReadonlyArray<SidebarGroupInput>;
   social: ReadonlyArray<SocialLinkInput>;
-  home?: HomeConfigInput;
   dev: DevConfigInput;
 }>;
 
@@ -320,7 +225,6 @@ export const asSiteConfig = (
       "social",
       asReadonlyArray(asSocialLink),
     ),
-    forOptionProp("home", asHomeConfig),
     forProp("dev", asDevConfig),
   );
 

@@ -36,7 +36,6 @@ const config: SiteConfig = {
   nav: [],
   sidebar: [],
   social: [],
-  home: none(),
   dev: { allowedHosts: [] },
 };
 

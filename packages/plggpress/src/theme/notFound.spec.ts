@@ -6,7 +6,6 @@ import {
   toContain,
   not,
 } from "plgg-test";
-import { none } from "plgg";
 import { renderToString } from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { notFound } from "plggpress/theme/notFound";
@@ -20,7 +19,6 @@ const config: SiteConfig = {
   ],
   sidebar: [],
   social: [],
-  home: none(),
   dev: { allowedHosts: [] },
 };
 
@@ -51,7 +49,7 @@ test("derives a not-found <title>", () =>
 
 test("renders the monochrome message with a base-prefixed home link", () =>
   all([
-    check(rendered, toContain("vp-notfound")),
+    check(rendered, toContain("vp-doc")),
     check(
       rendered,
       toContain(">Go to the home page<"),

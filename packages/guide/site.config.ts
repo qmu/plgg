@@ -1,4 +1,4 @@
-// The guide's single information-architecture + home-data
+// The guide's single information-architecture
 // instance: pure data validated through plggpress's
 // `defineSite` boundary caster. This replaces the old
 // VitePress `defineConfig` — there is deliberately no
@@ -252,83 +252,6 @@ const config = {
       link: "https://github.com/qmu/plgg",
     },
   ],
-  // The landing-page DATA (spike §6b): the theme renders
-  // these generically into the hero + feature grid. The
-  // hero name reuses the site `title` (item 15), so home
-  // carries only the headline + tagline + actions/features
-  // ported from the former `index.md` frontmatter.
-  home: {
-    title:
-      "Web development as one typed pipeline",
-    tagline:
-      "A TypeScript family built from scratch " +
-      "on a single idea — values flow through " +
-      "pure functions, errors are data, and the " +
-      "same program runs on the server and in " +
-      "the browser.",
-    actions: [
-      {
-        text: "Get started",
-        link: "/getting-started",
-      },
-      {
-        text: "Core concepts",
-        link: "/concepts/",
-      },
-      {
-        text: "View on GitHub",
-        link: "https://github.com/qmu/plgg",
-      },
-    ],
-    features: [
-      {
-        title: "Option, not null",
-        details:
-          "Absence is a value you must handle, " +
-          "never a null that slips through. The " +
-          "compiler keeps the gaps honest.",
-      },
-      {
-        title: "Result, not throw",
-        details:
-          "Errors travel as data through the " +
-          "pipeline and fold to one vocabulary " +
-          "at the edge, instead of unwinding the " +
-          "stack.",
-      },
-      {
-        title: "One pipeline, end to end",
-        details:
-          "pipe / cast / proc / flow compose " +
-          "validation, effects, and transforms " +
-          "into a single data-last expression.",
-      },
-      {
-        title: "Runtime-neutral core",
-        details:
-          "plgg-http models request/response as " +
-          "pure data; plgg-server and plgg-fetch " +
-          "are symmetric peers over the same " +
-          "model.",
-      },
-      {
-        title: "Server and client, one program",
-        details:
-          "plgg-view's Elm-Architecture " +
-          "Model/update/view renders both " +
-          "server-side (SSR) and in the browser " +
-          "(CSR) from the same source.",
-      },
-      {
-        title: "Built from scratch",
-        details:
-          "Every package — HTTP, router, view, " +
-          "SQL, AI orchestration — is built on " +
-          "plgg, so the same patterns hold " +
-          "across the whole family.",
-      },
-    ],
-  },
   // dev.allowedHosts (spike item 7): the extra Host headers
   // plggpress's node:http dev server accepts. localhost for
   // local work; plgg-guide.qmu.dev for the port-5181
