@@ -41,7 +41,7 @@ Non-source repo surface (11 files named in source discovery):
 - `scripts/build.sh` (build ordering entry), `scripts/check-all.sh`, `scripts/gate-vite.sh`, `scripts/serve-guide.sh`.
 - `scripts/test-plgg-press.sh` → `test-plggpress.sh`, `scripts/coverage-plgg-press.sh` → `coverage-plggpress.sh` (file renames + internal references).
 - `.github/workflows/deploy-guide.yml`.
-- `workloads/guide/{compose.yaml,dev-entrypoint.sh,README.md}`.
+- `workloads/guide/{Dockerfile,compose.yaml,dev-entrypoint.sh,README.md}` (all four reference `plgg-press` — the Dockerfile too, per `git grep -l "plgg-press" -- workloads`).
 - `docs/plgg-press-migration/spike-decisions.md` (and the `docs/plgg-press-migration/` dir name if renamed).
 
 Consumer:
@@ -63,7 +63,7 @@ Consumer:
 4. Update the consumer: `packages/guide/package.json` dep + scripts, `packages/guide/site.config.ts` import.
 5. Rename + update the runner scripts (`test-/coverage-plgg-press.sh`), and update references in `build.sh`, `check-all.sh`, `gate-vite.sh`, `serve-guide.sh`.
 6. Update CI (`deploy-guide.yml`) and `workloads/guide/*`; update the `docs/plgg-press-migration/` references (and dir name).
-7. Reinstall `file:` deps as needed so the guide resolves `plggpress`; run `scripts/tsc-plgg.sh` + `scripts/test-plgg.sh`.
+7. Reinstall `file:` deps as needed so the guide resolves `plggpress`; run the renamed `scripts/test-plggpress.sh` + `scripts/coverage-plggpress.sh`, then `scripts/check-all.sh` (whose `test-plgg-press.sh` line must be updated in step 5 — NOTE `tsc-plgg.sh`/`test-plgg.sh` cover `packages/plgg` only).
 8. Build + dev-serve the guide; confirm output is identical to pre-rename.
 
 ## Quality Gate
@@ -76,7 +76,7 @@ Consumer:
 
 **Verification method:**
 - `git grep -n "plgg-press" -- packages scripts .github workloads docs` is empty (or only sanctioned historical references).
-- `scripts/tsc-plgg.sh` exits 0; `scripts/test-plgg.sh` green, coverage ≥90%.
+- `scripts/test-plggpress.sh` + `scripts/coverage-plggpress.sh` (renamed) green ≥90%; `scripts/check-all.sh` green end-to-end under the new name.
 - Guide build output diff (pre vs post rename) is empty; `plggpress build`/`plggpress dev` run from the guide.
 
 **Gate:** old name fully gone, `plggpress` resolves end-to-end (bin + alias + guide), guide output byte-identical, tsc + tests green ≥90%, no escape hatch — before approval.
@@ -88,3 +88,4 @@ Consumer:
 - **Build ordering unchanged.** Only the name changes in `scripts/build.sh`; the position (after `plggmatic`, which is after the plgg libs) stays (`scripts/build.sh`).
 - **Docs dir.** `docs/plgg-press-migration/` may also want renaming; decide whether to rename the dir or keep it as historical record and only update forward-looking references.
 - **Archived tickets keep the old name** — do not rewrite history under `.workaholic/tickets/archive/`.
+- **UPDATE (2026-07-02): dev is gone by the time this runs.** Tickets `20260702041500`/`20260702041501` remove plgg-press's `dev.ts`/`dev` command before this rename; the guide's `dev` script will be `plgg-bundle dev`, not `plgg-press dev`. So the rename surface has ONE guide npm script (`build`), and the gate clauses "`plggpress dev` run from the guide" / "`dev` serves and live-reloads" reduce to: the `plgg-bundle dev` setup still resolves the renamed `plggpress` dev entry (whatever module 041501 pointed it at) and still serves. Verify against the tree as it actually is when driving.

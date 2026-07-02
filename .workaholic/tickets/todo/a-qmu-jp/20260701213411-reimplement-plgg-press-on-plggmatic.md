@@ -6,7 +6,7 @@ layer: [Domain]
 effort:
 commit_hash:
 category:
-depends_on: [20260701213410-scaffold-plggmatic-framework-extract-composition.md]
+depends_on: [20260701213410-scaffold-plggmatic-framework-extract-composition.md, 20260702032000-resume-plggmatic-rewire-blocked-on-bundle-dynamic-import.md, 20260702041501-replace-plgg-press-dev-with-plgg-bundle.md]
 ---
 
 # Reimplement plgg-press as a thin `plggmatic` consumer (still named plgg-press)
@@ -105,3 +105,10 @@ Author decision (2026-07-02): hot-reload / dev server is a **toolchain** concern
 - [20260702041501-replace-plgg-press-dev-with-plgg-bundle.md](.workaholic/tickets/todo/a-qmu-jp/20260702041501-replace-plgg-press-dev-with-plgg-bundle.md) — plgg-press consumes it; plgg-press's `dev.ts` AND plggmatic's `Dev/usecase/dev.ts` are removed.
 
 **Still valid in this ticket:** the config-load / router-builder / static-`build` rewire of plgg-press onto plggmatic — everything EXCEPT the dev loop. That remainder is still blocked on the `plgg-bundle` `__require` dynamic-import fix (see `20260702032000`). When reworking this ticket, drop steps 4/8's dev wiring (dev is gone from plggmatic).
+
+Further reconciliation (2026-07-02 polish):
+
+- **The Quality Gate's dev clauses are superseded too**: strike "dev serves and live-reloads in-session" from Verification and "run `dev` and smoke it" from step 8 — after 041501, dev is `plgg-bundle dev` (verify it still works via the 041501 setup, but it is not this ticket's surface). The gate here is: build byte-identical, theme intact, tests green.
+- **The concrete redo plan lives in `20260702032000`** ("Then: 213411 → 213412", steps 1–9, minus its dev parts per the UPDATE note appended there) — prefer it over this ticket's older step list where they differ; it reflects what the reverted attempt learned.
+- **Runner scope**: `scripts/tsc-plgg.sh`/`test-plgg.sh` cover `packages/plgg` only. The gates for this ticket are `scripts/test-plgg-press.sh` + `scripts/coverage-plgg-press.sh` + `scripts/test-plggmatic.sh`, then `scripts/check-all.sh`.
+- `depends_on` now lists 032000 (the `__require` fix) and 041501 (the dev strip) so `/drive` orders this after both.

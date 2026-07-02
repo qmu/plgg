@@ -68,7 +68,7 @@ The reverted 213411 attempt proved the rest of the rewire is sound (everything e
 
 ## Key Files
 
-- `packages/plgg-bundle/*` — the `__require` shim emitter (the fix).
+- `packages/plgg-bundle/src/domain/usecase/emitBundle.ts` — the `__require` shim emitter (the fix): `externalFallback()` (~line 113) emits the throwing branch that Option A changes to `return import(id);`. The unknown-id body is format-specific — check whether the CJS variant needs the same treatment. Colocated `emitBundle.spec.ts` is where the new fallback behavior gets its spec.
 - `packages/plggmatic/dist/index.es.js` — where the broken `Promise.resolve(url).then(s => require(s))` is visible.
 - `packages/plgg-press/src/{build,dev,cli,router/pressRouter,Config/usecase/loadConfig,Press/model/*}.ts` — the 213411 rewire surface (all currently at HEAD).
 - `.workaholic/tickets/todo/a-qmu-jp/20260701213411-*.md`, `20260701213412-*.md` — the two blocked tickets (still in todo).
@@ -86,3 +86,11 @@ The reverted 213411 attempt proved the rest of the rewire is sound (everything e
 - **Repo is green and clean at HEAD `2c6839b`.** plggmatic (213410) is landed, additive, and does not affect plgg-press, which still builds the guide byte-identically. Nothing is half-applied.
 - **The shared-tool change (Option A) needs a full rebuild + `check-all.sh`** — it alters the shim every dist carries.
 - **Shell aliases** in the Bash tool break `>` (noclobber) and alias `diff`→editor — use `command diff` and `>|` when re-verifying the byte-identical guide diff (this session hit that).
+
+## UPDATE (2026-07-02, ticket polish): reconcile with the dev-server supersede + runner scope
+
+Written before the author's dev-is-a-toolchain decision (tickets `20260702041500`/`20260702041501`). Reconciliation:
+
+- **Position is stale**: HEAD is now `6a18fcb` (not `2c6839b`); the current session map is `20260702042000-resume-dev-server-tickets-ready-to-drive.md`. The blocker analysis and Option A fix here remain fully valid.
+- **The 9-step rewire plan's dev parts are superseded.** After 041501 lands, plggmatic has NO dev: drop step 8 entirely (plgg-press's `dev.ts` is deleted by 041501, not rewired to `frameworkDev`); step 5 loses the `DevServer` re-export (the type is removed from plggmatic); step 6 keeps only `buildSpecOf` (no `devSpecOf`); step 9's `runApp` call loses the `devSpec` field (041501 prunes it from `AppDefinition`). Steps 1–4 and 7 (config/router/build rewire) stand as written.
+- **Runner scope**: the 213411 gate paragraph says `scripts/tsc-plgg.sh` + `scripts/test-plgg.sh` — those cover `packages/plgg` only. The actual gates are `scripts/test-plgg-press.sh` / `scripts/test-plggmatic.sh` / `scripts/test-plgg-bundle.sh` + their coverage runners, then `scripts/check-all.sh` (mandatory for the Option A shim change — every dist carries it).

@@ -32,7 +32,7 @@ Give the plgg **toolchain** its missing "dev half of Vite": add a `plgg-bundle d
 - `workaholic:design` / `policies/sacrificial-architecture.md` — draw the dev-server module boundary as a rebuildable/discardable unit.
 - `workaholic:implementation` / `policies/domain-layer-separation.md` + `functional-programming.md` — **pure core** (module graph, invalidation set, reload-protocol messages) separated from the **node/fs/module-loader/http adapter** (mirror `plgg-server`'s core vs `/node` split); declarative graph logic, mutation confined to the edge.
 - `workaholic:implementation` / `policies/coding-standards.md` — no `as`/`any`/`@ts-ignore`; `Result`/`Option`; the `fs.watch`/loader/socket seams wrapped at a typed boundary. (Note: `plgg-bundle` is plain-TS with no `plgg`, so `Result`/`Option` here are its own local typed patterns — do not import plgg.)
-- `workaholic:implementation` / `policies/directory-structure.md` — new modules under `packages/plgg-bundle/src/` in the established `domain/model` + `domain/usecase` split, colocated `*.spec.ts`, exported from `src/index.ts` (Module Export Convention).
+- `workaholic:implementation` / `policies/directory-structure.md` — the dev server gets its own `src/Dev/` domain directory (PascalCase, mirroring plggmatic/plgg-press) with the established `model` + `usecase` split inside it; the bundler's existing `src/domain/` stays as-is. Colocated `*.spec.ts`, exported from `src/index.ts` (Module Export Convention).
 - `workaholic:implementation` / `policies/command-scripts.md` — no bespoke per-package dev script; fold into the canonical runners.
 - `workaholic:operation` / `policies/ci-cd.md` — register the expanded suite in the canonical/`run-tests` runners so the new code compiles + tests reproducibly.
 - `workaholic:planning` / `policies/terminology.md` + `proactive-poc.md` — one consistent vocabulary (dev-server, watcher, module graph, invalidation, module-runner, reload transport); prove with the smallest runnable slice (a fixture app here; the guide is the end-to-end oracle in the sibling ticket).
@@ -47,7 +47,8 @@ Repo constraints: `.workaholic/constraints/architecture.md` (Module Export Conve
 - `packages/plgg-bundle/src/Dev/**` (new) — the dev server: a **pure core** (`model`: module-graph node/edge, invalidation set, reload message; `usecase`: invalidation-propagation to transitive importers, reload decision, dev-HTML live-reload injection, host-allowlist) and a **node adapter** (`fs.watch` debounce, the `node:http` serve, the SSE client registry, the loader-hook version bump + cache-busting re-import of the dev entry). Colocated specs.
 - `packages/plgg-bundle/bin/hook.mjs` — extend the resolver so changed files (and their importers) resolve with a `?v=<version>` query, so a re-import re-evaluates the affected subgraph rather than serving cached modules. This is the crux of real code hot-reload.
 - `packages/plgg-bundle/src/index.ts` — export the dev-server entry (`devServer`/`dev`) + its config type.
-- `packages/plgg-bundle/vite.config.ts` / `plgg-test.config.json` — coverage thresholds ≥90; adapter-only files (no executable statements) go in the exclude array, not the threshold.
+- `packages/plgg-bundle/plgg-test.config.json` — **NEW file** (plgg-bundle has no coverage config today, and no `vite.config.ts` exists anywhere — tests run via `plgg-test src`, already a devDependency): mirror plggmatic's (`{"coverage": {"threshold": 90, "exclude": [...]}}`); adapter-only files (no executable statements) go in the exclude array, not the threshold.
+- `packages/plgg-bundle/package.json` — add a `coverage` script (`tsc --noEmit && plgg-test src --coverage`, mirroring plggmatic's); new `scripts/coverage-plgg-bundle.sh` canonical runner (mirror `coverage-plggmatic.sh`).
 
 Reference (behavior only — do NOT import): `packages/plgg-server/src/Serving/usecase/serve.ts` (`node:http` adapter), `.../Routing/usecase/toFetch.ts` (`Web→Fetch`), and `packages/plgg-press/src/dev.ts` (the SSE live-reload injection, host allowlist, debounce — the behaviors to reproduce, plgg-free, in the toolchain). `packages/plgg-bundle/src/vendors/runner.ts` (existing vm/isolated-eval precedent for "run/re-evaluate a module").
 
@@ -65,22 +66,22 @@ Reference (behavior only — do NOT import): `packages/plgg-server/src/Serving/u
 4. **Loader-hook versioning**: extend `hook.mjs` (and/or a `module.register` hook) to append `?v=<version>` to resolved specifiers for invalidated files, so re-importing the dev entry re-evaluates the changed subgraph. Keep native `import()` (from source).
 5. **Node adapter**: `fs.watch` (debounced, recursive over the watch roots), the `node:http` serve hosting the app `Fetch`, the SSE reload channel + client registry, and the rebuild loop (bump versions → re-import dev entry → swap `Fetch` → notify clients). Wrap throws to typed results at the boundary.
 6. **CLI**: wire `plgg-bundle dev` to load the config and start the server; fold `Result`→exit at the bin edge.
-7. **Spec** the pure core + adapter (colocated `*.spec.ts`, ≥90%); register `plgg-bundle` in the canonical runners + `run-tests.yml` install/test steps.
+7. **Spec** the pure core + adapter (colocated `*.spec.ts`, ≥90%); add the coverage wiring (`plgg-test.config.json`, `coverage` npm script, `scripts/coverage-plgg-bundle.sh`). `scripts/check-all.sh` already runs `test-plgg-bundle.sh` — no change there; `run-tests.yml` today only *installs* plgg-bundle's deps and tests `packages/plgg`, so add a `./scripts/test-plgg-bundle.sh` step to it so CI exercises the new suite.
 8. **PoC**: a minimal fixture app (a tiny `Fetch` factory + a source module) proving: edit the source module → subgraph re-evaluates → served output changes → SSE reload fires — **without restarting the process**.
 
 ## Quality Gate
 
 **Acceptance criteria (the full gate the author selected — the code-edit hot-reload half proven here on a fixture; the guide-live half is the sibling ticket):**
 - `plgg-bundle dev` serves an app-supplied `Fetch` over `node:http`, watches its source, and on a **code** edit re-evaluates the changed module subgraph and pushes a browser reload **without a process restart** — proven by a runnable fixture spec (edit a source module mid-run → new output served, no restart).
-- **Zero new external dependencies**: `git diff` of `packages/plgg-bundle/package.json` shows no added `dependencies`/`devDependencies`; and `git grep -nE "from \"plgg\b|from 'plgg\b|plgg-server" packages/plgg-bundle/src` is empty (stays plgg-free).
+- **Zero new external dependencies**: `git diff` of `packages/plgg-bundle/package.json` shows no added `dependencies`/`devDependencies` beyond the `coverage` script; and `git grep -nE "from \"plgg[\"/]|from 'plgg['/]|plgg-server" packages/plgg-bundle/src` is empty (stays plgg-free). NOTE the pattern must NOT use `plgg\b` — that matches the `plgg-bundle/` self-alias and the dev-only `plgg-test` runner import present in every spec today; only bare `plgg`, `plgg/*`, and `plgg-server` are forbidden.
 - Pure-core vs node-adapter separation holds; the graph/invalidation logic is unit-testable without `fs`/a live socket.
 - No `as`/`any`/`@ts-ignore`; `plgg-bundle` keeps plgg-identical strict flags.
 
 **Verification method:**
-- `scripts/tsc-plgg.sh` exits 0; `scripts/test-plgg.sh` green including `plgg-bundle`'s new suite at ≥90% (statements/branches/functions/lines); `git grep` gates above are empty.
+- `scripts/test-plgg-bundle.sh` green (it runs plgg-bundle's own `tsc --noEmit` + suite — NOTE: `scripts/tsc-plgg.sh`/`test-plgg.sh` cover `packages/plgg` only and do NOT gate this package); new `scripts/coverage-plgg-bundle.sh` shows ≥90% (statements/branches/functions/lines); `scripts/check-all.sh` for the full cross-package gate; `git grep` gates above are empty.
 - A fixture-app spec demonstrates code hot-reload end-to-end in-process (change file → re-eval → new response) and the SSE reload frame is emitted.
 
-**Gate:** tsc + tests green (incl. plgg-bundle ≥90%), zero new deps + plgg-free confirmed by grep, pure/adapter split intact, fixture proves code re-evaluation without restart — all before approval.
+**Gate:** plgg-bundle tsc + tests green ≥90% (via `test-`/`coverage-plgg-bundle.sh`), zero new deps + plgg-free confirmed by grep, pure/adapter split intact, fixture proves code re-evaluation without restart — all before approval.
 
 ## Considerations
 
