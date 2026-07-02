@@ -26,7 +26,7 @@ import {
  * The appearance toggle — a CSS-drawn sun (light) / moon
  * (dark) button, swapped on `html.dark` by {@link baseCss}
  * and wired to flip + persist by the themeScript. Shared
- * by the far-left chrome rail (lg+) and the mobile bar
+ * by the far-right chrome rail (lg+) and the mobile bar
  * (below lg), so both breakpoints can toggle the theme;
  * the themeScript binds EVERY `.vp-theme-toggle`.
  */
@@ -86,7 +86,7 @@ export const socialLinks = (
   );
 
 /**
- * The far-left CHROME RAIL (lg+ only): a 48px column with
+ * The far-RIGHT CHROME RAIL (lg+ only, qmu DocsLayout): a 48px column with
  * the appearance toggle + social links pinned to the
  * bottom by a flex spacer. Carries NO navigation and no
  * wordmark — the nav tree and the home link both live in

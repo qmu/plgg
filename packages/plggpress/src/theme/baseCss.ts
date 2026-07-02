@@ -4,7 +4,7 @@ import { type SoftStr } from "plgg";
  * The static, hand-authored base stylesheet for the
  * default theme — the qmu.co.jp sidebar-first app shell
  * with a monochrome light/dark palette (custom properties
- * redefined under `html.dark`): a far-left 48px chrome
+ * redefined under `html.dark`): a far-right 48px chrome
  * rail (appearance toggle + social), a `w-64` sidebar with
  * the wordmark home link and an always-expanded nav tree
  * (inverted-pill active/hover), and a left-aligned
@@ -142,9 +142,9 @@ body.vp{
   max-width:var(--vp-shell-max);margin:0 auto;
   padding:0 1rem;
 }
-/* far-left chrome rail (lg+ only): appearance toggle +
-   social links pinned to the bottom by a flex spacer.
-   Carries no navigation. */
+/* far-RIGHT chrome rail (lg+ only, qmu DocsLayout):
+   appearance toggle + social links pinned to the bottom
+   by a flex spacer. Carries no navigation. */
 .vp-rail{
   display:none;flex:0 0 var(--vp-rail-w);
   width:var(--vp-rail-w);height:100vh;
@@ -586,12 +586,12 @@ html.dark .vp-callout-danger{
 }
 
 /* lg+ (min-width 1024px): the app shell is ON — the row fills the
-   viewport and does not page-scroll; the rail, sidebar,
-   and content each scroll independently. lg:pl-0 drops the
-   left gutter so the rail sits flush to the column start. */
+   viewport and does not page-scroll; the sidebar, content,
+   and rail each scroll independently. The right gutter is
+   dropped so the far-right rail sits flush to the edge. */
 @media (min-width:1024px){
   .vp-app{
-    height:100vh;overflow:hidden;padding-left:0;
+    height:100vh;overflow:hidden;padding-right:0;
   }
   .vp-rail{display:flex}
   .vp-sidebar{height:100vh;overflow-y:auto}

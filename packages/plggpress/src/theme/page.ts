@@ -120,8 +120,8 @@ const sidebarColumn = (
 /**
  * The in-body PAGE LAYOUT — the composition seam between
  * the typed chrome builders and the document `shell`. It
- * is a sidebar-first app shell (qmu.co.jp): a far-left
- * {@link chromeRail} (lg+), the {@link sidebarColumn}, and
+ * is a sidebar-first app shell (qmu.co.jp): the
+ * {@link sidebarColumn} at the far left, then
  * a `<main>` holding the rendered `content` (an opaque
  * `Html<never>` embedded through the typed {@link slot})
  * plus the {@link siteFooter}. EVERY page — the landing
@@ -165,9 +165,9 @@ export const page = (
       div(
         [class_("vp-app")],
         [
-          chromeRail(config),
           sidebarColumn(config, activePath, base),
           contentColumn,
+          chromeRail(config),
         ],
       ),
     ],
