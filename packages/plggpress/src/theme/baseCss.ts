@@ -93,11 +93,15 @@ body.vp{
   -webkit-font-smoothing:antialiased;
   transition:background-color 0.25s,color 0.25s;
 }
+/* Chrome links carry no underline in any state (qmu:
+   every hover affordance is the inverted pill; only
+   article prose underlines, and only at rest). No generic
+   a:hover rule - its (0,2,1) specificity silently beat
+   the pill classes' (0,2,0) and re-underlined them. */
 .vp a{
   color:var(--vp-brand);text-decoration:none;
   transition:color 0.25s;
 }
-.vp a:hover{text-decoration:underline}
 .vp-menu-cb{display:none}
 /* prose links (qmu .prose a): ink + standing underline at
    rest, weight 500, generous inline padding cancelled by an
@@ -174,6 +178,14 @@ body.vp{
   font-weight:500;font-size:1.05rem;
   color:var(--vp-text);
   padding:0.1rem 0.4rem;border-radius:6px;
+}
+.vp-mobilebar-home:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
+}
+.vp-mobilebar-home:focus-visible{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
 }
 .vp-mobilebar-home[aria-current]{
   background:var(--vp-hover);color:var(--vp-hover-ink);

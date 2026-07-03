@@ -193,3 +193,19 @@ test("a hovered link's inline-code badge flips to the hover ink (never ink-on-in
       toContain(".vp-doc a:focus-visible code"),
     ),
   ]));
+
+test("no generic underline-on-hover exists to override the pill states", () =>
+  all([
+    check(
+      css,
+      not(
+        toContain(
+          "a:hover{text-decoration:underline}",
+        ),
+      ),
+    ),
+    check(
+      css,
+      toContain(".vp-mobilebar-home:hover"),
+    ),
+  ]));
