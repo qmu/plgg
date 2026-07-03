@@ -226,9 +226,7 @@ test("hover micro-interactions run at qmu's 150ms (no slower fades, no scale)", 
     ),
     check(
       css,
-      toContain(
-        "background-color 0.15s,color 0.15s",
-      ),
+      toContain("background-color 0.15s"),
     ),
   ]));
 
@@ -238,11 +236,8 @@ test("chrome fades use qmu's sharp-in curve; prose keeps its hand-written ease",
       css,
       toContain("cubic-bezier(0.4,0,0.2,1)"),
     ),
-    // prose links: the oracle's own rule is plain ease
-    check(
-      css,
-      toContain(
-        "transition:background-color 0.15s,color 0.15s;\n}\n.vp-doc a:hover",
-      ),
-    ),
+    // text color snaps (developer decision, 2026-07-03):
+    // only the fill fades, so the label never reads
+    // muddy mid-transition
+    check(css, not(toContain(",color 0.15s"))),
   ]));

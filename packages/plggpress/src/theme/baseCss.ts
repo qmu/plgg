@@ -99,7 +99,6 @@ body.vp{
    the pill classes' (0,2,0) and re-underlined them. */
 .vp a{
   color:var(--vp-brand);text-decoration:none;
-  transition:color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 .vp-menu-cb{display:none}
 /* prose links (qmu .prose a): ink + standing underline at
@@ -117,7 +116,7 @@ body.vp{
   padding:0.15em 0.4em;
   margin-inline:-0.4em;
   border-radius:0.3em;
-  transition:background-color 0.15s,color 0.15s;
+  transition:background-color 0.15s;
 }
 .vp-doc a:hover{
   background:var(--vp-hover);
@@ -178,8 +177,7 @@ body.vp{
   color:var(--vp-text);
   padding:0.1rem 0.4rem;border-radius:6px;
   transition:background-color 0.15s
-      cubic-bezier(0.4,0,0.2,1),
-    color 0.15s cubic-bezier(0.4,0,0.2,1);
+    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-mobilebar-home:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -257,8 +255,7 @@ html.dark .vp-theme-toggle .vp-moon{
   line-height:1.5rem;
   font-weight:500;color:var(--vp-text);
   transition:background-color 0.15s
-      cubic-bezier(0.4,0,0.2,1),
-    color 0.15s cubic-bezier(0.4,0,0.2,1);
+    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-wordmark:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -294,8 +291,7 @@ html.dark .vp-theme-toggle .vp-moon{
   font-size:0.875rem;line-height:1.25rem;
   color:var(--vp-text);
   transition:background-color 0.15s
-      cubic-bezier(0.4,0,0.2,1),
-    color 0.15s cubic-bezier(0.4,0,0.2,1);
+    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-sidebar-link:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -337,8 +333,7 @@ html.dark .vp-theme-toggle .vp-moon{
   padding:0.25rem 0.4rem;border-radius:6px;
   font-size:0.8rem;color:var(--vp-muted);
   transition:background-color 0.15s
-      cubic-bezier(0.4,0,0.2,1),
-    color 0.15s cubic-bezier(0.4,0,0.2,1);
+    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-social:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -577,7 +572,7 @@ html.dark .vp-callout-danger{
   color:var(--vp-muted);font-weight:400;
   text-decoration:none;border-radius:0.2em;
   padding:0 0.25em;margin-inline:0;
-  transition:background-color 0.15s,color 0.15s;
+  transition:background-color 0.15s;
 }
 .vp-toc a:hover{
   color:var(--vp-hover-ink);
