@@ -16,13 +16,12 @@ import {
   toContain,
   not,
 } from "plgg-test";
-import { some } from "plgg";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { type PressOptions } from "plggpress/Press/model/PressOptions";
 import { build } from "plggpress/build";
 
-// A GENERIC fixture corpus — no typedoc. A `layout: home`
-// landing page (rendered from SiteConfig home DATA), plus
+// A GENERIC fixture corpus — no typedoc. A prose home
+// landing page (ordinary markdown, qmu.co.jp's model), plus
 // two prose pages, one carrying a ```ts fence and a
 // ::: tip callout so the emit exercises highlighting and
 // callouts end-to-end.
@@ -33,24 +32,13 @@ const config: SiteConfig = {
   nav: [{ text: "Guide", link: "/guide" }],
   sidebar: [],
   social: [],
-  home: some({
-    title: "Welcome to Fixture",
-    tagline: "A generic landing page",
-    actions: [{ text: "Start", link: "/guide" }],
-    features: [
-      {
-        title: "Typed",
-        details: "End to end.",
-      },
-    ],
-  }),
   dev: { allowedHosts: [] },
 };
 
 const HOME_MD = [
-  "---",
-  "layout: home",
-  "---",
+  "# Welcome to Fixture",
+  "",
+  "A generic landing page.",
   "",
 ].join("\n");
 
@@ -150,15 +138,15 @@ test("emits a BuildReport listing every written file", () =>
     ),
   ));
 
-test("renders the home page through the theme shell from SiteConfig home data", () =>
+test("renders the home page as ordinary prose through the shell (qmu model)", () =>
   all([
     check(
       built.home.slice(0, 15),
       toContain("<!doctype html>"),
     ),
-    // the home layout is the full-width hero variant
-    // (vp-home, no sidebar/<main> column)
-    check(built.home, toContain("vp-home")),
+    // the landing page is the SAME .vp-doc prose column
+    // as every article - no hero variant exists
+    check(built.home, toContain("vp-doc")),
     check(
       built.home,
       toContain("Welcome to Fixture"),
@@ -169,7 +157,9 @@ test("renders the home page through the theme shell from SiteConfig home data", 
     ),
     check(
       built.home,
-      toContain("<title>Fixture Site</title>"),
+      toContain(
+        "<title>Welcome to Fixture</title>",
+      ),
     ),
   ]));
 

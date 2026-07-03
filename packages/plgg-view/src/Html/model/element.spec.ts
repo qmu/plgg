@@ -5,11 +5,14 @@ import {
   toBe,
   toEqual,
   toHaveLength,
+  toContain,
 } from "plgg-test";
 import {
   el,
   text,
   div,
+  svg,
+  path,
   button,
   span,
   ul,
@@ -22,13 +25,20 @@ import {
   type NonEmpty,
 } from "plgg-view/Html/model/element";
 import { type Html } from "plgg-view/Html/model/Html";
-import { class_ } from "plgg-view/Html/model/Attribute";
+import {
+  class_,
+  attr,
+} from "plgg-view/Html/model/Attribute";
+import { renderToString } from "plgg-view/Html/usecase/renderToString";
 
 test("text builds a Text leaf", () =>
-  check(text("hello"), toEqual({
-    __tag: "Text",
-    content: { value: "hello" },
-  })));
+  check(
+    text("hello"),
+    toEqual({
+      __tag: "Text",
+      content: { value: "hello" },
+    }),
+  ));
 
 test("el builds an Element with tag, attributes, children", () => {
   const node = el(
@@ -194,4 +204,39 @@ test("cardinality aliases pin arity", () => {
     >
   >();
   return check(true, toBe(true));
+});
+
+test("svg holds path drawings; d and viewBox render; color follows currentColor", () => {
+  const icon = svg(
+    [
+      attr("viewBox", "0 0 24 24"),
+      attr("fill", "currentColor"),
+      attr("aria-hidden", "true"),
+      class_("vp-sun"),
+    ],
+    [
+      path(
+        [attr("d", "M12 18a6 6 0 1 1 0-12z")],
+        [],
+      ),
+    ],
+  );
+  const rendered = renderToString(icon);
+  return all([
+    check(
+      rendered,
+      toContain('<svg viewBox="0 0 24 24"'),
+    ),
+    check(
+      rendered,
+      toContain('fill="currentColor"'),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<path d="M12 18a6 6 0 1 1 0-12z"></path>',
+      ),
+    ),
+    check(rendered, toContain("</svg>")),
+  ]);
 });

@@ -1,4 +1,4 @@
-// The guide's single information-architecture + home-data
+// The guide's single information-architecture
 // instance: pure data validated through plggpress's
 // `defineSite` boundary caster. This replaces the old
 // VitePress `defineConfig` — there is deliberately no
@@ -31,148 +31,34 @@ const leaf = (
   items: [],
 });
 
-// One top-level sidebar group per package. The group header
-// links to nothing itself; its child is the package's prose
-// Guide. Order: the featured trio (plgg, plgg-http,
-// plgg-router) first, then the rest, then the example
-// tutorial.
-type PackageGroup = {
-  key: string;
-  text: string;
-  overview: string;
-  docs?: ReadonlyArray<SidebarItemInput>;
-};
-
-const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
+// The five sidebar sections (developer's IA, 2026-07-03):
+// Guide (prose), Core (plgg + its deep-dive pages),
+// Vocabulary (every mid/toolchain package, one leaf each, in
+// dependency-ish order, closing with the example tutorial),
+// then the framework (plggmatic) and the site tool
+// (plggpress), each with its single Overview page.
+const LIBRARY_PACKAGES: ReadonlyArray<
+  readonly [string, string]
+> = [
+  ["plgg-http", "/packages/plgg-http"],
+  ["plgg-router", "/packages/plgg-router"],
+  ["plgg-server", "/packages/plgg-server"],
+  ["plgg-fetch", "/packages/plgg-fetch"],
+  ["plgg-view", "/packages/plgg-view"],
+  ["plgg-sql", "/packages/plgg-sql"],
   [
-    {
-      key: "plgg",
-      text: "plgg (core)",
-      overview: "/packages/plgg/",
-      docs: [
-        leaf(
-          "Values & effects",
-          "/packages/plgg/values-effects",
-        ),
-        leaf(
-          "Structures & errors",
-          "/packages/plgg/structures-errors",
-        ),
-      ],
-    },
-    {
-      key: "plgg-http",
-      text: "plgg-http",
-      overview: "/packages/plgg-http",
-    },
-    {
-      key: "plgg-router",
-      text: "plgg-router",
-      overview: "/packages/plgg-router",
-    },
-    {
-      key: "plgg-server",
-      text: "plgg-server",
-      overview: "/packages/plgg-server",
-    },
-    {
-      key: "plgg-fetch",
-      text: "plgg-fetch",
-      overview: "/packages/plgg-fetch",
-    },
-    {
-      key: "plgg-view",
-      text: "plgg-view",
-      overview: "/packages/plgg-view",
-    },
-    {
-      key: "plgg-sql",
-      text: "plgg-sql",
-      overview: "/packages/plgg-sql",
-    },
-    {
-      key: "plgg-db-migration",
-      text: "plgg-db-migration",
-      overview: "/packages/plgg-db-migration",
-    },
-    {
-      key: "plgg-kit",
-      text: "plgg-kit",
-      overview: "/packages/plgg-kit",
-    },
-    {
-      key: "plgg-foundry",
-      text: "plgg-foundry",
-      overview: "/packages/plgg-foundry",
-    },
-    {
-      key: "plgg-cli",
-      text: "plgg-cli",
-      overview: "/packages/plgg-cli",
-    },
-    {
-      key: "plgg-md",
-      text: "plgg-md",
-      overview: "/packages/plgg-md",
-    },
-    {
-      key: "plgg-highlight",
-      text: "plgg-highlight",
-      overview: "/packages/plgg-highlight",
-    },
-    {
-      key: "plgg-bundle",
-      text: "plgg-bundle",
-      overview: "/packages/plgg-bundle",
-    },
-    {
-      key: "plggmatic",
-      text: "plggmatic",
-      overview: "/packages/plggmatic",
-    },
-    {
-      key: "plggpress",
-      text: "plggpress",
-      overview: "/packages/plggpress",
-    },
-    {
-      key: "plgg-test",
-      text: "plgg-test",
-      overview: "/packages/plgg-test",
-    },
-    {
-      key: "example",
-      text: "example (tutorial)",
-      overview: "/packages/example",
-    },
-  ];
-
-// The "Guide" node spliced at the START of a package group:
-// the package's prose. With extra prose pages (only plgg
-// core today) it nests them beneath the Overview; otherwise
-// it is a plain link to the single prose page.
-const guideNode = (
-  group: PackageGroup,
-): SidebarItemInput => {
-  const docs = group.docs ?? [];
-  return {
-    text: "Guide",
-    link: group.overview,
-    items: docs,
-  };
-};
-
-// Assemble one package's top-level sidebar group: its prose
-// Guide.
-const packageGroup = (
-  group: PackageGroup,
-): {
-  text: string;
-  items: ReadonlyArray<SidebarItemInput>;
-} => ({
-  text: group.text,
-  items: [guideNode(group)],
-});
+    "plgg-db-migration",
+    "/packages/plgg-db-migration",
+  ],
+  ["plgg-kit", "/packages/plgg-kit"],
+  ["plgg-foundry", "/packages/plgg-foundry"],
+  ["plgg-cli", "/packages/plgg-cli"],
+  ["plgg-md", "/packages/plgg-md"],
+  ["plgg-highlight", "/packages/plgg-highlight"],
+  ["plgg-bundle", "/packages/plgg-bundle"],
+  ["plgg-test", "/packages/plgg-test"],
+  ["example (tutorial)", "/packages/example"],
+];
 
 // Information architecture for the plgg family guide: the
 // nav and sidebar tree below name every page, ported
@@ -233,16 +119,42 @@ const config = {
             ),
           ],
         },
-      ],
-    },
-    ...PACKAGE_GROUPS.map(packageGroup),
-    {
-      text: "Contributing",
-      items: [
         leaf(
           "Doc conventions",
           "/contributing/conventions",
         ),
+      ],
+    },
+    {
+      text: "Core",
+      items: [
+        leaf("plgg", "/packages/plgg/"),
+        leaf(
+          "Values & effects",
+          "/packages/plgg/values-effects",
+        ),
+        leaf(
+          "Structures & errors",
+          "/packages/plgg/structures-errors",
+        ),
+      ],
+    },
+    {
+      text: "Vocabulary",
+      items: LIBRARY_PACKAGES.map(([t, l]) =>
+        leaf(t, l),
+      ),
+    },
+    {
+      text: "plggmatic",
+      items: [
+        leaf("Overview", "/packages/plggmatic"),
+      ],
+    },
+    {
+      text: "plggpress",
+      items: [
+        leaf("Overview", "/packages/plggpress"),
       ],
     },
   ],
@@ -252,83 +164,6 @@ const config = {
       link: "https://github.com/qmu/plgg",
     },
   ],
-  // The landing-page DATA (spike §6b): the theme renders
-  // these generically into the hero + feature grid. The
-  // hero name reuses the site `title` (item 15), so home
-  // carries only the headline + tagline + actions/features
-  // ported from the former `index.md` frontmatter.
-  home: {
-    title:
-      "Web development as one typed pipeline",
-    tagline:
-      "A TypeScript family built from scratch " +
-      "on a single idea — values flow through " +
-      "pure functions, errors are data, and the " +
-      "same program runs on the server and in " +
-      "the browser.",
-    actions: [
-      {
-        text: "Get started",
-        link: "/getting-started",
-      },
-      {
-        text: "Core concepts",
-        link: "/concepts/",
-      },
-      {
-        text: "View on GitHub",
-        link: "https://github.com/qmu/plgg",
-      },
-    ],
-    features: [
-      {
-        title: "Option, not null",
-        details:
-          "Absence is a value you must handle, " +
-          "never a null that slips through. The " +
-          "compiler keeps the gaps honest.",
-      },
-      {
-        title: "Result, not throw",
-        details:
-          "Errors travel as data through the " +
-          "pipeline and fold to one vocabulary " +
-          "at the edge, instead of unwinding the " +
-          "stack.",
-      },
-      {
-        title: "One pipeline, end to end",
-        details:
-          "pipe / cast / proc / flow compose " +
-          "validation, effects, and transforms " +
-          "into a single data-last expression.",
-      },
-      {
-        title: "Runtime-neutral core",
-        details:
-          "plgg-http models request/response as " +
-          "pure data; plgg-server and plgg-fetch " +
-          "are symmetric peers over the same " +
-          "model.",
-      },
-      {
-        title: "Server and client, one program",
-        details:
-          "plgg-view's Elm-Architecture " +
-          "Model/update/view renders both " +
-          "server-side (SSR) and in the browser " +
-          "(CSR) from the same source.",
-      },
-      {
-        title: "Built from scratch",
-        details:
-          "Every package — HTTP, router, view, " +
-          "SQL, AI orchestration — is built on " +
-          "plgg, so the same patterns hold " +
-          "across the whole family.",
-      },
-    ],
-  },
   // dev.allowedHosts (spike item 7): the extra Host headers
   // plggpress's node:http dev server accepts. localhost for
   // local work; plgg-guide.qmu.dev for the port-5181

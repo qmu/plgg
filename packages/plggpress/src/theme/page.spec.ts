@@ -46,7 +46,6 @@ const config: SiteConfig = {
     },
   ],
   social: [],
-  home: none(),
   dev: { allowedHosts: [] },
 };
 
@@ -64,16 +63,18 @@ const contentDoc: MarkdownDoc = {
   body: content,
   links: [],
   slugs: [],
+  headings: [],
 };
 
-// A home page (layout: home): full-width hero, no
-// sidebar.
+// The landing page: ordinary prose through the same
+// shell (qmu.co.jp's model) — no hero variant exists.
 const homeDoc: MarkdownDoc = {
-  frontmatter: frontmatter(some("home")),
+  frontmatter: frontmatter(none()),
   firstHeading: none(),
   body: content,
   links: [],
   slugs: [],
+  headings: [],
 };
 
 // The page layout composed exactly the way the build
@@ -84,7 +85,6 @@ const rendered = renderToString(
     contentDoc,
     page(
       config,
-      contentDoc,
       content,
       activePath,
       config.base,
@@ -96,13 +96,7 @@ const renderedHome = renderToString(
   shell(
     config,
     homeDoc,
-    page(
-      config,
-      homeDoc,
-      content,
-      activePath,
-      config.base,
-    ),
+    page(config, content, "/", config.base),
   ),
 );
 
@@ -157,7 +151,7 @@ test("base-prefixes both nav and sidebar links", () =>
     ),
   ]));
 
-test("home page renders the hero WITH the sidebar (articles reachable from /)", () =>
+test("the landing page is ordinary prose WITH the sidebar (qmu model)", () =>
   all([
     check(
       renderedHome,
@@ -171,10 +165,16 @@ test("home page renders the hero WITH the sidebar (articles reachable from /)", 
         'aria-label="Sidebar navigation"',
       ),
     ),
-    // it renders the hero column, not the prose column
+    // the SAME .vp-doc prose column as every article —
+    // no hero variant exists
     check(
       renderedHome,
-      toContain('class="vp-home"'),
+      toContain('class="vp-doc"'),
+    ),
+    // the wordmark marks the home route current
+    check(
+      renderedHome,
+      toContain('aria-current="page"'),
     ),
     // the tree is always-expanded (no disclosure widget)
     check(

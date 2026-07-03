@@ -37,7 +37,6 @@ const config: SiteConfig = {
   nav: [],
   sidebar: [],
   social: [],
-  home: none(),
   dev: { allowedHosts: [] },
 };
 
@@ -48,6 +47,7 @@ const pageDoc: MarkdownDoc = {
   body: bodyFixture,
   links: [],
   slugs: [],
+  headings: [],
 };
 
 // The home page: no H1, so `<title>` falls back to the
@@ -58,6 +58,7 @@ const homeDoc: MarkdownDoc = {
   body: bodyFixture,
   links: [],
   slugs: [],
+  headings: [],
 };
 
 const rendered = renderToString(

@@ -14,9 +14,14 @@ cd $REPO_ROOT/packages/plgg-http && npm install
 cd $REPO_ROOT/packages/plgg-cli && npm install
 cd $REPO_ROOT/packages/plgg-router && npm install
 cd $REPO_ROOT/packages/plgg-view && npm install
+cd $REPO_ROOT/packages/plgg-md && npm install
+cd $REPO_ROOT/packages/plgg-highlight && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
+cd $REPO_ROOT/packages/plggmatic && npm install
+cd $REPO_ROOT/packages/plggpress && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/plgg-sql && npm install
 cd $REPO_ROOT/packages/plgg-db-migration && npm install
 cd $REPO_ROOT/packages/example && npm install
+cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

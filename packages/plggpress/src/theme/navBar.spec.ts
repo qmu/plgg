@@ -5,7 +5,6 @@ import {
   toContain,
   not,
 } from "plgg-test";
-import { none } from "plgg";
 import { renderToString } from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
@@ -25,7 +24,6 @@ const config: SiteConfig = {
       link: "https://github.com/qmu/plgg",
     },
   ],
-  home: none(),
   dev: { allowedHosts: [] },
 };
 

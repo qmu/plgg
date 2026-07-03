@@ -1,6 +1,9 @@
 {
   "name": "plgg-foundry",
   "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
   "description": "AI-powered workflow orchestration built on the plgg framework: an LLM composes an execution plan (Alignment) from a register-machine set of operations (a Foundry)",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -24,8 +27,7 @@
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "plgg-test src --watch",
     "coverage": "tsc --noEmit && plgg-test src --coverage",
-    "coverage:watch": "plgg-test src --coverage --watch",
-    "publish": "npm run build && npm publish"
+    "coverage:watch": "plgg-test src --coverage --watch"
   },
   "repository": {
     "type": "git",

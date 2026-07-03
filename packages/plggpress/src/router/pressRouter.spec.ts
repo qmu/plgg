@@ -30,7 +30,6 @@ const config: SiteConfig = {
   social: [],
   // No home DATA: a `layout: home` page degrades to its
   // Markdown body rather than failing.
-  home: none(),
   dev: { allowedHosts: [] },
 };
 

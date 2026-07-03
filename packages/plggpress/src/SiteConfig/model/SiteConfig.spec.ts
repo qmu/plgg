@@ -7,7 +7,6 @@ import {
   shouldBeErr,
   errThen,
 } from "plgg-test";
-import { isSome } from "plgg";
 import {
   type SiteConfig,
   type SiteConfigInput,
@@ -49,29 +48,12 @@ const valid = {
       link: "https://github.com/qmu/plgg",
     },
   ],
-  home: {
-    title: "plgg",
-    tagline:
-      "Web development as one typed pipeline.",
-    actions: [
-      {
-        text: "Get started",
-        link: "/getting-started",
-      },
-    ],
-    features: [
-      {
-        title: "Option, not null",
-        details: "Absence is a value.",
-      },
-    ],
-  },
   dev: {
     allowedHosts: ["plgg-guide.qmu.dev"],
   },
 };
 
-test("defineSite accepts a valid config with home data + allowedHosts", () =>
+test("defineSite accepts a valid config with allowedHosts", () =>
   check(
     defineSite(valid),
     okThen((c: SiteConfig) =>
@@ -82,7 +64,6 @@ test("defineSite accepts a valid config with home data + allowedHosts", () =>
         toBe("plgg-guide.qmu.dev")(
           c.dev.allowedHosts[0] ?? "",
         ),
-        toBe(true)(isSome(c.home)),
       ]),
     ),
   ));
@@ -102,7 +83,7 @@ test("defineSite rejects a malformed config with an InvalidError", () =>
     check(asSiteConfig(null), shouldBeErr()),
   ]));
 
-test("defineSite accepts a typed input, home absent → none", () => {
+test("defineSite accepts a minimal typed input", () => {
   const input: SiteConfigInput = {
     title: "t",
     description: "d",
@@ -117,7 +98,7 @@ test("defineSite accepts a typed input, home absent → none", () => {
     okThen((c: SiteConfig) =>
       all([
         toBe("t")(c.title),
-        toBe(false)(isSome(c.home)),
+        toBe("/")(c.base),
       ]),
     ),
   );

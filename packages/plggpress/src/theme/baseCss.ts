@@ -4,7 +4,7 @@ import { type SoftStr } from "plgg";
  * The static, hand-authored base stylesheet for the
  * default theme — the qmu.co.jp sidebar-first app shell
  * with a monochrome light/dark palette (custom properties
- * redefined under `html.dark`): a far-left 48px chrome
+ * redefined under `html.dark`): a far-right 48px chrome
  * rail (appearance toggle + social), a `w-64` sidebar with
  * the wordmark home link and an always-expanded nav tree
  * (inverted-pill active/hover), and a left-aligned
@@ -40,68 +40,97 @@ export const baseCss: SoftStr = `
   --vp-border:#ededee;
   --vp-divider:#ededee;
   --vp-code-bg:#f6f6f7;
-  --vp-inline:#f6f6f7;
   --vp-hover:#111111;
   --vp-hover-ink:#ffffff;
+  --vp-knob:#ffffff;
   --vp-shadow:none;
   --vp-rail-w:48px;
   --vp-sidebar-w:256px;
   --vp-shell-max:1440px;
 }
+/* Dark values mirror qmu's global.css .dark block exactly:
+   the body/muted/heading inks are translucent whites (the
+   alpha is part of the spec, not an approximation), one
+   single divider gray, and a WCAG 1.4.11-tuned knob so the
+   appearance toggle stays visible on the dark track. */
 html.dark{
-  --vp-brand:#f5f5f7;
+  --vp-brand:rgba(255,255,255,0.95);
   --vp-brand-2:#ffffff;
   --vp-bg:#1b1b1f;
   --vp-bg-alt:#202127;
   --vp-surface:#202127;
-  --vp-text:#e6e6e9;
-  --vp-text-2:#a0a0a8;
-  --vp-muted:#a0a0a8;
-  --vp-border:#2e2e34;
-  --vp-divider:#2a2a30;
+  --vp-text:rgba(240,240,245,0.92);
+  --vp-text-2:rgba(235,235,245,0.55);
+  --vp-muted:rgba(235,235,245,0.55);
+  --vp-border:#262629;
+  --vp-divider:#262629;
   --vp-code-bg:#202127;
-  --vp-inline:#202127;
-  --vp-hover:#ffffff;
+  --vp-hover:rgba(255,255,255,0.95);
   --vp-hover-ink:#1b1b1f;
+  --vp-knob:#e4e4e7;
   --vp-shadow:none;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
+/* qmu: anchor jumps in the lg app shell scroll the content
+   column, not the page; smooth-scroll must be set on both. */
+main{scroll-behavior:smooth}
+/* Honor reduced-motion (qmu global.css): no smooth scroll,
+   no link hover fades. */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  main{scroll-behavior:auto}
+  .vp a{transition:none}
+  .vp-doc a{transition:none}
+}
 body.vp{
   margin:0;
-  font-family:"Inter",-apple-system,
-    BlinkMacSystemFont,"Segoe UI",Roboto,
-    "Helvetica Neue",Arial,sans-serif;
-  font-size:16px;line-height:1.65;
+  font-family:"Inter",ui-sans-serif,system-ui,
+    -apple-system,"Segoe UI",sans-serif,
+    "Apple Color Emoji","Segoe UI Emoji";
+  font-size:16px;line-height:1.75;
   color:var(--vp-text);background:var(--vp-bg);
   -webkit-font-smoothing:antialiased;
-  transition:background-color 0.25s,color 0.25s;
 }
+/* Chrome links carry no underline in any state (qmu:
+   every hover affordance is the inverted pill; only
+   article prose underlines, and only at rest). No generic
+   a:hover rule - its (0,2,1) specificity silently beat
+   the pill classes' (0,2,0) and re-underlined them. */
 .vp a{
   color:var(--vp-brand);text-decoration:none;
-  transition:color 0.25s;
 }
-.vp a:hover{text-decoration:underline}
 .vp-menu-cb{display:none}
-/* prose links: ink + underline at rest, hover inverts to
-   the near-black highlighter with light text (qmu's
-   box-highlight, re-expressed without child combinators).
-   The small inset padding + equal negative margin keeps
-   surrounding text from shifting when the block paints. */
+/* prose links (qmu .prose a): ink + standing underline at
+   rest, weight 500, generous inline padding cancelled by an
+   equal negative margin so text never shifts — the padded
+   highlighter only paints on hover/focus. The inversion is
+   keyboard-reachable (:focus-visible parity) and clones onto
+   every line fragment when a wrapped link inverts. */
 .vp-doc a{
   color:var(--vp-text);
   text-decoration:underline;
   text-decoration-thickness:1px;
   text-underline-offset:2px;
-  padding:0.05em 0.15em;
-  margin:0 -0.15em;
-  border-radius:3px;
-  transition:background-color 0.2s,color 0.2s;
+  font-weight:500;
+  padding:0.15em 0.4em;
+  margin-inline:-0.4em;
+  border-radius:0.3em;
+  transition:background-color 0.15s;
 }
 .vp-doc a:hover{
   background:var(--vp-hover);
   color:var(--vp-hover-ink);
   text-decoration:none;
+  box-decoration-break:clone;
+  -webkit-box-decoration-break:clone;
+}
+.vp-doc a:focus-visible{
+  background:var(--vp-hover);
+  color:var(--vp-hover-ink);
+  text-decoration:none;
+  box-decoration-break:clone;
+  -webkit-box-decoration-break:clone;
 }
 
 /* app shell: a max-1440 row centred in the viewport. On
@@ -115,9 +144,9 @@ body.vp{
   max-width:var(--vp-shell-max);margin:0 auto;
   padding:0 1rem;
 }
-/* far-left chrome rail (lg+ only): appearance toggle +
-   social links pinned to the bottom by a flex spacer.
-   Carries no navigation. */
+/* far-RIGHT chrome rail (lg+ only, qmu DocsLayout):
+   appearance toggle + social links pinned to the bottom
+   by a flex spacer. Carries no navigation. */
 .vp-rail{
   display:none;flex:0 0 var(--vp-rail-w);
   width:var(--vp-rail-w);height:100vh;
@@ -147,6 +176,16 @@ body.vp{
   font-weight:500;font-size:1.05rem;
   color:var(--vp-text);
   padding:0.1rem 0.4rem;border-radius:6px;
+  transition:background-color 0.15s
+    cubic-bezier(0.4,0,0.2,1);
+}
+.vp-mobilebar-home:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
+}
+.vp-mobilebar-home:focus-visible{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
 }
 .vp-mobilebar-home[aria-current]{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -163,42 +202,28 @@ body.vp{
   display:inline-flex;align-items:center;
   justify-content:center;width:38px;height:38px;
   border-radius:50%;border:1px solid var(--vp-border);
-  background:var(--vp-bg-alt);cursor:pointer;
+  background:var(--vp-knob);cursor:pointer;
   color:var(--vp-text);padding:0;
-  transition:background-color 0.25s,
-    border-color 0.25s,transform 0.15s;
+  transition:background-color 0.15s
+      cubic-bezier(0.4,0,0.2,1),
+    border-color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
+/* qmu --knob rule (WCAG 2.2 AA 1.4.11): in dark mode the
+   control is a clearly-visible light disc, so its icon
+   flips to a dark fill to keep reading against it. */
+html.dark .vp-theme-toggle{color:var(--vp-hover-ink)}
 .vp-theme-toggle:hover{
-  border-color:var(--vp-brand);transform:scale(1.06);
+  border-color:var(--vp-brand);
 }
-/* CSS-drawn sun: a disc with four rays */
-.vp-sun{
-  position:relative;display:inline-block;
-  width:8px;height:8px;border-radius:50%;
-  background:currentColor;
-}
-.vp-sun::before,.vp-sun::after{
-  content:"";position:absolute;
-  background:currentColor;
-}
-.vp-sun::before{
-  left:50%;top:-5px;margin-left:-1px;
-  width:2px;height:18px;
-}
-.vp-sun::after{
-  top:50%;left:-5px;margin-top:-1px;
-  height:2px;width:18px;
-}
-/* CSS-drawn crescent moon */
-.vp-moon{
-  display:inline-block;width:15px;height:15px;
-  border-radius:50%;
-  box-shadow:inset -4px -2px 0 0 currentColor;
+/* sun/moon: the oracle's SVG icons (currentColor paths,
+   18px box); light shows the sun, dark the crescent. */
+.vp-sun,.vp-moon{
+  width:18px;height:18px;display:block;
 }
 .vp-theme-toggle .vp-moon{display:none}
 html.dark .vp-theme-toggle .vp-sun{display:none}
 html.dark .vp-theme-toggle .vp-moon{
-  display:inline-block;
+  display:block;
 }
 /* CSS-drawn 3-bar hamburger (no glyph font) */
 .vp-menu-btn{
@@ -220,17 +245,23 @@ html.dark .vp-theme-toggle .vp-moon{
 .vp-sidebar{
   flex:0 0 var(--vp-sidebar-w);
   width:var(--vp-sidebar-w);
-  padding:1.75rem 1rem 2.5rem;
+  padding:2rem 1rem;
   font-size:0.9rem;
 }
 .vp-wordmark{
   display:block;width:fit-content;
-  margin:0 0 1.25rem;padding:0.1rem 0.5rem;
-  border-radius:6px;font-size:1.05rem;
+  margin:0 0 1rem;padding:0.25rem 0.5rem;
+  border-radius:6px;font-size:1rem;
+  line-height:1.5rem;
   font-weight:500;color:var(--vp-text);
-  transition:background-color 0.2s,color 0.2s;
+  transition:background-color 0.15s
+    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-wordmark:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
+}
+.vp-wordmark:focus-visible{
   background:var(--vp-hover);color:var(--vp-hover-ink);
   text-decoration:none;
 }
@@ -242,20 +273,31 @@ html.dark .vp-theme-toggle .vp-moon{
 .vp-group{margin-top:1rem}
 .vp-group:first-child{margin-top:0.25rem}
 .vp-group-title{
-  padding:0.25rem 0.5rem;font-size:0.86rem;
+  padding:0.25rem 0.5rem;font-size:0.875rem;
+  line-height:1.25rem;
   font-weight:600;color:var(--vp-text);
 }
 /* leaves + subgroup headers: an inverted pill on hover;
    the active leaf wears the same pill permanently (both
    tokens flip under dark). Active and inactive share one
    box so the current page never reflows its neighbours. */
+/* qmu's text-sm pins the leading at 1.25rem (20px) and
+   gap-px separates items - a 29px pitch, tighter than the
+   prose leading these would otherwise inherit. */
 .vp-sidebar-link{
   display:block;width:fit-content;
-  padding:0.2rem 0.5rem;border-radius:6px;
-  font-size:0.875rem;color:var(--vp-text-2);
-  transition:background-color 0.2s,color 0.2s;
+  margin-top:1px;
+  padding:0.25rem 0.5rem;border-radius:4px;
+  font-size:0.875rem;line-height:1.25rem;
+  color:var(--vp-text);
+  transition:background-color 0.15s
+    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-sidebar-link:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
+}
+.vp-sidebar-link:focus-visible{
   background:var(--vp-hover);color:var(--vp-hover-ink);
   text-decoration:none;
 }
@@ -264,20 +306,20 @@ html.dark .vp-theme-toggle .vp-moon{
   font-weight:500;
 }
 .vp-sidebar-flat{
-  display:block;padding:0.2rem 0.5rem;
-  font-size:0.875rem;color:var(--vp-muted);
+  display:block;margin-top:1px;
+  padding:0.25rem 0.5rem;
+  font-size:0.875rem;line-height:1.25rem;
+  color:var(--vp-muted);
 }
-/* a nested group: its header, then its children indented,
-   always shown (no disclosure). */
+/* a nested group: its header, then its children, always
+   shown (no disclosure). qmu keeps the whole tree flush
+   left — hierarchy reads from weight and spacing alone,
+   never indentation (SidebarTree.tsx has no pl-/ml-). */
 .vp-subgroup{margin:0.1rem 0}
 .vp-subgroup-title{
-  padding:0.2rem 0.5rem;font-size:0.875rem;
+  padding:0.25rem 0.5rem;font-size:0.875rem;
+  line-height:1.25rem;
   font-weight:500;color:var(--vp-text);
-}
-.vp-subgroup .vp-sidebar-link,
-.vp-subgroup .vp-sidebar-flat,
-.vp-subgroup .vp-subgroup-title{
-  margin-left:0.75rem;
 }
 /* social links: shown in the sidebar only below lg (the
    rail carries them on lg+). */
@@ -290,9 +332,14 @@ html.dark .vp-theme-toggle .vp-moon{
   display:inline-flex;align-items:center;
   padding:0.25rem 0.4rem;border-radius:6px;
   font-size:0.8rem;color:var(--vp-muted);
-  transition:background-color 0.2s,color 0.2s;
+  transition:background-color 0.15s
+    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-social:hover{
+  background:var(--vp-hover);color:var(--vp-hover-ink);
+  text-decoration:none;
+}
+.vp-social:focus-visible{
   background:var(--vp-hover);color:var(--vp-hover-ink);
   text-decoration:none;
 }
@@ -307,7 +354,7 @@ html.dark .vp-theme-toggle .vp-moon{
    this column. */
 .vp-content{
   flex:1 1 auto;min-width:0;
-  padding:2.25rem 3rem 3rem;
+  padding:3rem 3rem 3rem;
 }
 .vp-doc{max-width:48rem;margin:0}
 .vp-footer{
@@ -315,23 +362,34 @@ html.dark .vp-theme-toggle .vp-moon{
   text-align:center;
 }
 .vp-footer-text{
-  margin:0;font-size:0.8rem;color:var(--vp-muted);
+  margin:0;font-size:13px;color:var(--vp-muted);
 }
+/* Heading scale = qmu's calm ~1.25 modular scale on a 1rem
+   body (30/24/19/17), all weight 400, no letter-spacing.
+   The H1 carries no top margin and a 3rem bottom margin so
+   the air above (the column's own 3rem top padding) and
+   below the title read the same. */
 .vp-doc h1{
   font-size:1.875rem;font-weight:400;
-  line-height:1.25;margin:0 0 1.25rem;
-  letter-spacing:-0.011em;
+  line-height:1.25;margin:0 0 3rem;
 }
 .vp-doc h2{
   font-size:1.5rem;font-weight:400;
-  margin:2.85rem 0 1.1rem;
-  letter-spacing:-0.006em;
+  line-height:1.3;margin:2.85rem 0 1.1rem;
 }
 .vp-doc h3{
   font-size:1.1875rem;font-weight:400;
-  margin:2rem 0 0.75rem;
+  line-height:1.45;margin:2rem 0 0.75rem;
 }
-.vp-doc h4{font-size:1.03rem;margin:1.5rem 0 0.5rem}
+.vp-doc h4{
+  font-size:1.0625rem;line-height:1.5;
+  margin:1.5rem 0 0.5rem;
+}
+/* Anchor jumps clear the sticky bars (mobile bar / lg pane
+   header, both 3rem) — qmu scroll-margin-top. */
+.vp-doc h1,.vp-doc h2,.vp-doc h3,.vp-doc h4{
+  scroll-margin-top:3.75rem;
+}
 .vp-doc p{margin:1rem 0}
 .vp-doc ul,.vp-doc ol{
   padding-left:1.35rem;margin:1rem 0;
@@ -350,15 +408,54 @@ html.dark .vp-theme-toggle .vp-moon{
 }
 .vp-doc img{max-width:100%}
 
-/* code */
+/* code — inline code is qmu's soft translucent badge: an
+   overlay fill/border (adapts to whatever surface it sits
+   on) that darkens on hover; the badge itself carries the
+   "this is code" signal. */
 .vp-doc code{
   font-family:"SF Mono",Menlo,Consolas,
     "Liberation Mono",monospace;
-  font-size:0.85em;background:var(--vp-inline);
-  border:1px solid var(--vp-border);
-  padding:0.15em 0.4em;border-radius:4px;
-  transition:background-color 0.25s,
-    border-color 0.25s;
+  font-size:0.8em;font-weight:400;
+  color:var(--vp-brand);
+  background:rgba(0,0,0,0.08);
+  border:1px solid rgba(0,0,0,0.15);
+  padding:0.1em 0.4em;border-radius:0.2rem;
+  transition:background-color 0.15s;
+}
+.vp-doc code:hover{
+  background:rgba(0,0,0,0.16);
+}
+html.dark .vp-doc code{
+  background:rgba(255,255,255,0.13);
+  border-color:rgba(255,255,255,0.18);
+}
+html.dark .vp-doc code:hover{
+  background:rgba(255,255,255,0.24);
+}
+/* a LINK wrapping an inline-code badge: when the link's
+   hover/focus inversion paints, the badge must flip to the
+   hover ink too - otherwise brand-colored code text lands
+   on the near-identical inverted fill and vanishes (the
+   guide links package names as code constantly). */
+.vp-doc a:hover code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
+}
+.vp-doc a:focus-visible code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
+}
+html.dark .vp-doc a:hover code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
+}
+html.dark .vp-doc a:focus-visible code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
 }
 .vp-doc pre{
   background:var(--vp-code-bg);
@@ -366,13 +463,13 @@ html.dark .vp-theme-toggle .vp-moon{
   padding:1.1rem 1.25rem;border-radius:10px;
   overflow-x:auto;margin:1.1rem 0;
   font-size:0.86rem;line-height:1.6;
-  transition:background-color 0.25s,
-    border-color 0.25s;
 }
 .vp-doc pre code{
   background:none;padding:0;border-radius:0;
   border:none;font-size:inherit;
+  color:inherit;
 }
+html.dark .vp-doc pre code{background:none}
 /* syntax tokens (tok-* classes from plgg-highlight) —
    themed here so they adapt to light/dark; identifier
    and plain inherit the default code text colour */
@@ -402,98 +499,67 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
 }
 .vp-doc th{background:var(--vp-bg-alt);font-weight:600}
 
-/* callouts */
+/* callouts — qmu's tinted model (VitePress-style): tip
+   emerald, warning amber, danger red, each a tinted
+   surface + matching dark pair (Tailwind 50/950/100
+   ramps); info/note stay the monochrome ink-on-soft
+   panel. Metrics follow qmu: my-5, rounded-md, border-l-4,
+   px-4 py-3, text-sm leading-relaxed, semibold title
+   inheriting the callout's text colour. */
 .vp-callout{
   margin:1.25rem 0;padding:0.75rem 1rem;
-  border-radius:8px;border:1px solid transparent;
+  border-radius:6px;border:1px solid transparent;
   border-left-width:4px;
+  font-size:0.875rem;line-height:1.625;
 }
-.vp-callout-title{font-weight:650;margin:0 0 0.35rem}
+.vp-callout-title{font-weight:600;margin:0 0 0.35rem}
 .vp-callout p{margin:0.35rem 0}
-/* info/note: monochrome — ink border on the soft
-   surface, ink title (both driven by tokens so dark
-   flips with the rest of the palette). */
 .vp-callout-info,.vp-callout-note{
   background:var(--vp-bg-alt);
   border-color:var(--vp-brand);
+  color:var(--vp-text);
 }
-.vp-callout-info .vp-callout-title,
-.vp-callout-note .vp-callout-title{color:var(--vp-text)}
-/* tip: the one sanctioned hue — emerald, deep enough for
-   AA on the light surface, brightened under dark. */
 .vp-callout-tip{
-  background:var(--vp-bg-alt);
-  border-color:#10b981;
+  background:#ecfdf5;border-color:#10b981;
+  color:#022c22;
 }
-.vp-callout-tip .vp-callout-title{color:#047857}
-html.dark .vp-callout-tip .vp-callout-title{color:#34d399}
+html.dark .vp-callout-tip{
+  background:#022c22;border-color:#059669;
+  color:#d1fae5;
+}
 .vp-callout-warning{
-  background:var(--vp-bg-alt);border-color:#e0a106;
+  background:#fffbeb;border-color:#f59e0b;
+  color:#451a03;
 }
-.vp-callout-warning .vp-callout-title{color:#c98a06}
+html.dark .vp-callout-warning{
+  background:#451a03;border-color:#d97706;
+  color:#fef3c7;
+}
 .vp-callout-danger{
-  background:var(--vp-bg-alt);border-color:#d05656;
+  background:#fef2f2;border-color:#ef4444;
+  color:#450a0a;
 }
-.vp-callout-danger .vp-callout-title{color:#cf5c5c}
-
-/* home: LEFT-aligned hero (weight-400 name + muted
-   tagline, NO call-to-action) and a FLAT feature grid
-   (bg-bg-soft, rounded, no border/hover-lift). */
-.vp-home{max-width:64rem;margin:0;
-  padding:1rem 0 3rem}
-.vp-hero-wrap{display:block}
-.vp-hero{text-align:left;padding:2rem 0 1.5rem}
-.vp-hero-title{
-  font-size:clamp(1.9rem,4vw,2.6rem);
-  font-weight:400;line-height:1.15;
-  margin:0 0 1rem;color:var(--vp-text);
-  letter-spacing:-0.015em;
-}
-.vp-hero-tagline{
-  font-size:clamp(1rem,2vw,1.2rem);
-  color:var(--vp-muted);
-  max-width:42rem;margin:0;line-height:1.55;
-}
-.vp-features{
-  display:grid;
-  grid-template-columns:repeat(
-    auto-fit,minmax(240px,1fr));
-  gap:1rem;margin-top:2.5rem;
-}
-.vp-feature{
-  border-radius:10px;padding:1.25rem;
-  background:var(--vp-bg-alt);
-}
-.vp-feature-title{
-  margin:0 0 0.4rem;font-size:1.02rem;
-  font-weight:500;color:var(--vp-text);
-}
-.vp-feature-text{
-  margin:0;color:var(--vp-muted);
-  font-size:0.92rem;line-height:1.5;
+html.dark .vp-callout-danger{
+  background:#450a0a;border-color:#dc2626;
+  color:#fee2e2;
 }
 
-/* 404 */
-.vp-notfound{max-width:36rem;margin:0;padding:3rem 0}
-.vp-notfound h1{
-  font-size:1.875rem;font-weight:400;
-  margin:0 0 1rem;color:var(--vp-text);
-}
-.vp-notfound p{
-  margin:0 0 1.5rem;color:var(--vp-muted);
-}
-.vp-notfound a{
-  color:var(--vp-text);text-decoration:underline;
-  text-underline-offset:2px;
+/* below sm (qmu's 639px block): the prose headings render
+   oversized relative to the phone column; scale them down.
+   Body text keeps its base size. */
+@media (max-width:639px){
+  .vp-doc h1{font-size:1.75rem;line-height:1.25}
+  .vp-doc h2{font-size:1.375rem;line-height:1.3}
+  .vp-doc h3{font-size:1.125rem}
 }
 
 /* lg+ (min-width 1024px): the app shell is ON — the row fills the
-   viewport and does not page-scroll; the rail, sidebar,
-   and content each scroll independently. lg:pl-0 drops the
-   left gutter so the rail sits flush to the column start. */
+   viewport and does not page-scroll; the sidebar, content,
+   and rail each scroll independently. The right gutter is
+   dropped so the far-right rail sits flush to the edge. */
 @media (min-width:1024px){
   .vp-app{
-    height:100vh;overflow:hidden;padding-left:0;
+    height:100vh;overflow:hidden;padding-right:0;
   }
   .vp-rail{display:flex}
   .vp-sidebar{height:100vh;overflow-y:auto}
