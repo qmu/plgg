@@ -34,6 +34,7 @@ services:
       # links do not cascade), and plgg-highlight's holds
       # the typescript it resolves at runtime.
       - /app/packages/plgg/node_modules
+      - /app/packages/plgg-cli/node_modules
       - /app/packages/plgg-http/node_modules
       - /app/packages/plgg-view/node_modules
       - /app/packages/plgg-md/node_modules

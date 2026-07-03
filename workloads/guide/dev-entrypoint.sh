@@ -33,6 +33,7 @@ cd /app
 #    install is what puts typescript on its resolution path.
 for pkg in \
   plgg \
+  plgg-cli \
   plgg-http \
   plgg-view \
   plgg-md \
