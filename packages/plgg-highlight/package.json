@@ -1,6 +1,9 @@
 {
   "name": "plgg-highlight",
   "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
   "description": "Zero-new-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's Highlighter seam, driving the already-present typescript compiler's ts.createScanner to tokenize code into classified plgg-view Html<never> spans; alias-normalizes the fence language and falls back to escaped pre>code for everything else",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -24,8 +27,7 @@
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "plgg-test src --watch",
     "coverage": "tsc --noEmit && plgg-test src --coverage",
-    "coverage:watch": "plgg-test src --coverage --watch",
-    "publish": "npm run build && npm publish"
+    "coverage:watch": "plgg-test src --coverage --watch"
   },
   "repository": {
     "type": "git",

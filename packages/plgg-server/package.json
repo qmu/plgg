@@ -1,6 +1,9 @@
 {
   "name": "plgg-server",
   "version": "0.0.2",
+  "files": [
+    "dist"
+  ],
   "description": "Server-side HTTP router, handler, and view layer built from scratch on the plgg framework",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
@@ -64,8 +67,7 @@
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "plgg-test src --watch",
     "coverage": "tsc --noEmit && plgg-test src --coverage",
-    "coverage:watch": "plgg-test src --coverage --watch",
-    "publish": "npm run build && npm publish"
+    "coverage:watch": "plgg-test src --coverage --watch"
   },
   "repository": {
     "type": "git",
