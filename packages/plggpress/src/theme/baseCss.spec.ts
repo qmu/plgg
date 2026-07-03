@@ -3,6 +3,7 @@ import {
   check,
   all,
   toContain,
+  not,
 } from "plgg-test";
 import { baseCss } from "plggpress/theme/baseCss";
 
@@ -155,5 +156,19 @@ test("the 目次 panel and its disclosure animation are styled", () =>
     check(
       css,
       toContain(".vp-toc a:focus-visible"),
+    ),
+  ]));
+
+test("the sidebar tree is flush left - hierarchy by weight, never indentation", () =>
+  all([
+    check(
+      css,
+      not(toContain("margin-left:0.75rem")),
+    ),
+    check(
+      css,
+      toContain(
+        "padding:0.25rem 0.5rem;font-size:0.875rem",
+      ),
     ),
   ]));

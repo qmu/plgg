@@ -277,7 +277,7 @@ html.dark .vp-theme-toggle .vp-moon{
 .vp-group{margin-top:1rem}
 .vp-group:first-child{margin-top:0.25rem}
 .vp-group-title{
-  padding:0.25rem 0.5rem;font-size:0.86rem;
+  padding:0.25rem 0.5rem;font-size:0.875rem;
   font-weight:600;color:var(--vp-text);
 }
 /* leaves + subgroup headers: an inverted pill on hover;
@@ -306,17 +306,14 @@ html.dark .vp-theme-toggle .vp-moon{
   display:block;padding:0.2rem 0.5rem;
   font-size:0.875rem;color:var(--vp-muted);
 }
-/* a nested group: its header, then its children indented,
-   always shown (no disclosure). */
+/* a nested group: its header, then its children, always
+   shown (no disclosure). qmu keeps the whole tree flush
+   left — hierarchy reads from weight and spacing alone,
+   never indentation (SidebarTree.tsx has no pl-/ml-). */
 .vp-subgroup{margin:0.1rem 0}
 .vp-subgroup-title{
-  padding:0.2rem 0.5rem;font-size:0.875rem;
+  padding:0.25rem 0.5rem;font-size:0.875rem;
   font-weight:500;color:var(--vp-text);
-}
-.vp-subgroup .vp-sidebar-link,
-.vp-subgroup .vp-sidebar-flat,
-.vp-subgroup .vp-subgroup-title{
-  margin-left:0.75rem;
 }
 /* social links: shown in the sidebar only below lg (the
    rail carries them on lg+). */
