@@ -16,12 +16,12 @@ import {
 import {
   type Html,
   renderToString,
-} from "plggmatic";
+} from "plggpress/framework";
 import {
   type MarkdownDoc,
   renderMarkdownWith,
-} from "plggmatic";
-import { asHighlighter } from "plggmatic";
+} from "plggpress/framework";
+import { asHighlighter } from "plggpress/framework";
 import {
   type Web,
   type Handler,
@@ -32,8 +32,8 @@ import {
   htmlResponse,
   internalError,
   notFound,
-} from "plggmatic";
-import { buildRouter } from "plggmatic";
+} from "plggpress/framework";
+import { buildRouter } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { injectThemeScripts } from "plggpress/theme/themeScript";
@@ -190,7 +190,7 @@ const pageHandler =
     );
 
 /**
- * The internal content router: `plggmatic`'s
+ * The internal content router: the framework's
  * {@link buildRouter} assembly — ONE GET route per
  * `discoverPaths` result, every route bound to the shared
  * {@link pageHandler} (the press content→render→layout

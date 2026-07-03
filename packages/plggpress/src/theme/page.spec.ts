@@ -11,12 +11,12 @@ import {
   div,
   text,
   renderToString,
-} from "plggmatic";
-import { style_, p } from "plggmatic/style";
+} from "plggpress/framework";
+import { style_, p } from "plggpress/framework/style";
 import {
   type MarkdownDoc,
   frontmatter,
-} from "plggmatic";
+} from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { shell } from "plggpress/theme/shell";
 import { page } from "plggpress/theme/page";

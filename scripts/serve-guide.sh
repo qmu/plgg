@@ -2,12 +2,12 @@
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 
 # Launch the plgg family guide (plggpress) dev container with hot-reload.
-# This is a long-running FOREGROUND server, not a task that completes: it holds
-# the terminal until you stop it with Ctrl-C (so there is no success-banner tail
-# like the build/test scripts have). The dev container runs `plggpress dev`
-# and serves the guide's Markdown content directly.
+# The container runs DETACHED: this script starts it in the background and
+# returns, so the terminal is freed immediately. The dev container runs
+# `plggpress dev` and serves the guide's Markdown content directly.
 # External access maps to http://localhost:5181 via the cloudflared tunnel.
-echo "=== Serving the guide at http://localhost:5181 (Ctrl-C to stop) ==="
+# Stop it later with: <compose> -f workloads/guide/compose.yaml down
+echo "=== Serving the guide at http://localhost:5181 (detached) ==="
 
 # Resolve a real compose engine. A `docker`->`podman` shell alias is
 # interactive-only and does NOT exist in this non-interactive script, so we must
@@ -21,4 +21,4 @@ else
   echo "Need docker or podman to serve the guide" >&2
   exit 1
 fi
-exec $COMPOSE -f workloads/guide/compose.yaml up --build
+$COMPOSE -f workloads/guide/compose.yaml up --build -d

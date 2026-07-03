@@ -1,5 +1,5 @@
 #!/bin/sh -eu
-REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
+REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd) && cd "$REPO_ROOT"
 
 # Bootstrap the build TOOL's own deps before any package builds. plgg-bundle is
 # the bundler every package's `build` runs through, and it imports `typescript`
@@ -35,16 +35,12 @@ cd $REPO_ROOT/packages/plgg-highlight && npm run build
 # its Http layer builds on plgg-http's model.
 cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-cli before plggpress: the CLI-wrapper toolkit (depends only on plgg
-# core), consumed by plggpress's cli.ts, so its dist must exist first.
+# core), consumed by plggpress's own framework, so its dist must exist first.
 cd $REPO_ROOT/packages/plgg-cli && npm run build
-# plggmatic after plgg-cli + plgg-server: the framework facade (config load,
-# router builder, static-build orchestration, pre-organized CLI) whose dist
-# plggpress consumes; the guide dev container provisions its node_modules
-# (entrypoint install list + compose volumes).
-cd $REPO_ROOT/packages/plggmatic && npm run build
-# plggpress after plggmatic: the static-site tool is a thin plggmatic consumer
-# and still imports plgg-md, plgg-highlight, plgg-view, plgg-server, and
-# plgg-http directly (all built earlier so it can resolve their dists).
+# plggpress last of the web stack: it now carries its framework internally
+# (the absorbed former plggmatic) and consumes plgg-cli, plgg-server, plgg-md,
+# plgg-highlight, plgg-view, and plgg-http directly (all built earlier so it
+# can resolve their dists).
 cd $REPO_ROOT/packages/plggpress && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build

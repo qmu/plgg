@@ -82,5 +82,6 @@
 * [(carried from PR #51) proc error channel adopted only in plgg-db-migration](53-carried-from-pr-51-proc-error.md)
 * [(carried from PR #52) Degraded window between CNAME flip and certificate provisioning](53-carried-from-pr-52-degraded-window.md)
 * [Design refinement beyond the oracle: snap text color on hover, fade only the background](53-design-refinement-beyond-the-oracle-snap.md)
+* [Facade disambiguation is a new plggpress maintenance point](55-facade-disambiguation-is-a-plggpress-maintenance-point.md)
 
 * [archive/](archive/)

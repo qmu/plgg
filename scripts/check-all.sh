@@ -13,6 +13,11 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # root README index, back-links, and no dead links (scripts/gate-readme.sh).
 ./scripts/gate-readme.sh
 
+# Gate: the guide dev container's three provisioning lists (entrypoint installs,
+# compose volumes, build.sh) stay consistent and cover plggpress's deps, so they
+# can't silently drift (scripts/gate-guide-deps.sh).
+./scripts/gate-guide-deps.sh
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh
@@ -31,7 +36,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-router.sh
 ./scripts/test-plgg-server.sh
 ./scripts/test-plgg-cli.sh
-./scripts/test-plggmatic.sh
 ./scripts/test-plggpress.sh
 ./scripts/test-plgg-fetch.sh
 ./scripts/test-plgg-sql.sh

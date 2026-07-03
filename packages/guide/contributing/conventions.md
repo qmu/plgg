@@ -6,21 +6,28 @@ in T1.
 
 ## Page structure
 
-Every package / API page follows the same order, so
-readers always know where to look:
+Every package (Vocabulary) page leads with what writing an
+app looks like, then names the terms, then explains — so a
+reader sees the library in use before any rationale:
 
-1. **Overview** — what the package is and where it sits
-   in the family (one or two sentences, with links to the
-   packages it builds on or pairs with).
-2. **Install** — the `npm install` line and any `file:`
-   dependencies, matching the standalone-package layout.
-3. **Concepts** — the handful of ideas a reader needs
-   before the API makes sense.
-4. **API tables** — the exported functions and types,
-   tabulated; package pages summarize the key exports,
-   with each package's source as the source of truth.
-5. **Examples** — runnable usage, building on the
-   concepts above.
+1. **Overview** — one paragraph: what the package is and
+   where it sits in the family (links to the packages it
+   builds on or pairs with).
+2. **Writing an app with it** — the FIRST section after the
+   overview: a short, correct example of using the
+   library's terms, in plgg's data-last
+   [`pipe`](/concepts/composition) style wherever the
+   surface composes naturally (don't force `pipe` where the
+   real API doesn't use it).
+3. **Vocabulary** — a compact glance at the terms the
+   library offers (its key exports, grouped by concern);
+   each package's source is the source of truth.
+4. **Why it exists / how it's organized / deeper API** —
+   the rationale, architecture, and any longer worked
+   examples, below the two sections above.
+
+The reference implementation is
+[`plgg-http`](/packages/plgg-http).
 
 ## Code samples come from real code
 

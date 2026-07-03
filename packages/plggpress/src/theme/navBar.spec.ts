@@ -5,7 +5,7 @@ import {
   toContain,
   not,
 } from "plgg-test";
-import { renderToString } from "plggmatic";
+import { renderToString } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,

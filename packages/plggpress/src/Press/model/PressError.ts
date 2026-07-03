@@ -6,7 +6,7 @@ import {
 } from "plgg";
 
 /**
- * The config-load failure is `plggmatic`'s — plggpress
+ * The config-load failure is the framework's — plggpress
  * re-exports the framework's typed error so its public
  * surface (and every existing consumer import) is
  * unchanged by the rewire onto the framework.
@@ -15,7 +15,7 @@ export {
   type ConfigLoadError,
   configLoadError,
   configLoadError$,
-} from "plggmatic";
+} from "plggpress/framework";
 
 /**
  * A pipeline stage whose body is not yet implemented —

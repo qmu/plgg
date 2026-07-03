@@ -104,8 +104,7 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
 - **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-new-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, driving the vendored `typescript` scanner into classified plgg-view `Html` spans
-- **[`packages/plggmatic/`](packages/plggmatic/)** - Pre-organized, composable full-stack web-application framework on the plgg family: config loading, a router builder, static-build orchestration, and a pre-organized CLI
-- **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator built on plggmatic: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide
+- **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide. Carries its generic web framework internally (config loading, a router builder, static-build + CLI orchestration — absorbed from the former standalone `plggmatic`, now its own repository)
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
 
@@ -380,15 +379,9 @@ Zero-new-dependency TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highli
 
 See [packages/plgg-highlight/README.md](packages/plgg-highlight/README.md) for details.
 
-### plggmatic
-
-A pre-organized, composable full-stack web-application framework on the plgg family: config loading, a router builder, static-build orchestration, and a pre-organized CLI — the framework-generic seam an app supplies its content/render specifics to.
-
-See [packages/plggmatic/README.md](packages/plggmatic/README.md) for details.
-
 ### plggpress
 
-A VitePress-like static-site generator built on plggmatic: a typed `SiteConfig` contract, a single base-path href resolver, a config-loading CLI, and a build pipeline with a build-time dead-link checker. It is the engine that builds this guide.
+A VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a single base-path href resolver, a config-loading CLI, and a build pipeline with a build-time dead-link checker. It is the engine that builds this guide. plggpress carries its generic web framework internally (config loading, a router builder, static-build + CLI orchestration — absorbed from the former standalone `plggmatic`, now developed in its own repository).
 
 See [packages/plggpress/README.md](packages/plggpress/README.md) for details.
 
