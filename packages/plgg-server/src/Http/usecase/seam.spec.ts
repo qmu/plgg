@@ -7,7 +7,12 @@ import {
   okThen,
   errThen,
 } from "plgg-test";
-import { isSome } from "plgg";
+import {
+  isSome,
+  box,
+  pipe,
+  chainResult,
+} from "plgg";
 import {
   toHttpRequest,
   toNativeResponse,
@@ -16,6 +21,12 @@ import {
   streamResponse,
   statusOf,
 } from "plgg-server/index";
+import {
+  parseForm,
+  cookie,
+  sessionCookie,
+  withSetCookie,
+} from "plgg-http";
 
 async function* bytesStream(): AsyncIterable<Uint8Array> {
   yield new Uint8Array([1, 2]);
@@ -99,8 +110,9 @@ test("toNativeResponse preserves a caller-supplied Content-Length on a bytes bod
       new Uint8Array([1, 2, 3]),
       statusOf(200),
       {
-      "content-length": "99",
-    }),
+        "content-length": "99",
+      },
+    ),
   );
   return check(
     native.headers.get("content-length"),
@@ -149,7 +161,9 @@ test("toHttpRequest surfaces a non-text body as bytes, leaving body empty", asyn
 test("toHttpRequest keeps a JSON body as decoded text (no bytes)", async () => {
   const native = new Request("http://x/data", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+    },
     body: '{"a":1}',
   });
   return check(
@@ -162,3 +176,80 @@ test("toHttpRequest keeps a JSON body as decoded text (no bytes)", async () => {
     ),
   );
 });
+
+test("an urlencoded body lands as text and parseForm reads it", async () => {
+  const native = new Request("http://x/token", {
+    method: "POST",
+    headers: {
+      "content-type":
+        "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=authorization_code&code=abc+123&redirect_uri=https%3A%2F%2Frp.example%2Fcb",
+  });
+  return check(
+    await toHttpRequest(native),
+    okThen((r) =>
+      check(
+        parseForm(r.body),
+        toEqual({
+          grant_type: "authorization_code",
+          code: "abc 123",
+          redirect_uri: "https://rp.example/cb",
+        }),
+      ),
+    ),
+  );
+});
+
+test("two cookies become two distinct Set-Cookie headers at the seam", () =>
+  check(
+    pipe(
+      withSetCookie(
+        cookie(
+          box("CookieName")("a"),
+          box("CookieValue")("1"),
+        ),
+      )(textResponse("ok")),
+      chainResult(
+        withSetCookie(
+          sessionCookie(
+            box("CookieName")("sid"),
+            box("CookieValue")("v"),
+          ),
+        ),
+      ),
+    ),
+    okThen((response) =>
+      toEqual([
+        "a=1",
+        "sid=v; Path=/; HttpOnly; Secure; SameSite=Lax",
+      ])(
+        toNativeResponse(
+          response,
+        ).headers.getSetCookie(),
+      ),
+    ),
+  ));
+
+test("a single set-cookie header passes through the seam untouched", () =>
+  check(
+    withSetCookie(
+      cookie(
+        box("CookieName")("only"),
+        box("CookieValue")("1"),
+      ),
+    )(textResponse("ok")),
+    okThen((response) => {
+      const native = toNativeResponse(response);
+      return all([
+        check(
+          native.headers.getSetCookie(),
+          toEqual(["only=1"]),
+        ),
+        check(
+          native.headers.get("content-type"),
+          toBe("text/plain; charset=utf-8"),
+        ),
+      ]);
+    }),
+  ));

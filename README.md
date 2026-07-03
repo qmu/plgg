@@ -89,6 +89,7 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-sql/`](packages/plgg-sql/)** - SQL as data-last pipeline steps built from scratch on plgg: tagged-template queries, transactions, and typed row mapping that drop into a `proc`/`pipe` chain; the database driver lives at an app-supplied seam
 - **[`packages/plgg-db-migration/`](packages/plgg-db-migration/)** - Minimal dbmate-style schema-migration tool on plgg + plgg-sql: single-file up/down migrations, a `schema_migrations` ledger, on-demand per-tenant SQLite, zero new dependencies
+- **[`packages/plgg-auth/`](packages/plgg-auth/)** - OIDC identity-provider toolkit built from scratch on plgg: the JOSE layer (base64url, JWK/JWKS with RFC 7638 thumbprint kids, JWS RS256, JWT claim validation) on WebCrypto only — pinned to the RFC test vectors and cross-checked against `node:crypto`
 
 **AI**
 

@@ -5,9 +5,9 @@ origin_branch: work-20260701-185044
 origin_commit: efd21c0
 created_at: 2026-07-03T02:00:50+09:00
 severity: moderate
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 0e7f9cd
+resolved_by_commit: 
 ---
 
 # (carried from PR #48) Shipped .d.ts consumer resolution not verified under NodeNext

@@ -1,4 +1,7 @@
-import { HttpResponse, ResponseBody } from "plgg-server/index";
+import {
+  HttpResponse,
+  ResponseBody,
+} from "plgg-server/index";
 
 /**
  * Adapts a plgg-native stream (`AsyncIterable<Uint8Array>`) into a Web-standard
@@ -38,7 +41,10 @@ const withContentLength = (
 ): Headers =>
   headers.has("content-length")
     ? headers
-    : (headers.set("content-length", String(length)),
+    : (headers.set(
+        "content-length",
+        String(length),
+      ),
       headers);
 
 /**
@@ -53,24 +59,56 @@ const respond = (
   typeof body === "string"
     ? new Response(body, { status, headers })
     : body.__tag === "Bytes"
-      ? new Response(toArrayBuffer(body.content), {
-          status,
-          headers: withContentLength(
+      ? new Response(
+          toArrayBuffer(body.content),
+          {
+            status,
+            headers: withContentLength(
+              headers,
+              body.content.byteLength,
+            ),
+          },
+        )
+      : new Response(
+          toReadableStream(body.content),
+          {
+            status,
             headers,
-            body.content.byteLength,
-          ),
-        })
-      : new Response(toReadableStream(body.content), {
-          status,
-          headers,
-        });
+          },
+        );
+
+/**
+ * Copies the header `Dict` into native `Headers`. The `set-cookie` entry is
+ * the one header that cannot be comma-joined, so plgg-http's `withSetCookie`
+ * folds multiple cookies into it on `"\n"` — split here and `append` each line
+ * as its own `Set-Cookie` header.
+ */
+const toHeaders = (
+  dict: Readonly<Record<string, string>>,
+): Headers => {
+  // Imperative seam: Headers is a mutable platform object.
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(
+    dict,
+  )) {
+    if (name === "set-cookie") {
+      for (const line of value.split("\n")) {
+        headers.append("set-cookie", line);
+      }
+    } else {
+      headers.set(name, value);
+    }
+  }
+  return headers;
+};
 
 /**
  * Converts a plgg-native {@link HttpResponse} into a Web-standard `Response`.
  *
  * The second seam function: the branded status is unwrapped to a number, the
- * header `Dict` is copied into native `Headers`, and the body union is folded
- * into a `BodyInit` (string, bytes, or a `ReadableStream`) here, at the edge.
+ * header `Dict` is copied into native `Headers` (multi-`Set-Cookie` aware),
+ * and the body union is folded into a `BodyInit` (string, bytes, or a
+ * `ReadableStream`) here, at the edge.
  */
 export const toNativeResponse = (
   response: HttpResponse,
@@ -78,5 +116,5 @@ export const toNativeResponse = (
   respond(
     response.body,
     response.status.content,
-    new Headers({ ...response.headers }),
+    toHeaders(response.headers),
   );

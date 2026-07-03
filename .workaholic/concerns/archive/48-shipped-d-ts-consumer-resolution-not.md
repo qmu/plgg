@@ -5,9 +5,9 @@ origin_branch: work-20260627-205005
 origin_commit: 80b301f
 created_at: 2026-06-28T01:22:01+09:00
 severity: low
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 0e7f9cd
+resolved_by_commit: 
 ---
 
 # Shipped `.d.ts` consumer-resolution not yet verified across tsconfigs

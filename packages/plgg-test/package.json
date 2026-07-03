@@ -1,6 +1,6 @@
 {
   "name": "plgg-test",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Minimal in-house test runner for the plgg monorepo",
   "type": "module",
   "files": [
