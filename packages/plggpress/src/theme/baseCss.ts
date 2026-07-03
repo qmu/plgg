@@ -99,7 +99,7 @@ body.vp{
    the pill classes' (0,2,0) and re-underlined them. */
 .vp a{
   color:var(--vp-brand);text-decoration:none;
-  transition:color 0.15s;
+  transition:color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 .vp-menu-cb{display:none}
 /* prose links (qmu .prose a): ink + standing underline at
@@ -177,6 +177,9 @@ body.vp{
   font-weight:500;font-size:1.05rem;
   color:var(--vp-text);
   padding:0.1rem 0.4rem;border-radius:6px;
+  transition:background-color 0.15s
+      cubic-bezier(0.4,0,0.2,1),
+    color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 .vp-mobilebar-home:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -203,8 +206,9 @@ body.vp{
   border-radius:50%;border:1px solid var(--vp-border);
   background:var(--vp-knob);cursor:pointer;
   color:var(--vp-text);padding:0;
-  transition:background-color 0.15s,
-    border-color 0.15s;
+  transition:background-color 0.15s
+      cubic-bezier(0.4,0,0.2,1),
+    border-color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 /* qmu --knob rule (WCAG 2.2 AA 1.4.11): in dark mode the
    control is a clearly-visible light disc, so its icon
@@ -252,7 +256,9 @@ html.dark .vp-theme-toggle .vp-moon{
   border-radius:6px;font-size:1rem;
   line-height:1.5rem;
   font-weight:500;color:var(--vp-text);
-  transition:background-color 0.15s,color 0.15s;
+  transition:background-color 0.15s
+      cubic-bezier(0.4,0,0.2,1),
+    color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 .vp-wordmark:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -287,7 +293,9 @@ html.dark .vp-theme-toggle .vp-moon{
   padding:0.25rem 0.5rem;border-radius:4px;
   font-size:0.875rem;line-height:1.25rem;
   color:var(--vp-text);
-  transition:background-color 0.15s,color 0.15s;
+  transition:background-color 0.15s
+      cubic-bezier(0.4,0,0.2,1),
+    color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 .vp-sidebar-link:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -328,7 +336,9 @@ html.dark .vp-theme-toggle .vp-moon{
   display:inline-flex;align-items:center;
   padding:0.25rem 0.4rem;border-radius:6px;
   font-size:0.8rem;color:var(--vp-muted);
-  transition:background-color 0.15s,color 0.15s;
+  transition:background-color 0.15s
+      cubic-bezier(0.4,0,0.2,1),
+    color 0.15s cubic-bezier(0.4,0,0.2,1);
 }
 .vp-social:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
