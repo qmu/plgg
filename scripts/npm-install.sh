@@ -22,6 +22,7 @@ cd $REPO_ROOT/packages/plggpress && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/plgg-sql && npm install
 cd $REPO_ROOT/packages/plgg-db-migration && npm install
+cd $REPO_ROOT/packages/plgg-auth && npm install
 cd $REPO_ROOT/packages/example && npm install
 cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="
