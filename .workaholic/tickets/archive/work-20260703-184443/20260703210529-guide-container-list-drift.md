@@ -4,6 +4,7 @@ author: a@qmu.jp
 type: refactoring
 layer: [Config]
 effort: 1h
+commit_hash: bf25153
 category: Changed
 ---
 
