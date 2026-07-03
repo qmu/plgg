@@ -72,7 +72,41 @@ PKCE (no implicit/hybrid, no `plain`):
 `example.ts` runs a full OP+RP authorization-code + PKCE
 round trip in-process (discovery → authorize → login →
 token → ID-token validation → userinfo) and prints each
-step.
+step. Pass `--sql` to run it on the plgg-sql store with
+migrations applied at boot instead of the in-memory one.
+
+## Persistence and hardening
+
+The `Sql/` layer is a production-shaped `AuthStore`
+driver over plgg-sql's `Db` seam, plus the refresh-token
+and key-rotation machinery:
+
+- **Schema + migrations**: dbmate-style single-file
+  up/down migrations under
+  `databases/auth/migrations/` (clients, redirect URIs,
+  pending requests, sessions, authorization codes,
+  access grants, refresh tokens with a rotation lineage,
+  and signing keys with a lifecycle status). Applied via
+  plgg-db-migration.
+- **`sqlStore(db)`**: implements the full `AuthStore`
+  over the injection-safe `sql` template; `take*`
+  operations run their SELECT+DELETE in one `Db`
+  transaction so single-use codes stay atomic. Token
+  values are stored only as SHA-256 hashes.
+- **Refresh tokens**: the `refresh_token` grant rotates
+  on every use (new token, `rotated_from` lineage, old →
+  `rotated`); presenting a rotated/revoked token is a
+  reuse signal that revokes the whole family
+  (`family_id`) and fails — OAuth 2.1 rotation.
+- **Key rotation**: `rotateSigningKey` installs a new
+  `active` key and demotes the previous to `retiring`
+  (still served in the JWKS so outstanding ID tokens
+  validate); `retireKeys` drops keys past their window.
+
+The same shared contract spec runs against both the
+in-memory and the plgg-sql drivers; the SQL driver is
+tested against a real `node:sqlite` database (Node ≥
+22.6).
 
 ## Commands
 

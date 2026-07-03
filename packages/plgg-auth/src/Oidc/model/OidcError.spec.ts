@@ -20,6 +20,7 @@ import {
   oauthErrorCode,
   oauthErrorStatus,
   toStoreFailure,
+  oidcError$,
 } from "plgg-auth/index";
 
 const cases: ReadonlyArray<
@@ -88,3 +89,6 @@ test("toStoreFailure folds a non-Error cause to the generic message", () =>
     toStoreFailure("raw").content.message,
     toBe("store operation failed"),
   ));
+
+test("oidcError$ is a usable pattern matcher", () =>
+  check(typeof oidcError$, toBe("function")));

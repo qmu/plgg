@@ -1,5 +1,8 @@
-import { Option, fromNullable } from "plgg";
-import { RsaPrivateJwk } from "plgg-auth/Jose/model/Jwk";
+import { Option, fromNullable, none } from "plgg";
+import {
+  RsaPrivateJwk,
+  kidString,
+} from "plgg-auth/Jose/model/Jwk";
 import {
   Jwks,
   jwks,
@@ -26,14 +29,29 @@ import {
   sessionIdString,
   pendingRequestIdString,
 } from "plgg-auth/Oidc/model/Tokens";
+import {
+  RefreshRecord,
+  RefreshTokenHash,
+  RefreshStatus,
+  FamilyId,
+  refreshTokenHashString,
+  familyIdString,
+} from "plgg-auth/Oidc/model/RefreshToken";
+import {
+  SigningKeyRecord,
+  KeyStatus,
+} from "plgg-auth/Oidc/model/SigningKey";
 
 /**
  * A test/demo `AuthStore` backed by plain `Map`s.
  * `take*` operations are atomic get-and-delete
- * (single-use). Excluded from coverage like
- * plgg-db-migration's `sqliteDb` testkit; the
- * phase-4 plgg-sql driver replaces it in
- * production.
+ * (single-use). Signing keys are seeded from the
+ * optional `signingKey` as an `active` record;
+ * refresh tokens and further keys are added
+ * through the phase-4 methods. Excluded from
+ * coverage like plgg-db-migration's `sqliteDb`
+ * testkit; the phase-4 plgg-sql driver replaces
+ * it in production.
  */
 export const memoryStore = (
   clients: ReadonlyArray<Client>,
@@ -49,10 +67,31 @@ export const memoryStore = (
   const sessions = new Map<string, Session>();
   const codes = new Map<string, IssuedCode>();
   const grants = new Map<string, AccessGrant>();
-  const publicKeys: ReadonlyArray<RsaPrivateJwk> =
+  const refresh = new Map<
+    string,
+    RefreshRecord
+  >();
+  const keys = new Map<string, SigningKeyRecord>(
     signingKey.__tag === "Some"
-      ? [signingKey.content]
-      : [];
+      ? [
+          [
+            kidString(signingKey.content.kid),
+            {
+              privateKey: signingKey.content,
+              status: "active",
+              createdAt: 0,
+            },
+          ],
+        ]
+      : [],
+  );
+
+  const keysWithStatus = (
+    status: KeyStatus,
+  ): ReadonlyArray<SigningKeyRecord> =>
+    [...keys.values()].filter(
+      (k) => k.status === status,
+    );
 
   return {
     findClient: async (
@@ -120,15 +159,86 @@ export const memoryStore = (
       ),
     activeSigningKey: async (): Promise<
       Option<RsaPrivateJwk>
-    > => signingKey,
+    > => {
+      const [active] = keysWithStatus("active");
+      return active === undefined
+        ? none()
+        : fromNullable(active.privateKey);
+    },
     verificationJwks: async (): Promise<Jwks> =>
       jwks(
-        publicKeys.map((k) => ({
+        [
+          ...keysWithStatus("active"),
+          ...keysWithStatus("retiring"),
+        ].map((k) => ({
           kty: "RSA",
-          n: k.n,
-          e: k.e,
-          kid: k.kid,
+          n: k.privateKey.n,
+          e: k.privateKey.e,
+          kid: k.privateKey.kid,
         })),
       ),
+
+    saveRefreshToken: async (
+      record: RefreshRecord,
+    ): Promise<void> => {
+      refresh.set(
+        refreshTokenHashString(record.tokenHash),
+        record,
+      );
+    },
+    findRefreshToken: async (
+      hash: RefreshTokenHash,
+    ): Promise<Option<RefreshRecord>> =>
+      fromNullable(
+        refresh.get(refreshTokenHashString(hash)),
+      ),
+    setRefreshStatus: async (
+      hash: RefreshTokenHash,
+      status: RefreshStatus,
+    ): Promise<void> => {
+      const key = refreshTokenHashString(hash);
+      const found = refresh.get(key);
+      if (found !== undefined) {
+        refresh.set(key, { ...found, status });
+      }
+    },
+    revokeRefreshFamily: async (
+      familyId: FamilyId,
+    ): Promise<void> => {
+      const target = familyIdString(familyId);
+      for (const [key, rec] of refresh) {
+        if (
+          familyIdString(rec.familyId) === target
+        ) {
+          refresh.set(key, {
+            ...rec,
+            status: "revoked",
+          });
+        }
+      }
+    },
+
+    saveSigningKey: async (
+      record: SigningKeyRecord,
+    ): Promise<void> => {
+      keys.set(
+        kidString(record.privateKey.kid),
+        record,
+      );
+    },
+    signingKeysByStatus: async (
+      status: KeyStatus,
+    ): Promise<ReadonlyArray<SigningKeyRecord>> =>
+      keysWithStatus(status),
+    transitionSigningKey: async (
+      kid,
+      status: KeyStatus,
+    ): Promise<void> => {
+      const key = kidString(kid);
+      const found = keys.get(key);
+      if (found !== undefined) {
+        keys.set(key, { ...found, status });
+      }
+    },
   };
 };

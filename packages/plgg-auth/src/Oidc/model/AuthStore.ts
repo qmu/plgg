@@ -5,13 +5,26 @@ import {
   ok,
   err,
 } from "plgg";
-import { RsaPrivateJwk } from "plgg-auth/Jose/model/Jwk";
+import {
+  Kid,
+  RsaPrivateJwk,
+} from "plgg-auth/Jose/model/Jwk";
 import { Jwks } from "plgg-auth/Jose/model/Jwks";
 import {
   Client,
   ClientId,
   RedirectUri,
 } from "plgg-auth/Oidc/model/Client";
+import {
+  RefreshRecord,
+  RefreshTokenHash,
+  RefreshStatus,
+  FamilyId,
+} from "plgg-auth/Oidc/model/RefreshToken";
+import {
+  SigningKeyRecord,
+  KeyStatus,
+} from "plgg-auth/Oidc/model/SigningKey";
 import { CodeChallenge } from "plgg-auth/Oidc/model/Pkce";
 import {
   Subject,
@@ -119,6 +132,50 @@ export type AuthStore = {
   >;
   /** The public set served at `/jwks.json`. */
   verificationJwks: () => Promise<Jwks>;
+
+  // --- refresh tokens (phase 4) --------------------
+  /** Persists a newly issued refresh token. */
+  saveRefreshToken: (
+    record: RefreshRecord,
+  ) => Promise<void>;
+  /**
+   * Looks a refresh token up by its hash — a
+   * read, NOT a take: rotation reads the record,
+   * checks its status, then transitions it, so
+   * reuse of an already-rotated token is
+   * detectable.
+   */
+  findRefreshToken: (
+    hash: RefreshTokenHash,
+  ) => Promise<Option<RefreshRecord>>;
+  /** Transitions one refresh token to a new status. */
+  setRefreshStatus: (
+    hash: RefreshTokenHash,
+    status: RefreshStatus,
+  ) => Promise<void>;
+  /**
+   * Revokes every token in a family — the reuse
+   * response: presenting a rotated/revoked token
+   * kills the whole lineage.
+   */
+  revokeRefreshFamily: (
+    familyId: FamilyId,
+  ) => Promise<void>;
+
+  // --- signing-key lifecycle (phase 4) -------------
+  /** Persists a signing key in a lifecycle state. */
+  saveSigningKey: (
+    record: SigningKeyRecord,
+  ) => Promise<void>;
+  /** All signing keys in one lifecycle state. */
+  signingKeysByStatus: (
+    status: KeyStatus,
+  ) => Promise<ReadonlyArray<SigningKeyRecord>>;
+  /** Transitions a signing key (by kid) to a new status. */
+  transitionSigningKey: (
+    kid: Kid,
+    status: KeyStatus,
+  ) => Promise<void>;
 };
 
 /**

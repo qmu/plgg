@@ -20,6 +20,7 @@ export type ProviderConfig = Readonly<{
   idTokenTtlSeconds: Num;
   sessionTtlSeconds: Num;
   pendingTtlSeconds: Num;
+  refreshTtlSeconds: Num;
   clock: () => Num;
 }>;
 

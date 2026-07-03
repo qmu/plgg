@@ -88,12 +88,12 @@ export const pendingRequestIdString =
 /**
  * 32 CSPRNG bytes as 43 base64url characters —
  * the entropy source for every issued
- * code/token/id (≥ the 128-bit floor RFC 6749
- * §10.10 requires). The one impure generator in
- * the domain, kept here so issuance usecases
- * stay declarative.
+ * code/token/id/session (≥ the 128-bit floor
+ * RFC 6749 §10.10 requires). The one impure
+ * generator in the domain, kept here so issuance
+ * usecases stay declarative.
  */
-const randomToken = (): string =>
+export const freshOpaque = (): string =>
   base64UrlString(
     encodeBase64Url(
       crypto.getRandomValues(new Uint8Array(32)),
@@ -102,17 +102,17 @@ const randomToken = (): string =>
 
 /** A fresh single-use authorization code. */
 export const freshAuthCode = (): AuthCode =>
-  box("AuthCode")(randomToken());
+  box("AuthCode")(freshOpaque());
 
 /** A fresh opaque access token. */
 export const freshAccessToken = (): AccessToken =>
-  box("AccessToken")(randomToken());
+  box("AccessToken")(freshOpaque());
 
 /** A fresh session id. */
 export const freshSessionId = (): SessionId =>
-  box("SessionId")(randomToken());
+  box("SessionId")(freshOpaque());
 
 /** A fresh pending-request handle. */
 export const freshPendingRequestId =
   (): PendingRequestId =>
-    box("PendingRequestId")(randomToken());
+    box("PendingRequestId")(freshOpaque());

@@ -3,9 +3,9 @@ created_at: 2026-07-03T22:22:55+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [DB, Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 479101e
+category: Added
 depends_on: [20260703222254-plgg-auth-oidc-provider-core.md]
 ---
 
@@ -180,3 +180,29 @@ recorded).
   (`packages/plgg-sql/src/Db/usecase/transaction.ts`).
 - SQLite is the tested-real engine; Postgres/MySQL remain untested reference
   dialects, consistent with plgg-db-migration's posture.
+
+## Final Report
+
+Development completed as planned. Approval gate auto-resolved: the developer
+was away at the per-ticket prompt, and the `/drive` batch was explicitly
+authorized in-session ("do it but through phases") with every pre-agreed
+Quality Gate criterion verified green.
+
+### Discovered Insights
+
+- **Insight**: plgg-db-migration shipped `"type": "module"` in its package.json — no sibling package does — which made its dist `.d.ts` resolve in ESM mode where extensionless directory re-exports (`export * from "./domain/usecase"`) do not resolve. plgg-auth is its first external TypeScript consumer, so the package was effectively unimportable. Removing the stray `"type"` (aligning with every other package) fixed it.
+  **Context**: Any future package consuming plgg-db-migration would have hit the same wall; the fix is a one-line package.json change but the diagnosis needed `tsc --traceResolution`.
+- **Insight**: plgg's `asObj` rejects a row containing a NULL column (its `Obj` excludes null values), so every table with a nullable column (secret_hash, nonce, rotated_from) failed to decode. The SQL row casters must use `asRawObj` (accepts any non-null object) as the first cast step, not `asObj`.
+  **Context**: This is the single most important gotcha for anyone writing plgg-sql row decoders over real relational rows — NULLs are pervasive and `asObj` silently fails the whole row.
+- **Insight**: Single-use `take*` semantics are only atomic if the SELECT+DELETE run in one transaction — the sqlStore wraps them in `db.begin()/commit()` with a rollback-on-throw, matching the atomicity the in-memory `Map.delete` gives for free. A naive two-statement findThenDelete would reintroduce code replay.
+  **Context**: The AuthStore contract (phase 3) documents `take*` as get-and-delete; phase 4 makes that a transactional guarantee, which the shared both-driver contract spec verifies identically.
+- **Insight**: plgg-test's coverage `dedupeByPath` kept only the LAST V8 script per source file (a plain `Map.set`), but the self-re-exec dumps coverage more than once (a zero-count discovery load + the real run); when the zero-count dump landed last it discarded the run's counts, undercounting branch coverage. Fixed by merging counts across dumps.
+  **Context**: This silently undercounted branch coverage for every multi-dump package; the fix (sum positionally-identical ranges) can only raise numbers, so it is safe for all consumers, and plgg-test's own 123 specs still pass.
+- **Insight**: plgg-test's block-branch metric counts inline arrow callbacks passed to `matchOption` as their own branch arms, and V8 attributes their execution imperfectly — an error-arm `(): Result => err(...)` exercised by a passing test can still read as uncovered. Converting hot error-path `matchOption`s to `isSome`/early-return both covers them honestly and reads more directly (see exchangeCode).
+  **Context**: A style tension worth knowing: heavy inline-arrow `matchOption` in error paths can depress branch coverage even when fully tested; `isSome` + early return is the coverage-friendly and arguably clearer idiom for linear validate-then-fail sequences.
+
+### Deferred (out of scope, documented)
+
+- Private signing-key JWKs are stored as plaintext JSON in `oidc_signing_keys.private_jwk`; encrypting that column (KMS-wrapped or env-provided key) is an operator decision documented at the `sqlStore` boundary, not solved here.
+- Expired-row reaping is an operator concern (no background timer lives in library code); `retireKeys` is provided but must be scheduled by the app.
+- Postgres/MySQL remain untested reference dialects; only SQLite is exercised against a real engine, consistent with plgg-db-migration's posture.

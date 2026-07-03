@@ -13,6 +13,7 @@ import {
   joseErrorFromThrown,
   joseErrorFromInvalid,
   liftJose,
+  joseError$,
 } from "plgg-auth/index";
 
 test("constructors stamp the discriminating kind", () =>
@@ -88,3 +89,6 @@ test("liftJose folds a rejection into a JoseError", async () =>
       ]),
     ),
   ));
+
+test("joseError$ is a usable pattern matcher", () =>
+  check(typeof joseError$, toBe("function")));

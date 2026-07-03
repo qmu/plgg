@@ -755,3 +755,33 @@ test("jwks on a failing store returns a 500 server_error", async () => {
     ),
   ]);
 });
+
+test("a token request with no grant_type at all is unsupported_grant_type", async () => {
+  const s = await setup();
+  if (s === null) {
+    return check(s === null, toBe(false));
+  }
+  const clock = { now: 1_700_000_000 };
+  const config = makeConfig(
+    s.keyPair,
+    [publicClient],
+    clock,
+  );
+  const app = makeApp(config, subject("u"));
+  const resp = await run(
+    app,
+    request(
+      "POST",
+      `${ISSUER}/token`,
+      formHeaders,
+      "client_id=demo-rp",
+    ),
+  );
+  if (!isOk(resp)) {
+    return check(isOk(resp), toBe(true));
+  }
+  return check(
+    jsonBody(resp.content)["error"],
+    toBe("unsupported_grant_type"),
+  );
+});

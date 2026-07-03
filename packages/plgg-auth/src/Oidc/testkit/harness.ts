@@ -78,6 +78,7 @@ export const makeConfig = (
   idTokenTtlSeconds: 3600,
   sessionTtlSeconds: 86400,
   pendingTtlSeconds: 600,
+  refreshTtlSeconds: 1209600,
   clock: () => clockBox.now,
 });
 
@@ -94,6 +95,7 @@ export const makeConfigNoKey = (
   idTokenTtlSeconds: 3600,
   sessionTtlSeconds: 86400,
   pendingTtlSeconds: 600,
+  refreshTtlSeconds: 1209600,
   clock: () => clockBox.now,
 });
 
@@ -118,6 +120,13 @@ export const failingStore = (): AuthStore => {
     findAccessGrant: boom,
     activeSigningKey: boom,
     verificationJwks: boom,
+    saveRefreshToken: boom,
+    findRefreshToken: boom,
+    setRefreshStatus: boom,
+    revokeRefreshFamily: boom,
+    saveSigningKey: boom,
+    signingKeysByStatus: boom,
+    transitionSigningKey: boom,
   };
 };
 
@@ -133,6 +142,7 @@ export const makeConfigFailing = (clockBox: {
   idTokenTtlSeconds: 3600,
   sessionTtlSeconds: 86400,
   pendingTtlSeconds: 600,
+  refreshTtlSeconds: 1209600,
   clock: () => clockBox.now,
 });
 
@@ -160,6 +170,7 @@ export const makeConfigWithStore = (
   idTokenTtlSeconds: 3600,
   sessionTtlSeconds: 86400,
   pendingTtlSeconds: 600,
+  refreshTtlSeconds: 1209600,
   clock: () => clockBox.now,
 });
 

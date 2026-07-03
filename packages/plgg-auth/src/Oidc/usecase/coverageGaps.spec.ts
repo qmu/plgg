@@ -535,3 +535,28 @@ test("Basic auth with an empty client id is invalid_client", () =>
       ),
     ),
   ));
+
+test("Basic auth with invalid base64 is invalid_client", () =>
+  check(
+    readClientCredential(
+      {},
+      some("Basic !!!not-base64!!!"),
+    ),
+    errThen((e) =>
+      check(
+        oidcErrorKind(e),
+        toBe("InvalidClient"),
+      ),
+    ),
+  ));
+
+test("Basic auth whose payload fails to base64-decode is invalid_client", () =>
+  check(
+    readClientCredential({}, some("Basic @@@@")),
+    errThen((e) =>
+      check(
+        oidcErrorKind(e),
+        toBe("InvalidClient"),
+      ),
+    ),
+  ));

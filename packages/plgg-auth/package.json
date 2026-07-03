@@ -42,12 +42,17 @@
   "dependencies": {
     "plgg": "file:../plgg",
     "plgg-http": "file:../plgg-http",
-    "plgg-server": "file:../plgg-server"
+    "plgg-server": "file:../plgg-server",
+    "plgg-sql": "file:../plgg-sql",
+    "plgg-db-migration": "file:../plgg-db-migration"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
     "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=22.6"
   }
 }

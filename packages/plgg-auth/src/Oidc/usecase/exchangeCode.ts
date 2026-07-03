@@ -6,10 +6,9 @@ import {
   ok,
   err,
   isErr,
-  pipe,
   none,
   fromNullable,
-  matchOption,
+  isSome,
 } from "plgg";
 import {
   Client,
@@ -26,6 +25,11 @@ import {
   IssuedCode,
   liftStore,
 } from "plgg-auth/Oidc/model/AuthStore";
+import {
+  freshRefreshToken,
+  freshFamilyId,
+  hashRefreshToken,
+} from "plgg-auth/Oidc/model/RefreshToken";
 import { ProviderConfig } from "plgg-auth/Oidc/model/ProviderConfig";
 import {
   OidcError,
@@ -35,7 +39,7 @@ import {
 } from "plgg-auth/Oidc/model/OidcError";
 import {
   TokenResponse,
-  issueTokens,
+  issueTokensFor,
 } from "plgg-auth/Oidc/usecase/issueTokens";
 
 const lookupOwn = (
@@ -49,15 +53,12 @@ const lookupOwn = (
 const requiredField = (
   form: Dict<string, SoftStr>,
   name: SoftStr,
-): Result<SoftStr, OidcError> =>
-  pipe(
-    lookupOwn(form, name),
-    matchOption(
-      (): Result<SoftStr, OidcError> =>
-        err(invalidRequest(`missing "${name}"`)),
-      (v: SoftStr) => ok(v),
-    ),
-  );
+): Result<SoftStr, OidcError> => {
+  const found = lookupOwn(form, name);
+  return isSome(found)
+    ? ok(found.content)
+    : err(invalidRequest(`missing "${name}"`));
+};
 
 const checkPkce =
   (code: IssuedCode) =>
@@ -140,52 +141,95 @@ export const exchangeCode =
     if (isErr(taken)) {
       return taken;
     }
-    return matchOption(
-      (): Promise<
-        Result<TokenResponse, OidcError>
-      > =>
-        Promise.resolve(
-          err(
-            invalidGrant(
-              "authorization code is invalid, expired, or already used",
-            ),
-          ),
+    if (!isSome(taken.content)) {
+      return err(
+        invalidGrant(
+          "authorization code is invalid, expired, or already used",
         ),
-      async (code: IssuedCode) => {
-        if (code.expiresAt <= now) {
-          return err(
-            invalidGrant(
-              "authorization code has expired",
-            ),
-          );
-        }
-        if (
-          clientIdString(code.clientId) !==
-          clientIdString(client.id)
-        ) {
-          return err(
-            invalidGrant(
-              "authorization code was issued to a different client",
-            ),
-          );
-        }
-        if (
-          redirectUriString(code.redirectUri) !==
-          redirectField.content
-        ) {
-          return err(
-            invalidGrant(
-              "redirect_uri does not match the authorization request",
-            ),
-          );
-        }
-        const verified = await checkPkce(code)(
-          verifierField.content,
-        );
-        if (isErr(verified)) {
-          return verified;
-        }
-        return issueTokens(config)(code);
+      );
+    }
+    const code = taken.content.content;
+    if (code.expiresAt <= now) {
+      return err(
+        invalidGrant(
+          "authorization code has expired",
+        ),
+      );
+    }
+    if (
+      clientIdString(code.clientId) !==
+      clientIdString(client.id)
+    ) {
+      return err(
+        invalidGrant(
+          "authorization code was issued to a different client",
+        ),
+      );
+    }
+    if (
+      redirectUriString(code.redirectUri) !==
+      redirectField.content
+    ) {
+      return err(
+        invalidGrant(
+          "redirect_uri does not match the authorization request",
+        ),
+      );
+    }
+    const verified = await checkPkce(code)(
+      verifierField.content,
+    );
+    if (isErr(verified)) {
+      return verified;
+    }
+    return issueWithRefresh(config)(code);
+  };
+
+/**
+ * Issues the access + ID token AND an initial
+ * refresh token for a redeemed code: a fresh
+ * family is opened and its first token persisted
+ * (hashed) before the response is built.
+ */
+const issueWithRefresh =
+  (config: ProviderConfig) =>
+  async (
+    code: IssuedCode,
+  ): Promise<
+    Result<TokenResponse, OidcError>
+  > => {
+    const now = config.clock();
+    const refresh = freshRefreshToken();
+    const hash = await hashRefreshToken(refresh);
+    if (isErr(hash)) {
+      return err(
+        serverError(
+          "failed to hash the refresh token",
+        ),
+      );
+    }
+    const saved = await liftStore(() =>
+      config.store.saveRefreshToken({
+        tokenHash: hash.content,
+        familyId: freshFamilyId(),
+        clientId: code.clientId,
+        subject: code.subject,
+        scopes: code.scopes,
+        rotatedFrom: none(),
+        status: "active",
+        expiresAt: now + config.refreshTtlSeconds,
+      }),
+    );
+    if (isErr(saved)) {
+      return saved;
+    }
+    return issueTokensFor(config)(
+      {
+        subject: code.subject,
+        clientId: code.clientId,
+        scopes: code.scopes,
+        nonce: code.nonce,
       },
-    )(taken.content);
+      refresh,
+    );
   };

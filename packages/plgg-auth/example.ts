@@ -33,6 +33,14 @@ import {
   statusOf,
   HttpRequest,
 } from "plgg-server";
+import { dirname } from "node:path";
+import { sql, exec } from "plgg-sql";
+import {
+  sqlite,
+  migrator,
+  migrateUp,
+  readMigrations,
+} from "plgg-db-migration";
 import {
   generateRsaKey,
   validateJwt,
@@ -43,14 +51,18 @@ import {
   sessionRedirect,
   completeAuthorization,
   buildSuccessRedirect,
+  sqlStore,
   asClientId,
   asRedirectUri,
   asSubject,
   asPendingRequestId,
   ProviderConfig,
+  AuthStore,
   Client,
+  RsaPrivateJwk,
 } from "plgg-auth/index";
 import { memoryStore } from "plgg-auth/Oidc/testkit/memoryStore";
+import { openSqliteDb } from "plgg-auth/Oidc/testkit/sqliteDb";
 
 const parseSearch = (
   search: string,
@@ -87,6 +99,44 @@ const must = <T, E>(
   return r.content;
 };
 
+/**
+ * Opens a node:sqlite store, applies the phase-4
+ * migrations, registers `client`, and installs
+ * `key` as the active signing key — the same
+ * driver production uses, exercised end to end.
+ */
+const sqlBackedStore = async (
+  client: Client,
+  key: RsaPrivateJwk,
+): Promise<AuthStore> => {
+  const db = openSqliteDb();
+  const dir = must(
+    "read migrations",
+    await readMigrations(
+      `${dirname(process.argv[1] ?? ".")}/databases/auth/migrations`,
+    ),
+  );
+  must(
+    "migrate up",
+    await migrateUp(migrator(db, sqlite, dir)),
+  );
+  const store = sqlStore(db);
+  await exec(db)(
+    sql`INSERT INTO oidc_clients (id, secret_hash) VALUES (${client.id.content}, ${none()})`,
+  );
+  for (const uri of client.redirectUris) {
+    await exec(db)(
+      sql`INSERT INTO oidc_client_redirect_uris (client_id, redirect_uri) VALUES (${client.id.content}, ${uri.content})`,
+    );
+  }
+  await store.saveSigningKey({
+    privateKey: key,
+    status: "active",
+    createdAt: 0,
+  });
+  return store;
+};
+
 const main = async (): Promise<void> => {
   const ISSUER = "https://op.example";
   const RP_REDIRECT =
@@ -107,19 +157,33 @@ const main = async (): Promise<void> => {
       ),
     ],
   };
+  // Pass `--sql` to run on a node:sqlite store
+  // with the phase-4 migrations applied at boot;
+  // otherwise the in-memory testkit store.
+  const useSql = process.argv.includes("--sql");
+  const store = useSql
+    ? await sqlBackedStore(
+        client,
+        keyPair.privateKey,
+      )
+    : memoryStore(
+        [client],
+        some(keyPair.privateKey),
+      );
+  console.log(
+    `store: ${useSql ? "plgg-sql (node:sqlite, migrated)" : "in-memory"}`,
+  );
   let now = 1_700_000_000;
   const config: ProviderConfig = {
     issuer: box("Str")(ISSUER),
     loginPath: box("Str")("/login"),
-    store: memoryStore(
-      [client],
-      some(keyPair.privateKey),
-    ),
+    store,
     codeTtlSeconds: 60,
     accessTtlSeconds: 3600,
     idTokenTtlSeconds: 3600,
     sessionTtlSeconds: 86400,
     pendingTtlSeconds: 600,
+    refreshTtlSeconds: 1209600,
     clock: () => now,
   };
 

@@ -12,6 +12,8 @@ import {
   getOr,
   fromNullable,
 } from "plgg";
+import { Client } from "plgg-auth/Oidc/model/Client";
+import { refreshGrant } from "plgg-auth/Oidc/usecase/refreshGrant";
 import {
   Web,
   Handler,
@@ -113,7 +115,18 @@ const tokenResponseBody = (
     token_type: "Bearer",
     expires_in: tokens.expiresIn,
     id_token: tokens.idToken.content,
+    refresh_token: tokens.refreshToken.content,
   });
+
+const runGrant = (
+  config: ProviderConfig,
+  grantType: SoftStr,
+  client: Client,
+  form: Readonly<Record<string, SoftStr>>,
+) =>
+  grantType === "refresh_token"
+    ? refreshGrant(config)(client)(form)
+    : exchangeCode(config)(client)(form);
 
 const tokenHandler =
   (config: ProviderConfig): Handler =>
@@ -123,7 +136,10 @@ const tokenHandler =
       lookupOwn(form, "grant_type"),
       getOr(""),
     );
-    if (grantType !== "authorization_code") {
+    if (
+      grantType !== "authorization_code" &&
+      grantType !== "refresh_token"
+    ) {
       return ok(
         oauthErrorResponse(
           unsupportedGrantType(
@@ -149,9 +165,12 @@ const tokenHandler =
         oauthErrorResponse(client.content),
       );
     }
-    const tokens = await exchangeCode(config)(
+    const tokens = await runGrant(
+      config,
+      grantType,
       client.content,
-    )(form);
+      form,
+    );
     return isErr(tokens)
       ? ok(oauthErrorResponse(tokens.content))
       : ok(tokenResponseBody(tokens.content));
