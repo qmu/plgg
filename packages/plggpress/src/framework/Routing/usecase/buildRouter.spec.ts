@@ -12,7 +12,7 @@ import {
   toFetch,
   htmlResponse,
 } from "plgg-server";
-import { buildRouter } from "plggmatic/Routing/usecase/buildRouter";
+import { buildRouter } from "plggpress/framework/Routing/usecase/buildRouter";
 
 // A trivial app handler: it reads the request path from the
 // Context and echoes it, so one handler serves every route.

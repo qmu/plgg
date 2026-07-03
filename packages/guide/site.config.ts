@@ -31,12 +31,13 @@ const leaf = (
   items: [],
 });
 
-// The five sidebar sections (developer's IA, 2026-07-03):
+// The four sidebar sections (developer's IA, 2026-07-03):
 // Guide (prose), Core (plgg + its deep-dive pages),
 // Vocabulary (every mid/toolchain package, one leaf each, in
 // dependency-ish order, closing with the example tutorial),
-// then the framework (plggmatic) and the site tool
-// (plggpress), each with its single Overview page.
+// then the site tool (plggpress), with its single Overview
+// page. (plggpress now carries its framework internally —
+// the absorbed former plggmatic, now its own repository.)
 const LIBRARY_PACKAGES: ReadonlyArray<
   readonly [string, string]
 > = [
@@ -144,12 +145,6 @@ const config = {
       items: LIBRARY_PACKAGES.map(([t, l]) =>
         leaf(t, l),
       ),
-    },
-    {
-      text: "plggmatic",
-      items: [
-        leaf("Overview", "/packages/plggmatic"),
-      ],
     },
     {
       text: "plggpress",

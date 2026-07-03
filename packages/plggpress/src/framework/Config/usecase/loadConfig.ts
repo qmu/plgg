@@ -13,7 +13,7 @@ import {
 import {
   type ConfigLoadError,
   configLoadError,
-} from "plggmatic/App/model/AppError";
+} from "plggpress/framework/App/model/AppError";
 
 /**
  * Extract a module's `default` export, tolerating a module

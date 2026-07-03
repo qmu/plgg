@@ -14,7 +14,7 @@ import {
   text,
   attr,
   class_,
-} from "plggmatic";
+} from "plggpress/framework";
 import {
   type SiteConfig,
   type SocialLink,

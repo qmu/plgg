@@ -10,7 +10,7 @@ import {
   text,
   attr,
   class_,
-} from "plggmatic";
+} from "plggpress/framework";
 import {
   type SidebarGroup,
   type SidebarItem,

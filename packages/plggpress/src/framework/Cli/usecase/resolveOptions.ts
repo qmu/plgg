@@ -8,7 +8,7 @@ import {
   type Invocation,
   optionOf,
 } from "plgg-cli";
-import { type AppOptions } from "plggmatic/App/model/AppOptions";
+import { type AppOptions } from "plggpress/framework/App/model/AppOptions";
 
 /**
  * The app-specific bit the framework cannot derive from

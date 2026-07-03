@@ -30,9 +30,9 @@ import {
   toFetch as _toFetch,
   htmlResponse,
 } from "plgg-server";
-import { type AppOptions } from "plggmatic/App/model/AppOptions";
-import { buildRouter } from "plggmatic/Routing/usecase/buildRouter";
-import { build } from "plggmatic/Build/usecase/build";
+import { type AppOptions } from "plggpress/framework/App/model/AppOptions";
+import { buildRouter } from "plggpress/framework/Routing/usecase/buildRouter";
+import { build } from "plggpress/framework/Build/usecase/build";
 
 // keep the barrel-adjacent import exercised without binding
 void _toFetch;
@@ -60,7 +60,7 @@ const NOT_FOUND =
 // fresh temp dir and build it into a sibling out dir.
 const writeCorpus = async (): Promise<AppOptions> => {
   const root = await mkdtemp(
-    join(tmpdir(), "plggmatic-build-"),
+    join(tmpdir(), "plggpress-build-"),
   );
   const contentDir = join(root, "content");
   await mkdir(join(contentDir, "public"), {

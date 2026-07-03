@@ -17,7 +17,6 @@ cd $REPO_ROOT/packages/plgg-view && npm install
 cd $REPO_ROOT/packages/plgg-md && npm install
 cd $REPO_ROOT/packages/plgg-highlight && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
-cd $REPO_ROOT/packages/plggmatic && npm install
 cd $REPO_ROOT/packages/plggpress && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/plgg-sql && npm install

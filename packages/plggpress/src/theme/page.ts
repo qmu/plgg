@@ -11,7 +11,7 @@ import {
   text,
   attr,
   class_,
-} from "plggmatic";
+} from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,

@@ -20,7 +20,7 @@ import {
 import {
   type AppOptions,
   type BuildReport,
-} from "plggmatic/App/model/AppOptions";
+} from "plggpress/framework/App/model/AppOptions";
 
 /**
  * The app-supplied pieces a static build needs from its

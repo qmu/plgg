@@ -2,7 +2,7 @@ import {
   type SoftStr,
   type PromisedResult,
 } from "plgg";
-import { loadConfig as loadAppConfig } from "plggmatic";
+import { loadConfig as loadAppConfig } from "plggpress/framework";
 import {
   type SiteConfig,
   asSiteConfig,
@@ -11,7 +11,7 @@ import { type ConfigLoadError } from "plggpress/Press/model/PressError";
 
 /**
  * Load and validate the consumer's `site.config` from a
- * path: `plggmatic`'s generic config loader (the dynamic
+ * path: the framework's generic config loader (the dynamic
  * `import` + default-pick + typed-error machinery) bound
  * to the press {@link asSiteConfig} boundary caster. A
  * missing file, an import-time throw, or a validation

@@ -10,7 +10,7 @@ import {
   type AppRunContext,
   configPathOf,
   resolveOptions,
-} from "plggmatic/Cli/usecase/resolveOptions";
+} from "plggpress/framework/Cli/usecase/resolveOptions";
 
 const invOf = (
   options: Record<string, string>,

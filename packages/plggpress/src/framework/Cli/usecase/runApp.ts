@@ -19,17 +19,17 @@ import { type SsgError } from "plgg-server/ssg";
 import {
   type AppOptions,
   type BuildReport,
-} from "plggmatic/App/model/AppOptions";
-import { type ConfigLoadError } from "plggmatic/App/model/AppError";
+} from "plggpress/framework/App/model/AppOptions";
+import { type ConfigLoadError } from "plggpress/framework/App/model/AppError";
 import {
   type BuildSpec,
   build,
-} from "plggmatic/Build/usecase/build";
+} from "plggpress/framework/Build/usecase/build";
 import {
   type AppRunContext,
   configPathOf,
   resolveOptions,
-} from "plggmatic/Cli/usecase/resolveOptions";
+} from "plggpress/framework/Cli/usecase/resolveOptions";
 
 /**
  * The declaration an app hands the framework to get a

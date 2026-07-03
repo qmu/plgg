@@ -14,7 +14,7 @@ import {
 import {
   configLoadError,
   configLoadError$,
-} from "plggmatic/App/model/AppError";
+} from "plggpress/framework/App/model/AppError";
 
 // A real InvalidError, harvested from a failed cast, to
 // populate the optional `cause`.

@@ -4,6 +4,7 @@ author: a@qmu.jp
 type: refactoring
 layer: [Domain, Config]
 effort: 4h
+commit_hash: ad67857
 category: Removed
 ---
 

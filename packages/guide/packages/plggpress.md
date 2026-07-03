@@ -1,24 +1,26 @@
 # plggpress
 
 A **VitePress-like static-site generator**, built from
-scratch on the plgg family as a thin
-[plggmatic](/packages/plggmatic) consumer. It owns a
-typed `SiteConfig` contract (information architecture +
-home data), a single base-path `href` resolver, a
-config-loading CLI (the `plggpress` bin), and a build
-pipeline with a **build-time dead-link checker**. It is
-the engine that builds **this guide**.
+scratch on the plgg family. It owns a typed `SiteConfig`
+contract (information architecture + home data), a single
+base-path `href` resolver, a config-loading CLI (the
+`plggpress` bin), and a build pipeline with a
+**build-time dead-link checker**. It is the engine that
+builds **this guide**.
 
 ## Why it exists
 
-plggmatic supplies the framework skeleton; plggpress
-supplies the docs-site specifics on top of it — the
-`SiteConfig` type and the `defineSite` validator that
-this guide's `site.config.ts` imports, plus the content
-pipeline that turns Markdown into pages:
+plggpress carries a small generic **framework** internally
+(config loading, a router builder, static-build + CLI
+orchestration — absorbed from the former standalone
+`plggmatic`, now its own repository) and supplies the
+docs-site specifics on top of it: the `SiteConfig` type
+and the `defineSite` validator that this guide's
+`site.config.ts` imports, plus the content pipeline that
+turns Markdown into pages:
 
 ```
-plggmatic ── plggpress ── this guide
+framework (internal) ── plggpress ── this guide
    plgg-md · plgg-highlight ─┘ (content)
 ```
 

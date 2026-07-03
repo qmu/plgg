@@ -1,12 +1,12 @@
 import { type SoftStr } from "plgg";
-import { type AppOptions } from "plggmatic";
+import { type AppOptions } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 
 /**
- * The build outcome is `plggmatic`'s — re-exported so the
+ * The build outcome is the framework's — re-exported so the
  * press public surface is unchanged by the rewire.
  */
-export { type BuildReport } from "plggmatic";
+export { type BuildReport } from "plggpress/framework";
 
 /**
  * The resolved inputs a single press `build` run operates

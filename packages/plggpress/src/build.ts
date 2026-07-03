@@ -2,8 +2,8 @@ import {
   type PromisedResult,
   type Defect,
 } from "plgg";
-import { type SsgError } from "plggmatic/ssg";
-import { build as frameworkBuild } from "plggmatic";
+import { type SsgError } from "plggpress/framework/ssg";
+import { build as frameworkBuild } from "plggpress/framework";
 import {
   type PressOptions,
   type BuildReport,
@@ -14,7 +14,7 @@ import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
 
 /**
  * Build the static site from a content corpus into
- * `opts.outDir`: `plggmatic`'s framework build
+ * `opts.outDir`: the framework's framework build
  * (discover → link-check → render → assets → 404, one
  * typed transform pipeline that never throws) run with
  * the press {@link buildSpecOf} declaration — the

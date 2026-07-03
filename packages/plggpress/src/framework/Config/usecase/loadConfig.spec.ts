@@ -17,7 +17,7 @@ import {
   forProp,
   cast,
 } from "plgg";
-import { loadConfig } from "plggmatic/Config/usecase/loadConfig";
+import { loadConfig } from "plggpress/framework/Config/usecase/loadConfig";
 
 const here = dirname(
   fileURLToPath(import.meta.url),
@@ -44,7 +44,7 @@ test("loadConfig validates a well-formed TS config through the injected caster",
       asCfg,
     ),
     okThen((c: Cfg) =>
-      toBe("plggmatic")(c.name),
+      toBe("example-app")(c.name),
     ),
   ));
 

@@ -3,25 +3,26 @@
 > **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
 
 A **VitePress-like static-site generator**, built from scratch
-on the plgg family as a thin [`plggmatic`](../plggmatic/)
-consumer. It owns a typed `SiteConfig` contract (information
-architecture + home data), a single base-path `href` resolver,
-a config-loading CLI (the `plggpress` bin), and a build
-pipeline with a **build-time dead-link checker**. It is the
-engine that builds [the guide](../guide/).
+on the plgg family. It owns a typed `SiteConfig` contract
+(information architecture + home data), a single base-path
+`href` resolver, a config-loading CLI (the `plggpress` bin),
+and a build pipeline with a **build-time dead-link checker**.
+It is the engine that builds [the guide](../guide/).
 
 ## Why this package exists
 
-plggmatic supplies the framework skeleton **and wraps the
-whole mid-library stack** (view, server/http, md, highlight);
-plggpress supplies the docs-site specifics on top of it — the
-`SiteConfig` type and the `defineSite` validator a site's
-`site.config.ts` imports, plus the content pipeline that turns
-Markdown into pages. Its dependencies are just
-`{plgg, plggmatic}`:
+plggpress carries a generic web **framework** internally
+(`src/framework/` — config loading, a router builder,
+static-build + CLI orchestration, absorbed from the former
+standalone `plggmatic`, now developed in its own repository).
+That framework also wraps the whole mid-library stack (view,
+server/http, md, highlight); plggpress supplies the docs-site
+specifics on top of it — the `SiteConfig` type and the
+`defineSite` validator a site's `site.config.ts` imports, plus
+the content pipeline that turns Markdown into pages:
 
 ```
-plgg ── plggmatic ── plggpress ── a docs site (e.g. the guide)
+plgg ── (internal framework) ── plggpress ── a docs site (e.g. the guide)
 ```
 
 ## How it's organized
@@ -40,10 +41,12 @@ plgg ── plggmatic ── plggpress ── a docs site (e.g. the guide)
 
 Content is parsed by [`plgg-md`](../plgg-md/) and highlighted
 by [`plgg-highlight`](../plgg-highlight/); the output is served
-through [`plgg-server`](../plgg-server/) — all reached through
-the [`plggmatic`](../plggmatic/) facade (including its
-`plggmatic/ssg` and `plggmatic/style` subpaths), not as direct
-dependencies. plggpress is ESM-only.
+through [`plgg-server`](../plgg-server/) — reached through the
+internal framework facade (`plggpress/framework`, including its
+`plggpress/framework/ssg` and `plggpress/framework/style`
+subpaths). plggpress depends on the plgg family directly
+(`plgg`, `plgg-http`, `plgg-server`, `plgg-view`, `plgg-md`,
+`plgg-highlight`, `plgg-cli`) and is ESM-only.
 
 ## Usage
 

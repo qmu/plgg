@@ -13,10 +13,10 @@ import {
   text,
   collectCss,
   renderToString,
-} from "plggmatic";
-import { style_, p } from "plggmatic/style";
-import { frontmatter } from "plggmatic";
-import { type MarkdownDoc } from "plggmatic";
+} from "plggpress/framework";
+import { style_, p } from "plggpress/framework/style";
+import { frontmatter } from "plggpress/framework";
+import { type MarkdownDoc } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { shell } from "plggpress/theme/shell";
