@@ -202,34 +202,15 @@ html.dark .vp-theme-toggle{color:var(--vp-hover-ink)}
 .vp-theme-toggle:hover{
   border-color:var(--vp-brand);transform:scale(1.06);
 }
-/* CSS-drawn sun: a disc with four rays */
-.vp-sun{
-  position:relative;display:inline-block;
-  width:8px;height:8px;border-radius:50%;
-  background:currentColor;
-}
-.vp-sun::before,.vp-sun::after{
-  content:"";position:absolute;
-  background:currentColor;
-}
-.vp-sun::before{
-  left:50%;top:-5px;margin-left:-1px;
-  width:2px;height:18px;
-}
-.vp-sun::after{
-  top:50%;left:-5px;margin-top:-1px;
-  height:2px;width:18px;
-}
-/* CSS-drawn crescent moon */
-.vp-moon{
-  display:inline-block;width:15px;height:15px;
-  border-radius:50%;
-  box-shadow:inset -4px -2px 0 0 currentColor;
+/* sun/moon: the oracle's SVG icons (currentColor paths,
+   18px box); light shows the sun, dark the crescent. */
+.vp-sun,.vp-moon{
+  width:18px;height:18px;display:block;
 }
 .vp-theme-toggle .vp-moon{display:none}
 html.dark .vp-theme-toggle .vp-sun{display:none}
 html.dark .vp-theme-toggle .vp-moon{
-  display:inline-block;
+  display:block;
 }
 /* CSS-drawn 3-bar hamburger (no glyph font) */
 .vp-menu-btn{

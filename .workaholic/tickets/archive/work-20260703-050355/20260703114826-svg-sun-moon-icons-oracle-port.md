@@ -3,9 +3,9 @@ created_at: 2026-07-03T11:48:26+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 3ebf2f6
+category: Changed
 depends_on:
 ---
 
@@ -50,3 +50,12 @@ The appearance toggle's sun is CSS-drawn (an 8px disc with two crossed bars) and
 - Keep the SVG vocabulary MINIMAL (svg + path only) — enough for the oracle's icon set (the GitHub octocat becomes possible as a follow-up), not a general vector layer
 - `path` is not an HTML void tag: it renders `<path …></path>`, which is valid; do not add it to VOID_TAGS
 - The oracle's rotate/opacity transition on the glyph swap is React-driven; plggpress keeps its CSS display swap (zero-JS design, recorded exception)
+
+## Final Report
+
+Development completed as planned. plgg-view gained the minimal SVG vocabulary — `svg` (holding `path` children only) joined the Phrasing union so an icon stands wherever text would, with a childless `path` builder in the house typed-content-model idiom. plggpress's theme toggle now renders the oracle's own icons, `d` strings ported verbatim from ThemeToggle.tsx (8-ray sun, crescent moon; currentColor, 18px box); the CSS-drawn disc-and-bars sun and box-shadow moon are deleted, with the zero-JS light/dark display swap retained. Screenshot-verified: the sun reads as a sun, the crescent sits correctly on the dark knob.
+
+### Discovered Insights
+
+- **Insight**: plggmatic's dist FREEZES its re-export surface at build time (plgg-bundle enumerates star exports when emitting), so a new export in a wrapped library is invisible to consumers until plggmatic itself rebuilds — "does not provide an export named 'path'" from the facade, while the source star re-export looks obviously correct.
+  **Context**: After ANY wrapped-library surface change, rebuild the facade dist too; the stale-dist masking class extends to re-export enumeration, not just types.

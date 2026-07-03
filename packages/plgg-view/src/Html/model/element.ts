@@ -74,6 +74,7 @@ export type Phrasing<Msg> = Html<
   | "code"
   | "img"
   | "br"
+  | "svg"
   | "#text"
 >;
 
@@ -457,6 +458,49 @@ export const tr = rowEl("tr");
 
 // Disclosure — `details` holds a `summary` + flow.
 export const details = detailsEl("details");
+
+/**
+ * A minimal SVG icon container: `svg` holds `path`
+ * children only — just enough vector vocabulary for
+ * the oracle's icon set (sun/moon, and the octocat
+ * later). Geometry lives in each path's `d`
+ * attribute; color follows `currentColor`, so the
+ * icon inherits the control's ink and flips with
+ * the theme like text does.
+ */
+const svgEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<Html<Msg, "path">>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * A childless drawing element (`path`): the empty
+ * tuple makes "no children" a type-level guarantee.
+ * Not an HTML void tag — it renders as
+ * `<path …></path>`, which SVG accepts.
+ */
+const drawEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: readonly [],
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+// SVG icons — `svg` holds `path` drawings.
+export const svg = svgEl("svg");
+export const path = drawEl("path");
 
 // Document shell — first-class typed builders.
 export const html = documentEl("html");
