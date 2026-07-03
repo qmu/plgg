@@ -1,5 +1,5 @@
 #!/bin/sh -eu
-REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
+REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd) && cd "$REPO_ROOT"
 
 # Bootstrap the build TOOL's own deps before any package builds. plgg-bundle is
 # the bundler every package's `build` runs through, and it imports `typescript`
