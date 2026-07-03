@@ -237,8 +237,9 @@ html.dark .vp-theme-toggle .vp-moon{
 }
 .vp-wordmark{
   display:block;width:fit-content;
-  margin:0 0 1.25rem;padding:0.1rem 0.5rem;
+  margin:0 0 1rem;padding:0.25rem 0.5rem;
   border-radius:6px;font-size:1rem;
+  line-height:1.5rem;
   font-weight:500;color:var(--vp-text);
   transition:background-color 0.2s,color 0.2s;
 }
@@ -259,16 +260,22 @@ html.dark .vp-theme-toggle .vp-moon{
 .vp-group:first-child{margin-top:0.25rem}
 .vp-group-title{
   padding:0.25rem 0.5rem;font-size:0.875rem;
+  line-height:1.25rem;
   font-weight:600;color:var(--vp-text);
 }
 /* leaves + subgroup headers: an inverted pill on hover;
    the active leaf wears the same pill permanently (both
    tokens flip under dark). Active and inactive share one
    box so the current page never reflows its neighbours. */
+/* qmu's text-sm pins the leading at 1.25rem (20px) and
+   gap-px separates items - a 29px pitch, tighter than the
+   prose leading these would otherwise inherit. */
 .vp-sidebar-link{
   display:block;width:fit-content;
+  margin-top:1px;
   padding:0.25rem 0.5rem;border-radius:4px;
-  font-size:0.875rem;color:var(--vp-text);
+  font-size:0.875rem;line-height:1.25rem;
+  color:var(--vp-text);
   transition:background-color 0.2s,color 0.2s;
 }
 .vp-sidebar-link:hover{
@@ -284,8 +291,10 @@ html.dark .vp-theme-toggle .vp-moon{
   font-weight:500;
 }
 .vp-sidebar-flat{
-  display:block;padding:0.2rem 0.5rem;
-  font-size:0.875rem;color:var(--vp-muted);
+  display:block;margin-top:1px;
+  padding:0.25rem 0.5rem;
+  font-size:0.875rem;line-height:1.25rem;
+  color:var(--vp-muted);
 }
 /* a nested group: its header, then its children, always
    shown (no disclosure). qmu keeps the whole tree flush
@@ -294,6 +303,7 @@ html.dark .vp-theme-toggle .vp-moon{
 .vp-subgroup{margin:0.1rem 0}
 .vp-subgroup-title{
   padding:0.25rem 0.5rem;font-size:0.875rem;
+  line-height:1.25rem;
   font-weight:500;color:var(--vp-text);
 }
 /* social links: shown in the sidebar only below lg (the
@@ -405,6 +415,31 @@ html.dark .vp-doc code{
 }
 html.dark .vp-doc code:hover{
   background:rgba(255,255,255,0.24);
+}
+/* a LINK wrapping an inline-code badge: when the link's
+   hover/focus inversion paints, the badge must flip to the
+   hover ink too - otherwise brand-colored code text lands
+   on the near-identical inverted fill and vanishes (the
+   guide links package names as code constantly). */
+.vp-doc a:hover code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
+}
+.vp-doc a:focus-visible code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
+}
+html.dark .vp-doc a:hover code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
+}
+html.dark .vp-doc a:focus-visible code{
+  color:var(--vp-hover-ink);
+  background:none;
+  border-color:transparent;
 }
 .vp-doc pre{
   background:var(--vp-code-bg);

@@ -117,12 +117,13 @@ test("callouts wear qmu's tinted surfaces with dark pairs", () =>
     check(css, toContain("border-color:#ef4444")),
   ]));
 
-test("sidebar leaves rest at full ink on qmu's 4px pill", () =>
+test("sidebar leaves rest at full ink on qmu's 4px pill with text-sm leading", () =>
   all([
+    check(css, toContain("border-radius:4px;")),
     check(
       css,
       toContain(
-        "border-radius:4px;\n  font-size:0.875rem;color:var(--vp-text)",
+        "font-size:0.875rem;line-height:1.25rem;\n  color:var(--vp-text)",
       ),
     ),
   ]));
@@ -170,5 +171,25 @@ test("the sidebar tree is flush left - hierarchy by weight, never indentation", 
       toContain(
         "padding:0.25rem 0.5rem;font-size:0.875rem",
       ),
+    ),
+  ]));
+
+test("sidebar rows carry qmu's text-sm leading and 1px item gap", () =>
+  all([
+    check(
+      css,
+      toContain(
+        "font-size:0.875rem;line-height:1.25rem",
+      ),
+    ),
+    check(css, toContain("margin-top:1px")),
+  ]));
+
+test("a hovered link's inline-code badge flips to the hover ink (never ink-on-ink)", () =>
+  all([
+    check(css, toContain(".vp-doc a:hover code")),
+    check(
+      css,
+      toContain(".vp-doc a:focus-visible code"),
     ),
   ]));
