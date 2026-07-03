@@ -209,3 +209,25 @@ test("no generic underline-on-hover exists to override the pill states", () =>
       toContain(".vp-mobilebar-home:hover"),
     ),
   ]));
+
+test("hover micro-interactions run at qmu's 150ms (no slower fades, no scale)", () =>
+  all([
+    check(
+      css,
+      not(
+        toContain(
+          "background-color 0.2s,color 0.2s",
+        ),
+      ),
+    ),
+    check(
+      css,
+      not(toContain("transform:scale(1.06)")),
+    ),
+    check(
+      css,
+      toContain(
+        "background-color 0.15s,color 0.15s",
+      ),
+    ),
+  ]));

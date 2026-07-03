@@ -91,7 +91,6 @@ body.vp{
   font-size:16px;line-height:1.75;
   color:var(--vp-text);background:var(--vp-bg);
   -webkit-font-smoothing:antialiased;
-  transition:background-color 0.25s,color 0.25s;
 }
 /* Chrome links carry no underline in any state (qmu:
    every hover affordance is the inverted pill; only
@@ -100,7 +99,7 @@ body.vp{
    the pill classes' (0,2,0) and re-underlined them. */
 .vp a{
   color:var(--vp-brand);text-decoration:none;
-  transition:color 0.25s;
+  transition:color 0.15s;
 }
 .vp-menu-cb{display:none}
 /* prose links (qmu .prose a): ink + standing underline at
@@ -204,15 +203,15 @@ body.vp{
   border-radius:50%;border:1px solid var(--vp-border);
   background:var(--vp-knob);cursor:pointer;
   color:var(--vp-text);padding:0;
-  transition:background-color 0.25s,
-    border-color 0.25s,transform 0.15s;
+  transition:background-color 0.15s,
+    border-color 0.15s;
 }
 /* qmu --knob rule (WCAG 2.2 AA 1.4.11): in dark mode the
    control is a clearly-visible light disc, so its icon
    flips to a dark fill to keep reading against it. */
 html.dark .vp-theme-toggle{color:var(--vp-hover-ink)}
 .vp-theme-toggle:hover{
-  border-color:var(--vp-brand);transform:scale(1.06);
+  border-color:var(--vp-brand);
 }
 /* sun/moon: the oracle's SVG icons (currentColor paths,
    18px box); light shows the sun, dark the crescent. */
@@ -253,7 +252,7 @@ html.dark .vp-theme-toggle .vp-moon{
   border-radius:6px;font-size:1rem;
   line-height:1.5rem;
   font-weight:500;color:var(--vp-text);
-  transition:background-color 0.2s,color 0.2s;
+  transition:background-color 0.15s,color 0.15s;
 }
 .vp-wordmark:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -288,7 +287,7 @@ html.dark .vp-theme-toggle .vp-moon{
   padding:0.25rem 0.5rem;border-radius:4px;
   font-size:0.875rem;line-height:1.25rem;
   color:var(--vp-text);
-  transition:background-color 0.2s,color 0.2s;
+  transition:background-color 0.15s,color 0.15s;
 }
 .vp-sidebar-link:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -329,7 +328,7 @@ html.dark .vp-theme-toggle .vp-moon{
   display:inline-flex;align-items:center;
   padding:0.25rem 0.4rem;border-radius:6px;
   font-size:0.8rem;color:var(--vp-muted);
-  transition:background-color 0.2s,color 0.2s;
+  transition:background-color 0.15s,color 0.15s;
 }
 .vp-social:hover{
   background:var(--vp-hover);color:var(--vp-hover-ink);
@@ -459,8 +458,6 @@ html.dark .vp-doc a:focus-visible code{
   padding:1.1rem 1.25rem;border-radius:10px;
   overflow-x:auto;margin:1.1rem 0;
   font-size:0.86rem;line-height:1.6;
-  transition:background-color 0.25s,
-    border-color 0.25s;
 }
 .vp-doc pre code{
   background:none;padding:0;border-radius:0;
