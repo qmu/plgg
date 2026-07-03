@@ -49,6 +49,45 @@ export const signingInput = (
   )}`;
 
 /**
+ * Signs a prepared `header.payload` signing input
+ * with an already-imported RS256 key, appending
+ * the signature as the third base64url segment.
+ * The one place `crypto.subtle.sign`'s throwing
+ * surface is lifted onto the `Result` channel: a
+ * `CryptoKey` that lacks the `"sign"` usage
+ * rejects here as a `SignFailure` on every
+ * runtime (WebCrypto checks the usage before any
+ * key-material math), which is how the reject arm
+ * is exercised deterministically.
+ */
+export const signWith =
+  (key: CryptoKey) =>
+  (
+    input: SoftStr,
+  ): Promise<Result<CompactJws, JoseError>> =>
+    liftJose<ArrayBuffer>("SignFailure")(() =>
+      crypto.subtle.sign(
+        rs256Params.name,
+        key,
+        toBufferSource(utf8Bytes(input)),
+      ),
+    ).then(
+      mapResult(
+        (sig: ArrayBuffer): CompactJws =>
+          // Three base64url segments by
+          // construction, so the box preserves
+          // the CompactJws invariant.
+          box("CompactJws")(
+            `${input}.${base64UrlString(
+              encodeBase64Url(
+                new Uint8Array(sig),
+              ),
+            )}`,
+          ),
+      ),
+    );
+
+/**
  * Signs a payload string as an RS256 compact JWS
  * whose protected header carries the key's
  * `kid`. Deterministic: RSASSA-PKCS1-v1_5 yields
@@ -72,29 +111,7 @@ export const signJws =
           Result<CompactJws, JoseError>
         > => Promise.resolve(err(e)),
         (cryptoKey: CryptoKey) =>
-          liftJose<ArrayBuffer>("SignFailure")(
-            () =>
-              crypto.subtle.sign(
-                rs256Params.name,
-                cryptoKey,
-                toBufferSource(utf8Bytes(input)),
-              ),
-          ).then(
-            mapResult(
-              (sig: ArrayBuffer): CompactJws =>
-                // Three base64url segments by
-                // construction, so the box
-                // preserves the CompactJws
-                // invariant.
-                box("CompactJws")(
-                  `${input}.${base64UrlString(
-                    encodeBase64Url(
-                      new Uint8Array(sig),
-                    ),
-                  )}`,
-                ),
-            ),
-          ),
+          signWith(cryptoKey)(input),
       ),
     );
   };
