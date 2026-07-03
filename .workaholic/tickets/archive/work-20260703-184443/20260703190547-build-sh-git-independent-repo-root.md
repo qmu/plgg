@@ -4,6 +4,7 @@ author: a@qmu.jp
 type: bugfix
 layer: [Config]
 effort: 0.25h
+commit_hash: adcd12e
 category: Changed
 ---
 
