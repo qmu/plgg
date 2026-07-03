@@ -15,8 +15,6 @@ import {
 } from "plgg";
 import {
   type Html,
-  div,
-  slot,
   renderToString,
 } from "plggmatic";
 import {
@@ -41,10 +39,6 @@ import { href } from "plggpress/Href/usecase/href";
 import { injectThemeScripts } from "plggpress/theme/themeScript";
 import { shell } from "plggpress/theme/shell";
 import { page } from "plggpress/theme/page";
-import {
-  toc,
-  tocHeadings,
-} from "plggpress/theme/toc";
 
 /**
  * The source `*.md` candidates a route path can have come
@@ -120,22 +114,6 @@ const readSource = (
   );
 
 /**
- * The article content with the in-article 目次 prepended
- * when the page has two or more section headings (qmu's
- * model; the body is an opaque tree, so the TOC sits at
- * the top of the prose column). Sparse pages render bare.
- */
-const withToc = (
-  doc: MarkdownDoc,
-): Html<never> =>
-  tocHeadings(doc.headings).length >= 2
-    ? div(
-        [],
-        [toc(doc.headings), slot([], [doc.body])],
-      )
-    : doc.body;
-
-/**
  * Composes one page: wrap the rendered Markdown body in
  * the {@link page} layout (the sidebar-first shell marked
  * at the route being rendered — the landing page renders
@@ -154,7 +132,7 @@ const pageView = (
   shell(
     config,
     doc,
-    page(config, withToc(doc), route, base),
+    page(config, doc.body, route, base),
   );
 
 /**
