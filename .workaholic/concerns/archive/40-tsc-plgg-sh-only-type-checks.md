@@ -5,9 +5,9 @@ origin_branch: work-20260531-003055
 origin_commit: 470506e
 created_at: 2026-06-16T14:44:46+09:00
 severity: moderate
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 1ce90e0
+resolved_by_commit: 
 ---
 
 # `tsc-plgg.sh` only type-checks the plgg core package

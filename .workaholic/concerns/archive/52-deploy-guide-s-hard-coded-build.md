@@ -6,9 +6,9 @@ origin_branch: work-20260703-020116
 origin_commit: e859e23
 created_at: 2026-07-03T04:11:11+09:00
 severity: moderate
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 1ce90e0
+resolved_by_commit: 
 ---
 
 # Deploy Guide's hard-coded build list is a second copy of the dependency topology
