@@ -4,6 +4,7 @@ author: a@qmu.jp
 type: refactoring
 layer: [Config]
 effort: 0.25h
+commit_hash: 2f62322
 category: Removed
 ---
 

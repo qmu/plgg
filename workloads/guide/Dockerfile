@@ -10,14 +10,6 @@
 # can reach every sibling package plggpress imports.
 FROM node:22-slim
 
-# git: the canonical build/install scripts the entrypoint
-# reuses (scripts/build.sh) resolve the repo root via
-# `git rev-parse`, and the bind-mounted tree carries .git.
-# node:22-slim ships without it, so add it here.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends git \
-  && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 # Clean source only — node_modules/dist are excluded by the
