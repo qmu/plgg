@@ -33,7 +33,7 @@ const leaf = (
 
 // The five sidebar sections (developer's IA, 2026-07-03):
 // Guide (prose), Core (plgg + its deep-dive pages),
-// Library (every mid/toolchain package, one leaf each, in
+// Vocabulary (every mid/toolchain package, one leaf each, in
 // dependency-ish order, closing with the example tutorial),
 // then the framework (plggmatic) and the site tool
 // (plggpress), each with its single Overview page.
@@ -140,7 +140,7 @@ const config = {
       ],
     },
     {
-      text: "Library",
+      text: "Vocabulary",
       items: LIBRARY_PACKAGES.map(([t, l]) =>
         leaf(t, l),
       ),
