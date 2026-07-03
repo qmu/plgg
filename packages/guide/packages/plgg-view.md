@@ -58,7 +58,7 @@ const stop = sandbox({ init, update, view })(
 ```
 
 The same `view(init)` renders on the server via
-[`renderToString`](#ssr-rendertostring) for first paint —
+[`renderToString`](#ssr-—-rendertostring) for first paint —
 it is pure `Html<Msg>` data either way.
 
 ## Vocabulary
