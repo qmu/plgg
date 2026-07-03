@@ -3,9 +3,9 @@ created_at: 2026-07-03T14:01:42+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 0.25h
+commit_hash: abbb8e7
+category: Changed
 depends_on:
 ---
 
@@ -23,3 +23,7 @@ Requested at sign-off: replace the 18 per-package top-level groups with five sec
 ## Quality Gate
 
 **Acceptance criteria:** sidebar renders exactly the five groups in the given order; every previously reachable page keeps a sidebar entry; the build's dead-link checker stays green. **Verification:** guide build (CheckLinks) + rendered-sidebar probe + developer eyeball on the dev preview. **Gate:** check-all green + developer approval.
+
+## Final Report
+
+Development completed as planned. The 18 per-package groups (plus Contributing) collapsed into the five requested sections; Doc conventions folded into Guide; Core carries plgg's overview and its two deep-dive pages flat; Library lists all 15 mid/toolchain packages (example tutorial last) as single leaves; plggmatic and plggpress each carry their Overview. Rendered groups verified: exactly Guide / Core / Library / plggmatic / plggpress in order, 30 sidebar links total, dead-link gate green. The dev preview needed a container restart (site.config.ts is the recorded no-hot-reload case) and now serves the new IA.

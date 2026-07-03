@@ -31,148 +31,34 @@ const leaf = (
   items: [],
 });
 
-// One top-level sidebar group per package. The group header
-// links to nothing itself; its child is the package's prose
-// Guide. Order: the featured trio (plgg, plgg-http,
-// plgg-router) first, then the rest, then the example
-// tutorial.
-type PackageGroup = {
-  key: string;
-  text: string;
-  overview: string;
-  docs?: ReadonlyArray<SidebarItemInput>;
-};
-
-const PACKAGE_GROUPS: ReadonlyArray<PackageGroup> =
+// The five sidebar sections (developer's IA, 2026-07-03):
+// Guide (prose), Core (plgg + its deep-dive pages),
+// Library (every mid/toolchain package, one leaf each, in
+// dependency-ish order, closing with the example tutorial),
+// then the framework (plggmatic) and the site tool
+// (plggpress), each with its single Overview page.
+const LIBRARY_PACKAGES: ReadonlyArray<
+  readonly [string, string]
+> = [
+  ["plgg-http", "/packages/plgg-http"],
+  ["plgg-router", "/packages/plgg-router"],
+  ["plgg-server", "/packages/plgg-server"],
+  ["plgg-fetch", "/packages/plgg-fetch"],
+  ["plgg-view", "/packages/plgg-view"],
+  ["plgg-sql", "/packages/plgg-sql"],
   [
-    {
-      key: "plgg",
-      text: "plgg (core)",
-      overview: "/packages/plgg/",
-      docs: [
-        leaf(
-          "Values & effects",
-          "/packages/plgg/values-effects",
-        ),
-        leaf(
-          "Structures & errors",
-          "/packages/plgg/structures-errors",
-        ),
-      ],
-    },
-    {
-      key: "plgg-http",
-      text: "plgg-http",
-      overview: "/packages/plgg-http",
-    },
-    {
-      key: "plgg-router",
-      text: "plgg-router",
-      overview: "/packages/plgg-router",
-    },
-    {
-      key: "plgg-server",
-      text: "plgg-server",
-      overview: "/packages/plgg-server",
-    },
-    {
-      key: "plgg-fetch",
-      text: "plgg-fetch",
-      overview: "/packages/plgg-fetch",
-    },
-    {
-      key: "plgg-view",
-      text: "plgg-view",
-      overview: "/packages/plgg-view",
-    },
-    {
-      key: "plgg-sql",
-      text: "plgg-sql",
-      overview: "/packages/plgg-sql",
-    },
-    {
-      key: "plgg-db-migration",
-      text: "plgg-db-migration",
-      overview: "/packages/plgg-db-migration",
-    },
-    {
-      key: "plgg-kit",
-      text: "plgg-kit",
-      overview: "/packages/plgg-kit",
-    },
-    {
-      key: "plgg-foundry",
-      text: "plgg-foundry",
-      overview: "/packages/plgg-foundry",
-    },
-    {
-      key: "plgg-cli",
-      text: "plgg-cli",
-      overview: "/packages/plgg-cli",
-    },
-    {
-      key: "plgg-md",
-      text: "plgg-md",
-      overview: "/packages/plgg-md",
-    },
-    {
-      key: "plgg-highlight",
-      text: "plgg-highlight",
-      overview: "/packages/plgg-highlight",
-    },
-    {
-      key: "plgg-bundle",
-      text: "plgg-bundle",
-      overview: "/packages/plgg-bundle",
-    },
-    {
-      key: "plggmatic",
-      text: "plggmatic",
-      overview: "/packages/plggmatic",
-    },
-    {
-      key: "plggpress",
-      text: "plggpress",
-      overview: "/packages/plggpress",
-    },
-    {
-      key: "plgg-test",
-      text: "plgg-test",
-      overview: "/packages/plgg-test",
-    },
-    {
-      key: "example",
-      text: "example (tutorial)",
-      overview: "/packages/example",
-    },
-  ];
-
-// The "Guide" node spliced at the START of a package group:
-// the package's prose. With extra prose pages (only plgg
-// core today) it nests them beneath the Overview; otherwise
-// it is a plain link to the single prose page.
-const guideNode = (
-  group: PackageGroup,
-): SidebarItemInput => {
-  const docs = group.docs ?? [];
-  return {
-    text: "Guide",
-    link: group.overview,
-    items: docs,
-  };
-};
-
-// Assemble one package's top-level sidebar group: its prose
-// Guide.
-const packageGroup = (
-  group: PackageGroup,
-): {
-  text: string;
-  items: ReadonlyArray<SidebarItemInput>;
-} => ({
-  text: group.text,
-  items: [guideNode(group)],
-});
+    "plgg-db-migration",
+    "/packages/plgg-db-migration",
+  ],
+  ["plgg-kit", "/packages/plgg-kit"],
+  ["plgg-foundry", "/packages/plgg-foundry"],
+  ["plgg-cli", "/packages/plgg-cli"],
+  ["plgg-md", "/packages/plgg-md"],
+  ["plgg-highlight", "/packages/plgg-highlight"],
+  ["plgg-bundle", "/packages/plgg-bundle"],
+  ["plgg-test", "/packages/plgg-test"],
+  ["example (tutorial)", "/packages/example"],
+];
 
 // Information architecture for the plgg family guide: the
 // nav and sidebar tree below name every page, ported
@@ -233,16 +119,42 @@ const config = {
             ),
           ],
         },
-      ],
-    },
-    ...PACKAGE_GROUPS.map(packageGroup),
-    {
-      text: "Contributing",
-      items: [
         leaf(
           "Doc conventions",
           "/contributing/conventions",
         ),
+      ],
+    },
+    {
+      text: "Core",
+      items: [
+        leaf("plgg", "/packages/plgg/"),
+        leaf(
+          "Values & effects",
+          "/packages/plgg/values-effects",
+        ),
+        leaf(
+          "Structures & errors",
+          "/packages/plgg/structures-errors",
+        ),
+      ],
+    },
+    {
+      text: "Library",
+      items: LIBRARY_PACKAGES.map(([t, l]) =>
+        leaf(t, l),
+      ),
+    },
+    {
+      text: "plggmatic",
+      items: [
+        leaf("Overview", "/packages/plggmatic"),
+      ],
+    },
+    {
+      text: "plggpress",
+      items: [
+        leaf("Overview", "/packages/plggpress"),
       ],
     },
   ],
