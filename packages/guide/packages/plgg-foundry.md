@@ -14,7 +14,61 @@ operations (a **Foundry**); an LLM composes them into an
 execution plan (an **Alignment**) from a natural-language
 request, and a register machine runs it.
 
-## The model
+## Writing an app with it
+
+Define a **Foundry** — the operations the AI may
+compose — then run an **Order** (the request)
+through it as one data-last
+[`proc`](/concepts/composition). The LLM builds
+the **Alignment**, the register machine runs it,
+and the outcome is a [`Result`](/concepts/result)
+you match **by name**:
+
+```typescript
+import {
+  proc,
+  asStr,
+  matchResult,
+} from "plgg";
+import {
+  makeFoundry,
+  makeProcessor,
+  runFoundry,
+} from "plgg-foundry";
+
+const greetFoundry = makeFoundry({
+  description: "Greets a user by name.",
+  apparatuses: [
+    makeProcessor({
+      name: "greet",
+      description: "Builds a greeting.",
+      arguments: {
+        name: { type: "string" },
+      },
+      // decode the register value as a value:
+      // a bad shape → InvalidError, not a throw
+      fn: ({ params }) =>
+        proc(params["name"], asStr, (name) => ({
+          greeting: `Hello ${name.content}!`,
+        })),
+    }),
+  ],
+});
+
+const result = await proc(
+  "Greet a user named Ada",
+  runFoundry(greetFoundry),
+);
+matchResult(
+  (e) => console.error("failed", e),
+  (medium) => console.log(medium.params),
+)(result);
+```
+
+## Vocabulary
+
+The terms plgg-foundry gives you, and how they
+fit together:
 
 - **Foundry** — your "factory spec": the operations
   available for the AI to compose. Its **apparatuses**

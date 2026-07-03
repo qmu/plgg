@@ -10,7 +10,7 @@ plgg data, failures are values, and native
 `fetch`/`Request`/`Response` appear **only at one seam**.
 Runtime deps: `plgg` and `plgg-http`.
 
-## Usage
+## Writing an app with it
 
 ```typescript
 import { get, post, decodeJsonBody } from "plgg-fetch";
@@ -39,6 +39,26 @@ pipe(
   ),
 );
 ```
+
+## Vocabulary
+
+The client is a small surface over the shared
+[plgg-http](/packages/plgg-http) model, grouped by
+concern:
+
+- **call** — `request` (the core, all arguments at
+  once), plus the `get`/`post`/`put`/`patch`/`del`
+  method conveniences over it.
+- **decode** — `decodeJsonBody(as)(response)` reads the
+  text body, [`decodeJson`](/packages/plgg/values-effects#effects-—-compose-don-t-enumerate),
+  then runs a `cast`-based parser.
+- **failure** — `ClientError` = `HttpError | NetworkError`
+  (`| RedirectError`), with named constructors
+  (`networkError`/`redirectError`) and `$`-matchers
+  (`networkError$`/`redirectError$`).
+- **seam** — `toFetchRequest` (plgg → native) and
+  `fromFetchResponse` (native → plgg), the one module
+  where web platform types live.
 
 ## API
 

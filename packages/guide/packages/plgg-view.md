@@ -15,6 +15,77 @@ renderer, with **no `Cmd`/`Sub`**. Effects (HTTP, timers,
 programmatic navigation) are a deliberate non-goal of
 this minimum.
 
+## Writing an app with it
+
+Three pure values — `init`, `update`, `view` — handed to
+a runtime. State is one immutable `Model`, every change
+is a [`Msg`](/concepts/tagged-data) flowing through
+`update`, and the view is Elm-style builders whose
+handlers produce that `Msg`:
+
+```typescript
+import {
+  div,
+  h1,
+  button,
+  text,
+  onClick,
+} from "plgg-view";
+import type { Html } from "plgg-view";
+import { sandbox } from "plgg-view/client";
+
+type Model = Readonly<{ count: number }>;
+type Msg = "Inc" | "Dec";
+
+const init: Model = { count: 0 };
+
+const update = (msg: Msg, m: Model): Model =>
+  msg === "Inc"
+    ? { count: m.count + 1 }
+    : { count: m.count - 1 };
+
+const view = (m: Model): Html<Msg> =>
+  div([], [
+    h1([], [text(`count: ${m.count}`)]),
+    button([onClick("Dec")], [text("-")]),
+    button([onClick("Inc")], [text("+")]),
+  ]);
+
+// the runtime diff/patches on each dispatch
+const stop = sandbox({ init, update, view })(
+  document.body,
+);
+```
+
+The same `view(init)` renders on the server via
+[`renderToString`](#ssr-rendertostring) for first paint —
+it is pure `Html<Msg>` data either way.
+
+## Vocabulary
+
+The library is a small set of Elm-style terms, grouped
+by concern:
+
+- **the tree** — `Html<Msg, T>`, a plgg
+  [`Box`](/concepts/tagged-data) union of `Element` /
+  `Text` / `Attribute` nodes; `mapHtml(f)` re-tags a
+  child's `Msg` for a parent (Elm's `Html.map`).
+- **elements** — `el(tag, attrs, children)` and helpers
+  `div`/`button`/`input`/`ul`/`li`/`a`/`span`/`h1`/`p`/`form`/`main_`/…,
+  plus `text(value)`.
+- **static attrs** — `attr(name, value)` and helpers
+  `class_`/`href`/`type_`/`value_`/`name_`.
+- **handlers** — `on(event, toMsg)` and helpers
+  `onClick(msg)`, `onInput((v) => msg)`, `onChange`,
+  `onSubmit(msg)` — the channel that makes the tree
+  `Html<Msg>` rather than a passive string.
+- **transitions** — `transition({ enter, exit })` and
+  presets `fadeIn`/`fadeOut`/`slideIn` — pure `Anim`
+  data carrying no `Msg`.
+- **runtimes** — `sandbox` and `application` (on the
+  `plgg-view/client` subpath), plus the pure SSR fold
+  `renderToString`.
+
 ## What it is (and isn't)
 
 | ✅ | ❌ |

@@ -12,9 +12,28 @@ and a web step are **interchangeable links in the same
 pipe**. Its only runtime dependency is `plgg`; the driver
 lives entirely at a seam the application supplies.
 
-## One handler, one pipe
+## Writing an app with it
+
+A request comes in and a row goes out — as one
+[`proc`](/concepts/async). `transaction` wraps a sub-pipe
+so it is atomic, [`Result`](/concepts/result) drives the
+commit/rollback, and a DB step sits right next to a web
+step in the same chain:
 
 ```typescript
+import { proc } from "plgg";
+import {
+  sql,
+  exec,
+  query,
+  transaction,
+  decodeRow,
+} from "plgg-sql";
+
+// decodeJson/asNewUser/asUser are the handler's
+// own plgg `cast` validators; post/jsonResponse
+// are its web vocabulary — a DB step and a web
+// step are interchangeable links in one pipe.
 post("/users", (c) =>
   proc(
     c.req.body,
@@ -36,6 +55,34 @@ post("/users", (c) =>
 `Err`. `transaction` **rolls back** when the inner result
 is `Err`, **commits** when `Ok` — errors-as-values drive
 the transaction; no try/catch.
+
+## Vocabulary
+
+The steps plgg-sql adds are all pure plgg data,
+grouped by concern:
+
+- **SQL** — the `` sql`…` `` tagged template builds a
+  parameterized `Sql` ([`Box`](/concepts/tagged-data))
+  where each `${value}` is a bound `?` and an
+  interpolated `Sql` splices; `isSql` guards it.
+- **run** — `query(db)` (a `SELECT` → raw rows),
+  `exec(db)` (DML → `ExecResult`), `transaction(db, work)`
+  (an atomic sub-pipe), and `runScript(db)` (trusted,
+  developer-authored DDL scripts).
+- **map** — `decodeRow`/`decodeRows` turn raw rows into
+  typed records or a typed error, built from plgg core's
+  `cast`/`asObj`/`forProp`/`refine`.
+- **seam** — `Db`, the small driver interface the
+  application supplies (`ExecResult` is what DML yields).
+- **failure** — `SqlError` (a [`Box`](/concepts/tagged-data)
+  with a serializable cause), constructed with
+  `sqlError`/`toSqlError` and matched with `sqlError$`;
+  shape mismatches are `InvalidError`.
+
+Validation and mapping are **not** new vocabulary — they
+are the same [`Result`](/concepts/result)-returning `cast`
+words a handler already uses. The exact types and the full
+step list live in the `plgg-sql` source.
 
 ## The vocabulary it adds
 

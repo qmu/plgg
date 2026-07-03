@@ -4,6 +4,7 @@ author: a@qmu.jp
 type: housekeeping
 layer: [Config]
 effort: 4h
+commit_hash: 257d36e
 category: Changed
 ---
 
@@ -34,23 +35,33 @@ None show code before the first `##`.
 application with those terms — example code up front** — with the "why it
 exists" / architecture material moved below.
 
-**Template (chosen: Vocabulary → Example → Why):**
+**Template (chosen: Example → Vocabulary → Why):** the actual
+code comes FIRST, right after the one-paragraph intro — before the
+vocabulary list — so a reader sees what writing an app looks like
+immediately. Examples should showcase the data-last
+[`pipe`](/concepts/composition) pipeline style wherever the library's
+surface naturally composes.
 
 ```
 # plgg-x
 <one-line what-it-is, unchanged>
 
+## Writing an app with it
+<a representative, correct `pipe`-based example — the FIRST
+ substantial thing, immediately after the intro paragraph>
+
 ## Vocabulary
 <compact list of the terms the library gives you — the key
  exported names, grouped by concern; a glance, not the full API dump>
 
-## Writing an app with it
-<a representative, correct example using those terms — the
- first substantial thing after the intro>
-
 ## Why it exists / How it's organized / (existing deeper sections)
 <the current rationale + architecture, moved DOWN unchanged>
 ```
+
+The reference implementation is the already-reorganized
+`packages/guide/packages/plgg-http.md` (done as the demo) — match its
+shape: intro → `## Writing an app with it` (a `pipe` example) →
+`## Vocabulary` → `## Why it exists`.
 
 ## Scope
 
@@ -67,36 +78,37 @@ fit them.
 *Before* (order): intro → `## Why it exists` (peer/extract-below diagram) →
 `## How the model is organized` (the vocabulary) → …
 
-*After* (order):
+*After* (order) — see the live `plgg-http.md` for the full form:
 
 ```
 # plgg-http
 The runtime-neutral HTTP model, built from scratch on plgg. …(one-liner kept)
 
+## Writing an app with it
+```ts
+import { pipe, matchOption } from "plgg";
+import { getParam, jsonResponse, statusOf, notFound,
+         httpErrorToResponse } from "plgg-http";
+// request in → response out, as one pipe; Option lookup;
+// HttpError matched by name — using ONLY real exports
+```
+
 ## Vocabulary
 - **method** — `Method`, `asMethod`/`isMethod`
-- **status** — `HttpStatus`
+- **status** — `HttpStatus`, `statusOf`
 - **request** — `HttpRequest` (`getHeader`/`getQuery`/`getParam`)
 - **response** — `HttpResponse`, `ResponseBody`, `textResponse`/`jsonResponse`
 - **failure** — `HttpError`, `notFound`/`badRequest`, `notFound$()`,
   `httpErrorToResponse`
 
-## Writing an app with it
-```ts
-// a short, correct snippet building a request/response and
-// matching an HttpError by name — using ONLY real exports
-```
-
 ## Why it exists
 <the existing peer / extract-below section, verbatim, moved here>
-
-## How the model is organized
-<kept below, or folded into Vocabulary if redundant>
 ```
 
 The reused content is **moved, not rewritten** — preserve the existing prose,
-diagrams, and cross-links; only the ORDER and the new `## Vocabulary` +
-`## Writing an app with it` framing change.
+diagrams, and cross-links; only the ORDER and the new
+`## Writing an app with it` + `## Vocabulary` framing change (the old
+`## How the model is organized` list folds into `## Vocabulary`).
 
 ## Key Files
 
@@ -129,10 +141,11 @@ diagrams, and cross-links; only the ORDER and the new `## Vocabulary` +
 **Objective pass condition — from this worktree:**
 
 1. **Structure:** for each of the 12 articles, the first `##` after the intro is
-   `## Vocabulary`, immediately followed by `## Writing an app with it` whose
-   body contains a fenced code block — and any `## Why it exists` / `## The
-   model` / comparison section appears **after** those. Verifiable:
-   `awk` shows the first fenced code block precedes the first
+   `## Writing an app with it` (its body a fenced code block, right after the
+   intro paragraph), then `## Vocabulary`, and any `## Why it exists` / `## The
+   model` / comparison section appears **after** those. The lead example uses
+   `pipe` where the surface naturally composes. Verifiable: `awk` shows the
+   first fenced code block precedes both the first `## Vocabulary` and the first
    `Why it exists`/`The model` heading in every file.
 2. **Examples are real:** every new/opening code block references only names
    actually exported by that package (spot-check against `packages/<pkg>/src`),

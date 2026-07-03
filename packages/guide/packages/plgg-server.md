@@ -9,26 +9,14 @@ inward is plgg. The runtime-neutral root imports nothing
 platform-specific, so the same core runs on Node, Bun,
 Deno, Cloudflare Workers, and any Web-standard runtime.
 
-## The model
-
-| Concern | Type |
-|---------|------|
-| string values | `SoftStr` |
-| header / query / param maps | `Dict<string, SoftStr>` |
-| status | `HttpStatus = Box<"HttpStatus", number>` (100–599) |
-| request | `HttpRequest` |
-| response | `HttpResponse = { status, headers, body }` |
-| failures | `HttpError` (`NotFound`, `MethodNotAllowed`, `BadRequest`, `Unsupported`, `InternalError`) |
-| handler result | `PromisedResult<HttpResponse, HttpError>` |
-
-Handlers return **errors as values** — no exceptions, no
-raw `Response`.
-
-## Building an app — a `pipe`, not a chain
+## Writing an app with it
 
 A `Web` value has no methods; you build it as a
 [data-last `pipe`](/concepts/composition) of
-`Web => Web` transformers:
+`Web => Web` transformers. Lookups are
+[`Option`](/concepts/option), failures are
+[`HttpError`](/concepts/result) values, and a response is
+just data you build:
 
 ```typescript
 import {
@@ -61,6 +49,35 @@ Verb helpers: `get`, `post`, `put`, `patch`, `del`
 (DELETE — `delete` is reserved), `head`, `options`, plus
 `on(method, path, handler)`. Mount sub-apps with
 `route(basePath, sub)`.
+
+## Vocabulary
+
+The model is pure plgg data, grouped by concern:
+
+- **values** — string values are `SoftStr`; header /
+  query / param maps are `Dict<string, SoftStr>`.
+- **status** — `HttpStatus = Box<"HttpStatus", number>`
+  (100–599).
+- **request** — `HttpRequest`, read with data-last
+  lookups (`param`/`query`/`header`) that return
+  [`Option`](/concepts/option), plus
+  `getState`/`setState` for immutable per-request state.
+- **response** — `HttpResponse = { status, headers, body }`,
+  built with `textResponse`/`jsonResponse`/`htmlResponse`/`redirectResponse`.
+- **routing** — `web()` seeds an app; `use` adds onion
+  middleware; `get`/`post`/`put`/`patch`/`del`/`head`/`options`
+  and `on(method, path, handler)` add routes; `route(basePath, sub)`
+  mounts sub-apps.
+- **failure** — `HttpError` (`NotFound`,
+  `MethodNotAllowed`, `BadRequest`, `Unsupported`,
+  `InternalError`) with named constructors like `notFound`,
+  and `httpErrorToResponse` to fold any of them.
+- **entry** — `handle(app, request)` is the plgg-native
+  core (`PromisedResult<HttpResponse, HttpError>`);
+  `toFetch(app)` is the Web-standard seam.
+
+Handlers return **errors as values** — no exceptions, no
+raw `Response`.
 
 ## Two entry points
 
