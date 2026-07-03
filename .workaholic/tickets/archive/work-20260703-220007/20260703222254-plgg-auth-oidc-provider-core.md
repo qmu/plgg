@@ -3,9 +3,9 @@ created_at: 2026-07-03T22:22:54+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 2d362bb
+category: Added
 depends_on: [20260703222252-plgg-auth-jose-layer.md, 20260703222253-plgg-http-cookies-and-form-decoding.md]
 ---
 
@@ -211,3 +211,21 @@ recorded): automated e2e spec + runnable demo.
   (`20260703222255-plgg-auth-persistence-and-hardening.md`).
 - Clock is injected (as in phase 1) so code/token expiry specs are
   deterministic.
+
+## Final Report
+
+Development completed as planned. Approval gate auto-resolved: the developer
+was away at the per-ticket prompt, and the `/drive` batch was explicitly
+authorized in-session ("do it but through phases") with every pre-agreed
+Quality Gate criterion verified green.
+
+### Discovered Insights
+
+- **Insight**: The `/authorize` orchestration is split into a pure `authorize` usecase returning an `AuthorizeOutcome` union (`LoginRequired` | `RedirectToClient` | `LocalError`) that the thin HTTP handler folds to responses — so the entire redirect-vs-local-error decision (the open-redirect-prevention rule) is unit-testable without HTTP.
+  **Context**: The `LocalError` variant exists specifically because an error discovered *before* the redirect_uri is validated must never be sent to that URI; keeping it a domain value rather than an HTTP concern makes that security boundary a type, not a convention.
+- **Insight**: Single-use semantics live entirely in the `AuthStore` seam via `take*` (get-and-delete) operations, not in handler sequencing — `takeCode`/`takePendingRequest` are the contract. The phase-4 SQL driver must implement these atomically (SELECT+DELETE in one transaction) or codes become replayable.
+  **Context**: The in-memory driver gets this for free (Map delete); a naive SQL driver that does findThenDelete in two statements would reintroduce the vulnerability the seam design prevents.
+- **Insight**: `authorize` reuses the same `completeAuthorization` seam the app's login route calls — when a live session cookie is present it parks a pending request and immediately completes it, rather than duplicating code-issuance logic. One issuance path, two entry points.
+  **Context**: This keeps the "already logged in" fast path and the "just logged in" path behaviorally identical; a divergence would be a source of subtle session/nonce bugs.
+- **Insight**: Achieving >91% branch coverage on the async-shell usecases required a per-method `overrideStore(base, {method: boom})` testkit helper to exercise every store-failure short-circuit; a whole-store-failing fixture only reaches the first read.
+  **Context**: The `isErr(saved)` guards after each `liftStore` write are otherwise unreachable, and they are exactly the branches that matter for graceful degradation under a failing database.

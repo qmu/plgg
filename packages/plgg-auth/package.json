@@ -40,7 +40,9 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg"
+    "plgg": "file:../plgg",
+    "plgg-http": "file:../plgg-http",
+    "plgg-server": "file:../plgg-server"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

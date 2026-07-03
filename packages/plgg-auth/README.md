@@ -35,6 +35,45 @@ Correctness is pinned to the RFC test vectors
 (RFC 7515 Appendix A.2, RFC 7638 §3.1) and cross-checked
 in both directions against `node:crypto` in the specs.
 
+## OIDC provider
+
+The `Oidc/` domain is the OpenID Connect provider (OP)
+itself — the authorization-code flow with mandatory S256
+PKCE (no implicit/hybrid, no `plain`):
+
+- **Branded models**: `Client` (public or confidential
+  by a SHA-256 `ClientSecretHash`), `RedirectUri`
+  (exact-match only), `Scope`/`State`/`Nonce`,
+  `CodeVerifier`/`CodeChallenge`, `Subject`, and
+  single-use `AuthCode`/`AccessToken`/`SessionId` minted
+  from `crypto.getRandomValues`. `OidcError` carries the
+  RFC 6749 error code and HTTP status for every failure.
+- **`AuthStore` seam**: the capability record the library
+  never implements — the app supplies a driver (an
+  in-memory one ships in `testkit/`; a plgg-sql driver
+  is the phase-4 concern). `take*` operations are atomic
+  get-and-delete, so single-use lives in the store
+  contract.
+- **Endpoints** via `mountOidc(config)` (a data-last
+  `Web => Web`): `/.well-known/openid-configuration`,
+  `/jwks.json`, `/authorize` (+PKCE), `/token`
+  (`authorization_code`, `client_secret_basic` /
+  `client_secret_post` / `none`), and `/userinfo`
+  (Bearer). Errors on an unvalidated `redirect_uri`
+  render locally — never an open redirect.
+- **Login seam**: the OP owns the protocol only. When
+  `/authorize` finds no session it redirects to an
+  app-owned login route; the app authenticates however
+  it likes and calls `completeAuthorization(...)`, then
+  returns `sessionRedirect(...)` to set the session
+  cookie and bounce back to the RP. No password handling
+  or login HTML lives in the library.
+
+`example.ts` runs a full OP+RP authorization-code + PKCE
+round trip in-process (discovery → authorize → login →
+token → ID-token validation → userinfo) and prints each
+step.
+
 ## Commands
 
 ```sh

@@ -32,6 +32,7 @@
     "erasableSyntaxOnly": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "example.ts"
   ]
 }
