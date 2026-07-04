@@ -19,7 +19,7 @@
 //
 // Everything else (typescript, node:*) falls through to
 // Node's default resolution.
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -27,13 +27,22 @@ const here = dirname(fileURLToPath(import.meta.url));
 const srcRoot = join(here, "..", "src");
 const prefix = "plgg-bundle/";
 
+// Resolve to a FILE, never a directory: a bare-directory
+// self-alias (e.g. `plgg-bundle/foo`) must land on its
+// `index.ts`, not the directory itself — Node would `read`
+// the directory and throw EISDIR. So the raw `base` matches
+// only when it is a real file; a directory falls through to
+// `base/index.ts`.
+const isFile = (c) =>
+  existsSync(c) && statSync(c).isFile();
+
 const pick = (base) => {
   const candidates = [
     base,
     `${base}.ts`,
     join(base, "index.ts"),
   ];
-  return candidates.find((c) => existsSync(c));
+  return candidates.find(isFile);
 };
 
 // The `?v=<n>` dev version carried by an importer URL, or
