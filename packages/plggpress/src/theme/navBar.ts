@@ -6,15 +6,13 @@ import {
   header,
   div,
   a,
-  button,
   span,
-  svg,
-  path,
   label,
   text,
   attr,
   class_,
 } from "plggpress/framework";
+import { staticThemeToggle } from "plggmatic";
 import {
   type SiteConfig,
   type SocialLink,
@@ -25,64 +23,19 @@ import {
 } from "plggpress/Href/usecase/href";
 
 /**
- * The appearance toggle — a CSS-drawn sun (light) / moon
- * (dark) button, swapped on `html.dark` by {@link baseCss}
- * and wired to flip + persist by the themeScript. Shared
- * by the far-right chrome rail (lg+) and the mobile bar
- * (below lg), so both breakpoints can toggle the theme;
- * the themeScript binds EVERY `.vp-theme-toggle`.
+ * The appearance toggle is plggmatic's
+ * {@link staticThemeToggle} — the SSG-capable variant that
+ * renders BOTH sun/moon icons (CSS picks one on
+ * `html.dark`, since the build cannot know the visitor's
+ * scheme) on the framework-owned `themeToggleClass`, styled
+ * by plggmatic's `themeToggleCss` and wired to flip +
+ * persist by the appearance body script. Shared by the
+ * far-right chrome rail (lg+) and the mobile bar (below lg)
+ * so both breakpoints can toggle the theme; the body script
+ * binds EVERY `.pm-theme-toggle`. (plggmatic's runtime,
+ * `Msg`-based `themeToggle` sibling is for TEA apps, not
+ * this static site.)
  */
-const themeToggle = (): Html<never, "button"> =>
-  button(
-    [
-      class_("vp-theme-toggle"),
-      attr("type", "button"),
-      attr("aria-label", "Toggle dark mode"),
-    ],
-    [
-      // The oracle's own icons (ThemeToggle.tsx),
-      // ported verbatim: an 8-ray sun and a
-      // crescent, single currentColor paths.
-      svg(
-        [
-          class_("vp-sun"),
-          attr("viewBox", "0 0 24 24"),
-          attr("fill", "currentColor"),
-          attr("aria-hidden", "true"),
-        ],
-        [
-          path(
-            [
-              attr(
-                "d",
-                "M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12zM11 1h2v3h-2zm0 19h2v3h-2zM3.515 4.929l1.414-1.414L7.05 5.636 5.636 7.05 3.515 4.93zM16.95 18.364l1.414-1.414 2.121 2.121-1.414 1.414-2.121-2.121zm2.121-14.85l1.414 1.415-2.121 2.121-1.414-1.414 2.121-2.121zM5.636 16.95l1.414 1.414-2.121 2.121-1.414-1.414 2.121-2.121zM23 11v2h-3v-2zM4 11v2H1v-2z",
-              ),
-            ],
-            [],
-          ),
-        ],
-      ),
-      svg(
-        [
-          class_("vp-moon"),
-          attr("viewBox", "0 0 24 24"),
-          attr("fill", "currentColor"),
-          attr("aria-hidden", "true"),
-        ],
-        [
-          path(
-            [
-              attr(
-                "d",
-                "M9.822 2.238a9 9 0 0 0 11.94 11.94C20.768 18.654 16.775 22 12 22 6.477 22 2 17.523 2 12c0-4.775 3.346-8.768 7.822-9.762z",
-              ),
-            ],
-            [],
-          ),
-        ],
-      ),
-    ],
-  );
 
 /** The visible label for a social icon (plgg-view has no
  * SVG builder, so the mark is an accessible text label
@@ -144,7 +97,7 @@ export const chromeRail = (
       div(
         [class_("vp-rail-controls")],
         [
-          themeToggle(),
+          staticThemeToggle,
           socialLinks(config, "vp-rail-social"),
         ],
       ),
@@ -200,7 +153,7 @@ export const mobileBar = (
     [
       ...menuBtn,
       a(homeAttrs, [text(config.title)]),
-      themeToggle(),
+      staticThemeToggle,
     ],
   );
 };

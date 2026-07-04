@@ -32,12 +32,14 @@ const rail = renderToString(chromeRail(config));
 test("chrome rail carries the appearance toggle and social links, no nav", () =>
   all([
     check(rail, toContain('class="vp-rail"')),
+    // the appearance toggle is plggmatic's SSG static
+    // toggle on the framework class, both icons rendered
     check(
       rail,
-      toContain('class="vp-theme-toggle"'),
+      toContain('class="pm-theme-toggle"'),
     ),
-    check(rail, toContain("vp-sun")),
-    check(rail, toContain("vp-moon")),
+    check(rail, toContain('class="pm-sun"')),
+    check(rail, toContain('class="pm-moon"')),
     // the GitHub social link with an accessible label
     check(rail, toContain("vp-rail-social")),
     check(
@@ -71,7 +73,7 @@ test("mobile bar shows the ☰ menu button, wordmark home link, and toggle", () 
     check(barContent, toContain(">plgg Guide<")),
     check(
       barContent,
-      toContain('class="vp-theme-toggle"'),
+      toContain('class="pm-theme-toggle"'),
     ),
   ]));
 

@@ -18,6 +18,28 @@ import { type MarkdownDoc } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { baseCss } from "plggpress/theme/baseCss";
+import { themeToggleCss } from "plggmatic";
+import {
+  schemeCss,
+  metricCss,
+  reducedMotionCss,
+} from "plggmatic/style";
+
+/**
+ * The framework-owned CSS blocks plggmatic emits, composed
+ * in the one order the cascade needs: the scheme custom
+ * properties FIRST (so every later `var(--pm-*)` resolves),
+ * then the scheme-independent shell metrics, the
+ * reduced-motion reset, and the appearance-toggle chrome +
+ * icon-switch — all escape-safe (no `<`/`>`/`&`), all
+ * ahead of {@link baseCss}'s bespoke layout/prose sheet
+ * (D3/D16 cutover, roadmap ticket 07).
+ */
+const frameworkCss: SoftStr =
+  schemeCss +
+  metricCss +
+  reducedMotionCss +
+  themeToggleCss;
 
 /**
  * The page `<title>` text: the document's first H1
@@ -36,15 +58,17 @@ const titleOf = (
  * base-aware `<link rel="canonical">` (routed through
  * {@link href} so the single deploy `base` is the only
  * place link prefixes are decided), the derived
- * `<title>`, and ONE `<style>` holding the static
- * {@link baseCss} theme sheet followed by the body's
+ * `<title>`, and ONE `<style>` holding — in cascade order
+ * — plggmatic's {@link frameworkCss} (scheme properties,
+ * metrics, reduced-motion, toggle chrome), the bespoke
+ * {@link baseCss} layout/prose sheet, then the body's
  * collected atomic CSS. The stylesheet text is a
  * {@link text} node, so the SSR escaper is its only gate
- * — sound because both layers stay escape-safe (no
- * `<`/`>`/`&`: `baseCss` uses only class/descendant
- * selectors + `@media`, and {@link collectCss} emits the
- * `.cHASH{prop:value}` atomic subset), surviving escaping
- * byte-for-byte.
+ * — sound because every layer stays escape-safe (no
+ * `<`/`>`/`&`: plggmatic's emitters and `baseCss` use only
+ * class/descendant selectors + `@media` + `var()`, and
+ * {@link collectCss} emits the `.cHASH{prop:value}` atomic
+ * subset), surviving escaping byte-for-byte.
  */
 const documentHead = (
   config: SiteConfig,
@@ -76,7 +100,14 @@ const documentHead = (
       ),
       style(
         [],
-        [text(baseCss + "\n" + collectCss(body))],
+        [
+          text(
+            frameworkCss +
+              baseCss +
+              "\n" +
+              collectCss(body),
+          ),
+        ],
       ),
     ],
   );

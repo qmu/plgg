@@ -36,7 +36,7 @@ import {
 import { buildRouter } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
-import { injectThemeScripts } from "plggpress/theme/themeScript";
+import { injectAppearanceScripts } from "plggpress/theme/appearanceScripts";
 import { shell } from "plggpress/theme/shell";
 import { page } from "plggpress/theme/page";
 
@@ -173,7 +173,7 @@ const pageHandler =
             mapResult(
               (doc: MarkdownDoc): HttpResponse =>
                 htmlResponse(
-                  injectThemeScripts(
+                  injectAppearanceScripts(
                     renderToString(
                       pageView(
                         config,

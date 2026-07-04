@@ -18,7 +18,7 @@ import { collectPageLinks } from "plggpress/CheckLinks/usecase/collectPageLinks"
 import { checkLinks } from "plggpress/CheckLinks/usecase/checkLinks";
 import { pressRouter } from "plggpress/router/pressRouter";
 import { notFound } from "plggpress/theme/notFound";
-import { injectThemeScripts } from "plggpress/theme/themeScript";
+import { injectAppearanceScripts } from "plggpress/theme/appearanceScripts";
 
 /**
  * The press build declaration, stated once for every
@@ -39,7 +39,7 @@ export const buildSpecOf = (
 ): BuildSpec<Defect | BrokenLinks> => ({
   router: (paths: ReadonlyArray<SoftStr>): Web =>
     pressRouter(contentDir, config, base, paths),
-  notFoundHtml: injectThemeScripts(
+  notFoundHtml: injectAppearanceScripts(
     renderToString(notFound(config)),
   ),
   linkCheck: some(

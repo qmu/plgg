@@ -48,7 +48,8 @@
     "plgg-view": "file:../plgg-view",
     "plgg-md": "file:../plgg-md",
     "plgg-highlight": "file:../plgg-highlight",
-    "plgg-cli": "file:../plgg-cli"
+    "plgg-cli": "file:../plgg-cli",
+    "plggmatic": "file:../plggmatic"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

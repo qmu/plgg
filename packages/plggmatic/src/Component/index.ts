@@ -32,6 +32,9 @@ export {
 export {
   type ThemeToggleProps,
   themeToggle,
+  staticThemeToggle,
+  themeToggleClass,
+  themeToggleCss,
 } from "plggmatic/Component/usecase/themeToggle";
 export { type NavItem } from "plggmatic/Component/model/navItem";
 export { navTree } from "plggmatic/Component/usecase/navTree";

@@ -37,5 +37,8 @@ export {
   heading,
   prose,
   themeToggle,
+  staticThemeToggle,
+  themeToggleClass,
+  themeToggleCss,
   navTree,
 } from "plggmatic/Component";

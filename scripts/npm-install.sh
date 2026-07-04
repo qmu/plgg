@@ -18,6 +18,9 @@ cd $REPO_ROOT/packages/plgg-view && npm install
 cd $REPO_ROOT/packages/plgg-md && npm install
 cd $REPO_ROOT/packages/plgg-highlight && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
+# plggmatic before plggpress: plggpress now file:-depends on plggmatic for its
+# ported theme, so plggmatic's package is present when plggpress installs.
+cd $REPO_ROOT/packages/plggmatic && npm install
 cd $REPO_ROOT/packages/plggpress && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/plgg-sql && npm install
@@ -25,7 +28,6 @@ cd $REPO_ROOT/packages/plgg-db-migration && npm install
 cd $REPO_ROOT/packages/plgg-auth && npm install
 cd $REPO_ROOT/packages/example && npm install
 cd $REPO_ROOT/packages/guide && npm install
-cd $REPO_ROOT/packages/plggmatic && npm install
 cd $REPO_ROOT/packages/plggmatic-example && npm install
 cd $REPO_ROOT/packages/site && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

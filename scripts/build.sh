@@ -40,10 +40,17 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-cli before plggpress: the CLI-wrapper toolkit (depends only on plgg
 # core), consumed by plggpress's own framework, so its dist must exist first.
 cd $REPO_ROOT/packages/plgg-cli && npm run build
-# plggpress last of the web stack: it now carries its framework internally
-# (the absorbed former plggmatic) and consumes plgg-cli, plgg-server, plgg-md,
-# plgg-highlight, plgg-view, and plgg-http directly (all built earlier so it
-# can resolve their dists).
+# plggmatic (UI design framework: tokens, row/column/pane combinators,
+# components) — consumes plgg + plgg-view, both built above. Built BEFORE
+# plggpress, which now consumes plggmatic's dist for its ported theme (D3
+# roadmap ticket 07). publish order is sed-derived from these cd-lines, so
+# plggmatic must precede plggpress here.
+cd $REPO_ROOT/packages/plggmatic && npm run build
+# plggpress last of the web stack: it carries its own framework internally
+# (the absorbed former app-framework facade) and consumes plgg-cli, plgg-server,
+# plgg-md, plgg-highlight, plgg-view, plgg-http, and now plggmatic (its theme is
+# ported onto plggmatic's tokens/components) directly — all built earlier so it
+# can resolve their dists.
 cd $REPO_ROOT/packages/plggpress && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
@@ -61,10 +68,8 @@ cd $REPO_ROOT/packages/plgg-test && npm run build
 # plgg + plgg-view + plgg-router (+ plgg-server's view types) and inlines them
 # from source via the in-house bundler's app target.
 cd $REPO_ROOT/packages/example && npm run build
-# --- plggmatic UI design framework, its docs site, and workbench example ---
-# plggmatic (UI design framework: tokens, row/column/pane combinators,
-# components) — consumes plgg + plgg-view, both built above.
-cd $REPO_ROOT/packages/plggmatic && npm run build
+# --- plggmatic docs site and workbench example (plggmatic itself is built
+# above, ahead of plggpress which now depends on it) ---
 # plggmatic-example: the workbench CSR app; the app bundler inlines
 # plgg/plgg-view/plggmatic from source, so it builds after plggmatic.
 cd $REPO_ROOT/packages/plggmatic-example && npm run build

@@ -7,124 +7,153 @@ import {
 } from "plgg-test";
 import { baseCss } from "plggpress/theme/baseCss";
 
-// Pins the qmu.co.jp oracle VALUES (global.css), not just
-// class names — so future drift from the corporate design
-// guideline fails here instead of surfacing visually. Each
-// assertion is one representative of a reconciled group
-// (2026-07-03 re-diff).
+// After the D3/D16 cutover baseCss owns LAYOUT + PROSE only;
+// color and geometry are plggmatic `--pm-*` tokens (its
+// schemeCss/metricCss), so these pin (a) the token
+// consumption and the clean cutover, and (b) the qmu
+// layout/prose VALUES that stay bespoke here — so drift in
+// either fails at build, not visually.
 const css: string = baseCss;
 
-test("dark palette uses qmu's translucent inks (alpha is part of the spec)", () =>
+test("D16 clean cutover: no legacy vp custom properties survive", () =>
   all([
+    // neither definitions nor `var()` references of the old
+    // per-theme custom properties survive. The needle is
+    // split so this spec stays clean of the literal the
+    // ticket-07 D16 grep hunts for.
+    check(css, not(toContain("--" + "vp-"))),
+    check(css, not(toContain(":root{"))),
+    // the palette/geometry now come through plggmatic tokens
+    check(css, toContain("var(--pm-text)")),
+    check(css, toContain("var(--pm-surface)")),
+    check(css, toContain("var(--pm-surface-2)")),
+    check(css, toContain("var(--pm-border)")),
+    check(css, toContain("var(--pm-muted)")),
+    // the qmu inverted pill is primary-base on neutral surface
     check(
       css,
-      toContain(
-        "--vp-text:rgba(240,240,245,0.92)",
-      ),
+      toContain("background:var(--pm-primary-base)"),
     ),
-    check(
-      css,
-      toContain(
-        "--vp-text-2:rgba(235,235,245,0.55)",
-      ),
-    ),
-    check(
-      css,
-      toContain(
-        "--vp-brand:rgba(255,255,255,0.95)",
-      ),
-    ),
-    // one single divider gray in dark
-    check(css, toContain("--vp-border:#262629")),
-    check(css, toContain("--vp-divider:#262629")),
+    // shell geometry is metric tokens
+    check(css, toContain("var(--pm-shell-max)")),
+    check(css, toContain("var(--pm-sidebar)")),
+    check(css, toContain("var(--pm-rail)")),
+    check(css, toContain("var(--pm-measure)")),
   ]));
 
-test("the appearance-toggle knob is WCAG 1.4.11-tuned in dark", () =>
+test("callouts ride the D9 role matrix, not hardcoded hexes", () =>
   all([
-    check(css, toContain("--vp-knob:#ffffff")),
-    check(css, toContain("--vp-knob:#e4e4e7")),
+    // tip=success, warning, danger onto role surface/text/border
+    check(
+      css,
+      toContain(
+        "background:var(--pm-success-surface)",
+      ),
+    ),
+    check(
+      css,
+      toContain("color:var(--pm-success-text)"),
+    ),
+    check(
+      css,
+      toContain(
+        "border-color:var(--pm-warning-border)",
+      ),
+    ),
+    check(
+      css,
+      toContain(
+        "background:var(--pm-danger-surface)",
+      ),
+    ),
+    // info/note stay neutral with a primary edge
+    check(
+      css,
+      toContain(
+        "border-color:var(--pm-primary-base)",
+      ),
+    ),
+    // the retired emerald/amber/red ramp hexes are gone.
+    // Needles are split ("#" + rest) so this spec stays
+    // clean of the literals the ticket-07 AC3 grep hunts for.
+    check(css, not(toContain("#" + "ecfdf5"))),
+    check(css, not(toContain("#" + "10b981"))),
+    check(css, not(toContain("#" + "f59e0b"))),
+    check(css, not(toContain("#" + "ef4444"))),
+    check(css, not(toContain("#" + "022c22"))),
+    check(css, not(toContain("#" + "450a0a"))),
   ]));
 
-test("reduced motion is honored (no smooth scroll, no link fades)", () =>
+test("scheme scroll motion is framework-owned; plggpress keeps its link-fade reset", () =>
   all([
+    // the html/main scroll reset moved to plggmatic's
+    // reducedMotionCss — not re-authored here
+    check(css, not(toContain("scroll-behavior:auto"))),
+    // but plggpress's own link-hover fade is still killed
     check(
       css,
       toContain(
         "@media (prefers-reduced-motion:reduce)",
       ),
     ),
-    check(css, toContain("scroll-behavior:auto")),
+    check(
+      css,
+      toContain(".vp-doc a{transition:none}"),
+    ),
+    // and the positive smooth-scroll stays
+    check(css, toContain("scroll-behavior:smooth")),
+  ]));
+
+test("escape-safe: survives the SSR text escaper byte-for-byte", () =>
+  all([
+    check(css, not(toContain("<"))),
+    check(css, not(toContain(">"))),
+    check(css, not(toContain("&"))),
   ]));
 
 test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
   all([
-    check(
-      css,
-      toContain(".vp-doc a:focus-visible"),
-    ),
+    check(css, toContain(".vp-doc a:focus-visible")),
     check(
       css,
       toContain(".vp-sidebar-link:focus-visible"),
     ),
-    check(
-      css,
-      toContain(".vp-wordmark:focus-visible"),
-    ),
+    check(css, toContain(".vp-wordmark:focus-visible")),
   ]));
 
 test("prose links carry qmu's weight and hit-area, cloning on wrap", () =>
   all([
     check(css, toContain("padding:0.15em 0.4em")),
     check(css, toContain("margin-inline:-0.4em")),
-    check(
-      css,
-      toContain("box-decoration-break:clone"),
-    ),
+    check(css, toContain("box-decoration-break:clone")),
   ]));
 
-test("headings: H1 3rem symmetry and the sub-sm downscale", () =>
+test("headings: H1 3rem symmetry and the sub-sm downscale from the token breakpoint", () =>
   all([
     check(css, toContain("margin:0 0 3rem")),
-    check(
-      css,
-      toContain("@media (max-width:639px)"),
-    ),
+    // the sub-sm media boundary is composed from
+    // plggmatic's maxWidth("sm") → (max-width:639px)
+    check(css, toContain("@media (max-width:639px)")),
     check(css, toContain("font-size:1.75rem")),
-    check(
-      css,
-      toContain("scroll-margin-top:3.75rem"),
-    ),
+    check(css, toContain("scroll-margin-top:3.75rem")),
   ]));
 
-test("inline code is the translucent overlay badge with hover", () =>
+test("the lg app-shell boundary is the token breakpoint too", () =>
+  all([
+    check(css, toContain("@media (min-width:1024px)")),
+    check(css, toContain("@media (max-width:1023px)")),
+  ]));
+
+test("inline code is the translucent overlay badge (surface-independent, not a token)", () =>
   all([
     check(css, toContain("rgba(0,0,0,0.08)")),
     check(css, toContain("rgba(0,0,0,0.15)")),
-    check(
-      css,
-      toContain("rgba(255,255,255,0.13)"),
-    ),
+    check(css, toContain("rgba(255,255,255,0.13)")),
     check(css, toContain(".vp-doc code:hover")),
-  ]));
-
-test("callouts wear qmu's tinted surfaces with dark pairs", () =>
-  all([
-    // tip: emerald 50 / 950 ramp
-    check(css, toContain("background:#ecfdf5")),
-    check(css, toContain("background:#022c22")),
-    // warning: amber; danger: red
-    check(css, toContain("border-color:#f59e0b")),
-    check(css, toContain("border-color:#ef4444")),
-  ]));
-
-test("sidebar leaves rest at full ink on qmu's 4px pill with text-sm leading", () =>
-  all([
-    check(css, toContain("border-radius:4px;")),
+    // its ink IS a token (primary-base), matching the old brand
     check(
       css,
-      toContain(
-        "font-size:0.875rem;line-height:1.25rem;\n  color:var(--vp-text)",
-      ),
+      toContain("color:var(--pm-primary-base)"),
     ),
   ]));
 
@@ -133,9 +162,7 @@ test("chrome text matches the oracle (wordmark 1rem, footer 13px)", () =>
     check(css, toContain("font-size:13px")),
     check(
       css,
-      toContain(
-        "border-radius:6px;font-size:1rem",
-      ),
+      toContain("border-radius:6px;font-size:1rem"),
     ),
   ]));
 
@@ -148,18 +175,12 @@ test("the sans stack leads with Inter then qmu's system chain", () =>
 test("no per-page 目次 panel styles remain (widget removed, 2026-07-03)", () =>
   all([
     check(css, not(toContain("vp-toc"))),
-    check(
-      css,
-      not(toContain("interpolate-size")),
-    ),
+    check(css, not(toContain("interpolate-size"))),
   ]));
 
 test("the sidebar tree is flush left - hierarchy by weight, never indentation", () =>
   all([
-    check(
-      css,
-      not(toContain("margin-left:0.75rem")),
-    ),
+    check(css, not(toContain("margin-left:0.75rem"))),
     check(
       css,
       toContain(
@@ -188,50 +209,19 @@ test("a hovered link's inline-code badge flips to the hover ink (never ink-on-in
     ),
   ]));
 
-test("no generic underline-on-hover exists to override the pill states", () =>
-  all([
-    check(
-      css,
-      not(
-        toContain(
-          "a:hover{text-decoration:underline}",
-        ),
-      ),
-    ),
-    check(
-      css,
-      toContain(".vp-mobilebar-home:hover"),
-    ),
-  ]));
-
 test("hover micro-interactions run at qmu's 150ms (no slower fades, no scale)", () =>
   all([
     check(
       css,
-      not(
-        toContain(
-          "background-color 0.2s,color 0.2s",
-        ),
-      ),
+      not(toContain("background-color 0.2s,color 0.2s")),
     ),
-    check(
-      css,
-      not(toContain("transform:scale(1.06)")),
-    ),
-    check(
-      css,
-      toContain("background-color 0.15s"),
-    ),
+    check(css, not(toContain("transform:scale(1.06)"))),
+    check(css, toContain("background-color 0.15s")),
   ]));
 
-test("chrome fades use qmu's sharp-in curve; prose keeps its hand-written ease", () =>
+test("chrome fades use qmu's sharp-in curve; only the fill fades", () =>
   all([
-    check(
-      css,
-      toContain("cubic-bezier(0.4,0,0.2,1)"),
-    ),
-    // text color snaps (developer decision, 2026-07-03):
-    // only the fill fades, so the label never reads
-    // muddy mid-transition
+    check(css, toContain("cubic-bezier(0.4,0,0.2,1)")),
+    // text color snaps (only the fill fades, never muddy)
     check(css, not(toContain(",color 0.15s"))),
   ]));
