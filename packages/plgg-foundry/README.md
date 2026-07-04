@@ -2,6 +2,8 @@
 
 ⚠️ **UNSTABLE** - This is experimental study work focused on functional programming concepts. Primarily intended for our own projects, though publicly available. Part of the [plgg monorepo](../../README.md).
 
+> **Coverage-exempt (D14):** as a retired-era experimental package (~45/33/34/45 measured 2026-07-04, off the roadmap's critical path), plgg-foundry carries an explicit `coverage.exempt` marker in `plgg-test.config.json` instead of a threshold. Any ticket that revives it as a consumer of live roadmap work — or regenerates its frozen 2026-02 specs — must replace the marker with a real ≥90 gate as part of that work.
+
 **plgg-foundry** is an AI-powered workflow orchestration library that dynamically composes and executes operations based on user requests. It uses LLM structured outputs to generate execution plans (called "Alignments") from a set of available operations you define (called a "Foundry").
 
 ## Table of Contents

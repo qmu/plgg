@@ -3,19 +3,20 @@ import {
   passesThreshold,
 } from "./v8.js";
 import { readConfig } from "./config.js";
-import { matchOption } from "plgg";
+import { matchResult } from "plgg";
 import type { Metric } from "./v8.js";
+import type { CoverageConfig } from "./config.js";
 
 /**
  * Coverage gate entry, invoked by the bin launcher as the parent
  * post-pass: `node … gate.ts <covDir> <srcRoot> <packageRoot>`.
  *
  * Reads the dumped V8 coverage, folds it into FOUR metrics
- * (statements/branches/functions/lines — Iteration-1 parity with the
- * vitest config it replaces), prints per-file lines + the totals, and
- * gates against the PER-PACKAGE threshold from
- * `<packageRoot>/plgg-test.config.json`. A package with no threshold is
- * reported but not gated (the formerly-ungated packages).
+ * (statements/branches/functions/lines), prints per-file lines + the
+ * totals, and gates against the PER-PACKAGE config from
+ * `<packageRoot>/plgg-test.config.json`. Per D14 gating is opt-out: a
+ * missing config gates at the default threshold; an explicit `exempt`
+ * marker reports without gating; an unreadable/malformed config fails.
  */
 const main = (): void => {
   const covDir = process.argv[2];
@@ -32,7 +33,23 @@ const main = (): void => {
     process.exitCode = 1;
     return;
   }
-  const config = readConfig(packageRoot);
+  matchResult<CoverageConfig, string, void>(
+    (msg) => {
+      process.stdout.write(
+        `coverage gate: ${msg}\n`,
+      );
+      process.exitCode = 1;
+    },
+    (config) =>
+      runGate(covDir, srcRoot, config),
+  )(readConfig(packageRoot));
+};
+
+const runGate = (
+  covDir: string,
+  srcRoot: string,
+  config: CoverageConfig,
+): void => {
   const rep = collect(
     covDir,
     srcRoot,
@@ -50,23 +67,32 @@ const main = (): void => {
       metricLine("Functions", rep.functions) +
       metricLine("Lines", rep.lines),
   );
-  matchOption(
-    () => {
+  const gate = config.gate;
+  switch (gate.kind) {
+    case "exempt":
       process.stdout.write(
-        "Coverage: reported (this package is UNGATED — no threshold configured)\n",
+        `Coverage: reported only — EXEMPT (${gate.reason})\n`,
       );
       process.exitCode = 0;
-    },
-    (threshold: number) => {
-      const ok = passesThreshold(rep, threshold);
+      return;
+    case "gated": {
+      const ok = passesThreshold(
+        rep,
+        gate.threshold,
+      );
       process.stdout.write(
         ok
-          ? `Coverage gate passed (all four metrics > ${threshold}%)\n`
-          : `Coverage gate FAILED (need all four > ${threshold}%)\n`,
+          ? `Coverage gate passed (all four metrics > ${gate.threshold}%)\n`
+          : `Coverage gate FAILED (need all four > ${gate.threshold}%)\n`,
       );
       process.exitCode = ok ? 0 : 1;
-    },
-  )(config.threshold);
+      return;
+    }
+    default: {
+      const unreachable: never = gate;
+      return unreachable;
+    }
+  }
 };
 
 const pct = (m: Metric): string =>

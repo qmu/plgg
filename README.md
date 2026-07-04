@@ -416,11 +416,8 @@ scripts/npm-install.sh
 # Type check
 scripts/tsc-plgg.sh
 
-# Run tests
+# Run tests (coverage is collected and gated on every run)
 scripts/test-plgg.sh
-
-# Run tests with coverage
-scripts/coverage-plgg.sh
 
 # Build all packages
 scripts/build.sh

@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:02+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Config, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: e3e6987
+category: Changed
 depends_on: []
 ---
 
@@ -296,3 +296,57 @@ new script, or any silently lowered threshold fails the ticket.
   lowered threshold — but try the DI seam first.
 - The sibling manifest-cleanup ticket (**01**) and this ticket touch disjoint
   files; either may land first.
+
+## Final Report
+
+**What Changed**
+- `packages/plgg-test/src/Coverage/config.ts`: `CoverageConfig.threshold:
+  Option<number>` replaced by a `gate: CoverageGate` sum
+  (`{kind:"gated";threshold}` | `{kind:"exempt";reason}`); `readConfig` now
+  returns `Result<CoverageConfig, string>`. Missing file → gated at
+  `DEFAULT_THRESHOLD = 90`; `coverage.exempt` non-empty string → exempt;
+  `coverage.threshold` number → gated at it; present-with-neither → gated 90;
+  unreadable/malformed, or empty/non-string `exempt` → `Err` (ENOENT
+  distinguished from parse error so absence stays valid). `DEFAULT_EXCLUDE`
+  trimmed to `["/index.ts"]`.
+- `packages/plgg-test/src/Coverage/gate.ts`: folds `readConfig` via
+  `matchResult` (Err → print + exit 1); exhaustive discriminant on the gate
+  (`exempt` → `EXEMPT (<reason>)` exit 0; `gated` → strict four-metric check)
+  with a `never` exhaustiveness arm.
+- `packages/plgg-test/bin/plgg-test.mjs`: gating is unconditional — every
+  one-shot run collects V8 coverage + runs the gate; `--coverage` retained as a
+  no-op. So `check-all.sh`/CI now enforce every gate with zero runner edits.
+- `packages/plgg-test/src/Coverage/config.spec.ts`: rewritten for the new
+  rules (gated/default/exempt/empty-exempt-Err/non-string-Err/malformed-Err).
+- `packages/plgg-kit/plgg-test.config.json`: new, threshold 90. Two offline
+  `vi.stubEnv` specs added in `generateObject.spec.ts` cover the previously
+  uncovered Anthropic/Google `env(...)` apiKey-resolution arms → Functions
+  18/20 → 20/20 (all four metrics now 100%).
+- Exempt markers with reasons: `example`, `plggmatic-example`, `plgg-foundry`
+  (+ a coverage-exemption note atop `plgg-foundry/README.md`).
+- Deleted the seven redundant `scripts/coverage-*.sh`; updated the `README.md`
+  script-inventory line (coverage is collected/gated on every run now).
+
+**Verification**
+- `test-plgg-test.sh`: `config.ts` 100% covered; gate line prints from a plain
+  `npm run test` (no `--coverage`) — "gate passed (all four > 85%)".
+- `test-plgg-kit.sh`: 100/100/100/100, "gate passed (all four > 90%)".
+- Live triggers: a no-config below-90 fixture and a malformed config each exit
+  1 from `plgg-test src` (no `--coverage`), the latter printing
+  "coverage gate: config not valid JSON: …".
+- Fresh `scripts/check-all.sh` green (EXIT 0): 18 packages passed their gate,
+  the three exemptions printed their reasons, no latent sub-threshold package
+  surfaced. `"UNGATED — no threshold configured"` no longer exists in
+  `plgg-test/src`; `grep coverage-plgg` → 0 hits; no runner-script edits.
+
+**Discovered Insights**
+- Gating was opt-in at TWO layers: a missing config meant ungated AND the gate
+  only ran under `--coverage`, which no canonical runner passes — so NO
+  threshold was enforced by check-all/CI before this ticket. Both are now
+  closed in the runner itself (no new scripts, per the command-scripts policy).
+- The two uncovered plgg-kit functions were the Anthropic/Google env-resolution
+  arms (one-liner arrows never invoked offline because the single env test used
+  OpenAI); files read 100% line coverage while Functions sat at 90% precisely
+  because those arrows' declaration lines execute at module load.
+- No previously-configured package was secretly below its threshold — the first
+  load-bearing enforcement run was clean.
