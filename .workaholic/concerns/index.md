@@ -87,5 +87,6 @@
 * [plgg-highlight grammar has cosmetic lexing limitations vs the old scanner](59-lexer-fidelity-limitations-non-ascii-jsx-regex-class.md)
 * [plgg-parser concrete-S pinning is an ergonomic sharp edge](59-concrete-s-pinning-ergonomics.md)
 * [plgg-parser omits `attempt` by design (stateless-failure backtracking)](59-attempt-combinator-intentionally-omitted.md)
+* [plggmatic's `publish` npm script breaks the canonical publish-npm.sh flow](59-plggmatic-publish-script-breaks-canonical-publish.md)
 
 * [archive/](archive/)
