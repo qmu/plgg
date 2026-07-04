@@ -160,7 +160,7 @@ test("the stack pushes columns as the depth grows", () =>
   all([
     // root: only the nav column
     check(
-      count(atRoot, 'class="pm-col'),
+      count(atRoot, 'class="pm-col '),
       toBe(1),
     ),
     check(count(atRoot, "<nav"), toBe(1)),
@@ -168,13 +168,13 @@ test("the stack pushes columns as the depth grows", () =>
     check(atRoot.includes("<main"), toBe(false)),
     // + section: the list column appears
     check(
-      count(atList, 'class="pm-col'),
+      count(atList, 'class="pm-col '),
       toBe(2),
     ),
     check(count(atList, "<aside"), toBe(1)),
     // + note: the reader column appears
     check(
-      count(atReader, 'class="pm-col'),
+      count(atReader, 'class="pm-col '),
       toBe(3),
     ),
     check(count(atReader, "<main"), toBe(1)),
@@ -204,26 +204,28 @@ test("pushed columns close by link (truncation is navigation)", () =>
     ),
   ]));
 
-test("the breadcrumb mirrors the stack", () =>
+test("the breadcrumb mirrors the stack (framework component, ticket 10)", () =>
   all([
+    // the trail now renders via plggmatic's `breadcrumb`
+    // component (pm-crumb-* hooks), fed the app's crumbs
     check(
-      count(atReader, "ex-crumb-sep"),
+      count(atReader, "pm-crumb-sep"),
       toBe(2),
     ),
     check(
-      atReader.includes("ex-crumb-here"),
+      atReader.includes("pm-crumb-here"),
       toBe(true),
     ),
     // parent crumbs are links to their truncating URLs
     check(
       atReader.includes(
-        'href="/" class="ex-crumb-link',
+        'href="/" class="pm-crumb-link',
       ),
       toBe(true),
     ),
     check(
       atReader.includes(
-        'href="/?s=botany" class="ex-crumb-link',
+        'href="/?s=botany" class="pm-crumb-link',
       ),
       toBe(true),
     ),

@@ -41,7 +41,14 @@ export {
   themeToggleClass,
   themeToggleCss,
   navTree,
+  type ColHeadProps,
+  type Crumb,
+  colHead,
+  breadcrumb,
 } from "plggmatic/Component";
+
+// --- Render: screen-mode renderers (ticket 10/11) -----
+export { multiColumn } from "plggmatic/Render";
 
 // --- Declarative vocabulary (ticket 09) ---------------
 // The framework half: a mode-agnostic declaration (D10)

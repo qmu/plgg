@@ -99,6 +99,7 @@ export {
   schemeCss,
   schemeCssOf,
 } from "plggmatic/Style/usecase/schemeCss";
+export { chromeCss } from "plggmatic/Style/usecase/chromeCss";
 export { metricCss } from "plggmatic/Style/usecase/metricCss";
 export { reducedMotionCss } from "plggmatic/Style/usecase/reducedMotion";
 export {

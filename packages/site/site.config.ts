@@ -78,6 +78,10 @@ const config = {
         leaf("Color scheme", "/color-scheme"),
         leaf("Design tokens", "/design-tokens"),
         leaf("Pane alignment", "/pane-alignment"),
+        leaf(
+          "Multi-column renderer",
+          "/multi-column",
+        ),
       ],
     },
     {

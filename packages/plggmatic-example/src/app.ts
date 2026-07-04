@@ -29,6 +29,7 @@ import {
 } from "plgg-view/client";
 import {
   type NavItem,
+  type Crumb,
   row,
   column,
   navPane,
@@ -39,6 +40,8 @@ import {
   themeToggle,
   navTree,
   focusRing,
+  colHead,
+  breadcrumb,
 } from "plggmatic";
 // Namespaced so the Tailwind-style names (`p`, `text`, …)
 // coexist with the Html element builders imported above.
@@ -238,49 +241,6 @@ export const update = (
 // --- View ------------------------------------------
 
 /**
- * A column's sticky header chrome: the title, and (for
- * pushed columns) a close link back to the truncating
- * URL — leaving a column is the same gesture as entering
- * one, a link. Styled by the app stylesheet
- * (`.ex-colhead`), sticky over the column's own scroll.
- */
-const colHead = (
-  title: SoftStr,
-  close: Option<SoftStr>,
-): Html<Msg> =>
-  slot(
-    [attr("class", "ex-colhead")],
-    [
-      span(
-        [attr("class", "ex-colhead-title")],
-        [text(title)],
-      ),
-      ...matchOption<
-        SoftStr,
-        ReadonlyArray<Html<Msg>>
-      >(
-        () => [],
-        (to) => [
-          a(
-            [
-              href(to),
-              attr(
-                "aria-label",
-                `Close ${title}`,
-              ),
-              // the class hook rides style_ (the sole
-              // class authority): a separate class attr
-              // would be clobbered by the atomic classes
-              sx.style_("ex-close", focusRing),
-            ],
-            [text("×")],
-          ),
-        ],
-      )(close),
-    ],
-  );
-
-/**
  * The root column: the section menu. Always on screen —
  * the anchor of the stack.
  */
@@ -303,7 +263,10 @@ const sectionsColumn = (
       navPane(
         [],
         [
-          colHead("Sections", none()),
+          colHead<Msg>({
+            title: "Sections",
+            close: none(),
+          }),
           div(
             [sx.style_(sx.p(2))],
             [navTree(navItems, active)],
@@ -367,10 +330,10 @@ const listColumn = (
               fadeIn(150),
             ],
             [
-              colHead(
-                section.label,
-                some(rootHref(model.base)),
-              ),
+              colHead<Msg>({
+                title: section.label,
+                close: some(rootHref(model.base)),
+              }),
               ul(
                 [
                   sx.style_(
@@ -411,15 +374,15 @@ const readerColumn = (
               fadeIn(150),
             ],
             [
-              colHead(
-                note.title,
-                some(
+              colHead<Msg>({
+                title: note.title,
+                close: some(
                   sectionHref(
                     model.base,
                     section.id,
                   ),
                 ),
-              ),
+              }),
               slot(
                 [
                   sx.style_(
@@ -494,15 +457,19 @@ export const stack = (
  * headers so the trail stays legible when columns scroll
  * off on narrow screens.
  */
-const breadcrumb = (model: Model): Html<Msg> => {
+/**
+ * The breadcrumb crumb list for the current stack — one
+ * crumb per column, every crumb but the last linking to
+ * its truncating URL. The RENDERING now belongs to the
+ * framework (`breadcrumb` from plggmatic, ticket 10); this
+ * app only supplies the crumb data its own stack defines.
+ */
+const crumbsOf = (
+  model: Model,
+): ReadonlyArray<Crumb> => {
   const sectionCrumb = matchOption<
     Section,
-    ReadonlyArray<
-      Readonly<{
-        label: SoftStr;
-        to: Option<SoftStr>;
-      }>
-    >
+    ReadonlyArray<Crumb>
   >(
     () => [],
     (section) => [
@@ -516,17 +483,12 @@ const breadcrumb = (model: Model): Html<Msg> => {
   )(currentSection(model));
   const noteCrumb = matchOption<
     Note,
-    ReadonlyArray<
-      Readonly<{
-        label: SoftStr;
-        to: Option<SoftStr>;
-      }>
-    >
+    ReadonlyArray<Crumb>
   >(
     () => [],
     (note) => [{ label: note.title, to: none() }],
   )(currentNote(model));
-  const crumbs = [
+  return [
     {
       label: "Sections",
       to: some(rootHref(model.base)),
@@ -534,47 +496,6 @@ const breadcrumb = (model: Model): Html<Msg> => {
     ...sectionCrumb,
     ...noteCrumb,
   ];
-  const last = crumbs.length - 1;
-  return slot(
-    [
-      attr("class", "ex-crumbs"),
-      attr("aria-label", "You are here"),
-    ],
-    crumbs.flatMap((crumb, i) => {
-      const label =
-        i === last
-          ? span(
-              [attr("class", "ex-crumb-here")],
-              [text(crumb.label)],
-            )
-          : matchOption<SoftStr, Html<Msg>>(
-              () => span([], [text(crumb.label)]),
-              (to) =>
-                a(
-                  [
-                    href(to),
-                    sx.style_(
-                      "ex-crumb-link",
-                      focusRing,
-                    ),
-                  ],
-                  [text(crumb.label)],
-                ),
-            )(crumb.to);
-      return i === 0
-        ? [label]
-        : [
-            span(
-              [
-                attr("class", "ex-crumb-sep"),
-                attr("aria-hidden", "true"),
-              ],
-              [text("›")],
-            ),
-            label,
-          ];
-    }),
-  );
 };
 
 /**
@@ -590,7 +511,7 @@ const topBar = (model: Model): Html<Msg> =>
         [attr("class", "ex-brand")],
         [text("Field Notes")],
       ),
-      breadcrumb(model),
+      breadcrumb<Msg>(crumbsOf(model)),
       span([attr("class", "ex-spacer")], []),
       themeToggle<Msg>({
         scheme: model.scheme,
@@ -644,35 +565,22 @@ export const schemeClassCss: SoftStr = sx.schemes
 const HEADER_H = sx.metricVar("rail");
 
 /**
- * The app's own chrome on top of the framework
- * geometry: the top bar, the sticky column headers, the
- * inverted-pill active state (one rule serves the nav
- * tree and the note list — anything marked
- * `aria-current`), column panel surfaces, the strip's
- * viewport height (minus the top bar) with per-column
- * scroll on wide screens, and the below-breakpoint
- * horizontal snap strip. All geometry beyond the
- * composed atoms lives here, targeting the combinators'
- * `pm-row`/`pm-col`/`pm-pane` hooks.
+ * The app's own IDENTITY chrome — everything the
+ * framework's multi-column chrome (`sx.chromeCss`, ticket
+ * 10) does NOT own: the top bar layout, the brand
+ * wordmark, the flex spacer, and the app-private
+ * narrow-screen reader width (`88vw` — a per-app column
+ * sizing choice, not a framework token). The column
+ * surfaces, sticky `pm-colhead` headers, the breadcrumb
+ * trail, the `aria-current` inverted pill, the per-column
+ * scroll and snap strip now live in `sx.chromeCss` and are
+ * injected once at boot (see {@link appCss}).
  */
 const chromeCss: SoftStr =
   `.ex-header{display:flex;align-items:center;gap:0.75rem;height:${HEADER_H};padding:0 1rem;background:var(--pm-surface);border-bottom:1px solid var(--pm-border);}` +
   `.ex-brand{font-weight:600;white-space:nowrap;}` +
-  `.ex-crumbs{display:flex;align-items:center;gap:0.4rem;min-width:0;overflow:hidden;white-space:nowrap;font-size:0.85rem;color:var(--pm-muted);}` +
-  `.ex-crumbs a{color:var(--pm-muted);text-decoration:none;padding:0.15rem 0.4rem;border-radius:0.25rem;}` +
-  `.ex-crumbs a:hover{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
-  `.ex-crumb-here{color:var(--pm-text);font-weight:500;overflow:hidden;text-overflow:ellipsis;}` +
-  `.ex-crumb-sep{color:var(--pm-border);}` +
   `.ex-spacer{flex:1 1 auto;}` +
-  `.pm-row{background:var(--pm-surface-2);}` +
-  `.pm-col{background:var(--pm-surface);border-right:1px solid var(--pm-border);}` +
-  `.ex-colhead{position:sticky;top:0;z-index:${sx.zValue("content")};display:flex;align-items:center;justify-content:space-between;gap:0.5rem;height:40px;padding:0 0.75rem;background:var(--pm-surface-2);border-bottom:1px solid var(--pm-border);}` +
-  `.ex-colhead-title{font-size:0.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
-  `.ex-close{color:var(--pm-muted);text-decoration:none;line-height:1;padding:0.25rem 0.4rem;border-radius:0.25rem;}` +
-  `.ex-close:hover{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
-  `.pm-pane a[aria-current="page"]{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
-  `@media ${sx.minWidth("snap")}{.pm-row{height:calc(100vh - ${HEADER_H});overflow:hidden;}.pm-col{height:calc(100vh - ${HEADER_H});overflow-y:auto;}}` +
-  `@media ${sx.maxWidth("snap")}{.pm-row{overflow-x:auto;scroll-snap-type:x proximity;}.pm-col{scroll-snap-align:start;}.ex-reader{min-width:88vw;}}`;
+  `@media ${sx.maxWidth("snap")}{.ex-reader{min-width:88vw;}}`;
 
 /**
  * The app's whole static stylesheet: baseline reset, the
@@ -692,6 +600,11 @@ export const appCss: SoftStr =
   `.ex-root a{text-decoration:none;}` +
   sx.metricCss +
   schemeClassCss +
+  // the framework's multi-column chrome (ticket 10) —
+  // column surfaces, sticky colHead, breadcrumb, the
+  // aria-current pill, per-column scroll + snap strip —
+  // then this app's own identity chrome on top.
+  sx.chromeCss +
   chromeCss;
 
 /** The wired program the client entry mounts. */

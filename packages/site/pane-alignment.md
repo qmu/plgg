@@ -37,7 +37,7 @@ The composed atoms travel **with** the elements — `collectCss` gathers them in
 
 ## Hooks, not options
 
-Each builder exposes a stable class hook (`pm-row`, `pm-col`, `pm-pane`), and any string part you pass joins the same class list (`column(["reader", fluid], …)`). What atoms cannot express — `@media` collapse, per-column viewport scroll, snap strips — you write in your own stylesheet against those hooks. The framework does not guess your breakpoints.
+Each builder exposes a stable class hook (`pm-row`, `pm-col`, `pm-pane`), and any string part you pass joins the same class list (`column(["reader", fluid], …)`). For the **multi-column scheduler mode**, the framework now owns that geometry: `chromeCss` (on the `plggmatic/style` subpath) carries the per-column viewport scroll, the `snap` strip, and the sticky headers, and the [multi-column renderer](/multi-column) composes the combinators for you — you no longer hand-write it. For *other* layouts the renderer does not cover, the `Parts` escape hatch remains: what atoms cannot express you still write against these hooks in your own stylesheet, and the framework does not guess your breakpoints there.
 
 Because `style_` is the **sole class authority**, builders merge their base parts and yours into one call; never attach a separate `class` attribute next to style parts — pass the hook as a string part instead.
 

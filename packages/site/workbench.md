@@ -25,7 +25,9 @@ const stack = row(
 );
 ```
 
-Fixed tracks keep their measure (`basis("220px")`, `basis("300px")`); the reader composes `fluid` plus its own `"ex-reader"` hook for the app's below-breakpoint rules — options are atoms and hooks, not config fields.
+Fixed tracks keep their measure (`basis("220px")`, `basis("300px")`); the reader composes `fluid` plus its own `"ex-reader"` hook for the app's below-breakpoint width — options are atoms and hooks, not config fields.
+
+> **The chrome is now framework-owned (ticket 10).** The sticky column headers, the breadcrumb trail, the `aria-current` inverted pill, the per-column scroll, and the snap strip were lifted out of this app into the design system: `colHead` and `breadcrumb` are plggmatic components, and `chromeCss` (on `plggmatic/style`) is the escape-safe CSS block, injected once at boot. The example still composes its own column *stack* — that hand-written composition is what the [multi-column renderer](/multi-column) replaces for a scheduled declaration, and what ticket 13's declarative rewrite finally retires. Only the app-identity chrome (top bar, wordmark, the `88vw` reader width) stays here.
 
 ## What the app demonstrates
 

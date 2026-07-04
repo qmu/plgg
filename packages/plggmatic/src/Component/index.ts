@@ -38,3 +38,11 @@ export {
 } from "plggmatic/Component/usecase/themeToggle";
 export { type NavItem } from "plggmatic/Component/model/navItem";
 export { navTree } from "plggmatic/Component/usecase/navTree";
+export {
+  type ColHeadProps,
+  colHead,
+} from "plggmatic/Component/usecase/colHead";
+export {
+  type Crumb,
+  breadcrumb,
+} from "plggmatic/Component/usecase/breadcrumb";

@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:10+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 91c912a
+category: Changed
 depends_on: [20260704143009-declarative-ui-vocabulary-and-scheduler-core.md, 20260704143003-plggmatic-token-matrix-monochrome-default.md, 20260704143005-plggmatic-non-color-design-tokens.md]
 ---
 
@@ -318,3 +318,37 @@ dip, or a runner-script/dependency diff fails the ticket.
   collapse (the docs shell's idiom) is not part of this pattern and stays
   out; any `secondary`/`tertiary` colored chrome awaits D9's earned-place
   rule.
+
+## Final Report
+
+Development completed as planned. The multi-column mode renderer lands over
+ticket 09's `Scene` seam (09's landed shape won over this ticket's draft prose,
+as its blocking-precondition instructed): `multiColumn(scene)` projects each
+flow `Level` into a `row` of `column`s — the menu a `navigation` pane, each
+list a `complementary` pane, the detail the `main` pane — with a per-column
+`colHead` truncating close link, keyed + entrance-faded pushed columns, and a
+breadcrumb trail. `colHead` and `breadcrumb` are now framework components
+(`pm-colhead`/`pm-crumbs`), and `chromeCss` is the escape-safe framework CSS
+block (colours via `--pm-*`, dimensions via tokens, media via the `snap`
+breakpoint builders). `packages/plggmatic-example/src/app.ts` no longer defines
+the lifted chrome — it consumes the framework `colHead`/`breadcrumb` and injects
+`sx.chromeCss`, keeping only its identity chrome (top bar, wordmark, `88vw`
+reader). The site documents the renderer (`multi-column.md` + a compiling
+example) and `workbench.md`/`pane-alignment.md` no longer claim the consumer
+owns the multi-column geometry. plggmatic coverage passed (>90% all four
+metrics, multiColumn at 96%).
+
+### Discovered Insights
+
+- **Insight**: The `Scene`/`Level` seam ticket 09 landed already carries every
+  datum the multi-column renderer needs (titles, back hrefs, active markers,
+  query state, actions, confirm) — no seam amendment was required. **Context**:
+  Confirms tenet (g)'s resolution: mode-independent truth in the model, and the
+  renderer derives the rest. Ticket 11's single-column renderer consumes the
+  identical seam.
+- **Insight**: plgg-view's content model rejects `Html<Msg, string>` (widened
+  tag) as `Flow` children; a helper that returns `ReadonlyArray<Html<Msg>>`
+  poisons the container. Build heterogeneous containers with `slot` (pinned
+  `div`, permissive children) and keep element helpers returning their concrete
+  tag (`Html<Msg, "li">`). **Context**: The same lesson the renderer and the
+  demo both hit — reach for `slot` at every mixed-content boundary.

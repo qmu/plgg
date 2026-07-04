@@ -88,6 +88,7 @@ export {
   syntaxVar,
   schemeCss,
   schemeCssOf,
+  chromeCss,
   metricCss,
   reducedMotionCss,
   syntaxCss,
