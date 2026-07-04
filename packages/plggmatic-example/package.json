@@ -1,0 +1,38 @@
+{
+  "name": "@plggmatic/example",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "The reference plggmatic app — an independent client-side program (plgg-view Elm Architecture) displaying a workbench variation of the column-oriented layout: a drawer nav column, a fixed list column, and a fluid reading column, with URL-reflected selection and a live scheme toggle.",
+  "scripts": {
+    "build": "plgg-bundle && node src/stamp.ts",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch",
+    "preview": "python3 -m http.server --directory dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plggmatic.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plggmatic/issues"
+  },
+  "homepage": "https://github.com/qmu/plggmatic#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-view": "file:../plgg-view",
+    "plggmatic": "file:../plggmatic"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

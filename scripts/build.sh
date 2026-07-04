@@ -58,4 +58,17 @@ cd $REPO_ROOT/packages/plgg-test && npm run build
 # plgg + plgg-view + plgg-router (+ plgg-server's view types) and inlines them
 # from source via the in-house bundler's app target.
 cd $REPO_ROOT/packages/example && npm run build
+# --- plggmatic UI design framework, its docs site, and workbench example ---
+# plggmatic (UI design framework: tokens, row/column/pane combinators,
+# components) — consumes plgg + plgg-view, both built above.
+cd $REPO_ROOT/packages/plggmatic && npm run build
+# plggmatic-example: the workbench CSR app; the app bundler inlines
+# plgg/plgg-view/plggmatic from source, so it builds after plggmatic.
+cd $REPO_ROOT/packages/plggmatic-example && npm run build
+# site: the plggpress-built docs for plggmatic; needs plggpress + plggmatic.
+cd $REPO_ROOT/packages/site && npm run build
+# nest the workbench app under the served docs at /example/.
+rm -rf $REPO_ROOT/packages/site/dist/example
+mkdir -p $REPO_ROOT/packages/site/dist/example
+cp -r $REPO_ROOT/packages/plggmatic-example/dist/. $REPO_ROOT/packages/site/dist/example/
 echo "\n=== All shell scripts have been executed successfully ==="

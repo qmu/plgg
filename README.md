@@ -112,6 +112,9 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
+- **[`packages/plggmatic/`](packages/plggmatic/)** - Column-oriented UI design framework on the plgg family: a typed light/dark color scheme, `row`/`column`/`pane` layout combinators, and fundamental components as pure `(props) => Html<Msg>`
+- **[`packages/site/`](packages/site/)** - The plggpress-built documentation site for plggmatic (private `@plggmatic/site`, not published)
+- **[`packages/plggmatic-example/`](packages/plggmatic-example/)** - The plggmatic workbench: a traversable column-stack (Miller columns) demo app served under the docs at `/example/`
 
 ## Installation
 
