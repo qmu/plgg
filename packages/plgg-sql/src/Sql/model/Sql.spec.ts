@@ -7,10 +7,12 @@ import {
   not,
   toContain,
 } from "plgg-test";
-import { some, none } from "plgg";
+import { some, none, isOk } from "plgg";
 import {
   sql,
   isSql,
+  identSql,
+  asSqlIdent,
   Interpolation,
 } from "plgg-sql/index";
 
@@ -161,5 +163,32 @@ test("a malicious value never reaches the SQL text (injection safety)", () => {
     ),
     check(text, not(toContain("DROP TABLE"))),
     check(params, toEqual([some(name)])),
+  ]);
+});
+
+test("identSql splices a validated identifier as a param-free fragment", () => {
+  const r = asSqlIdent("user_docs");
+  if (!isOk(r)) {
+    return check(false, toBe(true));
+  }
+  const frag = identSql(r.content);
+  const q = sql`SELECT id FROM ${frag} WHERE n = ${1} AND m = ${2}`;
+  return all([
+    // the identifier contributes text but ZERO params
+    check(frag.content.text, toBe("user_docs")),
+    check(frag.content.params.length, toBe(0)),
+    check(
+      q.content.text,
+      toBe(
+        "SELECT id FROM user_docs WHERE n = ? AND m = ?",
+      ),
+    ),
+    check(q.content.params, toEqual([some(1), some(2)])),
+    // the placeholder-count invariant holds under the mixed
+    // splice (one ident splice, two value binds)
+    check(
+      q.content.text.split("?").length - 1,
+      toBe(q.content.params.length),
+    ),
   ]);
 });

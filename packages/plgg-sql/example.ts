@@ -24,6 +24,8 @@ import {
   refine,
   decodeJson,
   some,
+  none,
+  isOk,
   matchResult,
   matchOption,
   isPlggError,
@@ -34,12 +36,23 @@ import {
   ExecResult,
   Sql,
   SqlValue,
+  SqlIdent,
   sql,
   query,
   exec,
   transaction,
   decodeRow,
   decodeRows,
+  asSqlIdent,
+  identSql,
+  fts5Table,
+  fts5Column,
+  externalContent,
+  createFts5Table,
+  fts5Match,
+  bm25Rank,
+  fts5Phrase,
+  fts5SyncTriggers,
 } from "plgg-sql/index";
 
 // ── the SQLite seam: the only code that knows which driver we use ──
@@ -189,6 +202,79 @@ const render = (
     (v: unknown) => `Ok  — ${JSON.stringify(v)}`,
   )(r);
 
+// ── full-text search: the always-on FTS5 baseline (D11) ──
+// A `docs` table is the source of truth; an external-content
+// FTS5 index over it is a DERIVED, rebuildable view kept in
+// sync by triggers (D4). Names ride in as `SqlIdent`s; a
+// visitor's raw search string is made crash-safe by
+// `fts5Phrase`, then bound — never concatenated.
+const asIdent = (s: SoftStr): SqlIdent => {
+  const r = asSqlIdent(s);
+  if (!isOk(r)) {
+    throw new Error(`bad identifier: ${s}`);
+  }
+  return r.content;
+};
+const ftsIdx = asIdent("docs_fts");
+const docsTbl = asIdent("docs");
+
+// One search hit, decoded back into the domain.
+type Doc = Obj<{ title: SoftStr; body: SoftStr }>;
+const asDoc = (
+  v: unknown,
+): Result<Doc, InvalidError> =>
+  cast(
+    v,
+    asObj,
+    forProp("title", asSoftStr),
+    forProp("body", asSoftStr),
+  );
+
+// build the index + sync triggers over `docs`
+const setupSearch = async (): Promise<void> => {
+  const spec = fts5Table({
+    name: ftsIdx,
+    columns: [
+      fts5Column(asIdent("title")),
+      fts5Column(asIdent("body")),
+    ],
+    content: externalContent(docsTbl, asIdent("id")),
+    tokenizer: none(),
+  });
+  if (!isOk(spec)) {
+    return;
+  }
+  await db.execScript(
+    "CREATE TABLE docs(id INTEGER PRIMARY KEY, title TEXT, body TEXT)",
+  );
+  await db.execScript(
+    createFts5Table(spec.content).content.text,
+  );
+  const triggers = fts5SyncTriggers(spec.content);
+  if (isOk(triggers)) {
+    for (const t of triggers.content) {
+      await db.execScript(t.content.text);
+    }
+  }
+};
+
+// a ranked search — sanitize → MATCH → order by bm25 → map —
+// all one proc chain, the same vocabulary as the user handlers
+const searchDocs = (
+  term: SoftStr,
+): Promise<Result<ReadonlyArray<Doc>, unknown>> =>
+  proc(
+    sql`SELECT title, body FROM ${identSql(
+      docsTbl,
+    )} WHERE id IN (SELECT rowid FROM ${identSql(
+      ftsIdx,
+    )} WHERE ${fts5Match(ftsIdx)(
+      fts5Phrase(term),
+    )} ORDER BY ${bm25Rank(ftsIdx, none())})`,
+    query(db),
+    decodeRows(asDoc),
+  );
+
 const main = async (): Promise<void> => {
   await db.run(
     sql`CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE)`,
@@ -225,6 +311,32 @@ const main = async (): Promise<void> => {
   console.log(
     "list everyone    :",
     render(await listUsers()),
+  );
+
+  // ── full-text search demo ──
+  await setupSearch();
+  const seed: ReadonlyArray<
+    readonly [SoftStr, SoftStr]
+  > = [
+    ["Pipelines", "values flow through pure functions"],
+    ["Errors", "expected failures travel as data"],
+    ["Effects", "async work is proc, a pipeline step"],
+  ];
+  for (const [title, body] of seed) {
+    await db.run(
+      sql`INSERT INTO ${identSql(
+        docsTbl,
+      )}(title, body) VALUES(${title}, ${body})`,
+    );
+  }
+  console.log(
+    'search "pipeline":',
+    render(await searchDocs("pipeline")),
+  );
+  // a hostile query is sanitized, never a syntax error
+  console.log(
+    'search hostile   :',
+    render(await searchDocs('data" OR (')),
   );
 };
 
