@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:15+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [DB, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 7612bbd
+category: Added
 depends_on: []
 ---
 
@@ -314,3 +314,66 @@ new dependency, or any silently lowered threshold fails the ticket.
 - **Revisit trigger:** if ticket 16 finds itself string-assembling any FTS5
   SQL, the vocabulary here is incomplete — extend this module rather than
   letting raw SQL creep into plggpress.
+
+## Final Report
+
+Landed in feat `7612bbd` (19 files, +…), archived in this housekeeping commit.
+The library half of D11: a typed, escape-hatch-free FTS5 vocabulary for plgg-sql.
+
+### Probe (step 1, D11 evidence)
+`node:sqlite` on this host (Node v24.13.1, SQLite 3.51.2): `PRAGMA
+compile_options` reports `ENABLE_FTS5`; plain / `content=''` / external-content
+`CREATE VIRTUAL TABLE … USING fts5` all work; `MATCH ?` + `bm25()` return ordered
+rows; `INSERT INTO t(t) VALUES('rebuild')` succeeds. No fallback engine needed.
+
+### What shipped
+- **`SqlIdent` + `identSql`** (`Sql/model/SqlIdent.ts`, `Sql/model/Sql.ts`) — a
+  branded identifier (`[A-Za-z_][A-Za-z0-9_]*`) and the ONLY sanctioned way an
+  identifier reaches SQL text (SQLite cannot bind one as `?`). `identSql` returns
+  a param-free `Sql` fragment via the still-private `makeSql`; `SQL_BRAND` and
+  `makeSql` stay unexported.
+- **`Fts5Table` model** — closed spec: columns (SqlIdent + UNINDEXED flag), a
+  `Normal | Contentless | ExternalContent{table,rowid}` content sum folded with
+  exhaustive `match` (via `defineVariant`), and an `Option` tokenizer from the
+  closed `unicode61|porter|trigram|ascii` union. `fts5Table` validates the one
+  invariant types can't (≥1 column).
+- **Builders as fragments** — `createFts5Table` (zero-param DDL, a `Record`
+  makes the tokenizer clause exhaustive), `fts5Match`/`bm25Rank`/`fts5Phrase`
+  (search; user text bound, never concatenated), `fts5Rebuild`/`fts5SyncTriggers`
+  (the D4 derived-rebuildable levers; the three AI/AD/AU external-content
+  triggers, or an `Err` for Normal/Contentless).
+- **`fts5Phrase`** — turns arbitrary user text into a crash-safe quoted-phrase
+  query (metacharacters become literal phrase text; empty → `""` matching
+  nothing). Verified against the real engine.
+- Wired through `Fts5`/`Sql/model`/root barrels; plgg-sql deps unchanged; no
+  runner-script edits. `example.ts` gains a ranked-search demo.
+
+### Design decisions (recorded)
+- **First dialect-specific corner** of plgg-sql, isolated in its own `Fts5`
+  domain so `Db`/`Sql`/`Mapping` stay driver-agnostic.
+- **Identifier safety generalizes the SQL_BRAND wall** to identifiers: only a
+  brand-validated `SqlIdent` becomes a fragment; the tokenizer/content literals
+  are compile-time-closed trusted values placed in static templates (no minting,
+  no dead branches).
+- **The migration seam is verbatim**: plgg-db-migration passes FTS5 DDL + trigger
+  bodies (embedded `;` inside `BEGIN…END`) through `execScript` with ZERO engine
+  changes — proven by a real up/down fixture through the testkit migrator.
+
+### Verification (all 8 ACs)
+- Fresh `scripts/check-all.sh` **EXIT 0** — 0 failed; plgg-sql 100% statements
+  (all four metrics >91); plgg-db-migration >91.
+- No `as`/`any`/`ts-ignore` anywhere in the new files; `SQL_BRAND`/`makeSql`
+  unexported; every content mode expressible through the typed API.
+- End-to-end on real `node:sqlite`: external-content triggers sync insert/
+  update/delete; a `sql`+`fts5Match`+`bm25Rank` pipeline returns bm25-ordered,
+  `decodeRows`-typed hits; 7 hostile inputs never throw (Ok via `fts5Phrase`); a
+  raw unsanitized query surfaces as `Err<SqlError>`; `fts5Rebuild` restores.
+- FTS5 up/down migration applies and rolls back through the testkit migrator
+  unchanged. `npx tsx example.ts` prints a ranked search + a sanitized hostile
+  query returning `Ok — []`.
+
+### Follow-ups
+- snippet()/highlight() presentation helpers + corpus-quality eval are ticket 16
+  (mechanical siblings of `bm25Rank`); embeddings/cosine top-k is ticket 24.
+- `contentless_delete` and per-column weighted ranking beyond bm25 weights are
+  deferred until a consumer needs them.
