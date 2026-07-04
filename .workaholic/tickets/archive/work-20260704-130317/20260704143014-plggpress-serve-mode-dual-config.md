@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:14+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 67c148f
+category: Added
 depends_on: []
 ---
 
@@ -294,3 +294,63 @@ fails the ticket.
   `pressServer.ts` — if it lands anywhere else, the seam has failed its
   purpose; and when D6's OIDC OP arrives, re-examine whether serve needs
   graceful-shutdown hooks (in-flight auth flows) beyond node defaults.
+
+## Final Report
+
+Landed in feat `67c148f` (12 files, +685/-21), archived in this housekeeping
+commit. The served half of D5: a third mode beside SSG `build` and `plgg-bundle
+dev`, sharing one config and one render path.
+
+### What shipped
+- **`framework/Serve/usecase/serveApp.ts`** — discover → router factory →
+  `toFetch` → `serve` (plgg-server's node adapter, inheriting its body cap +
+  timeouts). Discovery/config failures stay on the typed `Result` channel;
+  resolves with the LISTENING server (via the adapter's onListen) so callers
+  read the real port and `close()` deterministically.
+- **`server/pressServer.ts`** — `pressServeWeb(contentDir, config, base)` =
+  `pressRouter(...)` verbatim today. THE mount seam: the one place tickets
+  16/19/20/27 attach `route("/api"|"/admin"|"/auth"|"/mcp", …)`. `pressRouter`
+  and `buildSpecOf` are untouched.
+- **CLI** — `runApp` gains a `serve` command with `--port`/`--hostname`;
+  `AppDefinition` gains a required `serveWeb` (plggpress is the only consumer);
+  `resolveServe` parses/validates the port (default 3000) beside `resolveOptions`.
+  `runServe` prints one startup line and returns a Promise that resolves only on
+  `close`, so the running server holds the event loop (the keep-alive shape).
+- `cli.ts` wires `serveWeb` from `pressServeWeb`; `cli.ts`/`runApp.ts`/
+  `devEntry.ts` docstrings + the README and guide page all state the three-mode
+  split. Zero new deps; no runner-script/plgg-server/render-path edits.
+
+### Design decisions (recorded)
+- **serve ≠ dev.** dev (`plgg-bundle dev` via `devEntry`) watches and re-imports;
+  serve loads config ONCE at startup, no watch. plggpress still ships no `dev`
+  command.
+- **Port/hostname stay flags, not `SiteConfig` fields** — per-environment
+  operational values, and keeping `SiteConfig` byte-untouched is the cheapest
+  proof of the SSG byte-identity gate.
+- **404 parity deferred** — served unrouted paths use the router's typed 404;
+  threading `notFoundHtml` needs a plgg-server change, so it is a recorded
+  follow-up for ticket 16 (which needs typed non-HTML errors anyway).
+
+### Verification (all 7 ACs)
+- Fresh `scripts/check-all.sh` **EXIT 0** — 0 failed; plggpress aggregate
+  coverage 93.55% (all four metrics >90).
+- **AC1 serve smoke** (from the guide, `plggpress serve --port 8199`): `/` →
+  200 with the live theme (`<!doctype html>`, the real `<title>`,
+  `pm-theme-toggle`); `/getting-started` + `/concepts/result` → 200; `/nope` →
+  404; one `serving … on http://localhost:8199/` line; the process stayed alive
+  across requests and stopped cleanly on kill.
+- **AC3 byte-identity GATE spec** (in-suite): over a fixture corpus, every served
+  body === the SSG-built `<path>/index.html` byte-for-byte — fails if serve ever
+  forks the render path.
+- **AC5 mount seam**: `pressServer.spec` proves the seam is a no-op today
+  (identical route set, empty middleware); its docstring names the future mounts.
+- **AC7 diff scope**: `git diff` touches only plggpress CLI/serve sources+specs,
+  the README, and the guide page — no runner scripts, no plgg-server, no
+  `pressRouter.ts`/`buildSpecOf` render change, no new dependency.
+
+### Follow-ups
+- Themed 404 body on the served instance (thread `notFoundHtml`) — ticket 16.
+- The FIRST real mount (ticket 16's `/api`) MUST land in `pressServer.ts`; if it
+  lands elsewhere, the seam has failed its purpose.
+- Process supervision / TLS / graceful shutdown (in-flight auth flows) — ticket
+  28 (production topology) and the auth tickets.
