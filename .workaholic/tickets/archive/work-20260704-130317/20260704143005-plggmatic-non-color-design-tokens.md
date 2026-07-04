@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:05+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 8949b37
+category: Added
 depends_on: [20260704143003-plggmatic-token-matrix-monochrome-default.md]
 ---
 
@@ -356,3 +356,70 @@ a `plggpress`/`plgg-view`/runner-script diff fails the ticket.
   the hover derivation prose here must follow its final names — the
   dependency ordering exists precisely so this ticket reads 03's outcome,
   not its draft.
+
+## Final Report
+
+Implemented in commit `8949b37` (feat, code) + this archive commit.
+
+**What Changed**
+- New `Style/model/` token modules: `typography.ts`
+  (`TypeRole` scale `h1`–`h4`/`body` + exhaustive `Record` of
+  `{size,lineHeight,weight,compact}` from the oracle — h1 `1.875rem/1.25/400`
+  … body `1rem/1.75/400`; compact sub-`sm` overrides as `Option` (h3 keeps its
+  leading → `None`); closed `FontWeight {400,500,600}` with `regular`/`medium`/
+  `semibold`; `sansFontStack`), `breakpoint.ts` (`sm`/`snap`/`lg` = 640/900/1024
+  as **TS constants** + `minWidth`/`maxWidth` builders, max = min−1px; recorded
+  as never-`--pm-*` because `@media` can't resolve `var()`), `metric.ts` (shell
+  `shell-max`/`sidebar`/`measure`/`rail` = 1440px/256px/48rem/48px as
+  `var()`-consumable `--pm-*` + `metricValue`/`metricVar`), `zIndex.ts`
+  (`content`/`chrome`/`backdrop`/`overlay` = 1/30/40/50).
+- New `Style/usecase/` emitters: `metricCss.ts` (single scheme-independent
+  `:root{--pm-*}` block, escape-safe, no `html.dark`), `reducedMotion.ts`
+  (framework-owned `prefers-reduced-motion:reduce` → `scroll-behavior:auto`).
+  New atoms in `utilities.ts`: `lineHeight`, tokenized `weight` (shadows
+  plgg-view's untyped `weight`), `zIndex`, `typeStyle` (size+leading+weight
+  bundle), `measure`.
+- Hover/hover-ink DECISION recorded in `Style/model/token.ts` — **derive, no
+  token** (`hover:=primary-base`, `hover-ink:=neutral surface`); both revisit
+  triggers (palette override; port AA failure) written down; `interaction.ts`'s
+  `hoverDim` comment reconciled (component opacity-dim vs theme inverted-pill,
+  both stand).
+- Consumers migrated: `heading` renders the guide scale (level 1 =
+  `1.875rem`/400, was `2xl`/600), `prose` uses `typeStyle("body")` + the
+  `measure` metric var, `button` uses `weight(medium)`;
+  `plggmatic-example/src/app.ts` drops its `48px`/`900px`/`899px` literals for
+  the `rail` metric var + `snap` breakpoint builders, tokenizes the sticky
+  header z-index, and injects `metricCss`.
+- Barrels (`Style/index.ts`, `styleEntry.ts`) export the whole surface; `weight`
+  shadows plgg-view's after the star. Docs: new `site/design-tokens.md` +
+  compiling `examples/designTokens.ts` + Foundations sidebar leaf;
+  `components/typography.md` updated for the shipped scale. One spec per new
+  module + extended `utilities.spec`/`typography.spec`.
+
+**Verification**
+- Fresh `scripts/check-all.sh`: **EXIT 0**. plggmatic tsc clean, **83 passed /
+  0 failed**, coverage 100/98.28/100/100 gate passed (one dead branch → 98.28,
+  > 90); `plggmatic-example` 11 passed / 0 failed; site examples tsc clean;
+  **13 pages built** (the new `design-tokens` page) + dead-link check passed.
+- Diff confined to `packages/plggmatic/**`, `packages/plggmatic-example/**`,
+  `packages/site/**` — no `plgg-view`, `plggpress`, runner-script, or
+  dependency diff; no `as`/`any`/`ts-ignore`. All seven acceptance criteria
+  hold.
+
+**Discovered Insights**
+- **Breakpoints cannot be custom properties** — a `@media` query never resolves
+  `var()`. They must stay TS constants consumed by CSS-emitting code; the model
+  records this prominently so a future "tidy the breakpoints into `--pm-*`"
+  refactor can't silently break every media query.
+- **The `measure` var needs its emitter present at render.** Because `prose`'s
+  cap became `max-width:var(--pm-measure)`, `metricCss` must be injected
+  wherever prose renders or the cap silently no-ops — the example's `appCss`
+  now injects it, and ticket 07 must wire it into the guide shell (a real
+  runtime dependency, not just aesthetics).
+- **Compact leading is `Option`, not a sentinel.** The oracle's `639px` block
+  re-states h1/h2 leading but omits h3's, so `CompactType.lineHeight` is
+  `Option<SoftStr>` — ticket 07 folds it with `matchOption` to reproduce the
+  block byte-for-byte.
+- Coverage-line discipline held: the authoritative signal is the
+  `N passed, M failed` line + the `sh -eu` success trailer / exit code from a
+  FOREGROUND run, not the orthogonal `Coverage gate passed` line.
