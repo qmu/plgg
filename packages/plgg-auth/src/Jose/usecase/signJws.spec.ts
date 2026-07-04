@@ -14,6 +14,8 @@ import {
 import { isOk } from "plgg";
 import {
   signJws,
+  signWith,
+  importVerifyKey,
   verifyJwsWith,
   parseCompactJws,
   compactJwsString,
@@ -32,7 +34,6 @@ import {
   a2PublicKey,
   compactOf,
   b64OfJson,
-  b64,
 } from "plgg-auth/Jose/testkit/fixtures";
 
 test("signJws output verifies with verifyJwsWith (roundtrip)", async () => {
@@ -52,25 +53,31 @@ test("signJws output verifies with verifyJwsWith (roundtrip)", async () => {
   );
 });
 
-test("garbage private key material folds to SignFailure", async () =>
-  check(
-    await signJws({
-      ...a2PrivateKey,
-      n: b64("AA"),
-      d: b64("AA"),
-      p: b64("AA"),
-      q: b64("AA"),
-      dp: b64("AA"),
-      dq: b64("AA"),
-      qi: b64("AA"),
-    })("payload"),
+test("signing with a verify-only key folds to SignFailure", async () => {
+  // A key imported with only the "verify" usage
+  // makes crypto.subtle.sign throw InvalidAccessError
+  // on every runtime (the usage is checked before
+  // any key-material math), so the SignFailure arm
+  // is exercised deterministically — unlike a
+  // degenerate key, which some OpenSSL builds sign
+  // successfully.
+  const verifyKey =
+    await importVerifyKey(a2PublicKey);
+  if (!isOk(verifyKey)) {
+    return check(isOk(verifyKey), toBe(true));
+  }
+  return check(
+    await signWith(verifyKey.content)(
+      "header.payload",
+    ),
     errThen((e) =>
       check(
         joseErrorKind(e),
         toBe("SignFailure"),
       ),
     ),
-  ));
+  );
+});
 
 test("signJws is deterministic (RSASSA-PKCS1-v1_5)", async () => {
   const first =

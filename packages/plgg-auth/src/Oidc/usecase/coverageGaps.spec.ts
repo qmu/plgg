@@ -19,6 +19,7 @@ import {
   RsaPrivateJwk,
 } from "plgg-auth/index";
 import { memoryStore } from "plgg-auth/Oidc/testkit/memoryStore";
+import { a2PrivateKey } from "plgg-auth/Jose/testkit/fixtures";
 import {
   RP_REDIRECT,
   publicClient,
@@ -383,22 +384,21 @@ test("a broken signing key makes issuance a ServerError", async () => {
     return check(s === null, toBe(false));
   }
   const clock = { now: 1_700_000_000 };
-  // A brand-valid but cryptographically garbage key.
-  const garbage: RsaPrivateJwk = {
-    kty: "RSA",
+  // Cryptographically valid key material, but
+  // declared `use: "enc"` — WebCrypto rejects it
+  // from a signing import (`use` must be `"sig"`)
+  // with a DataError on every runtime, so id-token
+  // issuance folds to a ServerError deterministically,
+  // rather than depending on an OpenSSL build to
+  // reject degenerate key material at sign time.
+  const encOnlyKey: RsaPrivateJwk = {
+    ...a2PrivateKey,
     kid: box("Kid")("k"),
-    n: box("Base64UrlStr")("AA"),
-    e: box("Base64UrlStr")("AQAB"),
-    d: box("Base64UrlStr")("AA"),
-    p: box("Base64UrlStr")("AA"),
-    q: box("Base64UrlStr")("AA"),
-    dp: box("Base64UrlStr")("AA"),
-    dq: box("Base64UrlStr")("AA"),
-    qi: box("Base64UrlStr")("AA"),
+    use: "enc",
   };
   const base = memoryStore(
     [publicClient],
-    some(garbage),
+    some(encOnlyKey),
   );
   await base.saveCode({
     code: box("AuthCode")("c-bad"),

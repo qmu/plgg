@@ -66,7 +66,12 @@ export type RsaPublicJwk = Readonly<{
 
 /**
  * An RSA private JWK with the full CRT parameter
- * set WebCrypto expects for import.
+ * set WebCrypto expects for import. The optional
+ * `use` (RFC 7517 §4.2) declares the key's
+ * intended public-key use; WebCrypto rejects a
+ * key whose `use` is not `"sig"` from a signing
+ * import, so a `"enc"` key can never be silently
+ * used to sign.
  */
 export type RsaPrivateJwk = Readonly<{
   kty: "RSA";
@@ -79,6 +84,7 @@ export type RsaPrivateJwk = Readonly<{
   dp: Base64UrlStr;
   dq: Base64UrlStr;
   qi: Base64UrlStr;
+  use?: "sig" | "enc";
 }>;
 
 const asRsaKty = (
@@ -172,6 +178,7 @@ export const privateJwkJson = (
   dp: string;
   dq: string;
   qi: string;
+  use?: "sig" | "enc";
 } => ({
   ...publicJwkJson(key),
   d: base64UrlString(key.d),
@@ -180,4 +187,9 @@ export const privateJwkJson = (
   dp: base64UrlString(key.dp),
   dq: base64UrlString(key.dq),
   qi: base64UrlString(key.qi),
+  // Only emitted when set, so an ordinary signing
+  // key (no `use`) imports unchanged.
+  ...(key.use !== undefined
+    ? { use: key.use }
+    : {}),
 });
