@@ -16,14 +16,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/qmu/plggmatic.git"
+    "url": "git+https://github.com/qmu/plgg.git"
   },
   "author": "qmu",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/qmu/plggmatic/issues"
+    "url": "https://github.com/qmu/plgg/issues"
   },
-  "homepage": "https://github.com/qmu/plggmatic#readme",
+  "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
     "plgg-view": "file:../plgg-view",

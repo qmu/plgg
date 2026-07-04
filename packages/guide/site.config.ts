@@ -37,7 +37,9 @@ const leaf = (
 // dependency-ish order, closing with the example tutorial),
 // then the site tool (plggpress), with its single Overview
 // page. (plggpress now carries its framework internally —
-// the absorbed former plggmatic, now its own repository.)
+// absorbed from the retired plggmatic app-framework facade;
+// the name plggmatic now belongs to the UI design framework
+// in packages/plggmatic/.)
 const LIBRARY_PACKAGES: ReadonlyArray<
   readonly [string, string]
 > = [

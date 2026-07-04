@@ -5,7 +5,7 @@ import { textLink } from "plggmatic";
 
 export const repoLink = textLink({
   label: "plggmatic on GitHub",
-  to: "https://github.com/qmu/plggmatic",
+  to: "https://github.com/qmu/plgg",
   external: true,
 });
 

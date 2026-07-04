@@ -2,7 +2,7 @@
 
 The repository ships a reference app, `@plggmatic/example` — an independent client-side program that displays the **traversable** reading of column-oriented layout: a *column stack*. Where this documentation site runs a fixed sidebar / content / rail arrangement, the workbench **pushes columns as you drill in**: the root column lists sections; selecting a section pushes a notes-list column; selecting a note pushes a reading column. Each pushed column carries sticky header chrome with a close link, a breadcrumb trail in the top bar mirrors the stack, and the whole arrangement round-trips through the URL. Both UIs are compositions of the same `row`/`column`/`pane` builders — the proof that the layout system is a pattern, not a fixed theme.
 
-The built app is served beside this site at the `/example/` path, and its source lives in [`packages/example` on GitHub](https://github.com/qmu/plggmatic/tree/main/packages/plggmatic-example).
+The built app is served beside this site at the `/example/` path, and its source lives in [`packages/plggmatic-example` on GitHub](https://github.com/qmu/plgg/tree/main/packages/plggmatic-example).
 
 ## The stack is derived, the geometry is composed
 

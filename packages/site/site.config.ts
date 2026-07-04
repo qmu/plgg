@@ -54,7 +54,7 @@ const config = {
     leaf("Components", "/components/button"),
     leaf(
       "GitHub",
-      "https://github.com/qmu/plggmatic",
+      "https://github.com/qmu/plgg",
     ),
   ],
   sidebar: [
@@ -89,7 +89,7 @@ const config = {
   social: [
     {
       icon: "github",
-      link: "https://github.com/qmu/plggmatic",
+      link: "https://github.com/qmu/plgg",
     },
   ],
   // The extra Host headers plggpress's node:http dev

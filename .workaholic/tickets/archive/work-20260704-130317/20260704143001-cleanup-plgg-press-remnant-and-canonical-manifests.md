@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:01+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: dfc11d7
+category: Changed
 depends_on: []
 ---
 
@@ -225,3 +225,40 @@ is green. Any grep hit, script diff, or coverage dip fails the ticket.
   note covers the gap until then.
 - Revisit trigger: if a future ticket moves `site`/`plggmatic-example` or
   renames packages again, re-run acceptance greps 2–3 as part of that work.
+
+## Final Report
+
+**What Changed**
+- Removed the empty untracked `packages/plgg-press/` remnant (`rmdir`).
+- Retargeted `repository`/`bugs`/`homepage` in `packages/plggmatic`,
+  `packages/plggmatic-example`, `packages/site` manifests from
+  `github.com/qmu/plggmatic` to `github.com/qmu/plgg` (shape identical to
+  `packages/plgg`).
+- Reworded four stale "own repository" prose sites
+  (`plggpress/src/framework/index.ts`, `plggpress/README.md`,
+  `guide/packages/plggpress.md`, `guide/site.config.ts`) to the current truth.
+- Swapped all `qmu/plggmatic` outbound links in `packages/site`
+  (`site.config.ts`, `workbench.md` + its link text, `components/text-link.md`,
+  `examples/textLink.ts`) and the `plggmatic` `textLink.spec.ts` twin to
+  `qmu/plgg`.
+- Expanded the single disambiguation note in `packages/plggmatic/README.md`
+  naming both historical meanings of "plggmatic" and warning off the
+  absorb-era rewire map.
+
+**Verification**
+- `grep -rn "own repository" packages` → 0; `grep -rn "qmu/plggmatic" packages
+  scripts .github` → 0.
+- Manifest `repository`/`bugs`/`homepage` blocks byte-identical in shape to
+  `packages/plgg`.
+- Fresh `scripts/check-all.sh` green end-to-end (EXIT=0): all gates pass,
+  `site` rebuilt (re-rendered edited `.md`, compiled `examples/textLink.ts`
+  twin), `plggmatic` 34 tests pass (updated `textLink.spec.ts`).
+- `git diff --stat` = the 13 Key Files only; no runner-script changes.
+
+**Discovered Insights**
+- A uniform `qmu/plggmatic`→`qmu/plgg` substring swap cleanly covered every URL
+  case (git+https, /issues, #readme, /tree, plain links) in one pass; only the
+  `workbench.md` link *text* (`packages/example`→`packages/plggmatic-example`)
+  needed a separate fix.
+- `packages/plgg-press` existed on disk but was fully untracked, so removal left
+  `git status` unchanged — confirming the ticket's `rmdir`-not-`git rm` call.

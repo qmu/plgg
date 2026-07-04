@@ -12,8 +12,9 @@ builds **this guide**.
 
 plggpress carries a small generic **framework** internally
 (config loading, a router builder, static-build + CLI
-orchestration — absorbed from the former standalone
-`plggmatic`, now its own repository) and supplies the
+orchestration — absorbed from the retired `plggmatic`
+app-framework facade; the name now belongs to the UI design
+framework in `packages/plggmatic/`) and supplies the
 docs-site specifics on top of it: the `SiteConfig` type
 and the `defineSite` validator that this guide's
 `site.config.ts` imports, plus the content pipeline that
