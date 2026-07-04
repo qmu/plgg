@@ -6,9 +6,10 @@ origin_branch: work-20260704-015006
 origin_commit: 51d2088
 created_at: 2026-07-04T12:56:00+09:00
 severity: moderate
-status: active
+status: resolved
 resolved_by_pr:
 resolved_by_commit:
+resolved_by_branch: work-20260704-130317
 ---
 
 # plggmatic's `publish` npm script breaks the canonical publish-npm.sh flow
@@ -20,3 +21,10 @@ Discovered while shipping PR #59: `packages/plggmatic/package.json` defines a sc
 ## How to Fix
 
 Remove the `publish` script from `packages/plggmatic/package.json` (building on publish is already handled: publish-npm.sh builds dists via `build.sh` before staging, and other packages have no build-on-publish hook). If a build-before-pack step is genuinely wanted, use `prepack` (runs in the package dir with its own node_modules during local dev), never a `publish` hook that recurses. Then re-run `./scripts/publish-npm.sh` — it will re-verify plggmatic (publish-if-newer makes the already-uploaded 0.1.0 a safe skip) and exit clean.
+
+## Resolution
+
+Fixed two-part on branch `work-20260704-130317`:
+
+1. **Hardened the publisher** — `scripts/publish-npm.sh` now passes `--ignore-scripts` to the staged `npm publish`. The dist is already built by `build.sh` before staging, so no package needs a publish-time lifecycle hook; this immunizes the whole family-publish flow against any staged package's stray `prepublishOnly`/`prepare`/`prepack`/`publish`/`postpublish` script, not just plggmatic's.
+2. **Removed the errant script** — deleted the `"publish": "npm run build && npm publish"` entry from `packages/plggmatic/package.json`. A monorepo-wide scan confirms no `package.json` under `packages/` now defines any `publish`/`prepublish`/`prepublishOnly`/`prepare`/`prepack` lifecycle script.

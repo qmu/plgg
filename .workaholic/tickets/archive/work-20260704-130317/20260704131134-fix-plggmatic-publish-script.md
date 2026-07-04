@@ -3,9 +3,9 @@ created_at: 2026-07-04T13:11:34+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Config]
-effort:
-commit_hash:
-category:
+effort: 0.5h
+commit_hash: 1510897
+category: Changed
 depends_on:
 ---
 
@@ -77,3 +77,22 @@ How the outcome's quality is assured. `/drive` surfaces this in its approval pro
 - The developer chose harden-plus-cleanup over a minimal single-file delete, and a live-publish gate over static-only — a real `publish-npm.sh` re-run is the proof, so the implementing session needs valid npm auth on the host (`npm whoami` must resolve; the token expired once during PR #59's ship).
 - A recurrence-guard gate (`gate-*.sh` scanning for stray lifecycle scripts, wired into `check-all.sh`) was explicitly considered and deferred — the `--ignore-scripts` hardening already neutralizes the impact, so a gate is optional polish, not required here.
 - plggmatic is a distinct package on `main` (the UI design framework); this ticket touches only its `package.json` `scripts`, no source or public API.
+
+## Final Report
+
+### What Changed
+
+- `scripts/publish-npm.sh` — the staged publish now runs `npm publish --tag latest --ignore-scripts` (line 112), with a comment explaining why (dist is prebuilt by `build.sh`, so no publish-time hook is legitimate). This immunizes the whole family-publish flow against any staged package's stray `prepublishOnly`/`prepare`/`prepack`/`publish`/`postpublish` script — not just plggmatic's.
+- `packages/plggmatic/package.json` — removed the `"publish": "npm run build && npm publish"` lifecycle entry. Standard `build`/`test`/`tsc`/`coverage` scripts are intact. A monorepo-wide scan confirms no `package.json` under `packages/` now defines any `publish`/`prepublish`/`prepublishOnly`/`prepare`/`prepack` script.
+- `.workaholic/concerns/59-plggmatic-publish-script-breaks-canonical-publish.md` — set `status: resolved`, added a Resolution section, and moved it to `concerns/archive/`; removed its line from `concerns/index.md` (the house convention: archived concerns are not individually listed, only the `archive/` folder is linked).
+
+### Verification
+
+- `grep -n 'npm publish' scripts/publish-npm.sh` → shows `--ignore-scripts` on the publish line. ✅
+- Per-package lifecycle-script scan → prints nothing. ✅
+- `scripts/check-all.sh` → exit 0 (green). This required restoring the workspace's un-installed `file:` devDeps (`scripts/npm-install.sh` across plgg-parser, plgg-highlight, and the other newer packages) — a **pre-existing install-state gap** unrelated to this change; the initial red check-all failed at the plgg-parser build step (package #2), which this diff never touches. The resulting `package-lock.json` churn was reverted so the commit stays scoped.
+
+### Discovered Insights
+
+- The live `./scripts/publish-npm.sh` re-run (gate item 5) was **not** run under `/drive`: publishing to the public npm registry is a Create-Public-Surface action that only the user's explicit instruction can authorize — the auto-mode classifier correctly blocked it. Because the publish-if-newer gate skips every package already at its registry version and no versions were bumped on this branch, a re-run is an **all-skip no-op** (publishes nothing new) that only proves the flow reaches exit 0 with no exit-127. Left for the user to run via `!./scripts/publish-npm.sh`.
+- The workspace uses per-package `npm install` (no root workspaces); the newer packages (plgg-parser, plgg-highlight, …) had never had `scripts/npm-install.sh` run, so their `file:` deps' `.bin` symlinks were missing — the true cause of the initial check-all/build 127, distinct from this ticket's own 127 (which was plggmatic's `publish` hook during a real publish).
