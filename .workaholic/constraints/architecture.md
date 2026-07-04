@@ -78,3 +78,43 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 **Criterion**: No `import` from an LLM vendor SDK (e.g., `openai`, `@anthropic-ai/sdk`, `@google/generative-ai`) appears in `packages/plgg-foundry/src/`. Verifiable via static import analysis.
 
 **Review trigger**: Revisit when adding a new LLM vendor or when `plgg-kit` is split into separate vendor packages.
+
+## Vendor Boundary (domain / vendors / entrypoints)
+
+**Bounds**: Every package's `src/` keeps third-party code behind an anti-corruption boundary. A third-party import — a `node:*` builtin, a Web-platform SDK, or the tsc compiler API (`typescript`); the repo has zero third-party npm **runtime** deps — may appear in **production** code ONLY under `src/vendors/**` (the anti-corruption layer, the sole place third-party types are touched) or `src/entrypoints/**` (thin CLI/HTTP shells — the program checkpoints, a `bin/` launcher is outside `src/`). The three-part layout is `src/domain/{model,usecase}` (pure domain), `src/vendors/` (boundary), `src/entrypoints/` (checkpoints). plgg-family packages (`plgg`, `plgg-*`, `plggmatic*`, `plggpress*`, and self-aliases) are **domain vocabulary, not vendors** — importable anywhere; so are the sanctioned boundary-crossing plgg types (`Option`, `Result`, `Str`, `SoftStr`, `Dict`, `Datum`, `PromisedResult`, …). Vendor public signatures exchange only primitives, domain-declared types, and plgg types; vendor failures fold into value-level domain errors (`Result`), never thrown across the seam; `index.ts` re-exports domain only. Each package's domain is consumed by at least one program checkpoint outside it (a `bin/` CLI, an HTTP adapter, or a downstream app: `example`, `plggmatic-example`, `plggpress`, `guide`, `site`).
+
+**Rationale**: 消極的ベンダー依存 (Passive Vendor Dependence) — keeping third-party types out of domain signatures means any vendor is swappable without touching domain code, and the domain's unit tests stay green with fakes. This is the code-structure (modularity) half of the vendor-neutrality pillar; plgg itself is the in-house foundation the policy names.
+
+**Scope (v1, decided at drive time)**: The gate governs **production** code. Test code — `*.spec.ts` and shared `testkit/` infrastructure — is excluded, because the "test against the real engine" practice legitimately imports real vendors in tests (a temp-dir `node:fs`, a real `node:sqlite`): that is the anti-corruption layer's tests connecting to the vendor, not domain purity. The reference package `plgg-db-migration` — which passes unexempted — has exactly this shape (domain specs create temp dirs, `testkit/sqliteDb.ts` opens `node:sqlite`). Web-platform globals (`fetch`/`Request`/`Response`/DOM) are ambient, not imported, so import analysis cannot catch them; v1 enforces import-**location** only. Signature-level checking (no third-party type in a vendor public param/return) is a future upgrade — and the no-`as`/`any`/`ts-ignore` rule already surfaces a leaked vendor type in a production signature through `tsc`, since the domain cannot cast it away.
+
+**Criterion**: Verified by `scripts/gate-vendor-boundary.sh` (registered in `scripts/check-all.sh`, which the run-tests CI workflow invokes — one source of truth). It runs `scripts/vendor-boundary-analyzer.mjs`, which uses the already-present `typescript` package (`ts.preProcessFile`, resolved from plgg-bundle — **zero new dependencies**) to classify every import specifier. A third-party import in production code outside `vendors/`/`entrypoints/` is a violation; a package with violations must be listed in `scripts/vendor-boundary-exemptions.txt`; an **exempted-but-clean** package is a stale exemption (also a failure). The gate carries a `--self-test` proving it red on a seeded violation + a stale exemption and green on a clean tree. `plgg` and `plgg-db-migration` pass unexempted.
+
+**Audit** (all 23 packages, 2026-07-05; 15 conformant, 6 exempted, 2 content apps):
+
+| Package | Layout | Boundary status |
+| --- | --- | --- |
+| `plgg` | flat foundation | conformant — zero third-party imports (the domain vocabulary itself) |
+| `plgg-db-migration` | domain/vendors/entrypoints | **conformant (reference)** — `node:fs` in `vendors/fs.ts`, `process`/exit in `entrypoints/cli.ts` |
+| `plgg-cli` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-fetch` | legacy Feature/ | conformant — no third-party imports (the pilot for ticket 20260704185203) |
+| `plgg-foundry` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-highlight` | legacy Feature/ | conformant — no third-party imports (dropped the tsc peerDep) |
+| `plgg-http` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-kit` | legacy Feature/ | conformant — production clean (the `LLMs/vendor/` seam names drift is cosmetic; migrate to plural `vendors/` later) |
+| `plgg-md` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-parser` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-router` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-sql` | legacy Feature/ | conformant — the `Db` seam is driver-agnostic; `node:sqlite` lives only in `example.ts`/specs |
+| `plgg-view` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-auth` | legacy Feature/ | conformant — production clean (`node:crypto`/`node:sqlite` only in specs) |
+| `plggmatic` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-bundle` | domain/vendors/entrypoints | **EXEMPT** — has the layout but `domain/usecase/*` import `node:` directly; fixed by ticket 20260704185202 |
+| `plgg-server` | legacy Feature/ | **EXEMPT** — `node:http` + `node:fs/promises` in the server + SSG writer, outside a `vendors/` boundary |
+| `plgg-test` | legacy | **EXEMPT** — the test runner imports the tsc API (`typescript`) + `node:fs/path/url`; tooling package |
+| `plggpress` | legacy Feature/ | **EXEMPT** — the framework writes files (`node:fs/promises`) + serves (`node:http`) outside a `vendors/` boundary |
+| `example` | leaf app | **EXEMPT** — a runnable demo wiring `node:` (child_process/crypto/fs/http/path) directly |
+| `plggmatic-example` | leaf app | **EXEMPT** — the workbench app wiring `node:` (crypto/fs/path) directly |
+| `guide` | content app (no `src/`) | program checkpoint — a plggpress consumer; no `src/` to gate |
+| `site` | content app (no `src/`) | program checkpoint — a plggpress consumer; no `src/` to gate |
+
+**Review trigger**: Revisit when a new package is added (audit it — conform or exempt with a reason); when an exempted package migrates (remove its line, the stale-exemption check enforces this); when the durable-core/sacrificial-shell spine (ticket 20260704143031) lands its orthogonal boundary (keep the seam/boundary/checkpoint vocabulary consistent between the two constraint texts); or when v2 adds signature-level or Web-global checking.
