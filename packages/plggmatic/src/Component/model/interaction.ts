@@ -33,7 +33,7 @@ export type InteractionState =
 export const focusRing: Variant = {
   selector: ":focus-visible",
   styles: [
-    ...outline("primary"),
+    ...outline("primary-base"),
     ...decl("outline-offset", "2px"),
   ],
 };

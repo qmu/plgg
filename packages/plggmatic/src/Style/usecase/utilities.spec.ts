@@ -45,20 +45,20 @@ test("color atoms resolve through --pm-* vars", () =>
       ]),
     ),
     check(
-      borderColor("primary"),
+      borderColor("primary-base"),
       toEqual([
         {
           prop: "border-color",
-          value: "var(--pm-primary)",
+          value: "var(--pm-primary-base)",
         },
       ]),
     ),
     check(
-      outline("primary"),
+      outline("primary-base"),
       toEqual([
         {
           prop: "outline",
-          value: "2px solid var(--pm-primary)",
+          value: "2px solid var(--pm-primary-base)",
         },
       ]),
     ),

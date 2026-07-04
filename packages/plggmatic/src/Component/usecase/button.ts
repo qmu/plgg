@@ -58,8 +58,8 @@ export const button = <Msg>(
         ? [attr("disabled", "")]
         : [onClick(props.onPress)]),
       style_(
-        bg("primary"),
-        textColor("primary-text"),
+        bg("primary-base"),
+        textColor("surface"),
         px(4),
         py(2),
         rounded("md"),

@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:03+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: d3f210d
+category: Changed
 depends_on: []
 ---
 
@@ -303,3 +303,56 @@ runner-script diff fails the ticket.
 - The warm cream/pine palette is deleted, not kept as an alternate scheme;
   if anyone wants it back it returns via ticket 04's override API, not as a
   third `Scheme`.
+
+## Final Report
+
+**What Changed**
+- `Style/model/token.ts`: flat 8-role union → closed 25-token matrix.
+  Exported `SemanticRole` (primary/success/danger/warning/info), `Variant`
+  (base/text/surface/border), `Neutral` (surface/surface-2/text/muted/border),
+  and `` type Color = `${SemanticRole}-${Variant}` | Neutral ``. `colors` is
+  DERIVED from the unions (map callback return-annotated `: Color` so the
+  template literal keeps its type). `PALETTE` filled with the monochrome qmu
+  default: light `#111111` on `#ffffff`, dark inks flattened from the oracle's
+  translucent whites (`#dfdfe4`/`#8d8d95`/`#f4f4f4`); semantic surfaces/inks
+  seeded from the oracle callout hues, base/border tiers chosen for AA; `info`
+  a provisional blue (the one non-oracle role). Doctrine comment amended per D9.
+- Call sites: `button.ts` `bg("primary-base")` + on-base label
+  `textColor("surface")`; `textLink.ts` `textColor("primary-text")`;
+  `interaction.ts` `outline("primary-base")`.
+- Barrels: `Style/index.ts` and `styleEntry.ts` export `SemanticRole`/`Neutral`.
+  The token `Variant` is intentionally NOT barrel-exported — plgg-view already
+  exports a `Variant` (the {selector, styles} CSS variant) that `styleEntry`
+  re-exports and `interaction.ts` imports; shadowing it would break that. Token
+  `Variant` stays importable from `plggmatic/Style/model/token`.
+- Specs: `token.spec.ts` reworked to union-level exhaustiveness pins
+  (`Record<SemanticRole|Variant|Neutral, true>`) + derived-`colors` checks
+  (length 25, unique); `contrast.spec.ts` rebuilt as the role-parameterized
+  phase-1 gate (24 text pairs ≥4.5:1, 10 border pairs ≥3:1, both schemes) with
+  an every-non-divider-token-covered assertion; new `schemeCss.spec.ts` (50
+  vars, escape-safe); `utilities.spec.ts` migrated off bare `"primary"`.
+- `packages/site/color-scheme.md` rewritten for the matrix + neutral tables,
+  the monochrome default, the D9 doctrine note, and recomputed measured ratios.
+
+**Verification**
+- Contrast solver (scratchpad) converged first try: all 34 pairings pass in
+  both schemes; the shipped values match the spec.
+- tsc-plggmatic clean; `test-plggmatic.sh` = 100/100/100/100, "gate passed
+  (all four > 90%)", contrast + schemeCss + token specs green.
+- Fresh `check-all.sh` exit 0; the two consumers of the changed union
+  re-verified directly: `plggmatic-example` compiles + tests (now EXEMPT),
+  `site` `tsc -p tsconfig.examples.json` clean.
+- `git diff` = exactly the Key Files (Style/**, 3 components, 2 barrels,
+  color-scheme.md, + new schemeCss.spec.ts); no plggpress, no runner scripts,
+  no new deps.
+
+**Discovered Insights**
+- A template literal `` `${r}-${v}` `` widens to `string` in expression
+  position — the map callback needs a `: Color` return annotation to keep the
+  `` `${SemanticRole}-${Variant}` `` type, otherwise `colors` fails to assign.
+- Name collision: the token layer's natural `Variant` name clashes with
+  plgg-view's CSS `Variant` on the shared style barrel; resolved by not
+  re-exporting the token variant through the barrel.
+- The neutral hairline `border` cannot meet a 3:1 floor by design (a faint
+  divider), so it is the one token gated by the emitter spec (must be emitted)
+  rather than by a contrast ratio.

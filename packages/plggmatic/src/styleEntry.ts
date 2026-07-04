@@ -21,6 +21,8 @@
 export * from "plgg-view/style";
 export {
   type Color,
+  type SemanticRole,
+  type Neutral,
   type Scheme,
   colors,
   schemes,

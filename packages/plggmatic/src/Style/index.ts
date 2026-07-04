@@ -10,6 +10,14 @@
  */
 export {
   type Color,
+  // `SemanticRole`/`Neutral` are re-exported; the token
+  // `Variant` union is intentionally NOT — plgg-view's
+  // style surface already exports a `Variant` (the
+  // {selector, styles} CSS variant) and `styleEntry`
+  // re-exports it, so the token variant stays importable
+  // from `plggmatic/Style/model/token` to avoid shadowing.
+  type SemanticRole,
+  type Neutral,
   colors,
   colorHex,
   colorVar,
