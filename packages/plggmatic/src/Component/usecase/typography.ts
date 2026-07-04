@@ -12,12 +12,11 @@ import {
   text,
 } from "plgg-view";
 import {
-  type FontSize,
+  type TypeRole,
   style_,
   textColor,
-  text as fontSize,
-  weight,
-  maxW,
+  typeStyle,
+  measure,
 } from "plggmatic/styleEntry";
 
 /**
@@ -48,24 +47,28 @@ const levelEl = (
   }
 };
 
-// Visual size follows the font-size token scale, largest
-// at the top level. Exhaustive over the level union.
-const LEVEL_SIZE: Record<HeadingLevel, FontSize> =
+// The prose type role for each heading level. Exhaustive
+// over the level union — a level maps to its `h1`–`h4`
+// entry in the shared {@link typeStyle} scale, so element,
+// size, leading, and weight all come from one token.
+const LEVEL_ROLE: Record<HeadingLevel, TypeRole> =
   {
-    1: "2xl",
-    2: "xl",
-    3: "lg",
-    4: "base",
+    1: "h1",
+    2: "h2",
+    3: "h3",
+    4: "h4",
   };
 
 /**
  * The heading component. **Recorded rule**: the heading
  * `level` is a semantic prop that maps 1:1 to a real
- * `h1`–`h4` element, and the visual size is drawn from
- * the font-size token scale by that same level — so the
- * document outline and the type scale never drift apart
- * (no "looks like an h2 but is a div"). Themed `text`
- * ink.
+ * `h1`–`h4` element, and its size / leading / weight are
+ * drawn from the prose {@link typeStyle} scale by that
+ * same level — so the document outline and the type scale
+ * never drift apart (no "looks like an h2 but is a div").
+ * The shipped scale is the guide's: level 1 renders
+ * `1.875rem` at weight 400, not the old generic
+ * `2xl`/`600`. Themed `text` ink.
  */
 export const heading = (
   level: HeadingLevel,
@@ -74,8 +77,7 @@ export const heading = (
   levelEl(level)(
     [
       style_(
-        fontSize(LEVEL_SIZE[level]),
-        weight(600),
+        typeStyle(LEVEL_ROLE[level]),
         textColor("text"),
       ),
     ],
@@ -85,12 +87,13 @@ export const heading = (
 /**
  * The prose component. **Recorded rule**: prose is a
  * typographic container that establishes the reading
- * baseline once — themed body ink and a capped readable
- * measure (48rem, i.e. 192 spacing units) — for
- * arbitrary flow content; per-element prose rules (link
- * underline weight, code badges, list rhythm) are added
- * one at a time as real documents demand them, not
- * pre-built here (emergent design system).
+ * baseline once — themed body ink, the `body` type role
+ * (`1rem` at line-height `1.75`), and the capped readable
+ * `measure` (the `48rem` shell metric, via its custom
+ * property) — for arbitrary flow content; per-element
+ * prose rules (link underline weight, code badges, list
+ * rhythm) are added one at a time as real documents demand
+ * them, not pre-built here (emergent design system).
  */
 export const prose = <Msg>(
   body: ReadonlyArray<Flow<Msg>>,
@@ -99,8 +102,8 @@ export const prose = <Msg>(
     [
       style_(
         textColor("text"),
-        fontSize("base"),
-        maxW(192),
+        typeStyle("body"),
+        measure,
       ),
     ],
     body,

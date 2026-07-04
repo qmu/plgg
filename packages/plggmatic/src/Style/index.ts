@@ -26,6 +26,37 @@ export {
   schemes,
 } from "plggmatic/Style/model/scheme";
 export {
+  type TypeRole,
+  type FontWeight,
+  type TypeScale,
+  type CompactType,
+  typeRoles,
+  fontWeights,
+  regular,
+  medium,
+  semibold,
+  typeScale,
+  sansFontStack,
+} from "plggmatic/Style/model/typography";
+export {
+  type Breakpoint,
+  breakpoints,
+  breakpointPx,
+  minWidth,
+  maxWidth,
+} from "plggmatic/Style/model/breakpoint";
+export {
+  type Metric,
+  metrics,
+  metricValue,
+  metricVar,
+} from "plggmatic/Style/model/metric";
+export {
+  type ZBand,
+  zBands,
+  zValue,
+} from "plggmatic/Style/model/zIndex";
+export {
   type HexColor,
   asHexColor,
 } from "plggmatic/Style/model/hexColor";
@@ -58,8 +89,15 @@ export {
   outline,
   basis,
   fluid,
+  lineHeight,
+  weight,
+  zIndex,
+  typeStyle,
+  measure,
 } from "plggmatic/Style/usecase/utilities";
 export {
   schemeCss,
   schemeCssOf,
 } from "plggmatic/Style/usecase/schemeCss";
+export { metricCss } from "plggmatic/Style/usecase/metricCss";
+export { reducedMotionCss } from "plggmatic/Style/usecase/reducedMotion";

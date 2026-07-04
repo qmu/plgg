@@ -95,6 +95,47 @@ export const neutrals: ReadonlyArray<Neutral> = [
 ];
 
 /**
+ * HOVER / HOVER-INK DECISION (D9 + ticket 05 — recorded,
+ * not shipped as a token).
+ *
+ * The qmu signature affordance — the inverted pill on
+ * every chrome link and active nav leaf — needs a fill
+ * (`--vp-hover`) and its label ink (`--vp-hover-ink`).
+ * Under the monochrome default this pair is EXACTLY the
+ * on-base-label convention already pinned by the matrix,
+ * so no dedicated token ships:
+ *
+ * - `hover`     := `primary-base` (light `#111111`, dark
+ *   `#f4f4f4` — the oracle's dark `rgba(255,255,255,.95)`
+ *   alpha-flattened per the palette's step 4).
+ * - `hover-ink` := neutral `surface` (light `#ffffff`,
+ *   dark `#1b1b1f`).
+ *
+ * i.e. the inverted pill is `neutral surface` painted on
+ * `primary-base` — the same two values a `primary-base`
+ * fill already labels with. A second name would be a
+ * synonym, so D9's earned-place rule (at the role tier)
+ * keeps it derived.
+ *
+ * REVISIT TRIGGERS:
+ * 1. Ticket 04's palette-override API — a non-black
+ *    `primary-base` turns the monochrome pill into a
+ *    COLORED pill. If qmu identity requires the inversion
+ *    to stay monochrome under an overridden palette, the
+ *    pair earns its own token then (and joins the ticket-03
+ *    contrast gate in both schemes).
+ * 2. Ticket 07's port — if any inverted surface fails AA
+ *    under this derivation, the contrast spec is the
+ *    arbiter and the pair is re-decided.
+ *
+ * This is a THEME idiom expressed through existing tokens.
+ * It is distinct from the COMPONENT hover-feedback rule
+ * (an opacity dim — see `Component/model/interaction.ts`
+ * `hoverDim`): that governs a control dimming on `:hover`,
+ * this governs a link/leaf inverting its fill. Both stand.
+ */
+
+/**
  * Every {@link Color}, DERIVED from the unions so the list
  * can never drift from the type. The scheme emitter and
  * specs iterate this; the exhaustiveness spin in

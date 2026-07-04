@@ -76,6 +76,7 @@ const config = {
       text: "Foundations",
       items: [
         leaf("Color scheme", "/color-scheme"),
+        leaf("Design tokens", "/design-tokens"),
         leaf("Pane alignment", "/pane-alignment"),
       ],
     },

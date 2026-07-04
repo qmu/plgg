@@ -43,6 +43,15 @@ export const focusRing: Variant = {
  * (not a new hover color token) so every component dims
  * consistently without expanding the palette before a
  * component needs a dedicated hover role.
+ *
+ * Scope note (D9 + ticket 05): this opacity-dim rule is
+ * the COMPONENT hover feedback — a control dimming under
+ * the pointer. It is NOT the qmu inverted-pill THEME idiom
+ * (a link/leaf swapping to `primary-base` fill with a
+ * neutral-`surface` label), which is expressed through the
+ * existing color tokens and recorded in
+ * `Style/model/token.ts`'s hover decision, not here. Both
+ * rules stand; neither adds a hover color token.
  */
 export const hoverDim: Variant = {
   selector: ":hover",

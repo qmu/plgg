@@ -7,6 +7,16 @@ import {
   type Color,
   colorVar,
 } from "plggmatic/Style/model/token";
+import {
+  type TypeRole,
+  type FontWeight,
+  typeScale,
+} from "plggmatic/Style/model/typography";
+import { metricVar } from "plggmatic/Style/model/metric";
+import {
+  type ZBand,
+  zValue,
+} from "plggmatic/Style/model/zIndex";
 
 /**
  * plggmatic's color atoms. They mirror plgg-view's
@@ -87,3 +97,57 @@ export const fluid: Styles = [
   ...decl("flex", "1 1 auto"),
   ...decl("min-width", "0"),
 ];
+
+/**
+ * A unitless line-height — the atom plgg-view lacks. Kept
+ * unitless (a number string, not rem) so it inherits
+ * safely and scales with the element's own font-size.
+ */
+export const lineHeight = (
+  lh: SoftStr,
+): Styles => decl("line-height", lh);
+
+/**
+ * Tokenized font-weight — SHADOWS plgg-view's untyped
+ * `weight(number)` with the closed {@link FontWeight} set,
+ * so `weight(700)` is a compile error until a component
+ * earns the weight. The three tokens are `regular` /
+ * `medium` / `semibold` (400 / 500 / 600).
+ */
+export const weight = (
+  w: FontWeight,
+): Styles => decl("font-weight", `${w}`);
+
+/**
+ * Stacking order from a semantic {@link ZBand} — the atom
+ * plgg-view lacks. Replaces ad-hoc `z-index` integers in
+ * plggmatic-consuming code with a named band.
+ */
+export const zIndex = (b: ZBand): Styles =>
+  decl("z-index", `${zValue(b)}`);
+
+/**
+ * The prose type bundle for a role: font-size, its
+ * (unitless) line-height, and its weight, all drawn from
+ * the {@link typeScale}. `heading` and `prose` compose
+ * this so the rendered scale can never drift from the
+ * token map.
+ */
+export const typeStyle = (
+  role: TypeRole,
+): Styles => [
+  ...decl("font-size", typeScale[role].size),
+  ...lineHeight(typeScale[role].lineHeight),
+  ...weight(typeScale[role].weight),
+];
+
+/**
+ * The readable content measure — `max-width` at the
+ * `measure` shell metric (`48rem`), via the custom
+ * property so it retunes with the shell geometry. This is
+ * `prose`'s cap.
+ */
+export const measure: Styles = decl(
+  "max-width",
+  metricVar("measure"),
+);

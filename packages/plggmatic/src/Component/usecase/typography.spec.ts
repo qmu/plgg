@@ -43,23 +43,35 @@ test("heading level maps to the real hN element", () =>
     ),
   ]));
 
-test("heading size follows the font-size token scale", () =>
+test("heading renders the guide type scale (size, weight 400, leading)", () =>
   all([
     check(
       collectCss(heading(1, "T")).includes(
-        "font-size:1.5rem",
+        "font-size:1.875rem",
+      ),
+      toBe(true),
+    ),
+    check(
+      collectCss(heading(1, "T")).includes(
+        "font-weight:400",
+      ),
+      toBe(true),
+    ),
+    check(
+      collectCss(heading(1, "T")).includes(
+        "line-height:1.25",
       ),
       toBe(true),
     ),
     check(
       collectCss(heading(4, "T")).includes(
-        "font-size:1rem",
+        "font-size:1.0625rem",
       ),
       toBe(true),
     ),
   ]));
 
-test("prose is a container capping the reading measure", () =>
+test("prose caps the reading measure at the metric var", () =>
   all([
     check(
       renderToString(
@@ -70,7 +82,13 @@ test("prose is a container capping the reading measure", () =>
     check(
       collectCss(
         prose([para([], [text("body")])]),
-      ).includes("max-width:48rem"),
+      ).includes("max-width:var(--pm-measure)"),
+      toBe(true),
+    ),
+    check(
+      collectCss(
+        prose([para([], [text("body")])]),
+      ).includes("line-height:1.75"),
       toBe(true),
     ),
   ]));

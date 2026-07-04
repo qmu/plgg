@@ -15,6 +15,7 @@ import {
   py,
   rounded,
   weight,
+  medium,
   pointer,
   decl,
 } from "plggmatic/styleEntry";
@@ -63,7 +64,7 @@ export const button = <Msg>(
         px(4),
         py(2),
         rounded("md"),
-        weight(500),
+        weight(medium),
         focusRing,
         ...(props.disabled
           ? [

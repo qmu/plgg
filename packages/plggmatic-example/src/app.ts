@@ -621,9 +621,12 @@ export const schemeClassCss: SoftStr = sx.schemes
   )
   .join("");
 
-// The top bar's fixed height; the column strip fills the
-// rest of the viewport (see the media override below).
-const HEADER_H = "48px";
+// The top bar reuses the chrome-rail thickness (the
+// `rail` shell metric, 48px) via its custom property; the
+// column strip fills the rest of the viewport (see the
+// media override below). Sourced from the token so no bare
+// `48px` literal remains.
+const HEADER_H = sx.metricVar("rail");
 
 /**
  * The app's own chrome on top of the framework
@@ -648,27 +651,31 @@ const chromeCss: SoftStr =
   `.ex-spacer{flex:1 1 auto;}` +
   `.pm-row{background:var(--pm-surface-2);}` +
   `.pm-col{background:var(--pm-surface);border-right:1px solid var(--pm-border);}` +
-  `.ex-colhead{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;height:40px;padding:0 0.75rem;background:var(--pm-surface-2);border-bottom:1px solid var(--pm-border);}` +
+  `.ex-colhead{position:sticky;top:0;z-index:${sx.zValue("content")};display:flex;align-items:center;justify-content:space-between;gap:0.5rem;height:40px;padding:0 0.75rem;background:var(--pm-surface-2);border-bottom:1px solid var(--pm-border);}` +
   `.ex-colhead-title{font-size:0.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
   `.ex-close{color:var(--pm-muted);text-decoration:none;line-height:1;padding:0.25rem 0.4rem;border-radius:0.25rem;}` +
   `.ex-close:hover{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
   `.pm-pane a[aria-current="page"]{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
-  `@media (min-width:900px){.pm-row{height:calc(100vh - ${HEADER_H});overflow:hidden;}.pm-col{height:calc(100vh - ${HEADER_H});overflow-y:auto;}}` +
-  `@media (max-width:899px){.pm-row{overflow-x:auto;scroll-snap-type:x proximity;}.pm-col{scroll-snap-align:start;}.ex-reader{min-width:88vw;}}`;
+  `@media ${sx.minWidth("snap")}{.pm-row{height:calc(100vh - ${HEADER_H});overflow:hidden;}.pm-col{height:calc(100vh - ${HEADER_H});overflow-y:auto;}}` +
+  `@media ${sx.maxWidth("snap")}{.pm-row{overflow-x:auto;scroll-snap-type:x proximity;}.pm-col{scroll-snap-align:start;}.ex-reader{min-width:88vw;}}`;
 
 /**
- * The app's whole static stylesheet: baseline reset,
- * scheme variables, and the app chrome. The composed
- * atoms (basis/fluid, spacing, colors) travel WITH the
- * elements through the runtime's own sheet — the static
- * layer holds only what atoms cannot express (the
- * `@media` responsiveness and the app chrome). Injected
- * once at boot by the client entry.
+ * The app's whole static stylesheet: baseline reset, the
+ * framework's scheme-independent shell metrics
+ * (`sx.metricCss` — so the `rail` height and the `prose`
+ * `measure` custom properties resolve), the scheme
+ * variables, and the app chrome. The composed atoms
+ * (basis/fluid, spacing, colors) travel WITH the elements
+ * through the runtime's own sheet — the static layer holds
+ * only what atoms cannot express (the `@media`
+ * responsiveness and the app chrome). Injected once at
+ * boot by the client entry.
  */
 export const appCss: SoftStr =
   `body{margin:0;font-family:system-ui,sans-serif;line-height:1.6;}` +
   `.ex-root{background:var(--pm-surface);color:var(--pm-text);min-height:100vh;}` +
   `.ex-root a{text-decoration:none;}` +
+  sx.metricCss +
   schemeClassCss +
   chromeCss;
 
