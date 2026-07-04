@@ -3,23 +3,26 @@
 > **UNSTABLE / EXPERIMENTAL POC** - Study work. Part of the
 > [plgg monorepo](../../README.md).
 
-A **minimal Elm Architecture (TEA)** built **from scratch on [plgg](../plgg/)**.
-An app is three pure values — an immutable `Model`, an `update: (Msg, Model) =>
-Model`, and a `view: (Model) => Html<Msg>` — driven by a tiny runtime. State is
-one value, every change flows through `update` as data (`Msg`), and the view is
-a pure function of the model. It fits plgg's ethos exactly: pure functions,
-immutable data, events as values, one runtime seam. The only runtime dependency
-is `plgg`.
+A **complete Elm Architecture (TEA)** built **from scratch on [plgg](../plgg/)**.
+An app is pure values — an immutable `Model`, an `update: (Msg, Model) =>
+[Model, Cmd<Msg>]`, a `view: (Model) => Html<Msg>`, and an optional
+`subscriptions: (Model) => Sub<Msg>` — driven by a tiny runtime. State is one
+value, every change flows through `update` as data (`Msg`), and the view is a
+pure function of the model. `Cmd`/`Sub` are pure DATA the app returns and the
+runtime alone executes, so purity holds even WITH effects. It fits plgg's ethos
+exactly: pure functions, immutable data, events as values, one runtime seam. The
+only runtime dependency is `plgg`.
 
-This is the **minimum** that is still recognizably TEA: `sandbox`/`application`
-over an in-place **diff/patch renderer**, **no `Cmd`/`Sub`**. Effects (HTTP,
-timers, programmatic navigation) are a deliberate non-goal of this minimum.
+`sandbox`/`application` run over an in-place **diff/patch renderer** and now
+carry `Cmd`/`Sub` effects (D2): HTTP via plgg-fetch, timers, or a WebSocket via
+a custom subscription are all pure data the runtime performs — the app never
+touches them directly.
 
 ## What it is (and isn't)
 
 | | |
 |--|--|
-| ✅ `Model` / `Msg` / pure `update` / pure `view` | ❌ no `Cmd` / `Sub` / effects |
+| ✅ `Model` / `Msg` / pure `update`→`[Model, Cmd]` / `view` / `subscriptions` | ❌ effects never RUN inside `update` — it returns them as data |
 | ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style element builder functions instead) |
 | ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no keyed-list reconcile or render batching (follow-ups) |
 | ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | ❌ no hydration (mount re-renders from `init`) |
@@ -53,7 +56,8 @@ functions:
   into any attribute list. SSR drops them; the client renderer plays the enter
   motion on node creation and defers a node's removal until its exit motion ends,
   via the Web Animations API and honouring `prefers-reduced-motion`. The Model
-  never learns animation exists, so the "no `Cmd`/`Sub`" boundary holds. A node
+  never learns animation exists — it stays outside the `update`/effect loop
+  entirely (not even a `Sub`). A node
   mid-exit still occupies its child slot, so rapid list churn can collide — the
   outroing-set + keyed-FLIP fix is a follow-up.
 
@@ -131,18 +135,19 @@ so a mapped child is `Html<Msg, string>` and won't re-enter a strict slot.
 ```ts
 import { sandbox, application } from "plgg-view/client";
 
-// sandbox: the purest TEA — no routing
+// sandbox: the purest TEA — no routing. init is [Model, Cmd].
 const stop = sandbox({ init, update, view })(container); // → cleanup
 
-// application: routing-aware (Browser.application-style, still no Cmd)
+// application: routing-aware (Browser.application-style)
 const stop = application({ init, update, view, onUrlChange })(container);
 ```
 
 - **`sandbox`** holds the live `Model` in a closure (the single justified mutable
   seam — Elm's runtime is imperative here too). A `dispatch(msg)` sets
-  `model = update(msg, model)` and re-renders by **diffing** the new `Html<Msg>`
-  against the last and patching only what changed (`makeRenderer`), so a re-render
-  is O(changes) and a focused input keeps its focus, caret, and IME state. Event
+  `[model, cmd] = update(msg, model)`, re-renders by **diffing** the new
+  `Html<Msg>` against the last and patching only what changed (`makeRenderer`) —
+  so a re-render is O(changes) and a focused input keeps its focus, caret, and
+  IME state — then runs the returned `cmd` and re-diffs the subscriptions. Event
   listeners are wired once per node and re-pointed in place — never duplicated,
   never stale (the live handler is read on each event from a per-node registry).
 - **`application`** additionally owns the URL: it reads the entry `Url` into
@@ -151,11 +156,43 @@ const stop = application({ init, update, view, onUrlChange })(container);
   non-`http(s)` links), `pushState`s, and turns navigation + `popstate` into
   `onUrlChange(url): Msg`. The app maps `Url { path, search }` to its own route
   value using plgg-router's pure `compilePattern`/`matchSegments`/`parseQuery`,
-  so navigation is just data flowing through `update`. Programmatic push is a
-  non-goal of this minimum (it needs an effect seam).
+  so navigation is just data flowing through `update`. URL reflection
+  (`toUrl`/`historyMode`) is a *reconciliation* of model→address-bar, deliberately
+  kept OUTSIDE `Cmd` (folding raw history writes into effects would reopen the
+  loop hazard).
 
 Both are shipped on the `plgg-view/client` subpath so `window`/DOM code never
 reaches the SSR-safe core entry.
+
+## Effects — `Cmd` and `Sub` (pure data, runtime-executed)
+
+```ts
+import { cmdNone, cmdEffect, interval, subNone } from "plgg-view/client";
+
+// update returns [nextModel, Cmd]; a pure branch pairs with cmdNone().
+const update = (msg, model) =>
+  msg.kind === "load"
+    ? [{ ...model, loading: true },
+       cmdEffect(async () => ({ kind: "loaded", data: await fetchIt() }))]
+    : [model, cmdNone()];
+
+// subscriptions(model): the sources active for this model, diffed by key.
+const subscriptions = (model) =>
+  model.live ? interval("poll", 1000, () => ({ kind: "tick" })) : subNone();
+```
+
+- **`Cmd<Msg>`** — `cmdNone` / `cmdBatch` / `cmdEffect(() => Promise<Msg>)`.
+  `cmdEffect` is the one custom-effect seam: HTTP, timers, or D12's ephemeral-key
+  minting are all a deferred computation resolving to a `Msg`. Construction runs
+  nothing; the runtime invokes the thunk after paint and dispatches the result
+  (dropped if it resolves after teardown). Fold a `Result` to a `Msg` inside the
+  thunk so it always resolves.
+- **`Sub<Msg>`** — `subNone` / `subBatch` / `interval(key, ms, toMsg)` /
+  `windowEvent(key, name, e => Option<Msg>)` / `custom(key, dispatch => cleanup)`.
+  Every active leaf carries a stable `key`; the runtime diffs `subscriptions`
+  by key each dispatch — starting new keys, tearing down removed ones, and
+  leaving survivors running untouched. `custom` is where a WebSocket/audio
+  channel plugs in (its whole wiring is data the runtime invokes).
 
 ## SSR — `renderToString` (core, SSR-safe)
 

@@ -18,19 +18,44 @@ import {
 } from "plgg-view/Program/model/Url";
 import { makeRenderer } from "plgg-view/Program/usecase/render";
 import { makeSheet } from "plgg-view/Program/usecase/sheet";
+import { type Cmd } from "plgg-view/Program/model/Cmd";
+import { type Sub } from "plgg-view/Program/model/Sub";
+import {
+  type SubEnv,
+  runCmd,
+  makeSubRuntime,
+  browserSubEnv,
+} from "plgg-view/Program/usecase/effects";
 
 /**
- * A routing-aware Elm-Architecture program (Browser.application-style), kept
- * pure-sandbox-compatible (no `Cmd`). `init` seeds the model from the entry URL;
- * `onUrlChange` turns a navigation (an intercepted in-app `<a>` click, or
- * back/forward) into a `Msg` the pure `update` folds in. Navigation is
- * link-driven — programmatic push is a non-goal of this minimum.
+ * A routing-aware Elm-Architecture program (Browser.application-style) WITH
+ * effects (D2). `init` seeds `[Model, Cmd]` from the entry URL; `update` folds a
+ * `Msg` into `[nextModel, Cmd]`; `onUrlChange` turns a navigation (an
+ * intercepted in-app `<a>` click, or back/forward) into a `Msg`; an optional
+ * `subscriptions` declares ongoing sources. `Cmd`/`Sub` are pure data the
+ * runtime alone executes, so `update` stays pure.
+ *
+ * DOCTRINE AMENDMENT (D2, roadmap
+ * `.workaholic/specs/20260704-plggpress-plggmatic-roadmap.md`): this runtime was
+ * once "pure-sandbox-compatible (no `Cmd`)". D2 takes the break openly — one
+ * signature, effects included; a pure branch returns `[model, cmdNone()]`. URL
+ * reflection stays OUTSIDE `Cmd` on purpose (see {@link reflectUrl}).
  */
 export type Application<Model, Msg> = Readonly<{
-  init: (url: Url) => Model;
-  update: (msg: Msg, model: Model) => Model;
+  init: (
+    url: Url,
+  ) => readonly [Model, Cmd<Msg>];
+  update: (
+    msg: Msg,
+    model: Model,
+  ) => readonly [Model, Cmd<Msg>];
   view: (model: Model) => Html<Msg>;
   onUrlChange: (url: Url) => Msg;
+  /**
+   * Ongoing sources active for the current model, re-diffed by key each
+   * dispatch. Omit for a program with no subscriptions.
+   */
+  subscriptions?: (model: Model) => Sub<Msg>;
   /**
    * The model→URL projection (inverse of {@link onUrlChange}): after each
    * dispatch the runtime reconciles the address bar against `toUrl(model)`, so a
@@ -181,15 +206,31 @@ const navTarget = (
 export const application =
   <Model, Msg>(
     program: Application<Model, Msg>,
+    env: SubEnv = browserSubEnv,
   ) =>
   (container: Element): (() => void) => {
-    let model: Model = program.init(currentUrl());
+    const [initModel, initCmd] = program.init(
+      currentUrl(),
+    );
+    // mutable seams: the live model, and an `alive` flag so an effect or
+    // subscription resolving after teardown is dropped.
+    let model: Model = initModel;
+    let alive = true;
     const sheet = makeSheet();
     const dispatch = (msg: Msg): void => {
+      if (!alive) {
+        return;
+      }
       const prev = model;
-      model = program.update(msg, model);
+      const [next, cmd] = program.update(
+        msg,
+        model,
+      );
+      model = next;
       paint(program.view(model));
       reflectUrl(prev, model);
+      runCmd(cmd, dispatch);
+      syncSubs();
     };
     const render = makeRenderer(
       container,
@@ -201,9 +242,25 @@ export const application =
       render(html);
       sheet.add(collectCssRules(html));
     };
-    // model→URL reflection: a render-time effect (NOT a Cmd) confined to this
-    // seam. Gated on a string diff so it never loops — a URL the user drove in
-    // via onUrlChange already equals toUrl(model), so no spurious write.
+    const subs = makeSubRuntime(dispatch, env);
+    // reconcile the active subscriptions for the current model (no-op when the
+    // program declares none).
+    const syncSubs = (): void =>
+      pipe(
+        fromNullable(program.subscriptions),
+        matchOption(
+          (): void => undefined,
+          (
+            of: (model: Model) => Sub<Msg>,
+          ): void => subs.reconcile(of(model)),
+        ),
+      );
+    // model→URL reflection: a *reconciliation* of model→address-bar, NOT a
+    // `Cmd` — deliberately kept outside effects even now that `Cmd` exists.
+    // Folding it into `Cmd` would let app code emit raw history writes and
+    // reopen the loop hazard; here it is gated on a string diff so it never
+    // loops — a URL the user drove in via onUrlChange already equals
+    // toUrl(model), so no spurious write.
     const reflectUrl = (
       prev: Model,
       next: Model,
@@ -257,6 +314,8 @@ export const application =
       go(currentUrl());
 
     paint(program.view(model));
+    runCmd(initCmd, dispatch);
+    syncSubs();
     window.addEventListener(
       "popstate",
       onPopState,
@@ -264,6 +323,8 @@ export const application =
     document.addEventListener("click", onClick);
 
     return () => {
+      alive = false;
+      subs.disposeAll();
       window.removeEventListener(
         "popstate",
         onPopState,

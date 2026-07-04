@@ -10,8 +10,15 @@ import {
   toBeNull,
   not,
 } from "plgg-test";
+import { match } from "plgg";
 import { renderToString } from "plgg-view";
-import { application } from "plgg-view/client";
+import {
+  application,
+  type Cmd,
+  cmdNone$,
+  cmdBatch$,
+  cmdEffect$,
+} from "plgg-view/client";
 import { pageResponse } from "plgg-server";
 import {
   init,
@@ -19,7 +26,17 @@ import {
   view,
   app,
   type Model,
+  type Msg,
 } from "./app.js";
+
+// Fold a Cmd to whether it is an effect (vs cmdNone) — effects are DATA, never
+// executed in a spec.
+const isEffect = (cmd: Cmd<Msg>): boolean =>
+  match(cmd)(
+    [cmdNone$(), (): boolean => false],
+    [cmdBatch$(), (): boolean => false],
+    [cmdEffect$(), (): boolean => true],
+  );
 
 const seed: Model = {
   todos: [
@@ -42,12 +59,12 @@ test("DraftChanged sets the draft", () =>
     update(
       { kind: "DraftChanged", value: "hi" },
       init,
-    ).draft,
+    )[0].draft,
     toBe("hi"),
   ));
 
 test("Added appends a todo, clears the draft, and bumps nextId", () => {
-  const next = update(
+  const [next] = update(
     { kind: "Added" },
     { ...init, draft: "Buy milk" },
   );
@@ -72,20 +89,20 @@ test("Added is a no-op for a blank draft", () =>
     update(
       { kind: "Added" },
       { ...init, draft: "   " },
-    ),
+    )[0],
     toEqual({ ...init, draft: "   " }),
   ));
 
 test("Toggled flips the matching todo's completed flag", () =>
   check(
-    update({ kind: "Toggled", id: 1 }, seed)
+    update({ kind: "Toggled", id: 1 }, seed)[0]
       .todos[0]?.completed,
     toBe(true),
   ));
 
 test("Deleted removes the matching todo", () =>
   check(
-    update({ kind: "Deleted", id: 1 }, seed)
+    update({ kind: "Deleted", id: 1 }, seed)[0]
       .todos,
     toEqual([]),
   ));
@@ -173,20 +190,20 @@ test("FilterChanged and SearchChanged fold into the model", () =>
           filter: "active",
         },
         init,
-      ).filter,
+      )[0].filter,
       toBe("active"),
     ),
     check(
       update(
         { kind: "SearchChanged", value: "milk" },
         init,
-      ).q,
+      )[0].q,
       toBe("milk"),
     ),
   ]));
 
 test("UrlChanged seeds filter and q together (a deep link / back-forward)", () => {
-  const next = update(
+  const [next] = update(
     {
       kind: "UrlChanged",
       filter: "completed",
@@ -378,7 +395,7 @@ test("a completed todo renders with a checked box", () => {
 // --- micro-interactions: toaster / accordion / modal (pure update + view) ---
 
 test("Added pushes a success toast and bumps toastSeq", () => {
-  const next = update(
+  const [next] = update(
     { kind: "Added" },
     { ...init, draft: "Buy milk" },
   );
@@ -393,8 +410,29 @@ test("Added pushes a success toast and bumps toastSeq", () => {
   ]);
 });
 
+test("pushing a toast returns its auto-dismiss effect; pure branches return cmdNone", () => {
+  // effects are asserted as DATA — the timers are never run in the spec.
+  const [, addedCmd] = update(
+    { kind: "Added" },
+    { ...init, draft: "x" },
+  );
+  const [, deletedCmd] = update(
+    { kind: "Deleted", id: 1 },
+    seed,
+  );
+  const [, pureCmd] = update(
+    { kind: "DraftChanged", value: "y" },
+    init,
+  );
+  return all([
+    check(isEffect(addedCmd), toBe(true)),
+    check(isEffect(deletedCmd), toBe(true)),
+    check(isEffect(pureCmd), toBe(false)),
+  ]);
+});
+
 test("Deleted pushes a danger toast and drops the id from expanded", () => {
-  const next = update(
+  const [next] = update(
     { kind: "Deleted", id: 1 },
     { ...seed, expanded: [1] },
   );
@@ -405,7 +443,7 @@ test("Deleted pushes a danger toast and drops the id from expanded", () => {
 });
 
 test("ToastDismissed removes the matching toast", () => {
-  const withToast = update(
+  const [withToast] = update(
     { kind: "Added" },
     { ...init, draft: "x" },
   );
@@ -414,7 +452,7 @@ test("ToastDismissed removes the matching toast", () => {
     update(
       { kind: "ToastDismissed", id },
       withToast,
-    ).toasts,
+    )[0].toasts,
     toEqual([]),
   );
 });
@@ -433,28 +471,28 @@ test("Moved swaps a todo with its neighbour and is a no-op at the edges", () => 
       update(
         { kind: "Moved", id: 2, delta: -1 },
         three,
-      ).todos.map((t) => t.id),
+      )[0].todos.map((t) => t.id),
       toEqual([2, 1, 3]),
     ),
     check(
       update(
         { kind: "Moved", id: 3, delta: 1 },
         three,
-      ).todos.map((t) => t.id),
+      )[0].todos.map((t) => t.id),
       toEqual([1, 2, 3]),
     ),
     check(
       update(
         { kind: "Moved", id: 1, delta: -1 },
         three,
-      ).todos.map((t) => t.id),
+      )[0].todos.map((t) => t.id),
       toEqual([1, 2, 3]),
     ),
   ]);
 });
 
 test("ExpandToggled adds then removes a todo id (accordion)", () => {
-  const open = update(
+  const [open] = update(
     { kind: "ExpandToggled", id: 1 },
     seed,
   );
@@ -464,7 +502,7 @@ test("ExpandToggled adds then removes a todo id (accordion)", () => {
       update(
         { kind: "ExpandToggled", id: 1 },
         open,
-      ).expanded,
+      )[0].expanded,
       toEqual([]),
     ),
   ]);
@@ -478,13 +516,13 @@ test("the clear-completed modal flow opens, cancels, and confirms", () => {
       { id: 2, title: "b", completed: false },
     ],
   };
-  const cleared = update(
+  const [cleared] = update(
     { kind: "ClearConfirmed" },
     { ...base, confirmClear: true },
   );
   return all([
     check(
-      update({ kind: "ClearRequested" }, base)
+      update({ kind: "ClearRequested" }, base)[0]
         .confirmClear,
       toBe(true),
     ),
@@ -492,7 +530,7 @@ test("the clear-completed modal flow opens, cancels, and confirms", () => {
       update(
         { kind: "ClearCancelled" },
         { ...base, confirmClear: true },
-      ).confirmClear,
+      )[0].confirmClear,
       toBe(false),
     ),
     check(

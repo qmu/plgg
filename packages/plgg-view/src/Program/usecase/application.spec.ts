@@ -33,6 +33,12 @@ import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
+import {
+  cmdNone,
+  cmdEffect,
+} from "plgg-view/Program/model/Cmd";
+import { interval } from "plgg-view/Program/model/Sub";
+import { type SubEnv } from "plgg-view/Program/usecase/effects";
 import { style_ } from "plgg-view/Style/usecase/style_";
 import { p } from "plgg-view/Style/usecase/utilities";
 
@@ -41,8 +47,8 @@ type Msg = Readonly<{ url: Url }>;
 
 // A 2-route app: home links to /users/1; the user page links back home.
 const app: Application<Model, Msg> = {
-  init: (url) => url,
-  update: (msg) => msg.url,
+  init: (url) => [url, cmdNone()],
+  update: (msg) => [msg.url, cmdNone()],
   view: (model) =>
     model.path === "/"
       ? div(
@@ -287,11 +293,11 @@ const baseCountApp: Application<
   CountModel,
   CountMsg
 > = {
-  init: (url) => ({ n: nOf(url) }),
+  init: (url) => [{ n: nOf(url) }, cmdNone()],
   update: (msg, model) =>
     msg.kind === "inc"
-      ? { n: model.n + 1 }
-      : { n: msg.n },
+      ? [{ n: model.n + 1 }, cmdNone()]
+      : [{ n: msg.n }, cmdNone()],
   view: (model) =>
     div(
       [],
@@ -375,8 +381,8 @@ test("does not write when the reflected URL is unchanged (loop-free)", () => {
 
 test("the runtime injects a <style> sheet for the tree's style_() atoms", () => {
   const styleApp: Application<Url, Msg> = {
-    init: (url) => url,
-    update: (msg) => msg.url,
+    init: (url) => [url, cmdNone()],
+    update: (msg) => [msg.url, cmdNone()],
     view: () => div([style_(p(2))], [text("x")]),
     onUrlChange: (url) => ({ url }),
   };
@@ -395,8 +401,8 @@ test("the sheet keeps a rule the new tree dropped (exiting nodes still wear it)"
   // re-renders to an UNSTYLED tree — the rule must survive, because a
   // deferred-removal exit can still be wearing the class mid-animation.
   const styleApp: Application<Url, Msg> = {
-    init: (url) => url,
-    update: (msg) => msg.url,
+    init: (url) => [url, cmdNone()],
+    update: (msg) => [msg.url, cmdNone()],
     view: (model) =>
       model.path === "/users/9"
         ? div([], [text("bare")])
@@ -436,4 +442,106 @@ test("an app without toUrl never writes history on dispatch", () => {
   return check(historyCalls, toEqual([
     ["push", "/users/1"],
   ]));
+});
+
+// --- effects: subscriptions on the application runtime -------------------
+
+// A controllable interval env: intervals fire on tickAll().
+const makeFakeEnv = () => {
+  const intervals = new Map<
+    number,
+    () => void
+  >();
+  const seq = { n: 0 };
+  const env: SubEnv = {
+    interval: (_ms, tick) => {
+      const id = seq.n++;
+      intervals.set(id, tick);
+      return () => intervals.delete(id);
+    },
+    windowEvent: () => () => undefined,
+  };
+  return {
+    env,
+    tickAll: (): void =>
+      intervals.forEach((tick) => tick()),
+    activeIntervals: (): number =>
+      intervals.size,
+  };
+};
+
+test("an init effect resolving after cleanup is dropped (alive guard)", async () => {
+  type EModel = Readonly<{ n: number }>;
+  type EMsg =
+    | Readonly<{ kind: "bump" }>
+    | Readonly<{ kind: "url" }>;
+  const flush = (): Promise<void> =>
+    new Promise((resolve) =>
+      setTimeout(resolve, 0),
+    );
+  const effApp: Application<EModel, EMsg> = {
+    init: () => [
+      { n: 0 },
+      cmdNone(),
+    ],
+    update: (msg, model) =>
+      msg.kind === "bump"
+        ? [{ n: model.n + 1 }, cmdNone()]
+        : [model, cmdNone()],
+    view: (model) =>
+      div([], [text(`n=${model.n}`)]),
+    onUrlChange: () => ({ kind: "url" }),
+  };
+  // build an app whose init carries a late effect
+  const lateApp: Application<EModel, EMsg> = {
+    ...effApp,
+    init: () => [
+      { n: 0 },
+      cmdEffect<EMsg>(() =>
+        Promise.resolve({ kind: "bump" }),
+      ),
+    ],
+  };
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  stop = application(lateApp)(root);
+  stop();
+  await flush();
+  // the late dispatch was dropped by the alive guard; container stays empty.
+  return check(root.children.length, toBe(0));
+});
+
+test("a subscription ticks through the application runtime and disposes on cleanup", () => {
+  const fake = makeFakeEnv();
+  type SModel = Readonly<{ n: number }>;
+  type SMsg =
+    | Readonly<{ kind: "tick" }>
+    | Readonly<{ kind: "url" }>;
+  const subApp: Application<SModel, SMsg> = {
+    init: () => [{ n: 0 }, cmdNone()],
+    update: (msg, model) =>
+      msg.kind === "tick"
+        ? [{ n: model.n + 1 }, cmdNone()]
+        : [model, cmdNone()],
+    view: (model) =>
+      div([], [text(`n=${model.n}`)]),
+    onUrlChange: () => ({ kind: "url" }),
+    subscriptions: () =>
+      interval("tick", 5, () => ({
+        kind: "tick",
+      })),
+  };
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  stop = application(subApp, fake.env)(root);
+  const activeBefore = fake.activeIntervals();
+  fake.tickAll();
+  fake.tickAll();
+  const afterTicks = root.textContent;
+  stop();
+  return all([
+    check(activeBefore, toBe(1)),
+    check(afterTicks, toContain("n=2")),
+    check(fake.activeIntervals(), toBe(0)),
+  ]);
 });

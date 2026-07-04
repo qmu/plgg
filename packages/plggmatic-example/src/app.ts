@@ -23,6 +23,8 @@ import {
 import {
   type Application,
   type Url,
+  type Cmd,
+  cmdNone,
   makeUrl,
 } from "plgg-view/client";
 import {
@@ -193,30 +195,43 @@ export const toUrl = (model: Model): Url =>
 
 // --- The Elm program ------------------------------
 
-export const init = (url: Url): Model => ({
-  base: url.path,
-  ...parseUrl(url),
-  scheme: "light",
-});
+export const init = (
+  url: Url,
+): readonly [Model, Cmd<Msg>] => [
+  {
+    base: url.path,
+    ...parseUrl(url),
+    scheme: "light",
+  },
+  cmdNone(),
+];
 
+// The workbench has no effects — every branch pairs the next model with
+// `cmdNone()`, the same shape an effectful app fills with real commands.
 export const update = (
   msg: Msg,
   model: Model,
-): Model => {
+): readonly [Model, Cmd<Msg>] => {
   switch (msg.kind) {
     case "urlChanged":
-      return {
-        ...model,
-        ...parseUrl(msg.url),
-      };
+      return [
+        {
+          ...model,
+          ...parseUrl(msg.url),
+        },
+        cmdNone(),
+      ];
     case "toggleScheme":
-      return {
-        ...model,
-        scheme:
-          model.scheme === "light"
-            ? "dark"
-            : "light",
-      };
+      return [
+        {
+          ...model,
+          scheme:
+            model.scheme === "light"
+              ? "dark"
+              : "light",
+        },
+        cmdNone(),
+      ];
   }
 };
 

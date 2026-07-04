@@ -1,19 +1,20 @@
 # plgg-view
 
-A **minimal Elm Architecture (TEA)**, built from scratch
-on [plgg](/packages/plgg/). An app is three pure values —
-an immutable `Model`, an `update: (Msg, Model) => Model`,
-and a `view: (Model) => Html<Msg>` — driven by a tiny
-runtime. State is one value, every change flows through
-`update` as a [`Msg`](/concepts/tagged-data), and the
-view is a pure function of the model. Its only runtime
+A **complete Elm Architecture (TEA)**, built from scratch
+on [plgg](/packages/plgg/). An app is pure values — an
+immutable `Model`, an `update: (Msg, Model) => [Model,
+Cmd<Msg>]`, a `view: (Model) => Html<Msg>`, and an
+optional `subscriptions: (Model) => Sub<Msg>` — driven by
+a tiny runtime. State is one value, every change flows
+through `update` as a [`Msg`](/concepts/tagged-data), and
+the view is a pure function of the model. Its only runtime
 dependency is `plgg`.
 
-It is the **minimum** that is still recognizably TEA:
-`sandbox`/`application` over an in-place diff/patch
-renderer, with **no `Cmd`/`Sub`**. Effects (HTTP, timers,
-programmatic navigation) are a deliberate non-goal of
-this minimum.
+`sandbox`/`application` run over an in-place diff/patch
+renderer and carry `Cmd`/`Sub` **effects** (D2): HTTP,
+timers, or a WebSocket via a custom subscription are pure
+DATA the app returns and the runtime alone executes — so
+purity holds even with effects.
 
 ## Writing an app with it
 
@@ -90,7 +91,7 @@ by concern:
 
 | ✅ | ❌ |
 |----|----|
-| `Model` / `Msg` / pure `update` / pure `view` | no `Cmd` / `Sub` / effects |
+| `Model` / `Msg` / pure `update`→`[Model, Cmd]` / `view` / `subscriptions` | effects never RUN in `update` (returned as data) |
 | typed `Html<Msg>` tree (handlers produce `Msg`) | no JSX (Elm-style builders instead) |
 | `sandbox` + `application` runtimes | no keyed-list reconcile / batching |
 | vDOM diff/patch — preserves focus/caret | **no hydration** (mount re-renders from `init`) |

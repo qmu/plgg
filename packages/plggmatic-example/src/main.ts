@@ -27,11 +27,12 @@ style.textContent = appCss;
 document.head.appendChild(style);
 
 // The plggmatic appearance contract, wired at this real
-// consumer's effect seam: pick the scheme from the stored
+// consumer's boot seam: pick the scheme from the stored
 // choice else the OS preference, then apply+persist the
-// global `html.dark` class. (Per-toggle persistence lands
-// when plgg-view gains Cmd/Sub in roadmap ticket 06; today
-// the pure `update` cannot host the effect.)
+// global `html.dark` class. (plgg-view now has Cmd/Sub
+// (ticket 06), so per-toggle persistence could move into a
+// `cmdEffect` off the toggle Msg; this boot-time apply
+// stays here as the one-shot startup path.)
 applyScheme(
   decideScheme(
     fromNullable(

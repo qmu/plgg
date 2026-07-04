@@ -18,7 +18,8 @@ import {
   schemeClassCss,
 } from "./app.ts";
 
-const root: Model = init(makeUrl("/", ""));
+// init now returns `[Model, Cmd]`; the specs assert on the model.
+const root: Model = init(makeUrl("/", ""))[0];
 
 const count = (
   hay: string,
@@ -64,7 +65,7 @@ test("url depth round-trips through parse and toUrl", () => {
 test("a nested mount keeps its base in links and toUrl", () => {
   const nested = init(
     makeUrl("/example/", "?s=geology"),
-  );
+  )[0];
   const projected = toUrl({
     ...nested,
     note: some("strata"),
@@ -103,14 +104,15 @@ test("unknown ids truncate the stack instead of erroring", () => {
 });
 
 test("update folds url changes and scheme toggles", () => {
-  const navigated = update(
+  // update now returns `[Model, Cmd]`; destructure the model (Cmd is cmdNone).
+  const [navigated] = update(
     {
       kind: "urlChanged",
       url: makeUrl("/", "?s=weather&n=fog"),
     },
     root,
   );
-  const toggled = update(
+  const [toggled] = update(
     { kind: "toggleScheme" },
     navigated,
   );
