@@ -4,12 +4,15 @@ import {
   all,
   toBe,
   toContain,
+  okThen,
+  errThen,
 } from "plgg-test";
 import { type Invocation } from "plgg-cli";
 import {
   type AppRunContext,
   configPathOf,
   resolveOptions,
+  resolveServe,
 } from "plggpress/framework/Cli/usecase/resolveOptions";
 
 const invOf = (
@@ -66,3 +69,48 @@ test("resolveOptions honors --contentDir/--outDir", () => {
     ),
   ]);
 });
+
+test("resolveServe defaults to port 3000 with no hostname", () =>
+  check(
+    resolveServe(invOf({})),
+    okThen((s) =>
+      all([
+        check(s.port, toBe(3000)),
+        check(s.hostname.__tag, toBe("None")),
+      ]),
+    ),
+  ));
+
+test("resolveServe parses a valid --port and threads --hostname", () =>
+  check(
+    resolveServe(
+      invOf({ port: "8080", hostname: "127.0.0.1" }),
+    ),
+    okThen((s) =>
+      all([
+        check(s.port, toBe(8080)),
+        check(
+          s.hostname.__tag === "Some"
+            ? s.hostname.content
+            : "none",
+          toBe("127.0.0.1"),
+        ),
+      ]),
+    ),
+  ));
+
+test("resolveServe rejects a non-integer / out-of-range --port with a one-line Err", () =>
+  all([
+    check(
+      resolveServe(invOf({ port: "abc" })),
+      errThen((m) => toContain("invalid --port")(m)),
+    ),
+    check(
+      resolveServe(invOf({ port: "3.5" })),
+      errThen((m) => toContain("invalid --port")(m)),
+    ),
+    check(
+      resolveServe(invOf({ port: "99999" })),
+      errThen((m) => toContain("invalid --port")(m)),
+    ),
+  ]));

@@ -33,6 +33,12 @@ export type DevEntryOptions = Readonly<{
  * A config/discovery failure is thrown (not a plgg
  * `Result`), which is exactly the boundary `plgg-bundle`'s
  * dev loop catches to keep the last good build alive.
+ *
+ * This is the DEV (authoring) mode — hot reload via
+ * re-import — and is distinct from `plggpress serve` (the
+ * persistent production instance, `framework/Serve`): dev
+ * watches and re-imports, serve loads config ONCE at startup
+ * and never watches. Three modes, one render path.
  */
 export const pressDevEntry =
   (

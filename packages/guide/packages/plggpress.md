@@ -46,3 +46,22 @@ the output is served through
 [plgg-server](/packages/plgg-server). plggpress is
 ESM-only. The exact config types and pipeline stages live
 in the `plggpress` source.
+
+## Three modes, one render path
+
+plggpress answers an HTTP request three ways — all sharing
+**one `site.config.ts`, one `loadConfig`, one
+`pressRouter`**, so served HTML is byte-identical to built
+HTML:
+
+- **build** — `plggpress build` renders every route to
+  static files (the public reader path, served over a CDN).
+- **serve** — `plggpress serve --port 3000` runs a
+  persistent `node:http` process rendering the SAME router
+  live. Config is loaded once at startup (no watch). This
+  served instance is the mount point the later dynamic
+  features (`/api`, `/admin`, `/auth`, `/mcp`) attach to.
+- **dev** — authoring hot-reload is a **toolchain** concern
+  (`plgg-bundle dev` via `devEntry`), not a plggpress
+  command; `serve` is the production instance, not a dev
+  server.

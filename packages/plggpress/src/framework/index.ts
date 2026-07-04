@@ -44,9 +44,13 @@ export {
 
 export {
   type AppRunContext,
+  type ServeSettings,
   configPathOf,
   resolveOptions,
+  resolveServe,
 } from "plggpress/framework/Cli/usecase/resolveOptions";
+
+export { serveApp } from "plggpress/framework/Serve/usecase/serveApp";
 
 export {
   type AppDefinition,
