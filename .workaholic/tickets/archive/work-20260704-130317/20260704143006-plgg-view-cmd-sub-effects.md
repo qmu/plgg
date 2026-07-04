@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:06+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: c00e29a
+category: Added
 depends_on: []
 ---
 
@@ -307,3 +307,70 @@ single escape hatch, coverage dip below the configured thresholds, stale
   `packages/plggmatic` consumes only plgg-view's `Html`/`Style` surface, so
   it compiles unchanged — but the fresh `check-all.sh` is the arbiter, not
   this assumption.
+
+## Final Report
+
+Implemented in commit `c00e29a` (feat, breaking) + this archive commit.
+
+**What Changed**
+- New `Program/model/Cmd.ts` (`Cmd<Msg>` = `cmdNone` (`Icon`) / `cmdBatch` /
+  `cmdEffect(() => Promise<Msg>)` — the typed custom-effect seam), `Program/
+  model/Sub.ts` (`Sub<Msg>` = `subNone`/`subBatch`/`interval`/`windowEvent`
+  (`(event)=>Option<Msg>` filter)/`custom` (`start:(dispatch)=>cleanup`), every
+  active leaf keyed), `Program/usecase/effects.ts` (`runCmd` — flatten batch,
+  invoke effect thunks, dispatch async, no silent swallow; `makeSubRuntime` —
+  diff-by-key start/stop/keep-survivor + `disposeAll`; injectable `SubEnv` seam
+  `{interval, windowEvent}` with `browserSubEnv` default, mirroring the
+  renderer's `Play`).
+- **Breaking (D2):** `Sandbox`/`Application` `update: (msg,model) => readonly
+  [Model, Cmd<Msg>]`, `init` the pair shape, both accept optional
+  `subscriptions?: (model) => Sub<Msg>`. Both dispatch loops rewired
+  (update → paint → (application: reflectUrl) → `runCmd` → re-diff subs); init
+  `Cmd` + initial subs run after first paint; cleanup flips an `alive` flag and
+  `disposeAll`s subscriptions. `client.ts` exports the `Cmd`/`Sub` surface +
+  matchers. The "No `Cmd`/`Sub`" doc comments carry the recorded D2 amendment;
+  URL reflection is documented as deliberately outside `Cmd`.
+- **All consumers migrated in one branch:** `packages/example` gains the
+  runnable demo — `pushToast` returns `[model, cmdEffect(dismissAfter)]`, so a
+  toast auto-dismisses after 4s (was manual-only); 26 specs (incl. a
+  Cmd-as-data assertion). `plggmatic-example` (11 specs) and
+  `plgg-view/example.ts` counter migrated mechanically (`[model, cmdNone()]`).
+  Prose rewritten: `plgg-view/README.md`, guide `plgg-view.md`/`example.md`,
+  `plggmatic-example/main.ts` — no stale "no Cmd" runtime claims remain.
+- Specs: one per new module — Cmd/Sub shape (constructing an `effect` invokes
+  nothing), `effects` (batch order, post-teardown drop, subscription diffing
+  with survivor-not-restarted, interval tick/stop, `windowEvent` Option filter,
+  and a **fake WebSocket-shaped `custom` sub** as the D12 proof), plus runtime
+  specs on `sandbox`/`application` (init-Cmd after paint, update-Cmd dispatch,
+  subscription toggle on/off, alive-guard drop, dispose on cleanup).
+
+**Verification**
+- Fresh `scripts/check-all.sh`: **EXIT 0**. plgg-view **145 passed / 0 failed**;
+  `Cmd`/`Sub`/`effects` **100%** covered; gate passed (98.70% stmts, **91.51%
+  branches**, 95.71% fns, all > 89). `example` 26 passed, `plggmatic-example`
+  11 passed; every suite 0 failed.
+- **SSR unaffected:** `plgg-server/.../renderToString.ts` and
+  `plgg-view/src/Html/**` have **no diff**. No `scripts/` or dependency changes.
+- **Real-browser demo (gate):** served `packages/example`, added a todo → toast
+  `Added "Auto-dismiss me"` rendered (`toastCount: 1`); after the 4s `cmdEffect`
+  the runtime dispatched `ToastDismissed` and removed it (`toastCount: 0`) while
+  the todos stayed. Auto-dismiss works end-to-end. No `as`/`any`/`ts-ignore`.
+
+**Discovered Insights**
+- **`Cmd` vs `Sub` variance.** `Cmd<Msg>` is covariant (Msg only in output
+  positions), so `cmdNone(): Cmd<never>` flows anywhere. `Sub<Msg>` is
+  INVARIANT — the `custom` sub's `start:(dispatch:(msg:Msg)=>void)=>…` puts Msg
+  in a contravariant slot — so an empty `subBatch([])` or a `none()`-returning
+  `windowEvent` needs an explicit `<Msg>` type argument (inference falls back to
+  the Box placeholder tag otherwise). Documented at the spec call sites.
+- **The `SubEnv` injection seam is what makes the runtime testable** — real
+  `setInterval`/`window` would make interval/window specs flaky; the fake env
+  fires on `tickAll()`/`emit()`, and a start/cleanup counter proves a survivor
+  key is not restarted (total starts, not just current count).
+- **The alive-gated dispatch is the single teardown guard.** Placing the
+  `if (!alive) return` in the runtime's `dispatch` (not in `runCmd`) makes both
+  effect-resolved and subscription-fired dispatches drop after cleanup with one
+  check; the effects layer stays free of teardown state.
+- Verification discipline held: `N passed, M failed` + the `sh -eu` success
+  trailer / exit code from a FOREGROUND `check-all`, plus a real browser drive
+  for the effect the tests can only prove structurally.
