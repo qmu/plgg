@@ -6,9 +6,9 @@ import {
   some,
   chainResult,
 } from "plgg";
-import { renderToString } from "plggmatic";
-import { type Web } from "plggmatic";
-import { type BuildSpec } from "plggmatic";
+import { renderToString } from "plggpress/framework";
+import { type Web } from "plggpress/framework";
+import { type BuildSpec } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   type PageLinks,
@@ -23,7 +23,7 @@ import { injectThemeScripts } from "plggpress/theme/themeScript";
 /**
  * The press build declaration, stated once for every
  * entry point (`build`, the CLI): what plggpress — the
- * docs app — supplies to `plggmatic`'s static build. The
+ * docs app — supplies to the framework's static build. The
  * router factory closes the validated config over
  * {@link pressRouter} (Markdown → highlight → theme), the
  * 404 body is the rendered theme {@link notFound} page,

@@ -6,6 +6,78 @@
 not an API to learn in depth; it is the seam where
 external AI vendors enter the plgg world as plain data.
 
+## Writing an app with it
+
+A vendor becomes plain config, and one
+[`proc`](/concepts/composition) asks it for a
+schema-shaped object and decodes the reply — failures
+stay in the [`Result`](/concepts/result), never thrown:
+
+```typescript
+import {
+  proc,
+  atProp,
+  asReadonlyArray,
+  asSoftStr,
+} from "plgg";
+import {
+  openai,
+  generateObject,
+} from "plgg-kit";
+
+// A JSON schema the reply must satisfy:
+const schema = {
+  type: "object",
+  properties: {
+    fruits: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["fruits"],
+};
+
+// A provider is config, not a live client:
+const provider = openai("gpt-5.1");
+
+// Ask, then decode into typed data:
+const pickFruits = proc(
+  {
+    provider,
+    systemPrompt: "You are a cake maker.",
+    userPrompt: "Choose 3 fruits.",
+    schema,
+  },
+  generateObject,
+  atProp("fruits"),
+  asReadonlyArray(asSoftStr),
+); // PromisedResult<readonly SoftStr[], _>
+```
+
+Swap `openai` for `anthropic` or `google` and nothing
+else changes: the call site names a provider value, never
+a vendor SDK. The `apiKey` is optional — omit it and
+`generateObject` resolves it from the environment.
+
+## Vocabulary
+
+Everything is pure plgg data, grouped by concern:
+
+- **providers** — `openai`/`anthropic`/`google`
+  constructors, each accepting a bare model string or a
+  `{ model, apiKey? }` object, producing the
+  `OpenAI`/`Anthropic`/`Google`
+  [`Box`](/concepts/tagged-data) variants unified as
+  `Provider`.
+- **validate & fold** — every provider has its `as*`
+  decoder (`asOpenAI`/`asAnthropic`/`asGoogle`) and `*$`
+  matcher (`openAI$`/`anthropic$`/`google$`), so a
+  provider is validated as a [`Result`](/concepts/result)
+  and folded **by name** like any other plgg value.
+- **usecase** — `generateObject` takes a `provider`,
+  prompts, and a JSON `schema`, and returns a
+  `PromisedResult` of the decoded object.
+
 ## LLM providers
 
 A provider is a tagged [`Box`](/concepts/tagged-data)

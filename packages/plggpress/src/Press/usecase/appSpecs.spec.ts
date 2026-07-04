@@ -24,7 +24,7 @@ import {
   type HttpRequest,
   type HttpResponse,
   handle,
-} from "plggmatic";
+} from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { type BrokenLinks } from "plggpress/CheckLinks/model/CheckLinks";
 import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";

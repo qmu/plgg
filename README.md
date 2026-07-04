@@ -89,6 +89,7 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-sql/`](packages/plgg-sql/)** - SQL as data-last pipeline steps built from scratch on plgg: tagged-template queries, transactions, and typed row mapping that drop into a `proc`/`pipe` chain; the database driver lives at an app-supplied seam
 - **[`packages/plgg-db-migration/`](packages/plgg-db-migration/)** - Minimal dbmate-style schema-migration tool on plgg + plgg-sql: single-file up/down migrations, a `schema_migrations` ledger, on-demand per-tenant SQLite, zero new dependencies
+- **[`packages/plgg-auth/`](packages/plgg-auth/)** - OIDC identity-provider toolkit built from scratch on plgg: the JOSE layer (base64url, JWK/JWKS with RFC 7638 thumbprint kids, JWS RS256, JWT claim validation) on WebCrypto only — pinned to the RFC test vectors and cross-checked against `node:crypto`
 
 **AI**
 
@@ -104,8 +105,7 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
 - **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, tokenizing with an in-house plgg-parser grammar (no `typescript` dependency) into classified plgg-view `Html` spans
 - **[`packages/plgg-parser/`](packages/plgg-parser/)** - Zero-new-dep generic parser combinator library on plgg: data-last `Parser<A,S>` functions returning `Result<Parsed<A,S>>`, a user-state slot for context-sensitive grammars, and a TS-lexer demo (the eventual in-house replacement for plgg-highlight's compiler scanner)
-- **[`packages/plggmatic/`](packages/plggmatic/)** - Pre-organized, composable full-stack web-application framework on the plgg family: config loading, a router builder, static-build orchestration, and a pre-organized CLI
-- **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator built on plggmatic: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide
+- **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide. Carries its generic web framework internally (config loading, a router builder, static-build + CLI orchestration — absorbed from the former standalone `plggmatic`, now its own repository)
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
 
@@ -113,6 +113,9 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
+- **[`packages/plggmatic/`](packages/plggmatic/)** - Column-oriented UI design framework on the plgg family: a typed light/dark color scheme, `row`/`column`/`pane` layout combinators, and fundamental components as pure `(props) => Html<Msg>`
+- **[`packages/site/`](packages/site/)** - The plggpress-built documentation site for plggmatic (private `@plggmatic/site`, not published)
+- **[`packages/plggmatic-example/`](packages/plggmatic-example/)** - The plggmatic workbench: a traversable column-stack (Miller columns) demo app served under the docs at `/example/`
 
 ## Installation
 
@@ -386,15 +389,9 @@ A zero-new-dependency generic parser combinator library built purely on plgg. Pa
 
 See [packages/plgg-parser/README.md](packages/plgg-parser/README.md) for details.
 
-### plggmatic
-
-A pre-organized, composable full-stack web-application framework on the plgg family: config loading, a router builder, static-build orchestration, and a pre-organized CLI — the framework-generic seam an app supplies its content/render specifics to.
-
-See [packages/plggmatic/README.md](packages/plggmatic/README.md) for details.
-
 ### plggpress
 
-A VitePress-like static-site generator built on plggmatic: a typed `SiteConfig` contract, a single base-path href resolver, a config-loading CLI, and a build pipeline with a build-time dead-link checker. It is the engine that builds this guide.
+A VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a single base-path href resolver, a config-loading CLI, and a build pipeline with a build-time dead-link checker. It is the engine that builds this guide. plggpress carries its generic web framework internally (config loading, a router builder, static-build + CLI orchestration — absorbed from the former standalone `plggmatic`, now developed in its own repository).
 
 See [packages/plggpress/README.md](packages/plggpress/README.md) for details.
 

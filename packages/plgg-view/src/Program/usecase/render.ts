@@ -463,6 +463,31 @@ export const waapiPlay: Play = (node, motion) =>
     : Promise.resolve();
 
 /**
+ * SVG needs its namespace: an `<svg>`/`<path>` created via plain
+ * `createElement` is an inert `HTMLUnknownElement` that never draws. These are
+ * the two SVG tags the typed builders vocabulary ships (`svg` holds `path`
+ * children only); extend alongside the builders if that vocabulary grows.
+ */
+const SVG_TAGS: ReadonlyArray<SoftStr> = [
+  "svg",
+  "path",
+];
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Creates the right kind of element for a tag: namespaced for the SVG
+ * vocabulary, plain HTML otherwise. Both return `Element`, which is all the
+ * attribute/keyed/motion seams require.
+ */
+const createElementFor = (
+  tag: SoftStr,
+): Element =>
+  SVG_TAGS.some((t) => t === tag)
+    ? document.createElementNS(SVG_NS, tag)
+    : document.createElement(tag);
+
+/**
  * Builds a fresh DOM node from an {@link Html} tree — text becomes a `Text`
  * node, an element a created node with safe attributes, wired handlers, and
  * appended children. Used on first paint and whenever a node must be replaced.
@@ -479,7 +504,7 @@ export const createNode =
       [
         element$(),
         ({ content }): Node => {
-          const el = document.createElement(
+          const el = createElementFor(
             content.tag,
           );
           content.attributes.forEach(

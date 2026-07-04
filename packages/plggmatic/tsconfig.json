@@ -3,10 +3,10 @@
     /* Compiler Option */
     "target": "ES2021",
     /* This package is `"type": "module"` and its source is
-       run directly via Node type-stripping (its consumer
-       app carries the bin), so it uses ESNext + Bundler
-       resolution: extensionless self-alias specifiers
-       (`plggmatic/...`) resolve while modules stay ESM. */
+       run directly via Node type-stripping (plgg-test), so
+       it uses ESNext + Bundler resolution: extensionless
+       self-alias specifiers (`plggmatic/...`) resolve while
+       modules stay ESM. */
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "declaration": true,

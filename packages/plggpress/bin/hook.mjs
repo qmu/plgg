@@ -6,7 +6,7 @@
 // node:*) falls through to Node's default resolution. A
 // near-verbatim copy of plgg-bundle/bin/hook.mjs with the
 // prefix retargeted — no new dependency.
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import {
   fileURLToPath,
   pathToFileURL,
@@ -19,15 +19,22 @@ const here = dirname(
 const srcRoot = join(here, "..", "src");
 const prefix = "plggpress/";
 
+// Resolve to a FILE, never a directory: a bare-directory
+// self-alias (e.g. `plggpress/framework`) must land on its
+// `index.ts`, not the directory itself — Node would `read`
+// the directory and throw EISDIR. So the raw `base` matches
+// only when it is a real file; a directory falls through to
+// `base/index.ts`.
+const isFile = (c) =>
+  existsSync(c) && statSync(c).isFile();
+
 const pick = (base) => {
   const candidates = [
     base,
     `${base}.ts`,
     join(base, "index.ts"),
   ];
-  return candidates.find((c) =>
-    existsSync(c),
-  );
+  return candidates.find(isFile);
 };
 
 export const resolve = (

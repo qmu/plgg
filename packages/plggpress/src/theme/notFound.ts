@@ -8,11 +8,11 @@ import {
   text,
   attr,
   class_,
-} from "plggmatic";
+} from "plggpress/framework";
 import {
   type MarkdownDoc,
   frontmatter,
-} from "plggmatic";
+} from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { shell } from "plggpress/theme/shell";

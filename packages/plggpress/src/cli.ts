@@ -1,10 +1,10 @@
 import { type SoftStr, type Defect } from "plgg";
-import { type SsgError } from "plggmatic/ssg";
+import { type SsgError } from "plggpress/framework/ssg";
 import {
   type AppOptions,
   type AppRunContext,
   runApp,
-} from "plggmatic";
+} from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   type BrokenLink,
@@ -35,7 +35,7 @@ const formatBuildError = (
         : `${e.__tag}: ${e.content.path}`;
 
 /**
- * The plggpress CLI: `plggmatic`'s pre-organized app
+ * The plggpress CLI: the framework's pre-organized app
  * runner (argv parsing, command dispatch, the usage
  * banner, and the `Result`→exit-code fold are all the
  * framework's) declared with the press specifics — the

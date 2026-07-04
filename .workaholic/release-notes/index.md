@@ -13,3 +13,6 @@
 * [Add four foundation combinators to eliminate repetitive type scaffolding etc](work-20260701-185044.md)
 * [Deploy Guide builds plggmatic before plggpress; guide served at plgg.qmu.co.jp](work-20260703-020116.md)
 * [Reduce GitHub Actions to local CI/CD policy minimum: two thin workflow callers, script-driven releases etc](work-20260703-050355.md)
+* [Harden the guide dev container, absorb plggmatic into plggpress, and lead Vocabulary docs with examples](work-20260703-184443.md)
+* [plgg-auth: a from-scratch OpenID Connect identity provider on plgg](work-20260703-220007.md)
+* [Fix plgg-bundle's loader hook resolving a directory (EISDIR) and guard it with a regression test](work-20260704-104625.md)

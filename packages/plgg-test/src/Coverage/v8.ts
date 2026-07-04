@@ -209,13 +209,75 @@ const keep = (
   !path.endsWith(".test.ts") &&
   !exclude.some((frag) => path.includes(frag));
 
+/**
+ * Merges two V8 scripts for the same source by
+ * summing the `count` of positionally-identical
+ * ranges. The self-re-exec (see the module doc)
+ * dumps coverage more than once — the discovery
+ * pass loads a file with zero counts, the run
+ * pass has the real counts — and V8 emits one
+ * script per dump. Keeping only the last (as a
+ * plain `Map.set` would) discards the run's
+ * counts whenever the zero-count dump lands last,
+ * silently undercounting branches. Summing keeps
+ * every arm any dump exercised. Structurally
+ * divergent scripts (different function/range
+ * shape — should not happen for one source) fall
+ * back to the one with more total coverage.
+ */
+const mergeScripts = (
+  a: V8Script,
+  b: V8Script,
+): V8Script => {
+  const sameShape =
+    a.functions.length === b.functions.length &&
+    a.functions.every(
+      (fn, i) =>
+        fn.ranges.length ===
+        b.functions[i]?.ranges.length,
+    );
+  if (!sameShape) {
+    return totalCount(a) >= totalCount(b) ? a : b;
+  }
+  return {
+    url: a.url,
+    functions: a.functions.map((fn, i) => ({
+      ...fn,
+      ranges: fn.ranges.map((r, j) => ({
+        ...r,
+        count:
+          r.count +
+          (b.functions[i]?.ranges[j]?.count ?? 0),
+      })),
+    })),
+  };
+};
+
+const totalCount = (s: V8Script): number =>
+  s.functions.reduce(
+    (sum, fn) =>
+      sum +
+      fn.ranges.reduce(
+        (acc, r) => acc + r.count,
+        0,
+      ),
+    0,
+  );
+
 const dedupeByPath = (
   scripts: ReadonlyArray<V8Script>,
 ): ReadonlyArray<V8Script> => {
   const byPath = new Map<string, V8Script>();
-  scripts.forEach((s) =>
-    byPath.set(toPath(s.url), s),
-  );
+  scripts.forEach((s) => {
+    const key = toPath(s.url);
+    const prior = byPath.get(key);
+    byPath.set(
+      key,
+      prior === undefined
+        ? s
+        : mergeScripts(prior, s),
+    );
+  });
   return [...byPath.values()];
 };
 

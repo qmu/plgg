@@ -1,9 +1,9 @@
 import { type SoftStr, matchResult } from "plgg";
-import { type Fetch, toFetch } from "plggmatic";
+import { type Fetch, toFetch } from "plggpress/framework";
 import {
   type SsgError,
   discoverPaths,
-} from "plggmatic/ssg";
+} from "plggpress/framework/ssg";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { loadConfig } from "plggpress/Config/usecase/loadConfig";
 import { pressRouter } from "plggpress/router/pressRouter";

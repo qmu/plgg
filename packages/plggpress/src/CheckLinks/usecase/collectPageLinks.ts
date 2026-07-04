@@ -18,7 +18,7 @@ import {
   type MarkdownDoc,
   renderMarkdownWith,
   plainHighlighter,
-} from "plggmatic";
+} from "plggpress/framework";
 import { href } from "plggpress/Href/usecase/href";
 import { candidateFiles } from "plggpress/router/pressRouter";
 import {

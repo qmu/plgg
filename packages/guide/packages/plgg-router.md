@@ -7,6 +7,74 @@ into `Segment`s, matches a concrete pathname (capturing
 query string — returning **data, never a view**. No DOM,
 no History API; its only runtime dependency is `plgg`.
 
+## Writing an app with it
+
+Compile a pattern once, then turn the current path +
+query into a [`Location`](/packages/plgg/) — pure data.
+Lookups are [`Option`](/concepts/option) and reads are
+data-last [`pipe`](/concepts/composition)s:
+
+```typescript
+import { pipe, getOr, isSome } from "plgg";
+import {
+  compilePattern,
+  matchSegments,
+  parseQuery,
+  makeLocation,
+  param,
+  query,
+} from "plgg-router";
+
+// Compile a pattern once, match a concrete path.
+const userRoute = compilePattern("/users/:id");
+isSome(matchSegments(userRoute, "/users/42")); // true
+
+// Turn the current path + query into a Location —
+// pure data an app folds into its Model.
+const loc = makeLocation(
+  "/users/42",
+  { id: "42" },
+  parseQuery("?tab=posts"),
+);
+
+// Read captured params and query, data-last.
+pipe(loc, param("id"), getOr("?")); // "42"
+pipe(loc, query("tab"), getOr("")); // "posts"
+```
+
+Because it returns data, never a view, the same
+`Location` folds into an app's `Model` under
+[plgg-view](/packages/plgg-view)'s `application` runtime,
+which owns the `Url → Model → Html` loop.
+
+## Vocabulary
+
+The toolkit is a small vocabulary of pure plgg data,
+grouped by concern:
+
+- **pattern → segments** — `compilePattern` turns a route
+  string into `ReadonlyArray<Segment>`, where `Segment` is
+  a [`Box`](/concepts/tagged-data) union of
+  `Static | Param | Wildcard`.
+- **path → match** — `matchSegments` matches a concrete
+  pathname against compiled `Segment`s, capturing
+  `:param`s and a trailing `*wildcard` as an
+  [`Option`](/concepts/option)`<Dict>`.
+- **query** — `parseQuery` parses a search string into a
+  `Dict<string, SoftStr>`.
+- **location** — `Location` (`{ path, params, query }`),
+  built with `makeLocation`, is the resolved route data an
+  app folds into its `Model`.
+- **lookups** — `param`/`query` read a captured value as
+  an [`Option`](/concepts/option)`<SoftStr>`, data-last:
+  `pipe(loc, param("id"))`.
+
+Everything is pure plgg data — lookups are
+[`Option`](/concepts/option), maps are `Dict`, segments
+are [`Box`](/concepts/tagged-data) — with no DOM and no
+History API. The exact types and the full function list
+live in the `The model` and `Usecases` tables below.
+
 ## plgg-router vs plgg-server's `Routing`
 
 - **plgg-server's `Routing`** is *server-side*: it

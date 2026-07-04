@@ -7,7 +7,7 @@ import {
   not,
 } from "plgg-test";
 import { some, none } from "plgg";
-import { renderToString } from "plggmatic";
+import { renderToString } from "plggpress/framework";
 import { type SidebarGroup } from "plggpress/SiteConfig/model/SiteConfig";
 import { sidebarTree } from "plggpress/theme/sidebarTree";
 
