@@ -7,6 +7,7 @@ echo "=== Running 'npm install' in every package ==="
 # the linked package's deps).
 cd $REPO_ROOT/packages/plgg-bundle && npm install
 cd $REPO_ROOT/packages/plgg && npm install
+cd $REPO_ROOT/packages/plgg-parser && npm install
 cd $REPO_ROOT/packages/plgg-test && npm install
 cd $REPO_ROOT/packages/plgg-kit && npm install
 cd $REPO_ROOT/packages/plgg-foundry && npm install
