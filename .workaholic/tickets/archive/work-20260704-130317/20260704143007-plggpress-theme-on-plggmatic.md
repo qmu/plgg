@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:07+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: dd8068d
+category: Changed
 depends_on: [20260704143003-plggmatic-token-matrix-monochrome-default.md, 20260704143004-palette-override-api-and-scheme-persistence.md, 20260704143005-plggmatic-non-color-design-tokens.md]
 ---
 
@@ -387,3 +387,99 @@ evidence fails the ticket.
   plggmatic then; if the sub-`sm` compact-heading media block proves
   reusable, ticket 05's token map already carries the values — emit it
   from plggmatic when a second theme wants it.
+
+## Final Report
+
+Landed in feat `dd8068d` (22 files, +700/-480), archived in this housekeeping
+commit. The D3 theme-first proof: plggpress's docs theme now rides plggmatic's
+tokens/components, with a clean D16 `--vp-*` → `--pm-*` cutover.
+
+### What shipped
+- **plggpress → plggmatic dependency** (`file:../plggmatic`). `scripts/build.sh`
+  and `scripts/npm-install.sh` reordered so plggmatic builds/publishes before
+  plggpress (exact `cd $REPO_ROOT/packages/<name> && npm run build` line shape
+  preserved; the `publish-npm.sh` sed-derived order re-read — plggmatic now
+  precedes plggpress). Guide container provisioning updated
+  (`dev-entrypoint.sh` install loop + `compose.yaml` volumes); `gate-guide-deps.sh`
+  green.
+- **`shell.ts` composes plggmatic's framework CSS** in cascade order —
+  `schemeCss` (`--pm-*` scheme properties) + `metricCss` + `reducedMotionCss` +
+  `themeToggleCss` — ahead of the bespoke `baseCss` layout/prose sheet and the
+  body's collected atomic CSS, all through the one escaped `<style>` text node.
+- **`baseCss.ts` clean cutover.** All `--vp-*` custom properties gone; every
+  color is a `--pm-*` token (`colorVar`), geometry is metric tokens
+  (`metricVar` — shell-max/sidebar/rail/measure), media boundaries are composed
+  from plggmatic breakpoint constants (`maxWidth("sm")`/`minWidth("lg")`/
+  `maxWidth("lg")`). The `:root`/`html.dark` property blocks and the
+  reduced-motion scroll reset were deleted (now framework-owned).
+- **Callouts on the D9 role matrix.** tip→success, warning, danger each map to
+  `{surface,text,border}` role tokens; info/note stay neutral `surface-2` with a
+  `primary-base` edge. The hardcoded emerald/amber/red ramp hexes and the
+  separate `html.dark .vp-callout-*` blocks are gone (the token layer reschemes).
+- **New plggmatic SSG toggle.** `staticThemeToggle` + `themeToggleClass` +
+  `themeToggleCss` (Component/usecase/themeToggle.ts): a static
+  `Html<never,"button">` rendering BOTH icons with a CSS scheme-switch and a
+  class hook — the SSG-capable sibling of the runtime `themeToggle<Msg>`.
+  `navBar.ts` renders it; the local sun/moon builder is deleted.
+- **`themeScript.ts` → `appearanceScripts.ts`.** Head no-FOUC is plggmatic's
+  ticket-04 `injectAppearanceScript`; the body toggle-wiring is composed from
+  `appearanceStorageKey` + `themeToggleClass` (no re-typed literals). Both
+  injection call sites (`pressRouter.ts`, `appSpecs.ts`) rewired.
+
+### Design decisions (recorded)
+- **Runtime toggle can't serve SSG → a static toggle was added, not cloned.**
+  plgg-view's `renderToString` drops `onClick` and the runtime toggle renders a
+  single build-time-scheme icon; SSG needs both icons + CSS switch + a vanilla
+  body-script hook. AC1 ("renders plggmatic's themeToggle") is therefore
+  satisfied by framework-owning the static toggle in plggmatic (gap closed with
+  a spec, not worked around with raw hexes in plggpress). The runtime
+  `themeToggle<Msg>` stays for TEA apps.
+- **`sidebarTree` kept bespoke, tokenized only.** Its `SidebarGroup`/`SidebarItem`
+  config model differs from plggmatic's `NavItem`/`navTree`; per the ticket's
+  "don't fork a half-adopted component" rule it stays plggpress-owned with its
+  colors expressed purely in `--pm-*` tokens.
+- **`info` role left without a consumer.** info/note callouts stay monochrome for
+  parity (ticket 03's open item stands).
+
+### Enumerated intentional visual diffs (phase-3 gate)
+Layout/prose are pixel-preserved (same bespoke CSS + class vocabulary; only the
+`var()` sources changed). Verified by computed-style reads in a real browser:
+- **Neutrals/pills/surfaces byte-identical** old→new both schemes (tokens 03/05
+  were seeded FROM this oracle): active pill `#111`/white; toggle light chrome
+  `#fff`/`#ededee`; callout SURFACES identical (`#f6f6f7`/`#ecfdf5`/`#fffbeb`/
+  `#fef2f2` light; `#202127`/`#022c22`/`#451a03`/`#450a0a` dark); info/note fully
+  identical.
+- **Callout ink/edge shift one step** to the AA-tuned role tokens (surfaces
+  unchanged): e.g. tip light ink `#022c22`→`#065f46`, edge `#10b981`→`#059669`;
+  tip dark ink pale-mint→`#34d399`. Legibility preserved (ticket-03 contrast gate
+  is the arbiter). This is the ticket's anticipated "hues may shift a step".
+- **Dark-mode toggle** is now a bordered dark circle (`#1b1b1f`, `#262629` edge)
+  with a light moon (`#dfdfe4`, ~13:1) instead of the old light disc (`#e4e4e7`);
+  matches plggmatic's runtime toggle. The old `--vp-knob` WCAG-1.4.11 affordance
+  is carried by the high-contrast icon (and the `primary-base` hover edge).
+
+### Verification
+- Fresh `scripts/check-all.sh` **EXIT 0** — every suite 0 failed; plggpress
+  coverage 96.79/96.92/96.43/96.79 (all >90); plggmatic 100/98.28/100/100.
+- AC greps (source AND fresh dist): `--vp-`=0 in `plggpress/src`+`guide/dist`+
+  `site/dist`; raw `vp-appearance`=0 in `plggpress/src`; retired callout hexes=0
+  in `plggpress/src`; `--pm-`/`vp-appearance`/`pm-theme-toggle` present in built
+  output; no hardcoded-hex `.vp-callout-*` rule survives in any built `<style>`.
+- Both SSG builds green incl. the built-in link check (guide 32 pages, site 13).
+- Playwright side-by-side render: guide (home, concepts, result) + site
+  (design-tokens) at desktop 1280 + mobile 375 × light + dark — layout/prose
+  correct; both toggles (rail + mobile bar) flip `html.dark` and persist
+  `vp-appearance`; callout token→hex confirmed by injected-element computed
+  styles. Screenshots archived to the session scratchpad (attach at PR time as
+  the formal phase-3 evidence — the diffs above are the intentional-diff list).
+
+### Follow-ups (see Concerns)
+- No guide/site page renders a live callout box yet (content shows them as code
+  only) — the callout tokenization is latent until content uses `:::` callouts;
+  the injected-element check is the current proof.
+- The body toggle-wiring script is a candidate to upstream into plggmatic when a
+  second SSG host (admin UI / qmu.co.jp) needs it.
+- `build.sh` / the SSG build do not clean `dist/`; harmless in CI (dist is
+  gitignored, rebuilt fresh) but local stale dists mask drift — a `rm -rf dist`
+  before the guide/site build would harden the local phase-3 gate (out of scope
+  here; noted for a tooling ticket).

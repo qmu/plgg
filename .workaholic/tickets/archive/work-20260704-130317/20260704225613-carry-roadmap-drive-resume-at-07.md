@@ -135,3 +135,11 @@ a real browser (toast rendered, then the runtime's `cmdEffect` removed it after
 - **Commit convention:** feat commit carries the code; a separate housekeeping
   commit git-mv's the ticket into archive with its Final Report + `commit_hash`.
 - Once `/drive` is underway on ticket 07, this checkpoint can be archived.
+
+## Resolution
+
+Consumed by the resumed `/drive` (night mode) on 2026-07-04. Ticket **07**
+(plggpress-theme-on-plggmatic) was implemented, verified, and committed in feat
+`dd8068d`; archived alongside this checkpoint. The `/drive` continues from the
+next drivable roots (08 unblocked by 07; plus 31 / 14 / 15). This checkpoint
+required no code — captured only.
