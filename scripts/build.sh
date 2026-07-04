@@ -58,6 +58,10 @@ cd $REPO_ROOT/packages/plgg-sql && npm run build
 # plgg-db-migration after plgg-sql: the migration engine builds on plgg + the
 # plgg-sql Db seam (both marked external; built earlier for resolution order).
 cd $REPO_ROOT/packages/plgg-db-migration && npm run build
+# plgg-domain after plgg-db-migration: the durable-core spine composes plgg +
+# the plgg-sql Db/Sql seam + plgg-db-migration's Migration/Version, all built
+# above, into a domain-first derivation spine (schema, boot gate, export).
+cd $REPO_ROOT/packages/plgg-domain && npm run build
 # plgg-auth: the OIDC/JOSE toolkit; depends only on plgg core (WebCrypto is a
 # runtime global, not a dependency), so any position after plgg works.
 cd $REPO_ROOT/packages/plgg-auth && npm run build
