@@ -23,6 +23,7 @@ import {
   schemeCss,
   metricCss,
   reducedMotionCss,
+  syntaxCss,
 } from "plggmatic/style";
 
 /**
@@ -30,16 +31,19 @@ import {
  * in the one order the cascade needs: the scheme custom
  * properties FIRST (so every later `var(--pm-*)` resolves),
  * then the scheme-independent shell metrics, the
- * reduced-motion reset, and the appearance-toggle chrome +
- * icon-switch — all escape-safe (no `<`/`>`/`&`), all
- * ahead of {@link baseCss}'s bespoke layout/prose sheet
- * (D3/D16 cutover, roadmap ticket 07).
+ * reduced-motion reset, the appearance-toggle chrome +
+ * icon-switch, and the syntax-highlight `--pm-code-*`
+ * properties + `tok-*` rules — all escape-safe (no
+ * `<`/`>`/`&`), all ahead of {@link baseCss}'s bespoke
+ * layout/prose sheet (D3/D16 cutover, roadmap tickets
+ * 07 + 08).
  */
 const frameworkCss: SoftStr =
   schemeCss +
   metricCss +
   reducedMotionCss +
-  themeToggleCss;
+  themeToggleCss +
+  syntaxCss;
 
 /**
  * The page `<title>` text: the document's first H1

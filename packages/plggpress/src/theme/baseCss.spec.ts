@@ -111,6 +111,15 @@ test("escape-safe: survives the SSR text escaper byte-for-byte", () =>
     check(css, not(toContain("&"))),
   ]));
 
+test("syntax-highlight hues are framework-owned now (ticket 08) — none survive here", () =>
+  all([
+    // no tok-* rule remains in the bespoke sheet
+    check(css, not(toContain("tok-"))),
+    // and the GitHub syntax palette hexes are gone
+    check(css, not(toContain("#" + "cf222e"))),
+    check(css, not(toContain("#" + "ff7b72"))),
+  ]));
+
 test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
   all([
     check(css, toContain(".vp-doc a:focus-visible")),

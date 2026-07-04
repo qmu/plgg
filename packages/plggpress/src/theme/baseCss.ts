@@ -439,25 +439,11 @@ html.dark .vp-doc a:focus-visible code{
   color:inherit;
 }
 html.dark .vp-doc pre code{background:none}
-/* syntax tokens (tok-* classes from plgg-highlight) —
-   themed here so they adapt to light/dark; identifier
-   and plain inherit the default code text colour. These
-   hues are sibling ticket 08's to tokenize; left as-is
-   here (scope wall). */
-.vp-doc .tok-keyword{color:#cf222e}
-.vp-doc .tok-string{color:#0a3069}
-.vp-doc .tok-number{color:#0550ae}
-.vp-doc .tok-comment{color:#6e7781;font-style:italic}
-.vp-doc .tok-regex{color:#116329}
-.vp-doc .tok-template{color:#0a3069}
-.vp-doc .tok-punctuation{color:#57606a}
-html.dark .vp-doc .tok-keyword{color:#ff7b72}
-html.dark .vp-doc .tok-string{color:#a5d6ff}
-html.dark .vp-doc .tok-number{color:#79c0ff}
-html.dark .vp-doc .tok-comment{color:#8b949e}
-html.dark .vp-doc .tok-regex{color:#7ee787}
-html.dark .vp-doc .tok-template{color:#a5d6ff}
-html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
+/* syntax-highlight hues (plgg-highlight's span classes) are
+   framework-owned now: plggmatic's syntaxCss emits the
+   --pm-code-* properties + the class rules per scheme
+   (ticket 08 finishes the D16 cutover for code blocks). No
+   syntax colors live here anymore. */
 
 /* tables */
 .vp-doc table{

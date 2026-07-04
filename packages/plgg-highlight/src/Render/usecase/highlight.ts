@@ -36,11 +36,18 @@ import { normalizeLang } from "plgg-highlight/Lang/usecase/normalizeLang";
  * nine kinds so adding a kind is a compile error until it
  * is classed. Tokens carry only a semantic `tok-<kind>`
  * class, NOT an inline colour: the actual colours live in
- * the consuming theme's stylesheet (plggpress `baseCss`),
- * which can therefore give them DIFFERENT palettes in
- * light and dark mode. (Inline colours could not adapt to
+ * the design system's Style layer (plggmatic's `syntaxCss`
+ * emits `--pm-code-*` properties + the `.tok-*` rules per
+ * scheme), which can therefore give them DIFFERENT palettes
+ * in light and dark mode. (Inline colours could not adapt to
  * `html.dark` and could not be overridden by CSS, which is
- * why highlighting looked flat in dark mode.)
+ * why highlighting looked flat in dark mode.) The
+ * `tok-<kind>` names are a pinned contract with plggmatic's
+ * `SyntaxKind` — this package stays color-free and does not
+ * depend on plggmatic; a cross-package spec in plggpress
+ * (which depends on both) is the executable link. `identifier`
+ * and `plain` are intentionally unthemed there (they inherit
+ * the code block's default ink).
  */
 const tokenClass = (kind: TokenKind): SoftStr =>
   match(kind)(

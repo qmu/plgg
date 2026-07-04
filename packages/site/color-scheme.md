@@ -35,6 +35,22 @@ The shipped default is the **qmu.co.jp monochrome palette**: black `#111111` on 
 
 **Doctrine note.** `token.ts` began as a deliberate *seed*, not a catalog — each role earned its place from a concrete consumer. Decision **D9** (roadmap 2026-07-04) amends that: the role×variant *shape* is fixed up front as roadmap vocabulary, and the earned-place rule now applies one tier up — new **roles** (`secondary`, `tertiary`) are still earned by a concrete consumer and are deliberately not shipped yet. Adding one is a single union-member edit whose fallout is driven entirely by `tsc`.
 
+## Syntax highlighting
+
+Code blocks are a **sibling** vocabulary, not part of the color matrix: `bg("code-keyword")` stays a compile error. plgg-highlight emits a semantic `tok-<kind>` class per lexeme and carries *no* inline color; plggmatic's `syntaxCss` supplies the hues as `--pm-code-<kind>` custom properties (per scheme) plus one unscoped rule block (`.tok-keyword{color:var(--pm-code-keyword)}` …, `comment` also italic), so any consumer gets themed code for free and the palette reschemes on `html.dark`. The `SyntaxKind` names are a **pinned contract** with plgg-highlight's classes — neither package imports the other; a cross-package spec in plggpress is the executable link.
+
+Two of the nine token kinds are deliberately **unthemed**: `identifier` and `plain` inherit the code block's default ink. The seven colored kinds seed from the shipped GitHub palette, adopted verbatim except where the contrast gate forces a change: light `comment` `#6e7781` is 4.21:1 on the `surface-2` code background, below AA, so it darkens to `#656d76` (4.86:1) — the same contrast-forced move `muted` made. Every hue is gated ≥ 4.5:1 against `surface-2` in its scheme:
+
+| Kind | Light | Light ratio | Dark | Dark ratio |
+| --- | --- | --- | --- | --- |
+| `keyword` | `#cf222e` | 4.96:1 | `#ff7b72` | 6.37:1 |
+| `string` | `#0a3069` | 11.86:1 | `#a5d6ff` | 10.44:1 |
+| `number` | `#0550ae` | 7.03:1 | `#79c0ff` | 8.25:1 |
+| `comment` | `#656d76` | 4.86:1 | `#8b949e` | 5.22:1 |
+| `regex` | `#116329` | 6.85:1 | `#7ee787` | 10.45:1 |
+| `template` | `#0a3069` | 11.86:1 | `#a5d6ff` | 10.44:1 |
+| `punctuation` | `#57606a` | 5.92:1 | `#c9d1d9` | 10.40:1 |
+
 ## Custom properties, one `dark` class
 
 Color atoms resolve to `var(--pm-*)` custom properties rather than literal hex, so a single `dark` class on `<html>` reschemes the entire tree without re-styling any element. `schemeCss` emits the values as `:root{…}` plus a `html.dark{…}` override — 25 variables per scheme.

@@ -101,3 +101,11 @@ export {
 } from "plggmatic/Style/usecase/schemeCss";
 export { metricCss } from "plggmatic/Style/usecase/metricCss";
 export { reducedMotionCss } from "plggmatic/Style/usecase/reducedMotion";
+export {
+  type SyntaxKind,
+  syntaxKinds,
+  syntaxPalette,
+  syntaxHex,
+  syntaxVar,
+} from "plggmatic/Style/model/syntax";
+export { syntaxCss } from "plggmatic/Style/usecase/syntaxCss";

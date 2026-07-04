@@ -13,6 +13,10 @@ import {
 import { colorHex } from "plggmatic/Style/model/palette";
 import { contrastRatio } from "plggmatic/Style/usecase/contrast";
 import { schemes } from "plggmatic/Style/model/scheme";
+import {
+  syntaxKinds,
+  syntaxHex,
+} from "plggmatic/Style/model/syntax";
 
 // The accessibility gate, COMPUTED — not asserted by eye.
 // This is the roadmap's phase-1 gate (D9): every text
@@ -86,6 +90,28 @@ test("every semantic border clears the non-text floor (>=3:1) in both schemes", 
             colorHex(scheme, bg),
           ),
           toBeGreaterThanOrEqual(AA_NON_TEXT),
+        ),
+      ),
+    ),
+  ));
+
+// Syntax hues (ticket 08): every colored SyntaxKind paints a
+// `tok-*` span on the code-block surface `surface-2`, so each
+// must clear AA normal-text (>=4.5:1) against surface-2 in
+// its scheme (7 kinds × 2 schemes = 14 pairings). Derived
+// from syntaxKinds so a new kind auto-extends the gate. This
+// is why light `comment` carries the darkened default
+// (#656d76): the oracle #6e7781 is 4.21:1 here.
+test("every syntax hue clears WCAG AA (>=4.5:1) on surface-2 in both schemes", () =>
+  all(
+    schemes.flatMap((scheme) =>
+      syntaxKinds.map((k) =>
+        check(
+          contrastRatio(
+            syntaxHex(scheme, k),
+            colorHex(scheme, "surface-2"),
+          ),
+          toBeGreaterThanOrEqual(AA_NORMAL),
         ),
       ),
     ),
