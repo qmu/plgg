@@ -96,7 +96,7 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 | `plgg` | flat foundation | conformant — zero third-party imports (the domain vocabulary itself) |
 | `plgg-db-migration` | domain/vendors/entrypoints | **conformant (reference)** — `node:fs` in `vendors/fs.ts`, `process`/exit in `entrypoints/cli.ts` |
 | `plgg-cli` | legacy Feature/ | conformant — no third-party imports |
-| `plgg-fetch` | legacy Feature/ | conformant — no third-party imports (the pilot for ticket 20260704185203) |
+| `plgg-fetch` | domain/vendors | **conformant (migrated pilot, ticket 20260704185203)** — `Http/{model,usecase}` → `domain/{model,usecase}`, `seam.ts` → `vendors/fetch.ts` (the sole `fetch` toucher; the domain's `request` delegates to `sendRequest`) |
 | `plgg-foundry` | legacy Feature/ | conformant — no third-party imports |
 | `plgg-highlight` | legacy Feature/ | conformant — no third-party imports (dropped the tsc peerDep) |
 | `plgg-http` | legacy Feature/ | conformant — no third-party imports |
@@ -116,5 +116,14 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 | `plggmatic-example` | leaf app | **EXEMPT** — the workbench app wiring `node:` (crypto/fs/path) directly |
 | `guide` | content app (no `src/`) | program checkpoint — a plggpress consumer; no `src/` to gate |
 | `site` | content app (no `src/`) | program checkpoint — a plggpress consumer; no `src/` to gate |
+
+**Migration recipe** (from the plgg-fetch pilot, ticket 20260704185203 — the template for the remaining legacy-layout packages, filed as per-package follow-ups):
+
+1. `git mv` the trees, preserving history: `src/<Feature>/model` → `src/domain/model`, `src/<Feature>/usecase` → `src/domain/usecase`, and the vendor seam file (`seam.ts` / the sole third-party toucher) → `src/vendors/<vendor>.ts` (canonical plural). Remove the now-empty `<Feature>/` dir.
+2. Rewire the self-alias import specifiers (`<pkg>/<Feature>/…` → `<pkg>/domain/…` and `<pkg>/vendors/…`).
+3. **Pull the vendor CALL into `vendors/`**: if a domain use case invoked the platform directly (plgg-fetch's `request` called `fetch(...)`), move that call into a vendor function with a domain-only signature (`sendRequest(HttpRequest) → PromisedResult<HttpResponse, ClientError>`); the domain calls it and never references a Web/vendor type. Give the vendor module the doc-comment declaring it "the only place this package touches `<API>`" (per `plgg-db-migration/src/vendors/fs.ts`).
+4. `index.ts` re-exports **domain only** — never `vendors/`. Vendor functions leave the public surface (verify no downstream consumer imported them); the vendor's own spec imports them from the vendor module path.
+5. Keep the injectable-seam testing pattern: domain specs run against a faked vendor (or a stubbed platform global); only the vendor's spec touches the real API.
+6. Remove the package from `scripts/vendor-boundary-exemptions.txt` if it was listed, flip its audit row to "conforms", and run `scripts/gate-vendor-boundary.sh` + a fresh `scripts/check-all.sh`.
 
 **Review trigger**: Revisit when a new package is added (audit it — conform or exempt with a reason); when an exempted package migrates (remove its line, the stale-exemption check enforces this); when the durable-core/sacrificial-shell spine (ticket 20260704143031) lands its orthogonal boundary (keep the seam/boundary/checkpoint vocabulary consistent between the two constraint texts); or when v2 adds signature-level or Web-global checking.

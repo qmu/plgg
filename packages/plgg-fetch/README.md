@@ -75,19 +75,30 @@ This is the central contract, by design:
   connection, a malformed URL, or a body that cannot be read folds to
   `Err(NetworkError)` — there is no HTTP response in that case.
 
-## The seam
+## Layout: domain / vendors
 
-The Web platform types live in exactly one module
-([`src/Http/usecase/seam.ts`](src/Http/usecase/seam.ts)):
+plgg-fetch follows the canonical package layout (see
+`.workaholic/constraints/architecture.md` §Vendor Boundary; it was the pilot
+migration, ticket `20260704185203`):
 
-- `toFetchRequest(req): Request` — plgg `HttpRequest` → native `Request`.
-- `fromFetchResponse(res): PromisedResult<HttpResponse, ClientError>` — native
-  `Response` → plgg `HttpResponse` (or a `NetworkError` if the body read fails).
+- **`src/domain/`** — the pure domain: `model/ClientError` and
+  `usecase/{request,decode}`. `request` builds a plgg-native `HttpRequest` and
+  delegates the round-trip to the vendor; it never references a Web type.
+- **`src/vendors/fetch.ts`** — the anti-corruption boundary, **the only module
+  that touches the Web `fetch` platform** (`fetch`/`Request`/`Response`/
+  `Headers`/`URL`). Its domain-facing entry is `sendRequest(HttpRequest) →
+  PromisedResult<HttpResponse, ClientError>`; internally:
+  - `toFetchRequest(req): Request` — plgg `HttpRequest` → native `Request`.
+  - `fromFetchResponse(res): PromisedResult<HttpResponse, ClientError>` — native
+    `Response` → plgg `HttpResponse` (or a `NetworkError` if the body read fails).
+- **`src/index.ts`** re-exports the domain only, never `vendors/`.
 
 This mirrors the router's seam (`toHttpRequest`/`toNativeResponse`) in the
 opposite direction; the HTTP *model* (`HttpRequest`, `HttpResponse`,
 `HttpStatus`, `Method`, `ResponseBody`) is reused, keeping client and server
-symmetric.
+symmetric. plgg-fetch is a library — its program checkpoint is the downstream
+program that consumes it; its domain is exercised end-to-end by its specs (with
+the vendor faked / the platform stubbed).
 
 ## Out of scope (POC)
 

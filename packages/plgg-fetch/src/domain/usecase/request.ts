@@ -1,9 +1,7 @@
 import {
   PromisedResult,
-  Result,
   SoftStr,
   Dict,
-  err,
   none,
   fromNullable,
   getOr,
@@ -13,15 +11,8 @@ import {
   HttpResponse,
   Method,
 } from "plgg-http";
-import {
-  ClientError,
-  networkError,
-} from "plgg-fetch/Http/model/ClientError";
-import {
-  toFetchRequest,
-  fromFetchResponse,
-  messageOf,
-} from "plgg-fetch/Http/usecase/seam";
+import { ClientError } from "plgg-fetch/domain/model/ClientError";
+import { sendRequest } from "plgg-fetch/vendors/fetch";
 
 /**
  * Per-call request options. `query` is merged onto the URL, `headers` are sent
@@ -68,27 +59,20 @@ const buildHttpRequest = (
 /**
  * Performs an HTTP request and returns the response as a value.
  *
- * All arguments are supplied in one call (this is not a `pipe` step). Building
- * the native `Request` and `fetch` run inside the promise chain, so a malformed
- * URL or a transport failure folds to a {@link NetworkError}; any HTTP status —
- * 2xx or not — comes back as a successful {@link HttpResponse} for the caller to
- * inspect.
+ * All arguments are supplied in one call (this is not a `pipe` step). The
+ * network round-trip is delegated to the vendor {@link sendRequest} — the sole
+ * toucher of the Web `fetch` platform — so this domain use case handles only
+ * plgg-native {@link HttpRequest}/{@link HttpResponse} values: a malformed URL
+ * or a transport failure folds to a {@link NetworkError}, and any HTTP status —
+ * 2xx or not — comes back as a successful {@link HttpResponse} for the caller
+ * to inspect.
  */
 export const request = (
   method: Method,
   url: SoftStr,
   options?: RequestOptions,
 ): PromisedResult<HttpResponse, ClientError> =>
-  Promise.resolve(buildHttpRequest(method, url, options))
-    .then((req: HttpRequest): Promise<Response> =>
-      fetch(toFetchRequest(req)),
-    )
-    .then(
-      (response: Response) =>
-        fromFetchResponse(response),
-      (error: unknown): Result<HttpResponse, ClientError> =>
-        err(networkError(messageOf(error))),
-    );
+  sendRequest(buildHttpRequest(method, url, options));
 
 /**
  * `GET` convenience — see {@link request}.

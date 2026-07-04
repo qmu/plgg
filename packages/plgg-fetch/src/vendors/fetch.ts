@@ -1,3 +1,15 @@
+/**
+ * The plgg-fetch vendor boundary (anti-corruption layer) —
+ * **the ONLY place this package touches the Web `fetch`
+ * platform** (`fetch`, `Request`, `Response`, `Headers`,
+ * `URL`, `RequestInit`). Every public function here exchanges
+ * only plgg types and domain types (`HttpRequest` /
+ * `HttpResponse` / `ClientError`), so the domain calls
+ * {@link sendRequest} without ever seeing a Web type and any
+ * vendor is swappable behind this file. Platform failures are
+ * folded into value-level {@link ClientError}s, never thrown
+ * across the seam.
+ */
 import {
   PromisedResult,
   Result,
@@ -17,7 +29,7 @@ import {
   ClientError,
   networkError,
   redirectError,
-} from "plgg-fetch/Http/model/ClientError";
+} from "plgg-fetch/domain/model/ClientError";
 
 /**
  * Extracts a human-readable message from an unknown thrown value.
@@ -146,3 +158,32 @@ export const fromFetchResponse = (
         ): Result<HttpResponse, ClientError> =>
           err(networkError(messageOf(error))),
       );
+
+/**
+ * Send a plgg-native {@link HttpRequest} over the network and
+ * return the response as a value — the one domain-facing
+ * entry of this vendor. Builds the native `Request`
+ * ({@link toFetchRequest}), runs `fetch` (never auto-following
+ * a redirect), and folds the native `Response` back to a
+ * domain {@link HttpResponse} ({@link fromFetchResponse}); a
+ * malformed URL or a transport failure folds to a
+ * {@link NetworkError}. The signature is domain-only
+ * (`HttpRequest` in, `HttpResponse`/`ClientError` out) — the
+ * `fetch`/`Request`/`Response` handling stays confined here,
+ * so the domain's `request` never references a Web type.
+ */
+export const sendRequest = (
+  request: HttpRequest,
+): PromisedResult<HttpResponse, ClientError> =>
+  Promise.resolve(request)
+    .then((req: HttpRequest): Promise<Response> =>
+      fetch(toFetchRequest(req)),
+    )
+    .then(
+      (response: Response) =>
+        fromFetchResponse(response),
+      (
+        error: unknown,
+      ): Result<HttpResponse, ClientError> =>
+        err(networkError(messageOf(error))),
+    );
