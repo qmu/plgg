@@ -1,3 +1,4 @@
+import { none } from "plgg";
 import {
   test,
   check,
@@ -25,6 +26,7 @@ const config: SiteConfig = {
     },
   ],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 const rail = renderToString(chromeRail(config));

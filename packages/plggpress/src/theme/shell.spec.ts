@@ -7,6 +7,7 @@ import {
   not,
 } from "plgg-test";
 import { some, none } from "plgg";
+import { type YamlMap, yStr } from "plgg-md";
 import {
   type Html,
   div,
@@ -45,6 +46,7 @@ const config: SiteConfig = {
   sidebar: [],
   social: [],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 // A normal page: its first H1 drives the `<title>`.
@@ -60,7 +62,9 @@ const pageDoc: MarkdownDoc = {
 // The home page: no H1, so `<title>` falls back to the
 // site title.
 const homeDoc: MarkdownDoc = {
-  frontmatter: frontmatter(some("home")),
+  frontmatter: frontmatter(
+    some<YamlMap>([["layout", yStr("home")]]),
+  ),
   firstHeading: none(),
   body: bodyFixture,
   links: [],

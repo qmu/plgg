@@ -1,3 +1,4 @@
+import { none } from "plgg";
 import {
   mkdtemp,
   mkdir,
@@ -33,6 +34,7 @@ const config: SiteConfig = {
   sidebar: [],
   social: [],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 const HOME_MD = [

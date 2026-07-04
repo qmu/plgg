@@ -10,6 +10,7 @@ import {
   type BrokenLink,
   type BrokenLinks,
 } from "plggpress/CheckLinks/model/CheckLinks";
+import { type ModelViolations } from "plggpress/ContentModel/model/ModelViolation";
 import { loadConfig } from "plggpress/Config/usecase/loadConfig";
 import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
 import { pressServeWeb } from "plggpress/server/pressServer";
@@ -20,7 +21,11 @@ import { pressServeWeb } from "plggpress/server/pressServer";
  * cast — so each variant surfaces its most useful field.
  */
 const formatBuildError = (
-  e: SsgError | Defect | BrokenLinks,
+  e:
+    | SsgError
+    | Defect
+    | BrokenLinks
+    | ModelViolations,
 ): SoftStr =>
   e.__tag === "Defect"
     ? e.content.message
@@ -31,9 +36,16 @@ const formatBuildError = (
               `${b.source} -> ${b.href} (${b.reason})`,
           )
           .join("; ")}`
-      : e.__tag === "WriteFailed"
-        ? `${e.content.path}: ${e.content.message}`
-        : `${e.__tag}: ${e.content.path}`;
+      : e.__tag === "ModelViolations"
+        ? `${e.content.length} content-model violation(s): ${e.content
+            .map(
+              (v): SoftStr =>
+                `${v.path}: ${v.reason}`,
+            )
+            .join("; ")}`
+        : e.__tag === "WriteFailed"
+          ? `${e.content.path}: ${e.content.message}`
+          : `${e.__tag}: ${e.content.path}`;
 
 /**
  * The plggpress CLI: the framework's pre-organized app
@@ -58,7 +70,10 @@ const formatBuildError = (
  *   dev` via `devEntry` — so plggpress still ships no `dev`
  *   command, and `serve` is not its return.
  */
-await runApp<SiteConfig, Defect | BrokenLinks>({
+await runApp<
+  SiteConfig,
+  Defect | BrokenLinks | ModelViolations
+>({
   name: "plggpress",
   description: "static site generator",
   configFile: "site.config.ts",

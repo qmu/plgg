@@ -41,6 +41,7 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
+    "plgg-parser": "file:../plgg-parser",
     "plgg-view": "file:../plgg-view"
   },
   "devDependencies": {

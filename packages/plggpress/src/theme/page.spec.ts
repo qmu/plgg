@@ -47,6 +47,7 @@ const config: SiteConfig = {
   ],
   social: [],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 const content: Html<never, "div"> = div(

@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:17+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: b8af592
+category: Changed
 depends_on: [20260704143031-durable-core-sacrificial-shell-boundary.md]
 ---
 
@@ -384,3 +384,44 @@ dependency, or a non-empty guide output diff fails the ticket.
   ad-hoc checks, the `casterOf` vocabulary is incomplete — extend it rather
   than letting a second truth appear; i18n content modeling stays in the
   roadmap's deliberately-deferred list.
+
+## Final Report
+
+Development completed as planned (D8, Phase-5 root). plgg-md gained a new `Yaml`
+domain: a bounded YAML-SUBSET value model (the `YamlValue` doc comment is the
+normative spec — scalars, scalar sequences, one-level scalar maps; anchors/tags/
+merge-keys/block-scalars/flow-collections/multi-doc all rejected), a
+line-oriented `parseYamlSubset` built on plgg-parser combinators for the scalar
+values (fail-closed, backtracking-safe, positioned errors), and the one-truth
+`foldYaml` bridge to plain JSON. `Frontmatter` grew a `data: Option<YamlMap>`
+with `layout` now DERIVED; `parseFrontmatter` is rewired on the subset parser (a
+malformed block is a positioned Err, no longer silently stripped). plggpress
+gained a declarative `ContentModel` domain (a closed `FieldType` sum + builders),
+`casterOf` — the caster-backed half of D8, folding a model into an ordinary
+plgg caster so frontmatter is validated with the same vocabulary as
+`site.config` — boundary casters (`asContentModel`…), and `checkModels` wired
+into the build via `buildSpecOf`'s link-check seam (collect page sources →
+validate → `ModelViolations`, folded through the build error channel to the CLI
+formatter). `SiteConfig`/`SiteConfigInput`/`asSiteConfig`/`defineSite` gained an
+OPTIONAL `models` entry (absent ⇒ no validation), so every existing config is
+valid unchanged. The only `package.json` change is plgg-md's `plgg-parser`
+dependency; no `scripts/` diffs. plgg-md + plggpress coverage gates pass.
+
+### Discovered Insights
+
+- **Insight**: plgg's `match` on a Box union does NOT accept `otherwise` as a
+  catch-all — the box-coverage type check still requires the explicit patterns to
+  cover every tag. Enumerate all arms. **Context**: cost a false start on
+  `layoutOf`; the exhaustive-match discipline is enforced even with `otherwise`.
+- **Insight**: `chainResult` requires the SAME error type on both sides, so
+  chaining two `Result`s with DIFFERENT errors (`Defect` → `ModelViolations`)
+  needs `matchResult`, not `chainResult`; likewise an async continuation
+  returning a `PromisedResult` must be threaded with `matchResult`, not
+  `chainResult`. **Context**: The recipe for widening a build error channel.
+- **Insight**: The vendor-boundary gate blanket-exempts whole legacy packages
+  (plggpress included), so `node:fs` in a new plggpress usecase (`collectPages`)
+  needs no exemption edit — keeping criterion 7's "no scripts/ diff" intact.
+- **Insight**: A `SiteConfig` domain field added as `Option<...>` (required, not
+  `?:`) forces every literal constructor to pass `none()` — ~10 spec fixtures
+  needed it; production code was unaffected (it flows through the caster). Weigh
+  Option-required vs optional-`?:` against the fixture blast radius.

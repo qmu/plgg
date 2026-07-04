@@ -1,3 +1,4 @@
+import { none } from "plgg";
 import {
   test,
   check,
@@ -17,6 +18,7 @@ const config: SiteConfig = {
   sidebar: [],
   social: [],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 // Route construction is fs-free (handlers read files at

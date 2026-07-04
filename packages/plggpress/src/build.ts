@@ -10,6 +10,7 @@ import {
   appOptionsOf,
 } from "plggpress/Press/model/PressOptions";
 import { type BrokenLinks } from "plggpress/CheckLinks/model/CheckLinks";
+import { type ModelViolations } from "plggpress/ContentModel/model/ModelViolation";
 import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
 
 /**
@@ -29,7 +30,10 @@ export const build = (
   opts: PressOptions,
 ): PromisedResult<
   BuildReport,
-  SsgError | Defect | BrokenLinks
+  | SsgError
+  | Defect
+  | BrokenLinks
+  | ModelViolations
 > =>
   frameworkBuild(
     appOptionsOf(opts),

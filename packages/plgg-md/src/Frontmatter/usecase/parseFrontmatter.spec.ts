@@ -1,27 +1,26 @@
 import {
   test,
   check,
+  all,
+  toBe,
   okThen,
   toEqual,
   errThen,
   toContain,
 } from "plgg-test";
-import { some, none } from "plgg";
+import { some, none, isErr } from "plgg";
 import { parseFrontmatter } from "plgg-md/Frontmatter/usecase/parseFrontmatter";
 
-// The real `index.md` home frontmatter head — only the
-// flat `layout: home` marker is detected; the nested
-// hero/features YAML is stripped, not parsed (it is
-// SiteConfig data, per spike-decisions §6b).
+// A valid YAML-SUBSET home frontmatter (D8): the block is
+// now PARSED, not stripped, and `layout` is derived from
+// the parsed `layout` key.
 const HOME_SOURCE = [
   "---",
   "layout: home",
-  "",
-  "hero:",
-  '  name: "plgg"',
-  '  text: "Web development as one typed pipeline"',
-  "features:",
-  '  - { title: "Option, not null" }',
+  "title: plgg",
+  "tags:",
+  "  - option",
+  "  - result",
   "---",
   "",
   "# Welcome",
@@ -29,14 +28,21 @@ const HOME_SOURCE = [
   "Body text.",
 ].join("\n");
 
-test("flags layout: home and strips the block", () =>
+test("derives layout from the parsed block and carries the data", () =>
   check(
     parseFrontmatter(HOME_SOURCE),
     okThen((doc) =>
-      check(
-        doc.frontmatter.layout,
-        toEqual(some("home")),
-      ),
+      all([
+        check(
+          doc.frontmatter.layout,
+          toEqual(some("home")),
+        ),
+        // the full block is parsed into `data`, not stripped
+        check(
+          doc.frontmatter.data.__tag,
+          toBe("Some"),
+        ),
+      ]),
     ),
   ));
 
@@ -51,28 +57,34 @@ test("returns the body after the closing fence", () =>
     ),
   ));
 
-test("a frontmatter-free page is returned verbatim with None layout", () =>
+test("a frontmatter-free page is returned verbatim with None data", () =>
   check(
     parseFrontmatter(
       "# Just a page\n\nNo frontmatter here.",
     ),
     okThen((doc) =>
-      check(
-        doc.frontmatter.layout,
-        toEqual(none()),
-      ),
+      all([
+        check(
+          doc.frontmatter.layout,
+          toEqual(none()),
+        ),
+        check(
+          doc.frontmatter.data,
+          toEqual(none()),
+        ),
+      ]),
     ),
   ));
 
-test("non-home frontmatter still strips, layout None", () =>
+test("a non-home layout is now derived too (not only 'home')", () =>
   check(
     parseFrontmatter(
-      "---\ntitle: Hello\n---\nbody",
+      "---\nlayout: docs\ntitle: Hello\n---\nbody",
     ),
     okThen((doc) =>
       check(
         doc.frontmatter.layout,
-        toEqual(none()),
+        toEqual(some("docs")),
       ),
     ),
   ));
@@ -88,4 +100,14 @@ test("an unterminated frontmatter fence is an error", () =>
         toContain("Unterminated frontmatter"),
       ),
     ),
+  ));
+
+test("a malformed block is now a positioned error, not silently stripped", () =>
+  check(
+    isErr(
+      parseFrontmatter(
+        "---\nfeatures:\n  - { title: x }\n---\nbody",
+      ),
+    ),
+    toBe(true),
   ));

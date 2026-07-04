@@ -1,3 +1,4 @@
+import { none } from "plgg";
 import {
   test,
   check,
@@ -20,6 +21,7 @@ const config: SiteConfig = {
   sidebar: [],
   social: [],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 const rendered = renderToString(notFound(config));

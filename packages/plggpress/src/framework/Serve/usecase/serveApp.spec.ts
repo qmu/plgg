@@ -31,6 +31,7 @@ const config: SiteConfig = {
   sidebar: [],
   social: [],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 const HOME_MD = "# Serve Home\n\nLanding prose.\n";

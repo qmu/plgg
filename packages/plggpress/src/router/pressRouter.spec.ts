@@ -31,6 +31,7 @@ const config: SiteConfig = {
   // No home DATA: a `layout: home` page degrades to its
   // Markdown body rather than failing.
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 const req = (path: string): HttpRequest => ({
