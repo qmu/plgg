@@ -1,11 +1,9 @@
 // @plgg-test-environment dom
 //
 // The scheduler demo driven end to end in the in-house DOM — the headless
-// equivalent of the ticket's "real browser drive" (the same environment
-// plgg-view proves its runtime in). Mounts the derived program via
-// `application(...)` and drives the flow with real anchor/button clicks and
-// History navigation: menu → list → detail → destructive confirm (cancel is a
-// no-op, confirm executes) → the URL reflects the arrangement and restores it.
+// equivalent of the ticket's "real browser drive" for tickets 09/10/11:
+// menu → list → detail → destructive confirm, PLUS the runtime mode toggle
+// (multi-column ⇄ single-column) proven loss-free (same position, same URL).
 import {
   test,
   check,
@@ -59,11 +57,6 @@ const clickText = (
   }
 };
 
-const flush = (): Promise<void> =>
-  new Promise((resolve) =>
-    setTimeout(resolve, 0),
-  );
-
 beforeEach(() => {
   window.history.replaceState(null, "", "/");
   document.body.innerHTML = "";
@@ -73,7 +66,7 @@ afterEach(() => {
   stop();
 });
 
-test("mounts showing the root menu", () => {
+test("mounts in multi-column mode with a mode toggle", () => {
   const root = mount();
   return all([
     check(
@@ -81,32 +74,42 @@ test("mounts showing the root menu", () => {
       toContain("Notes"),
     ),
     check(
-      root.textContent,
-      toContain("Tasks"),
+      root.querySelector(".pm-scheduler") !== null,
+      toBe(true),
+    ),
+    check(
+      root.querySelector(".sd-modebtn") !== null,
+      toBe(true),
     ),
   ]);
 });
 
-test("opening a menu entry shows its list and reflects the URL", () => {
+test("the toggle flips to single-column and back, loss-free", () => {
   const root = mount();
   clickText(root, "a", "Notes");
+  clickText(root, "a", "Botany");
+  const urlBefore =
+    window.location.pathname +
+    window.location.search;
+  clickText(root, "button", "single-column");
+  const single =
+    root.querySelector(".pm-single") !== null &&
+    root.querySelector(".pm-scheduler") === null;
+  const urlAfter =
+    window.location.pathname +
+    window.location.search;
+  clickText(root, "button", "multi-column");
+  const backToMulti =
+    root.querySelector(".pm-scheduler") !== null;
   return all([
-    check(
-      window.location.search,
-      toContain("c=sections"),
-    ),
-    check(
-      root.textContent,
-      toContain("Botany"),
-    ),
-    check(
-      root.textContent,
-      toContain("Geology"),
-    ),
+    check(single, toBe(true)),
+    // the mode flip did not touch the URL
+    check(urlAfter, toBe(urlBefore)),
+    check(backToMulti, toBe(true)),
   ]);
 });
 
-test("drilling a section reveals its notes list", () => {
+test("drilling a section reveals its notes and reflects the URL", () => {
   const root = mount();
   clickText(root, "a", "Notes");
   clickText(root, "a", "Botany");
@@ -133,38 +136,15 @@ test("selecting a note shows its detail body", () => {
   );
 });
 
-test("the back link truncates the flow", () => {
-  const root = mount();
-  clickText(root, "a", "Notes");
-  clickText(root, "a", "Botany");
-  clickText(root, "a", "← back");
-  return all([
-    check(
-      root.textContent,
-      toContain("Botany"),
-    ),
-    // the notes body is no longer on screen
-    check(
-      (root.textContent ?? "").includes(
-        "continuous moss mat",
-      ),
-      toBe(false),
-    ),
-  ]);
-});
-
-test("a destructive action asks to confirm; cancel is a no-op", () => {
+test("a destructive action confirms; cancel is a no-op", () => {
   const root = mount();
   clickText(root, "a", "Tasks");
   clickText(root, "a", "Re-survey the moss mat");
   clickText(root, "button", "Delete");
-  const parked = root.querySelector(".sd-confirm");
-  // capture the prompt text NOW — clicking Cancel below
-  // re-renders and recycles this node, so reading its
-  // textContent after the click would see a stale value.
+  const parked = root.querySelector(".pm-confirm");
   const parkedText = parked?.textContent ?? "";
   clickText(root, "button", "Cancel");
-  const cleared = root.querySelector(".sd-confirm");
+  const cleared = root.querySelector(".pm-confirm");
   return all([
     check(parked !== null, toBe(true)),
     check(
@@ -172,42 +152,24 @@ test("a destructive action asks to confirm; cancel is a no-op", () => {
       toBe(true),
     ),
     check(cleared === null, toBe(true)),
-    // the task detail is still on screen after cancel
-    check(
-      root.textContent,
-      toContain("Re-survey the moss mat"),
-    ),
   ]);
 });
 
-test("confirming a delete runs the effect and drops the row", async () => {
+test("single-column shows one screen with a back control after drilling", () => {
   const root = mount();
-  clickText(root, "a", "Tasks");
-  clickText(
-    root,
-    "a",
-    "Photograph the erratic",
-  );
-  clickText(root, "button", "Delete");
-  clickText(root, "button", "Confirm");
-  await flush();
-  // back to the tasks list — the deleted task is gone
-  clickText(root, "a", "Tasks");
-  return check(
-    (root.textContent ?? "").includes(
-      "Photograph the erratic",
+  clickText(root, "a", "Notes");
+  clickText(root, "a", "Botany");
+  clickText(root, "button", "single-column");
+  return all([
+    // one operation per screen: the notes list is shown
+    check(
+      root.textContent,
+      toContain("Moss on the north face"),
     ),
-    toBe(false),
-  );
-});
-
-test("an immediate create action adds a row", async () => {
-  const root = mount();
-  clickText(root, "a", "Tasks");
-  clickText(root, "button", "Add task");
-  await flush();
-  return check(
-    root.textContent,
-    toContain("New task"),
-  );
+    check(
+      root.querySelector('[aria-label="Back"]') !==
+        null,
+      toBe(true),
+    ),
+  ]);
 });

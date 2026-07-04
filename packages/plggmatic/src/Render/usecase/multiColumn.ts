@@ -13,18 +13,10 @@ import {
   type Html,
   slot,
   span,
-  input,
-  button,
-  a,
   text,
   attr,
-  href,
-  onClick,
-  onInput,
   key,
   fadeIn,
-  ul as ulEl,
-  li as liElement,
 } from "plgg-view";
 import {
   style_,
@@ -38,31 +30,32 @@ import {
   mainPane,
   asidePane,
 } from "plggmatic/Layout/usecase/combinators";
-import { type NavItem } from "plggmatic/Component/model/navItem";
-import { navTree } from "plggmatic/Component/usecase/navTree";
 import {
   type Crumb,
   breadcrumb,
 } from "plggmatic/Component/usecase/breadcrumb";
 import { colHead } from "plggmatic/Component/usecase/colHead";
-import { focusRing } from "plggmatic/Component/model/interaction";
 import {
   type SchedulerMsg,
   type Scene,
   type Level,
+  type Row,
   type ActionButton,
-  type QueryState,
-  type RowLink,
-  type MenuLink,
-  queryInput,
-  requestAction,
-  confirmAction,
-  cancelAction,
   menuLevel$,
   listLevel$,
   detailLevel$,
 } from "plggmatic";
 import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  confirmOverlay,
+  actionRow,
+  queryField,
+  rowList,
+  menuNav,
+  loadingHint,
+  errorHint,
+  detailFields,
+} from "plggmatic/Render/usecase/parts";
 
 /**
  * The MULTI-COLUMN mode renderer (D10) — a pure
@@ -73,13 +66,12 @@ import { cssPrefix } from "plggmatic/Meta/model/identity";
  * pane, a detail the `main` pane), with a `colHead`
  * carrying the truncating close link, pushed columns
  * keyed + entrance-faded, and a breadcrumb trail above.
- * Navigation is links only (the runtime turns an in-app
- * `<a>` click into `onUrlChange`); the query box, action
- * buttons, and confirmation dispatch scheduler `Msg`s.
- * Landmark roles come from the level kind, never
- * hardcoded. Column widths are renderer defaults (menu
- * 220px, list 300px, detail fluid) — the mode-private
- * geometry the design tenets keep out of the vocabulary.
+ * The interactive pieces (query, actions, confirmation)
+ * come from the shared {@link parts}, so this renderer and
+ * the single-column one (ticket 11) stay in parity.
+ * Column widths are renderer defaults (menu 220px, list
+ * 300px, detail fluid) — the mode-private geometry the
+ * design tenets keep out of the vocabulary.
  */
 export const multiColumn = (
   scene: Scene,
@@ -88,7 +80,7 @@ export const multiColumn = (
     [attr("class", `${cssPrefix}-scheduler`)],
     [
       breadcrumb<SchedulerMsg>(crumbsOf(scene)),
-      ...confirmOverlay(scene),
+      ...confirmOverlay(scene.confirm),
       row<SchedulerMsg>(
         [],
         scene.levels.map(columnFor),
@@ -152,138 +144,26 @@ const crumbsOf = (
     }),
   );
 
-const confirmOverlay = (
-  scene: Scene,
-): ReadonlyArray<Html<SchedulerMsg>> =>
-  matchOption<
-    Readonly<{
-      prompt: SoftStr;
-      destructive: boolean;
-    }>,
-    ReadonlyArray<Html<SchedulerMsg>>
-  >(
-    () => [],
-    (c) => [
-      slot(
-        [
-          attr(
-            "class",
-            c.destructive
-              ? `${cssPrefix}-confirm ${cssPrefix}-confirm-danger`
-              : `${cssPrefix}-confirm`,
-          ),
-          attr("role", "alertdialog"),
-        ],
-        [
-          span([], [text(c.prompt)]),
-          button(
-            [
-              style_(
-                `${cssPrefix}-btn`,
-                focusRing,
-              ),
-              onClick(confirmAction()),
-            ],
-            [text("Confirm")],
-          ),
-          button(
-            [
-              style_(
-                `${cssPrefix}-btn`,
-                focusRing,
-              ),
-              onClick(cancelAction()),
-            ],
-            [text("Cancel")],
-          ),
-        ],
-      ),
-    ],
-  )(scene.confirm);
-
-const actionRow = (
+const detailBody = (
   collection: SoftStr,
-  target: Option<SoftStr>,
+  detailRow: Option<Row>,
   actions: ReadonlyArray<ActionButton>,
 ): ReadonlyArray<Html<SchedulerMsg>> =>
-  actions.length === 0
-    ? []
-    : [
-        slot(
-          [
-            attr(
-              "class",
-              `${cssPrefix}-actions`,
-            ),
-          ],
-          actions.map((ab: ActionButton) =>
-            button(
-              [
-                style_(
-                  `${cssPrefix}-btn`,
-                  focusRing,
-                ),
-                onClick(
-                  requestAction(
-                    collection,
-                    ab.id,
-                    target,
-                  ),
-                ),
-              ],
-              [text(ab.label)],
-            ),
-          ),
-        ),
-      ];
-
-const queryField = (
-  q: Option<QueryState>,
-): ReadonlyArray<Html<SchedulerMsg>> =>
   matchOption<
-    QueryState,
+    Row,
     ReadonlyArray<Html<SchedulerMsg>>
   >(
-    () => [],
-    (state: QueryState) => [
-      input(
-        [
-          attr("type", "search"),
-          attr("class", `${cssPrefix}-query`),
-          attr("value", state.text),
-          attr("placeholder", state.placeholder),
-          onInput((v: SoftStr) => queryInput(v)),
-        ],
-        [],
+    () => [
+      span(
+        [attr("class", `${cssPrefix}-hint`)],
+        [text("Not found")],
       ),
     ],
-  )(q);
-
-const rowLink = (
-  r: RowLink,
-): Html<SchedulerMsg, "li"> =>
-  liLink(r.href, r.active, r.row.label);
-
-const menuNav = (
-  entries: ReadonlyArray<MenuLink>,
-): Html<SchedulerMsg> => {
-  const items: ReadonlyArray<NavItem> =
-    entries.map((e: MenuLink) => ({
-      label: e.label,
-      href: some(e.href),
-      children: [],
-    }));
-  const active = pipe(
-    fromNullable(
-      entries.find((e: MenuLink) => e.active),
-    ),
-    matchOption<MenuLink, SoftStr>(
-      () => "",
-      (e: MenuLink) => e.href,
-    ),
-  );
-  return navTree(items, active);
-};
+    (r: Row) => [
+      detailFields(r.fields),
+      ...actionRow(collection, some(r.id), actions),
+    ],
+  )(detailRow);
 
 const columnFor = (
   level: Level,
@@ -339,9 +219,7 @@ const columnFor = (
                     ...queryField(content.query),
                     ...loadingHint(content.loading),
                     ...errorHint(content.error),
-                    ulList(
-                      content.rows.map(rowLink),
-                    ),
+                    rowList(content.rows),
                     ...actionRow(
                       content.collection,
                       none(),
@@ -392,121 +270,9 @@ const columnFor = (
   );
 
 const detailKey = (
-  row: Option<{ id: SoftStr }>,
+  detailRow: Option<Row>,
 ): Option<SoftStr> =>
-  matchOption<{ id: SoftStr }, Option<SoftStr>>(
+  matchOption<Row, Option<SoftStr>>(
     () => none(),
-    (r) => some(r.id),
-  )(row);
-
-const detailBody = (
-  collection: SoftStr,
-  detailRow: Option<
-    Readonly<{
-      id: SoftStr;
-      label: SoftStr;
-      fields: ReadonlyArray<
-        Readonly<{ label: SoftStr; value: SoftStr }>
-      >;
-    }>
-  >,
-  actions: ReadonlyArray<ActionButton>,
-): ReadonlyArray<Html<SchedulerMsg>> =>
-  matchOption<
-    Readonly<{
-      id: SoftStr;
-      label: SoftStr;
-      fields: ReadonlyArray<
-        Readonly<{ label: SoftStr; value: SoftStr }>
-      >;
-    }>,
-    ReadonlyArray<Html<SchedulerMsg>>
-  >(
-    () => [
-      span(
-        [attr("class", `${cssPrefix}-hint`)],
-        [text("Not found")],
-      ),
-    ],
-    (r) => [
-      slot(
-        [style_(`${cssPrefix}-detail-body`)],
-        [
-          ...r.fields.map((f) =>
-            slot(
-              [
-                attr(
-                  "class",
-                  `${cssPrefix}-field`,
-                ),
-              ],
-              [text(f.value)],
-            ),
-          ),
-        ],
-      ),
-      ...actionRow(collection, some(r.id), actions),
-    ],
+    (r: Row) => some(r.id),
   )(detailRow);
-
-// --- small shared element helpers -----------------
-
-const liLink = (
-  to: SoftStr,
-  active: boolean,
-  label: SoftStr,
-): Html<SchedulerMsg, "li"> =>
-  liElement(
-    [],
-    [
-      a(
-        [
-          href(to),
-          ...(active
-            ? [attr("aria-current", "page")]
-            : []),
-          style_(
-            `${cssPrefix}-row-link`,
-            focusRing,
-          ),
-        ],
-        [text(label)],
-      ),
-    ],
-  );
-
-const loadingHint = (
-  loading: boolean,
-): ReadonlyArray<Html<SchedulerMsg>> =>
-  loading
-    ? [
-        span(
-          [attr("class", `${cssPrefix}-hint`)],
-          [text("Loading…")],
-        ),
-      ]
-    : [];
-
-const errorHint = (
-  error: Option<SoftStr>,
-): ReadonlyArray<Html<SchedulerMsg>> =>
-  matchOption<
-    SoftStr,
-    ReadonlyArray<Html<SchedulerMsg>>
-  >(
-    () => [],
-    (e: SoftStr) => [
-      span(
-        [attr("class", `${cssPrefix}-error`)],
-        [text(`Failed: ${e}`)],
-      ),
-    ],
-  )(error);
-
-const ulList = (
-  items: ReadonlyArray<Html<SchedulerMsg, "li">>,
-): Html<SchedulerMsg, "ul"> =>
-  ulEl(
-    [style_(`${cssPrefix}-list`)],
-    items,
-  );

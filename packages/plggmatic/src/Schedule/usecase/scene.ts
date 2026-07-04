@@ -210,28 +210,39 @@ const detailFor = (
 ): ReadonlyArray<Level> =>
   matchOption<SoftStr, ReadonlyArray<Level>>(
     () => [],
-    (rowId: SoftStr) => [
-      detailLevel({
-        collection: c.id,
-        title: c.title,
-        back: some(
-          truncateHref(
-            model,
-            model.path.length - 1,
-          ),
+    (rowId: SoftStr) => {
+      const found = fromNullable(
+        readSlot(slotOf(model, c.id)).rows.find(
+          (r: Row) => r.id === rowId,
         ),
-        row: fromNullable(
-          readSlot(slotOf(model, c.id)).rows.find(
-            (r: Row) => r.id === rowId,
+      );
+      return [
+        detailLevel({
+          collection: c.id,
+          // the item's OWN label — what you're viewing —
+          // so the detail identifies the selection (the
+          // oracle's reader showed the note title, not the
+          // collection); falls back to the collection
+          // title when the row is not yet loaded / gone.
+          title: matchOption<Row, SoftStr>(
+            () => c.title,
+            (r: Row) => r.label,
+          )(found),
+          back: some(
+            truncateHref(
+              model,
+              model.path.length - 1,
+            ),
           ),
-        ),
-        actions: c.actions
-          .filter(
-            (a: Action) => a.verb !== "create",
-          )
-          .map(projectAction),
-      }),
-    ],
+          row: found,
+          actions: c.actions
+            .filter(
+              (a: Action) => a.verb !== "create",
+            )
+            .map(projectAction),
+        }),
+      ];
+    },
   )(fromNullable(model.path[model.path.length - 1]));
 
 /**

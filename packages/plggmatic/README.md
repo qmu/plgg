@@ -75,6 +75,33 @@ application({
 })(document.getElementById("root")!);
 ```
 
+### Two modes, one declaration (D10)
+
+The scheduled `Scene` is **mode-agnostic**: the multi-column renderer draws it
+as panes expanding rightward, the single-column renderer as one operation per
+screen, and `renderMode(mode)(scene)` dispatches between them. A consumer holds
+the `Mode` *beside* the scheduled model (never in it), and a flip mid-flow is
+loss-free by construction — same flow position, selection, query, confirmation,
+and URL:
+
+```ts
+import {
+  schedule, renderMode, toggleMode,
+  type Mode,
+} from "plggmatic";
+
+const scheduled = schedule(app);
+
+// the consumer's model = scheduled model + a Mode
+type Model = { scheduled: ScheduledModel; mode: Mode };
+
+const view = (model: Model) =>
+  renderMode(model.mode)(
+    scheduled.scene(model.scheduled),
+  );
+// a "toggle mode" button dispatches toggleMode(model.mode)
+```
+
 The vocabulary — **Resource/Collection** (sync or async through one shape),
 **Menu**, **Row** (the list/detail projection), **Action** (create/update/delete
 with confirmation-as-data), **Query**, and the **Flow** graph (menu roots +

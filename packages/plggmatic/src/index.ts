@@ -48,7 +48,16 @@ export {
 } from "plggmatic/Component";
 
 // --- Render: screen-mode renderers (ticket 10/11) -----
-export { multiColumn } from "plggmatic/Render";
+export {
+  type Mode,
+  type Screen,
+  modes,
+  toggleMode,
+  currentScreen,
+  multiColumn,
+  singleColumn,
+  renderMode,
+} from "plggmatic/Render";
 
 // --- Declarative vocabulary (ticket 09) ---------------
 // The framework half: a mode-agnostic declaration (D10)

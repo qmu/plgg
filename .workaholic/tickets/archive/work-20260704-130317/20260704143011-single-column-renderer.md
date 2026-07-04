@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:11+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: e0301d1
+category: Changed
 depends_on: [20260704143009-declarative-ui-vocabulary-and-scheduler-core.md, 20260704143010-multi-column-renderer.md, 20260704143003-plggmatic-token-matrix-monochrome-default.md, 20260704143005-plggmatic-non-color-design-tokens.md]
 ---
 
@@ -453,3 +453,34 @@ fails the ticket.
 - **Ubiquitous language**: "mode", "screen", and "back target" enter the
   project vocabulary here — one word per concept across types, specs,
   README, and commit messages.
+
+## Final Report
+
+Development completed as planned. The single-column mode renderer projects the
+SAME `Scene` seam ticket 10's multi-column renderer draws — no seam amendment
+was needed (the interactive pieces were extracted into a shared `Render/parts`
+module so the two projections stay in parity by construction). The current
+screen is DERIVED (the deepest level), the strongest answer to tenet (g): the
+renderer holds no state and touches no `window`. A closed `Mode` union +
+`renderMode(mode)(scene)` dispatcher route each mode to its renderer
+exhaustively; the mode lives in the consumer's model beside the scheduled model
+(never in it), so a flip is loss-free — proven headlessly by the parity walk
+and in the DOM by the demo's runtime toggle (multi ⇄ single, URL unchanged).
+The plggmatic-example scheduler demo now uses `renderMode` with a visible mode
+toggle (the crude ticket-09 renderer is retired); browser Back pops one screen
+via the scheduler's push-on-traversal history. plggmatic coverage passed (>90%
+all four; new Render modules all counted).
+
+### Discovered Insights
+
+- **Insight**: A parent TEA program embeds a scheduled child by wrapping its
+  `Msg`/`Cmd`: `mapHtml` re-tags the child view's handlers and a small `mapCmd`
+  re-tags the child's effects (`box("Sched")`), while `toUrl`/`onUrlChange`/
+  `historyMode` delegate to the child. **Context**: This is the exact seam a
+  real consumer (ticket 20 admin-ui) uses to hold app-level state (the mode)
+  beside a scheduled model — the demo is its reference.
+- **Insight**: Extracting shared render helpers into `Render/parts` makes mode
+  PARITY structural rather than a test-enforced coincidence — both renderers
+  draw the query box, rows, actions, and confirmation from one source, so they
+  cannot drift. **Context**: The parity proof obligation is satisfied at the
+  code level, not just by the spec walk.
