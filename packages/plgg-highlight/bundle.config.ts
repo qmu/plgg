@@ -1,9 +1,9 @@
 // In-house bundler config for plgg-highlight. A single
 // entry: the highlighter core (index). Externals (plgg +
-// plgg-view + plgg-md + typescript + node:*) are derived
-// from package.json — `typescript` is a peerDependency so
-// the graph walk externalizes the `import * as ts` rather
-// than inlining the whole compiler.
+// plgg-view + plgg-md + plgg-parser + node:*) are derived
+// from package.json — the tokenizer is an in-house
+// plgg-parser grammar now, so there is no `typescript`
+// dependency to externalize or inline.
 export default {
   root: import.meta.dirname,
   rootDir: "src",

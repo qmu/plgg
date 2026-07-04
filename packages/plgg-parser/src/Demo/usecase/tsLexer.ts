@@ -4,8 +4,6 @@ import {
   ok,
   err,
   isOk,
-  some,
-  none,
   pipe,
   getOr,
   matchOption,
@@ -21,6 +19,7 @@ import {
   satisfy,
   anyChar,
   whitespace,
+  digit,
   letter,
   alphaNum,
   char,
@@ -39,60 +38,47 @@ import {
   notFollowedBy,
   getUserState,
   setUserState,
-} from "plgg-parser";
+} from "plgg-parser/Parse";
 import {
-  Token,
-  TokenKind,
-  token,
-  keyword,
-  stringKind,
-  numberKind,
-  comment,
-  identifier,
-  punctuation,
-  regex,
-  template,
-  plain,
-} from "plgg-highlight/Token/model/Token";
+  Tok,
+  TokTag,
+  tokKind,
+  tok,
+} from "plgg-parser/Demo/model/Tok";
 import {
   LexState,
-  Category,
   initLexState,
   nextRegexAllowed,
-} from "plgg-highlight/Token/model/LexState";
+} from "plgg-parser/Demo/model/LexState";
 
 /**
- * Tokenize TypeScript-family source into a classified
- * {@link Token} stream with a grammar built on
- * `plgg-parser` — the in-house replacement for the old
- * `ts.createScanner` loop, so no `typescript` runtime/peer
- * dependency is needed to highlight `<pre>` code.
+ * The TS-lexer demo: a TypeScript lexer built ENTIRELY from
+ * the `plgg-parser` combinators, proving the core can lex the
+ * `<pre>`-wrapped source `plgg-highlight` highlights — the
+ * eventual in-house replacement for its `ts.createScanner`.
  *
- * Contract preserved from the scanner era:
- * `skipTrivia`-equivalent — every character of input lands
- * in exactly one token, so the tokens' `text` concatenates
- * back to the exact source. Never throws: irregular input
- * (unterminated constructs, non-ASCII, non-code) degrades to
- * {@link plain} tokens rather than rejecting.
- *
- * Known limitations vs. the compiler scanner (cosmetic —
- * only affect coloring, never the round-trip): non-ASCII /
- * `\u`-escaped identifiers colour as `plain`; JSX/TSX markup
- * is lexed generically (the scanner was lexical-only here
- * too); numeric literals cover decimal (with `_` separators,
- * fraction, exponent, bigint `n`) and `0x`/`0b`/`0o`
- * prefixes.
+ * It is spec/demo code, not the shipped API: the production
+ * TS grammar lands in `plgg-highlight` with the migration
+ * ticket. Known demo limitations (out of the gate): Unicode
+ * identifiers / `\u` escapes are lexed char-by-char as
+ * `Plain`; regex character classes (`/[/]/`) are not
+ * special-cased; numeric literals cover decimals, bigint
+ * `n`, and the lowercase `0x` hex prefix only.
  */
 
 // ---------------------------------------------------------
-// Concrete-state primitives — pin the state-polymorphic
-// library primitives to this grammar's LexState by direct
-// assignment (an annotation, never a cast); the combinators
-// then infer S = LexState from these leaves.
+// Concrete-state primitives
+//
+// The library primitives are state-polymorphic (`Parser<A,
+// S>` for any `S`). A concrete grammar pins `S` once by
+// assigning each leaf to the grammar's state type; the
+// combinators then infer `S = LexState` from these leaves
+// (an annotation, never a cast).
 // ---------------------------------------------------------
 
 const anyC: Parser<SoftStr, LexState> = anyChar;
 const ws: Parser<SoftStr, LexState> = whitespace;
+const dig: Parser<SoftStr, LexState> = digit;
 const let_: Parser<SoftStr, LexState> = letter;
 const alnum: Parser<SoftStr, LexState> = alphaNum;
 
@@ -114,15 +100,18 @@ const sat = (
 ): Parser<SoftStr, LexState> =>
   satisfy(label, pred);
 
+/** Join a run of single-character matches into one string. */
 const joinChars = (
   cs: ReadonlyArray<SoftStr>,
 ): SoftStr => cs.join("");
 
+/** A char-run parser, projected to its matched substring. */
 const textOf = (
   p: Parser<ReadonlyArray<SoftStr>, LexState>,
 ): Parser<SoftStr, LexState> =>
   pipe(p, map(joinChars));
 
+/** An optional sub-parser, projected to `""` when absent. */
 const optText = (
   p: Parser<SoftStr, LexState>,
 ): Parser<SoftStr, LexState> =>
@@ -135,90 +124,84 @@ const optText = (
   );
 
 // ---------------------------------------------------------
-// Emission: build a Token AND thread the regex-vs-division
-// context. `category` is `None` for trivia (context
-// unchanged) and `Some` for a significant lexeme.
+// Emission: turn matched text into a token AND advance the
+// regex-vs-division context.
 // ---------------------------------------------------------
 
+/** Trivia emission — leaves `regexAllowed` untouched. */
 const keepContext: Parser<true, LexState> =
   succeed(true);
 
+/** Significant emission — records the next `regexAllowed`. */
+const recordContext = (
+  kind: TokTag,
+  text: SoftStr,
+): Parser<true, LexState> =>
+  setUserState(
+    (): LexState => ({
+      regexAllowed: nextRegexAllowed(kind, text),
+    }),
+  );
+
+/**
+ * Emit one token of `kind` for `text`, updating the threaded
+ * context when the token is `significant` (a value/keyword/
+ * operator) and leaving it untouched for trivia.
+ */
 const emit =
-  (kind: TokenKind, category: Option<Category>) =>
+  (kind: TokTag, significant: boolean) =>
   (
     text: SoftStr,
-  ): Parser<ReadonlyArray<Token>, LexState> =>
+  ): Parser<ReadonlyArray<Tok>, LexState> =>
     right(
-      pipe(
-        category,
-        matchOption(
-          (): Parser<true, LexState> =>
-            keepContext,
-          (
-            cat: Category,
-          ): Parser<true, LexState> =>
-            setUserState(
-              (): LexState => ({
-                regexAllowed: nextRegexAllowed(
-                  cat,
-                  text,
-                ),
-              }),
-            ),
-        ),
-      ),
-      succeed([token(kind, text)]),
+      significant
+        ? recordContext(kind, text)
+        : keepContext,
+      succeed([tok(tokKind(kind), text)]),
     );
 
-const trivia = (kind: TokenKind) =>
-  emit(kind, none());
-
-const signif = (kind: TokenKind, cat: Category) =>
-  emit(kind, some(cat));
-
 // ---------------------------------------------------------
-// Whitespace and comments (trivia)
+// Whitespace, comments
 // ---------------------------------------------------------
 
 const wsToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
   textOf(many1(ws)),
-  andThen(trivia(plain())),
+  andThen(emit("Plain", false)),
 );
 
 const lineComment: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
   textOf(
     seq([lit("//"), textOf(many(noneOfC("\n")))]),
   ),
-  andThen(trivia(comment())),
+  andThen(emit("Comment", false)),
 );
 
+/** Emit a block comment, degrading an unterminated one to Plain. */
 const emitBlock = (
   open: SoftStr,
   body: SoftStr,
   close: Option<SoftStr>,
-): Parser<ReadonlyArray<Token>, LexState> =>
+): Parser<ReadonlyArray<Tok>, LexState> =>
   pipe(
     close,
     matchOption(
-      (): Parser<
-        ReadonlyArray<Token>,
-        LexState
-      > => trivia(plain())(open + body),
+      (): Parser<ReadonlyArray<Tok>, LexState> =>
+        emit("Plain", false)(open + body),
       (
         c: SoftStr,
-      ): Parser<ReadonlyArray<Token>, LexState> =>
-        trivia(comment())(open + body + c),
+      ): Parser<ReadonlyArray<Tok>, LexState> =>
+        emit("Comment", false)(open + body + c),
     ),
   );
 
 const blockComment: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
   lit("/*"),
@@ -245,6 +228,7 @@ const blockComment: Parser<
 // Strings
 // ---------------------------------------------------------
 
+/** A backslash escape, kept verbatim (both chars). */
 const escaped: Parser<SoftStr, LexState> = textOf(
   seq([chr("\\"), anyC]),
 );
@@ -261,31 +245,27 @@ const stringChar = (
     ),
   );
 
+/** Emit a string, degrading an unterminated one to Plain. */
 const emitString = (
   open: SoftStr,
   body: SoftStr,
   close: Option<SoftStr>,
-): Parser<ReadonlyArray<Token>, LexState> =>
+): Parser<ReadonlyArray<Tok>, LexState> =>
   pipe(
     close,
     matchOption(
-      (): Parser<
-        ReadonlyArray<Token>,
-        LexState
-      > => trivia(plain())(open + body),
+      (): Parser<ReadonlyArray<Tok>, LexState> =>
+        emit("Plain", false)(open + body),
       (
         c: SoftStr,
-      ): Parser<ReadonlyArray<Token>, LexState> =>
-        signif(
-          stringKind(),
-          "value",
-        )(open + body + c),
+      ): Parser<ReadonlyArray<Tok>, LexState> =>
+        emit("String", true)(open + body + c),
     ),
   );
 
 const stringToken = (
   quote: SoftStr,
-): Parser<ReadonlyArray<Token>, LexState> =>
+): Parser<ReadonlyArray<Tok>, LexState> =>
   pipe(
     chr(quote),
     andThen((open: SoftStr) =>
@@ -304,143 +284,98 @@ const stringToken = (
   );
 
 // ---------------------------------------------------------
-// Numbers (decimal w/ separators, fraction, exponent,
-// bigint n; 0x / 0b / 0o prefixes)
+// Numbers
 // ---------------------------------------------------------
 
-const decRun: Parser<SoftStr, LexState> = textOf(
-  many1(oneOfC("0123456789_")),
+const hexDigit: Parser<SoftStr, LexState> = sat(
+  "hex digit",
+  (c: SoftStr): boolean =>
+    (c >= "0" && c <= "9") ||
+    (c >= "a" && c <= "f") ||
+    (c >= "A" && c <= "F"),
 );
 
-const exponent: Parser<SoftStr, LexState> =
+const hexNumber: Parser<SoftStr, LexState> =
   textOf(
-    seq([
-      oneOfC("eE"),
-      optText(oneOfC("+-")),
-      decRun,
-    ]),
+    seq([lit("0x"), textOf(many1(hexDigit))]),
   );
 
-const prefixedNumber: Parser<SoftStr, LexState> =
-  textOf(
-    seq([
-      textOf(seq([chr("0"), oneOfC("xXbBoO")])),
-      textOf(
-        many1(
-          sat(
-            "digit",
-            (c: SoftStr): boolean =>
-              (c >= "0" && c <= "9") ||
-              (c >= "a" && c <= "f") ||
-              (c >= "A" && c <= "F") ||
-              c === "_",
-          ),
-        ),
-      ),
-      optText(chr("n")),
-    ]),
-  );
+const fraction: Parser<SoftStr, LexState> =
+  textOf(seq([chr("."), textOf(many1(dig))]));
 
 const decimalNumber: Parser<SoftStr, LexState> =
   textOf(
     seq([
-      decRun,
-      optText(textOf(seq([chr("."), decRun]))),
-      optText(exponent),
+      textOf(many1(dig)),
+      optText(fraction),
       optText(chr("n")),
     ]),
   );
 
 const numberToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
-  or(prefixedNumber, decimalNumber),
-  andThen(signif(numberKind(), "value")),
+  or(hexNumber, decimalNumber),
+  andThen(emit("Number", true)),
 );
 
 // ---------------------------------------------------------
 // Identifiers and keywords
 // ---------------------------------------------------------
 
-/** The TS keyword/reserved-word set the highlighter colours. */
+/** A representative TypeScript keyword set for the demo. */
 const KEYWORDS: ReadonlyArray<SoftStr> = [
-  "abstract",
-  "accessor",
-  "any",
-  "as",
-  "asserts",
-  "async",
-  "await",
-  "boolean",
-  "break",
-  "case",
-  "catch",
-  "class",
   "const",
-  "continue",
-  "debugger",
-  "declare",
-  "default",
-  "delete",
-  "do",
-  "else",
-  "enum",
-  "export",
-  "extends",
-  "false",
-  "finally",
-  "for",
-  "from",
-  "function",
-  "get",
-  "if",
-  "implements",
-  "import",
-  "in",
-  "infer",
-  "instanceof",
-  "interface",
-  "is",
-  "keyof",
   "let",
-  "module",
-  "namespace",
-  "never",
+  "var",
+  "function",
+  "return",
+  "if",
+  "else",
+  "for",
+  "while",
+  "do",
+  "switch",
+  "case",
+  "break",
+  "continue",
+  "class",
+  "extends",
   "new",
-  "null",
-  "number",
-  "object",
-  "of",
-  "out",
-  "override",
-  "package",
+  "this",
+  "super",
+  "import",
+  "export",
+  "from",
+  "as",
+  "type",
+  "interface",
+  "enum",
+  "namespace",
+  "public",
   "private",
   "protected",
-  "public",
   "readonly",
-  "return",
-  "satisfies",
-  "set",
   "static",
-  "string",
-  "super",
-  "switch",
-  "symbol",
-  "this",
-  "throw",
-  "true",
-  "try",
-  "type",
-  "typeof",
-  "undefined",
-  "unique",
-  "unknown",
-  "var",
-  "void",
-  "while",
-  "with",
+  "async",
+  "await",
   "yield",
+  "typeof",
+  "instanceof",
+  "in",
+  "of",
+  "void",
+  "delete",
+  "null",
+  "undefined",
+  "true",
+  "false",
+  "default",
+  "try",
+  "catch",
+  "finally",
+  "throw",
 ];
 
 const isKeyword = (word: SoftStr): boolean =>
@@ -462,14 +397,15 @@ const identText: Parser<SoftStr, LexState> =
   );
 
 const wordToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
   identText,
   andThen((word: SoftStr) =>
-    isKeyword(word)
-      ? signif(keyword(), "keyword")(word)
-      : signif(identifier(), "value")(word),
+    emit(
+      isKeyword(word) ? "Keyword" : "Identifier",
+      true,
+    )(word),
   ),
 );
 
@@ -477,54 +413,47 @@ const wordToken: Parser<
 // Regex vs. division (context-sensitive on the user-state)
 // ---------------------------------------------------------
 
-/** A `[...]` character class, so `/[/]/` does not close early. */
-const regexClass: Parser<SoftStr, LexState> =
-  textOf(
-    seq([
-      chr("["),
-      textOf(many(or(escaped, noneOfC("]\n")))),
-      chr("]"),
-    ]),
+const regexBodyChar: Parser<SoftStr, LexState> =
+  or(
+    escaped,
+    sat(
+      "regex char",
+      (c: SoftStr): boolean =>
+        c !== "/" && c !== "\n",
+    ),
   );
-
-const regexAtom: Parser<SoftStr, LexState> = or(
-  escaped,
-  regexClass,
-  sat(
-    "regex char",
-    (c: SoftStr): boolean =>
-      c !== "/" && c !== "\n" && c !== "[",
-  ),
-);
 
 const regexText: Parser<SoftStr, LexState> =
   textOf(
     seq([
       chr("/"),
-      textOf(many1(regexAtom)),
+      textOf(many1(regexBodyChar)),
       chr("/"),
       textOf(many(let_)),
     ]),
   );
 
 const regexToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
-> = pipe(
-  regexText,
-  andThen(signif(regex(), "value")),
-);
+> = pipe(regexText, andThen(emit("Regex", true)));
 
 const divisionToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
   or(lit("/="), chr("/")),
-  andThen(signif(punctuation(), "punct")),
+  andThen(emit("Punctuation", true)),
 );
 
+/**
+ * At a `/`, consult the threaded context: in operator
+ * position try a regex literal (falling back to division if
+ * it does not close on the line); after a value, always
+ * division.
+ */
 const slashToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
   getUserState,
@@ -541,17 +470,10 @@ const slashToken: Parser<
 
 /** Multi-char operators, longest-first so `===` beats `==`. */
 const MULTI_OPS: ReadonlyArray<SoftStr> = [
-  "...",
-  "=>",
   "===",
   "!==",
-  "**=",
-  "&&=",
-  "||=",
-  "??=",
-  ">>>",
-  "<<=",
-  ">>=",
+  "...",
+  "=>",
   "==",
   "!=",
   "<=",
@@ -559,19 +481,13 @@ const MULTI_OPS: ReadonlyArray<SoftStr> = [
   "&&",
   "||",
   "??",
-  "?.",
   "++",
   "--",
   "+=",
   "-=",
   "*=",
-  "%=",
-  "&=",
-  "|=",
-  "^=",
   "**",
-  "<<",
-  ">>",
+  "?.",
 ];
 
 const opToken: Parser<SoftStr, LexState> = or(
@@ -585,23 +501,26 @@ const singlePunct: Parser<SoftStr, LexState> =
   oneOfC("{}()[];:,.<>=+-*!&|^~?@%");
 
 const punctToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = pipe(
   or(opToken, singlePunct),
-  andThen(signif(punctuation(), "punct")),
+  andThen(emit("Punctuation", true)),
 );
 
-/** Last resort: any single char as plain, so the lexer is total. */
+// The last resort: consume any single character as Plain, so
+// `oneToken` is TOTAL on non-empty input and the lexer never
+// throws or rejects (irregular chars degrade to Plain).
 const fallbackToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
-> = pipe(anyC, andThen(trivia(plain())));
+> = pipe(anyC, andThen(emit("Plain", false)));
 
 // ---------------------------------------------------------
-// Template literals (the one seam: a `${…}` rescan)
+// The template seam
 // ---------------------------------------------------------
 
+/** Char at `i`, or `""` past the end (indexed reads wrapped). */
 const charAt = (
   source: SoftStr,
   i: number,
@@ -618,8 +537,9 @@ const mkState = (
   userState,
 });
 
+/** True when `produced` is exactly the one-char punct `ch`. */
 const isBraceTok = (
-  produced: ReadonlyArray<Token>,
+  produced: ReadonlyArray<Tok>,
   ch: SoftStr,
 ): boolean =>
   produced.length === 1 &&
@@ -627,31 +547,31 @@ const isBraceTok = (
     fromNullable(produced[0]),
     matchOption(
       (): boolean => false,
-      (t: Token): boolean =>
-        t.content.text === ch,
+      (t: Tok): boolean => t.content.text === ch,
     ),
   );
 
 /**
  * Lex a template literal, recursively re-entering the token
  * grammar for each `${…}` interpolation with brace-depth
- * tracking. Documented imperative seam: a template rescan is
- * a stateful cursor with no pure-expression form — a local
- * cursor + push accumulators, confined here (the same
- * grandfathered exception the old scanner loop relied on).
- * The interpolation body is lexed by the combinator
- * {@link oneToken}, so a nested template recurses back here.
- * An unterminated template degrades its trailing chunk to
- * {@link plain} (never a throw).
+ * tracking. This is a documented imperative seam: a template
+ * rescan is a stateful cursor with no pure-expression form —
+ * a local cursor + push accumulators, confined here. The
+ * interpolation body is still lexed by the combinator
+ * {@link oneToken}, so a nested template inside `${…}`
+ * recurses back through here for free. An unterminated
+ * template degrades its trailing chunk to `Plain` (never a
+ * throw).
  */
 const lexTemplate: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = (state) => {
   const source = state.source;
   const n = source.length;
-  // Guard: only a backtick opens a template; without it the
-  // seam would "succeed" on any input, advancing forever.
+  // Guard: only a backtick opens a template. Without this the
+  // seam would "succeed" on any input (even EOF), advancing
+  // position forever and starving `many`.
   if (charAt(source, state.position) !== "`") {
     return err(
       parseError(
@@ -660,14 +580,14 @@ const lexTemplate: Parser<
       ),
     );
   }
-  const tokens: Array<Token> = [];
+  const tokens: Array<Tok> = [];
   let pos = state.position;
   let chunk = charAt(source, pos); // opening backtick
   pos = pos + 1;
   for (;;) {
     if (pos >= n) {
-      // Unterminated at EOF: degrade the chunk to plain.
-      tokens.push(token(plain(), chunk));
+      // Unterminated at EOF: degrade the chunk to Plain.
+      tokens.push(tok(tokKind("Plain"), chunk));
       return ok(
         parsed(
           tokens,
@@ -677,6 +597,7 @@ const lexTemplate: Parser<
     }
     const c = charAt(source, pos);
     if (c === "\\") {
+      // Escape: keep the backslash and the next char verbatim.
       chunk = chunk + c + charAt(source, pos + 1);
       pos = pos + 2;
       continue;
@@ -684,7 +605,9 @@ const lexTemplate: Parser<
     if (c === "`") {
       chunk = chunk + c;
       pos = pos + 1;
-      tokens.push(token(template(), chunk));
+      tokens.push(
+        tok(tokKind("Template"), chunk),
+      );
       // A template is a value — regex not allowed after it.
       return ok(
         parsed(
@@ -701,25 +624,31 @@ const lexTemplate: Parser<
     ) {
       chunk = chunk + "${";
       pos = pos + 2;
-      tokens.push(token(template(), chunk));
+      tokens.push(
+        tok(tokKind("Template"), chunk),
+      );
+      // Lex the interpolation expression until its matching }.
       let depth = 1;
       let cur = mkState(source, pos, {
         regexAllowed: true,
       });
       for (;;) {
         if (cur.position >= n) {
+          // Unterminated interpolation at EOF.
           return ok(parsed(tokens, cur));
         }
         if (
           charAt(source, cur.position) === "}" &&
           depth === 1
         ) {
+          // The closing brace: resume the template chunk.
           chunk = "}";
           pos = cur.position + 1;
           break;
         }
         const step = oneToken(cur);
         if (!isOk(step)) {
+          // oneToken is total on non-empty input; defensive.
           return ok(parsed(tokens, cur));
         }
         const produced = step.content.value;
@@ -746,13 +675,13 @@ const lexTemplate: Parser<
 // ---------------------------------------------------------
 
 /**
- * Lex one token (one or more {@link Token}s — templates emit
- * several). Ordered choice; comments precede `slashToken` so
- * `//` and `/*` win over regex/division, and `fallbackToken`
+ * Lex one token (one or more {@link Tok}s — templates emit
+ * several). Ordered choice, comments before `slashToken` so
+ * `//` and `/*` win over regex/division; the `fallbackToken`
  * makes the choice total on any non-empty input.
  */
 const oneToken: Parser<
-  ReadonlyArray<Token>,
+  ReadonlyArray<Tok>,
   LexState
 > = or(
   wsToken,
@@ -768,31 +697,32 @@ const oneToken: Parser<
   fallbackToken,
 );
 
+/** Flatten the per-step token groups into one stream. */
 const flatten = (
-  groups: ReadonlyArray<ReadonlyArray<Token>>,
-): ReadonlyArray<Token> =>
-  groups.flatMap((g: ReadonlyArray<Token>) => g);
+  groups: ReadonlyArray<ReadonlyArray<Tok>>,
+): ReadonlyArray<Tok> =>
+  groups.flatMap((g: ReadonlyArray<Tok>) => g);
 
 /**
- * Tokenize source into a classified token stream. Total:
- * `oneToken` consumes every character (down to a `plain`
- * fallback), so the parse always succeeds — the
- * `matchResult` failure arm is a defensive net yielding the
- * whole input as one `plain` token, never a throw.
+ * Lex TypeScript `source` into a classified {@link Tok}
+ * stream. Total: `oneToken` consumes every character (down
+ * to a `Plain` fallback), so the parse always succeeds — the
+ * `matchResult` failure arm is a defensive net that yields
+ * the whole input as one `Plain` token, never a throw.
  */
-export const tokenize = (
-  code: SoftStr,
-): ReadonlyArray<Token> =>
+export const tsLex = (
+  source: SoftStr,
+): ReadonlyArray<Tok> =>
   pipe(
     run(
       pipe(many(oneToken), map(flatten)),
-      code,
+      source,
       initLexState,
     ),
     matchResult(
-      (): ReadonlyArray<Token> => [
-        token(plain(), code),
+      (): ReadonlyArray<Tok> => [
+        tok(tokKind("Plain"), source),
       ],
-      (toks: ReadonlyArray<Token>) => toks,
+      (toks: ReadonlyArray<Tok>) => toks,
     ),
   );

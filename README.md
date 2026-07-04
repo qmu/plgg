@@ -103,7 +103,8 @@ its name); this section is the top-level index that links down to each.
 **Docs & build toolchain**
 
 - **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
-- **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-new-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, driving the vendored `typescript` scanner into classified plgg-view `Html` spans
+- **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, tokenizing with an in-house plgg-parser grammar (no `typescript` dependency) into classified plgg-view `Html` spans
+- **[`packages/plgg-parser/`](packages/plgg-parser/)** - Zero-new-dep generic parser combinator library on plgg: data-last `Parser<A,S>` functions returning `Result<Parsed<A,S>>`, a user-state slot for context-sensitive grammars, and a TS-lexer demo (the eventual in-house replacement for plgg-highlight's compiler scanner)
 - **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide. Carries its generic web framework internally (config loading, a router builder, static-build + CLI orchestration — absorbed from the former standalone `plggmatic`, now its own repository)
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
@@ -378,9 +379,15 @@ See [packages/plgg-md/README.md](packages/plgg-md/README.md) for details.
 
 ### plgg-highlight
 
-Zero-new-dependency TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, driving the vendored `typescript` scanner into classified plgg-view `Html<never>` spans, with an escaped `<pre><code>` fallback.
+Zero-dependency TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, tokenizing with an in-house plgg-parser grammar (no `typescript` dependency) into classified plgg-view `Html<never>` spans, with an escaped `<pre><code>` fallback.
 
 See [packages/plgg-highlight/README.md](packages/plgg-highlight/README.md) for details.
+
+### plgg-parser
+
+A zero-new-dependency generic parser combinator library built purely on plgg. Parsers are data-last functions `Parser<A, S> = (ParseState<S>) => Result<Parsed<A, S>, InvalidError>`, composed with `pipe`/`flow`; failure is `Result`, optionality is `Option`, and a threaded user-state slot carries context (e.g. last-significant-token for regex-vs-division). Ships a TS-lexer demo that proves the core can lex TypeScript — the eventual in-house replacement for plgg-highlight's `ts.createScanner`.
+
+See [packages/plgg-parser/README.md](packages/plgg-parser/README.md) for details.
 
 ### plggpress
 

@@ -1,10 +1,10 @@
 {
-  "name": "plgg-highlight",
-  "version": "0.0.2",
+  "name": "plgg-parser",
+  "version": "0.0.1",
   "files": [
     "dist"
   ],
-  "description": "Zero-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's Highlighter seam, tokenizing code with an in-house plgg-parser grammar (no typescript dependency) into classified plgg-view Html<never> spans; alias-normalizes the fence language and falls back to escaped pre>code for everything else",
+  "description": "Zero-new-dep generic parser combinator library built purely on plgg primitives (Result/Option/Box/InvalidError); parsers are data-last functions Parser<A,S> = (ParseState<S>) => Result<Parsed<A,S>>, composed with pipe/flow. Threads a user-state slot for context-sensitive grammars (e.g. regex-vs-division). Ships a TS-lexer demo proving value.",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
@@ -40,10 +40,7 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg",
-    "plgg-md": "file:../plgg-md",
-    "plgg-parser": "file:../plgg-parser",
-    "plgg-view": "file:../plgg-view"
+    "plgg": "file:../plgg"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
