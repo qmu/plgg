@@ -1,7 +1,8 @@
 # specs
 
+* [plggmatic declarative vocabulary + scheduler — design (ticket 09)](20260704-plggmatic-scheduler-design.md)
+* [plggpress / plggmatic Long-Range Roadmap and Decision Record](20260704-plggpress-plggmatic-roadmap.md)
 * [Specs Index](README.md) - Architecture and project specification documents for plgg
-* [plggpress / plggmatic Roadmap & Decision Record (2026-07-04)](20260704-plggpress-plggmatic-roadmap.md) - Approved D1-D17 decisions, 30-ticket phased roadmap, and per-phase quality gates for the CMS/framework vision.
 * [Application Viewpoint](application.md) - Runtime behavior, agent orchestration, and data flow across the plgg monorepo packages.
 * [Component Viewpoint](component.md) - Internal structure, module boundaries, and decomposition of the plgg monorepo packages.
 * [Data Viewpoint](data.md) - Data formats, serialization strategy, type hierarchy, naming conventions, and validation rules for the plgg monorepo.

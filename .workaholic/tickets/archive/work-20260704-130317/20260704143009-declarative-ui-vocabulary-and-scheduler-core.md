@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:09+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, UX]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: df1da54
+category: Changed
 depends_on: [20260704143006-plgg-view-cmd-sub-effects.md, 20260704143031-durable-core-sacrificial-shell-boundary.md]
 ---
 
@@ -333,3 +333,41 @@ diff fails the ticket.
   vocabulary nouns enter the project vocabulary here — one word per
   concept, used identically across types, specs, README, and commit
   messages.
+
+## Final Report
+
+Development completed as planned; the design step (mandatory) landed at
+`.workaholic/specs/20260704-plggmatic-scheduler-design.md` before any `src/`
+edit, reproduces the oracle's sections→notes program, and checks off tenets
+(a)–(g). The core landed without splitting — the reviewed vocabulary already
+reproduces the oracle and demonstrates create/delete-with-confirmation.
+
+Shipped: the `Declare` vocabulary (Row/Field, Source sync|async through one
+`collection<T>` builder, Query, Action with confirmation-as-data, Menu,
+Declaration) and the `Schedule` half (Model/Slot/PendingAction, SchedulerMsg,
+Scene/Level renderer seam, a total URL codec, a pure pair-shaped `update`, and
+`schedule(...)`), all closed unions consumed with exhaustive `match`. plggmatic
+coverage gate passed (99.5% stmts/lines, 93.75% branches, 93.48% functions —
+all >90%). The runnable demo is a second `plggmatic-example` entry
+(`src/scheduler/`, page `scheduler.html`/`scheduler.js`) driven end to end in
+the in-house DOM (`program.spec.ts`, `@plgg-test-environment dom`): menu → list
+→ detail → destructive confirm (cancel no-op, confirm executes async) → create
+→ URL reflection + back.
+
+### Discovered Insights
+
+- **Insight**: A renderer-seam DOM node must be read BEFORE the next dispatch —
+  the plgg-view runtime recycles DOM nodes on re-render, so a captured
+  `.sd-confirm` reference's `textContent` goes stale after the following click.
+  **Context**: Cost a red spec that looked like a scheduler bug but was a
+  test-harness stale-read; capture the string before the mutating interaction.
+- **Insight**: The scheduled model must speak only `Row` (ids + projected
+  fields), never the domain `T`; `collection<T>`'s `toRow` is the single erasure
+  seam. **Context**: This is what keeps the derived Model/URL codec independent
+  of the app's data types (the oracle's discipline), and what lets sync and
+  async sources share one declaration shape.
+- **Insight**: Storing `prompt`/`destructive` on `PendingAction` at park time
+  (instead of re-deriving from `action.confirm` in the scene) removes an
+  otherwise-dead `Immediate` match branch — only a `Confirm` action ever parks.
+  **Context**: A concrete application of `reference_coverage_proc_vs_iserr` —
+  shape the data so the interpreter has no unreachable branch to leave uncovered.

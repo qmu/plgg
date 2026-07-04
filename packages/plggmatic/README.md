@@ -26,6 +26,67 @@ them to this package. (b) *This* package — the UI design framework — re-impo
 at `6d7a832` and canonical here (D13). This note is the single source of the
 distinction; other sites link here rather than repeating it.
 
+## The declarative scheduler (framework half)
+
+plggmatic is not only the design system — its essence is **declarative
+definition of menus, data lists/details, actions, search, and flows, from which
+a UI program is automatically _scheduled_** (D1). You write a **declaration** as
+data; `schedule(...)` derives the whole plgg-view program except the view — the
+`Model`, the `Msg` union, a pure `update`, and a total URL codec — plus a typed
+`Scene` a renderer draws. The vocabulary is **mode-agnostic** (D10): no
+declaration or derived type names a column, pane, drawer, or screen. Renderers
+(tickets 10/11) project the derived level stack into a display.
+
+```ts
+import {
+  schedule, declare, menu, menuEntry,
+  collection, sync, query, makeRow,
+} from "plggmatic";
+import { application } from "plgg-view/client";
+
+// a declaration — pure data, performs nothing
+const app = declare({
+  title: "Field Notes",
+  menu: menu([menuEntry("Sections", "sections")]),
+  collections: [
+    collection<Section>({
+      id: "sections",
+      title: "Sections",
+      toRow: (s) => makeRow(s.id, s.label),
+      source: sync(() => sections),
+      child: "notes",
+      query: query("Filter"),
+    }),
+    collection<Note>({
+      id: "notes",
+      title: "Notes",
+      toRow: (n) => makeRow(n.id, n.title, [/*…*/]),
+      source: sync((path) => notesFor(path[0])),
+    }),
+  ],
+});
+
+// schedule derives init/update/onUrlChange/toUrl/scene;
+// a renderer supplies the missing `view`
+const s = schedule(app);
+application({
+  ...s,
+  view: (m) => render(s.scene(m)),
+})(document.getElementById("root")!);
+```
+
+The vocabulary — **Resource/Collection** (sync or async through one shape),
+**Menu**, **Row** (the list/detail projection), **Action** (create/update/delete
+with confirmation-as-data), **Query**, and the **Flow** graph (menu roots +
+each collection's `child`) — is a set of closed unions consumed with exhaustive
+`match`, so adding a variant is a compile error at every interpreter. Effects
+are `Cmd` data: an `async` source read and an `Action`'s verb are _returned_ by
+`update`, never run by it. See the runnable proof-of-value (a declaration
+scheduled and driven in a real DOM) in
+[`packages/plggmatic-example/src/scheduler/`](../plggmatic-example/src/scheduler/)
+and the design record at
+[`.workaholic/specs/20260704-plggmatic-scheduler-design.md`](../../.workaholic/specs/20260704-plggmatic-scheduler-design.md).
+
 ## Palette override & scheme persistence
 
 The color system is a closed role×variant matrix (see the

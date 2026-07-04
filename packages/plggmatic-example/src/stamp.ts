@@ -17,27 +17,39 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 const root = process.cwd();
-const bundle = readFileSync(
-  join(root, "dist", "main.js"),
-);
-const hash = createHash("sha256")
-  .update(bundle)
-  .digest("hex")
-  .slice(0, 8);
-// Target the script src attribute specifically — a bare
-// "./main.js" replace would hit the explanatory comment
-// above the mount point first and stamp that instead.
-const html = readFileSync(
-  join(root, "index.html"),
-  "utf8",
-).replace(
-  'src="./main.js"',
-  `src="./main.js?v=${hash}"`,
-);
-writeFileSync(
-  join(root, "dist", "index.html"),
-  html,
-);
-console.log(
-  `stamp: dist/index.html -> ./main.js?v=${hash}`,
-);
+
+// Stamp each page's bundle content hash into its script
+// URL, so a CDN edge serving the old `.js` is bypassed
+// whenever the bytes change. One entry per HTML page /
+// bundle pair (the workbench + the ticket-09 scheduler
+// demo).
+const pages: ReadonlyArray<
+  readonly [string, string]
+> = [
+  ["index.html", "main.js"],
+  ["scheduler.html", "scheduler.js"],
+];
+
+for (const [page, bundleName] of pages) {
+  const bundle = readFileSync(
+    join(root, "dist", bundleName),
+  );
+  const hash = createHash("sha256")
+    .update(bundle)
+    .digest("hex")
+    .slice(0, 8);
+  // Target the script src specifically — a bare
+  // "./x.js" replace could hit an explanatory comment
+  // above the mount point first and stamp that instead.
+  const html = readFileSync(
+    join(root, page),
+    "utf8",
+  ).replace(
+    `src="./${bundleName}"`,
+    `src="./${bundleName}?v=${hash}"`,
+  );
+  writeFileSync(join(root, "dist", page), html);
+  console.log(
+    `stamp: dist/${page} -> ./${bundleName}?v=${hash}`,
+  );
+}

@@ -13,7 +13,15 @@ export default {
   root: import.meta.dirname,
   rootDir: "src",
   outDir: "dist",
-  entries: [{ name: "main", input: "main.ts" }],
+  entries: [
+    { name: "main", input: "main.ts" },
+    // the ticket-09 scheduler demo (a second self-
+    // contained page beside the workbench)
+    {
+      name: "scheduler",
+      input: "scheduler-main.ts",
+    },
+  ],
   formats: ["es"],
   fileNamePattern: "[name].js",
   alias: {
