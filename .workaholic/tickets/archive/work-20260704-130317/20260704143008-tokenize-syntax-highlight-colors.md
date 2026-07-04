@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:08+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: cf93abf
+category: Changed
 depends_on: [20260704143007-plggpress-theme-on-plggmatic.md]
 ---
 
@@ -298,3 +298,63 @@ dip, escape hatch, new dependency, or runner-script diff fails the ticket.
   consumer wanting per-block theme overrides (e.g. diff blocks); ticket 04
   shipping an override shape that cannot express `Record<SyntaxKind, …>` —
   any of these reopens the syntax-model file, none reopens the seam.
+
+## Final Report
+
+Landed in feat `cf93abf` (13 files, +511/-28), archived in this housekeeping
+commit. Phase 3 is complete: the last hardcoded color family in the plggpress
+theme is now a plggmatic token group.
+
+### What shipped
+- **`Style/model/syntax.ts`** — a `SyntaxKind` union of the seven colored kinds
+  (keyword/string/number/comment/regex/template/punctuation), a `syntaxKinds`
+  array (compile-time exhaustiveness-pinned), a per-scheme
+  `Record<Scheme, Record<SyntaxKind, HexColor>>` default palette, and
+  `syntaxHex`/`syntaxVar` (`var(--pm-code-<kind>)`). A SIBLING of the `Color`
+  matrix — `bg("code-keyword")` stays a compile error. `identifier`/`plain` are
+  deliberately absent (they inherit the code block's default ink).
+- **`Style/usecase/syntaxCss.ts`** — emits the `--pm-code-*` properties
+  (`:root` light + `html.dark`) and the UNSCOPED `.tok-<kind>` rules (comment
+  italic). Self-contained, escape-safe. Exported through `Style/index.ts` +
+  `styleEntry.ts`; composed into plggpress's shell after `themeToggleCss`.
+- **plggpress** deletes its fourteen hardcoded `tok-*` hexes from `baseCss.ts`;
+  code blocks now theme from `var(--pm-code-*)` in both schemes and are reachable
+  by ticket 04's override API. `plgg-highlight`'s `tokenClass` doc comment
+  repointed at plggmatic's Style layer as the color authority.
+- **Cross-package seam spec** (`plggpress/theme/syntaxSeam.spec.ts`) — drives
+  `asHighlighter()` over a fixture exercising all nine `TokenKind`s and asserts
+  every themed kind round-trips as `tok-<kind>` and the only unthemed emitted
+  classes are exactly `tok-identifier`/`tok-plain`. A rename on either side of
+  the (importless) seam now fails a test.
+- **Docs** — `site/color-scheme.md` gains a syntax-highlighting section with
+  both schemes' values, the inherit rule, the pinned-contract note, and measured
+  ratios.
+
+### The one contrast-forced deviation
+Every oracle GitHub-palette hex clears AA on its scheme's `surface-2` EXCEPT
+light `comment` `#6e7781` (4.21:1) — darkened minimally to `#656d76` (4.86:1),
+recorded in the palette comment (ticket 03's `muted` precedent). All other hues
+kept byte-for-byte. This is the only intentional code-block visual diff for the
+phase-3 gate.
+
+### Verification
+- Fresh `scripts/check-all.sh` **EXIT 0** — 0 failed; plggmatic 98.71%,
+  plgg-highlight 100%, plggpress 96.80% (all >90).
+- AC1: `grep "tok-" baseCss.ts` = 0; no syntax hex anywhere in `plggpress/src`;
+  plggmatic deps still only `plgg` + `plgg-view`.
+- AC2: per-scheme `--pm-code-*` properties + unscoped `.tok-*` rules emitted;
+  none for identifier/plain; escape-safe. `SyntaxKind` closed.
+- AC3: the seam spec passes (7 themed round-trip; exactly identifier/plain
+  unthemed).
+- AC4: the contrast spec covers all 14 syntax pairings vs `surface-2` ≥4.5:1,
+  derived from `syntaxKinds` so a future kind auto-extends the gate.
+- AC5: a built guide code block (concepts/composition) resolves every kind to
+  its exact per-scheme token hex in light AND dark — verified by computed styles
+  (`comment` = `#656d76`; `identifier` inherits `#1f1f22`/`#dfdfe4`) and a
+  screenshot. `.vp-doc .tok-*` scoped rules gone from `dist`.
+
+### Follow-ups
+- The config→override wiring for syntax (like `schemeCssOf(configPalette)`) is a
+  consumer-ticket concern; the model is already shaped for it.
+- `punctuation` is a standalone hue close to neutral `muted`; a future
+  values-only decision could alias it — the `SyntaxKind` slot stays either way.
