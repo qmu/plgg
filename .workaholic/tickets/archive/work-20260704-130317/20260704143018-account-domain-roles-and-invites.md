@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:18+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, DB]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 1ce5a2d
+category: Added
 depends_on: [20260704143031-durable-core-sacrificial-shell-boundary.md]
 ---
 
