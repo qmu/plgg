@@ -4,7 +4,7 @@
   "files": [
     "dist"
   ],
-  "description": "Zero-new-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's Highlighter seam, driving the already-present typescript compiler's ts.createScanner to tokenize code into classified plgg-view Html<never> spans; alias-normalizes the fence language and falls back to escaped pre>code for everything else",
+  "description": "Zero-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's Highlighter seam, tokenizing code with an in-house plgg-parser grammar (no typescript dependency) into classified plgg-view Html<never> spans; alias-normalizes the fence language and falls back to escaped pre>code for everything else",
   "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
@@ -42,10 +42,8 @@
   "dependencies": {
     "plgg": "file:../plgg",
     "plgg-md": "file:../plgg-md",
+    "plgg-parser": "file:../plgg-parser",
     "plgg-view": "file:../plgg-view"
-  },
-  "peerDependencies": {
-    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

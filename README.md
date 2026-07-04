@@ -102,7 +102,7 @@ its name); this section is the top-level index that links down to each.
 **Docs & build toolchain**
 
 - **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
-- **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-new-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, driving the vendored `typescript` scanner into classified plgg-view `Html` spans
+- **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, tokenizing with an in-house plgg-parser grammar (no `typescript` dependency) into classified plgg-view `Html` spans
 - **[`packages/plgg-parser/`](packages/plgg-parser/)** - Zero-new-dep generic parser combinator library on plgg: data-last `Parser<A,S>` functions returning `Result<Parsed<A,S>>`, a user-state slot for context-sensitive grammars, and a TS-lexer demo (the eventual in-house replacement for plgg-highlight's compiler scanner)
 - **[`packages/plggmatic/`](packages/plggmatic/)** - Pre-organized, composable full-stack web-application framework on the plgg family: config loading, a router builder, static-build orchestration, and a pre-organized CLI
 - **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator built on plggmatic: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide
@@ -376,7 +376,7 @@ See [packages/plgg-md/README.md](packages/plgg-md/README.md) for details.
 
 ### plgg-highlight
 
-Zero-new-dependency TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, driving the vendored `typescript` scanner into classified plgg-view `Html<never>` spans, with an escaped `<pre><code>` fallback.
+Zero-dependency TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, tokenizing with an in-house plgg-parser grammar (no `typescript` dependency) into classified plgg-view `Html<never>` spans, with an escaped `<pre><code>` fallback.
 
 See [packages/plgg-highlight/README.md](packages/plgg-highlight/README.md) for details.
 

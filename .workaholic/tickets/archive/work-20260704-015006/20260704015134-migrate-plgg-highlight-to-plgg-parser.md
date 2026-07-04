@@ -3,9 +3,9 @@ created_at: 2026-07-04T01:51:34+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain, Config]
-effort:
+effort: 2h
 commit_hash:
-category:
+category: Changed
 depends_on: [20260704015133-create-plgg-parser-combinator-library.md]
 ---
 
