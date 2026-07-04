@@ -3,9 +3,9 @@ created_at: 2026-07-04T18:52:01+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Config]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 1e701c8
+category: Added
 depends_on:
 ---
 
@@ -99,3 +99,76 @@ Past and adjacent tickets that touched similar areas:
 - The program-checkpoint requirement is satisfied at monorepo level today (`bin/` CLIs of plgg-bundle/plgg-db-migration/plgg-test/plggpress; the `example` and `plggmatic-example` apps; `plgg-server`'s HTTP adapter) — the constraint text should state where each package's checkpoint lives, not force a CLI into every library package.
 - Do not restructure packages in this ticket; `plggmatic` is under active work on this branch — it stays exemption-listed here.
 - Cross-reference: the D18 durable-core/sacrificial-shell ticket (`.workaholic/tickets/todo/a-qmu-jp/20260704143031-durable-core-sacrificial-shell-boundary.md`) enforces a different axis of the same sacrificial-architecture pillar; keep vocabulary (seam / boundary / checkpoint) consistent between the two constraint texts.
+
+## Final Report
+
+Landed in feat `1e701c8` (5 files, +493), archived in this housekeeping commit.
+The company vendor-isolation policy is now a machine-checked monorepo rule.
+
+### What shipped
+- **`scripts/vendor-boundary-analyzer.mjs`** — classifies every
+  `packages/*/src/**/*.ts` import via the already-present `typescript` compiler
+  API (`ts.preProcessFile`, resolved from plgg-bundle through `createRequire` —
+  **zero new deps**). A third-party import (`node:*`, the tsc API, any bare
+  non-`plgg` specifier) in PRODUCTION code outside `src/vendors/`/`entrypoints/`
+  is a violation. Modes: `--gate` (default, exit 1 on a violation / stale
+  exemption), `--audit` (per-package table), `--self-test` (red/green logic
+  proof).
+- **`scripts/vendor-boundary-exemptions.txt`** — 6 packages with production
+  leaks, each with a reason; derived from a real audit, not guessed.
+- **`scripts/gate-vendor-boundary.sh`** — the `gate-vite.sh` idiom: runs the
+  self-test then the gate; bootstraps plgg-bundle's `typescript` if absent (so
+  it works before build.sh). Registered in `check-all.sh` (which the run-tests
+  CI workflow invokes — one source of truth).
+- **`.workaholic/constraints/architecture.md`** — the codified `## Vendor
+  Boundary` constraint (turning the two prior "verifiable via static import
+  analysis" prose stubs into a pointer at a real check) + the full 23-package
+  audit table.
+
+### Decisions (recorded)
+- **plgg-family (`/^plgg/`) is domain vocabulary**, importable anywhere; only
+  the classifier's one-line prefix test distinguishes it from third-party. So
+  self-aliases (`plggpress/…`, `plgg-sql/…`) and cross-package plgg imports are
+  all allowed everywhere.
+- **v1 governs PRODUCTION code; test code (`*.spec.ts`, `testkit/`) is
+  EXCLUDED.** This was the ticket's explicit "decide at drive time" point. The
+  audit first showed plgg-db-migration with 7 violations and plgg-sql with 1 —
+  all in test files (domain specs creating temp dirs; `testkit/sqliteDb.ts`
+  opening `node:sqlite`; ticket-15's `fts5Engine.spec.ts`). Since the reference
+  package plgg-db-migration MUST pass unexempted and the "test against the real
+  engine" policy legitimately needs real vendors in tests (the anti-corruption
+  layer's tests connect to the vendor), the gate checks production structure
+  only. The no-`as`/`any` rule already surfaces a leaked vendor TYPE in a
+  production signature through `tsc`; signature-level + Web-global checking is
+  future work.
+- **plggmatic is NOT exempted** despite the ticket suggesting it (under active
+  work) — the audit shows it is clean (0 violations), and a clean exemption is a
+  stale-exemption failure. "Under active work" meant don't restructure it, which
+  this ticket doesn't.
+
+### Audit outcome (23 packages)
+- **15 conformant, unexempted**: plgg, plgg-db-migration (reference),
+  plgg-cli/fetch/foundry/highlight/http/kit/md/parser/router/sql/view/auth,
+  plggmatic.
+- **6 exempted** (production leaks pending migration): plgg-bundle (domain
+  leaks → ticket 185202), plgg-server, plgg-test, plggpress, example,
+  plggmatic-example.
+- **2 content apps** (no `src/`, program checkpoints): guide, site.
+
+### Verification (all ACs)
+- Fresh `scripts/check-all.sh` **EXIT 0** with the gate registered and passing.
+- `--self-test`: 11 cases PASS (RED on a seeded `node:fs`-in-domain violation +
+  a stale exemption; GREEN on a clean unexempted package + an exempted-dirty
+  one; boundary + test-code locations correct); exit 0.
+- **Zero new dependencies** — `git diff` over all `package.json` is empty.
+- The audit table covers every package under `packages/`; `plgg` and
+  `plgg-db-migration` pass unexempted.
+
+### Follow-ups
+- Ticket 20260704185202 fixes plgg-bundle's domain `node:` leaks (removing its
+  exemption); ticket 20260704185203 pilots plgg-fetch into the explicit
+  domain/vendors/entrypoints layout (it is already boundary-clean).
+- Per-package READMEs converge on the domain/vendors/entrypoints/checkpoint
+  vocabulary as packages migrate.
+- v2: signature-level checking (no third-party type in a vendor public
+  param/return) and Web-global (`fetch`/`Request`) detection.
