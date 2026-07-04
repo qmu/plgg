@@ -3,9 +3,9 @@ created_at: 2026-07-04T18:52:03+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 8e006fc
+category: Changed
 depends_on: [20260704185201-vendor-boundary-policy-and-gate.md]
 ---
 
@@ -79,3 +79,57 @@ The gate ticket defines the target and the enforcement; the seam.ts convention t
 - Preserve git history through `git mv`; a delete+create migration would destroy blame across the whole package (`packages/plgg-fetch/src/`).
 - The v1 gate checks import locations only; the ambient-Web-global sweep in the acceptance criteria is the manual complement until a signature-level check exists (noted in the gate ticket's considerations).
 - Keep the vendor module's doc-comment convention from the reference: it declares itself "the only place the package touches <API>" (`packages/plgg-db-migration/src/vendors/fs.ts`).
+
+## Final Report
+
+Landed in refactor `8e006fc`, archived in this housekeeping commit. The pilot
+migration to the canonical domain/vendors layout — the recipe for the rest.
+
+### What shipped
+- `git mv` (history preserved): `src/Http/model` → `src/domain/model`,
+  `src/Http/usecase` → `src/domain/usecase`, `src/Http/usecase/seam.ts` →
+  `src/vendors/fetch.ts`. The empty `Http/` dir is gone; `src/` is now
+  `domain/{model,usecase}` + `vendors/` + `index.ts` only.
+- **The fetch call moved into `vendors/`.** `request` had called global
+  `fetch()` and referenced `Response` directly — a pure move would have left a
+  Web type in the domain. So `vendors/fetch.ts` gained `sendRequest(HttpRequest)
+  → PromisedResult<HttpResponse, ClientError>` (the domain-only entry owning
+  `fetch`/`Request`/`Response`), and `domain/usecase/request.ts` now delegates to
+  it — no Web type in the domain. The vendor module carries the reference
+  doc-comment ("the ONLY place this package touches the Web `fetch` platform").
+- `index.ts` re-exports the domain only; the internal seam functions
+  (`toFetchRequest`/`fromFetchResponse`/`messageOf`) left the public surface (no
+  downstream consumer used them; the vendor's own spec imports them from the
+  vendor path). Self-alias import specifiers rewired `Http/…` → `domain/…` /
+  `vendors/…`.
+- The migration recipe is recorded in `.workaholic/constraints/architecture.md`
+  (audit row flipped to the migrated pilot); the plgg-fetch README documents the
+  domain/vendors layout.
+
+### Decision (recorded)
+- **Public API surface**: the domain client API (`request`/`get`/`post`/`put`/
+  `patch`/`del` + the HTTP model + `ClientError` + `decodeJsonBody`) is
+  unchanged — downstream compiles without edits (there are 0 downstream source
+  consumers today). The vendor functions leaving the public index is the
+  intended cleanup (they returned Web types and should never have been public).
+
+### Verification (all ACs)
+- `src/` contains `domain/{model,usecase}/` + `vendors/` + `index.ts` only; no
+  `Http/`, no `seam.ts`.
+- Precise domain-purity sweep: **0** Web-type usages (`: Response`,
+  `new Headers`, `fetch(`, `Promise<Response>`) in `domain/**` production code.
+- `scripts/gate-vendor-boundary.sh` green with plgg-fetch **conformant** (now a
+  `domain/` layout, unexempted — it was never exempted since its seam touched
+  only *ambient* Web globals, which the v1 import-location gate does not flag).
+- `tsc-plgg` clean; plgg-fetch tests **27 passed**, coverage 100/100/96.97/100
+  (>91 gate); `request.spec` kept green unchanged (it stubs global `fetch`, which
+  `sendRequest` still calls).
+- Fresh `scripts/check-all.sh` **EXIT 0** end-to-end (downstream rebuilds against
+  the new dist; 15 conformant / 6 exempted).
+
+### Follow-ups
+- The remaining ~14 legacy-layout packages migrate as per-package follow-up
+  tickets using the recorded recipe; plgg-kit's `LLMs/vendor/` → `vendors/`
+  rename and the other `seam.ts` variants are next candidates.
+- Ticket 20260704185202 (plgg-bundle domain leak-fix) is the other 185201
+  dependent — still pending; it removes plgg-bundle's exemption.
