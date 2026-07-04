@@ -12,22 +12,27 @@ import {
   semanticRoles,
   variants,
   neutrals,
-  colorHex,
   colorVar,
 } from "plggmatic/Style/model/token";
+import {
+  colorHex,
+  hex,
+} from "plggmatic/Style/model/palette";
 import { schemes } from "plggmatic/Style/model/scheme";
 
 // A #rrggbb literal — the shape every palette value must
-// take so the scheme emitter produces valid CSS.
+// take so the scheme emitter produces valid CSS. `colorHex`
+// now returns a branded HexColor (palette.ts), so its raw
+// string is always well-formed; this pins that.
 const isHex = (v: string): boolean =>
   /^#[0-9a-f]{6}$/.test(v);
 
-test("every color has a hex in every scheme", () =>
+test("every color has a valid hex in every scheme", () =>
   all(
     schemes.flatMap((scheme) =>
       colors.map((c) =>
         check(
-          isHex(colorHex(scheme, c)),
+          isHex(hex(colorHex(scheme, c))),
           toBe(true),
         ),
       ),

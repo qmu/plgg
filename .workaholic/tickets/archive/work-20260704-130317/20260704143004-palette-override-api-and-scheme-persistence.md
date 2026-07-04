@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:04+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: fa285b3
+category: Added
 depends_on: [20260704143003-plggmatic-token-matrix-monochrome-default.md]
 ---
 
@@ -332,3 +332,54 @@ AA pairing below 4.5:1 in `defaultPalette` fails the ticket.
 - **localStorage failures are silent by design** (private mode, blocked
   storage) — matching the plggpress precedent; the page still schemes from
   `prefers-color-scheme`.
+
+## Final Report
+
+**What Changed**
+- New `Style/model/hexColor.ts` (`HexColor` Box brand + `asHexColor` caster,
+  normalizing `#rrggbb`), `Style/model/palette.ts` (`Palette` type,
+  `defaultPalette` moved out of `token.ts`, `asPalette` boundary caster naming
+  the failing path, `colorHex`/`paletteHex`/`hex`), `Style/usecase/contrast.ts`
+  (WCAG math extracted as `contrastRatio(HexColor, HexColor)`),
+  `Style/model/appearance.ts` (`appearanceStorageKey="vp-appearance"` per D16,
+  pure `decideScheme`), `Style/usecase/appearanceScript.ts`
+  (`appearanceInitScript` + `injectAppearanceScript` + `applyScheme` over
+  structural `SchemeRoot`/`SchemeStorage`).
+- `schemeCss.ts` parameterized: `schemeCssOf(palette)`, with
+  `schemeCss === schemeCssOf(defaultPalette)`. `token.ts` slimmed to
+  vocabulary + `colorVar` only (breaks the token↔palette import cycle);
+  `colorHex` now returns a branded `HexColor`.
+- Barrels (`Style/index.ts`, `styleEntry.ts`) export the new surface;
+  `themeToggle`/`scheme` docblocks repoint at the framework-owned contract;
+  the example wires the contract at its effect seam (`main.ts`); site
+  `color-scheme.md` + its twin + plggmatic README gained the override +
+  persistence story. Specs: one per new module (`asHexColor`, `asPalette`
+  paths, `decideScheme` table, script/inject/apply with fakes incl. the
+  storage-throw branch), plus `schemeCssOf` override + default-equivalence.
+
+**Verification**
+- `test-plggmatic.sh`: **57 passed, 0 failed**, exit 0; every new module 100%
+  covered, gate passed (one dead fallback branch → 98.28% branches, > 90).
+- `test-plggmatic-example.sh`: 11 passed, 0 failed, exit 0.
+- Fresh `scripts/check-all.sh`: **EXIT 0**, 0 test failures, 0 tsc errors, 18
+  gates passed, 3 exempt, ~263s. Scope confined to plggmatic/plggmatic-example/
+  site; no plggpress or runner-script diff; no `as`/`any`/`ts-ignore`.
+
+**Discovered Insights (incl. corrections to ticket 03)**
+- Ticket 03's `outline("primary")→outline("primary-base")` change and the
+  `colors` reorder (neutrals now trail the matrix) left FOUR stale assertions/
+  refs that ticket 03's commit shipped red and a flawed verification missed:
+  `button.spec`/`themeToggle.spec` `var(--pm-primary)` focus-ring assertions,
+  the example `app.spec` `.ex-light{--pm-surface:` order assertion, and three
+  `var(--pm-primary)` refs in the example's hand-written CSS
+  (`--pm-primary` is no longer an emitted token). All corrected here to
+  `--pm-primary-base`, and check-all is green with these fixes folded in.
+- Verification lesson: `"Coverage gate passed"` is ORTHOGONAL to test
+  pass/fail (the gate runs on coverage data regardless of assertions). The
+  authoritative signals are the `"N passed, M failed"` line and the process
+  exit code, read from a FOREGROUND run — backgrounded runs + `noclobber`
+  (stale logs) + pipe-masked `$?` produced false greens earlier in this drive.
+- check-all now takes ~4.4 min (was faster) because ticket 02 made coverage
+  collection unconditional — this is exactly ticket 02's recorded revisit
+  trigger for an opt-in local `--no-coverage` escape hatch; a follow-up ticket
+  should add it if the dev loop cost bites.

@@ -615,7 +615,7 @@ export const schemeClassCss: SoftStr = sx.schemes
       `.ex-${scheme}{${sx.colors
         .map(
           (c) =>
-            `--pm-${c}:${sx.colorHex(scheme, c)};`,
+            `--pm-${c}:${sx.hex(sx.colorHex(scheme, c))};`,
         )
         .join("")}}`,
   )
@@ -642,7 +642,7 @@ const chromeCss: SoftStr =
   `.ex-brand{font-weight:600;white-space:nowrap;}` +
   `.ex-crumbs{display:flex;align-items:center;gap:0.4rem;min-width:0;overflow:hidden;white-space:nowrap;font-size:0.85rem;color:var(--pm-muted);}` +
   `.ex-crumbs a{color:var(--pm-muted);text-decoration:none;padding:0.15rem 0.4rem;border-radius:0.25rem;}` +
-  `.ex-crumbs a:hover{background:var(--pm-primary);color:var(--pm-primary-text);}` +
+  `.ex-crumbs a:hover{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
   `.ex-crumb-here{color:var(--pm-text);font-weight:500;overflow:hidden;text-overflow:ellipsis;}` +
   `.ex-crumb-sep{color:var(--pm-border);}` +
   `.ex-spacer{flex:1 1 auto;}` +
@@ -651,8 +651,8 @@ const chromeCss: SoftStr =
   `.ex-colhead{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;height:40px;padding:0 0.75rem;background:var(--pm-surface-2);border-bottom:1px solid var(--pm-border);}` +
   `.ex-colhead-title{font-size:0.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
   `.ex-close{color:var(--pm-muted);text-decoration:none;line-height:1;padding:0.25rem 0.4rem;border-radius:0.25rem;}` +
-  `.ex-close:hover{background:var(--pm-primary);color:var(--pm-primary-text);}` +
-  `.pm-pane a[aria-current="page"]{background:var(--pm-primary);color:var(--pm-primary-text);}` +
+  `.ex-close:hover{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
+  `.pm-pane a[aria-current="page"]{background:var(--pm-primary-base);color:var(--pm-primary-text);}` +
   `@media (min-width:900px){.pm-row{height:calc(100vh - ${HEADER_H});overflow:hidden;}.pm-col{height:calc(100vh - ${HEADER_H});overflow-y:auto;}}` +
   `@media (max-width:899px){.pm-row{overflow-x:auto;scroll-snap-type:x proximity;}.pm-col{scroll-snap-align:start;}.ex-reader{min-width:88vw;}}`;
 

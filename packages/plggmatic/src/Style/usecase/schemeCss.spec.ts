@@ -4,9 +4,17 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { schemeCss } from "plggmatic/Style/usecase/schemeCss";
+import {
+  schemeCss,
+  schemeCssOf,
+} from "plggmatic/Style/usecase/schemeCss";
+import {
+  asPalette,
+  defaultPalette,
+} from "plggmatic/Style/model/palette";
 import { colors } from "plggmatic/Style/model/token";
 import { schemes } from "plggmatic/Style/model/scheme";
+import { isOk } from "plgg";
 
 // The emitter maps over `colors`, so it emits every token
 // for every scheme with no per-token logic. These specs
@@ -48,3 +56,33 @@ test("scheme CSS is escape-safe (no <, >, &)", () =>
     check(schemeCss.includes(">"), toBe(false)),
     check(schemeCss.includes("&"), toBe(false)),
   ]));
+
+test("default schemeCss equals schemeCssOf(defaultPalette)", () =>
+  check(
+    schemeCss,
+    toBe(schemeCssOf(defaultPalette)),
+  ));
+
+test("an override palette reaches every emitted declaration", () => {
+  // A palette that is #000000 everywhere in both schemes.
+  const rows = Object.fromEntries(
+    colors.map((c) => [c, "#000000"]),
+  );
+  const overridden = asPalette({
+    light: rows,
+    dark: rows,
+  });
+  const css = isOk(overridden)
+    ? schemeCssOf(overridden.content)
+    : "";
+  return all([
+    check(isOk(overridden), toBe(true)),
+    // every --pm-* declaration carries the override value…
+    check(
+      count(css, ":#000000;"),
+      toBe(schemes.length * colors.length),
+    ),
+    // …and none carries a default value.
+    check(css.includes("#ffffff"), toBe(false)),
+  ]);
+});

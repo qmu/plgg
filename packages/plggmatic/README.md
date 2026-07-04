@@ -25,3 +25,20 @@ tickets and their "rewire map" tables describe *that* plggmatic — do not apply
 them to this package. (b) *This* package — the UI design framework — re-imported
 at `6d7a832` and canonical here (D13). This note is the single source of the
 distinction; other sites link here rather than repeating it.
+
+## Palette override & scheme persistence
+
+The color system is a closed role×variant matrix (see the
+[color-scheme docs](../site/color-scheme.md)) with a **monochrome default**.
+Two consumer seams:
+
+- **Override** — `defaultPalette` is the shipped monochrome palette; an app
+  validates its own brand colors with `asPalette` (`unknown` → `Result`, a
+  missing scheme/token/bad-hex is an `Err` naming the path) and emits the CSS
+  with `schemeCssOf`. `contrastRatio` runs the same WCAG math the phase-1 gate
+  uses so an override can be audited. Atoms and `var(--pm-*)` are untouched.
+- **Persistence** — the contract is framework-owned: one storage key
+  `appearanceStorageKey` = **`vp-appearance`** (preserved per D16), one
+  mechanism **`html.dark`**, a no-FOUC `appearanceInitScript` +
+  `injectAppearanceScript`, a pure `decideScheme`, and an `applyScheme` effect
+  helper. Every consumer schemes identically — no per-app key drift.

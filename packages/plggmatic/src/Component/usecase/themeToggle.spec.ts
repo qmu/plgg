@@ -65,7 +65,7 @@ test("shows the current scheme's icon (shape, not color)", () =>
 test("themeToggle carries the shared focus ring", () =>
   check(
     collectCss(light).includes(
-      ":focus-visible{outline:2px solid var(--pm-primary)",
+      ":focus-visible{outline:2px solid var(--pm-primary-base)",
     ),
     toBe(true),
   ));

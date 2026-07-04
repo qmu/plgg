@@ -19,13 +19,36 @@ export {
   type SemanticRole,
   type Neutral,
   colors,
-  colorHex,
   colorVar,
 } from "plggmatic/Style/model/token";
 export {
   type Scheme,
   schemes,
 } from "plggmatic/Style/model/scheme";
+export {
+  type HexColor,
+  asHexColor,
+} from "plggmatic/Style/model/hexColor";
+export {
+  type Palette,
+  defaultPalette,
+  asPalette,
+  paletteHex,
+  colorHex,
+  hex,
+} from "plggmatic/Style/model/palette";
+export {
+  appearanceStorageKey,
+  decideScheme,
+} from "plggmatic/Style/model/appearance";
+export {
+  type SchemeRoot,
+  type SchemeStorage,
+  appearanceInitScript,
+  injectAppearanceScript,
+  applyScheme,
+} from "plggmatic/Style/usecase/appearanceScript";
+export { contrastRatio } from "plggmatic/Style/usecase/contrast";
 export {
   bg,
   color,
@@ -36,4 +59,7 @@ export {
   basis,
   fluid,
 } from "plggmatic/Style/usecase/utilities";
-export { schemeCss } from "plggmatic/Style/usecase/schemeCss";
+export {
+  schemeCss,
+  schemeCssOf,
+} from "plggmatic/Style/usecase/schemeCss";

@@ -4,6 +4,11 @@ import {
   mapOption,
 } from "plgg";
 import { application } from "plgg-view/client";
+import {
+  appearanceStorageKey,
+  decideScheme,
+  applyScheme,
+} from "plggmatic/style";
 import { app, appCss } from "./app.ts";
 
 /**
@@ -20,6 +25,27 @@ import { app, appCss } from "./app.ts";
 const style = document.createElement("style");
 style.textContent = appCss;
 document.head.appendChild(style);
+
+// The plggmatic appearance contract, wired at this real
+// consumer's effect seam: pick the scheme from the stored
+// choice else the OS preference, then apply+persist the
+// global `html.dark` class. (Per-toggle persistence lands
+// when plgg-view gains Cmd/Sub in roadmap ticket 06; today
+// the pure `update` cannot host the effect.)
+applyScheme(
+  decideScheme(
+    fromNullable(
+      window.localStorage.getItem(
+        appearanceStorageKey,
+      ),
+    ),
+    window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches,
+  ),
+  document.documentElement,
+  window.localStorage,
+);
 
 pipe(
   fromNullable(document.getElementById("root")),

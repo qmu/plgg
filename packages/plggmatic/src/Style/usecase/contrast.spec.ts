@@ -9,8 +9,9 @@ import {
   type Color,
   colors,
   semanticRoles,
-  colorHex,
 } from "plggmatic/Style/model/token";
+import { colorHex } from "plggmatic/Style/model/palette";
+import { contrastRatio } from "plggmatic/Style/usecase/contrast";
 import { schemes } from "plggmatic/Style/model/scheme";
 
 // The accessibility gate, COMPUTED — not asserted by eye.
@@ -19,35 +20,9 @@ import { schemes } from "plggmatic/Style/model/scheme";
 // (>= 4.5:1) and every semantic-role border clears the
 // 1.4.11 non-text floor (>= 3:1), in BOTH schemes, across
 // the full role×variant matrix, or this spec fails and the
-// ticket cannot be approved. The math is the WCAG 2.x
-// relative-luminance / contrast-ratio formula.
-
-const channel = (b: number): number => {
-  const s = b / 255;
-  return s <= 0.03928
-    ? s / 12.92
-    : Math.pow((s + 0.055) / 1.055, 2.4);
-};
-
-const luminance = (hex: string): number => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (
-    0.2126 * channel(r) +
-    0.7152 * channel(g) +
-    0.0722 * channel(b)
-  );
-};
-
-const contrast = (
-  fg: string,
-  bg: string,
-): number => {
-  const a = luminance(fg) + 0.05;
-  const b = luminance(bg) + 0.05;
-  return a > b ? a / b : b / a;
-};
+// ticket cannot be approved. The WCAG math lives in the
+// extracted `contrast` usecase (`contrastRatio`), which an
+// override author can run over their own palette.
 
 const pair = (
   fg: Color,
@@ -91,7 +66,7 @@ test("every text pairing clears WCAG AA (>=4.5:1) in both schemes", () =>
     schemes.flatMap((scheme) =>
       TEXT_PAIRS.map(([fg, bg]) =>
         check(
-          contrast(
+          contrastRatio(
             colorHex(scheme, fg),
             colorHex(scheme, bg),
           ),
@@ -106,7 +81,7 @@ test("every semantic border clears the non-text floor (>=3:1) in both schemes", 
     schemes.flatMap((scheme) =>
       BORDER_PAIRS.map(([fg, bg]) =>
         check(
-          contrast(
+          contrastRatio(
             colorHex(scheme, fg),
             colorHex(scheme, bg),
           ),

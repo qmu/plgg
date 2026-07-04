@@ -60,8 +60,11 @@ export type ThemeToggleProps<Msg> = Readonly<{
  * framework ships the VIEW ONLY — the toggle renders the
  * current scheme's icon (sun in light, moon in dark) and
  * emits a `toggle` `Msg`; applying the `dark` class to
- * `<html>` (the contract from the token ticket) is the
- * consuming app's `update`/effect seam, so the component
+ * `<html>` is the app's effect seam, wired through the
+ * framework-owned appearance contract —
+ * `applyScheme` / `appearanceStorageKey` (the preserved
+ * `vp-appearance` key) / `appearanceInitScript` in
+ * `Style/usecase/appearanceScript.ts` — so the component
  * stays pure. The `aria-label` names the destination
  * scheme, and the icon is a non-color cue (shape, not
  * hue) for the current one. Carries the shared focus

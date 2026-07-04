@@ -1,5 +1,4 @@
 import { type SoftStr } from "plgg";
-import { type Scheme } from "plggmatic/Style/model/scheme";
 import { cssPrefix } from "plggmatic/Meta/model/identity";
 
 /**
@@ -131,78 +130,12 @@ export const colors: ReadonlyArray<Color> = [
  * and the 3:1 border floor clear AA (the contrast spec is
  * the arbiter). `info` has no oracle value (plggpress
  * renders info in brand) — a provisional blue family,
- * flagged as the one non-oracle role.
+ * flagged as the one non-oracle role. The palette DATA
+ * (the default values, the override caster) lives in
+ * `Style/model/palette.ts`; `token.ts` owns only the token
+ * *vocabulary* and `colorVar`, so overriding a palette
+ * never reaches this file.
  */
-const PALETTE: Record<
-  Scheme,
-  Record<Color, SoftStr>
-> = {
-  light: {
-    surface: "#ffffff",
-    "surface-2": "#f6f6f7",
-    text: "#1f1f22",
-    muted: "#5b5b61",
-    border: "#ededee",
-    "primary-base": "#111111",
-    "primary-text": "#111111",
-    "primary-surface": "#f6f6f7",
-    "primary-border": "#767679",
-    "success-base": "#047857",
-    "success-text": "#065f46",
-    "success-surface": "#ecfdf5",
-    "success-border": "#059669",
-    "danger-base": "#b91c1c",
-    "danger-text": "#991b1b",
-    "danger-surface": "#fef2f2",
-    "danger-border": "#dc2626",
-    "warning-base": "#92400e",
-    "warning-text": "#78350f",
-    "warning-surface": "#fffbeb",
-    "warning-border": "#b45309",
-    "info-base": "#1d4ed8",
-    "info-text": "#1e40af",
-    "info-surface": "#eff6ff",
-    "info-border": "#2563eb",
-  },
-  dark: {
-    surface: "#1b1b1f",
-    "surface-2": "#202127",
-    text: "#dfdfe4",
-    muted: "#8d8d95",
-    border: "#262629",
-    "primary-base": "#f4f4f4",
-    "primary-text": "#f4f4f4",
-    "primary-surface": "#202127",
-    "primary-border": "#8a8a90",
-    "success-base": "#34d399",
-    "success-text": "#34d399",
-    "success-surface": "#022c22",
-    "success-border": "#34d399",
-    "danger-base": "#f87171",
-    "danger-text": "#f87171",
-    "danger-surface": "#450a0a",
-    "danger-border": "#f87171",
-    "warning-base": "#fbbf24",
-    "warning-text": "#fbbf24",
-    "warning-surface": "#451a03",
-    "warning-border": "#fbbf24",
-    "info-base": "#60a5fa",
-    "info-text": "#60a5fa",
-    "info-surface": "#172554",
-    "info-border": "#60a5fa",
-  },
-};
-
-/**
- * A token's literal hex in a given scheme. Consumed by the
- * scheme CSS emitter and the contrast spec; runtime code
- * and atoms use {@link colorVar} instead so a single `dark`
- * class reswitches everything.
- */
-export const colorHex = (
-  scheme: Scheme,
-  c: Color,
-): SoftStr => PALETTE[scheme][c];
 
 /**
  * The `var(--pm-<token>)` reference for a token — what

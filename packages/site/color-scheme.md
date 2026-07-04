@@ -63,6 +63,35 @@ const baseColorCss = schemeCss;
 
 `bg`, `textColor`, and `border` from `plggmatic/style` are the themed atoms — they emit `var(--pm-*)` and shadow plgg-view's literal-hex utilities of the same name. The spacing and radius utilities (`p`, `rounded`) come straight from plgg-view.
 
+## Overriding the palette
+
+The monochrome default is exported as `defaultPalette`; an app supplies its own brand colors through a **typed, caster-validated** `Palette`. `asPalette` takes config-borne `unknown` and returns a `Result` — a missing scheme, a missing token, or a malformed hex is an `Err` naming the failing path (e.g. `dark.danger-border`), so a palette can never ship a hole. Emit the scheme CSS from any validated palette with `schemeCssOf`; the atoms and `var(--pm-*)` references are untouched, so an override changes only the emitted values, never a component.
+
+```ts
+import {
+  asPalette,
+  schemeCssOf,
+  contrastRatio,
+} from "plggmatic/style";
+
+// brandColorCss :: SoftStr, from a boundary-validated palette
+const brandColorCss = matchResult(
+  () => schemeCss,
+  (palette) => schemeCssOf(palette),
+)(asPalette(configPalette));
+```
+
+`asPalette` validates **shape, not taste** — a low-contrast override is the app's deliberate choice. Use the exported `contrastRatio` (the same WCAG 2.x math the phase-1 gate runs) to audit an override against the 4.5:1 / 3:1 floors yourself.
+
+## Scheme persistence: `vp-appearance` + `html.dark`
+
+plggmatic owns the persistence contract so every consumer schemes identically:
+
+- **One storage key** — `appearanceStorageKey` = `vp-appearance` (preserved verbatim per D16, so visitors keep their choice across the plggpress→plggmatic theme cutover; it does not follow the `--pm-*` rename).
+- **One mechanism** — a single `dark` class on `<html>` (`html.dark`); no attribute variants.
+- **No FOUC** — `appearanceInitScript` is a dependency-free inline script that, before first paint, reads the key else `matchMedia('(prefers-color-scheme: dark)')` and adds `dark` to `documentElement`. `injectAppearanceScript(html)` inserts it before `</head>` (after the SSR escaper; a page without `</head>` passes through unchanged).
+- **Pure decision** — `decideScheme(stored, prefersDark)` is DOM-free (stored `dark`/`light` wins, else the OS preference), and `applyScheme(scheme, root, storage)` flips the class and persists at the app's effect seam, swallowing storage failures (private mode).
+
 ## Contrast is a gate, not a guideline
 
 Every text pairing across the matrix is checked in both schemes against the WCAG 2.2 AA floor for normal text (4.5:1), and every semantic-role border against the 1.4.11 non-text floor (3:1). A spec computes each ratio; a value that dips below the floor fails the build. A representative slice of the measured ratios of the shipped monochrome palette:

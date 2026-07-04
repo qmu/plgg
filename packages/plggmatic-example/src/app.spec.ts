@@ -258,16 +258,24 @@ test("the scheme class follows the model", () =>
 
 test("scheme css carries both variable sets", () =>
   all([
+    // Each scheme block opens with the first token in the
+    // derived `colors` order (primary-base since the token
+    // matrix precedes the neutral scale), then carries the
+    // neutral `--pm-surface:` further in.
     check(
       schemeClassCss.includes(
-        ".ex-light{--pm-surface:",
+        ".ex-light{--pm-primary-base:",
       ),
       toBe(true),
     ),
     check(
       schemeClassCss.includes(
-        ".ex-dark{--pm-surface:",
+        ".ex-dark{--pm-primary-base:",
       ),
+      toBe(true),
+    ),
+    check(
+      schemeClassCss.includes("--pm-surface:"),
       toBe(true),
     ),
   ]));

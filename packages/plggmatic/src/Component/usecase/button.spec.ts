@@ -58,7 +58,7 @@ test("focus + disabled differ by a non-color declaration", () =>
     // focus adds a geometric outline the default lacks
     check(
       collectCss(enabled).includes(
-        ":focus-visible{outline:2px solid var(--pm-primary)",
+        ":focus-visible{outline:2px solid var(--pm-primary-base)",
       ),
       toBe(true),
     ),

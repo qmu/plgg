@@ -6,10 +6,14 @@
  * handled, never a silent gap.
  *
  * Light is the default; dark is opted into by a single
- * `dark` class on `<html>`, which reswitches every
- * `--pm-*` custom property (see the scheme CSS emitter).
- * The scheme is chosen by one class, not threaded
- * through the component tree — colors stay data.
+ * `dark` class on `<html>` (`html.dark`) — the SINGLE
+ * published scheme mechanism (no attribute variants),
+ * which reswitches every `--pm-*` custom property (see the
+ * scheme CSS emitter). The class is set/persisted through
+ * the appearance contract (`Style/usecase/appearanceScript`,
+ * `applyScheme` + the `vp-appearance` key). The scheme is
+ * chosen by one class, not threaded through the component
+ * tree — colors stay data.
  */
 export type Scheme = "light" | "dark";
 
