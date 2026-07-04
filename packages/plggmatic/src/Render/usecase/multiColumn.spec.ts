@@ -176,7 +176,7 @@ test("pushed columns carry a truncating close link and a breadcrumb trail", () =
   ]);
 });
 
-test("a parked confirmation renders an alertdialog overlay", () => {
+test("a parked confirmation renders a modal dialog overlay", () => {
   const parked = at(
     openMenu("sections"),
     select(0, "a"),
@@ -188,7 +188,7 @@ test("a parked confirmation renders an alertdialog overlay", () => {
   );
   return all([
     check(
-      html.includes('role="alertdialog"'),
+      html.includes('role="dialog"'),
       toBe(true),
     ),
     check(

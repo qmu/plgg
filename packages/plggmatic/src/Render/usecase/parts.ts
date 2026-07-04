@@ -25,6 +25,7 @@ import { type NavItem } from "plggmatic/Component/model/navItem";
 import { navTree } from "plggmatic/Component/usecase/navTree";
 import { focusRing } from "plggmatic/Component/model/interaction";
 import { cssPrefix } from "plggmatic/Meta/model/identity";
+import { confirmDialog } from "plggmatic/Component/usecase/confirmDialog";
 import {
   type SchedulerMsg,
   type ConfirmPrompt,
@@ -51,7 +52,14 @@ import {
  * dispatch scheduler `Msg`s.
  */
 
-/** The confirmation overlay (an `alertdialog`), if parked. */
+/**
+ * The confirmation, if parked — rendered by ticket 12's
+ * framework `confirmDialog` (a real `role="dialog"` /
+ * `aria-modal` modal with a backdrop), so both renderers
+ * get the accessible dialog. Backdrop-click and Cancel
+ * dispatch `cancelAction`, Confirm dispatches
+ * `confirmAction`.
+ */
 export const confirmOverlay = (
   confirm: Option<ConfirmPrompt>,
 ): ReadonlyArray<Html<SchedulerMsg>> =>
@@ -61,41 +69,17 @@ export const confirmOverlay = (
   >(
     () => [],
     (c: ConfirmPrompt) => [
-      slot(
-        [
-          attr(
-            "class",
-            c.destructive
-              ? `${cssPrefix}-confirm ${cssPrefix}-confirm-danger`
-              : `${cssPrefix}-confirm`,
-          ),
-          attr("role", "alertdialog"),
-          attr("aria-label", c.prompt),
-        ],
-        [
-          span([], [text(c.prompt)]),
-          button(
-            [
-              style_(
-                `${cssPrefix}-btn`,
-                focusRing,
-              ),
-              onClick(confirmAction()),
-            ],
-            [text("Confirm")],
-          ),
-          button(
-            [
-              style_(
-                `${cssPrefix}-btn`,
-                focusRing,
-              ),
-              onClick(cancelAction()),
-            ],
-            [text("Cancel")],
-          ),
-        ],
-      ),
+      confirmDialog<SchedulerMsg>({
+        title: c.destructive
+          ? "Confirm deletion"
+          : "Please confirm",
+        body: c.prompt,
+        confirmLabel: "Confirm",
+        cancelLabel: "Cancel",
+        destructive: c.destructive,
+        onConfirm: confirmAction(),
+        onCancel: cancelAction(),
+      }),
     ],
   )(confirm);
 

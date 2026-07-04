@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:12+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: 2ace0c8
+category: Changed
 depends_on: [20260704143006-plgg-view-cmd-sub-effects.md, 20260704143009-declarative-ui-vocabulary-and-scheduler-core.md, 20260704143003-plggmatic-token-matrix-monochrome-default.md, 20260704143005-plggmatic-non-color-design-tokens.md]
 ---
 
@@ -391,3 +391,45 @@ a `scripts/` diff fails the ticket.
   human-friendly per-field wording (and any future i18n — a recorded
   roadmap deferral) is the consumer's concern via its caster choice,
   not a translation layer in the components.
+
+## Final Report
+
+Development completed as planned. plgg-view gained only element/attribute
+surface (`textarea`/`select`/`option` via the content-model factories, and
+`placeholder_`/`id_`/`for_`/`checked_`/`disabled_` sugar) — `render.ts` and the
+Program runtime have no diff. plggmatic gained the form controls (`textInput`,
+`textArea`, `selectInput`, `checkbox` — controlled, labelled by id,
+`aria-invalid`/`aria-describedby` wired, disabled = native + `pm-disabled` +
+withheld hover), the headless form machinery (`parseForm` collects per-field
+errors in one caster pass — parse, don't validate; `SubmissionState`;
+`formView`), the `confirmDialog` (real `role="dialog"`/`aria-modal`, backdrop
+split, danger confirm — now wired into BOTH scheduler renderers via the shared
+`Render/parts.confirmOverlay`), and `toast`/`toaster` (semantic tones,
+`role="status"`/`aria-live` with `danger`→`assertive`). The runnable proof is a
+`sandbox` forms demo (`plggmatic-example/src/forms/`, a third bundle entry)
+driven end to end in the in-house DOM: an invalid submit shows a field error and
+dispatches nothing; a valid submit (real input events) disables the form,
+completes, and toasts success; a delete asks the dialog (cancel no-op, confirm
+removes + toasts). plggmatic coverage passed (>90% all four, every new module
+100%); plgg-view coverage passed (>89). The site documents forms with a
+compiling example.
+
+### Discovered Insights
+
+- **Insight**: The in-house test DOM has no implicit form submission (clicking a
+  `type=submit` button does NOT fire the form's `submit`) and its selector
+  engine has no `#id` — dispatch a `submit` Event on the `<form>` and query
+  controls with `[id="…"]`. Input-driving DOES work: set `.value` + dispatch an
+  `input` event; the runtime's `payloadOf` reads it (the DOM installs
+  `HTMLInputElement` etc. as `Symbol.hasInstance` brands). **Context**: The
+  recipe for any future form DOM drive (extends [[reference_plgg_test_gotchas]]).
+- **Insight**: Wiring `confirmDialog` into `Render/parts.confirmOverlay` upgraded
+  BOTH mode renderers' confirmation a11y at once (alertdialog → real dialog) —
+  the shared-parts extraction from ticket 11 paid off immediately. **Context**:
+  Extract-once keeps mode parity AND lets a component upgrade land in both modes
+  from one edit.
+- **Insight**: A form's typed payload is a `Record<string, Datum>` keyed by
+  field name, each value produced by that field's caster — "parse once" means
+  the casters ARE the parse; a consumer wanting a stronger type uses casters
+  that produce branded Datums. **Context**: Sidesteps the heterogeneous-payload
+  typing problem without any escape hatch.

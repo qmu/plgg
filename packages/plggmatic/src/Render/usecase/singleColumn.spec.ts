@@ -161,7 +161,7 @@ test("a parked confirmation renders the overlay in single-column too", () => {
     ),
   );
   return check(
-    html.includes('role="alertdialog"'),
+    html.includes('role="dialog"'),
     toBe(true),
   );
 });

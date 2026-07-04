@@ -46,3 +46,35 @@ export {
   type Crumb,
   breadcrumb,
 } from "plggmatic/Component/usecase/breadcrumb";
+// Form controls + action overlays (ticket 12). The
+// barrel's earlier promise ("form controls, tables, and
+// overlays arrive in later tickets") is now delivered for
+// controls, the confirm dialog, and toasts; tables remain.
+export {
+  type TextInputProps,
+  textInput,
+} from "plggmatic/Component/usecase/textInput";
+export {
+  type TextAreaProps,
+  textArea,
+} from "plggmatic/Component/usecase/textArea";
+export {
+  type SelectOption,
+  type SelectProps,
+  selectInput,
+} from "plggmatic/Component/usecase/selectInput";
+export {
+  type CheckboxProps,
+  checkbox,
+} from "plggmatic/Component/usecase/checkbox";
+export {
+  type ConfirmDialogProps,
+  confirmDialog,
+} from "plggmatic/Component/usecase/confirmDialog";
+export {
+  type Tone,
+  type ToastProps,
+  tones,
+  toast,
+  toaster,
+} from "plggmatic/Component/usecase/toast";

@@ -141,10 +141,10 @@ test("a destructive action confirms; cancel is a no-op", () => {
   clickText(root, "a", "Tasks");
   clickText(root, "a", "Re-survey the moss mat");
   clickText(root, "button", "Delete");
-  const parked = root.querySelector(".pm-confirm");
+  const parked = root.querySelector(".pm-dialog");
   const parkedText = parked?.textContent ?? "";
   clickText(root, "button", "Cancel");
-  const cleared = root.querySelector(".pm-confirm");
+  const cleared = root.querySelector(".pm-dialog");
   return all([
     check(parked !== null, toBe(true)),
     check(

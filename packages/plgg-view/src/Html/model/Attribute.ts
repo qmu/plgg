@@ -166,6 +166,45 @@ export const name_ = (
   value: SoftStr,
 ): Attribute<never> => attr("name", value);
 
+/** `placeholder` attribute. */
+export const placeholder_ = (
+  value: SoftStr,
+): Attribute<never> =>
+  attr("placeholder", value);
+
+/** `id` attribute. */
+export const id_ = (
+  value: SoftStr,
+): Attribute<never> => attr("id", value);
+
+/**
+ * `for` attribute — associates a `<label>` with its
+ * control by id. (`for_` because `for` is reserved.)
+ */
+export const for_ = (
+  value: SoftStr,
+): Attribute<never> => attr("for", value);
+
+/**
+ * Presence-based `checked` for a CONTROLLED checkbox:
+ * a `Some`-like `[checked=""]` when on, `[]` when off,
+ * so the runtime's `syncSetProperty` reflects it onto the
+ * live `.checked` property (spread into the attr list).
+ */
+export const checked_ = (
+  checked: boolean,
+): ReadonlyArray<Attribute<never>> =>
+  checked ? [attr("checked", "")] : [];
+
+/**
+ * Presence-based `disabled` — `[disabled=""]` when true,
+ * `[]` when false (spread into the attr list).
+ */
+export const disabled_ = (
+  disabled: boolean,
+): ReadonlyArray<Attribute<never>> =>
+  disabled ? [attr("disabled", "")] : [];
+
 /**
  * Stable identity for keyed reconciliation. Carries no `Msg` (like
  * {@link class_}/{@link transition}), so it drops into any attribute list; SSR

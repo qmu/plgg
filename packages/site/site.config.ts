@@ -38,6 +38,7 @@ const COMPONENTS: ReadonlyArray<
   ["Typography", "/components/typography"],
   ["Theme toggle", "/components/theme-toggle"],
   ["Nav tree", "/components/nav-tree"],
+  ["Forms & actions", "/forms"],
 ];
 
 const config = {

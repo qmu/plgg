@@ -45,7 +45,40 @@ export {
   type Crumb,
   colHead,
   breadcrumb,
+  type TextInputProps,
+  type TextAreaProps,
+  type SelectOption,
+  type SelectProps,
+  type CheckboxProps,
+  type ConfirmDialogProps,
+  type Tone,
+  type ToastProps,
+  textInput,
+  textArea,
+  selectInput,
+  checkbox,
+  confirmDialog,
+  tones,
+  toast,
+  toaster,
 } from "plggmatic/Component";
+
+// --- Form: caster-parsed forms + submission (ticket 12) -
+export {
+  type ControlKind,
+  type SubmissionState,
+  type FieldSpec,
+  type FormErrors,
+  type Payload,
+  type FormViewProps,
+  controlKinds,
+  idleSubmission,
+  pendingSubmission,
+  isPending,
+  parseForm,
+  errorFor,
+  formView,
+} from "plggmatic/Form";
 
 // --- Render: screen-mode renderers (ticket 10/11) -----
 export {

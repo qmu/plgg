@@ -21,6 +21,8 @@ export default {
       name: "scheduler",
       input: "scheduler-main.ts",
     },
+    // the ticket-12 forms demo (form + dialog + toasts)
+    { name: "forms", input: "forms-main.ts" },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",
