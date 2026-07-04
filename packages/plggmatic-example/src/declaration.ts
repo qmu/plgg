@@ -24,17 +24,17 @@ import {
   type Section,
   type Note,
   sections,
-} from "../data.ts";
+} from "./data.ts";
 
 /**
- * The declaration the scheduler demo drives — the whole
+ * The declaration the rewritten example (ticket 13) drives — the whole
  * program as data. A sections→notes drill-down (read-only
  * from `data.ts`, reproducing the hand-written oracle's
  * traversal) PLUS a small in-memory mutable `tasks`
  * collection so create and delete-with-confirmation are
  * demonstrable (the one mutable seam ticket 09 sanctions
  * for the demo). No column/pane/screen notion appears —
- * the crude renderer projects the derived levels.
+ * the multi-column renderer projects the derived levels.
  */
 
 type Task = Readonly<{

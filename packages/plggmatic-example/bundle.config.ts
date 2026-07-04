@@ -14,13 +14,10 @@ export default {
   rootDir: "src",
   outDir: "dist",
   entries: [
+    // the reference app — now the DECLARATIVE demo itself
+    // (ticket 13 retired the crude scheduler demo entry;
+    // the real app IS the vocabulary's proof of value)
     { name: "main", input: "main.ts" },
-    // the ticket-09 scheduler demo (a second self-
-    // contained page beside the workbench)
-    {
-      name: "scheduler",
-      input: "scheduler-main.ts",
-    },
     // the ticket-12 forms demo (form + dialog + toasts)
     { name: "forms", input: "forms-main.ts" },
   ],

@@ -27,7 +27,6 @@ const pages: ReadonlyArray<
   readonly [string, string]
 > = [
   ["index.html", "main.js"],
-  ["scheduler.html", "scheduler.js"],
   ["forms.html", "forms.js"],
 ];
 

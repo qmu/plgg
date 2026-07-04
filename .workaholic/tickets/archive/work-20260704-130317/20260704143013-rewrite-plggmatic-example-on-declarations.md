@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:13+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: d71beac
+category: Changed
 depends_on: [20260704143010-multi-column-renderer.md, 20260704143012-action-form-components.md]
 ---
 
@@ -311,3 +311,35 @@ or a `scripts/`/dependency diff fails the ticket.
   in-memory; the guide-site consolidation of the two docs sites is
   ticket 29; any `secondary`/`tertiary` chrome awaits D9's earned-place
   rule.
+
+## Final Report
+
+Development completed as planned — the Phase-4 capstone. The reference app is now
+a DECLARATION: `declaration.ts` (Resources over sections/notes + a mutable tasks
+collection with create/delete-with-confirmation, a Menu, a Query, and the Flow)
+passed through `schedule(...)` and drawn by `multiColumn`. The hand-written
+program — `Model`/`Msg`/`update`, the `parseUrl`/`toUrl` codec, the column-stack
+composition, and the per-column view builders — is deleted; `app.ts` is 80 lines
+(the mount + app identity), so the program is `app.ts` + `declaration.ts` ≈ 263
+lines versus the **691-line** hand-written baseline (`app.ts` at `5ad57db`) — a
+**~62% reduction**, and the app hand-writes no `Model`/`Msg`/`update`/URL codec/
+column geometry and no `aria-*` for anything the framework renders. Ticket 09's
+crude scheduler demo entry is retired (back toward one program entry; the
+ticket-12 forms showcase is kept as a distinct second entry). `app.spec.ts` is
+ported to drive the SCHEDULED program (init depth, `?c=…&p=…` round-trip +
+canonical serialization, junk-URL totality, markup through the renderer). The
+site's `workbench.md` + its compiling twin are rewritten declaration-first, and
+the README/manifest record the before/after.
+
+### Discovered Insights
+
+- **Insight**: A scheduled `app` typed as `Application<Model, Msg>` exposes
+  `toUrl` as OPTIONAL (the contract's `toUrl?`), so a spec asserting the derived
+  codec must reach the concrete `scheduled` object (required `toUrl`), not the
+  `Application`-typed `app`. Export both. **Context**: The general pattern for
+  testing any derived-codec consumer.
+- **Insight**: The derived URL codec is `?c=<root>&p=<id>/<id>&q=<text>`, NOT the
+  hand-written oracle's `?s=…&n=…`. Ticket 13's "byte-equal" bar is
+  canonicality + round-trip totality, which the derived codec meets in its own
+  form — the param NAMES changed with the generalisation. **Context**: Recorded
+  so a future reader doesn't mistake the codec change for a regression.

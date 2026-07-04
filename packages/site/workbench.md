@@ -1,39 +1,84 @@
 # Example: the workbench
 
-The repository ships a reference app, `@plggmatic/example` — an independent client-side program that displays the **traversable** reading of column-oriented layout: a *column stack*. Where this documentation site runs a fixed sidebar / content / rail arrangement, the workbench **pushes columns as you drill in**: the root column lists sections; selecting a section pushes a notes-list column; selecting a note pushes a reading column. Each pushed column carries sticky header chrome with a close link, a breadcrumb trail in the top bar mirrors the stack, and the whole arrangement round-trips through the URL. Both UIs are compositions of the same `row`/`column`/`pane` builders — the proof that the layout system is a pattern, not a fixed theme.
+The repository ships a reference app, `@plggmatic/example` — and it is now a
+**declaration**. You describe the data (Resources/Collections), the menu, the
+list/detail views, the query filter, and the create/delete actions as pure
+data; `schedule(...)` derives the whole plgg-view program (the `Model`, the
+`Msg` union, a pure `update`, and a total URL codec), and the
+[multi-column renderer](/multi-column) draws it. The traversable column stack
+users know — drilling a section pushes a notes column, drilling a note pushes
+the reader, and the arrangement round-trips through the URL — is all derived.
+The 691-line hand-written program it replaced is gone.
 
-The built app is served beside this site at the `/example/` path, and its source lives in [`packages/plggmatic-example` on GitHub](https://github.com/qmu/plgg/tree/main/packages/plggmatic-example).
+The built app is served beside this site at the `/example/` path, and its source
+lives in [`packages/plggmatic-example` on GitHub](https://github.com/qmu/plgg/tree/main/packages/plggmatic-example).
 
-## The stack is derived, the geometry is composed
+## The program is a declaration
 
-The row's column list is computed from the selection depth on every render — the root column is always present, the deeper columns exist only while their selection does, and each column's sizing is a composed atom:
+The app author writes the declaration and the mount — not a `Model`, a `Msg`, an
+`update`, a URL codec, or a column stack:
 
 ```ts
-import { row, column } from "plggmatic";
-import { basis } from "plggmatic/style";
-import { type Html } from "plgg-view";
+import {
+  schedule, declare, menu, menuEntry,
+  collection, sync, query, makeRow, field,
+  multiColumn,
+} from "plggmatic";
 
-declare const sectionsPanes: ReadonlyArray<Html<never>>;
-declare const pushed: ReadonlyArray<Html<never>>;
-
-const stack = row(
-  [],
-  [
-    column([basis("220px")], sectionsPanes),
-    ...pushed,
+const workbench = declare({
+  title: "Field Notes",
+  menu: menu([menuEntry("Notes", "sections")]),
+  collections: [
+    collection<Section>({
+      id: "sections",
+      title: "Sections",
+      toRow: (s) => makeRow(s.id, s.label),
+      source: sync(() => sections),
+      child: "notes",
+      query: query("Filter sections"),
+    }),
+    collection<Note>({
+      id: "notes",
+      title: "Notes",
+      toRow: (n) => makeRow(n.id, n.title, [field("", n.body)]),
+      source: sync((path) => notesFor(path[0])),
+    }),
   ],
-);
+});
+
+const scheduled = schedule(workbench);
+// a renderer supplies the missing `view`
+const view = (model) => multiColumn(scheduled.scene(model));
 ```
 
-Fixed tracks keep their measure (`basis("220px")`, `basis("300px")`); the reader composes `fluid` plus its own `"ex-reader"` hook for the app's below-breakpoint width — options are atoms and hooks, not config fields.
+Everything the users knew is still there — but derived. The stack depth, the
+per-column keying and entrance fades, the sticky `colHead` close links, the
+breadcrumb trail, and the URL reflection all come out of `schedule` +
+`multiColumn`. Selecting a section is a link to `?c=sections&p=<id>`; browser
+back reverses each push; a deep link reproduces the exact arrangement.
 
-> **The chrome is now framework-owned (ticket 10).** The sticky column headers, the breadcrumb trail, the `aria-current` inverted pill, the per-column scroll, and the snap strip were lifted out of this app into the design system: `colHead` and `breadcrumb` are plggmatic components, and `chromeCss` (on `plggmatic/style`) is the escape-safe CSS block, injected once at boot. The example still composes its own column *stack* — that hand-written composition is what the [multi-column renderer](/multi-column) replaces for a scheduled declaration, and what ticket 13's declarative rewrite finally retires. Only the app-identity chrome (top bar, wordmark, the `88vw` reader width) stays here.
+## Accessibility from the declaration alone
+
+The rewritten app hand-writes **no** `aria-*` attribute for anything the
+framework renders. The landmark panes (`nav`/`main`/`aside`), the labelled close
+links, the `aria-current="page"` selection pill, the labelled breadcrumb region,
+and the destructive-action confirm dialog (`role="dialog"`, `aria-modal`) are all
+produced by the renderer from the declaration. The only hand-written code left is
+app identity: the wordmark and the framework CSS injection.
 
 ## What the app demonstrates
 
-- **Columns as navigation state** — the stack depth (root → +list → +reader) is derived from one immutable Model (`section` and `note` are `Option`s); pushing and truncating are re-renders, not view mutations.
-- **The URL is the serialized stack** — `toUrl` projects the depth into `` (root), `?s=…`, or `?s=…&n=…`; a deep link reproduces the exact stack, browser back exactly reverses each push, and every close link (`×` in a column header, or a breadcrumb crumb) is a plain `<a>` to the truncating URL — leaving is the same gesture as entering.
-- **Link-driven, runtime-wired** — the plgg-view `application` runtime intercepts in-app clicks and turns them into messages; the app wires no handlers to links at all.
-- **Column identity by key** — the list column is keyed by section and the reader by note, so switching selection remounts the column fresh (scroll reset + entrance fade) instead of patching stale state in place.
-- **The scheme contract, honored purely** — the `--pm-*` variable sets are regenerated from `colorHex` under two app-root classes and the class swaps by re-render; the theme toggle changes the Model and no code mutates the document.
-- **One active-state rule** — a single stylesheet rule paints the inverted pill on anything marked `aria-current="page"`, so the nav tree and the note list share the same selection affordance.
+- **The whole program as data** — menus, lists/details, a query, and
+  create/delete actions with confirmation-as-data, from which the UI is
+  scheduled (D1). Swapping a `sync` source for an `async` one never touches the
+  app.
+- **The URL is the derived, canonical codec** — `?c=…&p=…/…&q=…`, total in both
+  directions (junk yields a valid slice), reflecting the flow position without a
+  line of hand-written parsing.
+- **Mode-agnostic (D10)** — the same declaration renders under the multi-column
+  or [single-column](/multi-column) mode; nothing in the declaration or the
+  scheduled model names a column or a screen.
+- **Style stays composed** — the `row`/`column`/`pane` combinators and the
+  `--pm-*` scheme still power the geometry under the renderer; the design-system
+  half of this page's older story remains true — only the *program* half is now
+  derived.

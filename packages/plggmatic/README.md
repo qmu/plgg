@@ -108,10 +108,11 @@ with confirmation-as-data), **Query**, and the **Flow** graph (menu roots +
 each collection's `child`) — is a set of closed unions consumed with exhaustive
 `match`, so adding a variant is a compile error at every interpreter. Effects
 are `Cmd` data: an `async` source read and an `Action`'s verb are _returned_ by
-`update`, never run by it. See the runnable proof-of-value (a declaration
-scheduled and driven in a real DOM) in
-[`packages/plggmatic-example/src/scheduler/`](../plggmatic-example/src/scheduler/)
-and the design record at
+`update`, never run by it. See the runnable proof-of-value — the reference app
+is itself a declaration scheduled and drawn by the multi-column renderer —
+in [`packages/plggmatic-example/`](../plggmatic-example/) (`src/declaration.ts` +
+`src/app.ts`; the form components have their own showcase in `src/forms/`), and
+the design record at
 [`.workaholic/specs/20260704-plggmatic-scheduler-design.md`](../../.workaholic/specs/20260704-plggmatic-scheduler-design.md).
 
 ## Palette override & scheme persistence
