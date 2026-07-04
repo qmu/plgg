@@ -4,6 +4,7 @@ author: a@qmu.jp
 type: bugfix
 layer: [Config]
 effort: 0.5h
+commit_hash: 281341a
 category: Changed
 ---
 
