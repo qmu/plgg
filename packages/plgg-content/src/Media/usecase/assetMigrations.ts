@@ -9,8 +9,9 @@ import {
  * namespace DISTINCT from ticket 16's derived index — an
  * uploaded asset is PRIMARY, DB-only staged data until export
  * (ticket 23, D4). CONTENT-ADDRESSED: `hash` is UNIQUE, so an
- * identical re-upload dedupes to the same row; `bytes` is the
- * raw BLOB. Indexed for the per-status + per-uploader admin
+ * identical re-upload dedupes to the same row; the base64 `bytes_b64` is the
+ * raw bytes (the sql binder is text/num/bool only, so BLOBs
+ * are stored base64-encoded). Indexed for the per-status + per-uploader admin
  * lists.
  */
 const CREATE_UP = `
@@ -24,7 +25,7 @@ CREATE TABLE assets (
   created_by TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  bytes BLOB NOT NULL
+  bytes_b64 TEXT NOT NULL
 );
 CREATE INDEX assets_status ON assets(status);
 CREATE INDEX assets_created_by ON assets(created_by);

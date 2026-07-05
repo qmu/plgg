@@ -37,12 +37,12 @@ test("openAssetStore creates a usable assets schema with a UNIQUE hash (dedup)",
   );
   must(
     await exec(db)(
-      sql`INSERT INTO assets (hash, content_path, mime, size, status, created_by, created_at, updated_at, bytes) VALUES ('h1', 'assets/a.png', 'image/png', 3, 'staged', 'g1', 0, 0, x'414243')`,
+      sql`INSERT INTO assets (hash, content_path, mime, size, status, created_by, created_at, updated_at, bytes_b64) VALUES ('h1', 'assets/a.png', 'image/png', 3, 'staged', 'g1', 0, 0, 'QUJD')`,
     ),
   );
   // a second insert of the SAME hash violates UNIQUE
   const dup = await exec(db)(
-    sql`INSERT INTO assets (hash, content_path, mime, size, status, created_by, created_at, updated_at, bytes) VALUES ('h1', 'assets/b.png', 'image/png', 3, 'staged', 'g1', 0, 0, x'414243')`,
+    sql`INSERT INTO assets (hash, content_path, mime, size, status, created_by, created_at, updated_at, bytes_b64) VALUES ('h1', 'assets/b.png', 'image/png', 3, 'staged', 'g1', 0, 0, 'QUJD')`,
   );
   const rows = must(
     await query(db)(
