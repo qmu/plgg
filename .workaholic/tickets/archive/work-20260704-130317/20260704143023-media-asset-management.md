@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain, DB, Infrastructure]
 effort:
-commit_hash:
-category:
+commit_hash: 6e0250c
+category: Changed
 depends_on: [20260704143016-plggpress-content-index-and-delivery-api.md, 20260704143022-guest-editing-and-revisions.md]
 ---
 
@@ -641,3 +641,50 @@ unjustified new package, a wrong build order, or a coverage dip fails the ticket
   published asset; ownership of *staging* rows stays per-author, but the
   published file is content-addressed and shared — record this so it is not
   mistaken for a race bug.
+
+## Final Report
+
+Development completed (Phase-7, the binary counterpart to ticket 22). D4 stance
+HELD: git STAYS primary — an uploaded asset is DB-only staged content until an
+admin exports it into the git assets tree; the media index is derivable, only the
+staged bytes are irreplaceable, and they live in their OWN store. Implemented
+across seven committed, tested slices (each behind a fresh green check-all):
+
+- **pt.1 `e1d8bfb`** — AssetStatus (staged|exported|discarded) + transition
+  machine + MediaSafety (MIME allowlist / 10 MiB size cap / path-safety) +
+  content-addressed Asset (hash = sha256 of the bytes).
+- **pt.2 `e01c972`** — reversible schema + openAssetStore (own file, UNIQUE-hash
+  dedup, bytes as base64 TEXT since SqlValue is text/num/bool only).
+- **pt.3 `b82d86e`** — AssetStore seam + sqlAssetStore driver (findByHash dedup,
+  loadBytes read separately).
+- **pt.4 `2fa2591`** — uploadAsset (validate type+size+path → dedup by hash →
+  store; hash+size computed by the caller so the usecase stays crypto-free) +
+  Media barrel.
+- **pt.5 `996bcf9`** — publishAsset export-to-git-assets (resolve → path-safety →
+  transition staged→exported → atomic write via injected AssetExportFs).
+- **pt.6 `0eb331d`** — the media Web: GET /new (CSRF), POST /upload (raw bytes →
+  sha256 → uploadAsset), GET /item/:id (binary serve with recorded MIME).
+- **pt.7 `6198aa9`** — admin assets Collection + publish-asset Action + the serve
+  mount (real fsAssetExportFs, mediaWeb at /media).
+
+### Discovered Insights
+
+- **Insight**: SQLite has no bindable BLOB through the plgg-sql `sql` template —
+  SqlValue is `SoftStr | Num | Bool`. Binary rides as **base64 TEXT**; the upload
+  Web (node:crypto/Buffer) encodes/sha256s at the seam, the store stays pure, and
+  a list never drags the payloads (loadBytes is a separate projection).
+  **Context**: the one real divergence from the text-draft (ticket 22) template.
+- **Insight**: content-addressing gives **dedup for free** — a UNIQUE hash column
+  + findByHash means an identical re-upload returns the existing asset with no
+  second row, enforced at the DB and short-circuited in the usecase.
+- **Insight**: the whole 4-store serve mount (auth + content + stakeholder + draft
+  + asset) is one deeply-nested matchResult fold; each new store adds a
+  `.then(matchResult(err, (db) => ...))` layer + a mergeWebs level. The
+  brace-balance is the tricky part — the block-body arrow needs `;}` not `),`.
+
+### Remaining (follow-up, not this ticket)
+
+- A production deploy threads a real assets dir (not the mount's placeholder) +
+  the served-origin issuer; the media byte-serve could gain caching headers.
+- Ticket 24 (RAG) and ticket 25 (voice) build on the now-complete stores.
+- Multipart form upload (vs the raw-bytes POST) is a UX nicety left open.
