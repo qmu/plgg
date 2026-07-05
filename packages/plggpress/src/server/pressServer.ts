@@ -7,6 +7,7 @@ import {
   err,
   defect,
   matchResult,
+  none,
 } from "plgg";
 import {
   type Web,
@@ -35,6 +36,11 @@ import { submitWeb } from "plggpress/stakeholder/submitWeb";
 import { editorWeb } from "plggpress/editing/editorWeb";
 import { fsExportFs } from "plggpress/editing/exportFs";
 import { mediaWeb } from "plggpress/media/mediaWeb";
+import { healthWeb } from "plggpress/ops/healthWeb";
+import { contentApi } from "plggpress/api/contentApi";
+import { mcpWeb } from "plggpress/mcp/mcpWeb";
+import { pluginWeb } from "plggpress/plugin/pluginWeb";
+import { contentTools } from "plgg-mcp";
 import { fsAssetExportFs } from "plggpress/media/assetExportFs";
 
 /**
@@ -231,6 +237,31 @@ export const pressServeWebWithAuth = (
                   clock,
                 ),
               )(web());
+              // Ticket 29 rollout: light up the served
+              // instance's read-only public features. No key
+              // needed — RAG degrades to FTS5 (embedder None),
+              // the MCP tools + plugin export are public read.
+              const health = healthWeb(contentDb);
+              const api = route(
+                "/api",
+                contentApi(contentDb, none()),
+              )(web());
+              const mcp = mcpWeb(
+                contentTools(contentDb, none()),
+                {
+                  name: "plggpress-mcp",
+                  version: "0.0.1",
+                },
+              );
+              const plugin = pluginWeb(contentDb, {
+                owner: "plggpress",
+                pluginName: "plggpress-docs",
+                version: "0.0.1",
+                description:
+                  "plggpress knowledge base",
+                source: "./plggpress-docs",
+                mcpUrl: `${base}/mcp`,
+              });
               return bootstrapAuthWeb(
                 authDb,
                 "https://plggpress.local",
@@ -276,18 +307,30 @@ export const pressServeWebWithAuth = (
                           mergeWebs(
                             mergeWebs(
                               mergeWebs(
-                                pressServeWeb(
-                                  contentDir,
-                                  config,
-                                  base,
-                                )(paths),
-                                boot.web,
+                                mergeWebs(
+                                  mergeWebs(
+                                    mergeWebs(
+                                      mergeWebs(
+                                        pressServeWeb(
+                                          contentDir,
+                                          config,
+                                          base,
+                                        )(paths),
+                                        boot.web,
+                                      ),
+                                      requests,
+                                    ),
+                                    edit,
+                                  ),
+                                  media,
+                                ),
+                                health,
                               ),
-                              requests,
+                              api,
                             ),
-                            edit,
+                            mcp,
                           ),
-                          media,
+                          plugin,
                         ),
                     ),
                 ),
