@@ -3,3 +3,4 @@ export * from "plgg-auth/Oidc";
 export * from "plgg-auth/Sql";
 
 export * from "plgg-auth/Account";
+export * from "plgg-auth/Rp";
