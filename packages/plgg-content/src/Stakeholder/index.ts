@@ -11,3 +11,4 @@ export * from "plgg-content/Stakeholder/usecase/openStakeholderStore";
 export * from "plgg-content/Stakeholder/usecase/ingest";
 export * from "plgg-content/Stakeholder/usecase/changeStatus";
 export * from "plgg-content/Stakeholder/Sql/stakeholderStore";
+export * from "plgg-content/Stakeholder/usecase/projectFeed";
