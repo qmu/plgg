@@ -6,3 +6,4 @@ export * from "plgg-content/Editing/usecase/openDraftStore";
 export * from "plgg-content/Editing/usecase/checkBase";
 export * from "plgg-content/Editing/usecase/editDraft";
 export * from "plgg-content/Editing/Sql/draftStore";
+export * from "plgg-content/Editing/usecase/publishDraft";
