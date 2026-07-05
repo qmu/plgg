@@ -2,6 +2,8 @@ import {
   type SoftStr,
   type PromisedResult,
   ok,
+  none,
+  getOr,
   matchOption,
 } from "plgg";
 import {
@@ -17,9 +19,42 @@ import {
 import {
   type ToolRegistry,
   type ServerInfo,
+  type RpcError,
   dispatchMcp,
   handleFrame,
+  serializeResponse,
+  rpcErr,
 } from "plgg-mcp";
+import { guardWrite } from "plggpress/mcp/mcpAuth";
+
+const jsonBody = (frame: SoftStr): HttpResponse =>
+  textResponse(frame, statusOf(200), {
+    "content-type": "application/json",
+  });
+
+const runFrame =
+  (
+    tools: ToolRegistry,
+    serverInfo: ServerInfo,
+  ) =>
+  (
+    body: SoftStr,
+  ): PromisedResult<HttpResponse, HttpError> =>
+    handleFrame(dispatchMcp(tools, serverInfo))(
+      body,
+    )
+      .then(
+        matchOption<SoftStr, HttpResponse>(
+          () =>
+            textResponse(
+              "",
+              statusOf(202),
+              {},
+            ),
+          jsonBody,
+        ),
+      )
+      .then(ok);
 
 /**
  * The MCP Streamable-HTTP transport (ticket 27, D15 second
@@ -35,11 +70,31 @@ import {
 export const mcpWeb = (
   tools: ToolRegistry,
   serverInfo: ServerInfo,
-): Web => {
-  const handle = handleFrame(
-    dispatchMcp(tools, serverInfo),
-  );
-  return post(
+): Web =>
+  post(
+    "/mcp",
+    (c: Context) =>
+      runFrame(tools, serverInfo)(c.req.body),
+  )(web());
+
+/**
+ * The OAuth 2.1 resource-server variant (ticket 27): identical
+ * to {@link mcpWeb} for reads, but a `tools/call` to a
+ * WRITE-scoped tool without account-holder write access is
+ * refused with a `401` JSON-RPC error (WWW-Authenticate set) —
+ * public read stays open, writes demand a token. `resolveWrite`
+ * is the injected bearer→scope check (extract + validate against
+ * our OP); a test passes a fake. Never throws.
+ */
+export const mcpWebGuarded = (
+  tools: ToolRegistry,
+  serverInfo: ServerInfo,
+  writeTools: ReadonlyArray<SoftStr>,
+  resolveWrite: (
+    c: Context,
+  ) => Promise<boolean>,
+): Web =>
+  post(
     "/mcp",
     (
       c: Context,
@@ -47,20 +102,44 @@ export const mcpWeb = (
       HttpResponse,
       HttpError
     > =>
-      handle(c.req.body).then(
-        matchOption<SoftStr, HttpResponse>(
-          () =>
-            textResponse(
-              "",
-              statusOf(202),
-              {},
+      resolveWrite(c).then(
+        (hasWrite: boolean) =>
+          matchOption<
+            RpcError,
+            PromisedResult<
+              HttpResponse,
+              HttpError
+            >
+          >(
+            () =>
+              runFrame(tools, serverInfo)(
+                c.req.body,
+              ),
+            (e: RpcError) =>
+              Promise.resolve(
+                ok(
+                  textResponse(
+                    getOr("")(
+                      serializeResponse(
+                        rpcErr(none(), e),
+                      ),
+                    ),
+                    statusOf(401),
+                    {
+                      "content-type":
+                        "application/json",
+                      "www-authenticate":
+                        'Bearer realm="plggpress-mcp"',
+                    },
+                  ),
+                ),
+              ),
+          )(
+            guardWrite(
+              c.req.body,
+              writeTools,
+              hasWrite,
             ),
-          (frame: SoftStr) =>
-            textResponse(frame, statusOf(200), {
-              "content-type":
-                "application/json",
-            }),
-        ),
-      ).then(ok),
+          ),
+      ),
   )(web());
-};
