@@ -4,3 +4,5 @@ export * from "plgg-content/Rag/model/Embedder";
 export * from "plgg-content/Rag/usecase/semanticSearch";
 export * from "plgg-content/Rag/usecase/chunkEmbeddings";
 export * from "plgg-content/Rag/usecase/ragSearch";
+export * from "plgg-content/Rag/usecase/embedderConfig";
+export * from "plgg-content/Rag/usecase/embedChunks";
