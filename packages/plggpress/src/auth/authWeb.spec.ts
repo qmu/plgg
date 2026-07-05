@@ -74,6 +74,7 @@ const stubAccounts: AccountStore = {
   saveAccount: async () => undefined,
   saveInvite: async () => undefined,
   takeInvite: async () => none(),
+  listAccounts: async () => [],
 };
 
 const config: ProviderConfig = {

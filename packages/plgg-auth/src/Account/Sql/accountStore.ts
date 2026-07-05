@@ -128,6 +128,18 @@ export const sqlAccountStore = (
           account.passwordHash,
         )}, ${account.createdAt})`,
       ),
+    listAccounts: async () =>
+      (
+        await rows(
+          db,
+          sql`SELECT subject, username, password_hash, created_at FROM accounts ORDER BY created_at`,
+        )
+      ).flatMap((row) => {
+        const decoded = asAccountRow(row);
+        return isOk(decoded)
+          ? [decoded.content]
+          : [];
+      }),
     findRole: async (subject: Subject) =>
       firstOf(
         await rows(

@@ -38,4 +38,12 @@ export type AccountStore = {
   takeInvite: (
     hash: InviteHash,
   ) => Promise<Option<Invite>>;
+  /**
+   * Every account, oldest first — the read the admin members
+   * list is sourced from (role is resolved separately via
+   * {@link findRole}). Read-only enumeration; no paging today.
+   */
+  listAccounts: () => Promise<
+    ReadonlyArray<Account>
+  >;
 };

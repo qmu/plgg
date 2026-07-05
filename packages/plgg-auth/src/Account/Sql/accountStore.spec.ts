@@ -190,3 +190,41 @@ test("takeInvite is get-and-delete (single-use) over sqlite", async () => {
     check(isNone(second), toBe(true)),
   ]);
 });
+
+test("listAccounts enumerates decodable accounts oldest-first, skipping a corrupt row", async () => {
+  const db = openSqliteDb();
+  await db.execScript(ACCOUNT_SCHEMA);
+  const store = sqlAccountStore(db);
+  const alice = asUsername("alice");
+  const bob = asUsername("bob");
+  if (!isOk(alice) || !isOk(bob)) {
+    return check(false, toBe(true));
+  }
+  await store.saveAccount(
+    account(
+      box("Subject")("s1"),
+      alice.content,
+      HASH,
+      10,
+    ),
+  );
+  await store.saveAccount(
+    account(
+      box("Subject")("s2"),
+      bob.content,
+      HASH,
+      20,
+    ),
+  );
+  // a corrupt row (non-numeric created_at) fails asAccountRow
+  // and is skipped, not surfaced.
+  await db.run(
+    sql`INSERT INTO accounts (subject, username, password_hash, created_at) VALUES ('s3', 'carol', 'h', 'not-a-number')`,
+  );
+  const list = await store.listAccounts();
+  return all([
+    check(list.length, toBe(2)),
+    check(list[0]?.createdAt ?? -1, toBe(10)),
+    check(list[1]?.createdAt ?? -1, toBe(20)),
+  ]);
+});

@@ -45,6 +45,7 @@ const stubAccounts = (
   saveAccount: async () => undefined,
   saveInvite: async () => undefined,
   takeInvite: async () => none(),
+  listAccounts: async () => [],
 });
 import { memoryRpSessionStore } from "plggpress/auth/rpSessionStore";
 import {

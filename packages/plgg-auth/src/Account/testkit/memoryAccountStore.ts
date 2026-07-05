@@ -65,5 +65,8 @@ export const memoryAccountStore =
         invites.delete(key);
         return fromNullable(found);
       },
+      listAccounts: async () => [
+        ...accounts.values(),
+      ],
     };
   };
