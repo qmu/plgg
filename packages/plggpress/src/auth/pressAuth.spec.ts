@@ -1,6 +1,7 @@
 import {
   test,
   check,
+  all,
   toBe,
 } from "plgg-test";
 import {
@@ -11,8 +12,10 @@ import {
   none,
   pipe,
   isErr,
+  isSome,
   fromNullable,
   defect,
+  matchOption,
   matchResult,
 } from "plgg";
 import { type RpSessionStore } from "plggpress/auth/rpSessionStore";
@@ -48,6 +51,7 @@ import {
   RP_SESSION_COOKIE,
   rpRoleResolver,
   guardAdmin,
+  establishRpSession,
 } from "plggpress/auth/pressAuth";
 
 const must = <T>(r: Result<T, unknown>): T => {
@@ -234,5 +238,51 @@ test("an account-store error is 401", async () => {
       ),
     ),
     toBe("Unauthorized"),
+  );
+});
+
+test("establishRpSession persists a session and returns an /admin-scoped cookie", async () => {
+  const sessions = memoryRpSessionStore();
+  const cookie = must(
+    await establishRpSession(
+      sessions,
+      () => NOW,
+      3600,
+    )("user-42"),
+  );
+  const found = must(
+    await sessions.find(cookie.value.content),
+  );
+  return all([
+    check(
+      cookie.name.content,
+      toBe(RP_SESSION_COOKIE),
+    ),
+    check(
+      matchOption(
+        () => "",
+        (p: string) => p,
+      )(cookie.path),
+      toBe("/admin"),
+    ),
+    check(isSome(found), toBe(true)),
+  ]);
+});
+
+test("establishRpSession surfaces a store error", async () => {
+  const failing: RpSessionStore = {
+    save: async () => err(defect("boom")),
+    find: async () => ok(none()),
+    take: async () => ok(none()),
+  };
+  return check(
+    isErr(
+      await establishRpSession(
+        failing,
+        () => NOW,
+        3600,
+      )("user-42"),
+    ),
+    toBe(true),
   );
 });

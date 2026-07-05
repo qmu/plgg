@@ -1,5 +1,12 @@
 import {
   type Option,
+  type SoftStr,
+  type PromisedResult,
+  type InvalidError,
+  type Defect,
+  box,
+  ok,
+  err,
   none,
   isErr,
   isNone,
@@ -11,12 +18,20 @@ import {
   use,
   route,
 } from "plgg-server";
-import { getCookie } from "plgg-http";
+import {
+  type SetCookie,
+  getCookie,
+  sessionCookie,
+  withPath,
+  withMaxAge,
+} from "plgg-http";
+import { type SqlError } from "plgg-sql";
 import {
   type Role,
   type AccountStore,
   roleOf,
   asSubject,
+  freshOpaque,
 } from "plgg-auth";
 import {
   requireRole,
@@ -29,6 +44,58 @@ export const RP_SESSION_COOKIE = "plgg_rp_session";
 /** The double-submit CSRF cookie + field for admin forms. */
 export const CSRF_COOKIE = "plgg_csrf";
 export const CSRF_FIELD = "csrf_token";
+/** The RP session cookie is scoped to the admin subtree only. */
+const ADMIN_PATH: SoftStr = "/admin";
+
+type SessionError = SqlError | InvalidError | Defect;
+
+/**
+ * The RP session `Set-Cookie`: the opaque id on the
+ * `sessionCookie` secure baseline (HttpOnly, Secure,
+ * SameSite=Lax), scoped to `Path=/admin` and expiring with
+ * the session. Carries ONLY the id — never the subject.
+ */
+const rpCookie = (
+  id: SoftStr,
+  ttlSeconds: number,
+): SetCookie =>
+  // A constant cookie name + a base64url opaque id are valid
+  // by construction, so they go through the raw box
+  // constructors — no caster branch.
+  pipe(
+    sessionCookie(
+      box("CookieName")(RP_SESSION_COOKIE),
+      box("CookieValue")(id),
+    ),
+    withPath(ADMIN_PATH),
+    withMaxAge(ttlSeconds),
+  );
+
+/**
+ * Mints a fresh opaque RP session for `subject`, persists it
+ * (expiring `ttlSeconds` from `clock()`), and returns the
+ * `Set-Cookie` to hand the browser. The callback route calls
+ * this after a validated {@link completeLogin}. Never throws.
+ */
+export const establishRpSession =
+  (
+    sessions: RpSessionStore,
+    clock: () => number,
+    ttlSeconds: number,
+  ) =>
+  async (
+    subject: SoftStr,
+  ): PromisedResult<SetCookie, SessionError> => {
+    const id = freshOpaque();
+    const saved = await sessions.save({
+      id,
+      subject,
+      expiresAt: clock() + ttlSeconds,
+    });
+    return isErr(saved)
+      ? err(saved.content)
+      : ok(rpCookie(id, ttlSeconds));
+  };
 
 /**
  * Resolves the admin principal's {@link Role} from the
