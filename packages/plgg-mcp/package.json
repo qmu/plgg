@@ -47,6 +47,7 @@
     "@types/node": "^25.6.0",
     "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
+    "plgg-sql": "file:../plgg-sql",
     "typescript": "^6.0.3"
   }
 }
