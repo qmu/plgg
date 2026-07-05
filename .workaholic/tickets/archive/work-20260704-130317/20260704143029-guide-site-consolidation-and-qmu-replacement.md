@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, UX]
 effort:
-commit_hash:
-category:
+commit_hash: 0f3c5017
+category: Changed
 depends_on: [20260704143007-plggpress-theme-on-plggmatic.md, 20260704143016-plggpress-content-index-and-delivery-api.md, 20260704143028-production-topology-and-operations.md]
 ---
 
@@ -465,3 +465,44 @@ dependency, or a coverage dip fails the ticket.
   provisioning is user-visible; plan the flip, the HTTPS-enforcement
   re-enable, and the rollback as an ordered, reversible runbook, exactly as
   `deployments/guide.md` records for plgg.qmu.co.jp.
+
+## Final Report
+
+Development completed (Phase-11 Rollout, the roadmap's closing move, D5). No new
+capability — it rolls tickets 09-30 into production along three tracks. One
+committed slice (`ed5ac46`):
+
+- **Track 1 (mount)**: pressServeWebWithAuth now wires EVERY dynamic subtree behind
+  the single route() seam — the deploy-mount loose end (contentApi/mcpWeb/pluginWeb/
+  healthWeb) is closed: /api, /mcp, the plugin export, /health, alongside /auth
+  /admin /requests /edit /media. Read-only public tier lit with no key (RAG→FTS5,
+  MCP/plugin public read); key-gated tier (RAG cosine, voice) dark until deploy
+  config.
+- **Tracks 2+3 (ROLLOUT.md)**: packages/site stays an SSG reader (the dogfood);
+  qmu.co.jp replacement assessed as a separate ticket series seeded with this
+  roadmap as the platform.
+
+### Discovered Insights
+
+- **Insight**: graceful degradation IS the rollout strategy — because every
+  key-gated feature already falls back (RAG→FTS5, voice-UI-dark, MCP write→401),
+  "progressive lighting" is just supplying config, never redeploying code. The
+  instance ships fully-featured and dark; the operator turns features on. That is
+  only possible because the degradation was built into each feature from the start
+  (tickets 24/25/27), not bolted on here.
+- **Insight**: the single route() mount seam (asserted since ticket 14) paid off at
+  the very end — lighting up five more subtrees was one mergeWebs chain extension +
+  five imports, zero changes to any feature. The seam's whole purpose was this
+  moment.
+- **Insight**: the platform is DONE but the migration is not — qmu.co.jp is
+  correctly a new program, not a roadmap ticket. The honest closing assessment is
+  "here is the finished platform + the runbook + the seed ticket list", not a
+  rushed migration.
+
+### Remaining (follow-up, not this ticket)
+
+- The deploy threads the real served origin (placeholder issuer + :memory: stores +
+  mcpUrl=base+/mcp today), persistent DB paths, and operator keys per OPERATIONS.md.
+- The qmu-on-plggpress ticket series (content migration, auth mapping, deploy,
+  plugin cutover, gap assessment) is the next program.
+- 185202 (plgg-bundle vendor-boundary refactor) is the last remaining roadmap ticket.
