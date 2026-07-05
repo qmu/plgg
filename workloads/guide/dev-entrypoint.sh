@@ -40,6 +40,9 @@ for pkg in \
   plgg-highlight \
   plgg-server \
   plggmatic \
+  plgg-sql \
+  plgg-db-migration \
+  plgg-content \
   plggpress \
   guide
 do

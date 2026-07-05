@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:16+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [DB, Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: ac040de
+category: Changed
 depends_on: [20260704143014-plggpress-serve-mode-dual-config.md, 20260704143015-plgg-sql-fts5-support.md, 20260704143017-frontmatter-yaml-subset-and-content-models.md]
 ---
 
@@ -473,3 +473,57 @@ the delivery API, or a coverage dip fails the ticket.
 - **Revisit trigger:** if this ticket finds itself string-assembling any FTS5
   SQL, ticket 15's vocabulary is incomplete — extend that module rather than
   letting raw SQL creep into `plgg-content`.
+
+## Final Report
+
+Development completed as planned (Phase-5 capstone, D4/D11). A NEW package
+`plgg-content` implements the derived, rebuildable SQLite index over the
+git-primary corpus and the HTTP-agnostic query core: a `Schema` domain (the
+`documents`/`chunks`/`collections` tables + an external-content **FTS5** table
+and its sync triggers, ALL emitted through ticket-15's plgg-sql builders — no
+raw FTS5 SQL — created idempotently via `execScript` since the whole DB is
+rebuildable), an `Ingest` domain (a pure heading-scoped `chunkBlocks` fold over
+plgg-md's `Block` AST, a transactional idempotent `indexDocument` that skips an
+unchanged `content_hash`, and `rebuildIndex` — ingest + prune vanished paths,
+D4's primary operation), and a `Query` domain (the MicroCMS-shaped
+`listCollections`/`listCollection`/`getDocument`/`searchIndex` as plain typed
+`Db`-taking functions, plus the `ListQuery` caster and the serializable
+`CollectionSchema`). The `node:sqlite` driver lives alone under `vendors/`.
+plggpress gained `contentApi(db): Web` — the thin `plgg-server` delivery adapter
+(GET `/collections`, `/collections/:name`, `/document`, `/search`) that maps the
+query functions to `jsonResponse`, mounted at the ticket-14 `pressServeWeb` seam
+via `route("/api", …)` (read-only + public: authz is tickets 19/20). Both
+packages clear the >90%/>91% four-metric coverage gates; the delivery adapter is
+tested end-to-end against a real in-memory FTS5 index (search returns the right
+document; metacharacter queries can't crash it).
+
+### Discovered Insights
+
+- **Insight**: `asObj` rejects any record with a `null` property (its guard
+  requires every value to be a `Datum`, and `null` is not one) — so a SQL row
+  with a NULL column fails it. Decode DB rows with `asRawObj` (lenient) and
+  handle nullability per-column. **Context**: a titleless page (title = NULL)
+  broke `getDocument`/`searchIndex`/`listCollection` until this was found — a
+  real correctness bug, not just a test artifact.
+- **Insight**: A new package must NOT set `"type": "module"` in package.json
+  (the plgg-sql/plgg-md mirrors omit it): with NodeNext that flips `.ts` source
+  to ESM resolution and breaks extensionless path-mapped self-imports. It DOES
+  need `"rootDir": "src"` or plgg-bundle's dts emit fails (`TS5011`).
+- **Insight**: `noclobber` in the Bash-tool zsh silently blocks `cat > file`
+  when the file exists — the scaffold's barrel files were left with stale
+  (partial) exports, which only surfaced when a CONSUMER (plggpress) imported the
+  package barrel (internal specs use full module paths, so tsc + tests were
+  green). Use the Write tool or `>|` for overwrites; verify barrels a consumer
+  will read. [[reference_shell_interactive_aliases]]
+- **Insight**: `mapResult`/`matchOption` curried without their `fa` infer the
+  error channel as `unknown`; and defensive `isErr(x) ? x : ok(...)` guards on
+  never-failing inputs are UNCOVERABLE branches that fail the gate — replacing
+  both with `proc`/`chainResult` (short-circuit inside plgg) fixed the branch
+  coverage. [[reference_coverage_proc_vs_iserr]]
+- **Insight**: `handle(web, req)` returns a handler's `HttpError` as an `Err`
+  (not a folded response), so test error cases by inspecting the `Err` tag, not
+  a response status. The delivery `/api` mount is wired at the `pressServeWeb`
+  seam, but populating the served index needs an async build step the current
+  sync `(paths) => Web` serve seam cannot host — that live serve-lifecycle
+  ingest is the one remaining integration (the adapter + package are complete
+  and tested; the mount seam is ready).

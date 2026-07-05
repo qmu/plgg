@@ -89,6 +89,7 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-sql/`](packages/plgg-sql/)** - SQL as data-last pipeline steps built from scratch on plgg: tagged-template queries, transactions, and typed row mapping that drop into a `proc`/`pipe` chain; the database driver lives at an app-supplied seam
 - **[`packages/plgg-db-migration/`](packages/plgg-db-migration/)** - Minimal dbmate-style schema-migration tool on plgg + plgg-sql: single-file up/down migrations, a `schema_migrations` ledger, on-demand per-tenant SQLite, zero new dependencies
+- **[`packages/plgg-content/`](packages/plgg-content/)** - A derived, rebuildable SQLite index over a git-primary Markdown corpus (D4), with an HTTP-agnostic MicroCMS-like read-only query API (`listCollection`/`getDocument`/`searchIndex`) and always-on FTS5 (BM25) search built on plgg-sql's FTS5 builders; the same typed functions back the delivery API, admin UI, MCP tools, and plugin export
 - **[`packages/plgg-domain/`](packages/plgg-domain/)** - The durable-core / sacrificial-shell spine (D18): one authored `Domain` of caster-typed entities derives its SQLite schema, a schema-compatibility boot gate (Ok/Lag/Drift), a code-independent export/import, a provenance manifest, and the derivation seams a regenerated shell is rebuilt from
 - **[`packages/plgg-auth/`](packages/plgg-auth/)** - OIDC identity-provider toolkit built from scratch on plgg: the JOSE layer (base64url, JWK/JWKS with RFC 7638 thumbprint kids, JWS RS256, JWT claim validation) on WebCrypto only — pinned to the RFC test vectors and cross-checked against `node:crypto`
 
@@ -365,6 +366,12 @@ See [packages/plgg-sql/README.md](packages/plgg-sql/README.md) for details.
 A minimal, dbmate-style schema-migration tool on plgg + plgg-sql: single-file `up`/`down` migrations, a `schema_migrations` ledger, and on-demand per-tenant SQLite. Ships a `plgg-db-migration` CLI bin.
 
 See [packages/plgg-db-migration/README.md](packages/plgg-db-migration/README.md) for details.
+
+### plgg-content
+
+A derived, rebuildable SQLite index over a git-primary Markdown corpus (D4), with an HTTP-agnostic MicroCMS-like read-only query API and always-on FTS5 (BM25) search on plgg-sql's FTS5 builders. The same typed `Db`-taking functions (`listCollection`/`getDocument`/`searchIndex`) back the delivery API, the admin UI, the MCP tools, and the plugin export.
+
+See [packages/plgg-content/README.md](packages/plgg-content/README.md) for details.
 
 ### plgg-cli
 

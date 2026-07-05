@@ -46,18 +46,24 @@ cd $REPO_ROOT/packages/plgg-cli && npm run build
 # roadmap ticket 07). publish order is sed-derived from these cd-lines, so
 # plggmatic must precede plggpress here.
 cd $REPO_ROOT/packages/plggmatic && npm run build
-# plggpress last of the web stack: it carries its own framework internally
-# (the absorbed former app-framework facade) and consumes plgg-cli, plgg-server,
-# plgg-md, plgg-highlight, plgg-view, plgg-http, and now plggmatic (its theme is
-# ported onto plggmatic's tokens/components) directly — all built earlier so it
-# can resolve their dists.
-cd $REPO_ROOT/packages/plggpress && npm run build
-# plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
-cd $REPO_ROOT/packages/plgg-fetch && npm run build
+# plgg-sql / plgg-db-migration / plgg-content BEFORE plggpress: plggpress now
+# depends on plgg-content (mounts its read-only delivery API at /api), and
+# plgg-content depends on plgg-sql + plgg-db-migration (+ plgg-md), so the whole
+# chain must have dists before plggpress builds.
 cd $REPO_ROOT/packages/plgg-sql && npm run build
 # plgg-db-migration after plgg-sql: the migration engine builds on plgg + the
 # plgg-sql Db seam (both marked external; built earlier for resolution order).
 cd $REPO_ROOT/packages/plgg-db-migration && npm run build
+# plgg-content after plgg-md/plgg-sql/plgg-db-migration: the derived SQLite index
+# + delivery/query API + FTS5 search, consumed by plggpress's /api mount.
+cd $REPO_ROOT/packages/plgg-content && npm run build
+# plggpress last of the web stack: it carries its own framework internally
+# (the absorbed former app-framework facade) and consumes plgg-cli, plgg-server,
+# plgg-md, plgg-highlight, plgg-view, plgg-http, plggmatic, and now plgg-content
+# (its /api delivery mount) directly — all built earlier so it can resolve dists.
+cd $REPO_ROOT/packages/plggpress && npm run build
+# plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
+cd $REPO_ROOT/packages/plgg-fetch && npm run build
 # plgg-domain after plgg-db-migration: the durable-core spine composes plgg +
 # the plgg-sql Db/Sql seam + plgg-db-migration's Migration/Version, all built
 # above, into a domain-first derivation spine (schema, boot gate, export).

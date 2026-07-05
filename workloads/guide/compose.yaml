@@ -41,6 +41,9 @@ services:
       - /app/packages/plgg-highlight/node_modules
       - /app/packages/plgg-server/node_modules
       - /app/packages/plggmatic/node_modules
+      - /app/packages/plgg-sql/node_modules
+      - /app/packages/plgg-db-migration/node_modules
+      - /app/packages/plgg-content/node_modules
       - /app/packages/plggpress/node_modules
       - /app/packages/plgg-bundle/node_modules
       - /app/packages/guide/node_modules
