@@ -44,9 +44,19 @@ full source so the reader can see it compile and run.
 ## Information architecture is the contract
 
 The nav and sidebar tree lives in `site.config.ts`, whose
-`PACKAGE_GROUPS` / `sidebar` / `nav` data is validated
+`LIBRARY_PACKAGES` / `sidebar` / `nav` data is validated
 through plggpress's `defineSite`. Content tickets fill
 pages under existing nodes; they do not restructure
 navigation. If a genuinely new node is needed, change the
-IA deliberately (add its `PACKAGE_GROUPS` entry) and
-update this page alongside it.
+IA deliberately (add its `LIBRARY_PACKAGES` entry, or a
+new sidebar section for a framework with several pages)
+and update this page alongside it.
+
+IA changes so far: 2026-07-05 added the **plggmatic**
+section (Overview / Declarative scheduler / Design
+system / Renderers & forms / Workbench) beside
+plggpress, and the `plgg-domain` / `plgg-parser`
+Vocabulary leaves — the roadmap-completion docs pass.
+A framework with several pages gets its own sidebar
+section (like plggmatic and plggpress); a single
+library gets one `LIBRARY_PACKAGES` leaf.

@@ -31,15 +31,17 @@ const leaf = (
   items: [],
 });
 
-// The four sidebar sections (developer's IA, 2026-07-03):
-// Guide (prose), Core (plgg + its deep-dive pages),
-// Vocabulary (every mid/toolchain package, one leaf each, in
-// dependency-ish order, closing with the example tutorial),
-// then the site tool (plggpress), with its single Overview
-// page. (plggpress now carries its framework internally —
-// absorbed from the retired plggmatic app-framework facade;
-// the name plggmatic now belongs to the UI design framework
-// in packages/plggmatic/.)
+// The five sidebar sections (IA extended 2026-07-05 for
+// the roadmap docs): Guide (prose), Core (plgg + its
+// deep-dive pages), Vocabulary (every mid/toolchain
+// package, one leaf each, in dependency-ish order,
+// closing with the example tutorial), the UI framework
+// (plggmatic, with its workbench example), then the
+// site tool (plggpress). (plggpress carries its
+// framework internally — absorbed from the retired
+// plggmatic app-framework facade; the name plggmatic
+// belongs to the UI design framework in
+// packages/plggmatic/.)
 const LIBRARY_PACKAGES: ReadonlyArray<
   readonly [string, string]
 > = [
@@ -53,9 +55,11 @@ const LIBRARY_PACKAGES: ReadonlyArray<
     "plgg-db-migration",
     "/packages/plgg-db-migration",
   ],
+  ["plgg-domain", "/packages/plgg-domain"],
   ["plgg-kit", "/packages/plgg-kit"],
   ["plgg-foundry", "/packages/plgg-foundry"],
   ["plgg-cli", "/packages/plgg-cli"],
+  ["plgg-parser", "/packages/plgg-parser"],
   ["plgg-md", "/packages/plgg-md"],
   ["plgg-highlight", "/packages/plgg-highlight"],
   ["plgg-bundle", "/packages/plgg-bundle"],
@@ -147,6 +151,28 @@ const config = {
       items: LIBRARY_PACKAGES.map(([t, l]) =>
         leaf(t, l),
       ),
+    },
+    {
+      text: "plggmatic",
+      items: [
+        leaf("Overview", "/packages/plggmatic/"),
+        leaf(
+          "Declarative scheduler",
+          "/packages/plggmatic/scheduler",
+        ),
+        leaf(
+          "Design system",
+          "/packages/plggmatic/design-system",
+        ),
+        leaf(
+          "Renderers & forms",
+          "/packages/plggmatic/renderers-forms",
+        ),
+        leaf(
+          "Workbench (plggmatic-example)",
+          "/packages/plggmatic-example",
+        ),
+      ],
     },
     {
       text: "plggpress",

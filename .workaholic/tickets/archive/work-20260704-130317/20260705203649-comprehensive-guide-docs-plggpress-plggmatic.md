@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 4h
-commit_hash:
-category: Added
+commit_hash: 3c1b456b
+category: Changed
 depends_on: []
 ---
 
@@ -140,3 +140,44 @@ Approval requires ALL of (developer-confirmed 2026-07-05):
    source/tests/examples, never invented).
 5. `packages/guide/contributing/conventions.md` updated alongside the IA
    change (including the `PACKAGE_GROUPS` → `LIBRARY_PACKAGES` fix).
+
+## Final Report
+
+Development completed as planned. Added a new top-level **plggmatic** sidebar
+section (Overview / Declarative scheduler / Design system / Renderers & forms /
+Workbench) beside plggpress, seven new guide pages, and the `plgg-domain` /
+`plgg-parser` Vocabulary leaves — all wired deliberately in
+`packages/guide/site.config.ts` with the matching `conventions.md` IA-change
+note and the `PACKAGE_GROUPS` → `LIBRARY_PACKAGES` drift fixed.
+
+### What was built
+
+- `packages/guide/packages/plggmatic/index.md` — overview of the two halves
+  (scheduler + design system), vocabulary, disambiguation from the retired
+  app-framework facade.
+- `packages/guide/packages/plggmatic/scheduler.md` — declare → schedule →
+  Scene, the closed-union vocabulary, mode-agnostic derivation (D1/D10),
+  effects-at-the-edge.
+- `packages/guide/packages/plggmatic/design-system.md` — color matrix,
+  palette override + WCAG audit, non-color tokens, framework-owned appearance
+  persistence.
+- `packages/guide/packages/plggmatic/renderers-forms.md` — multi/single-column
+  renderers, `renderMode`/`toggleMode`, caster-parsed forms.
+- `packages/guide/packages/plggmatic-example.md` — the 691→263-line
+  declaration workbench + forms showcase.
+- `packages/guide/packages/plgg-parser.md`, `plgg-domain.md` — 4-part
+  Vocabulary pages, samples from the packages' own specs/example.
+
+Every code sample is pulled from real package source (README samples, the
+example's `declaration.ts`/`app.ts`, `repeat.spec.ts`, `example.ts`) per the
+conventions.md real-code rule.
+
+### Verification (Quality Gate cleared)
+
+- `cd packages/guide && npm run build` **green** — built **39 pages** (was 32);
+  the dead-link/fragment gate passed with all new pages and cross-links.
+- `scripts/tsc-plgg.sh` **green**; `site.config.ts` has no as/any/ts-ignore;
+  Prettier (printWidth 50) applied.
+- Guide container `guide_guide_1` restarted; all 7 new routes return HTTP 200
+  with correct `<h1>`, and all 7 new sidebar links are present on the rendered
+  home page (hand-verified).
