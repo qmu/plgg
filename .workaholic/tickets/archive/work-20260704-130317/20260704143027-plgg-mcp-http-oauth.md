@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
 effort:
-commit_hash:
-category:
+commit_hash: 5841b020
+category: Changed
 depends_on: [20260704143019-plggpress-oidc-rp-integration.md, 20260704143026-plgg-mcp-stdio.md, 20260704143021-requests-and-comments-accumulation.md]
 ---
 
@@ -553,3 +553,43 @@ fails the ticket.
 - **Rate-limiting and abuse controls** on the public `/mcp` endpoint are an
   operations concern (ticket 28); this ticket ships the correct authorization
   boundary, not throttling.
+
+## Final Report
+
+Development completed (Phase-10 MCP, the second of the series — the streamable-HTTP
++ OAuth half of D15). Two committed slices (each behind a fresh green check-all):
+
+- **pt.1 `ba24921`** — the MCP Streamable-HTTP transport: mcpWeb POST /mcp runs the
+  ticket-26 dispatcher through the SAME pure handleFrame the stdio transport uses
+  (a thin Web adapter, not a second protocol impl). Response → application/json 200;
+  notification → 202 empty; malformed → JSON-RPC error frame, still 200. plgg-mcp
+  wired as a plggpress dep (+ guide container reconciled).
+- **pt.2 `541d6a1`** — the OAuth 2.1 resource-server guard: extractBearer +
+  isWriteCall + guardWrite (pure), and mcpWebGuarded which resolves write access via
+  an injected bearer→scope seam and answers 401 (WWW-Authenticate) on an
+  unauthorized write; reads stay public.
+
+### Discovered Insights
+
+- **Insight**: the ticket-26 dispatcher paid off exactly as designed — a second
+  transport is a ~20-line Web adapter (read the body → handleFrame → status). The
+  pure protocol core is transport-agnostic; stdio and HTTP share every line except
+  the IO.
+- **Insight**: MCP-over-HTTP scope enforcement is cleanest as a PURE frame
+  inspection (isWriteCall/guardWrite) at the transport edge, BEFORE dispatch — the
+  bearer→scope resolution is the only injected seam, so the whole allow/deny matrix
+  (read-open, write-401, write-authorized) is unit-tested with a fake resolver, no
+  live OP.
+- **Insight**: JSON-RPC error semantics vs HTTP status — a protocol/tool error is
+  still HTTP 200 (the error rides the JSON-RPC body); only the RESOURCE-SERVER
+  refusal (unauthorized write) is a real 401, because that's an HTTP-layer authz
+  decision, not a protocol result.
+
+### Remaining (follow-up, not this ticket)
+
+- The /mcp mount into pressServer's serve seam joins contentApi (hybrid /search) +
+  agentWeb (voice mint) as the deploy-time wiring — all three are ready plggpress
+  Webs; wire them together with the config embedder + minterFromConfig + the
+  bearer-validation seam (plgg-auth token introspection against our OP).
+- The bearer→scope resolver's real implementation validates the access token our OP
+  (ticket 19) issued; ticket 30 (plugin export) can target either transport.
