@@ -8,16 +8,17 @@ import {
   defect,
   matchResult,
 } from "plgg";
-import {
-  type Web,
-  web,
-  get,
-  htmlResponse,
-} from "plggpress/framework";
+import { type Web } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { pressRouter } from "plggpress/router/pressRouter";
-import { openDb } from "plgg-content";
+import {
+  type Db,
+  openDb,
+  openIndex,
+} from "plgg-content";
+import { sqlAccountStore } from "plgg-auth";
 import { bootstrapAuthWeb } from "plggpress/auth/bootstrapAuth";
+import { deliverAdmin } from "plggpress/Admin/deliverAdmin";
 
 /**
  * plggpress's serve-side {@link Web} assembly and the ONE
@@ -47,16 +48,6 @@ export const pressServeWeb =
   (paths: ReadonlyArray<SoftStr>): Web =>
     pressRouter(contentDir, config, base, paths);
 
-/** A placeholder admin landing page until ticket 20's admin UI. */
-const placeholderAdmin = (): Web =>
-  get("/", async () =>
-    ok(
-      htmlResponse(
-        "<!doctype html><title>plggpress admin</title><p>Admin UI — ticket 20.</p>",
-      ),
-    ),
-  )(web());
-
 /** Concatenate two Webs' routes (guard middlewares are per-route-scoped). */
 const mergeWebs = (a: Web, b: Web): Web => ({
   routes: [...a.routes, ...b.routes],
@@ -68,16 +59,23 @@ const mergeWebs = (a: Web, b: Web): Web => ({
 
 /**
  * The async serve seam: the content router (reader routes,
- * byte-identical to the build) MERGED with the dogfooded
- * OIDC OP+RP admin auth Web ({@link bootstrapAuthWeb}) — the
- * OP endpoints, `/auth/*` login flow, and guarded `/admin`.
- * `runApp`'s serve command awaits this before starting the
- * server. The auth store is an in-process `:memory:` index
- * for the server's lifetime; admin accounts are provisioned
- * out of band (the invite flow). NOTE: the issuer/origin and
- * a persistent auth Db are operator config — the placeholder
- * issuer suffices for the same-process flow but a real deploy
- * threads the served origin here.
+ * byte-identical to the build) MERGED with the dogfooded OIDC
+ * OP+RP admin auth Web ({@link bootstrapAuthWeb}) — the OP
+ * endpoints, `/auth/*` login flow, and the guarded `/admin`
+ * scheduled admin UI ({@link deliverAdmin}). `runApp`'s serve
+ * command awaits this before starting the server.
+ *
+ * One `authDb` backs both the OP store AND the account store,
+ * and the admin's account store is that SAME `sqlAccountStore`
+ * — so a role change in the admin UI is the role the auth
+ * guard reads. A separate in-process content index backs the
+ * admin's content browsing (and, later, ticket 16's live
+ * `/api`). Both are `:memory:` for the server's lifetime;
+ * admin accounts are provisioned out of band (the invite
+ * flow), and the issuer/origin + a persistent Db are operator
+ * config — the placeholder issuer suffices for the
+ * same-process flow but a real deploy threads the served
+ * origin here.
  */
 export const pressServeWebWithAuth = (
   contentDir: SoftStr,
@@ -86,19 +84,16 @@ export const pressServeWebWithAuth = (
 ): PromisedResult<
   (paths: ReadonlyArray<SoftStr>) => Web,
   Defect
-> =>
-  bootstrapAuthWeb(
-    openDb(":memory:"),
-    "https://plggpress.local",
-    "plggpress-admin",
-    () => Math.floor(Date.now() / 1000),
-    86400,
-    placeholderAdmin(),
-  ).then(
+> => {
+  const authDb = openDb(":memory:");
+  // used lazily at request time, by when bootstrapAuthWeb has
+  // applied ACCOUNT_SCHEMA to authDb.
+  const accounts = sqlAccountStore(authDb);
+  return openIndex(":memory:").then(
     matchResult<
-      { web: Web },
+      Db,
       { content: { message: SoftStr } },
-      Result<
+      PromisedResult<
         (
           paths: ReadonlyArray<SoftStr>,
         ) => Web,
@@ -106,24 +101,54 @@ export const pressServeWebWithAuth = (
       >
     >(
       (e) =>
-        err(
-          defect(
-            `auth bootstrap failed: ${e.content.message}`,
+        Promise.resolve(
+          err(
+            defect(
+              `content index open failed: ${e.content.message}`,
+            ),
           ),
         ),
-      (boot) =>
-        ok(
-          (
-            paths: ReadonlyArray<SoftStr>,
-          ): Web =>
-            mergeWebs(
-              pressServeWeb(
-                contentDir,
-                config,
-                base,
-              )(paths),
-              boot.web,
-            ),
+      (contentDb) =>
+        bootstrapAuthWeb(
+          authDb,
+          "https://plggpress.local",
+          "plggpress-admin",
+          () => Math.floor(Date.now() / 1000),
+          86400,
+          deliverAdmin(contentDb, accounts),
+        ).then(
+          matchResult<
+            { web: Web },
+            { content: { message: SoftStr } },
+            Result<
+              (
+                paths: ReadonlyArray<SoftStr>,
+              ) => Web,
+              Defect
+            >
+          >(
+            (e) =>
+              err(
+                defect(
+                  `auth bootstrap failed: ${e.content.message}`,
+                ),
+              ),
+            (boot) =>
+              ok(
+                (
+                  paths: ReadonlyArray<SoftStr>,
+                ): Web =>
+                  mergeWebs(
+                    pressServeWeb(
+                      contentDir,
+                      config,
+                      base,
+                    )(paths),
+                    boot.web,
+                  ),
+              ),
+          ),
         ),
     ),
   );
+};
