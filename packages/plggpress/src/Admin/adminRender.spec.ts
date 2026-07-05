@@ -16,6 +16,7 @@ import {
   type Db,
   openIndex,
   openStakeholderStore,
+  openDraftStore,
 } from "plgg-content";
 import {
   sqlAccountStore,
@@ -40,6 +41,7 @@ const rootScene = async () => {
       db,
       sqlAccountStore(db),
       must(await openStakeholderStore(":memory:")),
+      must(await openDraftStore(":memory:")),
     ),
   );
   const [model] = scheduled.init({

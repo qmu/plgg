@@ -20,6 +20,7 @@ import {
   openDb,
   openIndex,
   openStakeholderStore,
+  openDraftStore,
 } from "plgg-content";
 import { sqlAccountStore } from "plgg-auth";
 import { bootstrapAuthWeb } from "plggpress/auth/bootstrapAuth";
@@ -30,6 +31,8 @@ import {
 } from "plggpress/Admin/settingsStore";
 import { sqlRpSessionStore } from "plggpress/auth/rpSessionStore";
 import { submitWeb } from "plggpress/stakeholder/submitWeb";
+import { editorWeb } from "plggpress/editing/editorWeb";
+import { fsExportFs } from "plggpress/editing/exportFs";
 
 /**
  * plggpress's serve-side {@link Web} assembly and the ONE
@@ -150,13 +153,45 @@ export const pressServeWebWithAuth = (
                   ),
                 ),
               ),
-            (stakeholderDb) => {
+            (stakeholderDb) =>
+              openDraftStore(":memory:").then(
+                matchResult<
+                  Db,
+                  {
+                    content: { message: SoftStr };
+                  },
+                  PromisedResult<
+                    (
+                      paths: ReadonlyArray<SoftStr>,
+                    ) => Web,
+                    Defect
+                  >
+                >(
+                  (e) =>
+                    Promise.resolve(
+                      err(
+                        defect(
+                          `draft store open failed: ${e.content.message}`,
+                        ),
+                      ),
+                    ),
+                  (draftDb) => {
               const sessions =
                 sqlRpSessionStore(authDb);
+              const exportFs =
+                fsExportFs(contentDir);
               const requests = route(
                 "/requests",
                 submitWeb(
                   stakeholderDb,
+                  sessions,
+                  clock,
+                ),
+              )(web());
+              const edit = route(
+                "/edit",
+                editorWeb(
+                  draftDb,
                   sessions,
                   clock,
                 ),
@@ -173,6 +208,8 @@ export const pressServeWebWithAuth = (
                   settings,
                   clock,
                   stakeholderDb,
+                  draftDb,
+                  exportFs,
                 ),
               ).then(
                 matchResult<
@@ -200,19 +237,24 @@ export const pressServeWebWithAuth = (
                       ): Web =>
                         mergeWebs(
                           mergeWebs(
-                            pressServeWeb(
-                              contentDir,
-                              config,
-                              base,
-                            )(paths),
-                            boot.web,
+                            mergeWebs(
+                              pressServeWeb(
+                                contentDir,
+                                config,
+                                base,
+                              )(paths),
+                              boot.web,
+                            ),
+                            requests,
                           ),
-                          requests,
+                          edit,
                         ),
                     ),
                 ),
               );
             },
+          ),
+        ),
           ),
         ),
     ),

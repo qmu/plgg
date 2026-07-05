@@ -49,8 +49,11 @@ import {
 import {
   type Db,
   type ConversationStatus,
+  type ExportFs,
+  type PublishOutcome,
   asConversationStatus,
   changeStatus,
+  publishDraft,
 } from "plgg-content";
 import {
   type Account,
@@ -256,6 +259,7 @@ const renderGet =
     accounts: AccountStore,
     settings: SettingsStore,
     stakeholderDb: Db,
+    draftDb: Db,
   ) =>
   (
     c: Context,
@@ -265,6 +269,7 @@ const renderGet =
         db,
         accounts,
         stakeholderDb,
+        draftDb,
       ),
     );
     const [model0, cmd0] = scheduled.init({
@@ -446,12 +451,45 @@ const doStatus = (
       ),
   )(formField(body, "conversation_id"));
 
+const doPublish = (
+  draftDb: Db,
+  exportFs: ExportFs,
+  clock: () => number,
+  body: SoftStr,
+): PromisedResult<HttpResponse, HttpError> =>
+  matchOption<
+    SoftStr,
+    PromisedResult<HttpResponse, HttpError>
+  >(
+    () =>
+      Promise.resolve(
+        err(badRequest("missing draft id")),
+      ),
+    (idRaw: SoftStr) =>
+      publishDraft(draftDb, exportFs, clock)(
+        Number(idRaw),
+      ).then(
+        matchResult<
+          PublishOutcome,
+          unknown,
+          Result<HttpResponse, HttpError>
+        >(
+          () =>
+            err(badRequest("could not publish")),
+          () =>
+            ok(redirectResponse(ADMIN_BASE)),
+        ),
+      ),
+  )(formField(body, "draft_id"));
+
 const runAct =
   (
     accounts: AccountStore,
     settings: SettingsStore,
     clock: () => number,
     stakeholderDb: Db,
+    draftDb: Db,
+    exportFs: ExportFs,
   ) =>
   (
     c: Context,
@@ -483,13 +521,20 @@ const runAct =
                       clock,
                       c.req.body,
                     )
-                  : Promise.resolve(
-                      err(
-                        badRequest(
-                          "unknown action verb",
+                  : verb === "publish-draft"
+                    ? doPublish(
+                        draftDb,
+                        exportFs,
+                        clock,
+                        c.req.body,
+                      )
+                    : Promise.resolve(
+                        err(
+                          badRequest(
+                            "unknown action verb",
+                          ),
                         ),
                       ),
-                    ),
     )(formField(c.req.body, "verb"));
 
 /**
@@ -511,6 +556,8 @@ export const deliverAdmin = (
   settings: SettingsStore,
   clock: () => number,
   stakeholderDb: Db,
+  draftDb: Db,
+  exportFs: ExportFs,
 ): Web =>
   pipe(
     web(),
@@ -521,6 +568,7 @@ export const deliverAdmin = (
         accounts,
         settings,
         stakeholderDb,
+        draftDb,
       ),
     ),
     use(requireCsrf(CSRF_COOKIE, CSRF_FIELD)),
@@ -531,6 +579,8 @@ export const deliverAdmin = (
         settings,
         clock,
         stakeholderDb,
+        draftDb,
+        exportFs,
       ),
     ),
   );

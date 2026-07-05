@@ -27,7 +27,11 @@ import {
   openIndex,
   registerCollection,
   collectionSchema,
+  type ExportFs,
   openStakeholderStore,
+  openDraftStore,
+  openDraft,
+  submitDraft,
   ingest,
   ingestMessage,
   newConversation,
@@ -49,6 +53,11 @@ import { deliverAdmin } from "plggpress/Admin/deliverAdmin";
 const NOW = 1_700_000_000;
 const clock = () => NOW;
 
+const exportFs: ExportFs = {
+  currentHash: async () => none(),
+  writeSource: async () => ok(null),
+};
+
 const must = <T>(r: Result<T, unknown>): T => {
   if (isErr(r)) {
     throw new Error(JSON.stringify(r.content));
@@ -69,6 +78,7 @@ const seed = async (): Promise<{
   db: Db;
   accounts: AccountStore;
   stakeholderDb: Db;
+  draftDb: Db;
 }> => {
   const db = must(await openIndex(":memory:"));
   await db.execScript(ACCOUNT_SCHEMA);
@@ -109,7 +119,24 @@ const seed = async (): Promise<{
       }),
     ),
   );
-  return { db, accounts, stakeholderDb };
+  const draftDb = must(
+    await openDraftStore(":memory:"),
+  );
+  const dr = must(
+    await openDraft(draftDb, clock)(
+      "blog/edit.md",
+      "guest-1",
+      none(),
+      "# draft",
+    ),
+  );
+  must(
+    await submitDraft(draftDb, clock)(
+      dr.id,
+      "guest-1",
+    ),
+  );
+  return { db, accounts, stakeholderDb, draftDb };
 };
 
 const req = (
@@ -147,7 +174,7 @@ const csrfFrom = (res: HttpResponse): string => {
 };
 
 test("GET renders the admin scene + control panel as an HTML document with a CSRF cookie", async () => {
-  const { db, accounts, stakeholderDb } =
+  const { db, accounts, stakeholderDb, draftDb } =
     await seed();
   const app = deliverAdmin(
     db,
@@ -155,6 +182,8 @@ test("GET renders the admin scene + control panel as an HTML document with a CSR
     settingsOf(),
     clock,
     stakeholderDb,
+    draftDb,
+    exportFs,
   );
   const res: HttpResponse = must(
     await handle(app, req("GET", "/")),
@@ -188,7 +217,7 @@ const drive = async (
   settings: SettingsStore;
   res: Result<HttpResponse, HttpError>;
 }> => {
-  const { db, accounts, stakeholderDb } =
+  const { db, accounts, stakeholderDb, draftDb } =
     await seed();
   const settings = settingsOf();
   const app = deliverAdmin(
@@ -197,6 +226,8 @@ const drive = async (
     settings,
     clock,
     stakeholderDb,
+    draftDb,
+    exportFs,
   );
   const token = csrfFrom(
     must(await handle(app, req("GET", "/"))),
@@ -218,7 +249,7 @@ const drive = async (
 };
 
 test("a POST without the CSRF token is 403", async () => {
-  const { db, accounts, stakeholderDb } =
+  const { db, accounts, stakeholderDb, draftDb } =
     await seed();
   const app = deliverAdmin(
     db,
@@ -226,6 +257,8 @@ test("a POST without the CSRF token is 403", async () => {
     settingsOf(),
     clock,
     stakeholderDb,
+    draftDb,
+    exportFs,
   );
   return check(
     outcome(
@@ -352,6 +385,22 @@ test("set-status with an illegal (same-state) transition is 400", async () => {
   const { res } = await drive(
     "set-status",
     "&conversation_id=1&status=open",
+  );
+  return check(outcome(res), toBe("BadRequest"));
+});
+
+test("publish-draft exports a submitted draft and redirects", async () => {
+  const { res } = await drive(
+    "publish-draft",
+    "&draft_id=1",
+  );
+  return check(outcome(res), toBe("302"));
+});
+
+test("publish-draft with no draft id is 400", async () => {
+  const { res } = await drive(
+    "publish-draft",
+    "",
   );
   return check(outcome(res), toBe("BadRequest"));
 });

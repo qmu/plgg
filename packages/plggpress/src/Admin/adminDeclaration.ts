@@ -34,9 +34,11 @@ import {
   type ListQuery,
   type Conversation,
   type Message,
+  type Draft,
   listCollections,
   listCollection,
   sqlStakeholderStore,
+  sqlDraftStore,
 } from "plgg-content";
 import {
   type Account,
@@ -111,6 +113,7 @@ export const adminDeclaration = (
   db: Db,
   accounts: AccountStore,
   stakeholderDb: Db,
+  draftDb: Db,
 ): Declaration =>
   declare({
     title: "plggpress admin",
@@ -121,6 +124,7 @@ export const adminDeclaration = (
         "Conversations",
         "conversations",
       ),
+      menuEntry("Drafts", "drafts"),
     ]),
     collections: [
       collection<CollectionSchema>({
@@ -299,6 +303,40 @@ export const adminDeclaration = (
               ),
             ),
         ),
+      }),
+      collection<Draft>({
+        id: "drafts",
+        title: "Drafts",
+        toRow: (d: Draft) =>
+          makeRow(
+            `${d.id}`,
+            `${d.contentPath} (${d.status})`,
+            [field("by", d.createdBy)],
+          ),
+        source: async(() =>
+          sqlDraftStore(draftDb)
+            .listDrafts({
+              createdBy: none(),
+              status: none(),
+            })
+            .then(
+              matchResult<
+                ReadonlyArray<Draft>,
+                { content: { message: string } },
+                Result<
+                  ReadonlyArray<Draft>,
+                  Error
+                >
+              >(
+                (e) =>
+                  err(
+                    new Error(e.content.message),
+                  ),
+                (ds) => ok(ds),
+              ),
+            ),
+        ),
+        query: query("Filter drafts"),
       }),
     ],
   });
