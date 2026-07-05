@@ -57,6 +57,9 @@ cd $REPO_ROOT/packages/plgg-db-migration && npm run build
 # plgg-content after plgg-md/plgg-sql/plgg-db-migration: the derived SQLite index
 # + delivery/query API + FTS5 search, consumed by plggpress's /api mount.
 cd $REPO_ROOT/packages/plgg-content && npm run build
+# plgg-mcp after plgg-content: the MCP server's read-only tools wrap
+# plgg-content's query fns, so its dist must exist first.
+cd $REPO_ROOT/packages/plgg-mcp && npm run build
 # plgg-auth BEFORE plggpress: plggpress now depends on plgg-auth (the OIDC OP+RP
 # admin auth mount). plgg-auth composes plgg + plgg-http/server + plgg-sql +
 # plgg-db-migration, all built above.
