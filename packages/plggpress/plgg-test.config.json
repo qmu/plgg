@@ -10,7 +10,8 @@
       "/named-only.config.ts",
       "/auth/authWeb.ts",
       "/auth/bootstrapAuth.ts",
-      "/stakeholder/submitWeb.ts"
+      "/stakeholder/submitWeb.ts",
+      "/editing/editorWeb.ts"
     ]
   }
 }
