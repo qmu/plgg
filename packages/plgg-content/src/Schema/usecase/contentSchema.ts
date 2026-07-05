@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS chunks (
   document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   ordinal INTEGER NOT NULL,
   heading_path TEXT,
-  text TEXT NOT NULL
+  text TEXT NOT NULL,
+  embedding TEXT
 );
 CREATE TABLE IF NOT EXISTS collections (
   name TEXT PRIMARY KEY,

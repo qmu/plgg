@@ -64,6 +64,11 @@ test("deserialize fails closed on bad input", () =>
       toBe(true),
     ),
     check(
+      // JSON 1e400 parses to Infinity — rejected as non-finite
+      isErr(deserializeEmbedding("[1e400]")),
+      toBe(true),
+    ),
+    check(
       isOk(deserializeEmbedding("[]")),
       toBe(true),
     ),
