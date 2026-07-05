@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
 effort:
-commit_hash:
-category:
+commit_hash: f5cdd192
+category: Changed
 depends_on: [20260704143014-plggpress-serve-mode-dual-config.md, 20260704143019-plggpress-oidc-rp-integration.md]
 ---
 
@@ -412,3 +412,41 @@ ticket.
   the chosen cadence), RTO = compose restart + restore time. Both are stated so a
   later scheduled-backup automation (a cron/loop) has a target; the cron itself is
   deferred — correctness does not depend on it.
+
+## Final Report
+
+Development completed (Phase-11 Rollout, D5). The served instance is now OPERATED —
+without touching the public reader (stays SSG/CDN). One committed slice (`642dd36`):
+
+- **healthWeb** — GET /health probes the index schema; reachable → 200, unreachable
+  → 503; a DB fault is a degraded RESPONSE, not a crash (a clean supervisor signal).
+- **backupDatabase** — a consistent hot backup via SQLite VACUUM INTO (doesn't stop
+  the single writer); restore = file swap; a failed backup is a typed Err.
+- **WAL** — openDb sets PRAGMA journal_mode=WAL (readers never block the writer).
+- **OPERATIONS.md** — the runbook: dual-mode topology, cloudflared-fronted always-on
+  process + Restart=always, single-writer policy, the backup/restore drill (the same
+  steps ops.spec asserts), operator-secret at-rest posture, per-release checklist.
+
+### Discovered Insights
+
+- **Insight**: a health check that probes the SCHEMA (SELECT FROM documents), not
+  just connectivity (SELECT 1), is both more meaningful AND makes the 503 arm
+  testable — a schema-less handle is a realistic "DB is up but wrong" failure a
+  bare SELECT 1 would miss.
+- **Insight**: SQLite VACUUM INTO is the whole backup story — a transactionally
+  consistent snapshot with NO writer downtime, and restore is a file swap (no
+  replay), which is exactly what the single-writer D5 instance needs. But it
+  REFUSES an existing destination, so the backup caller/schedule must roll the
+  filename (the ops.spec cleans the dest first — the same discipline the cron job
+  needs).
+- **Insight**: most of "production ops" is a RUNBOOK, not code — the ~40 lines of
+  health+backup are the testable mechanisms; the operational substance (topology,
+  supervision, single-writer, secret posture, the drill) is documentation that the
+  spec keeps honest by regression-testing the two mechanisms it references.
+
+### Remaining (follow-up, not this ticket)
+
+- healthWeb joins contentApi + agentWeb + mcpWeb + pluginWeb as the deploy-time
+  pressServer mount. Ticket 29 (rollout) drives the actual cutover using this
+  runbook. The real deploy supplies the systemd unit + the backup cron + the secret
+  mounts named here.
