@@ -9,7 +9,8 @@
       "/invalid.config.ts",
       "/named-only.config.ts",
       "/auth/authWeb.ts",
-      "/auth/bootstrapAuth.ts"
+      "/auth/bootstrapAuth.ts",
+      "/stakeholder/submitWeb.ts"
     ]
   }
 }
