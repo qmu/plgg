@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
 effort:
-commit_hash:
-category:
+commit_hash: c80c91e
+category: Changed
 depends_on: [20260704143012-action-form-components.md, 20260704143016-plggpress-content-index-and-delivery-api.md, 20260704143019-plggpress-oidc-rp-integration.md, 20260704143010-multi-column-renderer.md, 20260704143011-single-column-renderer.md]
 ---
 
@@ -478,3 +478,60 @@ ticket.
   and tickets 26/27's MCP server will want an admin settings surface too; leave
   the settings model open (a closed `SettingsField` union that grows by a
   compile-visible variant) so those arrive without reshaping the screen.
+
+## Final Report
+
+Development completed (Phase-6 capstone). The plggpress admin UI is DECLARED on
+the plggmatic scheduler — the first real consumer of the declarative UI framework
+(D1) — and served under the auth-guarded `/admin` subtree, proven in both display
+modes (D10). Implemented across eight committed, tested slices (each behind a
+fresh green check-all):
+
+- **pt.1 `b619078`** — content-browse declaration: two Collections
+  (collections → documents) over ticket 16's query functions as ASYNC sources.
+- **pt.2a `1b9b084`** — `AccountStore.listAccounts` (the members-list capability
+  the store lacked; sqlAccountStore + memory + a corrupt-row-skip).
+- **pt.2b `a9e2458`** — members Collection + grant-admin/make-guest role Actions
+  (confirmation-as-data; the Cmd applies the role and reloads).
+- **pt.4 `aa55d21`** — the D10 mode-parity proof: one declaration, multiColumn
+  AND singleColumn, same menu landmarks, via `renderToString`.
+- **pt.5 `0ebb0e0`** — the SSR mount: `deliverAdmin` server-renders the scheduled
+  admin (schedule → init(url) → settle async-source Cmds → renderToString), wired
+  at the `pressServeWebWithAuth` seam replacing the placeholder.
+- **pt.3a `d5070ba`** — the write-only settings store (LLM key
+  configured|absent, no plaintext getter, injected validator seam).
+- **pt.2c+3b `9443335`** — the CSRF-guarded SSR Action-POST layer: an SSR control
+  panel (role forms, invite, settings key) whose POSTs carry a double-submit CSRF
+  token; grant/revoke mutate then redirect; createInvite renders the plaintext
+  ONCE; set-llm-key validates-then-stores. One authDb backs the OP + account +
+  admin stores, so a UI role change IS the guard's role.
+
+### Discovered Insights
+
+- **Insight**: the scheduler renderers emit CLIENT-DISPATCH buttons (onClick→Msg),
+  so an SSR-served page's controls are inert without JS, and the `SchedulerMsg`
+  union has no toast/notify to surface a shown-once secret. **Resolution**: a
+  server-rendered control panel of POST forms + a `/admin/act` route — mutate then
+  redirect, and render the invite plaintext once directly in the response.
+  Interactivity did NOT require a client bundle. **Context**: the client-bundle
+  path would have needed a second, fetch-sourced declaration + live `/api`.
+- **Insight**: the admin declaration reads the index Db + account store DIRECTLY
+  in its async sources, so `schedule()` + the settle loop run SERVER-side per
+  request — the SSR read path. A browser SPA would need those sources to fetch
+  `/api` instead. One declaration, two possible drivers.
+- **Insight**: changing a shared interface (`AccountStore` gained `listAccounts`)
+  requires REBUILDING that package's dist (`npm run build`, symlinked into
+  consumers) before a consumer's tsc sees it, and updating every stub — three
+  plggpress spec stubs broke until updated. [[reference_plggpress_serve_auth]]
+- **Insight**: a write-only secret is enforceable in the TYPE — `SettingsStore`
+  has no getter for the key, only `llmKeyStatus → configured|absent`, so the
+  plaintext cannot reach a URL/log/response by construction. Validate-then-store
+  means an invalid key never lands.
+
+### Remaining (follow-up, not this ticket)
+
+- Content EDITING is ticket 22 (this ticket is read-only browsing by decision).
+- plgg-kit key validation wires into `settingsStore`'s injected validator (plgg-kit
+  is not yet a plggpress dep; a non-empty check holds the seam).
+- Ticket 16's live `/api` mount can reuse the content index `pressServeWebWithAuth`
+  already opens.
