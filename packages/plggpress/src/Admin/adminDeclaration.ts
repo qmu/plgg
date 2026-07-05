@@ -1,5 +1,7 @@
 import {
   type Result,
+  type Option,
+  type SoftStr,
   ok,
   err,
   matchResult,
@@ -11,15 +13,20 @@ import {
 import {
   type Declaration,
   type Path,
+  type SchedulerMsg,
   declare,
   menu,
   menuEntry,
   collection,
+  action,
+  confirm,
+  loaded,
   async,
   query,
   makeRow,
   field,
 } from "plggmatic";
+import { cmdEffect } from "plgg-view/client";
 import {
   type Db,
   type Document,
@@ -28,6 +35,15 @@ import {
   listCollections,
   listCollection,
 } from "plgg-content";
+import {
+  type Account,
+  type AccountStore,
+  type Role,
+  type Subject,
+  asSubject,
+  subjectString,
+  usernameString,
+} from "plgg-auth";
 
 /** The default document page (the admin list view's window). */
 const DEFAULT_QUERY: ListQuery = {
@@ -38,24 +54,65 @@ const DEFAULT_QUERY: ListQuery = {
   q: none(),
 };
 
+const toMemberRow = (a: Account) =>
+  makeRow(
+    subjectString(a.subject),
+    usernameString(a.username),
+  );
+
+/** Re-read the members after a role change → a Loaded Msg. */
+const reloadMembers = (
+  accounts: AccountStore,
+): Promise<SchedulerMsg> =>
+  accounts
+    .listAccounts()
+    .then((list) =>
+      loaded("members", list.map(toMemberRow)),
+    );
+
+/** Apply `role` to the selected member (a no-op if none/invalid), then reload. */
+const applyRole = (
+  accounts: AccountStore,
+  target: Option<SoftStr>,
+  role: Role,
+): Promise<SchedulerMsg> =>
+  matchOption<SoftStr, Promise<SchedulerMsg>>(
+    () => reloadMembers(accounts),
+    (id: SoftStr) =>
+      matchResult<
+        Subject,
+        unknown,
+        Promise<SchedulerMsg>
+      >(
+        () => reloadMembers(accounts),
+        async (subject: Subject) => {
+          await accounts.setRole(subject, role);
+          return reloadMembers(accounts);
+        },
+      )(asSubject(id)),
+  )(target);
+
 /**
- * The content-browsing half of the admin declaration (D1):
- * two Collections over ticket 16's HTTP-free query functions
- * as ASYNC sources — `listCollections` lists the registered
- * models, and selecting one drills into its `listCollection`
- * documents (the parent selection arrives as the source
- * `Path`). Read-only here (editing is ticket 22). A pure
- * declaration parameterised by the index `Db`; `schedule()`
- * derives the running program, and either renderer projects
- * it — so this is storage- AND mode-agnostic.
+ * The admin declaration (D1): content browsing (read-only,
+ * ticket 16 query fns) + member management (ticket 18 account
+ * store), declared — not hand-wired — as Collections / Menu /
+ * Actions over ASYNC sources (ticket 09). Parameterised by the
+ * index `Db` + the `AccountStore`; `schedule()` derives the
+ * program and either renderer projects it, so it is storage-
+ * AND mode-agnostic (D1/D10). Grant/revoke are
+ * confirmation-as-data (destructive → `confirm(msg, true)`).
+ * Content editing (ticket 22) and the shown-once invite link
+ * (ticket 18 mint) land later; this covers browse + roles.
  */
 export const adminDeclaration = (
   db: Db,
+  accounts: AccountStore,
 ): Declaration =>
   declare({
     title: "plggpress admin",
     menu: menu([
       menuEntry("Content", "collections"),
+      menuEntry("Members", "members"),
     ]),
     collections: [
       collection<CollectionSchema>({
@@ -119,6 +176,53 @@ export const adminDeclaration = (
             ),
           ),
         ),
+      }),
+      collection<Account>({
+        id: "members",
+        title: "Members",
+        toRow: toMemberRow,
+        source: async(() =>
+          accounts
+            .listAccounts()
+            .then((list) => ok(list)),
+        ),
+        query: query("Filter members"),
+        actions: [
+          action({
+            id: "grant-admin",
+            label: "Make admin",
+            verb: "update",
+            confirm: confirm(
+              "Grant admin to this member?",
+              true,
+            ),
+            run: (target: Option<SoftStr>) =>
+              cmdEffect(() =>
+                applyRole(
+                  accounts,
+                  target,
+                  "admin",
+                ),
+              ),
+          }),
+          action({
+            id: "make-guest",
+            label: "Revoke to guest",
+            verb: "update",
+            confirm: confirm(
+              "Revoke this member to guest?",
+              true,
+            ),
+            run: (target: Option<SoftStr>) =>
+              cmdEffect(() =>
+                applyRole(
+                  accounts,
+                  target,
+                  "guest",
+                ),
+              ),
+          }),
+        ],
       }),
     ],
   });

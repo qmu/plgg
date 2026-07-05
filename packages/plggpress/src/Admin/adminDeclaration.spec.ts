@@ -8,8 +8,12 @@ import {
   type Result,
   type SoftStr,
   isErr,
+  isOk,
+  isSome,
   ok,
   some,
+  none,
+  box,
 } from "plgg";
 import { heading, para } from "plgg-md";
 import {
@@ -24,8 +28,17 @@ import {
   type Source,
   type Row,
   type Path,
+  type SchedulerMsg,
   schedule,
 } from "plggmatic";
+import { type Cmd } from "plgg-view/client";
+import {
+  type AccountStore,
+  sqlAccountStore,
+  ACCOUNT_SCHEMA,
+  account,
+  asUsername,
+} from "plgg-auth";
 import { adminDeclaration } from "plggpress/Admin/adminDeclaration";
 
 const must = <T>(r: Result<T, unknown>): T => {
@@ -35,8 +48,16 @@ const must = <T>(r: Result<T, unknown>): T => {
   return r.content;
 };
 
-const seed = async (): Promise<Db> => {
+const HASH = box("PasswordHash")(
+  "pbkdf2$sha256$600000$c2FsdA$ZGVyaXZlZA",
+);
+
+const seed = async (): Promise<{
+  db: Db;
+  accounts: AccountStore;
+}> => {
   const db = must(await openIndex(":memory:"));
+  await db.execScript(ACCOUNT_SCHEMA);
   must(
     await registerCollection(db)(
       collectionSchema("blog", [
@@ -55,7 +76,19 @@ const seed = async (): Promise<Db> => {
       updatedAt: "2026-01-01T00:00:00Z",
     }),
   );
-  return db;
+  const accounts = sqlAccountStore(db);
+  const alice = asUsername("alice");
+  if (isOk(alice)) {
+    await accounts.saveAccount(
+      account(
+        box("Subject")("s1"),
+        alice.content,
+        HASH,
+        0,
+      ),
+    );
+  }
+  return { db, accounts };
 };
 
 const drive = (
@@ -66,12 +99,14 @@ const drive = (
     ? source.content(path)
     : Promise.resolve(ok(source.content(path)));
 
-const collectionById = (
+const sourceOf = (
   db: Db,
+  accounts: AccountStore,
   id: SoftStr,
 ): Source => {
   const found = adminDeclaration(
     db,
+    accounts,
   ).collections.find((c) => c.id === id);
   if (found === undefined) {
     throw new Error(`no collection ${id}`);
@@ -79,9 +114,41 @@ const collectionById = (
   return found.source;
 };
 
-test("adminDeclaration schedules into a runnable program", async () => {
-  const db = await seed();
-  const scheduled = schedule(adminDeclaration(db));
+/** Run a CmdEffect to its Msg (the only Cmd shape our actions emit). */
+const runCmd = (
+  cmd: Cmd<SchedulerMsg>,
+): Promise<SchedulerMsg> =>
+  cmd.__tag === "CmdEffect"
+    ? cmd.content()
+    : Promise.reject(
+        new Error("not an effect"),
+      );
+
+const memberAction = (
+  db: Db,
+  accounts: AccountStore,
+  id: SoftStr,
+) => {
+  const members = adminDeclaration(
+    db,
+    accounts,
+  ).collections.find(
+    (c) => c.id === "members",
+  );
+  const act = members?.actions.find(
+    (a) => a.id === id,
+  );
+  if (act === undefined) {
+    throw new Error(`no action ${id}`);
+  }
+  return act;
+};
+
+test("adminDeclaration schedules into a runnable program with content + members menus", async () => {
+  const { db, accounts } = await seed();
+  const scheduled = schedule(
+    adminDeclaration(db, accounts),
+  );
   const [model] = scheduled.init({
     path: "/",
     search: "",
@@ -94,10 +161,10 @@ test("adminDeclaration schedules into a runnable program", async () => {
 });
 
 test("the collections source lists the registered models", async () => {
-  const db = await seed();
+  const { db, accounts } = await seed();
   const rows = must(
     await drive(
-      collectionById(db, "collections"),
+      sourceOf(db, accounts, "collections"),
       [],
     ),
   );
@@ -108,27 +175,121 @@ test("the collections source lists the registered models", async () => {
 });
 
 test("selecting a collection drills into its documents", async () => {
-  const db = await seed();
+  const { db, accounts } = await seed();
   const rows = must(
-    await drive(collectionById(db, "documents"), [
-      "blog",
-    ]),
+    await drive(
+      sourceOf(db, accounts, "documents"),
+      ["blog"],
+    ),
   );
   return all([
     check(rows.length, toBe(1)),
-    check(
-      rows[0]?.label ?? "",
-      toBe("Hello"),
-    ),
+    check(rows[0]?.label ?? "", toBe("Hello")),
   ]);
 });
 
 test("an unknown parent selection yields no documents", async () => {
-  const db = await seed();
+  const { db, accounts } = await seed();
   const rows = must(
-    await drive(collectionById(db, "documents"), [
-      "does-not-exist",
-    ]),
+    await drive(
+      sourceOf(db, accounts, "documents"),
+      ["does-not-exist"],
+    ),
   );
   return check(rows.length, toBe(0));
+});
+
+test("the members source lists accounts", async () => {
+  const { db, accounts } = await seed();
+  const rows = must(
+    await drive(
+      sourceOf(db, accounts, "members"),
+      [],
+    ),
+  );
+  return all([
+    check(rows.length, toBe(1)),
+    check(rows[0]?.label ?? "", toBe("alice")),
+  ]);
+});
+
+test("grant-admin sets the role and reloads members", async () => {
+  const { db, accounts } = await seed();
+  const msg = await runCmd(
+    memberAction(db, accounts, "grant-admin").run(
+      some("s1"),
+    ),
+  );
+  const role = await accounts.findRole(
+    box("Subject")("s1"),
+  );
+  return all([
+    check(msg.__tag, toBe("Loaded")),
+    check(
+      isSome(role) && role.content === "admin",
+      toBe(true),
+    ),
+  ]);
+});
+
+test("make-guest revokes to guest", async () => {
+  const { db, accounts } = await seed();
+  await runCmd(
+    memberAction(db, accounts, "grant-admin").run(
+      some("s1"),
+    ),
+  );
+  await runCmd(
+    memberAction(db, accounts, "make-guest").run(
+      some("s1"),
+    ),
+  );
+  const role = await accounts.findRole(
+    box("Subject")("s1"),
+  );
+  return check(
+    isSome(role) && role.content === "guest",
+    toBe(true),
+  );
+});
+
+test("a role action with no target is a no-op reload", async () => {
+  const { db, accounts } = await seed();
+  const msg = await runCmd(
+    memberAction(db, accounts, "grant-admin").run(
+      none(),
+    ),
+  );
+  const role = await accounts.findRole(
+    box("Subject")("s1"),
+  );
+  return all([
+    check(msg.__tag, toBe("Loaded")),
+    // nothing was granted
+    check(isSome(role), toBe(false)),
+  ]);
+});
+
+test("both role actions are declared destructive (confirmation-as-data)", async () => {
+  const { db, accounts } = await seed();
+  const grant = memberAction(
+    db,
+    accounts,
+    "grant-admin",
+  );
+  const guest = memberAction(
+    db,
+    accounts,
+    "make-guest",
+  );
+  const isDestructive = (
+    c: (typeof grant)["confirm"],
+  ): boolean =>
+    c.__tag === "Confirm"
+      ? c.content.destructive
+      : false;
+  return all([
+    check(isDestructive(grant.confirm), toBe(true)),
+    check(isDestructive(guest.confirm), toBe(true)),
+  ]);
 });
