@@ -78,7 +78,10 @@ export type AppDefinition<Config, E> = Readonly<{
   serveWeb: (
     config: Config,
     opts: AppOptions,
-  ) => (paths: ReadonlyArray<SoftStr>) => Web;
+  ) => PromisedResult<
+    (paths: ReadonlyArray<SoftStr>) => Web,
+    Defect
+  >;
   formatError: (
     e: SsgError | Defect | E,
   ) => SoftStr;
@@ -194,21 +197,50 @@ const runServe =
                 err(settings.content),
               );
             }
-            return serveApp(
-              opts,
-              def.serveWeb(config, opts),
-              settings.content,
-            ).then(
-              matchResult(
-                (
-                  se: SsgError | Defect,
-                ): PromisedResult<SoftStr, SoftStr> =>
-                  Promise.resolve(
-                    err(def.formatError(se)),
-                  ),
-                (
-                  server: Server,
-                ): PromisedResult<SoftStr, SoftStr> => {
+            return def
+              .serveWeb(config, opts)
+              .then(
+                matchResult(
+                  (
+                    d: Defect,
+                  ): PromisedResult<
+                    SoftStr,
+                    SoftStr
+                  > =>
+                    Promise.resolve(
+                      err(def.formatError(d)),
+                    ),
+                  (
+                    router: (
+                      paths: ReadonlyArray<SoftStr>,
+                    ) => Web,
+                  ): PromisedResult<
+                    SoftStr,
+                    SoftStr
+                  > =>
+                    serveApp(
+                      opts,
+                      router,
+                      settings.content,
+                    ).then(
+                      matchResult(
+                        (
+                          se: SsgError | Defect,
+                        ): PromisedResult<
+                          SoftStr,
+                          SoftStr
+                        > =>
+                          Promise.resolve(
+                            err(
+                              def.formatError(se),
+                            ),
+                          ),
+                        (
+                          server: Server,
+                        ): PromisedResult<
+                          SoftStr,
+                          SoftStr
+                        > => {
                   const host = matchOption(
                     () => "localhost",
                     (h: SoftStr): SoftStr => h,
@@ -228,7 +260,9 @@ const runServe =
                   });
                 },
               ),
-            );
+            ),
+          ),
+        );
           },
         ),
       );

@@ -1,4 +1,4 @@
-import { none } from "plgg";
+import { none, isErr } from "plgg";
 import {
   test,
   check,
@@ -8,7 +8,10 @@ import {
 } from "plgg-test";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { pressRouter } from "plggpress/router/pressRouter";
-import { pressServeWeb } from "plggpress/server/pressServer";
+import {
+  pressServeWeb,
+  pressServeWebWithAuth,
+} from "plggpress/server/pressServer";
 
 const config: SiteConfig = {
   title: "Fixture Site",
@@ -65,3 +68,39 @@ test("pressServeWeb adds no middleware today (the mount seam is empty)", () =>
     served.middlewares.length,
     toBe(built.middlewares.length),
   ));
+
+test("pressServeWebWithAuth mounts the OP+RP auth + admin routes alongside content", async () => {
+  const r = await pressServeWebWithAuth(
+    contentDir,
+    config,
+    config.base,
+  );
+  if (isErr(r)) {
+    return check(isErr(r), toBe(false));
+  }
+  const app = r.content(paths);
+  const patterns = app.routes.map(
+    (route) => route.pattern,
+  );
+  return all([
+    // the RP login-flow routes are present
+    check(
+      patterns.some((p) =>
+        p.includes("/auth/start"),
+      ),
+      toBe(true),
+    ),
+    // the guarded admin subtree is present
+    check(
+      patterns.some((p) =>
+        p.includes("/admin"),
+      ),
+      toBe(true),
+    ),
+    // and the content routes are still there
+    check(
+      app.routes.length > paths.length,
+      toBe(true),
+    ),
+  ]);
+});

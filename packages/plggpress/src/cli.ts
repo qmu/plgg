@@ -13,7 +13,7 @@ import {
 import { type ModelViolations } from "plggpress/ContentModel/model/ModelViolation";
 import { loadConfig } from "plggpress/Config/usecase/loadConfig";
 import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
-import { pressServeWeb } from "plggpress/server/pressServer";
+import { pressServeWebWithAuth } from "plggpress/server/pressServer";
 
 /**
  * Renders a build failure as a one-line shell message. The
@@ -94,7 +94,7 @@ await runApp<
     config: SiteConfig,
     opts: AppOptions,
   ) =>
-    pressServeWeb(
+    pressServeWebWithAuth(
       opts.contentDir,
       config,
       opts.base,
