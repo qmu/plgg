@@ -57,10 +57,15 @@ cd $REPO_ROOT/packages/plgg-db-migration && npm run build
 # plgg-content after plgg-md/plgg-sql/plgg-db-migration: the derived SQLite index
 # + delivery/query API + FTS5 search, consumed by plggpress's /api mount.
 cd $REPO_ROOT/packages/plgg-content && npm run build
+# plgg-auth BEFORE plggpress: plggpress now depends on plgg-auth (the OIDC OP+RP
+# admin auth mount). plgg-auth composes plgg + plgg-http/server + plgg-sql +
+# plgg-db-migration, all built above.
+cd $REPO_ROOT/packages/plgg-auth && npm run build
 # plggpress last of the web stack: it carries its own framework internally
 # (the absorbed former app-framework facade) and consumes plgg-cli, plgg-server,
-# plgg-md, plgg-highlight, plgg-view, plgg-http, plggmatic, and now plgg-content
-# (its /api delivery mount) directly — all built earlier so it can resolve dists.
+# plgg-md, plgg-highlight, plgg-view, plgg-http, plggmatic, plgg-content
+# (its /api delivery mount), and plgg-auth (its /auth + /admin mounts) directly —
+# all built earlier so it can resolve dists.
 cd $REPO_ROOT/packages/plggpress && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
@@ -68,9 +73,6 @@ cd $REPO_ROOT/packages/plgg-fetch && npm run build
 # the plgg-sql Db/Sql seam + plgg-db-migration's Migration/Version, all built
 # above, into a domain-first derivation spine (schema, boot gate, export).
 cd $REPO_ROOT/packages/plgg-domain && npm run build
-# plgg-auth: the OIDC/JOSE toolkit; depends only on plgg core (WebCrypto is a
-# runtime global, not a dependency), so any position after plgg works.
-cd $REPO_ROOT/packages/plgg-auth && npm run build
 # plgg-test's published dist library (depends only on plgg core). Its test
 # RUNNER is separate and untouched; this just builds its consumer-facing API.
 cd $REPO_ROOT/packages/plgg-test && npm run build

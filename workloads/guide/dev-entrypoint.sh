@@ -43,6 +43,7 @@ for pkg in \
   plgg-sql \
   plgg-db-migration \
   plgg-content \
+  plgg-auth \
   plggpress \
   guide
 do

@@ -27,10 +27,12 @@ cd $REPO_ROOT/packages/plggmatic && npm install
 cd $REPO_ROOT/packages/plgg-sql && npm install
 cd $REPO_ROOT/packages/plgg-db-migration && npm install
 cd $REPO_ROOT/packages/plgg-content && npm install
+# plgg-auth before plggpress: plggpress file:-depends on it (the /auth + /admin
+# OIDC mounts).
+cd $REPO_ROOT/packages/plgg-auth && npm install
 cd $REPO_ROOT/packages/plggpress && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/plgg-domain && npm install
-cd $REPO_ROOT/packages/plgg-auth && npm install
 cd $REPO_ROOT/packages/example && npm install
 cd $REPO_ROOT/packages/guide && npm install
 cd $REPO_ROOT/packages/plggmatic-example && npm install
