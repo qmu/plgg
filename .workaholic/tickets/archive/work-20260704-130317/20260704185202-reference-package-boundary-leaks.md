@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: refactoring
 layer: [Domain, Infrastructure]
 effort:
-commit_hash:
-category:
+commit_hash: bc218e6d
+category: Changed
 depends_on: [20260704185201-vendor-boundary-policy-and-gate.md]
 ---
 
@@ -72,3 +72,45 @@ The gate ticket (this ticket's dependency) establishes the enforcement that make
 - Keep vendor modules thin: translation and delegation only; any logic that decides *what* to bundle stays in the domain, only *how to touch fs/tsc/vm* moves (`workaholic:implementation` / `vendor-neutrality`).
 - The ESM `__require`→native `import(id)` fallback and the atomic `dist.stage` publish are prior hard-won fixes living in this package — do not disturb them while relocating imports (`packages/plgg-bundle/src/vendors/runner.ts`, the dist publish path).
 - If `plgg-db-migration` or any other nominally-conformant package shows leaks once the gate runs, fold those trivial fixes in here too — this ticket's outcome is "the reference packages genuinely pass unexempted".
+
+## Final Report
+
+Development completed. plgg-bundle — the bundler that builds every package — is now
+a GENUINE reference for the domain/vendors/entrypoints layout: it came OFF the
+vendor-boundary exemption list. One committed slice (`d8f83de`), verified by the
+full check-all (the high-blast-radius test).
+
+- **Five vendor seams**: nodeFs, nodePath, nodeProc (child_process + module),
+  nodeHttp (the dev server's node:http⇄Web bridge), nodeUrl — the single chokepoint
+  for every node: touch.
+- **12 files redirected**: 8 build usecases + 4 Dev/node files now import from
+  vendors/, not node:. The only node: outside vendors/ is entrypoints/cli.ts
+  (allowed).
+- **Exemption removed**: gate reports plgg-bundle CONFORMANT unexempted (19
+  conformant, 5 exempted, was 18/6).
+
+### Discovered Insights
+
+- **Insight**: the refactor was IMPORT REDIRECTION, not a rewrite — plgg-bundle
+  uses throw-at-the-boundary (NOT plgg's Result idiom, by explicit design), and the
+  gate only cares about import LOCATION (node: confined to vendors/). So re-export
+  vendor modules (`export {x} from "node:*"`) preserve exact types AND satisfy the
+  gate, changing only import sources. Fitting the seam to the package's OWN error
+  model beat forcing a Result rewrite on a throw-based tool.
+- **Insight**: the ticket named 8 domain usecases, but the gate found 9 MORE
+  leaks in Dev/node/* (the dev server's http/watch/scan) — a comment there even
+  claimed it was "the one platform seam, kept in Dev/node/", but the gate only
+  honours vendors/ + entrypoints/, not an ad-hoc dir name. The gate is the ground
+  truth; a directory naming convention is not a boundary.
+- **Insight**: the safety net made the high-blast-radius refactor safe to attempt —
+  a broken bundler → RED check-all → no commit. Doing it LAST + verifying with the
+  FULL check-all (every package built through the changed bundler) is what proved
+  it byte-behaviour identical.
+
+### Remaining (follow-up, not this ticket)
+
+- The clean-runner path (plgg-bundle runs from source + imports typescript; its
+  node_modules must be installed wherever invoked) is exercised by the local
+  check-all; the clean-runner CI is the ultimate guard against masking.
+- Other still-exempt packages (plgg-server, plgg-test, plggpress, example,
+  plggmatic-example) remain for their own future boundary tickets.
