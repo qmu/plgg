@@ -19,6 +19,10 @@ import {
 import { sqlAccountStore } from "plgg-auth";
 import { bootstrapAuthWeb } from "plggpress/auth/bootstrapAuth";
 import { deliverAdmin } from "plggpress/Admin/deliverAdmin";
+import {
+  memorySettingsStore,
+  settingsError,
+} from "plggpress/Admin/settingsStore";
 
 /**
  * plggpress's serve-side {@link Web} assembly and the ONE
@@ -89,6 +93,17 @@ export const pressServeWebWithAuth = (
   // used lazily at request time, by when bootstrapAuthWeb has
   // applied ACCOUNT_SCHEMA to authDb.
   const accounts = sqlAccountStore(authDb);
+  const clock = () => Math.floor(Date.now() / 1000);
+  // The LLM-key validator is a non-empty check until plgg-kit
+  // wires in (it is not yet a plggpress dep); the store's
+  // write-only posture is enforced regardless.
+  const settings = memorySettingsStore((key) =>
+    Promise.resolve(
+      key.length > 0
+        ? ok(null)
+        : err(settingsError("empty key")),
+    ),
+  );
   return openIndex(":memory:").then(
     matchResult<
       Db,
@@ -113,9 +128,14 @@ export const pressServeWebWithAuth = (
           authDb,
           "https://plggpress.local",
           "plggpress-admin",
-          () => Math.floor(Date.now() / 1000),
+          clock,
           86400,
-          deliverAdmin(contentDb, accounts),
+          deliverAdmin(
+            contentDb,
+            accounts,
+            settings,
+            clock,
+          ),
         ).then(
           matchResult<
             { web: Web },
