@@ -12,6 +12,7 @@ import {
   matchResult,
   matchOption,
   fromNullable,
+  getOr,
 } from "plgg";
 import {
   type Web,
@@ -45,7 +46,12 @@ import {
   schedule,
   renderMode,
 } from "plggmatic";
-import { type Db } from "plgg-content";
+import {
+  type Db,
+  type ConversationStatus,
+  asConversationStatus,
+  changeStatus,
+} from "plgg-content";
 import {
   type Account,
   type AccountStore,
@@ -249,12 +255,17 @@ const renderGet =
     db: Db,
     accounts: AccountStore,
     settings: SettingsStore,
+    stakeholderDb: Db,
   ) =>
   (
     c: Context,
   ): PromisedResult<HttpResponse, HttpError> => {
     const scheduled = schedule(
-      adminDeclaration(db, accounts),
+      adminDeclaration(
+        db,
+        accounts,
+        stakeholderDb,
+      ),
     );
     const [model0, cmd0] = scheduled.init({
       path: "/",
@@ -379,11 +390,68 @@ const doRole = (
       )(asSubject(raw)),
   )(formField(body, "subject"));
 
+const doStatus = (
+  stakeholderDb: Db,
+  clock: () => number,
+  body: SoftStr,
+): PromisedResult<HttpResponse, HttpError> =>
+  matchOption<
+    SoftStr,
+    PromisedResult<HttpResponse, HttpError>
+  >(
+    () =>
+      Promise.resolve(
+        err(
+          badRequest("missing conversation id"),
+        ),
+      ),
+    (idRaw: SoftStr) =>
+      matchResult<
+        ConversationStatus,
+        InvalidError,
+        PromisedResult<HttpResponse, HttpError>
+      >(
+        () =>
+          Promise.resolve(
+            err(badRequest("bad status")),
+          ),
+        (status: ConversationStatus) =>
+          changeStatus(stakeholderDb, clock)(
+            Number(idRaw),
+            status,
+          ).then(
+            matchResult<
+              ConversationStatus,
+              unknown,
+              Result<HttpResponse, HttpError>
+            >(
+              () =>
+                err(
+                  badRequest(
+                    "illegal transition",
+                  ),
+                ),
+              () =>
+                ok(
+                  redirectResponse(ADMIN_BASE),
+                ),
+            ),
+          ),
+      )(
+        asConversationStatus(
+          getOr("open")(
+            formField(body, "status"),
+          ),
+        ),
+      ),
+  )(formField(body, "conversation_id"));
+
 const runAct =
   (
     accounts: AccountStore,
     settings: SettingsStore,
     clock: () => number,
+    stakeholderDb: Db,
   ) =>
   (
     c: Context,
@@ -409,13 +477,19 @@ const runAct =
                     c.req.body,
                     "guest",
                   )
-                : Promise.resolve(
-                    err(
-                      badRequest(
-                        "unknown action verb",
+                : verb === "set-status"
+                  ? doStatus(
+                      stakeholderDb,
+                      clock,
+                      c.req.body,
+                    )
+                  : Promise.resolve(
+                      err(
+                        badRequest(
+                          "unknown action verb",
+                        ),
                       ),
                     ),
-                  ),
     )(formField(c.req.body, "verb"));
 
 /**
@@ -436,13 +510,27 @@ export const deliverAdmin = (
   accounts: AccountStore,
   settings: SettingsStore,
   clock: () => number,
+  stakeholderDb: Db,
 ): Web =>
   pipe(
     web(),
-    get("/", renderGet(db, accounts, settings)),
+    get(
+      "/",
+      renderGet(
+        db,
+        accounts,
+        settings,
+        stakeholderDb,
+      ),
+    ),
     use(requireCsrf(CSRF_COOKIE, CSRF_FIELD)),
     post(
       ACT_PATH,
-      runAct(accounts, settings, clock),
+      runAct(
+        accounts,
+        settings,
+        clock,
+        stakeholderDb,
+      ),
     ),
   );

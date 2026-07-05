@@ -15,6 +15,7 @@ import {
 import {
   type Db,
   openIndex,
+  openStakeholderStore,
 } from "plgg-content";
 import {
   sqlAccountStore,
@@ -35,7 +36,11 @@ const rootScene = async () => {
   const db: Db = must(await openIndex(":memory:"));
   await db.execScript(ACCOUNT_SCHEMA);
   const scheduled = schedule(
-    adminDeclaration(db, sqlAccountStore(db)),
+    adminDeclaration(
+      db,
+      sqlAccountStore(db),
+      must(await openStakeholderStore(":memory:")),
+    ),
   );
   const [model] = scheduled.init({
     path: "/",

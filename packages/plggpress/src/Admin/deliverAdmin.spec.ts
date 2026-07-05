@@ -27,6 +27,10 @@ import {
   openIndex,
   registerCollection,
   collectionSchema,
+  openStakeholderStore,
+  ingest,
+  ingestMessage,
+  newConversation,
 } from "plgg-content";
 import {
   type AccountStore,
@@ -64,6 +68,7 @@ const settingsOf = (): SettingsStore =>
 const seed = async (): Promise<{
   db: Db;
   accounts: AccountStore;
+  stakeholderDb: Db;
 }> => {
   const db = must(await openIndex(":memory:"));
   await db.execScript(ACCOUNT_SCHEMA);
@@ -86,7 +91,25 @@ const seed = async (): Promise<{
       ),
     );
   }
-  return { db, accounts };
+  const stakeholderDb = must(
+    await openStakeholderStore(":memory:"),
+  );
+  must(
+    await ingest(stakeholderDb, clock)(
+      ingestMessage({
+        conversationRef: newConversation({
+          contentPath: none(),
+          kind: "request",
+          visibility: "public",
+        }),
+        body: "a request",
+        authorKind: "guest",
+        authorSubject: none(),
+        source: "web",
+      }),
+    ),
+  );
+  return { db, accounts, stakeholderDb };
 };
 
 const req = (
@@ -124,12 +147,14 @@ const csrfFrom = (res: HttpResponse): string => {
 };
 
 test("GET renders the admin scene + control panel as an HTML document with a CSRF cookie", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const app = deliverAdmin(
     db,
     accounts,
     settingsOf(),
     clock,
+    stakeholderDb,
   );
   const res: HttpResponse = must(
     await handle(app, req("GET", "/")),
@@ -163,13 +188,15 @@ const drive = async (
   settings: SettingsStore;
   res: Result<HttpResponse, HttpError>;
 }> => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const settings = settingsOf();
   const app = deliverAdmin(
     db,
     accounts,
     settings,
     clock,
+    stakeholderDb,
   );
   const token = csrfFrom(
     must(await handle(app, req("GET", "/"))),
@@ -191,12 +218,14 @@ const drive = async (
 };
 
 test("a POST without the CSRF token is 403", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const app = deliverAdmin(
     db,
     accounts,
     settingsOf(),
     clock,
+    stakeholderDb,
   );
   return check(
     outcome(
@@ -292,5 +321,37 @@ test("set-llm-key with an empty (invalid) key is 400 and stores nothing", async 
 
 test("a role action with no subject field is 400", async () => {
   const { res } = await drive("grant-admin", "");
+  return check(outcome(res), toBe("BadRequest"));
+});
+
+test("set-status applies a legal conversation transition and redirects", async () => {
+  const { res } = await drive(
+    "set-status",
+    "&conversation_id=1&status=addressed",
+  );
+  return check(outcome(res), toBe("302"));
+});
+
+test("set-status with a bad status value is 400", async () => {
+  const { res } = await drive(
+    "set-status",
+    "&conversation_id=1&status=bogus",
+  );
+  return check(outcome(res), toBe("BadRequest"));
+});
+
+test("set-status with no conversation id is 400", async () => {
+  const { res } = await drive(
+    "set-status",
+    "&status=closed",
+  );
+  return check(outcome(res), toBe("BadRequest"));
+});
+
+test("set-status with an illegal (same-state) transition is 400", async () => {
+  const { res } = await drive(
+    "set-status",
+    "&conversation_id=1&status=open",
+  );
   return check(outcome(res), toBe("BadRequest"));
 });

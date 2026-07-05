@@ -23,6 +23,11 @@ import {
   indexDocument,
   collectionSchema,
   schemaField,
+  openDb,
+  openStakeholderStore,
+  ingest,
+  ingestMessage,
+  newConversation,
 } from "plgg-content";
 import {
   type Source,
@@ -55,6 +60,7 @@ const HASH = box("PasswordHash")(
 const seed = async (): Promise<{
   db: Db;
   accounts: AccountStore;
+  stakeholderDb: Db;
 }> => {
   const db = must(await openIndex(":memory:"));
   await db.execScript(ACCOUNT_SCHEMA);
@@ -88,7 +94,25 @@ const seed = async (): Promise<{
       ),
     );
   }
-  return { db, accounts };
+  const stakeholderDb = must(
+    await openStakeholderStore(":memory:"),
+  );
+  must(
+    await ingest(stakeholderDb, () => 100)(
+      ingestMessage({
+        conversationRef: newConversation({
+          contentPath: none(),
+          kind: "request",
+          visibility: "public",
+        }),
+        body: "a stakeholder request",
+        authorKind: "guest",
+        authorSubject: none(),
+        source: "web",
+      }),
+    ),
+  );
+  return { db, accounts, stakeholderDb };
 };
 
 const drive = (
@@ -102,11 +126,13 @@ const drive = (
 const sourceOf = (
   db: Db,
   accounts: AccountStore,
+  stakeholderDb: Db,
   id: SoftStr,
 ): Source => {
   const found = adminDeclaration(
     db,
     accounts,
+    stakeholderDb,
   ).collections.find((c) => c.id === id);
   if (found === undefined) {
     throw new Error(`no collection ${id}`);
@@ -127,11 +153,13 @@ const runCmd = (
 const memberAction = (
   db: Db,
   accounts: AccountStore,
+  stakeholderDb: Db,
   id: SoftStr,
 ) => {
   const members = adminDeclaration(
     db,
     accounts,
+    stakeholderDb,
   ).collections.find(
     (c) => c.id === "members",
   );
@@ -145,9 +173,14 @@ const memberAction = (
 };
 
 test("adminDeclaration schedules into a runnable program with content + members menus", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const scheduled = schedule(
-    adminDeclaration(db, accounts),
+    adminDeclaration(
+      db,
+      accounts,
+      stakeholderDb,
+    ),
   );
   const [model] = scheduled.init({
     path: "/",
@@ -161,10 +194,11 @@ test("adminDeclaration schedules into a runnable program with content + members 
 });
 
 test("the collections source lists the registered models", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const rows = must(
     await drive(
-      sourceOf(db, accounts, "collections"),
+      sourceOf(db, accounts, stakeholderDb, "collections"),
       [],
     ),
   );
@@ -175,10 +209,11 @@ test("the collections source lists the registered models", async () => {
 });
 
 test("selecting a collection drills into its documents", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const rows = must(
     await drive(
-      sourceOf(db, accounts, "documents"),
+      sourceOf(db, accounts, stakeholderDb, "documents"),
       ["blog"],
     ),
   );
@@ -189,10 +224,11 @@ test("selecting a collection drills into its documents", async () => {
 });
 
 test("an unknown parent selection yields no documents", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const rows = must(
     await drive(
-      sourceOf(db, accounts, "documents"),
+      sourceOf(db, accounts, stakeholderDb, "documents"),
       ["does-not-exist"],
     ),
   );
@@ -200,10 +236,11 @@ test("an unknown parent selection yields no documents", async () => {
 });
 
 test("the members source lists accounts", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const rows = must(
     await drive(
-      sourceOf(db, accounts, "members"),
+      sourceOf(db, accounts, stakeholderDb, "members"),
       [],
     ),
   );
@@ -214,9 +251,14 @@ test("the members source lists accounts", async () => {
 });
 
 test("grant-admin sets the role and reloads members", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const msg = await runCmd(
-    memberAction(db, accounts, "grant-admin").run(
+    memberAction(
+    db,
+    accounts,
+    stakeholderDb,
+    "grant-admin").run(
       some("s1"),
     ),
   );
@@ -233,14 +275,23 @@ test("grant-admin sets the role and reloads members", async () => {
 });
 
 test("make-guest revokes to guest", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   await runCmd(
-    memberAction(db, accounts, "grant-admin").run(
+    memberAction(
+    db,
+    accounts,
+    stakeholderDb,
+    "grant-admin").run(
       some("s1"),
     ),
   );
   await runCmd(
-    memberAction(db, accounts, "make-guest").run(
+    memberAction(
+    db,
+    accounts,
+    stakeholderDb,
+    "make-guest").run(
       some("s1"),
     ),
   );
@@ -254,9 +305,14 @@ test("make-guest revokes to guest", async () => {
 });
 
 test("a role action with no target is a no-op reload", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const msg = await runCmd(
-    memberAction(db, accounts, "grant-admin").run(
+    memberAction(
+    db,
+    accounts,
+    stakeholderDb,
+    "grant-admin").run(
       none(),
     ),
   );
@@ -271,15 +327,18 @@ test("a role action with no target is a no-op reload", async () => {
 });
 
 test("both role actions are declared destructive (confirmation-as-data)", async () => {
-  const { db, accounts } = await seed();
+  const { db, accounts, stakeholderDb } =
+    await seed();
   const grant = memberAction(
     db,
     accounts,
+    stakeholderDb,
     "grant-admin",
   );
   const guest = memberAction(
     db,
     accounts,
+    stakeholderDb,
     "make-guest",
   );
   const isDestructive = (
@@ -291,5 +350,75 @@ test("both role actions are declared destructive (confirmation-as-data)", async 
   return all([
     check(isDestructive(grant.confirm), toBe(true)),
     check(isDestructive(guest.confirm), toBe(true)),
+  ]);
+});
+
+test("the conversations source lists stakeholder conversations", async () => {
+  const { db, accounts, stakeholderDb } =
+    await seed();
+  const rows = must(
+    await drive(
+      sourceOf(
+        db,
+        accounts,
+        stakeholderDb,
+        "conversations",
+      ),
+      [],
+    ),
+  );
+  return all([
+    check(rows.length, toBe(1)),
+    check(
+      (rows[0]?.label ?? "").includes("request"),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("selecting a conversation drills into its messages", async () => {
+  const { db, accounts, stakeholderDb } =
+    await seed();
+  const rows = must(
+    await drive(
+      sourceOf(
+        db,
+        accounts,
+        stakeholderDb,
+        "conversationMessages",
+      ),
+      ["1"],
+    ),
+  );
+  return all([
+    check(rows.length, toBe(1)),
+    check(
+      (rows[0]?.label ?? "").includes(
+        "stakeholder request",
+      ),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("the conversation sources surface a store error (no schema)", async () => {
+  const { db, accounts } = await seed();
+  const broken = openDb(":memory:");
+  const convs = await drive(
+    sourceOf(db, accounts, broken, "conversations"),
+    [],
+  );
+  const msgs = await drive(
+    sourceOf(
+      db,
+      accounts,
+      broken,
+      "conversationMessages",
+    ),
+    ["1"],
+  );
+  return all([
+    check(isErr(convs), toBe(true)),
+    check(isErr(msgs), toBe(true)),
   ]);
 });

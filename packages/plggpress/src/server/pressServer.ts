@@ -8,13 +8,18 @@ import {
   defect,
   matchResult,
 } from "plgg";
-import { type Web } from "plggpress/framework";
+import {
+  type Web,
+  web,
+  route,
+} from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { pressRouter } from "plggpress/router/pressRouter";
 import {
   type Db,
   openDb,
   openIndex,
+  openStakeholderStore,
 } from "plgg-content";
 import { sqlAccountStore } from "plgg-auth";
 import { bootstrapAuthWeb } from "plggpress/auth/bootstrapAuth";
@@ -23,6 +28,8 @@ import {
   memorySettingsStore,
   settingsError,
 } from "plggpress/Admin/settingsStore";
+import { sqlRpSessionStore } from "plggpress/auth/rpSessionStore";
+import { submitWeb } from "plggpress/stakeholder/submitWeb";
 
 /**
  * plggpress's serve-side {@link Web} assembly and the ONE
@@ -124,23 +131,11 @@ export const pressServeWebWithAuth = (
           ),
         ),
       (contentDb) =>
-        bootstrapAuthWeb(
-          authDb,
-          "https://plggpress.local",
-          "plggpress-admin",
-          clock,
-          86400,
-          deliverAdmin(
-            contentDb,
-            accounts,
-            settings,
-            clock,
-          ),
-        ).then(
+        openStakeholderStore(":memory:").then(
           matchResult<
-            { web: Web },
+            Db,
             { content: { message: SoftStr } },
-            Result<
+            PromisedResult<
               (
                 paths: ReadonlyArray<SoftStr>,
               ) => Web,
@@ -148,25 +143,76 @@ export const pressServeWebWithAuth = (
             >
           >(
             (e) =>
-              err(
-                defect(
-                  `auth bootstrap failed: ${e.content.message}`,
+              Promise.resolve(
+                err(
+                  defect(
+                    `stakeholder store open failed: ${e.content.message}`,
+                  ),
                 ),
               ),
-            (boot) =>
-              ok(
-                (
-                  paths: ReadonlyArray<SoftStr>,
-                ): Web =>
-                  mergeWebs(
-                    pressServeWeb(
-                      contentDir,
-                      config,
-                      base,
-                    )(paths),
-                    boot.web,
-                  ),
-              ),
+            (stakeholderDb) => {
+              const sessions =
+                sqlRpSessionStore(authDb);
+              const requests = route(
+                "/requests",
+                submitWeb(
+                  stakeholderDb,
+                  sessions,
+                  clock,
+                ),
+              )(web());
+              return bootstrapAuthWeb(
+                authDb,
+                "https://plggpress.local",
+                "plggpress-admin",
+                clock,
+                86400,
+                deliverAdmin(
+                  contentDb,
+                  accounts,
+                  settings,
+                  clock,
+                  stakeholderDb,
+                ),
+              ).then(
+                matchResult<
+                  { web: Web },
+                  {
+                    content: { message: SoftStr };
+                  },
+                  Result<
+                    (
+                      paths: ReadonlyArray<SoftStr>,
+                    ) => Web,
+                    Defect
+                  >
+                >(
+                  (e) =>
+                    err(
+                      defect(
+                        `auth bootstrap failed: ${e.content.message}`,
+                      ),
+                    ),
+                  (boot) =>
+                    ok(
+                      (
+                        paths: ReadonlyArray<SoftStr>,
+                      ): Web =>
+                        mergeWebs(
+                          mergeWebs(
+                            pressServeWeb(
+                              contentDir,
+                              config,
+                              base,
+                            )(paths),
+                            boot.web,
+                          ),
+                          requests,
+                        ),
+                    ),
+                ),
+              );
+            },
           ),
         ),
     ),

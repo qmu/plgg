@@ -32,8 +32,11 @@ import {
   type Document,
   type CollectionSchema,
   type ListQuery,
+  type Conversation,
+  type Message,
   listCollections,
   listCollection,
+  sqlStakeholderStore,
 } from "plgg-content";
 import {
   type Account,
@@ -107,12 +110,17 @@ const applyRole = (
 export const adminDeclaration = (
   db: Db,
   accounts: AccountStore,
+  stakeholderDb: Db,
 ): Declaration =>
   declare({
     title: "plggpress admin",
     menu: menu([
       menuEntry("Content", "collections"),
       menuEntry("Members", "members"),
+      menuEntry(
+        "Conversations",
+        "conversations",
+      ),
     ]),
     collections: [
       collection<CollectionSchema>({
@@ -223,6 +231,74 @@ export const adminDeclaration = (
               ),
           }),
         ],
+      }),
+      collection<Conversation>({
+        id: "conversations",
+        title: "Conversations",
+        toRow: (c: Conversation) =>
+          makeRow(
+            `${c.id}`,
+            `${c.kind} #${c.id} (${c.status})`,
+          ),
+        source: async(() =>
+          sqlStakeholderStore(stakeholderDb)
+            .listConversations({
+              status: none(),
+              contentPath: none(),
+            })
+            .then(
+              matchResult<
+                ReadonlyArray<Conversation>,
+                { content: { message: string } },
+                Result<
+                  ReadonlyArray<Conversation>,
+                  Error
+                >
+              >(
+                (e) =>
+                  err(
+                    new Error(e.content.message),
+                  ),
+                (cs) => ok(cs),
+              ),
+            ),
+        ),
+        query: query("Filter conversations"),
+        child: "conversationMessages",
+      }),
+      collection<Message>({
+        id: "conversationMessages",
+        title: "Messages",
+        toRow: (m: Message) =>
+          makeRow(`${m.id}`, m.body, [
+            field("by", m.authorKind),
+          ]),
+        source: async((path: Path) =>
+          sqlStakeholderStore(stakeholderDb)
+            .listMessages(
+              Number(
+                getOr("0")(
+                  fromNullable(path[0]),
+                ),
+              ),
+            )
+            .then(
+              matchResult<
+                ReadonlyArray<Message>,
+                { content: { message: string } },
+                Result<
+                  ReadonlyArray<Message>,
+                  Error
+                >
+              >(
+                (e) =>
+                  err(
+                    new Error(e.content.message),
+                  ),
+                (ms) => ok(ms),
+              ),
+            ),
+        ),
       }),
     ],
   });
