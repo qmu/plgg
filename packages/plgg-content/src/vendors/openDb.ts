@@ -26,6 +26,10 @@ export const openDb = (path: SoftStr): Db => {
   // ON DELETE CASCADE (documents → chunks) is a no-op
   // unless foreign keys are enabled on the connection.
   conn.exec("PRAGMA foreign_keys = ON");
+  // WAL: readers never block the single writer and vice
+  // versa (ticket 28, D5 served-instance policy). A no-op
+  // for a `:memory:` handle, which stays memory-journaled.
+  conn.exec("PRAGMA journal_mode = WAL");
   const bind = (
     s: Sql,
   ): ReadonlyArray<string | number | null> =>
