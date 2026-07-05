@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 4h
-commit_hash:
-category: Added
+commit_hash: a13e9271
+category: Changed
 depends_on: [20260705203649-comprehensive-guide-docs-plggpress-plggmatic.md]
 ---
 
@@ -132,3 +132,48 @@ Approval requires ALL of (developer-confirmed 2026-07-05):
    guide with at least one section and a **real-code sample** (per
    conventions.md: pulled from package source/tests/examples, never
    invented).
+
+## Final Report
+
+Development completed as planned. Rewrote the stale plggpress overview into a
+multi-page CMS section and added the three content-platform Vocabulary pages,
+completing the roadmap-documentation pass begun in pt.1.
+
+### What was built
+
+- `packages/guide/packages/plggpress.md` — rewritten Overview: the SSG that
+  builds the guide AND the served content platform (D5 one-render-path), the
+  three-modes table, and links into the four sub-pages.
+- `packages/guide/packages/plggpress/content-delivery.md` — git-primary corpus,
+  the derived plgg-content SQLite index, frontmatter content models, the
+  MicroCMS-like `/api` delivery + FTS5 search (real `searchIndex`/`listCollection`
+  sample).
+- `.../plggpress/auth-admin.md` — OIDC OP+RP dogfooding (real `mountOidc`
+  sample), the account domain, the scheduler-declared SSR `/admin` UI + CSRF,
+  and the three DB-primary domains (stakeholder / drafts / media).
+- `.../plggpress/agent-surfaces.md` — opt-in RAG (graceful BM25 fallback), the
+  voice agent (`POST /api/agent/session`, dark with no key), MCP over stdio AND
+  OAuth-protected HTTP (read vs. write scopes), and the Claude Code plugin
+  export.
+- `.../plggpress/operations.md` — the D5 dual-mode topology, `GET /health`,
+  SQLite WAL + single-writer, `VACUUM INTO` backup/restore drill, and
+  operator-secret posture.
+- `packages/guide/packages/plgg-content.md`, `plgg-auth.md`, `plgg-mcp.md` —
+  4-part Vocabulary pages with samples from each package's README/source.
+
+Sidebar: the plggpress section grew from a single Overview leaf to five pages;
+`LIBRARY_PACKAGES` gained plgg-content, plgg-auth, plgg-mcp. Every code sample
+is real (plgg-content/plgg-auth READMEs, OPERATIONS.md, ticket-27 report).
+
+### Verification (Quality Gate cleared)
+
+- `cd packages/guide && npm run build` **green** — built **46 pages** (was 39
+  after pt.1); the dead-link/fragment gate passed with all sub-page cross-links
+  and the flat-file/`plggpress/` sub-route split (no route collision).
+- `scripts/tsc-plgg.sh` **green**; `site.config.ts` has no as/any/ts-ignore;
+  Prettier applied. (Caught and fixed a Prettier hazard where a line-wrapped
+  `+ dynamic-client-registration` rendered as a stray bullet — reworded to
+  parenthetical prose.)
+- Guide container restarted; all 8 new/rewritten routes return HTTP 200 with
+  correct `<h1>`, and all 7 new sidebar links are present on the rendered home
+  (hand-verified).

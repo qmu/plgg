@@ -55,6 +55,9 @@ const LIBRARY_PACKAGES: ReadonlyArray<
     "plgg-db-migration",
     "/packages/plgg-db-migration",
   ],
+  ["plgg-content", "/packages/plgg-content"],
+  ["plgg-auth", "/packages/plgg-auth"],
+  ["plgg-mcp", "/packages/plgg-mcp"],
   ["plgg-domain", "/packages/plgg-domain"],
   ["plgg-kit", "/packages/plgg-kit"],
   ["plgg-foundry", "/packages/plgg-foundry"],
@@ -178,6 +181,22 @@ const config = {
       text: "plggpress",
       items: [
         leaf("Overview", "/packages/plggpress"),
+        leaf(
+          "Content & delivery",
+          "/packages/plggpress/content-delivery",
+        ),
+        leaf(
+          "Auth & admin",
+          "/packages/plggpress/auth-admin",
+        ),
+        leaf(
+          "Agent surfaces",
+          "/packages/plggpress/agent-surfaces",
+        ),
+        leaf(
+          "Operations",
+          "/packages/plggpress/operations",
+        ),
       ],
     },
   ],
