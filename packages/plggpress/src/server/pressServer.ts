@@ -42,6 +42,8 @@ import { mcpWeb } from "plggpress/mcp/mcpWeb";
 import { pluginWeb } from "plggpress/plugin/pluginWeb";
 import { contentTools } from "plgg-mcp";
 import { fsAssetExportFs } from "plggpress/media/assetExportFs";
+import { agentWeb } from "plggpress/agent/agentWeb";
+import { minterFromConfig } from "plgg-kit";
 
 /**
  * plggpress's serve-side {@link Web} assembly and the ONE
@@ -262,6 +264,24 @@ export const pressServeWebWithAuth = (
                 source: "./plggpress-docs",
                 mcpUrl: `${base}/mcp`,
               });
+              // Ticket 25: the voice-agent mint route. The
+              // minter is None (no operator key wired here), so
+              // POST /api/agent/session is 404 and the agent UI
+              // stays dark — the graceful default; a deploy
+              // supplies the key to light it up.
+              const agent = route(
+                "/api/agent",
+                agentWeb(
+                  minterFromConfig({
+                    apiKey: none(),
+                    model: "gpt-realtime",
+                    endpoint:
+                      "https://api.openai.com/v1/realtime/sessions",
+                  }),
+                  sessions,
+                  clock,
+                ),
+              )(web());
               return bootstrapAuthWeb(
                 authDb,
                 "https://plggpress.local",
@@ -305,6 +325,7 @@ export const pressServeWebWithAuth = (
                       ): Web =>
                         mergeWebs(
                           mergeWebs(
+                          mergeWebs(
                             mergeWebs(
                               mergeWebs(
                                 mergeWebs(
@@ -331,6 +352,8 @@ export const pressServeWebWithAuth = (
                             mcp,
                           ),
                           plugin,
+                        ),
+                          agent,
                         ),
                     ),
                 ),
