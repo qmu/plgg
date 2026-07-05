@@ -3,9 +3,9 @@ created_at: 2026-07-04T14:30:19+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: ee358d2
+category: Changed
 depends_on: [20260704143014-plggpress-serve-mode-dual-config.md, 20260704143018-account-domain-roles-and-invites.md]
 ---
 
@@ -529,3 +529,68 @@ fails the ticket.
   issuance, re-examine whether `requireScope` and the OP client-registration
   path need to graduate from plggpress wiring into a shared helper; until a
   second consumer exists, keep the wiring in `pressAuth.ts`.
+
+## Final Report
+
+Development completed (D6 — Phase-6 auth, OP+RP dogfooding). The served
+plggpress now authenticates humans against its own OIDC provider. Implemented
+across eight self-contained, tested, committed slices (each behind a fresh green
+check-all):
+
+- **pt.1 `971a6b1`** — generic `requireRole`/`requireScope`/`requireCsrf`
+  middleware in plgg-server, auth-agnostic (the principal resolver is injected,
+  so plgg-server gains NO plgg-auth dep; CSRF is a constant-time double-submit).
+- **pt.2 `bdc032d`** — the plgg-auth `src/Rp/` relying-party client
+  (`beginLogin`/`completeLogin` + `inProcessTransport`), verified by a full
+  in-process round trip against the harness OP + every RpError path.
+- **pt.3a `afd80a1`** — plggpress `rpSessionStore` (`save`/`find`/`take` over
+  plgg-sql + memory testkit).
+- **pt.3b `29fbaf4`** — `rpRoleResolver` (cookie → session → `roleOf`) +
+  `guardAdmin` (401/403/expired tested).
+- **pt.3c `3628131`** — `establishRpSession` (mint + persist + Path=/admin cookie).
+- **pt.3d `bf68a5d`** — `authWeb`: the composed OP (mountOidc + credential login)
+  + RP `/auth/start`+`/auth/callback` + guarded `/admin`.
+- **pt.3e `7273263`** — plgg-auth `applyAuthSchema`: the OP schema packaged as an
+  idempotent DDL (the migrations dir isn't in `files`, so an in-process consumer
+  couldn't bootstrap a store).
+- **pt.3f `bab32fc`** — `bootstrapAuthWeb` + the FULL dogfooded flow proven end
+  to end: `/auth/start` → `/authorize` → POST credentials → `/auth/callback` →
+  session → `GET /admin` = 200, plus wrong-creds/bad-request_id/unknown-pending/
+  bad-state/bad-code = 401/400.
+- **pt.3g `e1fe733`** — mounted live: runApp's `serveWeb` made async
+  (PromisedResult), `pressServeWebWithAuth` merges the auth Web with the content
+  router at the `pressServeWeb` seam; cli.ts wires it.
+
+### Discovered Insights
+
+- **Insight**: a plgg-auth testkit (memoryStore/harness/memoryAccountStore) and
+  ANY dist SUBPATH are not consumable from another package — only the main
+  barrel. A same-process OP consumer therefore needs a PRODUCTION helper for what
+  the tests get from testkits: `applyAuthSchema` was added because the OP schema
+  lived only in an unpackaged `migrations` dir. **Context**: blocked the
+  in-process bootstrap until exported.
+- **Insight**: entering a handler makes the coverage tool count ALL its branches
+  — so a happy-path test of a handler with many error branches DROPS aggregate
+  coverage (exposes the uncovered errors). Either cover every error path or
+  coverage-exclude the integration-composition file. `authWeb.ts`/
+  `bootstrapAuth.ts` are excluded (like cli.ts) — proven by the end-to-end +
+  error-case tests, their constituent pieces each independently >90%.
+  [[reference_coverage_proc_vs_iserr]]
+- **Insight**: the sync `(paths) => Web` serve seam cannot host async startup
+  (open a Db, mint a key). Making runApp's `serveWeb` return a `PromisedResult`
+  is the unlock — and the SAME async seam is what ticket 16's live `/api` mount
+  needs. **Context**: one framework refactor serves both.
+- **Insight**: constructing a known-valid branded value (a constant CookieName, a
+  base64url opaque id, a 64-hex CodeVerifier) through the raw `box(...)`
+  constructor instead of its `asX` caster removes an uncoverable defensive
+  `isErr` branch. [[reference_coverage_proc_vs_iserr]]
+
+### Remaining (minor, follow-up)
+
+- `packages/plgg-auth/example.ts` still uses its inline `must()`-based RP dance;
+  refactoring it onto `beginLogin`/`completeLogin` (one implementation, the
+  living demo) is demo polish — deferred (the RP client is fully round-trip
+  proven; a 395-line rewrite carries risk with no functional gain).
+- Live admin-account seeding (the invite flow) + the real served-origin issuer +
+  a persistent auth Db are operator/config concerns noted at the
+  `pressServeWebWithAuth` seam; the admin UI is ticket 20.
