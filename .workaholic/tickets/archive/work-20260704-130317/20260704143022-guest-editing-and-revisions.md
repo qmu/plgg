@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain, DB]
 effort:
-commit_hash:
-category:
+commit_hash: 7052d19
+category: Changed
 depends_on: [20260704143017-frontmatter-yaml-subset-and-content-models.md, 20260704143020-admin-ui-on-scheduler.md]
 ---
 
@@ -532,3 +532,51 @@ coverage dip fails the ticket.
   but uploading the asset is ticket 23; keep `publishDraft` agnostic to assets
   (it writes Markdown text only) so ticket 23 layers asset handling without
   reshaping the publish flow.
+
+## Final Report
+
+Development completed (Phase-7, the D4 SQLite-primary REVISIT trigger). D4 VERDICT:
+git STAYS primary — a draft is authored content not yet in git, staged DB-only in
+its OWN durable store; publish = export-to-git reconciliation. The whole index
+side remains rebuildable; only drafts are irreplaceable, and they live off the
+index. Implemented across seven committed, tested slices (each behind a fresh
+green check-all):
+
+- **pt.1 `e6cb181`** — DraftStatus (draft|submitted|exported|conflicted|discarded)
+  + transitionDraftStatus lifecycle machine + Draft/Revision entities.
+- **pt.2 `0a36d5a`** — reversible in-code migrations + openDraftStore (own file,
+  FK cascade).
+- **pt.3 `922a835`** — DraftStore seam + sqlDraftStore driver.
+- **pt.4 `dbc02d4`** — checkBase (optimistic conflict) + ownership-guarded
+  openDraft/autosave/submitDraft/discardDraft (a guest cannot touch another's
+  draft; illegal transitions rejected).
+- **pt.5 `8f0d84d`** — publishDraft export-to-git: re-checkBase → PATH-SAFETY →
+  atomic write through an injected ExportFs → mark exported; a moved base marks
+  conflicted and writes nothing.
+- **pt.6 `2197340`** — the guest browser editor (textarea + live plgg-md preview +
+  open/autosave/submit, RP-session + CSRF).
+- **pt.7 `7e58f76`** — admin drafts Collection + publish Action + the serve mount
+  (real fsExportFs sha256+atomic-temp-rename, editorWeb at /edit).
+
+### Discovered Insights
+
+- **Insight**: the D4 trigger fired but did NOT flip to SQLite-primary — drafts as
+  a SEPARATE durable store (the ticket-21 stakeholder-store pattern reused
+  wholesale) keep git primary and the index rebuildable, while the ONE
+  non-derivable thing (an unpublished draft) is isolated. **Context**: the least
+  invasive answer to "the first authored data not in git".
+- **Insight**: optimistic concurrency is a PURE function (checkBase over two
+  Option<hash>) re-run immediately before the atomic write — the whole
+  reconciliation (base re-check → path-safety → atomic temp+rename) is decoupled
+  from node:fs via an injected ExportFs, so the safety logic is unit-tested with
+  an in-memory stub and only the thin fs seam is coverage-excluded.
+- **Insight**: threading a new Db through adminDeclaration → deliverAdmin →
+  pressServer ripples to 3 specs; the ticket-21 conversations-view change was the
+  exact template (add the param, add a collection + a verb, patch every call).
+
+### Remaining (follow-up, not this ticket)
+
+- The base hash captured at draft-open (getDocument content_hash) must be taken
+  with the SAME algorithm fsExportFs.currentHash uses (sha256) — align at wiring.
+- Ticket 25's voice agent + ticket 23 media build on the now-complete stores.
+- A production deploy threads real file paths + the served-origin issuer.
