@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, DB, UX]
 effort:
-commit_hash:
-category:
+commit_hash: d866f05
+category: Changed
 depends_on: [20260704143016-plggpress-content-index-and-delivery-api.md, 20260704143019-plggpress-oidc-rp-integration.md]
 ---
 
@@ -619,3 +619,60 @@ dip fails the ticket.
   DB-primary.
 </content>
 </invoke>
+
+## Final Report
+
+Development completed (Phase-7 collaboration). plggpress now ACCUMULATES
+stakeholder interactions in a DB-PRIMARY, durable conversation store — the
+deliberate inverse of ticket 16's rebuildable index (D4). Implemented across eight
+committed, tested slices (each behind a fresh green check-all):
+
+- **pt.1 `3ed8028`** — 5 closed unions (ConversationKind/Status/Visibility/
+  AuthorKind/MessageSource) + transitionStatus lifecycle state machine + feedsRag.
+- **pt.2 `33e9ed8`** — Conversation/Message entities (contentPath links by durable
+  PATH not a derived FK; SoftStr for DB round-trip) + the WRITTEN INGESTION
+  CONTRACT (the stable seam ticket 25's voice agent lands into).
+- **pt.3 `efec9df`** — reversible in-code migrations + openStakeholderStore (own
+  node:sqlite file, FK cascade, idempotent, never touched by rebuildIndex).
+- **pt.4 `f04c1fa`** — StakeholderStore seam + sqlStakeholderStore driver (every
+  value bound, every row caster-decoded, save* return the assigned id).
+- **pt.5 `6989022`** — ingest (transactional new-conversation+first-message,
+  orphan-safe) + changeStatus (transitionStatus-guarded) + the barrel.
+- **pt.6 `27216b8`** — the guest web submission surface (RP-session + CSRF POST →
+  ingest).
+- **pt.8 `cd848fc`** — the visibility-gated RAG feed (only public conversations
+  project into the content index; private stay durable-only; never writes back).
+- **pt.7 `1bbde44`** — admin conversation views (a conversations Collection + a
+  conversationMessages child on the admin declaration) + status Actions
+  (changeStatus via the SSR set-status verb) + the SERVE MOUNT (a durable
+  stakeholder store opened at the seam, deliverAdmin threaded, submitWeb mounted
+  live at /requests).
+
+### Discovered Insights
+
+- **Insight**: this store INVERTS every recoverability assumption of ticket 16's
+  index — it is primary, author-created, irreplaceable, with no git source. So:
+  REVERSIBLE migrations (not execScript/drop-recreate), its OWN durable file that
+  rebuildIndex never touches, and the RAG feed reads it but only ever writes the
+  DERIVED index. **Context**: D4 made concrete.
+- **Insight**: a nullable SQL TEXT column (JS null) decodes via `forProp("col",
+  asOptionalText)` (null→None), NOT `forOptionProp` — SQLite always INCLUDES the
+  column (present-but-null), so nullability lives in the caster, and `asStr`
+  rejects empty/plain strings while `asSoftStr` accepts them. Entities use SoftStr
+  for round-trip. [[reference_plggmatic_consumer]]
+- **Insight**: in-code migrations (migration()+asMigrationDir()+migrator(db,
+  sqlite, dir)+migrateUp) SHIP in the dist, so a same-process consumer opens the
+  store without an unpackaged migrations dir — the ticket-19 OP-schema lesson.
+  `box("Version")("14-digits")` builds the known-valid version without asVersion's
+  dead branch.
+- **Insight**: the RAG feed is visibility-gated at the PROJECTION, not the store —
+  every message is durable regardless; flipping visibility changes only what the
+  derived index sees, never a durable row.
+
+### Remaining (follow-up, not this ticket)
+
+- Ticket 25's voice agent lands into the ingest contract unchanged (agent
+  authorKind + voice source are already in the model).
+- A production deploy threads real file paths (not :memory:) + the served origin
+  for the issuer; at-rest backup/restore drill is ticket 28.
+- Ticket 16's live /api mount can reuse the content index the serve seam opens.
