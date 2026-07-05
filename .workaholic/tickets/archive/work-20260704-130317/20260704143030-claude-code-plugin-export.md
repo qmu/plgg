@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
 effort:
-commit_hash:
-category:
+commit_hash: 42eccdb1
+category: Changed
 depends_on: [20260704143016-plggpress-content-index-and-delivery-api.md, 20260704143027-plgg-mcp-http-oauth.md]
 ---
 
@@ -541,3 +541,41 @@ plggpress export map left unfixed, an `as`/`any`/`ts-ignore`, a throw where a
   export map dual-condition (step 7), and confirm on a fresh clean-runner
   `check-all.sh`. A surface-probe misbehavior is concern 51, not this ticket's
   bug — record and route it there.
+
+## Final Report
+
+Development completed (Phase-10 capstone, D17). A served plggpress now exports an
+installable Claude Code plugin, regenerated live from the content index — the
+payoff of the MCP series (tickets 26/27). One committed slice (generators +
+serving endpoint), behind a fresh green check-all (`6f6bb73`):
+
+- **Pure generators (pluginExport)**: mcpJson (an http MCP server at THIS
+  instance's OAuth-aware /mcp), pluginManifest + marketplaceManifest (the
+  .claude-plugin manifests), and skillForCollection — a Markdown skill PER content
+  collection teaching Claude Code to reach it via the ticket-26 tools
+  (search_content → get_article).
+- **pluginWeb**: GET-only public endpoints — /.claude-plugin/marketplace.json,
+  /.claude-plugin/plugin.json, /.mcp.json, and /.claude-plugin/skills.json
+  generated LIVE from listCollections (store error → 500).
+
+### Discovered Insights
+
+- **Insight**: the whole "export" is DERIVATION, not generation-to-disk — the plugin
+  is a set of pure functions from the index's structure to JSON/Markdown, served on
+  demand, so it can NEVER drift from the corpus (add a collection → its skill
+  appears). No build step, no stale manifest.
+- **Insight**: the skills are the bridge that makes the MCP tools usable — a raw
+  MCP server exposes search_content/get_article, but the generated per-collection
+  skill is what tells Claude Code WHEN and HOW to call them for a given knowledge
+  domain. The content structure (collections) IS the skill taxonomy.
+- **Insight**: this closes the D17 loop cleanly on top of 26 (the tools) + 27 (the
+  OAuth-aware /mcp URL the .mcp.json points at) — the capstone needed almost no new
+  infrastructure, just derivation, which validates the layering.
+
+### Remaining (follow-up, not this ticket)
+
+- pluginWeb joins contentApi + agentWeb + mcpWeb as the deploy-time pressServer
+  mount (all ready plggpress Webs); wire together at deploy with the instance's
+  real origin (the mcpUrl + source + owner come from deploy config).
+- Long-term (spec): this replaces the workaholic plugin once qmu.co.jp runs on
+  plggpress.
