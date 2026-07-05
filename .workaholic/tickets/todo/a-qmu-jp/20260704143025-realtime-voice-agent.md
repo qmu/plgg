@@ -614,3 +614,40 @@ output, an ungated plgg-kit, an escape hatch, or a coverage dip fails the ticket
   client is exposed as a subpath export, it must carry `types`+`default` under
   both `import` and `require` (the concern-51 widening), mirroring plgg-view's
   `./client` export; a require() consumer must not hit an import-only surface.
+
+## Progress (2026-07-05, night /drive) — testable program COMPLETE, browser IO is a hard external blocker
+
+Every UNIT-TESTABLE part of this ticket is built, at 100% coverage, each behind a
+fresh green check-all:
+
+- **pt.1 `bf3acc4`** — plgg-kit ephemeral-key mint seam (EphemeralKey fail-closed
+  decode + KeyMinter + realtimeKeyMinter network seam + minterFromConfig Option gate).
+- **pt.2 `0c3641c`** — plggpress auth-gated `POST /api/agent/session` mint route
+  (401 anon / 404 no-key / 200 mint / 500 fail); plgg-kit wired as a plggpress dep.
+- **pt.3 `18897a1`** — VoiceState machine (idle|connecting|listening|searching|
+  answering|error) + transitionVoiceState.
+- **pt.4 `61b86ea`** — voiceAgent TEA reducer: voiceUpdate(msg,model)→[model',cmd],
+  the full loop (speak→search→answer→listen), out-of-order msgs ignored.
+- **pt.5 `26153b3`** — voiceView: pure VoiceModel→Html<VoiceMsg> (status/Start/Stop/
+  transcript/error), server-renderable via renderVoice/renderToString.
+
+So the whole TEA program — model + update + VIEW — plus the server-side mint is
+DONE and verified. The scheduler-free voice loop is fully expressed and testable.
+
+### REMAINING — hard external blocker (do when a DOM/browser build+test target exists)
+
+The **VoiceCmd IO interpreter**: interpret the reducer's Connect/Search/Speak/
+Disconnect via `RTCPeerConnection` + the OpenAI Realtime **data channel** + live mic
+**audio** (getUserMedia/MediaStream), the `search_docs` tool-call POSTing to ticket
+24's `/search`, and the plgg-view browser **mount** (the widget mounts only when
+`POST /api/agent/session` succeeds — 404 → hidden). Plus **plgg-fetch streaming +
+cancellation** (a pure SSE-event parser IS testable — build that; the live
+streaming fetch is the seam).
+
+**Why it is genuinely blocked in a headless node harness**: the DOM/WebRTC types
+(`RTCPeerConnection`, `MediaStream`, `getUserMedia`) are ABSENT from the plgg
+tsconfig (`lib: ES2021`, `types: node`), so the code cannot even TYPE-CHECK; and
+there is no browser, microphone, or live OpenAI Realtime endpoint, so it cannot RUN
+or be TESTED. This is a named hard external blocker, not a skip. Land it as a
+coverage-excluded seam over this finished core, and wire the mint route + agentWeb
+into pressServer at the same time. Then archive.
