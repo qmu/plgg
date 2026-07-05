@@ -28,8 +28,11 @@ import {
   registerCollection,
   collectionSchema,
   type ExportFs,
+  type AssetExportFs,
   openStakeholderStore,
   openDraftStore,
+  openAssetStore,
+  uploadAsset,
   openDraft,
   submitDraft,
   ingest,
@@ -57,6 +60,9 @@ const exportFs: ExportFs = {
   currentHash: async () => none(),
   writeSource: async () => ok(null),
 };
+const assetFs: AssetExportFs = {
+  writeBytes: async () => ok(null),
+};
 
 const must = <T>(r: Result<T, unknown>): T => {
   if (isErr(r)) {
@@ -79,6 +85,7 @@ const seed = async (): Promise<{
   accounts: AccountStore;
   stakeholderDb: Db;
   draftDb: Db;
+  assetDb: Db;
 }> => {
   const db = must(await openIndex(":memory:"));
   await db.execScript(ACCOUNT_SCHEMA);
@@ -136,7 +143,20 @@ const seed = async (): Promise<{
       "guest-1",
     ),
   );
-  return { db, accounts, stakeholderDb, draftDb };
+  const assetDb = must(
+    await openAssetStore(":memory:"),
+  );
+  must(
+    await uploadAsset(assetDb, clock)({
+      contentPath: "assets/a.png",
+      mime: "image/png",
+      size: 3,
+      hash: "ah1",
+      bytesB64: "QUJD",
+      createdBy: "g1",
+    }),
+  );
+  return { db, accounts, stakeholderDb, draftDb, assetDb };
 };
 
 const req = (
@@ -174,7 +194,13 @@ const csrfFrom = (res: HttpResponse): string => {
 };
 
 test("GET renders the admin scene + control panel as an HTML document with a CSRF cookie", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const app = deliverAdmin(
     db,
@@ -184,6 +210,8 @@ test("GET renders the admin scene + control panel as an HTML document with a CSR
     stakeholderDb,
     draftDb,
     exportFs,
+    assetDb,
+    assetFs,
   );
   const res: HttpResponse = must(
     await handle(app, req("GET", "/")),
@@ -217,7 +245,13 @@ const drive = async (
   settings: SettingsStore;
   res: Result<HttpResponse, HttpError>;
 }> => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const settings = settingsOf();
   const app = deliverAdmin(
@@ -228,6 +262,8 @@ const drive = async (
     stakeholderDb,
     draftDb,
     exportFs,
+    assetDb,
+    assetFs,
   );
   const token = csrfFrom(
     must(await handle(app, req("GET", "/"))),
@@ -249,7 +285,13 @@ const drive = async (
 };
 
 test("a POST without the CSRF token is 403", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const app = deliverAdmin(
     db,
@@ -259,6 +301,8 @@ test("a POST without the CSRF token is 403", async () => {
     stakeholderDb,
     draftDb,
     exportFs,
+    assetDb,
+    assetFs,
   );
   return check(
     outcome(
@@ -403,4 +447,90 @@ test("publish-draft with no draft id is 400", async () => {
     "",
   );
   return check(outcome(res), toBe("BadRequest"));
+});
+
+test("publish-asset exports a staged asset and redirects", async () => {
+  const { res } = await drive(
+    "publish-asset",
+    "&asset_id=1",
+  );
+  return check(outcome(res), toBe("302"));
+});
+
+test("publish-asset with no asset id is 400", async () => {
+  const { res } = await drive(
+    "publish-asset",
+    "",
+  );
+  return check(outcome(res), toBe("BadRequest"));
+});
+
+test("re-publishing an already-exported asset is 400", async () => {
+  const s = await seed();
+  const app = deliverAdmin(
+    s.db,
+    s.accounts,
+    settingsOf(),
+    clock,
+    s.stakeholderDb,
+    s.draftDb,
+    exportFs,
+    s.assetDb,
+    assetFs,
+  );
+  const token = csrfFrom(
+    must(await handle(app, req("GET", "/"))),
+  );
+  const publish = () =>
+    handle(
+      app,
+      req(
+        "POST",
+        "/act",
+        {
+          cookie: `plgg_admin_csrf=${token}`,
+          "content-type":
+            "application/x-www-form-urlencoded",
+        },
+        `csrf_token=${token}&verb=publish-asset&asset_id=1`,
+      ),
+    );
+  must(await publish());
+  const second = await publish();
+  return check(outcome(second), toBe("BadRequest"));
+});
+
+test("re-publishing an already-exported draft is 400", async () => {
+  const s = await seed();
+  const app = deliverAdmin(
+    s.db,
+    s.accounts,
+    settingsOf(),
+    clock,
+    s.stakeholderDb,
+    s.draftDb,
+    exportFs,
+    s.assetDb,
+    assetFs,
+  );
+  const token = csrfFrom(
+    must(await handle(app, req("GET", "/"))),
+  );
+  const publish = () =>
+    handle(
+      app,
+      req(
+        "POST",
+        "/act",
+        {
+          cookie: `plgg_admin_csrf=${token}`,
+          "content-type":
+            "application/x-www-form-urlencoded",
+        },
+        `csrf_token=${token}&verb=publish-draft&draft_id=1`,
+      ),
+    );
+  must(await publish());
+  const second = await publish();
+  return check(outcome(second), toBe("BadRequest"));
 });

@@ -21,6 +21,7 @@ import {
   openIndex,
   openStakeholderStore,
   openDraftStore,
+  openAssetStore,
 } from "plgg-content";
 import { sqlAccountStore } from "plgg-auth";
 import { bootstrapAuthWeb } from "plggpress/auth/bootstrapAuth";
@@ -33,6 +34,8 @@ import { sqlRpSessionStore } from "plggpress/auth/rpSessionStore";
 import { submitWeb } from "plggpress/stakeholder/submitWeb";
 import { editorWeb } from "plggpress/editing/editorWeb";
 import { fsExportFs } from "plggpress/editing/exportFs";
+import { mediaWeb } from "plggpress/media/mediaWeb";
+import { fsAssetExportFs } from "plggpress/media/assetExportFs";
 
 /**
  * plggpress's serve-side {@link Web} assembly and the ONE
@@ -196,6 +199,38 @@ export const pressServeWebWithAuth = (
                   clock,
                 ),
               )(web());
+              return openAssetStore(":memory:").then(
+                matchResult<
+                  Db,
+                  {
+                    content: { message: SoftStr };
+                  },
+                  PromisedResult<
+                    (
+                      paths: ReadonlyArray<SoftStr>,
+                    ) => Web,
+                    Defect
+                  >
+                >(
+                  (e) =>
+                    Promise.resolve(
+                      err(
+                        defect(
+                          `asset store open failed: ${e.content.message}`,
+                        ),
+                      ),
+                    ),
+                  (assetDb) => {
+              const assetFs =
+                fsAssetExportFs(contentDir);
+              const media = route(
+                "/media",
+                mediaWeb(
+                  assetDb,
+                  sessions,
+                  clock,
+                ),
+              )(web());
               return bootstrapAuthWeb(
                 authDb,
                 "https://plggpress.local",
@@ -210,6 +245,8 @@ export const pressServeWebWithAuth = (
                   stakeholderDb,
                   draftDb,
                   exportFs,
+                  assetDb,
+                  assetFs,
                 ),
               ).then(
                 matchResult<
@@ -238,21 +275,27 @@ export const pressServeWebWithAuth = (
                         mergeWebs(
                           mergeWebs(
                             mergeWebs(
-                              pressServeWeb(
-                                contentDir,
-                                config,
-                                base,
-                              )(paths),
-                              boot.web,
+                              mergeWebs(
+                                pressServeWeb(
+                                  contentDir,
+                                  config,
+                                  base,
+                                )(paths),
+                                boot.web,
+                              ),
+                              requests,
                             ),
-                            requests,
+                            edit,
                           ),
-                          edit,
+                          media,
                         ),
                     ),
                 ),
               );
             },
+          ),
+        );
+              },
           ),
         ),
           ),

@@ -35,10 +35,12 @@ import {
   type Conversation,
   type Message,
   type Draft,
+  type Asset,
   listCollections,
   listCollection,
   sqlStakeholderStore,
   sqlDraftStore,
+  sqlAssetStore,
 } from "plgg-content";
 import {
   type Account,
@@ -114,6 +116,7 @@ export const adminDeclaration = (
   accounts: AccountStore,
   stakeholderDb: Db,
   draftDb: Db,
+  assetDb: Db,
 ): Declaration =>
   declare({
     title: "plggpress admin",
@@ -125,6 +128,7 @@ export const adminDeclaration = (
         "conversations",
       ),
       menuEntry("Drafts", "drafts"),
+      menuEntry("Assets", "assets"),
     ]),
     collections: [
       collection<CollectionSchema>({
@@ -337,6 +341,43 @@ export const adminDeclaration = (
             ),
         ),
         query: query("Filter drafts"),
+      }),
+      collection<Asset>({
+        id: "assets",
+        title: "Assets",
+        toRow: (a: Asset) =>
+          makeRow(
+            `${a.id}`,
+            `${a.contentPath} (${a.status})`,
+            [
+              field("type", a.mime),
+              field("size", `${a.size}`),
+            ],
+          ),
+        source: async(() =>
+          sqlAssetStore(assetDb)
+            .listAssets({
+              createdBy: none(),
+              status: none(),
+            })
+            .then(
+              matchResult<
+                ReadonlyArray<Asset>,
+                { content: { message: string } },
+                Result<
+                  ReadonlyArray<Asset>,
+                  Error
+                >
+              >(
+                (e) =>
+                  err(
+                    new Error(e.content.message),
+                  ),
+                (as) => ok(as),
+              ),
+            ),
+        ),
+        query: query("Filter assets"),
       }),
     ],
   });

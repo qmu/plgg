@@ -26,6 +26,8 @@ import {
   openDb,
   openStakeholderStore,
   openDraftStore,
+  openAssetStore,
+  uploadAsset,
   openDraft,
   ingest,
   ingestMessage,
@@ -64,6 +66,7 @@ const seed = async (): Promise<{
   accounts: AccountStore;
   stakeholderDb: Db;
   draftDb: Db;
+  assetDb: Db;
 }> => {
   const db = must(await openIndex(":memory:"));
   await db.execScript(ACCOUNT_SCHEMA);
@@ -126,7 +129,20 @@ const seed = async (): Promise<{
       "# draft body",
     ),
   );
-  return { db, accounts, stakeholderDb, draftDb };
+  const assetDb = must(
+    await openAssetStore(":memory:"),
+  );
+  must(
+    await uploadAsset(assetDb, () => 100)({
+      contentPath: "assets/a.png",
+      mime: "image/png",
+      size: 3,
+      hash: "ah1",
+      bytesB64: "QUJD",
+      createdBy: "g1",
+    }),
+  );
+  return { db, accounts, stakeholderDb, draftDb, assetDb };
 };
 
 const drive = (
@@ -142,6 +158,7 @@ const sourceOf = (
   accounts: AccountStore,
   stakeholderDb: Db,
   draftDb: Db,
+  assetDb: Db,
   id: SoftStr,
 ): Source => {
   const found = adminDeclaration(
@@ -149,6 +166,7 @@ const sourceOf = (
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
   ).collections.find((c) => c.id === id);
   if (found === undefined) {
     throw new Error(`no collection ${id}`);
@@ -171,6 +189,7 @@ const memberAction = (
   accounts: AccountStore,
   stakeholderDb: Db,
   draftDb: Db,
+  assetDb: Db,
   id: SoftStr,
 ) => {
   const members = adminDeclaration(
@@ -178,6 +197,7 @@ const memberAction = (
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
   ).collections.find(
     (c) => c.id === "members",
   );
@@ -191,7 +211,13 @@ const memberAction = (
 };
 
 test("adminDeclaration schedules into a runnable program with content + members menus", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const scheduled = schedule(
     adminDeclaration(
@@ -199,6 +225,7 @@ test("adminDeclaration schedules into a runnable program with content + members 
       accounts,
       stakeholderDb,
       draftDb,
+      assetDb,
     ),
   );
   const [model] = scheduled.init({
@@ -213,7 +240,13 @@ test("adminDeclaration schedules into a runnable program with content + members 
 });
 
 test("the collections source lists the registered models", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const rows = must(
     await drive(
@@ -222,6 +255,7 @@ test("the collections source lists the registered models", async () => {
       accounts,
       stakeholderDb,
       draftDb,
+      assetDb,
       "collections"),
       [],
     ),
@@ -233,7 +267,13 @@ test("the collections source lists the registered models", async () => {
 });
 
 test("selecting a collection drills into its documents", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const rows = must(
     await drive(
@@ -242,6 +282,7 @@ test("selecting a collection drills into its documents", async () => {
       accounts,
       stakeholderDb,
       draftDb,
+      assetDb,
       "documents"),
       ["blog"],
     ),
@@ -253,7 +294,13 @@ test("selecting a collection drills into its documents", async () => {
 });
 
 test("an unknown parent selection yields no documents", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const rows = must(
     await drive(
@@ -262,6 +309,7 @@ test("an unknown parent selection yields no documents", async () => {
       accounts,
       stakeholderDb,
       draftDb,
+      assetDb,
       "documents"),
       ["does-not-exist"],
     ),
@@ -270,7 +318,13 @@ test("an unknown parent selection yields no documents", async () => {
 });
 
 test("the members source lists accounts", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const rows = must(
     await drive(
@@ -279,6 +333,7 @@ test("the members source lists accounts", async () => {
       accounts,
       stakeholderDb,
       draftDb,
+      assetDb,
       "members"),
       [],
     ),
@@ -290,7 +345,13 @@ test("the members source lists accounts", async () => {
 });
 
 test("grant-admin sets the role and reloads members", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const msg = await runCmd(
     memberAction(
@@ -298,6 +359,7 @@ test("grant-admin sets the role and reloads members", async () => {
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
     "grant-admin").run(
       some("s1"),
     ),
@@ -315,7 +377,13 @@ test("grant-admin sets the role and reloads members", async () => {
 });
 
 test("make-guest revokes to guest", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   await runCmd(
     memberAction(
@@ -323,6 +391,7 @@ test("make-guest revokes to guest", async () => {
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
     "grant-admin").run(
       some("s1"),
     ),
@@ -333,6 +402,7 @@ test("make-guest revokes to guest", async () => {
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
     "make-guest").run(
       some("s1"),
     ),
@@ -347,7 +417,13 @@ test("make-guest revokes to guest", async () => {
 });
 
 test("a role action with no target is a no-op reload", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const msg = await runCmd(
     memberAction(
@@ -355,6 +431,7 @@ test("a role action with no target is a no-op reload", async () => {
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
     "grant-admin").run(
       none(),
     ),
@@ -370,13 +447,20 @@ test("a role action with no target is a no-op reload", async () => {
 });
 
 test("both role actions are declared destructive (confirmation-as-data)", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const grant = memberAction(
     db,
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
     "grant-admin",
   );
   const guest = memberAction(
@@ -384,6 +468,7 @@ test("both role actions are declared destructive (confirmation-as-data)", async 
     accounts,
     stakeholderDb,
     draftDb,
+    assetDb,
     "make-guest",
   );
   const isDestructive = (
@@ -399,7 +484,13 @@ test("both role actions are declared destructive (confirmation-as-data)", async 
 });
 
 test("the conversations source lists stakeholder conversations", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const rows = must(
     await drive(
@@ -408,6 +499,7 @@ test("the conversations source lists stakeholder conversations", async () => {
         accounts,
         stakeholderDb,
         draftDb,
+        assetDb,
         "conversations",
       ),
       [],
@@ -423,7 +515,13 @@ test("the conversations source lists stakeholder conversations", async () => {
 });
 
 test("selecting a conversation drills into its messages", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const rows = must(
     await drive(
@@ -432,6 +530,7 @@ test("selecting a conversation drills into its messages", async () => {
         accounts,
         stakeholderDb,
         draftDb,
+        assetDb,
         "conversationMessages",
       ),
       ["1"],
@@ -457,6 +556,7 @@ test("the conversation sources surface a store error (no schema)", async () => {
       accounts,
       broken,
       broken,
+      broken,
       "conversations",
     ),
     [],
@@ -465,6 +565,7 @@ test("the conversation sources surface a store error (no schema)", async () => {
     sourceOf(
       db,
       accounts,
+      broken,
       broken,
       broken,
       "conversationMessages",
@@ -478,7 +579,13 @@ test("the conversation sources surface a store error (no schema)", async () => {
 });
 
 test("the drafts source lists drafts and surfaces a store error", async () => {
-  const { db, accounts, stakeholderDb, draftDb } =
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } =
     await seed();
   const rows = must(
     await drive(
@@ -487,6 +594,7 @@ test("the drafts source lists drafts and surfaces a store error", async () => {
         accounts,
         stakeholderDb,
         draftDb,
+        assetDb,
         "drafts",
       ),
       [],
@@ -499,6 +607,7 @@ test("the drafts source lists drafts and surfaces a store error", async () => {
       accounts,
       stakeholderDb,
       broken,
+      assetDb,
       "drafts",
     ),
     [],
@@ -508,6 +617,51 @@ test("the drafts source lists drafts and surfaces a store error", async () => {
     check(
       (rows[0]?.label ?? "").includes(
         "blog/edit.md",
+      ),
+      toBe(true),
+    ),
+    check(isErr(errored), toBe(true)),
+  ]);
+});
+
+test("the assets source lists assets and surfaces a store error", async () => {
+  const {
+    db,
+    accounts,
+    stakeholderDb,
+    draftDb,
+    assetDb,
+  } = await seed();
+  const rows = must(
+    await drive(
+      sourceOf(
+        db,
+        accounts,
+        stakeholderDb,
+        draftDb,
+        assetDb,
+        "assets",
+      ),
+      [],
+    ),
+  );
+  const broken = openDb(":memory:");
+  const errored = await drive(
+    sourceOf(
+      db,
+      accounts,
+      stakeholderDb,
+      draftDb,
+      broken,
+      "assets",
+    ),
+    [],
+  );
+  return all([
+    check(rows.length, toBe(1)),
+    check(
+      (rows[0]?.label ?? "").includes(
+        "assets/a.png",
       ),
       toBe(true),
     ),

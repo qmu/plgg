@@ -51,9 +51,12 @@ import {
   type ConversationStatus,
   type ExportFs,
   type PublishOutcome,
+  type AssetExportFs,
+  type AssetStatus,
   asConversationStatus,
   changeStatus,
   publishDraft,
+  publishAsset,
 } from "plgg-content";
 import {
   type Account,
@@ -260,6 +263,7 @@ const renderGet =
     settings: SettingsStore,
     stakeholderDb: Db,
     draftDb: Db,
+    assetDb: Db,
   ) =>
   (
     c: Context,
@@ -270,6 +274,7 @@ const renderGet =
         accounts,
         stakeholderDb,
         draftDb,
+        assetDb,
       ),
     );
     const [model0, cmd0] = scheduled.init({
@@ -482,6 +487,41 @@ const doPublish = (
       ),
   )(formField(body, "draft_id"));
 
+const doPublishAsset = (
+  assetDb: Db,
+  assetFs: AssetExportFs,
+  clock: () => number,
+  body: SoftStr,
+): PromisedResult<HttpResponse, HttpError> =>
+  matchOption<
+    SoftStr,
+    PromisedResult<HttpResponse, HttpError>
+  >(
+    () =>
+      Promise.resolve(
+        err(badRequest("missing asset id")),
+      ),
+    (idRaw: SoftStr) =>
+      publishAsset(assetDb, assetFs, clock)(
+        Number(idRaw),
+      ).then(
+        matchResult<
+          AssetStatus,
+          unknown,
+          Result<HttpResponse, HttpError>
+        >(
+          () =>
+            err(
+              badRequest(
+                "could not publish asset",
+              ),
+            ),
+          () =>
+            ok(redirectResponse(ADMIN_BASE)),
+        ),
+      ),
+  )(formField(body, "asset_id"));
+
 const runAct =
   (
     accounts: AccountStore,
@@ -490,6 +530,8 @@ const runAct =
     stakeholderDb: Db,
     draftDb: Db,
     exportFs: ExportFs,
+    assetDb: Db,
+    assetFs: AssetExportFs,
   ) =>
   (
     c: Context,
@@ -528,13 +570,20 @@ const runAct =
                         clock,
                         c.req.body,
                       )
-                    : Promise.resolve(
-                        err(
-                          badRequest(
-                            "unknown action verb",
+                    : verb === "publish-asset"
+                      ? doPublishAsset(
+                          assetDb,
+                          assetFs,
+                          clock,
+                          c.req.body,
+                        )
+                      : Promise.resolve(
+                          err(
+                            badRequest(
+                              "unknown action verb",
+                            ),
                           ),
                         ),
-                      ),
     )(formField(c.req.body, "verb"));
 
 /**
@@ -558,6 +607,8 @@ export const deliverAdmin = (
   stakeholderDb: Db,
   draftDb: Db,
   exportFs: ExportFs,
+  assetDb: Db,
+  assetFs: AssetExportFs,
 ): Web =>
   pipe(
     web(),
@@ -569,6 +620,7 @@ export const deliverAdmin = (
         settings,
         stakeholderDb,
         draftDb,
+        assetDb,
       ),
     ),
     use(requireCsrf(CSRF_COOKIE, CSRF_FIELD)),
@@ -581,6 +633,8 @@ export const deliverAdmin = (
         stakeholderDb,
         draftDb,
         exportFs,
+        assetDb,
+        assetFs,
       ),
     ),
   );
