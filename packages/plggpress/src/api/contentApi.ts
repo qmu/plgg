@@ -32,10 +32,11 @@ import {
   type SqlError,
   type Document,
   type QueryParams,
+  type Embedder,
   listCollections,
   listCollection,
   getDocument,
-  searchIndex,
+  ragSearch,
   asListQuery,
 } from "plgg-content";
 
@@ -57,7 +58,10 @@ const errMessage = (e: ApiError): SoftStr =>
  * a query error folds to a 500, a missing/invalid parameter
  * to a 400, an absent document to a 404.
  */
-export const contentApi = (db: Db): Web =>
+export const contentApi = (
+  db: Db,
+  embedder: Option<Embedder>,
+): Web =>
   pipe(
     web(),
     get("/collections", collectionsRoute(db)),
@@ -66,7 +70,10 @@ export const contentApi = (db: Db): Web =>
       listRoute(db),
     ),
     get("/document", documentRoute(db)),
-    get("/search", searchRoute(db)),
+    get(
+      "/search",
+      searchRoute(db, embedder),
+    ),
   );
 
 type ApiOk<T> = PromisedResult<T, ApiError>;
@@ -203,12 +210,15 @@ const documentRoute =
     )(query("collection")(c));
 
 const searchRoute =
-  (db: Db): Handler =>
+  (
+    db: Db,
+    embedder: Option<Embedder>,
+  ): Handler =>
   (
     c: Context,
   ): PromisedResult<HttpResponse, HttpError> =>
     respond(
-      searchIndex(db)(
+      ragSearch(db, embedder)(
         matchOption<SoftStr, SoftStr>(
           () => "",
           (v: SoftStr) => v,

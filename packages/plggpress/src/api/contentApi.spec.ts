@@ -10,6 +10,7 @@ import {
   type Dict,
   some,
   none,
+  ok,
   isErr,
   matchResult,
 } from "plgg";
@@ -23,6 +24,7 @@ import { heading, para } from "plgg-md";
 import {
   type Db,
   openIndex,
+  embedPendingChunks,
   registerCollection,
   indexDocument,
   collectionSchema,
@@ -93,7 +95,7 @@ const seed = async (): Promise<Db> => {
 test("GET /collections returns the registered schemas as JSON", async () => {
   const res = must(
     await handle(
-      contentApi(await seed()),
+      contentApi(await seed(), none()),
       req("/collections"),
     ),
   );
@@ -106,7 +108,7 @@ test("GET /collections returns the registered schemas as JSON", async () => {
 test("GET /search finds a document by body text", async () => {
   const res = must(
     await handle(
-      contentApi(await seed()),
+      contentApi(await seed(), none()),
       req("/search", { q: "kangaroo" }),
     ),
   );
@@ -119,7 +121,7 @@ test("GET /search finds a document by body text", async () => {
 test("GET /document returns one document", async () => {
   const res = must(
     await handle(
-      contentApi(await seed()),
+      contentApi(await seed(), none()),
       req("/document", {
         collection: "blog",
         path: "/blog/a",
@@ -134,7 +136,7 @@ test("GET /document returns one document", async () => {
 
 test("GET /document 400s without the required params", async () => {
   const r = await handle(
-    contentApi(await seed()),
+    contentApi(await seed(), none()),
     req("/document"),
   );
   return check(errTag(r), toBe("BadRequest"));
@@ -142,7 +144,7 @@ test("GET /document 400s without the required params", async () => {
 
 test("GET /document 404s for an unknown path", async () => {
   const r = await handle(
-    contentApi(await seed()),
+    contentApi(await seed(), none()),
     req("/document", {
       collection: "blog",
       path: "/blog/nope",
@@ -154,12 +156,34 @@ test("GET /document 404s for an unknown path", async () => {
 test("GET /collections/:name lists the collection (param routed)", async () => {
   const res = must(
     await handle(
-      contentApi(await seed()),
+      contentApi(await seed(), none()),
       req("/collections/blog"),
     ),
   );
   return all([
     check(res.status.content, toBe(200)),
     check(bodyText(res), toContain("totalCount")),
+  ]);
+});
+
+test("GET /search uses the embedder (cosine) when a key is configured", async () => {
+  const db = await seed();
+  const embedder = {
+    embed: async () => ok([1, 0, 0]),
+  };
+  // embed the corpus so the semantic path has candidates
+  must(
+    await embedPendingChunks(db, embedder)(),
+  );
+  // a query with NO keyword overlap still returns the doc via cosine
+  const res = must(
+    await handle(
+      contentApi(db, some(embedder)),
+      req("/search", { q: "zzznomatchxyz" }),
+    ),
+  );
+  return all([
+    check(res.status.content, toBe(200)),
+    check(bodyText(res), toContain("/blog/a")),
   ]);
 });
