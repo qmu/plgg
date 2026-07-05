@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { relative } from "node:path";
+import { readFileSync } from "plgg-bundle/vendors/nodeFs";
+import { relative } from "plgg-bundle/vendors/nodePath";
 import { type External } from "plgg-bundle/domain/model/BundleConfig";
 import { resolveSpecifier } from "plgg-bundle/domain/usecase/resolveSpecifier";
 import { isExternal } from "plgg-bundle/domain/usecase/isExternal";

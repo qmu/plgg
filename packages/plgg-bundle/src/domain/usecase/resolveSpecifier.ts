@@ -1,9 +1,9 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync } from "plgg-bundle/vendors/nodeFs";
 import {
   dirname,
   resolve,
   join,
-} from "node:path";
+} from "plgg-bundle/vendors/nodePath";
 
 /**
  * Resolve a bare import specifier to an absolute source

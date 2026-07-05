@@ -3,8 +3,8 @@ import {
   readFileSync,
   existsSync,
   statSync,
-} from "node:fs";
-import { join, dirname } from "node:path";
+} from "plgg-bundle/vendors/nodeFs";
+import { join, dirname } from "plgg-bundle/vendors/nodePath";
 
 /**
  * A workspace sibling the app bundler can INLINE from

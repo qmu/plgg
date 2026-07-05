@@ -13,7 +13,6 @@
 # header and .workaholic/constraints/architecture.md.
 
 example              # leaf demo app: a runnable example that wires node: (child_process/fs/http/…) directly; not a library domain
-plgg-bundle          # has the domain/ layout but domain/usecase/* import node: directly — fixed by ticket 20260704185202 (reference-package leaks)
 plgg-server          # legacy Feature/ layout; node:http + node:fs/promises in the server + SSG writer — migrate to vendors/ later
 plgg-test            # legacy layout; the test runner imports the tsc API (typescript) + node:fs/path/url — tooling package, migrate later
 plggmatic-example    # leaf workbench app: wires node: (crypto/fs/path) directly; under active work on this branch

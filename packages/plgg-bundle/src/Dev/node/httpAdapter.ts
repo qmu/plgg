@@ -3,7 +3,7 @@ import {
   type IncomingMessage,
   type ServerResponse,
   type Server,
-} from "node:http";
+} from "plgg-bundle/vendors/nodeHttp";
 import { type Fetch } from "plgg-bundle/Dev/model/Fetch";
 
 // The node:http ⇄ Web-standard bridge for the dev server.
