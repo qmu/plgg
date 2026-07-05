@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [DB, Domain, Infrastructure]
 effort:
-commit_hash:
-category:
+commit_hash: 689500d
+category: Changed
 depends_on: [20260704143015-plgg-sql-fts5-support.md, 20260704143016-plggpress-content-index-and-delivery-api.md]
 ---
 
@@ -535,3 +535,49 @@ ticket.
   ticket 02 hardens). Adding the live embeddings seam to an ungated package is
   unacceptable; this ticket ensures plgg-kit is gated ≥90 (adding the config if
   ticket 02 has not), so the new vendor code is covered from its first commit.
+
+## Final Report
+
+Development completed (Phase-8 RAG, the only ticket in its phase). D11 HELD in
+full: always-on FTS5/BM25 baseline + opt-in embeddings as JSON Float vectors +
+plain-JS cosine top-k — NO sqlite-vec, NO native extension, NO ANN library — and
+GRACEFUL DEGRADATION at every point embeddings can't serve. Six committed, tested
+slices (each behind a fresh green check-all):
+
+- **pt.1 `1804157`** — Embedding (JSON serialize/deserialize, fail-closed) +
+  cosineSimilarity + topK (pure JS).
+- **pt.2 `1b2130e`** — the injected Embedder seam (Option = no-key gate) +
+  semanticSearch (FTS5 fallback on no-key / embed-fail / no-candidates).
+- **pt.3 `53b0517`** — a nullable embedding TEXT column on the ticket-16 chunks
+  table + saveChunkEmbedding / loadEmbeddedChunks.
+- **pt.4 `1531538`** — ragSearch: hybrid cosine/FTS5 over the LIVE index, both
+  paths returning the SAME SearchHit[].
+- **pt.5a `5b064af`** — embedderFromConfig (the graceful gate) + fetchEmbedder
+  (real network seam, coverage-excluded) + embed-on-index (embedPendingChunks,
+  best-effort, idempotent).
+- **pt.5b `07d0076`** — the delivery /search endpoint runs ragSearch (hybrid).
+
+### Discovered Insights
+
+- **Insight**: SQLite BLOBs are unbindable through the plgg-sql `sql` template
+  (SqlValue is SoftStr|Num|Bool) — an embedding rides as a **JSON number array in
+  TEXT**, consistent with D11's zero-dependency purism and inspectable at
+  guide-corpus scale. Same base64/JSON-for-binary lesson as ticket 23.
+- **Insight**: unifying the two retrieval paths hinges on the Id type —
+  `semanticSearch<SearchHit>` with candidates loaded AS SearchHits (chunks joined
+  to docs) makes topK's output identical to FTS5's, so a caller never branches on
+  which ran; semanticSearch is generic over the loader error E to compose channels.
+- **Insight**: the dead-index-guard coverage trap (`b[i] ?? 0` after a
+  length-check) is halved by iterating with `.forEach((v,i)=>...)` (the element is
+  then definite); `mapResult`/`chainResult` need EXPLICIT type args because the
+  error `E` can't be inferred from the mapper alone.
+- **Insight**: JSON `1e400` parses to `Infinity` (typeof number) — a stored
+  embedding must be `Number.isFinite`-checked, not just typeof-checked, to fail
+  closed.
+
+### Remaining (follow-up, not this ticket)
+
+- The delivery /search endpoint (contentApi) is hybrid + tested, but contentApi
+  is not yet mounted on the live server (ticket 16's /api-mount loose end); wire
+  the config embedder there at deploy.
+- Ticket 25 (voice, Phase 9) consumes ragSearch; tickets 26/27 (MCP) expose it.
