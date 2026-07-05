@@ -2,7 +2,7 @@ import {
   type Option,
   type Box,
   type Num,
-  type Str,
+  type SoftStr,
   box,
   pattern,
 } from "plgg";
@@ -22,7 +22,7 @@ export type ConversationRef =
   | Box<
       "NewConversation",
       Readonly<{
-        contentPath: Option<Str>;
+        contentPath: Option<SoftStr>;
         kind: ConversationKind;
         visibility: Visibility;
       }>
@@ -34,7 +34,7 @@ export const existingConversation = (
   box("ExistingConversation")(id);
 
 export const newConversation = (spec: {
-  contentPath: Option<Str>;
+  contentPath: Option<SoftStr>;
   kind: ConversationKind;
   visibility: Visibility;
 }): ConversationRef =>
@@ -53,9 +53,9 @@ export const newConversation$ = () =>
  */
 export type IngestMessage = Readonly<{
   conversationRef: ConversationRef;
-  body: Str;
+  body: SoftStr;
   authorKind: AuthorKind;
-  authorSubject: Option<Str>;
+  authorSubject: Option<SoftStr>;
   source: MessageSource;
 }>;
 

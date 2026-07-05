@@ -4,7 +4,7 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { some, none, box, match } from "plgg";
+import { some, none, match } from "plgg";
 import { conversation } from "plgg-content/Stakeholder/model/Conversation";
 import { message } from "plgg-content/Stakeholder/model/Message";
 import {
@@ -19,7 +19,7 @@ import {
 test("conversation + message are passthrough constructors carrying their fields", () => {
   const c = conversation({
     id: 1,
-    contentPath: some(box("Str")("blog/x.md")),
+    contentPath: some("blog/x.md"),
     kind: "request",
     status: "open",
     visibility: "private",
@@ -33,14 +33,14 @@ test("conversation + message are passthrough constructors carrying their fields"
     conversationId: 1,
     authorSubject: none(),
     authorKind: "guest",
-    body: box("Str")("please fix the typo"),
+    body: "please fix the typo",
     source: "web",
     createdAt: 10,
   });
   return all([
     check(c.kind, toBe("request")),
     check(c.status, toBe("open")),
-    check(m.body.content, toBe("please fix the typo")),
+    check(m.body, toBe("please fix the typo")),
     check(m.authorKind, toBe("guest")),
   ]);
 });
@@ -83,14 +83,14 @@ test("ConversationRef folds existing vs new", () =>
 test("ingestMessage assembles the write input verbatim", () => {
   const im = ingestMessage({
     conversationRef: existingConversation(1),
-    body: box("Str")("transcribed answer"),
+    body: "transcribed answer",
     authorKind: "agent",
-    authorSubject: some(box("Str")("sub-9")),
+    authorSubject: some("sub-9"),
     source: "voice",
   });
   return all([
     check(im.source, toBe("voice")),
     check(im.authorKind, toBe("agent")),
-    check(im.body.content, toBe("transcribed answer")),
+    check(im.body, toBe("transcribed answer")),
   ]);
 });

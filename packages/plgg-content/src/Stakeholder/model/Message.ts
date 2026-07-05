@@ -1,14 +1,14 @@
 import {
   type Option,
   type Num,
-  type Str,
+  type SoftStr,
 } from "plgg";
 import { type AuthorKind } from "plgg-content/Stakeholder/model/AuthorKind";
 import { type MessageSource } from "plgg-content/Stakeholder/model/MessageSource";
 
 /**
  * One message in a {@link Conversation} — PRIMARY data (D4).
- * `authorSubject` is the opaque subject identifier (a `Str`,
+ * `authorSubject` is the opaque subject identifier (a `SoftStr`,
  * `None` for an anonymous or agent write), `authorKind` names
  * who wrote it, `source` how it arrived. `body` is stored
  * verbatim and is UNTRUSTED — the submission surface validates
@@ -18,9 +18,9 @@ import { type MessageSource } from "plgg-content/Stakeholder/model/MessageSource
 export type Message = Readonly<{
   id: Num;
   conversationId: Num;
-  authorSubject: Option<Str>;
+  authorSubject: Option<SoftStr>;
   authorKind: AuthorKind;
-  body: Str;
+  body: SoftStr;
   source: MessageSource;
   createdAt: Num;
 }>;

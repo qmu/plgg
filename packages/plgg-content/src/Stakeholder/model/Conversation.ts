@@ -1,7 +1,7 @@
 import {
   type Option,
   type Num,
-  type Str,
+  type SoftStr,
 } from "plgg";
 import { type ConversationKind } from "plgg-content/Stakeholder/model/ConversationKind";
 import { type ConversationStatus } from "plgg-content/Stakeholder/model/ConversationStatus";
@@ -15,17 +15,17 @@ import { type MessageSource } from "plgg-content/Stakeholder/model/MessageSource
  * (`contentPath`), NEVER by a foreign key into ticket 16's
  * derived `documents.id` (which is re-numbered on rebuild).
  * `createdBy` is the opaque subject identifier of the author
- * (a `Str`, not a plgg-auth `Subject`, to keep plgg-content
+ * (a `SoftStr`, not a plgg-auth `Subject`, to keep plgg-content
  * decoupled from the auth package). Pure data: the
  * {@link conversation} constructor performs nothing.
  */
 export type Conversation = Readonly<{
   id: Num;
-  contentPath: Option<Str>;
+  contentPath: Option<SoftStr>;
   kind: ConversationKind;
   status: ConversationStatus;
   visibility: Visibility;
-  createdBy: Option<Str>;
+  createdBy: Option<SoftStr>;
   source: MessageSource;
   createdAt: Num;
   updatedAt: Num;
