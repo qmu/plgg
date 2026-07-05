@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure, UX]
 effort:
-commit_hash:
-category:
+commit_hash: 308417bd
+category: Changed
 depends_on: [20260704143006-plgg-view-cmd-sub-effects.md, 20260704143014-plggpress-serve-mode-dual-config.md, 20260704143019-plggpress-oidc-rp-integration.md, 20260704143021-requests-and-comments-accumulation.md, 20260704143024-rag-embeddings-and-search.md]
 ---
 
