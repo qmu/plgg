@@ -20,17 +20,18 @@ import {
  * an `Option<Embedder>` (None = no key), a loader for the
  * embedded candidates, and the FTS5/BM25 fallback (ticket 16).
  */
-export type SearchDeps<Id> = Readonly<{
-  embedder: Option<Embedder>;
-  loadCandidates: () => PromisedResult<
-    ReadonlyArray<Candidate<Id>>,
-    Defect
-  >;
-  ftsFallback: () => PromisedResult<
-    ReadonlyArray<Id>,
-    Defect
-  >;
-}>;
+export type SearchDeps<Id, E = Defect> =
+  Readonly<{
+    embedder: Option<Embedder>;
+    loadCandidates: () => PromisedResult<
+      ReadonlyArray<Candidate<Id>>,
+      E
+    >;
+    ftsFallback: () => PromisedResult<
+      ReadonlyArray<Id>,
+      E
+    >;
+  }>;
 
 /**
  * Hybrid retrieval with GRACEFUL DEGRADATION (D11). The chain
@@ -48,19 +49,21 @@ export type SearchDeps<Id> = Readonly<{
  * Never throws.
  */
 export const semanticSearch =
-  <Id>(deps: SearchDeps<Id>) =>
+  <Id, E = Defect>(
+    deps: SearchDeps<Id, E>,
+  ) =>
   (
     query: SoftStr,
     k: number,
   ): PromisedResult<
     ReadonlyArray<Id>,
-    Defect
+    E | Defect
   > =>
     matchOption<
       Embedder,
       PromisedResult<
         ReadonlyArray<Id>,
-        Defect
+        E | Defect
       >
     >(
       () => deps.ftsFallback(),
@@ -71,7 +74,7 @@ export const semanticSearch =
             Defect,
             PromisedResult<
               ReadonlyArray<Id>,
-              Defect
+              E | Defect
             >
           >(
             () => deps.ftsFallback(),
