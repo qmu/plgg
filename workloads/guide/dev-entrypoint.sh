@@ -44,6 +44,7 @@ for pkg in \
   plgg-db-migration \
   plgg-content \
   plgg-auth \
+  plgg-kit \
   plggpress \
   guide
 do

@@ -13,7 +13,8 @@
       "/stakeholder/submitWeb.ts",
       "/editing/editorWeb.ts",
       "/editing/exportFs.ts",
-      "/media/mediaWeb.ts"
+      "/media/mediaWeb.ts",
+      "/agent/agentWeb.ts"
     ]
   }
 }
