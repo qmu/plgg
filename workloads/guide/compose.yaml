@@ -46,6 +46,7 @@ services:
       - /app/packages/plgg-content/node_modules
       - /app/packages/plgg-auth/node_modules
       - /app/packages/plgg-kit/node_modules
+      - /app/packages/plgg-mcp/node_modules
       - /app/packages/plggpress/node_modules
       - /app/packages/plgg-bundle/node_modules
       - /app/packages/guide/node_modules

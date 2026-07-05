@@ -45,6 +45,7 @@ for pkg in \
   plgg-content \
   plgg-auth \
   plgg-kit \
+  plgg-mcp \
   plggpress \
   guide
 do

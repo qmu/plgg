@@ -53,7 +53,8 @@
     "plgg-content": "file:../plgg-content",
     "plgg-sql": "file:../plgg-sql",
     "plgg-auth": "file:../plgg-auth",
-    "plgg-kit": "file:../plgg-kit"
+    "plgg-kit": "file:../plgg-kit",
+    "plgg-mcp": "file:../plgg-mcp"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
