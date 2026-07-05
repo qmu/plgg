@@ -2,7 +2,8 @@
   "coverage": {
     "threshold": 90,
     "exclude": [
-      "/index.ts"
+      "/index.ts",
+      "/vendors/stdioServer.ts"
     ]
   }
 }
