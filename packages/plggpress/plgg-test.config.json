@@ -12,7 +12,8 @@
       "/auth/bootstrapAuth.ts",
       "/stakeholder/submitWeb.ts",
       "/editing/editorWeb.ts",
-      "/editing/exportFs.ts"
+      "/editing/exportFs.ts",
+      "/media/mediaWeb.ts"
     ]
   }
 }
