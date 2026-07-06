@@ -50,10 +50,7 @@ test("the root view renders the eight sections as a nav menu", () => {
     label.split("&").join("&amp;");
   return all([
     check(html.includes("<nav"), toBe(true)),
-    check(
-      html.includes("Contract Ops"),
-      toBe(true),
-    ),
+    check(html.includes("DevDesk"), toBe(true)),
     ...LABELS.map((label: string) =>
       check(
         html.includes(escaped(label)),
@@ -153,6 +150,69 @@ test("a deep link reproduces a project's detail", () => {
     check(getOr("")(m.root), toBe("projects")),
     check(
       html.includes("Beacon Financial"),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("the Clients filter narrows the list and reflects to ?q=", () => {
+  const m = drive(
+    openMenu("clients"),
+    queryInput("beacon"),
+  );
+  const html = renderToString(app.view(m));
+  return all([
+    check(
+      scheduled.toUrl(m).search,
+      toBe("?c=clients&q=beacon"),
+    ),
+    check(
+      html.includes("Beacon Financial"),
+      toBe(true),
+    ),
+    check(
+      html.includes("ACME Retail K.K."),
+      toBe(false),
+    ),
+  ]);
+});
+
+test("selecting a client shows its detail record", () => {
+  const m = drive(
+    openMenu("clients"),
+    select(0, "acme"),
+  );
+  const html = renderToString(app.view(m));
+  return all([
+    check(
+      scheduled.toUrl(m).search,
+      toBe("?c=clients&p=acme"),
+    ),
+    check(
+      html.includes("ACME Retail K.K."),
+      toBe(true),
+    ),
+    check(html.includes("Prime"), toBe(true)),
+    check(
+      html.includes("Sato, IT Dept."),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("a deep link reproduces a client's detail", () => {
+  const [m] = app.init(
+    makeUrl("/", "?c=clients&p=foxtrot"),
+  );
+  const html = renderToString(app.view(m));
+  return all([
+    check(getOr("")(m.root), toBe("clients")),
+    check(
+      html.includes("Foxtrot Mfg."),
+      toBe(true),
+    ),
+    check(
+      html.includes("Kanda, Plant IT"),
       toBe(true),
     ),
   ]);

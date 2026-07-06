@@ -1,9 +1,5 @@
 import { type SoftStr } from "plgg";
-import {
-  type Html,
-  slot,
-  attr,
-} from "plgg-view";
+import { type Html, slot, attr } from "plgg-view";
 import { type Application } from "plgg-view/client";
 import {
   type ScheduledModel,
@@ -28,20 +24,21 @@ import {
  * declaration.
  *
  * Step 1 laid out the eight-section MENU from scratch.
- * Step 2 brings the **Projects** section to life: a
- * filterable list whose rows carry a full project record,
- * shown as a detail view on select — still pure
- * declaration (`collection` + `query` + detail `field`s),
- * no hand-written `Model`/`Msg`/`update`/router. The other
- * seven sections stay placeholder lists until later steps.
+ * Step 2 brought the **Projects** section to life, and
+ * step 3 the **Clients** section — each a filterable
+ * list whose rows carry a full record, shown as a detail
+ * view on select. Still pure declaration (`collection` +
+ * `query` + detail `field`s), no hand-written
+ * `Model`/`Msg`/`update`/router. The other six sections
+ * stay placeholder lists until later steps.
  *
  * (The scheduler shows a collection's own detail ONLY when
  * it has no `child` — a `child` drills to a sub-list
- * instead. A project is a RECORD, so Projects is a leaf and
- * selecting one shows its fields; a per-project task/
- * milestone drill is a later step, and the multi-level
- * drill itself is already demonstrated by demo 3 and the
- * workbench.)
+ * instead. A project or client is a RECORD, so those
+ * sections are leaves and selecting one shows its fields;
+ * a per-project task/milestone drill is a later step, and
+ * the multi-level drill itself is already demonstrated by
+ * demo 3 and the workbench.)
  */
 
 // --- The menu: all eight top-level sections ---
@@ -150,7 +147,96 @@ const projectsCollection: Collection =
     query: query("Filter projects"),
   });
 
-// --- The other seven sections: step-1 placeholder lists ---
+// --- Clients: the second real section (filterable + detail) ---
+type Client = Readonly<{
+  id: SoftStr;
+  name: SoftStr;
+  status: SoftStr;
+  since: SoftStr;
+  contact: SoftStr;
+  projects: SoftStr;
+  notes: SoftStr;
+}>;
+
+const clients: ReadonlyArray<Client> = [
+  {
+    id: "acme",
+    name: "ACME Retail K.K.",
+    status: "Prime",
+    since: "2024",
+    contact: "Sato, IT Dept.",
+    projects: "ACME storefront rebuild",
+    notes:
+      "Prime account; framework contract renews yearly.",
+  },
+  {
+    id: "beacon",
+    name: "Beacon Financial",
+    status: "Active",
+    since: "2025",
+    contact: "Ito, Digital",
+    projects: "Beacon bank API",
+    notes:
+      "MSA in place; strict security review gate.",
+  },
+  {
+    id: "cobalt",
+    name: "Cobalt Labs",
+    status: "Prospect",
+    since: "2026",
+    contact: "Lang, Product",
+    projects: "Cobalt mobile app",
+    notes: "New this quarter; scoping phase 1.",
+  },
+  {
+    id: "delta",
+    name: "Delta Logistics",
+    status: "Active",
+    since: "2025",
+    contact: "Mori, Operations",
+    projects: "Delta data platform",
+    notes:
+      "T&M engagement; delivery currently on hold.",
+  },
+  {
+    id: "echo",
+    name: "Echo Media",
+    status: "Active",
+    since: "2023",
+    contact: "Ueda, Editorial",
+    projects: "Echo CMS migration",
+    notes:
+      "CMS migration delivered; maintenance retainer.",
+  },
+  {
+    id: "foxtrot",
+    name: "Foxtrot Mfg.",
+    status: "Active",
+    since: "2025",
+    contact: "Kanda, Plant IT",
+    projects: "Foxtrot IoT gateway",
+    notes:
+      "Largest active budget; multi-site rollout.",
+  },
+];
+
+const clientsCollection: Collection =
+  collection<Client>({
+    id: "clients",
+    title: "Clients",
+    toRow: (c: Client) =>
+      makeRow(c.id, c.name, [
+        field("Status", c.status),
+        field("Since", c.since),
+        field("Contact", c.contact),
+        field("Projects", c.projects),
+        field("Notes", c.notes),
+      ]),
+    source: sync(() => clients),
+    query: query("Filter clients"),
+  });
+
+// --- The other six sections: step-1 placeholder lists ---
 type Stub = Readonly<{
   id: SoftStr;
   title: SoftStr;
@@ -178,27 +264,6 @@ const STUBS: ReadonlyArray<Stub> = [
         "pending",
         "3 estimates awaiting sign-off",
         "Oldest: 9 days.",
-      ],
-    ],
-  },
-  {
-    id: "clients",
-    title: "Clients",
-    rows: [
-      [
-        "acme-co",
-        "ACME Retail K.K.",
-        "Prime contract since 2024.",
-      ],
-      [
-        "beacon-co",
-        "Beacon Financial",
-        "MSA in place.",
-      ],
-      [
-        "cobalt-co",
-        "Cobalt Labs",
-        "New this quarter.",
       ],
     ],
   },
@@ -298,7 +363,7 @@ const stubCollection = (s: Stub): Collection =>
   });
 
 export const declaration: Declaration = declare({
-  title: "Contract Ops",
+  title: "DevDesk",
   menu: menu(
     MENU.map(([id, label]) =>
       menuEntry(label, id),
@@ -307,6 +372,7 @@ export const declaration: Declaration = declare({
   collections: [
     ...STUBS.map(stubCollection),
     projectsCollection,
+    clientsCollection,
   ],
 });
 
