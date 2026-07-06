@@ -2,7 +2,7 @@
 
 plggmatic is a UI design framework built on the [plgg](https://github.com/qmu/plgg) family. It gives you three things as typed, composable data: a **column-oriented pane alignment system**, a **light/dark color scheme** driven by design tokens, and a small set of **fundamental components** that are pure functions returning plgg-view `Html`.
 
-Start with [Getting started](/getting-started), read about the [color scheme](/color-scheme) and [pane alignment](/pane-alignment), or browse the [components](/components/button).
+Start with [Getting started](/getting-started), read about the [color scheme](/color-scheme) and [pane alignment](/pane-alignment), browse the [components](/components/button), or open the [demo catalog](/demo).
 
 ## Not the same as the old plggmatic
 

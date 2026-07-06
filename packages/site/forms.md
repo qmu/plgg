@@ -63,4 +63,5 @@ auto-dismiss is the consumer's `cmdEffect`, not a timer inside the component.
 See the runnable demo in
 [`packages/plggmatic-example/src/forms/`](../plggmatic-example/src/forms/) —
 an invalid submit shows a field error and dispatches nothing, a valid submit
-disables the form and toasts success, and a delete asks the dialog.
+disables the form and toasts success, and a delete asks the dialog. The
+numbered showcases live in the [demo catalog](/demo).

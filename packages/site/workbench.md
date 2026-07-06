@@ -12,6 +12,7 @@ The 691-line hand-written program it replaced is gone.
 
 The built app is served beside this site at the `/example/` path, and its source
 lives in [`packages/plggmatic-example` on GitHub](https://github.com/qmu/plgg/tree/main/packages/plggmatic-example).
+The numbered showcases live in the [demo catalog](/demo).
 
 ## The program is a declaration
 

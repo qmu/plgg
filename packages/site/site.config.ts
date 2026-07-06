@@ -74,6 +74,15 @@ const config = {
       ],
     },
     {
+      text: "Demos",
+      items: [
+        leaf("Overview", "/demo"),
+        leaf("Demo 1", "/demo/1"),
+        leaf("Demo 2", "/demo/2"),
+        leaf("Demo 3", "/demo/3"),
+      ],
+    },
+    {
       text: "Foundations",
       items: [
         leaf("Color scheme", "/color-scheme"),

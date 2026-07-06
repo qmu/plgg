@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 1h
-commit_hash: bfe7518a
+commit_hash: 72c934d9
 category: Added
 depends_on: []
 ---
@@ -77,4 +77,10 @@ Approval in `/drive` requires **all** of:
 
 ## Final Report
 
-(To be filled by /drive.)
+Implemented as specified, content + config data only — no plggpress code, no `scripts/build.sh` change.
+
+- New: `packages/site/demo/index.md` (the `/demo` catalog: numbered list linking Demo 1–3, "Existing examples" cross-links to `/workbench` and `/forms`), plus honest stubs `demo/1.md`, `demo/2.md`, `demo/3.md` each linking back to `/demo`.
+- Edited: `site.config.ts` — "Demos" sidebar group (Overview + Demo 1/2/3, `leaf()` data, printWidth 50) placed after "Guide" so the sidebar reads orientation → showcases → reference; one cross-link line each in `workbench.md`, `forms.md`, `index.md`.
+- Quality gate passed: `npm run check` green — examples tsc + plggpress build, 19 pages (+4), dead-link checker green. Browser-verified on the 5182 preview (plggmatic-guide.qmu.dev): catalog and stubs render, Demos group on every page, `aria-current="page"` highlighting confirmed in SSR output for `/demo` and `/demo/2`, dark mode legible, no new console errors (pre-existing `favicon.ico` 404 only).
+- Developer reviewed the live preview URL before approval.
+- Follow-ups: three tickets, one per demo, each replacing its stub.
