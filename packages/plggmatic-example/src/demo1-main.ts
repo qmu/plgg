@@ -27,7 +27,6 @@ import { app } from "./demo1/bizMenuDemo.ts";
 const pageCss = `
 body{margin:0;font-family:system-ui,sans-serif;line-height:1.6;background:var(--pm-surface);color:var(--pm-text);}
 .bo-root{min-height:100vh;}
-.bo-brand{position:fixed;top:0.5rem;left:1rem;z-index:10;font-weight:600;opacity:0.5;font-size:0.8rem;}
 .pm-query{width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid var(--pm-border);border-radius:6px;background:var(--pm-surface);color:var(--pm-text);}
 `;
 

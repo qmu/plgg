@@ -2,8 +2,6 @@ import { type SoftStr } from "plgg";
 import {
   type Html,
   slot,
-  span,
-  text,
   attr,
 } from "plgg-view";
 import { type Application } from "plgg-view/client";
@@ -324,17 +322,15 @@ export const app: Application<
   SchedulerMsg
 > = {
   ...scheduled,
+  // The multi-column chrome brands the app via the
+  // breadcrumb root and the menu header (both the
+  // declaration `title`), so no separate wordmark — a fixed
+  // overlay would only collide with the breadcrumb.
   view: (
     model: ScheduledModel,
   ): Html<SchedulerMsg> =>
     slot(
       [attr("class", "bo-root")],
-      [
-        span(
-          [attr("class", "bo-brand")],
-          [text("Contract Ops")],
-        ),
-        multiColumn(scheduled.scene(model)),
-      ],
+      [multiColumn(scheduled.scene(model))],
     ),
 };
