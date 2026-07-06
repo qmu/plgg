@@ -19,6 +19,12 @@ export {
   type SemanticRole,
   type Neutral,
   colors,
+  // The token-vocabulary arrays (values, not the `Variant`
+  // type above): a consumer building a token reference — the
+  // demo-2 swatch grid — groups by these.
+  neutrals,
+  semanticRoles,
+  variants,
   colorVar,
 } from "plggmatic/Style/model/token";
 export {

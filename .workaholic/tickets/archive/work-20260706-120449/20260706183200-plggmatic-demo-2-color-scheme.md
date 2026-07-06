@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 2h
-commit_hash: f3fa5f21
+commit_hash: 08710546
 category: Added
 depends_on: []
 ---
@@ -74,4 +74,11 @@ Approval in `/drive` requires **all** of:
 
 ## Final Report
 
-(To be filled by /drive.)
+Implemented as specified — a `sandbox` reschemer served under `/example/`.
+
+- New: `src/demo2/colorSchemeDemo.ts` (the sandbox program: framework `themeToggle`, a swatch grid over every token grouped Neutrals + the five semantic roles, the toggle `Msg` flipping the model scheme and an `applyScheme` `cmdEffect` seam; a `makeProgram(initial)` factory so the mount seeds the model from the boot-decided scheme), `src/demo2/colorSchemeDemo.spec.ts` (3 SSR specs), `src/demo2-main.ts` (CSR entry with the framework appearance boot), `demo2.html` (shell).
+- Edited: `bundle.config.ts` (+`demo2`), `src/stamp.ts` (+`demo2.html`), `packages/site/demo/2.md` (stub → real page linking to `/example/demo2.html`).
+- **Enabling framework change (additive):** exported the token-vocabulary arrays `neutrals`, `semanticRoles`, `variants` from `plggmatic/Style` and the `plggmatic/style` subpath — the swatch grid groups by these. Additive only (no value/type change); plggmatic's own suite stays green (170 passed, coverage gate > 90%).
+- **Deviation from the ticket:** dropped the two sample buttons. Browser check exposed that the shared `demoCss` `.pm-btn-primary` pairs `primary-base` fill with `primary-text` ink (light-on-light / dark-on-dark → invisible label in both schemes — a pre-existing demoCss contrast bug). Rather than ship a WCAG failure or edit shared demoCss (used by the forms demo), the 25-token swatch grid is the whole proof; each swatch carries its name, so nothing reads by color alone. (Pre-existing `.pm-btn-primary` contrast left as a separate concern.)
+- **Test-DOM note:** the in-house DOM has no `document.documentElement` and no `createElementNS`, so the spec asserts on the SSR `renderToString(view(...))` output (swatch count = `colors.length`, token names present, aria-label seeding) and the pure reducer (scheme flip + `applied` no-op); the real `html.dark` flip is browser-verified.
+- Quality gate passed: `plggmatic-example` `npm test` green — tsc + plgg-test, **18 passed** (3 new). `packages/site` `npm run check` green — examples tsc + plggpress build (19 pages), dead-link gate green. Browser-verified on the 5182 preview: all 25 labelled swatches render; the `themeToggle` flips light↔dark and every `var(--pm-*)` swatch reschemes from the single class; 0 console errors/warnings. `/demo/2` renders and its "Run demo 2" link opens the app.

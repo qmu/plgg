@@ -22,6 +22,8 @@ export default {
     { name: "forms", input: "forms-main.ts" },
     // demo 1 — pane alignment (raw row/column/pane combinators)
     { name: "demo1", input: "demo1-main.ts" },
+    // demo 2 — color scheme (token-driven light/dark reschemer)
+    { name: "demo2", input: "demo2-main.ts" },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",

@@ -29,6 +29,7 @@ const pages: ReadonlyArray<
   ["index.html", "main.js"],
   ["forms.html", "forms.js"],
   ["demo1.html", "demo1.js"],
+  ["demo2.html", "demo2.js"],
 ];
 
 for (const [page, bundleName] of pages) {
