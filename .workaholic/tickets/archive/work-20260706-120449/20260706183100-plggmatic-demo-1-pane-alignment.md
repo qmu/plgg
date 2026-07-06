@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 2h
-commit_hash: f3fa5f21
+commit_hash: dfbc4154
 category: Added
 depends_on: []
 ---
@@ -72,4 +72,8 @@ Approval in `/drive` requires **all** of:
 
 ## Final Report
 
-(To be filled by /drive.)
+Implemented as specified — a `sandbox` demo built from the raw layout combinators, served under `/example/`.
+
+- New: `src/demo1/paneAlignmentDemo.ts` (the sandbox program: `row`/`column`/`navPane`/`mainPane`/`asidePane`, nav track cycling `basis("180px")`→`basis("320px")`→`fluid`, panes collapsed by omission), `src/demo1/paneAlignmentDemo.spec.ts` (4 DOM specs), `src/demo1-main.ts` (CSR entry), `demo1.html` (shell).
+- Edited: `bundle.config.ts` (+`demo1` entry), `src/stamp.ts` (+`demo1.html` page), `packages/site/demo/1.md` (stub → real page linking to `/example/demo1.html` and cross-linking pane-alignment/multi-column/workbench/catalog).
+- Quality gate passed: `plggmatic-example` `npm test` green — tsc + plgg-test, **15 passed** (4 new), the demo1 program at 100% coverage. `packages/site` `npm run check` green — examples tsc + plggpress build (19 pages), dead-link gate green (the `/example/demo1.html` link passes via the asset-path `.html` exemption). Browser-verified on the 5182 preview: three real `nav`/`main`/`aside` landmarks render; collapsing the aside reflows the fluid main; cycling the nav to `fluid` splits the row with main; dark-mode legible; only the known `favicon.ico` 404 in console. `/demo/1` renders and its "Run demo 1" link opens the app.

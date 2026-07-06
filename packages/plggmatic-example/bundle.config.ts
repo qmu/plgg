@@ -20,6 +20,8 @@ export default {
     { name: "main", input: "main.ts" },
     // the ticket-12 forms demo (form + dialog + toasts)
     { name: "forms", input: "forms-main.ts" },
+    // demo 1 — pane alignment (raw row/column/pane combinators)
+    { name: "demo1", input: "demo1-main.ts" },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",
