@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 4h
-commit_hash: f3fa5f21
+commit_hash: f400ef70
 category: Added
 depends_on: []
 ---
@@ -75,4 +75,9 @@ Approval in `/drive` requires **all** of:
 
 ## Final Report
 
-(To be filled by /drive.)
+Implemented as specified — the smallest scheduled program, mounted with `application`, served under `/example/`.
+
+- New: `src/demo3/queryUrlDemo.ts` (one flat `collection` with a `query`, `schedule(declaration)`, an `Application` view drawn by `multiColumn` plus a live "derived URL" bar reading `scheduled.toUrl(model).search`), `src/demo3/queryUrlDemo.spec.ts` (4 codec specs asserting the derived `toUrl`), `src/demo3-main.ts` (CSR entry mounting with `application` + the appearance boot), `demo3.html` (shell).
+- Edited: `bundle.config.ts` (+`demo3`), `src/stamp.ts` (+`demo3.html`), `packages/site/demo/3.md` (stub → real page linking to `/example/demo3.html`).
+- **Behaviour pinned honestly:** driving `select` after a query *clears* the filter (a drill resets the level's filter), so a selected slice serializes to `?c=items&p=moss` (no `&q`). The spec therefore asserts query-alone (`?c=items&q=mo`) and selection-alone (`?c=items&p=moss`) separately, plus the round-trip and that a deep link `?c=items&p=fern&q=fer` parses back to path `[fern]` + query `fer` (the codec is total on parse even for the query+selection combination the live drive doesn't produce). No hand-written parsing — `scheduled.toUrl` is the derived codec.
+- Quality gate passed: `plggmatic-example` `npm test` green — tsc + plgg-test, **23 passed** (4 new, asserting the derived `toUrl` directly per the ticket). `packages/site` `npm run check` green — examples tsc + plggpress build (19 pages), dead-link gate green. Browser-verified on the 5182 preview: typing the filter reflects to `?c=items&q=mo` and narrows the list; selecting drills to `?c=items&p=moss` and clears the filter; the deep link `?c=items&p=fern&q=fer` reproduced the exact filtered+selected slice (filter box "fer", one-row list, fern detail); **browser back restored the previous slice via popstate**; the live derived-URL bar tracked every change; 0 console errors/warnings. `/demo/3` renders and its "Run demo 3" link opens the app.

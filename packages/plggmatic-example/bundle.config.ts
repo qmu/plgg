@@ -24,6 +24,8 @@ export default {
     { name: "demo1", input: "demo1-main.ts" },
     // demo 2 — color scheme (token-driven light/dark reschemer)
     { name: "demo2", input: "demo2-main.ts" },
+    // demo 3 — scheduler query + derived URL codec (application)
+    { name: "demo3", input: "demo3-main.ts" },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",
