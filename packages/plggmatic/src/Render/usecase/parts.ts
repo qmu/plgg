@@ -28,17 +28,19 @@ import { cssPrefix } from "plggmatic/Meta/model/identity";
 import { confirmDialog } from "plggmatic/Component/usecase/confirmDialog";
 import {
   type SchedulerMsg,
+  queryInput,
+  requestAction,
+  confirmAction,
+  cancelAction,
+} from "plggmatic/Schedule/model/Msg";
+import {
   type ConfirmPrompt,
   type ActionButton,
   type QueryState,
   type RowLink,
   type MenuLink,
-  type Field,
-  queryInput,
-  requestAction,
-  confirmAction,
-  cancelAction,
-} from "plggmatic";
+} from "plggmatic/Schedule/model/Scene";
+import { type Field } from "plggmatic/Declare/model/Row";
 
 /**
  * The rendering pieces BOTH mode renderers (multi-column,
@@ -93,12 +95,7 @@ export const actionRow = (
     ? []
     : [
         slot(
-          [
-            attr(
-              "class",
-              `${cssPrefix}-actions`,
-            ),
-          ],
+          [attr("class", `${cssPrefix}-actions`)],
           actions.map((ab: ActionButton) =>
             button(
               [
@@ -180,13 +177,11 @@ export const menuNav = (
   entries: ReadonlyArray<MenuLink>,
 ): Html<SchedulerMsg> =>
   navTree(
-    entries.map(
-      (e: MenuLink): NavItem => ({
-        label: e.label,
-        href: some(e.href),
-        children: [],
-      }),
-    ),
+    entries.map((e: MenuLink): NavItem => ({
+      label: e.label,
+      href: some(e.href),
+      children: [],
+    })),
     matchOption<MenuLink, SoftStr>(
       () => "",
       (e: MenuLink) => e.href,

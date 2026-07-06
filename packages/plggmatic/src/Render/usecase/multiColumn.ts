@@ -35,16 +35,16 @@ import {
   breadcrumb,
 } from "plggmatic/Component/usecase/breadcrumb";
 import { colHead } from "plggmatic/Component/usecase/colHead";
+import { type SchedulerMsg } from "plggmatic/Schedule/model/Msg";
 import {
-  type SchedulerMsg,
   type Scene,
   type Level,
-  type Row,
   type ActionButton,
   menuLevel$,
   listLevel$,
   detailLevel$,
-} from "plggmatic";
+} from "plggmatic/Schedule/model/Scene";
+import { type Row } from "plggmatic/Declare/model/Row";
 import { cssPrefix } from "plggmatic/Meta/model/identity";
 import {
   confirmOverlay,
@@ -104,9 +104,7 @@ const titleOf = (level: Level): SoftStr =>
     ],
   );
 
-const backOf = (
-  level: Level,
-): Option<SoftStr> =>
+const backOf = (level: Level): Option<SoftStr> =>
   match(level)(
     [menuLevel$(), (): Option<SoftStr> => none()],
     [
@@ -161,7 +159,11 @@ const detailBody = (
     ],
     (r: Row) => [
       detailFields(r.fields),
-      ...actionRow(collection, some(r.id), actions),
+      ...actionRow(
+        collection,
+        some(r.id),
+        actions,
+      ),
     ],
   )(detailRow);
 
@@ -217,7 +219,9 @@ const columnFor = (
                       close: content.back,
                     }),
                     ...queryField(content.query),
-                    ...loadingHint(content.loading),
+                    ...loadingHint(
+                      content.loading,
+                    ),
                     ...errorHint(content.error),
                     rowList(content.rows),
                     ...actionRow(

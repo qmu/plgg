@@ -28,13 +28,16 @@ import {
   menuLevel$,
   listLevel$,
   detailLevel$,
-} from "plggmatic";
+} from "plggmatic/Schedule/model/Scene";
 import {
   type Screen,
   currentScreen,
 } from "plggmatic/Render/model/screen";
 
-type Sec = Readonly<{ id: SoftStr; label: SoftStr }>;
+type Sec = Readonly<{
+  id: SoftStr;
+  label: SoftStr;
+}>;
 const decl = declare({
   title: "Demo",
   menu: menu([menuEntry("Sections", "sections")]),

@@ -1,11 +1,8 @@
-import {
-  type Option,
-  fromNullable,
-} from "plgg";
+import { type Option, fromNullable } from "plgg";
 import {
   type Scene,
   type Level,
-} from "plggmatic";
+} from "plggmatic/Schedule/model/Scene";
 
 /**
  * The single-column mode shows ONE operation per screen —

@@ -1,8 +1,6 @@
 import { type Html } from "plgg-view";
-import {
-  type SchedulerMsg,
-  type Scene,
-} from "plggmatic";
+import { type SchedulerMsg } from "plggmatic/Schedule/model/Msg";
+import { type Scene } from "plggmatic/Schedule/model/Scene";
 import { type Mode } from "plggmatic/Render/model/mode";
 import { multiColumn } from "plggmatic/Render/usecase/multiColumn";
 import { singleColumn } from "plggmatic/Render/usecase/singleColumn";

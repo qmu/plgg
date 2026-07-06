@@ -19,15 +19,15 @@ import {
   mainPane,
 } from "plggmatic/Layout/usecase/combinators";
 import { heading } from "plggmatic/Component/usecase/typography";
+import { type SchedulerMsg } from "plggmatic/Schedule/model/Msg";
 import {
-  type SchedulerMsg,
   type Scene,
-  type Row,
   type ActionButton,
   menuLevel$,
   listLevel$,
   detailLevel$,
-} from "plggmatic";
+} from "plggmatic/Schedule/model/Scene";
+import { type Row } from "plggmatic/Declare/model/Row";
 import { cssPrefix } from "plggmatic/Meta/model/identity";
 import {
   type Screen,
@@ -67,10 +67,7 @@ export const singleColumn = (
     [attr("class", `${cssPrefix}-single`)],
     [
       ...confirmOverlay(scene.confirm),
-      matchOption<
-        Screen,
-        Html<SchedulerMsg>
-      >(
+      matchOption<Screen, Html<SchedulerMsg>>(
         () =>
           column(
             [],
@@ -180,6 +177,10 @@ const detailBody = (
     ],
     (r: Row) => [
       detailFields(r.fields),
-      ...actionRow(collection, some(r.id), actions),
+      ...actionRow(
+        collection,
+        some(r.id),
+        actions,
+      ),
     ],
   )(detailRow);
