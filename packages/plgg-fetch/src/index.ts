@@ -1,1 +1,1 @@
-export * from "plgg-fetch/Http";
+export * from "plgg-fetch/domain";

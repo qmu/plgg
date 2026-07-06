@@ -83,10 +83,9 @@
 * [(carried from PR #52) Degraded window between CNAME flip and certificate provisioning](53-carried-from-pr-52-degraded-window.md)
 * [Design refinement beyond the oracle: snap text color on hover, fade only the background](53-design-refinement-beyond-the-oracle-snap.md)
 * [Facade disambiguation is a new plggpress maintenance point](55-facade-disambiguation-is-a-plggpress-maintenance-point.md)
-* [~74 standing deferred concerns carried (PRs #31–#53)](59-standing-deferred-concerns-carried.md)
-* [plgg-highlight grammar has cosmetic lexing limitations vs the old scanner](59-lexer-fidelity-limitations-non-ascii-jsx-regex-class.md)
-* [plgg-parser concrete-S pinning is an ergonomic sharp edge](59-concrete-s-pinning-ergonomics.md)
 * [plgg-parser omits `attempt` by design (stateless-failure backtracking)](59-attempt-combinator-intentionally-omitted.md)
-* [plggmatic's `publish` npm script breaks the canonical publish-npm.sh flow](59-plggmatic-publish-script-breaks-canonical-publish.md)
+* [plgg-parser concrete-S pinning is an ergonomic sharp edge](59-concrete-s-pinning-ergonomics.md)
+* [plgg-highlight grammar has cosmetic lexing limitations vs the old scanner](59-lexer-fidelity-limitations-non-ascii-jsx-regex-class.md)
+* [~74 standing deferred concerns carried (PRs #31–#53)](59-standing-deferred-concerns-carried.md)
 
 * [archive/](archive/)

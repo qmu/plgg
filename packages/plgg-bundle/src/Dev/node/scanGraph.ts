@@ -2,12 +2,12 @@ import {
   readdirSync,
   readFileSync,
   statSync,
-} from "node:fs";
+} from "plgg-bundle/vendors/nodeFs";
 import {
   resolve,
   dirname,
   join,
-} from "node:path";
+} from "plgg-bundle/vendors/nodePath";
 import { parseImports } from "plgg-bundle/Dev/usecase/parseImports";
 import { buildGraph } from "plgg-bundle/Dev/usecase/buildGraph";
 import { type ModuleGraph } from "plgg-bundle/Dev/model/ModuleGraph";

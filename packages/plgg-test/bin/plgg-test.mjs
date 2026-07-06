@@ -47,7 +47,6 @@ const registerPath = join(
 const cliPath = join(srcRoot, "Cli", "cli.ts");
 
 const argv = process.argv.slice(2);
-const wantsCoverage = argv.includes("--coverage");
 const wantsWatch = argv.includes("--watch");
 // The child CLI does a single run; --watch/--coverage are orchestrated
 // here, so strip them from what the child sees.
@@ -104,19 +103,11 @@ const gatePath = join(
 // --watch a SOURCE edit is reflected (an in-process re-run would reuse
 // Node's module cache and report stale results).
 function runChild() {
-  if (!wantsCoverage) {
-    const r = spawnSync(
-      process.execPath,
-      [...nodeFlags, cliPath, ...childArgv],
-      {
-        stdio: "inherit",
-        env: baseEnv,
-      },
-    );
-    return r.status ?? 1;
-  }
-  // Coverage: re-exec with NODE_V8_COVERAGE, then the parent post-pass
-  // folds the dumped V8 JSON and applies the per-package gate.
+  // Gating is unconditional (D14): every one-shot run re-execs with
+  // NODE_V8_COVERAGE, then the parent post-pass folds the dumped V8 JSON
+  // and applies the per-package gate. `--coverage` is accepted as a no-op
+  // (stripped from childArgv above) so existing `coverage` npm scripts
+  // keep working.
   const covDir = mkdtempSync(
     join(tmpdir(), "plgg-test-cov-"),
   );

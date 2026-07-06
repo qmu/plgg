@@ -103,7 +103,13 @@ EOS
   # (2025-06) above the current 0.0.x line with latest deliberately
   # re-pointed below it, and npm refuses to implicitly tag a lower version.
   # For every other package the explicit tag is what implicit would do.
-  (cd "$STAGE" && npm publish --tag latest)
+  # --ignore-scripts: the dist is already built by build.sh before staging,
+  # so no package needs a publish-time lifecycle hook. This immunizes the
+  # family-publish flow against any staged package's stray
+  # prepublishOnly/prepare/prepack/publish/postpublish script (e.g.
+  # plggmatic's old `publish` hook that ran plgg-bundle in the staging copy
+  # → exit 127 and aborted the whole run).
+  (cd "$STAGE" && npm publish --tag latest --ignore-scripts)
 
   echo "=== $NAME@$VERSION: verify - registry resolves ==="
   TRIES=0

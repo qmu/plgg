@@ -3,12 +3,12 @@ import {
   statSync,
   readFileSync,
   writeFileSync,
-} from "node:fs";
+} from "plgg-bundle/vendors/nodeFs";
 import {
   join,
   dirname,
   relative,
-} from "node:path";
+} from "plgg-bundle/vendors/nodePath";
 
 /**
  * Rewrite the package self-alias (`<prefix>/<sub>`) in

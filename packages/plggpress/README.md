@@ -13,8 +13,9 @@ It is the engine that builds [the guide](../guide/).
 
 plggpress carries a generic web **framework** internally
 (`src/framework/` — config loading, a router builder,
-static-build + CLI orchestration, absorbed from the former
-standalone `plggmatic`, now developed in its own repository).
+static-build + CLI orchestration, absorbed from the retired
+`plggmatic` app-framework facade — the name `plggmatic` now
+belongs to the UI design framework in `packages/plggmatic/`).
 That framework also wraps the whole mid-library stack (view,
 server/http, md, highlight); plggpress supplies the docs-site
 specifics on top of it — the `SiteConfig` type and the
@@ -50,9 +51,14 @@ subpaths). plggpress depends on the plgg family directly
 
 ## Usage
 
-```bash
-plggpress build --config site.config.ts --contentDir . --outDir dist
-```
+Three modes, **one `site.config.ts`, one `loadConfig`, one
+`pressRouter`** — served HTML is byte-identical to built HTML:
+
+| Mode | Command | What it is |
+| --- | --- | --- |
+| **build** | `plggpress build --config site.config.ts --contentDir . --outDir dist` | SSG — renders every route to static files (the public reader path, served over a CDN). |
+| **serve** | `plggpress serve --config site.config.ts --contentDir . --port 3000` | A persistent `node:http` instance rendering the SAME router live; config loaded once at startup, no watch. The mount point for the later `/api`, `/admin`, `/auth`, `/mcp` subtrees (`server/pressServer.ts`). |
+| **dev** | `plgg-bundle dev` (via the app's `devEntry.ts`) | Authoring hot-reload — a **toolchain** concern, not a plggpress command. plggpress ships no `dev` command; `serve` is not its return. |
 
 ## Conventions
 

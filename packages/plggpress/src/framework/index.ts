@@ -5,9 +5,11 @@
 // pre-organized CLI. (Dev/hot-reload is a toolchain
 // concern — `plgg-bundle dev` — not the framework's.)
 //
-// Absorbed from the former standalone `plggmatic` package
-// (now developed in its own repository); plggpress carries
-// this framework internally instead of depending on it.
+// Absorbed (31fdee9) from the retired `plggmatic`
+// app-framework facade; the name `plggmatic` now
+// belongs to the UI design framework in
+// `packages/plggmatic/`. plggpress carries this
+// framework internally instead of depending on it.
 //
 // The facade also wraps the mid-library surfaces, so
 // plggpress reaches the whole stack through one internal
@@ -42,9 +44,13 @@ export {
 
 export {
   type AppRunContext,
+  type ServeSettings,
   configPathOf,
   resolveOptions,
+  resolveServe,
 } from "plggpress/framework/Cli/usecase/resolveOptions";
+
+export { serveApp } from "plggpress/framework/Serve/usecase/serveApp";
 
 export {
   type AppDefinition,

@@ -5,14 +5,16 @@
  *   import "./example";
  *
  * Everything the app author writes is **pure**: an immutable `Model`, an
- * `update` that folds a `Msg` into the next model, and a `view` from the model
- * to `Html<Msg>`. The one imperative seam — the live model + DOM — is owned by
- * `sandbox`, the runtime. There is no `Cmd`/`Sub`; every `Msg` recomputes
- * `update`, and the runtime diffs the new `Html<Msg>` against the last and
- * patches only what changed.
+ * `update` that folds a `Msg` into `[nextModel, Cmd]`, and a `view` from the
+ * model to `Html<Msg>`. `Cmd`/`Sub` are pure DATA the app returns and the
+ * runtime alone executes — so purity holds even WITH effects; this counter has
+ * none, so every branch returns `cmdNone()`. The imperative seams — the live
+ * model + DOM + effect execution — are owned by `sandbox`, the runtime, which
+ * diffs the new `Html<Msg>` against the last and patches only what changed.
  *
- * For SSR, the same `view(init)` folds to a string through `renderToString`
- * (handlers dropped) — see `Html/usecase/renderToString.spec.ts`.
+ * For SSR, the same `view` of the initial model folds to a string through
+ * `renderToString` (handlers dropped) — see
+ * `Html/usecase/renderToString.spec.ts`.
  */
 import {
   Html,
@@ -22,7 +24,11 @@ import {
   text,
   onClick,
 } from "plgg-view/index";
-import { sandbox } from "plgg-view/client";
+import {
+  sandbox,
+  cmdNone,
+  type Cmd,
+} from "plgg-view/client";
 import { match } from "plgg";
 
 // --- Model: the whole app state is one immutable number ---
@@ -31,16 +37,42 @@ type Model = number;
 // --- Msg: every change is data, never a callback mutating state ---
 type Msg = "Increment" | "Decrement" | "Reset";
 
-const init: Model = 0;
+// init is the initial `[Model, Cmd]` — no startup effect here.
+const init: readonly [Model, Cmd<Msg>] = [
+  0,
+  cmdNone(),
+];
 
-// --- update: pure (Msg, Model) => Model ---
+// --- update: pure (Msg, Model) => [Model, Cmd] ---
 // `match` is exhaustive over the `Msg` literal union — drop a case and it is a
-// compile error — so it fits plain string-tagged messages, not only Box ADTs.
-const update = (msg: Msg, model: Model): Model =>
+// compile error. Every branch returns `[model, cmdNone()]`: a pure counter has
+// no effects, but the shape is the same one an effectful app fills in.
+const update = (
+  msg: Msg,
+  model: Model,
+): readonly [Model, Cmd<Msg>] =>
   match(msg)(
-    ["Increment" as const, () => model + 1],
-    ["Decrement" as const, () => model - 1],
-    ["Reset" as const, () => 0],
+    [
+      "Increment" as const,
+      (): readonly [Model, Cmd<Msg>] => [
+        model + 1,
+        cmdNone(),
+      ],
+    ],
+    [
+      "Decrement" as const,
+      (): readonly [Model, Cmd<Msg>] => [
+        model - 1,
+        cmdNone(),
+      ],
+    ],
+    [
+      "Reset" as const,
+      (): readonly [Model, Cmd<Msg>] => [
+        0,
+        cmdNone(),
+      ],
+    ],
   );
 
 // --- view: pure Model => Html<Msg>; handlers produce Msg ---

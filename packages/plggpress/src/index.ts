@@ -23,6 +23,49 @@ export {
   defineSite,
 } from "plggpress/SiteConfig/model/SiteConfig";
 
+// Content models (D8) — the typed custom-attributes surface
+// a `site.config` declares: field builders, the model/
+// binding builders, the boundary casters, the frontmatter
+// caster, and the build-time model check. This is the only
+// surface `site.config.ts` can reach.
+export {
+  type ScalarKind,
+  type FieldType,
+  type Field,
+  type ContentModel,
+  type ContentModelBinding,
+  textField,
+  numberField,
+  booleanField,
+  listField,
+  groupField,
+  contentModel,
+  bindModel,
+} from "plggpress/ContentModel/model/ContentModel";
+export {
+  type ModelViolation,
+  type ModelViolations,
+  modelViolations,
+  modelViolations$,
+} from "plggpress/ContentModel/model/ModelViolation";
+export {
+  casterOf,
+  asFieldType,
+  asField,
+  asContentModel,
+  asContentModelBinding,
+  asBindings,
+} from "plggpress/ContentModel/usecase";
+export {
+  type Page,
+  checkModels,
+} from "plggpress/ContentModel/usecase/checkModels";
+
+// The read-only delivery API (D4/D11) — a thin plgg-server
+// Web sub-app over plgg-content's in-process query functions,
+// mounted at the pressServeWeb seam via `route("/api", …)`.
+export { contentApi } from "plggpress/api/contentApi";
+
 export {
   href,
   isExternalHref,

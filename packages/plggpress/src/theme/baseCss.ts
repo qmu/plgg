@@ -1,85 +1,66 @@
 import { type SoftStr } from "plgg";
+import { themeToggleClass } from "plggmatic";
+import {
+  colorVar,
+  metricVar,
+  maxWidth,
+  minWidth,
+} from "plggmatic/style";
 
 /**
- * The static, hand-authored base stylesheet for the
- * default theme — the qmu.co.jp sidebar-first app shell
- * with a monochrome light/dark palette (custom properties
- * redefined under `html.dark`): a far-right 48px chrome
- * rail (appearance toggle + social), a `w-64` sidebar with
- * the wordmark home link and an always-expanded nav tree
- * (inverted-pill active/hover), and a left-aligned
- * `max-w-3xl` content column with a centred footer. On lg+
- * the row fills the viewport and each column scrolls
- * independently; below lg the rail hides, a sticky mobile
- * bar appears, and the sidebar becomes an off-canvas
- * drawer. It OWNS layout, typography, and responsiveness
- * (the `@media` the atomic `style_` utilities cannot
- * express) and is injected INLINE into the document
- * `<style>` (ahead of the body's collected atomic CSS) by
- * {@link shell}, so it stays escape-safe: NO raw `<`, `>`,
- * or `&` — only class/descendant selectors, `@media`, and
- * custom properties (no child `>` combinators, no `&`
- * nesting) — surviving the SSR `text()` escaper
- * byte-for-byte.
+ * The bespoke layout/prose stylesheet for the default
+ * theme — the qmu.co.jp sidebar-first app shell: a
+ * far-right 48px chrome rail (appearance toggle + social),
+ * a `w-64` sidebar with the wordmark home link and an
+ * always-expanded nav tree (inverted-pill active/hover),
+ * and a left-aligned `max-w-3xl` content column with a
+ * centred footer. On lg+ the row fills the viewport and
+ * each column scrolls independently; below lg the rail
+ * hides, a sticky mobile bar appears, and the sidebar
+ * becomes an off-canvas drawer.
  *
- * Light/dark is driven by the `dark` class on `<html>`,
- * set by the no-FOUC head script and toggled by every
- * `.vp-theme-toggle` (see themeScript). The mobile drawer
- * stays CSS-only (a hidden `#vp-menu-toggle` checkbox).
+ * **What this OWNS after the plggmatic cutover (D3/D16):**
+ * layout, prose typography, and the `@media` responsiveness
+ * the atomic `style_` utilities cannot express. **What it
+ * no longer owns:** the color palette and the geometry are
+ * plggmatic tokens (every value is a plggmatic `pm` custom
+ * property resolved by plggmatic's `schemeCss` / `metricCss`
+ * blocks — the legacy per-theme custom properties are gone,
+ * D16 clean cutover); the reduced-motion scroll reset is
+ * plggmatic's `reducedMotionCss`; and the appearance
+ * toggle's chrome + icon-switch is plggmatic's
+ * `themeToggleCss`. `shell` composes those framework blocks
+ * ahead of this sheet.
+ *
+ * Injected INLINE into the document `<style>` (ahead of the
+ * body's collected atomic CSS) by {@link shell}, so it stays
+ * escape-safe: NO raw `<`, `>`, or `&` — only
+ * class/descendant selectors, `@media`, and `var()`
+ * references (no child `>` combinators, no `&` nesting) —
+ * surviving the SSR `text()` escaper byte-for-byte. The
+ * media boundaries are composed from plggmatic's breakpoint
+ * constants ({@link maxWidth}/{@link minWidth}), never
+ * `pm` custom properties (a `@media` cannot resolve
+ * `var()`).
+ *
+ * Light/dark is driven by the `dark` class on `<html>`, set
+ * by plggmatic's no-FOUC `appearanceInitScript` and toggled
+ * by every `.${themeToggleClass}` (see appearanceScripts).
+ * The mobile drawer stays CSS-only (a hidden
+ * `#vp-menu-toggle` checkbox).
  */
 export const baseCss: SoftStr = `
-:root{
-  --vp-brand:#111111;
-  --vp-brand-2:#000000;
-  --vp-bg:#ffffff;
-  --vp-bg-alt:#f6f6f7;
-  --vp-surface:#ffffff;
-  --vp-text:#1f1f22;
-  --vp-text-2:#5b5b61;
-  --vp-muted:#5b5b61;
-  --vp-border:#ededee;
-  --vp-divider:#ededee;
-  --vp-code-bg:#f6f6f7;
-  --vp-hover:#111111;
-  --vp-hover-ink:#ffffff;
-  --vp-knob:#ffffff;
-  --vp-shadow:none;
-  --vp-rail-w:48px;
-  --vp-sidebar-w:256px;
-  --vp-shell-max:1440px;
-}
-/* Dark values mirror qmu's global.css .dark block exactly:
-   the body/muted/heading inks are translucent whites (the
-   alpha is part of the spec, not an approximation), one
-   single divider gray, and a WCAG 1.4.11-tuned knob so the
-   appearance toggle stays visible on the dark track. */
-html.dark{
-  --vp-brand:rgba(255,255,255,0.95);
-  --vp-brand-2:#ffffff;
-  --vp-bg:#1b1b1f;
-  --vp-bg-alt:#202127;
-  --vp-surface:#202127;
-  --vp-text:rgba(240,240,245,0.92);
-  --vp-text-2:rgba(235,235,245,0.55);
-  --vp-muted:rgba(235,235,245,0.55);
-  --vp-border:#262629;
-  --vp-divider:#262629;
-  --vp-code-bg:#202127;
-  --vp-hover:rgba(255,255,255,0.95);
-  --vp-hover-ink:#1b1b1f;
-  --vp-knob:#e4e4e7;
-  --vp-shadow:none;
-}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 /* qmu: anchor jumps in the lg app shell scroll the content
-   column, not the page; smooth-scroll must be set on both. */
+   column, not the page; smooth-scroll must be set on both.
+   The reduced-motion RESET of these is plggmatic's
+   reducedMotionCss (composed by shell). */
 main{scroll-behavior:smooth}
-/* Honor reduced-motion (qmu global.css): no smooth scroll,
-   no link hover fades. */
+/* plggpress-owned motion: article/chrome link hover fades.
+   Killed under reduced-motion here (plggmatic's block only
+   resets the framework's own scroll motion). */
 @media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  main{scroll-behavior:auto}
   .vp a{transition:none}
   .vp-doc a{transition:none}
 }
@@ -89,7 +70,8 @@ body.vp{
     -apple-system,"Segoe UI",sans-serif,
     "Apple Color Emoji","Segoe UI Emoji";
   font-size:16px;line-height:1.75;
-  color:var(--vp-text);background:var(--vp-bg);
+  color:${colorVar("text")};
+  background:${colorVar("surface")};
   -webkit-font-smoothing:antialiased;
 }
 /* Chrome links carry no underline in any state (qmu:
@@ -98,7 +80,8 @@ body.vp{
    a:hover rule - its (0,2,1) specificity silently beat
    the pill classes' (0,2,0) and re-underlined them. */
 .vp a{
-  color:var(--vp-brand);text-decoration:none;
+  color:${colorVar("primary-base")};
+  text-decoration:none;
 }
 .vp-menu-cb{display:none}
 /* prose links (qmu .prose a): ink + standing underline at
@@ -108,7 +91,7 @@ body.vp{
    keyboard-reachable (:focus-visible parity) and clones onto
    every line fragment when a wrapped link inverts. */
 .vp-doc a{
-  color:var(--vp-text);
+  color:${colorVar("text")};
   text-decoration:underline;
   text-decoration-thickness:1px;
   text-underline-offset:2px;
@@ -119,15 +102,15 @@ body.vp{
   transition:background-color 0.15s;
 }
 .vp-doc a:hover{
-  background:var(--vp-hover);
-  color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
   box-decoration-break:clone;
   -webkit-box-decoration-break:clone;
 }
 .vp-doc a:focus-visible{
-  background:var(--vp-hover);
-  color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
   box-decoration-break:clone;
   -webkit-box-decoration-break:clone;
@@ -141,15 +124,15 @@ body.vp{
 .vp-shell{position:relative}
 .vp-app{
   display:flex;align-items:flex-start;
-  max-width:var(--vp-shell-max);margin:0 auto;
+  max-width:${metricVar("shell-max")};margin:0 auto;
   padding:0 1rem;
 }
 /* far-RIGHT chrome rail (lg+ only, qmu DocsLayout):
    appearance toggle + social links pinned to the bottom
    by a flex spacer. Carries no navigation. */
 .vp-rail{
-  display:none;flex:0 0 var(--vp-rail-w);
-  width:var(--vp-rail-w);height:100vh;
+  display:none;flex:0 0 ${metricVar("rail")};
+  width:${metricVar("rail")};height:100vh;
   flex-direction:column;align-items:center;
   padding:0 0 0.75rem;
 }
@@ -169,66 +152,41 @@ body.vp{
   display:none;position:sticky;top:0;z-index:30;
   align-items:center;gap:0.6rem;
   height:52px;padding:0 1rem;
-  background:var(--vp-bg);
-  border-bottom:1px solid var(--vp-divider);
+  background:${colorVar("surface")};
+  border-bottom:1px solid ${colorVar("border")};
 }
 .vp-mobilebar-home{
   font-weight:500;font-size:1.05rem;
-  color:var(--vp-text);
+  color:${colorVar("text")};
   padding:0.1rem 0.4rem;border-radius:6px;
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-mobilebar-home:hover{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 .vp-mobilebar-home:focus-visible{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 .vp-mobilebar-home[aria-current]{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
 }
-.vp-mobilebar .vp-theme-toggle{margin-left:auto}
+.vp-mobilebar .${themeToggleClass}{margin-left:auto}
 /* dimmed backdrop behind an open mobile drawer */
 .vp-backdrop{
   display:none;position:fixed;inset:0;z-index:40;
   background:rgba(0,0,0,0.4);
 }
 
-/* appearance toggle (shared by the chrome rail + mobile bar) */
-.vp-theme-toggle{
-  display:inline-flex;align-items:center;
-  justify-content:center;width:38px;height:38px;
-  border-radius:50%;border:1px solid var(--vp-border);
-  background:var(--vp-knob);cursor:pointer;
-  color:var(--vp-text);padding:0;
-  transition:background-color 0.15s
-      cubic-bezier(0.4,0,0.2,1),
-    border-color 0.15s cubic-bezier(0.4,0,0.2,1);
-}
-/* qmu --knob rule (WCAG 2.2 AA 1.4.11): in dark mode the
-   control is a clearly-visible light disc, so its icon
-   flips to a dark fill to keep reading against it. */
-html.dark .vp-theme-toggle{color:var(--vp-hover-ink)}
-.vp-theme-toggle:hover{
-  border-color:var(--vp-brand);
-}
-/* sun/moon: the oracle's SVG icons (currentColor paths,
-   18px box); light shows the sun, dark the crescent. */
-.vp-sun,.vp-moon{
-  width:18px;height:18px;display:block;
-}
-.vp-theme-toggle .vp-moon{display:none}
-html.dark .vp-theme-toggle .vp-sun{display:none}
-html.dark .vp-theme-toggle .vp-moon{
-  display:block;
-}
 /* CSS-drawn 3-bar hamburger (no glyph font) */
 .vp-menu-btn{
   display:none;width:22px;height:16px;
-  cursor:pointer;color:var(--vp-text);
+  cursor:pointer;color:${colorVar("text")};
   background-image:linear-gradient(
       currentColor,currentColor),
     linear-gradient(currentColor,currentColor),
@@ -243,8 +201,8 @@ html.dark .vp-theme-toggle .vp-moon{
    wordmark home link, the always-expanded tree, and (below
    lg) the social links the rail carries on lg+. */
 .vp-sidebar{
-  flex:0 0 var(--vp-sidebar-w);
-  width:var(--vp-sidebar-w);
+  flex:0 0 ${metricVar("sidebar")};
+  width:${metricVar("sidebar")};
   padding:2rem 1rem;
   font-size:0.9rem;
 }
@@ -253,20 +211,23 @@ html.dark .vp-theme-toggle .vp-moon{
   margin:0 0 1rem;padding:0.25rem 0.5rem;
   border-radius:6px;font-size:1rem;
   line-height:1.5rem;
-  font-weight:500;color:var(--vp-text);
+  font-weight:500;color:${colorVar("text")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-wordmark:hover{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 .vp-wordmark:focus-visible{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 .vp-wordmark[aria-current]{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
 }
 .vp-sidebar-nav{display:block}
 /* top-level section header — always visible, no collapse */
@@ -275,7 +236,7 @@ html.dark .vp-theme-toggle .vp-moon{
 .vp-group-title{
   padding:0.25rem 0.5rem;font-size:0.875rem;
   line-height:1.25rem;
-  font-weight:600;color:var(--vp-text);
+  font-weight:600;color:${colorVar("text")};
 }
 /* leaves + subgroup headers: an inverted pill on hover;
    the active leaf wears the same pill permanently (both
@@ -289,27 +250,30 @@ html.dark .vp-theme-toggle .vp-moon{
   margin-top:1px;
   padding:0.25rem 0.5rem;border-radius:4px;
   font-size:0.875rem;line-height:1.25rem;
-  color:var(--vp-text);
+  color:${colorVar("text")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-sidebar-link:hover{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 .vp-sidebar-link:focus-visible{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 .vp-sidebar-link[aria-current]{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   font-weight:500;
 }
 .vp-sidebar-flat{
   display:block;margin-top:1px;
   padding:0.25rem 0.5rem;
   font-size:0.875rem;line-height:1.25rem;
-  color:var(--vp-muted);
+  color:${colorVar("muted")};
 }
 /* a nested group: its header, then its children, always
    shown (no disclosure). qmu keeps the whole tree flush
@@ -319,28 +283,30 @@ html.dark .vp-theme-toggle .vp-moon{
 .vp-subgroup-title{
   padding:0.25rem 0.5rem;font-size:0.875rem;
   line-height:1.25rem;
-  font-weight:500;color:var(--vp-text);
+  font-weight:500;color:${colorVar("text")};
 }
 /* social links: shown in the sidebar only below lg (the
    rail carries them on lg+). */
 .vp-sidebar-social{
   display:none;margin-top:1.5rem;
   padding-top:1rem;
-  border-top:1px solid var(--vp-divider);
+  border-top:1px solid ${colorVar("border")};
 }
 .vp-social{
   display:inline-flex;align-items:center;
   padding:0.25rem 0.4rem;border-radius:6px;
-  font-size:0.8rem;color:var(--vp-muted);
+  font-size:0.8rem;color:${colorVar("muted")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-social:hover{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 .vp-social:focus-visible{
-  background:var(--vp-hover);color:var(--vp-hover-ink);
+  background:${colorVar("primary-base")};
+  color:${colorVar("surface")};
   text-decoration:none;
 }
 /* in the narrow rail the label rides vertically so the
@@ -350,19 +316,19 @@ html.dark .vp-theme-toggle .vp-moon{
 }
 
 /* content column: independent-scroll on lg+, LEFT-aligned
-   prose capped at max-w-3xl, with the footer confined to
-   this column. */
+   prose capped at the prose measure, with the footer
+   confined to this column. */
 .vp-content{
   flex:1 1 auto;min-width:0;
   padding:3rem 3rem 3rem;
 }
-.vp-doc{max-width:48rem;margin:0}
+.vp-doc{max-width:${metricVar("measure")};margin:0}
 .vp-footer{
   margin-top:3rem;padding:1.5rem 0;
   text-align:center;
 }
 .vp-footer-text{
-  margin:0;font-size:13px;color:var(--vp-muted);
+  margin:0;font-size:13px;color:${colorVar("muted")};
 }
 /* Heading scale = qmu's calm ~1.25 modular scale on a 1rem
    body (30/24/19/17), all weight 400, no letter-spacing.
@@ -395,15 +361,17 @@ html.dark .vp-theme-toggle .vp-moon{
   padding-left:1.35rem;margin:1rem 0;
 }
 .vp-doc li{margin:0.45rem 0}
-.vp-doc strong{font-weight:400;color:var(--vp-text)}
+.vp-doc strong{
+  font-weight:400;color:${colorVar("text")};
+}
 .vp-doc blockquote{
   margin:1rem 0;padding:0.25rem 1rem;
-  border-left:3px solid var(--vp-border);
-  color:var(--vp-muted);
+  border-left:3px solid ${colorVar("border")};
+  color:${colorVar("muted")};
 }
 .vp-doc hr{
   border:none;
-  border-top:1px solid var(--vp-divider);
+  border-top:1px solid ${colorVar("border")};
   margin:2rem 0;
 }
 .vp-doc img{max-width:100%}
@@ -411,12 +379,13 @@ html.dark .vp-theme-toggle .vp-moon{
 /* code — inline code is qmu's soft translucent badge: an
    overlay fill/border (adapts to whatever surface it sits
    on) that darkens on hover; the badge itself carries the
-   "this is code" signal. */
+   "this is code" signal. The overlay alphas are a
+   surface-independent choice, deliberately NOT tokens. */
 .vp-doc code{
   font-family:"SF Mono",Menlo,Consolas,
     "Liberation Mono",monospace;
   font-size:0.8em;font-weight:400;
-  color:var(--vp-brand);
+  color:${colorVar("primary-base")};
   background:rgba(0,0,0,0.08);
   border:1px solid rgba(0,0,0,0.15);
   padding:0.1em 0.4em;border-radius:0.2rem;
@@ -438,28 +407,28 @@ html.dark .vp-doc code:hover{
    on the near-identical inverted fill and vanishes (the
    guide links package names as code constantly). */
 .vp-doc a:hover code{
-  color:var(--vp-hover-ink);
+  color:${colorVar("surface")};
   background:none;
   border-color:transparent;
 }
 .vp-doc a:focus-visible code{
-  color:var(--vp-hover-ink);
+  color:${colorVar("surface")};
   background:none;
   border-color:transparent;
 }
 html.dark .vp-doc a:hover code{
-  color:var(--vp-hover-ink);
+  color:${colorVar("surface")};
   background:none;
   border-color:transparent;
 }
 html.dark .vp-doc a:focus-visible code{
-  color:var(--vp-hover-ink);
+  color:${colorVar("surface")};
   background:none;
   border-color:transparent;
 }
 .vp-doc pre{
-  background:var(--vp-code-bg);
-  border:1px solid var(--vp-border);
+  background:${colorVar("surface-2")};
+  border:1px solid ${colorVar("border")};
   padding:1.1rem 1.25rem;border-radius:10px;
   overflow-x:auto;margin:1.1rem 0;
   font-size:0.86rem;line-height:1.6;
@@ -470,23 +439,11 @@ html.dark .vp-doc a:focus-visible code{
   color:inherit;
 }
 html.dark .vp-doc pre code{background:none}
-/* syntax tokens (tok-* classes from plgg-highlight) —
-   themed here so they adapt to light/dark; identifier
-   and plain inherit the default code text colour */
-.vp-doc .tok-keyword{color:#cf222e}
-.vp-doc .tok-string{color:#0a3069}
-.vp-doc .tok-number{color:#0550ae}
-.vp-doc .tok-comment{color:#6e7781;font-style:italic}
-.vp-doc .tok-regex{color:#116329}
-.vp-doc .tok-template{color:#0a3069}
-.vp-doc .tok-punctuation{color:#57606a}
-html.dark .vp-doc .tok-keyword{color:#ff7b72}
-html.dark .vp-doc .tok-string{color:#a5d6ff}
-html.dark .vp-doc .tok-number{color:#79c0ff}
-html.dark .vp-doc .tok-comment{color:#8b949e}
-html.dark .vp-doc .tok-regex{color:#7ee787}
-html.dark .vp-doc .tok-template{color:#a5d6ff}
-html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
+/* syntax-highlight hues (plgg-highlight's span classes) are
+   framework-owned now: plggmatic's syntaxCss emits the
+   --pm-code-* properties + the class rules per scheme
+   (ticket 08 finishes the D16 cutover for code blocks). No
+   syntax colors live here anymore. */
 
 /* tables */
 .vp-doc table{
@@ -494,18 +451,22 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
   display:block;overflow-x:auto;font-size:0.92rem;
 }
 .vp-doc th,.vp-doc td{
-  border:1px solid var(--vp-border);
+  border:1px solid ${colorVar("border")};
   padding:0.5rem 0.85rem;text-align:left;
 }
-.vp-doc th{background:var(--vp-bg-alt);font-weight:600}
+.vp-doc th{
+  background:${colorVar("surface-2")};font-weight:600;
+}
 
-/* callouts — qmu's tinted model (VitePress-style): tip
-   emerald, warning amber, danger red, each a tinted
-   surface + matching dark pair (Tailwind 50/950/100
-   ramps); info/note stay the monochrome ink-on-soft
-   panel. Metrics follow qmu: my-5, rounded-md, border-l-4,
-   px-4 py-3, text-sm leading-relaxed, semibold title
-   inheriting the callout's text colour. */
+/* callouts — qmu's tinted model (VitePress-style), now on
+   the D9 role matrix: tip=success, warning, danger each a
+   role surface + text + border that reschemes per light/
+   dark on the token layer (so the separate html.dark
+   blocks collapse away); info/note stay the monochrome
+   ink-on-neutral panel with a primary edge. Metrics follow
+   qmu: my-5, rounded-md, border-l-4, px-4 py-3, text-sm
+   leading-relaxed, semibold title inheriting the callout's
+   text colour. */
 .vp-callout{
   margin:1.25rem 0;padding:0.75rem 1rem;
   border-radius:6px;border:1px solid transparent;
@@ -515,39 +476,30 @@ html.dark .vp-doc .tok-punctuation{color:#c9d1d9}
 .vp-callout-title{font-weight:600;margin:0 0 0.35rem}
 .vp-callout p{margin:0.35rem 0}
 .vp-callout-info,.vp-callout-note{
-  background:var(--vp-bg-alt);
-  border-color:var(--vp-brand);
-  color:var(--vp-text);
+  background:${colorVar("surface-2")};
+  border-color:${colorVar("primary-base")};
+  color:${colorVar("text")};
 }
 .vp-callout-tip{
-  background:#ecfdf5;border-color:#10b981;
-  color:#022c22;
-}
-html.dark .vp-callout-tip{
-  background:#022c22;border-color:#059669;
-  color:#d1fae5;
+  background:${colorVar("success-surface")};
+  border-color:${colorVar("success-border")};
+  color:${colorVar("success-text")};
 }
 .vp-callout-warning{
-  background:#fffbeb;border-color:#f59e0b;
-  color:#451a03;
-}
-html.dark .vp-callout-warning{
-  background:#451a03;border-color:#d97706;
-  color:#fef3c7;
+  background:${colorVar("warning-surface")};
+  border-color:${colorVar("warning-border")};
+  color:${colorVar("warning-text")};
 }
 .vp-callout-danger{
-  background:#fef2f2;border-color:#ef4444;
-  color:#450a0a;
-}
-html.dark .vp-callout-danger{
-  background:#450a0a;border-color:#dc2626;
-  color:#fee2e2;
+  background:${colorVar("danger-surface")};
+  border-color:${colorVar("danger-border")};
+  color:${colorVar("danger-text")};
 }
 
 /* below sm (qmu's 639px block): the prose headings render
    oversized relative to the phone column; scale them down.
    Body text keeps its base size. */
-@media (max-width:639px){
+@media ${maxWidth("sm")}{
   .vp-doc h1{font-size:1.75rem;line-height:1.25}
   .vp-doc h2{font-size:1.375rem;line-height:1.3}
   .vp-doc h3{font-size:1.125rem}
@@ -557,7 +509,7 @@ html.dark .vp-callout-danger{
    viewport and does not page-scroll; the sidebar, content,
    and rail each scroll independently. The right gutter is
    dropped so the far-right rail sits flush to the edge. */
-@media (min-width:1024px){
+@media ${minWidth("lg")}{
   .vp-app{
     height:100vh;overflow:hidden;padding-right:0;
   }
@@ -570,7 +522,7 @@ html.dark .vp-callout-danger{
    drawer (the sidebar), the page scrolls normally. The
    drawer is revealed by the CSS-only menu checkbox and the
    backdrop dims the page — zero client JavaScript. */
-@media (max-width:1023px){
+@media ${maxWidth("lg")}{
   .vp-menu-btn{display:inline-block}
   .vp-mobilebar{display:flex}
   .vp-content{
@@ -582,8 +534,8 @@ html.dark .vp-callout-danger{
     position:fixed;top:0;left:0;z-index:50;
     height:100vh;width:17rem;max-width:82vw;
     overflow-y:auto;
-    background:var(--vp-surface);
-    border-right:1px solid var(--vp-divider);
+    background:${colorVar("surface-2")};
+    border-right:1px solid ${colorVar("border")};
     transform:translateX(-100%);
     transition:transform 0.2s ease-out;
   }

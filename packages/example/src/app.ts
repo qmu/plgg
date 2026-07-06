@@ -7,6 +7,9 @@ import {
 } from "plgg";
 import {
   type Application,
+  type Cmd,
+  cmdNone,
+  cmdEffect,
   makeUrl,
 } from "plgg-view/client";
 import {
@@ -171,49 +174,97 @@ const move = (
       );
 };
 
-/** Append a toast, minting its id from `toastSeq`. Pure. */
+/** How long a toast lingers before the runtime auto-dismisses it. */
+const TOAST_MS = 4000;
+
+/**
+ * The auto-dismiss EFFECT: after {@link TOAST_MS}, dispatch `ToastDismissed`
+ * for the toast just pushed. Pure DATA — the runtime runs the timer, not
+ * `update`. A manual dismiss first makes this a harmless no-op (the filter
+ * finds no matching id). This is the ticket-06 runnable `Cmd` demo: push a
+ * toast, watch it fade itself out.
+ */
+const dismissAfter = (id: Int): Cmd<Msg> =>
+  cmdEffect(
+    () =>
+      new Promise<Msg>((resolve) =>
+        setTimeout(
+          () =>
+            resolve({
+              kind: "ToastDismissed",
+              id,
+            }),
+          TOAST_MS,
+        ),
+      ),
+  );
+
+/**
+ * Append a toast (minting its id from `toastSeq`) and return it paired with its
+ * auto-dismiss {@link dismissAfter} effect. `update` stays pure — it returns
+ * the effect as data; the runtime schedules the timer.
+ */
 const pushToast = (
   model: Model,
   tone: Toast["tone"],
   message: SoftStr,
-): Model => ({
-  ...model,
-  toasts: [
-    ...model.toasts,
-    { id: model.toastSeq, tone, message },
-  ],
-  toastSeq: model.toastSeq + 1,
-});
+): readonly [Model, Cmd<Msg>] => [
+  {
+    ...model,
+    toasts: [
+      ...model.toasts,
+      { id: model.toastSeq, tone, message },
+    ],
+    toastSeq: model.toastSeq + 1,
+  },
+  dismissAfter(model.toastSeq),
+];
 
 /**
- * Pure state transition: a `Msg` and the old `Model` in, the new `Model` out.
- * No DOM, no effects — trivially unit-testable. A discriminated `switch` (one
- * arm per `Msg`, each returning) keeps it exhaustive: TS narrows `msg` to
- * `never` after the last arm, so a new `Msg` that isn't handled is a compile
- * error — no silent default. The URL-reflected `filter`/`q` fold in here too,
- * including the `UrlChanged` message the runtime sends on navigation.
+ * Pure state transition: a `Msg` and the old `Model` in, `[nextModel, Cmd]`
+ * out. No DOM and it never PERFORMS an effect — it RETURNS one as data (the
+ * toast branches return an auto-dismiss `cmdEffect`; every other branch pairs
+ * with `cmdNone()`), so it stays trivially unit-testable. A discriminated
+ * `switch` (one arm per `Msg`, each returning) keeps it exhaustive: TS narrows
+ * `msg` to `never` after the last arm, so a new `Msg` that isn't handled is a
+ * compile error — no silent default. The URL-reflected `filter`/`q` fold in
+ * here too, including the `UrlChanged` message the runtime sends on navigation.
  */
 export const update = (
   msg: Msg,
   model: Model,
-): Model => {
+): readonly [Model, Cmd<Msg>] => {
   switch (msg.kind) {
     case "FilterChanged":
-      return { ...model, filter: msg.filter };
+      return [
+        { ...model, filter: msg.filter },
+        cmdNone(),
+      ];
     case "SearchChanged":
-      return { ...model, q: msg.value };
+      return [
+        { ...model, q: msg.value },
+        cmdNone(),
+      ];
     case "UrlChanged":
-      return {
-        ...model,
-        filter: msg.filter,
-        q: msg.q,
-      };
+      return [
+        {
+          ...model,
+          filter: msg.filter,
+          q: msg.q,
+        },
+        cmdNone(),
+      ];
     case "DraftChanged":
-      return { ...model, draft: msg.value };
+      return [
+        { ...model, draft: msg.value },
+        cmdNone(),
+      ];
     case "Added": {
       const title = model.draft.trim();
+      // pushToast returns [Model, Cmd] (the auto-dismiss effect); a blank
+      // draft is a no-op with no effect.
       return title.length === 0
-        ? model
+        ? [model, cmdNone()]
         : pushToast(
             {
               ...model,
@@ -233,17 +284,20 @@ export const update = (
           );
     }
     case "Toggled":
-      return {
-        ...model,
-        todos: model.todos.map((todo) =>
-          todo.id === msg.id
-            ? {
-                ...todo,
-                completed: !todo.completed,
-              }
-            : todo,
-        ),
-      };
+      return [
+        {
+          ...model,
+          todos: model.todos.map((todo) =>
+            todo.id === msg.id
+              ? {
+                  ...todo,
+                  completed: !todo.completed,
+                }
+              : todo,
+          ),
+        },
+        cmdNone(),
+      ];
     case "Deleted": {
       const gone = model.todos.find(
         (todo) => todo.id === msg.id,
@@ -265,34 +319,51 @@ export const update = (
       );
     }
     case "ExpandToggled":
-      return {
-        ...model,
-        expanded: model.expanded.includes(msg.id)
-          ? model.expanded.filter(
-              (id) => id !== msg.id,
-            )
-          : [...model.expanded, msg.id],
-      };
+      return [
+        {
+          ...model,
+          expanded: model.expanded.includes(
+            msg.id,
+          )
+            ? model.expanded.filter(
+                (id) => id !== msg.id,
+              )
+            : [...model.expanded, msg.id],
+        },
+        cmdNone(),
+      ];
     case "Moved":
-      return {
-        ...model,
-        todos: move(
-          model.todos,
-          msg.id,
-          msg.delta,
-        ),
-      };
+      return [
+        {
+          ...model,
+          todos: move(
+            model.todos,
+            msg.id,
+            msg.delta,
+          ),
+        },
+        cmdNone(),
+      ];
     case "ToastDismissed":
-      return {
-        ...model,
-        toasts: model.toasts.filter(
-          (toast) => toast.id !== msg.id,
-        ),
-      };
+      return [
+        {
+          ...model,
+          toasts: model.toasts.filter(
+            (toast) => toast.id !== msg.id,
+          ),
+        },
+        cmdNone(),
+      ];
     case "ClearRequested":
-      return { ...model, confirmClear: true };
+      return [
+        { ...model, confirmClear: true },
+        cmdNone(),
+      ];
     case "ClearCancelled":
-      return { ...model, confirmClear: false };
+      return [
+        { ...model, confirmClear: false },
+        cmdNone(),
+      ];
     case "ClearConfirmed": {
       const cleared = model.todos.filter(
         (todo) => todo.completed,
@@ -1091,10 +1162,15 @@ const queryCodec: QueryCodec<Query> = {
  * `server.ts`); `main.ts` mounts this with `application(app)(root)`.
  */
 export const app: Application<Model, Msg> = {
-  init: (url) => ({
-    ...init,
-    ...queryCodec.decode(parseQuery(url.search)),
-  }),
+  init: (url) => [
+    {
+      ...init,
+      ...queryCodec.decode(
+        parseQuery(url.search),
+      ),
+    },
+    cmdNone(),
+  ],
   update,
   view,
   onUrlChange: (url) => {

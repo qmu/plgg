@@ -4,8 +4,8 @@ import {
   rmSync,
   renameSync,
   existsSync,
-} from "node:fs";
-import { join, dirname } from "node:path";
+} from "plgg-bundle/vendors/nodeFs";
+import { join, dirname } from "plgg-bundle/vendors/nodePath";
 import {
   type BundleConfig,
   type Entry,

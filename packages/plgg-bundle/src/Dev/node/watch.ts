@@ -1,4 +1,4 @@
-import { watch, type FSWatcher } from "node:fs";
+import { watch, type FSWatcher } from "plgg-bundle/vendors/nodeFs";
 
 // The fs.watch seam: a debounced, recursive watcher over
 // several source roots. One save can emit multiple events,

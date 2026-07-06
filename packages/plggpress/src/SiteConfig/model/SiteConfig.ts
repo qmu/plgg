@@ -10,6 +10,8 @@ import {
   asReadonlyArray,
   cast,
 } from "plgg";
+import { type ContentModelBinding } from "plggpress/ContentModel/model/ContentModel";
+import { asBindings } from "plggpress/ContentModel/usecase/asContentModel";
 
 /**
  * A top-level navigation entry — the flat `text`/`link`
@@ -73,6 +75,12 @@ export type SiteConfig = Readonly<{
   sidebar: ReadonlyArray<SidebarGroup>;
   social: ReadonlyArray<SocialLink>;
   dev: DevConfig;
+  // Optional content models (D8) — `None` ⇒ no
+  // frontmatter validation, so every existing config
+  // remains valid unchanged.
+  models: Option<
+    ReadonlyArray<ContentModelBinding>
+  >;
 }>;
 
 /**
@@ -197,6 +205,7 @@ export type SiteConfigInput = Readonly<{
   sidebar: ReadonlyArray<SidebarGroupInput>;
   social: ReadonlyArray<SocialLinkInput>;
   dev: DevConfigInput;
+  models?: ReadonlyArray<ContentModelBinding>;
 }>;
 
 /**
@@ -226,6 +235,7 @@ export const asSiteConfig = (
       asReadonlyArray(asSocialLink),
     ),
     forProp("dev", asDevConfig),
+    forOptionProp("models", asBindings),
   );
 
 /**

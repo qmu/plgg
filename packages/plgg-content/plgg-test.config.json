@@ -1,0 +1,10 @@
+{
+  "coverage": {
+    "threshold": 91,
+    "exclude": [
+      "/index.ts",
+      "/vendors/",
+      "/Rag/usecase/embedderConfig.ts"
+    ]
+  }
+}

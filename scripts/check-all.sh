@@ -18,6 +18,13 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # can't silently drift (scripts/gate-guide-deps.sh).
 ./scripts/gate-guide-deps.sh
 
+# Gate: the vendor-boundary policy — a third-party import (node:*, the tsc API,
+# any bare non-plgg specifier) may appear in PRODUCTION code only under a
+# package's vendors/ or entrypoints/. Unexempted violations OR stale exemptions
+# fail (scripts/gate-vendor-boundary.sh; exemptions in
+# scripts/vendor-boundary-exemptions.txt).
+./scripts/gate-vendor-boundary.sh
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh
@@ -33,6 +40,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-view.sh
 ./scripts/test-plgg-md.sh
 ./scripts/test-plgg-parser.sh
+./scripts/test-plgg-mcp.sh
 ./scripts/test-plgg-highlight.sh
 ./scripts/test-plgg-router.sh
 ./scripts/test-plgg-server.sh
@@ -41,6 +49,8 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-fetch.sh
 ./scripts/test-plgg-sql.sh
 ./scripts/test-plgg-db-migration.sh
+./scripts/test-plgg-content.sh
+./scripts/test-plgg-domain.sh
 ./scripts/test-plgg-auth.sh
 ./scripts/test-example.sh
 ./scripts/test-plggmatic.sh

@@ -38,6 +38,7 @@ const COMPONENTS: ReadonlyArray<
   ["Typography", "/components/typography"],
   ["Theme toggle", "/components/theme-toggle"],
   ["Nav tree", "/components/nav-tree"],
+  ["Forms & actions", "/forms"],
 ];
 
 const config = {
@@ -54,7 +55,7 @@ const config = {
     leaf("Components", "/components/button"),
     leaf(
       "GitHub",
-      "https://github.com/qmu/plggmatic",
+      "https://github.com/qmu/plgg",
     ),
   ],
   sidebar: [
@@ -76,7 +77,12 @@ const config = {
       text: "Foundations",
       items: [
         leaf("Color scheme", "/color-scheme"),
+        leaf("Design tokens", "/design-tokens"),
         leaf("Pane alignment", "/pane-alignment"),
+        leaf(
+          "Multi-column renderer",
+          "/multi-column",
+        ),
       ],
     },
     {
@@ -89,7 +95,7 @@ const config = {
   social: [
     {
       icon: "github",
-      link: "https://github.com/qmu/plggmatic",
+      link: "https://github.com/qmu/plgg",
     },
   ],
   // The extra Host headers plggpress's node:http dev

@@ -17,7 +17,7 @@ const internal = textLink({
 });
 const external = textLink({
   label: "GitHub",
-  to: "https://github.com/qmu/plggmatic",
+  to: "https://github.com/qmu/plgg",
   external: true,
 });
 

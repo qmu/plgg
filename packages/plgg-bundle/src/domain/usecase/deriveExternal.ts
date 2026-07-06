@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "plgg-bundle/vendors/nodeFs";
+import { join } from "plgg-bundle/vendors/nodePath";
 import { type External } from "plgg-bundle/domain/model/BundleConfig";
 
 /**

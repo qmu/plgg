@@ -2,11 +2,11 @@ import {
   resolve,
   isAbsolute,
   join,
-} from "node:path";
-import { existsSync } from "node:fs";
-import { pathToFileURL } from "node:url";
-import { register } from "node:module";
-import { type Server } from "node:http";
+} from "plgg-bundle/vendors/nodePath";
+import { existsSync } from "plgg-bundle/vendors/nodeFs";
+import { pathToFileURL } from "plgg-bundle/vendors/nodeUrl";
+import { register } from "plgg-bundle/vendors/nodeProc";
+import { type Server } from "plgg-bundle/vendors/nodeHttp";
 import { type Fetch } from "plgg-bundle/Dev/model/Fetch";
 import { type ModuleGraph } from "plgg-bundle/Dev/model/ModuleGraph";
 import {

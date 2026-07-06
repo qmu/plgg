@@ -1,8 +1,13 @@
 import { resolve } from "node:path";
 import {
   type SoftStr,
+  type Option,
+  type Result,
   pipe,
   getOr,
+  ok,
+  err,
+  matchOption,
 } from "plgg";
 import {
   type Invocation,
@@ -60,3 +65,62 @@ export const resolveOptions = (
     base: ctx.base,
   };
 };
+
+/**
+ * The per-environment operational settings the `serve` verb
+ * needs, kept OUT of `SiteConfig` (like `base` via
+ * `DOCS_BASE`) so the config stays byte-untouched — the
+ * cheapest proof of the SSG byte-identity gate (D5). `port`
+ * defaults to `3000` (the node adapter's own example);
+ * `hostname` is optional (the adapter binds all interfaces
+ * when absent).
+ */
+export type ServeSettings = Readonly<{
+  port: number;
+  hostname: Option<SoftStr>;
+}>;
+
+// Parse the `--port` flag value into a TCP port, or a
+// one-line `Err` on garbage — a number, an integer, in range.
+const asPort = (
+  raw: SoftStr,
+): Result<number, SoftStr> => {
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 && n <= 65535
+    ? ok(n)
+    : err(
+        `invalid --port: ${raw} (expected an integer 0..65535)`,
+      );
+};
+
+/**
+ * Resolve {@link ServeSettings} from the invocation flags:
+ * `--port` (validated, default 3000) and the optional
+ * `--hostname`. A bad `--port` short-circuits to an `Err`
+ * message the CLI prints — never a throw.
+ */
+export const resolveServe = (
+  invocation: Invocation,
+): Result<ServeSettings, SoftStr> =>
+  pipe(
+    optionOf("port")(invocation),
+    matchOption(
+      (): Result<ServeSettings, SoftStr> =>
+        ok({
+          port: 3000,
+          hostname: optionOf("hostname")(invocation),
+        }),
+      (raw: SoftStr): Result<ServeSettings, SoftStr> =>
+        pipe(
+          asPort(raw),
+          (r) =>
+            r.__tag === "Ok"
+              ? ok({
+                  port: r.content,
+                  hostname:
+                    optionOf("hostname")(invocation),
+                })
+              : err(r.content),
+        ),
+    ),
+  );

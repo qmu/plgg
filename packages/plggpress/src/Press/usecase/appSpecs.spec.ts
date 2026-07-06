@@ -27,6 +27,7 @@ import {
 } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { type BrokenLinks } from "plggpress/CheckLinks/model/CheckLinks";
+import { type ModelViolations } from "plggpress/ContentModel/model/ModelViolation";
 import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
 
 const config: SiteConfig = {
@@ -37,6 +38,7 @@ const config: SiteConfig = {
   sidebar: [],
   social: [],
   dev: { allowedHosts: [] },
+  models: none(),
 };
 
 const req = (path: string): HttpRequest => ({
@@ -84,12 +86,12 @@ const runLinkCheck = (
   paths: ReadonlyArray<SoftStr>,
 ): PromisedResult<
   unknown,
-  Defect | BrokenLinks | LinkCheckMissing
+  Defect | BrokenLinks | ModelViolations | LinkCheckMissing
 > =>
   matchOption(
     (): PromisedResult<
       unknown,
-      Defect | BrokenLinks | LinkCheckMissing
+      Defect | BrokenLinks | ModelViolations | LinkCheckMissing
     > =>
       Promise.resolve(
         err({ __tag: "LinkCheckMissing" }),
@@ -99,11 +101,11 @@ const runLinkCheck = (
         paths: ReadonlyArray<SoftStr>,
       ) => PromisedResult<
         unknown,
-        Defect | BrokenLinks
+        Defect | BrokenLinks | ModelViolations
       >,
     ): PromisedResult<
       unknown,
-      Defect | BrokenLinks | LinkCheckMissing
+      Defect | BrokenLinks | ModelViolations | LinkCheckMissing
     > => run(paths),
   )(spec.linkCheck);
 

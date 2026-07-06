@@ -162,6 +162,52 @@ test("generateObject resolves the apiKey from env when the provider carries none
   }
 });
 
+test("generateObject resolves the Anthropic apiKey from env when the provider carries none", async () => {
+  vi.stubEnv("ANTHROPIC_API_KEY", "sk-from-env");
+  try {
+    return check(
+      await proc(
+        {
+          provider: anthropic(
+            "claude-sonnet-4-5",
+          ),
+          userPrompt: "Choose 3 fruits.",
+          schema: testSchema,
+          post: fakePost,
+        },
+        generateObject,
+        atProp("fruits"),
+        asReadonlyArray(asSoftStr),
+      ),
+      okThen((fruits) => toContain("mango")(fruits)),
+    );
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
+test("generateObject resolves the Gemini apiKey from env when the provider carries none", async () => {
+  vi.stubEnv("GEMINI_API_KEY", "sk-from-env");
+  try {
+    return check(
+      await proc(
+        {
+          provider: google("gemini-2.5-flash"),
+          userPrompt: "Choose 3 fruits.",
+          schema: testSchema,
+          post: fakePost,
+        },
+        generateObject,
+        atProp("fruits"),
+        asReadonlyArray(asSoftStr),
+      ),
+      okThen((fruits) => toContain("kiwi")(fruits)),
+    );
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
 // --- live integration (skipped by default; require real API keys) ---
 
 test.skip("generateObject with OpenAI provider works", async () => {

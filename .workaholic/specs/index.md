@@ -1,5 +1,8 @@
 # specs
 
+* [plggmatic declarative vocabulary + scheduler — design (ticket 09)](20260704-plggmatic-scheduler-design.md)
+* [plggpress / plggmatic Long-Range Roadmap and Decision Record](20260704-plggpress-plggmatic-roadmap.md)
+* [Ticket 19 — plggpress OIDC OP+RP dogfooding: design note](20260705-plggpress-oidc-rp-design.md)
 * [Specs Index](README.md) - Architecture and project specification documents for plgg
 * [Application Viewpoint](application.md) - Runtime behavior, agent orchestration, and data flow across the plgg monorepo packages.
 * [Component Viewpoint](component.md) - Internal structure, module boundaries, and decomposition of the plgg monorepo packages.

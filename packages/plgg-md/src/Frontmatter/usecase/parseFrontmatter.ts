@@ -1,24 +1,27 @@
 import {
-  SoftStr,
-  Result,
-  InvalidError,
+  type SoftStr,
+  type Result,
+  type InvalidError,
   invalidError,
   some,
   none,
   ok,
   err,
   pipe,
+  isErr,
   fromNullable,
   getOr,
 } from "plgg";
 import {
-  Frontmatter,
+  type Frontmatter,
   frontmatter,
 } from "plgg-md/Frontmatter/model/Frontmatter";
+import { parseYamlSubset } from "plgg-md/Yaml/usecase/parseYamlSubset";
 
 /**
- * A source split into its (layout-marker-only)
- * {@link Frontmatter} and the remaining Markdown body.
+ * A source split into its {@link Frontmatter} (the full
+ * parsed YAML-subset block, D8) and the remaining Markdown
+ * body.
  */
 export type ParsedDocument = Readonly<{
   frontmatter: Frontmatter;
@@ -28,19 +31,15 @@ export type ParsedDocument = Readonly<{
 /** The bare frontmatter fence line. */
 const FENCE = "---";
 
-/** The single flat marker we detect; nested YAML is ignored. */
-const LAYOUT_HOME_RE = /^layout:\s*home\s*$/;
-
 /**
  * Splits a leading `---`…`---` frontmatter block off a
- * source, detecting only the flat `layout: home` marker
- * and stripping the rest of the block (no nested-YAML
- * parsing — see `spike-decisions.md` §6b). Returns the
- * {@link Frontmatter} flag plus the body after the
- * closing fence. A source without a leading fence is
- * returned verbatim with an empty (`None`) layout. An
- * opened-but-never-closed fence is a failure, not a
- * throw.
+ * source and parses it against the YAML SUBSET
+ * ({@link parseYamlSubset}). A source without a leading
+ * fence is returned verbatim with `None` data. An
+ * opened-but-never-closed fence is a failure; a MALFORMED
+ * block is now a POSITIONED `Err` (no longer silently
+ * stripped) — the "precise errors" of D8. Total: never
+ * throws.
  */
 export const parseFrontmatter = (
   source: SoftStr,
@@ -70,15 +69,18 @@ export const parseFrontmatter = (
     );
   }
   const closeIdx = closeRel + 1;
-  const layout = lines
+  const block = lines
     .slice(1, closeIdx)
-    .some((line: SoftStr) =>
-      LAYOUT_HOME_RE.test(line.trim()),
-    )
-    ? some<SoftStr>("home")
-    : none();
-  return ok({
-    frontmatter: frontmatter(layout),
-    body: lines.slice(closeIdx + 1).join("\n"),
-  });
+    .join("\n");
+  const parsed = parseYamlSubset(block);
+  return isErr(parsed)
+    ? err(parsed.content)
+    : ok({
+        frontmatter: frontmatter(
+          some(parsed.content),
+        ),
+        body: lines
+          .slice(closeIdx + 1)
+          .join("\n"),
+      });
 };

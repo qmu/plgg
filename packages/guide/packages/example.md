@@ -25,7 +25,9 @@ The whole app is pure plgg data and pure functions:
 The URL filter (`?filter=all|active|completed`) is part
 of the model, reflected to the query string with
 plgg-router's codecs — so navigation is just data flowing
-through `update`, with no effect system.
+through `update`. Adding or deleting a todo also returns a
+`Cmd` (an auto-dismiss timer for its toast), so the app
+exercises plgg-view's effects too.
 
 ## Three render targets
 

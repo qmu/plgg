@@ -3,271 +3,139 @@ import {
   check,
   all,
   toBe,
+  toEqual,
 } from "plgg-test";
-import { some, none, getOr } from "plgg";
-import { makeUrl } from "plgg-view/client";
+import { getOr, isNone } from "plgg";
 import { renderToString } from "plgg-view";
+import { makeUrl } from "plgg-view/client";
 import {
-  type Model,
-  init,
-  update,
-  view,
-  toUrl,
-  parseUrl,
-  noteHref,
-  schemeClassCss,
-} from "./app.ts";
+  type ScheduledModel,
+  type SchedulerMsg,
+  openMenu,
+  select,
+} from "plggmatic";
+import { app, scheduled } from "./app.ts";
 
-const root: Model = init(makeUrl("/", ""));
+// The behavioral oracle, ported from the hand-written
+// workbench to the SCHEDULED program: init depth, URL
+// round-trip + canonical serialization (now the derived
+// `?c=…&p=…` codec), junk-URL totality, and rendered-
+// markup assertions through the multi-column renderer.
+const [m0] = app.init(makeUrl("/", ""));
+const drive = (
+  ...msgs: ReadonlyArray<SchedulerMsg>
+): ScheduledModel =>
+  msgs.reduce(
+    (m: ScheduledModel, msg: SchedulerMsg) =>
+      app.update(msg, m)[0],
+    m0,
+  );
 
-const count = (
-  hay: string,
-  needle: string,
-): number => hay.split(needle).length - 1;
-
-test("init at the root has an empty stack", () =>
+test("init at the root seeds an empty flow", () =>
   all([
-    check(getOr("-")(root.section), toBe("-")),
-    check(getOr("-")(root.note), toBe("-")),
-    check(root.scheme, toBe("light")),
+    check(isNone(m0.root), toBe(true)),
+    check(m0.path.length, toBe(0)),
   ]));
 
-test("url depth round-trips through parse and toUrl", () => {
-  const model: Model = {
-    base: "/",
-    section: some("geology"),
-    note: some("strata"),
-    scheme: "light",
-  };
-  const url = toUrl(model);
-  const parsed = parseUrl(url);
+test("init from a deep link pre-drills the flow", () => {
+  const [m] = app.init(
+    makeUrl("/", "?c=sections&p=botany"),
+  );
+  return all([
+    check(
+      getOr("")(m.root),
+      toBe("sections"),
+    ),
+    check(m.path, toEqual(["botany"])),
+  ]);
+});
+
+test("the URL round-trips and serializes canonically", () => {
+  const m = drive(
+    openMenu("sections"),
+    select(0, "botany"),
+    select(1, "moss"),
+  );
+  const url = scheduled.toUrl(m);
+  const back = app.update(
+    app.onUrlChange(url),
+    drive(openMenu("sections")),
+  )[0];
   return all([
     check(
       url.search,
-      toBe("?s=geology&n=strata"),
+      toBe("?c=sections&p=botany/moss"),
     ),
     check(
-      getOr("-")(parsed.section),
-      toBe("geology"),
+      scheduled.toUrl(back).search,
+      toBe(url.search),
     ),
-    check(
-      getOr("-")(parsed.note),
-      toBe("strata"),
-    ),
-    // canonical: same model, same string
-    check(toUrl(model).search, toBe(url.search)),
-    // root depth serializes to an empty search
-    check(toUrl(root).search, toBe("")),
+    check(back.path, toEqual(["botany", "moss"])),
   ]);
 });
 
-test("a nested mount keeps its base in links and toUrl", () => {
-  const nested = init(
-    makeUrl("/example/", "?s=geology"),
+test("a junk URL never crashes the derived codec", () => {
+  const [m] = app.init(
+    makeUrl("/", "?c=ghost&p=%2F&x=1"),
   );
-  const projected = toUrl({
-    ...nested,
-    note: some("strata"),
-  });
+  return check(
+    getOr("")(m.root),
+    toBe("ghost"),
+  );
+});
+
+test("the root view is the menu as a navigation landmark", () => {
+  const html = renderToString(app.view(m0));
   return all([
-    check(nested.base, toBe("/example/")),
-    check(projected.path, toBe("/example/")),
-    check(
-      renderToString(view(nested)).includes(
-        'href="/example/?s=geology"',
-      ),
-      toBe(true),
-    ),
+    check(html.includes("<nav"), toBe(true)),
+    check(html.includes("Field Notes"), toBe(true)),
+    check(html.includes("Notes"), toBe(true)),
   ]);
 });
 
-test("unknown ids truncate the stack instead of erroring", () => {
-  const badSection = parseUrl(
-    makeUrl("/", "?s=nope&n=ghost"),
-  );
-  const badNote = parseUrl(
-    makeUrl("/", "?s=botany&n=ghost"),
+test("drilling shows the section's notes with a marked selection", () => {
+  const html = renderToString(
+    app.view(
+      drive(
+        openMenu("sections"),
+        select(0, "botany"),
+      ),
+    ),
   );
   return all([
+    check(html.includes("<aside"), toBe(true)),
     check(
-      getOr("-")(badSection.section),
-      toBe("-"),
+      html.includes("Moss on the north face"),
+      toBe(true),
     ),
-    check(getOr("-")(badSection.note), toBe("-")),
     check(
-      getOr("-")(badNote.section),
-      toBe("botany"),
+      html.includes('aria-current="page"'),
+      toBe(true),
     ),
-    check(getOr("-")(badNote.note), toBe("-")),
   ]);
 });
 
-test("update folds url changes and scheme toggles", () => {
-  const navigated = update(
-    {
-      kind: "urlChanged",
-      url: makeUrl("/", "?s=weather&n=fog"),
-    },
-    root,
-  );
-  const toggled = update(
-    { kind: "toggleScheme" },
-    navigated,
+test("selecting a note reveals the reader with its body", () => {
+  const html = renderToString(
+    app.view(
+      drive(
+        openMenu("sections"),
+        select(0, "botany"),
+        select(1, "moss"),
+      ),
+    ),
   );
   return all([
+    check(html.includes("<main"), toBe(true)),
     check(
-      getOr("-")(navigated.section),
-      toBe("weather"),
+      html.includes("continuous moss mat"),
+      toBe(true),
     ),
+    // the framework renders the breadcrumb + close links,
+    // no hand-written aria-* in this app
     check(
-      getOr("-")(navigated.note),
-      toBe("fog"),
+      html.includes('aria-label="Breadcrumb"'),
+      toBe(true),
     ),
-    check(toggled.scheme, toBe("dark")),
-    // navigation state untouched by the toggle
-    check(
-      getOr("-")(toggled.section),
-      toBe("weather"),
-    ),
-    // update is pure: the root model is unchanged
-    check(getOr("-")(root.section), toBe("-")),
   ]);
 });
-
-// --- The stack renders by depth --------------------
-
-const atRoot = renderToString(view(root));
-const atList = renderToString(
-  view({
-    base: "/",
-    section: some("botany"),
-    note: none(),
-    scheme: "light",
-  }),
-);
-const atReader = renderToString(
-  view({
-    base: "/",
-    section: some("botany"),
-    note: some("moss"),
-    scheme: "light",
-  }),
-);
-
-test("the stack pushes columns as the depth grows", () =>
-  all([
-    // root: only the nav column
-    check(
-      count(atRoot, 'class="pm-col'),
-      toBe(1),
-    ),
-    check(count(atRoot, "<nav"), toBe(1)),
-    check(atRoot.includes("<aside"), toBe(false)),
-    check(atRoot.includes("<main"), toBe(false)),
-    // + section: the list column appears
-    check(
-      count(atList, 'class="pm-col'),
-      toBe(2),
-    ),
-    check(count(atList, "<aside"), toBe(1)),
-    // + note: the reader column appears
-    check(
-      count(atReader, 'class="pm-col'),
-      toBe(3),
-    ),
-    check(count(atReader, "<main"), toBe(1)),
-  ]));
-
-test("pushed columns close by link (truncation is navigation)", () =>
-  all([
-    // list column closes to the root
-    check(
-      atList.includes(
-        'aria-label="Close Botany"',
-      ),
-      toBe(true),
-    ),
-    // reader closes to its section
-    check(
-      atReader.includes(
-        'aria-label="Close Moss on the north face"',
-      ),
-      toBe(true),
-    ),
-    check(
-      atReader.includes(
-        'href="/?s=botany" aria-label="Close Moss on the north face"',
-      ),
-      toBe(true),
-    ),
-  ]));
-
-test("the breadcrumb mirrors the stack", () =>
-  all([
-    check(
-      count(atReader, "ex-crumb-sep"),
-      toBe(2),
-    ),
-    check(
-      atReader.includes("ex-crumb-here"),
-      toBe(true),
-    ),
-    // parent crumbs are links to their truncating URLs
-    check(
-      atReader.includes(
-        'href="/" class="ex-crumb-link',
-      ),
-      toBe(true),
-    ),
-    check(
-      atReader.includes(
-        'href="/?s=botany" class="ex-crumb-link',
-      ),
-      toBe(true),
-    ),
-  ]));
-
-test("the selected note is marked and displayed", () =>
-  all([
-    // SSR escapes the query's & to &amp; in attributes
-    check(
-      atReader.includes(
-        `href="${noteHref("/", "botany", "moss").replace("&", "&amp;")}" aria-current="page"`,
-      ),
-      toBe(true),
-    ),
-    check(
-      atReader.includes("Moss on the north face"),
-      toBe(true),
-    ),
-  ]));
-
-test("the scheme class follows the model", () =>
-  all([
-    check(
-      atRoot.includes("ex-light"),
-      toBe(true),
-    ),
-    check(
-      renderToString(
-        view({ ...root, scheme: "dark" }),
-      ).includes("ex-dark"),
-      toBe(true),
-    ),
-  ]));
-
-test("scheme css carries both variable sets", () =>
-  all([
-    check(
-      schemeClassCss.includes(
-        ".ex-light{--pm-surface:",
-      ),
-      toBe(true),
-    ),
-    check(
-      schemeClassCss.includes(
-        ".ex-dark{--pm-surface:",
-      ),
-      toBe(true),
-    ),
-  ]));

@@ -13,6 +13,10 @@ import {
   matchOption,
   pipe,
 } from "plgg";
+import {
+  type SqlIdent,
+  sqlIdentString,
+} from "plgg-sql/Sql/model/SqlIdent";
 
 /**
  * A concrete value that may be bound as a SQL parameter. Always *present* — SQL
@@ -134,6 +138,24 @@ const placeholderParams = (
  * from the same normalized values, so the placeholder count and the param count
  * can never diverge (the invariant a downstream driver relies on).
  */
+/**
+ * Splice a validated {@link SqlIdent} into SQL as a
+ * param-free {@link Sql} fragment — the ONLY sanctioned way
+ * an identifier (a table/column name) reaches SQL text,
+ * since SQLite cannot bind an identifier as a `?` parameter.
+ * The `SqlIdent` brand guarantees the text matches the safe
+ * grammar, so the raw name can be trusted into the query;
+ * the fragment carries zero params, preserving the
+ * text/param placeholder invariant `sql` relies on. Used by
+ * the FTS5 DDL/search builders to name tables and columns.
+ *
+ * ```ts
+ * sql`SELECT * FROM ${identSql(docs)} WHERE ${identSql(docs)} MATCH ${q}`
+ * ```
+ */
+export const identSql = (i: SqlIdent): Sql =>
+  makeSql({ text: sqlIdentString(i), params: [] });
+
 export const sql = (
   strings: TemplateStringsArray,
   ...values: ReadonlyArray<Interpolation>

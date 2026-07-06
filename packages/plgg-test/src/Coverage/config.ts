@@ -1,57 +1,148 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Option, some, none } from "plgg";
+import {
+  Result,
+  ok,
+  err,
+  matchResult,
+  Option,
+  some,
+  none,
+  matchOption,
+} from "plgg";
 
 /**
- * Per-package coverage config (Iteration-1: thresholds are
- * per-package, not a hardcoded 90). Read from
+ * Per-package coverage config. Read from
  * `<packageRoot>/plgg-test.config.json`:
  *
- *   { "coverage": { "threshold": 91, "exclude": ["/index.ts", …] } }
+ *   { "coverage": { "threshold": 91, "exclude": ["/index.ts"] } }
+ *   { "coverage": { "exempt": "private demo app" } }
  *
- * A MISSING config, or a config with no numeric `threshold`, means the
- * package is UNGATED (coverage is reported but never fails the run) —
- * exactly the three packages that today carry `coverage: { all: true }`
- * with no thresholds. This keeps migrating more packages later from
- * silently re-gating them at some default.
+ * D14 (roadmap 2026-07-04): gating is OPT-OUT. A missing config gates at
+ * {@link DEFAULT_THRESHOLD}; exemption must be an explicit, reasoned
+ * marker (`coverage.exempt`). A present-but-unreadable/malformed config,
+ * or an empty/non-string `exempt`, is an ERROR — never a silent skip.
+ * (Before D14, during the vitest→plgg-test migration finished
+ * 2026-06-24, a missing config meant UNGATED so migrated packages were
+ * not silently re-gated; that safety valve is now the reversed default.)
  */
+export const DEFAULT_THRESHOLD = 90;
+
+export type CoverageGate =
+  | Readonly<{
+      kind: "gated";
+      threshold: number;
+    }>
+  | Readonly<{
+      kind: "exempt";
+      reason: string;
+    }>;
+
 export type CoverageConfig = Readonly<{
-  threshold: Option<number>;
+  gate: CoverageGate;
   exclude: ReadonlyArray<string>;
 }>;
 
 const DEFAULT_EXCLUDE: ReadonlyArray<string> = [
   "/index.ts",
-  "/Abstracts/",
-  "/Grammaticals/Brand.ts",
-  "/Grammaticals/NonNeverFn.ts",
-  "/Grammaticals/PromisedResult.ts",
 ];
 
 export const readConfig = (
   packageRoot: string,
-): CoverageConfig => {
-  const parsed = readJson(
-    join(packageRoot, "plgg-test.config.json"),
+): Result<CoverageConfig, string> =>
+  matchResult<
+    Option<unknown>,
+    string,
+    Result<CoverageConfig, string>
+  >(
+    (msg) => err(msg),
+    matchOption(
+      () =>
+        ok<CoverageConfig>({
+          gate: {
+            kind: "gated",
+            threshold: DEFAULT_THRESHOLD,
+          },
+          exclude: DEFAULT_EXCLUDE,
+        }),
+      (parsed: unknown) => fromParsed(parsed),
+    ),
+  )(
+    readRaw(
+      join(packageRoot, "plgg-test.config.json"),
+    ),
   );
+
+const fromParsed = (
+  parsed: unknown,
+): Result<CoverageConfig, string> => {
   const cov = atObj(parsed, "coverage");
-  return {
-    threshold: numberAt(cov, "threshold"),
-    exclude: stringArrayAt(cov, "exclude").length
-      ? stringArrayAt(cov, "exclude")
-      : DEFAULT_EXCLUDE,
-  };
+  const exclude = excludeOf(cov);
+  const exempt = atObj(cov, "exempt");
+  if (exempt !== undefined) {
+    return typeof exempt === "string" &&
+      exempt.length > 0
+      ? ok<CoverageConfig>({
+          gate: {
+            kind: "exempt",
+            reason: exempt,
+          },
+          exclude,
+        })
+      : err(
+          "coverage.exempt must be a non-empty string",
+        );
+  }
+  const threshold = atObj(cov, "threshold");
+  return typeof threshold === "number"
+    ? ok<CoverageConfig>({
+        gate: { kind: "gated", threshold },
+        exclude,
+      })
+    : ok<CoverageConfig>({
+        gate: {
+          kind: "gated",
+          threshold: DEFAULT_THRESHOLD,
+        },
+        exclude,
+      });
 };
 
-const readJson = (file: string): unknown => {
-  // Filesystem/parse seam: a missing or malformed config means
-  // "ungated, default excludes" rather than a crash.
+const excludeOf = (
+  cov: unknown,
+): ReadonlyArray<string> => {
+  const arr = stringArrayAt(cov, "exclude");
+  return arr.length ? arr : DEFAULT_EXCLUDE;
+};
+
+// Filesystem/parse seam. `ok(none())` = file absent (→ default gate);
+// `ok(some(json))` = parsed; `err` = present-but-unreadable/malformed
+// (the gate must fail, never silently skip).
+const readRaw = (
+  file: string,
+): Result<Option<unknown>, string> => {
+  let text: string;
   try {
-    return JSON.parse(readFileSync(file, "utf8"));
+    text = readFileSync(file, "utf8");
+  } catch (e) {
+    return isEnoent(e)
+      ? ok<Option<unknown>>(none())
+      : err(`config unreadable: ${file}`);
+  }
+  try {
+    return ok<Option<unknown>>(
+      some(JSON.parse(text)),
+    );
   } catch {
-    return undefined;
+    return err(`config not valid JSON: ${file}`);
   }
 };
+
+const isEnoent = (e: unknown): boolean =>
+  typeof e === "object" &&
+  e !== null &&
+  "code" in e &&
+  e.code === "ENOENT";
 
 const atObj = (
   value: unknown,
@@ -62,14 +153,6 @@ const atObj = (
   key in value
     ? new Map(Object.entries(value)).get(key)
     : undefined;
-
-const numberAt = (
-  value: unknown,
-  key: string,
-): Option<number> => {
-  const v = atObj(value, key);
-  return typeof v === "number" ? some(v) : none();
-};
 
 const stringArrayAt = (
   value: unknown,

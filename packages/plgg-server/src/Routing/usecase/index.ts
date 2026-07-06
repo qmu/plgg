@@ -4,3 +4,6 @@ export * from "plgg-server/Routing/usecase/compileRoutes";
 export * from "plgg-server/Routing/usecase/dispatch";
 export * from "plgg-server/Routing/usecase/handle";
 export * from "plgg-server/Routing/usecase/toFetch";
+export * from "plgg-server/Routing/usecase/requireRole";
+export * from "plgg-server/Routing/usecase/requireScope";
+export * from "plgg-server/Routing/usecase/csrf";

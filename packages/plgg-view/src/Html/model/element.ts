@@ -71,6 +71,8 @@ export type Phrasing<Msg> = Html<
   | "label"
   | "button"
   | "input"
+  | "textarea"
+  | "select"
   | "code"
   | "img"
   | "br"
@@ -443,6 +445,41 @@ export const ol = listEl("ol");
 export const input = voidEl("input");
 export const img = voidEl("img");
 export const br = voidEl("br");
+
+/**
+ * What a `select` accepts directly: its `option`
+ * children (ticket 12's form-control gap fill).
+ */
+export type SelectContent<Msg> = Html<
+  Msg,
+  "option"
+>;
+
+/** A `select` container — only `option` children. */
+const selectEl =
+  <T extends string>(name: T) =>
+  <Msg>(
+    attributes: ReadonlyArray<Attribute<Msg>>,
+    children: ReadonlyArray<SelectContent<Msg>>,
+  ): Html<Msg, T> =>
+    box("Element")<ElementContent<Msg, T>>({
+      tag: name,
+      attributes,
+      children,
+    });
+
+/**
+ * A multi-line text control. Text-only content (its
+ * value is text), phrasing-level, so it composes in a
+ * `form`/`label` exactly like `input`.
+ */
+export const textarea = textEl("textarea");
+
+/** A dropdown control — only `option` children. */
+export const select = selectEl("select");
+
+/** One `select` option. Text-only content (its label). */
+export const option = textEl("option");
 export const hr = voidEl("hr");
 export const meta = voidEl("meta");
 export const link = voidEl("link");

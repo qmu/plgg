@@ -1,16 +1,16 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "plgg-bundle/vendors/nodeProc";
 import {
   join,
   dirname,
   basename,
   relative,
-} from "node:path";
+} from "plgg-bundle/vendors/nodePath";
 import {
   existsSync,
   writeFileSync,
   rmSync,
-} from "node:fs";
-import { createRequire } from "node:module";
+} from "plgg-bundle/vendors/nodeFs";
+import { createRequire } from "plgg-bundle/vendors/nodeProc";
 import { rewriteDtsAliases } from "plgg-bundle/domain/usecase/rewriteDtsAliases";
 
 /**

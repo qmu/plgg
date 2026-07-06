@@ -56,7 +56,7 @@ export const textLink = (
           ]
         : []),
       style_(
-        textColor("primary"),
+        textColor("primary-text"),
         decl("text-decoration", "underline"),
         focusRing,
         hoverDim,

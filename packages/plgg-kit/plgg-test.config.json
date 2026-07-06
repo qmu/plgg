@@ -1,0 +1,9 @@
+{
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/index.ts",
+      "/LLMs/usecase/mintRealtimeKey.ts"
+    ]
+  }
+}
