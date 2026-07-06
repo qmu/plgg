@@ -18,3 +18,4 @@
 * [Add plgg-parser combinator library; migrate plgg-highlight off ts.createScanner](work-20260704-015006.md)
 * [Make two plgg-auth crypto tests runtime-portable to unblock main](work-20260704-022023.md)
 * [Fix plgg-bundle's loader hook resolving a directory (EISDIR) and guard it with a regression test](work-20260704-104625.md)
+* [Complete the plggpress/plggmatic product roadmap](work-20260704-130317.md)
