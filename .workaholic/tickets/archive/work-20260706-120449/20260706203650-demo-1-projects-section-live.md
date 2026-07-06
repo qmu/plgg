@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 2h
-commit_hash: d7ad9f81
+commit_hash: be63d3d9
 category: Changed
 depends_on: []
 ---
@@ -70,4 +70,14 @@ Approval in `/drive` requires **all** of:
 
 ## Final Report
 
-(To be filled by /drive.)
+Implemented — the Projects section is a real, filterable list with a labelled detail record; the other seven stay stubs.
+
+- Edited `src/demo1/bizMenuDemo.ts`: `projects` is now a `collection<Project>` with a `query` filter and a six-field detail record (Client, Contract, Status, Period, Budget, Lead) over six real contract-dev projects; the seven stubs are refactored to a `STUBS` table + `stubCollection`. `src/demo1/bizMenuDemo.spec.ts` extended (26 tests, demo1 100%): filter narrows + reflects `?c=projects&q=…`, select shows the detail record + `?c=projects&p=<id>`, deep link reproduces. `packages/site/demo/1.md` notes Projects is live.
+- **Design change from the ticket (renderer constraint):** the ticket asked for a child drill to Milestones *and* a detail record, but `scene.ts` shows a collection's own detail ONLY when it has no `child` (`isSome(c.child) ? drilledList : detailFor`) — the two are mutually exclusive per collection. A project is a record (client/budget/…), so Projects is a **leaf with a full detail record**; the milestone/task drill is deferred, and the multi-level drill is already shown by Demo 3 and the workbench. Recorded in the module doc comment.
+- **Framework enhancement (the demo surfaced it):** `detailFields` (plggmatic `Render/usecase/parts.ts`) rendered only `f.value`, dropping the field `label` — so `field("Client", …)` showed just the value. The `Field` model documents `label` as a caption ("empty for a body paragraph"), but the only prior consumer (the workbench note body) used empty labels, so it was never rendered. Fixed to render a non-empty label as a `pm-field-label` caption above the value (empty label → value alone, unchanged). Verified live: the project detail now reads "Client / Beacon Financial", "Budget / ¥22M", etc. plggmatic suite green (170 passed, coverage gate held; the existing detail specs use empty labels, so unaffected).
+- Quality gate passed: `plggmatic-example` `npm test` green — 26 passed (demo1 100%). `plggmatic` `npm test` green (170) after the `detailFields` change. `packages/site` `npm run check` green — examples tsc + plggpress build (19 pages), dead-link gate. Browser-verified on the 5182 preview: Projects filters (`?c=projects&q=fox` → Foxtrot only), selecting a project shows the labelled record (`?c=projects&p=beacon`), deep link reproduces, active menu pill legible, breadcrumb correct, 0 console errors/warnings; the other seven sections still open to their placeholder rows.
+
+## Out of scope (confirmed) / Notes
+
+- Milestone/task drill under a project — deferred (renderer makes detail + child exclusive; the record view won here). If wanted, a future step could add a project-scoped child at the cost of the inline record, or surface tasks as additional detail fields.
+- Actions (create/update/delete) and the other six real sections — later steps.

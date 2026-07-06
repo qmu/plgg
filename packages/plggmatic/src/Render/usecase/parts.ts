@@ -227,7 +227,12 @@ export const errorHint = (
     ],
   )(error);
 
-/** The detail fields block. */
+/**
+ * The detail fields block. A field's `label` is rendered
+ * as a caption above its value when non-empty; an empty
+ * label (a body paragraph) renders the value alone — the
+ * emptiness is presentation, per the {@link Field} model.
+ */
 export const detailFields = (
   fields: ReadonlyArray<Field>,
 ): Html<SchedulerMsg, "div"> =>
@@ -236,7 +241,28 @@ export const detailFields = (
     fields.map((f: Field) =>
       slot(
         [attr("class", `${cssPrefix}-field`)],
-        [text(f.value)],
+        f.label === ""
+          ? [text(f.value)]
+          : [
+              span(
+                [
+                  attr(
+                    "class",
+                    `${cssPrefix}-field-label`,
+                  ),
+                ],
+                [text(f.label)],
+              ),
+              span(
+                [
+                  attr(
+                    "class",
+                    `${cssPrefix}-field-value`,
+                  ),
+                ],
+                [text(f.value)],
+              ),
+            ],
       ),
     ),
   );
