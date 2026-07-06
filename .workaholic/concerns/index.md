@@ -87,5 +87,12 @@
 * [plgg-parser concrete-S pinning is an ergonomic sharp edge](59-concrete-s-pinning-ergonomics.md)
 * [plgg-highlight grammar has cosmetic lexing limitations vs the old scanner](59-lexer-fidelity-limitations-non-ascii-jsx-regex-class.md)
 * [~74 standing deferred concerns carried (PRs #31–#53)](59-standing-deferred-concerns-carried.md)
+* [(carried from PR #51) Facade plain names shadow plgg-server variants](60-carried-from-pr-51-facade-plain.md)
+* [(carried from PR #51) Principle (a): design change not documented](60-carried-from-pr-51-principle-a.md)
+* [(carried from PR #52) HTTPS enforcement and proxied mode follow GitHub's re-enable](60-carried-from-pr-52-https-enforcement.md)
+* [(carried from PR #53) Database migration `down --to` silent degrade](60-carried-from-pr-53-database-migration.md)
+* [(carried from PR #59) Attempt combinator intentionally omitted](60-carried-from-pr-59-attempt-combinator.md)
+* [(carried from PR #59) Concrete-S pinning ergonomics](60-carried-from-pr-59-concrete-s.md)
+* [(carried from PR #59) Lexer fidelity limitations](60-carried-from-pr-59-lexer-fidelity.md)
 
 * [archive/](archive/)
