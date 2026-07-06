@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 2h
-commit_hash: bdd983f5
+commit_hash: 9ecef1dc
 category: Changed
 depends_on: []
 ---
@@ -80,4 +80,10 @@ Approval in `/drive` requires **all** of:
 
 ## Final Report
 
-(To be filled by /drive.)
+Implemented as specified — Demo 1 is now the contract-dev business-management system's menu, declared from scratch and mounted with `application`.
+
+- New: `src/demo1/bizMenuDemo.ts` (`declare` with `menu([...8 menuEntry])` + eight `collection` stubs built by mapping a `SECTIONS` table, `schedule`, an `application` view via `multiColumn`), `src/demo1/bizMenuDemo.spec.ts` (4 specs: nav renders the eight labels, `openMenu` drives `toUrl` to `?c=projects`, deep-link opens a section, drill shows placeholder rows). Deleted the two `paneAlignmentDemo.*` files.
+- Edited: `src/demo1-main.ts` (mount with `application` + scheme boot + chrome CSS), `demo1.html` (retitle), `bundle.config.ts` (comment); `stamp.ts` entry unchanged. `packages/site/demo/1.md` rewritten (Run Demo + What's so plggmatic, with a `menu([...])` code fence) and a compile-checked twin `packages/site/examples/bizMenu.ts` added.
+- **Framework bug fixed (the demo surfaced it):** the multi-column chrome painted the `aria-current` inverted pill (and the close/crumb hover pills) as `color: primary-text` on `background: primary-base`. Under the monochrome default `primary-text` ≈ `primary-base` in *both* schemes (light #111/#111, dark #f4f4f4/#f4f4f4), so **the active menu label was invisible** (black-on-black). Verified live: before = `color rgb(17,17,17)` on `bg rgb(17,17,17)`; after = `rgb(255,255,255)` on `rgb(17,17,17)`. Fixed `chromeCss.ts` to use the neutral `surface` ink — the on-fill label the `base` variant documents. This also fixes the workbench (`/example/`) and Demo 3, whose active nav pills had the same defect. plggmatic suite stays green (170 passed, coverage gate held); the chromeCss spec asserts the selector, not the colour, so no spec change.
+- Quality gate passed: `packages/plggmatic-example` `npm test` green — **23 passed** (4 new, demo1 program 100%). `packages/site` `npm run check` green — examples tsc (incl. the new `bizMenu.ts` twin) + plggpress build (19 pages), dead-link gate green. Browser-verified on the 5182 preview: the eight sections render as a real `<nav>` landmark; selecting a section reflects to `?c=<section>`, shows its placeholder rows, and marks the active entry with a now-legible white-on-black pill; deep link `?c=projects` opens directly; 0 console errors/warnings. `/demo/1` renders with Run Demo + What's so plggmatic and its link opens the app.
+- Retired: the pane-alignment demo (per decision 2); the alignment pillar stays documented at `/pane-alignment` and `/multi-column`.

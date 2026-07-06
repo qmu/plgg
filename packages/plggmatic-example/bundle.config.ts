@@ -20,7 +20,8 @@ export default {
     { name: "main", input: "main.ts" },
     // the ticket-12 forms demo (form + dialog + toasts)
     { name: "forms", input: "forms-main.ts" },
-    // demo 1 — pane alignment (raw row/column/pane combinators)
+    // demo 1 — contract-dev business-management menu,
+    // declared from scratch and scheduled
     { name: "demo1", input: "demo1-main.ts" },
     // demo 2 — color scheme (token-driven light/dark reschemer)
     { name: "demo2", input: "demo2-main.ts" },
