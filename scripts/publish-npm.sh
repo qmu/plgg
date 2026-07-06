@@ -5,12 +5,24 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # releases are repository scripts run from /ship, bracketed by online
 # verification against the registry — the registry IS production here).
 #
-#   ./scripts/publish-npm.sh              # gate (check-all.sh) + publish + verify
+# npm publishing is a DEVELOPER-DRIVEN step: at /ship the agent runs the
+# read-only preflight to detect a pending publish and asks the developer to run
+# this script themselves — it never publishes on the developer's behalf.
+#
+#   PREFLIGHT=1 ./scripts/publish-npm.sh  # report the publish set only; NO gate,
+#                                         # NO publish (what /ship runs to decide
+#                                         # whether to prompt the developer)
+#   ./scripts/publish-npm.sh              # preflight -> gate (check-all.sh) ->
+#                                         # publish the bumped set -> verify
 #   SKIP_GATE=1 ./scripts/publish-npm.sh  # skip the gate when one just ran green
 #
-# Per package, in build.sh's dependency order (a dependency must be on the
-# registry before its dependents' rewritten ranges can resolve):
-#   private? skip -> publish-if-newer (local > registry, else skip) ->
+# Efficiency: the preflight computes the publish set (local > registry) up front
+# and prints it, so a run with nothing bumped is a no-op that NEVER builds/gates,
+# and a real run stages/publishes ONLY the bumped packages (in build.sh's
+# dependency order — a dependency must be on the registry before its dependents'
+# rewritten ranges can resolve).
+#
+# Per published package:
 #   stage copy (files allowlist; the working tree is NEVER mutated) ->
 #   file:-dep rewrite to ^<local version> -> npm publish ->
 #   verify: npm view resolves, then a scratch-dir install + import/bin smoke.
@@ -20,21 +32,19 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # never echoed. No --provenance (it requires hosted-CI OIDC; declined per the
 # local-first stance, the same trade-off the GitHub Release contract makes).
 
-if [ "${SKIP_GATE:-0}" != "1" ]; then
-  echo "=== Gate: fresh check-all.sh before any publish ==="
-  ./scripts/check-all.sh
-fi
-
 # The publish order IS build.sh's topology — derived, never forked (the
 # deploy-guide.yml PR #51 drift incident is why). plgg-bundle is prepended:
 # it sits outside that list and has no file: runtime deps.
 ORDER="plgg-bundle $(sed -n 's|^cd \$REPO_ROOT/packages/\([a-z0-9-]*\) && npm run build$|\1|p' scripts/build.sh)"
 
-STAGE_ROOT=$(mktemp -d "$REPO_ROOT/.publish-stage.XXXXXX")
-trap 'rm -rf "$STAGE_ROOT"' EXIT INT TERM
-
-PUBLISHED=""
+# === Preflight: compute the publish set (local version > registry) up front ===
+# Read-only: one `npm view` per package, no build, no publish. This is the
+# source of truth for what the real run below will publish, and — via
+# PREFLIGHT=1 — what /ship inspects to decide whether to ask the developer.
+echo "=== Preflight: comparing local vs registry versions ==="
+PUBLISH_SET=""
 SKIPPED=""
+PRIVATE_SKIPPED=""
 
 for PKG in $ORDER; do
   DIR="$REPO_ROOT/packages/$PKG"
@@ -43,7 +53,7 @@ for PKG in $ORDER; do
   PRIVATE=$(node -p "require('$DIR/package.json').private === true")
 
   if [ "$PRIVATE" = "true" ]; then
-    echo "=== $NAME: private - never published ==="
+    PRIVATE_SKIPPED="$PRIVATE_SKIPPED $NAME"
     continue
   fi
 
@@ -58,13 +68,72 @@ for PKG in $ORDER; do
     }
     console.log('no');
   ")
-  if [ "$NEWER" != "yes" ]; then
-    echo "=== $NAME: registry $REMOTE >= local $VERSION - skip (publish-if-newer) ==="
+  if [ "$NEWER" = "yes" ]; then
+    PUBLISH_SET="$PUBLISH_SET $PKG"
+    echo "  PUBLISH  $NAME  $REMOTE -> $VERSION"
+  else
     SKIPPED="$SKIPPED $NAME@$VERSION"
-    continue
   fi
+done
 
-  echo "=== $NAME: staging $VERSION (registry: $REMOTE) ==="
+echo ""
+echo "=== Preflight summary ==="
+if [ -n "$PUBLISH_SET" ]; then
+  for PKG in $PUBLISH_SET; do
+    NAME=$(node -p "require('$REPO_ROOT/packages/$PKG/package.json').name")
+    VERSION=$(node -p "require('$REPO_ROOT/packages/$PKG/package.json').version")
+    echo "  will publish: $NAME@$VERSION"
+  done
+else
+  echo "  will publish: (none)"
+fi
+echo "  skip (already current):${SKIPPED:- (none)}"
+echo "  private (never):${PRIVATE_SKIPPED:- (none)}"
+
+# PREFLIGHT mode: report only — never gate, never publish. This is what /ship
+# runs to decide whether to prompt the developer (a non-empty publish set means
+# "pause and ask the developer to publish"; empty means "nothing to publish").
+if [ "${PREFLIGHT:-0}" = "1" ]; then
+  echo ""
+  if [ -n "$PUBLISH_SET" ]; then
+    echo "=== Preflight: $(echo $PUBLISH_SET | wc -w | tr -d ' ') package(s) ready to publish ==="
+  else
+    echo "=== Preflight: nothing to publish ==="
+  fi
+  echo "\n=== All shell scripts have been executed successfully ==="
+  exit 0
+fi
+
+# Gate/build de-dup: nothing bumped => no publish => skip the gate entirely
+# (no point rebuilding + running the whole test suite for a no-op release).
+if [ -z "$PUBLISH_SET" ]; then
+  echo ""
+  echo "=== Nothing to publish (no version bumped past the registry) — done. ==="
+  echo "\n=== All shell scripts have been executed successfully ==="
+  exit 0
+fi
+
+# Gate: a fresh green check-all before publishing anything (skipped only when a
+# same-session run already went green and set SKIP_GATE).
+if [ "${SKIP_GATE:-0}" != "1" ]; then
+  echo ""
+  echo "=== Gate: fresh check-all.sh before publishing ==="
+  ./scripts/check-all.sh
+fi
+
+STAGE_ROOT=$(mktemp -d "$REPO_ROOT/.publish-stage.XXXXXX")
+trap 'rm -rf "$STAGE_ROOT"' EXIT INT TERM
+
+PUBLISHED=""
+
+# Publish only the bumped set, in build.sh's dependency order (the preflight
+# already resolved local > registry, so no re-check here).
+for PKG in $PUBLISH_SET; do
+  DIR="$REPO_ROOT/packages/$PKG"
+  NAME=$(node -p "require('$DIR/package.json').name")
+  VERSION=$(node -p "require('$DIR/package.json').version")
+
+  echo "=== $NAME: staging $VERSION ==="
   STAGE="$STAGE_ROOT/$PKG"
   node - "$DIR" "$STAGE" <<'EOS'
 const fs = require("node:fs");

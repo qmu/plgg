@@ -3,8 +3,8 @@ created_at: 2026-07-06T12:24:07+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, Config]
-effort: 4h
-commit_hash:
+effort: 1h
+commit_hash: 4f45480d
 category: Changed
 depends_on: []
 ---
@@ -71,3 +71,19 @@ The plgg repo owns the two amendable artifacts (`npm.md` contract + `publish-npm
 - Any change to the `workaholic` ship plugin (see Scope boundary — contract-prose is the plgg-side mechanism; plugin work is a flagged follow-up only if needed).
 - Versioning policy itself is unchanged (independent per-package semver; releasing = bump `version` on a branch — this ticket only changes *how* that bump is turned into a publish at ship time).
 - Cross-refs: origin ticket `archive/work-20260703-050355/20260703153000-npm-publish-canonical-runner.md` (created `publish-npm.sh` + `npm.md`); memory `reference_release_flow`, `feedback_command_scripts_policy`.
+
+## Final Report
+
+Development completed as planned. Both parts landed in one change:
+
+- **Part 2 (`scripts/publish-npm.sh`):** added a read-only `PREFLIGHT=1` mode; the real run now computes the bumped set up front, **skips the entire `check-all` gate on a no-op**, and stages/publishes only bumped packages in `build.sh` dependency order. Staging `file:`-rewrite, publish-if-newer, `--tag latest --ignore-scripts`, and per-package `npm view` + scratch-install/import/bin verification are byte-identical to before.
+- **Part 1 (`npm.md` + `index.md`):** rewritten to the developer-driven, pre-merge, only-when-bumped, ask-and-await contract; post-publish verification + record-into-story/PR made explicit.
+
+Verified without any real publish: `sh -n` clean; `PREFLIGHT=1` read-only run reported the pending set and exited 0 with no gate/build; a stubbed no-bump run (fake `npm view` → all current) exited 0 and **skipped the gate** (confirmed no `check-all` output). The real publish was deliberately not run — it is exactly the developer-gated decision this ticket creates.
+
+### Discovered Insights
+
+- **Insight**: The new preflight immediately surfaced that **three packages from the just-merged PR #60 roadmap — `plgg-content`, `plgg-mcp`, `plgg-domain` (all local `0.0.1`, registry `none`) — are unpublished on npm.** Under the pre-existing flow they were a silent skip at ship time (the PR #60 CARRY ticket explicitly deferred them as experimental); under this contract the next `/ship` preflight will detect and prompt for them (a brand-new package counts as "bumped").
+  **Context**: This is the ticket's own thesis demonstrated on real state — the silent-no-op that motivated the change was hiding three genuinely unpublished packages. Whoever next `/ship`s will be asked to publish them; that is the intended behavior, not a regression. The publish itself remains a conscious developer decision (these are experimental), so it was correctly left un-run here.
+- **Insight**: The pre-existing `echo "\n=== All shell scripts have been executed successfully ==="` sentinel prints a **literal** `\n` under this host's `/bin/sh` (it does not interpret the escape). Preserved verbatim for consistency with the original and the house convention across `scripts/`; not "fixed" to avoid a cosmetic divergence.
+  **Context**: If that banner is ever grepped as a success marker, it is matched on the `=== All shell scripts...` text, not the leading newline — so the literal `\n` is harmless.
