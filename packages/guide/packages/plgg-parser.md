@@ -27,13 +27,11 @@ package's own specs
 import {
   digit,
   char,
-} from "plgg-parser/Parse/usecase/primitive";
-import {
   many,
   between,
   sepBy1,
-} from "plgg-parser/Parse/usecase/repeat";
-import { run } from "plgg-parser/Parse/usecase/run";
+  run,
+} from "plgg-parser";
 
 // zero-or-more: Ok(["1","2","3"]) on "123x"
 run(many(digit), "123x", 0);
@@ -70,30 +68,23 @@ branch's reason.
 
 ## The user-state slot
 
-Lexing TypeScript is context-sensitive: `/` is a regex
-literal in operator position but division after a
-value. `ParseState<S>` carries a user-state slot `S`
+Lexing TypeScript-family code is context-sensitive: `/`
+is a regex literal in operator position but division after
+a value. `ParseState<S>` carries a user-state slot `S`
 through the whole parse, so a grammar can remember the
-last significant token and disambiguate. The demo
-grammar in `src/Demo/` proves the core on exactly this
-ground — it lexes TypeScript into classified tokens
-with the exact-source round-trip invariant and the
-three hard edge cases: nested template interpolation,
-regex-vs-division, and unterminated-at-EOF degrading
-to plain.
+last significant token and disambiguate. The production
+grammar in [plgg-highlight](/packages/plgg-highlight)
+uses that slot to classify tokens while preserving the
+exact-source round-trip invariant.
 
 ## Why it exists
 
-[plgg-highlight](/packages/plgg-highlight) originally
-drove the TypeScript compiler's stateful
-`ts.createScanner`, carrying `typescript` as a peer
-dependency. plgg-parser is the in-house parsing stack
-that replaced it: the combinator core here, the
-production TS grammar in plgg-highlight — and the
-`typescript` peer dependency is gone, so the library
-adds nothing to a consumer's install. The
-[frontmatter parser](/packages/plggpress) plggpress
-reads site content with is built on the same core.
+[plgg-highlight](/packages/plgg-highlight) now uses this
+in-house parsing stack for its TypeScript-family grammar:
+the combinator core lives here, and the production grammar
+lives in plgg-highlight. The [frontmatter parser](/packages/plggpress)
+plggpress reads site content with is built on the same
+core.
 
 Two deliberate design points: PEG-style **stateless
 backtracking** makes an `attempt` combinator a no-op,

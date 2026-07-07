@@ -33,7 +33,7 @@ import {
   schemaOk$,
   schemaLag$,
   schemaDrift$,
-} from "plgg-domain/index";
+} from "plgg-domain";
 
 const spec: DomainSpec = {
   name: "blog",

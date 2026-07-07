@@ -6,7 +6,9 @@ A **development workload**: one container that serves the
 so you can read and edit the official plgg family guide
 locally without installing the toolchain on the host.
 
-This is a dev image (it runs the `plggpress dev` server).
+This is a dev image (it runs the guide package's
+`npm run dev`, which invokes `plgg-bundle dev
+bundle.config.ts`).
 The static production build and deploy are T8.
 
 ## Run it
@@ -19,8 +21,8 @@ bash scripts/serve-guide.sh
 
 Then open <http://localhost:5181>. Editing any Markdown
 under `packages/guide/` reloads the page live (the repo is
-mounted into the container and `plggpress dev` watches the
-content tree, pushing reloads over SSE).
+mounted into the container and `plgg-bundle dev` watches
+the content tree, pushing reloads over SSE).
 
 The script is a thin wrapper over the underlying compose
 command (also runnable directly from the repo root):
@@ -37,12 +39,11 @@ The compose file is engine-agnostic; on a podman host run
 
 ## How the container resolves plggpress's siblings
 
-`plggpress` is not a single self-contained package: it
-imports seven sibling built dists — `plgg`, `plgg-view`,
-`plgg-server`, `plgg-http`, `plgg-md`, `plgg-highlight`,
-and `plggpress` itself. The old single-package VitePress
-install never needed them, so the container has to provide
-them now.
+`plggpress` is not a single self-contained package: the
+guide dev server resolves a runtime graph across the plgg
+family packages. The old single-package VitePress install
+never needed those sibling dists, so the container has to
+provide them now.
 
 The crux is mount ordering. `compose.yaml` bind-mounts the
 host repo over `/app`, and that mount **hides anything
@@ -55,16 +56,17 @@ tree, where Node actually resolves them. That work lives in
    in each package in plggpress's runtime graph, in
    dependency order. `file:` deps do not cascade, so every
    package needs its own `node_modules`; in particular
-   `plgg-highlight` is where `typescript` (which it imports
-   at runtime to tokenize code fences) lands on its own
-   resolution path.
+   each package gets its own dependency tree for the
+   source-run dev server.
 2. **Builds every sibling dist** via the canonical
    [`scripts/build.sh`](../../scripts/build.sh) — the
    dependency-ordered, in-house bundler build. Because this
    runs after the mount, the dists are written onto the
    mounted tree and survive it.
-3. **Serves the guide** with `plggpress dev` on the
-   container's internal port **5173**.
+3. **Serves the guide** with `npm run dev` from
+   `packages/guide`, i.e. `plgg-bundle dev
+   bundle.config.ts`, on the container's internal port
+   **5173**.
 
 Each `node_modules` the entrypoint installs into is an
 anonymous volume (see `compose.yaml`), so the container's
@@ -85,8 +87,8 @@ tunnel (and rejects unknown Hosts with a 403).
 The guide's landing page, with the full nav and sidebar
 information architecture (Guide / Packages /
 Contributing) navigable end to end. The dev container runs
-`plggpress dev` and serves the guide's Markdown content
-directly.
+the guide package's `npm run dev` and serves the guide's
+Markdown content directly.
 
 ## Coexists with the example demo
 
