@@ -248,6 +248,24 @@ test("multiColumnWith accepts app-owned header links and extra columns", () => {
             label: "Add section",
             href: "/app?c=sections&add=section",
           },
+          {
+            collection: "sections",
+            label: "Import",
+            href: "/app?c=sections&import=1",
+            active: true,
+          },
+        ],
+        afterMenu: [
+          {
+            key: "section-submenu",
+            title: "Section",
+            close: none(),
+            body: [
+              slot([], [
+                text("Section submenu"),
+              ]),
+            ],
+          },
         ],
         extraColumns: [
           {
@@ -266,11 +284,19 @@ test("multiColumnWith accepts app-owned header links and extra columns", () => {
   );
   return all([
     check(
-      html.includes("pm-colhead-link"),
+      html.includes("pm-list-action"),
+      toBe(true),
+    ),
+    check(
+      html.includes("Section submenu"),
       toBe(true),
     ),
     check(
       html.includes(">Add section<"),
+      toBe(true),
+    ),
+    check(
+      html.includes(">Import<"),
       toBe(true),
     ),
     check(

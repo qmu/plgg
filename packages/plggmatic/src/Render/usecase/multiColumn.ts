@@ -13,6 +13,8 @@ import {
   type Html,
   slot,
   span,
+  a,
+  href,
   text,
   attr,
   key,
@@ -62,6 +64,7 @@ export type HeaderLink = Readonly<{
   collection: SoftStr;
   label: SoftStr;
   href: SoftStr;
+  active?: boolean;
 }>;
 
 export type ExtraColumn<Msg> = Readonly<{
@@ -80,6 +83,13 @@ export type MultiColumnOptions<Msg> = Readonly<{
    * the consumer renders its own, e.g. in an app navbar.
    */
   omitBreadcrumb?: boolean;
+  /**
+   * App-owned columns inserted right AFTER the menu column
+   * and before the collection's list/detail columns — e.g.
+   * a section sub-menu. Rendered in order; empty when the
+   * consumer provides none.
+   */
+  afterMenu?: ReadonlyArray<ExtraColumn<Msg>>;
 }>;
 
 /**
@@ -114,9 +124,19 @@ export const multiColumnWith = <Msg>(
       row<Msg>(
         [],
         [
-          ...scene.levels.map((level: Level) =>
-            columnFor(level, options),
+          ...scene.levels
+            .slice(0, 1)
+            .map((level: Level) =>
+              columnFor(level, options),
+            ),
+          ...(options.afterMenu ?? []).map(
+            extraColumn,
           ),
+          ...scene.levels
+            .slice(1)
+            .map((level: Level) =>
+              columnFor(level, options),
+            ),
           ...(
             options.extraColumns ?? []
           ).map(extraColumn),
@@ -206,7 +226,11 @@ const headerLinks = (
   collection: SoftStr,
   options: MultiColumnOptions<unknown>,
 ): ReadonlyArray<
-  Readonly<{ label: SoftStr; href: SoftStr }>
+  Readonly<{
+    label: SoftStr;
+    href: SoftStr;
+    active: boolean;
+  }>
 > =>
   (options.headerLinks ?? [])
     .filter(
@@ -216,7 +240,59 @@ const headerLinks = (
     .map((link: HeaderLink) => ({
       label: link.label,
       href: link.href,
+      active: link.active ?? false,
     }));
+
+/**
+ * The collection's app-owned header links, rendered as a
+ * button row ABOVE the list's query box (not inside the
+ * column header) — the consumer's per-list actions (e.g.
+ * "Add client") sit over the filter, styled by the app.
+ * Empty when the collection declares no links.
+ */
+const listActions = <Msg>(
+  collection: SoftStr,
+  options: MultiColumnOptions<Msg>,
+): ReadonlyArray<Html<Msg>> => {
+  const links = headerLinks(collection, options);
+  return links.length === 0
+    ? []
+    : [
+        slot(
+          [
+            attr(
+              "class",
+              `${cssPrefix}-list-actions`,
+            ),
+          ],
+          links.map(
+            (link: Readonly<{
+              label: SoftStr;
+              href: SoftStr;
+              active: boolean;
+            }>) =>
+              a(
+                [
+                  href(link.href),
+                  attr(
+                    "class",
+                    `${cssPrefix}-list-action`,
+                  ),
+                  ...(link.active
+                    ? [
+                        attr(
+                          "aria-current",
+                          "page",
+                        ),
+                      ]
+                    : []),
+                ],
+                [text(link.label)],
+              ),
+          ),
+        ),
+      ];
+};
 
 const mapScheduler =
   <Msg>(options: MultiColumnOptions<Msg>) =>
@@ -279,11 +355,12 @@ const columnFor = <Msg>(
                     colHead<Msg>({
                       title: content.title,
                       close: content.back,
-                      links: headerLinks(
-                        content.collection,
-                        options,
-                      ),
+                      links: [],
                     }),
+                    ...listActions(
+                      content.collection,
+                      options,
+                    ),
                     ...queryField(content.query).map(
                       mapScheduler(options),
                     ),

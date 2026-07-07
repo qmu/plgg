@@ -15,6 +15,10 @@ import {
   type Html,
   slot,
   span,
+  a,
+  href,
+  ul,
+  li,
   text,
   attr,
 } from "plgg-view";
@@ -51,9 +55,6 @@ import {
   parseForm,
   errorFor,
   type FormErrors,
-  type Crumb,
-  breadcrumb,
-  crumbsOf,
   themeToggle,
   openMenu,
   select,
@@ -413,7 +414,7 @@ const stubCollection = (s: Stub): Collection =>
   });
 
 export const declaration: Declaration = declare({
-  title: "DevDesk",
+  title: "Menu",
   menu: menu(
     MENU.map(([id, label]) =>
       menuEntry(label, id),
@@ -446,6 +447,10 @@ export type Model = Readonly<{
   scheme: Scheme;
   scheduled: ScheduledModel;
   clientForm: ClientForm;
+  // Whether the client list ("Search Client") pane is
+  // open. The list stays hidden at a bare ?c=clients until
+  // Search Client is chosen (or a client is selected).
+  searching: boolean;
 }>;
 
 export type Msg =
@@ -509,6 +514,10 @@ const isAddClientUrl = (url: Url): boolean =>
   new URLSearchParams(url.search).get("add") ===
   "client";
 
+const isSearchUrl = (url: Url): boolean =>
+  new URLSearchParams(url.search).get("search") ===
+  "1";
+
 const searchString = (
   params: URLSearchParams,
 ): SoftStr => {
@@ -516,9 +525,30 @@ const searchString = (
   return s === "" ? "" : `?${s}`;
 };
 
+// Drop the scheduler's selection (`p`) so opening the
+// add-client form starts fresh — the form is never shown
+// as a 4th column beside a selected client's detail.
+const withoutSelection = (url: Url): Url => {
+  const params = new URLSearchParams(url.search);
+  params.delete("p");
+  return {
+    path: url.path,
+    search: searchString(params),
+  };
+};
+
 const withAddClient = (url: Url): Url => {
   const params = new URLSearchParams(url.search);
   params.set("add", "client");
+  return {
+    path: url.path,
+    search: searchString(params),
+  };
+};
+
+const withSearch = (url: Url): Url => {
+  const params = new URLSearchParams(url.search);
+  params.set("search", "1");
   return {
     path: url.path,
     search: searchString(params),
@@ -666,6 +696,88 @@ const updateClientForm = (
   ...patch,
 });
 
+// The Clients section's sub-menu column (col 2) — shown
+// only while the Clients section is open. "Add Client"
+// opens the form; "Search Client" returns to the plain
+// (searchable) list. Both drop any selected client so the
+// list stays the third column, never a 4th.
+const clientsSubMenu = (
+  model: Model,
+): ReadonlyArray<{
+  key: SoftStr;
+  title: SoftStr;
+  close: Option<SoftStr>;
+  body: ReadonlyArray<Html<Msg>>;
+}> => {
+  const url = scheduled.toUrl(model.scheduled);
+  const inClients =
+    new URLSearchParams(url.search).get("c") ===
+    "clients";
+  if (!inClients) {
+    return [];
+  }
+  const item = (
+    label: SoftStr,
+    to: SoftStr,
+    active: boolean,
+  ): Html<Msg> =>
+    li(
+      [],
+      [
+        a(
+          [
+            href(to),
+            ...(active
+              ? [attr("aria-current", "page")]
+              : []),
+          ],
+          [text(label)],
+        ),
+      ],
+    );
+  return [
+    {
+      key: "clients-submenu",
+      title: "Client Menu",
+      close: some(
+        hrefOf({ path: url.path, search: "" }),
+      ),
+      body: [
+        slot(
+          [attr("class", "pm-menu-body")],
+          [
+            ul(
+              [],
+              [
+                item(
+                  "Add Client",
+                  hrefOf(
+                    withAddClient(
+                      withoutSelection(url),
+                    ),
+                  ),
+                  model.clientForm.open,
+                ),
+                item(
+                  "Search Client",
+                  hrefOf(
+                    withSearch(
+                      withoutAddClient(
+                        withoutSelection(url),
+                      ),
+                    ),
+                  ),
+                  model.searching,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    },
+  ];
+};
+
 const clientFormColumn = (
   model: Model,
 ): ReadonlyArray<{
@@ -678,11 +790,17 @@ const clientFormColumn = (
     ? [
         {
           key: "add-client",
-          title: "Add client",
+          title: "Add Client",
           close: some(
             hrefOf(
-              withoutAddClient(
-                scheduled.toUrl(model.scheduled),
+              withSearch(
+                withoutAddClient(
+                  withoutSelection(
+                    scheduled.toUrl(
+                      model.scheduled,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -785,6 +903,31 @@ const clientFormColumn = (
               submitting: false,
               onSubmit: { kind: "clientFormSubmit" },
             }),
+            slot(
+              [attr("class", "pm-actions")],
+              [
+                a(
+                  [
+                    href(
+                      hrefOf(
+                        withSearch(
+                          withoutAddClient(
+                            withoutSelection(
+                              scheduled.toUrl(
+                                model.scheduled,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    attr("class", "pm-btn"),
+                    attr("aria-label", "Cancel"),
+                  ],
+                  [text("Cancel")],
+                ),
+              ],
+            ),
           ],
         },
       ]
@@ -806,6 +949,7 @@ export const makeApp = (
         clientForm: emptyClientForm(
           isAddClientUrl(url),
         ),
+        searching: isSearchUrl(url),
       },
       mapSchedulerCmd(cmd),
     ];
@@ -843,6 +987,7 @@ export const makeApp = (
             clientForm: emptyClientForm(
               isAddClientUrl(msg.url),
             ),
+            searching: isSearchUrl(msg.url),
           },
           mapSchedulerCmd(cmd),
         ];
@@ -942,10 +1087,26 @@ export const makeApp = (
     model: Model,
   ): Html<Msg> => {
     const scene = scheduled.scene(model.scheduled);
-    const navCrumbs: ReadonlyArray<Crumb> =
-      crumbsOf(scene).slice(1);
+    const params = new URLSearchParams(
+      scheduled.toUrl(model.scheduled).search,
+    );
+    const inClients = params.get("c") === "clients";
+    const hasSelection = params.get("p") !== null;
+    // Only the Clients section hides its list until Search
+    // Client (or a selection). Every other section shows
+    // its list normally.
+    const hideList =
+      inClients &&
+      !model.searching &&
+      !hasSelection;
+    const rootClass =
+      "bo-root" +
+      (model.clientForm.open
+        ? " bo-adding"
+        : "") +
+      (hideList ? " bo-hidelist" : "");
     return slot(
-      [attr("class", "bo-root")],
+      [attr("class", rootClass)],
       [
         slot(
           [attr("class", "bo-topbar")],
@@ -957,7 +1118,6 @@ export const makeApp = (
                   [attr("class", "bo-brand")],
                   [text("DevDesk")],
                 ),
-                breadcrumb<Msg>(navCrumbs),
               ],
             ),
             themeToggle<Msg>({
@@ -974,19 +1134,7 @@ export const makeApp = (
               msg,
             }),
             omitBreadcrumb: true,
-            headerLinks: [
-              {
-                collection: "clients",
-                label: "Add client",
-                href: hrefOf(
-                  withAddClient(
-                    scheduled.toUrl(
-                      model.scheduled,
-                    ),
-                  ),
-                ),
-              },
-            ],
+            afterMenu: clientsSubMenu(model),
             extraColumns: clientFormColumn(model),
           },
         ),
@@ -997,12 +1145,14 @@ export const makeApp = (
     kind: "urlChanged",
     url,
   }),
-  toUrl: (model: Model): Url =>
-    model.clientForm.open
-      ? withAddClient(
-          scheduled.toUrl(model.scheduled),
-        )
-      : scheduled.toUrl(model.scheduled),
+  toUrl: (model: Model): Url => {
+    const base = scheduled.toUrl(model.scheduled);
+    return model.clientForm.open
+      ? withAddClient(base)
+      : model.searching
+        ? withSearch(base)
+        : base;
+  },
 });
 
 /** The default app (light) — existing specs/imports use it. */
