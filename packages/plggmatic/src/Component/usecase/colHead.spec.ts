@@ -9,12 +9,17 @@ import { renderToString } from "plgg-view";
 import { colHead } from "plggmatic/Component/usecase/colHead";
 
 const root = renderToString(
-  colHead({ title: "Sections", close: none() }),
+  colHead({
+    title: "Sections",
+    close: none(),
+    links: [],
+  }),
 );
 const pushed = renderToString(
   colHead({
     title: "Notes",
     close: some("/app?c=sections"),
+    links: [],
   }),
 );
 
@@ -47,7 +52,33 @@ test("colHead is pure", () =>
       colHead({
         title: "Notes",
         close: some("/app?c=sections"),
+        links: [],
       }),
     ),
     toBe(pushed),
   ));
+
+test("colHead can carry bounded action links", () => {
+  const html = renderToString(
+    colHead({
+      title: "Clients",
+      close: none(),
+      links: [
+        {
+          label: "Add client",
+          href: "/app?c=clients&add=client",
+        },
+      ],
+    }),
+  );
+  return all([
+    check(
+      html.includes("pm-colhead-link"),
+      toBe(true),
+    ),
+    check(
+      html.includes(">Add client<"),
+      toBe(true),
+    ),
+  ]);
+});

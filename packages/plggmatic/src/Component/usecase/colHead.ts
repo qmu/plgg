@@ -32,6 +32,12 @@ import { cssPrefix } from "plggmatic/Meta/model/identity";
 export type ColHeadProps = Readonly<{
   title: SoftStr;
   close: Option<SoftStr>;
+  links: ReadonlyArray<
+    Readonly<{
+      label: SoftStr;
+      href: SoftStr;
+    }>
+  >;
 }>;
 
 export const colHead = <Msg>(
@@ -48,6 +54,18 @@ export const colHead = <Msg>(
           ),
         ],
         [text(props.title)],
+      ),
+      ...props.links.map((link) =>
+        a(
+          [
+            href(link.href),
+            style_(
+              `${cssPrefix}-colhead-link`,
+              focusRing,
+            ),
+          ],
+          [text(link.label)],
+        ),
       ),
       ...matchOption<
         SoftStr,

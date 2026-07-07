@@ -4,8 +4,12 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { type SoftStr, some } from "plgg";
-import { renderToString } from "plgg-view";
+import { type SoftStr, none, some } from "plgg";
+import {
+  renderToString,
+  slot,
+  text,
+} from "plgg-view";
 import { makeUrl } from "plgg-view/client";
 import { row, field } from "plggmatic/Declare/model/Row";
 import { sync } from "plggmatic/Declare/model/Source";
@@ -27,7 +31,10 @@ import {
   requestAction,
 } from "plggmatic/Schedule/model/Msg";
 import { schedule } from "plggmatic/Schedule/usecase/schedule";
-import { multiColumn } from "plggmatic/Render/usecase/multiColumn";
+import {
+  multiColumn,
+  multiColumnWith,
+} from "plggmatic/Render/usecase/multiColumn";
 import { cmdEffect } from "plgg-view/client";
 import { loaded } from "plggmatic/Schedule/model/Msg";
 
@@ -211,4 +218,48 @@ test("the query input reflects the model's query text", () => {
     html.includes('value="Alp"'),
     toBe(true),
   );
+});
+
+test("multiColumnWith accepts app-owned header links and extra columns", () => {
+  const html = renderToString(
+    multiColumnWith(
+      s.scene(at(openMenu("sections"))),
+      {
+        mapMsg: (msg) => msg,
+        headerLinks: [
+          {
+            collection: "sections",
+            label: "Add section",
+            href: "/app?c=sections&add=section",
+          },
+        ],
+        extraColumns: [
+          {
+            key: "section-form",
+            title: "Add section",
+            close: none(),
+            body: [
+              slot([], [
+                text("App-owned form body"),
+              ]),
+            ],
+          },
+        ],
+      },
+    ),
+  );
+  return all([
+    check(
+      html.includes("pm-colhead-link"),
+      toBe(true),
+    ),
+    check(
+      html.includes(">Add section<"),
+      toBe(true),
+    ),
+    check(
+      html.includes("App-owned form body"),
+      toBe(true),
+    ),
+  ]);
 });

@@ -1,6 +1,28 @@
-import { type SoftStr } from "plgg";
+import {
+  type SoftStr,
+  type Datum,
+  type Result,
+  type InvalidError,
+  type Option,
+  some,
+  match,
+  matchResult,
+  ok,
+  err,
+  invalidError,
+} from "plgg";
 import { type Html, slot, attr } from "plgg-view";
-import { type Application } from "plgg-view/client";
+import {
+  type Application,
+  type Cmd,
+  type Url,
+  cmdNone,
+  cmdBatch,
+  cmdEffect,
+  cmdNone$,
+  cmdBatch$,
+  cmdEffect$,
+} from "plgg-view/client";
 import {
   type ScheduledModel,
   type SchedulerMsg,
@@ -15,7 +37,16 @@ import {
   makeRow,
   field,
   schedule,
-  multiColumn,
+  multiColumnWith,
+  textInput,
+  textArea,
+  selectInput,
+  formView,
+  parseForm,
+  errorFor,
+  type FormErrors,
+  openMenu,
+  select,
 } from "plggmatic";
 
 /**
@@ -25,12 +56,14 @@ import {
  *
  * Step 1 laid out the eight-section MENU from scratch.
  * Step 2 brought the **Projects** section to life, and
- * step 3 the **Clients** section — each a filterable
- * list whose rows carry a full record, shown as a detail
- * view on select. Still pure declaration (`collection` +
- * `query` + detail `field`s), no hand-written
- * `Model`/`Msg`/`update`/router. The other six sections
- * stay placeholder lists until later steps.
+ * step 3 the **Clients** section — each a filterable list
+ * whose rows carry a full record, shown as a detail view on
+ * select. Adding a client is deliberately owned by this
+ * demo wrapper, not by the scheduler: plggmatic supplies
+ * the column shell and header-link slots, while the app
+ * owns its domain-specific draft, validation, and submit
+ * behavior. The other six sections stay placeholder lists
+ * until later steps.
  *
  * (The scheduler shows a collection's own detail ONLY when
  * it has no `child` — a `child` drills to a sub-list
@@ -158,7 +191,7 @@ type Client = Readonly<{
   notes: SoftStr;
 }>;
 
-const clients: ReadonlyArray<Client> = [
+let clients: ReadonlyArray<Client> = [
   {
     id: "acme",
     name: "ACME Retail K.K.",
@@ -219,19 +252,22 @@ const clients: ReadonlyArray<Client> = [
       "Largest active budget; multi-site rollout.",
   },
 ];
+let clientCounter = 0;
+
+const clientRow = (c: Client) =>
+  makeRow(c.id, c.name, [
+    field("Status", c.status),
+    field("Since", c.since),
+    field("Contact", c.contact),
+    field("Projects", c.projects),
+    field("Notes", c.notes),
+  ]);
 
 const clientsCollection: Collection =
   collection<Client>({
     id: "clients",
     title: "Clients",
-    toRow: (c: Client) =>
-      makeRow(c.id, c.name, [
-        field("Status", c.status),
-        field("Since", c.since),
-        field("Contact", c.contact),
-        field("Projects", c.projects),
-        field("Notes", c.notes),
-      ]),
+    toRow: clientRow,
     source: sync(() => clients),
     query: query("Filter clients"),
   });
@@ -382,21 +418,518 @@ export const declaration: Declaration = declare({
  */
 export const scheduled = schedule(declaration);
 
+type ClientForm = Readonly<{
+  open: boolean;
+  nameDraft: SoftStr;
+  statusDraft: SoftStr;
+  sinceDraft: SoftStr;
+  contactDraft: SoftStr;
+  notesDraft: SoftStr;
+  errors: FormErrors;
+}>;
+
+export type Model = Readonly<{
+  scheduled: ScheduledModel;
+  clientForm: ClientForm;
+}>;
+
+export type Msg =
+  | Readonly<{
+      kind: "scheduler";
+      msg: SchedulerMsg;
+    }>
+  | Readonly<{ kind: "urlChanged"; url: Url }>
+  | Readonly<{
+      kind: "clientNameInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "clientStatusInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "clientSinceInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "clientContactInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "clientNotesInput";
+      value: SoftStr;
+    }>
+  | Readonly<{ kind: "clientFormSubmit" }>;
+
+const emptyClientForm = (open: boolean): ClientForm => ({
+  open,
+  nameDraft: "",
+  statusDraft: "Prospect",
+  sinceDraft: "2026",
+  contactDraft: "",
+  notesDraft: "",
+  errors: [],
+});
+
+const isAddClientUrl = (url: Url): boolean =>
+  new URLSearchParams(url.search).get("add") ===
+  "client";
+
+const searchString = (
+  params: URLSearchParams,
+): SoftStr => {
+  const s = params.toString();
+  return s === "" ? "" : `?${s}`;
+};
+
+const withAddClient = (url: Url): Url => {
+  const params = new URLSearchParams(url.search);
+  params.set("add", "client");
+  return {
+    path: url.path,
+    search: searchString(params),
+  };
+};
+
+const withoutAddClient = (url: Url): Url => {
+  const params = new URLSearchParams(url.search);
+  params.delete("add");
+  return {
+    path: url.path,
+    search: searchString(params),
+  };
+};
+
+const hrefOf = (url: Url): SoftStr =>
+  `${url.path}${url.search}`;
+
+const mapCmd =
+  <A, B>(f: (a: A) => B) =>
+  (cmd: Cmd<A>): Cmd<B> =>
+    match(cmd)(
+      [cmdNone$(), () => cmdNone()],
+      [
+        cmdBatch$(),
+        ({ content }) =>
+          cmdBatch(content.map(mapCmd(f))),
+      ],
+      [
+        cmdEffect$(),
+        ({ content }) =>
+          cmdEffect(() => content().then(f)),
+      ],
+    );
+
+const mapSchedulerCmd = (
+  cmd: Cmd<SchedulerMsg>,
+): Cmd<Msg> =>
+  mapCmd<SchedulerMsg, Msg>((msg) => ({
+    kind: "scheduler",
+    msg,
+  }))(cmd);
+
+const asFilled = (
+  value: unknown,
+): Result<Datum, InvalidError> =>
+  typeof value === "string" &&
+  value.trim().length > 0
+    ? ok(value.trim())
+    : err(invalidError({ message: "Required" }));
+
+const asOptionalText = (
+  value: unknown,
+): Result<Datum, InvalidError> =>
+  ok(typeof value === "string" ? value.trim() : "");
+
+const draftOf =
+  (form: ClientForm) =>
+  (name: SoftStr): SoftStr => {
+    switch (name) {
+      case "name":
+        return form.nameDraft;
+      case "status":
+        return form.statusDraft;
+      case "since":
+        return form.sinceDraft;
+      case "contact":
+        return form.contactDraft;
+      case "notes":
+        return form.notesDraft;
+      default:
+        return "";
+    }
+  };
+
+const clientId = (
+  name: SoftStr,
+  counter: number,
+): SoftStr => {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug === ""
+    ? `client-${counter}`
+    : `${slug}-${counter}`;
+};
+
+const parseClientForm = (
+  form: ClientForm,
+) =>
+  parseForm(
+    [
+      { name: "name", cast: asFilled },
+      { name: "status", cast: asFilled },
+      { name: "since", cast: asFilled },
+      { name: "contact", cast: asFilled },
+      { name: "notes", cast: asOptionalText },
+    ],
+    draftOf(form),
+  );
+
+const makeClient = (
+  payload: Readonly<Record<string, Datum>>,
+): Client => {
+  clientCounter = clientCounter + 1;
+  const name = `${payload.name}`;
+  return {
+    id: clientId(name, clientCounter),
+    name,
+    status: `${payload.status}`,
+    since: `${payload.since}`,
+    contact: `${payload.contact}`,
+    projects: "No active projects",
+    notes: `${payload.notes}`,
+  };
+};
+
+const selectCreatedClient = (
+  scheduledModel: ScheduledModel,
+  id: SoftStr,
+): readonly [ScheduledModel, Cmd<Msg>] => {
+  const [opened, openCmd] = scheduled.update(
+    openMenu("clients"),
+    scheduledModel,
+  );
+  const [selected, selectCmd] = scheduled.update(
+    select(0, id),
+    opened,
+  );
+  return [
+    selected,
+    cmdBatch([
+      mapSchedulerCmd(openCmd),
+      mapSchedulerCmd(selectCmd),
+    ]),
+  ];
+};
+
+const updateClientForm = (
+  form: ClientForm,
+  patch: Partial<ClientForm>,
+): ClientForm => ({
+  ...form,
+  ...patch,
+});
+
+const clientFormColumn = (
+  model: Model,
+): ReadonlyArray<{
+  key: SoftStr;
+  title: SoftStr;
+  close: Option<SoftStr>;
+  body: ReadonlyArray<Html<Msg>>;
+}> =>
+  model.clientForm.open
+    ? [
+        {
+          key: "add-client",
+          title: "Add client",
+          close: some(
+            hrefOf(
+              withoutAddClient(
+                scheduled.toUrl(model.scheduled),
+              ),
+            ),
+          ),
+          body: [
+            formView<Msg>({
+              fields: [
+                textInput<Msg>({
+                  name: "name",
+                  label: "Name",
+                  value: model.clientForm.nameDraft,
+                  placeholder: some("Client name"),
+                  error: errorFor(
+                    model.clientForm.errors,
+                    "name",
+                  ),
+                  disabled: false,
+                  onInput: (value: SoftStr) => ({
+                    kind: "clientNameInput",
+                    value,
+                  }),
+                }),
+                selectInput<Msg>({
+                  name: "status",
+                  label: "Status",
+                  value: model.clientForm.statusDraft,
+                  options: [
+                    {
+                      value: "Prospect",
+                      label: "Prospect",
+                    },
+                    {
+                      value: "Active",
+                      label: "Active",
+                    },
+                    {
+                      value: "Prime",
+                      label: "Prime",
+                    },
+                  ],
+                  error: errorFor(
+                    model.clientForm.errors,
+                    "status",
+                  ),
+                  disabled: false,
+                  onChange: (value: SoftStr) => ({
+                    kind: "clientStatusInput",
+                    value,
+                  }),
+                }),
+                textInput<Msg>({
+                  name: "since",
+                  label: "Since",
+                  value: model.clientForm.sinceDraft,
+                  placeholder: some("2026"),
+                  error: errorFor(
+                    model.clientForm.errors,
+                    "since",
+                  ),
+                  disabled: false,
+                  onInput: (value: SoftStr) => ({
+                    kind: "clientSinceInput",
+                    value,
+                  }),
+                }),
+                textInput<Msg>({
+                  name: "contact",
+                  label: "Contact",
+                  value:
+                    model.clientForm.contactDraft,
+                  placeholder: some(
+                    "Name, department",
+                  ),
+                  error: errorFor(
+                    model.clientForm.errors,
+                    "contact",
+                  ),
+                  disabled: false,
+                  onInput: (value: SoftStr) => ({
+                    kind: "clientContactInput",
+                    value,
+                  }),
+                }),
+                textArea<Msg>({
+                  name: "notes",
+                  label: "Notes",
+                  value: model.clientForm.notesDraft,
+                  placeholder: some("Optional notes"),
+                  error: errorFor(
+                    model.clientForm.errors,
+                    "notes",
+                  ),
+                  disabled: false,
+                  onInput: (value: SoftStr) => ({
+                    kind: "clientNotesInput",
+                    value,
+                  }),
+                }),
+              ],
+              submitLabel: "Register client",
+              submitting: false,
+              onSubmit: { kind: "clientFormSubmit" },
+            }),
+          ],
+        },
+      ]
+    : [];
+
 /** The wired program the client entry mounts. */
 export const app: Application<
-  ScheduledModel,
-  SchedulerMsg
+  Model,
+  Msg
 > = {
-  ...scheduled,
-  // The multi-column chrome brands the app via the
-  // breadcrumb root and the menu header (both the
-  // declaration `title`), so no separate wordmark — a fixed
-  // overlay would only collide with the breadcrumb.
+  init: (url: Url) => {
+    const [scheduledModel, cmd] =
+      scheduled.init(url);
+    return [
+      {
+        scheduled: scheduledModel,
+        clientForm: emptyClientForm(
+          isAddClientUrl(url),
+        ),
+      },
+      mapSchedulerCmd(cmd),
+    ];
+  },
+  update: (msg: Msg, model: Model) => {
+    switch (msg.kind) {
+      case "scheduler": {
+        const [next, cmd] = scheduled.update(
+          msg.msg,
+          model.scheduled,
+        );
+        return [
+          { ...model, scheduled: next },
+          mapSchedulerCmd(cmd),
+        ];
+      }
+      case "urlChanged": {
+        const [next, cmd] = scheduled.update(
+          scheduled.onUrlChange(msg.url),
+          model.scheduled,
+        );
+        return [
+          {
+            scheduled: next,
+            clientForm: emptyClientForm(
+              isAddClientUrl(msg.url),
+            ),
+          },
+          mapSchedulerCmd(cmd),
+        ];
+      }
+      case "clientNameInput":
+        return [
+          {
+            ...model,
+            clientForm: updateClientForm(
+              model.clientForm,
+              { nameDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "clientStatusInput":
+        return [
+          {
+            ...model,
+            clientForm: updateClientForm(
+              model.clientForm,
+              { statusDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "clientSinceInput":
+        return [
+          {
+            ...model,
+            clientForm: updateClientForm(
+              model.clientForm,
+              { sinceDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "clientContactInput":
+        return [
+          {
+            ...model,
+            clientForm: updateClientForm(
+              model.clientForm,
+              { contactDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "clientNotesInput":
+        return [
+          {
+            ...model,
+            clientForm: updateClientForm(
+              model.clientForm,
+              { notesDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "clientFormSubmit":
+        return matchResult<
+          Readonly<Record<string, Datum>>,
+          FormErrors,
+          readonly [Model, Cmd<Msg>]
+        >(
+          (errors: FormErrors) => [
+            {
+              ...model,
+              clientForm: updateClientForm(
+                model.clientForm,
+                { errors },
+              ),
+            },
+            cmdNone(),
+          ],
+          (payload) => {
+            const client = makeClient(payload);
+            clients = [...clients, client];
+            const [next, cmd] =
+              selectCreatedClient(
+                model.scheduled,
+                client.id,
+              );
+            return [
+              {
+                scheduled: next,
+                clientForm: emptyClientForm(false),
+              },
+              cmd,
+            ];
+          },
+        )(parseClientForm(model.clientForm));
+    }
+  },
   view: (
-    model: ScheduledModel,
-  ): Html<SchedulerMsg> =>
+    model: Model,
+  ): Html<Msg> =>
     slot(
       [attr("class", "bo-root")],
-      [multiColumn(scheduled.scene(model))],
+      [
+        multiColumnWith<Msg>(
+          scheduled.scene(model.scheduled),
+          {
+            mapMsg: (msg: SchedulerMsg) => ({
+              kind: "scheduler",
+              msg,
+            }),
+            headerLinks: [
+              {
+                collection: "clients",
+                label: "Add client",
+                href: hrefOf(
+                  withAddClient(
+                    scheduled.toUrl(
+                      model.scheduled,
+                    ),
+                  ),
+                ),
+              },
+            ],
+            extraColumns: clientFormColumn(model),
+          },
+        ),
+      ],
     ),
+  onUrlChange: (url: Url): Msg => ({
+    kind: "urlChanged",
+    url,
+  }),
+  toUrl: (model: Model): Url =>
+    model.clientForm.open
+      ? withAddClient(
+          scheduled.toUrl(model.scheduled),
+        )
+      : scheduled.toUrl(model.scheduled),
 };

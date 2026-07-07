@@ -18,6 +18,12 @@ export {
   type Screen,
   currentScreen,
 } from "plggmatic/Render/model/screen";
-export { multiColumn } from "plggmatic/Render/usecase/multiColumn";
+export {
+  type HeaderLink,
+  type ExtraColumn,
+  type MultiColumnOptions,
+  multiColumn,
+  multiColumnWith,
+} from "plggmatic/Render/usecase/multiColumn";
 export { singleColumn } from "plggmatic/Render/usecase/singleColumn";
 export { renderMode } from "plggmatic/Render/usecase/renderMode";

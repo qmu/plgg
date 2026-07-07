@@ -145,7 +145,7 @@ export const rowItem = (
   r: RowLink,
 ): Html<SchedulerMsg, "li"> =>
   liElement(
-    [],
+    [attr("class", `${cssPrefix}-list-item`)],
     [
       a(
         [

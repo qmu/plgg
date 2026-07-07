@@ -13,22 +13,33 @@ import { getOr } from "plgg";
 import { renderToString } from "plgg-view";
 import { makeUrl } from "plgg-view/client";
 import {
-  type ScheduledModel,
   type SchedulerMsg,
   openMenu,
   select,
   queryInput,
 } from "plggmatic";
-import { app, scheduled } from "./bizMenuDemo.ts";
+import {
+  app,
+  scheduled,
+  type Model,
+  type Msg,
+} from "./bizMenuDemo.ts";
 
 const [m0] = app.init(makeUrl("/", ""));
 
+const schedulerMsg = (
+  msg: SchedulerMsg,
+): Msg => ({
+  kind: "scheduler",
+  msg,
+});
+
 const drive = (
   ...msgs: ReadonlyArray<SchedulerMsg>
-): ScheduledModel =>
+): Model =>
   msgs.reduce(
-    (m: ScheduledModel, msg: SchedulerMsg) =>
-      app.update(msg, m)[0],
+    (m: Model, msg: SchedulerMsg) =>
+      app.update(schedulerMsg(msg), m)[0],
     m0,
   );
 
@@ -62,15 +73,18 @@ test("the root view renders the eight sections as a nav menu", () => {
 
 test("selecting a section drives the derived URL to ?c=<section>", () => {
   const m = app.update(
-    openMenu("projects"),
+    schedulerMsg(openMenu("projects")),
     m0,
   )[0];
   return all([
     check(
-      scheduled.toUrl(m).search,
+      scheduled.toUrl(m.scheduled).search,
       toBe("?c=projects"),
     ),
-    check(getOr("")(m.root), toBe("projects")),
+    check(
+      getOr("")(m.scheduled.root),
+      toBe("projects"),
+    ),
   ]);
 });
 
@@ -79,7 +93,7 @@ test("a deep link opens a section directly", () => {
     makeUrl("/", "?c=invoices"),
   );
   return check(
-    getOr("")(m.root),
+    getOr("")(m.scheduled.root),
     toBe("invoices"),
   );
 });
@@ -87,7 +101,10 @@ test("a deep link opens a section directly", () => {
 test("the section's placeholder rows render on drill", () => {
   const html = renderToString(
     app.view(
-      app.update(openMenu("members"), m0)[0],
+      app.update(
+        schedulerMsg(openMenu("members")),
+        m0,
+      )[0],
     ),
   );
   return all([
@@ -104,7 +121,7 @@ test("the Projects filter narrows the list and reflects to ?q=", () => {
   const html = renderToString(app.view(m));
   return all([
     check(
-      scheduled.toUrl(m).search,
+      scheduled.toUrl(m.scheduled).search,
       toBe("?c=projects&q=beacon"),
     ),
     check(
@@ -126,7 +143,7 @@ test("selecting a project shows its detail record", () => {
   const html = renderToString(app.view(m));
   return all([
     check(
-      scheduled.toUrl(m).search,
+      scheduled.toUrl(m.scheduled).search,
       toBe("?c=projects&p=acme"),
     ),
     check(
@@ -147,7 +164,10 @@ test("a deep link reproduces a project's detail", () => {
   );
   const html = renderToString(app.view(m));
   return all([
-    check(getOr("")(m.root), toBe("projects")),
+    check(
+      getOr("")(m.scheduled.root),
+      toBe("projects"),
+    ),
     check(
       html.includes("Beacon Financial"),
       toBe(true),
@@ -163,7 +183,7 @@ test("the Clients filter narrows the list and reflects to ?q=", () => {
   const html = renderToString(app.view(m));
   return all([
     check(
-      scheduled.toUrl(m).search,
+      scheduled.toUrl(m.scheduled).search,
       toBe("?c=clients&q=beacon"),
     ),
     check(
@@ -185,7 +205,7 @@ test("selecting a client shows its detail record", () => {
   const html = renderToString(app.view(m));
   return all([
     check(
-      scheduled.toUrl(m).search,
+      scheduled.toUrl(m.scheduled).search,
       toBe("?c=clients&p=acme"),
     ),
     check(
@@ -206,13 +226,137 @@ test("a deep link reproduces a client's detail", () => {
   );
   const html = renderToString(app.view(m));
   return all([
-    check(getOr("")(m.root), toBe("clients")),
+    check(
+      getOr("")(m.scheduled.root),
+      toBe("clients"),
+    ),
     check(
       html.includes("Foxtrot Mfg."),
       toBe(true),
     ),
     check(
       html.includes("Kanda, Plant IT"),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("the Clients column opens an app-owned add form", () => {
+  const opened = drive(openMenu("clients"));
+  const before = renderToString(app.view(opened));
+  const [formModel] = app.init(
+    makeUrl("/", "?c=clients&add=client"),
+  );
+  const formHtml = renderToString(
+    app.view(formModel),
+  );
+  return all([
+    check(
+      before.includes(
+        'href="/?c=clients&amp;add=client"',
+      ),
+      toBe(true),
+    ),
+    check(
+      before.includes("pm-colhead-link"),
+      toBe(true),
+    ),
+    check(
+      formModel.clientForm.open,
+      toBe(true),
+    ),
+    check(
+      formHtml.includes("<form"),
+      toBe(true),
+    ),
+    check(
+      formHtml.includes(">Register client<"),
+      toBe(true),
+    ),
+    check(
+      formHtml.includes(">Name<"),
+      toBe(true),
+    ),
+    check(
+      formHtml.includes(">Status<"),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("the add client form validates required fields", () => {
+  const [formModel] = app.init(
+    makeUrl("/", "?c=clients&add=client"),
+  );
+  const invalid = app.update(
+    { kind: "clientFormSubmit" },
+    formModel,
+  )[0];
+  const html = renderToString(app.view(invalid));
+  return all([
+    check(
+      invalid.clientForm.open,
+      toBe(true),
+    ),
+    check(html.includes("Required"), toBe(true)),
+    check(
+      html.includes("Orbit Systems"),
+      toBe(false),
+    ),
+  ]);
+});
+
+test("a valid add client form creates a client and lands on its detail", () => {
+  const [formModel] = app.init(
+    makeUrl("/", "?c=clients&add=client"),
+  );
+  const filled = [
+    {
+      kind: "clientNameInput",
+      value: "Orbit Systems",
+    } satisfies Msg,
+    {
+      kind: "clientStatusInput",
+      value: "Active",
+    } satisfies Msg,
+    {
+      kind: "clientSinceInput",
+      value: "2026",
+    } satisfies Msg,
+    {
+      kind: "clientContactInput",
+      value: "Mina, Ops",
+    } satisfies Msg,
+    {
+      kind: "clientNotesInput",
+      value: "New implementation partner.",
+    } satisfies Msg,
+  ].reduce(
+    (m: Model, msg: Msg) =>
+      app.update(msg, m)[0],
+    formModel,
+  );
+  const created = app.update(
+    { kind: "clientFormSubmit" },
+    filled,
+  )[0];
+  const html = renderToString(app.view(created));
+  return all([
+    check(
+      created.clientForm.open,
+      toBe(false),
+    ),
+    check(
+      scheduled.toUrl(created.scheduled).search,
+      toBe("?c=clients&p=orbit-systems-1"),
+    ),
+    check(
+      html.includes("Orbit Systems"),
+      toBe(true),
+    ),
+    check(html.includes("Mina, Ops"), toBe(true)),
+    check(
+      html.includes("New implementation partner."),
       toBe(true),
     ),
   ]);

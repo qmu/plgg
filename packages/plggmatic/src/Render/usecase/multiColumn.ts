@@ -17,6 +17,7 @@ import {
   attr,
   key,
   fadeIn,
+  mapHtml,
 } from "plgg-view";
 import {
   style_,
@@ -57,33 +58,62 @@ import {
   detailFields,
 } from "plggmatic/Render/usecase/parts";
 
+export type HeaderLink = Readonly<{
+  collection: SoftStr;
+  label: SoftStr;
+  href: SoftStr;
+}>;
+
+export type ExtraColumn<Msg> = Readonly<{
+  key: SoftStr;
+  title: SoftStr;
+  close: Option<SoftStr>;
+  body: ReadonlyArray<Html<Msg>>;
+}>;
+
+export type MultiColumnOptions<Msg> = Readonly<{
+  mapMsg: (msg: SchedulerMsg) => Msg;
+  headerLinks?: ReadonlyArray<HeaderLink>;
+  extraColumns?: ReadonlyArray<ExtraColumn<Msg>>;
+}>;
+
 /**
  * The MULTI-COLUMN mode renderer (D10) — a pure
  * projection of ticket 09's scheduled {@link Scene} into
- * the panes-expanding-rightward arrangement the workbench
- * example hand-wrote. Each flow `Level` becomes a column
- * (the menu a `navigation` pane, a list a `complementary`
- * pane, a detail the `main` pane), with a `colHead`
- * carrying the truncating close link, pushed columns
- * keyed + entrance-faded, and a breadcrumb trail above.
- * The interactive pieces (query, actions, confirmation)
- * come from the shared {@link parts}, so this renderer and
- * the single-column one (ticket 11) stay in parity.
- * Column widths are renderer defaults (menu 220px, list
- * 300px, detail fluid) — the mode-private geometry the
- * design tenets keep out of the vocabulary.
+ * panes expanding rightward. The base renderer is kept
+ * lightweight; consumers that need app-specific actions or
+ * forms can use {@link multiColumnWith} to add header links
+ * and arbitrary extra columns without teaching the
+ * scheduler those domain concepts.
  */
 export const multiColumn = (
   scene: Scene,
 ): Html<SchedulerMsg, "div"> =>
+  multiColumnWith<SchedulerMsg>(scene, {
+    mapMsg: (msg: SchedulerMsg) => msg,
+  });
+
+export const multiColumnWith = <Msg>(
+  scene: Scene,
+  options: MultiColumnOptions<Msg>,
+): Html<Msg, "div"> =>
   slot(
     [attr("class", `${cssPrefix}-scheduler`)],
     [
-      breadcrumb<SchedulerMsg>(crumbsOf(scene)),
-      ...confirmOverlay(scene.confirm),
-      row<SchedulerMsg>(
+      breadcrumb<Msg>(crumbsOf(scene)),
+      ...confirmOverlay(scene.confirm).map(
+        mapScheduler(options),
+      ),
+      row<Msg>(
         [],
-        scene.levels.map(columnFor),
+        [
+          ...scene.levels.map((level: Level) =>
+            columnFor(level, options),
+          ),
+          ...(
+            options.extraColumns ?? []
+          ).map(extraColumn),
+        ],
       ),
     ],
   );
@@ -122,9 +152,7 @@ const backOf = (level: Level): Option<SoftStr> =>
 /**
  * One crumb per level; each crumb links to the URL that
  * makes ITS level the deepest — obtained as the NEXT
- * level's `back` (which truncates to exactly there). The
- * last level (current position) is a plain, link-less
- * crumb.
+ * level's `back` (which truncates to exactly there).
  */
 const crumbsOf = (
   scene: Scene,
@@ -167,22 +195,45 @@ const detailBody = (
     ],
   )(detailRow);
 
-const columnFor = (
+const headerLinks = (
+  collection: SoftStr,
+  options: MultiColumnOptions<unknown>,
+): ReadonlyArray<
+  Readonly<{ label: SoftStr; href: SoftStr }>
+> =>
+  (options.headerLinks ?? [])
+    .filter(
+      (link: HeaderLink) =>
+        link.collection === collection,
+    )
+    .map((link: HeaderLink) => ({
+      label: link.label,
+      href: link.href,
+    }));
+
+const mapScheduler =
+  <Msg>(options: MultiColumnOptions<Msg>) =>
+  (node: Html<SchedulerMsg>): Html<Msg> =>
+    mapHtml(options.mapMsg)(node);
+
+const columnFor = <Msg>(
   level: Level,
-): Html<SchedulerMsg> =>
+  options: MultiColumnOptions<Msg>,
+): Html<Msg> =>
   match(level)(
     [
       menuLevel$(),
-      ({ content }): Html<SchedulerMsg> =>
+      ({ content }): Html<Msg> =>
         column(
           [basis("220px")],
           [
             navPane(
               [],
               [
-                colHead<SchedulerMsg>({
+                colHead<Msg>({
                   title: content.title,
                   close: none(),
+                  links: [],
                 }),
                 slot(
                   [
@@ -190,7 +241,11 @@ const columnFor = (
                       `${cssPrefix}-menu-body`,
                     ),
                   ],
-                  [menuNav(content.entries)],
+                  [
+                    mapScheduler(options)(
+                      menuNav(content.entries),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -199,7 +254,7 @@ const columnFor = (
     ],
     [
       listLevel$(),
-      ({ content }): Html<SchedulerMsg> =>
+      ({ content }): Html<Msg> =>
         column(
           [basis("300px")],
           [
@@ -214,21 +269,31 @@ const columnFor = (
                     fadeIn(150),
                   ],
                   [
-                    colHead<SchedulerMsg>({
+                    colHead<Msg>({
                       title: content.title,
                       close: content.back,
+                      links: headerLinks(
+                        content.collection,
+                        options,
+                      ),
                     }),
-                    ...queryField(content.query),
+                    ...queryField(content.query).map(
+                      mapScheduler(options),
+                    ),
                     ...loadingHint(
                       content.loading,
+                    ).map(mapScheduler(options)),
+                    ...errorHint(content.error).map(
+                      mapScheduler(options),
                     ),
-                    ...errorHint(content.error),
-                    rowList(content.rows),
+                    mapScheduler(options)(
+                      rowList(content.rows),
+                    ),
                     ...actionRow(
                       content.collection,
                       none(),
                       content.actions,
-                    ),
+                    ).map(mapScheduler(options)),
                   ],
                 ),
               ],
@@ -238,7 +303,7 @@ const columnFor = (
     ],
     [
       detailLevel$(),
-      ({ content }): Html<SchedulerMsg> =>
+      ({ content }): Html<Msg> =>
         column(
           [fluid],
           [
@@ -255,21 +320,47 @@ const columnFor = (
                     fadeIn(150),
                   ],
                   [
-                    colHead<SchedulerMsg>({
+                    colHead<Msg>({
                       title: content.title,
                       close: content.back,
+                      links: [],
                     }),
                     ...detailBody(
                       content.collection,
                       content.row,
                       content.actions,
-                    ),
+                    ).map(mapScheduler(options)),
                   ],
                 ),
               ],
             ),
           ],
         ),
+    ],
+  );
+
+const extraColumn = <Msg>(
+  extra: ExtraColumn<Msg>,
+): Html<Msg> =>
+  column(
+    [fluid],
+    [
+      mainPane(
+        [],
+        [
+          slot(
+            [key(extra.key), fadeIn(150)],
+            [
+              colHead<Msg>({
+                title: extra.title,
+                close: extra.close,
+                links: [],
+              }),
+              ...extra.body,
+            ],
+          ),
+        ],
+      ),
     ],
   );
 

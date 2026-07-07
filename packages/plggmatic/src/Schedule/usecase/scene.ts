@@ -175,7 +175,7 @@ const buildListLevel = (
     error: view.error,
     actions: collection.actions
       .filter((a: Action) => a.verb === "create")
-      .map(projectAction),
+      .map((a: Action) => projectAction(a)),
   });
 };
 
@@ -239,7 +239,7 @@ const detailFor = (
             .filter(
               (a: Action) => a.verb !== "create",
             )
-            .map(projectAction),
+            .map((a: Action) => projectAction(a)),
         }),
       ];
     },

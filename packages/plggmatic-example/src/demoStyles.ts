@@ -14,9 +14,6 @@ export const demoCss = `
 .pm-menu-body{padding:0.5rem;}
 .pm-pane{padding:0.5rem;}
 .pm-single{max-width:640px;margin:0 auto;padding:1.5rem;}
-.pm-list{list-style:none;margin:0;padding:0;}
-.pm-row-link{display:block;padding:0.35rem 0.5rem;border-radius:6px;color:var(--pm-text);text-decoration:none;}
-.pm-row-link:hover{background:var(--pm-surface-2);}
 .pm-back{display:inline-block;margin-bottom:0.5rem;color:var(--pm-muted);text-decoration:none;}
 .pm-fields{margin:0.5rem 0;}
 .pm-field{margin:0.6rem 0;display:flex;flex-direction:column;gap:0.2rem;}

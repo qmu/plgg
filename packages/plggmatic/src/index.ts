@@ -87,7 +87,11 @@ export {
   modes,
   toggleMode,
   currentScreen,
+  type HeaderLink,
+  type ExtraColumn,
+  type MultiColumnOptions,
   multiColumn,
+  multiColumnWith,
   singleColumn,
   renderMode,
 } from "plggmatic/Render";
