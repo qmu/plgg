@@ -75,6 +75,11 @@ export type MultiColumnOptions<Msg> = Readonly<{
   mapMsg: (msg: SchedulerMsg) => Msg;
   headerLinks?: ReadonlyArray<HeaderLink>;
   extraColumns?: ReadonlyArray<ExtraColumn<Msg>>;
+  /**
+   * When true, the internal breadcrumb is not rendered —
+   * the consumer renders its own, e.g. in an app navbar.
+   */
+  omitBreadcrumb?: boolean;
 }>;
 
 /**
@@ -100,7 +105,9 @@ export const multiColumnWith = <Msg>(
   slot(
     [attr("class", `${cssPrefix}-scheduler`)],
     [
-      breadcrumb<Msg>(crumbsOf(scene)),
+      ...(options.omitBreadcrumb === true
+        ? []
+        : [breadcrumb<Msg>(crumbsOf(scene))]),
       ...confirmOverlay(scene.confirm).map(
         mapScheduler(options),
       ),
@@ -154,7 +161,7 @@ const backOf = (level: Level): Option<SoftStr> =>
  * makes ITS level the deepest — obtained as the NEXT
  * level's `back` (which truncates to exactly there).
  */
-const crumbsOf = (
+export const crumbsOf = (
   scene: Scene,
 ): ReadonlyArray<Crumb> =>
   scene.levels.map(

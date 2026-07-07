@@ -9,9 +9,15 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { getOr } from "plgg";
+import { getOr, match } from "plgg";
 import { renderToString } from "plgg-view";
-import { makeUrl } from "plgg-view/client";
+import {
+  type Cmd,
+  cmdNone$,
+  cmdBatch$,
+  cmdEffect$,
+  makeUrl,
+} from "plgg-view/client";
 import {
   type SchedulerMsg,
   openMenu,
@@ -20,12 +26,20 @@ import {
 } from "plggmatic";
 import {
   app,
+  makeApp,
   scheduled,
   type Model,
   type Msg,
 } from "./bizMenuDemo.ts";
 
 const [m0] = app.init(makeUrl("/", ""));
+
+const cmdTag = (cmd: Cmd<Msg>): string =>
+  match(cmd)(
+    [cmdNone$(), (): string => "none"],
+    [cmdBatch$(), (): string => "batch"],
+    [cmdEffect$(), (): string => "effect"],
+  );
 
 const schedulerMsg = (
   msg: SchedulerMsg,
@@ -96,6 +110,46 @@ test("a deep link opens a section directly", () => {
     getOr("")(m.scheduled.root),
     toBe("invoices"),
   );
+});
+
+test("makeApp seeds the initial scheme", () => {
+  const [m] = makeApp("dark").init(
+    makeUrl("/", ""),
+  );
+  return check(m.scheme, toBe("dark"));
+});
+
+test("toggling the scheme flips light and dark", () => {
+  const darkApp = makeApp("dark");
+  const [darkModel] = darkApp.init(
+    makeUrl("/", ""),
+  );
+  const [lightToDark, darkCmd] = app.update(
+    { kind: "toggleScheme" },
+    m0,
+  );
+  const [darkToLight, lightCmd] =
+    darkApp.update(
+      { kind: "toggleScheme" },
+      darkModel,
+    );
+  return all([
+    check(lightToDark.scheme, toBe("dark")),
+    check(cmdTag(darkCmd), toBe("effect")),
+    check(darkToLight.scheme, toBe("light")),
+    check(cmdTag(lightCmd), toBe("effect")),
+  ]);
+});
+
+test("schemeApplied acknowledges without changing the model", () => {
+  const [next, cmd] = app.update(
+    { kind: "schemeApplied" },
+    m0,
+  );
+  return all([
+    check(next, toBe(m0)),
+    check(cmdTag(cmd), toBe("none")),
+  ]);
 });
 
 test("the section's placeholder rows render on drill", () => {

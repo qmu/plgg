@@ -11,7 +11,13 @@ import {
   err,
   invalidError,
 } from "plgg";
-import { type Html, slot, attr } from "plgg-view";
+import {
+  type Html,
+  slot,
+  span,
+  text,
+  attr,
+} from "plgg-view";
 import {
   type Application,
   type Cmd,
@@ -45,9 +51,17 @@ import {
   parseForm,
   errorFor,
   type FormErrors,
+  type Crumb,
+  breadcrumb,
+  crumbsOf,
+  themeToggle,
   openMenu,
   select,
 } from "plggmatic";
+import {
+  type Scheme,
+  applyScheme,
+} from "plggmatic/style";
 
 /**
  * Demo 1 — a business-management system for a CONTRACT
@@ -429,6 +443,7 @@ type ClientForm = Readonly<{
 }>;
 
 export type Model = Readonly<{
+  scheme: Scheme;
   scheduled: ScheduledModel;
   clientForm: ClientForm;
 }>;
@@ -438,6 +453,8 @@ export type Msg =
       kind: "scheduler";
       msg: SchedulerMsg;
     }>
+  | Readonly<{ kind: "toggleScheme" }>
+  | Readonly<{ kind: "schemeApplied" }>
   | Readonly<{ kind: "urlChanged"; url: Url }>
   | Readonly<{
       kind: "clientNameInput";
@@ -470,6 +487,23 @@ const emptyClientForm = (open: boolean): ClientForm => ({
   notesDraft: "",
   errors: [],
 });
+
+const flip = (s: Scheme): Scheme =>
+  s === "light" ? "dark" : "light";
+
+const applySchemeEffect = (
+  scheme: Scheme,
+): Cmd<Msg> =>
+  cmdEffect(() => {
+    applyScheme(
+      scheme,
+      document.documentElement,
+      window.localStorage,
+    );
+    return Promise.resolve<Msg>({
+      kind: "schemeApplied",
+    });
+  });
 
 const isAddClientUrl = (url: Url): boolean =>
   new URLSearchParams(url.search).get("add") ===
@@ -756,16 +790,18 @@ const clientFormColumn = (
       ]
     : [];
 
-/** The wired program the client entry mounts. */
-export const app: Application<
+export const makeApp = (
+  initial: Scheme,
+): Application<
   Model,
   Msg
-> = {
+> => ({
   init: (url: Url) => {
     const [scheduledModel, cmd] =
       scheduled.init(url);
     return [
       {
+        scheme: initial,
         scheduled: scheduledModel,
         clientForm: emptyClientForm(
           isAddClientUrl(url),
@@ -786,6 +822,15 @@ export const app: Application<
           mapSchedulerCmd(cmd),
         ];
       }
+      case "toggleScheme": {
+        const scheme = flip(model.scheme);
+        return [
+          { ...model, scheme },
+          applySchemeEffect(scheme),
+        ];
+      }
+      case "schemeApplied":
+        return [model, cmdNone()];
       case "urlChanged": {
         const [next, cmd] = scheduled.update(
           scheduled.onUrlChange(msg.url),
@@ -793,6 +838,7 @@ export const app: Application<
         );
         return [
           {
+            ...model,
             scheduled: next,
             clientForm: emptyClientForm(
               isAddClientUrl(msg.url),
@@ -882,6 +928,7 @@ export const app: Application<
               );
             return [
               {
+                ...model,
                 scheduled: next,
                 clientForm: emptyClientForm(false),
               },
@@ -893,17 +940,40 @@ export const app: Application<
   },
   view: (
     model: Model,
-  ): Html<Msg> =>
-    slot(
+  ): Html<Msg> => {
+    const scene = scheduled.scene(model.scheduled);
+    const navCrumbs: ReadonlyArray<Crumb> =
+      crumbsOf(scene).slice(1);
+    return slot(
       [attr("class", "bo-root")],
       [
+        slot(
+          [attr("class", "bo-topbar")],
+          [
+            slot(
+              [attr("class", "bo-navleft")],
+              [
+                span(
+                  [attr("class", "bo-brand")],
+                  [text("DevDesk")],
+                ),
+                breadcrumb<Msg>(navCrumbs),
+              ],
+            ),
+            themeToggle<Msg>({
+              scheme: model.scheme,
+              toggle: { kind: "toggleScheme" },
+            }),
+          ],
+        ),
         multiColumnWith<Msg>(
-          scheduled.scene(model.scheduled),
+          scene,
           {
             mapMsg: (msg: SchedulerMsg) => ({
               kind: "scheduler",
               msg,
             }),
+            omitBreadcrumb: true,
             headerLinks: [
               {
                 collection: "clients",
@@ -921,7 +991,8 @@ export const app: Application<
           },
         ),
       ],
-    ),
+    );
+  },
   onUrlChange: (url: Url): Msg => ({
     kind: "urlChanged",
     url,
@@ -932,4 +1003,8 @@ export const app: Application<
           scheduled.toUrl(model.scheduled),
         )
       : scheduled.toUrl(model.scheduled),
-};
+});
+
+/** The default app (light) — existing specs/imports use it. */
+export const app: Application<Model, Msg> =
+  makeApp("light");

@@ -24,6 +24,7 @@ export {
   type MultiColumnOptions,
   multiColumn,
   multiColumnWith,
+  crumbsOf,
 } from "plggmatic/Render/usecase/multiColumn";
 export { singleColumn } from "plggmatic/Render/usecase/singleColumn";
 export { renderMode } from "plggmatic/Render/usecase/renderMode";

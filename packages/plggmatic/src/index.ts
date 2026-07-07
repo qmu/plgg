@@ -92,6 +92,7 @@ export {
   type MultiColumnOptions,
   multiColumn,
   multiColumnWith,
+  crumbsOf,
   singleColumn,
   renderMode,
 } from "plggmatic/Render";

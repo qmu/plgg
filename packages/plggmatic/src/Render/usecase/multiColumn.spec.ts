@@ -183,6 +183,22 @@ test("pushed columns carry a truncating close link and a breadcrumb trail", () =
   ]);
 });
 
+test("multiColumnWith can omit the internal breadcrumb", () => {
+  const html = renderToString(
+    multiColumnWith(
+      s.scene(at(openMenu("sections"), select(0, "a"))),
+      {
+        mapMsg: (msg) => msg,
+        omitBreadcrumb: true,
+      },
+    ),
+  );
+  return check(
+    html.includes('aria-label="Breadcrumb"'),
+    toBe(false),
+  );
+});
+
 test("a parked confirmation renders a modal dialog overlay", () => {
   const parked = at(
     openMenu("sections"),
