@@ -18,13 +18,13 @@ import { type MarkdownDoc } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { baseCss } from "plggpress/theme/baseCss";
-import { themeToggleCss } from "plggmatic";
 import {
+  themeToggleCss,
   schemeCss,
   metricCss,
   reducedMotionCss,
   syntaxCss,
-} from "plggmatic/style";
+} from "plgg-ui/style";
 
 /**
  * The framework-owned CSS blocks plggmatic emits, composed

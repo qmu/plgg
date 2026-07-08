@@ -25,7 +25,7 @@ import {
   query,
   makeRow,
   field,
-} from "plggmatic";
+} from "plgg-ui";
 import { cmdEffect } from "plgg-view/client";
 import {
   type Db,

@@ -1,9 +1,9 @@
 import { type SoftStr } from "plgg";
-import { themeToggleClass } from "plggmatic";
 import {
+  themeToggleClass,
   appearanceStorageKey,
   injectAppearanceScript,
-} from "plggmatic/style";
+} from "plgg-ui/style";
 
 /**
  * The appearance-toggle WIRING script, injected at the END

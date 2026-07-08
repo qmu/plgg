@@ -1,11 +1,11 @@
 import { type SoftStr } from "plgg";
-import { themeToggleClass } from "plggmatic";
 import {
+  themeToggleClass,
   colorVar,
   metricVar,
   maxWidth,
   minWidth,
-} from "plggmatic/style";
+} from "plgg-ui/style";
 
 /**
  * The bespoke layout/prose stylesheet for the default

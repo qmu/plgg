@@ -49,7 +49,7 @@
     "plgg-md": "file:../plgg-md",
     "plgg-highlight": "file:../plgg-highlight",
     "plgg-cli": "file:../plgg-cli",
-    "plggmatic": "file:../plggmatic",
+    "plgg-ui": "file:../plgg-ui",
     "plgg-content": "file:../plgg-content",
     "plgg-sql": "file:../plgg-sql",
     "plgg-auth": "file:../plgg-auth",

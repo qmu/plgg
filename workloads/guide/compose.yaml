@@ -40,7 +40,7 @@ services:
       - /app/packages/plgg-md/node_modules
       - /app/packages/plgg-highlight/node_modules
       - /app/packages/plgg-server/node_modules
-      - /app/packages/plggmatic/node_modules
+      - /app/packages/plgg-ui/node_modules
       - /app/packages/plgg-sql/node_modules
       - /app/packages/plgg-db-migration/node_modules
       - /app/packages/plgg-content/node_modules

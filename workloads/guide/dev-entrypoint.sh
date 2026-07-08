@@ -38,7 +38,7 @@ for pkg in \
   plgg-md \
   plgg-highlight \
   plgg-server \
-  plggmatic \
+  plgg-ui \
   plgg-sql \
   plgg-db-migration \
   plgg-content \

@@ -107,8 +107,8 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 | `plgg-sql` | legacy Feature/ | conformant — the `Db` seam is driver-agnostic; `node:sqlite` lives only in `example.ts`/specs |
 | `plgg-view` | legacy Feature/ | conformant — no third-party imports |
 | `plgg-auth` | legacy Feature/ | conformant — production clean (`node:crypto`/`node:sqlite` only in specs) |
-| `plgg-ui` | legacy Feature/ | conformant — no third-party imports (the UI engine re-homed from plggmatic, trip plggmatic-extraction-cut; depends on `plgg` + `plgg-view` only, imports neither `plggpress` nor `plggmatic` — dependency direction one-way) |
-| `plggmatic` | legacy Feature/ | conformant — no third-party imports (a facade over `plgg-ui`) |
+| `plgg-ui` | legacy Feature/ | conformant — no third-party imports (the UI engine re-homed from plggmatic, trip plggmatic-extraction-cut; depends on `plgg` + `plgg-view` only, imports neither `plggpress` nor `plggmatic` — dependency direction one-way; consumed by `plggpress` (theme + Admin, since A2) and `plggmatic` (facade)) |
+| `plggmatic` | legacy Feature/ | conformant — no third-party imports (a facade over `plgg-ui`; no longer consumed by `plggpress` after A2 — the `plggpress → plggmatic` edge is removed, replaced by `plggpress → plgg-ui`) |
 | `plgg-bundle` | domain/vendors/entrypoints | **EXEMPT** — has the layout but `domain/usecase/*` import `node:` directly; fixed by ticket 20260704185202 |
 | `plgg-server` | legacy Feature/ | **EXEMPT** — `node:http` + `node:fs/promises` in the server + SSG writer, outside a `vendors/` boundary |
 | `plgg-test` | legacy | **EXEMPT** — the test runner imports the tsc API (`typescript`) + `node:fs/path/url`; tooling package |

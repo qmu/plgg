@@ -39,7 +39,7 @@ import {
   type Path,
   type SchedulerMsg,
   schedule,
-} from "plggmatic";
+} from "plgg-ui";
 import { type Cmd } from "plgg-view/client";
 import {
   type AccountStore,

@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: refactoring
 layer: [UX, Config]
 effort:
-commit_hash:
-category:
+commit_hash: 130562f6
+category: Changed
 depends_on: [20260708195655-extract-plggmatic-reusable-seam-to-plgg-family.md]
 mission:
 ---

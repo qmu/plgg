@@ -12,7 +12,7 @@ import {
   attr,
   class_,
 } from "plggpress/framework";
-import { staticThemeToggle } from "plggmatic";
+import { staticThemeToggle } from "plgg-ui/style";
 import {
   type SiteConfig,
   type SocialLink,

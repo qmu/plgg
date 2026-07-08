@@ -22,12 +22,12 @@ import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { shell } from "plggpress/theme/shell";
 import { baseCss } from "plggpress/theme/baseCss";
-import { themeToggleCss } from "plggmatic";
 import {
+  themeToggleCss,
   schemeCss,
   metricCss,
   reducedMotionCss,
-} from "plggmatic/style";
+} from "plgg-ui/style";
 
 // A pre-rendered Markdown body fixture carrying one
 // atomic `css()` rule, so `collectCss` yields a known
