@@ -1,5 +1,5 @@
 {
   "coverage": {
-    "exempt": "private demo app; declarative rewrite scheduled (roadmap ticket 13)"
+    "exempt": "private demo app; restructured into concern modules (store/sections/model/url/logic/columns/results); full declarative rewrite still contemplated (roadmap ticket 13)"
   }
 }

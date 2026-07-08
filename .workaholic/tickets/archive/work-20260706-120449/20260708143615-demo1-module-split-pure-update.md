@@ -3,9 +3,9 @@ created_at: 2026-07-08T14:36:15+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: e115d6e9
+category: Changed
 depends_on: [20260708143614-demo1-typed-url-state-codec.md]
 mission:
 ---
@@ -65,7 +65,7 @@ The monolith accreted across the whole Demo 1 build sequence; the mutable arrays
 **Acceptance criteria** — the checkable conditions that must hold:
 
 - No module-global mutable state remains: `grep -n '^let \|^ *let ' packages/plggmatic-example/src/demo1/*.ts` shows no module-scope `let` (function-local `let` only at a commented irreducible seam).
-- `update()` is pure: record creation flows through the returned Model; two consecutive `makeApp()` instances share no state (observable via the existing spec suite running in one process).
+- ~~`update()` is pure: record creation flows through the returned Model; two consecutive `makeApp()` instances share no state.~~ **Rescoped at implementation time (developer-approved).** plggmatic's scheduler reads a collection's `sync(() => rows)` source through a static thunk that has no access to the app Model, so the records cannot move into the Model without a framework change. Instead the module-global mutable state is encapsulated into one explicit, documented, resettable `store.ts` (the scheduler-forced seam) — removing the scattered `let`s reassigned inside `update()`. Truly pure `update()` is deferred to follow-up `20260708192518-plggmatic-dynamic-sources-pure-demo1-update.md`.
 - The demo1 directory is demo2-shaped: no single module exceeds ~400 lines (`wc -l packages/plggmatic-example/src/demo1/*.ts`), each named for one concern.
 - `demo1-main.ts` contains no inline `pm-*` override CSS; the overrides live in a named stylesheet module with the coupling documented.
 - `bizMenuDemo.spec.ts` is byte-identical except import/module-path lines, and green.
@@ -90,3 +90,22 @@ The monolith accreted across the whole Demo 1 build sequence; the mutable arrays
 - The site copies/build (`packages/site/dist/example`) must keep working — rebuild dists before any consumer reads the barrel, and check how `packages/site` reaches the demo entry.
 - The `pm-*` override extraction documents, not removes, the framework-class coupling; actually eliminating it would mean framework theming hooks in `plggmatic` — out of scope, note it as a candidate follow-up in the extracted stylesheet's comment.
 - The security-assessment ticket (`20260708143616-demo1-security-assessment.md`) may add a colocated security spec; if it lands first, that spec's import paths also need updating during the split (it is NOT covered by the byte-identical freeze, which names only `bizMenuDemo.spec.ts`).
+
+## Final Report
+
+Development completed, with one developer-approved rescope (see the struck-through Quality Gate criterion). Three parts landed:
+
+1. **Store encapsulation** — the module-global mutable `clients`/`projects` arrays and id counters moved into one explicit `store.ts` (a `const` cell mutated through named functions, `resetStore` for isolation), documented as the scheduler-forced seam. No module-scope `let` remains in `src/demo1/`. `commitRecord`/`searchRows`/the collection sources now read/write the store.
+2. **Module split** — the 1799-line monolith split into 9 concern modules, `bizMenuDemo.ts` kept as the re-export barrel so the frozen spec's import line stays byte-identical: `store.ts` (245), `sections.ts` (271, declaration + descriptors' section vocab), `fields.ts` (214, field descriptors), `model.ts` (99), `url.ts` (252, codec), `logic.ts` (297, scheme/cmd/domain), `columns.ts` (274), `results.ts` (289), `bizMenuDemo.ts` (272, barrel + makeApp). Every module ≤ ~300 lines.
+3. **CSS extraction** — the ~45-line inline `pageCss` (16 `pm-*` overrides) moved from `demo1-main.ts` into `demo1/styles.ts` (`demo1Css`), with the overridden classes listed in one documented comment. `demo1-main.ts` has zero `pm-` CSS.
+
+Verified: `scripts/tsc-plgg.sh` clean; `scripts/test-plgg.sh` green (483 + example 41); `bizMenuDemo.spec.ts` byte-identical; no module-scope `let`; no escape hatches; Prettier printWidth 50; and a live browser deep-link + screenshot confirming visual parity (sidebar, submenu, rounded result cards, selected-detail highlight all render identically). The `plgg-test.config.json` exemption note was updated to mention the restructure. Two follow-ups filed/tracked: `20260708192518-plggmatic-dynamic-sources-pure-demo1-update.md` (true pure update) and, in `styles.ts`, framework theming hooks to remove the `pm-*` coupling.
+
+### Discovered Insights
+
+- **Insight**: plggmatic's scheduler reads a collection's `sync(() => rows)` source through a static thunk (`Schedule/usecase/update.ts` `readInto`) fixed at declaration time; it snapshots rows into a slot and never sees the consumer's Model. Any consumer whose collection data changes at runtime must hold that data in module scope for the thunk to read.
+  **Context**: This is why Demo 1's created records cannot live in the app Model today, and why "pure update()" needs a framework change (a Model-driven `Source` variant), not a demo change. Future demos with mutable collections hit the same wall.
+- **Insight**: Keeping the original entry file (`bizMenuDemo.ts`) as a thin re-export barrel let the whole monolith split without editing the frozen spec at all (its `import … from "./bizMenuDemo.ts"` line is unchanged).
+  **Context**: The "specs frozen" guarantee and a large file decomposition are compatible when the public entry keeps its name and exported surface — the split is invisible to consumers.
+- **Insight**: Under `noUnusedLocals` + `verbatimModuleSyntax`, blanket-exporting every top-level declaration in an extracted module avoids "unused local" errors (exports are never flagged) while precise import headers are still required — the compiler is an exact guide for the latter.
+  **Context**: A mechanical file split in this repo should lean on tsc to converge import lists; the only non-mechanical failure here was a `sed` range that clipped a closing `);`.
