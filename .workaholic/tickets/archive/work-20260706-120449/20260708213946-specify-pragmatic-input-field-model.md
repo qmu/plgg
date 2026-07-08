@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain]
 effort:
-commit_hash:
-category:
+commit_hash: d8106786
+category: Added
 depends_on:
 mission: plggmatic-ai-native-ui-toward-a-dsl
 ---

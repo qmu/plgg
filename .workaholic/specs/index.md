@@ -4,6 +4,7 @@
 * [plggpress / plggmatic Long-Range Roadmap and Decision Record](20260704-plggpress-plggmatic-roadmap.md)
 * [Ticket 19 — plggpress OIDC OP+RP dogfooding: design note](20260705-plggpress-oidc-rp-design.md)
 * [Pragmatic — Concept: an AI-native UI design system](20260708-pragmatic-ai-native-ui-concept.md)
+* [Pragmatic — input-field model (AI-generatable + AI-operable)](20260708-pragmatic-input-field-model.md)
 * [Pragmatic — screen-transition model (AI-generatable + AI-operable)](20260708-pragmatic-screen-transition-model.md)
 * [Specs Index](README.md) - Architecture and project specification documents for plgg
 * [Application Viewpoint](application.md) - Runtime behavior, agent orchestration, and data flow across the plgg monorepo packages.

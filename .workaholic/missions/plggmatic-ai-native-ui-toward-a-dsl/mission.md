@@ -34,7 +34,7 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 
 - [ ] The Pragmatic concept is recorded as the project's north-star (`20260708-pragmatic-ai-native-ui-concept.md`) — done at mission creation.
 - [x] The probabilistic screen-transition model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213945-specify-pragmatic-screen-transition-model.md)
-- [ ] The input-field model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213946-specify-pragmatic-input-field-model.md)
+- [x] The input-field model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213946-specify-pragmatic-input-field-model.md)
 - [ ] The DSL is distilled from the specifications and produces a working on-demand UI from a declarative description (future ticket — not yet filed)
 - [ ] A generated UI is demonstrated to be WebMCP/MCP-Apps operable by a browser-side agent (future ticket — not yet filed)
 
@@ -43,3 +43,4 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-08 — mission created; Pragmatic concept recorded — 20260708-pragmatic-ai-native-ui-concept.md
 - 2026-07-08 — filed the two specification tickets (transition model, input-field model) — 20260708213945-specify-pragmatic-screen-transition-model.md, 20260708213946-specify-pragmatic-input-field-model.md
 - 2026-07-08 — ticket archived — 20260708213945-specify-pragmatic-screen-transition-model.md
+- 2026-07-08 — ticket archived — 20260708213946-specify-pragmatic-input-field-model.md
