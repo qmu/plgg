@@ -1,9 +1,9 @@
 ---
 instruction: "20260708195655"
-phase: planning
-step: decomposition
+phase: complete
+step: done
 iteration: 0
-updated_at: 2026-07-08T23:59:14+09:00
+updated_at: 2026-07-09T00:19:14+09:00
 ---
 
 # Trip Plan
@@ -60,6 +60,16 @@ pre-build developer pause (developer approves the cut before any build).
 - [x] planning/one-turn-review — round-1 reviews committed (ff6620d5, f5208733, + constructor)
 - [x] planning/respond-to-feedback — model-v2 (05b1a7c3), design-v2 (00f2e6b6), Planner ACCEPT (cc72e172)
 - [x] planning/decomposition — 6 refined tickets committed (9e8e6a13); PAUSED for developer approval
+- [x] complete/done — developer APPROVED the cut; build deferred to a later /drive or trip resume
+
+- **2026-07-09 (lead)** — **Developer APPROVED the cut.** The developer chose to
+  stop at the design boundary and build later, so this design-only trip is
+  complete/done. The design (`designs/design-v2.md`, `models/model-v2.md`) and the
+  6-ticket queue stand accepted; no build was started (nothing merged, published,
+  or deleted). Resume path: `/drive` the queue (A1 `…195655` → A2 `…000044` →
+  A3 `…000045` → B `…195656` → C `…195657`; `…192518` after A1), or resume this
+  trip's Coding Phase. The npm-publish of plgg-ui (prerequisite for B) stays a
+  surfaced, developer-gated action — never auto-performed.
 
 - **2026-07-09 (lead)** — **Developer-approval pause** (the opt-in pre-build
   checkpoint the developer selected at trip start). Decomposition produced the

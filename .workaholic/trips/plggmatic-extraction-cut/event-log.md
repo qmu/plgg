@@ -16,3 +16,4 @@
 | 2026-07-08T23:59:38+09:00 | Lead | consensus-reached | planning/respond-to-feedback | model-v2 + design-v2 + Planner ACCEPT; plan fixed on one plgg-ui + parameterized Theme; opening Decomposition then developer pause. |
 | 2026-07-09T00:05:45+09:00 | Constructor | decomposition | tickets | design-v2 decomposed into 5 refined tickets under todo/a-qmu-jp: A1(195655 rewritten) -> A2(000044 new) -> A3(000045 new) -> B(195656 rewritten) -> C(195657 rewritten); 192518 re-pointed onto plgg-ui depends_on A1 |
 | 2026-07-09T00:07:04+09:00 | Lead | developer-pause | planning/decomposition | Design + 6 refined tickets committed; trip halted for developer approval of the cut before any build (opt-in checkpoint). |
+| 2026-07-09T00:19:47+09:00 | Lead | developer-approved | complete/done | Developer approved the cut; design-only trip complete; build deferred to a later /drive. |
