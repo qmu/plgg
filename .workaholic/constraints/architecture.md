@@ -89,7 +89,7 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 
 **Criterion**: Verified by `scripts/gate-vendor-boundary.sh` (registered in `scripts/check-all.sh`, which the run-tests CI workflow invokes — one source of truth). It runs `scripts/vendor-boundary-analyzer.mjs`, which uses the already-present `typescript` package (`ts.preProcessFile`, resolved from plgg-bundle — **zero new dependencies**) to classify every import specifier. A third-party import in production code outside `vendors/`/`entrypoints/` is a violation; a package with violations must be listed in `scripts/vendor-boundary-exemptions.txt`; an **exempted-but-clean** package is a stale exemption (also a failure). The gate carries a `--self-test` proving it red on a seeded violation + a stale exemption and green on a clean tree. `plgg` and `plgg-db-migration` pass unexempted.
 
-**Audit** (all 23 packages, 2026-07-05; 15 conformant, 6 exempted, 2 content apps):
+**Audit** (all 24 packages, 2026-07-05 / plgg-ui added 2026-07-09; 16 conformant, 6 exempted, 2 content apps):
 
 | Package | Layout | Boundary status |
 | --- | --- | --- |
@@ -107,7 +107,8 @@ The plgg monorepo defines a layered functional type system (`plgg`), vendor adap
 | `plgg-sql` | legacy Feature/ | conformant — the `Db` seam is driver-agnostic; `node:sqlite` lives only in `example.ts`/specs |
 | `plgg-view` | legacy Feature/ | conformant — no third-party imports |
 | `plgg-auth` | legacy Feature/ | conformant — production clean (`node:crypto`/`node:sqlite` only in specs) |
-| `plggmatic` | legacy Feature/ | conformant — no third-party imports |
+| `plgg-ui` | legacy Feature/ | conformant — no third-party imports (the UI engine re-homed from plggmatic, trip plggmatic-extraction-cut; depends on `plgg` + `plgg-view` only, imports neither `plggpress` nor `plggmatic` — dependency direction one-way) |
+| `plggmatic` | legacy Feature/ | conformant — no third-party imports (a facade over `plgg-ui`) |
 | `plgg-bundle` | domain/vendors/entrypoints | **EXEMPT** — has the layout but `domain/usecase/*` import `node:` directly; fixed by ticket 20260704185202 |
 | `plgg-server` | legacy Feature/ | **EXEMPT** — `node:http` + `node:fs/promises` in the server + SSG writer, outside a `vendors/` boundary |
 | `plgg-test` | legacy | **EXEMPT** — the test runner imports the tsc API (`typescript`) + `node:fs/path/url`; tooling package |

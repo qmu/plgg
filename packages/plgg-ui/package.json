@@ -1,0 +1,48 @@
+{
+  "name": "plgg-ui",
+  "version": "0.1.0",
+  "description": "The plgg-family UI engine: pane-alignment layout, a declarative admin vocabulary, a TEA scheduler, screen-mode renderers, form controls, and a parameterizable light/dark theme surface — the reusable seam extracted from plggmatic. Runtime on the root barrel, theme on the ./style subpath.",
+  "type": "module",
+  "main": "dist/index.es.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.es.js"
+    },
+    "./style": {
+      "types": "./dist/styleEntry.d.ts",
+      "default": "./dist/styleEntry.es.js"
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-view": "file:../plgg-view"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

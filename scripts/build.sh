@@ -40,11 +40,16 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-cli before plggpress: the CLI-wrapper toolkit (depends only on plgg
 # core), consumed by plggpress's own framework, so its dist must exist first.
 cd $REPO_ROOT/packages/plgg-cli && npm run build
-# plggmatic (UI design framework: tokens, row/column/pane combinators,
-# components) — consumes plgg + plgg-view, both built above. Built BEFORE
-# plggpress, which now consumes plggmatic's dist for its ported theme (D3
+# plgg-ui (the plgg-family UI engine: layout combinators, components, forms,
+# the declarative vocabulary, the scheduler, renderers, and the theme surface)
+# — the reusable seam extracted from plggmatic (trip plggmatic-extraction-cut,
+# ticket A1). Consumes plgg + plgg-view, both built above. Built BEFORE
+# plggmatic, which now consumes plgg-ui's dist as a facade.
+cd $REPO_ROOT/packages/plgg-ui && npm run build
+# plggmatic (the Pragmatic design system) — now a facade over plgg-ui, so it
+# builds after plgg-ui. Built BEFORE plggpress, which consumes the theme (D3
 # roadmap ticket 07). publish order is sed-derived from these cd-lines, so
-# plggmatic must precede plggpress here.
+# plgg-ui/plggmatic must precede plggpress here.
 cd $REPO_ROOT/packages/plggmatic && npm run build
 # plgg-sql / plgg-db-migration / plgg-content BEFORE plggpress: plggpress now
 # depends on plgg-content (mounts its read-only delivery API at /api), and

@@ -18,6 +18,10 @@ cd $REPO_ROOT/packages/plgg-view && npm install
 cd $REPO_ROOT/packages/plgg-md && npm install
 cd $REPO_ROOT/packages/plgg-highlight && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
+# plgg-ui before plggmatic: plggmatic now file:-depends on plgg-ui (the extracted
+# UI engine, trip plggmatic-extraction-cut), so plgg-ui is present when
+# plggmatic installs.
+cd $REPO_ROOT/packages/plgg-ui && npm install
 # plggmatic before plggpress: plggpress now file:-depends on plggmatic for its
 # ported theme, so plggmatic's package is present when plggpress installs.
 cd $REPO_ROOT/packages/plggmatic && npm install
