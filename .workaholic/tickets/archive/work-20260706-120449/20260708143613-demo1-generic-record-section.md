@@ -3,9 +3,9 @@ created_at: 2026-07-08T14:36:13+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 4206e428
+category: Changed
 depends_on:
 mission:
 ---
@@ -81,3 +81,16 @@ Demo 1 was built incrementally across five archived tickets on this branch; the 
 - Tickets 2 (typed URL codec) and 3 (module split, pure update) build on this; keep the descriptor's surface friendly to a later file split (`packages/plggmatic-example/src/demo1/`).
 - Module-global `let clients/projects/…Counter` mutation stays for now (ticket 3 moves state into the Model); the descriptor should not entrench it further — route mutation through the existing seam.
 - The example package is coverage-exempt (`packages/plggmatic-example/plgg-test.config.json` notes a contemplated declarative rewrite, roadmap ticket 13); this refactoring sequence supersedes ad-hoc rewriting — reconcile the config note if it becomes stale.
+
+## Final Report
+
+Development completed as planned. Collapsed the parallel Client/Project code paths into one `SectionField` descriptor list per section, driving generic `fieldInput`/`formFields`/`parseSectionForm`/`commitRecord`/`selectCreated`/`patchDraft`/`submitSection` handlers. The two hand-written form-field builders, the parallel `parse*/make*/selectCreated*/`draftOf`/`*Id` functions, and the 12 per-field `update()` cases were removed. Net −152 lines (515 insertions / 667 deletions). Verified: `bizMenuDemo.spec.ts` byte-identical and green, `scripts/tsc-plgg.sh` clean, `scripts/test-plgg.sh` green, example suite 41/41, no escape hatches, and demo1.html driven live in a browser (menu nav, deep-link submitted search, add-form Required-validation → create → detail, light/dark toggle).
+
+### Discovered Insights
+
+- **Insight**: The frozen `bizMenuDemo.spec.ts` constructs each per-field message directly via `satisfies Msg` (e.g. `{ kind: "clientNameInput", value }`) and dispatches `clientFormSubmit`/`projectFormSubmit`, so those kind strings are a pinned part of the `Msg` surface, not just internal wiring.
+  **Context**: This bounds how far ticket 1 could collapse the message vocabulary under the "specs frozen" decision — the 12 field-input kinds stay in the union (collapsed to one `{ kind: FieldInputKind; value }` shape) while all logic unifies. Fully removing the kind strings (the ticket's `{kind;section;field;value}` idea) would require editing the spec's `satisfies Msg` literals; defer that to a step that is allowed to touch the spec.
+- **Insight**: The line-count reduction is modest (~7%) because Prettier's printWidth 50 makes the descriptor data (two `SectionField` arrays) verbose; the real win is eliminating parallel *logic*, not raw lines.
+  **Context**: Later tickets in this sequence should judge dedup by whether parallel code paths remain, not by line delta.
+- **Insight**: `scripts/tsc-plgg.sh` and `scripts/test-plgg.sh` only cover `packages/plgg`; the example package must be verified with its own `npm run tsc` / `npm run test` (`tsc --noEmit && plgg-test src`).
+  **Context**: Any demo/example refactor needs the per-package check in addition to the canonical scripts, or type/test regressions in the example go unseen.

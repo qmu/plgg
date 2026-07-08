@@ -460,25 +460,214 @@ export const declaration: Declaration = declare({
  */
 export const scheduled = schedule(declaration);
 
-type ClientForm = Readonly<{
-  open: boolean;
-  nameDraft: SoftStr;
-  statusDraft: SoftStr;
-  sinceDraft: SoftStr;
-  contactDraft: SoftStr;
-  notesDraft: SoftStr;
-  errors: FormErrors;
+// --- One descriptor drives both live record sections ---
+// `clients` and `projects` share every form, draft, parse,
+// and submit code path; only their field list and record
+// shape differ. A `SectionField` list per section is the
+// single source those paths read from, replacing the two
+// hand-written parallel blocks.
+type SectionFieldKind =
+  "text" | "textarea" | "select";
+
+type FieldInputKind =
+  | "clientNameInput"
+  | "clientStatusInput"
+  | "clientSinceInput"
+  | "clientContactInput"
+  | "clientNotesInput"
+  | "projectNameInput"
+  | "projectClientInput"
+  | "projectContractInput"
+  | "projectStatusInput"
+  | "projectPeriodInput"
+  | "projectBudgetInput"
+  | "projectLeadInput";
+
+type SectionField = Readonly<{
+  name: SoftStr;
+  label: SoftStr;
+  kind: SectionFieldKind;
+  placeholder: SoftStr;
+  options: ReadonlyArray<SoftStr>;
+  required: boolean;
+  initial: SoftStr;
+  input: FieldInputKind;
 }>;
 
-type ProjectForm = Readonly<{
+const clientFields: ReadonlyArray<SectionField> =
+  [
+    {
+      name: "name",
+      label: "Name",
+      kind: "text",
+      placeholder: "Client name",
+      options: [],
+      required: true,
+      initial: "",
+      input: "clientNameInput",
+    },
+    {
+      name: "status",
+      label: "Status",
+      kind: "select",
+      placeholder: "",
+      options: clientStatuses,
+      required: true,
+      initial: "Prospect",
+      input: "clientStatusInput",
+    },
+    {
+      name: "since",
+      label: "Since",
+      kind: "text",
+      placeholder: "2026",
+      options: [],
+      required: true,
+      initial: "2026",
+      input: "clientSinceInput",
+    },
+    {
+      name: "contact",
+      label: "Contact",
+      kind: "text",
+      placeholder: "Name, department",
+      options: [],
+      required: true,
+      initial: "",
+      input: "clientContactInput",
+    },
+    {
+      name: "notes",
+      label: "Notes",
+      kind: "textarea",
+      placeholder: "Optional notes",
+      options: [],
+      required: false,
+      initial: "",
+      input: "clientNotesInput",
+    },
+  ];
+
+const projectFields: ReadonlyArray<SectionField> =
+  [
+    {
+      name: "name",
+      label: "Name",
+      kind: "text",
+      placeholder: "Project name",
+      options: [],
+      required: true,
+      initial: "",
+      input: "projectNameInput",
+    },
+    {
+      name: "client",
+      label: "Client",
+      kind: "text",
+      placeholder: "Client name",
+      options: [],
+      required: false,
+      initial: "",
+      input: "projectClientInput",
+    },
+    {
+      name: "contract",
+      label: "Contract",
+      kind: "select",
+      placeholder: "",
+      options: projectContracts,
+      required: true,
+      initial: "Fixed-price",
+      input: "projectContractInput",
+    },
+    {
+      name: "status",
+      label: "Status",
+      kind: "select",
+      placeholder: "",
+      options: projectStatuses,
+      required: true,
+      initial: "In progress",
+      input: "projectStatusInput",
+    },
+    {
+      name: "period",
+      label: "Period",
+      kind: "text",
+      placeholder: "2026-04 - 2026-09",
+      options: [],
+      required: false,
+      initial: "",
+      input: "projectPeriodInput",
+    },
+    {
+      name: "budget",
+      label: "Budget",
+      kind: "text",
+      placeholder: "¥8.4M",
+      options: [],
+      required: false,
+      initial: "",
+      input: "projectBudgetInput",
+    },
+    {
+      name: "lead",
+      label: "Lead",
+      kind: "text",
+      placeholder: "Aoki",
+      options: [],
+      required: false,
+      initial: "",
+      input: "projectLeadInput",
+    },
+  ];
+
+const fieldsOf = (
+  section: SearchableSection,
+): ReadonlyArray<SectionField> => {
+  switch (section) {
+    case "clients":
+      return clientFields;
+    case "projects":
+      return projectFields;
+  }
+};
+
+// The inverse of the field descriptors: which section and
+// field a flat field-input message targets. Derived from
+// the field lists so each input kind lives in one place.
+const targetOf = (
+  kind: FieldInputKind,
+): Readonly<{
+  section: SearchableSection;
+  field: SoftStr;
+}> => {
+  const section: SearchableSection =
+    clientFields.some(
+      (f: SectionField) => f.input === kind,
+    )
+      ? "clients"
+      : "projects";
+  return {
+    section,
+    field: matchOption<SectionField, SoftStr>(
+      () => "",
+      (f: SectionField) => f.name,
+    )(
+      fromNullable(
+        fieldsOf(section).find(
+          (f: SectionField) => f.input === kind,
+        ),
+      ),
+    ),
+  };
+};
+
+// One form shape for both sections; drafts keyed by field
+// name replace the per-record named draft fields.
+type SectionForm = Readonly<{
   open: boolean;
-  nameDraft: SoftStr;
-  clientDraft: SoftStr;
-  contractDraft: SoftStr;
-  statusDraft: SoftStr;
-  periodDraft: SoftStr;
-  budgetDraft: SoftStr;
-  leadDraft: SoftStr;
+  drafts: Readonly<Record<string, SoftStr>>;
   errors: FormErrors;
 }>;
 
@@ -494,8 +683,8 @@ type SearchForm = Readonly<{
 export type Model = Readonly<{
   scheme: Scheme;
   scheduled: ScheduledModel;
-  clientForm: ClientForm;
-  projectForm: ProjectForm;
+  clientForm: SectionForm;
+  projectForm: SectionForm;
   search: SearchForm;
 }>;
 
@@ -507,55 +696,15 @@ export type Msg =
   | Readonly<{ kind: "toggleScheme" }>
   | Readonly<{ kind: "schemeApplied" }>
   | Readonly<{ kind: "urlChanged"; url: Url }>
+  // The 12 per-field input messages collapse to one
+  // shape discriminated by `FieldInputKind`; the frozen
+  // spec still constructs each kind via `satisfies Msg`,
+  // so the kind vocabulary stays while the logic unifies.
   | Readonly<{
-      kind: "clientNameInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "clientStatusInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "clientSinceInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "clientContactInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "clientNotesInput";
+      kind: FieldInputKind;
       value: SoftStr;
     }>
   | Readonly<{ kind: "clientFormSubmit" }>
-  | Readonly<{
-      kind: "projectNameInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "projectClientInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "projectContractInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "projectStatusInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "projectPeriodInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "projectBudgetInput";
-      value: SoftStr;
-    }>
-  | Readonly<{
-      kind: "projectLeadInput";
-      value: SoftStr;
-    }>
   | Readonly<{ kind: "projectFormSubmit" }>
   | Readonly<{
       kind: "searchKeywordInput";
@@ -567,27 +716,21 @@ export type Msg =
     }>
   | Readonly<{ kind: "searchFormSubmit" }>;
 
-const emptyClientForm = (open: boolean): ClientForm => ({
-  open,
-  nameDraft: "",
-  statusDraft: "Prospect",
-  sinceDraft: "2026",
-  contactDraft: "",
-  notesDraft: "",
-  errors: [],
-});
-
-const emptyProjectForm = (
+const emptySectionForm = (
+  section: SearchableSection,
   open: boolean,
-): ProjectForm => ({
+): SectionForm => ({
   open,
-  nameDraft: "",
-  clientDraft: "",
-  contractDraft: "Fixed-price",
-  statusDraft: "In progress",
-  periodDraft: "",
-  budgetDraft: "",
-  leadDraft: "",
+  drafts: Object.fromEntries(
+    fieldsOf(section).map(
+      (
+        f: SectionField,
+      ): readonly [SoftStr, SoftStr] => [
+        f.name,
+        f.initial,
+      ],
+    ),
+  ),
   errors: [],
 });
 
@@ -645,13 +788,14 @@ const searchableSectionOf = (
 const sectionOfUrl = (
   url: Url,
 ): Option<SearchableSection> =>
-  matchOption<
-    SoftStr,
-    Option<SearchableSection>
-  >(
+  matchOption<SoftStr, Option<SearchableSection>>(
     () => none(),
     searchableSectionOf,
-  )(fromNullable(new URLSearchParams(url.search).get("c")));
+  )(
+    fromNullable(
+      new URLSearchParams(url.search).get("c"),
+    ),
+  );
 
 const singularOf = (
   section: SearchableSection,
@@ -703,7 +847,9 @@ const paramOr = (
     (value: SoftStr) => value,
   )(fromNullable(params.get(name)));
 
-const searchFormFromUrl = (url: Url): SearchForm => {
+const searchFormFromUrl = (
+  url: Url,
+): SearchForm => {
   const params = new URLSearchParams(url.search);
   return emptySearchForm(
     params.get("search") === "1",
@@ -833,29 +979,21 @@ const asFilled = (
 const asOptionalText = (
   value: unknown,
 ): Result<Datum, InvalidError> =>
-  ok(typeof value === "string" ? value.trim() : "");
+  ok(
+    typeof value === "string" ? value.trim() : "",
+  );
 
-const clientDraftOf =
-  (form: ClientForm) =>
-  (name: SoftStr): SoftStr => {
-    switch (name) {
-      case "name":
-        return form.nameDraft;
-      case "status":
-        return form.statusDraft;
-      case "since":
-        return form.sinceDraft;
-      case "contact":
-        return form.contactDraft;
-      case "notes":
-        return form.notesDraft;
-      default:
-        return "";
-    }
-  };
+const draftOf =
+  (form: SectionForm) =>
+  (name: SoftStr): SoftStr =>
+    matchOption<SoftStr, SoftStr>(
+      () => "",
+      (value: SoftStr) => value,
+    )(fromNullable(form.drafts[name]));
 
-const clientId = (
+const slugId = (
   name: SoftStr,
+  singular: SoftStr,
   counter: number,
 ): SoftStr => {
   const slug = name
@@ -863,115 +1001,78 @@ const clientId = (
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return slug === ""
-    ? `client-${counter}`
+    ? `${singular}-${counter}`
     : `${slug}-${counter}`;
 };
 
-const projectDraftOf =
-  (form: ProjectForm) =>
-  (name: SoftStr): SoftStr => {
-    switch (name) {
-      case "name":
-        return form.nameDraft;
-      case "client":
-        return form.clientDraft;
-      case "contract":
-        return form.contractDraft;
-      case "status":
-        return form.statusDraft;
-      case "period":
-        return form.periodDraft;
-      case "budget":
-        return form.budgetDraft;
-      case "lead":
-        return form.leadDraft;
-      default:
-        return "";
-    }
-  };
+const parseSectionForm = (
+  section: SearchableSection,
+  form: SectionForm,
+) =>
+  parseForm(
+    fieldsOf(section).map((f: SectionField) => ({
+      name: f.name,
+      cast: f.required
+        ? asFilled
+        : asOptionalText,
+    })),
+    draftOf(form),
+  );
 
-const projectId = (
-  name: SoftStr,
-  counter: number,
+// Record construction is the one genuinely
+// record-shaped step: the two types carry different
+// fields, so each branch maps its own payload. The
+// counter/append/id machinery around it is shared.
+const commitRecord = (
+  section: SearchableSection,
+  payload: Readonly<Record<string, Datum>>,
 ): SoftStr => {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug === ""
-    ? `project-${counter}`
-    : `${slug}-${counter}`;
+  switch (section) {
+    case "clients": {
+      clientCounter = clientCounter + 1;
+      const name = `${payload.name}`;
+      const client: Client = {
+        id: slugId(name, "client", clientCounter),
+        name,
+        status: `${payload.status}`,
+        since: `${payload.since}`,
+        contact: `${payload.contact}`,
+        projects: "No active projects",
+        notes: `${payload.notes}`,
+      };
+      clients = [...clients, client];
+      return client.id;
+    }
+    case "projects": {
+      projectCounter = projectCounter + 1;
+      const name = `${payload.name}`;
+      const project: Project = {
+        id: slugId(
+          name,
+          "project",
+          projectCounter,
+        ),
+        name,
+        client: `${payload.client}`,
+        contract: `${payload.contract}`,
+        status: `${payload.status}`,
+        period: `${payload.period}`,
+        budget: `${payload.budget}`,
+        lead: `${payload.lead}`,
+      };
+      projects = [...projects, project];
+      return project.id;
+    }
+  }
 };
 
-const parseClientForm = (
-  form: ClientForm,
-) =>
-  parseForm(
-    [
-      { name: "name", cast: asFilled },
-      { name: "status", cast: asFilled },
-      { name: "since", cast: asFilled },
-      { name: "contact", cast: asFilled },
-      { name: "notes", cast: asOptionalText },
-    ],
-    clientDraftOf(form),
-  );
-
-const parseProjectForm = (
-  form: ProjectForm,
-) =>
-  parseForm(
-    [
-      { name: "name", cast: asFilled },
-      { name: "client", cast: asOptionalText },
-      { name: "contract", cast: asFilled },
-      { name: "status", cast: asFilled },
-      { name: "period", cast: asOptionalText },
-      { name: "budget", cast: asOptionalText },
-      { name: "lead", cast: asOptionalText },
-    ],
-    projectDraftOf(form),
-  );
-
-const makeClient = (
-  payload: Readonly<Record<string, Datum>>,
-): Client => {
-  clientCounter = clientCounter + 1;
-  const name = `${payload.name}`;
-  return {
-    id: clientId(name, clientCounter),
-    name,
-    status: `${payload.status}`,
-    since: `${payload.since}`,
-    contact: `${payload.contact}`,
-    projects: "No active projects",
-    notes: `${payload.notes}`,
-  };
-};
-
-const makeProject = (
-  payload: Readonly<Record<string, Datum>>,
-): Project => {
-  projectCounter = projectCounter + 1;
-  const name = `${payload.name}`;
-  return {
-    id: projectId(name, projectCounter),
-    name,
-    client: `${payload.client}`,
-    contract: `${payload.contract}`,
-    status: `${payload.status}`,
-    period: `${payload.period}`,
-    budget: `${payload.budget}`,
-    lead: `${payload.lead}`,
-  };
-};
-
-const selectCreatedClient = (
+const selectCreated = (
+  section: SearchableSection,
   scheduledModel: ScheduledModel,
   id: SoftStr,
 ): readonly [ScheduledModel, Cmd<Msg>] => {
   const [opened, openCmd] = scheduled.update(
-    openMenu("clients"),
+    openMenu(section),
     scheduledModel,
   );
   const [selected, selectCmd] = scheduled.update(
@@ -987,42 +1088,98 @@ const selectCreatedClient = (
   ];
 };
 
-const selectCreatedProject = (
-  scheduledModel: ScheduledModel,
-  id: SoftStr,
-): readonly [ScheduledModel, Cmd<Msg>] => {
-  const [opened, openCmd] = scheduled.update(
-    openMenu("projects"),
-    scheduledModel,
-  );
-  const [selected, selectCmd] = scheduled.update(
-    select(0, id),
-    opened,
-  );
-  return [
-    selected,
-    cmdBatch([
-      mapSchedulerCmd(openCmd),
-      mapSchedulerCmd(selectCmd),
-    ]),
-  ];
+const formOf = (
+  section: SearchableSection,
+  model: Model,
+): SectionForm => {
+  switch (section) {
+    case "clients":
+      return model.clientForm;
+    case "projects":
+      return model.projectForm;
+  }
 };
 
-const updateClientForm = (
-  form: ClientForm,
-  patch: Partial<ClientForm>,
-): ClientForm => ({
-  ...form,
-  ...patch,
-});
+const setForm = (
+  section: SearchableSection,
+  model: Model,
+  form: SectionForm,
+): Model => {
+  switch (section) {
+    case "clients":
+      return { ...model, clientForm: form };
+    case "projects":
+      return { ...model, projectForm: form };
+  }
+};
 
-const updateProjectForm = (
-  form: ProjectForm,
-  patch: Partial<ProjectForm>,
-): ProjectForm => ({
-  ...form,
-  ...patch,
-});
+const patchDraft = (
+  section: SearchableSection,
+  field: SoftStr,
+  value: SoftStr,
+  model: Model,
+): Model => {
+  const form = formOf(section, model);
+  return setForm(section, model, {
+    ...form,
+    drafts: {
+      ...form.drafts,
+      [field]: value,
+    },
+  });
+};
+
+const submitSection = (
+  section: SearchableSection,
+  model: Model,
+): readonly [Model, Cmd<Msg>] =>
+  matchResult<
+    Readonly<Record<string, Datum>>,
+    FormErrors,
+    readonly [Model, Cmd<Msg>]
+  >(
+    (errors: FormErrors) => [
+      setForm(section, model, {
+        ...formOf(section, model),
+        errors,
+      }),
+      cmdNone(),
+    ],
+    (payload) => {
+      const id = commitRecord(section, payload);
+      const [next, cmd] = selectCreated(
+        section,
+        model.scheduled,
+        id,
+      );
+      return [
+        {
+          ...model,
+          scheduled: next,
+          clientForm: emptySectionForm(
+            "clients",
+            false,
+          ),
+          projectForm: emptySectionForm(
+            "projects",
+            false,
+          ),
+          search: emptySearchForm(
+            false,
+            false,
+            "",
+            "Any",
+          ),
+        },
+        cmd,
+      ];
+    },
+  )(
+    parseSectionForm(
+      section,
+      formOf(section, model),
+    ),
+  );
 
 type AppColumn = Readonly<{
   key: SoftStr;
@@ -1065,10 +1222,16 @@ const hasSelection = (url: Url): boolean =>
   matchOption<SoftStr, boolean>(
     () => false,
     () => true,
-  )(fromNullable(new URLSearchParams(url.search).get("p")));
+  )(
+    fromNullable(
+      new URLSearchParams(url.search).get("p"),
+    ),
+  );
 
 const selectedId = (url: Url): Option<SoftStr> =>
-  fromNullable(new URLSearchParams(url.search).get("p"));
+  fromNullable(
+    new URLSearchParams(url.search).get("p"),
+  );
 
 const menuItem = (
   label: SoftStr,
@@ -1106,7 +1269,10 @@ const sectionSubMenu = (
           key: `${section}-submenu`,
           title: `${title} Menu`,
           close: some(
-            hrefOf({ path: url.path, search: "" }),
+            hrefOf({
+              path: url.path,
+              search: "",
+            }),
           ),
           body: [
             slot(
@@ -1145,201 +1311,67 @@ const sectionSubMenu = (
   )(sectionOfUrl(url));
 };
 
-const clientFormFields = (
-  model: Model,
-): ReadonlyArray<Flow<Msg>> => [
-  textInput<Msg>({
-    name: "name",
-    label: "Name",
-    value: model.clientForm.nameDraft,
-    placeholder: some("Client name"),
-    error: errorFor(model.clientForm.errors, "name"),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "clientNameInput",
-      value,
-    }),
-  }),
-  selectInput<Msg>({
-    name: "status",
-    label: "Status",
-    value: model.clientForm.statusDraft,
-    options: clientStatuses.map((status) => ({
-      value: status,
-      label: status,
-    })),
-    error: errorFor(
-      model.clientForm.errors,
-      "status",
-    ),
-    disabled: false,
-    onChange: (value: SoftStr) => ({
-      kind: "clientStatusInput",
-      value,
-    }),
-  }),
-  textInput<Msg>({
-    name: "since",
-    label: "Since",
-    value: model.clientForm.sinceDraft,
-    placeholder: some("2026"),
-    error: errorFor(model.clientForm.errors, "since"),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "clientSinceInput",
-      value,
-    }),
-  }),
-  textInput<Msg>({
-    name: "contact",
-    label: "Contact",
-    value: model.clientForm.contactDraft,
-    placeholder: some("Name, department"),
-    error: errorFor(
-      model.clientForm.errors,
-      "contact",
-    ),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "clientContactInput",
-      value,
-    }),
-  }),
-  textArea<Msg>({
-    name: "notes",
-    label: "Notes",
-    value: model.clientForm.notesDraft,
-    placeholder: some("Optional notes"),
-    error: errorFor(model.clientForm.errors, "notes"),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "clientNotesInput",
-      value,
-    }),
-  }),
-];
-
-const projectFormFields = (
-  model: Model,
-): ReadonlyArray<Flow<Msg>> => [
-  textInput<Msg>({
-    name: "name",
-    label: "Name",
-    value: model.projectForm.nameDraft,
-    placeholder: some("Project name"),
-    error: errorFor(model.projectForm.errors, "name"),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "projectNameInput",
-      value,
-    }),
-  }),
-  textInput<Msg>({
-    name: "client",
-    label: "Client",
-    value: model.projectForm.clientDraft,
-    placeholder: some("Client name"),
-    error: errorFor(
-      model.projectForm.errors,
-      "client",
-    ),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "projectClientInput",
-      value,
-    }),
-  }),
-  selectInput<Msg>({
-    name: "contract",
-    label: "Contract",
-    value: model.projectForm.contractDraft,
-    options: projectContracts.map((contract) => ({
-      value: contract,
-      label: contract,
-    })),
-    error: errorFor(
-      model.projectForm.errors,
-      "contract",
-    ),
-    disabled: false,
-    onChange: (value: SoftStr) => ({
-      kind: "projectContractInput",
-      value,
-    }),
-  }),
-  selectInput<Msg>({
-    name: "status",
-    label: "Status",
-    value: model.projectForm.statusDraft,
-    options: projectStatuses.map((status) => ({
-      value: status,
-      label: status,
-    })),
-    error: errorFor(
-      model.projectForm.errors,
-      "status",
-    ),
-    disabled: false,
-    onChange: (value: SoftStr) => ({
-      kind: "projectStatusInput",
-      value,
-    }),
-  }),
-  textInput<Msg>({
-    name: "period",
-    label: "Period",
-    value: model.projectForm.periodDraft,
-    placeholder: some("2026-04 - 2026-09"),
-    error: errorFor(
-      model.projectForm.errors,
-      "period",
-    ),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "projectPeriodInput",
-      value,
-    }),
-  }),
-  textInput<Msg>({
-    name: "budget",
-    label: "Budget",
-    value: model.projectForm.budgetDraft,
-    placeholder: some("¥8.4M"),
-    error: errorFor(
-      model.projectForm.errors,
-      "budget",
-    ),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "projectBudgetInput",
-      value,
-    }),
-  }),
-  textInput<Msg>({
-    name: "lead",
-    label: "Lead",
-    value: model.projectForm.leadDraft,
-    placeholder: some("Aoki"),
-    error: errorFor(model.projectForm.errors, "lead"),
-    disabled: false,
-    onInput: (value: SoftStr) => ({
-      kind: "projectLeadInput",
-      value,
-    }),
-  }),
-];
+const fieldInput = (
+  field: SectionField,
+  form: SectionForm,
+): Flow<Msg> => {
+  const value = draftOf(form)(field.name);
+  const error = errorFor(form.errors, field.name);
+  switch (field.kind) {
+    case "text":
+      return textInput<Msg>({
+        name: field.name,
+        label: field.label,
+        value,
+        placeholder: some(field.placeholder),
+        error,
+        disabled: false,
+        onInput: (v: SoftStr) => ({
+          kind: field.input,
+          value: v,
+        }),
+      });
+    case "textarea":
+      return textArea<Msg>({
+        name: field.name,
+        label: field.label,
+        value,
+        placeholder: some(field.placeholder),
+        error,
+        disabled: false,
+        onInput: (v: SoftStr) => ({
+          kind: field.input,
+          value: v,
+        }),
+      });
+    case "select":
+      return selectInput<Msg>({
+        name: field.name,
+        label: field.label,
+        value,
+        options: field.options.map(
+          (o: SoftStr) => ({
+            value: o,
+            label: o,
+          }),
+        ),
+        error,
+        disabled: false,
+        onChange: (v: SoftStr) => ({
+          kind: field.input,
+          value: v,
+        }),
+      });
+  }
+};
 
 const formFields = (
   section: SearchableSection,
   model: Model,
-): ReadonlyArray<Flow<Msg>> => {
-  switch (section) {
-    case "clients":
-      return clientFormFields(model);
-    case "projects":
-      return projectFormFields(model);
-  }
-};
+): ReadonlyArray<Flow<Msg>> =>
+  fieldsOf(section).map((field: SectionField) =>
+    fieldInput(field, formOf(section, model)),
+  );
 
 const formSubmit = (
   section: SearchableSection,
@@ -1372,9 +1404,7 @@ const addFormColumn = (
           title: `Add ${title}`,
           close: some(
             hrefOf(
-              withSearch(
-                withoutSelection(url),
-              ),
+              withSearch(withoutSelection(url)),
             ),
           ),
           body: [
@@ -1468,8 +1498,7 @@ const searchConditionColumn = (
                           onInput: (
                             value: SoftStr,
                           ) => ({
-                            kind:
-                              "searchKeywordInput",
+                            kind: "searchKeywordInput",
                             value,
                           }),
                         }),
@@ -1488,8 +1517,7 @@ const searchConditionColumn = (
                           onChange: (
                             value: SoftStr,
                           ) => ({
-                            kind:
-                              "searchStatusInput",
+                            kind: "searchStatusInput",
                             value,
                           }),
                         }),
@@ -1578,7 +1606,12 @@ const resultsList = (
                 () => [],
                 (id: SoftStr) =>
                   id === row.id
-                    ? [attr("aria-current", "page")]
+                    ? [
+                        attr(
+                          "aria-current",
+                          "page",
+                        ),
+                      ]
                     : [],
               )(selectedId(url)),
             ],
@@ -1646,10 +1679,7 @@ const appColumns = (
 
 export const makeApp = (
   initial: Scheme,
-): Application<
-  Model,
-  Msg
-> => ({
+): Application<Model, Msg> => ({
   init: (url: Url) => {
     const [scheduledModel, cmd] =
       scheduled.init(url);
@@ -1657,10 +1687,12 @@ export const makeApp = (
       {
         scheme: initial,
         scheduled: scheduledModel,
-        clientForm: emptyClientForm(
+        clientForm: emptySectionForm(
+          "clients",
           isAddUrl("clients", url),
         ),
-        projectForm: emptyProjectForm(
+        projectForm: emptySectionForm(
+          "projects",
           isAddUrl("projects", url),
         ),
         search: searchFormFromUrl(url),
@@ -1698,10 +1730,12 @@ export const makeApp = (
           {
             ...model,
             scheduled: next,
-            clientForm: emptyClientForm(
+            clientForm: emptySectionForm(
+              "clients",
               isAddUrl("clients", msg.url),
             ),
-            projectForm: emptyProjectForm(
+            projectForm: emptySectionForm(
+              "projects",
               isAddUrl("projects", msg.url),
             ),
             search: searchFormFromUrl(msg.url),
@@ -1710,221 +1744,32 @@ export const makeApp = (
         ];
       }
       case "clientNameInput":
-        return [
-          {
-            ...model,
-            clientForm: updateClientForm(
-              model.clientForm,
-              { nameDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "clientStatusInput":
-        return [
-          {
-            ...model,
-            clientForm: updateClientForm(
-              model.clientForm,
-              { statusDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "clientSinceInput":
-        return [
-          {
-            ...model,
-            clientForm: updateClientForm(
-              model.clientForm,
-              { sinceDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "clientContactInput":
-        return [
-          {
-            ...model,
-            clientForm: updateClientForm(
-              model.clientForm,
-              { contactDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "clientNotesInput":
-        return [
-          {
-            ...model,
-            clientForm: updateClientForm(
-              model.clientForm,
-              { notesDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
-      case "clientFormSubmit":
-        return matchResult<
-          Readonly<Record<string, Datum>>,
-          FormErrors,
-          readonly [Model, Cmd<Msg>]
-        >(
-          (errors: FormErrors) => [
-            {
-              ...model,
-              clientForm: updateClientForm(
-                model.clientForm,
-                { errors },
-              ),
-            },
-            cmdNone(),
-          ],
-          (payload) => {
-            const client = makeClient(payload);
-            clients = [...clients, client];
-            const [next, cmd] =
-              selectCreatedClient(
-                model.scheduled,
-                client.id,
-              );
-            return [
-              {
-                ...model,
-                scheduled: next,
-                clientForm: emptyClientForm(false),
-                projectForm:
-                  emptyProjectForm(false),
-                search: emptySearchForm(
-                  false,
-                  false,
-                  "",
-                  "Any",
-                ),
-              },
-              cmd,
-            ];
-          },
-        )(parseClientForm(model.clientForm));
       case "projectNameInput":
-        return [
-          {
-            ...model,
-            projectForm: updateProjectForm(
-              model.projectForm,
-              { nameDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "projectClientInput":
-        return [
-          {
-            ...model,
-            projectForm: updateProjectForm(
-              model.projectForm,
-              { clientDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "projectContractInput":
-        return [
-          {
-            ...model,
-            projectForm: updateProjectForm(
-              model.projectForm,
-              { contractDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "projectStatusInput":
-        return [
-          {
-            ...model,
-            projectForm: updateProjectForm(
-              model.projectForm,
-              { statusDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "projectPeriodInput":
-        return [
-          {
-            ...model,
-            projectForm: updateProjectForm(
-              model.projectForm,
-              { periodDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
       case "projectBudgetInput":
+      case "projectLeadInput": {
+        const target = targetOf(msg.kind);
         return [
-          {
-            ...model,
-            projectForm: updateProjectForm(
-              model.projectForm,
-              { budgetDraft: msg.value },
-            ),
-          },
+          patchDraft(
+            target.section,
+            target.field,
+            msg.value,
+            model,
+          ),
           cmdNone(),
         ];
-      case "projectLeadInput":
-        return [
-          {
-            ...model,
-            projectForm: updateProjectForm(
-              model.projectForm,
-              { leadDraft: msg.value },
-            ),
-          },
-          cmdNone(),
-        ];
+      }
+      case "clientFormSubmit":
+        return submitSection("clients", model);
       case "projectFormSubmit":
-        return matchResult<
-          Readonly<Record<string, Datum>>,
-          FormErrors,
-          readonly [Model, Cmd<Msg>]
-        >(
-          (errors: FormErrors) => [
-            {
-              ...model,
-              projectForm: updateProjectForm(
-                model.projectForm,
-                { errors },
-              ),
-            },
-            cmdNone(),
-          ],
-          (payload) => {
-            const project = makeProject(payload);
-            projects = [...projects, project];
-            const [next, cmd] =
-              selectCreatedProject(
-                model.scheduled,
-                project.id,
-              );
-            return [
-              {
-                ...model,
-                scheduled: next,
-                clientForm: emptyClientForm(false),
-                projectForm:
-                  emptyProjectForm(false),
-                search: emptySearchForm(
-                  false,
-                  false,
-                  "",
-                  "Any",
-                ),
-              },
-              cmd,
-            ];
-          },
-        )(parseProjectForm(model.projectForm));
+        return submitSection("projects", model);
       case "searchKeywordInput":
         return [
           {
@@ -1953,8 +1798,14 @@ export const makeApp = (
         return [
           {
             ...model,
-            clientForm: emptyClientForm(false),
-            projectForm: emptyProjectForm(false),
+            clientForm: emptySectionForm(
+              "clients",
+              false,
+            ),
+            projectForm: emptySectionForm(
+              "projects",
+              false,
+            ),
             search: {
               ...model.search,
               open: true,
@@ -1967,10 +1818,10 @@ export const makeApp = (
         ];
     }
   },
-  view: (
-    model: Model,
-  ): Html<Msg> => {
-    const scene = scheduled.scene(model.scheduled);
+  view: (model: Model): Html<Msg> => {
+    const scene = scheduled.scene(
+      model.scheduled,
+    );
     const params = new URLSearchParams(
       currentUrl(model).search,
     );
@@ -2021,20 +1872,17 @@ export const makeApp = (
             }),
           ],
         ),
-        multiColumnWith<Msg>(
-          scene,
-          {
-            mapMsg: (msg: SchedulerMsg) => ({
-              kind: "scheduler",
-              msg,
-            }),
-            omitBreadcrumb: true,
-            afterMenu: [
-              ...sectionSubMenu(model),
-              ...appColumns(model),
-            ],
-          },
-        ),
+        multiColumnWith<Msg>(scene, {
+          mapMsg: (msg: SchedulerMsg) => ({
+            kind: "scheduler",
+            msg,
+          }),
+          omitBreadcrumb: true,
+          afterMenu: [
+            ...sectionSubMenu(model),
+            ...appColumns(model),
+          ],
+        }),
       ],
     );
   },
