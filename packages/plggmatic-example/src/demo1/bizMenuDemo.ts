@@ -5,6 +5,9 @@ import {
   type InvalidError,
   type Option,
   some,
+  none,
+  fromNullable,
+  matchOption,
   match,
   matchResult,
   ok,
@@ -13,6 +16,7 @@ import {
 } from "plgg";
 import {
   type Html,
+  type Flow,
   slot,
   span,
   a,
@@ -115,7 +119,7 @@ type Project = Readonly<{
   lead: SoftStr;
 }>;
 
-const projects: ReadonlyArray<Project> = [
+let projects: ReadonlyArray<Project> = [
   {
     id: "acme",
     name: "ACME storefront rebuild",
@@ -177,20 +181,23 @@ const projects: ReadonlyArray<Project> = [
     lead: "Chen",
   },
 ];
+let projectCounter = 0;
+
+const projectRow = (p: Project) =>
+  makeRow(p.id, p.name, [
+    field("Client", p.client),
+    field("Contract", p.contract),
+    field("Status", p.status),
+    field("Period", p.period),
+    field("Budget", p.budget),
+    field("Lead", p.lead),
+  ]);
 
 const projectsCollection: Collection =
   collection<Project>({
     id: "projects",
     title: "Projects",
-    toRow: (p: Project) =>
-      makeRow(p.id, p.name, [
-        field("Client", p.client),
-        field("Contract", p.contract),
-        field("Status", p.status),
-        field("Period", p.period),
-        field("Budget", p.budget),
-        field("Lead", p.lead),
-      ]),
+    toRow: projectRow,
     source: sync(() => projects),
     query: query("Filter projects"),
   });
@@ -268,6 +275,26 @@ let clients: ReadonlyArray<Client> = [
   },
 ];
 let clientCounter = 0;
+
+type SearchableSection = "clients" | "projects";
+
+const clientStatuses: ReadonlyArray<SoftStr> = [
+  "Prospect",
+  "Active",
+  "Prime",
+];
+
+const projectStatuses: ReadonlyArray<SoftStr> = [
+  "In progress",
+  "Scoping",
+  "On hold",
+  "Delivered",
+];
+
+const projectContracts: ReadonlyArray<SoftStr> = [
+  "Fixed-price",
+  "T&M",
+];
 
 const clientRow = (c: Client) =>
   makeRow(c.id, c.name, [
@@ -443,14 +470,33 @@ type ClientForm = Readonly<{
   errors: FormErrors;
 }>;
 
+type ProjectForm = Readonly<{
+  open: boolean;
+  nameDraft: SoftStr;
+  clientDraft: SoftStr;
+  contractDraft: SoftStr;
+  statusDraft: SoftStr;
+  periodDraft: SoftStr;
+  budgetDraft: SoftStr;
+  leadDraft: SoftStr;
+  errors: FormErrors;
+}>;
+
+type SearchForm = Readonly<{
+  open: boolean;
+  submitted: boolean;
+  keywordDraft: SoftStr;
+  statusDraft: SoftStr;
+  keyword: SoftStr;
+  status: SoftStr;
+}>;
+
 export type Model = Readonly<{
   scheme: Scheme;
   scheduled: ScheduledModel;
   clientForm: ClientForm;
-  // Whether the client list ("Search Client") pane is
-  // open. The list stays hidden at a bare ?c=clients until
-  // Search Client is chosen (or a client is selected).
-  searching: boolean;
+  projectForm: ProjectForm;
+  search: SearchForm;
 }>;
 
 export type Msg =
@@ -481,7 +527,45 @@ export type Msg =
       kind: "clientNotesInput";
       value: SoftStr;
     }>
-  | Readonly<{ kind: "clientFormSubmit" }>;
+  | Readonly<{ kind: "clientFormSubmit" }>
+  | Readonly<{
+      kind: "projectNameInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "projectClientInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "projectContractInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "projectStatusInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "projectPeriodInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "projectBudgetInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "projectLeadInput";
+      value: SoftStr;
+    }>
+  | Readonly<{ kind: "projectFormSubmit" }>
+  | Readonly<{
+      kind: "searchKeywordInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "searchStatusInput";
+      value: SoftStr;
+    }>
+  | Readonly<{ kind: "searchFormSubmit" }>;
 
 const emptyClientForm = (open: boolean): ClientForm => ({
   open,
@@ -491,6 +575,34 @@ const emptyClientForm = (open: boolean): ClientForm => ({
   contactDraft: "",
   notesDraft: "",
   errors: [],
+});
+
+const emptyProjectForm = (
+  open: boolean,
+): ProjectForm => ({
+  open,
+  nameDraft: "",
+  clientDraft: "",
+  contractDraft: "Fixed-price",
+  statusDraft: "In progress",
+  periodDraft: "",
+  budgetDraft: "",
+  leadDraft: "",
+  errors: [],
+});
+
+const emptySearchForm = (
+  open: boolean,
+  submitted: boolean,
+  keyword: SoftStr,
+  status: SoftStr,
+): SearchForm => ({
+  open,
+  submitted,
+  keywordDraft: keyword,
+  statusDraft: status,
+  keyword,
+  status,
 });
 
 const flip = (s: Scheme): Scheme =>
@@ -510,14 +622,6 @@ const applySchemeEffect = (
     });
   });
 
-const isAddClientUrl = (url: Url): boolean =>
-  new URLSearchParams(url.search).get("add") ===
-  "client";
-
-const isSearchUrl = (url: Url): boolean =>
-  new URLSearchParams(url.search).get("search") ===
-  "1";
-
 const searchString = (
   params: URLSearchParams,
 ): SoftStr => {
@@ -525,9 +629,106 @@ const searchString = (
   return s === "" ? "" : `?${s}`;
 };
 
-// Drop the scheduler's selection (`p`) so opening the
-// add-client form starts fresh — the form is never shown
-// as a 4th column beside a selected client's detail.
+const searchableSectionOf = (
+  value: SoftStr,
+): Option<SearchableSection> => {
+  switch (value) {
+    case "clients":
+      return some("clients");
+    case "projects":
+      return some("projects");
+    default:
+      return none();
+  }
+};
+
+const sectionOfUrl = (
+  url: Url,
+): Option<SearchableSection> =>
+  matchOption<
+    SoftStr,
+    Option<SearchableSection>
+  >(
+    () => none(),
+    searchableSectionOf,
+  )(fromNullable(new URLSearchParams(url.search).get("c")));
+
+const singularOf = (
+  section: SearchableSection,
+): SoftStr => {
+  switch (section) {
+    case "clients":
+      return "client";
+    case "projects":
+      return "project";
+  }
+};
+
+const titleOfSection = (
+  section: SearchableSection,
+): SoftStr => {
+  switch (section) {
+    case "clients":
+      return "Client";
+    case "projects":
+      return "Project";
+  }
+};
+
+const statusesOf = (
+  section: SearchableSection,
+): ReadonlyArray<SoftStr> => {
+  switch (section) {
+    case "clients":
+      return clientStatuses;
+    case "projects":
+      return projectStatuses;
+  }
+};
+
+const isAddUrl = (
+  section: SearchableSection,
+  url: Url,
+): boolean =>
+  new URLSearchParams(url.search).get("add") ===
+  singularOf(section);
+
+const paramOr = (
+  params: URLSearchParams,
+  name: SoftStr,
+  fallback: SoftStr,
+): SoftStr =>
+  matchOption<SoftStr, SoftStr>(
+    () => fallback,
+    (value: SoftStr) => value,
+  )(fromNullable(params.get(name)));
+
+const searchFormFromUrl = (url: Url): SearchForm => {
+  const params = new URLSearchParams(url.search);
+  return emptySearchForm(
+    params.get("search") === "1",
+    params.get("submitted") === "1",
+    paramOr(params, "kw", ""),
+    paramOr(params, "st", "Any"),
+  );
+};
+
+const withoutAppParams = (url: Url): Url => {
+  const params = new URLSearchParams(url.search);
+  params.delete("add");
+  params.delete("search");
+  params.delete("submitted");
+  params.delete("kw");
+  params.delete("st");
+  return {
+    path: url.path,
+    search: searchString(params),
+  };
+};
+
+// Drop the scheduler's selection (`p`) so opening an
+// app-owned column starts fresh — forms/search are never
+// shown as a 4th column beside a selected detail.
 const withoutSelection = (url: Url): Url => {
   const params = new URLSearchParams(url.search);
   params.delete("p");
@@ -537,9 +738,16 @@ const withoutSelection = (url: Url): Url => {
   };
 };
 
-const withAddClient = (url: Url): Url => {
+const withAdd = (
+  section: SearchableSection,
+  url: Url,
+): Url => {
   const params = new URLSearchParams(url.search);
-  params.set("add", "client");
+  params.set("add", singularOf(section));
+  params.delete("search");
+  params.delete("submitted");
+  params.delete("kw");
+  params.delete("st");
   return {
     path: url.path,
     search: searchString(params),
@@ -549,19 +757,41 @@ const withAddClient = (url: Url): Url => {
 const withSearch = (url: Url): Url => {
   const params = new URLSearchParams(url.search);
   params.set("search", "1");
+  params.delete("add");
+  params.delete("submitted");
+  params.delete("kw");
+  params.delete("st");
   return {
     path: url.path,
     search: searchString(params),
   };
 };
 
-const withoutAddClient = (url: Url): Url => {
+const withSubmittedSearch = (
+  url: Url,
+  form: SearchForm,
+): Url => {
   const params = new URLSearchParams(url.search);
   params.delete("add");
+  params.set("search", "1");
+  params.set("submitted", "1");
+  params.set("kw", form.keyword);
+  params.set("st", form.status);
   return {
     path: url.path,
     search: searchString(params),
   };
+};
+
+const resultHref = (
+  url: Url,
+  id: SoftStr,
+): SoftStr => {
+  const params = new URLSearchParams(url.search);
+  params.delete("add");
+  params.delete("q");
+  params.set("p", id);
+  return `${url.path}${searchString(params)}`;
 };
 
 const hrefOf = (url: Url): SoftStr =>
@@ -605,7 +835,7 @@ const asOptionalText = (
 ): Result<Datum, InvalidError> =>
   ok(typeof value === "string" ? value.trim() : "");
 
-const draftOf =
+const clientDraftOf =
   (form: ClientForm) =>
   (name: SoftStr): SoftStr => {
     switch (name) {
@@ -637,6 +867,42 @@ const clientId = (
     : `${slug}-${counter}`;
 };
 
+const projectDraftOf =
+  (form: ProjectForm) =>
+  (name: SoftStr): SoftStr => {
+    switch (name) {
+      case "name":
+        return form.nameDraft;
+      case "client":
+        return form.clientDraft;
+      case "contract":
+        return form.contractDraft;
+      case "status":
+        return form.statusDraft;
+      case "period":
+        return form.periodDraft;
+      case "budget":
+        return form.budgetDraft;
+      case "lead":
+        return form.leadDraft;
+      default:
+        return "";
+    }
+  };
+
+const projectId = (
+  name: SoftStr,
+  counter: number,
+): SoftStr => {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug === ""
+    ? `project-${counter}`
+    : `${slug}-${counter}`;
+};
+
 const parseClientForm = (
   form: ClientForm,
 ) =>
@@ -648,7 +914,23 @@ const parseClientForm = (
       { name: "contact", cast: asFilled },
       { name: "notes", cast: asOptionalText },
     ],
-    draftOf(form),
+    clientDraftOf(form),
+  );
+
+const parseProjectForm = (
+  form: ProjectForm,
+) =>
+  parseForm(
+    [
+      { name: "name", cast: asFilled },
+      { name: "client", cast: asOptionalText },
+      { name: "contract", cast: asFilled },
+      { name: "status", cast: asFilled },
+      { name: "period", cast: asOptionalText },
+      { name: "budget", cast: asOptionalText },
+      { name: "lead", cast: asOptionalText },
+    ],
+    projectDraftOf(form),
   );
 
 const makeClient = (
@@ -664,6 +946,23 @@ const makeClient = (
     contact: `${payload.contact}`,
     projects: "No active projects",
     notes: `${payload.notes}`,
+  };
+};
+
+const makeProject = (
+  payload: Readonly<Record<string, Datum>>,
+): Project => {
+  projectCounter = projectCounter + 1;
+  const name = `${payload.name}`;
+  return {
+    id: projectId(name, projectCounter),
+    name,
+    client: `${payload.client}`,
+    contract: `${payload.contract}`,
+    status: `${payload.status}`,
+    period: `${payload.period}`,
+    budget: `${payload.budget}`,
+    lead: `${payload.lead}`,
   };
 };
 
@@ -688,6 +987,27 @@ const selectCreatedClient = (
   ];
 };
 
+const selectCreatedProject = (
+  scheduledModel: ScheduledModel,
+  id: SoftStr,
+): readonly [ScheduledModel, Cmd<Msg>] => {
+  const [opened, openCmd] = scheduled.update(
+    openMenu("projects"),
+    scheduledModel,
+  );
+  const [selected, selectCmd] = scheduled.update(
+    select(0, id),
+    opened,
+  );
+  return [
+    selected,
+    cmdBatch([
+      mapSchedulerCmd(openCmd),
+      mapSchedulerCmd(selectCmd),
+    ]),
+  ];
+};
+
 const updateClientForm = (
   form: ClientForm,
   patch: Partial<ClientForm>,
@@ -696,212 +1016,375 @@ const updateClientForm = (
   ...patch,
 });
 
-// The Clients section's sub-menu column (col 2) — shown
-// only while the Clients section is open. "Add Client"
-// opens the form; "Search Client" returns to the plain
-// (searchable) list. Both drop any selected client so the
-// list stays the third column, never a 4th.
-const clientsSubMenu = (
-  model: Model,
-): ReadonlyArray<{
+const updateProjectForm = (
+  form: ProjectForm,
+  patch: Partial<ProjectForm>,
+): ProjectForm => ({
+  ...form,
+  ...patch,
+});
+
+type AppColumn = Readonly<{
   key: SoftStr;
   title: SoftStr;
   close: Option<SoftStr>;
   body: ReadonlyArray<Html<Msg>>;
-}> => {
-  const url = scheduled.toUrl(model.scheduled);
-  const inClients =
-    new URLSearchParams(url.search).get("c") ===
-    "clients";
-  if (!inClients) {
-    return [];
+}>;
+
+const activeAdd = (
+  section: SearchableSection,
+  model: Model,
+): boolean => {
+  switch (section) {
+    case "clients":
+      return model.clientForm.open;
+    case "projects":
+      return model.projectForm.open;
   }
-  const item = (
-    label: SoftStr,
-    to: SoftStr,
-    active: boolean,
-  ): Html<Msg> =>
-    li(
-      [],
-      [
-        a(
-          [
-            href(to),
-            ...(active
-              ? [attr("aria-current", "page")]
-              : []),
-          ],
-          [text(label)],
-        ),
-      ],
-    );
-  return [
-    {
-      key: "clients-submenu",
-      title: "Client Menu",
-      close: some(
-        hrefOf({ path: url.path, search: "" }),
+};
+
+const currentUrl = (model: Model): Url => {
+  const base = scheduled.toUrl(model.scheduled);
+  return matchOption<SearchableSection, Url>(
+    () => withoutAppParams(base),
+    (section: SearchableSection) =>
+      activeAdd(section, model)
+        ? withAdd(section, base)
+        : model.search.open
+          ? model.search.submitted
+            ? withSubmittedSearch(
+                base,
+                model.search,
+              )
+            : withSearch(base)
+          : withoutAppParams(base),
+  )(sectionOfUrl(base));
+};
+
+const hasSelection = (url: Url): boolean =>
+  matchOption<SoftStr, boolean>(
+    () => false,
+    () => true,
+  )(fromNullable(new URLSearchParams(url.search).get("p")));
+
+const selectedId = (url: Url): Option<SoftStr> =>
+  fromNullable(new URLSearchParams(url.search).get("p"));
+
+const menuItem = (
+  label: SoftStr,
+  to: SoftStr,
+  active: boolean,
+): Html<Msg, "li"> =>
+  li(
+    [],
+    [
+      a(
+        [
+          href(to),
+          ...(active
+            ? [attr("aria-current", "page")]
+            : []),
+        ],
+        [text(label)],
       ),
-      body: [
-        slot(
-          [attr("class", "pm-menu-body")],
-          [
-            ul(
-              [],
+    ],
+  );
+
+const sectionSubMenu = (
+  model: Model,
+): ReadonlyArray<AppColumn> => {
+  const url = currentUrl(model);
+  return matchOption<
+    SearchableSection,
+    ReadonlyArray<AppColumn>
+  >(
+    () => [],
+    (section: SearchableSection) => {
+      const title = titleOfSection(section);
+      return [
+        {
+          key: `${section}-submenu`,
+          title: `${title} Menu`,
+          close: some(
+            hrefOf({ path: url.path, search: "" }),
+          ),
+          body: [
+            slot(
+              [attr("class", "pm-menu-body")],
               [
-                item(
-                  "Add Client",
-                  hrefOf(
-                    withAddClient(
-                      withoutSelection(url),
-                    ),
-                  ),
-                  model.clientForm.open,
-                ),
-                item(
-                  "Search Client",
-                  hrefOf(
-                    withSearch(
-                      withoutAddClient(
-                        withoutSelection(url),
+                ul(
+                  [],
+                  [
+                    menuItem(
+                      `Add ${title}`,
+                      hrefOf(
+                        withAdd(
+                          section,
+                          withoutSelection(url),
+                        ),
                       ),
+                      activeAdd(section, model),
                     ),
-                  ),
-                  model.searching,
+                    menuItem(
+                      `Search ${title}`,
+                      hrefOf(
+                        withSearch(
+                          withoutSelection(url),
+                        ),
+                      ),
+                      model.search.open,
+                    ),
+                  ],
                 ),
               ],
             ),
           ],
-        ),
-      ],
+        },
+      ];
     },
-  ];
+  )(sectionOfUrl(url));
 };
 
-const clientFormColumn = (
+const clientFormFields = (
   model: Model,
-): ReadonlyArray<{
-  key: SoftStr;
-  title: SoftStr;
-  close: Option<SoftStr>;
-  body: ReadonlyArray<Html<Msg>>;
-}> =>
-  model.clientForm.open
-    ? [
+): ReadonlyArray<Flow<Msg>> => [
+  textInput<Msg>({
+    name: "name",
+    label: "Name",
+    value: model.clientForm.nameDraft,
+    placeholder: some("Client name"),
+    error: errorFor(model.clientForm.errors, "name"),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "clientNameInput",
+      value,
+    }),
+  }),
+  selectInput<Msg>({
+    name: "status",
+    label: "Status",
+    value: model.clientForm.statusDraft,
+    options: clientStatuses.map((status) => ({
+      value: status,
+      label: status,
+    })),
+    error: errorFor(
+      model.clientForm.errors,
+      "status",
+    ),
+    disabled: false,
+    onChange: (value: SoftStr) => ({
+      kind: "clientStatusInput",
+      value,
+    }),
+  }),
+  textInput<Msg>({
+    name: "since",
+    label: "Since",
+    value: model.clientForm.sinceDraft,
+    placeholder: some("2026"),
+    error: errorFor(model.clientForm.errors, "since"),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "clientSinceInput",
+      value,
+    }),
+  }),
+  textInput<Msg>({
+    name: "contact",
+    label: "Contact",
+    value: model.clientForm.contactDraft,
+    placeholder: some("Name, department"),
+    error: errorFor(
+      model.clientForm.errors,
+      "contact",
+    ),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "clientContactInput",
+      value,
+    }),
+  }),
+  textArea<Msg>({
+    name: "notes",
+    label: "Notes",
+    value: model.clientForm.notesDraft,
+    placeholder: some("Optional notes"),
+    error: errorFor(model.clientForm.errors, "notes"),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "clientNotesInput",
+      value,
+    }),
+  }),
+];
+
+const projectFormFields = (
+  model: Model,
+): ReadonlyArray<Flow<Msg>> => [
+  textInput<Msg>({
+    name: "name",
+    label: "Name",
+    value: model.projectForm.nameDraft,
+    placeholder: some("Project name"),
+    error: errorFor(model.projectForm.errors, "name"),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "projectNameInput",
+      value,
+    }),
+  }),
+  textInput<Msg>({
+    name: "client",
+    label: "Client",
+    value: model.projectForm.clientDraft,
+    placeholder: some("Client name"),
+    error: errorFor(
+      model.projectForm.errors,
+      "client",
+    ),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "projectClientInput",
+      value,
+    }),
+  }),
+  selectInput<Msg>({
+    name: "contract",
+    label: "Contract",
+    value: model.projectForm.contractDraft,
+    options: projectContracts.map((contract) => ({
+      value: contract,
+      label: contract,
+    })),
+    error: errorFor(
+      model.projectForm.errors,
+      "contract",
+    ),
+    disabled: false,
+    onChange: (value: SoftStr) => ({
+      kind: "projectContractInput",
+      value,
+    }),
+  }),
+  selectInput<Msg>({
+    name: "status",
+    label: "Status",
+    value: model.projectForm.statusDraft,
+    options: projectStatuses.map((status) => ({
+      value: status,
+      label: status,
+    })),
+    error: errorFor(
+      model.projectForm.errors,
+      "status",
+    ),
+    disabled: false,
+    onChange: (value: SoftStr) => ({
+      kind: "projectStatusInput",
+      value,
+    }),
+  }),
+  textInput<Msg>({
+    name: "period",
+    label: "Period",
+    value: model.projectForm.periodDraft,
+    placeholder: some("2026-04 - 2026-09"),
+    error: errorFor(
+      model.projectForm.errors,
+      "period",
+    ),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "projectPeriodInput",
+      value,
+    }),
+  }),
+  textInput<Msg>({
+    name: "budget",
+    label: "Budget",
+    value: model.projectForm.budgetDraft,
+    placeholder: some("¥8.4M"),
+    error: errorFor(
+      model.projectForm.errors,
+      "budget",
+    ),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "projectBudgetInput",
+      value,
+    }),
+  }),
+  textInput<Msg>({
+    name: "lead",
+    label: "Lead",
+    value: model.projectForm.leadDraft,
+    placeholder: some("Aoki"),
+    error: errorFor(model.projectForm.errors, "lead"),
+    disabled: false,
+    onInput: (value: SoftStr) => ({
+      kind: "projectLeadInput",
+      value,
+    }),
+  }),
+];
+
+const formFields = (
+  section: SearchableSection,
+  model: Model,
+): ReadonlyArray<Flow<Msg>> => {
+  switch (section) {
+    case "clients":
+      return clientFormFields(model);
+    case "projects":
+      return projectFormFields(model);
+  }
+};
+
+const formSubmit = (
+  section: SearchableSection,
+): Msg => {
+  switch (section) {
+    case "clients":
+      return { kind: "clientFormSubmit" };
+    case "projects":
+      return { kind: "projectFormSubmit" };
+  }
+};
+
+const addFormColumn = (
+  model: Model,
+): ReadonlyArray<AppColumn> => {
+  const url = currentUrl(model);
+  return matchOption<
+    SearchableSection,
+    ReadonlyArray<AppColumn>
+  >(
+    () => [],
+    (section: SearchableSection) => {
+      if (!activeAdd(section, model)) {
+        return [];
+      }
+      const title = titleOfSection(section);
+      return [
         {
-          key: "add-client",
-          title: "Add Client",
+          key: `add-${singularOf(section)}`,
+          title: `Add ${title}`,
           close: some(
             hrefOf(
               withSearch(
-                withoutAddClient(
-                  withoutSelection(
-                    scheduled.toUrl(
-                      model.scheduled,
-                    ),
-                  ),
-                ),
+                withoutSelection(url),
               ),
             ),
           ),
           body: [
             formView<Msg>({
-              fields: [
-                textInput<Msg>({
-                  name: "name",
-                  label: "Name",
-                  value: model.clientForm.nameDraft,
-                  placeholder: some("Client name"),
-                  error: errorFor(
-                    model.clientForm.errors,
-                    "name",
-                  ),
-                  disabled: false,
-                  onInput: (value: SoftStr) => ({
-                    kind: "clientNameInput",
-                    value,
-                  }),
-                }),
-                selectInput<Msg>({
-                  name: "status",
-                  label: "Status",
-                  value: model.clientForm.statusDraft,
-                  options: [
-                    {
-                      value: "Prospect",
-                      label: "Prospect",
-                    },
-                    {
-                      value: "Active",
-                      label: "Active",
-                    },
-                    {
-                      value: "Prime",
-                      label: "Prime",
-                    },
-                  ],
-                  error: errorFor(
-                    model.clientForm.errors,
-                    "status",
-                  ),
-                  disabled: false,
-                  onChange: (value: SoftStr) => ({
-                    kind: "clientStatusInput",
-                    value,
-                  }),
-                }),
-                textInput<Msg>({
-                  name: "since",
-                  label: "Since",
-                  value: model.clientForm.sinceDraft,
-                  placeholder: some("2026"),
-                  error: errorFor(
-                    model.clientForm.errors,
-                    "since",
-                  ),
-                  disabled: false,
-                  onInput: (value: SoftStr) => ({
-                    kind: "clientSinceInput",
-                    value,
-                  }),
-                }),
-                textInput<Msg>({
-                  name: "contact",
-                  label: "Contact",
-                  value:
-                    model.clientForm.contactDraft,
-                  placeholder: some(
-                    "Name, department",
-                  ),
-                  error: errorFor(
-                    model.clientForm.errors,
-                    "contact",
-                  ),
-                  disabled: false,
-                  onInput: (value: SoftStr) => ({
-                    kind: "clientContactInput",
-                    value,
-                  }),
-                }),
-                textArea<Msg>({
-                  name: "notes",
-                  label: "Notes",
-                  value: model.clientForm.notesDraft,
-                  placeholder: some("Optional notes"),
-                  error: errorFor(
-                    model.clientForm.errors,
-                    "notes",
-                  ),
-                  disabled: false,
-                  onInput: (value: SoftStr) => ({
-                    kind: "clientNotesInput",
-                    value,
-                  }),
-                }),
-              ],
-              submitLabel: "Register client",
+              fields: formFields(section, model),
+              submitLabel: `Register ${singularOf(
+                section,
+              )}`,
               submitting: false,
-              onSubmit: { kind: "clientFormSubmit" },
+              onSubmit: formSubmit(section),
             }),
             slot(
               [attr("class", "pm-actions")],
@@ -911,11 +1394,9 @@ const clientFormColumn = (
                     href(
                       hrefOf(
                         withSearch(
-                          withoutAddClient(
-                            withoutSelection(
-                              scheduled.toUrl(
-                                model.scheduled,
-                              ),
+                          withoutSelection(
+                            scheduled.toUrl(
+                              model.scheduled,
                             ),
                           ),
                         ),
@@ -930,8 +1411,238 @@ const clientFormColumn = (
             ),
           ],
         },
-      ]
-    : [];
+      ];
+    },
+  )(sectionOfUrl(url));
+};
+
+const searchStatusOptions = (
+  section: SearchableSection,
+) => [
+  { value: "Any", label: "Any" },
+  ...statusesOf(section).map((status) => ({
+    value: status,
+    label: status,
+  })),
+];
+
+const searchConditionColumn = (
+  model: Model,
+): ReadonlyArray<AppColumn> => {
+  const url = currentUrl(model);
+  return matchOption<
+    SearchableSection,
+    ReadonlyArray<AppColumn>
+  >(
+    () => [],
+    (section: SearchableSection) =>
+      model.search.open && !hasSelection(url)
+        ? [
+            {
+              key: `${section}-search-condition`,
+              title: "Search Condition",
+              close: some(
+                hrefOf(withoutAppParams(url)),
+              ),
+              body: [
+                slot(
+                  [
+                    attr(
+                      "class",
+                      "bo-search-condition",
+                    ),
+                  ],
+                  [
+                    formView<Msg>({
+                      fields: [
+                        textInput<Msg>({
+                          name: "keyword",
+                          label: "Keyword",
+                          value:
+                            model.search
+                              .keywordDraft,
+                          placeholder:
+                            some("Keyword"),
+                          error: none(),
+                          disabled: false,
+                          onInput: (
+                            value: SoftStr,
+                          ) => ({
+                            kind:
+                              "searchKeywordInput",
+                            value,
+                          }),
+                        }),
+                        selectInput<Msg>({
+                          name: "status",
+                          label: "Status",
+                          value:
+                            model.search
+                              .statusDraft,
+                          options:
+                            searchStatusOptions(
+                              section,
+                            ),
+                          error: none(),
+                          disabled: false,
+                          onChange: (
+                            value: SoftStr,
+                          ) => ({
+                            kind:
+                              "searchStatusInput",
+                            value,
+                          }),
+                        }),
+                      ],
+                      submitLabel: "Search",
+                      submitting: false,
+                      onSubmit: {
+                        kind: "searchFormSubmit",
+                      },
+                    }),
+                  ],
+                ),
+              ],
+            },
+          ]
+        : [],
+  )(sectionOfUrl(url));
+};
+
+type SearchResult = Readonly<{
+  id: SoftStr;
+  label: SoftStr;
+  status: SoftStr;
+  secondary: SoftStr;
+}>;
+
+const searchRows = (
+  section: SearchableSection,
+): ReadonlyArray<SearchResult> => {
+  switch (section) {
+    case "clients":
+      return clients.map((client: Client) => ({
+        id: client.id,
+        label: client.name,
+        status: client.status,
+        secondary: `${client.status} · ${client.contact}`,
+      }));
+    case "projects":
+      return projects.map((project: Project) => ({
+        id: project.id,
+        label: project.name,
+        status: project.status,
+        secondary: `${project.status} · ${project.client}`,
+      }));
+  }
+};
+
+const filteredResults = (
+  section: SearchableSection,
+  form: SearchForm,
+): ReadonlyArray<SearchResult> => {
+  const keyword = form.keyword
+    .trim()
+    .toLowerCase();
+  return searchRows(section).filter(
+    (row: SearchResult) =>
+      (keyword === "" ||
+        row.label
+          .toLowerCase()
+          .includes(keyword)) &&
+      (form.status === "Any" ||
+        row.status === form.status),
+  );
+};
+
+const resultsList = (
+  rows: ReadonlyArray<SearchResult>,
+  url: Url,
+): Html<Msg> =>
+  ul(
+    [attr("class", "pm-list")],
+    rows.map((row: SearchResult) =>
+      li(
+        [attr("class", "pm-list-item")],
+        [
+          a(
+            [
+              href(resultHref(url, row.id)),
+              attr("class", "pm-row-link"),
+              ...matchOption<
+                SoftStr,
+                ReadonlyArray<
+                  ReturnType<typeof attr>
+                >
+              >(
+                () => [],
+                (id: SoftStr) =>
+                  id === row.id
+                    ? [attr("aria-current", "page")]
+                    : [],
+              )(selectedId(url)),
+            ],
+            [
+              span(
+                [attr("class", "bo-result-name")],
+                [text(row.label)],
+              ),
+              span(
+                [attr("class", "bo-result-meta")],
+                [text(row.secondary)],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+
+const searchResultsColumn = (
+  model: Model,
+): ReadonlyArray<AppColumn> => {
+  const url = currentUrl(model);
+  return matchOption<
+    SearchableSection,
+    ReadonlyArray<AppColumn>
+  >(
+    () => [],
+    (section: SearchableSection) =>
+      model.search.open && model.search.submitted
+        ? [
+            {
+              key: `${section}-search-results`,
+              title: "Results",
+              close: some(
+                hrefOf(withoutSelection(url)),
+              ),
+              body: [
+                slot(
+                  [attr("class", "bo-results")],
+                  [
+                    resultsList(
+                      filteredResults(
+                        section,
+                        model.search,
+                      ),
+                      url,
+                    ),
+                  ],
+                ),
+              ],
+            },
+          ]
+        : [],
+  )(sectionOfUrl(url));
+};
+
+const appColumns = (
+  model: Model,
+): ReadonlyArray<AppColumn> => [
+  ...addFormColumn(model),
+  ...searchConditionColumn(model),
+  ...searchResultsColumn(model),
+];
 
 export const makeApp = (
   initial: Scheme,
@@ -947,9 +1658,12 @@ export const makeApp = (
         scheme: initial,
         scheduled: scheduledModel,
         clientForm: emptyClientForm(
-          isAddClientUrl(url),
+          isAddUrl("clients", url),
         ),
-        searching: isSearchUrl(url),
+        projectForm: emptyProjectForm(
+          isAddUrl("projects", url),
+        ),
+        search: searchFormFromUrl(url),
       },
       mapSchedulerCmd(cmd),
     ];
@@ -985,9 +1699,12 @@ export const makeApp = (
             ...model,
             scheduled: next,
             clientForm: emptyClientForm(
-              isAddClientUrl(msg.url),
+              isAddUrl("clients", msg.url),
             ),
-            searching: isSearchUrl(msg.url),
+            projectForm: emptyProjectForm(
+              isAddUrl("projects", msg.url),
+            ),
+            search: searchFormFromUrl(msg.url),
           },
           mapSchedulerCmd(cmd),
         ];
@@ -1076,11 +1793,178 @@ export const makeApp = (
                 ...model,
                 scheduled: next,
                 clientForm: emptyClientForm(false),
+                projectForm:
+                  emptyProjectForm(false),
+                search: emptySearchForm(
+                  false,
+                  false,
+                  "",
+                  "Any",
+                ),
               },
               cmd,
             ];
           },
         )(parseClientForm(model.clientForm));
+      case "projectNameInput":
+        return [
+          {
+            ...model,
+            projectForm: updateProjectForm(
+              model.projectForm,
+              { nameDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "projectClientInput":
+        return [
+          {
+            ...model,
+            projectForm: updateProjectForm(
+              model.projectForm,
+              { clientDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "projectContractInput":
+        return [
+          {
+            ...model,
+            projectForm: updateProjectForm(
+              model.projectForm,
+              { contractDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "projectStatusInput":
+        return [
+          {
+            ...model,
+            projectForm: updateProjectForm(
+              model.projectForm,
+              { statusDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "projectPeriodInput":
+        return [
+          {
+            ...model,
+            projectForm: updateProjectForm(
+              model.projectForm,
+              { periodDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "projectBudgetInput":
+        return [
+          {
+            ...model,
+            projectForm: updateProjectForm(
+              model.projectForm,
+              { budgetDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "projectLeadInput":
+        return [
+          {
+            ...model,
+            projectForm: updateProjectForm(
+              model.projectForm,
+              { leadDraft: msg.value },
+            ),
+          },
+          cmdNone(),
+        ];
+      case "projectFormSubmit":
+        return matchResult<
+          Readonly<Record<string, Datum>>,
+          FormErrors,
+          readonly [Model, Cmd<Msg>]
+        >(
+          (errors: FormErrors) => [
+            {
+              ...model,
+              projectForm: updateProjectForm(
+                model.projectForm,
+                { errors },
+              ),
+            },
+            cmdNone(),
+          ],
+          (payload) => {
+            const project = makeProject(payload);
+            projects = [...projects, project];
+            const [next, cmd] =
+              selectCreatedProject(
+                model.scheduled,
+                project.id,
+              );
+            return [
+              {
+                ...model,
+                scheduled: next,
+                clientForm: emptyClientForm(false),
+                projectForm:
+                  emptyProjectForm(false),
+                search: emptySearchForm(
+                  false,
+                  false,
+                  "",
+                  "Any",
+                ),
+              },
+              cmd,
+            ];
+          },
+        )(parseProjectForm(model.projectForm));
+      case "searchKeywordInput":
+        return [
+          {
+            ...model,
+            search: {
+              ...model.search,
+              keywordDraft: msg.value,
+              submitted: false,
+            },
+          },
+          cmdNone(),
+        ];
+      case "searchStatusInput":
+        return [
+          {
+            ...model,
+            search: {
+              ...model.search,
+              statusDraft: msg.value,
+              submitted: false,
+            },
+          },
+          cmdNone(),
+        ];
+      case "searchFormSubmit":
+        return [
+          {
+            ...model,
+            clientForm: emptyClientForm(false),
+            projectForm: emptyProjectForm(false),
+            search: {
+              ...model.search,
+              open: true,
+              submitted: true,
+              keyword: model.search.keywordDraft,
+              status: model.search.statusDraft,
+            },
+          },
+          cmdNone(),
+        ];
     }
   },
   view: (
@@ -1088,20 +1972,31 @@ export const makeApp = (
   ): Html<Msg> => {
     const scene = scheduled.scene(model.scheduled);
     const params = new URLSearchParams(
-      scheduled.toUrl(model.scheduled).search,
+      currentUrl(model).search,
     );
-    const inClients = params.get("c") === "clients";
-    const hasSelection = params.get("p") !== null;
-    // Only the Clients section hides its list until Search
-    // Client (or a selection). Every other section shows
-    // its list normally.
-    const hideList =
-      inClients &&
-      !model.searching &&
-      !hasSelection;
+    const inSearchable = matchOption<
+      SearchableSection,
+      boolean
+    >(
+      () => false,
+      () => true,
+    )(
+      matchOption<
+        SoftStr,
+        Option<SearchableSection>
+      >(
+        () => none(),
+        searchableSectionOf,
+      )(fromNullable(params.get("c"))),
+    );
+    // Searchable sections hide the scheduler's native
+    // list; the app-owned submenu/search/results columns
+    // are the section's visible navigation surface.
+    const hideList = inSearchable;
     const rootClass =
       "bo-root" +
-      (model.clientForm.open
+      (model.clientForm.open ||
+      model.projectForm.open
         ? " bo-adding"
         : "") +
       (hideList ? " bo-hidelist" : "");
@@ -1134,8 +2029,10 @@ export const makeApp = (
               msg,
             }),
             omitBreadcrumb: true,
-            afterMenu: clientsSubMenu(model),
-            extraColumns: clientFormColumn(model),
+            afterMenu: [
+              ...sectionSubMenu(model),
+              ...appColumns(model),
+            ],
           },
         ),
       ],
@@ -1146,12 +2043,7 @@ export const makeApp = (
     url,
   }),
   toUrl: (model: Model): Url => {
-    const base = scheduled.toUrl(model.scheduled);
-    return model.clientForm.open
-      ? withAddClient(base)
-      : model.searching
-        ? withSearch(base)
-        : base;
+    return currentUrl(model);
   },
 });
 

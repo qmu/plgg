@@ -122,6 +122,14 @@ const truncateHref = (
     query: "",
   });
 
+/** The href returning from an opened root list to menu-only. */
+const menuOnlyHref = (model: Model): SoftStr =>
+  hrefFor(model.base, {
+    root: none(),
+    path: [],
+    query: "",
+  });
+
 /** Builds a `ListLevel` for a collection at a flow depth. */
 const buildListLevel = (
   model: Model,
@@ -147,7 +155,7 @@ const buildListLevel = (
     title: collection.title,
     back:
       index === 0
-        ? none()
+        ? some(menuOnlyHref(model))
         : some(truncateHref(model, index - 1)),
     query:
       isActive

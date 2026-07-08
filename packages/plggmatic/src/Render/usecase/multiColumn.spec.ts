@@ -124,6 +124,11 @@ test("opening a collection adds a complementary list column", () => {
   return all([
     check(html.includes("<aside"), toBe(true)),
     check(html.includes("Alpha"), toBe(true)),
+    check(html.includes("pm-close"), toBe(true)),
+    check(
+      html.includes('href="/app"'),
+      toBe(true),
+    ),
     // the list column's query box is present
     check(
       html.includes("pm-query"),

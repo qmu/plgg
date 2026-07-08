@@ -416,6 +416,25 @@ test("a menu entry is marked active once opened", () => {
   );
 });
 
+test("a top-level list scene can close back to menu-only", () => {
+  const m1 = step(openMenu("sections"), m0);
+  const listLvl = s.scene(m1).levels[1];
+  return check(
+    listLvl === undefined
+      ? ""
+      : match(listLvl)(
+          [menuLevel$(), () => ""],
+          [
+            listLevel$(),
+            ({ content }) =>
+              getOr("")(content.back),
+          ],
+          [detailLevel$(), () => ""],
+        ),
+    toBe("/app"),
+  );
+});
+
 test("init from a URL pre-drills the flow position", () => {
   const [m] = s.init(
     makeUrl("/app", "?c=sections&p=a"),
