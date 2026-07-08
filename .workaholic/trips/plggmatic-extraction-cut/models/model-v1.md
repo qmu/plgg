@@ -260,4 +260,7 @@ package's public signature.
 
 ## Review Notes
 
-_(reviewers add notes here)_
+- **Superseded by `models/model-v2.md`.** Both reviewers requested revision on
+  package count and `--pm` ownership; accepted (see
+  `reviews/response-architect-to-reviewers.md`). v2 adopts one `plgg-ui` package
+  with a `plgg-ui/style` subpath and the parameterized-`Theme` `--pm` resolution.
