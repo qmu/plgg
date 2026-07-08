@@ -10,6 +10,7 @@ import {
   applyScheme,
   metricCss,
   schemeCss,
+  pragmaticTheme,
 } from "plggmatic/style";
 import { demoCss } from "./demoStyles.ts";
 import { makeProgram } from "./demo2/colorSchemeDemo.ts";
@@ -39,7 +40,7 @@ body{margin:0;font-family:system-ui,sans-serif;line-height:1.5;background:var(--
 
 const style = document.createElement("style");
 style.textContent =
-  metricCss + schemeCss + demoCss + pageCss;
+  metricCss(pragmaticTheme) + schemeCss(pragmaticTheme) + demoCss + pageCss;
 document.head.appendChild(style);
 
 const initial = decideScheme(

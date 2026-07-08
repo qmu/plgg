@@ -1,7 +1,7 @@
 import { type SoftStr, box } from "plgg";
 import { type Scheme } from "plgg-ui/Style/model/scheme";
 import { type HexColor } from "plgg-ui/Style/model/hexColor";
-import { cssPrefix } from "plgg-ui/Meta/model/identity";
+import { type Theme } from "plgg-ui/Style/model/theme";
 
 /**
  * The closed syntax-highlight vocabulary — a SIBLING of the
@@ -137,5 +137,7 @@ export const syntaxHex = (
  * {@link cssPrefix}; the `code-` segment separates syntax
  * hues from the `--pm-<color>` token namespace.
  */
-export const syntaxVar = (k: SyntaxKind): SoftStr =>
-  `var(--${cssPrefix}-code-${k})`;
+export const syntaxVar =
+  (theme: Theme) =>
+  (k: SyntaxKind): SoftStr =>
+    `var(--${theme.prefix}-code-${k})`;

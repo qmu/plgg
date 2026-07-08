@@ -26,6 +26,7 @@ import {
   textColor,
   border,
   colorVar,
+  defaultTheme,
 } from "plgg-ui/Style";
 import {
   style_,
@@ -37,6 +38,12 @@ import {
   focusRing,
   hoverDim,
 } from "plgg-ui/Component/model/interaction";
+
+// `themeToggleCss` bakes its chrome at module load, so it
+// binds `colorVar` to the default theme (the SSG toggle
+// ships the monochrome `--pm-*` namespace); a consumer's
+// scheme still resolves the values at paint time.
+const cvar = colorVar(defaultTheme);
 
 // The oracle's sun (8-ray) and crescent-moon paths,
 // single `currentColor` fills, ported from plggpress's
@@ -198,15 +205,15 @@ export const themeToggleCss: SoftStr =
   `.${themeToggleClass}{display:inline-flex;` +
   `align-items:center;justify-content:center;` +
   `width:38px;height:38px;border-radius:50%;` +
-  `border:1px solid ${colorVar("border")};` +
-  `background:${colorVar("surface")};` +
-  `color:${colorVar("text")};padding:0;` +
+  `border:1px solid ${cvar("border")};` +
+  `background:${cvar("surface")};` +
+  `color:${cvar("text")};padding:0;` +
   `cursor:pointer;transition:background-color ` +
   `0.15s,border-color 0.15s}` +
   `.${themeToggleClass}:hover{border-color:` +
-  `${colorVar("primary-base")}}` +
+  `${cvar("primary-base")}}` +
   `.${themeToggleClass}:focus-visible{outline:2px ` +
-  `solid ${colorVar("primary-base")};` +
+  `solid ${cvar("primary-base")};` +
   `outline-offset:2px}` +
   `.${SUN_CLASS},.${MOON_CLASS}{width:18px;` +
   `height:18px;display:block}` +

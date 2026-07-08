@@ -11,3 +11,11 @@
  * `Theme` contract layered over this surface.
  */
 export * from "plgg-ui/style";
+// The Pragmatic brand substance plggmatic OWNS on top of the
+// re-exported plgg-ui engine: the branded default `Theme`
+// and the palette-override API (ticket A3, the empty-shell
+// answer).
+export {
+  pragmaticTheme,
+  pragmaticThemeWithPalette,
+} from "plggmatic/brand";

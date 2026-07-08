@@ -17,6 +17,18 @@ import {
   type ZBand,
   zValue,
 } from "plgg-ui/Style/model/zIndex";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
+
+// The color/metric atoms are the DEFAULT-bound side of the
+// parameterized `colorVar`/`metricVar`: they emit
+// `var(--pm-*)` references (namespace from `defaultTheme`),
+// so their call sites — every component — stay
+// `bg(c)`/`measure` and unchanged. The values these
+// properties resolve to are supplied by the theme a
+// consumer passes to `schemeCss`/`metricCss` at its
+// composition root, not baked in here.
+const cvar = colorVar(defaultTheme);
+const mvar = metricVar(defaultTheme);
 
 /**
  * plggmatic's color atoms. They mirror plgg-view's
@@ -34,11 +46,11 @@ import {
 
 /** Background fill from a themed color role. */
 export const bg = (c: Color): Styles =>
-  decl("background-color", colorVar(c));
+  decl("background-color", cvar(c));
 
 /** Text (foreground) color from a themed role. */
 export const color = (c: Color): Styles =>
-  decl("color", colorVar(c));
+  decl("color", cvar(c));
 
 /**
  * Text color — the explicit spelling for the common
@@ -56,12 +68,12 @@ export const textColor = color;
 export const border: Styles = [
   ...decl("border-width", "1px"),
   ...decl("border-style", "solid"),
-  ...decl("border-color", colorVar("border")),
+  ...decl("border-color", cvar("border")),
 ];
 
 /** Border color from a themed role. */
 export const borderColor = (c: Color): Styles =>
-  decl("border-color", colorVar(c));
+  decl("border-color", cvar(c));
 
 /**
  * A 2px focus outline in a themed role — the visible,
@@ -70,7 +82,7 @@ export const borderColor = (c: Color): Styles =>
  * never conveyed by color alone at the component layer).
  */
 export const outline = (c: Color): Styles =>
-  decl("outline", `2px solid ${colorVar(c)}`);
+  decl("outline", `2px solid ${cvar(c)}`);
 
 /**
  * A fixed column track: the whole flex shorthand plus
@@ -149,5 +161,5 @@ export const typeStyle = (
  */
 export const measure: Styles = decl(
   "max-width",
-  metricVar("measure"),
+  mvar("measure"),
 );

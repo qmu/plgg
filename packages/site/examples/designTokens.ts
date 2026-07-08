@@ -17,6 +17,7 @@ import {
   metricVar,
   metricCss,
   reducedMotionCss,
+  pragmaticTheme,
 } from "plggmatic/style";
 import { div, text } from "plgg-view";
 
@@ -57,7 +58,7 @@ export const scrim = div(
 // `metricCss`; the reduced-motion block is framework-owned
 // and composed in rather than re-authored.
 export const responsiveCss: string =
-  metricCss +
-  `@media ${minWidth("lg")}{.app{max-width:${metricVar("shell-max")}}}` +
+  metricCss(pragmaticTheme) +
+  `@media ${minWidth("lg")}{.app{max-width:${metricVar(pragmaticTheme)("shell-max")}}}` +
   `@media ${maxWidth("sm")}{.app{padding:0}}` +
   reducedMotionCss;

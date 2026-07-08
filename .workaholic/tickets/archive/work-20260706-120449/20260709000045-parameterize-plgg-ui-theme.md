@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: refactoring
 layer: [Domain, UX]
 effort:
-commit_hash:
-category:
+commit_hash: e7c404fb
+category: Changed
 depends_on: [20260709000044-repoint-plggpress-onto-plgg-ui.md]
 mission:
 ---

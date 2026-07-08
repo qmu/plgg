@@ -14,6 +14,7 @@ import {
   schemeCssOf,
   asPalette,
   defaultPalette,
+  pragmaticTheme,
   contrastRatio,
   colorHex,
   appearanceInitScript,
@@ -37,7 +38,8 @@ export const card = div(
 
 // `:root{--pm-surface:…}html.dark{--pm-surface:…}` —
 // inject once into the document <style>.
-export const baseColorCss = schemeCss;
+export const baseColorCss =
+  schemeCss(pragmaticTheme);
 
 // Override the palette: validate an app's brand colors at
 // the boundary with `asPalette` (config-borne `unknown` →
@@ -46,7 +48,7 @@ export const baseColorCss = schemeCss;
 // path — never a silent hole. (Here we re-validate the
 // default itself for illustration.)
 export const brandColorCss = matchResult(
-  () => schemeCss,
+  () => schemeCss(pragmaticTheme),
   (palette: typeof defaultPalette) =>
     schemeCssOf(palette),
 )(asPalette(defaultPalette));

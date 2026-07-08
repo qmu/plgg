@@ -37,6 +37,8 @@ export {
   themeToggleCss,
 } from "plgg-ui/Component/usecase/themeToggle";
 export {
+  type Theme,
+  defaultTheme,
   type Color,
   type SemanticRole,
   type Neutral,

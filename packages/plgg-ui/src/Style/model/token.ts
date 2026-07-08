@@ -1,5 +1,8 @@
 import { type SoftStr } from "plgg";
-import { cssPrefix } from "plgg-ui/Meta/model/identity";
+// Type-only (erased): `Theme`'s `palette` field references
+// `Color` from this module, so the two reference each
+// other's types; there is no runtime edge back to `theme`.
+import { type Theme } from "plgg-ui/Style/model/theme";
 
 /**
  * The closed color vocabulary. Because it is a union (not
@@ -179,11 +182,17 @@ export const colors: ReadonlyArray<Color> = [
  */
 
 /**
- * The `var(--pm-<token>)` reference for a token — what
- * every color atom emits, so the value is resolved by the
- * active scheme's custom properties at paint time rather
- * than baked in. The `pm` namespace comes from
- * {@link cssPrefix}.
+ * The `var(--<prefix>-<token>)` reference for a token —
+ * what every color atom emits, so the value is resolved by
+ * the active scheme's custom properties at paint time
+ * rather than baked in. The namespace prefix comes from the
+ * supplied {@link Theme} (`pm` by default), so the emitted
+ * `:root` block and the atoms that reference it share one
+ * namespace. Curried `colorVar(theme)(c)` so a theme-bound
+ * emitter (or the default-bound atoms) fixes the prefix
+ * once.
  */
-export const colorVar = (c: Color): SoftStr =>
-  `var(--${cssPrefix}-${c})`;
+export const colorVar =
+  (theme: Theme) =>
+  (c: Color): SoftStr =>
+    `var(--${theme.prefix}-${c})`;

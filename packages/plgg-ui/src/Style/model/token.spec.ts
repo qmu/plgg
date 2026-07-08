@@ -12,13 +12,18 @@ import {
   semanticRoles,
   variants,
   neutrals,
-  colorVar,
+  colorVar as colorVarFor,
 } from "plgg-ui/Style/model/token";
 import {
   colorHex,
   hex,
 } from "plgg-ui/Style/model/palette";
 import { schemes } from "plgg-ui/Style/model/scheme";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
+
+// `colorVar(theme)(c)` under the default theme is exactly
+// the old `colorVar(c)` — `var(--pm-<token>)`.
+const colorVar = colorVarFor(defaultTheme);
 
 // A #rrggbb literal — the shape every palette value must
 // take so the scheme emitter produces valid CSS. `colorHex`

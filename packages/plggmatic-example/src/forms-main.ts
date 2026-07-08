@@ -7,6 +7,7 @@ import { sandbox } from "plgg-view/client";
 import {
   metricCss,
   schemeCss,
+  pragmaticTheme,
 } from "plggmatic/style";
 import { program } from "./forms/formsDemo.ts";
 import { demoCss } from "./demoStyles.ts";
@@ -27,7 +28,7 @@ body{margin:0;font-family:system-ui,sans-serif;line-height:1.5;background:var(--
 
 const style = document.createElement("style");
 style.textContent =
-  metricCss + schemeCss + pageCss + demoCss;
+  metricCss(pragmaticTheme) + schemeCss(pragmaticTheme) + pageCss + demoCss;
 document.head.appendChild(style);
 
 pipe(

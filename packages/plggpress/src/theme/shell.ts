@@ -24,6 +24,7 @@ import {
   metricCss,
   reducedMotionCss,
   syntaxCss,
+  defaultTheme,
 } from "plgg-ui/style";
 
 /**
@@ -38,12 +39,17 @@ import {
  * layout/prose sheet (D3/D16 cutover, roadmap tickets
  * 07 + 08).
  */
+// plggpress passes `defaultTheme` explicitly to the
+// value-carrying emitters at its composition root — the
+// scheme, metric, and syntax CSS for the monochrome `--pm-*`
+// design language. `reducedMotionCss`/`themeToggleCss` carry
+// no theme values (static / default-bound).
 const frameworkCss: SoftStr =
-  schemeCss +
-  metricCss +
+  schemeCss(defaultTheme) +
+  metricCss(defaultTheme) +
   reducedMotionCss +
   themeToggleCss +
-  syntaxCss;
+  syntaxCss(defaultTheme);
 
 /**
  * The page `<title>` text: the document's first H1

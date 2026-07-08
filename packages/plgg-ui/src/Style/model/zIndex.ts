@@ -30,7 +30,11 @@ export const zBands: ReadonlyArray<ZBand> = [
   "overlay",
 ];
 
-const Z: Record<ZBand, number> = {
+// The band→integer table. Exposed as `zBandTable` so a
+// `Theme` can carry it (`defaultTheme.zBands` is exactly
+// this); `zValue` reads it for the atom + the chrome media
+// blocks.
+export const zBandTable: Record<ZBand, number> = {
   content: 1,
   chrome: 30,
   backdrop: 40,
@@ -38,4 +42,5 @@ const Z: Record<ZBand, number> = {
 };
 
 /** A band's concrete stacking integer. */
-export const zValue = (b: ZBand): number => Z[b];
+export const zValue = (b: ZBand): number =>
+  zBandTable[b];

@@ -11,6 +11,7 @@ import {
   metricCss,
   schemeCss,
   chromeCss,
+  pragmaticTheme,
 } from "plggmatic/style";
 import { demoCss } from "./demoStyles.ts";
 import { app } from "./demo3/queryUrlDemo.ts";
@@ -36,9 +37,9 @@ body{margin:0;font-family:system-ui,sans-serif;line-height:1.6;background:var(--
 
 const style = document.createElement("style");
 style.textContent =
-  metricCss +
-  schemeCss +
-  chromeCss +
+  metricCss(pragmaticTheme) +
+  schemeCss(pragmaticTheme) +
+  chromeCss(pragmaticTheme) +
   demoCss +
   pageCss;
 document.head.appendChild(style);

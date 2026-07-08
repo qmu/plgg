@@ -7,7 +7,12 @@ import {
   not,
 } from "plgg-test";
 import { syntaxKinds } from "plgg-ui/Style/model/syntax";
-import { syntaxCss } from "plgg-ui/Style/usecase/syntaxCss";
+import { syntaxCss as syntaxCssFor } from "plgg-ui/Style/usecase/syntaxCss";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
+
+// The default theme reproduces the pre-parameterization
+// `--pm-code-*` output byte-for-byte.
+const syntaxCss = syntaxCssFor(defaultTheme);
 
 const css: string = syntaxCss;
 

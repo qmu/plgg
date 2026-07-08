@@ -4,7 +4,12 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { chromeCss } from "plgg-ui/Style/usecase/chromeCss";
+import { chromeCss as chromeCssFor } from "plgg-ui/Style/usecase/chromeCss";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
+
+// The default theme reproduces the pre-parameterization
+// chrome CSS byte-for-byte.
+const chromeCss = chromeCssFor(defaultTheme);
 
 test("the chrome CSS is escape-safe (survives an SSR escaper)", () =>
   all([

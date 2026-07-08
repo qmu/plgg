@@ -27,6 +27,7 @@ import {
   schemeCss,
   metricCss,
   reducedMotionCss,
+  defaultTheme,
 } from "plgg-ui/style";
 
 // A pre-rendered Markdown body fixture carrying one
@@ -147,8 +148,8 @@ test("the composed stylesheet is escape-safe (no <, >, & reach the SSR text node
   // mangled by the text escaper, so it must be absent from
   // the input — the byte-for-byte survival contract.
   const composed =
-    schemeCss +
-    metricCss +
+    schemeCss(defaultTheme) +
+    metricCss(defaultTheme) +
     reducedMotionCss +
     themeToggleCss +
     baseCss;

@@ -27,6 +27,15 @@ export {
   variants,
   colorVar,
 } from "plgg-ui/Style/model/token";
+// The parameterized design language: the closed `Theme`
+// contract + the neutral `defaultTheme` (today's monochrome
+// `--pm-*`). Emitters take a `Theme`; the atoms and the
+// `themeToggle*` chrome bind `colorVar`/`metricVar` to
+// `defaultTheme`.
+export {
+  type Theme,
+  defaultTheme,
+} from "plgg-ui/Style/model/theme";
 export {
   type Scheme,
   schemes,

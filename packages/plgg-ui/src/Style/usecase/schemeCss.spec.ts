@@ -5,7 +5,7 @@ import {
   toBe,
 } from "plgg-test";
 import {
-  schemeCss,
+  schemeCss as schemeCssFor,
   schemeCssOf,
 } from "plgg-ui/Style/usecase/schemeCss";
 import {
@@ -14,7 +14,13 @@ import {
 } from "plgg-ui/Style/model/palette";
 import { colors } from "plgg-ui/Style/model/token";
 import { schemes } from "plgg-ui/Style/model/scheme";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
 import { isOk } from "plgg";
+
+// The default theme reproduces the pre-parameterization
+// scheme CSS byte-for-byte; `schemeCssOf(palette)` stays
+// the palette-only override convenience.
+const schemeCss = schemeCssFor(defaultTheme);
 
 // The emitter maps over `colors`, so it emits every token
 // for every scheme with no per-token logic. These specs

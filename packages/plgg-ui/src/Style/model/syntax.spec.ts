@@ -10,8 +10,13 @@ import {
   type SyntaxKind,
   syntaxKinds,
   syntaxHex,
-  syntaxVar,
+  syntaxVar as syntaxVarFor,
 } from "plgg-ui/Style/model/syntax";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
+
+// `syntaxVar(theme)(k)` under the default theme is exactly
+// the old `syntaxVar(k)` — `var(--pm-code-<kind>)`.
+const syntaxVar = syntaxVarFor(defaultTheme);
 
 // Compile-time exhaustiveness pin on the SOURCE union: a
 // member added to SyntaxKind but missing from the array

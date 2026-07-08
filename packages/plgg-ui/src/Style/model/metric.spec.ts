@@ -8,8 +8,13 @@ import {
   type Metric,
   metrics,
   metricValue,
-  metricVar,
+  metricVar as metricVarFor,
 } from "plgg-ui/Style/model/metric";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
+
+// `metricVar(theme)(m)` under the default theme is exactly
+// the old `metricVar(m)` — `var(--pm-<metric>)`.
+const metricVar = metricVarFor(defaultTheme);
 
 const SEEN: Record<Metric, true> = {
   "shell-max": true,

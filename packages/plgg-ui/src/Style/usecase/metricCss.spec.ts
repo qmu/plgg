@@ -4,11 +4,17 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { metricCss } from "plgg-ui/Style/usecase/metricCss";
+import { metricCss as metricCssFor } from "plgg-ui/Style/usecase/metricCss";
 import {
   metrics,
   metricValue,
 } from "plgg-ui/Style/model/metric";
+import { defaultTheme } from "plgg-ui/Style/model/theme";
+
+// The default theme reproduces the pre-parameterization
+// `--pm-*` output byte-for-byte; asserting on it proves
+// `metricCss(theme)` unchanged the emitted CSS.
+const metricCss = metricCssFor(defaultTheme);
 
 const count = (
   hay: string,

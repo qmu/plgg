@@ -22,3 +22,9 @@ export {
   themeToggleClass,
   themeToggleCss,
 } from "plgg-ui/style";
+// The Pragmatic brand substance plggmatic owns (A3): the
+// branded default Theme + palette-override API.
+export {
+  pragmaticTheme,
+  pragmaticThemeWithPalette,
+} from "plggmatic/brand";

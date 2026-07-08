@@ -74,7 +74,7 @@ export const appCss: SoftStr =
   `.ex-root{min-height:100vh;}` +
   `.ex-brand{position:fixed;top:0.5rem;left:1rem;z-index:${sx.zValue("chrome")};font-weight:600;opacity:0.5;font-size:0.8rem;}` +
   `.pm-query{width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid var(--pm-border);border-radius:6px;background:var(--pm-surface);color:var(--pm-text);}` +
-  sx.metricCss +
-  sx.schemeCss +
-  sx.chromeCss +
+  sx.metricCss(sx.pragmaticTheme) +
+  sx.schemeCss(sx.pragmaticTheme) +
+  sx.chromeCss(sx.pragmaticTheme) +
   demoCss;

@@ -1,5 +1,8 @@
 import { type SoftStr } from "plgg";
-import { cssPrefix } from "plgg-ui/Meta/model/identity";
+// Type-only (erased): `Theme` and this module reference
+// each other's types; `defaultTheme` reads `metricTable`
+// at runtime, so only this direction is a value edge.
+import { type Theme } from "plgg-ui/Style/model/theme";
 
 /**
  * The shell-geometry metrics — the fixed dimensions of
@@ -34,8 +37,13 @@ export const metrics: ReadonlyArray<Metric> = [
 // centred shell cap), `sidebar` 256px (the nav column),
 // `measure` 48rem (the prose reading measure), `rail`
 // 48px (the chrome-rail thickness, reused as the
-// example's top-bar height).
-const METRIC: Record<Metric, SoftStr> = {
+// example's top-bar height). Exposed as `metricTable` so a
+// `Theme` can carry it (and an override can supply its
+// own); `defaultTheme.metrics` is exactly this.
+export const metricTable: Record<
+  Metric,
+  SoftStr
+> = {
   "shell-max": "1440px",
   sidebar: "256px",
   measure: "48rem",
@@ -45,14 +53,19 @@ const METRIC: Record<Metric, SoftStr> = {
 /** A metric's concrete length (build-time value). */
 export const metricValue = (
   m: Metric,
-): SoftStr => METRIC[m];
+): SoftStr => metricTable[m];
 
 /**
- * The `var(--pm-<metric>)` reference for a metric — the
- * runtime handle the shell CSS and the `measure` atom
+ * The `var(--<prefix>-<metric>)` reference for a metric —
+ * the runtime handle the shell CSS and the `measure` atom
  * emit, mirroring `colorVar`. Resolved by the metrics
- * `:root` block (see the metric CSS emitter). The `pm`
- * namespace comes from {@link cssPrefix}.
+ * `:root` block (see the metric CSS emitter). The prefix
+ * comes from the supplied {@link Theme} (`pm` by default),
+ * so a consumer that renames its custom-property namespace
+ * flows through here. Curried `metricVar(theme)(m)` so a
+ * theme-bound emitter fixes the namespace once.
  */
-export const metricVar = (m: Metric): SoftStr =>
-  `var(--${cssPrefix}-${m})`;
+export const metricVar =
+  (theme: Theme) =>
+  (m: Metric): SoftStr =>
+    `var(--${theme.prefix}-${m})`;

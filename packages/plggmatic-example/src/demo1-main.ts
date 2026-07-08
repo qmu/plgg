@@ -11,6 +11,7 @@ import {
   metricCss,
   schemeCss,
   chromeCss,
+  pragmaticTheme,
 } from "plggmatic/style";
 import { demoCss } from "./demoStyles.ts";
 import { demo1Css } from "./demo1/styles.ts";
@@ -28,9 +29,9 @@ import { makeApp } from "./demo1/bizMenuDemo.ts";
 
 const style = document.createElement("style");
 style.textContent =
-  metricCss +
-  schemeCss +
-  chromeCss +
+  metricCss(pragmaticTheme) +
+  schemeCss(pragmaticTheme) +
+  chromeCss(pragmaticTheme) +
   demoCss +
   demo1Css;
 document.head.appendChild(style);
