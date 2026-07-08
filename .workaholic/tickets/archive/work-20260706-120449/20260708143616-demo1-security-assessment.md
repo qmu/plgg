@@ -3,9 +3,9 @@ created_at: 2026-07-08T14:36:16+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 36a80888
+category: Added
 depends_on:
 mission:
 ---
@@ -85,3 +85,16 @@ No prior security ticket has ever targeted Demo 1; the only security work in his
 - Ticket 2 (`20260708143614-demo1-typed-url-state-codec.md`) types the href sink this ticket audits; cross-reference — a scheme-validation gap found here may be cheapest to close inside that codec (as a follow-up ticket, not in this diff).
 - The assessment scope is Demo 1 only, per the agreed gate; the wider plggmatic action surface (CSRF on `/act`, SSR settle loop) is out of scope — if the audit trips over a framework-level concern, record it in the report as out-of-scope-observed and file it separately.
 - The report is objective documentation: no "should be safe" language — every verdict cites the code (`packages/plgg-view/src/Html/usecase/escape.ts` and the demo1 call sites) or a passing assertion.
+
+## Final Report
+
+Development completed as planned. Assessment-only diff: a written report (`packages/plggmatic-example/docs/demo1-security-assessment.md`) and a new colocated spec (`packages/plggmatic-example/src/demo1/demo1Security.spec.ts`, 4 assertions). **Verdict: no findings** — no fix ticket filed. Demo 1 is client-side-rendered with no server/auth/authz/persistence surface; per-lens verdicts: defense-in-depth PASS (structural escaping), access-control/auth/admin-isolation = no such surface, data-sovereignty PASS (data only in URL + module memory). The four assertions pin: hostile record value escaped in a text position, hostile `kw` param escaped in an attribute position, the href sink neutralizing a `javascript:` scheme to `#`, and a hostile param round-tripping to `%3Cscript%3E`. Verified: `bizMenuDemo.spec.ts` byte-identical; diff is report + spec only; `scripts/tsc-plgg.sh` clean; `scripts/test-plgg.sh` green (483 + example 45); no escape hatches.
+
+### Discovered Insights
+
+- **Insight**: Demo 1's XSS safety is not the demo's own property — it rests entirely on `plgg-view`'s single render seam: `renderToString.ts:54-56` gates every attribute behind `isSafeAttrName` (drops `on*`) and wraps values in `escapeAttr(safeAttrValue(name, value))`, line 78 escapes all text, and `escape.ts` `safeUrl` neutralizes non-http(s)/mailto/tel schemes to `#`. The client DOM renderer shares the same `safeAttrValue` (`render.ts:208-210`).
+  **Context**: The demo has no `innerHTML`/raw-HTML seam, so it inherits safety by construction. A change to `plgg-view`'s escaping would invalidate this verdict — the report records that dependency so a future `plgg-view` change re-triggers the assessment.
+- **Insight**: The href sink is safe twice over — `resultHref` is always page-path-prefixed with `URLSearchParams`-encoded params (structurally cannot be `javascript:`), AND `safeUrl` would neutralize a hostile scheme at render anyway. Defense-in-depth, not a single guard.
+  **Context**: The `demo1Security.spec.ts` javascript:-scheme test deliberately forces a hostile `url.path` to prove the render-layer guard fires even if the structural guarantee were ever broken.
+- **Insight**: `resetStore()` (added in ticket 3) is what makes a store-mutating security test (`addClient(hostileRecord)`) safe to run in the shared-module test process — the test resets to seeds at both ends so it cannot leak the hostile record into the frozen behavioral spec.
+  **Context**: The `store.ts` reset affordance, noted as "not wired into the frozen spec," found its first consumer here.
