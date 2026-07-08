@@ -1,9 +1,9 @@
 ---
 instruction: "20260708195655"
 phase: planning
-step: respond-to-feedback
+step: decomposition
 iteration: 0
-updated_at: 2026-07-08T23:54:41+09:00
+updated_at: 2026-07-08T23:59:14+09:00
 ---
 
 # Trip Plan
@@ -58,4 +58,18 @@ pre-build developer pause (developer approves the cut before any build).
 
 - [x] planning/artifact-generation — Planner, Architect, Constructor v1 (lead-verified via commits)
 - [x] planning/one-turn-review — round-1 reviews committed (ff6620d5, f5208733, + constructor)
-- [ ] planning/respond-to-feedback — Architect→model-v2, Constructor→design-v2, Planner acceptance
+- [x] planning/respond-to-feedback — model-v2 (05b1a7c3), design-v2 (00f2e6b6), Planner ACCEPT (cc72e172)
+- [ ] planning/decomposition — Constructor writes refined tickets, then PAUSE for developer approval
+
+- **2026-07-09 (lead)** — **Consensus reached** (round 2, under the 3-round cap): both
+  Model-v1 revision requests accepted → `model-v2.md` (05b1a7c3); `design-v2.md`
+  (00f2e6b6) is the fixed decomposition basis; Planner ACCEPTED the resolution
+  (cc72e172, two-sided outcome met, no escalation). Plan is FIXED. Fixed sequence:
+  A1 (scaffold plgg-ui + verbatim git mv, byte-stable) → A2 (repoint plggpress onto
+  plgg-ui[/style], drop plggpress→plggmatic, plggmatic→thin facade) → A3
+  (parameterize typed Theme, defaultTheme in plgg-ui, plggmatic owns Theme
+  contract/brand) → B (init+populate ../plggmatic on PUBLISHED plgg-ui; npm publish
+  a surfaced prerequisite, never auto-performed; split ADR) → C (remove cluster,
+  keep plgg-ui, rewire scripts/gates); re-point 192518 onto plgg-ui after A1.
+  Per the developer's design-then-pause choice, the trip STOPS after Decomposition
+  for developer approval of the cut before any build.
