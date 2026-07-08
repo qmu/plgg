@@ -25,9 +25,7 @@ import {
   type SearchableSection,
   type Client,
   type Project,
-  allClients,
-  allProjects,
-} from "./store.ts";
+} from "./records.ts";
 import {
   type Model,
   type Msg,
@@ -153,10 +151,11 @@ export type SearchResult = Readonly<{
 
 export const searchRows = (
   section: SearchableSection,
+  model: Model,
 ): ReadonlyArray<SearchResult> => {
   switch (section) {
     case "clients":
-      return allClients().map(
+      return model.clients.map(
         (client: Client) => ({
           id: client.id,
           label: client.name,
@@ -165,7 +164,7 @@ export const searchRows = (
         }),
       );
     case "projects":
-      return allProjects().map(
+      return model.projects.map(
         (project: Project) => ({
           id: project.id,
           label: project.name,
@@ -179,11 +178,12 @@ export const searchRows = (
 export const filteredResults = (
   section: SearchableSection,
   form: SearchForm,
+  model: Model,
 ): ReadonlyArray<SearchResult> => {
   const keyword = form.keyword
     .trim()
     .toLowerCase();
-  return searchRows(section).filter(
+  return searchRows(section, model).filter(
     (row: SearchResult) =>
       (keyword === "" ||
         row.label
@@ -268,6 +268,7 @@ export const searchResultsColumn = (
                       filteredResults(
                         section,
                         model.search,
+                        model,
                       ),
                       url,
                     ),

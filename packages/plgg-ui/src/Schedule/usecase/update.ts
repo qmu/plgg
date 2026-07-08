@@ -27,6 +27,7 @@ import {
 import {
   sync$,
   async$,
+  dynamic$,
 } from "plgg-ui/Declare/model/Source";
 import { type Declaration } from "plgg-ui/Declare/model/Declaration";
 import {
@@ -109,6 +110,16 @@ const readInto = (
           ),
         ),
       ],
+    ],
+    // Dynamic: consumer-owned rows. The re-read PRESERVES
+    // the existing slot (the consumer set it from data its
+    // Model owns via `withRows`) rather than reading a
+    // fixed thunk — so a runtime-created record survives
+    // navigation without a module-global store, and
+    // `update` stays pure.
+    [
+      dynamic$(),
+      (): Step => [model, cmdNone()],
     ],
   );
 

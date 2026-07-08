@@ -26,6 +26,7 @@ import { row, field } from "plgg-ui/Declare/model/Row";
 import {
   sync,
   async,
+  dynamic,
 } from "plgg-ui/Declare/model/Source";
 import { query } from "plgg-ui/Declare/model/Query";
 import {
@@ -43,6 +44,7 @@ import {
   slotOf,
   loadedSlot$,
   loading$,
+  idle$,
 } from "plgg-ui/Schedule/model/Model";
 import {
   type SchedulerMsg,
@@ -481,4 +483,75 @@ test("a Failed message parks a failed slot the scene surfaces", () => {
         ),
     toBe(true),
   );
+});
+
+// --- dynamic (Model-driven) source: consumer-OWNED rows,
+// supplied via `withRows` and preserved across navigation,
+// so a consumer's `update` needs no module-global store
+// (ticket 20260708192518). An isolated fixture keeps the
+// shared `decl` tests above untouched.
+type Widget = Readonly<{
+  id: SoftStr;
+  label: SoftStr;
+}>;
+const dynDecl = declare({
+  title: "Dyn",
+  menu: menu([menuEntry("Widgets", "widgets")]),
+  collections: [
+    collection<Widget>({
+      id: "widgets",
+      title: "Widgets",
+      toRow: (w: Widget) => row(w.id, w.label),
+      source: dynamic<Widget>(),
+    }),
+  ],
+});
+const ds = schedule(dynDecl);
+const [dm0] = ds.init(makeUrl("/app", ""));
+
+test("a dynamic collection's slot is idle until the consumer supplies its rows", () =>
+  check(
+    match(slotOf(dm0, "widgets"))(
+      [idle$(), () => "idle"],
+      [loadedSlot$(), () => "loaded"],
+      [loading$(), () => "loading"],
+    ),
+    toBe("idle"),
+  ));
+
+test("withRows sets a dynamic slot and navigation PRESERVES it (Model-driven, no store)", () => {
+  const seeded = ds.withRows(dm0, "widgets", [
+    row("w1", "One"),
+    row("w2", "Two"),
+  ]);
+  // Navigate: opening the widgets menu re-reads the chain.
+  // The dynamic source must KEEP the consumer-set rows, not
+  // wipe them — the whole point of the variant.
+  const opened = step(
+    openMenu("widgets"),
+    seeded,
+  );
+  return all([
+    check(
+      match(slotOf(seeded, "widgets"))(
+        [
+          loadedSlot$(),
+          ({ content }) => content.length,
+        ],
+        [idle$(), () => -1],
+      ),
+      toBe(2),
+    ),
+    check(
+      match(slotOf(opened, "widgets"))(
+        [
+          loadedSlot$(),
+          ({ content }) => content.length,
+        ],
+        [loading$(), () => -1],
+        [idle$(), () => -2],
+      ),
+      toBe(2),
+    ),
+  ]);
 });

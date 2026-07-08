@@ -15,6 +15,7 @@ import {
   type TypedSource,
   sync$,
   async$,
+  dynamic$,
 } from "plgg-ui/Declare/model/Source";
 import { type Query } from "plgg-ui/Declare/model/Query";
 import { type Action } from "plgg-ui/Declare/model/Action";
@@ -67,6 +68,13 @@ const erase = <T>(
             ),
           ),
         ),
+    ],
+    // Dynamic carries no read — the consumer owns the rows
+    // (via `Scheduled.withRows`), so `toRow` is not applied
+    // here; the erased marker is identical to the typed one.
+    [
+      dynamic$(),
+      (): Source => box("Dynamic")(null),
     ],
   );
 

@@ -1,10 +1,15 @@
-import { getOr, pipe } from "plgg";
+import { type SoftStr, getOr, pipe } from "plgg";
 import {
   type Cmd,
   type Url,
 } from "plgg-view/client";
+import { type Row } from "plgg-ui/Declare/model/Row";
 import { type Declaration } from "plgg-ui/Declare/model/Declaration";
-import { type Model } from "plgg-ui/Schedule/model/Model";
+import {
+  type Model,
+  loadedSlot,
+  setSlot,
+} from "plgg-ui/Schedule/model/Model";
 import {
   type SchedulerMsg,
   urlChanged,
@@ -43,6 +48,22 @@ export type Scheduled = Readonly<{
     next: Model,
   ) => "push" | "replace" | "none";
   scene: (model: Model) => Scene;
+  /**
+   * Refresh a `Dynamic` collection's slot from rows the
+   * CONSUMER's Model owns — pure `(model, id, rows) →
+   * model`. A consumer holds its records in its own Model
+   * and calls this (at init, and after a create/update/
+   * delete) to project them into the scheduler slot; the
+   * `Dynamic` source then PRESERVES that slot across
+   * navigation. This is the seam that lets a consumer's
+   * `update` stay pure instead of a module-global store
+   * (ticket 20260708192518).
+   */
+  withRows: (
+    model: Model,
+    collectionId: SoftStr,
+    rows: ReadonlyArray<Row>,
+  ) => Model;
 }>;
 
 /** The URL-visible position of a model, as one string. */
@@ -83,5 +104,15 @@ export const schedule = (
         ? "push"
         : "replace",
     scene,
+    withRows: (
+      model: Model,
+      collectionId: SoftStr,
+      rows: ReadonlyArray<Row>,
+    ): Model =>
+      setSlot(
+        model,
+        collectionId,
+        loadedSlot(rows),
+      ),
   };
 };

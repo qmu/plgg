@@ -7,7 +7,7 @@ import {
   fromNullable,
 } from "plgg";
 import { type Url } from "plgg-view/client";
-import { type SearchableSection } from "./store.ts";
+import { type SearchableSection } from "./records.ts";
 import {
   singularOf,
   scheduled,

@@ -6,7 +6,11 @@ import {
   type FormErrors,
 } from "plggmatic";
 import { type Scheme } from "plggmatic/style";
-import { type SearchableSection } from "./store.ts";
+import {
+  type SearchableSection,
+  type Client,
+  type Project,
+} from "./records.ts";
 import {
   type SectionField,
   type FieldInputKind,
@@ -33,6 +37,15 @@ export type SearchForm = Readonly<{
 export type Model = Readonly<{
   scheme: Scheme;
   scheduled: ScheduledModel;
+  // The record collections + their id counters now live in
+  // the Model (was module-global `store.ts`): a `dynamic`
+  // scheduler source reads them via `withRows`, so
+  // `update()` is pure and two `makeApp()` instances share
+  // no created records (ticket 20260708192518).
+  clients: ReadonlyArray<Client>;
+  projects: ReadonlyArray<Project>;
+  clientCount: number;
+  projectCount: number;
   clientForm: SectionForm;
   projectForm: SectionForm;
   search: SearchForm;

@@ -17,7 +17,11 @@ import {
   themeToggle,
 } from "plggmatic";
 import { type Scheme } from "plggmatic/style";
-import { type SearchableSection } from "./store.ts";
+import {
+  type SearchableSection,
+  seedClients,
+  seedProjects,
+} from "./records.ts";
 import {
   type Model,
   type Msg,
@@ -35,6 +39,7 @@ import {
   applySchemeEffect,
   patchDraft,
   submitSection,
+  syncRecords,
 } from "./logic.ts";
 import { targetOf } from "./fields.ts";
 import { scheduled } from "./sections.ts";
@@ -61,10 +66,18 @@ export const makeApp = (
   init: (url: Url) => {
     const [scheduledModel, cmd] =
       scheduled.init(url);
+    // Seed the record collections + counters into the
+    // Model, then project them into the scheduler's dynamic
+    // slots. The dynamic source preserves those slots across
+    // every later navigation, so no module store is needed.
     return [
-      {
+      syncRecords({
         scheme: initial,
         scheduled: scheduledModel,
+        clients: seedClients,
+        projects: seedProjects,
+        clientCount: 0,
+        projectCount: 0,
         clientForm: emptySectionForm(
           "clients",
           isAddUrl("clients", url),
@@ -74,7 +87,7 @@ export const makeApp = (
           isAddUrl("projects", url),
         ),
         search: searchFormFromUrl(url),
-      },
+      }),
       mapSchedulerCmd(cmd),
     ];
   },

@@ -3,7 +3,7 @@ import {
   matchOption,
   fromNullable,
 } from "plgg";
-import { type SearchableSection } from "./store.ts";
+import { type SearchableSection } from "./records.ts";
 import {
   clientStatuses,
   projectStatuses,

@@ -151,7 +151,15 @@ const drive = (
 ): Promise<Result<ReadonlyArray<Row>, Error>> =>
   source.__tag === "Async"
     ? source.content(path)
-    : Promise.resolve(ok(source.content(path)));
+    : source.__tag === "Sync"
+      ? Promise.resolve(
+          ok(source.content(path)),
+        )
+      : // Dynamic sources carry no read (consumer-owned
+        // rows); the admin declaration uses none, so this
+        // arm is unreachable here — resolve empty for
+        // totality.
+        Promise.resolve(ok([]));
 
 const sourceOf = (
   db: Db,

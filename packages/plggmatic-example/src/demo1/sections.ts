@@ -4,6 +4,7 @@ import {
   type Declaration,
   collection,
   sync,
+  dynamic,
   query,
   makeRow,
   field,
@@ -16,9 +17,7 @@ import {
   type Project,
   type Client,
   type SearchableSection,
-  allProjects,
-  allClients,
-} from "./store.ts";
+} from "./records.ts";
 
 // --- The menu: all eight top-level sections ---
 export const MENU: ReadonlyArray<
@@ -35,9 +34,11 @@ export const MENU: ReadonlyArray<
 ];
 
 // --- Projects: the first real section (filterable + detail) ---
-// Record types + the mutable collections live in `store.ts`
-// (a scheduler-forced module-scoped seam); here we only
-// project them to rows and wire the scheduler source.
+// The record TYPES + immutable SEED live in `records.ts`;
+// the live records live in the app Model. `projectRow`
+// projects one to a scheduler Row — used both for the
+// detail view and to feed the `dynamic` source through
+// `scheduled.withRows`, so no module store is needed.
 export const projectRow = (p: Project) =>
   makeRow(p.id, p.name, [
     field("Client", p.client),
@@ -53,7 +54,7 @@ export const projectsCollection: Collection =
     id: "projects",
     title: "Projects",
     toRow: projectRow,
-    source: sync(() => allProjects()),
+    source: dynamic<Project>(),
     query: query("Filter projects"),
   });
 
@@ -86,7 +87,7 @@ export const clientsCollection: Collection =
     id: "clients",
     title: "Clients",
     toRow: clientRow,
-    source: sync(() => allClients()),
+    source: dynamic<Client>(),
     query: query("Filter clients"),
   });
 

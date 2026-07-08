@@ -37,10 +37,7 @@ import {
   type Client,
   type Project,
   slugId,
-  nextCount,
-  addClient,
-  addProject,
-} from "./store.ts";
+} from "./records.ts";
 import {
   type SectionField,
   fieldsOf,
@@ -52,7 +49,34 @@ import {
   emptySectionForm,
   emptySearchForm,
 } from "./model.ts";
-import { scheduled } from "./sections.ts";
+import {
+  scheduled,
+  projectRow,
+  clientRow,
+} from "./sections.ts";
+
+/**
+ * Project the Model's record collections into the
+ * scheduler's `dynamic` slots — the seam that lets records
+ * live in the Model instead of a module store. Called at
+ * init and after every create; the `dynamic` source then
+ * preserves the slot across navigation, so `update()` stays
+ * pure (ticket 20260708192518).
+ */
+export const syncRecords = (
+  model: Model,
+): Model => ({
+  ...model,
+  scheduled: scheduled.withRows(
+    scheduled.withRows(
+      model.scheduled,
+      "projects",
+      model.projects.map(projectRow),
+    ),
+    "clients",
+    model.clients.map(clientRow),
+  ),
+});
 
 export const flip = (s: Scheme): Scheme =>
   s === "light" ? "dark" : "light";
@@ -139,16 +163,14 @@ export const parseSectionForm = (
 export const commitRecord = (
   section: SearchableSection,
   payload: Readonly<Record<string, Datum>>,
-): SoftStr => {
+  model: Model,
+): readonly [Model, SoftStr] => {
   switch (section) {
     case "clients": {
       const name = `${payload.name}`;
+      const count = model.clientCount + 1;
       const client: Client = {
-        id: slugId(
-          name,
-          "client",
-          nextCount("clients"),
-        ),
+        id: slugId(name, "client", count),
         name,
         status: `${payload.status}`,
         since: `${payload.since}`,
@@ -156,17 +178,20 @@ export const commitRecord = (
         projects: "No active projects",
         notes: `${payload.notes}`,
       };
-      addClient(client);
-      return client.id;
+      return [
+        {
+          ...model,
+          clients: [...model.clients, client],
+          clientCount: count,
+        },
+        client.id,
+      ];
     }
     case "projects": {
       const name = `${payload.name}`;
+      const count = model.projectCount + 1;
       const project: Project = {
-        id: slugId(
-          name,
-          "project",
-          nextCount("projects"),
-        ),
+        id: slugId(name, "project", count),
         name,
         client: `${payload.client}`,
         contract: `${payload.contract}`,
@@ -175,8 +200,14 @@ export const commitRecord = (
         budget: `${payload.budget}`,
         lead: `${payload.lead}`,
       };
-      addProject(project);
-      return project.id;
+      return [
+        {
+          ...model,
+          projects: [...model.projects, project],
+          projectCount: count,
+        },
+        project.id,
+      ];
     }
   }
 };
@@ -261,15 +292,24 @@ export const submitSection = (
       cmdNone(),
     ],
     (payload) => {
-      const id = commitRecord(section, payload);
+      // Append the record to the Model (pure), project the
+      // updated collections into the scheduler slots, THEN
+      // navigate to the new record — the dynamic source
+      // preserves the synced slot across that navigation.
+      const [committed, id] = commitRecord(
+        section,
+        payload,
+        model,
+      );
+      const synced = syncRecords(committed);
       const [next, cmd] = selectCreated(
         section,
-        model.scheduled,
+        synced.scheduled,
         id,
       );
       return [
         {
-          ...model,
+          ...synced,
           scheduled: next,
           clientForm: emptySectionForm(
             "clients",

@@ -120,6 +120,7 @@ export {
   type Source,
   sync,
   async,
+  dynamic,
 } from "plgg-ui/Declare/model/Source";
 export {
   type Query,

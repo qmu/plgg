@@ -22,7 +22,7 @@ import {
   formView,
   errorFor,
 } from "plggmatic";
-import { type SearchableSection } from "./store.ts";
+import { type SearchableSection } from "./records.ts";
 import {
   type SectionField,
   fieldsOf,

@@ -24,11 +24,8 @@ import {
   type Model,
 } from "./bizMenuDemo.ts";
 import { resultHref } from "./url.ts";
-import {
-  type Client,
-  addClient,
-  resetStore,
-} from "./store.ts";
+import { type Client } from "./records.ts";
+import { syncRecords } from "./logic.ts";
 
 const scriptPayload = "<script>alert(1)</script>";
 
@@ -48,19 +45,22 @@ const search = (model: Model): string =>
     : app.toUrl(model).search;
 
 test("a hostile record value renders escaped in a text position", () => {
-  // Register a record whose name is markup, deep-link to
-  // its detail, render, then restore the store so the
-  // module-shared seed state is untouched for other specs.
-  resetStore();
-  addClient(hostileClient);
-  const [m] = app.init(
+  // Inject a record whose name is markup INTO THE MODEL
+  // (records live in the Model now — no shared store to
+  // reset), sync it into the scheduler slot, deep-link to
+  // its detail, and render. Each `init` is independent, so
+  // nothing leaks to other specs.
+  const [m0] = app.init(
     makeUrl(
       "/demo1.html",
       "?c=clients&p=evil-co",
     ),
   );
+  const m = syncRecords({
+    ...m0,
+    clients: [...m0.clients, hostileClient],
+  });
   const html = renderToString(app.view(m));
-  resetStore();
   return all([
     check(
       html.includes(scriptPayload),
