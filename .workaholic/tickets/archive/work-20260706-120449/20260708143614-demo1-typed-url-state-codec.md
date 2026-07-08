@@ -3,9 +3,9 @@ created_at: 2026-07-08T14:36:14+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [UX, Domain]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 6dac089b
+category: Changed
 depends_on: [20260708143613-demo1-generic-record-section.md]
 mission:
 ---
@@ -80,3 +80,14 @@ The per-section search flow pass is what multiplied the URL params (`search`/`su
 - Ticket 3 will move this codec into its own module (`url` codec file); shape it as a self-contained cluster (types + parse + print) so the split is a file move.
 - `resultHref`/`hrefOf` are also the security ticket's audit surface (`20260708143616-demo1-security-assessment.md`); typing them here narrows that sink — cross-reference findings if the assessment lands first.
 - Fallback behavior for malformed/partial params must match today's (whatever the current helpers do with absent keys); encode it in the parse function deliberately rather than by accident.
+
+## Final Report
+
+Development completed as planned. Replaced the string-keyed `URLSearchParams` helper family (`withoutAppParams`/`withoutSelection`/`withAdd`/`withSearch`/`withSubmittedSearch`) with a typed `AppLayer` overlay union (`menu | add | searchOpen | searchSubmitted`) printed onto the scheduler's base URL by `printAppLayer` (an exhaustive, compiler-checked `switch` where each case returns). `currentUrl` now derives the stage via `appLayerOf(model, section)` and prints it; `addSectionOf`/`isAddUrl`/`searchFormFromUrl`/`resultHref`/`dropSelection`/`hrefOf`/`sectionOfUrl`/`selectedId` form the codec cluster, and every raw param key (`add`/`search`/`submitted`/`kw`/`st`/`c`/`p`/`q`) is confined to it. +136 / -93. Verified: spec byte-identical & green, `scripts/tsc-plgg.sh` clean, `scripts/test-plgg.sh` green (483 tests), example 41/41, and a live browser round-trip of every URL stage.
+
+### Discovered Insights
+
+- **Insight**: The demo intentionally carries TWO different param serializations for the same logical "selected result within a submitted search": the result link's href appends `p` last (`c,search,submitted,kw,st,p`), but after navigation `currentUrl` re-derives `c,p,search,submitted,kw,st` (p right after the scheduler's c). The spec pins both exactly.
+  **Context**: A codec that canonicalizes to one ordering would break one of the two assertions. The working design keeps `printAppLayer` layering app params onto the scheduler's base (preserving the base's c/p order) and keeps `resultHref` as a distinct "append p to the current results URL" operation — that duality is load-bearing, not incidental. Any future URL-model change must preserve it.
+- **Insight**: `p` (selection) and `c` (section) are the scheduler's params, not the app's; the app only reads them. The clean seam is: scheduler owns `c`/`p`, app owns the `add`/`search`/`submitted`/`kw`/`st` overlay.
+  **Context**: This is why the codec both reads `c`/`p` (sectionOfUrl/selectedId) and writes only the overlay — mixing the two ownerships is what made the old helper family sprawl.

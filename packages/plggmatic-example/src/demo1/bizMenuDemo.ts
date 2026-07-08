@@ -830,12 +830,29 @@ const statusesOf = (
   }
 };
 
-const isAddUrl = (
-  section: SearchableSection,
-  url: Url,
-): boolean =>
-  new URLSearchParams(url.search).get("add") ===
-  singularOf(section);
+// === URL codec ===
+// The scheduler owns `c` (section) and `p` (selection); the
+// app owns an overlay of `add`/`search`/`submitted`/`kw`/
+// `st` printed on top. Every raw param key is confined to
+// this cluster — the rest of the app speaks in typed stages
+// (`AppLayer`), never param strings.
+
+// The app-owned overlay as a typed stage, layered on the
+// scheduler's base URL. `menu` carries no app params (the
+// list/detail/stub view); `add` opens a register form;
+// `searchOpen`/`searchSubmitted` are the two search stages.
+type AppLayer =
+  | Readonly<{ kind: "menu" }>
+  | Readonly<{
+      kind: "add";
+      section: SearchableSection;
+    }>
+  | Readonly<{ kind: "searchOpen" }>
+  | Readonly<{
+      kind: "searchSubmitted";
+      keyword: SoftStr;
+      status: SoftStr;
+    }>;
 
 const paramOr = (
   params: URLSearchParams,
@@ -846,6 +863,37 @@ const paramOr = (
     () => fallback,
     (value: SoftStr) => value,
   )(fromNullable(params.get(name)));
+
+// Which section, if any, an `add=<singular>` param names.
+const addSectionOf = (
+  url: Url,
+): Option<SearchableSection> =>
+  matchOption<SoftStr, Option<SearchableSection>>(
+    () => none(),
+    (singular: SoftStr) => {
+      switch (singular) {
+        case "client":
+          return some("clients");
+        case "project":
+          return some("projects");
+        default:
+          return none();
+      }
+    },
+  )(
+    fromNullable(
+      new URLSearchParams(url.search).get("add"),
+    ),
+  );
+
+const isAddUrl = (
+  section: SearchableSection,
+  url: Url,
+): boolean =>
+  matchOption<SearchableSection, boolean>(
+    () => false,
+    (s: SearchableSection) => s === section,
+  )(addSectionOf(url));
 
 const searchFormFromUrl = (
   url: Url,
@@ -859,70 +907,52 @@ const searchFormFromUrl = (
   );
 };
 
-const withoutAppParams = (url: Url): Url => {
-  const params = new URLSearchParams(url.search);
+// Print an app overlay onto a base URL, preserving the
+// scheduler's `c`/`p` and their order; app params are
+// re-issued in a fixed order so links round-trip byte for
+// byte. Stripping first then setting matches how the old
+// per-stage helpers layered params.
+const printAppLayer = (
+  base: Url,
+  layer: AppLayer,
+): Url => {
+  const params = new URLSearchParams(base.search);
   params.delete("add");
   params.delete("search");
   params.delete("submitted");
   params.delete("kw");
   params.delete("st");
-  return {
-    path: url.path,
+  const finish = (): Url => ({
+    path: base.path,
     search: searchString(params),
-  };
+  });
+  switch (layer.kind) {
+    case "menu":
+      return finish();
+    case "add":
+      params.set(
+        "add",
+        singularOf(layer.section),
+      );
+      return finish();
+    case "searchOpen":
+      params.set("search", "1");
+      return finish();
+    case "searchSubmitted":
+      params.set("search", "1");
+      params.set("submitted", "1");
+      params.set("kw", layer.keyword);
+      params.set("st", layer.status);
+      return finish();
+  }
 };
 
-// Drop the scheduler's selection (`p`) so opening an
-// app-owned column starts fresh — forms/search are never
-// shown as a 4th column beside a selected detail.
-const withoutSelection = (url: Url): Url => {
+// Drop the scheduler's selection (`p`) so an app column
+// opens fresh — a form/search is never a 4th column beside
+// a selected detail.
+const dropSelection = (url: Url): Url => {
   const params = new URLSearchParams(url.search);
   params.delete("p");
-  return {
-    path: url.path,
-    search: searchString(params),
-  };
-};
-
-const withAdd = (
-  section: SearchableSection,
-  url: Url,
-): Url => {
-  const params = new URLSearchParams(url.search);
-  params.set("add", singularOf(section));
-  params.delete("search");
-  params.delete("submitted");
-  params.delete("kw");
-  params.delete("st");
-  return {
-    path: url.path,
-    search: searchString(params),
-  };
-};
-
-const withSearch = (url: Url): Url => {
-  const params = new URLSearchParams(url.search);
-  params.set("search", "1");
-  params.delete("add");
-  params.delete("submitted");
-  params.delete("kw");
-  params.delete("st");
-  return {
-    path: url.path,
-    search: searchString(params),
-  };
-};
-
-const withSubmittedSearch = (
-  url: Url,
-  form: SearchForm,
-): Url => {
-  const params = new URLSearchParams(url.search);
-  params.delete("add");
-  params.set("search", "1");
-  params.set("submitted", "1");
-  params.set("kw", form.keyword);
-  params.set("st", form.status);
   return {
     path: url.path,
     search: searchString(params),
@@ -1200,21 +1230,34 @@ const activeAdd = (
   }
 };
 
+// The model's independent add/search/submitted flags
+// collapse to the single app overlay the URL can hold, with
+// add taking precedence over search.
+const appLayerOf = (
+  model: Model,
+  section: SearchableSection,
+): AppLayer =>
+  activeAdd(section, model)
+    ? { kind: "add", section }
+    : model.search.open
+      ? model.search.submitted
+        ? {
+            kind: "searchSubmitted",
+            keyword: model.search.keyword,
+            status: model.search.status,
+          }
+        : { kind: "searchOpen" }
+      : { kind: "menu" };
+
 const currentUrl = (model: Model): Url => {
   const base = scheduled.toUrl(model.scheduled);
   return matchOption<SearchableSection, Url>(
-    () => withoutAppParams(base),
+    () => printAppLayer(base, { kind: "menu" }),
     (section: SearchableSection) =>
-      activeAdd(section, model)
-        ? withAdd(section, base)
-        : model.search.open
-          ? model.search.submitted
-            ? withSubmittedSearch(
-                base,
-                model.search,
-              )
-            : withSearch(base)
-          : withoutAppParams(base),
+      printAppLayer(
+        base,
+        appLayerOf(model, section),
+      ),
   )(sectionOfUrl(base));
 };
 
@@ -1284,9 +1327,12 @@ const sectionSubMenu = (
                     menuItem(
                       `Add ${title}`,
                       hrefOf(
-                        withAdd(
-                          section,
-                          withoutSelection(url),
+                        printAppLayer(
+                          dropSelection(url),
+                          {
+                            kind: "add",
+                            section,
+                          },
                         ),
                       ),
                       activeAdd(section, model),
@@ -1294,8 +1340,9 @@ const sectionSubMenu = (
                     menuItem(
                       `Search ${title}`,
                       hrefOf(
-                        withSearch(
-                          withoutSelection(url),
+                        printAppLayer(
+                          dropSelection(url),
+                          { kind: "searchOpen" },
                         ),
                       ),
                       model.search.open,
@@ -1404,7 +1451,9 @@ const addFormColumn = (
           title: `Add ${title}`,
           close: some(
             hrefOf(
-              withSearch(withoutSelection(url)),
+              printAppLayer(dropSelection(url), {
+                kind: "searchOpen",
+              }),
             ),
           ),
           body: [
@@ -1423,12 +1472,13 @@ const addFormColumn = (
                   [
                     href(
                       hrefOf(
-                        withSearch(
-                          withoutSelection(
+                        printAppLayer(
+                          dropSelection(
                             scheduled.toUrl(
                               model.scheduled,
                             ),
                           ),
+                          { kind: "searchOpen" },
                         ),
                       ),
                     ),
@@ -1472,7 +1522,11 @@ const searchConditionColumn = (
               key: `${section}-search-condition`,
               title: "Search Condition",
               close: some(
-                hrefOf(withoutAppParams(url)),
+                hrefOf(
+                  printAppLayer(url, {
+                    kind: "menu",
+                  }),
+                ),
               ),
               body: [
                 slot(
@@ -1647,7 +1701,7 @@ const searchResultsColumn = (
               key: `${section}-search-results`,
               title: "Results",
               close: some(
-                hrefOf(withoutSelection(url)),
+                hrefOf(dropSelection(url)),
               ),
               body: [
                 slot(
@@ -1822,24 +1876,13 @@ export const makeApp = (
     const scene = scheduled.scene(
       model.scheduled,
     );
-    const params = new URLSearchParams(
-      currentUrl(model).search,
-    );
     const inSearchable = matchOption<
       SearchableSection,
       boolean
     >(
       () => false,
       () => true,
-    )(
-      matchOption<
-        SoftStr,
-        Option<SearchableSection>
-      >(
-        () => none(),
-        searchableSectionOf,
-      )(fromNullable(params.get("c"))),
-    );
+    )(sectionOfUrl(currentUrl(model)));
     // Searchable sections hide the scheduler's native
     // list; the app-owned submenu/search/results columns
     // are the section's visible navigation surface.
