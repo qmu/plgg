@@ -3,6 +3,7 @@ import {
   Html,
   element$,
   text$,
+  raw$,
 } from "plgg-view/Html/model/Html";
 import { Attribute } from "plgg-view/Html/model/Attribute";
 
@@ -11,7 +12,9 @@ import { Attribute } from "plgg-view/Html/model/Attribute";
  * per node kind. `element` receives its children **already folded** (the
  * catamorphism recurses children first) plus the raw {@link Attribute} list, so
  * a renderer decides what to do with handlers (the SSR fold drops them; the DOM
- * fold wires them). Deliberately neutral: it knows the shape, not the target.
+ * fold wires them). `raw` receives the passthrough HTML string; a renderer
+ * decides whether to emit it verbatim (SSR) or treat it as inert (CSS
+ * collection). Deliberately neutral: it knows the shape, not the target.
  */
 export type HtmlAlgebra<Msg, R> = Readonly<{
   element: (
@@ -20,6 +23,7 @@ export type HtmlAlgebra<Msg, R> = Readonly<{
     children: ReadonlyArray<R>,
   ) => R;
   text: (value: SoftStr) => R;
+  raw: (html: SoftStr) => R;
 }>;
 
 /**
@@ -41,6 +45,11 @@ export const foldHtml =
       ],
       [
         text$(),
-        ({ content }): R => alg.text(content.value),
+        ({ content }): R =>
+          alg.text(content.value),
+      ],
+      [
+        raw$(),
+        ({ content }): R => alg.raw(content.html),
       ],
     );

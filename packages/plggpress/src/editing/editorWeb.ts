@@ -38,7 +38,11 @@ import {
   asHighlighter,
 } from "plggpress/framework";
 import { renderToString } from "plgg-view";
-import { parseBlocks, mdToHtml } from "plgg-md";
+import {
+  parseBlocks,
+  mdToHtml,
+  renderOptions,
+} from "plgg-md";
 import {
   type Db,
   openDraft,
@@ -107,8 +111,10 @@ const previewHtml = (body: SoftStr): string =>
     (blocks) =>
       renderToString(
         mdToHtml(
-          asHighlighter(),
-          href("/"),
+          renderOptions(
+            asHighlighter(),
+            href("/"),
+          ),
         )(blocks),
       ),
   )(parseBlocks(body));
@@ -116,9 +122,7 @@ const previewHtml = (body: SoftStr): string =>
 const page = (body: string): string =>
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Editor</title></head><body>${body}</body></html>`;
 
-const editorForm = (
-  token: SoftStr,
-): string =>
+const editorForm = (token: SoftStr): string =>
   page(
     `<h1>Edit</h1><form method="post" action="${EDIT_BASE}"><input type="hidden" name="${CSRF_FIELD}" value="${esc(
       token,
@@ -196,8 +200,7 @@ const dispatch = (
                   "could not open draft",
                 ),
               ),
-            () =>
-              ok(redirectResponse(EDIT_BASE)),
+            () => ok(redirectResponse(EDIT_BASE)),
           ),
         )
       : verb === "autosave" || verb === "submit"
@@ -239,9 +242,7 @@ const dispatch = (
                     ),
                   () =>
                     ok(
-                      redirectResponse(
-                        EDIT_BASE,
-                      ),
+                      redirectResponse(EDIT_BASE),
                     ),
                 ),
               ),
@@ -270,7 +271,10 @@ export const editorWeb = (
     (
       c: Context,
     ): PromisedResult<HttpResponse, HttpError> =>
-      sessionSubject(sessions, clock)(c).then(
+      sessionSubject(
+        sessions,
+        clock,
+      )(c).then(
         matchOption<
           SoftStr,
           PromisedResult<HttpResponse, HttpError>

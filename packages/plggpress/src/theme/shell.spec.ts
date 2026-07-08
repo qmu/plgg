@@ -15,7 +15,10 @@ import {
   collectCss,
   renderToString,
 } from "plggpress/framework";
-import { style_, p } from "plggpress/framework/style";
+import {
+  style_,
+  p,
+} from "plggpress/framework/style";
 import { frontmatter } from "plggpress/framework";
 import { type MarkdownDoc } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
@@ -48,6 +51,8 @@ const config: SiteConfig = {
   social: [],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 // A normal page: its first H1 drives the `<title>`.
@@ -132,12 +137,18 @@ test("composes plggmatic framework blocks ahead of baseCss, then the body's coll
     ),
     check(rendered, toContain("--pm-surface:")),
     // the appearance-toggle chrome block is composed in
-    check(rendered, toContain(".pm-theme-toggle{")),
+    check(
+      rendered,
+      toContain(".pm-theme-toggle{"),
+    ),
     // then the bespoke layout sheet (a stable baseCss marker)
     check(rendered, toContain(".vp-app{")),
     // and the body's atomic CSS closes the single
     // <style> block, byte-for-byte
-    check(rendered, toContain(`${sheet}</style>`)),
+    check(
+      rendered,
+      toContain(`${sheet}</style>`),
+    ),
   ]);
 });
 
@@ -158,7 +169,10 @@ test("the composed stylesheet is escape-safe (no <, >, & reach the SSR text node
     check(composed, not(toContain(">"))),
     check(composed, not(toContain("&"))),
     // no child combinator crept into the emitted selectors
-    check(collectCss(bodyFixture), not(toContain(">"))),
+    check(
+      collectCss(bodyFixture),
+      not(toContain(">")),
+    ),
   ]);
 });
 

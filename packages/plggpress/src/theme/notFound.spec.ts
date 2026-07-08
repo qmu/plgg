@@ -22,6 +22,8 @@ const config: SiteConfig = {
   social: [],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 const rendered = renderToString(notFound(config));

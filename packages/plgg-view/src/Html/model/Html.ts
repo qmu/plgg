@@ -4,9 +4,11 @@ import { Attribute } from "plgg-view/Html/model/Attribute";
 /**
  * The view as **pure data**, parameterized by the app's `Msg` and the element's
  * tag `T`. A `Box` union: an intrinsic `Element` (tag + attributes carrying
- * event handlers + children) or a `Text` leaf. Function "components" are just
- * functions returning `Html<Msg>`; there is no class, no DOM node — the runtime
- * turns this into DOM (client) or a string (SSR).
+ * event handlers + children), a `Text` leaf (escaped at render), or a `Raw`
+ * passthrough leaf (emitted VERBATIM by the SSR fold, never escaped — the seam
+ * a trusted content pipeline uses to inject author-owned HTML). Function
+ * "components" are just functions returning `Html<Msg>`; there is no class, no
+ * DOM node — the runtime turns this into DOM (client) or a string (SSR).
  *
  * `T` brands the element's tag at the type level (the tag is already stored as
  * data, so the brand is real, not phantom — no cast). It defaults to `string`,
@@ -15,12 +17,10 @@ import { Attribute } from "plgg-view/Html/model/Attribute";
  * `Html<Msg, "div">` etc. that lets a parent restrict which children it
  * accepts. The runtime payload is identical regardless of `T`.
  */
-export type Html<
-  Msg,
-  T extends string = string,
-> =
+export type Html<Msg, T extends string = string> =
   | Box<"Element", ElementContent<Msg, T>>
-  | Box<"Text", Readonly<{ value: SoftStr }>>;
+  | Box<"Text", Readonly<{ value: SoftStr }>>
+  | Box<"Raw", Readonly<{ html: SoftStr }>>;
 
 /**
  * The content of an intrinsic element: a tag (branded by `T`), its
@@ -42,3 +42,4 @@ export type ElementContent<
 export const element$ = () =>
   pattern("Element")();
 export const text$ = () => pattern("Text")();
+export const raw$ = () => pattern("Raw")();

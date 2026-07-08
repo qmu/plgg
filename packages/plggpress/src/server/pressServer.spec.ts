@@ -22,6 +22,8 @@ const config: SiteConfig = {
   social: [],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 // Route construction is fs-free (handlers read files at
@@ -50,7 +52,8 @@ const shape = (w: {
     pattern: string;
   }>;
   middlewares: ReadonlyArray<unknown>;
-}) => w.routes.map((r) => `${r.method} ${r.pattern}`);
+}) =>
+  w.routes.map((r) => `${r.method} ${r.pattern}`);
 
 test("pressServeWeb is a no-op over pressRouter: identical route set", () =>
   all([
@@ -60,7 +63,10 @@ test("pressServeWeb is a no-op over pressRouter: identical route set", () =>
       toBe(built.routes.length),
     ),
     // one GET route per discovered path, nothing added
-    check(served.routes.length, toBe(paths.length)),
+    check(
+      served.routes.length,
+      toBe(paths.length),
+    ),
   ]));
 
 test("pressServeWeb adds no middleware today (the mount seam is empty)", () =>
@@ -92,9 +98,7 @@ test("pressServeWebWithAuth mounts the OP+RP auth + admin routes alongside conte
     ),
     // the guarded admin subtree is present
     check(
-      patterns.some((p) =>
-        p.includes("/admin"),
-      ),
+      patterns.some((p) => p.includes("/admin")),
       toBe(true),
     ),
     // and the content routes are still there

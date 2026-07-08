@@ -16,9 +16,11 @@ import {
 } from "plgg";
 import {
   type MarkdownDoc,
-  renderMarkdownWith,
+  renderMarkdownWithOptions,
   plainHighlighter,
 } from "plggpress/framework";
+import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
+import { pressRenderOptions } from "plggpress/SiteConfig/usecase/renderSeams";
 import { href } from "plggpress/Href/usecase/href";
 import { candidateFiles } from "plggpress/router/pressRouter";
 import {
@@ -71,12 +73,19 @@ const readFirst =
  * render through the SAME base-aware {@link href} resolver
  * the router uses (so `links` are base-prefixed exactly as
  * emitted) under the compiler-free {@link plainHighlighter}
- * (highlighting is irrelevant to links/slugs), and project
- * out the route, deduped heading `slugs`, and emitted
- * `links`. A parse miss folds to a {@link Defect}.
+ * (highlighting is irrelevant to links/slugs) and the SAME
+ * configured `rawHtml`/slugger the router renders with (so
+ * the `slugs` a `#fragment` validates against are the ids
+ * the page actually emits), and project out the route,
+ * deduped heading `slugs`, and emitted `links`. A parse
+ * miss folds to a {@link Defect}.
  */
 const collectOne =
-  (contentDir: SoftStr, base: SoftStr) =>
+  (
+    contentDir: SoftStr,
+    base: SoftStr,
+    config: SiteConfig,
+  ) =>
   (
     route: SoftStr,
   ): PromisedResult<PageLinks, Defect> =>
@@ -88,13 +97,15 @@ const collectOne =
           source: SoftStr,
         ): Result<PageLinks, Defect> =>
           pipe(
-            renderMarkdownWith(
-              plainHighlighter,
-              href(base),
+            renderMarkdownWithOptions(
+              pressRenderOptions(
+                config,
+                plainHighlighter,
+                href(base),
+              ),
             )(source),
-            mapErr(
-              (e: InvalidError): Defect =>
-                defect(e.content.message),
+            mapErr((e: InvalidError): Defect =>
+              defect(e.content.message),
             ),
             mapResult(
               (doc: MarkdownDoc): PageLinks =>
@@ -118,7 +129,11 @@ const collectOne =
  * `paths`.
  */
 export const collectPageLinks =
-  (contentDir: SoftStr, base: SoftStr) =>
+  (
+    contentDir: SoftStr,
+    base: SoftStr,
+    config: SiteConfig,
+  ) =>
   (
     paths: ReadonlyArray<SoftStr>,
   ): PromisedResult<
@@ -150,6 +165,7 @@ export const collectPageLinks =
               ? collectOne(
                   contentDir,
                   base,
+                  config,
                 )(route).then(
                   mapResult(
                     (

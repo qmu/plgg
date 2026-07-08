@@ -14,8 +14,26 @@ import {
   okThen,
   shouldBeErr,
 } from "plgg-test";
+import { none } from "plgg";
 import { type PageLinks } from "plggpress/CheckLinks/model/CheckLinks";
+import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { collectPageLinks } from "plggpress/CheckLinks/usecase/collectPageLinks";
+
+// A minimal config at the render defaults (raw HTML off,
+// VitePress slugger) — the link crawl only reads its
+// render knobs.
+const CONFIG: SiteConfig = {
+  title: "T",
+  description: "D",
+  base: "/plgg/",
+  nav: [],
+  sidebar: [],
+  social: [],
+  dev: { allowedHosts: [] },
+  models: none(),
+  rawHtml: none(),
+  slugger: none(),
+};
 
 const GUIDE_MD = [
   "# Guide",
@@ -55,6 +73,7 @@ const collected = await (async () => {
   return collectPageLinks(
     root,
     "/plgg/",
+    CONFIG,
   )(["/guide/", "/concepts/intro/"]);
 })();
 
@@ -84,6 +103,7 @@ test("folds a missing source file to a Defect", async () =>
     await collectPageLinks(
       join(tmpdir(), "plgg-does-not-exist"),
       "/plgg/",
+      CONFIG,
     )(["/ghost/"]),
     shouldBeErr(),
   ));

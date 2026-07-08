@@ -14,10 +14,13 @@ import {
  * plggpress inline subset (see
  * `docs/plggpress-migration/spike-decisions.md` §7).
  *
- * There is intentionally **no** raw-HTML variant: a
- * stray `<`/`>` rides along inside {@link Text} and is
- * HTML-escaped at render (v1 decision §6c), so untrusted
- * angle-brackets can never become markup.
+ * By default there is **no** raw-HTML variant: a stray
+ * `<`/`>` rides along inside {@link Text} and is
+ * HTML-escaped at render (the v1 decision §6c), so
+ * untrusted angle-brackets can never become markup. A
+ * site that opts into `rawHtml` (see {@link RenderOptions})
+ * gets the {@link HtmlSpan} variant, whose markup the
+ * renderer emits verbatim.
  */
 export type Inline =
   | Text
@@ -26,7 +29,8 @@ export type Inline =
   | Strong
   | Link
   | Image
-  | LineBreak;
+  | LineBreak
+  | HtmlSpan;
 
 /** A run of literal text (escaped at render). */
 export type Text = Box<
@@ -85,6 +89,19 @@ export type LineBreak = Box<
   Readonly<Record<string, never>>
 >;
 
+/**
+ * A raw inline-HTML span. `html` is the verbatim source of
+ * a recognized inline HTML construct (e.g.
+ * `<small class="updated">…</small>` inside a paragraph),
+ * emitted UNESCAPED at render. Only produced when `rawHtml`
+ * is enabled (see {@link RenderOptions}); the default
+ * tokenizer never emits one.
+ */
+export type HtmlSpan = Box<
+  "HtmlSpan",
+  Readonly<{ html: SoftStr }>
+>;
+
 /** Builds a {@link Text}. */
 export const inlineText = (
   value: SoftStr,
@@ -121,6 +138,11 @@ export const image = (
 export const lineBreak = (): LineBreak =>
   box("LineBreak")({});
 
+/** Builds an {@link HtmlSpan}. */
+export const htmlSpan = (
+  html: SoftStr,
+): HtmlSpan => box("HtmlSpan")({ html });
+
 /** Type guard: is this {@link Inline} a {@link Text}? */
 export const isText = isBoxWithTag("Text");
 
@@ -143,6 +165,10 @@ export const isImage = isBoxWithTag("Image");
 export const isLineBreak =
   isBoxWithTag("LineBreak");
 
+/** Type guard: is this {@link Inline} an {@link HtmlSpan}? */
+export const isHtmlSpan =
+  isBoxWithTag("HtmlSpan");
+
 /** `match` pattern for a {@link Text}. */
 export const text$ = () => pattern("Text")();
 
@@ -164,3 +190,7 @@ export const image$ = () => pattern("Image")();
 /** `match` pattern for a {@link LineBreak}. */
 export const lineBreak$ = () =>
   pattern("LineBreak")();
+
+/** `match` pattern for an {@link HtmlSpan}. */
+export const htmlSpan$ = () =>
+  pattern("HtmlSpan")();

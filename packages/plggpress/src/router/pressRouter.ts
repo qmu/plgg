@@ -19,9 +19,10 @@ import {
 } from "plggpress/framework";
 import {
   type MarkdownDoc,
-  renderMarkdownWith,
+  renderMarkdownWithOptions,
 } from "plggpress/framework";
 import { asHighlighter } from "plggpress/framework";
+import { pressRenderOptions } from "plggpress/SiteConfig/usecase/renderSeams";
 import {
   type Web,
   type Handler,
@@ -162,13 +163,15 @@ const pageHandler =
           source: SoftStr,
         ): Result<HttpResponse, HttpError> =>
           pipe(
-            renderMarkdownWith(
-              asHighlighter(),
-              href(base),
+            renderMarkdownWithOptions(
+              pressRenderOptions(
+                config,
+                asHighlighter(),
+                href(base),
+              ),
             )(source),
-            mapErr(
-              (e: InvalidError): HttpError =>
-                internalError(e.content.message),
+            mapErr((e: InvalidError): HttpError =>
+              internalError(e.content.message),
             ),
             mapResult(
               (doc: MarkdownDoc): HttpResponse =>

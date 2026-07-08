@@ -12,7 +12,10 @@ import {
   text,
   renderToString,
 } from "plggpress/framework";
-import { style_, p } from "plggpress/framework/style";
+import {
+  style_,
+  p,
+} from "plggpress/framework/style";
 import {
   type MarkdownDoc,
   frontmatter,
@@ -48,6 +51,8 @@ const config: SiteConfig = {
   social: [],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 const content: Html<never, "div"> = div(

@@ -31,6 +31,7 @@ import {
   table,
   callout,
   thematicBreak,
+  htmlBlock,
 } from "plgg-md/Block/model/Block";
 
 // ---------------------------------------------------------------------------
@@ -64,6 +65,17 @@ const OL_RE = /^([ \t]*)(\d+)[.)][ \t]+(.*)$/;
 /** Pipe-table header/body separator row. */
 const TABLE_SEP_RE =
   /^[ \t]*\|?[ \t]*:?-{1,}:?[ \t]*(\|[ \t]*:?-{1,}:?[ \t]*)*\|?[ \t]*$/;
+/**
+ * A block-level HTML opener (only honored when `rawHtml`
+ * is enabled): up to 3 leading spaces, then `<` or `</`,
+ * a tag name, and a tag boundary (space/tab, `>`, `/`, or
+ * end of line) or an HTML comment. Pragmatic cover of
+ * CommonMark's HTML-block type 6 — enough for the
+ * qmu.co.jp corpus (`<small class="updated">`, `<div>`
+ * image blocks, `<iframe>` map embeds).
+ */
+const HTML_BLOCK_OPEN_RE =
+  /^ {0,3}(?:<!--|<\/?[a-zA-Z][a-zA-Z0-9-]*(?:[ \t>/]|$))/;
 
 /**
  * The captured groups of a regex match, each absent
@@ -76,11 +88,10 @@ const groups = (
 ): Option<ReadonlyArray<SoftStr>> =>
   pipe(
     fromNullable(line.match(re)),
-    mapOption(
-      (m): ReadonlyArray<SoftStr> =>
-        m.map((g) =>
-          pipe(fromNullable(g), getOr("")),
-        ),
+    mapOption((m): ReadonlyArray<SoftStr> =>
+      m.map((g) =>
+        pipe(fromNullable(g), getOr("")),
+      ),
     ),
   );
 
@@ -113,16 +124,20 @@ type Span = Readonly<{
 /**
  * Parses a Markdown body into a flat {@link Block}
  * sequence over the plggpress subset. Inline markup is
- * NOT parsed here (that is the render ticket); raw HTML
- * and any out-of-subset line ride along as {@link para}
- * text. Failures — an unterminated fence, a
+ * NOT parsed here (that is the render step). With `rawHtml`
+ * off (the default) any out-of-subset line — raw HTML
+ * included — rides along as {@link para} text and is
+ * HTML-escaped at render; with `rawHtml` on, a block-level
+ * HTML opener starts an {@link htmlBlock} rendered
+ * verbatim. Failures — an unterminated fence, a
  * colon-count-mismatched container, a malformed pipe
  * table — return an {@link InvalidError}, never a throw.
  */
 export const parseBlocks = (
   source: SoftStr,
+  rawHtml: boolean = false,
 ): Result<ReadonlyArray<Block>, InvalidError> =>
-  parseBlockLines(source.split("\n"));
+  parseBlockLines(source.split("\n"), rawHtml);
 
 /**
  * The line-scan seam. A cursor (`i`) is advanced past
@@ -136,6 +151,7 @@ export const parseBlocks = (
  */
 const parseBlockLines = (
   lines: ReadonlyArray<SoftStr>,
+  rawHtml: boolean,
 ): Result<ReadonlyArray<Block>, InvalidError> => {
   const blocks: Array<Block> = [];
   let error: Option<InvalidError> = none();
@@ -167,6 +183,7 @@ const parseBlockLines = (
         lines,
         i,
         copen.content,
+        rawHtml,
       );
       if (isErr(res)) {
         error = some(res.content);
@@ -193,7 +210,7 @@ const parseBlockLines = (
       continue;
     }
     if (QUOTE_RE.test(line)) {
-      const res = takeQuote(lines, i);
+      const res = takeQuote(lines, i, rawHtml);
       if (isErr(res)) {
         error = some(res.content);
         break;
@@ -215,13 +232,22 @@ const parseBlockLines = (
       i = res.content.next;
       continue;
     }
+    if (
+      rawHtml &&
+      HTML_BLOCK_OPEN_RE.test(line)
+    ) {
+      const span = takeHtmlBlock(lines, i);
+      blocks.push(span.block);
+      i = span.next;
+      continue;
+    }
     if (isSome(listMatch(line))) {
       const span = takeList(lines, i);
       blocks.push(span.block);
       i = span.next;
       continue;
     }
-    const span = takeParagraph(lines, i);
+    const span = takeParagraph(lines, i, rawHtml);
     blocks.push(span.block);
     i = span.next;
   }
@@ -298,6 +324,7 @@ const takeContainer = (
   lines: ReadonlyArray<SoftStr>,
   i: number,
   open: ReadonlyArray<SoftStr>,
+  rawHtml: boolean,
 ): Result<Span, InvalidError> => {
   const openColons = group(open, 1).length;
   const kind = group(open, 2);
@@ -348,6 +375,7 @@ const takeContainer = (
   }
   const children = parseBlockLines(
     lines.slice(i + 1, closeIdx),
+    rawHtml,
   );
   return isErr(children)
     ? err(children.content)
@@ -389,6 +417,7 @@ const takeHeading = (
 const takeQuote = (
   lines: ReadonlyArray<SoftStr>,
   i: number,
+  rawHtml: boolean,
 ): Result<Span, InvalidError> => {
   const body: Array<SoftStr> = [];
   let j = i;
@@ -400,7 +429,7 @@ const takeQuote = (
     body.push(group(gs.content, 1));
     j++;
   }
-  const children = parseBlockLines(body);
+  const children = parseBlockLines(body, rawHtml);
   return isErr(children)
     ? err(children.content)
     : ok({
@@ -568,12 +597,10 @@ const parseListAt = (
     j++;
   }
   return {
-    items: drafts.map(
-      (d): ListItem => ({
-        text: d.text,
-        children: d.children,
-      }),
-    ),
+    items: drafts.map((d): ListItem => ({
+      text: d.text,
+      children: d.children,
+    })),
     ordered,
     next: j,
   };
@@ -596,13 +623,45 @@ const takeList = (
 };
 
 /**
+ * Consumes a block-level HTML run (only when `rawHtml` is
+ * enabled): the opener line and every following non-blank
+ * line, up to a blank line or EOF (CommonMark's
+ * blank-line-terminated HTML block). The verbatim span
+ * becomes an {@link htmlBlock}, emitted UNESCAPED at
+ * render. HTML blocks in the corpus are blank-line
+ * separated, so this reads one construct per run.
+ */
+const takeHtmlBlock = (
+  lines: ReadonlyArray<SoftStr>,
+  i: number,
+): Span => {
+  const buf: Array<SoftStr> = [];
+  let j = i;
+  while (
+    j < lines.length &&
+    lineAt(lines, j).trim() !== ""
+  ) {
+    buf.push(lineAt(lines, j));
+    j++;
+  }
+  return {
+    block: htmlBlock(buf.join("\n")),
+    next: j,
+  };
+};
+
+/**
  * Accumulates a paragraph: consecutive lines up to a
- * blank line or the start of another block. Raw HTML and
- * any out-of-subset line land here as literal text.
+ * blank line or the start of another block. Out-of-subset
+ * lines land here as literal text (HTML-escaped at
+ * render); when `rawHtml` is on, a block-level HTML opener
+ * also breaks the paragraph so the HTML starts its own
+ * {@link htmlBlock}.
  */
 const takeParagraph = (
   lines: ReadonlyArray<SoftStr>,
   i: number,
+  rawHtml: boolean,
 ): Span => {
   const buf: Array<SoftStr> = [];
   let j = i;
@@ -611,7 +670,7 @@ const takeParagraph = (
     if (line.trim() === "") {
       break;
     }
-    if (j > i && startsBlock(lines, j)) {
+    if (j > i && startsBlock(lines, j, rawHtml)) {
       break;
     }
     buf.push(line);
@@ -627,6 +686,7 @@ const takeParagraph = (
 const startsBlock = (
   lines: ReadonlyArray<SoftStr>,
   k: number,
+  rawHtml: boolean,
 ): boolean => {
   const line = lineAt(lines, k);
   return (
@@ -636,6 +696,7 @@ const startsBlock = (
     HR_RE.test(line) ||
     QUOTE_RE.test(line) ||
     isSome(listMatch(line)) ||
+    (rawHtml && HTML_BLOCK_OPEN_RE.test(line)) ||
     (line.includes("|") &&
       TABLE_SEP_RE.test(lineAt(lines, k + 1)))
   );

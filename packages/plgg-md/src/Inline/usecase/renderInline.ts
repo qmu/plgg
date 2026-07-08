@@ -17,6 +17,7 @@ import {
   link,
   image,
   lineBreak,
+  htmlSpan,
   text$,
   code$,
   emph$,
@@ -24,12 +25,25 @@ import {
   link$,
   image$,
   lineBreak$,
+  htmlSpan$,
 } from "plgg-md/Inline/model/Inline";
 
 /** An image `![alt](src)` at the cursor. */
 const IMAGE_RE = /^!\[([^\]]*)\]\(([^)\s]*)\)/;
 /** A link `[text](href)` at the cursor. */
 const LINK_RE = /^\[([^\]]*)\]\(([^)\s]*)\)/;
+/**
+ * A single raw inline-HTML token at the cursor (only
+ * honored when `rawHtml` is enabled): an HTML comment, a
+ * close tag, or an open/self-closing tag. Matching CommonMark's
+ * raw-inline-HTML shape, only the TAG token is captured —
+ * the text between an open and close tag flows on as
+ * ordinary (escaped) {@link Text}, so `<small>x & y</small>`
+ * renders the tags verbatim while its inner `&` still
+ * escapes.
+ */
+const INLINE_HTML_RE =
+  /^(?:<!--[\s\S]*?-->|<\/[a-zA-Z][a-zA-Z0-9-]*[ \t]*>|<[a-zA-Z][a-zA-Z0-9-]*(?:[ \t][^<>]*?)?\/?>)/;
 
 /**
  * The captured groups of an anchored match (group 0 is
@@ -43,11 +57,10 @@ const matchAt = (
 ): Option<ReadonlyArray<SoftStr>> =>
   pipe(
     fromNullable(rest.match(re)),
-    mapOption(
-      (m): ReadonlyArray<SoftStr> =>
-        m.map((g) =>
-          pipe(fromNullable(g), getOr("")),
-        ),
+    mapOption((m): ReadonlyArray<SoftStr> =>
+      m.map((g) =>
+        pipe(fromNullable(g), getOr("")),
+      ),
     ),
   );
 
@@ -107,11 +120,16 @@ const findCodeClose = (
  * plggpress inline subset: `` `code` ``, `**strong**`,
  * `*emph*`, `[text](href)`, `![alt](src)`, and hard line
  * breaks (a trailing `\` or two spaces before a
- * newline). Everything else — including any raw `<`/`>`
- * — accumulates as literal {@link inlineText}, which the
- * renderer HTML-escapes (the v1 raw-HTML decision, see
- * `spike-decisions.md` §6c). Code spans are verbatim and
- * never re-scanned; strong/emph/link text recurse.
+ * newline). With `rawHtml` off (the default) everything
+ * else — including any raw `<`/`>` — accumulates as
+ * literal {@link inlineText}, which the renderer
+ * HTML-escapes (the v1 raw-HTML decision, see
+ * `spike-decisions.md` §6c). With `rawHtml` on, a single
+ * raw HTML tag token becomes an {@link htmlSpan} emitted
+ * verbatim, while any `<` that does not open a tag stays
+ * literal (escaped) text. Code spans are verbatim and
+ * never re-scanned; strong/emph/link text recurse under
+ * the same `rawHtml`.
  *
  * An irreducible left-to-right scan (look-ahead inline
  * tokenizer), isolated here and kept pure: it allocates a
@@ -120,6 +138,7 @@ const findCodeClose = (
  */
 export const renderInline = (
   line: SoftStr,
+  rawHtml: boolean = false,
 ): ReadonlyArray<Inline> => {
   const out: Array<Inline> = [];
   let buf = "";
@@ -171,11 +190,26 @@ export const renderInline = (
       out.push(
         link(
           group(lnk.content, 2),
-          renderInline(group(lnk.content, 1)),
+          renderInline(
+            group(lnk.content, 1),
+            rawHtml,
+          ),
         ),
       );
       i += group(lnk.content, 0).length;
       continue;
+    }
+    // Raw inline HTML tag token — only when enabled. The
+    // tag rides verbatim; text between tags flows on as
+    // escaped Text.
+    if (rawHtml && ch === "<") {
+      const tag = matchAt(INLINE_HTML_RE, rest);
+      if (isSome(tag)) {
+        flush();
+        out.push(htmlSpan(group(tag.content, 0)));
+        i += group(tag.content, 0).length;
+        continue;
+      }
     }
     // Inline code: an n-backtick run closed by another
     // n-backtick run; body is verbatim.
@@ -208,6 +242,7 @@ export const renderInline = (
           strong(
             renderInline(
               line.slice(i + 2, close),
+              rawHtml,
             ),
           ),
         );
@@ -224,6 +259,7 @@ export const renderInline = (
           emph(
             renderInline(
               line.slice(i + 1, close),
+              rawHtml,
             ),
           ),
         );
@@ -252,39 +288,38 @@ export const plainText = (
   inlines: ReadonlyArray<Inline>,
 ): SoftStr =>
   inlines
-    .map(
-      (node): SoftStr =>
-        match(node)(
-          [
-            text$(),
-            ({ content }): SoftStr =>
-              content.value,
-          ],
-          [
-            code$(),
-            ({ content }): SoftStr =>
-              content.value,
-          ],
-          [
-            emph$(),
-            ({ content }): SoftStr =>
-              plainText(content.children),
-          ],
-          [
-            strong$(),
-            ({ content }): SoftStr =>
-              plainText(content.children),
-          ],
-          [
-            link$(),
-            ({ content }): SoftStr =>
-              plainText(content.children),
-          ],
-          [
-            image$(),
-            ({ content }): SoftStr => content.alt,
-          ],
-          [lineBreak$(), (): SoftStr => " "],
-        ),
+    .map((node): SoftStr =>
+      match(node)(
+        [
+          text$(),
+          ({ content }): SoftStr => content.value,
+        ],
+        [
+          code$(),
+          ({ content }): SoftStr => content.value,
+        ],
+        [
+          emph$(),
+          ({ content }): SoftStr =>
+            plainText(content.children),
+        ],
+        [
+          strong$(),
+          ({ content }): SoftStr =>
+            plainText(content.children),
+        ],
+        [
+          link$(),
+          ({ content }): SoftStr =>
+            plainText(content.children),
+        ],
+        [
+          image$(),
+          ({ content }): SoftStr => content.alt,
+        ],
+        [lineBreak$(), (): SoftStr => " "],
+        // a raw inline HTML tag contributes no slug text
+        [htmlSpan$(), (): SoftStr => ""],
+      ),
     )
     .join("");

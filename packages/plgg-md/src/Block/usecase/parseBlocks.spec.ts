@@ -16,12 +16,71 @@ import {
   table,
   callout,
   thematicBreak,
+  htmlBlock,
 } from "plgg-md/Block/model/Block";
 import { parseBlocks } from "plgg-md/Block/usecase/parseBlocks";
 
 const src = (
   ...lines: ReadonlyArray<string>
 ): string => lines.join("\n");
+
+test("with rawHtml OFF (default) a block-level HTML line is a paragraph", () =>
+  check(
+    parseBlocks(
+      src("# T", "", '<div class="x">hi</div>'),
+    ),
+    okThen(
+      toEqual([
+        heading(1, "T"),
+        para('<div class="x">hi</div>'),
+      ]),
+    ),
+  ));
+
+test("with rawHtml ON a block-level HTML run becomes one HtmlBlock", () =>
+  check(
+    parseBlocks(
+      src(
+        "# T",
+        "",
+        "<div>",
+        '  <img src="a.png" />',
+        "</div>",
+        "",
+        "After.",
+      ),
+      true,
+    ),
+    okThen(
+      toEqual([
+        heading(1, "T"),
+        htmlBlock(
+          '<div>\n  <img src="a.png" />\n</div>',
+        ),
+        para("After."),
+      ]),
+    ),
+  ));
+
+test("with rawHtml ON a single-line HTML marker is its own HtmlBlock", () =>
+  check(
+    parseBlocks(
+      src(
+        '<small class="updated">t</small>',
+        "",
+        "Prose.",
+      ),
+      true,
+    ),
+    okThen(
+      toEqual([
+        htmlBlock(
+          '<small class="updated">t</small>',
+        ),
+        para("Prose."),
+      ]),
+    ),
+  ));
 
 test("headings and a paragraph", () =>
   check(

@@ -22,9 +22,12 @@ import {
  *
  * A `Box` union over the plggpress subset (see
  * `docs/plggpress-migration/spike-decisions.md` §7).
- * There is intentionally **no** raw-HTML variant: any
- * stray angle-brackets ride along inside {@link Para}
- * text and are HTML-escaped at render (v1 decision).
+ * By default there is **no** raw-HTML variant: any stray
+ * angle-brackets ride along inside {@link Para} text and
+ * are HTML-escaped at render (the v1 decision). A site
+ * that opts into `rawHtml` (see {@link RenderOptions})
+ * gets the {@link HtmlBlock} variant, whose markup the
+ * renderer emits verbatim.
  */
 export type Block =
   | Heading
@@ -34,7 +37,8 @@ export type Block =
   | Quote
   | Table
   | Callout
-  | ThematicBreak;
+  | ThematicBreak
+  | HtmlBlock;
 
 /**
  * The six ATX heading depths. A nominal scalar with a
@@ -65,10 +69,7 @@ export const asHeadingLevel = (
 
 /** Pipe-table column alignment, read from the separator row. */
 export type TableAlign =
-  | "left"
-  | "center"
-  | "right"
-  | "default";
+  "left" | "center" | "right" | "default";
 
 /** An ATX heading `#`..`######`. */
 export type Heading = Box<
@@ -157,6 +158,20 @@ export type ThematicBreak = Box<
   Readonly<Record<string, never>>
 >;
 
+/**
+ * A raw-HTML passthrough block. `html` is the verbatim
+ * source lines of a recognized block-level HTML construct
+ * (a `<div>`/`<iframe>`/`<small class="…">` run), emitted
+ * UNESCAPED at render. Only produced when `rawHtml` is
+ * enabled (see {@link RenderOptions}); the default parser
+ * never emits one, so untrusted markup can never reach the
+ * verbatim seam without an explicit opt-in.
+ */
+export type HtmlBlock = Box<
+  "HtmlBlock",
+  Readonly<{ html: SoftStr }>
+>;
+
 /** Builds a {@link Heading}. */
 export const heading = (
   level: HeadingLevel,
@@ -203,6 +218,11 @@ export const callout = (
 export const thematicBreak = (): ThematicBreak =>
   box("ThematicBreak")({});
 
+/** Builds an {@link HtmlBlock}. */
+export const htmlBlock = (
+  html: SoftStr,
+): HtmlBlock => box("HtmlBlock")({ html });
+
 /** Type guard: is this {@link Block} a {@link Heading}? */
 export const isHeading = isBoxWithTag("Heading");
 
@@ -229,6 +249,10 @@ export const isCallout = isBoxWithTag("Callout");
 export const isThematicBreak = isBoxWithTag(
   "ThematicBreak",
 );
+
+/** Type guard: is this {@link Block} an {@link HtmlBlock}? */
+export const isHtmlBlock =
+  isBoxWithTag("HtmlBlock");
 
 /** `match` pattern for a {@link Heading}. */
 export const heading$ = () =>
@@ -257,3 +281,7 @@ export const callout$ = () =>
 /** `match` pattern for a {@link ThematicBreak}. */
 export const thematicBreak$ = () =>
   pattern("ThematicBreak")();
+
+/** `match` pattern for an {@link HtmlBlock}. */
+export const htmlBlock$ = () =>
+  pattern("HtmlBlock")();

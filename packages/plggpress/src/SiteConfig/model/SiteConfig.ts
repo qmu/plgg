@@ -4,11 +4,15 @@ import {
   type Result,
   type InvalidError,
   asSoftStr,
+  asBool,
   asObj,
   forProp,
   forOptionProp,
   asReadonlyArray,
   cast,
+  ok,
+  err,
+  invalidError,
 } from "plgg";
 import { type ContentModelBinding } from "plggpress/ContentModel/model/ContentModel";
 import { asBindings } from "plggpress/ContentModel/usecase/asContentModel";
@@ -61,6 +65,18 @@ export type DevConfig = Readonly<{
 }>;
 
 /**
+ * Which heading-slug algorithm the render boundary uses —
+ * declarative DATA (not a raw function), so it stays
+ * JSON-validatable and introspectable. `"vitepress"` is
+ * the `@mdit-vue/shared`-exact default (the guide's
+ * anchors were born on it); `"github"` is the
+ * github-slugger/`rehype-slug` scheme a site whose anchor
+ * history came from GitHub/Astro opts into. plggpress maps
+ * each to the matching plgg-md base slugger.
+ */
+export type SluggerKind = "vitepress" | "github";
+
+/**
  * The single information-architecture contract for the
  * whole facade. Consumed by the theme and the build/dev
  * pipelines, and authored as the guide's `site.config.ts`
@@ -81,6 +97,15 @@ export type SiteConfig = Readonly<{
   models: Option<
     ReadonlyArray<ContentModelBinding>
   >;
+  // Opt-in raw-HTML passthrough — `None` ⇒ the spike
+  // default (angle brackets escape as text), so the guide
+  // is byte-identical. `Some(true)` renders recognized
+  // HTML blocks/spans verbatim.
+  rawHtml: Option<boolean>;
+  // Which heading slugger the render boundary uses —
+  // `None` ⇒ the VitePress-exact default, so the guide's
+  // anchors are unchanged.
+  slugger: Option<SluggerKind>;
 }>;
 
 /**
@@ -148,6 +173,22 @@ export const asSocialLink = (
   );
 
 /**
+ * Boundary caster for a {@link SluggerKind}: an `unknown`
+ * config value validated by exact string match into the
+ * closed set, or an {@link InvalidError} — no `as`.
+ */
+export const asSluggerKind = (
+  value: unknown,
+): Result<SluggerKind, InvalidError> =>
+  value === "vitepress" || value === "github"
+    ? ok(value)
+    : err(
+        invalidError({
+          message: `slugger must be 'vitepress' | 'github', got ${JSON.stringify(value)}`,
+        }),
+      );
+
+/**
  * Boundary caster for a {@link DevConfig}.
  */
 export const asDevConfig = (
@@ -206,6 +247,8 @@ export type SiteConfigInput = Readonly<{
   social: ReadonlyArray<SocialLinkInput>;
   dev: DevConfigInput;
   models?: ReadonlyArray<ContentModelBinding>;
+  rawHtml?: boolean;
+  slugger?: SluggerKind;
 }>;
 
 /**
@@ -236,6 +279,8 @@ export const asSiteConfig = (
     ),
     forProp("dev", asDevConfig),
     forOptionProp("models", asBindings),
+    forOptionProp("rawHtml", asBool),
+    forOptionProp("slugger", asSluggerKind),
   );
 
 /**

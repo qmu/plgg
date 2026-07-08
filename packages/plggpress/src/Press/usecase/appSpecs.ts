@@ -73,10 +73,7 @@ const modelCheckOf =
           matchResult<
             ReadonlyArray<Page>,
             Defect,
-            Result<
-              null,
-              Defect | ModelViolations
-            >
+            Result<null, Defect | ModelViolations>
           >(
             (e: Defect) => err(e),
             (pages: ReadonlyArray<Page>) =>
@@ -107,6 +104,7 @@ export const buildSpecOf = (
       collectPageLinks(
         contentDir,
         base,
+        config,
       )(paths)
         .then(
           chainResult(
@@ -132,9 +130,10 @@ export const buildSpecOf = (
             (e: Defect | BrokenLinks) =>
               Promise.resolve(err(e)),
             () =>
-              modelCheckOf(config, contentDir)(
-                paths,
-              ),
+              modelCheckOf(
+                config,
+                contentDir,
+              )(paths),
           ),
         ),
   ),

@@ -57,6 +57,21 @@ export const text = (
 ): Html<never, "#text"> => box("Text")({ value });
 
 /**
+ * A raw-HTML passthrough leaf. Its `html` is emitted
+ * VERBATIM by `renderToString` — NOT escaped — so this
+ * is the trusted-content seam a pipeline uses to inject
+ * author-owned markup (a plgg-md raw HTML block/span).
+ * Branded `"#raw"` and carrying no `Msg`, so it slots
+ * into any phrasing/flow position exactly like
+ * {@link text}. Unlike {@link text} the value is not
+ * escaped, so the caller owns the trust decision — the
+ * default Markdown path never produces one.
+ */
+export const raw = (
+  html: SoftStr,
+): Html<never, "#raw"> => box("Raw")({ html });
+
+/**
  * Phrasing content — the inline level. A child slot
  * typed `Phrasing<Msg>` accepts only these tags
  * (the set of things that may stand where text
@@ -78,6 +93,7 @@ export type Phrasing<Msg> = Html<
   | "br"
   | "svg"
   | "#text"
+  | "#raw"
 >;
 
 /**
@@ -159,8 +175,7 @@ export type TableCell<Msg> = Html<
  * any {@link Flow} content (the disclosure body).
  */
 export type DetailsContent<Msg> =
-  | Html<Msg, "summary">
-  | Flow<Msg>;
+  Html<Msg, "summary"> | Flow<Msg>;
 
 /**
  * What the `html` document root accepts: the `head`

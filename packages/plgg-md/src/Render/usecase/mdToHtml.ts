@@ -35,6 +35,7 @@ import {
   img,
   br,
   text,
+  raw,
   class_,
   attr,
   href,
@@ -48,6 +49,7 @@ import {
   link$,
   image$,
   lineBreak$,
+  htmlSpan$,
 } from "plgg-md/Inline/model/Inline";
 import {
   renderInline,
@@ -66,10 +68,11 @@ import {
   table$,
   callout$,
   thematicBreak$,
+  htmlBlock$,
 } from "plgg-md/Block/model/Block";
 import {
-  Highlighter,
   LinkResolver,
+  RenderOptions,
 } from "plgg-md/Render/model/seam";
 import {
   Sluggers,
@@ -145,15 +148,27 @@ const inlineToHtml =
         lineBreak$(),
         (): Phrasing<never> => br([], []),
       ],
+      // a raw inline HTML tag is emitted verbatim
+      [
+        htmlSpan$(),
+        ({ content }): Phrasing<never> =>
+          raw(content.html),
+      ],
     );
 
-/** Scans then folds a source line into phrasing nodes. */
+/**
+ * Scans then folds a source line into phrasing nodes,
+ * threading `rawHtml` so inline HTML spans are recognized
+ * exactly as the block that owns the line was parsed.
+ */
 const renderInlines =
-  (resolve: LinkResolver) =>
+  (resolve: LinkResolver, rawHtml: boolean) =>
   (
     line: SoftStr,
   ): ReadonlyArray<Phrasing<never>> =>
-    renderInline(line).map(inlineToHtml(resolve));
+    renderInline(line, rawHtml).map(
+      inlineToHtml(resolve),
+    );
 
 /** A `text-align` style attribute for a non-default column. */
 const alignAttrs = (
@@ -171,19 +186,24 @@ const alignAttrs = (
 
 /** A nested list (`ul`/`ol`), the only Flow a `li` nests here. */
 type ListEl =
-  | Html<never, "ul">
-  | Html<never, "ol">;
+  Html<never, "ul"> | Html<never, "ol">;
 
 /** Builds the `ul`/`ol` element for a list's items. */
 const renderListEl =
-  (resolve: LinkResolver) =>
+  (resolve: LinkResolver, rawHtml: boolean) =>
   (
     ordered: boolean,
     items: ReadonlyArray<ListItem>,
   ): ListEl =>
     ordered
-      ? ol([], items.map(renderItem(resolve)))
-      : ul([], items.map(renderItem(resolve)));
+      ? ol(
+          [],
+          items.map(renderItem(resolve, rawHtml)),
+        )
+      : ul(
+          [],
+          items.map(renderItem(resolve, rawHtml)),
+        );
 
 /**
  * Renders one list item: its inline text followed by any
@@ -196,17 +216,20 @@ const renderListEl =
  * this flow position.
  */
 const renderItem =
-  (resolve: LinkResolver) =>
+  (resolve: LinkResolver, rawHtml: boolean) =>
   (item: ListItem): Html<never, "li"> =>
     li(
       [],
       [
-        ...renderInlines(resolve)(item.text),
+        ...renderInlines(
+          resolve,
+          rawHtml,
+        )(item.text),
         ...item.children.flatMap(
           (child): ReadonlyArray<ListEl> =>
             child.__tag === "List"
               ? [
-                  renderListEl(resolve)(
+                  renderListEl(resolve, rawHtml)(
                     child.content.ordered,
                     child.content.items,
                   ),
@@ -255,23 +278,20 @@ const calloutTitle = (
 
 /**
  * Folds one {@link Block} into a `plgg-view` tree under
- * the injected {@link Highlighter} and
- * {@link LinkResolver}, threading the per-page
- * {@link Sluggers} so heading ids match
- * `spike-decisions.md`'s exact VitePress slugs (with
- * per-page dedup). Inline-only blocks use the typed
- * builders; the block-nesting wrappers (`blockquote`,
- * the callout `div`) use the permissive `el` builder
- * because they may hold the highlighter's opaque
- * `Html<never>` — still pure Html data, escaped by
- * `renderToString`, never a hand-assembled string.
+ * the {@link RenderOptions} (injected highlighter + link
+ * resolver + `rawHtml` mode), threading the per-page
+ * {@link Sluggers} so heading ids match the configured
+ * slugger (with per-page dedup). Inline-only blocks use
+ * the typed builders; the block-nesting wrappers
+ * (`blockquote`, the callout `div`) use the permissive
+ * `el` builder because they may hold the highlighter's
+ * opaque `Html<never>` — still pure Html data, escaped by
+ * `renderToString`, never a hand-assembled string. An
+ * {@link htmlBlock} folds to a `raw` passthrough node
+ * emitted verbatim.
  */
 export const blockToHtml =
-  (
-    highlight: Highlighter,
-    resolve: LinkResolver,
-    slug: Sluggers,
-  ) =>
+  (options: RenderOptions, slug: Sluggers) =>
   (block: Block): Html<never> =>
     match(block)(
       [
@@ -279,11 +299,14 @@ export const blockToHtml =
         ({ content }): Html<never> => {
           const inlines = renderInline(
             content.text,
+            options.rawHtml,
           );
           return renderHeading(
             content.level,
             slug.next(plainText(inlines)),
-            inlines.map(inlineToHtml(resolve)),
+            inlines.map(
+              inlineToHtml(options.resolveLink),
+            ),
           );
         },
       ],
@@ -292,21 +315,27 @@ export const blockToHtml =
         ({ content }): Html<never> =>
           p(
             [],
-            renderInlines(resolve)(content.text),
+            renderInlines(
+              options.resolveLink,
+              options.rawHtml,
+            )(content.text),
           ),
       ],
       [
         codeFence$(),
         ({ content }): Html<never> =>
-          highlight(content.lang, content.code),
+          options.highlighter(
+            content.lang,
+            content.code,
+          ),
       ],
       [
         list$(),
         ({ content }): Html<never> =>
-          renderListEl(resolve)(
-            content.ordered,
-            content.items,
-          ),
+          renderListEl(
+            options.resolveLink,
+            options.rawHtml,
+          )(content.ordered, content.items),
       ],
       [
         table$(),
@@ -326,9 +355,10 @@ export const blockToHtml =
                             content.align,
                             i,
                           ),
-                          renderInlines(resolve)(
-                            cell,
-                          ),
+                          renderInlines(
+                            options.resolveLink,
+                            options.rawHtml,
+                          )(cell),
                         ),
                     ),
                   ),
@@ -345,9 +375,10 @@ export const blockToHtml =
                           content.align,
                           i,
                         ),
-                        renderInlines(resolve)(
-                          cell,
-                        ),
+                        renderInlines(
+                          options.resolveLink,
+                          options.rawHtml,
+                        )(cell),
                       ),
                     ),
                   ),
@@ -363,11 +394,7 @@ export const blockToHtml =
             "blockquote",
             [],
             content.children.map(
-              blockToHtml(
-                highlight,
-                resolve,
-                slug,
-              ),
+              blockToHtml(options, slug),
             ),
           ),
       ],
@@ -394,11 +421,7 @@ export const blockToHtml =
                 ],
               ),
               ...content.children.map(
-                blockToHtml(
-                  highlight,
-                  resolve,
-                  slug,
-                ),
+                blockToHtml(options, slug),
               ),
             ],
           ),
@@ -407,29 +430,31 @@ export const blockToHtml =
         thematicBreak$(),
         (): Html<never> => hr([], []),
       ],
+      // a raw HTML block is emitted verbatim
+      [
+        htmlBlock$(),
+        ({ content }): Html<never> =>
+          raw(content.html),
+      ],
     );
 
 /**
- * Builds the document fold: given the injected
- * {@link Highlighter} and {@link LinkResolver}, folds a
- * {@link Block} sequence into a single `Html<never>`
- * body wrapped in a `<div>`. One fresh {@link Sluggers}
- * per call resets the per-page dedup counter.
+ * Builds the document fold: given the {@link RenderOptions},
+ * folds a {@link Block} sequence into a single
+ * `Html<never>` body wrapped in a `<div>`. One fresh
+ * {@link Sluggers} over the configured base slugger per
+ * call resets the per-page dedup counter.
  */
 export const mdToHtml =
-  (
-    highlight: Highlighter,
-    resolveLink: LinkResolver,
-  ) =>
+  (options: RenderOptions) =>
   (doc: ReadonlyArray<Block>): Html<never> =>
     el(
       "div",
       [],
       doc.map(
         blockToHtml(
-          highlight,
-          resolveLink,
-          makeSluggers(),
+          options,
+          makeSluggers(options.slug),
         ),
       ),
     );

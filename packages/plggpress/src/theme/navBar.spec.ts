@@ -27,6 +27,8 @@ const config: SiteConfig = {
   ],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 const rail = renderToString(chromeRail(config));
