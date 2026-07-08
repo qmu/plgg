@@ -59,7 +59,16 @@ pre-build developer pause (developer approves the cut before any build).
 - [x] planning/artifact-generation — Planner, Architect, Constructor v1 (lead-verified via commits)
 - [x] planning/one-turn-review — round-1 reviews committed (ff6620d5, f5208733, + constructor)
 - [x] planning/respond-to-feedback — model-v2 (05b1a7c3), design-v2 (00f2e6b6), Planner ACCEPT (cc72e172)
-- [ ] planning/decomposition — Constructor writes refined tickets, then PAUSE for developer approval
+- [x] planning/decomposition — 6 refined tickets committed (9e8e6a13); PAUSED for developer approval
+
+- **2026-07-09 (lead)** — **Developer-approval pause** (the opt-in pre-build
+  checkpoint the developer selected at trip start). Decomposition produced the
+  refined queue under `.workaholic/tickets/todo/a-qmu-jp/`: A1 `…195655` →
+  A2 `…000044` → A3 `…000045` → B `…195656` → C `…195657`; `…192518` re-pointed
+  onto plgg-ui, depends_on A1. Each ticket carries the design's Policies + a Trip
+  Origin link to `designs/design-v2.md`. Trip is HALTED here pending developer
+  approval of the cut; on approval, resume into the Coding Phase (or `/drive` the
+  queue). No build has started.
 
 - **2026-07-09 (lead)** — **Consensus reached** (round 2, under the 3-round cap): both
   Model-v1 revision requests accepted → `model-v2.md` (05b1a7c3); `design-v2.md`
