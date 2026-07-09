@@ -1,6 +1,6 @@
 {
   "name": "plggpress",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A reusable VitePress-like static-site generator built from scratch on the plgg family: a typed SiteConfig contract (IA + home data), a single base-path href resolver, and a config-loading CLI.",
   "type": "module",
   "files": [

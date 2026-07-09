@@ -1,6 +1,6 @@
 {
   "name": "plgg-bundle",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "In-house minimal library bundler for the plgg monorepo (ESM+CJS dual output, per-file .d.ts tree), zero new dependencies — reuses the project's own TypeScript, no native binding.",
   "type": "module",
   "files": [

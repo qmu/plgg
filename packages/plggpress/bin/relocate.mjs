@@ -3,14 +3,15 @@
 // These tools run their `src/**/*.ts` entry directly and rely on Node stripping
 // types on load. Node refuses to strip types for `.ts` files under
 // `node_modules`, so a registry-installed tool cannot run in place. This helper
-// copies the package to a version-stamped dir OUTSIDE `node_modules` (with the
-// tool's own deps reachable via a `node_modules` symlink) and re-execs the copy
-// there. On a monorepo `file:` link the package realpath is already outside
-// `node_modules`, so it is a no-op.
+// copies the package to a per-(version, install-location) dir OUTSIDE
+// `node_modules` (with the tool's own deps reachable via a `node_modules`
+// symlink) and re-execs the copy there. On a monorepo `file:` link the package
+// realpath is already outside `node_modules`, so it is a no-op.
 //
 // Plain `.mjs`, Node built-ins only — it runs at process entry, before any
 // resolver hook is registered.
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   cpSync,
   existsSync,
@@ -54,14 +55,25 @@ export const relocateOutOfNodeModules = (
       "utf8",
     ),
   );
+  // The node_modules that CONTAINS this package holds its deps (npm hoists
+  // there). Key the relocation dir by that location too — two installs of the
+  // same version from different trees (e.g. a publish smoke's scratch install
+  // and a real consumer) must NOT share a copy, or one inherits the other's
+  // stale (possibly deleted) deps symlink.
+  const depsNodeModules = dirname(pkgRoot);
+  const tag = createHash("sha1")
+    .update(depsNodeModules)
+    .digest("hex")
+    .slice(0, 12);
   const dest = join(
     tmpdir(),
-    `plgg-relocate-${pkg.name}-${pkg.version}`,
+    `plgg-relocate-${pkg.name}-${pkg.version}-${tag}`,
   );
   const ready = join(
     dest,
     ".plgg-relocate-ready",
   );
+  const link = join(dest, "node_modules");
 
   if (!existsSync(ready)) {
     rmSync(dest, {
@@ -81,19 +93,16 @@ export const relocateOutOfNodeModules = (
       join(pkgRoot, "package.json"),
       join(dest, "package.json"),
     );
-    // The tool's own deps (typescript; plgg for plgg-test) live in the
-    // node_modules that CONTAINS this package (npm hoists there). Symlink it so
-    // resolution from the relocated copy finds them.
-    try {
-      symlinkSync(
-        dirname(pkgRoot),
-        join(dest, "node_modules"),
-        "dir",
-      );
-    } catch {
-      // A pre-existing symlink from a concurrent run is fine.
-    }
-    writeFileSync(ready, "");
+    writeFileSync(ready, depsNodeModules + "\n");
+  }
+  // (Re)create the deps symlink every run so it always points at the CURRENT
+  // node_modules: a cached copy from a prior run may hold a symlink to a tree
+  // that has since been removed (a publish smoke's scratch install) or moved.
+  rmSync(link, { force: true });
+  try {
+    symlinkSync(depsNodeModules, link, "dir");
+  } catch {
+    // A concurrent run created it first; its target is identical.
   }
 
   const child = spawnSync(
