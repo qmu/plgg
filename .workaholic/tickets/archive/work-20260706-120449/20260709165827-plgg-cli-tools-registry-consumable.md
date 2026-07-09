@@ -3,9 +3,9 @@ created_at: 2026-07-09T16:58:27+09:00
 author: a@qmu.jp
 type: bugfix
 layer: [Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 2bdf00ca
+category: Changed
 depends_on:
 mission:
 ---
@@ -153,3 +153,16 @@ consumer would invoke.
   the tools' run model (src↔dist divergence risk; plgg-bundle self-hosting its
   own emit) — heavier and less faithful to the deliberate run-from-source design.
   Revisit if relocation proves fragile.
+
+## Final Report
+
+Development completed as planned.
+
+### Discovered Insights
+
+- **Insight**: The run-from-source CLI failure had two separate consumer-install
+  modes: Node 24's node_modules type-stripping refusal and stale relocated cache
+  symlinks keyed only by package version.
+  **Context**: Registry-installed tool launchers need both package relocation
+  and install-location-sensitive cache keys, otherwise a publish smoke or prior
+  consumer install can poison the next standalone run.
