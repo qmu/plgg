@@ -61,15 +61,17 @@ export {
   checkModels,
 } from "plggpress/ContentModel/usecase/checkModels";
 
-// The read-only delivery API (D4/D11) — a thin plgg-server
-// Web sub-app over plgg-content's in-process query functions,
-// mounted at the pressServeWeb seam via `route("/api", …)`.
-export { contentApi } from "plggpress/api/contentApi";
-
 export {
   href,
   isExternalHref,
 } from "plggpress/Href/usecase/href";
+
+// The content router builder + the build spec factory —
+// the public SSG-engine surface a dynamic consumer
+// (plgg-cms) composes its served app onto, alongside the
+// `plggpress/framework` seam.
+export { pressRouter } from "plggpress/router/pressRouter";
+export { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
 
 export {
   type PressOptions,

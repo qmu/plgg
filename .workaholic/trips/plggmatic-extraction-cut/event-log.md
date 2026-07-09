@@ -17,3 +17,4 @@
 | 2026-07-09T00:05:45+09:00 | Constructor | decomposition | tickets | design-v2 decomposed into 5 refined tickets under todo/a-qmu-jp: A1(195655 rewritten) -> A2(000044 new) -> A3(000045 new) -> B(195656 rewritten) -> C(195657 rewritten); 192518 re-pointed onto plgg-ui depends_on A1 |
 | 2026-07-09T00:07:04+09:00 | Lead | developer-pause | planning/decomposition | Design + 6 refined tickets committed; trip halted for developer approval of the cut before any build (opt-in checkpoint). |
 | 2026-07-09T00:19:47+09:00 | Lead | developer-approved | complete/done | Developer approved the cut; design-only trip complete; build deferred to a later /drive. |
+| 2026-07-09T10:39:16+09:00 | Lead | carry-checkpoint | 20260709103916-resume-plggmatic-publish-boundary.md | Drive reached ticket B; checkpointed the plgg-ui publish and plggpress SSG/package-boundary concern before continuing B/C. |

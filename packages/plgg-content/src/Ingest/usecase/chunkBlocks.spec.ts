@@ -14,6 +14,7 @@ import {
   table,
   callout,
   thematicBreak,
+  htmlBlock,
 } from "plgg-md";
 import { none, some } from "plgg";
 import { chunkBlocks } from "plgg-content/Ingest/usecase/chunkBlocks";
@@ -112,6 +113,7 @@ test("every block variant contributes its words to the section text", () => {
       callout("tip", some("callouttitle"), [
         para("calloutbody"),
       ]),
+      htmlBlock('<section data-note="htmlword"></section>'),
       thematicBreak(),
     ])[0]?.text ?? "";
   return all([
@@ -122,6 +124,7 @@ test("every block variant contributes its words to the section text", () => {
     check(text, toContain("rowcell")),
     check(text, toContain("callouttitle")),
     check(text, toContain("calloutbody")),
+    check(text, toContain("htmlword")),
   ]);
 });
 

@@ -1,6 +1,9 @@
 {
   "name": "plgg-ui",
   "version": "0.1.0",
+  "files": [
+    "dist"
+  ],
   "description": "The plgg-family UI engine: pane-alignment layout, a declarative admin vocabulary, a TEA scheduler, screen-mode renderers, form controls, and a parameterizable light/dark theme surface — the reusable seam extracted from plggmatic. Runtime on the root barrel, theme on the ./style subpath.",
   "type": "module",
   "main": "dist/index.es.js",

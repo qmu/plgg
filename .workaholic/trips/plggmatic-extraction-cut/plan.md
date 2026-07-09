@@ -71,6 +71,16 @@ pre-build developer pause (developer approves the cut before any build).
   trip's Coding Phase. The npm-publish of plgg-ui (prerequisite for B) stays a
   surfaced, developer-gated action — never auto-performed.
 
+- **2026-07-09 (carry)** — `/drive` reached ticket B and found the published
+  dependency boundary needed a refinement before populating `../plggmatic`.
+  `plgg-ui@0.1.0` was the immediate missing npm package, but the local
+  `plggpress` package now pulls in CMS/server-side packages (`plgg-content`,
+  `plgg-mcp`, `plgg-domain`) that the extracted plggmatic docs site should not
+  force-publish. Resume via
+  `.workaholic/tickets/todo/a-qmu-jp/20260709103916-resume-plggmatic-publish-boundary.md`.
+  That ticket supersedes B's remaining work until the docs-builder boundary is
+  settled, then continues B and only then C.
+
 - **2026-07-09 (lead)** — **Developer-approval pause** (the opt-in pre-build
   checkpoint the developer selected at trip start). Decomposition produced the
   refined queue under `.workaholic/tickets/todo/a-qmu-jp/`: A1 `…195655` →

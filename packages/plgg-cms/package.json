@@ -1,0 +1,64 @@
+{
+  "name": "plgg-cms",
+  "version": "0.0.1",
+  "description": "The dynamic content-management surface that pairs with the plggpress static-site generator: the admin UI, the read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP tools, and the agent surfaces — composed onto plggpress's framework seam and served as an always-on node:http instance.",
+  "type": "module",
+  "files": [
+    "dist",
+    "src",
+    "bin"
+  ],
+  "bin": {
+    "plgg-cms": "bin/plgg-cms.mjs"
+  },
+  "main": "dist/index.es.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-http": "file:../plgg-http",
+    "plgg-server": "file:../plgg-server",
+    "plgg-view": "file:../plgg-view",
+    "plgg-md": "file:../plgg-md",
+    "plgg-ui": "file:../plgg-ui",
+    "plgg-kit": "file:../plgg-kit",
+    "plgg-content": "file:../plgg-content",
+    "plgg-sql": "file:../plgg-sql",
+    "plgg-auth": "file:../plgg-auth",
+    "plgg-mcp": "file:../plgg-mcp",
+    "plggpress": "file:../plggpress"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

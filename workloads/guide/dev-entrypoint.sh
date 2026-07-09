@@ -39,12 +39,6 @@ for pkg in \
   plgg-highlight \
   plgg-server \
   plgg-ui \
-  plgg-sql \
-  plgg-db-migration \
-  plgg-content \
-  plgg-auth \
-  plgg-kit \
-  plgg-mcp \
   plggpress \
   guide
 do

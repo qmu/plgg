@@ -15,6 +15,9 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 #   ./scripts/publish-npm.sh              # preflight -> gate (check-all.sh) ->
 #                                         # publish the bumped set -> verify
 #   SKIP_GATE=1 ./scripts/publish-npm.sh  # skip the gate when one just ran green
+#   ONLY=plgg-ui ./scripts/publish-npm.sh # publish only the named package(s),
+#                                         # comma- or space-separated, still via
+#                                         # the same gate/stage/verify path
 #
 # Efficiency: the preflight computes the publish set (local > registry) up front
 # and prints it, so a run with nothing bumped is a no-op that NEVER builds/gates,
@@ -35,18 +38,45 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # The publish order IS build.sh's topology — derived, never forked (the
 # deploy-guide.yml PR #51 drift incident is why). plgg-bundle is prepended:
 # it sits outside that list and has no file: runtime deps.
-ORDER="plgg-bundle $(sed -n 's|^cd \$REPO_ROOT/packages/\([a-z0-9-]*\) && npm run build$|\1|p' scripts/build.sh)"
+ORDER="plgg-bundle $(sed -n 's|^cd \$REPO_ROOT/packages/\([a-z0-9-]*\) && npm run build$|\1|p' scripts/build.sh | tr '\n' ' ')"
+ONLY_PACKAGES=$(printf '%s' "${ONLY:-}" | tr ',' ' ')
+
+contains_word() {
+  WORD="$1"
+  LIST="$2"
+  case " $LIST " in
+    *" $WORD "*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+if [ -n "$ONLY_PACKAGES" ]; then
+  for REQUESTED in $ONLY_PACKAGES; do
+    if ! contains_word "$REQUESTED" "$ORDER"; then
+      echo "!!! ONLY requested unknown package directory: $REQUESTED"
+      echo "    Choose one of: $ORDER"
+      exit 1
+    fi
+  done
+fi
 
 # === Preflight: compute the publish set (local version > registry) up front ===
 # Read-only: one `npm view` per package, no build, no publish. This is the
 # source of truth for what the real run below will publish, and — via
 # PREFLIGHT=1 — what /ship inspects to decide whether to ask the developer.
 echo "=== Preflight: comparing local vs registry versions ==="
+if [ -n "$ONLY_PACKAGES" ]; then
+  echo "=== Publish filter: ONLY=$ONLY_PACKAGES ==="
+fi
 PUBLISH_SET=""
 SKIPPED=""
 PRIVATE_SKIPPED=""
 
 for PKG in $ORDER; do
+  if [ -n "$ONLY_PACKAGES" ] && ! contains_word "$PKG" "$ONLY_PACKAGES"; then
+    continue
+  fi
+
   DIR="$REPO_ROOT/packages/$PKG"
   NAME=$(node -p "require('$DIR/package.json').name")
   VERSION=$(node -p "require('$DIR/package.json').version")
@@ -112,6 +142,13 @@ if [ -z "$PUBLISH_SET" ]; then
   echo "\n=== All shell scripts have been executed successfully ==="
   exit 0
 fi
+
+if ! NPM_USER=$(npm whoami 2>/dev/null); then
+  echo "!!! npm publish requires an authenticated npm session."
+  echo "    Run npm login, then retry this script."
+  exit 1
+fi
+echo "=== npm auth: publishing as $NPM_USER ==="
 
 # Gate: a fresh green check-all before publishing anything (skipped only when a
 # same-session run already went green and set SKIP_GATE).

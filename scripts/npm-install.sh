@@ -36,6 +36,10 @@ cd $REPO_ROOT/packages/plgg-mcp && npm install
 # OIDC mounts).
 cd $REPO_ROOT/packages/plgg-auth && npm install
 cd $REPO_ROOT/packages/plggpress && npm install
+# plgg-cms after plggpress: it file:-depends on plggpress (the SSG framework
+# seam) plus plgg-content/plgg-sql/plgg-auth/plgg-mcp/plgg-server, all installed
+# above.
+cd $REPO_ROOT/packages/plgg-cms && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/plgg-domain && npm install
 cd $REPO_ROOT/packages/example && npm install

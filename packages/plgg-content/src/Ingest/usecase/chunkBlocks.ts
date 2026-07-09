@@ -16,6 +16,7 @@ import {
   table$,
   callout$,
   thematicBreak$,
+  htmlBlock$,
 } from "plgg-md";
 import { type Chunk } from "plgg-content/Ingest/model/Chunk";
 
@@ -81,6 +82,10 @@ const blockText = (block: Block): SoftStr =>
           .trim(),
     ],
     [thematicBreak$(), (): SoftStr => ""],
+    [
+      htmlBlock$(),
+      ({ content }): SoftStr => content.html,
+    ],
   );
 
 /** A section under construction during the forward walk. */
