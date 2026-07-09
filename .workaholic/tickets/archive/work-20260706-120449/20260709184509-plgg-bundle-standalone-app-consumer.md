@@ -3,9 +3,9 @@ created_at: 2026-07-09T18:45:09+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 2abc9148
+category: Changed
 depends_on:
 mission:
 ---
@@ -188,3 +188,20 @@ green (the monorepo path still discovers `packages/` siblings from `src`).
 - Related tickets: `20260709103916` (extraction, blockers 1–3 documented in its
   carry checkpoints), `20260709165827` (run-from-source CLI consumability — the
   launcher relocation, now largely done; this ticket is its app-target sequel).
+
+## Final Report
+
+Development completed as planned.
+
+### Discovered Insights
+
+- **Insight**: Published plgg-family dist files are already plgg-bundle registry
+  bundles, so their inner `require("src/...")` calls are not package imports.
+  **Context**: App bundling published deps needs to treat dist entries as
+  prebundled modules: inline their real external package requires, but leave the
+  inner registry ids untouched.
+- **Insight**: A standalone source sibling can have its own per-package
+  `node_modules` even when the leaf app has a separate install tree.
+  **Context**: The extracted `plggmatic` package imports `plgg-ui/style` from
+  its own install, so app dependency discovery must include sibling source
+  packages' `node_modules`, not only the app package's node_modules.

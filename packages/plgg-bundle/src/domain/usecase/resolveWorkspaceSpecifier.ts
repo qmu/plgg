@@ -8,11 +8,12 @@ import { type WorkspacePackage } from "plgg-bundle/domain/usecase/discoverWorksp
 
 /**
  * App-mode resolver: resolve an import specifier to an
- * absolute SOURCE file, inlining workspace siblings
- * (`plgg`, `plgg-view/client`, …) by walking their `src`
- * instead of leaving them external. This is the mirror of
- * the library externalization — the leaf app is where
- * bundling deps is correct.
+ * absolute inlineable file. Source packages
+ * (`packages/plgg`, local `file:` siblings) resolve to
+ * `src`; published packages installed in `node_modules`
+ * resolve to their built ESM `dist` export. This is the
+ * mirror of the library externalization — the leaf app is
+ * where bundling deps is correct.
  *
  * Order:
  * 1. relative (`./x`) → resolve against the importer,
@@ -75,8 +76,8 @@ const matchPackage = (
 
 /**
  * Resolve a specifier already known to belong to `pkg`:
- * a declared export subpath via the exports reversal,
- * else the internal self-alias path.
+ * a declared export subpath through the package kind,
+ * else a source package's internal self-alias path.
  */
 const resolveInPackage = (
   pkg: WorkspacePackage,
@@ -89,17 +90,42 @@ const resolveInPackage = (
           pkg.name.length + 1,
         )}`;
   const dist = pkg.exports.get(subpath);
-  return dist === undefined
+  return pkg.kind === "source"
+    ? resolveInSourcePackage(pkg, specifier, dist)
+    : resolveInDistPackage(pkg, dist);
+};
+
+/**
+ * Source packages keep the previous monorepo behavior:
+ * public exports reverse their emitted dist stem back to
+ * source; non-export self-alias paths resolve under `src`.
+ */
+const resolveInSourcePackage = (
+  pkg: WorkspacePackage & { kind: "source" },
+  specifier: string,
+  dist: string | undefined,
+): string | undefined =>
+  dist === undefined
     ? resolveSpecifier({
         specifier,
         fromFile: pkg.dir,
         aliasPrefix: pkg.name,
-        aliasSrcRoot: join(pkg.dir, "src"),
+        aliasSrcRoot: pkg.srcDir,
       })
-    : pickExisting(
-        join(pkg.dir, "src", srcStem(dist)),
-      );
-};
+    : pickExisting(join(pkg.srcDir, srcStem(dist)));
+
+/**
+ * Dist-only packages can safely resolve only declared
+ * public exports. Internal self-alias paths are not
+ * available in a consumer install.
+ */
+const resolveInDistPackage = (
+  pkg: WorkspacePackage & { kind: "dist" },
+  dist: string | undefined,
+): string | undefined =>
+  dist === undefined
+    ? undefined
+    : pickExisting(join(pkg.dir, dist));
 
 /**
  * The source stem implied by an export's dist default —

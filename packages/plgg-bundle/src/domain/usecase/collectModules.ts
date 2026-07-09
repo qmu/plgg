@@ -135,7 +135,7 @@ const linkModule = (
   cjs: string,
   acc: Map<string, Module>,
 ): ReadonlyArray<string> => {
-  const specifiers = requireSpecifiers(cjs);
+  const specifiers = inlineRequireSpecifiers(file, cjs);
   const externals: string[] = [];
   const deps: string[] = [];
   let rewritten = cjs;
@@ -164,6 +164,59 @@ const linkModule = (
   });
   return deps;
 };
+
+/**
+ * Literal requires that belong to the OUTER graph walk.
+ * Registry-installed plgg-family packages ship
+ * pre-bundled dist entries whose internal module table
+ * still contains strings like `require("src/index.ts")`.
+ * Those are parameters of the INNER registry runtime and
+ * must not be resolved or rewritten by this app bundle.
+ * Real top-level externals in that dist file remain, e.g.
+ * `require("plgg")`, and are still inlined by the app
+ * graph.
+ */
+const inlineRequireSpecifiers = (
+  file: string,
+  cjs: string,
+): ReadonlyArray<string> => {
+  const specifiers = requireSpecifiers(cjs);
+  if (!isInstalledDist(file)) {
+    return specifiers;
+  }
+  const internal = bundledModuleIds(cjs);
+  return specifiers.filter((spec) => !internal.has(spec));
+};
+
+/**
+ * Whether a file is a registry-installed built JS entry.
+ * Source packages under the monorepo are never matched.
+ */
+const isInstalledDist = (file: string): boolean => {
+  const normalized = file.split("\\").join("/");
+  return (
+    normalized.includes("/node_modules/") &&
+    normalized.includes("/dist/") &&
+    normalized.endsWith(".js")
+  );
+};
+
+/**
+ * Module ids declared inside a plgg-bundle emitted
+ * registry object: `"src/x.ts": function (...) { ... }`.
+ */
+const bundledModuleIds = (
+  cjs: string,
+): ReadonlySet<string> =>
+  new Set(
+    [
+      ...cjs.matchAll(
+        /["']([^"']+)["']\s*:\s*function\s*\(/g,
+      ),
+    ].flatMap((m) =>
+      m[1] === undefined ? [] : [m[1]],
+    ),
+  );
 
 /**
  * Read a source file, re-throwing with context.
