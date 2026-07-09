@@ -3,9 +3,9 @@ created_at: 2026-07-09T10:39:16+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Config, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: 4f182067
+category: Changed
 depends_on:
 ---
 
@@ -165,7 +165,7 @@ standalone. Two follow-on issues:
 **Status: the DESIGN-SYSTEM LIBRARY extraction works standalone; the SHOWCASE
 APPS (`plggmatic-example`, `site` client) do not, pending plgg-bundle
 standalone-consumer support.** Full `../plggmatic` check-all green needs a new
-effort: teach `plgg-bundle`'s app target to consume published dependencies
+effort: 1h
 (node_modules-aware discovery + inline from dist, or a dedicated standalone
 bundler mode) and/or ship `src` in the inlined libs. Scope it as its own ticket;
 it is a plgg-bundle enhancement, not part of the populate/publish path. Ticket C
@@ -238,3 +238,12 @@ Ticket B was started but not completed. The initial blocker was that `plgg-ui@0.
 - Uncommitted working-tree changes exist in `scripts/publish-npm.sh`, `packages/plgg-ui/package.json`, `packages/plgg-content/src/Ingest/usecase/chunkBlocks.ts`, and `packages/plgg-content/src/Ingest/usecase/chunkBlocks.spec.ts`; do not discard them.
 - The original ticket B and ticket C are still queued. This resumption ticket supersedes B's remaining work; after this ticket lands, the developer can remove or archive the superseded B ticket through the normal workflow.
 - The target repo `/home/ec2-user/projects/plggmatic` was observed as initialized but empty except for `.git`.
+
+## Final Report
+
+Development completed as planned.
+
+### Discovered Insights
+
+- **Insight**: The standalone extraction boundary is proven only when `../plggmatic` pins to published plgg tool versions that include the relocation and app-bundler fixes.
+  **Context**: Earlier green checks with locally patched tools could hide npm-registry drift. Repinning `plgg-bundle`, `plgg-test`, and `plggpress` in `../plggmatic` and running its own `check-all` against npm artifacts turned the removal prerequisite into a verifiable public contract.
