@@ -134,6 +134,44 @@ a release-hygiene operation distinct from the tooling fix and larger than the
 originally-scoped `plggpress@0.0.2` bump — surfaced for a developer decision, not
 auto-performed.
 
+## Carry Checkpoint (2026-07-09, fifth) — BLOCKERS 1+2 CLEARED; BLOCKER 3 (app bundler is monorepo-only) is a WALL
+
+The developer published the 8-package family set (`plgg-view@0.0.2`,
+`plgg-md@0.0.2`, `plgg-server@0.0.4`, `plgg-ui@0.1.1`, `plgg-highlight@0.0.3`,
+`plgg-bundle@0.0.3`, `plgg-test@0.0.4`, `plggpress@0.0.2`). `../plggmatic`
+install now resolves and the **library** `plggmatic` builds + tests green
+standalone. Two follow-on issues:
+
+- **relocate.mjs stale-cache bug — FIXED (commit `efc6a4ce`).** The first
+  relocate keyed its /tmp copy by name+version only and cached the deps symlink;
+  a consumer install reused the publish smoke's cached copy whose symlink pointed
+  at the deleted scratch install, so `typescript` was unresolved. Fixed: key the
+  copy by install-location hash and recreate the deps symlink every run. Tools
+  bumped (plgg-bundle 0.0.4, plgg-test 0.0.5, plggpress 0.0.3, plgg-cms 0.0.2) —
+  the just-published 0.0.3/0.0.4/0.0.2 carry the buggy relocate and need a
+  re-publish.
+
+- **BLOCKER 3 — the app bundler cannot build standalone apps against published
+  deps.** `plgg-bundle`'s `target:"app"` inlines dependencies by discovering them
+  as `packages/` SIBLINGS (`discoverWorkspace` scans `dirname(config.root)`) and
+  reading their `src/`. In `../plggmatic/packages/` the only siblings are
+  `{plggmatic, plggmatic-example, site}`; `plgg`/`plgg-view`/`plgg-ui` live in
+  `node_modules` and are never found, so `plggmatic-example` fails with
+  `ResolveError: cannot resolve "plgg"`. Even if discovery found them, the
+  published libs ship dist-only (no `src`), which the sibling-src inliner needs.
+  `site`'s client bundle (devEntry) shares the app path. This is an architectural
+  limitation of the monorepo-only app bundler, NOT a version/packaging fix.
+
+**Status: the DESIGN-SYSTEM LIBRARY extraction works standalone; the SHOWCASE
+APPS (`plggmatic-example`, `site` client) do not, pending plgg-bundle
+standalone-consumer support.** Full `../plggmatic` check-all green needs a new
+effort: teach `plgg-bundle`'s app target to consume published dependencies
+(node_modules-aware discovery + inline from dist, or a dedicated standalone
+bundler mode) and/or ship `src` in the inlined libs. Scope it as its own ticket;
+it is a plgg-bundle enhancement, not part of the populate/publish path. Ticket C
+(remove the cluster from the monorepo) stays blocked until `../plggmatic` is fully
+green.
+
 Ticket B was started but not completed. The initial blocker was that `plgg-ui@0.1.0` was not published while `plgg@0.0.27`, `plgg-view@0.0.1`, and `plggpress@0.0.1` were published. The session patched `scripts/publish-npm.sh` to support `ONLY=plgg-ui`, added `"files": ["dist"]` to `packages/plgg-ui/package.json`, and fixed an unrelated `plgg-content` gate failure caused by the new `HtmlBlock` variant in `plgg-md`. Work stopped at a product-boundary concern: the standalone `../plggmatic` repo should consume published packages, but should not force publication of `plgg-content`, `plgg-mcp`, or `plgg-domain` just because the current local `plggpress` has grown CMS/server features.
 
 ## Policies
