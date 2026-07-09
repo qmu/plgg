@@ -118,9 +118,8 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
 - **[`packages/plgg-ui/`](packages/plgg-ui/)** - The plgg-family UI engine extracted from plggmatic: `row`/`column`/`pane` layout combinators, fundamental components as pure `(props) => Html<Msg>`, caster-parsed forms, a declarative admin vocabulary, a TEA scheduler, and screen-mode renderers (runtime), with a parameterizable light/dark theme on the `./style` subpath
-- **[`packages/plggmatic/`](packages/plggmatic/)** - The Pragmatic design system on the plgg family (a `plgg-ui` consumer): the branded `--pm-*` design language, its `Theme` contract, and the palette-override API
-- **[`packages/site/`](packages/site/)** - The plggpress-built documentation site for plggmatic (private `@plggmatic/site`, not published)
-- **[`packages/plggmatic-example/`](packages/plggmatic-example/)** - The plggmatic workbench: a traversable column-stack (Miller columns) demo app served under the docs at `/example/`
+
+The Pragmatic design-system package, its documentation site, and its workbench now live in the standalone `../plggmatic` repository. This monorepo keeps `plgg-ui`, the shared engine consumed by both plggpress and that extracted design-system repo.
 
 ## Installation
 

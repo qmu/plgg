@@ -44,13 +44,8 @@ cd $REPO_ROOT/packages/plgg-cli && npm run build
 # the declarative vocabulary, the scheduler, renderers, and the theme surface)
 # — the reusable seam extracted from plggmatic (trip plggmatic-extraction-cut,
 # ticket A1). Consumes plgg + plgg-view, both built above. Built BEFORE
-# plggmatic, which now consumes plgg-ui's dist as a facade.
+# plggpress/plgg-cms, which consume the engine directly.
 cd $REPO_ROOT/packages/plgg-ui && npm run build
-# plggmatic (the Pragmatic design system) — now a facade over plgg-ui, so it
-# builds after plgg-ui. Built BEFORE plggpress, which consumes the theme (D3
-# roadmap ticket 07). publish order is sed-derived from these cd-lines, so
-# plgg-ui/plggmatic must precede plggpress here.
-cd $REPO_ROOT/packages/plggmatic && npm run build
 # plgg-sql / plgg-db-migration / plgg-content BEFORE plgg-cms: plgg-cms mounts
 # plgg-content's read-only delivery API at /api, and plgg-content depends on
 # plgg-sql + plgg-db-migration (+ plgg-md), so the whole chain must have dists
@@ -94,15 +89,4 @@ cd $REPO_ROOT/packages/plgg-test && npm run build
 # plgg + plgg-view + plgg-router (+ plgg-server's view types) and inlines them
 # from source via the in-house bundler's app target.
 cd $REPO_ROOT/packages/example && npm run build
-# --- plggmatic docs site and workbench example (plggmatic itself is built
-# above, ahead of plggpress which now depends on it) ---
-# plggmatic-example: the workbench CSR app; the app bundler inlines
-# plgg/plgg-view/plggmatic from source, so it builds after plggmatic.
-cd $REPO_ROOT/packages/plggmatic-example && npm run build
-# site: the plggpress-built docs for plggmatic; needs plggpress + plggmatic.
-cd $REPO_ROOT/packages/site && npm run build
-# nest the workbench app under the served docs at /example/.
-rm -rf $REPO_ROOT/packages/site/dist/example
-mkdir -p $REPO_ROOT/packages/site/dist/example
-cp -r $REPO_ROOT/packages/plggmatic-example/dist/. $REPO_ROOT/packages/site/dist/example/
 echo "\n=== All shell scripts have been executed successfully ==="

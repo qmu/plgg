@@ -2,12 +2,12 @@
 
 > **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
 
-The **plgg-family UI engine**: the reusable seam extracted from
-[`plggmatic`](../plggmatic/) (the `plggmatic-extraction-cut` trip). It carries the
+The **plgg-family UI engine**: the reusable seam extracted from the former local
+`plggmatic` package during the `plggmatic-extraction-cut` trip. It carries the
 engine + theme mechanism that both a docs framework
-([`plggpress`](../plggpress/)) and a branded design system (`plggmatic`) consume,
-with **no brand identity of its own** — the Pragmatic `--pm-*` design language is
-a default that a consumer can replace.
+([`plggpress`](../plggpress/)) and the standalone `../plggmatic` branded design
+system consume, with **no brand identity of its own** — the Pragmatic `--pm-*`
+design language is a default that a consumer can replace.
 
 Two export surfaces, mapped to the two things consumers use:
 

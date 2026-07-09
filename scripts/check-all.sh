@@ -55,6 +55,3 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-domain.sh
 ./scripts/test-plgg-auth.sh
 ./scripts/test-example.sh
-./scripts/test-plggmatic.sh
-./scripts/test-plggmatic-example.sh
-./scripts/test-site.sh

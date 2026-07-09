@@ -212,9 +212,9 @@ EOS
   # --ignore-scripts: the dist is already built by build.sh before staging,
   # so no package needs a publish-time lifecycle hook. This immunizes the
   # family-publish flow against any staged package's stray
-  # prepublishOnly/prepare/prepack/publish/postpublish script (e.g.
-  # plggmatic's old `publish` hook that ran plgg-bundle in the staging copy
-  # → exit 127 and aborted the whole run).
+  # prepublishOnly/prepare/prepack/publish/postpublish script (for example, a
+  # retired package hook that ran plgg-bundle in the staging copy and aborted
+  # the whole run with exit 127).
   (cd "$STAGE" && npm publish --tag latest --ignore-scripts)
 
   echo "=== $NAME@$VERSION: verify - registry resolves ==="

@@ -3,9 +3,9 @@ created_at: 2026-07-08T19:56:57+09:00
 author: a@qmu.jp
 type: refactoring
 layer: [Config, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: 1e4d4e30
+category: Removed
 depends_on: [20260708195656-init-and-populate-plggmatic-repo.md]
 mission:
 ---
@@ -105,3 +105,12 @@ is the source of truth to edit).
 - **KEEP `plgg-ui`** — it is the retained engine, not part of the cluster. Deleting it would break plggpress.
 - `build.sh` is the single source of truth for publish order + guide provisioning (sed-derived); never hand-fork the derived lists — edit `build.sh` and let them follow (PR #51 drift incident).
 - This is the irreversible half: once the three packages are deleted here, `../plggmatic` is their only home. Confirm ticket B's standalone green first.
+
+## Final Report
+
+Development completed as planned.
+
+### Discovered Insights
+
+- **Insight**: Removing packages from the repo also requires clearing package-local README and lockfile references, not only the top-level scripts.
+  **Context**: `gate-readme` caught `packages/plgg-ui/README.md` linking to the deleted `../plggmatic/` directory, and `packages/plggpress/package-lock.json` still carried extraneous local stanzas from the older plggpress/plggmatic coupling. Keeping these files reconciled prevents a later install or docs gate from resurrecting stale monorepo assumptions.
