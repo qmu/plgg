@@ -57,7 +57,7 @@ import {
   changeStatus,
   publishDraft,
   publishAsset,
-} from "plgg-content";
+} from "plgg-cms/content";
 import {
   type Account,
   type AccountStore,

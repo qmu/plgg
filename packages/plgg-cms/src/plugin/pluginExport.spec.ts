@@ -4,7 +4,7 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { collectionSchema } from "plgg-content";
+import { collectionSchema } from "plgg-cms/content";
 import {
   mcpJson,
   pluginManifest,

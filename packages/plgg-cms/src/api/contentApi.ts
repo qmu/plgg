@@ -38,7 +38,7 @@ import {
   getDocument,
   ragSearch,
   asListQuery,
-} from "plgg-content";
+} from "plgg-cms/content";
 
 /** The query functions' error channel. */
 type ApiError = SqlError | InvalidError | Defect;
@@ -49,7 +49,7 @@ const errMessage = (e: ApiError): SoftStr =>
 
 /**
  * The read-only, PUBLIC delivery API (D4/D11) — a thin
- * `plgg-server` {@link Web} adapter over plgg-content's
+ * `plgg-server` {@link Web} adapter over plgg-cms/content's
  * in-process query functions, mounted at `/api` on the
  * served plggpress instance. GET only, the same content the
  * SSG already publishes, so it needs no authz yet (tickets

@@ -14,7 +14,7 @@ import {
   type Method,
   handle,
 } from "plgg-server";
-import { type ServerInfo } from "plgg-mcp";
+import { type ServerInfo } from "plgg-cms/mcpProtocol";
 import {
   mcpWeb,
   mcpWebGuarded,

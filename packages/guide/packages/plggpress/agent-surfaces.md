@@ -15,7 +15,7 @@ The always-on baseline is FTS5/BM25 search
 The opt-in tier (decision D12) adds embeddings through
 a single [plgg-kit](/packages/plgg-kit) vendor seam
 (`generateEmbedding`), stores a per-chunk `Float32`
-BLOB on plgg-content's `chunks` index, ranks with an
+BLOB on the CMS-owned `chunks` index, ranks with an
 in-JS cosine top-k, and serves a hybrid FTS5+vector
 search — **with no API key it gracefully degrades to
 BM25**. The retrieval endpoint (`ragSearch`) is exposed
@@ -44,14 +44,14 @@ is hidden** — the graceful-darkness gate.
 ## MCP server
 
 The same content is reachable by MCP-speaking agents
-through [plgg-mcp](/packages/plgg-mcp), a hand-rolled
-JSON-RPC 2.0 / MCP server (no third-party SDK, decision
-D15) with two transports:
+through the hand-rolled JSON-RPC 2.0 / MCP protocol
+modules now owned by [plgg-cms](/packages/plgg-cms)
+(no third-party SDK, decision D15) with two transports:
 
 - **stdio** — the line-delimited `process.stdin/stdout`
   loop, exposing read-only content tools
   (`search_content`, `get_article`, `list_collections`)
-  over plgg-content's query functions.
+  over the CMS-owned content query functions.
 - **Streamable HTTP** — the same server **mounted on
   the served instance** and protected as an **OAuth 2.1
   resource server** against plggpress's own OP. Scopes

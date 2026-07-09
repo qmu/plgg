@@ -22,7 +22,7 @@ import {
   type Db,
   openDraftStore,
   sqlDraftStore,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { memoryRpSessionStore } from "plgg-cms/auth/rpSessionStore";
 import { editorWeb } from "plgg-cms/editing/editorWeb";
 

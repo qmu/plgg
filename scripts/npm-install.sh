@@ -21,19 +21,17 @@ cd $REPO_ROOT/packages/plgg-server && npm install
 # plgg-ui is the retained UI engine from the plggmatic extraction. It stays in
 # this monorepo and is consumed directly by plggpress and plgg-cms.
 cd $REPO_ROOT/packages/plgg-ui && npm install
-# plgg-sql / plgg-db-migration / plgg-content before plgg-cms: plgg-cms mounts
-# plgg-content's read-only delivery API and that package depends on the SQL and
+# plgg-sql / plgg-db-migration before plgg-cms: the CMS now owns the former
+# content query/index source internally, and that code depends on the SQL and
 # migration packages.
 cd $REPO_ROOT/packages/plgg-sql && npm install
 cd $REPO_ROOT/packages/plgg-db-migration && npm install
-cd $REPO_ROOT/packages/plgg-content && npm install
-cd $REPO_ROOT/packages/plgg-mcp && npm install
 # plgg-auth before plgg-cms: the CMS owns the auth/admin dynamic mounts.
 cd $REPO_ROOT/packages/plgg-auth && npm install
 cd $REPO_ROOT/packages/plggpress && npm install
 # plgg-cms after plggpress: it file:-depends on plggpress (the SSG framework
-# seam) plus plgg-content/plgg-sql/plgg-auth/plgg-mcp/plgg-server, all installed
-# above.
+# seam) plus plgg-sql/plgg-db-migration/plgg-auth/plgg-server, all installed
+# above; former content and MCP code is package-internal.
 cd $REPO_ROOT/packages/plgg-cms && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/plgg-domain && npm install

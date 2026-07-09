@@ -10,7 +10,7 @@ import {
   err,
   defect,
 } from "plgg";
-import { type AssetExportFs } from "plgg-content";
+import { type AssetExportFs } from "plgg-cms/content";
 
 /**
  * The real {@link AssetExportFs} `publishAsset` writes THROUGH,

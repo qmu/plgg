@@ -22,7 +22,7 @@ import {
   type StakeholderStore,
   openStakeholderStore,
   sqlStakeholderStore,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { memoryRpSessionStore } from "plgg-cms/auth/rpSessionStore";
 import { submitWeb } from "plgg-cms/stakeholder/submitWeb";
 

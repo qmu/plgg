@@ -23,7 +23,7 @@ import {
   openStakeholderStore,
   openDraftStore,
   openAssetStore,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { sqlAccountStore } from "plgg-auth";
 import { bootstrapAuthWeb } from "plgg-cms/auth/bootstrapAuth";
 import { deliverAdmin } from "plgg-cms/Admin/deliverAdmin";
@@ -40,7 +40,7 @@ import { healthWeb } from "plgg-cms/ops/healthWeb";
 import { contentApi } from "plgg-cms/api/contentApi";
 import { mcpWeb } from "plgg-cms/mcp/mcpWeb";
 import { pluginWeb } from "plgg-cms/plugin/pluginWeb";
-import { contentTools } from "plgg-mcp";
+import { contentTools } from "plgg-cms/mcpProtocol";
 import { fsAssetExportFs } from "plgg-cms/media/assetExportFs";
 import { agentWeb } from "plgg-cms/agent/agentWeb";
 import { minterFromConfig } from "plgg-kit";

@@ -42,8 +42,8 @@ import {
   type Db,
   type Asset,
   uploadAsset,
-} from "plgg-content";
-import { sqlAssetStore } from "plgg-content";
+} from "plgg-cms/content";
+import { sqlAssetStore } from "plgg-cms/content";
 import { type RpSessionStore } from "plgg-cms/auth/rpSessionStore";
 import { RP_SESSION_COOKIE } from "plgg-cms/auth/pressAuth";
 

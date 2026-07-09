@@ -32,7 +32,7 @@ import {
   ingest,
   ingestMessage,
   newConversation,
-} from "plgg-content";
+} from "plgg-cms/content";
 import {
   type Source,
   type Row,

@@ -15,7 +15,7 @@ import { sql, exec, query } from "plgg-sql";
 import {
   openIndex,
   openDb,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { healthWeb } from "plgg-cms/ops/healthWeb";
 import { backupDatabase } from "plgg-cms/ops/backupDatabase";
 

@@ -14,7 +14,12 @@
       "/media/assetExportFs.ts",
       "/agent/agentWeb.ts",
       "/agent/browserVoiceIo.ts",
-      "/agent/realtimeBackend.ts"
+      "/agent/realtimeBackend.ts",
+      "/content/index.ts",
+      "/content/vendors/",
+      "/content/Rag/usecase/embedderConfig.ts",
+      "/mcpProtocol/index.ts",
+      "/mcpProtocol/vendors/stdioServer.ts"
     ]
   }
 }

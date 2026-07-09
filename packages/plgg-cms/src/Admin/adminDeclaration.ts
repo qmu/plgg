@@ -41,7 +41,7 @@ import {
   sqlStakeholderStore,
   sqlDraftStore,
   sqlAssetStore,
-} from "plgg-content";
+} from "plgg-cms/content";
 import {
   type Account,
   type AccountStore,

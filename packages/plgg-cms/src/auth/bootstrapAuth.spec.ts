@@ -27,7 +27,7 @@ import {
   asSubject,
   asUsername,
 } from "plgg-auth";
-import { openDb } from "plgg-content";
+import { openDb } from "plgg-cms/content";
 import { bootstrapAuthWeb } from "plgg-cms/auth/bootstrapAuth";
 
 const ISSUER = "https://op.example";

@@ -2,7 +2,7 @@ import {
   type SoftStr,
   type Dict,
 } from "plgg";
-import { type CollectionSchema } from "plgg-content";
+import { type CollectionSchema } from "plgg-cms/content";
 
 /**
  * The `.mcp.json` a served plggpress hands Claude Code (ticket

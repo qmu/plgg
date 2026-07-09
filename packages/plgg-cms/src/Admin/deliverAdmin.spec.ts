@@ -38,7 +38,7 @@ import {
   ingest,
   ingestMessage,
   newConversation,
-} from "plgg-content";
+} from "plgg-cms/content";
 import {
   type AccountStore,
   sqlAccountStore,

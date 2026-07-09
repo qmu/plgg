@@ -1,21 +1,19 @@
 # plggpress
 
-The **static-site generator that builds this guide** —
-and a **served content platform** on the same code.
-Built from scratch on the plgg family, plggpress owns a
-typed `SiteConfig` contract (information architecture +
-home data), a single base-path `href` resolver, a
-config-loading CLI (the `plggpress` bin), a build
-pipeline with a build-time dead-link checker, and —
-when run as a persistent process — the dynamic subtrees
-that make it a CMS: a delivery API, authentication, an
-admin UI, retrieval and a voice agent, an MCP server,
-and a Claude Code plugin export.
+The **static-site generator that builds this guide** and
+the framework seam that [plgg-cms](/packages/plgg-cms)
+mounts around. Built from scratch on the plgg family,
+plggpress owns a typed `SiteConfig` contract
+(information architecture + home data), a single
+base-path `href` resolver, a config-loading CLI (the
+`plggpress` bin), a build pipeline with a build-time
+dead-link checker, and the `plggpress/framework` subpath
+used by the dynamic CMS package.
 
-The public reader and the served platform are **one
-render path** (decision D5): the same `site.config.ts`,
-`loadConfig`, and `pressRouter` serve byte-identical
-HTML whether built to static files or served live.
+The dynamic content platform no longer lives in
+plggpress. The always-on CMS process, delivery API,
+auth/admin surfaces, MCP, plugin export, ops, and agents
+are owned by [plgg-cms](/packages/plgg-cms).
 
 ## Writing an app with it
 
@@ -37,24 +35,26 @@ export const site = defineSite(config);
 export default config;
 ```
 
-Then one of three modes — all sharing that one config
-and router, so served HTML equals built HTML:
+The current public package exposes the static build path.
+The dynamic served path is composed by plgg-cms around the
+framework subpath:
 
 | Mode      | Command                       | What it is                                                                                                                                    |
 | --------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **build** | `plggpress build`             | SSG — render every route to static files (the public reader, served over a CDN).                                                              |
-| **serve** | `plggpress serve --port 3000` | A persistent `node:http` instance rendering the same router live; the mount point for the dynamic `/api`, `/admin`, `/auth`, `/mcp` subtrees. |
-| **dev**   | `plgg-bundle dev`             | Authoring hot-reload — a toolchain concern, not a plggpress command.                                                                          |
+| **build** | `plggpress build` | SSG — render every route to static files (the public reader, served over a CDN). |
+| **serve** | `plgg-cms serve` | Persistent `node:http` process that composes `plggpress/framework` with `/api`, `/admin`, `/auth`, `/mcp`, ops, and agent surfaces. |
+| **dev** | `plgg-bundle dev` | Authoring hot-reload — a toolchain concern, not a plggpress command. |
 
-## The served platform
+## The CMS package
 
-`serve` runs the SSG router and, when configured, mounts
-the CMS subtrees. Each is documented on its own page:
+[plgg-cms](/packages/plgg-cms) runs the persistent CMS
+process. These pages are currently kept beside plggpress
+because they describe the served counterpart of the static
+site generator:
 
 - **[Content & delivery](/packages/plggpress/content-delivery)**
-  — the git-primary corpus, the derived
-  [plgg-content](/packages/plgg-content) SQLite index,
-  frontmatter content models, and the MicroCMS-like
+  — the git-primary corpus, the CMS-owned derived SQLite
+  index, frontmatter content models, and the MicroCMS-like
   `/api` delivery + FTS5 search.
 - **[Auth & admin](/packages/plggpress/auth-admin)** —
   OIDC OP+RP over [plgg-auth](/packages/plgg-auth), the
@@ -62,10 +62,9 @@ the CMS subtrees. Each is documented on its own page:
   and the DB-primary stakeholder / drafts / media
   domains.
 - **[Agent surfaces](/packages/plggpress/agent-surfaces)**
-  — opt-in RAG, the browser voice agent, the
-  [plgg-mcp](/packages/plgg-mcp) server over stdio and
-  OAuth-protected HTTP, and the Claude Code plugin
-  export.
+  — opt-in RAG, the browser voice agent, the CMS-owned MCP
+  protocol/tools over stdio and OAuth-protected HTTP, and
+  the Claude Code plugin export.
 - **[Operations](/packages/plggpress/operations)** — how
   the served instance stays up: the cloudflared front,
   SQLite WAL + single-writer, backup/restore, the
@@ -101,7 +100,6 @@ and built on plgg (`plgg`, WebCrypto, `node:sqlite`).
 plggpress carries a small generic web **framework**
 internally (`src/framework/`, config loading + router
 builder + static-build/CLI orchestration, absorbed from
-the retired plggmatic app-framework facade). The name
-[plggmatic](/packages/plggmatic/) now belongs to the UI
-design framework; the served admin UI is declared on
-its scheduler.
+the retired plggmatic app-framework facade). The served
+admin UI is now documented as a [plgg-cms](/packages/plgg-cms)
+surface declared with [plgg-ui](/packages/plgg-ui).

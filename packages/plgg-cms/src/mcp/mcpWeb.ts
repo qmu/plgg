@@ -24,7 +24,7 @@ import {
   handleFrame,
   serializeResponse,
   rpcErr,
-} from "plgg-mcp";
+} from "plgg-cms/mcpProtocol";
 import { guardWrite } from "plgg-cms/mcp/mcpAuth";
 
 const jsonBody = (frame: SoftStr): HttpResponse =>

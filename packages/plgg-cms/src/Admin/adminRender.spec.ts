@@ -18,7 +18,7 @@ import {
   openStakeholderStore,
   openDraftStore,
   openAssetStore,
-} from "plgg-content";
+} from "plgg-cms/content";
 import {
   sqlAccountStore,
   ACCOUNT_SCHEMA,

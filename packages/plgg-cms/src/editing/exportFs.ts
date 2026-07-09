@@ -14,7 +14,7 @@ import {
   err,
   defect,
 } from "plgg";
-import { type ExportFs } from "plgg-content";
+import { type ExportFs } from "plgg-cms/content";
 
 /**
  * The real {@link ExportFs} `publishDraft` writes THROUGH, over

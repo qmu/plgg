@@ -14,7 +14,7 @@ import {
   type RpcError,
   rpcError,
   parseRequest,
-} from "plgg-mcp";
+} from "plgg-cms/mcpProtocol";
 
 /** JSON-RPC error code for an unauthorized write (mirrors HTTP 403 intent). */
 export const UNAUTHORIZED = -32001;

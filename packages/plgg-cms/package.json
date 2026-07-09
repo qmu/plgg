@@ -1,7 +1,7 @@
 {
   "name": "plgg-cms",
   "version": "0.0.2",
-  "description": "The dynamic content-management surface that pairs with the plggpress static-site generator: the admin UI, the read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP tools, and the agent surfaces — composed onto plggpress's framework seam and served as an always-on node:http instance.",
+  "description": "The dynamic content-management surface that pairs with the plggpress static-site generator: the admin UI, content query/index services, the read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP tools, and agent surfaces — composed onto plggpress's framework seam and served as an always-on node:http instance.",
   "type": "module",
   "files": [
     "dist",
@@ -49,10 +49,9 @@
     "plgg-md": "file:../plgg-md",
     "plgg-ui": "file:../plgg-ui",
     "plgg-kit": "file:../plgg-kit",
-    "plgg-content": "file:../plgg-content",
     "plgg-sql": "file:../plgg-sql",
+    "plgg-db-migration": "file:../plgg-db-migration",
     "plgg-auth": "file:../plgg-auth",
-    "plgg-mcp": "file:../plgg-mcp",
     "plggpress": "file:../plggpress"
   },
   "devDependencies": {

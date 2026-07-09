@@ -15,7 +15,7 @@ import {
   registerCollection,
   collectionSchema,
   openDb,
-} from "plgg-content";
+} from "plgg-cms/content";
 import {
   type PluginConfig,
   pluginWeb,

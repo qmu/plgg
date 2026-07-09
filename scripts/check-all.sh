@@ -41,7 +41,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-ui.sh
 ./scripts/test-plgg-md.sh
 ./scripts/test-plgg-parser.sh
-./scripts/test-plgg-mcp.sh
 ./scripts/test-plgg-highlight.sh
 ./scripts/test-plgg-router.sh
 ./scripts/test-plgg-server.sh
@@ -51,7 +50,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-fetch.sh
 ./scripts/test-plgg-sql.sh
 ./scripts/test-plgg-db-migration.sh
-./scripts/test-plgg-content.sh
 ./scripts/test-plgg-domain.sh
 ./scripts/test-plgg-auth.sh
 ./scripts/test-example.sh

@@ -44,7 +44,7 @@ import {
   ingestMessage,
   newConversation,
   asConversationKind,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { type RpSessionStore } from "plgg-cms/auth/rpSessionStore";
 import { RP_SESSION_COOKIE } from "plgg-cms/auth/pressAuth";
 

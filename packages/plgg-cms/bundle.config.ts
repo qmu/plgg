@@ -3,7 +3,9 @@
 // `"type": "module"` (it carries a `serve` bin like
 // plggpress), so a `.cjs.js` sibling would be mis-read as
 // ESM by Node. Externals (the plgg family, plggpress +
-// node:*) are derived from package.json, never listed here.
+// node:*) are derived from package.json, never listed here;
+// the former content and MCP source trees are now internal
+// plgg-cms modules.
 export default {
   root: import.meta.dirname,
   rootDir: "src",

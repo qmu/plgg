@@ -24,7 +24,7 @@ import {
   type Db,
   openAssetStore,
   sqlAssetStore,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { memoryRpSessionStore } from "plgg-cms/auth/rpSessionStore";
 import { mediaWeb } from "plgg-cms/media/mediaWeb";
 

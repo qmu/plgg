@@ -48,7 +48,7 @@ import {
   openDraft,
   autosave,
   submitDraft,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { href } from "plggpress";
 import { type RpSessionStore } from "plgg-cms/auth/rpSessionStore";
 import { RP_SESSION_COOKIE } from "plgg-cms/auth/pressAuth";

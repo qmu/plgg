@@ -10,7 +10,7 @@ import {
   isSome,
   isNone,
 } from "plgg";
-import { openDb } from "plgg-content";
+import { openDb } from "plgg-cms/content";
 import {
   type RpSessionStore,
   sqlRpSessionStore,

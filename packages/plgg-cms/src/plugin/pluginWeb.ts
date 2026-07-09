@@ -20,7 +20,7 @@ import {
   type Db,
   type CollectionSchema,
   listCollections,
-} from "plgg-content";
+} from "plgg-cms/content";
 import {
   mcpJson,
   pluginManifest,

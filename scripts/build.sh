@@ -46,20 +46,13 @@ cd $REPO_ROOT/packages/plgg-cli && npm run build
 # ticket A1). Consumes plgg + plgg-view, both built above. Built BEFORE
 # plggpress/plgg-cms, which consume the engine directly.
 cd $REPO_ROOT/packages/plgg-ui && npm run build
-# plgg-sql / plgg-db-migration / plgg-content BEFORE plgg-cms: plgg-cms mounts
-# plgg-content's read-only delivery API at /api, and plgg-content depends on
-# plgg-sql + plgg-db-migration (+ plgg-md), so the whole chain must have dists
-# before plgg-cms builds (it is built just after plggpress, below).
+# plgg-sql / plgg-db-migration BEFORE plgg-cms: the CMS now owns the former
+# content query/index source internally, and that code depends on SQL +
+# migrations (+ plgg-md), so the dependency dists must exist before CMS builds.
 cd $REPO_ROOT/packages/plgg-sql && npm run build
 # plgg-db-migration after plgg-sql: the migration engine builds on plgg + the
 # plgg-sql Db seam (both marked external; built earlier for resolution order).
 cd $REPO_ROOT/packages/plgg-db-migration && npm run build
-# plgg-content after plgg-md/plgg-sql/plgg-db-migration: the derived SQLite index
-# + delivery/query API + FTS5 search, consumed by plgg-cms's /api mount.
-cd $REPO_ROOT/packages/plgg-content && npm run build
-# plgg-mcp after plgg-content: the MCP server's read-only tools wrap
-# plgg-content's query fns, so its dist must exist first.
-cd $REPO_ROOT/packages/plgg-mcp && npm run build
 # plgg-auth BEFORE plgg-cms: plgg-cms depends on plgg-auth (the OIDC OP+RP admin
 # auth mount). plgg-auth composes plgg + plgg-http/server + plgg-sql +
 # plgg-db-migration, all built above.
@@ -68,13 +61,13 @@ cd $REPO_ROOT/packages/plgg-auth && npm run build
 # internally (the absorbed former app-framework facade) and consumes plgg-cli,
 # plgg-server, plgg-md, plgg-highlight, plgg-view, plgg-http, and plgg-ui (the
 # theme) directly — all built earlier so it can resolve dists. The dynamic
-# content/server surface (and its plgg-content/plgg-sql/plgg-auth/plgg-mcp deps)
-# now lives in plgg-cms, built next.
+# content/server surface now lives in plgg-cms, built next.
 cd $REPO_ROOT/packages/plggpress && npm run build
 # plgg-cms after plggpress: the dynamic content-management surface (admin, /api,
-# auth, editing, media, ops, mcp, agent). It composes onto plggpress's framework
-# seam (published `plggpress/framework` subpath) and file:-depends on plggpress
-# plus plgg-content/plgg-sql/plgg-auth/plgg-mcp/plgg-server — all built above.
+# auth, editing, media, ops, mcp, agent). It owns the former content and MCP
+# source trees internally, composes onto plggpress's framework seam
+# (published `plggpress/framework` subpath), and file:-depends on plggpress plus
+# plgg-sql/plgg-db-migration/plgg-auth/plgg-server — all built above.
 cd $REPO_ROOT/packages/plgg-cms && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build

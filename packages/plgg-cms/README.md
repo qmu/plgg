@@ -5,9 +5,10 @@
 The **dynamic content-management surface** that pairs with
 the [plggpress](../plggpress/) static-site generator. Where
 plggpress renders the public reader path (SSG/CDN), plgg-cms
-is the always-on half: an admin UI, a read-only content
-delivery API, OIDC auth, content editing, media, stakeholder
-submission, ops, MCP tools, and the agent surfaces —
+is the always-on half: content indexing and query services,
+an admin UI, a read-only content delivery API, OIDC auth,
+content editing, media, stakeholder submission, ops, MCP
+protocol/tools, and the agent surfaces —
 composed onto plggpress's generic web-application seam
 (`plggpress/framework`) and served as a persistent
 `node:http` instance via the `plgg-cms` bin.
@@ -16,12 +17,11 @@ composed onto plggpress's generic web-application seam
 
 plggpress split its two concerns into two packages so the
 static-site generator can be consumed (and published) on its
-own — without dragging in the content/server dependency
-stack (`plgg-content`, `plgg-sql`, `plgg-auth`, `plgg-mcp`)
-that only the dynamic surface needs. plgg-cms holds that
-dynamic surface. The dependency direction is one-way:
-plgg-cms depends on plggpress; plggpress never depends on
-plgg-cms.
+own. plgg-cms holds the dynamic surface and now owns the
+former content and MCP package source internally under
+`src/content/` and `src/mcpProtocol/`. The dependency
+direction is one-way: plgg-cms depends on plggpress;
+plggpress never depends on plgg-cms.
 
 ## Surface
 
@@ -30,8 +30,13 @@ plgg-cms.
   `/admin`, `/auth`, `/mcp`) on a persistent `node:http`
   instance.
 - `contentApi` — the read-only delivery API (a thin
-  `plgg-server` Web sub-app over `plgg-content`'s in-process
+  `plgg-server` Web sub-app over `src/content/`'s in-process
   query functions).
+- `src/content/` — the rebuildable SQLite content index,
+  collection/query functions, editing/media/stakeholder
+  stores, and RAG search helpers.
+- `src/mcpProtocol/` — the JSON-RPC/MCP protocol core, tool
+  registry, content tools, and transports.
 - `pressServeWeb` / `pressServeWebWithAuth` — the served-app
   factory the `serve` bin and consumers compose.
 

@@ -29,7 +29,7 @@ import {
   indexDocument,
   collectionSchema,
   schemaField,
-} from "plgg-content";
+} from "plgg-cms/content";
 import { contentApi } from "plgg-cms/api/contentApi";
 
 const must = <T>(r: Result<T, unknown>): T => {
