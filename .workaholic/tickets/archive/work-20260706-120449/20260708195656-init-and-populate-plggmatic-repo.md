@@ -12,6 +12,15 @@ mission:
 
 # B — Initialize `../plggmatic` and populate it with the Pragmatic design-system + showcase (on published `plgg-ui`)
 
+> **ABANDONED / SUPERSEDED (2026-07-09).** This ticket's remaining work
+> (the populate-only extraction) was folded into and driven by the
+> resumption ticket
+> `20260709103916-resume-plggmatic-publish-boundary.md`, which settled
+> the docs-builder publish boundary via the plggpress SSG / plgg-cms
+> split and completed the `../plggmatic` populate. Archived without an
+> independent commit; see the resume ticket's Final Report for the
+> delivered work. Ticket C (`20260708195657`) still follows.
+
 ## Overview
 
 Fourth step of the extraction (`/trip` `plggmatic-extraction-cut`),

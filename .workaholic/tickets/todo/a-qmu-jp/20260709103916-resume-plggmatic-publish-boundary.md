@@ -15,6 +15,85 @@ depends_on:
 
 **Carry Origin:** `.workaholic/tickets/todo/a-qmu-jp/20260708195656-init-and-populate-plggmatic-repo.md` — carried on 2026-07-09 because the session was ending; this resumption ticket supersedes ticket B's remaining work and should be driven before ticket C.
 
+## Carry Checkpoint (2026-07-09, second carry)
+
+**The docs-builder boundary decision (this ticket's Step 2) is RESOLVED and IMPLEMENTED.** Rather than pin `site` to the old published `plggpress@0.0.1` or defer `site`, the developer chose **Option B: split local `plggpress` into a slim SSG `plggpress` + a new dynamic `plgg-cms`** (its own ticket `20260709110456-split-plggpress-ssg-and-plgg-cms`, now archived under `.workaholic/tickets/archive/work-20260706-120449/`).
+
+**State as of commit `f3bb180a` (branch `work-20260706-120449`, monorepo green, `scripts/check-all.sh` passes fresh):**
+- Slim `packages/plggpress` now depends on NO CMS packages (dropped `plgg-content`/`plgg-sql`/`plgg-auth`/`plgg-mcp`/`plgg-kit`); deps are only `plgg`/`plgg-http`/`plgg-server`/`plgg-view`/`plgg-md`/`plgg-highlight`/`plgg-cli`/`plgg-ui`. It exposes its framework as a public `plggpress/framework` subpath (built entry `frameworkEntry`, exports has a top-level `default` condition so plgg-bundle's require()-based surface reader can consume it) and re-exports `pressRouter`/`buildSpecOf` on its barrel.
+- New `packages/plgg-cms` holds the dynamic surface (`Admin`/`api`/`auth`/`editing`/`media`/`ops`/`plugin`/`server`/`stakeholder`/`mcp`/`agent` + the `serve` CLI); it depends on `plggpress` one-way (zero reverse edges) and consumes it only via the public barrel + `plggpress/framework`.
+- The extraction's `site` package can now consume the SSG surface it needs (`defineSite`/`SidebarItemInput`/`pressDevEntry`) from published slim `plggpress` — WITHOUT forcing publication of `plgg-content`/`plgg-mcp`/`plgg-domain`. The boundary concern that blocked ticket B is settled.
+
+**Publish gate — the one thing standing between here and driving the extraction (developer-run, NEVER auto-performed):**
+- `npm view` on 2026-07-09: `plgg-ui@0.1.0` published ✓; `plggpress@0.0.1` published but **STALE** — it is the OLD pre-split monolith (has CMS deps, no `./framework` subpath). `plgg-cms` unpublished (404).
+- **Publishing the slim `plggpress` needs a VERSION BUMP** — `0.0.1` is taken and semantically different. Bump `packages/plggpress/package.json` to `0.0.2` (via `scripts/publish-release.sh` CalVer + `scripts/publish-npm.sh`, past the 1.0.0 ghost, `--tag latest`) so `../plggmatic`'s `site` can pin `plggpress@^0.0.2`.
+- `plgg-cms` does NOT need publishing for the extraction (nothing in `../plggmatic` consumes it — `site` consumes `plggpress`, not `plgg-cms`). Only publish `plgg-cms` if/when an external consumer needs it.
+
+**Next steps for a fresh `/drive` (in order):**
+1. Developer publishes slim `plggpress@0.0.2` (+ confirm `plgg-ui@0.1.0` is consumable). Verify: `npm view plggpress@0.0.2 dependencies --json` shows NO `plgg-content`/`plgg-sql`/`plgg-auth`/`plgg-mcp`, and lists the `./framework` export.
+2. Resume ticket B's populate-only extraction (Step 5 below): scaffold `/home/ec2-user/projects/plggmatic`, move the `plggmatic`/`plggmatic-example`/`site` cluster, rewrite cross-repo deps to published `^version` (`plgg@^0.0.27`, `plgg-view@^0.0.1`, `plgg-ui@^0.1.0`, `plggpress@^0.0.2`), write the split ADR, run `../plggmatic/scripts/check-all.sh` green standalone.
+3. Then ticket C (`20260708195657`): remove the cluster from the monorepo (KEEP `plgg-ui` AND `plgg-cms`).
+
+Steps 3–6 in "Implementation Steps" below are now largely satisfied by the split (patches reconciled, `plgg-ui` published); the OPEN work is the publish bump + the populate/remove.
+
+## Carry Checkpoint (2026-07-09, third carry) — HARD PREREQUISITE BLOCKER FOUND
+
+A `/drive` executed the populate-only extraction and hit a **hard,
+previously-unforeseen prerequisite blocker at the build/test gate**. The
+populate itself is done and correct; it cannot reach a green standalone
+`check-all` until the plgg dev tooling is made registry-consumable.
+
+**What was completed and is durable (uncommitted, on disk):**
+- `../plggmatic` scaffolded: standard layout, `CLAUDE.md`, `README.md`,
+  `.gitignore`, `docs/` (split ADR `docs/0001-plggmatic-repo-split.md` +
+  carried Pragmatic specs under `docs/specs/`), and the canonical
+  `scripts/*.sh` runner set (`npm-install`, `build`, `tsc-*`, `test-*`,
+  `check-all`, `format`, `publish-npm`).
+- The `plggmatic` / `plggmatic-example` / `site` cluster copied in (no
+  `node_modules`/`dist`/lockfiles); external `file:` deps rewritten to
+  published ranges (`plgg@^0.0.27`, `plgg-view@^0.0.1`, `plgg-ui@^0.1.0`,
+  `plggpress@^0.0.2`); intra-repo `plggmatic` left as `file:../plggmatic`. Two
+  monorepo-only cross-repo leaks in `site` repointed to be self-contained
+  (`devEntry.ts` now imports `pressDevEntry` from the `plggpress` barrel;
+  `bundle.config.ts` dev section dropped the `../../../plgg/...` source alias).
+- Monorepo: `packages/plggpress` bumped to `0.0.2`; superseded ticket B
+  archived.
+- **Verified GREEN standalone:** the published-dependency contract resolves
+  (`npm install` of `plggmatic`'s deps succeeds — needs
+  `npm_config_min_release_age=0` only because the freshly-bumped plgg versions
+  are <7 days old vs the local `min-release-age=7`), and `tsc --noEmit` passes
+  clean against the published `.d.ts`.
+
+**THE BLOCKER — plgg build/test tooling is not consumable from the npm registry
+on Node 24:**
+- `plgg-bundle` (the `build`) ships `files: ["src","bin"]` — NO `dist` — and its
+  launcher `await import()`s `src/entrypoints/cli.ts`; `plgg-test` (the `test`
+  runner) ships only `.d.ts` in `dist` and spawns
+  `node --experimental-strip-types src/Cli/cli.ts` (+ `src/Resolve/hook.ts`).
+  Both run from **TypeScript source** and depend on Node 24 type-stripping.
+- Node 24 **refuses to strip types for `.ts` files under `node_modules/`**
+  (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`). In the plgg monorepo the
+  tools work only because their `file:` links resolve to a realpath OUTSIDE
+  `node_modules`; installed from the registry they are genuinely inside
+  `node_modules`, so both `build` and the unit-test run fail.
+- The publish smoke test did not catch this: it matches only
+  `ERR_MODULE_NOT_FOUND`/"Cannot find", so a type-stripping failure reads as
+  "bin ok".
+
+**Required prerequisite (new work, in the plgg monorepo — its own ticket):**
+make `plgg-bundle` and `plgg-test` registry-consumable — ship a runnable
+compiled `dist` and have each launcher run from `dist` when it detects it is
+executing under `node_modules` (fall back to `src` for the monorepo `file:`
+case). Until that lands, NO standalone plgg consumer (not just plggmatic) can
+`build`/`test` from published packages.
+
+**Publish decision deferred.** Publishing `plggpress@0.0.2` was NOT performed:
+it is a one-way registry action that would not produce a green standalone build
+while the tooling blocker stands (and `plggmatic`/`plggmatic-example`, which
+don't even use `plggpress`, are equally blocked). Bump is staged locally; publish
+after the tooling prerequisite lands. Ticket C stays blocked (needs B green
+standalone first).
+
 Ticket B was started but not completed. The initial blocker was that `plgg-ui@0.1.0` was not published while `plgg@0.0.27`, `plgg-view@0.0.1`, and `plggpress@0.0.1` were published. The session patched `scripts/publish-npm.sh` to support `ONLY=plgg-ui`, added `"files": ["dist"]` to `packages/plgg-ui/package.json`, and fixed an unrelated `plgg-content` gate failure caused by the new `HtmlBlock` variant in `plgg-md`. Work stopped at a product-boundary concern: the standalone `../plggmatic` repo should consume published packages, but should not force publication of `plgg-content`, `plgg-mcp`, or `plgg-domain` just because the current local `plggpress` has grown CMS/server features.
 
 ## Policies
