@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: refactoring
 layer: [UX, Domain, Infrastructure, DB, Config]
 effort: 4h
-commit_hash: 489a9340
+commit_hash: 87b46fc9
 category: Changed
 depends_on:
 mission:
