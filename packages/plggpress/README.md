@@ -15,7 +15,7 @@ plggpress carries a generic web **framework** internally
 (`src/framework/` — config loading, a router builder,
 static-build + CLI orchestration, absorbed from the retired
 `plggmatic` app-framework facade — the name `plggmatic` now
-belongs to the UI design framework in `packages/plggmatic/`).
+belongs to the standalone design-system repository).
 That framework also wraps the whole mid-library stack (view,
 server/http, md, highlight); plggpress supplies the docs-site
 specifics on top of it — the `SiteConfig` type and the

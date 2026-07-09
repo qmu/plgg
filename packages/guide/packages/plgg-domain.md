@@ -122,6 +122,6 @@ schema is derived (never hand-written twice), the boot
 gate turns drift into a typed refusal instead of
 corruption, and the derivation seams mean the
 [plggpress](/packages/plggpress) delivery API, the
-plggmatic UI declarations, and the MCP tool schemas
+plgg-ui declarations, and the MCP tool schemas
 can all be re-derived from the same authored core.
 Unit specs run against real `node:sqlite`.

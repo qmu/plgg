@@ -65,12 +65,12 @@ export const baseCss: SoftStr = `
 html{scroll-behavior:smooth}
 /* qmu: anchor jumps in the lg app shell scroll the content
    column, not the page; smooth-scroll must be set on both.
-   The reduced-motion RESET of these is plggmatic's
+   The reduced-motion RESET of these is the shared UI
    reducedMotionCss (composed by shell). */
 main{scroll-behavior:smooth}
 /* plggpress-owned motion: article/chrome link hover fades.
-   Killed under reduced-motion here (plggmatic's block only
-   resets the framework's own scroll motion). */
+   Killed under reduced-motion here (the framework reset only
+   resets its own scroll motion). */
 @media (prefers-reduced-motion:reduce){
   .vp a{transition:none}
   .vp-doc a{transition:none}
@@ -451,7 +451,7 @@ html.dark .vp-doc a:focus-visible code{
 }
 html.dark .vp-doc pre code{background:none}
 /* syntax-highlight hues (plgg-highlight's span classes) are
-   framework-owned now: plggmatic's syntaxCss emits the
+   framework-owned now: plgg-ui's syntaxCss emits the
    --pm-code-* properties + the class rules per scheme
    (ticket 08 finishes the D16 cutover for code blocks). No
    syntax colors live here anymore. */

@@ -2,9 +2,9 @@
 // management surface that composes onto plggpress's
 // framework seam and serves the always-on half (D5).
 
-// Prag content is now owned by plgg-cms. These exports keep
-// the HTTP, admin, plugin, MCP, and agent surfaces on the same
-// in-process content/query vocabulary.
+// The content query/index surface is owned by plgg-cms. These
+// exports keep the HTTP, admin, plugin, MCP, and agent surfaces
+// on the same in-process content/query vocabulary.
 export * from "plgg-cms/content";
 
 // The MCP protocol/tooling core is also internal to plgg-cms:
