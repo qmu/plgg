@@ -56,8 +56,7 @@
     "plgg-view": "file:../plgg-view",
     "plgg-md": "file:../plgg-md",
     "plgg-highlight": "file:../plgg-highlight",
-    "plgg-cli": "file:../plgg-cli",
-    "plgg-ui": "file:../plgg-ui"
+    "plgg-cli": "file:../plgg-cli"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

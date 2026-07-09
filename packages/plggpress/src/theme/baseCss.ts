@@ -6,7 +6,7 @@ import {
   maxWidth,
   minWidth,
   defaultTheme,
-} from "plgg-ui/style";
+} from "plggpress/themeSupport/styleEntry";
 
 // plggpress's docs-site look is an explicit theme choice
 // (D3): it passes `defaultTheme` — the monochrome `--pm-*`
@@ -451,7 +451,7 @@ html.dark .vp-doc a:focus-visible code{
 }
 html.dark .vp-doc pre code{background:none}
 /* syntax-highlight hues (plgg-highlight's span classes) are
-   framework-owned now: plgg-ui's syntaxCss emits the
+   framework-owned now: themeSupport's syntaxCss emits the
    --pm-code-* properties + the class rules per scheme
    (ticket 08 finishes the D16 cutover for code blocks). No
    syntax colors live here anymore. */

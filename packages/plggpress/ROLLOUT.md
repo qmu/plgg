@@ -37,8 +37,8 @@ runbook for standing this up.
 
 ## Track 2 — `packages/site`'s fate
 
-`@plggmatic/site` (plggmatic's own documentation site) is itself a plggpress-built
-SSG site — the canonical dogfood that every plggmatic code fence compiles against.
+The design-system documentation site is itself a plggpress-built
+SSG site — the canonical dogfood for its code fences.
 **Decision: keep it, as an SSG reader.** It needs no dynamic tier (docs are
 read-only, versioned in git), so under D5 it stays a pure static publish; it is the
 living proof that the reader half of plggpress works. If it ever wants search/RAG,

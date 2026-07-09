@@ -3,7 +3,7 @@ import {
   themeToggleClass,
   appearanceStorageKey,
   injectAppearanceScript,
-} from "plgg-ui/style";
+} from "plggpress/themeSupport/styleEntry";
 
 /**
  * The appearance-toggle WIRING script, injected at the END

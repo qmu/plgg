@@ -6,7 +6,7 @@
 # image at build time is HIDDEN the moment the mount goes
 # live, so the sibling dists plggpress imports
 # (plgg, plgg-cli, plgg-view, plgg-server, plgg-http,
-# plgg-md, plgg-highlight, plgg-ui, plggpress) have to be
+# plgg-md, plgg-highlight, plggpress) have to be
 # (re)built HERE, on the mounted tree, where Node will
 # actually resolve them.
 #
@@ -38,7 +38,6 @@ for pkg in \
   plgg-md \
   plgg-highlight \
   plgg-server \
-  plgg-ui \
   plggpress \
   guide
 do

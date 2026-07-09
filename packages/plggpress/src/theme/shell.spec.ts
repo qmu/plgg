@@ -31,7 +31,7 @@ import {
   metricCss,
   reducedMotionCss,
   defaultTheme,
-} from "plgg-ui/style";
+} from "plggpress/themeSupport/styleEntry";
 
 // A pre-rendered Markdown body fixture carrying one
 // atomic `css()` rule, so `collectCss` yields a known

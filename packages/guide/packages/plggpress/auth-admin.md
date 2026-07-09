@@ -5,9 +5,8 @@ instance authenticates and administers. plgg-cms runs a
 real OpenID Connect provider ([plgg-auth](/packages/plgg-auth))
 and logs in against itself (OP+RP dogfooding, decision
 D6), layers an account domain on top, and serves an
-admin UI declared on the [plgg-ui](/packages/plgg-ui)
-scheduler/declaration surface — with three DB-primary
-content domains behind it.
+admin UI declared on the CMS-owned scheduler/declaration
+surface — with three DB-primary content domains behind it.
 
 ## OIDC, dogfooded
 
@@ -44,9 +43,8 @@ role/scope middleware plus CSRF on every mutating form.
 ## The admin UI
 
 The admin UI is **declared**, not hand-built: a
-[plgg-ui](/packages/plgg-ui) declaration (collections,
-actions, queries) served under the auth-guarded `/admin`
-subtree and rendered
+CMS-owned declaration (collections, actions, queries)
+served under the auth-guarded `/admin` subtree and rendered
 **server-side** (no client bundle) — SSR pages whose
 mutations POST through an `/admin/act` endpoint behind
 `requireCsrf`. It proves the same declaration renders

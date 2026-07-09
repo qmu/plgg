@@ -25,7 +25,7 @@ import {
   reducedMotionCss,
   syntaxCss,
   defaultTheme,
-} from "plgg-ui/style";
+} from "plggpress/themeSupport/styleEntry";
 
 /**
  * The framework-owned CSS blocks plggmatic emits, composed

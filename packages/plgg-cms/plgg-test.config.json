@@ -18,8 +18,12 @@
       "/content/index.ts",
       "/content/vendors/",
       "/content/Rag/usecase/embedderConfig.ts",
+      "/domainCore/index.ts",
+      "/domainCore/testkit/",
       "/mcpProtocol/index.ts",
-      "/mcpProtocol/vendors/stdioServer.ts"
+      "/mcpProtocol/vendors/stdioServer.ts",
+      "/ui/index.ts",
+      "/ui/styleEntry.ts"
     ]
   }
 }

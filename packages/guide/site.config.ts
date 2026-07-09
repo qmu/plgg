@@ -35,9 +35,8 @@ const leaf = (
 // its deep-dive pages), Vocabulary (every mid/toolchain
 // package, one leaf each, in dependency-ish order,
 // closing with the example tutorial), then the site tool
-// (plggpress). The former plggmatic design-system docs now
-// live in the standalone plggmatic repository, not in this
-// guide sidebar.
+// (plggpress). The former design-system docs now live
+// outside this monorepo, not in this guide sidebar.
 const LIBRARY_PACKAGES: ReadonlyArray<
   readonly [string, string]
 > = [
@@ -46,7 +45,6 @@ const LIBRARY_PACKAGES: ReadonlyArray<
   ["plgg-server", "/packages/plgg-server"],
   ["plgg-fetch", "/packages/plgg-fetch"],
   ["plgg-view", "/packages/plgg-view"],
-  ["plgg-ui", "/packages/plgg-ui"],
   ["plgg-sql", "/packages/plgg-sql"],
   [
     "plgg-db-migration",
@@ -54,7 +52,6 @@ const LIBRARY_PACKAGES: ReadonlyArray<
   ],
   ["plgg-auth", "/packages/plgg-auth"],
   ["plgg-cms", "/packages/plgg-cms"],
-  ["plgg-domain", "/packages/plgg-domain"],
   ["plgg-kit", "/packages/plgg-kit"],
   ["plgg-foundry", "/packages/plgg-foundry"],
   ["plgg-cli", "/packages/plgg-cli"],

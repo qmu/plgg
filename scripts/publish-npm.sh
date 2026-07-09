@@ -15,7 +15,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 #   ./scripts/publish-npm.sh              # preflight -> gate (check-all.sh) ->
 #                                         # publish the bumped set -> verify
 #   SKIP_GATE=1 ./scripts/publish-npm.sh  # skip the gate when one just ran green
-#   ONLY=plgg-ui ./scripts/publish-npm.sh # publish only the named package(s),
+#   ONLY=plgg-cms ./scripts/publish-npm.sh # publish only the named package(s),
 #                                         # comma- or space-separated, still via
 #                                         # the same gate/stage/verify path
 #

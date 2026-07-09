@@ -12,6 +12,12 @@ export * from "plgg-cms/content";
 // tool registry, and JSON-RPC frame handling.
 export * from "plgg-cms/mcpProtocol";
 
+// The durable-core derivation spine formerly lived behind a
+// standalone package. CMS now owns it so schema derivation,
+// export/import, and shell regeneration stay with the
+// content-management surface that uses them.
+export * from "plgg-cms/domainCore";
+
 // The read-only delivery API (D4/D11) — a thin plgg-server
 // Web sub-app over plgg-cms/content's in-process query
 // functions, mounted at the pressServeWeb seam via

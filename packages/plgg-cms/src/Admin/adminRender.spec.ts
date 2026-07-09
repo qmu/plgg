@@ -11,7 +11,7 @@ import {
   multiColumn,
   singleColumn,
   renderMode,
-} from "plgg-ui";
+} from "plgg-cms/ui";
 import {
   type Db,
   openIndex,

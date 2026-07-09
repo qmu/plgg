@@ -89,7 +89,6 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-sql/`](packages/plgg-sql/)** - SQL as data-last pipeline steps built from scratch on plgg: tagged-template queries, transactions, and typed row mapping that drop into a `proc`/`pipe` chain; the database driver lives at an app-supplied seam
 - **[`packages/plgg-db-migration/`](packages/plgg-db-migration/)** - Minimal dbmate-style schema-migration tool on plgg + plgg-sql: single-file up/down migrations, a `schema_migrations` ledger, on-demand per-tenant SQLite, zero new dependencies
-- **[`packages/plgg-domain/`](packages/plgg-domain/)** - The durable-core / sacrificial-shell spine (D18): one authored `Domain` of caster-typed entities derives its SQLite schema, a schema-compatibility boot gate (Ok/Lag/Drift), a code-independent export/import, a provenance manifest, and the derivation seams a regenerated shell is rebuilt from
 - **[`packages/plgg-auth/`](packages/plgg-auth/)** - OIDC identity-provider toolkit built from scratch on plgg: the JOSE layer (base64url, JWK/JWKS with RFC 7638 thumbprint kids, JWS RS256, JWT claim validation) on WebCrypto only — pinned to the RFC test vectors and cross-checked against `node:crypto`
 
 **AI**
@@ -107,7 +106,7 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, tokenizing with an in-house plgg-parser grammar (no `typescript` dependency) into classified plgg-view `Html` spans
 - **[`packages/plgg-parser/`](packages/plgg-parser/)** - Zero-new-dep generic parser combinator library on plgg: data-last `Parser<A,S>` functions returning `Result<Parsed<A,S>>`, a user-state slot for context-sensitive grammars, and a TS-lexer demo (the eventual in-house replacement for plgg-highlight's compiler scanner)
 - **[`packages/plggpress/`](packages/plggpress/)** - The slim VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a base-path href resolver, a config/`build` CLI, and a build-time dead-link checker — the engine that builds the guide. Carries its generic web-application framework internally and exposes it as a public `plggpress/framework` subpath (config loading, a router builder, static-build + CLI orchestration). No CMS/server dependencies — the dynamic content surface lives in `plgg-cms`
-- **[`packages/plgg-cms/`](packages/plgg-cms/)** - The dynamic content-management surface that pairs with plggpress: CMS-owned content indexing/query, an admin UI, a read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP protocol/tools, and agent surfaces — composed onto plggpress's `framework` seam and served as an always-on `node:http` instance (the `plgg-cms serve` bin, D5's dynamic half)
+- **[`packages/plgg-cms/`](packages/plgg-cms/)** - The dynamic content-management surface that pairs with plggpress: CMS-owned content indexing/query, admin UI, durable-domain derivation, a read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP protocol/tools, and agent surfaces — composed onto plggpress's `framework` seam and served as an always-on `node:http` instance (the `plgg-cms serve` bin, D5's dynamic half)
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
 
@@ -115,9 +114,8 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
-- **[`packages/plgg-ui/`](packages/plgg-ui/)** - The plgg-family UI engine extracted from plggmatic: `row`/`column`/`pane` layout combinators, fundamental components as pure `(props) => Html<Msg>`, caster-parsed forms, a declarative admin vocabulary, a TEA scheduler, and screen-mode renderers (runtime), with a parameterizable light/dark theme on the `./style` subpath
 
-The Pragmatic design-system package, its documentation site, and its workbench now live in the standalone `../plggmatic` repository. This monorepo keeps `plgg-ui`, the shared engine consumed by both plggpress and that extracted design-system repo.
+The Pragmatic design-system package, its documentation site, and its workbench now live outside this monorepo. This repository keeps the CMS admin UI inside `plgg-cms`; plggpress carries only the static theme support needed to build this guide.
 
 ## Installation
 

@@ -126,12 +126,12 @@ test("discoverWorkspace finds installed deps of a sibling source package", () =>
     const local = join(root, "packages", "local");
     writePackage(local, "local", true);
     writePackage(
-      join(local, "node_modules", "plgg-ui"),
-      "plgg-ui",
+      join(local, "node_modules", "plgg-cms"),
+      "plgg-cms",
       false,
     );
     const found = discoverWorkspace(app).find(
-      (p) => p.name === "plgg-ui",
+      (p) => p.name === "plgg-cms",
     );
     return check(found?.kind, toBe("dist"));
   } finally {

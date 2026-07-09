@@ -7,7 +7,8 @@
       "/devEntry.ts",
       "/valid.config.ts",
       "/invalid.config.ts",
-      "/named-only.config.ts"
+      "/named-only.config.ts",
+      "/themeSupport/styleEntry.ts"
     ]
   }
 }

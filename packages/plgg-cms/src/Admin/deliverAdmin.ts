@@ -45,7 +45,7 @@ import {
   type Scheduled,
   schedule,
   renderMode,
-} from "plgg-ui";
+} from "plgg-cms/ui";
 import {
   type Db,
   type ConversationStatus,

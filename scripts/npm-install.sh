@@ -18,9 +18,6 @@ cd $REPO_ROOT/packages/plgg-view && npm install
 cd $REPO_ROOT/packages/plgg-md && npm install
 cd $REPO_ROOT/packages/plgg-highlight && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
-# plgg-ui is the retained UI engine from the plggmatic extraction. It stays in
-# this monorepo and is consumed directly by plggpress and plgg-cms.
-cd $REPO_ROOT/packages/plgg-ui && npm install
 # plgg-sql / plgg-db-migration before plgg-cms: the CMS now owns the former
 # content query/index source internally, and that code depends on the SQL and
 # migration packages.
@@ -34,7 +31,6 @@ cd $REPO_ROOT/packages/plggpress && npm install
 # above; former content and MCP code is package-internal.
 cd $REPO_ROOT/packages/plgg-cms && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
-cd $REPO_ROOT/packages/plgg-domain && npm install
 cd $REPO_ROOT/packages/example && npm install
 cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

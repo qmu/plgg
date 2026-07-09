@@ -17,18 +17,16 @@ static build.
 
 Current package dependencies include:
 
-- [plgg-ui](/packages/plgg-ui) for the retained shared UI
-  engine used by the admin declaration and rendering
-  surfaces.
 - [plgg-sql](/packages/plgg-sql) and
   [plgg-db-migration](/packages/plgg-db-migration) for the
-  CMS-owned content index and stores.
+  CMS-owned content index, stores, durable-domain
+  derivation, and schema compatibility checks.
 - [plgg-auth](/packages/plgg-auth) for OIDC/account flows.
 
-The former content and MCP packages are no longer
-independent package boundaries. Their source now lives
-inside `plgg-cms` under `src/content/` and
-`src/mcpProtocol/`.
+The former UI, content, MCP, and durable-domain package
+boundaries are no longer independent package leaves. Their
+source now lives inside `plgg-cms` under `src/ui/`,
+`src/content/`, `src/mcpProtocol/`, and `src/domainCore/`.
 
 ## Content and MCP ownership
 
@@ -44,16 +42,22 @@ tool registry, content tools, and transports. The HTTP MCP
 mount and any stdio transport use the same dispatch and tool
 definitions.
 
+`src/ui/` contains the declaration vocabulary, scheduler,
+form controls, screen renderers, and admin UI components
+used by the `/admin` surface.
+
+`src/domainCore/` contains the durable-core derivation spine:
+authored caster-typed entities, SQLite schema derivation,
+schema compatibility checks, export/import, and the seams a
+regenerated shell is rebuilt from.
+
 ## Boundary decision
 
 `plgg-cms` is the package boundary for Prag CMS. `plggpress`
 does not depend on it, and `plgg-cms` depends on
 `plggpress` one-way through the `plggpress/framework` seam.
 
-`plgg-ui` remains a separate shared engine because it is
-still consumed by plggpress and the standalone plggmatic
-repository. CMS-specific UI composition belongs in
-`plgg-cms`; shared typed UI primitives, declaration
-vocabulary, rendering, scheduler, forms, and theme tokens
-remain in `plgg-ui` until those consumers stop requiring
-the published package.
+The admin UI and durable-domain internals are CMS-owned
+source, not public package boundaries. plggpress carries its
+static theme support locally so it remains a slim SSG without
+depending on CMS.

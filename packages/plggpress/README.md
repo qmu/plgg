@@ -14,8 +14,8 @@ It is the engine that builds [the guide](../guide/).
 plggpress carries a generic web **framework** internally
 (`src/framework/` — config loading, a router builder,
 static-build + CLI orchestration, absorbed from the retired
-`plggmatic` app-framework facade — the name `plggmatic` now
-belongs to the standalone design-system repository).
+app-framework facade; the design-system package now lives
+outside this monorepo).
 That framework also wraps the whole mid-library stack (view,
 server/http, md, highlight); plggpress supplies the docs-site
 specifics on top of it — the `SiteConfig` type and the
@@ -47,7 +47,8 @@ internal framework facade (`plggpress/framework`, including its
 `plggpress/framework/ssg` and `plggpress/framework/style`
 subpaths). plggpress depends on the plgg family directly
 (`plgg`, `plgg-http`, `plgg-server`, `plgg-view`, `plgg-md`,
-`plgg-highlight`, `plgg-cli`) and is ESM-only.
+`plgg-highlight`, `plgg-cli`) and is ESM-only. The static
+theme support used by the guide is local to plggpress.
 
 ## Usage
 

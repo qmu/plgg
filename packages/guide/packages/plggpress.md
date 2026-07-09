@@ -100,6 +100,7 @@ and built on plgg (`plgg`, WebCrypto, `node:sqlite`).
 plggpress carries a small generic web **framework**
 internally (`src/framework/`, config loading + router
 builder + static-build/CLI orchestration, absorbed from
-the retired plggmatic app-framework facade). The served
+the retired app-framework facade). The served
 admin UI is now documented as a [plgg-cms](/packages/plgg-cms)
-surface declared with [plgg-ui](/packages/plgg-ui).
+surface. plggpress does not depend on CMS; it only exposes
+the `plggpress/framework` seam that CMS composes onto.

@@ -47,7 +47,6 @@
     "plgg-server": "file:../plgg-server",
     "plgg-view": "file:../plgg-view",
     "plgg-md": "file:../plgg-md",
-    "plgg-ui": "file:../plgg-ui",
     "plgg-kit": "file:../plgg-kit",
     "plgg-sql": "file:../plgg-sql",
     "plgg-db-migration": "file:../plgg-db-migration",

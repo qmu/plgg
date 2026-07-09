@@ -40,12 +40,6 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-cli before plggpress: the CLI-wrapper toolkit (depends only on plgg
 # core), consumed by plggpress's own framework, so its dist must exist first.
 cd $REPO_ROOT/packages/plgg-cli && npm run build
-# plgg-ui (the plgg-family UI engine: layout combinators, components, forms,
-# the declarative vocabulary, the scheduler, renderers, and the theme surface)
-# — the reusable seam extracted from plggmatic (trip plggmatic-extraction-cut,
-# ticket A1). Consumes plgg + plgg-view, both built above. Built BEFORE
-# plggpress/plgg-cms, which consume the engine directly.
-cd $REPO_ROOT/packages/plgg-ui && npm run build
 # plgg-sql / plgg-db-migration BEFORE plgg-cms: the CMS now owns the former
 # content query/index source internally, and that code depends on SQL +
 # migrations (+ plgg-md), so the dependency dists must exist before CMS builds.
@@ -59,9 +53,9 @@ cd $REPO_ROOT/packages/plgg-db-migration && npm run build
 cd $REPO_ROOT/packages/plgg-auth && npm run build
 # plggpress: the slim STATIC-SITE GENERATOR. It carries its own framework
 # internally (the absorbed former app-framework facade) and consumes plgg-cli,
-# plgg-server, plgg-md, plgg-highlight, plgg-view, plgg-http, and plgg-ui (the
-# theme) directly — all built earlier so it can resolve dists. The dynamic
-# content/server surface now lives in plgg-cms, built next.
+# plgg-server, plgg-md, plgg-highlight, plgg-view, and plgg-http directly —
+# all built earlier so it can resolve dists. Its static theme support is local.
+# The dynamic content/server surface now lives in plgg-cms, built next.
 cd $REPO_ROOT/packages/plggpress && npm run build
 # plgg-cms after plggpress: the dynamic content-management surface (admin, /api,
 # auth, editing, media, ops, mcp, agent). It owns the former content and MCP
@@ -71,10 +65,6 @@ cd $REPO_ROOT/packages/plggpress && npm run build
 cd $REPO_ROOT/packages/plgg-cms && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
-# plgg-domain after plgg-db-migration: the durable-core spine composes plgg +
-# the plgg-sql Db/Sql seam + plgg-db-migration's Migration/Version, all built
-# above, into a domain-first derivation spine (schema, boot gate, export).
-cd $REPO_ROOT/packages/plgg-domain && npm run build
 # plgg-test's published dist library (depends only on plgg core). Its test
 # RUNNER is separate and untouched; this just builds its consumer-facing API.
 cd $REPO_ROOT/packages/plgg-test && npm run build

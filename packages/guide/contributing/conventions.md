@@ -52,13 +52,15 @@ IA deliberately (add its `LIBRARY_PACKAGES` entry, or a
 new sidebar section for a framework with several pages)
 and update this page alongside it.
 
-IA changes so far: 2026-07-05 added the former
-plggmatic section and the `plgg-domain` / `plgg-parser`
-Vocabulary leaves. 2026-07-09 removed the plggmatic
-section after the package cluster moved to the standalone
-plggmatic repository, and added current `plgg-ui` and
-`plgg-cms` package leaves. Later the same day, the retired
-content and MCP package leaves were removed from Vocabulary
-after their source moved inside `plgg-cms`. A framework with
-several pages gets its own sidebar section (like plggpress);
-a single library gets one `LIBRARY_PACKAGES` leaf.
+IA changes so far: 2026-07-05 added the former Pragmatic
+section and the domain/parser Vocabulary leaves. 2026-07-09
+removed the Pragmatic section after that package cluster
+moved to a standalone repository, and added the CMS package
+leaf. Later the same day, the retired content and MCP
+package leaves were removed from Vocabulary after their
+source moved inside `plgg-cms`. 2026-07-10 removed the
+retired UI and domain package leaves after their source
+became owned internals of `plgg-cms` and plggpress. A
+framework with several pages gets its own sidebar section
+(like plggpress); a single library gets one
+`LIBRARY_PACKAGES` leaf.
