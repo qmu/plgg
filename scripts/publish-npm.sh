@@ -251,8 +251,12 @@ EOS
   if [ -e "$SMOKE/node_modules/.bin/$NAME" ]; then
     BIN_OUT=$("$SMOKE/node_modules/.bin/$NAME" --help 2>&1 || true)
     case "$BIN_OUT" in
-      *ERR_MODULE_NOT_FOUND* | *"Cannot find"*)
-        echo "!!! $NAME bin cannot resolve its modules from a real install:"
+      *ERR_MODULE_NOT_FOUND* | *"Cannot find"* | *ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING*)
+        # A run-from-source `.ts` launcher that Node refuses to type-strip under
+        # node_modules is unusable when installed — the launcher must relocate
+        # out of node_modules (see each tool's bin/relocate.mjs) or run from a
+        # compiled dist. Fail the publish instead of shipping a broken bin.
+        echo "!!! $NAME bin cannot run from a real install:"
         echo "$BIN_OUT"
         exit 1
         ;;

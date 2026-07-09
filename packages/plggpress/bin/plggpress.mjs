@@ -10,6 +10,15 @@
 import { register } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { relocateOutOfNodeModules } from "./relocate.mjs";
+
+// Node 24 refuses to strip types from `.ts` under `node_modules`. When this
+// tool is installed from the registry, relocate a copy OUTSIDE `node_modules`
+// and re-exec there; a no-op on a monorepo `file:` link.
+relocateOutOfNodeModules(
+  import.meta.url,
+  "plggpress.mjs",
+);
 
 register("./hook.mjs", import.meta.url);
 

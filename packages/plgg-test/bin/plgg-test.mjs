@@ -34,6 +34,18 @@ import {
   deriveAliases,
   selfSrcRoot,
 } from "../src/Resolve/aliases.mjs";
+import { relocateOutOfNodeModules } from "./relocate.mjs";
+
+// Node 24 refuses to strip types from `.ts` under `node_modules`. When this
+// tool is installed from the registry, relocate a copy OUTSIDE `node_modules`
+// and re-exec there (so the spawned `--experimental-strip-types` children load
+// this tool's `.ts` from a strippable path); a no-op on a monorepo `file:`
+// link. The TARGET package's specs stay at cwd (outside node_modules) either
+// way.
+relocateOutOfNodeModules(
+  import.meta.url,
+  "plgg-test.mjs",
+);
 
 const here = dirname(
   fileURLToPath(import.meta.url),

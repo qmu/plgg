@@ -94,6 +94,46 @@ don't even use `plggpress`, are equally blocked). Bump is staged locally; publis
 after the tooling prerequisite lands. Ticket C stays blocked (needs B green
 standalone first).
 
+## Carry Checkpoint (2026-07-09, fourth) — BLOCKER 1 FIXED; BLOCKER 2 (published drift) FOUND
+
+**Blocker 1 (tooling launcher consumability) — FIXED and PROVEN.** Implemented
+under ticket `20260709165827`: a `bin/relocate.mjs` preamble on the
+run-from-source launchers (`plgg-bundle`, `plgg-test`, `plggpress`, `plgg-cms`)
+that, when installed under `node_modules`, copies the package OUT and re-execs
+(no-op on a monorepo `file:` link). Verified in `../plggmatic`: `plggmatic`
+build + test + coverage all green; and a staged-tarball scratch install proved
+`plggpress`'s bin relocates and runs (no more type-stripping error). `plgg-bundle`
+bumped 0.0.2→0.0.3, `plgg-test` 0.0.3→0.0.4; publish smoke hardened to fail on
+`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`.
+
+**Blocker 2 (published-package drift) — the new gate.** The `plggpress` scratch
+smoke then surfaced `SyntaxError: 'plgg-md' does not provide an export named
+'githubSlugify'`: local `plgg-md@0.0.1` has it, published `plgg-md@0.0.1` does
+NOT. The monorepo skips version bumps (single-consumer freedom), so **published
+artifacts have drifted from local source at the SAME version number**. An
+export-surface diff of the extraction's runtime closure (published vs local dist
+`.d.ts`) found three drifted packages:
+- `plgg-view@0.0.1` — missing `Cmd`/`Sub`/`runCmd`/`subBatch`/… (the dynamic
+  Source/Cmd/Sub surface). Consumed by plggmatic-example + site + plggpress.
+- `plgg-server@0.0.3` — missing `requireCsrf`/`requireRole`/`csrfCookie`/… (the
+  CSRF/role guards). Consumed by plggpress.
+- `plgg-md@0.0.1` — missing `HtmlBlock`/`githubSlugify`/YAML helpers. Consumed by
+  plggpress.
+(`plgg`, `plgg-ui`, `plgg-http`, `plgg-highlight`, `plgg-cli`, `plgg-parser` are
+clean.)
+
+**Consequence — a coordinated family release is the real prerequisite.** To give
+the extraction a consistent published contract, the three drifted packages must
+be republished at bumped versions — AND, because caret on `0.0.x` is exact,
+every closure package that depends on a bumped one must also be republished to
+re-pin it (else npm dual-installs the old + new copy). Bumping `plgg-view`
+therefore ripples up through `plgg-md`/`plgg-server`/`plgg-ui`/`plggpress`. The
+practical fix is a single dependency-ordered republish of the affected closure
+via `scripts/publish-npm.sh`, with `../plggmatic` pins updated to match. This is
+a release-hygiene operation distinct from the tooling fix and larger than the
+originally-scoped `plggpress@0.0.2` bump — surfaced for a developer decision, not
+auto-performed.
+
 Ticket B was started but not completed. The initial blocker was that `plgg-ui@0.1.0` was not published while `plgg@0.0.27`, `plgg-view@0.0.1`, and `plggpress@0.0.1` were published. The session patched `scripts/publish-npm.sh` to support `ONLY=plgg-ui`, added `"files": ["dist"]` to `packages/plgg-ui/package.json`, and fixed an unrelated `plgg-content` gate failure caused by the new `HtmlBlock` variant in `plgg-md`. Work stopped at a product-boundary concern: the standalone `../plggmatic` repo should consume published packages, but should not force publication of `plgg-content`, `plgg-mcp`, or `plgg-domain` just because the current local `plggpress` has grown CMS/server features.
 
 ## Policies
