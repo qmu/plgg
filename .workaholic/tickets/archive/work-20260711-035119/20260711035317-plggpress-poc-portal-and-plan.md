@@ -3,9 +3,9 @@ created_at: 2026-07-11T03:53:17+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Infrastructure, Config]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: ecf41dc7
+category: Added
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
 ---
@@ -101,3 +101,18 @@ Captured from the developer at ticket time (2026-07-11): PoC packages meet **typ
 - The portal's verdict data is the durable record mission acceptance reads; later PoC tickets update `src/pocs.ts` as their final step — keep the record shape stable and total so those edits are one-line data changes (`packages/plgg-poc-portal/src/pocs.ts`).
 - PoC packages are sacrificial by design (proactive-poc policy): keep the portal free of production coupling so discarding or promoting a PoC never ripples (`packages/plgg-poc-portal/`).
 - gate-guide-deps reconciles three hand-maintained guide-container lists; a PoC package that isn't a guide dependency must be excluded consistently or the gate goes red on the next fresh check-all (`scripts/gate-guide-deps.sh`).
+
+## Final Report
+
+Development completed as planned, with two deliberate simplifications against the ticket's sketch: the portal ships **no client bundle at all** (the page is pure SSG output via plgg-server's `generateStatic`; its only interactions are links, so `bundle.config.ts` and a CSR entry would have been dead weight — the modeless/URL-state requirement is satisfied trivially by plain anchors), and the package **keeps `type: module`** matching the `packages/example` app precedent (the scaffold-gotcha "omit type:module" applies to published library packages, not private apps).
+
+Verification run against the Quality Gate: package `tsc --noEmit` exit 0 with zero escape hatches; 12 plgg-test smoke specs green (fleet-data invariants incl. unique ports in 5184–5190 and the `pocConsistent` verdict rule, exhaustive status labels, honest "Not yet run"/empty states, planned-PoCs-never-link); coverage incidentally 100% on the pure modules under the private-app exemption; `gate-readme`/`gate-vendor-boundary`/`gate-guide-deps` all green with the new package (node built-ins confined to `src/entrypoints/`, so no exemption needed); `dist/site/index.html` built; host serve answered 200 on `/` and 404 elsewhere; the containerized workload (`scripts/serve-poc.sh poc-portal`, `workloads/poc-portal/compose.yaml`, node:22-slim, no image build) answered 200 on `localhost:5183` with the full card list. The full fresh `check-all.sh` runs once at the end of this night batch. The `~/.cloudflared/config.yml` ingress lines are prepared in the package README for the developer to apply (system config is never agent-edited); `https://plgg-poc.qmu.dev` review is the morning gate.
+
+### Discovered Insights
+
+- **Insight**: plgg-view's `sx.style_` atoms compile to `Css` attributes that `htmlDocument` folds into one inline `<style>`, so a fully-styled SSG page needs no stylesheet asset and no client runtime.
+  **Context**: any future static page in the fleet (or elsewhere) can skip bundling entirely — SSG + style atoms is a complete UI path.
+- **Insight**: a compose workload can run TypeScript entrypoints directly on a stock `node:22-slim` image (type stripping) with the repo bind-mounted — no Dockerfile, no in-container npm install — when the artifact is host-built and the server uses node built-ins only.
+  **Context**: the cheapest possible container recipe for the coming PoCs; the guide's heavyweight Dockerfile is only needed when a container must resolve `file:` dependency graphs itself.
+- **Insight**: plgg-test's `all()` takes a single `ReadonlyArray<Assertion>` argument, not variadic assertions.
+  **Context**: the compiler error (`Expected 1 arguments`) is cryptic at spec scale; every new spec author hits it once.

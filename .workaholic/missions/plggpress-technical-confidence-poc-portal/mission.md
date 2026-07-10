@@ -43,8 +43,8 @@ Each of these is a real technical risk. This mission **collects confidence throu
 
 <!-- Ticket filenames are attached as (#<ticket>.md) markers when each ticket is filed via /ticket. -->
 
-- [ ] PoC plan recorded: each PoC named with its technical question and confidence signal (#20260711035317-plggpress-poc-portal-and-plan.md)
-- [ ] PoC portal serves an index page linking every PoC, each PoC on its own port + `*.qmu.dev` hostname via cloudflared (#20260711035317-plggpress-poc-portal-and-plan.md)
+- [x] PoC plan recorded: each PoC named with its technical question and confidence signal (#20260711035317-plggpress-poc-portal-and-plan.md)
+- [x] PoC portal serves an index page linking every PoC, each PoC on its own port + `*.qmu.dev` hostname via cloudflared (#20260711035317-plggpress-poc-portal-and-plan.md)
 - [ ] PoC: browser search core — indexed full-text search vs browser vector-DB RAG measured on a real corpus (index size, build time, query latency, answer quality); verdict recorded (#20260711035318-poc1-browser-search-core.md)
 - [ ] PoC: reader-side embedded browser agent answering questions grounded in the indexed document data of a generated static site
 - [ ] PoC: writer-side interactive voice assistant over the OpenAI Realtime API, "on the same page" with the open document
@@ -57,3 +57,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 
 <!-- Append-only, dated timeline relating this mission's tickets and reports over time.
      One line per event ("- YYYY-MM-DD — event — filename"); never rewrite past lines. -->
+- 2026-07-11 — ticket archived — 20260711035317-plggpress-poc-portal-and-plan.md

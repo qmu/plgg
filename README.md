@@ -114,6 +114,7 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
+- **[`packages/plgg-poc-portal/`](packages/plgg-poc-portal/)** - plggpress PoC portal: the static index of the confidence-collection PoC fleet (private, served at `plgg-poc.qmu.dev`)
 
 The Pragmatic design-system package, its documentation site, and its workbench now live outside this monorepo. This repository keeps the CMS admin UI inside `plgg-cms`; plggpress carries only the static theme support needed to build this guide.
 

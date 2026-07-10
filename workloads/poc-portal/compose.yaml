@@ -1,0 +1,22 @@
+# PoC-portal workload — serve the built plggpress PoC
+# portal (packages/plgg-poc-portal/dist/site) on host port
+# 5183, the cloudflared tunnel route for plgg-poc.qmu.dev.
+#
+#   scripts/serve-poc.sh poc-portal
+#
+# The portal is a STATIC artifact: `npm run build` renders
+# it on the host (where the package's node_modules live),
+# and this container only runs the node-builtins-only
+# static server (src/entrypoints/serve.ts) against the
+# mounted repo — no in-container npm install, no sibling
+# dist rebuild, matching the portal's discardable-PoC
+# scope. Rebuild on the host, refresh the browser.
+services:
+  poc-portal:
+    image: node:22-slim
+    working_dir: /app/packages/plgg-poc-portal
+    command: ["node", "src/entrypoints/serve.ts"]
+    ports:
+      - "5183:5173"
+    volumes:
+      - ../..:/app
