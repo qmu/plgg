@@ -43,9 +43,9 @@ Each of these is a real technical risk. This mission **collects confidence throu
 
 <!-- Ticket filenames are attached as (#<ticket>.md) markers when each ticket is filed via /ticket. -->
 
-- [ ] PoC plan recorded: each PoC named with its technical question and confidence signal
-- [ ] PoC portal serves an index page linking every PoC, each PoC on its own port + `*.qmu.dev` hostname via cloudflared
-- [ ] PoC: browser search core — indexed full-text search vs browser vector-DB RAG measured on a real corpus (index size, build time, query latency, answer quality); verdict recorded
+- [ ] PoC plan recorded: each PoC named with its technical question and confidence signal (#20260711035317-plggpress-poc-portal-and-plan.md)
+- [ ] PoC portal serves an index page linking every PoC, each PoC on its own port + `*.qmu.dev` hostname via cloudflared (#20260711035317-plggpress-poc-portal-and-plan.md)
+- [ ] PoC: browser search core — indexed full-text search vs browser vector-DB RAG measured on a real corpus (index size, build time, query latency, answer quality); verdict recorded (#20260711035318-poc1-browser-search-core.md)
 - [ ] PoC: reader-side embedded browser agent answering questions grounded in the indexed document data of a generated static site
 - [ ] PoC: writer-side interactive voice assistant over the OpenAI Realtime API, "on the same page" with the open document
 - [ ] PoC: browser-agent tool-calling edits local files via the dev server; edited page hot-reloads while the realtime websocket stays connected
