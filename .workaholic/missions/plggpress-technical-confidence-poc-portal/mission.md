@@ -1,0 +1,59 @@
+---
+type: Mission
+title: plggpress technical-confidence PoC portal
+slug: plggpress-technical-confidence-poc-portal
+status: active
+created_at: 2026-07-11T03:31:36+09:00
+author: a@qmu.jp
+tickets: []
+stories: []
+concerns: []
+---
+
+# plggpress technical-confidence PoC portal
+
+## Goal
+
+plggpress is heading toward **Static Site Generator + Browser RAG, for both Writer and Reader** — out of the box, no mandatory central configuration, loading markdown when it generates/runs. Two users define the product:
+
+- **Reader** (Static Mode, production-ready): `npx plggpress` generates a static site **with an embedded browser agent** and indexed document data, plus sitemap and code highlighting. The reader reads with browser AI support.
+- **Writer** (Dynamic Mode, dev/edit only): `npx plggpress dev` is a hot-reloading server that, given `OPENAI_API_KEY`, shows an **interactive voice assistant** on the site (OpenAI Realtime API until a GPT Live API exists). The writer discusses the document with the AI — literally "on the same page" — and the browser agent's tool calls reach the dev server to **update local files**, with the edited page hot-reloading while the realtime websocket stays alive.
+
+Around that core sit three more open challenges: **central configuration generation** (the writer asks the agent to classify by front-matter tags with display name/color/emoji/description, exclude paths, and switch layout/sizing/theme — minimal visual identity, ~5–10 prefixed sizing themes), **non-tree file classification** (the filesystem is a tree; group by tag and link in front matter, needing several prototypes for multi-dimensional search UX and browser-agent manipulatability), and the **Browser RAG decision itself** (browser-side vector DB only if its full-scratch cost is affordable, otherwise indexed full-text search in the browser).
+
+Each of these is a real technical risk. This mission **collects confidence through a fleet of small PoCs before committing the production plggpress architecture**: every PoC is a separately runnable app on its own port, exposed via its own `*.qmu.dev` cloudflared hostname, and a **PoC portal** page links them all so the fleet is reviewable in one place. When a PoC proves its approach, its artifact is integrated into production plggpress; the portal is the durable map from open question → running proof → production integration.
+
+## Scope
+
+**Definition of done:**
+
+- A PoC plan exists naming each PoC, the technical question it answers, and its confidence signal (what observation counts as "proven").
+- A **PoC portal** app links every PoC page; portal and each PoC run on distinct local ports mapped to distinct `*.qmu.dev` hostnames in the cloudflared config (`tunnel qmu-dev`, `~/.cloudflared/config.yml`).
+- The PoC fleet covers, at minimum: (1) browser-side search core — indexed FTS vs vector-DB RAG cost/quality on a real corpus; (2) reader-side embedded browser agent on a generated static site; (3) writer-side voice assistant over the Realtime API; (4) browser-agent tool-calling that edits local files through the dev server with hot reload keeping the websocket session; (5) central-configuration generation by the agent (tags, exclusions, layout/sizing themes); (6) non-tree classification — tag/link multi-dimensional search UX and its agent manipulatability.
+- Each PoC records a verdict (proven / disproven / needs another round) on the portal.
+- Proven PoC artifacts are integrated into the production plggpress/plgg-cms packages after the PoC phase.
+
+**Out of scope:**
+
+- Rewriting production plggpress before the PoCs deliver verdicts — integration comes after, not alongside.
+- Production-grade auth/ops for PoC apps (dev-only surfaces behind qmu.dev).
+- The plggmatic/Pragmatic DSL work — tracked by `plggmatic-ai-native-ui-toward-a-dsl`.
+
+## Acceptance
+
+<!-- Ticket filenames are attached as (#<ticket>.md) markers when each ticket is filed via /ticket. -->
+
+- [ ] PoC plan recorded: each PoC named with its technical question and confidence signal
+- [ ] PoC portal serves an index page linking every PoC, each PoC on its own port + `*.qmu.dev` hostname via cloudflared
+- [ ] PoC: browser search core — indexed full-text search vs browser vector-DB RAG measured on a real corpus (index size, build time, query latency, answer quality); verdict recorded
+- [ ] PoC: reader-side embedded browser agent answering questions grounded in the indexed document data of a generated static site
+- [ ] PoC: writer-side interactive voice assistant over the OpenAI Realtime API, "on the same page" with the open document
+- [ ] PoC: browser-agent tool-calling edits local files via the dev server; edited page hot-reloads while the realtime websocket stays connected
+- [ ] PoC: central configuration generation — agent classifies by front-matter tags (name/color/emoji/description), excludes paths, switches layout and sizing themes
+- [ ] PoC: non-tree classification — tag/link-grouped multi-dimensional search UX prototypes, manipulable by the browser agent
+- [ ] Post-PoC integration: proven artifacts integrated into production plggpress, portal verdicts closed out
+
+## Changelog
+
+<!-- Append-only, dated timeline relating this mission's tickets and reports over time.
+     One line per event ("- YYYY-MM-DD — event — filename"); never rewrite past lines. -->
