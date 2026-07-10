@@ -6,9 +6,9 @@ origin_branch: work-20260704-130317
 origin_commit: 416da301
 created_at: 2026-07-06T11:33:41+09:00
 severity: moderate
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 540d2f36
+resolved_by_commit: 
 ---
 
 # (carried from PR #51) Facade plain names shadow plgg-server variants

@@ -44,3 +44,4 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-08 — filed the two specification tickets (transition model, input-field model) — 20260708213945-specify-pragmatic-screen-transition-model.md, 20260708213946-specify-pragmatic-input-field-model.md
 - 2026-07-08 — ticket archived — 20260708213945-specify-pragmatic-screen-transition-model.md
 - 2026-07-08 — ticket archived — 20260708213946-specify-pragmatic-input-field-model.md
+- 2026-07-11 — story reported — work-20260706-120449.md

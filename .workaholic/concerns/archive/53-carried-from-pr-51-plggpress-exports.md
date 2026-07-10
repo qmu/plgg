@@ -6,9 +6,9 @@ origin_branch: work-20260703-050355
 origin_commit: 0ddb00d
 created_at: 2026-07-03T17:31:14+09:00
 severity: low
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: f3bb180a
+resolved_by_commit: 
 ---
 
 # (carried from PR #51) plggpress exports map is import-only
