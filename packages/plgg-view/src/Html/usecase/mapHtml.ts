@@ -3,6 +3,7 @@ import {
   Html,
   element$,
   text$,
+  raw$,
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
@@ -79,5 +80,10 @@ export const mapHtml =
         text$(),
         ({ content }): Html<B> =>
           box("Text")(content),
+      ],
+      [
+        raw$(),
+        ({ content }): Html<B> =>
+          box("Raw")(content),
       ],
     );

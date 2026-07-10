@@ -4,7 +4,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # Launch the plgg family guide (plggpress) dev container with hot-reload.
 # The container runs DETACHED: this script starts it in the background and
 # returns, so the terminal is freed immediately. The dev container runs
-# `plggpress dev` and serves the guide's Markdown content directly.
+# the guide package's `npm run dev` and serves the guide's Markdown content directly.
 # External access maps to http://localhost:5181 via the cloudflared tunnel.
 # Stop it later with: <compose> -f workloads/guide/compose.yaml down
 echo "=== Serving the guide at http://localhost:5181 (detached) ==="

@@ -18,24 +18,19 @@ cd $REPO_ROOT/packages/plgg-view && npm install
 cd $REPO_ROOT/packages/plgg-md && npm install
 cd $REPO_ROOT/packages/plgg-highlight && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
-# plggmatic before plggpress: plggpress now file:-depends on plggmatic for its
-# ported theme, so plggmatic's package is present when plggpress installs.
-cd $REPO_ROOT/packages/plggmatic && npm install
-# plgg-sql / plgg-db-migration / plgg-content before plggpress: plggpress now
-# file:-depends on plgg-content (the /api delivery mount), which itself
-# file:-depends on plgg-sql + plgg-db-migration, so all must install first.
+# plgg-sql / plgg-db-migration before plgg-cms: the CMS now owns the former
+# content query/index source internally, and that code depends on the SQL and
+# migration packages.
 cd $REPO_ROOT/packages/plgg-sql && npm install
 cd $REPO_ROOT/packages/plgg-db-migration && npm install
-cd $REPO_ROOT/packages/plgg-content && npm install
-cd $REPO_ROOT/packages/plgg-mcp && npm install
-# plgg-auth before plggpress: plggpress file:-depends on it (the /auth + /admin
-# OIDC mounts).
+# plgg-auth before plgg-cms: the CMS owns the auth/admin dynamic mounts.
 cd $REPO_ROOT/packages/plgg-auth && npm install
 cd $REPO_ROOT/packages/plggpress && npm install
+# plgg-cms after plggpress: it file:-depends on plggpress (the SSG framework
+# seam) plus plgg-sql/plgg-db-migration/plgg-auth/plgg-server, all installed
+# above; former content and MCP code is package-internal.
+cd $REPO_ROOT/packages/plgg-cms && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
-cd $REPO_ROOT/packages/plgg-domain && npm install
 cd $REPO_ROOT/packages/example && npm install
 cd $REPO_ROOT/packages/guide && npm install
-cd $REPO_ROOT/packages/plggmatic-example && npm install
-cd $REPO_ROOT/packages/site && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

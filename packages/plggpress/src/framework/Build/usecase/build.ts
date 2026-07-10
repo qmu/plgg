@@ -1,3 +1,4 @@
+import { rm } from "node:fs/promises";
 import {
   type SoftStr,
   type Result,
@@ -8,6 +9,7 @@ import {
   proc,
   mapResult,
   matchOption,
+  tryCatch,
 } from "plgg";
 import { type Web } from "plgg-server";
 import {
@@ -16,6 +18,7 @@ import {
   discoverPaths,
   copyAssets,
   write404,
+  writeFailed,
 } from "plgg-server/ssg";
 import {
   type AppOptions,
@@ -50,6 +53,25 @@ export type BuildSpec<E> = Readonly<{
 }>;
 
 /**
+ * Static builds are directory replacements, not incremental
+ * patches. Clean the output root after discovery/link-checking
+ * succeeds so stale pages from removed routes cannot remain
+ * directly servable.
+ */
+const cleanOutDir = (
+  outDir: SoftStr,
+): PromisedResult<SoftStr, SsgError> =>
+  tryCatch(
+    (dir: SoftStr): Promise<SoftStr> =>
+      rm(dir, {
+        recursive: true,
+        force: true,
+      }).then((): SoftStr => dir),
+    (error: unknown): SsgError =>
+      writeFailed(outDir, String(error)),
+  )(outDir);
+
+/**
  * Build the static site from a content corpus into
  * `opts.outDir`, as one typed transform pipeline that
  * never throws:
@@ -59,11 +81,13 @@ export type BuildSpec<E> = Readonly<{
  * 1b. the optional `spec.linkCheck` validates the routes
  *    BEFORE anything is written — an `Err` (an app-typed
  *    `E`) fails the build;
- * 2. {@link generateStatic} renders every path through the
+ * 2. `opts.outDir` is removed so deleted routes/assets cannot
+ *    survive from a previous build;
+ * 3. {@link generateStatic} renders every path through the
  *    app's `spec.router` and writes each to
  *    `outDir/<path>/index.html`;
- * 3. {@link copyAssets} mirrors `assetsDir` verbatim;
- * 4. {@link write404} persists `spec.notFoundHtml` as
+ * 4. {@link copyAssets} mirrors `assetsDir` verbatim;
+ * 5. {@link write404} persists `spec.notFoundHtml` as
  *    `outDir/404.html`.
  *
  * The framework owns the orchestration; the app supplies
@@ -105,6 +129,17 @@ export const build = <E>(
             ),
           ),
       )(spec.linkCheck),
+    (
+      paths: ReadonlyArray<SoftStr>,
+    ): PromisedResult<
+      ReadonlyArray<SoftStr>,
+      SsgError
+    > =>
+      cleanOutDir(opts.outDir).then(
+        mapResult(
+          (): ReadonlyArray<SoftStr> => paths,
+        ),
+      ),
     (
       paths: ReadonlyArray<SoftStr>,
     ): PromisedResult<

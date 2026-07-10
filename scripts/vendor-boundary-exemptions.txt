@@ -15,5 +15,5 @@
 example              # leaf demo app: a runnable example that wires node: (child_process/fs/http/…) directly; not a library domain
 plgg-server          # legacy Feature/ layout; node:http + node:fs/promises in the server + SSG writer — migrate to vendors/ later
 plgg-test            # legacy layout; the test runner imports the tsc API (typescript) + node:fs/path/url — tooling package, migrate later
-plggmatic-example    # leaf workbench app: wires node: (crypto/fs/path) directly; under active work on this branch
 plggpress            # legacy layout; the framework writes files (node:fs/promises) + serves (node:http) outside a vendors/ boundary — migrate later (pilot: ticket 20260704185203 is plgg-fetch, already clean)
+plgg-cms             # legacy layout (split from plggpress 2026-07-09); the dynamic content surface writes files (node:fs/promises) + serves (node:http) + crypto outside a vendors/ boundary — migrate later

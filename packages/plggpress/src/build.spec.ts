@@ -35,6 +35,8 @@ const config: SiteConfig = {
   social: [],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 const HOME_MD = [
@@ -280,7 +282,10 @@ test("PRODUCTION emit ships the theme toggle on every page and never leaks the d
       built.notFound,
     ].flatMap((page: string) => [
       check(page, toContain("<script")),
-      check(page, toContain("vp-" + "appearance")),
+      check(
+        page,
+        toContain("vp-" + "appearance"),
+      ),
       check(page, toContain("classList")),
       check(page, not(toContain("EventSource"))),
     ]),

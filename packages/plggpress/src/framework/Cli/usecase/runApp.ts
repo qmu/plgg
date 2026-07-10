@@ -71,11 +71,13 @@ export type AppDefinition<Config, E> = Readonly<{
   /**
    * The router factory the `serve` verb runs as a persistent
    * process — the SAME factory shape `build` renders through,
-   * so served HTML ≡ generated HTML. Required (plggpress is
-   * the only consumer, so the shape is not kept
-   * backward-compatible).
+   * so served HTML ≡ generated HTML. OPTIONAL: a pure static-
+   * site generator (plggpress) omits it and gets a `build`-only
+   * CLI; a dynamic consumer (plgg-cms) supplies it to add the
+   * `serve` verb. When absent, the `serve` command is not
+   * registered at all.
    */
-  serveWeb: (
+  serveWeb?: (
     config: Config,
     opts: AppOptions,
   ) => PromisedResult<
@@ -170,7 +172,12 @@ const runBuild =
  * exiting early (it resolves `ok` only on `close`/signal).
  */
 const runServe =
-  <Config, E>(def: AppDefinition<Config, E>) =>
+  <Config, E>(
+    def: AppDefinition<Config, E>,
+    serveWeb: NonNullable<
+      AppDefinition<Config, E>["serveWeb"]
+    >,
+  ) =>
   (
     invocation: Invocation,
   ): PromisedResult<SoftStr, SoftStr> =>
@@ -197,9 +204,7 @@ const runServe =
                 err(settings.content),
               );
             }
-            return def
-              .serveWeb(config, opts)
-              .then(
+            return serveWeb(config, opts).then(
                 matchResult(
                   (
                     d: Defect,
@@ -300,24 +305,32 @@ const serveOptions = [
 export const runApp = <Config, E>(
   def: AppDefinition<Config, E>,
 ): Promise<void> => {
-  const app: Program = program(
-    def.name,
-    def.description,
-    [
-      command(
-        "build",
-        "build the site into static files",
-        configOptions,
-      ),
-      command(
-        "serve",
-        "run a persistent server on the same config",
-        serveOptions,
-      ),
-    ],
+  const serveWeb = def.serveWeb;
+  const buildCommand = command(
+    "build",
+    "build the site into static files",
+    configOptions,
   );
-  return runCli(app, {
-    build: runBuild(def),
-    serve: runServe(def),
-  });
+  const app: Program =
+    serveWeb === undefined
+      ? program(def.name, def.description, [
+          buildCommand,
+        ])
+      : program(def.name, def.description, [
+          buildCommand,
+          command(
+            "serve",
+            "run a persistent server on the same config",
+            serveOptions,
+          ),
+        ]);
+  return runCli(
+    app,
+    serveWeb === undefined
+      ? { build: runBuild(def) }
+      : {
+          build: runBuild(def),
+          serve: runServe(def, serveWeb),
+        },
+  );
 };

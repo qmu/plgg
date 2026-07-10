@@ -18,13 +18,14 @@ import { type MarkdownDoc } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { baseCss } from "plggpress/theme/baseCss";
-import { themeToggleCss } from "plggmatic";
 import {
+  themeToggleCss,
   schemeCss,
   metricCss,
   reducedMotionCss,
   syntaxCss,
-} from "plggmatic/style";
+  defaultTheme,
+} from "plggpress/themeSupport/styleEntry";
 
 /**
  * The framework-owned CSS blocks plggmatic emits, composed
@@ -38,12 +39,17 @@ import {
  * layout/prose sheet (D3/D16 cutover, roadmap tickets
  * 07 + 08).
  */
+// plggpress passes `defaultTheme` explicitly to the
+// value-carrying emitters at its composition root — the
+// scheme, metric, and syntax CSS for the monochrome `--pm-*`
+// design language. `reducedMotionCss`/`themeToggleCss` carry
+// no theme values (static / default-bound).
 const frameworkCss: SoftStr =
-  schemeCss +
-  metricCss +
+  schemeCss(defaultTheme) +
+  metricCss(defaultTheme) +
   reducedMotionCss +
   themeToggleCss +
-  syntaxCss;
+  syntaxCss(defaultTheme);
 
 /**
  * The page `<title>` text: the document's first H1

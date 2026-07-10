@@ -76,6 +76,9 @@ export const renderToString = <Msg>(
 ): SoftStr =>
   foldHtml<Msg, SoftStr>({
     text: (value) => escapeText(value),
+    // the trusted passthrough: emitted VERBATIM, never
+    // escaped — the whole point of the Raw node
+    raw: (html) => html,
     element: (tag, attributes, children) =>
       // an unsafe tag (only reachable via the `el(tag, …)` hatch) is dropped
       // whole — it could otherwise inject markup, and there is no safe way to

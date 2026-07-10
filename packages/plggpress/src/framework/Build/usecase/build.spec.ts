@@ -1,11 +1,12 @@
 import {
+  access,
   mkdtemp,
   mkdir,
   writeFile,
   readFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   test,
   check,
@@ -89,6 +90,14 @@ const writeCorpus = async (): Promise<AppOptions> => {
   };
 };
 
+const pathExists = (
+  path: string,
+): Promise<boolean> =>
+  access(path).then(
+    (): boolean => true,
+    (): boolean => false,
+  );
+
 test("builds every route + asset + 404 and reports the written files", async () => {
   const opts = await writeCorpus();
   const report = await build(opts, {
@@ -119,6 +128,31 @@ test("builds every route + asset + 404 and reports the written files", async () 
     check(home, toContain("path:/")),
     check(notFound, toContain("not found")),
     check(robots, toContain("User-agent")),
+  ]);
+});
+
+test("cleans the output directory before writing fresh files", async () => {
+  const opts = await writeCorpus();
+  const stale = join(
+    opts.outDir,
+    "removed-route",
+    "index.html",
+  );
+  await mkdir(dirname(stale), {
+    recursive: true,
+  });
+  await writeFile(stale, "stale", "utf8");
+  const report = await build(opts, {
+    router,
+    notFoundHtml: NOT_FOUND,
+    linkCheck: none(),
+  });
+  return all([
+    check(await pathExists(stale), toBe(false)),
+    check(
+      report,
+      okThen((r) => toBe(4)(r.pages.length)),
+    ),
   ]);
 });
 

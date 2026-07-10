@@ -10,6 +10,7 @@ import {
   el,
   slot,
   text,
+  raw,
   div,
   input,
   h1,
@@ -413,4 +414,24 @@ test("slot wraps an el-built fragment under a typed body", () =>
     toBe(
       "<body><div><div>md body</div></div></body>",
     ),
+  ));
+
+test("raw node is emitted verbatim, never escaped", () =>
+  check(
+    renderToString(
+      raw('<small class="u">a & b</small>'),
+    ),
+    toBe('<small class="u">a & b</small>'),
+  ));
+
+test("a raw child rides beside an escaped text sibling", () =>
+  check(
+    renderToString(
+      div(
+        [],
+        [text("a & b"), raw("<i>c & d</i>")],
+      ),
+    ),
+    // the text arm escapes; the raw arm does not
+    toBe("<div>a &amp; b<i>c & d</i></div>"),
   ));

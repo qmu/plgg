@@ -2,8 +2,9 @@
 # (packages/guide) dev server with hot-reload, so one
 # `docker compose up` serves the docs locally while you
 # edit the Markdown. This is a *dev* image: it serves the
-# guide through `plggpress dev`, NOT a production artifact
-# (the static build/deploy is T8).
+# guide through the guide package's `npm run dev`
+# (`plgg-bundle dev`), NOT a production artifact (the
+# static build/deploy is T8).
 #
 # Build context is the repo root (see
 # workloads/guide/compose.yaml) so the in-container build
@@ -22,9 +23,9 @@ COPY . .
 EXPOSE 5173
 
 # The bind mount at runtime HIDES anything built into this
-# image, so the seven sibling dists plggpress imports must
-# be built AFTER the mount is live. dev-entrypoint.sh does
-# that on the mounted tree (install the runtime graph +
-# plgg-highlight's typescript, run scripts/build.sh, then
-# `plggpress dev` on internal port 5173).
+# image, so the sibling dists the guide dev server resolves
+# must be built AFTER the mount is live. dev-entrypoint.sh
+# does that on the mounted tree (install the runtime graph,
+# run scripts/build.sh, then `npm run dev` on internal port
+# 5173).
 ENTRYPOINT ["sh", "workloads/guide/dev-entrypoint.sh"]

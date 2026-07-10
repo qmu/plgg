@@ -9,7 +9,7 @@ import {
   asHighlighter,
   renderToString,
 } from "plggpress/framework";
-import { syntaxKinds } from "plggmatic/style";
+import { syntaxKinds } from "plggpress/themeSupport/styleEntry";
 
 // The cross-package seam pin (ticket 08). plgg-highlight
 // emits `tok-<kind>` classes and plggmatic themes them

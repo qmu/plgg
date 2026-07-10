@@ -21,7 +21,7 @@ import { type AppOptions } from "plggpress/framework";
 import { serveApp } from "plggpress/framework";
 import { discoverPaths } from "plgg-server/ssg";
 import { build } from "plggpress/build";
-import { pressServeWeb } from "plggpress/server/pressServer";
+import { pressRouter } from "plggpress/router/pressRouter";
 
 const config: SiteConfig = {
   title: "Serve Fixture",
@@ -32,9 +32,12 @@ const config: SiteConfig = {
   social: [],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
-const HOME_MD = "# Serve Home\n\nLanding prose.\n";
+const HOME_MD =
+  "# Serve Home\n\nLanding prose.\n";
 const GUIDE_MD =
   "# Serve Guide\n\nGuide prose with `code`.\n";
 
@@ -83,7 +86,13 @@ test("serveApp serves a discovered route (200 + rendered HTML) and 404s an unkno
   const { contentDir, root } = await makeCorpus();
   const r = await serveApp(
     optsFor(contentDir, join(root, "out")),
-    pressServeWeb(contentDir, config, config.base),
+    (paths) =>
+      pressRouter(
+        contentDir,
+        config,
+        config.base,
+        paths,
+      ),
     { port: 0, hostname: none() },
   );
   if (!isOk(r)) {
@@ -101,7 +110,10 @@ test("serveApp serves a discovered route (200 + rendered HTML) and 404s an unkno
       check(home.status, toBe(200)),
       check(homeBody, toContain("Serve Home")),
       // the rendered page is the real theme shell
-      check(homeBody, toContain("<!doctype html>")),
+      check(
+        homeBody,
+        toContain("<!doctype html>"),
+      ),
       check(missing.status, toBe(404)),
     ]);
   } finally {
@@ -117,11 +129,13 @@ test("serveApp folds a bad contentDir to a typed Err (no listener leaked)", asyn
       "/no/such/content/dir/plggpress",
       "/tmp/unused-out",
     ),
-    pressServeWeb(
-      "/no/such/content/dir/plggpress",
-      config,
-      config.base,
-    ),
+    (paths) =>
+      pressRouter(
+        "/no/such/content/dir/plggpress",
+        config,
+        config.base,
+        paths,
+      ),
     { port: 0, hostname: none() },
   );
   // discovery fails before any server is created
@@ -150,14 +164,21 @@ test("BYTE-IDENTITY GATE: every served body equals the SSG-built file", async ()
     return check(false, toBe(true));
   }
   // discover the same route set the build rendered
-  const discovered = await discoverPaths(contentDir);
+  const discovered =
+    await discoverPaths(contentDir);
   if (!isOk(discovered)) {
     return check(false, toBe(true));
   }
   // serve the same corpus
   const served = await serveApp(
     optsFor(contentDir, outDir),
-    pressServeWeb(contentDir, config, config.base),
+    (paths) =>
+      pressRouter(
+        contentDir,
+        config,
+        config.base,
+        paths,
+      ),
     { port: 0, hostname: none() },
   );
   if (!isOk(served)) {

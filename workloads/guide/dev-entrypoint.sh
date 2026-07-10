@@ -6,7 +6,7 @@
 # image at build time is HIDDEN the moment the mount goes
 # live, so the sibling dists plggpress imports
 # (plgg, plgg-cli, plgg-view, plgg-server, plgg-http,
-# plgg-md, plgg-highlight, plggmatic, plggpress) have to be
+# plgg-md, plgg-highlight, plggpress) have to be
 # (re)built HERE, on the mounted tree, where Node will
 # actually resolve them.
 #
@@ -19,11 +19,10 @@
 #     in packages/guide only symlinks plggpress; it never
 #     populates the siblings it depends on.
 #
-#   * plgg-highlight imports `typescript` from its OWN
-#     resolution path, so typescript must land in
-#     packages/plgg-highlight/node_modules — the clean-runner
-#     masking. Installing plgg-highlight here does exactly
-#     that (typescript is its dev/peer dep).
+#   * packages that run from source resolve their own
+#     dev-time dependencies from their own node_modules —
+#     the clean-runner masking. Installing each package here
+#     keeps that resolution path available in the container.
 cd /app
 
 # 1. Install the runtime symlink graph, in dependency order,
@@ -39,13 +38,6 @@ for pkg in \
   plgg-md \
   plgg-highlight \
   plgg-server \
-  plggmatic \
-  plgg-sql \
-  plgg-db-migration \
-  plgg-content \
-  plgg-auth \
-  plgg-kit \
-  plgg-mcp \
   plggpress \
   guide
 do

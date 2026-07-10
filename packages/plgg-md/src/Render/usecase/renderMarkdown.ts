@@ -20,6 +20,7 @@ import {
   emph$,
   strong$,
   lineBreak$,
+  htmlSpan$,
 } from "plgg-md/Inline/model/Inline";
 import {
   renderInline,
@@ -37,6 +38,7 @@ import {
   callout$,
   codeFence$,
   thematicBreak$,
+  htmlBlock$,
 } from "plgg-md/Block/model/Block";
 import { parseFrontmatter } from "plgg-md/Frontmatter/usecase/parseFrontmatter";
 import { parseBlocks } from "plgg-md/Block/usecase/parseBlocks";
@@ -47,11 +49,15 @@ import {
 import {
   Highlighter,
   LinkResolver,
+  RenderOptions,
   plainHighlighter,
   identityResolver,
 } from "plgg-md/Render/model/seam";
 import { mdToHtml } from "plgg-md/Render/usecase/mdToHtml";
-import { makeSluggers } from "plgg-md/Render/usecase/slugify";
+import {
+  makeSluggers,
+  slugify,
+} from "plgg-md/Render/usecase/slugify";
 
 /**
  * The first H1's plain text, in document order (recursing
@@ -61,6 +67,7 @@ import { makeSluggers } from "plgg-md/Render/usecase/slugify";
  */
 const firstH1Text = (
   blocks: ReadonlyArray<Block>,
+  rawHtml: boolean,
 ): Option<SoftStr> =>
   blocks.reduce<Option<SoftStr>>(
     (acc, block) =>
@@ -75,6 +82,7 @@ const firstH1Text = (
                       plainText(
                         renderInline(
                           content.text,
+                          rawHtml,
                         ),
                       ),
                     )
@@ -83,12 +91,18 @@ const firstH1Text = (
             [
               callout$(),
               ({ content }): Option<SoftStr> =>
-                firstH1Text(content.children),
+                firstH1Text(
+                  content.children,
+                  rawHtml,
+                ),
             ],
             [
               quote$(),
               ({ content }): Option<SoftStr> =>
-                firstH1Text(content.children),
+                firstH1Text(
+                  content.children,
+                  rawHtml,
+                ),
             ],
             [
               para$(),
@@ -110,6 +124,10 @@ const firstH1Text = (
               thematicBreak$(),
               (): Option<SoftStr> => none(),
             ],
+            [
+              htmlBlock$(),
+              (): Option<SoftStr> => none(),
+            ],
           ),
     none(),
   );
@@ -129,6 +147,7 @@ type HeadingEntry = Readonly<{
  */
 const headingEntries = (
   blocks: ReadonlyArray<Block>,
+  rawHtml: boolean,
 ): ReadonlyArray<HeadingEntry> =>
   blocks.flatMap(
     (block): ReadonlyArray<HeadingEntry> =>
@@ -141,7 +160,10 @@ const headingEntries = (
             {
               level: content.level,
               text: plainText(
-                renderInline(content.text),
+                renderInline(
+                  content.text,
+                  rawHtml,
+                ),
               ),
             },
           ],
@@ -151,14 +173,20 @@ const headingEntries = (
           ({
             content,
           }): ReadonlyArray<HeadingEntry> =>
-            headingEntries(content.children),
+            headingEntries(
+              content.children,
+              rawHtml,
+            ),
         ],
         [
           quote$(),
           ({
             content,
           }): ReadonlyArray<HeadingEntry> =>
-            headingEntries(content.children),
+            headingEntries(
+              content.children,
+              rawHtml,
+            ),
         ],
         [
           para$(),
@@ -180,6 +208,10 @@ const headingEntries = (
           thematicBreak$(),
           (): ReadonlyArray<HeadingEntry> => [],
         ],
+        [
+          htmlBlock$(),
+          (): ReadonlyArray<HeadingEntry> => [],
+        ],
       ),
   );
 
@@ -191,15 +223,17 @@ const headingEntries = (
  */
 const collectHeadings = (
   blocks: ReadonlyArray<Block>,
+  options: RenderOptions,
 ): ReadonlyArray<MdHeading> => {
-  const slug = makeSluggers();
-  return headingEntries(blocks).map(
-    (entry): MdHeading => ({
-      level: entry.level,
-      text: entry.text,
-      slug: slug.next(entry.text),
-    }),
-  );
+  const slug = makeSluggers(options.slug);
+  return headingEntries(
+    blocks,
+    options.rawHtml,
+  ).map((entry): MdHeading => ({
+    level: entry.level,
+    text: entry.text,
+    slug: slug.next(entry.text),
+  }));
 };
 
 /** Raw link/image targets reachable from inline nodes. */
@@ -248,36 +282,52 @@ const inlineHrefs = (
           lineBreak$(),
           (): ReadonlyArray<SoftStr> => [],
         ],
+        [
+          htmlSpan$(),
+          (): ReadonlyArray<SoftStr> => [],
+        ],
       ),
   );
 
 /** Raw link/image targets reachable from a list item. */
 const itemHrefs = (
   item: ListItem,
+  rawHtml: boolean,
 ): ReadonlyArray<SoftStr> => [
-  ...inlineHrefs(renderInline(item.text)),
-  ...item.children.flatMap(blockHrefs),
+  ...inlineHrefs(
+    renderInline(item.text, rawHtml),
+  ),
+  ...item.children.flatMap((child) =>
+    blockHrefs(child, rawHtml),
+  ),
 ];
 
 /** Raw link/image targets reachable from a block. */
 const blockHrefs = (
   block: Block,
+  rawHtml: boolean,
 ): ReadonlyArray<SoftStr> =>
   match(block)(
     [
       heading$(),
       ({ content }): ReadonlyArray<SoftStr> =>
-        inlineHrefs(renderInline(content.text)),
+        inlineHrefs(
+          renderInline(content.text, rawHtml),
+        ),
     ],
     [
       para$(),
       ({ content }): ReadonlyArray<SoftStr> =>
-        inlineHrefs(renderInline(content.text)),
+        inlineHrefs(
+          renderInline(content.text, rawHtml),
+        ),
     ],
     [
       list$(),
       ({ content }): ReadonlyArray<SoftStr> =>
-        content.items.flatMap(itemHrefs),
+        content.items.flatMap((item) =>
+          itemHrefs(item, rawHtml),
+        ),
     ],
     [
       table$(),
@@ -286,18 +336,24 @@ const blockHrefs = (
           ...content.header,
           ...content.rows.flat(),
         ].flatMap((cell) =>
-          inlineHrefs(renderInline(cell)),
+          inlineHrefs(
+            renderInline(cell, rawHtml),
+          ),
         ),
     ],
     [
       quote$(),
       ({ content }): ReadonlyArray<SoftStr> =>
-        content.children.flatMap(blockHrefs),
+        content.children.flatMap((child) =>
+          blockHrefs(child, rawHtml),
+        ),
     ],
     [
       callout$(),
       ({ content }): ReadonlyArray<SoftStr> =>
-        content.children.flatMap(blockHrefs),
+        content.children.flatMap((child) =>
+          blockHrefs(child, rawHtml),
+        ),
     ],
     [
       codeFence$(),
@@ -307,25 +363,101 @@ const blockHrefs = (
       thematicBreak$(),
       (): ReadonlyArray<SoftStr> => [],
     ],
+    [
+      htmlBlock$(),
+      (): ReadonlyArray<SoftStr> => [],
+    ],
   );
 
 /** Every emitted link target (post-resolver), in document order. */
 const collectLinks =
-  (resolve: LinkResolver) =>
+  (resolve: LinkResolver, rawHtml: boolean) =>
   (
     blocks: ReadonlyArray<Block>,
   ): ReadonlyArray<SoftStr> =>
-    blocks.flatMap(blockHrefs).map(resolve);
+    blocks
+      .flatMap((block) =>
+        blockHrefs(block, rawHtml),
+      )
+      .map(resolve);
 
 /**
  * Renders Markdown source to a {@link MarkdownDoc} under
- * an injected {@link Highlighter} and {@link LinkResolver}:
+ * the full {@link RenderOptions} — the injected highlighter
+ * and link resolver plus the two site-parameterized seams
+ * (`rawHtml` passthrough and the base heading `slug`):
  * splits frontmatter, tokenizes blocks, folds to an
  * `Html<never>` body, and exposes `firstHeading`, the
  * post-resolver `links`, and the deduped heading `slugs`.
+ * The heading list and the body run the identical slugger
+ * over the identical block order, so ids can never drift.
  * A parse failure (unterminated fence/container/table,
  * bad frontmatter) surfaces as an {@link InvalidError},
  * never a throw.
+ */
+export const renderMarkdownWithOptions =
+  (options: RenderOptions) =>
+  (
+    source: SoftStr,
+  ): Result<MarkdownDoc, InvalidError> =>
+    pipe(
+      parseFrontmatter(source),
+      chainResult((parsed) =>
+        pipe(
+          parseBlocks(
+            parsed.body,
+            options.rawHtml,
+          ),
+          mapResult((blocks): MarkdownDoc => {
+            const headings = collectHeadings(
+              blocks,
+              options,
+            );
+            return {
+              frontmatter: parsed.frontmatter,
+              firstHeading: firstH1Text(
+                blocks,
+                options.rawHtml,
+              ),
+              body: mdToHtml(options)(blocks),
+              links: collectLinks(
+                options.resolveLink,
+                options.rawHtml,
+              )(blocks),
+              slugs: headings.map((h) => h.slug),
+              headings,
+            };
+          }),
+        ),
+      ),
+    );
+
+/**
+ * The default {@link RenderOptions} for a given highlighter
+ * and link resolver: the spike defaults every existing
+ * consumer relies on — `rawHtml` OFF (angle brackets
+ * escape as text) and the VitePress-exact {@link slugify}
+ * base slugger. A site opts out of either through
+ * {@link renderMarkdownWithOptions}.
+ */
+export const renderOptions = (
+  highlighter: Highlighter,
+  resolveLink: LinkResolver,
+): RenderOptions => ({
+  highlighter,
+  resolveLink,
+  rawHtml: false,
+  slug: slugify,
+});
+
+/**
+ * Renders Markdown with an injected {@link Highlighter} and
+ * {@link LinkResolver} at the spike defaults ({@link
+ * renderOptions}) — `rawHtml` off, VitePress-exact slugs —
+ * so existing consumers keep byte-identical output.
+ * `plggpress`/`plgg-highlight` inject the real seams here;
+ * a site needing raw HTML or a different slugger reaches
+ * for {@link renderMarkdownWithOptions} instead.
  */
 export const renderMarkdownWith =
   (
@@ -335,36 +467,9 @@ export const renderMarkdownWith =
   (
     source: SoftStr,
   ): Result<MarkdownDoc, InvalidError> =>
-    pipe(
-      parseFrontmatter(source),
-      chainResult((parsed) =>
-        pipe(
-          parseBlocks(parsed.body),
-          mapResult(
-            (blocks): MarkdownDoc => {
-              const headings =
-                collectHeadings(blocks);
-              return {
-                frontmatter: parsed.frontmatter,
-                firstHeading: firstH1Text(blocks),
-                body: mdToHtml(
-                  highlighter,
-                  resolveLink,
-                )(blocks),
-                links:
-                  collectLinks(resolveLink)(
-                    blocks,
-                  ),
-                slugs: headings.map(
-                  (h) => h.slug,
-                ),
-                headings,
-              };
-            },
-          ),
-        ),
-      ),
-    );
+    renderMarkdownWithOptions(
+      renderOptions(highlighter, resolveLink),
+    )(source);
 
 /**
  * Renders Markdown with the default seams — the plain

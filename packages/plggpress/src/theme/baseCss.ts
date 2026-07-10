@@ -1,11 +1,22 @@
 import { type SoftStr } from "plgg";
-import { themeToggleClass } from "plggmatic";
 import {
+  themeToggleClass,
   colorVar,
   metricVar,
   maxWidth,
   minWidth,
-} from "plggmatic/style";
+  defaultTheme,
+} from "plggpress/themeSupport/styleEntry";
+
+// plggpress's docs-site look is an explicit theme choice
+// (D3): it passes `defaultTheme` — the monochrome `--pm-*`
+// design language — to the parameterized token helpers at
+// this composition root, binding them once for the whole
+// stylesheet. Swapping this for a branded theme is where a
+// future divergence would live; plggpress never imports
+// plggmatic.
+const cvar = colorVar(defaultTheme);
+const mvar = metricVar(defaultTheme);
 
 /**
  * The bespoke layout/prose stylesheet for the default
@@ -54,12 +65,12 @@ export const baseCss: SoftStr = `
 html{scroll-behavior:smooth}
 /* qmu: anchor jumps in the lg app shell scroll the content
    column, not the page; smooth-scroll must be set on both.
-   The reduced-motion RESET of these is plggmatic's
+   The reduced-motion RESET of these is the shared UI
    reducedMotionCss (composed by shell). */
 main{scroll-behavior:smooth}
 /* plggpress-owned motion: article/chrome link hover fades.
-   Killed under reduced-motion here (plggmatic's block only
-   resets the framework's own scroll motion). */
+   Killed under reduced-motion here (the framework reset only
+   resets its own scroll motion). */
 @media (prefers-reduced-motion:reduce){
   .vp a{transition:none}
   .vp-doc a{transition:none}
@@ -70,8 +81,8 @@ body.vp{
     -apple-system,"Segoe UI",sans-serif,
     "Apple Color Emoji","Segoe UI Emoji";
   font-size:16px;line-height:1.75;
-  color:${colorVar("text")};
-  background:${colorVar("surface")};
+  color:${cvar("text")};
+  background:${cvar("surface")};
   -webkit-font-smoothing:antialiased;
 }
 /* Chrome links carry no underline in any state (qmu:
@@ -80,7 +91,7 @@ body.vp{
    a:hover rule - its (0,2,1) specificity silently beat
    the pill classes' (0,2,0) and re-underlined them. */
 .vp a{
-  color:${colorVar("primary-base")};
+  color:${cvar("primary-base")};
   text-decoration:none;
 }
 .vp-menu-cb{display:none}
@@ -91,7 +102,7 @@ body.vp{
    keyboard-reachable (:focus-visible parity) and clones onto
    every line fragment when a wrapped link inverts. */
 .vp-doc a{
-  color:${colorVar("text")};
+  color:${cvar("text")};
   text-decoration:underline;
   text-decoration-thickness:1px;
   text-underline-offset:2px;
@@ -102,15 +113,15 @@ body.vp{
   transition:background-color 0.15s;
 }
 .vp-doc a:hover{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
   box-decoration-break:clone;
   -webkit-box-decoration-break:clone;
 }
 .vp-doc a:focus-visible{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
   box-decoration-break:clone;
   -webkit-box-decoration-break:clone;
@@ -124,15 +135,15 @@ body.vp{
 .vp-shell{position:relative}
 .vp-app{
   display:flex;align-items:flex-start;
-  max-width:${metricVar("shell-max")};margin:0 auto;
+  max-width:${mvar("shell-max")};margin:0 auto;
   padding:0 1rem;
 }
 /* far-RIGHT chrome rail (lg+ only, qmu DocsLayout):
    appearance toggle + social links pinned to the bottom
    by a flex spacer. Carries no navigation. */
 .vp-rail{
-  display:none;flex:0 0 ${metricVar("rail")};
-  width:${metricVar("rail")};height:100vh;
+  display:none;flex:0 0 ${mvar("rail")};
+  width:${mvar("rail")};height:100vh;
   flex-direction:column;align-items:center;
   padding:0 0 0.75rem;
 }
@@ -152,29 +163,29 @@ body.vp{
   display:none;position:sticky;top:0;z-index:30;
   align-items:center;gap:0.6rem;
   height:52px;padding:0 1rem;
-  background:${colorVar("surface")};
-  border-bottom:1px solid ${colorVar("border")};
+  background:${cvar("surface")};
+  border-bottom:1px solid ${cvar("border")};
 }
 .vp-mobilebar-home{
   font-weight:500;font-size:1.05rem;
-  color:${colorVar("text")};
+  color:${cvar("text")};
   padding:0.1rem 0.4rem;border-radius:6px;
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-mobilebar-home:hover{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 .vp-mobilebar-home:focus-visible{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 .vp-mobilebar-home[aria-current]{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
 }
 .vp-mobilebar .${themeToggleClass}{margin-left:auto}
 /* dimmed backdrop behind an open mobile drawer */
@@ -186,7 +197,7 @@ body.vp{
 /* CSS-drawn 3-bar hamburger (no glyph font) */
 .vp-menu-btn{
   display:none;width:22px;height:16px;
-  cursor:pointer;color:${colorVar("text")};
+  cursor:pointer;color:${cvar("text")};
   background-image:linear-gradient(
       currentColor,currentColor),
     linear-gradient(currentColor,currentColor),
@@ -201,8 +212,8 @@ body.vp{
    wordmark home link, the always-expanded tree, and (below
    lg) the social links the rail carries on lg+. */
 .vp-sidebar{
-  flex:0 0 ${metricVar("sidebar")};
-  width:${metricVar("sidebar")};
+  flex:0 0 ${mvar("sidebar")};
+  width:${mvar("sidebar")};
   padding:2rem 1rem;
   font-size:0.9rem;
 }
@@ -211,23 +222,23 @@ body.vp{
   margin:0 0 1rem;padding:0.25rem 0.5rem;
   border-radius:6px;font-size:1rem;
   line-height:1.5rem;
-  font-weight:500;color:${colorVar("text")};
+  font-weight:500;color:${cvar("text")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-wordmark:hover{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 .vp-wordmark:focus-visible{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 .vp-wordmark[aria-current]{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
 }
 .vp-sidebar-nav{display:block}
 /* top-level section header — always visible, no collapse */
@@ -236,7 +247,7 @@ body.vp{
 .vp-group-title{
   padding:0.25rem 0.5rem;font-size:0.875rem;
   line-height:1.25rem;
-  font-weight:600;color:${colorVar("text")};
+  font-weight:600;color:${cvar("text")};
 }
 /* leaves + subgroup headers: an inverted pill on hover;
    the active leaf wears the same pill permanently (both
@@ -250,30 +261,30 @@ body.vp{
   margin-top:1px;
   padding:0.25rem 0.5rem;border-radius:4px;
   font-size:0.875rem;line-height:1.25rem;
-  color:${colorVar("text")};
+  color:${cvar("text")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-sidebar-link:hover{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 .vp-sidebar-link:focus-visible{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 .vp-sidebar-link[aria-current]{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   font-weight:500;
 }
 .vp-sidebar-flat{
   display:block;margin-top:1px;
   padding:0.25rem 0.5rem;
   font-size:0.875rem;line-height:1.25rem;
-  color:${colorVar("muted")};
+  color:${cvar("muted")};
 }
 /* a nested group: its header, then its children, always
    shown (no disclosure). qmu keeps the whole tree flush
@@ -283,30 +294,30 @@ body.vp{
 .vp-subgroup-title{
   padding:0.25rem 0.5rem;font-size:0.875rem;
   line-height:1.25rem;
-  font-weight:500;color:${colorVar("text")};
+  font-weight:500;color:${cvar("text")};
 }
 /* social links: shown in the sidebar only below lg (the
    rail carries them on lg+). */
 .vp-sidebar-social{
   display:none;margin-top:1.5rem;
   padding-top:1rem;
-  border-top:1px solid ${colorVar("border")};
+  border-top:1px solid ${cvar("border")};
 }
 .vp-social{
   display:inline-flex;align-items:center;
   padding:0.25rem 0.4rem;border-radius:6px;
-  font-size:0.8rem;color:${colorVar("muted")};
+  font-size:0.8rem;color:${cvar("muted")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
 .vp-social:hover{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 .vp-social:focus-visible{
-  background:${colorVar("primary-base")};
-  color:${colorVar("surface")};
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
   text-decoration:none;
 }
 /* in the narrow rail the label rides vertically so the
@@ -322,13 +333,13 @@ body.vp{
   flex:1 1 auto;min-width:0;
   padding:3rem 3rem 3rem;
 }
-.vp-doc{max-width:${metricVar("measure")};margin:0}
+.vp-doc{max-width:${mvar("measure")};margin:0}
 .vp-footer{
   margin-top:3rem;padding:1.5rem 0;
   text-align:center;
 }
 .vp-footer-text{
-  margin:0;font-size:13px;color:${colorVar("muted")};
+  margin:0;font-size:13px;color:${cvar("muted")};
 }
 /* Heading scale = qmu's calm ~1.25 modular scale on a 1rem
    body (30/24/19/17), all weight 400, no letter-spacing.
@@ -362,16 +373,16 @@ body.vp{
 }
 .vp-doc li{margin:0.45rem 0}
 .vp-doc strong{
-  font-weight:400;color:${colorVar("text")};
+  font-weight:400;color:${cvar("text")};
 }
 .vp-doc blockquote{
   margin:1rem 0;padding:0.25rem 1rem;
-  border-left:3px solid ${colorVar("border")};
-  color:${colorVar("muted")};
+  border-left:3px solid ${cvar("border")};
+  color:${cvar("muted")};
 }
 .vp-doc hr{
   border:none;
-  border-top:1px solid ${colorVar("border")};
+  border-top:1px solid ${cvar("border")};
   margin:2rem 0;
 }
 .vp-doc img{max-width:100%}
@@ -385,7 +396,7 @@ body.vp{
   font-family:"SF Mono",Menlo,Consolas,
     "Liberation Mono",monospace;
   font-size:0.8em;font-weight:400;
-  color:${colorVar("primary-base")};
+  color:${cvar("primary-base")};
   background:rgba(0,0,0,0.08);
   border:1px solid rgba(0,0,0,0.15);
   padding:0.1em 0.4em;border-radius:0.2rem;
@@ -407,28 +418,28 @@ html.dark .vp-doc code:hover{
    on the near-identical inverted fill and vanishes (the
    guide links package names as code constantly). */
 .vp-doc a:hover code{
-  color:${colorVar("surface")};
+  color:${cvar("surface")};
   background:none;
   border-color:transparent;
 }
 .vp-doc a:focus-visible code{
-  color:${colorVar("surface")};
+  color:${cvar("surface")};
   background:none;
   border-color:transparent;
 }
 html.dark .vp-doc a:hover code{
-  color:${colorVar("surface")};
+  color:${cvar("surface")};
   background:none;
   border-color:transparent;
 }
 html.dark .vp-doc a:focus-visible code{
-  color:${colorVar("surface")};
+  color:${cvar("surface")};
   background:none;
   border-color:transparent;
 }
 .vp-doc pre{
-  background:${colorVar("surface-2")};
-  border:1px solid ${colorVar("border")};
+  background:${cvar("surface-2")};
+  border:1px solid ${cvar("border")};
   padding:1.1rem 1.25rem;border-radius:10px;
   overflow-x:auto;margin:1.1rem 0;
   font-size:0.86rem;line-height:1.6;
@@ -440,7 +451,7 @@ html.dark .vp-doc a:focus-visible code{
 }
 html.dark .vp-doc pre code{background:none}
 /* syntax-highlight hues (plgg-highlight's span classes) are
-   framework-owned now: plggmatic's syntaxCss emits the
+   framework-owned now: themeSupport's syntaxCss emits the
    --pm-code-* properties + the class rules per scheme
    (ticket 08 finishes the D16 cutover for code blocks). No
    syntax colors live here anymore. */
@@ -451,11 +462,11 @@ html.dark .vp-doc pre code{background:none}
   display:block;overflow-x:auto;font-size:0.92rem;
 }
 .vp-doc th,.vp-doc td{
-  border:1px solid ${colorVar("border")};
+  border:1px solid ${cvar("border")};
   padding:0.5rem 0.85rem;text-align:left;
 }
 .vp-doc th{
-  background:${colorVar("surface-2")};font-weight:600;
+  background:${cvar("surface-2")};font-weight:600;
 }
 
 /* callouts — qmu's tinted model (VitePress-style), now on
@@ -476,24 +487,24 @@ html.dark .vp-doc pre code{background:none}
 .vp-callout-title{font-weight:600;margin:0 0 0.35rem}
 .vp-callout p{margin:0.35rem 0}
 .vp-callout-info,.vp-callout-note{
-  background:${colorVar("surface-2")};
-  border-color:${colorVar("primary-base")};
-  color:${colorVar("text")};
+  background:${cvar("surface-2")};
+  border-color:${cvar("primary-base")};
+  color:${cvar("text")};
 }
 .vp-callout-tip{
-  background:${colorVar("success-surface")};
-  border-color:${colorVar("success-border")};
-  color:${colorVar("success-text")};
+  background:${cvar("success-surface")};
+  border-color:${cvar("success-border")};
+  color:${cvar("success-text")};
 }
 .vp-callout-warning{
-  background:${colorVar("warning-surface")};
-  border-color:${colorVar("warning-border")};
-  color:${colorVar("warning-text")};
+  background:${cvar("warning-surface")};
+  border-color:${cvar("warning-border")};
+  color:${cvar("warning-text")};
 }
 .vp-callout-danger{
-  background:${colorVar("danger-surface")};
-  border-color:${colorVar("danger-border")};
-  color:${colorVar("danger-text")};
+  background:${cvar("danger-surface")};
+  border-color:${cvar("danger-border")};
+  color:${cvar("danger-text")};
 }
 
 /* below sm (qmu's 639px block): the prose headings render
@@ -534,8 +545,8 @@ html.dark .vp-doc pre code{background:none}
     position:fixed;top:0;left:0;z-index:50;
     height:100vh;width:17rem;max-width:82vw;
     overflow-y:auto;
-    background:${colorVar("surface-2")};
-    border-right:1px solid ${colorVar("border")};
+    background:${cvar("surface-2")};
+    border-right:1px solid ${cvar("border")};
     transform:translateX(-100%);
     transition:transform 0.2s ease-out;
   }

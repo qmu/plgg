@@ -60,3 +60,33 @@ export const plainHighlighter: Highlighter = (
 export const identityResolver: LinkResolver = (
   href,
 ) => href;
+
+/**
+ * The heading-slug seam: a heading's already-resolved
+ * plain text → its base slug (pre per-page dedup).
+ * `plgg-md` ships two — the VitePress-exact `slugify`
+ * (the default) and the github-slugger-compatible
+ * `githubSlugify` — and a site may inject either through
+ * {@link RenderOptions}. Per-page `-1`/`-2` dedup is
+ * layered on separately by `makeSluggers`.
+ */
+export type SlugFn = (text: SoftStr) => SoftStr;
+
+/**
+ * The render boundary's full option set as **pure data**:
+ * the two element-producing seams ({@link Highlighter},
+ * {@link LinkResolver}) plus the two site-parameterized
+ * behaviors this package keeps at spike defaults for the
+ * guide — `rawHtml` (verbatim HTML passthrough; `false`
+ * escapes angle brackets as text, the v1 decision) and
+ * `slug` (the base heading slugger). `renderMarkdown`'s
+ * default entry pins all four to their defaults, so the
+ * guide's output is unchanged; a site opts in through
+ * {@link renderMarkdownWithOptions}.
+ */
+export type RenderOptions = Readonly<{
+  highlighter: Highlighter;
+  resolveLink: LinkResolver;
+  rawHtml: boolean;
+  slug: SlugFn;
+}>;

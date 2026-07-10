@@ -32,6 +32,8 @@ const config: SiteConfig = {
   // Markdown body rather than failing.
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 const req = (path: string): HttpRequest => ({

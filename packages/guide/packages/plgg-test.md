@@ -53,7 +53,7 @@ import {
   isAlphanumeric,
   asAlphanumeric,
   box,
-} from "plgg/index";
+} from "plgg";
 
 test("isAlphanumeric and asAlphanumeric basic validation", () =>
   all([

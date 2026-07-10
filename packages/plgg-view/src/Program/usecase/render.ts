@@ -15,6 +15,7 @@ import {
   ElementContent,
   element$,
   text$,
+  raw$,
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
@@ -152,8 +153,7 @@ const clearHandler = <Msg>(
 const isValueControl = (
   node: Element,
 ): node is
-  | HTMLInputElement
-  | HTMLTextAreaElement =>
+  HTMLInputElement | HTMLTextAreaElement =>
   node instanceof HTMLInputElement ||
   node instanceof HTMLTextAreaElement;
 
@@ -334,6 +334,7 @@ const exitMotionOf = <Msg>(
 ): Option<Motion> =>
   match(vnode)(
     [text$(), (): Option<Motion> => none()],
+    [raw$(), (): Option<Motion> => none()],
     [
       element$(),
       ({ content }): Option<Motion> =>
@@ -367,6 +368,7 @@ const keyOfVnode = <Msg>(
 ): Option<SoftStr> =>
   match(vnode)(
     [text$(), (): Option<SoftStr> => none()],
+    [raw$(), (): Option<SoftStr> => none()],
     [
       element$(),
       ({ content }): Option<SoftStr> =>
@@ -409,7 +411,8 @@ const framesOf = (
 const optsOf = (
   motion: Motion,
 ): KeyframeAnimationOptions =>
-  motion.delayMs !== undefined && motion.delayMs > 0
+  motion.delayMs !== undefined &&
+  motion.delayMs > 0
     ? {
         duration: motion.durationMs,
         easing: motion.easing,
@@ -500,6 +503,25 @@ export const createNode =
         text$(),
         ({ content }): Node =>
           document.createTextNode(content.value),
+      ],
+      [
+        raw$(),
+        ({ content }): Node => {
+          // confined DOM seam: a raw passthrough parses
+          // its trusted html into a single wrapper whose
+          // box is elided (`display:contents`), so the
+          // author's markup lays out as if unwrapped. The
+          // 1:1 vnode→Node mapping needs one node; SSR
+          // (`renderToString`) emits the same html with no
+          // wrapper. The Markdown default path never
+          // produces a Raw node, so this stays a
+          // trusted-content-only seam.
+          const holder =
+            document.createElement("span");
+          holder.style.display = "contents";
+          holder.innerHTML = content.html;
+          return holder;
+        },
       ],
       [
         element$(),
@@ -728,6 +750,7 @@ export const reconcile =
               },
             ],
             [element$(), (): void => replace()],
+            [raw$(), (): void => replace()],
           ),
       ],
       [
@@ -753,8 +776,12 @@ export const reconcile =
               },
             ],
             [text$(), (): void => replace()],
+            [raw$(), (): void => replace()],
           ),
       ],
+      // a raw passthrough is opaque to the differ — any
+      // change rebuilds it from the trusted html
+      [raw$(), (): void => replace()],
     );
   };
 
@@ -1002,11 +1029,13 @@ const patchKeyed =
     };
     return match(newVnode)(
       [text$(), (): Node => replace()],
+      [raw$(), (): Node => replace()],
       [
         element$(),
         ({ content: newContent }): Node =>
           match(oldVnode)(
             [text$(), (): Node => replace()],
+            [raw$(), (): Node => replace()],
             [
               element$(),
               ({ content: oldContent }): Node => {

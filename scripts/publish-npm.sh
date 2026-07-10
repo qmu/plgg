@@ -5,12 +5,27 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # releases are repository scripts run from /ship, bracketed by online
 # verification against the registry — the registry IS production here).
 #
-#   ./scripts/publish-npm.sh              # gate (check-all.sh) + publish + verify
-#   SKIP_GATE=1 ./scripts/publish-npm.sh  # skip the gate when one just ran green
+# npm publishing is a DEVELOPER-DRIVEN step: at /ship the agent runs the
+# read-only preflight to detect a pending publish and asks the developer to run
+# this script themselves — it never publishes on the developer's behalf.
 #
-# Per package, in build.sh's dependency order (a dependency must be on the
-# registry before its dependents' rewritten ranges can resolve):
-#   private? skip -> publish-if-newer (local > registry, else skip) ->
+#   PREFLIGHT=1 ./scripts/publish-npm.sh  # report the publish set only; NO gate,
+#                                         # NO publish (what /ship runs to decide
+#                                         # whether to prompt the developer)
+#   ./scripts/publish-npm.sh              # preflight -> gate (check-all.sh) ->
+#                                         # publish the bumped set -> verify
+#   SKIP_GATE=1 ./scripts/publish-npm.sh  # skip the gate when one just ran green
+#   ONLY=plgg-cms ./scripts/publish-npm.sh # publish only the named package(s),
+#                                         # comma- or space-separated, still via
+#                                         # the same gate/stage/verify path
+#
+# Efficiency: the preflight computes the publish set (local > registry) up front
+# and prints it, so a run with nothing bumped is a no-op that NEVER builds/gates,
+# and a real run stages/publishes ONLY the bumped packages (in build.sh's
+# dependency order — a dependency must be on the registry before its dependents'
+# rewritten ranges can resolve).
+#
+# Per published package:
 #   stage copy (files allowlist; the working tree is NEVER mutated) ->
 #   file:-dep rewrite to ^<local version> -> npm publish ->
 #   verify: npm view resolves, then a scratch-dir install + import/bin smoke.
@@ -20,30 +35,55 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # never echoed. No --provenance (it requires hosted-CI OIDC; declined per the
 # local-first stance, the same trade-off the GitHub Release contract makes).
 
-if [ "${SKIP_GATE:-0}" != "1" ]; then
-  echo "=== Gate: fresh check-all.sh before any publish ==="
-  ./scripts/check-all.sh
-fi
-
 # The publish order IS build.sh's topology — derived, never forked (the
 # deploy-guide.yml PR #51 drift incident is why). plgg-bundle is prepended:
 # it sits outside that list and has no file: runtime deps.
-ORDER="plgg-bundle $(sed -n 's|^cd \$REPO_ROOT/packages/\([a-z0-9-]*\) && npm run build$|\1|p' scripts/build.sh)"
+ORDER="plgg-bundle $(sed -n 's|^cd \$REPO_ROOT/packages/\([a-z0-9-]*\) && npm run build$|\1|p' scripts/build.sh | tr '\n' ' ')"
+ONLY_PACKAGES=$(printf '%s' "${ONLY:-}" | tr ',' ' ')
 
-STAGE_ROOT=$(mktemp -d "$REPO_ROOT/.publish-stage.XXXXXX")
-trap 'rm -rf "$STAGE_ROOT"' EXIT INT TERM
+contains_word() {
+  WORD="$1"
+  LIST="$2"
+  case " $LIST " in
+    *" $WORD "*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
-PUBLISHED=""
+if [ -n "$ONLY_PACKAGES" ]; then
+  for REQUESTED in $ONLY_PACKAGES; do
+    if ! contains_word "$REQUESTED" "$ORDER"; then
+      echo "!!! ONLY requested unknown package directory: $REQUESTED"
+      echo "    Choose one of: $ORDER"
+      exit 1
+    fi
+  done
+fi
+
+# === Preflight: compute the publish set (local version > registry) up front ===
+# Read-only: one `npm view` per package, no build, no publish. This is the
+# source of truth for what the real run below will publish, and — via
+# PREFLIGHT=1 — what /ship inspects to decide whether to ask the developer.
+echo "=== Preflight: comparing local vs registry versions ==="
+if [ -n "$ONLY_PACKAGES" ]; then
+  echo "=== Publish filter: ONLY=$ONLY_PACKAGES ==="
+fi
+PUBLISH_SET=""
 SKIPPED=""
+PRIVATE_SKIPPED=""
 
 for PKG in $ORDER; do
+  if [ -n "$ONLY_PACKAGES" ] && ! contains_word "$PKG" "$ONLY_PACKAGES"; then
+    continue
+  fi
+
   DIR="$REPO_ROOT/packages/$PKG"
   NAME=$(node -p "require('$DIR/package.json').name")
   VERSION=$(node -p "require('$DIR/package.json').version")
   PRIVATE=$(node -p "require('$DIR/package.json').private === true")
 
   if [ "$PRIVATE" = "true" ]; then
-    echo "=== $NAME: private - never published ==="
+    PRIVATE_SKIPPED="$PRIVATE_SKIPPED $NAME"
     continue
   fi
 
@@ -58,13 +98,79 @@ for PKG in $ORDER; do
     }
     console.log('no');
   ")
-  if [ "$NEWER" != "yes" ]; then
-    echo "=== $NAME: registry $REMOTE >= local $VERSION - skip (publish-if-newer) ==="
+  if [ "$NEWER" = "yes" ]; then
+    PUBLISH_SET="$PUBLISH_SET $PKG"
+    echo "  PUBLISH  $NAME  $REMOTE -> $VERSION"
+  else
     SKIPPED="$SKIPPED $NAME@$VERSION"
-    continue
   fi
+done
 
-  echo "=== $NAME: staging $VERSION (registry: $REMOTE) ==="
+echo ""
+echo "=== Preflight summary ==="
+if [ -n "$PUBLISH_SET" ]; then
+  for PKG in $PUBLISH_SET; do
+    NAME=$(node -p "require('$REPO_ROOT/packages/$PKG/package.json').name")
+    VERSION=$(node -p "require('$REPO_ROOT/packages/$PKG/package.json').version")
+    echo "  will publish: $NAME@$VERSION"
+  done
+else
+  echo "  will publish: (none)"
+fi
+echo "  skip (already current):${SKIPPED:- (none)}"
+echo "  private (never):${PRIVATE_SKIPPED:- (none)}"
+
+# PREFLIGHT mode: report only — never gate, never publish. This is what /ship
+# runs to decide whether to prompt the developer (a non-empty publish set means
+# "pause and ask the developer to publish"; empty means "nothing to publish").
+if [ "${PREFLIGHT:-0}" = "1" ]; then
+  echo ""
+  if [ -n "$PUBLISH_SET" ]; then
+    echo "=== Preflight: $(echo $PUBLISH_SET | wc -w | tr -d ' ') package(s) ready to publish ==="
+  else
+    echo "=== Preflight: nothing to publish ==="
+  fi
+  echo "\n=== All shell scripts have been executed successfully ==="
+  exit 0
+fi
+
+# Gate/build de-dup: nothing bumped => no publish => skip the gate entirely
+# (no point rebuilding + running the whole test suite for a no-op release).
+if [ -z "$PUBLISH_SET" ]; then
+  echo ""
+  echo "=== Nothing to publish (no version bumped past the registry) — done. ==="
+  echo "\n=== All shell scripts have been executed successfully ==="
+  exit 0
+fi
+
+if ! NPM_USER=$(npm whoami 2>/dev/null); then
+  echo "!!! npm publish requires an authenticated npm session."
+  echo "    Run npm login, then retry this script."
+  exit 1
+fi
+echo "=== npm auth: publishing as $NPM_USER ==="
+
+# Gate: a fresh green check-all before publishing anything (skipped only when a
+# same-session run already went green and set SKIP_GATE).
+if [ "${SKIP_GATE:-0}" != "1" ]; then
+  echo ""
+  echo "=== Gate: fresh check-all.sh before publishing ==="
+  ./scripts/check-all.sh
+fi
+
+STAGE_ROOT=$(mktemp -d "$REPO_ROOT/.publish-stage.XXXXXX")
+trap 'rm -rf "$STAGE_ROOT"' EXIT INT TERM
+
+PUBLISHED=""
+
+# Publish only the bumped set, in build.sh's dependency order (the preflight
+# already resolved local > registry, so no re-check here).
+for PKG in $PUBLISH_SET; do
+  DIR="$REPO_ROOT/packages/$PKG"
+  NAME=$(node -p "require('$DIR/package.json').name")
+  VERSION=$(node -p "require('$DIR/package.json').version")
+
+  echo "=== $NAME: staging $VERSION ==="
   STAGE="$STAGE_ROOT/$PKG"
   node - "$DIR" "$STAGE" <<'EOS'
 const fs = require("node:fs");
@@ -106,9 +212,9 @@ EOS
   # --ignore-scripts: the dist is already built by build.sh before staging,
   # so no package needs a publish-time lifecycle hook. This immunizes the
   # family-publish flow against any staged package's stray
-  # prepublishOnly/prepare/prepack/publish/postpublish script (e.g.
-  # plggmatic's old `publish` hook that ran plgg-bundle in the staging copy
-  # → exit 127 and aborted the whole run).
+  # prepublishOnly/prepare/prepack/publish/postpublish script (for example, a
+  # retired package hook that ran plgg-bundle in the staging copy and aborted
+  # the whole run with exit 127).
   (cd "$STAGE" && npm publish --tag latest --ignore-scripts)
 
   echo "=== $NAME@$VERSION: verify - registry resolves ==="
@@ -145,8 +251,12 @@ EOS
   if [ -e "$SMOKE/node_modules/.bin/$NAME" ]; then
     BIN_OUT=$("$SMOKE/node_modules/.bin/$NAME" --help 2>&1 || true)
     case "$BIN_OUT" in
-      *ERR_MODULE_NOT_FOUND* | *"Cannot find"*)
-        echo "!!! $NAME bin cannot resolve its modules from a real install:"
+      *ERR_MODULE_NOT_FOUND* | *"Cannot find"* | *ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING*)
+        # A run-from-source `.ts` launcher that Node refuses to type-strip under
+        # node_modules is unusable when installed — the launcher must relocate
+        # out of node_modules (see each tool's bin/relocate.mjs) or run from a
+        # compiled dist. Fail the publish instead of shipping a broken bin.
+        echo "!!! $NAME bin cannot run from a real install:"
         echo "$BIN_OUT"
         exit 1
         ;;

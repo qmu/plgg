@@ -1,5 +1,0 @@
-{
-  "coverage": {
-    "exempt": "private demo app; declarative rewrite scheduled (roadmap ticket 13)"
-  }
-}

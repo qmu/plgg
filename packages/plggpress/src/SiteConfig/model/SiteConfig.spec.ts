@@ -7,12 +7,74 @@ import {
   shouldBeErr,
   errThen,
 } from "plgg-test";
+import { isSome } from "plgg";
 import {
   type SiteConfig,
   type SiteConfigInput,
   asSiteConfig,
+  asSluggerKind,
   defineSite,
 } from "plggpress/SiteConfig/model/SiteConfig";
+
+test("asSluggerKind accepts the closed set, rejects others", () =>
+  all([
+    check(
+      asSluggerKind("vitepress"),
+      okThen(toBe("vitepress")),
+    ),
+    check(
+      asSluggerKind("github"),
+      okThen(toBe("github")),
+    ),
+    check(asSluggerKind("mdit"), shouldBeErr()),
+    check(asSluggerKind(3), shouldBeErr()),
+  ]));
+
+test("asSiteConfig omitting rawHtml/slugger yields the defaults (None)", () =>
+  check(
+    asSiteConfig({
+      title: "t",
+      description: "d",
+      base: "/",
+      nav: [],
+      sidebar: [],
+      social: [],
+      dev: { allowedHosts: [] },
+    }),
+    okThen((c: SiteConfig) =>
+      all([
+        toBe(false)(isSome(c.rawHtml)),
+        toBe(false)(isSome(c.slugger)),
+      ]),
+    ),
+  ));
+
+test("asSiteConfig validates supplied rawHtml/slugger", () =>
+  check(
+    asSiteConfig({
+      title: "t",
+      description: "d",
+      base: "/",
+      nav: [],
+      sidebar: [],
+      social: [],
+      dev: { allowedHosts: [] },
+      rawHtml: true,
+      slugger: "github",
+    }),
+    okThen((c: SiteConfig) =>
+      all([
+        toBe(true)(
+          isSome(c.rawHtml) &&
+            c.rawHtml.content === true,
+        ),
+        toBe(true)(
+          isSome(c.slugger) &&
+            c.slugger.content === "github",
+        ),
+      ]),
+    ),
+  ));
 
 const valid = {
   title: "plgg",

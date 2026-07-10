@@ -13,6 +13,7 @@ import {
   link,
   image,
   lineBreak,
+  htmlSpan,
 } from "plgg-md/Inline/model/Inline";
 import {
   renderInline,
@@ -23,6 +24,36 @@ test("plain text becomes a single Text node", () =>
   check(
     renderInline("just words"),
     toEqual([inlineText("just words")]),
+  ));
+
+test("with rawHtml OFF (default) angle brackets stay literal Text", () =>
+  check(
+    renderInline("a <small>b</small> c"),
+    toEqual([inlineText("a <small>b</small> c")]),
+  ));
+
+test("with rawHtml ON, tag tokens become HtmlSpans and inner text stays Text", () =>
+  check(
+    renderInline("a <small>b</small> c", true),
+    toEqual([
+      inlineText("a "),
+      htmlSpan("<small>"),
+      inlineText("b"),
+      htmlSpan("</small>"),
+      inlineText(" c"),
+    ]),
+  ));
+
+test("with rawHtml ON, a `<` that opens no tag stays literal Text", () =>
+  check(
+    renderInline("x < y & z", true),
+    toEqual([inlineText("x < y & z")]),
+  ));
+
+test("plainText drops a raw inline HTML span (no slug text)", () =>
+  check(
+    plainText(renderInline("A <b>B</b> C", true)),
+    toBe("A B C"),
   ));
 
 test("inline code is captured verbatim, not re-parsed", () =>

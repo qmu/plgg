@@ -13,7 +13,6 @@ import {
 import { type ModelViolations } from "plggpress/ContentModel/model/ModelViolation";
 import { loadConfig } from "plggpress/Config/usecase/loadConfig";
 import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
-import { pressServeWebWithAuth } from "plggpress/server/pressServer";
 
 /**
  * Renders a build failure as a one-line shell message. The
@@ -53,22 +52,18 @@ const formatBuildError = (
  * and the `Result`→exit-code fold are all the framework's)
  * declared with the press specifics — the `site.config.ts`
  * loader, the deploy base from the validated config, the
- * {@link buildSpecOf} build declaration, the
- * {@link pressServeWeb} served-router factory, and the press
- * error formatter.
+ * {@link buildSpecOf} build declaration, and the press error
+ * formatter.
  *
- * THREE modes, one `site.config.ts`, one `loadConfig`, one
- * `pressRouter`:
- * - `build` — the SSG: renders every route to static files
- *   (the public reader path, D5's SSG/CDN half).
- * - `serve` — a persistent `node:http` instance rendering the
- *   SAME router live (D5's always-on half; the mount point
- *   for the later `/api`, `/admin`, `/auth`, `/mcp` subtrees,
- *   composed in `pressServer.ts`). Config is loaded once at
- *   startup; no watch, no re-import.
+ * plggpress is the pure STATIC-SITE GENERATOR, so it declares
+ * NO `serveWeb` and gets a `build`-only CLI:
+ * - `build` — renders every route to static files (the public
+ *   reader path, D5's SSG/CDN half).
+ * - the dynamic `serve` mode (a persistent `node:http` instance
+ *   mounting `/api`, `/admin`, `/auth`, `/mcp`) lives in
+ *   `plgg-cms`, which supplies its own `serveWeb`.
  * - authoring hot-reload is a TOOLCHAIN concern — `plgg-bundle
- *   dev` via `devEntry` — so plggpress still ships no `dev`
- *   command, and `serve` is not its return.
+ *   dev` via `devEntry` — so plggpress ships no `dev` command.
  */
 await runApp<
   SiteConfig,
@@ -88,15 +83,6 @@ await runApp<
     buildSpecOf(
       config,
       opts.contentDir,
-      opts.base,
-    ),
-  serveWeb: (
-    config: SiteConfig,
-    opts: AppOptions,
-  ) =>
-    pressServeWebWithAuth(
-      opts.contentDir,
-      config,
       opts.base,
     ),
   formatError: formatBuildError,

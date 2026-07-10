@@ -66,6 +66,8 @@ export const collectCssRules = <Msg>(
     ReadonlyArray<CssRule>
   >({
     text: (): ReadonlyArray<CssRule> => [],
+    // a raw passthrough carries no `css()` atoms
+    raw: (): ReadonlyArray<CssRule> => [],
     element: (
       _tag,
       attributes,

@@ -40,42 +40,31 @@ cd $REPO_ROOT/packages/plgg-server && npm run build
 # plgg-cli before plggpress: the CLI-wrapper toolkit (depends only on plgg
 # core), consumed by plggpress's own framework, so its dist must exist first.
 cd $REPO_ROOT/packages/plgg-cli && npm run build
-# plggmatic (UI design framework: tokens, row/column/pane combinators,
-# components) — consumes plgg + plgg-view, both built above. Built BEFORE
-# plggpress, which now consumes plggmatic's dist for its ported theme (D3
-# roadmap ticket 07). publish order is sed-derived from these cd-lines, so
-# plggmatic must precede plggpress here.
-cd $REPO_ROOT/packages/plggmatic && npm run build
-# plgg-sql / plgg-db-migration / plgg-content BEFORE plggpress: plggpress now
-# depends on plgg-content (mounts its read-only delivery API at /api), and
-# plgg-content depends on plgg-sql + plgg-db-migration (+ plgg-md), so the whole
-# chain must have dists before plggpress builds.
+# plgg-sql / plgg-db-migration BEFORE plgg-cms: the CMS now owns the former
+# content query/index source internally, and that code depends on SQL +
+# migrations (+ plgg-md), so the dependency dists must exist before CMS builds.
 cd $REPO_ROOT/packages/plgg-sql && npm run build
 # plgg-db-migration after plgg-sql: the migration engine builds on plgg + the
 # plgg-sql Db seam (both marked external; built earlier for resolution order).
 cd $REPO_ROOT/packages/plgg-db-migration && npm run build
-# plgg-content after plgg-md/plgg-sql/plgg-db-migration: the derived SQLite index
-# + delivery/query API + FTS5 search, consumed by plggpress's /api mount.
-cd $REPO_ROOT/packages/plgg-content && npm run build
-# plgg-mcp after plgg-content: the MCP server's read-only tools wrap
-# plgg-content's query fns, so its dist must exist first.
-cd $REPO_ROOT/packages/plgg-mcp && npm run build
-# plgg-auth BEFORE plggpress: plggpress now depends on plgg-auth (the OIDC OP+RP
-# admin auth mount). plgg-auth composes plgg + plgg-http/server + plgg-sql +
+# plgg-auth BEFORE plgg-cms: plgg-cms depends on plgg-auth (the OIDC OP+RP admin
+# auth mount). plgg-auth composes plgg + plgg-http/server + plgg-sql +
 # plgg-db-migration, all built above.
 cd $REPO_ROOT/packages/plgg-auth && npm run build
-# plggpress last of the web stack: it carries its own framework internally
-# (the absorbed former app-framework facade) and consumes plgg-cli, plgg-server,
-# plgg-md, plgg-highlight, plgg-view, plgg-http, plggmatic, plgg-content
-# (its /api delivery mount), and plgg-auth (its /auth + /admin mounts) directly —
-# all built earlier so it can resolve dists.
+# plggpress: the slim STATIC-SITE GENERATOR. It carries its own framework
+# internally (the absorbed former app-framework facade) and consumes plgg-cli,
+# plgg-server, plgg-md, plgg-highlight, plgg-view, and plgg-http directly —
+# all built earlier so it can resolve dists. Its static theme support is local.
+# The dynamic content/server surface now lives in plgg-cms, built next.
 cd $REPO_ROOT/packages/plggpress && npm run build
+# plgg-cms after plggpress: the dynamic content-management surface (admin, /api,
+# auth, editing, media, ops, mcp, agent). It owns the former content and MCP
+# source trees internally, composes onto plggpress's framework seam
+# (published `plggpress/framework` subpath), and file:-depends on plggpress plus
+# plgg-sql/plgg-db-migration/plgg-auth/plgg-server — all built above.
+cd $REPO_ROOT/packages/plgg-cms && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
-# plgg-domain after plgg-db-migration: the durable-core spine composes plgg +
-# the plgg-sql Db/Sql seam + plgg-db-migration's Migration/Version, all built
-# above, into a domain-first derivation spine (schema, boot gate, export).
-cd $REPO_ROOT/packages/plgg-domain && npm run build
 # plgg-test's published dist library (depends only on plgg core). Its test
 # RUNNER is separate and untouched; this just builds its consumer-facing API.
 cd $REPO_ROOT/packages/plgg-test && npm run build
@@ -83,15 +72,4 @@ cd $REPO_ROOT/packages/plgg-test && npm run build
 # plgg + plgg-view + plgg-router (+ plgg-server's view types) and inlines them
 # from source via the in-house bundler's app target.
 cd $REPO_ROOT/packages/example && npm run build
-# --- plggmatic docs site and workbench example (plggmatic itself is built
-# above, ahead of plggpress which now depends on it) ---
-# plggmatic-example: the workbench CSR app; the app bundler inlines
-# plgg/plgg-view/plggmatic from source, so it builds after plggmatic.
-cd $REPO_ROOT/packages/plggmatic-example && npm run build
-# site: the plggpress-built docs for plggmatic; needs plggpress + plggmatic.
-cd $REPO_ROOT/packages/site && npm run build
-# nest the workbench app under the served docs at /example/.
-rm -rf $REPO_ROOT/packages/site/dist/example
-mkdir -p $REPO_ROOT/packages/site/dist/example
-cp -r $REPO_ROOT/packages/plggmatic-example/dist/. $REPO_ROOT/packages/site/dist/example/
 echo "\n=== All shell scripts have been executed successfully ==="

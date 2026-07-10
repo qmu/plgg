@@ -20,6 +20,7 @@ import {
   table,
   callout,
   thematicBreak,
+  htmlBlock,
   isHeading,
   isPara,
   isCodeFence,
@@ -28,6 +29,7 @@ import {
   isTable,
   isCallout,
   isThematicBreak,
+  isHtmlBlock,
   heading$,
   para$,
   codeFence$,
@@ -36,6 +38,7 @@ import {
   table$,
   callout$,
   thematicBreak$,
+  htmlBlock$,
 } from "plgg-md/Block/model/Block";
 
 test("asHeadingLevel accepts 1-6", () =>
@@ -94,9 +97,11 @@ test("guards recognize their own variant only", () =>
       isTable(table([], [], [])),
       isCallout(callout("tip", none(), [])),
       isThematicBreak(thematicBreak()),
+      isHtmlBlock(htmlBlock("<div></div>")),
       isHeading(para("not a heading")),
     ],
     toEqual([
+      true,
       true,
       true,
       true,
@@ -123,6 +128,7 @@ test("the $-matchers fold a block exhaustively", () => {
         thematicBreak$(),
         (): string => "ThematicBreak",
       ],
+      [htmlBlock$(), (): string => "HtmlBlock"],
     );
   return check(
     [
@@ -134,6 +140,7 @@ test("the $-matchers fold a block exhaustively", () => {
       label(table([], [], [])),
       label(callout("tip", none(), [])),
       label(thematicBreak()),
+      label(htmlBlock("<div></div>")),
     ],
     toEqual([
       "Heading",
@@ -144,6 +151,7 @@ test("the $-matchers fold a block exhaustively", () => {
       "Table",
       "Callout",
       "ThematicBreak",
+      "HtmlBlock",
     ]),
   );
 });

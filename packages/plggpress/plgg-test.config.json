@@ -8,15 +8,7 @@
       "/valid.config.ts",
       "/invalid.config.ts",
       "/named-only.config.ts",
-      "/auth/authWeb.ts",
-      "/auth/bootstrapAuth.ts",
-      "/stakeholder/submitWeb.ts",
-      "/editing/editorWeb.ts",
-      "/editing/exportFs.ts",
-      "/media/mediaWeb.ts",
-      "/agent/agentWeb.ts",
-      "/agent/browserVoiceIo.ts",
-      "/agent/realtimeBackend.ts"
+      "/themeSupport/styleEntry.ts"
     ]
   }
 }

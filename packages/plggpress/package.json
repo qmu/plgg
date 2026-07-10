@@ -1,6 +1,6 @@
 {
   "name": "plggpress",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "A reusable VitePress-like static-site generator built from scratch on the plgg family: a typed SiteConfig contract (IA + home data), a single base-path href resolver, and a config-loading CLI.",
   "type": "module",
   "files": [
@@ -18,7 +18,15 @@
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.es.js"
-      }
+      },
+      "default": "./dist/index.es.js"
+    },
+    "./framework": {
+      "import": {
+        "types": "./dist/frameworkEntry.d.ts",
+        "default": "./dist/frameworkEntry.es.js"
+      },
+      "default": "./dist/frameworkEntry.es.js"
     }
   },
   "types": "dist/index.d.ts",
@@ -48,13 +56,7 @@
     "plgg-view": "file:../plgg-view",
     "plgg-md": "file:../plgg-md",
     "plgg-highlight": "file:../plgg-highlight",
-    "plgg-cli": "file:../plgg-cli",
-    "plggmatic": "file:../plggmatic",
-    "plgg-content": "file:../plgg-content",
-    "plgg-sql": "file:../plgg-sql",
-    "plgg-auth": "file:../plgg-auth",
-    "plgg-kit": "file:../plgg-kit",
-    "plgg-mcp": "file:../plgg-mcp"
+    "plgg-cli": "file:../plgg-cli"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

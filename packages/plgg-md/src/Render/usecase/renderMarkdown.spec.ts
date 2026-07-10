@@ -19,7 +19,27 @@ import {
 import {
   renderMarkdown,
   renderMarkdownWith,
+  renderMarkdownWithOptions,
 } from "plgg-md/Render/usecase/renderMarkdown";
+import {
+  type RenderOptions,
+  plainHighlighter,
+  identityResolver,
+} from "plgg-md/Render/model/seam";
+import {
+  slugify,
+  githubSlugify,
+} from "plgg-md/Render/usecase/slugify";
+
+/** Options at defaults, with `rawHtml` toggled per test. */
+const opts = (
+  rawHtml: boolean,
+): RenderOptions => ({
+  highlighter: plainHighlighter,
+  resolveLink: identityResolver,
+  rawHtml,
+  slug: slugify,
+});
 
 /** Em-dash (U+2014) — RETAINED in slugs per the spike. */
 const EM = "—";
@@ -434,13 +454,150 @@ test("headings carries depth + text + the exact body slugs, in document order", 
         ])(doc.headings),
         // slugs derives from headings — lock-step by
         // construction
-        toEqual(
-          doc.headings.map((h) => h.slug),
-        )(doc.slugs),
+        toEqual(doc.headings.map((h) => h.slug))(
+          doc.slugs,
+        ),
         // the body carries the very same ids
         check(
           renderToString(doc.body),
           toContain('id="first-section-1"'),
+        ),
+      ]),
+    ),
+  ));
+
+// --- opt-in raw-HTML passthrough -----------------------
+
+const HTML_BLOCK_PAGE = src(
+  "# T",
+  "",
+  '<small class="updated">最終更新: 2026-07-09 & later</small>',
+  "",
+);
+
+test("raw HTML block is emitted verbatim when rawHtml is ON", () =>
+  check(
+    renderMarkdownWithOptions(opts(true))(
+      HTML_BLOCK_PAGE,
+    ),
+    okThen((doc) =>
+      check(
+        renderToString(doc.body),
+        toContain(
+          '<small class="updated">最終更新: 2026-07-09 & later</small>',
+        ),
+      ),
+    ),
+  ));
+
+test("the SAME HTML block is escaped as text when rawHtml is OFF (default)", () =>
+  check(
+    renderMarkdown(HTML_BLOCK_PAGE),
+    okThen((doc) =>
+      all([
+        // text-escaping touches &/</> (not quotes)
+        check(
+          renderToString(doc.body),
+          toContain(
+            '&lt;small class="updated"&gt;',
+          ),
+        ),
+        // and never leaks a real tag
+        check(
+          renderToString(doc.body),
+          toContain("&amp; later&lt;/small&gt;"),
+        ),
+      ]),
+    ),
+  ));
+
+const INLINE_PAGE = src(
+  "# T",
+  "",
+  "Before <small>x & y</small> after < b & c",
+  "",
+);
+
+test("inline HTML span rides verbatim while surrounding text-level </>/& stay escaped (rawHtml ON)", () =>
+  check(
+    renderMarkdownWithOptions(opts(true))(
+      INLINE_PAGE,
+    ),
+    okThen((doc) => {
+      const html = renderToString(doc.body);
+      return all([
+        // the recognized tags are verbatim
+        check(html, toContain("<small>")),
+        check(html, toContain("</small>")),
+        // the text BETWEEN the tags is still escaped
+        check(html, toContain("x &amp; y")),
+        // a `<` that opens no tag stays literal (escaped)
+        check(html, toContain("&lt; b &amp; c")),
+      ]);
+    }),
+  ));
+
+test("inline HTML is fully escaped when rawHtml is OFF (default)", () =>
+  check(
+    renderMarkdown(INLINE_PAGE),
+    okThen((doc) =>
+      all([
+        check(
+          renderToString(doc.body),
+          toContain(
+            "&lt;small&gt;x &amp; y&lt;/small&gt;",
+          ),
+        ),
+        check(
+          renderToString(doc.body),
+          toContain("&lt; b &amp; c"),
+        ),
+      ]),
+    ),
+  ));
+
+// --- injectable heading slugger ------------------------
+
+const SLUG_PAGE = src("# 型・関数の設計", "");
+
+test("an injected github slugger changes the heading ids", () =>
+  check(
+    renderMarkdownWithOptions({
+      highlighter: plainHighlighter,
+      resolveLink: identityResolver,
+      rawHtml: false,
+      slug: githubSlugify,
+    })(SLUG_PAGE),
+    okThen((doc) =>
+      all([
+        check(
+          doc.slugs,
+          toEqual(["型関数の設計"]),
+        ),
+        check(
+          renderToString(doc.body),
+          toContain('id="型関数の設計"'),
+        ),
+      ]),
+    ),
+  ));
+
+test("the default slugger (VitePress) is unchanged — it does NOT drop the middle dot", () =>
+  check(
+    renderMarkdown(SLUG_PAGE),
+    okThen((doc) =>
+      all([
+        // whatever the default id is, it is NOT the github one
+        check(
+          doc.slugs.map(
+            (s) => s === "型関数の設計",
+          ),
+          toEqual([false]),
+        ),
+        // and it equals the standalone default slugify
+        check(
+          doc.slugs,
+          toEqual([slugify("型・関数の設計")]),
         ),
       ]),
     ),

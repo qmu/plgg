@@ -89,9 +89,6 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-sql/`](packages/plgg-sql/)** - SQL as data-last pipeline steps built from scratch on plgg: tagged-template queries, transactions, and typed row mapping that drop into a `proc`/`pipe` chain; the database driver lives at an app-supplied seam
 - **[`packages/plgg-db-migration/`](packages/plgg-db-migration/)** - Minimal dbmate-style schema-migration tool on plgg + plgg-sql: single-file up/down migrations, a `schema_migrations` ledger, on-demand per-tenant SQLite, zero new dependencies
-- **[`packages/plgg-content/`](packages/plgg-content/)** - A derived, rebuildable SQLite index over a git-primary Markdown corpus (D4), with an HTTP-agnostic MicroCMS-like read-only query API (`listCollection`/`getDocument`/`searchIndex`) and always-on FTS5 (BM25) search built on plgg-sql's FTS5 builders; the same typed functions back the delivery API, admin UI, MCP tools, and plugin export
-- **[`packages/plgg-mcp/`](packages/plgg-mcp/)** - Zero-new-dep, hand-rolled JSON-RPC 2.0 / Model Context Protocol server on plgg + Node stdlib (no @modelcontextprotocol/sdk): stdio transport + read-only plggpress content tools (search_content/get_article/list_collections), a wire format expressed as typed Result-returning functions
-- **[`packages/plgg-domain/`](packages/plgg-domain/)** - The durable-core / sacrificial-shell spine (D18): one authored `Domain` of caster-typed entities derives its SQLite schema, a schema-compatibility boot gate (Ok/Lag/Drift), a code-independent export/import, a provenance manifest, and the derivation seams a regenerated shell is rebuilt from
 - **[`packages/plgg-auth/`](packages/plgg-auth/)** - OIDC identity-provider toolkit built from scratch on plgg: the JOSE layer (base64url, JWK/JWKS with RFC 7638 thumbprint kids, JWS RS256, JWT claim validation) on WebCrypto only — pinned to the RFC test vectors and cross-checked against `node:crypto`
 
 **AI**
@@ -108,7 +105,8 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
 - **[`packages/plgg-highlight/`](packages/plgg-highlight/)** - Zero-dep TS/TSX/JS/JSX/JSON syntax highlighting for plgg-md's `Highlighter` seam, tokenizing with an in-house plgg-parser grammar (no `typescript` dependency) into classified plgg-view `Html` spans
 - **[`packages/plgg-parser/`](packages/plgg-parser/)** - Zero-new-dep generic parser combinator library on plgg: data-last `Parser<A,S>` functions returning `Result<Parsed<A,S>>`, a user-state slot for context-sensitive grammars, and a TS-lexer demo (the eventual in-house replacement for plgg-highlight's compiler scanner)
-- **[`packages/plggpress/`](packages/plggpress/)** - VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a base-path href resolver, a config CLI, and a build-time dead-link checker — the engine that builds the guide. Carries its generic web framework internally (config loading, a router builder, static-build + CLI orchestration — absorbed from the former standalone `plggmatic`, now its own repository)
+- **[`packages/plggpress/`](packages/plggpress/)** - The slim VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a base-path href resolver, a config/`build` CLI, and a build-time dead-link checker — the engine that builds the guide. Carries its generic web-application framework internally and exposes it as a public `plggpress/framework` subpath (config loading, a router builder, static-build + CLI orchestration). No CMS/server dependencies — the dynamic content surface lives in `plgg-cms`
+- **[`packages/plgg-cms/`](packages/plgg-cms/)** - The dynamic content-management surface that pairs with plggpress: CMS-owned content indexing/query, admin UI, durable-domain derivation, a read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP protocol/tools, and agent surfaces — composed onto plggpress's `framework` seam and served as an always-on `node:http` instance (the `plgg-cms serve` bin, D5's dynamic half)
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
 
@@ -116,9 +114,8 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
-- **[`packages/plggmatic/`](packages/plggmatic/)** - Column-oriented UI design framework on the plgg family: a typed light/dark color scheme, `row`/`column`/`pane` layout combinators, and fundamental components as pure `(props) => Html<Msg>`
-- **[`packages/site/`](packages/site/)** - The plggpress-built documentation site for plggmatic (private `@plggmatic/site`, not published)
-- **[`packages/plggmatic-example/`](packages/plggmatic-example/)** - The plggmatic workbench: a traversable column-stack (Miller columns) demo app served under the docs at `/example/`
+
+The Pragmatic design-system package, its documentation site, and its workbench now live outside this monorepo. This repository keeps the CMS admin UI inside `plgg-cms`; plggpress carries only the static theme support needed to build this guide.
 
 ## Installation
 
@@ -368,12 +365,6 @@ A minimal, dbmate-style schema-migration tool on plgg + plgg-sql: single-file `u
 
 See [packages/plgg-db-migration/README.md](packages/plgg-db-migration/README.md) for details.
 
-### plgg-content
-
-A derived, rebuildable SQLite index over a git-primary Markdown corpus (D4), with an HTTP-agnostic MicroCMS-like read-only query API and always-on FTS5 (BM25) search on plgg-sql's FTS5 builders. The same typed `Db`-taking functions (`listCollection`/`getDocument`/`searchIndex`) back the delivery API, the admin UI, the MCP tools, and the plugin export.
-
-See [packages/plgg-content/README.md](packages/plgg-content/README.md) for details.
-
 ### plgg-cli
 
 A toolkit for building command-line program wrappers on plgg: declare commands and options as typed data, parse `process.argv` into a validated invocation, and fold the handler's `Result` into a shell outcome.
@@ -400,9 +391,15 @@ See [packages/plgg-parser/README.md](packages/plgg-parser/README.md) for details
 
 ### plggpress
 
-A VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a single base-path href resolver, a config-loading CLI, and a build pipeline with a build-time dead-link checker. It is the engine that builds this guide. plggpress carries its generic web framework internally (config loading, a router builder, static-build + CLI orchestration — absorbed from the former standalone `plggmatic`, now developed in its own repository).
+The slim VitePress-like static-site generator on the plgg family: a typed `SiteConfig` contract, a single base-path href resolver, a config-loading `build` CLI, and a build pipeline with a build-time dead-link checker. It is the engine that builds this guide. plggpress carries its generic web-application framework internally (config loading, a router builder, static-build + CLI orchestration) and publishes it as a `plggpress/framework` subpath. It depends on no CMS/server packages — the dynamic content surface was split out into `plgg-cms`.
 
 See [packages/plggpress/README.md](packages/plggpress/README.md) for details.
+
+### plgg-cms
+
+The dynamic content-management surface that pairs with plggpress. Where plggpress renders the public reader path (SSG/CDN), plgg-cms is the always-on half — CMS-owned content indexing and query functions, an admin UI, a read-only content delivery API (`contentApi`), OIDC auth, content editing, media, stakeholder submission, ops, MCP protocol/tools, and agent surfaces — composed onto plggpress's `framework` seam and served as a persistent `node:http` instance via the `plgg-cms serve` bin (D5). The dependency direction is one-way: plgg-cms depends on plggpress, never the reverse.
+
+See [packages/plgg-cms/README.md](packages/plgg-cms/README.md) for details.
 
 ### plgg-bundle
 

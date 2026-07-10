@@ -1,21 +1,21 @@
 # Content & delivery
 
-How [plggpress](/packages/plggpress) turns a
-git-primary Markdown corpus into a queryable content
-API. The corpus stays canonical in git; a derived,
-rebuildable SQLite index ([plgg-content](/packages/plgg-content))
-backs a MicroCMS-like read-only delivery API and
-always-on FTS5 (BM25) search — decision **D4**: content
-is filesystem-primary, SQLite is a derived index that
-costs nothing to lose.
+How [plgg-cms](/packages/plgg-cms), composed around
+[plggpress](/packages/plggpress), turns a git-primary
+Markdown corpus into a queryable content API. The corpus
+stays canonical in git; a derived, rebuildable SQLite
+index inside [plgg-cms](/packages/plgg-cms) backs a
+MicroCMS-like read-only delivery API and always-on FTS5
+(BM25) search - decision **D4**: content is
+filesystem-primary, SQLite is a derived index that costs
+nothing to lose.
 
 ## Writing an app with it
 
 The delivery surface is plain typed `Db`-taking
-functions from [plgg-content](/packages/plgg-content) —
+functions exported by [plgg-cms](/packages/plgg-cms) -
 the same functions back the `/api` HTTP mount, the
-admin UI, the MCP tools, and the plugin export. From
-the plgg-content README:
+admin UI, the MCP tools, and the plugin export:
 
 ```typescript
 import {
@@ -24,7 +24,7 @@ import {
   listCollection,
   getDocument,
   searchIndex,
-} from "plgg-content";
+} from "plgg-cms";
 
 // open a ready index (schema created idempotently)
 const db = await openIndex("content.db");
@@ -41,9 +41,9 @@ await searchIndex(db)("kangaroo", 10);
 // → BM25-ranked hits, no LLM key needed
 ```
 
-On the served instance, plggpress mounts these behind
-`GET /api/*` (the search endpoint included) — a thin
-HTTP adapter over the query core.
+On the served instance, plgg-cms mounts these behind
+`GET /api/*` (the search endpoint included) — a thin HTTP
+adapter over the query core.
 
 ## Content models
 
@@ -56,7 +56,7 @@ field, not a silently-wrong row.
 
 ## Vocabulary
 
-From [plgg-content](/packages/plgg-content):
+From the CMS-owned content module:
 
 - **Index** — `openIndex` (idempotent schema),
   `registerCollection`, `rebuildIndex` (full,

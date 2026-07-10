@@ -39,6 +39,8 @@ const config: SiteConfig = {
   social: [],
   dev: { allowedHosts: [] },
   models: none(),
+  rawHtml: none(),
+  slugger: none(),
 };
 
 const req = (path: string): HttpRequest => ({
@@ -86,12 +88,18 @@ const runLinkCheck = (
   paths: ReadonlyArray<SoftStr>,
 ): PromisedResult<
   unknown,
-  Defect | BrokenLinks | ModelViolations | LinkCheckMissing
+  | Defect
+  | BrokenLinks
+  | ModelViolations
+  | LinkCheckMissing
 > =>
   matchOption(
     (): PromisedResult<
       unknown,
-      Defect | BrokenLinks | ModelViolations | LinkCheckMissing
+      | Defect
+      | BrokenLinks
+      | ModelViolations
+      | LinkCheckMissing
     > =>
       Promise.resolve(
         err({ __tag: "LinkCheckMissing" }),
@@ -105,7 +113,10 @@ const runLinkCheck = (
       >,
     ): PromisedResult<
       unknown,
-      Defect | BrokenLinks | ModelViolations | LinkCheckMissing
+      | Defect
+      | BrokenLinks
+      | ModelViolations
+      | LinkCheckMissing
     > => run(paths),
   )(spec.linkCheck);
 

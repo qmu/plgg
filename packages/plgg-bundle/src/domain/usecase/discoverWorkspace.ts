@@ -7,38 +7,65 @@ import {
 import { join, dirname } from "plgg-bundle/vendors/nodePath";
 
 /**
- * A workspace sibling the app bundler can INLINE from
- * source: its package `name`, its `dir`, and the map from
- * each public export subpath (`"."`, `"./client"`, …) to
- * the `import.default` dist path declared in its
- * `package.json` `exports`. The app resolver reverses
- * that dist path to the entry's source file (so the
- * `./style` → `dist/styleEntry.es.js` → `src/styleEntry`
- * rename is honoured), and falls back to a self-alias
- * `name/<path>` → `src/<path>` for non-export internal
- * imports.
+ * A package the app bundler can INLINE. Monorepo
+ * siblings are inlined from `src`; registry-installed
+ * packages usually ship only `dist`, so the resolver
+ * inlines their built ESM entry instead.
  */
-export type WorkspacePackage = Readonly<{
+export type WorkspacePackage =
+  | SourceWorkspacePackage
+  | DistWorkspacePackage;
+
+/**
+ * A source package, usually a sibling under `packages/`.
+ * Its public export subpaths are reversed from
+ * `exports` dist paths back to `src` entries.
+ */
+export type SourceWorkspacePackage = Readonly<{
+  kind: "source";
   name: string;
   dir: string;
+  srcDir: string;
   /** export subpath (`"."` | `"./x"`) → dist default. */
   exports: ReadonlyMap<string, string>;
 }>;
 
 /**
- * Discover every sibling package under the directory that
- * holds `packageRoot` (the monorepo `packages/` dir) —
- * each entry that has a `package.json` with a `name`.
+ * A dist package, usually installed under the app's
+ * `node_modules`. It has no source in the consumer tree,
+ * so public export subpaths resolve to built ESM files.
+ */
+export type DistWorkspacePackage = Readonly<{
+  kind: "dist";
+  name: string;
+  dir: string;
+  distDir: string;
+  /** export subpath (`"."` | `"./x"`) → dist default. */
+  exports: ReadonlyMap<string, string>;
+}>;
+
+/**
+ * Discover inlineable packages visible from `packageRoot`:
+ * sibling packages under the directory that holds
+ * `packageRoot`, plus packages installed in this package's
+ * own `node_modules` and in sibling source packages'
+ * `node_modules`. Siblings are listed first and win on
+ * duplicate names so monorepo builds keep reading source.
  * Sorted longest-name-first so a later prefix match picks
- * `plgg-view` over `plgg`. Throws on a read/parse failure.
+ * `plgg-view` over `plgg`.
  */
 export const discoverWorkspace = (
   packageRoot: string,
 ): ReadonlyArray<WorkspacePackage> => {
   const siblingsDir = dirname(packageRoot);
-  return readdirSync(siblingsDir)
-    .map((name) => join(siblingsDir, name))
-    .filter(isPackageDir)
+  const siblings = packageDirsIn(siblingsDir);
+  return uniqueByName([
+    ...siblings,
+    ...packageDirsIn(join(packageRoot, "node_modules")),
+    ...siblings.flatMap((dir) =>
+      packageDirsIn(join(dir, "node_modules")),
+    ),
+  ])
     .map(readPackage)
     .flatMap((p) => (p === undefined ? [] : [p]))
     .sort(
@@ -47,8 +74,61 @@ export const discoverWorkspace = (
 };
 
 /**
- * Whether a path is a directory holding a
- * `package.json`.
+ * Direct package dirs under `dir`, including scoped
+ * `@scope/name` packages. Missing directories simply
+ * contribute no packages.
+ */
+const packageDirsIn = (
+  dir: string,
+): ReadonlyArray<string> =>
+  existsSync(dir)
+    ? readdirSync(dir).flatMap((name) =>
+        childPackageDirs(join(dir, name)),
+      )
+    : [];
+
+/**
+ * The package dirs represented by one child of a package
+ * collection directory. A scope directory fans out one
+ * level; ordinary package directories are returned as-is.
+ */
+const childPackageDirs = (
+  dir: string,
+): ReadonlyArray<string> => {
+  if (!statSync(dir).isDirectory()) {
+    return [];
+  }
+  if (isPackageDir(dir)) {
+    return [dir];
+  }
+  return readdirSync(dir)
+    .map((name) => join(dir, name))
+    .filter(isPackageDir);
+};
+
+/**
+ * Keep the first directory for each package name. The
+ * caller supplies siblings before node_modules, so a local
+ * source package beats an installed copy.
+ */
+const uniqueByName = (
+  dirs: ReadonlyArray<string>,
+): ReadonlyArray<string> => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const dir of dirs) {
+    const name = packageName(dir);
+    if (name === undefined || seen.has(name)) {
+      continue;
+    }
+    seen.add(name);
+    out.push(dir);
+  }
+  return out;
+};
+
+/**
+ * Whether a path is a directory holding a package.json.
  */
 const isPackageDir = (dir: string): boolean =>
   statSync(dir).isDirectory() &&
@@ -66,9 +146,44 @@ const readPackage = (
     join(dir, "package.json"),
   );
   const name = pkg["name"];
-  return typeof name === "string"
-    ? { name, dir, exports: exportMap(pkg) }
-    : undefined;
+  if (typeof name !== "string") {
+    return undefined;
+  }
+  const srcDir = join(dir, "src");
+  if (existsSync(srcDir)) {
+    return {
+      kind: "source",
+      name,
+      dir,
+      srcDir,
+      exports: exportMap(pkg),
+    };
+  }
+  const distDir = join(dir, "dist");
+  if (existsSync(distDir)) {
+    return {
+      kind: "dist",
+      name,
+      dir,
+      distDir,
+      exports: exportMap(pkg),
+    };
+  }
+  return undefined;
+};
+
+/**
+ * Read only the package name for de-duplication.
+ */
+const packageName = (
+  dir: string,
+): string | undefined => {
+  if (!isPackageDir(dir)) {
+    return undefined;
+  }
+  const pkg = parseJson(join(dir, "package.json"));
+  const name = pkg["name"];
+  return typeof name === "string" ? name : undefined;
 };
 
 /**
