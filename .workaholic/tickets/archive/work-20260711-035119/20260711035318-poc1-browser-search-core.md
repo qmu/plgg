@@ -3,9 +3,9 @@ created_at: 2026-07-11T03:53:17+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: d939f300
+category: Added
 depends_on: [20260711035317-plggpress-poc-portal-and-plan.md]
 mission: plggpress-technical-confidence-poc-portal
 ---
@@ -99,3 +99,20 @@ Captured from the developer at ticket time (2026-07-11): **typecheck + smoke** b
 - Reuse `similarity.ts` by import if plgg-cms's export surface allows it cleanly; otherwise copy the two pure functions with a provenance comment — do not add a plgg-cms runtime dependency to a sacrificial PoC package just for 30 pure lines (`packages/plgg-cms/src/content/Rag/usecase/similarity.ts`).
 - FTS5 query-sanitizer lessons from the server work apply to the from-scratch browser tokenizer: define the accepted query grammar totally rather than passing raw strings into ranking (`packages/plgg-sql`, prior ticket 20260704143015).
 - The verdict feeds production integration later (mission acceptance item 9): keep the findings written as data/prose the portal renders, not only as in-app UI state (`packages/plgg-poc-portal/src/pocs.ts`).
+
+## Final Report
+
+Development completed as planned. Both arms are implemented and measured on the full corpus (38 files → 178 heading-path chunks, ~118 KB): the from-scratch FTS arm (shared tokenizer, JSON inverted index, BM25) ships as `fts.json` at ~252 KB built in ~19 ms; the vector arm ships MiniLM (`Xenova/all-MiniLM-L6-v2`, 384d) chunk vectors as `embeddings.json` at ~1.4 MB built in ~11 s on this host's CPU — build-time embedding runs fully locally through the same `@huggingface/transformers` package the browser loads from the CDN, so both sides share one embedding space and no API key or corpus upload is involved (`OPENAI_API_KEY` was absent; the OpenAI-shaped network embedder ships as the documented key-gated alternative and renders as the arm's honest "unavailable" state). The dependency decision log lives in the package README; the third-party imports are confined to `src/vendors/` and `gate-vendor-boundary` stays green without exemptions.
+
+Verification run against the Quality Gate: strict `tsc --noEmit` exit 0, zero escape hatches; 12 plgg-test specs green covering the pure cores (chunker incl. code-fence handling, tokenizer, BM25 ranking incl. idf ordering and noise-query emptiness, cosine/topK totality on malformed input) with 100% statement coverage on those modules; the full-corpus indexer emits fts.json + embeddings.json + metrics.json with nothing sampled; `scripts/check-all.sh` fully green (fresh rebuild, all 23 scripts) with the package wired into README/build/test gates; the containerized workload serves 200 on localhost:5184 next to the portal on 5183. Real-browser (headless chromium) verification: the app boots, loads all three assets, and the FTS arm ranks the URL-held query with plausible scores end-to-end; the CDN dynamic import of transformers.js resolves in-browser. The RAG arm's in-browser model init could NOT be observed to completion headlessly — ONNX/WASM init does not conclude under chromium's --dump-dom/--virtual-time-budget harness (probes isolated this to pipeline() init, not to this app's code; the same call completes in node). The app shows its designed loading/failed states meanwhile and FTS stays fully functional (graceful degradation). Confirming the RAG arm live and recording the verdict on the portal (with the vector arm's from-scratch cost estimate) is the developer's morning gate at https://plgg-poc1.qmu.dev/ — per the ticket's division of assurance.
+
+### Discovered Insights
+
+- **Insight**: plgg-bundle passes a dynamic `import(variable)` through to the native runtime untouched, which makes "load a heavy vendor from a CDN at runtime, keep it out of the bundle" a one-line pattern — and keeps TypeScript from attempting module resolution since the specifier is a variable.
+  **Context**: the sanctioned way to keep measured-cost dependencies visible; also the reason the client bundle stays at 225 KB while the model is ~25 MB.
+- **Insight**: chunk and query vectors must come from the same model, so the model id belongs in ONE shared constant stamped into the asset and asserted before ranking — the app refuses to cosine across mismatched spaces with an explained state.
+  **Context**: any future plggpress RAG integration needs this same guard; silent cross-space cosine produces plausible-looking garbage.
+- **Insight**: headless chromium's --virtual-time-budget harness cannot drive onnxruntime-web's WASM init to completion (workers + WASM compile don't advance under virtual time), while the identical transformers.js call completes in node.
+  **Context**: browser-side model verification needs a real interactive browser (or a Playwright session), not dump-dom; budget for that in any PoC that loads models client-side.
+- **Insight**: this host's `ls` is colorized even in scripts — command-substituting `ls` output into a variable embeds ANSI codes and yields exit-127 "not found" for a path that visibly exists; use plain literal paths or `command ls`.
+  **Context**: cost one debugging round tonight; recorded for the next agent.

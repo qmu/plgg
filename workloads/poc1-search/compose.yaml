@@ -1,0 +1,22 @@
+# PoC 1 workload — serve the browser-search-core PoC
+# (packages/plgg-poc1-search) on host port 5184, the
+# cloudflared tunnel route for plgg-poc1.qmu.dev.
+#
+#   scripts/serve-poc.sh poc1-search
+#
+# Same recipe as the portal: artifacts (bundle + index
+# assets) are HOST-built (`npm run build`), the container
+# only runs the node-builtins-only static server against
+# the mounted repo. The embedding model itself loads from
+# the CDN in the visitor's browser — measuring that cost
+# is the PoC's point, so nothing model-related lives in
+# this container.
+services:
+  poc1-search:
+    image: node:22-slim
+    working_dir: /app/packages/plgg-poc1-search
+    command: ["node", "src/entrypoints/serve.ts"]
+    ports:
+      - "5184:5173"
+    volumes:
+      - ../..:/app
