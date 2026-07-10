@@ -45,3 +45,11 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-08 — ticket archived — 20260708213945-specify-pragmatic-screen-transition-model.md
 - 2026-07-08 — ticket archived — 20260708213946-specify-pragmatic-input-field-model.md
 - 2026-07-11 — story reported — work-20260706-120449.md
+- 2026-07-11 — concern deferred (stuck) — 61-89-standing-deferred-concerns-carried-prs.md
+- 2026-07-11 — concern deferred (stuck) — 61-npm-publish-gate-depends-on-the.md
+- 2026-07-11 — concern deferred (stuck) — 61-plgg-cms-coverage-sits-at-a.md
+- 2026-07-11 — concern deferred (stuck) — 61-demo-1-s-css-overrides-hard.md
+- 2026-07-11 — concern deferred (stuck) — 61-plgg-ui-s-package-boundary-was.md
+- 2026-07-11 — concern deferred (stuck) — 61-registry-consumability-blockers-were-fixed-reactively.md
+- 2026-07-11 — concern deferred (stuck) — 61-demo-1-record-data-is-in.md
+- 2026-07-11 — concern deferred (stuck) — 61-demo-2-s-pre-existing-button.md

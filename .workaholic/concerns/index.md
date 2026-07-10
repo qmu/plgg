@@ -89,5 +89,13 @@
 * [(carried from PR #59) Attempt combinator intentionally omitted](60-carried-from-pr-59-attempt-combinator.md)
 * [(carried from PR #59) Concrete-S pinning ergonomics](60-carried-from-pr-59-concrete-s.md)
 * [(carried from PR #59) Lexer fidelity limitations](60-carried-from-pr-59-lexer-fidelity.md)
+* [89 standing deferred concerns carried (PRs 31–60)](61-89-standing-deferred-concerns-carried-prs.md)
+* [Demo 1 record data is in-memory only; it does not persist across reloads](61-demo-1-record-data-is-in.md)
+* [Demo 1's CSS overrides hard-couple to plgg-ui/plggmatic's `pm-*` class names by literal string match](61-demo-1-s-css-overrides-hard.md)
+* [Demo 2's pre-existing button contrast bug was worked around, not fixed](61-demo-2-s-pre-existing-button.md)
+* [npm-publish gate depends on the ship agent following prose, not an enforced mechanism](61-npm-publish-gate-depends-on-the.md)
+* [plgg-cms coverage sits at a thin 90.5% margin above the gate](61-plgg-cms-coverage-sits-at-a.md)
+* [plgg-ui's package boundary was retired in-repo while an external repo may still depend on the published artifact](61-plgg-ui-s-package-boundary-was.md)
+* [Registry-consumability blockers were fixed reactively, three times, with no preventive gate](61-registry-consumability-blockers-were-fixed-reactively.md)
 
 * [archive/](archive/)
