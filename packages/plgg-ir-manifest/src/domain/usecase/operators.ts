@@ -8,6 +8,7 @@ import {
   booleanType,
   integerType,
   decimalType,
+  stringType,
   dateType,
   nominalType,
   isPrimType,
@@ -259,6 +260,13 @@ export const manifestOperators: ReadonlyArray<OperatorDef> =
       "before",
       fixedSignature(
         [dateType, dateType],
+        booleanType,
+      ),
+    ),
+    defineOperator(
+      "has-role",
+      fixedSignature(
+        [nominalType("actor"), stringType],
         booleanType,
       ),
     ),

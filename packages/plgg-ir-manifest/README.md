@@ -39,9 +39,51 @@ plgg ── plgg-parser ── plgg-ir-syntax ── plgg-ir-language ── plg
       (consistency immediate))))
 ```
 
-Web-system semantics (views, queries, policies, actions) and
-dependency semantics (derive, materialize) are the next phases of
-the same dialect.
+## The web-system vocabulary (Phase 4)
+
+```lisp
+(projection client-summary
+  (from client)
+  (fields client.id client.name))          ; the ONLY way a view crosses its scope
+
+(policy project-name-editor
+  (allows (and (= actor.organization-id project.client.organization-id)
+               (has-role actor "project-manager"))))
+
+(view project-detail
+  (subject (entity project) (parameter project-id))   ; parameter p carries nominal type p
+  (scope project-aggregate)                            ; optional boundary (§14)
+  (query
+    (one project (where (= project.id project-id))
+                 (authorized-by project-reader))
+    (include project.client)                           ; the loaded set (§15)
+    (lookup client-summary (through task.project.client)))
+  (layout                                              ; order preserved verbatim
+    (detail
+      (show project.name)
+      (list client.projects ...)
+      (action edit-project-name)
+      (navigate (to project-detail) (with (project-id project.id))))))
+
+(action edit-project-name
+  (subject project)
+  (input (field name (type string) (validate (required))))
+  (authorize (policy project-name-editor))   ; REQUIRED with effects — deny-by-default
+  (effect (set project.name input.name))
+  (ensure (valid project)))
+```
+
+Layout paths are verified in layers (§14): a structurally
+reachable path is still rejected when it is outside the query's
+loaded set (`manifest.view.relation-not-loaded`, listing the
+available paths), crosses the declared aggregate
+(`manifest.view.aggregate-boundary`), or reaches a field a
+projection does not expose (`manifest.projection.not-exposed`).
+Navigation is checked module-wide: target view, parameter
+completeness, and argument types. An action with effects and no
+`(authorize ...)` is a compile error — no policy means denied
+(design §36.1). Dependency semantics (derive, materialize,
+consistency planning) are Phase 5 of the same dialect.
 
 ## What is verified statically
 

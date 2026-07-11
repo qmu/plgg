@@ -20,12 +20,20 @@ const CLAUSE_RANKS: Readonly<
   Record<string, Readonly<Record<string, number>>>
 > = {
   "plgg-ir": { module: 0 },
-  module: { entity: 0, aggregate: 1 },
+  module: {
+    entity: 0,
+    aggregate: 1,
+    projection: 2,
+    policy: 3,
+    view: 4,
+    action: 5,
+  },
   entity: {
     table: 0,
-    field: 1,
-    relation: 2,
-    invariant: 3,
+    access: 1,
+    field: 2,
+    relation: 3,
+    invariant: 4,
   },
   field: { type: 0, column: 1, validate: 2 },
   relation: {
@@ -40,14 +48,39 @@ const CLAUSE_RANKS: Readonly<
     consistency: 2,
   },
   validate: {},
+  access: { read: 0, update: 1 },
+  projection: { from: 0, fields: 1 },
+  policy: { allows: 0 },
+  view: {
+    subject: 0,
+    scope: 1,
+    query: 2,
+    layout: 3,
+  },
+  subject: { entity: 0, parameter: 1 },
+  query: { one: 0, include: 1, lookup: 2 },
+  one: { where: 0, "authorized-by": 1 },
+  lookup: { through: 0 },
+  action: {
+    subject: 0,
+    input: 1,
+    authorize: 2,
+    effect: 3,
+    ensure: 4,
+  },
+  input: { field: 0 },
+  authorize: { policy: 0 },
 };
 
 /**
  * Structural heads whose ATOM children are a sortable
- * payload (aggregate member lists).
+ * payload (aggregate member and projection field
+ * lists). Layout forms are deliberately absent from
+ * both tables — display order is meaning and is
+ * preserved verbatim, as is expression operand order.
  */
 const ATOM_PAYLOAD_HEADS: ReadonlyArray<SoftStr> =
-  ["members"];
+  ["members", "fields"];
 
 /**
  * The rank of a child clause under a structural

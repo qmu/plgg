@@ -77,6 +77,8 @@ import {
 } from "plgg-ir-manifest/domain/model/Relation";
 import {
   Entity,
+  Access,
+  UpdateAccess,
   entity,
 } from "plgg-ir-manifest/domain/model/Entity";
 import {
@@ -99,6 +101,13 @@ import {
   exprArg,
 } from "plgg-ir-manifest/domain/usecase/clause";
 import { verifyModule } from "plgg-ir-manifest/domain/usecase/verifyModule";
+import { verifyWebRefs } from "plgg-ir-manifest/domain/usecase/verifyWebRefs";
+import {
+  parseProjection,
+  parsePolicy,
+} from "plgg-ir-manifest/domain/usecase/analyzeWeb";
+import { parseView } from "plgg-ir-manifest/domain/usecase/analyzeView";
+import { parseAction } from "plgg-ir-manifest/domain/usecase/analyzeAction";
 
 type Diags = ReadonlyArray<SemDiagnostic>;
 
@@ -783,12 +792,13 @@ const analyzeEntity =
                     isClause("invariant")(
                       child,
                     ) ||
-                    isClause("table")(child)
+                    isClause("table")(child) ||
+                    isClause("access")(child)
                       ? ok(true)
                       : err([
                           semError(
                             codeUnknownEntityForm,
-                            "an entity clause must be (table ...), (field ...), (relation ...), or (invariant ...)",
+                            "an entity clause must be (table ...), (access ...), (field ...), (relation ...), or (invariant ...)",
                             sexpRange(child),
                           ),
                         ]),
@@ -939,22 +949,228 @@ const finishEntity = (
                   ),
                 ),
               ),
-              mapResult(
+              chainResult(
                 (
                   invariants: ReadonlyArray<TypedExpr>,
-                ): Entity =>
-                  entity(
-                    name.content.name,
-                    tableOf(form),
-                    fields,
-                    relations,
-                    invariants,
-                    form.content.range,
+                ) =>
+                  pipe(
+                    parseAccess(form, decls),
+                    mapResult(
+                      (access: Access): Entity =>
+                        entity(
+                          name.content.name,
+                          tableOf(form),
+                          fields,
+                          relations,
+                          invariants,
+                          access,
+                          form.content.range,
+                        ),
+                    ),
                   ),
               ),
             ),
         ),
       ),
+  );
+
+/**
+ * Parses the entity's `(access (read <policy>)
+ * (update [<field>] <policy>)*)` declaration
+ * (design.md §10). A per-field update must name a
+ * declared field; policy existence is verified
+ * module-wide.
+ */
+const parseAccess = (
+  form: ListExp,
+  decls: ReadonlyArray<FieldDecl>,
+): Result<Access, Diags> =>
+  pipe(clausesNamed(form, "access"), (accesses) =>
+    pipe(
+      allOrErrors(
+        accesses
+          .flatMap(childrenOf)
+          .map(
+            (
+              child: Sexp,
+            ): Result<Access, Diags> =>
+              isClause("read")(child)
+                ? pipe(
+                    symbolArg(child, 1),
+                    matchOption(
+                      (): Result<Access, Diags> =>
+                        err([
+                          semError(
+                            codeBadEntity,
+                            "(read ...) needs a policy name",
+                            sexpRange(child),
+                          ),
+                        ]),
+                      (p: SymbolExp) =>
+                        ok({
+                          reads: [
+                            {
+                              policy:
+                                p.content.name,
+                              range:
+                                p.content.range,
+                            },
+                          ],
+                          updates: [],
+                        }),
+                    ),
+                  )
+                : isClause("update")(child)
+                  ? parseUpdateAccess(
+                      child,
+                      decls,
+                    )
+                  : err([
+                      semError(
+                        codeBadEntity,
+                        "an access rule must be (read <policy>) or (update [<field>] <policy>)",
+                        sexpRange(child),
+                      ),
+                    ]),
+          ),
+      ),
+      mapResult(
+        (
+          parts: ReadonlyArray<Access>,
+        ): Access => ({
+          reads: parts.flatMap((p) => p.reads),
+          updates: parts.flatMap(
+            (p) => p.updates,
+          ),
+        }),
+      ),
+    ),
+  );
+
+/**
+ * Parses one `(update [<field>] <policy>)` rule.
+ */
+const parseUpdateAccess = (
+  child: ListExp,
+  decls: ReadonlyArray<FieldDecl>,
+): Result<Access, Diags> =>
+  pipe(
+    childrenOf(child).filter(isSymbolExp),
+    (args) =>
+      args.length === 1
+        ? ok({
+            reads: [],
+            updates: args.map(
+              (p): UpdateAccess => ({
+                field: none(),
+                policy: p.content.name,
+                range: p.content.range,
+              }),
+            ),
+          })
+        : args.length === 2 &&
+            args
+              .slice(0, 1)
+              .every((f) =>
+                decls.some(
+                  (d) =>
+                    d.name.content.name ===
+                    f.content.name,
+                ),
+              )
+          ? ok({
+              reads: [],
+              updates: args.slice(1).map((p) => ({
+                field: args
+                  .slice(0, 1)
+                  .map((f) => f.content.name)
+                  .reduce<Option<SoftStr>>(
+                    (_, f) => some(f),
+                    none(),
+                  ),
+                policy: p.content.name,
+                range: p.content.range,
+              })),
+            })
+          : err([
+              semError(
+                codeBadEntity,
+                "(update ...) takes an optional declared field then a policy name",
+                child.content.range,
+              ),
+            ]),
+  );
+
+/**
+ * Builds action-input fields the same way entity
+ * fields are built: structural parse, duplicate
+ * check, then validations against the input fields'
+ * own scope (design.md §12). Shared with
+ * `parseAction`.
+ */
+export const analyzeInputFields = (
+  ctx: AnalysisContext<Module>,
+  fieldForms: ReadonlyArray<ListExp>,
+): Result<ReadonlyArray<Field>, Diags> =>
+  pipe(
+    allOrErrors(fieldForms.map(parseFieldDecl)),
+    chainResult(
+      (decls: ReadonlyArray<FieldDecl>) =>
+        pipe(
+          duplicateMembers(
+            decls.map((d) => ({
+              name: d.name.content.name,
+              range: d.name.content.range,
+            })),
+          ),
+          (dups: Diags) =>
+            dups.length > 0
+              ? err(dups)
+              : pipe(
+                  childScope(ctx.scope)(
+                    decls.map((d): Binding =>
+                      binding(
+                        "field",
+                        d.name.content.name,
+                        some(d.type),
+                        d.name.content.range,
+                      ),
+                    ),
+                  ),
+                  (scope: Scope) =>
+                    allOrErrors(
+                      decls.map((d) =>
+                        pipe(
+                          allOrErrors(
+                            d.validateClauses
+                              .flatMap(childrenOf)
+                              .map(
+                                parseValidationRule(
+                                  ctx,
+                                  scope,
+                                ),
+                              ),
+                          ),
+                          mapResult(
+                            (
+                              validations: ReadonlyArray<ValidationRule>,
+                            ): Field =>
+                              field(
+                                d.name.content
+                                  .name,
+                                d.type,
+                                d.column,
+                                validations,
+                                d.form.content
+                                  .range,
+                              ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ),
+        ),
+    ),
   );
 
 /**
@@ -1100,69 +1316,193 @@ const buildModule = (
         ]),
       (name: SymbolExp) =>
         pipe(
-          partitionResults(
-            childrenOf(form)
-              .slice(1)
-              .map(
-                (
-                  child: Sexp,
-                ): Result<
-                  Readonly<{
-                    entities: ReadonlyArray<Entity>;
-                    aggregates: ReadonlyArray<Aggregate>;
-                  }>,
-                  Diags
-                > =>
-                  isClause("entity")(child)
-                    ? pipe(
-                        analyzeEntity(ctx)(child),
-                        mapResult((e) => ({
-                          entities: [e],
-                          aggregates: [],
-                        })),
-                      )
-                    : isClause("aggregate")(child)
-                      ? pipe(
-                          parseAggregate(child),
-                          mapResult((a) => ({
-                            entities: [],
-                            aggregates: [a],
-                          })),
-                        )
+          childrenOf(form).slice(1),
+          (children: ReadonlyArray<Sexp>) =>
+            pipe(
+              partitionResults(
+                children.map(
+                  (
+                    child: Sexp,
+                  ): Result<true, Diags> =>
+                    isClause("entity")(child) ||
+                    isClause("aggregate")(
+                      child,
+                    ) ||
+                    isClause("projection")(
+                      child,
+                    ) ||
+                    isClause("policy")(child) ||
+                    isClause("view")(child) ||
+                    isClause("action")(child)
+                      ? ok(true)
                       : err([
                           semError(
                             codeUnknownModuleForm,
-                            "a module child must be (entity ...) or (aggregate ...)",
+                            "a module child must be (entity ...), (aggregate ...), (projection ...), (policy ...), (view ...), or (action ...)",
                             sexpRange(child),
                           ),
                         ]),
-              ),
-          ),
-          (parts) =>
-            pipe(
-              module_(
-                IR_VERSION,
-                name.content.name,
-                parts.values.flatMap(
-                  (p) => p.entities,
                 ),
-                parts.values.flatMap(
-                  (p) => p.aggregates,
-                ),
-                form.content.range,
-              ),
-              (m: Module) =>
-                pipe(
-                  [
-                    ...parts.errors,
-                    ...verifyModule(m),
-                  ],
-                  (all: Diags) =>
-                    all.length === 0
-                      ? ok(m)
-                      : err(all),
+              ).errors,
+              (unknownDiags: Diags) =>
+                buildModuleStages(
+                  ctx,
+                  form,
+                  name,
+                  children,
+                  unknownDiags,
                 ),
             ),
         ),
     ),
+  );
+
+/**
+ * The staged module build (design.md §32): entities
+ * first (the graph every later stage resolves
+ * against), then aggregates and projections, then
+ * policies (checked over the entity graph), then
+ * views and actions, and finally the module-wide
+ * verification passes — structural (§16.5–16.6) and
+ * cross-reference (§16.7–16.8). Diagnostics from
+ * every stage accumulate.
+ */
+const buildModuleStages = (
+  ctx: AnalysisContext<Module>,
+  form: ListExp,
+  name: SymbolExp,
+  children: ReadonlyArray<Sexp>,
+  unknownDiags: Diags,
+): Result<Module, Diags> =>
+  pipe(
+    partitionResults(
+      children
+        .filter(isClause("entity"))
+        .map(analyzeEntity(ctx)),
+    ),
+    (entities) =>
+      pipe(
+        partitionResults(
+          children
+            .filter(isClause("aggregate"))
+            .map(parseAggregate),
+        ),
+        (aggregates) =>
+          pipe(
+            module_(
+              IR_VERSION,
+              name.content.name,
+              entities.values,
+              aggregates.values,
+              [],
+              [],
+              [],
+              [],
+              form.content.range,
+            ),
+            (m0: Module) =>
+              pipe(
+                partitionResults(
+                  children
+                    .filter(
+                      isClause("projection"),
+                    )
+                    .map(parseProjection(m0)),
+                ),
+                (projections) =>
+                  pipe(
+                    {
+                      ...m0,
+                      projections:
+                        projections.values,
+                    },
+                    (m1: Module) =>
+                      pipe(
+                        partitionResults(
+                          children
+                            .filter(
+                              isClause("policy"),
+                            )
+                            .map(
+                              parsePolicy(
+                                m1,
+                                ctx,
+                              ),
+                            ),
+                        ),
+                        (policies) =>
+                          pipe(
+                            {
+                              ...m1,
+                              policies:
+                                policies.values,
+                            },
+                            (m2: Module) =>
+                              buildModuleWeb(
+                                ctx,
+                                children,
+                                m2,
+                                [
+                                  ...entities.errors,
+                                  ...aggregates.errors,
+                                  ...projections.errors,
+                                  ...policies.errors,
+                                  ...unknownDiags,
+                                ],
+                              ),
+                          ),
+                      ),
+                  ),
+              ),
+          ),
+      ),
+  );
+
+/**
+ * The final module stage: views and actions parsed
+ * against the full core model, then every
+ * verification pass.
+ */
+const buildModuleWeb = (
+  ctx: AnalysisContext<Module>,
+  children: ReadonlyArray<Sexp>,
+  m2: Module,
+  earlier: Diags,
+): Result<Module, Diags> =>
+  pipe(
+    partitionResults(
+      children
+        .filter(isClause("view"))
+        .map(parseView(m2, ctx)),
+    ),
+    (views) =>
+      pipe(
+        partitionResults(
+          children
+            .filter(isClause("action"))
+            .map(parseAction(m2, ctx)),
+        ),
+        (actions) =>
+          pipe(
+            {
+              ...m2,
+              views: views.values,
+              actions: actions.values,
+            },
+            (m3: Module) =>
+              pipe(
+                [
+                  ...earlier,
+                  ...views.errors,
+                  ...actions.errors,
+                  ...verifyModule(m3),
+                  ...verifyWebRefs(m3),
+                ],
+                (all: Diags) =>
+                  all.length === 0
+                    ? ok(m3)
+                    : err(all),
+              ),
+          ),
+      ),
   );

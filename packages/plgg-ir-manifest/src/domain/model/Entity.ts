@@ -5,10 +5,49 @@ import { Field } from "plgg-ir-manifest/domain/model/Field";
 import { Relation } from "plgg-ir-manifest/domain/model/Relation";
 
 /**
+ * One `(read <policy>)` access rule.
+ */
+export type ReadAccess = Readonly<{
+  policy: SoftStr;
+  range: SourceRange;
+}>;
+
+/**
+ * One `(update [<field>] <policy>)` access rule — a
+ * whole-entity or per-field update policy.
+ */
+export type UpdateAccess = Readonly<{
+  field: Option<SoftStr>;
+  policy: SoftStr;
+  range: SourceRange;
+}>;
+
+/**
+ * An entity's `(access ...)` declaration (design.md
+ * §10): read access and update access are separate —
+ * visible does not mean mutable. No declaration means
+ * DENIED at runtime (design.md §36.1); the compile-
+ * time deny-by-default gate is on actions.
+ */
+export type Access = Readonly<{
+  reads: ReadonlyArray<ReadAccess>;
+  updates: ReadonlyArray<UpdateAccess>;
+}>;
+
+/**
+ * The empty access declaration.
+ */
+export const noAccess = (): Access => ({
+  reads: [],
+  updates: [],
+});
+
+/**
  * One entity of the canonical manifest IR: resolved
  * fields and relations (member names unique per
  * entity), cross-field invariants (boolean-typed,
- * design.md §9), and the optional persistence table.
+ * design.md §9), access policies, and the optional
+ * persistence table.
  */
 export type Entity = Readonly<{
   name: SoftStr;
@@ -16,6 +55,7 @@ export type Entity = Readonly<{
   fields: ReadonlyArray<Field>;
   relations: ReadonlyArray<Relation>;
   invariants: ReadonlyArray<TypedExpr>;
+  access: Access;
   range: SourceRange;
 }>;
 
@@ -28,6 +68,7 @@ export const entity = (
   fields: ReadonlyArray<Field>,
   relations: ReadonlyArray<Relation>,
   invariants: ReadonlyArray<TypedExpr>,
+  access: Access,
   range: SourceRange,
 ): Entity => ({
   name,
@@ -35,6 +76,7 @@ export const entity = (
   fields,
   relations,
   invariants,
+  access,
   range,
 });
 
@@ -46,3 +88,12 @@ export const relationOf = (
   name: SoftStr,
 ): ReadonlyArray<Relation> =>
   e.relations.filter((r) => r.name === name);
+
+/**
+ * The field named `name` on `e`, if declared.
+ */
+export const fieldOf = (
+  e: Entity,
+  name: SoftStr,
+): ReadonlyArray<Field> =>
+  e.fields.filter((f) => f.name === name);

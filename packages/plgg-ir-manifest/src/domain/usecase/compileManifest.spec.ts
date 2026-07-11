@@ -266,7 +266,7 @@ test("a module needs a name and known children", () =>
     ),
     check(
       compileManifest(
-        "(plgg-ir 1 (module m (view v)))",
+        "(plgg-ir 1 (module m (mystery v)))",
       ),
       errThen(
         (diags: ReadonlyArray<SemDiagnostic>) =>

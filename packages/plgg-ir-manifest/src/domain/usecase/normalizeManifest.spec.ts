@@ -102,6 +102,43 @@ test("non-structural heads and atoms pass through", () =>
     check(normalized("()"), toBe("()")),
   ]));
 
+test("web forms order canonically; layout stays verbatim", () =>
+  all([
+    check(
+      normalized(
+        "(view v (layout (show b) (show a)) (query (lookup p (through x)) (include c) (one e (authorized-by pol) (where (= a b)))) (scope agg) (subject (parameter p) (entity e)))",
+      ),
+      toBe(
+        "(view v\n" +
+          "  (subject\n    (entity e)\n    (parameter p))\n" +
+          "  (scope agg)\n" +
+          "  (query\n    (one e\n      (where\n        (= a b))\n      (authorized-by pol))\n    (include c)\n    (lookup p\n      (through x)))\n" +
+          "  (layout\n    (show b)\n    (show a)))",
+      ),
+    ),
+    check(
+      normalized(
+        "(action a (ensure (valid e)) (effect (set f x)) (authorize (policy p)) (input (field b (type string)) (field a (type string))) (subject e))",
+      ),
+      toBe(
+        "(action a\n" +
+          "  (subject e)\n" +
+          "  (input\n    (field a\n      (type string))\n    (field b\n      (type string)))\n" +
+          "  (authorize\n    (policy p))\n" +
+          "  (effect\n    (set f x))\n" +
+          "  (ensure\n    (valid e)))",
+      ),
+    ),
+    check(
+      normalized(
+        "(projection p (fields b a) (from e))",
+      ),
+      toBe(
+        "(projection p\n  (from e)\n  (fields a b))",
+      ),
+    ),
+  ]));
+
 test("normalization is idempotent (property)", () =>
   all(
     [

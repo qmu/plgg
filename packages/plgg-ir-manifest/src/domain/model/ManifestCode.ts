@@ -77,3 +77,85 @@ export const codeUnrelatedMember =
 /** An invariant / condition must type to boolean. */
 export const codeNonBooleanCondition =
   "manifest.expression.non-boolean";
+
+/** A dotted path does not resolve on the entity graph. */
+export const codeUnknownPath =
+  "manifest.path.unknown";
+
+/** A projection is malformed. */
+export const codeBadProjection =
+  "manifest.projection.malformed";
+
+/** A projection reference names no declared projection. */
+export const codeUnknownProjection =
+  "manifest.projection.unknown";
+
+/** A field is not exposed by the projection (§15). */
+export const codeNotProjected =
+  "manifest.projection.not-exposed";
+
+/** A policy is malformed. */
+export const codeBadPolicy =
+  "manifest.policy.malformed";
+
+/** A policy reference names no declared policy. */
+export const codeUnknownPolicy =
+  "manifest.policy.unknown";
+
+/** A view is malformed. */
+export const codeBadView =
+  "manifest.view.malformed";
+
+/** A view reference names no declared view. */
+export const codeUnknownView =
+  "manifest.view.unknown";
+
+/** A layout child is not a known layout form. */
+export const codeUnknownLayoutForm =
+  "manifest.view.unknown-layout-form";
+
+/**
+ * A layout path is not available in the view's query
+ * scope (the design §35 example diagnostic).
+ */
+export const codePathNotLoaded =
+  "manifest.view.relation-not-loaded";
+
+/**
+ * A layout path crosses the view's declared aggregate
+ * boundary (design §14).
+ */
+export const codeAggregateBoundary =
+  "manifest.view.aggregate-boundary";
+
+/** A scalar/collection path used in the wrong slot. */
+export const codeListScalarMisuse =
+  "manifest.view.list-scalar-misuse";
+
+/** A navigation omits a target-view parameter. */
+export const codeMissingParameter =
+  "manifest.view.missing-parameter";
+
+/** A navigation supplies an undeclared parameter. */
+export const codeUnknownParameter =
+  "manifest.view.unknown-parameter";
+
+/** An action is malformed. */
+export const codeBadAction =
+  "manifest.action.malformed";
+
+/** An action reference names no declared action. */
+export const codeUnknownAction =
+  "manifest.action.unknown";
+
+/**
+ * An action with effects declares no authorization —
+ * deny-by-default makes this a compile error
+ * (design §36.1, §16.8).
+ */
+export const codeMissingAuthorize =
+  "manifest.action.missing-authorize";
+
+/** An effect targets something that is not settable. */
+export const codeBadEffect =
+  "manifest.action.bad-effect";
