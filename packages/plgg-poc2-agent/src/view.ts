@@ -689,7 +689,13 @@ const viewReady = (
               "No questions asked yet — type one above, or run the canned set to see grounded answers next to their evidence.",
             ),
           ]
-        : model.exchanges.map(exchangeCard)),
+        : // Newest first: the latest exchange lands
+          // right under the ask box (the model array
+          // stays append-ordered — `Answered` patches
+          // by index).
+          [...model.exchanges]
+            .reverse()
+            .map(exchangeCard)),
     ],
   ),
 ];

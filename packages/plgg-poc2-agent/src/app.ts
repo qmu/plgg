@@ -97,7 +97,11 @@ export type AssetsPhase =
 export type Model = Readonly<{
   draft: SoftStr;
   assets: AssetsPhase;
-  /** Oldest first; each canned run appends here too. */
+  /**
+   * Append-ordered (oldest first) — `Answered` patches
+   * by index, so this order is load-bearing; the view
+   * renders it newest-first.
+   */
   exchanges: ReadonlyArray<Exchange>;
   /** Canned questions still waiting their turn. */
   queue: ReadonlyArray<SoftStr>;
