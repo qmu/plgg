@@ -32,5 +32,10 @@ cd $REPO_ROOT/packages/plggpress && npm install
 cd $REPO_ROOT/packages/plgg-cms && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/example && npm install
+# private PoC-fleet apps: they only file:-depend on packages installed above
+# (plgg, plgg-view, plgg-server/plgg-router, plgg-bundle, plgg-test), so they
+# must join the clean-clone install loop or CI fails to resolve @types/node.
+cd $REPO_ROOT/packages/plgg-poc-portal && npm install
+cd $REPO_ROOT/packages/plgg-poc1-search && npm install
 cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

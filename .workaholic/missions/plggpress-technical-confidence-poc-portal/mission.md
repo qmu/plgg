@@ -66,3 +66,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-11 — concern deferred (stuck) — 62-cdn-model-load-is-an-external.md
 - 2026-07-11 — concern deferred (stuck) — 62-embeddings-json-is-5-7x-the.md
 - 2026-07-11 — concern deferred (stuck) — 62-portal-s-verdict-data-is-hand.md
+- 2026-07-11 — ticket archived — 20260711131543-resume-poc-fleet-ci-fix-and-next-tickets.md
