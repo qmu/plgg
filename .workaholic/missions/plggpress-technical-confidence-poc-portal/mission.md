@@ -78,3 +78,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-12 — concern deferred (stuck) — 63-cross-repo-acceptance-check-off-has.md
 - 2026-07-12 — ticket archived — 20260711201840-poc2-reader-side-browser-agent.md
 - 2026-07-12 — ticket archived — 20260712014500-poc2-japanese-grounding.md
+- 2026-07-12 — ticket archived — 20260712023000-poc2-full-ja-article-corpus.md

@@ -33,13 +33,21 @@ parts:
   "the sources do not contain this answer" state.
 
 - **Japanese questions are routed by script.** A question containing CJK
-  characters searches a second shipped index — PoC 1 Ticket B's vendored
-  qmu.co.jp policy corpus (`plgg-poc1-search/corpus-ja/`, 287 chunks),
-  `Intl.Segmenter`-tokenized per that ticket's measurement — and its
-  citations link to `https://qmu.co.jp/…`. BM25 cannot bridge languages, so
-  script IS the routing signal; a missing `ja-fts.json` degrades to
-  English-only, never a failed load. The system prompt answers in the
-  question's language.
+  characters searches a second shipped index over the qmu.co.jp articles,
+  `Intl.Segmenter`-tokenized per PoC 1 Ticket B's measurement, citations
+  linking to `https://qmu.co.jp/…`. The index build prefers the FULL site
+  checkout (`~/projects/qmu-co-jp/docs`, 168 articles → ~2,000 chunks,
+  ja-fts.json ≈ 2.3 MB — shipping the corpus whole is the cost being
+  measured) and falls back to PoC 1's vendored 11 index pages on a clean
+  checkout. BM25 cannot bridge languages, so script IS the routing signal;
+  a missing `ja-fts.json` degrades to English-only, never a failed load.
+  The system prompt answers in the question's language.
+- **Measured FTS limit — vocabulary mismatch.** 「文書化の基準」 retrieves
+  and cites the real 客観的な文書化 article; 「ドキュメンテーションの
+  ポリシー」 misses it, because that word never appears in the corpus and
+  BM25 is exact-term. This is the concrete quality gap PoC 1's verdict said
+  would reopen the vector/query-expansion question — recorded here as PoC
+  data, not patched over.
 
 The confidence signal (mission `plggpress-technical-confidence-poc-portal`):
 a ten-question canned set runs the whole proof in one click, so the developer

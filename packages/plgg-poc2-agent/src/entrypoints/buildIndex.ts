@@ -16,7 +16,9 @@ import {
   writeFileSync,
   mkdirSync,
   globSync,
+  existsSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { type SoftStr } from "plgg";
 import {
@@ -66,21 +68,50 @@ console.log(
 );
 
 /* ------------------------------------------------ *
- * Japanese index — the vendored qmu.co.jp policy    *
- * corpus (PoC 1 Ticket B), segmenter-tokenized (its *
- * measured recommendation), so CJK questions ground *
- * against real Japanese articles.                   *
+ * Japanese index — the FULL qmu.co.jp article       *
+ * corpus when its checkout is on this host (live    *
+ * judging showed the vendored 11 index pages hold   *
+ * no article bodies, so real questions could not    *
+ * ground); the vendored PoC 1 snapshot remains the  *
+ * clean-checkout fallback. Segmenter-tokenized per  *
+ * Ticket B's measurement either way.                *
  * ------------------------------------------------ */
-const JA_ROOT = join(
-  process.cwd(),
-  "..",
-  "plgg-poc1-search",
-  "corpus-ja",
-);
+const JA_ROOT_CANDIDATES: ReadonlyArray<SoftStr> =
+  [
+    ...(process.env["QMU_DOCS"] !== undefined
+      ? [process.env["QMU_DOCS"]]
+      : []),
+    join(
+      homedir(),
+      "projects",
+      "qmu-co-jp",
+      "docs",
+    ),
+    join(
+      process.cwd(),
+      "..",
+      "plgg-poc1-search",
+      "corpus-ja",
+    ),
+  ];
+
+const JA_ROOT =
+  JA_ROOT_CANDIDATES.find(existsSync) ??
+  JA_ROOT_CANDIDATES[
+    JA_ROOT_CANDIDATES.length - 1
+  ] ??
+  ".";
 
 const jaFiles: ReadonlyArray<SoftStr> = globSync(
-  "*.md",
-  { cwd: JA_ROOT },
+  "**/*.md",
+  {
+    cwd: JA_ROOT,
+    exclude: [
+      "node_modules/**",
+      "dist/**",
+      "coverage/**",
+    ],
+  },
 ).sort();
 
 const jaSeeds = jaFiles.flatMap((file) =>
@@ -103,5 +134,5 @@ writeFileSync(
   jaJson,
 );
 console.log(
-  `ja-fts.json: ${jaIndex.chunks.length} chunks from ${jaFiles.length} JA files, ${jaJson.length} bytes, built in ${Math.round(jaMs)}ms`,
+  `ja-fts.json: ${jaIndex.chunks.length} chunks from ${jaFiles.length} JA files (root: ${JA_ROOT}), ${jaJson.length} bytes, built in ${Math.round(jaMs)}ms`,
 );
