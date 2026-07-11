@@ -71,3 +71,8 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-11 — ticket archived — 20260711170040-poc1-cjk-tokenizer-measured.md
 - 2026-07-11 — concern resolved (unstuck) — 62-embeddings-json-is-5-7x-the.md
 - 2026-07-11 — story reported — work-20260711-125441.md
+- 2026-07-12 — concern deferred (stuck) — 63-carried-from-prs-31-62-102.md
+- 2026-07-12 — concern deferred (stuck) — 63-corpus-bytes-metric-uses-character-count.md
+- 2026-07-12 — concern deferred (stuck) — 63-pre-existing-poc-source-not-fully.md
+- 2026-07-12 — concern deferred (stuck) — 63-dsl-division-of-labor-between-plgg.md
+- 2026-07-12 — concern deferred (stuck) — 63-cross-repo-acceptance-check-off-has.md

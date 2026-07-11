@@ -102,5 +102,10 @@
 * [cloudflared ingress for the PoC hostnames is not yet live](62-cloudflared-ingress-for-the-poc-hostnames.md)
 * [Portal's verdict data is hand-edited typed data](62-portal-s-verdict-data-is-hand.md)
 * [RAG arm's in-browser model init unverified outside a real browser](62-rag-arm-s-in-browser-model.md)
+* [(carried from PRs #31–#62) 102 standing deferred concerns remain active](63-carried-from-prs-31-62-102.md)
+* [Corpus 'bytes' metric uses character count, not UTF-8 bytes](63-corpus-bytes-metric-uses-character-count.md)
+* [Cross-repo acceptance check-off has no automated seam](63-cross-repo-acceptance-check-off-has.md)
+* [DSL division of labor between plgg-ir and the screen-structure mission](63-dsl-division-of-labor-between-plgg.md)
+* [Pre-existing PoC source not fully prettier-50-clean](63-pre-existing-poc-source-not-fully.md)
 
 * [archive/](archive/)
