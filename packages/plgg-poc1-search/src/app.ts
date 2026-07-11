@@ -43,6 +43,13 @@ import {
   writeField,
 } from "plgg-router";
 import type { FtsIndex } from "./indexer/buildFts.ts";
+import type { CjkStrategy } from "./search/tokenize.ts";
+import type {
+  JaReport,
+  JaArm,
+  JaHit,
+  JaQueryRow,
+} from "./jaReport.ts";
 import {
   type Scored,
   searchFts,
@@ -99,6 +106,19 @@ export type Assets = Readonly<{
   fts: FtsIndex;
   vectors: Option<VectorIndex>;
   metrics: BuildMetrics;
+  /**
+   * The Japanese CJK-tokenizer comparison (Ticket B),
+   * precomputed at build time. Optional: a missing
+   * ja-report.json degrades to "no JA section", never a
+   * failed load.
+   */
+  ja: Option<JaReport>;
+  /**
+   * The live-queryable Japanese index (segmenter arm) the
+   * dedicated JA search box ranks over. Optional, same
+   * graceful-degradation contract as the comparison.
+   */
+  jaFts: Option<FtsIndex>;
 }>;
 
 export type AssetsPhase =
@@ -168,6 +188,14 @@ export type Model = Readonly<{
   fts: Option<FtsOutcome>;
   rag: Option<RagOutcome>;
   bench: BenchPhase;
+  /**
+   * The dedicated Japanese search box (Ticket B): the
+   * English box above searches the guide; this one runs
+   * live FTS over the segmenter-tokenized qmu.co.jp JA
+   * index, so Japanese queries return real hits.
+   */
+  jaDraft: SoftStr;
+  jaResult: Option<FtsOutcome>;
 }>;
 
 export type Msg =
@@ -202,6 +230,15 @@ export type Msg =
       rows: ReadonlyArray<BenchRow>;
       fts: LatencyStats;
       rag: Option<LatencyStats>;
+    }>
+  | Readonly<{
+      kind: "JaDraftChanged";
+      value: SoftStr;
+    }>
+  | Readonly<{ kind: "JaSubmitted" }>
+  | Readonly<{
+      kind: "JaFtsRan";
+      outcome: FtsOutcome;
     }>;
 
 export const init: Model = {
@@ -212,6 +249,8 @@ export const init: Model = {
   fts: none(),
   rag: none(),
   bench: { kind: "idle" },
+  jaDraft: "",
+  jaResult: none(),
 };
 
 /* ------------------------------------------------ *
@@ -235,23 +274,31 @@ const fetchJson = (
  * (arrays where arrays must be) guards fetch mix-ups
  * without re-validating every one of thousands of rows.
  */
+const looksFtsShape = (
+  v: unknown,
+): v is object =>
+  typeof v === "object" &&
+  v !== null &&
+  "chunks" in v &&
+  "postings" in v &&
+  Array.isArray(Reflect.get(v, "chunks"));
+
 const decodeAssets = (
-  raw: readonly [unknown, unknown, unknown],
+  raw: readonly [
+    unknown,
+    unknown,
+    unknown,
+    unknown,
+    unknown,
+  ],
 ): Result<Assets, Error> => {
-  const [fts, vectors, metrics] = raw;
-  const looksFts =
-    typeof fts === "object" &&
-    fts !== null &&
-    "chunks" in fts &&
-    "postings" in fts &&
-    Array.isArray(
-      Reflect.get(fts, "chunks"),
-    );
+  const [fts, vectors, metrics, ja, jaFts] =
+    raw;
   const looksMetrics =
     typeof metrics === "object" &&
     metrics !== null &&
     "corpus" in metrics;
-  if (!looksFts || !looksMetrics) {
+  if (!looksFtsShape(fts) || !looksMetrics) {
     return err(
       new Error(
         "index assets have an unexpected shape — rebuild with `npm run build`",
@@ -265,10 +312,23 @@ const decodeAssets = (
     Array.isArray(Reflect.get(vectors, "rows"))
       ? some(vectorIndexOf(vectors))
       : none();
+  const jaReport: Option<JaReport> =
+    typeof ja === "object" &&
+    ja !== null &&
+    "arms" in ja &&
+    Array.isArray(Reflect.get(ja, "arms"))
+      ? some(jaReportOf(ja))
+      : none();
+  const jaIndex: Option<FtsIndex> =
+    looksFtsShape(jaFts)
+      ? some(ftsOf(jaFts))
+      : none();
   return ok({
     fts: ftsOf(fts),
     vectors: vectorIndex,
     metrics: metricsOf(metrics),
+    ja: jaReport,
+    jaFts: jaIndex,
   });
 };
 
@@ -279,6 +339,12 @@ const loadAssets: Cmd<Msg> = cmdEffect(() =>
       (): unknown => null,
     ),
     fetchJson("./index/metrics.json"),
+    fetchJson("./index/ja-report.json").catch(
+      (): unknown => null,
+    ),
+    fetchJson("./index/ja-fts.json").catch(
+      (): unknown => null,
+    ),
   ]).then(
     (raw): Msg => ({
       kind: "AssetsLoaded",
@@ -307,6 +373,28 @@ const runFts = (
     );
     return Promise.resolve<Msg>({
       kind: "FtsRan",
+      outcome: {
+        hits,
+        ms: performance.now() - started,
+      },
+    });
+  });
+
+// Same FTS effect for the dedicated Japanese box; the
+// segmenter index carries its own strategy, so the query
+// is tokenized identically to how the index was built.
+const runFtsJa = (
+  index: FtsIndex,
+  q: SoftStr,
+): Cmd<Msg> =>
+  cmdEffect(() => {
+    const started = performance.now();
+    const hits = searchFts(index)(
+      q,
+      RESULT_COUNT,
+    );
+    return Promise.resolve<Msg>({
+      kind: "JaFtsRan",
       outcome: {
         hits,
         ms: performance.now() - started,
@@ -693,6 +781,55 @@ export const update = (
         },
         cmdNone(),
       ];
+    case "JaDraftChanged":
+      return [
+        { ...model, jaDraft: msg.value },
+        cmdNone(),
+      ];
+    case "JaSubmitted": {
+      const q = model.jaDraft.trim();
+      return model.assets.kind !== "ready" ||
+        q === ""
+        ? [
+            { ...model, jaResult: none() },
+            cmdNone(),
+          ]
+        : pipe(
+            model.assets.assets.jaFts,
+            matchOption(
+              (): readonly [
+                Model,
+                Cmd<Msg>,
+              ] => [
+                {
+                  ...model,
+                  jaResult: none(),
+                },
+                cmdNone(),
+              ],
+              (
+                index: FtsIndex,
+              ): readonly [
+                Model,
+                Cmd<Msg>,
+              ] => [
+                {
+                  ...model,
+                  jaResult: none(),
+                },
+                runFtsJa(index, q),
+              ],
+            ),
+          );
+    }
+    case "JaFtsRan":
+      return [
+        {
+          ...model,
+          jaResult: some(msg.outcome),
+        },
+        cmdNone(),
+      ];
   }
 };
 
@@ -761,6 +898,7 @@ const ftsOf = (raw: object): FtsIndex => {
     raw,
     "avgLen",
   );
+  const cjk: unknown = Reflect.get(raw, "cjk");
   return {
     chunks: Array.isArray(chunks) ? chunks : [],
     postings:
@@ -774,6 +912,10 @@ const ftsOf = (raw: object): FtsIndex => {
         : {},
     avgLen:
       typeof avgLen === "number" ? avgLen : 1,
+    cjk:
+      cjk === "segmenter" || cjk === "bigram"
+        ? cjk
+        : "none",
   };
 };
 
@@ -850,5 +992,119 @@ const metricsOf = (
               "buildMs",
             ),
           },
+  };
+};
+
+// ja-report.json is emitted by this package's own build
+// entry, so these re-shapers re-key the parsed value onto
+// the typed shape with defensive defaults — same pattern
+// as ftsOf/metricsOf above, never inventing data.
+const jNum = (
+  v: unknown,
+  key: string,
+): number => {
+  const n =
+    typeof v === "object" && v !== null
+      ? Reflect.get(v, key)
+      : undefined;
+  return typeof n === "number" ? n : 0;
+};
+
+const jStr = (
+  v: unknown,
+  key: string,
+): SoftStr => {
+  const s =
+    typeof v === "object" && v !== null
+      ? Reflect.get(v, key)
+      : undefined;
+  return typeof s === "string" ? s : "";
+};
+
+const jStrategy = (v: unknown): CjkStrategy => {
+  const s =
+    typeof v === "object" && v !== null
+      ? Reflect.get(v, "strategy")
+      : undefined;
+  return s === "segmenter" || s === "bigram"
+    ? s
+    : "none";
+};
+
+const jHits = (
+  v: unknown,
+): ReadonlyArray<JaHit> =>
+  Array.isArray(v)
+    ? v.map(
+        (h): JaHit => ({
+          headingPath: jStr(h, "headingPath"),
+          score: jNum(h, "score"),
+        }),
+      )
+    : [];
+
+const jHitMap = (
+  v: unknown,
+): Readonly<
+  Record<CjkStrategy, ReadonlyArray<JaHit>>
+> => {
+  const at = (
+    key: CjkStrategy,
+  ): ReadonlyArray<JaHit> =>
+    jHits(
+      typeof v === "object" && v !== null
+        ? Reflect.get(v, key)
+        : undefined,
+    );
+  return {
+    none: at("none"),
+    segmenter: at("segmenter"),
+    bigram: at("bigram"),
+  };
+};
+
+const jaReportOf = (raw: object): JaReport => {
+  const corpus: unknown = Reflect.get(
+    raw,
+    "corpus",
+  );
+  const arms: unknown = Reflect.get(
+    raw,
+    "arms",
+  );
+  const queries: unknown = Reflect.get(
+    raw,
+    "queries",
+  );
+  return {
+    corpus: {
+      files: jNum(corpus, "files"),
+      chunks: jNum(corpus, "chunks"),
+      bytes: jNum(corpus, "bytes"),
+    },
+    arms: Array.isArray(arms)
+      ? arms.map(
+          (a): JaArm => ({
+            strategy: jStrategy(a),
+            ftsBytes: jNum(a, "ftsBytes"),
+            vocab: jNum(a, "vocab"),
+            tokens: jNum(a, "tokens"),
+            buildMs: jNum(a, "buildMs"),
+          }),
+        )
+      : [],
+    queries: Array.isArray(queries)
+      ? queries.map(
+          (q): JaQueryRow => ({
+            query: jStr(q, "query"),
+            hits: jHitMap(
+              typeof q === "object" &&
+                q !== null
+                ? Reflect.get(q, "hits")
+                : undefined,
+            ),
+          }),
+        )
+      : [],
   };
 };

@@ -5,6 +5,7 @@
     "module": "NodeNext",
     "lib": [
       "ES2021",
+      "ES2022.Intl",
       "DOM",
       "DOM.Iterable"
     ],

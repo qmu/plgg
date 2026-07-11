@@ -9,7 +9,10 @@
  */
 import type { SoftStr } from "plgg";
 import type { ChunkSeed } from "./chunk.ts";
-import { tokenize } from "../search/tokenize.ts";
+import {
+  type CjkStrategy,
+  tokenize,
+} from "../search/tokenize.ts";
 
 export type ChunkMeta = Readonly<{
   id: number;
@@ -29,16 +32,27 @@ export type FtsIndex = Readonly<{
     Record<string, ReadonlyArray<Posting>>
   >;
   avgLen: number;
+  /**
+   * The CJK tokenization the index was built under —
+   * carried so query time tokenizes identically (the
+   * shared-tokenizer invariant, made un-mismatchable).
+   */
+  cjk: CjkStrategy;
 }>;
 
 /** Tokens a chunk is indexed under: heading + body. */
 export const chunkTokens = (
   chunk: ChunkSeed,
+  strategy: CjkStrategy = "none",
 ): ReadonlyArray<SoftStr> =>
-  tokenize(`${chunk.headingPath} ${chunk.text}`);
+  tokenize(
+    `${chunk.headingPath} ${chunk.text}`,
+    strategy,
+  );
 
 export const buildFtsIndex = (
   seeds: ReadonlyArray<ChunkSeed>,
+  strategy: CjkStrategy = "none",
 ): FtsIndex => {
   // Index assembly is the one irreducible imperative
   // seam here: a Map-accumulated postings table (and a
@@ -48,7 +62,7 @@ export const buildFtsIndex = (
   const chunks: Array<ChunkMeta> = [];
   let totalLen = 0;
   for (const [id, seed] of seeds.entries()) {
-    const tokens = chunkTokens(seed);
+    const tokens = chunkTokens(seed, strategy);
     const tf = new Map<string, number>();
     for (const token of tokens) {
       tf.set(token, (tf.get(token) ?? 0) + 1);
@@ -74,5 +88,6 @@ export const buildFtsIndex = (
       chunks.length === 0
         ? 0
         : totalLen / chunks.length,
+    cjk: strategy,
   };
 };
