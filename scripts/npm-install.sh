@@ -37,5 +37,8 @@ cd $REPO_ROOT/packages/example && npm install
 # must join the clean-clone install loop or CI fails to resolve @types/node.
 cd $REPO_ROOT/packages/plgg-poc-portal && npm install
 cd $REPO_ROOT/packages/plgg-poc1-search && npm install
+# poc2 after poc1: it file:-depends on plgg-poc1-search (the reuse seam onto
+# the proven FTS arm) and on plgg-kit (the server-side answer engine).
+cd $REPO_ROOT/packages/plgg-poc2-agent && npm install
 cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

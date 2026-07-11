@@ -37,20 +37,27 @@ test("building PoCs link; planned ones only reserve", () =>
         'href="https://plgg-poc1.qmu.dev/"',
       ),
     ),
-    // poc2 is planned → reserved text, never a
+    // poc2 is building → a real anchor too.
+    check(
+      page,
+      toContain(
+        'href="https://plgg-poc2.qmu.dev/"',
+      ),
+    ),
+    // poc3 is planned → reserved text, never a
     // dead link.
     check(
       page,
       not(
         toContain(
-          'href="https://plgg-poc2.qmu.dev/"',
+          'href="https://plgg-poc3.qmu.dev/"',
         ),
       ),
     ),
     check(
       page,
       toContain(
-        "Reserved: plgg-poc2.qmu.dev",
+        "Reserved: plgg-poc3.qmu.dev",
       ),
     ),
   ]));

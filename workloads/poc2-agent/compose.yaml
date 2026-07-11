@@ -1,0 +1,25 @@
+# PoC 2 workload — serve the reader-side browser-agent
+# PoC (packages/plgg-poc2-agent) on host port 5185, the
+# cloudflared tunnel route for plgg-poc2.qmu.dev.
+#
+#   scripts/serve-poc.sh poc2-agent
+#
+# Same recipe as the fleet: artifacts (bundle + index)
+# are HOST-built (`npm run build`), the container runs
+# the serve entry against the mounted repo. UNLIKE the
+# static PoCs, this one carries the session seam: the
+# container needs OPENAI_API_KEY from the HOST env
+# (export it before serve-poc.sh) — passed through here,
+# never written to the repo. Without it the PoC serves
+# its honest "agent not configured" state.
+services:
+  poc2-agent:
+    image: node:22-slim
+    working_dir: /app/packages/plgg-poc2-agent
+    command: ["node", "src/entrypoints/serve.ts"]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "5185:5173"
+    volumes:
+      - ../..:/app

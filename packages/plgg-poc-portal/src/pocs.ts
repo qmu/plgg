@@ -41,7 +41,7 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can a generated static site embed a browser agent that answers reader questions grounded in the shipped document index?",
     confidenceSignal:
       "On a statically generated site, the embedded agent answers questions about the corpus with citations into the pages, with no server round-trip beyond the model call.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc2.qmu.dev",
     port: 5185,

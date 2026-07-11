@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort:
-commit_hash:
-category:
+commit_hash: 2449b09d
+category: Added
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
 ---
