@@ -8,6 +8,9 @@ echo "=== Running 'npm install' in every package ==="
 cd $REPO_ROOT/packages/plgg-bundle && npm install
 cd $REPO_ROOT/packages/plgg && npm install
 cd $REPO_ROOT/packages/plgg-parser && npm install
+# plgg-ir-syntax after plgg-parser: the plgg-ir family's syntax layer
+# file:-depends on plgg + plgg-parser.
+cd $REPO_ROOT/packages/plgg-ir-syntax && npm install
 cd $REPO_ROOT/packages/plgg-test && npm install
 cd $REPO_ROOT/packages/plgg-kit && npm install
 cd $REPO_ROOT/packages/plgg-foundry && npm install

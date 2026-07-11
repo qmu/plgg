@@ -110,6 +110,10 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
 
+**AI-generated IR (`plgg-ir` family)**
+
+- **[`packages/plgg-ir-syntax/`](packages/plgg-ir-syntax/)** - Minimal S-expression syntax layer for the plgg-ir family on plgg-parser: position-aware `Sexp` trees, accumulated coded diagnostics (never throws), and a deterministic canonical printer with the `parse(print(parse(x))) = parse(x)` round-trip property
+
 **Site & tutorial**
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
@@ -390,6 +394,12 @@ See [packages/plgg-highlight/README.md](packages/plgg-highlight/README.md) for d
 A zero-new-dependency generic parser combinator library built purely on plgg. Parsers are data-last functions `Parser<A, S> = (ParseState<S>) => Result<Parsed<A, S>, InvalidError>`, composed with `pipe`/`flow`; failure is `Result`, optionality is `Option`, and a threaded user-state slot carries context (e.g. last-significant-token for regex-vs-division). Ships a TS-lexer demo that proves the core can lex TypeScript — the eventual in-house replacement for plgg-highlight's `ts.createScanner`.
 
 See [packages/plgg-parser/README.md](packages/plgg-parser/README.md) for details.
+
+### plgg-ir-syntax
+
+The lowest layer of the `plgg-ir` package family (the restricted, typed, Lisp-style intermediate representation an LLM agent generates and deterministic consumers interpret). Parses S-expression source into position-aware `Sexp` trees (every node carries a `SourceRange`), accumulates structured ranged diagnostics with recovery instead of throwing, and prints trees back as deterministic canonical text — `parse(print(parse(x))) = parse(x)` holds under property tests. Built on plgg-parser's combinators; assigns no domain meaning (the `entity`/`policy` vocabulary belongs to the upcoming `plgg-ir-language` / `plgg-ir-manifest` layers).
+
+See [packages/plgg-ir-syntax/README.md](packages/plgg-ir-syntax/README.md) for details.
 
 ### plggpress
 

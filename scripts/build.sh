@@ -18,6 +18,9 @@ cd $REPO_ROOT/packages/plgg && npm run build
 # plgg-parser: the zero-dep parser combinator core; depends only on plgg core.
 # Built before plgg-highlight, which will consume its dist for the TS grammar.
 cd $REPO_ROOT/packages/plgg-parser && npm run build
+# plgg-ir-syntax after plgg-parser: the plgg-ir family's S-expression syntax
+# layer builds its tokenizer on the combinator core's dist.
+cd $REPO_ROOT/packages/plgg-ir-syntax && npm run build
 cd $REPO_ROOT/packages/plgg-kit && npm run build
 # plgg-foundry after plgg-kit: it consumes plgg-kit's dist (and plgg core).
 # Now built in-house, so it joins the ordered set (was previously ad-hoc).
