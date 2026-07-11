@@ -97,5 +97,11 @@
 * [plgg-cms coverage sits at a thin 90.5% margin above the gate](61-plgg-cms-coverage-sits-at-a.md)
 * [plgg-ui's package boundary was retired in-repo while an external repo may still depend on the published artifact](61-plgg-ui-s-package-boundary-was.md)
 * [Registry-consumability blockers were fixed reactively, three times, with no preventive gate](61-registry-consumability-blockers-were-fixed-reactively.md)
+* [97 standing deferred concerns carried (PRs 31–61)](62-97-standing-deferred-concerns-carried-prs.md)
+* [CDN model load is an external runtime dependency of the PoC page](62-cdn-model-load-is-an-external.md)
+* [cloudflared ingress for the PoC hostnames is not yet live](62-cloudflared-ingress-for-the-poc-hostnames.md)
+* [embeddings.json is 5.7x the corpus size](62-embeddings-json-is-5-7x-the.md)
+* [Portal's verdict data is hand-edited typed data](62-portal-s-verdict-data-is-hand.md)
+* [RAG arm's in-browser model init unverified outside a real browser](62-rag-arm-s-in-browser-model.md)
 
 * [archive/](archive/)

@@ -60,3 +60,9 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-11 — ticket archived — 20260711035317-plggpress-poc-portal-and-plan.md
 - 2026-07-11 — ticket archived — 20260711035318-poc1-browser-search-core.md
 - 2026-07-11 — story reported — work-20260711-035119.md
+- 2026-07-11 — concern deferred (stuck) — 62-97-standing-deferred-concerns-carried-prs.md
+- 2026-07-11 — concern deferred (stuck) — 62-rag-arm-s-in-browser-model.md
+- 2026-07-11 — concern deferred (stuck) — 62-cloudflared-ingress-for-the-poc-hostnames.md
+- 2026-07-11 — concern deferred (stuck) — 62-cdn-model-load-is-an-external.md
+- 2026-07-11 — concern deferred (stuck) — 62-embeddings-json-is-5-7x-the.md
+- 2026-07-11 — concern deferred (stuck) — 62-portal-s-verdict-data-is-hand.md
