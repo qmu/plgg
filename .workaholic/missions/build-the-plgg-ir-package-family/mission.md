@@ -67,7 +67,7 @@ Out of scope:
 - [x] `plgg-ir-language` provides form/operator registries, semantic scopes, and typed references, rejecting unknown forms and operators (closed vocabulary) — 20260712005002-plgg-ir-language-static-framework.md
 - [x] `plgg-ir-language` type checker verifies operator/operand/result types, preserving domain types over storage types (e.g. `customer-id ≠ organization-id`, `Money<JPY> + Money<USD>` rejected) with expected/actual diagnostics — 20260712005002-plgg-ir-language-static-framework.md
 - [x] `plgg-ir-language` supports dialect composition, diagnostic accumulation, and a normalization pipeline with a canonical serializer; `normalize(normalize(x)) = normalize(x)` holds under property tests — 20260712005002-plgg-ir-language-static-framework.md
-- [ ] `plgg-ir-manifest` defines the manifest core (module/entity/field/type/relation/validate/invariant/aggregate) with name resolution, inverse-relation and cardinality verification — 20260712005003-plgg-ir-manifest-core.md
+- [x] `plgg-ir-manifest` defines the manifest core (module/entity/field/type/relation/validate/invariant/aggregate) with name resolution, inverse-relation and cardinality verification — 20260712005003-plgg-ir-manifest-core.md
 - [ ] `plgg-ir-manifest` web semantics: views, queries, projections, navigation, policies, actions with effects; view references outside the declared query/projection/aggregate scope fail static verification — 20260712005004-plgg-ir-manifest-web-semantics.md
 - [ ] Authorization is deny-by-default: update actions without a policy are rejected, and policies must type-check to Boolean — 20260712005004-plgg-ir-manifest-web-semantics.md
 - [ ] Dependency semantics: derive/materialize/consistency build a dependency graph with topological update ordering; circular derivations are compile errors — 20260712005005-plgg-ir-manifest-dependency-semantics-acceptance.md
@@ -86,3 +86,4 @@ Out of scope:
 - 2026-07-12 — five phase tickets cut from design.md §38 (syntax / language framework / manifest core / web semantics / dependency semantics + acceptance), dependency-chained — 20260712005001…20260712005005
 - 2026-07-12 — ticket archived — 20260712005001-plgg-ir-syntax-s-expression-parsing.md
 - 2026-07-12 — ticket archived — 20260712005002-plgg-ir-language-static-framework.md
+- 2026-07-12 — ticket archived — 20260712005003-plgg-ir-manifest-core.md

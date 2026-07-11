@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain]
 effort: 4h
-commit_hash:
-category:
+commit_hash: d7585562
+category: Added
 depends_on: [20260712005002-plgg-ir-language-static-framework.md]
 mission: build-the-plgg-ir-package-family
 ---

@@ -114,6 +114,7 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-ir-syntax/`](packages/plgg-ir-syntax/)** - Minimal S-expression syntax layer for the plgg-ir family on plgg-parser: position-aware `Sexp` trees, accumulated coded diagnostics (never throws), and a deterministic canonical printer with the `parse(print(parse(x))) = parse(x)` round-trip property
 - **[`packages/plgg-ir-language/`](packages/plgg-ir-language/)** - Reusable static language framework on plgg-ir-syntax: form/operator registries (closed vocabulary), kinded scopes with two-phase declare/analyze (forward references), a type checker preserving domain types (`client-id ≠ organization-id`, `(money JPY) ≠ (money USD)`), expected/actual diagnostics, shorthand expansion, idempotent normalization with a canonical serializer, and collision-checked dialect composition
+- **[`packages/plgg-ir-manifest/`](packages/plgg-ir-manifest/)** - The Domain Manifest dialect on plgg-ir-language: the versioned `(plgg-ir 1 (module ...))` vocabulary (entities, fields, domain types, relations, validation, invariants, aggregates) with inverse/cardinality/aggregate verification and a deterministic canonical IR — what an LLM agent emits and plggmatic will interpret
 
 **Site & tutorial**
 
@@ -407,6 +408,12 @@ See [packages/plgg-ir-syntax/README.md](packages/plgg-ir-syntax/README.md) for d
 The `plgg-ir` family's reusable static language-processing framework on plgg-ir-syntax. A dialect statically registers forms, typed operators, shorthand expanders, and normalizers over its own node type; the framework contributes kinded scopes with two-phase declare/analyze (so forward references resolve), an expression type checker that preserves domain meaning over storage types with expected/actual diagnostics, diagnostic accumulation across every pass, an expansion pass with a self-production bound, idempotent normalization with a canonical serializer, collision-checked dialect composition, and the `parse → expand → analyze → normalize → canonical` pipeline. It defines no Domain Manifest vocabulary — that is `plgg-ir-manifest`, the next layer.
 
 See [packages/plgg-ir-language/README.md](packages/plgg-ir-language/README.md) for details.
+
+### plgg-ir-manifest
+
+The Domain Manifest dialect — the `plgg-ir` family's domain-specific layer. `compileManifest` takes a restricted, typed, Lisp-style `(plgg-ir 1 (module ...))` source (the artifact an LLM agent generates), statically verifies it — closed vocabulary at every level, domain-type-preserving expression checking, boolean-typed validation conditions and invariants, relation target/inverse pairing, aggregate root/member/uniqueness/relatedness — and produces the resolved `Module` model plus deterministic canonical text (stable ordering, expression operands untouched; equivalent sources normalize identically). Phases 4–5 (views/policies/actions, derivations/consistency) grow this same dialect.
+
+See [packages/plgg-ir-manifest/README.md](packages/plgg-ir-manifest/README.md) for details.
 
 ### plggpress
 

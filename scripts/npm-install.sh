@@ -14,6 +14,9 @@ cd $REPO_ROOT/packages/plgg-ir-syntax && npm install
 # plgg-ir-language after plgg-ir-syntax: the language framework
 # file:-depends on plgg + plgg-ir-syntax.
 cd $REPO_ROOT/packages/plgg-ir-language && npm install
+# plgg-ir-manifest after plgg-ir-language: the Domain Manifest dialect
+# file:-depends on plgg + plgg-ir-syntax + plgg-ir-language.
+cd $REPO_ROOT/packages/plgg-ir-manifest && npm install
 cd $REPO_ROOT/packages/plgg-test && npm install
 cd $REPO_ROOT/packages/plgg-kit && npm install
 cd $REPO_ROOT/packages/plgg-foundry && npm install
