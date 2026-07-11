@@ -62,6 +62,10 @@ const FILES: Readonly<
     path: join("dist", "index", "fts.json"),
     type: "application/json",
   },
+  "/index/ja-fts.json": {
+    path: join("dist", "index", "ja-fts.json"),
+    type: "application/json",
+  },
 };
 
 // This is a dev preview whose artifacts are rebuilt in

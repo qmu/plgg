@@ -4,7 +4,7 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { guideHref } from "./view.ts";
+import { guideHref, qmuHref } from "./view.ts";
 
 // The citation link scheme: guide corpus file → the live
 // site's route (plggpress SSG file→route mapping).
@@ -25,3 +25,9 @@ test("guideHref maps corpus files onto guide routes", () =>
       toBe("https://plgg.qmu.co.jp/concepts/"),
     ),
   ]));
+
+test("qmuHref maps JA corpus files onto qmu.co.jp routes", () =>
+  check(
+    qmuHref("policies.md"),
+    toBe("https://qmu.co.jp/policies"),
+  ));

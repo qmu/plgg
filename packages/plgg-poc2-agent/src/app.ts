@@ -20,8 +20,12 @@ import {
   type SoftStr,
   type Result,
   type InvalidError,
+  type Option,
   ok,
   err,
+  some,
+  none,
+  isSome,
   pipe,
   fromNullable,
   matchOption,
@@ -55,6 +59,29 @@ export type Evidence = Readonly<{
   score: number;
 }>;
 
+/**
+ * Which shipped index grounded an exchange: the English
+ * plgg guide, or the Japanese qmu.co.jp policy corpus
+ * (segmenter-tokenized — PoC 1 Ticket B's measured
+ * recommendation). The view picks the citation link base
+ * and the evidence label from this.
+ */
+export type Corpus = "guide" | "qmu-ja";
+
+/**
+ * Retrieval routing: a question containing CJK characters
+ * searches the Japanese index (BM25 cannot bridge
+ * languages, so script IS the routing signal).
+ */
+export const hasCjk = (
+  question: SoftStr,
+): boolean =>
+  // CJK punctuation/kana (U+3000–30FF), unified
+  // ideographs (U+3400–9FFF), compatibility
+  // ideographs (U+F900–FAFF), halfwidth kana
+  // (U+FF66–FF9F).
+  /[　-ヿ㐀-鿿豈-﫿ｦ-ﾟ]/.test(question);
+
 export type Outcome =
   | Readonly<{ kind: "asking" }>
   | Readonly<{
@@ -70,6 +97,7 @@ export type Outcome =
 /** One question's full trail: evidence + answer. */
 export type Exchange = Readonly<{
   question: SoftStr;
+  source: Corpus;
   evidence: ReadonlyArray<Evidence>;
   retrieveMs: number;
   outcome: Outcome;
@@ -78,6 +106,13 @@ export type Exchange = Readonly<{
 /** What the app needs before it can answer. */
 export type Ready = Readonly<{
   fts: FtsIndex;
+  /**
+   * The Japanese index (segmenter over the vendored
+   * qmu.co.jp policy corpus). Optional: a missing
+   * ja-fts.json degrades to English-only retrieval,
+   * never a failed load — the PoC 1 contract.
+   */
+  jaFts: Option<FtsIndex>;
   /**
    * Whether the server seam holds a key — surfaced by
    * `/api/health` so the missing-key state is announced
@@ -123,6 +158,7 @@ export type Msg =
   | Readonly<{
       kind: "Retrieved";
       question: SoftStr;
+      source: Corpus;
       evidence: ReadonlyArray<Evidence>;
       retrieveMs: number;
     }>
@@ -211,11 +247,15 @@ const configuredOf = (v: unknown): boolean =>
 
 const decodeReady = (
   fts: unknown,
+  ja: unknown,
   health: unknown,
 ): Result<Ready, Error> =>
   looksFtsShape(fts)
     ? ok({
         fts: ftsOf(fts),
+        jaFts: looksFtsShape(ja)
+          ? some(ftsOf(ja))
+          : none(),
         configured: configuredOf(health),
       })
     : err(
@@ -227,6 +267,11 @@ const decodeReady = (
 const loadAssets: Cmd<Msg> = cmdEffect(() =>
   Promise.all([
     fetchJson("./index/fts.json"),
+    // A missing Japanese index degrades to
+    // English-only retrieval, never a failed load.
+    fetchJson("./index/ja-fts.json").catch(
+      (): unknown => null,
+    ),
     // A failed health probe is an honest "not
     // configured", never a failed page load.
     fetch("./api/health")
@@ -241,9 +286,9 @@ const loadAssets: Cmd<Msg> = cmdEffect(() =>
         configured: false,
       })),
   ]).then(
-    ([fts, health]): Msg => ({
+    ([fts, ja, health]): Msg => ({
       kind: "AssetsLoaded",
-      result: decodeReady(fts, health),
+      result: decodeReady(fts, ja, health),
     }),
     (cause): Msg => ({
       kind: "AssetsLoaded",
@@ -258,6 +303,7 @@ const loadAssets: Cmd<Msg> = cmdEffect(() =>
 
 const runRetrieve = (
   index: FtsIndex,
+  source: Corpus,
   question: SoftStr,
 ): Cmd<Msg> =>
   cmdEffect(() => {
@@ -285,6 +331,7 @@ const runRetrieve = (
     return Promise.resolve<Msg>({
       kind: "Retrieved",
       question,
+      source,
       evidence,
       retrieveMs,
     });
@@ -383,22 +430,34 @@ const askServer = (
  * Update                                            *
  * ------------------------------------------------ */
 
-/** Start one question, single-flight guarded. */
+/**
+ * Start one question, single-flight guarded. A CJK
+ * question searches the Japanese index when shipped
+ * (script routing — see {@link hasCjk}); everything
+ * else, including CJK with no JA index, searches the
+ * guide.
+ */
 const ask = (
   model: Model,
   question: SoftStr,
-): readonly [Model, Cmd<Msg>] =>
-  model.assets.kind !== "ready" ||
-  model.busy ||
-  question === ""
-    ? [model, cmdNone()]
-    : [
-        { ...model, busy: true, draft: "" },
-        runRetrieve(
-          model.assets.ready.fts,
-          question,
-        ),
-      ];
+): readonly [Model, Cmd<Msg>] => {
+  if (
+    model.assets.kind !== "ready" ||
+    model.busy ||
+    question === ""
+  ) {
+    return [model, cmdNone()];
+  }
+  const ready = model.assets.ready;
+  const routed: readonly [FtsIndex, Corpus] =
+    hasCjk(question) && isSome(ready.jaFts)
+      ? [ready.jaFts.content, "qmu-ja"]
+      : [ready.fts, "guide"];
+  return [
+    { ...model, busy: true, draft: "" },
+    runRetrieve(routed[0], routed[1], question),
+  ];
+};
 
 const outcomeOf = (
   result: Result<GroundedAnswer, SoftStr>,
@@ -482,6 +541,7 @@ export const update = (
             ...model.exchanges,
             {
               question: msg.question,
+              source: msg.source,
               evidence: msg.evidence,
               retrieveMs: msg.retrieveMs,
               outcome: { kind: "asking" },

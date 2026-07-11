@@ -40,6 +40,7 @@ import type {
   Exchange,
   Evidence,
   Outcome,
+  Corpus,
 } from "./app.ts";
 import {
   EVIDENCE_COUNT,
@@ -55,12 +56,36 @@ export const GUIDE_BASE =
  * `/concepts/option` (`index.md` → its directory root) —
  * the plggpress SSG's file→route scheme.
  */
+const routeOf = (file: SoftStr): SoftStr =>
+  file
+    .replace(/\.md$/, "")
+    .replace(/(^|\/)index$/, "$1");
+
 export const guideHref = (
   file: SoftStr,
+): SoftStr => `${GUIDE_BASE}/${routeOf(file)}`;
+
+/**
+ * The Japanese corpus is vendored from qmu.co.jp's
+ * articles, so its citations link there.
+ */
+export const QMU_BASE = "https://qmu.co.jp";
+
+export const qmuHref = (file: SoftStr): SoftStr =>
+  `${QMU_BASE}/${routeOf(file)}`;
+
+const hrefOf = (
+  source: Corpus,
+  file: SoftStr,
 ): SoftStr =>
-  `${GUIDE_BASE}/${file
-    .replace(/\.md$/, "")
-    .replace(/(^|\/)index$/, "$1")}`;
+  source === "qmu-ja"
+    ? qmuHref(file)
+    : guideHref(file);
+
+const corpusLabel = (source: Corpus): SoftStr =>
+  source === "qmu-ja"
+    ? "qmu.co.jp policies (JA)"
+    : "the plgg guide (EN)";
 
 const ms = (value: number): SoftStr =>
   `${value.toFixed(1)} ms`;
@@ -389,7 +414,12 @@ const citationLinks = (
               [
                 a(
                   [
-                    href(guideHref(e.chunk.file)),
+                    href(
+                      hrefOf(
+                        exchange.source,
+                        e.chunk.file,
+                      ),
+                    ),
                     attr("target", "_blank"),
                     attr(
                       "rel",
@@ -591,7 +621,7 @@ const evidencePane = (
         ],
         [
           text(
-            `Retrieved evidence — local BM25, ${ms(exchange.retrieveMs)}`,
+            `Retrieved evidence — local BM25 over ${corpusLabel(exchange.source)}, ${ms(exchange.retrieveMs)}`,
           ),
         ],
       ),

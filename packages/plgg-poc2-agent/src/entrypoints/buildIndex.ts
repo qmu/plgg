@@ -64,3 +64,44 @@ writeFileSync(join(OUT_DIR, "fts.json"), ftsJson);
 console.log(
   `fts.json: ${index.chunks.length} chunks from ${files.length} files, ${ftsJson.length} bytes, built in ${Math.round(buildMs)}ms`,
 );
+
+/* ------------------------------------------------ *
+ * Japanese index — the vendored qmu.co.jp policy    *
+ * corpus (PoC 1 Ticket B), segmenter-tokenized (its *
+ * measured recommendation), so CJK questions ground *
+ * against real Japanese articles.                   *
+ * ------------------------------------------------ */
+const JA_ROOT = join(
+  process.cwd(),
+  "..",
+  "plgg-poc1-search",
+  "corpus-ja",
+);
+
+const jaFiles: ReadonlyArray<SoftStr> = globSync(
+  "*.md",
+  { cwd: JA_ROOT },
+).sort();
+
+const jaSeeds = jaFiles.flatMap((file) =>
+  chunkMarkdown(
+    file,
+    readFileSync(join(JA_ROOT, file), "utf8"),
+  ),
+);
+
+const jaStarted = performance.now();
+const jaIndex = buildFtsIndex(
+  jaSeeds,
+  "segmenter",
+);
+const jaMs = performance.now() - jaStarted;
+
+const jaJson = JSON.stringify(jaIndex);
+writeFileSync(
+  join(OUT_DIR, "ja-fts.json"),
+  jaJson,
+);
+console.log(
+  `ja-fts.json: ${jaIndex.chunks.length} chunks from ${jaFiles.length} JA files, ${jaJson.length} bytes, built in ${Math.round(jaMs)}ms`,
+);

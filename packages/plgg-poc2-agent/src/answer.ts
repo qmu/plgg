@@ -38,7 +38,8 @@ import {
 export const ANSWER_MODEL = "gpt-5.1";
 
 const SYSTEM = [
-  "You answer a reader's question about the plgg guide.",
+  "You answer a reader's question about the provided documentation.",
+  "Answer in the language of the question.",
   "Use ONLY the numbered sources provided — no outside knowledge.",
   "Cite every claim by listing the source numbers you actually used in `citations`.",
   "If the sources do not contain the answer, say so plainly in `answer` and return an empty `citations` array.",

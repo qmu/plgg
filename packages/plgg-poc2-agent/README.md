@@ -32,6 +32,15 @@ parts:
   (`https://plgg.qmu.co.jp/…`). An empty citation list renders as the honest
   "the sources do not contain this answer" state.
 
+- **Japanese questions are routed by script.** A question containing CJK
+  characters searches a second shipped index — PoC 1 Ticket B's vendored
+  qmu.co.jp policy corpus (`plgg-poc1-search/corpus-ja/`, 287 chunks),
+  `Intl.Segmenter`-tokenized per that ticket's measurement — and its
+  citations link to `https://qmu.co.jp/…`. BM25 cannot bridge languages, so
+  script IS the routing signal; a missing `ja-fts.json` degrades to
+  English-only, never a failed load. The system prompt answers in the
+  question's language.
+
 The confidence signal (mission `plggpress-technical-confidence-poc-portal`):
 a ten-question canned set runs the whole proof in one click, so the developer
 judges grounding quality live in a browser — the same "citations + canned

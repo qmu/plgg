@@ -4,11 +4,12 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { ok, err } from "plgg";
+import { ok, err, some, none } from "plgg";
 import {
   type Model,
   update,
   init,
+  hasCjk,
 } from "./app.ts";
 import { CANNED_QUESTIONS } from "./canned.ts";
 import {
@@ -32,6 +33,7 @@ const READY: Model = {
           text: "handle errors with Result, never throw",
         },
       ]),
+      jaFts: none(),
       configured: true,
     },
   },
@@ -51,6 +53,19 @@ const ANSWER = {
   answer: "Use Result.",
   citations: [0],
 };
+
+test("hasCjk routes by script", () =>
+  all([
+    check(
+      hasCjk("ドキュメンテーションの方針は?"),
+      toBe(true),
+    ),
+    check(hasCjk("型駆動設計"), toBe(true)),
+    check(
+      hasCjk("what replaces null?"),
+      toBe(false),
+    ),
+  ]));
 
 test("Submitted retrieves when ready, single-flight guarded", () => {
   const [asked, cmd] = update(
@@ -76,11 +91,23 @@ test("Submitted retrieves when ready, single-flight guarded", () => {
   ]);
 });
 
+test("a CJK question still asks when only the guide index is shipped", () => {
+  const [asked, cmd] = update(
+    { kind: "Submitted" },
+    { ...READY, draft: "型駆動設計とは?" },
+  );
+  return all([
+    check(asked.busy, toBe(true)),
+    check(cmd.__tag, toBe("CmdEffect")),
+  ]);
+});
+
 test("Retrieved appends an asking exchange and asks the server", () => {
   const [model, cmd] = update(
     {
       kind: "Retrieved",
       question: "how do I fail?",
+      source: "guide",
       evidence: EVIDENCE,
       retrieveMs: 0.4,
     },
@@ -93,8 +120,29 @@ test("Retrieved appends an asking exchange and asks the server", () => {
         "missing",
       toBe("asking"),
     ),
+    check(
+      model.exchanges[0]?.source ?? "missing",
+      toBe("guide"),
+    ),
     check(cmd.__tag, toBe("CmdEffect")),
   ]);
+});
+
+test("Retrieved carries the Japanese corpus tag through to the exchange", () => {
+  const [model] = update(
+    {
+      kind: "Retrieved",
+      question: "方針は?",
+      source: "qmu-ja",
+      evidence: EVIDENCE,
+      retrieveMs: 0.4,
+    },
+    { ...READY, busy: true },
+  );
+  return check(
+    model.exchanges[0]?.source ?? "missing",
+    toBe("qmu-ja"),
+  );
 });
 
 const asking: Model = {
@@ -103,6 +151,7 @@ const asking: Model = {
   exchanges: [
     {
       question: "how do I fail?",
+      source: "guide",
       evidence: EVIDENCE,
       retrieveMs: 0.4,
       outcome: { kind: "asking" },
@@ -175,6 +224,50 @@ test("CannedRequested queues the tail and asks the head", () => {
       toBe(CANNED_QUESTIONS.length - 1),
     ),
     check(model.busy, toBe(true)),
+    check(cmd.__tag, toBe("CmdEffect")),
+  ]);
+});
+
+test("a Japanese question routes to the Japanese index when shipped", () => {
+  const jaReady: Model = {
+    ...READY,
+    assets: {
+      kind: "ready",
+      ready: {
+        fts: buildFtsIndex([
+          {
+            file: "a.md",
+            headingPath: "a.md > Errors",
+            text: "handle errors with Result",
+          },
+        ]),
+        jaFts: some(
+          buildFtsIndex(
+            [
+              {
+                file: "policies.md",
+                headingPath:
+                  "policies.md > ドキュメンテーション",
+                text: "ドキュメンテーションの方針を定める",
+              },
+            ],
+            "segmenter",
+          ),
+        ),
+        configured: true,
+      },
+    },
+  };
+  const [asked, cmd] = update(
+    { kind: "Submitted" },
+    {
+      ...jaReady,
+      draft:
+        "ドキュメンテーションについての方針を教えてください",
+    },
+  );
+  return all([
+    check(asked.busy, toBe(true)),
     check(cmd.__tag, toBe("CmdEffect")),
   ]);
 });
