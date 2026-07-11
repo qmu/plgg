@@ -30,7 +30,7 @@ test("cards carry question, signal, verdict", () =>
 
 test("building PoCs link; planned ones only reserve", () =>
   all([
-    // poc1 is building → a real anchor.
+    // poc1 is proven → still a real anchor.
     check(
       page,
       toContain(
@@ -74,10 +74,10 @@ test("an empty fleet renders an honest empty state", () =>
 
 test("status labels appear as text, not color alone", () =>
   all([
-    check(page, toContain("Building")),
+    check(page, toContain("Proven")),
     check(page, toContain("Planned")),
     check(
       renderToString(view([])),
-      not(toContain("Building")),
+      not(toContain("Proven")),
     ),
   ]));

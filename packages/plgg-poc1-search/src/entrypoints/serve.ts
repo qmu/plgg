@@ -53,6 +53,22 @@ const FILES: Readonly<
     ),
     type: "application/json",
   },
+  "/index/ja-report.json": {
+    path: join(
+      "dist",
+      "index",
+      "ja-report.json",
+    ),
+    type: "application/json",
+  },
+  "/index/ja-fts.json": {
+    path: join(
+      "dist",
+      "index",
+      "ja-fts.json",
+    ),
+    type: "application/json",
+  },
 };
 
 createServer((req, res) => {
@@ -70,6 +86,12 @@ createServer((req, res) => {
   try {
     res.writeHead(200, {
       "content-type": file.type,
+      // This is a dev preview whose artifacts are
+      // rebuilt in place on every change; caching (the
+      // browser's OR Cloudflare's edge) would silently
+      // serve a stale page. Never cache.
+      "cache-control":
+        "no-store, must-revalidate",
     });
     res.end(
       readFileSync(join(ROOT, file.path)),

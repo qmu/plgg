@@ -46,6 +46,10 @@ createServer((req, res) => {
     res.writeHead(200, {
       "content-type":
         "text/html; charset=utf-8",
+      // Dev preview, rebuilt in place — never let the
+      // browser or Cloudflare's edge serve a stale page.
+      "cache-control":
+        "no-store, must-revalidate",
     });
     res.end(readFileSync(PAGE));
   } catch {

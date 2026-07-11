@@ -131,10 +131,11 @@ test("the fleet data is consistent", () =>
       ),
       toBe(true),
     ),
-    // The one PoC under construction is poc1.
+    // poc1 is the one concluded (proven) PoC;
+    // the rest remain planned.
     check(
       POCS.filter(
-        (p) => p.status === "building",
+        (p) => p.status === "proven",
       ).map((p) => p.id),
       toEqual(["poc1"]),
     ),

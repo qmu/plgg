@@ -12,7 +12,7 @@
  * ingress mapping is developer-applied — see the package
  * README for the exact `~/.cloudflared/config.yml` lines.
  */
-import { none } from "plgg";
+import { none, some } from "plgg";
 import type { Poc } from "./Poc.ts";
 
 export const PORTAL_HOSTNAME =
@@ -27,8 +27,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Indexed full-text search or vector-DB RAG — which browser-side search over the plgg guide corpus is affordable and good enough?",
     confidenceSignal:
       "A metrics table (index size, build time, query latency p50/p95) plus ~10 canned queries side-by-side on the full corpus, judged by the developer; verdict includes the vector arm's from-scratch cost estimate.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — indexed full-text search. BM25 quality is comparable to vector RAG on the real guide corpus at ~1/5 the payload (fts.json 252 KB vs embeddings.json 1.4 MB) and none of the model tax; the vector arm's from-scratch cost is dominated by the un-scratchable embedding model (~25 MB CDN runtime + WASM init on every cold visit), which fails the plggpress vision's affordability bar. Re-evaluate only if PoC 2's agent grounding shows a concrete quality gap. Known cost on the FTS path: the from-scratch tokenizer is English-only ([a-z0-9]+ runs) — CJK corpora need n-gram/segmenter tokenization (Ticket B).",
+    ),
     hostname: "plgg-poc1.qmu.dev",
     port: 5184,
   },

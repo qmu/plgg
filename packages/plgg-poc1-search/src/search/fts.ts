@@ -69,7 +69,10 @@ export const searchFts =
     // imperative seam as index assembly: a Map beats
     // spread-folding thousands of [id, score] pairs.
     const scores = new Map<number, number>();
-    for (const term of tokenize(query)) {
+    for (const term of tokenize(
+      query,
+      index.cjk,
+    )) {
       const postings = index.postings[term];
       if (postings === undefined) continue;
       const termIdf = idf(

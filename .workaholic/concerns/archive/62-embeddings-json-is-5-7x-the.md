@@ -8,9 +8,9 @@ origin_branch: work-20260711-035119
 origin_commit: c95e8028
 created_at: 2026-07-11T12:17:30+09:00
 severity: low
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 7269afc3
+resolved_by_commit: 
 ---
 
 # embeddings.json is 5.7x the corpus size

@@ -35,8 +35,8 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - [ ] The Pragmatic concept is recorded as the project's north-star (`20260708-pragmatic-ai-native-ui-concept.md`) — done at mission creation.
 - [x] The probabilistic screen-transition model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213945-specify-pragmatic-screen-transition-model.md)
 - [x] The input-field model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213946-specify-pragmatic-input-field-model.md)
-- [ ] The DSL is distilled from the specifications and produces a working on-demand UI from a declarative description (future ticket — not yet filed)
-- [ ] A generated UI is demonstrated to be WebMCP/MCP-Apps operable by a browser-side agent (future ticket — not yet filed)
+- [ ] The DSL is distilled from the specifications and produces a working on-demand UI from a declarative description (delivered by the `plggmatic-screen-structure-model-semantics` mission, migrated 2026-07-11 to the `qmu/plggmatic` repo; checked off here when that mission's DSL v1 lands)
+- [ ] A generated UI is demonstrated to be WebMCP/MCP-Apps operable by a browser-side agent (delivered by the `plggmatic-screen-structure-model-semantics` mission in `qmu/plggmatic`; checked off here when its WebMCP adapter + prototype land)
 
 ## Changelog
 
@@ -53,3 +53,4 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-11 — concern deferred (stuck) — 61-registry-consumability-blockers-were-fixed-reactively.md
 - 2026-07-11 — concern deferred (stuck) — 61-demo-1-record-data-is-in.md
 - 2026-07-11 — concern deferred (stuck) — 61-demo-2-s-pre-existing-button.md
+- 2026-07-11 — remaining DSL/WebMCP items delegated to the screen-structure mission, migrated to qmu/plggmatic — mission.md

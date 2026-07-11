@@ -21,3 +21,4 @@
 * [Complete the plggpress/plggmatic product roadmap](work-20260704-130317.md)
 * [Extract the plggmatic design system into its own repository etc](work-20260706-120449.md)
 * [Add the plggpress PoC portal and the browser search core PoC etc](work-20260711-035119.md)
+* [Record the PoC 1 verdict as proven with measured CJK Japanese search etc](work-20260711-125441.md)
