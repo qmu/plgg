@@ -41,8 +41,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can a generated static site embed a browser agent that answers reader questions grounded in the shipped document index?",
     confidenceSignal:
       "On a statically generated site, the embedded agent answers questions about the corpus with citations into the pages, with no server round-trip beyond the model call.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — the embedded agent answers reader questions grounded in the shipped index, every answer judged side-by-side with its retrieved evidence, citations linking into the live pages, in English (guide) and Japanese (script-routed segmenter index over the full qmu.co.jp articles). The LLM key stays behind one tiny server session seam: honest 404 + upfront banner with no key, nothing provider-shaped in the bundle. Measured limit, accepted by design: exact-term BM25 misses vocabulary-mismatched phrasings (ドキュメンテーション vs the corpus's 文書化); production resolves it by letting the agent DRIVE the search — repeated FTS tool calls with model-generated keyword variations — which is precisely the loop PoC 3 exercises over the Realtime API.",
+    ),
     hostname: "plgg-poc2.qmu.dev",
     port: 5185,
   },
