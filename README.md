@@ -117,6 +117,7 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-poc-portal/`](packages/plgg-poc-portal/)** - plggpress PoC portal: the static index of the confidence-collection PoC fleet (private, served at `plgg-poc.qmu.dev`)
 - **[`packages/plgg-poc1-search/`](packages/plgg-poc1-search/)** - PoC 1: browser-side full-text search vs vector RAG measured on the guide corpus (private, served at `plgg-poc1.qmu.dev`)
 - **[`packages/plgg-poc2-agent/`](packages/plgg-poc2-agent/)** - PoC 2: reader-side embedded browser agent — grounded, cited answers over the shipped guide index, key confined to a server session seam (private, served at `plgg-poc2.qmu.dev`)
+- **[`packages/plgg-poc3-voice/`](packages/plgg-poc3-voice/)** - PoC 3: writer-side voice assistant over the Realtime API — the agent drives the browser-local search by tool-calling keyword variations, ephemeral key minted server-side (private, served at `plgg-poc3.qmu.dev`)
 
 The Pragmatic design-system package, its documentation site, and its workbench now live outside this monorepo. This repository keeps the CMS admin UI inside `plgg-cms`; plggpress carries only the static theme support needed to build this guide.
 

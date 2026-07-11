@@ -55,7 +55,7 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does an OpenAI Realtime API voice session give the writer an 'on the same page' discussion partner over the open document?",
     confidenceSignal:
       "A voice conversation about the currently open document works end-to-end in the browser against the dev server's minted session, with the document content in the assistant's context.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc3.qmu.dev",
     port: 5186,
