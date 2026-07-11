@@ -52,6 +52,7 @@ Out of scope:
 - Framework-specific encodings in the IR (React components, SQL fragments, hard-coded URLs).
 - The `plggmatic` consumer implementation itself (wiring plggmatic to interpret the canonical manifest is follow-on work once the family exists).
 - The LLM agent that produces manifests (prompting/generation loops are a consumer concern).
+- plggmatic's own DSL dialect and runtime semantics — tracked by the `plggmatic-screen-structure-model-semantics` mission in the `qmu/plggmatic` repository, whose DSL v1 work should evaluate building its reader/checker on this family rather than a parallel stack.
 
 ## Acceptance
 
@@ -76,3 +77,4 @@ Out of scope:
      One line per event ("- YYYY-MM-DD — event — filename"); never rewrite past lines. -->
 
 - 2026-07-11 — Mission created from consolidated design discussion; full rationale captured in design.md
+- 2026-07-11 — cross-repo relation recorded: plggmatic DSL dialect (screen-structure mission in qmu/plggmatic) should evaluate building on this family — mission.md
