@@ -3,7 +3,6 @@ import {
   SoftStr,
   box,
   pattern,
-  isBoxWithTag,
   match,
 } from "plgg";
 import { SourceRange } from "plgg-ir-syntax/domain/model/SourceRange";
@@ -100,21 +99,35 @@ export const listExp = (
   range: SourceRange,
 ): ListExp => box("ListExp")({ items, range });
 
-/** Type guard: is this {@link Sexp} a {@link SymbolExp}? */
-export const isSymbolExp =
-  isBoxWithTag("SymbolExp");
+/**
+ * Type guard: is this {@link Sexp} a
+ * {@link SymbolExp}? Typed over `Sexp` (not `unknown`)
+ * so it narrows in `filter`/`find` positions.
+ */
+export const isSymbolExp = (
+  exp: Sexp,
+): exp is SymbolExp =>
+  exp.__tag === "SymbolExp";
 
 /** Type guard: is this {@link Sexp} a {@link StrExp}? */
-export const isStrExp = isBoxWithTag("StrExp");
+export const isStrExp = (
+  exp: Sexp,
+): exp is StrExp => exp.__tag === "StrExp";
 
 /** Type guard: is this {@link Sexp} a {@link NumExp}? */
-export const isNumExp = isBoxWithTag("NumExp");
+export const isNumExp = (
+  exp: Sexp,
+): exp is NumExp => exp.__tag === "NumExp";
 
 /** Type guard: is this {@link Sexp} a {@link BoolExp}? */
-export const isBoolExp = isBoxWithTag("BoolExp");
+export const isBoolExp = (
+  exp: Sexp,
+): exp is BoolExp => exp.__tag === "BoolExp";
 
 /** Type guard: is this {@link Sexp} a {@link ListExp}? */
-export const isListExp = isBoxWithTag("ListExp");
+export const isListExp = (
+  exp: Sexp,
+): exp is ListExp => exp.__tag === "ListExp";
 
 /** `match` pattern for a {@link SymbolExp}. */
 export const symbolExp$ = () =>

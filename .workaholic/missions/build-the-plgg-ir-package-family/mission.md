@@ -64,9 +64,9 @@ Out of scope:
 <!-- Ticket filenames are appended to each item as the tickets are cut at /ticket time. -->
 
 - [x] `plgg-ir-syntax` parses S-expression source into position-aware syntax trees and prints canonically; malformed input yields ranged diagnostics; `parse(print(parse(x))) = parse(x)` holds under property tests — 20260712005001-plgg-ir-syntax-s-expression-parsing.md
-- [ ] `plgg-ir-language` provides form/operator registries, semantic scopes, and typed references, rejecting unknown forms and operators (closed vocabulary) — 20260712005002-plgg-ir-language-static-framework.md
-- [ ] `plgg-ir-language` type checker verifies operator/operand/result types, preserving domain types over storage types (e.g. `customer-id ≠ organization-id`, `Money<JPY> + Money<USD>` rejected) with expected/actual diagnostics — 20260712005002-plgg-ir-language-static-framework.md
-- [ ] `plgg-ir-language` supports dialect composition, diagnostic accumulation, and a normalization pipeline with a canonical serializer; `normalize(normalize(x)) = normalize(x)` holds under property tests — 20260712005002-plgg-ir-language-static-framework.md
+- [x] `plgg-ir-language` provides form/operator registries, semantic scopes, and typed references, rejecting unknown forms and operators (closed vocabulary) — 20260712005002-plgg-ir-language-static-framework.md
+- [x] `plgg-ir-language` type checker verifies operator/operand/result types, preserving domain types over storage types (e.g. `customer-id ≠ organization-id`, `Money<JPY> + Money<USD>` rejected) with expected/actual diagnostics — 20260712005002-plgg-ir-language-static-framework.md
+- [x] `plgg-ir-language` supports dialect composition, diagnostic accumulation, and a normalization pipeline with a canonical serializer; `normalize(normalize(x)) = normalize(x)` holds under property tests — 20260712005002-plgg-ir-language-static-framework.md
 - [ ] `plgg-ir-manifest` defines the manifest core (module/entity/field/type/relation/validate/invariant/aggregate) with name resolution, inverse-relation and cardinality verification — 20260712005003-plgg-ir-manifest-core.md
 - [ ] `plgg-ir-manifest` web semantics: views, queries, projections, navigation, policies, actions with effects; view references outside the declared query/projection/aggregate scope fail static verification — 20260712005004-plgg-ir-manifest-web-semantics.md
 - [ ] Authorization is deny-by-default: update actions without a policy are rejected, and policies must type-check to Boolean — 20260712005004-plgg-ir-manifest-web-semantics.md
@@ -85,3 +85,4 @@ Out of scope:
 - 2026-07-11 — cross-repo relation recorded: plggmatic DSL dialect (screen-structure mission in qmu/plggmatic) should evaluate building on this family — mission.md
 - 2026-07-12 — five phase tickets cut from design.md §38 (syntax / language framework / manifest core / web semantics / dependency semantics + acceptance), dependency-chained — 20260712005001…20260712005005
 - 2026-07-12 — ticket archived — 20260712005001-plgg-ir-syntax-s-expression-parsing.md
+- 2026-07-12 — ticket archived — 20260712005002-plgg-ir-language-static-framework.md

@@ -21,6 +21,9 @@ cd $REPO_ROOT/packages/plgg-parser && npm run build
 # plgg-ir-syntax after plgg-parser: the plgg-ir family's S-expression syntax
 # layer builds its tokenizer on the combinator core's dist.
 cd $REPO_ROOT/packages/plgg-ir-syntax && npm run build
+# plgg-ir-language after plgg-ir-syntax: the static language framework
+# (forms/operators/scopes/type checker/normalization) consumes its dist.
+cd $REPO_ROOT/packages/plgg-ir-language && npm run build
 cd $REPO_ROOT/packages/plgg-kit && npm run build
 # plgg-foundry after plgg-kit: it consumes plgg-kit's dist (and plgg core).
 # Now built in-house, so it joins the ordered set (was previously ad-hoc).

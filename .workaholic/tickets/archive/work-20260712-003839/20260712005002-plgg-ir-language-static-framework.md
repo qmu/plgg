@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain]
 effort: 4h
-commit_hash:
-category:
+commit_hash: a2a5f1b7
+category: Added
 depends_on: [20260712005001-plgg-ir-syntax-s-expression-parsing.md]
 mission: build-the-plgg-ir-package-family
 ---

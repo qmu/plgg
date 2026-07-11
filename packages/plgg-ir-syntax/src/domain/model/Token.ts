@@ -3,7 +3,6 @@ import {
   SoftStr,
   box,
   pattern,
-  isBoxWithTag,
   match,
 } from "plgg";
 import { SourceRange } from "plgg-ir-syntax/domain/model/SourceRange";
@@ -100,13 +99,21 @@ export const boolTok = (
   range: SourceRange,
 ): BoolTok => box("BoolTok")({ value, range });
 
-/** Type guard: is this {@link Token} an {@link LParenTok}? */
-export const isLParenTok =
-  isBoxWithTag("LParenTok");
+/**
+ * Type guard: is this {@link Token} an
+ * {@link LParenTok}? Typed over `Token` so it narrows
+ * in `filter`/`find` positions.
+ */
+export const isLParenTok = (
+  token: Token,
+): token is LParenTok =>
+  token.__tag === "LParenTok";
 
 /** Type guard: is this {@link Token} an {@link RParenTok}? */
-export const isRParenTok =
-  isBoxWithTag("RParenTok");
+export const isRParenTok = (
+  token: Token,
+): token is RParenTok =>
+  token.__tag === "RParenTok";
 
 /** `match` pattern for an {@link LParenTok}. */
 export const lParenTok$ = () =>
