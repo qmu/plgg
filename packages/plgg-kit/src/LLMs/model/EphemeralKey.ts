@@ -25,8 +25,10 @@ export type EphemeralKey = Readonly<{
 }>;
 
 /**
- * Decode an OpenAI `realtime/sessions` response — shape
- * `{ client_secret: { value, expires_at } }` — into an
+ * Decode a GA `realtime/client_secrets` response — shape
+ * `{ value, expires_at, session: {…} }`, the key fields at the
+ * TOP level (the pre-GA `client_secret` wrapper is gone; PoC 3
+ * measured the retirement live, 2026-07-12) — into an
  * {@link EphemeralKey}, FAIL-CLOSED: a response missing either
  * field is a typed `Err`, never a partial key, so a malformed
  * upstream reply can't hand the browser a broken token.
@@ -38,26 +40,16 @@ export const asEphemeralKey = (
     cast(
       v,
       asRawObj,
-      forProp(
-        "client_secret",
-        (cs: unknown) =>
-          cast(
-            cs,
-            asRawObj,
-            forProp("value", asSoftStr),
-            forProp("expires_at", asNum),
-          ),
-      ),
+      forProp("value", asSoftStr),
+      forProp("expires_at", asNum),
     ),
     mapResult(
       (r: {
-        client_secret: {
-          value: SoftStr;
-          expires_at: Num;
-        };
+        value: SoftStr;
+        expires_at: Num;
       }): EphemeralKey => ({
-        value: r.client_secret.value,
-        expiresAt: r.client_secret.expires_at,
+        value: r.value,
+        expiresAt: r.expires_at,
       }),
     ),
   );

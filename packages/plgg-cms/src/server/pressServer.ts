@@ -276,7 +276,7 @@ export const pressServeWebWithAuth = (
                     apiKey: none(),
                     model: "gpt-realtime",
                     endpoint:
-                      "https://api.openai.com/v1/realtime/sessions",
+                      "https://api.openai.com/v1/realtime/client_secrets",
                   }),
                   sessions,
                   clock,

@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: bugfix
 layer: [Domain]
 effort:
-commit_hash:
-category:
+commit_hash: a1624451
+category: Changed
 depends_on:
 mission:
 ---
