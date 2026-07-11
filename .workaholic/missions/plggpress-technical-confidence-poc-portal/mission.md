@@ -69,3 +69,5 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-11 — ticket archived — 20260711131543-resume-poc-fleet-ci-fix-and-next-tickets.md
 - 2026-07-11 — ticket archived — 20260711162512-record-poc1-verdict.md
 - 2026-07-11 — ticket archived — 20260711170040-poc1-cjk-tokenizer-measured.md
+- 2026-07-11 — concern resolved (unstuck) — 62-embeddings-json-is-5-7x-the.md
+- 2026-07-11 — story reported — work-20260711-125441.md

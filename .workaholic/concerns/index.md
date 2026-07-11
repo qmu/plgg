@@ -100,7 +100,6 @@
 * [97 standing deferred concerns carried (PRs 31–61)](62-97-standing-deferred-concerns-carried-prs.md)
 * [CDN model load is an external runtime dependency of the PoC page](62-cdn-model-load-is-an-external.md)
 * [cloudflared ingress for the PoC hostnames is not yet live](62-cloudflared-ingress-for-the-poc-hostnames.md)
-* [embeddings.json is 5.7x the corpus size](62-embeddings-json-is-5-7x-the.md)
 * [Portal's verdict data is hand-edited typed data](62-portal-s-verdict-data-is-hand.md)
 * [RAG arm's in-browser model init unverified outside a real browser](62-rag-arm-s-in-browser-model.md)
 
