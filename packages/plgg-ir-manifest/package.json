@@ -1,0 +1,53 @@
+{
+  "name": "plgg-ir-manifest",
+  "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
+  "description": "The Domain Manifest dialect of the plgg-ir family, built with plgg-ir-language over plgg-ir-syntax. Defines the versioned (plgg-ir 1 (module ...)) vocabulary — entities, fields, domain types, relations with inverse/cardinality verification, validation, invariants, aggregates — statically verifies it, and normalizes it into a deterministic canonical IR for consumers such as plggmatic.",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-ir-syntax": "file:../plgg-ir-syntax",
+    "plgg-ir-language": "file:../plgg-ir-language"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}
