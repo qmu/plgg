@@ -41,8 +41,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can a generated static site embed a browser agent that answers reader questions grounded in the shipped document index?",
     confidenceSignal:
       "On a statically generated site, the embedded agent answers questions about the corpus with citations into the pages, with no server round-trip beyond the model call.",
-    status: "planned",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — the embedded agent answers reader questions grounded in the shipped index, every answer judged side-by-side with its retrieved evidence, citations linking into the live pages, in English (guide) and Japanese (script-routed segmenter index over the full qmu.co.jp articles). The LLM key stays behind one tiny server session seam: honest 404 + upfront banner with no key, nothing provider-shaped in the bundle. Measured limit, accepted by design: exact-term BM25 misses vocabulary-mismatched phrasings (ドキュメンテーション vs the corpus's 文書化); production resolves it by letting the agent DRIVE the search — repeated FTS tool calls with model-generated keyword variations — which is precisely the loop PoC 3 exercises over the Realtime API.",
+    ),
     hostname: "plgg-poc2.qmu.dev",
     port: 5185,
   },
@@ -53,8 +55,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does an OpenAI Realtime API voice session give the writer an 'on the same page' discussion partner over the open document?",
     confidenceSignal:
       "A voice conversation about the currently open document works end-to-end in the browser against the dev server's minted session, with the document content in the assistant's context.",
-    status: "planned",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — a live microphone conversation in the browser (judged by the developer at plgg-poc3.qmu.dev) discusses the open document in Japanese over the GA Realtime API: WebRTC audio both ways, the picked document carried in the session instructions, and every factual answer grounded by the model DRIVING the search_docs tool — the on-page trail shows model-generated keyword variations until the corpus vocabulary matches (the PoC 2 verdict's accepted design, here exercised over voice; the same loop was also reproduced headless over the GA WebSocket, where the model generated 「文書化 基準」 unprompted). Key confinement held: the standing OPENAI_API_KEY stays in the serve process behind POST /api/session (honest 404 without it), and the browser only ever holds the short-lived client_secrets grant.",
+    ),
     hostname: "plgg-poc3.qmu.dev",
     port: 5186,
   },

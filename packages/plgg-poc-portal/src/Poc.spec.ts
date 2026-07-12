@@ -131,13 +131,13 @@ test("the fleet data is consistent", () =>
       ),
       toBe(true),
     ),
-    // poc1 is the one concluded (proven) PoC;
-    // the rest remain planned.
+    // poc1–poc3 are the concluded (proven)
+    // PoCs; the rest remain planned.
     check(
       POCS.filter(
         (p) => p.status === "proven",
       ).map((p) => p.id),
-      toEqual(["poc1"]),
+      toEqual(["poc1", "poc2", "poc3"]),
     ),
   ]));
 

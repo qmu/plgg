@@ -1,0 +1,25 @@
+# PoC 3 workload — serve the writer-side voice-assistant
+# PoC (packages/plgg-poc3-voice) on host port 5186, the
+# cloudflared tunnel route for plgg-poc3.qmu.dev.
+#
+#   scripts/serve-poc.sh poc3-voice
+#
+# Same recipe as the fleet: artifacts (bundle + indexes)
+# are HOST-built (`npm run build`), the container runs
+# the serve entry against the mounted repo. This PoC
+# carries the ephemeral-key mint seam: the container
+# needs OPENAI_API_KEY from the HOST env (export it
+# before serve-poc.sh) — passed through here, never
+# written to the repo. Without it the PoC serves its
+# honest "assistant not configured" state.
+services:
+  poc3-voice:
+    image: node:22-slim
+    working_dir: /app/packages/plgg-poc3-voice
+    command: ["node", "src/entrypoints/serve.ts"]
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "5186:5173"
+    volumes:
+      - ../..:/app

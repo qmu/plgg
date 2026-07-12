@@ -46,8 +46,8 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - [x] PoC plan recorded: each PoC named with its technical question and confidence signal (#20260711035317-plggpress-poc-portal-and-plan.md)
 - [x] PoC portal serves an index page linking every PoC, each PoC on its own port + `*.qmu.dev` hostname via cloudflared (#20260711035317-plggpress-poc-portal-and-plan.md)
 - [x] PoC: browser search core — indexed full-text search vs browser vector-DB RAG measured on a real corpus (index size, build time, query latency, answer quality); verdict recorded (#20260711035318-poc1-browser-search-core.md)
-- [ ] PoC: reader-side embedded browser agent answering questions grounded in the indexed document data of a generated static site
-- [ ] PoC: writer-side interactive voice assistant over the OpenAI Realtime API, "on the same page" with the open document
+- [x] PoC: reader-side embedded browser agent answering questions grounded in the indexed document data of a generated static site (#20260711201840-poc2-reader-side-browser-agent.md)
+- [x] PoC: writer-side interactive voice assistant over the OpenAI Realtime API, "on the same page" with the open document (#20260712030000-poc3-writer-voice-assistant.md)
 - [ ] PoC: browser-agent tool-calling edits local files via the dev server; edited page hot-reloads while the realtime websocket stays connected
 - [ ] PoC: central configuration generation — agent classifies by front-matter tags (name/color/emoji/description), excludes paths, switches layout and sizing themes
 - [ ] PoC: non-tree classification — tag/link-grouped multi-dimensional search UX prototypes, manipulable by the browser agent
@@ -76,3 +76,10 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-12 — concern deferred (stuck) — 63-pre-existing-poc-source-not-fully.md
 - 2026-07-12 — concern deferred (stuck) — 63-dsl-division-of-labor-between-plgg.md
 - 2026-07-12 — concern deferred (stuck) — 63-cross-repo-acceptance-check-off-has.md
+- 2026-07-12 — ticket archived — 20260711201840-poc2-reader-side-browser-agent.md
+- 2026-07-12 — ticket archived — 20260712014500-poc2-japanese-grounding.md
+- 2026-07-12 — ticket archived — 20260712023000-poc2-full-ja-article-corpus.md
+- 2026-07-12 — ticket archived — 20260712024500-record-poc2-verdict.md
+- 2026-07-12 — ticket archived — 20260712030000-poc3-writer-voice-assistant.md
+- 2026-07-12 — story reported — work-20260712-003840.md
+- 2026-07-12 — ticket archived — 20260712113318-resume-poc3-verdict-and-ship.md

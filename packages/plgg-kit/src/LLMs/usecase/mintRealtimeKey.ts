@@ -42,10 +42,12 @@ export type MinterConfig = Readonly<{
 }>;
 
 /**
- * The REAL network {@link KeyMinter} — a `fetch` to OpenAI's
- * `realtime/sessions` with the STANDING key, returning a
- * short-lived client key. Node-only seam, coverage-excluded;
- * every failure (transport, non-2xx, malformed body) becomes a
+ * The REAL network {@link KeyMinter} — a `fetch` to OpenAI's GA
+ * `realtime/client_secrets` with the STANDING key, returning a
+ * short-lived client key (the pre-GA `realtime/sessions`
+ * endpoint answers 404 since its retirement — PoC 3 measured it
+ * live, 2026-07-12). Node-only seam, coverage-excluded; every
+ * failure (transport, non-2xx, malformed body) becomes a
  * `Defect` so the mint route answers cleanly rather than
  * throwing, and the standing secret never leaves the server.
  */
@@ -62,7 +64,9 @@ export const realtimeKeyMinter = (
           authorization: `Bearer ${apiKey}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ model }),
+        body: JSON.stringify({
+          session: { type: "realtime", model },
+        }),
       });
       if (!res.ok) {
         return err(

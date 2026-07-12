@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>PoC 2 — reader-side embedded browser agent</title>
+  </head>
+  <body>
+    <!-- The server (src/entrypoints/serve.ts) serves this page, the
+         bundled client (/main.js), the built index (/index/fts.json),
+         and the ONE server-side seam the browser calls: POST
+         /api/answer, where the LLM key lives. Retrieval itself runs
+         in the browser over the shipped index — no key, no provider
+         code, in this page or its bundle. -->
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

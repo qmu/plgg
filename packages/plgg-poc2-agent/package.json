@@ -1,0 +1,40 @@
+{
+  "name": "plgg-poc2-agent",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "PoC 2 of the plggpress confidence-collection fleet: a reader-side embedded browser agent answering questions grounded in the shipped document index (PoC 1's FTS arm), with cited answers and the LLM key confined to a tiny server session seam.",
+  "scripts": {
+    "build": "npm run build:app && npm run build:index",
+    "build:index": "node src/entrypoints/buildIndex.ts",
+    "build:app": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "serve": "node src/entrypoints/serve.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-view": "file:../plgg-view",
+    "plgg-kit": "file:../plgg-kit",
+    "plgg-poc1-search": "file:../plgg-poc1-search"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

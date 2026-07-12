@@ -12,7 +12,7 @@ test("no API key → None (the voice UI stays dark)", () =>
       minterFromConfig({
         apiKey: none(),
         model: "gpt-realtime",
-        endpoint: "https://api.example/realtime/sessions",
+        endpoint: "https://api.example/realtime/client_secrets",
       }),
     ),
     toBe(true),
@@ -24,7 +24,7 @@ test("an API key → Some(minter)", () =>
       minterFromConfig({
         apiKey: some("sk-test"),
         model: "gpt-realtime",
-        endpoint: "https://api.example/realtime/sessions",
+        endpoint: "https://api.example/realtime/client_secrets",
       }),
     ),
     toBe(true),
