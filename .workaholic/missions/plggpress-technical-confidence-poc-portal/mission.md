@@ -86,3 +86,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-12 — concern deferred (stuck) — 64-107-standing-deferred-concerns-from-prior.md
 - 2026-07-12 — concern deferred (stuck) — 64-full-corpus-build-depends-on-the.md
 - 2026-07-12 — concern deferred (stuck) — 64-portal-verdict-data-remains-hand-edited.md
+- 2026-07-12 — PR #64 merged (a9ff447f) and GitHub Release 2026.07.week2.release5 published; PoC 3 judged proven live and recorded on the portal; nothing to npm-publish — work-20260712-003840.md
