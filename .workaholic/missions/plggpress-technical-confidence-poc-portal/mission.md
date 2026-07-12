@@ -81,3 +81,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-12 — ticket archived — 20260712023000-poc2-full-ja-article-corpus.md
 - 2026-07-12 — ticket archived — 20260712024500-record-poc2-verdict.md
 - 2026-07-12 — ticket archived — 20260712030000-poc3-writer-voice-assistant.md
+- 2026-07-12 — story reported — work-20260712-003840.md
