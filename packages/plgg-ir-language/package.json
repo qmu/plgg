@@ -1,0 +1,52 @@
+{
+  "name": "plgg-ir-language",
+  "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
+  "description": "Reusable static language-processing framework for the plgg-ir family, built on plgg-ir-syntax. Provides form registration, operator registration with typed signatures, semantic scopes with kinded bindings, a type checker, semantic diagnostics with expected/actual context, shorthand expansion, normalization with a canonical serializer, and dialect composition for restricted intermediate-representation languages. Defines no Domain Manifest vocabulary.",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-ir-syntax": "file:../plgg-ir-syntax"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

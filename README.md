@@ -110,6 +110,12 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
 
+**AI-generated IR (`plgg-ir` family)** — comprehensive guide: [docs/plgg-ir/guide.md](docs/plgg-ir/guide.md)
+
+- **[`packages/plgg-ir-syntax/`](packages/plgg-ir-syntax/)** - Minimal S-expression syntax layer for the plgg-ir family on plgg-parser: position-aware `Sexp` trees, accumulated coded diagnostics (never throws), and a deterministic canonical printer with the `parse(print(parse(x))) = parse(x)` round-trip property
+- **[`packages/plgg-ir-language/`](packages/plgg-ir-language/)** - Reusable static language framework on plgg-ir-syntax: form/operator registries (closed vocabulary), kinded scopes with two-phase declare/analyze (forward references), a type checker preserving domain types (`client-id ≠ organization-id`, `(money JPY) ≠ (money USD)`), expected/actual diagnostics, shorthand expansion, idempotent normalization with a canonical serializer, and collision-checked dialect composition
+- **[`packages/plgg-ir-manifest/`](packages/plgg-ir-manifest/)** - The Domain Manifest dialect on plgg-ir-language: the versioned `(plgg-ir 1 (module ...))` vocabulary — entities, fields, domain types, relations, validation, invariants, aggregates, projections, policies, views, actions, derivations — with layered scope/boundary verification, deny-by-default authorization, a dependency graph with topological update planning (cycles are compile errors), and a deterministic canonical IR — what an LLM agent emits and plggmatic will interpret
+
 **Site & tutorial**
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
@@ -390,6 +396,24 @@ See [packages/plgg-highlight/README.md](packages/plgg-highlight/README.md) for d
 A zero-new-dependency generic parser combinator library built purely on plgg. Parsers are data-last functions `Parser<A, S> = (ParseState<S>) => Result<Parsed<A, S>, InvalidError>`, composed with `pipe`/`flow`; failure is `Result`, optionality is `Option`, and a threaded user-state slot carries context (e.g. last-significant-token for regex-vs-division). Ships a TS-lexer demo that proves the core can lex TypeScript — the eventual in-house replacement for plgg-highlight's `ts.createScanner`.
 
 See [packages/plgg-parser/README.md](packages/plgg-parser/README.md) for details.
+
+### plgg-ir-syntax
+
+The lowest layer of the `plgg-ir` package family (the restricted, typed, Lisp-style intermediate representation an LLM agent generates and deterministic consumers interpret). Parses S-expression source into position-aware `Sexp` trees (every node carries a `SourceRange`), accumulates structured ranged diagnostics with recovery instead of throwing, and prints trees back as deterministic canonical text — `parse(print(parse(x))) = parse(x)` holds under property tests. Built on plgg-parser's combinators; assigns no domain meaning (the `entity`/`policy` vocabulary belongs to the upcoming `plgg-ir-language` / `plgg-ir-manifest` layers).
+
+See [packages/plgg-ir-syntax/README.md](packages/plgg-ir-syntax/README.md) for details.
+
+### plgg-ir-language
+
+The `plgg-ir` family's reusable static language-processing framework on plgg-ir-syntax. A dialect statically registers forms, typed operators, shorthand expanders, and normalizers over its own node type; the framework contributes kinded scopes with two-phase declare/analyze (so forward references resolve), an expression type checker that preserves domain meaning over storage types with expected/actual diagnostics, diagnostic accumulation across every pass, an expansion pass with a self-production bound, idempotent normalization with a canonical serializer, collision-checked dialect composition, and the `parse → expand → analyze → normalize → canonical` pipeline. It defines no Domain Manifest vocabulary — that is `plgg-ir-manifest`, the next layer.
+
+See [packages/plgg-ir-language/README.md](packages/plgg-ir-language/README.md) for details.
+
+### plgg-ir-manifest
+
+The Domain Manifest dialect — the `plgg-ir` family's domain-specific layer. `compileManifest` takes a restricted, typed, Lisp-style `(plgg-ir 1 (module ...))` source (the artifact an LLM agent generates), statically verifies it — closed vocabulary at every level, domain-type-preserving expression checking, boolean-typed validation conditions and invariants, relation target/inverse pairing, aggregate root/member/uniqueness/relatedness — and produces the resolved `Module` model plus deterministic canonical text (stable ordering, expression operands untouched; equivalent sources normalize identically). Phases 4–5 (views/policies/actions, derivations/consistency) grow this same dialect.
+
+See [packages/plgg-ir-manifest/README.md](packages/plgg-ir-manifest/README.md) for details.
 
 ### plggpress
 

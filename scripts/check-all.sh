@@ -40,6 +40,9 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-view.sh
 ./scripts/test-plgg-md.sh
 ./scripts/test-plgg-parser.sh
+./scripts/test-plgg-ir-syntax.sh
+./scripts/test-plgg-ir-language.sh
+./scripts/test-plgg-ir-manifest.sh
 ./scripts/test-plgg-highlight.sh
 ./scripts/test-plgg-router.sh
 ./scripts/test-plgg-server.sh
