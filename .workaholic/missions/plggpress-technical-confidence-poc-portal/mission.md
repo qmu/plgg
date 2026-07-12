@@ -83,3 +83,6 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-12 — ticket archived — 20260712030000-poc3-writer-voice-assistant.md
 - 2026-07-12 — story reported — work-20260712-003840.md
 - 2026-07-12 — ticket archived — 20260712113318-resume-poc3-verdict-and-ship.md
+- 2026-07-12 — concern deferred (stuck) — 64-107-standing-deferred-concerns-from-prior.md
+- 2026-07-12 — concern deferred (stuck) — 64-full-corpus-build-depends-on-the.md
+- 2026-07-12 — concern deferred (stuck) — 64-portal-verdict-data-remains-hand-edited.md
