@@ -159,3 +159,25 @@ export const codeMissingAuthorize =
 /** An effect targets something that is not settable. */
 export const codeBadEffect =
   "manifest.action.bad-effect";
+
+/** A derive/materialize declaration is malformed. */
+export const codeBadDerive =
+  "manifest.derive.malformed";
+
+/** Derived fields form a dependency cycle (§36.8). */
+export const codeCircularDerivation =
+  "manifest.derive.circular";
+
+/**
+ * An effect writes a derived field — derived values
+ * have exactly one source of truth (§36.6–36.7).
+ */
+export const codeNotWritable =
+  "manifest.derive.not-writable";
+
+/**
+ * An immediate materialization depends on data
+ * outside the field's aggregate (§16.9).
+ */
+export const codeIncompatibleConsistency =
+  "manifest.derive.incompatible-consistency";

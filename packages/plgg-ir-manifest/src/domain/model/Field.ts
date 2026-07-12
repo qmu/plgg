@@ -3,6 +3,7 @@ import {
   SoftStr,
   Option,
   box,
+  none,
   pattern,
 } from "plgg";
 import { SourceRange } from "plgg-ir-syntax";
@@ -10,6 +11,8 @@ import {
   SemType,
   TypedExpr,
 } from "plgg-ir-language";
+import { Derivation } from "plgg-ir-manifest/domain/model/Derivation";
+import { Consistency } from "plgg-ir-manifest/domain/model/Aggregate";
 
 /**
  * One declared validation rule of a field
@@ -113,19 +116,25 @@ export const requiredWhenRule$ = () =>
  * One entity field of the canonical manifest IR: a
  * resolved name, its semantic type (nominal domain
  * meaning preserved over storage, design.md §8), the
- * optional persistence column, and its validation
- * rules.
+ * optional persistence column, its validation rules,
+ * and — when derived (design.md §13) — its
+ * declared derivation and materialization. A derived
+ * field is never independently writable (§36.6).
  */
 export type Field = Readonly<{
   name: SoftStr;
   type: SemType;
   column: Option<SoftStr>;
   validations: ReadonlyArray<ValidationRule>;
+  derive: Option<Derivation>;
+  materialize: Option<Consistency>;
   range: SourceRange;
 }>;
 
 /**
- * Builds a {@link Field}.
+ * Builds a {@link Field} (underived; the module stage
+ * resolves `(derive ...)` clauses over the whole
+ * entity graph and attaches the derivation).
  */
 export const field = (
   name: SoftStr,
@@ -138,5 +147,22 @@ export const field = (
   type,
   column,
   validations,
+  derive: none(),
+  materialize: none(),
   range,
 });
+
+/**
+ * Attaches a resolved derivation (and its
+ * materialization mode) to a field.
+ */
+export const withDerivation =
+  (
+    derive: Option<Derivation>,
+    materialize: Option<Consistency>,
+  ) =>
+  (f: Field): Field => ({
+    ...f,
+    derive,
+    materialize,
+  });

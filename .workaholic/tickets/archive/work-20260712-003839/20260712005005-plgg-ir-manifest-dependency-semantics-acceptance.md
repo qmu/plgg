@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain]
 effort: 4h
-commit_hash:
-category:
+commit_hash: 296d8ef8
+category: Added
 depends_on: [20260712005004-plgg-ir-manifest-web-semantics.md]
 mission: build-the-plgg-ir-package-family
 ---

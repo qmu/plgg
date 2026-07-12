@@ -82,8 +82,38 @@ projection does not expose (`manifest.projection.not-exposed`).
 Navigation is checked module-wide: target view, parameter
 completeness, and argument types. An action with effects and no
 `(authorize ...)` is a compile error — no policy means denied
-(design §36.1). Dependency semantics (derive, materialize,
-consistency planning) are Phase 5 of the same dialect.
+(design §36.1).
+
+## The dependency vocabulary (Phase 5)
+
+```lisp
+(entity order
+  (field total (type (money JPY))
+    (derive (sum (children items subtotal)))   ; member-field sum
+    (materialize (consistency immediate)))     ; requires derive; immediate must
+  (field tax (type (money JPY))                ;   stay inside the aggregate
+    (derive (* total tax-rate)))               ; Money<C> × Percentage → Money<C>
+  (field item-count (type integer)
+    (derive (count order.items))))             ; membership count
+```
+
+Derived values declare their source (§36.6): a `(set ...)` effect
+targeting a derived field is `manifest.derive.not-writable`, a
+`materialize` without a `derive` is rejected, and derivations are
+type-checked against the field. The dependency graph is built from
+the declarations; **circular derivations are compile errors**
+(§36.8, `manifest.derive.circular`). Consumers read the update
+semantics from two pure functions over the compiled `Module`:
+`derivedUpdateOrder` (topological, dependencies first) and
+`updatePlanFor(module, {entity, field})` — the §13 chain
+`order-item change → total → tax` (use `field: "*"` for a
+membership change).
+
+The three-layer documentation of the family (design §41) is the
+three package READMEs: the
+[syntax reference](../plgg-ir-syntax/README.md), the
+[language-framework guide](../plgg-ir-language/README.md), and
+this manifest-language guide.
 
 ## What is verified statically
 

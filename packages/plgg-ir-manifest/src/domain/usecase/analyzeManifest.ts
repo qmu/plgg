@@ -8,6 +8,7 @@ import {
   none,
   pipe,
   matchOption,
+  matchResult,
   chainResult,
   mapResult,
 } from "plgg";
@@ -108,6 +109,8 @@ import {
 } from "plgg-ir-manifest/domain/usecase/analyzeWeb";
 import { parseView } from "plgg-ir-manifest/domain/usecase/analyzeView";
 import { parseAction } from "plgg-ir-manifest/domain/usecase/analyzeAction";
+import { resolveDerives } from "plgg-ir-manifest/domain/usecase/analyzeDerive";
+import { verifyDependencies } from "plgg-ir-manifest/domain/usecase/verifyDependencies";
 
 type Diags = ReadonlyArray<SemDiagnostic>;
 
@@ -237,12 +240,14 @@ const parseFieldDecl = (
                 ): Result<true, Diags> =>
                   isClause("type")(child) ||
                   isClause("column")(child) ||
-                  isClause("validate")(child)
+                  isClause("validate")(child) ||
+                  isClause("derive")(child) ||
+                  isClause("materialize")(child)
                     ? ok(true)
                     : err([
                         semError(
                           codeUnknownFieldForm,
-                          "a field clause must be (type ...), (column ...), or (validate ...)",
+                          "a field clause must be (type ...), (column ...), (validate ...), (derive ...), or (materialize ...)",
                           sexpRange(child),
                         ),
                       ]),
@@ -1113,7 +1118,25 @@ export const analyzeInputFields = (
   fieldForms: ReadonlyArray<ListExp>,
 ): Result<ReadonlyArray<Field>, Diags> =>
   pipe(
-    allOrErrors(fieldForms.map(parseFieldDecl)),
+    allOrErrors(
+      fieldForms.map(
+        (
+          form: ListExp,
+        ): Result<FieldDecl, Diags> =>
+          clausesNamed(form, "derive").length >
+            0 ||
+          clausesNamed(form, "materialize")
+            .length > 0
+            ? err([
+                semError(
+                  codeBadField,
+                  "action input fields cannot derive or materialize",
+                  form.content.range,
+                ),
+              ])
+            : parseFieldDecl(form),
+      ),
+    ),
     chainResult(
       (decls: ReadonlyArray<FieldDecl>) =>
         pipe(
@@ -1400,55 +1423,76 @@ const buildModuleStages = (
               [],
               form.content.range,
             ),
-            (m0: Module) =>
+            (base: Module) =>
               pipe(
-                partitionResults(
-                  children
-                    .filter(
-                      isClause("projection"),
-                    )
-                    .map(parseProjection(m0)),
+                resolveDerivesStage(
+                  ctx,
+                  base,
+                  children,
                 ),
-                (projections) =>
+                (derived) =>
                   pipe(
-                    {
-                      ...m0,
-                      projections:
-                        projections.values,
-                    },
-                    (m1: Module) =>
+                    derived.module,
+                    (m0: Module) =>
                       pipe(
                         partitionResults(
                           children
                             .filter(
-                              isClause("policy"),
+                              isClause(
+                                "projection",
+                              ),
                             )
                             .map(
-                              parsePolicy(
-                                m1,
-                                ctx,
-                              ),
+                              parseProjection(m0),
                             ),
                         ),
-                        (policies) =>
+                        (projections) =>
                           pipe(
                             {
-                              ...m1,
-                              policies:
-                                policies.values,
+                              ...m0,
+                              projections:
+                                projections.values,
                             },
-                            (m2: Module) =>
-                              buildModuleWeb(
-                                ctx,
-                                children,
-                                m2,
-                                [
-                                  ...entities.errors,
-                                  ...aggregates.errors,
-                                  ...projections.errors,
-                                  ...policies.errors,
-                                  ...unknownDiags,
-                                ],
+                            (m1: Module) =>
+                              pipe(
+                                partitionResults(
+                                  children
+                                    .filter(
+                                      isClause(
+                                        "policy",
+                                      ),
+                                    )
+                                    .map(
+                                      parsePolicy(
+                                        m1,
+                                        ctx,
+                                      ),
+                                    ),
+                                ),
+                                (policies) =>
+                                  pipe(
+                                    {
+                                      ...m1,
+                                      policies:
+                                        policies.values,
+                                    },
+                                    (
+                                      m2: Module,
+                                    ) =>
+                                      buildModuleWeb(
+                                        ctx,
+                                        children,
+                                        m2,
+                                        [
+                                          ...entities.errors,
+                                          ...derived.errors,
+                                          ...aggregates.errors,
+                                          ...projections.errors,
+                                          ...policies.errors,
+                                          ...unknownDiags,
+                                        ],
+                                      ),
+                                  ),
                               ),
                           ),
                       ),
@@ -1456,6 +1500,38 @@ const buildModuleStages = (
               ),
           ),
       ),
+  );
+
+/**
+ * The derive-resolution stage: attaches derivations
+ * over the full entity graph; failures accumulate and
+ * the underived entities carry on so later stages
+ * still report their own diagnostics.
+ */
+const resolveDerivesStage = (
+  ctx: AnalysisContext<Module>,
+  base: Module,
+  children: ReadonlyArray<Sexp>,
+): Readonly<{
+  module: Module;
+  errors: Diags;
+}> =>
+  pipe(
+    resolveDerives(
+      ctx,
+      base,
+      children.filter(isClause("entity")),
+    ),
+    matchResult(
+      (errors: Diags) => ({
+        module: base,
+        errors,
+      }),
+      (entities: ReadonlyArray<Entity>) => ({
+        module: { ...base, entities },
+        errors: [],
+      }),
+    ),
   );
 
 /**
@@ -1497,6 +1573,7 @@ const buildModuleWeb = (
                   ...actions.errors,
                   ...verifyModule(m3),
                   ...verifyWebRefs(m3),
+                  ...verifyDependencies(m3),
                 ],
                 (all: Diags) =>
                   all.length === 0

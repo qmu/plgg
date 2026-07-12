@@ -35,7 +35,14 @@ const CLAUSE_RANKS: Readonly<
     relation: 3,
     invariant: 4,
   },
-  field: { type: 0, column: 1, validate: 2 },
+  field: {
+    type: 0,
+    column: 1,
+    validate: 2,
+    derive: 3,
+    materialize: 4,
+  },
+  materialize: { consistency: 0 },
   relation: {
     target: 0,
     cardinality: 1,
