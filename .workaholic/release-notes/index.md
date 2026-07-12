@@ -22,3 +22,5 @@
 * [Extract the plggmatic design system into its own repository etc](work-20260706-120449.md)
 * [Add the plggpress PoC portal and the browser search core PoC etc](work-20260711-035119.md)
 * [Record the PoC 1 verdict as proven with measured CJK Japanese search etc](work-20260711-125441.md)
+* [Build the plgg-ir package family: typed S-expression IR for AI-generated Domain Manifests](work-20260712-003839.md)
+* [PoC 2 reader agent proven with grounded EN/JA citations, etc](work-20260712-003840.md)

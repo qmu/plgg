@@ -107,5 +107,11 @@
 * [Cross-repo acceptance check-off has no automated seam](63-cross-repo-acceptance-check-off-has.md)
 * [DSL division of labor between plgg-ir and the screen-structure mission](63-dsl-division-of-labor-between-plgg.md)
 * [Pre-existing PoC source not fully prettier-50-clean](63-pre-existing-poc-source-not-fully.md)
+* [(carried from PRs #31–#63) 107 standing deferred concerns remain active](65-carried-from-prs-31-63-107.md)
+* [Circular-derivation diagnostics name the whole unresolvable set](65-cycle-diagnostic-names-whole-set.md)
+* [Guide-site pages for the plgg-ir family are not wired](65-guide-site-pages-not-wired.md)
+* [has-role takes a string literal, deviating from design §10](65-has-role-string-literal-deviation.md)
+* [analyzeManifest ↔ analyzeAction module cycle is benign but fragile](65-manifest-action-import-cycle.md)
+* [Policy bodies are not checked against their attached subject](65-policy-subject-binding-unchecked.md)
 
 * [archive/](archive/)
