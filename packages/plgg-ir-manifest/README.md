@@ -110,10 +110,11 @@ semantics from two pure functions over the compiled `Module`:
 membership change).
 
 The three-layer documentation of the family (design §41) is the
-three package READMEs: the
+three package READMEs — the
 [syntax reference](../plgg-ir-syntax/README.md), the
 [language-framework guide](../plgg-ir-language/README.md), and
-this manifest-language guide.
+this manifest-language guide — plus the comprehensive
+[plgg-ir guide](../../docs/plgg-ir/guide.md).
 
 ## What is verified statically
 

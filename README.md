@@ -110,7 +110,7 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-bundle/`](packages/plgg-bundle/)** - In-house minimal library bundler (dual ESM+CJS output + a per-file `.d.ts` tree) and dev server, plgg-free with zero new dependencies (reuses the project's own TypeScript)
 - **[`packages/plgg-test/`](packages/plgg-test/)** - In-house minimal test runner (the `plgg-test` bin every package's test/coverage scripts call): discovery, assertions/matchers, mocks, and a coverage threshold gate
 
-**AI-generated IR (`plgg-ir` family)**
+**AI-generated IR (`plgg-ir` family)** — comprehensive guide: [docs/plgg-ir/guide.md](docs/plgg-ir/guide.md)
 
 - **[`packages/plgg-ir-syntax/`](packages/plgg-ir-syntax/)** - Minimal S-expression syntax layer for the plgg-ir family on plgg-parser: position-aware `Sexp` trees, accumulated coded diagnostics (never throws), and a deterministic canonical printer with the `parse(print(parse(x))) = parse(x)` round-trip property
 - **[`packages/plgg-ir-language/`](packages/plgg-ir-language/)** - Reusable static language framework on plgg-ir-syntax: form/operator registries (closed vocabulary), kinded scopes with two-phase declare/analyze (forward references), a type checker preserving domain types (`client-id ≠ organization-id`, `(money JPY) ≠ (money USD)`), expected/actual diagnostics, shorthand expansion, idempotent normalization with a canonical serializer, and collision-checked dialect composition
