@@ -315,7 +315,15 @@ export const eventOf = (
           text,
         });
   }
-  if (type === "response.audio_transcript.done") {
+  // GA renamed the assistant-transcript event to
+  // `response.output_audio_transcript.done` (probed
+  // live 2026-07-12); the pre-GA name is kept accepted
+  // so a rollback upstream can't silence the page.
+  if (
+    type ===
+      "response.output_audio_transcript.done" ||
+    type === "response.audio_transcript.done"
+  ) {
     const text = strAt(raw, "transcript");
     return text === ""
       ? none()

@@ -97,14 +97,26 @@ export const openRealtime = async (
     const channel =
       pc.createDataChannel("oai-events");
     channel.onopen = () => {
+      // GA session.update shape, probed live over a
+      // WebSocket (2026-07-12): `session.type` is
+      // REQUIRED ("Missing required parameter:
+      // 'session.type'" without it) and the pre-GA
+      // `input_audio_transcription` is an unknown
+      // parameter — transcription now nests under
+      // audio.input.transcription.
       channel.send(
         JSON.stringify({
           type: "session.update",
           session: {
+            type: "realtime",
             instructions: config.instructions,
             tools: config.tools,
-            input_audio_transcription: {
-              model: "whisper-1",
+            audio: {
+              input: {
+                transcription: {
+                  model: "whisper-1",
+                },
+              },
             },
           },
         }),

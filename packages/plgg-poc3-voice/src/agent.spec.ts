@@ -76,6 +76,15 @@ test("eventOf decodes the four event shapes and drops the rest", () =>
     ),
     check(
       kindOf({
+        type: "response.output_audio_transcript.done",
+        transcript: "The docs say…",
+      }),
+      toBe("AssistantSaid"),
+    ),
+    // The pre-GA name stays accepted (rollback
+    // tolerance).
+    check(
+      kindOf({
         type: "response.audio_transcript.done",
         transcript: "The docs say…",
       }),
