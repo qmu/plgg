@@ -11,8 +11,14 @@ tickets:
   - 20260712005003-plgg-ir-manifest-core.md
   - 20260712005004-plgg-ir-manifest-web-semantics.md
   - 20260712005005-plgg-ir-manifest-dependency-semantics-acceptance.md
-stories: []
-concerns: []
+stories:
+  - work-20260712-003839.md
+concerns:
+  - 65-policy-subject-binding-unchecked.md
+  - 65-has-role-string-literal-deviation.md
+  - 65-guide-site-pages-not-wired.md
+  - 65-cycle-diagnostic-names-whole-set.md
+  - 65-manifest-action-import-cycle.md
 ---
 
 # Build the plgg-ir Package Family
@@ -90,3 +96,4 @@ Out of scope:
 - 2026-07-12 — ticket archived — 20260712005004-plgg-ir-manifest-web-semantics.md
 - 2026-07-12 — ticket archived — 20260712005005-plgg-ir-manifest-dependency-semantics-acceptance.md
 - 2026-07-12 — all five phase tickets implemented and archived on work-20260712-003839; every acceptance item ticked; §39 scenario green — 20260712005001…20260712005005
+- 2026-07-12 — branch story written and PR #65 opened (all five phases + docs guide); five new deferred concerns recorded — work-20260712-003839.md
