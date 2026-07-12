@@ -55,8 +55,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does an OpenAI Realtime API voice session give the writer an 'on the same page' discussion partner over the open document?",
     confidenceSignal:
       "A voice conversation about the currently open document works end-to-end in the browser against the dev server's minted session, with the document content in the assistant's context.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — a live microphone conversation in the browser (judged by the developer at plgg-poc3.qmu.dev) discusses the open document in Japanese over the GA Realtime API: WebRTC audio both ways, the picked document carried in the session instructions, and every factual answer grounded by the model DRIVING the search_docs tool — the on-page trail shows model-generated keyword variations until the corpus vocabulary matches (the PoC 2 verdict's accepted design, here exercised over voice; the same loop was also reproduced headless over the GA WebSocket, where the model generated 「文書化 基準」 unprompted). Key confinement held: the standing OPENAI_API_KEY stays in the serve process behind POST /api/session (honest 404 without it), and the browser only ever holds the short-lived client_secrets grant.",
+    ),
     hostname: "plgg-poc3.qmu.dev",
     port: 5186,
   },

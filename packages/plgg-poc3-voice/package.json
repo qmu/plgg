@@ -27,6 +27,7 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
+    "plgg-kit": "file:../plgg-kit",
     "plgg-view": "file:../plgg-view",
     "plgg-poc1-search": "file:../plgg-poc1-search"
   },

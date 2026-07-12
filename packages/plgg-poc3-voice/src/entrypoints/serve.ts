@@ -32,21 +32,18 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   type Option,
-  type Result,
-  type SoftStr,
-  ok,
-  err,
+  type Defect,
   some,
   none,
   matchOption,
   matchResult,
   pipe,
-  cast,
-  asRawObj,
-  asSoftStr,
-  asNum,
-  forProp,
 } from "plgg";
+import {
+  type EphemeralKey,
+  type KeyMinter,
+  minterFromConfig,
+} from "plgg-kit";
 
 const ROOT = process.cwd();
 const PORT = Number(process.env["PORT"] ?? 5173);
@@ -57,90 +54,22 @@ const keyOption = (): Option<string> => {
 };
 
 /**
- * Mint via the GA endpoint. NOTE (measured live,
- * 2026-07-12): the pre-GA `/v1/realtime/sessions`
- * endpoint plg-kit's `realtimeKeyMinter` targets now
- * answers 404 "Invalid URL", and the GA reply
- * carries `value`/`expires_at` at the TOP level (no
- * `client_secret` wrapper), so plgg-kit's minter AND
- * its `asEphemeralKey` are both stale — filed as a
- * production follow-up ticket; this PoC mints directly
- * in its entrypoint (the vendor seam) meanwhile.
+ * The mint seam is plgg-kit's `minterFromConfig` (the
+ * same wiring plgg-cms's agentWeb uses): `None` without
+ * an operator key, so the route stays an honest 404. The
+ * local duplicate minter this entrypoint carried while
+ * plgg-kit still targeted the retired pre-GA
+ * `/v1/realtime/sessions` endpoint is gone — plgg-kit
+ * now mints via the GA `client_secrets` endpoint and
+ * decodes the top-level `value`/`expires_at` reply.
  */
-const MINT_URL =
-  "https://api.openai.com/v1/realtime/client_secrets";
-
-const mintGrant = async (
-  apiKey: SoftStr,
-): Promise<
-  Result<
-    Readonly<{
-      value: SoftStr;
-      expiresAt: number;
-    }>,
-    SoftStr
-  >
-> => {
-  try {
-    const res = await fetch(MINT_URL, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        session: {
-          type: "realtime",
-          model: "gpt-realtime",
-        },
-      }),
-    });
-    if (!res.ok) {
-      return err(
-        `realtime mint HTTP ${res.status}`,
-      );
-    }
-    const body: unknown = await res.json();
-    return pipe(
-      cast(
-        body,
-        asRawObj,
-        forProp("value", asSoftStr),
-        forProp("expires_at", asNum),
-      ),
-      matchResult(
-        (): Result<
-          Readonly<{
-            value: SoftStr;
-            expiresAt: number;
-          }>,
-          SoftStr
-        > =>
-          err("malformed realtime mint response"),
-        (grant: {
-          value: SoftStr;
-          expires_at: number;
-        }): Result<
-          Readonly<{
-            value: SoftStr;
-            expiresAt: number;
-          }>,
-          SoftStr
-        > =>
-          ok({
-            value: grant.value,
-            expiresAt: grant.expires_at,
-          }),
-      ),
-    );
-  } catch (cause) {
-    return err(
-      cause instanceof Error
-        ? cause.message
-        : String(cause),
-    );
-  }
-};
+const MINTER: Option<KeyMinter> =
+  minterFromConfig({
+    apiKey: keyOption(),
+    model: "gpt-realtime",
+    endpoint:
+      "https://api.openai.com/v1/realtime/client_secrets",
+  });
 
 /** The exact files this PoC serves — nothing else. */
 const FILES: Readonly<
@@ -186,24 +115,22 @@ const handleSession = (
   res: ServerResponse,
 ): Promise<void> =>
   pipe(
-    keyOption(),
+    MINTER,
     matchOption(
       async (): Promise<void> =>
         sendJson(res, 404, {
           error:
             "the assistant is not configured — set OPENAI_API_KEY on the server",
         }),
-      async (apiKey: string): Promise<void> =>
-        mintGrant(apiKey).then(
+      async (minter: KeyMinter): Promise<void> =>
+        minter.mint().then(
           matchResult(
-            (reason: SoftStr): void =>
+            (reason: Defect): void =>
               sendJson(res, 502, {
-                error: `could not mint a realtime key: ${reason}`,
+                error: `could not mint a realtime key: ${reason.content.message}`,
               }),
-            (grant: {
-              value: SoftStr;
-              expiresAt: number;
-            }): void => sendJson(res, 200, grant),
+            (grant: EphemeralKey): void =>
+              sendJson(res, 200, grant),
           ),
         ),
     ),
@@ -227,7 +154,7 @@ createServer((req, res) => {
       configured: matchOption(
         () => false,
         () => true,
-      )(keyOption()),
+      )(MINTER),
     });
     return;
   }
@@ -260,6 +187,6 @@ createServer((req, res) => {
     `PoC 3 (writer-side voice assistant) on http://localhost:${PORT} — assistant ${matchOption(
       () => "NOT configured (no OPENAI_API_KEY)",
       () => "configured",
-    )(keyOption())}`,
+    )(MINTER)}`,
   ),
 );
