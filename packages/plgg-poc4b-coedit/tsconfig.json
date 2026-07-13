@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    /* Compiler Option */
+    "target": "ES2021",
+    "module": "NodeNext",
+    "lib": [
+      "ES2021",
+      "ES2022.Intl",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": ["node"],
+    /* No rootDir on purpose (a deviation from the
+       sibling scaffolds): src/poc1.ts reuses PoC 1's FTS
+       modules by RELATIVE import — the one specifier
+       spelling every resolver here shares (tsc, node
+       type-stripping, plgg-test, plgg-bundle's app
+       inliner) — and rootDir would reject those files.
+       With noEmit, rootDir has no output meaning anyway. */
+    /* The in-house bundler builds dist now (not tsc), so
+       tsc is type-check only. allowImportingTsExtensions
+       lets the entries import `./app.ts` directly, which
+       is what `node` (type-stripping) needs at runtime —
+       no tsx. */
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    /* node (type-stripping) is not type-aware, so a
+       type imported value-style would become a real,
+       failing runtime import. verbatimModuleSyntax makes
+       tsc enforce `import type` / inline `type`, so the
+       entries run under plain `node`. */
+    "verbatimModuleSyntax": true,
+    /* Type Checking Rules */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowJs": false,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["src/**/*"]
+}

@@ -37,10 +37,7 @@ test("every status renders a label", () =>
       STATUS_LABEL["building"],
       toBe("Building"),
     ),
-    check(
-      STATUS_LABEL["proven"],
-      toBe("Proven"),
-    ),
+    check(STATUS_LABEL["proven"], toBe("Proven")),
     check(
       STATUS_LABEL["disproven"],
       toBe("Disproven"),
@@ -100,13 +97,11 @@ test("planned PoCs never link", () =>
 
 test("the fleet data is consistent", () =>
   all([
-    // Six PoCs planned by the mission.
-    check(POCS.length, toBe(6)),
+    // Seven PoC entries: the six mission PoCs plus 4b,
+    // the co-editing-EXPERIENCE spin-off of PoC 4.
+    check(POCS.length, toBe(7)),
     // Every record honors the verdict invariant.
-    check(
-      POCS.every(pocConsistent),
-      toBe(true),
-    ),
+    check(POCS.every(pocConsistent), toBe(true)),
     // Ports are unique and inside the reserved
     // 5184–5190 block (5183 is the portal).
     check(
@@ -121,8 +116,7 @@ test("the fleet data is consistent", () =>
     ),
     // Hostnames are unique *.qmu.dev names.
     check(
-      new Set(POCS.map((p) => p.hostname))
-        .size,
+      new Set(POCS.map((p) => p.hostname)).size,
       toBe(POCS.length),
     ),
     check(
@@ -144,15 +138,9 @@ test("the fleet data is consistent", () =>
 test("isConcluded matches the closed set", () =>
   all([
     check(isConcluded("planned"), toBe(false)),
-    check(
-      isConcluded("building"),
-      toBe(false),
-    ),
+    check(isConcluded("building"), toBe(false)),
     check(isConcluded("proven"), toBe(true)),
-    check(
-      isConcluded("disproven"),
-      toBe(true),
-    ),
+    check(isConcluded("disproven"), toBe(true)),
     check(
       isConcluded("needs-another-round"),
       toBe(true),

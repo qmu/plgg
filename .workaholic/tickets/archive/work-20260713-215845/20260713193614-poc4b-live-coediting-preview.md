@@ -3,9 +3,9 @@ created_at: 2026-07-13T19:36:14+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Domain, Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: d9167608
+category: Added
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
 ---
@@ -224,3 +224,51 @@ developer judges, on a real corpus page, whether either mode delivers the
 - Cross-package source reuse (poc1 FTS, plgg-md render) uses the
   relative-import seam exactly as poc4's `src/poc1.ts` (memory: new
   package scaffold gotchas).
+
+## Final Report
+
+Development completed as planned. New package `packages/plgg-poc4b-coedit`
+(forked from PoC 4) delivers the co-editing EXPERIENCE: a granular
+`edit_doc(path, edits)` find/replace tool, a pure applier / span-locator /
+diff-builder core (`edit.ts`, exhaustively spec'd), a live markdown
+preview the client renders and PATCHES in place (the reloading iframe
+retired), and the change visualized two ways — micro-animation (erase →
+write, via plgg-view's declarative WAAPI transition seam + keyed
+reconciliation) and a before/after diff — toggleable, both driven by the
+SAME pure diff. `/api/edit` returns `{path, text, segments}` so preview
+and disk agree; PoC 4's layered path guard (`resolveEditPath` + realpath
+containment, `.md` only, atomic temp+rename) is preserved. Portal `poc4b`
+entry added (building, 5190, `plgg-poc4b.qmu.dev`); single-process
+workload + scripts + READMEs wired.
+
+Verified: tsc clean; 52 offline specs, coverage gate PASSED (edit /
+editPath / agent / protocol 100%, app reducer 96%); fresh `check-all` EXIT
+0 (whole monorepo green). Headless smoke through the live server — raw doc
+read, `/api/edit` op round-trip changed one span and returned its diff
+segments, index refreshed, guard rejections all correct (traversal 400;
+absent / ambiguous / empty find 422; malformed 400). Live serving at
+`plgg-poc4b.qmu.dev` (behind Access) on host 5190 for the developer's
+same-whiteboard-feel judgment.
+
+### Discovered Insights
+
+- **Insight**: plgg-view ships a declarative animation seam
+  (`transition`/`fadeIn`/`slideIn`/`fadeOut` + `key` for keyed
+  reconciliation, backed by the Web Animations API), so the erase→write
+  micro-animation needed NO new dep and NO imperative DOM code — the pure
+  diff decides WHAT changed, a keyed node swap + WAAPI motion decide HOW.
+  **Context**: this is the seam any future PoC-fleet animation should reuse
+  rather than hand-rolling CSS or a dep; it keeps the vendor-neutrality and
+  domain/animation-separation policies satisfied for free.
+- **Insight**: retiring the iframe collapsed PoC 4's two-process container
+  (shell + internal plggpress dev server + `/docs` proxy) into a single
+  poc3-style process, and dropped the `plggpress` dependency entirely — the
+  preview is rendered client-side from `/api/doc` raw bytes.
+  **Context**: the simplification is a direct consequence of the "change
+  ON the preview" reframing; the doc pane no longer needs plggpress theming.
+- **Insight**: splitting the TEA reducer (`app.ts`, pure, gated ≥90%) from
+  its Cmd effect thunks (`effects.ts`, excluded — fetch/WebRTC/timer bodies
+  never run headless) let the reducer AND the pure core both meet a real
+  >90% coverage gate, rather than exempting the whole app as poc4 did.
+  **Context**: the coverage-exclude list in `plgg-test.config.json` and its
+  `_rationale` document exactly which files are IO-only.

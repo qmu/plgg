@@ -125,6 +125,7 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-poc2-agent/`](packages/plgg-poc2-agent/)** - PoC 2: reader-side embedded browser agent — grounded, cited answers over the shipped guide index, key confined to a server session seam (private, served at `plgg-poc2.qmu.dev`)
 - **[`packages/plgg-poc3-voice/`](packages/plgg-poc3-voice/)** - PoC 3: writer-side voice assistant over the Realtime API — the agent drives the browser-local search by tool-calling keyword variations, ephemeral key minted server-side (private, served at `plgg-poc3.qmu.dev`)
 - **[`packages/plgg-poc4-edit/`](packages/plgg-poc4-edit/)** - PoC 4: agent file edits with live hot reload — `edit_file` tool calls land on a seeded corpus copy through the dev server, the doc iframe hot-reloads, and the same Realtime session (voice + text) survives (private, served at `plgg-poc4.qmu.dev`)
+- **[`packages/plgg-poc4b-coedit/`](packages/plgg-poc4b-coedit/)** - PoC 4b: live co-editing preview — the change happens ON the preview: granular `edit_doc` find/replace ops land on a live, patchable preview (the iframe retired), the edited span animated (erase → write) or diffed, no reload, the Realtime session unbroken (private, served at `plgg-poc4b.qmu.dev`)
 
 The Pragmatic design-system package, its documentation site, and its workbench now live outside this monorepo. This repository keeps the CMS admin UI inside `plgg-cms`; plggpress carries only the static theme support needed to build this guide.
 
