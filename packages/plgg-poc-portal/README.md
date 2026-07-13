@@ -49,7 +49,9 @@ the catch-all rule), then restart cloudflared:
   service: http://localhost:5186
 - hostname: plgg-poc4.qmu.dev
   service: http://localhost:5187
-# 5188–5190 reserved for plgg-poc5..6 — add each hostname when its PoC ships.
+- hostname: plgg-poc4b.qmu.dev
+  service: http://localhost:5190
+# 5188–5189 reserved for plgg-poc5..6 — add each hostname when its PoC ships.
 ```
 
 | Hostname | Port | App |
@@ -59,7 +61,8 @@ the catch-all rule), then restart cloudflared:
 | `plgg-poc2.qmu.dev` | 5185 | PoC 2 — reader-side browser agent |
 | `plgg-poc3.qmu.dev` | 5186 | PoC 3 — writer-side voice assistant |
 | `plgg-poc4.qmu.dev` | 5187 | PoC 4 — agent file edits + hot reload |
-| (reserved) | 5188–5190 | PoC 5–6 |
+| `plgg-poc4b.qmu.dev` | 5190 | PoC 4b — live co-editing preview |
+| (reserved) | 5188–5189 | PoC 5–6 |
 
 ## Status vocabulary
 

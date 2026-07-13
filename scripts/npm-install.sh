@@ -57,5 +57,10 @@ cd $REPO_ROOT/packages/plgg-poc3-voice && npm install
 # its internal doc server is pressDevEntry over the seeded guide copy, and its
 # shell reuses plgg-kit's GA realtime mint.
 cd $REPO_ROOT/packages/plgg-poc4-edit && npm install
+# poc4b after poc1 (the same FTS reuse seam) and plgg-kit
+# (the GA realtime mint). It file:-depends only on
+# packages installed above — plggpress is NOT a dep (4b
+# retires the iframe and renders the preview itself).
+cd $REPO_ROOT/packages/plgg-poc4b-coedit && npm install
 cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

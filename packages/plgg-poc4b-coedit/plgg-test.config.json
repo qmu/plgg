@@ -1,0 +1,14 @@
+{
+  "_rationale": "The >90% gate covers the PURE CORE the ticket names — the edit-operation locator/applier/diff-builder (edit.ts), the Realtime event decoder + session instructions + search executor (agent.ts), the wire casters (protocol.ts), and the TEA REDUCER (app.ts: model + update, tested by app.spec.ts). All IO is split OUT of the reducer into effects.ts (the Cmd builders + subscriptions) so the reducer stays pure and gated. Excluded, same as the fleet's other apps and the plgg-view/plgg-server entry-file exclusions: effects.ts (fetch/WebRTC/timer thunks that cannot run headless), view.ts (DOM render tree), vendors/ (WebRTC + WAAPI), entrypoints/ (node:http + fs), main.ts (the mount line), and poc1.ts (a re-export seam).",
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/main.ts",
+      "/effects.ts",
+      "/view.ts",
+      "/vendors/",
+      "/entrypoints/",
+      "/poc1.ts"
+    ]
+  }
+}

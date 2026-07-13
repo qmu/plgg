@@ -4,6 +4,9 @@ origin_pr_url: https://github.com/qmu/plgg/pull/41
 origin_branch: work-20260617-002003
 origin_commit: 8351741
 created_at: 2026-06-17T21:31:52+09:00
+last_seen: 2026-06-17T21:31:52+09:00
+first_seen: 2026-06-17T21:31:52+09:00
+concern_id: existing-specs-still-read-error-content
 severity: low
 status: resolved
 resolved_by_pr: 00c1dc8

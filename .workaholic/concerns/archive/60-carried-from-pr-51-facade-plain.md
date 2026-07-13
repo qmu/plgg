@@ -5,6 +5,9 @@ origin_pr_url: https://github.com/qmu/plgg/pull/60
 origin_branch: work-20260704-130317
 origin_commit: 416da301
 created_at: 2026-07-06T11:33:41+09:00
+last_seen: 2026-07-06T11:33:41+09:00
+first_seen: 2026-07-06T11:33:41+09:00
+concern_id: facade-plain-names-shadow-plgg-server
 severity: moderate
 status: resolved
 resolved_by_pr: 540d2f36

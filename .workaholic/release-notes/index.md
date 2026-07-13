@@ -27,3 +27,4 @@
 * [Add PoC 4 (agent file edits with live hot reload over a surviving Realtime session) and the root .env credential convention etc](work-20260712-174248.md)
 * [Resolved plgg-bundle's __externals lookup failure that left every plggmatic-example page blank at runtime etc](work-20260713-094239.md)
 * [Bump plggpress to 0.0.4 and publish for plggmatic docs](work-20260713-183628.md)
+* [Add PoC 4b: live co-editing preview — the change happens on the preview etc](work-20260713-215845.md)

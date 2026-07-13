@@ -15,8 +15,7 @@
 import { none, some } from "plgg";
 import type { Poc } from "./Poc.ts";
 
-export const PORTAL_HOSTNAME =
-  "plgg-poc.qmu.dev";
+export const PORTAL_HOSTNAME = "plgg-poc.qmu.dev";
 export const PORTAL_PORT = 5183;
 
 export const POCS: ReadonlyArray<Poc> = [
@@ -73,6 +72,18 @@ export const POCS: ReadonlyArray<Poc> = [
     verdict: none(),
     hostname: "plgg-poc4.qmu.dev",
     port: 5187,
+  },
+  {
+    id: "poc4b",
+    name: "Live co-editing preview",
+    question:
+      "Does the AI's edit happening ON the preview — a granular change animated in place, no reload — make co-editing feel like the same whiteboard, and which visualization (micro-animation vs before/after diff) delivers it?",
+    confidenceSignal:
+      "Speaking or typing to change the open document makes the edited span appear ON the live preview surface, in place, legibly — the span animates (erase → write) and/or shows an old-vs-new diff — with NO full-page reload while the same Realtime session keeps talking; the developer judges which mode feels like co-presence on a real corpus page.",
+    status: "building",
+    verdict: none(),
+    hostname: "plgg-poc4b.qmu.dev",
+    port: 5190,
   },
   {
     id: "poc5",

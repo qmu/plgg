@@ -4,6 +4,9 @@ origin_pr_url: https://github.com/qmu/plgg/pull/48
 origin_branch: work-20260627-205005
 origin_commit: 80b301f
 created_at: 2026-06-28T01:22:01+09:00
+last_seen: 2026-06-28T01:22:01+09:00
+first_seen: 2026-06-28T01:22:01+09:00
+concern_id: shipped-d-ts-consumer-resolution-not
 severity: low
 status: resolved
 resolved_by_pr: 0e7f9cd

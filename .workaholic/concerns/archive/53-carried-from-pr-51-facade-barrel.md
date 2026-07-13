@@ -5,6 +5,9 @@ origin_pr_url: https://github.com/qmu/plgg/pull/53
 origin_branch: work-20260703-050355
 origin_commit: 0ddb00d
 created_at: 2026-07-03T17:31:14+09:00
+last_seen: 2026-07-03T17:31:14+09:00
+first_seen: 2026-07-03T17:31:14+09:00
+concern_id: facade-barrel-names-shadow-plgg-server
 severity: low
 status: resolved
 resolved_by_pr: 540d2f36

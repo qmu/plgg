@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>
+      PoC 4b — live co-editing preview
+    </title>
+  </head>
+  <body>
+    <!-- The SESSION-BEARING shell. Served by
+         src/entrypoints/serve.ts (no-store). Unlike PoC 4
+         there is NO iframe and NO dev live-reload script:
+         the document preview is a surface THIS page
+         renders and patches in place. An agent edit lands
+         on disk via POST /api/edit (granular find/replace
+         ops), the changed span animates / diffs ON the
+         preview, and the Realtime session keeps going. -->
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,38 @@
+# PoC 4b workload — live co-editing preview (the change
+# happens ON the preview) — packages/plgg-poc4b-coedit on
+# host port 5190, the cloudflared tunnel route for
+# plgg-poc4b.qmu.dev.
+#
+#   scripts/serve-poc.sh poc4b-coedit
+#
+# SINGLE-process recipe (the PoC 3 shape, NOT PoC 4's
+# two-process one): 4b RETIRES the reloading plggpress
+# iframe, so there is no internal doc server to run — just
+# the shell server that renders and patches the preview
+# itself. Artifacts (the bundle + the seeded corpus copy)
+# are HOST-built; the container runs the serve entry
+# against the mounted repo, auto-seeding content/ on first
+# run. Build them first from the package:
+#
+#   npm run build && npm run seed-content
+#
+# OPENAI_API_KEY comes from the HOST env (serve-poc.sh
+# sources the repo-root .env; an explicit prefix still
+# overrides) — never the repo. Without it the PoC serves
+# its honest "assistant not configured" state.
+services:
+  poc4b-coedit:
+    image: node:22-slim
+    working_dir: /app/packages/plgg-poc4b-coedit
+    # Auto-seed the git-ignored content/ copy on first run
+    # (it persists on the mounted host tree), then serve.
+    command:
+      - "sh"
+      - "-c"
+      - "[ -d content ] || npm run seed-content; exec node src/entrypoints/serve.ts"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "5190:5173"
+    volumes:
+      - ../..:/app
