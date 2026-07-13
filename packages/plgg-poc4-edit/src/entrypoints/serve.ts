@@ -77,6 +77,7 @@ import {
   chunkMarkdown,
   buildFtsIndex,
 } from "../poc1.ts";
+import { REALTIME_MODEL } from "../agent.ts";
 import { resolveEditPath } from "../edit.ts";
 import { asEditRequest } from "../protocol.ts";
 
@@ -110,7 +111,7 @@ const keyOption = (): Option<string> => {
 const MINTER: Option<KeyMinter> =
   minterFromConfig({
     apiKey: keyOption(),
-    model: "gpt-realtime",
+    model: REALTIME_MODEL,
     endpoint:
       "https://api.openai.com/v1/realtime/client_secrets",
   });

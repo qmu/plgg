@@ -13,6 +13,7 @@ import {
 } from "plgg";
 import {
   type AgentEvent,
+  REALTIME_MODEL,
   eventOf,
   runSearchTool,
   instructionsOf,
@@ -226,6 +227,12 @@ test("documents reassemble from their chunks", () =>
       toContain("never throw"),
     ),
   ]));
+
+test("the Realtime snapshot is pinned, not the drifting alias", () =>
+  check(
+    REALTIME_MODEL,
+    toBe("gpt-realtime-2.1"),
+  ));
 
 test("routeOf maps corpus files onto the /docs proxy routes", () =>
   all([

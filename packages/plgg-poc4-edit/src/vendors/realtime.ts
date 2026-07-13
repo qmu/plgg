@@ -24,12 +24,13 @@ import {
   isSome,
 } from "plgg";
 
+import { REALTIME_MODEL } from "../agent.ts";
+
 /**
  * The GA WebRTC SDP exchange endpoint (probed live
- * 2026-07-12).
+ * 2026-07-12), pinned to the shared model snapshot.
  */
-const SDP_URL =
-  "https://api.openai.com/v1/realtime/calls?model=gpt-realtime";
+const SDP_URL = `https://api.openai.com/v1/realtime/calls?model=${REALTIME_MODEL}`;
 
 export type SessionConfig = Readonly<{
   instructions: SoftStr;

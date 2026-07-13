@@ -28,6 +28,16 @@ import {
   searchFts,
 } from "./poc1.ts";
 
+/**
+ * The pinned Realtime snapshot — the single source both
+ * the server mint and the browser SDP exchange derive
+ * from. Pinned to 2.1 explicitly (developer directive
+ * 2026-07-13): the `gpt-realtime` alias still resolves to
+ * the older GA snapshot, and 2.1's stronger tool-calling
+ * discipline is what `edit_file` leans on.
+ */
+export const REALTIME_MODEL = "gpt-realtime-2.1";
+
 /** One transcript line of the conversation. */
 export type Line = Readonly<{
   who: "writer" | "assistant";
