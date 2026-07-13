@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: housekeeping
 layer: [Infrastructure]
 effort: 0.5h
-commit_hash:
-category:
+commit_hash: 1526b245
+category: Changed
 depends_on:
 mission:
 ---
