@@ -52,13 +52,15 @@ serve process behind `POST /api/session` (honest 404 without it).
   proxy).
 - `npm run serve` — the shell server on `PORT` (default 5173): page,
   bundle, in-process index, `/api/*` seams, and the `/docs` proxy
-  (`DOC_PORT`, default 5175). Export `OPENAI_API_KEY` first for live
-  sessions.
+  (`DOC_PORT`, default 5175). For live sessions put `OPENAI_API_KEY`
+  in the repo-root `.env` (see `.env.example`) — or export it, which
+  wins over the file.
 - `npm run test` — strict typecheck + the offline specs (the edit-path
   security boundary, event decoding for both tools, the session/edit/text
   reducer, the wire casters).
 
-From the repo root: `OPENAI_API_KEY=… scripts/serve-poc.sh poc4-edit`
+From the repo root: `scripts/serve-poc.sh poc4-edit` (it sources the
+root `.env`; an explicit `OPENAI_API_KEY=…` prefix still overrides)
 (host port **5187** → container 5173; tunnel route `plgg-poc4.qmu.dev`;
 the container runs both processes — see
 [`workloads/poc4-edit/`](../../workloads/poc4-edit/compose.yaml)).

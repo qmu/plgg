@@ -89,3 +89,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-12 — PR #64 merged (a9ff447f) and GitHub Release 2026.07.week2.release5 published; PoC 3 judged proven live and recorded on the portal; nothing to npm-publish — work-20260712-003840.md
 - 2026-07-13 — ticket archived — 20260713115737-resume-poc4-plggpress-mission.md
 - 2026-07-13 — ticket archived — 20260712152250-poc4-agent-file-edits-hot-reload.md
+- 2026-07-13 — ticket archived — 20260713144522-root-env-file-for-credentials.md

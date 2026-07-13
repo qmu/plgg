@@ -60,13 +60,15 @@ set" bar PoC 1 used.
   (`build:index`; order matters — the bundler's atomic publish replaces
   `dist/`).
 - `npm run serve` — serve page/bundle/index **and the answer API** on `PORT`
-  (default 5173). Export `OPENAI_API_KEY` first for live answers; without it
+  (default 5173). For live answers put `OPENAI_API_KEY` in the repo-root
+  `.env` (see `.env.example`) — or export it, which wins; without it
   the PoC serves its honest "agent not configured" state.
 - `npm run test` — strict typecheck + the offline smoke specs (wire-contract
   casters, the full answer path against an injected fake `postJson` — no
   network in tests — the reducer lifecycle, and the citation-link scheme).
 
-From the repo root: `OPENAI_API_KEY=… scripts/serve-poc.sh poc2-agent` (host
+From the repo root: `scripts/serve-poc.sh poc2-agent` (sources the root
+`.env`; an explicit `OPENAI_API_KEY=…` prefix still overrides) (host
 port **5185** → container 5173; tunnel route `plgg-poc2.qmu.dev`,
 developer-applied — see the portal README's cloudflared snippet).
 
