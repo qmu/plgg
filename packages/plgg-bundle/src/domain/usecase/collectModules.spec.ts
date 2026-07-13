@@ -13,6 +13,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { collectModules } from "plgg-bundle/domain/usecase/collectModules";
+import {
+  emitCjsBundle,
+  emitEsmBundle,
+} from "plgg-bundle/domain/usecase/emitBundle";
 
 test("collectModules records external specifiers without walking them", () => {
   const root = mkdtempSync(
@@ -20,7 +24,9 @@ test("collectModules records external specifiers without walking them", () => {
   );
   try {
     const entry = join(root, "src", "main.ts");
-    mkdirSync(join(root, "src"), { recursive: true });
+    mkdirSync(join(root, "src"), {
+      recursive: true,
+    });
     writeFileSync(
       entry,
       'import { readFileSync } from "node:fs";\nexport const read = readFileSync;\n',
@@ -40,21 +46,26 @@ test("collectModules records external specifiers without walking them", () => {
       ),
     ]);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
   }
 });
 
 test("collectModules throws on an unresolvable non-external specifier", () => {
   const root = mkdtempSync(
-    join(tmpdir(), "plgg-bundle-collect-missing-"),
+    join(
+      tmpdir(),
+      "plgg-bundle-collect-missing-",
+    ),
   );
   try {
     const entry = join(root, "src", "main.ts");
-    mkdirSync(join(root, "src"), { recursive: true });
-    writeFileSync(
-      entry,
-      'import "missing";\n',
-    );
+    mkdirSync(join(root, "src"), {
+      recursive: true,
+    });
+    writeFileSync(entry, 'import "missing";\n');
     return check(
       rejects(() =>
         collectModules({
@@ -68,7 +79,10 @@ test("collectModules throws on an unresolvable non-external specifier", () => {
       toBe(true),
     );
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
   }
 });
 
@@ -92,13 +106,21 @@ test("collectModules inlines an installed prebundled dist entry without resolvin
       "dist",
       "index.es.js",
     );
-    mkdirSync(join(root, "src"), { recursive: true });
-    mkdirSync(join(root, "node_modules", "dep", "dist"), {
+    mkdirSync(join(root, "src"), {
       recursive: true,
     });
-    mkdirSync(join(root, "node_modules", "plgg", "dist"), {
-      recursive: true,
-    });
+    mkdirSync(
+      join(root, "node_modules", "dep", "dist"),
+      {
+        recursive: true,
+      },
+    );
+    mkdirSync(
+      join(root, "node_modules", "plgg", "dist"),
+      {
+        recursive: true,
+      },
+    );
     writeFileSync(
       entry,
       'import dep from "dep";\nexport const value = dep.value;\n',
@@ -159,7 +181,10 @@ test("collectModules inlines an installed prebundled dist entry without resolvin
       ),
     ]);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
   }
 });
 
@@ -190,11 +215,17 @@ test("collectModules resolves node_modules source files without dist-registry fi
       aliasPrefix: "app",
       aliasSrcRoot: join(root, "src"),
       external: /^node:/,
-      resolve: importFixtureResolver(dep, internal),
+      resolve: importFixtureResolver(
+        dep,
+        internal,
+      ),
     });
     return check(graph.modules.length, toBe(3));
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
   }
 });
 
@@ -225,11 +256,134 @@ test("collectModules resolves non-js dist source files without dist-registry fil
       aliasPrefix: "app",
       aliasSrcRoot: join(root, "src"),
       external: /^node:/,
-      resolve: importFixtureResolver(dep, internal),
+      resolve: importFixtureResolver(
+        dep,
+        internal,
+      ),
     });
     return check(graph.modules.length, toBe(3));
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
+  }
+});
+
+test("an app bundling two dists with identical inner module paths keeps each dist's externals resolvable", () => {
+  // Regression for the plggmatic blank-page defect:
+  // pkg-a and pkg-b are plgg-bundle ESM dists whose
+  // inner registries both key "src/index.ts", and
+  // pkg-b requires pkg-a through its inner
+  // __externals table. The outer rewrite must keep
+  // that table's key in step with the rewritten
+  // require, or pkg-b's inner lookup falls into the
+  // async import fallback and yields a Promise where
+  // a namespace is expected.
+  const root = mkdtempSync(
+    join(tmpdir(), "plgg-bundle-collect-nested-"),
+  );
+  try {
+    const entry = join(root, "src", "main.ts");
+    const pkgA = join(
+      root,
+      "node_modules",
+      "pkg-a",
+      "dist",
+      "index.es.js",
+    );
+    const pkgB = join(
+      root,
+      "node_modules",
+      "pkg-b",
+      "dist",
+      "index.es.js",
+    );
+    mkdirSync(join(root, "src"), {
+      recursive: true,
+    });
+    mkdirSync(join(pkgA, ".."), {
+      recursive: true,
+    });
+    mkdirSync(join(pkgB, ".."), {
+      recursive: true,
+    });
+    writeFileSync(
+      entry,
+      [
+        'import { box } from "pkg-a";',
+        'import { useBox } from "pkg-b";',
+        "export const direct = box(1);",
+        "export const viaB = useBox();",
+      ].join("\n"),
+    );
+    // Both dists come from the real emitter, so the
+    // fixture cannot drift from the emitted shape.
+    writeFileSync(
+      pkgA,
+      emitEsmBundle(
+        {
+          entryId: "src/index.ts",
+          modules: [
+            {
+              id: "src/index.ts",
+              code: "exports.box = (v) => v * 2;",
+              externals: [],
+            },
+          ],
+        },
+        ["box"],
+      ),
+    );
+    writeFileSync(
+      pkgB,
+      emitEsmBundle(
+        {
+          entryId: "src/index.ts",
+          modules: [
+            {
+              id: "src/index.ts",
+              code: 'exports.useBox = () => require("pkg-a").box(21);',
+              externals: ["pkg-a"],
+            },
+          ],
+        },
+        ["useBox"],
+      ),
+    );
+    const graph = collectModules({
+      entryFile: entry,
+      root,
+      aliasPrefix: "app",
+      aliasSrcRoot: join(root, "src"),
+      external: /^node:/,
+      resolve: (specifier, _fromFile) =>
+        specifier === "pkg-a"
+          ? pkgA
+          : specifier === "pkg-b"
+            ? pkgB
+            : undefined,
+    });
+    const mod: {
+      exports: Record<string, unknown>;
+    } = {
+      exports: {},
+    };
+    new Function(
+      "module",
+      "exports",
+      "require",
+      emitCjsBundle(graph),
+    )(mod, mod.exports, () => ({}));
+    return all([
+      check(mod.exports.direct, toBe(2)),
+      check(mod.exports.viaB, toBe(42)),
+    ]);
+  } finally {
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
   }
 });
 
@@ -238,9 +392,13 @@ const writeImportFixture = (
   dep: string,
   internal: string,
 ): void => {
-  mkdirSync(join(entry, ".."), { recursive: true });
+  mkdirSync(join(entry, ".."), {
+    recursive: true,
+  });
   mkdirSync(join(dep, ".."), { recursive: true });
-  mkdirSync(join(internal, ".."), { recursive: true });
+  mkdirSync(join(internal, ".."), {
+    recursive: true,
+  });
   writeFileSync(
     entry,
     'import { value } from "dep";\nexport const out = value;\n',

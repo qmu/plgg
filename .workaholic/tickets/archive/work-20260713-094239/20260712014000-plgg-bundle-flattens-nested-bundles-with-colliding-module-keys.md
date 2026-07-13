@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: bugfix
 layer: [Infrastructure]
 effort: 4h
-commit_hash:
+commit_hash: 4adfc425
 category: Changed
 depends_on:
 mission:
