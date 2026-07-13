@@ -8,6 +8,30 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 #   scripts/serve-poc.sh poc-portal     # → http://localhost:5183
 #
 # Stop it later with: <compose> -f workloads/<name>/compose.yaml down
+#
+# Credentials come from ONE git-ignored .env at the repo root (developer
+# convention, 2026-07-13; see .env.example): its KEY=value lines are exported
+# here so every workload's ${VAR:-} compose interpolation picks them up with
+# no per-workload wiring. Precedence: a variable ALREADY SET in the caller's
+# environment wins — `OPENAI_API_KEY=… scripts/serve-poc.sh …` still
+# overrides the file. Lines must be plain KEY=value (no quoting/expansion);
+# malformed names are skipped with a warning, never eval'd.
+if [ -f "$REPO_ROOT/.env" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in '' | \#*) continue ;; esac
+    name=${line%%=*}
+    value=${line#*=}
+    case "$name" in
+      '' | *[!A-Za-z0-9_]*)
+        echo "warning: skipping malformed .env line (${name})" >&2
+        continue
+        ;;
+    esac
+    if eval "[ -z \"\${${name}+x}\" ]"; then
+      export "${name}=${value}"
+    fi
+  done <"$REPO_ROOT/.env"
+fi
 NAME=${1:-}
 if [ -z "$NAME" ]; then
   echo "usage: scripts/serve-poc.sh <workload-name>" >&2
