@@ -25,3 +25,4 @@
 * [Build the plgg-ir package family: typed S-expression IR for AI-generated Domain Manifests](work-20260712-003839.md)
 * [PoC 2 reader agent proven with grounded EN/JA citations, etc](work-20260712-003840.md)
 * [Resolved plgg-bundle's __externals lookup failure that left every plggmatic-example page blank at runtime etc](work-20260713-094239.md)
+* [work-20260712-174248.md](work-20260712-174248.md) - PoC 4 (agent file edits + live hot reload over a surviving Realtime session, gpt-realtime-2.1) with two live-judging fixes, plus the repo-root .env credential convention

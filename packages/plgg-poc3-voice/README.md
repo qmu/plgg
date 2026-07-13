@@ -39,12 +39,14 @@ assembly) plus the TEA reducer are unit-tested offline; only
   (`build:index`; prefers the full `~/projects/qmu-co-jp/docs` checkout,
   falls back to PoC 1's vendored pages — the PoC 2 recipe).
 - `npm run serve` — serve page/bundle/indexes **and the mint seam** on
-  `PORT` (default 5173). Export `OPENAI_API_KEY` first for live sessions.
+  `PORT` (default 5173). For live sessions put `OPENAI_API_KEY` in the
+  repo-root `.env` (see `.env.example`) — or export it, which wins.
 - `npm run test` — strict typecheck + the offline smoke specs (Realtime
   event decoding, tool routing/execution, instruction assembly, the session
   lifecycle reducer, the mint-grant caster).
 
-From the repo root: `OPENAI_API_KEY=… scripts/serve-poc.sh poc3-voice`
+From the repo root: `scripts/serve-poc.sh poc3-voice` (it sources the
+root `.env`; an explicit `OPENAI_API_KEY=…` prefix still overrides)
 (host port **5186** → container 5173; tunnel route `plgg-poc3.qmu.dev`).
 
 ## Sovereignty note

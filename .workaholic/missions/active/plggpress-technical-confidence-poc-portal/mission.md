@@ -87,3 +87,10 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-12 — concern deferred (stuck) — 64-full-corpus-build-depends-on-the.md
 - 2026-07-12 — concern deferred (stuck) — 64-portal-verdict-data-remains-hand-edited.md
 - 2026-07-12 — PR #64 merged (a9ff447f) and GitHub Release 2026.07.week2.release5 published; PoC 3 judged proven live and recorded on the portal; nothing to npm-publish — work-20260712-003840.md
+- 2026-07-13 — ticket archived — 20260713115737-resume-poc4-plggpress-mission.md
+- 2026-07-13 — ticket archived — 20260712152250-poc4-agent-file-edits-hot-reload.md
+- 2026-07-13 — ticket archived — 20260713144522-root-env-file-for-credentials.md
+- 2026-07-13 — ticket archived — 20260713150647-poc4-speak-document-language.md
+- 2026-07-13 — ticket archived — 20260713151530-poc4-pin-gpt-realtime-2-1.md
+- 2026-07-13 — story reported — work-20260712-174248.md
+- 2026-07-13 — ticket archived — 20260713183700-resume-poc4-two-live-judging-bugs.md
