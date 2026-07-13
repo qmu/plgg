@@ -69,7 +69,7 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can a browser agent's tool calls edit local files through the dev server while hot reload refreshes the page WITHOUT dropping the realtime websocket?",
     confidenceSignal:
       "An agent-initiated edit lands on disk, the edited page hot-reloads, and the same realtime session continues the conversation uninterrupted.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc4.qmu.dev",
     port: 5187,

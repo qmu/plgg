@@ -53,5 +53,9 @@ cd $REPO_ROOT/packages/plgg-poc2-agent && npm install
 # fetch in its own entrypoint — plgg-kit's minter targets the retired pre-GA
 # endpoint; see the plgg-kit GA-migration ticket).
 cd $REPO_ROOT/packages/plgg-poc3-voice && npm install
+# poc4 after poc1 (the same FTS reuse seam) and after plggpress + plgg-kit:
+# its internal doc server is pressDevEntry over the seeded guide copy, and its
+# shell reuses plgg-kit's GA realtime mint.
+cd $REPO_ROOT/packages/plgg-poc4-edit && npm install
 cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="

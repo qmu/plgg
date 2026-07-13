@@ -37,7 +37,7 @@ test("building PoCs link; planned ones only reserve", () =>
         'href="https://plgg-poc1.qmu.dev/"',
       ),
     ),
-    // poc2 (proven) and poc3 (building) → real
+    // poc2 and poc3 (both proven) → real
     // anchors too.
     check(
       page,
@@ -51,20 +51,27 @@ test("building PoCs link; planned ones only reserve", () =>
         'href="https://plgg-poc3.qmu.dev/"',
       ),
     ),
-    // poc4 is planned → reserved text, never a
+    // poc4 (building) → a real anchor now.
+    check(
+      page,
+      toContain(
+        'href="https://plgg-poc4.qmu.dev/"',
+      ),
+    ),
+    // poc5 is planned → reserved text, never a
     // dead link.
     check(
       page,
       not(
         toContain(
-          'href="https://plgg-poc4.qmu.dev/"',
+          'href="https://plgg-poc5.qmu.dev/"',
         ),
       ),
     ),
     check(
       page,
       toContain(
-        "Reserved: plgg-poc4.qmu.dev",
+        "Reserved: plgg-poc5.qmu.dev",
       ),
     ),
   ]));

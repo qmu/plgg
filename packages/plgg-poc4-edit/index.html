@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>PoC 4 — agent file edits with live hot reload</title>
+  </head>
+  <body>
+    <!-- The SESSION-BEARING shell. Served by
+         src/entrypoints/serve.ts (no-store, and — by
+         design — WITHOUT the dev live-reload script, so
+         the WebRTC session survives every doc reload).
+         The plggpress-rendered doc pages live in an
+         iframe under /docs/*, proxied to the internal
+         plgg-bundle dev server; an agent edit lands on
+         disk via POST /api/edit, the iframe hot-reloads,
+         and this page's Realtime session keeps going. -->
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
