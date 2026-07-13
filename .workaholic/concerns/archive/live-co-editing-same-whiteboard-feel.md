@@ -11,9 +11,9 @@ created_at: 2026-07-14T00:09:18+09:00
 first_seen: 2026-07-14T00:09:18+09:00
 last_seen: 2026-07-14T00:09:18+09:00
 severity: moderate
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 7417dfdd
+resolved_by_commit: 
 ---
 
 # Live co-editing "same-whiteboard feel" is not yet proven
