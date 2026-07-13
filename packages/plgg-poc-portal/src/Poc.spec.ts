@@ -126,8 +126,8 @@ test("the fleet data is consistent", () =>
       toBe(true),
     ),
     // poc1–poc3 and poc4b are the concluded
-    // (proven) PoCs; poc4 is still building and
-    // the rest remain planned.
+    // (proven) PoCs; poc4, poc5, and poc6 are
+    // building (served, awaiting live verdicts).
     check(
       POCS.filter(
         (p) => p.status === "proven",

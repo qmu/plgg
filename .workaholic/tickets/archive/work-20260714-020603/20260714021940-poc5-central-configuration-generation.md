@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX, Config, Infrastructure]
 effort: 4h
-commit_hash: fbd50e01
+commit_hash: 19ba477d
 category: Added
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
@@ -239,3 +239,52 @@ overnight, the drive stops at *served-and-ready*, not *judged*.
 - **Corpus reuse:** seed the same guide subset poc4b uses so tag classification
   has real front-matter to operate on; `content/` stays git-ignored and
   auto-seeded (don't commit the corpus copy).
+
+## Final Report
+
+Built autonomously as part of the overnight `/drive` batch (2026-07-14), stopped
+at **served-and-ready** per the agreed gate: `poc5` stays `building` / `none()`
+in `pocs.ts` for the morning live-judgment (a separate concluding-verdict
+ticket flips it — NOT this drive).
+
+Delivered `packages/plgg-poc5-config` on the PoC 4b spine, with two deliberate
+design decisions against the ticket sketch, both to serve the overnight/headless
+gate:
+
+- **The typed path is a deterministic, model-free command parser**
+  (`src/command.ts`), not a model round-trip. PoC 4b's typed path still ran every
+  turn through the live model, so it was not replayable without a key. Here a
+  one-line command (`tag <slug> …`, `exclude <glob>`, `theme sz-…`, `layout …`)
+  parses to exactly one `ConfigOp` applied by the one total `applyOp`
+  (`src/apply.ts`); the clickable theme/layout switches emit the same ops; the
+  Realtime voice session (`src/agent.ts` + `src/vendors/realtime.ts`) is a bonus
+  that calls the same five tools. So the confidence-signal loop is proven offline
+  by the reducer specs (the "headless smoke drives the typed path" the gate
+  asks) and voice just adds a second way in.
+- **The configuration is client state the sample site renders live** — no disk
+  write seam (a sacrificial-PoC bound). The durable-core question (agent
+  maintains config AS TYPED DATA the site renders) is answered by the typed
+  model + the two write paths funnelling through `applyOp`; the sample-site pane
+  re-renders in place — recolored tag chips, hidden exclusions, a re-laid-out /
+  re-sized grid — with no reload.
+
+Verification against the Quality Gate: `tsc --noEmit` EXIT 0 with **zero
+`as`/`any`/`ts-ignore**` (the one place a cast was reached for — the string→union
+guards — was rewritten as a user-defined type predicate `oneOf`); **46 offline
+specs green** covering config model + catalogs, the applier and its typed
+errors, the command parser, page derivation + glob exclusion, the event decoder
++ tool decoding, the wire casters, and the TEA reducer; **coverage gate passed**
+(statements 98.9%, branches 95.9%, functions 97.7%, lines 98.9% — every pure
+module 96–100%). `gate-readme`, `gate-vendor-boundary` (node:* confined to
+`entrypoints/`, browser to `vendors/` — no exemption needed), and the portal
+invariant specs (`poc5` = building) all green. `dist/main.js` built (234 KB);
+`npm run seed-content` seeded 38 markdown files; the host serve answered 200 on
+`/`, listed 38 pages at `/index/pages.json`, an honest 404 at `/api/session`
+without a key. The containerized workload (`scripts/serve-poc.sh poc5-config`,
+`workloads/poc5-config/compose.yaml`, node:22-slim, no image build) answered
+**200 on host 5188** with `configured:true` (the root-`.env` key reached it, so
+the voice bonus is live). The full fresh `check-all.sh` runs once at the end of
+this night batch. The `~/.cloudflared/config.yml` ingress lines for
+`plgg-poc5.qmu.dev → :5188` are prepared in the package README for the developer
+to apply (system config is never agent-edited); `https://plgg-poc5.qmu.dev`
+review is the morning gate.

@@ -1,0 +1,39 @@
+{
+  "name": "plgg-poc5-config",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "PoC 5 of the plggpress confidence-collection fleet: the writer's agent maintains the site's CENTRAL CONFIGURATION as typed data — front-matter tag classification (name/color/emoji/description), path exclusions, and layout + prefixed sizing themes — and the sample site re-renders live. A pure typed-command parser drives every config op deterministically (headless-replayable); the Realtime voice session emits the same ops as a bonus.",
+  "scripts": {
+    "build": "plgg-bundle",
+    "seed-content": "node src/entrypoints/seedContent.ts",
+    "reset-content": "npm run seed-content",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "serve": "node src/entrypoints/serve.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-kit": "file:../plgg-kit",
+    "plgg-view": "file:../plgg-view"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

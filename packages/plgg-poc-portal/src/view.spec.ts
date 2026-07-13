@@ -5,7 +5,9 @@ import {
   toContain,
   not,
 } from "plgg-test";
+import { none } from "plgg";
 import { renderToString } from "plgg-view";
+import { type Poc } from "./Poc.js";
 import { view } from "./view.js";
 import { POCS } from "./pocs.js";
 
@@ -58,21 +60,49 @@ test("building PoCs link; planned ones only reserve", () =>
         'href="https://plgg-poc4.qmu.dev/"',
       ),
     ),
-    // poc5 is planned → reserved text, never a
-    // dead link.
+    // poc5 and poc6 (both building now) → real
+    // anchors too.
     check(
       page,
-      not(
-        toContain(
-          'href="https://plgg-poc5.qmu.dev/"',
-        ),
+      toContain(
+        'href="https://plgg-poc5.qmu.dev/"',
       ),
     ),
     check(
       page,
       toContain(
-        "Reserved: plgg-poc5.qmu.dev",
+        'href="https://plgg-poc6.qmu.dev/"',
       ),
+    ),
+  ]));
+
+// The reserve behavior no longer has a planned PoC in the
+// live fleet, so exercise it against a synthetic one — a
+// planned card shows a "Reserved:" note, never a dead link.
+const plannedPoc: Poc = {
+  id: "poc-x",
+  name: "Synthetic planned PoC",
+  question: "does the reserve state render?",
+  confidenceSignal: "reserved text, no anchor",
+  status: "planned",
+  verdict: none(),
+  hostname: "plgg-pocx.qmu.dev",
+  port: 5199,
+};
+
+test("a planned PoC reserves its hostname, never a dead link", () =>
+  all([
+    check(
+      renderToString(view([plannedPoc])),
+      not(
+        toContain(
+          'href="https://plgg-pocx.qmu.dev/"',
+        ),
+      ),
+    ),
+    check(
+      renderToString(view([plannedPoc])),
+      toContain("Reserved: plgg-pocx.qmu.dev"),
     ),
   ]));
 
@@ -96,7 +126,13 @@ test("an empty fleet renders an honest empty state", () =>
 test("status labels appear as text, not color alone", () =>
   all([
     check(page, toContain("Proven")),
-    check(page, toContain("Planned")),
+    // The live fleet has building PoCs (poc4/5/6);
+    // "Planned" is exercised via the synthetic card.
+    check(page, toContain("Building")),
+    check(
+      renderToString(view([plannedPoc])),
+      toContain("Planned"),
+    ),
     check(
       renderToString(view([])),
       not(toContain("Proven")),

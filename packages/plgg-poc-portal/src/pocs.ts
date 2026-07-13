@@ -94,7 +94,7 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can the writer's agent maintain the site's central configuration — front-matter tag classification (name/color/emoji/description), path exclusions, layout and sizing themes — as generated data?",
     confidenceSignal:
       "Asking the agent to reclassify tags, exclude a path, and switch among prefixed sizing themes produces a valid configuration the site renders, with ~5–10 sizing themes expressible.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc5.qmu.dev",
     port: 5188,
@@ -106,7 +106,7 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does tag/link-based grouping over the tree-shaped file system yield a multi-dimensional search UX that both humans and browser agents can operate?",
     confidenceSignal:
       "Prototype variants of tag/link navigation over one corpus are comparable side-by-side, and an agent can drive each variant's search deterministically.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc6.qmu.dev",
     port: 5189,
