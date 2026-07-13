@@ -202,6 +202,15 @@ test("instructionsOf carries the open document and BOTH tool contracts", () => {
       withDoc,
       toContain("COMPLETE new markdown"),
     ),
+    // The document's language leads the conversation
+    // (developer directive 2026-07-13) — not the
+    // writer's.
+    check(
+      withDoc,
+      toContain(
+        "language the open document is written in",
+      ),
+    ),
     check(
       withoutDoc,
       toContain("No document is open"),

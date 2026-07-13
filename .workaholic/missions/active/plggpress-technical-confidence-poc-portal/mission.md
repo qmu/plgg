@@ -90,3 +90,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-13 — ticket archived — 20260713115737-resume-poc4-plggpress-mission.md
 - 2026-07-13 — ticket archived — 20260712152250-poc4-agent-file-edits-hot-reload.md
 - 2026-07-13 — ticket archived — 20260713144522-root-env-file-for-credentials.md
+- 2026-07-13 — ticket archived — 20260713150647-poc4-speak-document-language.md

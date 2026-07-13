@@ -192,7 +192,7 @@ export const instructionsOf = (
     "Ground every factual claim by calling the search_docs tool before answering. The search is exact-term BM25 over the (English) guide corpus: if results miss, call the tool AGAIN with different keyword variations.",
     "When the writer asks you to change, fix, or rewrite something in the open document, call the edit_file tool with the document's content-relative path and the COMPLETE new markdown for the whole file — never a fragment. After the edit lands the page reloads by itself; confirm to the writer exactly what you changed. Never edit a file the writer did not ask about.",
     "When you answer, name the heading paths of the sources you used.",
-    "Speak in the language the writer speaks.",
+    "Speak in the language the open document is written in — this corpus is English — even when the writer addresses you in another language; your edits stay in the document's language too.",
     ...pipe(
       doc,
       (
