@@ -116,5 +116,8 @@
 * [has-role takes a string literal, deviating from design §10](65-has-role-string-literal-deviation.md)
 * [analyzeManifest ↔ analyzeAction module cycle is benign but fragile](65-manifest-action-import-cycle.md)
 * [Policy bodies are not checked against their attached subject](65-policy-subject-binding-unchecked.md)
+* [(carried from PRs #31–#65) 116 standing deferred concerns](66-carried-from-prs-31-65-116.md)
+* [plgg-bundle bin-cache verification gotcha](66-plgg-bundle-bin-cache-verification-gotcha.md)
+* [TS-printer shape dependency in externals-key rewrite](66-ts-printer-shape-dependency-in-externals.md)
 
 * [archive/](archive/)
