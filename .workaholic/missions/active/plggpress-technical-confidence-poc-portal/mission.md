@@ -105,3 +105,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-14 — concern deferred (stuck) — live-co-editing-same-whiteboard-feel.md
 - 2026-07-14 — concern deferred (stuck) — the-two-phase-erase-write-animation.md
 - 2026-07-14 — concern deferred (stuck) — preview-drops-plggpress-theming-accepted-poc.md
+- 2026-07-14 — ticket archived — 20260714013852-conclude-poc4b-verdict-proven-animation.md
