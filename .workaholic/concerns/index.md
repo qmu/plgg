@@ -119,5 +119,10 @@
 * [(carried from PRs #31–#65) 116 standing deferred concerns](66-carried-from-prs-31-65-116.md)
 * [plgg-bundle bin-cache verification gotcha](66-plgg-bundle-bin-cache-verification-gotcha.md)
 * [TS-printer shape dependency in externals-key rewrite](66-ts-printer-shape-dependency-in-externals.md)
+* [(carried from PRs 31–66) 119 standing deferred concerns remain active](67-carried-from-prs-31-66-119.md)
+* [Container npm rewrites a sibling package-lock on the mounted tree](67-container-npm-rewrites-a-sibling-package.md)
+* [Live judging of the FIXED PoC 4 build remains pending](67-live-judging-of-the-fixed-poc.md)
+* [The co-editing EXPERIENCE is unproven — PoC 4 proved only the mechanics](67-the-co-editing-experience-is-unproven.md)
+* [Worktree .env copy protocol pending merge in the workaholic repo](67-worktree-env-copy-protocol-pending-merge.md)
 
 * [archive/](archive/)

@@ -94,3 +94,8 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-13 — ticket archived — 20260713151530-poc4-pin-gpt-realtime-2-1.md
 - 2026-07-13 — story reported — work-20260712-174248.md
 - 2026-07-13 — ticket archived — 20260713183700-resume-poc4-two-live-judging-bugs.md
+- 2026-07-13 — concern deferred (stuck) — 67-carried-from-prs-31-66-119.md
+- 2026-07-13 — concern deferred (stuck) — 67-the-co-editing-experience-is-unproven.md
+- 2026-07-13 — concern deferred (stuck) — 67-live-judging-of-the-fixed-poc.md
+- 2026-07-13 — concern deferred (stuck) — 67-container-npm-rewrites-a-sibling-package.md
+- 2026-07-13 — concern deferred (stuck) — 67-worktree-env-copy-protocol-pending-merge.md
