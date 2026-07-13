@@ -46,7 +46,6 @@ import {
   type AgentEvent,
   runSearchTool,
   docFiles,
-  docTextOf,
   instructionsOf,
   eventOf,
   SEARCH_TOOL,
@@ -168,30 +167,6 @@ export const defaultDoc = (
     ),
   );
 };
-
-/** The open document's text, from the index. */
-export const openDocText = (
-  ready: Ready,
-  doc: Option<SoftStr>,
-): Option<
-  Readonly<{ file: SoftStr; text: SoftStr }>
-> =>
-  pipe(
-    doc,
-    matchOption(
-      (): Option<
-        Readonly<{
-          file: SoftStr;
-          text: SoftStr;
-        }>
-      > => none(),
-      (file: SoftStr) =>
-        some({
-          file,
-          text: docTextOf(ready.index, file),
-        }),
-    ),
-  );
 
 /* ------------------------------------------------ *
  * Effects (all returned as data from `update`)      *
@@ -340,73 +315,140 @@ const errorTextOf = (
     : `request failed (${status})`;
 };
 
+/**
+ * Fetch the RAW markdown of one corpus file from the
+ * shell server's guarded read seam — the exact bytes the
+ * model will edit and overwrite, NOT a lossy chunk
+ * reconstruction. This is the PoC-4 edit-corruption fix:
+ * feeding the editing model heading-path text made it
+ * write that text back as headings; the model must see
+ * the real file. A read failure degrades to an empty
+ * document context, never a throw.
+ */
+const fetchDocText = (
+  file: SoftStr,
+): Promise<SoftStr> =>
+  fetch(
+    `./api/doc?path=${encodeURIComponent(file)}`,
+  ).then(
+    (res): Promise<SoftStr> =>
+      res.ok ? res.text() : Promise.resolve(""),
+    (): SoftStr => "",
+  );
+
+/**
+ * Resolve the open document into the {file, raw text}
+ * the session instructions carry — raw from disk, so what
+ * the model reads is exactly what it will overwrite.
+ */
+const resolveOpenDoc = (
+  doc: Option<SoftStr>,
+): Promise<
+  Option<
+    Readonly<{ file: SoftStr; text: SoftStr }>
+  >
+> =>
+  pipe(
+    doc,
+    matchOption(
+      (): Promise<
+        Option<
+          Readonly<{
+            file: SoftStr;
+            text: SoftStr;
+          }>
+        >
+      > => Promise.resolve(none()),
+      (file: SoftStr) =>
+        fetchDocText(file).then((text: SoftStr) =>
+          some({ file, text }),
+        ),
+    ),
+  );
+
 /** Mint the ephemeral key, then open the session. */
-const startSession = (
+const mintAndOpen = (
   instructions: SoftStr,
+): Promise<Msg> =>
+  fetch("./api/session", { method: "POST" })
+    .then((res) =>
+      res
+        .json()
+        .catch((): unknown => ({}))
+        .then(
+          (json: unknown): Promise<Msg> | Msg =>
+            res.ok
+              ? pipe(
+                  asSessionGrant(json),
+                  matchResult(
+                    (
+                      e: InvalidError,
+                    ): Promise<Msg> | Msg => ({
+                      kind: "SessionFailed",
+                      reason: `the mint answered with an unexpected shape: ${e.content.message}`,
+                    }),
+                    (
+                      grant: SessionGrant,
+                    ): Promise<Msg> =>
+                      openRealtime(grant.value, {
+                        instructions,
+                        tools: [
+                          SEARCH_TOOL,
+                          EDIT_TOOL,
+                        ],
+                      }).then(
+                        matchResult(
+                          (
+                            reason: SoftStr,
+                          ): Msg => ({
+                            kind: "SessionFailed",
+                            reason,
+                          }),
+                          (): Msg => ({
+                            kind: "SessionOpened",
+                          }),
+                        ),
+                      ),
+                  ),
+                )
+              : {
+                  kind: "SessionFailed",
+                  reason: errorTextOf(
+                    res.status,
+                    json,
+                  ),
+                },
+        ),
+    )
+    .catch((cause): Msg => ({
+      kind: "SessionFailed",
+      reason:
+        cause instanceof Error
+          ? cause.message
+          : String(cause),
+    }));
+
+/**
+ * Start a session: resolve the open document's RAW text
+ * from disk, build the instructions from it, then mint +
+ * open. The doc text is fetched at start so the model's
+ * context is the current file bytes.
+ */
+const startSession = (
+  doc: Option<SoftStr>,
 ): Cmd<Msg> =>
   cmdEffect(() =>
-    fetch("./api/session", { method: "POST" })
-      .then((res) =>
-        res
-          .json()
-          .catch((): unknown => ({}))
-          .then(
-            (
-              json: unknown,
-            ): Promise<Msg> | Msg =>
-              res.ok
-                ? pipe(
-                    asSessionGrant(json),
-                    matchResult(
-                      (
-                        e: InvalidError,
-                      ): Promise<Msg> | Msg => ({
-                        kind: "SessionFailed",
-                        reason: `the mint answered with an unexpected shape: ${e.content.message}`,
-                      }),
-                      (
-                        grant: SessionGrant,
-                      ): Promise<Msg> =>
-                        openRealtime(
-                          grant.value,
-                          {
-                            instructions,
-                            tools: [
-                              SEARCH_TOOL,
-                              EDIT_TOOL,
-                            ],
-                          },
-                        ).then(
-                          matchResult(
-                            (
-                              reason: SoftStr,
-                            ): Msg => ({
-                              kind: "SessionFailed",
-                              reason,
-                            }),
-                            (): Msg => ({
-                              kind: "SessionOpened",
-                            }),
-                          ),
-                        ),
-                    ),
-                  )
-                : {
-                    kind: "SessionFailed",
-                    reason: errorTextOf(
-                      res.status,
-                      json,
-                    ),
-                  },
-          ),
-      )
-      .catch((cause): Msg => ({
-        kind: "SessionFailed",
-        reason:
-          cause instanceof Error
-            ? cause.message
-            : String(cause),
-      })),
+    resolveOpenDoc(doc).then(
+      (
+        open: Option<
+          Readonly<{
+            file: SoftStr;
+            text: SoftStr;
+          }>
+        >,
+      ): Promise<Msg> =>
+        mintAndOpen(instructionsOf(open)),
+    ),
   );
 
 const stopSession: Cmd<Msg> = cmdEffect(() => {
@@ -673,14 +715,7 @@ export const update = (
               ...model,
               session: { kind: "starting" },
             },
-            startSession(
-              instructionsOf(
-                openDocText(
-                  model.assets.ready,
-                  model.doc,
-                ),
-              ),
-            ),
+            startSession(model.doc),
           ];
     case "StopRequested":
       return model.session.kind === "live" ||

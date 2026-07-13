@@ -18,7 +18,6 @@ import {
   runSearchTool,
   instructionsOf,
   docFiles,
-  docTextOf,
   routeOf,
 } from "./agent.ts";
 import { buildFtsIndex } from "./poc1.ts";
@@ -203,13 +202,19 @@ test("instructionsOf carries the open document and BOTH tool contracts", () => {
       withDoc,
       toContain("COMPLETE new markdown"),
     ),
-    // The document's language leads the conversation
-    // (developer directive 2026-07-13) — not the
-    // writer's.
+    // The document's language is the DEFAULT, but an
+    // explicit request switches it (2026-07-13 live-
+    // judging fix) — the instruction must carry both.
     check(
       withDoc,
       toContain(
-        "language the open document is written in",
+        "Default to the language the open document is written in",
+      ),
+    ),
+    check(
+      withDoc,
+      toContain(
+        "asks you to speak or reply in another language, switch",
       ),
     ),
     check(
@@ -219,14 +224,27 @@ test("instructionsOf carries the open document and BOTH tool contracts", () => {
   ]);
 });
 
-test("documents reassemble from their chunks", () =>
-  all([
+test("the open document is carried to the model as its RAW text, not a chunk reconstruction", () => {
+  // The editing model overwrites exactly what it reads,
+  // so the open-document context must be the real file
+  // bytes — feeding heading-path text is what corrupted
+  // files before (2026-07-13 fix).
+  const raw =
+    "# Web development as one typed pipeline\n\nA TypeScript family.\n\n## Option, not null\n\nAbsence is a value.";
+  const instructions = instructionsOf(
+    some({ file: "index.md", text: raw }),
+  );
+  return all([
     check(docFiles(INDEX).length, toBe(2)),
+    // The raw markdown appears verbatim — no `file >
+    // heading` reconstruction in the model's context.
+    check(instructions, toContain(raw)),
     check(
-      docTextOf(INDEX, "concepts/result.md"),
-      toContain("never throw"),
+      instructions,
+      toContain("# Web development"),
     ),
-  ]));
+  ]);
+});
 
 test("the Realtime snapshot is pinned, not the drifting alias", () =>
   check(

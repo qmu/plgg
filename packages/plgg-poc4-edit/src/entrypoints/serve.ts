@@ -15,6 +15,10 @@
  *   POST /api/edit        the confined write seam: agent
  *                         edits land here, atomically,
  *                         inside content/ only
+ *   GET  /api/doc?path=   the confined RAW-markdown read
+ *                         seam: the model's open-document
+ *                         context is the real file bytes,
+ *                         same guard as the write seam
  *   *    /docs/* and /__plgg_reload
  *                         streamed proxy to the INTERNAL
  *                         plggpress dev server, so the
@@ -78,7 +82,10 @@ import {
   buildFtsIndex,
 } from "../poc1.ts";
 import { REALTIME_MODEL } from "../agent.ts";
-import { resolveEditPath } from "../edit.ts";
+import {
+  type EditPathError,
+  resolveEditPath,
+} from "../edit.ts";
 import { asEditRequest } from "../protocol.ts";
 
 const ROOT = process.cwd();
@@ -387,6 +394,59 @@ const writeEdit = async (
   }
 };
 
+/**
+ * The guarded RAW-markdown read seam (`GET /api/doc?path=`).
+ * The editing model's open-document context is served from
+ * HERE — the real file bytes it will overwrite — through
+ * the SAME `resolveEditPath` guard + realpath containment
+ * as the write seam (defense-in-depth: a read must not
+ * escape the content root either). Feeding the model a
+ * lossy chunk reconstruction is what corrupted files
+ * before; this serves the file itself.
+ */
+const handleDoc = (
+  rawUrl: string,
+  res: ServerResponse,
+): void => {
+  const requested =
+    new URL(
+      rawUrl,
+      "http://localhost",
+    ).searchParams.get("path") ?? "";
+  pipe(
+    resolveEditPath(requested),
+    matchResult(
+      (refusal: EditPathError): void =>
+        sendJson(res, 400, {
+          error: `couldn't read ${requested} — ${refusal.message}`,
+        }),
+      (rel: SoftStr): void => {
+        const target = join(CONTENT, rel);
+        if (!insideContentRoot(target)) {
+          sendJson(res, 400, {
+            error: `couldn't read ${rel} — it resolves outside the content root`,
+          });
+          return;
+        }
+        try {
+          res.writeHead(200, {
+            "content-type":
+              "text/markdown; charset=utf-8",
+            "cache-control": NO_STORE,
+          });
+          res.end(readFileSync(target, "utf8"));
+        } catch {
+          sendText(
+            res,
+            404,
+            `${rel} not found in the content root`,
+          );
+        }
+      },
+    ),
+  );
+};
+
 /* ------------------------------------------------ *
  * The /docs proxy (iframe + SSE reload stream)      *
  * ------------------------------------------------ */
@@ -470,6 +530,13 @@ createServer((req, res) => {
     path === "/api/edit"
   ) {
     void handleEdit(req, res);
+    return;
+  }
+  if (
+    req.method === "GET" &&
+    path === "/api/doc"
+  ) {
+    handleDoc(req.url ?? "", res);
     return;
   }
   if (

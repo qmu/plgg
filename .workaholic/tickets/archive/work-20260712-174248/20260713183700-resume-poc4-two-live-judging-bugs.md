@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: bugfix
 layer: [UX, Domain]
 effort: 1h
-commit_hash:
-category:
+commit_hash: f8d3e832
+category: Changed
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
 ---

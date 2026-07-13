@@ -24,7 +24,6 @@ import {
 } from "plgg";
 import {
   type FtsIndex,
-  type ChunkMeta,
   searchFts,
 } from "./poc1.ts";
 
@@ -147,22 +146,6 @@ export const docFiles = (
 ];
 
 /**
- * Reassemble a document's readable text from its
- * chunks (they are in document order by construction).
- */
-export const docTextOf = (
-  index: FtsIndex,
-  file: SoftStr,
-): SoftStr =>
-  index.chunks
-    .filter((chunk) => chunk.file === file)
-    .map(
-      (chunk: ChunkMeta) =>
-        `## ${chunk.headingPath}\n${chunk.text}`,
-    )
-    .join("\n\n");
-
-/**
  * The plggpress route a corpus file renders at, under
  * the shell's /docs/ proxy — the inverse the iframe
  * needs of plggpress's `candidateFiles` mapping:
@@ -202,7 +185,7 @@ export const instructionsOf = (
     "Ground every factual claim by calling the search_docs tool before answering. The search is exact-term BM25 over the (English) guide corpus: if results miss, call the tool AGAIN with different keyword variations.",
     "When the writer asks you to change, fix, or rewrite something in the open document, call the edit_file tool with the document's content-relative path and the COMPLETE new markdown for the whole file — never a fragment. After the edit lands the page reloads by itself; confirm to the writer exactly what you changed. Never edit a file the writer did not ask about.",
     "When you answer, name the heading paths of the sources you used.",
-    "Speak in the language the open document is written in — this corpus is English — even when the writer addresses you in another language; your edits stay in the document's language too.",
+    "Default to the language the open document is written in (this corpus is English). If the writer asks you to speak or reply in another language, switch to that language for the rest of the conversation. Your EDITS to the document always stay in the document's own language, whatever language you are speaking.",
     ...pipe(
       doc,
       (
