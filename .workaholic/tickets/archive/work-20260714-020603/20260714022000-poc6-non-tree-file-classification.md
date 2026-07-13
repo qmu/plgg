@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX, Config]
 effort: 4h
-commit_hash: fbd50e01
+commit_hash: 449c794e
 category: Added
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
@@ -237,3 +237,52 @@ overnight, the drive stops at *served-and-ready*, not *judged*.
   is the mission's durable acceptance data.
 - **Corpus reuse + git-ignore**: seed the same guide subset the fleet uses;
   `content/` stays git-ignored and auto-seeded (don't commit it).
+
+## Final Report
+
+Built autonomously as part of the overnight `/drive` batch (2026-07-14),
+stopped at **served-and-ready** per the agreed gate: `poc6` stays `building` /
+`none()` in `pocs.ts` for the morning live-judgment (a separate
+concluding-verdict ticket flips it — NOT this drive).
+
+Delivered `packages/plgg-poc6-classify` on the fleet spine. The classification
+core (`src/classify.ts`) turns the tree-shaped guide corpus into non-tree data:
+each page's tags are every directory segment of its path (so `packages/plgg/x.md`
+is both `packages` and `plgg`) plus any front-matter `tags:`, and its links are
+the in-corpus markdown links resolved against its directory (backlinks are the
+inverse). Three **comparable navigation variants** (`src/variants.ts`) navigate
+it — tag facets (AND/OR), the link/backlink graph of a focus page, and a
+multi-dimensional tag+text filter — each a total pure `runQuery`, rendered side
+by side over one corpus. As in PoC 5, the confidence signal is driven by a
+**deterministic, model-free query-command parser** (`src/command.ts`:
+`facets and|or …`, `links <path>`, `filter <text|#tag>`) so every variant's
+search is headless-replayable and agent-drivable; clicking a tag facets, clicking
+any result page focuses the link graph; the Realtime voice session is a bonus
+that calls the same three tools.
+
+Verification against the Quality Gate: `tsc --noEmit` EXIT 0 with **zero
+`as`/`any`/`ts-ignore**`; **45 offline specs green** covering the classification
+core (tag derivation, front-matter parsing, link resolution incl. `.`/`..`/
+root-relative/anchor, dangling/self-link dropping, tag/backlink adjacencies), the
+three variant queries, the query-command parser, the event decoder + tool
+decoding, the wire casters, and the TEA reducer; **coverage gate passed**
+(statements 98.7%, branches 94.8%, functions 97.8%, lines 98.7% — every pure
+module 96–100%; `extractLinks` was refactored to `matchAll` to shed a dead
+index-guard branch). `gate-readme`, `gate-vendor-boundary`, and the portal specs
+(now green with poc5+poc6 = building — the fleet-state view/Poc specs were
+updated: building PoCs link, a synthetic planned card exercises the reserve
+state) all pass. `dist/main.js` built (227 KB); `npm run seed-content` seeded 38
+files; the host serve answered 200 on `/`, and `/index/pages.json` returned the
+classified index (e.g. `README.md` → tags `["guide"]`, links
+`["contributing/conventions.md"]`; concepts pages tagged `concepts`). The
+containerized workload (`scripts/serve-poc.sh poc6-classify`,
+`workloads/poc6-classify/compose.yaml`) serves on host **5189**. The full fresh
+`check-all.sh` runs once at the end of this night batch. The
+`~/.cloudflared/config.yml` ingress lines for `plgg-poc6.qmu.dev → :5189` are
+prepared in the package README for the developer to apply;
+`https://plgg-poc6.qmu.dev` review is the morning gate.
+
+**Note on the portal advancement:** both `poc5` and `poc6` records were flipped
+`planned → building` and the shared fleet-state portal specs updated together in
+the PoC 5 commit (the portal is one shared data file); this PoC 6 commit adds the
+package and its build/test/doc wiring only.

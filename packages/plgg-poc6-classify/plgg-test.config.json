@@ -1,0 +1,13 @@
+{
+  "_rationale": "The >90% gate covers the PURE CORE the ticket names — the classification core (classify.ts: tree+front-matter tag derivation, markdown link extraction, backlink adjacency), the three variant query functions (variants.ts), the deterministic query-command parser that makes each variant's search headless-replayable (command.ts), the Realtime event decoder + query-tool decoding + session instructions (agent.ts), the wire casters (protocol.ts), and the TEA REDUCER (app.ts: model + update, tested by app.spec.ts). All IO is split OUT of the reducer into effects.ts (the Cmd builders + subscriptions) so the reducer stays pure and gated. Excluded, same as the fleet's other apps: effects.ts (fetch/WebRTC thunks that cannot run headless), view.ts (DOM render tree), vendors/ (WebRTC), entrypoints/ (node:http + fs), and main.ts (the mount line).",
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/main.ts",
+      "/effects.ts",
+      "/view.ts",
+      "/vendors/",
+      "/entrypoints/"
+    ]
+  }
+}
