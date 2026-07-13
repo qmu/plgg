@@ -135,7 +135,10 @@ const linkModule = (
   cjs: string,
   acc: Map<string, Module>,
 ): ReadonlyArray<string> => {
-  const specifiers = inlineRequireSpecifiers(file, cjs);
+  const specifiers = inlineRequireSpecifiers(
+    file,
+    cjs,
+  );
   const externals: string[] = [];
   const deps: string[] = [];
   let rewritten = cjs;
@@ -156,6 +159,13 @@ const linkModule = (
       spec,
       idOf(ctx.root, resolved),
     );
+    if (isInstalledDist(file)) {
+      rewritten = replaceExternalKey(
+        rewritten,
+        spec,
+        idOf(ctx.root, resolved),
+      );
+    }
   }
   acc.set(id, {
     id,
@@ -185,14 +195,18 @@ const inlineRequireSpecifiers = (
     return specifiers;
   }
   const internal = bundledModuleIds(cjs);
-  return specifiers.filter((spec) => !internal.has(spec));
+  return specifiers.filter(
+    (spec) => !internal.has(spec),
+  );
 };
 
 /**
  * Whether a file is a registry-installed built JS entry.
  * Source packages under the monorepo are never matched.
  */
-const isInstalledDist = (file: string): boolean => {
+const isInstalledDist = (
+  file: string,
+): boolean => {
   const normalized = file.split("\\").join("/");
   return (
     normalized.includes("/node_modules/") &&
@@ -261,6 +275,29 @@ const requireSpecifiers = (
   ].flatMap((m) =>
     m[1] === undefined ? [] : [m[1]],
   );
+
+/**
+ * Rewrite an inlined dist's inner `__externals` table
+ * key from the original specifier to the outer module
+ * id. A plgg-bundle ESM dist resolves an external
+ * required inside its inner module bodies through this
+ * table; {@link replaceRequire} rewrites those bodies'
+ * `require("<spec>")` calls to the outer id, so the key
+ * must follow or the inner lookup misses and falls into
+ * the transpiled dynamic-import fallback — a Promise
+ * where the consumer expects a namespace ("plgg_1.box
+ * is not a function"). Matches the exact
+ * `"<spec>": __extN` shape the TS printer emits for the
+ * table, so ordinary code never collides with it.
+ */
+const replaceExternalKey = (
+  cjs: string,
+  spec: string,
+  id: string,
+): string =>
+  cjs
+    .split(`${JSON.stringify(spec)}: __ext`)
+    .join(`${JSON.stringify(id)}: __ext`);
 
 /**
  * Rewrite every `require("spec")` occurrence to

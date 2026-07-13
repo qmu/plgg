@@ -24,3 +24,4 @@
 * [Record the PoC 1 verdict as proven with measured CJK Japanese search etc](work-20260711-125441.md)
 * [Build the plgg-ir package family: typed S-expression IR for AI-generated Domain Manifests](work-20260712-003839.md)
 * [PoC 2 reader agent proven with grounded EN/JA citations, etc](work-20260712-003840.md)
+* [Resolved plgg-bundle's __externals lookup failure that left every plggmatic-example page blank at runtime etc](work-20260713-094239.md)
