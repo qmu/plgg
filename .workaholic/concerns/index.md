@@ -124,5 +124,6 @@
 * [Live judging of the FIXED PoC 4 build remains pending](67-live-judging-of-the-fixed-poc.md)
 * [The co-editing EXPERIENCE is unproven — PoC 4 proved only the mechanics](67-the-co-editing-experience-is-unproven.md)
 * [Worktree .env copy protocol pending merge in the workaholic repo](67-worktree-env-copy-protocol-pending-merge.md)
+* [(carried from PRs 31–67) standing deferred concerns remain active](68-carried-from-prs-31-67-standing.md)
 
 * [archive/](archive/)
