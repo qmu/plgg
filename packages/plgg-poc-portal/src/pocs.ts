@@ -80,8 +80,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does the AI's edit happening ON the preview — a granular change animated in place, no reload — make co-editing feel like the same whiteboard, and which visualization (micro-animation vs before/after diff) delivers it?",
     confidenceSignal:
       "Speaking or typing to change the open document makes the edited span appear ON the live preview surface, in place, legibly — the span animates (erase → write) and/or shows an old-vs-new diff — with NO full-page reload while the same Realtime session keeps talking; the developer judges which mode feels like co-presence on a real corpus page.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — the co-editing EXPERIENCE feels real. Judged live by the developer at plgg-poc4b.qmu.dev: asking the assistant (voice or typed) to change the open document lands a granular edit_doc find/replace ON the live preview, in place, with NO full-page reload while the same Realtime session keeps talking — and of the two compared visualizations the MICRO-ANIMATION mode wins (\"Animation wins — feels like co-editing\"): the edited span erasing and the new text writing in with a highlight delivers the 'same whiteboard, editing together' co-presence the before/after diff does not. Both modes are driven by the one pure diff; the animation is the one that makes co-editing feel like co-editing. The enabling change over PoC 4: whole-file edit_file → granular {find,replace} ops (applier/span-locator/diff-builder proven offline at 100% coverage, headless-smoke-verified) and the reloading iframe → a client-patched live preview (plgg-view's WAAPI transition seam + keyed reconciliation), so the change is small, addressable, and watchable rather than a batch swap.",
+    ),
     hostname: "plgg-poc4b.qmu.dev",
     port: 5190,
   },

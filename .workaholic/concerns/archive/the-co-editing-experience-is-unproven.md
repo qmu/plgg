@@ -11,8 +11,8 @@ last_seen: 2026-07-13T20:35:07+09:00
 first_seen: 2026-07-13T20:35:07+09:00
 concern_id: the-co-editing-experience-is-unproven
 severity: moderate
-status: active
-resolved_by_pr: 
+status: resolved
+resolved_by_pr: 7417dfdd
 resolved_by_commit: 
 ---
 

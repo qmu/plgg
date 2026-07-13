@@ -11,9 +11,9 @@ created_at: 2026-07-14T00:09:18+09:00
 first_seen: 2026-07-14T00:09:18+09:00
 last_seen: 2026-07-14T00:09:18+09:00
 severity: low
-status: active
-resolved_by_pr:
-resolved_by_commit:
+status: resolved
+resolved_by_pr: 7417dfdd
+resolved_by_commit: 
 ---
 
 # The two-phase erase→write animation is unverified in a real browser
