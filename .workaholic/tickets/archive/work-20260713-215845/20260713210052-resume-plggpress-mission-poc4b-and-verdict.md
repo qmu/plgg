@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: housekeeping
 layer: [UX, Infrastructure]
 effort: 0.1h
-commit_hash:
-category:
+commit_hash: d574bd30
+category: Changed
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
 ---
