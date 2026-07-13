@@ -5,10 +5,13 @@ origin_pr_url: https://github.com/qmu/plgg/pull/59
 origin_branch: work-20260704-015006
 origin_commit: 51d2088
 created_at: 2026-07-04T12:56:00+09:00
+last_seen: 2026-07-04T12:56:00+09:00
+first_seen: 2026-07-04T12:56:00+09:00
+concern_id: plggmatic-s-publish-npm-script-breaks
 severity: moderate
 status: resolved
-resolved_by_pr:
-resolved_by_commit:
+resolved_by_pr: 
+resolved_by_commit: 
 resolved_by_branch: work-20260704-130317
 ---
 

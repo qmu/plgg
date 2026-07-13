@@ -5,6 +5,9 @@ origin_pr_url: https://github.com/qmu/plgg/pull/52
 origin_branch: work-20260703-020116
 origin_commit: e859e23
 created_at: 2026-07-03T04:11:11+09:00
+last_seen: 2026-07-03T04:11:11+09:00
+first_seen: 2026-07-03T04:11:11+09:00
+concern_id: deploy-guide-s-hard-coded-build
 severity: moderate
 status: resolved
 resolved_by_pr: 1ce90e0

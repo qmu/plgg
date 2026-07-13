@@ -4,6 +4,9 @@ origin_pr_url: https://github.com/qmu/plgg/pull/46
 origin_branch: work-20260624-135934
 origin_commit: c4dc8f1
 created_at: 2026-06-26T21:43:57+09:00
+last_seen: 2026-06-26T21:43:57+09:00
+first_seen: 2026-06-26T21:43:57+09:00
+concern_id: shared-boundary-error-primitive-not-yet
 severity: moderate
 status: resolved
 resolved_by_pr: a8cf932

@@ -7,6 +7,9 @@ origin_pr_url: https://github.com/qmu/plgg/pull/62
 origin_branch: work-20260711-035119
 origin_commit: c95e8028
 created_at: 2026-07-11T12:17:30+09:00
+last_seen: 2026-07-11T12:17:30+09:00
+first_seen: 2026-07-11T12:17:30+09:00
+concern_id: embeddings-json-is-5-7x-the
 severity: low
 status: resolved
 resolved_by_pr: 7269afc3
