@@ -223,6 +223,55 @@ do not re-derive any of this.**
 - **Fallthrough order is load-bearing**: newline → image → link → rawHtml → code →
   strong → emph → literal char. A PEG `or` chain in exactly that order reproduces it.
 
+### Step 2 is DONE: the inline parser is swapped and byte-identical
+
+`renderInline.ts` is now a plgg-parser grammar (commit `0b948549`), with the
+regexes gone and the public API unchanged. It passed the hard gate: guide +
+strategy rebuilt through it diff EMPTY against the baseline, and the gate was
+itself proven live (breaking the soft-break rule moved 505 diff lines, so the
+empty diff is not a stale-dist false pass). **Read it before writing the block
+parser — it is the worked example of every technique below.** Remaining: step 3
+(the block grammar).
+
+### The block parser is a DIFFERENT problem — read this before starting
+
+plgg-parser is **character-level**: `run(parser, source, userState)` takes a
+string and `satisfy` reads `state.source[state.position]`. `parseBlocks` is
+**line-level** (`source.split("\n")`, a cursor over lines, look-ahead at line
+`i+1`). There is no line abstraction to borrow — the block grammar must be
+re-expressed as a char grammar with explicit end-of-line handling
+(`restOfLine = many(noneOf("\n"))`, an `eol = or(char("\n"), eof)`), or a
+line-level layer must be built first. **Decide that shape before writing code**;
+it is the ticket's real open design question, and it is why step 3 is bigger than
+step 2 despite both being "swap a parser".
+
+Specific traps beyond the inline ones:
+
+- **Quote and container RE-PARSE a TRANSFORMED source, not a substring.**
+  `takeQuote` strips each line's `> ` prefix and runs `parseBlockLines` over the
+  *rebuilt* body; `takeContainer` slices the inner lines and recurses. So the
+  recursion is "extract text → rebuild a source → call `parseBlocks` on it" —
+  exactly the shape inline's `strong`/`emph` use (extract body, recurse via
+  `renderInline`). Reuse it; do not try to sub-parse the original state.
+- **The container tracks a colon-count STACK** — any `:{3,}` opener pushes, a
+  close pops only on an EXACT count match, and a wrong-length close is a hard
+  `mismatch` error distinct from `unterminated`. Both messages are part of the
+  contract (they are `invalidError` payloads callers can see).
+- **Table detection needs line `i+1`**: a line only starts a table when it holds
+  a `|` AND the NEXT line matches `TABLE_SEP_RE`. That is `lookahead` over the
+  rest of the current line plus a newline plus the separator line.
+- **`HEADING_RE`'s `(.*?)` is LAZY and interacts with the trailing `#*`**:
+  `# Hello ###` → text `Hello` (the tail eats ` ###`), but `# Hello #x` → text
+  `Hello #x` (the tail cannot match `x`). Lazy-until-tail is
+  `many(right(notFollowedBy(tail), anyChar))` then `tail`, where
+  `tail = [ \t]* #* [ \t]* eol`. The same shape covers every lazy group.
+- **Fence close must share the opener's CHARACTER** (` ``` ` is not closed by
+  `~~~`) and the info string is captured verbatim; an unterminated fence is a
+  failure, not a paragraph.
+- **The top-level branch order is the grammar** and must be reproduced exactly:
+  blank → fence → container → heading → thematic break → quote → table (with the
+  `i+1` lookahead) → html block (rawHtml only) → list → paragraph.
+
 ### Combinator surface notes
 
 - Available: `char literal satisfy anyChar noneOf oneOf letter alphaNum digit
