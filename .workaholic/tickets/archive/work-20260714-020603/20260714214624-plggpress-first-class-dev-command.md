@@ -4,8 +4,8 @@ author: a@qmu.jp
 type: enhancement
 layer: [Domain, Infrastructure]
 effort:
-commit_hash:
-category:
+commit_hash: c6761c06
+category: Changed
 depends_on:
 mission: modernize-plgg-bundle
 ---
