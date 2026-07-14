@@ -68,8 +68,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can a browser agent's tool calls edit local files through the dev server while hot reload refreshes the page WITHOUT dropping the realtime websocket?",
     confidenceSignal:
       "An agent-initiated edit lands on disk, the edited page hot-reloads, and the same realtime session continues the conversation uninterrupted.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      'Proven — the MECHANICS hold. Judged live by the developer at plgg-poc4.qmu.dev (2026-07-14) on the fixed build: asking the assistant to change the open document landed an agent-initiated edit on disk and the page hot-reloaded with the change visible (the guide index\'s "Web development as one typed pipeline" became a "Web + AI development" phrasing), while the SAME Realtime session kept talking uninterrupted across the reload — the confidence signal met word for word. Both bugs the earlier live judging surfaced are fixed: the language lock-in is gone (the assistant conversed in Japanese while the open English document\'s edit stayed in English — default-to-document-language for edits WITH the conversational switch honored, exactly the intent), and the edit round-tripped cleanly (no corruption observed; the raw-read seam GET /api/doc was probe-verified to return raw markdown with zero index.md>index.md reconstruction artifacts, and to reject traversal with 400). The enabling fix over the first judging round: the lossy chunk reconstruction inherited from PoC 3\'s read-only path was retired, so the model is now fed the exact bytes it will overwrite — an editing agent must always see the real file it writes back. Carried, NOT a miss against this PoC\'s question: the edit surfaces only as a reloaded page, not as the watchable in-place diff PoC 4b proved ("we can actually see the HTML, but when it is edited, it should show the diff like v4b shows") — that PoC 4 × PoC 4b synthesis has its own ticket.',
+    ),
     hostname: "plgg-poc4.qmu.dev",
     port: 5187,
   },

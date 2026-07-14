@@ -125,14 +125,20 @@ test("the fleet data is consistent", () =>
       ),
       toBe(true),
     ),
-    // poc1–poc3 and poc4b are the concluded
-    // (proven) PoCs; poc4, poc5, and poc6 are
-    // building (served, awaiting live verdicts).
+    // poc1–poc4 and poc4b are the concluded
+    // (proven) PoCs; poc5 and poc6 are building
+    // (served, awaiting live verdicts).
     check(
       POCS.filter(
         (p) => p.status === "proven",
       ).map((p) => p.id),
-      toEqual(["poc1", "poc2", "poc3", "poc4b"]),
+      toEqual([
+        "poc1",
+        "poc2",
+        "poc3",
+        "poc4",
+        "poc4b",
+      ]),
     ),
   ]));
 
