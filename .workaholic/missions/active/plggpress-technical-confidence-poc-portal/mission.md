@@ -113,3 +113,4 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-14 — ticket archived — 20260714021940-poc5-central-configuration-generation.md
 - 2026-07-14 — ticket archived — 20260714022000-poc6-non-tree-file-classification.md
 - 2026-07-14 — ticket archived — 20260714214628-conclude-poc4-verdict-proven.md
+- 2026-07-14 — ticket archived — 20260714004350-resume-poc-verdicts-and-workaholic-env-ship.md
