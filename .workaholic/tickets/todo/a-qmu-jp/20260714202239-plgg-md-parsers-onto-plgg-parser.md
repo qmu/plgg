@@ -164,6 +164,82 @@ renders through.
   a pre-existing bug). Passing specs alone is NOT sufficient — the golden diff
   over the real corpora is the arbiter.
 
+## Findings from the first drive attempt (2026-07-14)
+
+A drive session did step 1 (the oracle) and the full design work, then stopped
+before writing parser code rather than leave plgg-md half-swapped. **Start here —
+do not re-derive any of this.**
+
+### The oracle is DONE and validated (step 1 is complete)
+
+- **In-repo golden spec landed: `packages/plgg-md/src/Render/usecase/golden.spec.ts`**
+  (commit `e827154e`). It pins the EXACT rendered HTML (1545 bytes) for a corpus
+  covering the bounded subset plus the reimplementation traps, and its expected
+  bytes were generated from the real parser and machine-compared, not hand-written.
+  **This is the fast inner-loop gate** — run `scripts/test-plgg-md.sh` after every
+  step of the rewrite.
+- **It was trip-tested and it bites.** Loosening strong's empty-content guard
+  (`close > i + 2` → `>= i + 2`) is caught by this spec ALONE while all 104 other
+  specs stay green. Corollary: the pre-existing suite does NOT protect the parser's
+  edge behavior — passing the old specs is worthless as an equivalence signal.
+- **The site-level build is deterministic**, so the ticket's `diff -r` gate is
+  sound: guide (39 pages) + strategy (4 pages) rebuilt from an unchanged tree
+  produced byte-identical trees. Keep it as the FINAL gate; golden.spec.ts is the
+  inner loop.
+- **`diff` is aliased to nvim in this shell** — `diff -r a b` silently runs an
+  editor and a naive `&& echo ok` reports a false pass. Use `command diff`.
+  Likewise `noclobber` is on (`>|` to overwrite) and `cp` is `-i`.
+
+### The traps that will break a naive rewrite (all measured, all pinned)
+
+- **Literal runs must MERGE.** `renderInline` accumulates unmatched chars in one
+  buffer and flushes them as a SINGLE `Text` node — `a*b` is `Text("a*b")`, not
+  three nodes. `many(or(token, anyChar))` produces per-char nodes and changes the
+  AST. Parse to a piece list (node | char), then fold, merging char runs and
+  reproducing the newline rules (`\`/two-space → hard break; otherwise append a
+  space to the buffer). The fold is not "scanning" — the combinators drive; the
+  fold only assembles.
+- **`****` must NOT strong.** The guard is `close > i + 2` (strictly), so empty
+  `**…**` falls through to emph, then to literal. Use `many1`, never `many`, for
+  strong/emph content.
+- **`*a **b** c*` renders as THREE sibling `<em>`s**, not `<em>` wrapping
+  `<strong>` — emphasis grabs the first following star. Reproduce, do not "fix".
+- **Code spans close on a MAXIMAL run of exactly n ticks.** `findCodeClose` skips
+  runs of the wrong length WHOLE. A naive `notFollowedBy` closer matches inside a
+  longer run (for n=1, ``` ``x` ``` would wrongly close at the 2nd tick). Content
+  must consume tick-runs atomically: `many(or(runWithLengthNotEqualN, noneOf("`")))`,
+  then `literal("`".repeat(n))`.
+- **JS `\s` ≠ plgg-parser's `whitespace`.** `IMAGE_RE`/`LINK_RE`'s `[^)\s]` uses
+  JS `\s` (Unicode: `\v`, `\f`, ` `, ` `, …); plgg-parser's `whitespace`
+  is only space/tab/`\n`/`\r`. Use `satisfy` with an exact predicate, or exotic
+  URLs diverge.
+- **`htmlSpan` emits the source token VERBATIM**, so the combinator must rebuild
+  the consumed text exactly. Concatenating the consumed parts works (nothing is
+  normalized). The regex's lazy `[^<>]*?` and a greedy `many(noneOf("<>"))` yield
+  the SAME total span (`>` can't be inside), so greedy is safe.
+- **The ticket's own prose overstates the grammar**: `renderInline` has **no
+  autolinks and no general backslash escapes** — `\` matters only for hard breaks.
+  The CODE is the spec, not this ticket's Overview.
+- **Fallthrough order is load-bearing**: newline → image → link → rawHtml → code →
+  strong → emph → literal char. A PEG `or` chain in exactly that order reproduces it.
+
+### Combinator surface notes
+
+- Available: `char literal satisfy anyChar noneOf oneOf letter alphaNum digit
+  whitespace many many1 between sepBy sepBy1 or optional lookahead notFollowedBy
+  lazy map andThen seq right left succeed fail eof run getUserState setUserState`.
+  **No `manyTill`** — emulate with `many(right(notFollowedBy(closer), anyChar))`.
+- `run(parser, source, userState): Result<A, InvalidError>`;
+  `between<O,C,S>(open, close)<A>(inner)`; `andThen` is data-last
+  (`pipe(p, andThen(f))`); `matchResult(onErr, onOk)`.
+- **Coverage watch-out**: `renderInline` returns a bare array, but `run` returns a
+  `Result` whose Err branch is unreachable by construction (the piece parser
+  always succeeds). Unfolding it with a fallback creates exactly the dead
+  defensive branch the coverage guidance warns about — decide this deliberately.
+- Internal source uses self-subpath imports (`plgg-md/Inline/model/Inline`) which
+  bare `node` cannot resolve; only plgg-test maps them. To run ad-hoc scripts,
+  import the built barrel (`plgg-md`) instead.
+
 ## Considerations
 
 - **Reproduce, don't "improve".** The combinator form will tempt cleanups that
