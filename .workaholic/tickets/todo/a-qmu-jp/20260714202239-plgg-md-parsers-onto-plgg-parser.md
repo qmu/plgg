@@ -272,6 +272,48 @@ Specific traps beyond the inline ones:
   blank → fence → container → heading → thematic break → quote → table (with the
   `i+1` lookahead) → html block (rawHtml only) → list → paragraph.
 
+### DECIDED (developer, 2026-07-15): re-express the block grammar as a CHAR grammar
+
+Asked directly, the developer chose **"文字文法として書き直す"** — re-express the
+whole block grammar as a character-level PEG with explicit end-of-line handling
+(`restOfLine`, `eol = or(char("\n"), eof)`), using plgg-parser as-is. Do NOT build
+a line-level layer over plgg-parser, and do not change `Parser<A,S>`'s source
+abstraction. The known cost, accepted: a line grammar written as a char grammar
+may read worse than the original — that trade was made deliberately.
+
+### The rest of the block anatomy (read, not yet ported)
+
+Everything below is measured from the current code and must be reproduced exactly.
+
+- **`parseListAt` is the hardest piece.** Per level: a **continuation** line
+  (marker-less, non-blank, `indentOf > baseIndent`) appends to the PREVIOUS item's
+  text joined by a single space (`` `${last.text} ${line.trim()}` ``) — note the
+  raw line is `trim()`ed. A **deeper-indent** marker recurses and the resulting
+  list is pushed into the previous item's `children` (a nested list is a CHILD of
+  the item above it, not a sibling). A **shallower-indent** marker breaks the
+  level. `ordered` is decided by the **first** item at that level only; later
+  items cannot flip it. A continuation or nested item with NO previous item breaks.
+- **`takeParagraph` checks `startsBlock` only from the SECOND line on**
+  (`j > i && startsBlock(...)`) — the first line is taken unconditionally, which is
+  what lets an out-of-subset line start a paragraph even though it would otherwise
+  look like a block opener. Reproduce that asymmetry.
+- **`startsBlock`** is the disjunction fence | container-open | heading | hr |
+  quote | list | (rawHtml && html-open) | (`line.includes("|")` && next line is
+  `TABLE_SEP_RE`). It is the paragraph terminator AND mirrors the top-level order.
+- **`takeHtmlBlock`** takes the opener plus every following non-blank line to a
+  blank line or EOF, verbatim.
+- **`takeTable`**: the alignment row's cell count must equal the header's or it is
+  a `Malformed table: N alignment cells for M header cells` error; body rows
+  continue while the line merely `includes("|")`. `splitRow` = `trim()`, strip one
+  leading `|`, strip one trailing `|`, `split("|")`, `trim()` each cell — so
+  `| a | b |` and `a | b` both give `["a","b"]`. `parseAlign`: both colons →
+  center, trailing → right, leading → left, else default.
+- **Error messages are contract**: `Unterminated code fence opened with '…'`,
+  `Mismatched container fence: …`, `Unterminated container '…' opened with N colons`,
+  `Malformed table: …`. They are `invalidError` payloads, and `parseBlocks` returns
+  `Result` — the first error WINS and stops the scan (the loop `break`s).
+- `asHeadingLevel` can fail, so `takeHeading` returns a `Result` — keep that path.
+
 ### Combinator surface notes
 
 - Available: `char literal satisfy anyChar noneOf oneOf letter alphaNum digit
