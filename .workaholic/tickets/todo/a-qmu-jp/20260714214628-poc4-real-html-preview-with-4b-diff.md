@@ -84,6 +84,35 @@ Realtime session unbroken, and the file on disk correct afterwards.
   rather than an extension of PoC 4, it needs an entry (question, confidence
   signal, hostname, port) and a reserved `*.qmu.dev` hostname + cloudflared route.
 
+## BLOCKED (2026-07-15): the PoC fleet's port block is EXHAUSTED
+
+A night `/drive` reached this ticket and stopped before writing code, because a
+new PoC record cannot be allocated without a developer decision. Measured, not
+assumed:
+
+- **All seven reserved ports are taken.** `pocs.ts` documents `5183–5190` as the
+  fleet's block (5183 = the portal), and `Poc.spec.ts` pins BOTH
+  `p.port >= 5184 && p.port <= 5190` and `POCS.length === 7`. The seven PoCs hold
+  5184–5190 with no gap.
+- **The neighbouring range is genuinely occupied.** `pocs.ts` claims 5191–5196
+  belong to other qmu.dev workloads; probed, **5191, 5192, 5193, 5194, 5195 and
+  5196 all answer 200** — live services, not a stale comment.
+- So an eighth PoC needs either a widened/relocated block (changing the invariant
+  and the documented rationale), a retired PoC's slot, or a decision to extend past
+  5197 (`~/.cloudflared/config.yml` already maps up to 5197).
+
+**Two further developer-owned gates** stand between this ticket and "done":
+
+- **The cloudflared ingress route** for a new `plgg-poc4c.qmu.dev` (or equivalent)
+  is applied by the developer — every previous PoC route was developer-approved.
+- **The record's shape** — new `poc4c` vs re-opening the now-`proven` PoC 4 — is
+  explicitly left to the developer below, and it decides the whole ticket.
+
+None of these is a size problem; they are allocations and calls only the developer
+makes. Everything else is ready: PoC 4 is `proven` (`be398d2e`), PoC 4b is `proven`
+with the animation mode chosen, and 4b's diff core + animation seam are the assets
+to reuse. **Answer the three questions above and this becomes a straight build.**
+
 ## Considerations
 
 - **Decide the shape first: new PoC record vs. evolving PoC 4.** PoC 4 is now
