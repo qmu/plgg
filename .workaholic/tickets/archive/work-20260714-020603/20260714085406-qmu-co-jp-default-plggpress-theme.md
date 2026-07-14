@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: enhancement
 layer: [UX]
 effort: 4h
-commit_hash: ee15699a
+commit_hash: 63ecf75e
 category: Changed
 depends_on:
 mission:
@@ -182,3 +182,47 @@ Captured from the developer at ticket time (2026-07-14).
   the `plggmatic-ai-native-ui-toward-a-dsl` mission may be archived separately —
   do NOT fold this into that mission, and do not archive the mission from this
   ticket.
+
+## Final Report
+
+**The ticket's premise was wrong, and the driving session corrected it to the
+real request.** Investigation (reading `token.ts`/`palette.ts`/`typography.ts`)
+showed the plggpress default is ALREADY a faithful, value-for-value qmu.co.jp
+"oracle" port — its monochrome black/white primary is qmu.co.jp's own brand, not
+an arbitrary flattening. Surfaced to the developer, who clarified in three steps:
+
+1. Not "match qmu.co.jp" (it already does) — "go beyond it, add color." Tried a
+   warm-indigo colored default (`primary #4338ca`/`#a5b4fc` + warmed neutrals);
+   the developer judged it "not perfect" and said the monochrome B&W is actually
+   liked.
+2. Reverted the neutral-warming; kept only a subtle indigo accent on `primary`.
+3. The developer then named the ACTUAL "ugly": **spacing** on the plggpress
+   output (the `../strategy` site — "qmu.app 計画書" — served at
+   `strategy.qmu.dev`, which like `plgg-guide.qmu.dev` is pure default plggpress;
+   `SiteConfig` has NO theme/palette field, so every plggpress site renders the
+   one baked-in default). Finally: **"make it mono color"** — drop the accent
+   entirely.
+
+**Delivered (approved by the developer at the live preview):** the palette is
+100% ORIGINAL monochrome (`palette.ts` restored, zero change); the ONLY change is
+a **tightened vertical rhythm** in `theme/baseCss.ts` — the airy VitePress
+spacing compacted:
+
+- content column padding `3rem` → `2rem / 2.5rem`; H1 gap-below `3rem` → `2rem`
+  (the "symmetry" with the content top-padding preserved, just smaller);
+- H2 `2.85rem` → `2.1rem` top; H3/H4 `2rem`/`1.5rem` → `1.6rem`/`1.25rem`;
+- paragraph `1rem` → `0.85rem`; lists/`li`/footer/`hr` tightened; body
+  `line-height 1.75` → `1.7`.
+
+Two files changed: `baseCss.ts` (the spacing) and `baseCss.spec.ts` (the pinned
+"H1 3rem symmetry" test updated to `2rem`). Verification: `tsc` clean, **223
+plggpress specs pass** (incl. the computed WCAG-AA contrast gate — unaffected,
+palette unchanged), and a full fresh `check-all` at finalize. The developer
+judged the tightened spacing live on the served preview (`localhost:8137`
+strategy / `localhost:8099` guide, both rebuilt) and **approved**.
+
+**Follow-ups (NOT done here):** (a) `strategy` is a separate repo — its
+`strategy.qmu.dev` deployment must be rebuilt/redeployed there to pick up the new
+plggpress dist; (b) `plgg-cms`'s parallel `Style/model` default was left untouched
+(no spacing there — its layout differs); (c) the "add color" idea is shelved by
+the developer's "mono color" decision — revisit only if they reopen it.
