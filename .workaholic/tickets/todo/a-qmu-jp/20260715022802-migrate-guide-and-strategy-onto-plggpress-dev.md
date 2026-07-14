@@ -12,6 +12,27 @@ mission: modernize-plgg-bundle
 
 # Retire the hand-wiring: move guide and strategy onto `plggpress dev`
 
+## STATUS (2026-07-15): guide DONE — only strategy remains
+
+**The guide half shipped in `2ec28d27`** and is container-verified: its
+`bundle.config.ts`, `devEntry.ts` and `plgg-bundle` devDep are deleted, the dev
+script is `plggpress dev --watch-theme`, and a `--force-recreate` came up serving
+`localhost:5181` (200) / `plgg-guide.qmu.dev` (302 Access) with neither wiring file
+present in-container. Theme hot reload was proven live — touching
+`packages/plggpress/src/theme/` logged `hot-reloaded (…)` in the container.
+`--watch-theme` is confirmed REQUIRED. The container had been dead since
+2026-07-14 21:59 and is now back up.
+
+**What is LEFT: `../strategy` only.** It was deliberately NOT touched: it is a
+SIBLING repo holding the developer's uncommitted work (edits to `docs/index.md`,
+plus the untracked `bundle.config.ts` / `devEntry.ts` / `scripts/dev.sh`), and this
+ticket's own Considerations say to coordinate first. `plggpress dev` is already
+proven to work there — twice, with all its wiring temporarily removed — so the
+remaining task is only the deletion, on the developer's say-so. Ask, then delete
+those three files and the `plgg-bundle` devDep, and point its `dev` script at
+`plggpress dev --contentDir docs` (NO `--watch-theme`: a consumer does not
+co-develop the theme).
+
 ## Overview
 
 `plggpress dev` shipped (`c6761c06`) and was proven in a real consumer: with
