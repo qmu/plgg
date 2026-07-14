@@ -59,7 +59,28 @@ Three modes, **one `site.config.ts`, one `loadConfig`, one
 | --- | --- | --- |
 | **build** | `plggpress build --config site.config.ts --contentDir . --outDir dist` | SSG — renders every route to static files (the public reader path, served over a CDN). |
 | **serve** | `plggpress serve --config site.config.ts --contentDir . --port 3000` | A persistent `node:http` instance rendering the SAME router live; config loaded once at startup, no watch. The mount point for the later `/api`, `/admin`, `/auth`, `/mcp` subtrees (`server/pressServer.ts`). |
-| **dev** | `plgg-bundle dev` (via the app's `devEntry.ts`) | Authoring hot-reload — a **toolchain** concern, not a plggpress command. plggpress ships no `dev` command; `serve` is not its return. |
+| **dev** | `plggpress dev [--contentDir docs] [--config site.config.ts] [--port 5173] [--host tunnel.example.dev] [--watch-theme]` | Authoring hot-reload — the same router, re-imported on every edit to `--contentDir` / `--config`, with the browser reloaded over SSE. `serve` is not its return (no watch, no re-import). |
+
+`dev` needs **no wiring**: run it in a docs repo whose only
+dependency is plggpress and it serves. It defaults to `docs/`
+when the repo has one and the working directory otherwise
+(`--contentDir` settles the rest), finds the theme from the
+running CLI's own location, and watches only your content —
+`--watch-theme` opts into watching plggpress's source, for
+co-developing the theme itself.
+
+This reverses an earlier stance ("hot-reload is a toolchain
+concern; plggpress ships no `dev` command"). The layering it
+defended is intact — the dev LOOP is still `plgg-bundle`'s,
+reached across a seam that hands it a plan — but the paperwork
+it implied was not: every consumer had to hand-write a
+`bundle.config.ts`, a `devEntry.ts`, and take a bundler
+dependency to read their own Markdown. Removing that friction
+is what plggpress is for, so the command moved and the
+ownership did not.
+
+**dev is for authoring, not hosting.** Production stays
+`plggpress build` (SSG/CDN) or `plgg-cms`'s `serve`.
 
 ## Conventions
 

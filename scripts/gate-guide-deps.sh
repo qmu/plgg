@@ -30,12 +30,22 @@ volume_set=$(grep -oE '/app/packages/[a-z0-9-]+/node_modules' \
 built_set=$(sed -n \
   's#^cd \$REPO_ROOT/packages/\([a-z0-9-]*\) && npm run build$#\1#p' \
   scripts/build.sh | sort -u)
-# Only runtime `dependencies` (not devDependencies like plgg-bundle/plgg-test,
-# which the container bootstraps or does not need to serve): the `dependencies`
-# block precedes `devDependencies`, so the first `}` after it bounds the range.
+# Only runtime `dependencies` (not devDependencies like plgg-test, which the
+# container does not need to serve): the `dependencies` block precedes
+# `devDependencies`, so the first `}` after it bounds the range.
 plggpress_deps=$(sed -n '/"dependencies"/,/}/p' \
   packages/plggpress/package.json \
   | sed -n 's#.*"\(plgg[a-z-]*\)": *"file:.*#\1#p' | sort -u)
+# The container provisions packages two ways, and BOTH count as provisioned:
+# the entrypoint's install loop, and build.sh's `npm ci` bootstrap of the build
+# TOOL. plgg-bundle is the tool: it runs from SOURCE (no dist, so it is
+# deliberately absent from built_set) and is bootstrapped before any build, so
+# it needs a volume but no install-loop entry. It became a plggpress RUNTIME
+# dependency when `plggpress dev` shipped — plggpress reaches its dev loop
+# through a dynamic import behind framework/Dev/node/devSeam, so `build` and
+# `serve` never load it, but `dev` does and it must be present.
+bootstrapped_set="plgg-bundle"
+provisioned_set=$(printf '%s\n%s\n' "$install_set" "$bootstrapped_set" | sort -u)
 
 fail=0
 have() { printf '%s\n' "$1" | grep -qx "$2"; }
@@ -58,10 +68,11 @@ for pkg in $install_set; do
   }
 done
 
-# 3. every file: dep plggpress declares must be installed by the container.
+# 3. every file: dep plggpress declares must be PROVISIONED by the container —
+#    installed by the entrypoint, or bootstrapped by build.sh (the build tool).
 for dep in $plggpress_deps; do
-  have "$install_set" "$dep" || {
-    echo "gate-guide-deps: plggpress depends on '$dep' but the guide container never installs it" >&2
+  have "$provisioned_set" "$dep" || {
+    echo "gate-guide-deps: plggpress depends on '$dep' but the guide container never provisions it" >&2
     fail=1
   }
 done
