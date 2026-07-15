@@ -11,9 +11,9 @@ last_seen: 2026-07-13T20:35:07+09:00
 first_seen: 2026-07-13T20:35:07+09:00
 concern_id: live-judging-of-the-fixed-poc
 severity: moderate
-status: active
-resolved_by_pr: 
-resolved_by_commit: 
+status: resolved
+resolved_by_pr: 71
+resolved_by_commit: be398d2e
 ---
 
 # Live judging of the FIXED PoC 4 build remains pending
