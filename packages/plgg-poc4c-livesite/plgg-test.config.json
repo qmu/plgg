@@ -1,0 +1,16 @@
+{
+  "_rationale": "The >90% gate covers the PURE CORE this PoC actually adds: the markdown->rendered-DOM span mapping and its typed refusals (spanMap.ts — the research surface), the patch-vs-hot-reload arbitration (reloadPolicy.ts), the HTML rewrite that injects the client and evicts the dev server's reload script (inject.ts), the iframe-boundary wire casters (bridge.ts), the route mapping (docRoute.ts), and the TEA REDUCER (app.ts, tested by app.spec.ts). All IO is split OUT of the reducer into effects.ts (the Cmd builders + subscriptions) so the reducer stays pure and gated. Excluded, same as the fleet's other apps and the plgg-view/plgg-server entry-file exclusions: effects.ts (fetch/WebRTC/postMessage thunks that cannot run headless), view.ts (DOM render tree), patchClient.ts (the injected DOM edge — a TreeWalker, splitText and location.reload only run inside a real proxied page; every DECISION it acts on comes from spanMap/reloadPolicy and is tested there), vendors/ (WebRTC), entrypoints/ (node:http + fs), main.ts (the mount line), and the poc1.ts/poc4b.ts re-export seams (whose targets are tested in their own packages).",
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/main.ts",
+      "/effects.ts",
+      "/view.ts",
+      "/patchClient.ts",
+      "/vendors/",
+      "/entrypoints/",
+      "/poc1.ts",
+      "/poc4b.ts"
+    ]
+  }
+}

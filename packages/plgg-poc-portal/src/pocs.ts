@@ -130,7 +130,7 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does the granular, animated in-place edit PoC 4b proved survive contact with the REAL rendered site — a full plggpress page with its own markup, styling and hot reload — rather than a purpose-built preview surface?",
     confidenceSignal:
       "Asking the assistant to change the open document animates the edited span IN PLACE on the real rendered page, with no full-page reload, the Realtime session unbroken, and the file on disk correct afterwards.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc4c.qmu.dev",
     port: 5198,

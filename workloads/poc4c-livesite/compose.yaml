@@ -1,0 +1,60 @@
+# PoC 4c workload — watchable edits on the REAL rendered
+# site (packages/plgg-poc4c-livesite) on host port 5198,
+# the cloudflared tunnel route for plgg-poc4c.qmu.dev.
+#
+#   scripts/serve-poc.sh poc4c-livesite
+#
+# Port 5198 rather than the fleet's 5184-5190 block: the
+# block is full and 5191-5197 are live services, so the
+# eighth PoC was allocated past everything cloudflared maps
+# (developer's call, 2026-07-15 — see pocs.ts).
+#
+# Guide-style recipe (NOT the host-built poc3 one): the
+# container installs + builds on the mounted tree and runs
+# TWO processes — the internal plggpress dev server and the
+# public shell server (see dev-entrypoint.sh).
+# OPENAI_API_KEY comes from the repo-root .env via
+# scripts/serve-poc.sh, never from the repo itself; without
+# it the PoC serves its honest "assistant not configured"
+# state.
+services:
+  poc4c-livesite:
+    build:
+      # Build context is the repo root so the Dockerfile
+      # can reach every package.
+      context: ../..
+      dockerfile: workloads/poc4c-livesite/Dockerfile
+    ports:
+      - "5198:5173"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      # Mount the repo for live judging: the agent's edits
+      # land in packages/plgg-poc4c-livesite/content
+      # (git-ignored) on the HOST tree, visible to the
+      # developer's editor while the container serves.
+      - ../..:/app
+      # Isolate every node_modules the entrypoint installs
+      # into: anonymous volumes keep the container's deps
+      # (linux/arm binaries + the file: symlink graph) off
+      # the host repo. Each `file:` package needs its OWN
+      # node_modules (file: links do not cascade);
+      # plgg-highlight's holds the typescript it resolves
+      # at runtime.
+      - /app/packages/plgg/node_modules
+      - /app/packages/plgg-cli/node_modules
+      - /app/packages/plgg-http/node_modules
+      - /app/packages/plgg-view/node_modules
+      - /app/packages/plgg-md/node_modules
+      - /app/packages/plgg-highlight/node_modules
+      - /app/packages/plgg-server/node_modules
+      - /app/packages/plggpress/node_modules
+      - /app/packages/plgg-bundle/node_modules
+      - /app/packages/plgg-kit/node_modules
+      - /app/packages/plgg-poc1-search/node_modules
+      # PoC 4b's node_modules too: 4c reuses its PROVEN
+      # edit core by relative source import (src/poc4b.ts),
+      # and the bundler inlines those files from the
+      # sibling tree.
+      - /app/packages/plgg-poc4b-coedit/node_modules
+      - /app/packages/plgg-poc4c-livesite/node_modules
