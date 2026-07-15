@@ -32,7 +32,7 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 
 <!-- checked over total, computed from this list -->
 
-- [ ] The Pragmatic concept is recorded as the project's north-star (`20260708-pragmatic-ai-native-ui-concept.md`) — done at mission creation.
+- [x] The Pragmatic concept is recorded as the project's north-star, done at mission creation (#20260708-pragmatic-ai-native-ui-concept.md)
 - [x] The probabilistic screen-transition model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213945-specify-pragmatic-screen-transition-model.md)
 - [x] The input-field model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213946-specify-pragmatic-input-field-model.md)
 - [ ] The DSL is distilled from the specifications and produces a working on-demand UI from a declarative description (delivered by the `plggmatic-screen-structure-model-semantics` mission, migrated 2026-07-11 to the `qmu/plggmatic` repo; checked off here when that mission's DSL v1 lands)
