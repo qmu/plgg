@@ -53,19 +53,25 @@ done
 echo "=== building sibling dists (scripts/build.sh) ==="
 sh scripts/build.sh
 
-# 3. Serve the guide with the TOOLCHAIN dev server
-#    (`plgg-bundle dev`) on the container's internal port
-#    5173 (compose maps host 5181 -> 5173, the cloudflared
-#    tunnel route for plgg-guide.qmu.dev). The port, the
-#    allowedHosts (localhost + plgg-guide.qmu.dev), the
-#    watched roots (guide content + plggpress theme source),
-#    and the `plggpress` source alias all come from
-#    bundle.config.ts — so a theme `.ts` edit hot-reloads in
-#    the browser with NO restart, not just Markdown. Runs
-#    from source, so plgg-bundle's own node_modules (built by
-#    scripts/build.sh's npm ci above) and plggpress's must
-#    be present — both are. node:http binds all interfaces,
-#    so the port is reachable from the host.
-echo "=== plgg-bundle dev on :5173 ==="
+# 3. Serve the guide with `plggpress dev --watch-theme` on
+#    the container's internal port 5173 (compose maps host
+#    5181 -> 5173, the cloudflared tunnel route for
+#    plgg-guide.qmu.dev). The guide no longer keeps a
+#    bundle.config.ts or a devEntry.ts: the port (5173 by
+#    default), the content root (the guide's own package
+#    root — it has no docs/), and the plggpress source alias
+#    are all conventions the command resolves, and the
+#    allowedHosts (localhost + plgg-guide.qmu.dev) come from
+#    the site.config.ts it already had. `--watch-theme` adds
+#    plggpress's SOURCE to the watched roots, so a theme
+#    `.ts` edit hot-reloads in the browser with NO restart,
+#    not just Markdown. The dev LOOP is still plgg-bundle's
+#    and still runs from source, so its own node_modules
+#    (bootstrapped by scripts/build.sh's npm ci above) must
+#    be present — it is now a RUNTIME dependency of
+#    plggpress, which is why the guide needs none of its
+#    own. node:http binds all interfaces, so the port is
+#    reachable from the host.
+echo "=== plggpress dev on :5173 ==="
 cd packages/guide
 exec npm run dev

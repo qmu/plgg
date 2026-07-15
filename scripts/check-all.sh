@@ -60,3 +60,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-poc3-voice.sh
 ./scripts/test-plgg-poc4-edit.sh
 ./scripts/test-plgg-poc4b-coedit.sh
+./scripts/test-plgg-poc4c-livesite.sh
+./scripts/test-plgg-poc5-config.sh
+./scripts/test-plgg-poc6-classify.sh

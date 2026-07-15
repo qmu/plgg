@@ -15,7 +15,10 @@ import {
   RELOAD_FRAME,
 } from "plgg-bundle/Dev/model/Protocol";
 import { isAllowedHost } from "plgg-bundle/Dev/usecase/allowedHost";
-import { shouldReload } from "plgg-bundle/Dev/usecase/reloadDecision";
+import {
+  shouldReload,
+  isBuildOutput,
+} from "plgg-bundle/Dev/usecase/reloadDecision";
 import { decorateDevHtml } from "plgg-bundle/Dev/usecase/decorateDevHtml";
 import { type BundleConfig } from "plgg-bundle/domain/model/BundleConfig";
 import {
@@ -115,9 +118,7 @@ const normalizeFetch = (
 };
 
 /** Assert a Fetch answer is a Web `Response`. */
-const asResponse = (
-  value: unknown,
-): Response => {
+const asResponse = (value: unknown): Response => {
   if (value instanceof Response) {
     return value;
   }
@@ -157,8 +158,7 @@ const forbidden = (): Response =>
   new Response("Forbidden", {
     status: 403,
     headers: {
-      "content-type":
-        "text/plain; charset=utf-8",
+      "content-type": "text/plain; charset=utf-8",
     },
   });
 
@@ -206,16 +206,12 @@ const notifyReload = (
   clients: DevState["clients"],
 ): void =>
   clients.forEach((controller) =>
-    controller.enqueue(
-      encodeUtf8(RELOAD_FRAME),
-    ),
+    controller.enqueue(encodeUtf8(RELOAD_FRAME)),
   );
 
 /** Whether a response carries an HTML body. */
 const isHtml = (response: Response): boolean => {
-  const ct = response.headers.get(
-    "content-type",
-  );
+  const ct = response.headers.get("content-type");
   return ct !== null && ct.includes("text/html");
 };
 
@@ -245,20 +241,15 @@ const decorateHtmlResponse = (
   response: Response,
 ): Promise<Response> =>
   isHtml(response)
-    ? response
-        .text()
-        .then(
-          (html) =>
-            new Response(
-              decorateDevHtml(html),
-              {
-                status: response.status,
-                headers: devHtmlHeaders(
-                  response.headers,
-                ),
-              },
+    ? response.text().then(
+        (html) =>
+          new Response(decorateDevHtml(html), {
+            status: response.status,
+            headers: devHtmlHeaders(
+              response.headers,
             ),
-        )
+          }),
+      )
     : Promise.resolve(response);
 
 /**
@@ -291,9 +282,7 @@ const under = (
   root: string,
   path: string,
 ): string =>
-  isAbsolute(path)
-    ? path
-    : resolve(root, path);
+  isAbsolute(path) ? path : resolve(root, path);
 
 /**
  * Register the dev-only cross-package source resolver
@@ -351,8 +340,28 @@ const reload = async (
   entryUrl: string,
   watchAbs: ReadonlyArray<string>,
   aliases: ReadonlyArray<Alias>,
+  outDirAbs: string,
   filename: string,
 ): Promise<void> => {
+  // Build output, first and WITHOUT probing the disk: a
+  // build DELETES before it writes, and `toChanged` can
+  // only resolve a path that still exists — a deleted file
+  // resolves to null and falls into the conservative
+  // reload. So the outDir test runs against every root's
+  // candidate path instead, which is the same answer for a
+  // file that is there and the right one for a file that
+  // has just gone. (Measured: without this, a guide build
+  // still cost one spurious reload.)
+  if (
+    watchAbs.some((root) =>
+      isBuildOutput(
+        outDirAbs,
+        resolve(root, filename),
+      ),
+    )
+  ) {
+    return;
+  }
   state.graph = scanGraph(watchAbs, aliases);
   const changed = toChanged(watchAbs, filename);
   if (
@@ -476,10 +485,12 @@ export const runDevServer = async (
       )();
     },
   );
-  const url = devUrl(
-    boundPort(server, dev.port),
-  );
+  const url = devUrl(boundPort(server, dev.port));
   log(`plgg-bundle dev on ${url}`);
+  const outDirAbs = under(
+    config.root,
+    config.outDir,
+  );
   const watchers = watchRoots(
     watchAbs,
     (filename) => {
@@ -488,6 +499,7 @@ export const runDevServer = async (
         entryUrl,
         watchAbs,
         aliases,
+        outDirAbs,
         filename,
       );
     },

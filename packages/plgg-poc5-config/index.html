@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>
+      PoC 5 — central configuration generation
+    </title>
+  </head>
+  <body>
+    <!-- The SESSION-BEARING shell. Served by
+         src/entrypoints/serve.ts (no-store). Typing a
+         config command (or asking the assistant by voice)
+         maintains the site's central configuration — tag
+         classification, path exclusions, layout + sizing
+         theme — and the sample site below re-renders in
+         place from the new config, no reload. -->
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

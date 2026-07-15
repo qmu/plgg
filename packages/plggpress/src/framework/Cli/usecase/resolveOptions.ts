@@ -80,13 +80,20 @@ export type ServeSettings = Readonly<{
   hostname: Option<SoftStr>;
 }>;
 
-// Parse the `--port` flag value into a TCP port, or a
-// one-line `Err` on garbage — a number, an integer, in range.
-const asPort = (
+/**
+ * Parse a `--port` flag value into a TCP port, or a
+ * one-line `Err` on garbage — a number, an integer, in
+ * range. Shared by `serve` ({@link resolveServe}) and `dev`
+ * (`framework/Dev/usecase/resolveDev`) so both reject a bad
+ * port with the same message.
+ */
+export const asPort = (
   raw: SoftStr,
 ): Result<number, SoftStr> => {
   const n = Number(raw);
-  return Number.isInteger(n) && n >= 0 && n <= 65535
+  return Number.isInteger(n) &&
+    n >= 0 &&
+    n <= 65535
     ? ok(n)
     : err(
         `invalid --port: ${raw} (expected an integer 0..65535)`,
@@ -108,19 +115,22 @@ export const resolveServe = (
       (): Result<ServeSettings, SoftStr> =>
         ok({
           port: 3000,
-          hostname: optionOf("hostname")(invocation),
+          hostname:
+            optionOf("hostname")(invocation),
         }),
-      (raw: SoftStr): Result<ServeSettings, SoftStr> =>
-        pipe(
-          asPort(raw),
-          (r) =>
-            r.__tag === "Ok"
-              ? ok({
-                  port: r.content,
-                  hostname:
-                    optionOf("hostname")(invocation),
-                })
-              : err(r.content),
+      (
+        raw: SoftStr,
+      ): Result<ServeSettings, SoftStr> =>
+        pipe(asPort(raw), (r) =>
+          r.__tag === "Ok"
+            ? ok({
+                port: r.content,
+                hostname:
+                  optionOf("hostname")(
+                    invocation,
+                  ),
+              })
+            : err(r.content),
         ),
     ),
   );

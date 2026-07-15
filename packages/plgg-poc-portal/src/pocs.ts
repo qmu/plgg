@@ -6,11 +6,21 @@
  * edits exactly its own entry here (status + verdict);
  * nothing else in the portal changes.
  *
- * Port/hostname allocation: 5183–5190 is the reserved
+ * Port/hostname allocation: 5183–5190 WAS the reserved
  * block for this fleet (5173, 5181, 5182, and 5191–5196
- * are taken by other qmu.dev workloads). The cloudflared
- * ingress mapping is developer-applied — see the package
- * README for the exact `~/.cloudflared/config.yml` lines.
+ * are taken by other qmu.dev workloads), and it is now
+ * FULL — the portal at 5183 plus seven PoCs at 5184–5190,
+ * with no gap. The eighth (`poc4c`) therefore sits at 5198,
+ * the first free port past everything cloudflared maps
+ * (which currently tops out at 5197). Allocating past the
+ * block rather than reshuffling was the developer's call
+ * (2026-07-15): a PoC fleet is disposable, so a contiguous
+ * block is not worth defending. The invariant in
+ * `Poc.spec.ts` follows this comment, not the other way
+ * around — widen it deliberately when you allocate again.
+ * The cloudflared ingress mapping is developer-applied —
+ * see the package README for the exact
+ * `~/.cloudflared/config.yml` lines.
  */
 import { none, some } from "plgg";
 import type { Poc } from "./Poc.ts";
@@ -68,8 +78,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can a browser agent's tool calls edit local files through the dev server while hot reload refreshes the page WITHOUT dropping the realtime websocket?",
     confidenceSignal:
       "An agent-initiated edit lands on disk, the edited page hot-reloads, and the same realtime session continues the conversation uninterrupted.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      'Proven — the MECHANICS hold. Judged live by the developer at plgg-poc4.qmu.dev (2026-07-14) on the fixed build: asking the assistant to change the open document landed an agent-initiated edit on disk and the page hot-reloaded with the change visible (the guide index\'s "Web development as one typed pipeline" became a "Web + AI development" phrasing), while the SAME Realtime session kept talking uninterrupted across the reload — the confidence signal met word for word. Both bugs the earlier live judging surfaced are fixed: the language lock-in is gone (the assistant conversed in Japanese while the open English document\'s edit stayed in English — default-to-document-language for edits WITH the conversational switch honored, exactly the intent), and the edit round-tripped cleanly (no corruption observed; the raw-read seam GET /api/doc was probe-verified to return raw markdown with zero index.md>index.md reconstruction artifacts, and to reject traversal with 400). The enabling fix over the first judging round: the lossy chunk reconstruction inherited from PoC 3\'s read-only path was retired, so the model is now fed the exact bytes it will overwrite — an editing agent must always see the real file it writes back. Carried, NOT a miss against this PoC\'s question: the edit surfaces only as a reloaded page, not as the watchable in-place diff PoC 4b proved ("we can actually see the HTML, but when it is edited, it should show the diff like v4b shows") — that PoC 4 × PoC 4b synthesis has its own ticket.',
+    ),
     hostname: "plgg-poc4.qmu.dev",
     port: 5187,
   },
@@ -94,7 +106,7 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can the writer's agent maintain the site's central configuration — front-matter tag classification (name/color/emoji/description), path exclusions, layout and sizing themes — as generated data?",
     confidenceSignal:
       "Asking the agent to reclassify tags, exclude a path, and switch among prefixed sizing themes produces a valid configuration the site renders, with ~5–10 sizing themes expressible.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc5.qmu.dev",
     port: 5188,
@@ -106,9 +118,21 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does tag/link-based grouping over the tree-shaped file system yield a multi-dimensional search UX that both humans and browser agents can operate?",
     confidenceSignal:
       "Prototype variants of tag/link navigation over one corpus are comparable side-by-side, and an agent can drive each variant's search deterministically.",
-    status: "planned",
+    status: "building",
     verdict: none(),
     hostname: "plgg-poc6.qmu.dev",
     port: 5189,
+  },
+  {
+    id: "poc4c",
+    name: "Watchable edits on the real rendered site",
+    question:
+      "Does the granular, animated in-place edit PoC 4b proved survive contact with the REAL rendered site — a full plggpress page with its own markup, styling and hot reload — rather than a purpose-built preview surface?",
+    confidenceSignal:
+      "Asking the assistant to change the open document animates the edited span IN PLACE on the real rendered page, with no full-page reload, the Realtime session unbroken, and the file on disk correct afterwards.",
+    status: "building",
+    verdict: none(),
+    hostname: "plgg-poc4c.qmu.dev",
+    port: 5198,
   },
 ];

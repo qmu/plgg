@@ -1,0 +1,6 @@
+# The seeded, agent-editable COPY of the guide corpus
+# (locked design decision, inherited from PoC 4: the
+# agent edits this copy, so the real packages/guide never
+# accumulates uncommitted AI edits; `npm run
+# reset-content` re-seeds it).
+content/

@@ -1,0 +1,43 @@
+{
+  "name": "plgg-poc4c-livesite",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "PoC 4c of the plggpress confidence-collection fleet: the synthesis of PoC 4 (the REAL plggpress-rendered site, proxied, with real hot reload) and PoC 4b (the granular find/replace edit animating IN PLACE). The agent's edit is patched into the real rendered DOM through an injected client, and the dev server's live-reload is absorbed rather than allowed to blow the patch away.",
+  "scripts": {
+    "build": "plgg-bundle",
+    "seed-content": "node src/entrypoints/seedContent.ts",
+    "reset-content": "npm run seed-content",
+    "dev:docs": "plgg-bundle dev",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "serve": "node src/entrypoints/serve.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-kit": "file:../plgg-kit",
+    "plgg-view": "file:../plgg-view",
+    "plggpress": "file:../plggpress",
+    "plgg-poc1-search": "file:../plgg-poc1-search",
+    "plgg-poc4b-coedit": "file:../plgg-poc4b-coedit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

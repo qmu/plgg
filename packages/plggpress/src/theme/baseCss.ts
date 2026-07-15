@@ -80,7 +80,7 @@ body.vp{
   font-family:"Inter",ui-sans-serif,system-ui,
     -apple-system,"Segoe UI",sans-serif,
     "Apple Color Emoji","Segoe UI Emoji";
-  font-size:16px;line-height:1.75;
+  font-size:16px;line-height:1.7;
   color:${cvar("text")};
   background:${cvar("surface")};
   -webkit-font-smoothing:antialiased;
@@ -331,11 +331,11 @@ body.vp{
    confined to this column. */
 .vp-content{
   flex:1 1 auto;min-width:0;
-  padding:3rem 3rem 3rem;
+  padding:2rem 2.5rem 2.5rem;
 }
 .vp-doc{max-width:${mvar("measure")};margin:0}
 .vp-footer{
-  margin-top:3rem;padding:1.5rem 0;
+  margin-top:2rem;padding:1.25rem 0;
   text-align:center;
 }
 .vp-footer-text{
@@ -343,35 +343,37 @@ body.vp{
 }
 /* Heading scale = qmu's calm ~1.25 modular scale on a 1rem
    body (30/24/19/17), all weight 400, no letter-spacing.
-   The H1 carries no top margin and a 3rem bottom margin so
-   the air above (the column's own 3rem top padding) and
-   below the title read the same. */
+   The vertical rhythm is tightened from the original airy
+   VitePress spacing (2026-07-14, developer): the H1 carries
+   no top margin and a 2rem bottom margin so the air above
+   (the column's own 2rem top padding) and below the title
+   read the same. */
 .vp-doc h1{
   font-size:1.875rem;font-weight:400;
-  line-height:1.25;margin:0 0 3rem;
+  line-height:1.25;margin:0 0 2rem;
 }
 .vp-doc h2{
   font-size:1.5rem;font-weight:400;
-  line-height:1.3;margin:2.85rem 0 1.1rem;
+  line-height:1.3;margin:2.1rem 0 0.9rem;
 }
 .vp-doc h3{
   font-size:1.1875rem;font-weight:400;
-  line-height:1.45;margin:2rem 0 0.75rem;
+  line-height:1.45;margin:1.6rem 0 0.6rem;
 }
 .vp-doc h4{
   font-size:1.0625rem;line-height:1.5;
-  margin:1.5rem 0 0.5rem;
+  margin:1.25rem 0 0.5rem;
 }
 /* Anchor jumps clear the sticky bars (mobile bar / lg pane
    header, both 3rem) — qmu scroll-margin-top. */
 .vp-doc h1,.vp-doc h2,.vp-doc h3,.vp-doc h4{
   scroll-margin-top:3.75rem;
 }
-.vp-doc p{margin:1rem 0}
+.vp-doc p{margin:0.85rem 0}
 .vp-doc ul,.vp-doc ol{
-  padding-left:1.35rem;margin:1rem 0;
+  padding-left:1.35rem;margin:0.85rem 0;
 }
-.vp-doc li{margin:0.45rem 0}
+.vp-doc li{margin:0.35rem 0}
 .vp-doc strong{
   font-weight:400;color:${cvar("text")};
 }
@@ -383,7 +385,7 @@ body.vp{
 .vp-doc hr{
   border:none;
   border-top:1px solid ${cvar("border")};
-  margin:2rem 0;
+  margin:1.5rem 0;
 }
 .vp-doc img{max-width:100%}
 

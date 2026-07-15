@@ -56,11 +56,11 @@
     "plgg-view": "file:../plgg-view",
     "plgg-md": "file:../plgg-md",
     "plgg-highlight": "file:../plgg-highlight",
-    "plgg-cli": "file:../plgg-cli"
+    "plgg-cli": "file:../plgg-cli",
+    "plgg-bundle": "file:../plgg-bundle"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
     "typescript": "^6.0.3"
   }

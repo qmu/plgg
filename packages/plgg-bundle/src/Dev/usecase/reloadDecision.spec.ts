@@ -5,7 +5,10 @@ import {
   toBe,
 } from "plgg-test";
 import { buildGraph } from "plgg-bundle/Dev/usecase/buildGraph";
-import { shouldReload } from "plgg-bundle/Dev/usecase/reloadDecision";
+import {
+  shouldReload,
+  isBuildOutput,
+} from "plgg-bundle/Dev/usecase/reloadDecision";
 
 const graph = buildGraph([
   { from: "/a.ts", to: "/b.ts" },
@@ -46,5 +49,55 @@ test("shouldReload falls back to true for an empty graph", () =>
     check(
       shouldReload(buildGraph([]), "/x.ts"),
       toBe(true),
+    ),
+  ]));
+
+// The app's own build output must never trigger a reload.
+// node's recursive watch has no exclusion, so a watch root
+// containing outDir (the plggpress guide authors at its
+// package root, dist/ included) watches the build — and
+// output is not source code, which shouldReload's first
+// rule would otherwise treat as always-reload content.
+
+test("build output is recognised under outDir", () =>
+  all([
+    check(
+      isBuildOutput(
+        "/app/g/dist",
+        "/app/g/dist/index.html",
+      ),
+      toBe(true),
+    ),
+    check(
+      isBuildOutput(
+        "/app/g/dist",
+        "/app/g/dist/a/b/i.html",
+      ),
+      toBe(true),
+    ),
+    check(
+      isBuildOutput("/app/g/dist", "/app/g/dist"),
+      toBe(true),
+    ),
+  ]));
+
+test("a sibling that merely shares outDir's prefix is not output", () =>
+  all([
+    // `/app/g/dist-notes` must not be swallowed by
+    // `/app/g/dist` — a prefix test without the separator
+    // would silently stop reloading a real content dir.
+    check(
+      isBuildOutput(
+        "/app/g/dist",
+        "/app/g/dist-notes/x.md",
+      ),
+      toBe(false),
+    ),
+    check(
+      isBuildOutput(
+        "/app/g/dist",
+        "/app/g/index.md",
+      ),
+      toBe(false),
     ),
   ]));

@@ -1,0 +1,39 @@
+{
+  "name": "plgg-poc6-classify",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "PoC 6 of the plggpress confidence-collection fleet: non-tree file classification — tag/link grouping over the tree-shaped corpus, presented as THREE comparable navigation variants (tag facets, link/backlink graph, multi-dimensional filter). A pure query-command parser drives each variant's search deterministically (headless-replayable); the Realtime voice session emits the same queries as a bonus.",
+  "scripts": {
+    "build": "plgg-bundle",
+    "seed-content": "node src/entrypoints/seedContent.ts",
+    "reset-content": "npm run seed-content",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "serve": "node src/entrypoints/serve.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-kit": "file:../plgg-kit",
+    "plgg-view": "file:../plgg-view"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

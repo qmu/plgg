@@ -1,9 +1,11 @@
 // plggpress's internal framework facade — the generic web
 // application seam plggpress composes its content/render
 // specifics onto: config loading, the router builder, the
-// static-build orchestration, app-options, and the
-// pre-organized CLI. (Dev/hot-reload is a toolchain
-// concern — `plgg-bundle dev` — not the framework's.)
+// static-build orchestration, app-options, the dev-run
+// declaration, and the pre-organized CLI. (The dev LOOP is
+// still the toolchain's — `Dev/node/devSeam` delegates to
+// plgg-bundle; the framework only assembles the plan, so a
+// consumer never wires one by hand.)
 //
 // Absorbed (31fdee9) from the retired `plggmatic`
 // app-framework facade; the name `plggmatic` now
@@ -54,8 +56,16 @@ export { serveApp } from "plggpress/framework/Serve/usecase/serveApp";
 
 export {
   type AppDefinition,
+  type DevDefinition,
   runApp,
 } from "plggpress/framework/Cli/usecase/runApp";
+
+export {
+  type DevSettings,
+  type DevPlan,
+  type DevHandle,
+  type DevSourceAlias,
+} from "plggpress/framework/Dev/model/DevPlan";
 
 // Wrapped mid-library surfaces. plgg-http is reached through
 // plgg-server's re-exports (its whole surface is included);

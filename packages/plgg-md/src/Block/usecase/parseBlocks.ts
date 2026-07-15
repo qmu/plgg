@@ -1,6 +1,5 @@
 import {
   SoftStr,
-  Int,
   Option,
   Result,
   InvalidError,
@@ -9,16 +8,41 @@ import {
   none,
   ok,
   err,
-  isOk,
-  isErr,
-  isSome,
   pipe,
   fromNullable,
   getOr,
-  mapOption,
+  matchOption,
+  mapResult,
+  chainResult,
 } from "plgg";
 import {
+  type Parser,
+  run,
+  char,
+  literal,
+  satisfy,
+  oneOf,
+  noneOf,
+  letter,
+  alphaNum,
+  digit,
+  many,
+  many1,
+  map,
+  or,
+  right,
+  left,
+  andThen,
+  optional,
+  lookahead,
+  notFollowedBy,
+  succeed,
+  fail,
+  eof,
+} from "plgg-parser";
+import {
   Block,
+  HeadingLevel,
   ListItem,
   TableAlign,
   TableRow,
@@ -35,453 +59,741 @@ import {
 } from "plgg-md/Block/model/Block";
 
 // ---------------------------------------------------------------------------
-// Line grammar — the bounded plggpress subset
+// Character grammar — the bounded plggpress subset
 // (`spike-decisions.md` §7). Everything outside it
 // falls through to a paragraph (raw HTML included).
+//
+// The grammar is a PEG over the RAW SOURCE, not over a
+// line array: line ends are explicit ({@link eol}), so a
+// construct that needs the next line simply keeps parsing
+// (a table's separator row) and one that must not cross a
+// line end says so ({@link dot}).
 // ---------------------------------------------------------------------------
 
-/** Opening/closing fence with a captured info string. */
-const FENCE_RE =
-  /^(```+|~~~+)[ \t]*([^\s`~]*)[ \t]*$/;
-/** A bare closing fence (no info string). */
-const FENCE_CLOSE_RE = /^(```+|~~~+)[ \t]*$/;
-/** `:{3,} kind [title]` — a container directive opener. */
-const CONTAINER_OPEN_RE =
-  /^(:{3,})[ \t]*([A-Za-z][\w-]*)[ \t]*(.*)$/;
-/** A bare `:{3,}` container close. */
-const CONTAINER_CLOSE_RE = /^(:{3,})[ \t]*$/;
-/** ATX heading `#`..`######` with optional closing hashes. */
-const HEADING_RE =
-  /^(#{1,6})[ \t]+(.*?)[ \t]*#*[ \t]*$/;
-/** Thematic break: 3+ of `-`/`*`/`_`, spaces allowed. */
-const HR_RE =
-  /^ {0,3}([-*_])([ \t]*\1){2,}[ \t]*$/;
-/** Blockquote line. */
-const QUOTE_RE = /^ {0,3}>[ \t]?(.*)$/;
-/** Unordered list item. */
-const UL_RE = /^([ \t]*)([-*+])[ \t]+(.*)$/;
-/** Ordered list item. */
-const OL_RE = /^([ \t]*)(\d+)[.)][ \t]+(.*)$/;
-/** Pipe-table header/body separator row. */
-const TABLE_SEP_RE =
-  /^[ \t]*\|?[ \t]*:?-{1,}:?[ \t]*(\|[ \t]*:?-{1,}:?[ \t]*)*\|?[ \t]*$/;
-/**
- * A block-level HTML opener (only honored when `rawHtml`
- * is enabled): up to 3 leading spaces, then `<` or `</`,
- * a tag name, and a tag boundary (space/tab, `>`, `/`, or
- * end of line) or an HTML comment. Pragmatic cover of
- * CommonMark's HTML-block type 6 — enough for the
- * qmu.co.jp corpus (`<small class="updated">`, `<div>`
- * image blocks, `<iframe>` map embeds).
- */
-const HTML_BLOCK_OPEN_RE =
-  /^ {0,3}(?:<!--|<\/?[a-zA-Z][a-zA-Z0-9-]*(?:[ \t>/]|$))/;
+const join = (
+  cs: ReadonlyArray<SoftStr>,
+): SoftStr => cs.join("");
 
 /**
- * The captured groups of a regex match, each absent
- * group defaulted to `""` — a no-`as` reader over
- * `RegExpMatchArray`'s `string | undefined` slots.
+ * End of line: a newline, or the end of the source. The
+ * original grammar tested its regexes against the members
+ * of `source.split("\n")`, so an anchoring `$` meant
+ * exactly this position — and nothing else, since `$` is
+ * unaffected by the absence of the `m` flag here.
  */
-const groups = (
-  re: RegExp,
-  line: SoftStr,
-): Option<ReadonlyArray<SoftStr>> =>
+const eol: Parser<true, null> = or<true, null>(
+  map<SoftStr, true>((): true => true)(
+    char("\n"),
+  ),
+  eof,
+);
+
+/**
+ * CommonMark's line endings, folded to `\n`: a CR followed
+ * by an LF, and a lone CR, are each ONE line ending.
+ *
+ * Every construct here is anchored to a line, and a CR is
+ * not part of a line's text — so without this a CRLF
+ * document matched NO construct at all and every line fell
+ * through to a paragraph (`# Title` rendered as the literal
+ * text `# Title`). A Windows-authored `.md` rendered as
+ * mush.
+ *
+ * Applied at the public entry so the whole grammar below
+ * may assume `\n`, rather than each rule carrying a CR
+ * case. A `\n`-only document is returned untouched, so this
+ * cannot move the output of anything already rendering
+ * today.
+ */
+export const normalizeLineEndings = (
+  source: SoftStr,
+): SoftStr =>
+  source.includes("\r")
+    ? source
+        .split("\r\n")
+        .join("\n")
+        .split("\r")
+        .join("\n")
+    : source;
+
+/**
+ * The regex `.`: any character that is NOT a line
+ * terminator. `\r` is one — so the original's `(.*)$`
+ * groups could not cross a CR, and a CRLF line matched no
+ * construct at all and fell through to a paragraph. That
+ * is reproduced by excluding the same four characters.
+ */
+const dot: Parser<SoftStr, null> = noneOf(
+  "\n\r\u2028\u2029",
+);
+
+/** `(.*)$` — a trailing capture that must reach the line end. */
+const dotStarLine: Parser<SoftStr, null> = left(
+  map(join)(many<SoftStr, null>(dot)),
+  eol,
+);
+
+/**
+ * One whole line VERBATIM — the original's `lines[i]`,
+ * terminator consumed. Distinct from {@link dotStarLine}:
+ * a raw line may hold a CR, which the regex groups could
+ * not capture but the line array happily carried.
+ */
+const rawLine: Parser<SoftStr, null> = left(
+  map(join)(many<SoftStr, null>(noneOf("\n"))),
+  eol,
+);
+
+/** `[ \t]*` — the intra-line spacing every construct allows. */
+const hspaces: Parser<
+  ReadonlyArray<SoftStr>,
+  null
+> = many<SoftStr, null>(oneOf(" \t"));
+
+/**
+ * ` {0,3}` — the leading-space allowance of the quote,
+ * thematic-break and html-block openers. Greedy is exact:
+ * a fourth space can never be matched by what follows, so
+ * the regex's backtracking could not rescue it either.
+ */
+const upTo3Spaces: Parser<true, null> = pipe(
+  many<SoftStr, null>(char(" ")),
+  andThen<ReadonlyArray<SoftStr>, true, null>(
+    (sp: ReadonlyArray<SoftStr>) =>
+      sp.length <= 3
+        ? succeed<true>(true)
+        : fail("at most 3 leading spaces"),
+  ),
+);
+
+/** A line that `trim()`s to nothing — the block separator. */
+const blankLine: Parser<SoftStr, null> = pipe(
+  rawLine,
+  andThen<SoftStr, SoftStr, null>(
+    (line: SoftStr) =>
+      line.trim() === ""
+        ? succeed<SoftStr>(line)
+        : fail("a blank line"),
+  ),
+);
+
+/** Its complement: the paragraph/html-block body line. */
+const nonBlankLine: Parser<SoftStr, null> = pipe(
+  rawLine,
+  andThen<SoftStr, SoftStr, null>(
+    (line: SoftStr) =>
+      line.trim() !== ""
+        ? succeed<SoftStr>(line)
+        : fail("a non-blank line"),
+  ),
+);
+
+/**
+ * A construct's outcome. Errors are **values**, not parse
+ * failures: an unterminated fence, a mismatched container
+ * and a malformed table are committed constructs that
+ * FAIL, and a failing PEG branch would instead backtrack
+ * and let the line become a paragraph. Carrying the error
+ * as a value keeps the original's "the first error stops
+ * the scan" contract.
+ */
+type BlockResult = Result<Block, InvalidError>;
+
+// ---------------------------------------------------------------------------
+// Fenced code
+// ---------------------------------------------------------------------------
+
+/** An opening fence: its marker run and its info string. */
+type FenceOpen = Readonly<{
+  marker: SoftStr;
+  lang: SoftStr;
+}>;
+
+/** ` ```+ ` / `~~~+` — a MAXIMAL run of 3 or more. */
+const fenceRun = (
+  ch: SoftStr,
+): Parser<SoftStr, null> =>
   pipe(
-    fromNullable(line.match(re)),
-    mapOption((m): ReadonlyArray<SoftStr> =>
-      m.map((g) =>
-        pipe(fromNullable(g), getOr("")),
+    map(join)(many1<SoftStr, null>(char(ch))),
+    andThen<SoftStr, SoftStr, null>(
+      (marker: SoftStr) =>
+        marker.length >= 3
+          ? succeed<SoftStr>(marker)
+          : fail("a 3+ character fence run"),
+    ),
+  );
+
+const fenceMarker: Parser<SoftStr, null> = or<
+  SoftStr,
+  null
+>(fenceRun("`"), fenceRun("~"));
+
+/**
+ * The info string's `[^\s`~]*`, where `\s` is
+ * **JavaScript's** Unicode whitespace — strictly wider
+ * than plgg-parser's `whitespace`, so an exact predicate
+ * is required to keep exotic info strings identical.
+ */
+const infoChar: Parser<SoftStr, null> = satisfy(
+  "info string character",
+  (ch: SoftStr): boolean =>
+    ch !== "`" && ch !== "~" && !/\s/.test(ch),
+);
+
+const fenceOpenLine: Parser<FenceOpen, null> =
+  pipe(
+    fenceMarker,
+    andThen<SoftStr, FenceOpen, null>(
+      (marker: SoftStr) =>
+        map<SoftStr, FenceOpen>(
+          (lang: SoftStr): FenceOpen => ({
+            marker,
+            lang,
+          }),
+        )(
+          left(
+            right(
+              hspaces,
+              map(join)(
+                many<SoftStr, null>(infoChar),
+              ),
+            ),
+            right(hspaces, eol),
+          ),
+        ),
+    ),
+  );
+
+/**
+ * A bare close fence sharing the opener's CHARACTER —
+ * ` ``` ` is not closed by `~~~`, but IS closed by a run
+ * of a different length.
+ */
+const fenceCloseLine = (
+  marker: SoftStr,
+): Parser<SoftStr, null> =>
+  left(
+    pipe(
+      fenceMarker,
+      andThen<SoftStr, SoftStr, null>(
+        (close: SoftStr) =>
+          close.charAt(0) === marker.charAt(0)
+            ? succeed<SoftStr>(close)
+            : fail("a matching close fence"),
+      ),
+    ),
+    right(hspaces, eol),
+  );
+
+/**
+ * A fenced code block: the info string verbatim (`None`
+ * when unlabeled) and the body up to a same-character
+ * close. An unterminated fence is an error VALUE — the
+ * body scan has then run to the end of the source, which
+ * is exactly where the original's failed scan stopped.
+ */
+const fenceBlock: Parser<BlockResult, null> =
+  pipe(
+    fenceOpenLine,
+    andThen<FenceOpen, BlockResult, null>(
+      (open: FenceOpen) =>
+        pipe(
+          many<SoftStr, null>(
+            right(
+              notFollowedBy(
+                fenceCloseLine(open.marker),
+              ),
+              rawLine,
+            ),
+          ),
+          andThen<
+            ReadonlyArray<SoftStr>,
+            BlockResult,
+            null
+          >((body: ReadonlyArray<SoftStr>) =>
+            or<BlockResult, null>(
+              map<SoftStr, BlockResult>(
+                (): BlockResult =>
+                  ok(
+                    codeFence(
+                      open.lang === ""
+                        ? none()
+                        : some<SoftStr>(
+                            open.lang,
+                          ),
+                      body.join("\n"),
+                    ),
+                  ),
+              )(fenceCloseLine(open.marker)),
+              succeed<BlockResult>(
+                err(
+                  invalidError({
+                    message: `Unterminated code fence opened with '${open.marker}'`,
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ),
+  );
+
+// ---------------------------------------------------------------------------
+// `:::`-container directive
+// ---------------------------------------------------------------------------
+
+/** An opening directive: `:{3,} kind [title]`. */
+type ContainerOpen = Readonly<{
+  colons: number;
+  kind: SoftStr;
+  title: SoftStr;
+}>;
+
+/** `:{3,}` — a MAXIMAL run, reported by its length. */
+const colonRun: Parser<number, null> = pipe(
+  map(join)(many1<SoftStr, null>(char(":"))),
+  andThen<SoftStr, number, null>(
+    (colons: SoftStr) =>
+      colons.length >= 3
+        ? succeed<number>(colons.length)
+        : fail("a 3+ colon run"),
+  ),
+);
+
+/** `[A-Za-z][\w-]*` — the directive's kind. */
+const kindName: Parser<SoftStr, null> = pipe(
+  letter,
+  andThen<SoftStr, SoftStr, null>(
+    (first: SoftStr) =>
+      map<ReadonlyArray<SoftStr>, SoftStr>(
+        (rest: ReadonlyArray<SoftStr>): SoftStr =>
+          `${first}${join(rest)}`,
+      )(
+        many<SoftStr, null>(
+          or<SoftStr, null>(
+            alphaNum,
+            oneOf("_-"),
+          ),
+        ),
+      ),
+  ),
+);
+
+const containerOpenLine: Parser<
+  ContainerOpen,
+  null
+> = pipe(
+  colonRun,
+  andThen<number, ContainerOpen, null>(
+    (colons: number) =>
+      pipe(
+        right(hspaces, kindName),
+        andThen<SoftStr, ContainerOpen, null>(
+          (kind: SoftStr) =>
+            map<SoftStr, ContainerOpen>(
+              (
+                title: SoftStr,
+              ): ContainerOpen => ({
+                colons,
+                kind,
+                title: title.trim(),
+              }),
+            )(right(hspaces, dotStarLine)),
+        ),
+      ),
+  ),
+);
+
+/** A bare `:{3,}` close, reported by its colon count. */
+const containerCloseLine: Parser<number, null> =
+  left(colonRun, right(hspaces, eol));
+
+/** How the container's colon-count scan ended. */
+type Scan =
+  | Readonly<{
+      tag: "closed";
+      body: ReadonlyArray<SoftStr>;
+    }>
+  | Readonly<{ tag: "mismatch" }>
+  | Readonly<{ tag: "unterminated" }>;
+
+/**
+ * One scanned line, classified but kept VERBATIM: the
+ * body is re-parsed as rebuilt source, so a nested opener
+ * or closer rides along inside it untouched.
+ */
+type ScanLine =
+  | Readonly<{
+      tag: "open";
+      colons: number;
+      raw: SoftStr;
+    }>
+  | Readonly<{
+      tag: "close";
+      colons: number;
+      raw: SoftStr;
+    }>
+  | Readonly<{ tag: "other"; raw: SoftStr }>;
+
+const scanLine: Parser<ScanLine, null> = or<
+  ScanLine,
+  null
+>(
+  pipe(
+    lookahead(containerOpenLine),
+    andThen<ContainerOpen, ScanLine, null>(
+      (open: ContainerOpen) =>
+        map<SoftStr, ScanLine>(
+          (raw: SoftStr): ScanLine => ({
+            tag: "open",
+            colons: open.colons,
+            raw,
+          }),
+        )(rawLine),
+    ),
+  ),
+  pipe(
+    lookahead(containerCloseLine),
+    andThen<number, ScanLine, null>(
+      (colons: number) =>
+        map<SoftStr, ScanLine>(
+          (raw: SoftStr): ScanLine => ({
+            tag: "close",
+            colons,
+            raw,
+          }),
+        )(rawLine),
+    ),
+  ),
+  map<SoftStr, ScanLine>(
+    (raw: SoftStr): ScanLine => ({
+      tag: "other",
+      raw,
+    }),
+  )(rawLine),
+);
+
+/**
+ * The colon-count STACK: any opener pushes, a close pops
+ * only on an EXACT count match, and a wrong-length close
+ * is a hard mismatch — distinct from never closing at
+ * all. Note what is NOT here: the scan is flat, so a
+ * `:::` inside a fenced code block still counts.
+ */
+const containerScan = (
+  stack: ReadonlyArray<number>,
+  body: ReadonlyArray<SoftStr>,
+): Parser<Scan, null> =>
+  or<Scan, null>(
+    map<true, Scan>((): Scan => ({
+      tag: "unterminated",
+    }))(eof),
+    pipe(
+      scanLine,
+      andThen<ScanLine, Scan, null>(
+        (line: ScanLine) =>
+          line.tag === "open"
+            ? containerScan(
+                [...stack, line.colons],
+                [...body, line.raw],
+              )
+            : line.tag === "close"
+              ? containerClose(
+                  stack,
+                  body,
+                  line.colons,
+                  line.raw,
+                )
+              : containerScan(stack, [
+                  ...body,
+                  line.raw,
+                ]),
       ),
     ),
   );
 
-/** Reads capture group `i`, defaulting to `""`. */
-const group = (
-  gs: ReadonlyArray<SoftStr>,
-  i: number,
-): SoftStr =>
-  pipe(fromNullable(gs[i]), getOr(""));
+/** The close-line step of {@link containerScan}. */
+const containerClose = (
+  stack: ReadonlyArray<number>,
+  body: ReadonlyArray<SoftStr>,
+  colons: number,
+  raw: SoftStr,
+): Parser<Scan, null> =>
+  pipe(
+    fromNullable(stack[stack.length - 1]),
+    getOr(0),
+  ) !== colons
+    ? succeed<Scan>({ tag: "mismatch" })
+    : stack.length === 1
+      ? succeed<Scan>({ tag: "closed", body })
+      : containerScan(stack.slice(0, -1), [
+          ...body,
+          raw,
+        ]);
 
-/** Reads line `k`, defaulting to `""` past the end. */
-const lineAt = (
-  lines: ReadonlyArray<SoftStr>,
-  k: number,
-): SoftStr =>
-  pipe(fromNullable(lines[k]), getOr(""));
-
-/** Count of leading space/tab characters. */
-const indentOf = (line: SoftStr): Int =>
-  pipe(groups(/^([ \t]*)/, line), (gs) =>
-    isSome(gs) ? group(gs.content, 1).length : 0,
+/**
+ * A `:::`-container, accepting 3+ MATCHING colons so
+ * `::::` nests around an inner `:::`. The body is
+ * re-parsed as REBUILT SOURCE (not as a sub-parse of this
+ * state), so nested containers become nested
+ * {@link callout}s and a child's error propagates.
+ */
+const containerBlock = (
+  rawHtml: boolean,
+): Parser<BlockResult, null> =>
+  pipe(
+    containerOpenLine,
+    andThen<ContainerOpen, BlockResult, null>(
+      (open: ContainerOpen) =>
+        map<Scan, BlockResult>(
+          (scan: Scan): BlockResult =>
+            scan.tag === "mismatch"
+              ? err(
+                  invalidError({
+                    message: `Mismatched container fence: a close does not match the opening ${open.colons}-colon run`,
+                  }),
+                )
+              : scan.tag === "unterminated"
+                ? err(
+                    invalidError({
+                      message: `Unterminated container '${open.kind}' opened with ${open.colons} colons`,
+                    }),
+                  )
+                : pipe(
+                    parseBlocks(
+                      scan.body.join("\n"),
+                      rawHtml,
+                    ),
+                    mapResult(
+                      (
+                        children: ReadonlyArray<Block>,
+                      ): Block =>
+                        callout(
+                          open.kind,
+                          open.title === ""
+                            ? none()
+                            : some<SoftStr>(
+                                open.title,
+                              ),
+                          children,
+                        ),
+                    ),
+                  ),
+        )(containerScan([open.colons], [])),
+    ),
   );
 
-/** A block span: the produced {@link Block} and the next unconsumed line. */
-type Span = Readonly<{
-  block: Block;
-  next: number;
+// ---------------------------------------------------------------------------
+// Heading
+// ---------------------------------------------------------------------------
+
+/** An ATX heading line: its depth and its text. */
+type HeadingLine = Readonly<{
+  level: number;
+  text: SoftStr;
 }>;
 
-/**
- * Parses a Markdown body into a flat {@link Block}
- * sequence over the plggpress subset. Inline markup is
- * NOT parsed here (that is the render step). With `rawHtml`
- * off (the default) any out-of-subset line — raw HTML
- * included — rides along as {@link para} text and is
- * HTML-escaped at render; with `rawHtml` on, a block-level
- * HTML opener starts an {@link htmlBlock} rendered
- * verbatim. Failures — an unterminated fence, a
- * colon-count-mismatched container, a malformed pipe
- * table — return an {@link InvalidError}, never a throw.
- */
-export const parseBlocks = (
-  source: SoftStr,
-  rawHtml: boolean = false,
-): Result<ReadonlyArray<Block>, InvalidError> =>
-  parseBlockLines(source.split("\n"), rawHtml);
+/** `#{1,6}` — a MAXIMAL run, since a 7th `#` can only fail. */
+const hashRun: Parser<number, null> = pipe(
+  map(join)(many1<SoftStr, null>(char("#"))),
+  andThen<SoftStr, number, null>(
+    (hashes: SoftStr) =>
+      hashes.length <= 6
+        ? succeed<number>(hashes.length)
+        : fail("1 to 6 hashes"),
+  ),
+);
+
+/** `[ \t]*#*[ \t]*$` — the optional closing-hash tail. */
+const headingTail: Parser<true, null> = right(
+  hspaces,
+  right(
+    many<SoftStr, null>(char("#")),
+    right(hspaces, eol),
+  ),
+);
 
 /**
- * The line-scan seam. A cursor (`i`) is advanced past
- * each construct's full span by the `take*` helpers;
- * blank lines separate blocks. This is an irreducible
- * imperative loop (a multi-line, look-ahead tokenizer),
- * isolated here and kept pure — it allocates a local
- * accumulator and returns it, mutating nothing outside.
- * Each `take*` receives the already-matched capture
- * groups, so no construct re-tests its own opener.
+ * `#…# text [#…]`. The text group is LAZY, and stops at
+ * the FIRST position where the closing tail runs to the
+ * line end: `# Hello ###` is `Hello` (the tail eats the
+ * hashes) but `# Hello #x` is `Hello #x` (the tail cannot
+ * reach the end, so the hash stays text).
  */
-const parseBlockLines = (
-  lines: ReadonlyArray<SoftStr>,
-  rawHtml: boolean,
-): Result<ReadonlyArray<Block>, InvalidError> => {
-  const blocks: Array<Block> = [];
-  let error: Option<InvalidError> = none();
-  let i = 0;
-  while (i < lines.length) {
-    const line = lineAt(lines, i);
-    if (line.trim() === "") {
-      i++;
-      continue;
-    }
-    const fence = groups(FENCE_RE, line);
-    if (isSome(fence)) {
-      const res = takeFence(
-        lines,
-        i,
-        fence.content,
-      );
-      if (isErr(res)) {
-        error = some(res.content);
-        break;
-      }
-      blocks.push(res.content.block);
-      i = res.content.next;
-      continue;
-    }
-    const copen = groups(CONTAINER_OPEN_RE, line);
-    if (isSome(copen)) {
-      const res = takeContainer(
-        lines,
-        i,
-        copen.content,
-        rawHtml,
-      );
-      if (isErr(res)) {
-        error = some(res.content);
-        break;
-      }
-      blocks.push(res.content.block);
-      i = res.content.next;
-      continue;
-    }
-    const head = groups(HEADING_RE, line);
-    if (isSome(head)) {
-      const res = takeHeading(i, head.content);
-      if (isErr(res)) {
-        error = some(res.content);
-        break;
-      }
-      blocks.push(res.content.block);
-      i = res.content.next;
-      continue;
-    }
-    if (HR_RE.test(line)) {
-      blocks.push(thematicBreak());
-      i++;
-      continue;
-    }
-    if (QUOTE_RE.test(line)) {
-      const res = takeQuote(lines, i, rawHtml);
-      if (isErr(res)) {
-        error = some(res.content);
-        break;
-      }
-      blocks.push(res.content.block);
-      i = res.content.next;
-      continue;
-    }
-    if (
-      line.includes("|") &&
-      TABLE_SEP_RE.test(lineAt(lines, i + 1))
-    ) {
-      const res = takeTable(lines, i);
-      if (isErr(res)) {
-        error = some(res.content);
-        break;
-      }
-      blocks.push(res.content.block);
-      i = res.content.next;
-      continue;
-    }
-    if (
-      rawHtml &&
-      HTML_BLOCK_OPEN_RE.test(line)
-    ) {
-      const span = takeHtmlBlock(lines, i);
-      blocks.push(span.block);
-      i = span.next;
-      continue;
-    }
-    if (isSome(listMatch(line))) {
-      const span = takeList(lines, i);
-      blocks.push(span.block);
-      i = span.next;
-      continue;
-    }
-    const span = takeParagraph(lines, i, rawHtml);
-    blocks.push(span.block);
-    i = span.next;
-  }
-  return isSome(error)
-    ? err(error.content)
-    : ok(blocks);
-};
-
-/**
- * Consumes a fenced code block. Captures the info
- * string verbatim (`None` when unlabeled) and the body
- * up to a same-character close fence. An unterminated
- * fence is a failure.
- */
-const takeFence = (
-  lines: ReadonlyArray<SoftStr>,
-  i: number,
-  open: ReadonlyArray<SoftStr>,
-): Result<Span, InvalidError> => {
-  const marker = group(open, 1);
-  const lang = group(open, 2);
-  // forward scan for the matching close fence
-  let j = i + 1;
-  let closeIdx = -1;
-  while (j < lines.length) {
-    const close = groups(
-      FENCE_CLOSE_RE,
-      lineAt(lines, j),
-    );
-    if (
-      isSome(close) &&
-      sameFenceRun(
-        marker,
-        group(close.content, 1),
-      )
-    ) {
-      closeIdx = j;
-      break;
-    }
-    j++;
-  }
-  return closeIdx < 0
-    ? err(
-        invalidError({
-          message: `Unterminated code fence opened with '${marker}'`,
-        }),
-      )
-    : ok({
-        block: codeFence(
-          lang === ""
-            ? none()
-            : some<SoftStr>(lang),
-          lines.slice(i + 1, closeIdx).join("\n"),
-        ),
-        next: closeIdx + 1,
-      });
-};
-
-/** Same fence character (` ``` ` is not closed by `~~~`). */
-const sameFenceRun = (
-  open: SoftStr,
-  close: SoftStr,
-): boolean => open.charAt(0) === close.charAt(0);
-
-/**
- * Consumes a `:::`-container, accepting 3+ MATCHING
- * colons: the close must repeat the open's colon count,
- * so `::::` nests around an inner `:::`. A colon-count
- * mismatch or a never-closed container is a failure. The
- * body is parsed recursively, so nested containers
- * become nested {@link callout}s.
- */
-const takeContainer = (
-  lines: ReadonlyArray<SoftStr>,
-  i: number,
-  open: ReadonlyArray<SoftStr>,
-  rawHtml: boolean,
-): Result<Span, InvalidError> => {
-  const openColons = group(open, 1).length;
-  const kind = group(open, 2);
-  const title = group(open, 3).trim();
-  // colon-count stack: a close pops only its exact
-  // match, so a wrong-length close is a hard mismatch.
-  const stack: Array<number> = [openColons];
-  let j = i + 1;
-  let closeIdx = -1;
-  let mismatch = false;
-  while (j < lines.length) {
-    const lj = lineAt(lines, j);
-    const om = groups(CONTAINER_OPEN_RE, lj);
-    const cm = groups(CONTAINER_CLOSE_RE, lj);
-    if (isSome(om)) {
-      stack.push(group(om.content, 1).length);
-    } else if (isSome(cm)) {
-      const k = group(cm.content, 1).length;
-      const top = pipe(
-        fromNullable(stack[stack.length - 1]),
-        getOr(0),
-      );
-      if (top !== k) {
-        mismatch = true;
-        break;
-      }
-      stack.pop();
-      if (stack.length === 0) {
-        closeIdx = j;
-        break;
-      }
-    }
-    j++;
-  }
-  if (mismatch) {
-    return err(
-      invalidError({
-        message: `Mismatched container fence: a close does not match the opening ${openColons}-colon run`,
-      }),
-    );
-  }
-  if (closeIdx < 0) {
-    return err(
-      invalidError({
-        message: `Unterminated container '${kind}' opened with ${openColons} colons`,
-      }),
-    );
-  }
-  const children = parseBlockLines(
-    lines.slice(i + 1, closeIdx),
-    rawHtml,
-  );
-  return isErr(children)
-    ? err(children.content)
-    : ok({
-        block: callout(
-          kind,
-          title === ""
-            ? none()
-            : some<SoftStr>(title),
-          children.content,
-        ),
-        next: closeIdx + 1,
-      });
-};
-
-/** Consumes one ATX heading line from its captured groups. */
-const takeHeading = (
-  i: number,
-  gs: ReadonlyArray<SoftStr>,
-): Result<Span, InvalidError> =>
+const headingLine: Parser<HeadingLine, null> =
   pipe(
-    asHeadingLevel(group(gs, 1).length),
-    (lvl) =>
-      isOk(lvl)
-        ? ok<Span>({
-            block: heading(
-              lvl.content,
-              group(gs, 2),
+    hashRun,
+    andThen<number, HeadingLine, null>(
+      (level: number) =>
+        right(
+          many1<SoftStr, null>(oneOf(" \t")),
+          map<
+            ReadonlyArray<SoftStr>,
+            HeadingLine
+          >(
+            (
+              cs: ReadonlyArray<SoftStr>,
+            ): HeadingLine => ({
+              level,
+              text: join(cs),
+            }),
+          )(
+            left(
+              many<SoftStr, null>(
+                right(
+                  notFollowedBy(headingTail),
+                  dot,
+                ),
+              ),
+              headingTail,
             ),
-            next: i + 1,
-          })
-        : err(lvl.content),
+          ),
+        ),
+    ),
   );
 
-/**
- * Consumes a run of `>` blockquote lines, then parses
- * the de-quoted body recursively.
- */
-const takeQuote = (
-  lines: ReadonlyArray<SoftStr>,
-  i: number,
-  rawHtml: boolean,
-): Result<Span, InvalidError> => {
-  const body: Array<SoftStr> = [];
-  let j = i;
-  while (j < lines.length) {
-    const gs = groups(QUOTE_RE, lineAt(lines, j));
-    if (!isSome(gs)) {
-      break;
-    }
-    body.push(group(gs.content, 1));
-    j++;
-  }
-  const children = parseBlockLines(body, rawHtml);
-  return isErr(children)
-    ? err(children.content)
-    : ok({
-        block: quote(children.content),
-        next: j,
-      });
-};
+/** The heading block — {@link asHeadingLevel}'s error rides through. */
+const headingBlock: Parser<BlockResult, null> =
+  map<HeadingLine, BlockResult>(
+    (head: HeadingLine): BlockResult =>
+      pipe(
+        asHeadingLevel(head.level),
+        mapResult((level: HeadingLevel): Block =>
+          heading(level, head.text),
+        ),
+      ),
+  )(headingLine);
+
+// ---------------------------------------------------------------------------
+// Thematic break, quote
+// ---------------------------------------------------------------------------
+
+/** 3+ of `-`/`*`/`_`, spaces allowed, all the SAME character. */
+const thematicBreakLine: Parser<true, null> =
+  right(
+    upTo3Spaces,
+    pipe(
+      oneOf("-*_"),
+      andThen<SoftStr, true, null>(
+        (ch: SoftStr) =>
+          pipe(
+            many<SoftStr, null>(
+              right(hspaces, char(ch)),
+            ),
+            andThen<
+              ReadonlyArray<SoftStr>,
+              true,
+              null
+            >((rest: ReadonlyArray<SoftStr>) =>
+              rest.length >= 2
+                ? right(hspaces, eol)
+                : fail("2 more break characters"),
+            ),
+          ),
+      ),
+    ),
+  );
+
+/** One `>` line, stripped of its marker and ONE space. */
+const quoteLine: Parser<SoftStr, null> = right(
+  upTo3Spaces,
+  right(
+    char(">"),
+    right(optional(oneOf(" \t")), dotStarLine),
+  ),
+);
 
 /**
- * Consumes a pipe table: header row, alignment row, then
- * body rows until a non-table line. A separator whose
- * column count disagrees with the header is malformed.
+ * A run of `>` lines, its de-quoted body re-parsed as
+ * REBUILT SOURCE — the same "extract text, parse it
+ * again" shape the container uses.
  */
-const takeTable = (
-  lines: ReadonlyArray<SoftStr>,
-  i: number,
-): Result<Span, InvalidError> => {
-  const header = splitRow(lineAt(lines, i));
-  const align = splitRow(
-    lineAt(lines, i + 1),
-  ).map(parseAlign);
-  if (align.length !== header.length) {
-    return err(
-      invalidError({
-        message: `Malformed table: ${align.length} alignment cells for ${header.length} header cells`,
-      }),
-    );
-  }
-  const rows: Array<TableRow> = [];
-  let j = i + 2;
-  while (j < lines.length) {
-    const lj = lineAt(lines, j);
-    if (!lj.includes("|")) {
-      break;
-    }
-    rows.push(splitRow(lj));
-    j++;
-  }
-  return ok({
-    block: table(header, align, rows),
-    next: j,
-  });
-};
+const quoteBlock = (
+  rawHtml: boolean,
+): Parser<BlockResult, null> =>
+  map<ReadonlyArray<SoftStr>, BlockResult>(
+    (body: ReadonlyArray<SoftStr>): BlockResult =>
+      pipe(
+        parseBlocks(body.join("\n"), rawHtml),
+        mapResult(
+          (
+            children: ReadonlyArray<Block>,
+          ): Block => quote(children),
+        ),
+      ),
+  )(many1<SoftStr, null>(quoteLine));
+
+// ---------------------------------------------------------------------------
+// Pipe table
+// ---------------------------------------------------------------------------
+
+/** `:?-{1,}:?` — one cell of the alignment row. */
+const dashCell: Parser<true, null> = right(
+  optional(char(":")),
+  right(
+    many1<SoftStr, null>(char("-")),
+    map<Option<SoftStr>, true>((): true => true)(
+      optional(char(":")),
+    ),
+  ),
+);
+
+/** `\|[ \t]*:?-{1,}:?[ \t]*` — a subsequent alignment cell. */
+const sepMoreCell: Parser<true, null> = right(
+  char("|"),
+  right(hspaces, left(dashCell, hspaces)),
+);
+
+/** The whole header/body separator row. */
+const tableSepLine: Parser<true, null> = right(
+  hspaces,
+  right(
+    optional(char("|")),
+    right(
+      hspaces,
+      right(
+        dashCell,
+        right(
+          hspaces,
+          right(
+            many<true, null>(sepMoreCell),
+            right(
+              optional(char("|")),
+              right(hspaces, eol),
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
+/** A line holding a `|` — the table's header and body rows. */
+const pipeLine: Parser<SoftStr, null> = pipe(
+  rawLine,
+  andThen<SoftStr, SoftStr, null>(
+    (line: SoftStr) =>
+      line.includes("|")
+        ? succeed<SoftStr>(line)
+        : fail("a table row"),
+  ),
+);
 
 /** Splits a `| a | b |` row into trimmed cells. */
 const splitRow = (line: SoftStr): TableRow =>
-  line
-    .trim()
-    .replace(/^\|/, "")
-    .replace(/\|$/, "")
+  pipe(
+    line.trim(),
+    (trimmed: SoftStr): SoftStr =>
+      trimmed.startsWith("|")
+        ? trimmed.slice(1)
+        : trimmed,
+    (stripped: SoftStr): SoftStr =>
+      stripped.endsWith("|")
+        ? stripped.slice(0, -1)
+        : stripped,
+  )
     .split("|")
-    .map((cell) => cell.trim());
+    .map((cell: SoftStr): SoftStr => cell.trim());
 
 /** Reads a separator cell's alignment colons. */
 const parseAlign = (
@@ -499,205 +811,608 @@ const parseAlign = (
         : "default";
 };
 
+/** The body rows: every following line that merely holds a `|`. */
+const tableRows = (
+  header: TableRow,
+  align: ReadonlyArray<TableAlign>,
+): Parser<BlockResult, null> =>
+  align.length !== header.length
+    ? succeed<BlockResult>(
+        err(
+          invalidError({
+            message: `Malformed table: ${align.length} alignment cells for ${header.length} header cells`,
+          }),
+        ),
+      )
+    : map<ReadonlyArray<TableRow>, BlockResult>(
+        (
+          rows: ReadonlyArray<TableRow>,
+        ): BlockResult =>
+          ok(table(header, align, rows)),
+      )(
+        many<TableRow, null>(
+          map(splitRow)(pipeLine),
+        ),
+      );
+
+/**
+ * A pipe table: a `|`-bearing header, an alignment row,
+ * then body rows. A separator whose column count
+ * disagrees with the header is malformed — and the
+ * construct is already committed by then, so that is an
+ * error VALUE, not a fall back to a paragraph.
+ */
+const tableBlock: Parser<BlockResult, null> =
+  pipe(
+    pipeLine,
+    andThen<SoftStr, BlockResult, null>(
+      (header: SoftStr) =>
+        pipe(
+          right(lookahead(tableSepLine), rawLine),
+          andThen<SoftStr, BlockResult, null>(
+            (sep: SoftStr) =>
+              tableRows(
+                splitRow(header),
+                splitRow(sep).map(parseAlign),
+              ),
+          ),
+        ),
+    ),
+  );
+
+// ---------------------------------------------------------------------------
+// Lists
+// ---------------------------------------------------------------------------
+
 /** A matched list-item marker: its indent, ordering, and text. */
 type ListMark = Readonly<{
-  indent: Int;
+  indent: number;
   ordered: boolean;
   text: SoftStr;
 }>;
 
-/** Recognizes an unordered/ordered list-item line. */
-const listMatch = (
-  line: SoftStr,
-): Option<ListMark> =>
-  pipe(groups(UL_RE, line), (ul) =>
-    isSome(ul)
-      ? some<ListMark>({
-          indent: group(ul.content, 1).length,
-          ordered: false,
-          text: group(ul.content, 3),
-        })
-      : pipe(groups(OL_RE, line), (ol) =>
-          isSome(ol)
-            ? some<ListMark>({
-                indent: group(ol.content, 1)
-                  .length,
-                ordered: true,
-                text: group(ol.content, 3),
-              })
-            : none(),
-        ),
-  );
-
-/** Mutable item under construction (children grow as nested lists arrive). */
-type ItemDraft = {
-  text: SoftStr;
-  children: Array<Block>;
-};
-
-/** Parses one list level, recursing for deeper-indented items. */
-const parseListAt = (
-  lines: ReadonlyArray<SoftStr>,
-  start: number,
-  baseIndent: number,
-): Readonly<{
+/** One level's harvest. */
+type Level = Readonly<{
   items: ReadonlyArray<ListItem>;
   ordered: boolean;
-  next: number;
-}> => {
-  const drafts: Array<ItemDraft> = [];
-  let ordered = false;
-  let first = true;
-  let j = start;
-  while (j < lines.length) {
-    const line = lineAt(lines, j);
-    const mark = listMatch(line);
-    if (!isSome(mark)) {
-      // continuation: an indented, marker-less,
-      // non-blank line wraps the current item's text.
-      const last = drafts[drafts.length - 1];
-      if (
-        last !== undefined &&
-        line.trim() !== "" &&
-        indentOf(line) > baseIndent
-      ) {
-        last.text = `${last.text} ${line.trim()}`;
-        j++;
-        continue;
-      }
-      break;
-    }
-    if (mark.content.indent < baseIndent) {
-      break;
-    }
-    if (mark.content.indent > baseIndent) {
-      const last = drafts[drafts.length - 1];
-      if (last === undefined) {
-        break;
-      }
-      const nested = parseListAt(
-        lines,
-        j,
-        mark.content.indent,
-      );
-      last.children.push(
-        list(nested.ordered, nested.items),
-      );
-      j = nested.next;
-      continue;
-    }
-    if (first) {
-      ordered = mark.content.ordered;
-      first = false;
-    }
-    drafts.push({
-      text: mark.content.text,
-      children: [],
-    });
-    j++;
-  }
-  return {
-    items: drafts.map((d): ListItem => ({
-      text: d.text,
-      children: d.children,
-    })),
-    ordered,
-    next: j,
-  };
-};
+}>;
 
-/** Consumes a whole list starting at `i`. */
-const takeList = (
-  lines: ReadonlyArray<SoftStr>,
-  i: number,
-): Span => {
-  const parsed = parseListAt(
-    lines,
-    i,
-    indentOf(lineAt(lines, i)),
+const ulLine: Parser<ListMark, null> = pipe(
+  hspaces,
+  andThen<ReadonlyArray<SoftStr>, ListMark, null>(
+    (indent: ReadonlyArray<SoftStr>) =>
+      right(
+        oneOf("-*+"),
+        right(
+          many1<SoftStr, null>(oneOf(" \t")),
+          map<SoftStr, ListMark>(
+            (text: SoftStr): ListMark => ({
+              indent: indent.length,
+              ordered: false,
+              text,
+            }),
+          )(dotStarLine),
+        ),
+      ),
+  ),
+);
+
+const olLine: Parser<ListMark, null> = pipe(
+  hspaces,
+  andThen<ReadonlyArray<SoftStr>, ListMark, null>(
+    (indent: ReadonlyArray<SoftStr>) =>
+      right(
+        many1<SoftStr, null>(digit),
+        right(
+          oneOf(".)"),
+          right(
+            many1<SoftStr, null>(oneOf(" \t")),
+            map<SoftStr, ListMark>(
+              (text: SoftStr): ListMark => ({
+                indent: indent.length,
+                ordered: true,
+                text,
+              }),
+            )(dotStarLine),
+          ),
+        ),
+      ),
+  ),
+);
+
+const listMarkLine: Parser<ListMark, null> = or<
+  ListMark,
+  null
+>(ulLine, olLine);
+
+/** `[ \t]*` measured — the original's `indentOf`. */
+const indentWidth: Parser<number, null> = map<
+  ReadonlyArray<SoftStr>,
+  number
+>(
+  (indent: ReadonlyArray<SoftStr>): number =>
+    indent.length,
+)(hspaces);
+
+/**
+ * A marker-less, non-blank, deeper-indented line: it
+ * wraps the PREVIOUS item's text. The whole raw line is
+ * rebuilt because the original tested and trimmed the
+ * line, not the post-indent remainder.
+ */
+const continuationLine = (
+  baseIndent: number,
+): Parser<SoftStr, null> =>
+  pipe(
+    hspaces,
+    andThen<
+      ReadonlyArray<SoftStr>,
+      SoftStr,
+      null
+    >((indent: ReadonlyArray<SoftStr>) =>
+      pipe(
+        rawLine,
+        andThen<SoftStr, SoftStr, null>(
+          (rest: SoftStr) =>
+            pipe(
+              `${join(indent)}${rest}`,
+              (line: SoftStr) =>
+                line.trim() !== "" &&
+                indent.length > baseIndent
+                  ? succeed<SoftStr>(line)
+                  : fail("a list continuation"),
+            ),
+        ),
+      ),
+    ),
   );
-  return {
-    block: list(parsed.ordered, parsed.items),
-    next: parsed.next,
-  };
-};
 
 /**
- * Consumes a block-level HTML run (only when `rawHtml` is
- * enabled): the opener line and every following non-blank
- * line, up to a blank line or EOF (CommonMark's
- * blank-line-terminated HTML block). The verbatim span
- * becomes an {@link htmlBlock}, emitted UNESCAPED at
- * render. HTML blocks in the corpus are blank-line
- * separated, so this reads one construct per run.
+ * One list level. `ordered` is decided by the FIRST item
+ * at the level and never flips; a shallower marker, a
+ * marker-less unindented line and the end of the source
+ * all close the level, which is why the final alternative
+ * simply succeeds with what has been gathered.
  */
-const takeHtmlBlock = (
-  lines: ReadonlyArray<SoftStr>,
-  i: number,
-): Span => {
-  const buf: Array<SoftStr> = [];
-  let j = i;
-  while (
-    j < lines.length &&
-    lineAt(lines, j).trim() !== ""
-  ) {
-    buf.push(lineAt(lines, j));
-    j++;
-  }
-  return {
-    block: htmlBlock(buf.join("\n")),
-    next: j,
-  };
-};
+const listLevel = (
+  baseIndent: number,
+  items: ReadonlyArray<ListItem>,
+  ordered: boolean,
+  first: boolean,
+): Parser<Level, null> =>
+  or<Level, null>(
+    pipe(
+      lookahead(listMarkLine),
+      andThen<ListMark, Level, null>(
+        (mark: ListMark) =>
+          listMarkStep(
+            baseIndent,
+            items,
+            ordered,
+            first,
+            mark,
+          ),
+      ),
+    ),
+    pipe(
+      right(
+        notFollowedBy(listMarkLine),
+        continuationLine(baseIndent),
+      ),
+      andThen<SoftStr, Level, null>(
+        (line: SoftStr) =>
+          listContinue(
+            baseIndent,
+            items,
+            ordered,
+            first,
+            line,
+          ),
+      ),
+    ),
+    succeed<Level>({ items, ordered }),
+  );
 
 /**
- * Accumulates a paragraph: consecutive lines up to a
- * blank line or the start of another block. Out-of-subset
- * lines land here as literal text (HTML-escaped at
- * render); when `rawHtml` is on, a block-level HTML opener
- * also breaks the paragraph so the HTML starts its own
- * {@link htmlBlock}.
+ * A marker at this level, deeper, or shallower. A deeper
+ * marker's list becomes a CHILD of the item above it (not
+ * a sibling); a shallower one ends the level — expressed
+ * as a branch failure, which the marker-less alternative
+ * then also rejects, so the level simply closes.
  */
-const takeParagraph = (
-  lines: ReadonlyArray<SoftStr>,
-  i: number,
-  rawHtml: boolean,
-): Span => {
-  const buf: Array<SoftStr> = [];
-  let j = i;
-  while (j < lines.length) {
-    const line = lineAt(lines, j);
-    if (line.trim() === "") {
-      break;
-    }
-    if (j > i && startsBlock(lines, j, rawHtml)) {
-      break;
-    }
-    buf.push(line);
-    j++;
-  }
-  return {
-    block: para(buf.join("\n")),
-    next: j,
-  };
-};
+const listMarkStep = (
+  baseIndent: number,
+  items: ReadonlyArray<ListItem>,
+  ordered: boolean,
+  first: boolean,
+  mark: ListMark,
+): Parser<Level, null> =>
+  mark.indent < baseIndent
+    ? fail("a marker at this level")
+    : mark.indent > baseIndent
+      ? listNest(
+          baseIndent,
+          items,
+          ordered,
+          first,
+          mark,
+        )
+      : right(
+          listMarkLine,
+          listLevel(
+            baseIndent,
+            [
+              ...items,
+              { text: mark.text, children: [] },
+            ],
+            first ? mark.ordered : ordered,
+            false,
+          ),
+        );
 
-/** Whether line `k` opens a non-paragraph block. */
+const listNest = (
+  baseIndent: number,
+  items: ReadonlyArray<ListItem>,
+  ordered: boolean,
+  first: boolean,
+  mark: ListMark,
+): Parser<Level, null> =>
+  pipe(
+    fromNullable(items[items.length - 1]),
+    matchOption(
+      (): Parser<Level, null> =>
+        fail("a preceding list item"),
+      (last: ListItem): Parser<Level, null> =>
+        pipe(
+          listLevel(mark.indent, [], false, true),
+          andThen<Level, Level, null>(
+            (nested: Level) =>
+              listLevel(
+                baseIndent,
+                [
+                  ...items.slice(0, -1),
+                  {
+                    text: last.text,
+                    children: [
+                      ...last.children,
+                      list(
+                        nested.ordered,
+                        nested.items,
+                      ),
+                    ],
+                  },
+                ],
+                ordered,
+                first,
+              ),
+          ),
+        ),
+    ),
+  );
+
+const listContinue = (
+  baseIndent: number,
+  items: ReadonlyArray<ListItem>,
+  ordered: boolean,
+  first: boolean,
+  line: SoftStr,
+): Parser<Level, null> =>
+  pipe(
+    fromNullable(items[items.length - 1]),
+    matchOption(
+      (): Parser<Level, null> =>
+        fail("a preceding list item"),
+      (last: ListItem): Parser<Level, null> =>
+        listLevel(
+          baseIndent,
+          [
+            ...items.slice(0, -1),
+            {
+              text: `${last.text} ${line.trim()}`,
+              children: last.children,
+            },
+          ],
+          ordered,
+          first,
+        ),
+    ),
+  );
+
+/** A whole list, starting at its own indent. */
+const listBlock: Parser<BlockResult, null> =
+  right(
+    lookahead(listMarkLine),
+    pipe(
+      lookahead(indentWidth),
+      andThen<number, BlockResult, null>(
+        (baseIndent: number) =>
+          map<Level, BlockResult>(
+            (level: Level): BlockResult =>
+              ok(
+                list(level.ordered, level.items),
+              ),
+          )(
+            listLevel(
+              baseIndent,
+              [],
+              false,
+              true,
+            ),
+          ),
+      ),
+    ),
+  );
+
+// ---------------------------------------------------------------------------
+// Raw HTML block
+// ---------------------------------------------------------------------------
+
+/** `[a-zA-Z][a-zA-Z0-9-]*` — an HTML tag name. */
+const htmlTagName: Parser<SoftStr, null> = pipe(
+  letter,
+  andThen<SoftStr, SoftStr, null>(
+    (first: SoftStr) =>
+      map<ReadonlyArray<SoftStr>, SoftStr>(
+        (rest: ReadonlyArray<SoftStr>): SoftStr =>
+          `${first}${join(rest)}`,
+      )(
+        many<SoftStr, null>(
+          or<SoftStr, null>(alphaNum, char("-")),
+        ),
+      ),
+  ),
+);
+
+/**
+ * A block-level HTML opener (only honored when `rawHtml`
+ * is enabled): up to 3 leading spaces, then `<` or `</`,
+ * a tag name, and a tag boundary (space/tab, `>`, `/`, or
+ * end of line) or an HTML comment. Pragmatic cover of
+ * CommonMark's HTML-block type 6 — enough for the
+ * qmu.co.jp corpus (`<small class="updated">`, `<div>`
+ * image blocks, `<iframe>` map embeds). A PREFIX test:
+ * whatever follows the boundary is not this parser's
+ * business.
+ */
+const htmlBlockOpen: Parser<true, null> = right(
+  upTo3Spaces,
+  or<true, null>(
+    map<SoftStr, true>((): true => true)(
+      literal("<!--"),
+    ),
+    right(
+      char("<"),
+      right(
+        optional(char("/")),
+        right(
+          htmlTagName,
+          or<true, null>(
+            map<SoftStr, true>((): true => true)(
+              oneOf(" \t>/"),
+            ),
+            eol,
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
+/**
+ * A block-level HTML run: the opener line and every
+ * following non-blank line, verbatim, up to a blank line
+ * or the end of the source (CommonMark's
+ * blank-line-terminated HTML block).
+ */
+const htmlBlockRun: Parser<BlockResult, null> =
+  right(
+    lookahead(htmlBlockOpen),
+    map<ReadonlyArray<SoftStr>, BlockResult>(
+      (
+        lines: ReadonlyArray<SoftStr>,
+      ): BlockResult =>
+        ok(htmlBlock(lines.join("\n"))),
+    )(many1<SoftStr, null>(nonBlankLine)),
+  );
+
+// ---------------------------------------------------------------------------
+// Paragraph — the fallthrough
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether a non-paragraph block starts here. Mirrors the
+ * top-level branch set, and is the paragraph's terminator.
+ */
 const startsBlock = (
-  lines: ReadonlyArray<SoftStr>,
-  k: number,
   rawHtml: boolean,
-): boolean => {
-  const line = lineAt(lines, k);
-  return (
-    FENCE_RE.test(line) ||
-    CONTAINER_OPEN_RE.test(line) ||
-    HEADING_RE.test(line) ||
-    HR_RE.test(line) ||
-    QUOTE_RE.test(line) ||
-    isSome(listMatch(line)) ||
-    (rawHtml && HTML_BLOCK_OPEN_RE.test(line)) ||
-    (line.includes("|") &&
-      TABLE_SEP_RE.test(lineAt(lines, k + 1)))
+): Parser<true, null> =>
+  or<true, null>(
+    map<FenceOpen, true>((): true => true)(
+      fenceOpenLine,
+    ),
+    map<ContainerOpen, true>((): true => true)(
+      containerOpenLine,
+    ),
+    map<HeadingLine, true>((): true => true)(
+      headingLine,
+    ),
+    thematicBreakLine,
+    map<SoftStr, true>((): true => true)(
+      quoteLine,
+    ),
+    map<ListMark, true>((): true => true)(
+      listMarkLine,
+    ),
+    rawHtml
+      ? htmlBlockOpen
+      : fail("raw html disabled"),
+    right(pipeLine, tableSepLine),
   );
-};
+
+/**
+ * Consecutive lines up to a blank line or the start of
+ * another block. The FIRST line is taken unconditionally
+ * — that asymmetry is what lets an out-of-subset line
+ * open a paragraph even when it would otherwise look like
+ * a block opener.
+ */
+const paragraphBlock = (
+  rawHtml: boolean,
+): Parser<BlockResult, null> =>
+  pipe(
+    nonBlankLine,
+    andThen<SoftStr, BlockResult, null>(
+      (first: SoftStr) =>
+        map<ReadonlyArray<SoftStr>, BlockResult>(
+          (
+            rest: ReadonlyArray<SoftStr>,
+          ): BlockResult =>
+            ok(para([first, ...rest].join("\n"))),
+        )(
+          many<SoftStr, null>(
+            right(
+              notFollowedBy(startsBlock(rawHtml)),
+              nonBlankLine,
+            ),
+          ),
+        ),
+    ),
+  );
+
+// ---------------------------------------------------------------------------
+// The document
+// ---------------------------------------------------------------------------
+
+/** One construct's span: a blank line yields no block. */
+const single = (
+  parser: Parser<BlockResult, null>,
+): Parser<ReadonlyArray<BlockResult>, null> =>
+  map<BlockResult, ReadonlyArray<BlockResult>>(
+    (
+      block: BlockResult,
+    ): ReadonlyArray<BlockResult> => [block],
+  )(parser);
+
+/**
+ * The branch order IS the grammar and is reproduced
+ * exactly: blank, fence, container, heading, thematic
+ * break, quote, table (whose own separator row is the
+ * look-ahead the original did over line `i+1`), html
+ * block, list, and finally the paragraph that takes
+ * anything left.
+ */
+const blockSpan = (
+  rawHtml: boolean,
+): Parser<ReadonlyArray<BlockResult>, null> =>
+  or<ReadonlyArray<BlockResult>, null>(
+    map<SoftStr, ReadonlyArray<BlockResult>>(
+      (): ReadonlyArray<BlockResult> => [],
+    )(blankLine),
+    single(fenceBlock),
+    single(containerBlock(rawHtml)),
+    single(headingBlock),
+    single(
+      map<true, BlockResult>((): BlockResult =>
+        ok(thematicBreak()),
+      )(thematicBreakLine),
+    ),
+    single(quoteBlock(rawHtml)),
+    single(tableBlock),
+    single(
+      rawHtml
+        ? htmlBlockRun
+        : fail("raw html disabled"),
+    ),
+    single(listBlock),
+    single(paragraphBlock(rawHtml)),
+  );
+
+/**
+ * Every construct in the source. Total by construction:
+ * a line is blank or it is a paragraph, so the only way
+ * out of the loop is the end of the source — which the
+ * trailing `eof` re-asserts, turning any hole in that
+ * reasoning into a failure instead of a silent truncation.
+ */
+const document = (
+  rawHtml: boolean,
+): Parser<
+  ReadonlyArray<ReadonlyArray<BlockResult>>,
+  null
+> =>
+  left(
+    many<ReadonlyArray<BlockResult>, null>(
+      blockSpan(rawHtml),
+    ),
+    eof,
+  );
+
+/**
+ * Collects the scanned constructs, the FIRST error
+ * winning and stopping the scan — `chainResult`
+ * short-circuits exactly where the original's loop broke.
+ */
+const collect = (
+  spans: ReadonlyArray<
+    ReadonlyArray<BlockResult>
+  >,
+): Result<ReadonlyArray<Block>, InvalidError> =>
+  spans
+    .flat()
+    .reduce<
+      Result<ReadonlyArray<Block>, InvalidError>
+    >(
+      (acc, block) =>
+        pipe(
+          acc,
+          chainResult(
+            (blocks: ReadonlyArray<Block>) =>
+              pipe(
+                block,
+                mapResult(
+                  (
+                    b: Block,
+                  ): ReadonlyArray<Block> => [
+                    ...blocks,
+                    b,
+                  ],
+                ),
+              ),
+          ),
+        ),
+      ok([]),
+    );
+
+/**
+ * Parses a Markdown body into a flat {@link Block}
+ * sequence over the plggpress subset. Inline markup is
+ * NOT parsed here (that is the render step). With `rawHtml`
+ * off (the default) any out-of-subset line — raw HTML
+ * included — rides along as {@link para} text and is
+ * HTML-escaped at render; with `rawHtml` on, a block-level
+ * HTML opener starts an {@link htmlBlock} rendered
+ * verbatim. Failures — an unterminated fence, a
+ * colon-count-mismatched container, a malformed pipe
+ * table — return an {@link InvalidError}, never a throw.
+ *
+ * A plgg-parser grammar: PEG ordered choice supplies the
+ * branch precedence the original encoded in its scan
+ * order, and the constructs that must not backtrack carry
+ * their failure as an error VALUE ({@link BlockResult}).
+ *
+ * The source is line-ending normalized first — see
+ * {@link normalizeLineEndings}. Without it a CRLF document
+ * parses as nothing but paragraphs.
+ */
+export const parseBlocks = (
+  source: SoftStr,
+  rawHtml: boolean = false,
+): Result<ReadonlyArray<Block>, InvalidError> =>
+  pipe(
+    run(
+      document(rawHtml),
+      normalizeLineEndings(source),
+      null,
+    ),
+    chainResult(collect),
+  );

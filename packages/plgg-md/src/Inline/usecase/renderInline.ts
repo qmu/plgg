@@ -1,13 +1,31 @@
 import {
   SoftStr,
-  Option,
   match,
   pipe,
-  fromNullable,
-  getOr,
-  mapOption,
-  isSome,
+  matchResult,
 } from "plgg";
+import {
+  type Parser,
+  run,
+  char,
+  literal,
+  satisfy,
+  anyChar,
+  noneOf,
+  oneOf,
+  letter,
+  alphaNum,
+  many,
+  many1,
+  map,
+  or,
+  right,
+  left,
+  andThen,
+  succeed,
+  fail,
+  notFollowedBy,
+} from "plgg-parser";
 import {
   Inline,
   inlineText,
@@ -28,48 +46,214 @@ import {
   htmlSpan$,
 } from "plgg-md/Inline/model/Inline";
 
-/** An image `![alt](src)` at the cursor. */
-const IMAGE_RE = /^!\[([^\]]*)\]\(([^)\s]*)\)/;
-/** A link `[text](href)` at the cursor. */
-const LINK_RE = /^\[([^\]]*)\]\(([^)\s]*)\)/;
-/**
- * A single raw inline-HTML token at the cursor (only
- * honored when `rawHtml` is enabled): an HTML comment, a
- * close tag, or an open/self-closing tag. Matching CommonMark's
- * raw-inline-HTML shape, only the TAG token is captured —
- * the text between an open and close tag flows on as
- * ordinary (escaped) {@link Text}, so `<small>x & y</small>`
- * renders the tags verbatim while its inner `&` still
- * escapes.
- */
-const INLINE_HTML_RE =
-  /^(?:<!--[\s\S]*?-->|<\/[a-zA-Z][a-zA-Z0-9-]*[ \t]*>|<[a-zA-Z][a-zA-Z0-9-]*(?:[ \t][^<>]*?)?\/?>)/;
+const join = (
+  cs: ReadonlyArray<SoftStr>,
+): SoftStr => cs.join("");
 
 /**
- * The captured groups of an anchored match (group 0 is
- * the full match, used to advance the cursor), each
- * absent slot defaulted to `""` — a no-`as` reader over
- * `RegExpMatchArray`'s `string | undefined` slots.
+ * One step of the inline scan: either a completed markup
+ * node, or a single character that opened nothing.
+ *
+ * The distinction is load-bearing. A character that fails
+ * every markup branch is NOT its own text node — it merges
+ * with its neighbours into one literal run (`a*b` is a
+ * single `Text("a*b")`), so the char pieces are folded into
+ * a buffer afterwards rather than mapped straight to
+ * {@link inlineText}.
  */
-const matchAt = (
-  re: RegExp,
-  rest: SoftStr,
-): Option<ReadonlyArray<SoftStr>> =>
+type Piece =
+  | Readonly<{ kind: "node"; node: Inline }>
+  | Readonly<{ kind: "char"; ch: SoftStr }>;
+
+const nodePiece = (node: Inline): Piece => ({
+  kind: "node",
+  node,
+});
+
+const charPiece = (ch: SoftStr): Piece => ({
+  kind: "char",
+  ch,
+});
+
+/**
+ * The link/image destination character class: the original
+ * grammar's `[^)\s]`, where `\s` is **JavaScript's** Unicode
+ * whitespace — strictly wider than plgg-parser's `whitespace`
+ * (space/tab/CR/LF only), so an exact predicate is required
+ * to keep exotic destinations parsing identically.
+ */
+const destChar: Parser<SoftStr, null> = satisfy(
+  "destination character",
+  (ch: SoftStr): boolean =>
+    ch !== ")" && !/\s/.test(ch),
+);
+
+const dest: Parser<SoftStr, null> = map(join)(
+  many<SoftStr, null>(destChar),
+);
+
+/** The `[…]` label body: anything up to the closing `]`. */
+const label: Parser<SoftStr, null> = map(join)(
+  many<SoftStr, null>(noneOf("]")),
+);
+
+/** `![alt](src)` — tried before `[text](href)`. */
+const imageP: Parser<Inline, null> = pipe(
+  right(literal("!["), label),
+  andThen<SoftStr, Inline, null>((alt: SoftStr) =>
+    map<SoftStr, Inline>((src: SoftStr): Inline =>
+      image(src, alt),
+    )(
+      right(literal("]("), left(dest, char(")"))),
+    ),
+  ),
+);
+
+/** `[text](href)`; the label recurses under the same options. */
+const linkP = (
+  rawHtml: boolean,
+): Parser<Inline, null> =>
   pipe(
-    fromNullable(rest.match(re)),
-    mapOption((m): ReadonlyArray<SoftStr> =>
-      m.map((g) =>
-        pipe(fromNullable(g), getOr("")),
-      ),
+    right(char("["), label),
+    andThen<SoftStr, Inline, null>(
+      (text: SoftStr) =>
+        map<SoftStr, Inline>(
+          (href: SoftStr): Inline =>
+            link(
+              href,
+              renderInline(text, rawHtml),
+            ),
+        )(
+          right(
+            literal("]("),
+            left(dest, char(")")),
+          ),
+        ),
     ),
   );
 
-/** Reads group `i` of a capture array, defaulting to `""`. */
-const group = (
-  gs: ReadonlyArray<SoftStr>,
-  i: number,
-): SoftStr =>
-  pipe(fromNullable(gs[i]), getOr(""));
+/** `[a-zA-Z][a-zA-Z0-9-]*` — an HTML tag name. */
+const tagName: Parser<SoftStr, null> = pipe(
+  letter,
+  andThen<SoftStr, SoftStr, null>(
+    (first: SoftStr) =>
+      map<ReadonlyArray<SoftStr>, SoftStr>(
+        (rest: ReadonlyArray<SoftStr>): SoftStr =>
+          `${first}${join(rest)}`,
+      )(
+        many<SoftStr, null>(
+          or<SoftStr, null>(alphaNum, char("-")),
+        ),
+      ),
+  ),
+);
+
+/**
+ * `<!-- … -->`, lazily terminated at the FIRST `-->`.
+ * Rebuilt verbatim: an html token is emitted as source.
+ */
+const htmlComment: Parser<SoftStr, null> = map<
+  ReadonlyArray<SoftStr>,
+  SoftStr
+>(
+  (body: ReadonlyArray<SoftStr>): SoftStr =>
+    `<!--${join(body)}-->`,
+)(
+  right(
+    literal("<!--"),
+    left(
+      many<SoftStr, null>(
+        right(
+          notFollowedBy(literal("-->")),
+          anyChar,
+        ),
+      ),
+      literal("-->"),
+    ),
+  ),
+);
+
+/** `</name…>` with optional trailing spaces/tabs. */
+const htmlCloseTag: Parser<SoftStr, null> = pipe(
+  right(literal("</"), tagName),
+  andThen<SoftStr, SoftStr, null>(
+    (name: SoftStr) =>
+      map<ReadonlyArray<SoftStr>, SoftStr>(
+        (sp: ReadonlyArray<SoftStr>): SoftStr =>
+          `</${name}${join(sp)}>`,
+      )(
+        left(
+          many<SoftStr, null>(oneOf(" \t")),
+          char(">"),
+        ),
+      ),
+  ),
+);
+
+/**
+ * The optional ` attrs` part of an open tag: a space/tab
+ * then anything but `<`/`>`. Greedy here is equivalent to
+ * the original's lazy `[^<>]*?` because `>` cannot occur
+ * inside the class — both stop at the same `>`.
+ */
+const attrsPart: Parser<SoftStr, null> = or<
+  SoftStr,
+  null
+>(
+  pipe(
+    oneOf(" \t"),
+    andThen<SoftStr, SoftStr, null>(
+      (ws: SoftStr) =>
+        map<ReadonlyArray<SoftStr>, SoftStr>(
+          (cs: ReadonlyArray<SoftStr>): SoftStr =>
+            `${ws}${join(cs)}`,
+        )(many<SoftStr, null>(noneOf("<>"))),
+    ),
+  ),
+  succeed(""),
+);
+
+/** `<name attrs/>` or `<name>`. */
+const htmlOpenTag: Parser<SoftStr, null> = pipe(
+  right(char("<"), tagName),
+  andThen<SoftStr, SoftStr, null>(
+    (name: SoftStr) =>
+      pipe(
+        attrsPart,
+        andThen<SoftStr, SoftStr, null>(
+          (attrs: SoftStr) =>
+            map<SoftStr, SoftStr>(
+              (slash: SoftStr): SoftStr =>
+                `<${name}${attrs}${slash}>`,
+            )(
+              left(
+                or<SoftStr, null>(
+                  char("/"),
+                  succeed(""),
+                ),
+                char(">"),
+              ),
+            ),
+        ),
+      ),
+  ),
+);
+
+/** Comment → close tag → open tag, the original's order. */
+const htmlToken: Parser<Inline, null> = map<
+  SoftStr,
+  Inline
+>((raw: SoftStr): Inline => htmlSpan(raw))(
+  or<SoftStr, null>(
+    htmlComment,
+    or<SoftStr, null>(htmlCloseTag, htmlOpenTag),
+  ),
+);
+
+/** A MAXIMAL run of backticks (`many1` is greedy). */
+const tickRun: Parser<SoftStr, null> = map(join)(
+  many1<SoftStr, null>(char("`")),
+);
 
 /**
  * CommonMark inline-code trimming: a single leading and
@@ -86,195 +270,204 @@ const trimCode = (code: SoftStr): SoftStr =>
     : code;
 
 /**
- * Finds the byte index where a same-length backtick-run
- * closer for an `n`-tick opener begins, scanning runs and
- * comparing their length. Returns `-1` when there is no
- * matching closer (the opener is then literal text).
+ * An n-backtick span closed by a run of EXACTLY n
+ * backticks. Runs of any other length are consumed WHOLE
+ * as body text — matching the original closer scan, which
+ * skips a mismatched run entirely rather than re-examining
+ * its interior (so a 1-tick opener does not close inside
+ * ```` `` ````).
  */
-const findCodeClose = (
-  s: SoftStr,
-  from: number,
-  n: number,
-): number => {
-  let j = from;
-  while (j < s.length) {
-    if (s.charAt(j) !== "`") {
-      j++;
-      continue;
-    }
-    let k = j;
-    while (s.charAt(k) === "`") {
-      k++;
-    }
-    if (k - j === n) {
-      return j;
-    }
-    j = k;
-  }
-  return -1;
-};
+const codeSpan: Parser<Inline, null> = pipe(
+  tickRun,
+  andThen<SoftStr, Inline, null>(
+    (open: SoftStr) =>
+      map<ReadonlyArray<SoftStr>, Inline>(
+        (body: ReadonlyArray<SoftStr>): Inline =>
+          inlineCode(trimCode(join(body))),
+      )(
+        left(
+          many<SoftStr, null>(
+            or<SoftStr, null>(
+              pipe(
+                tickRun,
+                andThen<SoftStr, SoftStr, null>(
+                  (r: SoftStr) =>
+                    r.length === open.length
+                      ? fail("code span closer")
+                      : succeed(r),
+                ),
+              ),
+              noneOf("`"),
+            ),
+          ),
+          literal(open),
+        ),
+      ),
+  ),
+);
 
 /**
- * Scans a single (already block-stripped) source line
- * into an ordered {@link Inline} sequence over the
- * plggpress inline subset: `` `code` ``, `**strong**`,
- * `*emph*`, `[text](href)`, `![alt](src)`, and hard line
- * breaks (a trailing `\` or two spaces before a
- * newline). With `rawHtml` off (the default) everything
- * else — including any raw `<`/`>` — accumulates as
- * literal {@link inlineText}, which the renderer
- * HTML-escapes (the v1 raw-HTML decision, see
- * `spike-decisions.md` §6c). With `rawHtml` on, a single
- * raw HTML tag token becomes an {@link htmlSpan} emitted
- * verbatim, while any `<` that does not open a tag stays
- * literal (escaped) text. Code spans are verbatim and
- * never re-scanned; strong/emph/link text recurse under
- * the same `rawHtml`.
- *
- * An irreducible left-to-right scan (look-ahead inline
- * tokenizer), isolated here and kept pure: it allocates a
- * local accumulator and a text buffer and returns the
- * accumulator, mutating nothing outside.
+ * `**…**`. The body is `many1`, never `many`: the original
+ * requires the closer to sit strictly past the opener, so
+ * `****` opens nothing and falls through to emphasis and
+ * then to literal text.
  */
-export const renderInline = (
-  line: SoftStr,
-  rawHtml: boolean = false,
+const strongP = (
+  rawHtml: boolean,
+): Parser<Inline, null> =>
+  map<ReadonlyArray<SoftStr>, Inline>(
+    (cs: ReadonlyArray<SoftStr>): Inline =>
+      strong(renderInline(join(cs), rawHtml)),
+  )(
+    right(
+      literal("**"),
+      left(
+        many1<SoftStr, null>(
+          right(
+            notFollowedBy(literal("**")),
+            anyChar,
+          ),
+        ),
+        literal("**"),
+      ),
+    ),
+  );
+
+/** `*…*`; the body cannot contain a star. */
+const emphP = (
+  rawHtml: boolean,
+): Parser<Inline, null> =>
+  map<ReadonlyArray<SoftStr>, Inline>(
+    (cs: ReadonlyArray<SoftStr>): Inline =>
+      emph(renderInline(join(cs), rawHtml)),
+  )(
+    right(
+      char("*"),
+      left(
+        many1<SoftStr, null>(noneOf("*")),
+        char("*"),
+      ),
+    ),
+  );
+
+/**
+ * One scan step. The branch order is the grammar: image
+ * before link (`![` would otherwise read as `[`), raw HTML
+ * only when enabled, code before strong before emph, and
+ * finally any single character as a literal.
+ */
+const piece = (
+  rawHtml: boolean,
+): Parser<Piece, null> =>
+  or<Piece, null>(
+    map<Inline, Piece>(nodePiece)(
+      or<Inline, null>(
+        imageP,
+        or<Inline, null>(
+          linkP(rawHtml),
+          or<Inline, null>(
+            rawHtml
+              ? htmlToken
+              : fail("raw html disabled"),
+            or<Inline, null>(
+              codeSpan,
+              or<Inline, null>(
+                strongP(rawHtml),
+                emphP(rawHtml),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+    map<SoftStr, Piece>(charPiece)(anyChar),
+  );
+
+/**
+ * Folds the scan's pieces into the node list, merging every
+ * literal-character run into ONE {@link inlineText} and
+ * applying the newline rules against the pending run: a
+ * trailing `\` or two spaces makes a hard break, anything
+ * else a soft break (one space).
+ */
+const assemble = (
+  pieces: ReadonlyArray<Piece>,
 ): ReadonlyArray<Inline> => {
   const out: Array<Inline> = [];
   let buf = "";
-  // Flush the pending literal-text run as one Text node.
   const flush = (): void => {
     if (buf !== "") {
       out.push(inlineText(buf));
       buf = "";
     }
   };
-  let i = 0;
-  while (i < line.length) {
-    const ch = line.charAt(i);
-    const rest = line.slice(i);
-    // Newline: a hard break when preceded by two spaces
-    // or a backslash; otherwise a soft break (a space).
-    if (ch === "\n") {
-      if (buf.endsWith("\\")) {
-        buf = buf.slice(0, -1);
-        flush();
-        out.push(lineBreak());
-      } else if (buf.endsWith("  ")) {
-        buf = buf.replace(/ +$/, "");
-        flush();
-        out.push(lineBreak());
-      } else {
-        buf = `${buf} `;
-      }
-      i++;
-      continue;
-    }
-    // Image `![alt](src)` — checked before link (`![`).
-    const img = matchAt(IMAGE_RE, rest);
-    if (ch === "!" && isSome(img)) {
+  pieces.forEach((p: Piece): void => {
+    if (p.kind === "node") {
       flush();
-      out.push(
-        image(
-          group(img.content, 2),
-          group(img.content, 1),
-        ),
-      );
-      i += group(img.content, 0).length;
-      continue;
+      out.push(p.node);
+      return;
     }
-    // Link `[text](href)` — text recurses.
-    const lnk = matchAt(LINK_RE, rest);
-    if (ch === "[" && isSome(lnk)) {
+    if (p.ch !== "\n") {
+      buf = `${buf}${p.ch}`;
+      return;
+    }
+    if (buf.endsWith("\\")) {
+      buf = buf.slice(0, -1);
       flush();
-      out.push(
-        link(
-          group(lnk.content, 2),
-          renderInline(
-            group(lnk.content, 1),
-            rawHtml,
-          ),
-        ),
-      );
-      i += group(lnk.content, 0).length;
-      continue;
+      out.push(lineBreak());
+      return;
     }
-    // Raw inline HTML tag token — only when enabled. The
-    // tag rides verbatim; text between tags flows on as
-    // escaped Text.
-    if (rawHtml && ch === "<") {
-      const tag = matchAt(INLINE_HTML_RE, rest);
-      if (isSome(tag)) {
-        flush();
-        out.push(htmlSpan(group(tag.content, 0)));
-        i += group(tag.content, 0).length;
-        continue;
-      }
+    if (buf.endsWith("  ")) {
+      buf = buf.replace(/ +$/, "");
+      flush();
+      out.push(lineBreak());
+      return;
     }
-    // Inline code: an n-backtick run closed by another
-    // n-backtick run; body is verbatim.
-    if (ch === "`") {
-      let n = 0;
-      while (line.charAt(i + n) === "`") {
-        n++;
-      }
-      const close = findCodeClose(line, i + n, n);
-      if (close >= 0) {
-        flush();
-        out.push(
-          inlineCode(
-            trimCode(line.slice(i + n, close)),
-          ),
-        );
-        i = close + n;
-        continue;
-      }
-      buf = `${buf}${line.slice(i, i + n)}`;
-      i += n;
-      continue;
-    }
-    // Strong `**…**` — checked before emphasis.
-    if (rest.startsWith("**")) {
-      const close = line.indexOf("**", i + 2);
-      if (close > i + 2) {
-        flush();
-        out.push(
-          strong(
-            renderInline(
-              line.slice(i + 2, close),
-              rawHtml,
-            ),
-          ),
-        );
-        i = close + 2;
-        continue;
-      }
-    }
-    // Emphasis `*…*` (single star).
-    if (ch === "*") {
-      const close = line.indexOf("*", i + 1);
-      if (close > i + 1) {
-        flush();
-        out.push(
-          emph(
-            renderInline(
-              line.slice(i + 1, close),
-              rawHtml,
-            ),
-          ),
-        );
-        i = close + 1;
-        continue;
-      }
-    }
-    // Any other character — including a raw `<`/`>` —
-    // is literal text, escaped at render.
-    buf = `${buf}${ch}`;
-    i++;
-  }
+    buf = `${buf} `;
+  });
   flush();
   return out;
 };
+
+/**
+ * Scans a single (already block-stripped) source line into
+ * an ordered {@link Inline} sequence over the plggpress
+ * inline subset: `` `code` ``, `**strong**`, `*emph*`,
+ * `[text](href)`, `![alt](src)`, and hard line breaks (a
+ * trailing `\` or two spaces before a newline). With
+ * `rawHtml` off (the default) everything else — including
+ * any raw `<`/`>` — accumulates as literal
+ * {@link inlineText}, which the renderer HTML-escapes (the
+ * v1 raw-HTML decision, see `spike-decisions.md` §6c). With
+ * `rawHtml` on, a single raw HTML tag token becomes an
+ * {@link htmlSpan} emitted verbatim, while any `<` that does
+ * not open a tag stays literal (escaped) text. Code spans
+ * are verbatim and never re-scanned; strong/emph/link text
+ * recurse under the same `rawHtml`.
+ *
+ * A plgg-parser grammar: PEG ordered choice supplies the
+ * branch precedence the original encoded in its scan order,
+ * and {@link assemble} merges the literal runs the grammar
+ * emits character by character.
+ */
+export const renderInline = (
+  line: SoftStr,
+  rawHtml: boolean = false,
+): ReadonlyArray<Inline> =>
+  pipe(
+    run(
+      many<Piece, null>(piece(rawHtml)),
+      line,
+      null,
+    ),
+    matchResult(
+      // Unreachable: `many` succeeds on zero matches and
+      // `anyChar` consumes anything a markup branch
+      // rejects, so the scan cannot fail.
+      (): ReadonlyArray<Inline> => [],
+      assemble,
+    ),
+  );
 
 /**
  * The heading's **plain text** with inline markup

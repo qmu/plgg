@@ -13,6 +13,7 @@ import {
 import { type ModelViolations } from "plggpress/ContentModel/model/ModelViolation";
 import { loadConfig } from "plggpress/Config/usecase/loadConfig";
 import { buildSpecOf } from "plggpress/Press/usecase/appSpecs";
+import { pressDevOf } from "plggpress/Press/usecase/devSpec";
 
 /**
  * Renders a build failure as a one-line shell message. The
@@ -52,18 +53,33 @@ const formatBuildError = (
  * and the `Result`→exit-code fold are all the framework's)
  * declared with the press specifics — the `site.config.ts`
  * loader, the deploy base from the validated config, the
- * {@link buildSpecOf} build declaration, and the press error
+ * {@link buildSpecOf} build declaration, the
+ * {@link pressDevOf} dev declaration, and the press error
  * formatter.
  *
  * plggpress is the pure STATIC-SITE GENERATOR, so it declares
- * NO `serveWeb` and gets a `build`-only CLI:
+ * NO `serveWeb` and gets a `build` + `dev` CLI:
  * - `build` — renders every route to static files (the public
  *   reader path, D5's SSG/CDN half).
+ * - `dev` — the authoring loop: the same render path, served
+ *   with hot reload.
  * - the dynamic `serve` mode (a persistent `node:http` instance
  *   mounting `/api`, `/admin`, `/auth`, `/mcp`) lives in
  *   `plgg-cms`, which supplies its own `serveWeb`.
- * - authoring hot-reload is a TOOLCHAIN concern — `plgg-bundle
- *   dev` via `devEntry` — so plggpress ships no `dev` command.
+ *
+ * `dev` is new, and REVERSES this file's previous stance
+ * ("authoring hot-reload is a TOOLCHAIN concern … plggpress
+ * ships no `dev` command"). That stance was right about
+ * ownership and wrong about the bill: the dev LOOP still
+ * belongs to the toolchain (`plgg-bundle`, reached across
+ * `framework/Dev/node/devSeam` — plggpress assembles a plan,
+ * it does not watch or serve), but leaving the command there
+ * meant every consumer hand-wrote a `bundle.config.ts`, a
+ * `devEntry.ts`, and took a bundler dependency, just to read
+ * their own Markdown. Reducing exactly that friction is what
+ * this package is FOR, so the layering stayed and the
+ * paperwork moved: `plggpress dev` in a bare docs repo, no
+ * wiring.
  */
 await runApp<
   SiteConfig,
@@ -85,5 +101,6 @@ await runApp<
       opts.contentDir,
       opts.base,
     ),
+  dev: pressDevOf(),
   formatError: formatBuildError,
 });

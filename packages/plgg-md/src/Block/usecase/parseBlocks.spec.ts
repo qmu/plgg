@@ -509,3 +509,49 @@ test("a paragraph ends at an adjacent table", () =>
       ]),
     ),
   ));
+
+// ---------------------------------------------------------------------------
+// Line endings. A CR is a line ending, not line text — before
+// normalizeLineEndings a CRLF document matched NO construct at all and every
+// line fell through to a paragraph (`# Title` rendered as literal `# Title`),
+// so a Windows-authored .md rendered as mush.
+// ---------------------------------------------------------------------------
+
+test("CRLF parses identically to LF", () =>
+  check(
+    parseBlocks("# Title\r\n\r\n- a\r\n- b\r\n"),
+    okThen(
+      toEqual([
+        heading(1, "Title"),
+        list(false, [
+          { text: "a", children: [] },
+          { text: "b", children: [] },
+        ]),
+      ]),
+    ),
+  ));
+
+test("a lone CR is a line ending too", () =>
+  check(
+    parseBlocks("# Title\r\r- a\r"),
+    okThen(
+      toEqual([
+        heading(1, "Title"),
+        list(false, [
+          { text: "a", children: [] },
+        ]),
+      ]),
+    ),
+  ));
+
+test("CRLF survives inside a fence body verbatim-by-line", () =>
+  check(
+    parseBlocks(
+      "```ts\r\nconst x = 1;\r\n```\r\n",
+    ),
+    okThen(
+      toEqual([
+        codeFence(some("ts"), "const x = 1;"),
+      ]),
+    ),
+  ));

@@ -137,9 +137,9 @@ test("prose links carry qmu's weight and hit-area, cloning on wrap", () =>
     check(css, toContain("box-decoration-break:clone")),
   ]));
 
-test("headings: H1 3rem symmetry and the sub-sm downscale from the token breakpoint", () =>
+test("headings: H1 2rem symmetry (tightened rhythm) and the sub-sm downscale from the token breakpoint", () =>
   all([
-    check(css, toContain("margin:0 0 3rem")),
+    check(css, toContain("margin:0 0 2rem")),
     // the sub-sm media boundary is composed from
     // plggmatic's maxWidth("sm") → (max-width:639px)
     check(css, toContain("@media (max-width:639px)")),

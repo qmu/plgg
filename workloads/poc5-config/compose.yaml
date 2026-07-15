@@ -1,0 +1,37 @@
+# PoC 5 workload — central configuration generation —
+# packages/plgg-poc5-config on host port 5188, the
+# cloudflared tunnel route for plgg-poc5.qmu.dev.
+#
+#   scripts/serve-poc.sh poc5-config
+#
+# SINGLE-process recipe (the PoC 3/4b shape): the shell
+# server renders the sample site from the config the client
+# holds — there is no internal doc server and no write seam.
+# Artifacts (the bundle + the seeded corpus copy) are
+# HOST-built; the container runs the serve entry against the
+# mounted repo, auto-seeding content/ on first run. Build
+# them first from the package:
+#
+#   npm run build && npm run seed-content
+#
+# OPENAI_API_KEY comes from the HOST env (serve-poc.sh
+# sources the repo-root .env; an explicit prefix still
+# overrides) — never the repo. Without it the PoC serves its
+# honest "assistant not configured" state; the deterministic
+# command path works regardless.
+services:
+  poc5-config:
+    image: node:22-slim
+    working_dir: /app/packages/plgg-poc5-config
+    # Auto-seed the git-ignored content/ copy on first run
+    # (it persists on the mounted host tree), then serve.
+    command:
+      - "sh"
+      - "-c"
+      - "[ -d content ] || npm run seed-content; exec node src/entrypoints/serve.ts"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "5188:5173"
+    volumes:
+      - ../..:/app
