@@ -7,6 +7,8 @@ import {
   invalidError,
   isErr,
   mapResult,
+  chainResult,
+  matchResult,
   pipe,
   plggErrorMessage,
 } from "plgg";
@@ -18,11 +20,16 @@ import {
   noneOf,
   literal,
   many,
+  many1,
   map,
   or,
   right,
   left,
   between,
+  sepBy,
+  succeed,
+  fail,
+  andThen,
   eof,
 } from "plgg-parser";
 import {
@@ -35,12 +42,14 @@ import {
   yBool,
   ySeq,
   yMap,
+  yNone,
 } from "plgg-md/Yaml/model/YamlValue";
 
 // ---- scalar parsing (plgg-parser, positioned errors) ----
 
-const join = (cs: ReadonlyArray<SoftStr>): SoftStr =>
-  cs.join("");
+const join = (
+  cs: ReadonlyArray<SoftStr>,
+): SoftStr => cs.join("");
 
 // `\x` → x (drop the backslash); `\\` → `\`; `\"` → `"`.
 const dqInner: Parser<SoftStr, null> = map(join)(
@@ -81,7 +90,25 @@ const squoted: Parser<SoftStr, null> = between<
 )(sqInner);
 
 const NUM_RE = /^-?\d+(\.\d+)?$/;
-// YAML constructs this bounded subset rejects outright.
+/**
+ * YAML constructs no SCALAR may start with. `&`/`*`/`!`/
+ * `|`/`>` are excluded because they carry expansion,
+ * aliasing, or type coercion — they are the fail-closed
+ * core and stay shut everywhere.
+ *
+ * `[` and `{` are here for a DIFFERENT reason, and it is
+ * load-bearing: a flow collection is a perfectly
+ * admissible {@link YValue}, but it is not a `YScalar`.
+ * Keeping them excluded HERE is precisely what bounds
+ * nesting — every element of a flow collection, and every
+ * item of a block `- ` sequence, is classified by
+ * {@link parseScalarValue}, so `[[a]]`, `[{a: 1}]`, and
+ * `- [a]` are rejected without a depth counter anywhere.
+ * {@link parseInlineValue} opens the flow spelling at the
+ * one position where the shape fits. Do not "fix" this by
+ * dropping `[`/`{` from the list — that would silently
+ * unbound the subset.
+ */
 const EXCLUDED_LEAD = "&*!|>[{";
 
 /**
@@ -91,7 +118,8 @@ const EXCLUDED_LEAD = "&*!|>[{";
  * is a positioned `Err` (fail-closed); an unquoted value
  * is classified — a number, `true`/`false`, or a plain
  * string. Excluded YAML syntax (anchors, tags, block
- * scalars, flow collections) is rejected, never silently
+ * scalars, and a flow collection in SCALAR position — see
+ * {@link EXCLUDED_LEAD}) is rejected, never silently
  * accepted.
  */
 export const parseScalarValue = (
@@ -135,6 +163,160 @@ export const parseScalarValue = (
       : s === "false"
         ? ok(yBool(false))
         : ok(yStr(s));
+};
+
+// ---- flow collections (the inline spellings) ----
+
+/** Run-of-spaces, discarded around flow punctuation. */
+const spaces: Parser<
+  ReadonlyArray<SoftStr>,
+  null
+> = many<SoftStr, null>(char(" "));
+
+/** Lifts a {@link parseScalarValue} verdict into a parser. */
+const asParsedScalar = (
+  raw: SoftStr,
+): Parser<YScalar, null> =>
+  pipe(
+    parseScalarValue(raw),
+    matchResult(
+      (e: InvalidError): Parser<YScalar, null> =>
+        fail(plggErrorMessage(e)),
+      (s: YScalar): Parser<YScalar, null> =>
+        succeed(s),
+    ),
+  );
+
+/**
+ * An UNQUOTED flow element: the run up to the next
+ * structural character, handed to {@link parseScalarValue}.
+ * Routing it through that one classifier is what makes
+ * `[1, true]` and its block spelling agree on types — and
+ * what rejects a nested `[`/`{` element, since the raw run
+ * keeps a leading bracket and `EXCLUDED_LEAD` catches it
+ * there with a message naming the construct.
+ */
+const plainFlowScalar: Parser<YScalar, null> =
+  pipe(
+    map(join)(
+      many1<SoftStr, null>(noneOf(",]}")),
+    ),
+    andThen<SoftStr, YScalar, null>(
+      asParsedScalar,
+    ),
+  );
+
+/**
+ * One flow element. Quoted forms are tried first so a `,`
+ * INSIDE a quoted scalar is content, not a separator
+ * (`["a,b", c]` is two elements, not three).
+ */
+const flowScalar: Parser<YScalar, null> = or<
+  YScalar,
+  null
+>(
+  map<SoftStr, YScalar>(yStr)(dquoted),
+  map<SoftStr, YScalar>(yStr)(squoted),
+  plainFlowScalar,
+);
+
+/** `[a, b]` — the inline spelling of a `YSeq`. */
+const flowSeq: Parser<
+  ReadonlyArray<YScalar>,
+  null
+> = between<SoftStr, SoftStr, null>(
+  left(char("["), spaces),
+  right(spaces, char("]")),
+)(sepBy<SoftStr, null>(char(","))(flowScalar));
+
+/** `key: scalar` inside a `{…}`. */
+const flowEntry: Parser<
+  YEntry<YScalar>,
+  null
+> = pipe(
+  map(join)(many1<SoftStr, null>(noneOf(":,]}"))),
+  andThen<SoftStr, YEntry<YScalar>, null>(
+    (rawKey: SoftStr) =>
+      rawKey.trim() === ""
+        ? fail("empty key")
+        : pipe(
+            right(char(":"), flowScalar),
+            map((v: YScalar): YEntry<YScalar> => [
+              rawKey.trim(),
+              v,
+            ]),
+          ),
+  ),
+);
+
+/** `{a: 1, b: 2}` — the inline spelling of a `YMap`. */
+const flowMap: Parser<
+  ReadonlyArray<YEntry<YScalar>>,
+  null
+> = between<SoftStr, SoftStr, null>(
+  left(char("{"), spaces),
+  right(spaces, char("}")),
+)(sepBy<SoftStr, null>(char(","))(flowEntry));
+
+/**
+ * Rejects a repeated key, so a flow map obeys the subset's
+ * duplicate-keys-are-an-error rule exactly as the block
+ * spelling does — the two spellings must not disagree about
+ * what is a valid document.
+ */
+const withoutDuplicateKeys = (
+  entries: ReadonlyArray<YEntry<YScalar>>,
+): Result<
+  ReadonlyArray<YEntry<YScalar>>,
+  InvalidError
+> =>
+  pipe(
+    entries.map(([k]: YEntry<YScalar>) => k),
+    (keys: ReadonlyArray<SoftStr>) =>
+      keys.find(
+        (k: SoftStr, idx: number) =>
+          keys.indexOf(k) !== idx,
+      ),
+    (dup: SoftStr | undefined) =>
+      dup === undefined
+        ? ok(entries)
+        : err(
+            invalidError({
+              message: `duplicate key ${JSON.stringify(dup)}`,
+            }),
+          ),
+  );
+
+/**
+ * Parses an INLINE value — everything after `key:` on one
+ * line — into a {@link YValue}. This is the ONE position
+ * where a flow collection is admissible, and admitting it
+ * widens the SPELLINGS accepted, never the shapes: `[a, b]`
+ * denotes the same `YSeq` as the indented `- ` block, and
+ * `{a: 1}` the same `YMap` as the indented block. Anything
+ * that is not a flow collection falls through to
+ * {@link parseScalarValue} unchanged.
+ *
+ * `eof` is part of the grammar, not decoration: it is what
+ * makes `[a] junk` an error rather than a silently
+ * truncated read.
+ */
+export const parseInlineValue = (
+  raw: SoftStr,
+): Result<YValue, InvalidError> => {
+  const s = raw.trim();
+  return s.startsWith("[")
+    ? pipe(
+        run(left(flowSeq, eof), s, null),
+        mapResult(ySeq),
+      )
+    : s.startsWith("{")
+      ? pipe(
+          run(left(flowMap, eof), s, null),
+          chainResult(withoutDuplicateKeys),
+          mapResult(yMap),
+        )
+      : parseScalarValue(s);
 };
 
 // ---- line-oriented document assembly ----
@@ -185,11 +367,13 @@ const lineErr = (
  * {@link YamlMap}. Line-oriented for a bounded,
  * backtracking-safe grammar (no pathological blowup on
  * adversarial input — `policies/security.md`): top-level
- * `key:` entries at column 0, each value either inline, an
- * indented `- ` sequence of scalars, or an indented
- * one-level map of scalars. Duplicate keys, malformed
- * lines, and unsupported constructs are positioned `Err`s.
- * Total: never throws.
+ * `key:` entries at column 0, each value either inline
+ * (a scalar or a flow collection — see
+ * {@link parseInlineValue}), an indented `- ` sequence of
+ * scalars, an indented one-level map of scalars, or
+ * ABSENT (a bare `key:`, yielding `YNone`). Duplicate
+ * keys, malformed lines, and unsupported constructs are
+ * positioned `Err`s. Total: never throws.
  */
 export const parseYamlSubset = (
   block: SoftStr,
@@ -229,7 +413,9 @@ export const parseYamlSubset = (
     }
     const head = splitKey(line.content);
     if (isErr(head)) {
-      return err(lineErr(line, "expected 'key: value'"));
+      return err(
+        lineErr(line, "expected 'key: value'"),
+      );
     }
     const { key, rest } = head.content;
     if (key === "") {
@@ -246,10 +432,15 @@ export const parseYamlSubset = (
     seen.add(key);
 
     if (rest !== "") {
-      // inline scalar value
-      const v = parseScalarValue(rest);
+      // inline value: a scalar or a flow collection
+      const v = parseInlineValue(rest);
       if (isErr(v)) {
-        return err(lineErr(line, plggErrorMessage(v.content)));
+        return err(
+          lineErr(
+            line,
+            plggErrorMessage(v.content),
+          ),
+        );
       }
       entries.push([key, v.content]);
       i = i + 1;
@@ -269,15 +460,14 @@ export const parseYamlSubset = (
       }
       j = j + 1;
     }
-    if (children.length === 0) {
-      return err(
-        lineErr(
-          line,
-          `key ${JSON.stringify(key)} has no value`,
-        ),
-      );
-    }
-    const blockVal = parseBlock(children);
+    // A bare `key:` with no indented block is the ABSENT
+    // value, not a malformed line: the document said the
+    // key exists and said no more. `foldYaml` omits it, so
+    // `forOptionProp` reads it as `None`.
+    const blockVal: Result<YValue, InvalidError> =
+      children.length === 0
+        ? ok(yNone())
+        : parseBlock(children);
     if (isErr(blockVal)) {
       return err(blockVal.content);
     }
@@ -299,7 +489,9 @@ const parseBlock = (
 ): Result<YValue, InvalidError> => {
   const first = children[0];
   return first === undefined
-    ? err(invalidError({ message: "empty block" }))
+    ? err(
+        invalidError({ message: "empty block" }),
+      )
     : first.content.trimStart().startsWith("- ")
       ? parseSeqBlock(children)
       : parseMapBlock(children);
@@ -322,7 +514,10 @@ const parseSeqBlock = (
     const v = parseScalarValue(t.slice(2));
     if (isErr(v)) {
       return err(
-        lineErr(line, plggErrorMessage(v.content)),
+        lineErr(
+          line,
+          plggErrorMessage(v.content),
+        ),
       );
     }
     items.push(v.content);
@@ -363,7 +558,10 @@ const parseMapBlock = (
     const v = parseScalarValue(rest);
     if (isErr(v)) {
       return err(
-        lineErr(line, plggErrorMessage(v.content)),
+        lineErr(
+          line,
+          plggErrorMessage(v.content),
+        ),
       );
     }
     entries.push([key, v.content]);

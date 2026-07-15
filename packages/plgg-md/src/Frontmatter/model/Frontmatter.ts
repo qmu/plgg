@@ -15,6 +15,7 @@ import {
   yBool$,
   ySeq$,
   yMap$,
+  yNone$,
 } from "plgg-md/Yaml/model/YamlValue";
 
 /**
@@ -52,10 +53,26 @@ const layoutOf = (
               ({ content }): Option<SoftStr> =>
                 some(content),
             ],
-            [yNum$(), (): Option<SoftStr> => none()],
-            [yBool$(), (): Option<SoftStr> => none()],
-            [ySeq$(), (): Option<SoftStr> => none()],
-            [yMap$(), (): Option<SoftStr> => none()],
+            [
+              yNum$(),
+              (): Option<SoftStr> => none(),
+            ],
+            [
+              yBool$(),
+              (): Option<SoftStr> => none(),
+            ],
+            [
+              ySeq$(),
+              (): Option<SoftStr> => none(),
+            ],
+            [
+              yMap$(),
+              (): Option<SoftStr> => none(),
+            ],
+            [
+              yNone$(),
+              (): Option<SoftStr> => none(),
+            ],
           ),
       )(
         fromNullable(

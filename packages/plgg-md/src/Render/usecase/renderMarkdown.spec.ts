@@ -15,6 +15,7 @@ import {
   el,
   text,
   class_,
+  attr,
 } from "plgg-view";
 import {
   renderMarkdown,
@@ -23,8 +24,10 @@ import {
 } from "plgg-md/Render/usecase/renderMarkdown";
 import {
   type RenderOptions,
+  type HeadingDecorator,
   plainHighlighter,
   identityResolver,
+  defaultHeading,
 } from "plgg-md/Render/model/seam";
 import {
   slugify,
@@ -39,6 +42,7 @@ const opts = (
   resolveLink: identityResolver,
   rawHtml,
   slug: slugify,
+  decorateHeading: defaultHeading,
 });
 
 /** Em-dash (U+2014) — RETAINED in slugs per the spike. */
@@ -430,26 +434,34 @@ test("headings carries depth + text + the exact body slugs, in document order", 
             level: 1,
             text: "Title",
             slug: "title",
+            ordinal: [1],
           },
           {
             level: 2,
             text: "First section",
             slug: "first-section",
+            ordinal: [1, 1],
           },
           {
             level: 3,
             text: "Sub point",
             slug: "sub-point",
+            ordinal: [1, 1, 1],
           },
           {
             level: 2,
             text: "First section",
             slug: "first-section-1",
+            // the H3 above is dropped, not carried
+            ordinal: [1, 2],
           },
           {
             level: 4,
             text: "Inside a callout",
             slug: "inside-a-callout",
+            // no H3 above it — the missing ancestor is a
+            // `0`, not an invented `1`
+            ordinal: [1, 2, 0, 1],
           },
         ])(doc.headings),
         // slugs derives from headings — lock-step by
@@ -567,6 +579,7 @@ test("an injected github slugger changes the heading ids", () =>
       resolveLink: identityResolver,
       rawHtml: false,
       slug: githubSlugify,
+      decorateHeading: defaultHeading,
     })(SLUG_PAGE),
     okThen((doc) =>
       all([
@@ -598,6 +611,156 @@ test("the default slugger (VitePress) is unchanged — it does NOT drop the midd
         check(
           doc.slugs,
           toEqual([slugify("型・関数の設計")]),
+        ),
+      ]),
+    ),
+  ));
+
+// --- injectable heading element ------------------------
+
+const NUMBERED = src(
+  "# Alpha",
+  "",
+  "## Beta",
+  "",
+  "## Gamma",
+  "",
+  "### Delta",
+  "",
+  "# Epsilon",
+);
+
+/** Prints the ordinal ahead of the heading's own text. */
+const numbering: HeadingDecorator = ({
+  level,
+  id,
+  ordinal,
+  children,
+}) =>
+  el(
+    `h${level}`,
+    [attr("id", id)],
+    [text(`${ordinal.join("-")}. `), ...children],
+  );
+
+const numbered = (
+  decorateHeading: HeadingDecorator,
+): RenderOptions => ({
+  highlighter: plainHighlighter,
+  resolveLink: identityResolver,
+  rawHtml: false,
+  slug: slugify,
+  decorateHeading,
+});
+
+test("an injected decorator owns the heading element", () =>
+  check(
+    renderMarkdownWithOptions(
+      numbered(numbering),
+    )(NUMBERED),
+    okThen((doc) =>
+      all([
+        check(
+          renderToString(doc.body),
+          toContain(
+            '<h1 id="alpha">1. Alpha</h1>',
+          ),
+        ),
+        check(
+          renderToString(doc.body),
+          toContain(
+            '<h3 id="delta">1-2-1. Delta</h3>',
+          ),
+        ),
+        check(
+          renderToString(doc.body),
+          toContain(
+            '<h1 id="epsilon">2. Epsilon</h1>',
+          ),
+        ),
+      ]),
+    ),
+  ));
+
+// The invariant the seam exists to protect: `headings` and
+// `body` are built by two SEPARATE traversals, so a number
+// the body shows must be the number the table of contents
+// shows. It holds because `plgg-md` counts (a deterministic
+// function of the heading sequence) rather than letting the
+// decorator carry a counter that only the body would
+// advance.
+test("the ordinal in headings is the one the body renders", () =>
+  check(
+    renderMarkdownWithOptions(
+      numbered(numbering),
+    )(NUMBERED),
+    okThen((doc) => {
+      const html = renderToString(doc.body);
+      return all(
+        doc.headings.map((h) =>
+          check(
+            html,
+            toContain(
+              `<h${h.level} id="${h.slug}">${h.ordinal.join("-")}. ${h.text}</h${h.level}>`,
+            ),
+          ),
+        ),
+      );
+    }),
+  ));
+
+test("a decorator cannot drift: rendering twice yields the same numbers", () =>
+  check(
+    renderMarkdownWithOptions(
+      numbered(numbering),
+    )(NUMBERED),
+    okThen((first) =>
+      check(
+        renderMarkdownWithOptions(
+          numbered(numbering),
+        )(NUMBERED),
+        okThen((second) =>
+          all([
+            check(
+              renderToString(second.body),
+              toBe(renderToString(first.body)),
+            ),
+            check(
+              second.headings.map(
+                (h) => h.ordinal,
+              ),
+              toEqual(
+                first.headings.map(
+                  (h) => h.ordinal,
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ),
+  ));
+
+test("the default heading is unchanged — it ignores the ordinal", () =>
+  check(
+    renderMarkdown(NUMBERED),
+    okThen((doc) =>
+      all([
+        check(
+          renderToString(doc.body),
+          toContain('<h1 id="alpha">Alpha</h1>'),
+        ),
+        // the ordinal is still computed and exposed, just
+        // not printed by the default element
+        check(
+          doc.headings.map((h) => h.ordinal),
+          toEqual([
+            [1],
+            [1, 1],
+            [1, 2],
+            [1, 2, 1],
+            [2],
+          ]),
         ),
       ]),
     ),

@@ -2,19 +2,29 @@ import { SoftStr, Option } from "plgg";
 import { Html } from "plgg-view";
 import { Frontmatter } from "plgg-md/Frontmatter/model/Frontmatter";
 import { HeadingLevel } from "plgg-md/Block/model/Block";
+import { Ordinal } from "plgg-md/Render/model/seam";
 
 /**
  * One document heading as pure data: its ATX depth, its
- * plain text, and the slug `id` the renderer stamped on
- * the emitted element — the exact anchor a table of
- * contents links to (`#slug`). The list on
- * {@link MarkdownDoc} is in document order and shares one
- * slugger run with the body, so the two can never drift.
+ * plain text, the slug `id` the renderer stamped on the
+ * emitted element — the exact anchor a table of contents
+ * links to (`#slug`) — and its {@link Ordinal}, the outline
+ * position the body's heading carries.
+ *
+ * The list on {@link MarkdownDoc} is in document order. It
+ * is built by a SEPARATE traversal from the body's, so the
+ * two agree not by sharing state but because both slugging
+ * and counting are deterministic functions of the heading
+ * sequence, and both traversals walk the identical
+ * sequence. That is the invariant to preserve: anything
+ * added here must be a function of the sequence, never of
+ * who happened to render first.
  */
 export type MdHeading = Readonly<{
   level: HeadingLevel;
   text: SoftStr;
   slug: SoftStr;
+  ordinal: Ordinal;
 }>;
 
 /**

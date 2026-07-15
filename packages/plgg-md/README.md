@@ -3,7 +3,7 @@
 > **UNSTABLE** - Experimental study work. Part of the [plgg monorepo](../../README.md).
 
 A **Markdown-to-typed-data parser**, built from scratch on
-[plgg](../plgg/). A layout-marker frontmatter splitter and a
+[plgg](../plgg/). A bounded-YAML frontmatter parser and a
 block tokenizer for the [`plggpress`](../plggpress/) Markdown
 subset produce an immutable `Box`-union AST — a `Result`,
 never a throw. It underpins plggpress content parsing.
@@ -22,13 +22,18 @@ plgg ── plgg-md ── plggpress
 
 ## How it's organized
 
-- **Frontmatter** — the layout-marker splitter that peels a
-  page's frontmatter off its body.
+- **Yaml** — the deliberately bounded YAML subset frontmatter
+  is written in. `Yaml/model/YamlValue.ts`'s doc comment is
+  the **normative spec** — read it before widening anything.
+- **Frontmatter** — peels a page's frontmatter off its body
+  and parses it through the subset.
 - **Block** — the block tokenizer that turns the body into the
   `Box`-union AST (headings, lists, fenced code, …).
 - **Inline** — inline-span tokenizing within a block.
 - **Render** — folds the AST into a
-  [`plgg-view`](../plgg-view/) `Html` tree.
+  [`plgg-view`](../plgg-view/) `Html` tree, through the seams
+  in `Render/model/seam.ts` (highlighter, link resolver,
+  heading slugger, heading element).
 
 Because the AST is a `Box` union and every step returns a
 `Result`, malformed input is a value to handle, not an

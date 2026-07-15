@@ -55,12 +55,14 @@ import {
   RenderOptions,
   plainHighlighter,
   identityResolver,
+  defaultHeading,
 } from "plgg-md/Render/model/seam";
 import { mdToHtml } from "plgg-md/Render/usecase/mdToHtml";
 import {
   makeSluggers,
   slugify,
 } from "plgg-md/Render/usecase/slugify";
+import { makeOrdinals } from "plgg-md/Render/usecase/ordinal";
 
 /**
  * The first H1's plain text, in document order (recursing
@@ -219,16 +221,21 @@ const headingEntries = (
   );
 
 /**
- * The typed heading list (depth + text + slug) — ONE
- * slugger run over the document order, so the slugs here
- * ARE the ids the body carries; `slugs` derives from this
- * list and cannot drift.
+ * The typed heading list (depth + text + slug + ordinal) —
+ * a slugger and an outline counter run over the document
+ * order, so the slugs and numbers here ARE the ones the
+ * body carries; `slugs` derives from this list and cannot
+ * drift. Both are deterministic functions of the heading
+ * sequence, and `headingEntries` yields the same sequence
+ * the body's fold walks, which is precisely why running
+ * them here as well as in `mdToHtml` cannot disagree.
  */
 const collectHeadings = (
   blocks: ReadonlyArray<Block>,
   options: RenderOptions,
 ): ReadonlyArray<MdHeading> => {
   const slug = makeSluggers(options.slug);
+  const ordinal = makeOrdinals();
   return headingEntries(
     blocks,
     options.rawHtml,
@@ -236,6 +243,7 @@ const collectHeadings = (
     level: entry.level,
     text: entry.text,
     slug: slug.next(entry.text),
+    ordinal: ordinal.next(entry.level),
   }));
 };
 
@@ -387,8 +395,9 @@ const collectLinks =
 /**
  * Renders Markdown source to a {@link MarkdownDoc} under
  * the full {@link RenderOptions} — the injected highlighter
- * and link resolver plus the two site-parameterized seams
- * (`rawHtml` passthrough and the base heading `slug`):
+ * and link resolver plus the site-parameterized seams
+ * (`rawHtml` passthrough, the base heading `slug`, and the
+ * heading element itself):
  * splits frontmatter, tokenizes blocks, folds to an
  * `Html<never>` body, and exposes `firstHeading`, the
  * post-resolver `links`, and the deduped heading `slugs`.
@@ -441,8 +450,11 @@ export const renderMarkdownWithOptions =
  * The default {@link RenderOptions} for a given highlighter
  * and link resolver: the spike defaults every existing
  * consumer relies on — `rawHtml` OFF (angle brackets
- * escape as text) and the VitePress-exact {@link slugify}
- * base slugger. A site opts out of either through
+ * escape as text), the VitePress-exact {@link slugify}
+ * base slugger, and the plain {@link defaultHeading}
+ * element (which ignores the ordinal, so headings are
+ * byte-identical to before the seam existed). A site opts
+ * out of any of them through
  * {@link renderMarkdownWithOptions}.
  */
 export const renderOptions = (
@@ -453,6 +465,7 @@ export const renderOptions = (
   resolveLink,
   rawHtml: false,
   slug: slugify,
+  decorateHeading: defaultHeading,
 });
 
 /**
