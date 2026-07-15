@@ -12,6 +12,77 @@ mission:
 
 # Fix the plgg-md grammar bugs surfaced (and deliberately preserved) by the combinator swap
 
+## RESOLUTION (2026-07-16): all five closed — 2 and 3 fixed, 4 fixed as a DIALECT choice, 5 not actionable
+
+Developer authorised all four remaining on 2026-07-16. Each landed as its own
+commit with its own site gate, per this ticket's "decide per bug, do not batch".
+
+- **2. Fence closer length — FIXED** (`ba5dfeed`). `fenceCloseLine` now requires
+  `close.length >= marker.length` as well as the same character (CommonMark §4.5).
+- **3. Container colon scan — FIXED** (`d5f13a81`). A complete fenced block is now
+  consumed whole by `fencedRegion` before any line is classified, so colons in a
+  code sample are body. An UNTERMINATED inner fence deliberately keeps the old flat
+  reading, so the existing "Unterminated code fence" spec still passes untouched.
+- **4. Table rows — FIXED, but it is NOT a bug fix** (`c7f565e9`). See below.
+- **5. Unreachable paths — NOT ACTIONABLE.** See below.
+
+### Two corrections to this ticket, both found by measuring
+
+**The re-pin warning did not hold.** This ticket states each remaining bug "will
+fail `golden.spec.ts` on purpose" and needs a deliberate re-pin. **None of them
+did.** Golden stayed green through all three fixes, because its corpus never
+exercised any of the paths: it has only 3-tick fences, a plain callout (never one
+wrapping a fenced sample), and table rows that all lead with a pipe. The warning
+is a sound general caution, not a per-bug fact — re-pinning something golden never
+covered would have been noise. The **site gate** (guide + strategy rebuilt, both
+exit 0, `command diff -r` vs a pre-fix baseline) was EMPTY for all three, which is
+what actually confirms the corpora were untouched.
+
+**Bug 4's premise was wrong — it was measured against the wrong oracle.** This
+ticket says the findings were "verified against the original regex implementation,
+not speculation". True, and that is exactly the gap: verified against plgg-md's own
+predecessor, never against markdown-it, which is what VitePress renders with and
+what this guide was migrated FROM. Measured directly:
+
+| case | markdown-it (VitePress) | plgg-md before the fix |
+|---|---|---|
+| table + **pipe-bearing** paragraph | swallows it (3 rows) | swallows it (3 rows) — **agreed** |
+| table + plain paragraph, **no pipe** | swallows it (3 rows) | stops (2 rows) — diverged |
+| table + blank line | stops | stops |
+| table + heading | stops | stops |
+
+So on this ticket's exact complaint plgg-md **already matched VitePress**: GFM
+breaks a table only at a blank line or another block construct, and prose is
+neither. The only real divergence was the opposite one. The developer was shown
+this and chose to fix it anyway, as a **deliberate dialect divergence**: plgg-md
+renders a bounded authored subset, and there a paragraph joining the table above it
+is never what the author meant. The cost — pipe-less GFM rows (`1 | 2`) are now
+prose — is pinned by a spec, and the reasoning lives in `tableBodyLine`'s doc so it
+is not "restored to GFM parity" later as if it were an oversight.
+
+### Why 5 is not actionable (all three, individually)
+
+- **`takeParagraph`'s first-line asymmetry** — the name no longer exists. The
+  combinator swap replaced it; the post-swap `paragraphBlock` carries the asymmetry
+  as STRUCTURE (`nonBlankLine`, then `many(notFollowedBy(startsBlock))`), not as a
+  branch that can be deleted.
+- **`asHeadingLevel`'s error path** — must stay. It is a public `asX` caster
+  exported through the barrel, its error path is directly spec'd
+  (`Block/model/Block.spec.ts:44,47`), and it is reachable by any consumer. It is
+  unreachable only *from `parseBlocks`*. Deleting it would also force a `number` →
+  `HeadingLevel` cast at the call site, which the no-escape-hatch rule forbids.
+- **`parseListAt`'s guard** — the name no longer exists either; the equivalent is
+  `listNest`'s `matchOption(() => fail("a preceding list item"), …)`. That branch
+  IS dead (every path builds `listLevel(mark.indent, [], …)`, so the base equals the
+  first mark's indent and `items` is never empty when `listNest` runs). But it
+  **cannot be deleted**: `items[items.length - 1]` is `possibly 'undefined'` under
+  `noUncheckedIndexedAccess` (verified — TS18048), so the guard is forced by the
+  type system. Removing it needs `as`/`!`, which CLAUDE.md prohibits outright.
+
+The premise "deleting changes no behavior but does move coverage" also no longer
+holds on its own terms: `Block.ts` and `parseBlocks.ts` both report 100%, and the
+package clears the >90% branch gate. There is nothing to gain and a rule to break.
+
 ## STATUS (2026-07-15): bug 1 (CRLF) FIXED — four remain, each still needing a call
 
 The developer approved starting on the parser bugs but did not name one, so **only

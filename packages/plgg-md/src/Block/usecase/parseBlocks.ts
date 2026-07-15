@@ -265,9 +265,16 @@ const fenceOpenLine: Parser<FenceOpen, null> =
   );
 
 /**
- * A bare close fence sharing the opener's CHARACTER —
- * ` ``` ` is not closed by `~~~`, but IS closed by a run
- * of a different length.
+ * A bare close fence sharing the opener's CHARACTER and
+ * AT LEAST its length (CommonMark §4.5) — ` ``` ` is not
+ * closed by `~~~`, and a ` ```` ` opener is not closed by
+ * a ` ``` `.
+ *
+ * The length test is what makes the standard embedding
+ * idiom work: a document quoting fenced Markdown opens
+ * with a longer run so the inner ` ``` ` is BODY, not a
+ * closer. Before this, a shorter run closed the block and
+ * the remainder of the sample escaped as live Markdown.
  */
 const fenceCloseLine = (
   marker: SoftStr,
@@ -277,7 +284,8 @@ const fenceCloseLine = (
       fenceMarker,
       andThen<SoftStr, SoftStr, null>(
         (close: SoftStr) =>
-          close.charAt(0) === marker.charAt(0)
+          close.charAt(0) === marker.charAt(0) &&
+          close.length >= marker.length
             ? succeed<SoftStr>(close)
             : fail("a matching close fence"),
       ),
@@ -433,12 +441,109 @@ type ScanLine =
       colons: number;
       raw: SoftStr;
     }>
+  | Readonly<{
+      tag: "fenced";
+      lines: ReadonlyArray<SoftStr>;
+    }>
   | Readonly<{ tag: "other"; raw: SoftStr }>;
+
+/**
+ * The lines of a fenced block after its opener, up to and
+ * including the matching closer, verbatim — or FAILURE if
+ * no closer arrives.
+ *
+ * Failing on an unterminated fence is the deliberate part.
+ * It backtracks the whole {@link fencedRegion} attempt, so
+ * the opener falls through as an ordinary body line and the
+ * container's scan proceeds flat from there — exactly as it
+ * always did. That keeps an unterminated inner fence
+ * reporting "Unterminated code fence" from the body's
+ * re-parse, rather than the container swallowing the rest of
+ * the document and blaming itself.
+ */
+const fenceTail = (
+  marker: SoftStr,
+): Parser<ReadonlyArray<SoftStr>, null> =>
+  or<ReadonlyArray<SoftStr>, null>(
+    pipe(
+      lookahead(fenceCloseLine(marker)),
+      andThen<
+        SoftStr,
+        ReadonlyArray<SoftStr>,
+        null
+      >(() =>
+        map<SoftStr, ReadonlyArray<SoftStr>>(
+          (raw: SoftStr): ReadonlyArray<SoftStr> => [
+            raw,
+          ],
+        )(rawLine),
+      ),
+    ),
+    // Guarded against EOF because `rawLine` SUCCEEDS with
+    // "" there (`eol` accepts `eof`), so an unguarded
+    // recursion would spin rather than end the region.
+    right(
+      notFollowedBy(eof),
+      pipe(
+        rawLine,
+        andThen<
+          SoftStr,
+          ReadonlyArray<SoftStr>,
+          null
+        >((raw: SoftStr) =>
+          map<
+            ReadonlyArray<SoftStr>,
+            ReadonlyArray<SoftStr>
+          >(
+            (
+              rest: ReadonlyArray<SoftStr>,
+            ): ReadonlyArray<SoftStr> => [
+              raw,
+              ...rest,
+            ],
+          )(fenceTail(marker)),
+        ),
+      ),
+    ),
+  );
+
+/**
+ * A COMPLETE fenced block inside a container body, taken
+ * whole so its contents cannot be read as container syntax.
+ * This is what stops a callout that DOCUMENTS `:::` from
+ * closing on the `:::` in its own code sample — the guide's
+ * own callout pages are the obvious victim.
+ */
+const fencedRegion: Parser<ScanLine, null> = pipe(
+  lookahead(fenceOpenLine),
+  andThen<FenceOpen, ScanLine, null>(
+    (open: FenceOpen) =>
+      pipe(
+        rawLine,
+        andThen<SoftStr, ScanLine, null>(
+          (openRaw: SoftStr) =>
+            map<
+              ReadonlyArray<SoftStr>,
+              ScanLine
+            >(
+              (
+                rest: ReadonlyArray<SoftStr>,
+              ): ScanLine => ({
+                tag: "fenced",
+                lines: [openRaw, ...rest],
+              }),
+            )(fenceTail(open.marker)),
+        ),
+      ),
+  ),
+);
 
 const scanLine: Parser<ScanLine, null> = or<
   ScanLine,
   null
 >(
+  // FIRST: a fenced block is opaque to the colon scan.
+  fencedRegion,
   pipe(
     lookahead(containerOpenLine),
     andThen<ContainerOpen, ScanLine, null>(
@@ -477,8 +582,11 @@ const scanLine: Parser<ScanLine, null> = or<
  * The colon-count STACK: any opener pushes, a close pops
  * only on an EXACT count match, and a wrong-length close
  * is a hard mismatch — distinct from never closing at
- * all. Note what is NOT here: the scan is flat, so a
- * `:::` inside a fenced code block still counts.
+ * all. A complete fenced block is consumed WHOLE by
+ * {@link fencedRegion} before its lines are ever
+ * classified, so colons inside a code sample are body, not
+ * syntax; an unterminated fence deliberately falls back to
+ * the flat reading (see {@link fenceTail}).
  */
 const containerScan = (
   stack: ReadonlyArray<number>,
@@ -504,10 +612,15 @@ const containerScan = (
                   line.colons,
                   line.raw,
                 )
-              : containerScan(stack, [
-                  ...body,
-                  line.raw,
-                ]),
+              : line.tag === "fenced"
+                ? containerScan(stack, [
+                    ...body,
+                    ...line.lines,
+                  ])
+                : containerScan(stack, [
+                    ...body,
+                    line.raw,
+                  ]),
       ),
     ),
   );
@@ -768,12 +881,53 @@ const tableSepLine: Parser<true, null> = right(
   ),
 );
 
-/** A line holding a `|` — the table's header and body rows. */
+/**
+ * A line holding a `|` — the table's HEADER. A header need
+ * not lead with `|` because it is anchored: it only starts
+ * a table when {@link tableSepLine} follows it, which prose
+ * cannot accidentally do.
+ */
 const pipeLine: Parser<SoftStr, null> = pipe(
   rawLine,
   andThen<SoftStr, SoftStr, null>(
     (line: SoftStr) =>
       line.includes("|")
+        ? succeed<SoftStr>(line)
+        : fail("a table row"),
+  ),
+);
+
+/**
+ * A table BODY row: a line whose first non-space character
+ * is `|`. Unlike the header, a body row has NO anchor after
+ * it, so it must self-identify — otherwise the table runs on
+ * into whatever prose follows.
+ *
+ * This is a DELIBERATE DIALECT DIVERGENCE from GFM, taken
+ * with the developer's sign-off, and it is worth stating
+ * plainly because the obvious reading is that it fixes a
+ * bug. It does not. Measured against markdown-it (what
+ * VitePress renders with, and what this guide was migrated
+ * FROM): a paragraph after a table — with a pipe or without
+ * one — is a table ROW there, because GFM breaks a table
+ * only at a blank line or another block construct, and prose
+ * is neither. plgg-md previously matched that for
+ * pipe-bearing prose exactly.
+ *
+ * So this trades conformance for predictability, on purpose:
+ * `plgg-md` renders a bounded, authored subset, and in that
+ * subset a paragraph that happens to contain a `|` being
+ * absorbed into the table above it is never what the author
+ * meant. The cost is that pipe-less GFM rows (`1 | 2` under
+ * `A | B`) are no longer rows here. Do not "restore GFM
+ * parity" without re-reading this: the divergence is the
+ * decision, not an oversight.
+ */
+const tableBodyLine: Parser<SoftStr, null> = pipe(
+  rawLine,
+  andThen<SoftStr, SoftStr, null>(
+    (line: SoftStr) =>
+      line.trimStart().startsWith("|")
         ? succeed<SoftStr>(line)
         : fail("a table row"),
   ),
@@ -811,7 +965,7 @@ const parseAlign = (
         : "default";
 };
 
-/** The body rows: every following line that merely holds a `|`. */
+/** The body rows: every following {@link tableBodyLine}. */
 const tableRows = (
   header: TableRow,
   align: ReadonlyArray<TableAlign>,
@@ -831,7 +985,7 @@ const tableRows = (
           ok(table(header, align, rows)),
       )(
         many<TableRow, null>(
-          map(splitRow)(pipeLine),
+          map(splitRow)(tableBodyLine),
         ),
       );
 

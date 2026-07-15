@@ -5,7 +5,7 @@ type: enhancement
 layer: [Infrastructure]
 effort: 4h
 commit_hash:
-category: Added
+category: Changed
 depends_on:
 mission:
 ---

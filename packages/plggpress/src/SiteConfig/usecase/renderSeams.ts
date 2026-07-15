@@ -6,6 +6,7 @@ import {
   type LinkResolver,
   slugify,
   githubSlugify,
+  defaultHeading,
 } from "plgg-md";
 import {
   type SiteConfig,
@@ -47,8 +48,16 @@ export const sluggerOf = (
  * seams the caller supplies (`highlighter`, `resolveLink`):
  * the site's `rawHtml` mode and configured base slugger,
  * both defaulted so a config that declares neither renders
- * exactly as before. The one place a `SiteConfig`'s render
- * knobs cross into plgg-md.
+ * exactly as before, plus plgg-md's plain
+ * {@link defaultHeading} element. The one place a
+ * `SiteConfig`'s render knobs cross into plgg-md.
+ *
+ * The heading element is pinned to the default rather than
+ * exposed as a config knob: a `SiteConfig` is decoded data,
+ * and a {@link HeadingDecorator} is a function, so it has no
+ * spelling there. A site that wants numbered headings needs
+ * a declared, decodable knob of its own — worth doing when
+ * one asks, not before.
  */
 export const pressRenderOptions = (
   config: SiteConfig,
@@ -59,4 +68,5 @@ export const pressRenderOptions = (
   resolveLink,
   rawHtml: rawHtmlOf(config),
   slug: sluggerOf(config),
+  decorateHeading: defaultHeading,
 });

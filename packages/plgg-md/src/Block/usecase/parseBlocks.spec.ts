@@ -140,6 +140,40 @@ test("a tilde line does not close a backtick fence", () =>
     ),
   ));
 
+// CommonMark §4.5: the closer must be at least as long as
+// the opener. This is the whole point of the rule — a doc
+// quoting fenced Markdown opens longer so the inner fence
+// is body. Before the fix a ``` closed a ```` opener and
+// the rest of the sample escaped as live Markdown.
+test("a shorter run does not close a longer fence", () =>
+  check(
+    parseBlocks(
+      src(
+        "````md",
+        "```ts",
+        "const x = 1;",
+        "```",
+        "````",
+      ),
+    ),
+    okThen(
+      toEqual([
+        codeFence(
+          some("md"),
+          "```ts\nconst x = 1;\n```",
+        ),
+      ]),
+    ),
+  ));
+
+test("a longer run DOES close a shorter fence", () =>
+  check(
+    parseBlocks(src("```ts", "code", "`````")),
+    okThen(
+      toEqual([codeFence(some("ts"), "code")]),
+    ),
+  ));
+
 test("an unterminated fence is an error", () =>
   check(
     parseBlocks(src("```ts", "no close here")),
@@ -225,6 +259,62 @@ test("an unterminated container is an error", () =>
     ),
   ));
 
+// The bug: a callout DOCUMENTING ::: syntax closed on the
+// ::: in its own code sample. The scan now takes a complete
+// fenced block whole, so those colons are body.
+test("a ::: inside a fenced sample does not close the container", () =>
+  check(
+    parseBlocks(
+      src(
+        "::: tip Note",
+        "Shown below:",
+        "```md",
+        "::: warning",
+        "inner sample",
+        ":::",
+        "```",
+        "After the sample.",
+        ":::",
+      ),
+    ),
+    okThen(
+      toEqual([
+        callout("tip", some("Note"), [
+          para("Shown below:"),
+          codeFence(
+            some("md"),
+            "::: warning\ninner sample\n:::",
+          ),
+          para("After the sample."),
+        ]),
+      ]),
+    ),
+  ));
+
+test("a tilde-fenced sample is opaque to the colon scan too", () =>
+  check(
+    parseBlocks(
+      src(
+        "::: tip Note",
+        "~~~",
+        ":::",
+        "~~~",
+        ":::",
+      ),
+    ),
+    okThen(
+      toEqual([
+        callout("tip", some("Note"), [
+          codeFence(none(), ":::"),
+        ]),
+      ]),
+    ),
+  ));
+
+// An UNTERMINATED inner fence deliberately keeps the old
+// flat reading: the region attempt backtracks, the opener is
+// an ordinary body line, the ::: closes the container, and
+// the re-parse reports the fence — not the container.
 test("an error inside a container body propagates", () =>
   check(
     parseBlocks(
@@ -261,6 +351,71 @@ test("a pipe table parses header, alignment, and rows", () =>
           ["default", "default"],
           [["`Model` / `Msg`", "no `Cmd`"]],
         ),
+      ]),
+    ),
+  ));
+
+// A body row must LEAD with a pipe, so prose below a table
+// stops it. Deliberate divergence from GFM/markdown-it,
+// where this paragraph would be a row — see tableBodyLine.
+test("a paragraph holding a pipe does not continue the table", () =>
+  check(
+    parseBlocks(
+      src(
+        "| a | b |",
+        "|---|---|",
+        "| 1 | 2 |",
+        "Prose that happens to hold a | pipe.",
+      ),
+    ),
+    okThen(
+      toEqual([
+        table(
+          ["a", "b"],
+          ["default", "default"],
+          [["1", "2"]],
+        ),
+        para("Prose that happens to hold a | pipe."),
+      ]),
+    ),
+  ));
+
+test("an indented body row still counts", () =>
+  check(
+    parseBlocks(
+      src(
+        "| a | b |",
+        "|---|---|",
+        "  | 1 | 2 |",
+      ),
+    ),
+    okThen(
+      toEqual([
+        table(
+          ["a", "b"],
+          ["default", "default"],
+          [["1", "2"]],
+        ),
+      ]),
+    ),
+  ));
+
+// The cost of the dialect, pinned so it is a decision on the
+// record rather than a surprise: GFM allows pipe-less rows,
+// and here they are prose.
+test("a pipe-less GFM body row is prose in this dialect", () =>
+  check(
+    parseBlocks(
+      src("| a | b |", "|---|---|", "1 | 2"),
+    ),
+    okThen(
+      toEqual([
+        table(
+          ["a", "b"],
+          ["default", "default"],
+          [],
+        ),
+        para("1 | 2"),
       ]),
     ),
   ));

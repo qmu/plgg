@@ -12,12 +12,6 @@ import {
   Phrasing,
   el,
   p,
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
   ul,
   ol,
   li,
@@ -57,7 +51,6 @@ import {
 } from "plgg-md/Inline/usecase/renderInline";
 import {
   Block,
-  HeadingLevel,
   ListItem,
   TableAlign,
   heading$,
@@ -73,11 +66,16 @@ import {
 import {
   LinkResolver,
   RenderOptions,
+  HeadingDecorator,
 } from "plgg-md/Render/model/seam";
 import {
   Sluggers,
   makeSluggers,
 } from "plgg-md/Render/usecase/slugify";
+import {
+  Ordinals,
+  makeOrdinals,
+} from "plgg-md/Render/usecase/ordinal";
 
 /**
  * Folds one {@link Inline} node into a `plgg-view`
@@ -239,34 +237,6 @@ const renderItem =
       ],
     );
 
-/**
- * Picks the `hN` builder for a {@link HeadingLevel} and
- * stamps the slug `id`. A literal-level ladder rather
- * than a `match` because the six builders have distinct
- * return tags (`h1`…`h6`); the ladder is total over the
- * `1 | 2 | 3 | 4 | 5 | 6` domain.
- */
-const renderHeading = (
-  level: HeadingLevel,
-  id: SoftStr,
-  children: ReadonlyArray<Phrasing<never>>,
-): Html<never> => {
-  const at: ReadonlyArray<
-    ReturnType<typeof attr>
-  > = [attr("id", id)];
-  return level === 1
-    ? h1(at, children)
-    : level === 2
-      ? h2(at, children)
-      : level === 3
-        ? h3(at, children)
-        : level === 4
-          ? h4(at, children)
-          : level === 5
-            ? h5(at, children)
-            : h6(at, children);
-};
-
 /** The callout title: the custom one, else the capitalized kind. */
 const calloutTitle = (
   kind: SoftStr,
@@ -280,8 +250,9 @@ const calloutTitle = (
  * Folds one {@link Block} into a `plgg-view` tree under
  * the {@link RenderOptions} (injected highlighter + link
  * resolver + `rawHtml` mode), threading the per-page
- * {@link Sluggers} so heading ids match the configured
- * slugger (with per-page dedup). Inline-only blocks use
+ * {@link Sluggers} and {@link Ordinals} so heading ids
+ * match the configured slugger (with per-page dedup) and
+ * heading numbers follow document order. Inline-only blocks use
  * the typed builders; the block-nesting wrappers
  * (`blockquote`, the callout `div`) use the permissive
  * `el` builder because they may hold the highlighter's
@@ -291,7 +262,11 @@ const calloutTitle = (
  * emitted verbatim.
  */
 export const blockToHtml =
-  (options: RenderOptions, slug: Sluggers) =>
+  (
+    options: RenderOptions,
+    slug: Sluggers,
+    ordinal: Ordinals,
+  ) =>
   (block: Block): Html<never> =>
     match(block)(
       [
@@ -301,13 +276,14 @@ export const blockToHtml =
             content.text,
             options.rawHtml,
           );
-          return renderHeading(
-            content.level,
-            slug.next(plainText(inlines)),
-            inlines.map(
+          return options.decorateHeading({
+            level: content.level,
+            id: slug.next(plainText(inlines)),
+            ordinal: ordinal.next(content.level),
+            children: inlines.map(
               inlineToHtml(options.resolveLink),
             ),
-          );
+          });
         },
       ],
       [
@@ -394,7 +370,7 @@ export const blockToHtml =
             "blockquote",
             [],
             content.children.map(
-              blockToHtml(options, slug),
+              blockToHtml(options, slug, ordinal),
             ),
           ),
       ],
@@ -421,7 +397,11 @@ export const blockToHtml =
                 ],
               ),
               ...content.children.map(
-                blockToHtml(options, slug),
+                blockToHtml(
+                  options,
+                  slug,
+                  ordinal,
+                ),
               ),
             ],
           ),
@@ -442,8 +422,12 @@ export const blockToHtml =
  * Builds the document fold: given the {@link RenderOptions},
  * folds a {@link Block} sequence into a single
  * `Html<never>` body wrapped in a `<div>`. One fresh
- * {@link Sluggers} over the configured base slugger per
- * call resets the per-page dedup counter.
+ * {@link Sluggers} over the configured base slugger and one
+ * fresh {@link Ordinals} per call reset the per-page dedup
+ * and outline counters. Both are deterministic over the
+ * heading sequence, which is what lets `collectHeadings`
+ * run them again and get the same answers — see
+ * {@link HeadingDecorator}.
  */
 export const mdToHtml =
   (options: RenderOptions) =>
@@ -455,6 +439,7 @@ export const mdToHtml =
         blockToHtml(
           options,
           makeSluggers(options.slug),
+          makeOrdinals(),
         ),
       ),
     );
