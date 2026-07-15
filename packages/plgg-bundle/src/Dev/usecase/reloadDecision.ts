@@ -41,10 +41,39 @@ export const shouldReload = (
   importsSomewhere(graph, changed);
 
 /** Whether a path is a tracked source-code file (by extension). */
-const isSourceCode = (
+const isSourceCode = (changed: string): boolean =>
+  SOURCE_EXT.some((e) => changed.endsWith(e));
+
+/**
+ * Whether `changed` is the app's own build OUTPUT, which
+ * must never trigger a reload.
+ *
+ * node's recursive watch has no exclusion, so a watch root
+ * that CONTAINS `outDir` — the plggpress guide authors at
+ * its package root, and `dist/` is right there — is
+ * watching the build. Output is `.html`/`.css`/assets, i.e.
+ * not source code, and {@link shouldReload}'s first rule
+ * says content always reloads. Nothing DOWNSTREAM can tell
+ * the difference — by then it is just a changed `.html`.
+ *
+ * MEASURED, so the claim stays honest: a `plggpress build`
+ * writing 39 pages cost the guide's container **2** wasted
+ * reloads, not 39 — the watcher's 80ms debounce already
+ * collapses the burst. This removes those two; it is a
+ * correctness tidy (the browser reloads only for edits that
+ * can change what it shows), not a rescue from a storm.
+ *
+ * Both paths are absolute and already normalized by the
+ * caller (the adapter owns `node:path`); the separator is
+ * compared literally, which is exactly what the caller's
+ * `resolve` produces.
+ */
+export const isBuildOutput = (
+  outDirAbs: string,
   changed: string,
 ): boolean =>
-  SOURCE_EXT.some((e) => changed.endsWith(e));
+  changed === outDirAbs ||
+  changed.startsWith(`${outDirAbs}/`);
 
 /**
  * Whether any node in the graph imports `changed` (i.e. it

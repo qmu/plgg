@@ -82,12 +82,26 @@ throw) was attempted and abandoned: `watch.ts` imports a self-subpath
 (`plgg-bundle/vendors/nodeFs`) that bare `node` cannot resolve. **A regression spec
 run under `plgg-test` is the obvious next step** if this is worth pinning.
 
-## Left open (deliberately)
+## The wasted reloads: also FIXED, and the claim was smaller than expected
 
-- **Watching `dist` at all is still wasteful** — a build churns events and triggers
-  reloads for output nobody edits. The crash is gone, but the guide's dev watch
-  root is still its package root. Narrowing the watch (or having `plggpress dev`
-  exclude `outDir` from the roots it plans) is a separate, non-urgent improvement.
+The crash fix left "watching dist is wasteful" open. Now closed: `isBuildOutput`
+makes the reload decision ignore anything under the app's `outDir`, tested pure
+(including that a sibling `dist-notes/` is NOT swallowed by a prefix match).
+
+**The measurement corrected the story.** The guess was "a build writing 39 pages
+storms the browser". Measured on the container: a `plggpress build` cost **2**
+wasted reloads, not 39 — the watcher's 80ms debounce already collapses the burst.
+So this is a correctness tidy, not a rescue; the comment in the code says so.
+
+Two rounds were needed, and the first was wrong:
+1. Testing `outDir` AFTER `toChanged` took it from 2 → **1**, not 0. `toChanged`
+   probes the disk, and a build DELETES before it writes — a deleted file resolves
+   to `null` and falls into the conservative "reload anyway" path.
+2. Testing every root's candidate path BEFORE probing the disk → **0**. Same answer
+   for a file that exists, the right one for a file that has just gone.
+
+Verified on the container that the fix costs nothing real: a content edit still
+hot-reloads (marker 0 → 1) and a theme edit under `--watch-theme` still fires.
 - **Nothing watches the dev containers.** This one was dead for hours, twice, and
   `check-all` stayed green throughout because it neither builds nor runs the guide.
   A health check on the workload would turn hours into minutes.
