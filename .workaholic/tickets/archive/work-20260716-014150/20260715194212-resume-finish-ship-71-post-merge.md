@@ -91,8 +91,20 @@ outstanding. This is a RECOVERY checkpoint, not a feature ticket.
   session's `/request` ticket asked for. Gate now
   `{"decision":"block","overridable":true,"hard":0,"total":1}` — the one finding is
   `size` (153 files > 100), which the developer **approved overriding as an accepted
-  risk**. Verified no regression: `apiKey: "sk-…"` and `.env`-style `TOKEN=…` are
-  still caught; `apiKey: keyOption()` is correctly subtracted.
+  risk**. Verified no regression: an api-key name assigned a quoted literal, and an
+  `.env`-style `TOKEN=…` assignment, are still caught; `apiKey: keyOption()` is
+  correctly subtracted.
+  <!-- The literal that stood here was itself flagged as a hard `secret` finding
+  when this ticket was archived (2026-07-16) — the scanner judges by VALUE, and a
+  quoted string starting alphanumeric is exactly its rule, so a doc example of a
+  key reads identically to a key. Reworded to prose rather than overridden: the
+  gate was right on its own terms, and the example loses nothing. Do not restore a
+  literal here. -->
+
+  <!-- (There is no meta-point about the gate being wrong; a scanner that cannot
+  tell a real key from a documented one is the correct trade — see
+  secret-patterns.sh: "a false negative publishes a credential — so it should stay
+  paranoid.") -->
 - Story + release note are committed on the branch (and now on main):
   `.workaholic/stories/work-20260714-020603.md`,
   `.workaholic/release-notes/work-20260714-020603.md`.
