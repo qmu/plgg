@@ -62,5 +62,13 @@ cd $REPO_ROOT/packages/plgg-poc4-edit && npm install
 # packages installed above — plggpress is NOT a dep (4b
 # retires the iframe and renders the preview itself).
 cd $REPO_ROOT/packages/plgg-poc4b-coedit && npm install
+# poc4c after poc4b AND plggpress: it file:-depends on poc4b (the reuse seam
+# onto 4b's proven edit core — span locator, applier, diff segments) and on
+# plggpress, whose dev server renders the real page 4c proxies and patches.
+cd $REPO_ROOT/packages/plgg-poc4c-livesite && npm install
+# poc5 / poc6 file:-depend only on packages installed above (plgg, plgg-kit,
+# plgg-view, plgg-bundle, plgg-test), so their position here is free.
+cd $REPO_ROOT/packages/plgg-poc5-config && npm install
+cd $REPO_ROOT/packages/plgg-poc6-classify && npm install
 cd $REPO_ROOT/packages/guide && npm install
 echo "\n=== All shell scripts have been executed successfully ==="
