@@ -84,7 +84,39 @@ Realtime session unbroken, and the file on disk correct afterwards.
   rather than an extension of PoC 4, it needs an entry (question, confidence
   signal, hostname, port) and a reserved `*.qmu.dev` hostname + cloudflared route.
 
-## BLOCKED (2026-07-15): the PoC fleet's port block is EXHAUSTED
+## STATUS (2026-07-15): BUILT and SERVING — awaiting the developer's live judgment
+
+The port blocker below was resolved by the developer ("for C, we just allocate a
+different port number to the container. That is totally okay"), and the PoC is
+built: `packages/plgg-poc4c-livesite` on host **5198**, record `poc4c` at
+`status: "building"` (`7db57cf6`).
+
+**What is proven mechanically** — `/docs/` serves 26KB of genuine plggpress render
+with the patch client injected and zero surviving `location.reload`; driven in a
+real headless browser, a postMessage'd span replacement changed the live page's h1
+IN PLACE with no reload (`Web development as one typed pipeline` →
+`Web development as one TYPED PIPELINE!!`, client replied `{applied, spans:1}`,
+zero page errors). 86 specs green, fresh `check-all` EXIT 0.
+
+**What is NOT** — the confidence signal's actual question: whether it FEELS like
+co-editing on the real site. That is the developer's live judgment, over voice,
+and it IS the verdict. Two things stand between here and that session:
+
+1. **The cloudflared route for `plgg-poc4c.qmu.dev` → :5198 is developer-applied**
+   (the package README carries the exact `~/.cloudflared/config.yml` lines). Until
+   then it is judgeable only at `http://localhost:5198/`.
+2. **The Realtime/voice path is unexercised end-to-end** — the key mints (200) but
+   no session has been driven, so the first live judging round may surface a bug
+   there, exactly as PoC 4's first round did.
+
+Known gaps, all typed refusals surfaced on the page with reasons (not silent):
+a span crossing an inline element boundary (`the **cat** sat` edited as `cat sat`)
+is three text runs and maps to none — the mapper is text-run-local by design;
+markup-only edits (link target, emphasis added, heading level) have identical
+rendered words and animate nothing. An unmappable edit RELEASES the reload, so it
+degrades to PoC 4's proven behaviour rather than a stale page.
+
+## RESOLVED — the port blocker (kept for the record)
 
 A night `/drive` reached this ticket and stopped before writing code, because a
 new PoC record cannot be allocated without a developer decision. Measured, not
