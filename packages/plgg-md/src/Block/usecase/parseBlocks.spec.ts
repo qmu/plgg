@@ -259,6 +259,62 @@ test("an unterminated container is an error", () =>
     ),
   ));
 
+// The bug: a callout DOCUMENTING ::: syntax closed on the
+// ::: in its own code sample. The scan now takes a complete
+// fenced block whole, so those colons are body.
+test("a ::: inside a fenced sample does not close the container", () =>
+  check(
+    parseBlocks(
+      src(
+        "::: tip Note",
+        "Shown below:",
+        "```md",
+        "::: warning",
+        "inner sample",
+        ":::",
+        "```",
+        "After the sample.",
+        ":::",
+      ),
+    ),
+    okThen(
+      toEqual([
+        callout("tip", some("Note"), [
+          para("Shown below:"),
+          codeFence(
+            some("md"),
+            "::: warning\ninner sample\n:::",
+          ),
+          para("After the sample."),
+        ]),
+      ]),
+    ),
+  ));
+
+test("a tilde-fenced sample is opaque to the colon scan too", () =>
+  check(
+    parseBlocks(
+      src(
+        "::: tip Note",
+        "~~~",
+        ":::",
+        "~~~",
+        ":::",
+      ),
+    ),
+    okThen(
+      toEqual([
+        callout("tip", some("Note"), [
+          codeFence(none(), ":::"),
+        ]),
+      ]),
+    ),
+  ));
+
+// An UNTERMINATED inner fence deliberately keeps the old
+// flat reading: the region attempt backtracks, the opener is
+// an ordinary body line, the ::: closes the container, and
+// the re-parse reports the fence — not the container.
 test("an error inside a container body propagates", () =>
   check(
     parseBlocks(

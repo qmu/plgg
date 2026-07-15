@@ -441,12 +441,109 @@ type ScanLine =
       colons: number;
       raw: SoftStr;
     }>
+  | Readonly<{
+      tag: "fenced";
+      lines: ReadonlyArray<SoftStr>;
+    }>
   | Readonly<{ tag: "other"; raw: SoftStr }>;
+
+/**
+ * The lines of a fenced block after its opener, up to and
+ * including the matching closer, verbatim — or FAILURE if
+ * no closer arrives.
+ *
+ * Failing on an unterminated fence is the deliberate part.
+ * It backtracks the whole {@link fencedRegion} attempt, so
+ * the opener falls through as an ordinary body line and the
+ * container's scan proceeds flat from there — exactly as it
+ * always did. That keeps an unterminated inner fence
+ * reporting "Unterminated code fence" from the body's
+ * re-parse, rather than the container swallowing the rest of
+ * the document and blaming itself.
+ */
+const fenceTail = (
+  marker: SoftStr,
+): Parser<ReadonlyArray<SoftStr>, null> =>
+  or<ReadonlyArray<SoftStr>, null>(
+    pipe(
+      lookahead(fenceCloseLine(marker)),
+      andThen<
+        SoftStr,
+        ReadonlyArray<SoftStr>,
+        null
+      >(() =>
+        map<SoftStr, ReadonlyArray<SoftStr>>(
+          (raw: SoftStr): ReadonlyArray<SoftStr> => [
+            raw,
+          ],
+        )(rawLine),
+      ),
+    ),
+    // Guarded against EOF because `rawLine` SUCCEEDS with
+    // "" there (`eol` accepts `eof`), so an unguarded
+    // recursion would spin rather than end the region.
+    right(
+      notFollowedBy(eof),
+      pipe(
+        rawLine,
+        andThen<
+          SoftStr,
+          ReadonlyArray<SoftStr>,
+          null
+        >((raw: SoftStr) =>
+          map<
+            ReadonlyArray<SoftStr>,
+            ReadonlyArray<SoftStr>
+          >(
+            (
+              rest: ReadonlyArray<SoftStr>,
+            ): ReadonlyArray<SoftStr> => [
+              raw,
+              ...rest,
+            ],
+          )(fenceTail(marker)),
+        ),
+      ),
+    ),
+  );
+
+/**
+ * A COMPLETE fenced block inside a container body, taken
+ * whole so its contents cannot be read as container syntax.
+ * This is what stops a callout that DOCUMENTS `:::` from
+ * closing on the `:::` in its own code sample — the guide's
+ * own callout pages are the obvious victim.
+ */
+const fencedRegion: Parser<ScanLine, null> = pipe(
+  lookahead(fenceOpenLine),
+  andThen<FenceOpen, ScanLine, null>(
+    (open: FenceOpen) =>
+      pipe(
+        rawLine,
+        andThen<SoftStr, ScanLine, null>(
+          (openRaw: SoftStr) =>
+            map<
+              ReadonlyArray<SoftStr>,
+              ScanLine
+            >(
+              (
+                rest: ReadonlyArray<SoftStr>,
+              ): ScanLine => ({
+                tag: "fenced",
+                lines: [openRaw, ...rest],
+              }),
+            )(fenceTail(open.marker)),
+        ),
+      ),
+  ),
+);
 
 const scanLine: Parser<ScanLine, null> = or<
   ScanLine,
   null
 >(
+  // FIRST: a fenced block is opaque to the colon scan.
+  fencedRegion,
   pipe(
     lookahead(containerOpenLine),
     andThen<ContainerOpen, ScanLine, null>(
@@ -485,8 +582,11 @@ const scanLine: Parser<ScanLine, null> = or<
  * The colon-count STACK: any opener pushes, a close pops
  * only on an EXACT count match, and a wrong-length close
  * is a hard mismatch — distinct from never closing at
- * all. Note what is NOT here: the scan is flat, so a
- * `:::` inside a fenced code block still counts.
+ * all. A complete fenced block is consumed WHOLE by
+ * {@link fencedRegion} before its lines are ever
+ * classified, so colons inside a code sample are body, not
+ * syntax; an unterminated fence deliberately falls back to
+ * the flat reading (see {@link fenceTail}).
  */
 const containerScan = (
   stack: ReadonlyArray<number>,
@@ -512,10 +612,15 @@ const containerScan = (
                   line.colons,
                   line.raw,
                 )
-              : containerScan(stack, [
-                  ...body,
-                  line.raw,
-                ]),
+              : line.tag === "fenced"
+                ? containerScan(stack, [
+                    ...body,
+                    ...line.lines,
+                  ])
+                : containerScan(stack, [
+                    ...body,
+                    line.raw,
+                  ]),
       ),
     ),
   );
