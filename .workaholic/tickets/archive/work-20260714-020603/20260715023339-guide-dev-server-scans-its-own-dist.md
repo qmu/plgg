@@ -4,7 +4,7 @@ author: a@qmu.jp
 type: bugfix
 layer: [Infrastructure]
 effort: 1h
-commit_hash:
+commit_hash: 1e25e317
 category: Changed
 depends_on:
 mission: modernize-plgg-bundle

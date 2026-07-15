@@ -58,3 +58,4 @@ Concretely, today's costs (measured 2026-07-13 during the PR #66 ship):
      One line per event ("- YYYY-MM-DD — event — filename"); never rewrite past lines. -->
 - 2026-07-15 — ticket archived — 20260714214624-plggpress-first-class-dev-command.md
 - 2026-07-15 — ticket archived — 20260715022802-migrate-guide-and-strategy-onto-plggpress-dev.md
+- 2026-07-15 — ticket archived — 20260715023339-guide-dev-server-scans-its-own-dist.md
