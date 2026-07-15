@@ -140,6 +140,40 @@ test("a tilde line does not close a backtick fence", () =>
     ),
   ));
 
+// CommonMark §4.5: the closer must be at least as long as
+// the opener. This is the whole point of the rule — a doc
+// quoting fenced Markdown opens longer so the inner fence
+// is body. Before the fix a ``` closed a ```` opener and
+// the rest of the sample escaped as live Markdown.
+test("a shorter run does not close a longer fence", () =>
+  check(
+    parseBlocks(
+      src(
+        "````md",
+        "```ts",
+        "const x = 1;",
+        "```",
+        "````",
+      ),
+    ),
+    okThen(
+      toEqual([
+        codeFence(
+          some("md"),
+          "```ts\nconst x = 1;\n```",
+        ),
+      ]),
+    ),
+  ));
+
+test("a longer run DOES close a shorter fence", () =>
+  check(
+    parseBlocks(src("```ts", "code", "`````")),
+    okThen(
+      toEqual([codeFence(some("ts"), "code")]),
+    ),
+  ));
+
 test("an unterminated fence is an error", () =>
   check(
     parseBlocks(src("```ts", "no close here")),

@@ -265,9 +265,16 @@ const fenceOpenLine: Parser<FenceOpen, null> =
   );
 
 /**
- * A bare close fence sharing the opener's CHARACTER —
- * ` ``` ` is not closed by `~~~`, but IS closed by a run
- * of a different length.
+ * A bare close fence sharing the opener's CHARACTER and
+ * AT LEAST its length (CommonMark §4.5) — ` ``` ` is not
+ * closed by `~~~`, and a ` ```` ` opener is not closed by
+ * a ` ``` `.
+ *
+ * The length test is what makes the standard embedding
+ * idiom work: a document quoting fenced Markdown opens
+ * with a longer run so the inner ` ``` ` is BODY, not a
+ * closer. Before this, a shorter run closed the block and
+ * the remainder of the sample escaped as live Markdown.
  */
 const fenceCloseLine = (
   marker: SoftStr,
@@ -277,7 +284,8 @@ const fenceCloseLine = (
       fenceMarker,
       andThen<SoftStr, SoftStr, null>(
         (close: SoftStr) =>
-          close.charAt(0) === marker.charAt(0)
+          close.charAt(0) === marker.charAt(0) &&
+          close.length >= marker.length
             ? succeed<SoftStr>(close)
             : fail("a matching close fence"),
       ),
