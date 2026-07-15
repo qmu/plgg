@@ -191,10 +191,23 @@ const asParsedScalar = (
  * An UNQUOTED flow element: the run up to the next
  * structural character, handed to {@link parseScalarValue}.
  * Routing it through that one classifier is what makes
- * `[1, true]` and its block spelling agree on types — and
- * what rejects a nested `[`/`{` element, since the raw run
- * keeps a leading bracket and `EXCLUDED_LEAD` catches it
- * there with a message naming the construct.
+ * `[1, true]` and its block spelling agree on types, and —
+ * because the raw run KEEPS a leading `[`/`{` rather than
+ * stopping at it — what makes `EXCLUDED_LEAD` reject a
+ * nested flow element.
+ *
+ * That rejection is reliable; its MESSAGE is not the one
+ * `EXCLUDED_LEAD` raises. `sepBy` treats a failed element as
+ * "zero elements" and consumes nothing, so the error that
+ * actually surfaces for `[[a]]` comes from the unmatched
+ * close bracket (`expected "]"`, positioned at the nested
+ * `[`). The precise message is still in the sibling-error
+ * tree, just not at the top. Left as-is deliberately: the
+ * position is right and the document is refused, which is
+ * what fail-closed owes the caller — recovering the nicer
+ * message would mean hand-rolling `sepBy`'s element loop to
+ * distinguish "no element here" from "a bad element here",
+ * and that is a lot of grammar to carry for one string.
  */
 const plainFlowScalar: Parser<YScalar, null> =
   pipe(

@@ -4,6 +4,7 @@ import {
   all,
   toBe,
   toEqual,
+  toContain,
 } from "plgg-test";
 import {
   type Result,
@@ -11,6 +12,7 @@ import {
   isOk,
   isErr,
   matchResult,
+  plggErrorMessage,
 } from "plgg";
 import { type YamlMap } from "plgg-md/Yaml/model/YamlValue";
 import { parseYamlSubset } from "plgg-md/Yaml/usecase/parseYamlSubset";
@@ -22,6 +24,15 @@ const folded = (
   matchResult<YamlMap, InvalidError, unknown>(
     () => "ERR",
     (m: YamlMap) => foldYaml(m),
+  )(r);
+
+/** The error message of a rejected document ("OK" if it parsed). */
+const message = (
+  r: Result<YamlMap, InvalidError>,
+): string =>
+  matchResult<YamlMap, InvalidError, string>(
+    (e: InvalidError) => plggErrorMessage(e),
+    () => "OK",
   )(r);
 
 test("flat scalars parse to typed values", () =>
@@ -327,6 +338,29 @@ test("a flow collection under a block sequence item is rejected", () =>
   check(
     isErr(parseYamlSubset("a:\n  - [x]")),
     toBe(true),
+  ));
+
+// A nested element IS refused, but `sepBy` reads a failed
+// element as "zero elements", so the surfacing error is the
+// unmatched close bracket rather than EXCLUDED_LEAD's. Pinned
+// because plainFlowScalar's doc comment says so — a claim
+// about a message is worth only as much as the spec holding
+// it.
+test("a nested flow element fails at the close bracket, not on EXCLUDED_LEAD", () =>
+  check(
+    message(parseYamlSubset("a: [[x]]")),
+    toContain('expected "]"'),
+  ));
+
+// Whereas a nested flow in SCALAR position — a block `- `
+// item — reaches parseScalarValue directly, so there the
+// construct IS named.
+test("a nested flow in scalar position names the construct", () =>
+  check(
+    message(parseYamlSubset("a:\n  - [x]")),
+    toContain(
+      'unsupported YAML construct starting with "["',
+    ),
   ));
 
 test("an expanding construct inside a flow element is rejected", () =>
