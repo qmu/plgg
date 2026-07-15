@@ -89,6 +89,34 @@ const eol: Parser<true, null> = or<true, null>(
 );
 
 /**
+ * CommonMark's line endings, folded to `\n`: a CR followed
+ * by an LF, and a lone CR, are each ONE line ending.
+ *
+ * Every construct here is anchored to a line, and a CR is
+ * not part of a line's text — so without this a CRLF
+ * document matched NO construct at all and every line fell
+ * through to a paragraph (`# Title` rendered as the literal
+ * text `# Title`). A Windows-authored `.md` rendered as
+ * mush.
+ *
+ * Applied at the public entry so the whole grammar below
+ * may assume `\n`, rather than each rule carrying a CR
+ * case. A `\n`-only document is returned untouched, so this
+ * cannot move the output of anything already rendering
+ * today.
+ */
+export const normalizeLineEndings = (
+  source: SoftStr,
+): SoftStr =>
+  source.includes("\r")
+    ? source
+        .split("\r\n")
+        .join("\n")
+        .split("\r")
+        .join("\n")
+    : source;
+
+/**
  * The regex `.`: any character that is NOT a line
  * terminator. `\r` is one — so the original's `(.*)$`
  * groups could not cross a CR, and a CRLF line matched no
@@ -1371,12 +1399,20 @@ const collect = (
  * branch precedence the original encoded in its scan
  * order, and the constructs that must not backtrack carry
  * their failure as an error VALUE ({@link BlockResult}).
+ *
+ * The source is line-ending normalized first — see
+ * {@link normalizeLineEndings}. Without it a CRLF document
+ * parses as nothing but paragraphs.
  */
 export const parseBlocks = (
   source: SoftStr,
   rawHtml: boolean = false,
 ): Result<ReadonlyArray<Block>, InvalidError> =>
   pipe(
-    run(document(rawHtml), source, null),
+    run(
+      document(rawHtml),
+      normalizeLineEndings(source),
+      null,
+    ),
     chainResult(collect),
   );

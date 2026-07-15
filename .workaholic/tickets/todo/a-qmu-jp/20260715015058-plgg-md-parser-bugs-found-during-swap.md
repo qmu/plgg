@@ -12,6 +12,28 @@ mission:
 
 # Fix the plgg-md grammar bugs surfaced (and deliberately preserved) by the combinator swap
 
+## STATUS (2026-07-15): bug 1 (CRLF) FIXED — four remain, each still needing a call
+
+The developer approved starting on the parser bugs but did not name one, so **only
+bug 1 was done** — the ticket's own ranking calls it the highest real-world impact
+and "almost certainly unintended", and the ticket says to decide per bug rather
+than batch. It turned out to be the safe one: because `\n`-only sources are passed
+through untouched, it changed NOTHING that renders today (golden green, corpora
+diff empty), so it needed no golden re-pin at all.
+
+**The remaining four are NOT like that** — each genuinely moves rendered output and
+will fail `golden.spec.ts` on purpose, so each needs its own sign-off:
+
+- **2. fence closes on the same character regardless of length** — changes how
+  documents that embed fences render; the guide has many.
+- **3. the container's colon scan is flat** — a `:::` inside a fenced block inside a
+  callout closes it early.
+- **4. table rows continue on any line containing `|`** — swallows a following
+  paragraph.
+- **5. three unreachable paths** — deleting them changes no behavior, only coverage.
+
+Say which, and each is a small change with a deliberate re-pin.
+
 ## Overview
 
 Porting plgg-md's parsers onto plgg-parser was a **pure equivalence swap** — the
@@ -31,13 +53,17 @@ developer's sign-off — never by "fixing the expectation to make the suite gree
 
 ## Findings (each independently verified)
 
-1. **A CRLF source parses as nothing but paragraphs.** JS's regex `.` excludes
-   `\r`, so the old `(.*)$` groups could not cross a carriage return and **no block
-   construct matched at all** on CRLF input — headings, fences, lists, tables all
-   silently degraded to paragraphs. Verified directly:
-   `/^(#{1,6})[ \t]+(.*?)[ \t]*#*[ \t]*$/.test("# Title\r") === false`. Almost
-   certainly unintended; a Windows-authored `.md` would render as mush. **Highest
-   real-world impact of the five.**
+1. ~~**A CRLF source parses as nothing but paragraphs.**~~ **FIXED** (developer-
+   approved 2026-07-15). JS's regex `.` excluded `\r`, so no block construct
+   matched at all on CRLF input — measured before the fix:
+   `# Title\r\n\r\n- a\r\n- b\r\n` rendered as
+   `<p># Title</p><p>- a - b</p>`, versus `<h1>Title</h1><ul><li>a</li>…` for the
+   same document with LF. `normalizeLineEndings` now folds CRLF and lone CR to LF
+   at the two public entries (`parseBlocks`, and `renderMarkdownWithOptions` —
+   frontmatter split on `\n` too, so it broke identically). CRLF and lone-CR
+   documents now render byte-identically to their LF twins, and specs pin it.
+   A `\n`-only source is returned untouched, so **nothing already rendering moved**:
+   golden green and the guide + strategy corpora diff EMPTY.
 2. **A fence closes on the same character regardless of run length.**
    `sameFenceRun` compares `charAt(0)` only, so a ` ```` ` fence is closed by a
    ` ``` ` — CommonMark requires the closer to be at least as long. Verified:

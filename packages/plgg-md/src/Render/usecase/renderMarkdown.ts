@@ -41,7 +41,10 @@ import {
   htmlBlock$,
 } from "plgg-md/Block/model/Block";
 import { parseFrontmatter } from "plgg-md/Frontmatter/usecase/parseFrontmatter";
-import { parseBlocks } from "plgg-md/Block/usecase/parseBlocks";
+import {
+  parseBlocks,
+  normalizeLineEndings,
+} from "plgg-md/Block/usecase/parseBlocks";
 import {
   MarkdownDoc,
   MdHeading,
@@ -401,7 +404,9 @@ export const renderMarkdownWithOptions =
     source: SoftStr,
   ): Result<MarkdownDoc, InvalidError> =>
     pipe(
-      parseFrontmatter(source),
+      parseFrontmatter(
+        normalizeLineEndings(source),
+      ),
       chainResult((parsed) =>
         pipe(
           parseBlocks(
