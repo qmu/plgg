@@ -5,14 +5,29 @@ type: housekeeping
 layer: [Infrastructure]
 effort: 2h
 commit_hash:
-category: Removed
+category: Changed
 depends_on:
 mission: modernize-plgg-bundle
 ---
 
 # Retire the hand-wiring: move guide and strategy onto `plggpress dev`
 
-## STATUS (2026-07-15): guide DONE — only strategy remains
+## STATUS (2026-07-15): BOTH DONE
+
+**strategy is done too** (developer-approved 2026-07-15). Its `bundle.config.ts`,
+`devEntry.ts` and `scripts/dev.sh` are deleted, the `plgg-bundle` devDependency is
+gone, and its `dev` script is `plggpress dev --contentDir docs` (no
+`--watch-theme` — a consumer does not co-develop the theme). Verified on the
+PERMANENT config, not a temporary one: `npm run dev` came up in ~4s on 200 and an
+edit to `docs/index.md` hot-reloaded with no rebuild. The developer's own
+uncommitted work was left untouched — `docs/index.md` still shows its pre-existing
+100/7 diff and `package.json`'s only delta is the one `dev` line. The three deleted
+files were untracked (unrecoverable from git), so they were backed up to the
+session scratchpad first.
+
+The rest of this section is the guide half, done earlier:
+
+
 
 **The guide half shipped in `2ec28d27`** and is container-verified: its
 `bundle.config.ts`, `devEntry.ts` and `plgg-bundle` devDep are deleted, the dev
