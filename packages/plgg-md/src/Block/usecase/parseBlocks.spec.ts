@@ -355,6 +355,71 @@ test("a pipe table parses header, alignment, and rows", () =>
     ),
   ));
 
+// A body row must LEAD with a pipe, so prose below a table
+// stops it. Deliberate divergence from GFM/markdown-it,
+// where this paragraph would be a row — see tableBodyLine.
+test("a paragraph holding a pipe does not continue the table", () =>
+  check(
+    parseBlocks(
+      src(
+        "| a | b |",
+        "|---|---|",
+        "| 1 | 2 |",
+        "Prose that happens to hold a | pipe.",
+      ),
+    ),
+    okThen(
+      toEqual([
+        table(
+          ["a", "b"],
+          ["default", "default"],
+          [["1", "2"]],
+        ),
+        para("Prose that happens to hold a | pipe."),
+      ]),
+    ),
+  ));
+
+test("an indented body row still counts", () =>
+  check(
+    parseBlocks(
+      src(
+        "| a | b |",
+        "|---|---|",
+        "  | 1 | 2 |",
+      ),
+    ),
+    okThen(
+      toEqual([
+        table(
+          ["a", "b"],
+          ["default", "default"],
+          [["1", "2"]],
+        ),
+      ]),
+    ),
+  ));
+
+// The cost of the dialect, pinned so it is a decision on the
+// record rather than a surprise: GFM allows pipe-less rows,
+// and here they are prose.
+test("a pipe-less GFM body row is prose in this dialect", () =>
+  check(
+    parseBlocks(
+      src("| a | b |", "|---|---|", "1 | 2"),
+    ),
+    okThen(
+      toEqual([
+        table(
+          ["a", "b"],
+          ["default", "default"],
+          [],
+        ),
+        para("1 | 2"),
+      ]),
+    ),
+  ));
+
 test("table alignment colons are honored", () =>
   check(
     parseBlocks(

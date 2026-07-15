@@ -881,12 +881,53 @@ const tableSepLine: Parser<true, null> = right(
   ),
 );
 
-/** A line holding a `|` — the table's header and body rows. */
+/**
+ * A line holding a `|` — the table's HEADER. A header need
+ * not lead with `|` because it is anchored: it only starts
+ * a table when {@link tableSepLine} follows it, which prose
+ * cannot accidentally do.
+ */
 const pipeLine: Parser<SoftStr, null> = pipe(
   rawLine,
   andThen<SoftStr, SoftStr, null>(
     (line: SoftStr) =>
       line.includes("|")
+        ? succeed<SoftStr>(line)
+        : fail("a table row"),
+  ),
+);
+
+/**
+ * A table BODY row: a line whose first non-space character
+ * is `|`. Unlike the header, a body row has NO anchor after
+ * it, so it must self-identify — otherwise the table runs on
+ * into whatever prose follows.
+ *
+ * This is a DELIBERATE DIALECT DIVERGENCE from GFM, taken
+ * with the developer's sign-off, and it is worth stating
+ * plainly because the obvious reading is that it fixes a
+ * bug. It does not. Measured against markdown-it (what
+ * VitePress renders with, and what this guide was migrated
+ * FROM): a paragraph after a table — with a pipe or without
+ * one — is a table ROW there, because GFM breaks a table
+ * only at a blank line or another block construct, and prose
+ * is neither. plgg-md previously matched that for
+ * pipe-bearing prose exactly.
+ *
+ * So this trades conformance for predictability, on purpose:
+ * `plgg-md` renders a bounded, authored subset, and in that
+ * subset a paragraph that happens to contain a `|` being
+ * absorbed into the table above it is never what the author
+ * meant. The cost is that pipe-less GFM rows (`1 | 2` under
+ * `A | B`) are no longer rows here. Do not "restore GFM
+ * parity" without re-reading this: the divergence is the
+ * decision, not an oversight.
+ */
+const tableBodyLine: Parser<SoftStr, null> = pipe(
+  rawLine,
+  andThen<SoftStr, SoftStr, null>(
+    (line: SoftStr) =>
+      line.trimStart().startsWith("|")
         ? succeed<SoftStr>(line)
         : fail("a table row"),
   ),
@@ -924,7 +965,7 @@ const parseAlign = (
         : "default";
 };
 
-/** The body rows: every following line that merely holds a `|`. */
+/** The body rows: every following {@link tableBodyLine}. */
 const tableRows = (
   header: TableRow,
   align: ReadonlyArray<TableAlign>,
@@ -944,7 +985,7 @@ const tableRows = (
           ok(table(header, align, rows)),
       )(
         many<TableRow, null>(
-          map(splitRow)(pipeLine),
+          map(splitRow)(tableBodyLine),
         ),
       );
 
