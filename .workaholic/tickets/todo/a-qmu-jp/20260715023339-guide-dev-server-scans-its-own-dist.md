@@ -1,72 +1,97 @@
 ---
 created_at: 2026-07-15T02:33:39+09:00
 author: a@qmu.jp
-type: housekeeping
+type: bugfix
 layer: [Infrastructure]
-effort: 0.5h
+effort: 1h
 commit_hash:
 category: Changed
 depends_on:
 mission: modernize-plgg-bundle
 ---
 
-# Unexplained: the guide container died once on `ENOENT dist/README` — NOT reproducible, diagnosis retracted
+# FIXED: an unhandled fs.watch `error` event killed the dev server when a rebuild removed a watched directory
 
-## STATUS: this ticket's original diagnosis was WRONG and has been retracted
+## STATUS (2026-07-15): fixed and container-verified
 
-It was filed claiming "the guide dev server scans its own `dist/` as content, so a
-host build kills the container", and proposed teaching discovery to exclude
-`outDir`. **That was wrong on both counts, and acting on it would have "fixed"
-code that already works.** Retained as a record of the crash and of what was ruled
-out, so nobody re-files the same wrong theory.
+The crash that killed the guide's dev container twice is fixed in
+`packages/plgg-bundle/src/Dev/node/watch.ts`, and the fix was proven against the
+exact reproducer. This ticket records the real diagnosis — and the two wrong ones
+that came before it, because how it was misdiagnosed is the useful part.
 
-## What is actually KNOWN (verified)
+## The actual cause (full stack trace, captured before recreating the container)
 
-- **The crash happened.** `guide_guide_1` died 2026-07-14 21:59:36 with exit 1:
-  `ENOENT: scandir '/app/packages/guide/dist/README'`. It stayed down for hours,
-  unnoticed. It was almost certainly triggered by host-side `packages/guide` builds
-  running at that time (a golden baseline capture) against the bind-mounted tree.
-- **`dist` is ALREADY excluded on both sides** — the theory's premise is false:
-  - `packages/plgg-server/src/Ssg/usecase/writeStatic.ts`:
-    `EXCLUDED_DIRS = ["node_modules", "scripts", "dist"]`, pruned DURING the
-    `discoverPaths` walk.
-  - `packages/plgg-bundle/src/Dev/node/scanGraph.ts` likewise excludes
-    `node_modules` and `dist` from the watched module graph.
-- **The reproducer does NOT reproduce.** With the container up and serving
-  (`localhost:5181` → 200), running `(cd packages/guide && npm run build)` on the
-  host leaves it **alive and still serving 200, with no ENOENT in its log**. Run
-  2026-07-15 against the migrated `plggpress dev --watch-theme` setup.
-- **The original log is GONE** — the container was `--force-recreate`d during the
-  migration, so the real stack trace can no longer be read. That is why this stays
-  open as "unexplained" rather than closed as "fixed".
+```
+Error: ENOENT: no such file or directory, scandir '/app/packages/guide/dist/packages'
+    at readdirSync (node:fs:1590:26)
+    at #watchFolder (node:internal/fs/recursive_watch:111:21)
+    at FSWatcher.<anonymous> (node:internal/fs/recursive_watch:191:26)
+    at FSWatcher.emit (node:events:519:28)
+Emitted 'error' event on FSWatcher instance
+```
 
-## What that leaves
+- **node's recursive `fs.watch` has no exclusion mechanism.** `watchRoots` watches
+  each root with `{recursive: true}`, so a root that contains the app's own `dist`
+  is watching build output — regardless of what `discoverPaths` or `scanGraph`
+  prune, because neither is involved.
+- A host-side `packages/guide` build (against the bind-mounted tree) removes a
+  directory the watcher is walking; the watcher `scandir`s a path that is gone.
+- It arrives as an **`error` EVENT**. `watchRoots`'s `try`/`catch` only ever
+  guarded the INITIAL `watch()` call ("a root that cannot be watched is skipped"),
+  and an unhandled `error` on an EventEmitter **throws** — killing the process.
+- A disappearing directory is normal in dev. The fix attaches an error handler:
+  log it and keep serving.
 
-Two possibilities, neither confirmed:
+## Two wrong diagnoses, and why they were wrong
 
-1. **The old path had a gap the new one does not.** The crash happened under the
-   RETIRED wiring (`plgg-bundle dev` against `bundle.config.ts` with
-   `watch: [".", "../plggpress/src"]`). The guide is now on `plggpress dev`, whose
-   plan is assembled from conventions rather than that hand-written watch list. If
-   the gap lived in the old watch config, the migration (`2ec28d27`) already
-   removed it — accidentally, not by design.
-2. **Something else scandir'd `dist/README`** — an unidentified third path. Nothing
-   in discovery or the graph scan should reach it.
+1. **"The dev server scans its own dist as content."** False. `discoverPaths`
+   already prunes `dist` (`EXCLUDED_DIRS = ["node_modules", "scripts", "dist"]`) and
+   `scanGraph` excludes it too. Acting on this would have added a redundant
+   exclusion to correct code.
+2. **"Not reproducible — retract."** Also wrong, and the more instructive error.
+   The reproducer was run ONCE, the container survived, and the whole ticket was
+   retracted. **It is a RACE** — whether the build removes a directory the watcher
+   happens to be walking. One passing trial is not disproof. Running the same build
+   three times in a row reproduced it immediately once the log was read properly.
 
-## Implementation Steps
+## Verification (all on the real workload) — and its ONE gap
 
-1. **Do nothing to discovery.** It already excludes `outDir`. Do not add a second
-   exclusion for a bug that is not there.
-2. **Watch for recurrence.** If the guide container dies on ENOENT again, capture
-   `podman logs guide_guide_1` FIRST — the full stack trace is the only thing that
-   will identify the caller. Do not recreate the container before saving the log.
-3. If it never recurs, close this as fixed-by-migration.
+The handler was **observed absorbing the real error exactly once**, and that run is
+the evidence:
 
-## Considerations
+- Container force-recreated, then three consecutive host-side `packages/guide`
+  builds: container **survived all three**, HTTP 200 each time, zero fatal errors.
+  The log carried the exact ENOENT that used to kill it, absorbed:
+  `… (ENOENT: … scandir '/app/packages/guide/dist/packages'); still serving`.
+- **Hot reload still works afterwards** — measured, not assumed: editing
+  `packages/guide/index.md` AFTER that error still reached the browser (marker
+  0 → 1). So the error is one vanished subpath, not the end of the watch.
+- `scripts/test-plgg-bundle.sh` 94 passed / 0 failed; tsc clean; check-all EXIT 0.
 
-- **The real lesson is operational, not a code bug**: nothing watches the guide
-  container. It was dead for hours and `check-all` stayed green throughout, because
-  check-all neither builds nor runs the guide. A health check on the workload would
-  have caught in minutes what took hours to notice by accident.
-- The crash's timing relative to host builds is suggestive but not evidence — the
-  reproducer says a host build alone is not sufficient under the current setup.
+**The gap, stated plainly:** that observation was made with the pre-reword build.
+The shipped version differs ONLY in the log message string (the reword was made
+because "watcher … stopped" contradicted the hot-reload measurement above). Re-runs
+of the shipped build — three more build cycles, plus a direct `rm -rf` of watched
+`dist` subdirectories — left the container serving on 200 with zero fatal errors,
+but **did not trip the race**, so they confirm survival without re-exercising the
+handler. The race is genuinely hard to force on demand; that is the same property
+that made the "not reproducible" retraction wrong.
+
+A deterministic unit probe (emit `error` on the returned watcher and assert no
+throw) was attempted and abandoned: `watch.ts` imports a self-subpath
+(`plgg-bundle/vendors/nodeFs`) that bare `node` cannot resolve. **A regression spec
+run under `plgg-test` is the obvious next step** if this is worth pinning.
+
+## Left open (deliberately)
+
+- **Watching `dist` at all is still wasteful** — a build churns events and triggers
+  reloads for output nobody edits. The crash is gone, but the guide's dev watch
+  root is still its package root. Narrowing the watch (or having `plggpress dev`
+  exclude `outDir` from the roots it plans) is a separate, non-urgent improvement.
+- **Nothing watches the dev containers.** This one was dead for hours, twice, and
+  `check-all` stayed green throughout because it neither builds nor runs the guide.
+  A health check on the workload would turn hours into minutes.
+- The `try`/`catch` around `watch()` remains for the initial failure; the new
+  handler covers the later one. Both paths are effectful (`Dev/node/`, excluded
+  from the coverage threshold), so neither is unit-tested — the container run IS
+  the test.
