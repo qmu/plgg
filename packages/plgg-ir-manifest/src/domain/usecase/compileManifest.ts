@@ -19,24 +19,15 @@ import {
 } from "plgg-ir-language";
 import { Module } from "plgg-ir-manifest/domain/model/Module";
 import { codeBadRoot } from "plgg-ir-manifest/domain/model/ManifestCode";
-import { plggIrForm } from "plgg-ir-manifest/domain/usecase/analyzeManifest";
-import { manifestOperators } from "plgg-ir-manifest/domain/usecase/operators";
-import { manifestStableOrder } from "plgg-ir-manifest/domain/usecase/normalizeManifest";
+import { manifestDialect } from "plgg-ir-manifest/domain/usecase/manifestDialect";
 
 /**
- * The Domain Manifest language: one dialect — the
- * `plgg-ir` root form, the closed operator
- * vocabulary, and the stable-ordering normalizer.
- * Phase 4 (web semantics) and Phase 5 (dependency
- * semantics) grow this same dialect.
+ * The Domain Manifest language: exactly
+ * {@link manifestDialect}, finished — derived, so the
+ * two exports cannot drift.
  */
 export const manifestLanguage: Language<Module> =
-  {
-    forms: [plggIrForm],
-    operators: manifestOperators,
-    expanders: [],
-    normalizers: [manifestStableOrder],
-  };
+  manifestDialect;
 
 /**
  * What compiling a manifest source produces: the

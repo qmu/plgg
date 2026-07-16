@@ -124,8 +124,10 @@ const resolveForm =
 /**
  * Builds the {@link AnalysisContext} handed to every
  * form: the scope plus the two recursion seams.
+ * Exported for `mapDialect`, which rebuilds a mapped
+ * form's context closed over its own dialect.
  */
-const contextOf = <N>(
+export const contextOf = <N>(
   language: Language<N>,
   scope: Scope,
 ): AnalysisContext<N> => ({

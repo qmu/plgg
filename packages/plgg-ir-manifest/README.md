@@ -157,6 +157,28 @@ this manifest-language guide — plus the comprehensive
   property-tested, enabling caching, diffing, and content hashing
   (design §33).
 
+## Composing onto the vocabulary
+
+The domain vocabulary is also exported as one composable dialect,
+`manifestDialect` (design §24's `domainDialect`; `manifestLanguage`
+is derived from it, so the two cannot drift). A consumer with its
+own forms composes them ALONGSIDE it — `plgg-ir-language`'s
+`mapDialect` lifts the dialect to the consumer's node type:
+
+```ts
+const language = compose(
+  mapDialect((m: Module): PortalNode => m)(manifestDialect),
+  viewDialect, // the consumer's own forms
+);
+```
+
+One checked language: a document may use both vocabularies, a
+consumer form's reference to a domain-declared entity resolves
+through the composition's scope, and a name registered twice is a
+composition error. A composed dialect adds forms — it never
+extends a domain type; the vocabulary stays closed (design §36.3)
+and the `view`/`policy` definitions stay in the consumer (§25).
+
 ## Conventions
 
 - `as` / `any` / `ts-ignore` are prohibited (see root `CLAUDE.md`).
