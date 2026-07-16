@@ -12,8 +12,8 @@ first_seen: 2026-07-16T15:27:33+09:00
 last_seen: 2026-07-16T15:27:33+09:00
 severity: moderate
 status: active
-resolved_by_pr:
-resolved_by_commit:
+resolved_by_pr: 
+resolved_by_commit: 
 ---
 
 # Portal's static page is not covered by scripts/build.sh, so verdict flips can serve stale

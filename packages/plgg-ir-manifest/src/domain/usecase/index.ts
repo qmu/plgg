@@ -11,4 +11,5 @@ export * from "plgg-ir-manifest/domain/usecase/verifyDependencies";
 export * from "plgg-ir-manifest/domain/usecase/verifyModule";
 export * from "plgg-ir-manifest/domain/usecase/verifyWebRefs";
 export * from "plgg-ir-manifest/domain/usecase/normalizeManifest";
+export * from "plgg-ir-manifest/domain/usecase/manifestDialect";
 export * from "plgg-ir-manifest/domain/usecase/compileManifest";

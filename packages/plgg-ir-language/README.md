@@ -50,9 +50,13 @@ plgg ── plgg-parser ── plgg-ir-syntax ── plgg-ir-language ── plg
   `Sexp → Sexp` rules applied in order, then canonical printing;
   `normalize(normalize(x)) = normalize(x)` and equivalent sources
   produce identical canonical text (property-tested).
-- **Dialect composition (`compose`)** — dialects are statically
-  registered slices of forms/operators/expanders/normalizers;
-  name collisions are composition errors.
+- **Dialect composition (`compose`, `mapDialect`)** — dialects are
+  statically registered slices of forms/operators/expanders/
+  normalizers; name collisions are composition errors. `Dialect<N>`
+  is invariant in `N`, so `mapDialect` is the seam that lifts a
+  dialect to a composition's wider node type: the composition's
+  scope flows into the mapped forms, their interior vocabulary
+  stays their own.
 - **The pipeline (`compileSource`)** —
   `parse → expand → analyze → normalize → canonical print`, all
   diagnostics in one list, nothing thrown.
