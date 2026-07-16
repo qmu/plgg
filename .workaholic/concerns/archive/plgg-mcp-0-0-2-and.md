@@ -11,9 +11,11 @@ created_at: 2026-07-16T18:00:34+09:00
 first_seen: 2026-07-16T18:00:34+09:00
 last_seen: 2026-07-16T18:00:34+09:00
 severity: moderate
-status: active
+status: resolved
 resolved_by_pr:
 resolved_by_commit:
+closed_reason: plgg-mcp@0.0.2 (now latest) and plgg-cms@0.0.3 published and scratch-verified 2026-07-16: import exposes the protocol substrate, contentTools correctly absent, zero node:sqlite in the published dist
+closed_at: 2026-07-16T18:02:11+09:00
 ---
 
 # plgg-mcp@0.0.2 and plgg-cms@0.0.3 are not on npm until the developer publish
