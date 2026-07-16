@@ -143,3 +143,4 @@ for it or whether it rides under PoC 4.
 - 2026-07-16 — concern deferred (stuck) — plgg-poc4c-livesite-is-orphaned-and.md
 - 2026-07-16 — concern deferred (stuck) — ticket-diagnostics-measurements-held-conclusions-did.md
 - 2026-07-16 — story reported — work-20260716-163314.md
+- 2026-07-16 — ticket archived — 20260716164916-integration-1-browser-fts-core.md

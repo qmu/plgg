@@ -64,6 +64,10 @@ cd $REPO_ROOT/packages/plgg-auth && npm run build
 # plgg-cms's internal mcpProtocol by ticket 20260716000445). Depends only on
 # plgg; plgg-cms's content tools consume its dist.
 cd $REPO_ROOT/packages/plgg-mcp && npm run build
+# plgg-search after plgg: the browser-shippable FTS core (PoC 1's proven
+# artifact, integration-1). Zero node builtins; plggpress's build step and the
+# reader bundle will both consume its dist.
+cd $REPO_ROOT/packages/plgg-search && npm run build
 # plggpress: the slim STATIC-SITE GENERATOR. It carries its own framework
 # internally (the absorbed former app-framework facade) and consumes plgg-cli,
 # plgg-server, plgg-md, plgg-highlight, plgg-view, and plgg-http directly —
