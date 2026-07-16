@@ -134,3 +134,4 @@ for it or whether it rides under PoC 4.
 - 2026-07-14 — ticket archived — 20260714022000-poc6-non-tree-file-classification.md
 - 2026-07-14 — ticket archived — 20260714214628-conclude-poc4-verdict-proven.md
 - 2026-07-14 — ticket archived — 20260714004350-resume-poc-verdicts-and-workaholic-env-ship.md
+- 2026-07-16 — ticket archived — 20260714214628-poc4-real-html-preview-with-4b-diff.md

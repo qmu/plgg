@@ -6,21 +6,24 @@
  * edits exactly its own entry here (status + verdict);
  * nothing else in the portal changes.
  *
- * Port/hostname allocation: 5183–5190 WAS the reserved
+ * Port/hostname allocation: 5183–5190 is the reserved
  * block for this fleet (5173, 5181, 5182, and 5191–5196
- * are taken by other qmu.dev workloads), and it is now
- * FULL — the portal at 5183 plus seven PoCs at 5184–5190,
- * with no gap. The eighth (`poc4c`) therefore sits at 5198,
- * the first free port past everything cloudflared maps
- * (which currently tops out at 5197). Allocating past the
- * block rather than reshuffling was the developer's call
- * (2026-07-15): a PoC fleet is disposable, so a contiguous
- * block is not worth defending. The invariant in
- * `Poc.spec.ts` follows this comment, not the other way
- * around — widen it deliberately when you allocate again.
+ * are taken by other qmu.dev workloads), and it is FULL —
+ * the portal at 5183 plus seven PoCs at 5184–5190, with no
+ * gap. An eighth PoC therefore needs a port past the block;
+ * `poc4c` briefly held 5198 on that basis (the developer's
+ * call, 2026-07-15: a PoC fleet is disposable, so a
+ * contiguous block is not worth defending) and was
+ * dismissed on 2026-07-16, returning the fleet to seven.
+ * The invariant in `Poc.spec.ts` follows this comment, not
+ * the other way around — widen it deliberately when you
+ * allocate again.
+ *
  * The cloudflared ingress mapping is developer-applied —
- * see the package README for the exact
- * `~/.cloudflared/config.yml` lines.
+ * see each PoC package's README for the exact
+ * `~/.cloudflared/config.yml` lines. Note that 4c's route
+ * was never applied, which is part of why it was never
+ * judged.
  */
 import { none, some } from "plgg";
 import type { Poc } from "./Poc.ts";
@@ -122,17 +125,5 @@ export const POCS: ReadonlyArray<Poc> = [
     verdict: none(),
     hostname: "plgg-poc6.qmu.dev",
     port: 5189,
-  },
-  {
-    id: "poc4c",
-    name: "Watchable edits on the real rendered site",
-    question:
-      "Does the granular, animated in-place edit PoC 4b proved survive contact with the REAL rendered site — a full plggpress page with its own markup, styling and hot reload — rather than a purpose-built preview surface?",
-    confidenceSignal:
-      "Asking the assistant to change the open document animates the edited span IN PLACE on the real rendered page, with no full-page reload, the Realtime session unbroken, and the file on disk correct afterwards.",
-    status: "building",
-    verdict: none(),
-    hostname: "plgg-poc4c.qmu.dev",
-    port: 5198,
   },
 ];

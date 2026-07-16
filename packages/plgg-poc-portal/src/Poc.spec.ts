@@ -97,24 +97,26 @@ test("planned PoCs never link", () =>
 
 test("the fleet data is consistent", () =>
   all([
-    // Eight PoC entries: the six mission PoCs, plus 4b
-    // (the co-editing-EXPERIENCE spin-off of PoC 4) and 4c
-    // (4b's animated edit on PoC 4's REAL rendered site).
-    check(POCS.length, toBe(8)),
+    // Seven PoC entries: the six mission PoCs, plus 4b (the
+    // co-editing-EXPERIENCE spin-off of PoC 4). 4c — 4b's
+    // animated edit on PoC 4's REAL rendered site — was
+    // dismissed on 2026-07-16 without ever being judged, so
+    // the fleet is back to seven and the range with it.
+    check(POCS.length, toBe(7)),
     // Every record honors the verdict invariant.
     check(POCS.every(pocConsistent), toBe(true)),
-    // Ports are unique. The 5184–5190 block (5183 is the
-    // portal) is FULL, so the range now runs to 5198 —
-    // poc4c, allocated past everything cloudflared maps
-    // rather than reshuffling a disposable fleet. Widen
-    // this deliberately, in step with pocs.ts's header.
+    // Ports are unique and inside the fleet's reserved
+    // 5184–5190 block (5183 is the portal), which is FULL.
+    // 4c had been allocated 5198, past the block; that is
+    // returned. Widen this deliberately, in step with
+    // pocs.ts's header, if you allocate an eighth again.
     check(
       new Set(POCS.map((p) => p.port)).size,
       toBe(POCS.length),
     ),
     check(
       POCS.every(
-        (p) => p.port >= 5184 && p.port <= 5198,
+        (p) => p.port >= 5184 && p.port <= 5190,
       ),
       toBe(true),
     ),

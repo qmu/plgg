@@ -5,12 +5,45 @@ type: enhancement
 layer: [UX]
 effort: 4h
 commit_hash:
-category: Added
+category: Removed
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
 ---
 
 # Show the agent's edit as a watchable diff ON the real rendered HTML (PoC 4 × PoC 4b synthesis)
+
+## DISMISSED (2026-07-16) — by the developer, unjudged
+
+Closed without a verdict, on the developer's call ("dismiss 4c, moving on"). The
+`poc4c` record was **removed from the portal entirely** rather than concluded, so the
+fleet is back to seven PoCs and the 5184–5190 block invariant is restored in
+`Poc.spec.ts` (it had been widened to 5198 solely for 4c).
+
+**What this does NOT say.** The question was never answered — it was abandoned, not
+disproven. 4c reached "built and mechanically proven": `/docs/` served 26KB of genuine
+plggpress render, and a headless browser drove a span replacement that changed the live
+page in place, no reload, zero page errors. What never happened is the only thing that
+could have settled it: *the developer's live judgment over voice, which IS the verdict*.
+Two gates stood in the way to the end — the cloudflared route for
+`plgg-poc4c.qmu.dev` → :5198 was never applied, and the Realtime/voice path was never
+driven end to end.
+
+So the open question stands, unanswered and now unowned:
+
+> Can the granular, animated in-place edit survive contact with the REAL rendered site,
+> rather than a purpose-built preview surface?
+
+If it is ever asked again, the assets are intact and the research is done: the mapper is
+text-run-local by design, its known gaps are typed refusals surfaced on the page (a span
+crossing an inline element boundary maps to nothing; markup-only edits animate nothing),
+and an unmappable edit RELEASES the reload so it degrades to PoC 4's proven behaviour.
+That is the expensive part, and it survives this dismissal.
+
+**Left behind, deliberately:** `packages/plgg-poc4c-livesite` still exists and still
+builds — the developer's choice removed the portal RECORD, not the package. It is now
+orphaned: nothing links it, `build.sh` and `check-all` still carry it, and it still
+serves on :5198. Worth a follow-up decision to delete it or keep it as a reference
+artifact; it is cruft either way until someone chooses.
 
 ## Policies
 
