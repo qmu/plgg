@@ -54,7 +54,6 @@
 * [(carried from PR #41) plgg-db-migration issues: --to degrade flag, listApplied cause evaluation, and cross-process race on migrateTenant](plgg-db-migration-issues-to-degrade.md)
 * [plgg dist rebuild required after core changes](plgg-dist-rebuild-required-after-core.md)
 * [plgg-highlight grammar has cosmetic lexing limitations vs the old scanner](plgg-highlight-grammar-has-cosmetic-lexing.md)
-* [plgg-mcp@0.0.2 and plgg-cms@0.0.3 are not on npm until the developer publish](plgg-mcp-0-0-2-and.md)
 * [plgg-parser concrete-S pinning is an ergonomic sharp edge](plgg-parser-concrete-s-pinning-is.md)
 * [plgg-parser omits attempt by design (stateless-failure backtracking)](plgg-parser-omits-attempt-by-design.md)
 * [plgg-poc4c-livesite is orphaned and needs a delete-or-keep decision](plgg-poc4c-livesite-is-orphaned-and.md)
