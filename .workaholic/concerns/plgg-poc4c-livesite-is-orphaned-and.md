@@ -12,8 +12,8 @@ first_seen: 2026-07-16T15:27:33+09:00
 last_seen: 2026-07-16T15:27:33+09:00
 severity: low
 status: active
-resolved_by_pr:
-resolved_by_commit:
+resolved_by_pr: 
+resolved_by_commit: 
 ---
 
 # plgg-poc4c-livesite is orphaned and needs a delete-or-keep decision

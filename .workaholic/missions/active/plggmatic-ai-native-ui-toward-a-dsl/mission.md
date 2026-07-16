@@ -55,3 +55,4 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-11 — concern deferred (stuck) — 61-demo-2-s-pre-existing-button.md
 - 2026-07-11 — remaining DSL/WebMCP items delegated to the screen-structure mission, migrated to qmu/plggmatic — mission.md
 - 2026-07-16 — ticket archived — 20260716112612-resume-decide-the-domain-dialect-shape.md
+- 2026-07-16 — story reported — work-20260716-115204.md
