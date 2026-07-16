@@ -11,9 +11,11 @@ created_at: 2026-07-16T15:41:15+09:00
 first_seen: 2026-07-16T15:41:15+09:00
 last_seen: 2026-07-16T15:41:15+09:00
 severity: moderate
-status: active
+status: resolved
 resolved_by_pr:
 resolved_by_commit:
+closed_reason: plgg-ir-language@0.0.2 and plgg-ir-manifest@0.0.2 published and scratch-verified on 2026-07-16; the plggmatic consumer can import the compose seam from the registry
+closed_at: 2026-07-16T17:33:58+09:00
 ---
 
 # New exports are not yet on npm
