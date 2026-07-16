@@ -4,8 +4,9 @@
 // plggpress), so a `.cjs.js` sibling would be mis-read as
 // ESM by Node. Externals (the plgg family, plggpress +
 // node:*) are derived from package.json, never listed here;
-// the former content and MCP source trees are now internal
-// plgg-cms modules.
+// the former content source tree is an internal plgg-cms
+// module, while the MCP protocol substrate is the external
+// plgg-mcp package (only its content TOOLS stay internal).
 export default {
   root: import.meta.dirname,
   rootDir: "src",

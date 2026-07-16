@@ -51,7 +51,7 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - [x] PoC: browser-agent tool-calling edits local files via the dev server; edited page hot-reloads while the realtime websocket stays connected (#20260714214628-conclude-poc4-verdict-proven.md)
 - [x] PoC: central configuration generation — agent classifies by front-matter tags (name/color/emoji/description), excludes paths, switches layout and sizing themes (#20260716125235-conclude-poc5-verdict-proven.md)
 - [x] PoC: non-tree classification — tag/link-grouped multi-dimensional search UX prototypes, manipulable by the browser agent (#20260716125236-conclude-poc6-verdict-proven.md)
-- [ ] Post-PoC integration: proven artifacts integrated into production plggpress, portal verdicts closed out
+- [ ] Post-PoC integration: proven artifacts integrated into production plggpress, portal verdicts closed out (#20260716164923-integration-8-close-out-portal-and-mission.md)
 
 <!--
 A PoC item ticks when its VERDICT lands (`status: "proven"` in pocs.ts), not when its
@@ -142,3 +142,4 @@ for it or whether it rides under PoC 4.
 - 2026-07-16 — concern deferred (stuck) — portal-s-static-page-is-not.md
 - 2026-07-16 — concern deferred (stuck) — plgg-poc4c-livesite-is-orphaned-and.md
 - 2026-07-16 — concern deferred (stuck) — ticket-diagnostics-measurements-held-conclusions-did.md
+- 2026-07-16 — story reported — work-20260716-163314.md

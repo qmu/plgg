@@ -30,14 +30,15 @@ import {
   type ToolResult,
   textResult,
   errorResult,
-} from "plgg-cms/mcpProtocol/Mcp/model/Tool";
+} from "plgg-mcp";
 
 /** Read a string argument from a raw tool-args object. */
 const strArg = (
   args: unknown,
   key: string,
 ): Option<SoftStr> => {
-  const obj = asRawObj<Record<string, unknown>>(args);
+  const obj =
+    asRawObj<Record<string, unknown>>(args);
   if (isErr(obj)) {
     return none();
   }
@@ -51,7 +52,8 @@ const numArg = (
   key: string,
   fallback: number,
 ): number => {
-  const obj = asRawObj<Record<string, unknown>>(args);
+  const obj =
+    asRawObj<Record<string, unknown>>(args);
   if (isErr(obj)) {
     return fallback;
   }
@@ -102,26 +104,28 @@ export const searchContentTool = (
         ragSearch(db, embedder)(
           query,
           numArg(args, "limit", 5),
-        ).then(
-          matchResult<
-            ReadonlyArray<SearchHit>,
-            { content: { message: string } },
-            ToolResult
-          >(
-            (e) =>
-              errorResult(e.content.message),
-            (hits) =>
-              textResult(
-                JSON.stringify(
-                  hits.map((h) => ({
-                    path: h.document.path,
-                    heading: h.headingPath,
-                    rank: h.rank,
-                  })),
+        )
+          .then(
+            matchResult<
+              ReadonlyArray<SearchHit>,
+              { content: { message: string } },
+              ToolResult
+            >(
+              (e) =>
+                errorResult(e.content.message),
+              (hits) =>
+                textResult(
+                  JSON.stringify(
+                    hits.map((h) => ({
+                      path: h.document.path,
+                      heading: h.headingPath,
+                      rank: h.rank,
+                    })),
+                  ),
                 ),
-              ),
-          ),
-        ).then(ok),
+            ),
+          )
+          .then(ok),
     )(strArg(args, "query")),
 });
 
@@ -130,9 +134,7 @@ export const searchContentTool = (
  * by collection + path ({@link getDocument}). An absent document
  * is an `isError` result.
  */
-export const getArticleTool = (
-  db: Db,
-): Tool => ({
+export const getArticleTool = (db: Db): Tool => ({
   name: "get_article",
   description:
     "Fetch a single article by its collection and path, with typed frontmatter and body.",
@@ -196,10 +198,7 @@ export const listCollectionsTool = (
   description:
     "List the content collections and their field schemas.",
   inputSchema: { type: "object", properties: {} },
-  call: (): PromisedResult<
-    ToolResult,
-    Defect
-  > =>
+  call: (): PromisedResult<ToolResult, Defect> =>
     listCollections(db)
       .then(
         matchResult<

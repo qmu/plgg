@@ -17,11 +17,16 @@ composed onto plggpress's generic web-application seam
 
 plggpress split its two concerns into two packages so the
 static-site generator can be consumed (and published) on its
-own. plgg-cms holds the dynamic surface and now owns the
-former content and MCP package source internally under
-`src/content/` and `src/mcpProtocol/`. The dependency
-direction is one-way: plgg-cms depends on plggpress;
-plggpress never depends on plgg-cms.
+own. plgg-cms holds the dynamic surface and owns the former
+content package source internally under `src/content/`. The
+MCP **protocol substrate** lives in its own package,
+[plgg-mcp](../plgg-mcp/) (re-extracted by ticket
+`20260716000445` so `node:sqlite` never reaches a consumer
+that registers its own tools); plgg-cms keeps the
+content-coupled **tools** under `src/mcpProtocol/Tools/` and
+re-exports both, so its surface is unchanged. The dependency
+direction is one-way: plgg-cms depends on plggpress and
+plgg-mcp; neither depends on plgg-cms.
 
 ## Surface
 
@@ -35,8 +40,9 @@ plggpress never depends on plgg-cms.
 - `src/content/` — the rebuildable SQLite content index,
   collection/query functions, editing/media/stakeholder
   stores, and RAG search helpers.
-- `src/mcpProtocol/` — the JSON-RPC/MCP protocol core, tool
-  registry, content tools, and transports.
+- `src/mcpProtocol/` — the content MCP tools plus a compat
+  barrel re-exporting the [plgg-mcp](../plgg-mcp/) protocol
+  core (tool registry, JSON-RPC framing, transports).
 - `pressServeWeb` / `pressServeWebWithAuth` — the served-app
   factory the `serve` bin and consumers compose.
 

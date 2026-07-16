@@ -21,7 +21,6 @@
       "/domainCore/index.ts",
       "/domainCore/testkit/",
       "/mcpProtocol/index.ts",
-      "/mcpProtocol/vendors/stdioServer.ts",
       "/ui/index.ts",
       "/ui/styleEntry.ts"
     ]
