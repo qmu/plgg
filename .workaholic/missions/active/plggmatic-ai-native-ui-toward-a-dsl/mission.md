@@ -58,3 +58,4 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-16 — story reported — work-20260716-115204.md
 - 2026-07-16 — concern deferred (stuck) — mapdialect-is-new-public-surface-with.md
 - 2026-07-16 — concern deferred (stuck) — new-exports-are-not-yet-on.md
+- 2026-07-16 — ticket archived — 20260716161118-publish-dialect-packages.md
