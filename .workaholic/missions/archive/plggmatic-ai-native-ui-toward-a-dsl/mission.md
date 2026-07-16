@@ -2,7 +2,7 @@
 type: Mission
 title: plggmatic AI-native UI toward a DSL
 slug: plggmatic-ai-native-ui-toward-a-dsl
-status: active
+status: achieved
 created_at: 2026-07-08T21:45:15+09:00
 author: a@qmu.jp
 tickets: [20260708213945-specify-pragmatic-screen-transition-model.md, 20260708213946-specify-pragmatic-input-field-model.md]
@@ -35,8 +35,8 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - [x] The Pragmatic concept is recorded as the project's north-star, done at mission creation (#20260708-pragmatic-ai-native-ui-concept.md)
 - [x] The probabilistic screen-transition model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213945-specify-pragmatic-screen-transition-model.md)
 - [x] The input-field model is specified with concrete AI-generatable + AI-operable properties, grounded in the samples (#20260708213946-specify-pragmatic-input-field-model.md)
-- [ ] The DSL is distilled from the specifications and produces a working on-demand UI from a declarative description (delivered by the `plggmatic-screen-structure-model-semantics` mission, migrated 2026-07-11 to the `qmu/plggmatic` repo; checked off here when that mission's DSL v1 lands)
-- [ ] A generated UI is demonstrated to be WebMCP/MCP-Apps operable by a browser-side agent (delivered by the `plggmatic-screen-structure-model-semantics` mission in `qmu/plggmatic`; checked off here when its WebMCP adapter + prototype land)
+- [x] The DSL is distilled from the specifications and produces a working on-demand UI from a declarative description (delivered by the `plggmatic-screen-structure-model-semantics` mission, migrated 2026-07-11 to the `qmu/plggmatic` repo; checked off here when that mission's DSL v1 lands)
+- [x] A generated UI is demonstrated to be WebMCP/MCP-Apps operable by a browser-side agent (delivered by the `plggmatic-screen-structure-model-semantics` mission in `qmu/plggmatic`; checked off here when its WebMCP adapter + prototype land)
 
 ## Changelog
 
@@ -60,3 +60,5 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-16 — concern deferred (stuck) — new-exports-are-not-yet-on.md
 - 2026-07-16 — ticket archived — 20260716161118-publish-dialect-packages.md
 - 2026-07-16 — story reported — work-20260716-161106.md
+- 2026-07-16 — remaining two acceptance items verified against qmu/plggmatic and ticked: DSL v1 core spec frozen 2026-07-13 (dsl-v1-core.md, plggmatic commit 5a9a5d7, Flow static layer 681fa71) and WebMCP adapter + runnable prototype landed 2026-07-14 (plggmatic commit 93835e1 "Add the Tool catalog and WebMCP adapter", pausable-interpreter handshake prototype ticket 20260712141400) — HQ triage (strategy mission qfs-viewer-mvp-headquarters)
+- 2026-07-16 — mission achieved — mission.md
