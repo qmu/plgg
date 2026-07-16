@@ -4,7 +4,7 @@ origin_pr_url: https://github.com/qmu/plgg/pull/40
 origin_branch: work-20260531-003055
 origin_commit: 470506e
 created_at: 2026-06-16T14:44:46+09:00
-last_seen: 2026-06-16T14:44:46+09:00
+last_seen: 2026-07-16T15:11:50+09:00
 first_seen: 2026-06-16T14:44:46+09:00
 concern_id: plgg-server-plgg-fetch-vendor-a
 severity: moderate

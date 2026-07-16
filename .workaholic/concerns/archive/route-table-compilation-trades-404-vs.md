@@ -8,9 +8,10 @@ last_seen: 2026-06-26T21:43:57+09:00
 first_seen: 2026-06-26T21:43:57+09:00
 concern_id: route-table-compilation-trades-404-vs
 severity: moderate
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: route-table-compilation-trades-404-405
 ---
 
 # (carried from PR #31) route table compilation trades 404 vs 405

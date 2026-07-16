@@ -8,9 +8,10 @@ last_seen: 2026-07-03T02:00:50+09:00
 first_seen: 2026-07-03T02:00:50+09:00
 concern_id: github-actions-ecosystem-deferred-from-dependabot
 severity: low
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: github-actions-ecosystem-deferred
 ---
 
 # (carried from PR #49) GitHub Actions ecosystem deferred from dependabot.yml

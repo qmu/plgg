@@ -8,9 +8,10 @@ last_seen: 2026-06-26T21:43:57+09:00
 first_seen: 2026-06-26T21:43:57+09:00
 concern_id: plgg-server-and-plgg-fetch-vendor
 severity: moderate
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: plgg-server-plgg-fetch-vendor-a
 ---
 
 # (carried from PR #40) plgg-server and plgg-fetch vendor a collection function

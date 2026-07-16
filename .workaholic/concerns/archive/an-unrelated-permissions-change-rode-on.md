@@ -8,9 +8,10 @@ last_seen: 2026-07-03T02:00:50+09:00
 first_seen: 2026-07-03T02:00:50+09:00
 concern_id: an-unrelated-permissions-change-rode-on
 severity: low
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: an-unrelated-permissions-change-rides-on
 ---
 
 # (carried from PR #48) An unrelated permissions change rode on that PR
