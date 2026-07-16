@@ -49,8 +49,8 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - [x] PoC: reader-side embedded browser agent answering questions grounded in the indexed document data of a generated static site (#20260711201840-poc2-reader-side-browser-agent.md)
 - [x] PoC: writer-side interactive voice assistant over the OpenAI Realtime API, "on the same page" with the open document (#20260712030000-poc3-writer-voice-assistant.md)
 - [x] PoC: browser-agent tool-calling edits local files via the dev server; edited page hot-reloads while the realtime websocket stays connected (#20260714214628-conclude-poc4-verdict-proven.md)
-- [ ] PoC: central configuration generation — agent classifies by front-matter tags (name/color/emoji/description), excludes paths, switches layout and sizing themes
-- [ ] PoC: non-tree classification — tag/link-grouped multi-dimensional search UX prototypes, manipulable by the browser agent
+- [x] PoC: central configuration generation — agent classifies by front-matter tags (name/color/emoji/description), excludes paths, switches layout and sizing themes (#20260716125235-conclude-poc5-verdict-proven.md)
+- [ ] PoC: non-tree classification — tag/link-grouped multi-dimensional search UX prototypes, manipulable by the browser agent (#20260716125236-conclude-poc6-verdict-proven.md)
 - [ ] Post-PoC integration: proven artifacts integrated into production plggpress, portal verdicts closed out
 
 <!--
@@ -135,3 +135,4 @@ for it or whether it rides under PoC 4.
 - 2026-07-14 — ticket archived — 20260714214628-conclude-poc4-verdict-proven.md
 - 2026-07-14 — ticket archived — 20260714004350-resume-poc-verdicts-and-workaholic-env-ship.md
 - 2026-07-16 — ticket archived — 20260714214628-poc4-real-html-preview-with-4b-diff.md
+- 2026-07-16 — ticket archived — 20260716125235-conclude-poc5-verdict-proven.md
