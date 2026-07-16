@@ -7,10 +7,10 @@ origin_pr_url: https://github.com/qmu/plgg/pull/68
 origin_branch: work-20260713-183628
 origin_commit: e9a565c6
 created_at: 2026-07-13T20:59:17+09:00
-last_seen: 2026-07-13T20:59:17+09:00
+last_seen: 2026-07-16T15:27:33+09:00
 first_seen: 2026-07-13T20:59:17+09:00
 concern_id: standing-deferred-concerns-remain-active
-severity: low
+severity: moderate
 status: active
 resolved_by_pr: 
 resolved_by_commit: 
@@ -20,8 +20,9 @@ resolved_by_commit:
 
 ## Description
 
-The standing deferred-concern corpus (carried through PR #67) is unchanged by this branch — a pure plggpress version bump touches none of the areas those concerns reference. The full set lives in `.workaholic/concerns/`.
+The curated corpus of ~80 still-active deferred concerns (deduplicated this run: 12 twin files superseded into 9 survivors, 1 resolved) targets plgg-web HTTP/Result combinators, plgg-sql, plggmatic/renderer, plggpress/auth, plgg-bundle, plgg-parser, plgg-highlight, CI/dependabot, operations, and policy validation. This branch touched only `.workaholic` bookkeeping and portal verdict data; none of the flagged patterns changed, so the set carries forward unchanged in `.workaholic/concerns/`.
 
 ## How to Fix
 
-Address in dedicated tickets prioritized by impact, as the corpus is worked down over future missions.
+Address them as their target areas are worked on in future PRs; the corpus is now deduplicated and supersession-resolved, prioritized by severity.
+

@@ -9,7 +9,7 @@ origin_branch: work-20260617-002003
 origin_commit: 8351741
 created_at: 2026-07-16T15:11:51+09:00
 first_seen: 2026-06-17T21:31:52+09:00
-last_seen: 2026-07-16T15:11:51+09:00
+last_seen: 2026-07-16T15:27:33+09:00
 severity: urgent
 status: active
 compound: true
@@ -21,8 +21,9 @@ resolved_by_commit:
 
 ## Description
 
-Compound concern superseding: defect-is-invisible-in-precise-downstream, proc-error-channel-adopted-only-in.
+Two individually-moderate concerns compound into a type-soundness gap: (A) precise downstream error channels (SqlError, HttpError) omit `| Defect`, so an injected Defect is carried at runtime under a type that excludes it; (B) proc/Defect folding was adopted only in plgg-db-migration, leaving hand-rolled ladders elsewhere. Together, an unexpected throw in an un-migrated module surfaces under a precise error type with no uniform fold at the boundary (see `.workaholic/concerns/proc-s-defect-stays-invisible-and.md`).
 
 ## How to Fix
 
-Address the combined risk described above; the superseded parts are archived.
+Audit module boundaries for proc adoption consistency; add `| Defect` to the precise downstream channels or fold uniformly at the boundary; migrate the remaining hand-rolled ladders.
+
