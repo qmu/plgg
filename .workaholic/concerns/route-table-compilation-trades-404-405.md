@@ -4,7 +4,7 @@ origin_pr_url: https://github.com/qmu/plgg/pull/31
 origin_branch: work-20260513-182057
 origin_commit: 71f411f
 created_at: 2026-05-27T13:39:04+09:00
-last_seen: 2026-05-30T12:51:26+09:00
+last_seen: 2026-07-16T15:11:50+09:00
 first_seen: 2026-05-27T13:39:04+09:00
 concern_id: route-table-compilation-trades-404-405
 severity: moderate
@@ -13,7 +13,7 @@ resolved_by_pr:
 resolved_by_commit: 
 ---
 
-# Route table compilation trades 404/405 speed for `Allow` ordering fidelity
+# Route table compilation trades 404/405 speed for Allow ordering fidelity
 
 ## Description
 

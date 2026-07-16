@@ -11,9 +11,10 @@ last_seen: 2026-07-12T14:15:15+09:00
 first_seen: 2026-07-12T14:15:15+09:00
 concern_id: portal-verdict-data-remains-hand-edited
 severity: low
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: portal-s-verdict-data-is-hand
 ---
 
 # Portal verdict data remains hand-edited

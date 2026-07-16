@@ -8,9 +8,10 @@ last_seen: 2026-06-26T21:43:57+09:00
 first_seen: 2026-06-26T21:43:57+09:00
 concern_id: workaholic-specs-infrastructure-md-count-drift
 severity: moderate
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: workaholic-specs-infrastructure-md-counts-drift
 ---
 
 # (carried from PR #37) Workaholic specs infrastructure.md count drift

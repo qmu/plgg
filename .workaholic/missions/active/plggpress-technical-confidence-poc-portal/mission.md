@@ -137,3 +137,5 @@ for it or whether it rides under PoC 4.
 - 2026-07-16 — ticket archived — 20260714214628-poc4-real-html-preview-with-4b-diff.md
 - 2026-07-16 — ticket archived — 20260716125235-conclude-poc5-verdict-proven.md
 - 2026-07-16 — ticket archived — 20260716125236-conclude-poc6-verdict-proven.md
+- 2026-07-16 — concern resolved (unstuck) — cloudflared-ingress-for-the-poc-hostnames.md
+- 2026-07-16 — story reported — work-20260716-023712.md

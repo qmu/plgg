@@ -9,9 +9,10 @@ last_seen: 2026-07-06T11:33:41+09:00
 first_seen: 2026-07-06T11:33:41+09:00
 concern_id: principle-a-design-change-not-documented
 severity: moderate
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: principle-a-design-change-author-facing
 ---
 
 # (carried from PR #51) Principle (a): design change not documented

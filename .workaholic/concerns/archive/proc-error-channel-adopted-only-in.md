@@ -8,9 +8,10 @@ last_seen: 2026-07-03T17:31:14+09:00
 first_seen: 2026-07-03T02:00:50+09:00
 concern_id: proc-error-channel-adopted-only-in
 severity: moderate
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: proc-s-defect-stays-invisible-and
 ---
 
 # Proc error channel adopted only in plgg-db-migration

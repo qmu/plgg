@@ -4,7 +4,7 @@ origin_pr_url: https://github.com/qmu/plgg/pull/37
 origin_branch: work-20260528-143038
 origin_commit: 903308e
 created_at: 2026-05-30T12:51:26+09:00
-last_seen: 2026-05-30T12:51:26+09:00
+last_seen: 2026-07-16T15:11:50+09:00
 first_seen: 2026-05-30T12:51:26+09:00
 concern_id: workaholic-specs-infrastructure-md-counts-drift
 severity: low
@@ -13,7 +13,7 @@ resolved_by_pr:
 resolved_by_commit: 
 ---
 
-# `.workaholic/specs/infrastructure.md` counts drift (new)
+# .workaholic/specs/infrastructure.md counts drift
 
 ## Description
 

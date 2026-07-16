@@ -9,9 +9,10 @@ last_seen: 2026-07-03T17:31:14+09:00
 first_seen: 2026-07-03T17:31:14+09:00
 concern_id: principle-design-change-author-facing-decisions
 severity: low
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: principle-a-design-change-author-facing
 ---
 
 # (carried from PR #51) Principle: design-change author-facing decisions are not durable
