@@ -1,23 +1,21 @@
 {
-  "name": "plgg-cms",
-  "version": "0.0.3",
-  "description": "The dynamic content-management surface that pairs with the plggpress static-site generator: the admin UI, content query/index services, the read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP tools, and agent surfaces — composed onto plggpress's framework seam and served as an always-on node:http instance.",
-  "type": "module",
+  "name": "plgg-mcp",
+  "version": "0.0.2",
   "files": [
-    "dist",
-    "src",
-    "bin"
+    "dist"
   ],
-  "bin": {
-    "plgg-cms": "bin/plgg-cms.mjs"
-  },
-  "main": "dist/index.es.js",
+  "description": "The MCP protocol substrate of the plgg family: a typed tool registry and dispatch (initialize, tools/list, tools/call), JSON-RPC 2.0 frame parsing and serialization, transport-agnostic frame handling, and a stdio server vendor seam. Carries no content store and no tool set - node:sqlite is provably absent from its module graph; consumers register their own tools.",
+  "main": "dist/index.cjs.js",
   "module": "dist/index.es.js",
   "exports": {
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
       }
     }
   },
@@ -42,17 +40,7 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
-    "plgg": "file:../plgg",
-    "plgg-auth": "file:../plgg-auth",
-    "plgg-db-migration": "file:../plgg-db-migration",
-    "plgg-http": "file:../plgg-http",
-    "plgg-kit": "file:../plgg-kit",
-    "plgg-mcp": "file:../plgg-mcp",
-    "plgg-md": "file:../plgg-md",
-    "plgg-server": "file:../plgg-server",
-    "plgg-sql": "file:../plgg-sql",
-    "plgg-view": "file:../plgg-view",
-    "plggpress": "file:../plggpress"
+    "plgg": "file:../plgg"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",

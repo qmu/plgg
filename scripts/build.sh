@@ -60,6 +60,10 @@ cd $REPO_ROOT/packages/plgg-db-migration && npm run build
 # auth mount). plgg-auth composes plgg + plgg-http/server + plgg-sql +
 # plgg-db-migration, all built above.
 cd $REPO_ROOT/packages/plgg-auth && npm run build
+# plgg-mcp BEFORE plgg-cms: the MCP protocol substrate (re-extracted from
+# plgg-cms's internal mcpProtocol by ticket 20260716000445). Depends only on
+# plgg; plgg-cms's content tools consume its dist.
+cd $REPO_ROOT/packages/plgg-mcp && npm run build
 # plggpress: the slim STATIC-SITE GENERATOR. It carries its own framework
 # internally (the absorbed former app-framework facade) and consumes plgg-cli,
 # plgg-server, plgg-md, plgg-highlight, plgg-view, and plgg-http directly —
