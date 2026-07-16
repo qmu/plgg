@@ -6,23 +6,26 @@
  * edits exactly its own entry here (status + verdict);
  * nothing else in the portal changes.
  *
- * Port/hostname allocation: 5183–5190 WAS the reserved
+ * Port/hostname allocation: 5183–5190 is the reserved
  * block for this fleet (5173, 5181, 5182, and 5191–5196
- * are taken by other qmu.dev workloads), and it is now
- * FULL — the portal at 5183 plus seven PoCs at 5184–5190,
- * with no gap. The eighth (`poc4c`) therefore sits at 5198,
- * the first free port past everything cloudflared maps
- * (which currently tops out at 5197). Allocating past the
- * block rather than reshuffling was the developer's call
- * (2026-07-15): a PoC fleet is disposable, so a contiguous
- * block is not worth defending. The invariant in
- * `Poc.spec.ts` follows this comment, not the other way
- * around — widen it deliberately when you allocate again.
+ * are taken by other qmu.dev workloads), and it is FULL —
+ * the portal at 5183 plus seven PoCs at 5184–5190, with no
+ * gap. An eighth PoC therefore needs a port past the block;
+ * `poc4c` briefly held 5198 on that basis (the developer's
+ * call, 2026-07-15: a PoC fleet is disposable, so a
+ * contiguous block is not worth defending) and was
+ * dismissed on 2026-07-16, returning the fleet to seven.
+ * The invariant in `Poc.spec.ts` follows this comment, not
+ * the other way around — widen it deliberately when you
+ * allocate again.
+ *
  * The cloudflared ingress mapping is developer-applied —
- * see the package README for the exact
- * `~/.cloudflared/config.yml` lines.
+ * see each PoC package's README for the exact
+ * `~/.cloudflared/config.yml` lines. Note that 4c's route
+ * was never applied, which is part of why it was never
+ * judged.
  */
-import { none, some } from "plgg";
+import { some } from "plgg";
 import type { Poc } from "./Poc.ts";
 
 export const PORTAL_HOSTNAME = "plgg-poc.qmu.dev";
@@ -106,8 +109,10 @@ export const POCS: ReadonlyArray<Poc> = [
       "Can the writer's agent maintain the site's central configuration — front-matter tag classification (name/color/emoji/description), path exclusions, layout and sizing themes — as generated data?",
     confidenceSignal:
       "Asking the agent to reclassify tags, exclude a path, and switch among prefixed sizing themes produces a valid configuration the site renders, with ~5–10 sizing themes expressible.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — approved by the developer's live review at plgg-poc5.qmu.dev (2026-07-16). What the approved build demonstrates: the typed command path (tag / exclude / include / theme / layout) parses each line to exactly one ConfigOp, applied by the one total applyOp into the single typed Config, and the sample site re-renders live — recolored/badged tag chips, hidden excluded paths, a re-laid-out and re-sized grid — with the seven sz- sizing themes and three layouts as closed unions rendered by exhaustive switch, inside the signal's ~5–10 band. The Realtime voice session is the bonus second way in, calling the same five tools (set_tag, exclude_path, include_path, set_sizing_theme, set_layout). Accepted sacrificial bound, stated at build time: the configuration is client state the sample site renders live — no disk-persistence seam; production plggpress owns where generated config durably lives.",
+    ),
     hostname: "plgg-poc5.qmu.dev",
     port: 5188,
   },
@@ -118,21 +123,11 @@ export const POCS: ReadonlyArray<Poc> = [
       "Does tag/link-based grouping over the tree-shaped file system yield a multi-dimensional search UX that both humans and browser agents can operate?",
     confidenceSignal:
       "Prototype variants of tag/link navigation over one corpus are comparable side-by-side, and an agent can drive each variant's search deterministically.",
-    status: "building",
-    verdict: none(),
+    status: "proven",
+    verdict: some(
+      "Proven — approved by the developer's live review at plgg-poc6.qmu.dev (2026-07-16); no single variant was singled out, and the proven artifact is the comparison itself. What the approved build demonstrates: three navigation variants — tag facets (AND/OR), link/backlink graph, multi-dimensional filter (tags + path text) — render side by side over one real corpus so they are comparable on a single page, and each variant's search is a deterministic pure function of (pages, query): the typed command path (facets / links / filter) parses each line to exactly one closed-union VariantQuery routed through the total, exhaustive runQuery, so the same command always returns the same page set — the agent-drivability the signal asks for, checkable headlessly. The Realtime voice session is the bonus second way in, calling the same three tools (query_facets, query_links, query_filter). Classification is derived purely offline: tags from path segments plus front-matter tags, links from in-corpus markdown links with backlinks as the inverse adjacency.",
+    ),
     hostname: "plgg-poc6.qmu.dev",
     port: 5189,
-  },
-  {
-    id: "poc4c",
-    name: "Watchable edits on the real rendered site",
-    question:
-      "Does the granular, animated in-place edit PoC 4b proved survive contact with the REAL rendered site — a full plggpress page with its own markup, styling and hot reload — rather than a purpose-built preview surface?",
-    confidenceSignal:
-      "Asking the assistant to change the open document animates the edited span IN PLACE on the real rendered page, with no full-page reload, the Realtime session unbroken, and the file on disk correct afterwards.",
-    status: "building",
-    verdict: none(),
-    hostname: "plgg-poc4c.qmu.dev",
-    port: 5198,
   },
 ];

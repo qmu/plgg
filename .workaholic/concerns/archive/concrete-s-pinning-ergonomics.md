@@ -9,9 +9,10 @@ last_seen: 2026-07-06T11:33:41+09:00
 first_seen: 2026-07-06T11:33:41+09:00
 concern_id: concrete-s-pinning-ergonomics
 severity: low
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: plgg-parser-concrete-s-pinning-is
 ---
 
 # (carried from PR #59) Concrete-S pinning ergonomics

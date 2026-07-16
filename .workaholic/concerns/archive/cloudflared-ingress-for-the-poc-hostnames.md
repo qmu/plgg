@@ -11,8 +11,8 @@ last_seen: 2026-07-11T12:17:30+09:00
 first_seen: 2026-07-11T12:17:30+09:00
 concern_id: cloudflared-ingress-for-the-poc-hostnames
 severity: moderate
-status: active
-resolved_by_pr: 
+status: resolved
+resolved_by_pr: 34be6698
 resolved_by_commit: 
 ---
 

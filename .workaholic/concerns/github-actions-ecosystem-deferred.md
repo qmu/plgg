@@ -4,7 +4,7 @@ origin_pr_url: https://github.com/qmu/plgg/pull/49
 origin_branch: work-20260628-010653
 origin_commit: f06fbba
 created_at: 2026-06-29T11:27:59+09:00
-last_seen: 2026-06-29T11:27:59+09:00
+last_seen: 2026-07-16T15:11:50+09:00
 first_seen: 2026-06-29T11:27:59+09:00
 concern_id: github-actions-ecosystem-deferred
 severity: low
@@ -13,7 +13,7 @@ resolved_by_pr:
 resolved_by_commit: 
 ---
 
-# github-actions ecosystem deferred
+# GitHub Actions ecosystem deferred from dependabot.yml
 
 ## Description
 

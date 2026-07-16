@@ -8,9 +8,10 @@ last_seen: 2026-06-26T21:43:57+09:00
 first_seen: 2026-06-17T21:31:52+09:00
 concern_id: defect-is-invisible-in-precise-downstream
 severity: moderate
-status: active
+status: superseded
 resolved_by_pr: 
 resolved_by_commit: 
+superseded_by: proc-s-defect-stays-invisible-and
 ---
 
 # Defect is invisible in precise downstream error channels

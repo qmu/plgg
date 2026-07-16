@@ -48,10 +48,30 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - [x] PoC: browser search core — indexed full-text search vs browser vector-DB RAG measured on a real corpus (index size, build time, query latency, answer quality); verdict recorded (#20260711035318-poc1-browser-search-core.md)
 - [x] PoC: reader-side embedded browser agent answering questions grounded in the indexed document data of a generated static site (#20260711201840-poc2-reader-side-browser-agent.md)
 - [x] PoC: writer-side interactive voice assistant over the OpenAI Realtime API, "on the same page" with the open document (#20260712030000-poc3-writer-voice-assistant.md)
-- [ ] PoC: browser-agent tool-calling edits local files via the dev server; edited page hot-reloads while the realtime websocket stays connected
-- [ ] PoC: central configuration generation — agent classifies by front-matter tags (name/color/emoji/description), excludes paths, switches layout and sizing themes
-- [ ] PoC: non-tree classification — tag/link-grouped multi-dimensional search UX prototypes, manipulable by the browser agent
+- [x] PoC: browser-agent tool-calling edits local files via the dev server; edited page hot-reloads while the realtime websocket stays connected (#20260714214628-conclude-poc4-verdict-proven.md)
+- [x] PoC: central configuration generation — agent classifies by front-matter tags (name/color/emoji/description), excludes paths, switches layout and sizing themes (#20260716125235-conclude-poc5-verdict-proven.md)
+- [x] PoC: non-tree classification — tag/link-grouped multi-dimensional search UX prototypes, manipulable by the browser agent (#20260716125236-conclude-poc6-verdict-proven.md)
 - [ ] Post-PoC integration: proven artifacts integrated into production plggpress, portal verdicts closed out
+
+<!--
+A PoC item ticks when its VERDICT lands (`status: "proven"` in pocs.ts), not when its
+build ticket is archived — PoC 5 and PoC 6 both have archived build tickets
+(20260714021940, 20260714022000) and are still `building`. So the marker to attach is
+the ticket that RECORDS the verdict, which is what PoC 4's
+(#20260714214628-conclude-poc4-verdict-proven.md) is.
+
+PoC 4 went `proven` on 2026-07-14 (be398d2e) and this item stayed unchecked until
+2026-07-16 — because its verdict ticket was filed and archived with NO marker on this
+line, and `tick-acceptance.sh` matches only on the trailing `(#<ticket>.md)`. With
+nothing to match it no-ops silently, so the mission under-reported for two days and
+nothing anywhere said so. When PoC 5's and PoC 6's verdict tickets are filed, attach
+their markers HERE at filing time, or the same silence repeats.
+
+PoC 4b (`proven`) has no acceptance line at all — it was born from PoC 4's live judging
+rather than from the original plan. Worth deciding whether the plan should grow a line
+for it or whether it rides under PoC 4.
+-->
+
 
 ## Changelog
 
@@ -114,3 +134,8 @@ Each of these is a real technical risk. This mission **collects confidence throu
 - 2026-07-14 — ticket archived — 20260714022000-poc6-non-tree-file-classification.md
 - 2026-07-14 — ticket archived — 20260714214628-conclude-poc4-verdict-proven.md
 - 2026-07-14 — ticket archived — 20260714004350-resume-poc-verdicts-and-workaholic-env-ship.md
+- 2026-07-16 — ticket archived — 20260714214628-poc4-real-html-preview-with-4b-diff.md
+- 2026-07-16 — ticket archived — 20260716125235-conclude-poc5-verdict-proven.md
+- 2026-07-16 — ticket archived — 20260716125236-conclude-poc6-verdict-proven.md
+- 2026-07-16 — concern resolved (unstuck) — cloudflared-ingress-for-the-poc-hostnames.md
+- 2026-07-16 — story reported — work-20260716-023712.md

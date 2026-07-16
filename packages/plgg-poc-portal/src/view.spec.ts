@@ -25,9 +25,6 @@ test("cards carry question, signal, verdict", () =>
     check(page, toContain("Question:")),
     check(page, toContain("Proven when:")),
     check(page, toContain("Verdict:")),
-    // No PoC has concluded yet, so the honest
-    // empty verdict shows.
-    check(page, toContain("Not yet run")),
   ]));
 
 test("building PoCs link; planned ones only reserve", () =>
@@ -104,14 +101,18 @@ test("a planned PoC reserves its hostname, never a dead link", () =>
       renderToString(view([plannedPoc])),
       toContain("Reserved: plgg-pocx.qmu.dev"),
     ),
+    // An unconcluded PoC shows the honest empty
+    // verdict — the live fleet is all concluded,
+    // so the synthetic card keeps this covered.
+    check(
+      renderToString(view([plannedPoc])),
+      toContain("Not yet run"),
+    ),
   ]));
 
 test("the allocation table maps the fleet", () =>
   all([
-    check(
-      page,
-      toContain("plgg-poc.qmu.dev"),
-    ),
+    check(page, toContain("plgg-poc.qmu.dev")),
     check(page, toContain("5183")),
     check(page, toContain("5184")),
     check(page, toContain("Hostname")),
@@ -126,9 +127,8 @@ test("an empty fleet renders an honest empty state", () =>
 test("status labels appear as text, not color alone", () =>
   all([
     check(page, toContain("Proven")),
-    // The live fleet has building PoCs (poc4/5/6);
-    // "Planned" is exercised via the synthetic card.
-    check(page, toContain("Building")),
+    // The live fleet is all proven; "Planned" is
+    // exercised via the synthetic card.
     check(
       renderToString(view([plannedPoc])),
       toContain("Planned"),

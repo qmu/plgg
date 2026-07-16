@@ -5,12 +5,65 @@ type: enhancement
 layer: [UX]
 effort: 4h
 commit_hash:
-category: Added
+category: Removed
 depends_on:
 mission: plggpress-technical-confidence-poc-portal
 ---
 
 # Show the agent's edit as a watchable diff ON the real rendered HTML (PoC 4 × PoC 4b synthesis)
+
+## DISMISSED (2026-07-16) — by the developer, unjudged
+
+Closed without a verdict, on the developer's call ("dismiss 4c, moving on"). The
+`poc4c` record was **removed from the portal entirely** rather than concluded, so the
+fleet is back to seven PoCs and the 5184–5190 block invariant is restored in
+`Poc.spec.ts` (it had been widened to 5198 solely for 4c).
+
+**What this does NOT say.** The question was never answered — it was abandoned, not
+disproven. 4c reached "built and mechanically proven": `/docs/` served 26KB of genuine
+plggpress render, and a headless browser drove a span replacement that changed the live
+page in place, no reload, zero page errors. What never happened is the only thing that
+could have settled it: *the developer's live judgment over voice, which IS the verdict*.
+Two gates stood in the way to the end — the cloudflared route for
+`plgg-poc4c.qmu.dev` → :5198 was never applied, and the Realtime/voice path was never
+driven end to end.
+
+So the open question stands, unanswered and now unowned:
+
+> Can the granular, animated in-place edit survive contact with the REAL rendered site,
+> rather than a purpose-built preview surface?
+
+If it is ever asked again, the assets are intact and the research is done: the mapper is
+text-run-local by design, its known gaps are typed refusals surfaced on the page (a span
+crossing an inline element boundary maps to nothing; markup-only edits animate nothing),
+and an unmappable edit RELEASES the reload so it degrades to PoC 4's proven behaviour.
+That is the expensive part, and it survives this dismissal.
+
+**Left behind, deliberately:** `packages/plgg-poc4c-livesite` still exists and still
+builds — the developer's choice removed the portal RECORD, not the package. It is now
+orphaned: nothing links it, `build.sh` and `check-all` still carry it, and it still
+serves on :5198. Worth a follow-up decision to delete it or keep it as a reference
+artifact; it is cruft either way until someone chooses.
+
+## Policies
+
+- `workaholic:design` / `policies/interaction-design-standard.md` — the entire ticket is
+  an interaction claim ("I can watch the AI edit the real site"), and the confidence
+  signal is a felt-experience judgment, not a mechanical assertion.
+- `workaholic:design` / `policies/modeless-design.md` — the animated in-place patch must
+  not put the page into an "editing mode"; the session stays live and unbroken while the
+  span changes underneath it.
+- `workaholic:design` / `policies/self-explanatory-ui.md` — an unmappable edit must SAY
+  why (the typed refusals already surfaced on the page), never fail silently or leave a
+  stale page.
+- `workaholic:design` / `policies/sacrificial-architecture.md` — this is a confidence
+  PoC, deliberately disposable; the durable assets are 4b's pure diff core and the
+  plgg-view animation seam it reuses, not this shell.
+- `workaholic:implementation` / `policies/coding-standards.md` — no `as`/`any`/
+  `ts-ignore`; Prettier printWidth:50.
+- `workaholic:operation` / `policies/containerization.md` — the PoC fleet runs as
+  rootless podman containers on allocated ports; 5198 and its cloudflared ingress follow
+  that fleet's conventions.
 
 ## Overview
 
@@ -84,6 +137,21 @@ Realtime session unbroken, and the file on disk correct afterwards.
   rather than an extension of PoC 4, it needs an entry (question, confidence
   signal, hostname, port) and a reserved `*.qmu.dev` hostname + cloudflared route.
 
+## STATUS (2026-07-16, night `/drive`): still BLOCKED on the two developer-owned gates — re-verified, not assumed
+
+A night `/drive` reached this ticket again and did not write code. **Not a size or
+complexity skip** — the build is done; what remains is not implementable by an agent.
+Both gates re-checked tonight rather than taken from the note below:
+
+- **Serving:** `http://localhost:5198/` answers **200**. The build stands.
+- **Cloudflared route: still absent.** `~/.cloudflared/config.yml` contains no entry for
+  `5198` or `poc4c`. Applying it is developer-owned, as every previous PoC route was. So
+  4c remains judgeable only at `localhost`.
+- **The verdict itself is the developer's live voice judgment**, and *that judgment IS
+  the verdict* (this ticket's own framing, and PoC 4's precedent). No agent can supply it.
+
+Nothing else in the queue depends on this. It is waiting on a person, not on work.
+
 ## STATUS (2026-07-15): BUILT and SERVING — awaiting the developer's live judgment
 
 The port blocker below was resolved by the developer ("for C, we just allocate a
@@ -144,6 +212,32 @@ None of these is a size problem; they are allocations and calls only the develop
 makes. Everything else is ready: PoC 4 is `proven` (`be398d2e`), PoC 4b is `proven`
 with the animation mode chosen, and 4b's diff core + animation seam are the assets
 to reuse. **Answer the three questions above and this becomes a straight build.**
+
+## Quality Gate
+
+The mechanical half is **already met** (see STATUS); the deciding half is not, and cannot
+be met by an agent.
+
+**Mechanical (met, `7db57cf6`):**
+- `/docs/` serves genuine plggpress-rendered HTML with the patch client injected and zero
+  surviving `location.reload`.
+- Driven in a real headless browser, a span replacement changes the live page IN PLACE —
+  no reload, client replies `{applied, spans:1}`, zero page errors.
+- An unmappable edit RELEASES the reload, degrading to PoC 4's proven behaviour rather
+  than a stale page; refusals are typed and surfaced with reasons.
+- Specs green; fresh `check-all` EXIT 0.
+- **Does not regress PoC 4's proven verdict** — edit lands, hot reload works, session
+  survives.
+
+**The verdict (NOT met — developer-owned):**
+- **The confidence signal is the developer's live judgment over voice**: asking the
+  assistant to change the open document animates the edited span in place on the real
+  rendered page, session unbroken, file correct on disk — and it *feels* like co-editing
+  the real site. **That judgment IS the verdict**; there is no automated substitute.
+- Prerequisite: the cloudflared route for `plgg-poc4c.qmu.dev` → :5198 is
+  **developer-applied** (exact config lines are in the package README).
+- The Realtime/voice path is unexercised end-to-end; the first live round may surface a
+  bug there, as PoC 4's first round did.
 
 ## Considerations
 

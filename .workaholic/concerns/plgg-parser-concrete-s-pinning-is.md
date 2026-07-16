@@ -5,7 +5,7 @@ origin_pr_url: https://github.com/qmu/plgg/pull/59
 origin_branch: work-20260704-015006
 origin_commit: a75c984
 created_at: 2026-07-04T11:02:58+09:00
-last_seen: 2026-07-04T11:02:58+09:00
+last_seen: 2026-07-16T15:11:50+09:00
 first_seen: 2026-07-04T11:02:58+09:00
 concern_id: plgg-parser-concrete-s-pinning-is
 severity: low

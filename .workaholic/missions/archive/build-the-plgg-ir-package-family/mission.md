@@ -2,7 +2,7 @@
 type: Mission
 title: Build the plgg-ir Package Family
 slug: build-the-plgg-ir-package-family
-status: active
+status: achieved
 created_at: 2026-07-11T20:34:05+09:00
 author: a@qmu.jp
 tickets:
@@ -99,3 +99,4 @@ Out of scope:
 - 2026-07-12 — branch story written and PR #65 opened (all five phases + docs guide); five new deferred concerns recorded — work-20260712-003839.md
 - 2026-07-12 — PR #65 merged (edbaee38) and GitHub Release 2026.07.week2.release4 published; npm first-publish of the three packages pending (developer-driven) — work-20260712-003839.md
 - 2026-07-12 — npm first-publish confirmed: plgg-ir-syntax / plgg-ir-language / plgg-ir-manifest all at 0.0.1 with registry-resolved dependency ranges — work-20260712-003839.md
+- 2026-07-16 — mission achieved — mission.md
