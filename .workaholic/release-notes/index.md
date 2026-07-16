@@ -32,3 +32,4 @@
 * [PoC 4 proven, plgg-md on plgg-parser, `plggpress dev`, and PoC 4c](work-20260714-020603.md)
 * [plgg-md accepts the frontmatter we actually write, opens the heading seam, and fixes three grammar bugs](work-20260716-014150.md)
 * [Conclude PoC 5 (central configuration generation) proven, etc](work-20260716-023712.md)
+* [Export the domain vocabulary as a composable manifestDialect, etc](work-20260716-115204.md)
