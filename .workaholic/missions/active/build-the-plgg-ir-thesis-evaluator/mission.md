@@ -127,3 +127,4 @@ Out of scope:
      One line per event ("- YYYY-MM-DD — event — filename"); never rewrite past lines. -->
 
 - 2026-07-17 — Mission created from the strategy-book metamodel formal-semantics discussion (modal-logic semantics, 13-case verification catalog, Japanese-keyword IR sketches); condensed design captured in design.md
+- 2026-07-17 — story reported — work-20260717-014330.md
