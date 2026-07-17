@@ -19,6 +19,9 @@ cd $REPO_ROOT/packages/plgg-ir-language && npm install
 cd $REPO_ROOT/packages/plgg-ir-manifest && npm install
 cd $REPO_ROOT/packages/plgg-mcp && npm install
 cd $REPO_ROOT/packages/plgg-test && npm install
+# plgg-token-metering: file:-depends on plgg (installed above) plus the
+# plgg-bundle/plgg-test tooling.
+cd $REPO_ROOT/packages/plgg-token-metering && npm install
 cd $REPO_ROOT/packages/plgg-kit && npm install
 cd $REPO_ROOT/packages/plgg-foundry && npm install
 cd $REPO_ROOT/packages/plgg-http && npm install

@@ -78,6 +78,10 @@ cd $REPO_ROOT/packages/plggpress && npm run build
 cd $REPO_ROOT/packages/plgg-cms && npm run build
 # plgg-fetch after plgg-http: it shares the HTTP model (no longer depends on plgg-server).
 cd $REPO_ROOT/packages/plgg-fetch && npm run build
+# plgg-token-metering after plgg: the LLM token counting + cost estimation
+# library depends only on plgg core (it does no I/O — the published vocabularies
+# are caller-supplied data, not a bundled asset), so its position here is free.
+cd $REPO_ROOT/packages/plgg-token-metering && npm run build
 # plgg-test's published dist library (depends only on plgg core). Its test
 # RUNNER is separate and untouched; this just builds its consumer-facing API.
 cd $REPO_ROOT/packages/plgg-test && npm run build
