@@ -112,11 +112,19 @@ if ! NPM_USER=$(npm whoami 2>/dev/null); then
 fi
 echo "=== npm auth: publishing as $NPM_USER ==="
 
-# Gate: a fresh green check-all before publishing anything (skipped only when a
-# same-session run already went green and set SKIP_GATE).
-if [ "${SKIP_GATE:-0}" != "1" ]; then
+# Gate: a fresh green check-all before publishing anything. Skipped without a
+# human having to remember anything when a same-session check-all already went
+# green and its stamp still matches the current tree (any tracked edit since
+# invalidates it). SKIP_GATE=1 remains an explicit unconditional override.
+if [ "${SKIP_GATE:-0}" = "1" ]; then
   echo ""
-  echo "=== Gate: fresh check-all.sh before publishing ==="
+  echo "=== Gate: skipped (SKIP_GATE=1 override) ==="
+elif STAMP=$(node "$REPO_ROOT/scripts/gateStamp.ts" check 2>/dev/null); then
+  echo ""
+  echo "=== Gate: skipped (same-session green $STAMP) ==="
+else
+  echo ""
+  echo "=== Gate: running check-all.sh ==="
   ./scripts/check-all.sh
 fi
 
