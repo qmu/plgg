@@ -37,6 +37,11 @@ cd $REPO_ROOT/packages/plgg-http && npm run build
 # plgg-router: a pure path toolkit depending only on plgg core (no plgg-view).
 cd $REPO_ROOT/packages/plgg-router && npm run build
 cd $REPO_ROOT/packages/plgg-view && npm run build
+# plggmatic after plgg-view + the plgg-ir family: the column-oriented UI
+# framework returns plgg-view Html and interprets the plgg-ir Domain Manifest,
+# so it consumes plgg, plgg-view, and plgg-ir-syntax/language/manifest dists —
+# all built above.
+cd $REPO_ROOT/packages/plggmatic && npm run build
 # plgg-md after plgg-view: its AST->Html fold emits plgg-view's Html and it takes
 # an injected Highlighter seam (filled by plgg-highlight, built next).
 cd $REPO_ROOT/packages/plgg-md && npm run build
@@ -89,4 +94,8 @@ cd $REPO_ROOT/packages/plgg-test && npm run build
 # plgg + plgg-view + plgg-router (+ plgg-server's view types) and inlines them
 # from source via the in-house bundler's app target.
 cd $REPO_ROOT/packages/example && npm run build
+# plggmatic-example: the reference plggmatic app bundle (dist/demo1.js et al.).
+# Built after plggmatic + plgg + plgg-view, whose dists it inlines via the
+# in-house bundler's app target; its build also runs src/stamp.ts.
+cd $REPO_ROOT/packages/plggmatic-example && npm run build
 echo "\n=== All shell scripts have been executed successfully ==="

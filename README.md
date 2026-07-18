@@ -121,10 +121,15 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-ir-language/`](packages/plgg-ir-language/)** - Reusable static language framework on plgg-ir-syntax: form/operator registries (closed vocabulary), kinded scopes with two-phase declare/analyze (forward references), a type checker preserving domain types (`client-id ≠ organization-id`, `(money JPY) ≠ (money USD)`), expected/actual diagnostics, shorthand expansion, idempotent normalization with a canonical serializer, and collision-checked dialect composition
 - **[`packages/plgg-ir-manifest/`](packages/plgg-ir-manifest/)** - The Domain Manifest dialect on plgg-ir-language: the versioned `(plgg-ir 1 (module ...))` vocabulary — entities, fields, domain types, relations, validation, invariants, aggregates, projections, policies, views, actions, derivations — with layered scope/boundary verification, deny-by-default authorization, a dependency graph with topological update planning (cycles are compile errors), and a deterministic canonical IR — what an LLM agent emits and plggmatic will interpret
 
+**UI framework**
+
+- **[`packages/plggmatic/`](packages/plggmatic/)** - Column-oriented UI design framework on the plgg family: pane alignment, a typed light/dark color scheme, and fundamental components as pure functions returning plgg-view `Html`. Organized into tiers (Catalog/Component/Declare/Flow/Form/Layout/Meta/Render/Schedule/Style) with an absorbed UI engine; an app author writes a plggmatic DECLARATION scheduled into a plgg-view program and drawn by the multi-column renderer
+
 **Site & tutorial**
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
+- **[`packages/plggmatic-example/`](packages/plggmatic-example/)** - The reference plggmatic app: the whole program is a plggmatic DECLARATION (Resources, Menu, list/detail views, Query, create/delete Actions) scheduled into a plgg-view program and drawn by the multi-column renderer; ships demo1 (business-management menu), demo2 (color scheme), demo3 (query URL codec), and the forms demo, with a `plgg-bundle dev` live serve (port 51820, `plggmatic-reference.qmu.dev`)
 - **[`packages/plgg-poc-portal/`](packages/plgg-poc-portal/)** - plggpress PoC portal: the static index of the confidence-collection PoC fleet (private, served at `plgg-poc.qmu.dev`)
 - **[`packages/plgg-poc1-search/`](packages/plgg-poc1-search/)** - PoC 1: browser-side full-text search vs vector RAG measured on the guide corpus (private, served at `plgg-poc1.qmu.dev`)
 - **[`packages/plgg-poc2-agent/`](packages/plgg-poc2-agent/)** - PoC 2: reader-side embedded browser agent — grounded, cited answers over the shipped guide index, key confined to a server session seam (private, served at `plgg-poc2.qmu.dev`)
