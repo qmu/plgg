@@ -207,3 +207,25 @@ test("parses the design document's manifest example", () =>
       check(exprs.length, toBe(1)),
     ),
   ));
+
+test("parses the thesis dialect reference example", () =>
+  check(
+    parseSexps(`(主張 撤退論
+  :ロジック 因果的
+  :ルート (概念 撤退判断)
+  (関係 r1 :接続元 (概念 需要縮小) :接続先 (概念 売上減))
+  (関係 r2 :接続元 (概念 売上減)   :接続先 (概念 撤退判断))
+  (関係 r3 :接続元 (概念 競合参入) :接続先 (概念 撤退判断)))
+
+(フレーム 継続論による反論
+  :種別 反論
+  :接続元 継続論
+  :接続先 撤退論
+  :要求 (遮断 前提→ルート)          ; or (被覆 関係)
+  (攻撃 s1 掘り崩し r1)
+  (攻撃 s2 切り崩し r2)
+  (攻撃 s3 掘り崩し r3))`),
+    okThen((exprs: ReadonlyArray<Sexp>) =>
+      check(exprs.length, toBe(2)),
+    ),
+  ));
