@@ -94,9 +94,7 @@ _Self-contained — drivable from this repo alone._
       to an Access login for a reader who has passed Access).
 - [ ] plgg's guide docs link to the reference (what it is, the live URL, the
       local dev command), so a developer opening plgg reaches it from the docs.
-- [ ] A framework capability the reference needs is expressed **generally** in
-      plggmatic (not special-cased in the example) — at least one form/menu the
-      reference uses is driven by a declared framework surface, with a test. (#20260719022859-forms-demo-driven-by-declared-form-surface.md)
+- [x] A framework capability the reference needs is expressed **generally** in plggmatic (not special-cased in the example) — at least one form/menu the reference uses is driven by a declared framework surface, with a test. (#20260719022859-forms-demo-driven-by-declared-form-surface.md)
 - [ ] The published npm `plggmatic` is the plgg-lineage build (0.2.1+), and its
       `repository` points at `qmu/plgg`.
 
