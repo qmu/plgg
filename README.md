@@ -100,6 +100,10 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-cli/`](packages/plgg-cli/)** - Toolkit for building command-line program wrappers on plgg: typed commands/options, argv parsing, and a Result-to-exit-code fold with an auto-generated usage banner
 
+**LLM metering**
+
+- **[`packages/plgg-token-metering/`](packages/plgg-token-metering/)** - Library-independent LLM token counting and cost estimation: self-implemented BPE against the vocabularies providers publish (OpenAI, open-weight `tokenizer.json`), a calibrated estimator with a measured error band where the tokenizer is unpublished (Claude, Gemini), and cost decomposition per billing bucket. Zero tokenizer dependencies; the vocabulary is caller-supplied data, so the package does no I/O. Accuracy is measured, and honest: 0.00% for the two exact families, 8.54%/6.60% mean for the two estimator families, which do NOT meet the ±5% target
+
 **Docs & build toolchain**
 
 - **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
@@ -446,6 +450,26 @@ See [packages/plgg-bundle/README.md](packages/plgg-bundle/README.md) for details
 The in-house minimal test runner — the `plgg-test` bin every package's test/coverage scripts call: spec discovery, assertions and matchers, mocks, and a coverage threshold gate.
 
 See [packages/plgg-test/README.md](packages/plgg-test/README.md) for details.
+
+### plgg-token-metering
+
+Counts the input tokens an LLM API will bill for **without the provider's
+tokenizer library**, and prices them. Where a provider publishes its vocabulary
+and merge rules (OpenAI's encodings; open-weight `tokenizer.json`), a
+self-implemented BPE reproduces the content count exactly; where the tokenizer is
+unpublished (Anthropic, Google), the count is a calibrated estimator that carries
+its **measured error band** rather than false precision. `countTokens` returns a
+sum type, so an estimate cannot be mistaken for an exact count, and every result
+carries the report its accuracy claim came from. `estimateCost` keeps the
+input/output/cache breakdown and returns `MissingPriceError` rather than
+substituting a rate it was not given.
+
+Measured against each provider's API on a pinned 30-sample manifest: OpenAI and
+Qwen2.5 reach 0.00% error (target met); Claude (8.54% mean / 16.24% max) and
+Gemini (6.60% / 15.73%) do **not** meet the ±5% target, and the package says so
+in its types, its README, and its tests.
+
+See [packages/plgg-token-metering/README.md](packages/plgg-token-metering/README.md) for details.
 
 ## Development
 
