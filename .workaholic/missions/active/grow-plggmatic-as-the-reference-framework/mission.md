@@ -92,11 +92,12 @@ _Self-contained — drivable from this repo alone._
 - [ ] The reference (demo1) builds and serves from this repo with hot reload
       (`npm run dev` → 51820), and the live host returns the exhibit (not a 302
       to an Access login for a reader who has passed Access).
-- [ ] plgg's guide docs link to the reference (what it is, the live URL, the
-      local dev command), so a developer opening plgg reaches it from the docs.
+- [x] plgg's guide docs link to the reference (what it is, the live URL, the local dev command), so a developer opening plgg reaches it from the docs. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
 - [x] A framework capability the reference needs is expressed **generally** in plggmatic (not special-cased in the example) — at least one form/menu the reference uses is driven by a declared framework surface, with a test. (#20260719022859-forms-demo-driven-by-declared-form-surface.md)
-- [ ] The published npm `plggmatic` is the plgg-lineage build (0.2.1+), and its
-      `repository` points at `qmu/plgg`.
+- [x] plggmatic's `package.json` carries the plgg-lineage build metadata (`version` 0.2.1, `repository` → `qmu/plgg`), so a publish from this repo is the plgg-lineage build. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
+- [ ] The npm `plggmatic` package is actually published from this repo (the
+      gated release step that makes the plgg-lineage 0.2.1+ build the published
+      one) — human/2FA-gated, not performed on a drive branch.
 
 ## Out of scope
 
@@ -122,3 +123,5 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-19 — ticket added — 20260719022859-forms-demo-driven-by-declared-form-surface.md
 - 2026-07-19 — mission replanned — mission.md
 - 2026-07-19 — ticket archived — 20260719022859-forms-demo-driven-by-declared-form-surface.md
+- 2026-07-19 — verified & ticked: guide links the reference, and plggmatic package.json is plgg-lineage metadata (0.2.1, repository=qmu/plgg); reference builds (npm run build emits demo bundles). Split the old publish item so the verified metadata half ticks and the gated npm publish stays open. — 20260719030000-verify-reference-and-tick-satisfied-acceptance.md
+- 2026-07-19 — ticket archived — 20260719030000-verify-reference-and-tick-satisfied-acceptance.md
