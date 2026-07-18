@@ -5,7 +5,8 @@ slug: build-the-plgg-ir-thesis-evaluator
 status: active
 created_at: 2026-07-17T01:43:30+09:00
 author: a@qmu.jp
-assignee:
+assignee: a@qmu.jp
+drive_authorized: true
 tickets: []
 stories: []
 concerns: []
@@ -90,36 +91,63 @@ Out of scope:
 - Natural-language → IR generation loops, and any consumer/UI work
   (interpreting verified theses is follow-on, plggmatic-style).
 
+## Experience
+
+`plgg-ir-thesis` is a static verifier an LLM writes argumentation into and
+gets a machine-correctable verdict from. The demanded behavior is observable
+at the compiler boundary:
+
+- **Declared, checked — never searched.** The writer declares concepts,
+  relations, assertions, frames, and correspondences in the Japanese
+  metamodel vocabulary; the evaluator only *checks* the declared structure
+  (polynomial model checking), and every rejection carries a concrete
+  counterexample — a surviving derivation path, an unattacked relation, an
+  uncovered node — never a bare "invalid".
+- **The motivating check is decidable.** "Does assertion A rebut assertion
+  B exhaustively?" is answered in two selectable senses via `:要求` —
+  `被覆` (every relation attacked) and `遮断` (every 前提→ルート path cut).
+  The 撤退論/継続論 example accepts a complete frame, then, with one attack
+  removed, rejects with the exact surviving path / unattacked relation.
+- **Malformed structure is refused with the reason.** Mixed logic kinds,
+  cyclic 時間的 assertions, non-monotonic `:時点`, unbalanced 移動的
+  transfer, `:種`-mixed assertions, straw-man attacks on undeclared
+  relations, and mistyped attacks are each compile errors naming the
+  offense.
+- **Acceptance is a computed extension.** At the structure level the Dung
+  grounded extension over the attack graph yields the surviving set; the
+  canonical `(plgg-ir-thesis 1 …)` IR normalizes deterministically and
+  idempotently. `plgg-ir-manifest` is never touched.
+
 ## Acceptance
 
 <!-- Ticket filenames are appended to each item as the tickets are cut at /ticket time. -->
 
 - [ ] `plgg-ir-syntax` tokenizes Japanese symbols/keywords with correct
       source positions; parse–print round-trip holds for the reference
-      examples
+      examples (#20260719011208-thesis-syntax-japanese-tokenizer.md)
 - [ ] Thesis vocabulary is closed: unknown forms/attributes are
-      rejected; assertions with mixed logic kinds are compile errors
+      rejected; assertions with mixed logic kinds are compile errors (#20260719011209-thesis-package-and-closed-vocabulary.md)
 - [ ] Per-logic frame conditions enforced: a cyclic 時間的 assertion,
       a non-monotonic `:時点` sequence, an unbalanced 移動的 transfer
       (without declared 変換), and a `:種`-mixed assertion are each
-      rejected with the expected diagnostic
+      rejected with the expected diagnostic (#20260719011210-per-assertion-logic-frame-conditions.md)
 - [ ] Attack reference closure: an attack on an undeclared relation is
-      a binding error naming the declared alternatives (straw-man case)
+      a binding error naming the declared alternatives (straw-man case) (#20260719011211-attack-reference-closure-and-typing.md)
 - [ ] Rebuttal completeness under `(被覆 関係)` and `(遮断 前提→ルート)`:
       the 撤退論/継続論 example accepts complete frames and, with one
       attack removed, rejects with "unattacked r3" (被覆) and
-      "surviving path 競合参入 →r3→ 撤退判断" (遮断) respectively
+      "surviving path 競合参入 →r3→ 撤退判断" (遮断) respectively (#20260719011213-requirement-model-checker.md)
 - [ ] Framework totality (全対応), circular reasoning, intra-stance
       contradiction, blind-spot (多面性), analogy simulation, and frame
       composition commutativity each accept/reject their catalog case
-      with a counterexample diagnostic
+      with a counterexample diagnostic (#20260719011213-requirement-model-checker.md)
 - [ ] Dung grounded extension computed at the structure level; the
-      three-thesis catalog case yields the specified surviving set
+      three-thesis catalog case yields the specified surviving set (#20260719011214-structure-grounded-extension-canonical-ir.md)
 - [ ] Canonical `(plgg-ir-thesis 1 ...)` IR: deterministic, idempotent
       normalization under property tests; no changes to
-      `plgg-ir-manifest`; dependency direction preserved
+      `plgg-ir-manifest`; dependency direction preserved (#20260719011214-structure-grounded-extension-canonical-ir.md)
 - [ ] Documentation guide page published under `docs/` alongside the
-      plgg-ir guide
+      plgg-ir guide (#20260719011215-catalog-acceptance-and-guide.md)
 
 ## Changelog
 
@@ -128,3 +156,12 @@ Out of scope:
 
 - 2026-07-17 — Mission created from the strategy-book metamodel formal-semantics discussion (modal-logic semantics, 13-case verification catalog, Japanese-keyword IR sketches); condensed design captured in design.md
 - 2026-07-17 — story reported — work-20260717-014330.md
+- 2026-07-19 — ticket added — 20260719011208-thesis-syntax-japanese-tokenizer.md
+- 2026-07-19 — ticket added — 20260719011209-thesis-package-and-closed-vocabulary.md
+- 2026-07-19 — ticket added — 20260719011210-per-assertion-logic-frame-conditions.md
+- 2026-07-19 — ticket added — 20260719011211-attack-reference-closure-and-typing.md
+- 2026-07-19 — ticket added — 20260719011212-frame-simulation-totality-composition.md
+- 2026-07-19 — ticket added — 20260719011213-requirement-model-checker.md
+- 2026-07-19 — ticket added — 20260719011214-structure-grounded-extension-canonical-ir.md
+- 2026-07-19 — ticket added — 20260719011215-catalog-acceptance-and-guide.md
+- 2026-07-19 — mission replanned — mission.md
