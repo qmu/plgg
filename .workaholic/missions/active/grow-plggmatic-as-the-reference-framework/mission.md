@@ -123,3 +123,4 @@ _Self-contained — drivable from this repo alone._
 <!-- Append-only, dated timeline. -->
 - 2026-07-19 — ticket added — 20260719022859-forms-demo-driven-by-declared-form-surface.md
 - 2026-07-19 — mission replanned — mission.md
+- 2026-07-19 — ticket archived — 20260719022859-forms-demo-driven-by-declared-form-surface.md
