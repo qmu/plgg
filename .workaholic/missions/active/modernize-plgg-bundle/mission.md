@@ -5,6 +5,8 @@ slug: modernize-plgg-bundle
 status: active
 created_at: 2026-07-13T11:35:10+09:00
 author: a@qmu.jp
+assignee: a@qmu.jp
+drive_authorized: true
 tickets: []
 stories: []
 concerns: []
@@ -41,16 +43,26 @@ Concretely, today's costs (measured 2026-07-13 during the PR #66 ship):
 - Any new dependency (vendor-neutrality pillar) or hosted-CI-owned publishing (Local CI/CD Execution policy keeps releases script-driven from /ship).
 - The npm registry's own propagation latency (the resolve-poll can shrink but not disappear).
 
+## Experience
+
+The demanded end-state is a **fast, quiet, trustworthy release routine** and a bundler that runs from what it ships. Each behavior below is observable:
+
+- **Publish is sub-minute and readable.** Running the release path for a single bumped package prints its publish set in ≤5s and completes stage → publish → verify in ≤60s wall clock (registry propagation aside, which is reported), emitting one compact status line per phase — no `===` banner walls, no raw `npm notice` spew, no `MODULE_TYPELESS_PACKAGE_JSON` lines in the output.
+- **The gate never re-runs for nothing.** After a green `check-all`, the next publish skips the gate and says so; any tracked source edit invalidates that stamp and the gate runs again — without a human remembering `SKIP_GATE=1`.
+- **The bin runs from a compiled dist.** In a real registry install, `plgg-bundle` runs from `dist/` with no `relocate.mjs` present and no `/tmp/plgg-relocate-*` directory created; an edited-then-rebuilt source is reflected on the next run (no silent stale-copy mask).
+- **The bundler's shape is derived, not executed.** The ESM export surface is computed statically (no `vm` run of the CJS bundle); the externals table is an explicit, tested contract rather than a printer-shape string match; every publish prints per-artifact raw + gzip size.
+- **Builds are clean.** A full `build.sh` emits zero `MODULE_TYPELESS_PACKAGE_JSON` warnings, silenced structurally in the config loader rather than by suppressing stderr.
+
 ## Acceptance
 
-- [ ] Preflight computes and prints the publish set in ≤5s over all packages, in one Node process with parallel registry queries (ticket TBD)
-- [ ] A single-package publish with a same-session green gate completes end-to-end (stage → publish → verify) in ≤60s wall clock with structured, banner-free output (ticket TBD)
-- [ ] The check-all gate auto-skips on a recorded same-session green run — `SKIP_GATE=1` is no longer something a human must remember (ticket TBD)
-- [ ] plgg-bundle's bin runs from a compiled dist in a real registry install — `relocate.mjs` and the /tmp relocate cache are deleted (ticket TBD)
-- [ ] Export surface for the ESM emit is derived statically; `vendors/runner.ts` execute-to-discover is retired (concern 47/51-export-surface closed) (ticket TBD)
-- [ ] Published bundles are minified or their size is measured and accepted in the story; size is printed per publish (concern 47/51-published-library closed) (ticket TBD)
-- [ ] The emitted registry/externals-table shape is an explicit tested contract; the flatten-time key rewrite no longer pattern-matches TS-printer incidentals (PR #66 concern closed) (ticket TBD)
-- [ ] Package builds emit no MODULE_TYPELESS_PACKAGE_JSON warnings (ticket TBD)
+- [ ] Preflight computes and prints the publish set in ≤5s over all packages, in one Node process with parallel registry queries (#20260718210512-publish-parallel-preflight-one-node-process.md)
+- [ ] A single-package publish with a same-session green gate completes end-to-end (stage → publish → verify) in ≤60s wall clock with structured, banner-free output (#20260718210514-publish-structured-output-sub-60s.md)
+- [ ] The check-all gate auto-skips on a recorded same-session green run — `SKIP_GATE=1` is no longer something a human must remember (#20260718210513-check-all-same-session-green-stamp.md)
+- [ ] plgg-bundle's bin runs from a compiled dist in a real registry install — `relocate.mjs` and the /tmp relocate cache are deleted (#20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md)
+- [ ] Export surface for the ESM emit is derived statically; `vendors/runner.ts` execute-to-discover is retired (concern 47/51-export-surface closed) (#20260718210516-static-export-surface-retire-runner-vm.md)
+- [ ] Published bundles are minified or their size is measured and accepted in the story; size is printed per publish (concern 47/51-published-library closed) (#20260718210518-bundle-size-measured-printed-per-publish.md)
+- [ ] The emitted registry/externals-table shape is an explicit tested contract; the flatten-time key rewrite no longer pattern-matches TS-printer incidentals (PR #66 concern closed) (#20260718210517-externals-table-tested-contract.md)
+- [ ] Package builds emit no MODULE_TYPELESS_PACKAGE_JSON warnings (#20260718210519-fix-typeless-config-loader-warning.md)
 
 ## Changelog
 
@@ -59,3 +71,12 @@ Concretely, today's costs (measured 2026-07-13 during the PR #66 ship):
 - 2026-07-15 — ticket archived — 20260714214624-plggpress-first-class-dev-command.md
 - 2026-07-15 — ticket archived — 20260715022802-migrate-guide-and-strategy-onto-plggpress-dev.md
 - 2026-07-15 — ticket archived — 20260715023339-guide-dev-server-scans-its-own-dist.md
+- 2026-07-18 — ticket added — 20260718210512-publish-parallel-preflight-one-node-process.md
+- 2026-07-18 — ticket added — 20260718210513-check-all-same-session-green-stamp.md
+- 2026-07-18 — ticket added — 20260718210514-publish-structured-output-sub-60s.md
+- 2026-07-18 — ticket added — 20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md
+- 2026-07-18 — ticket added — 20260718210516-static-export-surface-retire-runner-vm.md
+- 2026-07-18 — ticket added — 20260718210517-externals-table-tested-contract.md
+- 2026-07-18 — ticket added — 20260718210518-bundle-size-measured-printed-per-publish.md
+- 2026-07-18 — ticket added — 20260718210519-fix-typeless-config-loader-warning.md
+- 2026-07-18 — mission replanned — mission.md
