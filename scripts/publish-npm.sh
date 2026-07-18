@@ -61,64 +61,26 @@ if [ -n "$ONLY_PACKAGES" ]; then
 fi
 
 # === Preflight: compute the publish set (local version > registry) up front ===
-# Read-only: one `npm view` per package, no build, no publish. This is the
-# source of truth for what the real run below will publish, and — via
-# PREFLIGHT=1 — what /ship inspects to decide whether to ask the developer.
+# Delegated to scripts/publish.ts: ONE Node process that reads every
+# package.json in-process and issues the registry-version queries
+# CONCURRENTLY (was: a serial per-package `npm view` + ~3 `node -p` fork storm,
+# tens of seconds of banner spew). It prints the structured PUBLISH/SKIP/private
+# summary and writes the publish-set dirs (build.sh's topology, in order) to
+# $SET_FILE for the staging loop below. Read-only: no build, no publish. This is
+# the source of truth for what the real run publishes and — via PREFLIGHT=1 —
+# what /ship inspects to decide whether to ask the developer.
 echo "=== Preflight: comparing local vs registry versions ==="
 if [ -n "$ONLY_PACKAGES" ]; then
   echo "=== Publish filter: ONLY=$ONLY_PACKAGES ==="
 fi
-PUBLISH_SET=""
-SKIPPED=""
-PRIVATE_SKIPPED=""
-
-for PKG in $ORDER; do
-  if [ -n "$ONLY_PACKAGES" ] && ! contains_word "$PKG" "$ONLY_PACKAGES"; then
-    continue
-  fi
-
-  DIR="$REPO_ROOT/packages/$PKG"
-  NAME=$(node -p "require('$DIR/package.json').name")
-  VERSION=$(node -p "require('$DIR/package.json').version")
-  PRIVATE=$(node -p "require('$DIR/package.json').private === true")
-
-  if [ "$PRIVATE" = "true" ]; then
-    PRIVATE_SKIPPED="$PRIVATE_SKIPPED $NAME"
-    continue
-  fi
-
-  REMOTE=$(npm view "$NAME" version 2>/dev/null || echo "none")
-  NEWER=$(node -e "
-    const l = '$VERSION'.split('.').map(Number);
-    const r = '$REMOTE' === 'none' ? [-1, 0, 0] : '$REMOTE'.split('.').map(Number);
-    for (let i = 0; i < 3; i++) {
-      const a = l[i] || 0, b = r[i] || 0;
-      if (a > b) { console.log('yes'); process.exit(0); }
-      if (a < b) break;
-    }
-    console.log('no');
-  ")
-  if [ "$NEWER" = "yes" ]; then
-    PUBLISH_SET="$PUBLISH_SET $PKG"
-    echo "  PUBLISH  $NAME  $REMOTE -> $VERSION"
-  else
-    SKIPPED="$SKIPPED $NAME@$VERSION"
-  fi
-done
-
-echo ""
-echo "=== Preflight summary ==="
-if [ -n "$PUBLISH_SET" ]; then
-  for PKG in $PUBLISH_SET; do
-    NAME=$(node -p "require('$REPO_ROOT/packages/$PKG/package.json').name")
-    VERSION=$(node -p "require('$REPO_ROOT/packages/$PKG/package.json').version")
-    echo "  will publish: $NAME@$VERSION"
-  done
+SET_FILE=$(mktemp "$REPO_ROOT/.publish-set.XXXXXX")
+if [ -n "$ONLY_PACKAGES" ]; then
+  node scripts/publish.ts --preflight --set-out "$SET_FILE" --only "$ONLY_PACKAGES"
 else
-  echo "  will publish: (none)"
+  node scripts/publish.ts --preflight --set-out "$SET_FILE"
 fi
-echo "  skip (already current):${SKIPPED:- (none)}"
-echo "  private (never):${PRIVATE_SKIPPED:- (none)}"
+PUBLISH_SET=$(cat "$SET_FILE")
+rm -f "$SET_FILE"
 
 # PREFLIGHT mode: report only — never gate, never publish. This is what /ship
 # runs to decide whether to prompt the developer (a non-empty publish set means
@@ -270,5 +232,4 @@ done
 
 echo ""
 echo "=== Published:${PUBLISHED:- (none)} ==="
-echo "=== Skipped (already current):${SKIPPED:- (none)} ==="
 echo "\n=== All shell scripts have been executed successfully ==="

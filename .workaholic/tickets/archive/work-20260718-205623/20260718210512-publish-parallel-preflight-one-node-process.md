@@ -5,7 +5,7 @@ type: refactoring
 layer: [Infrastructure, Config]
 effort: 4h
 commit_hash:
-category: Changed
+category: Added
 depends_on:
 mission: modernize-plgg-bundle
 ---

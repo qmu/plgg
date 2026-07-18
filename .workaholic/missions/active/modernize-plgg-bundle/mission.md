@@ -55,7 +55,7 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 
 ## Acceptance
 
-- [ ] Preflight computes and prints the publish set in ≤5s over all packages, in one Node process with parallel registry queries (#20260718210512-publish-parallel-preflight-one-node-process.md)
+- [x] Preflight computes and prints the publish set in ≤5s over all packages, in one Node process with parallel registry queries (#20260718210512-publish-parallel-preflight-one-node-process.md)
 - [ ] A single-package publish with a same-session green gate completes end-to-end (stage → publish → verify) in ≤60s wall clock with structured, banner-free output (#20260718210514-publish-structured-output-sub-60s.md)
 - [ ] The check-all gate auto-skips on a recorded same-session green run — `SKIP_GATE=1` is no longer something a human must remember (#20260718210513-check-all-same-session-green-stamp.md)
 - [ ] plgg-bundle's bin runs from a compiled dist in a real registry install — `relocate.mjs` and the /tmp relocate cache are deleted (#20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md)
@@ -80,3 +80,4 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 - 2026-07-18 — ticket added — 20260718210518-bundle-size-measured-printed-per-publish.md
 - 2026-07-18 — ticket added — 20260718210519-fix-typeless-config-loader-warning.md
 - 2026-07-18 — mission replanned — mission.md
+- 2026-07-19 — ticket archived — 20260718210512-publish-parallel-preflight-one-node-process.md

@@ -7,6 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Publish preflight scratch: the publish-set dirs scripts/publish.ts writes for
+# publish-npm.sh to consume (normally removed within the run).
+.publish-set.*
+
 # Build outputs
 **/dist/
 # Transient staging/backup dirs from plgg-bundle's atomic dist publish

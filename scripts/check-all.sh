@@ -25,6 +25,14 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # scripts/vendor-boundary-exemptions.txt).
 ./scripts/gate-vendor-boundary.sh
 
+# Gate: the repository's own TS tooling scripts (scripts/*.ts — the publish
+# preflight and its pure helpers) typecheck strictly and their unit tests pass.
+# They run under Node's native type-stripping; the typecheck uses the build
+# tool's own TypeScript (plgg-bundle/node_modules, bootstrapped by the
+# vendor-boundary gate above). No `as`/`any` escape hatch survives this.
+node "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript/bin/tsc" -p scripts/tsconfig.json
+node --test scripts/*.spec.ts
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh
