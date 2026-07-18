@@ -5,7 +5,8 @@ slug: grow-plggmatic-as-the-reference-framework
 status: active
 created_at: 2026-07-18T23:00:00+09:00
 author: a@qmu.jp
-assignee:
+assignee: a@qmu.jp
+drive_authorized: true
 tickets: []
 stories: []
 concerns: []
@@ -63,7 +64,30 @@ the 0.2.0 lineage was an interim qfs-viewer-hosted build and is not continued
 here). Publishing is a gated release step — a mission ticket that ships a
 framework change bumps the patch and the release cuts the publish.
 
-## Acceptance (self-contained — drivable from this repo alone)
+## Experience
+
+plggmatic is a horizontal-orientation UI framework proven against a living
+reference (demo1, a contract-management app declared from scratch and drawn as
+a multi-column strip). The demanded behavior is observable:
+
+- **The reference is declared, not hand-built.** demo1's whole program is a
+  plggmatic DECLARATION (menu, collection, query, action, form) scheduled into
+  a plgg-view program; a form/menu the reference uses is driven by a **declared
+  framework surface**, not special-cased in the example — a form found in the
+  reference is expressible in the framework.
+- **Depth does not consume the viewport.** The horizontal strip grows columns
+  as the user drills in (measured 2026-07-17: eight columns / 1751px strip at
+  420×640) while the body width stays invariant — the reference's central,
+  regression-tested DOM claim.
+- **It is followable live.** `npm run dev` serves the reference at :51820 with
+  hot reload; an edit to the framework or the reference is seen immediately,
+  and the live host returns the exhibit at `plggmatic-reference.qmu.dev`.
+- **It publishes from this repo.** The npm `plggmatic` is the plgg-lineage
+  build (0.2.1+), `repository` = `qmu/plgg`.
+
+## Acceptance
+
+_Self-contained — drivable from this repo alone._
 
 - [ ] The reference (demo1) builds and serves from this repo with hot reload
       (`npm run dev` → 51820), and the live host returns the exhibit (not a 302
@@ -72,7 +96,7 @@ framework change bumps the patch and the release cuts the publish.
       local dev command), so a developer opening plgg reaches it from the docs.
 - [ ] A framework capability the reference needs is expressed **generally** in
       plggmatic (not special-cased in the example) — at least one form/menu the
-      reference uses is driven by a declared framework surface, with a test.
+      reference uses is driven by a declared framework surface, with a test. (#20260719022859-forms-demo-driven-by-declared-form-surface.md)
 - [ ] The published npm `plggmatic` is the plgg-lineage build (0.2.1+), and its
       `repository` points at `qmu/plgg`.
 
@@ -93,3 +117,9 @@ framework change bumps the patch and the release cuts the publish.
   strip reaches eight columns / 1751px strip width with the body width invariant
   ("depth does not consume the viewport") — that DOM fact is the reference's
   central claim and a regression target.
+
+## Changelog
+
+<!-- Append-only, dated timeline. -->
+- 2026-07-19 — ticket added — 20260719022859-forms-demo-driven-by-declared-form-surface.md
+- 2026-07-19 — mission replanned — mission.md
