@@ -113,3 +113,4 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-19 — ticket archived — 20260719110000-scaffold-proof-example-package.md
 - 2026-07-19 — ticket archived — 20260719110001-verify-rebuttal-completeness-severing-coverage.md
 - 2026-07-19 — ticket archived — 20260719110002-author-flagship-rebuttal-example.md
+- 2026-07-19 — ticket archived — 20260719110003-dung-grounded-extension-survival.md
