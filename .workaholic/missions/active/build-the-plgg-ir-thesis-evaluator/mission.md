@@ -127,7 +127,7 @@ at the compiler boundary:
 - [x] (#20260719011210-per-assertion-logic-frame-conditions.md) Per-logic frame conditions enforced: a cyclic 時間的 assertion, a non-monotonic `:時点` sequence, an unbalanced 移動的 transfer (without declared 変換), and a `:種`-mixed assertion are each rejected with the expected diagnostic
 - [x] (#20260719011211-attack-reference-closure-and-typing.md) Attack reference closure: an attack on an undeclared relation is a binding error naming the declared alternatives (straw-man case)
 - [ ] (#20260719011213-requirement-model-checker.md) Rebuttal completeness under `(被覆 関係)` and `(遮断 前提→ルート)`: the 撤退論/継続論 example accepts complete frames and, with one attack removed, rejects with "unattacked r3" (被覆) and "surviving path 競合参入 →r3→ 撤退判断" (遮断) respectively
-- [ ] (#20260719011212-frame-simulation-totality-composition.md) Framework totality (全対応), analogy simulation (類推), and frame composition commutativity (可換/合成) each accept/reject their catalog case with a counterexample diagnostic
+- [x] (#20260719011212-frame-simulation-totality-composition.md) Framework totality (全対応), analogy simulation (類推), and frame composition commutativity (可換/合成) each accept/reject their catalog case with a counterexample diagnostic
 - [ ] (#20260719011213-requirement-model-checker.md) Circular reasoning, intra-stance contradiction, and blind-spot (多面性) each accept/reject their catalog case with a counterexample diagnostic
 - [ ] (#20260719011214-structure-grounded-extension-canonical-ir.md) Dung grounded extension computed at the structure level; the three-thesis catalog case yields the specified surviving set
 - [ ] (#20260719011214-structure-grounded-extension-canonical-ir.md) Canonical `(plgg-ir-thesis 1 ...)` IR: deterministic, idempotent normalization under property tests; no changes to `plgg-ir-manifest`; dependency direction preserved
@@ -153,3 +153,4 @@ at the compiler boundary:
 - 2026-07-19 — ticket archived — 20260719011209-thesis-package-and-closed-vocabulary.md
 - 2026-07-19 — ticket archived — 20260719011210-per-assertion-logic-frame-conditions.md
 - 2026-07-19 — ticket archived — 20260719011211-attack-reference-closure-and-typing.md
+- 2026-07-19 — ticket archived — 20260719011212-frame-simulation-totality-composition.md

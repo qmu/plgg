@@ -152,3 +152,40 @@ export const codeAttackUnresolved =
  */
 export const codeAttackTypeMismatch =
   "thesis.attack-type-mismatch";
+
+/**
+ * A 類推 (analogy) frame's declared correspondence names a
+ * concept neither `:接続元` nor `:接続先` assertion
+ * declares — the mapping cannot be checked (design.md
+ * §5.7). The diagnostic names the offending side.
+ */
+export const codeCorrespondenceUnresolved =
+  "thesis.correspondence-unresolved";
+
+/**
+ * A 類推 (analogy) frame's declared simulation fails the
+ * local condition: a source edge has no matching edge
+ * between the images of its endpoints (design.md §2,
+ * §5.7). The diagnostic names the first unmatched step.
+ */
+export const codeSimulationUnmatched =
+  "thesis.simulation-unmatched";
+
+/**
+ * A 全対応 (framework totality) frame has a declared
+ * problem node with no countermeasure step — the
+ * `□(問題 → ⟨対策⟩⊤)` violation (design.md §5.2). The
+ * diagnostic names the unaddressed node.
+ */
+export const codeTotalityGap =
+  "thesis.totality-gap";
+
+/**
+ * A 合成 (composition) frame diverges from the composition
+ * of its declared parts: a missing part, a non-chaining
+ * pair, or endpoints that disagree with the parts'
+ * outer endpoints (design.md §5.11 可換/合成). The
+ * diagnostic names the divergence.
+ */
+export const codeCompositionDivergent =
+  "thesis.composition-divergent";

@@ -134,3 +134,27 @@ test("a nameless attack is rejected", () =>
     "(フレーム F :接続元 A :接続先 B (攻撃))",
     ["thesis.bad-attack"],
   ));
+
+test("a 対応 with no concepts is rejected", () =>
+  rejects(
+    "(フレーム F :種別 類推 :接続元 A :接続先 B (対応))",
+    ["thesis.bad-frame"],
+  ));
+
+test("a 対応 missing its target concept is rejected", () =>
+  rejects(
+    "(フレーム F :種別 類推 :接続元 A :接続先 B (対応 s1))",
+    ["thesis.bad-frame"],
+  ));
+
+test("a nameless 問題 is rejected", () =>
+  rejects(
+    "(フレーム F :種別 全対応 :接続元 A :接続先 B (問題))",
+    ["thesis.bad-frame"],
+  ));
+
+test("a nameless 部分 is rejected", () =>
+  rejects(
+    "(フレーム F :種別 合成 :接続元 A :接続先 B (部分))",
+    ["thesis.bad-frame"],
+  ));
