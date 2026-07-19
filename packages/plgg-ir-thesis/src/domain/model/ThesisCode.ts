@@ -127,3 +127,28 @@ export const codeSortMixed = "thesis.sort-mixed";
  */
 export const codeUnknownSort =
   "thesis.unknown-sort";
+
+/**
+ * A frame's `:接続先` target names no declared assertion,
+ * so its attacks cannot be reference-closed.
+ */
+export const codeUnresolvedTarget =
+  "thesis.unresolved-target";
+
+/**
+ * An attack references a target (relation or concept)
+ * that the target assertion does not declare — the
+ * straw-man rejection (design.md §5.6): a binding error,
+ * not a lint. The diagnostic names the declared
+ * alternatives.
+ */
+export const codeAttackUnresolved =
+  "thesis.attack-unresolved";
+
+/**
+ * An attack's type does not match the kind of target it
+ * may attack (design.md §4): 反駁 → root concept,
+ * 切り崩し / 掘り崩し → a declared relation.
+ */
+export const codeAttackTypeMismatch =
+  "thesis.attack-type-mismatch";

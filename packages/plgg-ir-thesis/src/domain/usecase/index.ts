@@ -4,6 +4,7 @@ export * from "plgg-ir-thesis/domain/usecase/analyzeAssertion";
 export * from "plgg-ir-thesis/domain/usecase/analyzeFrame";
 export * from "plgg-ir-thesis/domain/usecase/graph";
 export * from "plgg-ir-thesis/domain/usecase/verifyLogicFrame";
+export * from "plgg-ir-thesis/domain/usecase/verifyFrameAttacks";
 export * from "plgg-ir-thesis/domain/usecase/verifyThesis";
 export * from "plgg-ir-thesis/domain/usecase/thesisForms";
 export * from "plgg-ir-thesis/domain/usecase/thesisDialect";

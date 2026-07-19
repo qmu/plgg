@@ -4,6 +4,7 @@ import {
   isAssertionNode,
 } from "plgg-ir-thesis/domain/model";
 import { verifyAssertionFrame } from "plgg-ir-thesis/domain/usecase/verifyLogicFrame";
+import { verifyFrameAttacks } from "plgg-ir-thesis/domain/usecase/verifyFrameAttacks";
 
 type Diags = ReadonlyArray<SemDiagnostic>;
 
@@ -13,15 +14,18 @@ type Diags = ReadonlyArray<SemDiagnostic>;
  * the fully structurally-analyzed node list and returns
  * ranged counterexample diagnostics; an empty result
  * accepts the thesis. Pass ② (per-assertion logic frame
- * conditions) is wired here; the frame-level and
+ * conditions) and the pass-③ attack reference closure +
+ * typing are wired here; the remaining frame-level and
  * structure-level passes are added over the following
  * tickets.
  */
 export const verifyThesis = (
   nodes: ReadonlyArray<ThesisNode>,
-): Diags =>
-  nodes
+): Diags => [
+  ...nodes
     .filter(isAssertionNode)
     .flatMap((n) =>
       verifyAssertionFrame(n.content),
-    );
+    ),
+  ...verifyFrameAttacks(nodes),
+];
