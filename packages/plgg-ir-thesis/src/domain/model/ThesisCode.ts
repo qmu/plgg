@@ -189,3 +189,56 @@ export const codeTotalityGap =
  */
 export const codeCompositionDivergent =
   "thesis.composition-divergent";
+
+/**
+ * A frame's `:要求` requirement head is not one of the
+ * evaluable modes 被覆 / 遮断 / 多面性 (design.md §5.1,
+ * §5.5). The diagnostic names the modes.
+ */
+export const codeBadRequirement =
+  "thesis.bad-requirement";
+
+/**
+ * Rebuttal completeness under `被覆` (coverage) fails: a
+ * relation of the target assertion has no declared attack
+ * (design.md §5.1). The diagnostic names the unattacked
+ * relation.
+ */
+export const codeCoverageGap =
+  "thesis.coverage-gap";
+
+/**
+ * Rebuttal completeness under `遮断` (severing) fails: a
+ * 前提→ルート derivation path survives the attacked set
+ * (design.md §5.1). The diagnostic names the surviving
+ * path.
+ */
+export const codeSeveringSurvives =
+  "thesis.severing-survives";
+
+/**
+ * Blind-spot detection (`多面性 n`, design.md §5.5): a
+ * concept is reachable from fewer than `n` distinct
+ * stances. The diagnostic names the under-covered concept.
+ */
+export const codePerspectivityGap =
+  "thesis.perspectivity-gap";
+
+/**
+ * Circular reasoning (design.md §5.3): an assertion
+ * depends on itself through the `依存` (dependency) frame
+ * graph — the `¬⟨依存*⟩self` violation. The diagnostic
+ * names the cycle.
+ */
+export const codeCircularReasoning =
+  "thesis.circular-reasoning";
+
+/**
+ * Intra-stance contradiction (design.md §5.4): a `反論`
+ * frame attacks between two assertions of the **same**
+ * `:立場` — the stance contradicts itself
+ * (`□ₛp ∧ □ₛ¬p`). Cross-stance conflicts are surfaced,
+ * not rejected. The diagnostic names the two assertions.
+ */
+export const codeStanceContradiction =
+  "thesis.stance-contradiction";

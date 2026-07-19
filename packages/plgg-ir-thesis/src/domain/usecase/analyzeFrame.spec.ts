@@ -62,7 +62,7 @@ const TARGET =
 test("a well-formed frame is accepted with its attacks", () =>
   check(
     oneFrame(
-      `${TARGET} (フレーム F :種別 反論 :接続元 A :接続先 B :要求 (遮断 x) (攻撃 s1 反駁 R) (攻撃 s2 切り崩し r2))`,
+      `${TARGET} (フレーム F :種別 反論 :接続元 A :接続先 B (攻撃 s1 反駁 R) (攻撃 s2 切り崩し r2))`,
     ).map((f) => [
       f.from,
       f.to,

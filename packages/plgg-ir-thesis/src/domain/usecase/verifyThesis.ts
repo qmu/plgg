@@ -6,6 +6,7 @@ import {
 import { verifyAssertionFrame } from "plgg-ir-thesis/domain/usecase/verifyLogicFrame";
 import { verifyFrameAttacks } from "plgg-ir-thesis/domain/usecase/verifyFrameAttacks";
 import { verifyFrameRelations } from "plgg-ir-thesis/domain/usecase/verifyFrameRelations";
+import { verifyModelChecks } from "plgg-ir-thesis/domain/usecase/verifyRequirements";
 
 type Diags = ReadonlyArray<SemDiagnostic>;
 
@@ -15,10 +16,11 @@ type Diags = ReadonlyArray<SemDiagnostic>;
  * the fully structurally-analyzed node list and returns
  * ranged counterexample diagnostics; an empty result
  * accepts the thesis. Pass ② (per-assertion logic frame
- * conditions) and pass ③ (attack reference closure +
- * typing, then frame simulation / totality / composition)
- * are wired here; the model-checking and structure-level
- * passes are added over the following tickets.
+ * conditions), pass ③ (attack reference closure + typing,
+ * then frame simulation / totality / composition), and
+ * pass ④ (`:要求` model checking, circular reasoning,
+ * intra-stance consistency) are wired here; the
+ * structure-level pass is added in the following ticket.
  */
 export const verifyThesis = (
   nodes: ReadonlyArray<ThesisNode>,
@@ -30,4 +32,5 @@ export const verifyThesis = (
     ),
   ...verifyFrameAttacks(nodes),
   ...verifyFrameRelations(nodes),
+  ...verifyModelChecks(nodes),
 ];

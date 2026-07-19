@@ -29,7 +29,7 @@ const T0 =
  * (`:接続先 T`).
  */
 const withFrame = (attacks: string): string =>
-  `${T} (フレーム F :接続元 X :接続先 T :要求 (遮断 x) ${attacks})`;
+  `${T} (フレーム F :接続元 X :接続先 T ${attacks})`;
 
 const accepts = (source: string) =>
   check(
