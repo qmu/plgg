@@ -27,6 +27,10 @@ cd $REPO_ROOT/packages/plgg-ir-language && npm run build
 # plgg-ir-manifest after plgg-ir-language: the Domain Manifest dialect is
 # defined with the framework's registries and pipeline.
 cd $REPO_ROOT/packages/plgg-ir-manifest && npm run build
+# plgg-ir-thesis after plgg-ir-language: the Thesis dialect (argumentation
+# evaluator), a sibling of the manifest dialect on the same framework. It
+# file:-depends on plgg + plgg-ir-syntax + plgg-ir-language (not the manifest).
+cd $REPO_ROOT/packages/plgg-ir-thesis && npm run build
 cd $REPO_ROOT/packages/plgg-kit && npm run build
 # plgg-foundry after plgg-kit: it consumes plgg-kit's dist (and plgg core).
 # Now built in-house, so it joins the ordered set (was previously ad-hoc).

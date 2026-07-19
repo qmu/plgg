@@ -123,7 +123,7 @@ at the compiler boundary:
 <!-- Ticket filenames are appended to each item as the tickets are cut at /ticket time. -->
 
 - [x] (#20260719011208-thesis-syntax-japanese-tokenizer.md) `plgg-ir-syntax` tokenizes Japanese symbols/keywords with correct source positions; parse–print round-trip holds for the reference examples
-- [ ] (#20260719011209-thesis-package-and-closed-vocabulary.md) Thesis vocabulary is closed: unknown forms/attributes are rejected; assertions with mixed logic kinds are compile errors
+- [x] (#20260719011209-thesis-package-and-closed-vocabulary.md) Thesis vocabulary is closed: unknown forms/attributes are rejected; assertions with mixed logic kinds are compile errors
 - [ ] (#20260719011210-per-assertion-logic-frame-conditions.md) Per-logic frame conditions enforced: a cyclic 時間的 assertion, a non-monotonic `:時点` sequence, an unbalanced 移動的 transfer (without declared 変換), and a `:種`-mixed assertion are each rejected with the expected diagnostic
 - [ ] (#20260719011211-attack-reference-closure-and-typing.md) Attack reference closure: an attack on an undeclared relation is a binding error naming the declared alternatives (straw-man case)
 - [ ] (#20260719011213-requirement-model-checker.md) Rebuttal completeness under `(被覆 関係)` and `(遮断 前提→ルート)`: the 撤退論/継続論 example accepts complete frames and, with one attack removed, rejects with "unattacked r3" (被覆) and "surviving path 競合参入 →r3→ 撤退判断" (遮断) respectively
@@ -150,3 +150,4 @@ at the compiler boundary:
 - 2026-07-19 — ticket added — 20260719011215-catalog-acceptance-and-guide.md
 - 2026-07-19 — mission replanned — mission.md
 - 2026-07-19 — ticket archived — 20260719011208-thesis-syntax-japanese-tokenizer.md
+- 2026-07-19 — ticket archived — 20260719011209-thesis-package-and-closed-vocabulary.md
