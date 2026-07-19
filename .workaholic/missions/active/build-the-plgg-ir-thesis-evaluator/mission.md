@@ -131,7 +131,7 @@ at the compiler boundary:
 - [x] (#20260719011213-requirement-model-checker.md) Circular reasoning, intra-stance contradiction, and blind-spot (多面性) each accept/reject their catalog case with a counterexample diagnostic
 - [x] (#20260719011214-structure-grounded-extension-canonical-ir.md) Dung grounded extension computed at the structure level; the three-thesis catalog case yields the specified surviving set
 - [x] (#20260719011214-structure-grounded-extension-canonical-ir.md) Canonical `(plgg-ir-thesis 1 ...)` IR: deterministic, idempotent normalization under property tests; no changes to `plgg-ir-manifest`; dependency direction preserved
-- [ ] (#20260719011215-catalog-acceptance-and-guide.md) Documentation guide page published under `docs/` alongside the plgg-ir guide
+- [x] (#20260719011215-catalog-acceptance-and-guide.md) Documentation guide page published under `docs/` alongside the plgg-ir guide
 
 ## Changelog
 
@@ -156,3 +156,4 @@ at the compiler boundary:
 - 2026-07-19 — ticket archived — 20260719011212-frame-simulation-totality-composition.md
 - 2026-07-19 — ticket archived — 20260719011213-requirement-model-checker.md
 - 2026-07-19 — ticket archived — 20260719011214-structure-grounded-extension-canonical-ir.md
+- 2026-07-19 — ticket archived — 20260719011215-catalog-acceptance-and-guide.md
