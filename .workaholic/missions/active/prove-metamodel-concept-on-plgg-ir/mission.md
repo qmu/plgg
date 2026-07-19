@@ -110,3 +110,4 @@ _Self-contained — drivable from this repo alone._
 
 <!-- Append-only, dated timeline. -->
 - 2026-07-19 — mission created — mission.md
+- 2026-07-19 — ticket archived — 20260719110000-scaffold-proof-example-package.md

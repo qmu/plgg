@@ -31,6 +31,10 @@ cd $REPO_ROOT/packages/plgg-ir-manifest && npm run build
 # evaluator), a sibling of the manifest dialect on the same framework. It
 # file:-depends on plgg + plgg-ir-syntax + plgg-ir-language (not the manifest).
 cd $REPO_ROOT/packages/plgg-ir-thesis && npm run build
+# plgg-ir-thesis-proof after plgg-ir-thesis: the runnable formal-proof worked
+# example consumes the thesis model's dist (主張/関係/フレーム/攻撃 + the graph
+# util), so the thesis dist must exist before it builds.
+cd $REPO_ROOT/packages/plgg-ir-thesis-proof && npm run build
 cd $REPO_ROOT/packages/plgg-kit && npm run build
 # plgg-foundry after plgg-kit: it consumes plgg-kit's dist (and plgg core).
 # Now built in-house, so it joins the ordered set (was previously ad-hoc).
