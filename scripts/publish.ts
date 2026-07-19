@@ -237,12 +237,21 @@ const stageOne = (
 
 /**
  * `npm pack` the staged dir (no registry, no install) and return the
- * tarball name + packed byte size. The dry-run's proof that staging
- * produces a real, publishable tarball without a live publish.
+ * tarball name, packed (gzipped) size, and unpacked (raw) size — the
+ * published artifact's weight, measured rather than minified (the
+ * mission's vendor-neutrality call). Packs into `dest` (NOT the stage)
+ * so the tarball never lands among the files a subsequent `npm publish`
+ * would repack. The dry-run's proof that staging produces a real,
+ * publishable tarball without a live publish.
  */
 const packStaged = (
   stage: string,
-): { filename: string; size: number } => {
+  dest: string,
+): {
+  filename: string;
+  size: number;
+  unpackedSize: number;
+} => {
   const out = execFileSync(
     "npm",
     [
@@ -250,7 +259,7 @@ const packStaged = (
       "--json",
       "--loglevel=error",
       "--pack-destination",
-      stage,
+      dest,
     ],
     { cwd: stage, encoding: "utf8" },
   );
@@ -259,14 +268,16 @@ const packStaged = (
     ? parsed[0]
     : undefined;
   const rec = isRecord(first) ? first : {};
+  const num = (v: unknown): number =>
+    typeof v === "number" ? v : 0;
   const filename = rec["filename"];
-  const size = rec["size"];
   return {
     filename:
       typeof filename === "string"
         ? filename
         : "?",
-    size: typeof size === "number" ? size : 0,
+    size: num(rec["size"]),
+    unpackedSize: num(rec["unpackedSize"]),
   };
 };
 
@@ -436,16 +447,21 @@ const runPublishSet = async (
   try {
     for (const meta of metas) {
       const stage = stageOne(meta, stageRoot);
+      // Measure the published artifact's size off a local pack (into the
+      // stage root, never the stage itself) — raw + gzipped, printed on
+      // every publish. The mission measures size instead of adding a
+      // minifier dependency (vendor-neutrality).
+      const { filename, size, unpackedSize } =
+        packStaged(stage, stageRoot);
+      const sizes = `${kb(unpackedSize)} raw, ${kb(size)} gz`;
       if (dryRun) {
-        const { filename, size } =
-          packStaged(stage);
         process.stdout.write(
-          `${label(meta)}  staged → packed ${filename} (${kb(size)})\n`,
+          `${label(meta)}  staged → packed ${filename} (${sizes})\n`,
         );
         continue;
       }
       process.stdout.write(
-        `${label(meta)}  staged\n`,
+        `${label(meta)}  staged (${sizes})\n`,
       );
       publishStaged(stage);
       process.stdout.write(

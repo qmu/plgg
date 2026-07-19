@@ -60,7 +60,7 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 - [x] The check-all gate auto-skips on a recorded same-session green run — `SKIP_GATE=1` is no longer something a human must remember (#20260718210513-check-all-same-session-green-stamp.md)
 - [x] plgg-bundle's bin runs from a compiled dist in a real registry install — `relocate.mjs` and the /tmp relocate cache are deleted (#20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md)
 - [x] Export surface for the ESM emit is derived statically; `vendors/runner.ts` execute-to-discover is retired (concern 47/51-export-surface closed) (#20260718210516-static-export-surface-retire-runner-vm.md)
-- [ ] Published bundles are minified or their size is measured and accepted in the story; size is printed per publish (concern 47/51-published-library closed) (#20260718210518-bundle-size-measured-printed-per-publish.md)
+- [x] Published bundles are minified or their size is measured and accepted in the story; size is printed per publish (concern 47/51-published-library closed) (#20260718210518-bundle-size-measured-printed-per-publish.md)
 - [x] The emitted registry/externals-table shape is an explicit tested contract; the flatten-time key rewrite no longer pattern-matches TS-printer incidentals (PR #66 concern closed) (#20260718210517-externals-table-tested-contract.md)
 - [x] Package builds emit no MODULE_TYPELESS_PACKAGE_JSON warnings (#20260718210519-fix-typeless-config-loader-warning.md)
 
@@ -87,3 +87,4 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 - 2026-07-19 — ticket archived — 20260718210516-static-export-surface-retire-runner-vm.md
 - 2026-07-19 — ticket archived — 20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md
 - 2026-07-19 — ticket archived — 20260718210514-publish-structured-output-sub-60s.md
+- 2026-07-19 — ticket archived — 20260718210518-bundle-size-measured-printed-per-publish.md

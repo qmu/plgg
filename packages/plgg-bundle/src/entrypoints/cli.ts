@@ -1,5 +1,9 @@
-import { resolve } from "node:path";
-import { existsSync } from "node:fs";
+import { resolve, join } from "node:path";
+import {
+  existsSync,
+  readFileSync,
+} from "node:fs";
+import { gzipSync } from "node:zlib";
 import { type BundleConfig } from "plgg-bundle/domain/model/BundleConfig";
 import { asBundleConfig } from "plgg-bundle/domain/usecase/asBundleConfig";
 import { build } from "plgg-bundle/domain/usecase/build";
@@ -34,10 +38,52 @@ const runBuild = async (
     return;
   }
   const files = build(config);
+  printSizes(config, files);
+};
+
+/**
+ * Print the `wrote N file(s)` line followed by one
+ * per-artifact size row: raw bytes and the gzipped size
+ * (`node:zlib`, already vendored — the mission measures
+ * size rather than adding a minifier dependency). The
+ * bundler declines a minifier, so this size accounting is
+ * how a bundle's shipped weight stays visible on every
+ * build and, through the release path, every publish.
+ */
+const printSizes = (
+  config: BundleConfig,
+  files: ReadonlyArray<string>,
+): void => {
+  const outDir = join(
+    config.root,
+    config.outDir,
+  );
   process.stdout.write(
     `plgg-bundle: wrote ${files.length} file(s) to ${config.outDir}\n`,
   );
+  let rawTotal = 0;
+  let gzTotal = 0;
+  for (const rel of files) {
+    const bytes = readFileSync(
+      join(outDir, rel),
+    );
+    const gz = gzipSync(bytes).byteLength;
+    rawTotal += bytes.byteLength;
+    gzTotal += gz;
+    process.stdout.write(
+      `  ${rel}  ${kib(bytes.byteLength)} (${kib(gz)} gz)\n`,
+    );
+  }
+  if (files.length > 1) {
+    process.stdout.write(
+      `  total  ${kib(rawTotal)} (${kib(gzTotal)} gz)\n`,
+    );
+  }
 };
+
+/** A byte count as a compact `NN.N KiB`. */
+const kib = (bytes: number): string =>
+  `${(bytes / 1024).toFixed(1)} KiB`;
 
 /** The dev-server mode. */
 const runDev = async (
