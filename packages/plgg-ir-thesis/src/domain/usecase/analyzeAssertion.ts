@@ -70,6 +70,7 @@ const RELATION_ATTRS: ReadonlyArray<string> = [
   ":接続元",
   ":接続先",
   ":ロジック",
+  ":量",
   ":重み",
   ":客観性",
 ];
@@ -501,6 +502,7 @@ const finalizeRelation = (
                           relationLogicValue(
                             attrs,
                           ),
+                          numAttr(attrs, ":量"),
                           numAttr(attrs, ":重み"),
                           form.content.range,
                         ),

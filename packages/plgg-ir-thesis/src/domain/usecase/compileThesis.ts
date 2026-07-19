@@ -1,8 +1,10 @@
 import {
   SoftStr,
   Result,
+  ok,
+  err,
   pipe,
-  mapResult,
+  chainResult,
 } from "plgg";
 import {
   SemDiagnostic,
@@ -12,6 +14,7 @@ import {
 } from "plgg-ir-language";
 import { ThesisNode } from "plgg-ir-thesis/domain/model";
 import { thesisDialect } from "plgg-ir-thesis/domain/usecase/thesisDialect";
+import { verifyThesis } from "plgg-ir-thesis/domain/usecase/verifyThesis";
 
 /**
  * The Thesis language: exactly {@link thesisDialect},
@@ -36,10 +39,14 @@ export type CompiledThesis = Readonly<{
 /**
  * Compiles one Thesis source through the language
  * pipeline `parse → expand → analyze → normalize`
- * (design.md §6, pass ①). Unknown forms/attributes,
- * malformed assertions/frames, and mixed logic kinds are
- * each a ranged diagnostic; every diagnostic of every
- * form comes back in one list.
+ * (pass ①), then runs the thesis verification passes
+ * (design.md §6, passes ②–⑤) over the analyzed nodes.
+ * Unknown forms/attributes, malformed assertions/frames,
+ * mixed logic kinds, and per-logic frame-condition
+ * violations (cyclic 時間的/構成的, non-monotonic `:時点`,
+ * unbalanced 移動的 transfer, mixed `:種`) are each a
+ * ranged diagnostic; every diagnostic comes back in one
+ * list.
  */
 export const compileThesis = (
   source: SoftStr,
@@ -49,12 +56,24 @@ export const compileThesis = (
 > =>
   pipe(
     compileSource(thesisLanguage)(source),
-    mapResult(
+    chainResult(
       (
         compiled: Compiled<ThesisNode>,
-      ): CompiledThesis => ({
-        nodes: compiled.nodes,
-        canonical: compiled.canonical,
-      }),
+      ): Result<
+        CompiledThesis,
+        ReadonlyArray<SemDiagnostic>
+      > =>
+        pipe(
+          verifyThesis(compiled.nodes),
+          (
+            diags: ReadonlyArray<SemDiagnostic>,
+          ) =>
+            diags.length > 0
+              ? err(diags)
+              : ok({
+                  nodes: compiled.nodes,
+                  canonical: compiled.canonical,
+                }),
+        ),
     ),
   );

@@ -84,3 +84,46 @@ export const codeMixedLogic =
  */
 export const codeDuplicateName =
   "thesis.duplicate-name";
+
+/**
+ * A 時間的 (temporal) or 構成的 (constitutive) assertion
+ * has a cycle in its relation graph — a GL/partial-order
+ * frame-condition violation (design.md §3). The
+ * diagnostic names the cycle.
+ */
+export const codeCyclicAssertion =
+  "thesis.cyclic-assertion";
+
+/**
+ * A 時間的 assertion has an edge whose `:時点`
+ * (timestamp) decreases from source to target — a
+ * monotonicity violation (design.md §3). The diagnostic
+ * names the offending edge.
+ */
+export const codeTimeNotMonotonic =
+  "thesis.time-not-monotonic";
+
+/**
+ * A 移動的 (transfer) assertion has an internal node
+ * whose inflow `:量` does not equal its outflow, and it
+ * is not a declared `:変換` (transformation) escape —
+ * a conservation violation (design.md §3, §5.9). The
+ * diagnostic names the node.
+ */
+export const codeTransferImbalance =
+  "thesis.transfer-imbalance";
+
+/**
+ * An assertion mixes more than one stakeholder `:種`
+ * (sort) across its concepts — a sort-exclusivity
+ * violation (design.md §5.10). The diagnostic names the
+ * mixed sorts.
+ */
+export const codeSortMixed = "thesis.sort-mixed";
+
+/**
+ * A concept's `:種` value is not one of the four
+ * declared sorts (design.md §5.10).
+ */
+export const codeUnknownSort =
+  "thesis.unknown-sort";

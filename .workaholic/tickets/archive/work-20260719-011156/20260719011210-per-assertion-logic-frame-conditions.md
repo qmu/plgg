@@ -5,7 +5,7 @@ type: enhancement
 layer: [Domain]
 effort: 4h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260719011209-thesis-package-and-closed-vocabulary.md]
 mission: build-the-plgg-ir-thesis-evaluator
 ---

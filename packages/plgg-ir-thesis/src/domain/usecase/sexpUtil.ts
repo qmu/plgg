@@ -11,10 +11,12 @@ import {
   ListExp,
   SymbolExp,
   NumExp,
+  BoolExp,
   SourceRange,
   isListExp,
   isSymbolExp,
   isNumExp,
+  isBoolExp,
 } from "plgg-ir-syntax";
 
 /**
@@ -213,5 +215,18 @@ export const asSymbolName = (
     .filter(isSymbolExp)
     .reduce<Option<SoftStr>>(
       (_, s: SymbolExp) => some(s.content.name),
+      none(),
+    );
+
+/**
+ * A boolean literal value, when the expression is one.
+ */
+export const asBool = (
+  exp: Sexp,
+): Option<boolean> =>
+  [exp]
+    .filter(isBoolExp)
+    .reduce<Option<boolean>>(
+      (_, b: BoolExp) => some(b.content.value),
       none(),
     );

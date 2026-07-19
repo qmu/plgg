@@ -1,6 +1,7 @@
 export * from "plgg-ir-thesis/domain/model/ThesisCode";
 export * from "plgg-ir-thesis/domain/model/LogicKind";
 export * from "plgg-ir-thesis/domain/model/AttackType";
+export * from "plgg-ir-thesis/domain/model/Sort";
 export * from "plgg-ir-thesis/domain/model/Concept";
 export * from "plgg-ir-thesis/domain/model/Relation";
 export * from "plgg-ir-thesis/domain/model/Attack";

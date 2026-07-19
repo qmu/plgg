@@ -8,13 +8,16 @@ import { LogicKind } from "plgg-ir-thesis/domain/model/LogicKind";
  * `:接続元` concept to its `:接続先` concept. A relation
  * may carry its own `:ロジック`; uniformity (design.md
  * §3) requires it to agree with the assertion's declared
- * kind. `:重み` is an inert v1 annotation (§5.13).
+ * kind. `:量` is the amount transferred along the edge
+ * (transfer conservation, ticket 3); `:重み` is an inert
+ * v1 annotation (§5.13).
  */
 export type Relation = Readonly<{
   name: SoftStr;
   from: SoftStr;
   to: SoftStr;
   logic: Option<LogicKind>;
+  quantity: Option<number>;
   weight: Option<number>;
   range: SourceRange;
 }>;
@@ -27,6 +30,7 @@ export const relation = (
   from: SoftStr,
   to: SoftStr,
   logic: Option<LogicKind>,
+  quantity: Option<number>,
   weight: Option<number>,
   range: SourceRange,
 ): Relation => ({
@@ -34,6 +38,7 @@ export const relation = (
   from,
   to,
   logic,
+  quantity,
   weight,
   range,
 });

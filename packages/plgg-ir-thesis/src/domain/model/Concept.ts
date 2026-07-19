@@ -9,13 +9,16 @@ import { SourceRange } from "plgg-ir-syntax";
  * `:時点` (timestamp, temporal monotonicity, ticket 3),
  * `:量` (quantity, transfer conservation, ticket 3),
  * `:種` (stakeholder sort, sort exclusivity, ticket 3),
- * and the inert `:重み` (weight, v1 non-goal §5.13).
+ * `:変換` (a transformation escape, exempt from transfer
+ * conservation, ticket 3), and the inert `:重み`
+ * (weight, v1 non-goal §5.13).
  */
 export type Concept = Readonly<{
   name: SoftStr;
   at: Option<number>;
   quantity: Option<number>;
   sort: Option<SoftStr>;
+  transform: boolean;
   weight: Option<number>;
   range: SourceRange;
 }>;
@@ -28,6 +31,7 @@ export const concept = (
   at: Option<number>,
   quantity: Option<number>,
   sort: Option<SoftStr>,
+  transform: boolean,
   weight: Option<number>,
   range: SourceRange,
 ): Concept => ({
@@ -35,6 +39,7 @@ export const concept = (
   at,
   quantity,
   sort,
+  transform,
   weight,
   range,
 });

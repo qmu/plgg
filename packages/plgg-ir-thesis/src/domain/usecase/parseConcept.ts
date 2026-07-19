@@ -30,6 +30,7 @@ import {
   attr,
   asNumber,
   asSymbolName,
+  asBool,
   symbolArg,
   Attr,
 } from "plgg-ir-thesis/domain/usecase/sexpUtil";
@@ -45,6 +46,7 @@ const CONCEPT_ATTRS: ReadonlyArray<string> = [
   ":時点",
   ":量",
   ":種",
+  ":変換",
   ":重み",
   ":客観性",
 ];
@@ -116,6 +118,7 @@ const buildConcept = (
                   numAttr(parts.attrs, ":時点"),
                   numAttr(parts.attrs, ":量"),
                   symAttr(parts.attrs, ":種"),
+                  boolAttr(parts.attrs, ":変換"),
                   numAttr(parts.attrs, ":重み"),
                   range,
                 ),
@@ -170,6 +173,29 @@ const symAttr = (
   );
 
 /**
+ * A boolean flag attribute: true when `key` is present
+ * with a `true` literal value, false otherwise.
+ */
+const boolAttr = (
+  attrs: ReadonlyArray<Attr>,
+  key: string,
+): boolean =>
+  pipe(
+    attr(attrs, key),
+    matchOption(
+      (): boolean => false,
+      (a) =>
+        pipe(
+          asBool(a.value),
+          matchOption(
+            (): boolean => false,
+            (v: boolean): boolean => v,
+          ),
+        ),
+    ),
+  );
+
+/**
  * Unions concept occurrences by name: the distinct
  * concepts of an assertion, each carrying the first
  * defined value seen for every attribute (so a bare
@@ -206,6 +232,7 @@ const mergeConceptPair = (
     firstSome(a.at, b.at),
     firstSome(a.quantity, b.quantity),
     firstSome(a.sort, b.sort),
+    a.transform || b.transform,
     firstSome(a.weight, b.weight),
     a.range,
   );
