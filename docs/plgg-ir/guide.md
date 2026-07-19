@@ -456,5 +456,8 @@ metamodel's headline properties **runnable**: one command proves 反論の完全
 論争空間, printing `accept` for a valid argument or a ranged counterexample
 trace (`競合参入 →r3→ 撤退判断`) for a doctored one.
 
-See [**A runnable formal-proof worked example**](proof-example.md) for the
-example, the exact command, and sample output.
+See [**The Thesis dialect — argumentation, from syntax to semantics**](thesis.md)
+for the comprehensive guide (the S-expression forms and closed vocabulary,
+then the modal-logic / graph model-checking semantics of 遮断 / 被覆 and Dung
+生存判定), and [**A runnable formal-proof worked example**](proof-example.md)
+for the exact command and sample output.
