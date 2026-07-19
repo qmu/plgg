@@ -4,6 +4,7 @@ import { type External } from "plgg-bundle/domain/model/BundleConfig";
 import { resolveSpecifier } from "plgg-bundle/domain/usecase/resolveSpecifier";
 import { isExternal } from "plgg-bundle/domain/usecase/isExternal";
 import { transpileToCjs } from "plgg-bundle/vendors/transpiler";
+import { externalKey } from "plgg-bundle/domain/usecase/externalsTable";
 
 /**
  * One bundled module: its stable id (path relative to
@@ -286,9 +287,11 @@ const requireSpecifiers = (
  * must follow or the inner lookup misses and falls into
  * the transpiled dynamic-import fallback — a Promise
  * where the consumer expects a namespace ("plgg_1.box
- * is not a function"). Matches the exact
- * `"<spec>": __extN` shape the TS printer emits for the
- * table, so ordinary code never collides with it.
+ * is not a function"). Matches the shared
+ * {@link externalKey} binding the emitter writes
+ * (`"<spec>": __ext`), so the rewrite tracks the emitted
+ * shape rather than a hand-written printer literal, and
+ * ordinary code never collides with it.
  */
 const replaceExternalKey = (
   cjs: string,
@@ -296,8 +299,8 @@ const replaceExternalKey = (
   id: string,
 ): string =>
   cjs
-    .split(`${JSON.stringify(spec)}: __ext`)
-    .join(`${JSON.stringify(id)}: __ext`);
+    .split(externalKey(spec))
+    .join(externalKey(id));
 
 /**
  * Rewrite every `require("spec")` occurrence to

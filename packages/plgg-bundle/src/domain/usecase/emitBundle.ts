@@ -3,6 +3,10 @@ import {
   type Graph,
   type Module,
 } from "plgg-bundle/domain/usecase/collectModules";
+import {
+  externalVar,
+  externalEntry,
+} from "plgg-bundle/domain/usecase/externalsTable";
 
 /**
  * Render a resolved {@link Graph} into one bundle's
@@ -151,7 +155,7 @@ const externalImports = (
   externals
     .map(
       (spec, i) =>
-        `import * as ${extVar(i)} from ${JSON.stringify(
+        `import * as ${externalVar(i)} from ${JSON.stringify(
           spec,
         )};`,
     )
@@ -159,7 +163,10 @@ const externalImports = (
 
 /**
  * The `__externals` lookup mapping each specifier to its
- * imported namespace var.
+ * imported namespace var. Each entry is emitted through
+ * the shared {@link externalEntry} contract, so the
+ * flatten-time key rewrite matches the same shape rather
+ * than a hand-written literal.
  */
 const externalTable = (
   externals: ReadonlyArray<string>,
@@ -169,16 +176,11 @@ const externalTable = (
     externals
       .map(
         (spec, i) =>
-          `  ${JSON.stringify(spec)}: ${extVar(i)}`,
+          `  ${externalEntry(spec, i)}`,
       )
       .join(",\n"),
     `};`,
   ].join("\n");
-
-/**
- * The namespace variable name for the i-th external.
- */
-const extVar = (i: number): string => `__ext${i}`;
 
 /**
  * One module's registry entry: `"id": function (module,
