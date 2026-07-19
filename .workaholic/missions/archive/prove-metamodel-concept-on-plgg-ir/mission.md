@@ -2,7 +2,7 @@
 type: Mission
 title: Prove a metamodel concept on plgg-ir (a runnable worked example)
 slug: prove-metamodel-concept-on-plgg-ir
-status: active
+status: achieved
 created_at: 2026-07-19T10:58:00+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
@@ -121,3 +121,4 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-19 — ticket archived — 20260719110002-author-flagship-rebuttal-example.md
 - 2026-07-19 — ticket archived — 20260719110003-dung-grounded-extension-survival.md
 - 2026-07-19 — ticket archived — 20260719110004-runnable-prove-command-tests-guide.md
+- 2026-07-19 — mission achieved — mission.md
