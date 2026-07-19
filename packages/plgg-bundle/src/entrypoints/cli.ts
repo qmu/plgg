@@ -99,10 +99,13 @@ const fail = (message: string): void => {
   process.exitCode = 1;
 };
 
-try {
-  await main();
-} catch (e) {
+// A `.catch` chain, not a top-level `await`: the self-bundle
+// (the `cli` target) wraps every module body in a synchronous
+// registry closure, where a module-level `await` is a syntax
+// error. `main()` is the single thrown-error → non-zero-exit
+// edge either way (mirrors scripts/publish.ts's bottom).
+main().catch((e: unknown) => {
   fail(
     e instanceof Error ? e.message : String(e),
   );
-}
+});

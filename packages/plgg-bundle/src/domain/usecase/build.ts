@@ -58,7 +58,9 @@ export const build = (
   const written =
     config.target === "app"
       ? buildApp(config, stageDir)
-      : buildLibrary(config, stageDir);
+      : config.target === "cli"
+        ? buildCli(config, stageDir)
+        : buildLibrary(config, stageDir);
   swapIntoPlace(stageDir, outDir);
   return written;
 };
@@ -169,6 +171,55 @@ const buildApp = (
  * else (plgg + siblings) is inlined.
  */
 const NODE_EXTERNAL = /^node:/;
+
+/**
+ * CLI build: a single self-contained `es` bundle for a
+ * Node command-line tool (plgg-bundle self-bundling its
+ * own CLI). Like a library, the externals come from the
+ * package's declared dependency graph + `node:*`
+ * (`deriveExternal`) — a Node process resolves a bare
+ * `import "typescript"` from node_modules at runtime, so
+ * real npm deps stay EXTERNAL rather than being inlined
+ * (the app target's browser rule). Unlike a library there
+ * is no CJS emit, no `.d.ts` tree, and no export-surface
+ * derivation: a CLI entry runs for its side effects and
+ * declares no public exports, so the ESM named-export list
+ * is empty.
+ */
+const buildCli = (
+  config: BundleConfig,
+  stageDir: string,
+): ReadonlyArray<string> => {
+  const external = deriveExternal(config.root);
+  const written: string[] = [];
+  for (const entry of config.entries) {
+    const graph = collectModules({
+      entryFile: join(
+        config.root,
+        config.rootDir,
+        entry.input,
+      ),
+      root: config.root,
+      aliasPrefix: config.alias.prefix,
+      aliasSrcRoot: join(
+        config.root,
+        config.alias.srcRoot,
+      ),
+      external,
+    });
+    const rel = applyFileName(
+      config.fileNamePattern,
+      entry.name,
+      "es",
+    );
+    writeOut(
+      join(stageDir, rel),
+      emitEsmBundle(graph, []),
+    );
+    written.push(rel);
+  }
+  return written;
+};
 
 /**
  * Replace `outDir` with the freshly-built `stageDir` in a

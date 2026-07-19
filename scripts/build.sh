@@ -13,6 +13,15 @@ if [ ! -d "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript" ]; then
   cd "$REPO_ROOT/packages/plgg-bundle" && npm ci && cd "$REPO_ROOT"
 fi
 
+# Self-bundle the build TOOL to its own dist first. plgg-bundle ships a compiled
+# dist/cli.es.js that its bin runs in a REAL REGISTRY INSTALL, so Node never has
+# to strip types from a `.ts` under node_modules — the retired bin/relocate.mjs
+# /tmp copy-and-re-exec hack. In this monorepo the bin still runs from source
+# (realpath outside node_modules), so this step only produces the shippable
+# artifact; it does not change how the packages below build.
+echo "=== Self-bundling plgg-bundle (the build tool) to dist ==="
+cd $REPO_ROOT/packages/plgg-bundle && npm run build && cd $REPO_ROOT
+
 echo "=== Building every library dist with the in-house bundler (npm run build), in dependency order ==="
 cd $REPO_ROOT/packages/plgg && npm run build
 # plgg-parser: the zero-dep parser combinator core; depends only on plgg core.

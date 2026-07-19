@@ -134,6 +134,13 @@ test("asBundleConfig accepts target \"app\"", () =>
     toBe("app"),
   ));
 
+test("asBundleConfig accepts target \"cli\"", () =>
+  check(
+    asBundleConfig({ ...valid, target: "cli" })
+      .target,
+    toBe("cli"),
+  ));
+
 test("asBundleConfig rejects an invalid target", () =>
   check(
     rejects({ ...valid, target: "umd" }),

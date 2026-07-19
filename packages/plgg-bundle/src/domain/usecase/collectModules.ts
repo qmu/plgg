@@ -265,6 +265,18 @@ const idOf = (
  * Extract the literal string specifiers of all
  * top-level `require("...")` / `require('...')` calls
  * a transpiled CJS module makes.
+ *
+ * A captured specifier containing `${` is not a real
+ * import — it is a template-literal FRAGMENT of code that
+ * happens to spell a require call, e.g. plgg-bundle's own
+ * `` `require("${spec}")` `` rewrite strings
+ * (`replaceRequire`). This matters when the bundler bundles
+ * ITSELF (the `cli` target): its source literally contains
+ * `require("…")` text as data. A genuine static
+ * `require("<spec>")` specifier can never contain `${` (a
+ * `${` only occurs inside a backtick template, which the
+ * `["']` quotes here do not match), so dropping these is
+ * safe for every build and never hides a real dependency.
  */
 const requireSpecifiers = (
   cjs: string,
@@ -274,7 +286,9 @@ const requireSpecifiers = (
       /require\(\s*["']([^"']+)["']\s*\)/g,
     ),
   ].flatMap((m) =>
-    m[1] === undefined ? [] : [m[1]],
+    m[1] === undefined || m[1].includes("${")
+      ? []
+      : [m[1]],
   );
 
 /**

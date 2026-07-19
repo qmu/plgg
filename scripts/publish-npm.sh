@@ -206,8 +206,9 @@ EOS
   (cd "$SMOKE" && npm init -y >/dev/null 2>&1 \
     && npm_config_min_release_age=0 npm install "$NAME@$VERSION" >/dev/null)
   # Import smoke only when the package declares an importable surface —
-  # bin-only tools (plgg-bundle: no main/exports; its CLI runs from src via
-  # its own resolver hook) are exercised through their bin below instead.
+  # bin-only tools (plgg-bundle: no main/exports; its CLI runs from the
+  # compiled dist/cli.es.js under node_modules) are exercised through their
+  # bin below instead.
   IMPORTABLE=$(node -p "const p=require('$DIR/package.json'); Boolean(p.main || p.exports)")
   if [ "$IMPORTABLE" = "true" ]; then
     (cd "$SMOKE" && node -e "
