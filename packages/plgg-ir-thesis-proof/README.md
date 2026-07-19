@@ -34,9 +34,9 @@ cd packages/plgg-ir-thesis-proof && npm run prove
 ```
 
 It loads each flagship example, runs its verification pass, and prints
-`accept` or the counterexample trace. The annotated example, the exact
-command, and sample output live in the plgg-ir guide docs
-(`docs/plgg-ir/`).
+`accept` or the counterexample trace. See
+[docs/plgg-ir/proof-example.md](../../docs/plgg-ir/proof-example.md) for
+the annotated example, the exact command, and sample output.
 
 ## Develop
 

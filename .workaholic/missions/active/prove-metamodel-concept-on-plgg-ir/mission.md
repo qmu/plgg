@@ -73,19 +73,19 @@ model in the metamodel vocabulary and **formally proves** a property, printing
 
 _Self-contained — drivable from this repo alone._
 
-- [ ] A worked-example surface (package or demo entry) exists on the plgg-ir
+- [x] A worked-example surface (package or demo entry) exists on the plgg-ir
       stack, builds under `./scripts/check-all.sh`, and reuses the
       `plgg-ir-thesis` model (主張 / 関係 / フレーム / 攻撃).
-- [ ] **反論の完全性** is proven on 撤退論 vs 継続論: the complete
+- [x] **反論の完全性** is proven on 撤退論 vs 継続論: the complete
       `継続論による反論` is accepted; removing one attack yields a counterexample
       trace for both 遮断 (surviving derivation path) and 被覆 (unattacked
       relation). Fixed by a vitest fixture.
-- [ ] **Dung 生存判定** (grounded extension) is computed on the 論争空間 example
+- [x] **Dung 生存判定** (grounded extension) is computed on the 論争空間 example
       and returns the surviving set `{外需回復論, 増税必要論}`, fixed by a test.
-- [ ] One command runs the examples end-to-end and prints `accept` for the valid
+- [x] One command runs the examples end-to-end and prints `accept` for the valid
       inputs and the counterexample trace for the doctored ones (the artefact the
       owner checks on landing).
-- [ ] A guide doc shows the example, the command, and a sample counterexample
+- [x] A guide doc shows the example, the command, and a sample counterexample
       trace, reachable from `docs/plgg-ir/`.
 
 ## Out of scope
@@ -110,7 +110,14 @@ _Self-contained — drivable from this repo alone._
 
 <!-- Append-only, dated timeline. -->
 - 2026-07-19 — mission created — mission.md
+- 2026-07-19 — all five acceptance items met: packages/plgg-ir-thesis-proof lands
+  the runnable proof (遮断/被覆 on 撤退論 vs 継続論 + Dung grounded extension on
+  the 論争空間); `npm run prove` prints `accept` for the complete rebuttal and
+  the counterexample `競合参入 →r3→ 撤退判断` for the doctored one; guide doc at
+  docs/plgg-ir/proof-example.md; whole-monorepo `./scripts/check-all.sh` green —
+  tickets 110000–110004 archived
 - 2026-07-19 — ticket archived — 20260719110000-scaffold-proof-example-package.md
 - 2026-07-19 — ticket archived — 20260719110001-verify-rebuttal-completeness-severing-coverage.md
 - 2026-07-19 — ticket archived — 20260719110002-author-flagship-rebuttal-example.md
 - 2026-07-19 — ticket archived — 20260719110003-dung-grounded-extension-survival.md
+- 2026-07-19 — ticket archived — 20260719110004-runnable-prove-command-tests-guide.md

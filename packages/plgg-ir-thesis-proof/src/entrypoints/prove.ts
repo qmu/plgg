@@ -1,16 +1,16 @@
-import { proofVocabulary } from "plgg-ir-thesis-proof/domain/usecase/proofVocabulary";
+import { proofReport } from "plgg-ir-thesis-proof/domain/usecase/proofReport";
 
 /**
- * The runnable proof command (`npm run prove`). This is
- * the thin program checkpoint the owner runs on landing:
- * it loads each flagship example, runs its verification
- * pass, and prints `accept` or a ranged counterexample
- * trace. In the scaffold it only proves the wiring —
- * the verification report lands in the final ticket.
+ * The runnable proof command (`npm run prove`). The thin
+ * program checkpoint the owner runs on landing: it loads
+ * each flagship example, runs its verification pass, and
+ * prints `accept` or the ranged counterexample trace. All
+ * logic lives in the pure {@link proofReport}; this only
+ * prints its lines.
  */
 const main = (): void => {
-  console.log(
-    `plgg-ir-thesis-proof — vocabulary: ${proofVocabulary().join(" ")}`,
+  proofReport().forEach((line) =>
+    console.log(line),
   );
 };
 

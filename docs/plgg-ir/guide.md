@@ -444,3 +444,17 @@ run inside `./scripts/check-all.sh`. The design §39 acceptance
 scenario — clients/projects/tasks/invoices with authorization,
 aggregate scope enforcement, and a derived task count — lives in
 `packages/plgg-ir-manifest/src/domain/usecase/acceptance39.spec.ts`.
+
+## 8. A runnable formal-proof example (the Thesis dialect)
+
+The [Thesis dialect](../../packages/plgg-ir-thesis/) carries the qmu
+conceptual metamodel's argumentation vocabulary (主張 / 関係 / フレーム /
+攻撃). A companion worked example,
+[`plgg-ir-thesis-proof`](../../packages/plgg-ir-thesis-proof/), makes the
+metamodel's headline properties **runnable**: one command proves 反論の完全性
+(遮断 / 被覆) on 撤退論 vs 継続論 and Dung 生存判定 (grounded extension) on a
+論争空間, printing `accept` for a valid argument or a ranged counterexample
+trace (`競合参入 →r3→ 撤退判断`) for a doctored one.
+
+See [**A runnable formal-proof worked example**](proof-example.md) for the
+example, the exact command, and sample output.
