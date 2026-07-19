@@ -4,6 +4,7 @@ import {
   assertionForm,
   frameForm,
 } from "plgg-ir-thesis/domain/usecase/thesisForms";
+import { thesisStableOrder } from "plgg-ir-thesis/domain/usecase/normalizeThesis";
 
 /**
  * The Thesis vocabulary as one composable dialect — the
@@ -12,9 +13,10 @@ import {
  * are `主張` (assertion) and `フレーム` (frame); `概念`
  * (concept), `関係` (relation), and `攻撃` (attack) are
  * their nested vocabulary, parsed by the forms
- * themselves. No operators or expanders yet; the
- * canonical normalizer arrives with the structure level
- * (ticket 5). `plgg-ir-manifest` is never touched.
+ * themselves. The `thesis-stable-order` normalizer gives
+ * deterministic, idempotent canonical text (design.md
+ * §33). No operators or expanders. `plgg-ir-manifest` is
+ * never touched.
  */
 export const thesisDialect: Dialect<ThesisNode> =
   {
@@ -22,5 +24,5 @@ export const thesisDialect: Dialect<ThesisNode> =
     forms: [assertionForm, frameForm],
     operators: [],
     expanders: [],
-    normalizers: [],
+    normalizers: [thesisStableOrder],
   };

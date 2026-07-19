@@ -7,6 +7,8 @@ export * from "plgg-ir-thesis/domain/usecase/verifyLogicFrame";
 export * from "plgg-ir-thesis/domain/usecase/verifyFrameAttacks";
 export * from "plgg-ir-thesis/domain/usecase/verifyFrameRelations";
 export * from "plgg-ir-thesis/domain/usecase/verifyRequirements";
+export * from "plgg-ir-thesis/domain/usecase/groundedExtension";
+export * from "plgg-ir-thesis/domain/usecase/normalizeThesis";
 export * from "plgg-ir-thesis/domain/usecase/verifyThesis";
 export * from "plgg-ir-thesis/domain/usecase/thesisForms";
 export * from "plgg-ir-thesis/domain/usecase/thesisDialect";
