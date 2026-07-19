@@ -1,10 +1,10 @@
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { existsSync } from "node:fs";
 import { type BundleConfig } from "plgg-bundle/domain/model/BundleConfig";
 import { asBundleConfig } from "plgg-bundle/domain/usecase/asBundleConfig";
 import { build } from "plgg-bundle/domain/usecase/build";
 import { runDevServer } from "plgg-bundle/Dev/node/devServer";
+import { importConfigModule } from "plgg-bundle/vendors/loadConfigModule";
 
 /**
  * CLI entry with two modes:
@@ -54,9 +54,13 @@ const runDev = async (
 };
 
 /**
- * Resolve, import (Node strips its types), and validate
- * the bundle config, or set a non-zero exit and return
- * null when it is missing. Shared by both modes.
+ * Resolve, import, and validate the bundle config, or set
+ * a non-zero exit and return null when it is missing.
+ * Shared by both modes. The config is loaded via
+ * {@link importConfigModule} — transpiled and imported as
+ * a sibling `.mjs` — so Node never infers the module type
+ * from the package's typeless `package.json` (no
+ * `MODULE_TYPELESS_PACKAGE_JSON` warning).
  */
 const loadConfig = async (
   arg: string | undefined,
@@ -69,9 +73,8 @@ const loadConfig = async (
     fail(`config not found: ${configPath}`);
     return null;
   }
-  const mod: unknown = await import(
-    pathToFileURL(configPath).href
-  );
+  const mod: unknown =
+    await importConfigModule(configPath);
   return asBundleConfig(pickDefault(mod));
 };
 

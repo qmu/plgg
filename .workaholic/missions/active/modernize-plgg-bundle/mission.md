@@ -62,7 +62,7 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 - [ ] Export surface for the ESM emit is derived statically; `vendors/runner.ts` execute-to-discover is retired (concern 47/51-export-surface closed) (#20260718210516-static-export-surface-retire-runner-vm.md)
 - [ ] Published bundles are minified or their size is measured and accepted in the story; size is printed per publish (concern 47/51-published-library closed) (#20260718210518-bundle-size-measured-printed-per-publish.md)
 - [x] The emitted registry/externals-table shape is an explicit tested contract; the flatten-time key rewrite no longer pattern-matches TS-printer incidentals (PR #66 concern closed) (#20260718210517-externals-table-tested-contract.md)
-- [ ] Package builds emit no MODULE_TYPELESS_PACKAGE_JSON warnings (#20260718210519-fix-typeless-config-loader-warning.md)
+- [x] Package builds emit no MODULE_TYPELESS_PACKAGE_JSON warnings (#20260718210519-fix-typeless-config-loader-warning.md)
 
 ## Changelog
 
@@ -83,3 +83,4 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 - 2026-07-19 — ticket archived — 20260718210512-publish-parallel-preflight-one-node-process.md
 - 2026-07-19 — ticket archived — 20260718210513-check-all-same-session-green-stamp.md
 - 2026-07-19 — ticket archived — 20260718210517-externals-table-tested-contract.md
+- 2026-07-19 — ticket archived — 20260718210519-fix-typeless-config-loader-warning.md
