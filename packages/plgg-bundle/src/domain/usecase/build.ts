@@ -21,7 +21,7 @@ import {
 } from "plgg-bundle/domain/usecase/emitBundle";
 import { emitDts } from "plgg-bundle/domain/usecase/emitDts";
 import { deriveExternal } from "plgg-bundle/domain/usecase/deriveExternal";
-import { readExportNames } from "plgg-bundle/vendors/runner";
+import { deriveExportNames } from "plgg-bundle/vendors/exportSurface";
 import { discoverWorkspace } from "plgg-bundle/domain/usecase/discoverWorkspace";
 import { resolveWorkspaceSpecifier } from "plgg-bundle/domain/usecase/resolveWorkspaceSpecifier";
 
@@ -79,12 +79,13 @@ const buildLibrary = (
   const external = deriveExternal(config.root);
   const written: string[] = [];
   for (const entry of config.entries) {
+    const entryFile = join(
+      config.root,
+      config.rootDir,
+      entry.input,
+    );
     const graph = collectModules({
-      entryFile: join(
-        config.root,
-        config.rootDir,
-        entry.input,
-      ),
+      entryFile,
       root: config.root,
       aliasPrefix: config.alias.prefix,
       aliasSrcRoot: join(
@@ -97,6 +98,7 @@ const buildLibrary = (
       ...buildEntry(
         config,
         entry,
+        entryFile,
         graph,
         stageDir,
       ),
@@ -200,17 +202,27 @@ const swapIntoPlace = (
 const buildEntry = (
   config: BundleConfig,
   entry: Entry,
+  entryFile: string,
   graph: Graph,
   destDir: string,
 ): ReadonlyArray<string> => {
   const cjs = emitCjsBundle(graph);
-  // Discover the exact export surface by running the CJS
-  // bundle and reading its keys — ESM cannot declare
-  // exports dynamically. The bundle's external requires
-  // resolve against the target package's node_modules.
+  // Derive the exact ESM export surface STATICALLY from
+  // the entry module's TypeScript source — ESM cannot
+  // declare its exports dynamically, so the emitter needs
+  // the precise named-export list. (Previously discovered
+  // by executing the CJS bundle in a `node:vm`; retired
+  // for the static `vendors/exportSurface` derivation, so
+  // no target-package node_modules must be resolvable and
+  // no arbitrary module top-level code runs at build time.)
   const esm = emitEsmBundle(
     graph,
-    readExportNames(cjs, config.root),
+    deriveExportNames({
+      entryFile,
+      root: config.root,
+      aliasPrefix: config.alias.prefix,
+      aliasSrcRoot: config.alias.srcRoot,
+    }),
   );
   const written: string[] = [];
   for (const format of config.formats) {

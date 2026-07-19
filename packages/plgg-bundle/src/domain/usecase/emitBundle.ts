@@ -44,9 +44,10 @@ export const emitCjsBundle = (
 
 /**
  * ESM bundle. `exportNames` is the exact public surface
- * (the entry's enumerable export keys), supplied by the
- * orchestrator from the CJS bundle's runtime keys —
- * ESM cannot declare exports dynamically. Externals are
+ * (the entry module's runtime-value export names), derived
+ * statically from the entry's TypeScript source by the
+ * orchestrator — ESM cannot declare exports dynamically.
+ * Externals are
  * imported as namespaces at the top and resolved by the
  * registry; an id that is neither a bundled module nor a
  * declared external falls back to a native dynamic
