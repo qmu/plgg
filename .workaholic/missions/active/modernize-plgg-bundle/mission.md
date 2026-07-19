@@ -56,7 +56,7 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 ## Acceptance
 
 - [x] Preflight computes and prints the publish set in ≤5s over all packages, in one Node process with parallel registry queries (#20260718210512-publish-parallel-preflight-one-node-process.md)
-- [ ] A single-package publish with a same-session green gate completes end-to-end (stage → publish → verify) in ≤60s wall clock with structured, banner-free output (#20260718210514-publish-structured-output-sub-60s.md)
+- [x] A single-package publish with a same-session green gate completes end-to-end (stage → publish → verify) in ≤60s wall clock with structured, banner-free output (#20260718210514-publish-structured-output-sub-60s.md)
 - [x] The check-all gate auto-skips on a recorded same-session green run — `SKIP_GATE=1` is no longer something a human must remember (#20260718210513-check-all-same-session-green-stamp.md)
 - [x] plgg-bundle's bin runs from a compiled dist in a real registry install — `relocate.mjs` and the /tmp relocate cache are deleted (#20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md)
 - [x] Export surface for the ESM emit is derived statically; `vendors/runner.ts` execute-to-discover is retired (concern 47/51-export-surface closed) (#20260718210516-static-export-surface-retire-runner-vm.md)
@@ -86,3 +86,4 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 - 2026-07-19 — ticket archived — 20260718210519-fix-typeless-config-loader-warning.md
 - 2026-07-19 — ticket archived — 20260718210516-static-export-surface-retire-runner-vm.md
 - 2026-07-19 — ticket archived — 20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md
+- 2026-07-19 — ticket archived — 20260718210514-publish-structured-output-sub-60s.md
