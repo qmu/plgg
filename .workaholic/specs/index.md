@@ -1,5 +1,6 @@
 # specs
 
+<!-- okf:generated:begin -->
 * [plggmatic declarative vocabulary + scheduler — design (ticket 09)](20260704-plggmatic-scheduler-design.md)
 * [plggpress / plggmatic Long-Range Roadmap and Decision Record](20260704-plggpress-plggmatic-roadmap.md)
 * [Ticket 19 — plggpress OIDC OP+RP dogfooding: design note](20260705-plggpress-oidc-rp-design.md)
@@ -17,3 +18,4 @@
 * [Quality Context](quality-context.md) - Quality dimensions, assurance processes, metrics, gaps, and feedback loops for the plgg project
 * [Use Case Viewpoint](usecase.md) - User workflows, command sequences, and input/output contracts for the plgg library ecosystem.
 * [UX Viewpoint](ux.md) - User types, journeys, interaction patterns, and onboarding paths for the plgg library ecosystem.
+<!-- okf:generated:end -->
