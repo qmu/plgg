@@ -2,7 +2,7 @@
 type: Mission
 title: Modernize plgg-bundle
 slug: modernize-plgg-bundle
-status: active
+status: achieved
 created_at: 2026-07-13T11:35:10+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
@@ -88,3 +88,4 @@ The demanded end-state is a **fast, quiet, trustworthy release routine** and a b
 - 2026-07-19 — ticket archived — 20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md
 - 2026-07-19 — ticket archived — 20260718210514-publish-structured-output-sub-60s.md
 - 2026-07-19 — ticket archived — 20260718210518-bundle-size-measured-printed-per-publish.md
+- 2026-07-21 — mission achieved — mission.md
