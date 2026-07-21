@@ -1,10 +1,14 @@
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import { existsSync } from "node:fs";
+import { resolve, join } from "node:path";
+import {
+  existsSync,
+  readFileSync,
+} from "node:fs";
+import { gzipSync } from "node:zlib";
 import { type BundleConfig } from "plgg-bundle/domain/model/BundleConfig";
 import { asBundleConfig } from "plgg-bundle/domain/usecase/asBundleConfig";
 import { build } from "plgg-bundle/domain/usecase/build";
 import { runDevServer } from "plgg-bundle/Dev/node/devServer";
+import { importConfigModule } from "plgg-bundle/vendors/loadConfigModule";
 
 /**
  * CLI entry with two modes:
@@ -34,10 +38,52 @@ const runBuild = async (
     return;
   }
   const files = build(config);
+  printSizes(config, files);
+};
+
+/**
+ * Print the `wrote N file(s)` line followed by one
+ * per-artifact size row: raw bytes and the gzipped size
+ * (`node:zlib`, already vendored — the mission measures
+ * size rather than adding a minifier dependency). The
+ * bundler declines a minifier, so this size accounting is
+ * how a bundle's shipped weight stays visible on every
+ * build and, through the release path, every publish.
+ */
+const printSizes = (
+  config: BundleConfig,
+  files: ReadonlyArray<string>,
+): void => {
+  const outDir = join(
+    config.root,
+    config.outDir,
+  );
   process.stdout.write(
     `plgg-bundle: wrote ${files.length} file(s) to ${config.outDir}\n`,
   );
+  let rawTotal = 0;
+  let gzTotal = 0;
+  for (const rel of files) {
+    const bytes = readFileSync(
+      join(outDir, rel),
+    );
+    const gz = gzipSync(bytes).byteLength;
+    rawTotal += bytes.byteLength;
+    gzTotal += gz;
+    process.stdout.write(
+      `  ${rel}  ${kib(bytes.byteLength)} (${kib(gz)} gz)\n`,
+    );
+  }
+  if (files.length > 1) {
+    process.stdout.write(
+      `  total  ${kib(rawTotal)} (${kib(gzTotal)} gz)\n`,
+    );
+  }
 };
+
+/** A byte count as a compact `NN.N KiB`. */
+const kib = (bytes: number): string =>
+  `${(bytes / 1024).toFixed(1)} KiB`;
 
 /** The dev-server mode. */
 const runDev = async (
@@ -54,9 +100,13 @@ const runDev = async (
 };
 
 /**
- * Resolve, import (Node strips its types), and validate
- * the bundle config, or set a non-zero exit and return
- * null when it is missing. Shared by both modes.
+ * Resolve, import, and validate the bundle config, or set
+ * a non-zero exit and return null when it is missing.
+ * Shared by both modes. The config is loaded via
+ * {@link importConfigModule} — transpiled and imported as
+ * a sibling `.mjs` — so Node never infers the module type
+ * from the package's typeless `package.json` (no
+ * `MODULE_TYPELESS_PACKAGE_JSON` warning).
  */
 const loadConfig = async (
   arg: string | undefined,
@@ -69,9 +119,8 @@ const loadConfig = async (
     fail(`config not found: ${configPath}`);
     return null;
   }
-  const mod: unknown = await import(
-    pathToFileURL(configPath).href
-  );
+  const mod: unknown =
+    await importConfigModule(configPath);
   return asBundleConfig(pickDefault(mod));
 };
 
@@ -96,10 +145,13 @@ const fail = (message: string): void => {
   process.exitCode = 1;
 };
 
-try {
-  await main();
-} catch (e) {
+// A `.catch` chain, not a top-level `await`: the self-bundle
+// (the `cli` target) wraps every module body in a synchronous
+// registry closure, where a module-level `await` is a syntax
+// error. `main()` is the single thrown-error → non-zero-exit
+// edge either way (mirrors scripts/publish.ts's bottom).
+main().catch((e: unknown) => {
   fail(
     e instanceof Error ? e.message : String(e),
   );
-}
+});

@@ -1,0 +1,10 @@
+{
+  "_rationale": "Gates at the default >90% across all four V8 metrics. Excludes the barrel (/index.ts) and the thin runnable entrypoint (/entrypoints/prove.ts) — the latter is a program checkpoint (console printing over the pure domain passes), covered by running the command, not by unit specs (mirrors the family's cli.ts / ssgEntry.ts exclusions).",
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/index.ts",
+      "/entrypoints/"
+    ]
+  }
+}

@@ -86,6 +86,52 @@ test("collectModules throws on an unresolvable non-external specifier", () => {
   }
 });
 
+test("collectModules ignores a require(\"${...}\") template-literal fragment", () => {
+  // plgg-bundle's own `replaceRequire` builds the string
+  // `require("${spec}")` as DATA; when the bundler bundles
+  // itself (the cli target) that text must not be mistaken
+  // for an import. A `${`-bearing capture is never a real
+  // specifier, so it is dropped rather than resolved (which
+  // would throw ResolveError on the bogus "${spec}").
+  const root = mkdtempSync(
+    join(tmpdir(), "plgg-bundle-collect-tmpl-"),
+  );
+  try {
+    const entry = join(root, "src", "main.ts");
+    mkdirSync(join(root, "src"), {
+      recursive: true,
+    });
+    writeFileSync(
+      entry,
+      [
+        'const spec = "x";',
+        "export const s =",
+        '  `require("${spec}")`;',
+        "",
+      ].join("\n"),
+    );
+    const graph = collectModules({
+      entryFile: entry,
+      root,
+      aliasPrefix: "app",
+      aliasSrcRoot: join(root, "src"),
+      external: /^node:/,
+    });
+    return all([
+      check(graph.modules.length, toBe(1)),
+      check(
+        graph.modules[0]?.externals.length,
+        toBe(0),
+      ),
+    ]);
+  } finally {
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
+  }
+});
+
 test("collectModules inlines an installed prebundled dist entry without resolving its internal registry requires", () => {
   const root = mkdtempSync(
     join(tmpdir(), "plgg-bundle-collect-"),

@@ -13,6 +13,15 @@ if [ ! -d "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript" ]; then
   cd "$REPO_ROOT/packages/plgg-bundle" && npm ci && cd "$REPO_ROOT"
 fi
 
+# Self-bundle the build TOOL to its own dist first. plgg-bundle ships a compiled
+# dist/cli.es.js that its bin runs in a REAL REGISTRY INSTALL, so Node never has
+# to strip types from a `.ts` under node_modules — the retired bin/relocate.mjs
+# /tmp copy-and-re-exec hack. In this monorepo the bin still runs from source
+# (realpath outside node_modules), so this step only produces the shippable
+# artifact; it does not change how the packages below build.
+echo "=== Self-bundling plgg-bundle (the build tool) to dist ==="
+cd $REPO_ROOT/packages/plgg-bundle && npm run build && cd $REPO_ROOT
+
 echo "=== Building every library dist with the in-house bundler (npm run build), in dependency order ==="
 cd $REPO_ROOT/packages/plgg && npm run build
 # plgg-parser: the zero-dep parser combinator core; depends only on plgg core.
@@ -31,6 +40,10 @@ cd $REPO_ROOT/packages/plgg-ir-manifest && npm run build
 # evaluator), a sibling of the manifest dialect on the same framework. It
 # file:-depends on plgg + plgg-ir-syntax + plgg-ir-language (not the manifest).
 cd $REPO_ROOT/packages/plgg-ir-thesis && npm run build
+# plgg-ir-thesis-proof after plgg-ir-thesis: the runnable formal-proof worked
+# example consumes the thesis model's dist (主張/関係/フレーム/攻撃 + the graph
+# util), so the thesis dist must exist before it builds.
+cd $REPO_ROOT/packages/plgg-ir-thesis-proof && npm run build
 cd $REPO_ROOT/packages/plgg-kit && npm run build
 # plgg-foundry after plgg-kit: it consumes plgg-kit's dist (and plgg core).
 # Now built in-house, so it joins the ordered set (was previously ad-hoc).

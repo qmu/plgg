@@ -41,6 +41,39 @@ export const transpileToCjs = (
 };
 
 /**
+ * Transpile a single TS file to ESM JavaScript,
+ * preserving ES module syntax (`export default`,
+ * `import`) and `import.meta`. Unlike
+ * {@link transpileToCjs}, the target keeps the module in
+ * the ES system so a loader can evaluate it as ESM. Used
+ * to load a `bundle.config.ts` as an unambiguously-ESM
+ * `.mjs` so Node never has to infer the module type from
+ * the package's (typeless) `package.json` — see
+ * {@link module:plgg-bundle/vendors/loadConfigModule}.
+ */
+export const transpileToEsm = (
+  file: string,
+  source: string,
+): string => {
+  try {
+    return ts.transpileModule(source, {
+      fileName: file,
+      compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2021,
+        isolatedModules: true,
+        verbatimModuleSyntax: false,
+        removeComments: true,
+      },
+    }).outputText;
+  } catch (cause) {
+    throw new Error(
+      `TranspileError: ${file}: ${messageOf(cause)}`,
+    );
+  }
+};
+
+/**
  * The message of an unknown thrown value, without
  * assuming it is an `Error`.
  */
