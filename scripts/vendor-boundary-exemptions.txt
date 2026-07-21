@@ -13,6 +13,7 @@
 # header and .workaholic/constraints/architecture.md.
 
 example              # leaf demo app: a runnable example that wires node: (child_process/fs/http/…) directly; not a library domain
+plggmatic-example    # reference plggmatic app: its build-time stamp (src/stamp.ts) reads node:fs/crypto/path directly; a leaf app, not a library domain
 plgg-server          # legacy Feature/ layout; node:http + node:fs/promises in the server + SSG writer — migrate to vendors/ later
 plgg-test            # legacy layout; the test runner imports the tsc API (typescript) + node:fs/path/url — tooling package, migrate later
 plggpress            # legacy layout; the framework writes files (node:fs/promises) + serves (node:http) outside a vendors/ boundary — migrate later (pilot: ticket 20260704185203 is plgg-fetch, already clean)

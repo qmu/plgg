@@ -100,6 +100,10 @@ its name); this section is the top-level index that links down to each.
 
 - **[`packages/plgg-cli/`](packages/plgg-cli/)** - Toolkit for building command-line program wrappers on plgg: typed commands/options, argv parsing, and a Result-to-exit-code fold with an auto-generated usage banner
 
+**LLM metering**
+
+- **[`packages/plgg-token-metering/`](packages/plgg-token-metering/)** - Library-independent LLM token counting and cost estimation: self-implemented BPE against the vocabularies providers publish (OpenAI, open-weight `tokenizer.json`), a calibrated estimator with a measured error band where the tokenizer is unpublished (Claude, Gemini), and cost decomposition per billing bucket. Zero tokenizer dependencies; the vocabulary is caller-supplied data, so the package does no I/O. Accuracy is measured, and honest: 0.00% for the two exact families, 8.54%/6.60% mean for the two estimator families, which do NOT meet the ±5% target
+
 **Docs & build toolchain**
 
 - **[`packages/plgg-md/`](packages/plgg-md/)** - Markdown-to-typed-data parser on plgg: a frontmatter splitter and block tokenizer producing an immutable `Box`-union AST (Result, never throws)
@@ -117,10 +121,15 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-ir-language/`](packages/plgg-ir-language/)** - Reusable static language framework on plgg-ir-syntax: form/operator registries (closed vocabulary), kinded scopes with two-phase declare/analyze (forward references), a type checker preserving domain types (`client-id ≠ organization-id`, `(money JPY) ≠ (money USD)`), expected/actual diagnostics, shorthand expansion, idempotent normalization with a canonical serializer, and collision-checked dialect composition
 - **[`packages/plgg-ir-manifest/`](packages/plgg-ir-manifest/)** - The Domain Manifest dialect on plgg-ir-language: the versioned `(plgg-ir 1 (module ...))` vocabulary — entities, fields, domain types, relations, validation, invariants, aggregates, projections, policies, views, actions, derivations — with layered scope/boundary verification, deny-by-default authorization, a dependency graph with topological update planning (cycles are compile errors), and a deterministic canonical IR — what an LLM agent emits and plggmatic will interpret
 
+**UI framework**
+
+- **[`packages/plggmatic/`](packages/plggmatic/)** - Column-oriented UI design framework on the plgg family: pane alignment, a typed light/dark color scheme, and fundamental components as pure functions returning plgg-view `Html`. Organized into tiers (Catalog/Component/Declare/Flow/Form/Layout/Meta/Render/Schedule/Style) with an absorbed UI engine; an app author writes a plggmatic DECLARATION scheduled into a plgg-view program and drawn by the multi-column renderer
+
 **Site & tutorial**
 
 - **[`packages/guide/`](packages/guide/)** - The official plgg family guide: a plggpress-built static documentation site (private `@plgg/guide`, not published)
 - **[`packages/example/`](packages/example/)** - Example usage project: the SSR + CSR round-trip over one Elm-Architecture program
+- **[`packages/plggmatic-example/`](packages/plggmatic-example/)** - The reference plggmatic app: the whole program is a plggmatic DECLARATION (Resources, Menu, list/detail views, Query, create/delete Actions) scheduled into a plgg-view program and drawn by the multi-column renderer; ships demo1 (business-management menu), demo2 (color scheme), demo3 (query URL codec), and the forms demo, with a `plgg-bundle dev` live serve (port 51820, `plggmatic-reference.qmu.dev`)
 - **[`packages/plgg-poc-portal/`](packages/plgg-poc-portal/)** - plggpress PoC portal: the static index of the confidence-collection PoC fleet (private, served at `plgg-poc.qmu.dev`)
 - **[`packages/plgg-poc1-search/`](packages/plgg-poc1-search/)** - PoC 1: browser-side full-text search vs vector RAG measured on the guide corpus (private, served at `plgg-poc1.qmu.dev`)
 - **[`packages/plgg-poc2-agent/`](packages/plgg-poc2-agent/)** - PoC 2: reader-side embedded browser agent — grounded, cited answers over the shipped guide index, key confined to a server session seam (private, served at `plgg-poc2.qmu.dev`)
@@ -446,6 +455,26 @@ See [packages/plgg-bundle/README.md](packages/plgg-bundle/README.md) for details
 The in-house minimal test runner — the `plgg-test` bin every package's test/coverage scripts call: spec discovery, assertions and matchers, mocks, and a coverage threshold gate.
 
 See [packages/plgg-test/README.md](packages/plgg-test/README.md) for details.
+
+### plgg-token-metering
+
+Counts the input tokens an LLM API will bill for **without the provider's
+tokenizer library**, and prices them. Where a provider publishes its vocabulary
+and merge rules (OpenAI's encodings; open-weight `tokenizer.json`), a
+self-implemented BPE reproduces the content count exactly; where the tokenizer is
+unpublished (Anthropic, Google), the count is a calibrated estimator that carries
+its **measured error band** rather than false precision. `countTokens` returns a
+sum type, so an estimate cannot be mistaken for an exact count, and every result
+carries the report its accuracy claim came from. `estimateCost` keeps the
+input/output/cache breakdown and returns `MissingPriceError` rather than
+substituting a rate it was not given.
+
+Measured against each provider's API on a pinned 30-sample manifest: OpenAI and
+Qwen2.5 reach 0.00% error (target met); Claude (8.54% mean / 16.24% max) and
+Gemini (6.60% / 15.73%) do **not** meet the ±5% target, and the package says so
+in its types, its README, and its tests.
+
+See [packages/plgg-token-metering/README.md](packages/plgg-token-metering/README.md) for details.
 
 ## Development
 

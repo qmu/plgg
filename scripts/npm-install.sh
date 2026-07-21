@@ -19,12 +19,18 @@ cd $REPO_ROOT/packages/plgg-ir-language && npm install
 cd $REPO_ROOT/packages/plgg-ir-manifest && npm install
 cd $REPO_ROOT/packages/plgg-mcp && npm install
 cd $REPO_ROOT/packages/plgg-test && npm install
+# plgg-token-metering: file:-depends on plgg (installed above) plus the
+# plgg-bundle/plgg-test tooling.
+cd $REPO_ROOT/packages/plgg-token-metering && npm install
 cd $REPO_ROOT/packages/plgg-kit && npm install
 cd $REPO_ROOT/packages/plgg-foundry && npm install
 cd $REPO_ROOT/packages/plgg-http && npm install
 cd $REPO_ROOT/packages/plgg-cli && npm install
 cd $REPO_ROOT/packages/plgg-router && npm install
 cd $REPO_ROOT/packages/plgg-view && npm install
+# plggmatic after plgg-view + the plgg-ir family: it file:-depends on plgg,
+# plgg-view, and plgg-ir-syntax/language/manifest, all installed above.
+cd $REPO_ROOT/packages/plggmatic && npm install
 cd $REPO_ROOT/packages/plgg-md && npm install
 cd $REPO_ROOT/packages/plgg-highlight && npm install
 cd $REPO_ROOT/packages/plgg-server && npm install
@@ -42,6 +48,10 @@ cd $REPO_ROOT/packages/plggpress && npm install
 cd $REPO_ROOT/packages/plgg-cms && npm install
 cd $REPO_ROOT/packages/plgg-fetch && npm install
 cd $REPO_ROOT/packages/example && npm install
+# plggmatic-example after plggmatic: the reference app file:-depends on
+# plggmatic (installed above) plus plgg + plgg-view and the plgg-bundle/plgg-test
+# tooling.
+cd $REPO_ROOT/packages/plggmatic-example && npm install
 # private PoC-fleet apps: they only file:-depend on packages installed above
 # (plgg, plgg-view, plgg-server/plgg-router, plgg-bundle, plgg-test), so they
 # must join the clean-clone install loop or CI fails to resolve @types/node.
