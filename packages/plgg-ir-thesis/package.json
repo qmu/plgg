@@ -1,0 +1,53 @@
+{
+  "name": "plgg-ir-thesis",
+  "version": "0.0.1",
+  "files": [
+    "dist"
+  ],
+  "description": "The Thesis dialect of the plgg-ir family, built with plgg-ir-language over plgg-ir-syntax. Defines the versioned (plgg-ir-thesis 1 ...) argumentation vocabulary — assertions (主張), concepts (概念), relations (関係), frames (フレーム) and attacks (攻撃) in the qmu conceptual metamodel's Japanese surface keywords — and statically model-checks the declared argumentation structure, accepting it or rejecting it with counterexample diagnostics.",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-ir-syntax": "file:../plgg-ir-syntax",
+    "plgg-ir-language": "file:../plgg-ir-language"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

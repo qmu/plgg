@@ -9,6 +9,7 @@ import {
   isErr,
   mapResult,
   matchOption,
+  fromNullable,
 } from "plgg";
 import {
   Parser,
@@ -127,9 +128,45 @@ const appendDiag = (
  * top of ASCII letters and digits. A closed alphabet —
  * anything else is `syntax.unexpected-character`
  * (design.md §34: a small, regular grammar the LLM
- * cannot drift out of silently).
+ * cannot drift out of silently). The leading `:` marks
+ * an attribute keyword (`:ロジック`, `:接続元`, …) in the
+ * thesis dialect (design.md §4); it is admitted as an
+ * ordinary atom character so a keyword scans as one
+ * symbol whose name begins with `:`. The arrow `→`
+ * (U+2192) is admitted for the thesis requirement path
+ * atom `前提→ルート` (design.md §4); like the Japanese
+ * letters it is a single BMP code unit.
  */
-const ATOM_PUNCT = "-+*/<>=!?._";
+const ATOM_PUNCT = "-+*/<>=!?._:→";
+
+/**
+ * True when `ch` is one of the metamodel's Japanese
+ * letters admitted into the atom alphabet: hiragana
+ * (U+3040–U+309F), katakana including the prolonged
+ * sound mark ー (U+30A0–U+30FF), and CJK unified
+ * ideographs (U+4E00–U+9FFF). A *closed* extension of
+ * the ASCII alphabet — the thesis dialect's Japanese
+ * vocabulary (design.md §4), never "any Unicode".
+ *
+ * All three ranges lie in the Basic Multilingual Plane,
+ * so each character is exactly one UTF-16 code unit; the
+ * scanner's per-unit `advance(1)` therefore coincides
+ * with per-code-point advancement and {@link SourceRange}
+ * offsets stay code-point-consistent for this alphabet.
+ */
+const isJapaneseLetter = (
+  ch: SoftStr,
+): boolean =>
+  pipe(
+    fromNullable(ch.codePointAt(0)),
+    matchOption(
+      (): boolean => false,
+      (cp: number): boolean =>
+        (cp >= 0x3040 && cp <= 0x309f) ||
+        (cp >= 0x30a0 && cp <= 0x30ff) ||
+        (cp >= 0x4e00 && cp <= 0x9fff),
+    ),
+  );
 
 /**
  * One character of a bare atom (symbol / number /
@@ -145,7 +182,8 @@ const atomChar: Parser<SoftStr, LexState> =
       (ch >= "a" && ch <= "z") ||
       (ch >= "A" && ch <= "Z") ||
       (ch >= "0" && ch <= "9") ||
-      ATOM_PUNCT.includes(ch),
+      ATOM_PUNCT.includes(ch) ||
+      isJapaneseLetter(ch),
   );
 
 /**

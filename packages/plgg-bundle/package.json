@@ -4,14 +4,14 @@
   "description": "In-house minimal library bundler for the plgg monorepo (ESM+CJS dual output, per-file .d.ts tree), zero new dependencies — reuses the project's own TypeScript, no native binding.",
   "type": "module",
   "files": [
-    "src",
-    "bin"
+    "bin",
+    "dist"
   ],
   "bin": {
     "plgg-bundle": "bin/plgg-bundle.mjs"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node bin/plgg-bundle.mjs",
     "tsc": "tsc --noEmit",
     "test": "tsc --noEmit && plgg-test src",
     "coverage": "tsc --noEmit && plgg-test src --coverage"

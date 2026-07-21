@@ -120,6 +120,8 @@ its name); this section is the top-level index that links down to each.
 - **[`packages/plgg-ir-syntax/`](packages/plgg-ir-syntax/)** - Minimal S-expression syntax layer for the plgg-ir family on plgg-parser: position-aware `Sexp` trees, accumulated coded diagnostics (never throws), and a deterministic canonical printer with the `parse(print(parse(x))) = parse(x)` round-trip property
 - **[`packages/plgg-ir-language/`](packages/plgg-ir-language/)** - Reusable static language framework on plgg-ir-syntax: form/operator registries (closed vocabulary), kinded scopes with two-phase declare/analyze (forward references), a type checker preserving domain types (`client-id ≠ organization-id`, `(money JPY) ≠ (money USD)`), expected/actual diagnostics, shorthand expansion, idempotent normalization with a canonical serializer, and collision-checked dialect composition
 - **[`packages/plgg-ir-manifest/`](packages/plgg-ir-manifest/)** - The Domain Manifest dialect on plgg-ir-language: the versioned `(plgg-ir 1 (module ...))` vocabulary — entities, fields, domain types, relations, validation, invariants, aggregates, projections, policies, views, actions, derivations — with layered scope/boundary verification, deny-by-default authorization, a dependency graph with topological update planning (cycles are compile errors), and a deterministic canonical IR — what an LLM agent emits and plggmatic will interpret
+- **[`packages/plgg-ir-thesis/`](packages/plgg-ir-thesis/)** - The Thesis dialect on plgg-ir-language (sibling to the manifest dialect): the argumentation vocabulary in the qmu metamodel's Japanese surface keywords — assertions (`主張`), concepts (`概念`), relations (`関係`), and frames (`フレーム`) with typed attacks (`反駁`/`切り崩し`/`掘り崩し`) — statically model-checked over finite Kripke models and accepted or rejected with a counterexample diagnostic (never searched, always declared-and-checked)
+- **[`packages/plgg-ir-thesis-proof/`](packages/plgg-ir-thesis-proof/)** - A runnable formal-proof worked example on plgg-ir-thesis: encodes the metamodel-semantics flagship arguments (撤退論 vs 継続論, and a 論争空間) and proves properties over them — 反論の完全性 (遮断 / 被覆) and Dung 生存判定 (grounded extension) — with one command that prints `accept` for a valid argument or a ranged counterexample trace for a doctored one
 
 **UI framework**
 
@@ -431,6 +433,18 @@ See [packages/plgg-ir-language/README.md](packages/plgg-ir-language/README.md) f
 The Domain Manifest dialect — the `plgg-ir` family's domain-specific layer. `compileManifest` takes a restricted, typed, Lisp-style `(plgg-ir 1 (module ...))` source (the artifact an LLM agent generates), statically verifies it — closed vocabulary at every level, domain-type-preserving expression checking, boolean-typed validation conditions and invariants, relation target/inverse pairing, aggregate root/member/uniqueness/relatedness — and produces the resolved `Module` model plus deterministic canonical text (stable ordering, expression operands untouched; equivalent sources normalize identically). Phases 4–5 (views/policies/actions, derivations/consistency) grow this same dialect.
 
 See [packages/plgg-ir-manifest/README.md](packages/plgg-ir-manifest/README.md) for details.
+
+### plgg-ir-thesis
+
+The Thesis dialect — the second dialect on `plgg-ir-language`, sibling to the Domain Manifest. Where the manifest lets an LLM declare a domain *model*, the thesis dialect lets it declare an *argumentation structure* — concepts, relations, assertions, and frames between assertions in the qmu conceptual metamodel's Japanese surface keywords — and `compileThesis` statically model-checks the declared structure over finite Kripke models: closed vocabulary at every level, assertion uniformity (all relations share one logic kind), and — over the mission's tickets — per-logic frame conditions, attack reference closure and typing, declared-simulation checks, the `:要求` rebuttal model checker (被覆 / 遮断) with counterexample traces, the Dung grounded extension, and a deterministic canonical `(plgg-ir-thesis 1 ...)` IR. Every rejection carries a concrete counterexample; correspondences are always declared and only checked (polynomial), never searched. `plgg-ir-manifest` is untouched.
+
+See [packages/plgg-ir-thesis/README.md](packages/plgg-ir-thesis/README.md) for details.
+
+### plgg-ir-thesis-proof
+
+A runnable formal-proof worked example on `plgg-ir-thesis`. It takes argumentation models written in the qmu 概念メタモデル vocabulary (`主張` / `関係` / `フレーム` / `攻撃`), reuses the thesis model, and formally proves properties over them, printing `accept` for a valid argument or a ranged counterexample trace for a doctored one. It anchors on `metamodel-semantics.md`'s flagship cases: 反論の完全性 (rebuttal completeness) on 撤退論 vs 継続論 — both 遮断 (severing: no premise→root derivation path survives once attacked relations are removed) and 被覆 (coverage: every relation has a declared attack) — and Dung 生存判定 (grounded extension) over a 論争空間 attack graph. Removing one attack from the complete 継続論による反論 yields a concrete counterexample: the surviving path `競合参入 →r3→ 撤退判断` (遮断) or the unattacked relation `r3` (被覆). One command runs every example end-to-end.
+
+See [packages/plgg-ir-thesis-proof/README.md](packages/plgg-ir-thesis-proof/README.md) for details.
 
 ### plggpress
 

@@ -148,9 +148,9 @@ const strElem = (
       );
 
 /**
- * The optional `target` field — `"library"` (default) or
- * `"app"`. Absent means a library, so the existing
- * library configs need no change.
+ * The optional `target` field — `"library"` (default),
+ * `"app"`, or `"cli"`. Absent means a library, so the
+ * existing library configs need no change.
  */
 const target = (
   o: Record<string, unknown>,
@@ -160,9 +160,11 @@ const target = (
     ? "library"
     : v === "app"
       ? "app"
-      : fail(
-          `"target" must be "library" or "app"`,
-        );
+      : v === "cli"
+        ? "cli"
+        : fail(
+            `"target" must be "library", "app", or "cli"`,
+          );
 };
 
 /**
