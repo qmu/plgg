@@ -44,6 +44,30 @@ builds on.
 - A throwaway spike may prove the mechanism on a representative slice; no
   production runner change ships in this ticket.
 
+## Preliminary findings (measured 2026-07-21)
+
+Structural profiling from this session's integration runs (a full `check-all`
+on a worktree integrated with current main took **~15 min**):
+
+- **`npm install` is NOT in check-all** — it's a separate `scripts/npm-install.sh`
+  that runs **39 sequential per-package `npm install`s** (no root package.json /
+  workspaces; all 39 packages cross-link via `file:../`).
+- **check-all structure is fully SEQUENTIAL, PER-PACKAGE:** gates →
+  `build.sh` (bundles all ~39 packages via plgg-bundle, incl. per-file `.d.ts`
+  tsc emit) → ~37–39 test suites, each `tsc --noEmit && plgg-test src` →
+  gateStamp.
+- **Dominant cost = tsc**, run ~2× per package (build `.d.ts` emit + test
+  `--noEmit`), cold each, no incremental/project-refs sharing; plus 39×2 cold
+  process startups; plus full sequentiality. **Test bodies are fast** (~3000
+  pure sync assertions).
+- **Implication for ≤10s:** the win is parallelization + taking `tsc` off the
+  test hot-loop (RUN via the runtime's native type-strip; typecheck as a
+  separate/incremental gate) — NOT speeding up plgg-test's execution.
+
+**Still to do in the instrumented run:** exact per-phase seconds (build vs the
+two tsc passes vs plgg-test run vs process startup) on a clean current-main
+tree, to quantify the split precisely and pin the target of each later ticket.
+
 ## Quality Gate
 
 - **Acceptance:** a documented breakdown of the test-phase wall-clock by cost
