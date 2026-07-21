@@ -52,6 +52,8 @@ node --test scripts/*.spec.ts
 ./scripts/test-plgg-ir-syntax.sh
 ./scripts/test-plgg-ir-language.sh
 ./scripts/test-plgg-ir-manifest.sh
+./scripts/test-plgg-ir-thesis.sh
+./scripts/test-plgg-ir-thesis-proof.sh
 ./scripts/test-plgg-highlight.sh
 ./scripts/test-plgg-router.sh
 ./scripts/test-plgg-server.sh

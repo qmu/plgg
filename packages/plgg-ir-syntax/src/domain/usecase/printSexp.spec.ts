@@ -345,3 +345,41 @@ test("property: parse(print(parse(x))) = parse(x) and printing is idempotent", (
       ),
     ),
   ));
+
+test("round-trips the thesis dialect reference example", () =>
+  check(
+    pipe(
+      parseSexps(`(主張 撤退論
+  :ロジック 因果的
+  :ルート (概念 撤退判断)
+  (関係 r1 :接続元 (概念 需要縮小) :接続先 (概念 売上減))
+  (関係 r2 :接続元 (概念 売上減) :接続先 (概念 撤退判断))
+  (関係 r3 :接続元 (概念 競合参入) :接続先 (概念 撤退判断)))
+
+(フレーム 継続論による反論
+  :種別 反論
+  :接続元 継続論
+  :接続先 撤退論
+  :要求 (遮断 前提→ルート)
+  (攻撃 s1 掘り崩し r1)
+  (攻撃 s2 切り崩し r2)
+  (攻撃 s3 掘り崩し r3))`),
+      matchResult(
+        (): boolean => false,
+        (first: ReadonlyArray<Sexp>): boolean =>
+          pipe(
+            parseSexps(printSexps(first)),
+            matchResult(
+              (): boolean => false,
+              (
+                second: ReadonlyArray<Sexp>,
+              ): boolean =>
+                sexpsEqual(first)(second) &&
+                printSexps(first) ===
+                  printSexps(second),
+            ),
+          ),
+      ),
+    ),
+    toBe(true),
+  ));
