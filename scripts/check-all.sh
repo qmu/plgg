@@ -25,6 +25,14 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # scripts/vendor-boundary-exemptions.txt).
 ./scripts/gate-vendor-boundary.sh
 
+# Gate: the repository's own TS tooling scripts (scripts/*.ts — the publish
+# preflight and its pure helpers) typecheck strictly and their unit tests pass.
+# They run under Node's native type-stripping; the typecheck uses the build
+# tool's own TypeScript (plgg-bundle/node_modules, bootstrapped by the
+# vendor-boundary gate above). No `as`/`any` escape hatch survives this.
+node "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript/bin/tsc" -p scripts/tsconfig.json
+node --test scripts/*.spec.ts
+
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh
@@ -68,3 +76,10 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 ./scripts/test-plgg-poc4c-livesite.sh
 ./scripts/test-plgg-poc5-config.sh
 ./scripts/test-plgg-poc6-classify.sh
+
+# Record a same-session green stamp. `set -e` means this line is reached only
+# when every gate/build/test above passed, so it captures the tracked
+# working-tree digest this run just certified. publish-npm.sh auto-skips its
+# own gate when this stamp still matches the tree (invalidated by any tracked
+# edit), so SKIP_GATE stops being something a human must remember.
+node "$REPO_ROOT/scripts/gateStamp.ts" write

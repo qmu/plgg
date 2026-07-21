@@ -9,6 +9,10 @@ import {
   emitEsmBundle,
 } from "plgg-bundle/domain/usecase/emitBundle";
 import { type Graph } from "plgg-bundle/domain/usecase/collectModules";
+import {
+  externalVar,
+  externalEntry,
+} from "plgg-bundle/domain/usecase/externalsTable";
 
 const graph: Graph = {
   entryId: "index.ts",
@@ -104,14 +108,14 @@ test("emitEsmBundle imports externals and routes the registry to them", () =>
       emitEsmBundle(externalGraph, [
         "read",
       ]).includes(
-        'import * as __ext0 from "node:fs";',
+        `import * as ${externalVar(0)} from "node:fs";`,
       ),
       toBe(true),
     ),
     check(
       emitEsmBundle(externalGraph, [
         "read",
-      ]).includes('"node:fs": __ext0'),
+      ]).includes(externalEntry("node:fs", 0)),
       toBe(true),
     ),
     check(
