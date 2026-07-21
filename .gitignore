@@ -7,6 +7,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Publish preflight scratch: the publish-set dirs scripts/publish.ts writes for
+# publish-npm.sh to consume (normally removed within the run).
+.publish-set.*
+
+# Same-session green gate stamp: check-all.sh writes it on a fully green run
+# (a tracked working-tree digest); publish-npm.sh auto-skips its gate when the
+# stamp still matches the tree, so SKIP_GATE need not be remembered.
+.check-all-green.stamp
+
+# Transient transpiled config: plgg-bundle loads bundle.config.ts by writing a
+# sibling .mjs (unambiguously ESM, so Node never infers module type from a
+# typeless package.json), imports it, and removes it — only lingers if killed.
+**/.bundle.config.*.mjs
+
 # Build outputs
 **/dist/
 # Transient staging/backup dirs from plgg-bundle's atomic dist publish

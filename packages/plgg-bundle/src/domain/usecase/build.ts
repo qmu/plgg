@@ -21,7 +21,7 @@ import {
 } from "plgg-bundle/domain/usecase/emitBundle";
 import { emitDts } from "plgg-bundle/domain/usecase/emitDts";
 import { deriveExternal } from "plgg-bundle/domain/usecase/deriveExternal";
-import { readExportNames } from "plgg-bundle/vendors/runner";
+import { deriveExportNames } from "plgg-bundle/vendors/exportSurface";
 import { discoverWorkspace } from "plgg-bundle/domain/usecase/discoverWorkspace";
 import { resolveWorkspaceSpecifier } from "plgg-bundle/domain/usecase/resolveWorkspaceSpecifier";
 
@@ -58,7 +58,9 @@ export const build = (
   const written =
     config.target === "app"
       ? buildApp(config, stageDir)
-      : buildLibrary(config, stageDir);
+      : config.target === "cli"
+        ? buildCli(config, stageDir)
+        : buildLibrary(config, stageDir);
   swapIntoPlace(stageDir, outDir);
   return written;
 };
@@ -79,12 +81,13 @@ const buildLibrary = (
   const external = deriveExternal(config.root);
   const written: string[] = [];
   for (const entry of config.entries) {
+    const entryFile = join(
+      config.root,
+      config.rootDir,
+      entry.input,
+    );
     const graph = collectModules({
-      entryFile: join(
-        config.root,
-        config.rootDir,
-        entry.input,
-      ),
+      entryFile,
       root: config.root,
       aliasPrefix: config.alias.prefix,
       aliasSrcRoot: join(
@@ -97,6 +100,7 @@ const buildLibrary = (
       ...buildEntry(
         config,
         entry,
+        entryFile,
         graph,
         stageDir,
       ),
@@ -169,6 +173,55 @@ const buildApp = (
 const NODE_EXTERNAL = /^node:/;
 
 /**
+ * CLI build: a single self-contained `es` bundle for a
+ * Node command-line tool (plgg-bundle self-bundling its
+ * own CLI). Like a library, the externals come from the
+ * package's declared dependency graph + `node:*`
+ * (`deriveExternal`) — a Node process resolves a bare
+ * `import "typescript"` from node_modules at runtime, so
+ * real npm deps stay EXTERNAL rather than being inlined
+ * (the app target's browser rule). Unlike a library there
+ * is no CJS emit, no `.d.ts` tree, and no export-surface
+ * derivation: a CLI entry runs for its side effects and
+ * declares no public exports, so the ESM named-export list
+ * is empty.
+ */
+const buildCli = (
+  config: BundleConfig,
+  stageDir: string,
+): ReadonlyArray<string> => {
+  const external = deriveExternal(config.root);
+  const written: string[] = [];
+  for (const entry of config.entries) {
+    const graph = collectModules({
+      entryFile: join(
+        config.root,
+        config.rootDir,
+        entry.input,
+      ),
+      root: config.root,
+      aliasPrefix: config.alias.prefix,
+      aliasSrcRoot: join(
+        config.root,
+        config.alias.srcRoot,
+      ),
+      external,
+    });
+    const rel = applyFileName(
+      config.fileNamePattern,
+      entry.name,
+      "es",
+    );
+    writeOut(
+      join(stageDir, rel),
+      emitEsmBundle(graph, []),
+    );
+    written.push(rel);
+  }
+  return written;
+};
+
+/**
  * Replace `outDir` with the freshly-built `stageDir` in a
  * single rename, so a concurrent reader sees only a
  * complete `dist` (old or new) — never a torn one. The
@@ -200,17 +253,27 @@ const swapIntoPlace = (
 const buildEntry = (
   config: BundleConfig,
   entry: Entry,
+  entryFile: string,
   graph: Graph,
   destDir: string,
 ): ReadonlyArray<string> => {
   const cjs = emitCjsBundle(graph);
-  // Discover the exact export surface by running the CJS
-  // bundle and reading its keys — ESM cannot declare
-  // exports dynamically. The bundle's external requires
-  // resolve against the target package's node_modules.
+  // Derive the exact ESM export surface STATICALLY from
+  // the entry module's TypeScript source — ESM cannot
+  // declare its exports dynamically, so the emitter needs
+  // the precise named-export list. (Previously discovered
+  // by executing the CJS bundle in a `node:vm`; retired
+  // for the static `vendors/exportSurface` derivation, so
+  // no target-package node_modules must be resolvable and
+  // no arbitrary module top-level code runs at build time.)
   const esm = emitEsmBundle(
     graph,
-    readExportNames(cjs, config.root),
+    deriveExportNames({
+      entryFile,
+      root: config.root,
+      aliasPrefix: config.alias.prefix,
+      aliasSrcRoot: config.alias.srcRoot,
+    }),
   );
   const written: string[] = [];
   for (const format of config.formats) {

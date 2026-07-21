@@ -19,15 +19,25 @@ export type Format = "es" | "cjs";
  *   `es`/`cjs` per entry, a per-file `.d.ts` tree, and
  *   sibling/`node:*` deps left EXTERNAL (ruling B), so the
  *   bundle stays faithful to its declared dependencies.
- * - `"app"`: the leaf application (the `example` client) —
- *   a single self-contained `es` bundle with every
- *   workspace sibling INLINED from source (the mirror of
- *   the library decision: the app is where bundling deps
- *   is correct, since a browser cannot resolve a bare
- *   `import "plgg"`). No `.d.ts` (nothing consumes it) and
- *   only `node:*` stays external.
+ * - `"app"`: the leaf BROWSER application (the `example`
+ *   client, the poc demos) — a single self-contained `es`
+ *   bundle with every workspace sibling INLINED from source
+ *   (the mirror of the library decision: the app is where
+ *   bundling deps is correct, since a browser cannot
+ *   resolve a bare `import "plgg"`). No `.d.ts` (nothing
+ *   consumes it) and only `node:*` stays external.
+ * - `"cli"`: a NODE command-line tool (plgg-bundle self-
+ *   bundling its own CLI) — a single `es` bundle with the
+ *   package's own source INLINED but its declared npm
+ *   dependencies AND `node:*` left EXTERNAL (resolved from
+ *   node_modules at runtime; a Node process can `import`
+ *   them, unlike a browser). No `.d.ts` and no export
+ *   surface (a CLI entry has side effects, not exports).
+ *   The distinction from `"app"`: a browser app inlines
+ *   third-party deps (unresolvable bare specifiers at
+ *   runtime), a Node CLI externalizes them.
  */
-export type Target = "library" | "app";
+export type Target = "library" | "app" | "cli";
 
 /**
  * A way to decide whether an imported specifier is

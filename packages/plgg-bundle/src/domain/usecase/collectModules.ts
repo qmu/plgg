@@ -4,6 +4,7 @@ import { type External } from "plgg-bundle/domain/model/BundleConfig";
 import { resolveSpecifier } from "plgg-bundle/domain/usecase/resolveSpecifier";
 import { isExternal } from "plgg-bundle/domain/usecase/isExternal";
 import { transpileToCjs } from "plgg-bundle/vendors/transpiler";
+import { externalKey } from "plgg-bundle/domain/usecase/externalsTable";
 
 /**
  * One bundled module: its stable id (path relative to
@@ -264,6 +265,18 @@ const idOf = (
  * Extract the literal string specifiers of all
  * top-level `require("...")` / `require('...')` calls
  * a transpiled CJS module makes.
+ *
+ * A captured specifier containing `${` is not a real
+ * import — it is a template-literal FRAGMENT of code that
+ * happens to spell a require call, e.g. plgg-bundle's own
+ * `` `require("${spec}")` `` rewrite strings
+ * (`replaceRequire`). This matters when the bundler bundles
+ * ITSELF (the `cli` target): its source literally contains
+ * `require("…")` text as data. A genuine static
+ * `require("<spec>")` specifier can never contain `${` (a
+ * `${` only occurs inside a backtick template, which the
+ * `["']` quotes here do not match), so dropping these is
+ * safe for every build and never hides a real dependency.
  */
 const requireSpecifiers = (
   cjs: string,
@@ -273,7 +286,9 @@ const requireSpecifiers = (
       /require\(\s*["']([^"']+)["']\s*\)/g,
     ),
   ].flatMap((m) =>
-    m[1] === undefined ? [] : [m[1]],
+    m[1] === undefined || m[1].includes("${")
+      ? []
+      : [m[1]],
   );
 
 /**
@@ -286,9 +301,11 @@ const requireSpecifiers = (
  * must follow or the inner lookup misses and falls into
  * the transpiled dynamic-import fallback — a Promise
  * where the consumer expects a namespace ("plgg_1.box
- * is not a function"). Matches the exact
- * `"<spec>": __extN` shape the TS printer emits for the
- * table, so ordinary code never collides with it.
+ * is not a function"). Matches the shared
+ * {@link externalKey} binding the emitter writes
+ * (`"<spec>": __ext`), so the rewrite tracks the emitted
+ * shape rather than a hand-written printer literal, and
+ * ordinary code never collides with it.
  */
 const replaceExternalKey = (
   cjs: string,
@@ -296,8 +313,8 @@ const replaceExternalKey = (
   id: string,
 ): string =>
   cjs
-    .split(`${JSON.stringify(spec)}: __ext`)
-    .join(`${JSON.stringify(id)}: __ext`);
+    .split(externalKey(spec))
+    .join(externalKey(id));
 
 /**
  * Rewrite every `require("spec")` occurrence to

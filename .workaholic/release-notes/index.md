@@ -1,5 +1,6 @@
 # release-notes
 
+<!-- okf:generated:begin -->
 * [Release Notes: drive-20260226-032733](drive-20260226-032733.md)
 * [Add plgg-http-client and unify the error vocabulary as Box-tagged ADTs etc](plgg-http-client.md)
 * [Curry match so tag handlers receive the narrowed box, with CoverageError exhaustiveness](work-20260513-182057.md)
@@ -35,3 +36,4 @@
 * [Export the domain vocabulary as a composable manifestDialect, etc](work-20260716-115204.md)
 * [Bump plgg-ir-language and plgg-ir-manifest to 0.0.2 for the dialect-export publish](work-20260716-161106.md)
 * [Re-extract plgg-mcp as the content-free MCP protocol substrate, etc](work-20260716-163314.md)
+<!-- okf:generated:end -->
