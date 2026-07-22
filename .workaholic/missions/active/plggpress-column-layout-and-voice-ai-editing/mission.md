@@ -144,3 +144,4 @@ framework, plggpress is the first product resting on it.
 - 2026-07-23 — ticket added — 20260723004040-voice-realtime-assistant.md
 - 2026-07-23 — ticket added — 20260723004050-guide-column-and-voice.md
 - 2026-07-23 — ticket archived — 20260723004000-adopt-plggmatic-column-layout.md
+- 2026-07-23 — ticket archived — 20260723004010-config-driven-theme-seam.md
