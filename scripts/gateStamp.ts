@@ -26,7 +26,10 @@ import {
   readFileSync,
   writeFileSync,
   existsSync,
+  mkdtempSync,
+  rmSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -39,33 +42,102 @@ const repoRoot = dirname(scriptsDir);
 export const stampPath = (root: string): string =>
   join(root, ".check-all-green.stamp");
 
-const git = (
+/**
+ * Runs a git subcommand in `root` and returns its trimmed stdout.
+ * `extraEnv` is merged over the ambient environment (used to point a
+ * git call at a private, throwaway index via `GIT_INDEX_FILE`). Injected
+ * so a test can simulate a transient failure.
+ */
+export type GitRunner = (
   args: ReadonlyArray<string>,
   root: string,
-): string =>
+  extraEnv?: Record<string, string>,
+) => string;
+
+export const gitOnce: GitRunner = (
+  args,
+  root,
+  extraEnv,
+) =>
   execFileSync("git", [...args], {
     cwd: root,
     encoding: "utf8",
+    env: extraEnv
+      ? { ...process.env, ...extraEnv }
+      : process.env,
   }).trim();
+
+/** Sleep synchronously for `ms` (bounded backoff between retries). */
+const sleepMs = (ms: number): void => {
+  Atomics.wait(
+    new Int32Array(new SharedArrayBuffer(4)),
+    0,
+    0,
+    ms,
+  );
+};
+
+/**
+ * Wrap a {@link GitRunner} so a transient failure is retried a few times
+ * with a short, growing backoff instead of aborting an otherwise-green
+ * gate. `check-all`'s final stamp step must never fail on a passing tree
+ * because a single git invocation lost a race (git op contention across
+ * concurrent worktrees/sessions).
+ */
+export const withRetry =
+  (
+    run: GitRunner,
+    attempts = 4,
+    backoffMs = 50,
+  ): GitRunner =>
+  (args, root, extraEnv) => {
+    let lastErr: unknown;
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        return run(args, root, extraEnv);
+      } catch (err) {
+        lastErr = err;
+        if (i < attempts - 1) {
+          sleepMs(backoffMs * (i + 1));
+        }
+      }
+    }
+    throw lastErr;
+  };
 
 /**
  * A content digest of the tracked, checked-out working tree:
- * `<HEAD>-<tree>`. `git stash create` yields a commit whose `^{tree}`
- * is the content-addressed tree of the tracked working tree (including
- * uncommitted edits); it prints nothing when the tree is clean, in which
- * case the digest uses `HEAD^{tree}`. Untracked files (the stamp itself,
- * built `dist/`) are not part of either tree, so they never move the
- * digest.
+ * `<HEAD>-<tree>`. The tree sha is computed lock-free against a private,
+ * throwaway index (`GIT_INDEX_FILE`): seed it from `HEAD`, stage tracked
+ * edits (`add -u`, so untracked files — the stamp itself, built `dist/`
+ * — never move the digest), then `write-tree`. Unlike `git stash create`
+ * this touches no shared ref (there is no stash stack to contend on), so
+ * it can't lose a race with a concurrent worktree; for identical tracked
+ * content it yields the identical tree object, so existing stamps stay
+ * valid. Every git call is retried, so a transient hiccup is tolerated.
  */
-export const treeDigest = (root: string): string => {
-  const head = git(["rev-parse", "HEAD"], root);
-  const stash = git(["stash", "create"], root);
-  const treeRef =
-    stash.length > 0
-      ? `${stash}^{tree}`
-      : "HEAD^{tree}";
-  const tree = git(["rev-parse", treeRef], root);
-  return `${head}-${tree}`;
+export const treeDigest = (
+  root: string,
+  run: GitRunner = withRetry(gitOnce),
+): string => {
+  const head = run(["rev-parse", "HEAD"], root);
+  const indexDir = mkdtempSync(
+    join(tmpdir(), "gate-stamp-idx-"),
+  );
+  try {
+    const env = {
+      GIT_INDEX_FILE: join(indexDir, "index"),
+    };
+    run(["read-tree", "HEAD"], root, env);
+    run(["add", "-u"], root, env);
+    const tree = run(["write-tree"], root, env);
+    return `${head}-${tree}`;
+  } finally {
+    rmSync(indexDir, {
+      recursive: true,
+      force: true,
+    });
+  }
 };
 
 /** A short, human-facing form of a `<HEAD>-<tree>` digest. */

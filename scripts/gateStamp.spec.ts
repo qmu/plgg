@@ -15,7 +15,10 @@ import {
   readStamp,
   shortDigest,
   stampPath,
+  withRetry,
+  gitOnce,
 } from "./gateStamp.ts";
+import type { GitRunner } from "./gateStamp.ts";
 
 /**
  * Build a throwaway git repo with one commit and return its root. The
@@ -82,6 +85,47 @@ test("the stamp file's presence does not change the digest", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("treeDigest tolerates a transient git failure via retry", () => {
+  const root = makeRepo();
+  try {
+    const expected = treeDigest(root);
+    // Fail the tree-object step (the `write-tree` that replaced the
+    // race-prone `git stash create`) the first two times, then recover.
+    let failuresLeft = 2;
+    const flaky: GitRunner = (args, r, env) => {
+      if (
+        args[0] === "write-tree" &&
+        failuresLeft > 0
+      ) {
+        failuresLeft -= 1;
+        throw new Error(
+          "Command failed: git write-tree (simulated transient)",
+        );
+      }
+      return gitOnce(args, r, env);
+    };
+    const digest = treeDigest(
+      root,
+      withRetry(flaky, 5, 1),
+    );
+    assert.equal(failuresLeft, 0);
+    assert.equal(digest, expected);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("withRetry rethrows once attempts are exhausted", () => {
+  const alwaysFails: GitRunner = () => {
+    throw new Error("git down");
+  };
+  const run = withRetry(alwaysFails, 2, 1);
+  assert.throws(
+    () => run(["rev-parse", "HEAD"], "/tmp"),
+    /git down/,
+  );
 });
 
 test("shortDigest abbreviates both halves", () => {
