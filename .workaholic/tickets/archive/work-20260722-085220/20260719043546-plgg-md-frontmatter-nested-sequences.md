@@ -1,11 +1,11 @@
 ---
 created_at: 2026-07-19T04:35:46+09:00
-author: a-qmu-jp
+author: a@qmu.jp
 type: bugfix
 layer: [Domain]
-effort:
-commit_hash:
-category:
+effort: 1h
+commit_hash: cbba0d80
+category: Changed
 depends_on:
 ---
 
