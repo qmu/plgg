@@ -157,3 +157,4 @@ at the compiler boundary:
 - 2026-07-19 — ticket archived — 20260719011213-requirement-model-checker.md
 - 2026-07-19 — ticket archived — 20260719011214-structure-grounded-extension-canonical-ir.md
 - 2026-07-19 — ticket archived — 20260719011215-catalog-acceptance-and-guide.md
+- 2026-07-23 — ticket archived — 20260722100000-unify-thesis-proof-with-full-evaluator.md

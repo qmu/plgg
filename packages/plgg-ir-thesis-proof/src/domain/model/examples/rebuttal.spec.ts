@@ -6,106 +6,83 @@ import {
   toEqual,
   Assertion,
 } from "plgg-test";
-import { pipe, matchOption } from "plgg";
+import { pipe, matchResult } from "plgg";
+import { SemDiagnostic } from "plgg-ir-language";
+import { compileThesis } from "plgg-ir-thesis";
 import {
-  verifySevering,
-  verifyCoverage,
-} from "plgg-ir-thesis-proof/domain/usecase/verifyRebuttal";
-import {
-  RebuttalExample,
-  flagshipRebuttal,
+  COMPLETE_SEVERING,
+  DOCTORED_SEVERING,
+  COMPLETE_COVERAGE,
+  DOCTORED_COVERAGE,
 } from "plgg-ir-thesis-proof/domain/model/examples/rebuttal";
 
 /**
- * Runs `f` against the flagship example, failing loudly
- * if the surface syntax ever stopped parsing it.
+ * `accept` when the full evaluator compiles `source`,
+ * otherwise `reject` — collapsing the compile Result to a
+ * verdict tag the fixtures assert on.
  */
-const withExample = (
-  f: (ex: RebuttalExample) => Assertion,
-): Assertion =>
+const verdict = (source: string): Assertion =>
   pipe(
-    flagshipRebuttal(),
-    matchOption(
+    compileThesis(source),
+    matchResult(
       (): Assertion =>
-        check(
-          "flagship example missing",
-          toBe("flagship example present"),
-        ),
-      f,
+        check("reject", toBe("accept")),
+      (): Assertion =>
+        check("accept", toBe("accept")),
     ),
   );
 
-test("the flagship rebuttal compiles from the metamodel surface syntax", () =>
-  withExample((ex) =>
+/**
+ * The diagnostics of a refused compile (empty when the
+ * evaluator accepts — the fixtures below never hit that).
+ */
+const rejectionOf = (
+  source: string,
+): ReadonlyArray<SemDiagnostic> =>
+  pipe(
+    compileThesis(source),
+    matchResult(
+      (
+        diags: ReadonlyArray<SemDiagnostic>,
+      ): ReadonlyArray<SemDiagnostic> => diags,
+      (): ReadonlyArray<SemDiagnostic> => [],
+    ),
+  );
+
+test("遮断: the evaluator accepts the complete rebuttal", () =>
+  verdict(COMPLETE_SEVERING));
+
+test("被覆: the evaluator accepts the complete rebuttal", () =>
+  verdict(COMPLETE_COVERAGE));
+
+test("遮断: the evaluator refuses the doctored rebuttal with the surviving path 競合参入 →r3→ 撤退判断", () =>
+  pipe(rejectionOf(DOCTORED_SEVERING), (diags) =>
     all([
-      check(ex.target.name, toBe("撤退論")),
-      check(ex.target.root, toBe("撤退判断")),
       check(
-        ex.target.relations.map((r) => r.name),
-        toEqual(["r1", "r2", "r3"]),
+        diags.map((d) => d.code),
+        toEqual(["thesis.severing-survives"]),
       ),
       check(
-        ex.complete.attacks.map((a) => a.target),
-        toEqual(["r1", "r2", "r3"]),
-      ),
-      check(
-        ex.doctored.attacks.map((a) => a.target),
-        toEqual(["r1", "r2"]),
+        diags.map((d) =>
+          d.message.includes(
+            "競合参入 →r3→ 撤退判断",
+          ),
+        ),
+        toEqual([true]),
       ),
     ]),
   ));
 
-test("遮断 accepts the complete rebuttal", () =>
-  withExample((ex) =>
-    check(
-      verifySevering(ex.target, ex.complete),
-      toEqual([]),
-    ),
-  ));
-
-test("遮断 rejects the doctored rebuttal with the surviving path 競合参入 →r3→ 撤退判断", () =>
-  withExample((ex) =>
-    pipe(
-      verifySevering(ex.target, ex.doctored),
-      (diags) =>
-        all([
-          check(
-            diags.map((d) => d.code),
-            toEqual([
-              "thesis-proof.surviving-path",
-            ]),
-          ),
-          check(
-            diags.map((d) =>
-              d.message.includes(
-                "競合参入 →r3→ 撤退判断",
-              ),
-            ),
-            toEqual([true]),
-          ),
-        ]),
-    ),
-  ));
-
-test("被覆 accepts the complete rebuttal and names r3 on the doctored one", () =>
-  withExample((ex) =>
+test("被覆: the evaluator refuses the doctored rebuttal, naming the unattacked relation r3", () =>
+  pipe(rejectionOf(DOCTORED_COVERAGE), (diags) =>
     all([
       check(
-        verifyCoverage(ex.target, ex.complete),
-        toEqual([]),
+        diags.map((d) => d.code),
+        toEqual(["thesis.coverage-gap"]),
       ),
       check(
-        verifyCoverage(
-          ex.target,
-          ex.doctored,
-        ).map((d) => d.code),
-        toEqual([
-          "thesis-proof.unattacked-relation",
-        ]),
-      ),
-      check(
-        verifyCoverage(ex.target, ex.doctored).map(
-          (d) => d.message.includes("関係 r3"),
+        diags.map((d) =>
+          d.message.includes("r3"),
         ),
         toEqual([true]),
       ),
