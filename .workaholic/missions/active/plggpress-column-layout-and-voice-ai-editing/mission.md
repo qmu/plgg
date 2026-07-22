@@ -151,3 +151,4 @@ framework, plggpress is the first product resting on it.
   guide chain (a coupled, integration-test-heavy build on a new self-owned
   streaming server) was deferred to a follow-up drive to keep the delivered work
   green. These four remain in todo, unchanged and fully specified.
+- 2026-07-23 — ticket archived — 20260723004020-persistent-dev-server-surface.md
