@@ -6,6 +6,7 @@ status: active
 created_at: 2026-07-18T23:00:00+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
+strategy: plgg-horizontal-orientation-ui-stack
 drive_authorized: true
 tickets: []
 stories: []
@@ -98,6 +99,16 @@ _Self-contained — drivable from this repo alone._
 - [ ] The npm `plggmatic` package is actually published from this repo (the
       gated release step that makes the plgg-lineage 0.2.1+ build the published
       one) — human/2FA-gated, not performed on a drive branch.
+- [ ] plggmatic exposes **per-component theming slots/hooks** so a consumer
+      restyles through declared tokens/slots, not by overriding framework
+      `pm-*` class names; demo1 is migrated off the 16 by-name overrides
+      (`demo1/styles.ts`) and renders identically, with a test
+      (#20260723005000-theming-slots-kill-classname-overrides.md)
+- [ ] The **unbounded-depth horizontal runway** (scroll-at-every-width +
+      column-advance) is a declared framework capability the reference consumes
+      rather than app-owned overrides; the "depth does not consume the viewport"
+      property (body/top-bar width invariant as the strip grows) is preserved by
+      a regression test (#20260723005010-generalize-horizontal-runway.md)
 
 ## Out of scope
 
@@ -125,3 +136,6 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-19 — ticket archived — 20260719022859-forms-demo-driven-by-declared-form-surface.md
 - 2026-07-19 — verified & ticked: guide links the reference, and plggmatic package.json is plgg-lineage metadata (0.2.1, repository=qmu/plgg); reference builds (npm run build emits demo bundles). Split the old publish item so the verified metadata half ticks and the gated npm publish stays open. — 20260719030000-verify-reference-and-tick-satisfied-acceptance.md
 - 2026-07-19 — ticket archived — 20260719030000-verify-reference-and-tick-satisfied-acceptance.md
+- 2026-07-23 — strategy linked — plgg-horizontal-orientation-ui-stack
+- 2026-07-23 — ticket added — 20260723005000-theming-slots-kill-classname-overrides.md
+- 2026-07-23 — ticket added — 20260723005010-generalize-horizontal-runway.md
