@@ -1,11 +1,11 @@
 ---
 created_at: 2026-07-19T04:35:45+09:00
-author: a-qmu-jp
+author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 2h
+commit_hash: eadbb0fc
+category: Added
 depends_on:
 ---
 
