@@ -38,11 +38,7 @@ const asCandidateRow = (
     Candidate<Num>,
     InvalidError
   >((r: { id: Num; embedding: string }) =>
-    mapResult<
-      Embedding,
-      Candidate<Num>,
-      InvalidError
-    >((vec: Embedding) => ({
+    mapResult((vec: Embedding) => ({
       id: r.id,
       embedding: vec,
     }))(deserializeEmbedding(r.embedding)),
