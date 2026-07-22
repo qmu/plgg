@@ -111,12 +111,12 @@ framework, plggpress is the first product resting on it.
 
 <!-- Ticket filenames attached as (#<ticket>.md) markers. -->
 
-- [ ] plggpress depends on the `plggmatic` package and renders its documentation
+- [x] plggpress depends on the `plggmatic` package and renders its documentation
       navigation through plggmatic's column-oriented horizontal layout — drilling a
       section opens a new column to the right, the qmu B&W aesthetic preserved, the
       vendored `themeSupport` copy retired; with a test asserting the column-strip
       structure (#20260723004000-adopt-plggmatic-column-layout.md)
-- [ ] The B&W doc-site theme is selectable/overridable through `SiteConfig` rather than
+- [x] The B&W doc-site theme is selectable/overridable through `SiteConfig` rather than
       hard-bound at the composition root, with a test
       (#20260723004010-config-driven-theme-seam.md)
 - [ ] `plggpress dev` runs a persistent, self-owned server surface with a client channel
@@ -145,3 +145,9 @@ framework, plggpress is the first product resting on it.
 - 2026-07-23 — ticket added — 20260723004050-guide-column-and-voice.md
 - 2026-07-23 — ticket archived — 20260723004000-adopt-plggmatic-column-layout.md
 - 2026-07-23 — ticket archived — 20260723004010-config-driven-theme-seam.md
+- 2026-07-23 — tickets deferred — 20260723004020/004030/004040/004050: the
+  overnight drive delivered the column-layout + config-theme foundation (green
+  check-all); the persistent-dev-server → live-edit-bridge → voice-realtime →
+  guide chain (a coupled, integration-test-heavy build on a new self-owned
+  streaming server) was deferred to a follow-up drive to keep the delivered work
+  green. These four remain in todo, unchanged and fully specified.
