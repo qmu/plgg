@@ -170,6 +170,30 @@ test("Result Monad - map function", () => {
   ]);
 });
 
+test("mapResult preserves the error channel point-free", () => {
+  // Regression guard for the point-free trap: `mapResult(f)(x)` must keep
+  // `x`'s error type. With the error param bound on the outer generic (the
+  // old typeclass shape) it widened to `unknown` and these annotations would
+  // fail to typecheck — the whole assertion of the fix is at compile time.
+  const okValue: Result<number, InvalidError> = ok(5);
+  const errValue: Result<number, InvalidError> = err(
+    invalidError({ message: "nope" }),
+  );
+  const r1: Result<string, InvalidError> = mapResult(
+    (n: number) => `${n}`,
+  )(okValue);
+  const r2: Result<string, InvalidError> = mapResult(
+    (n: number) => `${n}`,
+  )(errValue);
+  return all([
+    check(r1, okThen(toBe("5"))),
+    check(
+      r2,
+      errThen((e) => toBe("nope")(e.content.message)),
+    ),
+  ]);
+});
+
 test("mapErr transforms error values while preserving successes", () => {
   const toLength = (e: string) => e.length;
   const okValue: Result<number, string> = ok(5);

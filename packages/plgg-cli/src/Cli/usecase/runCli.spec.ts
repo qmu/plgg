@@ -20,6 +20,7 @@ import {
   flag,
   runWith,
   runCli,
+  runSingleWith,
 } from "plgg-cli/index";
 
 /**
@@ -137,6 +138,69 @@ test("runWith folds a parse error to stderr and fails", async () => {
       toBe(
         "app: missing value for option --name",
       ),
+    ),
+    check(c.failed.length, toBe(1)),
+  ]);
+});
+
+// --- single-command program (bare flags, no subcommand token) ---
+
+const tool = command(
+  "my-tool",
+  "a one-handler tool",
+  [flag("real"), option("name", "n")],
+);
+
+const echoHandler: Handler = (
+  invocation: Invocation,
+): PromisedResult<SoftStr, SoftStr> =>
+  Promise.resolve(
+    ok(`flags:${invocation.flags.join(",")}`),
+  );
+
+test("runSingleWith runs a one-handler CLI on bare flags", async () => {
+  const c = makeCapture();
+  await runSingleWith(
+    tool,
+    echoHandler,
+    ["--real"],
+    c.console,
+  );
+  return all([
+    check(c.out.join("\n"), toBe("flags:real")),
+    check(c.failed.length, toBe(0)),
+  ]);
+});
+
+test("runSingleWith folds a parse error under the command name", async () => {
+  const c = makeCapture();
+  await runSingleWith(
+    tool,
+    echoHandler,
+    ["--nope"],
+    c.console,
+  );
+  return all([
+    check(
+      c.errs.join("\n"),
+      toBe("my-tool: unknown option --nope"),
+    ),
+    check(c.failed.length, toBe(1)),
+  ]);
+});
+
+test("runSingleWith writes a handler Err to stderr and fails", async () => {
+  const c = makeCapture();
+  await runSingleWith(
+    tool,
+    errHandler,
+    [],
+    c.console,
+  );
+  return all([
+    check(
+      c.errs.join("\n"),
+      toBe("my-tool: it broke"),
     ),
     check(c.failed.length, toBe(1)),
   ]);

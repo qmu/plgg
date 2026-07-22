@@ -11,7 +11,11 @@ import {
   fileURLToPath,
   pathToFileURL,
 } from "node:url";
-import { dirname, join } from "node:path";
+import {
+  dirname,
+  join,
+  extname,
+} from "node:path";
 
 const here = dirname(
   fileURLToPath(import.meta.url),
@@ -37,6 +41,14 @@ const pick = (base) => {
   return candidates.find(isFile);
 };
 
+// A relative specifier (`./x`, `../y`). Node's ESM resolver
+// won't guess an extension for one, so an EXTENSIONLESS
+// relative TS import — the idiomatic form vite/VitePress
+// resolve, e.g. a `site.config.ts` sourcing its IA from
+// `../ia/nav` — otherwise fails with "Cannot find module".
+const isRelative = (s) =>
+  s.startsWith("./") || s.startsWith("../");
+
 export const resolve = (
   specifier,
   context,
@@ -46,6 +58,27 @@ export const resolve = (
     const base = join(
       srcRoot,
       specifier.slice(prefix.length),
+    );
+    const file = pick(base);
+    if (file) {
+      return {
+        url: pathToFileURL(file).href,
+        shortCircuit: true,
+      };
+    }
+  }
+  // Resolve an extensionless relative import against the
+  // importer's directory, trying `.ts` / `/index.ts` — the
+  // same `pick` the self-alias uses. A specifier that
+  // already carries an extension, or a bare/package one,
+  // falls through to Node's default resolution untouched.
+  if (
+    isRelative(specifier) &&
+    extname(specifier) === "" &&
+    context.parentURL
+  ) {
+    const base = fileURLToPath(
+      new URL(specifier, context.parentURL),
     );
     const file = pick(base);
     if (file) {

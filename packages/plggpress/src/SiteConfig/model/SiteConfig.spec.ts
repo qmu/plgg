@@ -76,6 +76,54 @@ test("asSiteConfig validates supplied rawHtml/slugger", () =>
     ),
   ));
 
+test("asSiteConfig decodes srcExclude/linkIgnore, defaulting to None", () =>
+  all([
+    check(
+      asSiteConfig({
+        title: "t",
+        description: "d",
+        base: "/",
+        nav: [],
+        sidebar: [],
+        social: [],
+        dev: { allowedHosts: [] },
+      }),
+      okThen((c: SiteConfig) =>
+        all([
+          toBe(false)(isSome(c.srcExclude)),
+          toBe(false)(isSome(c.linkIgnore)),
+        ]),
+      ),
+    ),
+    check(
+      asSiteConfig({
+        title: "t",
+        description: "d",
+        base: "/",
+        nav: [],
+        sidebar: [],
+        social: [],
+        dev: { allowedHosts: [] },
+        srcExclude: ["/drafts/**"],
+        linkIgnore: ["/downloads/**"],
+      }),
+      okThen((c: SiteConfig) =>
+        all([
+          toBe(true)(
+            isSome(c.srcExclude) &&
+              c.srcExclude.content[0] ===
+                "/drafts/**",
+          ),
+          toBe(true)(
+            isSome(c.linkIgnore) &&
+              c.linkIgnore.content[0] ===
+                "/downloads/**",
+          ),
+        ]),
+      ),
+    ),
+  ]));
+
 const valid = {
   title: "plgg",
   description: "The official guide.",
