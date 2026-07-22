@@ -115,6 +115,18 @@ export {
   schemeCssOf,
 } from "plggmatic/Style/usecase/schemeCss";
 export { chromeCss } from "plggmatic/Style/usecase/chromeCss";
+export {
+  type ComponentSlot,
+  componentSlots,
+  slotSelector,
+} from "plggmatic/Style/model/componentSlot";
+export {
+  type SlotStyle,
+  slotStyle,
+  asSlotStyle,
+  slotStyleCss,
+  slotCss,
+} from "plggmatic/Style/usecase/slotCss";
 export { metricCss } from "plggmatic/Style/usecase/metricCss";
 export { reducedMotionCss } from "plggmatic/Style/usecase/reducedMotion";
 export {

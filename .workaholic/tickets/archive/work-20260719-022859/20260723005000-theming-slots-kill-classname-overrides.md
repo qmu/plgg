@@ -66,3 +66,46 @@ needs — expressed in the framework, not special-cased in the example.
   restyling by class name is drift the framework must absorb.
 - `workaholic:design` — the qmu monochrome aesthetic is preserved; the
   slot layer changes *how* it is themed, not the look.
+
+## Final Report
+
+Added a per-component **theming-slot** capability to the framework and
+migrated demo1's appearance overrides onto it.
+
+**Framework (`packages/plggmatic`):**
+- `Style/model/componentSlot.ts` — `ComponentSlot`, the closed set of
+  themeable chrome pieces named by ROLE; `slotSelector(theme)(slot)`
+  owns the `pm-*` selector strings (compound ones included), built from
+  `theme.prefix`. The framework is now the single home of those class
+  names.
+- `Style/usecase/slotCss.ts` — `SlotStyle` (a consumer's restyle as
+  data: slot + optional `scope`/`state`/`within` + declarations),
+  `slotStyle` (trusted constructor) and `asSlotStyle` (validated caster,
+  the `asPalette` pattern — escape-safe, brace-free, closed slot),
+  `slotStyleCss`/`slotCss` emitters.
+- `Theme` gains a `slots: ReadonlyArray<SlotStyle>` field (default `[]`,
+  so the zero-config chrome is byte-unchanged); exported through
+  `Style` + `styleEntry`. New files at 100% coverage.
+
+**Reference (`packages/plggmatic-example`):**
+- `demo1/theme.ts` — demo1's 30+ appearance overrides as declared
+  `slotStyle` data (grouped `a,b{…}` rules split one-slot-each; the
+  top-bar-button transitions stay app-side); `demo1Theme` carries them.
+- `demo1/styles.ts` — the `pm-*` appearance overrides removed; only the
+  app `bo-*` chrome, palette variables, and the app-owned desktop runway
+  (the sibling runway ticket) remain.
+- `demo1-main.ts` — injects `slotCss(demo1Theme)` after `chromeCss` +
+  `demoCss` (the exact cascade position the old overrides held).
+
+**Verification:** a rule-set reconstruction diff (original vs
+`slotCss + demo1Css`) proved the two emit the **identical set of 75
+atomic CSS rules** — visual identity guaranteed by construction (pure
+`#000`/`#fff`, spacing unchanged). `./scripts/check-all.sh` green;
+plggmatic coverage 99.1%/94.0%/99.0%/99.1% (>90%); no
+`as`/`any`/`ts-ignore`.
+
+**Note:** the acceptance "zero `.pm-` selectors in `demo1/styles.ts`"
+is reached JOINTLY with the sibling runway ticket
+(`20260723005010`), which owns the remaining `.pm-row`/per-column-width
+overrides; this ticket removes all the *appearance* overrides the
+mission enumerated.
