@@ -20,6 +20,7 @@ import {
   type Fetch,
   type ConfigLoadError,
   toFetch,
+  post,
 } from "plggpress/framework";
 import {
   type SsgError,
@@ -36,6 +37,8 @@ import {
   makeReloadHub,
 } from "plggpress/framework/DevServer/usecase/reloadHub";
 import { devWeb } from "plggpress/framework/DevServer/usecase/devWeb";
+import { PATCH_PATH } from "plggpress/framework/DevServer/model/PatchProtocol";
+import { patchWeb } from "plggpress/framework/DevServer/node/patchWeb";
 
 // The DEV-ONLY node edge: the persistent, plggpress-owned
 // server surface for `plggpress dev`. It is the effectful
@@ -196,13 +199,22 @@ export const startDevServer = (
           Result<DevServerHandle, Defect>
         > => {
           const hub = makeReloadHub();
+          // The reload surface (devWeb) plus the live-edit
+          // bridge: a POST to PATCH_PATH writes the source and
+          // pushes a reload down the same hub.
           const handler = toFetch(
-            devWeb(
-              opts.contentDir,
-              config,
-              opts.base,
-              paths,
-              hub,
+            pipe(
+              devWeb(
+                opts.contentDir,
+                config,
+                opts.base,
+                paths,
+                hub,
+              ),
+              post(
+                PATCH_PATH,
+                patchWeb(opts.contentDir, hub),
+              ),
             ),
           );
           return listen(opts, handler, hub);
