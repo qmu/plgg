@@ -11,6 +11,7 @@ drive_authorized: true
 tickets: []
 stories: []
 concerns: []
+actual_hours: 0.8
 ---
 
 # Grow plggmatic as the reference framework
@@ -141,3 +142,4 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-23 — ticket added — 20260723005010-generalize-horizontal-runway.md
 - 2026-07-23 — ticket archived — 20260723005000-theming-slots-kill-classname-overrides.md
 - 2026-07-23 — ticket archived — 20260723005010-generalize-horizontal-runway.md
+- 2026-07-23 — run recorded (+0.8h) — monitor-20260723-011758
