@@ -140,3 +140,4 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-23 — ticket added — 20260723005000-theming-slots-kill-classname-overrides.md
 - 2026-07-23 — ticket added — 20260723005010-generalize-horizontal-runway.md
 - 2026-07-23 — ticket archived — 20260723005000-theming-slots-kill-classname-overrides.md
+- 2026-07-23 — ticket archived — 20260723005010-generalize-horizontal-runway.md

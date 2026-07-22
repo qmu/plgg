@@ -113,6 +113,7 @@ export {
   crumbsOf,
   singleColumn,
   renderMode,
+  advanceColumns,
 } from "plggmatic/Render";
 
 // --- Declarative vocabulary (ticket 09) ---------------

@@ -111,6 +111,8 @@ export {
   schemeCss,
   schemeCssOf,
   chromeCss,
+  type RunwayOptions,
+  runwayCss,
   type ComponentSlot,
   componentSlots,
   slotSelector,

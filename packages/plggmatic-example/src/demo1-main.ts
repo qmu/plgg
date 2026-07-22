@@ -12,10 +12,14 @@ import {
   schemeCss,
   chromeCss,
   slotCss,
+  runwayCss,
 } from "plggmatic/style";
 import { demoCss } from "./demoStyles.ts";
 import { demo1Css } from "./demo1/styles.ts";
-import { demo1Theme } from "./demo1/theme.ts";
+import {
+  demo1Theme,
+  demo1Runway,
+} from "./demo1/theme.ts";
 import { makeApp } from "./demo1/bizMenuDemo.ts";
 
 /**
@@ -28,11 +32,12 @@ import { makeApp } from "./demo1/bizMenuDemo.ts";
  * proof that the whole navigation is a declaration.
  */
 
-// The demo restyles the framework chrome through its
-// Theme's component slots (`demo1Theme.slots`), emitted by
-// `slotCss` AFTER `chromeCss` + `demoCss` so the demo's
-// declarations win the cascade at equal specificity — the
-// exact position the old by-name `pm-*` overrides held.
+// The demo restyles the framework chrome through its Theme's
+// component slots (`demo1Theme.slots`, emitted by `slotCss`)
+// and enables the framework's unbounded-depth runway
+// (`runwayCss`) — both injected AFTER `chromeCss` + `demoCss`
+// so they win the cascade at equal specificity, the exact
+// position the old by-name `pm-*` overrides held.
 const style = document.createElement("style");
 style.textContent =
   metricCss(demo1Theme) +
@@ -40,6 +45,7 @@ style.textContent =
   chromeCss(demo1Theme) +
   demoCss +
   slotCss(demo1Theme) +
+  runwayCss(demo1Theme)(demo1Runway) +
   demo1Css;
 document.head.appendChild(style);
 

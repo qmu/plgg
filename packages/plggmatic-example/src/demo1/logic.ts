@@ -27,12 +27,13 @@ import {
   parseForm,
   openMenu,
   select,
+  advanceColumns,
 } from "plggmatic";
 import {
   type Scheme,
   applyScheme,
-  minWidth,
 } from "plggmatic/style";
+import { demo1Theme } from "./theme.ts";
 import {
   type SectionId,
   type SectionField,
@@ -101,121 +102,19 @@ export const applySchemeEffect = (
     });
   });
 /**
- * The seek-head scroll: after an action grows/changes the
- * column stack, slide the horizontal strip to bring the
- * NEWEST (right-most, active) column into view. A pure
- * `Cmd`: the DOM read/scroll runs in the effect (after
- * paint, via a double rAF), never in `update`. Guarded so it
- * is an inert no-op under the node test runner (no
- * `document`/`window`).
- *
- * The strip scrolls on EVERY viewport (the recursion trail
- * grows it on desktop too), but the resting place differs,
- * because the two viewports have different scarcity:
- *
- * - **SP vertical** (below `snap`): the live column goes to
- *   the LEFT EDGE, always. One column is about all that
- *   fits, so there is no context to preserve and the edge is
- *   the only unambiguous rest point — it is also where the
- *   mandatory scroll-snap would land the column anyway.
- * - **Wider** (at/above `snap`): the live column goes to the
- *   CENTER, and only when it is not already fully visible.
- *   A wide strip shows several columns at once, so the trail
- *   BEHIND the live column is real context worth keeping on
- *   screen; left-aligning threw all of it away on every hop,
- *   and moving at all is pointless when the column already
- *   sits in plain view. Centering keeps what led here to the
- *   left and the room a further hop needs to the right.
- *
- * The boundary is `minWidth("snap")` — the very condition
- * the stylesheet's runway rule uses, matched through
- * `matchMedia`, so the motion and the scrollable range can
- * never disagree about which viewport this is.
+ * The seek-head scroll after an action grows/changes the
+ * column stack: bring the NEWEST column into view and publish
+ * the last column's measured width for the runway spacer. The
+ * unbounded-depth runway is now a FRAMEWORK capability
+ * (`advanceColumns` + `runwayCss`); the reference reduces to
+ * naming its theme and the completion message — the
+ * DOM-measuring effect and the resting-place policy live in
+ * plggmatic, no longer duplicated here.
  */
 export const advanceColumnsCmd = (): Cmd<Msg> =>
-  cmdEffect(
-    () =>
-      new Promise<Msg>((resolve) => {
-        const done = (): void =>
-          resolve({ kind: "columnsAdvanced" });
-        if (
-          typeof document === "undefined" ||
-          typeof window === "undefined" ||
-          typeof requestAnimationFrame ===
-            "undefined"
-        ) {
-          return done();
-        }
-        const scroll = (): void => {
-          const row =
-            document.querySelector(".pm-row");
-          if (row !== null) {
-            const cols = Array.from(
-              row.querySelectorAll(".pm-col"),
-            ).filter(
-              (c: Element) =>
-                c.getBoundingClientRect().width >
-                0,
-            );
-            const last = cols[cols.length - 1];
-            if (last !== undefined) {
-              const strip =
-                row.getBoundingClientRect();
-              const col =
-                last.getBoundingClientRect();
-              // The runway is "the strip's width minus the
-              // last column", and since columns size to their
-              // CONTENT, only the DOM knows how wide that is
-              // — a stylesheet constant cannot. Publish it
-              // here, where it is already measured, and the
-              // rule reads it back as `--bo-last`.
-              if (row instanceof HTMLElement) {
-                row.style.setProperty(
-                  "--bo-last",
-                  `${Math.round(col.width)}px`,
-                );
-              }
-              // Scroll ONLY the horizontal strip — compute a
-              // scrollLeft directly. Never `scrollIntoView`,
-              // which also scrolls the page VERTICALLY and
-              // would hide the top bar (logo / theme toggle);
-              // this is a horizontal-only focus.
-              const toLeftEdge =
-                row.scrollLeft +
-                (col.left - strip.left);
-              const wide = window.matchMedia(
-                minWidth("snap"),
-              ).matches;
-              // A sub-pixel slice hanging over an edge is not
-              // a reason to move the whole strip.
-              const inView =
-                col.left >= strip.left - 1 &&
-                col.right <= strip.right + 1;
-              if (wide && inView) {
-                return done();
-              }
-              // `scrollTo` clamps to [0, maxScroll], so a
-              // centre target that would need room the strip
-              // does not have simply rests at the near edge —
-              // no separate shallow-strip case to carry.
-              row.scrollTo({
-                left: wide
-                  ? toLeftEdge -
-                    (strip.width - col.width) / 2
-                  : toLeftEdge,
-                behavior: "smooth",
-              });
-            }
-          }
-          done();
-        };
-        // two frames: let the new column paint + lay out
-        // before measuring and scrolling.
-        requestAnimationFrame(() =>
-          requestAnimationFrame(scroll),
-        );
-      }),
-  );
+  advanceColumns(demo1Theme)<Msg>({
+    kind: "columnsAdvanced",
+  });
 
 export const mapCmd =
   <A, B>(f: (a: A) => B) =>

@@ -25,6 +25,9 @@ import { type Theme } from "plggmatic/Style/model/theme";
 export type ComponentSlot =
   | "scheduler"
   | "col"
+  | "rowCol"
+  | "rowColHasMenu"
+  | "rowColHasForm"
   | "colHasQuery"
   | "colHasFields"
   | "colHead"
@@ -57,6 +60,9 @@ export const componentSlots: ReadonlyArray<ComponentSlot> =
   [
     "scheduler",
     "col",
+    "rowCol",
+    "rowColHasMenu",
+    "rowColHasForm",
     "colHasQuery",
     "colHasFields",
     "colHead",
@@ -94,6 +100,9 @@ const selectorTable = (
 ): Record<ComponentSlot, SoftStr> => ({
   scheduler: `.${p}-scheduler`,
   col: `.${p}-col`,
+  rowCol: `.${p}-row .${p}-col`,
+  rowColHasMenu: `.${p}-row .${p}-col:has(.${p}-menu-body)`,
+  rowColHasForm: `.${p}-row .${p}-col:has(.${p}-form)`,
   colHasQuery: `.${p}-col:has(.${p}-query)`,
   colHasFields: `.${p}-col:has(.${p}-fields)`,
   colHead: `.${p}-colhead`,

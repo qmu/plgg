@@ -1,9 +1,23 @@
 import {
   type Theme,
   type SlotStyle,
+  type RunwayOptions,
   slotStyle,
   pragmaticTheme,
 } from "plggmatic/style";
+
+/**
+ * Demo 1's runway parameters: the column gap and the
+ * last-column width fallback used until `advanceColumns`
+ * measures the real one. The unbounded-depth runway
+ * BEHAVIOUR (scroll-at-every-width + trailing spacer +
+ * seek-head scroll) is the framework's; these are the
+ * reference's parameters over it.
+ */
+export const demo1Runway: RunwayOptions = {
+  gap: "1.5rem",
+  lastFallback: "220px",
+};
 
 /**
  * Demo 1's restyle of the framework chrome, expressed as
@@ -252,6 +266,42 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
       slot: "listAction",
       state: ":active",
       declarations: "transform:scale(0.97);",
+    }),
+    // The per-content column WIDTHS of the horizontal
+    // runway: app layout choices, declared through the
+    // framework's row/col slots rather than by naming
+    // `.pm-row .pm-col` (the runway BEHAVIOUR is the
+    // framework's `runwayCss`/`advanceColumns`; these are the
+    // reference's width config over it).
+    slotStyle({
+      slot: "rowCol",
+      declarations: "flex:0 0 240px;width:240px;",
+    }),
+    slotStyle({
+      slot: "rowColHasMenu",
+      declarations:
+        "flex:0 0 auto;width:fit-content;max-width:190px;",
+    }),
+    slotStyle({
+      slot: "rowColHasForm",
+      declarations: "flex:0 0 380px;width:380px;",
+    }),
+    slotStyle({
+      slot: "rowCol",
+      state: ":has(.bo-search-condition)",
+      declarations: "flex:0 0 200px;width:200px;",
+    }),
+    slotStyle({
+      slot: "rowCol",
+      state: ":has(.bo-results)",
+      declarations:
+        "flex:0 0 auto;width:fit-content;max-width:220px;",
+    }),
+    slotStyle({
+      slot: "rowCol",
+      state: ":has(.bo-trail-detail)",
+      declarations:
+        "flex:0 0 auto;width:fit-content;max-width:220px;",
     }),
   ];
 

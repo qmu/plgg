@@ -116,6 +116,10 @@ export {
 } from "plggmatic/Style/usecase/schemeCss";
 export { chromeCss } from "plggmatic/Style/usecase/chromeCss";
 export {
+  type RunwayOptions,
+  runwayCss,
+} from "plggmatic/Style/usecase/runwayCss";
+export {
   type ComponentSlot,
   componentSlots,
   slotSelector,
