@@ -1,22 +1,12 @@
 import { type SoftStr } from "plgg";
 import {
+  type Theme,
   themeToggleClass,
   colorVar,
   metricVar,
   maxWidth,
   minWidth,
-  defaultTheme,
 } from "plggpress/themeSupport/styleEntry";
-
-// plggpress's docs-site look is an explicit theme choice
-// (D3): it passes `defaultTheme` — the monochrome `--pm-*`
-// design language — to the parameterized token helpers at
-// this composition root, binding them once for the whole
-// stylesheet. Swapping this for a branded theme is where a
-// future divergence would live; plggpress never imports
-// plggmatic.
-const cvar = colorVar(defaultTheme);
-const mvar = metricVar(defaultTheme);
 
 /**
  * The bespoke layout/prose stylesheet for the default
@@ -59,8 +49,19 @@ const mvar = metricVar(defaultTheme);
  * by every `.${themeToggleClass}` (see appearanceScripts).
  * The mobile drawer stays CSS-only (a hidden
  * `#vp-menu-toggle` checkbox).
+ *
+ * Parameterized by `theme` (D3, made config-driven): the
+ * `colorVar`/`metricVar` token helpers are bound to the
+ * theme the site RESOLVED — the monochrome qmu default, or
+ * a `SiteConfig` palette override — rather than a hard-bound
+ * `defaultTheme`. `shell` passes the resolved theme through.
  */
-export const baseCss: SoftStr = `
+export const baseCss = (
+  theme: Theme,
+): SoftStr => {
+  const cvar = colorVar(theme);
+  const mvar = metricVar(theme);
+  return `
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 /* qmu: anchor jumps in the lg app shell scroll the content
@@ -127,16 +128,20 @@ body.vp{
   -webkit-box-decoration-break:clone;
 }
 
-/* app shell: a max-1440 row centred in the viewport. On
-   lg+ it fills the screen and does not page-scroll (each
-   column scrolls on its own); below lg it collapses to
-   normal page flow with a sticky mobile bar + off-canvas
-   drawer. */
+/* column-oriented horizontal strip (the plggmatic pm-row):
+   the sections column, the drilled section column, the
+   content column, and the chrome rail sit side by side. On
+   lg+ the strip fills the viewport height and scrolls
+   HORIZONTALLY as depth grows — the content column's width
+   is fixed, so "depth does not consume the viewport": the
+   top bar and body width stay invariant and the strip
+   scrolls beneath. Below lg it collapses to normal page
+   flow with a sticky mobile bar + off-canvas drawer. The
+   pm-row/pm-col skeleton is plggmatic's; these .vp-* rules
+   carry the qmu geometry. */
 .vp-shell{position:relative}
 .vp-app{
-  display:flex;align-items:flex-start;
-  max-width:${mvar("shell-max")};margin:0 auto;
-  padding:0 1rem;
+  display:flex;align-items:stretch;
 }
 /* far-RIGHT chrome rail (lg+ only, qmu DocsLayout):
    appearance toggle + social links pinned to the bottom
@@ -326,13 +331,28 @@ body.vp{
   writing-mode:vertical-rl;letter-spacing:0.02em;
 }
 
-/* content column: independent-scroll on lg+, LEFT-aligned
-   prose capped at the prose measure, with the footer
-   confined to this column. */
+/* the DRILLED section column: opens to the right of the
+   sections column when the reader is inside a section,
+   holding that section's always-expanded tree. Fixed
+   width, its own scroll on lg+, bordered so the strip reads
+   as discrete columns. Hidden below lg (the sections drawer
+   already carries navigation). */
+.vp-section{
+  flex:0 0 15rem;width:15rem;
+  padding:2rem 1rem;font-size:0.9rem;
+  border-left:1px solid ${cvar("border")};
+  border-right:1px solid ${cvar("border")};
+}
+/* content column: a FIXED-width prose column (its width is
+   invariant as columns are added to the strip's left), the
+   footer confined to it, independent-scroll on lg+. */
 .vp-content{
-  flex:1 1 auto;min-width:0;
+  flex:0 0 auto;
+  width:calc(${mvar("measure")} + 5rem);
+  max-width:100%;
   padding:2rem 2.5rem 2.5rem;
 }
+.vp-main{display:block}
 .vp-doc{max-width:${mvar("measure")};margin:0}
 .vp-footer{
   margin-top:2rem;padding:1.25rem 0;
@@ -518,16 +538,19 @@ html.dark .vp-doc pre code{background:none}
   .vp-doc h3{font-size:1.125rem}
 }
 
-/* lg+ (min-width 1024px): the app shell is ON — the row fills the
-   viewport and does not page-scroll; the sidebar, content,
-   and rail each scroll independently. The right gutter is
-   dropped so the far-right rail sits flush to the edge. */
+/* lg+ (min-width 1024px): the strip is ON — it fills the
+   viewport height and scrolls HORIZONTALLY as depth grows
+   (overflow-x:auto), while each column scrolls vertically on
+   its own. The content column's fixed width means adding a
+   column to its left never shrinks it — the body width is
+   invariant, depth spends horizontal scroll, not viewport. */
 @media ${minWidth("lg")}{
   .vp-app{
-    height:100vh;overflow:hidden;padding-right:0;
+    height:100vh;overflow-x:auto;overflow-y:hidden;
   }
   .vp-rail{display:flex}
   .vp-sidebar{height:100vh;overflow-y:auto}
+  .vp-section{height:100vh;overflow-y:auto}
   .vp-content{height:100vh;overflow-y:auto}
 }
 
@@ -538,8 +561,13 @@ html.dark .vp-doc pre code{background:none}
 @media ${maxWidth("lg")}{
   .vp-menu-btn{display:inline-block}
   .vp-mobilebar{display:flex}
+  /* the drilled section column duplicates navigation the
+     drawer already carries; drop it so the phone shows just
+     the content column full-bleed. */
+  .vp-section{display:none}
   .vp-content{
-    min-width:0;padding:1.5rem 1.25rem 3rem;
+    flex:1 1 auto;width:100%;min-width:0;
+    padding:1.5rem 1.25rem 3rem;
   }
   .vp-doc{max-width:100%}
   .vp-doc pre{max-width:100%}
@@ -559,3 +587,4 @@ html.dark .vp-doc pre code{background:none}
   .vp-sidebar-social{display:block}
 }
 `;
+};

@@ -14,6 +14,10 @@ import {
   err,
   invalidError,
 } from "plgg";
+import {
+  type Theme,
+  pragmaticThemeWithPalette,
+} from "plggmatic/style";
 import { type ContentModelBinding } from "plggpress/ContentModel/model/ContentModel";
 import { asBindings } from "plggpress/ContentModel/usecase/asContentModel";
 
@@ -117,6 +121,16 @@ export type SiteConfig = Readonly<{
   // co-located data file at an extensionless path). `None`
   // ⇒ nothing ignored.
   linkIgnore: Option<ReadonlyArray<SoftStr>>;
+  // The resolved theme (palette + geometry) the doc site
+  // renders through — a validated override layered onto
+  // plggmatic's monochrome default. `None` ⇒ the B&W qmu
+  // default, so every existing config is unchanged. The
+  // config author supplies a `palette` OBJECT (schemes ×
+  // color tokens); it is validated through plggmatic's
+  // `pragmaticThemeWithPalette` into this `Theme`, naming
+  // the offending path (e.g. `dark.danger-border`) on a
+  // bad palette rather than silently.
+  theme: Option<Theme>;
 }>;
 
 /**
@@ -249,6 +263,18 @@ export type DevConfigInput = Readonly<{
   allowedHosts: ReadonlyArray<string>;
 }>;
 
+/**
+ * The author-facing palette override: each scheme
+ * (`light`/`dark`) maps its color tokens to hex strings.
+ * Plain `string` hexes for authoring ergonomics — the
+ * caster validates every cell through plggmatic's
+ * `asPalette` (a bad hex fails naming its path).
+ */
+export type PaletteInput = Readonly<{
+  light: Readonly<Record<string, string>>;
+  dark: Readonly<Record<string, string>>;
+}>;
+
 export type SiteConfigInput = Readonly<{
   title: string;
   description: string;
@@ -262,6 +288,9 @@ export type SiteConfigInput = Readonly<{
   slugger?: SluggerKind;
   srcExclude?: ReadonlyArray<string>;
   linkIgnore?: ReadonlyArray<string>;
+  // Optional palette override — absent ⇒ the B&W qmu
+  // default. Validated into a `Theme` at load.
+  theme?: PaletteInput;
 }>;
 
 /**
@@ -301,6 +330,16 @@ export const asSiteConfig = (
     forOptionProp(
       "linkIgnore",
       asReadonlyArray(asSoftStr),
+    ),
+    // The optional palette override: a `theme` object of
+    // schemes × color tokens, validated through plggmatic's
+    // `pragmaticThemeWithPalette` into a full `Theme`. A
+    // malformed palette fails here naming the path (e.g.
+    // `dark.danger-border`); absent ⇒ `None` (the B&W
+    // default), so no config edit is forced.
+    forOptionProp(
+      "theme",
+      pragmaticThemeWithPalette,
     ),
   );
 

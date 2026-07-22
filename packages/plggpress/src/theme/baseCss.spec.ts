@@ -6,14 +6,17 @@ import {
   not,
 } from "plgg-test";
 import { baseCss } from "plggpress/theme/baseCss";
+import { defaultTheme } from "plggpress/themeSupport/styleEntry";
 
 // After the D3/D16 cutover baseCss owns LAYOUT + PROSE only;
 // color and geometry are plggmatic `--pm-*` tokens (its
 // schemeCss/metricCss), so these pin (a) the token
 // consumption and the clean cutover, and (b) the qmu
 // layout/prose VALUES that stay bespoke here — so drift in
-// either fails at build, not visually.
-const css: string = baseCss;
+// either fails at build, not visually. baseCss is now a
+// function of the resolved theme (D3, config-driven); the
+// default theme is the monochrome qmu palette.
+const css: string = baseCss(defaultTheme);
 
 test("D16 clean cutover: no legacy vp custom properties survive", () =>
   all([
@@ -32,10 +35,13 @@ test("D16 clean cutover: no legacy vp custom properties survive", () =>
     // the qmu inverted pill is primary-base on neutral surface
     check(
       css,
-      toContain("background:var(--pm-primary-base)"),
+      toContain(
+        "background:var(--pm-primary-base)",
+      ),
     ),
-    // shell geometry is metric tokens
-    check(css, toContain("var(--pm-shell-max)")),
+    // column-strip geometry is metric tokens (the centred
+    // shell-max is gone with the sidebar-first shell — the
+    // strip scrolls horizontally instead of centring)
     check(css, toContain("var(--pm-sidebar)")),
     check(css, toContain("var(--pm-rail)")),
     check(css, toContain("var(--pm-measure)")),
@@ -88,7 +94,10 @@ test("scheme scroll motion is framework-owned; plggpress keeps its link-fade res
   all([
     // the html/main scroll reset moved to plggmatic's
     // reducedMotionCss — not re-authored here
-    check(css, not(toContain("scroll-behavior:auto"))),
+    check(
+      css,
+      not(toContain("scroll-behavior:auto")),
+    ),
     // but plggpress's own link-hover fade is still killed
     check(
       css,
@@ -101,7 +110,10 @@ test("scheme scroll motion is framework-owned; plggpress keeps its link-fade res
       toContain(".vp-doc a{transition:none}"),
     ),
     // and the positive smooth-scroll stays
-    check(css, toContain("scroll-behavior:smooth")),
+    check(
+      css,
+      toContain("scroll-behavior:smooth"),
+    ),
   ]));
 
 test("escape-safe: survives the SSR text escaper byte-for-byte", () =>
@@ -122,19 +134,28 @@ test("syntax-highlight hues are framework-owned now (ticket 08) — none survive
 
 test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
   all([
-    check(css, toContain(".vp-doc a:focus-visible")),
+    check(
+      css,
+      toContain(".vp-doc a:focus-visible"),
+    ),
     check(
       css,
       toContain(".vp-sidebar-link:focus-visible"),
     ),
-    check(css, toContain(".vp-wordmark:focus-visible")),
+    check(
+      css,
+      toContain(".vp-wordmark:focus-visible"),
+    ),
   ]));
 
 test("prose links carry qmu's weight and hit-area, cloning on wrap", () =>
   all([
     check(css, toContain("padding:0.15em 0.4em")),
     check(css, toContain("margin-inline:-0.4em")),
-    check(css, toContain("box-decoration-break:clone")),
+    check(
+      css,
+      toContain("box-decoration-break:clone"),
+    ),
   ]));
 
 test("headings: H1 2rem symmetry (tightened rhythm) and the sub-sm downscale from the token breakpoint", () =>
@@ -142,22 +163,37 @@ test("headings: H1 2rem symmetry (tightened rhythm) and the sub-sm downscale fro
     check(css, toContain("margin:0 0 2rem")),
     // the sub-sm media boundary is composed from
     // plggmatic's maxWidth("sm") → (max-width:639px)
-    check(css, toContain("@media (max-width:639px)")),
+    check(
+      css,
+      toContain("@media (max-width:639px)"),
+    ),
     check(css, toContain("font-size:1.75rem")),
-    check(css, toContain("scroll-margin-top:3.75rem")),
+    check(
+      css,
+      toContain("scroll-margin-top:3.75rem"),
+    ),
   ]));
 
 test("the lg app-shell boundary is the token breakpoint too", () =>
   all([
-    check(css, toContain("@media (min-width:1024px)")),
-    check(css, toContain("@media (max-width:1023px)")),
+    check(
+      css,
+      toContain("@media (min-width:1024px)"),
+    ),
+    check(
+      css,
+      toContain("@media (max-width:1023px)"),
+    ),
   ]));
 
 test("inline code is the translucent overlay badge (surface-independent, not a token)", () =>
   all([
     check(css, toContain("rgba(0,0,0,0.08)")),
     check(css, toContain("rgba(0,0,0,0.15)")),
-    check(css, toContain("rgba(255,255,255,0.13)")),
+    check(
+      css,
+      toContain("rgba(255,255,255,0.13)"),
+    ),
     check(css, toContain(".vp-doc code:hover")),
     // its ink IS a token (primary-base), matching the old brand
     check(
@@ -171,7 +207,9 @@ test("chrome text matches the oracle (wordmark 1rem, footer 13px)", () =>
     check(css, toContain("font-size:13px")),
     check(
       css,
-      toContain("border-radius:6px;font-size:1rem"),
+      toContain(
+        "border-radius:6px;font-size:1rem",
+      ),
     ),
   ]));
 
@@ -184,12 +222,18 @@ test("the sans stack leads with Inter then qmu's system chain", () =>
 test("no per-page 目次 panel styles remain (widget removed, 2026-07-03)", () =>
   all([
     check(css, not(toContain("vp-toc"))),
-    check(css, not(toContain("interpolate-size"))),
+    check(
+      css,
+      not(toContain("interpolate-size")),
+    ),
   ]));
 
 test("the sidebar tree is flush left - hierarchy by weight, never indentation", () =>
   all([
-    check(css, not(toContain("margin-left:0.75rem"))),
+    check(
+      css,
+      not(toContain("margin-left:0.75rem")),
+    ),
     check(
       css,
       toContain(
@@ -222,15 +266,28 @@ test("hover micro-interactions run at qmu's 150ms (no slower fades, no scale)", 
   all([
     check(
       css,
-      not(toContain("background-color 0.2s,color 0.2s")),
+      not(
+        toContain(
+          "background-color 0.2s,color 0.2s",
+        ),
+      ),
     ),
-    check(css, not(toContain("transform:scale(1.06)"))),
-    check(css, toContain("background-color 0.15s")),
+    check(
+      css,
+      not(toContain("transform:scale(1.06)")),
+    ),
+    check(
+      css,
+      toContain("background-color 0.15s"),
+    ),
   ]));
 
 test("chrome fades use qmu's sharp-in curve; only the fill fades", () =>
   all([
-    check(css, toContain("cubic-bezier(0.4,0,0.2,1)")),
+    check(
+      css,
+      toContain("cubic-bezier(0.4,0,0.2,1)"),
+    ),
     // text color snaps (only the fill fades, never muddy)
     check(css, not(toContain(",color 0.15s"))),
   ]));

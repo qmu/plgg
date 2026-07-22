@@ -1,117 +1,20 @@
 /**
- * The `plggpress/themeSupport/styleEntry` subpath: the engine's THEME surface.
- * It starts as plgg-view's inline-style utilities and
- * token maps, and plggpress/themeSupport's own tokens (color scheme,
- * spacing, pane geometry) extend it in place — consumers
- * import the whole vocabulary from this one entry. Kept
- * off the root barrel because utility names (`p`, `text`,
- * …) collide with Html element builders.
+ * The `plggpress/themeSupport/styleEntry` subpath — now a
+ * THIN RE-EXPORT of the real `plggmatic/style` surface.
  *
- * plggpress/themeSupport's themed color atoms (`bg`, `color`,
- * `textColor`, `border`, `borderColor`, `outline`) and
- * its `Color`/`Scheme` types are re-exported AFTER the
- * plgg-view star, so they SHADOW plgg-view's same-named
- * literal-hex utilities: importing `bg` from
- * `plggpress/themeSupport/styleEntry` yields the `var(--pm-*)`, scheme-aware
- * version. Everything else (layout, spacing, sizing,
- * radius, font-size, `style_`) is plgg-view's, unchanged.
- *
- * The `themeToggle*` family is routed here too (its source
- * stays in `Component/`): the appearance toggle is theme
- * machinery, so routing it through `/style` makes this
- * subpath boundary equal the runtime/theme surface
- * boundary a consumer imports across.
+ * plggpress once vendored a byte-for-byte COPY of
+ * plggmatic's Style/Component/Meta layers under
+ * `themeSupport/` because it did not depend on the
+ * framework. Mission
+ * `plggpress-column-layout-and-voice-ai-editing` retires
+ * that copy: plggpress now takes a real `plggmatic`
+ * dependency and renders through the framework, so the
+ * theme surface is the framework's own. This module stays
+ * only as the historical import path the theme layer
+ * (`shell`, `baseCss`, `navBar`, `appearanceScripts`)
+ * still spells — every symbol it forwards is
+ * `plggmatic/style`'s, unchanged. The monochrome qmu
+ * palette is plggmatic's `defaultTheme`, so the visual
+ * result is identical.
  */
-export * from "plgg-view/style";
-// Routed from the SPECIFIC themeToggle module, not the
-// `Component` barrel: pulling the whole barrel would drag
-// every component (each imports atoms from this `/style`
-// barrel) into styleEntry's own evaluation graph and
-// close import cycles. themeToggle's source stays in
-// `Component/`.
-export {
-  type ThemeToggleProps,
-  themeToggle,
-  staticThemeToggle,
-  themeToggleClass,
-  themeToggleCss,
-} from "plggpress/themeSupport/Component/usecase/themeToggle";
-export {
-  type Theme,
-  defaultTheme,
-  type Color,
-  type SemanticRole,
-  type Neutral,
-  type Scheme,
-  type HexColor,
-  type Palette,
-  type SchemeRoot,
-  type SchemeStorage,
-  type TypeRole,
-  type FontWeight,
-  type TypeScale,
-  type CompactType,
-  type Breakpoint,
-  type Metric,
-  type ZBand,
-  colors,
-  neutrals,
-  semanticRoles,
-  variants,
-  schemes,
-  colorHex,
-  colorVar,
-  asHexColor,
-  defaultPalette,
-  asPalette,
-  paletteHex,
-  hex,
-  contrastRatio,
-  appearanceStorageKey,
-  decideScheme,
-  appearanceInitScript,
-  injectAppearanceScript,
-  applyScheme,
-  typeRoles,
-  fontWeights,
-  regular,
-  medium,
-  semibold,
-  typeScale,
-  sansFontStack,
-  breakpoints,
-  breakpointPx,
-  minWidth,
-  maxWidth,
-  metrics,
-  metricValue,
-  metricVar,
-  zBands,
-  zValue,
-  bg,
-  color,
-  textColor,
-  border,
-  borderColor,
-  outline,
-  basis,
-  fluid,
-  // `weight` SHADOWS plgg-view's untyped `weight` (star
-  // above) with the closed FontWeight-typed atom.
-  weight,
-  lineHeight,
-  zIndex,
-  typeStyle,
-  measure,
-  type SyntaxKind,
-  syntaxKinds,
-  syntaxPalette,
-  syntaxHex,
-  syntaxVar,
-  schemeCss,
-  schemeCssOf,
-  chromeCss,
-  metricCss,
-  reducedMotionCss,
-  syntaxCss,
-} from "plggpress/themeSupport/Style";
+export * from "plggmatic/style";

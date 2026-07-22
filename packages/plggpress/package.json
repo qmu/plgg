@@ -51,6 +51,7 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plgg": "file:../plgg",
+    "plggmatic": "file:../plggmatic",
     "plgg-http": "file:../plgg-http",
     "plgg-server": "file:../plgg-server",
     "plgg-view": "file:../plgg-view",

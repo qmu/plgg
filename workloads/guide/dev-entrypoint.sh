@@ -35,6 +35,7 @@ for pkg in \
   plgg-cli \
   plgg-http \
   plgg-view \
+  plggmatic \
   plgg-md \
   plgg-highlight \
   plgg-server \

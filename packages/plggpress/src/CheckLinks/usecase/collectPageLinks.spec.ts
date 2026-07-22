@@ -35,6 +35,7 @@ const CONFIG: SiteConfig = {
   slugger: none(),
   srcExclude: none(),
   linkIgnore: none(),
+  theme: none(),
 };
 
 const GUIDE_MD = [
