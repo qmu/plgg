@@ -143,3 +143,10 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-23 — ticket archived — 20260723005000-theming-slots-kill-classname-overrides.md
 - 2026-07-23 — ticket archived — 20260723005010-generalize-horizontal-runway.md
 - 2026-07-23 — run recorded (+0.8h) — monitor-20260723-011758
+
+## Reflection
+
+### 2026-07-23 run monitor-20260723-011758
+- blocked: two acceptance items are human-gated — the Access-passed 200 of the live exhibit is unobservable from a drive (302 to Cloudflare Access), and the npm publish is 2FA-gated. Autonomy cannot close either.
+- leaked questions: none — the framework-generality plan (theming slots, runway) was self-contained.
+- front-load next: pre-stage the two human steps — confirm the live exhibit returns 200 behind Access, and run publish-npm.sh (2FA). These are the only things between this mission and completion.
