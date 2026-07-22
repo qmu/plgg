@@ -1,11 +1,11 @@
 ---
 created_at: 2026-07-19T04:35:47+09:00
-author: a-qmu-jp
+author: a@qmu.jp
 type: bugfix
 layer: [Infrastructure]
-effort:
-commit_hash:
-category:
+effort: 4h
+commit_hash: c64c33e8
+category: Added
 depends_on:
 ---
 

@@ -106,6 +106,17 @@ export type SiteConfig = Readonly<{
   // `None` ⇒ the VitePress-exact default, so the guide's
   // anchors are unchanged.
   slugger: Option<SluggerKind>;
+  // Glob patterns (matched against ROUTES, e.g.
+  // `/drafts/**`) whose pages are NOT built — the
+  // VitePress `srcExclude` role for drafts, fixtures, and
+  // redirect stubs. `None` ⇒ nothing excluded.
+  srcExclude: Option<ReadonlyArray<SoftStr>>;
+  // Glob patterns of internal link targets the dead-link
+  // checker SKIPS — a page linking to an existing non-page
+  // file the pure checker cannot see (a download, a
+  // co-located data file at an extensionless path). `None`
+  // ⇒ nothing ignored.
+  linkIgnore: Option<ReadonlyArray<SoftStr>>;
 }>;
 
 /**
@@ -249,6 +260,8 @@ export type SiteConfigInput = Readonly<{
   models?: ReadonlyArray<ContentModelBinding>;
   rawHtml?: boolean;
   slugger?: SluggerKind;
+  srcExclude?: ReadonlyArray<string>;
+  linkIgnore?: ReadonlyArray<string>;
 }>;
 
 /**
@@ -281,6 +294,14 @@ export const asSiteConfig = (
     forOptionProp("models", asBindings),
     forOptionProp("rawHtml", asBool),
     forOptionProp("slugger", asSluggerKind),
+    forOptionProp(
+      "srcExclude",
+      asReadonlyArray(asSoftStr),
+    ),
+    forOptionProp(
+      "linkIgnore",
+      asReadonlyArray(asSoftStr),
+    ),
   );
 
 /**

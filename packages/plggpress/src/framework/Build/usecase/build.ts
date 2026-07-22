@@ -50,6 +50,14 @@ export type BuildSpec<E> = Readonly<{
       paths: ReadonlyArray<SoftStr>,
     ) => PromisedResult<unknown, E>
   >;
+  // - `excludePath` — an OPTIONAL page filter applied right
+  //   after discovery: a route for which it returns `true`
+  //   is neither built nor link-checked (the app's
+  //   `srcExclude` for drafts, fixtures, redirect stubs).
+  //   `none()` builds every discovered route.
+  excludePath: Option<
+    (path: SoftStr) => boolean
+  >;
 }>;
 
 /**
@@ -104,6 +112,24 @@ export const build = <E>(
 > =>
   proc(
     discoverPaths(opts.contentDir),
+    // srcExclude: drop the routes the app filters out
+    // BEFORE they are link-checked or written, so an
+    // excluded page is invisible to both.
+    (
+      paths: ReadonlyArray<SoftStr>,
+    ): Result<ReadonlyArray<SoftStr>, never> =>
+      ok(
+        matchOption(
+          (): ReadonlyArray<SoftStr> => paths,
+          (
+            exclude: (p: SoftStr) => boolean,
+          ): ReadonlyArray<SoftStr> =>
+            paths.filter(
+              (p: SoftStr): boolean =>
+                !exclude(p),
+            ),
+        )(spec.excludePath),
+      ),
     (
       paths: ReadonlyArray<SoftStr>,
     ): PromisedResult<

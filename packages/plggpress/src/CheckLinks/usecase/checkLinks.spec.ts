@@ -53,6 +53,30 @@ test("fails a link to a non-existent route", () =>
     ),
   ));
 
+test("the link-ignore predicate skips a link to a non-page path", () =>
+  all([
+    // A page linking to an existing non-page file (a
+    // download at an extensionless path) is not a route —
+    // without an ignore it fails the build.
+    check(
+      run(guide(["/plgg/downloads/report"])),
+      errThen((e) => toBe("BrokenLinks")(e.__tag)),
+    ),
+    // With an ignore predicate matching it, the same link
+    // is skipped and the corpus passes.
+    check(
+      checkLinks(
+        BASE,
+        (href: string): boolean =>
+          href.startsWith("/plgg/downloads/"),
+      )([
+        guide(["/plgg/downloads/report"]),
+        option,
+      ]),
+      shouldBeOk(),
+    ),
+  ]));
+
 test("passes a link to an existing #anchor on the target page", () =>
   check(
     run(guide(["/plgg/concepts/option#usage"])),

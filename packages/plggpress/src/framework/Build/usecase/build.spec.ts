@@ -103,6 +103,7 @@ test("builds every route + asset + 404 and reports the written files", async () 
   const report = await build(opts, {
     router,
     notFoundHtml: NOT_FOUND,
+    excludePath: none(),
     linkCheck: none(),
   });
   const home = await readFile(
@@ -145,6 +146,7 @@ test("cleans the output directory before writing fresh files", async () => {
   const report = await build(opts, {
     router,
     notFoundHtml: NOT_FOUND,
+    excludePath: none(),
     linkCheck: none(),
   });
   return all([
@@ -156,11 +158,44 @@ test("cleans the output directory before writing fresh files", async () => {
   ]);
 });
 
+test("excludePath drops a matched route from the build (srcExclude)", async () => {
+  const opts = await writeCorpus();
+  const report = await build(opts, {
+    router,
+    notFoundHtml: NOT_FOUND,
+    excludePath: some(
+      (path: SoftStr): boolean =>
+        path.includes("guide"),
+    ),
+    linkCheck: none(),
+  });
+  const guideBuilt = await pathExists(
+    join(opts.outDir, "guide", "index.html"),
+  );
+  const home = await pathExists(
+    join(opts.outDir, "index.html"),
+  );
+  return all([
+    // the excluded route is not written…
+    check(guideBuilt, toBe(false)),
+    // …while the rest of the corpus still is.
+    check(home, toBe(true)),
+    check(
+      report,
+      okThen((r) =>
+        // home + asset + 404 = 3 (guide excluded)
+        toBe(3)(r.pages.length),
+      ),
+    ),
+  ]);
+});
+
 test("a passing linkCheck hook runs and the build still succeeds", async () => {
   const opts = await writeCorpus();
   const report = await build(opts, {
     router,
     notFoundHtml: NOT_FOUND,
+    excludePath: none(),
     linkCheck: some(
       (
         paths: ReadonlyArray<SoftStr>,
@@ -181,6 +216,7 @@ test("a failing linkCheck fails the build before anything is written", async () 
   const report = await build(opts, {
     router,
     notFoundHtml: NOT_FOUND,
+    excludePath: none(),
     linkCheck: some(
       (): PromisedResult<
         ReadonlyArray<SoftStr>,

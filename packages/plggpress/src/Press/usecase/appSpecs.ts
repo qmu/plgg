@@ -1,15 +1,19 @@
 import {
   type SoftStr,
+  type Option,
   type Defect,
   type Result,
   type PromisedResult,
   some,
+  none,
   ok,
   err,
+  pipe,
   chainResult,
   matchResult,
   matchOption,
 } from "plgg";
+import { matchesAnyGlob } from "plggpress/Glob/usecase/matchGlob";
 import { renderToString } from "plggpress/framework";
 import { type Web } from "plggpress/framework";
 import { type BuildSpec } from "plggpress/framework";
@@ -94,6 +98,18 @@ export const buildSpecOf = (
   notFoundHtml: injectAppearanceScripts(
     renderToString(notFound(config)),
   ),
+  excludePath: pipe(
+    config.srcExclude,
+    matchOption(
+      (): Option<
+        (path: SoftStr) => boolean
+      > => none(),
+      (
+        patterns: ReadonlyArray<SoftStr>,
+      ): Option<(path: SoftStr) => boolean> =>
+        some(matchesAnyGlob(patterns)),
+    ),
+  ),
   linkCheck: some(
     (
       paths: ReadonlyArray<SoftStr>,
@@ -113,7 +129,27 @@ export const buildSpecOf = (
             ): Result<
               void,
               Defect | BrokenLinks
-            > => checkLinks(base)(pages),
+            > =>
+              checkLinks(
+                base,
+                pipe(
+                  config.linkIgnore,
+                  matchOption(
+                    (): ((
+                      href: SoftStr,
+                    ) => boolean) =>
+                      (
+                        _href: SoftStr,
+                      ): boolean => false,
+                    (
+                      patterns: ReadonlyArray<SoftStr>,
+                    ): ((
+                      href: SoftStr,
+                    ) => boolean) =>
+                      matchesAnyGlob(patterns),
+                  ),
+                ),
+              )(pages),
           ),
         )
         .then(
