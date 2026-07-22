@@ -59,3 +59,27 @@ ticket is only the live-host/Access half.
   re-read of `mission.md`.
 - **Gate that must pass:** `./scripts/check-all.sh` green (the reference build is
   part of the gate).
+
+## Drive attempt — DEFERRED (2026-07-23)
+
+An overnight drive leaf attempted the inline half and confirmed what it
+*can* observe from the drive; the authenticated half remains human/infra-gated.
+
+**Observed (anonymous `curl -I https://plggmatic-reference.qmu.dev/demo1.html`, 2026-07-22T16:59Z):**
+- `HTTP/2 302` → `location: https://qmu-dev.cloudflareaccess.com/cdn-cgi/access/login/plggmatic-reference.qmu.dev?...&redirect_url=%2Fdemo1.html`
+- `www-authenticate: Cloudflare-Access …`, `server: cloudflare`, `cf-ray` present.
+
+This 302 is Cloudflare **Access working as intended** for an
+*unauthenticated* reader — the tunnel is up and the hostname is routed —
+NOT the failure this ticket guards against. It does **not** prove the
+Access-PASSED 200: the drive has no Access session/credentials and cannot
+observe the authenticated response, and it cannot confirm the reference
+dev server behind `:51820` is actually serving the built exhibit.
+
+**What a human must still verify (the acceptance):**
+1. The reference dev server is up (`cd packages/plggmatic-example && npm run dev` → `:51820`) behind the `qmu-dev` tunnel.
+2. As a reader who has **passed Cloudflare Access**, request `https://plggmatic-reference.qmu.dev/demo1.html` and confirm **`200`** with the exhibit HTML (not the `302` above).
+3. Tick the mission's live-host acceptance item (same line as its `- [ ]`) with the observed `200` as evidence, and append a dated Changelog line.
+
+Left in `todo` as the human-actionable tracker (per its own
+"HUMAN/INFRA-GATED — do NOT drive unattended" header).
