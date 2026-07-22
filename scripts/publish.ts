@@ -300,7 +300,11 @@ const publishStaged = (stage: string): void => {
     ],
     {
       cwd: stage,
-      stdio: ["ignore", "inherit", "inherit"],
+      // Inherit stdin (a TTY), not "ignore": npm's interactive 2FA needs a
+      // terminal to prompt for the OTP. With stdin ignored it can't prompt and
+      // fails with EOTP (regressed when this moved out of the shell into a
+      // child process).
+      stdio: "inherit",
     },
   );
 };
