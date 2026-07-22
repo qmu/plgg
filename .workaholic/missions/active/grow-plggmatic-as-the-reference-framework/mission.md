@@ -99,12 +99,12 @@ _Self-contained — drivable from this repo alone._
 - [ ] The npm `plggmatic` package is actually published from this repo (the
       gated release step that makes the plgg-lineage 0.2.1+ build the published
       one) — human/2FA-gated, not performed on a drive branch.
-- [ ] plggmatic exposes **per-component theming slots/hooks** so a consumer
+- [x] plggmatic exposes **per-component theming slots/hooks** so a consumer
       restyles through declared tokens/slots, not by overriding framework
       `pm-*` class names; demo1 is migrated off the 16 by-name overrides
       (`demo1/styles.ts`) and renders identically, with a test
       (#20260723005000-theming-slots-kill-classname-overrides.md)
-- [ ] The **unbounded-depth horizontal runway** (scroll-at-every-width +
+- [x] The **unbounded-depth horizontal runway** (scroll-at-every-width +
       column-advance) is a declared framework capability the reference consumes
       rather than app-owned overrides; the "depth does not consume the viewport"
       property (body/top-bar width invariant as the strip grows) is preserved by
