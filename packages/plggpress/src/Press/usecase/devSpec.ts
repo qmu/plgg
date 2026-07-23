@@ -1,8 +1,27 @@
 import { join } from "node:path";
-import { type SoftStr } from "plgg";
-import { type DevDefinition } from "plggpress/framework";
+import {
+  type SoftStr,
+  type Defect,
+  type Result,
+  type PromisedResult,
+  ok,
+  err,
+  matchResult,
+} from "plgg";
+import {
+  type DevDefinition,
+  type ConfigLoadError,
+} from "plggpress/framework";
+import { type SsgError } from "plggpress/framework/ssg";
+import {
+  type DevSettings,
+  type DevHandle,
+} from "plggpress/framework/Dev/model/DevPlan";
 import { srcRootOf } from "plggpress/framework/Dev/usecase/appSource";
-import { runDev } from "plggpress/framework/Dev/node/devSeam";
+import {
+  type DevServerHandle,
+  startDevServer,
+} from "plggpress/framework/DevServer/node/devServer";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 
 /**
@@ -18,24 +37,91 @@ const SRC_ROOT: SoftStr = srcRootOf(
 );
 
 /**
- * The press `dev` declaration: the dev-entry module
- * plggpress SHIPS (so no consumer writes one), its own
- * self-alias + source root, and the extra Hosts the
- * validated `site.config.ts` allows.
+ * The source paths one dev run watches: content + config
+ * always, plus plggpress's own source when the writer opts
+ * into theme co-development (`--watch-theme`). A change on
+ * any watched path fires the dev server's watcher, which
+ * pushes a reload down the plggpress-owned channel.
+ */
+const watchPathsOf = (
+  settings: DevSettings,
+): ReadonlyArray<SoftStr> =>
+  settings.watchTheme
+    ? [
+        settings.contentDir,
+        settings.configPath,
+        settings.appSrcDir,
+      ]
+    : [settings.contentDir, settings.configPath];
+
+/**
+ * Render a dev-server startup failure — a config-load, a
+ * route-discovery, or an infrastructural `Defect` — as the
+ * one-line shell message the CLI prints. Narrows on `__tag`
+ * (no cast); every variant surfaces its most useful field.
+ */
+const startupMessageOf = (
+  e: ConfigLoadError | SsgError | Defect,
+): SoftStr =>
+  e.__tag === "ConfigLoadError"
+    ? e.content.message
+    : e.__tag === "Defect"
+      ? e.content.message
+      : `dev server could not start — ${e.__tag} at ${e.content.path}`;
+
+/**
+ * Start `plggpress dev`'s persistent surface — the
+ * plggpress-OWNED server ({@link startDevServer}): the
+ * shared render path wrapped in the live-reload channel and
+ * the live-edit bridge, watching the resolved source paths.
+ * A startup failure folds to the shell `Err` channel; on a
+ * clean listen it hands back the narrowed {@link DevHandle}
+ * the framework holds the process on.
+ */
+const runPressDev = (
+  settings: DevSettings,
+): PromisedResult<DevHandle, SoftStr> =>
+  startDevServer({
+    contentDir: settings.contentDir,
+    configPath: settings.configPath,
+    base: settings.base,
+    watch: watchPathsOf(settings),
+    port: settings.port,
+  }).then(
+    matchResult(
+      (
+        e: ConfigLoadError | SsgError | Defect,
+      ): Result<DevHandle, SoftStr> =>
+        err(startupMessageOf(e)),
+      (
+        handle: DevServerHandle,
+      ): Result<DevHandle, SoftStr> =>
+        ok({
+          url: handle.url,
+          close: (): void => {
+            void handle.close();
+          },
+        }),
+    ),
+  );
+
+/**
+ * The press `dev` declaration: plggpress SERVES its own
+ * persistent dev surface (`framework/DevServer`), not the
+ * bundler's — a self-owned live-reload channel plus the
+ * live-edit bridge mounted at the process root, so a tool
+ * call can patch the open markdown and the page hot-reloads
+ * in place while the channel stays connected.
  *
- * The rest of a dev run — content root, config path, port —
- * comes from flags and conventions the framework resolves,
- * so the whole hand-wiring a consumer used to keep
+ * `entry`/`aliasPrefix`/`srcDir` still describe the app's
+ * own source location so the framework can resolve the
+ * watch roots; `run` is the plggpress-owned start seam
+ * ({@link runPressDev}), not a toolchain delegate. The
+ * whole hand-wiring a consumer once kept
  * (`bundle.config.ts` + `devEntry.ts` + a bundler
- * dependency) is now this one declaration.
- *
- * This is also where the toolchain seam is INJECTED. Only
- * `cli.ts` imports this module, and `cli.ts` runs from
- * source (it is not a bundled entry), so naming the seam
- * here keeps `import.meta` — which the seam needs to
- * register the bundler's loader hook, and which is a syntax
- * error inside a built entry's module graph — off
- * plggpress's published surface.
+ * dependency) is still gone — a bare docs repo runs
+ * `plggpress dev` with no wiring, now over plggpress's own
+ * surface.
  */
 export const pressDevOf =
   (): DevDefinition<SiteConfig> => ({
@@ -46,5 +132,5 @@ export const pressDevOf =
       config: SiteConfig,
     ): ReadonlyArray<SoftStr> =>
       config.dev.allowedHosts,
-    run: runDev,
+    run: runPressDev,
   });

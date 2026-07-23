@@ -2,10 +2,11 @@
 // application seam plggpress composes its content/render
 // specifics onto: config loading, the router builder, the
 // static-build orchestration, app-options, the dev-run
-// declaration, and the pre-organized CLI. (The dev LOOP is
-// still the toolchain's — `Dev/node/devSeam` delegates to
-// plgg-bundle; the framework only assembles the plan, so a
-// consumer never wires one by hand.)
+// declaration, and the pre-organized CLI. (The dev surface
+// is plggpress's OWN persistent server — `framework/DevServer`
+// — a self-owned live-reload channel plus the live-edit
+// bridge, so a consumer never wires a bundler dev loop by
+// hand.)
 //
 // Absorbed (31fdee9) from the retired `plggmatic`
 // app-framework facade; the name `plggmatic` now
