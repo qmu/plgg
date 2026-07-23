@@ -1,0 +1,40 @@
+{
+  "name": "plgg-poc4b-coedit",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "PoC 4b of the plggpress confidence-collection fleet: the AI's edit happens ON the preview — granular find/replace operations land on a live, patchable markdown preview (the reloading iframe retired), and the changed span is visualized two ways, toggleable and compared: a micro-animation (erase then write) and a before/after diff.",
+  "scripts": {
+    "build": "plgg-bundle",
+    "seed-content": "node src/entrypoints/seedContent.ts",
+    "reset-content": "npm run seed-content",
+    "test": "tsc --noEmit && plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "serve": "node src/entrypoints/serve.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-kit": "file:../plgg-kit",
+    "plgg-view": "file:../plgg-view",
+    "plgg-poc1-search": "file:../plgg-poc1-search"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^6.0.3"
+  }
+}

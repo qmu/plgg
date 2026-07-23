@@ -1,0 +1,6 @@
+# The seeded, agent-editable COPY of the guide corpus
+# (locked design decision, inherited from PoC 4/4b: the
+# sample site the config renders is a git-ignored copy, so
+# the real packages/guide is never touched; `npm run
+# reset-content` re-seeds it).
+content/

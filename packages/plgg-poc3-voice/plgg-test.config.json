@@ -1,0 +1,5 @@
+{
+  "coverage": {
+    "exempt": "private PoC app — typecheck + smoke bar per the mission quality gate"
+  }
+}

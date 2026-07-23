@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    /* Compiler Option */
+    "target": "ES2021",
+    /* This package is `"type": "module"` and runs its
+       `.ts` directly via Node type-stripping from a
+       `.mjs` bin (like plggpress), so it uses ESNext +
+       Bundler resolution: extensionless self-alias
+       specifiers (`plgg-cms/...`) resolve while modules
+       stay ESM, and the published `plggpress/framework`
+       subpath resolves through plggpress's exports map. */
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "plgg-cms/*": [
+        "./src/*"
+      ]
+    },
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"],
+    /* Type Checking Rules */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowJs": false,
+    "erasableSyntaxOnly": true
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

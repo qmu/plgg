@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>PoC 3 — writer-side voice assistant</title>
+  </head>
+  <body>
+    <!-- The server (src/entrypoints/serve.ts) serves this page, the
+         bundled client (/main.js), the shipped indexes, and the ONE
+         key-bearing seam: POST /api/session, which mints a
+         SHORT-LIVED Realtime key from the server-held standing key.
+         The browser opens the Realtime WebRTC session with only the
+         ephemeral key, and the assistant grounds itself by calling
+         the browser-local full-text search as a tool. -->
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

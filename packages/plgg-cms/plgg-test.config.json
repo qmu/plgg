@@ -1,0 +1,28 @@
+{
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/index.ts",
+      "/cli.ts",
+      "/server/pressServer.ts",
+      "/auth/authWeb.ts",
+      "/auth/bootstrapAuth.ts",
+      "/stakeholder/submitWeb.ts",
+      "/editing/editorWeb.ts",
+      "/editing/exportFs.ts",
+      "/media/mediaWeb.ts",
+      "/media/assetExportFs.ts",
+      "/agent/agentWeb.ts",
+      "/agent/browserVoiceIo.ts",
+      "/agent/realtimeBackend.ts",
+      "/content/index.ts",
+      "/content/vendors/",
+      "/content/Rag/usecase/embedderConfig.ts",
+      "/domainCore/index.ts",
+      "/domainCore/testkit/",
+      "/mcpProtocol/index.ts",
+      "/ui/index.ts",
+      "/ui/styleEntry.ts"
+    ]
+  }
+}

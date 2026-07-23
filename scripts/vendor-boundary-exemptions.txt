@@ -1,0 +1,20 @@
+# Vendor-boundary exemptions — ticket 20260704185201.
+#
+# Packages that import a third-party specifier (node:*, the tsc API, or any bare
+# non-plgg module) from PRODUCTION code OUTSIDE src/vendors/ or src/entrypoints/,
+# pending migration to the domain/vendors/entrypoints layout. One package name
+# per line + a `# reason`. Blank lines and comments ignored.
+#
+# Enforced by scripts/vendor-boundary-analyzer.mjs (run by
+# scripts/gate-vendor-boundary.sh): an UNLISTED package with violations fails
+# the gate, and a LISTED package that is actually clean fails as a STALE
+# exemption. plgg and plgg-db-migration pass unexempted (the reference layouts).
+# Test code (*.spec.ts, testkit/) is excluded from the check — see the analyzer
+# header and .workaholic/constraints/architecture.md.
+
+example              # leaf demo app: a runnable example that wires node: (child_process/fs/http/…) directly; not a library domain
+plggmatic-example    # reference plggmatic app: its build-time stamp (src/stamp.ts) reads node:fs/crypto/path directly; a leaf app, not a library domain
+plgg-server          # legacy Feature/ layout; node:http + node:fs/promises in the server + SSG writer — migrate to vendors/ later
+plgg-test            # legacy layout; the test runner imports the tsc API (typescript) + node:fs/path/url — tooling package, migrate later
+plggpress            # legacy layout; the framework writes files (node:fs/promises) + serves (node:http) outside a vendors/ boundary — migrate later (pilot: ticket 20260704185203 is plgg-fetch, already clean)
+plgg-cms             # legacy layout (split from plggpress 2026-07-09); the dynamic content surface writes files (node:fs/promises) + serves (node:http) + crypto outside a vendors/ boundary — migrate later

@@ -1,0 +1,69 @@
+---
+created_at: 2026-06-24T14:16:59+09:00
+author: a@qmu.jp
+type: refactoring
+layer: [Domain]
+effort:
+commit_hash: 0e0d7f9
+category: Changed
+depends_on: [20260624141655-u1-plgg-test-refinement-and-fidelity-gate.md]
+---
+
+# U2 — Migrate `plgg-router` from vitest to plgg-test
+
+## Overview
+
+Migrate the `plgg-router` package's 8 spec files from vitest to
+`plgg-test`. **Gated** package — original vitest threshold **91**, gets a
+`plgg-test.config.json` at 91 (R2).
+
+**Trip Origin:** `.workaholic/trips/replace-vitest-with-plgg-test/designs/design-v2.md`
+§2 (recipe), §3 R2, §4 (coverage rule), §7 (U2).
+
+## Key Files
+
+- `packages/plgg-router/src/Routing/**/*.spec.ts` (8 files: Location,
+  Segment, compilePattern, matchSegments, param, parseQuery, queryCodec,
+  serializeQuery) — rewrite per recipe.
+- `packages/plgg-router/package.json` — swap scripts; remove vitest +
+  `@vitest/coverage-v8`; add `plgg-test`.
+- `packages/plgg-router/vite.config.ts` — drop `test:` block + vitest
+  triple-slash.
+- `packages/plgg-router/plgg-test.config.json` — **new**, gated at 91.
+
+## Implementation Steps
+
+1. Rewrite all 8 specs per §2.
+2. Swap scripts; remove vitest devDeps; add `plgg-test`.
+3. Clean `vite.config.ts`.
+4. Add `plgg-test.config.json`: `{ "coverage": { "threshold": 91 } }`.
+5. Format (printWidth 50).
+
+## Considerations
+
+- **Definition of done**: `scripts/test-plgg-router.sh` green AND
+  `scripts/test-watch-plgg-router.sh` confirmed AND `npm run coverage`
+  with the 91 gate observed firing.
+- **Coverage parity rule (§4)**: lower only to the measured V8 number
+  with a one-line rationale, never by excluding files; record as
+  ship-or-defer.
+- No `as`/`any`/`ts-ignore`; bodies RETURN their assertions.
+
+## Policies
+
+- `workaholic:implementation` / `policies/directory-structure.md` —
+  specs + config stay at package paths.
+- `workaholic:implementation` / `policies/coding-standards.md` — no
+  escape hatches; Prettier printWidth:50.
+- `workaholic:implementation` / `policies/test.md` — coverage preserved;
+  gate at 91.
+- `workaholic:implementation` / `policies/type-driven-design.md` —
+  data-flow narrowing.
+- `workaholic:implementation` / `policies/functional-programming.md` —
+  data-last `check`, `return`-style.
+- `workaholic:implementation` / `policies/command-scripts.md` — stable
+  script contract.
+- `workaholic:operation` / `policies/ci-cd.md` — CI green;
+  build-before-test ordering intact.
+- `workaholic:implementation` / `policies/vendor-neutrality.md` — remove
+  vitest.

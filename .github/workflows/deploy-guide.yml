@@ -1,0 +1,72 @@
+name: Deploy Guide
+
+# Build the plggpress guide (packages/guide) — including the auto-generated,
+# per-package API reference — and publish it to GitHub Pages.
+#
+# Independent of the CalVer release pipeline (prepare-release/release): the docs
+# follow the code, so this runs on any push to main that touches the packages or
+# the guide itself, plus on-demand via workflow_dispatch.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "packages/**"
+      - ".github/workflows/deploy-guide.yml"
+  workflow_dispatch:
+
+# Allow the deploy job to publish to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One in-flight deploy at a time; don't cancel a running publish.
+concurrency:
+  group: deploy-guide
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      # The canonical scripts own the topology: npm-install.sh installs every
+      # package's deps (the `file:` links install nothing on a clean runner),
+      # and build.sh builds every dist in dependency order — the same commands
+      # a developer runs locally, so this workflow can never hold a second,
+      # divergent copy of the dependency graph (the failure class behind the
+      # PR #51 deploy incident).
+      - name: Install every package's dependencies
+        run: ./scripts/npm-install.sh
+
+      - name: Build package dists (dependency order)
+        run: ./scripts/build.sh
+
+      - name: Build the guide (plggpress)
+        # The site serves at the domain root: the Pages custom domain
+        # plgg.qmu.co.jp is set on the repo, so no DOCS_BASE is needed
+        # (site.config.ts defaults the base to "/").
+        run: npx plggpress build --config site.config.ts --contentDir . --outDir dist
+        working-directory: packages/guide
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/guide/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,85 @@
+---
+instruction: "to replace all tests by plgg-test in this repository (no more vitest), if you cannot, refine plgg-test to make this happen"
+phase: complete
+step: done
+iteration: 1
+updated_at: 2026-06-24T22:00:00+09:00
+---
+
+# Trip Plan
+
+## Initial Idea
+
+to replace all tests by plgg-test in this repository (no more vitest), if you cannot, refine plgg-test to make this happen
+
+## Plan Amendments
+
+### Amendment 1 — Consensus reached, plan fixed (planning/moderation skipped)
+
+The Planning Phase converged after one review round with no escalation. All v2 artifacts approved:
+direction-v2 (3a7ce69), model-v2 (6c37c2a), design-v2 (39d7b59).
+
+Reconciled facts (settled by re-grepping during review):
+- `.rejects` = **0** — Architect withdrew its v1 count of 11 (false positives: the English word "rejects" in test names); Constructor's 0 confirmed. The proposed `.rejects` refinement is dropped.
+- `toThrow`/`.not.toThrow()` = **3** real sites (seam.spec:74, bun.spec:59, deno.spec:63) → hand-rewrite to existing API, **no new matcher** (R3).
+- `vi.mock` = **1** live site (plgg-kit generateObject.spec, offline path) → typed DI redesign, no `as`/`any` (R5).
+- `test.skip` extra timeout arg = **10** across two packages (6 plgg-kit + 4 plgg-foundry) → drop the arg, fixes TS2554 (R4).
+- `toBeGreaterThanOrEqual` = 1 site (foundry) → the ONLY plgg-test source change (R1).
+- Coverage: 6 packages re-gate via per-package `plgg-test.config.json` (fetch/router/server/sql/view=91, http=90); 3 stay ungated (R2).
+- Pre-impl gates: Gate A (Runner fails-not-crashes on thrown body) = CONFIRMED; Gate B (deepEqual ≡ vitest toEqual on Box-tagged Option/Result) = OPEN, hard U1 entry gate.
+
+Delivery: **U1** (R1 + Gate B) → **U2** (9 per-package migrations, leaf-first, with R3/R4/R5 placed in the fetch/server/kit/foundry tickets) → **U3** (plgg cleanup + final grep gate proving zero `from "vitest"` and zero new `as`/`any`).
+
+### Amendment 2 — Three Coding-Phase launch blockers (leader-verified) + scope decision
+
+The concurrent launch surfaced three blockers, all confirmed by the leader against the real repo:
+
+1. **Finding A — plgg-test self-suite is red (0/15).** Every plgg-test self-spec fails `Cannot find module .../src/index.js`; the specs import `from "../index.js"` (relative) and the self-resolve hook does not map the `.js`-suffixed relative import to the `.ts` source. Blocks observing Gate B (equals.spec / Runner.spec are among the failing). Migrated specs import `from "plgg-test"` (the alias, like plgg's 465 passing tests) and are unaffected — this is specifically a self-suite resolution gap. **IN MANDATE** ("refine plgg-test"): fix as the first action of U1; Gate B cannot be observed until plgg-test's own suite runs.
+
+2. **DOM environment seam — missing.** 4 specs (`example/src/app.spec.ts`, plgg-view `render`/`application`/`sandbox`.spec.ts) use `// @vitest-environment happy-dom` + a live DOM; plgg-test runs under plain Node with no env seam → `document is not defined`. **IN MANDATE** ("refine plgg-test"): add a DOM-environment capability to plgg-test (new foundation ticket).
+
+3. **Finding B — pre-existing FS case collision (OUT of original scope).** Volume is case-insensitive; repo tracks both `src/style.ts` + `src/Style/` (plgg-view) and `src/ssg.ts` + `src/Ssg/` (plgg-server) → `TS1149` "differs only in casing", failing `tsc --noEmit` for plgg-view → plgg-server → example. Pre-existing on `main` (c3cd50f), independent of the runner, passes on case-sensitive CI. **DEVELOPER DECISION: fix in-scope** — rename the colliding lowercase barrel files / merge into the `Style/`/`Ssg/` directories, preserving public exports. New foundation ticket; view/server/example U2 tickets depend on it.
+
+Revised foundation order: **U0-fs-collision** + **U1** (R1 + Finding A fix + Gate B) + **U1-dom** (DOM seam) → U2 (9 per-package) → U3 (cleanup + grep gate).
+
+Other launch facts: system-safety `system_changes_authorized=false` (project-local only — fine); baseline greens = plgg/kit/foundry/sql/http/router/fetch; coverage gates 91 (fetch/router/server/sql/view), 90 (http), ungated (example/foundry/kit); 58 vitest spec imports + 10 package.json vitest devDeps (incl. plgg) + 10 vite.config vitest blocks to remove. Gate A (Runner fails-not-crashes) confirmed.
+
+### Amendment 3 — Developer ruling: 2 adversarial `as` casts in plgg-sql are an approved exception
+
+plgg-sql `Sql.spec.ts` has 2 SQL-injection-defense tests that intentionally inject type-forbidden values (a forged unbranded `Sql`-shaped object; a raw `null`) to prove the runtime brand-check rejects them. The casts are **irreducible** (no cast-free way to express "a value that bypassed the compiler reaches this slot" — the forged object lacks the runtime brand the type guarantees), **pre-existing** (present in the vitest original AND the plgg reference's proc.spec/postJson.spec), and the migration keeps the count **unchanged (2)**, localized in one documented `asInterpolation` helper.
+
+**Developer decision: KEEP the 2 documented casts.** Rationale: they are the test's deliberate subject (constructing a type violation the runtime must catch), not a "solution to a type error" — so they fall outside the spirit of CLAUDE.md's no-`as` rule, which targets papering over type errors. Both injection-safety regression tests are preserved.
+
+**Impact on U3:** the final grep gate proves zero **NEW** `as`/`any`/`ts-ignore` introduced by the migration. These 2 casts are pre-existing and approved — U3 must account for them explicitly (they are not a migration-introduced violation). No other package may introduce casts.
+
+## Progress
+
+- [x] [Planner] direction-v1 → direction-v2 (approved)
+- [x] [Architect] model-v1 → model-v2 (approved)
+- [x] [Constructor] design-v1 → design-v2 (approved)
+- [x] One-turn review round (round-1 ×3) + responses
+- [x] [Constructor] Decomposition: design-v2 → 11 tickets (4b9d141), amended to 13 (6bb3247)
+- [x] [Coding] Concurrent launch (dev-env / codebase discovery / queue reconfirm) — 3 blockers found
+- [x] [Coding] U1 foundation archived (81681f0): Finding A fix (self-suite 0→84), R1 matcher, Gate B parity (deepEqual≡toEqual, no divergence)
+- [x] [Coding] U1-dom archived (e5400ba): leak-proof DOM-environment seam (self-suite 84→86), 1 revision cycle (window/self/top leak caught by Architect, fixed)
+- [x] [Coding] U0-fix-fs-case-collision archived (5acdbbc): style.ts→styleEntry.ts, ssg.ts→ssgEntry.ts, public API preserved, Finding B cleared
+- [ ] [Coding] U2 per-package ×9 (leaf-first: http,kit,router,sql,fetch,foundry,view,server,example)
+  - [x] http(32) - [x] kit(12/6) - [x] router(39) - [x] sql(25) - [x] fetch(27) - [x] foundry(6/5) - [x] view(115) - [x] server(86) - [x] example(25)
+- [x] [Coding] U3 cleanup + final grep gate (e45b507) — vitest fully removed
+
+### COMPLETE — vitest fully removed from the monorepo
+
+Whole repo green under plgg-test (`scripts/check-all.sh`): **918 passed / 0 failed / 11 skipped** across all 11 packages (plgg 465, plgg-test 86, kit 12+6, foundry 6+5, http 32, view 115, router 39, server 86, fetch 27, sql 25, example 25).
+
+Grep gates PASS: zero `from "vitest"` imports, zero vitest in any package.json, zero vitest vite.config remnants. Escape-hatch audit: only 3 pre-existing approved casts (2 sql Amendment-3 adversarial + 1 fetch opaqueredirect test-double); zero migration-introduced.
+
+plgg-test refinements landed (instruction's "refine plgg-test" clause): R1 `toBeGreaterThanOrEqual`; Finding A self-suite resolution fix; DOM-environment seam (`Env/dom.ts`) with default URL + event-family force-install.
+
+**Note:** the Agent Teams (Planner/Architect/Constructor) drove Planning + foundation + http/kit/router/sql; the developer then dissolved the team and the lead completed fetch/foundry/view/server/example + U3 directly.
+- [ ] [Coding] U3 cleanup + final grep gate (+ carry-overs below)
+
+### Coding-phase carry-overs (to fold into later reviews / U3 final acceptance)
+
+From U1: (a) direct rewriteRelativeTs resolver assertion for a ?t=-carrying parent; (b) mixed number/bigint >= case; (c) undefined-vs-absent-inside-Box deepEqual assertion.
+From U1-dom: (d) document the Node-version-dependent skip-if-present interop assumption + possible force-install allow-list; (e) count/added-set-empty leak assertion (future-proof beyond the 4-name list); (f) mark fixtures/ as runFile-only or anchor Discovery/find.ts glob to src.
+From U1 (Planner): (g) at U3 final acceptance, surface every coverage exclude + lowered threshold as explicit ship-or-defer line items (criterion-2 audit).

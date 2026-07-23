@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>
+      PoC 4c — watchable edits on the real site
+    </title>
+  </head>
+  <body>
+    <!-- The SESSION-BEARING shell. Served by
+         src/entrypoints/serve.ts (no-store), and NEVER by
+         the internal plggpress dev server: that server
+         injects a location.reload() live-reload script,
+         which would tear down the WebRTC session on the
+         agent's own edit (the locked iframe-isolation
+         decision, inherited from PoC 4).
+
+         Unlike PoC 4b there IS an iframe again — the
+         whole point of 4c is that the document pane is
+         the REAL plggpress-rendered page, proxied under
+         /docs/*. Unlike PoC 4 that pane does not reload
+         on an edit: the proxy injects dist/patch.js into
+         the real HTML, which absorbs the dev server's
+         reload and animates the edited span in place. -->
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

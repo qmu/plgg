@@ -1,0 +1,12 @@
+{
+  "coverage": {
+    "threshold": 91,
+    "exclude": [
+      "/index.ts",
+      "/Abstracts/",
+      "/Grammaticals/Brand.ts",
+      "/Grammaticals/NonNeverFn.ts",
+      "/Grammaticals/PromisedResult.ts"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>PoC 1 — browser search core</title>
+  </head>
+  <body>
+    <!-- The static server (src/entrypoints/serve.ts) serves this page,
+         the bundled client (/main.js), and the built index assets
+         (/index/*.json). The embedding model itself loads from the CDN
+         at runtime — measuring that cost is the PoC's point. -->
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

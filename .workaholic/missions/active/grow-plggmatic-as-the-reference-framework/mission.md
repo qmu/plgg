@@ -1,0 +1,156 @@
+---
+type: Mission
+title: Grow plggmatic as the reference framework
+slug: grow-plggmatic-as-the-reference-framework
+status: active
+created_at: 2026-07-18T23:00:00+09:00
+author: a@qmu.jp
+assignee: a@qmu.jp
+strategy: plgg-horizontal-orientation-ui-stack
+drive_authorized: true
+tickets: []
+stories: []
+concerns: []
+actual_hours: 0.8
+---
+
+# Grow plggmatic as the reference framework
+
+plggmatic now lives here, in the plgg monorepo, as a plgg-family package
+(`packages/plggmatic`) beside `plgg`, `plgg-view`, and the rest. Its reference —
+the concrete example it exists to realize — lives beside it at
+`packages/plggmatic-example` (demo1, a contract-development business-management
+app declared from scratch and rendered as a horizontal column strip). This
+mission is the durable goal for developing that reference and the framework
+under it.
+
+## The direction (owner, 2026-07-18)
+
+- **Grow plggmatic in plgg as a general framework that realizes the reference.**
+  The reference (demo1) is not a throwaway demo; it is the proof-of-value the
+  framework is measured against. Its DSL surfaces (Declare / Flow / Form /
+  Layout / Catalog and the absorbed render engine) grow to express the
+  reference cleanly and generally — a form found in the reference should be
+  expressible in the framework, not special-cased.
+- **The aim is to be, again, the base of qfs-viewer's horizontal-orientation
+  layout.** qfs-viewer is going independent for now — it implements its column
+  UI itself, faithfully *referencing* this exhibit rather than depending on the
+  package. The long goal is that plggmatic grows general and solid enough that
+  qfs-viewer's horizontal layout can rest on it once more. That is the target,
+  not a near-term coupling.
+- **The reference is a living, followable target.** It is developed with a hot
+  reload dev environment (below), not frozen artifacts. A change to the
+  framework or the reference is seen immediately.
+
+## The dev environment (how to resume development)
+
+- **Serve the reference with hot reload**: `cd packages/plggmatic-example &&
+  npm run dev` → `http://localhost:51820` (plgg-bundle's dev server;
+  `bundle.config.ts` carries the `dev` section — port 51820, watch `src`,
+  allowed hosts `localhost` and `plggmatic-reference.qmu.dev`). An edit under
+  `src/` rebuilds and the browser reloads over SSE, no restart.
+- **Live**: `https://plggmatic-reference.qmu.dev` fronts that serve through the
+  shared `qmu-dev` cloudflared tunnel (Cloudflare Access in front). demo1 is at
+  `/demo1.html` (and the historical `/exhibit/demo1.html`).
+- **Build the exhibit**: `cd packages/plggmatic-example && npm run build`
+  (plgg-bundle emits the demo bundles under `dist/`).
+- **The package gate**: the whole plgg gate (`./scripts/check-all.sh`) builds
+  and tests plggmatic + the example against the in-repo siblings. Intra-repo
+  deps are `file:../<sibling>`, so a change in `plgg-view` is seen by plggmatic
+  without a publish.
+
+## Publishing
+
+plggmatic is published to npm **from this repository** (version 0.2.1 forward;
+the 0.2.0 lineage was an interim qfs-viewer-hosted build and is not continued
+here). Publishing is a gated release step — a mission ticket that ships a
+framework change bumps the patch and the release cuts the publish.
+
+## Experience
+
+plggmatic is a horizontal-orientation UI framework proven against a living
+reference (demo1, a contract-management app declared from scratch and drawn as
+a multi-column strip). The demanded behavior is observable:
+
+- **The reference is declared, not hand-built.** demo1's whole program is a
+  plggmatic DECLARATION (menu, collection, query, action, form) scheduled into
+  a plgg-view program; a form/menu the reference uses is driven by a **declared
+  framework surface**, not special-cased in the example — a form found in the
+  reference is expressible in the framework.
+- **Depth does not consume the viewport.** The horizontal strip grows columns
+  as the user drills in (measured 2026-07-17: eight columns / 1751px strip at
+  420×640) while the body width stays invariant — the reference's central,
+  regression-tested DOM claim.
+- **It is followable live.** `npm run dev` serves the reference at :51820 with
+  hot reload; an edit to the framework or the reference is seen immediately,
+  and the live host returns the exhibit at `plggmatic-reference.qmu.dev`.
+- **It publishes from this repo.** The npm `plggmatic` is the plgg-lineage
+  build (0.2.1+), `repository` = `qmu/plgg`.
+
+## Acceptance
+
+_Self-contained — drivable from this repo alone._
+
+- [x] The reference (demo1) builds and serves from this repo with hot reload
+      (`npm run dev` → 51820), and the live host returns the exhibit (not a 302
+      to an Access login for a reader who has passed Access). (#20260719050001-verify-live-host-returns-exhibit-not-302.md)
+- [x] plgg's guide docs link to the reference (what it is, the live URL, the local dev command), so a developer opening plgg reaches it from the docs. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
+- [x] A framework capability the reference needs is expressed **generally** in plggmatic (not special-cased in the example) — at least one form/menu the reference uses is driven by a declared framework surface, with a test. (#20260719022859-forms-demo-driven-by-declared-form-surface.md)
+- [x] plggmatic's `package.json` carries the plgg-lineage build metadata (`version` 0.2.1, `repository` → `qmu/plgg`), so a publish from this repo is the plgg-lineage build. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
+- [x] The npm `plggmatic` package is actually published from this repo (the
+      gated release step that makes the plgg-lineage 0.2.1+ build the published
+      one) — met: `plggmatic@0.2.2` is live on npm, plgg-lineage, `repository` →
+      `qmu/plgg` (verified `npm view`). The theming-slots/runway work publishes
+      as a normal post-merge release (bump 0.2.3). (#20260719050000-publish-plggmatic-0-2-1-from-plgg-repo.md)
+- [x] plggmatic exposes **per-component theming slots/hooks** so a consumer
+      restyles through declared tokens/slots, not by overriding framework
+      `pm-*` class names; demo1 is migrated off the 16 by-name overrides
+      (`demo1/styles.ts`) and renders identically, with a test
+      (#20260723005000-theming-slots-kill-classname-overrides.md)
+- [x] The **unbounded-depth horizontal runway** (scroll-at-every-width +
+      column-advance) is a declared framework capability the reference consumes
+      rather than app-owned overrides; the "depth does not consume the viewport"
+      property (body/top-bar width invariant as the strip grows) is preserved by
+      a regression test (#20260723005010-generalize-horizontal-runway.md)
+
+## Out of scope
+
+- qfs-viewer's own column UI (it implements independently now; its dependency
+  removal and any future re-basing on plggmatic are qfs-repo work).
+- The qmu.app product vision (on-demand generation) — that stays in the strategy
+  plan book; this mission is the framework/reference, not the north star.
+
+## Notes
+
+- Standalone `qmu/plggmatic` (the old home) is being archived; its history stays
+  readable there. The engine was absorbed here from the retired `plgg-ui`
+  package — plggmatic is the framework, the render engine is its core, not a
+  separate package.
+- The reference exhibit was measured on 2026-07-17: at 420×640 the horizontal
+  strip reaches eight columns / 1751px strip width with the body width invariant
+  ("depth does not consume the viewport") — that DOM fact is the reference's
+  central claim and a regression target.
+
+## Changelog
+
+<!-- Append-only, dated timeline. -->
+- 2026-07-19 — ticket added — 20260719022859-forms-demo-driven-by-declared-form-surface.md
+- 2026-07-19 — mission replanned — mission.md
+- 2026-07-19 — ticket archived — 20260719022859-forms-demo-driven-by-declared-form-surface.md
+- 2026-07-19 — verified & ticked: guide links the reference, and plggmatic package.json is plgg-lineage metadata (0.2.1, repository=qmu/plgg); reference builds (npm run build emits demo bundles). Split the old publish item so the verified metadata half ticks and the gated npm publish stays open. — 20260719030000-verify-reference-and-tick-satisfied-acceptance.md
+- 2026-07-19 — ticket archived — 20260719030000-verify-reference-and-tick-satisfied-acceptance.md
+- 2026-07-23 — strategy linked — plgg-horizontal-orientation-ui-stack
+- 2026-07-23 — ticket added — 20260723005000-theming-slots-kill-classname-overrides.md
+- 2026-07-23 — ticket added — 20260723005010-generalize-horizontal-runway.md
+- 2026-07-23 — ticket archived — 20260723005000-theming-slots-kill-classname-overrides.md
+- 2026-07-23 — ticket archived — 20260723005010-generalize-horizontal-runway.md
+- 2026-07-23 — run recorded (+0.8h) — monitor-20260723-011758
+
+- 2026-07-23 — verified (human): live host returns the demo1 exhibit behind Access (Access-passed 200) — 20260719050001-verify-live-host-returns-exhibit-not-302.md
+- 2026-07-23 — verified (human decision): plggmatic@0.2.2 already published from this repo satisfies the publish criterion; new framework work rides a post-merge 0.2.3 release — 20260719050000-publish-plggmatic-0-2-1-from-plgg-repo.md
+## Reflection
+
+### 2026-07-23 run monitor-20260723-011758
+- blocked: two acceptance items are human-gated — the Access-passed 200 of the live exhibit is unobservable from a drive (302 to Cloudflare Access), and the npm publish is 2FA-gated. Autonomy cannot close either.
+- leaked questions: none — the framework-generality plan (theming slots, runway) was self-contained.
+- front-load next: pre-stage the two human steps — confirm the live exhibit returns 200 behind Access, and run publish-npm.sh (2FA). These are the only things between this mission and completion.

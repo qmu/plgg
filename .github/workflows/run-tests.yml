@@ -1,61 +1,32 @@
 name: Run Tests
+
+# The fresh-clone BACKSTOP merge gate — the only inspection role hosted CI
+# holds under the local CI/CD policy (inspections are repository scripts run
+# locally; a green badge here is never the primary health signal). The gate
+# is one call to the canonical runner, identical to what a developer runs,
+# so the local and CI paths cannot drift.
 on:
   pull_request:
-    types: [review_requested, synchronize, labeled]
   push:
     branches:
       - "main"
+
 permissions:
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
-  run-tests:
-    if: |
-      (github.event.action == 'review_requested' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'ci-testing') ||
-      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'ci-testing'))) ||
-      (github.event_name == 'push')
-
+  check-all:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/github-script@v6
-        name: Set 'ci-testing' label
-        if: github.event.action == 'review_requested'
-        with:
-          script: |
-            github.rest.issues.addLabels({
-              issue_number: context.payload.pull_request.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              labels: ["ci-testing"]
-            })
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.x'
-          cache: 'npm'
-          cache-dependency-path: 'src/plgg/package-lock.json'
-          
-      - name: Install dependencies
-        run: npm ci
-        working-directory: src/plgg
-        
-      - name: Run TypeScript compilation check
-        run: npx tsc --noEmit
-        working-directory: src/plgg
-        
-      - name: Run tests
-        run: npm test
-        working-directory: src/plgg
-        
-      - name: Build library
-        run: npm run build
-        working-directory: src/plgg
-        
-      - name: Run tests with coverage
-        run: npm run coverage
-        working-directory: src/plgg
+          node-version: "22.x"
+
+      - name: Install every package's dependencies
+        run: ./scripts/npm-install.sh
+
+      - name: Check all (gates + fresh build + full test suite)
+        run: ./scripts/check-all.sh

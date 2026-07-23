@@ -1,0 +1,5 @@
+{
+  "coverage": {
+    "exempt": "experimental retired-era package (45/33/34/45 measured 2026-07-04); gate before any revival"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    /* The repository's own TS tooling scripts (publish.ts and its
+       pure helpers). They run directly under Node's native
+       type-stripping — never emitted — and import each other with
+       explicit `.ts` specifiers, so allowImportingTsExtensions +
+       noEmit. Types resolve from the build tool's own install
+       (plgg-bundle/node_modules), guaranteed present by build.sh's
+       bootstrap. */
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node"],
+    "typeRoots": [
+      "../packages/plgg-bundle/node_modules/@types"
+    ],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["*.ts"]
+}

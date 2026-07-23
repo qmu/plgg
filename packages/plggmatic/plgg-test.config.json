@@ -1,0 +1,10 @@
+{
+  "coverage": {
+    "threshold": 90,
+    "exclude": [
+      "/index.ts",
+      "/styleEntry.ts",
+      "/Render/usecase/advanceColumns.ts"
+    ]
+  }
+}
