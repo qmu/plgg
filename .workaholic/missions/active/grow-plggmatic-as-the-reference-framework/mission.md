@@ -97,9 +97,11 @@ _Self-contained — drivable from this repo alone._
 - [x] plgg's guide docs link to the reference (what it is, the live URL, the local dev command), so a developer opening plgg reaches it from the docs. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
 - [x] A framework capability the reference needs is expressed **generally** in plggmatic (not special-cased in the example) — at least one form/menu the reference uses is driven by a declared framework surface, with a test. (#20260719022859-forms-demo-driven-by-declared-form-surface.md)
 - [x] plggmatic's `package.json` carries the plgg-lineage build metadata (`version` 0.2.1, `repository` → `qmu/plgg`), so a publish from this repo is the plgg-lineage build. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
-- [ ] The npm `plggmatic` package is actually published from this repo (the
+- [x] The npm `plggmatic` package is actually published from this repo (the
       gated release step that makes the plgg-lineage 0.2.1+ build the published
-      one) — human/2FA-gated, not performed on a drive branch.
+      one) — met: `plggmatic@0.2.2` is live on npm, plgg-lineage, `repository` →
+      `qmu/plgg` (verified `npm view`). The theming-slots/runway work publishes
+      as a normal post-merge release (bump 0.2.3). (#20260719050000-publish-plggmatic-0-2-1-from-plgg-repo.md)
 - [x] plggmatic exposes **per-component theming slots/hooks** so a consumer
       restyles through declared tokens/slots, not by overriding framework
       `pm-*` class names; demo1 is migrated off the 16 by-name overrides
@@ -145,6 +147,7 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-23 — run recorded (+0.8h) — monitor-20260723-011758
 
 - 2026-07-23 — verified (human): live host returns the demo1 exhibit behind Access (Access-passed 200) — 20260719050001-verify-live-host-returns-exhibit-not-302.md
+- 2026-07-23 — verified (human decision): plggmatic@0.2.2 already published from this repo satisfies the publish criterion; new framework work rides a post-merge 0.2.3 release — 20260719050000-publish-plggmatic-0-2-1-from-plgg-repo.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758
