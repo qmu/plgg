@@ -91,9 +91,9 @@ a multi-column strip). The demanded behavior is observable:
 
 _Self-contained — drivable from this repo alone._
 
-- [ ] The reference (demo1) builds and serves from this repo with hot reload
+- [x] The reference (demo1) builds and serves from this repo with hot reload
       (`npm run dev` → 51820), and the live host returns the exhibit (not a 302
-      to an Access login for a reader who has passed Access).
+      to an Access login for a reader who has passed Access). (#20260719050001-verify-live-host-returns-exhibit-not-302.md)
 - [x] plgg's guide docs link to the reference (what it is, the live URL, the local dev command), so a developer opening plgg reaches it from the docs. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
 - [x] A framework capability the reference needs is expressed **generally** in plggmatic (not special-cased in the example) — at least one form/menu the reference uses is driven by a declared framework surface, with a test. (#20260719022859-forms-demo-driven-by-declared-form-surface.md)
 - [x] plggmatic's `package.json` carries the plgg-lineage build metadata (`version` 0.2.1, `repository` → `qmu/plgg`), so a publish from this repo is the plgg-lineage build. (#20260719030000-verify-reference-and-tick-satisfied-acceptance.md)
@@ -144,6 +144,7 @@ _Self-contained — drivable from this repo alone._
 - 2026-07-23 — ticket archived — 20260723005010-generalize-horizontal-runway.md
 - 2026-07-23 — run recorded (+0.8h) — monitor-20260723-011758
 
+- 2026-07-23 — verified (human): live host returns the demo1 exhibit behind Access (Access-passed 200) — 20260719050001-verify-live-host-returns-exhibit-not-302.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758
