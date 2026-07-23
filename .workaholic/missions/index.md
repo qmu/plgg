@@ -4,6 +4,7 @@
 
 * [build-the-plgg-ir-thesis-evaluator](active/build-the-plgg-ir-thesis-evaluator/mission.md) - Build the plgg-ir-thesis Evaluator
 * [grow-plggmatic-as-the-reference-framework](active/grow-plggmatic-as-the-reference-framework/mission.md) - Grow plggmatic as the reference framework
+* [plggpress-column-layout-and-voice-ai-editing](active/plggpress-column-layout-and-voice-ai-editing/mission.md) - plggpress column layout and voice AI editing
 * [plggpress-technical-confidence-poc-portal](active/plggpress-technical-confidence-poc-portal/mission.md) - plggpress technical-confidence PoC portal
 
 ## archive

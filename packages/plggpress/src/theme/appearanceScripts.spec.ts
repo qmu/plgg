@@ -34,7 +34,10 @@ test("inserts the no-FOUC script before </head> and the toggle before </body>", 
     check(out, toContain("</script></head>")),
     check(out, toContain("</script></body>")),
     // never opens a live-reload channel
-    check(occurrences(out, "EventSource"), toBe(0)),
+    check(
+      occurrences(out, "EventSource"),
+      toBe(0),
+    ),
   ]);
 });
 

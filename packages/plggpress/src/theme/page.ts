@@ -1,10 +1,21 @@
-import { type SoftStr } from "plgg";
+import {
+  type SoftStr,
+  type Option,
+  some,
+  none,
+  fromNullable,
+  matchOption,
+} from "plgg";
 import {
   type Html,
+  type Flow,
+  type Attribute,
   div,
+  nav,
   main_,
   a,
   p,
+  span,
   input,
   label,
   slot,
@@ -12,7 +23,12 @@ import {
   attr,
   class_,
 } from "plggpress/framework";
-import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
+import { row, column } from "plggmatic";
+import {
+  type SiteConfig,
+  type SidebarGroup,
+  type SidebarItem,
+} from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,
   mobileBar,
@@ -26,9 +42,9 @@ import {
 
 /**
  * The hidden checkbox the `☰` mobile-bar label toggles. A
- * sibling of the app row and the backdrop (inside
+ * sibling of the column strip and the backdrop (inside
  * `.vp-shell`) so {@link baseCss}'s general-sibling rules
- * can slide the off-canvas sidebar drawer in and dim the
+ * can slide the off-canvas sections column in and dim the
  * backdrop with zero client JavaScript.
  */
 const menuToggle = input(
@@ -75,25 +91,72 @@ const siteFooter = (
   );
 
 /**
- * The sidebar column: the wordmark home link (rendered as
- * the inverted active block on the home page), the
- * always-expanded {@link sidebarTree}, and — below lg,
- * where the chrome rail is hidden — the social links so
- * GitHub stays reachable in the drawer. On lg+ it is a
- * permanent independent-scroll column; below lg it becomes
- * the off-canvas drawer.
+ * The first descendant leaf link under a sidebar item
+ * subtree — the target a section header links to so
+ * selecting a section lands on its opening page. `None`
+ * when the subtree carries no link at all.
  */
-const sidebarColumn = (
+const firstLeafLink = (
+  items: ReadonlyArray<SidebarItem>,
+): Option<SoftStr> =>
+  items.reduce<Option<SoftStr>>(
+    (
+      acc: Option<SoftStr>,
+      item: SidebarItem,
+    ): Option<SoftStr> =>
+      matchOption<SoftStr, Option<SoftStr>>(
+        () =>
+          matchOption<SoftStr, Option<SoftStr>>(
+            () => firstLeafLink(item.items),
+            (link: SoftStr) => some(link),
+          )(item.link),
+        (found: SoftStr) => some(found),
+      )(acc),
+    none(),
+  );
+
+/**
+ * Whether a group's subtree contains a leaf whose link
+ * resolves to the active path — i.e. the reader is
+ * currently inside this section.
+ */
+const groupHasActive = (
+  group: SidebarGroup,
+  activePath: SoftStr,
+  base: SoftStr,
+): boolean => {
+  const sameAsActive = samePath(base);
+  const anyItemActive = (
+    item: SidebarItem,
+  ): boolean =>
+    matchOption<SoftStr, boolean>(
+      () => false,
+      (link: SoftStr) =>
+        sameAsActive(link, activePath),
+    )(item.link) ||
+    item.items.some(anyItemActive);
+  return group.items.some(anyItemActive);
+};
+
+/**
+ * The top-level SECTIONS column (the strip's leftmost
+ * `pm-col`): the wordmark home link and one entry per
+ * sidebar group. Selecting a section navigates to its
+ * opening page and — in the SSR strip — the active
+ * section's own tree drills open as the column to the
+ * right. Below lg this column becomes the CSS-only
+ * off-canvas drawer.
+ */
+const sectionsColumn = (
   config: SiteConfig,
   activePath: SoftStr,
   base: SoftStr,
-): Html<never, "div"> => {
+): Html<never> => {
   const hrefOf = href(config.base);
   const sameAsActive = samePath(config.base);
-  const wordmarkAttrs = sameAsActive(
-    "/",
-    activePath,
-  )
+  const wordmarkAttrs: ReadonlyArray<
+    Attribute<never>
+  > = sameAsActive("/", activePath)
     ? [
         attr("href", hrefOf("/")),
         attr("aria-current", "page"),
@@ -103,14 +166,48 @@ const sidebarColumn = (
         attr("href", hrefOf("/")),
         class_("vp-wordmark"),
       ];
-  return div(
-    [class_("vp-sidebar")],
+  const groupEntry = (
+    group: SidebarGroup,
+  ): Flow<never> => {
+    const active = groupHasActive(
+      group,
+      activePath,
+      base,
+    );
+    return matchOption<SoftStr, Flow<never>>(
+      () =>
+        span(
+          [class_("vp-sidebar-flat")],
+          [text(group.text)],
+        ),
+      (link: SoftStr) =>
+        a(
+          active
+            ? [
+                attr("href", hrefOf(link)),
+                attr("aria-current", "page"),
+                class_("vp-sidebar-link"),
+              ]
+            : [
+                attr("href", hrefOf(link)),
+                class_("vp-sidebar-link"),
+              ],
+          [text(group.text)],
+        ),
+    )(firstLeafLink(group.items));
+  };
+  return column(
+    ["vp-sidebar"],
     [
-      a(wordmarkAttrs, [text(config.title)]),
-      sidebarTree(
-        config.sidebar,
-        activePath,
-        base,
+      nav(
+        [
+          class_("vp-sidebar-nav"),
+          attr("aria-label", "Sections"),
+        ],
+        [
+          a(wordmarkAttrs, [text(config.title)]),
+          ...config.sidebar.map(groupEntry),
+        ],
       ),
       socialLinks(config, "vp-sidebar-social"),
     ],
@@ -118,21 +215,60 @@ const sidebarColumn = (
 };
 
 /**
- * The in-body PAGE LAYOUT — the composition seam between
- * the typed chrome builders and the document `shell`. It
- * is a sidebar-first app shell (qmu.co.jp): the
- * {@link sidebarColumn} at the far left, then
- * a `<main>` holding the rendered `content` (an opaque
+ * The DRILLED section column — the `pm-col` that opens to
+ * the right of the sections column when the reader is
+ * inside a section. It renders JUST the active group's
+ * always-expanded {@link sidebarTree}, so the section's
+ * pages read as an independent column. Absent (no extra
+ * column) when the active path is in no group — home and
+ * stray pages show the sections + content pair only, and
+ * drilling into a section adds this column.
+ */
+const drilledColumn = (
+  config: SiteConfig,
+  activePath: SoftStr,
+  base: SoftStr,
+): ReadonlyArray<Html<never>> => {
+  return matchOption<
+    SidebarGroup,
+    ReadonlyArray<Html<never>>
+  >(
+    () => [],
+    (active: SidebarGroup) => [
+      column(
+        ["vp-section"],
+        [sidebarTree([active], activePath, base)],
+      ),
+    ],
+  )(
+    fromNullable(
+      config.sidebar.find(
+        (group: SidebarGroup): boolean =>
+          groupHasActive(group, activePath, base),
+      ),
+    ),
+  );
+};
+
+/**
+ * The in-body PAGE LAYOUT — plggpress's column-oriented
+ * horizontal strip, rendered through plggmatic's
+ * {@link row}/{@link column} combinators (the `pm-row` /
+ * `pm-col` skeleton the framework owns). Depth is expressed
+ * by COLUMNS, never by consuming the viewport: the sections
+ * column sits at the far left, the active section drills
+ * open as a column to its right, then the `<main>` content
+ * column holds the rendered `content` (an opaque
  * `Html<never>` embedded through the typed {@link slot})
- * plus the {@link siteFooter}. EVERY page — the landing
- * page included — renders as the `.vp-doc` prose column
- * through this one shell (qmu.co.jp's home is ordinary
- * prose; there is no hero variant). Below lg the rail
- * hides, a sticky {@link mobileBar} appears, and the
- * sidebar becomes a CSS-only off-canvas drawer driven by
- * the hidden {@link menuToggle} checkbox. Authored purely
- * from the typed flow/`slot` builders — no general-builder
- * escape hatch.
+ * plus the {@link siteFooter}, and the chrome rail closes
+ * the strip. As the strip grows the top bar/body width
+ * stays fixed and the row scrolls horizontally beneath.
+ * Below lg the rail hides, a sticky {@link mobileBar}
+ * appears, and the sections column becomes a CSS-only
+ * off-canvas drawer driven by the hidden {@link menuToggle}
+ * checkbox. The palette is plggmatic's monochrome
+ * `defaultTheme` throughout. Authored purely from the typed
+ * flow/`slot` builders — no general-builder escape hatch.
  */
 export const page = (
   config: SiteConfig,
@@ -140,32 +276,46 @@ export const page = (
   activePath: SoftStr,
   base: SoftStr,
 ): Html<never> => {
-  const contentColumn = main_(
-    [class_("vp-content")],
+  const contentColumn = column(
+    ["vp-content"],
     [
-      div(
-        [class_("vp-doc")],
-        [slot([], [content])],
+      main_(
+        [class_("vp-main")],
+        [
+          div(
+            [class_("vp-doc")],
+            [slot([], [content])],
+          ),
+          siteFooter(config),
+        ],
       ),
-      siteFooter(config),
     ],
   );
-  return div(
+  return slot(
     [class_("vp-shell")],
     [
       menuToggle,
-      // The home page carries the sidebar too (qmu.co.jp
-      // renders its landing page through the same shell):
-      // with no top nav, the sidebar is the ONLY way to
-      // reach articles, so a sidebar-less home is a
-      // navigation dead-end. The `☰` drawer is enabled on
-      // every page for the same reason.
+      // The home page carries the sections column too
+      // (qmu.co.jp renders its landing page through the
+      // same strip): with no top nav, the sections column
+      // is the ONLY way to reach articles, so a sidebar-
+      // less home is a navigation dead-end. The `☰` drawer
+      // is enabled on every page for the same reason.
       mobileBar(config, activePath, true),
       backdrop,
-      div(
-        [class_("vp-app")],
+      row(
+        ["vp-app"],
         [
-          sidebarColumn(config, activePath, base),
+          sectionsColumn(
+            config,
+            activePath,
+            base,
+          ),
+          ...drilledColumn(
+            config,
+            activePath,
+            base,
+          ),
           contentColumn,
           chromeRail(config),
         ],

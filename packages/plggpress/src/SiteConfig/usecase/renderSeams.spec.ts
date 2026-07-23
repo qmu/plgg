@@ -34,6 +34,7 @@ const config = (
   slugger: none(),
   srcExclude: none(),
   linkIgnore: none(),
+  theme: none(),
   ...overrides,
 });
 

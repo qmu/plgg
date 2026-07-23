@@ -36,4 +36,5 @@
 * [Export the domain vocabulary as a composable manifestDialect, etc](work-20260716-115204.md)
 * [Bump plgg-ir-language and plgg-ir-manifest to 0.0.2 for the dialect-export publish](work-20260716-161106.md)
 * [Re-extract plgg-mcp as the content-free MCP protocol substrate, etc](work-20260716-163314.md)
+* [Dogfooding fixes across plgg core, CLI, md, plggpress, and fetch](work-20260722-085220.md)
 <!-- okf:generated:end -->

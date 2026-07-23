@@ -37,6 +37,7 @@ services:
       - /app/packages/plgg-cli/node_modules
       - /app/packages/plgg-http/node_modules
       - /app/packages/plgg-view/node_modules
+      - /app/packages/plggmatic/node_modules
       - /app/packages/plgg-md/node_modules
       - /app/packages/plgg-highlight/node_modules
       - /app/packages/plgg-server/node_modules

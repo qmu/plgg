@@ -43,6 +43,7 @@ const config: SiteConfig = {
   slugger: none(),
   srcExclude: none(),
   linkIgnore: none(),
+  theme: none(),
 };
 
 const req = (path: string): HttpRequest => ({

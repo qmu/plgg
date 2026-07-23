@@ -1,4 +1,9 @@
-import { type SoftStr, pipe, getOr } from "plgg";
+import {
+  type SoftStr,
+  pipe,
+  getOr,
+  matchOption,
+} from "plgg";
 import {
   type Html,
   html,
@@ -19,6 +24,7 @@ import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { baseCss } from "plggpress/theme/baseCss";
 import {
+  type Theme,
   themeToggleCss,
   schemeCss,
   metricCss,
@@ -39,17 +45,33 @@ import {
  * layout/prose sheet (D3/D16 cutover, roadmap tickets
  * 07 + 08).
  */
-// plggpress passes `defaultTheme` explicitly to the
-// value-carrying emitters at its composition root — the
-// scheme, metric, and syntax CSS for the monochrome `--pm-*`
-// design language. `reducedMotionCss`/`themeToggleCss` carry
-// no theme values (static / default-bound).
-const frameworkCss: SoftStr =
-  schemeCss(defaultTheme) +
-  metricCss(defaultTheme) +
+// plggpress passes the RESOLVED theme to the value-carrying
+// emitters — the scheme, metric, and syntax CSS for the
+// `--pm-*` design language. The theme is the monochrome qmu
+// default, or a `SiteConfig` palette override (D3, made
+// config-driven); `resolveTheme` picks it from the config.
+// `reducedMotionCss`/`themeToggleCss` carry no theme values.
+const frameworkCss = (theme: Theme): SoftStr =>
+  schemeCss(theme) +
+  metricCss(theme) +
   reducedMotionCss +
   themeToggleCss +
-  syntaxCss(defaultTheme);
+  syntaxCss(theme);
+
+/**
+ * The theme a site RENDERS through: its validated
+ * `SiteConfig` palette override when present, else
+ * plggmatic's monochrome {@link defaultTheme}. This is the
+ * one seam where the config's optional theme becomes the
+ * concrete `Theme` the emitters bind to — no source edit.
+ */
+export const resolveTheme = (
+  config: SiteConfig,
+): Theme =>
+  matchOption<Theme, Theme>(
+    () => defaultTheme,
+    (theme: Theme) => theme,
+  )(config.theme);
 
 /**
  * The page `<title>` text: the document's first H1
@@ -84,6 +106,7 @@ const documentHead = (
   config: SiteConfig,
   doc: MarkdownDoc,
   body: Html<never>,
+  theme: Theme,
 ): Html<never, "head"> => {
   const hrefOf = href(config.base);
   return head(
@@ -112,8 +135,8 @@ const documentHead = (
         [],
         [
           text(
-            frameworkCss +
-              baseCss +
+            frameworkCss(theme) +
+              baseCss(theme) +
               "\n" +
               collectCss(body),
           ),
@@ -144,7 +167,12 @@ export const shell = (
   html(
     [],
     [
-      documentHead(config, doc, body),
+      documentHead(
+        config,
+        doc,
+        body,
+        resolveTheme(config),
+      ),
       bodyEl([class_("vp")], [slot([], [body])]),
     ],
   );

@@ -59,36 +59,37 @@ const NOT_FOUND =
 
 // Write a minimal corpus (two routes + one asset) into a
 // fresh temp dir and build it into a sibling out dir.
-const writeCorpus = async (): Promise<AppOptions> => {
-  const root = await mkdtemp(
-    join(tmpdir(), "plggpress-build-"),
-  );
-  const contentDir = join(root, "content");
-  await mkdir(join(contentDir, "public"), {
-    recursive: true,
-  });
-  await writeFile(
-    join(contentDir, "index.md"),
-    "# Home\n",
-    "utf8",
-  );
-  await writeFile(
-    join(contentDir, "guide.md"),
-    "# Guide\n",
-    "utf8",
-  );
-  await writeFile(
-    join(contentDir, "public", "robots.txt"),
-    "User-agent: *\n",
-    "utf8",
-  );
-  return {
-    contentDir,
-    outDir: join(root, "out"),
-    assetsDir: join(contentDir, "public"),
-    base: "/",
+const writeCorpus =
+  async (): Promise<AppOptions> => {
+    const root = await mkdtemp(
+      join(tmpdir(), "plggpress-build-"),
+    );
+    const contentDir = join(root, "content");
+    await mkdir(join(contentDir, "public"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(contentDir, "index.md"),
+      "# Home\n",
+      "utf8",
+    );
+    await writeFile(
+      join(contentDir, "guide.md"),
+      "# Guide\n",
+      "utf8",
+    );
+    await writeFile(
+      join(contentDir, "public", "robots.txt"),
+      "User-agent: *\n",
+      "utf8",
+    );
+    return {
+      contentDir,
+      outDir: join(root, "out"),
+      assetsDir: join(contentDir, "public"),
+      base: "/",
+    };
   };
-};
 
 const pathExists = (
   path: string,
@@ -163,9 +164,8 @@ test("excludePath drops a matched route from the build (srcExclude)", async () =
   const report = await build(opts, {
     router,
     notFoundHtml: NOT_FOUND,
-    excludePath: some(
-      (path: SoftStr): boolean =>
-        path.includes("guide"),
+    excludePath: some((path: SoftStr): boolean =>
+      path.includes("guide"),
     ),
     linkCheck: none(),
   });
@@ -222,9 +222,7 @@ test("a failing linkCheck fails the build before anything is written", async () 
         ReadonlyArray<SoftStr>,
         SoftStr
       > =>
-        Promise.resolve(
-          err("2 broken link(s)"),
-        ),
+        Promise.resolve(err("2 broken link(s)")),
     ),
   });
   return check(report, shouldBeErr());

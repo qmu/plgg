@@ -55,6 +55,7 @@ const config: SiteConfig = {
   slugger: none(),
   srcExclude: none(),
   linkIgnore: none(),
+  theme: none(),
 };
 
 // A normal page: its first H1 drives the `<title>`.
@@ -165,7 +166,7 @@ test("the composed stylesheet is escape-safe (no <, >, & reach the SSR text node
     metricCss(defaultTheme) +
     reducedMotionCss +
     themeToggleCss +
-    baseCss;
+    baseCss(defaultTheme);
   return all([
     check(composed, not(toContain("<"))),
     check(composed, not(toContain(">"))),

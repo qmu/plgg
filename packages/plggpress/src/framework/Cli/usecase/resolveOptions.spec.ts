@@ -84,7 +84,10 @@ test("resolveServe defaults to port 3000 with no hostname", () =>
 test("resolveServe parses a valid --port and threads --hostname", () =>
   check(
     resolveServe(
-      invOf({ port: "8080", hostname: "127.0.0.1" }),
+      invOf({
+        port: "8080",
+        hostname: "127.0.0.1",
+      }),
     ),
     okThen((s) =>
       all([
@@ -103,14 +106,20 @@ test("resolveServe rejects a non-integer / out-of-range --port with a one-line E
   all([
     check(
       resolveServe(invOf({ port: "abc" })),
-      errThen((m) => toContain("invalid --port")(m)),
+      errThen((m) =>
+        toContain("invalid --port")(m),
+      ),
     ),
     check(
       resolveServe(invOf({ port: "3.5" })),
-      errThen((m) => toContain("invalid --port")(m)),
+      errThen((m) =>
+        toContain("invalid --port")(m),
+      ),
     ),
     check(
       resolveServe(invOf({ port: "99999" })),
-      errThen((m) => toContain("invalid --port")(m)),
+      errThen((m) =>
+        toContain("invalid --port")(m),
+      ),
     ),
   ]));

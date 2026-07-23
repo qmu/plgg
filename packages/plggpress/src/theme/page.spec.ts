@@ -2,6 +2,7 @@ import {
   test,
   check,
   all,
+  toBe,
   toContain,
   not,
 } from "plgg-test";
@@ -55,6 +56,7 @@ const config: SiteConfig = {
   slugger: none(),
   srcExclude: none(),
   linkIgnore: none(),
+  theme: none(),
 };
 
 const content: Html<never, "div"> = div(
@@ -159,19 +161,17 @@ test("base-prefixes both nav and sidebar links", () =>
     ),
   ]));
 
-test("the landing page is ordinary prose WITH the sidebar (qmu model)", () =>
+test("the landing page is ordinary prose WITH the sections column (qmu model)", () =>
   all([
     check(
       renderedHome,
       toContain("Article content here"),
     ),
-    // with no top nav, the sidebar is the only path to
-    // articles — the home page must carry it
+    // with no top nav, the sections column is the only
+    // path to articles — the home page must carry it
     check(
       renderedHome,
-      toContain(
-        'aria-label="Sidebar navigation"',
-      ),
+      toContain('aria-label="Sections"'),
     ),
     // the SAME .vp-doc prose column as every article —
     // no hero variant exists
@@ -190,3 +190,92 @@ test("the landing page is ordinary prose WITH the sidebar (qmu model)", () =>
       not(toContain("<details")),
     ),
   ]));
+
+// The count of plggmatic column tracks in a rendered page.
+const columnCount = (rendered: string): number =>
+  rendered.split('class="pm-col').length - 1;
+
+// Extract a --pm-* scheme value from the emitted <style>.
+const schemeValueOf = (
+  html: string,
+  token: string,
+): string => {
+  const needle = "--pm-" + token + ":";
+  const at = html.indexOf(needle);
+  return at < 0
+    ? ""
+    : (
+        html
+          .slice(at + needle.length)
+          .split(";")[0] ?? ""
+      ).trim();
+};
+
+// Whether a 6-digit #RRGGBB hex is grayscale (R==G==B).
+const isGrayscaleHex = (hex: string): boolean => {
+  const body = hex.replace("#", "");
+  return (
+    body.length === 6 &&
+    body.slice(0, 2) === body.slice(2, 4) &&
+    body.slice(2, 4) === body.slice(4, 6)
+  );
+};
+
+test("renders the plggmatic column strip: a pm-row of pm-col columns", () =>
+  all([
+    // the strip is plggmatic's pm-row skeleton
+    check(rendered, toContain('class="pm-row')),
+    // carrying the qmu shell hook
+    check(rendered, toContain("vp-app")),
+    // with plggmatic pm-col columns (sections + content at
+    // minimum, plus the drilled section here)
+    check(rendered, toContain('class="pm-col')),
+  ]));
+
+test("drilling into a section adds a column to the strip", () =>
+  all([
+    // home is in no section: the sections column + the
+    // content column, no drilled column
+    check(columnCount(renderedHome), toBe(2)),
+    // an in-section page drills the active section open as
+    // an extra column to the right — depth is a COLUMN
+    check(columnCount(rendered), toBe(3)),
+    // and the drilled column carries the section's tree
+    check(
+      rendered,
+      toContain(
+        'aria-label="Sidebar navigation"',
+      ),
+    ),
+  ]));
+
+test("the content column's width is invariant as depth grows (fixed-width, horizontal-scroll strip)", () =>
+  all([
+    // the content column is the same fixed-width vp-content
+    // track whether or not a section column precedes it —
+    // depth spends horizontal scroll, not the body width
+    check(rendered, toContain("vp-content")),
+    check(renderedHome, toContain("vp-content")),
+    // the strip scrolls horizontally rather than shrinking
+    // the body: the mechanism that keeps the width invariant
+    check(rendered, toContain("overflow-x:auto")),
+  ]));
+
+test("the strip palette is monochrome (grayscale scheme tokens)", () => {
+  const primary = schemeValueOf(
+    rendered,
+    "primary-base",
+  );
+  const surface = schemeValueOf(
+    rendered,
+    "surface",
+  );
+  return all([
+    // both scheme tokens are present…
+    check(primary.startsWith("#"), toBe(true)),
+    check(surface.startsWith("#"), toBe(true)),
+    // …and grayscale: R == G == B in the 6-digit hex
+    check(isGrayscaleHex(primary), toBe(true)),
+    check(isGrayscaleHex(surface), toBe(true)),
+  ]);
+});
