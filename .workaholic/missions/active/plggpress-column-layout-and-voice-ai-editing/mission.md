@@ -119,10 +119,10 @@ framework, plggpress is the first product resting on it.
 - [x] The B&W doc-site theme is selectable/overridable through `SiteConfig` rather than
       hard-bound at the composition root, with a test
       (#20260723004010-config-driven-theme-seam.md)
-- [ ] `plggpress dev` runs a persistent, self-owned server surface with a client channel
+- [x] `plggpress dev` runs a persistent, self-owned server surface with a client channel
       it controls; editing a source file hot-reloads the page while the channel stays
       connected (#20260723004020-persistent-dev-server-surface.md)
-- [ ] A live-edit bridge patches the open markdown file on disk from a tool call and the
+- [x] A live-edit bridge patches the open markdown file on disk from a tool call and the
       edited page hot-reloads while the live session stays connected (integrating the
       `plgg-poc4c-livesite` bridge artifacts) (#20260723004030-live-edit-bridge.md)
 - [ ] With `OPENAI_API_KEY` set, `plggpress dev` shows a voice assistant "on the same
