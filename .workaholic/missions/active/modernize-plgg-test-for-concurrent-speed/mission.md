@@ -13,6 +13,7 @@ concerns: []
 gate_type:
 gate_target:
 gate_assert:
+actual_hours: 0.4
 ---
 
 # Modernize plgg-test for concurrent speed
@@ -114,3 +115,4 @@ separate concern owned by the plgg-bundle work, explicitly out of scope here.
 <!-- Append-only, dated timeline relating this mission's tickets and reports over time.
      One line per event ("- YYYY-MM-DD — event — filename"); never rewrite past lines. -->
 - 2026-07-20 — mission created — 7 kickoff tickets emitted (profiling spike → concurrent runner → suite.serial → global-stub isolation → check-all fan-out → cross-runtime proof → ≤10s measurement); interrogation fixed scope (test-execution only), isolation (in-process async, cross-runtime, no worker_threads), the serial API (suite.serial block), and reach (concurrent runner + concurrent check-all)
+- 2026-07-24 — run recorded (+0.4h) — monitor-20260723-011758
