@@ -28,3 +28,7 @@ export {
 } from "plggmatic/Render/usecase/multiColumn";
 export { singleColumn } from "plggmatic/Render/usecase/singleColumn";
 export { renderMode } from "plggmatic/Render/usecase/renderMode";
+// The runtime effect that owns the unbounded-depth runway
+// (`runwayCss`): a Cmd, not a renderer — it measures the
+// strip and scrolls the newest column into view.
+export { advanceColumns } from "plggmatic/Render/usecase/advanceColumns";
