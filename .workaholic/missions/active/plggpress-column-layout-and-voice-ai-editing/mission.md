@@ -154,6 +154,29 @@ framework, plggpress is the first product resting on it.
 - 2026-07-23 — ticket archived — 20260723004020-persistent-dev-server-surface.md
 - 2026-07-23 — ticket archived — 20260723004030-live-edit-bridge.md
 - 2026-07-23 — run recorded (+1.4h) — monitor-20260723-011758
+- 2026-07-23 — dev server wired into the `plggpress dev` CLI (commit
+  9f4542b8): `plggpress dev` now serves plggpress's OWN persistent surface
+  (`framework/DevServer` `startDevServer`) with the live-edit bridge mounted
+  at `/__plggpress_patch` and file-watch hot reload preserved — replacing the
+  plgg-bundle dev loop (its now-dead `devSeam` deleted). The prerequisite the
+  prior reflection front-loaded is cleared. Follow-ups noted: (a) the residual
+  plgg-bundle dev scaffolding (`devPlan`/`devEntryEnv`/`devServerEntry`/
+  `devEntry`/`pressDevEntry`) is dead-but-present and wants a cleanup pass;
+  (b) theme `.ts` hot-reload (module re-import) is no longer available under
+  the in-process surface (content/config file-watch reload is) — a concern for
+  the sibling plggmatic-framework mission.
+- 2026-07-23 — tickets still deferred — 20260723004040 (voice-realtime) +
+  20260723004050 (guide): with the dev-server prerequisite now wired, the
+  voice ticket is unblocked but remains a single large, coupled integration —
+  a server-side ephemeral-key mint (never exposing `OPENAI_API_KEY`), a
+  dev-only WebRTC Realtime browser bundle (`plgg-poc3-voice`), an `edit_doc`
+  tool routed through the EXISTING live-edit bridge, and an in-place hot-reload
+  that keeps the realtime session alive (`plgg-poc4c-livesite`'s patch/reload
+  arbitration) — that could not be landed green with >90% coverage in this
+  focused pass without risking the freshly-delivered dev surface. 004050
+  depends on 004040 (it documents the voice workflow), so it stays deferred
+  with it. Both remain fully specified in todo; a dedicated follow-up drive
+  should take 004040 alone.
 
 ## Reflection
 
