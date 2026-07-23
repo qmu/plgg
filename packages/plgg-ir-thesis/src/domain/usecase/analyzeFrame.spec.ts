@@ -55,10 +55,14 @@ const rejects = (
     ),
   );
 
+/** A target assertion the frames below can close against. */
+const TARGET =
+  "(主張 B :ロジック 因果的 :ルート (概念 R) (関係 r1 :接続元 (概念 a) :接続先 (概念 R)) (関係 r2 :接続元 (概念 b) :接続先 (概念 R)))";
+
 test("a well-formed frame is accepted with its attacks", () =>
   check(
     oneFrame(
-      "(フレーム F :種別 反論 :接続元 A :接続先 B :要求 (遮断 x) (攻撃 s1 反駁 r1) (攻撃 s2 切り崩し r2))",
+      `${TARGET} (フレーム F :種別 反論 :接続元 A :接続先 B (攻撃 s1 反駁 R) (攻撃 s2 切り崩し r2))`,
     ).map((f) => [
       f.from,
       f.to,
@@ -77,7 +81,7 @@ test("a well-formed frame is accepted with its attacks", () =>
 test("a frame with no :要求 and no :種別 is accepted", () =>
   check(
     oneFrame(
-      "(フレーム F :接続元 A :接続先 B)",
+      `${TARGET} (フレーム F :接続元 A :接続先 B)`,
     ).map((f) => String(f.attacks.length)),
     toEqual(["0"]),
   ));
@@ -129,4 +133,28 @@ test("a nameless attack is rejected", () =>
   rejects(
     "(フレーム F :接続元 A :接続先 B (攻撃))",
     ["thesis.bad-attack"],
+  ));
+
+test("a 対応 with no concepts is rejected", () =>
+  rejects(
+    "(フレーム F :種別 類推 :接続元 A :接続先 B (対応))",
+    ["thesis.bad-frame"],
+  ));
+
+test("a 対応 missing its target concept is rejected", () =>
+  rejects(
+    "(フレーム F :種別 類推 :接続元 A :接続先 B (対応 s1))",
+    ["thesis.bad-frame"],
+  ));
+
+test("a nameless 問題 is rejected", () =>
+  rejects(
+    "(フレーム F :種別 全対応 :接続元 A :接続先 B (問題))",
+    ["thesis.bad-frame"],
+  ));
+
+test("a nameless 部分 is rejected", () =>
+  rejects(
+    "(フレーム F :種別 合成 :接続元 A :接続先 B (部分))",
+    ["thesis.bad-frame"],
   ));

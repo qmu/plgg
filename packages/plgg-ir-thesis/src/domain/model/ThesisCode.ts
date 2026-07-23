@@ -127,3 +127,118 @@ export const codeSortMixed = "thesis.sort-mixed";
  */
 export const codeUnknownSort =
   "thesis.unknown-sort";
+
+/**
+ * A frame's `:接続先` target names no declared assertion,
+ * so its attacks cannot be reference-closed.
+ */
+export const codeUnresolvedTarget =
+  "thesis.unresolved-target";
+
+/**
+ * An attack references a target (relation or concept)
+ * that the target assertion does not declare — the
+ * straw-man rejection (design.md §5.6): a binding error,
+ * not a lint. The diagnostic names the declared
+ * alternatives.
+ */
+export const codeAttackUnresolved =
+  "thesis.attack-unresolved";
+
+/**
+ * An attack's type does not match the kind of target it
+ * may attack (design.md §4): 反駁 → root concept,
+ * 切り崩し / 掘り崩し → a declared relation.
+ */
+export const codeAttackTypeMismatch =
+  "thesis.attack-type-mismatch";
+
+/**
+ * A 類推 (analogy) frame's declared correspondence names a
+ * concept neither `:接続元` nor `:接続先` assertion
+ * declares — the mapping cannot be checked (design.md
+ * §5.7). The diagnostic names the offending side.
+ */
+export const codeCorrespondenceUnresolved =
+  "thesis.correspondence-unresolved";
+
+/**
+ * A 類推 (analogy) frame's declared simulation fails the
+ * local condition: a source edge has no matching edge
+ * between the images of its endpoints (design.md §2,
+ * §5.7). The diagnostic names the first unmatched step.
+ */
+export const codeSimulationUnmatched =
+  "thesis.simulation-unmatched";
+
+/**
+ * A 全対応 (framework totality) frame has a declared
+ * problem node with no countermeasure step — the
+ * `□(問題 → ⟨対策⟩⊤)` violation (design.md §5.2). The
+ * diagnostic names the unaddressed node.
+ */
+export const codeTotalityGap =
+  "thesis.totality-gap";
+
+/**
+ * A 合成 (composition) frame diverges from the composition
+ * of its declared parts: a missing part, a non-chaining
+ * pair, or endpoints that disagree with the parts'
+ * outer endpoints (design.md §5.11 可換/合成). The
+ * diagnostic names the divergence.
+ */
+export const codeCompositionDivergent =
+  "thesis.composition-divergent";
+
+/**
+ * A frame's `:要求` requirement head is not one of the
+ * evaluable modes 被覆 / 遮断 / 多面性 (design.md §5.1,
+ * §5.5). The diagnostic names the modes.
+ */
+export const codeBadRequirement =
+  "thesis.bad-requirement";
+
+/**
+ * Rebuttal completeness under `被覆` (coverage) fails: a
+ * relation of the target assertion has no declared attack
+ * (design.md §5.1). The diagnostic names the unattacked
+ * relation.
+ */
+export const codeCoverageGap =
+  "thesis.coverage-gap";
+
+/**
+ * Rebuttal completeness under `遮断` (severing) fails: a
+ * 前提→ルート derivation path survives the attacked set
+ * (design.md §5.1). The diagnostic names the surviving
+ * path.
+ */
+export const codeSeveringSurvives =
+  "thesis.severing-survives";
+
+/**
+ * Blind-spot detection (`多面性 n`, design.md §5.5): a
+ * concept is reachable from fewer than `n` distinct
+ * stances. The diagnostic names the under-covered concept.
+ */
+export const codePerspectivityGap =
+  "thesis.perspectivity-gap";
+
+/**
+ * Circular reasoning (design.md §5.3): an assertion
+ * depends on itself through the `依存` (dependency) frame
+ * graph — the `¬⟨依存*⟩self` violation. The diagnostic
+ * names the cycle.
+ */
+export const codeCircularReasoning =
+  "thesis.circular-reasoning";
+
+/**
+ * Intra-stance contradiction (design.md §5.4): a `反論`
+ * frame attacks between two assertions of the **same**
+ * `:立場` — the stance contradicts itself
+ * (`□ₛp ∧ □ₛ¬p`). Cross-stance conflicts are surfaced,
+ * not rejected. The diagnostic names the two assertions.
+ */
+export const codeStanceContradiction =
+  "thesis.stance-contradiction";

@@ -4,7 +4,10 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import { proofReport } from "plgg-ir-thesis-proof/domain/usecase/proofReport";
+import {
+  proofReport,
+  debateVerdict,
+} from "plgg-ir-thesis-proof/domain/usecase/proofReport";
 
 /**
  * The report as one string, for substring assertions.
@@ -19,13 +22,10 @@ test("the complete rebuttal is accepted under both 遮断 and 被覆", () =>
 
 test("the doctored rebuttal's 遮断 counterexample names the surviving path", () =>
   all([
-    check(
-      REPORT.includes("REJECT"),
-      toBe(true),
-    ),
+    check(REPORT.includes("REJECT"), toBe(true)),
     check(
       REPORT.includes(
-        "導出経路 競合参入 →r3→ 撤退判断 が生き残っている",
+        "遮断 継続論による反論: surviving path 競合参入 →r3→ 撤退判断",
       ),
       toBe(true),
     ),
@@ -34,7 +34,7 @@ test("the doctored rebuttal's 遮断 counterexample names the surviving path", (
 test("the doctored rebuttal's 被覆 counterexample names the unattacked relation r3", () =>
   check(
     REPORT.includes(
-      "関係 r3 (競合参入 → 撤退判断) に攻撃対応が宣言されていない",
+      "被覆 継続論による反論: unattacked r3",
     ),
     toBe(true),
   ));
@@ -42,17 +42,31 @@ test("the doctored rebuttal's 被覆 counterexample names the unattacked relatio
 test("the grounded extension survivors are the two-argument set and 景気失速論 is defeated", () =>
   all([
     check(
-      REPORT.includes("外需回復論"),
-      toBe(true),
-    ),
-    check(
-      REPORT.includes("増税必要論"),
+      REPORT.includes(
+        "survivors (生存): {増税必要論, 外需回復論}",
+      ),
       toBe(true),
     ),
     check(
       REPORT.includes(
         "defeated (敗退):  {景気失速論}",
       ),
+      toBe(true),
+    ),
+  ]));
+
+test("debateVerdict reports a compile failure when the argument space does not compile", () =>
+  all([
+    check(
+      debateVerdict("(未知 x)")
+        .join("\n")
+        .includes("論争空間 failed to compile"),
+      toBe(true),
+    ),
+    check(
+      debateVerdict("(未知 x)")
+        .join("\n")
+        .includes("反例 (counterexample)"),
       toBe(true),
     ),
   ]));
