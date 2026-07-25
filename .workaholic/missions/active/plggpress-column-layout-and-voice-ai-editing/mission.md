@@ -182,6 +182,7 @@ framework, plggpress is the first product resting on it.
 - 2026-07-26 — ticket archived — 20260723004040-voice-realtime-assistant.md
 - 2026-07-26 — ticket archived — 20260723004050-guide-column-and-voice.md
 - 2026-07-26 — run recorded (+0.9h) — monitor-20260726-005704
+- 2026-07-26 — story reported — work-20260723-003825.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758

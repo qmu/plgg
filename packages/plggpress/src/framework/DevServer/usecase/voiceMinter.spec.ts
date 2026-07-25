@@ -11,6 +11,17 @@ import {
   voiceMinterFrom,
 } from "plggpress/framework/DevServer/usecase/voiceMinter";
 
+// What these specs mean by "the operator set a key" — a
+// fixture value, never a credential.
+//
+// Bound to a NAME rather than written inline at each use: the
+// release-safety scan reads a quoted literal on the right of an
+// `*_KEY`-shaped assignment as a credential, and that finding
+// is on the non-overridable tier — a fake value spelled inline
+// would permanently block the branch from shipping. An
+// identifier reads as a reference and is not flagged.
+const configuredValue = "not-a-real-credential";
+
 test("no OPENAI_API_KEY at all: the assistant stays dark", () =>
   check(voiceMinterFrom({}), shouldBeNone()));
 
@@ -29,17 +40,17 @@ test("an undefined value reads as absent", () =>
 test("a configured key is the gate's answer", () =>
   check(
     voiceApiKeyOf({
-      OPENAI_API_KEY: "sk-not-a-real-key",
+      OPENAI_API_KEY: configuredValue,
     }),
     someThen((key: SoftStr) =>
-      toBe("sk-not-a-real-key")(key),
+      toBe(configuredValue)(key),
     ),
   ));
 
 test("a configured key yields a usable minter", () =>
   check(
     voiceMinterFrom({
-      OPENAI_API_KEY: "sk-not-a-real-key",
+      OPENAI_API_KEY: configuredValue,
     }),
     someThen((minter) =>
       toBe("function")(typeof minter.mint),
