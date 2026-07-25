@@ -1,4 +1,14 @@
-import { type SoftStr } from "plgg";
+import {
+  type SoftStr,
+  type Result,
+  type InvalidError,
+  cast,
+  asObj,
+  forProp,
+  asSoftStr,
+  pipe,
+  mapResult,
+} from "plgg";
 
 // The wire contract of the dev server's VOICE surface — the
 // dev-only seam that lets a writer talk to an assistant which
@@ -58,3 +68,70 @@ export const VOICE_MINT_ENDPOINT: SoftStr =
  */
 export const VOICE_NOT_CONFIGURED: SoftStr =
   "the voice assistant is not configured — set OPENAI_API_KEY before `plggpress dev`";
+
+/**
+ * Where the dev-only browser modules are served from. The
+ * client is REAL TypeScript on disk
+ * (`framework/DevServer/browser/*.ts`), served as an ES module
+ * after Node's type-stripping — no bundler, no build step, and
+ * the same file `tsc --noEmit` checks. A browser resolves the
+ * client's own `./voiceProtocol` import against this base,
+ * which is why the route is a directory with a `:name`
+ * segment rather than one fixed file.
+ */
+export const VOICE_MODULE_BASE: SoftStr =
+  "/__plggpress_voice/module/";
+
+/** The routing pattern the dev server registers for that base. */
+export const VOICE_MODULE_PATH: SoftStr =
+  "/__plggpress_voice/module/:name";
+
+/** The route parameter carrying the requested module name. */
+export const VOICE_MODULE_PARAM: SoftStr = "name";
+
+/**
+ * The EXACT modules this route will ever serve. A whitelist,
+ * not a directory listing: the dev server must expose these
+ * two files and nothing else reachable from the same folder.
+ */
+export const VOICE_MODULES: ReadonlyArray<SoftStr> =
+  ["voiceClient", "voiceProtocol"];
+
+/**
+ * The dev-only `<script>` that loads the voice client, string-
+ * appended onto rendered HTML OUTPUT exactly like the reload
+ * client (see `decorateDevHtml`) — never inside a typed render
+ * tree, and only when the surface actually holds a minter, so
+ * a keyless dev run and every production `build` stay free of
+ * it.
+ */
+export const VOICE_CLIENT_SCRIPT: SoftStr =
+  '<script type="module" src="' +
+  VOICE_MODULE_BASE +
+  'voiceClient"></script>';
+
+/**
+ * What the browser asks a session for: the ROUTE it currently
+ * has open. The server turns that into the document the
+ * session is grounded in — and into the one file the
+ * assistant's edits may target — so the request carries a
+ * route, never a file path.
+ */
+export type VoiceSessionRequest = Readonly<{
+  route: SoftStr;
+}>;
+
+/**
+ * Decode a session POST body. A missing or mistyped `route` is
+ * an {@link InvalidError} the handler answers with a 400 — the
+ * boundary is a checked cast, like the patch bridge's.
+ */
+export const asVoiceSessionRequest = (
+  v: unknown,
+): Result<VoiceSessionRequest, InvalidError> =>
+  pipe(
+    cast(v, asObj, forProp("route", asSoftStr)),
+    mapResult((o): VoiceSessionRequest => ({
+      route: o.route,
+    })),
+  );

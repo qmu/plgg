@@ -5,6 +5,7 @@
       "/index.ts",
       "/cli.ts",
       "/devEntry.ts",
+      "/framework/DevServer/browser/voiceClient.ts",
       "/valid.config.ts",
       "/invalid.config.ts",
       "/named-only.config.ts",

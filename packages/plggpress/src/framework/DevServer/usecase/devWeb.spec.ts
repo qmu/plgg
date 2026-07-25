@@ -19,7 +19,7 @@ import {
 } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
-  injectReloadClient,
+  injectDevClients,
   reloadHandler,
   devWeb,
 } from "plggpress/framework/DevServer/usecase/devWeb";
@@ -48,10 +48,11 @@ const nextWith =
 const bodyText = (res: HttpResponse): string =>
   typeof res.body === "string" ? res.body : "";
 
-const emptyStream = (): AsyncIterable<Uint8Array> => ({
-  [Symbol.asyncIterator]:
-    async function* (): AsyncGenerator<Uint8Array> {},
-});
+const emptyStream =
+  (): AsyncIterable<Uint8Array> => ({
+    [Symbol.asyncIterator]:
+      async function* (): AsyncGenerator<Uint8Array> {},
+  });
 
 const config: SiteConfig = {
   title: "T",
@@ -71,7 +72,7 @@ const config: SiteConfig = {
 
 test("injects the reload client into an HTML response", async () =>
   check(
-    await injectReloadClient(
+    await injectDevClients(false)(
       ctx,
       nextWith(htmlResponse("<body>hi</body>")),
     ),
@@ -82,18 +83,20 @@ test("injects the reload client into an HTML response", async () =>
 
 test("leaves a JSON response untouched", async () =>
   check(
-    await injectReloadClient(
+    await injectDevClients(false)(
       ctx,
       nextWith(jsonResponse({ a: 1 })),
     ),
     okThen((res) =>
-      not(toContain("EventSource"))(bodyText(res)),
+      not(toContain("EventSource"))(
+        bodyText(res),
+      ),
     ),
   ));
 
 test("leaves a streamed response untouched", async () =>
   check(
-    await injectReloadClient(
+    await injectDevClients(false)(
       ctx,
       nextWith(streamResponse(emptyStream())),
     ),
@@ -104,7 +107,7 @@ test("leaves a streamed response untouched", async () =>
 
 test("leaves a body with no content-type untouched", async () =>
   check(
-    await injectReloadClient(
+    await injectDevClients(false)(
       ctx,
       nextWith({
         status: statusOf(200),
@@ -142,6 +145,7 @@ test("devWeb registers the reload route and an injector middleware", () => {
     "/",
     ["/", "/guide"],
     hub,
+    false,
   );
   return all([
     check(
@@ -150,9 +154,35 @@ test("devWeb registers the reload route and an injector middleware", () => {
       ),
       toBe(true),
     ),
-    check(
-      w.middlewares.length >= 1,
-      toBe(true),
-    ),
+    check(w.middlewares.length >= 1, toBe(true)),
   ]);
 });
+
+test("with voice off, only the reload client is injected", async () =>
+  check(
+    await injectDevClients(false)(
+      ctx,
+      nextWith(htmlResponse("<body>hi</body>")),
+    ),
+    okThen((res: HttpResponse) =>
+      not(toContain("__plggpress_voice"))(
+        bodyText(res),
+      ),
+    ),
+  ));
+
+test("with voice on, the voice module script is injected too", async () =>
+  check(
+    await injectDevClients(true)(
+      ctx,
+      nextWith(htmlResponse("<body>hi</body>")),
+    ),
+    okThen((res: HttpResponse) =>
+      all([
+        toContain("EventSource")(bodyText(res)),
+        toContain(
+          "/__plggpress_voice/module/voiceClient",
+        )(bodyText(res)),
+      ]),
+    ),
+  ));

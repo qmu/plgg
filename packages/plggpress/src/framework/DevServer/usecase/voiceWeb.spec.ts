@@ -1,4 +1,5 @@
 import {
+  type SoftStr,
   type Option,
   type PromisedResult,
   type Defect,
@@ -26,6 +27,10 @@ import {
   okThen,
 } from "plgg-test";
 import {
+  type OpenDoc,
+  type OpenDocReader,
+} from "plggpress/framework/DevServer/usecase/voiceDoc";
+import {
   voiceHealthHandler,
   voiceSessionHandler,
 } from "plggpress/framework/DevServer/usecase/voiceWeb";
@@ -33,16 +38,37 @@ import {
 // A request is plain data here — these handlers read nothing
 // off it, which is exactly the point: the mint's only input is
 // the INJECTED minter, so no spec ever reaches the network.
-const request = (): Context =>
+const request = (body: string): Context =>
   makeContext({
     method: "POST",
     path: "/__plggpress_voice/session",
     query: {},
     headers: {},
     params: {},
-    body: "",
+    body,
     bytes: none(),
   });
+
+const onRoute = (): Context =>
+  request(JSON.stringify({ route: "/guide/" }));
+
+// The document lookup as data: the route the browser is on
+// maps to a source file, or to nothing at all.
+const foundDoc: OpenDocReader = (
+  route: SoftStr,
+): Promise<Option<OpenDoc>> =>
+  Promise.resolve(
+    route === "/guide/"
+      ? some({
+          path: "guide/index.md",
+          text: "# Guide\n\nThe quoted body.",
+        })
+      : none(),
+  );
+
+const noDoc: OpenDocReader = (): Promise<
+  Option<OpenDoc>
+> => Promise.resolve(none());
 
 // A minter that answers a fixed grant — the success path
 // without OpenAI.
@@ -77,7 +103,7 @@ const bodyOf = (res: HttpResponse): string =>
 
 test("health reports an unconfigured surface", async () =>
   check(
-    await voiceHealthHandler(none())(request()),
+    await voiceHealthHandler(none())(onRoute()),
     okThen((res: HttpResponse) =>
       all([
         toBe(200)(res.status.content),
@@ -91,7 +117,7 @@ test("health reports an unconfigured surface", async () =>
 test("health reports a configured surface", async () =>
   check(
     await voiceHealthHandler(granting())(
-      request(),
+      onRoute(),
     ),
     okThen((res: HttpResponse) =>
       toContain('"configured":true')(bodyOf(res)),
@@ -100,7 +126,10 @@ test("health reports a configured surface", async () =>
 
 test("with no operator key the mint route is an honest 404", async () =>
   check(
-    await voiceSessionHandler(none())(request()),
+    await voiceSessionHandler(
+      none(),
+      noDoc,
+    )(onRoute()),
     okThen((res: HttpResponse) =>
       all([
         toBe(404)(res.status.content),
@@ -111,9 +140,10 @@ test("with no operator key the mint route is an honest 404", async () =>
 
 test("a configured surface answers the ephemeral grant alone", async () =>
   check(
-    await voiceSessionHandler(granting())(
-      request(),
-    ),
+    await voiceSessionHandler(
+      granting(),
+      foundDoc,
+    )(onRoute()),
     okThen((res: HttpResponse) =>
       all([
         toBe(200)(res.status.content),
@@ -131,9 +161,10 @@ test("a configured surface answers the ephemeral grant alone", async () =>
 
 test("an upstream mint failure is a named 502, not a crash", async () =>
   check(
-    await voiceSessionHandler(failing())(
-      request(),
-    ),
+    await voiceSessionHandler(
+      failing(),
+      foundDoc,
+    )(onRoute()),
     okThen((res: HttpResponse) =>
       all([
         toBe(502)(res.status.content),
@@ -141,5 +172,65 @@ test("an upstream mint failure is a named 502, not a crash", async () =>
           bodyOf(res),
         ),
       ]),
+    ),
+  ));
+
+test("the grant carries the open document's text as grounding", async () =>
+  check(
+    await voiceSessionHandler(
+      granting(),
+      foundDoc,
+    )(onRoute()),
+    okThen((res: HttpResponse) =>
+      all([
+        toContain("The quoted body.")(
+          bodyOf(res),
+        ),
+        toContain('"doc":"guide/index.md"')(
+          bodyOf(res),
+        ),
+      ]),
+    ),
+  ));
+
+test("a route with no document still starts, ungrounded", async () =>
+  check(
+    await voiceSessionHandler(
+      granting(),
+      noDoc,
+    )(onRoute()),
+    okThen((res: HttpResponse) =>
+      all([
+        toBe(200)(res.status.content),
+        toContain("No document is open")(
+          bodyOf(res),
+        ),
+        toContain('"doc":""')(bodyOf(res)),
+      ]),
+    ),
+  ));
+
+test("a body that is not JSON is a named 400", async () =>
+  check(
+    await voiceSessionHandler(
+      granting(),
+      foundDoc,
+    )(request("not json")),
+    okThen((res: HttpResponse) =>
+      all([
+        toBe(400)(res.status.content),
+        toContain("{route}")(bodyOf(res)),
+      ]),
+    ),
+  ));
+
+test("a body missing the route is a named 400", async () =>
+  check(
+    await voiceSessionHandler(
+      granting(),
+      foundDoc,
+    )(request(JSON.stringify({}))),
+    okThen((res: HttpResponse) =>
+      toBe(400)(res.status.content),
     ),
   ));

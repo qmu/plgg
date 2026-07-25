@@ -5,7 +5,7 @@ type: enhancement
 layer: [UX]
 effort: 2h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260723004041-voice-ephemeral-key-mint.md]
 mission: plggpress-column-layout-and-voice-ai-editing
 ---
@@ -90,3 +90,66 @@ injected by the dev-only HTML decoration.
 - `workaholic:safety` — the client only ever holds the
   ephemeral grant; the dev module route serves a whitelisted
   directory, never an arbitrary path.
+
+## Final Report
+
+Development completed as planned. `plggpress dev` now serves a
+dev-only voice panel when — and only when — an operator key is
+present:
+
+- `framework/DevServer/browser/voiceProtocol.ts` — the pure,
+  import-free decoder (100% covered from Node specs).
+- `framework/DevServer/browser/voiceClient.ts` — the DOM /
+  WebRTC edge (coverage-excluded, still `tsc`-checked).
+- `framework/DevServer/node/voiceModuleWeb.ts` — serves those
+  two files as ES modules through Node's built-in
+  `stripTypeScriptTypes`, behind the pure whitelist in
+  `usecase/voiceModule.ts`.
+- Grounding is computed SERVER-side:
+  `node/openDoc.ts` maps the route the browser is on to its
+  `*.md` via the render path's own `candidateFiles`, and
+  `usecase/voiceInstructions.ts` quotes it into the session
+  instructions the mint returns beside the grant.
+- `decorateDevHtml(html, voice)` / `injectDevClients(voice)`
+  add the module `<script>` only when the surface holds a
+  minter.
+
+Verified live in a real browser, not only in specs. Two real
+`plggpress dev` servers were run against `packages/guide`:
+
+- WITH the key (`:5199`) — the page carries
+  `/__plggpress_voice/module/voiceClient`; the module route
+  answers `200 text/javascript` with the relative
+  `from "./voiceProtocol"` import intact and every type
+  annotation stripped; an unlisted module name answers 404;
+  Playwright reported the panel mounted in the DOM
+  (`"Talk about this pageready"`) with no page console errors.
+  `POST …/session {"route":"/getting-started/"}` answered a
+  real grant plus `"doc":"getting-started.md"` and
+  instructions quoting the actual file.
+- WITHOUT the key (`:5198`) — zero occurrences of
+  `__plggpress_voice` in the served HTML, health
+  `{"configured":false}`, session 404, and the live-reload
+  client still present, i.e. dev unchanged.
+
+### Discovered Insights
+
+- **Insight**: a browser module can be REAL, type-checked
+  TypeScript with no bundler in the loop, as long as it takes
+  no bare-specifier imports — the dev server serves it through
+  `node:module`'s `stripTypeScriptTypes` and the browser
+  resolves its relative sibling against the same module base.
+  **Context**: this is why the voice client is not a
+  `<script>` string constant like `LIVE_RELOAD_SCRIPT`. The
+  cost is that browser-side modules cannot use plgg's
+  `Option`/`Result`, so absence is modelled inside the closed
+  union (`Ignored`) instead — the same discipline without the
+  import.
+- **Insight**: resolving "which document is the writer looking
+  at" on the SERVER (through `candidateFiles`, the render
+  path's own inverse of `discoverPaths`) removes an entire
+  class of drift.
+  **Context**: the browser sends a route, never a path. The
+  session's edit target is therefore fixed by the server for
+  the whole session — which is also what makes the next
+  ticket's `edit_doc` tool unable to aim at another file.

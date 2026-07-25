@@ -11,6 +11,7 @@ test("inserts the reload client just before </body>", () =>
     check(
       decorateDevHtml(
         "<html><body>hi</body></html>",
+        false,
       ),
       toContain("EventSource"),
     ),
@@ -18,6 +19,7 @@ test("inserts the reload client just before </body>", () =>
     check(
       decorateDevHtml(
         "<html><body>hi</body></html>",
+        false,
       ),
       toContain("</script></body>"),
     ),
@@ -26,11 +28,25 @@ test("inserts the reload client just before </body>", () =>
 test("appends the client when the document has no </body>", () =>
   all([
     check(
-      decorateDevHtml("<p>bare</p>"),
+      decorateDevHtml("<p>bare</p>", false),
       toContain("<p>bare</p>"),
     ),
     check(
-      decorateDevHtml("<p>bare</p>"),
+      decorateDevHtml("<p>bare</p>", false),
+      toContain("EventSource"),
+    ),
+  ]));
+
+test("adds the voice module script only when voice is on", () =>
+  all([
+    check(
+      decorateDevHtml("<p>bare</p>", true),
+      toContain(
+        "/__plggpress_voice/module/voiceClient",
+      ),
+    ),
+    check(
+      decorateDevHtml("<p>bare</p>", true),
       toContain("EventSource"),
     ),
   ]));

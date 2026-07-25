@@ -180,6 +180,7 @@ framework, plggpress is the first product resting on it.
 
 - 2026-07-26 — ticket archived — 20260723003900-resume-decompose-voice-realtime.md
 - 2026-07-26 — ticket archived — 20260723004041-voice-ephemeral-key-mint.md
+- 2026-07-26 — ticket archived — 20260723004042-voice-dev-browser-client.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758

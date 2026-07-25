@@ -3,10 +3,14 @@ import {
   type Option,
   type Result,
   type Defect,
+  type InvalidError,
   type PromisedResult,
   ok,
   isSome,
   pipe,
+  tryCatch,
+  invalidError,
+  chainResult,
   matchOption,
   matchResult,
 } from "plgg";
@@ -22,7 +26,16 @@ import {
   jsonResponse,
   statusOf,
 } from "plggpress/framework";
-import { VOICE_NOT_CONFIGURED } from "plggpress/framework/DevServer/model/VoiceProtocol";
+import {
+  type VoiceSessionRequest,
+  VOICE_NOT_CONFIGURED,
+  asVoiceSessionRequest,
+} from "plggpress/framework/DevServer/model/VoiceProtocol";
+import {
+  type OpenDoc,
+  type OpenDocReader,
+} from "plggpress/framework/DevServer/usecase/voiceDoc";
+import { voiceInstructionsOf } from "plggpress/framework/DevServer/usecase/voiceInstructions";
 
 // The DEV-ONLY voice routes, as PURE handlers over an
 // INJECTED `Option<KeyMinter>`. Injection is what keeps this
@@ -70,20 +83,87 @@ export const voiceHealthHandler =
       ),
     );
 
+const parseJson = (
+  raw: SoftStr,
+): Result<unknown, InvalidError> =>
+  tryCatch(
+    (text: SoftStr): unknown => JSON.parse(text),
+    (cause): InvalidError =>
+      invalidError({
+        message: "body is not JSON",
+        cause,
+      }),
+  )(raw);
+
+// Mint, then answer the grant TOGETHER with everything the
+// browser needs to start a grounded session: the instructions
+// (built here, from the resolved document) and the one file
+// the assistant's edits may target.
+const grantFor = (
+  configured: KeyMinter,
+  doc: Option<OpenDoc>,
+): PromisedResult<HttpResponse, HttpError> =>
+  configured.mint().then(
+    matchResult(
+      (
+        cause: Defect,
+      ): Result<HttpResponse, HttpError> =>
+        ok(
+          refuse(
+            502,
+            `could not mint a realtime key: ${cause.content.message}`,
+          ),
+        ),
+      (
+        grant: EphemeralKey,
+      ): Result<HttpResponse, HttpError> =>
+        ok(
+          jsonResponse(
+            {
+              value: grant.value,
+              expiresAt: grant.expiresAt,
+              instructions:
+                voiceInstructionsOf(doc),
+              doc: pipe(
+                doc,
+                matchOption(
+                  (): SoftStr => "",
+                  (open: OpenDoc): SoftStr =>
+                    open.path,
+                ),
+              ),
+            },
+            statusOf(200),
+          ),
+        ),
+    ),
+  );
+
 /**
  * `POST /__plggpress_voice/session` — mint ONE short-lived
  * Realtime grant from the server-held standing key and answer
- * `{ value, expiresAt }`. The standing key is never part of
- * the response.
+ * it together with the session's grounding: the instructions
+ * quoting the document behind the route the browser is on, and
+ * that document's content-root-relative path. The standing key
+ * is never part of the response.
  *
- * Three outcomes, each named: no operator key ⇒ 404 with the
- * actionable reason; the upstream mint failed ⇒ 502 carrying
- * the `Defect`'s message; success ⇒ 200 with the grant alone.
+ * Every outcome is named: no operator key ⇒ 404 with the
+ * actionable reason; an unreadable body ⇒ 400; the upstream
+ * mint failed ⇒ 502 carrying the `Defect`'s message; success ⇒
+ * 200 with the grant and its grounding.
+ *
+ * A route with no document behind it still starts a session —
+ * ungrounded, and the instructions say so — because refusing
+ * would make the assistant unavailable on exactly the pages a
+ * writer is most likely to be creating.
  */
 export const voiceSessionHandler =
-  (minter: Option<KeyMinter>): Handler =>
   (
-    _c: Context,
+    minter: Option<KeyMinter>,
+    readDoc: OpenDocReader,
+  ): Handler =>
+  (
+    c: Context,
   ): PromisedResult<HttpResponse, HttpError> =>
     pipe(
       minter,
@@ -99,34 +179,31 @@ export const voiceSessionHandler =
           HttpResponse,
           HttpError
         > =>
-          configured.mint().then(
+          pipe(
+            parseJson(c.req.body),
+            chainResult(asVoiceSessionRequest),
             matchResult(
               (
-                cause: Defect,
-              ): Result<
+                e: InvalidError,
+              ): PromisedResult<
                 HttpResponse,
                 HttpError
               > =>
-                ok(
+                done(
                   refuse(
-                    502,
-                    `could not mint a realtime key: ${cause.content.message}`,
+                    400,
+                    `the session body must be {route}: ${e.content.message}`,
                   ),
                 ),
               (
-                grant: EphemeralKey,
-              ): Result<
+                request: VoiceSessionRequest,
+              ): PromisedResult<
                 HttpResponse,
                 HttpError
               > =>
-                ok(
-                  jsonResponse(
-                    {
-                      value: grant.value,
-                      expiresAt: grant.expiresAt,
-                    },
-                    statusOf(200),
-                  ),
+                readDoc(request.route).then(
+                  (doc: Option<OpenDoc>) =>
+                    grantFor(configured, doc),
                 ),
             ),
           ),

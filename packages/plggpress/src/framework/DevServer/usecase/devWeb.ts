@@ -62,29 +62,32 @@ const htmlBody = (
 };
 
 /**
- * The dev-only middleware that appends the live-reload client
- * to every HTML response the render path produces. Runs
- * around the whole app: the SSE stream and any non-HTML body
- * fall through untouched (only a `text/html` string body is
- * decorated), so the reload channel and static assets are
- * never rewritten.
+ * The dev-only middleware that appends the dev clients (live
+ * reload always; the voice client only when this surface holds
+ * a minter) to every HTML response the render path produces.
+ * Runs around the whole app: the SSE stream and any non-HTML
+ * body fall through untouched (only a `text/html` string body
+ * is decorated), so the reload channel, the served browser
+ * modules, and static assets are never rewritten.
  */
-export const injectReloadClient: Middleware = (
-  c: Context,
-  next: Next,
-): PromisedResult<HttpResponse, HttpError> =>
-  next(c).then(
-    mapResult(
-      (res: HttpResponse): HttpResponse =>
-        matchOption<SoftStr, HttpResponse>(
-          () => res,
-          (body: SoftStr): HttpResponse => ({
-            ...res,
-            body: decorateDevHtml(body),
-          }),
-        )(htmlBody(res)),
-    ),
-  );
+export const injectDevClients =
+  (voice: boolean): Middleware =>
+  (
+    c: Context,
+    next: Next,
+  ): PromisedResult<HttpResponse, HttpError> =>
+    next(c).then(
+      mapResult(
+        (res: HttpResponse): HttpResponse =>
+          matchOption<SoftStr, HttpResponse>(
+            () => res,
+            (body: SoftStr): HttpResponse => ({
+              ...res,
+              body: decorateDevHtml(body, voice),
+            }),
+          )(htmlBody(res)),
+      ),
+    );
 
 /**
  * The SSE reload endpoint's handler: answer a long-lived
@@ -100,12 +103,17 @@ export const reloadHandler =
   ): PromisedResult<HttpResponse, HttpError> =>
     Promise.resolve(
       ok(
-        streamResponse(hub.subscribe(), statusOf(200), {
-          "content-type":
-            "text/event-stream; charset=utf-8",
-          "cache-control": "no-cache, no-transform",
-          "x-accel-buffering": "no",
-        }),
+        streamResponse(
+          hub.subscribe(),
+          statusOf(200),
+          {
+            "content-type":
+              "text/event-stream; charset=utf-8",
+            "cache-control":
+              "no-cache, no-transform",
+            "x-accel-buffering": "no",
+          },
+        ),
       ),
     );
 
@@ -113,9 +121,14 @@ export const reloadHandler =
  * Assemble the dev-server {@link Web}: the SAME content
  * router `build` and `serve` use ({@link pressRouter}, so
  * served HTML is the render path's own output), wrapped in
- * the {@link injectReloadClient} decorator and given the
+ * the {@link injectDevClients} decorator and given the
  * plggpress-owned {@link RELOAD_PATH} SSE route. Pure data —
  * the socket work lives in the node edge.
+ *
+ * `voice` says whether this surface can run the assistant at
+ * all; it decides only whether the voice client script is
+ * injected, so a keyless dev run serves exactly what it
+ * always did.
  */
 export const devWeb = (
   contentDir: SoftStr,
@@ -123,9 +136,10 @@ export const devWeb = (
   base: SoftStr,
   paths: ReadonlyArray<SoftStr>,
   hub: ReloadHub,
+  voice: boolean,
 ): Web =>
   pipe(
     pressRouter(contentDir, config, base, paths),
-    use(injectReloadClient),
+    use(injectDevClients(voice)),
     get(RELOAD_PATH, reloadHandler(hub)),
   );

@@ -14,6 +14,7 @@ import {
   ok,
   proc,
   pipe,
+  isSome,
   fromNullable,
   matchOption,
 } from "plgg";
@@ -45,7 +46,10 @@ import { patchWeb } from "plggpress/framework/DevServer/node/patchWeb";
 import {
   VOICE_HEALTH_PATH,
   VOICE_SESSION_PATH,
+  VOICE_MODULE_PATH,
 } from "plggpress/framework/DevServer/model/VoiceProtocol";
+import { openDocReader } from "plggpress/framework/DevServer/node/openDoc";
+import { voiceModuleWeb } from "plggpress/framework/DevServer/node/voiceModuleWeb";
 import {
   voiceHealthHandler,
   voiceSessionHandler,
@@ -231,6 +235,7 @@ export const startDevServer = (
                 opts.base,
                 paths,
                 hub,
+                isSome(opts.voice),
               ),
               post(
                 PATCH_PATH,
@@ -242,7 +247,14 @@ export const startDevServer = (
               ),
               post(
                 VOICE_SESSION_PATH,
-                voiceSessionHandler(opts.voice),
+                voiceSessionHandler(
+                  opts.voice,
+                  openDocReader(opts.contentDir),
+                ),
+              ),
+              get(
+                VOICE_MODULE_PATH,
+                voiceModuleWeb(),
               ),
             ),
           );
