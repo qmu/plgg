@@ -6,7 +6,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isOk } from "plgg";
+import { isOk, none } from "plgg";
 import {
   test,
   check,
@@ -80,6 +80,7 @@ test("dev server: connect the channel, edit a source file, and observe an in-pla
       join(root, "does-not-exist"),
     ],
     port: 0,
+    voice: none(),
   });
   if (!isOk(started)) {
     return check(false, toBe(true));
@@ -99,7 +100,10 @@ test("dev server: connect the channel, edit a source file, and observe an in-pla
       sse.headers.get("content-type") ?? "";
     const body = sse.body;
     if (body === null) {
-      return check("no-sse-body", toBe("has-body"));
+      return check(
+        "no-sse-body",
+        toBe("has-body"),
+      );
     }
     const reader = body.getReader();
     const prelude = await readUntil(
@@ -125,10 +129,16 @@ test("dev server: connect the channel, edit a source file, and observe an in-pla
 
     return all([
       check(first.status, toBe(200)),
-      check(firstHtml, toContain("Original body")),
+      check(
+        firstHtml,
+        toContain("Original body"),
+      ),
       // the dev-only reload client is injected on the page
       check(firstHtml, toContain("EventSource")),
-      check(ctype, toContain("text/event-stream")),
+      check(
+        ctype,
+        toContain("text/event-stream"),
+      ),
       // the channel is live from the first frame
       check(prelude.found, toBe(true)),
       // the edit pushed a reload frame …
@@ -164,6 +174,7 @@ test("dev server: a bad config path fails startup on the typed channel (no socke
     base: "/",
     watch: [contentDir],
     port: 0,
+    voice: none(),
   });
   return check(isOk(started), toBe(false));
 });

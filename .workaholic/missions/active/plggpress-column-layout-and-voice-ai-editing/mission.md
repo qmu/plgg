@@ -179,6 +179,7 @@ framework, plggpress is the first product resting on it.
   should take 004040 alone.
 
 - 2026-07-26 — ticket archived — 20260723003900-resume-decompose-voice-realtime.md
+- 2026-07-26 — ticket archived — 20260723004041-voice-ephemeral-key-mint.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758

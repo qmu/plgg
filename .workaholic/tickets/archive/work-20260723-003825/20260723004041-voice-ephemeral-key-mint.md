@@ -5,7 +5,7 @@ type: enhancement
 layer: [Infrastructure]
 effort: 1h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260723004030-live-edit-bridge.md]
 mission: plggpress-column-layout-and-voice-ai-editing
 ---
@@ -96,3 +96,40 @@ arbitration (004044) each rest on something already green.
 - `workaholic:implementation` — reuse plgg-kit's single
   minter rather than cloning it; the boundary is a checked
   cast, never a trusted body.
+
+## Final Report
+
+Development completed as planned. The dev surface now carries
+`GET /__plggpress_voice/health` and `POST
+/__plggpress_voice/session`, both running on an INJECTED
+`Option<KeyMinter>` (plgg-kit's `minterFromConfig`, the GA
+`client_secrets` endpoint). `voiceMinterFrom(env)` is the one
+gate; `Press/usecase/devSpec.ts` is the only place the real
+`process.env` is read.
+
+Verified live, not just in specs: a scratch dev server was
+started on a temp content root and both routes were driven with
+`fetch` — with `OPENAI_API_KEY` unset (`HEALTH 200
+{"configured":false}` / `SESSION 404 … set OPENAI_API_KEY`) and
+with the repository's real key (`HEALTH 200
+{"configured":true}` / `SESSION 200
+{"value":"ek_…","expiresAt":1784996576}`). The standing key did
+not appear in either response body.
+
+### Discovered Insights
+
+- **Insight**: `plggpress`'s self-alias (`plggpress/...`) does
+  not resolve under a bare `node foo.mts` — the specifiers are
+  a tsconfig `paths` mapping plus the `bin/hook.mjs` module
+  resolver the launcher registers.
+  **Context**: any ad-hoc script that drives plggpress source
+  outside `plgg-test` must `register("./bin/hook.mjs", …)`
+  first (or use relative paths all the way down), otherwise
+  Node reports `ERR_PACKAGE_PATH_NOT_EXPORTED` against the
+  package's `exports` map. This is what the `bin/plggpress.mjs`
+  launcher is doing.
+- **Insight**: an empty `OPENAI_API_KEY=` is treated as absent,
+  not as a key.
+  **Context**: an operator who blanks the variable means "turn
+  the assistant off"; passing an empty bearer token upstream
+  would instead produce a confusing 401 at mint time.

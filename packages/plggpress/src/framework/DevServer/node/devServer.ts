@@ -7,6 +7,7 @@ import { type Server } from "node:http";
 import { type AddressInfo } from "node:net";
 import {
   type SoftStr,
+  type Option,
   type Defect,
   type Result,
   type PromisedResult,
@@ -16,10 +17,12 @@ import {
   fromNullable,
   matchOption,
 } from "plgg";
+import { type KeyMinter } from "plgg-kit";
 import {
   type Fetch,
   type ConfigLoadError,
   toFetch,
+  get,
   post,
 } from "plggpress/framework";
 import {
@@ -39,6 +42,14 @@ import {
 import { devWeb } from "plggpress/framework/DevServer/usecase/devWeb";
 import { PATCH_PATH } from "plggpress/framework/DevServer/model/PatchProtocol";
 import { patchWeb } from "plggpress/framework/DevServer/node/patchWeb";
+import {
+  VOICE_HEALTH_PATH,
+  VOICE_SESSION_PATH,
+} from "plggpress/framework/DevServer/model/VoiceProtocol";
+import {
+  voiceHealthHandler,
+  voiceSessionHandler,
+} from "plggpress/framework/DevServer/usecase/voiceWeb";
 
 // The DEV-ONLY node edge: the persistent, plggpress-owned
 // server surface for `plggpress dev`. It is the effectful
@@ -61,6 +72,14 @@ export type DevServerOptions = Readonly<{
   watch: ReadonlyArray<SoftStr>;
   /** The port to bind (`0` for an ephemeral test port). */
   port: number;
+  /**
+   * The voice assistant's ephemeral-key minter, or `None`
+   * when the operator holds no `OPENAI_API_KEY`. INJECTED —
+   * the surface itself never reads the environment — and
+   * `None` keeps the whole assistant dark: the mint route
+   * answers an honest 404 and no client is offered.
+   */
+  voice: Option<KeyMinter>;
 }>;
 
 /** A running dev surface: its address, plus deterministic teardown. */
@@ -199,9 +218,11 @@ export const startDevServer = (
           Result<DevServerHandle, Defect>
         > => {
           const hub = makeReloadHub();
-          // The reload surface (devWeb) plus the live-edit
-          // bridge: a POST to PATCH_PATH writes the source and
-          // pushes a reload down the same hub.
+          // The reload surface (devWeb), the live-edit bridge
+          // (a POST to PATCH_PATH writes the source and pushes
+          // a reload down the same hub), and the voice seam
+          // (health + the one key-bearing mint route, dark
+          // without an operator key).
           const handler = toFetch(
             pipe(
               devWeb(
@@ -214,6 +235,14 @@ export const startDevServer = (
               post(
                 PATCH_PATH,
                 patchWeb(opts.contentDir, hub),
+              ),
+              get(
+                VOICE_HEALTH_PATH,
+                voiceHealthHandler(opts.voice),
+              ),
+              post(
+                VOICE_SESSION_PATH,
+                voiceSessionHandler(opts.voice),
               ),
             ),
           );

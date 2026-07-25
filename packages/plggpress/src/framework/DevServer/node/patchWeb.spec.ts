@@ -8,7 +8,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isOk } from "plgg";
+import { isOk, none } from "plgg";
 import {
   test,
   check,
@@ -35,7 +35,10 @@ const DECODER = new TextDecoder();
 // the stream ends. Bounded so a missed frame fails fast.
 const reloadArrives = async (
   reader: ReadableStreamDefaultReader<Uint8Array>,
-): Promise<{ found: boolean; ended: boolean }> => {
+): Promise<{
+  found: boolean;
+  ended: boolean;
+}> => {
   for (let i = 0; i < 50; i++) {
     const chunk = await reader.read();
     if (chunk.done) {
@@ -94,6 +97,7 @@ test("live-edit bridge: a patch edits the source on disk, hot-reloads the page, 
     base: "/",
     watch: [contentDir],
     port: 0,
+    voice: none(),
   });
   if (!isOk(started)) {
     return check(false, toBe(true));
@@ -107,7 +111,10 @@ test("live-edit bridge: a patch edits the source on disk, hot-reloads the page, 
     );
     const body = sse.body;
     if (body === null) {
-      return check("no-sse-body", toBe("has-body"));
+      return check(
+        "no-sse-body",
+        toBe("has-body"),
+      );
     }
     const reader = body.getReader();
     // drain the prelude so the next frame is the reload
@@ -202,6 +209,7 @@ test("live-edit bridge: a patch targeting a path outside the content dir is reje
     base: "/",
     watch: [contentDir],
     port: 0,
+    voice: none(),
   });
   if (!isOk(started)) {
     return check(false, toBe(true));

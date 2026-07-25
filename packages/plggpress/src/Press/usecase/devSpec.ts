@@ -22,6 +22,7 @@ import {
   type DevServerHandle,
   startDevServer,
 } from "plggpress/framework/DevServer/node/devServer";
+import { voiceMinterFrom } from "plggpress/framework/DevServer/usecase/voiceMinter";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 
 /**
@@ -87,6 +88,10 @@ const runPressDev = (
     base: settings.base,
     watch: watchPathsOf(settings),
     port: settings.port,
+    // The ONE place the real process environment is read for
+    // the assistant: no key here means the whole voice surface
+    // stays dark and `plggpress dev` behaves as it always has.
+    voice: voiceMinterFrom(process.env),
   }).then(
     matchResult(
       (
