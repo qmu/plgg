@@ -10,10 +10,14 @@ import {
   SSE_PRELUDE,
   RELOAD_FRAME,
   LIVE_RELOAD_SCRIPT,
+  RELOAD_HOOK,
 } from "plggpress/framework/DevServer/model/DevChannel";
 
 test("RELOAD_PATH is the plggpress-owned reload route", () =>
-  check(RELOAD_PATH, toBe("/__plggpress_reload")));
+  check(
+    RELOAD_PATH,
+    toBe("/__plggpress_reload"),
+  ));
 
 test("the SSE frames are correctly framed", () =>
   all([
@@ -32,9 +36,29 @@ test("the live-reload client opens an EventSource to the reload route", () =>
       LIVE_RELOAD_SCRIPT,
       toContain("EventSource"),
     ),
-    check(LIVE_RELOAD_SCRIPT, toContain(RELOAD_PATH)),
+    check(
+      LIVE_RELOAD_SCRIPT,
+      toContain(RELOAD_PATH),
+    ),
     check(
       LIVE_RELOAD_SCRIPT,
       toContain("location.reload()"),
+    ),
+  ]));
+
+test("the reload client defers to an installed arbiter before reloading", () =>
+  all([
+    check(
+      LIVE_RELOAD_SCRIPT,
+      toContain(RELOAD_HOOK),
+    ),
+    // the hook is consulted, and only its absence reloads
+    check(
+      LIVE_RELOAD_SCRIPT,
+      toContain("typeof h==='function'"),
+    ),
+    check(
+      LIVE_RELOAD_SCRIPT,
+      toContain("else{location.reload();}"),
     ),
   ]));

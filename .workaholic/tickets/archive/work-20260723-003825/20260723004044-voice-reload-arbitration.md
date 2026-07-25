@@ -5,7 +5,7 @@ type: enhancement
 layer: [Infrastructure]
 effort: 1h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260723004043-voice-edit-doc-tool.md]
 mission: plggpress-column-layout-and-voice-ai-editing
 ---
@@ -82,3 +82,62 @@ untouched.
 - `workaholic:operation` — the existing hot-reload behaviour
   is a recorded verdict; arbitration must not regress it for
   the no-voice case.
+
+## Final Report
+
+Development completed as planned. The reload is arbitrated, not
+suppressed:
+
+- `browser/reloadArbiter.ts` is the pure, import-free state
+  machine (`idle`/`listening`/`swapping` × `SessionOpened`/
+  `SessionClosed`/`ReloadFrame`/`SwapDone` →
+  `reload`/`swap`/`hold`), 100% covered with every transition
+  asserted, including that a frame arriving mid-swap is held
+  and replayed exactly once.
+- `model/DevChannel.ts`'s `LIVE_RELOAD_SCRIPT` now consults a
+  `window['__plggpressOnReload']` arbiter if one is installed
+  and otherwise reloads exactly as before. `RELOAD_HOOK` and
+  the browser module's `RELOAD_HOOK_NAME` are asserted equal by
+  a spec, so the duplication (a browser module cannot import a
+  `plgg`-importing module) cannot drift.
+- `browser/voiceClient.ts` installs the hook when a session
+  opens and clears it when it closes, and performs the
+  in-place `swapContent()` — re-fetch this URL, replace the
+  body's children and the theme's `<style>` tags, keep the
+  voice panel and its own id-tagged style. Scripts parsed by
+  `DOMParser` never execute, so neither the reload client nor
+  this module is re-run.
+
+Verified live in a real browser against a running `plggpress
+dev` (temp content root, no repository file touched):
+
+- **Session live** — installed the arbiter exactly as the
+  client does (`SessionOpened` → hook), marked the JS context
+  with `window.__probe`, then landed a real edit through the
+  bridge. Result: `probeSurvived: "alive-1784997203814"` (the
+  SAME context — no navigation), `swaps: 1`, body text became
+  `Swapped in place, session intact.`, and both the panel and
+  its style element were still present. A surviving JS context
+  is precisely what keeps an `RTCPeerConnection` alive.
+- **No session** — cleared the hook (what `SessionClosed`
+  does) and landed a second edit. Result: `probeSurvived:
+  "LOST (page hard-reloaded)"` and the new text on the page —
+  the 004020 hot-reload verdict is intact.
+
+### Discovered Insights
+
+- **Insight**: the reload client and the voice client can only
+  meet through a global, because one is a `<script>` literal
+  appended to rendered output and the other is a separate ES
+  module.
+  **Context**: hence `RELOAD_HOOK`, and hence the spec that
+  pins the two spellings together. A silently drifted name
+  would produce a client that "arbitrates" nothing while every
+  unit test still passed.
+- **Insight**: with a session live the arbiter swaps for EVERY
+  frame, not only for the assistant's own edit — a deliberate
+  departure from PoC 4c's `quiet → reload` branch.
+  **Context**: 4c was protecting an animation, so letting an
+  external edit reload was harmless. Here a reload costs the
+  writer their conversation, and the swap shows an external
+  edit just as well, so continuity wins.

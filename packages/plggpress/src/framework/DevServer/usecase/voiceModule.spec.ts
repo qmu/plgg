@@ -23,6 +23,14 @@ test("serves the pure protocol sibling the client imports", () =>
     ),
   ));
 
+test("serves the arbiter sibling the client imports", () =>
+  check(
+    resolveVoiceModule("reloadArbiter"),
+    okThen((file) =>
+      toBe("reloadArbiter.ts")(file),
+    ),
+  ));
+
 test("refuses an unlisted sibling in the same directory", () =>
   check(
     resolveVoiceModule("voiceProtocol.spec"),

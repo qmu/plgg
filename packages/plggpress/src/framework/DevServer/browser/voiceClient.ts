@@ -25,6 +25,13 @@ import {
   patchBodyOf,
   toolOutputOf,
 } from "./voiceProtocol";
+import {
+  type ArbiterState,
+  type ArbiterAction,
+  RELOAD_HOOK_NAME,
+  arbiterInit,
+  stepArbiter,
+} from "./reloadArbiter";
 
 const HEALTH_PATH = "/__plggpress_voice/health";
 const SESSION_PATH = "/__plggpress_voice/session";
@@ -32,6 +39,7 @@ const PATCH_PATH = "/__plggpress_patch";
 const SDP_URL =
   "https://api.openai.com/v1/realtime/calls?model=gpt-realtime";
 const PANEL_ID = "plggpress-voice";
+const PANEL_STYLE_ID = "plggpress-voice-style";
 
 type Grant = Readonly<{
   value: string;
@@ -53,11 +61,12 @@ type Panel = Readonly<{
   log: HTMLElement;
 }>;
 
-// The session and the visible transcript are this module's
-// only mutable state — the runtime seams a page-embedded
-// client cannot avoid.
+// The session, the visible transcript, and the arbitration
+// state are this module's only mutable slots — the runtime
+// seams a page-embedded client cannot avoid.
 let live: Live | null = null;
 let lines: ReadonlyArray<VoiceLine> = [];
+let arbiter: ArbiterState = arbiterInit;
 
 const styleOf = (): string =>
   `#${PANEL_ID}{position:fixed;right:16px;bottom:16px;z-index:2147483000;` +
@@ -73,6 +82,7 @@ const styleOf = (): string =>
 
 const mountPanel = (): Panel => {
   const style = document.createElement("style");
+  style.id = PANEL_STYLE_ID;
   style.textContent = styleOf();
   document.head.appendChild(style);
 
@@ -367,6 +377,7 @@ const stop = (panel: Panel): void => {
     live.pc.close();
     live = null;
   }
+  armArbiter(panel, false);
   panel.button.textContent =
     "Talk about this page";
   say(panel, "ready");
@@ -380,6 +391,7 @@ const start = async (
   try {
     const grant = await requestGrant();
     await open(panel, grant);
+    armArbiter(panel, true);
     panel.button.textContent = "Stop";
     say(
       panel,
@@ -393,6 +405,115 @@ const start = async (
   } finally {
     panel.button.disabled = false;
   }
+};
+
+/* ------------------------------------------------ *
+ * Hot-reload arbitration                             *
+ * ------------------------------------------------ */
+
+/**
+ * Re-fetch THIS url and put its content in place, leaving the
+ * page's JS context — and therefore the realtime session —
+ * alive. Everything in `<body>` is replaced except the voice
+ * panel, which lives outside the swapped region by
+ * construction. Scripts parsed by DOMParser never execute, so
+ * the reload client and this module are not re-run.
+ *
+ * Exported so the swap can be driven — and therefore verified —
+ * from a real browser without a microphone and a live model.
+ */
+export const swapContent =
+  async (): Promise<void> => {
+    const res = await fetch(
+      window.location.href,
+      {
+        cache: "no-store",
+      },
+    );
+    const fresh = new DOMParser().parseFromString(
+      await res.text(),
+      "text/html",
+    );
+    const panel =
+      document.getElementById(PANEL_ID);
+    for (const child of [
+      ...document.body.children,
+    ]) {
+      if (child !== panel) {
+        child.remove();
+      }
+    }
+    for (const child of [
+      ...fresh.body.children,
+    ]) {
+      if (child.id !== PANEL_ID) {
+        document.body.insertBefore(child, panel);
+      }
+    }
+    // The theme inlines its collected atomic CSS in <head>, so a
+    // content change can bring new rules with it. The panel's own
+    // <style> carries an id and is skipped, so the panel keeps
+    // looking like itself across a swap.
+    for (const style of [
+      ...document.head.querySelectorAll("style"),
+    ]) {
+      if (style.id !== PANEL_STYLE_ID) {
+        style.remove();
+      }
+    }
+    for (const style of [
+      ...fresh.head.querySelectorAll("style"),
+    ]) {
+      document.head.appendChild(style);
+    }
+    document.title = fresh.title;
+  };
+
+const runArbiter = (panel: Panel): void => {
+  const stepped = stepArbiter(
+    arbiter,
+    "ReloadFrame",
+  );
+  arbiter = stepped[0];
+  void act(panel, stepped[1]);
+};
+
+const act = async (
+  panel: Panel,
+  action: ArbiterAction,
+): Promise<void> => {
+  if (action === "reload") {
+    window.location.reload();
+    return;
+  }
+  if (action === "swap") {
+    try {
+      await swapContent();
+    } catch (cause) {
+      say(panel, errorText(cause));
+    }
+    const done = stepArbiter(arbiter, "SwapDone");
+    arbiter = done[0];
+    await act(panel, done[1]);
+  }
+};
+
+// Tell the arbiter a session opened or closed, and install or
+// remove the reload hook the injected client consults.
+const armArbiter = (
+  panel: Panel,
+  opened: boolean,
+): void => {
+  const stepped = stepArbiter(
+    arbiter,
+    opened ? "SessionOpened" : "SessionClosed",
+  );
+  arbiter = stepped[0];
+  Reflect.set(
+    window,
+    RELOAD_HOOK_NAME,
+    opened ? (): void => runArbiter(panel) : null,
+  );
 };
 
 /**

@@ -90,12 +90,19 @@ export const VOICE_MODULE_PATH: SoftStr =
 export const VOICE_MODULE_PARAM: SoftStr = "name";
 
 /**
- * The EXACT modules this route will ever serve. A whitelist,
- * not a directory listing: the dev server must expose these
- * two files and nothing else reachable from the same folder.
+ * The EXACT modules this route will ever serve — the client
+ * entry plus the pure siblings it imports. A whitelist, not a
+ * directory listing: the dev server must expose these files
+ * and nothing else reachable from the same folder. A browser
+ * module added under `browser/` and NOT listed here is simply
+ * unreachable, which is the intended failure direction.
  */
 export const VOICE_MODULES: ReadonlyArray<SoftStr> =
-  ["voiceClient", "voiceProtocol"];
+  [
+    "voiceClient",
+    "voiceProtocol",
+    "reloadArbiter",
+  ];
 
 /**
  * The dev-only `<script>` that loads the voice client, string-
