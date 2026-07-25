@@ -129,3 +129,17 @@ Server-side, and only there. Put it in your shell or a
 git-ignored `.env` you source before `dev`; never in
 `site.config.ts`, which is committed and is read by `build`
 as well.
+
+### Run it on a machine you trust
+
+`dev` is an authoring tool, and it assumes the network around
+it is yours: it binds **all interfaces**, not just loopback,
+and neither the patch route nor the voice-mint route asks who
+is calling — no authentication, no `Origin` check, no
+required content type. Anyone who can reach the port can edit
+your content files and spend your OpenAI quota. The path
+guards still hold (edits stay inside the content root, and
+`.md` only), so this is exposure of your working copy rather
+than of your filesystem — but keep the port to your own
+machine or a trusted tunnel, and remember that production is
+`plggpress build` onto a CDN, which has none of these routes.
