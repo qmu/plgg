@@ -3,7 +3,7 @@ created_at: 2026-07-25T00:00:00+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Infrastructure]
-effort: 1h
+effort: 0.5h
 commit_hash:
 category: Added
 depends_on: []
@@ -110,3 +110,36 @@ dev surface must never leak into production `build` output.
   recovery checkpoint; keep it verifiable and machine-actionable.
 - `workaholic:implementation` / `operational-planning` — decompose the
   oversized unit before driving so a single pass can close each part.
+
+## Final Report
+
+Development completed as planned. The split is emitted:
+`20260723004041-voice-ephemeral-key-mint.md` →
+`20260723004042-voice-dev-browser-client.md` →
+`20260723004043-voice-edit-doc-tool.md` →
+`20260723004044-voice-reload-arbitration.md`, each stamped
+`mission: plggpress-column-layout-and-voice-ai-editing` with an
+ordered `depends_on` chain rooted at the already-archived
+`20260723004030-live-edit-bridge.md`. The original
+`20260723004040-voice-realtime-assistant.md` carries a
+SUPERSEDED banner naming the four and is archived alongside
+this checkpoint.
+
+### Discovered Insights
+
+- **Insight**: the mission's acceptance marker still points at
+  `20260723004040-voice-realtime-assistant.md`, so the split
+  deliberately did NOT re-aim it at a sub-ticket.
+  **Context**: `tick-acceptance.sh` matches an acceptance item
+  by its `(#<filename>)` marker, and the mission body's
+  checkboxes must never be hand-edited. Keeping 004040's
+  filename as the marker means the one acceptance item is
+  ticked once all four sub-tickets land — the plan the
+  developer agreed to is unchanged, and the split stays an
+  execution detail.
+- **Insight**: `plgg-kit` already carries the whole
+  Realtime-mint seam (`minterFromConfig` → GA
+  `/v1/realtime/client_secrets`) and depends only on `plgg`.
+  **Context**: the voice work needs no second minter and no new
+  external dependency — the split's first sub-ticket is a
+  wiring job, not a protocol implementation.

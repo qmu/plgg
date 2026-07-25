@@ -178,6 +178,7 @@ framework, plggpress is the first product resting on it.
   with it. Both remain fully specified in todo; a dedicated follow-up drive
   should take 004040 alone.
 
+- 2026-07-26 — ticket archived — 20260723003900-resume-decompose-voice-realtime.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758

@@ -12,6 +12,22 @@ mission: plggpress-column-layout-and-voice-ai-editing
 
 # Voice-realtime AI assistant "on the same page", editing via the bridge
 
+> **SUPERSEDED (2026-07-26).** This ticket is not driven as a
+> unit. Following
+> `20260723003900-resume-decompose-voice-realtime.md`, it was
+> split into four ordered sub-tickets, each stamped to the same
+> mission:
+>
+> 1. `20260723004041-voice-ephemeral-key-mint.md`
+> 2. `20260723004042-voice-dev-browser-client.md`
+> 3. `20260723004043-voice-edit-doc-tool.md`
+> 4. `20260723004044-voice-reload-arbitration.md`
+>
+> Its Overview / Key files / Approach / Quality Gate below stay
+> as the joint specification the four answer to, and the
+> mission's acceptance item still carries THIS filename as its
+> marker — it is ticked when all four have landed.
+
 ## Overview
 
 Integrate the proven `plgg-poc3-voice` OpenAI Realtime assistant into
