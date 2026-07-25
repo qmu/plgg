@@ -9,7 +9,7 @@ assignee: a@qmu.jp
 strategy: plgg-horizontal-orientation-ui-stack
 drive_authorized: true
 predicted_hours:
-actual_hours: 1.4
+actual_hours: 2.3
 tickets: []
 stories: []
 concerns: []
@@ -181,9 +181,15 @@ framework, plggpress is the first product resting on it.
 - 2026-07-26 — ticket archived — 20260723004044-voice-reload-arbitration.md
 - 2026-07-26 — ticket archived — 20260723004040-voice-realtime-assistant.md
 - 2026-07-26 — ticket archived — 20260723004050-guide-column-and-voice.md
+- 2026-07-26 — run recorded (+0.9h) — monitor-20260726-005704
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758
 - blocked: none hard — the voice-realtime chain (004040) was deferred deliberately across two waves to protect already-green work; it is large and needs the persistent dev server wired into the plggpress dev CLI first.
 - leaked questions: none — the mission was interrogated at creation.
 - front-load next: wire the persistent dev server into the plggpress dev CLI, then drive 004040 (voice-realtime) + 004050 (guide) — the mission's headline value still outstanding.
+
+### 2026-07-26 run monitor-20260726-005704
+- blocked: none — the voice-realtime chain that three prior passes deferred landed in one wave once the prior `/carry` checkpoint had decomposed it into four ordered sub-tickets (key mint → browser client → edit_doc tool → reload arbitration); decomposition, not capability, was the blocker.
+- leaked questions: none developer-only. The leaf went idle twice without emitting its JSON report, so the dispatcher verified the outcome from artifacts instead (green `.check-all-green.stamp` matching HEAD `eb5665d9` on a clean tree, guide `dist/` rebuilt) — a reporting gap, not a work gap.
+- front-load next: nothing outstanding for this mission (6/6, gate green). Carry forward the two recorded concerns to their owners: dead plgg-bundle dev scaffolding (`devPlan`/`devEntryEnv`/`devServerEntry`/`devEntry`/`pressDevEntry`) wants a cleanup ticket, and theme `.ts` hot-reload loss under the in-process surface belongs to `grow-plggmatic-as-the-reference-framework`.
