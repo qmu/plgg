@@ -5,7 +5,7 @@ type: enhancement
 layer: [Infrastructure]
 effort: 1h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260723004042-voice-dev-browser-client.md]
 mission: plggpress-column-layout-and-voice-ai-editing
 ---
@@ -82,3 +82,66 @@ the model can keep talking about what it just did.
 - `workaholic:safety` — the model cannot choose the target
   file; the path is server-fixed and still passes the bridge's
   lexical + realpath authorization.
+
+## Final Report
+
+Development completed as planned. The assistant now writes —
+through the EXISTING bridge, and only through it:
+
+- `usecase/voiceInstructions.ts` declares `EDIT_DOC_TOOL`
+  (`{find, replace}` — no path) and the edit protocol the model
+  is instructed to follow; `voiceToolsOf` offers the tool only
+  when a document is actually open, so an ungrounded route is
+  never handed an edit it could not land.
+- `browser/voiceProtocol.ts` decodes a
+  `response.function_call_arguments.done` frame named
+  `edit_doc` into an `EditRequested`, refusing an empty or
+  unparseable `find` before it can reach the bridge as a
+  no-op; `patchBodyOf` shapes exactly the `{path, edits}`
+  `asPatchRequest` accepts, and `toolOutputOf` folds the
+  bridge's own JSON answer into what the model is told.
+- `browser/voiceClient.ts` posts to `POST /__plggpress_patch`
+  and replies over the data channel with
+  `function_call_output` + `response.create`.
+
+`node/patchWeb.ts` is untouched — there is still exactly one
+write path, and the model cannot choose the file: the session's
+document is fixed server-side at mint time.
+
+Verified live in a real browser against a running `plggpress
+dev` (temp content root, no repository file touched). Playwright
+imported the SERVED, type-stripped `voiceProtocol` module,
+fed it a real Realtime tool-call frame, and posted the result:
+
+```
+decoded    EditRequested (call_live_1)
+sent       {"path":"index.md","edits":[{"find":"Original body.",
+            "replace":"Edited by the assistant."}]}
+status     200
+bridge     {"path":"index.md","applied":true}
+toolOutput {"applied":true,"path":"index.md"}
+```
+
+`index.md` on disk then read `Edited by the assistant.`, and
+the re-fetched page rendered it. The session route also
+answered with the `edit_doc` tool in `tools` and an
+`edit_doc`-bearing instruction block.
+
+### Discovered Insights
+
+- **Insight**: the served browser modules can be imported and
+  driven directly from a page (`await
+  import("/__plggpress_voice/module/voiceProtocol")`), which
+  makes the whole browser half of the loop verifiable in a real
+  browser without a microphone or a live model.
+  **Context**: this is the practical substitute for an
+  end-to-end voice test — the only unexercised piece left is
+  the WebRTC transport itself, which is exactly what the
+  coverage exclusion on `voiceClient.ts` already declares.
+- **Insight**: keeping the tool schema pathless is the whole
+  containment argument.
+  **Context**: the bridge's lexical + realpath guards still
+  run, but they never even see a model-chosen path — the
+  server substitutes the session's own document, so a
+  prompt-injected "edit ../../etc/passwd.md" has nowhere to
+  land.

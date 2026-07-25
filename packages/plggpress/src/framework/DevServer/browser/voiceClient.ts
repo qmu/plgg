@@ -22,10 +22,13 @@ import {
   type VoiceLine,
   voiceEventOf,
   foldTranscript,
+  patchBodyOf,
+  toolOutputOf,
 } from "./voiceProtocol";
 
 const HEALTH_PATH = "/__plggpress_voice/health";
 const SESSION_PATH = "/__plggpress_voice/session";
+const PATCH_PATH = "/__plggpress_patch";
 const SDP_URL =
   "https://api.openai.com/v1/realtime/calls?model=gpt-realtime";
 const PANEL_ID = "plggpress-voice";
@@ -34,6 +37,7 @@ type Grant = Readonly<{
   value: string;
   instructions: string;
   doc: string;
+  tools: unknown;
 }>;
 
 type Live = Readonly<{
@@ -167,16 +171,102 @@ const requestGrant = async (): Promise<Grant> => {
     value: read("value"),
     instructions: read("instructions"),
     doc: read("doc"),
+    tools:
+      typeof body === "object" && body !== null
+        ? Reflect.get(body, "tools")
+        : [],
   };
+};
+
+// Hand a tool result back to the model and ask it to continue
+// speaking — the second half of the Realtime tool-call loop.
+const replyToTool = (
+  callId: string,
+  output: string,
+): void => {
+  if (live !== null) {
+    live.channel.send(
+      JSON.stringify({
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          call_id: callId,
+          output,
+        },
+      }),
+    );
+    live.channel.send(
+      JSON.stringify({ type: "response.create" }),
+    );
+  }
+};
+
+/**
+ * Run ONE `edit_doc` call: post it to the EXISTING live-edit
+ * bridge and report the bridge's own answer back to the model.
+ * The bridge — not this client — authorizes the path, applies
+ * the span, writes atomically, and pushes the reload.
+ */
+const runEditTool = async (
+  panel: Panel,
+  doc: string,
+  event: Readonly<{
+    callId: string;
+    find: string;
+    replace: string;
+  }>,
+): Promise<void> => {
+  say(panel, "editing…");
+  try {
+    const res = await fetch(PATCH_PATH, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(
+        patchBodyOf(
+          doc,
+          event.find,
+          event.replace,
+        ),
+      ),
+    });
+    const body: unknown = await res
+      .json()
+      .catch((): unknown => ({}));
+    replyToTool(
+      event.callId,
+      toolOutputOf(res.ok, body),
+    );
+    say(
+      panel,
+      res.ok
+        ? `edited ${doc}`
+        : `the edit was refused — ${doc}`,
+    );
+  } catch (cause) {
+    replyToTool(
+      event.callId,
+      toolOutputOf(false, {
+        error: errorText(cause),
+      }),
+    );
+    say(panel, errorText(cause));
+  }
 };
 
 const onFrame = (
   panel: Panel,
+  doc: string,
   raw: unknown,
 ): void => {
   const event: VoiceEvent = voiceEventOf(raw);
   if (event.kind === "SessionErrored") {
     say(panel, event.reason);
+    return;
+  }
+  if (event.kind === "EditRequested") {
+    void runEditTool(panel, doc, event);
     return;
   }
   lines = foldTranscript(lines, event);
@@ -216,6 +306,7 @@ const open = async (
         session: {
           type: "realtime",
           instructions: grant.instructions,
+          tools: grant.tools,
           audio: {
             input: {
               transcription: {
@@ -235,6 +326,7 @@ const open = async (
     try {
       onFrame(
         panel,
+        grant.doc,
         JSON.parse(String(event.data)),
       );
     } catch {

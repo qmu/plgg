@@ -35,7 +35,10 @@ import {
   type OpenDoc,
   type OpenDocReader,
 } from "plggpress/framework/DevServer/usecase/voiceDoc";
-import { voiceInstructionsOf } from "plggpress/framework/DevServer/usecase/voiceInstructions";
+import {
+  voiceInstructionsOf,
+  voiceToolsOf,
+} from "plggpress/framework/DevServer/usecase/voiceInstructions";
 
 // The DEV-ONLY voice routes, as PURE handlers over an
 // INJECTED `Option<KeyMinter>`. Injection is what keeps this
@@ -124,6 +127,7 @@ const grantFor = (
               expiresAt: grant.expiresAt,
               instructions:
                 voiceInstructionsOf(doc),
+              tools: voiceToolsOf(doc),
               doc: pipe(
                 doc,
                 matchOption(

@@ -50,9 +50,68 @@ export const voiceInstructionsOf = (
         (
           open: OpenDoc,
         ): ReadonlyArray<SoftStr> => [
+          ...EDIT_PROTOCOL,
           `Open document (${open.path}):`,
           open.text.slice(0, DOC_BUDGET),
         ],
       ),
     ),
   ].join("\n\n");
+
+// How the model must use its one write tool. Stated as rules
+// the bridge actually ENFORCES, so a model that follows them
+// succeeds and a model that does not gets a named refusal back
+// rather than a silent no-op.
+const EDIT_PROTOCOL: ReadonlyArray<SoftStr> = [
+  "You can edit the open document with the edit_doc tool. Use it whenever the writer asks for a change — do not read a rewritten version aloud instead.",
+  "edit_doc replaces ONE exact span: `find` must be copied verbatim from the document below (including punctuation and line breaks) and must occur exactly once; `replace` is what it becomes. To delete a passage, make `replace` an empty string.",
+  "Quote the SMALLEST span that makes the change unambiguous — never send the whole document as `find`.",
+  "After the tool answers, tell the writer in one short sentence what changed. If it answers with a refusal, say what it said and try a different, more exact `find`.",
+];
+
+/**
+ * The ONE tool a voice session exposes. It carries no path:
+ * the document is fixed by the server for the whole session,
+ * so the model chooses WHAT to change and never WHERE.
+ */
+export const EDIT_DOC_TOOL = {
+  type: "function",
+  name: "edit_doc",
+  description:
+    "Edit the open markdown document by replacing one exact span of its text. The span in `find` must be copied verbatim from the document and occur exactly once.",
+  parameters: {
+    type: "object",
+    properties: {
+      find: {
+        type: "string",
+        description:
+          "The exact existing text to replace, copied verbatim from the open document",
+      },
+      replace: {
+        type: "string",
+        description:
+          "The text it becomes; an empty string deletes the span",
+      },
+    },
+    required: ["find", "replace"],
+    additionalProperties: false,
+  },
+};
+
+/**
+ * The tools a session is opened with: the write tool only when
+ * a document is actually open, so a model on an ungrounded
+ * route is never offered an edit it could not land.
+ */
+export const voiceToolsOf = (
+  doc: Option<OpenDoc>,
+): ReadonlyArray<unknown> =>
+  pipe(
+    doc,
+    matchOption(
+      (): ReadonlyArray<unknown> => [],
+      (): ReadonlyArray<unknown> => [
+        EDIT_DOC_TOOL,
+      ],
+    ),
+  );

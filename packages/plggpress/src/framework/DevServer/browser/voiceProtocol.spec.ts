@@ -11,6 +11,9 @@ import {
   objAt,
   voiceEventOf,
   foldTranscript,
+  jsonOf,
+  patchBodyOf,
+  toolOutputOf,
 } from "plggpress/framework/DevServer/browser/voiceProtocol";
 
 // The browser client's pure half runs perfectly well in Node —
@@ -169,5 +172,124 @@ test("the transcript grows for said events only", () =>
         reason: "boom",
       }),
       toEqual(lines),
+    ),
+  ]));
+
+test("an edit_doc tool call decodes to an EditRequested", () =>
+  check(
+    voiceEventOf({
+      type: "response.function_call_arguments.done",
+      name: "edit_doc",
+      call_id: "call_1",
+      arguments: JSON.stringify({
+        find: "Original body.",
+        replace: "Edited body.",
+      }),
+    }),
+    toEqual({
+      kind: "EditRequested",
+      callId: "call_1",
+      find: "Original body.",
+      replace: "Edited body.",
+    }),
+  ));
+
+test("an empty replace is a deletion, not a refusal", () =>
+  check(
+    voiceEventOf({
+      type: "response.function_call_arguments.done",
+      name: "edit_doc",
+      call_id: "call_2",
+      arguments: JSON.stringify({
+        find: "drop me",
+        replace: "",
+      }),
+    }),
+    toEqual({
+      kind: "EditRequested",
+      callId: "call_2",
+      find: "drop me",
+      replace: "",
+    }),
+  ));
+
+test("an edit with nothing to find never reaches the bridge", () =>
+  all([
+    check(
+      voiceEventOf({
+        type: "response.function_call_arguments.done",
+        name: "edit_doc",
+        call_id: "call_3",
+        arguments: JSON.stringify({
+          find: "",
+          replace: "x",
+        }),
+      }),
+      toEqual({ kind: "Ignored" }),
+    ),
+    // malformed arguments read as no `find` at all
+    check(
+      voiceEventOf({
+        type: "response.function_call_arguments.done",
+        name: "edit_doc",
+        call_id: "call_4",
+        arguments: "{not json",
+      }),
+      toEqual({ kind: "Ignored" }),
+    ),
+  ]));
+
+test("a tool call for another tool is Ignored", () =>
+  check(
+    voiceEventOf({
+      type: "response.function_call_arguments.done",
+      name: "search_docs",
+      call_id: "call_5",
+      arguments: "{}",
+    }),
+    toEqual({ kind: "Ignored" }),
+  ));
+
+test("jsonOf is total over a bad payload", () =>
+  all([
+    check(jsonOf('{"a":1}'), toEqual({ a: 1 })),
+    check(jsonOf("nope"), toBe(null)),
+  ]));
+
+test("the patch body is exactly what the existing bridge accepts", () =>
+  check(
+    patchBodyOf("guide/index.md", "old", "new"),
+    toEqual({
+      path: "guide/index.md",
+      edits: [{ find: "old", replace: "new" }],
+    }),
+  ));
+
+test("a landed edit is reported back to the model as applied", () =>
+  check(
+    toolOutputOf(true, {
+      path: "guide/index.md",
+      applied: true,
+    }),
+    toBe(
+      '{"applied":true,"path":"guide/index.md"}',
+    ),
+  ));
+
+test("a refusal is reported back verbatim, never swallowed", () =>
+  all([
+    check(
+      toolOutputOf(false, {
+        error: "couldn't apply the edit",
+      }),
+      toBe(
+        '{"applied":false,"error":"couldn\'t apply the edit"}',
+      ),
+    ),
+    check(
+      toolOutputOf(false, {}),
+      toBe(
+        '{"applied":false,"error":"the edit was refused"}',
+      ),
     ),
   ]));

@@ -29,6 +29,17 @@ export type VoiceEvent =
       kind: "SessionErrored";
       reason: string;
     }>
+  /**
+   * The model asked to edit the open document. It names WHAT
+   * to change, never WHERE — the file is fixed by the server
+   * for the whole session.
+   */
+  | Readonly<{
+      kind: "EditRequested";
+      callId: string;
+      find: string;
+      replace: string;
+    }>
   /** A frame this page has nothing to do about. */
   | Readonly<{ kind: "Ignored" }>;
 
@@ -102,8 +113,75 @@ export const voiceEventOf = (
       ? IGNORED
       : { kind: "AssistantSaid", text };
   }
+  if (
+    type ===
+      "response.function_call_arguments.done" &&
+    strAt(raw, "name") === "edit_doc"
+  ) {
+    const args = jsonOf(strAt(raw, "arguments"));
+    const find = strAt(args, "find");
+    // An edit with nothing to locate cannot be applied and
+    // must not reach the bridge as a no-op patch.
+    return find === ""
+      ? IGNORED
+      : {
+          kind: "EditRequested",
+          callId: strAt(raw, "call_id"),
+          find,
+          replace: strAt(args, "replace"),
+        };
+  }
   return IGNORED;
 };
+
+/** Parse a JSON string, or `null` — the `arguments` boundary. */
+export const jsonOf = (raw: string): unknown => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The body the live-edit bridge accepts, for one requested
+ * edit against the session's own document. Shaped to
+ * plggpress's EXISTING `POST /__plggpress_patch` contract
+ * (`{path, edits: [{find, replace}]}`) — the assistant is
+ * another DRIVER of that bridge, not a second write path.
+ */
+export const patchBodyOf = (
+  doc: string,
+  find: string,
+  replace: string,
+): unknown => ({
+  path: doc,
+  edits: [{ find, replace }],
+});
+
+/**
+ * What the model is told about its own edit. The bridge
+ * answers every outcome as JSON with a named reason, so a
+ * refusal is reported back verbatim and the model can retry
+ * with a more exact span instead of assuming it succeeded.
+ */
+export const toolOutputOf = (
+  ok: boolean,
+  body: unknown,
+): string =>
+  JSON.stringify(
+    ok
+      ? {
+          applied: true,
+          path: strAt(body, "path"),
+        }
+      : {
+          applied: false,
+          error:
+            strAt(body, "error") ||
+            "the edit was refused",
+        },
+  );
 
 /**
  * Fold one decoded event into the visible transcript. A
