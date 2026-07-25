@@ -125,12 +125,8 @@ framework, plggpress is the first product resting on it.
 - [x] A live-edit bridge patches the open markdown file on disk from a tool call and the
       edited page hot-reloads while the live session stays connected (integrating the
       `plgg-poc4c-livesite` bridge artifacts) (#20260723004030-live-edit-bridge.md)
-- [ ] With `OPENAI_API_KEY` set, `plggpress dev` shows a voice assistant "on the same
-      page"; speaking to it produces edits to the local doc that hot-reload while the
-      realtime session stays alive (integrating the `plgg-poc3-voice` artifacts)
-      (#20260723004040-voice-realtime-assistant.md)
-- [ ] The plgg guide documents the column layout and the voice-editing dev workflow (what
-      it is, live URL, local dev command) (#20260723004050-guide-column-and-voice.md)
+- [x] With `OPENAI_API_KEY` set, `plggpress dev` shows a voice assistant "on the same page"; speaking to it produces edits to the local doc that hot-reload while the realtime session stays alive (integrating the `plgg-poc3-voice` artifacts) (#20260723004040-voice-realtime-assistant.md)
+- [x] The plgg guide documents the column layout and the voice-editing dev workflow (what it is, live URL, local dev command) (#20260723004050-guide-column-and-voice.md)
 
 ## Changelog
 
@@ -184,6 +180,7 @@ framework, plggpress is the first product resting on it.
 - 2026-07-26 — ticket archived — 20260723004043-voice-edit-doc-tool.md
 - 2026-07-26 — ticket archived — 20260723004044-voice-reload-arbitration.md
 - 2026-07-26 — ticket archived — 20260723004040-voice-realtime-assistant.md
+- 2026-07-26 — ticket archived — 20260723004050-guide-column-and-voice.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758

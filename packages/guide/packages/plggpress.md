@@ -43,7 +43,17 @@ framework subpath:
 | --------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **build** | `plggpress build` | SSG — render every route to static files (the public reader, served over a CDN). |
 | **serve** | `plgg-cms serve` | Persistent `node:http` process that composes `plggpress/framework` with `/api`, `/admin`, `/auth`, `/mcp`, ops, and agent surfaces. |
-| **dev** | `plgg-bundle dev` | Authoring hot-reload — a toolchain concern, not a plggpress command. |
+| **dev** | `plggpress dev` | Authoring hot-reload on plggpress's OWN persistent surface — the same render path, a live-reload channel it controls, a live-edit bridge, and (with `OPENAI_API_KEY` set) the voice assistant. See [Authoring](/packages/plggpress/authoring). |
+
+## Authoring
+
+[Authoring (columns & voice)](/packages/plggpress/authoring)
+covers what a plggpress site looks like to a reader — the
+column-oriented horizontal strip, where drilling a section
+opens a column to the right rather than replacing the body —
+and what `plggpress dev` gives a writer, including the
+voice-editing loop that lets you talk to the open document
+and have your words land in the markdown.
 
 ## The CMS package
 

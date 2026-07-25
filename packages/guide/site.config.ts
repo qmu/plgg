@@ -153,6 +153,10 @@ const config = {
       items: [
         leaf("Overview", "/packages/plggpress"),
         leaf(
+          "Authoring (columns & voice)",
+          "/packages/plggpress/authoring",
+        ),
+        leaf(
           "Content & delivery",
           "/packages/plggpress/content-delivery",
         ),
