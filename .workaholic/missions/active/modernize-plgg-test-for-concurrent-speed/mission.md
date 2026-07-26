@@ -154,7 +154,7 @@ because T1 measured their whole budget at ~3.6 s):
 - [x] `suite.serial(...)` runs its tests in registration order as one indivisible unit with `beforeEach`/`afterEach` fixture bracketing, isolated from the concurrent pool; documented and tested (#20260720123003-suite-serial-opt-in-block.md)
 - [x] The 4 global-stubbing packages (`example`, `plgg-fetch`, `plgg-view`, `plggmatic-example`) run green under concurrency with no global races; a regression test proves concurrent global-stub isolation (#20260720123004-global-stub-isolation-under-concurrency.md)
 - [x] The concurrent runner executes green on Node and at least one of Deno/Bun, proving no Node-only primitive is used (#20260720123006-cross-runtime-node-deno-bun-proof.md)
-- [ ] The full test-execution phase across all packages completes in ≤35 s on the dev machine, measured and printed, with the baseline→after comparison and raw output recorded (#20260720123011-measure-full-test-phase-under-35s.md)
+- [x] The full test-execution phase across all packages completes in ≤35 s on the dev machine, measured and printed, with the baseline→after comparison and raw output recorded (#20260720123011-measure-full-test-phase-under-35s.md)
 
 ## Changelog
 
@@ -171,3 +171,4 @@ because T1 measured their whole budget at ~3.6 s):
 - 2026-07-26 — ticket archived — 20260720123003-suite-serial-opt-in-block.md
 - 2026-07-26 — ticket archived — 20260720123004-global-stub-isolation-under-concurrency.md
 - 2026-07-26 — ticket archived — 20260720123006-cross-runtime-node-deno-bun-proof.md
+- 2026-07-26 — ticket archived — 20260720123011-measure-full-test-phase-under-35s.md
