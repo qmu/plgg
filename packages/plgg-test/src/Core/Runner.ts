@@ -234,31 +234,104 @@ const runSuite = async (
     inherited,
     suite.hooks,
   );
+  // A serial suite is one indivisible unit: its own tests run in
+  // registration order, and so does everything below it.
+  const ownLimit = suite.mode === "serial" ? 1 : limit;
   // Concurrent by default: a suite's own tests, then its child suites,
   // run through a bounded pool. Results come back INDEXED, so the
   // reported order is registration order however execution interleaves —
   // the runner's output must not change shape run to run.
   const ownResults = await pool(
-    limit,
+    ownLimit,
     suite.tests.map(
       (t) => () =>
         runTest(t, path, hooks, skipped),
     ),
   );
-  const childResults = await pool(
-    limit,
-    suite.suites.map(
-      (child) => () =>
-        runSuite(
-          child,
-          path,
-          skipped ? markSkipHooks(hooks) : hooks,
-          limit,
+  const childHooks = skipped
+    ? markSkipHooks(hooks)
+    : hooks;
+  // Serial children run in their OWN phase, one at a time, with nothing
+  // else in flight — "does not interleave with any other test" is a
+  // scheduling guarantee, not merely an internal ordering one, so it
+  // cannot be delivered by handing the child a limit of 1 while its
+  // concurrent siblings keep running beside it.
+  const childResults: Array<
+    ReadonlyArray<TestResult>
+  > = [];
+  const indexed = suite.suites.map(
+    (child, index) => ({ child, index }),
+  );
+  const runChild =
+    (
+      entry: Readonly<{
+        child: Suite;
+        index: number;
+      }>,
+      childLimit: number,
+    ) =>
+    async (): Promise<void> => {
+      childResults[entry.index] = await runSuite(
+        entry.child,
+        path,
+        childHooks,
+        childLimit,
+      );
+    };
+  // Groups preserve REGISTRATION order: a run of consecutive concurrent
+  // children becomes one pooled batch, and each serial child is its own
+  // batch of one. So a serial block still sits exactly where the author
+  // put it relative to its siblings — batching by mode across the whole
+  // list would silently reorder execution, which is precisely the thing
+  // an author reaches for `suite.serial` to control.
+  await pool(
+    1,
+    childGroups(indexed).map(
+      (group) => () =>
+        pool(
+          group.serial ? 1 : ownLimit,
+          group.entries.map((e) =>
+            runChild(e, group.serial ? 1 : ownLimit),
+          ),
         ),
     ),
   );
   return [...ownResults, ...childResults.flat()];
 };
+
+type ChildEntry = Readonly<{
+  child: Suite;
+  index: number;
+}>;
+
+type ChildGroup = Readonly<{
+  serial: boolean;
+  entries: ReadonlyArray<ChildEntry>;
+}>;
+
+// Consecutive concurrent children coalesce into one group; every serial
+// child stands alone.
+const childGroups = (
+  entries: ReadonlyArray<ChildEntry>,
+): ReadonlyArray<ChildGroup> =>
+  entries.reduce<Array<ChildGroup>>(
+    (groups, entry) => {
+      const serial = entry.child.mode === "serial";
+      const last = groups[groups.length - 1];
+      return last !== undefined &&
+        !serial &&
+        !last.serial
+        ? [
+            ...groups.slice(0, -1),
+            {
+              serial,
+              entries: [...last.entries, entry],
+            },
+          ]
+        : [...groups, { serial, entries: [entry] }];
+    },
+    [],
+  );
 
 // When a parent describe is skipped, children inherit skip; their
 // hooks should not run, so we hand down empty hook lists.

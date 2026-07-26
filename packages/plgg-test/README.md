@@ -78,7 +78,35 @@ Two things a concurrent suite can no longer assume:
   port, a temp file at a fixed path — anything one test installs and
   another expects to still be there.
 
-A file opts out with a first-lines directive:
+### `suite.serial(...)` — the opt-in serial block
+
+A `suite.serial` block runs as **one indivisible unit**: its tests
+execute in registration order and nothing else in the file runs beside
+them. `beforeEach`/`afterEach` bracket each test as usual, so a shared
+fixture sequence is safe:
+
+```ts
+suite.serial("orders", () => {
+  beforeEach(() => seed(db));
+  afterEach(() => truncate(db));
+
+  test("lists what was seeded", async () =>
+    check(await listOrders(db), toHaveLength(3)));
+
+  test("removes one", async () =>
+    check(await deleteOrder(db, 1), okThen(...)));
+});
+```
+
+`describe.serial` is the same modifier under the alias. Everything
+outside a serial block stays concurrent with no author action.
+
+The block keeps its **registration position** relative to its siblings —
+consecutive concurrent suites are batched together and each serial block
+runs alone, in order — so adding `.serial` changes isolation, never
+where the block runs.
+
+A whole file opts out with a first-lines directive instead:
 
 ```ts
 // @plgg-test-concurrency 1

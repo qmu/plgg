@@ -11,6 +11,8 @@ import {
   all,
   toBe,
   toEqual,
+  suite,
+  describe,
 } from "../index.js";
 import {
   runFile,
@@ -231,3 +233,37 @@ test("concurrent results keep registration order, run to run", async () => {
     ),
   ]);
 });
+
+// --- suite.serial --------------------------------------------------
+
+// The fixture asserts the non-interleave property from INSIDE the
+// scheduler (the only place an interleave is observable) and reports it
+// as two of its own tests; all six passing is the proof.
+test("suite.serial runs as one indivisible unit while siblings overlap", async () => {
+  const results = await runFile(
+    fixture("_serialFixture.spec.ts"),
+    4,
+  );
+  const v = tally(results);
+  return all([
+    check(v.passed, toBe(6)),
+    check(v.failed, toBe(0)),
+    // The REPORT stays registration-ordered however execution ran.
+    check(
+      results.map((r) => r.names.join(" > ")),
+      toEqual([
+        "concurrent block > c1",
+        "concurrent block > c2",
+        "serial block > s1",
+        "serial block > s2",
+        "verdict > the concurrent pair overlapped and finished out of order",
+        "verdict > the serial block never interleaved",
+      ]),
+    ),
+  ]);
+});
+
+// describe is the documented alias of suite, so the modifier rides along
+// with it rather than being bolted onto one spelling.
+test("describe.serial is the same modifier as suite.serial", () =>
+  check(describe.serial === suite.serial, toBe(true)));
