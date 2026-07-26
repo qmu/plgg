@@ -150,7 +150,7 @@ because T1 measured their whole budget at ~3.6 s):
 - [x] Typecheck comes off the per-package test hot loop: one whole-repo gate replaces 38 cold `tsc --noEmit` programs, a deliberate type error in any package still fails check-all, and the speedup is measured (#20260720123008-whole-repo-typecheck-gate.md)
 - [x] The default run is lean — no coverage instrumentation and no spawned gate process — while `--coverage` still folds the gate in-process and still fails a package below its threshold (#20260720123009-lean-default-run-inprocess-coverage.md)
 - [x] `check-all` runs the per-package suites concurrently through the canonical runner (no new per-package alias scripts), batching packages per worker longest-first, printing the phase wall clock; a deliberately failing package is still unambiguously attributed (#20260720123005-check-all-concurrent-fanout.md)
-- [ ] plgg-test executes independent tests and spec files concurrently by default via runtime-agnostic async scheduling with no `worker_threads`; results stay deterministic and correctly attributed (#20260720123002-concurrent-by-default-execution.md)
+- [x] plgg-test executes independent tests and spec files concurrently by default via runtime-agnostic async scheduling with no `worker_threads`; results stay deterministic and correctly attributed (#20260720123002-concurrent-by-default-execution.md)
 - [ ] `suite.serial(...)` runs its tests in registration order as one indivisible unit with `beforeEach`/`afterEach` fixture bracketing, isolated from the concurrent pool; documented and tested (#20260720123003-suite-serial-opt-in-block.md)
 - [ ] The 4 global-stubbing packages (`example`, `plgg-fetch`, `plgg-view`, `plggmatic-example`) run green under concurrency with no global races; a regression test proves concurrent global-stub isolation (#20260720123004-global-stub-isolation-under-concurrency.md)
 - [ ] The concurrent runner executes green on Node and at least one of Deno/Bun, proving no Node-only primitive is used (#20260720123006-cross-runtime-node-deno-bun-proof.md)
@@ -167,3 +167,4 @@ because T1 measured their whole budget at ~3.6 s):
 - 2026-07-26 — ticket archived — 20260720123008-whole-repo-typecheck-gate.md
 - 2026-07-26 — ticket archived — 20260720123009-lean-default-run-inprocess-coverage.md
 - 2026-07-26 — ticket archived — 20260720123005-check-all-concurrent-fanout.md
+- 2026-07-26 — ticket archived — 20260720123002-concurrent-by-default-execution.md

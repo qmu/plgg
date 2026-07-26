@@ -1,3 +1,10 @@
+// @plgg-test-concurrency 1
+//
+// These tests bind a REAL socket and talk to it over the loopback
+// interface. Concurrently they contend for ports and for each other's
+// listeners, which surfaces as "fetch failed" rather than as an
+// assertion — a shared OS resource is not something the runner can
+// isolate, so this suite stays serial.
 import {
   test,
   check,

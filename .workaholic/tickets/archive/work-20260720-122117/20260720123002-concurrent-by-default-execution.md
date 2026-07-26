@@ -99,3 +99,96 @@ and do not let it block the levers that can.
   only).
 - `sacrificial-architecture` — the test framework is durable core; its
   correctness under concurrency is what makes regenerated code trustworthy.
+
+## Final Report
+
+`Core/Runner.ts` schedules a suite's tests and child suites through a bounded
+async pool (`PLGG_TEST_CONCURRENCY`, default 4). Results are collected **by
+index**, so the report is registration-ordered however execution interleaves.
+Spec **files** stay one at a time — registration is process-global.
+
+### Measured — concurrency in isolation, 3 runs each
+
+| package | serial | concurrent (4) | delta |
+|---|---|---|---|
+| `plgg` | 2.720s | 2.318s | −0.40s (15%) |
+| `plggmatic` | 2.666s | 2.402s | −0.27s (10%) |
+| `plgg-cms` | 5.220s | 3.844s | **−1.38s (26%)** |
+
+Across the whole repo through the canonical runner it is worth **nothing**:
+28.5 s before this ticket, 28.5 s after (38 packages, all green). Exactly the
+outcome the replan predicted — the six-way process fan-out already pegs the CPU
+at ~370%, so recovering per-test event-loop idle inside a process has no wall
+clock left to give back. The per-package numbers above are the real payoff, and
+they land on `scripts/test-<pkg>.sh`, the single-package inner loop.
+
+Full gate green: `CHECKALL EXIT=0`, `WALL=115.6s`,
+`test phase: 39 checks in 34.0s (jobs=6) — all green`. plgg-test's own suite
+**140 passed, 0 failed** (was 135); its coverage gate green at
+95.30 / 87.04 / 92.20 / 95.30 with `Runner.ts` at 96.36%.
+
+### The design conflict this ticket hit, and how it was resolved
+
+**Exact per-test attribution of an unhandled rejection is not achievable under
+concurrency without `async_hooks`** — which is Node-only and therefore banned by
+the mission's cross-runtime constraint. The old `windowStack` worked only because
+runs nested strictly; concurrently several windows are open and "the innermost"
+is decided by timing.
+
+Resolution, deterministic in both modes, and the anti-false-green property
+(guardrail O2) intact in both:
+
+- **serial** — exact per-test blame, unchanged.
+- **concurrent** — the **file** goes red with one synthetic result carrying every
+  escaped reason and the instruction to re-run with `PLGG_TEST_CONCURRENCY=1`.
+
+Both are now pinned by their own spec. The alternative — blaming whichever window
+happened to be innermost — would have made the same run accuse a different test
+each time, which is worse than an honest file-level failure.
+
+### Verified
+
+```
+concurrent: {"passed":2,"failed":1}   # file-level, still red
+  passes synchronously = passed
+  starts a fire-and-forget rejection = passed
+  fixtures/_unhandledFixture.spec.ts = failed
+serial:     {"passed":1,"failed":1}   # exact per-test blame
+  starts a fire-and-forget rejection = failed
+```
+
+Plus a determinism spec: the same file run twice concurrently, and once
+serially, produces identical result ordering.
+
+### Discovered Insights
+
+- **Insight**: A whole-`runFile` mutex **deadlocks**. The obvious fix for the
+  process-global registry — serialize entire `runFile` calls — hangs the moment a
+  test calls `runFile` itself (plgg-test's own `Runner.spec`): the inner call
+  waits on the gate the outer call is still holding, and Node exits 0 with **no
+  output at all**, because the runner's own `unhandledRejection` listener
+  swallows the failure. **Context**: two traps in one. A silent exit-0 with no
+  report is what a deadlock looks like here, and installing an
+  `unhandledRejection` listener means the process no longer crashes on its own
+  bugs. The fix was a per-file opt-out directive (`// @plgg-test-concurrency 1`)
+  rather than a lock.
+- **Insight**: `environmentOf()` returns **`undefined`** for a plain spec, not
+  `"node"`. Guarding with `environment === "node"` silently made *every* file
+  serial — the change appeared to work (all tests green) while doing nothing at
+  all. **Context**: a concurrency flag that is silently never on is the worst
+  failure mode of this kind of work; only measuring a behaviour difference
+  (serial vs concurrent attribution) caught it, not the test suite.
+- **Insight**: Turning concurrency on found **two real serial assumptions** in the
+  corpus that nothing else would have: `plgg-fetch` replaces the process-global
+  `fetch` via `vi.stubGlobal` and restores it in `afterEach` (one test tears down
+  the stub another is still using), and `plgg-server` binds **real sockets** on
+  the loopback interface (contending for ports, surfacing as `fetch failed`
+  rather than as an assertion). **Context**: the second is not a
+  global-stub problem and will not be fixed by the isolation ticket — a shared OS
+  resource is not something the runner can isolate, so that suite stays serial by
+  declaration. Both now carry the directive with the reason written down.
+- **Insight**: The `_hooksFixture` asserts a shared log **across** tests
+  ("second test sees prior after then before"). That is a statement about
+  execution order between tests, which concurrency deletes by design — hooks
+  still bracket each test. It is the clearest small example of what
+  `suite.serial` is for, and it now says so in the fixture.

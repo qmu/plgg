@@ -19,6 +19,7 @@ import {
 import type { Assertion } from "../Matchers/Assertion.js";
 import {
   environmentOf,
+  concurrencyOf,
   installEnvironment,
 } from "../Env/dom.js";
 
@@ -41,8 +42,36 @@ import {
 // is correct (we only want the spec body to re-register).
 let loadSeq = 0;
 
+/**
+ * How many tests/child-suites may be in flight at once inside one file.
+ *
+ * Default 4, overridable with `PLGG_TEST_CONCURRENCY`. A non-numeric or
+ * non-positive value falls back to the default — a typo must not
+ * silently serialize (or unbound) the run.
+ */
+export const DEFAULT_CONCURRENCY = 4;
+
+export const concurrencyFrom = (
+  raw: string | undefined,
+): number => {
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isInteger(n) && n > 0
+    ? n
+    : DEFAULT_CONCURRENCY;
+};
+
+/**
+ * Runs one file's registered tree. `concurrency` defaults to the
+ * environment setting; callers pass `1` to force strictly serial
+ * execution (which is also what a DOM-environment file gets — its
+ * `stubGlobal` mutates shared globals, so its tests must not overlap
+ * until the isolation ticket lands).
+ */
 export const runFile = async (
   file: string,
+  concurrency: number = concurrencyFrom(
+    process.env.PLGG_TEST_CONCURRENCY,
+  ),
 ): Promise<ReadonlyArray<TestResult>> => {
   resetRegistry();
   loadSeq = loadSeq + 1;
@@ -53,19 +82,39 @@ export const runFile = async (
   // test BODIES touch the DOM too. Teardown runs in `finally` so the
   // global is restored even if the spec fails to load: no leak into the
   // next file.
-  const restore = await installEnvironment(
-    environmentOf(file),
-  );
+  const environment = environmentOf(file);
+  const restore =
+    await installEnvironment(environment);
+  // Two reasons a file runs serially instead of concurrently:
+  //   - it DECLARES an environment (`@plgg-test-environment dom`), whose
+  //     install mutates process globals its tests would then race on;
+  //   - it declares `@plgg-test-concurrency 1` — the explicit opt-out
+  //     for a file whose tests cannot overlap for a reason the runner
+  //     cannot see (the one case here: a test that itself calls
+  //     `runFile`, since registration is process-global).
+  // `environmentOf` returns undefined for the plain no-directive case,
+  // which is the concurrent one.
+  const limit =
+    environment === undefined
+      ? (concurrencyOf(file) ?? concurrency)
+      : 1;
+  const outerEscapes = fileEscapes;
+  fileEscapes = limit > 1 ? [] : undefined;
   try {
     const loaded = await loadModule(
       file,
       String(loadSeq),
     );
-    return loaded.ok
-      ? await runSuite(takeRootSuite(), [], {
-          beforeEach: [],
-          afterEach: [],
-        })
+    const results: ReadonlyArray<TestResult> = loaded.ok
+      ? await runSuite(
+          takeRootSuite(),
+          [],
+          {
+            beforeEach: [],
+            afterEach: [],
+          },
+          limit,
+        )
       : [
           {
             names: [file],
@@ -75,10 +124,54 @@ export const runFile = async (
             stack: loaded.stack,
           },
         ];
+    return [...results, ...escapeResults(file)];
   } finally {
+    fileEscapes = outerEscapes;
     await restore();
   }
 };
+
+/**
+ * Escaped fire-and-forget rejections captured while this file ran
+ * CONCURRENTLY, folded into one synthetic failed result.
+ *
+ * Why the file and not the test: attributing a process-level
+ * `unhandledRejection` to the exact test that started it needs
+ * `async_hooks`, which is Node-only and therefore banned by the
+ * mission's cross-runtime constraint. Picking "whichever test happened
+ * to be innermost" would make the attribution depend on timing — the
+ * same run could blame a different test each time, which is worse than
+ * an honest file-level failure.
+ *
+ * So the guarantee is split, and BOTH halves are kept:
+ *   - concurrent (the default): the file goes red, deterministically,
+ *     and the message carries every escaped reason plus how to re-run
+ *     for exact blame.
+ *   - serial (`PLGG_TEST_CONCURRENCY=1`, a DOM file, or a serial block):
+ *     exact per-test attribution, unchanged.
+ * A dropped rejection never reads green either way — that is the
+ * property that must not bend.
+ */
+const escapeResults = (
+  file: string,
+): ReadonlyArray<TestResult> =>
+  fileEscapes === undefined ||
+  fileEscapes.length === 0
+    ? []
+    : [
+        {
+          names: [file],
+          outcome: "failed",
+          durationMs: 0,
+          message:
+            `${fileEscapes.length} unhandled promise rejection(s) escaped while this file ran concurrently: ` +
+            fileEscapes
+              .map((e) => messageOf(e))
+              .join("; ") +
+            ". Re-run with PLGG_TEST_CONCURRENCY=1 to attribute it to a single test.",
+          stack: "",
+        },
+      ];
 
 const loadModule = async (
   file: string,
@@ -130,6 +223,7 @@ const runSuite = async (
   suite: Suite,
   ancestry: ReadonlyArray<string>,
   inherited: Hooks,
+  limit: number,
 ): Promise<ReadonlyArray<TestResult>> => {
   const path =
     suite.name === ""
@@ -140,22 +234,26 @@ const runSuite = async (
     inherited,
     suite.hooks,
   );
-  // Run this suite's own tests, then recurse into child suites,
-  // preserving registration order. Sequential by design: stubGlobal
-  // mutates shared globals, so parallelism would race.
-  const ownResults = await sequence(
+  // Concurrent by default: a suite's own tests, then its child suites,
+  // run through a bounded pool. Results come back INDEXED, so the
+  // reported order is registration order however execution interleaves —
+  // the runner's output must not change shape run to run.
+  const ownResults = await pool(
+    limit,
     suite.tests.map(
       (t) => () =>
         runTest(t, path, hooks, skipped),
     ),
   );
-  const childResults = await sequence(
+  const childResults = await pool(
+    limit,
     suite.suites.map(
       (child) => () =>
         runSuite(
           child,
           path,
           skipped ? markSkipHooks(hooks) : hooks,
+          limit,
         ),
     ),
   );
@@ -250,6 +348,13 @@ type RejectionWindow = {
 const windowStack: Array<RejectionWindow> = [];
 let listenerInstalled = false;
 
+// Escapes captured while the CURRENT file runs concurrently. `undefined`
+// means the file is serial, so per-test attribution applies instead.
+// Files are loaded and run one at a time (the CLI sequences them), and a
+// NESTED run saves/restores this around itself, so a module-level slot is
+// the right shape — there is never more than one current file.
+let fileEscapes: Array<unknown> | undefined;
+
 const ensureListener = (): void => {
   if (listenerInstalled) {
     return;
@@ -258,6 +363,15 @@ const ensureListener = (): void => {
   process.on(
     "unhandledRejection",
     (reason: unknown) => {
+      // A concurrent file cannot say WHICH of its in-flight tests
+      // started the rejected promise without `async_hooks` (Node-only,
+      // banned cross-runtime), and guessing "the innermost window"
+      // would make the blame depend on timing. Record it against the
+      // file instead — deterministic, and still never green.
+      if (fileEscapes !== undefined) {
+        fileEscapes.push(reason);
+        return;
+      }
       const top =
         windowStack[windowStack.length - 1];
       if (top !== undefined && !top.captured) {
@@ -373,18 +487,49 @@ const guardHook = async (
   }
 };
 
-// Sequences an array of thunks returning promises, in order.
-const sequence = <T>(
+type Task<T> = Readonly<{
+  index: number;
+  run: () => Promise<T>;
+}>;
+
+/**
+ * Runs thunks with at most `limit` in flight, returning their results
+ * in INPUT order regardless of completion order. `limit` of 1 is exactly
+ * the old sequential behaviour, which is what a serial block and a DOM
+ * file get.
+ *
+ * Imperative seam: a bounded pool is workers pulling from one shared
+ * queue until it is empty, which is a loop by nature. Everything the
+ * loop touches is index-addressed, so ordering is never a function of
+ * timing.
+ */
+const pool = async <T>(
+  limit: number,
   thunks: ReadonlyArray<() => Promise<T>>,
-): Promise<ReadonlyArray<T>> =>
-  thunks.reduce<Promise<Array<T>>>(
-    async (accP, thunk) => {
-      const acc = await accP;
-      acc.push(await thunk());
-      return acc;
-    },
-    Promise.resolve([]),
+): Promise<ReadonlyArray<T>> => {
+  const results: Array<T> = [];
+  const queue: Array<Task<T>> = thunks.map(
+    (run, index) => ({ index, run }),
   );
+  const worker = async (): Promise<void> => {
+    for (
+      let task = queue.shift();
+      task !== undefined;
+      task = queue.shift()
+    ) {
+      results[task.index] = await task.run();
+    }
+  };
+  await Promise.all(
+    Array.from({
+      length: Math.max(
+        1,
+        Math.min(limit, thunks.length),
+      ),
+    }).map(worker),
+  );
+  return results;
+};
 
 const messageOf = (e: unknown): string =>
   e instanceof Error

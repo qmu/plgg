@@ -58,6 +58,43 @@ reported numbers are unchanged.
 `test`.** Run it before a release, and keep it in whatever
 gate certifies the tree.
 
+### Tests run concurrently by default
+
+Within a spec file, tests and nested `describe` blocks run through a
+bounded async pool (4 in flight; `PLGG_TEST_CONCURRENCY` overrides it).
+Spec **files** are still loaded and run one at a time — registration
+mutates process-global state, so files cannot overlap.
+
+The report is unaffected: results are collected by index, so the
+printed order is registration order however execution interleaves.
+
+Two things a concurrent suite can no longer assume:
+
+- **Cross-test ordering.** A test that reads state a *previous* test
+  left behind (a shared log, a seeded fixture, a counter) is no longer
+  meaningful. Hooks still bracket each test; what is gone is the
+  sequence *between* tests.
+- **Exclusive access to process globals.** `vi.stubGlobal`, a bound
+  port, a temp file at a fixed path — anything one test installs and
+  another expects to still be there.
+
+A file opts out with a first-lines directive:
+
+```ts
+// @plgg-test-concurrency 1
+```
+
+A file declaring `@plgg-test-environment dom` is serial automatically —
+installing a DOM mutates process globals.
+
+**Unhandled rejections.** A fire-and-forget rejection never reads green
+in either mode. Serially it fails the exact test that started it.
+Concurrently it fails the **file**: tying a process-level
+`unhandledRejection` to one of several in-flight tests would need
+`async_hooks` (Node-only, and this runner stays cross-runtime), and
+guessing would make the blame depend on timing. The failure message says
+to re-run with `PLGG_TEST_CONCURRENCY=1` for exact attribution.
+
 Per-package options live in `plgg-test.config.json`:
 
 ```json

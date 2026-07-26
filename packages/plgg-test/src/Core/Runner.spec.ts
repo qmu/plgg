@@ -1,10 +1,23 @@
+// @plgg-test-concurrency 1
+//
+// These tests call `runFile` themselves, and registration
+// (`resetRegistry`/`takeRootSuite`) plus the DOM environment install are
+// process-global — two overlapping nested runs would reset the registry
+// out from under each other. This is the file that proves the opt-out
+// directive is load-bearing, not decorative.
 import {
   test,
   check,
   all,
   toBe,
+  toEqual,
 } from "../index.js";
-import { runFile } from "./Runner.js";
+import {
+  runFile,
+  concurrencyFrom,
+  DEFAULT_CONCURRENCY,
+} from "./Runner.js";
+import { concurrencyOf } from "../Env/dom.js";
 import { tally } from "./Reporter.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -60,14 +73,40 @@ test("a spec that fails to load turns red", async () => {
   return check(v.failed, toBe(1));
 });
 
-test("a fire-and-forget rejection fails the test (O2 window)", async () => {
+// The anti-false-green guarantee (O2), in BOTH scheduling modes. A
+// fire-and-forget rejection must never read green; what changes with
+// concurrency is only how precisely it can be blamed.
+test("serial: a fire-and-forget rejection fails ITS test (O2 window)", async () => {
   const results = await runFile(
     fixture("_unhandledFixture.spec.ts"),
+    1,
   );
   const v = tally(results);
   return all([
     check(v.passed, toBe(1)),
     check(v.failed, toBe(1)),
+  ]);
+});
+
+// Concurrently, the process-level `unhandledRejection` cannot be tied to
+// the test that started it without `async_hooks` (Node-only, banned by
+// the cross-runtime constraint), and blaming "the innermost open window"
+// would make the verdict depend on timing. So the FILE goes red instead
+// — deterministically, and still never green.
+test("concurrent: the same rejection fails the FILE, never green", async () => {
+  const results = await runFile(
+    fixture("_unhandledFixture.spec.ts"),
+    4,
+  );
+  const v = tally(results);
+  const escape = results.filter((r) =>
+    r.message.includes(
+      "escaped while this file ran concurrently",
+    ),
+  );
+  return all([
+    check(v.failed, toBe(1)),
+    check(escape.length, toBe(1)),
   ]);
 });
 
@@ -107,5 +146,88 @@ test("no-directive spec stays DOM-free even right after a DOM spec", async () =>
     check("window" in globalThis, toBe(false)),
     check("self" in globalThis, toBe(false)),
     check("top" in globalThis, toBe(false)),
+  ]);
+});
+
+// --- Concurrency ---------------------------------------------------
+
+test("concurrencyFrom: a valid setting is honoured", () =>
+  all([
+    check(concurrencyFrom("1"), toBe(1)),
+    check(concurrencyFrom("8"), toBe(8)),
+  ]));
+
+test("concurrencyFrom: a bad setting falls back, never to 0 or NaN", () =>
+  all([
+    check(
+      concurrencyFrom(undefined),
+      toBe(DEFAULT_CONCURRENCY),
+    ),
+    check(
+      concurrencyFrom(""),
+      toBe(DEFAULT_CONCURRENCY),
+    ),
+    check(
+      concurrencyFrom("lots"),
+      toBe(DEFAULT_CONCURRENCY),
+    ),
+    check(
+      concurrencyFrom("0"),
+      toBe(DEFAULT_CONCURRENCY),
+    ),
+    check(
+      concurrencyFrom("-2"),
+      toBe(DEFAULT_CONCURRENCY),
+    ),
+  ]));
+
+test("concurrencyOf: reads the per-file opt-out directive", () =>
+  all([
+    check(
+      concurrencyOf(
+        fixture("_hooksFixture.spec.ts"),
+      ),
+      toBe<number | undefined>(1),
+    ),
+    check(
+      concurrencyOf(
+        fixture("_mixedFixture.spec.ts"),
+      ),
+      toBe<number | undefined>(undefined),
+    ),
+  ]));
+
+// Registration order is the CONTRACT of the report, and it must not
+// become a function of which test finished first. Running the same file
+// twice concurrently has to produce byte-identical result ordering.
+test("concurrent results keep registration order, run to run", async () => {
+  const once = await runFile(
+    fixture("_nestingFixture.spec.ts"),
+    4,
+  );
+  const twice = await runFile(
+    fixture("_nestingFixture.spec.ts"),
+    4,
+  );
+  return all([
+    check(
+      once.map((r) => r.names.join(" > ")),
+      toEqual(
+        twice.map((r) => r.names.join(" > ")),
+      ),
+    ),
+    // …and identical to the serial ordering, so turning concurrency on
+    // never reshuffles a report.
+    check(
+      once.map((r) => r.names.join(" > ")),
+      toEqual(
+        (
+          await runFile(
+            fixture("_nestingFixture.spec.ts"),
+            1,
+          )
+        ).map((r) => r.names.join(" > ")),
+      ),
+    ),
   ]);
 });
