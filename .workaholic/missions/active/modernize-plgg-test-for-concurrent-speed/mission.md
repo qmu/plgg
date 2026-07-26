@@ -146,7 +146,7 @@ because T1 measured their whole budget at ~3.6 s):
 
 ## Acceptance
 
-- [ ] A profiling baseline documents where today's test-phase wall-clock goes (typecheck vs process startup vs module load vs body vs env install) and validates a runtime-agnostic approach, replacing the pre-measurement guesses (#20260720123001-profile-test-phase-validate-concurrency.md)
+- [x] A profiling baseline documents where today's test-phase wall-clock goes (typecheck vs process startup vs module load vs body vs env install) and validates a runtime-agnostic approach, replacing the pre-measurement guesses (#20260720123001-profile-test-phase-validate-concurrency.md)
 - [x] Typecheck comes off the per-package test hot loop: one whole-repo gate replaces 38 cold `tsc --noEmit` programs, a deliberate type error in any package still fails check-all, and the speedup is measured (#20260720123008-whole-repo-typecheck-gate.md)
 - [x] The default run is lean — no coverage instrumentation and no spawned gate process — while `--coverage` still folds the gate in-process and still fails a package below its threshold (#20260720123009-lean-default-run-inprocess-coverage.md)
 - [x] `check-all` runs the per-package suites concurrently through the canonical runner (no new per-package alias scripts), batching packages per worker longest-first, printing the phase wall clock; a deliberately failing package is still unambiguously attributed (#20260720123005-check-all-concurrent-fanout.md)
