@@ -25,6 +25,13 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # scripts/vendor-boundary-exemptions.txt).
 ./scripts/gate-vendor-boundary.sh
 
+# Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
+# constraint that ruled out `worker_threads` in favour of promises and child
+# processes. Runs the scheduler for real on every runtime present; Deno and Bun
+# are optional (skipped with a note when absent), Node is not
+# (scripts/gate-cross-runtime.sh).
+./scripts/gate-cross-runtime.sh
+
 # Gate: the repository's own TS tooling scripts (scripts/*.ts — the publish
 # preflight and its pure helpers) typecheck strictly and their unit tests pass.
 # They run under Node's native type-stripping; the typecheck uses the build

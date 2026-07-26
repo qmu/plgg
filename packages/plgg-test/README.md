@@ -157,6 +157,28 @@ Per-package options live in `plgg-test.config.json`:
 
 Requires Node `>=22.6` (it runs TypeScript specs directly).
 
+## Cross-runtime
+
+The **scheduler** — concurrency, `suite.serial`, result ordering — runs
+identically on Node, Deno and Bun. That is why it is built on promises
+and child processes and never `worker_threads`, `cluster`, or a native
+addon. `scripts/gate-cross-runtime.sh` proves it on every run of
+check-all by executing the scheduler on each runtime present:
+
+```sh
+./scripts/gate-cross-runtime.sh
+```
+
+Deno and Bun are optional — absent, they are reported as skipped.
+
+What is **not** portable, and is not meant to be, is the launcher around
+the scheduler: `bin/plgg-test.mjs` spawns children with Node flags, the
+`plgg-test/index` self-alias is resolved by a Node `module.register`
+hook, and coverage uses `NODE_V8_COVERAGE`. Curiously, Node is the
+runtime that needs the most help: Deno and Bun resolve TypeScript's
+`./x.js` specifiers natively, while Node needs plgg-test's own resolver
+hook to do it.
+
 ## Conventions
 
 - `as` / `any` / `ts-ignore` are prohibited (see root
