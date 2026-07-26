@@ -30,9 +30,9 @@
     "build": "plgg-bundle",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
-    "test": "tsc --noEmit && node ./bin/plgg-test.mjs src",
+    "test": "node ./bin/plgg-test.mjs src",
     "test:watch": "node ./bin/plgg-test.mjs src --watch",
-    "coverage": "tsc --noEmit && node ./bin/plgg-test.mjs src --coverage",
+    "coverage": "node ./bin/plgg-test.mjs src --coverage",
     "coverage:watch": "node ./bin/plgg-test.mjs src --coverage --watch"
   },
   "repository": {

@@ -37,6 +37,15 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Gate: every package typechecks. ONE whole-repo gate, replacing the
+# `tsc --noEmit &&` prefix each package's `test` script used to carry — that
+# prefix meant 38 cold `tsc` programs (50.9 s measured), each re-parsing
+# lib.d.ts and @types/node from scratch. Tests RUN via native type-stripping and
+# never needed tsc, so typecheck belongs here, once, where the shared type graph
+# is paid a single time (scripts/typecheck.ts). Each package keeps its OWN
+# program and options — a merged program would let a node-only package see DOM.
+node "$REPO_ROOT/scripts/typecheck.ts"
+
 # plgg-bundle is the in-house build tool every package builds through, so it is
 # tested in the same gate.
 ./scripts/test-plgg-bundle.sh

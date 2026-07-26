@@ -104,3 +104,97 @@ cold process starts without touching a single line of test semantics.
   measured wall clock with its command recorded, not an assertion.
 - `workaholic:design` / `vendor-neutrality` — the project's own TypeScript, no
   new dependency, no Node-only concurrency primitive.
+
+## Final Report
+
+Landed as `scripts/typecheck.ts` (+ `scripts/typecheck.spec.ts`), wired into
+`check-all.sh` after `build.sh`, with `tsc --noEmit && ` stripped from all 38
+packages' `test` and `coverage` scripts.
+
+### Measured — every number below is from a run executed in this ticket
+
+**Before** — 37 cold `tsc --noEmit` programs, one per package, timed exactly as
+the retired `test` scripts invoked them:
+
+```
+$ sh scratchpad/tscbase.sh    # per-package: cd packages/<p> && node …/tsc --noEmit
+…
+packages/plgg-poc6-classify 1.187829005 status=0
+TOTAL 50.856038817
+```
+
+**After** — one gate, 38 packages (one MORE than the old path covered:
+`plgg-mcp` was never in check-all's list and is now checked):
+
+```
+$ node scripts/typecheck.ts     # cold, no build info present
+typecheck: 38 packages in 34.4s — all clean
+$ node scripts/typecheck.ts     # warm
+typecheck: 38 packages in 16.3s — all clean
+$ node scripts/typecheck.ts     # warm, steady state
+typecheck: 38 packages in 12.7s — all clean
+```
+
+**Test phase, before → after** (same harness, same session, warm tree, each
+`./scripts/test-*.sh` timed as `check-all.sh` invokes it):
+
+```
+before: TOTAL 228.489441103   (37/37 green)
+after:  TOTAL 157.944690366   (37/37 green)
+```
+
+So the phase drops **70.5 s**, and the whole-repo gate costs **12.7 s warm**
+(34.4 s on a first run) — a net **~58 s** off the 228.5 s baseline, while
+checking one package more than before.
+
+### Verification that the gate still gates
+
+```
+# type error injected into packages/plgg (node-only, declaration-emitting)
+typecheck: 38 packages in 12.7s — FAILED in 1: plgg
+  packages/plgg/src/__typecheck_probe.ts:1:14 - error TS2322: Type 'string'
+  is not assignable to type 'number'.
+
+# type error injected into packages/plgg-view (DOM lib)
+EXIT=1
+typecheck: 38 packages in 12.6s — FAILED in 1: plgg-view
+
+# DOM usage in packages/plgg-parser (node-only lib) — must NOT compile
+EXIT=1 (expect 1 — plgg-parser is node-only lib, must not see DOM)
+typecheck: 38 packages in 12.7s — FAILED in 1: plgg-parser
+```
+
+The third probe is the important one: it proves the shared compiler host does
+**not** leak `DOM` from a DOM-lib package into a node-only package. Strictness is
+preserved; the gate is faster because the type graph is parsed once, not because
+it checks less.
+
+`node packages/plgg-bundle/node_modules/typescript/bin/tsc -p scripts/tsconfig.json`
+clean; `node --test scripts/*.spec.ts` → 26 pass / 0 fail;
+`./scripts/gate-vendor-boundary.sh` and `./scripts/gate-readme.sh` green.
+
+### Discovered Insights
+
+- **Insight**: **Fanning the typecheck out over 4 processes bought nothing** —
+  29.6 s wall for a 4-way split vs 28.6 s single-process, with each worker taking
+  22–28 s for only 9–10 packages. **Context**: each worker re-parses the whole
+  shared `.d.ts` graph in its own process, so the fan-out multiplies the one cost
+  the single-process design exists to pay once. This is the opposite of the test
+  phase, where fan-out is the main lever — do not assume a lever transfers
+  between the two phases. Measured, not assumed; the single-process design was
+  kept because of it.
+- **Insight**: `ts.getPreEmitDiagnostics(builder.getProgram())` silently defeats
+  incremental checking — it re-checks every file from the raw program and never
+  touches the builder's cache. Routing through it measured **49.8 s** where the
+  builder's own `getSemanticDiagnostics()`/`getSyntacticDiagnostics()` measured
+  **12.7 s warm**. **Context**: the API pair looks interchangeable and the fast
+  one is the less obvious one; anyone touching this file will reach for
+  `getPreEmitDiagnostics` first, so the comment in `checkProject` says so
+  explicitly with the numbers.
+- **Insight**: Incremental costs on the FIRST run what it saves on every one
+  after — cold went 28.6 s → 34.4 s once build-info writing was added, warm went
+  to 12.7 s. **Context**: the trade is right for a repo where check-all runs many
+  times per day, but a CI job on a fresh clone pays the worse number. The build
+  info lives at `packages/<p>/node_modules/.cache/typecheck.tsbuildinfo` — inside
+  an already-ignored directory, so it needs no `.gitignore` entry and can never
+  ship in a package tarball.
