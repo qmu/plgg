@@ -19,9 +19,18 @@ import {
 import type { Assertion } from "../Matchers/Assertion.js";
 import {
   environmentOf,
-  concurrencyOf,
   installEnvironment,
 } from "../Env/dom.js";
+import {
+  concurrencyOf,
+  stubsGlobals,
+} from "./scheduling.js";
+import {
+  enter,
+  leave,
+  inFlight,
+  setCount,
+} from "./inflight.js";
 
 /**
  * Imports one spec file and returns its registered suite tree. The
@@ -88,6 +97,8 @@ export const runFile = async (
   // Two reasons a file runs serially instead of concurrently:
   //   - it DECLARES an environment (`@plgg-test-environment dom`), whose
   //     install mutates process globals its tests would then race on;
+  //   - it stubs a PROCESS-WIDE value (`vi.stubGlobal`/`vi.stubEnv`),
+  //     detected from the source so the author need not declare it;
   //   - it declares `@plgg-test-concurrency 1` — the explicit opt-out
   //     for a file whose tests cannot overlap for a reason the runner
   //     cannot see (the one case here: a test that itself calls
@@ -95,11 +106,15 @@ export const runFile = async (
   // `environmentOf` returns undefined for the plain no-directive case,
   // which is the concurrent one.
   const limit =
-    environment === undefined
+    environment === undefined && !stubsGlobals(file)
       ? (concurrencyOf(file) ?? concurrency)
       : 1;
   const outerEscapes = fileEscapes;
   fileEscapes = limit > 1 ? [] : undefined;
+  // Give this file its own in-flight scope, so a NESTED run's tests are
+  // not counted as siblings of the enclosing test (see Core/inflight.ts).
+  const outerInFlight = inFlight();
+  setCount(0);
   try {
     const loaded = await loadModule(
       file,
@@ -126,6 +141,7 @@ export const runFile = async (
         ];
     return [...results, ...escapeResults(file)];
   } finally {
+    setCount(outerInFlight);
     fileEscapes = outerEscapes;
     await restore();
   }
@@ -357,7 +373,11 @@ const runTest = async (
     };
   }
   const started = now();
-  const failure = await execute(test.fn, hooks);
+  // Bracket the body so `vi` can tell whether a sibling test could
+  // observe a process-wide stub (see Core/inflight.ts).
+  enter();
+  const failure = await execute(test.fn, hooks)
+    .finally(leave);
   const durationMs = now() - started;
   return failure.failed
     ? {

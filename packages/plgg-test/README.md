@@ -74,9 +74,16 @@ Two things a concurrent suite can no longer assume:
   left behind (a shared log, a seeded fixture, a counter) is no longer
   meaningful. Hooks still bracket each test; what is gone is the
   sequence *between* tests.
-- **Exclusive access to process globals.** `vi.stubGlobal`, a bound
-  port, a temp file at a fixed path — anything one test installs and
-  another expects to still be there.
+- **Exclusive access to process globals.** A bound port, a temp file at
+  a fixed path — anything one test installs and another expects to still
+  be there.
+
+**`vi.stubGlobal` / `vi.stubEnv` are handled for you.** A spec whose
+source mentions either is scheduled **serially, automatically** — no
+directive to write and none to forget. Behind that sits a runtime
+backstop: a stub attempted while sibling tests are in flight **throws**
+with a message naming the fix, so the failure mode is a red test, never
+a global swapped underneath a concurrent sibling.
 
 ### `suite.serial(...)` — the opt-in serial block
 

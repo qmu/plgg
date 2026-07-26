@@ -36,38 +36,6 @@ export const environmentOf = (
   return match === null ? undefined : match[1];
 };
 
-// A spec opts OUT of concurrent execution with a first-lines comment
-// `// @plgg-test-concurrency 1`.
-const CONCURRENCY_DIRECTIVE =
-  /\/\/\s*@plgg-test-concurrency\s+(\d+)/;
-
-/**
- * Reads a spec file's requested in-file concurrency, if it declares one.
- *
- * The escape hatch for a file whose tests cannot overlap for a reason
- * the runner cannot see. The one such reason in this repo is a test that
- * itself calls `runFile` — plgg-test's own `Runner.spec` — because
- * registration (`resetRegistry`/`takeRootSuite`) and the DOM env install
- * are process-global, so two overlapping runs would reset the registry
- * out from under each other.
- *
- * Same leading-comment scan as {@link environmentOf}, so a
- * directive-shaped substring further down the file is not a false
- * positive. Returns `undefined` when the file declares none.
- */
-export const concurrencyOf = (
-  file: string,
-): number | undefined => {
-  const match = CONCURRENCY_DIRECTIVE.exec(
-    leadingComments(readFileSync(file, "utf8")),
-  );
-  const raw = match === null ? "" : match[1];
-  const n = Number.parseInt(raw ?? "", 10);
-  return Number.isInteger(n) && n > 0
-    ? n
-    : undefined;
-};
-
 // The contiguous block of blank and `//`-comment lines at the top of a
 // source file, joined back into a string. Stops at the first line that
 // is neither blank nor a line comment (i.e. the first code).

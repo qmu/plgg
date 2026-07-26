@@ -1,11 +1,3 @@
-// @plgg-test-concurrency 1
-//
-// These tests replace the PROCESS-GLOBAL `fetch` with `vi.stubGlobal`
-// and restore it in `afterEach`. Concurrently, one test's stub is torn
-// down while another is still using it, so every test sees whichever
-// stub happened to be installed last. The global-stub isolation ticket
-// is what removes this opt-out; until then a suite that mutates a
-// process global runs serially.
 import {
   test,
   check,

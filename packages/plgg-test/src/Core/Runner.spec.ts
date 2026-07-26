@@ -19,7 +19,10 @@ import {
   concurrencyFrom,
   DEFAULT_CONCURRENCY,
 } from "./Runner.js";
-import { concurrencyOf } from "../Env/dom.js";
+import {
+  concurrencyOf,
+  stubsGlobals,
+} from "./scheduling.js";
 import { tally } from "./Reporter.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -267,3 +270,38 @@ test("suite.serial runs as one indivisible unit while siblings overlap", async (
 // with it rather than being bolted onto one spelling.
 test("describe.serial is the same modifier as suite.serial", () =>
   check(describe.serial === suite.serial, toBe(true)));
+
+// --- global-stub safety ---------------------------------------------
+
+// The detection that makes it automatic: a spec is scheduled serially
+// because it MENTIONS a process-wide stub, with no directive to write.
+test("stubsGlobals detects a spec that mutates process-wide state", () =>
+  all([
+    check(
+      stubsGlobals(
+        fixture("_stubGlobalFixture.spec.ts"),
+      ),
+      toBe(true),
+    ),
+    check(
+      stubsGlobals(
+        fixture("_mixedFixture.spec.ts"),
+      ),
+      toBe(false),
+    ),
+  ]));
+
+// The regression test the isolation is for: two tests stub the SAME
+// global with different values and each yields to the event loop between
+// stubbing and reading — the exact window a concurrent sibling would use
+// to overwrite it. Both see their own value, so there is no bleed.
+test("concurrent global stubs do not bleed between tests", async () => {
+  const results = await runFile(
+    fixture("_stubGlobalFixture.spec.ts"),
+  );
+  const v = tally(results);
+  return all([
+    check(v.passed, toBe(2)),
+    check(v.failed, toBe(0)),
+  ]);
+});
