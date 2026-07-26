@@ -89,3 +89,53 @@ Node/Deno/Bun), `suite.serial` opt-in, ≤10 s full-suite target.
   machine-actionable recovery checkpoint carrying the measured data.
 - `workaholic:implementation` / `operational-planning` — replan the
   concretization from evidence, not from the pre-measurement guesses.
+
+## Final Report
+
+Replan completed. The developer's two rulings were applied as given and not
+re-opened: the target is **≤35 s measured on this machine** with **no separate
+CI-host target**, and the in-process concurrency items stay in scope but sit
+**behind** the three process-level levers.
+
+**Tickets reconciled against the validated order of leverage**
+
+| Ticket | Disposition |
+|---|---|
+| `20260720123008-whole-repo-typecheck-gate.md` | **minted** — lever 1 (had no ticket) |
+| `20260720123009-lean-default-run-inprocess-coverage.md` | **minted** — lever 2 (had no ticket) |
+| `20260720123005-check-all-concurrent-fanout.md` | **rewritten** — levers 3+4, now depends on 123009 |
+| `20260720123002-concurrent-by-default-execution.md` | **rewritten** — deprioritized behind 123005, honest ~3.6 s budget stated |
+| `20260720123003`, `20260720123004`, `20260720123006` | **re-ordered** (`depends_on` relinked into a single chain) |
+| `20260720123007-measure-full-suite-under-10s.md` | **superseded** by `20260720123011-measure-full-test-phase-under-35s.md` |
+
+Levers 3 and 4 are deliberately one ticket: batching packages per worker is the
+same code path as the fan-out, and splitting them would have produced two
+half-built runners.
+
+### Discovered Insights
+
+- **Insight**: A same-session re-measurement of the *current* test phase came in
+  at **228.5 s**, not T1's 296.5 s — 37 packages, all green, warm tree, measured
+  by timing each `./scripts/test-*.sh` exactly as `check-all.sh` invokes them.
+  **Context**: T1's absolute numbers were taken under heavier machine load, so
+  the per-package figures in the archived spike are not directly comparable to a
+  fresh run. Its *proportions* (57% coverage+gate / 26% run / 17% tsc) and its
+  falsifications (fan-out at 1.3–1.56×, `NODE_COMPILE_CACHE` no gain) are what
+  carry forward. Any before/after claim must re-measure the old path in the same
+  session rather than quoting 296.5 s as the "before".
+- **Insight**: The repo's 39 packages carry **12 distinct tsconfig shapes** —
+  DOM vs node-only `lib`, `NodeNext` vs `ESNext`, and `paths` self-aliases like
+  `plgg/*` → `./src/*`. **Context**: this rules out the obvious implementation of
+  "one whole-repo typecheck" (a single merged program), because a node-only
+  package would then see `DOM` and silently check *less*. Lever 1 must keep one
+  program per package and share the *host*, not the options — recorded in
+  `20260720123008` so a future implementer does not rediscover it the expensive
+  way.
+- **Insight**: Stamping `drive_authorized: true` now requires a `strategy:` link
+  (`hooks/validate-mission.sh`), and this repository had **no strategies at all**
+  — the requirement postdates every mission here. **Context**: the stamp is
+  blocked at write time until a strategy exists, so
+  `keep-the-plgg-inner-loop-fast-and-its-gates-trustworthy` was created and
+  linked. The other active missions are unaffected (the hook only fires on
+  `drive_authorized: true`), so this does not oblige the repo to backfill
+  strategies — but the next mission to be authorized will hit the same gate.

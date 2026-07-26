@@ -6,7 +6,7 @@ layer: [Infrastructure]
 effort: 4h
 commit_hash:
 category: Changed
-depends_on: [20260720123001-profile-test-phase-validate-concurrency.md]
+depends_on: [20260720123005-check-all-concurrent-fanout.md]
 mission: modernize-plgg-test-for-concurrent-speed
 ---
 
@@ -22,33 +22,74 @@ Bun. Registration order stops implying execution order (except inside serial
 blocks, added in the next ticket), so result collection must stay deterministic
 and correctly attributed regardless of completion order.
 
+**Re-prioritized after the T1 measurement — read this before estimating its
+value.** T1 measured the in-process serial cost precisely: the per-test
+`await new Promise(r => setTimeout(r, 0))` rejection flush in
+`foldBodyWithRejectionWindow` is an **idle, strictly-serial event-loop turn**
+costing ~1.2 ms × ~3000 tests = **~3.6 s of pure serial idle** across the whole
+repo. That ~3.6 s is the **entire** budget in-process async concurrency can
+recover: the dominant costs are CPU-bound (typecheck, coverage instrumentation,
+synchronous assertion bodies) and are addressed by the three process-level
+levers this ticket now depends on.
+
+So this ticket is kept **for the authoring semantics, not for the speed** — it
+is what makes `suite.serial` meaningful and what lets a genuinely async suite
+overlap its I/O. Do not justify it with a wall-clock claim it cannot deliver,
+and do not let it block the levers that can.
+
 ## Key files
 
 - `packages/plgg-test/src/Core/Runner.ts` — `sequence(...)` → bounded async
-  pool; deterministic result tree assembly.
+  pool; deterministic result tree assembly; the per-test `setTimeout(0)`
+  rejection-flush window and the `windowStack` that attributes escaped
+  rejections (both assume strict serial nesting today).
 - `packages/plgg-test/src/Core/Registry.ts` — suite/test mode metadata the
-  scheduler reads.
+  scheduler reads; `resetRegistry`/`takeRootSuite` are process-global, so
+  concurrent spec files currently cannot register at the same time.
+- `packages/plgg-test/src/Cli/cli.ts` — the file-level `sequence(...)` over
+  discovered spec files.
 - `packages/plgg-test/src/index.ts` — no surface change expected.
 
 ## Approach
 
 - Introduce a bounded async pool (limit tunable via an env var, defaulting to a
-  sensible core-based value) that schedules leaf tests / spec files as tasks.
+  sensible value) that schedules leaf tests / spec files as tasks.
 - Collect results into the existing suite tree keyed by suite path + name, then
   **sort by registration order at report time** so output is stable even though
   execution is not.
 - Preserve `beforeEach`/`afterEach` semantics for each concurrent test.
+- **The `windowStack` rejection-attribution model is the hard part.** It is a
+  stack today precisely because runs nest strictly; under concurrency several
+  windows are open at once and a single process listener cannot route an escaped
+  rejection to "the innermost" one. Either scope the window per running test
+  (not a stack) or serialize the flush; whichever is chosen, plgg-test's own
+  `Runner.spec` coverage of nested runs must stay green.
+- **The module-global registry is the second hard part.** `runFile` calls
+  `resetRegistry()` then imports the spec; two spec files loading concurrently
+  would interleave their registrations. Either keep file-level loading serial
+  and parallelize only *within* a file, or give registration a per-file scope.
 - Global-stubbing suites fall back to serial until the isolation ticket lands
   (guard so this ticket never races the DOM env).
 
 ## Quality Gate
 
 - **Acceptance:** independent tests and spec files run concurrently (observable
-  as overlapping execution windows and a measurable wall-clock drop on a
-  representative package); results are deterministic and correctly attributed;
-  the whole plgg-test self-suite is green; output ordering is stable.
-- No `worker_threads`/`cluster`; no new dependency; `scripts/tsc-plgg.sh`
-  green; plgg-test coverage stays >90%.
+  as overlapping execution windows); results are deterministic and correctly
+  attributed regardless of completion order; the whole plgg-test self-suite is
+  green; output ordering is stable across repeated runs. Report the measured
+  wall-clock delta **honestly against the ~3.6 s serial-idle budget** — a small
+  number is the expected outcome, not a failure of this ticket.
+- No `worker_threads`/`cluster`; no new dependency; no `as`/`any`/`ts-ignore`;
+  `scripts/tsc-plgg.sh` green; plgg-test coverage stays above its configured
+  threshold; Prettier printWidth 50.
+
+## Considerations
+
+- **Determinism is the acceptance; speed is not.** A concurrent runner that
+  reports a flaky or misattributed result is a net loss however fast it is.
+- The whole repo's ~3000 tests run through this scheduler, so a regression here
+  is a regression in every package's gate — verify by running the full phase,
+  not only plgg-test's own suite.
 
 ## Policies
 

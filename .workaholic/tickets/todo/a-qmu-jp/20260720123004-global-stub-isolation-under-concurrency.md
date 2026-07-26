@@ -6,7 +6,7 @@ layer: [Infrastructure]
 effort: 4h
 commit_hash:
 category: Changed
-depends_on: [20260720123002-concurrent-by-default-execution.md]
+depends_on: [20260720123003-suite-serial-opt-in-block.md]
 mission: modernize-plgg-test-for-concurrent-speed
 ---
 

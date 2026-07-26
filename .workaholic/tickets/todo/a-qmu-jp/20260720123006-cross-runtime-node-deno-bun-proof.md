@@ -6,7 +6,7 @@ layer: [Infrastructure]
 effort: 2h
 commit_hash:
 category: Added
-depends_on: [20260720123002-concurrent-by-default-execution.md]
+depends_on: [20260720123004-global-stub-isolation-under-concurrency.md]
 mission: modernize-plgg-test-for-concurrent-speed
 ---
 
