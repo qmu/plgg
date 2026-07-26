@@ -14,7 +14,7 @@ concerns: []
 gate_type:
 gate_target:
 gate_assert:
-actual_hours: 0.4
+actual_hours: 2.4
 ---
 
 # Modernize plgg-test for concurrent speed
@@ -172,3 +172,11 @@ because T1 measured their whole budget at ~3.6 s):
 - 2026-07-26 — ticket archived — 20260720123004-global-stub-isolation-under-concurrency.md
 - 2026-07-26 — ticket archived — 20260720123006-cross-runtime-node-deno-bun-proof.md
 - 2026-07-26 — ticket archived — 20260720123011-measure-full-test-phase-under-35s.md
+- 2026-07-26 — run recorded (+2.0h) — drive-20260726-025500
+
+## Reflection
+
+### 2026-07-26 run drive-20260726-025500
+- blocked: nothing after the gate opened. The mission sat `not_authorized` for six days because T1's measurement invalidated its own plan — the pre-measurement tickets aimed at in-process concurrency worth ~3.6s while 57% of the phase was coverage instrumentation. The replan needed two developer rulings (relax ≤10s to ≤35s measured here; keep the in-process scheduler for its authoring semantics, not its speed), and once those landed the whole T2–T7 chain drained in one pass.
+- leaked questions: none mid-run. Both forks were pushed up front and answered before any leaf was spawned, which is exactly what the `/carry` checkpoint asked for.
+- front-load next: the typecheck gate is now the critical path (~29s of 33.9s) and the 35s margin is ~1s — any further work must target typechecking, not the runner, and the next planning should decide up front whether that means finer `tsc -b` project granularity or a persistent watch server. Also decide whether 35s should become a hard CI gate or stay a measured claim.
