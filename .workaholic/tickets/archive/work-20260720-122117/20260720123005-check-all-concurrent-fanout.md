@@ -108,3 +108,109 @@ rather than one, so 38 process starts become ≈`nproc` process starts.
 - `workaholic:implementation` / `objective-documentation` — attribution and
   speedup both verified by real runs with captured output.
 - `workaholic:design` / `vendor-neutrality` — cross-runtime process spawn only.
+
+## Final Report
+
+`scripts/runTests.ts` (+ `scripts/runTests.spec.ts`) is the canonical runner.
+`check-all.sh` lost its 37 enumerated `./scripts/test-<pkg>.sh` lines and the
+separate typecheck line; both are now one invocation. The per-package
+`test-<pkg>.sh` scripts stay for running a single package by hand — no new
+per-package alias script was added.
+
+### Measured — all figures from runs executed in this ticket
+
+```
+$ node scripts/runTests.ts                       # tests only, first run (cold cost cache)
+test phase: 38 checks in 29.8s (jobs=4) — all green
+
+$ node scripts/runTests.ts --typecheck           # + the whole-repo typecheck gate
+jobs=4 → 35.5s   jobs=5 → 33.9s   jobs=6 → 33.8s   jobs=8 → 34.7s
+
+$ ./scripts/check-all.sh                         # end to end
+CHECKALL EXIT=0
+CHECKALL WALL=115.438122375
+test phase: 39 checks in 33.8s (jobs=6) — all green
+
+$ node scripts/runTests.ts --typecheck --coverage
+test phase: 39 checks in 61.3s (jobs=6) — all green
+```
+
+Against the 228.5 s same-session baseline that is **6.8×**, and it now covers
+**38** packages — `plgg-mcp` has 4 specs and a `test` script but was never in
+check-all's hand-maintained list. Deriving the set from the filesystem found it.
+
+### Verification that the gate still gates
+
+A real failing assertion added to `plgg-router`:
+
+```
+RUNNER EXIT=1  (expect 1)
+ FAIL  plgg-router (3.2s)
+=== FAILED packages/plgg-router (3.2s) ===
+✗ deliberate failure — the fan-out must still go red
+test phase: 38 checks in 28.2s (jobs=6) — FAILED in 1: plgg-router
+```
+
+Package and failing test both named; the green packages' output is suppressed so
+the failure is the only block on screen. And a package whose `test` script drifts
+away from the standard invocation is refused rather than run with the wrong
+command — `plgg-kit` temporarily set to `vitest run`:
+
+```
+DRIFT EXIT=1  (expect 1)
+tests: unrecognised test script in: plgg-kit
+The canonical runner invokes the plgg-test launcher directly; a package
+with a bespoke test command would be run with the wrong one.
+```
+
+`node --test scripts/*.spec.ts` → 42 pass / 0 fail; `scripts/tsconfig.json`
+typecheck clean.
+
+### The coverage gap from `20260720123009` is closed
+
+`./scripts/check-all.sh --coverage` runs the phase with the four-metric gate;
+measured 61.3 s with **all 38 packages passing their thresholds**. Coverage is
+opt-in but reachable through the same canonical command — it did not fragment
+into a second script.
+
+### Lever 4 (multi-package-per-worker): NOT implemented — measured as not worth it
+
+The ticket allowed either outcome provided the finding was recorded. Two
+measurements decided it:
+
+- Bypassing the `bin/plgg-test.mjs` launcher to spawn the CLI directly — the
+  cheap half of the idea, removing one process per package — saves **~50 ms**
+  (plgg-router 1.22 s via the launcher vs 1.18 s direct, 3 runs each). Not worth
+  duplicating the launcher's alias derivation.
+- The expensive half — several packages' specs in **one** process — would
+  require the resolver's `PLGG_TEST_ALIASES` map and `process.cwd()` to change
+  mid-process, and would put two packages' modules in one ESM cache. Isolation
+  between packages is a correctness property of the current design; trading it
+  for the remaining per-process floor is a bad deal at this size.
+
+What did land from lever 4 is the scheduling half: **slowest job first**, from a
+git-ignored `.test-durations.json` written by the previous run (falling back to
+spec-file bytes on a cold cache). Without it a worker ends up holding
+`plgg-bundle` (11 s) alone at the tail.
+
+### Discovered Insights
+
+- **Insight**: **More children than cores is faster** — jobs=4 → 35.5 s, jobs=6 →
+  33.8 s on a 4-core box, with CPU pegged at ~370% either way. **Context**: each
+  child spends a real slice of its life starting node and loading its module
+  graph, blocked rather than computing, so pinning the pool to `nproc` leaves
+  cores idle in those windows. `defaultJobs` is `cores + 2` because of this
+  measurement, not by intuition — and past +2 contention costs more than the idle
+  it fills.
+- **Insight**: Folding the typecheck gate into the **same** pool rather than
+  running it before the suites is worth ~6 s (28.5 + 12.7 = 41.2 s sequential vs
+  33.8 s overlapped). **Context**: they are independent gates competing for the
+  same cores, so running them in series leaves three cores idle for 13 s. It is
+  dispatched first because it is the single longest job — as a tail job it would
+  cost the whole 13 s back.
+- **Insight**: The old hand-maintained list of 37 `test-*.sh` lines had silently
+  drifted from reality: `plgg-mcp` shipped 4 specs that **check-all never ran**.
+  **Context**: a list a human must remember to update is a list that goes stale;
+  deriving the set from "has a `test` script" found the gap immediately. The
+  drifted-script refusal is the other half of that — the runner now fails loudly
+  rather than assuming every package means the same thing by `test`.
