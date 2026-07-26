@@ -148,7 +148,7 @@ because T1 measured their whole budget at ~3.6 s):
 
 - [ ] A profiling baseline documents where today's test-phase wall-clock goes (typecheck vs process startup vs module load vs body vs env install) and validates a runtime-agnostic approach, replacing the pre-measurement guesses (#20260720123001-profile-test-phase-validate-concurrency.md)
 - [x] Typecheck comes off the per-package test hot loop: one whole-repo gate replaces 38 cold `tsc --noEmit` programs, a deliberate type error in any package still fails check-all, and the speedup is measured (#20260720123008-whole-repo-typecheck-gate.md)
-- [ ] The default run is lean — no coverage instrumentation and no spawned gate process — while `--coverage` still folds the gate in-process and still fails a package below its threshold (#20260720123009-lean-default-run-inprocess-coverage.md)
+- [x] The default run is lean — no coverage instrumentation and no spawned gate process — while `--coverage` still folds the gate in-process and still fails a package below its threshold (#20260720123009-lean-default-run-inprocess-coverage.md)
 - [ ] `check-all` runs the per-package suites concurrently through the canonical runner (no new per-package alias scripts), batching packages per worker longest-first, printing the phase wall clock; a deliberately failing package is still unambiguously attributed (#20260720123005-check-all-concurrent-fanout.md)
 - [ ] plgg-test executes independent tests and spec files concurrently by default via runtime-agnostic async scheduling with no `worker_threads`; results stay deterministic and correctly attributed (#20260720123002-concurrent-by-default-execution.md)
 - [ ] `suite.serial(...)` runs its tests in registration order as one indivisible unit with `beforeEach`/`afterEach` fixture bracketing, isolated from the concurrent pool; documented and tested (#20260720123003-suite-serial-opt-in-block.md)
@@ -165,3 +165,4 @@ because T1 measured their whole budget at ~3.6 s):
 - 2026-07-26 — replanned from T1 measurement — target relaxed to ≤35 s on the dev machine (≤10 s retired as unreachable, no CI-host target); scope re-ordered behind the three process-level levers; T2–T7 reconciled, 123007 superseded, 123008/123009/123011 minted; strategy linked and drive_authorized stamped — 20260720122900-resume-replan-t2-t7-from-t1-findings.md
 - 2026-07-26 — ticket archived — 20260720122900-resume-replan-t2-t7-from-t1-findings.md
 - 2026-07-26 — ticket archived — 20260720123008-whole-repo-typecheck-gate.md
+- 2026-07-26 — ticket archived — 20260720123009-lean-default-run-inprocess-coverage.md

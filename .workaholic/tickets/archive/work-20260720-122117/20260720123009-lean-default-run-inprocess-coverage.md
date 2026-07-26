@@ -101,3 +101,84 @@ test process per package.
   keeps failing a below-threshold package, proven by an actual red run.
 - `workaholic:design` / `vendor-neutrality` — no new dependency; the runner
   itself gains no Node-only primitive.
+
+## Final Report
+
+The fold and the gate moved out of `Coverage/gate.ts` into a new
+`Coverage/report.ts` (`formatReport`, `gateOutcome`, `foldAndGate`), shared by
+two callers: `gate.ts` — kept as a standalone entry, no longer spawned — and
+`Cli/cli.ts`, which now flushes its own V8 dump with `v8.takeCoverage()` and
+folds inline. `bin/plgg-test.mjs` stops setting `NODE_V8_COVERAGE` and stops
+spawning the gate on the default path: one spawn, nothing else.
+
+### Measured
+
+Test phase, same harness and session as the earlier baselines (each
+`./scripts/test-*.sh` timed as `check-all.sh` invokes it, warm tree):
+
+```
+baseline (tsc + always-on coverage + spawned gate):  TOTAL 228.489s  37/37 green
+after lever 1 (tsc off the hot loop):                TOTAL 157.945s  37/37 green
+after lever 2 (lean default run):                    TOTAL  81.896s  37/37 green
+```
+
+Per package, `plgg-test` itself: **6.58 s → 1.56 s** lean; `--coverage`
+3.52 s. The lean figure lands almost exactly on T1's predicted ~77 s for the
+whole phase, which is the useful confirmation — the model held.
+
+### Verification that the gate still gates
+
+Coverage numbers are **byte-identical** to the two-process path. Measured by
+`git stash`-ing this ticket's changes, running `npm run coverage` on three
+packages against HEAD, restoring, and re-running:
+
+```
+                 OLD (spawned gate.ts)        NEW (in-process fold)
+plgg-router      100.00 / 97.14 / 98.18 / 100.00   ← identical
+plgg-kit         100.00 / 100.00 / 100.00 / 100.00 ← identical
+plgg-parser       98.85 / 93.75 /  97.74 /  98.85  ← identical
+```
+
+It still fails below threshold — `plgg-parser`'s threshold temporarily raised to
+99 (real branch coverage 93.75%):
+
+```
+EXIT=1  (expect 1)
+Coverage gate FAILED (need all four > 99%)
+# config restored
+EXIT=0  (expect 0)
+```
+
+And the default run collects nothing: `ls /tmp/plgg-test-cov-*` counted **0**
+before and **0** after `npm run test`, versus a temp dir per run before.
+
+plgg-test's own suite: **135 passed, 0 failed** (up from 127 — 8 new specs for
+`report.ts`). plgg-test coverage **95.10 / 86.43 / 92.08 / 95.10**, gate green,
+and `report.ts` itself at 96.63% lines. `node scripts/typecheck.ts plgg-test`
+clean.
+
+### Concern carried forward — coverage is currently unwired from check-all
+
+Between this commit and the canonical-runner ticket, **`check-all` does not
+enforce coverage**: its test block calls `npm run test`, which is now lean, and
+nothing else runs `npm run coverage`. That gap is closed by
+`20260720123005`, which puts `--coverage` on the canonical runner. It is stated
+here rather than papered over — if this branch were cut short at this commit, the
+>90% rule would be documented but unenforced.
+
+### Discovered Insights
+
+- **Insight**: The in-process fold produces numbers identical to the spawned
+  one, which is *not* obvious — `v8.takeCoverage()` writes the dump for the
+  current process on demand, so the fold sees exactly what the exit-time dump
+  would have contained. **Context**: the old design's comment in `v8.ts` about
+  merging repeated dumps (the discovery pass writing zero counts) exists because
+  the launcher re-exec'd; with a single collecting process there is one dump, and
+  `mergeScripts` is now dealing with a simpler world than it was written for.
+- **Insight**: `--coverage` used to be a **no-op flag** — the launcher stripped
+  it and gated unconditionally anyway, so `npm run test` and `npm run coverage`
+  did the same work. **Context**: that is why the 57% cost was invisible; nobody
+  had a cheap mode to compare against. The flag is now load-bearing and must be
+  passed through to the child, which is the one line in the launcher that is easy
+  to get wrong (it is filtered out of `childArgv` for `--watch` but must NOT be
+  for `--coverage`).
