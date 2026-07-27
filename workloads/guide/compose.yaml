@@ -15,6 +15,25 @@ services:
       dockerfile: workloads/guide/Dockerfile
     ports:
       - "5181:5173"
+    env_file:
+      # The repo-root .env (git-ignored, the single
+      # credential file for this repo). It carries
+      # OPENAI_API_KEY, which is what turns the dev
+      # server's voice assistant on: `plggpress dev`
+      # reads process.env, never a .env file, so the
+      # key has to arrive as container environment.
+      # Absent or empty, the container simply serves
+      # the guide with no assistant — the mint route
+      # 404s and no panel is injected.
+      #
+      # NOTE: the dev surface binds all interfaces and
+      # its POST /__plggpress_patch and
+      # POST /__plggpress_voice/session routes are
+      # unauthenticated. On this host the tunnel puts
+      # Cloudflare Access in front of :5181; do not
+      # expose this workload without an equivalent
+      # gate in front of it.
+      - ../../.env
     volumes:
       # Mount the repo for live editing — editing guide
       # Markdown OR plggpress theme `.ts` hot-reloads the
