@@ -104,6 +104,16 @@ OPENAI_API_KEY=sk-… npx plggpress dev
   bridge (`POST /__plggpress_patch`), which authorizes the
   path, applies the one located span, and writes atomically.
   There is no second write path.
+- Its `focus_section` tool moves the page to a section of the
+  same document, named by its **heading text in the writer's
+  own words** (case and punctuation forgiven, so "structures
+  and errors" finds `## Structures & Errors`). Read-only and
+  entirely client-side: it resolves the words against the
+  heading ids the page already emits, scrolls there and moves
+  focus so assistive technology follows, and adds no route.
+  An unknown heading, or one that names two sections, comes
+  back to the assistant as something to ask about — never a
+  silent guess.
 - The edited page updates **in place** while the realtime
   session stays connected: with a session live the reload frame
   is arbitrated into a content swap rather than a

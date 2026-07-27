@@ -12,6 +12,7 @@ import { type OpenDoc } from "plggpress/framework/DevServer/usecase/voiceDoc";
 import {
   DOC_BUDGET,
   EDIT_DOC_TOOL,
+  FOCUS_SECTION_TOOL,
   voiceInstructionsOf,
   voiceToolsOf,
 } from "plggpress/framework/DevServer/usecase/voiceInstructions";
@@ -51,7 +52,20 @@ test("an open document brings the edit protocol with it", () =>
     toContain("edit_doc"),
   ));
 
-test("an ungrounded route says so, and offers no edit protocol", () =>
+test("an open document also brings the move protocol with it", () =>
+  all([
+    check(
+      voiceInstructionsOf(some(doc("# Guide"))),
+      toContain("focus_section"),
+    ),
+    // an unresolved heading is a question, never a guess
+    check(
+      voiceInstructionsOf(some(doc("# Guide"))),
+      toContain("never pick one for them"),
+    ),
+  ]));
+
+test("an ungrounded route says so, and offers no protocol at all", () =>
   all([
     check(
       voiceInstructionsOf(none()),
@@ -61,18 +75,22 @@ test("an ungrounded route says so, and offers no edit protocol", () =>
       voiceInstructionsOf(none()),
       not(toContain("edit_doc")),
     ),
+    check(
+      voiceInstructionsOf(none()),
+      not(toContain("focus_section")),
+    ),
   ]));
 
-test("the write tool is offered only when there is something to write", () =>
+test("the tools are offered only when there is a document to act on", () =>
   all([
     check(
       voiceToolsOf(some(doc("# Guide"))),
-      toHaveLength(1),
+      toHaveLength(2),
     ),
     check(voiceToolsOf(none()), toHaveLength(0)),
   ]));
 
-test("the tool names no path — the server fixes the file", () =>
+test("the tools name no path — the server fixes the file", () =>
   all([
     check(EDIT_DOC_TOOL.name, toBe("edit_doc")),
     check(
@@ -80,5 +98,16 @@ test("the tool names no path — the server fixes the file", () =>
         EDIT_DOC_TOOL.parameters.properties,
       ).join(","),
       toBe("find,replace"),
+    ),
+    check(
+      FOCUS_SECTION_TOOL.name,
+      toBe("focus_section"),
+    ),
+    // heading text — not an id, a selector or an index
+    check(
+      Object.keys(
+        FOCUS_SECTION_TOOL.parameters.properties,
+      ).join(","),
+      toBe("heading"),
     ),
   ]));

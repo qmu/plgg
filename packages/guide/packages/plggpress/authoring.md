@@ -77,7 +77,8 @@ Press **Talk about this page**, allow the microphone, and
 you are in a conversation with an assistant that is looking
 at the same document you are. Ask it to tighten a paragraph,
 rename a heading, or delete a stale sentence, and the change
-lands in your markdown file — while you keep talking.
+lands in your markdown file — while you keep talking. Ask it
+to take you to a section, and the page goes there.
 
 What happens underneath, in the order it happens:
 
@@ -106,7 +107,23 @@ What happens underneath, in the order it happens:
    reader never sees a torn file. A refusal comes back with
    a named reason, which the assistant hears and can retry
    against.
-6. **The page updates in place.** Normally a source change
+6. **You can also just ask to be taken somewhere.** Say
+   "take me to the error model section" and the assistant's
+   `focus_section` tool moves the page: it takes the heading
+   **in your own words** — not an id, not a number — and
+   matches it against the headings this page actually
+   carries, ignoring case and punctuation, so "structures
+   and errors" finds `## Structures & Errors`. The section
+   is scrolled into view _and_ given the keyboard, so a
+   screen reader follows you there, and the address bar
+   updates to the section's anchor. Nothing is written: this
+   is the same anchor jump a click on the table of contents
+   would do.
+
+   If the words match nothing, the assistant tells you so.
+   If they match two sections, it says which ones and asks
+   you to choose — it never picks one for you.
+7. **The page updates in place.** Normally a source change
    reloads the browser — but a reload destroys the page's
    JavaScript context, and with it the live connection. So
    while a session is running the reload is _arbitrated_:

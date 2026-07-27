@@ -40,6 +40,17 @@ export type VoiceEvent =
       find: string;
       replace: string;
     }>
+  /**
+   * The model asked to move the page to one section of the
+   * open document. It names the heading in the WRITER's
+   * words — not an id, not a selector, not an index — and
+   * nothing about this reaches the disk.
+   */
+  | Readonly<{
+      kind: "FocusRequested";
+      callId: string;
+      heading: string;
+    }>
   /** A frame this page has nothing to do about. */
   | Readonly<{ kind: "Ignored" }>;
 
@@ -115,23 +126,61 @@ export const voiceEventOf = (
   }
   if (
     type ===
-      "response.function_call_arguments.done" &&
-    strAt(raw, "name") === "edit_doc"
+    "response.function_call_arguments.done"
   ) {
-    const args = jsonOf(strAt(raw, "arguments"));
-    const find = strAt(args, "find");
-    // An edit with nothing to locate cannot be applied and
-    // must not reach the bridge as a no-op patch.
-    return find === ""
-      ? IGNORED
-      : {
-          kind: "EditRequested",
-          callId: strAt(raw, "call_id"),
-          find,
-          replace: strAt(args, "replace"),
-        };
+    return toolCallOf(
+      strAt(raw, "name"),
+      strAt(raw, "call_id"),
+      jsonOf(strAt(raw, "arguments")),
+    );
   }
   return IGNORED;
+};
+
+/**
+ * One completed tool call, by name. A tool this page does
+ * not implement is `Ignored` rather than an error: the
+ * session's tool list is decided on the server, and a page
+ * that met an unknown one has nothing to do about it.
+ */
+const toolCallOf = (
+  name: string,
+  callId: string,
+  args: unknown,
+): VoiceEvent =>
+  name === "edit_doc"
+    ? editRequestOf(callId, args)
+    : name === "focus_section"
+      ? focusRequestOf(callId, args)
+      : IGNORED;
+
+const editRequestOf = (
+  callId: string,
+  args: unknown,
+): VoiceEvent => {
+  const find = strAt(args, "find");
+  // An edit with nothing to locate cannot be applied and
+  // must not reach the bridge as a no-op patch.
+  return find === ""
+    ? IGNORED
+    : {
+        kind: "EditRequested",
+        callId,
+        find,
+        replace: strAt(args, "replace"),
+      };
+};
+
+const focusRequestOf = (
+  callId: string,
+  args: unknown,
+): VoiceEvent => {
+  const heading = strAt(args, "heading");
+  // A move with nothing to name cannot resolve to a section,
+  // and must not read as "no section by that heading".
+  return heading === ""
+    ? IGNORED
+    : { kind: "FocusRequested", callId, heading };
 };
 
 /** Parse a JSON string, or `null` — the `arguments` boundary. */
@@ -182,6 +231,245 @@ export const toolOutputOf = (
             "the edit was refused",
         },
   );
+
+/* ------------------------------------------------ *
+ * Moving the page: heading text -> the id it carries  *
+ * ------------------------------------------------ */
+
+/**
+ * One heading the OPEN PAGE actually carries: the id the
+ * render path stamped on it, and the words the writer reads.
+ * Both are recovered from the rendered body itself
+ * ({@link sectionHeadingsOf}), so a spoken lookup can only
+ * ever resolve to an anchor the page really has — the same
+ * ids `collectPageLinks` collects and the dead-link checker
+ * validates `#fragment`s against.
+ */
+export type SectionHeading = Readonly<{
+  id: string;
+  text: string;
+}>;
+
+/**
+ * Where a spoken heading points. Absence and ambiguity are
+ * VARIANTS — not `null`, not an empty-string id — so the
+ * caller cannot forget them, and each comes back to the
+ * assistant as something it can say to the writer.
+ */
+export type FocusTarget =
+  | Readonly<{
+      kind: "FocusMatched";
+      id: string;
+      text: string;
+    }>
+  /** The words name more than one section; pick none. */
+  | Readonly<{
+      kind: "FocusAmbiguous";
+      texts: ReadonlyArray<string>;
+    }>
+  /** No section on this page answers to those words. */
+  | Readonly<{ kind: "FocusMissing" }>;
+
+const MISSING: FocusTarget = {
+  kind: "FocusMissing",
+};
+
+/**
+ * The rendered heading elements, with the level captured so
+ * the closing tag is matched by BACKREFERENCE — an `<h2>`
+ * can only be closed by `</h2>`. Only a heading carrying an
+ * `id` is a section a page can be moved to.
+ */
+const HEADING_RE =
+  /<h([1-6])\b[^>]*\sid="([^"]*)"[^>]*>([\s\S]*?)<\/h\1>/gi;
+
+// Capture positions in HEADING_RE. Read through `strAt`, so
+// a group that ever fails to match reads as "" rather than
+// leaking `undefined` into a heading.
+const ID_GROUP = "2";
+const TEXT_GROUP = "3";
+
+const TAG_RE = /<[^>]*>/g;
+const SPACE_RE = /\s+/g;
+
+/**
+ * The entity set both the render path's escaper and a
+ * browser's `innerHTML` serializer emit. `&amp;` is undone
+ * LAST, so a literal `&amp;lt;` in the source survives as
+ * `&lt;` rather than decoding twice.
+ */
+const decodedText = (text: string): string =>
+  text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&");
+
+/** A heading's visible words: its markup dropped, entities undone. */
+const plainTextOf = (inner: string): string =>
+  decodedText(inner.replace(TAG_RE, ""))
+    .replace(SPACE_RE, " ")
+    .trim();
+
+/**
+ * Every section the given rendered HTML offers, in document
+ * order. Deliberately reads the BODY rather than recomputing
+ * a slug: the id a jump needs is the one the page emitted,
+ * and re-implementing the slugger in a browser module is
+ * exactly how the two would drift apart.
+ */
+export const sectionHeadingsOf = (
+  html: string,
+): ReadonlyArray<SectionHeading> =>
+  [...html.matchAll(HEADING_RE)].map(
+    (m: RegExpMatchArray): SectionHeading => ({
+      id: strAt(m, ID_GROUP),
+      text: plainTextOf(strAt(m, TEXT_GROUP)),
+    }),
+  );
+
+/**
+ * What a spoken heading and a rendered one are compared as:
+ * lowercase, `&` spoken out as "and" (a writer says
+ * "structures and errors" for `Structures & Errors`), every
+ * other punctuation mark and run of whitespace flattened to
+ * a single space. Letters and digits of any script survive,
+ * so a Japanese heading is matched by its own words.
+ */
+const spokenKey = (text: string): string =>
+  text
+    .replace(/&/g, " and ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .toLowerCase();
+
+// An exact heading match wins outright; only when nothing
+// matches exactly does a partial ("errors" for "Structures &
+// Errors") get a say — so a heading whose words are a prefix
+// of another's is still reachable by naming it in full.
+const preferExact = (
+  exact: ReadonlyArray<SectionHeading>,
+  loose: ReadonlyArray<SectionHeading>,
+): ReadonlyArray<SectionHeading> =>
+  exact.length > 0 ? exact : loose;
+
+const candidatesOf = (
+  headings: ReadonlyArray<SectionHeading>,
+  key: string,
+): ReadonlyArray<SectionHeading> =>
+  preferExact(
+    headings.filter(
+      (h: SectionHeading): boolean =>
+        spokenKey(h.text) === key,
+    ),
+    headings.filter(
+      (h: SectionHeading): boolean =>
+        spokenKey(h.text).includes(key),
+    ),
+  );
+
+// One candidate is the answer; several are an ambiguity to
+// hand back, never a silent "first wins". Folded rather than
+// indexed, so there is no unreachable bounds check.
+const decided = (
+  found: ReadonlyArray<SectionHeading>,
+): FocusTarget =>
+  found.length > 1
+    ? {
+        kind: "FocusAmbiguous",
+        texts: found.map(
+          (h: SectionHeading): string => h.text,
+        ),
+      }
+    : found.reduce(
+        (
+          _: FocusTarget,
+          h: SectionHeading,
+        ): FocusTarget => ({
+          kind: "FocusMatched",
+          id: h.id,
+          text: h.text,
+        }),
+        MISSING,
+      );
+
+/**
+ * Resolve the words a writer spoke against the sections the
+ * page carries. Pure and total: no throw, no sentinel, and
+ * no preference for the first of several matches.
+ */
+export const focusTargetOf = (
+  headings: ReadonlyArray<SectionHeading>,
+  spoken: string,
+): FocusTarget =>
+  resolvedKey(headings, spokenKey(spoken));
+
+const resolvedKey = (
+  headings: ReadonlyArray<SectionHeading>,
+  key: string,
+): FocusTarget =>
+  key === ""
+    ? MISSING
+    : decided(candidatesOf(headings, key));
+
+/**
+ * What is said about one attempted move: the typed answer
+ * folded back to the model over the tool-call channel, and
+ * the one sentence the panel shows the writer. Both in the
+ * writer's vocabulary — a heading that did not resolve is a
+ * question to ask, not a technical condition to report.
+ */
+export type FocusAnswer = Readonly<{
+  output: string;
+  say: string;
+}>;
+
+export const focusAnswerOf = (
+  spoken: string,
+  target: FocusTarget,
+): FocusAnswer =>
+  target.kind === "FocusMatched"
+    ? {
+        output: JSON.stringify({
+          focused: true,
+          section: target.text,
+        }),
+        say: `moved to “${target.text}”`,
+      }
+    : target.kind === "FocusAmbiguous"
+      ? {
+          output: JSON.stringify({
+            focused: false,
+            reason:
+              "more than one section has that heading — ask the writer which one",
+            candidates: target.texts,
+          }),
+          say: `“${spoken}” names ${target.texts.length} sections — say which one`,
+        }
+      : missingAnswer(spoken, target);
+
+/**
+ * The last arm of the match above. Its parameter names the
+ * ONE variant that can still remain, so adding a
+ * {@link FocusTarget} variant stops this call compiling —
+ * exhaustiveness with no `switch`, no `default`, and no
+ * throw to make a total function partial again.
+ */
+const missingAnswer = (
+  spoken: string,
+  _remaining: Readonly<{
+    kind: "FocusMissing";
+  }>,
+): FocusAnswer => ({
+  output: JSON.stringify({
+    focused: false,
+    reason:
+      "no section of the open document has that heading — ask the writer to name one from the page",
+  }),
+  say: `no section called “${spoken}” on this page`,
+});
 
 /**
  * Fold one decoded event into the visible transcript. A

@@ -20,10 +20,14 @@
 import {
   type VoiceEvent,
   type VoiceLine,
+  type FocusTarget,
   voiceEventOf,
   foldTranscript,
   patchBodyOf,
   toolOutputOf,
+  sectionHeadingsOf,
+  focusTargetOf,
+  focusAnswerOf,
 } from "./voiceProtocol";
 import {
   type ArbiterState,
@@ -67,6 +71,13 @@ type Panel = Readonly<{
 let live: Live | null = null;
 let lines: ReadonlyArray<VoiceLine> = [];
 let arbiter: ArbiterState = arbiterInit;
+// Which section the page was last moved to. Held as the same
+// closed target the resolver returns — a swap replaces the
+// body's children, so an element reference would go stale but
+// an id the page re-emits does not.
+let focused: FocusTarget = {
+  kind: "FocusMissing",
+};
 
 const styleOf = (): string =>
   `#${PANEL_ID}{position:fixed;right:16px;bottom:16px;z-index:2147483000;` +
@@ -265,6 +276,81 @@ const runEditTool = async (
   }
 };
 
+/**
+ * Put one resolved section under the reader's eyes AND under
+ * the keyboard: assistive technology follows focus, not
+ * scroll, so a programmatic move that only scrolled would
+ * leave a screen-reader user where they were. `preventScroll`
+ * keeps the focus call from jumping instantly and cancelling
+ * the smooth scroll that follows. The fragment is replaced,
+ * not navigated to, so the focused section is addressable
+ * without re-entering the page.
+ */
+const applyFocus = (id: string): void => {
+  const target = document.getElementById(id);
+  if (target !== null) {
+    // A heading is not focusable by default; -1 makes it
+    // programmatically focusable without adding it to the tab
+    // order the writer moves through by hand.
+    target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({
+      block: "center",
+      behavior: "smooth",
+    });
+    window.history.replaceState(
+      null,
+      "",
+      `#${id}`,
+    );
+  }
+};
+
+/**
+ * Move the page to the section the writer named, and answer
+ * with what happened. The DECISION is the pure resolver's;
+ * this only reads the body the page is showing and moves the
+ * viewport and the keyboard.
+ *
+ * Exported so the focus path can be driven — and therefore
+ * verified — from a real browser without a microphone and a
+ * live model, exactly as {@link swapContent} is.
+ */
+export const focusSectionNow = (
+  heading: string,
+): FocusTarget => {
+  const target = focusTargetOf(
+    sectionHeadingsOf(document.body.innerHTML),
+    heading,
+  );
+  if (target.kind === "FocusMatched") {
+    focused = target;
+    applyFocus(target.id);
+  }
+  return target;
+};
+
+/**
+ * Run ONE `focus_section` call: move the page, tell the
+ * writer, and hand the same outcome back to the model so an
+ * unresolved heading becomes a question it can ask rather
+ * than a silence.
+ */
+const runFocusTool = (
+  panel: Panel,
+  event: Readonly<{
+    callId: string;
+    heading: string;
+  }>,
+): void => {
+  const answer = focusAnswerOf(
+    event.heading,
+    focusSectionNow(event.heading),
+  );
+  replyToTool(event.callId, answer.output);
+  say(panel, answer.say);
+};
+
 const onFrame = (
   panel: Panel,
   doc: string,
@@ -277,6 +363,10 @@ const onFrame = (
   }
   if (event.kind === "EditRequested") {
     void runEditTool(panel, doc, event);
+    return;
+  }
+  if (event.kind === "FocusRequested") {
+    runFocusTool(panel, event);
     return;
   }
   lines = foldTranscript(lines, event);
@@ -467,6 +557,13 @@ export const swapContent =
       document.head.appendChild(style);
     }
     document.title = fresh.title;
+    // The swapped-in heading is a NEW element, so the focus
+    // and the scroll the assistant put on the old one went
+    // with it. Re-apply them to the section the page is still
+    // meant to be showing.
+    if (focused.kind === "FocusMatched") {
+      applyFocus(focused.id);
+    }
   };
 
 const runArbiter = (panel: Panel): void => {

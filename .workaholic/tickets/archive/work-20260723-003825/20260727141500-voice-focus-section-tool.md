@@ -204,4 +204,114 @@ already handles correctly.
 
 ## Final Report
 
-<!-- Filled in by /drive. -->
+Development completed as planned. The assistant now has a
+second, read-only verb, and it is a LOOKUP over the anchors the
+page already carries — no new route, no new dependency, and no
+byte added to the patch/mint surface:
+
+- `usecase/voiceInstructions.ts` declares `FOCUS_SECTION_TOOL`
+  (one required `heading` string — heading text, not an id, an
+  index or a selector) beside `EDIT_DOC_TOOL`, plus a
+  `FOCUS_PROTOCOL` that tells the model to ask rather than
+  guess when the words do not resolve. `voiceToolsOf` offers
+  both tools only when a document is open.
+- `browser/voiceProtocol.ts` grew the whole decision:
+  a `FocusRequested` variant on the closed `VoiceEvent` union
+  (an empty `heading` is `Ignored`, so "nothing named" never
+  reads as "no section by that heading"), `sectionHeadingsOf`
+  reading `{id, text}` back out of the rendered body,
+  `focusTargetOf` resolving spoken words to a closed
+  `FocusTarget` (matched / ambiguous / missing), and
+  `focusAnswerOf` folding each outcome into what the model is
+  told AND what the writer reads. The decoder's tool dispatch
+  was factored into `toolCallOf`, so a third tool is one more
+  arm rather than another `if`.
+- `browser/voiceClient.ts` (the coverage-excluded shell) does
+  only bytes and pixels: `focusSectionNow` resolves against
+  `document.body.innerHTML`, moves focus with
+  `preventScroll` then `scrollIntoView({block:"center"})` (the
+  poc4c shape), stamps `tabindex="-1"` so assistive technology
+  follows, and `history.replaceState`s the fragment so the
+  focused section is addressable. The remembered target is the
+  same `FocusTarget` value, so `swapContent` re-applies it
+  after the reload arbiter replaces the body's children.
+
+**Vocabulary, not ids.** `spokenKey` lowercases, speaks `&`
+as "and", and flattens punctuation, so "structures and errors"
+finds `## Structures & Errors`. An exact match wins outright;
+a partial only decides when nothing matches exactly; two
+matches are an `Ambiguous` the model must ask about, never a
+silent first-wins.
+
+**No new slugifier.** The ids come from the body itself, and a
+spec pins them to `collectPageLinks`: a page rendered through
+`pressRenderOptions` has `sectionHeadingsOf(renderToString(
+doc.body)).map(id) === doc.slugs`, so the anchors
+`focus_section` resolves against are exactly the ones the
+dead-link checker validates `#fragment`s against.
+
+Verified live in a real browser against a running `plggpress
+dev` on a temp content root (port 51993; the developer's guide
+container on 5181 untouched). Playwright imported the SERVED,
+type-stripped modules and drove the shipped code:
+
+```
+decoded   FocusRequested(call_live_1, "structures and errors")
+resolved  FocusMatched #structures-errors "Structures & Errors"
+scrolled  window.scrollY 0 -> 489 (heading top 750px -> 261px,
+          centred in a 493px viewport)
+focus     document.activeElement = H2#structures-errors
+          tabindex="-1", location.hash = "#structures-errors"
+swap      focus moved to the panel button, page scrolled to 0,
+          then swapContent(): old H2 removed from the document
+          (sameElement=false), activeElement back on the NEW
+          H2#structures-errors, scrollY 489
+"errors"  FocusAmbiguous ["Errors","Errors"] — page did NOT
+          move (scrollY 0, focus still on the button)
+"the error model"
+          FocusMissing — page did NOT move
+keyless   panel absent, no module script, mint 404; the served
+          HTML is BYTE-IDENTICAL to the same page served by
+          HEAD's sources (sha256 98b63283…, cmp clean)
+```
+
+Mutation check in the house style: forcing `focusTargetOf` to
+always return `FocusMissing` turned exactly the five new specs
+red (307 passed → 302 passed, 5 failed); restoring turned them
+green. `./scripts/check-all.sh` exits 0, `cd packages/guide &&
+npm run build` is clean (40 pages, dead-link checker included),
+plggpress coverage 94.10 / 95.20 / 93.72 / 94.10 with
+`voiceProtocol.ts` at 100% and the exclude list untouched.
+
+### Discovered Insights
+
+- **Insight**: reading `{id, text}` back out of the rendered
+  body is what makes the lookup un-driftable — the browser
+  module cannot import plgg-md's slugger, and reimplementing
+  it is exactly how a fragment the dead-link checker calls
+  valid would fail to resolve at runtime.
+  **Context**: the spec asserts the identity against
+  `renderMarkdownWithOptions`'s own `slugs`, so the two are
+  pinned by a test rather than by a comment.
+- **Insight**: `strAt` — already exported and already spec'd
+  for both arms — reads a regex capture group safely
+  (`strAt(match, "2")`), so a total read costs no new
+  defensive branch that coverage could never reach.
+  **Context**: the alternative (`m[2]` under
+  `noUncheckedIndexedAccess` plus a `typeof` guard) creates
+  exactly the uncoverable arm the house style warns about;
+  the same reasoning drove folding a one-element candidate
+  list with `reduce` instead of indexing `[0]`.
+- **Insight**: exhaustiveness without `switch` and without a
+  throwing `never` helper: give the LAST arm a parameter typed
+  as the one remaining variant. Adding a `FocusTarget` variant
+  stops that call compiling, and the function stays total.
+  **Context**: a `(x: never) => never` helper would have had
+  to throw, which a browser decoder must not do.
+- **Insight**: `focus()` cancels a smooth `scrollIntoView` if
+  it runs after it. Focus first with `{preventScroll: true}`,
+  then scroll.
+  **Context**: measured live — the accessibility requirement
+  (move focus, not just the viewport) and the interaction
+  requirement (reuse the existing smooth anchor-jump
+  behaviour) only compose in that order.

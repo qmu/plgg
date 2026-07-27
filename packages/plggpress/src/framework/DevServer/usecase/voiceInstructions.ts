@@ -51,6 +51,7 @@ export const voiceInstructionsOf = (
           open: OpenDoc,
         ): ReadonlyArray<SoftStr> => [
           ...EDIT_PROTOCOL,
+          ...FOCUS_PROTOCOL,
           `Open document (${open.path}):`,
           open.text.slice(0, DOC_BUDGET),
         ],
@@ -67,6 +68,16 @@ const EDIT_PROTOCOL: ReadonlyArray<SoftStr> = [
   "edit_doc replaces ONE exact span: `find` must be copied verbatim from the document below (including punctuation and line breaks) and must occur exactly once; `replace` is what it becomes. To delete a passage, make `replace` an empty string.",
   "Quote the SMALLEST span that makes the change unambiguous — never send the whole document as `find`.",
   "After the tool answers, tell the writer in one short sentence what changed. If it answers with a refusal, say what it said and try a different, more exact `find`.",
+];
+
+// How the model MOVES the page. Stated apart from the edit
+// protocol because it is read-only: nothing here can change a
+// file, so the rules are about vocabulary — the writer's own
+// heading words — and about what to do when the words do not
+// resolve, which is to ask rather than to guess.
+const FOCUS_PROTOCOL: ReadonlyArray<SoftStr> = [
+  "You can move the writer's page with the focus_section tool: give it a section heading as it appears in the document below, and the page scrolls to that section. Use it whenever the writer asks to go, jump, or look somewhere in this document — do not read the section aloud instead.",
+  "focus_section changes nothing on disk. If it answers that no section has that heading, or that more than one does, say so in the writer's own words and ask which section they meant — never pick one for them.",
 ];
 
 /**
@@ -99,9 +110,38 @@ export const EDIT_DOC_TOOL = {
 };
 
 /**
- * The tools a session is opened with: the write tool only when
- * a document is actually open, so a model on an ungrounded
- * route is never offered an edit it could not land.
+ * The session's READ-ONLY verb: move the page to a section of
+ * the same fixed document. Its argument is the heading in the
+ * writer's own words — not an id, not a selector, not an
+ * index — because that is the only vocabulary a person
+ * looking at the page actually has. The whole actuation is
+ * client-side: no route is called, nothing is written, and
+ * the id it resolves to is one the page already carries.
+ */
+export const FOCUS_SECTION_TOOL = {
+  type: "function",
+  name: "focus_section",
+  description:
+    "Move the writer's page to one section of the open document, naming it by its heading. Read-only: it scrolls to the section and puts the keyboard there, and changes nothing.",
+  parameters: {
+    type: "object",
+    properties: {
+      heading: {
+        type: "string",
+        description:
+          "The section heading as it appears in the open document, in the writer's own words",
+      },
+    },
+    required: ["heading"],
+    additionalProperties: false,
+  },
+};
+
+/**
+ * The tools a session is opened with: both only when a
+ * document is actually open, so a model on an ungrounded
+ * route is never offered an edit it could not land — nor a
+ * section it could not find.
  */
 export const voiceToolsOf = (
   doc: Option<OpenDoc>,
@@ -112,6 +152,7 @@ export const voiceToolsOf = (
       (): ReadonlyArray<unknown> => [],
       (): ReadonlyArray<unknown> => [
         EDIT_DOC_TOOL,
+        FOCUS_SECTION_TOOL,
       ],
     ),
   );

@@ -4,9 +4,22 @@ import {
   all,
   toBe,
   toEqual,
+  toContain,
+  okThen,
 } from "plgg-test";
+import { none } from "plgg";
+import { renderToString } from "plgg-view";
+import { type MarkdownDoc } from "plgg-md";
+import {
+  renderMarkdownWithOptions,
+  plainHighlighter,
+} from "plggpress/framework";
+import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
+import { pressRenderOptions } from "plggpress/SiteConfig/usecase/renderSeams";
+import { href } from "plggpress/Href/usecase/href";
 import {
   type VoiceLine,
+  type SectionHeading,
   strAt,
   objAt,
   voiceEventOf,
@@ -14,6 +27,9 @@ import {
   jsonOf,
   patchBodyOf,
   toolOutputOf,
+  sectionHeadingsOf,
+  focusTargetOf,
+  focusAnswerOf,
 } from "plggpress/framework/DevServer/browser/voiceProtocol";
 
 // The browser client's pure half runs perfectly well in Node —
@@ -250,6 +266,57 @@ test("a tool call for another tool is Ignored", () =>
     toEqual({ kind: "Ignored" }),
   ));
 
+test("a focus_section tool call decodes to a FocusRequested", () =>
+  check(
+    voiceEventOf({
+      type: "response.function_call_arguments.done",
+      name: "focus_section",
+      call_id: "call_6",
+      arguments: JSON.stringify({
+        heading: "structures and errors",
+      }),
+    }),
+    toEqual({
+      kind: "FocusRequested",
+      callId: "call_6",
+      heading: "structures and errors",
+    }),
+  ));
+
+test("a move naming no section at all is Ignored", () =>
+  all([
+    check(
+      voiceEventOf({
+        type: "response.function_call_arguments.done",
+        name: "focus_section",
+        call_id: "call_7",
+        arguments: JSON.stringify({
+          heading: "",
+        }),
+      }),
+      toEqual({ kind: "Ignored" }),
+    ),
+    check(
+      voiceEventOf({
+        type: "response.function_call_arguments.done",
+        name: "focus_section",
+        call_id: "call_8",
+        arguments: "{not json",
+      }),
+      toEqual({ kind: "Ignored" }),
+    ),
+  ]));
+
+test("a FocusRequested leaves the transcript alone", () =>
+  check(
+    foldTranscript(lines, {
+      kind: "FocusRequested",
+      callId: "call_9",
+      heading: "usage",
+    }),
+    toEqual(lines),
+  ));
+
 test("jsonOf is total over a bad payload", () =>
   all([
     check(jsonOf('{"a":1}'), toEqual({ a: 1 })),
@@ -293,3 +360,239 @@ test("a refusal is reported back verbatim, never swallowed", () =>
       ),
     ),
   ]));
+
+/* ------------------------------------------------ *
+ * focus_section: heading text -> the id it carries   *
+ * ------------------------------------------------ */
+
+// A body shaped like the render path's own output: the id on
+// the heading, inline markup inside it, and `&` escaped.
+const BODY = [
+  '<div><h1 id="the-page">The <code>Page</code></h1>',
+  "<p>Prose.</p>",
+  '<h2 id="structures-errors">Structures &amp; Errors</h2>',
+  "<p>Prose.</p>",
+  '<h2 id="errors">Errors</h2>',
+  '<h3 id="errors-1">Errors</h3>',
+  "<h2>Unanchored</h2></div>",
+].join("");
+
+const HEADINGS = sectionHeadingsOf(BODY);
+
+test("reads the ids and the visible words the body carries", () =>
+  all([
+    check(
+      HEADINGS.map(
+        (h: SectionHeading): string => h.id,
+      ),
+      toEqual([
+        "the-page",
+        "structures-errors",
+        "errors",
+        "errors-1",
+      ]),
+    ),
+    // markup dropped, entity undone — the words a writer says
+    check(
+      HEADINGS.map(
+        (h: SectionHeading): string => h.text,
+      ),
+      toEqual([
+        "The Page",
+        "Structures & Errors",
+        "Errors",
+        "Errors",
+      ]),
+    ),
+  ]));
+
+test("a heading is spoken, not spelled: case, punctuation and & are forgiven", () =>
+  all([
+    check(
+      focusTargetOf(
+        HEADINGS,
+        "structures and errors",
+      ),
+      toEqual({
+        kind: "FocusMatched",
+        id: "structures-errors",
+        text: "Structures & Errors",
+      }),
+    ),
+    check(
+      focusTargetOf(HEADINGS, "  The page!  "),
+      toEqual({
+        kind: "FocusMatched",
+        id: "the-page",
+        text: "The Page",
+      }),
+    ),
+    // a partial only decides when nothing matches exactly
+    check(
+      focusTargetOf(HEADINGS, "structures"),
+      toEqual({
+        kind: "FocusMatched",
+        id: "structures-errors",
+        text: "Structures & Errors",
+      }),
+    ),
+  ]));
+
+test("two sections with the same heading is an ambiguity, never the first", () =>
+  check(
+    focusTargetOf(HEADINGS, "Errors"),
+    toEqual({
+      kind: "FocusAmbiguous",
+      texts: ["Errors", "Errors"],
+    }),
+  ));
+
+test("a heading the page does not have is missing, not a guess", () =>
+  all([
+    check(
+      focusTargetOf(HEADINGS, "the error model"),
+      toEqual({ kind: "FocusMissing" }),
+    ),
+    // nothing but punctuation names nothing
+    check(
+      focusTargetOf(HEADINGS, "…?"),
+      toEqual({ kind: "FocusMissing" }),
+    ),
+    check(
+      focusTargetOf([], "anything"),
+      toEqual({ kind: "FocusMissing" }),
+    ),
+  ]));
+
+test("every outcome is a sentence the writer could hear", () =>
+  all([
+    check(
+      focusAnswerOf(
+        "usage",
+        focusTargetOf(HEADINGS, "the page"),
+      ).say,
+      toBe("moved to “The Page”"),
+    ),
+    check(
+      focusAnswerOf(
+        "errors",
+        focusTargetOf(HEADINGS, "errors"),
+      ).say,
+      toBe(
+        "“errors” names 2 sections — say which one",
+      ),
+    ),
+    check(
+      focusAnswerOf(
+        "the error model",
+        focusTargetOf(
+          HEADINGS,
+          "the error model",
+        ),
+      ).say,
+      toBe(
+        "no section called “the error model” on this page",
+      ),
+    ),
+  ]));
+
+test("the model is told which sections matched, so it can ask", () =>
+  all([
+    check(
+      focusAnswerOf(
+        "the page",
+        focusTargetOf(HEADINGS, "the page"),
+      ).output,
+      toBe(
+        '{"focused":true,"section":"The Page"}',
+      ),
+    ),
+    check(
+      focusAnswerOf(
+        "errors",
+        focusTargetOf(HEADINGS, "errors"),
+      ).output,
+      toContain(
+        '"candidates":["Errors","Errors"]',
+      ),
+    ),
+    check(
+      focusAnswerOf(
+        "nope",
+        focusTargetOf(HEADINGS, "nope"),
+      ).output,
+      toContain('"focused":false'),
+    ),
+  ]));
+
+// The ids `focus_section` resolves against MUST be the ids
+// the body actually carries — the same `slugs` the dead-link
+// checker validates `#fragment`s against (see
+// `CheckLinks/usecase/collectPageLinks.ts`). Render a page
+// through the press render options and pin the two together,
+// so a slugger change can never leave the assistant jumping
+// to anchors that do not exist.
+const CONFIG: SiteConfig = {
+  title: "T",
+  description: "D",
+  base: "/",
+  nav: [],
+  sidebar: [],
+  social: [],
+  dev: { allowedHosts: [] },
+  models: none(),
+  rawHtml: none(),
+  slugger: none(),
+  srcExclude: none(),
+  linkIgnore: none(),
+  theme: none(),
+};
+
+const SOURCE = [
+  "# The Page",
+  "",
+  "## Structures & Errors",
+  "",
+  "Prose.",
+  "",
+  "## Errors",
+  "",
+  "Prose.",
+  "",
+].join("\n");
+
+const rendered = renderMarkdownWithOptions(
+  pressRenderOptions(
+    CONFIG,
+    plainHighlighter,
+    href("/"),
+  ),
+)(SOURCE);
+
+test("it resolves against exactly the slugs the render path emits", () =>
+  check(
+    rendered,
+    okThen((doc: MarkdownDoc) =>
+      all([
+        toEqual([...doc.slugs])(
+          sectionHeadingsOf(
+            renderToString(doc.body),
+          ).map(
+            (h: SectionHeading): string => h.id,
+          ),
+        ),
+        toEqual({
+          kind: "FocusMatched",
+          id: "structures-errors",
+          text: "Structures & Errors",
+        })(
+          focusTargetOf(
+            sectionHeadingsOf(
+              renderToString(doc.body),
+            ),
+            "structures and errors",
+          ),
+        ),
+      ]),
+    ),
+  ));
