@@ -352,15 +352,39 @@ test("a nested flow element fails at the close bracket, not on EXCLUDED_LEAD", (
     toContain('expected "]"'),
   ));
 
-// Whereas a nested flow in SCALAR position — a block `- `
-// item — reaches parseScalarValue directly, so there the
-// construct IS named.
-test("a nested flow in scalar position names the construct", () =>
-  check(
-    message(parseYamlSubset("a:\n  - [x]")),
-    toContain(
-      'unsupported YAML construct starting with "["',
+// A nested flow in a block `- ` item — a list-of-lists or a
+// list-of-maps (e.g. a VitePress `head:`) — is refused with
+// an ACTIONABLE message that names the one-level bound and
+// points at the supported alternative, rather than the
+// generic "unsupported YAML construct" parseScalarValue would
+// otherwise surface for a leading `[`/`{`.
+test("a nested sequence/map under a block item names the bound", () =>
+  all([
+    check(
+      message(parseYamlSubset("a:\n  - [x]")),
+      toContain("one level deep"),
     ),
+    check(
+      message(parseYamlSubset("a:\n  - {k: 1}")),
+      toContain(
+        "sequences of maps are not supported",
+      ),
+    ),
+  ]));
+
+// The documented alternative for list-of-list metadata: name
+// the fields as scalar keys the flat subset already models.
+test("the supported alternative (named scalar keys) parses", () =>
+  check(
+    folded(
+      parseYamlSubset(
+        'description: "A page"\ncanonical: "https://example.com"',
+      ),
+    ),
+    toEqual({
+      description: "A page",
+      canonical: "https://example.com",
+    }),
   ));
 
 test("an expanding construct inside a flow element is rejected", () =>

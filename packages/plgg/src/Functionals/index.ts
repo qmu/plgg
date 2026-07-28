@@ -1,6 +1,7 @@
 export * from "plgg/Functionals/atIndex";
 export * from "plgg/Functionals/atProp";
 export * from "plgg/Functionals/bind";
+export * from "plgg/Functionals/bracket";
 export * from "plgg/Functionals/compare";
 export * from "plgg/Functionals/conclude";
 export * from "plgg/Functionals/debug";

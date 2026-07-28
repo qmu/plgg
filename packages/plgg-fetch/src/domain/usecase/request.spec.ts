@@ -10,6 +10,7 @@ import {
   vi,
   afterEach,
 } from "plgg-test";
+import { isOk } from "plgg";
 import {
   request,
   get,
@@ -18,6 +19,11 @@ import {
   patch,
   del,
   isNetworkError,
+  readBytes,
+  readStream,
+  multipart,
+  field,
+  file,
 } from "plgg-fetch/index";
 
 type FetchImpl = (
@@ -193,5 +199,162 @@ test("request is callable directly with an explicit method", async () => {
   return check(
     fetched.seen().method,
     toBe("PATCH"),
+  );
+});
+
+// --- transport: timeout, readAs, multipart ---
+
+test("timeoutMs aborts a request that outlasts it, folding to a NetworkError", async () => {
+  stubFetch(
+    (req: Request) =>
+      new Promise<Response>((resolve, reject) => {
+        req.signal.addEventListener("abort", () =>
+          reject(new Error("aborted by signal")),
+        );
+        // Safety net so the test can never hang if the abort misfires:
+        // resolve late (well after the 5ms timeout) — the request will then
+        // succeed and this test fails loudly rather than stalling.
+        setTimeout(
+          () => resolve(new Response("late")),
+          300,
+        );
+      }),
+  );
+  return check(
+    await get("http://example.test/slow", {
+      timeoutMs: 5,
+    }),
+    errThen((e) => toBe(true)(isNetworkError(e))),
+  );
+});
+
+test("readAs bytes yields a Bytes body, read via readBytes", async () => {
+  stubFetch(
+    async () =>
+      new Response(new Uint8Array([1, 2, 3]), {
+        status: 200,
+      }),
+  );
+  const res = await get(
+    "http://example.test/blob",
+    { readAs: "bytes" },
+  );
+  if (!isOk(res)) {
+    throw new Error("expected an Ok response");
+  }
+  const bytes = readBytes(res.content);
+  if (!isOk(bytes)) {
+    throw new Error("expected a bytes body");
+  }
+  return check([...bytes.content], toEqual([1, 2, 3]));
+});
+
+test("a multipart body is sent as form-data", async () => {
+  let captured: Request | undefined;
+  stubFetch(async (req: Request) => {
+    captured = req;
+    return new Response("ok", { status: 200 });
+  });
+  await post("http://example.test/upload", {
+    multipart: multipart([
+      field("name", "ada"),
+      file(
+        "doc",
+        "a.txt",
+        new Uint8Array([65, 66]),
+      ),
+    ]),
+  });
+  if (captured === undefined) {
+    throw new Error("fetch was not called");
+  }
+  const form = await captured.formData();
+  const doc = form.get("doc");
+  const docText =
+    doc instanceof Blob ? await doc.text() : "";
+  return all([
+    check(String(form.get("name")), toBe("ada")),
+    check(doc instanceof Blob, toBe(true)),
+    check(docText, toBe("AB")),
+  ]);
+});
+
+test("readAs stream reads the response body as incremental chunks", async () => {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array([104]));
+      controller.enqueue(new Uint8Array([105]));
+      controller.close();
+    },
+  });
+  stubFetch(
+    async () =>
+      new Response(stream, { status: 200 }),
+  );
+  const res = await get(
+    "http://example.test/sse",
+    { readAs: "stream" },
+  );
+  if (!isOk(res)) {
+    throw new Error("expected an Ok response");
+  }
+  const streamR = readStream(res.content);
+  if (!isOk(streamR)) {
+    throw new Error("expected a stream body");
+  }
+  const collected: number[] = [];
+  for await (const c of streamR.content) {
+    collected.push(...c);
+  }
+  return check(collected, toEqual([104, 105]));
+});
+
+test("readAs stream on an empty (null) body yields no chunks", async () => {
+  stubFetch(
+    async () =>
+      new Response(null, { status: 204 }),
+  );
+  const res = await get(
+    "http://example.test/empty",
+    { readAs: "stream" },
+  );
+  if (!isOk(res)) {
+    throw new Error("expected an Ok response");
+  }
+  const streamR = readStream(res.content);
+  if (!isOk(streamR)) {
+    throw new Error("expected a stream body");
+  }
+  const collected: number[] = [];
+  for await (const c of streamR.content) {
+    collected.push(...c);
+  }
+  return check(collected, toEqual([]));
+});
+
+test("a multipart file part carries its declared content-type", async () => {
+  let captured: Request | undefined;
+  stubFetch(async (req: Request) => {
+    captured = req;
+    return new Response("ok", { status: 200 });
+  });
+  await post("http://example.test/upload", {
+    multipart: multipart([
+      file(
+        "img",
+        "a.png",
+        new Uint8Array([1, 2]),
+        "image/png",
+      ),
+    ]),
+  });
+  if (captured === undefined) {
+    throw new Error("fetch was not called");
+  }
+  const form = await captured.formData();
+  const img = form.get("img");
+  return check(
+    img instanceof Blob ? img.type : "",
+    toBe("image/png"),
   );
 });

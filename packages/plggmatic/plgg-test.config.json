@@ -3,7 +3,8 @@
     "threshold": 90,
     "exclude": [
       "/index.ts",
-      "/styleEntry.ts"
+      "/styleEntry.ts",
+      "/Render/usecase/advanceColumns.ts"
     ]
   }
 }

@@ -53,6 +53,8 @@ const config: SiteConfig = {
   models: none(),
   rawHtml: none(),
   slugger: none(),
+  srcExclude: none(),
+  linkIgnore: none(),
 };
 
 const content: Html<never, "div"> = div(

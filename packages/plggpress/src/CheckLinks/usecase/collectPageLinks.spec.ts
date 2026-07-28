@@ -33,6 +33,8 @@ const CONFIG: SiteConfig = {
   models: none(),
   rawHtml: none(),
   slugger: none(),
+  srcExclude: none(),
+  linkIgnore: none(),
 };
 
 const GUIDE_MD = [

@@ -12,18 +12,43 @@ import {
   Method,
 } from "plgg-http";
 import { ClientError } from "plgg-fetch/domain/model/ClientError";
+import { Multipart } from "plgg-fetch/domain/model/Multipart";
+import {
+  ReadAs,
+  Transport,
+} from "plgg-fetch/domain/model/Transport";
 import { sendRequest } from "plgg-fetch/vendors/fetch";
 
 /**
  * Per-call request options. `query` is merged onto the URL, `headers` are sent
- * as-is, and `body` is the (already-encoded) request payload — for JSON, encode
+ * as-is, and `body` is the (already-encoded) text payload — for JSON, encode
  * with plgg's `encodeJson` at the call site and set a `content-type` header.
+ *
+ * Transport concerns (not part of the HTTP message): `timeoutMs` bounds the
+ * round-trip (the request aborts, folding to a `NetworkError`); `readAs`
+ * selects how the response body is read; `multipart` supplies a
+ * `multipart/form-data` body that supersedes `body`.
  */
 export type RequestOptions = Readonly<{
   headers?: Dict<string, SoftStr>;
   query?: Dict<string, SoftStr>;
   body?: SoftStr;
+  timeoutMs?: number;
+  readAs?: ReadAs;
+  multipart?: Multipart;
 }>;
+
+/**
+ * Splits the transport concerns out of {@link RequestOptions} — the vendor
+ * seam handles these, they are not fields of the plgg-native `HttpRequest`.
+ */
+const transportOf = (
+  options?: RequestOptions,
+): Transport => ({
+  timeoutMs: options?.timeoutMs,
+  readAs: options?.readAs,
+  multipart: options?.multipart,
+});
 
 /**
  * Defaults an optional value, plgg-style (no `??`).
@@ -72,7 +97,10 @@ export const request = (
   url: SoftStr,
   options?: RequestOptions,
 ): PromisedResult<HttpResponse, ClientError> =>
-  sendRequest(buildHttpRequest(method, url, options));
+  sendRequest(
+    buildHttpRequest(method, url, options),
+    transportOf(options),
+  );
 
 /**
  * `GET` convenience — see {@link request}.

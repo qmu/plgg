@@ -47,7 +47,20 @@ export const resultFunctor: Functor2<"Result"> = {
     (fa: Result<T1, E>): Result<T2, E> =>
       isOk(fa) ? ok<T2>(f(fa.content)) : fa,
 };
-export const { map: mapResult } = resultFunctor;
+
+/**
+ * Maps over the success channel, preserving the error channel — the mirror of
+ * {@link mapErr}. The error type `E` lives on the inner (data-last) function,
+ * not the outer one, so it is inferred from the argument even when applied
+ * point-free: `mapResult(f)(x)` keeps `x`'s error type instead of widening it
+ * to `unknown` (the trap the shared typeclass `resultFunctor.map` falls into,
+ * where all three parameters bind on the outer generic). Prefer this standalone
+ * `mapResult` in application code; `resultFunctor.map` stays for the HKT.
+ */
+export const mapResult =
+  <T1, T2>(f: (a: T1) => T2) =>
+  <E>(fa: Result<T1, E>): Result<T2, E> =>
+    isOk(fa) ? ok<T2>(f(fa.content)) : fa;
 
 /**
  * Maps over the error channel, leaving success values untouched — the mirror of

@@ -187,10 +187,14 @@ const checkRoute =
  * `#fragment` against the TARGET page's slugs.
  */
 const checkLink =
-  (base: SoftStr, slugs: SlugIndex) =>
+  (
+    base: SoftStr,
+    slugs: SlugIndex,
+    isIgnored: (href: SoftStr) => boolean,
+  ) =>
   (source: SoftStr) =>
   (href: SoftStr): ReadonlyArray<BrokenLink> =>
-    isExternalHref(href)
+    isExternalHref(href) || isIgnored(href)
       ? []
       : pipe(
           splitFragment(href),
@@ -235,9 +239,22 @@ const checkLink =
  * compare. Yields `ok` when every link resolves, else a
  * {@link BrokenLinks} listing each offender — the value
  * `build` fails on. Data-last in `pages`.
+ *
+ * `isIgnored` skips a link whose target the checker cannot
+ * verify — a page linking to an existing non-page file (a
+ * download, a co-located data file) the pure, fs-free
+ * checker never sees as a route. It defaults to "ignore
+ * nothing", so an existing caller is unchanged; the press
+ * build compiles it from `SiteConfig.linkIgnore`. (Assets
+ * whose path already carries an extension, and the 404
+ * page, are exempt regardless — see {@link isAssetPath}.)
  */
 export const checkLinks =
-  (base: SoftStr) =>
+  (
+    base: SoftStr,
+    isIgnored: (href: SoftStr) => boolean = () =>
+      false,
+  ) =>
   (
     pages: ReadonlyArray<PageLinks>,
   ): Result<void, BrokenLinks> =>
@@ -263,7 +280,11 @@ export const checkLinks =
             page: PageLinks,
           ): ReadonlyArray<BrokenLink> =>
             page.links.flatMap(
-              checkLink(base, slugs)(page.route),
+              checkLink(
+                base,
+                slugs,
+                isIgnored,
+              )(page.route),
             ),
         ),
       (

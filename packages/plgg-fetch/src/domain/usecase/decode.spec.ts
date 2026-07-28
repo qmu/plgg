@@ -2,6 +2,7 @@ import {
   test,
   check,
   toBe,
+  toEqual,
   toContain,
   okThen,
   errThen,
@@ -16,13 +17,20 @@ import {
   asObj,
   asSoftStr,
   forProp,
+  isOk,
 } from "plgg";
 import {
   HttpResponse,
   statusOf,
   bytesBody,
+  streamBody,
 } from "plgg-http";
-import { decodeJsonBody } from "plgg-fetch/index";
+import {
+  decodeJsonBody,
+  readText,
+  readBytes,
+  readStream,
+} from "plgg-fetch/index";
 
 type User = Obj<{ name: SoftStr }>;
 
@@ -80,4 +88,49 @@ test("decodeJsonBody rejects a non-text (bytes) body", () =>
         toContain("not text"),
       ),
     ),
+  ));
+
+test("readText reads a text body", () =>
+  check(
+    readText(responseWith("hello")),
+    okThen(toBe("hello")),
+  ));
+
+test("readBytes reads a Bytes body", () =>
+  check(
+    readBytes(
+      responseWith(
+        bytesBody(new Uint8Array([1, 2, 3])),
+      ),
+    ),
+    okThen((b) => check([...b], toEqual([1, 2, 3]))),
+  ));
+
+test("readBytes rejects a non-bytes body", () =>
+  check(readBytes(responseWith("nope")), shouldBeErr()));
+
+test("readStream reads a Stream body incrementally", async () => {
+  async function* chunks(): AsyncGenerator<Uint8Array> {
+    yield new Uint8Array([104]);
+    yield new Uint8Array([105]);
+  }
+  const res = readStream(
+    responseWith(streamBody(chunks())),
+  );
+  if (!isOk(res)) {
+    throw new Error("expected a stream body");
+  }
+  const collected: number[] = [];
+  for await (const c of res.content) {
+    collected.push(...c);
+  }
+  return check(collected, toEqual([104, 105]));
+});
+
+test("readStream rejects a non-stream body", () =>
+  check(
+    readStream(
+      responseWith(bytesBody(new Uint8Array([1]))),
+    ),
+    shouldBeErr(),
   ));

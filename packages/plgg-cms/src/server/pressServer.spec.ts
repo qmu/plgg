@@ -24,6 +24,8 @@ const config: SiteConfig = {
   models: none(),
   rawHtml: none(),
   slugger: none(),
+  srcExclude: none(),
+  linkIgnore: none(),
 };
 
 // Route construction is fs-free (handlers read files at

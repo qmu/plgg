@@ -524,6 +524,23 @@ const parseSeqBlock = (
         ),
       );
     }
+    const itemRaw = t.slice(2).trim();
+    // A `- ` item that opens a flow collection is a nested sequence or a
+    // sequence of maps (list-of-lists — e.g. a VitePress `head:`). The subset
+    // is one level deep by design (fail-closed; see YamlValue.ts), so guide the
+    // author to the supported spelling instead of surfacing the generic
+    // "unsupported YAML construct" message that `parseScalarValue` would raise.
+    if (
+      itemRaw.startsWith("[") ||
+      itemRaw.startsWith("{")
+    ) {
+      return err(
+        lineErr(
+          line,
+          "nested sequences and sequences of maps are not supported; the frontmatter YAML subset is one level deep — express list-of-list metadata as named scalar keys (see plgg-md README)",
+        ),
+      );
+    }
     const v = parseScalarValue(t.slice(2));
     if (isErr(v)) {
       return err(

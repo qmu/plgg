@@ -46,3 +46,68 @@ export const decodeJsonBody =
       chainResult(decodeJson),
       chainResult(as),
     );
+
+/**
+ * Narrows a {@link ResponseBody} to its finite `Bytes`. A body read as text or
+ * stream is a typed failure rather than an `as`.
+ */
+const asBytes = (
+  body: ResponseBody,
+): Result<Uint8Array, InvalidError> =>
+  typeof body !== "string" &&
+  body.__tag === "Bytes"
+    ? ok(body.content)
+    : err(
+        invalidError({
+          message: "response body is not bytes",
+        }),
+      );
+
+/**
+ * Narrows a {@link ResponseBody} to its `Stream` of byte chunks.
+ */
+const asStream = (
+  body: ResponseBody,
+): Result<
+  AsyncIterable<Uint8Array>,
+  InvalidError
+> =>
+  typeof body !== "string" &&
+  body.__tag === "Stream"
+    ? ok(body.content)
+    : err(
+        invalidError({
+          message: "response body is not a stream",
+        }),
+      );
+
+/**
+ * Reads a text response body — the value form of the text narrow, for a
+ * `readAs: "text"` (default) call.
+ */
+export const readText = (
+  response: HttpResponse,
+): Result<SoftStr, InvalidError> =>
+  asText(response.body);
+
+/**
+ * Reads a binary response body as raw bytes — for a `readAs: "bytes"` call
+ * (an image, audio, an octet-stream). A non-bytes body is an
+ * {@link InvalidError}, never a thrown cast.
+ */
+export const readBytes = (
+  response: HttpResponse,
+): Result<Uint8Array, InvalidError> =>
+  asBytes(response.body);
+
+/**
+ * Reads a streamed response body as an incremental sequence of byte chunks —
+ * for a `readAs: "stream"` call (served-events, a large download consumed
+ * chunk-by-chunk). A non-stream body is an {@link InvalidError}.
+ */
+export const readStream = (
+  response: HttpResponse,
+): Result<
+  AsyncIterable<Uint8Array>,
+  InvalidError
+> => asStream(response.body);

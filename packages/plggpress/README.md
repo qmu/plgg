@@ -82,6 +82,39 @@ ownership did not.
 **dev is for authoring, not hosting.** Production stays
 `plggpress build` (SSG/CDN) or `plgg-cms`'s `serve`.
 
+## Config: imports, srcExclude & link-ignore
+
+**Extensionless relative imports in `site.config.ts` work.**
+The CLI launcher registers a resolver hook, so a config that
+sources its IA from a shared module — `import { nav } from
+"../ia/nav"` — resolves the `.ts` (or `/index.ts`) without an
+explicit extension, the same spelling vite/VitePress accept.
+(The hook is registered by `bin/plggpress.mjs`, so this
+applies when the config is loaded through the `plggpress` CLI.)
+
+**Excluding side files and ignoring non-page links.** Two
+optional `SiteConfig` fields, both `None` by default (so
+existing configs are unchanged), take minimal glob patterns
+(`*` within a segment, `**` across, `?` one char):
+
+- `srcExclude` — glob patterns matched against **routes**;
+  a matching page is not built (drafts, fixtures, redirect
+  stubs). VitePress's `srcExclude` role.
+- `linkIgnore` — glob patterns of internal link targets the
+  dead-link checker **skips**, for a page that links to an
+  existing non-page file the pure checker can't see (a
+  download, a co-located data file at an extensionless path).
+  (Targets whose path already carries an extension — a
+  `.json`, `.png` — and the 404 page are exempt already.)
+
+```ts
+export default defineSite({
+  // …
+  srcExclude: ["/drafts/**", "/**/fixtures/**"],
+  linkIgnore: ["/downloads/**"],
+});
+```
+
 ## Conventions
 
 - `as` / `any` / `ts-ignore` are prohibited (see root

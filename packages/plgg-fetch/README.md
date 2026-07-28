@@ -52,8 +52,9 @@ const body = encodeJson({ name: "Grace", email: "grace@x.io" });
 
 ### API
 
-- `request(method, url, { headers?, query?, body? })` — the core call. All
-  arguments are supplied at once (it is **not** a `pipe` step).
+- `request(method, url, { headers?, query?, body?, timeoutMs?, readAs?, multipart? })`
+  — the core call. All arguments are supplied at once (it is **not** a `pipe`
+  step).
 - `get` / `post` / `put` / `patch` / `del` — method conveniences over `request`
   (`del`, since `delete` is a reserved word).
 
@@ -61,8 +62,28 @@ All return `PromisedResult<HttpResponse, ClientError>`, where
 `ClientError = HttpError | NetworkError` — the shared `HttpError` vocabulary from
 `plgg-http`, widened with the client-only `NetworkError`.
 
+**Transport options** (not part of the HTTP message — handled at the vendor seam):
+
+- `timeoutMs` — bounds the round-trip; on expiry the request aborts and folds to
+  a `NetworkError`.
+- `readAs: "text" | "bytes" | "stream"` — how the response body is read
+  (default `"text"`).
+- `multipart` — a `multipart/form-data` body (supersedes `body`); build it with
+  `multipart([field(name, value), file(name, filename, bytes, contentType?)])`.
+
+**Reading the response body:**
+
 - `decodeJsonBody(as)(response)` — read the text body, `decodeJson`, then run a
   `cast`-based parser; the whole chain is a `Result<T, InvalidError>`.
+- `readText(response)` / `readBytes(response)` / `readStream(response)` — read a
+  text / binary (`Uint8Array`) / streamed (`AsyncIterable<Uint8Array>`) body as
+  a `Result<…, InvalidError>` (pair with the matching `readAs`).
+
+**Auth headers** (spread into `headers`):
+
+- `bearerAuth(token)` — `{ authorization: "Bearer <token>" }`.
+- `versionedAuth(keyHeader, key, versionHeader, version)` — an API-key + version
+  pair under caller-named headers (no vendor privileged).
 
 ## Failure policy
 
@@ -100,10 +121,15 @@ symmetric. plgg-fetch is a library — its program checkpoint is the downstream
 program that consumes it; its domain is exercised end-to-end by its specs (with
 the vendor faked / the platform stubbed).
 
-## Out of scope (POC)
+## Out of scope
 
-Retries, interceptors/middleware, streaming response bodies, auth/cookie flows,
-and request cancellation are intentionally omitted.
+Retries, interceptors/middleware, and cookie flows are intentionally omitted.
+Two heavier **request-signing** helpers are deferred to their own tickets
+(each needs crypto and official test vectors, so a rushed version would be a
+security liability): **AWS SigV4** request signing and **GCP service-account
+OAuth** token exchange. The simpler `bearerAuth` / `versionedAuth` header
+shapes, timeout/cancellation, streaming reads, binary reads, and multipart
+bodies are all supported (above).
 
 ## Example
 

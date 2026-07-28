@@ -32,6 +32,8 @@ const config = (
   models: none(),
   rawHtml: none(),
   slugger: none(),
+  srcExclude: none(),
+  linkIgnore: none(),
   ...overrides,
 });
 

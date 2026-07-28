@@ -61,6 +61,19 @@ import {
  * separate depth check. A flow collection is surface
  * sugar over a shape {@link YValue} already models; it
  * buys no new depth.
+ *
+ * LIST-OF-LIST METADATA (e.g. a VitePress-style `head:`
+ * expressed as a sequence of `[tag, attrs]` pairs) is
+ * therefore NOT representable, by the same bound — it is a
+ * sequence whose items are themselves collections. This is
+ * intentional, not a gap to patch: widening the model to
+ * hold it would either reintroduce unbounded depth or split
+ * the `YSeq` tag into two incompatible shapes. The supported
+ * alternative is to express such metadata as NAMED SCALAR
+ * keys (`description:`, `ogImage:`, …) and let the rendering
+ * layer assemble the `<head>` tags from them — the flat map
+ * the subset already models. A `- [a]` / `- {a: 1}` block
+ * item is refused with a message pointing here.
  */
 export type YScalar =
   | Box<"YStr", SoftStr>
