@@ -77,3 +77,72 @@ Nothing chrome-like remains in the sections column.
 - `workaholic:design` — one place for controls, one place
   for content; a reader should never have to learn where a
   given affordance was put.
+
+## Final Report
+
+Development completed as planned, plus one fix the live
+run forced (below). Every control the site offers is now in
+one corner:
+
+- `theme/navBar.ts` — `chromeRail` drops the flex spacer
+  that pushed its controls to the bottom; the group sits at
+  the top. `mobileBar` gains the social links, so below lg
+  the chrome group is the mobile bar rather than the
+  sections drawer.
+- `theme/page.ts` — `sectionsColumn` no longer ends with
+  social links. The sections column is navigation only, at
+  every breakpoint.
+- `theme/baseCss.ts` — the rail's padding moves to the top
+  to match the nav columns' own, so the whole top edge
+  reads as one band; `.vp-sidebar-social` is gone.
+- `framework/DevServer/browser/voiceClient.ts` — the
+  assistant's dialog is anchored top-right, immediately
+  left of the rail, instead of floating in the
+  bottom-right corner.
+
+**The fix the browser forced.** The rail is the strip's
+last COLUMN, not a fixed bar, so with a short strip it sat
+wherever the content column ended (x=1344 of 1600) and the
+dialog covered it; with a deep strip it scrolled out of
+view entirely. `margin-left:auto` plus
+`position:sticky; right:0` makes it the rightmost bar in
+both cases — pushed to the far right while the strip is
+narrower than the viewport, stuck to the right edge once it
+overflows. Without that, "the chrome lives in the right
+rail" was only true at one strip width.
+
+Measured in a real browser at 1600x900 on port 4130:
+
+```
+short strip (1600px)          deep strip (3936px, scrolled to the end)
+  rail   1552..1600             rail   1552..1600     (unmoved)
+  toggle top 32                 toggle top 32
+  GitHub top 78                 GitHub top 78
+  dialog top 12, right 1540 — immediately left of the rail
+sections column: 0 social links, 0 theme controls
+below lg: rail display:none, mobile bar carries the social
+          links, drawer carries none
+opening a column: one rail, still the strip's last child,
+          controls unmoved
+```
+
+Screenshots: `strip-t8-chrome-top-right.png`,
+`strip-t8-chrome-deep-strip.png`,
+`strip-t8-chrome-mobile.png`,
+`strip-t8-assistant-dialog.png`.
+
+### Discovered Insights
+
+- **Insight**: a 320px dialog cannot be inside a 48px bar.
+  **Context**: the acceptance reads "grouped at the top
+  right"; the implementable reading is that the rail holds
+  the two icon-sized controls and the dialog is anchored to
+  the same corner, immediately left of it. Recorded so the
+  interpretation is visible rather than assumed.
+- **Insight**: the voice panel is dev-only and mounts only
+  when a voice key is configured, so its placement could
+  not be measured directly on a keyless dev server.
+  **Context**: verified instead by fetching the SERVED
+  `voiceClient` module (asserting it carries the new
+  `right:60px;top:12px`) and mounting a box with that exact
+  style to measure where it lands.

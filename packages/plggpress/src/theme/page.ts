@@ -36,7 +36,6 @@ import {
 import {
   chromeRail,
   mobileBar,
-  socialLinks,
 } from "plggpress/theme/navBar";
 import { sidebarTree } from "plggpress/theme/sidebarTree";
 import {
@@ -213,7 +212,6 @@ const sectionsColumn = (
           ...config.sidebar.map(groupEntry),
         ],
       ),
-      socialLinks(config, "vp-sidebar-social"),
     ],
   );
 };

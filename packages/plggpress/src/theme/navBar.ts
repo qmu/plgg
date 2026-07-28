@@ -80,12 +80,15 @@ export const socialLinks = (
   );
 
 /**
- * The far-RIGHT CHROME RAIL (lg+ only, qmu DocsLayout): a 48px column with
- * the appearance toggle + social links pinned to the
- * bottom by a flex spacer. Carries NO navigation and no
- * wordmark — the nav tree and the home link both live in
- * the sidebar column to its right. Hidden below lg (its
- * controls move to the mobile bar + drawer).
+ * The far-RIGHT CHROME RAIL (lg+ only, qmu DocsLayout): a
+ * 48px column carrying the appearance toggle and the social
+ * links, grouped at the TOP — every control the site offers
+ * is in one place, at one corner, so a reader never has to
+ * learn where a given affordance was put. Carries NO
+ * navigation and no wordmark: the nav tree and the home
+ * link live in the sections column at the other end of the
+ * strip. Hidden below lg (its controls move to the mobile
+ * bar).
  */
 export const chromeRail = (
   config: SiteConfig,
@@ -93,7 +96,6 @@ export const chromeRail = (
   div(
     [class_("vp-rail")],
     [
-      div([class_("vp-rail-spacer")], []),
       div(
         [class_("vp-rail-controls")],
         [
@@ -153,6 +155,11 @@ export const mobileBar = (
     [
       ...menuBtn,
       a(homeAttrs, [text(config.title)]),
+      // below lg the rail is hidden, so the mobile bar —
+      // not the sections drawer — carries the same control
+      // group. The sections column stays navigation only,
+      // at every breakpoint.
+      socialLinks(config, "vp-mobilebar-social"),
       staticThemeToggle,
     ],
   );

@@ -351,3 +351,24 @@ test("the strip palette is monochrome (grayscale scheme tokens)", () => {
     check(isGrayscaleHex(surface), toBe(true)),
   ]);
 });
+
+test("the sections column carries navigation ONLY", () =>
+  all([
+    // the social links moved to the chrome group; nothing
+    // chrome-like is left beside the nav tree
+    check(
+      rendered,
+      not(toContain("vp-sidebar-social")),
+    ),
+    // the sections column is still there, and still the
+    // way to reach an article
+    check(
+      rendered,
+      toContain('aria-label="Sections"'),
+    ),
+    // and the chrome group still holds the controls
+    check(
+      rendered,
+      toContain("vp-rail-controls"),
+    ),
+  ]));

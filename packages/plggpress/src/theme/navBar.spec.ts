@@ -105,3 +105,27 @@ test("mobile bar omits the ☰ button when the page has no drawer", () =>
     ),
     not(toContain('for="vp-menu-toggle"')),
   ));
+
+test("the chrome is one group, at the TOP of the rail", () =>
+  all([
+    // no flex spacer pushes the controls down any more
+    check(
+      renderToString(chromeRail(config)),
+      not(toContain("vp-rail-spacer")),
+    ),
+    // and the group holds both controls
+    check(
+      renderToString(chromeRail(config)),
+      toContain("vp-rail-controls"),
+    ),
+    check(
+      renderToString(chromeRail(config)),
+      toContain("vp-rail-social"),
+    ),
+  ]));
+
+test("below lg the mobile bar carries the same group, not the drawer", () =>
+  check(
+    renderToString(mobileBar(config, "/", true)),
+    toContain("vp-mobilebar-social"),
+  ));

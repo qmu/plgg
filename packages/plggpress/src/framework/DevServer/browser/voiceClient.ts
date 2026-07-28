@@ -79,8 +79,13 @@ let focused: FocusTarget = {
   kind: "FocusMissing",
 };
 
+// The panel is anchored to the TOP RIGHT, immediately left
+// of the chrome rail — the assistant's dialog belongs to
+// the same control group as GitHub and the light/dark
+// toggle, not to a corner of its own. It sits OUTSIDE every
+// `[data-pm-column]`, so opening a column never touches it.
 const styleOf = (): string =>
-  `#${PANEL_ID}{position:fixed;right:16px;bottom:16px;z-index:2147483000;` +
+  `#${PANEL_ID}{position:fixed;right:60px;top:12px;z-index:2147483000;` +
   `width:320px;max-height:60vh;display:flex;flex-direction:column;gap:8px;` +
   `padding:12px;border:1px solid currentColor;background:Canvas;color:CanvasText;` +
   `font:13px/1.5 ui-sans-serif,system-ui,sans-serif}` +
