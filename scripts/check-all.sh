@@ -25,13 +25,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # scripts/vendor-boundary-exemptions.txt).
 ./scripts/gate-vendor-boundary.sh
 
-# Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
-# constraint that ruled out `worker_threads` in favour of promises and child
-# processes. Runs the scheduler for real on every runtime present; Deno and Bun
-# are optional (skipped with a note when absent), Node is not
-# (scripts/gate-cross-runtime.sh).
-./scripts/gate-cross-runtime.sh
-
 # Gate: the repository's own TS tooling scripts (scripts/*.ts — the publish
 # preflight and its pure helpers) typecheck strictly and their unit tests pass.
 # They run under Node's native type-stripping; the typecheck uses the build
@@ -43,6 +36,20 @@ node --test scripts/*.spec.ts
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
 ./scripts/build.sh
+
+# Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
+# constraint that ruled out `worker_threads` in favour of promises and child
+# processes. Runs the scheduler for real on every runtime present; Deno and Bun
+# are optional (skipped with a note when absent), Node is not
+# (scripts/gate-cross-runtime.sh).
+#
+# MUST run AFTER build.sh, not with the gates above: it executes the scheduler
+# from source, which imports `plgg` and therefore resolves
+# packages/plgg-test/node_modules/plgg/dist/index.es.js. A developer's tree
+# already carries that dist from an earlier run, so placing it with the gates
+# passed locally and failed on the clean runner with ERR_MODULE_NOT_FOUND —
+# the sibling-dist masking class this repository keeps rediscovering.
+./scripts/gate-cross-runtime.sh
 
 # The verification phase: the whole-repo typecheck gate plus every package's
 # suite, fanned out across processes through the one canonical runner.
