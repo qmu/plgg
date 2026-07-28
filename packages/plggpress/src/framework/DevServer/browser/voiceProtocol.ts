@@ -495,3 +495,54 @@ export const foldTranscript = (
           },
         ]
       : lines;
+
+/* ------------------------------------------------ *
+ * Edit provenance                                    *
+ * ------------------------------------------------ */
+
+/**
+ * WHAT THE ASSISTANT CHANGED, as the writer needs to see
+ * it: the passage as it WAS, and as it now reads. Both are
+ * the exact strings the bridge applied — the `find` and the
+ * `replace` of an edit it answered `applied` to — so this
+ * is a record of the write, never a reconstruction of it.
+ */
+export type Provenance = Readonly<{
+  was: string;
+  now: string;
+}>;
+
+/**
+ * The provenance one edit leaves behind. Nothing is
+ * recorded for an edit the bridge refused, and nothing for
+ * a replacement that is empty — a deletion has no passage
+ * left to annotate in place.
+ */
+export const provenanceOf = (
+  applied: boolean,
+  find: string,
+  replace: string,
+): ReadonlyArray<Provenance> =>
+  applied && replace !== ""
+    ? [{ was: find, now: replace }]
+    : [];
+
+/**
+ * WHERE the changed passage is, or -1 when it cannot be
+ * addressed: the exactly-once rule, applied to the page's
+ * own text.
+ *
+ * This is `Locate/usecase/locateOnce`'s contract, spelled a
+ * second time because this module is import-free by
+ * construction (see the header: a browser has no resolver
+ * for a bare `plgg` specifier, and the shared locator
+ * imports one). `voiceProtocol.spec.ts` pins the two
+ * against each other so they cannot drift apart silently.
+ */
+export const exactlyOnceAt = (
+  text: string,
+  find: string,
+): number =>
+  find === "" || text.split(find).length - 1 !== 1
+    ? -1
+    : text.indexOf(find);

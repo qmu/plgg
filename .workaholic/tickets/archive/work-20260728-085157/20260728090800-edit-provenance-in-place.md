@@ -5,7 +5,7 @@ type: enhancement
 layer: [UX, Domain]
 effort: 2h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260728090500-no-javascript-proof.md]
 mission: make-the-column-strip-a-real-navigation-surface
 ---
@@ -84,3 +84,75 @@ survives the in-place content swap that follows the write.
 - `workaholic:implementation` — provenance is derived from
   the edit that was actually applied, not reconstructed by
   the client.
+
+## Final Report
+
+Development completed as planned. After a voice edit the
+changed passage shows what it was beside what it became,
+in place — and keeps showing it across the in-place swap.
+
+- `browser/voiceProtocol.ts` — `Provenance {was, now}` and
+  `provenanceOf(applied, find, replace)`: a record only for
+  an edit the bridge answered `applied` to, and none for a
+  deletion (there is no passage left to annotate).
+  `exactlyOnceAt` applies the same exactly-once rule the
+  highlight and the bridge obey.
+- `browser/voiceClient.ts` — `runEditTool` appends the
+  provenance of each applied edit; `showChange` finds the
+  passage as it NOW reads in the page's own text and wraps
+  it as `<del>was</del><ins>now</ins>`; `swapContent`
+  re-paints every change after the swap.
+
+**Why it survives the swap.** The location is re-derived
+from whatever is in the DOM at the time, never held as an
+element reference — the same discipline `focused` already
+follows. The swap destroys the marks and the re-derivation
+puts them back, which is a property of the design rather
+than of bookkeeping.
+
+**The duplication, and how it is contained.**
+`voiceProtocol.ts` is import-free by construction (a
+browser has no resolver for a bare `plgg` specifier), so
+its exactly-once rule is spelled a second time.
+`voiceProtocol.spec.ts` now pins it against
+`Locate/usecase/locateOnce` over a table of cases — where
+both CAN be imported — so the two cannot drift apart
+silently. That is the same containment the file's
+`RELOAD_HOOK_NAME` duplication already uses.
+
+Verified live in a real browser against a `plggpress dev`
+on port 4131 over a TEMP content root (no repository file
+touched), driving the SERVED modules directly:
+
+```
+POST /__plggpress_patch  {"path":"index.md","edits":[…]}
+  200  {"path":"index.md","applied":true}
+  provenanceOf → [{was:"The original sentence lives here",
+                   now:"The rewritten sentence lives here"}]
+after swapContent()
+  mark shown   del "The original sentence lives here"
+               ins "The rewritten sentence lives here"
+after a SECOND swapContent()
+  marks right after the swap: 0
+  re-derived from the new DOM: shown again, same text
+a replacement that is not on the page: shown = false,
+  and no wrong mark appears
+```
+
+Screenshot: `strip-t9-edit-provenance.png`.
+
+### Discovered Insights
+
+- **Insight**: the client does not need the bridge to
+  report the applied ops back.
+  **Context**: the client sent the `{find, replace}` and
+  the bridge answered `applied: true` for exactly that op —
+  so using it is a record of the write, not a guess. This
+  avoided widening the bridge's response shape, and with
+  it the dev surface, for no gain.
+- **Limitation**: provenance is a LIVE-session affordance.
+  It lives in the client's module state, so a full page
+  reload clears it — and a reload is what happens when no
+  session is open. That is honest (there is no assistant to
+  attribute a change to on a fresh page) but it is a
+  boundary worth knowing.

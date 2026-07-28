@@ -21,6 +21,9 @@ import {
   type VoiceEvent,
   type VoiceLine,
   type FocusTarget,
+  type Provenance,
+  provenanceOf,
+  exactlyOnceAt,
   voiceEventOf,
   foldTranscript,
   patchBodyOf,
@@ -44,6 +47,7 @@ const SDP_URL =
   "https://api.openai.com/v1/realtime/calls?model=gpt-realtime";
 const PANEL_ID = "plggpress-voice";
 const PANEL_STYLE_ID = "plggpress-voice-style";
+const PROV_CLASS = "plggpress-prov";
 
 type Grant = Readonly<{
   value: string;
@@ -78,6 +82,11 @@ let arbiter: ArbiterState = arbiterInit;
 let focused: FocusTarget = {
   kind: "FocusMissing",
 };
+// What the assistant has changed in this session, oldest
+// first. Held as TEXT, never as element references: the
+// swap replaces the body, so a reference would go stale
+// while the words the bridge wrote do not.
+let changes: ReadonlyArray<Provenance> = [];
 
 // The panel is anchored to the TOP RIGHT, immediately left
 // of the chrome rail — the assistant's dialog belongs to
@@ -94,7 +103,14 @@ const styleOf = (): string =>
   `#${PANEL_ID} .plggpress-voice-status{opacity:.7}` +
   `#${PANEL_ID} .plggpress-voice-log{overflow-y:auto;display:flex;` +
   `flex-direction:column;gap:6px}` +
-  `#${PANEL_ID} .plggpress-voice-log b{font-weight:600}`;
+  `#${PANEL_ID} .plggpress-voice-log b{font-weight:600}` +
+  // The provenance mark, in the page rather than the panel:
+  // what the passage WAS, struck through, beside what it
+  // became. The writer judges the change instead of taking
+  // the assistant's word for it.
+  `.${PROV_CLASS}{border-bottom:2px solid currentColor}` +
+  `.${PROV_CLASS} del{opacity:.55;margin-right:.35em}` +
+  `.${PROV_CLASS} ins{text-decoration:none}`;
 
 const mountPanel = (): Panel => {
   const style = document.createElement("style");
@@ -260,6 +276,14 @@ const runEditTool = async (
     const body: unknown = await res
       .json()
       .catch((): unknown => ({}));
+    changes = [
+      ...changes,
+      ...provenanceOf(
+        res.ok,
+        event.find,
+        event.replace,
+      ),
+    ];
     replyToTool(
       event.callId,
       toolOutputOf(res.ok, body),
@@ -308,6 +332,89 @@ const applyFocus = (id: string): void => {
       "",
       `#${id}`,
     );
+  }
+};
+
+/**
+ * Paint ONE change in place: find the passage as it now
+ * reads, in the page's own text, and show what it was
+ * beside it. The location is re-derived from whatever is
+ * currently in the DOM — never held — which is exactly why
+ * the display survives the in-place swap.
+ *
+ * Exactly once or not at all: a passage that has since been
+ * edited again, or that occurs twice, is not annotated
+ * rather than annotated in the wrong place. The same rule
+ * the highlight and the bridge itself obey.
+ *
+ * Exported so the provenance display can be driven — and
+ * therefore verified — from a real browser without a
+ * microphone and a live model.
+ */
+export const showChange = (
+  change: Provenance,
+): boolean => {
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+  );
+  // DOM walk: an irreducible imperative seam. Collect the
+  // text nodes and their running offsets so a passage that
+  // crosses none of them can still be located by position.
+  const nodes: Array<Text> = [];
+  let text = "";
+  let node = walker.nextNode();
+  while (node !== null) {
+    if (
+      node instanceof Text &&
+      node.parentElement !== null &&
+      node.parentElement.closest(
+        "#" + PANEL_ID,
+      ) === null
+    ) {
+      nodes.push(node);
+      text = text + node.data;
+    }
+    node = walker.nextNode();
+  }
+  const at = exactlyOnceAt(text, change.now);
+  if (at < 0) {
+    return false;
+  }
+  // The one text node the passage starts in, and where in
+  // it. A passage spanning several nodes is annotated from
+  // its first — enough to show the writer where it is.
+  let offset = 0;
+  for (const candidate of nodes) {
+    const end = offset + candidate.data.length;
+    if (at >= offset && at < end) {
+      const local = at - offset;
+      const tail = candidate.splitText(local);
+      const rest = tail.data.slice(
+        0,
+        change.now.length,
+      );
+      tail.data = tail.data.slice(rest.length);
+      const mark = document.createElement("span");
+      mark.className = PROV_CLASS;
+      const was = document.createElement("del");
+      was.textContent = change.was;
+      const now = document.createElement("ins");
+      now.textContent = rest;
+      mark.appendChild(was);
+      mark.appendChild(now);
+      tail.parentNode?.insertBefore(mark, tail);
+      return true;
+    }
+    offset = end;
+  }
+  return false;
+};
+
+/** Re-paint every change this session has made. */
+const showChanges = (): void => {
+  for (const change of changes) {
+    showChange(change);
   }
 };
 
@@ -569,6 +676,12 @@ export const swapContent =
     if (focused.kind === "FocusMatched") {
       applyFocus(focused.id);
     }
+    // The swapped-in prose is fresh markup, so every
+    // provenance mark went with the old body. Re-derive
+    // them from the text that is there now — which is what
+    // makes the display survive the swap by construction
+    // rather than by bookkeeping.
+    showChanges();
   };
 
 const runArbiter = (panel: Panel): void => {
