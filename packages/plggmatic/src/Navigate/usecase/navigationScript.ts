@@ -2,6 +2,7 @@ import { type SoftStr } from "plgg";
 import {
   stripAttr,
   columnAttr,
+  spanAttr,
   navHookName,
 } from "plggmatic/Navigate/model/marker";
 import {
@@ -53,13 +54,16 @@ const q = (value: SoftStr): SoftStr =>
  */
 export const navigationInitScript: SoftStr =
   "(function(){" +
-  `var S=${q(stripAttr)},C=${q(columnAttr)};` +
+  `var S=${q(stripAttr)},C=${q(columnAttr)},P=${q(spanAttr)};` +
   `var R=${q(restParam)},Q=${q(spanParam)};` +
   `var E=${q(escapeChar)},N=${q(entrySeparator)},F=${q(fieldSeparator)};` +
   // escape one field so a route or a quoted passage can
   // carry the separators themselves
   "function esc(v){return v.split(E).join(E+'t')" +
   ".split(N).join(E+'c').split(F).join(E+'f');}" +
+  // the exact inverse, undone in reverse order
+  "function unesc(v){return v.split(E+'f').join(F)" +
+  ".split(E+'c').join(N).split(E+'t').join(E);}" +
   // percent-encode a parameter value, keeping the
   // separators and slashes literal — byte-identical to
   // the server's own emission
@@ -70,6 +74,10 @@ export const navigationInitScript: SoftStr =
   // the columns to the head's right, as raw entries
   "function entries(){var v=ps().get(R);return v?v.split(N):[];}" +
   "function entryOf(r,s){return esc(r)+(s?F+esc(s):'');}" +
+  "function routeOf(e){var i=e.indexOf(F);" +
+  "return unesc(i<0?e:e.slice(0,i));}" +
+  "function spanOf(e){var i=e.indexOf(F);" +
+  "return i<0?'':unesc(e.slice(i+1));}" +
   // the composition URL for a given list of entries
   "function urlFor(list){var p=[];" +
   "if(list.length){p.push(R+'='+pct(list.join(N)));}" +
@@ -97,17 +105,30 @@ export const navigationInitScript: SoftStr =
   // words.
   "function showMark(node){var m=node.querySelector('mark');" +
   "if(m){m.scrollIntoView({block:'center'});}}" +
+  // the URL a column is FETCHED from: the route itself,
+  // carrying its passage so the SERVER locates and marks it
+  // — a highlight is never painted by this runtime.
+  "function colUrl(route,span){" +
+  "return route+(span?'?'+Q+'='+pct(esc(span)):'');}" +
+  // fetch one column's own page and take the placeable
+  // element out of it. Scripts parsed by DOMParser never
+  // execute, so a placed column can never re-run this
+  // runtime.
+  "function fetchCol(route,span){" +
+  "return fetch(colUrl(route,span),{credentials:'same-origin'})" +
+  ".then(function(r){if(!r.ok){throw new Error('nav');}return r.text();})" +
+  ".then(function(t){" +
+  "var d=new DOMParser().parseFromString(t,'text/html');" +
+  "var col=d.querySelector('['+C+']');" +
+  "if(!col||!strip()||!cols().length){throw new Error('nav');}" +
+  "return document.importNode(col,true);});}" +
   // OPEN a route as the column after index `at`. The
   // originating column's DOM node is never touched, so its
   // scroll position cannot be lost.
   "function openFrom(at,route,span){" +
   "var url=urlFor(entries().slice(0,at).concat([entryOf(route,span)]));" +
-  "return fetch(route,{credentials:'same-origin'}).then(function(r){" +
-  "if(!r.ok){throw new Error('nav');}return r.text();}).then(function(t){" +
-  "var d=new DOMParser().parseFromString(t,'text/html');" +
-  "var col=d.querySelector('['+C+']');" +
-  "if(!col||!strip()||!cols().length){throw new Error('nav');}" +
-  "truncate(at);place(document.importNode(col,true),at);" +
+  "return fetchCol(route,span).then(function(col){" +
+  "truncate(at);place(col,at);" +
   "window.history.pushState(null,'',url);return true;}).catch(function(){" +
   "window.location.assign(url);return false;});}" +
   // the strip's rightmost column — where an open with no
@@ -134,6 +155,35 @@ export const navigationInitScript: SoftStr =
   "&&(a.target===''||a.target==='_self')" +
   "&&a.origin===window.location.origin" +
   "&&!(a.pathname===window.location.pathname&&a.hash!=='');}" +
+  // WHAT IS ON SCREEN, in the same alphabet the URL uses —
+  // route and passage both, because a column at the right
+  // route showing the wrong passage is a different column.
+  "function current(){var c=cols();var out=[];" +
+  "for(var i=0;i<c.length;i++){out.push(entryOf(" +
+  "c[i].getAttribute(C),c[i].getAttribute(P)||''));}return out;}" +
+  // WHAT THE URL SAYS: the head (this page) then the rest.
+  "function target(){var s=ps().get(Q);" +
+  "return [entryOf(window.location.pathname,s||'')].concat(entries());}" +
+  // RECONCILE the strip to the URL, rather than undoing
+  // whatever the last navigation did. Back, Forward, a
+  // multi-step Back and a pasted URL are then the same
+  // operation — and a kept column keeps its DOM node, so
+  // going back and forward across it neither refetches it
+  // nor resets its scroll.
+  "function reconcile(){var t=target(),c=current();" +
+  // the head itself changed: this page is a different page,
+  // and its nav columns differ too. The URL is already
+  // right, so the honest move is to render it.
+  "if(!c.length||t[0]!==c[0]){window.location.reload();return;}" +
+  "var k=1;while(k<t.length&&k<c.length&&t[k]===c[k]){k++;}" +
+  "truncate(k-1);" +
+  "var i=k;" +
+  "var step=function(){if(i>=t.length){return Promise.resolve(true);}" +
+  "var e=t[i];var at=i-1;i++;" +
+  "return fetchCol(routeOf(e),spanOf(e)).then(function(col){" +
+  "place(col,at);return step();});};" +
+  "return step().catch(function(){window.location.reload();});}" +
+  "window.addEventListener('popstate',function(){reconcile();});" +
   // on a hard load of a composition URL, the marks are
   // already in the markup: put each column on its own.
   "for(var k=0;k<cols().length;k++){showMark(cols()[k]);}" +
@@ -141,7 +191,7 @@ export const navigationInitScript: SoftStr =
   "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
   "var at=columnOf(a);if(at<0){return;}" +
   "ev.preventDefault();openFrom(at,a.pathname);});" +
-  `window[${q(navHookName)}]={open:open,openFrom:openFrom,urlFor:urlFor,entries:entries,entryOf:entryOf,columnOf:columnOf,claims:claims};` +
+  `window[${q(navHookName)}]={open:open,openFrom:openFrom,urlFor:urlFor,entries:entries,entryOf:entryOf,columnOf:columnOf,claims:claims,current:current,target:target,reconcile:reconcile};` +
   "})();";
 
 /**

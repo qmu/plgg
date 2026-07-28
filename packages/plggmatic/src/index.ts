@@ -56,6 +56,7 @@ export {
   compositionHref,
   stripAttr,
   columnAttr,
+  spanAttr,
   navHookName,
   strip,
   documentColumn,

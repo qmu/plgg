@@ -95,7 +95,13 @@ const rendered = renderToString(
     contentDoc,
     page(
       config,
-      [{ route: activePath, body: content }],
+      [
+        {
+          route: activePath,
+          span: none(),
+          body: content,
+        },
+      ],
       activePath,
       config.base,
     ),
@@ -108,7 +114,13 @@ const renderedHome = renderToString(
     homeDoc,
     page(
       config,
-      [{ route: "/", body: content }],
+      [
+        {
+          route: "/",
+          span: none(),
+          body: content,
+        },
+      ],
       "/",
       config.base,
     ),
@@ -264,9 +276,21 @@ const renderedComposition = renderToString(
     page(
       config,
       [
-        { route: activePath, body: content },
-        { route: "/a/", body: content },
-        { route: "/b/", body: content },
+        {
+          route: activePath,
+          span: none(),
+          body: content,
+        },
+        {
+          route: "/a/",
+          span: none(),
+          body: content,
+        },
+        {
+          route: "/b/",
+          span: none(),
+          body: content,
+        },
       ],
       activePath,
       config.base,

@@ -1,6 +1,13 @@
-import { type SoftStr } from "plgg";
-import { type Html } from "plgg-view";
-import { attr } from "plgg-view";
+import {
+  type SoftStr,
+  type Option,
+  matchOption,
+} from "plgg";
+import {
+  type Html,
+  type Attribute,
+  attr,
+} from "plgg-view";
 import {
   type Parts,
   rowWith,
@@ -28,6 +35,14 @@ export const columnAttr: SoftStr =
   "data-pm-column";
 
 /**
+ * The passage a column is showing, when it is showing one.
+ * Carried on the element so the runtime can compare the
+ * screen to the URL by VALUE — a column at the right route
+ * but the wrong passage is a different column.
+ */
+export const spanAttr: SoftStr = "data-pm-span";
+
+/**
  * The single entry point the runtime publishes on
  * `window`. One name, so the pointer, the keyboard and an
  * assistant all drive the same code — there is no second
@@ -51,11 +66,23 @@ export const strip = <Msg>(
  */
 export const documentColumn = <Msg>(
   route: SoftStr,
+  span: Option<SoftStr>,
   parts: Parts,
   children: ReadonlyArray<Html<Msg>>,
 ): Html<Msg> =>
   columnWith(
-    [attr(columnAttr, route)],
+    [
+      attr(columnAttr, route),
+      ...matchOption<
+        SoftStr,
+        ReadonlyArray<Attribute<Msg>>
+      >(
+        () => [],
+        (quoted: SoftStr) => [
+          attr(spanAttr, quoted),
+        ],
+      )(span),
+    ],
     parts,
     children,
   );

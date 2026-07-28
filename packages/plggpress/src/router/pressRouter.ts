@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { readFile } from "node:fs/promises";
 import {
   type SoftStr,
+  type Option,
   type Result,
   type PromisedResult,
   type InvalidError,
@@ -67,6 +68,7 @@ import {
  */
 type RenderedColumn = Readonly<{
   route: SoftStr;
+  span: Option<SoftStr>;
   body: Html<never>;
   doc: MarkdownDoc;
 }>;
@@ -174,6 +176,7 @@ const pageView = (
       [head, ...rest].map(
         (column: RenderedColumn): PageColumn => ({
           route: column.route,
+          span: column.span,
           body: column.body,
         }),
       ),
@@ -225,6 +228,7 @@ const renderColumn =
                 doc: MarkdownDoc,
               ): RenderedColumn => ({
                 route: column.route,
+                span: column.span,
                 body: markedBody(
                   doc.body,
                   column.span,

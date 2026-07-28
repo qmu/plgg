@@ -262,6 +262,7 @@ const drilledColumn = (
  */
 export type PageColumn = Readonly<{
   route: SoftStr;
+  span: Option<SoftStr>;
   body: Html<never>;
 }>;
 
@@ -281,6 +282,7 @@ const contentColumn = (
 ): Html<never> =>
   documentColumn(
     content.route,
+    content.span,
     ["vp-content"],
     [
       main_(

@@ -31,6 +31,7 @@ export {
 export {
   stripAttr,
   columnAttr,
+  spanAttr,
   navHookName,
   strip,
   documentColumn,
