@@ -18,7 +18,9 @@ export {
 export {
   type Parts,
   row,
+  rowWith,
   column,
+  columnWith,
   pane,
   navPane,
   mainPane,

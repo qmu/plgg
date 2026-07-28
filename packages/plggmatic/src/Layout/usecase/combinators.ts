@@ -1,5 +1,9 @@
 import { type SoftStr } from "plgg";
-import { type Html, el } from "plgg-view";
+import {
+  type Html,
+  type Attribute,
+  el,
+} from "plgg-view";
 import {
   type Styles,
   type Variant,
@@ -38,10 +42,29 @@ export type Parts = ReadonlyArray<
 export const row = <Msg>(
   parts: Parts,
   children: ReadonlyArray<Html<Msg>>,
+): Html<Msg> => rowWith([], parts, children);
+
+/**
+ * {@link row} with framework-owned ATTRIBUTES alongside
+ * its style parts. Not a widening of the recorded
+ * `(parts, children)` rule — that rule is about options
+ * being style atoms, and this is not an options bag. It
+ * exists so a framework module (Navigate's strip markers)
+ * can mark the skeleton it emits without either
+ * re-deciding the class/flow here or making a consumer
+ * spell `pm-row` by hand. Consumers use {@link row}.
+ */
+export const rowWith = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  parts: Parts,
+  children: ReadonlyArray<Html<Msg>>,
 ): Html<Msg> =>
   el(
     "div",
-    [style_("pm-row", flex, ...parts)],
+    [
+      style_("pm-row", flex, ...parts),
+      ...attributes,
+    ],
     children,
   );
 
@@ -55,10 +78,21 @@ export const row = <Msg>(
 export const column = <Msg>(
   parts: Parts,
   children: ReadonlyArray<Html<Msg>>,
+): Html<Msg> => columnWith([], parts, children);
+
+/** {@link column} with framework-owned attributes — see
+ * {@link rowWith} for why this pair exists. */
+export const columnWith = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  parts: Parts,
+  children: ReadonlyArray<Html<Msg>>,
 ): Html<Msg> =>
   el(
     "div",
-    [style_("pm-col", flexCol, ...parts)],
+    [
+      style_("pm-col", flexCol, ...parts),
+      ...attributes,
+    ],
     children,
   );
 

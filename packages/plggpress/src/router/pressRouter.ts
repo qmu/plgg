@@ -21,6 +21,7 @@ import {
   restParam,
   spanParam,
   decodeComposition,
+  injectNavigationScript,
 } from "plggmatic";
 import {
   type Html,
@@ -52,7 +53,21 @@ import {
 } from "plggpress/Href/usecase/href";
 import { injectAppearanceScripts } from "plggpress/theme/appearanceScripts";
 import { shell } from "plggpress/theme/shell";
-import { page } from "plggpress/theme/page";
+import {
+  type PageColumn,
+  page,
+} from "plggpress/theme/page";
+
+/**
+ * One column of a composition after its source rendered:
+ * the route it came from (which the strip marks, so the
+ * client runtime can compare screen to URL) and the
+ * document itself.
+ */
+type RenderedColumn = Readonly<{
+  route: SoftStr;
+  doc: MarkdownDoc;
+}>;
 
 /**
  * The source `*.md` candidates a route path can have come
@@ -145,18 +160,20 @@ const readSource = (
 const pageView = (
   config: SiteConfig,
   base: SoftStr,
-  head: MarkdownDoc,
-  rest: ReadonlyArray<MarkdownDoc>,
+  head: RenderedColumn,
+  rest: ReadonlyArray<RenderedColumn>,
   route: SoftStr,
 ): Html<never> =>
   shell(
     config,
-    head,
+    head.doc,
     page(
       config,
       [head, ...rest].map(
-        (doc: MarkdownDoc): Html<never> =>
-          doc.body,
+        (column: RenderedColumn): PageColumn => ({
+          route: column.route,
+          body: column.doc.body,
+        }),
       ),
       route,
       base,
@@ -179,7 +196,7 @@ const renderColumn =
   ) =>
   (
     column: Column,
-  ): PromisedResult<MarkdownDoc, HttpError> =>
+  ): PromisedResult<RenderedColumn, HttpError> =>
     readSource(
       candidateFiles(
         contentDir,
@@ -189,7 +206,7 @@ const renderColumn =
       chainResult(
         (
           source: SoftStr,
-        ): Result<MarkdownDoc, HttpError> =>
+        ): Result<RenderedColumn, HttpError> =>
           pipe(
             renderMarkdownWithOptions(
               pressRenderOptions(
@@ -200,6 +217,14 @@ const renderColumn =
             )(source),
             mapErr((e: InvalidError): HttpError =>
               internalError(e.content.message),
+            ),
+            mapResult(
+              (
+                doc: MarkdownDoc,
+              ): RenderedColumn => ({
+                route: column.route,
+                doc,
+              }),
             ),
           ),
       ),
@@ -216,23 +241,24 @@ const renderColumn =
  */
 const rendered = (
   results: ReadonlyArray<
-    Result<MarkdownDoc, HttpError>
+    Result<RenderedColumn, HttpError>
   >,
-): ReadonlyArray<MarkdownDoc> =>
-  results.reduce<ReadonlyArray<MarkdownDoc>>(
+): ReadonlyArray<RenderedColumn> =>
+  results.reduce<ReadonlyArray<RenderedColumn>>(
     (
-      acc: ReadonlyArray<MarkdownDoc>,
-      result: Result<MarkdownDoc, HttpError>,
-    ): ReadonlyArray<MarkdownDoc> =>
+      acc: ReadonlyArray<RenderedColumn>,
+      result: Result<RenderedColumn, HttpError>,
+    ): ReadonlyArray<RenderedColumn> =>
       pipe(
         toOption(result),
         matchOption(
-          (): ReadonlyArray<MarkdownDoc> => acc,
+          (): ReadonlyArray<RenderedColumn> =>
+            acc,
           (
-            doc: MarkdownDoc,
-          ): ReadonlyArray<MarkdownDoc> => [
+            column: RenderedColumn,
+          ): ReadonlyArray<RenderedColumn> => [
             ...acc,
-            doc,
+            column,
           ],
         ),
       ),
@@ -289,24 +315,26 @@ const pageHandler =
           ).then(rendered),
         ]).then(
           ([head, rest]: readonly [
-            Result<MarkdownDoc, HttpError>,
-            ReadonlyArray<MarkdownDoc>,
+            Result<RenderedColumn, HttpError>,
+            ReadonlyArray<RenderedColumn>,
           ]): Result<HttpResponse, HttpError> =>
             pipe(
               head,
               mapResult(
                 (
-                  doc: MarkdownDoc,
+                  column: RenderedColumn,
                 ): HttpResponse =>
                   htmlResponse(
-                    injectAppearanceScripts(
-                      renderToString(
-                        pageView(
-                          config,
-                          base,
-                          doc,
-                          rest,
-                          c.req.path,
+                    injectNavigationScript(
+                      injectAppearanceScripts(
+                        renderToString(
+                          pageView(
+                            config,
+                            base,
+                            column,
+                            rest,
+                            c.req.path,
+                          ),
                         ),
                       ),
                     ),

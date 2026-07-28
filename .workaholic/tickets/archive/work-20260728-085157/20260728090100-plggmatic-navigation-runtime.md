@@ -5,7 +5,7 @@ type: enhancement
 layer: [UX, Infrastructure]
 effort: 4h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260728090000-composition-url-and-server-render.md]
 mission: make-the-column-strip-a-real-navigation-surface
 ---
@@ -106,3 +106,86 @@ are the tickets after it.
 - `workaholic:design` — one entry point for pointer and
   assistant alike, so there is no dev-only navigation path
   that can behave differently from the one readers use.
+
+## Final Report
+
+Development completed as planned, with one deliberate
+deviation recorded below. plggmatic has its second browser
+runtime, built to the shape of its first:
+
+- `plggmatic/src/Navigate/model/marker.ts` — `stripAttr`,
+  `columnAttr`, `navHookName`, plus the `strip` /
+  `documentColumn` combinators that stamp them. A product
+  now marks its strip by calling a framework combinator,
+  never by typing `pm-…` into its own code.
+- `plggmatic/src/Layout/usecase/combinators.ts` —
+  `rowWith` / `columnWith`, an attributes slot the marker
+  combinators compose. `row`/`column` keep their recorded
+  `(parts, children)` shape and now delegate, so the
+  class/flow decision still lives in exactly one place.
+- `plggmatic/src/Navigate/usecase/navigationScript.ts` —
+  `navigationInitScript` and `injectNavigationScript`. The
+  script fetches a route's own page, takes its
+  `data-pm-column` element, places it after the last column
+  already in the strip (so the chrome rail keeps its
+  position), and pushes the ticket-1 composition URL.
+- `plggpress/src/router/pressRouter.ts` — injects the
+  runtime beside the appearance scripts; `RenderedColumn`
+  now carries each column's route to the layout.
+
+**The deviation, and why.** The ticket planned "every
+decision in exported pure functions, unit-tested offline".
+An inline runtime cannot import TypeScript, so such a
+module would have been a SECOND implementation of the same
+rules — precisely the drift this mission exists to remove.
+Instead the script PUBLISHES its decisions on the hook
+(`urlFor`, `entries`, `entryOf`) and they are driven and
+asserted in a real browser, while the TS side asserts the
+invariants that can only be checked statically: that every
+literal is composed from an exported constant, that there
+is no inner `</script`, and that injection lands once
+before `</body>` and no-ops without it.
+
+Verified live in a real browser against `plggpress dev` on
+port 4130:
+
+```
+before  columns 1   url /concepts/            navigations 1
+open("/getting-started")
+after   columns 2   url /concepts/?c=/getting-started
+        routes  /concepts/ | /getting-started
+        navigations 1        (no page load)
+        window sentinel set before the call: still there
+        strip's last child: still vp-rail
+```
+
+The client's own escaping was checked against the server's
+by construction, not by eye: `urlFor(entryOf('/getting-started',
+'first, second: third ~ fourth'))` produced
+`/concepts/?c=/getting-started:first~c%20second~f%20third%20~t%20fourth`,
+which the server answered 200 with the right two columns —
+the same `~c`/`~f`/`~t` alphabet the TypeScript codec emits.
+
+The failure path was exercised too: `open` on a route the
+server cannot serve performed a real navigation to the
+composition URL (the `window` sentinel is gone afterwards),
+where the server dropped the unreadable column and rendered
+a working page with the hook re-installed. The enhancement
+failed; the content did not. Screenshot:
+`strip-t2-runtime-opened-column.png`.
+
+### Discovered Insights
+
+- **Insight**: the runtime places a fetched column after
+  the LAST element already carrying `columnAttr`, rather
+  than appending to the strip.
+  **Context**: appending would put new columns after the
+  chrome rail. Anchoring on the framework's own marker
+  keeps the rule correct for any product whose strip holds
+  things the framework does not know about.
+- **Insight**: `rowWith`/`columnWith` is not a widening of
+  the "options are style atoms" rule.
+  **Context**: that rule is about consumer options; these
+  take framework-owned ATTRIBUTES and exist so a consumer
+  never has to spell a class name. Keeping `row`/`column`
+  as the consumer-facing pair preserves the record.

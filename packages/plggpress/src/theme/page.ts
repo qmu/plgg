@@ -23,7 +23,11 @@ import {
   attr,
   class_,
 } from "plggpress/framework";
-import { row, column } from "plggmatic";
+import {
+  column,
+  strip,
+  documentColumn,
+} from "plggmatic";
 import {
   type SiteConfig,
   type SidebarGroup,
@@ -251,6 +255,17 @@ const drilledColumn = (
 };
 
 /**
+ * One document as the strip shows it: the route it came
+ * from (the framework's placeable-column marker, so the
+ * navigation runtime can compare the screen to the URL)
+ * and its rendered body.
+ */
+export type PageColumn = Readonly<{
+  route: SoftStr;
+  body: Html<never>;
+}>;
+
+/**
  * ONE document column. Every content column renders
  * IDENTICALLY whether it is the composition's first
  * column or its fifth — same wrapper, same footer, same
@@ -262,9 +277,10 @@ const drilledColumn = (
  */
 const contentColumn = (
   config: SiteConfig,
-  content: Html<never>,
+  content: PageColumn,
 ): Html<never> =>
-  column(
+  documentColumn(
+    content.route,
     ["vp-content"],
     [
       main_(
@@ -272,7 +288,7 @@ const contentColumn = (
         [
           div(
             [class_("vp-doc")],
-            [slot([], [content])],
+            [slot([], [content.body])],
           ),
           siteFooter(config),
         ],
@@ -305,7 +321,7 @@ const contentColumn = (
  */
 export const page = (
   config: SiteConfig,
-  contents: ReadonlyArray<Html<never>>,
+  contents: ReadonlyArray<PageColumn>,
   activePath: SoftStr,
   base: SoftStr,
 ): Html<never> =>
@@ -321,7 +337,7 @@ export const page = (
       // is enabled on every page for the same reason.
       mobileBar(config, activePath, true),
       backdrop,
-      row(
+      strip(
         ["vp-app"],
         [
           sectionsColumn(
@@ -335,7 +351,7 @@ export const page = (
             base,
           ),
           ...contents.map(
-            (content: Html<never>): Html<never> =>
+            (content: PageColumn): Html<never> =>
               contentColumn(config, content),
           ),
           chromeRail(config),

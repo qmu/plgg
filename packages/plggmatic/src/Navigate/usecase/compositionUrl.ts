@@ -43,9 +43,20 @@ import {
 export const restParam: SoftStr = "c";
 export const spanParam: SoftStr = "q";
 
-const ENTRY_SEP = ",";
-const FIELD_SEP = ":";
-const ESCAPE = "~";
+/**
+ * The format's alphabet, exported because the client
+ * runtime is an inline script that cannot import this
+ * module: it is COMPOSED from these constants
+ * (`JSON.stringify`), so the separators are declared once
+ * even though the splitting is spelled twice.
+ */
+export const entrySeparator: SoftStr = ",";
+export const fieldSeparator: SoftStr = ":";
+export const escapeChar: SoftStr = "~";
+
+const ENTRY_SEP = entrySeparator;
+const FIELD_SEP = fieldSeparator;
+const ESCAPE = escapeChar;
 
 /**
  * Make one field free of the separators. Order matters:
