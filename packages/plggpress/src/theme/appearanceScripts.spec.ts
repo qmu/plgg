@@ -5,6 +5,7 @@ import {
   toBe,
   toContain,
 } from "plgg-test";
+import { themeToggleClass } from "plggpress/themeSupport/styleEntry";
 import { injectAppearanceScripts } from "plggpress/theme/appearanceScripts";
 
 // Count non-overlapping occurrences of a needle.
@@ -29,7 +30,7 @@ test("inserts the no-FOUC script before </head> and the toggle before </body>", 
     check(out, toContain("vp-" + "appearance")),
     // the class flip and the framework toggle selector
     check(out, toContain("classList")),
-    check(out, toContain(".pm-theme-toggle")),
+    check(out, toContain("." + themeToggleClass)),
     // each script lands just inside its tag
     check(out, toContain("</script></head>")),
     check(out, toContain("</script></body>")),

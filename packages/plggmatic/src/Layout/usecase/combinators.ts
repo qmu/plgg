@@ -15,6 +15,19 @@ import {
   type PaneRole,
   landmarkTag,
 } from "plggmatic/Layout/model/pane";
+import { cssPrefix } from "plggmatic/Meta/model/identity";
+
+/**
+ * The class hooks the layout skeleton emits, derived from
+ * the framework's own {@link cssPrefix}. EXPORTED because a
+ * consumer that needs to name one — a stylesheet, a test —
+ * must import it rather than type it: a string a consumer
+ * types is a contract no compiler checks, and renaming the
+ * prefix would silently break every page that spelled it.
+ */
+export const rowClass: SoftStr = `${cssPrefix}-row`;
+export const colClass: SoftStr = `${cssPrefix}-col`;
+export const paneClass: SoftStr = `${cssPrefix}-pane`;
 
 /**
  * What a combinator accepts as its style slot: exactly
@@ -62,7 +75,7 @@ export const rowWith = <Msg>(
   el(
     "div",
     [
-      style_("pm-row", flex, ...parts),
+      style_(rowClass, flex, ...parts),
       ...attributes,
     ],
     children,
@@ -90,7 +103,7 @@ export const columnWith = <Msg>(
   el(
     "div",
     [
-      style_("pm-col", flexCol, ...parts),
+      style_(colClass, flexCol, ...parts),
       ...attributes,
     ],
     children,
@@ -112,7 +125,7 @@ export const pane =
   ): Html<Msg> =>
     el(
       landmarkTag(role),
-      [style_("pm-pane", ...parts)],
+      [style_(paneClass, ...parts)],
       children,
     );
 

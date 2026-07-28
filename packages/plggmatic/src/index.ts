@@ -27,6 +27,9 @@ export {
   type PaneRole,
   type Parts,
   landmarkTag,
+  rowClass,
+  colClass,
+  paneClass,
   row,
   rowWith,
   column,
@@ -404,6 +407,8 @@ export {
   themeToggle,
   staticThemeToggle,
   themeToggleClass,
+  sunClass,
+  moonClass,
   themeToggleCss,
 } from "plggmatic/Component/usecase/themeToggle";
 // The Pragmatic brand substance plggmatic owns (A3): the

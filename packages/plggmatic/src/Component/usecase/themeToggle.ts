@@ -1,4 +1,5 @@
 import { type SoftStr } from "plgg";
+import { cssPrefix } from "plggmatic/Meta/model/identity";
 import {
   type Html,
   button as buttonEl,
@@ -130,14 +131,18 @@ export const themeToggle = <Msg>(
  * icon-switch CSS in {@link themeToggleCss} targets it —
  * so the literal is never re-typed at the consumer.
  */
-export const themeToggleClass: SoftStr =
-  "pm-theme-toggle";
+export const themeToggleClass: SoftStr = `${cssPrefix}-theme-toggle`;
 
 // The icon classes the scheme-switch CSS keys on. Both
 // icons are ALWAYS rendered (SSG can't know the visitor's
 // scheme at build time); CSS shows one per `html.dark`.
-const SUN_CLASS: SoftStr = "pm-sun";
-const MOON_CLASS: SoftStr = "pm-moon";
+/** The two icon hooks the toggle emits, exported for
+ * the same reason the layout hooks are: a consumer names
+ * them by import or not at all. */
+export const sunClass: SoftStr = `${cssPrefix}-sun`;
+export const moonClass: SoftStr = `${cssPrefix}-moon`;
+const SUN_CLASS: SoftStr = sunClass;
+const MOON_CLASS: SoftStr = moonClass;
 
 // A class-tagged static icon (no `style_` atoms — the
 // SSG toggle is fully class-driven so a host with no

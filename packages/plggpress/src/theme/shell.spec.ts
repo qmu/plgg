@@ -21,6 +21,8 @@ import {
 } from "plggpress/framework/style";
 import { frontmatter } from "plggpress/framework";
 import { type MarkdownDoc } from "plggpress/framework";
+import { cssPrefix } from "plggmatic";
+import { themeToggleClass } from "plggpress/themeSupport/styleEntry";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { shell } from "plggpress/theme/shell";
@@ -132,17 +134,24 @@ test("composes plggmatic framework blocks ahead of baseCss, then the body's coll
     // definition is present
     check(
       rendered,
-      toContain(":root{--pm-primary-base:"),
+      toContain(
+        `:root{--${cssPrefix}-primary-base:`,
+      ),
     ),
     check(
       rendered,
-      toContain("html.dark{--pm-primary-base:"),
+      toContain(
+        `html.dark{--${cssPrefix}-primary-base:`,
+      ),
     ),
-    check(rendered, toContain("--pm-surface:")),
+    check(
+      rendered,
+      toContain(`--${cssPrefix}-surface:`),
+    ),
     // the appearance-toggle chrome block is composed in
     check(
       rendered,
-      toContain(".pm-theme-toggle{"),
+      toContain(`.${themeToggleClass}{`),
     ),
     // then the bespoke layout sheet (a stable baseCss marker)
     check(rendered, toContain(".vp-app{")),

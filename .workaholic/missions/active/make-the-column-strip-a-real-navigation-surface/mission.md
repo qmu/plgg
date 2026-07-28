@@ -178,7 +178,7 @@ to plggpress:
 - [x] GitHub, the light/dark control and the assistant dialog all live in the rightmost vertical bar, grouped at the top right, with no chrome remaining in the sections column (#20260728090700-chrome-into-the-top-right-rail.md)
 - [x] After an assistant edit the changed passage shows its previous and current text in place, and the display survives the in-place swap (#20260728090800-edit-provenance-in-place.md)
 - [x] The assistant drives navigation through the SAME runtime the pointer uses, keeping the realtime session alive across every column it opens, proven live in a browser (#20260728090900-assistant-drives-the-runtime.md)
-- [ ] plggpress consumes the framework runtime and no longer string-matches plggmatic's `pm-*` names from JavaScript (#20260728091000-retire-the-pm-class-coupling.md)
+- [x] plggpress consumes the framework runtime and no longer string-matches plggmatic's `pm-*` names from JavaScript (#20260728091000-retire-the-pm-class-coupling.md)
 
 ## Changelog
 
@@ -197,3 +197,4 @@ to plggpress:
 - 2026-07-28 — ticket archived — 20260728090700-chrome-into-the-top-right-rail.md
 - 2026-07-28 — ticket archived — 20260728090800-edit-provenance-in-place.md
 - 2026-07-28 — ticket archived — 20260728090900-assistant-drives-the-runtime.md
+- 2026-07-28 — ticket archived — 20260728091000-retire-the-pm-class-coupling.md

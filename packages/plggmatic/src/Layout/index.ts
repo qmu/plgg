@@ -17,6 +17,9 @@ export {
 } from "plggmatic/Layout/model/pane";
 export {
   type Parts,
+  rowClass,
+  colClass,
+  paneClass,
   row,
   rowWith,
   column,

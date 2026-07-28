@@ -128,7 +128,7 @@ body.vp{
   -webkit-box-decoration-break:clone;
 }
 
-/* column-oriented horizontal strip (the plggmatic pm-row):
+/* column-oriented horizontal strip (the plggmatic row):
    the sections column, the drilled section column, the
    content column, and the chrome rail sit side by side. On
    lg+ the strip fills the viewport height and scrolls
@@ -137,7 +137,8 @@ body.vp{
    top bar and body width stay invariant and the strip
    scrolls beneath. Below lg it collapses to normal page
    flow with a sticky mobile bar + off-canvas drawer. The
-   pm-row/pm-col skeleton is plggmatic's; these .vp-* rules
+   row/column skeleton is plggmatic's (its own exported
+   class hooks); these .vp-* rules
    carry the qmu geometry. */
 .vp-shell{position:relative}
 .vp-app{
@@ -505,7 +506,8 @@ html.dark .vp-doc a:focus-visible code{
 html.dark .vp-doc pre code{background:none}
 /* syntax-highlight hues (plgg-highlight's span classes) are
    framework-owned now: themeSupport's syntaxCss emits the
-   --pm-code-* properties + the class rules per scheme
+   framework code-token properties + the class rules per
+   scheme
    (ticket 08 finishes the D16 cutover for code blocks). No
    syntax colors live here anymore. */
 

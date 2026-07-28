@@ -25,6 +25,11 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # scripts/vendor-boundary-exemptions.txt).
 ./scripts/gate-vendor-boundary.sh
 
+# Gate: plggmatic owns the `pm-*` namespace, and a consumer names one of its
+# hooks by IMPORT or not at all — a class name a consumer types is a contract no
+# compiler checks (scripts/gate-framework-names.sh).
+./scripts/gate-framework-names.sh
+
 # Gate: the repository's own TS tooling scripts (scripts/*.ts — the publish
 # preflight and its pure helpers) typecheck strictly and their unit tests pass.
 # They run under Node's native type-stripping; the typecheck uses the build

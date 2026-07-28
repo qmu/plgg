@@ -7,6 +7,11 @@ import {
   not,
 } from "plgg-test";
 import { renderToString } from "plggpress/framework";
+import {
+  themeToggleClass,
+  sunClass,
+  moonClass,
+} from "plggpress/themeSupport/styleEntry";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,
@@ -43,10 +48,13 @@ test("chrome rail carries the appearance toggle and social links, no nav", () =>
     // toggle on the framework class, both icons rendered
     check(
       rail,
-      toContain('class="pm-theme-toggle"'),
+      toContain(`class="${themeToggleClass}"`),
     ),
-    check(rail, toContain('class="pm-sun"')),
-    check(rail, toContain('class="pm-moon"')),
+    check(rail, toContain(`class="${sunClass}"`)),
+    check(
+      rail,
+      toContain(`class="${moonClass}"`),
+    ),
     // the GitHub social link with an accessible label
     check(rail, toContain("vp-rail-social")),
     check(
@@ -80,7 +88,7 @@ test("mobile bar shows the ☰ menu button, wordmark home link, and toggle", () 
     check(barContent, toContain(">plgg Guide<")),
     check(
       barContent,
-      toContain('class="pm-theme-toggle"'),
+      toContain(`class="${themeToggleClass}"`),
     ),
   ]));
 

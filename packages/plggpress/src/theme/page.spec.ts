@@ -21,6 +21,13 @@ import {
   type MarkdownDoc,
   frontmatter,
 } from "plggpress/framework";
+import {
+  cssPrefix,
+  rowClass,
+  colClass,
+  stripAttr,
+  columnAttr,
+} from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { shell } from "plggpress/theme/shell";
 import { page } from "plggpress/theme/page";
@@ -210,14 +217,14 @@ test("the landing page is ordinary prose WITH the sections column (qmu model)", 
 
 // The count of plggmatic column tracks in a rendered page.
 const columnCount = (rendered: string): number =>
-  rendered.split('class="pm-col').length - 1;
+  rendered.split(`class="${colClass}`).length - 1;
 
 // Extract a --pm-* scheme value from the emitted <style>.
 const schemeValueOf = (
   html: string,
   token: string,
 ): string => {
-  const needle = "--pm-" + token + ":";
+  const needle = `--${cssPrefix}-${token}:`;
   const at = html.indexOf(needle);
   return at < 0
     ? ""
@@ -238,15 +245,23 @@ const isGrayscaleHex = (hex: string): boolean => {
   );
 };
 
-test("renders the plggmatic column strip: a pm-row of pm-col columns", () =>
+test("renders the plggmatic column strip, named by import", () =>
   all([
-    // the strip is plggmatic's pm-row skeleton
-    check(rendered, toContain('class="pm-row')),
-    // carrying the qmu shell hook
+    // the strip is the framework's own row skeleton…
+    check(
+      rendered,
+      toContain(`class="${rowClass}`),
+    ),
+    // …carrying the qmu shell hook…
     check(rendered, toContain("vp-app")),
-    // with plggmatic pm-col columns (sections + content at
-    // minimum, plus the drilled section here)
-    check(rendered, toContain('class="pm-col')),
+    // …with the framework's column tracks…
+    check(
+      rendered,
+      toContain(`class="${colClass}`),
+    ),
+    // …and the markers its navigation runtime steers by
+    check(rendered, toContain(stripAttr)),
+    check(rendered, toContain(columnAttr)),
   ]));
 
 test("drilling into a section adds a column to the strip", () =>

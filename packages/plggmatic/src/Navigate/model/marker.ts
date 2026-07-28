@@ -13,6 +13,7 @@ import {
   rowWith,
   columnWith,
 } from "plggmatic/Layout/usecase/combinators";
+import { cssPrefix } from "plggmatic/Meta/model/identity";
 
 /**
  * The MARKERS the navigation runtime navigates by, and the
@@ -24,15 +25,14 @@ import {
  */
 
 /** The element holding the strip's columns. */
-export const stripAttr: SoftStr = "data-pm-strip";
+export const stripAttr: SoftStr = `data-${cssPrefix}-strip`;
 
 /**
  * A PLACEABLE document column. Its value is the column's
  * own route, so the runtime can compare what is on screen
  * to what the URL says without a side table.
  */
-export const columnAttr: SoftStr =
-  "data-pm-column";
+export const columnAttr: SoftStr = `data-${cssPrefix}-column`;
 
 /**
  * The passage a column is showing, when it is showing one.
@@ -40,7 +40,7 @@ export const columnAttr: SoftStr =
  * screen to the URL by VALUE — a column at the right route
  * but the wrong passage is a different column.
  */
-export const spanAttr: SoftStr = "data-pm-span";
+export const spanAttr: SoftStr = `data-${cssPrefix}-span`;
 
 /**
  * The single entry point the runtime publishes on
@@ -48,7 +48,7 @@ export const spanAttr: SoftStr = "data-pm-span";
  * assistant all drive the same code — there is no second
  * navigation path to diverge from.
  */
-export const navHookName: SoftStr = "__pmNav";
+export const navHookName: SoftStr = `__${cssPrefix}Nav`;
 
 /** A {@link rowWith} marked as the navigable strip. */
 export const strip = <Msg>(
