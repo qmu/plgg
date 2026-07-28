@@ -1,3 +1,4 @@
+import { navHookName } from "plggmatic";
 import {
   type SoftStr,
   type Result,
@@ -116,6 +117,29 @@ export const VOICE_CLIENT_SCRIPT: SoftStr =
   '<script type="module" src="' +
   VOICE_MODULE_BASE +
   'voiceClient"></script>';
+
+/**
+ * The global the dev-only browser modules read to find the
+ * FRAMEWORK's navigation hook. Its VALUE is plggmatic's own
+ * `navHookName`, imported here rather than typed — so the
+ * assistant reaches the same runtime the pointer uses, and
+ * a rename in plggmatic is a compile error in this file
+ * rather than a silently dead call in the browser.
+ *
+ * The global's own name is spelled again in
+ * `browser/voiceProtocol.ts` (a browser module cannot import
+ * a module that imports `plgg`); a spec pins the two, the
+ * same containment `RELOAD_HOOK_NAME` already uses.
+ */
+export const NAV_HOOK_GLOBAL: SoftStr =
+  "__plggpressNavHook";
+
+/**
+ * The dev-only script that publishes it. Injected with the
+ * other dev clients, so a production `build` carries none of
+ * it.
+ */
+export const NAV_HOOK_SCRIPT: SoftStr = `<script>window.${NAV_HOOK_GLOBAL}=${JSON.stringify(navHookName)};</script>`;
 
 /**
  * What the browser asks a session for: the ROUTE it currently

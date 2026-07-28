@@ -5,7 +5,7 @@ type: enhancement
 layer: [UX, Infrastructure]
 effort: 2h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260728090800-edit-provenance-in-place.md]
 mission: make-the-column-strip-a-real-navigation-surface
 ---
@@ -91,3 +91,75 @@ claim would be false.
 - `workaholic:safety` — the model selects among the site's
   own routes; it cannot compose an arbitrary URL for the
   reader's browser to follow.
+
+## Final Report
+
+Development completed as planned. Saying it now works
+exactly like clicking it — because it IS clicking it.
+
+- `usecase/voiceInstructions.ts` — `openColumnToolOf(routes)`
+  builds the `open_column` schema with the site's own routes
+  as an **enum**, so the model SELECTS a page rather than
+  naming one; `voiceToolsOf(doc, routes)` offers it beside
+  the document verbs, and only when there are routes to
+  offer. `columnProtocol` tells the model that a column
+  opens to the right, that nothing reloads, and that a
+  quotation it cannot copy verbatim marks nothing.
+- `browser/voiceProtocol.ts` — decodes an `open_column`
+  frame into `ColumnRequested`, refusing an empty route
+  before it can reach the runtime as a navigation to the
+  current page; `columnAnswerOf` reports a refusal as a
+  reason the model can act on.
+- `browser/voiceClient.ts` — `openColumnNow` resolves the
+  FRAMEWORK hook and calls its `open`. That is all it does.
+- `model/VoiceProtocol.ts` — `NAV_HOOK_SCRIPT`, built from
+  plggmatic's own `navHookName` (imported, not typed), so
+  the browser finds the hook without plggpress ever spelling
+  a framework name in its own JavaScript. A spec pins the
+  global's name across the two sides of the wire.
+
+Verified live in a real browser on port 4130 against a
+voice-enabled dev server, driving the SERVED modules:
+
+```
+two decoded open_column frames
+  ColumnRequested:/getting-started
+  ColumnRequested:/packages/plgg/
+SAID     /concepts/ | /getting-started | /packages/plgg/
+         url /concepts/?c=/getting-started,/packages/plgg/
+CLICKED  /concepts/ | /getting-started | /packages/plgg/
+         url /concepts/?c=/getting-started,/packages/plgg/
+identical: true          navigations 1     sentinel alive
+
+with a live RTCPeerConnection open on the page:
+  before  connected/connecting
+  after   connected/open      (across BOTH column opens)
+```
+
+The realtime session is not merely undisturbed — its data
+channel finished opening while the strip grew, which is
+only possible because nothing navigated the browser away.
+Screenshot: `strip-t10-assistant-drove-it.png`.
+
+**The grep proof.** The voice client contains no
+column-navigation logic: no `pushState`, no
+`location.assign`, no column placement. Its only history
+and DOM-surgery uses are the pre-existing ones —
+`replaceState` for `focus_section`'s fragment, and
+`swapContent`'s hot-reload swap. Every column it opens goes
+through `NAV_HOOK_GLOBAL`.
+
+### Discovered Insights
+
+- **Insight**: an `enum` of the site's routes is a stronger
+  containment than any validation.
+  **Context**: the model is not asked for a route and then
+  checked; it is only ever offered the routes that exist.
+  A prompt-injected "open /etc/passwd" has no argument
+  value to land in.
+- **Insight**: a loopback `RTCPeerConnection` is a real,
+  key-free stand-in for the realtime session.
+  **Context**: it makes "the session survives" measurable
+  in a browser without a microphone, a key, or a live
+  model — the same substitution the `edit_doc` ticket made
+  for the tool-call loop.

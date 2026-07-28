@@ -38,6 +38,7 @@ const PREAMBLE: ReadonlyArray<SoftStr> = [
  */
 export const voiceInstructionsOf = (
   doc: Option<OpenDoc>,
+  routes: ReadonlyArray<SoftStr> = [],
 ): SoftStr =>
   [
     ...PREAMBLE,
@@ -52,6 +53,7 @@ export const voiceInstructionsOf = (
         ): ReadonlyArray<SoftStr> => [
           ...EDIT_PROTOCOL,
           ...FOCUS_PROTOCOL,
+          ...columnProtocol(routes),
           `Open document (${open.path}):`,
           open.text.slice(0, DOC_BUDGET),
         ],
@@ -138,13 +140,65 @@ export const FOCUS_SECTION_TOOL = {
 };
 
 /**
- * The tools a session is opened with: both only when a
- * document is actually open, so a model on an ungrounded
- * route is never offered an edit it could not land — nor a
- * section it could not find.
+ * The session's NAVIGATION verb: open one of the site's own
+ * documents as the next column, optionally with a passage
+ * marked.
+ *
+ * The `route` parameter is an ENUM of the routes this site
+ * actually has, enumerated server-side at mint time. The
+ * model therefore cannot name a page that does not exist,
+ * and cannot compose a URL for the reader's browser to
+ * follow — it selects from what the site is.
+ *
+ * The passage is a VERBATIM quotation from the target
+ * document. It is located there, exactly once, by the
+ * server that renders the column; a paraphrase simply does
+ * not mark anything.
+ */
+export const openColumnToolOf = (
+  routes: ReadonlyArray<SoftStr>,
+): unknown => ({
+  type: "function",
+  name: "open_column",
+  description:
+    "Open one of this site's documents as the next column to the right, leaving the columns already open in place. Optionally mark a passage in it by quoting the passage verbatim.",
+  parameters: {
+    type: "object",
+    properties: {
+      route: {
+        type: "string",
+        description:
+          "Which of the site's documents to open",
+        enum: routes,
+      },
+      quote: {
+        type: "string",
+        description:
+          "Optional: a passage to mark, copied verbatim from that document. It must occur there exactly once, or nothing is marked.",
+      },
+    },
+    required: ["route"],
+    additionalProperties: false,
+  },
+});
+
+const COLUMN_PROTOCOL: ReadonlyArray<SoftStr> = [
+  "To take the writer somewhere, call `open_column` with one of the site's routes. It opens as a new column to the RIGHT; the page the writer is reading stays where it is.",
+  "Opening a column does not reload anything, so this conversation stays alive across every column you open. Open several in turn when the writer asks for several.",
+  "Only quote a passage you can copy verbatim from that document. A quotation that is not in it, or that appears more than once, marks nothing at all.",
+];
+
+/**
+ * The tools a session is opened with: the document verbs
+ * only when a document is actually open, so a model on an
+ * ungrounded route is never offered an edit it could not
+ * land — nor a section it could not find. The navigation
+ * verb rides with them, and only when the site has routes
+ * to offer (an enum of nothing is not a choice).
  */
 export const voiceToolsOf = (
   doc: Option<OpenDoc>,
+  routes: ReadonlyArray<SoftStr>,
 ): ReadonlyArray<unknown> =>
   pipe(
     doc,
@@ -153,6 +207,15 @@ export const voiceToolsOf = (
       (): ReadonlyArray<unknown> => [
         EDIT_DOC_TOOL,
         FOCUS_SECTION_TOOL,
+        ...(routes.length === 0
+          ? []
+          : [openColumnToolOf(routes)]),
       ],
     ),
   );
+
+/** The navigation half of the session's instructions. */
+export const columnProtocol = (
+  routes: ReadonlyArray<SoftStr>,
+): ReadonlyArray<SoftStr> =>
+  routes.length === 0 ? [] : COLUMN_PROTOCOL;

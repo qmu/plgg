@@ -32,7 +32,10 @@ import {
   focusAnswerOf,
   provenanceOf,
   exactlyOnceAt,
+  columnAnswerOf,
+  NAV_HOOK_GLOBAL,
 } from "plggpress/framework/DevServer/browser/voiceProtocol";
+import { NAV_HOOK_GLOBAL as SERVER_NAV_HOOK } from "plggpress/framework/DevServer/model/VoiceProtocol";
 import { locateOnce } from "plggpress/Locate/usecase/locateOnce";
 
 // The browser client's pure half runs perfectly well in Node —
@@ -668,3 +671,55 @@ test("the browser's exactly-once rule agrees with the shared locator", () =>
       },
     ),
   ));
+
+/* --- open_column -------------------------------- */
+
+const columnFrame = (
+  args: Record<string, string>,
+): unknown => ({
+  type: "response.function_call_arguments.done",
+  name: "open_column",
+  call_id: "call_c1",
+  arguments: JSON.stringify(args),
+});
+
+test("an open_column call decodes into a column to open", () =>
+  check(
+    JSON.stringify(
+      voiceEventOf(
+        columnFrame({
+          route: "/concepts/",
+          quote: "a passage",
+        }),
+      ),
+    ),
+    toBe(
+      '{"kind":"ColumnRequested","callId":"call_c1","route":"/concepts/","span":"a passage"}',
+    ),
+  ));
+
+test("a column with no route names nothing and is ignored", () =>
+  check(
+    voiceEventOf(columnFrame({ route: "" })).kind,
+    toBe("Ignored"),
+  ));
+
+test("a refused column comes back as a reason, not a silence", () =>
+  all([
+    check(
+      columnAnswerOf("/a/", true).output,
+      toBe('{"opened":true,"route":"/a/"}'),
+    ),
+    check(
+      columnAnswerOf(
+        "/a/",
+        false,
+      ).output.includes("could not open"),
+      toBe(true),
+    ),
+  ]));
+
+// The global's NAME is spelled on both sides of the wire —
+// the browser cannot import the server model. Pin them.
+test("the browser and the server agree where the nav hook is published", () =>
+  check(NAV_HOOK_GLOBAL, toBe(SERVER_NAV_HOOK)));

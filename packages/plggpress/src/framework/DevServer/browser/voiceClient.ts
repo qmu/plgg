@@ -24,6 +24,8 @@ import {
   type Provenance,
   provenanceOf,
   exactlyOnceAt,
+  columnAnswerOf,
+  NAV_HOOK_GLOBAL,
   voiceEventOf,
   foldTranscript,
   patchBodyOf,
@@ -443,6 +445,91 @@ export const focusSectionNow = (
 };
 
 /**
+ * The FRAMEWORK's navigation runtime, found through the
+ * global the dev server publishes. Read at call time, never
+ * captured: the hook exists as soon as plggmatic's runtime
+ * has run, and this module may load first.
+ *
+ * This is the whole point of the ticket — the assistant
+ * calls the SAME `open` a pointer click calls. There is no
+ * assistant-only navigation path to diverge from the one
+ * readers use, and there is nothing here that knows how a
+ * column is placed.
+ */
+const navRuntime = (): {
+  open: (
+    route: string,
+    span?: string,
+  ) => Promise<boolean>;
+} | null => {
+  const name = Reflect.get(
+    window,
+    NAV_HOOK_GLOBAL,
+  );
+  const hook =
+    typeof name === "string"
+      ? Reflect.get(window, name)
+      : null;
+  return typeof hook === "object" &&
+    hook !== null &&
+    typeof Reflect.get(hook, "open") ===
+      "function"
+    ? {
+        open: (
+          route: string,
+          span?: string,
+        ): Promise<boolean> =>
+          Promise.resolve(
+            Reflect.apply(
+              Reflect.get(hook, "open"),
+              hook,
+              [route, span],
+            ),
+          ),
+      }
+    : null;
+};
+
+/**
+ * Run ONE `open_column` call: hand it to the framework
+ * runtime and report what happened. A refusal comes back to
+ * the model as a reason it can act on rather than a silence.
+ *
+ * Exported so the assistant's navigation path can be driven
+ * — and therefore verified — from a real browser without a
+ * microphone and a live model.
+ */
+export const openColumnNow = async (
+  route: string,
+  span: string,
+): Promise<boolean> => {
+  const nav = navRuntime();
+  return nav === null
+    ? false
+    : await nav.open(
+        route,
+        span === "" ? undefined : span,
+      );
+};
+
+const runColumnTool = async (
+  panel: Panel,
+  event: Readonly<{
+    callId: string;
+    route: string;
+    span: string;
+  }>,
+): Promise<void> => {
+  say(panel, `opening ${event.route}…`);
+  const answer = columnAnswerOf(
+    event.route,
+    await openColumnNow(event.route, event.span),
+  );
+  replyToTool(event.callId, answer.output);
+  say(panel, answer.say);
+};
+
+/**
  * Run ONE `focus_section` call: move the page, tell the
  * writer, and hand the same outcome back to the model so an
  * unresolved heading becomes a question it can ask rather
@@ -479,6 +566,10 @@ const onFrame = (
   }
   if (event.kind === "FocusRequested") {
     runFocusTool(panel, event);
+    return;
+  }
+  if (event.kind === "ColumnRequested") {
+    void runColumnTool(panel, event);
     return;
   }
   lines = foldTranscript(lines, event);

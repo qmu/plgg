@@ -105,6 +105,7 @@ const parseJson = (
 const grantFor = (
   configured: KeyMinter,
   doc: Option<OpenDoc>,
+  routes: ReadonlyArray<SoftStr>,
 ): PromisedResult<HttpResponse, HttpError> =>
   configured.mint().then(
     matchResult(
@@ -125,9 +126,11 @@ const grantFor = (
             {
               value: grant.value,
               expiresAt: grant.expiresAt,
-              instructions:
-                voiceInstructionsOf(doc),
-              tools: voiceToolsOf(doc),
+              instructions: voiceInstructionsOf(
+                doc,
+                routes,
+              ),
+              tools: voiceToolsOf(doc, routes),
               doc: pipe(
                 doc,
                 matchOption(
@@ -165,6 +168,7 @@ export const voiceSessionHandler =
   (
     minter: Option<KeyMinter>,
     readDoc: OpenDocReader,
+    routes: ReadonlyArray<SoftStr> = [],
   ): Handler =>
   (
     c: Context,
@@ -207,7 +211,11 @@ export const voiceSessionHandler =
               > =>
                 readDoc(request.route).then(
                   (doc: Option<OpenDoc>) =>
-                    grantFor(configured, doc),
+                    grantFor(
+                      configured,
+                      doc,
+                      routes,
+                    ),
                 ),
             ),
           ),

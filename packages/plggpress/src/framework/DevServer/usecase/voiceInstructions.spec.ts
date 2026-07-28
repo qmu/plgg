@@ -15,6 +15,7 @@ import {
   FOCUS_SECTION_TOOL,
   voiceInstructionsOf,
   voiceToolsOf,
+  openColumnToolOf,
 } from "plggpress/framework/DevServer/usecase/voiceInstructions";
 
 const doc = (text: string): OpenDoc => ({
@@ -84,10 +85,55 @@ test("an ungrounded route says so, and offers no protocol at all", () =>
 test("the tools are offered only when there is a document to act on", () =>
   all([
     check(
-      voiceToolsOf(some(doc("# Guide"))),
+      voiceToolsOf(some(doc("# Guide")), []),
       toHaveLength(2),
     ),
-    check(voiceToolsOf(none()), toHaveLength(0)),
+    check(
+      voiceToolsOf(none(), []),
+      toHaveLength(0),
+    ),
+    // the navigation verb joins them when the site has
+    // routes to offer
+    check(
+      voiceToolsOf(some(doc("# Guide")), ["/a/"]),
+      toHaveLength(3),
+    ),
+  ]));
+
+test("the assistant SELECTS a route; it cannot name one", () => {
+  const tool = openColumnToolOf(["/a/", "/b/"]);
+  return all([
+    check(
+      JSON.stringify(tool),
+      toContain('"enum":["/a/","/b/"]'),
+    ),
+    check(
+      JSON.stringify(tool),
+      toContain('"name":"open_column"'),
+    ),
+    // the quotation is optional; the route is not
+    check(
+      JSON.stringify(tool),
+      toContain('"required":["route"]'),
+    ),
+  ]);
+});
+
+test("the navigation protocol is told only when there is somewhere to go", () =>
+  all([
+    check(
+      voiceInstructionsOf(some(doc("# Guide")), [
+        "/a/",
+      ]),
+      toContain("open_column"),
+    ),
+    check(
+      voiceInstructionsOf(
+        some(doc("# Guide")),
+        [],
+      ),
+      not(toContain("open_column")),
+    ),
   ]));
 
 test("the tools name no path — the server fixes the file", () =>

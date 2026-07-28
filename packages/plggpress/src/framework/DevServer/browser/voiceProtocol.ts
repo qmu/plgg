@@ -51,6 +51,18 @@ export type VoiceEvent =
       callId: string;
       heading: string;
     }>
+  /**
+   * The model asked to open one of the site's documents as
+   * the next column. It names a route the SERVER offered it
+   * (the tool's argument is an enum of the site's own
+   * routes) and, optionally, a passage to mark there.
+   */
+  | Readonly<{
+      kind: "ColumnRequested";
+      callId: string;
+      route: string;
+      span: string;
+    }>
   /** A frame this page has nothing to do about. */
   | Readonly<{ kind: "Ignored" }>;
 
@@ -152,7 +164,9 @@ const toolCallOf = (
     ? editRequestOf(callId, args)
     : name === "focus_section"
       ? focusRequestOf(callId, args)
-      : IGNORED;
+      : name === "open_column"
+        ? columnRequestOf(callId, args)
+        : IGNORED;
 
 const editRequestOf = (
   callId: string,
@@ -168,6 +182,23 @@ const editRequestOf = (
         callId,
         find,
         replace: strAt(args, "replace"),
+      };
+};
+
+const columnRequestOf = (
+  callId: string,
+  args: unknown,
+): VoiceEvent => {
+  const route = strAt(args, "route");
+  // A column with no route names nothing; it must not reach
+  // the runtime as a navigation to the current page.
+  return route === ""
+    ? IGNORED
+    : {
+        kind: "ColumnRequested",
+        callId,
+        route,
+        span: strAt(args, "quote"),
       };
 };
 
@@ -546,3 +577,45 @@ export const exactlyOnceAt = (
   find === "" || text.split(find).length - 1 !== 1
     ? -1
     : text.indexOf(find);
+
+/**
+ * WHERE the framework's navigation hook is published. The
+ * dev server injects this global, built from plggmatic's own
+ * `navHookName` — so plggpress never spells the framework's
+ * name in its own JavaScript, and a rename upstream is a
+ * compile error there rather than a silent dead call here.
+ */
+export const NAV_HOOK_GLOBAL =
+  "__plggpressNavHook";
+
+/** What to say about a column the assistant asked for. */
+export type ColumnAnswer = Readonly<{
+  output: string;
+  say: string;
+}>;
+
+/**
+ * Report an opened column back to the model — and a refusal
+ * as a REASON it can act on, so an unreachable route becomes
+ * a question rather than a silence.
+ */
+export const columnAnswerOf = (
+  route: string,
+  opened: boolean,
+): ColumnAnswer =>
+  opened
+    ? {
+        output: JSON.stringify({
+          opened: true,
+          route,
+        }),
+        say: `opened ${route}`,
+      }
+    : {
+        output: JSON.stringify({
+          opened: false,
+          route,
+          error: `could not open ${route} — the page did not load, so the reader was sent to it instead`,
+        }),
+        say: `could not open ${route}`,
+      };
