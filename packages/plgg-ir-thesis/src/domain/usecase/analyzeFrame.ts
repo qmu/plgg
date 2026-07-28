@@ -25,8 +25,12 @@ import {
   Frame,
   Attack,
   AttackType,
+  Correspondence,
+  FrameRef,
   frame,
   attack,
+  correspondence,
+  frameRef,
   parseAttackType,
   ATTACK_TYPES,
   codeBadFrame,
@@ -55,6 +59,19 @@ const FRAME_ATTRS: ReadonlyArray<string> = [
   ":要求",
   ":立場",
   ":対象",
+];
+
+/**
+ * The closed positional-child vocabulary of a `(フレーム
+ * ...)` form, one bucket per frame kind: `攻撃` (反論,
+ * ticket 3a), `対応` (類推), `問題` (全対応), `部分`
+ * (合成). Any other child is an unknown-form error.
+ */
+const FRAME_CLAUSES: ReadonlyArray<string> = [
+  "攻撃",
+  "対応",
+  "問題",
+  "部分",
 ];
 
 /**
@@ -124,6 +141,21 @@ const buildFrame = (
             .filter(isClause("攻撃"))
             .map(parseAttack),
         ),
+        partitionResults(
+          parts.rest
+            .filter(isClause("対応"))
+            .map(parseCorrespondence),
+        ),
+        partitionResults(
+          parts.rest
+            .filter(isClause("問題"))
+            .map(parseFrameRef("問題")),
+        ),
+        partitionResults(
+          parts.rest
+            .filter(isClause("部分"))
+            .map(parseFrameRef("部分")),
+        ),
       ),
   );
 
@@ -142,6 +174,18 @@ const finalizeFrame = (
     errors: Diags;
     values: ReadonlyArray<Attack>;
   }>,
+  corr: Readonly<{
+    errors: Diags;
+    values: ReadonlyArray<Correspondence>;
+  }>,
+  problems: Readonly<{
+    errors: Diags;
+    values: ReadonlyArray<FrameRef>;
+  }>,
+  parts: Readonly<{
+    errors: Diags;
+    values: ReadonlyArray<FrameRef>;
+  }>,
 ): Result<Frame, Diags> =>
   pipe(
     [
@@ -149,6 +193,9 @@ const finalizeFrame = (
       ...resultErrors(fromR),
       ...resultErrors(toR),
       ...attacks.errors,
+      ...corr.errors,
+      ...problems.errors,
+      ...parts.errors,
     ],
     (allDiags) =>
       pipe(
@@ -173,6 +220,9 @@ const finalizeFrame = (
                           to,
                           requireExpr(attrs),
                           attacks.values,
+                          corr.values,
+                          problems.values,
+                          parts.values,
                           form.content.range,
                         ),
                       ),
@@ -191,15 +241,102 @@ const unknownClauses = (
   rest: ReadonlyArray<Sexp>,
 ): Diags =>
   rest.flatMap((child): Diags =>
-    isClause("攻撃")(child)
+    FRAME_CLAUSES.some((h) => isClause(h)(child))
       ? []
       : [
           semError(
             codeUnknownForm,
-            "a frame child must be (攻撃 ...)",
+            "a frame child must be (攻撃 ...) / (対応 ...) / (問題 ...) / (部分 ...)",
             sexpRange(child),
           ),
         ],
+  );
+
+/**
+ * Parses a `(対応 <接続元-concept> <接続先-concept>)`
+ * correspondence clause of a 類推 (analogy) frame: two
+ * symbols naming a source and a target concept. Reference
+ * closure and the simulation condition are checked later
+ * (ticket 3b) over the whole node set.
+ */
+const parseCorrespondence = (
+  form: ListExp,
+): Result<Correspondence, Diags> =>
+  pipe(
+    symbolArg(form, 1),
+    matchOption(
+      (): Result<Correspondence, Diags> =>
+        err([
+          badFrameClause(
+            form,
+            "(対応 <接続元> <接続先>)",
+          ),
+        ]),
+      (src) =>
+        pipe(
+          symbolArg(form, 2),
+          matchOption(
+            (): Result<Correspondence, Diags> =>
+              err([
+                badFrameClause(
+                  form,
+                  "(対応 <接続元> <接続先>)",
+                ),
+              ]),
+            (dst) =>
+              ok(
+                correspondence(
+                  src.content.name,
+                  dst.content.name,
+                  form.content.range,
+                ),
+              ),
+          ),
+        ),
+    ),
+  );
+
+/**
+ * Parses a bare `(<label> <name>)` reference clause — the
+ * `問題` nodes of a 全対応 (totality) frame and the `部分`
+ * frames of a 合成 (composition) frame. Their targets are
+ * closed and evaluated later (ticket 3b).
+ */
+const parseFrameRef =
+  (label: SoftStr) =>
+  (form: ListExp): Result<FrameRef, Diags> =>
+    pipe(
+      symbolArg(form, 1),
+      matchOption(
+        (): Result<FrameRef, Diags> =>
+          err([
+            badFrameClause(
+              form,
+              `(${label} <name>)`,
+            ),
+          ]),
+        (n) =>
+          ok(
+            frameRef(
+              n.content.name,
+              form.content.range,
+            ),
+          ),
+      ),
+    );
+
+/**
+ * The malformed frame-clause diagnostic, naming the
+ * expected shape.
+ */
+const badFrameClause = (
+  form: ListExp,
+  shape: SoftStr,
+): SemDiagnostic =>
+  semError(
+    codeBadFrame,
+    `a frame clause must be ${shape}`,
+    form.content.range,
   );
 
 /**

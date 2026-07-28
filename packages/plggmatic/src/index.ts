@@ -62,6 +62,10 @@ export {
   type SelectOption,
   type SelectProps,
   type CheckboxProps,
+  type Control,
+  type FormField,
+  type FieldState,
+  type DeclaredFormProps,
   type ConfirmDialogProps,
   type Tone,
   type ToastProps,
@@ -69,6 +73,8 @@ export {
   textArea,
   selectInput,
   checkbox,
+  fieldControl,
+  declaredForm,
   confirmDialog,
   tones,
   toast,
@@ -107,6 +113,7 @@ export {
   crumbsOf,
   singleColumn,
   renderMode,
+  advanceColumns,
 } from "plggmatic/Render";
 
 // --- Declarative vocabulary (ticket 09) ---------------
