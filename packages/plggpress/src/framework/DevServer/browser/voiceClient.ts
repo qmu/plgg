@@ -21,6 +21,11 @@ import {
   type VoiceEvent,
   type VoiceLine,
   type FocusTarget,
+  type Provenance,
+  provenanceOf,
+  exactlyOnceAt,
+  columnAnswerOf,
+  NAV_HOOK_GLOBAL,
   voiceEventOf,
   foldTranscript,
   patchBodyOf,
@@ -44,6 +49,7 @@ const SDP_URL =
   "https://api.openai.com/v1/realtime/calls?model=gpt-realtime";
 const PANEL_ID = "plggpress-voice";
 const PANEL_STYLE_ID = "plggpress-voice-style";
+const PROV_CLASS = "plggpress-prov";
 
 type Grant = Readonly<{
   value: string;
@@ -78,9 +84,19 @@ let arbiter: ArbiterState = arbiterInit;
 let focused: FocusTarget = {
   kind: "FocusMissing",
 };
+// What the assistant has changed in this session, oldest
+// first. Held as TEXT, never as element references: the
+// swap replaces the body, so a reference would go stale
+// while the words the bridge wrote do not.
+let changes: ReadonlyArray<Provenance> = [];
 
+// The panel is anchored to the TOP RIGHT, immediately left
+// of the chrome rail — the assistant's dialog belongs to
+// the same control group as GitHub and the light/dark
+// toggle, not to a corner of its own. It sits OUTSIDE every
+// `[data-pm-column]`, so opening a column never touches it.
 const styleOf = (): string =>
-  `#${PANEL_ID}{position:fixed;right:16px;bottom:16px;z-index:2147483000;` +
+  `#${PANEL_ID}{position:fixed;right:60px;top:12px;z-index:2147483000;` +
   `width:320px;max-height:60vh;display:flex;flex-direction:column;gap:8px;` +
   `padding:12px;border:1px solid currentColor;background:Canvas;color:CanvasText;` +
   `font:13px/1.5 ui-sans-serif,system-ui,sans-serif}` +
@@ -89,7 +105,14 @@ const styleOf = (): string =>
   `#${PANEL_ID} .plggpress-voice-status{opacity:.7}` +
   `#${PANEL_ID} .plggpress-voice-log{overflow-y:auto;display:flex;` +
   `flex-direction:column;gap:6px}` +
-  `#${PANEL_ID} .plggpress-voice-log b{font-weight:600}`;
+  `#${PANEL_ID} .plggpress-voice-log b{font-weight:600}` +
+  // The provenance mark, in the page rather than the panel:
+  // what the passage WAS, struck through, beside what it
+  // became. The writer judges the change instead of taking
+  // the assistant's word for it.
+  `.${PROV_CLASS}{border-bottom:2px solid currentColor}` +
+  `.${PROV_CLASS} del{opacity:.55;margin-right:.35em}` +
+  `.${PROV_CLASS} ins{text-decoration:none}`;
 
 const mountPanel = (): Panel => {
   const style = document.createElement("style");
@@ -255,6 +278,14 @@ const runEditTool = async (
     const body: unknown = await res
       .json()
       .catch((): unknown => ({}));
+    changes = [
+      ...changes,
+      ...provenanceOf(
+        res.ok,
+        event.find,
+        event.replace,
+      ),
+    ];
     replyToTool(
       event.callId,
       toolOutputOf(res.ok, body),
@@ -307,6 +338,89 @@ const applyFocus = (id: string): void => {
 };
 
 /**
+ * Paint ONE change in place: find the passage as it now
+ * reads, in the page's own text, and show what it was
+ * beside it. The location is re-derived from whatever is
+ * currently in the DOM — never held — which is exactly why
+ * the display survives the in-place swap.
+ *
+ * Exactly once or not at all: a passage that has since been
+ * edited again, or that occurs twice, is not annotated
+ * rather than annotated in the wrong place. The same rule
+ * the highlight and the bridge itself obey.
+ *
+ * Exported so the provenance display can be driven — and
+ * therefore verified — from a real browser without a
+ * microphone and a live model.
+ */
+export const showChange = (
+  change: Provenance,
+): boolean => {
+  const walker = document.createTreeWalker(
+    document.body,
+    NodeFilter.SHOW_TEXT,
+  );
+  // DOM walk: an irreducible imperative seam. Collect the
+  // text nodes and their running offsets so a passage that
+  // crosses none of them can still be located by position.
+  const nodes: Array<Text> = [];
+  let text = "";
+  let node = walker.nextNode();
+  while (node !== null) {
+    if (
+      node instanceof Text &&
+      node.parentElement !== null &&
+      node.parentElement.closest(
+        "#" + PANEL_ID,
+      ) === null
+    ) {
+      nodes.push(node);
+      text = text + node.data;
+    }
+    node = walker.nextNode();
+  }
+  const at = exactlyOnceAt(text, change.now);
+  if (at < 0) {
+    return false;
+  }
+  // The one text node the passage starts in, and where in
+  // it. A passage spanning several nodes is annotated from
+  // its first — enough to show the writer where it is.
+  let offset = 0;
+  for (const candidate of nodes) {
+    const end = offset + candidate.data.length;
+    if (at >= offset && at < end) {
+      const local = at - offset;
+      const tail = candidate.splitText(local);
+      const rest = tail.data.slice(
+        0,
+        change.now.length,
+      );
+      tail.data = tail.data.slice(rest.length);
+      const mark = document.createElement("span");
+      mark.className = PROV_CLASS;
+      const was = document.createElement("del");
+      was.textContent = change.was;
+      const now = document.createElement("ins");
+      now.textContent = rest;
+      mark.appendChild(was);
+      mark.appendChild(now);
+      tail.parentNode?.insertBefore(mark, tail);
+      return true;
+    }
+    offset = end;
+  }
+  return false;
+};
+
+/** Re-paint every change this session has made. */
+const showChanges = (): void => {
+  for (const change of changes) {
+    showChange(change);
+  }
+};
+
+/**
  * Move the page to the section the writer named, and answer
  * with what happened. The DECISION is the pure resolver's;
  * this only reads the body the page is showing and moves the
@@ -328,6 +442,91 @@ export const focusSectionNow = (
     applyFocus(target.id);
   }
   return target;
+};
+
+/**
+ * The FRAMEWORK's navigation runtime, found through the
+ * global the dev server publishes. Read at call time, never
+ * captured: the hook exists as soon as plggmatic's runtime
+ * has run, and this module may load first.
+ *
+ * This is the whole point of the ticket — the assistant
+ * calls the SAME `open` a pointer click calls. There is no
+ * assistant-only navigation path to diverge from the one
+ * readers use, and there is nothing here that knows how a
+ * column is placed.
+ */
+const navRuntime = (): {
+  open: (
+    route: string,
+    span?: string,
+  ) => Promise<boolean>;
+} | null => {
+  const name = Reflect.get(
+    window,
+    NAV_HOOK_GLOBAL,
+  );
+  const hook =
+    typeof name === "string"
+      ? Reflect.get(window, name)
+      : null;
+  return typeof hook === "object" &&
+    hook !== null &&
+    typeof Reflect.get(hook, "open") ===
+      "function"
+    ? {
+        open: (
+          route: string,
+          span?: string,
+        ): Promise<boolean> =>
+          Promise.resolve(
+            Reflect.apply(
+              Reflect.get(hook, "open"),
+              hook,
+              [route, span],
+            ),
+          ),
+      }
+    : null;
+};
+
+/**
+ * Run ONE `open_column` call: hand it to the framework
+ * runtime and report what happened. A refusal comes back to
+ * the model as a reason it can act on rather than a silence.
+ *
+ * Exported so the assistant's navigation path can be driven
+ * — and therefore verified — from a real browser without a
+ * microphone and a live model.
+ */
+export const openColumnNow = async (
+  route: string,
+  span: string,
+): Promise<boolean> => {
+  const nav = navRuntime();
+  return nav === null
+    ? false
+    : await nav.open(
+        route,
+        span === "" ? undefined : span,
+      );
+};
+
+const runColumnTool = async (
+  panel: Panel,
+  event: Readonly<{
+    callId: string;
+    route: string;
+    span: string;
+  }>,
+): Promise<void> => {
+  say(panel, `opening ${event.route}…`);
+  const answer = columnAnswerOf(
+    event.route,
+    await openColumnNow(event.route, event.span),
+  );
+  replyToTool(event.callId, answer.output);
+  say(panel, answer.say);
 };
 
 /**
@@ -367,6 +566,10 @@ const onFrame = (
   }
   if (event.kind === "FocusRequested") {
     runFocusTool(panel, event);
+    return;
+  }
+  if (event.kind === "ColumnRequested") {
+    void runColumnTool(panel, event);
     return;
   }
   lines = foldTranscript(lines, event);
@@ -564,6 +767,12 @@ export const swapContent =
     if (focused.kind === "FocusMatched") {
       applyFocus(focused.id);
     }
+    // The swapped-in prose is fresh markup, so every
+    // provenance mark went with the old body. Re-derive
+    // them from the text that is there now — which is what
+    // makes the display survive the swap by construction
+    // rather than by bookkeeping.
+    showChanges();
   };
 
 const runArbiter = (panel: Panel): void => {

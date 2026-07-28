@@ -5,6 +5,10 @@ import {
   toContain,
   not,
 } from "plgg-test";
+import {
+  colorVar,
+  metricVar,
+} from "plggpress/themeSupport/styleEntry";
 import { baseCss } from "plggpress/theme/baseCss";
 import { defaultTheme } from "plggpress/themeSupport/styleEntry";
 
@@ -18,6 +22,13 @@ import { defaultTheme } from "plggpress/themeSupport/styleEntry";
 // default theme is the monochrome qmu palette.
 const css: string = baseCss(defaultTheme);
 
+// The framework's own token emitters, so these assertions
+// name plggmatic's custom properties by IMPORT rather than
+// by typing `--pm-…`: renaming the prefix upstream then
+// fails here instead of silently emitting dead CSS.
+const cvar = colorVar(defaultTheme);
+const mvar = metricVar(defaultTheme);
+
 test("D16 clean cutover: no legacy vp custom properties survive", () =>
   all([
     // neither definitions nor `var()` references of the old
@@ -27,24 +38,24 @@ test("D16 clean cutover: no legacy vp custom properties survive", () =>
     check(css, not(toContain("--" + "vp-"))),
     check(css, not(toContain(":root{"))),
     // the palette/geometry now come through plggmatic tokens
-    check(css, toContain("var(--pm-text)")),
-    check(css, toContain("var(--pm-surface)")),
-    check(css, toContain("var(--pm-surface-2)")),
-    check(css, toContain("var(--pm-border)")),
-    check(css, toContain("var(--pm-muted)")),
+    check(css, toContain(cvar("text"))),
+    check(css, toContain(cvar("surface"))),
+    check(css, toContain(cvar("surface-2"))),
+    check(css, toContain(cvar("border"))),
+    check(css, toContain(cvar("muted"))),
     // the qmu inverted pill is primary-base on neutral surface
     check(
       css,
       toContain(
-        "background:var(--pm-primary-base)",
+        "background:" + cvar("primary-base"),
       ),
     ),
     // column-strip geometry is metric tokens (the centred
     // shell-max is gone with the sidebar-first shell — the
     // strip scrolls horizontally instead of centring)
-    check(css, toContain("var(--pm-sidebar)")),
-    check(css, toContain("var(--pm-rail)")),
-    check(css, toContain("var(--pm-measure)")),
+    check(css, toContain(mvar("sidebar"))),
+    check(css, toContain(mvar("rail"))),
+    check(css, toContain(mvar("measure"))),
   ]));
 
 test("callouts ride the D9 role matrix, not hardcoded hexes", () =>
@@ -53,30 +64,30 @@ test("callouts ride the D9 role matrix, not hardcoded hexes", () =>
     check(
       css,
       toContain(
-        "background:var(--pm-success-surface)",
+        "background:" + cvar("success-surface"),
       ),
     ),
     check(
       css,
-      toContain("color:var(--pm-success-text)"),
+      toContain("color:" + cvar("success-text")),
     ),
     check(
       css,
       toContain(
-        "border-color:var(--pm-warning-border)",
+        "border-color:" + cvar("warning-border"),
       ),
     ),
     check(
       css,
       toContain(
-        "background:var(--pm-danger-surface)",
+        "background:" + cvar("danger-surface"),
       ),
     ),
     // info/note stay neutral with a primary edge
     check(
       css,
       toContain(
-        "border-color:var(--pm-primary-base)",
+        "border-color:" + cvar("primary-base"),
       ),
     ),
     // the retired emerald/amber/red ramp hexes are gone.
@@ -198,7 +209,7 @@ test("inline code is the translucent overlay badge (surface-independent, not a t
     // its ink IS a token (primary-base), matching the old brand
     check(
       css,
-      toContain("color:var(--pm-primary-base)"),
+      toContain("color:" + cvar("primary-base")),
     ),
   ]));
 
@@ -290,4 +301,22 @@ test("chrome fades use qmu's sharp-in curve; only the fill fades", () =>
     ),
     // text color snaps (only the fill fades, never muddy)
     check(css, not(toContain(",color 0.15s"))),
+  ]));
+
+// The drilled column's own rule block, isolated so a
+// border added back to it fails here rather than visually.
+const sectionRule: string = css.slice(
+  css.indexOf(".vp-section{"),
+  css.indexOf("}", css.indexOf(".vp-section{")),
+);
+
+test("no rules are drawn between the strip's columns", () =>
+  all([
+    // the drilled section column carried a left and a right
+    // border; alignment is spacing now, not drawn lines
+    check(sectionRule, not(toContain("border"))),
+    // and the choice lists are a text-width block, centred
+    // in their column, with the text left-aligned inside it
+    check(css, toContain("margin-inline:auto")),
+    check(css, toContain(".vp-sidebar-nav{")),
   ]));

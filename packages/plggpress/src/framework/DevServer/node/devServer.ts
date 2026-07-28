@@ -250,6 +250,10 @@ export const startDevServer = (
                 voiceSessionHandler(
                   opts.voice,
                   openDocReader(opts.contentDir),
+                  // the site's OWN routes: the assistant
+                  // selects among these, so it cannot name
+                  // a page that does not exist
+                  paths,
                 ),
               ),
               get(

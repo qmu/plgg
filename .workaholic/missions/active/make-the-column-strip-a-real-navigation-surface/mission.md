@@ -5,12 +5,12 @@ slug: make-the-column-strip-a-real-navigation-surface
 status: active
 created_at: 2026-07-27T15:47:12+09:00
 author: a@qmu.jp
-assignee: 
+assignee: a@qmu.jp
 strategy: plgg-horizontal-orientation-ui-stack
-drive_authorized:
-predicted_hours:
+drive_authorized: true
+predicted_hours: 20
 actual_hours:
-tickets: []
+tickets: [20260728090000-composition-url-and-server-render.md, 20260728090100-plggmatic-navigation-runtime.md, 20260728090200-link-into-the-next-column.md, 20260728090300-highlight-span-exactly-once.md, 20260728090400-popstate-closes-the-column.md, 20260728090500-no-javascript-proof.md, 20260728090600-borderless-strip-centred-lists.md, 20260728090700-chrome-into-the-top-right-rail.md, 20260728090800-edit-provenance-in-place.md, 20260728090900-assistant-drives-the-runtime.md, 20260728091000-retire-the-pm-class-coupling.md]
 stories: []
 concerns: []
 gate_type:
@@ -168,17 +168,17 @@ to plggpress:
 
 <!-- Ticket filenames attached as (#<ticket>.md) markers, on the SAME line as the item. -->
 
-- [ ] Screen state is modelled as an ordered list of `(route, optional highlighted span)` carried by the URL, and the server renders that composition with no JavaScript involved; pasting a composition URL into a fresh browser reproduces the same strip and highlights
-- [ ] plggmatic ships a dependency-free client navigation runtime, shaped like `appearanceInitScript` (inline string constant, no bundler, no new dependency), that intercepts same-origin navigation, fetches server-rendered HTML and places it without a page load
-- [ ] Following a link in the markdown body opens its target as the next column to the right, leaving the originating column in place with its scroll position intact
-- [ ] A highlighted span is addressed by verbatim text that must occur exactly once, reusing the `edit_doc` locator; an ambiguous or absent quotation is refused and renders nothing, proven by a test that a paraphrased quotation cannot be displayed
-- [ ] `popstate` removes the column the matching navigation added and restores the previous composition, verified in a real browser including multi-step Back
-- [ ] With JavaScript disabled every link still navigates and every composition URL still server-renders correctly, proven by a test asserting the no-JS path
-- [ ] The borders between columns are removed and the first two columns render their choice lists as a text-width block centred in the column with the text left-aligned inside it, so left and right spacing around the list are equal
-- [ ] GitHub, the light/dark control and the assistant dialog all live in the rightmost vertical bar, grouped at the top right, with no chrome remaining in the sections column
-- [ ] After an assistant edit the changed passage shows its previous and current text in place, and the display survives the in-place swap
-- [ ] The assistant drives navigation through the SAME runtime the pointer uses, keeping the realtime session alive across every column it opens, proven live in a browser
-- [ ] plggpress consumes the framework runtime and no longer string-matches plggmatic's `pm-*` names from JavaScript
+- [x] Screen state is modelled as an ordered list of `(route, optional highlighted span)` carried by the URL, and the server renders that composition with no JavaScript involved; pasting a composition URL into a fresh browser reproduces the same strip and highlights (#20260728090000-composition-url-and-server-render.md)
+- [x] plggmatic ships a dependency-free client navigation runtime, shaped like `appearanceInitScript` (inline string constant, no bundler, no new dependency), that intercepts same-origin navigation, fetches server-rendered HTML and places it without a page load (#20260728090100-plggmatic-navigation-runtime.md)
+- [x] Following a link in the markdown body opens its target as the next column to the right, leaving the originating column in place with its scroll position intact (#20260728090200-link-into-the-next-column.md)
+- [x] A highlighted span is addressed by verbatim text that must occur exactly once, reusing the `edit_doc` locator; an ambiguous or absent quotation is refused and renders nothing, proven by a test that a paraphrased quotation cannot be displayed (#20260728090300-highlight-span-exactly-once.md)
+- [x] `popstate` removes the column the matching navigation added and restores the previous composition, verified in a real browser including multi-step Back (#20260728090400-popstate-closes-the-column.md)
+- [x] With JavaScript disabled every link still navigates and every composition URL still server-renders correctly, proven by a test asserting the no-JS path (#20260728090500-no-javascript-proof.md)
+- [x] The borders between columns are removed and the first two columns render their choice lists as a text-width block centred in the column with the text left-aligned inside it, so left and right spacing around the list are equal (#20260728090600-borderless-strip-centred-lists.md)
+- [x] GitHub, the light/dark control and the assistant dialog all live in the rightmost vertical bar, grouped at the top right, with no chrome remaining in the sections column (#20260728090700-chrome-into-the-top-right-rail.md)
+- [x] After an assistant edit the changed passage shows its previous and current text in place, and the display survives the in-place swap (#20260728090800-edit-provenance-in-place.md)
+- [x] The assistant drives navigation through the SAME runtime the pointer uses, keeping the realtime session alive across every column it opens, proven live in a browser (#20260728090900-assistant-drives-the-runtime.md)
+- [x] plggpress consumes the framework runtime and no longer string-matches plggmatic's `pm-*` names from JavaScript (#20260728091000-retire-the-pm-class-coupling.md)
 
 ## Changelog
 
@@ -186,3 +186,15 @@ to plggpress:
      One line per event ("- YYYY-MM-DD — event — filename"); never rewrite past lines. -->
 - 2026-07-27 — mission created — scoped from the developer's four requirements (no column borders with spacing-carried alignment; link-into-fourth-column; visible edit provenance; chrome consolidated into the top-right rail), with the layer decision taken deliberately: the navigation runtime belongs to plggmatic, not plggpress, because the framework emits the strip and the strategy places products on top of it
 - 2026-07-27 — model generalized to a COMPOSITION — the developer asked whether the assistant could assemble columns from documents that are not link-connected, quoting a passage from each to make a point. Modelling the strip as a walked trail cannot express that; modelling it as an ordered list of `(route, optional highlighted span)` expresses both, with link-following as the case where the list grew by one. Folded in now because the URL format is the one thing that cannot be changed later. Highlights reuse `edit_doc`'s exactly-once locator, which yields the property that an invented or paraphrased quotation cannot render at all. Corpus assembly (site index at mint, a read-a-passage verb, the argument object) is deliberately left to a follow-on mission this one is shaped to make cheap; full-text search/RAG stays out, as that story moved to qfs
+- 2026-07-28 — decomposed into 11 tickets (one per acceptance item) and stamped drive_authorized — the composition-URL ticket gates every other item and is driven first, alone; then runtime → link-into-next-column → highlight → popstate → no-JS proof → borders → rail → provenance → assistant → retire pm-* coupling — 20260728090000-composition-url-and-server-render.md
+- 2026-07-28 — ticket archived — 20260728090000-composition-url-and-server-render.md
+- 2026-07-28 — ticket archived — 20260728090100-plggmatic-navigation-runtime.md
+- 2026-07-28 — ticket archived — 20260728090200-link-into-the-next-column.md
+- 2026-07-28 — ticket archived — 20260728090300-highlight-span-exactly-once.md
+- 2026-07-28 — ticket archived — 20260728090400-popstate-closes-the-column.md
+- 2026-07-28 — ticket archived — 20260728090500-no-javascript-proof.md
+- 2026-07-28 — ticket archived — 20260728090600-borderless-strip-centred-lists.md
+- 2026-07-28 — ticket archived — 20260728090700-chrome-into-the-top-right-rail.md
+- 2026-07-28 — ticket archived — 20260728090800-edit-provenance-in-place.md
+- 2026-07-28 — ticket archived — 20260728090900-assistant-drives-the-runtime.md
+- 2026-07-28 — ticket archived — 20260728091000-retire-the-pm-class-coupling.md

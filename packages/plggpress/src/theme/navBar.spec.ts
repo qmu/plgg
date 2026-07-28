@@ -7,6 +7,11 @@ import {
   not,
 } from "plgg-test";
 import { renderToString } from "plggpress/framework";
+import {
+  themeToggleClass,
+  sunClass,
+  moonClass,
+} from "plggpress/themeSupport/styleEntry";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,
@@ -43,10 +48,13 @@ test("chrome rail carries the appearance toggle and social links, no nav", () =>
     // toggle on the framework class, both icons rendered
     check(
       rail,
-      toContain('class="pm-theme-toggle"'),
+      toContain(`class="${themeToggleClass}"`),
     ),
-    check(rail, toContain('class="pm-sun"')),
-    check(rail, toContain('class="pm-moon"')),
+    check(rail, toContain(`class="${sunClass}"`)),
+    check(
+      rail,
+      toContain(`class="${moonClass}"`),
+    ),
     // the GitHub social link with an accessible label
     check(rail, toContain("vp-rail-social")),
     check(
@@ -80,7 +88,7 @@ test("mobile bar shows the ☰ menu button, wordmark home link, and toggle", () 
     check(barContent, toContain(">plgg Guide<")),
     check(
       barContent,
-      toContain('class="pm-theme-toggle"'),
+      toContain(`class="${themeToggleClass}"`),
     ),
   ]));
 
@@ -104,4 +112,28 @@ test("mobile bar omits the ☰ button when the page has no drawer", () =>
       mobileBar(config, "/404", false),
     ),
     not(toContain('for="vp-menu-toggle"')),
+  ));
+
+test("the chrome is one group, at the TOP of the rail", () =>
+  all([
+    // no flex spacer pushes the controls down any more
+    check(
+      renderToString(chromeRail(config)),
+      not(toContain("vp-rail-spacer")),
+    ),
+    // and the group holds both controls
+    check(
+      renderToString(chromeRail(config)),
+      toContain("vp-rail-controls"),
+    ),
+    check(
+      renderToString(chromeRail(config)),
+      toContain("vp-rail-social"),
+    ),
+  ]));
+
+test("below lg the mobile bar carries the same group, not the drawer", () =>
+  check(
+    renderToString(mobileBar(config, "/", true)),
+    toContain("vp-mobilebar-social"),
   ));

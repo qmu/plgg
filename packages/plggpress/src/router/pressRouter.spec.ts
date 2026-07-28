@@ -49,6 +49,42 @@ const req = (path: string): HttpRequest => ({
   bytes: none(),
 });
 
+// The same request carrying a highlighted passage.
+const quoted = (
+  path: string,
+  span: string,
+): HttpRequest => ({
+  ...req(path),
+  query: { q: span },
+});
+
+// The passages a rendered response actually marks.
+const marks = (
+  res: HttpResponse,
+): ReadonlyArray<string> =>
+  String(res.body).match(
+    /<mark[^>]*>[^<]*<\/mark>/g,
+  ) ?? [];
+
+// The same request carrying a COMPOSITION: the columns to
+// the head's right, exactly as a URL parser would have
+// decoded the `c` value.
+const composed = (
+  path: string,
+  rest: string,
+): HttpRequest => ({
+  ...req(path),
+  query: { c: rest },
+});
+
+// How many content columns a rendered response holds.
+// `String` rather than a narrowing branch: a page response
+// is always a text body, and a branch whose other arm can
+// never be taken is a branch that can never be tested.
+const docColumns = (res: HttpResponse): number =>
+  String(res.body).split('class="vp-doc"')
+    .length - 1;
+
 // A fixture corpus exercising every router branch:
 //  - foo/index.md   → the SECOND file candidate
 //  - index.md       → home layout with NO home data
@@ -115,5 +151,67 @@ test("folds a missing source file into a typed HttpError", async () =>
     await handle(app, req("/missing/")),
     errThen((e: { __tag: string }) =>
       toBe("InternalError")(e.__tag),
+    ),
+  ));
+
+test("renders one content column per column of the composition", async () =>
+  check(
+    await handle(
+      app,
+      composed("/", "/foo/,/foo/"),
+    ),
+    okThen((res: HttpResponse) =>
+      toBe(3)(docColumns(res)),
+    ),
+  ));
+
+test("a column naming an unreadable page is dropped, not an error", async () =>
+  check(
+    await handle(
+      app,
+      composed("/", "/foo/,/nowhere/"),
+    ),
+    okThen((res: HttpResponse) =>
+      // the head and the one column that resolved; the
+      // composition still renders as a page
+      toBe(2)(docColumns(res)),
+    ),
+  ));
+
+test("a composition of nothing renders the head alone", async () =>
+  check(
+    await handle(app, composed("/", "")),
+    okThen((res: HttpResponse) =>
+      toBe(1)(docColumns(res)),
+    ),
+  ));
+
+test("a verbatim passage is marked in the served page", async () =>
+  check(
+    await handle(app, quoted("/foo/", "body")),
+    okThen((res: HttpResponse) =>
+      toBe('<mark class="vp-mark">body</mark>')(
+        marks(res).join(" | "),
+      ),
+    ),
+  ));
+
+test("a passage the document does not contain marks NOTHING", async () =>
+  check(
+    // one word away from the document's own text
+    await handle(app, quoted("/foo/", "bodies")),
+    okThen((res: HttpResponse) =>
+      toBe(0)(marks(res).length),
+    ),
+  ));
+
+test("an ambiguous passage is refused too, and the page still renders", async () =>
+  check(
+    await handle(app, quoted("/foo/", "o")),
+    okThen((res: HttpResponse) =>
+      toBe(true)(
+        marks(res).length === 0 &&
+          String(res.body).includes("Foo"),
+      ),
     ),
   ));

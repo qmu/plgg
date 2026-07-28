@@ -128,7 +128,7 @@ body.vp{
   -webkit-box-decoration-break:clone;
 }
 
-/* column-oriented horizontal strip (the plggmatic pm-row):
+/* column-oriented horizontal strip (the plggmatic row):
    the sections column, the drilled section column, the
    content column, and the chrome rail sit side by side. On
    lg+ the strip fills the viewport height and scrolls
@@ -137,22 +137,30 @@ body.vp{
    top bar and body width stay invariant and the strip
    scrolls beneath. Below lg it collapses to normal page
    flow with a sticky mobile bar + off-canvas drawer. The
-   pm-row/pm-col skeleton is plggmatic's; these .vp-* rules
+   row/column skeleton is plggmatic's (its own exported
+   class hooks); these .vp-* rules
    carry the qmu geometry. */
 .vp-shell{position:relative}
 .vp-app{
   display:flex;align-items:stretch;
 }
-/* far-RIGHT chrome rail (lg+ only, qmu DocsLayout):
-   appearance toggle + social links pinned to the bottom
-   by a flex spacer. Carries no navigation. */
+/* far-RIGHT chrome rail (lg+ only, qmu DocsLayout): the
+   appearance toggle and the social links, grouped at the
+   TOP — one corner for every control the site offers.
+   Carries no navigation. The top padding matches the nav
+   columns' own, so the whole top edge reads as one band. */
 .vp-rail{
   display:none;flex:0 0 ${mvar("rail")};
   width:${mvar("rail")};height:100vh;
   flex-direction:column;align-items:center;
-  padding:0 0 0.75rem;
+  padding:2rem 0 0.75rem;
+  /* always the RIGHTMOST bar, whatever the strip is doing:
+     pushed to the far right while the strip is narrower
+     than the viewport, and stuck to the right edge once it
+     overflows and scrolls. The controls stay in one corner
+     no matter how deep the reader has drilled. */
+  margin-left:auto;position:sticky;right:0;
 }
-.vp-rail-spacer{flex:1 1 auto}
 .vp-rail-controls{
   display:flex;flex-direction:column;
   align-items:center;gap:0.5rem;
@@ -192,7 +200,7 @@ body.vp{
   background:${cvar("primary-base")};
   color:${cvar("surface")};
 }
-.vp-mobilebar .${themeToggleClass}{margin-left:auto}
+.vp-mobilebar .${themeToggleClass}{margin-left:0.4rem}
 /* dimmed backdrop behind an open mobile drawer */
 .vp-backdrop{
   display:none;position:fixed;inset:0;z-index:40;
@@ -245,7 +253,17 @@ body.vp{
   background:${cvar("primary-base")};
   color:${cvar("surface")};
 }
-.vp-sidebar-nav{display:block}
+/* The two CHOICE-LIST columns (the sections column and the
+   drilled section column) share this root. Their entries
+   already size to their own text; making the nav itself
+   fit-content and centring it puts EQUAL space to the left
+   and right of the list while every entry keeps a common
+   left edge. Alignment is carried by that rhythm — there
+   are no rules drawn between the columns. */
+.vp-sidebar-nav{
+  display:block;width:fit-content;
+  max-width:100%;margin-inline:auto;
+}
 /* top-level section header — always visible, no collapse */
 .vp-group{margin-top:1rem}
 .vp-group:first-child{margin-top:0.25rem}
@@ -301,12 +319,12 @@ body.vp{
   line-height:1.25rem;
   font-weight:500;color:${cvar("text")};
 }
-/* social links: shown in the sidebar only below lg (the
-   rail carries them on lg+). */
-.vp-sidebar-social{
-  display:none;margin-top:1.5rem;
-  padding-top:1rem;
-  border-top:1px solid ${cvar("border")};
+/* social links live ONLY in the chrome group: the rail on
+   lg+, the mobile bar below it. Nothing chrome-like is left
+   in the sections column at any breakpoint. */
+.vp-mobilebar-social{
+  display:flex;align-items:center;gap:0.4rem;
+  margin-left:auto;
 }
 .vp-social{
   display:inline-flex;align-items:center;
@@ -334,14 +352,13 @@ body.vp{
 /* the DRILLED section column: opens to the right of the
    sections column when the reader is inside a section,
    holding that section's always-expanded tree. Fixed
-   width, its own scroll on lg+, bordered so the strip reads
-   as discrete columns. Hidden below lg (the sections drawer
+   width, its own scroll on lg+. NO RULES between columns —
+   the strip reads as discrete tracks from the equal
+   spacing alone. Hidden below lg (the sections drawer
    already carries navigation). */
 .vp-section{
   flex:0 0 15rem;width:15rem;
   padding:2rem 1rem;font-size:0.9rem;
-  border-left:1px solid ${cvar("border")};
-  border-right:1px solid ${cvar("border")};
 }
 /* content column: a FIXED-width prose column (its width is
    invariant as columns are added to the strip's left), the
@@ -408,6 +425,21 @@ body.vp{
   margin:1.5rem 0;
 }
 .vp-doc img{max-width:100%}
+/* a HIGHLIGHTED passage: the span a composition URL asked
+   for, located in the document's own text exactly once (an
+   unlocatable quotation is refused and paints nothing, so
+   this rule can only ever wrap the document's own words).
+   An inverted-pill fill, the same affordance the chrome
+   uses, so the mark reads as this site's own emphasis
+   rather than a browser default yellow. */
+.vp-doc mark{
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
+  padding:0.1em 0.25em;border-radius:0.2em;
+  box-decoration-break:clone;
+  -webkit-box-decoration-break:clone;
+  scroll-margin-top:3.75rem;
+}
 
 /* code — inline code is qmu's soft translucent badge: an
    overlay fill/border (adapts to whatever surface it sits
@@ -474,7 +506,8 @@ html.dark .vp-doc a:focus-visible code{
 html.dark .vp-doc pre code{background:none}
 /* syntax-highlight hues (plgg-highlight's span classes) are
    framework-owned now: themeSupport's syntaxCss emits the
-   --pm-code-* properties + the class rules per scheme
+   framework code-token properties + the class rules per
+   scheme
    (ticket 08 finishes the D16 cutover for code blocks). No
    syntax colors live here anymore. */
 
@@ -584,7 +617,9 @@ html.dark .vp-doc pre code{background:none}
     transform:translateX(0);
   }
   .vp-menu-cb:checked ~ .vp-backdrop{display:block}
-  .vp-sidebar-social{display:block}
+  /* the drawer is full-bleed, so a centred list would read
+     as an accident rather than as composition */
+  .vp-sidebar-nav{margin-inline:0}
 }
 `;
 };

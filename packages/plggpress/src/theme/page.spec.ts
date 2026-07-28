@@ -21,6 +21,13 @@ import {
   type MarkdownDoc,
   frontmatter,
 } from "plggpress/framework";
+import {
+  cssPrefix,
+  rowClass,
+  colClass,
+  stripAttr,
+  columnAttr,
+} from "plggmatic";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { shell } from "plggpress/theme/shell";
 import { page } from "plggpress/theme/page";
@@ -95,7 +102,13 @@ const rendered = renderToString(
     contentDoc,
     page(
       config,
-      content,
+      [
+        {
+          route: activePath,
+          span: none(),
+          body: content,
+        },
+      ],
       activePath,
       config.base,
     ),
@@ -106,7 +119,18 @@ const renderedHome = renderToString(
   shell(
     config,
     homeDoc,
-    page(config, content, "/", config.base),
+    page(
+      config,
+      [
+        {
+          route: "/",
+          span: none(),
+          body: content,
+        },
+      ],
+      "/",
+      config.base,
+    ),
   ),
 );
 
@@ -193,14 +217,14 @@ test("the landing page is ordinary prose WITH the sections column (qmu model)", 
 
 // The count of plggmatic column tracks in a rendered page.
 const columnCount = (rendered: string): number =>
-  rendered.split('class="pm-col').length - 1;
+  rendered.split(`class="${colClass}`).length - 1;
 
 // Extract a --pm-* scheme value from the emitted <style>.
 const schemeValueOf = (
   html: string,
   token: string,
 ): string => {
-  const needle = "--pm-" + token + ":";
+  const needle = `--${cssPrefix}-${token}:`;
   const at = html.indexOf(needle);
   return at < 0
     ? ""
@@ -221,15 +245,23 @@ const isGrayscaleHex = (hex: string): boolean => {
   );
 };
 
-test("renders the plggmatic column strip: a pm-row of pm-col columns", () =>
+test("renders the plggmatic column strip, named by import", () =>
   all([
-    // the strip is plggmatic's pm-row skeleton
-    check(rendered, toContain('class="pm-row')),
-    // carrying the qmu shell hook
+    // the strip is the framework's own row skeleton…
+    check(
+      rendered,
+      toContain(`class="${rowClass}`),
+    ),
+    // …carrying the qmu shell hook…
     check(rendered, toContain("vp-app")),
-    // with plggmatic pm-col columns (sections + content at
-    // minimum, plus the drilled section here)
-    check(rendered, toContain('class="pm-col')),
+    // …with the framework's column tracks…
+    check(
+      rendered,
+      toContain(`class="${colClass}`),
+    ),
+    // …and the markers its navigation runtime steers by
+    check(rendered, toContain(stripAttr)),
+    check(rendered, toContain(columnAttr)),
   ]));
 
 test("drilling into a section adds a column to the strip", () =>
@@ -246,6 +278,61 @@ test("drilling into a section adds a column to the strip", () =>
       toContain(
         'aria-label="Sidebar navigation"',
       ),
+    ),
+  ]));
+
+// A composition of three documents, rendered through the
+// same layout — the case the URL's `c` parameter decodes
+// into.
+const renderedComposition = renderToString(
+  shell(
+    config,
+    contentDoc,
+    page(
+      config,
+      [
+        {
+          route: activePath,
+          span: none(),
+          body: content,
+        },
+        {
+          route: "/a/",
+          span: none(),
+          body: content,
+        },
+        {
+          route: "/b/",
+          span: none(),
+          body: content,
+        },
+      ],
+      activePath,
+      config.base,
+    ),
+  ),
+);
+
+test("the strip carries ONE content column per composition entry", () =>
+  all([
+    // the same page, composed with two more documents to
+    // its right: the count follows the composition, and
+    // the chrome around it does not move
+    check(
+      columnCount(renderedComposition) -
+        columnCount(rendered),
+      toBe(2),
+    ),
+    // every column is a real content column, footer and all
+    check(
+      renderedComposition.split('class="vp-doc"')
+        .length - 1,
+      toBe(3),
+    ),
+    // and the head still decides what the page claims to be
+    check(
+      renderedComposition,
+      toContain("<title>Getting Started</title>"),
     ),
   ]));
 
@@ -279,3 +366,24 @@ test("the strip palette is monochrome (grayscale scheme tokens)", () => {
     check(isGrayscaleHex(surface), toBe(true)),
   ]);
 });
+
+test("the sections column carries navigation ONLY", () =>
+  all([
+    // the social links moved to the chrome group; nothing
+    // chrome-like is left beside the nav tree
+    check(
+      rendered,
+      not(toContain("vp-sidebar-social")),
+    ),
+    // the sections column is still there, and still the
+    // way to reach an article
+    check(
+      rendered,
+      toContain('aria-label="Sections"'),
+    ),
+    // and the chrome group still holds the controls
+    check(
+      rendered,
+      toContain("vp-rail-controls"),
+    ),
+  ]));

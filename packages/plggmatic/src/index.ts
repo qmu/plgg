@@ -27,13 +27,45 @@ export {
   type PaneRole,
   type Parts,
   landmarkTag,
+  rowClass,
+  colClass,
+  paneClass,
   row,
+  rowWith,
   column,
+  columnWith,
   pane,
   navPane,
   mainPane,
   asidePane,
 } from "plggmatic/Layout";
+// --- Navigate: the strip's screen state, and the URL ---
+// that carries it. Framework-owned because the framework
+// emits the strip.
+export {
+  type Column,
+  type Composition,
+  columnOf,
+  columnWithSpan,
+  soloComposition,
+  columnsOf,
+  restParam,
+  spanParam,
+  entrySeparator,
+  fieldSeparator,
+  escapeChar,
+  decodeComposition,
+  compositionQuery,
+  compositionHref,
+  stripAttr,
+  columnAttr,
+  spanAttr,
+  navHookName,
+  strip,
+  documentColumn,
+  navigationInitScript,
+  injectNavigationScript,
+} from "plggmatic/Navigate";
 // The `themeToggle*` family (component + class/CSS/static
 // helpers) is part of the THEME surface, so it is routed
 // through `plggmatic/style` (see `src/styleEntry.ts`); its
@@ -382,6 +414,8 @@ export {
   themeToggle,
   staticThemeToggle,
   themeToggleClass,
+  sunClass,
+  moonClass,
   themeToggleCss,
 } from "plggmatic/Component/usecase/themeToggle";
 // The Pragmatic brand substance plggmatic owns (A3): the

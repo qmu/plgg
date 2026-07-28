@@ -189,6 +189,11 @@ const config = {
     allowedHosts: [
       "localhost",
       "plgg-guide.qmu.dev",
+      // plgg-strip.qmu.dev is the port-4130 tunnel for this
+      // mission's worktree, so the column-strip navigation
+      // work can be reviewed beside the port-5181 guide
+      // rather than replacing it.
+      "plgg-strip.qmu.dev",
     ],
   },
 };

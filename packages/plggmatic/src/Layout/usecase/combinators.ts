@@ -1,5 +1,9 @@
 import { type SoftStr } from "plgg";
-import { type Html, el } from "plgg-view";
+import {
+  type Html,
+  type Attribute,
+  el,
+} from "plgg-view";
 import {
   type Styles,
   type Variant,
@@ -11,6 +15,19 @@ import {
   type PaneRole,
   landmarkTag,
 } from "plggmatic/Layout/model/pane";
+import { cssPrefix } from "plggmatic/Meta/model/identity";
+
+/**
+ * The class hooks the layout skeleton emits, derived from
+ * the framework's own {@link cssPrefix}. EXPORTED because a
+ * consumer that needs to name one — a stylesheet, a test —
+ * must import it rather than type it: a string a consumer
+ * types is a contract no compiler checks, and renaming the
+ * prefix would silently break every page that spelled it.
+ */
+export const rowClass: SoftStr = `${cssPrefix}-row`;
+export const colClass: SoftStr = `${cssPrefix}-col`;
+export const paneClass: SoftStr = `${cssPrefix}-pane`;
 
 /**
  * What a combinator accepts as its style slot: exactly
@@ -38,10 +55,29 @@ export type Parts = ReadonlyArray<
 export const row = <Msg>(
   parts: Parts,
   children: ReadonlyArray<Html<Msg>>,
+): Html<Msg> => rowWith([], parts, children);
+
+/**
+ * {@link row} with framework-owned ATTRIBUTES alongside
+ * its style parts. Not a widening of the recorded
+ * `(parts, children)` rule — that rule is about options
+ * being style atoms, and this is not an options bag. It
+ * exists so a framework module (Navigate's strip markers)
+ * can mark the skeleton it emits without either
+ * re-deciding the class/flow here or making a consumer
+ * spell `pm-row` by hand. Consumers use {@link row}.
+ */
+export const rowWith = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  parts: Parts,
+  children: ReadonlyArray<Html<Msg>>,
 ): Html<Msg> =>
   el(
     "div",
-    [style_("pm-row", flex, ...parts)],
+    [
+      style_(rowClass, flex, ...parts),
+      ...attributes,
+    ],
     children,
   );
 
@@ -55,10 +91,21 @@ export const row = <Msg>(
 export const column = <Msg>(
   parts: Parts,
   children: ReadonlyArray<Html<Msg>>,
+): Html<Msg> => columnWith([], parts, children);
+
+/** {@link column} with framework-owned attributes — see
+ * {@link rowWith} for why this pair exists. */
+export const columnWith = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  parts: Parts,
+  children: ReadonlyArray<Html<Msg>>,
 ): Html<Msg> =>
   el(
     "div",
-    [style_("pm-col", flexCol, ...parts)],
+    [
+      style_(colClass, flexCol, ...parts),
+      ...attributes,
+    ],
     children,
   );
 
@@ -78,7 +125,7 @@ export const pane =
   ): Html<Msg> =>
     el(
       landmarkTag(role),
-      [style_("pm-pane", ...parts)],
+      [style_(paneClass, ...parts)],
       children,
     );
 

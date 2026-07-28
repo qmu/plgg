@@ -6,6 +6,7 @@ import {
 } from "plgg-test";
 import {
   href,
+  unbase,
   samePath,
 } from "plggpress/Href/usecase/href";
 
@@ -107,5 +108,33 @@ test("samePath matches a link and the trailing-slash route for the same page", (
         "/concepts/",
       ),
       toBe(false),
+    ),
+  ]));
+
+test("unbase is the inverse of href for a deployed base", () =>
+  all([
+    // a base-prefixed link becomes the route the router
+    // registered
+    check(
+      unbase("/plgg/")("/plgg/concepts/"),
+      toBe("/concepts/"),
+    ),
+    // the base itself becomes the root route
+    check(unbase("/plgg/")("/plgg/"), toBe("/")),
+    // a base written without its trailing slash still
+    // matches
+    check(
+      unbase("/plgg")("/plgg/concepts/"),
+      toBe("/concepts/"),
+    ),
+    // a root deploy changes nothing
+    check(
+      unbase("/")("/concepts/"),
+      toBe("/concepts/"),
+    ),
+    // and neither does a path that never carried the base
+    check(
+      unbase("/plgg/")("/concepts/"),
+      toBe("/concepts/"),
     ),
   ]));

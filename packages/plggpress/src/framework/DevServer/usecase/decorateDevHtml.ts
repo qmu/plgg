@@ -1,6 +1,9 @@
 import { type SoftStr } from "plgg";
 import { LIVE_RELOAD_SCRIPT } from "plggpress/framework/DevServer/model/DevChannel";
-import { VOICE_CLIENT_SCRIPT } from "plggpress/framework/DevServer/model/VoiceProtocol";
+import {
+  NAV_HOOK_SCRIPT,
+  VOICE_CLIENT_SCRIPT,
+} from "plggpress/framework/DevServer/model/VoiceProtocol";
 
 /**
  * The DEV-ONLY HTML decoration: string-append the dev client
@@ -24,7 +27,9 @@ export const decorateDevHtml = (
   appendToBody(
     html,
     voice
-      ? LIVE_RELOAD_SCRIPT + VOICE_CLIENT_SCRIPT
+      ? LIVE_RELOAD_SCRIPT +
+          NAV_HOOK_SCRIPT +
+          VOICE_CLIENT_SCRIPT
       : LIVE_RELOAD_SCRIPT,
   );
 

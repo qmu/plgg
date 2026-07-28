@@ -30,7 +30,13 @@ import {
   sectionHeadingsOf,
   focusTargetOf,
   focusAnswerOf,
+  provenanceOf,
+  exactlyOnceAt,
+  columnAnswerOf,
+  NAV_HOOK_GLOBAL,
 } from "plggpress/framework/DevServer/browser/voiceProtocol";
+import { NAV_HOOK_GLOBAL as SERVER_NAV_HOOK } from "plggpress/framework/DevServer/model/VoiceProtocol";
+import { locateOnce } from "plggpress/Locate/usecase/locateOnce";
 
 // The browser client's pure half runs perfectly well in Node —
 // it is import-free by design — so the whole decoder is
@@ -596,3 +602,124 @@ test("it resolves against exactly the slugs the render path emits", () =>
       ]),
     ),
   ));
+
+/* --- edit provenance ---------------------------- */
+
+test("an applied edit leaves a record of what changed", () =>
+  all([
+    check(
+      JSON.stringify(
+        provenanceOf(
+          true,
+          "old text",
+          "new text",
+        ),
+      ),
+      toBe(
+        '[{"was":"old text","now":"new text"}]',
+      ),
+    ),
+    // a refusal leaves nothing to show
+    check(
+      provenanceOf(false, "old", "new").length,
+      toBe(0),
+    ),
+    // and a deletion has no passage left to annotate
+    check(
+      provenanceOf(true, "old", "").length,
+      toBe(0),
+    ),
+  ]));
+
+test("the changed passage is addressed exactly once, or not at all", () =>
+  all([
+    check(exactlyOnceAt("a b c", "b"), toBe(2)),
+    // absent
+    check(exactlyOnceAt("a b c", "z"), toBe(-1)),
+    // ambiguous
+    check(exactlyOnceAt("a b b", "b"), toBe(-1)),
+    // empty
+    check(exactlyOnceAt("a b c", ""), toBe(-1)),
+  ]));
+
+// This module is import-free by construction, so its
+// exactly-once rule is spelled a second time. Pin the two
+// against each other here — where BOTH can be imported —
+// so they cannot drift apart silently.
+test("the browser's exactly-once rule agrees with the shared locator", () =>
+  all(
+    [
+      ["a b c", "b"],
+      ["a b c", "z"],
+      ["a b b", "b"],
+      ["a b c", ""],
+      ["only once here", "once"],
+    ].map(
+      ([text, find]: ReadonlyArray<string>) => {
+        const shared = locateOnce(
+          text ?? "",
+          find ?? "",
+        );
+        return check(
+          exactlyOnceAt(text ?? "", find ?? ""),
+          toBe(
+            shared.__tag === "Ok"
+              ? shared.content.start
+              : -1,
+          ),
+        );
+      },
+    ),
+  ));
+
+/* --- open_column -------------------------------- */
+
+const columnFrame = (
+  args: Record<string, string>,
+): unknown => ({
+  type: "response.function_call_arguments.done",
+  name: "open_column",
+  call_id: "call_c1",
+  arguments: JSON.stringify(args),
+});
+
+test("an open_column call decodes into a column to open", () =>
+  check(
+    JSON.stringify(
+      voiceEventOf(
+        columnFrame({
+          route: "/concepts/",
+          quote: "a passage",
+        }),
+      ),
+    ),
+    toBe(
+      '{"kind":"ColumnRequested","callId":"call_c1","route":"/concepts/","span":"a passage"}',
+    ),
+  ));
+
+test("a column with no route names nothing and is ignored", () =>
+  check(
+    voiceEventOf(columnFrame({ route: "" })).kind,
+    toBe("Ignored"),
+  ));
+
+test("a refused column comes back as a reason, not a silence", () =>
+  all([
+    check(
+      columnAnswerOf("/a/", true).output,
+      toBe('{"opened":true,"route":"/a/"}'),
+    ),
+    check(
+      columnAnswerOf(
+        "/a/",
+        false,
+      ).output.includes("could not open"),
+      toBe(true),
+    ),
+  ]));
+
+// The global's NAME is spelled on both sides of the wire —
+// the browser cannot import the server model. Pin them.
+test("the browser and the server agree where the nav hook is published", () =>
+  check(NAV_HOOK_GLOBAL, toBe(SERVER_NAV_HOOK)));

@@ -34,6 +34,8 @@ export {
   themeToggle,
   staticThemeToggle,
   themeToggleClass,
+  sunClass,
+  moonClass,
   themeToggleCss,
 } from "plggmatic/Component/usecase/themeToggle";
 export {

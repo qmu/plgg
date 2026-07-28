@@ -25,3 +25,9 @@ Demo 1's chrome styling targets framework `pm-*` class hooks by name rather than
 ## How to Fix
 
 Introduce a small, documented style-hook surface (exported class-name constants or stable CSS custom properties) that consumer apps import instead of literal `pm-*` selectors, so a class rename becomes a type/import error instead of a silent visual break.
+
+## Progress — 2026-07-28 (mission `make-the-column-strip-a-real-navigation-surface`, ticket 20260728091000)
+
+The prescribed fix now EXISTS, and plggpress is fully on it. plggmatic exports the hooks it guarantees — `rowClass` / `colClass` / `paneClass` (Layout), `themeToggleClass` / `sunClass` / `moonClass` (the appearance toggle), `cssPrefix` for its custom properties, and `stripAttr` / `columnAttr` / `spanAttr` / `navHookName` for the navigation runtime — every one of them derived from `cssPrefix` rather than typed. `scripts/gate-framework-names.sh` (wired into `check-all.sh`) fails the build if a covered consumer types a `pm-` literal outside a comment.
+
+**What remains, and why this concern stays `active`.** The gate covers `packages/plggpress/src` only. `packages/plggmatic-example` — Demo 1, the app this concern is actually about — still types `pm-btn`, `pm-btn-danger`, `pm-dialog`, `pm-toast-*` and `--pm-*` properties, because the framework does not export those component hooks at all. Exporting them and bringing the example app under the gate is ticket `20260728100000-export-plggmatic-component-hooks.md`; this concern closes when that lands.
