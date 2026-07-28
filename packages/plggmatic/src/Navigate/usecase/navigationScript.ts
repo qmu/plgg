@@ -88,7 +88,15 @@ export const navigationInitScript: SoftStr =
   // chrome rail, a nav column) keeps its position
   "function place(node,at){var c=cols();var prev=c[at];" +
   "prev.parentNode.insertBefore(node,prev.nextSibling);" +
-  "node.scrollIntoView({inline:'end',block:'nearest'});}" +
+  "node.scrollIntoView({inline:'end',block:'nearest'});" +
+  "showMark(node);}" +
+  // put a column's highlighted passage under the reader's
+  // eyes. The mark is server-rendered — it exists only
+  // because the quotation located in the document exactly
+  // once — so this only ever scrolls to the document's own
+  // words.
+  "function showMark(node){var m=node.querySelector('mark');" +
+  "if(m){m.scrollIntoView({block:'center'});}}" +
   // OPEN a route as the column after index `at`. The
   // originating column's DOM node is never touched, so its
   // scroll position cannot be lost.
@@ -126,6 +134,9 @@ export const navigationInitScript: SoftStr =
   "&&(a.target===''||a.target==='_self')" +
   "&&a.origin===window.location.origin" +
   "&&!(a.pathname===window.location.pathname&&a.hash!=='');}" +
+  // on a hard load of a composition URL, the marks are
+  // already in the markup: put each column on its own.
+  "for(var k=0;k<cols().length;k++){showMark(cols()[k]);}" +
   "document.addEventListener('click',function(ev){" +
   "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
   "var at=columnOf(a);if(at<0){return;}" +

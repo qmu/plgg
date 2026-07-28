@@ -49,6 +49,23 @@ const req = (path: string): HttpRequest => ({
   bytes: none(),
 });
 
+// The same request carrying a highlighted passage.
+const quoted = (
+  path: string,
+  span: string,
+): HttpRequest => ({
+  ...req(path),
+  query: { q: span },
+});
+
+// The passages a rendered response actually marks.
+const marks = (
+  res: HttpResponse,
+): ReadonlyArray<string> =>
+  String(res.body).match(
+    /<mark[^>]*>[^<]*<\/mark>/g,
+  ) ?? [];
+
 // The same request carrying a COMPOSITION: the columns to
 // the head's right, exactly as a URL parser would have
 // decoded the `c` value.
@@ -166,5 +183,35 @@ test("a composition of nothing renders the head alone", async () =>
     await handle(app, composed("/", "")),
     okThen((res: HttpResponse) =>
       toBe(1)(docColumns(res)),
+    ),
+  ));
+
+test("a verbatim passage is marked in the served page", async () =>
+  check(
+    await handle(app, quoted("/foo/", "body")),
+    okThen((res: HttpResponse) =>
+      toBe('<mark class="vp-mark">body</mark>')(
+        marks(res).join(" | "),
+      ),
+    ),
+  ));
+
+test("a passage the document does not contain marks NOTHING", async () =>
+  check(
+    // one word away from the document's own text
+    await handle(app, quoted("/foo/", "bodies")),
+    okThen((res: HttpResponse) =>
+      toBe(0)(marks(res).length),
+    ),
+  ));
+
+test("an ambiguous passage is refused too, and the page still renders", async () =>
+  check(
+    await handle(app, quoted("/foo/", "o")),
+    okThen((res: HttpResponse) =>
+      toBe(true)(
+        marks(res).length === 0 &&
+          String(res.body).includes("Foo"),
+      ),
     ),
   ));

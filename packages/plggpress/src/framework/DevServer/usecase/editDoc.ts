@@ -9,6 +9,10 @@ import {
   fromNullable,
   matchOption,
 } from "plgg";
+import {
+  type Located as LocatedSpan,
+  locateOnce,
+} from "plggpress/Locate/usecase/locateOnce";
 
 // The granular edit model, PROMOTED to production plggpress
 // from PoC 4b's proven, 100%-covered core
@@ -62,63 +66,25 @@ type Located = Readonly<{
 }>;
 
 /**
- * How many non-overlapping times `find` occurs in `text`
- * (left to right). `find` is guaranteed non-empty by the
- * caller, so `split` is a safe, allocation-cheap count.
- */
-const countOf = (
-  text: SoftStr,
-  find: SoftStr,
-): number => text.split(find).length - 1;
-
-/**
- * Locate ONE op: reject an empty `find`, an absent one (0
- * matches), and an ambiguous one (>1 match); otherwise the
- * single occurrence's span. Exactly-once is the whole
- * correctness contract of a find/replace edit — an ambiguous
- * match must never silently pick the first.
+ * Locate ONE op through the SHARED exactly-once locator —
+ * the same function the composition renderer addresses a
+ * highlighted passage with. Its refusal shapes are a subset
+ * of {@link EditError}'s, so a refusal flows through as-is;
+ * only `OverlappingEdits` is this module's own, because
+ * only a batch of edits can collide.
  */
 const locateOne = (
   text: SoftStr,
   op: EditOp,
 ): Result<Located, EditError> =>
-  op.find === ""
-    ? err(
-        refuse(
-          "EmptyFind",
-          "an edit had an empty `find` — every edit must quote the exact text to replace",
-          op.find,
-        ),
-      )
-    : pipe(
-        countOf(text, op.find),
-        (
-          n: number,
-        ): Result<Located, EditError> =>
-          n === 0
-            ? err(
-                refuse(
-                  "FindAbsent",
-                  `couldn't find ${JSON.stringify(op.find)} in the document — quote the exact current text, character for character`,
-                  op.find,
-                ),
-              )
-            : n > 1
-              ? err(
-                  refuse(
-                    "FindAmbiguous",
-                    `${JSON.stringify(op.find)} appears ${n} times — include more surrounding text so it matches exactly once`,
-                    op.find,
-                  ),
-                )
-              : ok({
-                  op,
-                  start: text.indexOf(op.find),
-                  end:
-                    text.indexOf(op.find) +
-                    op.find.length,
-                }),
-      );
+  pipe(
+    locateOnce(text, op.find),
+    mapResult((found: LocatedSpan): Located => ({
+      op,
+      start: found.start,
+      end: found.end,
+    })),
+  );
 
 /** True when a span sorted after `prev` starts before `prev` ends. */
 const overlaps = (

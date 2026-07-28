@@ -52,6 +52,7 @@ import {
   unbase,
 } from "plggpress/Href/usecase/href";
 import { injectAppearanceScripts } from "plggpress/theme/appearanceScripts";
+import { markedBody } from "plggpress/Locate/usecase/markSpan";
 import { shell } from "plggpress/theme/shell";
 import {
   type PageColumn,
@@ -66,6 +67,7 @@ import {
  */
 type RenderedColumn = Readonly<{
   route: SoftStr;
+  body: Html<never>;
   doc: MarkdownDoc;
 }>;
 
@@ -172,7 +174,7 @@ const pageView = (
       [head, ...rest].map(
         (column: RenderedColumn): PageColumn => ({
           route: column.route,
-          body: column.doc.body,
+          body: column.body,
         }),
       ),
       route,
@@ -223,6 +225,10 @@ const renderColumn =
                 doc: MarkdownDoc,
               ): RenderedColumn => ({
                 route: column.route,
+                body: markedBody(
+                  doc.body,
+                  column.span,
+                ),
                 doc,
               }),
             ),

@@ -5,7 +5,7 @@ type: enhancement
 layer: [Domain, UX]
 effort: 2h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260728090200-link-into-the-next-column.md]
 mission: make-the-column-strip-a-real-navigation-surface
 ---
@@ -93,3 +93,77 @@ screen is the document's own text, or nothing.
 - `workaholic:safety` — a shared composition URL is
   untrusted input; it can select what is shown, never
   author it.
+
+## Final Report
+
+Development completed as planned. A highlighted passage is
+now the document's own text or nothing at all:
+
+- `plggpress/src/Locate/usecase/locateOnce.ts` — the
+  exactly-once locator, lifted out of `editDoc` into a
+  module of its own. `edit_doc` and the composition
+  renderer are now two callers of ONE definition of "the
+  document says this"; `editDoc`'s `locateOne` is a thin
+  `mapResult` over it, and its refusal kinds are a subset
+  of `EditError`'s, so a refusal flows through untouched.
+- `plggpress/src/Locate/usecase/markSpan.ts` — the mark
+  itself, as a `foldHtml` catamorphism whose result is a
+  FUNCTION `offset → (node, offset)`. That is how a plain
+  fold threads a running text position through a tree, and
+  it is why a passage crossing element boundaries is marked
+  in each part it crosses without a bespoke traversal.
+- `plggpress/src/theme/baseCss.ts` — the mark wears the
+  site's own inverted pill, not a browser-default yellow.
+- The runtime scrolls a column to its mark, on placement
+  and on a hard load of a composition URL.
+
+`Raw` nodes contribute nothing to the searchable text, so a
+span can neither be located inside pre-rendered highlighter
+markup nor split it.
+
+Verified live against `plggpress dev` on port 4130 over the
+guide's real content:
+
+```
+/concepts/?q=the single source of truth
+  → <mark class="vp-mark">the single source of truth</mark>
+/concepts/?q=the sole source of truth      (one word altered)
+  → 0 marks, document renders in full
+/concepts/?q=e                             (ambiguous)
+  → 0 marks
+/?c=/concepts/:the single source of truth  (a NON-head column)
+  → the same single mark, in the second column
+```
+
+In a browser the mark is in view without the reader
+scrolling, and with **JavaScript disabled** the same URL
+still renders two columns with the passage marked — the
+highlight is server-rendered, so it needs no runtime at
+all. Screenshot: `strip-t4-highlight-located.png`.
+
+Mission acceptance item 1 completes here: a composition URL
+now reproduces both the columns and the highlights.
+
+### Discovered Insights
+
+- **Insight**: a bug that unit tests could not see —
+  `pageView` still passed `column.doc.body` (the unmarked
+  original) to the layout while `renderColumn` computed the
+  marked body. Every unit test passed; nothing was marked.
+  **Context**: found only by driving the real server. The
+  fix came with a router-level spec asserting the mark in
+  the SERVED page, so the gap between "the transform works"
+  and "the page shows it" is now covered.
+- **Insight**: the span is located in the RENDERED text,
+  not the markdown source — deliberately different from
+  `edit_doc`, which must locate in the source to write it.
+  **Context**: a reader (or an assistant reading the page)
+  quotes what they see, not the markdown that produced it.
+  Both uses share the locator; they differ only in which
+  text they hand it.
+- **Deviation**: the ticket planned to log a refused span
+  once, server-side. Not implemented — it would put a side
+  effect in the middle of a pure render pipeline for a case
+  that is already observable (no mark) and unit-tested. A
+  diagnostic belongs on the dev surface, not in the
+  renderer.

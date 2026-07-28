@@ -408,6 +408,21 @@ body.vp{
   margin:1.5rem 0;
 }
 .vp-doc img{max-width:100%}
+/* a HIGHLIGHTED passage: the span a composition URL asked
+   for, located in the document's own text exactly once (an
+   unlocatable quotation is refused and paints nothing, so
+   this rule can only ever wrap the document's own words).
+   An inverted-pill fill, the same affordance the chrome
+   uses, so the mark reads as this site's own emphasis
+   rather than a browser default yellow. */
+.vp-doc mark{
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
+  padding:0.1em 0.25em;border-radius:0.2em;
+  box-decoration-break:clone;
+  -webkit-box-decoration-break:clone;
+  scroll-margin-top:3.75rem;
+}
 
 /* code — inline code is qmu's soft translucent badge: an
    overlay fill/border (adapts to whatever surface it sits
