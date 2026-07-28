@@ -5,7 +5,7 @@ type: enhancement
 layer: [UX]
 effort: 1h
 commit_hash:
-category: Added
+category: Changed
 depends_on: [20260728090400-popstate-closes-the-column.md]
 mission: make-the-column-strip-a-real-navigation-surface
 ---
@@ -71,3 +71,54 @@ never run it.
   our JavaScript to read our documents.
 - `workaholic:operation` — the enhancement layer is allowed
   to fail; the content layer is not.
+
+## Final Report
+
+Development completed as planned. The no-JavaScript path is
+now a standing test rather than a claim in a comment.
+
+`plggpress/src/router/noJavaScript.spec.ts` asserts, over
+the bytes `pressRouter` actually serves:
+
+- every `href` on the page is followable — non-empty, not a
+  `javascript:` URL — and there is at least one;
+- nothing navigates through an `onclick`/`onmousedown`;
+- a composition URL's columns AND its highlight are in the
+  server's own bytes;
+- **deleting every `<script>` element from the response
+  changes none of it** — the enhancement is additive, never
+  load-bearing. That is the assertion that fails the day
+  someone turns a link into a click handler.
+
+Verified live in a real browser with **JavaScript disabled**
+(`browser.newContext({ javaScriptEnabled: false })`) on
+port 4130:
+
+```
+/concepts/                              1 column, 14 prose links
+/concepts/?c=/getting-started,/packages/plgg/&q=…
+                                        3 columns
+  headings  Core concepts | Getting started | plgg (core)
+  mark      "the single source of truth"
+clicking the first prose link (href /concepts/option)
+  → a REAL navigation to /concepts/option
+  → 1 column, heading "Option, not null", prose present
+```
+
+Nothing was blank or inert at any point. Screenshot:
+`strip-t6-no-javascript.png`.
+
+### Discovered Insights
+
+- **Insight**: the script-stripping assertion is the useful
+  one, and it is cheap.
+  **Context**: "does it work without JS" is hard to test in
+  a unit harness with no browser and no new dependencies.
+  Asserting that the response is unchanged when its scripts
+  are deleted answers the same question from the markup
+  alone, and it runs on every commit rather than in a
+  browser session someone has to remember to open.
+- **Deviation**: the JS-disabled BROWSER run is recorded
+  evidence, not an automated test. Automating it would need
+  Playwright as a dependency of the repo's test harness,
+  which the mission's zero-new-dependency rule forbids.
