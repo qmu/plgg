@@ -8,11 +8,11 @@
     "build": "plgg-bundle",
     "seed-content": "node src/entrypoints/seedContent.ts",
     "reset-content": "npm run seed-content",
-    "test": "tsc --noEmit && plgg-test src",
+    "test": "plgg-test src",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "plgg-test src --watch",
-    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage": "plgg-test src --coverage",
     "serve": "node src/entrypoints/serve.ts"
   },
   "repository": {

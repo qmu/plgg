@@ -26,6 +26,17 @@ export type HookFn = () => void | Promise<void>;
 export type TestMode = "run" | "skip";
 
 /**
+ * How a registered SUITE should be scheduled.
+ *
+ * `"serial"` is the opt-in from `suite.serial(...)`: the block runs as
+ * one indivisible unit, its tests in registration order, never
+ * interleaved with anything else in the file. It is what makes a shared
+ * fixture sequence — seed → assert → truncate — safe now that everything
+ * else is concurrent by default.
+ */
+export type SuiteMode = TestMode | "serial";
+
+/**
  * A single registered test (the `it`/`test` unit). Pure data; the
  * runner consumes it.
  */
@@ -51,7 +62,7 @@ export type Hooks = Readonly<{
  */
 export type Suite = Readonly<{
   name: string;
-  mode: TestMode;
+  mode: SuiteMode;
   tests: ReadonlyArray<TestCase>;
   suites: ReadonlyArray<Suite>;
   hooks: Hooks;

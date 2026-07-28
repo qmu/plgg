@@ -24,6 +24,7 @@ import {
   zBandTable,
 } from "plggmatic/Style/model/zIndex";
 import { appearanceStorageKey } from "plggmatic/Style/model/appearance";
+import { type SlotStyle } from "plggmatic/Style/usecase/slotCss";
 
 /**
  * The design language as a single closed record — the
@@ -65,6 +66,15 @@ export type Theme = Readonly<{
   >;
   zBands: Record<ZBand, number>;
   storageKey: SoftStr;
+  /**
+   * Per-component theming slots: a consumer's restyle of
+   * the framework chrome, as validated {@link SlotStyle}
+   * data resolved by {@link slotCss} into `pm-*` rules the
+   * FRAMEWORK owns — never by the consumer naming a `pm-*`
+   * class. Empty by default (the zero-config chrome is the
+   * `chromeCss` defaults alone).
+   */
+  slots: ReadonlyArray<SlotStyle>;
 }>;
 
 /**
@@ -85,4 +95,5 @@ export const defaultTheme: Theme = {
   syntax: syntaxPalette,
   zBands: zBandTable,
   storageKey: appearanceStorageKey,
+  slots: [],
 };

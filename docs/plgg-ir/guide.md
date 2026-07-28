@@ -32,6 +32,10 @@ Per-package references: [plgg-ir-syntax](../../packages/plgg-ir-syntax/README.md
 [plgg-ir-language](../../packages/plgg-ir-language/README.md) ·
 [plgg-ir-manifest](../../packages/plgg-ir-manifest/README.md).
 
+A second dialect on the same language layer verifies **argumentation
+structures** rather than domain models — see the
+[plgg-ir-thesis guide](./thesis-guide.md).
+
 ---
 
 ## 1. The package family

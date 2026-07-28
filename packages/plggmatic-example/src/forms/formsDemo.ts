@@ -31,11 +31,11 @@ import {
 } from "plgg-view/client";
 import {
   type ToastProps,
+  type FormField,
+  type FieldState,
   type FormErrors,
   type SubmissionState,
-  textInput,
-  textArea,
-  formView,
+  declaredForm,
   confirmDialog,
   toaster,
   parseForm,
@@ -62,11 +62,20 @@ type Note = Readonly<{
 }>;
 
 export type Msg =
-  | Readonly<{ kind: "titleInput"; value: SoftStr }>
-  | Readonly<{ kind: "bodyInput"; value: SoftStr }>
+  | Readonly<{
+      kind: "titleInput";
+      value: SoftStr;
+    }>
+  | Readonly<{
+      kind: "bodyInput";
+      value: SoftStr;
+    }>
   | Readonly<{ kind: "submit" }>
   | Readonly<{ kind: "created"; title: SoftStr }>
-  | Readonly<{ kind: "requestDelete"; id: SoftStr }>
+  | Readonly<{
+      kind: "requestDelete";
+      id: SoftStr;
+    }>
   | Readonly<{ kind: "confirmDelete" }>
   | Readonly<{ kind: "cancelDelete" }>
   | Readonly<{ kind: "dismiss"; id: SoftStr }>;
@@ -93,12 +102,57 @@ const asFilled = (
         }),
       );
 
+/**
+ * The form as a DECLARATION over plggmatic's Form surface —
+ * each field names its parse `cast`, its label, and its
+ * render `control` (kind + placeholder + message builder).
+ * This ONE list drives BOTH `parseForm` (validation, in
+ * `update`) and `declaredForm` (rendering, in `view`); the
+ * example never hand-lists a control component.
+ */
+const fields: ReadonlyArray<FormField<Msg>> = [
+  {
+    name: "title",
+    label: "Title",
+    cast: asFilled,
+    control: {
+      kind: "text",
+      placeholder: some("Note title"),
+      onInput: (v: SoftStr): Msg => ({
+        kind: "titleInput",
+        value: v,
+      }),
+    },
+  },
+  {
+    name: "body",
+    label: "Body",
+    cast: asFilled,
+    control: {
+      kind: "textarea",
+      placeholder: some("Note body"),
+      onInput: (v: SoftStr): Msg => ({
+        kind: "bodyInput",
+        value: v,
+      }),
+    },
+  },
+];
+
 const draftOf =
   (model: Model) =>
   (name: SoftStr): SoftStr =>
     name === "title"
       ? model.titleDraft
       : model.bodyDraft;
+
+const stateOf =
+  (model: Model) =>
+  (name: SoftStr): FieldState => ({
+    value: draftOf(model)(name),
+    error: errorFor(model.errors, name),
+    disabled: isPending(model.submitting),
+  });
 
 const pushToast = (
   model: Model,
@@ -173,15 +227,7 @@ export const update = (
             }),
           ),
         ],
-      )(
-        parseForm(
-          [
-            { name: "title", cast: asFilled },
-            { name: "body", cast: asFilled },
-          ],
-          draftOf(model),
-        ),
-      );
+      )(parseForm(fields, draftOf(model)));
     case "created":
       return [
         pushToast(
@@ -271,33 +317,9 @@ export const view = (model: Model): Html<Msg> =>
   slot(
     [attr("class", "fd-root")],
     [
-      formView<Msg>({
-        fields: [
-          textInput<Msg>({
-            name: "title",
-            label: "Title",
-            value: model.titleDraft,
-            placeholder: some("Note title"),
-            error: errorFor(model.errors, "title"),
-            disabled: isPending(model.submitting),
-            onInput: (v: SoftStr) => ({
-              kind: "titleInput",
-              value: v,
-            }),
-          }),
-          textArea<Msg>({
-            name: "body",
-            label: "Body",
-            value: model.bodyDraft,
-            placeholder: some("Note body"),
-            error: errorFor(model.errors, "body"),
-            disabled: isPending(model.submitting),
-            onInput: (v: SoftStr) => ({
-              kind: "bodyInput",
-              value: v,
-            }),
-          }),
-        ],
+      declaredForm<Msg>({
+        fields,
+        stateOf: stateOf(model),
         submitLabel: "Add note",
         submitting: isPending(model.submitting),
         onSubmit: { kind: "submit" },
