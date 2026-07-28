@@ -54,6 +54,30 @@ test("the runtime is safe to inline in a <script> element", () =>
     ),
   ]));
 
+test("the runtime leaves to the browser what the browser does better", () =>
+  all([
+    // a modified click must still open a tab
+    check(
+      navigationInitScript.includes("ev.metaKey"),
+      toBe(true),
+    ),
+    // a download must still download
+    check(
+      navigationInitScript.includes("download"),
+      toBe(true),
+    ),
+    // an off-site link must still leave
+    check(
+      navigationInitScript.includes("a.origin"),
+      toBe(true),
+    ),
+    // and a same-page fragment must still jump in place
+    check(
+      navigationInitScript.includes("a.hash"),
+      toBe(true),
+    ),
+  ]));
+
 test("injection lands once, before </body>", () => {
   const page =
     "<html><body><div></div></body></html>";

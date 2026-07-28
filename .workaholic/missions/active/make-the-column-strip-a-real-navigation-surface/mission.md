@@ -170,7 +170,7 @@ to plggpress:
 
 - [x] Screen state is modelled as an ordered list of `(route, optional highlighted span)` carried by the URL, and the server renders that composition with no JavaScript involved; pasting a composition URL into a fresh browser reproduces the same strip and highlights (#20260728090000-composition-url-and-server-render.md)
 - [x] plggmatic ships a dependency-free client navigation runtime, shaped like `appearanceInitScript` (inline string constant, no bundler, no new dependency), that intercepts same-origin navigation, fetches server-rendered HTML and places it without a page load (#20260728090100-plggmatic-navigation-runtime.md)
-- [ ] Following a link in the markdown body opens its target as the next column to the right, leaving the originating column in place with its scroll position intact (#20260728090200-link-into-the-next-column.md)
+- [x] Following a link in the markdown body opens its target as the next column to the right, leaving the originating column in place with its scroll position intact (#20260728090200-link-into-the-next-column.md)
 - [ ] A highlighted span is addressed by verbatim text that must occur exactly once, reusing the `edit_doc` locator; an ambiguous or absent quotation is refused and renders nothing, proven by a test that a paraphrased quotation cannot be displayed (#20260728090300-highlight-span-exactly-once.md)
 - [ ] `popstate` removes the column the matching navigation added and restores the previous composition, verified in a real browser including multi-step Back (#20260728090400-popstate-closes-the-column.md)
 - [ ] With JavaScript disabled every link still navigates and every composition URL still server-renders correctly, proven by a test asserting the no-JS path (#20260728090500-no-javascript-proof.md)
@@ -189,3 +189,4 @@ to plggpress:
 - 2026-07-28 — decomposed into 11 tickets (one per acceptance item) and stamped drive_authorized — the composition-URL ticket gates every other item and is driven first, alone; then runtime → link-into-next-column → highlight → popstate → no-JS proof → borders → rail → provenance → assistant → retire pm-* coupling — 20260728090000-composition-url-and-server-render.md
 - 2026-07-28 — ticket archived — 20260728090000-composition-url-and-server-render.md
 - 2026-07-28 — ticket archived — 20260728090100-plggmatic-navigation-runtime.md
+- 2026-07-28 — ticket archived — 20260728090200-link-into-the-next-column.md

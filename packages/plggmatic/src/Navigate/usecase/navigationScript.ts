@@ -77,23 +77,60 @@ export const navigationInitScript: SoftStr =
   "return window.location.pathname+(p.length?'?'+p.join('&'):'');}" +
   "function strip(){return document.querySelector('['+S+']');}" +
   "function cols(){return document.querySelectorAll('['+C+']');}" +
-  // place a fetched column after the last one already in
-  // the strip, so whatever else the strip holds (a chrome
-  // rail, a nav column) keeps its position
-  "function place(node){var c=cols();var last=c[c.length-1];" +
-  "last.parentNode.insertBefore(node,last.nextSibling);" +
+  // drop every column to the right of `at`. The strip is
+  // what you are reading now, not a log of everywhere you
+  // have been: opening from a middle column closes what
+  // stood beyond it.
+  "function truncate(at){var c=cols();" +
+  "for(var i=c.length-1;i>at;i--){c[i].remove();}}" +
+  // place a fetched column immediately after the one it
+  // was opened from, so whatever else the strip holds (a
+  // chrome rail, a nav column) keeps its position
+  "function place(node,at){var c=cols();var prev=c[at];" +
+  "prev.parentNode.insertBefore(node,prev.nextSibling);" +
   "node.scrollIntoView({inline:'end',block:'nearest'});}" +
-  "function open(route,span){" +
-  "var url=urlFor(entries().concat([entryOf(route,span)]));" +
+  // OPEN a route as the column after index `at`. The
+  // originating column's DOM node is never touched, so its
+  // scroll position cannot be lost.
+  "function openFrom(at,route,span){" +
+  "var url=urlFor(entries().slice(0,at).concat([entryOf(route,span)]));" +
   "return fetch(route,{credentials:'same-origin'}).then(function(r){" +
   "if(!r.ok){throw new Error('nav');}return r.text();}).then(function(t){" +
   "var d=new DOMParser().parseFromString(t,'text/html');" +
   "var col=d.querySelector('['+C+']');" +
   "if(!col||!strip()||!cols().length){throw new Error('nav');}" +
-  "place(document.importNode(col,true));" +
+  "truncate(at);place(document.importNode(col,true),at);" +
   "window.history.pushState(null,'',url);return true;}).catch(function(){" +
   "window.location.assign(url);return false;});}" +
-  `window[${q(navHookName)}]={open:open,urlFor:urlFor,entries:entries,entryOf:entryOf};` +
+  // the strip's rightmost column — where an open with no
+  // originating column lands
+  "function last(){return cols().length-1;}" +
+  "function open(route,span){return openFrom(last(),route,span);}" +
+  // WHICH COLUMN a node is in, or -1 when it is in none
+  "function columnOf(node){var c=cols();" +
+  "for(var i=0;i<c.length;i++){if(c[i].contains(node)){return i;}}" +
+  "return -1;}" +
+  // the anchor an event came from, walking up from the
+  // target; null when the click was not on a link
+  "function anchorOf(node){var e=node;" +
+  "while(e&&e!==document){if(e.tagName==='A'){return e;}e=e.parentNode;}" +
+  "return null;}" +
+  // IS THIS CLICK OURS? Everything the browser does better
+  // is left to the browser: a modified click still opens a
+  // tab, an external link still leaves, a download still
+  // downloads, and a same-page fragment still jumps inside
+  // its own column.
+  "function claims(ev,a){return !ev.defaultPrevented&&ev.button===0" +
+  "&&!ev.metaKey&&!ev.ctrlKey&&!ev.shiftKey&&!ev.altKey" +
+  "&&!!a&&!a.hasAttribute('download')" +
+  "&&(a.target===''||a.target==='_self')" +
+  "&&a.origin===window.location.origin" +
+  "&&!(a.pathname===window.location.pathname&&a.hash!=='');}" +
+  "document.addEventListener('click',function(ev){" +
+  "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
+  "var at=columnOf(a);if(at<0){return;}" +
+  "ev.preventDefault();openFrom(at,a.pathname);});" +
+  `window[${q(navHookName)}]={open:open,openFrom:openFrom,urlFor:urlFor,entries:entries,entryOf:entryOf,columnOf:columnOf,claims:claims};` +
   "})();";
 
 /**
