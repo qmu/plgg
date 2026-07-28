@@ -95,7 +95,7 @@ const rendered = renderToString(
     contentDoc,
     page(
       config,
-      content,
+      [content],
       activePath,
       config.base,
     ),
@@ -106,7 +106,7 @@ const renderedHome = renderToString(
   shell(
     config,
     homeDoc,
-    page(config, content, "/", config.base),
+    page(config, [content], "/", config.base),
   ),
 );
 
@@ -246,6 +246,45 @@ test("drilling into a section adds a column to the strip", () =>
       toContain(
         'aria-label="Sidebar navigation"',
       ),
+    ),
+  ]));
+
+// A composition of three documents, rendered through the
+// same layout — the case the URL's `c` parameter decodes
+// into.
+const renderedComposition = renderToString(
+  shell(
+    config,
+    contentDoc,
+    page(
+      config,
+      [content, content, content],
+      activePath,
+      config.base,
+    ),
+  ),
+);
+
+test("the strip carries ONE content column per composition entry", () =>
+  all([
+    // the same page, composed with two more documents to
+    // its right: the count follows the composition, and
+    // the chrome around it does not move
+    check(
+      columnCount(renderedComposition) -
+        columnCount(rendered),
+      toBe(2),
+    ),
+    // every column is a real content column, footer and all
+    check(
+      renderedComposition.split('class="vp-doc"')
+        .length - 1,
+      toBe(3),
+    ),
+    // and the head still decides what the page claims to be
+    check(
+      renderedComposition,
+      toContain("<title>Getting Started</title>"),
     ),
   ]));
 

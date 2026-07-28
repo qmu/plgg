@@ -59,7 +59,7 @@ export const notFound = (
   );
   const body = page(
     config,
-    content,
+    [content],
     "/404",
     config.base,
   );

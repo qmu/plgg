@@ -12,7 +12,16 @@ import {
   mapErr,
   mapResult,
   chainResult,
+  toOption,
+  matchOption,
 } from "plgg";
+import {
+  type Column,
+  type Composition,
+  restParam,
+  spanParam,
+  decodeComposition,
+} from "plggmatic";
 import {
   type Html,
   renderToString,
@@ -30,13 +39,17 @@ import {
   type HttpResponse,
   type HttpError,
   splitPath,
+  query,
   htmlResponse,
   internalError,
   notFound,
 } from "plggpress/framework";
 import { buildRouter } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
-import { href } from "plggpress/Href/usecase/href";
+import {
+  href,
+  unbase,
+} from "plggpress/Href/usecase/href";
 import { injectAppearanceScripts } from "plggpress/theme/appearanceScripts";
 import { shell } from "plggpress/theme/shell";
 import { page } from "plggpress/theme/page";
@@ -115,53 +128,68 @@ const readSource = (
   );
 
 /**
- * Composes one page: wrap the rendered Markdown body in
- * the {@link page} layout (the sidebar-first shell marked
- * at the route being rendered — the landing page renders
- * as ordinary prose through the same shell, qmu.co.jp's
- * model), then in the theme document {@link shell} (which derives the
- * `<title>` and inlines the collected atomic CSS). `route`
- * is the path being rendered — the `activePath` the chrome
- * marks — threaded from the per-route handler.
+ * Composes one page: wrap the composition's rendered
+ * Markdown bodies in the {@link page} layout (the
+ * sidebar-first shell marked at the route being rendered —
+ * the landing page renders as ordinary prose through the
+ * same shell, qmu.co.jp's model), then in the theme
+ * document {@link shell} (which derives the `<title>` and
+ * inlines the collected atomic CSS). `route` is the path
+ * being rendered — the `activePath` the chrome marks —
+ * threaded from the per-route handler.
+ *
+ * The `<title>`, the canonical link and the marked chrome
+ * all follow the HEAD document alone, so opening columns
+ * never changes what the page claims to be.
  */
 const pageView = (
   config: SiteConfig,
   base: SoftStr,
-  doc: MarkdownDoc,
+  head: MarkdownDoc,
+  rest: ReadonlyArray<MarkdownDoc>,
   route: SoftStr,
 ): Html<never> =>
   shell(
     config,
-    doc,
-    page(config, doc.body, route, base),
+    head,
+    page(
+      config,
+      [head, ...rest].map(
+        (doc: MarkdownDoc): Html<never> =>
+          doc.body,
+      ),
+      route,
+      base,
+    ),
   );
 
 /**
- * The shared route handler: read the route's source file,
- * render it through the injected highlighter + base-aware
- * {@link href} resolver, wrap via the theme, and answer an
- * `htmlResponse`. A parse failure folds to a typed
- * {@link HttpError} (`internalError`) so the SSG crawl
- * short-circuits loudly. Reads the request path from the
- * {@link Context}, so the same handler serves every
- * registered route.
+ * Read and render ONE column of a composition: its route's
+ * source file through the injected highlighter +
+ * base-aware {@link href} resolver. The route is unbased
+ * first, because a column the browser named came from an
+ * `href`-resolved link (always base-prefixed) while the
+ * router's routes never are.
  */
-const pageHandler =
+const renderColumn =
   (
     contentDir: SoftStr,
     config: SiteConfig,
     base: SoftStr,
-  ): Handler =>
+  ) =>
   (
-    c: Context,
-  ): PromisedResult<HttpResponse, HttpError> =>
+    column: Column,
+  ): PromisedResult<MarkdownDoc, HttpError> =>
     readSource(
-      candidateFiles(contentDir, c.req.path),
+      candidateFiles(
+        contentDir,
+        unbase(base)(column.route),
+      ),
     ).then(
       chainResult(
         (
           source: SoftStr,
-        ): Result<HttpResponse, HttpError> =>
+        ): Result<MarkdownDoc, HttpError> =>
           pipe(
             renderMarkdownWithOptions(
               pressRenderOptions(
@@ -173,23 +201,119 @@ const pageHandler =
             mapErr((e: InvalidError): HttpError =>
               internalError(e.content.message),
             ),
-            mapResult(
-              (doc: MarkdownDoc): HttpResponse =>
-                htmlResponse(
-                  injectAppearanceScripts(
-                    renderToString(
-                      pageView(
-                        config,
-                        base,
-                        doc,
-                        c.req.path,
+          ),
+      ),
+    );
+
+/**
+ * The columns to the head's right that actually rendered.
+ * A composition URL is untrusted input — typed by hand,
+ * truncated by a chat client, or naming a page that has
+ * since been deleted — so a column that cannot be read is
+ * DROPPED from the strip rather than turned into an error
+ * page. The head keeps the ordinary 404/500 behaviour: the
+ * URL's own path is a page, and a missing page is a 404.
+ */
+const rendered = (
+  results: ReadonlyArray<
+    Result<MarkdownDoc, HttpError>
+  >,
+): ReadonlyArray<MarkdownDoc> =>
+  results.reduce<ReadonlyArray<MarkdownDoc>>(
+    (
+      acc: ReadonlyArray<MarkdownDoc>,
+      result: Result<MarkdownDoc, HttpError>,
+    ): ReadonlyArray<MarkdownDoc> =>
+      pipe(
+        toOption(result),
+        matchOption(
+          (): ReadonlyArray<MarkdownDoc> => acc,
+          (
+            doc: MarkdownDoc,
+          ): ReadonlyArray<MarkdownDoc> => [
+            ...acc,
+            doc,
+          ],
+        ),
+      ),
+    [],
+  );
+
+/**
+ * The shared route handler: decode the COMPOSITION the URL
+ * carries (its own path is the head column; `c` and `q`
+ * decorate it), render every column, wrap via the theme,
+ * and answer an `htmlResponse`. A parse failure in the head
+ * folds to a typed {@link HttpError} (`internalError`) so
+ * the SSG crawl short-circuits loudly. Reads everything
+ * from the {@link Context}, so the same handler serves
+ * every registered route — and no route is added for the
+ * composition, which is a decoration of the pages that
+ * already exist.
+ */
+const pageHandler =
+  (
+    contentDir: SoftStr,
+    config: SiteConfig,
+    base: SoftStr,
+  ): Handler =>
+  (
+    c: Context,
+  ): PromisedResult<HttpResponse, HttpError> =>
+    pipe(
+      decodeComposition(
+        c.req.path,
+        pipe(c, query(restParam)),
+        pipe(c, query(spanParam)),
+      ),
+      (
+        composition: Composition,
+      ): PromisedResult<
+        HttpResponse,
+        HttpError
+      > =>
+        Promise.all([
+          renderColumn(
+            contentDir,
+            config,
+            base,
+          )(composition.head),
+          Promise.all(
+            composition.rest.map(
+              renderColumn(
+                contentDir,
+                config,
+                base,
+              ),
+            ),
+          ).then(rendered),
+        ]).then(
+          ([head, rest]: readonly [
+            Result<MarkdownDoc, HttpError>,
+            ReadonlyArray<MarkdownDoc>,
+          ]): Result<HttpResponse, HttpError> =>
+            pipe(
+              head,
+              mapResult(
+                (
+                  doc: MarkdownDoc,
+                ): HttpResponse =>
+                  htmlResponse(
+                    injectAppearanceScripts(
+                      renderToString(
+                        pageView(
+                          config,
+                          base,
+                          doc,
+                          rest,
+                          c.req.path,
+                        ),
                       ),
                     ),
                   ),
-                ),
+              ),
             ),
-          ),
-      ),
+        ),
     );
 
 /**

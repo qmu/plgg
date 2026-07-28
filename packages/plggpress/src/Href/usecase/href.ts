@@ -85,6 +85,27 @@ export const href =
         );
 
 /**
+ * The inverse of {@link href} for a root-absolute path:
+ * drop the deploy `base` prefix, so a link the browser
+ * carries (always base-prefixed) names the ROUTE the
+ * router registered (never base-prefixed). Needed because
+ * a composition URL is composed from `href`-resolved links
+ * on the client and resolved back to source files on the
+ * server. A root base, or a path that does not carry the
+ * prefix, is returned unchanged.
+ */
+export const unbase =
+  (base: SoftStr) =>
+  (path: SoftStr): SoftStr =>
+    pipe(
+      base.endsWith("/") ? base : base + "/",
+      (prefix: SoftStr): SoftStr =>
+        prefix === "/" || !path.startsWith(prefix)
+          ? path
+          : "/" + path.slice(prefix.length),
+    );
+
+/**
  * Drop a trailing `/` from a resolved path, keeping the
  * bare root `/` intact — the canonical form for the
  * trailing-slash-insensitive page comparison below.

@@ -3,9 +3,9 @@ created_at: 2026-07-28T09:00:00+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [Domain, UX]
-effort: 3h
+effort: 4h
 commit_hash:
-category: Added
+category: Changed
 depends_on: []
 mission: make-the-column-strip-a-real-navigation-surface
 ---
@@ -53,8 +53,11 @@ alone, and it is verifiable with the browser's JS disabled.
 
 ```
 Column = Readonly<{ route: SoftStr; span: Option<SoftStr> }>
-Composition = ReadonlyArray<Column>   // non-empty by construction
+Composition = Readonly<{ head: Column; rest: ReadonlyArray<Column> }>
 ```
+
+Non-empty by construction — the head is a field, not
+`list[0]`, so nothing downstream has an empty case.
 
 `Navigate/model/Composition.ts` holds the type plus a
 `columnOf` constructor; `Navigate/usecase/compositionUrl.ts`
@@ -70,13 +73,18 @@ self-sufficient page — and two query parameters decorate it:
   `route` optionally `:span`;
 - `q` — column 0's own span.
 
-Each field is percent-encoded with `encodeURIComponent`
-(which escapes both `,` and `:`, so the separators are
-unambiguous) and then has `%2F` restored to `/`, because a
-slash is legal in a query value and an unreadable URL is a
-worse shareable object. Round-trip is a property test:
+Separators are escaped INSIDE a field (`~` → `~t`, `,` →
+`~c`, `:` → `~f`), deliberately NOT by percent-encoding:
+the transport already percent-encodes on the way out and
+decodes on the way in, so a second percent round would be
+indistinguishable from the transport's own and a span
+containing a comma would split wrongly. On emission the
+joined value is percent-encoded once, with `/`, `,` and `:`
+restored to literals — all three are legal in a query
+value, and an unreadable URL is a worse shareable object.
+Round-trip is a test through a REAL `URL` parser:
 `decode(encode(x)) === x` over routes and spans containing
-`,`, `:`, `/`, `#`, `&`, spaces and non-ASCII.
+`,`, `:`, `~`, `/`, `#`, `&`, `%`, spaces and non-ASCII.
 
 A malformed `c` **degrades, never fails**: an entry that is
 not a site route is dropped, and a wholly unparseable `c`
@@ -131,3 +139,85 @@ changes what the page claims to be.
 - `workaholic:design` — reachability without force: every
   composition is a plain GET a crawler, a reader with no
   JS, and a pasted link all resolve identically.
+
+## Final Report
+
+Development completed as planned. The strip's screen state
+is now a value with a wire format, and the server renders
+it with nothing on the client:
+
+- `plggmatic/src/Navigate/model/Composition.ts` — `Column`
+  (`route` + `Option<span>`) and `Composition` (`head` +
+  `rest`). Non-empty by construction: the head is a field,
+  not `list[0]`, so no downstream renderer has an empty
+  case to defend against.
+- `plggmatic/src/Navigate/usecase/compositionUrl.ts` — the
+  codec, and the only authority for the format. The URL's
+  path is the head; `c` carries the columns to its right
+  (`route[:span]`, comma-separated) and `q` the head's own
+  span.
+- `plggpress/src/router/pressRouter.ts` — `renderColumn`
+  per column, `rendered` keeping the ones that resolved,
+  and `pageHandler` reading the composition off the
+  `Context`. No route was added: a composition is a
+  decoration of pages that already exist.
+- `plggpress/src/theme/page.ts` — `contentColumn` extracted
+  and mapped over the composition.
+- `plggpress/src/Href/usecase/href.ts` — `unbase`, the
+  inverse of `href` for a deployed base, so a browser-named
+  column (base-prefixed) resolves to the route the router
+  registered (never prefixed).
+
+**Two decisions worth recording.** First, separator
+escaping inside a field is deliberately NOT percent-
+encoding (`~t`/`~c`/`~f`): the transport already percent-
+encodes on the way out and decodes on the way in, so a
+second percent round would make the two indistinguishable
+and a span containing a comma would split wrongly. Second,
+every content column renders IDENTICALLY wherever it sits
+in the strip — same wrapper, same footer. That invariant is
+what will let the client runtime fetch a route's own page
+and place its column verbatim, so a clicked column and a
+reloaded column cannot drift apart.
+
+Verified live against `plggpress dev` on port 4130 serving
+the guide, in a real browser **with JavaScript disabled**
+(`browser.newContext({ javaScriptEnabled: false })`):
+
+```
+composition URL /concepts/?c=/getting-started,/packages/plgg/
+  content columns  3
+  headings         Core concepts | Getting started | plgg (core)
+  <title>          Core concepts        (the head, unchanged)
+plain URL /concepts/
+  content columns  1
+```
+
+With scripting on, the same URL measures a 3088px strip in
+a 1600px viewport — depth spends horizontal scroll, not
+body width. A `c` naming an unknown route
+(`?c=/concepts/,/nowhere/`) renders the two columns that
+resolve, with no error page. Screenshots:
+`strip-t1-composition-three-columns.png` and
+`strip-t1-nojs-composition.png`.
+
+Mission acceptance item 1 also asserts highlights, which
+are carried through the model here but not yet painted —
+it ticks with the highlight ticket
+(20260728090300), as this ticket's gate anticipated.
+
+### Discovered Insights
+
+- **Insight**: `HttpRequest.query` is a `Dict`, so a
+  repeated query parameter collapses to one value.
+  **Context**: this is why the composition rides in ONE
+  `c` value with its own separators rather than the
+  obvious repeated `?col=&col=`. Anything modelling a
+  LIST in a plgg-http query has the same constraint.
+- **Insight**: a `Record` lookup behind a regex that can
+  only produce known keys creates an untestable `None`
+  branch under `noUncheckedIndexedAccess`.
+  **Context**: the unescaper was written as chained
+  `split`/`join` instead, which is both the exact inverse
+  by construction and free of dead branches — the branch
+  gate is a design constraint, not a test chore.

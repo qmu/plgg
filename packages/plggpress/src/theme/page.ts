@@ -251,32 +251,20 @@ const drilledColumn = (
 };
 
 /**
- * The in-body PAGE LAYOUT — plggpress's column-oriented
- * horizontal strip, rendered through plggmatic's
- * {@link row}/{@link column} combinators (the `pm-row` /
- * `pm-col` skeleton the framework owns). Depth is expressed
- * by COLUMNS, never by consuming the viewport: the sections
- * column sits at the far left, the active section drills
- * open as a column to its right, then the `<main>` content
- * column holds the rendered `content` (an opaque
- * `Html<never>` embedded through the typed {@link slot})
- * plus the {@link siteFooter}, and the chrome rail closes
- * the strip. As the strip grows the top bar/body width
- * stays fixed and the row scrolls horizontally beneath.
- * Below lg the rail hides, a sticky {@link mobileBar}
- * appears, and the sections column becomes a CSS-only
- * off-canvas drawer driven by the hidden {@link menuToggle}
- * checkbox. The palette is plggmatic's monochrome
- * `defaultTheme` throughout. Authored purely from the typed
- * flow/`slot` builders — no general-builder escape hatch.
+ * ONE document column. Every content column renders
+ * IDENTICALLY whether it is the composition's first
+ * column or its fifth — same wrapper, same footer, same
+ * everything. That invariant is what lets the client
+ * runtime fetch a route's own page and place its column
+ * verbatim: a clicked column and a reloaded column are
+ * the same markup, so the strip cannot drift from what
+ * the URL says it is.
  */
-export const page = (
+const contentColumn = (
   config: SiteConfig,
   content: Html<never>,
-  activePath: SoftStr,
-  base: SoftStr,
-): Html<never> => {
-  const contentColumn = column(
+): Html<never> =>
+  column(
     ["vp-content"],
     [
       main_(
@@ -291,7 +279,37 @@ export const page = (
       ),
     ],
   );
-  return slot(
+
+/**
+ * The in-body PAGE LAYOUT — plggpress's column-oriented
+ * horizontal strip, rendered through plggmatic's
+ * {@link row}/{@link column} combinators (the `pm-row` /
+ * `pm-col` skeleton the framework owns). Depth is expressed
+ * by COLUMNS, never by consuming the viewport: the sections
+ * column sits at the far left, the active section drills
+ * open as a column to its right, then ONE `<main>` content
+ * column per document in the COMPOSITION (each an opaque
+ * `Html<never>` embedded through the typed {@link slot}, each
+ * with its own {@link siteFooter}), and the chrome rail closes
+ * the strip. `contents` is the composition the URL carried,
+ * left to right: one entry is an ordinary page, several are
+ * a strip a reader assembled by following links or was
+ * handed as a link. As the strip grows the top bar/body width
+ * stays fixed and the row scrolls horizontally beneath.
+ * Below lg the rail hides, a sticky {@link mobileBar}
+ * appears, and the sections column becomes a CSS-only
+ * off-canvas drawer driven by the hidden {@link menuToggle}
+ * checkbox. The palette is plggmatic's monochrome
+ * `defaultTheme` throughout. Authored purely from the typed
+ * flow/`slot` builders — no general-builder escape hatch.
+ */
+export const page = (
+  config: SiteConfig,
+  contents: ReadonlyArray<Html<never>>,
+  activePath: SoftStr,
+  base: SoftStr,
+): Html<never> =>
+  slot(
     [class_("vp-shell")],
     [
       menuToggle,
@@ -316,10 +334,12 @@ export const page = (
             activePath,
             base,
           ),
-          contentColumn,
+          ...contents.map(
+            (content: Html<never>): Html<never> =>
+              contentColumn(config, content),
+          ),
           chromeRail(config),
         ],
       ),
     ],
   );
-};

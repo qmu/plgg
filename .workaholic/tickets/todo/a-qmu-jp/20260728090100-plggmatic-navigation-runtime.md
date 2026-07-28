@@ -3,7 +3,7 @@ created_at: 2026-07-28T09:01:00+09:00
 author: a@qmu.jp
 type: enhancement
 layer: [UX, Infrastructure]
-effort: 3h
+effort: 4h
 commit_hash:
 category: Added
 depends_on: [20260728090000-composition-url-and-server-render.md]

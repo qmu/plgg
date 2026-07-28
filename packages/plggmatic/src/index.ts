@@ -34,6 +34,22 @@ export {
   mainPane,
   asidePane,
 } from "plggmatic/Layout";
+// --- Navigate: the strip's screen state, and the URL ---
+// that carries it. Framework-owned because the framework
+// emits the strip.
+export {
+  type Column,
+  type Composition,
+  columnOf,
+  columnWithSpan,
+  soloComposition,
+  columnsOf,
+  restParam,
+  spanParam,
+  decodeComposition,
+  compositionQuery,
+  compositionHref,
+} from "plggmatic/Navigate";
 // The `themeToggle*` family (component + class/CSS/static
 // helpers) is part of the THEME surface, so it is routed
 // through `plggmatic/style` (see `src/styleEntry.ts`); its
