@@ -67,19 +67,17 @@ const formatBuildError = (
  *   mounting `/api`, `/admin`, `/auth`, `/mcp`) lives in
  *   `plgg-cms`, which supplies its own `serveWeb`.
  *
- * `dev` is new, and REVERSES this file's previous stance
- * ("authoring hot-reload is a TOOLCHAIN concern … plggpress
- * ships no `dev` command"). That stance was right about
- * ownership and wrong about the bill: the dev LOOP still
- * belongs to the toolchain (`plgg-bundle`, reached across
- * `framework/Dev/node/devSeam` — plggpress assembles a plan,
- * it does not watch or serve), but leaving the command there
+ * `dev` REVERSES this file's previous stance ("authoring
+ * hot-reload is a TOOLCHAIN concern … plggpress ships no
+ * `dev` command"). Leaving the command to the toolchain
  * meant every consumer hand-wrote a `bundle.config.ts`, a
- * `devEntry.ts`, and took a bundler dependency, just to read
+ * `devEntry.ts`, and took a bundler dependency just to read
  * their own Markdown. Reducing exactly that friction is what
- * this package is FOR, so the layering stayed and the
- * paperwork moved: `plggpress dev` in a bare docs repo, no
- * wiring.
+ * this package is FOR, so plggpress now SERVES its own
+ * persistent dev surface (`framework/DevServer`): the shared
+ * render path wrapped in a self-owned live-reload channel
+ * and a live-edit bridge, watching the source paths.
+ * `plggpress dev` in a bare docs repo, no wiring, no bundler.
  */
 await runApp<
   SiteConfig,

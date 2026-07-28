@@ -23,6 +23,10 @@
 #     dev-time dependencies from their own node_modules —
 #     the clean-runner masking. Installing each package here
 #     keeps that resolution path available in the container.
+#     plgg-kit joins the list because `plggpress dev` mints
+#     the voice assistant's ephemeral Realtime key through
+#     it; the mint route is dark without OPENAI_API_KEY, but
+#     the module is imported either way.
 cd /app
 
 # 1. Install the runtime symlink graph, in dependency order,
@@ -32,9 +36,11 @@ cd /app
 #    install is what puts typescript on its resolution path.
 for pkg in \
   plgg \
+  plgg-kit \
   plgg-cli \
   plgg-http \
   plgg-view \
+  plggmatic \
   plgg-md \
   plgg-highlight \
   plgg-server \

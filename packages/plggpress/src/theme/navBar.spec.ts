@@ -31,6 +31,7 @@ const config: SiteConfig = {
   slugger: none(),
   srcExclude: none(),
   linkIgnore: none(),
+  theme: none(),
 };
 
 const rail = renderToString(chromeRail(config));

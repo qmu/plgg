@@ -60,15 +60,15 @@ test("the link-ignore predicate skips a link to a non-page path", () =>
     // without an ignore it fails the build.
     check(
       run(guide(["/plgg/downloads/report"])),
-      errThen((e) => toBe("BrokenLinks")(e.__tag)),
+      errThen((e) =>
+        toBe("BrokenLinks")(e.__tag),
+      ),
     ),
     // With an ignore predicate matching it, the same link
     // is skipped and the corpus passes.
     check(
-      checkLinks(
-        BASE,
-        (href: string): boolean =>
-          href.startsWith("/plgg/downloads/"),
+      checkLinks(BASE, (href: string): boolean =>
+        href.startsWith("/plgg/downloads/"),
       )([
         guide(["/plgg/downloads/report"]),
         option,

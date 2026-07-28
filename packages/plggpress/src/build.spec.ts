@@ -39,6 +39,7 @@ const config: SiteConfig = {
   slugger: none(),
   srcExclude: none(),
   linkIgnore: none(),
+  theme: none(),
 };
 
 const HOME_MD = [

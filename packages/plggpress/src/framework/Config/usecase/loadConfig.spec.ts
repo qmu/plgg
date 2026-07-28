@@ -31,11 +31,7 @@ type Cfg = Readonly<{ name: SoftStr }>;
 const asCfg = (
   value: unknown,
 ): Result<Cfg, InvalidError> =>
-  cast(
-    value,
-    asObj,
-    forProp("name", asSoftStr),
-  );
+  cast(value, asObj, forProp("name", asSoftStr));
 
 test("loadConfig validates a well-formed TS config through the injected caster", async () =>
   check(

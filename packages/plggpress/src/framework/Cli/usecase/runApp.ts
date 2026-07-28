@@ -40,7 +40,6 @@ import {
 import { serveApp } from "plggpress/framework/Serve/usecase/serveApp";
 import {
   type DevSettings,
-  type DevPlan,
   type DevHandle,
 } from "plggpress/framework/Dev/model/DevPlan";
 import {
@@ -48,8 +47,6 @@ import {
   CONVENTIONAL_CONTENT_DIR,
   resolveDev,
 } from "plggpress/framework/Dev/usecase/resolveDev";
-import { devPlanOf } from "plggpress/framework/Dev/usecase/devPlan";
-import { devEntryEnvOf } from "plggpress/framework/Dev/usecase/devEntryEnv";
 
 /**
  * What an app supplies to get a `dev` command. Optional: an
@@ -66,16 +63,14 @@ import { devEntryEnvOf } from "plggpress/framework/Dev/usecase/devEntryEnv";
  * - `allowedHosts` — the extra Host headers this app's
  *   validated config permits (e.g. a tunnel domain). Keeps
  *   the framework free of any app config type.
- * - `run` — the toolchain seam that actually starts the
- *   loop. INJECTED rather than imported: the framework
- *   assembles a {@link DevPlan} and knows nothing about who
- *   runs it, so the only module naming `plgg-bundle`
- *   (`framework/Dev/node/devSeam`) is reached from the
- *   composition root (`cli.ts`) and stays OFF this
- *   package's built surface. That is not just tidiness —
- *   the seam registers a loader hook via `import.meta`,
- *   which is a syntax error when the bundler evaluates a
- *   built entry's module graph to read its exports.
+ * - `run` — the start seam that actually brings the dev
+ *   surface up from the resolved {@link DevSettings},
+ *   folding a startup failure to a one-line `Err`.
+ *   INJECTED rather than imported: the framework resolves
+ *   the settings and knows nothing about WHO serves them,
+ *   so the effectful server module (which opens a socket
+ *   and watches the filesystem) is reached from the
+ *   composition root (`cli.ts`) and stays a node edge.
  */
 export type DevDefinition<Config> = Readonly<{
   entry: SoftStr;
@@ -84,7 +79,9 @@ export type DevDefinition<Config> = Readonly<{
   allowedHosts: (
     config: Config,
   ) => ReadonlyArray<SoftStr>;
-  run: (plan: DevPlan) => Promise<DevHandle>;
+  run: (
+    settings: DevSettings,
+  ) => PromisedResult<DevHandle, SoftStr>;
 }>;
 
 /**
@@ -106,13 +103,13 @@ export type DevDefinition<Config> = Readonly<{
  * entry the CONSUMER wrote) and is now a framework command:
  * the wiring it needed was always derivable from the app's
  * own declaration plus a few flags, and making the consumer
- * hand-write it was pure friction. The framework still does
- * not OWN the dev loop — it assembles a plan and delegates
- * across `framework/Dev/node/devSeam` — it just stops making
- * the consumer do the assembling.
+ * hand-write it was pure friction. The framework resolves
+ * the {@link DevSettings} and hands them to the app's start
+ * seam, which serves the dev surface — for plggpress, its
+ * own persistent `framework/DevServer`.
  *
- * `serve` is not `dev`'s return: it never watches or
- * re-imports, and loads config once at startup.
+ * `serve` is not `dev`'s return: it never watches, and loads
+ * config once at startup.
  */
 export type AppDefinition<Config, E> = Readonly<{
   name: SoftStr;
@@ -356,18 +353,16 @@ const runServe =
 /**
  * `dev` handler: load the config (the same one `build`
  * reads — a broken config fails here, not in the browser),
- * resolve the settings, assemble the plan, publish the dev
- * entry's environment, and start the loop across the
- * toolchain seam.
+ * resolve the settings, and hand them to the app's start
+ * seam, which serves the dev surface.
  *
  * The shape mirrors {@link runServe}: one startup line, then
  * a promise that never resolves, so the running server holds
  * the process and plgg-cli's `Result`→exit-code fold is not
  * tricked into exiting early.
  *
- * Everything effectful is HERE (cwd, the `docs/` probe,
- * mutating `process.env`, the seam); the resolution and the
- * plan are pure functions this only calls.
+ * Everything effectful is HERE (cwd, the `docs/` probe, the
+ * seam); the resolution is a pure function this only calls.
  */
 const runDev =
   <Config, E>(
@@ -427,23 +422,26 @@ const runDev =
       );
 
 /**
- * Publish the dev entry's environment and start the loop.
- * The env assignment is the deliberate mutation the reload
- * seam is built on: the entry module is re-imported, not
- * re-called, so this process's environment is what carries
- * its options across every reload.
+ * Bring the dev surface up and hold the process on it. The
+ * app's start seam serves the resolved {@link DevSettings}
+ * and reports either a running {@link DevHandle} or a
+ * one-line startup `Err`; on success this prints one line
+ * and returns a promise that never resolves, so the running
+ * server holds the process and plgg-cli's `Result`→exit-code
+ * fold is not tricked into exiting early.
  */
 const startDev = (
   settings: DevSettings,
-  run: (plan: DevPlan) => Promise<DevHandle>,
-): PromisedResult<SoftStr, SoftStr> => {
-  Object.entries(devEntryEnvOf(settings)).forEach(
-    ([key, value]: [string, string]): void => {
-      process.env[key] = value;
-    },
-  );
-  return run(devPlanOf(settings))
-    .then(
+  run: (
+    settings: DevSettings,
+  ) => PromisedResult<DevHandle, SoftStr>,
+): PromisedResult<SoftStr, SoftStr> =>
+  run(settings).then(
+    matchResult(
+      (
+        e: SoftStr,
+      ): PromisedResult<SoftStr, SoftStr> =>
+        Promise.resolve(err(e)),
       (
         server: DevHandle,
       ): PromisedResult<SoftStr, SoftStr> => {
@@ -455,18 +453,8 @@ const startDev = (
           Result<SoftStr, SoftStr>
         >(() => {});
       },
-    )
-    .catch(
-      (
-        reason: unknown,
-      ): Result<SoftStr, SoftStr> =>
-        err(
-          reason instanceof Error
-            ? reason.message
-            : String(reason),
-        ),
-    );
-};
+    ),
+  );
 
 /** Whether a path exists and is a directory. */
 const isDirectory = (path: SoftStr): boolean => {

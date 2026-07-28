@@ -10,7 +10,6 @@ organized as an Open Knowledge Format bundle. Enter any area through its index.
 * [tickets/](tickets/) - implementation tickets (todo / archive / icebox queues)
 * [stories](stories/index.md) - branch development narratives (PR descriptions and historical record)
 * [missions](missions/index.md) - optional epic-equivalent batches of tickets, with acceptance progress and an append-only changelog
-* [concerns](concerns/index.md) - deferred concerns extracted at ship time, judged on later reports
 * [deployments](deployments/index.md) - deployment targets and confirmation methods
 * [release-notes](release-notes/index.md) - per-ship release records
 * [specs](specs/index.md) - specification documents

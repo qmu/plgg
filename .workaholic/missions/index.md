@@ -4,7 +4,9 @@
 
 * [build-the-plgg-ir-thesis-evaluator](active/build-the-plgg-ir-thesis-evaluator/mission.md) - Build the plgg-ir-thesis Evaluator
 * [grow-plggmatic-as-the-reference-framework](active/grow-plggmatic-as-the-reference-framework/mission.md) - Grow plggmatic as the reference framework
+* [make-the-column-strip-a-real-navigation-surface](active/make-the-column-strip-a-real-navigation-surface/mission.md) - Make the column strip a real navigation surface
 * [modernize-plgg-test-for-concurrent-speed](active/modernize-plgg-test-for-concurrent-speed/mission.md) - Modernize plgg-test for concurrent speed
+* [plggpress-column-layout-and-voice-ai-editing](active/plggpress-column-layout-and-voice-ai-editing/mission.md) - plggpress column layout and voice AI editing
 
 ## archive
 

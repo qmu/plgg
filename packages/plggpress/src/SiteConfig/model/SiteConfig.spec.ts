@@ -15,6 +15,110 @@ import {
   asSluggerKind,
   defineSite,
 } from "plggpress/SiteConfig/model/SiteConfig";
+import {
+  colors,
+  schemeCss,
+} from "plggpress/themeSupport/styleEntry";
+import { resolveTheme } from "plggpress/theme/shell";
+
+// A full palette-override input (every token, both schemes),
+// all-gray except the cells the caller marks — enough to
+// pass plggmatic's exhaustive asPalette.
+const fullRow = (
+  over: Readonly<Record<string, string>>,
+): Record<string, string> => {
+  const base: Record<string, string> = {};
+  for (const c of colors) {
+    base[c] = "#101010";
+  }
+  return { ...base, ...over };
+};
+
+const baseInput = {
+  title: "t",
+  description: "d",
+  base: "/",
+  nav: [],
+  sidebar: [],
+  social: [],
+  dev: { allowedHosts: [] },
+};
+
+test("a SiteConfig palette override is reflected in the emitted scheme CSS", () =>
+  check(
+    asSiteConfig({
+      ...baseInput,
+      theme: {
+        light: fullRow({ surface: "#abcdef" }),
+        dark: fullRow({}),
+      },
+    }),
+    okThen((c: SiteConfig) =>
+      all([
+        // the override validated into Some(theme)…
+        toBe(true)(isSome(c.theme)),
+        // …and the resolved theme's scheme CSS carries the
+        // overridden hex (no source edit)
+        toBe(true)(
+          schemeCss(resolveTheme(c)).includes(
+            "#abcdef",
+          ),
+        ),
+      ]),
+    ),
+  ));
+
+test("no theme config keeps the B&W qmu default (unchanged)", () =>
+  check(
+    asSiteConfig(baseInput),
+    okThen((c: SiteConfig) =>
+      all([
+        // absent ⇒ None, so no config edit is forced
+        toBe(false)(isSome(c.theme)),
+        // the resolved default is the monochrome palette:
+        // its light surface is #ffffff
+        toBe(true)(
+          schemeCss(resolveTheme(c)).includes(
+            "#ffffff",
+          ),
+        ),
+      ]),
+    ),
+  ));
+
+test("an invalid palette is rejected with a path-named error", () =>
+  all([
+    check(
+      asSiteConfig({
+        ...baseInput,
+        theme: {
+          light: fullRow({
+            surface: "not-a-hex",
+          }),
+          dark: fullRow({}),
+        },
+      }),
+      shouldBeErr(),
+    ),
+    check(
+      asSiteConfig({
+        ...baseInput,
+        theme: {
+          light: fullRow({}),
+          dark: fullRow({
+            "danger-border": "nope",
+          }),
+        },
+      }),
+      errThen((e) =>
+        toBe(true)(
+          e.content.message.includes(
+            "dark.danger-border",
+          ),
+        ),
+      ),
+    ),
+  ]));
 
 test("asSluggerKind accepts the closed set, rejects others", () =>
   all([

@@ -45,7 +45,9 @@ test("a fully-valid frontmatter payload passes", () =>
 
 test("optional fields may be omitted", () =>
   check(
-    isOk(validate({ title: "Only the required" })),
+    isOk(
+      validate({ title: "Only the required" }),
+    ),
     toBe(true),
   ));
 

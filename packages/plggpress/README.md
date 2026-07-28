@@ -70,17 +70,60 @@ running CLI's own location, and watches only your content —
 co-developing the theme itself.
 
 This reverses an earlier stance ("hot-reload is a toolchain
-concern; plggpress ships no `dev` command"). The layering it
-defended is intact — the dev LOOP is still `plgg-bundle`'s,
-reached across a seam that hands it a plan — but the paperwork
-it implied was not: every consumer had to hand-write a
-`bundle.config.ts`, a `devEntry.ts`, and take a bundler
-dependency to read their own Markdown. Removing that friction
-is what plggpress is for, so the command moved and the
-ownership did not.
+concern; plggpress ships no `dev` command"). Every consumer had
+to hand-write a `bundle.config.ts`, a `devEntry.ts`, and take a
+bundler dependency to read their own Markdown. Removing that
+friction is what plggpress is for, so `dev` now runs
+plggpress's OWN persistent surface (`framework/DevServer`): the
+same render path, wrapped in a live-reload channel it controls,
+with a live-edit bridge mounted at the process root.
 
 **dev is for authoring, not hosting.** Production stays
 `plggpress build` (SSG/CDN) or `plgg-cms`'s `serve`.
+
+### Editing by voice (dev only)
+
+Set `OPENAI_API_KEY` before `plggpress dev` and every page
+gains a voice panel: you talk about the document you are
+looking at, and the assistant edits it.
+
+```sh
+OPENAI_API_KEY=sk-… npx plggpress dev
+```
+
+- The standing key **never reaches the browser**. The dev
+  server mints a short-lived OpenAI Realtime client secret
+  server-side (`POST /__plggpress_voice/session`) and hands
+  over only that grant.
+- The session is grounded in the document behind the route you
+  are on: the server resolves it through the render path's own
+  route→`*.md` mapping, so the assistant reads exactly the file
+  the page was rendered from — and the model never names a
+  file.
+- Its `edit_doc` tool posts through the **existing** live-edit
+  bridge (`POST /__plggpress_patch`), which authorizes the
+  path, applies the one located span, and writes atomically.
+  There is no second write path.
+- Its `focus_section` tool moves the page to a section of the
+  same document, named by its **heading text in the writer's
+  own words** (case and punctuation forgiven, so "structures
+  and errors" finds `## Structures & Errors`). Read-only and
+  entirely client-side: it resolves the words against the
+  heading ids the page already emits, scrolls there and moves
+  focus so assistive technology follows, and adds no route.
+  An unknown heading, or one that names two sections, comes
+  back to the assistant as something to ask about — never a
+  silent guess.
+- The edited page updates **in place** while the realtime
+  session stays connected: with a session live the reload frame
+  is arbitrated into a content swap rather than a
+  `location.reload()`, which would destroy the page's JS
+  context and with it the connection.
+
+Without the key nothing changes: no panel, no client script, no
+mint route, and `plggpress dev` behaves exactly as it did
+before. The whole surface is dev-only — a `plggpress build`
+output contains none of it.
 
 ## Config: imports, srcExclude & link-ignore
 

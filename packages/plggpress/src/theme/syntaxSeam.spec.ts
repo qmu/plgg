@@ -39,9 +39,8 @@ const emitted: ReadonlyArray<string> = [
 ].sort();
 
 // The classes plggmatic paints, derived from its kind array.
-const themed: ReadonlyArray<string> = syntaxKinds.map(
-  (k) => "tok-" + k,
-);
+const themed: ReadonlyArray<string> =
+  syntaxKinds.map((k) => "tok-" + k);
 
 test("every themed syntax kind round-trips from highlighter output by class name", () =>
   check(
