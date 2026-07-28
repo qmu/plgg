@@ -6,11 +6,11 @@
   "description": "The plggpress PoC portal — a static index app listing every plggpress confidence-collection PoC (its technical question, confidence signal, status, and verdict) with the *.qmu.dev hostname/port map of the fleet.",
   "scripts": {
     "build": "node src/entrypoints/build.ts",
-    "test": "tsc --noEmit && plgg-test src",
+    "test": "plgg-test src",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
     "test:watch": "plgg-test src --watch",
-    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage": "plgg-test src --coverage",
     "serve": "node src/entrypoints/serve.ts"
   },
   "repository": {

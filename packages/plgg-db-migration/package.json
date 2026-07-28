@@ -28,9 +28,9 @@
     "build": "plgg-bundle",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",
-    "test": "tsc --noEmit && plgg-test src",
+    "test": "plgg-test src",
     "test:watch": "plgg-test src --watch",
-    "coverage": "tsc --noEmit && plgg-test src --coverage",
+    "coverage": "plgg-test src --coverage",
     "coverage:watch": "plgg-test src --coverage --watch"
   },
   "repository": {

@@ -7,6 +7,7 @@
  * dependency injection instead, so no module-mock engine is built in
  * v1.
  */
+import { inFlight } from "../Core/inflight.js";
 
 /**
  * A recording spy. `mock.calls` is the array of argument tuples, in
@@ -123,10 +124,39 @@ const readGlobal = (
       }
     : { present: false, value: undefined };
 
+/**
+ * Refuses a process-wide stub issued while a sibling test could observe
+ * it.
+ *
+ * `scheduling.ts` auto-serializes any spec whose SOURCE mentions
+ * `stubGlobal`/`stubEnv`, which covers the normal case without asking
+ * the author for a directive. This is the backstop for what that scan
+ * cannot see — a stub issued from a helper module, or through an alias.
+ *
+ * It THROWS rather than warning: a global quietly swapped underneath a
+ * concurrent test produces a wrong answer, and a wrong answer that reads
+ * green is the one outcome this runner exists to prevent. The throw
+ * fails the owning test with a message that names the fix.
+ */
+const guardConcurrentStub = (
+  api: string,
+  key: string,
+): void => {
+  if (inFlight() > 1) {
+    throw new Error(
+      `vi.${api}("${key}") was called while ${inFlight()} tests were running concurrently. ` +
+        "A process-wide stub is visible to every test in flight, so this would " +
+        "silently corrupt a sibling. Put the suite in `suite.serial(...)`, or add " +
+        "`// @plgg-test-concurrency 1` to the top of the file.",
+    );
+  }
+};
+
 const stubGlobal = (
   key: string,
   value: unknown,
 ): void => {
+  guardConcurrentStub("stubGlobal", key);
   if (!savedGlobals.has(key)) {
     savedGlobals.set(key, readGlobal(key));
   }
@@ -158,6 +188,7 @@ const stubEnv = (
   key: string,
   value: string,
 ): void => {
+  guardConcurrentStub("stubEnv", key);
   if (!savedEnv.has(key)) {
     const prev = process.env[key];
     savedEnv.set(

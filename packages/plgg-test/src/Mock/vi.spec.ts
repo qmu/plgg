@@ -3,9 +3,15 @@ import {
   check,
   all,
   toBe,
+  toContain,
   vi,
 } from "../index.js";
 import { deepEqual } from "../Expect/equals.js";
+import {
+  enter,
+  leave,
+  setCount,
+} from "../Core/inflight.js";
 
 test("vi.fn mockImplementation swaps the body", () => {
   const fn = vi.fn(() => 1);
@@ -158,3 +164,69 @@ test("spyOn a non-function property returns a no-impl spy", () => {
     check(obj.n, toBe<unknown>(5)),
   ]);
 });
+
+// --- the concurrent-stub backstop ------------------------------------
+
+// `scheduling.ts` auto-serializes any spec whose SOURCE mentions a
+// process-wide stub, which handles the normal case. This is the net for
+// what that scan cannot see — a stub issued from a helper module, or
+// through an alias — so it is exercised by driving the in-flight count
+// directly rather than by writing a spec that evades the scanner.
+test("vi.stubGlobal refuses to run while siblings are in flight", () => {
+  setCount(0);
+  enter();
+  enter();
+  const outcome = attempt(() =>
+    vi.stubGlobal("__plggGuardProbe", 1),
+  );
+  setCount(0);
+  return all([
+    check(outcome, toContain("concurrently")),
+    check(outcome, toContain("suite.serial")),
+    // …and it did NOT mutate the global on its way out.
+    check(
+      "__plggGuardProbe" in globalThis,
+      toBe(false),
+    ),
+  ]);
+});
+
+test("vi.stubEnv is guarded the same way", () => {
+  setCount(0);
+  enter();
+  enter();
+  const outcome = attempt(() =>
+    vi.stubEnv("PLGG_GUARD_PROBE", "x"),
+  );
+  setCount(0);
+  return all([
+    check(outcome, toContain("concurrently")),
+    check(
+      process.env["PLGG_GUARD_PROBE"],
+      toBe<string | undefined>(undefined),
+    ),
+  ]);
+});
+
+test("a single in-flight test may stub freely", () => {
+  setCount(0);
+  enter();
+  const outcome = attempt(() =>
+    vi.stubGlobal("__plggGuardProbe", 7),
+  );
+  vi.unstubAllGlobals();
+  leave();
+  setCount(0);
+  return check(outcome, toBe(""));
+});
+
+// Boundary seam: the guard's contract is that it THROWS, so capturing
+// the throw is what the assertion needs.
+function attempt(body: () => void): string {
+  try {
+    body();
+    return "";
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}

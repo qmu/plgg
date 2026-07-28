@@ -3,6 +3,7 @@ import type {
   TestBody,
   HookFn,
   TestMode,
+  SuiteMode,
 } from "./types.js";
 
 /**
@@ -17,7 +18,7 @@ import type {
  */
 type MutSuite = {
   name: string;
-  mode: TestMode;
+  mode: SuiteMode;
   tests: Array<{
     name: string;
     fn: TestBody;
@@ -30,7 +31,7 @@ type MutSuite = {
 
 const makeMutSuite = (
   name: string,
-  mode: TestMode,
+  mode: SuiteMode,
 ): MutSuite => ({
   name,
   mode,
@@ -96,7 +97,7 @@ const addTest = (
 const addSuite = (
   name: string,
   fn: () => void,
-  mode: TestMode,
+  mode: SuiteMode,
 ): void => {
   const node = makeMutSuite(name, mode);
   const parent = cursor;
@@ -133,16 +134,32 @@ export const it = test;
  * `suite(name, fn)` — opens a grouping suite; `fn` registers its
  * children. `suite.skip` marks the whole group skipped. (Named `suite`
  * in the pipe-style idiom; `describe` is kept as an alias.)
+ *
+ * `suite.serial(name, fn)` runs the group as ONE indivisible unit: its
+ * tests execute in registration order and never interleave with anything
+ * else in the file, with `beforeEach`/`afterEach` bracketing each as
+ * usual. Everything outside a serial block is concurrent with no author
+ * action, so this is how a shared-state sequence stays safe — the
+ * DB-fixture case, seed → assert → truncate.
+ *
+ * Both modifiers follow the established `Object.assign(fn, { … })` shape
+ * so `suite.serial` sits beside `suite.skip` rather than inventing a
+ * parallel mechanism.
  */
 export const suite: {
   (name: string, fn: () => void): void;
   skip: (name: string, fn: () => void) => void;
+  serial: (name: string, fn: () => void) => void;
 } = Object.assign(
   (name: string, fn: () => void): void =>
     addSuite(name, fn, "run"),
   {
     skip: (name: string, fn: () => void): void =>
       addSuite(name, fn, "skip"),
+    serial: (
+      name: string,
+      fn: () => void,
+    ): void => addSuite(name, fn, "serial"),
   },
 );
 
