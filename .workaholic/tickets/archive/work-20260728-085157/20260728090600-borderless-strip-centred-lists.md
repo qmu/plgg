@@ -79,3 +79,47 @@ equal while the words still line up on a common left edge.
 - `workaholic:design` — the interface expresses its
   structure through composition, not decoration; a drawn
   line is the thing you reach for when the spacing is wrong.
+
+## Final Report
+
+Development completed as planned, and with no markup change
+at all — the whole ticket is three rules in
+`plggpress/src/theme/baseCss.ts`:
+
+- `.vp-section` loses its `border-left` and `border-right`.
+  No rule is drawn between any two columns now.
+- `.vp-sidebar-nav` becomes `width:fit-content` with
+  `margin-inline:auto`. Both choice-list columns share that
+  root, so one rule centres both; their entries were
+  already `width:fit-content`, so they keep a common left
+  edge inside the centred block.
+- Below lg the centring is reset: the drawer is full-bleed,
+  where a centred list would read as an accident rather
+  than as composition.
+
+`baseCss.spec.ts` isolates the `.vp-section` rule block and
+asserts it contains no `border` at all, so putting one back
+fails the build rather than only looking wrong.
+
+Measured in a real browser at 1600x900 on port 4130 with
+`getBoundingClientRect`:
+
+```
+sections column   left gap 83px   right gap 83px   item left edges: {83}
+drilled column    left gap 40px   right gap 40px   item left edges: {296}
+computed border-left/right on every pm-col: 0px/0px
+```
+
+One distinct left edge per column means every entry lines
+up; equal flanks mean the block is centred. Screenshot:
+`strip-t7-borderless-centred.png`.
+
+### Discovered Insights
+
+- **Insight**: "left-aligned text in a centred,
+  text-width block" needs no wrapper element.
+  **Context**: the nav root already contains only
+  fit-content children, so making the root itself
+  fit-content and auto-centring it produces exactly the
+  requested geometry. Adding a wrapper would have been the
+  obvious move and the wrong one.

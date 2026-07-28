@@ -174,7 +174,7 @@ to plggpress:
 - [x] A highlighted span is addressed by verbatim text that must occur exactly once, reusing the `edit_doc` locator; an ambiguous or absent quotation is refused and renders nothing, proven by a test that a paraphrased quotation cannot be displayed (#20260728090300-highlight-span-exactly-once.md)
 - [x] `popstate` removes the column the matching navigation added and restores the previous composition, verified in a real browser including multi-step Back (#20260728090400-popstate-closes-the-column.md)
 - [x] With JavaScript disabled every link still navigates and every composition URL still server-renders correctly, proven by a test asserting the no-JS path (#20260728090500-no-javascript-proof.md)
-- [ ] The borders between columns are removed and the first two columns render their choice lists as a text-width block centred in the column with the text left-aligned inside it, so left and right spacing around the list are equal (#20260728090600-borderless-strip-centred-lists.md)
+- [x] The borders between columns are removed and the first two columns render their choice lists as a text-width block centred in the column with the text left-aligned inside it, so left and right spacing around the list are equal (#20260728090600-borderless-strip-centred-lists.md)
 - [ ] GitHub, the light/dark control and the assistant dialog all live in the rightmost vertical bar, grouped at the top right, with no chrome remaining in the sections column (#20260728090700-chrome-into-the-top-right-rail.md)
 - [ ] After an assistant edit the changed passage shows its previous and current text in place, and the display survives the in-place swap (#20260728090800-edit-provenance-in-place.md)
 - [ ] The assistant drives navigation through the SAME runtime the pointer uses, keeping the realtime session alive across every column it opens, proven live in a browser (#20260728090900-assistant-drives-the-runtime.md)
@@ -193,3 +193,4 @@ to plggpress:
 - 2026-07-28 — ticket archived — 20260728090300-highlight-span-exactly-once.md
 - 2026-07-28 — ticket archived — 20260728090400-popstate-closes-the-column.md
 - 2026-07-28 — ticket archived — 20260728090500-no-javascript-proof.md
+- 2026-07-28 — ticket archived — 20260728090600-borderless-strip-centred-lists.md

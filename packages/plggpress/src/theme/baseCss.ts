@@ -245,7 +245,17 @@ body.vp{
   background:${cvar("primary-base")};
   color:${cvar("surface")};
 }
-.vp-sidebar-nav{display:block}
+/* The two CHOICE-LIST columns (the sections column and the
+   drilled section column) share this root. Their entries
+   already size to their own text; making the nav itself
+   fit-content and centring it puts EQUAL space to the left
+   and right of the list while every entry keeps a common
+   left edge. Alignment is carried by that rhythm — there
+   are no rules drawn between the columns. */
+.vp-sidebar-nav{
+  display:block;width:fit-content;
+  max-width:100%;margin-inline:auto;
+}
 /* top-level section header — always visible, no collapse */
 .vp-group{margin-top:1rem}
 .vp-group:first-child{margin-top:0.25rem}
@@ -334,14 +344,13 @@ body.vp{
 /* the DRILLED section column: opens to the right of the
    sections column when the reader is inside a section,
    holding that section's always-expanded tree. Fixed
-   width, its own scroll on lg+, bordered so the strip reads
-   as discrete columns. Hidden below lg (the sections drawer
+   width, its own scroll on lg+. NO RULES between columns —
+   the strip reads as discrete tracks from the equal
+   spacing alone. Hidden below lg (the sections drawer
    already carries navigation). */
 .vp-section{
   flex:0 0 15rem;width:15rem;
   padding:2rem 1rem;font-size:0.9rem;
-  border-left:1px solid ${cvar("border")};
-  border-right:1px solid ${cvar("border")};
 }
 /* content column: a FIXED-width prose column (its width is
    invariant as columns are added to the strip's left), the
@@ -600,6 +609,9 @@ html.dark .vp-doc pre code{background:none}
   }
   .vp-menu-cb:checked ~ .vp-backdrop{display:block}
   .vp-sidebar-social{display:block}
+  /* the drawer is full-bleed, so a centred list would read
+     as an accident rather than as composition */
+  .vp-sidebar-nav{margin-inline:0}
 }
 `;
 };
