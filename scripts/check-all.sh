@@ -13,6 +13,12 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # root README index, back-links, and no dead links (scripts/gate-readme.sh).
 ./scripts/gate-readme.sh
 
+# Gate: every branch story is reachable from the stories index. That index is
+# report-maintained rather than generated (a story's description is editorial),
+# so a /report run that writes the story and forgets the entry drifts silently
+# — which it did, eight times (scripts/gate-stories-index.sh).
+./scripts/gate-stories-index.sh
+
 # Gate: the guide dev container's three provisioning lists (entrypoint installs,
 # compose volumes, build.sh) stay consistent and cover plggpress's deps, so they
 # can't silently drift (scripts/gate-guide-deps.sh).
