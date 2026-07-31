@@ -7,6 +7,7 @@ effort: 1h
 commit_hash:
 category: Changed
 depends_on: []
+claim: work-20260731-112449
 ---
 
 # Re-assess build-the-plgg-ir-thesis-evaluator against the merged plgg-ir-thesis

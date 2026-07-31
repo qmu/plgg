@@ -7,6 +7,7 @@ effort: 4h
 commit_hash:
 category: Changed
 depends_on: []
+claim: work-20260731-112449
 ---
 
 # RESUME CHECKPOINT — thesis-evaluator unification (hot) + in-flight threads
