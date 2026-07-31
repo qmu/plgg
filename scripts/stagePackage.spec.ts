@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import {
   stageEntries,
   stagedManifest,
+  declaresStageAllowlist,
+  entryTargets,
+  missingEntryTargets,
   type PackageJson,
 } from "./stagePackage.ts";
 
@@ -20,6 +23,108 @@ test("stageEntries appends README + LICENSE and dedups", () => {
   assert.deepEqual(
     stageEntries({ files: ["README.md", "dist"] }),
     ["README.md", "dist", "LICENSE"],
+  );
+});
+
+test("declaresStageAllowlist rejects the shapes that stage no dist", () => {
+  assert.equal(
+    declaresStageAllowlist({ files: ["dist"] }),
+    true,
+  );
+  // The plggmatic@0.2.1 shape: no `files` at all. A local `npm pack`
+  // masks it (npm's default packs everything); the stage does not.
+  assert.equal(declaresStageAllowlist({}), false);
+  // The same defect spelled differently.
+  assert.equal(
+    declaresStageAllowlist({ files: [] }),
+    false,
+  );
+  assert.equal(
+    declaresStageAllowlist({ files: "dist" }),
+    false,
+  );
+});
+
+test("entryTargets collects main, types, nested exports and bin", () => {
+  // The plggmatic shape: subpath keys over condition maps.
+  assert.deepEqual(
+    entryTargets({
+      main: "dist/index.es.js",
+      types: "dist/index.d.ts",
+      exports: {
+        ".": {
+          types: "./dist/index.d.ts",
+          default: "./dist/index.es.js",
+        },
+        "./style": {
+          types: "./dist/styleEntry.d.ts",
+          default: "./dist/styleEntry.es.js",
+        },
+      },
+    }),
+    [
+      "dist/index.es.js",
+      "dist/index.d.ts",
+      "dist/styleEntry.d.ts",
+      "dist/styleEntry.es.js",
+    ],
+  );
+  // The plgg shape: bare import/require conditions, no "." key.
+  assert.deepEqual(
+    entryTargets({
+      exports: {
+        import: { default: "./dist/index.es.js" },
+        require: { default: "./dist/index.cjs.js" },
+      },
+    }),
+    ["dist/index.es.js", "dist/index.cjs.js"],
+  );
+  // The plgg-bundle shape: bin-only, no importable surface.
+  assert.deepEqual(
+    entryTargets({
+      bin: { "plgg-bundle": "bin/plgg-bundle.mjs" },
+    }),
+    ["bin/plgg-bundle.mjs"],
+  );
+  // A `null` condition blocks a subpath and names no file; a wildcard
+  // pattern names a shape, not a path — neither is existence-checkable.
+  assert.deepEqual(
+    entryTargets({
+      exports: {
+        ".": "./dist/index.js",
+        "./internal": null,
+        "./*": "./dist/*.js",
+      },
+    }),
+    ["dist/index.js"],
+  );
+  // Nothing declared is nothing to check (not an error here).
+  assert.deepEqual(entryTargets({}), []);
+});
+
+test("missingEntryTargets names every declared path absent from the stage", () => {
+  const pkg: PackageJson = {
+    main: "dist/index.es.js",
+    types: "dist/index.d.ts",
+  };
+  // A stage that holds neither: both are reported, not just the first.
+  assert.deepEqual(
+    missingEntryTargets(pkg, () => false),
+    ["dist/index.es.js", "dist/index.d.ts"],
+  );
+  // The real failure: `files` was declared but the package was never
+  // built, so the types rode along and the entry point did not.
+  assert.deepEqual(
+    missingEntryTargets(
+      pkg,
+      (p) => p === "dist/index.d.ts",
+    ),
+    ["dist/index.es.js"],
+  );
+  // A complete stage passes.
+  assert.deepEqual(
+    missingEntryTargets(pkg, () => true),
+    [],
   );
 });
 

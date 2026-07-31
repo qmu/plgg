@@ -47,6 +47,100 @@ export const stageEntries = (
 };
 
 /**
+ * Whether a publishable manifest declares the `files` allowlist the stage
+ * copies from.
+ *
+ * Absence is always a mistake, never intent: every sibling declares
+ * `files: ["dist"]`, and the one package that did not (`plggmatic@0.2.1`)
+ * published a tarball with **no `dist` at all**. The mask is that a local
+ * `npm pack` looks fine — npm's no-`files` default packs everything —
+ * while {@link stageEntries}, which copies only the allowlist, staged
+ * nothing but README/LICENSE. An empty array is the same defect spelled
+ * differently, so it fails the same way.
+ */
+export const declaresStageAllowlist = (
+  pkg: PackageJson,
+): boolean => {
+  const files = pkg["files"];
+  return (
+    Array.isArray(files) &&
+    files.some(
+      (f) => typeof f === "string" && f.length > 0,
+    )
+  );
+};
+
+/**
+ * Collect every string leaf of a manifest value (a bare string, an array,
+ * or a nested condition map like `exports`), in declaration order. A
+ * `null` leaf — `exports` blocking a subpath — contributes nothing.
+ */
+const stringLeaves = (
+  value: unknown,
+  into: Array<string>,
+): void => {
+  if (typeof value === "string") {
+    into.push(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const v of value) {
+      stringLeaves(v, into);
+    }
+    return;
+  }
+  if (isRecord(value)) {
+    for (const v of Object.values(value)) {
+      stringLeaves(v, into);
+    }
+  }
+};
+
+/**
+ * Every path the manifest declares as an importable or runnable entry —
+ * `main`, `types`/`typings`, every leaf of `exports`, and every `bin`
+ * target — relative to the package root with any leading `./` stripped.
+ * Deduplicated, declaration order preserved.
+ *
+ * These are exactly the paths a consumer resolves, so a staged tarball
+ * missing one is broken on arrival: the `plggmatic@0.2.1` install failed
+ * with `ERR_MODULE_NOT_FOUND` for `dist/index.es.js`, a path its own
+ * manifest named. Wildcard subpath patterns are skipped — `"./*"` names a
+ * shape rather than a file, so its existence is not a decidable check.
+ */
+export const entryTargets = (
+  pkg: PackageJson,
+): ReadonlyArray<string> => {
+  const raw: Array<string> = [];
+  for (const key of ["main", "types", "typings"]) {
+    stringLeaves(pkg[key], raw);
+  }
+  stringLeaves(pkg["exports"], raw);
+  stringLeaves(pkg["bin"], raw);
+  return [
+    ...new Set(
+      raw
+        .filter(
+          (p) => p.length > 0 && !p.includes("*"),
+        )
+        .map((p) => p.replace(/^\.\//, "")),
+    ),
+  ];
+};
+
+/**
+ * The declared entry targets absent from a staged directory. `exists`
+ * answers whether the stage holds that relative path — injected so the
+ * check stays a pure function with no filesystem in the way, matching the
+ * rest of this module.
+ */
+export const missingEntryTargets = (
+  pkg: PackageJson,
+  exists: (relPath: string) => boolean,
+): ReadonlyArray<string> =>
+  entryTargets(pkg).filter((p) => !exists(p));
+
+/**
  * The staged `package.json` text: every `file:` cross-dependency (in
  * `dependencies` AND `devDependencies`) rewritten to `^<linked version>`,
  * serialized with a trailing newline. `resolveVersion(fileSpec)` returns

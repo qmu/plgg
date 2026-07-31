@@ -59,6 +59,8 @@ import {
 import {
   stagedManifest,
   stageEntries,
+  declaresStageAllowlist,
+  missingEntryTargets,
 } from "./stagePackage.ts";
 
 const scriptsDir = dirname(
@@ -434,12 +436,62 @@ const smokeInstall = (
 };
 
 /**
+ * Stage one package and PROVE the stage is publishable, or throw naming
+ * the package and the exact defect. Both checks answer the same question
+ * — "would this tarball be broken on arrival?" — and both must run before
+ * the first `npm publish`, because that call is irreversible:
+ *
+ *  1. No `files` allowlist → the stage would copy no `dist` at all
+ *     ({@link declaresStageAllowlist}).
+ *  2. A `main`/`exports`/`bin`/`types` target the stage does not hold →
+ *     the consumer's resolve fails ({@link missingEntryTargets}), which
+ *     is the `ERR_MODULE_NOT_FOUND` that `plggmatic@0.2.1` shipped.
+ */
+const stageChecked = (
+  meta: PkgMeta,
+  stageRoot: string,
+): string => {
+  const pkg = readPkgJson(
+    join(
+      repoRoot,
+      "packages",
+      meta.dir,
+      "package.json",
+    ),
+  );
+  if (!declaresStageAllowlist(pkg)) {
+    throw new Error(
+      `${meta.name}: package.json declares no "files" allowlist, so the ` +
+        `staged tarball would omit its dist. Add "files": ["dist"] ` +
+        `(every publishable sibling declares one).`,
+    );
+  }
+  const stage = stageOne(meta, stageRoot);
+  const missing = missingEntryTargets(pkg, (rel) =>
+    existsSync(join(stage, rel)),
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `${meta.name}: staged tarball is missing declared entry point(s): ` +
+        `${missing.join(", ")} — build the package before publishing, ` +
+        `or correct its "files"/"main"/"exports" declarations.`,
+    );
+  }
+  return stage;
+};
+
+/**
  * Stage → (publish → verify | pack) each package in build order, one
  * compact status line per phase, under a single temp stage root that is
  * always cleaned up. `dryRun` stops after `npm pack` — the registry is
  * never touched — so the whole path is exercisable without a live
  * publish (staging + local pack), which is how it is verified in CI and
  * at night; the live path adds publish + resolve-poll + install smoke.
+ *
+ * EVERY package is staged and checked ({@link stageChecked}) before ANY
+ * package is published. Interleaving the two — stage 1, publish 1, stage
+ * 2 — means a defect in the fifth package is discovered only after four
+ * irreversible publishes have already landed on the registry.
  */
 const runPublishSet = async (
   metas: ReadonlyArray<PkgMeta>,
@@ -449,14 +501,17 @@ const runPublishSet = async (
     join(repoRoot, ".publish-stage."),
   );
   try {
-    for (const meta of metas) {
-      const stage = stageOne(meta, stageRoot);
-      // Measure the published artifact's size off a local pack (into the
-      // stage root, never the stage itself) — raw + gzipped, printed on
-      // every publish. The mission measures size instead of adding a
-      // minifier dependency (vendor-neutrality).
-      const { filename, size, unpackedSize } =
-        packStaged(stage, stageRoot);
+    // Measure each published artifact's size off a local pack (into the
+    // stage root, never the stage itself) — raw + gzipped, printed on
+    // every publish. The mission measures size instead of adding a
+    // minifier dependency (vendor-neutrality).
+    const staged = metas.map((meta) => {
+      const stage = stageChecked(meta, stageRoot);
+      const packed = packStaged(stage, stageRoot);
+      return { meta, stage, packed };
+    });
+    for (const { meta, stage, packed } of staged) {
+      const { filename, size, unpackedSize } = packed;
       const sizes = `${kb(unpackedSize)} raw, ${kb(size)} gz`;
       if (dryRun) {
         process.stdout.write(
