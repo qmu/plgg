@@ -2,7 +2,7 @@
 type: Mission
 title: plggpress column layout and voice AI editing
 slug: plggpress-column-layout-and-voice-ai-editing
-status: approved
+status: achieved
 created_at: 2026-07-23T00:38:52+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
@@ -182,6 +182,7 @@ framework, plggpress is the first product resting on it.
 - 2026-07-26 — ticket archived — 20260723004050-guide-column-and-voice.md
 - 2026-07-26 — run recorded (+0.9h) — monitor-20260726-005704
 - 2026-07-26 — story reported — work-20260723-003825.md
+- 2026-08-01 — mission achieved — mission.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758
