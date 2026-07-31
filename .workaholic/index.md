@@ -10,8 +10,9 @@ organized as an Open Knowledge Format bundle. Enter any area through its index.
 * [tickets/](tickets/) - implementation tickets (todo / archive / icebox queues)
 * [stories](stories/index.md) - branch development narratives (PR descriptions and historical record)
 * [missions](missions/index.md) - optional epic-equivalent batches of tickets, with acceptance progress and an append-only changelog
+* [feedbacks](feedbacks/index.md) - the inbound feedback stream: immutable records of insights, instructions, concerns, and customer material
 * [deployments](deployments/index.md) - deployment targets and confirmation methods
 * [release-notes](release-notes/index.md) - per-ship release records
 * [specs](specs/index.md) - specification documents
 * [terms](terms/index.md) - domain terminology
-* [trips](trips/index.md) - trip rationale (directions, models, designs) per trip
+* [trips](trips/index.md) - legacy, read-only: design rationale from the retired trip workflow

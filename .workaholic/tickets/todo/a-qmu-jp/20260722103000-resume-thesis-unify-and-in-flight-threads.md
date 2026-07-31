@@ -3,7 +3,7 @@ created_at: 2026-07-22T10:30:00+09:00
 author: a@qmu.jp
 type: housekeeping
 layer: [Infrastructure]
-effort: 4h
+effort: 0.25h
 commit_hash:
 category: Changed
 depends_on: []
@@ -102,3 +102,53 @@ the thesis-evaluator unification, which lives in its own worktree.**
   the unification ticket to green — then close+ship the mission — without
   re-deriving the diagnosis. Delete/close this resume ticket once Priority 1 is
   underway.
+
+## Final Report
+
+The checkpoint did its job and is now closed on its own terms ("close this
+resume ticket once Priority 1 is underway"). Every position claim was
+re-verified against merged `main` (`8aeb1ded`) before closing it, since a
+handoff document's only value is that its claims are still true:
+
+- **Priority 1 (HOT) — done.** `20260722100000-unify-thesis-proof-with-full-evaluator.md`
+  is archived under `work-20260719-011156` and merged (PR #85). The RED state
+  this file describes is gone: the chain builds and
+  plgg-ir-syntax 49 / plgg-ir-language 66 / plgg-ir-thesis 142 /
+  plgg-ir-thesis-proof 10 = **267 tests pass, 0 fail**, and `npm run prove`
+  emits the expected 遮断/被覆 accept + counterexample output. The mission was
+  closed `achieved` in this same unit.
+- **Priority 3 — resolved.** FU1 (`20260721180001`) was driven alongside this
+  ticket in this unit; FU3 (`20260721180003-harden-gatestamp-stash-flake.md`) is
+  archived under `work-20260722-085220`. FU2 (`20260721180002-evaluate-npm-workspaces.md`)
+  remains genuinely open and unclaimed.
+- **Environment gotchas — still accurate**, and all four were hit again this
+  run: `origin` is SSH with no key (pushed to the explicit HTTPS URL); local
+  `main` lagged origin by 116 commits; fresh worktrees need per-package
+  `npm install` before anything builds; the OKF index needs refreshing.
+
+Priorities 2 and 4 are **deferred, not done** — see the insight below; both are
+planning decisions this run is not entitled to make.
+
+### Discovered Insights
+
+- **Insight**: Two of this checkpoint's five threads are blocked on a developer
+  ruling rather than on work. Priority 2 (`modernize-plgg-test-for-concurrent-speed`)
+  is explicitly gated — "`drive_authorized` is unset per the 1A decision — drive
+  T1 interactively first" — and Priority 4 (`grow-plggmatic-as-the-reference-framework`)
+  asks to *decide* between replanning the mission and closing it. An unattended
+  run can verify neither; choosing for the developer would be exactly the
+  planning-time assumption the executor is forbidden to make.
+  **Context**: These two are recorded as deferred decisions rather than carried
+  forward in a successor checkpoint. A resume ticket that keeps re-stating
+  undecided planning questions turns into a standing diary entry; the questions
+  belong in `/mission`, not in the drive queue.
+
+- **Insight**: A resume/checkpoint ticket has a failure mode ordinary tickets do
+  not — it goes stale silently. Three of the five threads here were already
+  resolved when this run opened it, but nothing about the file said so, and a
+  fresh agent following it verbatim would have entered a worktree expecting 7
+  red tests and found green. Its own acceptance ("a fresh session can, from this
+  file alone…") is unfalsifiable once the world moves.
+  **Context**: Checkpoint tickets should be driven early or closed, never left
+  queued. Their claims are timestamped facts, not requirements, so the driving
+  work is *re-verification* — which is what this run actually spent its time on.

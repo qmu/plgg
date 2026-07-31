@@ -2,11 +2,10 @@
 type: Mission
 title: Build the plgg-ir-thesis Evaluator
 slug: build-the-plgg-ir-thesis-evaluator
-status: active
+status: achieved
 created_at: 2026-07-17T01:43:30+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
-drive_authorized: true
 tickets: []
 stories: []
 concerns: []
@@ -161,6 +160,7 @@ at the compiler boundary:
 - 2026-07-23 — ticket archived — 20260722100000-unify-thesis-proof-with-full-evaluator.md
 - 2026-07-23 — run recorded (+0.3h) — monitor-20260723-011758
 
+- 2026-07-31 — mission achieved — mission.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758
