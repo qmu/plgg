@@ -2,7 +2,7 @@
 type: Mission
 title: Grow plggmatic as the reference framework
 slug: grow-plggmatic-as-the-reference-framework
-status: approved
+status: achieved
 created_at: 2026-07-18T23:00:00+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
@@ -147,6 +147,7 @@ _Self-contained — drivable from this repo alone._
 
 - 2026-07-23 — verified (human): live host returns the demo1 exhibit behind Access (Access-passed 200) — 20260719050001-verify-live-host-returns-exhibit-not-302.md
 - 2026-07-23 — verified (human decision): plggmatic@0.2.2 already published from this repo satisfies the publish criterion; new framework work rides a post-merge 0.2.3 release — 20260719050000-publish-plggmatic-0-2-1-from-plgg-repo.md
+- 2026-08-01 — mission achieved — mission.md
 ## Reflection
 
 ### 2026-07-23 run monitor-20260723-011758

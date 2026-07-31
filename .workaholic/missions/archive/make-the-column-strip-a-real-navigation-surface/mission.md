@@ -2,7 +2,7 @@
 type: Mission
 title: Make the column strip a real navigation surface
 slug: make-the-column-strip-a-real-navigation-surface
-status: approved
+status: achieved
 created_at: 2026-07-27T15:47:12+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
@@ -197,3 +197,4 @@ to plggpress:
 - 2026-07-28 — ticket archived — 20260728090800-edit-provenance-in-place.md
 - 2026-07-28 — ticket archived — 20260728090900-assistant-drives-the-runtime.md
 - 2026-07-28 — ticket archived — 20260728091000-retire-the-pm-class-coupling.md
+- 2026-08-01 — mission achieved — mission.md

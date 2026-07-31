@@ -2,7 +2,7 @@
 type: Mission
 title: Modernize plgg-test for concurrent speed
 slug: modernize-plgg-test-for-concurrent-speed
-status: approved
+status: achieved
 created_at: 2026-07-20T12:21:33+09:00
 author: a@qmu.jp
 assignees: [a@qmu.jp]
@@ -174,6 +174,7 @@ because T1 measured their whole budget at ~3.6 s):
 - 2026-07-26 — ticket archived — 20260720123011-measure-full-test-phase-under-35s.md
 - 2026-07-26 — run recorded (+2.0h) — drive-20260726-025500
 
+- 2026-08-01 — mission achieved — mission.md
 ## Reflection
 
 ### 2026-07-26 run drive-20260726-025500
