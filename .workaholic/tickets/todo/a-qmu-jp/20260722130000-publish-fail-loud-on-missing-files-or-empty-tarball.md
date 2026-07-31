@@ -7,6 +7,7 @@ effort: 2h
 commit_hash:
 category: Changed
 depends_on: []
+claim: work-20260731-111347
 ---
 
 # Publish must fail loudly when a package can't stage its dist
