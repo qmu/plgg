@@ -2,11 +2,11 @@
 type: Mission
 title: Modernize plgg-test for concurrent speed
 slug: modernize-plgg-test-for-concurrent-speed
-status: active
+status: approved
 created_at: 2026-07-20T12:21:33+09:00
 author: a@qmu.jp
+assignees: [a@qmu.jp]
 assignee: a@qmu.jp
-drive_authorized: true
 strategy: keep-the-plgg-inner-loop-fast-and-its-gates-trustworthy
 tickets: []
 stories: []

@@ -2,12 +2,11 @@
 type: Mission
 title: Grow plggmatic as the reference framework
 slug: grow-plggmatic-as-the-reference-framework
-status: active
+status: approved
 created_at: 2026-07-18T23:00:00+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
 strategy: plgg-horizontal-orientation-ui-stack
-drive_authorized: true
 tickets: []
 stories: []
 concerns: []

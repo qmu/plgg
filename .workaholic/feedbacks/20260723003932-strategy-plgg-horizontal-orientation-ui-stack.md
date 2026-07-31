@@ -1,11 +1,13 @@
 ---
-type: Strategy
-title: plgg horizontal-orientation UI stack
-slug: plgg-horizontal-orientation-ui-stack
-status: active
+type: Feedback
+title: Strategy (retired): plgg horizontal-orientation UI stack
+kind: insight
+source: discussion
 created_at: 2026-07-23T00:39:32+09:00
 author: a@qmu.jp
+supersedes:
 ---
+
 
 # plgg horizontal-orientation UI stack
 

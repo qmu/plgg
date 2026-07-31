@@ -2,12 +2,11 @@
 type: Mission
 title: plggpress column layout and voice AI editing
 slug: plggpress-column-layout-and-voice-ai-editing
-status: active
+status: approved
 created_at: 2026-07-23T00:38:52+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
 strategy: plgg-horizontal-orientation-ui-stack
-drive_authorized: true
 predicted_hours:
 actual_hours: 2.3
 tickets: []

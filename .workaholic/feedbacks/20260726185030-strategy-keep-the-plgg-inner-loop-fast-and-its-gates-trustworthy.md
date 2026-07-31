@@ -1,12 +1,13 @@
 ---
-type: Strategy
-title: Keep the plgg inner loop fast and its gates trustworthy
-slug: keep-the-plgg-inner-loop-fast-and-its-gates-trustworthy
-status: active
+type: Feedback
+title: Strategy (retired): Keep the plgg inner loop fast and its gates trustworthy
+kind: insight
+source: discussion
 created_at: 2026-07-26T18:50:30+09:00
 author: a@qmu.jp
-assignees: [a@qmu.jp]
+supersedes:
 ---
+
 
 # Keep the plgg inner loop fast and its gates trustworthy
 

@@ -2,12 +2,11 @@
 type: Mission
 title: Make the column strip a real navigation surface
 slug: make-the-column-strip-a-real-navigation-surface
-status: active
+status: approved
 created_at: 2026-07-27T15:47:12+09:00
 author: a@qmu.jp
 assignee: a@qmu.jp
 strategy: plgg-horizontal-orientation-ui-stack
-drive_authorized: true
 predicted_hours: 20
 actual_hours:
 tickets: [20260728090000-composition-url-and-server-render.md, 20260728090100-plggmatic-navigation-runtime.md, 20260728090200-link-into-the-next-column.md, 20260728090300-highlight-span-exactly-once.md, 20260728090400-popstate-closes-the-column.md, 20260728090500-no-javascript-proof.md, 20260728090600-borderless-strip-centred-lists.md, 20260728090700-chrome-into-the-top-right-rail.md, 20260728090800-edit-provenance-in-place.md, 20260728090900-assistant-drives-the-runtime.md, 20260728091000-retire-the-pm-class-coupling.md]
