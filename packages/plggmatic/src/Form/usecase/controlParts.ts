@@ -14,7 +14,10 @@ import {
   for_,
   id_,
 } from "plgg-view";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  fieldErrorClass,
+  fieldLabelClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
  * The shared accessibility + labelling pieces every form
@@ -31,10 +34,7 @@ export const fieldLabel = <Msg>(
   labelText: SoftStr,
 ): Html<Msg, "label"> =>
   label(
-    [
-      for_(name),
-      attr("class", `${cssPrefix}-field-label`),
-    ],
+    [for_(name), attr("class", fieldLabelClass)],
     [text(labelText)],
   );
 
@@ -76,10 +76,7 @@ export const fieldError = <Msg>(
       span(
         [
           id_(errorId(name)),
-          attr(
-            "class",
-            `${cssPrefix}-field-error`,
-          ),
+          attr("class", fieldErrorClass),
           attr("role", "alert"),
         ],
         [text(msg)],

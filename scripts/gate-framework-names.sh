@@ -22,13 +22,16 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 # by importing the constant, which is what we wanted anyway.
 echo "=== Gate: framework names are imported, never typed ==="
 
-# SCOPE. plggpress — the product this mission made a consumer of the framework's
-# navigation runtime. plggmatic-example, the framework's own demo app, still
-# types component hooks the framework does not export at all (pm-btn, pm-dialog,
-# pm-toast-*); exporting those and cleaning it up is its own ticket
-# (20260728100000), and until then adding it here would only make the gate a
-# thing to disable.
-CONSUMERS="packages/plggpress/src"
+# SCOPE. Every consumer of the framework, with no exemption left. plggpress —
+# the product this mission made a consumer of the navigation runtime — and
+# plggmatic-example, the framework's OWN demo app, which used to be excluded
+# because it typed component hooks the framework did not export at all
+# (pm-btn, pm-dialog, pm-toast-*). Ticket 20260728100000 exported them: every
+# hook plggmatic emits is now a named export from
+# `plggmatic/Meta/model/classHooks`, so the demo imports them like any other
+# consumer and the gate has nothing left to excuse. The framework's own source
+# is deliberately NOT scanned — plggmatic is where these names are DEFINED.
+CONSUMERS="packages/plggpress/src packages/plggmatic-example/src"
 FOUND=0
 
 for dir in $CONSUMERS; do
@@ -55,9 +58,15 @@ Import it instead — every hook the framework guarantees is exported:
 
   rowClass / colClass / paneClass      the layout skeleton
   themeToggleClass / sunClass / moonClass   the appearance toggle
-  cssPrefix                            the --pm-* custom-property prefix
+  btnClass / dialogClass / toastClass / ... every component hook
+  toastToneClass(tone)                 a toast's tone modifier
+  cssVar(name) / cssVarRef(name)       a --pm-* custom property
+  selector(hook)                       a hook as a CSS selector
   stripAttr / columnAttr / spanAttr    the navigation runtime's markers
   navHookName                          the runtime's entry point
+
+The full list is `plggmatic/Meta/model/classHooks`, re-exported from the
+package root.
 
 MSG
   exit 1

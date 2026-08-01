@@ -13,7 +13,15 @@ import {
 } from "plgg-view";
 import { style_ } from "plggmatic/styleEntry";
 import { focusRing } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  backdropClass,
+  btnClass,
+  btnDangerClass,
+  dialogActionsClass,
+  dialogClass,
+  dialogTitleClass,
+  modalClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
  * A modal confirmation for a destructive action — the
@@ -37,18 +45,18 @@ export type ConfirmDialogProps<Msg> = Readonly<{
   onCancel: Msg;
 }>;
 
-const TITLE_ID = `${cssPrefix}-dialog-title`;
+const TITLE_ID = dialogTitleClass;
 
 export const confirmDialog = <Msg>(
   props: ConfirmDialogProps<Msg>,
 ): Html<Msg, "div"> =>
   slot(
-    [attr("class", `${cssPrefix}-modal`)],
+    [attr("class", modalClass)],
     [
       slot(
         [
           key("backdrop"),
-          attr("class", `${cssPrefix}-backdrop`),
+          attr("class", backdropClass),
           onClick(props.onCancel),
         ],
         [],
@@ -56,7 +64,7 @@ export const confirmDialog = <Msg>(
       slot(
         [
           key("dialog"),
-          attr("class", `${cssPrefix}-dialog`),
+          attr("class", dialogClass),
           attr("role", "dialog"),
           attr("aria-modal", "true"),
           attr("aria-labelledby", TITLE_ID),
@@ -68,19 +76,11 @@ export const confirmDialog = <Msg>(
           ),
           p([], [text(props.body)]),
           slot(
-            [
-              attr(
-                "class",
-                `${cssPrefix}-dialog-actions`,
-              ),
-            ],
+            [attr("class", dialogActionsClass)],
             [
               button(
                 [
-                  style_(
-                    `${cssPrefix}-btn`,
-                    focusRing,
-                  ),
+                  style_(btnClass, focusRing),
                   onClick(props.onCancel),
                 ],
                 [text(props.cancelLabel)],
@@ -89,8 +89,8 @@ export const confirmDialog = <Msg>(
                 [
                   style_(
                     props.destructive
-                      ? `${cssPrefix}-btn ${cssPrefix}-btn-danger`
-                      : `${cssPrefix}-btn`,
+                      ? `${btnClass} ${btnDangerClass}`
+                      : btnClass,
                     focusRing,
                   ),
                   onClick(props.onConfirm),

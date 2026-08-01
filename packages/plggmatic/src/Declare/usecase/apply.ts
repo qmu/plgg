@@ -46,11 +46,7 @@ export const applyVia =
   (target: Option<SoftStr>): Cmd<SchedulerMsg> =>
     cmdEffect(() =>
       adapter.apply(build(target), actor).then(
-        matchResult<
-          ApplyOk,
-          Error,
-          SchedulerMsg
-        >(
+        matchResult<ApplyOk, Error, SchedulerMsg>(
           (e: Error): SchedulerMsg =>
             failed(collection, e.message),
           (ok: ApplyOk): SchedulerMsg =>

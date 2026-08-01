@@ -31,6 +31,11 @@ import {
   type Msg,
 } from "./bizMenuDemo.ts";
 import { collapseTo, trailAt } from "./url.ts";
+import {
+  boardClass,
+  fieldsClass,
+  tileClass,
+} from "plggmatic";
 
 const [m0] = app.init(makeUrl("/", ""));
 
@@ -222,8 +227,8 @@ test("the Dashboard renders as a board whose tiles jump to their sections", () =
       toBe(true),
     ),
     // the board / tile class hooks
-    check(html.includes("pm-board"), toBe(true)),
-    check(html.includes("pm-tile"), toBe(true)),
+    check(html.includes(boardClass), toBe(true)),
+    check(html.includes(tileClass), toBe(true)),
     // each tile jumps to the section it summarizes
     // — the sections' canonical addresses.
     check(
@@ -260,7 +265,7 @@ test("a Dashboard tile selection shows no bogus detail", () => {
     // (board rows do not drill — the decided
     // Select semantics).
     check(
-      html.includes("pm-fields"),
+      html.includes(fieldsClass),
       toBe(false),
     ),
   ]);
@@ -1138,7 +1143,7 @@ test("the dashboard keeps the framework's board while sections hide its list", (
       board.includes("bo-hidelist"),
       toBe(false),
     ),
-    check(board.includes("pm-board"), toBe(true)),
+    check(board.includes(boardClass), toBe(true)),
     check(
       sectionHtml.includes("bo-hidelist"),
       toBe(true),

@@ -90,9 +90,7 @@ const at = (
     ? new Map(Object.entries(obj)).get(key)
     : undefined;
 
-const isSlot = (
-  v: unknown,
-): v is ComponentSlot =>
+const isSlot = (v: unknown): v is ComponentSlot =>
   typeof v === "string" &&
   componentSlots.some((s) => s === v);
 
@@ -129,7 +127,8 @@ export const asSlotStyle = (
   if (!isSlot(slot)) {
     return err(
       invalidError({
-        message: "slot style has no declared slot",
+        message:
+          "slot style has no declared slot",
       }),
     );
   }
@@ -176,13 +175,17 @@ export const asSlotStyle = (
       );
 };
 
-const prefixOf = (scope: Option<SoftStr>): SoftStr =>
+const prefixOf = (
+  scope: Option<SoftStr>,
+): SoftStr =>
   matchOption<SoftStr, SoftStr>(
     () => "",
     (s: SoftStr) => `${s} `,
   )(scope);
 
-const suffixOf = (state: Option<SoftStr>): SoftStr =>
+const suffixOf = (
+  state: Option<SoftStr>,
+): SoftStr =>
   matchOption<SoftStr, SoftStr>(
     () => "",
     (s: SoftStr) => s,
@@ -214,9 +217,5 @@ export const slotStyleCss =
  * default theme carries no slots) emits nothing, so the
  * zero-config chrome is byte-unchanged.
  */
-export const slotCss = (
-  theme: Theme,
-): SoftStr =>
-  theme.slots
-    .map(slotStyleCss(theme))
-    .join("");
+export const slotCss = (theme: Theme): SoftStr =>
+  theme.slots.map(slotStyleCss(theme)).join("");

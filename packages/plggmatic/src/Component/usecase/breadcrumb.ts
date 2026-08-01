@@ -14,7 +14,12 @@ import {
 } from "plgg-view";
 import { style_ } from "plggmatic/styleEntry";
 import { focusRing } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  crumbHereClass,
+  crumbLinkClass,
+  crumbSepClass,
+  crumbsClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
  * One entry of a {@link breadcrumb} trail: a label and an
@@ -45,7 +50,7 @@ export const breadcrumb = <Msg>(
   const last = crumbs.length - 1;
   return slot(
     [
-      attr("class", `${cssPrefix}-crumbs`),
+      attr("class", crumbsClass),
       attr("aria-label", "Breadcrumb"),
     ],
     crumbs.flatMap(
@@ -56,12 +61,7 @@ export const breadcrumb = <Msg>(
         const label =
           i === last
             ? span(
-                [
-                  attr(
-                    "class",
-                    `${cssPrefix}-crumb-here`,
-                  ),
-                ],
+                [attr("class", crumbHereClass)],
                 [text(crumb.label)],
               )
             : matchOption<SoftStr, Html<Msg>>(
@@ -72,7 +72,7 @@ export const breadcrumb = <Msg>(
                     [
                       href(to),
                       style_(
-                        `${cssPrefix}-crumb-link`,
+                        crumbLinkClass,
                         focusRing,
                       ),
                     ],
@@ -84,10 +84,7 @@ export const breadcrumb = <Msg>(
           : [
               span(
                 [
-                  attr(
-                    "class",
-                    `${cssPrefix}-crumb-sep`,
-                  ),
+                  attr("class", crumbSepClass),
                   attr("aria-hidden", "true"),
                 ],
                 [text("›")],

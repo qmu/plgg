@@ -47,6 +47,11 @@ import {
   type AppColumn,
   addFormColumn,
 } from "./columns.ts";
+import {
+  listClass,
+  listItemClass,
+  rowLinkClass,
+} from "plggmatic";
 
 export const searchStatusOptions = (
   section: SectionId,
@@ -207,15 +212,15 @@ export const resultsList = (
   url: Url,
 ): Html<Msg> =>
   ul(
-    [attr("class", "pm-list")],
+    [attr("class", listClass)],
     rows.map((row: SearchResult) =>
       li(
-        [attr("class", "pm-list-item")],
+        [attr("class", listItemClass)],
         [
           a(
             [
               href(resultHref(url, row.id)),
-              attr("class", "pm-row-link"),
+              attr("class", rowLinkClass),
               ...matchOption<
                 SoftStr,
                 ReadonlyArray<

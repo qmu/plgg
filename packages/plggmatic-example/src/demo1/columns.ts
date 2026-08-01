@@ -45,6 +45,11 @@ import {
 } from "./url.ts";
 import { scheduled } from "./sections.ts";
 import { draftOf, formOf } from "./logic.ts";
+import {
+  actionsClass,
+  btnClass,
+  menuBodyClass,
+} from "plggmatic";
 
 export type AppColumn = Readonly<{
   key: SoftStr;
@@ -92,7 +97,7 @@ export const sectionSubMenu = (
           ),
           body: [
             slot(
-              [attr("class", "pm-menu-body")],
+              [attr("class", menuBodyClass)],
               [
                 ul(
                   [],
@@ -255,7 +260,7 @@ export const addFormColumn = (
               },
             }),
             slot(
-              [attr("class", "pm-actions")],
+              [attr("class", actionsClass)],
               [
                 a(
                   [
@@ -271,7 +276,7 @@ export const addFormColumn = (
                         ),
                       ),
                     ),
-                    attr("class", "pm-btn"),
+                    attr("class", btnClass),
                     attr("aria-label", "Cancel"),
                   ],
                   [text("Cancel")],

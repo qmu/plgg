@@ -21,7 +21,11 @@ import {
   focusRing,
   hoverDim,
 } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  disabledClass,
+  fieldClass,
+  inputClass,
+} from "plggmatic/Meta/model/classHooks";
 import {
   fieldLabel,
   errorAria,
@@ -51,7 +55,7 @@ export const textArea = <Msg>(
   props: TextAreaProps<Msg>,
 ): Html<Msg, "div"> =>
   slot(
-    [attr("class", `${cssPrefix}-field`)],
+    [attr("class", fieldClass)],
     [
       fieldLabel<Msg>(props.name, props.label),
       textarea(
@@ -71,10 +75,10 @@ export const textArea = <Msg>(
           ...errorAria(props.name, props.error),
           ...disabled_(props.disabled),
           style_(
-            `${cssPrefix}-input`,
+            inputClass,
             focusRing,
             ...(props.disabled
-              ? [`${cssPrefix}-disabled`]
+              ? [disabledClass]
               : [hoverDim]),
           ),
           onInput(props.onInput),
