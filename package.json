@@ -1,0 +1,8 @@
+{
+  "name": "plgg-monorepo",
+  "private": true,
+  "description": "SPIKE: npm workspaces evaluation for ticket 20260721180002. Not a published package.",
+  "workspaces": [
+    "packages/*"
+  ]
+}

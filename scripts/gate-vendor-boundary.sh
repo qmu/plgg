@@ -14,14 +14,15 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 # workflow (which invokes check-all.sh), so a PR that leaks a vendor import into
 # an unexempted package's domain fails both locally and in CI.
 #
-# The analyzer uses the already-present `typescript` package (resolved from
-# plgg-bundle) — zero new dependencies. If plgg-bundle's deps are not yet
-# installed (a fresh tree where gates run before build.sh's own bootstrap),
-# install them here, idempotently — mirroring scripts/build.sh.
+# The analyzer uses the already-present `typescript` package — zero new
+# dependencies. The workspace install hoists it to the ROOT node_modules, so it
+# is resolved by walking up rather than from a fixed package path. If it is
+# absent (a checkout nobody has installed yet), install the workspace here,
+# idempotently — mirroring scripts/build.sh.
 echo "=== Gate: vendor boundary (third-party imports confined to vendors/ + entrypoints/) ==="
-if [ ! -d "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript" ]; then
-  echo "=== Bootstrapping plgg-bundle deps (typescript, for the boundary analyzer) ==="
-  cd "$REPO_ROOT/packages/plgg-bundle" && npm ci && cd "$REPO_ROOT"
+if [ ! -d "$REPO_ROOT/node_modules/typescript" ]; then
+  echo "=== Bootstrapping the workspace (typescript, for the boundary analyzer) ==="
+  npm install
 fi
 
 # 1. Prove the gate logic itself is sound (red on a violation / stale exemption,
