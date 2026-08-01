@@ -7,6 +7,7 @@ effort: 2h
 commit_hash:
 category: Changed
 depends_on: []
+claim: work-20260801-211738
 ---
 
 # Evaluate (and if viable, adopt) npm workspaces for the monorepo
