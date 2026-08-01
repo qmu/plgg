@@ -7,6 +7,7 @@ effort: 4h
 commit_hash:
 category: Added
 depends_on: []
+claim: work-20260801-191025
 ---
 
 # plgg-fetch: GCP service-account OAuth token exchange
