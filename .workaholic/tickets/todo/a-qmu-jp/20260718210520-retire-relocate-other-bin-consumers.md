@@ -7,6 +7,7 @@ effort: 4h
 commit_hash:
 category: Removed
 depends_on: [20260718210515-plgg-bundle-self-bundled-bin-retire-relocate.md]
+claim: work-20260801-182248
 ---
 
 # Retire relocate.mjs in the other bin consumers (plgg-test, plggpress, plgg-cms)
