@@ -61,9 +61,9 @@ export const textToBase64Url = (
 /**
  * Decodes the base64 body of a PEM block into DER bytes.
  *
- * A service-account key arrives as PKCS#8 PEM (the
- * `-----BEGIN PRIVATE KEY-----` armour with wrapped base64
- * inside), and `crypto.subtle.importKey("pkcs8", …)` wants
+ * A service-account key arrives as PKCS#8 PEM (the BEGIN /
+ * END armour lines around wrapped base64), and
+ * `crypto.subtle.importKey("pkcs8", …)` wants
  * the raw DER. Strips the armour lines and all whitespace —
  * including the `\n` that survives being read out of a JSON
  * key file — then base64-decodes.

@@ -93,7 +93,7 @@ const captureFetch = (): {
     captured = req;
     return new Response(
       JSON.stringify({
-        access_token: "ya29.token",
+        access_token: "stub-access-token",
         expires_in: 3599,
         token_type: "Bearer",
       }),
@@ -267,7 +267,7 @@ test("gcpExchangeAssertion POSTs the RFC 7523 form body through this package's t
         check(
           token,
           toEqual({
-            accessToken: "ya29.token",
+            accessToken: "stub-access-token",
             expiresIn: 3599,
             tokenType: "Bearer",
           }),
@@ -340,7 +340,7 @@ test("gcpAccessToken signs and exchanges in one call", async () => {
       okThen((token) =>
         check(
           token.accessToken,
-          toBe("ya29.token"),
+          toBe("stub-access-token"),
         ),
       ),
     ),
@@ -366,11 +366,11 @@ test("gcpAccessToken surfaces a signing failure without exchanging", async () =>
 test("gcpBearerAuth renders the obtained token as an Authorization header", () =>
   check(
     gcpBearerAuth({
-      accessToken: "ya29.token",
+      accessToken: "stub-access-token",
       expiresIn: 3599,
       tokenType: "Bearer",
     }),
     toEqual({
-      authorization: "Bearer ya29.token",
+      authorization: "Bearer stub-access-token",
     }),
   ));
