@@ -1,0 +1,24 @@
+# Paths that legitimately contain secret-SHAPED content and no secret.
+#
+# Read by the branch-safety scan (workaholic:release-scan) as :(exclude) globs.
+# This is a pre-declaration made in review, not an override: the file is
+# committed, so every entry lands in a diff a human reads, and secret findings
+# stay non-overridable everywhere else.
+#
+# Keep every entry as narrow as the file it excuses, and only after trying to
+# fix the finding at its source. A directory glob here would silently cover the
+# next file added beside it, and a PRODUCTION file listed here means a real key
+# hardcoded in it later goes unreported.
+
+# The GCP OAuth spec. It exercises the RFC 7523 token exchange, so it must
+# contain the response vocabulary -- `access_token`, `token_type`, `Bearer` --
+# with values beside it, which is a credential shape by construction. The
+# values are stubs (`stub-access-token`); the RSA key pair the spec signs with
+# is GENERATED FRESH at run time by `node:crypto` and is deliberately not
+# committed, so this file holds no key material at all.
+#
+# Two sibling findings in this branch were NOT declared here, because they were
+# fixable at the source: a doc comment in the production `vendors/webcrypto.ts`
+# spelled out the PEM armour line verbatim, and the stub token used `ya29.`,
+# Google's real access-token prefix. Both were reworded instead.
+packages/plgg-fetch/src/domain/usecase/gcpOAuth.spec.ts
