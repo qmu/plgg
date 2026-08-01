@@ -8,6 +8,7 @@ commit_hash:
 category: Changed
 depends_on: [20260728091000-retire-the-pm-class-coupling.md]
 mission:
+claim: work-20260801-210449
 ---
 
 # Export plggmatic's component hooks, and bring the example app under the framework-name gate
