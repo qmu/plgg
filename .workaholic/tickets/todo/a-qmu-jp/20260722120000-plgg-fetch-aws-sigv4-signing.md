@@ -7,6 +7,7 @@ effort: 4h
 commit_hash:
 category: Added
 depends_on: []
+claim: work-20260801-184834
 ---
 
 # plgg-fetch: AWS SigV4 request-signing helper
