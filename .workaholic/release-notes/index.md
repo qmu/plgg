@@ -37,4 +37,8 @@
 * [Bump plgg-ir-language and plgg-ir-manifest to 0.0.2 for the dialect-export publish](work-20260716-161106.md)
 * [Re-extract plgg-mcp as the content-free MCP protocol substrate, etc](work-20260716-163314.md)
 * [Dogfooding fixes across plgg core, CLI, md, plggpress, and fetch](work-20260722-085220.md)
+* [Retire relocate.mjs in the last three bin consumers](work-20260801-182248.md)
+* [Add AWS SigV4 request signing to plgg-fetch](work-20260801-184834.md)
+* [Add GCP service-account OAuth token exchange to plgg-fetch](work-20260801-191025.md)
+* [Export every plggmatic class hook and gate the example app](work-20260801-210449.md)
 <!-- okf:generated:end -->
