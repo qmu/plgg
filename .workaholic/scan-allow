@@ -10,6 +10,16 @@
 # next file added beside it, and a PRODUCTION file listed here means a real key
 # hardcoded in it later goes unreported.
 
+# AWS's PUBLISHED SigV4 test-suite vectors. The "secret access key" in this
+# fixture is `wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY` — the placeholder AWS
+# itself prints in its public documentation and ships in the test suite, paired
+# with the access key id `AKIDEXAMPLE`. It authenticates nothing and grants
+# nothing; it exists so that a signer can be checked against AWS's own expected
+# signatures, which is the entire acceptance criterion of the ticket that added
+# it. Any spelling of the vectors trips a credential pattern, because being
+# credential-shaped is the point.
+packages/plgg-fetch/src/domain/usecase/fixtures/sigv4Vectors.ts
+
 # The GCP OAuth spec. It exercises the RFC 7523 token exchange, so it must
 # contain the response vocabulary -- `access_token`, `token_type`, `Bearer` --
 # with values beside it, which is a credential shape by construction. The
@@ -17,7 +27,7 @@
 # is GENERATED FRESH at run time by `node:crypto` and is deliberately not
 # committed, so this file holds no key material at all.
 #
-# Two sibling findings in this branch were NOT declared here, because they were
+# Two sibling findings in that branch were NOT declared here, because they were
 # fixable at the source: a doc comment in the production `vendors/webcrypto.ts`
 # spelled out the PEM armour line verbatim, and the stub token used `ya29.`,
 # Google's real access-token prefix. Both were reworded instead.
