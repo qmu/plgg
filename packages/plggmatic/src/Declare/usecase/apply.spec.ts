@@ -1,8 +1,4 @@
-import {
-  test,
-  check,
-  toBe,
-} from "plgg-test";
+import { test, check, toBe } from "plgg-test";
 import {
   type SoftStr,
   type Option,
@@ -21,9 +17,7 @@ import {
   type Row,
   row as makeRow,
 } from "plggmatic/Declare/model/Row";
-import {
-  dynamic,
-} from "plggmatic/Declare/model/Source";
+import { dynamic } from "plggmatic/Declare/model/Source";
 import { collection } from "plggmatic/Declare/model/Collection";
 import { declare } from "plggmatic/Declare/model/Declaration";
 import {
@@ -36,9 +30,7 @@ import {
   effect,
   hostAdapter,
 } from "plggmatic/Declare/model/Adapter";
-import {
-  type SchedulerMsg,
-} from "plggmatic/Schedule/model/Msg";
+import { type SchedulerMsg } from "plggmatic/Schedule/model/Msg";
 import {
   emptyModel,
   slotOf,

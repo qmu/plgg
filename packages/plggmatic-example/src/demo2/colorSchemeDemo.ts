@@ -28,6 +28,7 @@ import {
   variants,
   applyScheme,
 } from "plggmatic/style";
+import { cssVarRef } from "plggmatic";
 
 /**
  * Demo 2 — a runnable proof of plggmatic's SECOND pillar,
@@ -146,7 +147,7 @@ export const view = (model: Model): Html<Msg> =>
         [attr("class", "cs-lead")],
         [
           text(
-            "Every chip is painted from a var(--pm-*) token. Toggle the scheme: the single html.dark class reschemes all of them at once, and each keeps its name so no state reads by color alone.",
+            `Every chip is painted from a ${cssVarRef("*")} token. Toggle the scheme: the single html.dark class reschemes all of them at once, and each keeps its name so no state reads by color alone.`,
           ),
         ],
       ),

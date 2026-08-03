@@ -50,7 +50,13 @@ import {
   type DetailField,
 } from "plggmatic/Schedule/model/Scene";
 import { type Row } from "plggmatic/Declare/model/Row";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  hintClass,
+  listActionClass,
+  listActionsClass,
+  menuBodyClass,
+  schedulerClass,
+} from "plggmatic/Meta/model/classHooks";
 import {
   confirmOverlay,
   actionRow,
@@ -116,7 +122,7 @@ export const multiColumnWith = <Msg>(
   options: MultiColumnOptions<Msg>,
 ): Html<Msg, "div"> =>
   slot(
-    [attr("class", `${cssPrefix}-scheduler`)],
+    [attr("class", schedulerClass)],
     [
       ...(options.omitBreadcrumb === true
         ? []
@@ -221,7 +227,7 @@ const detailBody = (
   >(
     () => [
       span(
-        [attr("class", `${cssPrefix}-hint`)],
+        [attr("class", hintClass)],
         [text("Not found")],
       ),
     ],
@@ -272,12 +278,7 @@ const listActions = <Msg>(
     ? []
     : [
         slot(
-          [
-            attr(
-              "class",
-              `${cssPrefix}-list-actions`,
-            ),
-          ],
+          [attr("class", listActionsClass)],
           links.map(
             (
               link: Readonly<{
@@ -289,10 +290,7 @@ const listActions = <Msg>(
               a(
                 [
                   href(link.href),
-                  attr(
-                    "class",
-                    `${cssPrefix}-list-action`,
-                  ),
+                  attr("class", listActionClass),
                   ...(link.active
                     ? [
                         attr(
@@ -334,11 +332,7 @@ const columnFor = <Msg>(
                   links: [],
                 }),
                 slot(
-                  [
-                    style_(
-                      `${cssPrefix}-menu-body`,
-                    ),
-                  ],
+                  [style_(menuBodyClass)],
                   [
                     mapScheduler(options)(
                       menuNav(content.entries),

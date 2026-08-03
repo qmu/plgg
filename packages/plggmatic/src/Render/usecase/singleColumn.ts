@@ -30,7 +30,10 @@ import {
   type DetailField,
 } from "plggmatic/Schedule/model/Scene";
 import { type Row } from "plggmatic/Declare/model/Row";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  hintClass,
+  singleClass,
+} from "plggmatic/Meta/model/classHooks";
 import {
   type Screen,
   currentScreen,
@@ -67,7 +70,7 @@ export const singleColumn = (
   scene: Scene,
 ): Html<SchedulerMsg, "div"> =>
   slot(
-    [attr("class", `${cssPrefix}-single`)],
+    [attr("class", singleClass)],
     [
       ...confirmOverlay(scene.confirm),
       matchOption<Screen, Html<SchedulerMsg>>(
@@ -76,12 +79,7 @@ export const singleColumn = (
             [],
             [
               span(
-                [
-                  attr(
-                    "class",
-                    `${cssPrefix}-hint`,
-                  ),
-                ],
+                [attr("class", hintClass)],
                 [text("Nothing to show")],
               ),
             ],
@@ -195,7 +193,7 @@ const detailBody = (
   >(
     () => [
       span(
-        [attr("class", `${cssPrefix}-hint`)],
+        [attr("class", hintClass)],
         [text("Not found")],
       ),
     ],
