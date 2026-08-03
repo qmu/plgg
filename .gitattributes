@@ -1,0 +1,12 @@
+# Trees this repository generates rather than authors. `linguist-generated`
+# marks them for GitHub's diff view AND is what the branch-safety scan reads to
+# exempt a path from the per-commit changed-lines gate — a generated file's line
+# count says nothing about how much a reviewer has to read.
+#
+# Keep this list narrow: a file belongs here only if a documented generator
+# produces it and a human never edits it by hand.
+
+# AWS's published SigV4 test-suite vectors, parsed from the per-case
+# .req/.creq/.sts/.authz files AWS ships. Regenerated from that source, never
+# hand-edited — its ~700 lines are AWS's expected strings verbatim.
+packages/plgg-fetch/src/domain/usecase/fixtures/sigv4Vectors.ts linguist-generated=true
