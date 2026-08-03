@@ -6,7 +6,11 @@
 // node:*) falls through to Node's default resolution. A
 // near-verbatim copy of plgg-bundle/bin/hook.mjs with the
 // prefix retargeted — no new dependency.
-import { existsSync, statSync } from "node:fs";
+import {
+  existsSync,
+  statSync,
+  realpathSync,
+} from "node:fs";
 import {
   fileURLToPath,
   pathToFileURL,
@@ -15,6 +19,7 @@ import {
   dirname,
   join,
   extname,
+  sep,
 } from "node:path";
 
 const here = dirname(
@@ -22,6 +27,26 @@ const here = dirname(
 );
 const srcRoot = join(here, "..", "src");
 const prefix = "plggpress/";
+
+// The self-alias branch is a MONOREPO-only behaviour. In a
+// real registry install the bin runs the compiled
+// `dist/cli.es.js`, whose own `plggpress/*` specifiers are
+// already inlined — and rewriting a consumer's
+// `plggpress/framework` to `src/framework/index.ts` there
+// would hand Node a `.ts` under node_modules, which it
+// refuses to strip types from (the very error the retired
+// bin/relocate.mjs dodged). Left alone, that specifier
+// resolves through the package's published `exports` map to
+// the built `dist/frameworkEntry.es.js`, which is correct.
+// The RELATIVE branch below stays on in both shapes: it
+// serves the CONSUMER's own files (a `site.config.ts`
+// sourcing its IA from `../ia/nav`), which live at cwd,
+// outside node_modules, in every install shape.
+const selfAliasEnabled = !realpathSync(
+  join(here, ".."),
+)
+  .split(sep)
+  .includes("node_modules");
 
 // Resolve to a FILE, never a directory: a bare-directory
 // self-alias (e.g. `plggpress/framework`) must land on its
@@ -54,7 +79,10 @@ export const resolve = (
   context,
   nextResolve,
 ) => {
-  if (specifier.startsWith(prefix)) {
+  if (
+    selfAliasEnabled &&
+    specifier.startsWith(prefix)
+  ) {
     const base = join(
       srcRoot,
       specifier.slice(prefix.length),

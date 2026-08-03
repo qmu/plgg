@@ -402,6 +402,7 @@ const smokeInstall = (
       "package.json",
     ),
   );
+  const checks: string[] = [];
   if (Boolean(pkg["main"]) || Boolean(pkg["exports"])) {
     execFileSync(
       "node",
@@ -411,28 +412,36 @@ const smokeInstall = (
         stdio: ["ignore", "ignore", "inherit"],
       },
     );
-    return "import ok";
+    checks.push("import ok");
   }
+  // An importable surface does NOT excuse the bin check. This used to
+  // `return "import ok"` here, so the three packages that publish BOTH
+  // — plgg-test, plggpress, plgg-cms — had their launchers smoked by
+  // nothing at all, which is precisely where a run-from-source `.ts`
+  // bin breaks under node_modules. Both surfaces a package declares are
+  // now proven.
   const bin = join(
     smoke,
     "node_modules",
     ".bin",
     meta.name,
   );
-  if (!existsSync(bin)) {
-    return "no runnable surface";
+  if (existsSync(bin)) {
+    const out = binHelpOutput(bin);
+    if (
+      /ERR_MODULE_NOT_FOUND|Cannot find|ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING/.test(
+        out,
+      )
+    ) {
+      throw new Error(
+        `${meta.name} bin cannot run from a real install:\n${out}`,
+      );
+    }
+    checks.push("bin ok");
   }
-  const out = binHelpOutput(bin);
-  if (
-    /ERR_MODULE_NOT_FOUND|Cannot find|ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING/.test(
-      out,
-    )
-  ) {
-    throw new Error(
-      `${meta.name} bin cannot run from a real install:\n${out}`,
-    );
-  }
-  return "bin ok";
+  return checks.length === 0
+    ? "no runnable surface"
+    : checks.join(", ");
 };
 
 /**

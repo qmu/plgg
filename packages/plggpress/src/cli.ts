@@ -79,7 +79,15 @@ const formatBuildError = (
  * and a live-edit bridge, watching the source paths.
  * `plggpress dev` in a bare docs repo, no wiring, no bundler.
  */
-await runApp<
+// A `.catch` chain, not a top-level `await`: this module is
+// ALSO bundled to `dist/cli.es.js` (the shape the bin runs
+// in a registry install), and the emitter wraps every module
+// body in a synchronous registry closure where a
+// module-level `await` is a syntax error. `runApp` already
+// folds every typed failure to an exit code; the `.catch` is
+// the single UNEXPECTED-throw edge (mirrors plgg-bundle's
+// `main().catch`).
+runApp<
   SiteConfig,
   Defect | BrokenLinks | ModelViolations
 >({
@@ -101,4 +109,11 @@ await runApp<
     ),
   dev: pressDevOf(),
   formatError: formatBuildError,
+}).catch((e: unknown) => {
+  process.stderr.write(
+    `plggpress: ${
+      e instanceof Error ? e.message : String(e)
+    }\n`,
+  );
+  process.exitCode = 1;
 });
