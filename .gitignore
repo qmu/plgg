@@ -33,6 +33,10 @@ lerna-debug.log*
 # (normally renamed/removed within a build; only linger if one is killed).
 **/dist.stage/
 **/dist.old/
+# Transient declaration-build config: emitDts synthesizes it in the package root,
+# runs tsc against it, and removes it — never a source file. Spelled in full so
+# tsconfig.json / tsconfig.build.json stay tracked.
+**/tsconfig.dts.json
 **/coverage/
 
 # Git worktrees (created under the repo per the workaholic/trippin convention)

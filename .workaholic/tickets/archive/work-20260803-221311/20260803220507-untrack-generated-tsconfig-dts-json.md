@@ -5,10 +5,11 @@ type: housekeeping
 layer: [Config]
 effort:
 commit_hash:
-category:
+category: Changed
 depends_on:
 mission:
 merge_policy: auto
+claim: work-20260803-221311
 ---
 
 # 生成物 tsconfig.dts.json が追跡されていて、ビルドのたびに worktree が汚れる
