@@ -155,4 +155,8 @@
 * [Strategy (retired): plgg horizontal-orientation UI stack](20260723003932-strategy-plgg-horizontal-orientation-ui-stack.md)
 * [Strategy (retired): Keep the plgg inner loop fast and its gates trustworthy](20260726185030-strategy-keep-the-plgg-inner-loop-fast-and-its-gates-trustworthy.md)
 * [Resolved: plgg-bundle bin-cache verification gotcha](20260801184516-resolved-plgg-bundle-bin-cache-verification-gotcha.md)
+* [The scheduled runner has no workaholic plugin at all](20260803123623-the-scheduled-runner-has-no-workaholic-plugin-at-all.md)
+* [plgg-test emits an unused dist/hook.cjs.js](20260803213403-plgg-test-emits-an-unused-dist.md)
+* [The claim heartbeat commits the index, not nothing](20260803213403-the-claim-heartbeat-commits-the-index.md)
+* [The four launchers now share a predicate rather than a helper](20260803213403-the-four-launchers-now-share-a.md)
 <!-- okf:generated:end -->
