@@ -154,4 +154,5 @@
 * [New exports are not yet on npm](20260716154115-new-exports-are-not-yet-on.md)
 * [Strategy (retired): plgg horizontal-orientation UI stack](20260723003932-strategy-plgg-horizontal-orientation-ui-stack.md)
 * [Strategy (retired): Keep the plgg inner loop fast and its gates trustworthy](20260726185030-strategy-keep-the-plgg-inner-loop-fast-and-its-gates-trustworthy.md)
+* [Resolved: plgg-bundle bin-cache verification gotcha](20260801184516-resolved-plgg-bundle-bin-cache-verification-gotcha.md)
 <!-- okf:generated:end -->
