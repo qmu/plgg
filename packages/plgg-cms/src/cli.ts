@@ -70,12 +70,21 @@ const formatBuildError = (
  *   dev` via plggpress's `devEntry` — so plgg-cms ships no
  *   `dev` command, and `serve` is not its return.
  */
-await runApp<
+// A `.catch` chain, not a top-level `await`: this module is
+// ALSO bundled to `dist/cli.es.js` (the shape the bin runs
+// in a registry install), and the emitter wraps every module
+// body in a synchronous registry closure where a
+// module-level `await` is a syntax error. `runApp` already
+// folds every typed failure to an exit code; the `.catch` is
+// the single UNEXPECTED-throw edge (mirrors plgg-bundle's
+// `main().catch`).
+runApp<
   SiteConfig,
   Defect | BrokenLinks | ModelViolations
 >({
   name: "plgg-cms",
-  description: "dynamic content-management server",
+  description:
+    "dynamic content-management server",
   configFile: "site.config.ts",
   loadConfig,
   context: (
@@ -100,4 +109,11 @@ await runApp<
       opts.base,
     ),
   formatError: formatBuildError,
+}).catch((e: unknown) => {
+  process.stderr.write(
+    `plgg-cms: ${
+      e instanceof Error ? e.message : String(e)
+    }\n`,
+  );
+  process.exitCode = 1;
 });
