@@ -4,11 +4,7 @@ import {
   all,
   toBe,
 } from "plgg-test";
-import {
-  type SoftStr,
-  ok,
-  match,
-} from "plgg";
+import { type SoftStr, ok, match } from "plgg";
 import { type Row } from "plggmatic/Declare/model/Row";
 import { adapter } from "plggmatic/Declare/model/Source";
 import { collection } from "plggmatic/Declare/model/Collection";
@@ -84,10 +80,7 @@ test("a named source no host registered is an unknown-adapter error", () => {
   );
   return all([
     check(ds.length, toBe(1)),
-    check(
-      ds.map(tag).join(","),
-      toBe("unknown"),
-    ),
+    check(ds.map(tag).join(","), toBe("unknown")),
     check(
       ds.map(diagnosticSeverity).join(","),
       toBe("error"),

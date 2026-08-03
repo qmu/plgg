@@ -15,19 +15,26 @@ import {
   type PaneRole,
   landmarkTag,
 } from "plggmatic/Layout/model/pane";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  rowClass,
+  colClass,
+  paneClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
- * The class hooks the layout skeleton emits, derived from
- * the framework's own {@link cssPrefix}. EXPORTED because a
- * consumer that needs to name one — a stylesheet, a test —
- * must import it rather than type it: a string a consumer
- * types is a contract no compiler checks, and renaming the
- * prefix would silently break every page that spelled it.
+ * The class hooks the layout skeleton emits. EXPORTED
+ * because a consumer that needs to name one — a
+ * stylesheet, a test — must import it rather than type it:
+ * a string a consumer types is a contract no compiler
+ * checks, and renaming the prefix would silently break
+ * every page that spelled it.
+ *
+ * RE-EXPORTED from `Meta/model/classHooks`, which is the
+ * single definition site for every hook the framework
+ * emits. This import path is kept because it is where
+ * consumers already reach for them.
  */
-export const rowClass: SoftStr = `${cssPrefix}-row`;
-export const colClass: SoftStr = `${cssPrefix}-col`;
-export const paneClass: SoftStr = `${cssPrefix}-pane`;
+export { rowClass, colClass, paneClass };
 
 /**
  * What a combinator accepts as its style slot: exactly

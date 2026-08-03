@@ -5,6 +5,7 @@ import {
   slotStyle,
   pragmaticTheme,
 } from "plggmatic/style";
+import { cssVarRef } from "plggmatic";
 
 /**
  * Demo 1's runway parameters: the column gap and the
@@ -40,11 +41,11 @@ export const demo1Runway: RunwayOptions = {
  * `demo1/styles.ts` — that is an app element, not a
  * framework slot.
  */
-const hoverPill = ":not([aria-current=\"page\"]):hover";
+const hoverPill =
+  ':not([aria-current="page"]):hover';
 const pressFeedback =
   "transition:background-color 0.15s ease,color 0.15s ease,border-color 0.15s ease,box-shadow 0.15s ease,transform 0.08s ease;";
-const invertPill =
-  "background:var(--pm-text);color:var(--pm-surface);";
+const invertPill = `background:${cssVarRef("text")};color:${cssVarRef("surface")};`;
 
 export const demo1Slots: ReadonlyArray<SlotStyle> =
   [
@@ -55,8 +56,7 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "query",
-      declarations:
-        "width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid var(--pm-border);border-radius:6px;background:var(--pm-surface);color:var(--pm-text);",
+      declarations: `width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid ${cssVarRef("border")};border-radius:6px;background:${cssVarRef("surface")};color:${cssVarRef("text")};`,
     }),
     slotStyle({
       slot: "col",
@@ -65,19 +65,16 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "colHead",
-      declarations:
-        "border-bottom:none;background:transparent;color:var(--pm-text);border-radius:0;height:auto;padding:0;margin-bottom:0.5rem;justify-content:flex-start;",
+      declarations: `border-bottom:none;background:transparent;color:${cssVarRef("text")};border-radius:0;height:auto;padding:0;margin-bottom:0.5rem;justify-content:flex-start;`,
     }),
     slotStyle({
       slot: "colHeadTitle",
-      declarations:
-        "background:transparent;color:var(--pm-text);border-radius:0;padding:0;margin:0;font-weight:700;font-size:0.95rem;flex:0 0 auto;text-decoration:none;",
+      declarations: `background:transparent;color:${cssVarRef("text")};border-radius:0;padding:0;margin:0;font-weight:700;font-size:0.95rem;flex:0 0 auto;text-decoration:none;`,
     }),
     slotStyle({
       slot: "colHeadTitleLink",
       state: ":hover",
-      declarations:
-        "text-decoration:underline;",
+      declarations: "text-decoration:underline;",
     }),
     slotStyle({
       slot: "pane",
@@ -94,13 +91,11 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "menuLink",
-      declarations:
-        "display:inline-block;border:none;border-radius:3px;padding:0.1rem 0.35rem;margin-left:-0.35rem;background:transparent;color:var(--pm-text);text-decoration:none;font-size:0.95rem;line-height:1.35;",
+      declarations: `display:inline-block;border:none;border-radius:3px;padding:0.1rem 0.35rem;margin-left:-0.35rem;background:transparent;color:${cssVarRef("text")};text-decoration:none;font-size:0.95rem;line-height:1.35;`,
     }),
     slotStyle({
       slot: "list",
-      declarations:
-        "margin:0;padding:0;border:1px solid var(--pm-border);border-radius:8px;background:var(--pm-surface);overflow:hidden;",
+      declarations: `margin:0;padding:0;border:1px solid ${cssVarRef("border")};border-radius:8px;background:${cssVarRef("surface")};overflow:hidden;`,
     }),
     slotStyle({
       slot: "listItem",
@@ -108,13 +103,11 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "listItemAdjacent",
-      declarations:
-        "margin-top:0;border-top:1px solid var(--pm-border);",
+      declarations: `margin-top:0;border-top:1px solid ${cssVarRef("border")};`,
     }),
     slotStyle({
       slot: "rowLink",
-      declarations:
-        "display:block;border:none;border-radius:0;background:transparent;padding:0.35rem 0.65rem;color:var(--pm-text);",
+      declarations: `display:block;border:none;border-radius:0;background:transparent;padding:0.35rem 0.65rem;color:${cssVarRef("text")};`,
     }),
     slotStyle({
       slot: "menuLink",
@@ -143,14 +136,12 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "listAction",
-      declarations:
-        "display:block;border:1px solid var(--pm-border);border-radius:8px;padding:0.5rem 0.65rem;background:var(--pm-surface);color:var(--pm-text);text-decoration:none;text-align:center;",
+      declarations: `display:block;border:1px solid ${cssVarRef("border")};border-radius:8px;padding:0.5rem 0.65rem;background:${cssVarRef("surface")};color:${cssVarRef("text")};text-decoration:none;text-align:center;`,
     }),
     slotStyle({
       slot: "listAction",
       state: hoverPill,
-      declarations:
-        "background:color-mix(in oklab,var(--pm-text) 8%,transparent);",
+      declarations: `background:color-mix(in oklab,${cssVarRef("text")} 8%,transparent);`,
     }),
     slotStyle({
       slot: "formFirstChild",
@@ -163,8 +154,7 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "btnPrimary",
-      declarations:
-        "background:transparent;color:var(--pm-text);border-color:var(--pm-text);",
+      declarations: `background:transparent;color:${cssVarRef("text")};border-color:${cssVarRef("text")};`,
     }),
     slotStyle({
       slot: "btnPrimary",
@@ -186,8 +176,7 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
       scope: ".bo-results",
       state: hoverPill,
       within: ".bo-result-meta",
-      declarations:
-        "color:color-mix(in oklab,var(--pm-surface) 72%,transparent);",
+      declarations: `color:color-mix(in oklab,${cssVarRef("surface")} 72%,transparent);`,
     }),
     slotStyle({
       slot: "list",
@@ -217,8 +206,7 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "fieldLabel",
-      declarations:
-        "font-size:0.72rem;margin-bottom:0.1rem;color:color-mix(in oklab,var(--pm-text) 58%,transparent);",
+      declarations: `font-size:0.72rem;margin-bottom:0.1rem;color:color-mix(in oklab,${cssVarRef("text")} 58%,transparent);`,
     }),
     slotStyle({
       slot: "input",
@@ -232,9 +220,8 @@ export const demo1Slots: ReadonlyArray<SlotStyle> =
     }),
     slotStyle({
       slot: "paneLink",
-      state: "[aria-current=\"page\"]",
-      declarations:
-        "background:var(--pm-text);color:var(--pm-surface);box-shadow:none;",
+      state: '[aria-current="page"]',
+      declarations: `background:${cssVarRef("text")};color:${cssVarRef("surface")};box-shadow:none;`,
     }),
     slotStyle({
       slot: "menuLink",

@@ -15,6 +15,7 @@ import {
 } from "plgg-test";
 import { sandbox } from "plgg-view/client";
 import { program } from "./formsDemo.ts";
+import { dialogClass, selector } from "plggmatic";
 
 let stop: () => void = () => {};
 
@@ -118,8 +119,9 @@ test("an invalid submit shows a field error and creates nothing", () => {
   submitForm(root);
   return all([
     check(
-      root.querySelector('[aria-invalid="true"]') !==
-        null,
+      root.querySelector(
+        '[aria-invalid="true"]',
+      ) !== null,
       toBe(true),
     ),
     check(
@@ -164,14 +166,24 @@ test("delete asks the dialog; cancel is a no-op, confirm removes and toasts", as
   // open the delete dialog (the note's Delete), then cancel
   clickText(root, ".fd-note button", "Delete");
   const asked =
-    root.querySelector('[role="dialog"]') !== null;
-  clickText(root, ".pm-dialog button", "Cancel");
+    root.querySelector('[role="dialog"]') !==
+    null;
+  clickText(
+    root,
+    `${selector(dialogClass)} button`,
+    "Cancel",
+  );
   const afterCancel =
-    root.querySelector('[role="dialog"]') === null &&
+    root.querySelector('[role="dialog"]') ===
+      null &&
     root.querySelector(".fd-note") !== null;
   // reopen and confirm via the DIALOG's Delete button
   clickText(root, ".fd-note button", "Delete");
-  clickText(root, ".pm-dialog button", "Delete");
+  clickText(
+    root,
+    `${selector(dialogClass)} button`,
+    "Delete",
+  );
   const removed =
     root.querySelector(".fd-note") === null;
   return all([
