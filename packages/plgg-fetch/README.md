@@ -129,6 +129,32 @@ Path normalization is deliberately **not** applied — it is a per-service
 behaviour and S3 does not normalize, so a caller for a normalizing service
 normalizes before it signs.
 
+**GCP service-account OAuth** — obtain an access token with no vendor SDK:
+
+- `gcpAccessToken(account, request, issuedAtSeconds)` — build the claims, sign
+  the RS256 assertion, and exchange it at Google's token endpoint, in one call.
+  Returns `PromisedResult<GcpAccessToken, Defect>`.
+- `gcpBearerAuth(token)` — the obtained token as an `Authorization` header.
+- The steps are exported individually too — `gcpJwtClaims`, `gcpClaimsJson`,
+  `gcpSigningInput`, `gcpAssertion`, `gcpExchangeAssertion` — because each is
+  separately checkable and a failed exchange is usually a wrong claim.
+
+```ts
+const token = await gcpAccessToken(
+  { clientEmail, privateKeyPem },              // from the service-account JSON
+  { scope: "https://www.googleapis.com/auth/cloud-platform", subject: none() },
+  Math.floor(Date.now() / 1000),               // the clock stays at the call site
+);
+```
+
+`issuedAtSeconds` is a parameter rather than a clock read inside the helper, so
+every step below the transport is a pure function of its inputs — which is what
+lets a test pin the exact second and compare a whole signing input. The token
+exchange itself rides this package's own `post` + `decodeJsonBody`; there is no
+raw `fetch` anywhere in it. RS256 signing is verified against Node's `crypto` —
+an independent implementation — over a key pair generated fresh per test run,
+so no private key is committed anywhere.
+
 ## Failure policy
 
 This is the central contract, by design:
@@ -151,6 +177,10 @@ migration, ticket `20260704185203`):
   `HttpRequest` and delegates the round-trip to the vendor; it never references
   a Web type. `sigv4` is likewise pure canonicalization — the crypto lives at
   the seam below.
+
+- **`src/domain/`** — the pure domain: `model/ClientError` and
+  `usecase/{request,decode}`. `request` builds a plgg-native `HttpRequest` and
+  delegates the round-trip to the vendor; it never references a Web type.
 - **`src/vendors/fetch.ts`** — the anti-corruption boundary, **the only module
   that touches the Web `fetch` platform** (`fetch`/`Request`/`Response`/
   `Headers`/`URL`). Its domain-facing entry is `sendRequest(HttpRequest) →
@@ -159,11 +189,14 @@ migration, ticket `20260704185203`):
   - `fromFetchResponse(res): PromisedResult<HttpResponse, ClientError>` — native
     `Response` → plgg `HttpResponse` (or a `NetworkError` if the body read fails).
 - **`src/vendors/webcrypto.ts`** — the second boundary, **the only module that
-  touches Web Crypto** (`crypto.subtle`, `TextEncoder`). It exposes `sha256Hex`
-  and `hmacSha256` over plain bytes, so the SigV4 domain composes them without
-  naming a platform API. Like `toFetchRequest` it may reject; the domain's
-  single entry (`sigv4Sign`) folds that to a `Defect` through `tryCatch`, one
-  boundary instead of an error arm threaded through six steps.
+  touches Web Crypto** (`crypto.subtle`, `TextEncoder`, `atob`/`btoa`). It
+  exposes `sha256Hex`/`hmacSha256` for SigV4 and
+  `rs256Sign`/`toBase64Url`/`pemToDer` for the GCP JWT-bearer grant, over one
+  shared `utf8Bytes`, so both signing domains compose them without naming a
+  platform API. Like `toFetchRequest` it may reject (a malformed PEM is the
+  realistic case); each domain's single entry (`sigv4Sign`, `gcpAssertion`)
+  folds that to a `Defect` through one `tryCatch`, one boundary instead of an
+  error arm threaded through a whole signing chain.
 - **`src/index.ts`** re-exports the domain only, never `vendors/`.
 
 This mirrors the router's seam (`toHttpRequest`/`toNativeResponse`) in the
