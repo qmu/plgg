@@ -108,6 +108,12 @@ Final Report が、この一点だけが積み残ったと明言している:
 - `workaholic:operation` / `policies/ci-cd.md` — 単体テストが緑であることは受入の
   証拠として不十分。実際に配信インスタンスに MCP で問い合わせて実ページが返る
   ことを示すこと。
+- `workaholic:design` / `policies/rest-api-design.md` — MCP ツール面を RPC の場合
+  として規定する。`/api`（`contentApi`）と `/mcp`（`contentTools`）は同じ
+  `documents` / `chunks` を読むので、**document の表現が乖離してはならない**
+  （同じフィールド名・同じ粒度・同じ型）。またツール定義は「どの資源を読むか」
+  「再実行がどう扱われるか」を記録すること — 3 つとも読み取りなので再実行は安全で、
+  それを明記する。
 
 ## Key Files
 
@@ -170,9 +176,12 @@ Final Report が、この一点だけが積み残ったと明言している:
    を起動ログに出す（`serving …` の行の近く）。**コーパス読み取りが失敗したときに
    黙って空の索引を配らない**こと — このチケットが生まれた失敗モードそのものなので、
    失敗は起動を落とすか、少なくとも明示的に叫ぶ。
-5. `packages/plggpress/ROLLOUT.md` の該当行を直す（content index は設定の遅延ではなく
+5. `healthWeb` に document 件数のシグナルを足す。**空の索引が外から検知できる**
+   ようにするのが目的で、これが無かったことが「失望したエージェント」経由でしか
+   気づけない今の状態を作った（`implementation/observability` の business health）。
+6. `packages/plggpress/ROLLOUT.md` の該当行を直す（content index は設定の遅延ではなく
    コードの不在だったと事実として書く）。
-6. `packages/guide/packages/plggpress/agent-surfaces.md` に、実際に効く起動手順
+7. `packages/guide/packages/plggpress/agent-surfaces.md` に、実際に効く起動手順
    （上の `plgg-cms serve` の 1 行）と、`get_article` に渡す `collection` / `path` の
    綴りを追記する。現状どこにも起動コマンドが書かれていない。
 
@@ -189,6 +198,7 @@ Final Report が、この一点だけが積み残ったと明言している:
   `collection` と `path` をそのまま渡して当該ページが返ること（検索と取得の
   綴りが一致していることの証明）。
 - 起動ログに `RebuildReport` 相当（indexed / pruned の件数）が出ること。
+- `GET /health` から索引の document 件数が読め、空の索引が外から検知できること。
 - `./scripts/check-all.sh` が緑（exit 0）、かつ plgg-cms の coverage が
   4 指標すべて >90%。
 - `git grep -n "as \|any\|ts-ignore"` 相当の逸脱が新規コードに無いこと
