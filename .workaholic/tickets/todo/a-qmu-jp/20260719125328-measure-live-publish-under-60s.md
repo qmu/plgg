@@ -7,7 +7,7 @@ effort: 1h
 commit_hash:
 category: Changed
 depends_on: [20260718210514-publish-structured-output-sub-60s.md]
-mission: modernize-plgg-bundle
+mission:
 blocked: human-gated — requires a LIVE npm publish + 2FA; DO NOT drive autonomously
 ---
 
