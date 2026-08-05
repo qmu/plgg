@@ -170,4 +170,5 @@
 * [npm changed two tracked files as a side effect of installing](20260803215815-npm-changed-two-tracked-files-as.md)
 * [The measurements are warm-cache only](20260803215815-the-measurements-are-warm-cache-only.md)
 * [The root manifest makes scripts/*.ts typeless, and the obvious fix is wrong](20260803215815-the-root-manifest-makes-scripts-ts.md)
+* [Resolved: plgg-cms coverage sits at a thin 90.5% margin above the gate](20260805110856-resolved-plgg-cms-coverage-sits-at-a.md)
 <!-- okf:generated:end -->

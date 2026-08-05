@@ -5,10 +5,11 @@ type: enhancement
 layer: [Domain]
 effort:
 commit_hash:
-category:
+category: Changed
 depends_on:
 mission:
 merge_policy: review
+claim: work-20260805-104535
 ---
 
 # 配信インスタンスの `/mcp` が空を返す — Markdown コーパスを content index に取り込む経路が存在しない
