@@ -61,6 +61,20 @@ export {
   checkModels,
 } from "plggpress/ContentModel/usecase/checkModels";
 
+// The corpus walk itself, published for a DYNAMIC consumer
+// (plgg-cms) that must read the same Markdown the SSG reads
+// in order to derive its served index. Publishing it is the
+// alternative to a second route→file inverse living in that
+// consumer, which would drift from `candidateFiles` the
+// moment either side changed.
+export { collectPages } from "plggpress/ContentModel/usecase/collectPages";
+
+// The site's raw-HTML mode, published for the same reason:
+// a consumer parsing the corpus must parse it under the
+// SAME flag the render path uses, or the derived index and
+// the rendered page disagree about what is markup.
+export { rawHtmlOf } from "plggpress/SiteConfig/usecase/renderSeams";
+
 export {
   href,
   isExternalHref,
