@@ -170,5 +170,9 @@
 * [npm changed two tracked files as a side effect of installing](20260803215815-npm-changed-two-tracked-files-as.md)
 * [The measurements are warm-cache only](20260803215815-the-measurements-are-warm-cache-only.md)
 * [The root manifest makes scripts/*.ts typeless, and the obvious fix is wrong](20260803215815-the-root-manifest-makes-scripts-ts.md)
+* [Ingest the Markdown corpus into plgg-cms serve's content index so /mcp returns real results](20260805022801-ingest-the-markdown-corpus-into-plgg-cms-serve-s-content-index-so-mcp-returns-real-results.md)
 * [Resolved: plgg-cms coverage sits at a thin 90.5% margin above the gate](20260805110856-resolved-plgg-cms-coverage-sits-at-a.md)
+* [A single unparseable page fails the whole boot](20260805112521-a-single-unparseable-page-fails-the.md)
+* [The documented `/mcp` auth posture still does not match what ships](20260805112521-the-documented-mcp-auth-posture-still.md)
+* [The index is rebuilt in full on every boot, with no incremental path](20260805112521-the-index-is-rebuilt-in-full.md)
 <!-- okf:generated:end -->
