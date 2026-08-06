@@ -159,6 +159,7 @@
 * [Resolved: plgg-bundle bin-cache verification gotcha](20260801184516-resolved-plgg-bundle-bin-cache-verification-gotcha.md)
 * [The scheduled runner has no workaholic plugin at all](20260803123623-the-scheduled-runner-has-no-workaholic-plugin-at-all.md)
 * [Proposal cursor cannot survive the ephemeral scheduled runner](20260803124744-proposal-cursor-cannot-survive-the-ephemeral-scheduled-runner.md)
+* [Ship-time concern extraction truncates every body to one line](20260803125109-ship-time-concern-extraction-truncates-every-body-to-one-line.md)
 * [plgg-test emits an unused dist/hook.cjs.js](20260803213403-plgg-test-emits-an-unused-dist.md)
 * [The claim heartbeat commits the index, not nothing](20260803213403-the-claim-heartbeat-commits-the-index.md)
 * [The four launchers now share a predicate rather than a helper](20260803213403-the-four-launchers-now-share-a.md)
