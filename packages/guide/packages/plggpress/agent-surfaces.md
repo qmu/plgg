@@ -67,6 +67,47 @@ resource and runs a standard authorization-code flow
 (with PKCE and dynamic client registration) — no
 bespoke protocol.
 
+### What ships today
+
+The scope separation above describes `mcpWebGuarded`.
+The **mount the served instance actually uses is the
+unguarded `mcpWeb`** with the three read tools, so
+`initialize`, `tools/list` and `tools/call` need no
+`Authorization` header — which is the progressive-lighting
+posture below, not an oversight. There are no write tools
+registered, so there is nothing a read token could reach
+that it should not.
+
+Start an instance over a corpus and talk to it:
+
+```
+cd packages/guide
+plgg-cms serve --config site.config.ts --contentDir . --port 3000
+```
+
+It prints how many pages it indexed (`indexed 39 page(s),
+pruned 0`) before it serves, and `GET /health` reports the
+same count — an index with nothing in it is visible from
+outside rather than only as empty search results. Then:
+
+```
+curl -s -X POST localhost:3000/mcp -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"search_content","arguments":{"query":"pipeline"}}}'
+```
+
+`search_content` returns `{path, heading, rank}` — the
+route and the section breadcrumb, not the body. To read
+the page, pass that `path` together with the collection
+name `list_collections` returns (`content`) to
+`get_article`. All three tools are reads, so re-running
+one is always safe.
+
+The corpus the index holds is the same Markdown the
+reader renders, walked at boot from `--contentDir` and
+rebuilt on every start: an agent can only cite what a
+human page also shows.
+
 ## Claude Code plugin export
 
 The served instance exports an **installable Claude

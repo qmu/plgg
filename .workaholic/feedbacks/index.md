@@ -154,6 +154,8 @@
 * [New exports are not yet on npm](20260716154115-new-exports-are-not-yet-on.md)
 * [Strategy (retired): plgg horizontal-orientation UI stack](20260723003932-strategy-plgg-horizontal-orientation-ui-stack.md)
 * [Strategy (retired): Keep the plgg inner loop fast and its gates trustworthy](20260726185030-strategy-keep-the-plgg-inner-loop-fast-and-its-gates-trustworthy.md)
+* [The scheduled runner's git identity hides the ticket queue](20260731202754-the-scheduled-runner-s-git-identity-hides-the-ticket-queue.md)
+* [The proposal cursor resets when the container is reclaimed](20260731203123-the-proposal-cursor-resets-when-the-container-is-reclaimed.md)
 * [Resolved: plgg-bundle bin-cache verification gotcha](20260801184516-resolved-plgg-bundle-bin-cache-verification-gotcha.md)
 * [The autonomous loop has run dry and cannot refill itself](20260803133658-the-autonomous-loop-has-run-dry-and-cannot-refill-itself.md)
 * [plgg-test emits an unused dist/hook.cjs.js](20260803213403-plgg-test-emits-an-unused-dist.md)
@@ -171,4 +173,8 @@
 * [npm changed two tracked files as a side effect of installing](20260803215815-npm-changed-two-tracked-files-as.md)
 * [The measurements are warm-cache only](20260803215815-the-measurements-are-warm-cache-only.md)
 * [The root manifest makes scripts/*.ts typeless, and the obvious fix is wrong](20260803215815-the-root-manifest-makes-scripts-ts.md)
+* [Resolved: plgg-cms coverage sits at a thin 90.5% margin above the gate](20260805110856-resolved-plgg-cms-coverage-sits-at-a.md)
+* [A single unparseable page fails the whole boot](20260805112521-a-single-unparseable-page-fails-the.md)
+* [The documented `/mcp` auth posture still does not match what ships](20260805112521-the-documented-mcp-auth-posture-still.md)
+* [The index is rebuilt in full on every boot, with no incremental path](20260805112521-the-index-is-rebuilt-in-full.md)
 <!-- okf:generated:end -->
