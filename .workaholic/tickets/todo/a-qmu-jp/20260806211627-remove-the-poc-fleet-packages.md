@@ -147,9 +147,12 @@ release-notes / missions）は書き換えない。** 過去の記録が当時�
 
 ## Considerations
 
-- **削除は一括で。** 9 パッケージのうち一部だけ残すと、`sharp` が残る
-  （poc1-search）だけでなく、`plgg-poc-portal` が他の PoC を索引しているため
-  リンク切れが出る。分割するなら portal を最後に消すこと。
+- **削除は一括で。これは好みではなく構造上の要請。** `plgg-poc2-agent` /
+  `plgg-poc3-voice` / `plgg-poc4-edit` / `plgg-poc4b-coedit` /
+  `plgg-poc4c-livesite` の 5 本が `plgg-poc1-search` に **`file:` 依存**して
+  いる。poc1-search だけ残す/消すといった部分削除は依存を壊すか `sharp` を
+  残すかのどちらかになる。加えて `plgg-poc-portal` は他の PoC を索引している
+  のでリンク切れも出る。分割するなら portal を最後に消すこと。
 - **`serve-poc.sh` とルート `.env`。** メモリ上、`serve-poc.sh` はルートの
   git-ignored `.env` を source する数少ない利用者。消したあとに `.env` の
   どのキーが誰にも読まれなくなるかを確認し、必要なら `.env.example` を整合させる。

@@ -96,6 +96,16 @@ lockfile の撤去は一度も出てこない — 片付け対象として書か
 3. `.github/dependabot.yml` の `directories` を `["/"]` に変更し、偽になった
    コメントを現状に合わせて書き直す（workspaces のルートが唯一の install root）。
 4. `docs/npm-workspaces-decision.md` の lockfile 行を事実に合わせる。
+5. workspaces 移行で偽になった他の記述も同じ PR で直す（`objective-documentation`
+   — 実際の挙動を書く）:
+   - ルート `package.json` の `description` が今も
+     `"SPIKE: npm workspaces evaluation for ticket 20260721180002."` のまま。
+     spike は 2026-08-01 に採用として決着しているので、現状を書く。
+   - `scripts/gate-guide-deps.sh` 40 行目と `workloads/guide/dev-entrypoint.sh`
+     76 行目のコメントが `build.sh` の `npm ci` bootstrap に言及しているが、
+     `build.sh` は現在 `node_modules/typescript` が無いときだけ**ルートの
+     `npm install`** を走らせる。`npm ci` は**リポジトリのどこにも実行として
+     存在しない**。
 5. ルートで `./scripts/npm-install.sh` を実行し、ルートの lockfile 以外が
    生成・変更されないことを確認する。
 
@@ -144,12 +154,23 @@ install root が全 workspace の依存を解決するので、パッケージ�
   (`20260806211627`) に `depends_on` している。PoC を先に消せば 39 本のうち
   9 本が一緒に消えるので、こちらの対象は 30 本になる。逆順でも壊れないが、
   受入の数え方が変わるので順序を守るほうが読みやすい。
-- **`npm ci` を使っている箇所は無い。** `scripts/` と `.github/` を grep した
-  範囲では `npm ci` はコメント内の言及のみで、実際の呼び出しは
-  `scripts/build.sh` の `npm install` と `scripts/npm-install.sh` のルート
-  install だけ。したがって per-package lockfile を消しても再現性のある install
-  は壊れない。**この前提はドライブ時に再確認すること**（新しい呼び出しが
-  増えていれば話が変わる）。
+- **`npm ci` を使っている箇所は無い（確認済み）。** リポジトリ全体で `npm ci` は
+  **実行として 1 箇所も存在しない** — ヒットするのは上記 2 つの陳腐化した
+  コメントとアーカイブ済み文書だけ。install 経路は `scripts/npm-install.sh` の
+  ルート `npm install`、`build.sh` の条件付きルート install、ガイドコンテナの
+  per-package `npm install` ループ（`ci` ではない）の 3 つ。**どのワークフローも
+  lockfile をキーにしたキャッシュを使っていない**（`actions/setup-node` の
+  cache 未使用）ので、消しても再現性のある install も CI キャッシュも壊れない。
+  それでもドライブ時に再確認すること（新しい呼び出しが増えていれば話が変わる）。
+- **アラートと更新 PR は別経路。** GitHub の依存グラフはリポジトリ内の**全**
+  lockfile を読むのでアラートは 2 件出る一方、`dependabot.yml` の `directories`
+  が支配するのは**更新 PR** だけ。したがって 39 本の追跡を外せばアラートは 1 件に
+  減り、設定をルートに向け直せば更新 PR が初めて生きた lockfile を対象にする。
+  **両方必要で、どちらか片方では閉じない。**
+- **凍った lockfile の腐り具合。** 39 本のうち 4 本
+  （poc2-agent / poc3-voice / poc4-edit / poc4b-coedit）は、自分の
+  `package.json` が宣言していない `@huggingface/transformers` のスタンザを
+  抱えている。生きた依存グラフの記録ではなく、単なる残骸である証拠。
 - **実体ファイルは消してもよいが必須ではない。** 追跡さえ外れれば、次の
   install が触らない限り無害。ただしコンテナ越しの npm が書き換える churn を
   完全に止めたいなら、実体も消しておくほうが静かになる。
