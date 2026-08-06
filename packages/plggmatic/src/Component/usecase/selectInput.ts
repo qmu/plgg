@@ -14,7 +14,10 @@ import {
 } from "plgg-view";
 import { style_ } from "plggmatic/styleEntry";
 import { focusRing } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  fieldClass,
+  inputClass,
+} from "plggmatic/Meta/model/classHooks";
 import {
   fieldLabel,
   errorAria,
@@ -50,7 +53,7 @@ export const selectInput = <Msg>(
   props: SelectProps<Msg>,
 ): Html<Msg, "div"> =>
   slot(
-    [attr("class", `${cssPrefix}-field`)],
+    [attr("class", fieldClass)],
     [
       fieldLabel<Msg>(props.name, props.label),
       select(
@@ -59,7 +62,7 @@ export const selectInput = <Msg>(
           name_(props.name),
           ...errorAria(props.name, props.error),
           ...disabled_(props.disabled),
-          style_(`${cssPrefix}-input`, focusRing),
+          style_(inputClass, focusRing),
           onChange(props.onChange),
         ],
         props.options.map((o: SelectOption) =>

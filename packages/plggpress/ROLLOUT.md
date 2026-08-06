@@ -31,9 +31,18 @@ UI hidden). This is graceful degradation as a rollout strategy: ship the instanc
 turn features on by adding config, never by redeploying code.
 
 **Deferred to deploy config** (not code): the served origin (the mount uses a
-placeholder issuer + `:memory:` stores + `mcpUrl = base + /mcp`); the persistent DB
-paths; the operator LLM/realtime keys; the OP signing key. `OPERATIONS.md` is the
-runbook for standing this up.
+placeholder issuer + `:memory:` stores + `mcpUrl = base + /mcp`); the auth, draft
+and asset stores' persistent DB paths; the operator LLM/realtime keys; the OP
+signing key. `OPERATIONS.md` is the runbook for standing this up.
+
+**The content index is NOT on that list, and listing it there was wrong.** It is a
+DERIVED artifact whose source of truth is the Markdown corpus in git, so it is
+rebuilt from the corpus at every boot (`ingestCorpus`, in plgg-cms) and `:memory:`
+is the whole storage story — a restart is a full recovery. While that ingest was
+unwritten the index stayed schema-only and every reader of it (`/api`, `/mcp`, the
+plugin export, the admin browser) answered correctly over zero rows; pointing
+`openIndex` at a persistent path would not have changed that by one document,
+because nothing wrote to it. It was a missing code path, not missing config.
 
 ## Track 2 — `packages/site`'s fate
 

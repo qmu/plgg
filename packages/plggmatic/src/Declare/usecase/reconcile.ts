@@ -42,7 +42,10 @@ import {
 export type Diagnostic =
   | Box<
       "UnknownAdapter",
-      Readonly<{ collection: SoftStr; name: SoftStr }>
+      Readonly<{
+        collection: SoftStr;
+        name: SoftStr;
+      }>
     >
   | Box<
       "NoDefaultAdapter",
@@ -51,7 +54,10 @@ export type Diagnostic =
         registered: number;
       }>
     >
-  | Box<"UnusedAdapter", Readonly<{ name: SoftStr }>>;
+  | Box<
+      "UnusedAdapter",
+      Readonly<{ name: SoftStr }>
+    >;
 
 /** An unknown named-adapter error. */
 export const unknownAdapter = (
@@ -183,7 +189,10 @@ export const reconcile = (
     );
   const usedNames: ReadonlyArray<SoftStr> =
     bindings.flatMap((b: Binding) =>
-      matchOption<SoftStr, ReadonlyArray<SoftStr>>(
+      matchOption<
+        SoftStr,
+        ReadonlyArray<SoftStr>
+      >(
         () => [],
         (nm: SoftStr) => [nm],
       )(b.name),

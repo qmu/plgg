@@ -11,7 +11,12 @@ import {
 } from "plgg-view";
 import { style_ } from "plggmatic/styleEntry";
 import { focusRing } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  toastClass,
+  toastToneClass,
+  toastCloseClass,
+  toasterClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
  * A toast's tone — the semantic role set (D9). A closed
@@ -52,7 +57,7 @@ export const toast = <Msg>(
       key(props.id),
       attr(
         "class",
-        `${cssPrefix}-toast ${cssPrefix}-toast-${props.tone}`,
+        `${toastClass} ${toastToneClass(props.tone)}`,
       ),
       attr("role", "status"),
       attr(
@@ -67,10 +72,7 @@ export const toast = <Msg>(
       button(
         [
           attr("aria-label", "Dismiss"),
-          style_(
-            `${cssPrefix}-toast-close`,
-            focusRing,
-          ),
+          style_(toastCloseClass, focusRing),
           onClick(props.onDismiss),
         ],
         [text("×")],
@@ -88,7 +90,7 @@ export const toaster = <Msg>(
 ): Html<Msg, "div"> =>
   slot(
     [
-      attr("class", `${cssPrefix}-toaster`),
+      attr("class", toasterClass),
       attr("aria-live", "polite"),
     ],
     toasts.map((t: ToastProps<Msg>) => toast(t)),

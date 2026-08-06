@@ -15,7 +15,12 @@ import {
   focusRing,
   hoverDim,
 } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  btnClass,
+  btnPrimaryClass,
+  disabledClass,
+  formClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
  * The form assembly: a `<form>` (plgg-view already
@@ -41,7 +46,7 @@ export const formView = <Msg>(
   form(
     [
       onSubmit(props.onSubmit),
-      attr("class", `${cssPrefix}-form`),
+      attr("class", formClass),
     ],
     [
       ...props.fields,
@@ -50,10 +55,10 @@ export const formView = <Msg>(
           type_("submit"),
           ...disabled_(props.submitting),
           style_(
-            `${cssPrefix}-btn ${cssPrefix}-btn-primary`,
+            `${btnClass} ${btnPrimaryClass}`,
             focusRing,
             ...(props.submitting
-              ? [`${cssPrefix}-disabled`]
+              ? [disabledClass]
               : [hoverDim]),
           ),
         ],

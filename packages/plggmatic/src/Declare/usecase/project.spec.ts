@@ -67,18 +67,14 @@ test("a missing field key omits that field (totality)", () => {
     // budget and due are absent → omitted, not empty cells
     check(r.fields.length, toBe(2)),
     check(
-      r.fields
-        .map((f) => f.label)
-        .join(","),
+      r.fields.map((f) => f.label).join(","),
       toBe("Done,Note"),
     ),
   ]);
 });
 
 test("a missing id / label key reads as empty (never a crash)", () => {
-  const r = projectRow(spec)([
-    ["budget", "1"],
-  ]);
+  const r = projectRow(spec)([["budget", "1"]]);
   return all([
     check(r.id, toBe("")),
     check(r.label, toBe("")),

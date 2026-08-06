@@ -44,6 +44,10 @@ import {
   pendingSubmission,
   isPending,
 } from "plggmatic";
+import {
+  btnClass,
+  btnDangerClass,
+} from "plggmatic";
 
 /**
  * A self-contained showcase of ticket 12's form machinery
@@ -302,7 +306,10 @@ const noteRow = (n: Note): Html<Msg, "li"> =>
       span([], [text(n.title)]),
       button(
         [
-          attr("class", "pm-btn pm-btn-danger"),
+          attr(
+            "class",
+            `${btnClass} ${btnDangerClass}`,
+          ),
           onClick({
             kind: "requestDelete",
             id: n.id,

@@ -62,3 +62,4 @@ The mission's outcome is a **DSL**: an AI writes code in that language and the r
 - 2026-07-16 — story reported — work-20260716-161106.md
 - 2026-07-16 — remaining two acceptance items verified against qmu/plggmatic and ticked: DSL v1 core spec frozen 2026-07-13 (dsl-v1-core.md, plggmatic commit 5a9a5d7, Flow static layer 681fa71) and WebMCP adapter + runnable prototype landed 2026-07-14 (plggmatic commit 93835e1 "Add the Tool catalog and WebMCP adapter", pausable-interpreter handshake prototype ticket 20260712141400) — HQ triage (strategy mission qfs-viewer-mvp-headquarters)
 - 2026-07-16 — mission achieved — mission.md
+- 2026-08-05 — concern resolved (unstuck) — 20260711023055-plgg-cms-coverage-sits-at-a.md

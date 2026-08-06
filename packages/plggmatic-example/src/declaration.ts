@@ -53,7 +53,8 @@ let tasks: ReadonlyArray<Task> = [
   },
   {
     id: "t2",
-    label: "Photograph the erratic at golden hour",
+    label:
+      "Photograph the erratic at golden hour",
   },
 ];
 let counter = 0;
