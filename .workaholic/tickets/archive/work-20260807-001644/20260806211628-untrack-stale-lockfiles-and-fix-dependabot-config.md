@@ -5,7 +5,7 @@ type: housekeeping
 layer: [Config]
 effort:
 commit_hash:
-category:
+category: Changed
 depends_on: [20260806211627-remove-the-poc-fleet-packages.md]
 mission:
 merge_policy: auto
