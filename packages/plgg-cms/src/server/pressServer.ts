@@ -43,7 +43,80 @@ import { pluginWeb } from "plgg-cms/plugin/pluginWeb";
 import { contentTools } from "plgg-cms/mcpProtocol";
 import { fsAssetExportFs } from "plgg-cms/media/assetExportFs";
 import { agentWeb } from "plgg-cms/agent/agentWeb";
+import { type RebuildReport } from "plgg-cms/content/Ingest/usecase/rebuildIndex";
+import {
+  type CorpusIngestError,
+  ingestCorpus,
+  corpusIngestErrorMessage,
+} from "plgg-cms/content/Ingest/usecase/ingestCorpus";
 import { minterFromConfig } from "plgg-kit";
+
+/**
+ * Opens the derived content index and FILLS it from the
+ * corpus, yielding a Db every downstream reader (the
+ * delivery API, the MCP tools, the plugin export, the admin
+ * browser) can actually read rows from.
+ *
+ * The index is derived, not persisted (D4): its source of
+ * truth is the Markdown in git, so `:memory:` plus a
+ * boot-time rebuild is the whole storage story and a
+ * restart is a full recovery.
+ *
+ * A corpus that will not read or parse FAILS the boot. That
+ * is the deliberate half: an unfilled index answers every
+ * query with an empty result, which is indistinguishable
+ * from a corpus that genuinely says nothing — the exact
+ * silence that let this gap sit unnoticed between ticket 16
+ * and now.
+ */
+const indexedCorpus = (
+  contentDir: SoftStr,
+  config: SiteConfig,
+): PromisedResult<Db, Defect> =>
+  openIndex(":memory:").then(
+    matchResult<
+      Db,
+      { content: { message: SoftStr } },
+      PromisedResult<Db, Defect>
+    >(
+      (e) =>
+        Promise.resolve(
+          err(
+            defect(
+              `content index open failed: ${e.content.message}`,
+            ),
+          ),
+        ),
+      (db: Db) =>
+        ingestCorpus(db)(
+          contentDir,
+          config,
+          `${Math.floor(Date.now() / 1000)}`,
+        ).then(
+          matchResult<
+            RebuildReport,
+            CorpusIngestError,
+            Result<Db, Defect>
+          >(
+            (e: CorpusIngestError) =>
+              err(
+                defect(
+                  `corpus ingest failed: ${corpusIngestErrorMessage(e)}`,
+                ),
+              ),
+            (report: RebuildReport) => {
+              // The one boot-time report: an empty index is
+              // now visible here instead of only through a
+              // disappointed reader.
+              console.log(
+                `indexed ${report.indexed} page(s), pruned ${report.pruned}`,
+              );
+              return ok(db);
+            },
+          ),
+        ),
+    ),
+  );
 
 /**
  * plggpress's serve-side {@link Web} assembly and the ONE
@@ -114,7 +187,8 @@ export const pressServeWebWithAuth = (
   // used lazily at request time, by when bootstrapAuthWeb has
   // applied ACCOUNT_SCHEMA to authDb.
   const accounts = sqlAccountStore(authDb);
-  const clock = () => Math.floor(Date.now() / 1000);
+  const clock = () =>
+    Math.floor(Date.now() / 1000);
   // The LLM-key validator is a non-empty check until plgg-kit
   // wires in (it is not yet a plggpress dep); the store's
   // write-only posture is enforced regardless.
@@ -125,14 +199,12 @@ export const pressServeWebWithAuth = (
         : err(settingsError("empty key")),
     ),
   );
-  return openIndex(":memory:").then(
+  return indexedCorpus(contentDir, config).then(
     matchResult<
       Db,
       { content: { message: SoftStr } },
       PromisedResult<
-        (
-          paths: ReadonlyArray<SoftStr>,
-        ) => Web,
+        (paths: ReadonlyArray<SoftStr>) => Web,
         Defect
       >
     >(
@@ -140,7 +212,7 @@ export const pressServeWebWithAuth = (
         Promise.resolve(
           err(
             defect(
-              `content index open failed: ${e.content.message}`,
+              `content index unavailable: ${e.content.message}`,
             ),
           ),
         ),
@@ -187,183 +259,204 @@ export const pressServeWebWithAuth = (
                       ),
                     ),
                   (draftDb) => {
-              const sessions =
-                sqlRpSessionStore(authDb);
-              const exportFs =
-                fsExportFs(contentDir);
-              const requests = route(
-                "/requests",
-                submitWeb(
-                  stakeholderDb,
-                  sessions,
-                  clock,
-                ),
-              )(web());
-              const edit = route(
-                "/edit",
-                editorWeb(
-                  draftDb,
-                  sessions,
-                  clock,
-                ),
-              )(web());
-              return openAssetStore(":memory:").then(
-                matchResult<
-                  Db,
-                  {
-                    content: { message: SoftStr };
-                  },
-                  PromisedResult<
-                    (
-                      paths: ReadonlyArray<SoftStr>,
-                    ) => Web,
-                    Defect
-                  >
-                >(
-                  (e) =>
-                    Promise.resolve(
-                      err(
-                        defect(
-                          `asset store open failed: ${e.content.message}`,
-                        ),
+                    const sessions =
+                      sqlRpSessionStore(authDb);
+                    const exportFs =
+                      fsExportFs(contentDir);
+                    const requests = route(
+                      "/requests",
+                      submitWeb(
+                        stakeholderDb,
+                        sessions,
+                        clock,
                       ),
-                    ),
-                  (assetDb) => {
-              const assetFs =
-                fsAssetExportFs(contentDir);
-              const media = route(
-                "/media",
-                mediaWeb(
-                  assetDb,
-                  sessions,
-                  clock,
-                ),
-              )(web());
-              // Ticket 29 rollout: light up the served
-              // instance's read-only public features. No key
-              // needed — RAG degrades to FTS5 (embedder None),
-              // the MCP tools + plugin export are public read.
-              const health = healthWeb(contentDb);
-              const api = route(
-                "/api",
-                contentApi(contentDb, none()),
-              )(web());
-              const mcp = mcpWeb(
-                contentTools(contentDb, none()),
-                {
-                  name: "plggpress-mcp",
-                  version: "0.0.1",
-                },
-              );
-              const plugin = pluginWeb(contentDb, {
-                owner: "plggpress",
-                pluginName: "plggpress-docs",
-                version: "0.0.1",
-                description:
-                  "plggpress knowledge base",
-                source: "./plggpress-docs",
-                mcpUrl: `${base}/mcp`,
-              });
-              // Ticket 25: the voice-agent mint route. The
-              // minter is None (no operator key wired here), so
-              // POST /api/agent/session is 404 and the agent UI
-              // stays dark — the graceful default; a deploy
-              // supplies the key to light it up.
-              const agent = route(
-                "/api/agent",
-                agentWeb(
-                  minterFromConfig({
-                    apiKey: none(),
-                    model: "gpt-realtime",
-                    endpoint:
-                      "https://api.openai.com/v1/realtime/client_secrets",
-                  }),
-                  sessions,
-                  clock,
-                ),
-              )(web());
-              return bootstrapAuthWeb(
-                authDb,
-                "https://plggpress.local",
-                "plggpress-admin",
-                clock,
-                86400,
-                deliverAdmin(
-                  contentDb,
-                  accounts,
-                  settings,
-                  clock,
-                  stakeholderDb,
-                  draftDb,
-                  exportFs,
-                  assetDb,
-                  assetFs,
-                ),
-              ).then(
-                matchResult<
-                  { web: Web },
-                  {
-                    content: { message: SoftStr };
-                  },
-                  Result<
-                    (
-                      paths: ReadonlyArray<SoftStr>,
-                    ) => Web,
-                    Defect
-                  >
-                >(
-                  (e) =>
-                    err(
-                      defect(
-                        `auth bootstrap failed: ${e.content.message}`,
+                    )(web());
+                    const edit = route(
+                      "/edit",
+                      editorWeb(
+                        draftDb,
+                        sessions,
+                        clock,
                       ),
-                    ),
-                  (boot) =>
-                    ok(
-                      (
-                        paths: ReadonlyArray<SoftStr>,
-                      ): Web =>
-                        mergeWebs(
-                          mergeWebs(
-                          mergeWebs(
-                            mergeWebs(
-                              mergeWebs(
-                                mergeWebs(
-                                  mergeWebs(
+                    )(web());
+                    return openAssetStore(
+                      ":memory:",
+                    ).then(
+                      matchResult<
+                        Db,
+                        {
+                          content: {
+                            message: SoftStr;
+                          };
+                        },
+                        PromisedResult<
+                          (
+                            paths: ReadonlyArray<SoftStr>,
+                          ) => Web,
+                          Defect
+                        >
+                      >(
+                        (e) =>
+                          Promise.resolve(
+                            err(
+                              defect(
+                                `asset store open failed: ${e.content.message}`,
+                              ),
+                            ),
+                          ),
+                        (assetDb) => {
+                          const assetFs =
+                            fsAssetExportFs(
+                              contentDir,
+                            );
+                          const media = route(
+                            "/media",
+                            mediaWeb(
+                              assetDb,
+                              sessions,
+                              clock,
+                            ),
+                          )(web());
+                          // Ticket 29 rollout: light up the served
+                          // instance's read-only public features. No key
+                          // needed — RAG degrades to FTS5 (embedder None),
+                          // the MCP tools + plugin export are public read.
+                          const health =
+                            healthWeb(contentDb);
+                          const api = route(
+                            "/api",
+                            contentApi(
+                              contentDb,
+                              none(),
+                            ),
+                          )(web());
+                          const mcp = mcpWeb(
+                            contentTools(
+                              contentDb,
+                              none(),
+                            ),
+                            {
+                              name: "plggpress-mcp",
+                              version: "0.0.1",
+                            },
+                          );
+                          const plugin =
+                            pluginWeb(contentDb, {
+                              owner: "plggpress",
+                              pluginName:
+                                "plggpress-docs",
+                              version: "0.0.1",
+                              description:
+                                "plggpress knowledge base",
+                              source:
+                                "./plggpress-docs",
+                              mcpUrl: `${base}/mcp`,
+                            });
+                          // Ticket 25: the voice-agent mint route. The
+                          // minter is None (no operator key wired here), so
+                          // POST /api/agent/session is 404 and the agent UI
+                          // stays dark — the graceful default; a deploy
+                          // supplies the key to light it up.
+                          const agent = route(
+                            "/api/agent",
+                            agentWeb(
+                              minterFromConfig({
+                                apiKey: none(),
+                                model:
+                                  "gpt-realtime",
+                                endpoint:
+                                  "https://api.openai.com/v1/realtime/client_secrets",
+                              }),
+                              sessions,
+                              clock,
+                            ),
+                          )(web());
+                          return bootstrapAuthWeb(
+                            authDb,
+                            "https://plggpress.local",
+                            "plggpress-admin",
+                            clock,
+                            86400,
+                            deliverAdmin(
+                              contentDb,
+                              accounts,
+                              settings,
+                              clock,
+                              stakeholderDb,
+                              draftDb,
+                              exportFs,
+                              assetDb,
+                              assetFs,
+                            ),
+                          ).then(
+                            matchResult<
+                              { web: Web },
+                              {
+                                content: {
+                                  message: SoftStr;
+                                };
+                              },
+                              Result<
+                                (
+                                  paths: ReadonlyArray<SoftStr>,
+                                ) => Web,
+                                Defect
+                              >
+                            >(
+                              (e) =>
+                                err(
+                                  defect(
+                                    `auth bootstrap failed: ${e.content.message}`,
+                                  ),
+                                ),
+                              (boot) =>
+                                ok(
+                                  (
+                                    paths: ReadonlyArray<SoftStr>,
+                                  ): Web =>
                                     mergeWebs(
                                       mergeWebs(
-                                        pressServeWeb(
-                                          contentDir,
-                                          config,
-                                          base,
-                                        )(paths),
-                                        boot.web,
+                                        mergeWebs(
+                                          mergeWebs(
+                                            mergeWebs(
+                                              mergeWebs(
+                                                mergeWebs(
+                                                  mergeWebs(
+                                                    mergeWebs(
+                                                      pressServeWeb(
+                                                        contentDir,
+                                                        config,
+                                                        base,
+                                                      )(
+                                                        paths,
+                                                      ),
+                                                      boot.web,
+                                                    ),
+                                                    requests,
+                                                  ),
+                                                  edit,
+                                                ),
+                                                media,
+                                              ),
+                                              health,
+                                            ),
+                                            api,
+                                          ),
+                                          mcp,
+                                        ),
+                                        plugin,
                                       ),
-                                      requests,
+                                      agent,
                                     ),
-                                    edit,
-                                  ),
-                                  media,
                                 ),
-                                health,
-                              ),
-                              api,
                             ),
-                            mcp,
-                          ),
-                          plugin,
-                        ),
-                          agent,
-                        ),
-                    ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        );
-              },
-          ),
-        ),
+              ),
           ),
         ),
     ),

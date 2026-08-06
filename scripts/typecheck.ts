@@ -28,10 +28,17 @@
  *   node scripts/typecheck.ts plgg plgg-view   # only the named packages
  *
  * Exit code 0 iff every package is clean. Zero new dependencies: Node
- * plus the build tool's own TypeScript, the same compiler check-all
- * already runs for `scripts/`.
+ * plus the TypeScript the workspace already installs, the same compiler
+ * check-all already runs for `scripts/`.
+ *
+ * The specifier below is BARE rather than a path into a particular
+ * package's `node_modules`. Under npm workspaces a shared dependency
+ * hoists to the ROOT `node_modules`, so a fixed per-package path does
+ * not exist; a bare specifier resolves from wherever npm actually put
+ * it, which is the only spelling that does not encode the install
+ * layout.
  */
-import ts from "../packages/plgg-bundle/node_modules/typescript/lib/typescript.js";
+import ts from "typescript";
 import { existsSync, readdirSync } from "node:fs";
 import {
   dirname,
