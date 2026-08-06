@@ -50,6 +50,11 @@ import {
   appendTrail,
   trailAt,
 } from "./url.ts";
+import {
+  listClass,
+  listItemClass,
+  rowLinkClass,
+} from "plggmatic";
 
 /**
  * The recursion trail as columns. The SELECTED record (the
@@ -290,10 +295,10 @@ const listColumn = (
         [attr("class", "bo-results")],
         [
           ul(
-            [attr("class", "pm-list")],
+            [attr("class", listClass)],
             recs.map((rec: Rec) =>
               li(
-                [attr("class", "pm-list-item")],
+                [attr("class", listItemClass)],
                 [
                   a(
                     [
@@ -304,10 +309,7 @@ const listColumn = (
                           id: rec.id,
                         }),
                       ),
-                      attr(
-                        "class",
-                        "pm-row-link",
-                      ),
+                      attr("class", rowLinkClass),
                     ],
                     [
                       span(

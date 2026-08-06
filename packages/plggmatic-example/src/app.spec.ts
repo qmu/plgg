@@ -42,10 +42,7 @@ test("init from a deep link pre-drills the flow", () => {
     makeUrl("/", "?c=sections&p=botany"),
   );
   return all([
-    check(
-      getOr("")(m.root),
-      toBe("sections"),
-    ),
+    check(getOr("")(m.root), toBe("sections")),
     check(m.path, toEqual(["botany"])),
   ]);
 });
@@ -78,17 +75,17 @@ test("a junk URL never crashes the derived codec", () => {
   const [m] = app.init(
     makeUrl("/", "?c=ghost&p=%2F&x=1"),
   );
-  return check(
-    getOr("")(m.root),
-    toBe("ghost"),
-  );
+  return check(getOr("")(m.root), toBe("ghost"));
 });
 
 test("the root view is the menu as a navigation landmark", () => {
   const html = renderToString(app.view(m0));
   return all([
     check(html.includes("<nav"), toBe(true)),
-    check(html.includes("Field Notes"), toBe(true)),
+    check(
+      html.includes("Field Notes"),
+      toBe(true),
+    ),
     check(html.includes("Notes"), toBe(true)),
   ]);
 });

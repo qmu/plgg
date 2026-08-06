@@ -6,9 +6,7 @@ import {
   text,
   attr,
 } from "plgg-view";
-import {
-  type Application,
-} from "plgg-view/client";
+import { type Application } from "plgg-view/client";
 import {
   type ScheduledModel,
   type SchedulerMsg,
@@ -18,6 +16,11 @@ import {
 import * as sx from "plggmatic/style";
 import { declaration } from "./declaration.ts";
 import { demoCss } from "./demoStyles.ts";
+import {
+  cssVarRef,
+  queryClass,
+  selector,
+} from "plggmatic";
 
 /**
  * The reference plggmatic app — PHASE 4's proof of value.
@@ -46,7 +49,9 @@ export const app: Application<
   SchedulerMsg
 > = {
   ...scheduled,
-  view: (model: ScheduledModel): Html<SchedulerMsg> =>
+  view: (
+    model: ScheduledModel,
+  ): Html<SchedulerMsg> =>
     slot(
       [attr("class", "ex-root")],
       [
@@ -70,10 +75,10 @@ export const app: Application<
  * Injected once at boot by the client entry.
  */
 export const appCss: SoftStr =
-  `body{margin:0;font-family:system-ui,sans-serif;line-height:1.6;background:var(--pm-surface);color:var(--pm-text);}` +
+  `body{margin:0;font-family:system-ui,sans-serif;line-height:1.6;background:${cssVarRef("surface")};color:${cssVarRef("text")};}` +
   `.ex-root{min-height:100vh;}` +
   `.ex-brand{position:fixed;top:0.5rem;left:1rem;z-index:${sx.zValue("chrome")};font-weight:600;opacity:0.5;font-size:0.8rem;}` +
-  `.pm-query{width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid var(--pm-border);border-radius:6px;background:var(--pm-surface);color:var(--pm-text);}` +
+  `${selector(queryClass)}{width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid ${cssVarRef("border")};border-radius:6px;background:${cssVarRef("surface")};color:${cssVarRef("text")};}` +
   sx.metricCss(sx.pragmaticTheme) +
   sx.schemeCss(sx.pragmaticTheme) +
   sx.chromeCss(sx.pragmaticTheme) +

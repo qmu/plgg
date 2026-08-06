@@ -31,10 +31,7 @@ test("the strip scrolls horizontally at every width (not just below snap)", () =
     ),
     // NOT gated below a breakpoint — the base rule carries the
     // horizontal scroll unconditionally.
-    check(
-      css.startsWith(".pm-row{"),
-      toBe(true),
-    ),
+    check(css.startsWith(".pm-row{"), toBe(true)),
   ]));
 
 test("the runway is a trailing flex spacer sized one column short of the strip", () =>
@@ -68,9 +65,7 @@ test("the runway options and theme prefix flow into the emitted CSS", () =>
       runwayCss(defaultTheme)({
         gap: "2rem",
         lastFallback: "300px",
-      }).includes(
-        "var(--pm-runway-last,300px)",
-      ),
+      }).includes("var(--pm-runway-last,300px)"),
       toBe(true),
     ),
     check(
@@ -80,7 +75,9 @@ test("the runway options and theme prefix flow into the emitted CSS", () =>
       })({
         gap: "1rem",
         lastFallback: "180px",
-      }).includes(".vp-row{--vp-runway-gap:1rem;"),
+      }).includes(
+        ".vp-row{--vp-runway-gap:1rem;",
+      ),
       toBe(true),
     ),
   ]));

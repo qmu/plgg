@@ -53,8 +53,9 @@ export type Projected =
 export const asText = (): Projected =>
   icon("AsText");
 /** Project a field as a number with an optional unit. */
-export const asNum = (unit?: SoftStr): Projected =>
-  box("AsNum")(fromNullable(unit));
+export const asNum = (
+  unit?: SoftStr,
+): Projected => box("AsNum")(fromNullable(unit));
 /** Project a field as a date/time (ISO string). */
 export const asMoment = (): Projected =>
   icon("AsMoment");
@@ -160,9 +161,7 @@ const valueOf = (
     () => none(),
     ([, value]) => fromNullable(value),
   )(
-    fromNullable(
-      record.find(([k]) => k === key),
-    ),
+    fromNullable(record.find(([k]) => k === key)),
   );
 
 /**
@@ -185,16 +184,15 @@ export const projectRow =
         valueOf(record, spec.label),
         getOr<SoftStr>(""),
       ),
-      spec.fields.flatMap(
-        (fp: FieldProjection) =>
-          matchOption<
-            SoftStr,
-            ReadonlyArray<Field>
-          >(
-            () => [],
-            (raw: SoftStr) => [
-              fieldOf(fp.label, lower(fp.as, raw)),
-            ],
-          )(valueOf(record, fp.key)),
+      spec.fields.flatMap((fp: FieldProjection) =>
+        matchOption<
+          SoftStr,
+          ReadonlyArray<Field>
+        >(
+          () => [],
+          (raw: SoftStr) => [
+            fieldOf(fp.label, lower(fp.as, raw)),
+          ],
+        )(valueOf(record, fp.key)),
       ),
     );

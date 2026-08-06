@@ -16,7 +16,13 @@ import {
 } from "plgg-view";
 import { style_ } from "plggmatic/styleEntry";
 import { focusRing } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  checkClass,
+  checkLabelClass,
+  checkboxClass,
+  disabledClass,
+  fieldClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
  * A CONTROLLED checkbox. `checked` comes from props (the
@@ -42,7 +48,7 @@ export const checkbox = <Msg>(
     [
       attr(
         "class",
-        `${cssPrefix}-field ${cssPrefix}-check`,
+        `${fieldClass} ${checkClass}`,
       ),
     ],
     [
@@ -54,10 +60,10 @@ export const checkbox = <Msg>(
           ...checked_(props.checked),
           ...disabled_(props.disabled),
           style_(
-            `${cssPrefix}-checkbox`,
+            checkboxClass,
             focusRing,
             ...(props.disabled
-              ? [`${cssPrefix}-disabled`]
+              ? [disabledClass]
               : []),
           ),
           onChange(() => props.onToggle),
@@ -67,10 +73,7 @@ export const checkbox = <Msg>(
       label(
         [
           for_(props.name),
-          attr(
-            "class",
-            `${cssPrefix}-check-label`,
-          ),
+          attr("class", checkLabelClass),
         ],
         [text(props.label)],
       ),

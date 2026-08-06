@@ -30,7 +30,33 @@ import { style_ } from "plggmatic/styleEntry";
 import { type NavItem } from "plggmatic/Component/model/navItem";
 import { navTree } from "plggmatic/Component/usecase/navTree";
 import { focusRing } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  actionsClass,
+  backClass,
+  boardClass,
+  btnClass,
+  errorClass,
+  fieldClass,
+  fieldFlagClass,
+  fieldLabelClass,
+  fieldMediaClass,
+  fieldMomentClass,
+  fieldNumClass,
+  fieldRefClass,
+  fieldValueClass,
+  fieldsClass,
+  hintClass,
+  listClass,
+  listItemClass,
+  queryChoiceClass,
+  queryClass,
+  rowLinkClass,
+  tileBodyClass,
+  tileCaptionClass,
+  tileClass,
+  tileLabelClass,
+  tileLinkClass,
+} from "plggmatic/Meta/model/classHooks";
 import { confirmDialog } from "plggmatic/Component/usecase/confirmDialog";
 import {
   type SchedulerMsg,
@@ -114,14 +140,11 @@ export const actionRow = (
     ? []
     : [
         slot(
-          [attr("class", `${cssPrefix}-actions`)],
+          [attr("class", actionsClass)],
           actions.map((ab: ActionButton) =>
             button(
               [
-                style_(
-                  `${cssPrefix}-btn`,
-                  focusRing,
-                ),
+                style_(btnClass, focusRing),
                 onClick(
                   requestAction(
                     collection,
@@ -146,7 +169,7 @@ const choiceSelect = (
 ): Html<SchedulerMsg> =>
   select(
     [
-      attr("class", `${cssPrefix}-query-choice`),
+      attr("class", queryChoiceClass),
       attr("aria-label", c.label),
       onChange((v: SoftStr) =>
         queryChoiceInput(c.id, v),
@@ -189,7 +212,7 @@ export const queryField = (
       input(
         [
           attr("type", "search"),
-          attr("class", `${cssPrefix}-query`),
+          attr("class", queryClass),
           attr("value", state.text),
           attr("placeholder", state.placeholder),
           onInput((v: SoftStr) => queryInput(v)),
@@ -205,7 +228,7 @@ export const rowItem = (
   r: RowLink,
 ): Html<SchedulerMsg, "li"> =>
   liElement(
-    [attr("class", `${cssPrefix}-list-item`)],
+    [attr("class", listItemClass)],
     [
       a(
         [
@@ -213,10 +236,7 @@ export const rowItem = (
           ...(r.active
             ? [attr("aria-current", "page")]
             : []),
-          style_(
-            `${cssPrefix}-row-link`,
-            focusRing,
-          ),
+          style_(rowLinkClass, focusRing),
         ],
         [text(r.row.label)],
       ),
@@ -227,21 +247,18 @@ export const rowItem = (
 export const rowList = (
   rows: ReadonlyArray<RowLink>,
 ): Html<SchedulerMsg, "ul"> =>
-  ulEl(
-    [style_(`${cssPrefix}-list`)],
-    rows.map(rowItem),
-  );
+  ulEl([style_(listClass)], rows.map(rowItem));
 
 /** A tile's body: the label headline over the caption. */
 const tileBody = (
   t: Tile,
 ): ReadonlyArray<Phrasing<SchedulerMsg>> => [
   span(
-    [attr("class", `${cssPrefix}-tile-label`)],
+    [attr("class", tileLabelClass)],
     [text(t.label)],
   ),
   span(
-    [attr("class", `${cssPrefix}-tile-caption`)],
+    [attr("class", tileCaptionClass)],
     [text(t.caption)],
   ),
 ];
@@ -256,7 +273,7 @@ const tileItem = (
   t: Tile,
 ): Html<SchedulerMsg, "li"> =>
   liElement(
-    [attr("class", `${cssPrefix}-tile`)],
+    [attr("class", tileClass)],
     [
       matchOption<
         SoftStr,
@@ -264,22 +281,14 @@ const tileItem = (
       >(
         () =>
           span(
-            [
-              attr(
-                "class",
-                `${cssPrefix}-tile-body`,
-              ),
-            ],
+            [attr("class", tileBodyClass)],
             tileBody(t),
           ),
         (to: SoftStr) =>
           a(
             [
               href(to),
-              style_(
-                `${cssPrefix}-tile-link`,
-                focusRing,
-              ),
+              style_(tileLinkClass, focusRing),
             ],
             tileBody(t),
           ),
@@ -296,10 +305,7 @@ const tileItem = (
 export const tileGrid = (
   tiles: ReadonlyArray<Tile>,
 ): Html<SchedulerMsg, "ul"> =>
-  ulEl(
-    [style_(`${cssPrefix}-board`)],
-    tiles.map(tileItem),
-  );
+  ulEl([style_(boardClass)], tiles.map(tileItem));
 
 /** The menu entries as a `navTree`, active one marked. */
 export const menuNav = (
@@ -333,7 +339,7 @@ export const loadingHint = (
   loading
     ? [
         span(
-          [attr("class", `${cssPrefix}-hint`)],
+          [attr("class", hintClass)],
           [text("Loading…")],
         ),
       ]
@@ -350,7 +356,7 @@ export const errorHint = (
     () => [],
     (e: SoftStr) => [
       span(
-        [attr("class", `${cssPrefix}-error`)],
+        [attr("class", errorClass)],
         [text(`Failed: ${e}`)],
       ),
     ],
@@ -379,12 +385,7 @@ const valueNode = (
       numValue$(),
       (): Phrasing<SchedulerMsg> =>
         span(
-          [
-            attr(
-              "class",
-              `${cssPrefix}-field-num`,
-            ),
-          ],
+          [attr("class", fieldNumClass)],
           [text(fieldText(value))],
         ),
     ],
@@ -392,12 +393,7 @@ const valueNode = (
       flagValue$(),
       (): Phrasing<SchedulerMsg> =>
         span(
-          [
-            attr(
-              "class",
-              `${cssPrefix}-field-flag`,
-            ),
-          ],
+          [attr("class", fieldFlagClass)],
           [text(fieldText(value))],
         ),
     ],
@@ -405,12 +401,7 @@ const valueNode = (
       momentValue$(),
       (): Phrasing<SchedulerMsg> =>
         span(
-          [
-            attr(
-              "class",
-              `${cssPrefix}-field-moment`,
-            ),
-          ],
+          [attr("class", fieldMomentClass)],
           [text(fieldText(value))],
         ),
     ],
@@ -428,10 +419,7 @@ const valueNode = (
             a(
               [
                 href(to),
-                style_(
-                  `${cssPrefix}-field-ref`,
-                  focusRing,
-                ),
+                style_(fieldRefClass, focusRing),
               ],
               [text(content.label)],
             ),
@@ -444,10 +432,7 @@ const valueNode = (
           [
             attr("src", content.src),
             attr("alt", content.alt),
-            attr(
-              "class",
-              `${cssPrefix}-field-media`,
-            ),
+            attr("class", fieldMediaClass),
           ],
           [],
         ),
@@ -465,29 +450,19 @@ export const detailFields = (
   fields: ReadonlyArray<DetailField>,
 ): Html<SchedulerMsg, "div"> =>
   slot(
-    [attr("class", `${cssPrefix}-fields`)],
+    [attr("class", fieldsClass)],
     fields.map((f: DetailField) =>
       slot(
-        [attr("class", `${cssPrefix}-field`)],
+        [attr("class", fieldClass)],
         f.label === ""
           ? [valueNode(f.value, f.href)]
           : [
               span(
-                [
-                  attr(
-                    "class",
-                    `${cssPrefix}-field-label`,
-                  ),
-                ],
+                [attr("class", fieldLabelClass)],
                 [text(f.label)],
               ),
               span(
-                [
-                  attr(
-                    "class",
-                    `${cssPrefix}-field-value`,
-                  ),
-                ],
+                [attr("class", fieldValueClass)],
                 [valueNode(f.value, f.href)],
               ),
             ],
@@ -509,7 +484,7 @@ export const backControl = (
         [
           href(to),
           attr("aria-label", "Back"),
-          style_(`${cssPrefix}-back`, focusRing),
+          style_(backClass, focusRing),
         ],
         [text("← Back")],
       ),

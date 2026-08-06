@@ -47,11 +47,15 @@ test("the below-snap strip is a mandatory one-column-per-swipe left-edge snap", 
     ),
     // one column per swipe, aligned to the left edge
     check(
-      chromeCss.includes("scroll-snap-align:start"),
+      chromeCss.includes(
+        "scroll-snap-align:start",
+      ),
       toBe(true),
     ),
     check(
-      chromeCss.includes("scroll-snap-stop:always"),
+      chromeCss.includes(
+        "scroll-snap-stop:always",
+      ),
       toBe(true),
     ),
     // the swipe stays contained (no browser back-gesture)

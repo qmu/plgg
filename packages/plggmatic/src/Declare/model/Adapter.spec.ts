@@ -62,7 +62,10 @@ test("a named source resolves the matching registration", () => {
   ];
   return all([
     check(
-      isThe(b, resolveAdapter(reg, some("billing"))),
+      isThe(
+        b,
+        resolveAdapter(reg, some("billing")),
+      ),
       toBe(true),
     ),
     check(
