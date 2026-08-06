@@ -9,6 +9,7 @@ category:
 depends_on: [20260806211627-remove-the-poc-fleet-packages.md]
 mission:
 merge_policy: auto
+claim: work-20260807-001644
 ---
 
 # workspaces 移行が取り残した 39 個の lockfile と、それを前提にした dependabot 設定

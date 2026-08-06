@@ -9,6 +9,7 @@ category:
 depends_on:
 mission:
 merge_policy: auto
+claim: work-20260807-001644
 ---
 
 # PoC フリートの 9 パッケージを撤去する
