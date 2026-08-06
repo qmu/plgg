@@ -5,8 +5,8 @@
 // `./voiceProtocol` beside it (decode, transcript fold) or on
 // the server (instructions, grounding, the mint).
 //
-// COVERAGE-EXCLUDED, deliberately and by the same rule
-// `plgg-poc3-voice/src/vendors/realtime.ts` records: this file
+// COVERAGE-EXCLUDED, deliberately and by the same rule PoC 3
+// recorded for its own realtime vendor seam: this file
 // can only run against a live browser, a real microphone, and
 // the Realtime endpoint, so a unit test of it would be a test
 // of mocks. It is still REAL TypeScript — `tsc --noEmit`

@@ -73,7 +73,8 @@ sh scripts/build.sh
 #    `.ts` edit hot-reloads in the browser with NO restart,
 #    not just Markdown. The dev LOOP is still plgg-bundle's
 #    and still runs from source, so its own node_modules
-#    (bootstrapped by scripts/build.sh's npm ci above) must
+#    (bootstrapped by scripts/build.sh's root npm install
+#    above) must
 #    be present — it is now a RUNTIME dependency of
 #    plggpress, which is why the guide needs none of its
 #    own. node:http binds all interfaces, so the port is

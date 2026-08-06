@@ -27,11 +27,19 @@ network and would flatter neither shape).
 | First install, empty tree     | **22.40 s**                 | **4.60 s**               |
 | Re-install, already satisfied | —                           | **0.94 s**               |
 | `node_modules` on disk        | **1.4 G** (39 trees)        | **403 M** (one tree)     |
-| Lockfiles                     | 39                          | 1                        |
+| Lockfiles written by install  | 39                          | 1                        |
 
 The wall-clock win (4.9×) is the smaller half. The disk figure is the more
 interesting one: 1.0 G of what the old layout wrote was the _same dependencies
 resolved and materialised once per package_.
+
+The lockfile row measures what an install **writes**, and that row was true the
+day it was measured. What it did not say — and what a reader took it to mean —
+is how many lockfiles remained **tracked**: the migration left all 39
+per-package lockfiles in git, where they froze a fortnight behind the root one
+and went on being read as if they were current (Dependabot proposed updates
+against them and never against the root). They were untracked afterwards, in
+ticket `20260806211628`.
 
 ## What it fixes beyond the numbers
 

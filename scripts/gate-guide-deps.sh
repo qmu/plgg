@@ -37,7 +37,7 @@ plggpress_deps=$(sed -n '/"dependencies"/,/}/p' \
   packages/plggpress/package.json \
   | sed -n 's#.*"\(plgg[a-z-]*\)": *"file:.*#\1#p' | sort -u)
 # The container provisions packages two ways, and BOTH count as provisioned:
-# the entrypoint's install loop, and build.sh's `npm ci` bootstrap of the build
+# the entrypoint's install loop, and build.sh's root `npm install` bootstrap of the build
 # TOOL. plgg-bundle is the tool: it runs from SOURCE (no dist, so it is
 # deliberately absent from built_set) and is bootstrapped before any build, so
 # it needs a volume but no install-loop entry. It became a plggpress RUNTIME

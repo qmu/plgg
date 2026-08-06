@@ -5,7 +5,7 @@ type: housekeeping
 layer: [Infrastructure]
 effort:
 commit_hash:
-category:
+category: Removed
 depends_on:
 mission:
 merge_policy: auto

@@ -1,7 +1,7 @@
 {
   "name": "plgg-monorepo",
   "private": true,
-  "description": "SPIKE: npm workspaces evaluation for ticket 20260721180002. Not a published package.",
+  "description": "The plgg family monorepo: the npm-workspaces root. Not a published package -- it exists so one root install resolves every packages/* member and writes the single lockfile.",
   "workspaces": [
     "packages/*"
   ]

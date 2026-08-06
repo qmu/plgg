@@ -39,6 +39,14 @@ lerna-debug.log*
 **/tsconfig.dts.json
 **/coverage/
 
+# Per-package lockfiles. Under npm workspaces the ROOT lockfile is the single
+# resolution artifact — one root `npm install` resolves every member — so a
+# lockfile inside a package is a leftover of the pre-workspaces layout that
+# freezes and then misleads whoever reads it (Dependabot did). Scoped to
+# `packages/*/` on purpose: `**/package-lock.json` would ignore the root one,
+# which must stay tracked.
+packages/*/package-lock.json
+
 # Git worktrees (created under the repo per the workaholic/trippin convention)
 .worktrees/
 
