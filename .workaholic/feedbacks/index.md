@@ -157,6 +157,7 @@
 * [The scheduled runner's git identity hides the ticket queue](20260731202754-the-scheduled-runner-s-git-identity-hides-the-ticket-queue.md)
 * [The proposal cursor resets when the container is reclaimed](20260731203123-the-proposal-cursor-resets-when-the-container-is-reclaimed.md)
 * [Resolved: plgg-bundle bin-cache verification gotcha](20260801184516-resolved-plgg-bundle-bin-cache-verification-gotcha.md)
+* [The scheduled runner has no workaholic plugin at all](20260803123623-the-scheduled-runner-has-no-workaholic-plugin-at-all.md)
 * [plgg-test emits an unused dist/hook.cjs.js](20260803213403-plgg-test-emits-an-unused-dist.md)
 * [The claim heartbeat commits the index, not nothing](20260803213403-the-claim-heartbeat-commits-the-index.md)
 * [The four launchers now share a predicate rather than a helper](20260803213403-the-four-launchers-now-share-a.md)
