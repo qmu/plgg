@@ -42,18 +42,16 @@ import {
   deriveAliases,
   selfSrcRoot,
 } from "../src/Resolve/aliases.mjs";
-import { relocateOutOfNodeModules } from "./relocate.mjs";
 
-// Node 24 refuses to strip types from `.ts` under `node_modules`. When this
-// tool is installed from the registry, relocate a copy OUTSIDE `node_modules`
-// and re-exec there (so the spawned `--experimental-strip-types` children load
-// this tool's `.ts` from a strippable path); a no-op on a monorepo `file:`
-// link. The TARGET package's specs stay at cwd (outside node_modules) either
-// way.
-relocateOutOfNodeModules(
-  import.meta.url,
-  "plgg-test.mjs",
-);
+// Node refuses to strip types from a `.ts` under `node_modules`, which is why
+// this launcher used to copy the whole package to /tmp and re-exec there
+// (bin/relocate.mjs, now retired). It no longer has to: the ONE file that must
+// load without the hook — the hook itself — ships compiled as
+// `dist/hook.es.js`, and `src/Resolve/register.mjs` registers that copy in a
+// registry install. Everything else `.ts` (this src tree, the CLI entry below,
+// and the target's specs at cwd) then loads through the hook's own
+// transpiling `load`, which short-circuits Node's default loader and so is
+// never subject to the node_modules restriction. No relocate, no /tmp cache.
 
 const here = dirname(
   fileURLToPath(import.meta.url),

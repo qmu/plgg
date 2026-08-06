@@ -15,6 +15,11 @@ import {
 } from "plggmatic/style";
 import { demoCss } from "./demoStyles.ts";
 import { app } from "./demo3/queryUrlDemo.ts";
+import {
+  cssVarRef,
+  queryClass,
+  selector,
+} from "plggmatic";
 
 /**
  * CSR entry for Demo 3 (scheduler query + derived URL
@@ -26,13 +31,13 @@ import { app } from "./demo3/queryUrlDemo.ts";
  * deep link, and back/forward walk the history.
  */
 const pageCss = `
-body{margin:0;font-family:system-ui,sans-serif;line-height:1.6;background:var(--pm-surface);color:var(--pm-text);}
+body{margin:0;font-family:system-ui,sans-serif;line-height:1.6;background:${cssVarRef("surface")};color:${cssVarRef("text")};}
 .q3-root{min-height:100vh;}
-.q3-bar{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;padding:0.6rem 1rem;border-bottom:1px solid var(--pm-border);}
+.q3-bar{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;padding:0.6rem 1rem;border-bottom:1px solid ${cssVarRef("border")};}
 .q3-brand{font-weight:600;}
-.q3-url-label{font-size:0.85rem;color:var(--pm-muted);}
-.q3-url{font-family:ui-monospace,monospace;color:var(--pm-text);}
-.pm-query{width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid var(--pm-border);border-radius:6px;background:var(--pm-surface);color:var(--pm-text);}
+.q3-url-label{font-size:0.85rem;color:${cssVarRef("muted")};}
+.q3-url{font-family:ui-monospace,monospace;color:${cssVarRef("text")};}
+${selector(queryClass)}{width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;margin:0.35rem 0;border:1px solid ${cssVarRef("border")};border-radius:6px;background:${cssVarRef("surface")};color:${cssVarRef("text")};}
 `;
 
 const style = document.createElement("style");

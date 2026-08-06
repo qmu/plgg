@@ -47,9 +47,7 @@ test("scope / state / within wrap the framework selector", () =>
           declarations: "border:none;",
         }),
       ),
-      toBe(
-        ".bo-results .pm-list{border:none;}",
-      ),
+      toBe(".bo-results .pm-list{border:none;}"),
     ),
     check(
       emit(
@@ -93,7 +91,11 @@ test("slotCss emits a theme's slots in order, and nothing for the default theme"
 // Acceptance: a consumer-supplied component token, validated
 // through the untrusted caster, reaches the emitted CSS.
 test("a validated consumer slot token reaches the emitted CSS", () =>
-  matchResult<SlotStyle, unknown, ReturnType<typeof check>>(
+  matchResult<
+    SlotStyle,
+    unknown,
+    ReturnType<typeof check>
+  >(
     () => check(true, toBe(false)),
     (style: SlotStyle) =>
       check(
@@ -108,7 +110,8 @@ test("a validated consumer slot token reaches the emitted CSS", () =>
   )(
     asSlotStyle({
       slot: "query",
-      declarations: "background:var(--pm-surface);",
+      declarations:
+        "background:var(--pm-surface);",
     }),
   ));
 

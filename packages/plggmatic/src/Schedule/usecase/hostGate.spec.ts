@@ -294,25 +294,21 @@ const firstEffect = (
   match(cmd)(
     [
       cmdNone$(),
-      (): Option<
-        () => Promise<SchedulerMsg>
-      > => none(),
+      (): Option<() => Promise<SchedulerMsg>> =>
+        none(),
     ],
     [
       cmdEffect$(),
       ({
         content,
-      }): Option<
-        () => Promise<SchedulerMsg>
-      > => some(content),
+      }): Option<() => Promise<SchedulerMsg>> =>
+        some(content),
     ],
     [
       cmdBatch$(),
       ({
         content,
-      }): Option<
-        () => Promise<SchedulerMsg>
-      > =>
+      }): Option<() => Promise<SchedulerMsg>> =>
         content.reduce<
           Option<() => Promise<SchedulerMsg>>
         >(
@@ -410,9 +406,8 @@ test("schedule surfaces reconciliation diagnostics for adapter bindings", () =>
     ),
     // one registration → the default resolves, no findings
     check(
-      scheduleWith(() =>
-        Promise.resolve(ok([])),
-      ).diagnostics.length,
+      scheduleWith(() => Promise.resolve(ok([])))
+        .diagnostics.length,
       toBe(0),
     ),
   ]));

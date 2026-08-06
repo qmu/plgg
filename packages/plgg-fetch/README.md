@@ -85,6 +85,76 @@ All return `PromisedResult<HttpResponse, ClientError>`, where
 - `versionedAuth(keyHeader, key, versionHeader, version)` — an API-key + version
   pair under caller-named headers (no vendor privileged).
 
+**AWS SigV4 request signing** — so an AWS request can go through this transport
+with no vendor SDK:
+
+- `sigv4Auth({ credentials, scope, instant, request })` → the header `Dict` to
+  spread (`authorization`, plus `x-amz-security-token` for temporary
+  credentials).
+- `sigv4Sign(...)` — the same, returning the `authorization` value **plus** the
+  canonical request and string to sign. AWS echoes its own version of both in a
+  `SignatureDoesNotMatch` response, so a mismatch becomes a one-diff answer.
+- `sigv4Instant(date)` splits one instant into SigV4's two date shapes;
+  `sigv4Pairs(dict)` adapts a `Dict` to the ordered wire pairs; and
+  `sigv4PayloadHash(body)` gives the hash S3 wants echoed in
+  `x-amz-content-sha256`.
+- The pure pieces — `canonicalUri`, `canonicalQuery`, `signedHeaders`,
+  `canonicalRequest`, `credentialScope`, `stringToSign` — are exported too.
+
+```ts
+const request = {
+  method: "GET",
+  path: "/",
+  query: [],
+  // Every header that will be SENT must be here: SigV4 signs the message as
+  // sent, so a header added after signing is one the signature does not cover.
+  headers: [
+    { name: "host", value: "example.amazonaws.com" },
+    { name: "x-amz-date", value: instant.amzDate },
+  ],
+  body: "",
+};
+const headers = await sigv4Auth({ credentials, scope, instant, request });
+```
+
+Verified against **AWS's own published SigV4 test-suite vectors** — the
+canonical request for all 20 cases of the suite's basic set, and the string to
+sign and signature for the 18 whose published files agree with themselves (two
+of AWS's cases ship an `.sts` that is not the hash of the `.creq` beside it;
+the fixture records that as data, and a test pins the exemption to exactly
+those two). No dependency is added: hashing and HMAC ride Web Crypto at
+`src/vendors/webcrypto.ts`.
+
+Path normalization is deliberately **not** applied — it is a per-service
+behaviour and S3 does not normalize, so a caller for a normalizing service
+normalizes before it signs.
+
+**GCP service-account OAuth** — obtain an access token with no vendor SDK:
+
+- `gcpAccessToken(account, request, issuedAtSeconds)` — build the claims, sign
+  the RS256 assertion, and exchange it at Google's token endpoint, in one call.
+  Returns `PromisedResult<GcpAccessToken, Defect>`.
+- `gcpBearerAuth(token)` — the obtained token as an `Authorization` header.
+- The steps are exported individually too — `gcpJwtClaims`, `gcpClaimsJson`,
+  `gcpSigningInput`, `gcpAssertion`, `gcpExchangeAssertion` — because each is
+  separately checkable and a failed exchange is usually a wrong claim.
+
+```ts
+const token = await gcpAccessToken(
+  { clientEmail, privateKeyPem },              // from the service-account JSON
+  { scope: "https://www.googleapis.com/auth/cloud-platform", subject: none() },
+  Math.floor(Date.now() / 1000),               // the clock stays at the call site
+);
+```
+
+`issuedAtSeconds` is a parameter rather than a clock read inside the helper, so
+every step below the transport is a pure function of its inputs — which is what
+lets a test pin the exact second and compare a whole signing input. The token
+exchange itself rides this package's own `post` + `decodeJsonBody`; there is no
+raw `fetch` anywhere in it. RS256 signing is verified against Node's `crypto` —
+an independent implementation — over a key pair generated fresh per test run,
+so no private key is committed anywhere.
+
 ## Failure policy
 
 This is the central contract, by design:
@@ -102,6 +172,12 @@ plgg-fetch follows the canonical package layout (see
 `.workaholic/constraints/architecture.md` §Vendor Boundary; it was the pilot
 migration, ticket `20260704185203`):
 
+- **`src/domain/`** — the pure domain: `model/{ClientError,Sigv4}` and
+  `usecase/{request,decode,auth,sigv4}`. `request` builds a plgg-native
+  `HttpRequest` and delegates the round-trip to the vendor; it never references
+  a Web type. `sigv4` is likewise pure canonicalization — the crypto lives at
+  the seam below.
+
 - **`src/domain/`** — the pure domain: `model/ClientError` and
   `usecase/{request,decode}`. `request` builds a plgg-native `HttpRequest` and
   delegates the round-trip to the vendor; it never references a Web type.
@@ -112,6 +188,15 @@ migration, ticket `20260704185203`):
   - `toFetchRequest(req): Request` — plgg `HttpRequest` → native `Request`.
   - `fromFetchResponse(res): PromisedResult<HttpResponse, ClientError>` — native
     `Response` → plgg `HttpResponse` (or a `NetworkError` if the body read fails).
+- **`src/vendors/webcrypto.ts`** — the second boundary, **the only module that
+  touches Web Crypto** (`crypto.subtle`, `TextEncoder`, `atob`/`btoa`). It
+  exposes `sha256Hex`/`hmacSha256` for SigV4 and
+  `rs256Sign`/`toBase64Url`/`pemToDer` for the GCP JWT-bearer grant, over one
+  shared `utf8Bytes`, so both signing domains compose them without naming a
+  platform API. Like `toFetchRequest` it may reject (a malformed PEM is the
+  realistic case); each domain's single entry (`sigv4Sign`, `gcpAssertion`)
+  folds that to a `Defect` through one `tryCatch`, one boundary instead of an
+  error arm threaded through a whole signing chain.
 - **`src/index.ts`** re-exports the domain only, never `vendors/`.
 
 This mirrors the router's seam (`toHttpRequest`/`toNativeResponse`) in the

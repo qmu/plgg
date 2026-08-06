@@ -1,4 +1,11 @@
-import { none, isErr } from "plgg";
+import {
+  mkdtemp,
+  writeFile,
+  rm,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { type SoftStr, none, isErr } from "plgg";
 import {
   test,
   check,
@@ -34,6 +41,36 @@ const config: SiteConfig = {
 // structural comparison.
 const paths = ["/", "/guide", "/concepts/intro"];
 const contentDir = "/tmp/fixture";
+
+/**
+ * A throwaway one-page corpus on disk.
+ *
+ * `pressServeWebWithAuth` is NO LONGER fs-free: it fills the
+ * derived content index from the corpus before it hands back
+ * the app, and a corpus it cannot read fails the boot on
+ * purpose (an index nobody filled answers every query with an
+ * empty result, which reads exactly like a corpus that says
+ * nothing). The structural comparisons above stay synthetic;
+ * only the seam that now reads gets a real directory.
+ */
+const withCorpus = async <T>(
+  run: (dir: SoftStr) => Promise<T>,
+): Promise<T> => {
+  const dir = await mkdtemp(
+    join(tmpdir(), "plgg-cms-corpus-"),
+  );
+  await writeFile(
+    join(dir, "index.md"),
+    "# Fixture\n\nOne page is enough to prove the boot reads it.\n",
+    "utf8",
+  );
+  const out = await run(dir);
+  await rm(dir, {
+    recursive: true,
+    force: true,
+  });
+  return out;
+};
 
 // The seam is a proven NO-OP today: pressServeWeb(...)(paths)
 // carries exactly pressRouter(...)'s routes + middlewares.
@@ -79,10 +116,12 @@ test("pressServeWeb adds no middleware today (the mount seam is empty)", () =>
   ));
 
 test("pressServeWebWithAuth mounts the OP+RP auth + admin routes alongside content", async () => {
-  const r = await pressServeWebWithAuth(
-    contentDir,
-    config,
-    config.base,
+  const r = await withCorpus((dir: SoftStr) =>
+    pressServeWebWithAuth(
+      dir,
+      config,
+      config.base,
+    ),
   );
   if (isErr(r)) {
     return check(isErr(r), toBe(false));
@@ -111,3 +150,18 @@ test("pressServeWebWithAuth mounts the OP+RP auth + admin routes alongside conte
     ),
   ]);
 });
+
+test("a corpus that cannot be read fails the boot rather than serving an empty index", async () =>
+  check(
+    isErr(
+      await pressServeWebWithAuth(
+        join(
+          tmpdir(),
+          "plgg-cms-corpus-that-is-not-there",
+        ),
+        config,
+        config.base,
+      ),
+    ),
+    toBe(true),
+  ));

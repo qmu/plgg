@@ -14,7 +14,11 @@ import {
 } from "plgg-view";
 import { style_ } from "plggmatic/styleEntry";
 import { focusRing } from "plggmatic/Component/model/interaction";
-import { cssPrefix } from "plggmatic/Meta/model/identity";
+import {
+  colHeadClass,
+  colHeadLinkClass,
+  colHeadTitleClass,
+} from "plggmatic/Meta/model/classHooks";
 
 /**
  * A column's sticky header — the framework version of the
@@ -47,17 +51,12 @@ export const colHead = <Msg>(
   props: ColHeadProps,
 ): Html<Msg, "div"> =>
   slot(
-    [attr("class", `${cssPrefix}-colhead`)],
+    [attr("class", colHeadClass)],
     [
       matchOption<SoftStr, Html<Msg>>(
         () =>
           span(
-            [
-              attr(
-                "class",
-                `${cssPrefix}-colhead-title`,
-              ),
-            ],
+            [attr("class", colHeadTitleClass)],
             [text(props.title)],
           ),
         (to: SoftStr) =>
@@ -69,7 +68,7 @@ export const colHead = <Msg>(
                 `Reset to ${props.title}`,
               ),
               style_(
-                `${cssPrefix}-colhead-title`,
+                colHeadTitleClass,
                 focusRing,
               ),
             ],
@@ -80,10 +79,7 @@ export const colHead = <Msg>(
         a(
           [
             href(link.href),
-            style_(
-              `${cssPrefix}-colhead-link`,
-              focusRing,
-            ),
+            style_(colHeadLinkClass, focusRing),
           ],
           [text(link.label)],
         ),

@@ -14,6 +14,7 @@ import {
 } from "plggmatic/style";
 import { demoCss } from "./demoStyles.ts";
 import { makeProgram } from "./demo2/colorSchemeDemo.ts";
+import { cssVarRef } from "plggmatic";
 
 /**
  * CSR entry for Demo 2 (color scheme). Injects the
@@ -26,21 +27,24 @@ import { makeProgram } from "./demo2/colorSchemeDemo.ts";
  * the token-driven reschemer and the `themeToggle`.
  */
 const pageCss = `
-body{margin:0;font-family:system-ui,sans-serif;line-height:1.5;background:var(--pm-surface);color:var(--pm-text);}
+body{margin:0;font-family:system-ui,sans-serif;line-height:1.5;background:${cssVarRef("surface")};color:${cssVarRef("text")};}
 .cs-root{max-width:820px;margin:0 auto;padding:2rem 1.5rem;}
 .cs-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;}
-.cs-lead{color:var(--pm-muted);max-width:60ch;}
+.cs-lead{color:${cssVarRef("muted")};max-width:60ch;}
 .cs-group{margin:1.25rem 0;}
-.cs-group-h{margin:0 0 0.6rem;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--pm-muted);}
+.cs-group-h{margin:0 0 0.6rem;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;color:${cssVarRef("muted")};}
 .cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;}
 .cs-swatch{display:flex;align-items:center;gap:0.6rem;}
-.cs-chip{width:2rem;height:2rem;border-radius:8px;border:1px solid var(--pm-border);flex:0 0 auto;}
-.cs-name{font-family:ui-monospace,monospace;font-size:0.8rem;color:var(--pm-text);}
+.cs-chip{width:2rem;height:2rem;border-radius:8px;border:1px solid ${cssVarRef("border")};flex:0 0 auto;}
+.cs-name{font-family:ui-monospace,monospace;font-size:0.8rem;color:${cssVarRef("text")};}
 `;
 
 const style = document.createElement("style");
 style.textContent =
-  metricCss(pragmaticTheme) + schemeCss(pragmaticTheme) + demoCss + pageCss;
+  metricCss(pragmaticTheme) +
+  schemeCss(pragmaticTheme) +
+  demoCss +
+  pageCss;
 document.head.appendChild(style);
 
 const initial = decideScheme(

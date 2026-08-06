@@ -1,16 +1,17 @@
 #!/bin/sh -eu
 REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd) && cd "$REPO_ROOT"
 
-# Bootstrap the build TOOL's own deps before any package builds. plgg-bundle is
-# the bundler every package's `build` runs through, and it imports `typescript`
-# from its OWN path — but a `file:` link does not install the linked package's
-# node_modules, so a clean checkout/runner has no plgg-bundle/node_modules and
-# the build fails with `Cannot find package 'typescript'`. Installing it here
-# (the one canonical bootstrap) makes the local path reproduce CI. Idempotent:
-# only when absent, so warm rebuilds stay fast.
-if [ ! -d "$REPO_ROOT/packages/plgg-bundle/node_modules/typescript" ]; then
-  echo "=== Bootstrapping plgg-bundle deps (the build tool) ==="
-  cd "$REPO_ROOT/packages/plgg-bundle" && npm ci && cd "$REPO_ROOT"
+# Bootstrap the workspace before any package builds. plgg-bundle is the bundler
+# every package's `build` runs through and it imports `typescript`; under npm
+# workspaces one root install links every package and hoists the shared
+# dependencies, so this is a single command rather than the per-package
+# bootstrap the `file:`-link layout needed (a `file:` link does not install the
+# linked package's node_modules, which is why a clean checkout used to fail with
+# `Cannot find package 'typescript'`). Idempotent: only when absent, so warm
+# rebuilds stay fast.
+if [ ! -d "$REPO_ROOT/node_modules/typescript" ]; then
+  echo "=== Bootstrapping the workspace (one root install) ==="
+  npm install
 fi
 
 # Self-bundle the build TOOL to its own dist first. plgg-bundle ships a compiled

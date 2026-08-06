@@ -1,0 +1,29 @@
+---
+type: Feedback
+title: (carried from PR #53) Database migration `down --to` silent degrade
+kind: concern
+source: development
+created_at: 2026-07-06T11:33:41+09:00
+author: a@qmu.jp
+supersedes:
+severity: low
+concern_id: database-migration-down-to-silent-degrade
+owner: 
+mission: 
+tickets: []
+origin_pr: 60
+origin_pr_url: https://github.com/qmu/plgg/pull/60
+origin_branch: work-20260704-130317
+origin_commit: 416da301
+last_seen: 2026-07-06T11:33:41+09:00
+---
+
+# (carried from PR #53) Database migration `down --to` silent degrade
+
+## Description
+
+plgg-db-migration's `down --to` silently degrades if the path is not found. No error is raised.
+
+## How to Fix
+
+Document the behavior or add explicit error handling (post-roadmap).

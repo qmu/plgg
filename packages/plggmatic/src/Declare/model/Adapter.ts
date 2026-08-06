@@ -112,9 +112,7 @@ export type ApplyOk = Readonly<{
 export type HostAdapter = Readonly<{
   read: (
     scope: Scope,
-  ) => Promise<
-    Result<ReadonlyArray<Row>, Error>
-  >;
+  ) => Promise<Result<ReadonlyArray<Row>, Error>>;
   apply: (
     effect: Effect,
     actor: Actor,
@@ -125,9 +123,7 @@ export type HostAdapter = Readonly<{
 export const hostAdapter = (a: {
   read: (
     scope: Scope,
-  ) => Promise<
-    Result<ReadonlyArray<Row>, Error>
-  >;
+  ) => Promise<Result<ReadonlyArray<Row>, Error>>;
   apply: (
     effect: Effect,
     actor: Actor,
@@ -149,7 +145,8 @@ export type NamedAdapter = Readonly<{
 }>;
 
 /** The host's registered adapters (empty when none). */
-export type Registry = ReadonlyArray<NamedAdapter>;
+export type Registry =
+  ReadonlyArray<NamedAdapter>;
 
 /** Registers an adapter under a name. */
 export const named = (
