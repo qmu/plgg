@@ -154,6 +154,8 @@
 * [New exports are not yet on npm](20260716154115-new-exports-are-not-yet-on.md)
 * [Strategy (retired): plgg horizontal-orientation UI stack](20260723003932-strategy-plgg-horizontal-orientation-ui-stack.md)
 * [Strategy (retired): Keep the plgg inner loop fast and its gates trustworthy](20260726185030-strategy-keep-the-plgg-inner-loop-fast-and-its-gates-trustworthy.md)
+* [The scheduled runner's git identity hides the ticket queue](20260731202754-the-scheduled-runner-s-git-identity-hides-the-ticket-queue.md)
+* [The proposal cursor resets when the container is reclaimed](20260731203123-the-proposal-cursor-resets-when-the-container-is-reclaimed.md)
 * [Resolved: plgg-bundle bin-cache verification gotcha](20260801184516-resolved-plgg-bundle-bin-cache-verification-gotcha.md)
 * [plgg-test emits an unused dist/hook.cjs.js](20260803213403-plgg-test-emits-an-unused-dist.md)
 * [The claim heartbeat commits the index, not nothing](20260803213403-the-claim-heartbeat-commits-the-index.md)
