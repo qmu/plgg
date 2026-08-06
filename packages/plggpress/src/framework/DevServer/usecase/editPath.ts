@@ -7,7 +7,7 @@ import {
 
 // The path-authorization core, PROMOTED to production
 // plggpress from PoC 4b's proven, 100%-covered guard
-// (`plgg-poc4b-coedit/src/editPath.ts`) — the ONE
+// (that PoC package has since been deleted) — the ONE
 // authoritative pure function deciding whether a
 // dev-server-requested path may be written. Lexical and
 // total: it never touches the filesystem, so it is

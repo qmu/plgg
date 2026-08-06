@@ -144,3 +144,15 @@ for it or whether it rides under PoC 4.
 - 2026-07-16 — concern deferred (stuck) — ticket-diagnostics-measurements-held-conclusions-did.md
 - 2026-07-16 — story reported — work-20260716-163314.md
 - 2026-07-23 — mission achieved — mission.md
+- 2026-08-07 — concern resolved (unstuck) — 20260711121730-cdn-model-load-is-an-external.md
+- 2026-08-07 — concern resolved (unstuck) — 20260711121730-portal-s-verdict-data-is-hand.md
+- 2026-08-07 — concern resolved (unstuck) — 20260711121730-rag-arm-s-in-browser-model.md
+- 2026-08-07 — concern resolved (unstuck) — 20260712003448-corpus-bytes-metric-uses-character-count.md
+- 2026-08-07 — concern resolved (unstuck) — 20260712003448-pre-existing-poc-source-not-fully.md
+- 2026-08-07 — concern resolved (unstuck) — 20260712141515-full-corpus-build-depends-on-the.md
+- 2026-08-07 — concern resolved (unstuck) — 20260713203507-container-npm-rewrites-a-sibling-package.md
+- 2026-08-07 — concern resolved (unstuck) — 20260713203507-live-judging-of-the-fixed-poc.md
+- 2026-08-07 — concern resolved (unstuck) — 20260713203507-worktree-env-copy-protocol-pending-merge.md
+- 2026-08-07 — concern resolved (unstuck) — 20260714000918-preview-drops-plggpress-theming-accepted-poc.md
+- 2026-08-07 — concern resolved (unstuck) — 20260716152733-plgg-poc4c-livesite-is-orphaned-and.md
+- 2026-08-07 — concern resolved (unstuck) — 20260716152733-portal-s-static-page-is-not.md

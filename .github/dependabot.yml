@@ -6,10 +6,14 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    # No root package.json/workspaces: each packages/* dir is its own
-    # install root (own package.json + package-lock.json). The glob covers
-    # them all and stays in sync as packages are added or removed.
+    # One install root: the workspaces root manifest (`workspaces:
+    # ["packages/*"]`, adopted 2026-08-01) and its single package-lock.json
+    # resolve every member's dependencies, so scanning `/` covers the whole
+    # monorepo. This previously read `/packages/*` from the pre-workspaces
+    # layout, which left the updater proposing against 39 per-package
+    # lockfiles that had frozen weeks earlier while never opening the one
+    # live lockfile at the root.
     directories:
-      - "/packages/*"
+      - "/"
     schedule:
       interval: "weekly"

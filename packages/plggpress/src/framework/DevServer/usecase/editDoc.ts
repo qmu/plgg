@@ -15,9 +15,9 @@ import {
 } from "plggpress/Locate/usecase/locateOnce";
 
 // The granular edit model, PROMOTED to production plggpress
-// from PoC 4b's proven, 100%-covered core
-// (`plgg-poc4b-coedit/src/edit.ts`): the write half only (the
-// diff-segment/animation surface stays in the PoC, since the
+// from PoC 4b's proven, 100%-covered core (that PoC package
+// has since been deleted): the write half only — the
+// diff-segment/animation surface was never promoted, since the
 // dev-server patch endpoint only needs to LOCATE and APPLY,
 // never to animate). An edit is a list of `{find, replace}`
 // span replacements; this module LOCATES each `find` (exactly
