@@ -44,7 +44,8 @@ import {
 } from "plggpress/framework/DevServer/model/PatchProtocol";
 
 // The DEV-ONLY live-edit bridge, PROMOTED from PoC 4b's
-// proven confined write seam (`plgg-poc4b-coedit`): a POST of
+// proven confined write seam (that PoC package has since
+// been deleted; its verdict is in the archive): a POST of
 // `{path, edits}` patches the open markdown source on disk
 // and pushes a reload down the plggpress-owned channel, so
 // the rendered page hot-reloads in place while the SSE
