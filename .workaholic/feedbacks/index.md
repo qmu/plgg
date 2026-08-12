@@ -194,4 +194,7 @@
 * [Resolved: Preview drops plggpress theming (accepted PoC trade-off)](20260807002837-resolved-preview-drops-plggpress-theming-accepted-poc.md)
 * [Resolved: RAG arm's in-browser model init unverified outside a real browser](20260807002837-resolved-rag-arm-s-in-browser-model.md)
 * [Resolved: Worktree .env copy protocol pending merge in the workaholic repo](20260807002837-resolved-worktree-env-copy-protocol-pending-merge.md)
+* [check-all has no dependency-vulnerability gate](20260811193247-check-all-has-no-dependency-vulnerability.md)
+* [No risk register exists for an accepted vulnerability](20260811193247-no-risk-register-exists-for-an.md)
+* [The cloudflared ingress still routes the deleted PoC hosts](20260811193247-the-cloudflared-ingress-still-routes-the.md)
 <!-- okf:generated:end -->
