@@ -1,0 +1,59 @@
+== example exit=0
+
+== plgg-auth exit=0
+
+== plgg-bundle exit=0
+
+== plgg-cli exit=0
+
+== plgg-cms exit=1
+packages/plgg-cms/src/content/Ingest/usecase/ingestCorpus.ts(17,3): error TS2724: '"plggpress"' has no exported member named 'collectPages'. Did you mean 'collectPageLinks'?
+packages/plgg-cms/src/content/Ingest/usecase/ingestCorpus.ts(18,3): error TS2305: Module '"plggpress"' has no exported member 'rawHtmlOf'.
+== plgg-db-migration exit=0
+
+== plgg-fetch exit=0
+
+== plgg-foundry exit=0
+
+== plgg-highlight exit=0
+
+== plgg-http exit=0
+
+== plgg-ir-language exit=0
+
+== plgg-ir-manifest exit=0
+
+== plgg-ir-syntax exit=0
+
+== plgg-ir-thesis-proof exit=0
+
+== plgg-ir-thesis exit=0
+
+== plgg-kit exit=0
+
+== plgg-mcp exit=0
+
+== plgg-md exit=0
+
+== plgg-parser exit=0
+
+== plgg-router exit=0
+
+== plgg-server exit=0
+
+== plgg-sql exit=0
+
+== plgg-test exit=0
+
+== plgg-token-metering exit=0
+
+== plgg-view exit=0
+
+== plgg exit=0
+
+== plggmatic-example exit=0
+
+== plggmatic exit=0
+
+== plggpress exit=0
+

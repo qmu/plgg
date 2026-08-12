@@ -44,4 +44,5 @@
 * [Adopt npm workspaces for the monorepo](work-20260801-211738.md)
 * [Removed the tracked copy of the generated tsconfig.dts.json etc](work-20260803-221311.md)
 * [Fill the served content index from the corpus etc](work-20260805-104535.md)
+* [Adopt @types/node 26 across the workspace](work-20260812-223036.md)
 <!-- okf:generated:end -->
