@@ -135,3 +135,32 @@ TypeScript の実装が行う）、これが第一候補（Codex レビューの
   TS7 でもテストは通るが、7.x にそのパスは存在しない。ついでに更新する価値がある。
 - **このチケットは T1（スパイク）にのみ依存する。** plgg-bundle や plgg-test の
   移植とは独立に進められるので、並行して着手してよい。
+
+## Final Report
+
+split-version(経路決定 2026-08-13)により**移植不要**。analyzer は
+`createRequire(packages/plgg-bundle/package.json)` 経由で typescript を解決する
+ため、split 後も nested TS6(6.0.3)の `preProcessFile` をそのまま使う。
+解決経路の実測: `requireFromBundle("typescript")` → `version: 6.0.3`,
+`preProcessFile: function`。検証は T2(`20260812140002`、アーカイブ済み)で実施:
+
+- `./scripts/gate-vendor-boundary.sh` → 緑
+  (29 packages; 23 conformant, 6 exempted)。
+- **違反検出の実証**: `packages/plgg/src/Atomics/Bool.ts:1` に
+  `import { readFileSync } from "node:fs";` を一時挿入 → ゲート exit 1、
+  出力 `VENDOR-BOUNDARY GATE FAILED: plgg: 1 boundary violation(s) —
+  third-party import outside vendors/entrypoints: packages/plgg/src/Atomics/
+  Bool.ts:1  imports "node:fs"`。復元 → exit 0。
+- `scripts/vendor-boundary-exemptions.txt` は差分 0 行(増えていない)。
+- `./scripts/check-all.sh` 緑(exit 0)。
+
+scanner PoC(`docs/typescript-7-api-gap.md` — TS7 `unstable/ast/scanner` での
+import 抽出、シグネチャ変更の罠込み)は、将来 TS6 を完全に落とすときの移植手順
+として残る。
+
+### Discovered Insights
+
+- **Insight**: `deriveExternal.spec.ts:69` の `"typescript/lib/typescript"`
+  fixture は TS7 に存在しないパス文字列だが、文字列判定のため緑のまま。
+  **Context**: TS6 を完全に落とす将来チケットで fixture 更新が必要
+  (Considerations の指摘は split 継続中は実害なしと判断し、未変更)。
