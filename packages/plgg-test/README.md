@@ -40,8 +40,9 @@ Two things it no longer does, both on purpose:
 - **It does not typecheck.** Specs execute through the
   runtime's native type-stripping and never needed `tsc`.
   Typechecking is one whole-repo gate
-  (`node scripts/typecheck.ts` at the monorepo root), where the
-  shared type graph is parsed once instead of once per package.
+  (`node scripts/typecheck.ts` at the monorepo root), which
+  runs each package's own `tsc --noEmit` in a bounded
+  process pool instead of once per test run.
 - **It does not collect coverage.** Collection plus the fold
   used to run on *every* invocation and measured **57% of the
   entire repo's test phase** — it more than doubled each

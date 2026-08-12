@@ -69,9 +69,10 @@ node --test scripts/*.spec.ts
 # This replaced two things. The `tsc --noEmit &&` prefix on each package's
 # `test` script meant 38 cold `tsc` programs (50.9 s measured), each re-parsing
 # lib.d.ts and @types/node from scratch; tests RUN via native type-stripping and
-# never needed tsc, so typecheck is now ONE gate over one shared type graph
-# (scripts/typecheck.ts — each package keeps its own program and options, so a
-# node-only package still cannot see DOM). And this block used to be 37
+# never needed tsc, so typecheck is now ONE gate (scripts/typecheck.ts — one
+# spawned `tsc -p --noEmit` per package, each with its own config and its own
+# declared TypeScript, so a node-only package still cannot see DOM; since the
+# TS7 split there is no shared API-level type graph). And this block used to be 37
 # `./scripts/test-<pkg>.sh` lines run strictly one after another; they are now a
 # bounded process pool in scripts/runTests.ts, with the typecheck gate as one
 # more job in the same pool so it overlaps the suites instead of leaving three
