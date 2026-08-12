@@ -13,6 +13,14 @@ merge_policy: auto
 
 # vendor-boundary アナライザを TS7 に移植する（`preProcessFile` の代替が無い）
 
+## 経路決定（2026-08-13, split-version）— このチケットは検証のみに縮小
+
+analyzer は `createRequire(packages/plgg-bundle/package.json)` 経由で typescript を
+解決するため、split 後も **nested TS6 の `preProcessFile` をそのまま使う**。
+**移植は不要**。検証（違反検出の実証）は T2 に畳んだ。scanner PoC の成果
+（`docs/typescript-7-api-gap.md`）は、将来 TS6 を完全に落とすときの移植手順として
+残る。T2 完了時に同様にアーカイブする。以下は経路決定前の本文（参考）。
+
 ## Overview
 
 `scripts/vendor-boundary-analyzer.mjs` は **5 番目のコンパイラ API 利用箇所**で、

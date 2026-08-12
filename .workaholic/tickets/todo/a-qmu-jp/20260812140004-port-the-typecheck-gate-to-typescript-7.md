@@ -13,6 +13,18 @@ merge_policy: auto
 
 # 全体型チェックゲートを TS7 に移植する
 
+## 経路決定（2026-08-13, split-version）— ゲートは TS7 native tsc で再設計
+
+root hoist が TS7 になるため `import ts from "typescript"` は API の無い
+`lib/version.cjs` に解決される。**API ベースの移植ではなく、TS7 の native `tsc` を
+プロセスとして駆動する再設計**が確定ルート（incremental API は存在しない —
+`docs/typescript-7-api-gap.md`）。パッケージごとに `tsc -p <config> --noEmit` を
+並列 spawn する形が第一候補（T1 実測: native の起動 0.035s、29 configs の逐次
+フルランでも実用域の見込み — 必ず wall clock を測って記録する）。
+`check-all.sh:45` の `node node_modules/typescript/bin/tsc` 直接呼び出しも
+TS7 の bin/tsc で成立するか確認して直す。既存受入（エラー検出の実証・検査
+パッケージ数の一致・2 回目の wall clock 記録）はそのまま適用。
+
 ## Overview
 
 `scripts/typecheck.ts` はこのリポジトリで**最も TypeScript API に深く依存した

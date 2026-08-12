@@ -13,6 +13,13 @@ merge_policy: auto
 
 # plgg-test の TypeScript ローダフックを TS7 に移植する
 
+## 経路決定（2026-08-13, split-version）— このチケットは検証のみに縮小
+
+plgg-test は `typescript` ^6.0.3 の runtime 依存を保持するため、`hook.ts` の
+**移植は不要**。検証（テスト本数一致・cross-runtime ゲート）は T2 の split 実装に
+畳んだ。T2 の完了時にこのチケットは「split により移植不要、検証は T2 で実施」と
+記録してアーカイブする。以下は経路決定前の本文（参考）。
+
 ## Overview
 
 `packages/plgg-test/src/Resolve/hook.ts` は `ts.transpileModule` で `.ts` の

@@ -13,6 +13,27 @@ merge_policy: auto
 
 # plgg-bundle の 2 つのコンパイラ API 利用箇所を TS7 に移植する
 
+## 経路決定（2026-08-13, split-version）— このチケットの範囲は変わった
+
+**移植はしない。** plgg-bundle は `typescript` ^6.0.3 の runtime 依存を**保持**し、
+`transpiler.ts` / `exportSurface.ts` は無変更のまま nested TS6 を解決する。
+このチケットの新しい仕事は **split-version 構成の実装と検証**:
+
+1. 27 manifest（plgg-bundle / plgg-test 以外）の `typescript` を `^7.0.2` に上げ、
+   root lockfile を再生成する。root hoist が TS7、`packages/plgg-bundle/node_modules/typescript`
+   と `packages/plgg-test/node_modules/typescript` に TS6 が nested されることを
+   `npm ls typescript` で確認する。
+2. TS6 側 3 消費者が split 後も動くことを検証する（旧 T3・T6 の内容をここに畳む）:
+   `vendor-boundary-analyzer.mjs`（requireFromBundle → nested TS6 の
+   `preProcessFile`）、plgg-test の `Resolve/hook.ts`、plgg-bundle の transpile。
+   gate-vendor-boundary / gate-cross-runtime / 全テスト本数一致で示す。
+3. emitDts の `tscBin()` は**対象パッケージから** typescript を解決するので、27
+   パッケージの宣言生成は TS7 native tsc に切り替わる。代表 3 パッケージの
+   dist/.d.ts を移行前後で比較し、差分を説明する（既存の受入どおり）。
+
+以下の本文は経路決定前の記述であり、API 対応表・ライフサイクリの注意は
+参考情報として残す。「対応表に無しなら止める」の Decided は**この決定で解消済み**。
+
 ## Overview
 
 `packages/plgg-bundle` は 2 箇所で TypeScript のコンパイラ API を使っている。

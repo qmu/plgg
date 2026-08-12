@@ -13,6 +13,21 @@ merge_policy: auto
 
 # TS7 を正式採用し、ネイティブバイナリのトレードオフを数字で残す
 
+## 経路決定（2026-08-13, split-version）— 採用の形が変わった
+
+「29 manifest を 7 系に」ではなく **27 manifest を 7 系に、plgg-bundle と
+plgg-test は ^6.0.3 を保持**が採用の形。したがって:
+
+- **dependabot PR #112 は close する**（29 全部を ^7 にする変更は split と矛盾。
+  コメントで理由と置き換え先を示す）。
+- `DEPENDENCY-LOG.md` には **2 つの決定**を記録する: TS7 採用（native binary の
+  トレードオフ実測付き）と、**TS6 pin の残置**（理由 = transpileModule /
+  preProcessFile の不在、exit strategy = scanner PoC と unstable API 対応表、
+  時限 = TS7 が file-level transpile を提供した時点で再評価）。
+- 受入の `git grep '"typescript": "\^6'` は **0 ではなく 2**（plgg-bundle /
+  plgg-test）が正しい値になる。負の対照コーパス・CI 緑・lockfile ノード検査は
+  そのまま適用。
+
 ## Overview
 
 先行 3 枚でコンパイラ API の利用箇所がすべて TS7 で動くようになった状態を
