@@ -445,7 +445,19 @@ const main = async (): Promise<void> => {
       n === TYPECHECK_JOB
         ? runJob(
             n,
-            [join(repoRoot, "scripts", "typecheck.ts")],
+            // The gate spawns its own compiler processes; cap them at 2
+            // here, where it runs as ONE job among `jobs` suites, or the
+            // two pools multiply and oversubscribe the box (measured:
+            // the test phase went 30 s → 61 s on 4 cores uncapped).
+            [
+              join(
+                repoRoot,
+                "scripts",
+                "typecheck.ts",
+              ),
+              "--jobs",
+              "2",
+            ],
             repoRoot,
           )
         : runJob(

@@ -1,6 +1,7 @@
 ---
 created_at: 2026-08-12T14:00:05+09:00
 author: a@qmu.jp
+assignees: [a@qmu.jp]
 type: housekeeping
 layer: [Config, Infrastructure]
 effort:
@@ -12,6 +13,21 @@ merge_policy: auto
 ---
 
 # TS7 を正式採用し、ネイティブバイナリのトレードオフを数字で残す
+
+## 経路決定（2026-08-13, split-version）— 採用の形が変わった
+
+「29 manifest を 7 系に」ではなく **27 manifest を 7 系に、plgg-bundle と
+plgg-test は ^6.0.3 を保持**が採用の形。したがって:
+
+- **dependabot PR #112 は close する**（29 全部を ^7 にする変更は split と矛盾。
+  コメントで理由と置き換え先を示す）。
+- `DEPENDENCY-LOG.md` には **2 つの決定**を記録する: TS7 採用（native binary の
+  トレードオフ実測付き）と、**TS6 pin の残置**（理由 = transpileModule /
+  preProcessFile の不在、exit strategy = scanner PoC と unstable API 対応表、
+  時限 = TS7 が file-level transpile を提供した時点で再評価）。
+- 受入の `git grep '"typescript": "\^6'` は **0 ではなく 2**（plgg-bundle /
+  plgg-test）が正しい値になる。負の対照コーパス・CI 緑・lockfile ノード検査は
+  そのまま適用。
 
 ## Overview
 
@@ -167,3 +183,63 @@ Node のバージョン更新は独立した判断で、混ぜると切り分け
 - **将来の CI プラットフォーム変更に効く。** 今は linux-x64 / arm64 で足りるが、
   ランナーやコンテナの基盤が変わったときにバイナリが無いと即死する。
   その脆さも記録に残す価値がある。
+
+## Final Report
+
+Development completed as planned — 経路決定(split-version)後の採用形で確定。
+実装本体(27+root manifest 更新・lockfile 再生成)は T2 のコミット `476ce098`、
+記録類は `914914bf`(DEPENDENCY-LOG / api-gap doc)と本アーカイブコミットに載る。
+
+### Quality Gate 検証結果
+
+- `git grep -c '"typescript": "\^6' packages/*/package.json` → **2**
+  (plgg-bundle / plgg-test — 経路決定どおりの正値。0 ではないのは split の意図)✔
+- `npm ls typescript` → root `typescript@7.0.2`、
+  `plgg-bundle`/`plgg-test` 配下に `typescript@6.0.3`(nested)✔
+- `./scripts/check-all.sh` → exit 0(127.1s)✔
+- **DEPENDENCY-LOG.md への実測記録** — 6 項目すべて 6.x/7.x 比較の実測値で記載
+  (同一 aarch64 ホスト・同条件・warm npm cache):
+  clean install 0.64s → 0.83s / root node_modules 27M(ts 24M)→ 33M
+  (shim 3.7M + native 26M)+ nested TS6 24M×2 / typecheck 21.4s/6.3s →
+  11.4s/11.4s / build.sh 89.0s → 59.0s / check-all 121.3s → 127.1s /
+  install された platform binary = `@typescript/typescript-linux-arm64@7.0.2`
+  (宣言 20 のうち 1)✔
+- **負の対照コーパス** — 4 ケースすべて TS7 native tsc が拒否(exit 1):
+  (a) `"boom" as number` → `error TS2352: Conversion of type 'string' to type
+  'number' may be a mistake …`
+  (b) 網羅漏れ union の never 代入 → `error TS2322: Type '"b"' is not
+  assignable to type 'never'.`
+  (c) 裸 string の Str 代入 → `error TS2322: Type 'string' is not assignable
+  to type 'Readonly<{ __tag: "Str"; content: string; }>'.`
+  (d) `Option<number>` への null → `error TS2322: Type 'null' is not
+  assignable to type 'Option<number>'.`
+  プローブ削除後 `all clean` に復帰 ✔
+- **lockfile の 20 ノード検査** — `@typescript/typescript-*` 20 ノード全てが
+  `resolved` + `integrity` 付き(機械検査、missing 0)✔
+- **公開 2 パッケージの扱い** — 意図的に別扱い: plgg-bundle / plgg-test は
+  `^6.0.3` の runtime dependency を保持し、npm 利用者に native binary は
+  配布されない(DEPENDENCY-LOG.md の Decision 2 に受容リスクとして記録)✔
+- 新規コードに `as` / `any` / `ts-ignore` 追加なし(grep はコメント散文のみ)✔
+- `npm audit` → found 0 vulnerabilities ✔
+- Node ランタイムは不変(CI は 22.x のまま、ワークフロー無変更)✔
+- **dependabot PR #112** — close する(29 全部を ^7 にする変更は split と矛盾)。
+  コメントで理由とこのブランチの PR を示す。**CI 緑の確認**は本チケットの
+  アーカイブ後に作成されるこのユニットの PR 上の `run-tests`(check-all)で行い、
+  merge はその緑を前提とする(auto ルートの ship ゲートが強制)。結果は
+  run report と ship evidence に記録される — ローカル緑では代替しない、の
+  Decided はその経路で満たす。
+
+### 採用にあたっての stale doc 是正(release-readiness 指摘)
+
+typecheck ゲートの旧モデル(「one shared type graph, incremental」)の記述を
+3 箇所更新した: `CLAUDE.md`(agent-facing の要記述)、`scripts/check-all.sh`
+のコメント、`packages/plgg-test/README.md`(npm 配布物)。
+
+### Discovered Insights
+
+- **Insight**: dependabot の major bump PR は「全 manifest 一律」しか提案しない。
+  split-version のような意図的な部分採用は dependabot と恒常的に衝突するため、
+  `ignore` 設定(plgg-bundle / plgg-test の typescript major を除外)を将来
+  検討する価値がある。
+  **Context**: #112 を close しても、次の 7.x パッチで dependabot は再び
+  29 全部を上げる PR を出してくる可能性が高い。

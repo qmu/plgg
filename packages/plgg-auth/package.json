@@ -50,7 +50,7 @@
     "@types/node": "^26.2.0",
     "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=22.6"

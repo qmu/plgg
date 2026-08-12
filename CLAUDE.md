@@ -1,6 +1,6 @@
 THE MOST IMPORTANT RULE - `as` `any`, and `ts-ignore` is STRICTLY PROHIBITED as a solution to type errors under any circumstances.
 
-* Fix compilation error with `scripts/tsc-plgg.sh` (one package). `node scripts/typecheck.ts` is the whole-repo gate — every package, one shared type graph, incremental after the first run; pass package names to narrow it. Package `test` scripts no longer run `tsc`.
+* Fix compilation error with `scripts/tsc-plgg.sh` (one package). `node scripts/typecheck.ts` is the whole-repo gate — one spawned `tsc -p --noEmit` per package (each package's own declared TypeScript: TS7 native for most, TS6 for plgg-bundle/plgg-test), full check every run in a bounded process pool; pass package names to narrow it, `--jobs N` to pin concurrency. Package `test` scripts no longer run `tsc`.
 * Test with `scripts/test-plgg.sh`.
 * Format with Prettier; every package carries its own `.prettierrc.json` (`printWidth: 50`) — don't hand-pack onto fewer lines.
 * House coding style (type-driven design, Option/Result, exhaustive `match`, the no-escape-hatch rule) lives in the `plgg-coding-style` skill — follow it when writing any `packages/` TypeScript.

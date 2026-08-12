@@ -1,6 +1,7 @@
 ---
 created_at: 2026-08-12T14:00:04+09:00
 author: a@qmu.jp
+assignees: [a@qmu.jp]
 type: refactoring
 layer: [Infrastructure]
 effort:
@@ -12,6 +13,18 @@ merge_policy: auto
 ---
 
 # 全体型チェックゲートを TS7 に移植する
+
+## 経路決定（2026-08-13, split-version）— ゲートは TS7 native tsc で再設計
+
+root hoist が TS7 になるため `import ts from "typescript"` は API の無い
+`lib/version.cjs` に解決される。**API ベースの移植ではなく、TS7 の native `tsc` を
+プロセスとして駆動する再設計**が確定ルート（incremental API は存在しない —
+`docs/typescript-7-api-gap.md`）。パッケージごとに `tsc -p <config> --noEmit` を
+並列 spawn する形が第一候補（T1 実測: native の起動 0.035s、29 configs の逐次
+フルランでも実用域の見込み — 必ず wall clock を測って記録する）。
+`check-all.sh:45` の `node node_modules/typescript/bin/tsc` 直接呼び出しも
+TS7 の bin/tsc で成立するか確認して直す。既存受入（エラー検出の実証・検査
+パッケージ数の一致・2 回目の wall clock 記録）はそのまま適用。
 
 ## Overview
 
@@ -120,3 +133,60 @@ merge_policy: auto
   という**node 経由の直接呼び出し**が成立するかは要確認。
 - **ゲートが遅くなると全部が遅くなる。** `check-all` の中で typecheck は
   最も重い工程（実測 39〜55 秒）なので、ここの性能はそのまま開発体験になる。
+
+## Final Report
+
+Development completed as planned — 経路決定どおり **API 移植ではなく TS7 native
+`tsc` をプロセスとして駆動する再設計**を実装した(実装は T2 のアーカイブ
+コミット `476ce098` に同梱 — split の lockfile 反転と typecheck の旧 API 破壊が
+同一変更で連動するため)。
+
+### 設計
+
+- `scripts/typecheck.ts` から `import ts from "typescript"` を全廃。各パッケージの
+  `tsc` を **そのパッケージ自身の typescript 依存から解決**(emitDts と同じ
+  `createRequire(package.json).resolve("typescript") → ../bin/tsc` の経路)し、
+  `node <bin/tsc> -p <tsconfig> --noEmit --pretty` を bounded pool で並列 spawn。
+  27 パッケージは TS7 native、plgg-bundle / plgg-test は自身が宣言する nested TS6
+  で検査される — hoist 順の変化がコンパイラを黙って差し替えることは二度と無い。
+- パッケージごとの program / options 分離は維持(node-only パッケージが DOM を
+  見ない)。診断は `--pretty` 強制で**色付き・ファイル位置つきのまま**
+  (パイプ時に tsc が色を落とすのを防ぐ)。red パッケージはブロック単位で
+  attributed 出力、summary 形式(`typecheck: N packages in Xs — …`)は不変。
+- `--jobs N` を追加。runTests.ts は typecheck をプール内の 1 ジョブとして走らせる
+  ため `--jobs 2` でキャップ — 無キャップでは 2 つのプールが掛け算になり
+  4 コア箱で test フェーズが 30.1s → 61.0s に劣化した(実測)。キャップ後 31.8s。
+- `check-all.sh:45` の `node node_modules/typescript/bin/tsc -p scripts/tsconfig.json`
+  は TS7 の bin/tsc(node シム)でそのまま成立(実測 0.37s、exit 0)。変更不要。
+
+### Quality Gate 検証結果
+
+- `node scripts/typecheck.ts` → **29 packages**(移行前と同数)all clean ✔
+- 絞り込み: `node scripts/typecheck.ts plgg-bundle` → `1 packages … all clean` ✔
+- **エラー検出の実証**(両コンパイラ経路): `packages/plgg/src/Atomics/Bool.ts` と
+  `packages/plgg-bundle/src/vendors/transpiler.ts` に
+  `export const probe: number = "boom";` を一時挿入 →
+  `src/Atomics/Bool.ts:104:14 - error TS2322: Type 'string' is not assignable to
+  type 'number'.` / `src/vendors/transpiler.ts:83:14 - error TS2322: …`、
+  `typecheck: 2 packages in 2.4s — FAILED in 2: plgg, plgg-bundle`、exit 1。
+  復元 → `all clean`、exit 0 ✔
+- `node --test scripts/*.spec.ts` → 48 tests, 48 pass, 0 fail ✔
+  (settingsKey / buildInfoPath のテストは削除した実装に合わせて
+  parseCheckArgs / tscBinFromMain / errorCountOf のテストに置換)
+- `./scripts/check-all.sh` → exit 0 ✔
+- **wall clock(incremental 喪失の実測)**: 1 回目 11.4s / 2 回目 11.4s
+  (毎回フル、native の速度で吸収)。旧 TS6 API 実装: 1 回目 21.4s /
+  2 回目 6.3s(incremental)。プール内ジョブとしては 16.2s(旧 15.3s)。
+  **「毎回フル」でも旧コールド実行の半分であり、実用に耐えると判断** ✔
+
+### Discovered Insights
+
+- **Insight**: 並列プールを内蔵するゲートを別の並列ランナーのジョブとして走らせる
+  と並列度が掛け算になる。typecheck 単体最速の設定(availableParallelism)と
+  プール内ジョブとしての正しい設定(--jobs 2)は別物。
+  **Context**: runTests.ts のジョブ数を触るときは typecheck の --jobs キャップと
+  併せて考えること(スケジューリングは cost 降順で typecheck が先頭に張り付く)。
+- **Insight**: TS7 の `bin/tsc` は node シムで、`node bin/tsc` 起動・
+  `--noEmit --pretty` とも TS6 と同じ CLI 語彙で動く。exit code は診断ありで
+  1(TS6 は 2)— 特定の非ゼロ値をどこにも assert しないこと(T1 の注意の再確認)。
+  **Context**: gate スクリプトが exit code の値に依存すると TS6/TS7 で挙動が割れる。

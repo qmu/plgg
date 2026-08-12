@@ -232,3 +232,70 @@ return path is adding a bundler devDep back to the affected package's
 `package.json` + a config; the per-package `build` script is the single seam.
 Prefer a pure-JS / zero-native-binding tool to preserve cross-platform CI
 reproducibility (the failure mode this whole effort retired).
+
+---
+
+## TypeScript 7 adoption — split-version (2026-08-13)
+
+Mission `typescript-7-migration`. TypeScript 7.0.2 is a Go reimplementation
+distributed as a JS shim + 20 platform-specific native-binary packages
+(`@typescript/typescript-*`) declared as optionalDependencies. This log is
+where native bindings were retired, so their partial reintroduction is
+recorded here, with numbers, alongside the decision that keeps this package
+OFF it.
+
+### Decision 1 — the toolchain adopts TS7 (root + 27 manifests)
+
+The workspace root and the 27 non-publishing manifests moved to
+`typescript@^7.0.2`; declaration emit (`emitDts`'s per-package `tsc`), the
+whole-repo typecheck gate (`scripts/typecheck.ts`, redesigned to drive the
+native `tsc` as a process), and `check-all`'s direct `bin/tsc` call now run
+the native compiler. The root manifest declares `typescript@^7.0.2`
+explicitly because npm's hoist is not majoritarian: without the root
+declaration npm hoisted the 2-package TS6 minority to the root and nested 27
+TS7 copies (measured).
+
+Measured on this aarch64 host (same box, same conditions, warm npm cache):
+
+| Metric | TS 6.0.3 | TS 7.0.2 split |
+| --- | --- | --- |
+| Clean install (`scripts/npm-install.sh`, `node_modules` absent) | 0.64 s | 0.83 s |
+| Root `node_modules` | 27 M (typescript 24 M) | 33 M (typescript shim 3.7 M + `@typescript/typescript-linux-arm64` 26 M) |
+| Nested TS6 copies | — | 24 M × 2 (`plgg-bundle`, `plgg-test`) |
+| `node scripts/typecheck.ts` 1st / 2nd | 21.4 s / 6.3 s (incremental) | 11.4 s / 11.4 s (full every run — no incremental API exists) |
+| `./scripts/build.sh` | 89.0 s | 59.0 s |
+| `./scripts/check-all.sh` | 121.3 s | 127.1 s |
+| Platform binaries installed | none | 1 of 20 declared (lockfile pins all 20 with `resolved`+`integrity`) |
+
+The rolldown-class lockfile skew (npm/cli#4828) that broke Deploy Guide CI is
+fixed in npm ≥ 11.3.0 (this host: 11.12.1); the lockfile 20-node check stays
+as cheap insurance for older-npm environments and future regressions.
+
+### Decision 2 — plgg-bundle and plgg-test STAY on TS6 (risk acceptance)
+
+`plgg-bundle` and `plgg-test` keep `typescript@^6.0.3` as their runtime
+dependency, resolved as nested copies under each package.
+
+- **Reason:** `ts.transpileModule` (the bundler's and the test loader's core
+  API) and `ts.preProcessFile` (the vendor-boundary analyzer's) do not exist
+  in any adoptable 7.x — verified against the 7.0.2 tarball; `unstable/*` is
+  a redesigned surface with no file-level transpile. Porting would be a
+  reimplementation, not a swap (docs/typescript-7-api-gap.md).
+- **What npm consumers get:** the published `plgg-bundle`/`plgg-test` keep
+  the pure-JS TS6 dependency — **no native binary is distributed to
+  consumers**, consistent with this package's "no native binding" contract.
+- **Exit strategy:** the TS7 scanner PoC and the API mapping table live in
+  `docs/typescript-7-api-gap.md`; the seams are `src/vendors/transpiler.ts`,
+  `packages/plgg-test/src/Resolve/hook.ts`, and
+  `scripts/vendor-boundary-analyzer.mjs`. Anticipated effort when exercised:
+  person-days.
+- **Review trigger (time-bound):** re-evaluate at every TypeScript 7.x minor
+  — the pin falls the moment a stable 7.x ships a file-level transpile API.
+  TS 6.0.3 has no CVE; the Dependency Currency clock is not running.
+
+### Rollback (exit strategy for Decision 1)
+
+Revert the root manifest and the 27 package manifests to `^6.0.3`, restore
+the API-based `scripts/typecheck.ts` from git history (parent of `476ce098`),
+regenerate the lockfile. Scope: manifests + one script; the domain code never
+references TS7. Anticipated effort: hours.
