@@ -1,6 +1,7 @@
 ---
 created_at: 2026-08-12T14:00:05+09:00
 author: a@qmu.jp
+assignees: [a@qmu.jp]
 type: housekeeping
 layer: [Config, Infrastructure]
 effort:

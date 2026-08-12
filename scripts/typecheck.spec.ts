@@ -2,8 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   projectNames,
-  settingsKey,
-  buildInfoPath,
+  parseCheckArgs,
+  tscBinFromMain,
+  errorCountOf,
   failedProjects,
   exitCodeFor,
   summaryOf,
@@ -12,9 +13,9 @@ import {
 /**
  * Unit tests for the whole-repo typecheck gate's pure helpers. The gate
  * itself is exercised end-to-end by check-all; what is worth pinning
- * here is the selection rule (which packages get checked), the cache
- * key (whose whole job is to NOT let two differently-configured
- * packages share a parsed file), and the red/green folding.
+ * here is the selection rule (which packages get checked), the launcher
+ * derivation (which compiler checks a package), the diagnostic folding
+ * of a spawned tsc's output, and the red/green folding.
  */
 
 test("projectNames: only entries carrying a tsconfig, sorted", () => {
@@ -50,34 +51,63 @@ test("projectNames: a requested package without a tsconfig is still skipped", ()
   );
 });
 
-test("settingsKey: differing lib must not share a cache entry", () => {
-  const nodeOnly = settingsKey({
-    lib: ["lib.es2021.d.ts"],
-  });
-  const withDom = settingsKey({
-    lib: ["lib.es2021.d.ts", "lib.dom.d.ts"],
-  });
-  assert.notEqual(nodeOnly, withDom);
-});
-
-test("settingsKey: differing module resolution must not share a cache entry", () => {
-  assert.notEqual(
-    settingsKey({ module: 199 }),
-    settingsKey({ module: 99 }),
+test("parseCheckArgs: --jobs is consumed, packages pass through", () => {
+  assert.deepEqual(
+    parseCheckArgs(
+      ["plgg", "--jobs", "2", "plgg-view"],
+      4,
+    ),
+    { jobs: 2, only: ["plgg", "plgg-view"] },
   );
 });
 
-test("settingsKey: options irrelevant to parsing do not split the cache", () => {
-  assert.equal(
-    settingsKey({ target: 8, rootDir: "src" }),
-    settingsKey({ target: 8, rootDir: "lib" }),
+test("parseCheckArgs: a malformed --jobs falls back to the default, its value slot still consumed", () => {
+  assert.deepEqual(
+    parseCheckArgs(["--jobs", "banana"], 4),
+    { jobs: 4, only: [] },
   );
 });
 
-test("buildInfoPath: lands under the package's ignored node_modules cache", () => {
+test("parseCheckArgs: no flags means default jobs, all packages", () => {
+  assert.deepEqual(parseCheckArgs([], 8), {
+    jobs: 8,
+    only: [],
+  });
+});
+
+test("tscBinFromMain: the TS6 main (lib/typescript.js) maps to its bin/tsc", () => {
   assert.equal(
-    buildInfoPath("/repo/packages", "plgg"),
-    "/repo/packages/plgg/node_modules/.cache/typecheck.tsbuildinfo",
+    tscBinFromMain(
+      "/repo/packages/plgg-bundle/node_modules/typescript/lib/typescript.js",
+    ),
+    "/repo/packages/plgg-bundle/node_modules/typescript/bin/tsc",
+  );
+});
+
+test("tscBinFromMain: the TS7 main (lib/version.cjs) maps to its bin/tsc", () => {
+  assert.equal(
+    tscBinFromMain(
+      "/repo/node_modules/typescript/lib/version.cjs",
+    ),
+    "/repo/node_modules/typescript/bin/tsc",
+  );
+});
+
+test("errorCountOf: counts diagnostics through ANSI color", () => {
+  const colored =
+    "src/a.ts:1:1 - \u001b[91merror\u001b[0m\u001b[90m TS2322: \u001b[0mboom\n" +
+    "src/a.ts:9:1 - \u001b[91merror\u001b[0m\u001b[90m TS2345: \u001b[0malso\n";
+  assert.equal(errorCountOf(colored, 1), 2);
+});
+
+test("errorCountOf: a clean exit with no diagnostics is zero", () => {
+  assert.equal(errorCountOf("", 0), 0);
+});
+
+test("errorCountOf: a compiler crash without diagnostics still fails", () => {
+  assert.equal(
+    errorCountOf("segfault, no TS lines", 134),
+    1,
   );
 });
 

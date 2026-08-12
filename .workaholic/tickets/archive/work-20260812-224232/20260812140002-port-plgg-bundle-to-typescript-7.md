@@ -1,6 +1,7 @@
 ---
 created_at: 2026-08-12T14:00:02+09:00
 author: a@qmu.jp
+assignees: [a@qmu.jp]
 type: refactoring
 layer: [Infrastructure]
 effort:
@@ -150,3 +151,73 @@ merge_policy: auto
   設計思想がそもそも違う可能性がある。
 - **出力比較は移行前に採る。** 移行してから「前はどうだったか」は取り戻せない。
   手順の最初に退避を入れること。
+
+## Final Report
+
+Development completed as planned — 経路決定(2026-08-13, split-version)後の再定義スコープで実施。
+`transpiler.ts` / `exportSurface.ts` は無変更(移植なし)。
+
+### 実施内容
+
+1. **27 manifest を `typescript: ^7.0.2` に更新**(plgg-bundle / plgg-test は
+   `^6.0.3` を保持)。**ルート `package.json` にも `devDependencies.typescript:
+   ^7.0.2` を追加した** — 追加理由は実測で、27:2 の多数決にもかかわらず npm は
+   TS6 を root に hoist し TS7 を 27 パッケージに nest した(逆向き)。root の
+   直接依存宣言だけが hoist を決定論的にする。`scripts/`(typecheck ゲート・
+   check-all の直接 tsc 呼び出し)が root の typescript を使う事実の明文化でもある。
+2. **lockfile 再生成**: `node_modules/typescript@7.0.2`(root)、
+   `packages/plgg-bundle/node_modules/typescript@6.0.3`、
+   `packages/plgg-test/node_modules/typescript@6.0.3`。
+   `@typescript/typescript-*` 20 ノード全てが `resolved`+`integrity` 付き。
+3. **TS6 側 3 消費者の検証**(旧 T3・T6 をここに畳む):
+   - analyzer: `createRequire(plgg-bundle)` 経由の解決を実測 —
+     `typescript 6.0.3, preProcessFile: function`。`gate-vendor-boundary.sh` 緑
+     (29 packages; 23 conformant, 6 exempted)。**違反検出の実証**:
+     `packages/plgg/src/Atomics/Bool.ts:1` に `import { readFileSync } from
+     "node:fs"` を一時挿入 → exit 1、メッセージ
+     `plgg: 1 boundary violation(s) … Bool.ts:1  imports "node:fs"`。復元 → exit 0。
+   - plgg-test hook: スイート 147 passed / gate-cross-runtime 緑
+     (node / deno / bun 各 7 passed)。
+   - plgg-bundle transpile: スイート 103 passed、`./scripts/build.sh` が
+     全 29 dist を出して緑(59.0s、TS6 時 89.0s)。
+4. **テスト本数の前後一致**(29 パッケージ個別に採取):
+   `diff <(cat counts-ts6/*) <(cat counts-ts7/*)` → **完全一致**
+   (例: plgg 491, plgg-cms 506, plggmatic 349, plgg-test 147, plgg-bundle 103)。
+5. **dist 比較**(plgg / plgg-view / plggpress、移行前 dist を退避して `diff -r`):
+   - `*.es.js` / `*.cjs.js` は**全てバイト一致**(transpile は nested TS6 のまま)。
+   - `.d.ts` 本文の差分は plgg の 2 ファイルのみ、いずれも意味等価:
+     `Contextuals/Icon.d.ts` — TS7 はエイリアス export を `declare const is` +
+     `export declare const isIcon: typeof is` + `export {}` で出す(TS6 は型を
+     再展開)。`Grammaticals/BoolAlgebra.d.ts` — conditional type の extends 位置に
+     括弧を付加(優先順位不変)。
+   - 残りは `.d.ts.map` の mappings のみ(157 ファイル、.d.ts 本文同一)。
+     emitDts が対象パッケージから解決する tsc が TS7 native に切り替わったことに
+     よる位置属性の変化で、消費者可視の影響なし。
+6. `node scripts/typecheck.ts plgg-bundle` clean(後続 T4 の native 再設計後、
+   nested TS6 の tsc で検査)。
+
+### Quality Gate 検証結果
+
+- `npm --prefix packages/plgg-bundle run test` → 103 passed, 0 failed ✔
+- `./scripts/build.sh` → exit 0、全 29 dist ✔
+- dist 差分 → JS バイト一致、.d.ts 差分 2 件は上記のとおり説明済み ✔
+- `./scripts/gate-vendor-boundary.sh` → 緑、`vendor-boundary-exemptions.txt`
+  差分 0 行 ✔
+- escape-hatch grep(`git diff origin/main..HEAD -- '*.ts'` に対する
+  `^\+.*(\bas\b |: any|ts-ignore)`)→ コード上のキャストは 0。マッチするのは
+  コメント散文中の英単語 "as"(例: "runs as ONE job")のみで、`as` キャスト・
+  `: any`・`ts-ignore` の追加は無い ✔
+- `node scripts/typecheck.ts plgg-bundle` → clean ✔
+
+### Discovered Insights
+
+- **Insight**: npm workspaces の hoist は多数決ではない — 27:2 で TS7 が多数でも
+  TS6 が root に hoist された。root manifest の直接依存だけが hoist 先を保証する。
+  **Context**: split-version 構成(意図的な複数バージョン共存)を組むときは、
+  root に「ツーリングが使う版」を明示宣言しないと `node node_modules/typescript/
+  bin/tsc` 系の root 相対パスが別バージョンを掴む。
+- **Insight**: TS7 の宣言 emit は TS6 と完全一致ではない — エイリアス export の
+  `typeof` 参照化と conditional type への括弧付加の 2 パターンを確認。JS 出力には
+  一切影響しない(このリポジトリでは transpile が TS6 のままという理由もある)。
+  **Context**: 将来 dist のバイト比較を受入にするチケットは .d.ts に「意味等価だが
+  非バイト一致」を織り込むこと。
