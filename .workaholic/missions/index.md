@@ -1,5 +1,9 @@
 # missions
 
+## active
+
+* [typescript-7-migration](active/typescript-7-migration/mission.md) - TypeScript 7 migration
+
 ## archive
 
 * [build-the-plgg-ir-package-family](archive/build-the-plgg-ir-package-family/mission.md) - Build the plgg-ir Package Family
