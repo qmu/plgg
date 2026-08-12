@@ -202,3 +202,5 @@ dependabot が生成した #112 の lockfile には 20 ノードすべてが `re
 - 2026-08-13 — story reported — work-20260812-224232.md
 - 2026-08-13 — run recorded (+4.0h) — work-20260812-224232-run1
 - 2026-08-13 — run recorded (+1.2h) — work-20260812-224232-run2
+- 2026-08-13 — concern deferred (stuck) — 20260813043753-dependabot-collides-with-the-split-version.md
+- 2026-08-13 — concern deferred (stuck) — 20260813043753-scanner-route-for-dropping-ts6-entirely.md
