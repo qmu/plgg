@@ -97,3 +97,28 @@ working contract.
    the Go process has its own caching but nothing exposed to replace
    `.tsbuildinfo`-driven `createIncrementalProgram`. Needs wall-clock
    measurement of the full-check path before judging.
+
+## Final outcome (2026-08-13, split-version — adopted)
+
+The developer chose **split-version** and the mission implemented it:
+
+- **Moved to TS7 (native):** the workspace root and the 27 non-publishing
+  manifests declare `typescript@^7.0.2`; declaration emit (`emitDts`), the
+  whole-repo typecheck gate (`scripts/typecheck.ts`, redesigned to spawn each
+  package's own `tsc` — no compiler API), and `check-all`'s direct `bin/tsc`
+  call run the native compiler. Measured: build 89.0 s → 59.0 s, typecheck
+  21.4 s → 11.4 s cold (incremental is gone; 11.4 s flat per run).
+- **Stayed on TS6 (runtime dependencies, nested):** `plgg-bundle`
+  (`transpileModule` in `src/vendors/transpiler.ts`, `createProgram` in
+  `src/vendors/exportSurface.ts`) and `plgg-test` (`transpileModule` in
+  `src/Resolve/hook.ts`), plus `scripts/vendor-boundary-analyzer.mjs`, which
+  resolves typescript through plgg-bundle and keeps TS6's `preProcessFile`.
+  None of these APIs exist in any adoptable 7.x (the table above); no port
+  was attempted, per the route decision.
+- **The scanner PoC above remains the migration path** for the analyzer if
+  TS6 is ever fully dropped; the mapping table is the checklist for
+  `exportSurface.ts`. The pin is re-evaluated at every TS 7.x minor
+  (see `packages/plgg-bundle/DEPENDENCY-LOG.md`, TypeScript 7 adoption).
+- Trade-off numbers, the hoist gotcha (npm nests the majority version unless
+  the root declares one), and the rollback path are recorded in
+  `packages/plgg-bundle/DEPENDENCY-LOG.md`.
