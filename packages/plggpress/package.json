@@ -62,7 +62,7 @@
     "plgg-bundle": "file:../plgg-bundle"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
+    "@types/node": "^26.2.0",
     "plgg-test": "file:../plgg-test",
     "typescript": "^6.0.3"
   }
