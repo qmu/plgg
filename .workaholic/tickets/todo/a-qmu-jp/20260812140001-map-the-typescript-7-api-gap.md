@@ -27,21 +27,33 @@ merge_policy: auto
 | `scripts/typecheck.ts` | `ts.createIncrementalProgram`, `ts.createIncrementalCompilerHost`, `ts.getParsedCommandLineOfConfigFile`, `ts.formatDiagnostics`, `ts.formatDiagnosticsWithColorAndContext`, `ts.sys`, `ts.CompilerHost`, `ts.CompilerOptions`, `ts.SourceFile`, `ts.DiagnosticCategory` |
 | `scripts/vendor-boundary-analyzer.mjs` | `ts.preProcessFile`（`createRequire` 経由なので `from "typescript"` の grep に写らない） |
 
-**計画時の調査で既に分かっていること（スパイクはここから始める、ゼロからでは
-ない）:**
+**計画時の調査 + Codex レビュー（2026-08-12）で既に分かっていること
+（スパイクはここから始める、ゼロからではない）:**
 
-- **`transpileModule` は 7.0.2 の `dist/` を横断検索しても出てこない。**
-  `unstable/sync` の `Emitter` が持つのは `printNode(node, options)` のみ。
-- **`preProcessFile` も同様に見当たらない。**
+- **`transpileModule` は 7.0.2 に存在しない — Codex が registry tarball の
+  `dist/**` / `lib/**` 全検索（0 件）で確認済み。** `unstable/sync` の `Emitter`
+  は `printNode(node, options)` のみ。ただし確認は **7.0.2 について**であり、
+  後続の 7.0.x / 7.1 パッチで追加されていないかは**スパイクが確認する**。
+- **`preProcessFile` も 7.0.2 に存在しない（同、確認済み）。** ただし
+  `unstable/ast/scanner` / `unstable/ast/visitor` は export されており、
+  **import 抽出をこれらで組める可能性がある（未検証）**。スパイクはこの経路の
+  成立性を実際に試す — アナライザが必要とする情報（import された specifier の
+  列挙）が取れるか、コード 20 行程度の PoC で確かめる。
+- **unstable API は旧 API の移設ではなく再設計。** TS7 のライフサイクルは
+  `API → Snapshot → Project → checker` で、対応表は「同名の関数を探す」作業では
+  なく「この設計で同じ結果を得る道筋」を書く作業になる。
 - `exportSurface.ts` の `getExportsOfModule` / `getAliasedSymbol` は
-  `unstable/sync` の `Checker` に対応物がある見込み。
-- **コンパイラオプションは問題ではない**: TS7 の `tsc` に 29 個の
-  `tsconfig.json` を食わせると 28 個が診断ゼロで通る（唯一落ちる `plgg-cms` は
-  TS 6.0.3 でも同じ理由で落ちる既存の dist 陳腐化）。
+  `unstable/sync` の `Checker` に**実在する**（`dist/api/sync/api.d.ts:320,298`）。
+  ただし上記のライフサイクル差により、import 差し替えでは済まない。
+- **「28/29 の tsconfig が TS7 で診断ゼロ」は再現ログの無い自己申告**（Codex
+  指摘）。スパイクはこれを**コマンド・exit code・生出力を保存して**再現する。
+  なお TS6 は診断ありで exit 2、TS7 は exit 1 を返す観察があるので、特定の
+  exit code に依存した検証を書かないこと。
 - 共有の tsconfig ベースは**存在しない**。29 個が独立した完全なコピーで、
   `extends` は 10 個の `tsconfig.build.json` が自分の兄弟を継ぐだけ。
 
-スパイクの仕事は、これらを**確認して覆すか、確定させるか**である。
+スパイクの仕事は、未検証の 3 点（7.0.x パッチの追加 API、`unstable/ast` による
+import 抽出の成立性、28/29 の再現）を**証拠付きで確定させる**ことである。
 
 このチケットは**コードを移植しない**。壊れ方と移植先を特定し、後続 3 枚が
 迷わず進める地図を作る。

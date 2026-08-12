@@ -28,14 +28,21 @@ gate_assert:
 TypeScript 7 は 6.x の後継バージョンではなく **Go による再実装**で、2 つの点で
 別物になっている。
 
-1. **配布形態** — `typescript@7.0.2` は 20 個のプラットフォーム別ネイティブ
-   バイナリ（`@typescript/typescript-linux-x64` ほか）を optional dependency として
-   同梱する。このリポジトリは過去に rolldown の darwin 限定バインディングで CI を
-   壊しており、vite を落とす作業自体が「そのクラスの依存を排除するためにあった」と
-   `packages/plgg-bundle/DEPENDENCY-LOG.md` に記録されている。
-2. **API** — `exports["."]` が `./lib/version.cjs` だけになり、従来の JS コンパイラ
-   API は `typescript/unstable/*` 配下（`unstable/sync`, `unstable/async`,
-   `unstable/ast/*`）に移動した。名前のとおり公式に unstable と宣言されている。
+1. **配布形態** — `typescript@7.0.2` は 20 個のプラットフォーム別パッケージ
+   （`@typescript/typescript-linux-x64` ほか、それぞれが Go 製ネイティブ `tsc` を
+   含む）を optionalDependencies として宣言し、npm が実行プラットフォームの
+   1 つだけを取得する。ローカルに入るバイナリは 1 つだが、**lockfile には 20 個
+   すべてが記録される**。このリポジトリは過去に rolldown の darwin 限定
+   バインディングで CI を壊しており、vite を落とす作業自体が「そのクラスの依存を
+   排除するためにあった」と `packages/plgg-bundle/DEPENDENCY-LOG.md` に記録されて
+   いる。（Codex による registry tarball の実査で確認済み、2026-08-12。）
+2. **API** — `exports["."]` は `./lib/version.cjs` だけになり、`version` と
+   `versionMajorMinor` しか export しない。`typescript/unstable/*`（`unstable/sync`,
+   `unstable/async`, `unstable/ast/*`）に API はあるが、**旧 API の移設ではなく
+   再設計された別物**である — 旧 API との一対一対応は存在せず、実際
+   `transpileModule` と `preProcessFile` はどこにも無い。旧 `lib/typescript.js` は
+   tarball に存在せず、`typescript/lib/*` は exports に無いのでサブパス require も
+   遮断される。（同、Codex 実査で確認済み。）
 
 このリポジトリは **5 ファイル**がそのコンパイラ API に依存しており、**バンドラ・
 テストランナー・全体型チェックゲート・vendor-boundary ゲートが同時に壊れる**。
@@ -47,24 +54,36 @@ dependabot PR #112 は 29 の manifest とルート lockfile を正しく書き�
 計画時の調査で、**移行の可否を左右する事実**が 2 つ出ている。どちらも
 スパイク（T1）が最優先で確定させる。
 
-1. **`transpileModule` が TS7 に存在しない。** 7.0.2 の `dist/` を横断検索しても
-   出てこない。`unstable/sync` の `Emitter` が持つのは `printNode(node, options)`
-   のみ。これは plgg-bundle と plgg-test の**両方**が使っている中核 API である。
-2. **`preProcessFile` も存在せず、代替も見当たらない。** これは 5 番目の利用箇所
-   `scripts/vendor-boundary-analyzer.mjs` が使っており、**check-all の最初の
-   ゲート**を動かしている。しかもこのファイルは `.mjs` で
+1. **`transpileModule` が 7.0.2 に存在しない（Codex 実査で確認済み）。**
+   tarball の `dist/**` と `lib/**` を大小文字無視で全検索して 0 件。
+   `unstable/sync` の `Emitter` が持つのは `printNode(node, options)` のみで、
+   ファイル単位の変換 API はどこにも無い。これは plgg-bundle と plgg-test の
+   **両方**が使っている中核 API である。`unstable/ast` の factory / visitor /
+   scanner を組み合わせた独自変換は理論上可能だが、それは移植ではなく再実装で
+   ある。なお確認は 7.0.2 についてであり、後続の 7.0.x パッチは未確認。
+2. **`preProcessFile` も 7.0.2 に存在しない（同、確認済み）。ただし代替経路は
+   ある。** 5 番目の利用箇所 `scripts/vendor-boundary-analyzer.mjs` が使っており、
+   **check-all の最初のゲート**を動かしている。同名・drop-in の代替は無いが、
+   `typescript/unstable/ast/scanner` / `unstable/ast/visitor` は export されて
+   おり、**import 宣言の抽出をこれらで組める可能性がある（未検証）** — 意味的
+   互換性は自分で検証する必要がある。またこのファイルは `.mjs` で
    `scripts/tsconfig.json` の `include: ["*.ts"]` から外れており、**型チェックでは
    絶対に検出できない**。「tsc が通ったから移行できた」と判断すると、壊れた
    ゲートを緑と report することになる。
 
 `exportSurface.ts` が使う `getExportsOfModule` / `getAliasedSymbol` は
-`unstable/sync` の `Checker` に対応物がある見込みで、そこは相対的に楽観できる。
-つまり**壁は型検査側ではなく変換（emit）側**にある。
+`unstable/sync` の `Checker` に**実在する**（Codex が tarball の
+`dist/api/sync/api.d.ts` で確認済み）。ただし TS7 のライフサイクルは
+`API → Snapshot → Project → checker` で、旧 `createProgram` モデルとは異なる —
+メソッドが在ることと import の差し替えだけで移植できることは別問題である。
+それでも**壁は型検査側ではなく変換（emit）側**にある、という構図は変わらない。
 
-補足として、TS7 の `tsc` に 29 個の `tsconfig.json` を食わせた実測では、
-28 個が診断ゼロで通る（唯一落ちる `plgg-cms` は TS 6.0.3 でも同じく落ちる
-既存の dist 陳腐化で、TS7 起因ではない）。**コンパイラオプションの互換性は
-問題ではない。**
+補足として、TS7 の `tsc` に 29 個の `tsconfig.json` を食わせた計画時の実測では
+28 個が診断ゼロで通った（唯一落ちる `plgg-cms` は TS 6.0.3 でも同じく落ちる
+既存の dist 陳腐化で、TS7 起因ではない）。ただし**この実測は再現可能なログが
+残っていない自己申告**である（Codex レビューの指摘）。T1 がコマンド・exit code・
+生出力を保存して再現すること。それまで「コンパイラオプションの互換性は問題では
+ない」は見込みであって確定ではない。
 
 ### ゴール
 
@@ -96,10 +115,15 @@ TS 7.0.2 にも `@types/node` 26.2.0 にも CVE は無い。**30 日の時計は
 optional-dependency lockfile platform skew（npm/cli#4828）で、**darwin/arm64 の
 ホストで lockfile を再生成すると linux-x64 のバインディングノードが刈られる**。
 
-条件は当時より悪い。この開発ホストは **aarch64**、CI は **ubuntu-latest
-（linux-x64）**、そして workspaces 移行後は**追跡された lockfile が 1 本だけ**で、
-全パッケージがそこから install される。当時の緩和策（deploy ループ内の
-`rm -f package-lock.json`）は**もう存在しない**。
+**ただしこの機構は npm 11.3.0 で修正済みである**（npm/cli#8184、2025-04-03
+merge、`Fixes: #4828` 明記 — Codex レビューで確認）。この開発ホストの npm は
+**11.12.1** なので、「ローカル install が必ず skew を起こす」は成立しない。
+リスクが残るのは **npm 11.2 以前（特に backport されていない 10 系）で、既存の
+`node_modules` を残したまま lockfile を再生成してコミットした場合**に限られる。
+dependabot が生成した #112 の lockfile には 20 ノードすべてが `resolved` /
+`integrity` 付きで入っている。それでも lockfile ノードの検査は安価な防御として
+採用チケット（T5）に残す — 前提が変わったこと（別バージョンの npm を使う環境、
+将来の regression）への保険であって、確実に起きる事故への対策ではない。
 
 さらに `packages/plgg-bundle/DEPENDENCY-LOG.md` の headline policy は
 `vendor-neutrality` を引いて「**脆いネイティブバインディングへの再ロックを禁じる**」
@@ -150,3 +174,4 @@ optional-dependency lockfile platform skew（npm/cli#4828）で、**darwin/arm64
 - 2026-08-12 — ticket added — 20260812140004-port-the-typecheck-gate-to-typescript-7.md
 - 2026-08-12 — ticket added — 20260812140005-adopt-typescript-7-and-record-the-tradeoff.md
 - 2026-08-12 — ticket added — 20260812140006-port-the-vendor-boundary-analyzer-to-typescript-7.md
+- 2026-08-12 — mission replanned — codex-review corrections folded in

@@ -28,6 +28,14 @@ merge_policy: auto
 従って移植する。**対応表に「無し」と書かれた API があれば、そこで止めて報告する**
 （迂回を発明しない）。
 
+**着手前から分かっている難度（Codex 実査、2026-08-12）**: `transpileModule` は
+7.0.2 に存在しない — つまり `transpiler.ts` の移植は「同名 API への差し替え」では
+なく、スパイクが特定した道筋（`unstable/ast` ベースの変換、または別の結論）に
+沿った**再実装**になる。`exportSurface.ts` 側は `getExportsOfModule` /
+`getAliasedSymbol` が `unstable/sync` の `Checker` に実在するが、TS7 の
+ライフサイクルは `API → Snapshot → Project → checker` で旧 `createProgram`
+モデルと異なるため、こちらも import 差し替えでは済まない。
+
 ## Policies
 
 - `workaholic:implementation` / `policies/anti-corruption-structure.md` — この

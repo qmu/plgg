@@ -97,12 +97,16 @@ dependabot PR #112 を始末する。
   (a) `as` によるキャスト、(b) 網羅していない `never` 分岐、(c) ブランド型の
   バイパス、(d) `Option` が要求される位置での裸の `null`。各ケースについて
   出た診断を Final Report に引用する。
-- **lockfile の platform skew が起きていないこと。** ローカル install の直後に、
-  ルート `package-lock.json` が linux-x64 の TypeScript バイナリについて
-  `resolved` と `integrity` を持つ**インストール可能なノード**を含むことを
-  確認する（`optionalDependencies` の裸の参照だけでは不可）。この開発ホストは
-  aarch64、CI は linux-x64 で、過去に同じ機構（npm/cli#4828）で Deploy Guide が
-  毎回落ちた実績がある。当時の緩和策は既に存在しない。
+- **lockfile が 20 プラットフォームすべてのインストール可能なノードを保持して
+  いること。** ローカル install の直後に、ルート `package-lock.json` が全
+  `@typescript/typescript-*` について `resolved` と `integrity` を持つノードを
+  含むことを確認する（裸の `optionalDependencies` 参照だけでは不可）。
+  **注記（Codex レビュー、2026-08-12）**: この skew を起こす npm/cli#4828 は
+  npm 11.3.0 で修正済みで、このホストは 11.12.1 — 確実に起きる事故ではない。
+  それでも検査を残すのは、npm 11.2 以前を使う環境・将来の regression への
+  安価な保険としてであり、検査が落ちたら npm のバージョンを最初に疑うこと。
+  過去に同じ機構で Deploy Guide が毎回落ちた実績（rolldown、2026-06）が、
+  この 1 行の検査の由来である。
 - **公開 2 パッケージの扱いが意図的であること。** `plgg-bundle` と `plgg-test` は
   `typescript` を runtime `dependencies` に持つ。`^7` にすると npm 利用者に
   ネイティブバイナリ付きの依存が配布される。この 2 つを他の 27 と同じように
