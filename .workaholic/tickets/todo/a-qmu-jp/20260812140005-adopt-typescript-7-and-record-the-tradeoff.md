@@ -2,7 +2,7 @@
 created_at: 2026-08-12T14:00:05+09:00
 author: a@qmu.jp
 type: housekeeping
-layer: [Config]
+layer: [Config, Infrastructure]
 effort:
 commit_hash:
 category:
@@ -37,8 +37,19 @@ dependabot PR #112 を始末する。
 - `workaholic:operation` / `policies/ci-cd.md` — 採用の証拠は、緑の CI では
   なく**本番相当の経路が期待どおり応答すること**。ここではガイドのデプロイまで
   含めて確認する。
-- `.workaholic/constraints/project.md` の Dependency Currency — dependabot PR は
-  30 日以内にマージするか明示的に拒否する。#112 を open のまま残さない。
+- `workaholic:implementation` / `policies/directory-structure.md` — 決定記録は
+  `docs/` と依存決定ログに置く。新しい置き場所を作らない。
+- `workaholic:implementation` / `policies/type-driven-design.md` — **ドメインの
+  レンズを明示的に引く。** ドメインのファイルは 1 行も変わらないが、型検査器を
+  入れ替える以上、ドメインが依存している型レベルの保証そのものが賭けの対象に
+  なる。「新しいコンパイラが行わなくなった検査」は**赤ではなく緑を返す**ので、
+  ゲートが通ったことは何の証拠にもならない。
+- `workaholic:safety` / `policies/risk-management.md` — decline した場合、
+  「6.x に留まる」は名前を付けて受容するリスクであり、期限とともに記録する。
+- **注記: `.workaholic/constraints/project.md` の Dependency Currency は
+  このチケットに適用されない。** 同制約は "security-relevant packages" と
+  "a package with a known CVE" に限定されており、TS 7.0.2 に CVE は無い。
+  **30 日の時計は動いていない。** #112 の始末は衛生であって締切ではない。
 
 ## Key Files
 
@@ -80,6 +91,22 @@ dependabot PR #112 を始末する。
   **6.x / 7.x 比較の実測値**が載っている。空欄・推定値・「およそ」は不可。
 - **CI が緑**であること — PR 上の `check-all` ワークフローが pass したこと。
   ローカルの緑では代替しない。
+- **負の対照コーパスが通らないこと。** 「コンパイラが行わなくなった検査」は
+  緑として現れるので、緑は証拠にならない。**コンパイルが失敗しなければならない**
+  ファイル群を用意し、TS7 でも確かに拒否されることを示す。最低限:
+  (a) `as` によるキャスト、(b) 網羅していない `never` 分岐、(c) ブランド型の
+  バイパス、(d) `Option` が要求される位置での裸の `null`。各ケースについて
+  出た診断を Final Report に引用する。
+- **lockfile の platform skew が起きていないこと。** ローカル install の直後に、
+  ルート `package-lock.json` が linux-x64 の TypeScript バイナリについて
+  `resolved` と `integrity` を持つ**インストール可能なノード**を含むことを
+  確認する（`optionalDependencies` の裸の参照だけでは不可）。この開発ホストは
+  aarch64、CI は linux-x64 で、過去に同じ機構（npm/cli#4828）で Deploy Guide が
+  毎回落ちた実績がある。当時の緩和策は既に存在しない。
+- **公開 2 パッケージの扱いが意図的であること。** `plgg-bundle` と `plgg-test` は
+  `typescript` を runtime `dependencies` に持つ。`^7` にすると npm 利用者に
+  ネイティブバイナリ付きの依存が配布される。この 2 つを他の 27 と同じように
+  上げたのか、別扱いにしたのかを Final Report で明言する。
 - dependabot PR #112 が closed。
 - 新規コードに `as` / `any` / `ts-ignore` が増えていない。
 - `npm audit` が 0 vulnerabilities。
@@ -107,6 +134,17 @@ optional dependency として解決するので、「この開発マシンで動
 2026-08-12）。計測は判断を覆すためではなく、**払った代償を記録するため**に
 行う。ただし計測で致命的な問題（CI で解決できないプラットフォームがある等）が
 出た場合は別で、そのときは止めて報告する（`/drive` で開発者が上書き可）。
+
+`Decided:` **decline も正規の終端状態として記録する。** 移行が成立しないと
+確定した場合、PR #112 を黙って閉じるのではなく、`vendor-neutrality` が要求する
+とおり **依存決定ログに「取った行動」として追記**する（update / workaround /
+risk acceptance / exit strategy activation のどれか）。あわせて「6.x に留まる」を
+期限付きの受容リスクとして記録する（`/drive` で開発者が上書き可）。
+
+`Decided:` **依存決定ログに exit strategy を必ず書く。** `vendor-neutrality` は
+exit strategy を log の必須項目としている。TS7 を採用するなら、**6.x に戻す
+手順・影響範囲・概算工数**を書き残す。採用時にしか書けない情報である
+（`/drive` で開発者が上書き可）。
 
 `Decided:` **Node ランタイムは上げない。** CI は 22.x のまま。TS7 の採用と
 Node のバージョン更新は独立した判断で、混ぜると切り分けが効かなくなる

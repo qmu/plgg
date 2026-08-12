@@ -39,8 +39,16 @@ merge_policy: auto
   という設計思想の実行機構。
 - `workaholic:operation` / `policies/ci-cd.md` — 単一の検査コマンドに統合する。
   移植でゲートが分裂したり、一部パッケージが検査対象から外れたりしないこと。
-- `workaholic:implementation` / `policies/observability.md` — 診断の出力形式
-  （色付き、ファイル位置つき）は開発者がエラーを読む唯一の窓。劣化させない。
+- `workaholic:implementation` / `policies/objective-documentation.md` — 診断の
+  出力形式（色付き、ファイル位置つき）は開発者がエラーを読む唯一の窓。
+  劣化させない。
+- **注記: このファイルは vendor-boundary ゲートの守備範囲外。**
+  `scripts/vendor-boundary-analyzer.mjs` が走査するのは `packages/*/src` だけで、
+  `scripts/` は含まれない。つまり 4 箇所のうちここだけ、第三者 import の境界を
+  機械的に守る仕組みが無い。
+
+- `workaholic:implementation` / `policies/directory-structure.md` — 変更は既存の
+  構造の中に収める。新しいトップレベルディレクトリを作らない。
 
 ## Key Files
 

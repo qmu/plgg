@@ -36,6 +36,9 @@ plgg-bundle 側（先行チケット `20260812140002`）が同じ `transpileModu
 - `workaholic:operation` / `policies/ci-cd.md` — 緑であることではなく、
   何を検査したかが証拠。
 
+- `workaholic:implementation` / `policies/directory-structure.md` — 変更は既存の
+  構造の中に収める。新しいトップレベルディレクトリを作らない。
+
 ## Key Files
 
 - `packages/plgg-test/src/Resolve/hook.ts` — 移植対象。
@@ -93,6 +96,16 @@ plgg-bundle 側（先行チケット `20260812140002`）が同じ `transpileModu
   振る舞う制約があり（`worker_threads` を使わない理由でもある）、ローダフックは
   その最前線。TS7 のネイティブバイナリが Deno/Bun でどう解決されるかは
   未知数なので、ゲートが落ちたら**それは重要な発見**として報告すること。
+- **`--experimental-strip-types` への置き換えを安易に選ばない。** `hook.ts` は
+  `transpileModule` に `verbatimModuleSyntax: false` を渡しており、その理由が
+  コメントに書かれている — ネイティブの型剥がしは構文上の型と `import type` しか
+  除去せず、**型と値が混ざった import**（`import { ok, Apply1 }`）はそのまま残る。
+  plgg のソースは `verbatimModuleSyntax` clean ではない（29 個中 6 個しか
+  このフラグを立てていない）。したがって「Node の型剥がしに寄せる」道の真の
+  コストは、**残り 23 パッケージを verbatim clean にすること**である。選ぶ前に
+  その規模を測ること。
+- **`typescript` は plgg-test の runtime `dependencies`。** devDependency では
+  ないので、`^7` にすると npm 利用者に配布される。
 - **ローダフックは実行時の依存。** ビルド時だけの依存と違い、テストを走らせる
   たびに TS7 が読み込まれる。起動時間の変化があれば記録する（ミッションの
   トレードオフ計測に効く）。

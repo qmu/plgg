@@ -43,6 +43,9 @@ merge_policy: auto
   ではなく「**出力が等価である**」こと。バンドラは出力物が成果なので、
   出力を比較する。
 
+- `workaholic:implementation` / `policies/directory-structure.md` — 変更は既存の
+  構造の中に収める。新しいトップレベルディレクトリを作らない。
+
 ## Key Files
 
 - `packages/plgg-bundle/src/vendors/transpiler.ts` — 移植対象。
