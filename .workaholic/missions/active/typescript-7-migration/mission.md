@@ -179,7 +179,7 @@ dependabot が生成した #112 の lockfile には 20 ノードすべてが `re
 ## Acceptance
 
 - [x] TS7 で何がどう壊れるかが実測で特定され、5 ファイルそれぞれの移植方針が unstable API の実在するシンボルに対応づけられている (#20260812140001-map-the-typescript-7-api-gap.md)
-- [ ] 5 つのコンパイラ API 利用箇所すべてが TS7 で動作し、`node scripts/typecheck.ts` と `./scripts/check-all.sh` が緑になる (#20260812140004-port-the-typecheck-gate-to-typescript-7.md)
+- [x] 5 つのコンパイラ API 利用箇所すべてが TS7 で動作し、`node scripts/typecheck.ts` と `./scripts/check-all.sh` が緑になる (#20260812140004-port-the-typecheck-gate-to-typescript-7.md)
 - [ ] TS7 が 29 manifest とルート lockfile に採用され、負の対照コーパスが依然として拒否され、ネイティブバイナリのトレードオフが数字で記録され、PR #112 が始末されている (#20260812140005-adopt-typescript-7-and-record-the-tradeoff.md)
 
 ## Changelog
@@ -197,3 +197,4 @@ dependabot が生成した #112 の lockfile には 20 ノードすべてが `re
 - 2026-08-13 — ticket archived — 20260812140002-port-plgg-bundle-to-typescript-7.md
 - 2026-08-13 — ticket archived — 20260812140003-port-plgg-test-resolve-hook-to-typescript-7.md
 - 2026-08-13 — ticket archived — 20260812140006-port-the-vendor-boundary-analyzer-to-typescript-7.md
+- 2026-08-13 — ticket archived — 20260812140004-port-the-typecheck-gate-to-typescript-7.md
