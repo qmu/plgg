@@ -195,3 +195,4 @@ dependabot が生成した #112 の lockfile には 20 ノードすべてが `re
 - 2026-08-12 — ticket archived — 20260812140001-map-the-typescript-7-api-gap.md
 - 2026-08-13 — mission replanned — route decision split-version (developer, 2026-08-13)
 - 2026-08-13 — ticket archived — 20260812140002-port-plgg-bundle-to-typescript-7.md
+- 2026-08-13 — ticket archived — 20260812140003-port-plgg-test-resolve-hook-to-typescript-7.md

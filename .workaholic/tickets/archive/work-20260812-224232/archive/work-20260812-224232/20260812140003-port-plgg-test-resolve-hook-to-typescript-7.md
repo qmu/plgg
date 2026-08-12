@@ -117,3 +117,25 @@ plgg-bundle 側（先行チケット `20260812140002`）が同じ `transpileModu
 - **ローダフックは実行時の依存。** ビルド時だけの依存と違い、テストを走らせる
   たびに TS7 が読み込まれる。起動時間の変化があれば記録する（ミッションの
   トレードオフ計測に効く）。
+
+## Final Report
+
+split-version(経路決定 2026-08-13)により**移植不要**。plgg-test は
+`typescript: ^6.0.3` を runtime dependencies に保持し、`Resolve/hook.ts` は
+無変更のまま nested TS6(`packages/plgg-test/node_modules/typescript@6.0.3`)の
+`transpileModule` を解決し続ける。検証は T2(`20260812140002`、アーカイブ済み)で
+実施した:
+
+- `npm --prefix packages/plgg-test run test` → **147 passed, 0 failed, 0 skipped**
+  (移行前と同数)。
+- `./scripts/gate-cross-runtime.sh` → 緑。node / deno / bun 全てで
+  `cross-runtime smoke: OK — 7 passed`。
+- **テスト本数の前後一致**: 29 パッケージ個別の `N passed, M failed, K skipped`
+  行を移行前後で採取し diff → 完全一致(ローダが spec を黙って落としていない
+  ことの証拠)。
+- check-all の test フェーズ: 移行前「30 checks — all green」→ 移行後
+  「30 checks — all green」。
+- `node scripts/typecheck.ts plgg-test` clean(nested TS6 の tsc で検査)。
+
+起動時間: ローダは従来どおり TS6 を読み込むため変化しないのが期待どおりで、
+スイート wall clock にも有意差は観測されなかった。
