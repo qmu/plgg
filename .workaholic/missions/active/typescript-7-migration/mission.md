@@ -9,7 +9,7 @@ author: a@qmu.jp
 assignees: [a@qmu.jp]
 assignee:
 predicted_hours:
-actual_hours:
+actual_hours: 5.2
 tickets: []
 stories: []
 gate_type:
@@ -200,3 +200,5 @@ dependabot が生成した #112 の lockfile には 20 ノードすべてが `re
 - 2026-08-13 — ticket archived — 20260812140004-port-the-typecheck-gate-to-typescript-7.md
 - 2026-08-13 — ticket archived — 20260812140005-adopt-typescript-7-and-record-the-tradeoff.md
 - 2026-08-13 — story reported — work-20260812-224232.md
+- 2026-08-13 — run recorded (+4.0h) — work-20260812-224232-run1
+- 2026-08-13 — run recorded (+1.2h) — work-20260812-224232-run2
