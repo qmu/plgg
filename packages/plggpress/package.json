@@ -64,6 +64,6 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "plgg-test": "file:../plgg-test",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }

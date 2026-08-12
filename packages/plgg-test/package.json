@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "plgg": "file:../plgg",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
