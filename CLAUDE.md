@@ -1,5 +1,7 @@
 THE MOST IMPORTANT RULE - `as` `any`, and `ts-ignore` is STRICTLY PROHIBITED as a solution to type errors under any circumstances.
 
+This repository works under the workaholic engineering standards: the rules live in the `workaholic:workaholify` gateway skill and the pillar policy skills it names — refer there, never copy rules into this file.
+
 * Fix compilation error with `scripts/tsc-plgg.sh` (one package). `node scripts/typecheck.ts` is the whole-repo gate — one spawned `tsc -p --noEmit` per package (each package's own declared TypeScript: TS7 native for most, TS6 for plgg-bundle/plgg-test), full check every run in a bounded process pool; pass package names to narrow it, `--jobs N` to pin concurrency. Package `test` scripts no longer run `tsc`.
 * Test with `scripts/test-plgg.sh`.
 * Format with Prettier; every package carries its own `.prettierrc.json` (`printWidth: 50`) — don't hand-pack onto fewer lines.
