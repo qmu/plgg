@@ -2,7 +2,7 @@
 type: Mission
 title: TypeScript 7 migration
 slug: typescript-7-migration
-status: active
+status: achieved
 merge_policy: auto
 created_at: 2026-08-12T13:59:30+09:00
 author: a@qmu.jp
@@ -204,3 +204,4 @@ dependabot が生成した #112 の lockfile には 20 ノードすべてが `re
 - 2026-08-13 — run recorded (+1.2h) — work-20260812-224232-run2
 - 2026-08-13 — concern deferred (stuck) — 20260813043753-dependabot-collides-with-the-split-version.md
 - 2026-08-13 — concern deferred (stuck) — 20260813043753-scanner-route-for-dropping-ts6-entirely.md
+- 2026-08-13 — mission achieved — mission.md

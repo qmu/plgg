@@ -197,4 +197,6 @@
 * [check-all has no dependency-vulnerability gate](20260811193247-check-all-has-no-dependency-vulnerability.md)
 * [No risk register exists for an accepted vulnerability](20260811193247-no-risk-register-exists-for-an.md)
 * [The cloudflared ingress still routes the deleted PoC hosts](20260811193247-the-cloudflared-ingress-still-routes-the.md)
+* [Dependabot collides with the split-version strategy](20260813043753-dependabot-collides-with-the-split-version.md)
+* [Scanner route for dropping TS6 entirely remains unexercised](20260813043753-scanner-route-for-dropping-ts6-entirely.md)
 <!-- okf:generated:end -->

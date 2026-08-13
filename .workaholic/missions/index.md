@@ -1,9 +1,5 @@
 # missions
 
-## active
-
-* [typescript-7-migration](active/typescript-7-migration/mission.md) - TypeScript 7 migration
-
 ## archive
 
 * [build-the-plgg-ir-package-family](archive/build-the-plgg-ir-package-family/mission.md) - Build the plgg-ir Package Family
@@ -16,3 +12,4 @@
 * [plggpress-column-layout-and-voice-ai-editing](archive/plggpress-column-layout-and-voice-ai-editing/mission.md) - plggpress column layout and voice AI editing
 * [plggpress-technical-confidence-poc-portal](archive/plggpress-technical-confidence-poc-portal/mission.md) - plggpress technical-confidence PoC portal
 * [prove-metamodel-concept-on-plgg-ir](archive/prove-metamodel-concept-on-plgg-ir/mission.md) - Prove a metamodel concept on plgg-ir (a runnable worked example)
+* [typescript-7-migration](archive/typescript-7-migration/mission.md) - TypeScript 7 migration
