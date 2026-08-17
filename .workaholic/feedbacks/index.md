@@ -199,4 +199,5 @@
 * [The cloudflared ingress still routes the deleted PoC hosts](20260811193247-the-cloudflared-ingress-still-routes-the.md)
 * [Dependabot collides with the split-version strategy](20260813043753-dependabot-collides-with-the-split-version.md)
 * [Scanner route for dropping TS6 entirely remains unexercised](20260813043753-scanner-route-for-dropping-ts6-entirely.md)
+* [Move the guide to Cloudflare Workers with a staging-plgg-guide.qmu.dev staging surface](20260817210723-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-guide-qmu-dev-staging-surface.md)
 <!-- okf:generated:end -->
