@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "plggpress dev --watch-theme",
     "build": "plggpress build --config site.config.ts --contentDir . --outDir dist",
-    "preview": "python3 -m http.server --directory dist"
+    "preview": "python3 -m http.server --directory dist",
+    "serve:worker": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "repository": {
     "type": "git",
@@ -21,5 +23,8 @@
   "homepage": "https://github.com/qmu/plgg#readme",
   "dependencies": {
     "plggpress": "file:../plggpress"
+  },
+  "devDependencies": {
+    "wrangler": "^4.123.0"
   }
 }

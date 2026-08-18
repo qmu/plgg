@@ -1,0 +1,58 @@
+// The guide's delivery surface: a Cloudflare Worker that
+// serves the plggpress build output (`dist/`) as static
+// assets.
+//
+// There is deliberately no `main` — this is an
+// assets-only Worker. plggpress emits a fully static tree
+// (one `<page>/index.html` per page plus a top-level
+// `404.html`; every stylesheet and script is inlined, so
+// the build is 40 HTML files and nothing else), and
+// Cloudflare's Static Assets runtime already answers
+// exactly the two questions that tree poses: how a
+// directory URL resolves, and what a miss returns. A
+// hand-written fetch handler would only re-implement
+// them, so the Worker script that does not exist is the
+// one that cannot drift from the build.
+//
+// `dist/` is a build product and stays untracked (the
+// root `.gitignore` ignores `**/dist/`); `wrangler
+// deploy` uploads it at deploy time from whatever
+// `npm run build` just produced.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "plgg-guide",
+  "compatibility_date": "2026-08-01",
+
+  // The production Worker is reachable on its
+  // `*.workers.dev` subdomain and nowhere else yet: this
+  // repository does not own the `qmu.co.jp` zone's DNS
+  // (it is Terraform-managed in the corporate
+  // repository's `infra/terraform/cloudflare-dns/`), and
+  // `plgg.qmu.co.jp` is still served by GitHub Pages.
+  // Adding the custom route is the cutover, and it is the
+  // last and most reversible act of it — see the
+  // mission's second ticket. Proving the Worker on
+  // workers.dev first is what keeps it that way.
+  "workers_dev": true,
+
+  "assets": {
+    "directory": "./dist",
+
+    // Match what GitHub Pages does today, so the cutover
+    // changes the server and not the URLs:
+    // `/getting-started` redirects to
+    // `/getting-started/` and serves that directory's
+    // `index.html`. plggpress writes directory-style
+    // pages only, so a missing trailing slash must never
+    // become a 404.
+    "html_handling": "auto-trailing-slash",
+
+    // A miss serves the nearest `404.html` with a 404
+    // status — the same file plggpress already renders
+    // and the same status Pages returns. Not
+    // `single-page-application`: the guide is
+    // pre-rendered, so a wrong URL must stay wrong rather
+    // than silently render the landing page under it.
+    "not_found_handling": "404-page"
+  }
+}

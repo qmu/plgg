@@ -35,10 +35,45 @@ npm run dev
 npm run preview
 ```
 
-The live site is served at `plgg-guide.qmu.dev` (host port
-`5181`). The build depends on [`plggpress`](../plggpress/) and
-the dev server on [`plgg-bundle`](../plgg-bundle/); both are
-`file:`-linked workspace packages.
+The hot-reloading dev server is reachable at
+`plgg-guide.qmu.dev` (host port `5181`) through the shared
+cloudflared tunnel. The build depends on
+[`plggpress`](../plggpress/) and the dev server on
+[`plgg-bundle`](../plgg-bundle/); both are `file:`-linked
+workspace packages.
+
+## Delivery
+
+The built site is served by a **Cloudflare Worker** defined
+in this package by [`wrangler.jsonc`](wrangler.jsonc):
+
+```bash
+# Serve dist/ through the real Worker runtime (workerd),
+# locally, with no Cloudflare account needed.
+npm run serve:worker
+
+# Publish dist/ to the production Worker. Needs Cloudflare
+# credentials (CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID).
+npm run build && npm run deploy
+```
+
+The Worker has no script of its own: plggpress emits a
+fully static tree, and Cloudflare's Static Assets runtime is
+configured to answer it the way GitHub Pages does today —
+`/getting-started` redirects to `/getting-started/` and
+serves that directory's `index.html`
+(`html_handling: "auto-trailing-slash"`), and a miss returns
+the rendered `404.html` with a 404 status
+(`not_found_handling: "404-page"`). `dist/` is a build
+product and stays untracked; `wrangler deploy` uploads
+whatever `npm run build` last produced.
+
+Hostnames are **not** declared here. The `qmu.co.jp` zone's
+DNS is Terraform-managed in the corporate repository
+(`infra/terraform/cloudflare-dns/`), so the Worker publishes
+to its `*.workers.dev` subdomain and the routes that put it
+behind `plgg.qmu.co.jp` are a separate, deliberately
+reversible cutover.
 
 ## Conventions
 

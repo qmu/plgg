@@ -44,7 +44,7 @@ second publisher of the same site.
 
 <!-- PROPOSED — a sketch for the reviewer to interrogate, not a plan. -->
 
-- [ ] The guide's build output is served by a Cloudflare Worker defined in this
+- [x] The guide's build output is served by a Cloudflare Worker defined in this
       repository, deployable with `wrangler deploy`. (#20260818072000-serve-the-guide-from-a-cloudflare-worker-in-this-repository.md)
 - [ ] A merge to `main` that touches the guide or the packages deploys production
       automatically, and the GitHub Pages path is removed. (#20260818072004-deploy-the-guide-to-the-production-worker-on-merge-and-retire-github-pages.md)
@@ -54,3 +54,4 @@ second publisher of the same site.
 ## Changelog
 
 <!-- Append-only, dated timeline. One line per event; never rewrite past lines. -->
+- 2026-08-18 — ticket archived — 20260818072000-serve-the-guide-from-a-cloudflare-worker-in-this-repository.md

@@ -1,5 +1,6 @@
 ---
 created_at: 2026-08-18T07:20:00+00:00
+status: done
 author: a@qmu.jp
 assignees: [a@qmu.jp]
 depends_on:
@@ -118,3 +119,69 @@ anything about the live site changes.
   buildable half of this ticket is verifiable without the account.
 - The guide's `dist` is a build product, not tracked content — keep it ignored,
   and let the Worker read it at deploy time rather than committing it.
+
+## Final Report
+
+Development completed as planned.
+
+### Open Decision — resolved
+
+**Which Worker shape the guide adopts** → **(b) Cloudflare Workers Static
+Assets, with no Worker script.**
+
+The reference the instruction names, `qmu-co-jp`'s `packages/site`, could not be
+read: this session's GitHub access is scoped to `qmu/plgg`, and the attempt was
+refused outright — `Access denied: repository "qmu/qmu-co-jp" is not configured
+for this session. Allowed repositories: qmu/plgg`. So option (a), "mirror
+whatever the reference does", is not a choice this run could make; picking it
+would have meant inventing the reference's shape and calling it a mirror.
+
+Option (b) is also the better fit on its own terms, which is why it is recorded
+as a decision rather than a fallback. plggpress emits a fully static tree — 40
+HTML files, one `<page>/index.html` per page plus a top-level `404.html`, with
+every stylesheet and script inlined, so there is not one non-HTML asset. The two
+questions that tree poses are how a directory URL resolves and what a miss
+returns, and Cloudflare's Static Assets runtime answers both declaratively
+(`html_handling` / `not_found_handling`). A `main` handler would only
+re-implement them in code that can drift from the build; the Worker script that
+does not exist is the one that cannot.
+
+If the reference repository turns out to use a scripted Worker, converging is a
+config-level change to `wrangler.jsonc`, not a rewrite — nothing else in this
+ticket depends on the shape.
+
+### Sequencing decision
+
+`wrangler.jsonc` declares `workers_dev: true` and **no route**. The ticket's gate
+requires that nothing about the live `plgg.qmu.co.jp` delivery has changed yet,
+and the next ticket's own considerations ask for the Worker to be proven on
+workers.dev before the production DNS record moves. A `routes` entry here would
+have made the first `wrangler deploy` the cutover. Hostnames are also not this
+repository's to declare: the `qmu.co.jp` zone is Terraform-managed in the
+corporate repository, so wrangler owns the route and Terraform owns the record —
+never `custom_domain: true`, which would have wrangler write DNS that Terraform
+believes it owns.
+
+### Discovered Insights
+
+- **Insight**: plggpress's build writes `outDir/<path>/index.html` per page and a
+  single `outDir/404.html` (`framework/Build/usecase/build.ts`, steps 4-5), and
+  inlines every stylesheet and script — the guide's whole `dist` is 40 HTML files
+  and nothing else.
+  **Context**: this is the entire specification of the delivery surface. It is
+  why `html_handling: "auto-trailing-slash"` and `not_found_handling: "404-page"`
+  reproduce GitHub Pages exactly, and why no asset-hashing, caching or MIME
+  configuration is needed. Any future generator change that emits sibling assets
+  or `<page>.html` instead of `<page>/index.html` invalidates that config.
+- **Insight**: `wrangler dev` runs the real workerd runtime against `dist` with
+  no Cloudflare account and no login; only `wrangler deploy` needs credentials.
+  **Context**: the delivery surface is therefore fully testable in CI and in an
+  unattended run — the buildable half of every Cloudflare ticket in this mission
+  can be proven here, and only the account-bound half is a genuine handoff.
+- **Insight**: `npm install --workspace @plgg/guide` is the correct way to add a
+  package dependency in this repo; `scripts/npm-install.sh` is one root install
+  and the root `package-lock.json` is the single resolution artifact
+  (`packages/*/package-lock.json` is gitignored on purpose).
+  **Context**: wrangler's bin lands in the ROOT `node_modules/.bin`, which is why
+  `npm run deploy --prefix packages/guide` resolves it from any working
+  directory, including a bare CI runner.
