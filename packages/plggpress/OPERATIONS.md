@@ -2,21 +2,38 @@
 
 Ticket 28 (Phase 11, D5). How the **served** plggpress instance stays up, where
 its data lives, how it is backed up, and how its secrets are held. The **public
-reader is untouched** — it keeps deploying to GitHub Pages as an SSG/CDN site
-(D5's "public reader stays SSG/CDN"). Everything below is about the *dynamic*
-always-on instance that serves `/admin`, the delivery API, RAG, the agent mint,
-`/mcp`, and the plugin export.
+reader stays SSG/CDN** (D5) — only the CDN changed: as of 2026-08-18 it is a
+Cloudflare Worker rather than GitHub Pages. Everything below is about the
+*dynamic* always-on instance that serves `/admin`, the delivery API, RAG, the
+agent mint, `/mcp`, and the plugin export.
 
 ## Topology (D5 — dual-mode)
 
 ```
-                 ┌────────────────────── GitHub Pages (CDN) ── public reader (SSG)
+                 ┌───── Cloudflare Worker (static assets) ── public reader (SSG)
   git corpus ────┤
                  └── cloudflared tunnel ── always-on served plggpress ── SQLite index (WAL)
 ```
 
-- **Public reader**: the SSG build published to GitHub Pages. Stateless, cached,
-  no secrets. Deploy = the existing `build`/publish flow.
+- **Public reader**: the SSG build published to a Cloudflare Worker. Stateless,
+  cached, no secrets. Deploy = `npm run build && npm run deploy` in the site
+  package, which is what `.github/workflows/deploy-guide.yml` runs on every
+  merge to `main`. The worked example is the guide
+  (`packages/guide/wrangler.jsonc` and its README's *Delivery* section): an
+  assets-only Worker with `html_handling: "auto-trailing-slash"` and
+  `not_found_handling: "404-page"`, which is what plggpress's directory-style
+  `index.html` output plus its rendered `404.html` need.
+  - **One publisher per hostname.** This path replaced GitHub Pages
+    (`actions/upload-pages-artifact` + `actions/deploy-pages`, last published
+    2026-08-12); the repository's Pages configuration and custom domain are
+    retired with it. Re-introducing either alongside the Worker puts two
+    publishers on one hostname.
+  - **Hostnames are zone-level, not repository-level.** Worker *routes* are
+    declared in the site package's wrangler config; the DNS records they need
+    are Terraform-managed in the corporate repository
+    (`infra/terraform/cloudflare-dns/`). A record must be proxied through
+    Cloudflare before a deploy carrying its route will be accepted, so the
+    Terraform change always lands first.
 - **Served instance**: one always-on `plggpress serve` process behind a
   `cloudflared` tunnel (see `reference_cloudflared_tunnel`: `*.qmu.dev` → a local
   port). It owns the mutable state (the SQLite index + the auth/stakeholder/draft/

@@ -1,11 +1,19 @@
 name: Deploy Guide
 
 # Build the plggpress guide (packages/guide) — including the auto-generated,
-# per-package API reference — and publish it to GitHub Pages.
+# per-package API reference — and publish it to the production Cloudflare
+# Worker (packages/guide/wrangler.jsonc).
 #
 # Independent of the CalVer release pipeline (prepare-release/release): the docs
 # follow the code, so this runs on any push to main that touches the packages or
 # the guide itself, plus on-demand via workflow_dispatch.
+#
+# This workflow published to GitHub Pages until 2026-08-18. The site now has
+# exactly ONE publisher: the Worker below. Nothing here may re-introduce a
+# second one — two publishers for one hostname is the failure the cutover was
+# done to remove. The rollback is this file's history plus re-enabling Pages in
+# the repository settings; the last Pages publish was run 31633532497
+# (2026-08-12, "Merge pull request #117").
 on:
   push:
     branches: ["main"]
@@ -14,11 +22,11 @@ on:
       - ".github/workflows/deploy-guide.yml"
   workflow_dispatch:
 
-# Allow the deploy job to publish to Pages.
+# Read-only: the deploy leaves GitHub entirely, so the Pages-era `pages: write`
+# and `id-token: write` grants are gone. Cloudflare is authenticated by a
+# repository secret instead, not by the workflow's own GitHub identity.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # One in-flight deploy at a time; don't cancel a running publish.
 concurrency:
@@ -26,7 +34,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,24 +57,21 @@ jobs:
         run: ./scripts/build.sh
 
       - name: Build the guide (plggpress)
-        # The site serves at the domain root: the Pages custom domain
-        # plgg.qmu.co.jp is set on the repo, so no DOCS_BASE is needed
-        # (site.config.ts defaults the base to "/").
+        # The site serves at the domain root: site.config.ts defaults the base
+        # to "/" and the Worker serves that root, so no DOCS_BASE is needed.
         run: npx plggpress build --config site.config.ts --contentDir . --outDir dist
         working-directory: packages/guide
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: packages/guide/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      # `wrangler deploy`, through the guide's OWN deploy script — so the
+      # command that publishes is one this repository owns and a developer can
+      # run by hand, never a wrangler invocation that lives only here.
+      #
+      # The token is a repository secret scoped to Workers deployment on this
+      # account; it is never inlined and never echoed. An absent secret fails
+      # this step loudly on purpose: a green run that quietly skipped the
+      # publish would be worse than a red one.
+      - name: Deploy the guide to the production Worker
+        run: npm run deploy --prefix packages/guide
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

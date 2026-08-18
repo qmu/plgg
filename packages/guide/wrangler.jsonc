@@ -23,17 +23,36 @@
   "name": "plgg-guide",
   "compatibility_date": "2026-08-01",
 
-  // The production Worker is reachable on its
-  // `*.workers.dev` subdomain and nowhere else yet: this
-  // repository does not own the `qmu.co.jp` zone's DNS
-  // (it is Terraform-managed in the corporate
-  // repository's `infra/terraform/cloudflare-dns/`), and
-  // `plgg.qmu.co.jp` is still served by GitHub Pages.
-  // Adding the custom route is the cutover, and it is the
-  // last and most reversible act of it — see the
-  // mission's second ticket. Proving the Worker on
-  // workers.dev first is what keeps it that way.
+  // Kept on alongside the route below: the
+  // `*.workers.dev` subdomain is where a deploy is proven
+  // before anyone looks at the production hostname, and
+  // where it can still be reached if the route is ever
+  // pulled.
   "workers_dev": true,
+
+  // The production hostname. Ownership is split on
+  // purpose: **wrangler owns the route, Terraform owns
+  // the DNS record.** The `qmu.co.jp` zone lives in the
+  // corporate repository's
+  // `infra/terraform/cloudflare-dns/`, so this is
+  // deliberately NOT `custom_domain: true` — that form
+  // has wrangler create and hold the DNS record itself,
+  // which would put two owners on one record and let a
+  // deploy silently overwrite what Terraform believes it
+  // manages.
+  //
+  // The consequence, and it is the cutover's whole
+  // ordering: the record must already be **proxied**
+  // (orange-cloud) through Cloudflare before the first
+  // deploy carrying this route, or Cloudflare refuses the
+  // route. Terraform's change lands first; this deploys
+  // second.
+  "routes": [
+    {
+      "pattern": "plgg.qmu.co.jp/*",
+      "zone_name": "qmu.co.jp"
+    }
+  ],
 
   "assets": {
     "directory": "./dist",

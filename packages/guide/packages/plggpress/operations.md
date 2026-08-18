@@ -3,22 +3,25 @@
 How the **served** [plggpress](/packages/plggpress)
 instance stays up, where its data lives, and how it is
 backed up (decision D5, ticket 28). The **public reader
-is untouched** — it keeps deploying to GitHub Pages as
-an SSG/CDN site; everything here is about the _dynamic_
-always-on instance that serves `/admin`, the delivery
-API, RAG, the agent mint, `/mcp`, and the plugin
+stays SSG/CDN** — since 2026-08-18 that CDN is a
+Cloudflare Worker rather than GitHub Pages; everything
+here is about the _dynamic_ always-on instance that
+serves `/admin`, the delivery API, RAG, the agent mint,
+`/mcp`, and the plugin
 export. The full runbook is `packages/plggpress/OPERATIONS.md`.
 
 ## Topology (dual-mode)
 
 ```
-                 ┌── GitHub Pages (CDN) ── public reader (SSG)
+                 ┌── Cloudflare Worker ── public reader (SSG)
   git corpus ────┤
                  └── cloudflared tunnel ── served plggpress ── SQLite index (WAL)
 ```
 
-- **Public reader** — the SSG build on GitHub Pages:
-  stateless, cached, no secrets.
+- **Public reader** — the SSG build served by a
+  Cloudflare Worker as static assets: stateless, cached,
+  no secrets. One publisher per hostname; the merge to
+  `main` deploys it.
 - **Served instance** — one always-on `plggpress serve`
   process behind a `cloudflared` tunnel, owning the
   mutable state (the SQLite index plus the auth /

@@ -12,10 +12,14 @@ import {
   type SidebarItemInput,
 } from "plggpress";
 
-// GitHub Pages serves a project site under `/<repo>/`; the
-// deploy workflow sets DOCS_BASE so links resolve there,
-// while local dev/preview stay at root. plggpress's href
-// helper is the single rewrite site downstream.
+// The site serves at the domain ROOT — the Cloudflare
+// Worker (wrangler.jsonc) serves `dist/` at `/`, as do
+// local dev and preview — so the default is what every
+// surface actually uses and nothing sets DOCS_BASE. The
+// override survives for a hypothetical sub-path host;
+// plggpress's href helper is the single rewrite site
+// downstream. (Until 2026-08-18 this read as a GitHub
+// Pages project-site base, which no surface ever set.)
 const base = process.env.DOCS_BASE ?? "/";
 
 // A sidebar node as authored here: every node carries an
