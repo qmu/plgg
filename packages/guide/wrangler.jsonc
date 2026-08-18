@@ -1,0 +1,147 @@
+// The guide's delivery surface: a Cloudflare Worker that
+// serves the plggpress build output (`dist/`) as static
+// assets.
+//
+// Two environments over ONE build: the top level is
+// production, `env.staging` is the pre-production surface.
+// Both point at the same `dist/`, on purpose — a staging
+// surface that serves a different artifact than the one it
+// is previewing has stopped being a staging surface.
+//
+// There is deliberately no top-level `main` — production
+// is an assets-only Worker. plggpress emits a fully static tree
+// (one `<page>/index.html` per page plus a top-level
+// `404.html`; every stylesheet and script is inlined, so
+// the build is 40 HTML files and nothing else), and
+// Cloudflare's Static Assets runtime already answers
+// exactly the two questions that tree poses: how a
+// directory URL resolves, and what a miss returns. A
+// hand-written fetch handler would only re-implement
+// them, so the Worker script that does not exist is the
+// one that cannot drift from the build.
+//
+// `dist/` is a build product and stays untracked (the
+// root `.gitignore` ignores `**/dist/`); `wrangler
+// deploy` uploads it at deploy time from whatever
+// `npm run build` just produced.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "plgg-guide",
+  "compatibility_date": "2026-08-01",
+
+  // Kept on alongside the route below: the
+  // `*.workers.dev` subdomain is where a deploy is proven
+  // before anyone looks at the production hostname, and
+  // where it can still be reached if the route is ever
+  // pulled.
+  "workers_dev": true,
+
+  // The production hostname. Ownership is split on
+  // purpose: **wrangler owns the route, Terraform owns
+  // the DNS record.** The `qmu.co.jp` zone lives in the
+  // corporate repository's
+  // `infra/terraform/cloudflare-dns/`, so this is
+  // deliberately NOT `custom_domain: true` — that form
+  // has wrangler create and hold the DNS record itself,
+  // which would put two owners on one record and let a
+  // deploy silently overwrite what Terraform believes it
+  // manages.
+  //
+  // The consequence, and it is the cutover's whole
+  // ordering: the record must already be **proxied**
+  // (orange-cloud) through Cloudflare before the first
+  // deploy carrying this route, or Cloudflare refuses the
+  // route. Terraform's change lands first; this deploys
+  // second.
+  "routes": [
+    {
+      "pattern": "plgg.qmu.co.jp/*",
+      "zone_name": "qmu.co.jp"
+    }
+  ],
+
+  "assets": {
+    "directory": "./dist",
+
+    // Match what GitHub Pages does today, so the cutover
+    // changes the server and not the URLs:
+    // `/getting-started` redirects to
+    // `/getting-started/` and serves that directory's
+    // `index.html`. plggpress writes directory-style
+    // pages only, so a missing trailing slash must never
+    // become a 404.
+    "html_handling": "auto-trailing-slash",
+
+    // A miss serves the nearest `404.html` with a 404
+    // status — the same file plggpress already renders
+    // and the same status Pages returns. Not
+    // `single-page-application`: the guide is
+    // pre-rendered, so a wrong URL must stay wrong rather
+    // than silently render the landing page under it.
+    "not_found_handling": "404-page"
+  },
+
+  "env": {
+    // The pre-production surface. A separate Worker with
+    // its own name and its own hostname, serving the
+    // identical `dist/` through the identical
+    // static-asset behaviour — every asset key below is
+    // repeated verbatim because wrangler does NOT inherit
+    // `assets` into an environment, and a half-inherited
+    // one would silently serve staging with different
+    // 404 and trailing-slash rules than the surface it
+    // previews.
+    "staging": {
+      "name": "plgg-guide-staging",
+
+      // Off: a `*.workers.dev` staging copy would be a
+      // third public URL for the same content, indexable
+      // and outside the noindex story below.
+      "workers_dev": false,
+
+      // Same split as production: wrangler owns the
+      // route, Terraform owns the record in the corporate
+      // repository's `infra/terraform/cloudflare-dns/`.
+      // One label under `qmu.co.jp` on purpose — the
+      // Universal SSL `*.qmu.co.jp` certificate covers it
+      // with no per-host issuance.
+      "routes": [
+        {
+          "pattern": "staging-plgg.qmu.co.jp/*",
+          "zone_name": "qmu.co.jp"
+        }
+      ],
+
+      // Staging is the only environment with a script.
+      // It adds the two things production must never
+      // have — `X-Robots-Tag: noindex` plus a
+      // `/robots.txt`, and a banner marking the page as
+      // pre-production — and it adds them to the
+      // RESPONSE, so the build stays shared and
+      // byte-identical.
+      "main": "./worker/staging.ts",
+
+      "assets": {
+        "directory": "./dist",
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page",
+
+        // The name the Worker script reaches assets
+        // through. Without a binding a scripted Worker
+        // never sees them.
+        "binding": "ASSETS",
+
+        // Required, not a preference. By default the
+        // asset server answers a matching request BEFORE
+        // the Worker runs, so the script only ever sees
+        // misses — measured: with this off, the banner
+        // and the noindex header appeared on
+        // `/no-such-page` and on no real page at all.
+        // Running the Worker first is what makes staging
+        // marked everywhere; production, having no
+        // script, is unaffected by any of this.
+        "run_worker_first": true
+      }
+    }
+  }
+}

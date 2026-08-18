@@ -2,3 +2,8 @@
 .vitepress/cache/
 .vitepress/dist/
 node_modules/
+
+# Wrangler's local state: the workerd cache and the
+# simulated storage `wrangler dev` writes beside the
+# config it reads. Machine-local, never deployed.
+.wrangler/
