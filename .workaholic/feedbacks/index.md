@@ -201,4 +201,7 @@
 * [Scanner route for dropping TS6 entirely remains unexercised](20260813043753-scanner-route-for-dropping-ts6-entirely.md)
 * [Move the guide to Cloudflare Workers with a staging-plgg-guide.qmu.dev staging surface](20260817210723-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-guide-qmu-dev-staging-surface.md)
 * [Move the guide to Cloudflare Workers with a staging-plgg.qmu.co.jp staging surface](20260818071835-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-qmu-co-jp-staging-surface.md)
+* [create.sh refuses source development, the value its own schema documents and 189 of 200 records carry](20260818085747-create-sh-refuses-source-development-the-value-its-own-schema-documents-and-189-of-200-records-carry.md)
+* [Housekeep filing PRs collide on the regenerated OKF index lines and strand with no live claim holder](20260818085802-housekeep-filing-prs-collide-on-the-regenerated-okf-index-lines-and-strand-with-no-live-claim-holder.md)
+* [merge-conflicts and stuck-prs read GitHub separately inside one tick so the tick log contradicts itself](20260818085819-merge-conflicts-and-stuck-prs-read-github-separately-inside-one-tick-so-the-tick-log-contradicts-itself.md)
 <!-- okf:generated:end -->
