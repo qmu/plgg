@@ -202,4 +202,11 @@
 * [Move the guide to Cloudflare Workers with a staging-plgg-guide.qmu.dev staging surface](20260817210723-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-guide-qmu-dev-staging-surface.md)
 * [Move the guide to Cloudflare Workers with a staging-plgg.qmu.co.jp staging surface](20260818071835-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-qmu-co-jp-staging-surface.md)
 * [Implement staging-plgg.qmu.co.jp Cloudflare Worker auto-deploy on merge to main](20260818132105-implement-staging-plgg-qmu-co-jp-cloudflare-worker-auto-deploy-on-merge-to-main.md)
+* [Published plgg-md dist reported unusable under bun in issue 131, unassigned so nothing will ingest it](20260818225441-published-plgg-md-dist-reported-unusable-under-bun-in-issue-131-unassigned-so-nothing-will-ingest-it.md)
+* [Merging before the Cloudflare secrets exist turns `main` red](20260819054110-merging-before-the-cloudflare-secrets-exist.md)
+* [Stale GitHub Pages references remain in unrelated packages](20260819054110-stale-github-pages-references-remain-in.md)
+* [The staging surface has no trigger](20260819054110-the-staging-surface-has-no-trigger.md)
+* [The Worker shape was chosen without reading the named reference](20260819054110-the-worker-shape-was-chosen-without.md)
+* [Two publishers survive until the Pages setting is retired](20260819054110-two-publishers-survive-until-the-pages.md)
+* [`worker/staging.ts` has no colocated spec](20260819054110-worker-staging-ts-has-no-colocated.md)
 <!-- okf:generated:end -->
