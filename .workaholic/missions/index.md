@@ -1,5 +1,9 @@
 # missions
 
+## active
+
+* [deliver-the-guide-from-cloudflare-workers-with-a-staging-surface](active/deliver-the-guide-from-cloudflare-workers-with-a-staging-surface/mission.md) - Deliver the guide from Cloudflare Workers with a staging surface
+
 ## archive
 
 * [build-the-plgg-ir-package-family](archive/build-the-plgg-ir-package-family/mission.md) - Build the plgg-ir Package Family
