@@ -9,7 +9,7 @@ author: a@qmu.jp
 assignees: [a@qmu.jp]
 assignee:
 predicted_hours:
-actual_hours:
+actual_hours: 0.4
 feedback: [20260818071835-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-qmu-co-jp-staging-surface.md]
 tickets: []
 stories: []
@@ -58,3 +58,4 @@ second publisher of the same site.
 - 2026-08-18 — ticket archived — 20260818072004-deploy-the-guide-to-the-production-worker-on-merge-and-retire-github-pages.md
 - 2026-08-18 — ticket archived — 20260818072009-stand-up-the-staging-surface-at-staging-plgg-qmu-co-jp.md
 - 2026-08-18 — story reported — work-20260818-073433.md
+- 2026-08-18 — run recorded (+0.4h) — run-20260818-073433
