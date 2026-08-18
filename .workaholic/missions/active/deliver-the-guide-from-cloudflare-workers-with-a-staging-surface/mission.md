@@ -59,3 +59,9 @@ second publisher of the same site.
 - 2026-08-18 — ticket archived — 20260818072009-stand-up-the-staging-surface-at-staging-plgg-qmu-co-jp.md
 - 2026-08-18 — story reported — work-20260818-073433.md
 - 2026-08-18 — run recorded (+0.4h) — run-20260818-073433
+- 2026-08-19 — concern deferred (stuck) — 20260819054110-merging-before-the-cloudflare-secrets-exist.md
+- 2026-08-19 — concern deferred (stuck) — 20260819054110-two-publishers-survive-until-the-pages.md
+- 2026-08-19 — concern deferred (stuck) — 20260819054110-the-worker-shape-was-chosen-without.md
+- 2026-08-19 — concern deferred (stuck) — 20260819054110-worker-staging-ts-has-no-colocated.md
+- 2026-08-19 — concern deferred (stuck) — 20260819054110-the-staging-surface-has-no-trigger.md
+- 2026-08-19 — concern deferred (stuck) — 20260819054110-stale-github-pages-references-remain-in.md
