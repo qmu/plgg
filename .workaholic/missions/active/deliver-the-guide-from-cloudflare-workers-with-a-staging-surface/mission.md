@@ -57,3 +57,4 @@ second publisher of the same site.
 - 2026-08-18 — ticket archived — 20260818072000-serve-the-guide-from-a-cloudflare-worker-in-this-repository.md
 - 2026-08-18 — ticket archived — 20260818072004-deploy-the-guide-to-the-production-worker-on-merge-and-retire-github-pages.md
 - 2026-08-18 — ticket archived — 20260818072009-stand-up-the-staging-surface-at-staging-plgg-qmu-co-jp.md
+- 2026-08-18 — story reported — work-20260818-073433.md
