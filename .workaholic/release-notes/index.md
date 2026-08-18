@@ -46,4 +46,5 @@
 * [Fill the served content index from the corpus etc](work-20260805-104535.md)
 * [Adopt @types/node 26 across the workspace](work-20260812-223036.md)
 * [Migrate the toolchain to TypeScript 7 via split-version etc](work-20260812-224232.md)
+* [Serve the guide from Cloudflare Workers with a staging surface](work-20260818-073433.md)
 <!-- okf:generated:end -->
