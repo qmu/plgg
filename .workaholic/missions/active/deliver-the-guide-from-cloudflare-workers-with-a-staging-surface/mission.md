@@ -16,6 +16,7 @@ stories: []
 gate_type:
 gate_target:
 gate_assert:
+claim: work-20260818-073433
 ---
 
 # Deliver the guide from Cloudflare Workers with a staging surface
