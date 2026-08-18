@@ -201,4 +201,5 @@
 * [Scanner route for dropping TS6 entirely remains unexercised](20260813043753-scanner-route-for-dropping-ts6-entirely.md)
 * [Move the guide to Cloudflare Workers with a staging-plgg-guide.qmu.dev staging surface](20260817210723-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-guide-qmu-dev-staging-surface.md)
 * [Move the guide to Cloudflare Workers with a staging-plgg.qmu.co.jp staging surface](20260818071835-move-the-guide-to-cloudflare-workers-with-a-staging-plgg-qmu-co-jp-staging-surface.md)
+* [The Prepare Release routine cannot write its draft release note - HTTP 403 and an invalid GH_TOKEN, reported hourly and recorded nowhere](20260818105453-the-prepare-release-routine-cannot-write-its-draft-release-note-http-403-and-an-invalid-gh-token-reported-hourly-and-recorded-nowhere.md)
 <!-- okf:generated:end -->
