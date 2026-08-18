@@ -2,8 +2,14 @@
 // serves the plggpress build output (`dist/`) as static
 // assets.
 //
-// There is deliberately no `main` — this is an
-// assets-only Worker. plggpress emits a fully static tree
+// Two environments over ONE build: the top level is
+// production, `env.staging` is the pre-production surface.
+// Both point at the same `dist/`, on purpose — a staging
+// surface that serves a different artifact than the one it
+// is previewing has stopped being a staging surface.
+//
+// There is deliberately no top-level `main` — production
+// is an assets-only Worker. plggpress emits a fully static tree
 // (one `<page>/index.html` per page plus a top-level
 // `404.html`; every stylesheet and script is inlined, so
 // the build is 40 HTML files and nothing else), and
@@ -73,5 +79,69 @@
     // pre-rendered, so a wrong URL must stay wrong rather
     // than silently render the landing page under it.
     "not_found_handling": "404-page"
+  },
+
+  "env": {
+    // The pre-production surface. A separate Worker with
+    // its own name and its own hostname, serving the
+    // identical `dist/` through the identical
+    // static-asset behaviour — every asset key below is
+    // repeated verbatim because wrangler does NOT inherit
+    // `assets` into an environment, and a half-inherited
+    // one would silently serve staging with different
+    // 404 and trailing-slash rules than the surface it
+    // previews.
+    "staging": {
+      "name": "plgg-guide-staging",
+
+      // Off: a `*.workers.dev` staging copy would be a
+      // third public URL for the same content, indexable
+      // and outside the noindex story below.
+      "workers_dev": false,
+
+      // Same split as production: wrangler owns the
+      // route, Terraform owns the record in the corporate
+      // repository's `infra/terraform/cloudflare-dns/`.
+      // One label under `qmu.co.jp` on purpose — the
+      // Universal SSL `*.qmu.co.jp` certificate covers it
+      // with no per-host issuance.
+      "routes": [
+        {
+          "pattern": "staging-plgg.qmu.co.jp/*",
+          "zone_name": "qmu.co.jp"
+        }
+      ],
+
+      // Staging is the only environment with a script.
+      // It adds the two things production must never
+      // have — `X-Robots-Tag: noindex` plus a
+      // `/robots.txt`, and a banner marking the page as
+      // pre-production — and it adds them to the
+      // RESPONSE, so the build stays shared and
+      // byte-identical.
+      "main": "./worker/staging.ts",
+
+      "assets": {
+        "directory": "./dist",
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page",
+
+        // The name the Worker script reaches assets
+        // through. Without a binding a scripted Worker
+        // never sees them.
+        "binding": "ASSETS",
+
+        // Required, not a preference. By default the
+        // asset server answers a matching request BEFORE
+        // the Worker runs, so the script only ever sees
+        // misses — measured: with this off, the banner
+        // and the noindex header appeared on
+        // `/no-such-page` and on no real page at all.
+        // Running the Worker first is what makes staging
+        // marked everywhere; production, having no
+        // script, is unaffected by any of this.
+        "run_worker_first": true
+      }
+    }
   }
 }

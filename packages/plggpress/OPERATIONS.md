@@ -34,6 +34,17 @@ agent mint, `/mcp`, and the plugin export.
     (`infra/terraform/cloudflare-dns/`). A record must be proxied through
     Cloudflare before a deploy carrying its route will be accepted, so the
     Terraform change always lands first.
+  - **A staging surface is a second environment over the same build.** The
+    guide's is `plgg-guide-staging` at `staging-plgg.qmu.co.jp` — one label
+    under the same zone as production, so Universal SSL's `*.qmu.co.jp` covers
+    it with no per-host issuance. It serves the identical `dist/`; what differs
+    is the response, through the one environment that has a Worker script
+    (`packages/guide/worker/staging.ts`): `X-Robots-Tag: noindex` plus a
+    disallow-all `/robots.txt`, and a banner marking the page pre-production.
+    That environment needs `assets.run_worker_first: true`, or the asset server
+    answers real pages before the script and only misses get marked. Production
+    is deployed by the merge to `main`; staging is deployed by hand
+    (`npm run deploy:staging`) until someone decides what should trigger it.
 - **Served instance**: one always-on `plggpress serve` process behind a
   `cloudflared` tunnel (see `reference_cloudflared_tunnel`: `*.qmu.dev` → a local
   port). It owns the mutable state (the SQLite index + the auth/stakeholder/draft/

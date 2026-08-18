@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    /* Compiler Option */
+    "target": "ES2021",
+    /* The Worker entry is bundled by wrangler (esbuild),
+       so ESNext + Bundler resolution, and nothing is
+       emitted from here — this config exists to make the
+       whole-repo typecheck gate cover the Worker. */
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    /* workerd, NOT node: the Worker's Request/Response/
+       Headers are Cloudflare's, and typing them from
+       @types/node would check this file against a
+       runtime it never runs on. */
+    "types": ["@cloudflare/workers-types"],
+    /* Type Checking Rules */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowJs": false,
+    "erasableSyntaxOnly": true
+  },
+  /* `site.config.ts` is deliberately OUT of scope: it is
+     data plggpress loads and validates at build time
+     through its own `defineSite` boundary, under
+     plggpress's compiler options, and pulling it in here
+     would typecheck it twice under two different shapes.
+     This program is the Worker and nothing else. */
+  "include": [
+    "worker/**/*"
+  ]
+}

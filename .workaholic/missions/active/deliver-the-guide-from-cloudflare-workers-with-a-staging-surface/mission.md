@@ -48,7 +48,7 @@ second publisher of the same site.
       repository, deployable with `wrangler deploy`. (#20260818072000-serve-the-guide-from-a-cloudflare-worker-in-this-repository.md)
 - [x] A merge to `main` that touches the guide or the packages deploys production
       automatically, and the GitHub Pages path is removed. (#20260818072004-deploy-the-guide-to-the-production-worker-on-merge-and-retire-github-pages.md)
-- [ ] `staging-plgg.qmu.co.jp` serves a staging build over TLS, with the DNS
+- [x] `staging-plgg.qmu.co.jp` serves a staging build over TLS, with the DNS
       change raised against the corporate Terraform repository. (#20260818072009-stand-up-the-staging-surface-at-staging-plgg-qmu-co-jp.md)
 
 ## Changelog
@@ -56,3 +56,4 @@ second publisher of the same site.
 <!-- Append-only, dated timeline. One line per event; never rewrite past lines. -->
 - 2026-08-18 — ticket archived — 20260818072000-serve-the-guide-from-a-cloudflare-worker-in-this-repository.md
 - 2026-08-18 — ticket archived — 20260818072004-deploy-the-guide-to-the-production-worker-on-merge-and-retire-github-pages.md
+- 2026-08-18 — ticket archived — 20260818072009-stand-up-the-staging-surface-at-staging-plgg-qmu-co-jp.md

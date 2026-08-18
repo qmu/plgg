@@ -8,8 +8,10 @@
     "dev": "plggpress dev --watch-theme",
     "build": "plggpress build --config site.config.ts --contentDir . --outDir dist",
     "preview": "python3 -m http.server --directory dist",
-    "serve:worker": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "serve:worker": "wrangler dev --env=\"\"",
+    "serve:worker:staging": "wrangler dev --env staging",
+    "deploy": "wrangler deploy --env=\"\"",
+    "deploy:staging": "wrangler deploy --env staging"
   },
   "repository": {
     "type": "git",
@@ -25,6 +27,8 @@
     "plggpress": "file:../plggpress"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260818.1",
+    "typescript": "^7.0.2",
     "wrangler": "^4.123.0"
   }
 }
