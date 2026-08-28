@@ -208,4 +208,7 @@
 * [The Worker shape was chosen without reading the named reference](20260819054110-the-worker-shape-was-chosen-without.md)
 * [Two publishers survive until the Pages setting is retired](20260819054110-two-publishers-survive-until-the-pages.md)
 * [`worker/staging.ts` has no colocated spec](20260819054110-worker-staging-ts-has-no-colocated.md)
+* [Resolved: Deploy-guide workaround removal is only confirmable post-merge](20260828120341-resolved-deploy-guide-workaround-removal-is-only.md)
+* [Resolved: Merging before the Cloudflare secrets exist turns `main` red](20260828120341-resolved-merging-before-the-cloudflare-secrets-exist.md)
+* [Resolved: Two publishers survive until the Pages setting is retired](20260828120341-resolved-two-publishers-survive-until-the-pages.md)
 <!-- okf:generated:end -->
