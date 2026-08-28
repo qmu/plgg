@@ -1,5 +1,6 @@
 ---
 created_at: 2026-08-28T11:46:02+09:00
+status: done
 author: a@qmu.jp
 assignees: [a@qmu.jp]
 depends_on:
@@ -89,3 +90,16 @@ The guide's delivery surface was cut over to a Cloudflare Worker on 2026-08-18 (
 - The dev tunnel (`plggmatic-reference.qmu.dev` → :51820) remains the development surface with hot reload; this ticket does not touch cloudflared config and does not require the dev server to be running.
 - `wrangler.jsonc`'s asset semantics (`html_handling: auto-trailing-slash`, `not_found_handling: 404-page`) suit the exhibit — its pages are plain `.html` files with no client routing, so direct file URLs serve and wrong URLs stay 404; do not flip to `single-page-application` (`packages/guide/wrangler.jsonc`).
 - The exhibit subtree (~2.7 MB) is far inside Cloudflare's static-asset limits.
+
+## Final Report
+
+Development completed as planned.
+
+### Discovered Insights
+
+- **Insight**: plggpress's `cleanOutDir` rm -rf's the outDir after link-checking and before writing, so any static subtree nested into the guide dist must be copied strictly after `plggpress build` — `package.json` chains `plggpress build && node nest-exhibit.ts`.
+  **Context**: any future asset nesting (or a plggpress `staticMounts` feature) must respect this ordering or be silently deleted.
+- **Insight**: `deploy-guide.yml` held an inline `npx plggpress build …` duplicate of the guide's npm build script, so a script-only change would never have reached production; the workflow now runs `npm run build --prefix packages/guide`, the same command a developer runs.
+  **Context**: the workflow's own comments name this second-copy-of-the-topology failure class; the guide build step was the last inline copy.
+- **Insight**: plggpress's dead-link checker exempts any href with a dot in its last segment (`isAssetPath`), so links to `/plggmatic-reference/demo1.html` pass with no `linkIgnore` entry, while an extensionless `/plggmatic-reference/` link would fail as an unknown route.
+  **Context**: prefer `.html`-suffixed links when pointing the guide at nested static apps.
