@@ -6,6 +6,7 @@ depends_on:
 mission:
 merge_policy: auto
 verification_handoff:
+claim: work-20260828-114954
 ---
 
 # Serve the plggmatic reference exhibit on plgg.qmu.co.jp
