@@ -6,7 +6,7 @@
   "description": "The official user guide for plgg and the plgg family. Content is authored in Markdown; code samples are drawn from the real packages and tested examples.",
   "scripts": {
     "dev": "plggpress dev --watch-theme",
-    "build": "plggpress build --config site.config.ts --contentDir . --outDir dist",
+    "build": "plggpress build --config site.config.ts --contentDir . --outDir dist && node nest-exhibit.ts",
     "preview": "python3 -m http.server --directory dist",
     "serve:worker": "wrangler dev --env=\"\"",
     "serve:worker:staging": "wrangler dev --env staging",

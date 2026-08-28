@@ -11,10 +11,14 @@
 // There is deliberately no top-level `main` — production
 // is an assets-only Worker. plggpress emits a fully static tree
 // (one `<page>/index.html` per page plus a top-level
-// `404.html`; every stylesheet and script is inlined, so
-// the build is 40 HTML files and nothing else), and
+// `404.html`; every stylesheet and script is inlined),
+// and the build's nest-exhibit.ts step adds one static
+// subtree beside it: the plggmatic reference exhibit at
+// `/plggmatic-reference/` — five self-contained pages,
+// each loading a single sibling ES bundle. Cloudflare's
+// Static Assets runtime already answers
 // Cloudflare's Static Assets runtime already answers
-// exactly the two questions that tree poses: how a
+// exactly the two questions the tree poses: how a
 // directory URL resolves, and what a miss returns. A
 // hand-written fetch handler would only re-implement
 // them, so the Worker script that does not exist is the

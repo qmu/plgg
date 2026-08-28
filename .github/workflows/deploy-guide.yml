@@ -56,11 +56,18 @@ jobs:
       - name: Build package dists (dependency order)
         run: ./scripts/build.sh
 
-      - name: Build the guide (plggpress)
-        # The site serves at the domain root: site.config.ts defaults the base
-        # to "/" and the Worker serves that root, so no DOCS_BASE is needed.
-        run: npx plggpress build --config site.config.ts --contentDir . --outDir dist
-        working-directory: packages/guide
+      # The guide's OWN build script: `plggpress build` plus the post-build
+      # nest-exhibit.ts step that copies the plggmatic reference exhibit
+      # (packages/plggmatic-example/dist, built by build.sh above) under
+      # dist/plggmatic-reference/. One command the repository owns and a
+      # developer runs identically — an inline plggpress invocation here would
+      # be a second, divergent copy of the build (the same failure class the
+      # install/build steps above name).
+      #
+      # The site serves at the domain root: site.config.ts defaults the base
+      # to "/" and the Worker serves that root, so no DOCS_BASE is needed.
+      - name: Build the guide (plggpress + exhibit)
+        run: npm run build --prefix packages/guide
 
       # `wrangler deploy`, through the guide's OWN deploy script — so the
       # command that publishes is one this repository owns and a developer can

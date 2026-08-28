@@ -6,8 +6,10 @@
 // the leaf app is where bundling deps is correct (the
 // mirror of the libraries' externalize decision). The
 // build script copies index.html beside it, making
-// `dist/` the self-contained deployable the docs site
-// nests under `/example/`.
+// `dist/` the self-contained deployable the guide's
+// build nests under `/plggmatic-reference/`
+// (packages/guide/nest-exhibit.ts) and serves on
+// plgg.qmu.co.jp.
 export default {
   target: "app",
   root: import.meta.dirname,

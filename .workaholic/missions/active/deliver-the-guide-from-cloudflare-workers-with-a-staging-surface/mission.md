@@ -65,3 +65,5 @@ second publisher of the same site.
 - 2026-08-19 — concern deferred (stuck) — 20260819054110-worker-staging-ts-has-no-colocated.md
 - 2026-08-19 — concern deferred (stuck) — 20260819054110-the-staging-surface-has-no-trigger.md
 - 2026-08-19 — concern deferred (stuck) — 20260819054110-stale-github-pages-references-remain-in.md
+- 2026-08-28 — concern resolved (unstuck) — 20260819054110-merging-before-the-cloudflare-secrets-exist.md
+- 2026-08-28 — concern resolved (unstuck) — 20260819054110-two-publishers-survive-until-the-pages.md
