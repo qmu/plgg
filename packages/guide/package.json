@@ -27,7 +27,7 @@
     "plggpress": "file:../plggpress"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260818.1",
+    "@cloudflare/workers-types": "^5.20260911.1",
     "typescript": "^7.0.2",
     "wrangler": "^4.123.0"
   }
