@@ -31,7 +31,7 @@
     "plggmatic": "file:../plggmatic"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.6.2",
     "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
     "typescript": "^7.0.2"
