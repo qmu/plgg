@@ -32,7 +32,7 @@
     "plgg-server": "file:../plgg-server"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.6.3",
     "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
     "typescript": "^7.0.2"
