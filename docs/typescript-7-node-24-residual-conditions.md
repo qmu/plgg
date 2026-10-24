@@ -228,21 +228,50 @@ scratch consumer に install して transpile する」検査が、まだ無い�
   [#175](https://github.com/qmu/plgg/pull/175)、[#177](https://github.com/qmu/plgg/pull/177)、
   [#179](https://github.com/qmu/plgg/pull/179)。他の open PR は engines・dependabot・plgg-view の変更で、consumer 検査を含まない。
 
-### open PR で検査が予定されているもの（3 件、下の一覧から除外）
+### 基準
+
+「Node 24 上で、公開 npm の tarball（または同じ build の packed tarball）を、利用側
+TypeScript 7 を devDependency に持つ scratch consumer に install し、利用側の `tsc` で
+transpile か typecheck まで通す」検査を、ゲートありと数える。Node 24 と利用側 TS7 の
+両方が揃って初めて数える。
+
+### 開いている gate PR の責務と次の一実装単位（#173〜#179）
+
+PR の本文と、各ブランチの gate スクリプトの条件分岐を読んだ結果。
+
+| PR | 責務 | Node 24 | 利用側 TS7 | 対象 | 次の一実装単位 |
+| --- | --- | --- | --- | --- | --- |
+| [#173](https://github.com/qmu/plgg/pull/173) | plgg-bundle を同じ dir で二回 build し EISDIR が出ないことを固定（#155） | 指定なし | なし | packed bin | なし。CI の結果を見て merge |
+| [#174](https://github.com/qmu/plgg/pull/174) | plgg の手元 pack を利用側 TS7 の emit で transpile（#156 の plgg 版） | 指定なし（CI の 22.x） | あり（emit） | 手元 tarball | #175 と検査対象が重なる。#175 の merge 後に、閉じるか local-pack 専用の TS7 emit 検査に縮めるかを決める |
+| [#175](https://github.com/qmu/plgg/pull/175) | plgg の公開 tarball を Node 24 で利用側 TS7 transpile（`CI=true` か `GATE_PUBLIC_TARBALL=1` のときだけ実行） | あり | あり | 公開 registry | CI で skip ではなく実行され green になったことをログで確認してから merge |
+| [#176](https://github.com/qmu/plgg/pull/176) | #155〜#158 の状態台帳（docs のみ） | — | — | docs | 本記録の #155〜#158 の記述を台帳へ寄せ、本記録は参照だけにする |
+| [#177](https://github.com/qmu/plgg/pull/177) | plgg-md の公開 tarball を Node 24 で利用側 TS7 transpile と実行（`CI=true` か `GATE_PLGG_MD=1` のときだけ実行） | あり | あり | 公開 registry | CI で実行され green になったことを確認してから merge。次は #172 の plgg-test を同じ形で書く |
+| [#178](https://github.com/qmu/plgg/pull/178) | guide と development の Docker base を `node:24-slim` へ（#170）。公開パッケージの gate ではない | Docker 内 | なし | Docker イメージ | 対象外として数える。Docker が使える環境での compose 検証（#170 の受入 2）は別に行う |
+| [#179](https://github.com/qmu/plgg/pull/179) | packed plgg-bundle を利用側 TS7.0.2 に install し、typecheck と実行を確認 | 指定なし（CI の 22.x） | あり | packed tarball | Node 24 段を足すか、#165 の Node 24 段と一本化するかを決める。足す場合は #175 の Node 24 取得処理を流用する |
+
+参照だけの #165 は、範囲外だが plgg-bundle の判定に関わるため含める。その Node 24 段は、
+ローカル pack の plgg-bundle を Node 24 で二回 build するだけで、利用側の `tsc` は走らせない。
+よって Node 24 と利用側 TS7 の両方を満たさない。
+
+### 訂正: 検査予定は 2 件、plgg-bundle は未検査
+
+前の版では plgg-bundle を「検査予定の 3 件」に数えたが、上の基準では満たさない
+（#165 の Node 24 段は利用側 `tsc` を走らせず、#179 は Node 24 を指定しない）。
+検査予定は次の 2 件だけで、どちらも CI 条件付き。
 
 | パッケージ | main の版 | 検査する PR | 検査の中身 |
 | --- | --- | --- | --- |
-| `plgg` | 0.0.27 | [#175](https://github.com/qmu/plgg/pull/175)（Node 24・公開 registry・consumer TS7）、[#174](https://github.com/qmu/plgg/pull/174)（consumer TS7 で手元 tarball を transpile） | #175 は `CI=true` か `GATE_PUBLIC_TARBALL=1` のときだけ実行される |
-| `plgg-md` | 0.0.3 | [#177](https://github.com/qmu/plgg/pull/177)（Node 24・公開 registry・consumer TS7、`parseBlocks` を実行） | `CI=true` か `GATE_PLGG_MD=1` のときだけ実行される |
-| `plgg-bundle` | 0.0.6 | [#165](https://github.com/qmu/plgg/pull/165)（consumer TS7、5 段目で Node 24 を 2 回 build）、[#179](https://github.com/qmu/plgg/pull/179)（packed tarball・consumer TS7.0.2） | #165 の Node 24 段は `CI=true` か `GATE_NODE24=1` のときだけ。0.0.7 は未 publish |
+| `plgg` | 0.0.27 | [#175](https://github.com/qmu/plgg/pull/175)（Node 24・公開 registry・利用側 TS7）。[#174](https://github.com/qmu/plgg/pull/174) は TS7 のみの手元 tarball | `CI=true` か `GATE_PUBLIC_TARBALL=1` のときだけ実行される |
+| `plgg-md` | 0.0.3 | [#177](https://github.com/qmu/plgg/pull/177)（Node 24・公開 registry・利用側 TS7、`parseBlocks` を実行） | `CI=true` か `GATE_PLGG_MD=1` のときだけ実行される |
 
-### 未検査の公開パッケージ（24 件）
+### 未検査の公開パッケージ（25 件）
 
-main にも open PR にも、この 24 件を対象にした consumer 検査は無い。版と宣言は各
+main にも open PR にも、上の基準を満たす consumer 検査は無い。版と宣言は各
 `packages/<dir>/package.json` の値。レジストリ上の公開状況はこの追記では確認していない。
 
 | パッケージ | 版 | typescript の宣言 | engines.node | 追跡先 |
 | --- | --- | --- | --- | --- |
+| `plgg-bundle` | 0.0.6 | `^6.0.3`（runtime 依存） | — | 部分のみ: [#165](https://github.com/qmu/plgg/pull/165)（Node 24 段は利用側 tsc を走らせない）、[#179](https://github.com/qmu/plgg/pull/179)（Node 24 指定なし） |
 | `plgg-test` | 0.0.5 | `^6.0.3`（runtime 依存） | `>=22.6` | [#172](https://github.com/qmu/plgg/issues/172)（起票済み、PR 無し） |
 | `plgg-fetch` | 0.0.1 | `^7.0.2` | — | 無し |
 | `plgg-http` | 0.0.2 | `^7.0.2` | — | 無し |
@@ -276,6 +305,10 @@ main にも open PR にも、この 24 件を対象にした consumer 検査は�
 - `typescript` を runtime 依存に持つのは `plgg-bundle` と `plgg-test` だけで、このうち `plgg-test` は
   #156 と同じ nested 解決の経路を持つ。残り 23 件は `^7.0.2` の宣言で、#175・#177 と同じ registry 型の gate を
   パッケージ名を変えて回せる見込み（未検証）。
-- #175・#177・#165 の Node 24 段は、ローカル（Node 23 / 22）では skip する。この一覧で「検査予定」と書いた
-  3 件は、PR が merge され CI で実行されて初めて検査済みになる。
+- 公開 27 件（`private: true` の 3 件を除く）のうち、ゲートありは 2 件（`plgg`、`plgg-md`）。未検査は 25 件。
+- 次の一実装単位（全体）: #172 の `plgg-test` 向け gate（`gate-test-npm-consumer.sh`）。
+  `typescript` を runtime 依存に持つ 2 件のうち、PR が一本も無いのは `plgg-test` だけのため
+  （`plgg-bundle` は #165・#179 が部分的に扱っている）。
+- #175・#177 の Node 24 段は、ローカル（Node 23 / 22）では skip する。検査予定の 2 件は、
+  PR が merge され CI で実行されて初めて検査済みになる。
 - 本追記は docs のみを変えた。`scripts/tsc-plgg.sh` と `scripts/test-plgg.sh` は、コードを変えないため実行していない。
