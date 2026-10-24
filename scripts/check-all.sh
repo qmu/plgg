@@ -49,6 +49,9 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Exercise the publish-shaped tarball in an isolated npm/TypeScript 7 consumer.
+node "$REPO_ROOT/scripts/gate-bundle-ts7-consumer.ts"
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
