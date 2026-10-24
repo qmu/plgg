@@ -33,6 +33,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 
 BUNDLE_DIR="$REPO_ROOT/packages/plgg-bundle"
 ROOT_TS="$REPO_ROOT/node_modules/typescript"
+ROOT_TS_PLATFORM_SCOPE="$REPO_ROOT/node_modules/@typescript"
 NESTED_TS="$BUNDLE_DIR/node_modules/typescript"
 
 echo "=== Gate: plgg-bundle npm-consumer resolution (issue #156) ==="
@@ -44,6 +45,12 @@ fi
 if [ ! -d "$ROOT_TS" ] || [ ! -d "$NESTED_TS" ]; then
   echo "expected the split-version install (root typescript@7 +" >&2
   echo "plgg-bundle's nested typescript@6); run ./scripts/npm-install.sh first" >&2
+  exit 1
+fi
+if [ ! -d "$ROOT_TS_PLATFORM_SCOPE" ]; then
+  echo "expected $ROOT_TS_PLATFORM_SCOPE (TS7's native per-platform" >&2
+  echo "optional dependency, e.g. @typescript/typescript-linux-x64);" >&2
+  echo "run ./scripts/npm-install.sh first" >&2
   exit 1
 fi
 
@@ -61,9 +68,15 @@ mkdir -p "$CONSUMER/node_modules" "$CONSUMER/src"
 tar -xzf "$TARBALL_PATH" -C "$CONSUMER/node_modules"
 mv "$CONSUMER/node_modules/package" "$CONSUMER/node_modules/plgg-bundle"
 
-# The consumer's OWN typescript@7 (top-level) ...
+# The consumer's OWN typescript@7 (top-level), plus the native
+# per-platform optional dependency its `bin/tsc` launcher resolves as a
+# sibling under the same node_modules (e.g. @typescript/typescript-linux-x64)
+# — without it, running tsc throws "Unable to resolve
+# @typescript/typescript-<platform>" before it ever reaches a source file.
 mkdir -p "$CONSUMER/node_modules/typescript"
 cp -r "$ROOT_TS/." "$CONSUMER/node_modules/typescript/"
+mkdir -p "$CONSUMER/node_modules/@typescript"
+cp -r "$ROOT_TS_PLATFORM_SCOPE/." "$CONSUMER/node_modules/@typescript/"
 # ... alongside plgg-bundle's nested typescript@6, exactly as npm would place
 # it for a conflicting dependency version.
 mkdir -p "$CONSUMER/node_modules/plgg-bundle/node_modules/typescript"
