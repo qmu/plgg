@@ -1392,7 +1392,10 @@ test("lazy siblings skip independently: an unchanged one is untouched while a ch
     check(calls.b, toBe(2)),
     check(nodeA2, toBe(nodeA)),
     check(nodeB2, toBe(nodeB)),
-    check(nodeB2?.textContent, toContain("b3")),
+    check(
+      nodeB2?.textContent ?? "",
+      toContain("b3"),
+    ),
   ]);
 });
 

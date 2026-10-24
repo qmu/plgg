@@ -10,6 +10,7 @@ import {
   el,
   text,
   div,
+  span,
   lazy,
 } from "plgg-view/Html/model/element";
 import { type Html } from "plgg-view/Html/model/Html";
@@ -175,7 +176,7 @@ test("a re-collection with the SAME arg does not re-invoke the lazy producer", (
     n: number;
   }): Html<never, "span"> => {
     calls++;
-    return el("span", [style_(p(a.n))], []);
+    return span([style_(p(a.n))], []);
   };
   collectCssRules(div([], [lazy(row, arg)]));
   const callsAfterFirst = calls;
