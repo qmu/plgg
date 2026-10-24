@@ -49,6 +49,13 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Gate: plgg-bundle, packed and installed the way a real npm consumer installs
+# it, builds the SAME consumer directory twice in a row without error
+# (scripts/gate-bundle-repeat-build.sh; qmu/plgg#155's EISDIR-on-second-run
+# regression). MUST run after build.sh: it packs packages/plgg-bundle's own
+# dist/cli.es.js.
+./scripts/gate-bundle-repeat-build.sh
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
