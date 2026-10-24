@@ -59,6 +59,12 @@ node --test scripts/smokeBundle.spec.mjs
 # Packed library consumer: TS7 declaration compiler / nested TS6 JS API.
 ./scripts/gate-bundle-declarations-consumer.sh
 
+# Gate: plgg-bundle's published bin resolves ITS OWN nested typescript under a
+# real npm-consumer layout, not the consumer's conflicting top-level one
+# (qmu/plgg#156 — scripts/gate-bundle-npm-consumer.sh). MUST run after
+# build.sh: it packs and runs the just-built packages/plgg-bundle/dist.
+./scripts/gate-bundle-npm-consumer.sh
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
