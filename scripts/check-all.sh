@@ -61,8 +61,9 @@ node --test scripts/smokeBundle.spec.mjs
 
 # Gate: plgg-bundle's published bin resolves ITS OWN nested typescript under a
 # real npm-consumer layout, not the consumer's conflicting top-level one
-# (qmu/plgg#156 — scripts/gate-bundle-npm-consumer.sh). MUST run after
-# build.sh: it packs and runs the just-built packages/plgg-bundle/dist.
+# (qmu/plgg#156), and rebuilds cleanly on a second invocation (qmu/plgg#155)
+# — scripts/gate-bundle-npm-consumer.sh. MUST run after build.sh: it packs
+# and runs the just-built packages/plgg-bundle/dist.
 ./scripts/gate-bundle-npm-consumer.sh
 
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the

@@ -2,26 +2,31 @@
 REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 
 # Gate: plgg-bundle resolves ITS OWN typescript under a real npm-consumer
-# layout (qmu/plgg#156). A consumer with typescript@7 as its own
-# devDependency gets plgg-bundle's declared typescript@^6.0.3 NESTED under
+# layout (qmu/plgg#156), and rebuilds cleanly on repeated invocations
+# (qmu/plgg#155). A consumer with typescript@7 as its own devDependency gets
+# plgg-bundle's declared typescript@^6.0.3 NESTED under
 # node_modules/plgg-bundle/node_modules (npm's standard conflict-nesting,
 # not a quirk of this repo). The published 0.0.6 resolved "typescript" via
 # bin/relocate.mjs, which symlinked the relocated copy's node_modules to the
 # CONSUMER's top-level node_modules — skipping the nested copy and handing
 # transpiler.ts the consumer's typescript@7, whose JS API dropped
 # `ts.ModuleKind`/`ts.transpileModule` ("Cannot read properties of undefined
-# (reading 'CommonJS')"). `relocate.mjs` is gone (5b109cec): the bin now runs
-# the compiled `dist/cli.es.js` in place, so plain Node module resolution —
-# nearest `node_modules` first — reaches the nested copy on its own. This
-# gate proves that by constructing the exact on-disk layout from this
-# workspace's OWN already-installed copies (no extra registry fetch: the
-# split-version policy already pins root `typescript@^7.0.2` and plgg-bundle
+# (reading 'CommonJS')"). That same relocate.mjs also `rmSync`'d its /tmp
+# copy's node_modules symlink (a directory symlink) without `recursive`,
+# which threw EISDIR on Node v23.9.0 the second time the bin ran (#155).
+# `relocate.mjs` is gone (5b109cec): the bin now runs the compiled
+# `dist/cli.es.js` in place, so plain Node module resolution — nearest
+# `node_modules` first — reaches the nested copy on its own, and there is no
+# /tmp copy or symlink left to remove on a second run. This gate proves both
+# by constructing the exact on-disk layout from this workspace's OWN
+# already-installed copies (no extra registry fetch: the split-version
+# policy already pins root `typescript@^7.0.2` and plgg-bundle
 # `typescript@^6.0.3`, so both versions this gate needs are already on disk
 # after `./scripts/npm-install.sh`) and running the published bin against it.
 #
-# Three things are pinned, matching the consumer's actual workflow
-# (corpd's own words on the issue: build with plgg-bundle, typecheck with
-# TypeScript 7):
+# Four things are pinned, matching the consumer's actual workflow (corpd's
+# own words on the issues: build with plgg-bundle, typecheck with
+# TypeScript 7, and a dev server that rebuilds on every save):
 #   1. DETECTION — the bin's bare `import ts from "typescript"` resolves to
 #      plgg-bundle's own nested TS6, never the consumer's top-level TS7.
 #   2. TRANSPILE — building the fixture app with that resolved compiler
@@ -30,13 +35,16 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 #      wholly unrelated to plgg-bundle's nested TS6) still typechecks the
 #      consumer's source cleanly — the split-version design must never leak
 #      plgg-bundle's pinned TS6 into the consumer's own typecheck.
+#   4. REPEAT BUILD — running the packed bin a second time against the same
+#      consumer directory (the exact #155 repro: "組める。もう一度 → EISDIR")
+#      succeeds too, with no leftover /tmp relocation state to collide with.
 
 BUNDLE_DIR="$REPO_ROOT/packages/plgg-bundle"
 ROOT_TS="$REPO_ROOT/node_modules/typescript"
 ROOT_TS_PLATFORM_SCOPE="$REPO_ROOT/node_modules/@typescript"
 NESTED_TS="$BUNDLE_DIR/node_modules/typescript"
 
-echo "=== Gate: plgg-bundle npm-consumer resolution (issue #156) ==="
+echo "=== Gate: plgg-bundle npm-consumer resolution (issues #155, #156) ==="
 
 if [ ! -f "$BUNDLE_DIR/dist/cli.es.js" ]; then
   echo "plgg-bundle dist missing; run ./scripts/build.sh first" >&2
@@ -165,6 +173,24 @@ echo "$TYPECHECK_OUTPUT"
 
 if [ "$TYPECHECK_STATUS" -ne 0 ] || echo "$TYPECHECK_OUTPUT" | grep -q 'error TS'; then
   echo "plgg-bundle npm-consumer gate FAILED (consumer typecheck regressed, issue #156)" >&2
+  exit 1
+fi
+
+echo "--- 4. repeat build: running the packed bin a second time (issue #155) ---"
+REPEAT_OUTPUT=$(
+  cd "$CONSUMER" &&
+    node node_modules/plgg-bundle/bin/plgg-bundle.mjs 2>&1
+) && REPEAT_STATUS=0 || REPEAT_STATUS=$?
+echo "$REPEAT_OUTPUT"
+
+if [ "$REPEAT_STATUS" -ne 0 ]; then
+  echo "plgg-bundle npm-consumer gate FAILED (issue #155 regression: second" >&2
+  echo "invocation of the bin failed)" >&2
+  exit 1
+fi
+if echo "$REPEAT_OUTPUT" | grep -q 'EISDIR'; then
+  echo "plgg-bundle npm-consumer gate FAILED (issue #155 regression: EISDIR" >&2
+  echo "on the second invocation)" >&2
   exit 1
 fi
 
