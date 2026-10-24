@@ -49,6 +49,12 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Gate: a downstream consumer's OWN TypeScript 7 can actually TRANSPILE (emit,
+# not just typecheck) source importing the published `plgg` tarball
+# (qmu/plgg#156, qmu/plgg#165 — scripts/gate-tarball-ts7-transpile.sh). MUST
+# run after build.sh: it packs packages/plgg's just-built dist.
+./scripts/gate-tarball-ts7-transpile.sh
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
