@@ -8,6 +8,7 @@ import {
   failedProjects,
   exitCodeFor,
   summaryOf,
+  failureOutputOf,
 } from "./typecheck.ts";
 
 /**
@@ -164,3 +165,24 @@ test("summaryOf: a red run names every failing package", () => {
     "typecheck: 3 packages in 9.0s — FAILED in 2: a, c\n",
   );
 });
+
+// Both layouts must report the resolved launcher, including a consumer's
+// hoisted TS7 path when a TS6 runtime package accidentally picks it up.
+for (const compiler of [
+  "/repo/packages/plgg-bundle/node_modules/typescript/bin/tsc",
+  "/consumer/node_modules/typescript/bin/tsc",
+]) {
+  test(`failureOutputOf: attributes diagnostics to ${compiler}`, () => {
+    assert.equal(
+      failureOutputOf(
+        "plgg-bundle",
+        compiler,
+        2,
+        "error TS2322: first\nerror TS2345: second\n",
+      ),
+      "\n=== packages/plgg-bundle — 2 error(s) ===\n" +
+        `TypeScript compiler: ${compiler}\n` +
+        "error TS2322: first\nerror TS2345: second\n\n",
+    );
+  });
+}
