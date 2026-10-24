@@ -7,6 +7,7 @@ import {
   toEqual,
   toBeInstanceOf,
   toBeUndefined,
+  toContain,
   not,
 } from "plgg-test";
 import {

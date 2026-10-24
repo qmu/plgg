@@ -228,10 +228,19 @@ export const application =
       currentUrl(),
     );
     // mutable seams: the live model, an `alive` flag so an effect or
-    // subscription resolving after teardown is dropped, and the cancel for a
-    // paint `frame`-scheduled but not yet flushed (null when none is pending).
+    // subscription resolving after teardown is dropped, and the frame-paint
+    // bookkeeping — `paintPending` gates whether a NEW flush must be
+    // scheduled (set true the instant one is requested, cleared the instant
+    // it flushes), kept separate from `cancelPaint` (the seam's own cancel)
+    // because `frameEnv.schedule` is allowed to call back SYNCHRONOUSLY (the
+    // no-`requestAnimationFrame` fallback does): if the gate were "is there a
+    // cancel" the synchronous callback would clear it before `schedule`
+    // itself returns, and the later assignment of `schedule`'s return value
+    // would stomp that clear right back to "pending" — silently dropping
+    // every later dispatch's repaint for the rest of the mount's life.
     let model: Model = initModel;
     let alive = true;
+    let paintPending = false;
     let cancelPaint: (() => void) | null = null;
     const sync = program.render === "sync";
     const sheet = makeSheet();
@@ -239,6 +248,7 @@ export const application =
     // time (not schedule time), so N dispatches batched into one frame still
     // repaint only once, on the model the last of them produced.
     const flushPaint = (): void => {
+      paintPending = false;
       cancelPaint = null;
       if (alive) {
         paint(program.view(model));
@@ -251,7 +261,8 @@ export const application =
     const schedulePaint = (): void => {
       if (sync) {
         paint(program.view(model));
-      } else if (cancelPaint === null) {
+      } else if (!paintPending) {
+        paintPending = true;
         cancelPaint = frameEnv.schedule(flushPaint);
       }
     };
@@ -362,6 +373,7 @@ export const application =
 
     return () => {
       alive = false;
+      paintPending = false;
       if (cancelPaint !== null) {
         cancelPaint();
         cancelPaint = null;

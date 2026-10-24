@@ -822,13 +822,15 @@ test("benchmark: 3×2000-row columns, 5 out-of-order dispatches — 5 column reb
     window.dispatchEvent(new Event("popstate"));
   });
   const buildsBeforeFlush = columnBuilds;
-  const unbatchedNoLazy = order.length * 3; // what the pre-#157 runtime paid
+  const COLUMN_COUNT = 3;
+  const unbatchedNoLazy =
+    order.length * COLUMN_COUNT; // what the pre-#157 runtime paid
   const t0 = performance.now();
   fakeFrame.flush();
   const flushMs = performance.now() - t0;
   const totalBuilds = columnBuilds;
   console.log(
-    `[bench #157] ${order.length} columns × ${ROWS} rows, ${order.length} ` +
+    `[bench #157] ${COLUMN_COUNT} columns × ${ROWS} rows, ${order.length} ` +
       `out-of-order dispatches: ${totalBuilds} column rebuild(s) ` +
       `(${buildsAfterMount} mount + ${totalBuilds - buildsAfterMount} at the ` +
       `single flush) vs ${unbatchedNoLazy} unbatched/no-lazy; one ` +

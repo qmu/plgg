@@ -440,7 +440,8 @@ test("a raw child rides beside an escaped text sibling", () =>
 test("renderToString resolves a lazy subtree (SSR has no notion of skip)", () =>
   check(
     renderToString(
-      div(
+      el(
+        "div",
         [],
         [
           lazy(

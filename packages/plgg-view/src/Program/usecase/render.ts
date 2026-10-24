@@ -76,6 +76,11 @@ export type Wiring<Msg> = Readonly<{
   // reconcile skips them when matching so a node leaving is never mistaken for a
   // survivor (and a re-add lands on a fresh node, not the one fading away).
   exiting: WeakSet<Element>;
+  // a lazy node's last RESOLVED subtree, keyed by the live DOM node it
+  // produced — so a changed-arg patch diffs against the tree that was
+  // ACTUALLY rendered last time instead of forcing the old thunk again (which
+  // would call the producer a second time for an arg it already rendered).
+  lazyResolved: WeakMap<Node, Html<Msg>>;
 }>;
 
 /** The node's {@link NodeWiring}, created and registered on first use. */
@@ -579,11 +584,17 @@ export const createNode =
         },
       ],
       // first paint of a lazy slot (or a slot that just became lazy): there is
-      // no previous render to compare `arg` against, so force it once.
+      // no previous render to compare `arg` against, so force it once — and
+      // remember the resolved subtree so a later changed-arg patch can diff
+      // against it without re-forcing this arg's thunk.
       [
         lazy$(),
-        ({ content }): Node =>
-          createNode(wiring)(content.render()),
+        ({ content }): Node => {
+          const resolved = content.render();
+          const node = createNode(wiring)(resolved);
+          wiring.lazyResolved.set(node, resolved);
+          return node;
+        },
       ],
     );
 
@@ -726,8 +737,12 @@ const patchElement =
   };
 
 /**
- * Reconciles `newVnode` against `oldVnode` at one DOM slot. A node is reused
- * (the focus/selection/scroll-preserving path) only when its kind and — for
+ * Reconciles `newVnode` against `oldVnode` at one DOM slot, returning the node
+ * now occupying it (`domNode` reused in place, or a freshly built
+ * replacement — the {@link patchKeyed} counterpart, which already returns its
+ * slot's node for the same reason: a {@link lazy$} patch needs to know which
+ * node to remember a resolved subtree against). A node is reused (the
+ * focus/selection/scroll-preserving path) only when its kind and — for
  * elements — its tag match, *and* the live DOM node still has that shape;
  * otherwise the whole node is swapped. The `instanceof` guards make the swap
  * the safe fallback if the DOM has drifted from the old vnode. The client
@@ -740,21 +755,20 @@ export const reconcile =
     domNode: ChildNode,
     oldVnode: Html<Msg>,
     newVnode: Html<Msg>,
-  ): void => {
-    const replace = (): void => {
-      parent.replaceChild(
-        createNode(wiring)(newVnode),
-        domNode,
-      );
+  ): Node => {
+    const replace = (): Node => {
+      const fresh = createNode(wiring)(newVnode);
+      parent.replaceChild(fresh, domNode);
+      return fresh;
     };
-    match(newVnode)(
+    return match(newVnode)(
       [
         text$(),
-        ({ content }): void =>
+        ({ content }): Node =>
           match(oldVnode)(
             [
               text$(),
-              (): void => {
+              (): Node => {
                 // `CharacterData` (not `Text`) — `Text extends CharacterData`
                 // and exposes the writable `.data`; the test DOM brands text
                 // nodes as `CharacterData`, so this is the reliable guard
@@ -767,23 +781,23 @@ export const reconcile =
                   ) {
                     domNode.data = content.value;
                   }
-                } else {
-                  replace();
+                  return domNode;
                 }
+                return replace();
               },
             ],
-            [element$(), (): void => replace()],
-            [raw$(), (): void => replace()],
-            [lazy$(), (): void => replace()],
+            [element$(), (): Node => replace()],
+            [raw$(), (): Node => replace()],
+            [lazy$(), (): Node => replace()],
           ),
       ],
       [
         element$(),
-        ({ content: newContent }): void =>
+        ({ content: newContent }): Node =>
           match(oldVnode)(
             [
               element$(),
-              ({ content: oldContent }): void => {
+              ({ content: oldContent }): Node => {
                 if (
                   domNode instanceof Element &&
                   oldContent.tag ===
@@ -794,73 +808,91 @@ export const reconcile =
                     oldContent,
                     newContent,
                   );
-                } else {
-                  replace();
+                  return domNode;
                 }
+                return replace();
               },
             ],
-            [text$(), (): void => replace()],
-            [raw$(), (): void => replace()],
-            [lazy$(), (): void => replace()],
+            [text$(), (): Node => replace()],
+            [raw$(), (): Node => replace()],
+            [lazy$(), (): Node => replace()],
           ),
       ],
       // a raw passthrough is opaque to the differ — any
       // change rebuilds it from the trusted html
-      [raw$(), (): void => replace()],
+      [raw$(), (): Node => replace()],
       // the lazy fast path: an unchanged `===` arg skips `render()` AND the
-      // diff entirely (DOM untouched); a changed arg resolves BOTH sides
-      // (forcing the previous render's thunk too, so the diff still lands on
-      // the real subtree and gets the usual node-reuse/focus-preserving
-      // patch — never a blind replace) and re-diffs through this same
-      // function at this same slot.
+      // diff entirely (DOM untouched, `domNode` returned as-is); a changed
+      // arg resolves only the NEW side (the old side comes from
+      // `wiring.lazyResolved` — the subtree that was ACTUALLY rendered last
+      // time, never by re-forcing the old thunk, which would call its
+      // producer a second time for an arg it already rendered) and re-diffs
+      // through this same function, then remembers the new resolved subtree
+      // against whichever node ends up at this slot.
       [
         lazy$(),
-        ({ content: newContent }): void =>
-          match(oldVnode)(
+        ({ content: newContent }): Node => {
+          // resolves ONLY the new side, diffs it against `old`, then
+          // remembers the result for the NEXT changed-arg patch — shared by
+          // every "old wasn't an unchanged-arg lazy" branch below.
+          const resolveAndReconcile = (
+            old: Html<Msg>,
+          ): Node => {
+            const newResolved =
+              newContent.render();
+            const result = reconcile(wiring)(
+              parent,
+              domNode,
+              old,
+              newResolved,
+            );
+            wiring.lazyResolved.set(
+              result,
+              newResolved,
+            );
+            return result;
+          };
+          return match(oldVnode)(
             [
               lazy$(),
-              ({ content: oldContent }): void => {
-                if (oldContent.arg !== newContent.arg) {
-                  reconcile(wiring)(
-                    parent,
-                    domNode,
-                    oldContent.render(),
-                    newContent.render(),
-                  );
-                }
-              },
+              ({ content: oldContent }): Node =>
+                oldContent.arg ===
+                newContent.arg
+                  ? domNode
+                  : resolveAndReconcile(
+                      pipe(
+                        fromNullable(
+                          wiring.lazyResolved.get(
+                            domNode,
+                          ),
+                        ),
+                        matchOption(
+                          (): Html<Msg> =>
+                            oldContent.render(),
+                          (
+                            cached: Html<Msg>,
+                          ): Html<Msg> => cached,
+                        ),
+                      ),
+                    ),
             ],
             [
               text$(),
-              (): void =>
-                reconcile(wiring)(
-                  parent,
-                  domNode,
-                  oldVnode,
-                  newContent.render(),
-                ),
+              (): Node =>
+                resolveAndReconcile(oldVnode),
             ],
             [
               element$(),
-              (): void =>
-                reconcile(wiring)(
-                  parent,
-                  domNode,
-                  oldVnode,
-                  newContent.render(),
-                ),
+              (): Node =>
+                resolveAndReconcile(oldVnode),
             ],
             [
               raw$(),
-              (): void =>
-                reconcile(wiring)(
-                  parent,
-                  domNode,
-                  oldVnode,
-                  newContent.render(),
-                ),
+              (): Node =>
+                resolveAndReconcile(oldVnode),
             ],
-          ),
+          );
+        },
       ],
     );
   };
@@ -899,13 +931,14 @@ const indexPatchChildren =
                     createNode(wiring)(child),
                   );
                 },
-                (oldChild: Html<Msg>) =>
+                (oldChild: Html<Msg>) => {
                   reconcile(wiring)(
                     parent,
                     domNode,
                     oldChild,
                     child,
-                  ),
+                  );
+                },
               ),
             ),
         ),
@@ -1394,6 +1427,7 @@ export const makeRenderer = <Msg>(
     play,
     keyed: new WeakMap(),
     exiting: new WeakSet(),
+    lazyResolved: new WeakMap(),
   };
   // mutable seam: the last tree rendered into `container` (none until first paint)
   let previous: Option<Html<Msg>> = none();
@@ -1415,13 +1449,14 @@ export const makeRenderer = <Msg>(
                   createNode(wiring)(next),
                 );
               },
-              (domNode: ChildNode) =>
+              (domNode: ChildNode) => {
                 reconcile(wiring)(
                   container,
                   domNode,
                   old,
                   next,
-                ),
+                );
+              },
             ),
           ),
       ),
