@@ -63,6 +63,11 @@ node --test scripts/*.spec.ts
 # the sibling-dist masking class this repository keeps rediscovering.
 ./scripts/gate-cross-runtime.sh
 
+# The public plgg-md tarball installs, transpiles and runs on Node 24 under a
+# consumer's own TypeScript 7. Network-dependent: runs only under CI=true or
+# GATE_PLGG_MD=1, otherwise skips (scripts/gate-plgg-md-node24.sh).
+./scripts/gate-plgg-md-node24.sh
+
 # The verification phase: the whole-repo typecheck gate plus every package's
 # suite, fanned out across processes through the one canonical runner.
 #
