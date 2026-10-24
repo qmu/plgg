@@ -719,13 +719,17 @@ test("cleanup cancels a pending frame-batched paint before it fires", () => {
 //
 // "3 columns of 2000 rows, 5 fetches resolved one at a time (not
 // Promise.all'd), each replacing one column" — before this change, every
-// dispatch ran its own synchronous `view()` + diff over ALL 3 columns (5 × 3
-// = 15 column rebuilds). With frame-batched dispatch + `lazy(column, rows)`,
-// the 5 dispatches collapse into ONE paint, and only the columns a dispatch
-// actually replaced rebuild — once each, no matter how many times THAT column
-// was redispatched before the flush, and never for the column nothing ever
-// touched.
-test("benchmark: 3×2000-row columns, 5 out-of-order dispatches — 5 column rebuilds instead of 15, 0 before the flush", () => {
+// dispatch ran its own synchronous `view()` + diff over ALL 3 columns, AND
+// `collectCssRules` re-walked all 3 for their `css()` atoms on every paint
+// regardless. With frame-batched dispatch + `lazy(column, rows)`, the 5
+// dispatches collapse into ONE paint, and only the columns a dispatch
+// actually replaced get resolved at all — once each (not once per
+// redispatch), and never for the column nothing ever touched. `columnBuilds`
+// counts calls to the producer from EITHER the DOM path or the CSS-collection
+// path, so `buildsAfterMount / 3` is however many of those paths exist in a
+// given build — the assertions below are expressed relative to that, so they
+// hold regardless of that count.
+test("benchmark: 3×2000-row columns, 5 out-of-order dispatches collapse into one paint; an untouched column never rebuilds", () => {
   const ROWS = 2000;
   const rowsOf = (
     tag: string,
@@ -823,8 +827,11 @@ test("benchmark: 3×2000-row columns, 5 out-of-order dispatches — 5 column reb
   });
   const buildsBeforeFlush = columnBuilds;
   const COLUMN_COUNT = 3;
+  const CHANGED_COLUMNS = 2; // "a" and "b"; "c" is never touched
+  const perColumnCost =
+    buildsAfterMount / COLUMN_COUNT;
   const unbatchedNoLazy =
-    order.length * COLUMN_COUNT; // what the pre-#157 runtime paid
+    order.length * COLUMN_COUNT * perColumnCost; // what the pre-#157 runtime paid
   const t0 = performance.now();
   fakeFrame.flush();
   const flushMs = performance.now() - t0;
@@ -837,11 +844,15 @@ test("benchmark: 3×2000-row columns, 5 out-of-order dispatches — 5 column reb
       `batched flush took ${flushMs.toFixed(3)}ms`,
   );
   return all([
-    check(buildsAfterMount, toBe(3)),
-    // nothing rebuilt before the frame flushes — the whole point of batching
-    check(buildsBeforeFlush, toBe(3)),
-    // "a" and "b" rebuild exactly once each at the flush; "c" never rebuilds
-    check(totalBuilds, toBe(5)),
+    // nothing rebuilds before the frame flushes — the whole point of batching
+    check(buildsBeforeFlush, toBe(buildsAfterMount)),
+    // "a" and "b" cost exactly one column's worth EACH at the flush, no
+    // matter how many times (3 and 2, respectively) they were individually
+    // redispatched before it; "c" (never touched) costs nothing at all.
+    check(
+      totalBuilds - buildsBeforeFlush,
+      toBe(perColumnCost * CHANGED_COLUMNS),
+    ),
     check(root.textContent, toContain("a-1999")),
     check(root.textContent, toContain("c0-0")), // "c" still shows its ORIGINAL fetch
   ]);
