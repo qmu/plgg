@@ -107,27 +107,84 @@ cat >"$CONSUMER/src/main.ts" <<'EOF'
 export const greeting: string = "hello from the npm-consumer fixture";
 EOF
 
-echo "--- 1. detection: which typescript does the published bin resolve? ---"
-RESOLVED_TS=$(
+# Resolve "typescript" the way Node would for the file $1, and print
+# `<major> <resolved main path>`. The major is read from the resolved
+# package's own package.json, so the diagnostic names the compiler that
+# was actually picked up rather than the one that was expected.
+resolve_ts() {
   node -e '
 const { createRequire } = require("node:module");
-const req = createRequire(process.argv[1]);
-process.stdout.write(req.resolve("typescript"));
-' "$CONSUMER/node_modules/plgg-bundle/dist/cli.es.js"
-)
-NESTED_TS_REALPATH=$(cd "$CONSUMER/node_modules/plgg-bundle/node_modules/typescript" && pwd -P)
-case "$RESOLVED_TS" in
-  "$NESTED_TS_REALPATH"/*) : ;;
+const { dirname, join } = require("node:path");
+const main = createRequire(process.argv[1]).resolve("typescript");
+let dir = dirname(main);
+while (!require("node:fs").existsSync(join(dir, "package.json"))) {
+  dir = dirname(dir);
+}
+const v = require(join(dir, "package.json")).version;
+process.stdout.write(v.split(".")[0] + " " + v + " " + main);
+' "$1"
+}
+
+# Pinned diagnostic for a bin that resolved the wrong typescript. The
+# text is asserted verbatim by the negative fixture below, so a reader of
+# a real failure sees which compiler was grabbed and where from.
+# $1 = consumer dir. Returns 1 (with the diagnostic on stderr) when the
+# bin would not resolve a nested typescript@6.
+assert_nested_ts6() {
+  RESOLVED=$(resolve_ts "$1/node_modules/plgg-bundle/dist/cli.es.js")
+  RESOLVED_MAJOR=${RESOLVED%% *}
+  if [ "$RESOLVED_MAJOR" != "6" ]; then
+    echo "plgg-bundle resolved typescript@$(echo "$RESOLVED" | cut -d' ' -f2)" >&2
+    echo "at $(echo "$RESOLVED" | cut -d' ' -f3-)," >&2
+    echo "expected its own nested typescript@6 under" >&2
+    echo "$1/node_modules/plgg-bundle/node_modules/typescript" >&2
+    echo "(the consumer's top-level typescript@7 must not be used)" >&2
+    return 1
+  fi
+}
+
+echo "--- 1. detection: which typescript does the published bin resolve? ---"
+CONSUMER_TS_INFO=$(resolve_ts "$CONSUMER/bundle.config.ts")
+if [ "${CONSUMER_TS_INFO%% *}" != "7" ]; then
+  echo "fixture invalid: the consumer's own typescript must be 7.x," >&2
+  echo "got: $CONSUMER_TS_INFO" >&2
+  exit 1
+fi
+if ! assert_nested_ts6 "$CONSUMER"; then
+  echo "plgg-bundle npm-consumer gate FAILED (issue #156 regression)" >&2
+  exit 1
+fi
+RESOLVED_INFO=$(resolve_ts "$CONSUMER/node_modules/plgg-bundle/dist/cli.es.js")
+echo "consumer uses typescript@$(echo "$CONSUMER_TS_INFO" | cut -d' ' -f2);" \
+  "plgg-bundle resolved typescript@$(echo "$RESOLVED_INFO" | cut -d' ' -f2)" \
+  "(nested, as expected)"
+
+echo "--- 1b. diagnostic: a hoisted-only layout is reported by name ---"
+# Same consumer, but plgg-bundle has NO nested typescript, so Node walks
+# up to the consumer's typescript@7 — the #156 shape. The gate must fail
+# with the pinned diagnostic naming typescript@7.
+BAD="$SCRATCH/consumer-hoisted"
+mkdir -p "$BAD/node_modules"
+cp -r "$CONSUMER/node_modules/typescript" "$BAD/node_modules/typescript"
+cp -r "$CONSUMER/node_modules/@typescript" "$BAD/node_modules/@typescript"
+mkdir -p "$BAD/node_modules/plgg-bundle"
+cp -r "$CONSUMER/node_modules/plgg-bundle/dist" \
+  "$CONSUMER/node_modules/plgg-bundle/package.json" \
+  "$BAD/node_modules/plgg-bundle/"
+BAD_DIAG=$(assert_nested_ts6 "$BAD" 2>&1) && BAD_STATUS=0 || BAD_STATUS=$?
+if [ "$BAD_STATUS" -eq 0 ]; then
+  echo "diagnostic fixture invalid: a hoisted-only layout was accepted" >&2
+  exit 1
+fi
+case "$BAD_DIAG" in
+  *"plgg-bundle resolved typescript@7."*"expected its own nested typescript@6"*) : ;;
   *)
-    echo "expected the published bin to resolve typescript under" >&2
-    echo "$NESTED_TS_REALPATH, got $RESOLVED_TS instead" >&2
-    echo "plgg-bundle npm-consumer gate FAILED (issue #156 regression)" >&2
+    echo "pinned diagnostic text changed; got:" >&2
+    echo "$BAD_DIAG" >&2
     exit 1
     ;;
 esac
-RESOLVED_VERSION=$(node -e 'process.stdout.write(require(process.argv[1]).version)' \
-  "$CONSUMER/node_modules/plgg-bundle/node_modules/typescript/package.json")
-echo "resolved typescript@$RESOLVED_VERSION from $RESOLVED_TS (nested, as expected)"
+echo "$BAD_DIAG"
 
 echo "--- 2. transpile: running the packed bin against the fixture consumer ---"
 OUTPUT=$(
@@ -192,6 +249,56 @@ if echo "$REPEAT_OUTPUT" | grep -q 'EISDIR'; then
   echo "plgg-bundle npm-consumer gate FAILED (issue #155 regression: EISDIR" >&2
   echo "on the second invocation)" >&2
   exit 1
+fi
+
+echo "--- 5. Node 24: the same consumer, built twice under Node 24 ---"
+# Needs a network fetch of a second Node toolchain, so it runs only on CI
+# (CI=true) or with GATE_NODE24=1; otherwise it is skipped, like the
+# optional runtimes in gate-cross-runtime.sh.
+if [ "${CI:-}" != "true" ] && [ "${GATE_NODE24:-}" != "1" ]; then
+  echo "skipped (set GATE_NODE24=1 or run under CI=true)"
+else
+  case "$(uname -m)" in
+    x86_64) NODE_ARCH=x64 ;;
+    aarch64 | arm64) NODE_ARCH=arm64 ;;
+    *) echo "unsupported arch for Node 24 fetch" >&2; exit 1 ;;
+  esac
+  NODE24_VERSION=$(
+    curl -fsS https://nodejs.org/dist/index.json | node -e '
+let s = "";
+process.stdin.on("data", (d) => (s += d)).on("end", () => {
+  const hit = JSON.parse(s).find((r) => r.version.startsWith("v24."));
+  process.stdout.write(hit ? hit.version : "");
+});
+'
+  )
+  if [ -z "$NODE24_VERSION" ]; then
+    echo "could not resolve a Node 24 release" >&2
+    exit 1
+  fi
+  NODE24_DIR="$SCRATCH/node24"
+  mkdir -p "$NODE24_DIR"
+  curl -fsS "https://nodejs.org/dist/$NODE24_VERSION/node-$NODE24_VERSION-linux-$NODE_ARCH.tar.xz" |
+    tar -xJ -C "$NODE24_DIR" --strip-components=1
+  NODE24="$NODE24_DIR/bin/node"
+  case "$("$NODE24" -v)" in
+    v24.*) : ;;
+    *) echo "fetched node is not v24: $("$NODE24" -v)" >&2; exit 1 ;;
+  esac
+  for RUN in 1 2; do
+    rm -rf "$CONSUMER/dist"
+    N24_OUTPUT=$(
+      cd "$CONSUMER" &&
+        "$NODE24" node_modules/plgg-bundle/bin/plgg-bundle.mjs 2>&1
+    ) && N24_STATUS=0 || N24_STATUS=$?
+    echo "$N24_OUTPUT"
+    if [ "$N24_STATUS" -ne 0 ] || [ ! -f "$CONSUMER/dist/main.js" ]; then
+      echo "plgg-bundle npm-consumer gate FAILED under Node $NODE24_VERSION" >&2
+      echo "(build run $RUN of 2)" >&2
+      exit 1
+    fi
+  done
+  echo "Node $NODE24_VERSION built the consumer twice"
 fi
 
 echo "plgg-bundle npm-consumer gate passed"
