@@ -168,3 +168,47 @@ publish（まだ無い）の間に 3 か月のギャップがあったという�
 2 つだけ、という事実は #160〜#165 のどの PR でも揺らいでいない。この設計文書が
 扱うべき「残る条件」はこの事実の**上**に積まれている——2 パッケージという数が
 増えない限り、C・D・F の解決コストは今後も線形で、爆発的には増えない。
+
+## 追記: 起票・PR 化の進捗と、実装順の改訂（2026-10-24）
+
+本文の作成後に、条件の多くが issue / PR になった。重複して PR を立てないため、
+条件と既存の追跡先を対応させ、実装順を更新する。公開済み版（npm の `latest`）は、
+この追記の作成環境では registry に到達できず再確認していない。#165 の本文が示す
+`plgg-bundle@0.0.6` が最新、という前提のまま、publish 後に確認する項目として残す。
+
+### 条件と追跡先
+
+| 条件 | 追跡先 | 状態 |
+| --- | --- | --- |
+| A. CI が Node 24 を走らせない | [#171](https://github.com/qmu/plgg/issues/171)（workflows 権限待ち）。迂回として [#175](https://github.com/qmu/plgg/pull/175)（gate が Node 24 を自前取得し、公開 `plgg` を consumer の TS7 で transpile） | #175 は matrix 行の代替ではない。`run-tests.yml` 自体は 22.x のまま |
+| B. gate が API の有無を見ない | 未起票 | 本文のまま |
+| C. `plgg-test` の npm-consumer gate | [#172](https://github.com/qmu/plgg/issues/172) | 起票済み、PR 未着手 |
+| D. `engines.node` gate の一般化 | 未起票（優先度低） | 本文のまま |
+| E. `infrastructure.md` の矛盾 | 未起票 | 本文のまま |
+| F. fix が版 bump 無しで npm に届かない | 未起票 | 本文のまま |
+| G.（新）Docker イメージが `node:22-slim` | [#170](https://github.com/qmu/plgg/issues/170)（`workloads/guide`・`workloads/development`） | 本文の A〜F が見ていない面 |
+| H.（新）#155 の再発防止 gate | [#173](https://github.com/qmu/plgg/pull/173)（`gate-bundle-repeat-build.sh`） | open。`relocate.mjs` は既に無いので、連続 build が通ることを固定する |
+| I.（新）tarball を consumer の TS7 で transpile | [#174](https://github.com/qmu/plgg/pull/174)（ローカル pack）、[#175](https://github.com/qmu/plgg/pull/175)（公開 registry の版 + Node 24） | 重複ではなく検査対象が異なる（#174 = 手元の dist、#175 = 公開済み版） |
+| J.（新）gate 失敗時に解決先 tsc が見えない | [#169](https://github.com/qmu/plgg/pull/169) | open。#156 型の事故の診断性のみで、判定は増えない |
+
+### 実装順の改訂
+
+本文の 6 は #172 に置き換わった（新規 PR は #172 を Fixes する形で立てる）。
+5 は #171 と #175 に分かれた。改訂後の順序:
+
+1. #165 を merge → 人が publish（本文 1 のまま）。#174・#175 の gate は publish 後に
+   初めて `plgg-bundle` の修正を含む公開版に対して意味を持つ（#175 は registry の
+   `plgg` 最新版を取るため publish 前でも走るが、`plgg-bundle` の修正は検証しない）。
+2. #163 → #162 → #160（本文 2〜4）。
+3. #169・#173・#174・#175 を merge。#173〜#175 は `scripts/check-all.sh` に行を足すため、
+   先に merge したものの後は rebase が要る（#175 は #165 との非衝突のみ確認済みで、
+   #173・#174 との衝突は未確認）。
+4. #172 を実装（`gate-test-npm-consumer.sh`、#165 の gate と同形）。
+5. #171: `workflows` 権限を持つ人が matrix 行を入れる。入れた時点で #175 の Node 24
+   自前取得は冗長になるので、その時に外すか判断する。
+6. #170: Dockerfile の `node:22-slim` を、Node 24 を主張する範囲に合わせて見直す。
+   CI の matrix と同じ判断（22 を残すか）に従属させる。
+7. E（`infrastructure.md`）、B・F の gate または記録、D（本文 7〜9）。
+
+未解決の判断は 1 点: 22.x を支持下限として残すか。#160 の floor（`>=22.13`）は
+残す前提で書かれており、#170・#171 の結論はこれに依存する。
