@@ -212,3 +212,70 @@ publish（まだ無い）の間に 3 か月のギャップがあったという�
 
 未解決の判断は 1 点: 22.x を支持下限として残すか。#160 の floor（`>=22.13`）は
 残す前提で書かれており、#170・#171 の結論はこれに依存する。
+
+## 追記: npm-consumer 検査がまだ無い公開パッケージ（2026-10-25）
+
+「Node 24 上で、公開 npm の tarball を利用側 TypeScript 7 の devDependency を持つ
+scratch consumer に install して transpile する」検査が、まだ無いパッケージを列挙する。
+対象は `packages/*/package.json` のうち `private` でないもの 27 件。`@plgg/example`・
+`@plgg/guide`・`@plggmatic/example` は `private: true` で公開されないので除いた。
+
+### 読んだもの
+
+- `origin/main`（bba7ca80）の `scripts/check-all.sh` と `scripts/*.sh`。npm consumer を作る gate は無い。
+- 開いている PR のうち gate を足すもの: [#165](https://github.com/qmu/plgg/pull/165)、
+  [#173](https://github.com/qmu/plgg/pull/173)、[#174](https://github.com/qmu/plgg/pull/174)、
+  [#175](https://github.com/qmu/plgg/pull/175)、[#177](https://github.com/qmu/plgg/pull/177)、
+  [#179](https://github.com/qmu/plgg/pull/179)。他の open PR は engines・dependabot・plgg-view の変更で、consumer 検査を含まない。
+
+### open PR で検査が予定されているもの（3 件、下の一覧から除外）
+
+| パッケージ | main の版 | 検査する PR | 検査の中身 |
+| --- | --- | --- | --- |
+| `plgg` | 0.0.27 | [#175](https://github.com/qmu/plgg/pull/175)（Node 24・公開 registry・consumer TS7）、[#174](https://github.com/qmu/plgg/pull/174)（consumer TS7 で手元 tarball を transpile） | #175 は `CI=true` か `GATE_PUBLIC_TARBALL=1` のときだけ実行される |
+| `plgg-md` | 0.0.3 | [#177](https://github.com/qmu/plgg/pull/177)（Node 24・公開 registry・consumer TS7、`parseBlocks` を実行） | `CI=true` か `GATE_PLGG_MD=1` のときだけ実行される |
+| `plgg-bundle` | 0.0.6 | [#165](https://github.com/qmu/plgg/pull/165)（consumer TS7、5 段目で Node 24 を 2 回 build）、[#179](https://github.com/qmu/plgg/pull/179)（packed tarball・consumer TS7.0.2） | #165 の Node 24 段は `CI=true` か `GATE_NODE24=1` のときだけ。0.0.7 は未 publish |
+
+### 未検査の公開パッケージ（24 件）
+
+main にも open PR にも、この 24 件を対象にした consumer 検査は無い。版と宣言は各
+`packages/<dir>/package.json` の値。レジストリ上の公開状況はこの追記では確認していない。
+
+| パッケージ | 版 | typescript の宣言 | engines.node | 追跡先 |
+| --- | --- | --- | --- | --- |
+| `plgg-test` | 0.0.5 | `^6.0.3`（runtime 依存） | `>=22.6` | [#172](https://github.com/qmu/plgg/issues/172)（起票済み、PR 無し） |
+| `plgg-fetch` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-http` | 0.0.2 | `^7.0.2` | — | 無し |
+| `plgg-token-metering` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-mcp` | 0.0.2 | `^7.0.2` | — | 無し |
+| `plgg-foundry` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plggpress` | 0.0.4 | `^7.0.2` | — | 無し |
+| `plgg-cli` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-ir-thesis-proof` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-db-migration` | 0.0.2 | `^7.0.2` | `>=22.6`（#160 で `>=22.13` へ） | 無し |
+| `plgg-server` | 0.0.4 | `^7.0.2` | — | 無し |
+| `plgg-view` | 0.0.2 | `^7.0.2` | — | 無し |
+| `plgg-sql` | 0.0.1 | `^7.0.2` | — | 無し（#160 で engines 追加待ち） |
+| `plgg-ir-syntax` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plggmatic` | 0.2.2 | `^7.0.2` | — | 無し |
+| `plgg-parser` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-router` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-kit` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-ir-manifest` | 0.0.2 | `^7.0.2` | — | 無し |
+| `plgg-ir-thesis` | 0.0.1 | `^7.0.2` | — | 無し |
+| `plgg-cms` | 0.0.3 | `^7.0.2` | — | 無し（#160 で engines 追加待ち） |
+| `plgg-ir-language` | 0.0.2 | `^7.0.2` | — | 無し |
+| `plgg-auth` | 0.0.1 | `^7.0.2` | `>=22.6`（#160 で `>=22.13` へ） | 無し |
+| `plgg-highlight` | 0.0.3 | `^7.0.2` | — | 無し |
+
+### 判断と読み方
+
+- 「検査済み」の基準: 公開 registry の tarball（または packed tarball）を、利用側 TypeScript 7 を
+  devDependency に持つ scratch consumer に install し、Node 24 で emit（または実行）まで通ること。
+  #175・#177 の形がこの基準に最も近い。
+- `typescript` を runtime 依存に持つのは `plgg-bundle` と `plgg-test` だけで、このうち `plgg-test` は
+  #156 と同じ nested 解決の経路を持つ。残り 23 件は `^7.0.2` の宣言で、#175・#177 と同じ registry 型の gate を
+  パッケージ名を変えて回せる見込み（未検証）。
+- #175・#177・#165 の Node 24 段は、ローカル（Node 23 / 22）では skip する。この一覧で「検査予定」と書いた
+  3 件は、PR が merge され CI で実行されて初めて検査済みになる。
+- 本追記は docs のみを変えた。`scripts/tsc-plgg.sh` と `scripts/test-plgg.sh` は、コードを変えないため実行していない。
