@@ -45,9 +45,10 @@ if [ -z "$TARBALL_PATH" ]; then
 fi
 
 CONSUMER="$SCRATCH/consumer"
-mkdir -p "$CONSUMER/node_modules" "$CONSUMER/src"
-tar -xzf "$TARBALL_PATH" -C "$CONSUMER/node_modules"
-mv "$CONSUMER/node_modules/package" "$CONSUMER/node_modules/plgg-bundle"
+mkdir -p "$CONSUMER/src"
+# A real registry-style install: npm lays out plgg-bundle and its own
+# `typescript` dependency exactly as a consumer would get them.
+(cd "$CONSUMER" && npm install --silent --no-audit --no-fund "$TARBALL_PATH")
 
 cat >"$CONSUMER/bundle.config.ts" <<'EOF'
 export default {
