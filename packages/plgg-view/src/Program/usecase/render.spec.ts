@@ -17,6 +17,7 @@ import {
   button,
   input,
   form,
+  lazy,
 } from "plgg-view/Html/model/element";
 import { some, none, isSome, box } from "plgg";
 import {
@@ -1284,4 +1285,160 @@ test("a survivor FLIPs from its old box to its new one when it moves", () => {
   );
   document.body.removeChild(root);
   return all([a1, a2]);
+});
+
+// --- lazy — skip a subtree whose arg is unchanged -------------------------
+
+test("lazy renders its subtree on first paint", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const row = (
+    n: number,
+  ): Html<never, "div"> =>
+    div([], [text(`row:${n}`)]);
+  render(div([], [lazy(row, 1)]));
+  return check(root.textContent, toBe("row:1"));
+});
+
+test("a re-render with the SAME arg skips the producer and leaves the DOM untouched", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let calls = 0;
+  const row = (
+    n: number,
+  ): Html<never, "div"> => {
+    calls++;
+    return div([], [text(`row:${n}`)]);
+  };
+  const arg = 1;
+  render(div([], [lazy(row, arg)]));
+  const node =
+    root.firstElementChild?.firstElementChild;
+  const callsAfterFirst = calls;
+  render(div([], [lazy(row, arg)])); // same `arg` reference
+  return all([
+    check(calls, toBe(callsAfterFirst)),
+    check(
+      root.firstElementChild?.firstElementChild,
+      toBe(node),
+    ),
+  ]);
+});
+
+test("a re-render with a DIFFERENT arg calls the producer and patches the subtree in place", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let calls = 0;
+  const row = (
+    n: number,
+  ): Html<never, "div"> => {
+    calls++;
+    return div([], [text(`row:${n}`)]);
+  };
+  render(div([], [lazy(row, 1)]));
+  const node =
+    root.firstElementChild?.firstElementChild;
+  render(div([], [lazy(row, 2)]));
+  return all([
+    check(calls, toBe(2)),
+    // patched in place — the diff landed on the real subtree, not a replace
+    check(
+      root.firstElementChild?.firstElementChild,
+      toBe(node),
+    ),
+    check(root.textContent, toBe("row:2")),
+  ]);
+});
+
+test("lazy siblings skip independently: an unchanged one is untouched while a changed one repaints", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const calls = { a: 0, b: 0 };
+  const columnOf =
+    (id: "a" | "b") =>
+    (
+      rows: ReadonlyArray<string>,
+    ): Html<never, "div"> => {
+      calls[id]++;
+      return div(
+        [],
+        rows.map((r) => div([], [text(r)])),
+      );
+    };
+  const colA = ["a1", "a2"];
+  let colB = ["b1", "b2"];
+  render(
+    div([], [
+      lazy(columnOf("a"), colA),
+      lazy(columnOf("b"), colB),
+    ]),
+  );
+  const [nodeA, nodeB] = Array.from(
+    root.firstElementChild?.children ?? [],
+  );
+  colB = ["b1", "b2", "b3"]; // only column b's slice gets a new reference
+  render(
+    div([], [
+      lazy(columnOf("a"), colA),
+      lazy(columnOf("b"), colB),
+    ]),
+  );
+  const [nodeA2, nodeB2] = Array.from(
+    root.firstElementChild?.children ?? [],
+  );
+  return all([
+    check(calls.a, toBe(1)),
+    check(calls.b, toBe(2)),
+    check(nodeA2, toBe(nodeA)),
+    check(nodeB2, toBe(nodeB)),
+    check(nodeB2?.textContent, toContain("b3")),
+  ]);
+});
+
+test("removing a lazy child resolves it to find its exit motion", () => {
+  const root = document.createElement("div");
+  const { calls, play } = spyPlay();
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
+  const row = (): Html<never, "div"> =>
+    div([fadeOut(80)], [text("x")]);
+  render(div([], [lazy(row, 1)]));
+  render(div([], [])); // the lazy child is now surplus
+  return check(calls.length, toBe(1));
+});
+
+test("a list of lazy(...) children reconciles by index, even when the wrapped element carries key()", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const row = (v: {
+    k: string;
+    txt: string;
+  }): Html<never> =>
+    el("li", [key(v.k)], [text(v.txt)]);
+  render(
+    el("ul", [], [
+      lazy(row, { k: "a", txt: "A" }),
+      lazy(row, { k: "b", txt: "B" }),
+    ]),
+  );
+  const ul = root.firstElementChild;
+  const first = ul?.firstElementChild;
+  // reversed order — a truly KEYED list would move `first` to slot 1; the
+  // lazy wrapper's index reconcile instead patches each slot in place.
+  render(
+    el("ul", [], [
+      lazy(row, { k: "b", txt: "B" }),
+      lazy(row, { k: "a", txt: "A" }),
+    ]),
+  );
+  return all([
+    check(ul?.firstElementChild, toBe(first)),
+    check(
+      ul?.firstElementChild?.textContent,
+      toBe("B"),
+    ),
+  ]);
 });

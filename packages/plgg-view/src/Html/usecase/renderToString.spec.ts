@@ -43,6 +43,7 @@ import {
   meta,
   link,
   style,
+  lazy,
 } from "plgg-view/Html/model/element";
 import {
   class_,
@@ -434,4 +435,21 @@ test("a raw child rides beside an escaped text sibling", () =>
     ),
     // the text arm escapes; the raw arm does not
     toBe("<div>a &amp; b<i>c & d</i></div>"),
+  ));
+
+test("renderToString resolves a lazy subtree (SSR has no notion of skip)", () =>
+  check(
+    renderToString(
+      div(
+        [],
+        [
+          lazy(
+            (n: number) =>
+              el("span", [], [text(`n=${n}`)]),
+            3,
+          ),
+        ],
+      ),
+    ),
+    toBe("<div><span>n=3</span></div>"),
   ));

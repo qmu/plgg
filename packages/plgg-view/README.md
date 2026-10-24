@@ -24,8 +24,11 @@ touches them directly.
 |--|--|
 | ✅ `Model` / `Msg` / pure `update`→`[Model, Cmd]` / `view` / `subscriptions` | ❌ effects never RUN inside `update` — it returns them as data |
 | ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style element builder functions instead) |
-| ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no keyed-list reconcile or render batching (follow-ups) |
-| ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | ❌ no hydration (mount re-renders from `init`) |
+| ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no hydration (mount re-renders from `init`) |
+| ✅ keyed-list reconcile (`key()`, FLIP reorder) | ❌ a `lazy(...)` list cannot ALSO be keyed (reconciles by index) |
+| ✅ `application`'s dispatch batches into one `requestAnimationFrame` paint per frame (`render: "sync"` opts out) | |
+| ✅ `lazy(fn, arg)` skips a subtree's rebuild+diff when `arg` is `===` the previous render | |
+| ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | |
 | ✅ declarative enter/exit transitions (WAAPI, `prefers-reduced-motion`-aware) | ❌ no spring physics, keyed-FLIP reorder, or exit-while-list-churns (follow-ups) |
 | ✅ pure SSR `renderToString(Html)` | |
 
@@ -63,6 +66,42 @@ functions:
 
 `Html<Msg>` is a **functor over `Msg`**: `mapHtml(f)(html)` lets a parent embed a
 child component's view (Elm's `Html.map`).
+
+### `lazy` — skip a subtree the model didn't touch
+
+```ts
+import { lazy } from "plgg-view";
+
+const column = (c: Column): Html<Msg> => div([], c.rows.map(row));
+const view = (m: Model) => div([], m.columns.map((c) => lazy(column, c)));
+```
+
+`lazy(fn, arg)` defers `fn(arg)` to a thunk the renderer calls only when it
+actually needs the subtree — on first paint, or when patching against a
+previous render whose `arg` is no longer `===` this one's. When `arg` IS
+`===` the previous render's, the renderer skips `fn` *and* the diff entirely:
+the old subtree's DOM is left untouched, so a column whose slice of the model
+the current dispatch never replaced costs nothing, no matter how many rows it
+holds. `foldHtml`/`mapHtml`/`renderToString` resolve a `lazy` node
+transparently (SSR has no notion of "skip"); only the client renderer
+exploits it. A `lazy(...)` child is never keyed — key the element `fn`
+returns if the list also reorders.
+
+### `application`'s dispatch batches into one paint per frame
+
+```ts
+application({ init, update, view, onUrlChange /* , render: "sync" */ })(root);
+```
+
+Several `Cmd`-driven fetches resolving out of order (sequential `dispatch`
+calls, not `Promise.all`'d) each still fold into `update` immediately and
+synchronously, but their repaint collapses into ONE `requestAnimationFrame`
+callback — `view()` and the diff/patch run once per frame, over whatever
+`model` the LAST dispatch in that frame produced, not once per dispatch. Pass
+`render: "sync"` to opt back into the pre-batching behaviour (paint
+immediately after every dispatch, no frame scheduling) — the deterministic
+choice for a spec that asserts DOM state right after a synchronous dispatch.
+`sandbox` is unaffected (unchanged, synchronous-per-dispatch).
 
 ## Typed content model — `T` restricts children
 

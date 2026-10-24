@@ -20,7 +20,9 @@ import {
   a,
   button,
   text,
+  lazy,
 } from "plgg-view/Html/model/element";
+import { type Html } from "plgg-view/Html/model/Html";
 import {
   href,
   onClick,
@@ -38,7 +40,10 @@ import {
   cmdEffect,
 } from "plgg-view/Program/model/Cmd";
 import { interval } from "plgg-view/Program/model/Sub";
-import { type SubEnv } from "plgg-view/Program/usecase/effects";
+import {
+  type SubEnv,
+  type FrameEnv,
+} from "plgg-view/Program/usecase/effects";
 import { style_ } from "plgg-view/Style/usecase/style_";
 import { p } from "plgg-view/Style/usecase/utilities";
 
@@ -543,5 +548,299 @@ test("a subscription ticks through the application runtime and disposes on clean
     check(activeBefore, toBe(1)),
     check(afterTicks, toContain("n=2")),
     check(fake.activeIntervals(), toBe(0)),
+  ]);
+});
+
+// --- frame-batched dispatch ------------------------------------------------
+
+// A controllable frame scheduler: `schedule` records the pending paint (at
+// most one — the production code never calls it twice without a flush in
+// between) and a manual `flush()` fires exactly that callback. The
+// frame-batching counterpart to `makeFakeEnv`'s controllable interval.
+const makeFakeFrame = () => {
+  let pending: (() => void) | null = null;
+  let scheduleCalls = 0;
+  let cancelCalls = 0;
+  const frameEnv: FrameEnv = {
+    schedule: (paint) => {
+      scheduleCalls++;
+      pending = paint;
+      return () => {
+        cancelCalls++;
+        pending = null;
+      };
+    },
+  };
+  return {
+    frameEnv,
+    flush: (): void => {
+      const paint = pending;
+      pending = null;
+      paint?.();
+    },
+    isPending: (): boolean => pending !== null,
+    scheduleCalls: (): number => scheduleCalls,
+    cancelCalls: (): number => cancelCalls,
+  };
+};
+
+type BumpModel = Readonly<{ n: number }>;
+type BumpMsg = Readonly<{ kind: "bump" }>;
+
+const makeBumpApp = (
+  onViewCall: () => void,
+): Application<BumpModel, BumpMsg> => ({
+  init: () => [{ n: 0 }, cmdNone()],
+  update: (_msg, model) => [
+    { n: model.n + 1 },
+    cmdNone(),
+  ],
+  view: (model) => {
+    onViewCall();
+    return div([], [text(String(model.n))]);
+  },
+  onUrlChange: () => ({ kind: "bump" }),
+});
+
+test("the default (frame) batches several dispatches within the same frame into one view() call", () => {
+  const fakeFrame = makeFakeFrame();
+  const fakeInterval = makeFakeEnv();
+  let viewCalls = 0;
+  const program = makeBumpApp(() => viewCalls++);
+  const subApp: Application<
+    BumpModel,
+    BumpMsg
+  > = {
+    ...program,
+    subscriptions: () =>
+      interval("tick", 1, () => ({
+        kind: "bump",
+      })),
+  };
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  stop = application(
+    subApp,
+    fakeInterval.env,
+    fakeFrame.frameEnv,
+  )(root);
+  const afterMount = viewCalls; // the (unbatched) first paint
+  fakeInterval.tickAll(); // dispatch 1 — schedules the frame
+  fakeInterval.tickAll(); // dispatch 2 — same pending frame, not rescheduled
+  fakeInterval.tickAll(); // dispatch 3 — ditto
+  const a1 = check(afterMount, toBe(1));
+  const a2 = check(viewCalls, toBe(1)); // still just the mount paint
+  const a3 = check(
+    fakeFrame.scheduleCalls(),
+    toBe(1),
+  );
+  // the DOM has not caught up yet — only the model advanced
+  const a4 = check(root.textContent, toBe("0"));
+  fakeFrame.flush();
+  return all([
+    a1,
+    a2,
+    a3,
+    a4,
+    check(viewCalls, toBe(2)), // one more view() call, not three
+    check(root.textContent, toBe("3")), // reflects all 3 dispatches at once
+  ]);
+});
+
+test("render: \"sync\" paints every dispatch immediately and never touches the frame scheduler", () => {
+  const fakeFrame = makeFakeFrame();
+  const fakeInterval = makeFakeEnv();
+  let viewCalls = 0;
+  const subApp: Application<
+    BumpModel,
+    BumpMsg
+  > = {
+    ...makeBumpApp(() => viewCalls++),
+    render: "sync",
+    subscriptions: () =>
+      interval("tick", 1, () => ({
+        kind: "bump",
+      })),
+  };
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  stop = application(
+    subApp,
+    fakeInterval.env,
+    fakeFrame.frameEnv,
+  )(root);
+  fakeInterval.tickAll();
+  fakeInterval.tickAll();
+  return all([
+    check(viewCalls, toBe(3)), // mount + 2 dispatches, every one painted
+    check(root.textContent, toBe("2")),
+    check(fakeFrame.scheduleCalls(), toBe(0)),
+  ]);
+});
+
+test("cleanup cancels a pending frame-batched paint before it fires", () => {
+  const fakeFrame = makeFakeFrame();
+  let viewCalls = 0;
+  const program = makeBumpApp(() => viewCalls++);
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  stop = application(
+    program,
+    undefined,
+    fakeFrame.frameEnv,
+  )(root);
+  // drive one dispatch through onUrlChange (a popstate round-trip)
+  window.history.pushState(null, "", "/x");
+  window.dispatchEvent(new Event("popstate"));
+  const viewCallsBeforeStop = viewCalls;
+  const a1 = check(
+    fakeFrame.isPending(),
+    toBe(true),
+  );
+  stop();
+  const a2 = check(
+    fakeFrame.cancelCalls(),
+    toBe(1),
+  );
+  const a3 = check(
+    fakeFrame.isPending(),
+    toBe(false),
+  );
+  fakeFrame.flush(); // a no-op: the pending callback was cleared on cancel
+  return all([
+    a1,
+    a2,
+    a3,
+    check(viewCalls, toBe(viewCallsBeforeStop)),
+  ]);
+});
+
+// --- benchmark: issue #157's own reproduction ------------------------------
+//
+// "3 columns of 2000 rows, 5 fetches resolved one at a time (not
+// Promise.all'd), each replacing one column" — before this change, every
+// dispatch ran its own synchronous `view()` + diff over ALL 3 columns (5 × 3
+// = 15 column rebuilds). With frame-batched dispatch + `lazy(column, rows)`,
+// the 5 dispatches collapse into ONE paint, and only the columns a dispatch
+// actually replaced rebuild — once each, no matter how many times THAT column
+// was redispatched before the flush, and never for the column nothing ever
+// touched.
+test("benchmark: 3×2000-row columns, 5 out-of-order dispatches — 5 column rebuilds instead of 15, 0 before the flush", () => {
+  const ROWS = 2000;
+  const rowsOf = (
+    tag: string,
+  ): ReadonlyArray<string> =>
+    Array.from(
+      { length: ROWS },
+      (_, i) => `${tag}-${i}`,
+    );
+  type ColKey = "a" | "b" | "c";
+  const parseCol = (
+    raw: string | null,
+  ): ColKey =>
+    raw === "a" || raw === "b" ? raw : "c";
+  type Cols = Readonly<{
+    a: ReadonlyArray<string>;
+    b: ReadonlyArray<string>;
+    c: ReadonlyArray<string>;
+  }>;
+  type ColModel = Readonly<{ columns: Cols }>;
+  type ColMsg = Readonly<{ col: ColKey }>;
+  let columnBuilds = 0;
+  const column = (
+    rows: ReadonlyArray<string>,
+  ): Html<never, "div"> => {
+    columnBuilds++;
+    return div(
+      [],
+      rows.map((r) => div([], [text(r)])),
+    );
+  };
+  const fakeFrame = makeFakeFrame();
+  const program: Application<
+    ColModel,
+    ColMsg
+  > = {
+    init: () => [
+      {
+        columns: {
+          a: rowsOf("a0"),
+          b: rowsOf("b0"),
+          c: rowsOf("c0"),
+        },
+      },
+      cmdNone(),
+    ],
+    update: (msg, model) => [
+      {
+        columns: {
+          ...model.columns,
+          // a fresh fetch: a NEW array reference every time, even when
+          // re-fetching the same column — exactly what `lazy`'s `===` check
+          // is built to notice.
+          [msg.col]: rowsOf(msg.col),
+        },
+      },
+      cmdNone(),
+    ],
+    view: (model) =>
+      div([], [
+        lazy(column, model.columns.a),
+        lazy(column, model.columns.b),
+        lazy(column, model.columns.c),
+      ]),
+    onUrlChange: (url) => ({
+      col: parseCol(
+        new URLSearchParams(url.search).get(
+          "col",
+        ),
+      ),
+    }),
+  };
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  stop = application(
+    program,
+    undefined,
+    fakeFrame.frameEnv,
+  )(root);
+  const buildsAfterMount = columnBuilds; // first paint builds all 3, once each
+  // 5 fetches resolving out of order; column "c" is never touched.
+  const order: ReadonlyArray<ColKey> = [
+    "a",
+    "b",
+    "a",
+    "b",
+    "a",
+  ];
+  order.forEach((col) => {
+    window.history.pushState(
+      null,
+      "",
+      `/?col=${col}`,
+    );
+    window.dispatchEvent(new Event("popstate"));
+  });
+  const buildsBeforeFlush = columnBuilds;
+  const unbatchedNoLazy = order.length * 3; // what the pre-#157 runtime paid
+  const t0 = performance.now();
+  fakeFrame.flush();
+  const flushMs = performance.now() - t0;
+  const totalBuilds = columnBuilds;
+  console.log(
+    `[bench #157] ${order.length} columns × ${ROWS} rows, ${order.length} ` +
+      `out-of-order dispatches: ${totalBuilds} column rebuild(s) ` +
+      `(${buildsAfterMount} mount + ${totalBuilds - buildsAfterMount} at the ` +
+      `single flush) vs ${unbatchedNoLazy} unbatched/no-lazy; one ` +
+      `batched flush took ${flushMs.toFixed(3)}ms`,
+  );
+  return all([
+    check(buildsAfterMount, toBe(3)),
+    // nothing rebuilt before the frame flushes — the whole point of batching
+    check(buildsBeforeFlush, toBe(3)),
+    // "a" and "b" rebuild exactly once each at the flush; "c" never rebuilds
+    check(totalBuilds, toBe(5)),
+    check(root.textContent, toContain("a-1999")),
+    check(root.textContent, toContain("c0-0")), // "c" still shows its ORIGINAL fetch
   ]);
 });

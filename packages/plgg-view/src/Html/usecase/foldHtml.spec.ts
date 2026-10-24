@@ -3,6 +3,7 @@ import {
   el,
   text,
   raw,
+  lazy,
 } from "plgg-view/Html/model/element";
 import { foldHtml } from "plgg-view/Html/usecase/foldHtml";
 
@@ -40,4 +41,19 @@ test("foldHtml counts a raw child alongside element and text", () =>
     ),
     // div + text + raw = 3
     toBe(3),
+  ));
+
+test("foldHtml resolves a lazy node transparently (forces render, folds the result)", () =>
+  check(
+    countNodes(
+      el("div", [], [
+        text("a"),
+        lazy(
+          () => el("span", [], [text("b")]),
+          1,
+        ),
+      ]),
+    ),
+    // div + text + span + text = 4
+    toBe(4),
   ));

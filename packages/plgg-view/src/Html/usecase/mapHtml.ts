@@ -1,9 +1,11 @@
 import { box, match } from "plgg";
 import {
   Html,
+  LazyContent,
   element$,
   text$,
   raw$,
+  lazy$,
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
@@ -85,5 +87,17 @@ export const mapHtml =
         raw$(),
         ({ content }): Html<B> =>
           box("Raw")(content),
+      ],
+      // the thunk is re-composed with `f`, NOT invoked here — mapping a
+      // lazy subtree must stay lazy, and `arg` (the memo key the renderer
+      // compares `===`) is carried over unchanged.
+      [
+        lazy$(),
+        ({ content }): Html<B> =>
+          box("Lazy")<LazyContent<B>>({
+            arg: content.arg,
+            render: () =>
+              mapHtml(f)(content.render()),
+          }),
       ],
     );

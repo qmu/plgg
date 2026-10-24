@@ -16,6 +16,7 @@ import {
   element$,
   text$,
   raw$,
+  lazy$,
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
@@ -340,6 +341,13 @@ const exitMotionOf = <Msg>(
       ({ content }): Option<Motion> =>
         exitOf(content.attributes),
     ],
+    // an exiting node is leaving for good — there is no later render to skip
+    // a rebuild for, so resolve it to find its real exit motion (if any).
+    [
+      lazy$(),
+      ({ content }): Option<Motion> =>
+        exitMotionOf(content.render()),
+    ],
   );
 
 /** The {@link key} carried by an attribute list, if any. */
@@ -362,7 +370,14 @@ const keyOf = <Msg>(
     none(),
   );
 
-/** The {@link key} of a vnode — `none` for a text leaf or an unkeyed element. */
+/**
+ * The {@link key} of a vnode — `none` for a text leaf or an unkeyed element,
+ * and ALWAYS `none` for a {@link lazy$} node (deliberately: resolving it to
+ * read a key would force `render()` on every diff, defeating the point of
+ * `lazy`). A list of `lazy(...)` children therefore always reconciles by
+ * index ({@link indexPatchChildren}) — key the element `fn` returns instead if
+ * the list also needs to reorder.
+ */
 const keyOfVnode = <Msg>(
   vnode: Html<Msg>,
 ): Option<SoftStr> =>
@@ -374,6 +389,7 @@ const keyOfVnode = <Msg>(
       ({ content }): Option<SoftStr> =>
         keyOf(content.attributes),
     ],
+    [lazy$(), (): Option<SoftStr> => none()],
   );
 
 /**
@@ -561,6 +577,13 @@ export const createNode =
           );
           return el;
         },
+      ],
+      // first paint of a lazy slot (or a slot that just became lazy): there is
+      // no previous render to compare `arg` against, so force it once.
+      [
+        lazy$(),
+        ({ content }): Node =>
+          createNode(wiring)(content.render()),
       ],
     );
 
@@ -751,6 +774,7 @@ export const reconcile =
             ],
             [element$(), (): void => replace()],
             [raw$(), (): void => replace()],
+            [lazy$(), (): void => replace()],
           ),
       ],
       [
@@ -777,11 +801,67 @@ export const reconcile =
             ],
             [text$(), (): void => replace()],
             [raw$(), (): void => replace()],
+            [lazy$(), (): void => replace()],
           ),
       ],
       // a raw passthrough is opaque to the differ — any
       // change rebuilds it from the trusted html
       [raw$(), (): void => replace()],
+      // the lazy fast path: an unchanged `===` arg skips `render()` AND the
+      // diff entirely (DOM untouched); a changed arg resolves BOTH sides
+      // (forcing the previous render's thunk too, so the diff still lands on
+      // the real subtree and gets the usual node-reuse/focus-preserving
+      // patch — never a blind replace) and re-diffs through this same
+      // function at this same slot.
+      [
+        lazy$(),
+        ({ content: newContent }): void =>
+          match(oldVnode)(
+            [
+              lazy$(),
+              ({ content: oldContent }): void => {
+                if (oldContent.arg !== newContent.arg) {
+                  reconcile(wiring)(
+                    parent,
+                    domNode,
+                    oldContent.render(),
+                    newContent.render(),
+                  );
+                }
+              },
+            ],
+            [
+              text$(),
+              (): void =>
+                reconcile(wiring)(
+                  parent,
+                  domNode,
+                  oldVnode,
+                  newContent.render(),
+                ),
+            ],
+            [
+              element$(),
+              (): void =>
+                reconcile(wiring)(
+                  parent,
+                  domNode,
+                  oldVnode,
+                  newContent.render(),
+                ),
+            ],
+            [
+              raw$(),
+              (): void =>
+                reconcile(wiring)(
+                  parent,
+                  domNode,
+                  oldVnode,
+                  newContent.render(),
+                ),
+            ],
+          ),
+      ],
     );
   };
 
@@ -1036,6 +1116,7 @@ const patchKeyed =
           match(oldVnode)(
             [text$(), (): Node => replace()],
             [raw$(), (): Node => replace()],
+            [lazy$(), (): Node => replace()],
             [
               element$(),
               ({ content: oldContent }): Node => {
@@ -1053,6 +1134,19 @@ const patchKeyed =
                 return replace();
               },
             ],
+          ),
+      ],
+      // `keyOfVnode` always reads `none` for a lazy node, so a keyed list
+      // never actually carries one here — this arm only satisfies exhaustive
+      // matching. Resolve and recurse rather than assume unreachability.
+      [
+        lazy$(),
+        ({ content }): Node =>
+          patchKeyed(wiring)(
+            parent,
+            node,
+            oldVnode,
+            content.render(),
           ),
       ],
     );

@@ -18,6 +18,7 @@ import {
   ul,
   li,
   input,
+  lazy,
   type Flow,
   type Phrasing,
   type ListItem,
@@ -238,5 +239,28 @@ test("svg holds path drawings; d and viewBox render; color follows currentColor"
       ),
     ),
     check(rendered, toContain("</svg>")),
+  ]);
+});
+
+test("lazy builds a Lazy box without calling its producer", () => {
+  let calls = 0;
+  const row = (n: number) => {
+    calls++;
+    return div([], [text(String(n))]);
+  };
+  const node = lazy(row, 7);
+  const a1 = check(node.__tag, toBe("Lazy"));
+  if (node.__tag !== "Lazy") {
+    return a1;
+  }
+  const a2 = check(node.content.arg, toBe(7));
+  const a3 = check(calls, toBe(0));
+  const resolved = node.content.render();
+  return all([
+    a1,
+    a2,
+    a3,
+    check(calls, toBe(1)),
+    check(resolved, toEqual(div([], [text("7")]))),
   ]);
 });

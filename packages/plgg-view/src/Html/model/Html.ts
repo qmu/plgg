@@ -20,7 +20,8 @@ import { Attribute } from "plgg-view/Html/model/Attribute";
 export type Html<Msg, T extends string = string> =
   | Box<"Element", ElementContent<Msg, T>>
   | Box<"Text", Readonly<{ value: SoftStr }>>
-  | Box<"Raw", Readonly<{ html: SoftStr }>>;
+  | Box<"Raw", Readonly<{ html: SoftStr }>>
+  | Box<"Lazy", LazyContent<Msg, T>>;
 
 /**
  * The content of an intrinsic element: a tag (branded by `T`), its
@@ -38,8 +39,28 @@ export type ElementContent<
   children: ReadonlyArray<Html<Msg>>;
 }>;
 
+/**
+ * A deferred, memoizable subtree (Elm's `Html.Lazy.lazy`): `render` is a thunk
+ * closing over the producing function and its `arg`, called only when the
+ * client renderer actually needs the subtree (first paint, or a patch against
+ * an old {@link Html} whose `arg` differs). `arg` is kept as `unknown` — the
+ * renderer never inspects it, only compares it `===` against the previous
+ * render's `arg` — so {@link lazy} stays sound for any argument type with no
+ * cast. SSR/`foldHtml`/`mapHtml` resolve it transparently (call `render` and
+ * continue); only {@link reconcile} exploits it to skip a matching subtree's
+ * rebuild and diff entirely.
+ */
+export type LazyContent<
+  Msg,
+  T extends string = string,
+> = Readonly<{
+  arg: unknown;
+  render: () => Html<Msg, T>;
+}>;
+
 /** Pattern matchers for folding an {@link Html} node with `match`. */
 export const element$ = () =>
   pattern("Element")();
 export const text$ = () => pattern("Text")();
 export const raw$ = () => pattern("Raw")();
+export const lazy$ = () => pattern("Lazy")();
