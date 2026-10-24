@@ -240,13 +240,80 @@ test("a URL inside a code span is left verbatim", () =>
   ));
 
 // The angle-bracketed `<scheme:…>` autolink is a DIFFERENT
-// GFM form, queued separately; this pins that the extended
-// forms added here do not half-match it.
-test("an angle-bracketed autolink is still literal text", () =>
+// form from the extended ones above: CommonMark's own
+// bracketed autolink, recognized by scanBracketAutolink
+// rather than scanAutolink, with the brackets dropped from
+// the rendered text.
+test("an angle-bracketed autolink becomes a link, brackets dropped", () =>
   check(
     renderInline("<https://example.com/x>"),
     toEqual([
-      inlineText("<https://example.com/x>"),
+      link("https://example.com/x", [
+        inlineText("https://example.com/x"),
+      ]),
+    ]),
+  ));
+
+test("an angle-bracketed email autolink gains an implied mailto:", () =>
+  check(
+    renderInline("write <ada@example.com> today"),
+    toEqual([
+      inlineText("write "),
+      link("mailto:ada@example.com", [
+        inlineText("ada@example.com"),
+      ]),
+      inlineText(" today"),
+    ]),
+  ));
+
+// plgg-view's safeUrl neutralizes every scheme but
+// http/https/mailto/tel; recognizing one here would only
+// produce a link that looks live and goes nowhere.
+test("a bracketed autolink with a scheme plgg-view would neutralize stays literal text", () =>
+  check(
+    renderInline("<ftp://files.example.com/x>"),
+    toEqual([
+      inlineText("<ftp://files.example.com/x>"),
+    ]),
+  ));
+
+// A real HTML tag must still win: the bracketed autolink's
+// scheme grammar requires a `:` right after the tag name,
+// which `htmlOpenTag` never produces.
+test("with rawHtml ON a real tag still wins over the bracketed autolink branch", () =>
+  check(
+    renderInline("<div>x</div>", true),
+    toEqual([
+      htmlSpan("<div>"),
+      inlineText("x"),
+      htmlSpan("</div>"),
+    ]),
+  ));
+
+// Autolinks of either form are switched off inside link
+// text: an `<a>` nested in an `<a>` is not representable
+// HTML.
+test("a bracketed autolink is not recognized inside link text", () =>
+  check(
+    renderInline("[<https://example.com/x>](/y)"),
+    toEqual([
+      link("/y", [
+        inlineText(
+          "<https://example.com/x>",
+        ),
+      ]),
+    ]),
+  ));
+
+test("a bracketed autolink IS recognized inside emphasis", () =>
+  check(
+    renderInline("*<https://example.com/x>*"),
+    toEqual([
+      emph([
+        link("https://example.com/x", [
+          inlineText("https://example.com/x"),
+        ]),
+      ]),
     ]),
   ));
 
