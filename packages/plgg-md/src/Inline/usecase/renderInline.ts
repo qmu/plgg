@@ -53,6 +53,10 @@ import {
   type Autolink,
   scanAutolink,
 } from "plgg-md/Inline/usecase/autolink";
+import {
+  type BracketAutolink,
+  scanBracketAutolink,
+} from "plgg-md/Inline/usecase/bracketAutolink";
 
 const join = (
   cs: ReadonlyArray<SoftStr>,
@@ -414,18 +418,53 @@ const autolinkP: Parser<Inline, null> = (state) =>
   );
 
 /**
+ * One CommonMark `<scheme:body>` or `<email>` bracketed
+ * autolink at the cursor, the thin adapter onto the
+ * parser for {@link scanBracketAutolink} in the same
+ * shape as {@link autolinkP} above it — except that the
+ * source length consumed and the rendered text differ
+ * here (the brackets are consumed but not rendered), so
+ * {@link advance} runs off `found.length` rather than
+ * `found.text.length`.
+ */
+const bracketAutolinkP: Parser<Inline, null> = (
+  state,
+) =>
+  pipe(
+    scanBracketAutolink(
+      state.source,
+      state.position,
+    ),
+    matchOption(
+      (): Step =>
+        fail("bracketed autolink")(state),
+      (found: BracketAutolink): Step =>
+        ok(
+          parsed(
+            link(found.href, [
+              inlineText(found.text),
+            ]),
+            advance(found.length)(state),
+          ),
+        ),
+    ),
+  );
+
+/**
  * One scan step. The branch order is the grammar: image
  * before link (`![` would otherwise read as `[`), autolinks
  * and raw HTML only when enabled, code before strong before
  * emph, and finally any single character as a literal.
  *
- * The autolink branch sits after the bracket forms and
- * ahead of the raw-HTML token. Neither placement is forced
- * today — an extended autolink can open on none of `!`,
- * `[`, `<` or `` ` `` — but it is where the `<scheme:…>`
- * autolink form must go when it lands (ahead of `rawHtml`,
- * whose `htmlOpenTag` fails at the `:`), so both forms will
- * read as one rule.
+ * Both autolink branches sit ahead of the raw-HTML token,
+ * `bracketAutolinkP` directly after `autolinkP`: a `<div>`
+ * still reaches `htmlOpenTag` because neither autolink form
+ * matches it (`bracketAutolinkP`'s scheme grammar requires a
+ * `:` right after the tag name, which `htmlOpenTag`'s
+ * `tagName` never produces), while `<https://…>` is claimed
+ * here first, ahead of `htmlOpenTag`'s `tagName`, which would
+ * otherwise fail at the `:` and strand the whole token as
+ * literal text.
  */
 const piece = (
   rawHtml: boolean,
@@ -442,14 +481,29 @@ const piece = (
               ? autolinkP
               : fail("autolinks disabled"),
             or<Inline, null>(
-              rawHtml
-                ? htmlToken
-                : fail("raw html disabled"),
+              autolinks
+                ? bracketAutolinkP
+                : fail(
+                    "autolinks disabled",
+                  ),
               or<Inline, null>(
-                codeSpan,
+                rawHtml
+                  ? htmlToken
+                  : fail(
+                      "raw html disabled",
+                    ),
                 or<Inline, null>(
-                  strongP(rawHtml, autolinks),
-                  emphP(rawHtml, autolinks),
+                  codeSpan,
+                  or<Inline, null>(
+                    strongP(
+                      rawHtml,
+                      autolinks,
+                    ),
+                    emphP(
+                      rawHtml,
+                      autolinks,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -525,14 +579,18 @@ const assemble = (
  * With `autolinks` on (the default) the GFM **extended**
  * autolink forms — `http://…`, `www.…`, `mailto:…` and a
  * bare address — become {@link link}s wherever GFM allows
- * one to open (see {@link scanAutolink}). It is a parameter
- * rather than a constant because there is exactly one place
- * autolinks must NOT be recognized: inside link text, where
- * they would nest an `<a>` in an `<a>`. Emphasis and strong
- * text inherit the caller's setting. The angle-bracketed
- * `<scheme:…>` autolink is a DIFFERENT form and is not
- * recognized here — a raw `<` still rides along as escaped
- * literal text.
+ * one to open (see {@link scanAutolink}), and so do
+ * CommonMark's **bracketed** forms, `<scheme:body>` and
+ * `<email>` (see {@link scanBracketAutolink}), which carry
+ * no look-behind condition of their own — the leading `<`
+ * is the open boundary. `autolinks` is a parameter rather
+ * than a constant because there is exactly one place
+ * autolinks must NOT be recognized, of either form: inside
+ * link text, where they would nest an `<a>` in an `<a>`.
+ * Emphasis and strong text inherit the caller's setting. A
+ * raw `<` that opens neither form, nor a raw-HTML tag when
+ * `rawHtml` is on, still rides along as escaped literal
+ * text.
  *
  * A plgg-parser grammar: PEG ordered choice supplies the
  * branch precedence the original encoded in its scan order,

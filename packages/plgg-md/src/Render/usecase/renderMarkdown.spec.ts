@@ -283,6 +283,58 @@ test("extended autolinks render as anchors and reach the links surface", () =>
     }),
   ));
 
+// The bracketed CommonMark forms reuse the same Link
+// inline as the extended forms, so they reach the same
+// anchor output and the same doc.links surface — but with
+// their delimiting `<`/`>` dropped from the rendered text.
+test("bracketed autolinks render as anchors, brackets dropped from the text", () =>
+  check(
+    renderMarkdownWithOptions(opts(false))(
+      src(
+        "# Bracketed autolinks",
+        "",
+        "See <https://example.com/x> or write <ada@example.com>.",
+      ),
+    ),
+    okThen((doc) => {
+      const html = renderToString(doc.body);
+      return all([
+        check(
+          html,
+          toContain(
+            'href="https://example.com/x"',
+          ),
+        ),
+        check(
+          html,
+          toContain(
+            ">https://example.com/x</a>",
+          ),
+        ),
+        check(
+          html,
+          toContain(
+            'href="mailto:ada@example.com"',
+          ),
+        ),
+        check(
+          html,
+          toContain(
+            ">ada@example.com</a>",
+          ),
+        ),
+        check(
+          doc.links,
+          toContain("https://example.com/x"),
+        ),
+        check(
+          doc.links,
+          toContain("mailto:ada@example.com"),
+        ),
+      ]);
+    }),
+  ));
+
 test("layout-home frontmatter is detected and stripped", () =>
   check(
     renderMarkdownWith(
