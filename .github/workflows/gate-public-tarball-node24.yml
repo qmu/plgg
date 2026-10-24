@@ -1,0 +1,34 @@
+name: Public Tarball (Node 24)
+
+# A standalone CI-only gate: installs + transpiles the REAL public npm
+# tarball for `plgg` on Node 24 against a consumer's own `typescript@7`
+# devDependency (scripts/gate-public-tarball-node24.sh has the full
+# rationale, including why this is kept out of check-all.sh / run-tests.yml's
+# Node-22.x job and why it is scoped to `plgg` rather than `plgg-bundle`).
+#
+# Needs no workspace install: the gate script only reads the root
+# package.json for the pinned typescript range and does its own scratch-dir
+# `npm install` against the public registry, so this job runs independently
+# of run-tests.yml's check-all.sh.
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+jobs:
+  gate-public-tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+
+      - name: "Gate: public tarball installs + transpiles on Node 24 / consumer typescript@7"
+        run: ./scripts/gate-public-tarball-node24.sh
