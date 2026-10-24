@@ -554,6 +554,23 @@ test("getComputedStyle reads inline position, else static", () => {
   ]);
 });
 
+test("createElementNS stamps the namespace; plain createElement leaves it null", () => {
+  const { document } = makeDom();
+  const svg = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "rect",
+  );
+  const div = document.createElement("div");
+  return all([
+    check(svg.tagName, toBe("RECT")),
+    check(
+      svg.namespaceURI,
+      toBe("http://www.w3.org/2000/svg"),
+    ),
+    check(div.namespaceURI === null, toBe(true)),
+  ]);
+});
+
 test("document creates nodes and finds by id", () => {
   const { document } = makeDom();
   const el = document.createElement("section");

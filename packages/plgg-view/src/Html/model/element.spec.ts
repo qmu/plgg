@@ -12,7 +12,14 @@ import {
   text,
   div,
   svg,
+  g,
   path,
+  rect,
+  circle,
+  ellipse,
+  line,
+  polyline,
+  polygon,
   button,
   span,
   ul,
@@ -238,5 +245,104 @@ test("svg holds path drawings; d and viewBox render; color follows currentColor"
       ),
     ),
     check(rendered, toContain("</svg>")),
+  ]);
+});
+
+test("svg draws rect/circle/ellipse/line/polyline/polygon directly — no raw() wrapping needed", () => {
+  const icon = svg(
+    [attr("viewBox", "0 0 24 24")],
+    [
+      g(
+        [attr("stroke", "currentColor")],
+        [
+          rect(
+            [
+              attr("x", "3"),
+              attr("y", "3"),
+              attr("width", "7"),
+              attr("height", "9"),
+            ],
+            [],
+          ),
+          circle(
+            [
+              attr("cx", "12"),
+              attr("cy", "12"),
+              attr("r", "5"),
+            ],
+            [],
+          ),
+          ellipse(
+            [
+              attr("cx", "12"),
+              attr("cy", "12"),
+              attr("rx", "5"),
+              attr("ry", "3"),
+            ],
+            [],
+          ),
+          line(
+            [
+              attr("x1", "0"),
+              attr("y1", "0"),
+              attr("x2", "10"),
+              attr("y2", "10"),
+            ],
+            [],
+          ),
+          polyline(
+            [attr("points", "0,0 10,10")],
+            [],
+          ),
+          polygon(
+            [attr("points", "0,0 10,0 5,10")],
+            [],
+          ),
+        ],
+      ),
+    ],
+  );
+  const rendered = renderToString(icon);
+  return all([
+    check(
+      rendered,
+      toContain(
+        '<rect x="3" y="3" width="7" height="9"></rect>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<circle cx="12" cy="12" r="5"></circle>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<ellipse cx="12" cy="12" rx="5" ry="3"></ellipse>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<line x1="0" y1="0" x2="10" y2="10"></line>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<polyline points="0,0 10,10"></polyline>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<polygon points="0,0 10,0 5,10"></polygon>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain('<g stroke="currentColor">'),
+    ),
   ]);
 });

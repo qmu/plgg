@@ -466,14 +466,21 @@ export const waapiPlay: Play = (node, motion) =>
     : Promise.resolve();
 
 /**
- * SVG needs its namespace: an `<svg>`/`<path>` created via plain
+ * SVG needs its namespace: an `<svg>`/`<rect>`/… created via plain
  * `createElement` is an inert `HTMLUnknownElement` that never draws. These are
- * the two SVG tags the typed builders vocabulary ships (`svg` holds `path`
- * children only); extend alongside the builders if that vocabulary grows.
+ * the SVG tags the typed builders vocabulary ships (`svg`/`g` hold these
+ * drawing primitives); extend alongside the builders if that vocabulary grows.
  */
 const SVG_TAGS: ReadonlyArray<SoftStr> = [
   "svg",
+  "g",
   "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polyline",
+  "polygon",
 ];
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -779,9 +786,26 @@ export const reconcile =
             [raw$(), (): void => replace()],
           ),
       ],
-      // a raw passthrough is opaque to the differ — any
-      // change rebuilds it from the trusted html
-      [raw$(), (): void => replace()],
+      [
+        raw$(),
+        ({ content: newContent }): void =>
+          match(oldVnode)(
+            [text$(), (): void => replace()],
+            [element$(), (): void => replace()],
+            // a raw passthrough is opaque to the differ, but two renders of
+            // the SAME trusted html are common (corpd redraws its whole state
+            // every couple of seconds) — a string compare lets that case skip
+            // the DOM entirely instead of tearing down and rebuilding it.
+            [
+              raw$(),
+              ({ content: oldContent }): void => {
+                if (oldContent.html !== newContent.html) {
+                  replace();
+                }
+              },
+            ],
+          ),
+      ],
     );
   };
 
@@ -1029,7 +1053,21 @@ const patchKeyed =
     };
     return match(newVnode)(
       [text$(), (): Node => replace()],
-      [raw$(), (): Node => replace()],
+      [
+        raw$(),
+        ({ content: newContent }): Node =>
+          match(oldVnode)(
+            [text$(), (): Node => replace()],
+            [element$(), (): Node => replace()],
+            [
+              raw$(),
+              ({ content: oldContent }): Node =>
+                oldContent.html === newContent.html
+                  ? node
+                  : replace(),
+            ],
+          ),
+      ],
       [
         element$(),
         ({ content: newContent }): Node =>
