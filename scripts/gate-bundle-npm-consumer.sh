@@ -18,6 +18,18 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 # split-version policy already pins root `typescript@^7.0.2` and plgg-bundle
 # `typescript@^6.0.3`, so both versions this gate needs are already on disk
 # after `./scripts/npm-install.sh`) and running the published bin against it.
+#
+# Three things are pinned, matching the consumer's actual workflow
+# (corpd's own words on the issue: build with plgg-bundle, typecheck with
+# TypeScript 7):
+#   1. DETECTION — the bin's bare `import ts from "typescript"` resolves to
+#      plgg-bundle's own nested TS6, never the consumer's top-level TS7.
+#   2. TRANSPILE — building the fixture app with that resolved compiler
+#      succeeds and emits the expected output.
+#   3. TYPECHECK — the consumer's OWN `tsc` (its top-level TypeScript 7,
+#      wholly unrelated to plgg-bundle's nested TS6) still typechecks the
+#      consumer's source cleanly — the split-version design must never leak
+#      plgg-bundle's pinned TS6 into the consumer's own typecheck.
 
 BUNDLE_DIR="$REPO_ROOT/packages/plgg-bundle"
 ROOT_TS="$REPO_ROOT/node_modules/typescript"
@@ -74,7 +86,29 @@ cat >"$CONSUMER/src/main.ts" <<'EOF'
 export const greeting: string = "hello from the npm-consumer fixture";
 EOF
 
-echo "--- running the packed bin against the fixture consumer ---"
+echo "--- 1. detection: which typescript does the published bin resolve? ---"
+RESOLVED_TS=$(
+  node -e '
+const { createRequire } = require("node:module");
+const req = createRequire(process.argv[1]);
+process.stdout.write(req.resolve("typescript"));
+' "$CONSUMER/node_modules/plgg-bundle/dist/cli.es.js"
+)
+NESTED_TS_REALPATH=$(cd "$CONSUMER/node_modules/plgg-bundle/node_modules/typescript" && pwd -P)
+case "$RESOLVED_TS" in
+  "$NESTED_TS_REALPATH"/*) : ;;
+  *)
+    echo "expected the published bin to resolve typescript under" >&2
+    echo "$NESTED_TS_REALPATH, got $RESOLVED_TS instead" >&2
+    echo "plgg-bundle npm-consumer gate FAILED (issue #156 regression)" >&2
+    exit 1
+    ;;
+esac
+RESOLVED_VERSION=$(node -e 'process.stdout.write(require(process.argv[1]).version)' \
+  "$CONSUMER/node_modules/plgg-bundle/node_modules/typescript/package.json")
+echo "resolved typescript@$RESOLVED_VERSION from $RESOLVED_TS (nested, as expected)"
+
+echo "--- 2. transpile: running the packed bin against the fixture consumer ---"
 OUTPUT=$(
   cd "$CONSUMER" &&
     node node_modules/plgg-bundle/bin/plgg-bundle.mjs 2>&1
@@ -87,6 +121,37 @@ if [ "$STATUS" -ne 0 ]; then
 fi
 if [ ! -f "$CONSUMER/dist/main.js" ]; then
   echo "expected $CONSUMER/dist/main.js from the fixture build" >&2
+  exit 1
+fi
+
+echo "--- 3. typecheck: the consumer's OWN typescript (top-level TS7) ---"
+cat >"$CONSUMER/tsconfig.json" <<'EOF'
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}
+EOF
+CONSUMER_TS_MAIN=$(
+  node -e '
+const { createRequire } = require("node:module");
+const req = createRequire(process.argv[1]);
+process.stdout.write(req.resolve("typescript"));
+' "$CONSUMER/bundle.config.ts"
+)
+CONSUMER_TSC_BIN="$(dirname "$CONSUMER_TS_MAIN")/../bin/tsc"
+TYPECHECK_OUTPUT=$(
+  node "$CONSUMER_TSC_BIN" -p "$CONSUMER/tsconfig.json" --noEmit --pretty false 2>&1
+) && TYPECHECK_STATUS=0 || TYPECHECK_STATUS=$?
+echo "$TYPECHECK_OUTPUT"
+
+if [ "$TYPECHECK_STATUS" -ne 0 ] || echo "$TYPECHECK_OUTPUT" | grep -q 'error TS'; then
+  echo "plgg-bundle npm-consumer gate FAILED (consumer typecheck regressed, issue #156)" >&2
   exit 1
 fi
 
