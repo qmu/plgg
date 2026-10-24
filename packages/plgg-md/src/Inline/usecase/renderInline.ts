@@ -1,11 +1,15 @@
 import {
   SoftStr,
   match,
+  matchOption,
+  ok,
   pipe,
   matchResult,
 } from "plgg";
 import {
   type Parser,
+  advance,
+  parsed,
   run,
   char,
   literal,
@@ -45,6 +49,10 @@ import {
   lineBreak$,
   htmlSpan$,
 } from "plgg-md/Inline/model/Inline";
+import {
+  type Autolink,
+  scanAutolink,
+} from "plgg-md/Inline/usecase/autolink";
 
 const join = (
   cs: ReadonlyArray<SoftStr>,
@@ -109,7 +117,12 @@ const imageP: Parser<Inline, null> = pipe(
   ),
 );
 
-/** `[text](href)`; the label recurses under the same options. */
+/**
+ * `[text](href)`; the label recurses under the same
+ * options, except that autolinks are switched OFF inside it
+ * — GFM never nests a link in a link, and an `<a>` inside
+ * an `<a>` is not representable HTML.
+ */
 const linkP = (
   rawHtml: boolean,
 ): Parser<Inline, null> =>
@@ -121,7 +134,7 @@ const linkP = (
           (href: SoftStr): Inline =>
             link(
               href,
-              renderInline(text, rawHtml),
+              renderInline(text, rawHtml, false),
             ),
         )(
           right(
@@ -314,10 +327,17 @@ const codeSpan: Parser<Inline, null> = pipe(
  */
 const strongP = (
   rawHtml: boolean,
+  autolinks: boolean,
 ): Parser<Inline, null> =>
   map<ReadonlyArray<SoftStr>, Inline>(
     (cs: ReadonlyArray<SoftStr>): Inline =>
-      strong(renderInline(join(cs), rawHtml)),
+      strong(
+        renderInline(
+          join(cs),
+          rawHtml,
+          autolinks,
+        ),
+      ),
   )(
     right(
       literal("**"),
@@ -336,10 +356,17 @@ const strongP = (
 /** `*…*`; the body cannot contain a star. */
 const emphP = (
   rawHtml: boolean,
+  autolinks: boolean,
 ): Parser<Inline, null> =>
   map<ReadonlyArray<SoftStr>, Inline>(
     (cs: ReadonlyArray<SoftStr>): Inline =>
-      emph(renderInline(join(cs), rawHtml)),
+      emph(
+        renderInline(
+          join(cs),
+          rawHtml,
+          autolinks,
+        ),
+      ),
   )(
     right(
       char("*"),
@@ -350,14 +377,59 @@ const emphP = (
     ),
   );
 
+/** What one {@link Parser} step over this grammar yields. */
+type Step = ReturnType<Parser<Inline, null>>;
+
+/**
+ * One GFM **extended** autolink at the cursor, folded onto
+ * the existing {@link Link} inline (href = the implied
+ * target, children = the URL as authored) so the renderer
+ * and every downstream consumer need no new node kind.
+ *
+ * Hand-written rather than composed from combinators
+ * because the rule is not context-free here: GFM only opens
+ * an extended autolink at the start of the input, after
+ * whitespace, or after one of `*_~(`, which is a look
+ * BEHIND the cursor that no combinator over the remaining
+ * input can express. {@link scanAutolink} owns that
+ * decision; this is the thin adapter onto the parser, in
+ * the same shape as plgg-parser's own primitives.
+ */
+const autolinkP: Parser<Inline, null> = (state) =>
+  pipe(
+    scanAutolink(state.source, state.position),
+    matchOption(
+      (): Step =>
+        fail("extended autolink")(state),
+      (found: Autolink): Step =>
+        ok(
+          parsed(
+            link(found.href, [
+              inlineText(found.text),
+            ]),
+            advance(found.text.length)(state),
+          ),
+        ),
+    ),
+  );
+
 /**
  * One scan step. The branch order is the grammar: image
- * before link (`![` would otherwise read as `[`), raw HTML
- * only when enabled, code before strong before emph, and
- * finally any single character as a literal.
+ * before link (`![` would otherwise read as `[`), autolinks
+ * and raw HTML only when enabled, code before strong before
+ * emph, and finally any single character as a literal.
+ *
+ * The autolink branch sits after the bracket forms and
+ * ahead of the raw-HTML token. Neither placement is forced
+ * today — an extended autolink can open on none of `!`,
+ * `[`, `<` or `` ` `` — but it is where the `<scheme:…>`
+ * autolink form must go when it lands (ahead of `rawHtml`,
+ * whose `htmlOpenTag` fails at the `:`), so both forms will
+ * read as one rule.
  */
 const piece = (
   rawHtml: boolean,
+  autolinks: boolean,
 ): Parser<Piece, null> =>
   or<Piece, null>(
     map<Inline, Piece>(nodePiece)(
@@ -366,14 +438,19 @@ const piece = (
         or<Inline, null>(
           linkP(rawHtml),
           or<Inline, null>(
-            rawHtml
-              ? htmlToken
-              : fail("raw html disabled"),
+            autolinks
+              ? autolinkP
+              : fail("autolinks disabled"),
             or<Inline, null>(
-              codeSpan,
+              rawHtml
+                ? htmlToken
+                : fail("raw html disabled"),
               or<Inline, null>(
-                strongP(rawHtml),
-                emphP(rawHtml),
+                codeSpan,
+                or<Inline, null>(
+                  strongP(rawHtml, autolinks),
+                  emphP(rawHtml, autolinks),
+                ),
               ),
             ),
           ),
@@ -445,6 +522,18 @@ const assemble = (
  * are verbatim and never re-scanned; strong/emph/link text
  * recurse under the same `rawHtml`.
  *
+ * With `autolinks` on (the default) the GFM **extended**
+ * autolink forms — `http://…`, `www.…`, `mailto:…` and a
+ * bare address — become {@link link}s wherever GFM allows
+ * one to open (see {@link scanAutolink}). It is a parameter
+ * rather than a constant because there is exactly one place
+ * autolinks must NOT be recognized: inside link text, where
+ * they would nest an `<a>` in an `<a>`. Emphasis and strong
+ * text inherit the caller's setting. The angle-bracketed
+ * `<scheme:…>` autolink is a DIFFERENT form and is not
+ * recognized here — a raw `<` still rides along as escaped
+ * literal text.
+ *
  * A plgg-parser grammar: PEG ordered choice supplies the
  * branch precedence the original encoded in its scan order,
  * and {@link assemble} merges the literal runs the grammar
@@ -453,10 +542,13 @@ const assemble = (
 export const renderInline = (
   line: SoftStr,
   rawHtml: boolean = false,
+  autolinks: boolean = true,
 ): ReadonlyArray<Inline> =>
   pipe(
     run(
-      many<Piece, null>(piece(rawHtml)),
+      many<Piece, null>(
+        piece(rawHtml, autolinks),
+      ),
       line,
       null,
     ),
