@@ -17,3 +17,37 @@ updates:
       - "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # A TypeScript MAJOR is a mission here, never an update PR.
+      #
+      # Since PR #117 the repository runs a deliberate split-version layout:
+      # the root manifest and 28 packages are on `typescript@^7.0.2` (the
+      # Go-native compiler), while `plgg-bundle` and `plgg-test` stay on
+      # `^6.0.3` — for them TypeScript is a RUNTIME `dependencies` entry that
+      # ships to npm consumers, and their transpiler, loader hook and
+      # vendor-boundary analyzer are built on `transpileModule` /
+      # `preProcessFile`, which 7.x removed. `typescript` is the only
+      # dependency in this monorepo carrying two versions on purpose; every
+      # other pin is uniform across all manifests.
+      #
+      # Dependabot resolves the whole workspace from the single root above, so
+      # it proposes ONE uniform bump for every manifest at once and has no way
+      # to express "move these 29 declarations, hold those 2" (an `ignore` is
+      # scoped to this whole `updates` entry, not to a manifest inside it) —
+      # PR #112 proposed exactly that uniform bump and would have
+      # shipped a broken bundler and test runner to npm. It was closed as
+      # superseded, and every future major would re-open the same
+      # all-or-nothing PR.
+      #
+      # Only majors are ignored, which is the precise boundary of the problem:
+      # a minor/patch stays inside each manifest's own caret range, so the
+      # 7.x manifests and the two 6.x ones keep receiving updates
+      # independently and security fixes still flow to both branches. Only a
+      # major crosses the split.
+      #
+      # When the split is retired — plgg-bundle and plgg-test ported off the
+      # removed APIs, so one version serves everything — delete this entry and
+      # let majors through again.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
