@@ -121,6 +121,8 @@ export const makeDom = (): Readonly<{
       return winHolder.win;
     },
     createElement: (tag) => makeElement(tag),
+    createElementNS: (namespaceURI, tag) =>
+      makeElement(tag, namespaceURI),
     createTextNode: (data) => makeText(data),
     body,
     head,

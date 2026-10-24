@@ -12,8 +12,13 @@ import {
 import {
   el,
   text,
+  raw,
   div,
   span,
+  svg,
+  g,
+  rect,
+  circle,
   button,
   input,
   form,
@@ -1284,4 +1289,96 @@ test("a survivor FLIPs from its old box to its new one when it moves", () => {
   );
   document.body.removeChild(root);
   return all([a1, a2]);
+});
+
+// --- SVG namespace --------------------------------------------------------
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+test("svg/g/rect/circle are created in the SVG namespace, so they actually draw", () => {
+  const root = document.createElement("div");
+  makeRenderer<never>(
+    root,
+    noop,
+  )(
+    svg(
+      [attr("viewBox", "0 0 24 24")],
+      [
+        g(
+          [],
+          [
+            rect(
+              [
+                attr("x", "3"),
+                attr("y", "3"),
+                attr("width", "7"),
+                attr("height", "9"),
+              ],
+              [],
+            ),
+            circle(
+              [
+                attr("cx", "12"),
+                attr("cy", "12"),
+                attr("r", "5"),
+              ],
+              [],
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  const svgEl = root.firstElementChild;
+  const gEl = svgEl?.firstElementChild;
+  const rectEl = gEl?.firstElementChild;
+  const circleEl = rectEl?.nextSibling;
+  return all([
+    check(svgEl?.namespaceURI, toBe(SVG_NS)),
+    check(gEl?.namespaceURI, toBe(SVG_NS)),
+    check(rectEl?.namespaceURI, toBe(SVG_NS)),
+    check(
+      circleEl instanceof Element &&
+        circleEl.namespaceURI,
+      toBe(SVG_NS),
+    ),
+  ]);
+});
+
+test("a plain HTML tag is still created with no namespace", () => {
+  const root = document.createElement("div");
+  makeRenderer<never>(
+    root,
+    noop,
+  )(div([], [text("hi")]));
+  return check(
+    root.firstElementChild?.namespaceURI === null,
+    toBe(true),
+  );
+});
+
+// --- raw idempotency -------------------------------------------------------
+
+test("re-rendering the same raw html leaves the DOM node untouched", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(raw("<b>hi</b>"));
+  const first = root.firstElementChild;
+  render(raw("<b>hi</b>"));
+  return check(
+    root.firstElementChild === first,
+    toBe(true),
+  );
+});
+
+test("re-rendering raw with different html rebuilds the node", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(raw("<b>hi</b>"));
+  const first = root.firstElementChild;
+  render(raw("<b>bye</b>"));
+  return check(
+    root.firstElementChild === first,
+    toBe(false),
+  );
 });

@@ -86,6 +86,11 @@ export interface DomText {
 export interface DomElement {
   readonly nodeType: typeof ELEMENT_NODE;
   readonly tagName: string;
+  // `null` for a plain `createElement` (HTML); the SVG namespace URI for a
+  // `createElementNS` element — lets a spec assert the client renderer chose
+  // the namespaced path for an `svg`/`rect`/… tag, mirroring the real DOM's
+  // distinction between a drawing element and an inert `HTMLUnknownElement`.
+  readonly namespaceURI: string | null;
   parentNode: DomParent | null;
   readonly listeners: ListenerMap;
   readonly defaultView: DomEventTarget | null;
@@ -160,6 +165,10 @@ export interface DomDocument {
   readonly listeners: ListenerMap;
   readonly defaultView: DomEventTarget | null;
   createElement: (tag: string) => DomElement;
+  createElementNS: (
+    namespaceURI: string,
+    tag: string,
+  ) => DomElement;
   createTextNode: (data: string) => DomText;
   readonly body: DomElement;
   readonly head: DomElement;
