@@ -16,7 +16,7 @@ and each gate's prerequisites are required. Each child has a ten-minute timeout.
 This is an explicit diagnostic command, not an automatic CI network dependency.
 
 The default `.public-package-gate-index.json` is ignored by git. A successful
-write atomically replaces the previous snapshot; resolved failures cannot remain
+write atomically replaces a compatible previous snapshot; resolved failures cannot remain
 from a prior run. The file is created with mode 0600. An output write failure
 exits 1 and leaves the previous snapshot intact.
 
@@ -71,3 +71,18 @@ Reproduction commands resolve the live registry versions again: the index does
 not pin tarball versions or certify reproducibility after registry updates.
 Raw diagnostics, exact failure phases, and release decisions remain outside
 this index.
+
+## Generator compatibility boundary
+
+Every snapshot saves `generatorVersion: "1.0.0"` separately from
+`schemaVersion: 1`. Bump the generator version when index-generation semantics
+change, even if the JSON shape stays the same. It is not a Node, compiler, or
+npm package version.
+
+The writer accepts only its exact generator version, both on the incoming
+snapshot and on an existing destination. Missing, differently typed, or different
+versions are rejected before a temporary file is created. Malformed existing JSON
+also fails closed. The CLI exits 1 and preserves the existing file. Use a separate
+output path for a different generator version, or deliberately remove the old
+artifact before regenerating it. Compatible snapshots still replace stale rows
+atomically; this boundary does not merge results or certify live tarballs.
