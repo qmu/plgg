@@ -49,6 +49,10 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Negative control for the packed plgg-test CLI on Node 24 beside consumer TS7.
+# Separate from the successful consumer gate: assertion failures must exit 1.
+npx --yes --package=node@24 node scripts/gate-test-npm-failure.mjs
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
