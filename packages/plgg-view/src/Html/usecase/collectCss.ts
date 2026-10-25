@@ -64,20 +64,23 @@ export const renderCssRule = (
   )}}`;
 
 /**
- * A {@link lazy$} node's collected rules, cached by its `arg` — a lazy
- * subtree's rules depend on nothing but what `arg` renders to, so an
- * unchanged `===` arg reuses the rules collected last time instead of
- * forcing the producer purely to recompute a stylesheet fragment that would
- * come out byte-identical. This is what keeps CSS collection from undoing
- * {@link lazy}'s "skip the rebuild" promise: without it, every `paint()`
- * would re-walk every lazy subtree for its `css()` atoms regardless of
- * whether the client renderer's own diff skipped it. Only an object `arg` is
- * a valid `WeakMap` key; a primitive `arg` just recomputes every time (rare —
- * `lazy` is meant for a model slice, typically an array or object).
+ * A {@link lazy$} node's collected rules, cached by its producer (`fn`) and
+ * then its `arg` — a lazy subtree's rules depend on nothing but what `arg`
+ * renders to under `fn`, so an unchanged `===` arg reuses the rules collected
+ * last time instead of forcing the producer purely to recompute a stylesheet
+ * fragment that would come out byte-identical. This is what keeps CSS
+ * collection from undoing {@link lazy}'s "skip the rebuild" promise: without
+ * it, every `paint()` would re-walk every lazy subtree for its `css()` atoms
+ * regardless of whether the client renderer's own diff skipped it. Nesting by
+ * `fn` first keeps two call sites that happen to share an `arg` reference
+ * (`lazy(headerView, cfg)` and `lazy(footerView, cfg)`) from colliding on one
+ * cache entry. Only an object `arg` is a valid inner `WeakMap` key; a
+ * primitive `arg` just recomputes every time (rare — `lazy` is meant for a
+ * model slice, typically an array or object).
  */
 const lazyRuleCache = new WeakMap<
   object,
-  ReadonlyArray<CssRule>
+  WeakMap<object, ReadonlyArray<CssRule>>
 >();
 
 /**
@@ -109,21 +112,52 @@ const rulesOfNode = <Msg>(
           content.arg !== null
             ? some(content.arg)
             : none();
+        const argCache: WeakMap<
+          object,
+          ReadonlyArray<CssRule>
+        > = pipe(
+          fromNullable(
+            lazyRuleCache.get(content.fn),
+          ),
+          matchOption(
+            (): WeakMap<
+              object,
+              ReadonlyArray<CssRule>
+            > => {
+              const created = new WeakMap<
+                object,
+                ReadonlyArray<CssRule>
+              >();
+              lazyRuleCache.set(
+                content.fn,
+                created,
+              );
+              return created;
+            },
+            (
+              existing: WeakMap<
+                object,
+                ReadonlyArray<CssRule>
+              >,
+            ): WeakMap<
+              object,
+              ReadonlyArray<CssRule>
+            > => existing,
+          ),
+        );
         return matchOption(
           // non-cacheable (primitive) arg: no memoization seam, recompute.
           (): ReadonlyArray<CssRule> =>
             rulesOfNode(content.render()),
           (key: object): ReadonlyArray<CssRule> =>
             pipe(
-              fromNullable(
-                lazyRuleCache.get(key),
-              ),
+              fromNullable(argCache.get(key)),
               matchOption(
                 (): ReadonlyArray<CssRule> => {
                   const rules = rulesOfNode(
                     content.render(),
                   );
-                  lazyRuleCache.set(key, rules);
+                  argCache.set(key, rules);
                   return rules;
                 },
                 (

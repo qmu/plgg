@@ -78,14 +78,17 @@ test("mapHtml stays lazy: it re-composes the thunk instead of forcing it", () =>
   if (mapped.__tag !== "Lazy") {
     return check(mapped.__tag, toBe("Lazy"));
   }
-  // `arg` — the memo key the renderer compares `===` — carries over unchanged
+  // `arg` — the memo key the renderer compares `===` — carries over unchanged,
+  // as does `fn`'s identity (the CSS-collection memo cache's disambiguator)
   const a1 = check(mapped.content.arg, toBe(5));
+  const a1b = check(mapped.content.fn, toBe(child));
   const a2 = check(beforeForce, toBe(0));
   const resolved = mapped.content.render();
   const a3 = check(calls, toBe(1));
   if (resolved.__tag !== "Element") {
     return all([
       a1,
+      a1b,
       a2,
       a3,
       check(resolved.__tag, toBe("Element")),
@@ -94,6 +97,7 @@ test("mapHtml stays lazy: it re-composes the thunk instead of forcing it", () =>
   const [handler] = resolved.content.attributes;
   return all([
     a1,
+    a1b,
     a2,
     a3,
     handler && handler.__tag === "Handler"

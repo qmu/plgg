@@ -255,11 +255,13 @@ test("lazy builds a Lazy box without calling its producer", () => {
   }
   const a2 = check(node.content.arg, toBe(7));
   const a3 = check(calls, toBe(0));
+  const a4 = check(node.content.fn, toBe(row));
   const resolved = node.content.render();
   return all([
     a1,
     a2,
     a3,
+    a4,
     check(calls, toBe(1)),
     check(resolved, toEqual(div([], [text("7")]))),
   ]);

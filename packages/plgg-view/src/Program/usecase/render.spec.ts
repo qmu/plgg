@@ -1399,6 +1399,35 @@ test("lazy siblings skip independently: an unchanged one is untouched while a ch
   ]);
 });
 
+test("a lazy node whose producer returns another lazy (nested, no element between) patches in place on a changed arg", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let innerCalls = 0;
+  const inner = (
+    n: number,
+  ): Html<never, "div"> => {
+    innerCalls++;
+    return div([], [text(`n:${n}`)]);
+  };
+  const outer = (
+    n: number,
+  ): Html<never, "div"> => lazy(inner, n);
+  render(div([], [lazy(outer, 1)]));
+  const node =
+    root.firstElementChild?.firstElementChild;
+  render(div([], [lazy(outer, 2)]));
+  return all([
+    check(innerCalls, toBe(2)),
+    // patched in place — a stale cached still-lazy value must not misroute
+    // this into a full rebuild (losing focus/caret/scroll state)
+    check(
+      root.firstElementChild?.firstElementChild,
+      toBe(node),
+    ),
+    check(root.textContent, toBe("n:2")),
+  ]);
+});
+
 test("removing a lazy child resolves it to find its exit motion", () => {
   const root = document.createElement("div");
   const { calls, play } = spyPlay();

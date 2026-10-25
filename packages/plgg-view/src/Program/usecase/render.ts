@@ -355,6 +355,30 @@ const exitMotionOf = <Msg>(
     ],
   );
 
+/**
+ * Forces a {@link lazy$} node's thunk until the result is no longer lazy — the
+ * terminal, actually-diffable subtree a (possibly nested) `lazy(...)` call
+ * ultimately stands for. `createNode`/`reconcile` resolve through this
+ * (rather than one bare `render()`) so {@link Wiring.lazyResolved} always
+ * remembers a terminal node: a one-level resolve of `lazy(outer, x)` that
+ * itself returns `lazy(inner, y)` would otherwise get remembered as that
+ * still-lazy intermediate, later misrouting a changed-arg diff into a full
+ * rebuild instead of an in-place patch.
+ */
+const resolveLazy = <Msg>(
+  vnode: Html<Msg>,
+): Html<Msg> =>
+  match(vnode)(
+    [text$(), (): Html<Msg> => vnode],
+    [raw$(), (): Html<Msg> => vnode],
+    [element$(), (): Html<Msg> => vnode],
+    [
+      lazy$(),
+      ({ content }): Html<Msg> =>
+        resolveLazy(content.render()),
+    ],
+  );
+
 /** The {@link key} carried by an attribute list, if any. */
 const keyOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
@@ -590,7 +614,9 @@ export const createNode =
       [
         lazy$(),
         ({ content }): Node => {
-          const resolved = content.render();
+          const resolved = resolveLazy(
+            content.render(),
+          );
           const node = createNode(wiring)(resolved);
           wiring.lazyResolved.set(node, resolved);
           return node;
@@ -838,8 +864,9 @@ export const reconcile =
           const resolveAndReconcile = (
             old: Html<Msg>,
           ): Node => {
-            const newResolved =
-              newContent.render();
+            const newResolved = resolveLazy(
+              newContent.render(),
+            );
             const result = reconcile(wiring)(
               parent,
               domNode,
@@ -868,7 +895,9 @@ export const reconcile =
                         ),
                         matchOption(
                           (): Html<Msg> =>
-                            oldContent.render(),
+                            resolveLazy(
+                              oldContent.render(),
+                            ),
                           (
                             cached: Html<Msg>,
                           ): Html<Msg> => cached,
@@ -1171,17 +1200,8 @@ const patchKeyed =
       ],
       // `keyOfVnode` always reads `none` for a lazy node, so a keyed list
       // never actually carries one here — this arm only satisfies exhaustive
-      // matching. Resolve and recurse rather than assume unreachability.
-      [
-        lazy$(),
-        ({ content }): Node =>
-          patchKeyed(wiring)(
-            parent,
-            node,
-            oldVnode,
-            content.render(),
-          ),
-      ],
+      // matching, same as the unreachable `text$`/`raw$` arms above.
+      [lazy$(), (): Node => replace()],
     );
   };
 

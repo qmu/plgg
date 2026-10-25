@@ -49,12 +49,19 @@ export type ElementContent<
  * cast. SSR/`foldHtml`/`mapHtml` resolve it transparently (call `render` and
  * continue); only {@link reconcile} exploits it to skip a matching subtree's
  * rebuild and diff entirely.
+ *
+ * `fn` is the producing function's own identity, widened to `object` (every
+ * function value is one, so this needs no cast) — never called through this
+ * field, only compared. It disambiguates a memo cache keyed by `arg` alone:
+ * two call sites sharing the same `arg` reference but different producers
+ * (`lazy(headerView, cfg)` and `lazy(footerView, cfg)`) must not collide.
  */
 export type LazyContent<
   Msg,
   T extends string = string,
 > = Readonly<{
   arg: unknown;
+  fn: object;
   render: () => Html<Msg, T>;
 }>;
 

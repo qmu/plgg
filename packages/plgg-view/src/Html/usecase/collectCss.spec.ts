@@ -183,3 +183,36 @@ test("a re-collection with the SAME arg does not re-invoke the lazy producer", (
   collectCssRules(div([], [lazy(row, arg)])); // same `arg` reference
   return check(calls, toBe(callsAfterFirst));
 });
+
+test("two lazy() call sites sharing the same arg object do not collide on one cache entry", () => {
+  // a shared arg reference (e.g. two columns memoized off the same config
+  // object) must not let one producer's rules shadow the other's
+  const sharedArg = {};
+  const header = (): Html<never, "span"> =>
+    span([style_(p(3))], []);
+  const footer = (): Html<never, "span"> =>
+    span([style_(p(2))], []);
+  const sheet = collectCss(
+    div(
+      [],
+      [
+        lazy(header, sharedArg),
+        lazy(footer, sharedArg),
+      ],
+    ),
+  );
+  return all([
+    check(
+      sheet,
+      toContain(
+        `.${hashClass("|padding:0.75rem")}{padding:0.75rem}`,
+      ),
+    ),
+    check(
+      sheet,
+      toContain(
+        `.${hashClass("|padding:0.5rem")}{padding:0.5rem}`,
+      ),
+    ),
+  ]);
+});

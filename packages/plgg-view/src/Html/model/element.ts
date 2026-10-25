@@ -85,6 +85,7 @@ export const lazy = <Msg, A, T extends string = string>(
 ): Html<Msg, T> =>
   box("Lazy")<LazyContent<Msg, T>>({
     arg,
+    fn,
     render: () => fn(arg),
   });
 
