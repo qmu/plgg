@@ -90,7 +90,7 @@ test("resumeCommand: nothing left to publish after the last package lands", () =
   );
 });
 
-test("resumeReport: names what already shipped and never suggests unpublish", () => {
+test("resumeReport: names what already shipped and only ever warns against unpublish", () => {
   const plan = planResume(order, "plgg-view", "smoke");
   const report = resumeReport(plan);
   assert.match(report, /plgg-bundle@0\.0\.7/);
@@ -98,7 +98,10 @@ test("resumeReport: names what already shipped and never suggests unpublish", ()
   assert.match(report, /plgg-view@0\.0\.3/);
   assert.match(report, /npm deprecate/);
   assert.match(report, /ONLY=plgg-cms/);
-  assert.doesNotMatch(report, /npm unpublish/);
+  // "npm unpublish" appears only inside the explicit prohibition, never as
+  // something to actually run.
+  assert.match(report, /do not .npm unpublish./);
+  assert.doesNotMatch(report, /run `npm unpublish/i);
 });
 
 test("resumeReport: a pre-publish failure says it is safe to retry as-is", () => {
