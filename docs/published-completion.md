@@ -27,7 +27,7 @@ not a hermetic lockfile or a release authorization.
 
 | Issue | Probe | Required observation |
 | --- | --- | --- |
-| qmu/plgg#155 | `bundle-restart` | Two CLI app builds with TS6 in one consumer; remove output and change input; execute each fresh JS result (41 then 42). |
+| qmu/plgg#155 | `bundle-restart` | Two CLI app builds with TS6 in one real tarball consumer; remove output and change input; execute each fresh JS result (41 then 42). Preserve the exact legacy relocate directory symlink across both starts. |
 | qmu/plgg#156 | `consumer-ts7` | Real TS7 consumer builds twice, runs emitted JS, typechecks, and rejects a deliberate TS2322 error. |
 | qmu/plgg#158 | `svg-elements` | Chromium DOM has SVG namespaces for rect/circle/ellipse/line/polyline/polygon/g/path. |
 | qmu/plgg#158 | `raw-identity` | A raw SVG is a direct child and retains DOM identity after an equal render. |
@@ -40,10 +40,11 @@ results. Frame timing is controlled by replacing the browser RAF queue; DOM,
 events, CSSOM and MutationObserver are Chromium's real implementations.
 
 `docs/published-completion.json` is the generated snapshot. On Linux/Node
-22.23.4, plgg-bundle 0.0.6 passes the two-build TS6 check, but its first TS7
+24.22.1, plgg-bundle 0.0.6 finishes both TS6 builds but fails the symlink
+preservation check (`legacy-symlink-mutated`, second-build). Its first TS7
 build fails with `CommonJS`. plgg-view 0.0.2 fails all four browser probes.
-**The four issues are not collectively complete.** The Linux restart pass is
-not evidence that the reported macOS/Node 23.9.0 symlink failure is fixed.
+**The four issues are not collectively complete.** The Linux result does
+not reproduce the reported macOS/Node 23.9.0 EISDIR exception.
 Re-run on that platform before closing qmu/plgg#155. The gate does not claim
 SVG typed-builder coverage, library declaration emission coverage, or a
 large-list performance benchmark.
@@ -62,3 +63,20 @@ no-op rebuild. `scripts/check-all.sh` runs them without requiring registry or
 Chromium access. The intentionally failing live snapshot is an explicit
 release/completion check, not a mandatory green CI check against today's old
 npm releases.
+
+## Restart proof consumed by the final ledger
+
+`bundle-restart.evidence` records schema version 1, `sameConsumer: true`,
+`legacySymlink: "preserved"`, the downloaded plgg-bundle `packageSha256`,
+and two `runs` with values 41/42 and distinct emitted `outputSha256` hashes.
+The collector creates the retired launcher's exact cache key and ready marker
+in a private TMPDIR, pointing its node_modules symlink at this consumer.
+It verifies the link's inode, nanosecond change time and target after each build; no workaround removes
+the link between starts. A legacy launcher that deletes or replaces it fails
+with `legacy-symlink-mutated`, even on Linux where EISDIR may not occur.
+
+qmu/plgg#221 now requires and preserves this proof at the final atomic save
+boundary. Merge these producer/reader changes together and regenerate the
+source snapshot before finalization; old status-only restart evidence cannot
+produce a complete final ledger. This does not substitute for the affected
+macOS/Node 23 runtime condition in qmu/plgg#236 or authorize issue closure.
