@@ -115,3 +115,14 @@ passing Node 24 CI evidence. Unknown, pending, failed and permission-wait states
 exit 1 even if every local gate passes. The CLI prints both CI state and completion.
 Use a new output path for generator version `1.1.0`; older artifacts are rejected.
 This adds a local evidence link, not a workflow change or closure of qmu/plgg#171.
+
+### Artifact reference boundary
+
+The optional CI evidence argument is a portable relative path from the
+repository root (for example `.artifacts/node24-ci.json`). The index reader
+rejects empty paths, parent (`..`) segments, absolute POSIX/Windows paths,
+drive-relative Windows paths, backslashes and NUL before reading the artifact
+or running consumers. Rejection preserves an existing destination and emits
+only the fixed CLI diagnostic. `./` and nested relative paths remain supported.
+This lexical validation does not resolve symlinks; the checkout must be trusted.
+The index output destination remains an operator-selected path.
