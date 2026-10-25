@@ -132,29 +132,43 @@ export const collectPublicGateIndex = (
   };
 };
 
+const compatibleGenerator = (
+  value: unknown,
+): boolean =>
+  typeof value === "object" &&
+  value !== null &&
+  "generatorVersion" in value &&
+  value.generatorVersion ===
+    publicGateGeneratorVersion;
+
+export const assertPublicGateIndexDestination = (
+  path: string,
+): void => {
+  if (
+    existsSync(path) &&
+    !compatibleGenerator(
+      JSON.parse(readFileSync(path, "utf8")),
+    )
+  ) {
+    throw new Error(
+      "Public gate index generator version mismatch.",
+    );
+  }
+};
+
 export const writePublicGateIndex = (
   path: string,
   index: ReturnType<
     typeof collectPublicGateIndex
   >,
 ): void => {
-  const compatible = (value: unknown): boolean =>
-    typeof value === "object" &&
-    value !== null &&
-    "generatorVersion" in value &&
-    value.generatorVersion ===
-      publicGateGeneratorVersion;
-  if (
-    !compatible(index) ||
-    (existsSync(path) &&
-      !compatible(
-        JSON.parse(readFileSync(path, "utf8")),
-      ))
-  ) {
+  if (!compatibleGenerator(index)) {
     throw new Error(
       "Public gate index generator version mismatch.",
     );
   }
+  // Recheck after collection: a child may have changed the destination.
+  assertPublicGateIndexDestination(path);
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
     writeFileSync(
