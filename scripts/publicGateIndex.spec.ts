@@ -14,6 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  publicConsumerGates,
   collectPublicGateIndex,
   writePublicGateIndex,
   type Gate,
@@ -124,6 +125,7 @@ test("missing gates and wrong Node are blocked, never passed or executed", () =>
 test("spawn errors and timeouts have fixed safe reasons and do not stop later gates", () => {
   fixture((root) => {
     writeFileSync(join(root, "present.mjs"), "");
+    writeFileSync(join(root, "later.mjs"), "");
     for (const outcome of [
       { status: null },
       {
@@ -134,7 +136,7 @@ test("spawn errors and timeouts have fixed safe reasons and do not stop later ga
       const index = collectPublicGateIndex(
         root,
         "24.0.0",
-        [gate("present"), gate("present")],
+        [gate("present"), gate("later")],
         () => outcome,
       );
       assert.equal(index.packages.length, 2);
@@ -217,7 +219,9 @@ test("CLI writes a complete index and exits nonzero when prerequisites are absen
     const result = spawnSync(
       process.execPath,
       [cli, output],
-      { encoding: "utf8" },
+      {
+        encoding: "utf8",
+      },
     );
     assert.equal(result.status, 1);
     const contents = readFileSync(output, "utf8");
@@ -237,6 +241,133 @@ test("CLI writes a complete index and exits nonzero when prerequisites are absen
     assert.match(
       result.stdout,
       /plgg-test: blocked/,
+    );
+  });
+});
+
+test("all repeated package names are blocked before execution while unique gates still run", () => {
+  fixture((root) => {
+    writeFileSync(join(root, "unique.mjs"), "");
+    writeFileSync(join(root, "repeated.mjs"), "");
+    for (const nodeVersion of [
+      "24.0.0",
+      "22.0.0",
+    ]) {
+      const executed: string[] = [];
+      const index = collectPublicGateIndex(
+        root,
+        nodeVersion,
+        [
+          gate("repeated"),
+          gate("unique"),
+          {
+            ...gate("repeated"),
+            script: "missing.mjs",
+            command: "different command",
+          },
+          gate("repeated"),
+        ],
+        (entry) => {
+          executed.push(entry.package);
+          return { status: 0 };
+        },
+      );
+      assert.deepEqual(
+        executed,
+        nodeVersion === "24.0.0"
+          ? ["unique"]
+          : [],
+      );
+      assert.deepEqual(
+        index.packages
+          .filter(
+            (entry) =>
+              entry.package === "repeated",
+          )
+          .map((entry) => [
+            entry.status,
+            entry.reason,
+          ]),
+        Array.from({ length: 3 }, () => [
+          "blocked",
+          "duplicate-package-name",
+        ]),
+      );
+      const output = join(root, "index.json");
+      writePublicGateIndex(output, index);
+      assert.deepEqual(
+        JSON.parse(readFileSync(output, "utf8")),
+        index,
+      );
+      assert.equal(
+        index.packages.some(
+          (entry) => entry.status !== "passed",
+        ),
+        true,
+      );
+    }
+  });
+});
+
+test("default public consumer gates have unique package names", () => {
+  const names = publicConsumerGates.map(
+    (entry) => entry.package,
+  );
+  assert.equal(new Set(names).size, names.length);
+});
+
+test("CLI exits nonzero and persists fixed duplicate reasons without running duplicate children", () => {
+  fixture((root) => {
+    const marker = join(root, "executed");
+    const output = join(root, "index.json");
+    const script = join(root, "child.mjs");
+    writeFileSync(
+      script,
+      `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(marker)}, "ran");`,
+    );
+    const moduleUrl = new URL(
+      "./publicGateIndex.ts",
+      import.meta.url,
+    ).href;
+    const cliUrl = new URL(
+      "./runPublicGateIndex.ts",
+      import.meta.url,
+    ).href;
+    const entry = { ...gate("repeated"), script };
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        `import { publicConsumerGates } from ${JSON.stringify(moduleUrl)};
+publicConsumerGates.splice(0, publicConsumerGates.length, ${JSON.stringify(entry)}, ${JSON.stringify(entry)});
+process.argv = [process.execPath, "runPublicGateIndex.ts", ${JSON.stringify(output)}];
+await import(${JSON.stringify(cliUrl)});`,
+      ],
+      { encoding: "utf8" },
+    );
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stdout,
+      /repeated: blocked \(duplicate-package-name\)/,
+    );
+    assert.equal(
+      readdirSync(root).includes("executed"),
+      false,
+    );
+    assert.deepEqual(
+      JSON.parse(
+        readFileSync(output, "utf8"),
+      ).packages.map(
+        (entry: {
+          reason: string;
+          status: string;
+        }) => [entry.status, entry.reason],
+      ),
+      [
+        ["blocked", "duplicate-package-name"],
+        ["blocked", "duplicate-package-name"],
+      ],
     );
   });
 });
