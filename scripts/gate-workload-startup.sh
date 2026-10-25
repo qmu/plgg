@@ -28,13 +28,14 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd "$REPO_ROOT"
 echo "=== Gate: workload containers build and answer a request ==="
 
 if command -v docker >/dev/null 2>&1; then
-  COMPOSE="docker compose"
+  ENGINE=docker
 elif command -v podman >/dev/null 2>&1; then
-  COMPOSE="podman compose"
+  ENGINE=podman
 else
   echo "gate-workload-startup: no docker or podman on PATH, skipped"
   exit 0
 fi
+COMPOSE="$ENGINE compose"
 
 created_env=0
 if [ ! -f .env ]; then
@@ -50,6 +51,16 @@ fail=0
 cleanup() {
   $COMPOSE -f workloads/development/compose.yaml down -v --remove-orphans >/dev/null 2>&1 || true
   $COMPOSE -f workloads/guide/compose.yaml down -v --remove-orphans >/dev/null 2>&1 || true
+  # guide's compose.yaml bind-mounts the REPO ROOT itself (`- ../..:/app`),
+  # and dev-entrypoint.sh npm-installs and builds every sibling dist INSIDE
+  # the container, as root, directly onto that mounted tree. That leaves
+  # root-owned files (plgg-bundle's dist/dist.old rotation in particular)
+  # in the actual CI checkout — fatal for every HOST-side step later in
+  # check-all.sh, which cannot unlink/rmdir a root-owned path it did not
+  # create (./scripts/build.sh runs after this gate). Reclaim ownership of
+  # the whole tree back to the invoking user unconditionally; a cheap no-op
+  # if guide skipped or never wrote anything.
+  $ENGINE run --rm -v "$REPO_ROOT:/app" busybox chown -R "$(id -u):$(id -g)" /app >/dev/null 2>&1 || true
   if [ "$created_env" -eq 1 ]; then
     rm -f .env
   fi
