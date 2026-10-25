@@ -25,7 +25,11 @@ function fixture() {
     node: "v24.22.1",
     consumerCompilers: { ts7: "7.0.2" },
     complete: true,
-    packages: ["plgg", "plgg-bundle", "plgg-view"].map((name) => ({
+    packages: [
+      "plgg",
+      "plgg-bundle",
+      "plgg-view",
+    ].map((name) => ({
       name,
       version: "0.0.1",
       sha256: "a".repeat(64),
@@ -38,12 +42,38 @@ function fixture() {
       "raw-identity",
       "frame-dispatch",
       "lazy-subtree",
-    ].map((id) => ({ id, status: "passed" })),
+    ].map((id) => ({
+      id,
+      status: "passed",
+      ...(id === "bundle-restart"
+        ? {
+            evidence: {
+              schemaVersion: 1,
+              sameConsumer: true,
+              legacySymlink: "preserved",
+              packageSha256: "a".repeat(64),
+              runs: [
+                {
+                  value: 41,
+                  outputSha256: "b".repeat(64),
+                },
+                {
+                  value: 42,
+                  outputSha256: "c".repeat(64),
+                },
+              ],
+            },
+          }
+        : {}),
+    })),
   };
 }
-const bytes = (value) => Buffer.from(JSON.stringify(value));
+const bytes = (value) =>
+  Buffer.from(JSON.stringify(value));
 function workspace(run) {
-  const dir = mkdtempSync(join(tmpdir(), "plgg-final-save-"));
+  const dir = mkdtempSync(
+    join(tmpdir(), "plgg-final-save-"),
+  );
   try {
     run(dir);
   } finally {
@@ -57,17 +87,31 @@ test("one saved snapshot binds exact input bytes, runtime, compiler, versions an
       output = join(dir, "final.json");
     const source = bytes(fixture());
     writeFileSync(input, source);
-    const saved = savePublishedCompletion(input, output);
+    const saved = savePublishedCompletion(
+      input,
+      output,
+    );
     assert.equal(saved.complete, true);
     assert.equal(saved.node, "v24.22.1");
-    assert.equal(saved.consumerTypeScript, "7.0.2");
+    assert.equal(
+      saved.consumerTypeScript,
+      "7.0.2",
+    );
     assert.equal(saved.packages.length, 3);
     assert.equal(
       saved.sourceSha256,
-      createHash("sha256").update(source).digest("hex"),
+      createHash("sha256")
+        .update(source)
+        .digest("hex"),
     );
-    assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), saved);
-    assert.equal(statSync(output).mode & 0o777, 0o600);
+    assert.deepEqual(
+      JSON.parse(readFileSync(output, "utf8")),
+      saved,
+    );
+    assert.equal(
+      statSync(output).mode & 0o777,
+      0o600,
+    );
   }));
 
 test("completion cannot survive malformed, missing, duplicate or incompatible evidence", () => {
@@ -112,10 +156,16 @@ test("completion cannot survive malformed, missing, duplicate or incompatible ev
   for (const mutate of mutations) {
     const value = fixture();
     mutate(value);
-    assert.equal(snapshot(bytes(value)).complete, false);
+    assert.equal(
+      snapshot(bytes(value)).complete,
+      false,
+    );
   }
   for (const invalid of ["{", "null", "[]"])
-    assert.equal(snapshot(Buffer.from(invalid)).complete, false);
+    assert.equal(
+      snapshot(Buffer.from(invalid)).complete,
+      false,
+    );
 });
 
 test("failed evidence replaces stale success without forwarding diagnostics or unknown fields", () =>
@@ -130,15 +180,22 @@ test("failed evidence replaces stale success without forwarding diagnostics or u
     value.packages[0].extra = "PRIVATE-SENTINEL";
     writeFileSync(input, bytes(value));
     savePublishedCompletion(input, output);
-    assert.equal(JSON.parse(readFileSync(output, "utf8")).complete, false);
     assert.equal(
-      readFileSync(output, "utf8").includes("PRIVATE-SENTINEL"),
+      JSON.parse(readFileSync(output, "utf8"))
+        .complete,
+      false,
+    );
+    assert.equal(
+      readFileSync(output, "utf8").includes(
+        "PRIVATE-SENTINEL",
+      ),
       false,
     );
     writeFileSync(input, "{");
     savePublishedCompletion(input, output);
     assert.equal(
-      JSON.parse(readFileSync(output, "utf8")).reason,
+      JSON.parse(readFileSync(output, "utf8"))
+        .reason,
       "invalid-evidence",
     );
   }));
@@ -150,18 +207,35 @@ test("rename failure leaves prior whole snapshot, closes staging file and remove
     writeFileSync(input, bytes(fixture()));
     writeFileSync(output, "previous-snapshot");
     assert.throws(() =>
-      savePublishedCompletion(input, output, (temporary, destination) => {
-        assert.equal(readFileSync(destination, "utf8"), "previous-snapshot");
-        assert.equal(
-          JSON.parse(readFileSync(temporary, "utf8")).complete,
-          true,
-        );
-        throw Error("injected-rename-failure");
-      }),
+      savePublishedCompletion(
+        input,
+        output,
+        (temporary, destination) => {
+          assert.equal(
+            readFileSync(destination, "utf8"),
+            "previous-snapshot",
+          );
+          assert.equal(
+            JSON.parse(
+              readFileSync(temporary, "utf8"),
+            ).complete,
+            true,
+          );
+          throw Error("injected-rename-failure");
+        },
+      ),
     );
-    assert.equal(readFileSync(output, "utf8"), "previous-snapshot");
-    assert.deepEqual(readdirSync(dir).sort(), ["final.json", "input.json"]);
-    assert.throws(() => savePublishedCompletion(input, input));
+    assert.equal(
+      readFileSync(output, "utf8"),
+      "previous-snapshot",
+    );
+    assert.deepEqual(readdirSync(dir).sort(), [
+      "final.json",
+      "input.json",
+    ]);
+    assert.throws(() =>
+      savePublishedCompletion(input, input),
+    );
   }));
 
 test("CLI succeeds only after persistence and exits nonzero for rejection and IO failure", () =>
@@ -171,17 +245,118 @@ test("CLI succeeds only after persistence and exits nonzero for rejection and IO
     const run = (destination) =>
       spawnSync(
         process.execPath,
-        ["scripts/savePublishedCompletion.mjs", input, destination],
+        [
+          "scripts/savePublishedCompletion.mjs",
+          input,
+          destination,
+        ],
         { encoding: "utf8" },
       );
     writeFileSync(input, bytes(fixture()));
     assert.equal(run(output).status, 0);
     writeFileSync(input, "{");
     assert.equal(run(output).status, 1);
-    assert.equal(JSON.parse(readFileSync(output, "utf8")).complete, false);
+    assert.equal(
+      JSON.parse(readFileSync(output, "utf8"))
+        .complete,
+      false,
+    );
     assert.equal(run(dir).status, 1);
     assert.equal(
-      readdirSync(dir).some((name) => name.endsWith(".tmp")),
+      readdirSync(dir).some((name) =>
+        name.endsWith(".tmp"),
+      ),
       false,
     );
   }));
+
+test("final boundary rejects status-only, mismatched tarball and incomplete restart proofs", () => {
+  const mutations = [
+    (proof) => {
+      delete proof.schemaVersion;
+    },
+    (proof) => {
+      proof.schemaVersion = 2;
+    },
+    (proof) => {
+      proof.sameConsumer = false;
+    },
+    (proof) => {
+      proof.legacySymlink = "removed";
+    },
+    (proof) => {
+      proof.packageSha256 = "d".repeat(64);
+    },
+    (proof) => {
+      proof.runs.pop();
+    },
+    (proof) => {
+      proof.runs.reverse();
+    },
+    (proof) => {
+      proof.runs.push(proof.runs[0]);
+    },
+    (proof) => {
+      proof.runs[1].value = 41;
+    },
+    (proof) => {
+      proof.runs[1].outputSha256 = "b".repeat(64);
+    },
+    (proof) => {
+      proof.runs[1].outputSha256 = "invalid";
+    },
+    (proof) => {
+      proof.runs[1] = null;
+    },
+  ];
+  for (const mutate of mutations) {
+    const value = fixture();
+    mutate(value.checks[0].evidence);
+    const saved = snapshot(bytes(value));
+    assert.equal(saved.complete, false);
+    assert.equal(
+      saved.checks[0].reason,
+      "restart-proof-required",
+    );
+  }
+  for (const proof of [undefined, null, [], {}]) {
+    const value = fixture();
+    value.checks[0].evidence = proof;
+    assert.equal(
+      snapshot(bytes(value)).complete,
+      false,
+    );
+  }
+});
+
+test("final restart proof retains only public evidence, including safe failure phase", () => {
+  const value = fixture();
+  value.checks[0].evidence.path =
+    "PRIVATE-SENTINEL";
+  value.checks[0].evidence.runs[0].diagnostic =
+    "PRIVATE-SENTINEL";
+  const saved = snapshot(bytes(value));
+  assert.equal(saved.complete, true);
+  assert.equal(
+    saved.checks[0].evidence.runs.length,
+    2,
+  );
+  assert.equal(
+    JSON.stringify(saved).includes(
+      "PRIVATE-SENTINEL",
+    ),
+    false,
+  );
+  value.checks[0] = {
+    id: "bundle-restart",
+    status: "failed",
+    phase: "second-build",
+    reason: "ERR_FS_EISDIR",
+  };
+  const failed = snapshot(bytes(value));
+  assert.equal(failed.complete, false);
+  assert.deepEqual(
+    failed.checks[0],
+    value.checks[0],
+  );
+});
