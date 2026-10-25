@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -6,9 +7,9 @@ import {
   writePublicGateIndex,
 } from "./publicGateIndex.ts";
 
-if (process.argv.length > 3) {
+if (process.argv.length > 4) {
   console.error(
-    "Usage: node scripts/runPublicGateIndex.ts [index.json]",
+    "Usage: node scripts/runPublicGateIndex.ts [index.json] [ci-evidence.json]",
   );
   process.exitCode = 1;
 } else {
@@ -25,6 +26,13 @@ if (process.argv.length > 3) {
     const index = collectPublicGateIndex(
       root,
       process.versions.node,
+      undefined,
+      undefined,
+      process.argv[3] === undefined
+        ? undefined
+        : JSON.parse(
+            readFileSync(process.argv[3], "utf8"),
+          ),
     );
     writePublicGateIndex(output, index);
     for (const entry of index.packages) {
@@ -32,11 +40,10 @@ if (process.argv.length > 3) {
         `${entry.package}: ${entry.status} (${entry.reason})`,
       );
     }
-    if (
-      index.packages.some(
-        (entry) => entry.status !== "passed",
-      )
-    ) {
+    console.log(
+      `Node 24 CI: ${index.node24Ci.status}; complete: ${index.complete}`,
+    );
+    if (!index.complete) {
       process.exitCode = 1;
     }
   } catch {

@@ -10,7 +10,52 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 // Bump when generator semantics change, independently of the JSON schema.
-export const publicGateGeneratorVersion = "1.0.0";
+export const publicGateGeneratorVersion = "1.1.0";
+
+// Explicit evidence only: never infer CI success from local gate results.
+export const node24CiEvidence = (
+  value: unknown,
+) => {
+  if (
+    typeof value === "object" &&
+    value !== null
+  ) {
+    if (
+      "status" in value &&
+      value.status === "permission-wait" &&
+      "reason" in value &&
+      value.reason ===
+        "workflows-permission-required"
+    ) {
+      return {
+        status: "permission-wait",
+        reason: "workflows-permission-required",
+        issue:
+          "https://github.com/qmu/plgg/issues/171",
+      };
+    }
+    if (
+      "status" in value &&
+      (value.status === "passed" ||
+        value.status === "failed" ||
+        value.status === "pending") &&
+      "url" in value &&
+      typeof value.url === "string" &&
+      /^https:\/\/github\.com\/qmu\/plgg\/actions\/runs\/[1-9][0-9]*\/job\/[1-9][0-9]*$/.test(
+        value.url,
+      ) &&
+      "nodeMajor" in value &&
+      value.nodeMajor === 24
+    ) {
+      return {
+        status: value.status,
+        url: value.url,
+        nodeMajor: 24,
+      };
+    }
+  }
+  return { status: "unknown" };
+};
 
 // Commands belong to the existing consumer gates; keep their fixtures there.
 export const publicConsumerGates = [
@@ -93,7 +138,9 @@ export const collectPublicGateIndex = (
         killSignal: "SIGKILL",
       },
     ),
+  ciEvidence: unknown = undefined,
 ) => {
+  const node24Ci = node24CiEvidence(ciEvidence);
   const seen = new Set<string>();
   const duplicates = new Set<string>();
   for (const gate of gates) {
@@ -102,8 +149,9 @@ export const collectPublicGateIndex = (
     }
     seen.add(gate.package);
   }
-  return {
+  const index = {
     schemaVersion: 1,
+    node24Ci,
     generatorVersion: publicGateGeneratorVersion,
     nodeVersion,
     consumerTypeScriptMajor: 7,
@@ -129,6 +177,15 @@ export const collectPublicGateIndex = (
         prerequisite: gate.prerequisite,
       };
     }),
+  };
+  return {
+    ...index,
+    complete:
+      index.packages.length > 0 &&
+      node24Ci.status === "passed" &&
+      index.packages.every(
+        (entry) => entry.status === "passed",
+      ),
   };
 };
 
