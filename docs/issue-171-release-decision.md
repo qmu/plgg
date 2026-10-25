@@ -1,7 +1,8 @@
 # qmu/plgg#171 権限回復後の統合・公開・復旧の決定
 
-決定日: 2026-10-25。状態: 提案（この PR のレビューで採否を決める）。
-基準: origin/main `bba7ca80e45171dff6243b1e3ac61b768b9d741d`。
+決定日: 2026-10-25（同日中に #209・#210・#211 の追加を反映して更新）。
+状態: 提案（この PR のレビューで採否を決める）。
+基準: origin/main `bba7ca80e45171dff6243b1e3ac61b768b9d741d`（更新時点でも変化なし）。
 対象 issue: <https://github.com/qmu/plgg/issues/171>。
 
 ## 採用する方針
@@ -26,22 +27,26 @@ CI 行列は独立に復旧でき、先に Node 24 の実行証拠を得る方�
 2026-10-25 に GitHub API で open PR 全 60 本の一覧と変更ファイルを再取得した。
 先の採録（56 本）は #205・#207・#208 を取り落としていた
 （#205 は本記録と同日 1 秒差で並行作成され、#207・#208 は本記録の採録後に作られた）。
-`.github/workflows/` を変える PR は依然 0 本。#171 は open、コメントは 0 件で、
-権限回復済みである証拠はない。トークンの値や権限を推測して記録しない。
+同日中に #209・#210・#211 が新たに開かれたため、open PR 全 63 本で再照合した
+（#209 は #205 の head ブランチ `work-1025-node24-ci-evidence` に積まれ、main 未着地。
+#210・#211 は base main）。origin/main は依然 `bba7ca80` で変化なし。
+`.github/workflows/` を変える PR は #209・#210・#211 を含めても依然 0 本。
+#171 は open、コメントは 0 件で、権限回復済みである証拠はない。
+トークンの値や権限を推測して記録しない。
 下表は実装の所在と採用方針であり、merge 済み・現時点の CI green を意味しない。
 
 | PR（すべて qmu/plgg）                                                                                                                                                                                                                                                                                                                                                                                                        | 所有する条件                                                      | 決定・依存                                                                                  |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | [#168](https://github.com/qmu/plgg/pull/168), [#176](https://github.com/qmu/plgg/pull/176), [#181](https://github.com/qmu/plgg/pull/181), [#182](https://github.com/qmu/plgg/pull/182), [#184](https://github.com/qmu/plgg/pull/184), [#185](https://github.com/qmu/plgg/pull/185), [#187](https://github.com/qmu/plgg/pull/187), [#197](https://github.com/qmu/plgg/pull/197), [#199](https://github.com/qmu/plgg/pull/199) | 条件・未充足・統合計画の記録                                      | 歴史資料。現在の統合判断は本記録へ集約                                                      |
 | [#160](https://github.com/qmu/plgg/pull/160), [#162](https://github.com/qmu/plgg/pull/162), [#163](https://github.com/qmu/plgg/pull/163), [#169](https://github.com/qmu/plgg/pull/169)                                                                                                                                                                                                                                       | Node engine 下限、TS major 保留、TS6/7 分離、診断                 | workflow 権限なしで統合可能。TS6 を使う CLI と consumer TS7 の境界を保持                    |
-| [#165](https://github.com/qmu/plgg/pull/165), [#173](https://github.com/qmu/plgg/pull/173), [#179](https://github.com/qmu/plgg/pull/179), [#189](https://github.com/qmu/plgg/pull/189), [#190](https://github.com/qmu/plgg/pull/190)                                                                                                                                                                                         | bundle 版上げ、反復 build、app consumer、library 宣言生成、移動先 | 振る舞いごとの固有 fixture を保持。最終修正を含む版番号を公開前に決める                     |
+| [#165](https://github.com/qmu/plgg/pull/165), [#173](https://github.com/qmu/plgg/pull/173), [#179](https://github.com/qmu/plgg/pull/179), [#189](https://github.com/qmu/plgg/pull/189), [#190](https://github.com/qmu/plgg/pull/190), [#211](https://github.com/qmu/plgg/pull/211) | bundle 版上げ、反復 build、app consumer、library 宣言生成、移動先、2 回目起動の公開検証 | 振る舞いごとの固有 fixture を保持。最終修正を含む版番号を公開前に決める。#211 は `--help` だけだった検証を実インストール済み consumer の 2 回起動に広げ、`ERR_FS_EISDIR` を拒否する。relocate.mjs 自体は main 5b109cec で既に削除済みで、#211 はそれを再導入しない |
 | [#178](https://github.com/qmu/plgg/pull/178), [#192](https://github.com/qmu/plgg/pull/192)                                                                                                                                                                                                                                                                                                                                   | Docker Node 24、実コンテナ起動                                    | この順に統合し起動確認。CI 行列とは別条件                                                   |
 | [#191](https://github.com/qmu/plgg/pull/191)                                                                                                                                                                                                                                                                                                                                                                                 | 候補 27 tarball / 34 imports の隔離 consumer                      | 候補 family の正本。明示コマンドで実行し、公開済み registry の証明には転用しない            |
 | [#174](https://github.com/qmu/plgg/pull/174), [#175](https://github.com/qmu/plgg/pull/175), [#177](https://github.com/qmu/plgg/pull/177), [#180](https://github.com/qmu/plgg/pull/180)                                                                                                                                                                                                                                       | plgg transpile、live plgg / plgg-md、coverage 記録                | #174 の固有 transpile 検査を残し、#175/#177 の live 検査も保持。#180 は coverage の参考資料 |
 | [#183](https://github.com/qmu/plgg/pull/183), [#186](https://github.com/qmu/plgg/pull/186), [#195](https://github.com/qmu/plgg/pull/195), [#200](https://github.com/qmu/plgg/pull/200)                                                                                                                                                                                                                                       | packed test fixture、consumer、live engine/CLI、assertion 失敗    | すべてを同一検査とみなして閉じない。候補と live、成功・失敗の対照を保持                     |
-| [#188](https://github.com/qmu/plgg/pull/188), [#194](https://github.com/qmu/plgg/pull/194), [#198](https://github.com/qmu/plgg/pull/198)                                                                                                                                                                                                                                                                                     | parser、fetch engine、router の固有動作                           | #191 の import smoke のみでは代替できないため保持                                           |
+| [#188](https://github.com/qmu/plgg/pull/188), [#194](https://github.com/qmu/plgg/pull/194), [#198](https://github.com/qmu/plgg/pull/198), [#210](https://github.com/qmu/plgg/pull/210) | parser、fetch engine、router、sql の固有動作                      | #191 の import smoke のみでは代替できないため保持。#210 は `plgg-sql` に専用の packed consumer ゲート（パラメータ結合、注入様式文字列、ESM/CJS、forged-brand 拒否）を追加し、同族で唯一欠けていた package を埋める |
 | [#193](https://github.com/qmu/plgg/pull/193)                                                                                                                                                                                                                                                                                                                                                                                 | stage/pack の安全な診断                                           | 公開手順の診断として保持                                                                    |
-| [#201](https://github.com/qmu/plgg/pull/201) → [#202](https://github.com/qmu/plgg/pull/202) → [#203](https://github.com/qmu/plgg/pull/203) → [#204](https://github.com/qmu/plgg/pull/204) → [#205](https://github.com/qmu/plgg/pull/205)                                                                                                                                                                                      | live 3 gate の index、重複拒否、generator version、実行前検証、Node24 CI 証拠の埋め込み | 左から統合し、各 dependent PR を main に retarget/rebase。候補 family artifact と混同しない。#205 の `complete: true` は埋め込み Node24 CI 証拠と local gate 両方を要求し、#201 単体の「local gate 全 pass」を公開十分条件にしない |
+| [#201](https://github.com/qmu/plgg/pull/201) → [#202](https://github.com/qmu/plgg/pull/202) → [#203](https://github.com/qmu/plgg/pull/203) → [#204](https://github.com/qmu/plgg/pull/204) → [#205](https://github.com/qmu/plgg/pull/205) → [#209](https://github.com/qmu/plgg/pull/209) | live 3 gate の index、重複拒否、generator version、実行前検証、Node24 CI 証拠の埋め込み、artifact パス境界の安全化 | 左から統合し、各 dependent PR を main に retarget/rebase。候補 family artifact と混同しない。#205 の `complete: true` は埋め込み Node24 CI 証拠と local gate 両方を要求し、#201 単体の「local gate 全 pass」を公開十分条件にしない。#209 は #205 の head ブランチに積まれ、親の未解決パス（`../`・絶対パス・NUL 等）を読み込み前に拒否する。#205 を先に main へ retarget/merge してから #209 を retarget する |
 | [#207](https://github.com/qmu/plgg/pull/207)                                                                                                                                                                                                                                                                                                                                                                                 | `.artifacts/node24-ci-blocker.json` への権限拒否ブロッカー永続化  | workflow 権限なしで統合可能。記録専用で workflow・npm・本番を変更しない。#171 の未解消を機械判読できる形で残すが、ライブの権限検査ではない。権限回復後、下記「権限回復後に入れる workflow 変更」が完了したらこの artifact を退役させる |
 | [#208](https://github.com/qmu/plgg/pull/208)                                                                                                                                                                                                                                                                                                                                                                                 | `node scripts/node24Workflows.ts --check\|--write` による生成・適用の単一入口 | workflow 権限なしで統合可能（workflow ファイル自体はこの PR では変更しない）。この記録の作成時点で `.github/workflows/run-tests.yml`・`deploy-guide.yml` の SHA-256 は #208 が固定した `before` ハッシュと一致しており、権限回復後はこの PR 統合後に `--write` を使う。手編集はしない |
 
@@ -86,6 +91,8 @@ CI 行列は独立に復旧でき、先に Node 24 の実行証拠を得る方�
    CLI 内部 TS6 / consumer TS7 の実解決を維持する。
 4. 開発者が `PREFLIGHT=1 ./scripts/publish-npm.sh` で公開対象をレビューする。
    #165 の提案版 0.0.7 を既に公開済みと仮定せず registry と照合する。
+   #211 が追加する 2 回目起動の公開検証（`check-all.sh` 経由）も
+   `PREFLIGHT=1` の対象に含め、`--help` のみの旧検証結果を 0.0.7 の公開十分条件にしない。
    #160 の engine 修正対象 plgg-cms / plgg-sql / plgg-auth / plgg-db-migration は
    版上げも必要。version 不変の merge だけでは npm の engine は直らない。
 5. 開発者が `./scripts/publish-npm.sh` を実行する。エージェントは公開を代行しない。
@@ -128,7 +135,12 @@ Node 24 の静かな削除、失敗 index の手編集で公開を通さない�
 workflow 権限復旧、npm 公開、live registry gate、コンテナ起動は実行していない。
 PR 本文の過去の検証結果は本作業の再実行結果と区別する。
 この更新では `sha256sum .github/workflows/run-tests.yml .github/workflows/deploy-guide.yml`
-を現 main で実測し、#208 が固定した `before` ハッシュとそれぞれ完全一致することを確認した。
+を現 main で再実測し、#208 の `scripts/node24Workflows.ts` に固定された `before` ハッシュ
+（run-tests.yml: `ddcbcfe2...`、deploy-guide.yml: `e8957f06...`）とそれぞれ完全一致することを
+ソースファイルを直接読んで確認した（前回更新時点から origin/main のコミットは変化なし）。
 一致が崩れたら #208 のピンを更新するまで `--write` を使わない。
+この更新でも npm registry への live アクセスは行っていない。
+「公開ゲートと証拠」の registry 照合はすべて開発者が実行する将来の手順であり、
+本記録の作成・更新作業自体は npm view 等で現在の公開版を再確認していない。
 リポジトリの CLAUDE.md が参照する workaholic gateway skill はこの環境に提供されていない。
 この記録は追加の実装・公開権限を与えるものではない。
