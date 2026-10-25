@@ -34,3 +34,30 @@ are not implementation prerequisites.
 The first execution caught a real staging defect: plgg-ir-thesis-proof declared
 bin/prove.mjs but allowed only dist. Its files allowlist now includes bin.
 Installed entry checks protect this launcher from being omitted again.
+
+## Reproducible verification evidence
+
+A successful run writes `.artifacts/public-consumer.json` (ignored by git).
+Retain this file with the command's output when storing verification artifacts.
+It describes the candidate tarballs tested together, not the live npm registry.
+
+- `schemaVersion: 1` and `status: "passed"` identify the format and outcome.
+- `packages` records each package's name, version and `tarballSha256`, computed
+  from the exact compressed tarball bytes passed to the isolated npm install.
+- `nodeVersion` and `typescriptVersion` record the actual runtime and consumer
+  compiler versions.
+- `scriptVersion.sha256` is the content version of the gate. It hashes the JSON
+  array in `scriptVersion.sources`; each entry contains the repository-relative
+  path and SHA-256 of that source file's bytes, in the recorded order. This covers
+  the entry scripts, build script, gate, staging helper, evidence writer and gate
+  tests, including uncommitted edits. It is not a git revision or a package version.
+
+The entry shell removes the previous result before checking Node or building;
+the JavaScript gate also removes it before its prerequisites. Only a complete
+successful gate writes a new JSON file, using a temporary file and rename.
+Failure leaves no previous success result. Scratch tarballs are still cleaned up.
+No environment variables, registry URLs, credentials, absolute paths or raw
+command output are copied into the JSON; only the listed fields are selected.
+The digests identify inputs, not signatures or a promise that a future rebuild
+will reproduce the same bytes. Run one gate per checkout; parallel runs share the
+same output path.
