@@ -1,6 +1,7 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  assertPublicGateIndexDestination,
   collectPublicGateIndex,
   writePublicGateIndex,
 } from "./publicGateIndex.ts";
@@ -20,6 +21,7 @@ if (process.argv.length > 3) {
       process.argv[2] ??
         ".public-package-gate-index.json",
     );
+    assertPublicGateIndexDestination(output);
     const index = collectPublicGateIndex(
       root,
       process.versions.node,

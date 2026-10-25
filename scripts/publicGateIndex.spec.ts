@@ -12,8 +12,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import {
+  assertPublicGateIndexDestination,
   publicConsumerGates,
   collectPublicGateIndex,
   writePublicGateIndex,
@@ -486,6 +487,120 @@ test("CLI rejects an older artifact with a safe diagnostic and preserves it", ()
     assert.deepEqual(readdirSync(root).sort(), [
       "index.json",
       "scripts",
+    ]);
+  });
+});
+
+test("CLI rejects incompatible destinations before executing children", () => {
+  fixture((root) => {
+    const output = join(root, "index.json");
+    const marker = join(root, "executed");
+    const script = join(root, "child.mjs");
+    writeFileSync(
+      script,
+      `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(marker)}, "ran");`,
+    );
+    const moduleUrl = new URL(
+      "./publicGateIndex.ts",
+      import.meta.url,
+    ).href;
+    const cliUrl = new URL(
+      "./runPublicGateIndex.ts",
+      import.meta.url,
+    ).href;
+    const entry = {
+      ...gate("probe"),
+      script: relative(
+        fileURLToPath(
+          new URL("..", import.meta.url),
+        ),
+        script,
+      ),
+    };
+    const run = () =>
+      spawnSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "--eval",
+          `import { publicConsumerGates } from ${JSON.stringify(moduleUrl)};
+Object.defineProperty(process.versions, "node", { value: "24.0.0" });
+publicConsumerGates.splice(0, publicConsumerGates.length, ${JSON.stringify(entry)});
+process.argv = [process.execPath, "runPublicGateIndex.ts", ${JSON.stringify(output)}];
+await import(${JSON.stringify(cliUrl)});`,
+        ],
+        { encoding: "utf8" },
+      );
+    for (const previous of [
+      '{"generatorVersion":"older"}',
+      '{"generatorVersion":1}',
+      "{}",
+      "null",
+      "{invalid",
+    ]) {
+      writeFileSync(output, previous);
+      const result = run();
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      assert.match(
+        result.stderr,
+        /Public gate index could not be saved\./,
+      );
+      assert.equal(
+        readFileSync(output, "utf8"),
+        previous,
+      );
+      assert.deepEqual(readdirSync(root).sort(), [
+        "child.mjs",
+        "index.json",
+      ]);
+    }
+    writeFileSync(
+      output,
+      JSON.stringify(
+        collectPublicGateIndex(
+          root,
+          "24.0.0",
+          [],
+        ),
+      ),
+    );
+    const compatible = run();
+    assert.equal(compatible.status, 0);
+    assert.match(
+      compatible.stdout,
+      /probe: passed/,
+    );
+    assert.equal(
+      readFileSync(marker, "utf8"),
+      "ran",
+    );
+  });
+});
+
+test("writer rechecks a destination changed after preflight", () => {
+  fixture((root) => {
+    const output = join(root, "index.json");
+    const index = collectPublicGateIndex(
+      root,
+      "24.0.0",
+      [],
+    );
+    writePublicGateIndex(output, index);
+    assertPublicGateIndexDestination(output);
+    const changed =
+      '{"generatorVersion":"other"}';
+    writeFileSync(output, changed);
+    assert.throws(
+      () => writePublicGateIndex(output, index),
+      /generator version mismatch/,
+    );
+    assert.equal(
+      readFileSync(output, "utf8"),
+      changed,
+    );
+    assert.deepEqual(readdirSync(root), [
+      "index.json",
     ]);
   });
 });
