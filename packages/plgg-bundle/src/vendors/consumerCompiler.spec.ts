@@ -48,3 +48,56 @@ for (const main of [
     }
   });
 }
+
+test("consumerTscBin finds hoisted TS7 before the CLI's nested TS6", () => {
+  const root = mkdtempSync(
+    join(tmpdir(), "consumer-compiler-"),
+  );
+  const consumer = join(root, "packages/library");
+  const dependency = join(
+    root,
+    "node_modules/typescript",
+  );
+  const cliDependency = join(
+    root,
+    "node_modules/plgg-bundle/node_modules/typescript",
+  );
+  try {
+    mkdirSync(consumer, { recursive: true });
+    writeFileSync(
+      join(consumer, "package.json"),
+      "{}",
+    );
+    for (const { directory, main } of [
+      {
+        directory: dependency,
+        main: "version.cjs",
+      },
+      {
+        directory: cliDependency,
+        main: "typescript.js",
+      },
+    ]) {
+      mkdirSync(join(directory, "lib"), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(directory, "package.json"),
+        JSON.stringify({ main: `lib/${main}` }),
+      );
+      writeFileSync(
+        join(directory, "lib", main),
+        "",
+      );
+    }
+    return check(
+      consumerTscBin(consumer),
+      toBe(join(dependency, "bin/tsc")),
+    );
+  } finally {
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
+  }
+});

@@ -53,6 +53,15 @@ test -s dist/index.d.ts
 test -f consumer-ts7-invoked
 node --input-type=module -e 'import { answer } from "./dist/index.es.js"; if (answer.value !== 42) process.exit(1)'
 echo 'PASS: packed CLI emits declarations through consumer TS7 and runnable JS through TS6'
+# Check the public declaration surface from a separate source file. Merely
+# finding a nonempty .d.ts would miss broken exports or leaked CLI types.
+cat > consume.ts <<'TS'
+import { answer, type Answer } from "./dist/index";
+const result: Answer = answer;
+console.log(result.value);
+TS
+node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --strict --moduleResolution bundler --module esnext consume.ts
+echo 'PASS: consumer TS7 typechecks the emitted public declarations'
 # Negative control proves the declaration compiler enforces consumer types.
 printf '\nexport const broken: number = "wrong";\n' >> src/index.ts
 if node node_modules/plgg-bundle/bin/plgg-bundle.mjs > failure.txt 2>&1; then
@@ -60,4 +69,5 @@ if node node_modules/plgg-bundle/bin/plgg-bundle.mjs > failure.txt 2>&1; then
   exit 1
 fi
 grep -q 'TS2322' failure.txt
+test ! -e tsconfig.dts.json
 echo 'PASS: consumer declaration errors fail the packed CLI build (TS2322)'
