@@ -1,7 +1,6 @@
 import { spawnSync } from "plgg-bundle/vendors/nodeProc";
 import {
   join,
-  dirname,
   basename,
   relative,
 } from "plgg-bundle/vendors/nodePath";
@@ -10,7 +9,7 @@ import {
   writeFileSync,
   rmSync,
 } from "plgg-bundle/vendors/nodeFs";
-import { createRequire } from "plgg-bundle/vendors/nodeProc";
+import { consumerTscBin } from "plgg-bundle/vendors/consumerCompiler";
 import { rewriteDtsAliases } from "plgg-bundle/domain/usecase/rewriteDtsAliases";
 
 /**
@@ -71,7 +70,11 @@ export const emitDts = (args: {
   // identical every run.
   const r = spawnSync(
     process.execPath,
-    [tscBin(args.root), "--project", dtsConfig],
+    [
+      consumerTscBin(args.root),
+      "--project",
+      dtsConfig,
+    ],
     { cwd: args.root, encoding: "utf8" },
   );
   rmSync(dtsConfig, { force: true });
@@ -125,24 +128,6 @@ const dtsTsconfig = (
     },
     null,
     2,
-  );
-
-/**
- * Absolute path to the package's OWN pinned `tsc`
- * launcher, resolved from its `typescript` dependency
- * (derived from the package main so it works regardless
- * of `typescript`'s `exports` map). Run via `node`.
- */
-const tscBin = (root: string): string =>
-  join(
-    dirname(
-      createRequire(
-        join(root, "package.json"),
-      ).resolve("typescript"),
-    ),
-    "..",
-    "bin",
-    "tsc",
   );
 
 /**
