@@ -50,7 +50,11 @@ import {
   execFileSync,
 } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
-import { dirname, join, resolve } from "node:path";
+import {
+  dirname,
+  join,
+  resolve,
+} from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   computePublishSet,
@@ -62,6 +66,10 @@ import {
   declaresStageAllowlist,
   missingEntryTargets,
 } from "./stagePackage.ts";
+import {
+  checkPublicPackage,
+  PublicPackageFailure,
+} from "./publicPackageGate.ts";
 
 const scriptsDir = dirname(
   fileURLToPath(import.meta.url),
@@ -79,7 +87,9 @@ type Argv = Readonly<{
 const parseArgv = (
   argv: ReadonlyArray<string>,
 ): Argv => {
-  const valueOf = (flag: string): string | null => {
+  const valueOf = (
+    flag: string,
+  ): string | null => {
     const i = argv.indexOf(flag);
     return i >= 0 && i + 1 < argv.length
       ? (argv[i + 1] ?? null)
@@ -118,7 +128,9 @@ const readOrder = (): ReadonlyArray<string> => {
       );
       return m ? m[1] : undefined;
     })
-    .filter((d): d is string => typeof d === "string");
+    .filter(
+      (d): d is string => typeof d === "string",
+    );
   return ["plgg-bundle", ...dirs];
 };
 
@@ -130,20 +142,26 @@ const isRecord = (
 const readMeta = (dir: string): PkgMeta => {
   const pkg: unknown = JSON.parse(
     readFileSync(
-      join(repoRoot, "packages", dir, "package.json"),
+      join(
+        repoRoot,
+        "packages",
+        dir,
+        "package.json",
+      ),
       "utf8",
     ),
   );
-  const record: Record<string, unknown> = isRecord(pkg)
-    ? pkg
-    : {};
+  const record: Record<string, unknown> =
+    isRecord(pkg) ? pkg : {};
   const name = record["name"];
   const version = record["version"];
   return {
     dir,
     name: typeof name === "string" ? name : dir,
     version:
-      typeof version === "string" ? version : "0.0.0",
+      typeof version === "string"
+        ? version
+        : "0.0.0",
     private: record["private"] === true,
   };
 };
@@ -211,14 +229,16 @@ const stageOne = (
   const pkg = readPkgJson(
     join(dir, "package.json"),
   );
-  const manifest = stagedManifest(pkg, (fileSpec) =>
-    versionAt(
-      resolve(
-        dir,
-        fileSpec.slice("file:".length),
-        "package.json",
+  const manifest = stagedManifest(
+    pkg,
+    (fileSpec) =>
+      versionAt(
+        resolve(
+          dir,
+          fileSpec.slice("file:".length),
+          "package.json",
+        ),
       ),
-    ),
   );
   const stage = join(stageRoot, meta.dir);
   mkdirSync(stage, { recursive: true });
@@ -263,7 +283,11 @@ const packStaged = (
       "--pack-destination",
       dest,
     ],
-    { cwd: stage, encoding: "utf8" },
+    {
+      cwd: stage,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
   );
   const parsed: unknown = JSON.parse(out);
   const first = Array.isArray(parsed)
@@ -403,10 +427,16 @@ const smokeInstall = (
     ),
   );
   const checks: string[] = [];
-  if (Boolean(pkg["main"]) || Boolean(pkg["exports"])) {
+  if (
+    Boolean(pkg["main"]) ||
+    Boolean(pkg["exports"])
+  ) {
     execFileSync(
       "node",
-      ["-e", `import(${JSON.stringify(meta.name)})`],
+      [
+        "-e",
+        `import(${JSON.stringify(meta.name)})`,
+      ],
       {
         cwd: smoke,
         stdio: ["ignore", "ignore", "inherit"],
@@ -469,18 +499,19 @@ const stageChecked = (
     ),
   );
   if (!declaresStageAllowlist(pkg)) {
-    throw new Error(
+    throw new PublicPackageFailure(
       `${meta.name}: package.json declares no "files" allowlist, so the ` +
         `staged tarball would omit its dist. Add "files": ["dist"] ` +
         `(every publishable sibling declares one).`,
     );
   }
   const stage = stageOne(meta, stageRoot);
-  const missing = missingEntryTargets(pkg, (rel) =>
-    existsSync(join(stage, rel)),
+  const missing = missingEntryTargets(
+    pkg,
+    (rel) => existsSync(join(stage, rel)),
   );
   if (missing.length > 0) {
-    throw new Error(
+    throw new PublicPackageFailure(
       `${meta.name}: staged tarball is missing declared entry point(s): ` +
         `${missing.join(", ")} — build the package before publishing, ` +
         `or correct its "files"/"main"/"exports" declarations.`,
@@ -515,12 +546,23 @@ const runPublishSet = async (
     // every publish. The mission measures size instead of adding a
     // minifier dependency (vendor-neutrality).
     const staged = metas.map((meta) => {
-      const stage = stageChecked(meta, stageRoot);
-      const packed = packStaged(stage, stageRoot);
+      const stage = checkPublicPackage(
+        { ...meta, phase: "stage" },
+        () => stageChecked(meta, stageRoot),
+      );
+      const packed = checkPublicPackage(
+        { ...meta, phase: "pack" },
+        () => packStaged(stage, stageRoot),
+      );
       return { meta, stage, packed };
     });
-    for (const { meta, stage, packed } of staged) {
-      const { filename, size, unpackedSize } = packed;
+    for (const {
+      meta,
+      stage,
+      packed,
+    } of staged) {
+      const { filename, size, unpackedSize } =
+        packed;
       const sizes = `${kb(unpackedSize)} raw, ${kb(size)} gz`;
       if (dryRun) {
         process.stdout.write(
@@ -586,25 +628,35 @@ const main = async (): Promise<void> => {
       process.exit(1);
     }
     await runPublishSet(
-      order.map(readMeta).filter((m) => !m.private),
+      order
+        .map(readMeta)
+        .filter((m) => !m.private),
       args.dryRun,
     );
     return;
   }
 
   const metas = order.map(readMeta);
-  const queryable = metas.filter((m) => !m.private);
+  const queryable = metas.filter(
+    (m) => !m.private,
+  );
   const remotes = await Promise.all(
     queryable.map((m) => remoteVersion(m.name)),
   );
-  const remoteByName = new Map<string, string | null>(
+  const remoteByName = new Map<
+    string,
+    string | null
+  >(
     queryable.map((m, i) => [
       m.name,
       remotes[i] ?? null,
     ]),
   );
 
-  const decision = computePublishSet(metas, remoteByName);
+  const decision = computePublishSet(
+    metas,
+    remoteByName,
+  );
 
   process.stdout.write(
     `preflight: ${decision.publish.length} to publish, ` +
@@ -612,7 +664,8 @@ const main = async (): Promise<void> => {
       `${decision.privateSkipped.length} private\n`,
   );
   for (const p of decision.publish) {
-    const remote = remoteByName.get(p.name) ?? null;
+    const remote =
+      remoteByName.get(p.name) ?? null;
     process.stdout.write(
       `  PUBLISH  ${p.name}  ${remote ?? "none"} -> ${p.version}\n`,
     );
@@ -633,7 +686,9 @@ const main = async (): Promise<void> => {
   if (args.setOut !== null) {
     writeFileSync(
       resolve(args.setOut),
-      decision.publish.map((p) => p.dir).join(" "),
+      decision.publish
+        .map((p) => p.dir)
+        .join(" "),
     );
   }
 };
