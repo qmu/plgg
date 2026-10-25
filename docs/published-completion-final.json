@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "64c1ce9b81fc6d400c51029739de411b3e55a130fd88a096625d99cddd02cba1",
+  "complete": false,
+  "reason": "consumer-evidence-incomplete",
+  "checkedAt": "2026-10-25T10:49:53.468Z",
+  "registry": "https://registry.npmjs.org",
+  "node": "v24.22.1",
+  "consumerTypeScript": "7.0.2",
+  "packages": [
+    {
+      "name": "plgg",
+      "version": "0.0.27",
+      "sha256": "f884930640a4e103c77de5dbe7750bda4a7d0e94730b66c008cbff971bc47b18",
+      "sha512": "sha512-e2JVXXDMHOYstQtBHwM037xrmNh3O4WEFwREtjNboe/uJ9nYkfOp872x14yCqifi0eEl2uuYjnNO6SLezv/48Q=="
+    },
+    {
+      "name": "plgg-bundle",
+      "version": "0.0.6",
+      "sha256": "d18bd0357eeab4c34c92e73d12028124742deb3f66c2b79649d6e3eacf3ceab5",
+      "sha512": "sha512-KdonyKNHTek+O5UIP+u9kXRYiM/lDCqvcub5xaqkgIgJ/0/FiIYnEze691Rpmn+w4TOJ6XXBThQn2G76pQDO+Q=="
+    },
+    {
+      "name": "plgg-view",
+      "version": "0.0.2",
+      "sha256": "4ac7a1c66f9f6bec692053a527d926fa1dae3c4235dd0c07ae12a322261d1096",
+      "sha512": "sha512-hxby3rrjnhvbjvllnyjedHdacuafhCVIpxTnLiZpL9nbDNDo5gg6NLbE/9gYaaWZGoF2MYiQyzag1TDQ3kg46A=="
+    }
+  ],
+  "checks": [
+    {
+      "id": "bundle-restart",
+      "status": "passed"
+    },
+    {
+      "id": "consumer-ts7",
+      "status": "failed"
+    },
+    {
+      "id": "svg-elements",
+      "status": "failed"
+    },
+    {
+      "id": "raw-identity",
+      "status": "failed"
+    },
+    {
+      "id": "frame-dispatch",
+      "status": "failed"
+    },
+    {
+      "id": "lazy-subtree",
+      "status": "failed"
+    }
+  ]
+}
