@@ -1806,3 +1806,53 @@ test("raw and typed elements replace one another", () => {
     ),
   ]);
 });
+
+// --- lazy + raw composition ------------------------------------------------
+
+test("a lazy node resolving to raw() is left fully untouched when the lazy arg is unchanged", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let calls = 0;
+  const row = (
+    html: string,
+  ): Html<never, "#raw"> => {
+    calls++;
+    return raw(html);
+  };
+  render(div([], [lazy(row, "<b>hi</b>")]));
+  const rawSpan =
+    root.firstElementChild?.firstElementChild;
+  render(div([], [lazy(row, "<b>hi</b>")])); // same arg value — the lazy fast path skips row() entirely
+  return all([
+    check(calls, toBe(1)),
+    check(
+      root.firstElementChild
+        ?.firstElementChild,
+      toBe(rawSpan),
+    ),
+  ]);
+});
+
+test("a lazy node resolving to raw() keeps DOM identity across a changed lazy arg when the resolved html is unchanged", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let calls = 0;
+  const row = (
+    _n: number,
+  ): Html<never, "#raw"> => {
+    calls++;
+    return raw("<b>fixed</b>");
+  };
+  render(div([], [lazy(row, 1)]));
+  const rawSpan =
+    root.firstElementChild?.firstElementChild;
+  render(div([], [lazy(row, 2)])); // different arg forces resolveAndReconcile, but the raw html it resolves to is unchanged
+  return all([
+    check(calls, toBe(2)),
+    check(
+      root.firstElementChild
+        ?.firstElementChild,
+      toBe(rawSpan),
+    ),
+  ]);
+});
