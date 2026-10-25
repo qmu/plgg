@@ -62,6 +62,11 @@ import {
   declaresStageAllowlist,
   missingEntryTargets,
 } from "./stagePackage.ts";
+import {
+  planResume,
+  resumeReport,
+  type PublishStage,
+} from "./publishResume.ts";
 
 const scriptsDir = dirname(
   fileURLToPath(import.meta.url),
@@ -345,6 +350,53 @@ const errOutput = (e: unknown): string => {
   return `${buf(e["stdout"])}${buf(e["stderr"])}`;
 };
 
+/**
+ * A thrown value's human-readable message: an `execFileSync` error's
+ * captured stdout/stderr when there is any, else the `Error#message`
+ * (or its string form) — so a plain `throw new Error(...)` from
+ * {@link resolveOnRegistry} is not reported as an empty string.
+ */
+const errorDetail = (e: unknown): string => {
+  const captured = errOutput(e);
+  if (captured.trim().length > 0) {
+    return captured;
+  }
+  return e instanceof Error ? e.message : String(e);
+};
+
+/**
+ * The entry point a partway publish failure falls into instead of a bare
+ * stack trace: computes the resume plan ({@link planResume}) against the
+ * full set this run was given and prints it plus the underlying error,
+ * then rethrows so the caller's `finally` still cleans up the stage
+ * directory and the process still exits non-zero. Already-published
+ * packages are never touched — the report only ever recommends
+ * `npm deprecate` + a new version, per
+ * `.workaholic/deployments/npm.md`'s irreversible-publish policy.
+ */
+const reportResumeAndRethrow = (
+  order: ReadonlyArray<PkgMeta>,
+  failedDir: string,
+  stage: PublishStage,
+  e: unknown,
+): never => {
+  const plan = planResume(
+    order.map((m) => ({
+      dir: m.dir,
+      name: m.name,
+      version: m.version,
+    })),
+    failedDir,
+    stage,
+  );
+  process.stderr.write(
+    `\n${resumeReport(plan)}\n\nError detail: ${errorDetail(e)}\n`,
+  );
+  throw e instanceof Error
+    ? e
+    : new Error(errorDetail(e));
+};
+
 /** A bin's `--help` output, captured whatever its exit code. */
 const binHelpOutput = (bin: string): string => {
   try {
@@ -531,18 +583,50 @@ const runPublishSet = async (
       process.stdout.write(
         `${label(meta)}  staged (${sizes})\n`,
       );
-      publishStaged(stage);
+      try {
+        publishStaged(stage);
+      } catch (e) {
+        reportResumeAndRethrow(
+          metas,
+          meta.dir,
+          "publish",
+          e,
+        );
+      }
       process.stdout.write(
         `${label(meta)}  published\n`,
       );
-      const tries = await resolveOnRegistry(
-        meta.name,
-        meta.version,
-      );
+      // Pre-assigned (never read before the try completes): a `never`-typed
+      // catch-block call does not satisfy tsc's definite-assignment check
+      // the way a `throw` does, so these need a starting value.
+      let tries = 0;
+      try {
+        tries = await resolveOnRegistry(
+          meta.name,
+          meta.version,
+        );
+      } catch (e) {
+        reportResumeAndRethrow(
+          metas,
+          meta.dir,
+          "resolve",
+          e,
+        );
+      }
       process.stdout.write(
         `${label(meta)}  resolved (${tries} tries)\n`,
       );
-      const smoke = smokeInstall(meta, stageRoot);
+      let smoke = "";
+      try {
+        smoke = smokeInstall(meta, stageRoot);
+      } catch (e) {
+        reportResumeAndRethrow(
+          metas,
+          meta.dir,
+          "smoke",
+          e,
+        );
+      }
       process.stdout.write(
         `${label(meta)}  ${smoke}\n`,
       );
