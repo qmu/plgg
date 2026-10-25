@@ -6,6 +6,7 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -15,6 +16,7 @@ import {
   complete,
   fingerprint,
   repeatBuild,
+  restartEvidence,
 } from "./publishedCompletion.mjs";
 
 test("completion requires every distinct probe, including raw and both frame/lazy behaviors", () => {
@@ -137,4 +139,135 @@ test("restart probe deletes previous output so a no-op second build cannot pass"
         }),
       /command-failed/,
     );
+  }));
+
+test("public restart proof preserves the exact legacy symlink across two starts", () =>
+  scratch((cwd) => {
+    const installed = join(
+      cwd,
+      "node_modules/plgg-bundle",
+    );
+    mkdirSync(installed, { recursive: true });
+    writeFileSync(
+      join(installed, "package.json"),
+      JSON.stringify({
+        name: "plgg-bundle",
+        version: "0.0.7",
+      }),
+    );
+    const proof = restartEvidence(
+      cwd,
+      join(cwd, "tmp"),
+      (value, env) => {
+        assert.equal(
+          env.TMPDIR,
+          join(cwd, "tmp"),
+        );
+        emit(cwd, value);
+      },
+    );
+    assert.equal(
+      proof.legacySymlink,
+      "preserved",
+    );
+    assert.deepEqual(
+      proof.runs.map((run) => run.value),
+      [41, 42],
+    );
+    assert.notEqual(
+      proof.runs[0].outputSha256,
+      proof.runs[1].outputSha256,
+    );
+  }));
+
+test("restart proof rejects symlink deletion even when generated output is correct", () =>
+  scratch((cwd) => {
+    const dependencies = join(
+      cwd,
+      "node_modules",
+    );
+    const installed = join(
+      dependencies,
+      "plgg-bundle",
+    );
+    mkdirSync(installed, { recursive: true });
+    writeFileSync(
+      join(installed, "package.json"),
+      JSON.stringify({
+        name: "plgg-bundle",
+        version: "0.0.7",
+      }),
+    );
+    const tag = createHash("sha1")
+      .update(dependencies)
+      .digest("hex")
+      .slice(0, 12);
+    assert.throws(() =>
+      restartEvidence(
+        cwd,
+        join(cwd, "tmp"),
+        (value) => {
+          if (value === 42)
+            rmSync(
+              join(
+                cwd,
+                "tmp",
+                `plgg-relocate-plgg-bundle-0.0.7-${tag}`,
+                "node_modules",
+              ),
+            );
+          emit(cwd, value);
+        },
+      ),
+    );
+  }));
+
+test("restart proof rejects replacing a directory symlink with the same target", () =>
+  scratch((cwd) => {
+    const dependencies = join(
+      cwd,
+      "node_modules",
+    );
+    const installed = join(
+      dependencies,
+      "plgg-bundle",
+    );
+    mkdirSync(installed, { recursive: true });
+    writeFileSync(
+      join(installed, "package.json"),
+      JSON.stringify({
+        name: "plgg-bundle",
+        version: "0.0.7",
+      }),
+    );
+    const tag = createHash("sha1")
+      .update(dependencies)
+      .digest("hex")
+      .slice(0, 12);
+    let calls = 0;
+    assert.throws(
+      () =>
+        restartEvidence(
+          cwd,
+          join(cwd, "tmp"),
+          (value) => {
+            calls++;
+            const link = join(
+              cwd,
+              "tmp",
+              `plgg-relocate-plgg-bundle-0.0.7-${tag}`,
+              "node_modules",
+            );
+            rmSync(link);
+            symlinkSync(
+              dependencies,
+              link,
+              "dir",
+            );
+            emit(cwd, value);
+          },
+        ),
+      /legacy-symlink-mutated/,
+    );
+    assert.equal(calls, 2);
   }));

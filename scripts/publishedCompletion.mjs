@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
+  cpSync,
+  existsSync,
+  lstatSync,
+  readlinkSync,
+  symlinkSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -49,9 +54,15 @@ export function fingerprint(bytes, integrity) {
       .digest("hex"),
   };
 }
-function command(cwd, executable, args) {
+function command(
+  cwd,
+  executable,
+  args,
+  env = process.env,
+) {
   const result = spawnSync(executable, args, {
     cwd,
+    env,
     encoding: "utf8",
     timeout: 180000,
     maxBuffer: 8 * 1024 * 1024,
@@ -65,14 +76,21 @@ function command(cwd, executable, args) {
       "ENOENT",
       "TS2322",
     ].find((code) => diagnostic.includes(code));
-    throw Error(reason || "command-failed");
+    throw Error(
+      reason ||
+        (diagnostic.includes("EISDIR")
+          ? "ERR_FS_EISDIR"
+          : "command-failed"),
+    );
   }
   return result.stdout.trim();
 }
 async function artifact(name, stage, packages) {
   const response = await fetch(
     `${registry}/${name}/latest`,
-    { signal: AbortSignal.timeout(30000) },
+    {
+      signal: AbortSignal.timeout(30000),
+    },
   );
   if (!response.ok)
     throw Error("registry-metadata");
@@ -155,6 +173,7 @@ export function repeatBuild(cwd, build) {
       include: ["src"],
     }),
   );
+  const runs = [];
   for (const value of [41, 42]) {
     rmSync(join(cwd, "dist"), {
       recursive: true,
@@ -171,7 +190,96 @@ export function repeatBuild(cwd, build) {
       ]) !== String(value)
     )
       throw Error("stale-output");
+    runs.push({
+      value,
+      outputSha256: createHash("sha256")
+        .update(
+          readFileSync(join(cwd, "dist/main.js")),
+        )
+        .digest("hex"),
+    });
   }
+  return runs;
+}
+
+// The retired launcher keyed its cache by the installed consumer dependencies.
+// Preserve that exact directory symlink across both starts; never clean it
+// between starts to make a broken second startup appear successful.
+export function restartEvidence(
+  cwd,
+  temporary,
+  build,
+) {
+  const dependencies = join(cwd, "node_modules");
+  const installed = join(
+    dependencies,
+    "plgg-bundle",
+  );
+  if (lstatSync(installed).isSymbolicLink())
+    throw Error("workspace-install");
+  const { name, version } = JSON.parse(
+    readFileSync(
+      join(installed, "package.json"),
+      "utf8",
+    ),
+  );
+  const tag = createHash("sha1")
+    .update(dependencies)
+    .digest("hex")
+    .slice(0, 12);
+  const cache = join(
+    temporary,
+    `plgg-relocate-${name}-${version}-${tag}`,
+  );
+  mkdirSync(cache, { recursive: true });
+  for (const entry of [
+    "src",
+    "bin",
+    "package.json",
+  ]) {
+    const source = join(installed, entry);
+    if (existsSync(source))
+      cpSync(source, join(cache, entry), {
+        recursive: true,
+      });
+  }
+  writeFileSync(
+    join(cache, ".plgg-relocate-ready"),
+    dependencies + "\n",
+  );
+  const link = join(cache, "node_modules");
+  symlinkSync(dependencies, link, "dir");
+  const before = lstatSync(link, {
+    bigint: true,
+  });
+  let preserved = true;
+  const runs = repeatBuild(cwd, (value) => {
+    build(value, {
+      ...process.env,
+      TMPDIR: temporary,
+      TMP: temporary,
+      TEMP: temporary,
+    });
+    const after = lstatSync(link, {
+      throwIfNoEntry: false,
+      bigint: true,
+    });
+    if (
+      !after?.isSymbolicLink() ||
+      after.ino !== before.ino ||
+      after.ctimeNs !== before.ctimeNs ||
+      readlinkSync(link) !== dependencies
+    )
+      preserved = false;
+  });
+  if (!preserved)
+    throw Error("legacy-symlink-mutated");
+  return {
+    schemaVersion: 1,
+    sameConsumer: true,
+    legacySymlink: "preserved",
+    runs,
+  };
 }
 async function browserChecks(cwd) {
   const require = createRequire(
@@ -296,6 +404,8 @@ export async function generate(output) {
         "ENOENT",
         "TS2322",
         "stale-output",
+        "legacy-symlink-mutated",
+        "workspace-install",
         "negative-type-control",
         "consumer-version",
       ];
@@ -328,16 +438,33 @@ export async function generate(output) {
         bundle,
         "typescript@6.0.3",
       ]);
-      repeatBuild(cwd, (value) => {
-        phase(
-          value === 41
-            ? "first-build"
-            : "second-build",
-        );
-        command(cwd, process.execPath, [
-          "node_modules/plgg-bundle/bin/plgg-bundle.mjs",
-        ]);
-      });
+      const evidence = restartEvidence(
+        cwd,
+        join(stage, "legacy-tmp"),
+        (value, env) => {
+          phase(
+            value === 41
+              ? "first-build"
+              : "second-build",
+          );
+          command(
+            cwd,
+            process.execPath,
+            [
+              "node_modules/plgg-bundle/bin/plgg-bundle.mjs",
+            ],
+            env,
+          );
+        },
+      );
+      checks.find(
+        (check) => check.id === "bundle-restart",
+      ).evidence = {
+        ...evidence,
+        packageSha256: ledger.packages.find(
+          (pkg) => pkg.name === "plgg-bundle",
+        ).sha256,
+      };
     });
     await probe("consumer-ts7", (phase) => {
       phase("install");
