@@ -14,6 +14,8 @@ import {
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import {
+  publicGateGeneratorVersion,
+  readPublicGateArtifact,
   assertPublicGateIndexDestination,
   publicConsumerGates,
   node24CiEvidence,
@@ -390,7 +392,7 @@ test("persists the generator version independently of the schema version", () =>
       saved.generatorVersion,
       index.generatorVersion,
     );
-    assert.equal(saved.generatorVersion, "1.1.0");
+    assert.equal(saved.generatorVersion, "1.1.1");
     assert.equal(saved.schemaVersion, 1);
   });
 });
@@ -721,5 +723,152 @@ test("local success requires passing Node 24 CI evidence for completion", () => 
       ).complete,
       false,
     );
+  });
+});
+
+test("artifact reader rejects parent and absolute references before reading", () => {
+  fixture((root) => {
+    // None of these files exists: a read would throw ENOENT instead.
+    for (const path of [
+      "",
+      "../outside.json",
+      "nested/../evidence.json",
+      "nested/../../outside.json",
+      "/outside.json",
+      "C:/outside.json",
+      "C:outside.json",
+      "C:\\outside.json",
+      "\\\\server\\share\\outside.json",
+      "//server/share/outside.json",
+      "nested\\..\\outside.json",
+      "bad\0.json",
+    ]) {
+      assert.throws(
+        () => readPublicGateArtifact(root, path),
+        {
+          message:
+            "Invalid public gate artifact relative path.",
+        },
+      );
+    }
+  });
+});
+
+test("artifact reader accepts nested relative JSON and reports invalid JSON", () => {
+  fixture((root) => {
+    mkdirSync(join(root, "evidence"));
+    writeFileSync(
+      join(root, "evidence", "ci.json"),
+      '{"status":"passed"}',
+    );
+    assert.deepEqual(
+      readPublicGateArtifact(
+        root,
+        "evidence/ci.json",
+      ),
+      {
+        status: "passed",
+      },
+    );
+    assert.deepEqual(
+      readPublicGateArtifact(
+        root,
+        "./evidence/ci.json",
+      ),
+      {
+        status: "passed",
+      },
+    );
+    writeFileSync(
+      join(root, "evidence", "ci.json"),
+      "invalid",
+    );
+    assert.throws(
+      () =>
+        readPublicGateArtifact(
+          root,
+          "evidence/ci.json",
+        ),
+      SyntaxError,
+    );
+  });
+});
+
+test("CLI rejects unsafe evidence references before executing consumers or replacing output", () => {
+  fixture((temporary) => {
+    const root = join(temporary, "checkout");
+    mkdirSync(root);
+    const evidence = JSON.stringify({
+      status: "passed",
+      nodeMajor: 24,
+      url: "https://github.com/qmu/plgg/actions/runs/1/job/1",
+    });
+    writeFileSync(
+      join(temporary, "outside.json"),
+      evidence,
+    );
+    writeFileSync(
+      join(root, "ci.json"),
+      evidence,
+    );
+    mkdirSync(join(root, "nested"));
+    mkdirSync(join(root, "scripts"));
+    for (const name of [
+      "runPublicGateIndex.ts",
+      "publicGateIndex.ts",
+    ]) {
+      copyFileSync(
+        new URL(name, import.meta.url),
+        join(root, "scripts", name),
+      );
+    }
+    writeFileSync(
+      join(
+        root,
+        "scripts",
+        "gate-public-tarball-node24.sh",
+      ),
+      "touch child-ran",
+    );
+    const output = join(root, "index.json");
+    const previous = JSON.stringify({
+      generatorVersion:
+        publicGateGeneratorVersion,
+    });
+    writeFileSync(output, previous);
+    for (const reference of [
+      "../outside.json",
+      join(temporary, "outside.json"),
+      "nested/../ci.json",
+      "C:/outside.json",
+    ]) {
+      const result = spawnSync(
+        process.execPath,
+        [
+          join(
+            root,
+            "scripts",
+            "runPublicGateIndex.ts",
+          ),
+          output,
+          reference,
+        ],
+        { encoding: "utf8" },
+      );
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, "");
+      assert.equal(
+        result.stderr.trim(),
+        "Public gate index could not be saved.",
+      );
+      assert.equal(
+        readFileSync(output, "utf8"),
+        previous,
+      );
+      assert.equal(
+        readdirSync(root).includes("child-ran"),
+        false,
+      );
+    }
   });
 });

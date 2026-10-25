@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   assertPublicGateIndexDestination,
   collectPublicGateIndex,
+  readPublicGateArtifact,
   writePublicGateIndex,
 } from "./publicGateIndex.ts";
 
@@ -30,8 +30,9 @@ if (process.argv.length > 4) {
       undefined,
       process.argv[3] === undefined
         ? undefined
-        : JSON.parse(
-            readFileSync(process.argv[3], "utf8"),
+        : readPublicGateArtifact(
+            root,
+            process.argv[3],
           ),
     );
     writePublicGateIndex(output, index);

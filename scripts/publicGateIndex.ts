@@ -7,10 +7,10 @@ import {
 } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { join, posix, win32 } from "node:path";
 
 // Bump when generator semantics change, independently of the JSON schema.
-export const publicGateGeneratorVersion = "1.1.0";
+export const publicGateGeneratorVersion = "1.1.1";
 
 // Explicit evidence only: never infer CI success from local gate results.
 export const node24CiEvidence = (
@@ -240,4 +240,28 @@ export const writePublicGateIndex = (
   } finally {
     rmSync(temporary, { force: true });
   }
+};
+
+// Index artifact references use portable relative paths. Validate the original
+// spelling before joining: normalization would erase parent segments.
+export const readPublicGateArtifact = (
+  root: string,
+  path: string,
+): unknown => {
+  if (
+    path.length === 0 ||
+    path.includes("\\") ||
+    path.includes("\0") ||
+    posix.isAbsolute(path) ||
+    win32.isAbsolute(path) ||
+    /^[A-Za-z]:/.test(path) ||
+    path.split("/").includes("..")
+  ) {
+    throw new Error(
+      "Invalid public gate artifact relative path.",
+    );
+  }
+  return JSON.parse(
+    readFileSync(join(root, path), "utf8"),
+  );
 };
