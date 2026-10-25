@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "sourceSha256": "64c1ce9b81fc6d400c51029739de411b3e55a130fd88a096625d99cddd02cba1",
+  "sourceSha256": "98bd3aae39905d55564fc5d2d0de3dd6d85a133dd8eebbd4032a26d659877da1",
   "complete": false,
   "reason": "consumer-evidence-incomplete",
-  "checkedAt": "2026-10-25T10:49:53.468Z",
+  "checkedAt": "2026-10-25T14:25:14.033Z",
   "registry": "https://registry.npmjs.org",
   "node": "v24.22.1",
   "consumerTypeScript": "7.0.2",
@@ -30,7 +30,9 @@
   "checks": [
     {
       "id": "bundle-restart",
-      "status": "passed"
+      "status": "failed",
+      "phase": "second-build",
+      "reason": "legacy-symlink-mutated"
     },
     {
       "id": "consumer-ts7",

@@ -33,15 +33,29 @@ remain with qmu/plgg#214, qmu/plgg#220, qmu/plgg#218 and qmu/plgg#217 respective
 The Node and compiler fields describe the producer's execution, not the saver.
 Synthetic passing fixtures test persistence only and do not certify npm.
 
-The checked-in `published-completion-final.json` was generated on Node 24.22.1
-from the unmodified qmu/plgg#214 producer at
-`74f8b886ef8ef7014aaea270918261eeb0f0a1cd`, fetched into a temporary directory
-with its browser fixture. Consumer TypeScript 7.0.2 was installed and its
-version checked by that producer. The npm versions were plgg 0.0.27,
-plgg-bundle 0.0.6 and plgg-view 0.0.2. Only bundle-restart passed: consumer-ts7,
-SVG, raw identity, frame dispatch and lazy subtree failed (1/6 passed).
-The final snapshot correctly remains `complete: false`; it is a dated
-observation, not issue closure, a release, a CI claim, or macOS reproduction.
+The checked-in `published-completion-final.json` now consumes the enhanced
+qmu/plgg#214 producer's Node 24.22.1 observation. Public versions remain plgg
+0.0.27, plgg-bundle 0.0.6 and plgg-view 0.0.2. Both TS6 CLI invocations and
+fresh output executions finished, but the legacy launcher replaced the seeded
+symlink (`legacy-symlink-mutated`, `second-build`). All six gates fail and
+`complete` remains false. This is a dated Linux observation, not macOS
+reproduction or issue closure.
+
+A passing `bundle-restart` must now carry `evidence` schema version 1:
+`sameConsumer: true`, `legacySymlink: "preserved"`, the exact bundle
+`packageSha256` and two runs with values 41/42 and distinct SHA-256 output
+hashes. The saver retains only those allowlisted fields. Missing proof,
+reversed/duplicate/missing runs, malformed hashes, a changed package hash,
+or a removed legacy link turns a claimed pass into `blocked` with
+`restart-proof-required`. Old status-only snapshots must be regenerated.
+A failed restart retains only allowlisted phase and reason codes, so the
+final ledger identifies the second-start failure without raw subprocess logs.
+
+The producer and saver changes update existing qmu/plgg#214 and qmu/plgg#221;
+merge both before regenerating evidence. The source SHA-256 in this final file
+must equal SHA-256 of #214's exact `docs/published-completion.json` bytes.
+qmu/plgg#236 still requires publication, merged implementation and affected
+runtime evidence before qmu/plgg#155 can close.
 
 Regression tests run in `scripts/check-all.sh`, or directly:
 
