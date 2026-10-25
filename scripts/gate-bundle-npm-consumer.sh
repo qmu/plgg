@@ -104,7 +104,8 @@ export default {
 };
 EOF
 cat >"$CONSUMER/src/main.ts" <<'EOF'
-export const greeting: string = "hello from the npm-consumer fixture";
+const greeting: string = "hello from the npm-consumer fixture";
+console.log(greeting);
 EOF
 
 # Resolve "typescript" the way Node would for the file $1, and print
@@ -201,6 +202,15 @@ if [ ! -f "$CONSUMER/dist/main.js" ]; then
   echo "expected $CONSUMER/dist/main.js from the fixture build" >&2
   exit 1
 fi
+
+# Execute the app output too: file existence alone does not prove that
+# transpilation preserved the consumer program.
+RUNTIME_OUTPUT=$(node "$CONSUMER/dist/main.js")
+if [ "$RUNTIME_OUTPUT" != "hello from the npm-consumer fixture" ]; then
+  echo "emitted JavaScript produced unexpected output: $RUNTIME_OUTPUT" >&2
+  exit 1
+fi
+echo "emitted JavaScript executed with the expected greeting"
 
 echo "--- 3. typecheck: the consumer's OWN typescript (top-level TS7) ---"
 cat >"$CONSUMER/tsconfig.json" <<'EOF'
