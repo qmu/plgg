@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   mkdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import {
@@ -134,6 +135,9 @@ export async function runParity(root, revision) {
       join(output, "result.json"),
       `${JSON.stringify(result, null, 2)}\n`,
     );
+  rmSync(join(output, "published.json"), {
+    force: true,
+  });
   // Overwrite old success before loading prerequisites or making network calls.
   save();
   try {
