@@ -72,7 +72,9 @@ the headline outcome:
 2. A scratch-dir consumer `npm install <name>@<version>` succeeds
    (overriding the host's `min-release-age` for the just-published artifact)
    and `import('<name>')` loads; packages with a bin also run `--help` and
-   must show no module-resolution failure.
+   must show no module-resolution failure. For `plgg-bundle`, the same installed
+   consumer also builds a `target: "app"` twice, changing the source and executing
+   fresh output each time; a second-start failure fails publication verification.
 
 The ship records the outcome — the published `name@version` set, or "nothing to
 publish" — into the story/PR, so **every ship carries explicit evidence of the

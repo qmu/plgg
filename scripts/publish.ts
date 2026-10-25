@@ -52,6 +52,7 @@ import {
 import { setTimeout as sleep } from "node:timers/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { smokeBundle } from "./smokeBundle.ts";
 import {
   computePublishSet,
   type PkgMeta,
@@ -359,7 +360,8 @@ const binHelpOutput = (bin: string): string => {
 
 /**
  * Scratch-install the just-published package and smoke it: an `import`
- * for an importable surface, a `--help` run for a bin-only tool. Returns
+ * for an importable surface, a `--help` run for a bin-only tool, and two
+ * real app builds for plgg-bundle (its second-start regression). Returns
  * the smoke label; THROWS on a broken bin (the `ERR_*` signatures a
  * run-from-source `.ts` launcher trips under node_modules).
  * `min_release_age=0` overrides an ambient guard that would block
@@ -438,6 +440,9 @@ const smokeInstall = (
       );
     }
     checks.push("bin ok");
+  }
+  if (meta.name === "plgg-bundle") {
+    checks.push(smokeBundle(smoke));
   }
   return checks.length === 0
     ? "no runnable surface"

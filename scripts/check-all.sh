@@ -49,6 +49,9 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Prove the post-publish plgg-bundle check against a real packed install.
+node --test scripts/smokeBundle.spec.mjs
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
