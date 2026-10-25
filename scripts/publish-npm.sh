@@ -34,6 +34,15 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # Auth: the ambient ~/.npmrc of the executing host only — never committed,
 # never echoed. No --provenance (it requires hosted-CI OIDC; declined per the
 # local-first stance, the same trade-off the GitHub Release contract makes).
+#
+# If the run dies partway through a multi-package publish, it prints a resume
+# report instead of a bare stack trace: every package already published this
+# run (left untouched — never deleted, never re-published), which package
+# died and at which step, and the exact ONLY=... command that safely
+# continues (see scripts/publishResume.ts). A package whose `npm publish`
+# itself already succeeded is never retried — npm refuses to republish a
+# version anyway — the report's rollback for that case is `npm deprecate`
+# plus a new patch version, not `npm unpublish`.
 
 # The publish order IS build.sh's topology — derived, never forked (the
 # deploy-guide.yml PR #51 drift incident is why). plgg-bundle is prepended:
