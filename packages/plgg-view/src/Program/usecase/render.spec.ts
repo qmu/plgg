@@ -1380,6 +1380,9 @@ test("lazy siblings skip independently: an unchanged one is untouched while a ch
   const root = document.createElement("div");
   const render = makeRenderer<never>(root, noop);
   const calls = { a: 0, b: 0 };
+  // a stable `fn` per column across BOTH renders — a fresh closure per call
+  // would itself count as "a different producer" under the fn+arg fast path,
+  // defeating the skip this test means to exercise.
   const columnOf =
     (id: "a" | "b") =>
     (
@@ -1391,12 +1394,14 @@ test("lazy siblings skip independently: an unchanged one is untouched while a ch
         rows.map((r) => div([], [text(r)])),
       );
     };
+  const colFnA = columnOf("a");
+  const colFnB = columnOf("b");
   const colA = ["a1", "a2"];
   let colB = ["b1", "b2"];
   render(
     div([], [
-      lazy(columnOf("a"), colA),
-      lazy(columnOf("b"), colB),
+      lazy(colFnA, colA),
+      lazy(colFnB, colB),
     ]),
   );
   const [nodeA, nodeB] = Array.from(
@@ -1405,8 +1410,8 @@ test("lazy siblings skip independently: an unchanged one is untouched while a ch
   colB = ["b1", "b2", "b3"]; // only column b's slice gets a new reference
   render(
     div([], [
-      lazy(columnOf("a"), colA),
-      lazy(columnOf("b"), colB),
+      lazy(colFnA, colA),
+      lazy(colFnB, colB),
     ]),
   );
   const [nodeA2, nodeB2] = Array.from(
