@@ -1,4 +1,8 @@
 import assert from "node:assert/strict";
+import {
+  packageEvidence,
+  writeEvidence,
+} from "./publicConsumerEvidence.mjs";
 import { execFileSync } from "node:child_process";
 import {
   cpSync,
@@ -66,6 +70,12 @@ export const checkRuntime = (
 };
 
 export const gate = (root) => {
+  const evidencePath = join(
+    root,
+    ".artifacts/public-consumer.json",
+  );
+  rmSync(evidencePath, { force: true });
+  const evidence = [];
   const manifest = (path) =>
     JSON.parse(
       readFileSync(
@@ -143,7 +153,11 @@ export const gate = (root) => {
           stage,
         ),
       );
-      tarballs.push(join(scratch, filename));
+      const tarball = join(scratch, filename);
+      evidence.push(
+        packageEvidence(pkg, tarball),
+      );
+      tarballs.push(tarball);
     }
     const consumer = join(scratch, "consumer");
     mkdirSync(consumer);
@@ -272,6 +286,12 @@ export const gate = (root) => {
       ["runtime.mjs"],
       consumer,
     );
+    writeEvidence(root, evidencePath, {
+      nodeVersion: process.versions.node,
+      typescriptVersion:
+        installedCompiler.version,
+      packages: evidence,
+    });
     console.log(
       `PASS public consumer: Node ${process.versions.node}; consumer TypeScript ${installedCompiler.version}; ${packages.length} packed packages; ${specifiers.length} public imports; negative TS2322 rejected`,
     );
