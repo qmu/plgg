@@ -27,9 +27,18 @@ a Node 24 `reproduction` command, and the prerequisite PR URL:
 | --- | --- | --- |
 | `passed` | passed | Existing gate returned 0. |
 | `consumer-gate-failed` | failed | Existing gate returned nonzero. Run the reproduction command to diagnose and repair the package or its gate prerequisite. |
+| `duplicate-package-name` | blocked | More than one gate registers the same package name; remove the duplicate registration before retrying. No child for that name was started. |
 | `node-24-required` | blocked | Run the index command on Node 24; no child was started. |
 | `gate-unavailable` | blocked | Integrate the linked gate PR; no child was started. |
 | `gate-execution-failed` | blocked | Child could not start, was signalled, or timed out; retry the reproduction command. |
+
+Package names must be unique by exact string equality. Before executing children,
+the index identifies repeated names across the entire gate list. Every occurrence
+of a repeated name, including the first, is blocked with
+`duplicate-package-name`, even when its script or command differs. This reason
+takes precedence over runtime and missing-script checks. Unique names retain their
+normal checks; a duplicate does not prevent their execution. All rows are retained
+for diagnosis and the CLI exits 1 because the snapshot contains blocked rows.
 
 Reasons come from this fixed vocabulary, never subprocess error messages.
 Child stdout/stderr is discarded, so registry credentials and npm diagnostics
