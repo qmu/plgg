@@ -89,31 +89,43 @@ export const collectPublicGateIndex = (
         killSignal: "SIGKILL",
       },
     ),
-) => ({
-  schemaVersion: 1,
-  nodeVersion,
-  consumerTypeScriptMajor: 7,
-  // A fresh complete snapshot replaces the previous run: no stale failures.
-  packages: gates.map((gate) => {
-    const reason = !nodeVersion.startsWith("24.")
-      ? "node-24-required"
-      : !existsSync(join(root, gate.script))
-        ? "gate-unavailable"
-        : reasonFor(execute(gate));
-    return {
-      package: gate.package,
-      status:
-        reason === "passed"
-          ? "passed"
-          : reason === "consumer-gate-failed"
-            ? "failed"
-            : "blocked",
-      reason,
-      reproduction: `npx --yes --package=node@24 -c '${gate.command}'`,
-      prerequisite: gate.prerequisite,
-    };
-  }),
-});
+) => {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const gate of gates) {
+    if (seen.has(gate.package)) {
+      duplicates.add(gate.package);
+    }
+    seen.add(gate.package);
+  }
+  return {
+    schemaVersion: 1,
+    nodeVersion,
+    consumerTypeScriptMajor: 7,
+    // A fresh complete snapshot replaces the previous run: no stale failures.
+    packages: gates.map((gate) => {
+      const reason = duplicates.has(gate.package)
+        ? "duplicate-package-name"
+        : !nodeVersion.startsWith("24.")
+          ? "node-24-required"
+          : !existsSync(join(root, gate.script))
+            ? "gate-unavailable"
+            : reasonFor(execute(gate));
+      return {
+        package: gate.package,
+        status:
+          reason === "passed"
+            ? "passed"
+            : reason === "consumer-gate-failed"
+              ? "failed"
+              : "blocked",
+        reason,
+        reproduction: `npx --yes --package=node@24 -c '${gate.command}'`,
+        prerequisite: gate.prerequisite,
+      };
+    }),
+  };
+};
 
 export const writePublicGateIndex = (
   path: string,
