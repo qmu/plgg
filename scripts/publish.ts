@@ -596,7 +596,10 @@ const runPublishSet = async (
       process.stdout.write(
         `${label(meta)}  published\n`,
       );
-      let tries: number;
+      // Pre-assigned (never read before the try completes): a `never`-typed
+      // catch-block call does not satisfy tsc's definite-assignment check
+      // the way a `throw` does, so these need a starting value.
+      let tries = 0;
       try {
         tries = await resolveOnRegistry(
           meta.name,
@@ -613,7 +616,7 @@ const runPublishSet = async (
       process.stdout.write(
         `${label(meta)}  resolved (${tries} tries)\n`,
       );
-      let smoke: string;
+      let smoke = "";
       try {
         smoke = smokeInstall(meta, stageRoot);
       } catch (e) {
