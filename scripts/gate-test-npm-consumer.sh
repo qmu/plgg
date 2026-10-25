@@ -14,6 +14,15 @@
 #   2. Execution — the installed plgg-test CLI runs a consumer test that needs
 #      transpilation (an enum), through the nested TypeScript 6.
 #   3. Typecheck — the consumer's own TypeScript 7 `tsc --noEmit` is clean.
+#      The fixture tsconfig sets skipLibCheck (as every real consumer's does):
+#      plgg's MapKind1 module augmentation is keyed on the bare specifier
+#      "plgg/Abstracts/Principals/Kind", which only resolves through this
+#      repo's own internal `paths` mapping, not through plgg's published
+#      package.json `exports` (which exposes only "."). An external consumer
+#      that fully re-typechecks plgg's shipped .d.ts (skipLibCheck: false)
+#      sees each Kind-registering type's augmentation land on an orphaned,
+#      unmerged module and its KindKeys1 union collapse to never — unrelated
+#      to the TypeScript 6/7 resolution this gate exists to pin.
 #
 # Runs after scripts/build.sh (it packs the built dists). Node 22 is enough;
 # it is not pinned here.
