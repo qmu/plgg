@@ -33,5 +33,5 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "sql-consumer/*.ts"]
 }

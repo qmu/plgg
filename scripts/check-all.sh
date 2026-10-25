@@ -49,6 +49,9 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Packed SQL behavior under Node 24 and an isolated consumer TypeScript 7.
+./scripts/gate-sql-consumer.sh
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
