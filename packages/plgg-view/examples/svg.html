@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <title>plgg-view · SVG drawing</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #f2f5fa;
+      color: #142440;
+      font:
+        16px/1.6 system-ui,
+        sans-serif;
+    }
+    main {
+      max-width: 1000px;
+      margin: 48px auto;
+      padding: 24px;
+    }
+    small {
+      color: #43658a;
+      letter-spacing: 0.15em;
+      font-weight: 700;
+    }
+    h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.2;
+      margin: 16px 0;
+    }
+    p {
+      color: #50617a;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .row {
+      position: relative;
+      min-height: 170px;
+      padding: 112px 20px 16px;
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 4px 18px #14244008;
+      font-weight: 650;
+    }
+    .row > svg {
+      position: absolute;
+      top: 24px;
+      left: 20px;
+      width: 72px;
+      height: 72px;
+      color: #176dd9;
+    }
+    button {
+      background: #176dd9;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font: inherit;
+      cursor: pointer;
+      margin: 0 12px 12px 0;
+    }
+    .status {
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+    }
+    #raw {
+      display: inline-block;
+      color: #176dd9;
+      margin-right: 12px;
+    }
+    @media (max-width: 600px) {
+      main {
+        margin: 16px auto;
+        padding: 20px;
+      }
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "plgg": "/plgg.js",
+        "plgg-view": "/view.js",
+        "plgg-view/client": "/client.js"
+      }
+    }
+  </script>
+  <main>
+    <small>PLGG-VIEW / SVG EXAMPLE</small>
+    <h1>Shapes, directly in the view tree</h1>
+    <p>
+      Six drawing primitives inside typed SVG
+      groups. Icons match
+      <code>.row &gt; svg</code> without a raw
+      wrapper.
+    </p>
+    <div id="app"></div>
+  </main>
+  <script type="module" src="/svg.js"></script>
+</html>
