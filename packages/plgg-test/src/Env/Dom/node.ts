@@ -185,9 +185,16 @@ const setText = (
     ...(value === "" ? [] : [makeText(value)]),
   );
 
-/** Builds an element node for `tag` (tagName uppercased). */
+/**
+ * Builds an element node for `tag` (tagName uppercased). `namespaceURI`
+ * defaults to the HTML namespace (a plain `createElement`); `document.createElementNS`
+ * passes its namespace through so a spec can tell the two apart.
+ */
 export const makeElement = (
   tag: string,
+  namespaceURI:
+    | string
+    | null = "http://www.w3.org/1999/xhtml",
 ): DomElement => {
   const state: {
     attrs: Map<string, string>;
@@ -205,6 +212,7 @@ export const makeElement = (
   const self: DomElement = {
     nodeType: ELEMENT_NODE,
     tagName: tag.toUpperCase(),
+    namespaceURI,
     style: state.style,
     listeners: state.listeners,
     defaultView: null,

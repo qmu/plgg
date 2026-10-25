@@ -12,13 +12,21 @@ import {
   text,
   div,
   svg,
+  g,
   path,
+  rect,
+  circle,
+  ellipse,
+  line,
+  polyline,
+  polygon,
   button,
   span,
   ul,
   li,
   input,
   lazy,
+  type SvgContent,
   type Flow,
   type Phrasing,
   type ListItem,
@@ -265,4 +273,187 @@ test("lazy builds a Lazy box without calling its producer", () => {
     check(calls, toBe(1)),
     check(resolved, toEqual(div([], [text("7")]))),
   ]);
+});
+
+test("svg draws rect/circle/ellipse/line/polyline/polygon directly — no raw() wrapping needed", () => {
+  const icon = svg(
+    [attr("viewBox", "0 0 24 24")],
+    [
+      g(
+        [attr("stroke", "currentColor")],
+        [
+          rect(
+            [
+              attr("x", "3"),
+              attr("y", "3"),
+              attr("width", "7"),
+              attr("height", "9"),
+            ],
+            [],
+          ),
+          circle(
+            [
+              attr("cx", "12"),
+              attr("cy", "12"),
+              attr("r", "5"),
+            ],
+            [],
+          ),
+          ellipse(
+            [
+              attr("cx", "12"),
+              attr("cy", "12"),
+              attr("rx", "5"),
+              attr("ry", "3"),
+            ],
+            [],
+          ),
+          line(
+            [
+              attr("x1", "0"),
+              attr("y1", "0"),
+              attr("x2", "10"),
+              attr("y2", "10"),
+            ],
+            [],
+          ),
+          polyline(
+            [attr("points", "0,0 10,10")],
+            [],
+          ),
+          polygon(
+            [attr("points", "0,0 10,0 5,10")],
+            [],
+          ),
+        ],
+      ),
+    ],
+  );
+  const rendered = renderToString(icon);
+  return all([
+    check(
+      rendered,
+      toContain(
+        '<rect x="3" y="3" width="7" height="9"></rect>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<circle cx="12" cy="12" r="5"></circle>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<ellipse cx="12" cy="12" rx="5" ry="3"></ellipse>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<line x1="0" y1="0" x2="10" y2="10"></line>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<polyline points="0,0 10,10"></polyline>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain(
+        '<polygon points="0,0 10,0 5,10"></polygon>',
+      ),
+    ),
+    check(
+      rendered,
+      toContain('<g stroke="currentColor">'),
+    ),
+  ]);
+});
+
+test("SVG content accepts every drawing and nested group, but excludes HTML children", () => {
+  accept<
+    IsAssignable<
+      Html<
+        never,
+        | "path"
+        | "rect"
+        | "circle"
+        | "ellipse"
+        | "line"
+        | "polyline"
+        | "polygon"
+        | "g"
+      >,
+      SvgContent<never>
+    >
+  >();
+  accept<
+    Not<
+      IsAssignable<
+        Html<never, "div">,
+        SvgContent<never>
+      >
+    >
+  >();
+  accept<
+    IsAssignable<
+      ReadonlyArray<SvgContent<never>>,
+      Parameters<typeof svg<never>>[1]
+    >
+  >();
+  accept<
+    IsAssignable<
+      ReadonlyArray<SvgContent<never>>,
+      Parameters<typeof g<never>>[1]
+    >
+  >();
+  accept<
+    Not<
+      IsAssignable<
+        ReadonlyArray<SvgContent<never>>,
+        Parameters<typeof rect<never>>[1]
+      >
+    >
+  >();
+  accept<
+    IsAssignable<
+      Parameters<typeof rect<never>>[1],
+      readonly []
+    >
+  >();
+  accept<
+    IsAssignable<
+      Parameters<typeof circle<never>>[1],
+      readonly []
+    >
+  >();
+  accept<
+    IsAssignable<
+      Parameters<typeof ellipse<never>>[1],
+      readonly []
+    >
+  >();
+  accept<
+    IsAssignable<
+      Parameters<typeof line<never>>[1],
+      readonly []
+    >
+  >();
+  accept<
+    IsAssignable<
+      Parameters<typeof polyline<never>>[1],
+      readonly []
+    >
+  >();
+  accept<
+    IsAssignable<
+      Parameters<typeof polygon<never>>[1],
+      readonly []
+    >
+  >();
+  return check(true, toBe(true));
 });

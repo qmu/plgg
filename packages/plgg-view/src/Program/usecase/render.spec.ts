@@ -13,8 +13,18 @@ import {
 import {
   el,
   text,
+  raw,
   div,
   span,
+  svg,
+  g,
+  rect,
+  circle,
+  ellipse,
+  line,
+  polyline,
+  polygon,
+  path,
   button,
   input,
   form,
@@ -338,7 +348,10 @@ test("re-render reuses the input node and preserves focus + caret", () => {
   const a4 = check(first.value, toBe("ab"));
   document.body.removeChild(root);
   return all([
-    check(first, toBeInstanceOf(HTMLInputElement)),
+    check(
+      first,
+      toBeInstanceOf(HTMLInputElement),
+    ),
     a1,
     a2,
     a3,
@@ -374,10 +387,7 @@ test("a changed attribute is patched and a dropped one removed", () => {
   render(el("div", [class_("b")], []));
   return all([
     check(root.firstElementChild, toBe(node)),
-    check(
-      node?.getAttribute("class"),
-      toBe("b"),
-    ),
+    check(node?.getAttribute("class"), toBe("b")),
     check(node?.hasAttribute("id"), toBe(false)),
   ]);
 });
@@ -627,7 +637,10 @@ test("style_ sets and patches the class attribute (hook + atoms)", () => {
 // --- animation: enter / exit transitions ---------------------------------
 
 const fadeMotion: Motion = {
-  from: { opacity: some(box("Float")(0)), transform: none() },
+  from: {
+    opacity: some(box("Float")(0)),
+    transform: none(),
+  },
   to: {
     opacity: some(box("Float")(1)),
     transform: some("translateY(0)"),
@@ -841,19 +854,31 @@ test("waapiPlay drives the WAAPI with translated keyframes and options", async (
   await waapiPlay(node, fadeMotion);
   await waapiPlay(node, scaleMotion);
   return all([
-    check(calls[0]?.frames, toEqual([
-      { opacity: 0 },
-      { opacity: 1, transform: "translateY(0)" },
-    ])),
-    check(calls[0]?.opts, toEqual({
-      duration: 100,
-      easing: "ease-out",
-      fill: "forwards",
-    })),
-    check(calls[1]?.frames, toEqual([
-      { transform: "scale(0.5)" },
-      { transform: "scale(1)" },
-    ])),
+    check(
+      calls[0]?.frames,
+      toEqual([
+        { opacity: 0 },
+        {
+          opacity: 1,
+          transform: "translateY(0)",
+        },
+      ]),
+    ),
+    check(
+      calls[0]?.opts,
+      toEqual({
+        duration: 100,
+        easing: "ease-out",
+        fill: "forwards",
+      }),
+    ),
+    check(
+      calls[1]?.frames,
+      toEqual([
+        { transform: "scale(0.5)" },
+        { transform: "scale(1)" },
+      ]),
+    ),
   ]);
 });
 
@@ -1086,7 +1111,10 @@ test("a keyed exit lifts the leaving row out of flow so survivors take its space
   const guard =
     a instanceof HTMLElement
       ? all([
-          check(a.style.position, toBe("absolute")),
+          check(
+            a.style.position,
+            toBe("absolute"),
+          ),
           check(
             a.style.boxSizing,
             toBe("border-box"),
@@ -1502,6 +1530,279 @@ test("a list of lazy(...) children reconciles by index, even when the wrapped el
     check(
       ul?.firstElementChild?.textContent,
       toBe("B"),
+    ),
+  ]);
+});
+
+// --- SVG namespace --------------------------------------------------------
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+test("svg/g/rect/circle are created in the SVG namespace, so they actually draw", () => {
+  const root = document.createElement("div");
+  makeRenderer<never>(
+    root,
+    noop,
+  )(
+    svg(
+      [attr("viewBox", "0 0 24 24")],
+      [
+        g(
+          [],
+          [
+            rect(
+              [
+                attr("x", "3"),
+                attr("y", "3"),
+                attr("width", "7"),
+                attr("height", "9"),
+              ],
+              [],
+            ),
+            circle(
+              [
+                attr("cx", "12"),
+                attr("cy", "12"),
+                attr("r", "5"),
+              ],
+              [],
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  const svgEl = root.firstElementChild;
+  const gEl = svgEl?.firstElementChild;
+  const rectEl = gEl?.firstElementChild;
+  const circleEl = rectEl?.nextSibling;
+  return all([
+    check(svgEl?.namespaceURI, toBe(SVG_NS)),
+    check(gEl?.namespaceURI, toBe(SVG_NS)),
+    check(rectEl?.namespaceURI, toBe(SVG_NS)),
+    check(
+      circleEl instanceof Element &&
+        circleEl.namespaceURI,
+      toBe(SVG_NS),
+    ),
+  ]);
+});
+
+test("a plain HTML tag is still created in the HTML namespace", () => {
+  const root = document.createElement("div");
+  makeRenderer<never>(
+    root,
+    noop,
+  )(div([], [text("hi")]));
+  return check(
+    root.firstElementChild?.namespaceURI,
+    toBe("http://www.w3.org/1999/xhtml"),
+  );
+});
+
+// --- raw idempotency -------------------------------------------------------
+
+test("re-rendering the same raw html leaves the DOM node untouched", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(raw("<b>hi</b>"));
+  const first = root.firstElementChild;
+  render(raw("<b>hi</b>"));
+  return check(
+    root.firstElementChild === first,
+    toBe(true),
+  );
+});
+
+test("re-rendering raw with different html rebuilds the node", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(raw("<b>hi</b>"));
+  const first = root.firstElementChild;
+  render(raw("<b>bye</b>"));
+  return check(
+    root.firstElementChild === first,
+    toBe(false),
+  );
+});
+
+test("all SVG primitives keep their namespace and identity when geometry changes", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const drawing = (value: string) =>
+    svg(
+      [attr("viewBox", "0 0 24 24")],
+      [
+        g(
+          [],
+          [
+            g(
+              [],
+              [
+                path([attr("d", value)], []),
+                rect([attr("width", value)], []),
+                circle([attr("r", value)], []),
+                ellipse([attr("rx", value)], []),
+                line([attr("x2", value)], []),
+                polyline(
+                  [attr("points", value)],
+                  [],
+                ),
+                polygon(
+                  [attr("points", value)],
+                  [],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  render(drawing("1"));
+  const group =
+    root.firstElementChild?.firstElementChild
+      ?.firstElementChild;
+  const before = Array.from(
+    group?.children ?? [],
+  );
+  render(drawing("2"));
+  return all([
+    check(before.length, toBe(7)),
+    check(
+      Array.from(group?.children ?? []),
+      toEqual(before),
+    ),
+    ...before.map((node) =>
+      check(node.namespaceURI, toBe(SVG_NS)),
+    ),
+    ...before.map((node, index) =>
+      check(
+        node.getAttribute(
+          [
+            "d",
+            "width",
+            "r",
+            "rx",
+            "x2",
+            "points",
+            "points",
+          ][index] ?? "",
+        ),
+        toBe("2"),
+      ),
+    ),
+  ]);
+});
+
+test("generic el SVG shapes also use the SVG namespace", () => {
+  const root = document.createElement("div");
+  makeRenderer<never>(
+    root,
+    noop,
+  )(
+    el(
+      "svg",
+      [],
+      [
+        el(
+          "g",
+          [],
+          [
+            ...[
+              "rect",
+              "circle",
+              "ellipse",
+              "line",
+              "polyline",
+              "polygon",
+            ].map((tag) =>
+              el<never>(tag, [], []),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  const children = Array.from(
+    root.firstElementChild?.firstElementChild
+      ?.children ?? [],
+  );
+  return all([
+    check(children.length, toBe(6)),
+    ...children.map((node) =>
+      check(node.namespaceURI, toBe(SVG_NS)),
+    ),
+  ]);
+});
+
+test("keyed rows preserve unchanged raw children across reordering and replace changed markup", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const row = (id: string, html: string) =>
+    el("li", [key(id)], [raw(html)]);
+  render(
+    el(
+      "ul",
+      [],
+      [
+        row("a", "<b>A</b>"),
+        row("b", "<b>B</b>"),
+      ],
+    ),
+  );
+  const list = root.firstElementChild;
+  const a = list?.children[0];
+  const b = list?.children[1];
+  const first = a?.firstElementChild;
+  render(
+    el(
+      "ul",
+      [],
+      [
+        row("b", "<b>B</b>"),
+        row("a", "<b>A</b>"),
+      ],
+    ),
+  );
+  const unchanged =
+    a?.firstElementChild === first;
+  const reordered =
+    list?.children[0] === b &&
+    list?.children[1] === a;
+  render(
+    el(
+      "ul",
+      [],
+      [
+        row("b", "<b>B</b>"),
+        row("a", "<i>changed</i>"),
+      ],
+    ),
+  );
+  return all([
+    check(unchanged, toBe(true)),
+    check(reordered, toBe(true)),
+    check(
+      a?.firstElementChild === first,
+      toBe(false),
+    ),
+  ]);
+});
+
+test("raw and typed elements replace one another", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  render(raw("<b>raw</b>"));
+  const first = root.firstElementChild;
+  render(svg([], [rect([], [])]));
+  const drawing = root.firstElementChild;
+  render(raw("<b>raw</b>"));
+  return all([
+    check(first === drawing, toBe(false)),
+    check(drawing?.namespaceURI, toBe(SVG_NS)),
+    check(
+      root.firstElementChild === drawing,
+      toBe(false),
     ),
   ]);
 });

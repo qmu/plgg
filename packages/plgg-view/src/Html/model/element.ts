@@ -545,19 +545,40 @@ export const tr = rowEl("tr");
 export const details = detailsEl("details");
 
 /**
- * A minimal SVG icon container: `svg` holds `path`
- * children only — just enough vector vocabulary for
- * the oracle's icon set (sun/moon, and the octocat
- * later). Geometry lives in each path's `d`
- * attribute; color follows `currentColor`, so the
- * icon inherits the control's ink and flips with
- * the theme like text does.
+ * SVG drawing content — the vector-element level. A
+ * child slot typed `SvgContent<Msg>` accepts the
+ * shape primitives plus `g` (a grouping container
+ * that itself nests more `SvgContent`), so `svg`/`g`
+ * can hold any mix of them directly — no `raw()`
+ * wrapping needed. Geometry lives in each shape's own
+ * attributes (`d`, `cx`/`cy`/`r`, `x`/`y`/`width`/
+ * `height`, …, via the generic `attr()`); color
+ * follows `currentColor` by convention, so an icon
+ * inherits the control's ink and flips with the theme
+ * like text does.
+ */
+export type SvgContent<Msg> = Html<
+  Msg,
+  | "path"
+  | "rect"
+  | "circle"
+  | "ellipse"
+  | "line"
+  | "polyline"
+  | "polygon"
+  | "g"
+>;
+
+/**
+ * An SVG container (`svg`/`g`): accepts
+ * {@link SvgContent} — the shape primitives and
+ * nested groups.
  */
 const svgEl =
   <T extends string>(name: T) =>
   <Msg>(
     attributes: ReadonlyArray<Attribute<Msg>>,
-    children: ReadonlyArray<Html<Msg, "path">>,
+    children: ReadonlyArray<SvgContent<Msg>>,
   ): Html<Msg, T> =>
     box("Element")<ElementContent<Msg, T>>({
       tag: name,
@@ -566,10 +587,11 @@ const svgEl =
     });
 
 /**
- * A childless drawing element (`path`): the empty
+ * A childless drawing element (`path`/`rect`/`circle`/
+ * `ellipse`/`line`/`polyline`/`polygon`): the empty
  * tuple makes "no children" a type-level guarantee.
  * Not an HTML void tag — it renders as
- * `<path …></path>`, which SVG accepts.
+ * `<rect …></rect>`, which SVG accepts.
  */
 const drawEl =
   <T extends string>(name: T) =>
@@ -583,9 +605,18 @@ const drawEl =
       children,
     });
 
-// SVG icons — `svg` holds `path` drawings.
+// SVG — `svg`/`g` hold drawing primitives directly
+// (namespaced by the renderer), so an icon/shape no
+// longer needs the `raw()` escape hatch.
 export const svg = svgEl("svg");
+export const g = svgEl("g");
 export const path = drawEl("path");
+export const rect = drawEl("rect");
+export const circle = drawEl("circle");
+export const ellipse = drawEl("ellipse");
+export const line = drawEl("line");
+export const polyline = drawEl("polyline");
+export const polygon = drawEl("polygon");
 
 // Document shell — first-class typed builders.
 export const html = documentEl("html");

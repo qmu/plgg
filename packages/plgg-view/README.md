@@ -277,3 +277,43 @@ over `sandbox`). A fuller client-only TEA To-Do app lives in
   imperative seams (confined to `sandbox`/`application`/`render`, commented).
 - After editing `plgg` core, run `npm run build` in `packages/plgg` or this package
   won't see new exports (the dependency is a symlinked `file:` dist).
+
+## SVG drawings
+
+`svg` and `g` accept `SvgContent<Msg>`: `path`, `rect`, `circle`,
+`ellipse`, `line`, `polyline`, `polygon`, and nested `g`. Drawing primitives
+accept an empty children tuple. Use `attr` for geometry and presentation;
+`asSvgNumberList` converts readonly finite numbers to space-separated SVG
+attribute values and returns an `InvalidError` for NaN or infinity.
+
+```ts
+svg([attr("viewBox", "0 0 24 24")], [
+  g([attr("stroke", "currentColor"), attr("fill", "none")], [
+    rect([attr("x", "3"), attr("y", "3"), attr("width", "18"), attr("height", "18")], []),
+    circle([attr("cx", "12"), attr("cy", "12"), attr("r", "5")], []),
+  ]),
+]);
+```
+
+The client creates these elements in the SVG namespace, including those made
+with the generic `el` builder. Typed icons are direct children, so CSS such as
+`.row > svg` works without a `raw` wrapper. Unchanged `raw(html)` now preserves
+its DOM nodes; changed markup is replaced. `raw` still wraps markup in a
+`display:contents` span, so use the typed builders for direct-child icons.
+
+Run the browser example from the repository root:
+
+```sh
+npm ci
+npm run build -w plgg-bundle
+npm run build -w plgg
+npm run build -w plgg-view
+node packages/plgg-view/examples/serve.mjs
+# http://127.0.0.1:51821 — Toggle fill / Render same icons
+```
+
+The example uses only local built exports and synthetic shapes; no login is
+needed. For a renderer comparison, pass a port and the absolute path to a
+baseline `client.es.js` as the server's second and third arguments. The view
+builders still come from the current build, producing the same element data
+that `el` could produce on the baseline.

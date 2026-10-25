@@ -3,11 +3,16 @@ import {
   Option,
   SoftStr,
   Float,
+  Result,
+  InvalidError,
   box,
   pattern,
   some,
   none,
   fromNullable,
+  ok,
+  err,
+  invalidError,
 } from "plgg";
 
 /**
@@ -74,10 +79,7 @@ export type Attribute<Msg> =
         rules: ReadonlyArray<CssRule>;
       }>
     >
-  | Box<
-      "Key",
-      Readonly<{ value: SoftStr }>
-    >;
+  | Box<"Key", Readonly<{ value: SoftStr }>>;
 
 /**
  * One atomic CSS rule as pure data: a content-hashed `className`, an optional
@@ -110,6 +112,36 @@ export const attr = (
   value: SoftStr,
 ): Attribute<never> =>
   box("Attr")({ name, value });
+
+/**
+ * Casts a readonly array of numbers to
+ * the space-joined string an SVG
+ * attribute (`viewBox`, `points`,
+ * `stroke-dasharray`, …) expects. Rejects
+ * a non-finite element (`NaN`/`Infinity`)
+ * instead of stringifying it: the SVG
+ * parser silently drops an attribute
+ * that contains one, so a shape would
+ * just vanish with nothing in the
+ * markup to explain why — a likely
+ * outcome once any upstream numeric
+ * source (a diverging physics step, a
+ * `0/0`) can reach here.
+ */
+export const asSvgNumberList = (
+  values: ReadonlyArray<number>,
+): Result<SoftStr, InvalidError> => {
+  const badIndex = values.findIndex(
+    (value) => !Number.isFinite(value),
+  );
+  return badIndex === -1
+    ? ok(values.join(" "))
+    : err(
+        invalidError({
+          message: `Array element at index ${badIndex} (${values[badIndex]}) is not a finite number`,
+        }),
+      );
+};
 
 /**
  * A raw event handler: the runtime calls `toMsg` with a payload string (the
@@ -169,8 +201,7 @@ export const name_ = (
 /** `placeholder` attribute. */
 export const placeholder_ = (
   value: SoftStr,
-): Attribute<never> =>
-  attr("placeholder", value);
+): Attribute<never> => attr("placeholder", value);
 
 /** `id` attribute. */
 export const id_ = (
@@ -225,8 +256,10 @@ export const key = (
  * smooth settle for things arriving/moving; `easeIn` a clean quick exit;
  * `easeInOut` a balanced glide for repositioning (FLIP).
  */
-export const easeOut = "cubic-bezier(0.16, 1, 0.3, 1)";
-export const easeIn = "cubic-bezier(0.5, 0, 0.75, 0)";
+export const easeOut =
+  "cubic-bezier(0.16, 1, 0.3, 1)";
+export const easeIn =
+  "cubic-bezier(0.5, 0, 0.75, 0)";
 export const easeInOut =
   "cubic-bezier(0.65, 0, 0.35, 1)";
 
