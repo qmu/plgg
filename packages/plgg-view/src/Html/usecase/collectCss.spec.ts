@@ -9,7 +9,11 @@ import {
 import {
   el,
   text,
+  div,
+  span,
+  lazy,
 } from "plgg-view/Html/model/element";
+import { type Html } from "plgg-view/Html/model/Html";
 import {
   class_,
   onClick,
@@ -25,7 +29,10 @@ import {
   p,
   bg,
 } from "plgg-view/Style/usecase/utilities";
-import { collectCss } from "plgg-view/Html/usecase/collectCss";
+import {
+  collectCss,
+  collectCssRules,
+} from "plgg-view/Html/usecase/collectCss";
 
 test("collectCss renders the atomic rules of a tree (base + :hover)", () => {
   const tree = el(
@@ -139,3 +146,73 @@ test("collectCss preserves legitimate selector combinators and url() values", ()
       "background:url(https://example.com/a.png)",
     ),
   ));
+
+// --- lazy — collection resolves it transparently, but memoized by `arg` ---
+
+test("collectCss resolves a lazy node's rules", () =>
+  check(
+    collectCss(
+      el(
+        "div",
+        [],
+        [
+          lazy(
+            (n: number) =>
+              el("span", [style_(p(n))], []),
+            2,
+          ),
+        ],
+      ),
+    ),
+    toContain(
+      `.${hashClass("|padding:0.5rem")}{padding:0.5rem}`,
+    ),
+  ));
+
+test("a re-collection with the SAME arg does not re-invoke the lazy producer", () => {
+  let calls = 0;
+  const arg = { n: 3 };
+  const row = (a: {
+    n: number;
+  }): Html<never, "span"> => {
+    calls++;
+    return span([style_(p(a.n))], []);
+  };
+  collectCssRules(div([], [lazy(row, arg)]));
+  const callsAfterFirst = calls;
+  collectCssRules(div([], [lazy(row, arg)])); // same `arg` reference
+  return check(calls, toBe(callsAfterFirst));
+});
+
+test("two lazy() call sites sharing the same arg object do not collide on one cache entry", () => {
+  // a shared arg reference (e.g. two columns memoized off the same config
+  // object) must not let one producer's rules shadow the other's
+  const sharedArg = {};
+  const header = (): Html<never, "span"> =>
+    span([style_(p(3))], []);
+  const footer = (): Html<never, "span"> =>
+    span([style_(p(2))], []);
+  const sheet = collectCss(
+    div(
+      [],
+      [
+        lazy(header, sharedArg),
+        lazy(footer, sharedArg),
+      ],
+    ),
+  );
+  return all([
+    check(
+      sheet,
+      toContain(
+        `.${hashClass("|padding:0.75rem")}{padding:0.75rem}`,
+      ),
+    ),
+    check(
+      sheet,
+      toContain(
+        `.${hashClass("|padding:0.5rem")}{padding:0.5rem}`,
+      ),
+    ),
+  ]);
+});

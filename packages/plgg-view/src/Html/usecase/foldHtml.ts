@@ -4,6 +4,7 @@ import {
   element$,
   text$,
   raw$,
+  lazy$,
 } from "plgg-view/Html/model/Html";
 import { Attribute } from "plgg-view/Html/model/Attribute";
 
@@ -51,5 +52,13 @@ export const foldHtml =
       [
         raw$(),
         ({ content }): R => alg.raw(content.html),
+      ],
+      // SSR/CSS-collection etc. have no notion of "skip" — a fold always
+      // needs the real result, so a Lazy node is resolved transparently
+      // (forcing `render`) and folded like any other node.
+      [
+        lazy$(),
+        ({ content }): R =>
+          foldHtml(alg)(content.render()),
       ],
     );

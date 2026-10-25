@@ -7,6 +7,7 @@ import {
   toEqual,
   toBeInstanceOf,
   toBeUndefined,
+  toContain,
   not,
 } from "plgg-test";
 import {
@@ -17,6 +18,7 @@ import {
   button,
   input,
   form,
+  lazy,
 } from "plgg-view/Html/model/element";
 import { some, none, isSome, box } from "plgg";
 import {
@@ -1284,4 +1286,222 @@ test("a survivor FLIPs from its old box to its new one when it moves", () => {
   );
   document.body.removeChild(root);
   return all([a1, a2]);
+});
+
+// --- lazy — skip a subtree whose arg is unchanged -------------------------
+
+test("lazy renders its subtree on first paint", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const row = (
+    n: number,
+  ): Html<never, "div"> =>
+    div([], [text(`row:${n}`)]);
+  render(div([], [lazy(row, 1)]));
+  return check(root.textContent, toBe("row:1"));
+});
+
+test("a re-render with the SAME arg skips the producer and leaves the DOM untouched", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let calls = 0;
+  const row = (
+    n: number,
+  ): Html<never, "div"> => {
+    calls++;
+    return div([], [text(`row:${n}`)]);
+  };
+  const arg = 1;
+  render(div([], [lazy(row, arg)]));
+  const node =
+    root.firstElementChild?.firstElementChild;
+  const callsAfterFirst = calls;
+  render(div([], [lazy(row, arg)])); // same `arg` reference
+  return all([
+    check(calls, toBe(callsAfterFirst)),
+    check(
+      root.firstElementChild?.firstElementChild,
+      toBe(node),
+    ),
+  ]);
+});
+
+test("a re-render with a DIFFERENT arg calls the producer and patches the subtree in place", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let calls = 0;
+  const row = (
+    n: number,
+  ): Html<never, "div"> => {
+    calls++;
+    return div([], [text(`row:${n}`)]);
+  };
+  render(div([], [lazy(row, 1)]));
+  const node =
+    root.firstElementChild?.firstElementChild;
+  render(div([], [lazy(row, 2)]));
+  return all([
+    check(calls, toBe(2)),
+    // patched in place — the diff landed on the real subtree, not a replace
+    check(
+      root.firstElementChild?.firstElementChild,
+      toBe(node),
+    ),
+    check(root.textContent, toBe("row:2")),
+  ]);
+});
+
+test("a re-render with the SAME arg but a DIFFERENT producer still calls the new producer", () => {
+  // regression: a slot alternating between two lazy(...) call sites that
+  // happen to share one `arg` reference must not be treated as unchanged —
+  // only comparing `arg` (and not `fn`) would wrongly reuse headerView's DOM
+  // when the view switches to footerView.
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const cfg = { label: "x" };
+  const header = (
+    c: typeof cfg,
+  ): Html<never, "div"> =>
+    div([], [text(`header:${c.label}`)]);
+  const footer = (
+    c: typeof cfg,
+  ): Html<never, "div"> =>
+    div([], [text(`footer:${c.label}`)]);
+  render(div([], [lazy(header, cfg)]));
+  const a1 = check(root.textContent, toBe("header:x"));
+  render(div([], [lazy(footer, cfg)])); // same `cfg` reference, different fn
+  return all([
+    a1,
+    check(root.textContent, toBe("footer:x")),
+  ]);
+});
+
+test("lazy siblings skip independently: an unchanged one is untouched while a changed one repaints", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const calls = { a: 0, b: 0 };
+  // a stable `fn` per column across BOTH renders — a fresh closure per call
+  // would itself count as "a different producer" under the fn+arg fast path,
+  // defeating the skip this test means to exercise.
+  const columnOf =
+    (id: "a" | "b") =>
+    (
+      rows: ReadonlyArray<string>,
+    ): Html<never, "div"> => {
+      calls[id]++;
+      return div(
+        [],
+        rows.map((r) => div([], [text(r)])),
+      );
+    };
+  const colFnA = columnOf("a");
+  const colFnB = columnOf("b");
+  const colA = ["a1", "a2"];
+  let colB = ["b1", "b2"];
+  render(
+    div([], [
+      lazy(colFnA, colA),
+      lazy(colFnB, colB),
+    ]),
+  );
+  const [nodeA, nodeB] = Array.from(
+    root.firstElementChild?.children ?? [],
+  );
+  colB = ["b1", "b2", "b3"]; // only column b's slice gets a new reference
+  render(
+    div([], [
+      lazy(colFnA, colA),
+      lazy(colFnB, colB),
+    ]),
+  );
+  const [nodeA2, nodeB2] = Array.from(
+    root.firstElementChild?.children ?? [],
+  );
+  return all([
+    check(calls.a, toBe(1)),
+    check(calls.b, toBe(2)),
+    check(nodeA2, toBe(nodeA)),
+    check(nodeB2, toBe(nodeB)),
+    check(
+      nodeB2?.textContent ?? "",
+      toContain("b3"),
+    ),
+  ]);
+});
+
+test("a lazy node whose producer returns another lazy (nested, no element between) patches in place on a changed arg", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  let innerCalls = 0;
+  const inner = (
+    n: number,
+  ): Html<never, "div"> => {
+    innerCalls++;
+    return div([], [text(`n:${n}`)]);
+  };
+  const outer = (
+    n: number,
+  ): Html<never, "div"> => lazy(inner, n);
+  render(div([], [lazy(outer, 1)]));
+  const node =
+    root.firstElementChild?.firstElementChild;
+  render(div([], [lazy(outer, 2)]));
+  return all([
+    check(innerCalls, toBe(2)),
+    // patched in place — a stale cached still-lazy value must not misroute
+    // this into a full rebuild (losing focus/caret/scroll state)
+    check(
+      root.firstElementChild?.firstElementChild,
+      toBe(node),
+    ),
+    check(root.textContent, toBe("n:2")),
+  ]);
+});
+
+test("removing a lazy child resolves it to find its exit motion", () => {
+  const root = document.createElement("div");
+  const { calls, play } = spyPlay();
+  const render = makeRenderer<never>(
+    root,
+    noop,
+    play,
+  );
+  const row = (): Html<never, "div"> =>
+    div([fadeOut(80)], [text("x")]);
+  render(div([], [lazy(row, 1)]));
+  render(div([], [])); // the lazy child is now surplus
+  return check(calls.length, toBe(1));
+});
+
+test("a list of lazy(...) children reconciles by index, even when the wrapped element carries key()", () => {
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const row = (v: {
+    k: string;
+    txt: string;
+  }): Html<never> =>
+    el("li", [key(v.k)], [text(v.txt)]);
+  render(
+    el("ul", [], [
+      lazy(row, { k: "a", txt: "A" }),
+      lazy(row, { k: "b", txt: "B" }),
+    ]),
+  );
+  const ul = root.firstElementChild;
+  const first = ul?.firstElementChild;
+  // reversed order — a truly KEYED list would move `first` to slot 1; the
+  // lazy wrapper's index reconcile instead patches each slot in place.
+  render(
+    el("ul", [], [
+      lazy(row, { k: "b", txt: "B" }),
+      lazy(row, { k: "a", txt: "A" }),
+    ]),
+  );
+  return all([
+    check(ul?.firstElementChild, toBe(first)),
+    check(
+      ul?.firstElementChild?.textContent,
+      toBe("B"),
+    ),
+  ]);
 });

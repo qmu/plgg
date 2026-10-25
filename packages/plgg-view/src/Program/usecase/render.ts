@@ -16,6 +16,7 @@ import {
   element$,
   text$,
   raw$,
+  lazy$,
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
@@ -75,6 +76,11 @@ export type Wiring<Msg> = Readonly<{
   // reconcile skips them when matching so a node leaving is never mistaken for a
   // survivor (and a re-add lands on a fresh node, not the one fading away).
   exiting: WeakSet<Element>;
+  // a lazy node's last RESOLVED subtree, keyed by the live DOM node it
+  // produced — so a changed-arg patch diffs against the tree that was
+  // ACTUALLY rendered last time instead of forcing the old thunk again (which
+  // would call the producer a second time for an arg it already rendered).
+  lazyResolved: WeakMap<Node, Html<Msg>>;
 }>;
 
 /** The node's {@link NodeWiring}, created and registered on first use. */
@@ -340,6 +346,37 @@ const exitMotionOf = <Msg>(
       ({ content }): Option<Motion> =>
         exitOf(content.attributes),
     ],
+    // an exiting node is leaving for good — there is no later render to skip
+    // a rebuild for, so resolve it to find its real exit motion (if any).
+    [
+      lazy$(),
+      ({ content }): Option<Motion> =>
+        exitMotionOf(content.render()),
+    ],
+  );
+
+/**
+ * Forces a {@link lazy$} node's thunk until the result is no longer lazy — the
+ * terminal, actually-diffable subtree a (possibly nested) `lazy(...)` call
+ * ultimately stands for. `createNode`/`reconcile` resolve through this
+ * (rather than one bare `render()`) so {@link Wiring.lazyResolved} always
+ * remembers a terminal node: a one-level resolve of `lazy(outer, x)` that
+ * itself returns `lazy(inner, y)` would otherwise get remembered as that
+ * still-lazy intermediate, later misrouting a changed-arg diff into a full
+ * rebuild instead of an in-place patch.
+ */
+const resolveLazy = <Msg>(
+  vnode: Html<Msg>,
+): Html<Msg> =>
+  match(vnode)(
+    [text$(), (): Html<Msg> => vnode],
+    [raw$(), (): Html<Msg> => vnode],
+    [element$(), (): Html<Msg> => vnode],
+    [
+      lazy$(),
+      ({ content }): Html<Msg> =>
+        resolveLazy(content.render()),
+    ],
   );
 
 /** The {@link key} carried by an attribute list, if any. */
@@ -362,7 +399,14 @@ const keyOf = <Msg>(
     none(),
   );
 
-/** The {@link key} of a vnode — `none` for a text leaf or an unkeyed element. */
+/**
+ * The {@link key} of a vnode — `none` for a text leaf or an unkeyed element,
+ * and ALWAYS `none` for a {@link lazy$} node (deliberately: resolving it to
+ * read a key would force `render()` on every diff, defeating the point of
+ * `lazy`). A list of `lazy(...)` children therefore always reconciles by
+ * index ({@link indexPatchChildren}) — key the element `fn` returns instead if
+ * the list also needs to reorder.
+ */
 const keyOfVnode = <Msg>(
   vnode: Html<Msg>,
 ): Option<SoftStr> =>
@@ -374,6 +418,7 @@ const keyOfVnode = <Msg>(
       ({ content }): Option<SoftStr> =>
         keyOf(content.attributes),
     ],
+    [lazy$(), (): Option<SoftStr> => none()],
   );
 
 /**
@@ -562,6 +607,21 @@ export const createNode =
           return el;
         },
       ],
+      // first paint of a lazy slot (or a slot that just became lazy): there is
+      // no previous render to compare `arg` against, so force it once — and
+      // remember the resolved subtree so a later changed-arg patch can diff
+      // against it without re-forcing this arg's thunk.
+      [
+        lazy$(),
+        ({ content }): Node => {
+          const resolved = resolveLazy(
+            content.render(),
+          );
+          const node = createNode(wiring)(resolved);
+          wiring.lazyResolved.set(node, resolved);
+          return node;
+        },
+      ],
     );
 
 /** The static attributes of an attribute list, as a `name → value` map. */
@@ -703,8 +763,12 @@ const patchElement =
   };
 
 /**
- * Reconciles `newVnode` against `oldVnode` at one DOM slot. A node is reused
- * (the focus/selection/scroll-preserving path) only when its kind and — for
+ * Reconciles `newVnode` against `oldVnode` at one DOM slot, returning the node
+ * now occupying it (`domNode` reused in place, or a freshly built
+ * replacement — the {@link patchKeyed} counterpart, which already returns its
+ * slot's node for the same reason: a {@link lazy$} patch needs to know which
+ * node to remember a resolved subtree against). A node is reused (the
+ * focus/selection/scroll-preserving path) only when its kind and — for
  * elements — its tag match, *and* the live DOM node still has that shape;
  * otherwise the whole node is swapped. The `instanceof` guards make the swap
  * the safe fallback if the DOM has drifted from the old vnode. The client
@@ -717,21 +781,20 @@ export const reconcile =
     domNode: ChildNode,
     oldVnode: Html<Msg>,
     newVnode: Html<Msg>,
-  ): void => {
-    const replace = (): void => {
-      parent.replaceChild(
-        createNode(wiring)(newVnode),
-        domNode,
-      );
+  ): Node => {
+    const replace = (): Node => {
+      const fresh = createNode(wiring)(newVnode);
+      parent.replaceChild(fresh, domNode);
+      return fresh;
     };
-    match(newVnode)(
+    return match(newVnode)(
       [
         text$(),
-        ({ content }): void =>
+        ({ content }): Node =>
           match(oldVnode)(
             [
               text$(),
-              (): void => {
+              (): Node => {
                 // `CharacterData` (not `Text`) — `Text extends CharacterData`
                 // and exposes the writable `.data`; the test DOM brands text
                 // nodes as `CharacterData`, so this is the reliable guard
@@ -744,22 +807,23 @@ export const reconcile =
                   ) {
                     domNode.data = content.value;
                   }
-                } else {
-                  replace();
+                  return domNode;
                 }
+                return replace();
               },
             ],
-            [element$(), (): void => replace()],
-            [raw$(), (): void => replace()],
+            [element$(), (): Node => replace()],
+            [raw$(), (): Node => replace()],
+            [lazy$(), (): Node => replace()],
           ),
       ],
       [
         element$(),
-        ({ content: newContent }): void =>
+        ({ content: newContent }): Node =>
           match(oldVnode)(
             [
               element$(),
-              ({ content: oldContent }): void => {
+              ({ content: oldContent }): Node => {
                 if (
                   domNode instanceof Element &&
                   oldContent.tag ===
@@ -770,18 +834,100 @@ export const reconcile =
                     oldContent,
                     newContent,
                   );
-                } else {
-                  replace();
+                  return domNode;
                 }
+                return replace();
               },
             ],
-            [text$(), (): void => replace()],
-            [raw$(), (): void => replace()],
+            [text$(), (): Node => replace()],
+            [raw$(), (): Node => replace()],
+            [lazy$(), (): Node => replace()],
           ),
       ],
       // a raw passthrough is opaque to the differ — any
       // change rebuilds it from the trusted html
-      [raw$(), (): void => replace()],
+      [raw$(), (): Node => replace()],
+      // the lazy fast path: an unchanged `===` arg AND the same producer
+      // `fn` skips `render()` AND the diff entirely (DOM untouched, `domNode`
+      // returned as-is) — comparing `fn` too keeps two call sites sharing an
+      // `arg` reference (e.g. a slot alternating between `lazy(headerView,
+      // cfg)` and `lazy(footerView, cfg)`) from being wrongly treated as
+      // unchanged, the same hazard `collectCssRules`' cache is nested by `fn`
+      // first to avoid. A changed `fn` or `arg` resolves only the NEW side
+      // (the old side comes from `wiring.lazyResolved` — the subtree that was
+      // ACTUALLY rendered last time, never by re-forcing the old thunk, which
+      // would call its producer a second time for an arg it already
+      // rendered) and re-diffs through this same function, then remembers the
+      // new resolved subtree against whichever node ends up at this slot.
+      [
+        lazy$(),
+        ({ content: newContent }): Node => {
+          // resolves ONLY the new side, diffs it against `old`, then
+          // remembers the result for the NEXT changed-arg patch — shared by
+          // every "old wasn't an unchanged-arg lazy" branch below.
+          const resolveAndReconcile = (
+            old: Html<Msg>,
+          ): Node => {
+            const newResolved = resolveLazy(
+              newContent.render(),
+            );
+            const result = reconcile(wiring)(
+              parent,
+              domNode,
+              old,
+              newResolved,
+            );
+            wiring.lazyResolved.set(
+              result,
+              newResolved,
+            );
+            return result;
+          };
+          return match(oldVnode)(
+            [
+              lazy$(),
+              ({ content: oldContent }): Node =>
+                oldContent.fn === newContent.fn &&
+                oldContent.arg ===
+                  newContent.arg
+                  ? domNode
+                  : resolveAndReconcile(
+                      pipe(
+                        fromNullable(
+                          wiring.lazyResolved.get(
+                            domNode,
+                          ),
+                        ),
+                        matchOption(
+                          (): Html<Msg> =>
+                            resolveLazy(
+                              oldContent.render(),
+                            ),
+                          (
+                            cached: Html<Msg>,
+                          ): Html<Msg> => cached,
+                        ),
+                      ),
+                    ),
+            ],
+            [
+              text$(),
+              (): Node =>
+                resolveAndReconcile(oldVnode),
+            ],
+            [
+              element$(),
+              (): Node =>
+                resolveAndReconcile(oldVnode),
+            ],
+            [
+              raw$(),
+              (): Node =>
+                resolveAndReconcile(oldVnode),
+            ],
+          );
+        },
+      ],
     );
   };
 
@@ -819,13 +965,14 @@ const indexPatchChildren =
                     createNode(wiring)(child),
                   );
                 },
-                (oldChild: Html<Msg>) =>
+                (oldChild: Html<Msg>) => {
                   reconcile(wiring)(
                     parent,
                     domNode,
                     oldChild,
                     child,
-                  ),
+                  );
+                },
               ),
             ),
         ),
@@ -1036,6 +1183,7 @@ const patchKeyed =
           match(oldVnode)(
             [text$(), (): Node => replace()],
             [raw$(), (): Node => replace()],
+            [lazy$(), (): Node => replace()],
             [
               element$(),
               ({ content: oldContent }): Node => {
@@ -1055,6 +1203,10 @@ const patchKeyed =
             ],
           ),
       ],
+      // `keyOfVnode` always reads `none` for a lazy node, so a keyed list
+      // never actually carries one here — this arm only satisfies exhaustive
+      // matching, same as the unreachable `text$`/`raw$` arms above.
+      [lazy$(), (): Node => replace()],
     );
   };
 
@@ -1300,6 +1452,7 @@ export const makeRenderer = <Msg>(
     play,
     keyed: new WeakMap(),
     exiting: new WeakSet(),
+    lazyResolved: new WeakMap(),
   };
   // mutable seam: the last tree rendered into `container` (none until first paint)
   let previous: Option<Html<Msg>> = none();
@@ -1321,13 +1474,14 @@ export const makeRenderer = <Msg>(
                   createNode(wiring)(next),
                 );
               },
-              (domNode: ChildNode) =>
+              (domNode: ChildNode) => {
                 reconcile(wiring)(
                   container,
                   domNode,
                   old,
                   next,
-                ),
+                );
+              },
             ),
           ),
       ),

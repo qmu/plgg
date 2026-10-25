@@ -22,9 +22,11 @@ import { type Cmd } from "plgg-view/Program/model/Cmd";
 import { type Sub } from "plgg-view/Program/model/Sub";
 import {
   type SubEnv,
+  type FrameEnv,
   runCmd,
   makeSubRuntime,
   browserSubEnv,
+  browserFrameEnv,
 } from "plgg-view/Program/usecase/effects";
 
 /**
@@ -74,6 +76,18 @@ export type Application<Model, Msg> = Readonly<{
     prev: Model,
     next: Model,
   ) => "push" | "replace" | "none";
+  /**
+   * How a dispatch schedules its paint. `"frame"` (the default) batches every
+   * dispatch landing within the same browser frame into ONE `view()` call and
+   * ONE patch — several `Cmd`-driven fetches resolving out of order (not
+   * `Promise.all`'d) each still fold into `update` immediately, but their
+   * repaint collapses to a single `requestAnimationFrame` callback reading
+   * the latest `model` (see {@link FrameEnv}). `"sync"` paints immediately
+   * after every dispatch (today's pre-batching behaviour, no frame
+   * scheduling) — the deterministic choice for a spec that asserts DOM state
+   * right after a synchronous dispatch with no frame to flush.
+   */
+  render?: "frame" | "sync";
 }>;
 
 /** Reads the browser's current location into a {@link Url}. */
@@ -207,16 +221,51 @@ export const application =
   <Model, Msg>(
     program: Application<Model, Msg>,
     env: SubEnv = browserSubEnv,
+    frameEnv: FrameEnv = browserFrameEnv,
   ) =>
   (container: Element): (() => void) => {
     const [initModel, initCmd] = program.init(
       currentUrl(),
     );
-    // mutable seams: the live model, and an `alive` flag so an effect or
-    // subscription resolving after teardown is dropped.
+    // mutable seams: the live model, an `alive` flag so an effect or
+    // subscription resolving after teardown is dropped, and the frame-paint
+    // bookkeeping — `paintPending` gates whether a NEW flush must be
+    // scheduled (set true the instant one is requested, cleared the instant
+    // it flushes), kept separate from `cancelPaint` (the seam's own cancel)
+    // because `frameEnv.schedule` is allowed to call back SYNCHRONOUSLY (the
+    // no-`requestAnimationFrame` fallback does): if the gate were "is there a
+    // cancel" the synchronous callback would clear it before `schedule`
+    // itself returns, and the later assignment of `schedule`'s return value
+    // would stomp that clear right back to "pending" — silently dropping
+    // every later dispatch's repaint for the rest of the mount's life.
     let model: Model = initModel;
     let alive = true;
+    let paintPending = false;
+    let cancelPaint: (() => void) | null = null;
+    const sync = program.render === "sync";
     const sheet = makeSheet();
+    // Flushes the LATEST `model` through one `view()` + patch — read at flush
+    // time (not schedule time), so N dispatches batched into one frame still
+    // repaint only once, on the model the last of them produced.
+    const flushPaint = (): void => {
+      paintPending = false;
+      cancelPaint = null;
+      if (alive) {
+        paint(program.view(model));
+      }
+    };
+    // `"sync"` paints every dispatch immediately (no batching); the `"frame"`
+    // default (and the absence of the field) schedules at most one pending
+    // flush per frame — a second dispatch landing before it fires just
+    // updates `model` for the SAME pending flush to pick up.
+    const schedulePaint = (): void => {
+      if (sync) {
+        paint(program.view(model));
+      } else if (!paintPending) {
+        paintPending = true;
+        cancelPaint = frameEnv.schedule(flushPaint);
+      }
+    };
     const dispatch = (msg: Msg): void => {
       if (!alive) {
         return;
@@ -227,7 +276,7 @@ export const application =
         model,
       );
       model = next;
-      paint(program.view(model));
+      schedulePaint();
       reflectUrl(prev, model);
       runCmd(cmd, dispatch);
       syncSubs();
@@ -324,6 +373,11 @@ export const application =
 
     return () => {
       alive = false;
+      paintPending = false;
+      if (cancelPaint !== null) {
+        cancelPaint();
+        cancelPaint = null;
+      }
       subs.disposeAll();
       window.removeEventListener(
         "popstate",

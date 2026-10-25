@@ -91,6 +91,41 @@ export const browserSubEnv: SubEnv = {
 };
 
 /**
+ * The imperative seam for scheduling a batched paint — the same
+ * injectable-machinery precedent as {@link SubEnv} and the renderer's `Play`.
+ * `schedule` hands back a cancel, mirroring a subscription's `start`.
+ */
+export type FrameEnv = Readonly<{
+  schedule: (paint: () => void) => () => void;
+}>;
+
+/**
+ * The default {@link FrameEnv}: `requestAnimationFrame`/`cancelAnimationFrame`
+ * when available, so every `dispatch` within the same browser frame collapses
+ * into one `view()` + patch. Where `requestAnimationFrame` is unavailable (the
+ * in-house test DOM, SSR-adjacent tooling) it degrades to calling `paint`
+ * immediately and synchronously — the same feature-detect-and-fall-back
+ * idiom the renderer's `waapiPlay` uses for WAAPI — so a spec that never
+ * injects a {@link FrameEnv} keeps today's synchronous-paint-per-dispatch
+ * behaviour with no extra setup.
+ */
+export const browserFrameEnv: FrameEnv = {
+  schedule: (paint) => {
+    if (
+      typeof window.requestAnimationFrame ===
+      "function"
+    ) {
+      const id =
+        window.requestAnimationFrame(paint);
+      return () =>
+        window.cancelAnimationFrame(id);
+    }
+    paint();
+    return () => undefined;
+  },
+};
+
+/**
  * A flattened active subscription: its stable `key` plus a `start` closure
  * (built from the leaf and the env) returning that subscription's cleanup.
  */

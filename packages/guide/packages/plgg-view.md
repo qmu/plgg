@@ -86,6 +86,9 @@ by concern:
 - **runtimes** — `sandbox` and `application` (on the
   `plgg-view/client` subpath), plus the pure SSR fold
   `renderToString`.
+- **`lazy`** — `lazy(fn, arg)` defers a subtree and skips
+  its rebuild + diff when `arg` is still `===` the
+  previous render's.
 
 ## What it is (and isn't)
 
@@ -93,7 +96,7 @@ by concern:
 |----|----|
 | `Model` / `Msg` / pure `update`→`[Model, Cmd]` / `view` / `subscriptions` | effects never RUN in `update` (returned as data) |
 | typed `Html<Msg>` tree (handlers produce `Msg`) | no JSX (Elm-style builders instead) |
-| `sandbox` + `application` runtimes | no keyed-list reconcile / batching |
+| `sandbox` + `application` runtimes, keyed-list reconcile, `application` frame-batched dispatch, `lazy(fn, arg)` subtree skip | a `lazy(...)` list can't ALSO be keyed |
 | vDOM diff/patch — preserves focus/caret | **no hydration** (mount re-renders from `init`) |
 | declarative WAAPI transitions | no spring physics / keyed-FLIP |
 | pure SSR `renderToString` | |
@@ -245,7 +248,12 @@ const stop2 = application(
   `Url { path, search }` to its route using
   [plgg-router](/packages/plgg-router)'s pure
   `compilePattern`/`matchSegments`/`parseQuery`, so
-  navigation is just data flowing through `update`.
+  navigation is just data flowing through `update`. Its
+  dispatch batches into one `requestAnimationFrame` paint
+  per frame by default — several `Cmd`-driven fetches
+  resolving out of order still repaint once, not once each
+  — unless `render: "sync"` opts back into painting
+  immediately after every dispatch.
 
 ## Worked example
 

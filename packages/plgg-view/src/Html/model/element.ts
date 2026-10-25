@@ -2,6 +2,7 @@ import { SoftStr, box } from "plgg";
 import {
   Html,
   ElementContent,
+  LazyContent,
 } from "plgg-view/Html/model/Html";
 import { Attribute } from "plgg-view/Html/model/Attribute";
 
@@ -55,6 +56,38 @@ export const slot = <Msg>(
 export const text = (
   value: SoftStr,
 ): Html<never, "#text"> => box("Text")({ value });
+
+/**
+ * A memoized subtree (Elm's `Html.Lazy.lazy`): builds `Html<Msg, T>` on first
+ * use, but a later render whose `arg` is still `===` the previous call's `arg`
+ * skips `fn` entirely and reuses the previously rendered subtree untouched —
+ * no rebuild, no diff. The producer threads `fn`/`arg` through unevaluated
+ * (construction never calls `fn`); only {@link reconcile} forces it, and only
+ * when the arg actually changed.
+ *
+ * `arg` should be the slice of the model the subtree actually depends on
+ * (typically unchanged-by-reference across a dispatch that touched a
+ * different slice), not the whole `Model` — a `lazy(view, model)` whose `arg`
+ * changes on every dispatch never skips anything.
+ *
+ * ```ts
+ * const column = (c: Column): Html<Msg> => div([], c.rows.map(row));
+ * const view = (m: Model) => div([], m.columns.map((c) => lazy(column, c)));
+ * ```
+ *
+ * Never carries a {@link key} of its own — a list of `lazy(...)` children
+ * reconciles by index (see `allKeyed`'s docs); key the element `fn` returns
+ * instead if the list also reorders.
+ */
+export const lazy = <Msg, A, T extends string = string>(
+  fn: (arg: A) => Html<Msg, T>,
+  arg: A,
+): Html<Msg, T> =>
+  box("Lazy")<LazyContent<Msg, T>>({
+    arg,
+    fn,
+    render: () => fn(arg),
+  });
 
 /**
  * A raw-HTML passthrough leaf. Its `html` is emitted

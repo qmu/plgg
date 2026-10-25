@@ -41,4 +41,6 @@ export {
 export {
   type SubEnv,
   browserSubEnv,
+  type FrameEnv,
+  browserFrameEnv,
 } from "plgg-view/Program/usecase/effects";
