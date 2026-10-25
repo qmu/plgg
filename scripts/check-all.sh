@@ -49,6 +49,10 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# qmu/plgg#155: real npm install, two builds in the same consumer, with
+# missing/symlink/file/directory entries in the retired relocation cache.
+node --test "$REPO_ROOT/scripts/bundle-repeat-build.spec.mjs"
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
