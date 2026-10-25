@@ -1,5 +1,6 @@
 import {
   existsSync,
+  readFileSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -7,6 +8,9 @@ import {
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+
+// Bump when generator semantics change, independently of the JSON schema.
+export const publicGateGeneratorVersion = "1.0.0";
 
 // Commands belong to the existing consumer gates; keep their fixtures there.
 export const publicConsumerGates = [
@@ -100,6 +104,7 @@ export const collectPublicGateIndex = (
   }
   return {
     schemaVersion: 1,
+    generatorVersion: publicGateGeneratorVersion,
     nodeVersion,
     consumerTypeScriptMajor: 7,
     // A fresh complete snapshot replaces the previous run: no stale failures.
@@ -133,6 +138,23 @@ export const writePublicGateIndex = (
     typeof collectPublicGateIndex
   >,
 ): void => {
+  const compatible = (value: unknown): boolean =>
+    typeof value === "object" &&
+    value !== null &&
+    "generatorVersion" in value &&
+    value.generatorVersion ===
+      publicGateGeneratorVersion;
+  if (
+    !compatible(index) ||
+    (existsSync(path) &&
+      !compatible(
+        JSON.parse(readFileSync(path, "utf8")),
+      ))
+  ) {
+    throw new Error(
+      "Public gate index generator version mismatch.",
+    );
+  }
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
     writeFileSync(

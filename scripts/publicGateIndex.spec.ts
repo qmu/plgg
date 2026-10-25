@@ -371,3 +371,121 @@ await import(${JSON.stringify(cliUrl)});`,
     );
   });
 });
+
+test("persists the generator version independently of the schema version", () => {
+  fixture((root) => {
+    const index = collectPublicGateIndex(
+      root,
+      "24.0.0",
+      [],
+    );
+    const output = join(root, "index.json");
+    writePublicGateIndex(output, index);
+    const saved = JSON.parse(
+      readFileSync(output, "utf8"),
+    );
+    assert.equal(
+      saved.generatorVersion,
+      index.generatorVersion,
+    );
+    assert.equal(saved.generatorVersion, "1.0.0");
+    assert.equal(saved.schemaVersion, 1);
+  });
+});
+
+test("rejects incompatible incoming and existing artifacts without changing files", () => {
+  fixture((root) => {
+    const output = join(root, "index.json");
+    const index = collectPublicGateIndex(
+      root,
+      "24.0.0",
+      [],
+    );
+    assert.throws(
+      () =>
+        writePublicGateIndex(output, {
+          ...index,
+          generatorVersion: "other",
+        }),
+      /generator version mismatch/,
+    );
+    assert.deepEqual(readdirSync(root), []);
+    for (const previous of [
+      { ...index, generatorVersion: "other" },
+      { schemaVersion: 1, packages: [] },
+      null,
+      { ...index, generatorVersion: 1 },
+    ]) {
+      const contents = JSON.stringify(previous);
+      writeFileSync(output, contents);
+      assert.throws(
+        () => writePublicGateIndex(output, index),
+        /generator version mismatch/,
+      );
+      assert.equal(
+        readFileSync(output, "utf8"),
+        contents,
+      );
+      assert.deepEqual(readdirSync(root), [
+        "index.json",
+      ]);
+    }
+    writeFileSync(output, "{invalid");
+    assert.throws(() =>
+      writePublicGateIndex(output, index),
+    );
+    assert.equal(
+      readFileSync(output, "utf8"),
+      "{invalid",
+    );
+  });
+});
+
+test("CLI rejects an older artifact with a safe diagnostic and preserves it", () => {
+  fixture((root) => {
+    mkdirSync(join(root, "scripts"));
+    for (const name of [
+      "runPublicGateIndex.ts",
+      "publicGateIndex.ts",
+    ]) {
+      copyFileSync(
+        fileURLToPath(
+          new URL(name, import.meta.url),
+        ),
+        join(root, "scripts", name),
+      );
+    }
+    const output = join(root, "index.json");
+    const previous = JSON.stringify({
+      generatorVersion: "older",
+      packages: [],
+    });
+    writeFileSync(output, previous);
+    const result = spawnSync(
+      process.execPath,
+      [
+        join(
+          root,
+          "scripts",
+          "runPublicGateIndex.ts",
+        ),
+        output,
+      ],
+      { encoding: "utf8" },
+    );
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, "");
+    assert.match(
+      result.stderr,
+      /Public gate index could not be saved/,
+    );
+    assert.equal(
+      readFileSync(output, "utf8"),
+      previous,
+    );
+    assert.deepEqual(readdirSync(root).sort(), [
+      "index.json",
+      "scripts",
+    ]);
+  });
+});
