@@ -86,3 +86,9 @@ also fails closed. The CLI exits 1 and preserves the existing file. Use a separa
 output path for a different generator version, or deliberately remove the old
 artifact before regenerating it. Compatible snapshots still replace stale rows
 atomically; this boundary does not merge results or certify live tarballs.
+
+The CLI validates the destination before starting consumer gates. An incompatible
+or malformed existing snapshot therefore fails without launching child processes
+or making registry requests. The writer validates again after collection so a
+destination changed during gate execution is also rejected before replacement.
+This recheck does not lock the destination against concurrent writers.
