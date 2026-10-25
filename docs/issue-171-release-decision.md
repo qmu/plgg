@@ -91,6 +91,21 @@ CI 行列は独立に復旧でき、先に Node 24 の実行証拠を得る方�
 #191 は opt-in で、#201 の index も自動 CI 接続ではない。
 CI green や PREFLIGHT 単独ではこの公開ゲートを満たさない。
 
+## 失敗時の停止・戻し方
+
+| 失敗の位置                             | 担当と処置                                                                                                                                                                                                            | 再開条件                                                                        |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| workflow push が権限拒否               | 統合担当は push を反復せず #171 を open のまま管理者へ通知。通常コードの統合と分ける                                                                                                                                  | 管理者による権限復旧                                                            |
+| PR の 22/24 行列、action 更新          | 統合担当は merge を止める。main 後の回帰なら該当 workflow 変更だけを revert PR にする（merge commit は first-parent を確認して `git revert -m 1 <merge-sha>`、squash は `git revert <sha>`）。main へ直接 push しない | 修正または revert の検証成功。24 を撤去したら #171 を再 open                    |
+| 候補 gate / fixture                    | 公開を止め、失敗した package と理由を保存。原因 PR のみを戻すか修正し、依存 PR を再検証                                                                                                                               | 新しい統合 SHA の全ゲート成功。以前の成功 artifact を流用しない                 |
+| index の generator 不一致・壊れた JSON | 旧 artifact を上書きせず保管。新しい出力パスで現 generator を実行する。単に version を書き換えない                                                                                                                    | 正しい generator/schema、重複なし、3 行 pass、exit 0                            |
+| npm 公開の途中・公開後の不具合         | 開発者が後続 publish を止め、実際に出た版と未公開分を registry で照合。npm の同じ version は再利用せず、修正版を新しい version で公開する。必要なら開発者が影響版の deprecate / dist-tag を判断                       | 修正候補の検証、publisher 検証、live 再検証。git revert だけでは npm は戻らない |
+| guide deploy 回帰                      | deploy 担当が後続 deploy を止め、最後に成功した commit を既存 Worker の単一 publish 経路で再配備する。Pages を同時に有効化しない                                                                                      | 既知の正常版の表示・配信確認。npm と guide の復旧は分ける                       |
+
+revert の前後 SHA、原因、検証結果、復旧 PR/run URL を統合担当が残す。
+秘密の値・生の認証出力は保存しない。fail-fast の有効化、continue-on-error、
+Node 24 の静かな削除、失敗 index の手編集で公開を通さない。
+
 ## この決定記録の限界
 
 既存 PR の本文・差分と現 main を照合したもので、全 PR の合成 rebase や
