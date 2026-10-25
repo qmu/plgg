@@ -23,8 +23,10 @@ CI 行列は独立に復旧でき、先に Node 24 の実行証拠を得る方�
 
 ## 既存 PR との照合
 
-2026-10-25 に GitHub API で open PR 全 56 本の一覧と変更ファイルを取得した。
-`.github/workflows/` を変える PR は 0 本。#171 は open、コメントは 0 件で、
+2026-10-25 に GitHub API で open PR 全 60 本の一覧と変更ファイルを再取得した。
+先の採録（56 本）は #205・#207・#208 を取り落としていた
+（#205 は本記録と同日 1 秒差で並行作成され、#207・#208 は本記録の採録後に作られた）。
+`.github/workflows/` を変える PR は依然 0 本。#171 は open、コメントは 0 件で、
 権限回復済みである証拠はない。トークンの値や権限を推測して記録しない。
 下表は実装の所在と採用方針であり、merge 済み・現時点の CI green を意味しない。
 
@@ -39,7 +41,9 @@ CI 行列は独立に復旧でき、先に Node 24 の実行証拠を得る方�
 | [#183](https://github.com/qmu/plgg/pull/183), [#186](https://github.com/qmu/plgg/pull/186), [#195](https://github.com/qmu/plgg/pull/195), [#200](https://github.com/qmu/plgg/pull/200)                                                                                                                                                                                                                                       | packed test fixture、consumer、live engine/CLI、assertion 失敗    | すべてを同一検査とみなして閉じない。候補と live、成功・失敗の対照を保持                     |
 | [#188](https://github.com/qmu/plgg/pull/188), [#194](https://github.com/qmu/plgg/pull/194), [#198](https://github.com/qmu/plgg/pull/198)                                                                                                                                                                                                                                                                                     | parser、fetch engine、router の固有動作                           | #191 の import smoke のみでは代替できないため保持                                           |
 | [#193](https://github.com/qmu/plgg/pull/193)                                                                                                                                                                                                                                                                                                                                                                                 | stage/pack の安全な診断                                           | 公開手順の診断として保持                                                                    |
-| [#201](https://github.com/qmu/plgg/pull/201) → [#202](https://github.com/qmu/plgg/pull/202) → [#203](https://github.com/qmu/plgg/pull/203) → [#204](https://github.com/qmu/plgg/pull/204)                                                                                                                                                                                                                                    | live 3 gate の index、重複拒否、generator version、実行前検証     | 左から統合し、各 dependent PR を main に retarget/rebase。候補 family artifact と混同しない |
+| [#201](https://github.com/qmu/plgg/pull/201) → [#202](https://github.com/qmu/plgg/pull/202) → [#203](https://github.com/qmu/plgg/pull/203) → [#204](https://github.com/qmu/plgg/pull/204) → [#205](https://github.com/qmu/plgg/pull/205)                                                                                                                                                                                      | live 3 gate の index、重複拒否、generator version、実行前検証、Node24 CI 証拠の埋め込み | 左から統合し、各 dependent PR を main に retarget/rebase。候補 family artifact と混同しない。#205 の `complete: true` は埋め込み Node24 CI 証拠と local gate 両方を要求し、#201 単体の「local gate 全 pass」を公開十分条件にしない |
+| [#207](https://github.com/qmu/plgg/pull/207)                                                                                                                                                                                                                                                                                                                                                                                 | `.artifacts/node24-ci-blocker.json` への権限拒否ブロッカー永続化  | workflow 権限なしで統合可能。記録専用で workflow・npm・本番を変更しない。#171 の未解消を機械判読できる形で残すが、ライブの権限検査ではない。権限回復後、下記「権限回復後に入れる workflow 変更」が完了したらこの artifact を退役させる |
+| [#208](https://github.com/qmu/plgg/pull/208)                                                                                                                                                                                                                                                                                                                                                                                 | `node scripts/node24Workflows.ts --check\|--write` による生成・適用の単一入口 | workflow 権限なしで統合可能（workflow ファイル自体はこの PR では変更しない）。この記録の作成時点で `.github/workflows/run-tests.yml`・`deploy-guide.yml` の SHA-256 は #208 が固定した `before` ハッシュと一致しており、権限回復後はこの PR 統合後に `--write` を使う。手編集はしない |
 
 その他の open PR は UI・Markdown 機能・依存更新・過去の記録等であり、#171 の実装を所有しない。
 `check-all.sh` や同じ wrapper の変更は、各 merge 後に rebase して固有検査を落とさず整理する。
@@ -47,18 +51,25 @@ CI 行列は独立に復旧でき、先に Node 24 の実行証拠を得る方�
 
 ## 権限回復後に入れる workflow 変更
 
-1. 管理者が workflow 更新権限の復旧を確認し、最新 origin/main から専用 work ブランチを作る。
-   権限が戻っていなければ #171 にブロッカーを残し、公開を進めない。
-2. `run-tests.yml` の `check-all` に `fail-fast: false`、
-   `matrix.node: ["22.x", "24.x"]`、`node-version: ${{ matrix.node }}` を設定する。
-   checkout/setup-node は両 workflow で v4 から v5 に更新する。
-   hosted runner の対応要件は実装時に確認する。
-3. `deploy-guide.yml` は Node `22.x` 単一ピンと既存 concurrency を維持する。
-   publish を行うジョブを行列化しない。Node 24 への deploy 移行は別判断とする。
+1. 管理者が workflow 更新権限の復旧を確認し、#207・#208 を main に統合してから
+   最新 origin/main から専用 work ブランチを作る。
+   権限が戻っていなければ #171 と `.artifacts/node24-ci-blocker.json` をそのまま残し、公開を進めない。
+2. そのブランチで `node scripts/node24Workflows.ts --check` を実行し、
+   両 workflow が `pending`（未適用）であることを確認してから `--write` を実行する。
+   `run-tests.yml` の `check-all` が `fail-fast: false`・
+   `matrix.node: ["22.x", "24.x"]`・`node-version: ${{ matrix.node }}` になり、
+   checkout/setup-node が両 workflow で v4 から v5 に更新される。
+   生成結果が #208 の固定 `after` ハッシュと一致することをスクリプトの終了コードで確認する。
+   手編集はしない。ハッシュ不一致（workflow drift）で止まったら、
+   #208 の pin を現在の workflow に合わせて更新するまで `--write` を使わない。
+3. `deploy-guide.yml` は Node `22.x` 単一ピンと既存 concurrency を維持する
+   （#208 の生成でも publish ジョブは行列化されない）。Node 24 への deploy 移行は別判断とする。
 4. install と `check-all.sh` は既存の正本を呼ぶ。権限追加や検査スキップは混ぜない。
    両行列の実行 Node、終了状態、Node 20 action 警告の消失を実 run で確認する。
    v5 の action runtime と検査対象 Node は別であり、片方だけの更新では完了しない。
-5. PR と main の同じ統合結果で両行列が成功した run URL / commit を #171 に残して閉じる。
+5. PR と main の同じ統合結果で両行列が成功した run URL / commit を #171 に残して閉じ、
+   `.artifacts/node24-ci-blocker.json` を削除するコミットを同じ PR に含める
+   （ブロッカーが解消したのに記録だけ残すと次の統合担当が誤読する）。
    このドキュメント PR の merge だけでは #171 を閉じない。
 
 ## 公開ゲートと証拠
@@ -84,6 +95,10 @@ CI 行列は独立に復旧でき、先に Node 24 の実行証拠を得る方�
    3 package の index を family 全体の公開証明と呼ばない。他 package も publisher の検証を残す。
    index は実行時の registry を再解決し、tarball digest を固定しないので、
    公開直後の版照合記録も別途残す。
+   #205 統合後は local gate の pass だけでは `complete: true` にならず、
+   実際の qmu/plgg Actions run URL を指す Node24 CI 証拠（または #171 への
+   permission-wait の明示）を index に埋め込む必要がある。統合担当がこの証拠を
+   手で確認して埋め込む。ツール自身は GitHub の結果を取得・認証しない。
 
 #195 の PR 本文は plgg-test@0.0.5 の公開 CLI 失敗を報告している。
 本作業で registry を再試験していないため現在の失敗とは断定しないが、
@@ -101,6 +116,7 @@ CI green や PREFLIGHT 単独ではこの公開ゲートを満たさない。
 | index の generator 不一致・壊れた JSON | 旧 artifact を上書きせず保管。新しい出力パスで現 generator を実行する。単に version を書き換えない                                                                                                                    | 正しい generator/schema、重複なし、3 行 pass、exit 0                            |
 | npm 公開の途中・公開後の不具合         | 開発者が後続 publish を止め、実際に出た版と未公開分を registry で照合。npm の同じ version は再利用せず、修正版を新しい version で公開する。必要なら開発者が影響版の deprecate / dist-tag を判断                       | 修正候補の検証、publisher 検証、live 再検証。git revert だけでは npm は戻らない |
 | guide deploy 回帰                      | deploy 担当が後続 deploy を止め、最後に成功した commit を既存 Worker の単一 publish 経路で再配備する。Pages を同時に有効化しない                                                                                      | 既知の正常版の表示・配信確認。npm と guide の復旧は分ける                       |
+| `node24Workflows.ts --write` がドリフトで失敗 | 統合担当は書き込みを強制せず、#208 の pin ハッシュと実際の workflow ファイルの差分を確認する。差分が意図した先行変更ならピンを更新する PR を先に出す                                                                   | 更新済み pin が現在の workflow と一致し、`--check` が `pending` を正しく報告する |
 
 revert の前後 SHA、原因、検証結果、復旧 PR/run URL を統合担当が残す。
 秘密の値・生の認証出力は保存しない。fail-fast の有効化、continue-on-error、
@@ -111,5 +127,8 @@ Node 24 の静かな削除、失敗 index の手編集で公開を通さない�
 既存 PR の本文・差分と現 main を照合したもので、全 PR の合成 rebase や
 workflow 権限復旧、npm 公開、live registry gate、コンテナ起動は実行していない。
 PR 本文の過去の検証結果は本作業の再実行結果と区別する。
+この更新では `sha256sum .github/workflows/run-tests.yml .github/workflows/deploy-guide.yml`
+を現 main で実測し、#208 が固定した `before` ハッシュとそれぞれ完全一致することを確認した。
+一致が崩れたら #208 のピンを更新するまで `--write` を使わない。
 リポジトリの CLAUDE.md が参照する workaholic gateway skill はこの環境に提供されていない。
 この記録は追加の実装・公開権限を与えるものではない。
