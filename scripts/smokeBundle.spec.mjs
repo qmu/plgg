@@ -13,13 +13,20 @@ import { test } from "node:test";
 import { smokeBundle } from "./smokeBundle.ts";
 
 const scratch = (t) => {
-  const dir = mkdtempSync(
+  const root = mkdtempSync(
     join(tmpdir(), "plgg-publish-smoke-"),
   );
   t.after(() =>
-    rmSync(dir, { recursive: true, force: true }),
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    }),
   );
-  return dir;
+  // Match publish.ts: the consumer has a private staging parent.
+  // Workspace discovery scans siblings; /tmp itself is not our fixture.
+  const consumer = join(root, "consumer");
+  mkdirSync(consumer);
+  return consumer;
 };
 
 test("release smoke builds and executes an npm-installed tarball twice", (t) => {
