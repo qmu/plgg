@@ -63,6 +63,12 @@ import {
   declaresStageAllowlist,
   missingEntryTargets,
 } from "./stagePackage.ts";
+import {
+  parseDist,
+  parseLockEntry,
+  pinnedTarballMatches,
+  type TarballDist,
+} from "./pinnedTarball.ts";
 
 const scriptsDir = dirname(
   fileURLToPath(import.meta.url),
@@ -168,6 +174,33 @@ const remoteVersion = (
       },
     );
   });
+
+/**
+ * Read a package version's `dist` (tarball URL + content hash) off ONE
+ * `npm view` call. `null` on a non-zero exit or a malformed/incomplete
+ * response -- never resolved from two separate queries, so the result
+ * is always one registry round-trip's evidence.
+ */
+const distAtRegistry = (
+  name: string,
+  version: string,
+): TarballDist | null => {
+  try {
+    const out = execFileSync(
+      "npm",
+      [
+        "view",
+        `${name}@${version}`,
+        "dist",
+        "--json",
+      ],
+      { encoding: "utf8" },
+    );
+    return parseDist(JSON.parse(out));
+  } catch {
+    return null;
+  }
+};
 
 /** Read + narrow a `package.json` to a record. */
 const readPkgJson = (
@@ -313,17 +346,31 @@ const publishStaged = (stage: string): void => {
 };
 
 /**
- * Poll the registry until the just-published version resolves, returning
- * the number of tries. Registry propagation is real and cannot be removed
- * — but it is reported as one number, not a `sleep`-per-line wall.
+ * Poll the registry until the just-published version resolves, then
+ * pin that version's `dist` in the same breath (one more `npm view`,
+ * taken the instant the match is seen) so the smoke install below can
+ * be checked against the exact tarball this call observed, not against
+ * whatever a later, independent query happens to return. Registry
+ * propagation is real and cannot be removed — but it is reported as
+ * one number, not a `sleep`-per-line wall.
  */
 const resolveOnRegistry = async (
   name: string,
   version: string,
-): Promise<number> => {
+): Promise<{
+  tries: number;
+  dist: TarballDist;
+}> => {
   for (let tries = 1; tries <= 30; tries++) {
     if ((await remoteVersion(name)) === version) {
-      return tries;
+      const dist = distAtRegistry(name, version);
+      if (dist === null) {
+        throw new Error(
+          `${name}@${version} resolved on the registry but its dist ` +
+            `(tarball + integrity) could not be read`,
+        );
+      }
+      return { tries, dist };
     }
     await sleep(2000);
   }
@@ -359,17 +406,21 @@ const binHelpOutput = (bin: string): string => {
 };
 
 /**
- * Scratch-install the just-published package and smoke it: an `import`
- * for an importable surface, a `--help` run for a bin-only tool, and two
- * real app builds for plgg-bundle (its second-start regression). Returns
- * the smoke label; THROWS on a broken bin (the `ERR_*` signatures a
- * run-from-source `.ts` launcher trips under node_modules).
- * `min_release_age=0` overrides an ambient guard that would block
- * installing a package published seconds ago.
+ * Scratch-install the just-published package and smoke it: a check
+ * that the install drew from the exact tarball `dist` pins (same
+ * registry URL, same content hash — see `pinnedTarball.ts`), an
+ * `import` for an importable surface, a `--help` run for a bin-only
+ * tool, and two real app builds for plgg-bundle (its second-start
+ * regression). Returns the smoke label; THROWS on a broken bin (the
+ * `ERR_*` signatures a run-from-source `.ts` launcher trips under
+ * node_modules) or on a dist mismatch. `min_release_age=0` overrides
+ * an ambient guard that would block installing a package published
+ * seconds ago.
  */
 const smokeInstall = (
   meta: PkgMeta,
   stageRoot: string,
+  dist: TarballDist,
 ): string => {
   const smoke = join(
     stageRoot,
@@ -396,6 +447,26 @@ const smokeInstall = (
       },
     },
   );
+  const installed = parseLockEntry(
+    JSON.parse(
+      readFileSync(
+        join(smoke, "package-lock.json"),
+        "utf8",
+      ),
+    ),
+    meta.name,
+  );
+  if (
+    installed === null ||
+    !pinnedTarballMatches(dist, installed)
+  ) {
+    throw new Error(
+      `${meta.name}@${meta.version}: installed tarball does not match ` +
+        `the registry context resolved before install (mixed registry ` +
+        `fetch) — resolved ${dist.tarball} / ${dist.integrity}, ` +
+        `installed ${installed?.resolved ?? "?"} / ${installed?.integrity ?? "?"}`,
+    );
+  }
   const pkg = readPkgJson(
     join(
       repoRoot,
@@ -540,14 +611,18 @@ const runPublishSet = async (
       process.stdout.write(
         `${label(meta)}  published\n`,
       );
-      const tries = await resolveOnRegistry(
+      const { tries, dist } = await resolveOnRegistry(
         meta.name,
         meta.version,
       );
       process.stdout.write(
         `${label(meta)}  resolved (${tries} tries)\n`,
       );
-      const smoke = smokeInstall(meta, stageRoot);
+      const smoke = smokeInstall(
+        meta,
+        stageRoot,
+        dist,
+      );
       process.stdout.write(
         `${label(meta)}  ${smoke}\n`,
       );
