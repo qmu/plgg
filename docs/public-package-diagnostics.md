@@ -16,8 +16,13 @@ reproduce (from repository root; no publish): node scripts/publish.ts --dry-run 
 ```
 
 The reproduction stages the current working tree and runs `npm pack`; it
-never publishes or installs a registry package. Run `npm ci` first in a clean
-checkout. Missing declared entries require building the package and its
+never publishes or installs a registry package. Packing uses `--ignore-scripts`
+to suppress `prepack` and `postpack` hooks. A nonempty `prepare` hook is
+rejected before npm is invoked because npm 10 can execute it despite that flag.
+Build explicitly and remove the hook before retrying. These checks also run
+before publishing, so reproduction and the publish precheck use the same policy.
+
+Run `npm ci` first in a clean checkout. Missing declared entries require building the package and its
 workspace dependencies, or correcting the manifest's staging allowlist and
 entry targets. An absent `files` allowlist has a separate reason.
 
@@ -26,7 +31,8 @@ Node error code when available. Raw child-process output is captured rather
 than echoed because it may contain credentials. For a pack failure, check
 that `npm` is on PATH and that the staged inputs are readable and packable.
 The suggested command reproduces the whole stage/pack path, not an already
-removed temporary directory. Its package argument is shell-quoted.
+removed temporary directory. Its package argument is shell-quoted. Every
+stage/pack failure obtains that command from `publicPackageReproductionCommand` in the shared helper.
 
 This diagnostic contract covers pre-publication stage/pack checks only.
 Registry propagation, post-publication smoke tests, consumer TypeScript
@@ -41,4 +47,6 @@ node --test scripts/publicPackageGate.spec.ts
 
 The CLI fixtures exercise missing allowlists, missing entries, pack command
 failure and success, including exit status, cleanup and output suppression.
-The shared helper tests also cover argument quoting and unexpected errors.
+A real npm fixture rejects lifecycle execution; shell tests round-trip quotes
+and command substitutions without executing them. The shared helper tests also
+cover argument quoting and unexpected errors.
