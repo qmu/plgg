@@ -1,6 +1,6 @@
 # Decision record: issues #155–#158 and their open PRs
 
-2026-10-25, updated 2026-10-25 (second pass). Covers the four corpd
+2026-10-25, updated 2026-10-25 (third pass). Covers the four corpd
 consumer requests — [#155](https://github.com/qmu/plgg/issues/155)
 (plgg-bundle: EISDIR on a second app build),
 [#156](https://github.com/qmu/plgg/issues/156) (plgg-bundle: relocate
@@ -8,16 +8,31 @@ pulls in the consumer's TypeScript instead of its own),
 [#157](https://github.com/qmu/plgg/issues/157) (plgg-view: frame batching
 + `lazy()`), and [#158](https://github.com/qmu/plgg/issues/158)
 (plgg-view: typed SVG shape elements + non-destructive `raw()` diffing) —
-and the open PRs that implement, gate, publish-verify, or close them:
-#164, #165, #166, #173, #179, #189, #190, #196, #211, #212, #213, #214,
-#216, #217, #218, #219, #220.
+and the open (or, for #166, now-merged) PRs that implement, gate,
+publish-verify, or close them: #164, #165, #166 (merged), #173, #179,
+#189, #190, #196, #211, #212, #213, #214, #216, #217, #218, #219, #220,
+plus the #221–#236 publish-pipeline-hardening cluster addressed in the
+third pass below.
 
-The **second pass adds #213, #214, #216, #217, #218, #219, #220** — all
-opened *after* the first pass of this record, which only knew about
-#164–#212. The most consequential new fact: #216 (opened 8 minutes after
-this record's first pass) **supersedes #164 and #196**, and collides
-with #166 on the `plgg-view` version bump (both propose `0.0.3`) — see
-"Where the PRs collide" and the revised Track B order below.
+The **second pass added #213, #214, #216, #217, #218, #219, #220** and
+(incorrectly, as of when it was written) assumed #166 would merge
+*after* #216, so it had #216 own the `0.0.3` version bump and #166
+rebase onto it for `0.0.4`.
+
+The **third pass corrects that**: **PR #166 merged first**, at
+2026-10-25T11:34:46Z, merge commit `2ebc9e9` (see
+[#157's own comment](https://github.com/qmu/plgg/issues/157#issuecomment-6397118088)) —
+40 minutes after this record's second-pass commit (10:55Z) and before
+#216 landed. `main`'s `packages/plgg-view/package.json` is `0.0.3`
+today, already containing #166's frame-batching + `lazy()` fix. #216
+(still open, still based on the pre-#166 tree, now `mergeable:
+CONFLICTING` against `main`) is the one that must rebase and take the
+*next* version, `0.0.4` — the reverse of the second pass's call. See
+"Current state on `main`", "Where the PRs collide", the revised-again
+Track B order, "npm publish order", and "Close conditions" below, all
+updated for this. The third pass also surveys the #221–#236 cluster
+opened after the second pass — see "Consumer confirmation & close
+pipeline" below.
 
 Evidence: `gh pr view --json body,files,mergeable,mergeStateStatus` for
 each PR above, `git show <pr-head>:<path>` for real file contents (not
@@ -113,7 +128,12 @@ failure.
   nested `typescript@6` over a consumer's top-level `typescript@7` in
   every layout. This is what PR #189 fixes (below). #156 is not fully
   closed by `5b109cec` alone.
-- `packages/plgg-view/package.json` is still `"version": "0.0.2"`.
+- `packages/plgg-view/package.json` is now `"version": "0.0.3"` on
+  `main` — #166 merged (commit `2ebc9e9`) after this record's second
+  pass and already carries that bump, along with the frame-batching
+  + `lazy()` fix for #157. **This version has not been published to
+  npm yet** — the registry still serves `0.0.2`, so #157 is not closed
+  by the merge alone (see "Close conditions").
 
 ## What each PR actually contains
 
@@ -135,8 +155,8 @@ Read from `git show <pr-head>:<path>`, not from titles:
 
 | PR | Real content | Touches |
 | --- | --- | --- |
-| #166 | Source fix for #157: batches `application`'s dispatch→view→diff into one animation frame (sync mode selectable for tests), adds `lazy()` to skip re-running `view`/diff when its argument is referentially unchanged. Proposes bumping `plgg-view` 0.0.2 → 0.0.3. Fixed two real bugs caught by its own CI (a scheduler bookkeeping bug and a stale-arg lazy-diff bug). `Fixes #157`. **Now collides with #216 on the 0.0.3 version number** (see "Where the PRs collide" and the revised Track B order below); must be rebased and re-versioned to 0.0.4. | `element.ts`, `render.ts` (+both specs), `Html.ts`, `application.ts`, `effects.ts`, `collectCss.ts`, `foldHtml.ts`, `mapHtml.ts`, `client.ts`, `package.json`, guide doc |
-| #216 | **Supersedes #164 and #196.** Source fix for #158: exports typed `rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`/`g` builders rendered in the SVG namespace, preserves unchanged `raw(html)` DOM (including raw children under reordered keyed rows), removes `patchKeyed`'s unreachable raw-comparison branch, and includes #196's `asSvgNumberList` caster. Bumps `plgg-view` 0.0.2 → 0.0.3. CI-green on its final head (`d8056527`); staged a pack/install dry-run against registry `plgg@0.0.27` under consumer TS7. `Fixes #158`. Not published yet — no authenticated npm session in the sandbox that produced it. | `element.ts`, `render.ts` (+both specs), `patchKeyed`, `asSvgNumberList`, test-DOM default namespace, `package.json` + lockfile, guide/example |
+| #166 | **Merged** (commit `2ebc9e9`, 2026-10-25T11:34:46Z). Source fix for #157: batches `application`'s dispatch→view→diff into one animation frame (sync mode selectable for tests), adds `lazy()` to skip re-running `view`/diff when its argument is referentially unchanged. Bumped `plgg-view` 0.0.2 → 0.0.3 on `main`. Fixed two real bugs caught by its own CI (a scheduler bookkeeping bug and a stale-arg lazy-diff bug). `Fixes #157`. Merged *before* #216, so it owns `0.0.3`; #216 must now rebase and take `0.0.4` (reverse of the second pass's call — see below). | `element.ts`, `render.ts` (+both specs), `Html.ts`, `application.ts`, `effects.ts`, `collectCss.ts`, `foldHtml.ts`, `mapHtml.ts`, `client.ts`, `package.json`, guide doc |
+| #216 | **Supersedes #164 and #196.** Source fix for #158: exports typed `rect`/`circle`/`ellipse`/`line`/`polyline`/`polygon`/`g` builders rendered in the SVG namespace, preserves unchanged `raw(html)` DOM (including raw children under reordered keyed rows), removes `patchKeyed`'s unreachable raw-comparison branch, and includes #196's `asSvgNumberList` caster. Still proposes 0.0.2 → 0.0.3 as filed, but `main` is `0.0.3` now (via #166) — `0.0.3` is taken, so #216 needs a rebase onto current `main` and a re-bump to **0.0.4** before it can land; as filed it is `mergeable: CONFLICTING`. CI-green on its last head before #166 merged (`d8056527`); staged a pack/install dry-run against registry `plgg@0.0.27` under consumer TS7. `Fixes #158`. Not published yet — no authenticated npm session in the sandbox that produced it. | `element.ts`, `render.ts` (+both specs), `patchKeyed`, `asSvgNumberList`, test-DOM default namespace, `package.json` + lockfile, guide/example |
 | #164 | Source fix for #158, same scope as #216 but without the keyed-raw fix or the caster. **Superseded by #216** — recommend closing without merging once #216 lands. | `element.ts`, `render.ts` (+both specs), `plgg-test` DOM env file |
 
 `#196` ("asSvgNumberList caster") was written against issue **#167**, a
@@ -154,7 +174,7 @@ scope; #167 itself is unaffected and stays open on its own merits.
 | #179 × #212 | conflict | `scripts/check-all.sh` |
 | #189 × #212 | conflict | `scripts/check-all.sh` |
 | #164 × #166 | conflict | `packages/plgg-view/src/Html/model/element.spec.ts`, `Program/usecase/render.ts`, `render.spec.ts` |
-| #216 × #166 | conflict (same fields) | `packages/plgg-view/package.json` version (`0.0.3` claimed by both), `element.spec.ts`/`render.ts`/`render.spec.ts` (same logic overlap as #164×#166, since #216 carries #164's SVG/raw path) |
+| #216 × `main` (post-#166) | conflict, confirmed by GitHub (`mergeable: CONFLICTING`) | `packages/plgg-view/package.json` version — `main` is already `0.0.3` (via merged #166), #216 still proposes `0.0.3` from its pre-merge base; `element.spec.ts`/`render.ts`/`render.spec.ts` (same logic overlap as #164×#166, since #216 carries #164's SVG/raw path) |
 | #165 × #212 | conflict (same fields) | `packages/plgg-bundle/package.json` version, `check-all.sh` |
 
 Every `check-all.sh` conflict is additive — each PR appends one line
@@ -162,11 +182,12 @@ calling its own new gate script — so resolving them means keeping every
 appended line, not picking a side. The `plgg-view` conflicts are real
 logic overlap: #166 owns the frame/lazy path through `render.ts`; #216
 (superseding #164) owns the SVG/`raw` path through the same file; both
-edits must survive the rebase. #216's version bump makes it the one that
-should own `0.0.3` (see Track B order below) — #166 rebases on top and
-takes `0.0.4`, not the reverse, because #216 is further along
-(CI-green on a final head, pack/install dry-run already run) while #166
-predates it and has not been re-validated since.
+edits must survive the rebase. **Third-pass correction:** #166 already
+merged and already owns `0.0.3` on `main` — #216 is the one that must
+rebase (onto current `main`, not onto #166's old PR head) and take
+`0.0.4`. The second pass had this backwards because it was written
+before either PR had merged and guessed #216 would land first based on
+validation depth; actual merge order decided it instead.
 
 ## Dependency / integration order
 
@@ -193,20 +214,21 @@ overlap (`plgg-view`'s only internal dependency is `plgg`, not
    #211"). Merging any of the four alongside #212 would re-collide on
    `package.json`'s version field and `check-all.sh` for no new coverage.
 
-**Track B — plgg-view (#157, #158), merge in this order (revised):**
+**Track B — plgg-view (#157, #158), merge in this order (revised again,
+third pass):**
 
-1. **#216** — merge first, not #166. #216 supersedes #164 and #196,
-   already carries the `0.0.3` bump, and is the more validated of the
-   two version-bump claimants (CI-green final head, pack/install dry-run
-   against the live registry). Close #164 and #196 without merging once
-   #216 lands — see "What each PR actually contains" above.
-2. **#166** — rebase onto #216 and bump its own `package.json` to
-   `0.0.4` (not `0.0.3` — that number is now #216's). Resolve the
-   `element.spec.ts` / `render.ts` / `render.spec.ts` conflicts by
-   keeping both #216's SVG-namespace/`raw`/keyed-raw changes and #166's
-   frame/`lazy` changes in the merged file. This is the opposite landing
-   order from this record's first pass, which assumed #166 owned the
-   version bump before #216 existed.
+1. **#166 — already merged** (commit `2ebc9e9`), already on `main` at
+   `0.0.3`. Nothing left to do for this step.
+2. **#216** — rebase onto current `main` (not onto its own stale
+   pre-#166 base) and bump its own `package.json` to **`0.0.4`** (not
+   `0.0.3` — that number is #166's now). Resolve the `element.spec.ts` /
+   `render.ts` / `render.spec.ts` conflicts by keeping both #166's
+   already-merged frame/`lazy` changes and #216's SVG-namespace/`raw`/
+   keyed-raw changes in the rebased file. Close #164 and #196 without
+   merging once #216 lands, as already decided above. This reverses the
+   second pass's call (which assumed #216 would merge first because it
+   was more validated at the time) — actual merge order went the other
+   way, and that is what the version numbers must follow.
 
 Integration condition for both tracks, before merging any PR in the
 sequence: `scripts/check-all.sh` green on the rebased branch (covers
@@ -221,12 +243,15 @@ pairwise dry-run is not the same as a green gate on the combined tree.
 ## npm publish order
 
 Per `.workaholic/deployments/npm.md`: publish is a **developer-driven,
-pre-merge** step. The agent's `/ship` preflight (`PREFLIGHT=1
+manual** step — the agent's `/ship` preflight (`PREFLIGHT=1
 ./scripts/publish-npm.sh`) only detects a version bump already sitting
-in a branch's `package.json`; it never decides what to bump. So the
-publish step for each track happens only once Track A's branch (through
-#212) or Track B's branch (through #216 rebased-onto by #166) exists
-with the bump already in place — not before.
+in a branch's `package.json` and is read-only; it never runs the real
+`npm publish` and never decides what to bump. So the publish step for
+plgg-bundle happens only once Track A's branch (through #212) exists
+with the bump already in place; for plgg-view, **`0.0.3` is already in
+place on `main` today** (via merged #166) — it needs no further branch
+work, just the developer running the real publish — and `0.0.4` needs
+Track B step 2 (#216, rebased) to land first.
 
 1. **plgg-bundle@0.0.7**, from the branch that already contains #189 +
    #179 + #212. Do not publish 0.0.7 from #165 or #211 alone — npm
@@ -234,23 +259,23 @@ with the bump already in place — not before.
    before #189's declaration fix or #212's repeat-build regression test
    are in the same tree, the only way to add them afterward is a second
    bump to 0.0.8.
-2. **plgg-view@0.0.3**, from the branch that already contains #216
-   alone (its own `Fixes #158`, superseding #164/#196) — publish this
-   first since #216 is already further validated. **Then
-   plgg-view@0.0.4**, from the branch that already contains #166
-   rebased onto that same #216 tree with its own `package.json` bumped
-   to `0.0.4`. Revised from this record's first pass, which assumed one
-   `0.0.3` publish covering both #166 and #164 — that is no longer
-   possible since #216 (not #164) now owns `0.0.3`, and #166's fix is
-   independently useful enough to ship as its own `0.0.4` rather than
-   wait on a second rebase.
-3. The three publishes (`plgg-bundle@0.0.7`, `plgg-view@0.0.3`,
-   `plgg-view@0.0.4`) have no dependency on each other or shared file
-   between packages, but `plgg-view@0.0.4` does depend on
-   `plgg-view@0.0.3` already being on `main` (it rebases onto it) — so
-   within the view track the order is fixed even though it can run in
-   parallel with the bundle track's `0.0.7`.
-4. After each publish, the Confirmation step in `npm.md` runs
+2. **plgg-view@0.0.3, from `main` as it stands today** (containing
+   merged #166, nothing else pending) — this can run **now**,
+   independently of the bundle track and independently of #216/#158;
+   it alone is enough to close #157 once the pipeline below confirms
+   it. **Then plgg-view@0.0.4**, from the branch that contains #216
+   rebased onto that same (now-`0.0.3`) `main`, with its own
+   `package.json` bumped to `0.0.4`. This reverses this record's
+   second pass, which assumed one `0.0.3` publish would cover both
+   #166 and #216/#164 — not possible now that #166 (not #216) already
+   owns `0.0.3` on `main`.
+3. **Serialize `0.0.3` fully (through its Confirmation step) before
+   starting `0.0.4`'s rebase**, even though the two publishes are
+   otherwise independent of the bundle track's `0.0.7`: if `0.0.3`'s
+   publish needs a retry (see "Rollback on failure"), its retry target
+   is also `0.0.4` — running #216's rebase concurrently risks both
+   publishes racing for the same next version number.
+4. After each of the three publishes, the Confirmation step in `npm.md` runs
    automatically (`npm view <name>@<version>` resolves, a scratch
    install + `import()` succeeds, and for `plgg-bundle` — once #212 is
    in — the second-build regression check specifically). Record the
@@ -266,14 +291,18 @@ with the bump already in place — not before.
   (registry doesn't resolve within the poll window, or the scratch
   install/import/`--help` check fails): npm does not allow deleting or
   re-publishing the same version. Bump to the next free version — 0.0.8
-  for plgg-bundle; for plgg-view, 0.0.4 **only if** #166 has not yet
-  claimed it (re-check #219's ledger / the registry `latest` dist-tag
-  first), otherwise 0.0.5, since #216 and #166 are two separate publishes
-  now and a failed-and-retried #216 publish must not collide with #166's
-  already-planned 0.0.4 — fix whatever the Confirmation check caught,
-  and re-run the full procedure from preflight. Do not merge the PR that
-  staged the failed version; its `package.json` must move to the new
-  version number before it can merge.
+  for plgg-bundle. For plgg-view: a failed `0.0.3` publish retries at
+  `0.0.4` — but only if #216's `0.0.4` publish has not already happened
+  (re-check #219's/#220's ledger or the registry `latest` dist-tag
+  first); if it has, retry `0.0.3` at `0.0.5` instead, and shift #216's
+  already-published `0.0.4` understanding accordingly. This is exactly
+  why "Serialize `0.0.3` fully... before starting `0.0.4`'s rebase"
+  above matters — doing them concurrently is what creates this
+  collision risk. Fix whatever the Confirmation check caught, and
+  re-run the full procedure from preflight. Do not merge the PR that
+  staged the failed version (for plgg-bundle); plgg-view's `0.0.3` has
+  no PR to merge since #166 already merged — only the version number
+  used for the retry changes.
 - **After merge:** the merge and the GitHub Release are downstream of a
   passed Confirmation, so there is no planned rollback path from "merged
   but broken" other than the normal one — open a new fix, bump again,
@@ -294,9 +323,11 @@ today — that is not a defect in the gates, it is the correct
 not-yet-integrated signal).
 
 1. **Integrate** each track per "Dependency / integration order" above
-   (Track A through #212; Track B through #216 then #166-on-#216). —
-   *Resume point on failure:* fix the failing rebase/`check-all.sh` on
-   that track's branch; do not advance to step 2 for that track.
+   (Track A through #212; Track B: #166 already merged, then #216
+   rebased onto current `main`). — *Resume point on failure:* fix the
+   failing rebase/`check-all.sh` on that track's branch; do not advance
+   to step 2 for that track. Track B's `0.0.3` slice (#166) has already
+   cleared this step.
 2. **#213 candidate gate** (`npm run gate:corpd-consumer`) against the
    integrated branch, before any publish. Its own run against
    `main`-only code correctly failed (frame/lazy not integrated); it
@@ -304,11 +335,12 @@ not-yet-integrated signal).
    point on failure:* the implementation itself is wrong or incomplete;
    fix it on the track branch and re-run step 1's `check-all.sh` before
    retrying this gate. Do not publish while this gate is red.
-3. **Publish** per "npm publish order" above
-   (`plgg-bundle@0.0.7`, `plgg-view@0.0.3`, `plgg-view@0.0.4`),
-   gated by `npm.md`'s Confirmation step. — *Resume point on failure:*
-   see "Rollback on failure" above (bump-and-retry; never re-publish a
-   version number).
+3. **Publish** per "npm publish order" above — `plgg-view@0.0.3` can run
+   today, straight from `main`; `plgg-bundle@0.0.7` once Track A lands;
+   `plgg-view@0.0.4` once #216 lands — each gated by `npm.md`'s
+   Confirmation step. — *Resume point on failure:* see "Rollback on
+   failure" above (bump-and-retry; never re-publish a version number;
+   finish `0.0.3` before starting `0.0.4`'s rebase).
 4. **#214 producer** (`npm run gate:published-completion`) reads the
    live registry and writes `docs/published-completion.json`. Its last
    real run (Linux/Node 22.23.4, pre-integration) found `plgg-bundle@0.0.6`
@@ -352,14 +384,59 @@ not-yet-integrated signal).
    ready to close. Close #155/#156 independently from #157/#158; the two
    tracks do not need to finish together.
 
+### The #221–#236 cluster (opened after the second pass)
+
+Between this record's second and third pass, 15 more PRs landed on the
+same narrow topic — persisting, validating, and cross-checking the
+*evidence* that steps 2–8 above produce, without changing what steps
+2–8 actually are: #221, #222, #223, #225, #226, #227, #228, #229, #230,
+#231, #232, #233, #234, #235, #236 (#224 is an unrelated Dependabot
+bump — `sharp`/`wrangler` — and is not part of this cluster). Each
+builds one incremental safety check — semver-regression rejection,
+reversed-timestamp rejection, mixed-registry rejection, concurrent
+latest-tag drift guards, a resume/rollback entry point, a single
+machine-readable publish-recovery contract — on top of #213/#214/#217/
+#218/#219/#220's read-only verification pipeline. **None of them merges
+anything, publishes anything, or closes an issue** — #236's own body
+says so explicitly: "新たなlive npm consumer検査・公開・merge・issue閉鎖は
+行っていません" (no new live consumer check, publish, merge, or issue
+close). They do not conflict with steps 1–8 above or with Track A/B's
+merge order; they are optional hardening of step 3's failure handling
+and steps 4–8's evidence integrity, mergeable independently and in any
+order once someone reviews them on their own technical merits.
+
+Two are worth calling out rather than treating as uniform churn:
+
+- **#226** amends `.workaholic/deployments/npm.md` directly — the file
+  that actually governs publishing — instead of adding another
+  freestanding `docs/*.md`/`*.json` record. #226's own body names this
+  record (among #181/#182/#185/#197/#206) as one more in a line of
+  freestanding answers to "what happens on partway publish failure"
+  that never landed in the one place that matters. That critique
+  applies to this record too. If #226 merges, the "Rollback on
+  failure" section above should be folded into `npm.md` rather than
+  kept here, and this record's own long-term home becomes a pointer to
+  that section, not a parallel copy.
+- **#230** edits `scripts/publish-npm.sh`/`scripts/publish.ts` directly
+  (not just docs) to reject a real publish if the registry's `latest`
+  drifted since preflight — a genuine gap in the script this record
+  depends on in "npm publish order" above (concurrent-publish races).
+
+**Recommendation:** do not add a 237th PR restating this same question.
+Review #226 and #230 on their merits first (they touch the actual
+governing script/doc); treat #221/#222/#223/#225/#227/#228/#229/#231–
+#236 as deferrable hardening that can land opportunistically after
+Track A/B merge and the first real publish, not as blockers to steps
+1–3 above.
+
 ## Close conditions
 
 | Issue | Closes when | Not enough alone |
 | --- | --- | --- |
 | #155 (EISDIR on second build) | `plgg-bundle@0.0.7` (containing #212's regression spec) is live on the npm registry, the pipeline above (steps 2–7) passes for `plgg-bundle`, and a clean consumer following the issue's repro runs `npx plgg-bundle` twice with no EISDIR | Merging #189/#179/#212 to `main` — the issue is about the npm-installed experience, not `main`; a green #213 candidate gate alone — that is pre-publish |
 | #156 (consumer TypeScript 7 captured) | `plgg-bundle@0.0.7` (containing #189's `consumerCompiler` fix) is live, the pipeline above passes for `plgg-bundle`, a TS7 consumer fixture builds and emits declarations without resolving the consumer's `typescript`, and corpd drops its `tsgo` alias workaround | `5b109cec` alone (fixes the app-build path, not declaration emission) or merging #189 without publishing |
-| #157 (frame batching + `lazy`) | `plgg-view@0.0.4` (containing #166, rebased onto #216's `0.0.3`) is live and corpd observes one render per animation frame across several same-frame dispatches, with `lazy`-wrapped subtrees skipping `view`/diff, and the pipeline above passes for that version | Merging #166 to `main` without the npm publish; publishing only `plgg-view@0.0.3` (that is #216/#158's version, not #166/#157's) |
-| #158 (SVG shapes + non-destructive `raw`) | `plgg-view@0.0.3` (containing #216, which supersedes #164/#196) is live and corpd's menu icons render via the typed `rect`/`circle`/etc. builders with `.row > svg` selectors matching, and the pipeline above passes for that version | Merging #216 (or #164) to `main` without the npm publish; also note the single-root `raw()` `<span>` wrapper is intentionally *not* part of this close condition (see #216's/#164's own scope notes) — if corpd later needs that removed, file a new issue rather than reopening #158 |
+| #157 (frame batching + `lazy`) | `plgg-view@0.0.3` (already on `main` via merged #166, no further PR to merge) is live on the npm registry and corpd observes one render per animation frame across several same-frame dispatches, with `lazy`-wrapped subtrees skipping `view`/diff, and the pipeline above passes for that version | #166 already merged to `main` — that alone does not close #157, the npm registry still serves `0.0.2`; publishing `plgg-view@0.0.4` instead/first is not required and not this issue's version |
+| #158 (SVG shapes + non-destructive `raw`) | `plgg-view@0.0.4` (containing #216, rebased onto `main`'s `0.0.3`, superseding #164/#196) is live and corpd's menu icons render via the typed `rect`/`circle`/etc. builders with `.row > svg` selectors matching, and the pipeline above passes for that version | Merging #216 (or #164) to `main` without the npm publish; publishing `plgg-view@0.0.3` alone (that is #166/#157's version, not #216/#158's — reversed from this record's second pass); also note the single-root `raw()` `<span>` wrapper is intentionally *not* part of this close condition (see #216's/#164's own scope notes) — if corpd later needs that removed, file a new issue rather than reopening #158 |
 
 A `Fixes #…` keyword closes its issue on merge, which can happen before
 the npm publish and the pipeline above actually resolve the corpd-side
@@ -396,9 +473,23 @@ disposition.
   check-all.sh spot check across #189/#179/#212, plus #213's own
   temporary (not proposed) worktree combining #164+#166+#189. Re-run
   and fix each rebase in the stated order before shipping. The revised
-  Track B order (#216 then #166) has not itself been dry-run merge-tree
-  checked here beyond the pairwise #216×#166 conflict already listed
-  above — do that before rebasing for real.
+  Track B order (#166 already merged, #216 to rebase onto `main`) has
+  not itself been dry-run merge-tree checked against *current* `main`
+  here, only `gh pr view 216 --json mergeable` (`CONFLICTING`, confirmed)
+  — do the real rebase and a fresh `check-all.sh` run before shipping.
+- This third pass confirmed `git show main:packages/plgg-view/package.json`
+  is `0.0.3` and `gh pr view 166 --json state` is `MERGED` directly
+  against the live repo (not from another PR's self-report) — that part
+  is first-hand, unlike the npm-registry facts above which still rely on
+  #214/#220's self-reported runs. This pass's own attempts to reach the
+  npm registry directly (`npm view plgg-view version`), to call
+  corpd's task API (`curl .../api/tasks/.../post`), and to run a
+  headless-browser screenshot of this very document's GitHub page
+  (before/after this pass's edit, as the originating request asked for)
+  all required interactive approval this unattended run had no one to
+  grant, consistent with every prior pass's and #217's/#219's own notes
+  about this same sandbox limitation; each was attempted once and not
+  retried in a loop.
 - `scripts/tsc-plgg.sh` and `scripts/test-plgg.sh` were not run against
   this document's branch beyond what this change itself needs (it adds
   only a Markdown file edit, no package source).
