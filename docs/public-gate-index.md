@@ -74,7 +74,7 @@ this index.
 
 ## Generator compatibility boundary
 
-Every snapshot saves `generatorVersion: "1.0.0"` separately from
+Every snapshot saves `generatorVersion: "1.1.0"` separately from
 `schemaVersion: 1`. Bump the generator version when index-generation semantics
 change, even if the JSON shape stays the same. It is not a Node, compiler, or
 npm package version.
@@ -92,3 +92,26 @@ or malformed existing snapshot therefore fails without launching child processes
 or making registry requests. The writer validates again after collection so a
 destination changed during gate execution is also rejected before replacement.
 This recheck does not lock the destination against concurrent writers.
+
+## Node 24 CI evidence and completion
+
+The optional second CLI argument is a JSON evidence file. Each snapshot embeds
+one `node24Ci` object shared by its package rows; it never appends evidence from
+older snapshots. For a checked Node 24 job, supply
+`{"status":"passed","nodeMajor":24,"url":"https://github.com/qmu/plgg/actions/runs/123/job/456"}`
+with the actual job URL. `failed` and `pending` are also accepted. A job URL is
+required to distinguish the Node 24 matrix job from other jobs in the same run.
+The operator must verify the job runtime, result and relevance to the checked
+revision; this local tool does not authenticate or fetch GitHub job results.
+
+When qmu/plgg#171 is waiting for workflow permission, supply
+`{"status":"permission-wait","reason":"workflows-permission-required"}`.
+The saved evidence includes the canonical issue URL and fixed permission reason.
+Absent or invalid evidence becomes `unknown`; arbitrary text, extra properties,
+foreign repository URLs and URL query strings are never saved.
+
+`complete` is true only for a nonempty set of passing local gates with explicit
+passing Node 24 CI evidence. Unknown, pending, failed and permission-wait states
+exit 1 even if every local gate passes. The CLI prints both CI state and completion.
+Use a new output path for generator version `1.1.0`; older artifacts are rejected.
+This adds a local evidence link, not a workflow change or closure of qmu/plgg#171.

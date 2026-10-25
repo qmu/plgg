@@ -16,6 +16,7 @@ import { join, relative } from "node:path";
 import {
   assertPublicGateIndexDestination,
   publicConsumerGates,
+  node24CiEvidence,
   collectPublicGateIndex,
   writePublicGateIndex,
   type Gate,
@@ -389,7 +390,7 @@ test("persists the generator version independently of the schema version", () =>
       saved.generatorVersion,
       index.generatorVersion,
     );
-    assert.equal(saved.generatorVersion, "1.0.0");
+    assert.equal(saved.generatorVersion, "1.1.0");
     assert.equal(saved.schemaVersion, 1);
   });
 });
@@ -517,7 +518,7 @@ test("CLI rejects incompatible destinations before executing children", () => {
         script,
       ),
     };
-    const run = () =>
+    const run = (evidence?: string) =>
       spawnSync(
         process.execPath,
         [
@@ -526,7 +527,7 @@ test("CLI rejects incompatible destinations before executing children", () => {
           `import { publicConsumerGates } from ${JSON.stringify(moduleUrl)};
 Object.defineProperty(process.versions, "node", { value: "24.0.0" });
 publicConsumerGates.splice(0, publicConsumerGates.length, ${JSON.stringify(entry)});
-process.argv = [process.execPath, "runPublicGateIndex.ts", ${JSON.stringify(output)}];
+process.argv = [process.execPath, "runPublicGateIndex.ts", ${JSON.stringify(output)}, ...${JSON.stringify(evidence === undefined ? [] : [evidence])}];
 await import(${JSON.stringify(cliUrl)});`,
         ],
         { encoding: "utf8" },
@@ -566,7 +567,11 @@ await import(${JSON.stringify(cliUrl)});`,
       ),
     );
     const compatible = run();
-    assert.equal(compatible.status, 0);
+    assert.equal(compatible.status, 1);
+    assert.match(
+      compatible.stdout,
+      /Node 24 CI: unknown; complete: false/,
+    );
     assert.match(
       compatible.stdout,
       /probe: passed/,
@@ -602,5 +607,119 @@ test("writer rechecks a destination changed after preflight", () => {
     assert.deepEqual(readdirSync(root), [
       "index.json",
     ]);
+  });
+});
+
+test("CI evidence is unique, sanitized and fails closed", () => {
+  const url =
+    "https://github.com/qmu/plgg/actions/runs/123/job/456";
+  for (const status of [
+    "passed",
+    "failed",
+    "pending",
+  ]) {
+    assert.deepEqual(
+      node24CiEvidence({
+        status,
+        url,
+        nodeMajor: 24,
+        secret: "omit",
+      }),
+      { status, url, nodeMajor: 24 },
+    );
+  }
+  for (const value of [
+    undefined,
+    null,
+    {},
+    { status: "passed", url, nodeMajor: 22 },
+    {
+      status: "passed",
+      url: url + "?token=secret",
+      nodeMajor: 24,
+    },
+    {
+      status: "passed",
+      url: "https://github.com/other/repo/actions/runs/123/job/456",
+      nodeMajor: 24,
+    },
+  ]) {
+    assert.deepEqual(node24CiEvidence(value), {
+      status: "unknown",
+    });
+  }
+  assert.deepEqual(
+    node24CiEvidence({
+      status: "permission-wait",
+      reason: "workflows-permission-required",
+      secret: "omit",
+    }),
+    {
+      status: "permission-wait",
+      reason: "workflows-permission-required",
+      issue:
+        "https://github.com/qmu/plgg/issues/171",
+    },
+  );
+});
+
+test("local success requires passing Node 24 CI evidence for completion", () => {
+  fixture((root) => {
+    writeFileSync(join(root, "pass.mjs"), "");
+    const collect = (
+      evidence: unknown,
+      status = 0,
+    ) =>
+      collectPublicGateIndex(
+        root,
+        "24.0.0",
+        [gate("pass")],
+        () => ({ status }),
+        evidence,
+      );
+    const evidence = {
+      status: "passed",
+      url: "https://github.com/qmu/plgg/actions/runs/123/job/456",
+      nodeMajor: 24,
+    };
+    assert.equal(
+      collect(undefined).complete,
+      false,
+    );
+    assert.equal(
+      collect({
+        status: "permission-wait",
+        reason: "workflows-permission-required",
+      }).complete,
+      false,
+    );
+    assert.equal(
+      collect({ ...evidence, status: "pending" })
+        .complete,
+      false,
+    );
+    assert.equal(
+      collect({ ...evidence, status: "failed" })
+        .complete,
+      false,
+    );
+    assert.equal(
+      collect(evidence).complete,
+      true,
+    );
+    assert.equal(
+      collect(evidence, 1).complete,
+      false,
+    );
+    assert.equal(
+      collectPublicGateIndex(
+        root,
+        "24.0.0",
+        [],
+        undefined,
+        evidence,
+      ).complete,
+      false,
+    );
   });
 });
