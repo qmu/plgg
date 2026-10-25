@@ -1351,6 +1351,31 @@ test("a re-render with a DIFFERENT arg calls the producer and patches the subtre
   ]);
 });
 
+test("a re-render with the SAME arg but a DIFFERENT producer still calls the new producer", () => {
+  // regression: a slot alternating between two lazy(...) call sites that
+  // happen to share one `arg` reference must not be treated as unchanged —
+  // only comparing `arg` (and not `fn`) would wrongly reuse headerView's DOM
+  // when the view switches to footerView.
+  const root = document.createElement("div");
+  const render = makeRenderer<never>(root, noop);
+  const cfg = { label: "x" };
+  const header = (
+    c: typeof cfg,
+  ): Html<never, "div"> =>
+    div([], [text(`header:${c.label}`)]);
+  const footer = (
+    c: typeof cfg,
+  ): Html<never, "div"> =>
+    div([], [text(`footer:${c.label}`)]);
+  render(div([], [lazy(header, cfg)]));
+  const a1 = check(root.textContent, toBe("header:x"));
+  render(div([], [lazy(footer, cfg)])); // same `cfg` reference, different fn
+  return all([
+    a1,
+    check(root.textContent, toBe("footer:x")),
+  ]);
+});
+
 test("lazy siblings skip independently: an unchanged one is untouched while a changed one repaints", () => {
   const root = document.createElement("div");
   const render = makeRenderer<never>(root, noop);

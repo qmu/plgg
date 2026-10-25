@@ -847,14 +847,18 @@ export const reconcile =
       // a raw passthrough is opaque to the differ — any
       // change rebuilds it from the trusted html
       [raw$(), (): Node => replace()],
-      // the lazy fast path: an unchanged `===` arg skips `render()` AND the
-      // diff entirely (DOM untouched, `domNode` returned as-is); a changed
-      // arg resolves only the NEW side (the old side comes from
-      // `wiring.lazyResolved` — the subtree that was ACTUALLY rendered last
-      // time, never by re-forcing the old thunk, which would call its
-      // producer a second time for an arg it already rendered) and re-diffs
-      // through this same function, then remembers the new resolved subtree
-      // against whichever node ends up at this slot.
+      // the lazy fast path: an unchanged `===` arg AND the same producer
+      // `fn` skips `render()` AND the diff entirely (DOM untouched, `domNode`
+      // returned as-is) — comparing `fn` too keeps two call sites sharing an
+      // `arg` reference (e.g. a slot alternating between `lazy(headerView,
+      // cfg)` and `lazy(footerView, cfg)`) from being wrongly treated as
+      // unchanged, the same hazard `collectCssRules`' cache is nested by `fn`
+      // first to avoid. A changed `fn` or `arg` resolves only the NEW side
+      // (the old side comes from `wiring.lazyResolved` — the subtree that was
+      // ACTUALLY rendered last time, never by re-forcing the old thunk, which
+      // would call its producer a second time for an arg it already
+      // rendered) and re-diffs through this same function, then remembers the
+      // new resolved subtree against whichever node ends up at this slot.
       [
         lazy$(),
         ({ content: newContent }): Node => {
@@ -883,8 +887,9 @@ export const reconcile =
             [
               lazy$(),
               ({ content: oldContent }): Node =>
+                oldContent.fn === newContent.fn &&
                 oldContent.arg ===
-                newContent.arg
+                  newContent.arg
                   ? domNode
                   : resolveAndReconcile(
                       pipe(
