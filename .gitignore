@@ -71,3 +71,6 @@ packages/*/package-lock.json
 # Playwright MCP session output (screenshots, snapshots, console logs)
 .playwright-mcp/
 **/.playwright-mcp/
+
+# Local public consumer gate snapshot (contains no raw subprocess output).
+.public-package-gate-index.json
