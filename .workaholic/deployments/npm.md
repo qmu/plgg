@@ -79,6 +79,54 @@ publish" — into the story/PR, so **every ship carries explicit evidence of the
 npm state** rather than a silent skip. Manual spot-check:
 https://www.npmjs.com/package/plgg (and siblings) show the new version.
 
+## Partway failure: resume, rollback, and issue close order
+
+This is the **one** contract for what happens when step 3's run dies before
+every package in the set is published — the question several earlier,
+unmerged docs-only PRs each answered separately. This section is the
+authoritative answer; a future change to this behavior amends this section,
+it does not add a second one elsewhere.
+
+**Resume.** `scripts/publish.ts`'s `runPublishSet` stages and checks every
+package in the set (`stageChecked`: allowlist + entry-point presence) before
+publishing **any** of them, so a defect caught at that step means nothing new
+reached the registry — fix it and re-run the full command, no `ONLY=` needed.
+A failure *after* that point means at least one `npm publish` already ran;
+work out exactly where from the compact per-package status lines already
+printed (`staged` / `published` / `resolved` / `<smoke>`, one per phase):
+
+- A package whose line stops at `published`, `resolved`, or the smoke step
+  **is already on the registry** — `npm publish` is irreversible and the
+  script never re-sends a version it already sent. Do not include it when
+  you resume.
+- Every package whose lines are *all* missing (the run never reached it)
+  still needs publishing.
+- Resume with `ONLY=` set to exactly that still-needing-publish tail, in the
+  same build order the first run used (`scripts/publish-npm.sh` prints this
+  order; it is `build.sh`'s topology with `plgg-bundle` prepended). Packages
+  the first run already finished are never re-published and never deleted —
+  `ONLY=` simply excludes them.
+
+**Rollback.** There is no rollback that removes a published version — see
+this file's opening paragraph; `npm unpublish` is never the answer. If a
+version that resolved and smoked clean turns out broken after the fact, roll
+forward: `npm deprecate <name>@<version> '<reason>'` to warn installers off
+it, then ship a fixed patch version through the normal preflight → gate →
+publish → Confirmation path above. The deprecated version itself is left in
+place, permanently.
+
+**Issue close order.** A corpd-filed (or any externally-reported) issue is
+closed by the PR whose merge is covered by a *passed* Confirmation for the
+package version that actually carries the fix — never by the PR that merely
+lands the source change on `main` without bumping the package's version.
+Landing the fix unbumped (common when a fix is folded into a larger PR) does
+not close the issue; write `Fixes #<n>` only in the PR that bumps the
+version and only after this file's Confirmation has passed for that run, so
+the GitHub auto-close lands in the same commit as live evidence the fix is
+on the registry. When a single package version resolves more than one open
+issue, close all of them off that one Confirmation together, in ascending
+issue-number order, rather than letting separate PRs each claim one.
+
 ## Notes
 
 - Auth is the ambient `~/.npmrc` of the executing host (`npm login`), never
