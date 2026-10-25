@@ -274,10 +274,25 @@ const packStaged = (
   size: number;
   unpackedSize: number;
 } => {
+  // npm 10's pack implementation runs prepare even with --ignore-scripts.
+  // Reject it before invoking npm rather than trusting that flag alone.
+  const scripts = readPkgJson(
+    join(stage, "package.json"),
+  )["scripts"];
+  if (
+    isRecord(scripts) &&
+    typeof scripts["prepare"] === "string" &&
+    scripts["prepare"].trim().length > 0
+  ) {
+    throw new PublicPackageFailure(
+      "package.json declares a prepare hook; build explicitly and remove the hook before packing safely",
+    );
+  }
   const out = execFileSync(
     "npm",
     [
       "pack",
+      "--ignore-scripts",
       "--json",
       "--loglevel=error",
       "--pack-destination",

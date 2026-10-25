@@ -11,6 +11,12 @@ type GateContext = Readonly<{
 const shellQuote = (value: string): string =>
   `'${value.replaceAll("'", "'\\''")}'`;
 
+/** The single command generator shared by every stage/pack failure. */
+export const publicPackageReproductionCommand = (
+  dir: string,
+): string =>
+  `node scripts/publish.ts --dry-run --only ${shellQuote(dir)}`;
+
 const failureStatus = (
   error: unknown,
 ): string => {
@@ -55,7 +61,7 @@ export const checkPublicPackage = <T>(
         `public-package gate FAILED: ${context.name}@${context.version}`,
         `phase: ${context.phase}`,
         `reason: ${reason}`,
-        `reproduce (from repository root; no publish): node scripts/publish.ts --dry-run --only ${shellQuote(context.dir)}`,
+        `reproduce (from repository root; no publish): ${publicPackageReproductionCommand(context.dir)}`,
       ].join("\n"),
     );
   }

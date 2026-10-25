@@ -3,6 +3,8 @@ import { test } from "node:test";
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
+  existsSync,
+  readFileSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -13,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   checkPublicPackage,
+  publicPackageReproductionCommand,
   PublicPackageFailure,
 } from "./publicPackageGate.ts";
 
@@ -107,6 +110,8 @@ for (const mode of [
   "entry",
   "pack",
   "success",
+  "lifecycle",
+  "prepare",
 ]) {
   test(`publisher CLI: ${mode} diagnostics and cleanup`, () => {
     const root = mkdtempSync(
@@ -137,11 +142,21 @@ for (const mode of [
         join(scripts, "build.sh"),
         "cd $REPO_ROOT/packages/fixture && npm run build\n",
       );
+      const hook = `node -e "require('node:fs').writeFileSync('${join(root, "hook-ran")}', 'unsafe'); process.exit(7)"`;
       writeFileSync(
         join(pkg, "package.json"),
         JSON.stringify({
           name: "fixture",
           version: "1.2.3",
+          scripts: {
+            prepack: hook,
+            ...(mode === "prepare"
+              ? {
+                  prepare: hook,
+                }
+              : {}),
+            postpack: hook,
+          },
           ...(mode === "allowlist"
             ? {}
             : { files: ["dist"] }),
@@ -157,6 +172,12 @@ for (const mode of [
           : '#!/bin/sh\nprintf \'[{"filename":"fixture.tgz","size":10,"unpackedSize":20}]\\n\'\n',
         { mode: 0o755 },
       );
+      if (
+        mode === "lifecycle" ||
+        mode === "prepare"
+      ) {
+        rmSync(join(bin, "npm"));
+      }
       const result = spawnSync(
         process.execPath,
         [
@@ -175,7 +196,9 @@ for (const mode of [
       );
       assert.equal(
         result.status,
-        mode === "success" ? 0 : 1,
+        mode === "success" || mode === "lifecycle"
+          ? 0
+          : 1,
         result.stderr,
       );
       assert.ok(
@@ -188,7 +211,13 @@ for (const mode of [
           name.startsWith(".publish-stage."),
         ),
       );
-      if (mode === "success") {
+      assert.ok(
+        !existsSync(join(root, "hook-ran")),
+      );
+      if (
+        mode === "success" ||
+        mode === "lifecycle"
+      ) {
         assert.match(
           result.stdout,
           /dry-run: 1 package/,
@@ -200,11 +229,15 @@ for (const mode of [
         );
         assert.match(
           result.stderr,
-          mode === "pack"
+          mode === "pack" || mode === "prepare"
             ? /phase: pack/
             : /phase: stage/,
         );
         const reasons = new Map([
+          [
+            "prepare",
+            /reason: package.json declares a prepare hook/,
+          ],
           [
             "allowlist",
             /reason: .*no "files" allowlist/,
@@ -222,9 +255,12 @@ for (const mode of [
           result.stderr,
           reasons.get(mode) ?? /never/,
         );
-        assert.match(
-          result.stderr,
-          /node scripts\/publish.ts --dry-run --only 'fixture'/,
+        assert.equal(
+          result.stderr
+            .trimEnd()
+            .split("\n")
+            .at(-1),
+          `reproduce (from repository root; no publish): ${publicPackageReproductionCommand("fixture")}`,
         );
       }
     } finally {
@@ -235,3 +271,54 @@ for (const mode of [
     }
   });
 }
+
+test("reproduction command round-trips shell metacharacters without execution", () => {
+  const root = mkdtempSync(
+    join(tmpdir(), "public-gate-shell-"),
+  );
+  try {
+    const bin = join(root, "bin");
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, "node"),
+      '#!/bin/sh\nprintf "%s\\n" "$@" > argv.txt\n',
+      { mode: 0o755 },
+    );
+    const dir =
+      "example'$(touch injected);`touch injected`&package";
+    const command =
+      publicPackageReproductionCommand(dir);
+    const result = spawnSync(
+      "/bin/sh",
+      ["-c", command],
+      {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env["PATH"] ?? ""}`,
+        },
+      },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(
+      readFileSync(join(root, "argv.txt"), "utf8")
+        .trimEnd()
+        .split("\n"),
+      [
+        "scripts/publish.ts",
+        "--dry-run",
+        "--only",
+        dir,
+      ],
+    );
+    assert.ok(
+      !existsSync(join(root, "injected")),
+    );
+  } finally {
+    rmSync(root, {
+      recursive: true,
+      force: true,
+    });
+  }
+});
