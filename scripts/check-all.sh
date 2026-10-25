@@ -49,6 +49,12 @@ node --test scripts/*.spec.ts
 # its `file:` dependencies' built output.
 ./scripts/build.sh
 
+# Gate: a consumer of the PUBLISHED plgg-test resolves its own TypeScript 6
+# runner beside a consumer TypeScript 7, runs a transpiling test through the
+# installed CLI, and typechecks clean. It packs the built dists, so it must run
+# AFTER build.sh (scripts/gate-test-npm-consumer.sh).
+./scripts/gate-test-npm-consumer.sh
+
 # Gate: the plgg-test scheduler behaves identically on Node, Deno and Bun — the
 # constraint that ruled out `worker_threads` in favour of promises and child
 # processes. Runs the scheduler for real on every runtime present; Deno and Bun
