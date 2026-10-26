@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "issue": "https://github.com/qmu/plgg/issues/157",
+  "checkedAt": "2026-10-25T14:23:41.008Z",
+  "implementation": {
+    "url": "https://github.com/qmu/plgg/pull/166",
+    "merged": true,
+    "mergeCommit": "2ebc9e9b104067cb6b9ef146d565619fd64f1861",
+    "mergedAt": "2026-10-25T11:34:03Z"
+  },
+  "registry": "https://registry.npmjs.org",
+  "acquisition": {
+    "name": "plgg-view",
+    "version": "0.0.2",
+    "latest": "0.0.2",
+    "tarball": "https://registry.npmjs.org/plgg-view/-/plgg-view-0.0.2.tgz",
+    "integrity": "sha512-hxby3rrjnhvbjvllnyjedHdacuafhCVIpxTnLiZpL9nbDNDo5gg6NLbE/9gYaaWZGoF2MYiQyzag1TDQ3kg46A==",
+    "sha256": "4ac7a1c66f9f6bec692053a527d926fa1dae3c4235dd0c07ae12a322261d1096",
+    "acquiredAt": "2026-10-25T14:23:41.007Z",
+    "installedFrom": "registry-tarball"
+  },
+  "consumer": {
+    "lazy": false,
+    "application": true
+  },
+  "conditions": [
+    {
+      "id": "implementation-merged",
+      "status": "passed"
+    },
+    {
+      "id": "published-version",
+      "status": "blocked"
+    },
+    {
+      "id": "public-lazy-export",
+      "status": "blocked"
+    },
+    {
+      "id": "public-application-export",
+      "status": "passed"
+    },
+    {
+      "id": "frame-dispatch",
+      "status": "pending"
+    },
+    {
+      "id": "lazy-subtree",
+      "status": "pending"
+    },
+    {
+      "id": "corpd-frame-lazy",
+      "status": "pending"
+    }
+  ],
+  "canClose": false,
+  "closeCondition": "Merged implementation; published plgg-view >=0.0.3; frame-dispatch and lazy-subtree consumer gates and corpd-frame-lazy observation pass against the same acquired version."
+}
