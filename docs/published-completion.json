@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-25T14:25:14.033Z",
+  "registry": "https://registry.npmjs.org",
+  "node": "v24.22.1",
+  "consumerCompilers": {
+    "restart": "6.0.3",
+    "ts7": "7.0.2"
+  },
+  "browserHarness": "playwright@1.56.1",
+  "platform": "linux",
+  "architecture": "arm64",
+  "packages": [
+    {
+      "name": "plgg-bundle",
+      "version": "0.0.6",
+      "sha512": "sha512-KdonyKNHTek+O5UIP+u9kXRYiM/lDCqvcub5xaqkgIgJ/0/FiIYnEze691Rpmn+w4TOJ6XXBThQn2G76pQDO+Q==",
+      "sha256": "d18bd0357eeab4c34c92e73d12028124742deb3f66c2b79649d6e3eacf3ceab5"
+    },
+    {
+      "name": "plgg-view",
+      "version": "0.0.2",
+      "sha512": "sha512-hxby3rrjnhvbjvllnyjedHdacuafhCVIpxTnLiZpL9nbDNDo5gg6NLbE/9gYaaWZGoF2MYiQyzag1TDQ3kg46A==",
+      "sha256": "4ac7a1c66f9f6bec692053a527d926fa1dae3c4235dd0c07ae12a322261d1096"
+    },
+    {
+      "name": "plgg",
+      "version": "0.0.27",
+      "sha512": "sha512-e2JVXXDMHOYstQtBHwM037xrmNh3O4WEFwREtjNboe/uJ9nYkfOp872x14yCqifi0eEl2uuYjnNO6SLezv/48Q==",
+      "sha256": "f884930640a4e103c77de5dbe7750bda4a7d0e94730b66c008cbff971bc47b18"
+    }
+  ],
+  "checks": [
+    {
+      "id": "bundle-restart",
+      "status": "failed",
+      "phase": "second-build",
+      "reason": "legacy-symlink-mutated"
+    },
+    {
+      "id": "consumer-ts7",
+      "status": "failed",
+      "phase": "first-build",
+      "reason": "CommonJS"
+    },
+    {
+      "id": "svg-elements",
+      "status": "failed"
+    },
+    {
+      "id": "raw-identity",
+      "status": "failed"
+    },
+    {
+      "id": "frame-dispatch",
+      "status": "failed"
+    },
+    {
+      "id": "lazy-subtree",
+      "status": "failed"
+    }
+  ],
+  "complete": false,
+  "browser": "156.0.8078.47"
+}
