@@ -80,6 +80,9 @@ node --test scripts/smokeBundle.spec.mjs
 # the sibling-dist masking class this repository keeps rediscovering.
 ./scripts/gate-cross-runtime.sh
 
+# Published and locally packed plgg-parser: isolated Node 24 / TS7 consumers.
+./scripts/gate-parser-consumer.sh
+
 # The verification phase: the whole-repo typecheck gate plus every package's
 # suite, fanned out across processes through the one canonical runner.
 #
