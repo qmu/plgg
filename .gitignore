@@ -71,3 +71,6 @@ packages/*/package-lock.json
 # Playwright MCP session output (screenshots, snapshots, console logs)
 .playwright-mcp/
 **/.playwright-mcp/
+
+# Local, non-secret diagnostic evidence for the recorded Node 24 CI blocker.
+.artifacts/node24-ci-blocker.json
