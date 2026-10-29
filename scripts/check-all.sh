@@ -80,6 +80,14 @@ node --test scripts/smokeBundle.spec.mjs
 # the sibling-dist masking class this repository keeps rediscovering.
 ./scripts/gate-cross-runtime.sh
 
+# Gate: the REAL public npm tarball for `plgg` installs and transpiles on
+# Node 24 against a consumer's own typescript@7 — distinct from PR #165's
+# plgg-bundle npm-consumer gate above (different package, different Node
+# major, the live registry instead of a local `npm pack`). Runs for real
+# only under CI or an explicit opt-in; see the script header for why
+# (scripts/gate-public-tarball-node24.sh).
+./scripts/gate-public-tarball-node24.sh
+
 # The verification phase: the whole-repo typecheck gate plus every package's
 # suite, fanned out across processes through the one canonical runner.
 #
