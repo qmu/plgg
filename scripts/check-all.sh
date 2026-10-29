@@ -44,6 +44,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # survives this.
 node "$REPO_ROOT/node_modules/typescript/bin/tsc" -p scripts/tsconfig.json
 node --test scripts/*.spec.ts
+node --test scripts/gate-corpd-consumer.spec.mjs
 
 # Build all dists first (in dependency order) so every package below can resolve
 # its `file:` dependencies' built output.
