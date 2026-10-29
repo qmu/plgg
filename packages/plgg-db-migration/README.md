@@ -5,8 +5,10 @@
 dbmate-style schema migrations for the plgg stack — each migration is **one
 `.sql` file with both `up` and `down`**, tracked in a `schema_migrations` table,
 applied incrementally. Built as first-class plgg code: **zero new external
-dependencies, no native binding.** SQLite runs out of the box (`node:sqlite`);
-PostgreSQL / MySQL are supported through an app-supplied `Db` adapter (see
+dependencies, no native binding.** SQLite runs out of the box (`node:sqlite`,
+so Node ≥ 22.13 — the release where that built-in stopped requiring
+`--experimental-sqlite`); PostgreSQL / MySQL are supported through an
+app-supplied `Db` adapter (see
 [Db-adapter contract](#db-adapter-contract)).
 
 It also provides an **on-demand, per-tenant** migrator: bring a tenant's SQLite
