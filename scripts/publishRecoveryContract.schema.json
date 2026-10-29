@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/qmu/plgg/blob/main/scripts/publishRecoveryContract.schema.json",
+  "title": "Publish recovery log",
+  "description": "The structural shape of one entry in a recovery log recorded while recovering a partially failed npm publish. This schema is deliberately shallow -- it cannot express the FIXED ORDER across entries (resume/rollback must settle before npmVersionCheck, which must reconcile before issueClose, and nothing may follow a closed log). That stateful, retry-aware sequencing is the job of validateRecoveryOrder in publishRecoveryContract.ts; this schema only rejects a malformed entry before it ever reaches that validator.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["phase", "outcome"],
+    "properties": {
+      "phase": {
+        "description": "One of the four recovery phases this contract fixes the order of.",
+        "enum": ["resume", "rollback", "npmVersionCheck", "issueClose"]
+      },
+      "outcome": {
+        "description": "\"failed\" permits retrying the same phase; it never permits skipping ahead to the next one.",
+        "enum": ["ok", "failed"]
+      }
+    }
+  }
+}
