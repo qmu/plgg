@@ -4,6 +4,8 @@ import {
   parseSemver,
   isNewer,
   computePublishSet,
+  isRemoteBaseline,
+  driftedPackages,
   type PkgMeta,
 } from "./publishSet.ts";
 
@@ -95,5 +97,87 @@ test("computePublishSet treats an unqueried name as never published", () => {
   assert.deepEqual(
     decision.publish.map((p) => p.name),
     ["plgg-x"],
+  );
+});
+
+test("isRemoteBaseline accepts a flat name->version-or-null object", () => {
+  assert.equal(
+    isRemoteBaseline({
+      plgg: "0.0.27",
+      "plgg-bundle": null,
+    }),
+    true,
+  );
+  assert.equal(isRemoteBaseline({}), true);
+});
+
+test("isRemoteBaseline rejects non-object, array, and non-string/null values", () => {
+  assert.equal(isRemoteBaseline(null), false);
+  assert.equal(isRemoteBaseline("plgg"), false);
+  assert.equal(isRemoteBaseline(["plgg"]), false);
+  assert.equal(
+    isRemoteBaseline({ plgg: 27 }),
+    false,
+  );
+  assert.equal(
+    isRemoteBaseline({ plgg: undefined }),
+    false,
+  );
+});
+
+test("driftedPackages: unchanged baseline drifts nothing", () => {
+  const baseline = { plgg: "0.0.27", "plgg-bundle": null };
+  const current = { plgg: "0.0.27", "plgg-bundle": null };
+  assert.deepEqual(
+    driftedPackages(
+      ["plgg", "plgg-bundle"],
+      baseline,
+      current,
+    ),
+    [],
+  );
+});
+
+test("driftedPackages: a moved latest version is drift", () => {
+  const baseline = { plgg: "0.0.27" };
+  const current = { plgg: "0.0.28" };
+  assert.deepEqual(
+    driftedPackages(["plgg"], baseline, current),
+    ["plgg"],
+  );
+});
+
+test("driftedPackages: a newly-published name is drift too", () => {
+  const baseline = { "plgg-new": null };
+  const current = { "plgg-new": "0.0.1" };
+  assert.deepEqual(
+    driftedPackages(["plgg-new"], baseline, current),
+    ["plgg-new"],
+  );
+});
+
+test("driftedPackages: a name absent from a side reads as null", () => {
+  const baseline = {};
+  const current = { "plgg-new": "0.0.1" };
+  assert.deepEqual(
+    driftedPackages(["plgg-new"], baseline, current),
+    ["plgg-new"],
+  );
+  assert.deepEqual(
+    driftedPackages(
+      ["plgg-new"],
+      { "plgg-new": null },
+      {},
+    ),
+    [],
+  );
+});
+
+test("driftedPackages: only checks the names given, not every baseline key", () => {
+  const baseline = { plgg: "0.0.27", "plgg-view": "0.0.2" };
+  const current = { plgg: "0.0.27", "plgg-view": "9.9.9" };
+  assert.deepEqual(
+    driftedPackages(["plgg"], baseline, current),
+    [],
   );
 });
