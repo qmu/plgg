@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "registry": "https://registry.npmjs.org",
+  "complete": false,
+  "reasons": [
+    "consumer-compile",
+    "test"
+  ],
+  "packages": [
+    {
+      "name": "plgg",
+      "version": "0.0.27",
+      "sha256": "f884930640a4e103c77de5dbe7750bda4a7d0e94730b66c008cbff971bc47b18",
+      "sha512": "sha512-e2JVXXDMHOYstQtBHwM037xrmNh3O4WEFwREtjNboe/uJ9nYkfOp872x14yCqifi0eEl2uuYjnNO6SLezv/48Q=="
+    },
+    {
+      "name": "plgg-bundle",
+      "version": "0.0.6",
+      "sha256": "d18bd0357eeab4c34c92e73d12028124742deb3f66c2b79649d6e3eacf3ceab5",
+      "sha512": "sha512-KdonyKNHTek+O5UIP+u9kXRYiM/lDCqvcub5xaqkgIgJ/0/FiIYnEze691Rpmn+w4TOJ6XXBThQn2G76pQDO+Q=="
+    },
+    {
+      "name": "plgg-view",
+      "version": "0.0.2",
+      "sha256": "4ac7a1c66f9f6bec692053a527d926fa1dae3c4235dd0c07ae12a322261d1096",
+      "sha512": "sha512-hxby3rrjnhvbjvllnyjedHdacuafhCVIpxTnLiZpL9nbDNDo5gg6NLbE/9gYaaWZGoF2MYiQyzag1TDQ3kg46A=="
+    }
+  ],
+  "checks": [
+    {
+      "id": "bundle-restart",
+      "status": "passed"
+    },
+    {
+      "id": "consumer-ts7",
+      "status": "failed"
+    },
+    {
+      "id": "svg-elements",
+      "status": "failed"
+    },
+    {
+      "id": "raw-identity",
+      "status": "failed"
+    },
+    {
+      "id": "frame-dispatch",
+      "status": "failed"
+    },
+    {
+      "id": "lazy-subtree",
+      "status": "failed"
+    }
+  ],
+  "observations": [
+    {
+      "name": "plgg",
+      "matched": true,
+      "recordedVersion": "0.0.27",
+      "publishedVersion": "0.0.27",
+      "distTagVersion": "0.0.27"
+    },
+    {
+      "name": "plgg-bundle",
+      "matched": true,
+      "recordedVersion": "0.0.6",
+      "publishedVersion": "0.0.6",
+      "distTagVersion": "0.0.6"
+    },
+    {
+      "name": "plgg-view",
+      "matched": true,
+      "recordedVersion": "0.0.2",
+      "publishedVersion": "0.0.2",
+      "distTagVersion": "0.0.2"
+    }
+  ],
+  "node": "v24.22.1",
+  "sourceCheckedAt": "2026-10-25T11:34:32.314Z",
+  "consumerTypeScript": "7.0.2",
+  "checkedAt": "2026-10-25T11:35:16.751Z",
+  "sourceSha256": "b4713fe60be879274b2a99ee74a0531eced3d7a10269f1e9a2e2c007f4d0ef66"
+}
