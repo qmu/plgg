@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "subject": "qmu/plgg issues #155-#158 (corpd consumer requests) — public evidence and rollback conditions",
+  "compiledAt": "2026-10-25",
+  "compiledFrom": [
+    "gh issue view 155..158 -R qmu/plgg --json body,comments",
+    "gh pr view <n> -R qmu/plgg --json body,files,mergeable,state for every PR referenced below",
+    "git show <pr-head>:<path> for real file contents (not titles)",
+    "git log --oneline --all | grep 5b109cec",
+    "packages/plgg-bundle/package.json and packages/plgg-view/package.json on origin/main"
+  ],
+  "mainCommit": "bba7ca80",
+  "npmPublishPolicy": {
+    "doc": ".workaholic/deployments/npm.md",
+    "summary": "npm publish is a developer-driven, pre-merge manual step run via scripts/publish-npm.sh. npm forbids re-publishing or deleting an existing version number, so a defect discovered after publish is never fixed in place: the package is bumped to the next version and the whole publish+confirm procedure re-run.",
+    "confirmationProbe": "npm view <name>@<version> resolves (polled up to 60s), then a scratch-dir npm install <name>@<version> + import() succeeds (plus --help for packages with a bin)."
+  },
+  "issues": [
+    {
+      "issue": 155,
+      "url": "https://github.com/qmu/plgg/issues/155",
+      "title": "plgg-bundle を npm から入れると、2 回目の起動で relocate の symlink を消せず EISDIR で落ちる",
+      "package": "plgg-bundle",
+      "npm": { "current": "0.0.6", "required": "0.0.7" },
+      "status": "open",
+      "rootCause": {
+        "fixedOnMain": true,
+        "commit": "5b109cec",
+        "commitTitle": "Remove plgg-bundle relocate.mjs, run from dist",
+        "summary": "relocate.mjs's rmSync(symlinked node_modules, {force:true}) step was deleted; a registry install now imports dist/cli.es.js directly with no /tmp relink, so the EISDIR code path no longer exists."
+      },
+      "reproEnvironment": "macOS, Node v23.9.0 per the issue body. The one live-registry run so far (PR #214) used Linux/Node 22.23.4 and did NOT reproduce the symptom even against the still-published 0.0.6 — a green Linux run is not sufficient evidence this issue is closed; the repro needs the Node version named in the issue, or an equivalent that throws EISDIR for rmSync on a directory symlink.",
+      "residualGap": "None in source; only missing a regression test pinning the already-fixed behavior and the version bump to actually ship it.",
+      "implementingPRs": [
+        { "pr": 212, "url": "https://github.com/qmu/plgg/pull/212", "role": "consolidation (folds #190 + #211)", "state": "OPEN", "touches": ["packages/plgg-bundle/package.json (0.0.6->0.0.7)", "scripts/bundle-repeat-build.spec.mjs", "scripts/smokeBundle.ts(+spec)", ".workaholic/deployments/npm.md", "scripts/publish.ts", "scripts/check-all.sh"] },
+        { "pr": 190, "role": "superseded-by-212", "state": "CLOSED" },
+        { "pr": 211, "role": "superseded-by-212", "state": "CLOSED" },
+        { "pr": 165, "url": "https://github.com/qmu/plgg/pull/165", "role": "duplicate 0.0.7 bump + own gate; superseded by #212, recommend closing without merge", "state": "OPEN" },
+        { "pr": 173, "role": "superseded-by-190-and-212", "state": "CLOSED" }
+      ],
+      "consumerGate": {
+        "pr": 213,
+        "url": "https://github.com/qmu/plgg/pull/213",
+        "script": "scripts/gate-corpd-consumer.mjs",
+        "command": "npm run gate:corpd-consumer",
+        "state": "OPEN, opt-in (network-dependent), not yet exercised against a merged/published fix"
+      },
+      "publicEvidenceToClose": [
+        { "check": "npm registry version", "command": "npm view plgg-bundle version", "expect": "0.0.7", "status": "pending" },
+        { "check": "repeat build in a clean consumer, on a Node version that reproduces EISDIR pre-fix", "command": "npm pack plgg-bundle@0.0.7 into a scratch dir consumer, then `npx plgg-bundle` twice in the same directory (see #212 scripts/bundle-repeat-build.spec.mjs or #213 scripts/gate-corpd-consumer.mjs)", "expect": "both runs exit 0, no ERR_FS_EISDIR", "status": "pending" },
+        { "check": "live registry ledger", "command": "regenerate docs/published-completion.json via #214's scripts/publishedCompletion.mjs", "expect": "packages[name=plgg-bundle].version == 0.0.7 and checks[id=bundle-restart].status == passed, captured on a Node version in the affected range", "status": "pending — last run (2026-10-25T09:44:33Z, Linux/Node 22.23.4) still shows version 0.0.6 and did not reproduce the bug on this Node version either way" }
+      ],
+      "blockers": [
+        "#212 not merged (no review yet)",
+        "#189 (the #156 declaration-path fix, same package) is not yet rebased into the same branch as #212 — publishing 0.0.7 before both tracks land means a second bump (0.0.8) is required to add the other later, since npm forbids re-publishing 0.0.7",
+        "npm publish itself is a developer-driven manual step; no sandbox agent holds npm publish credentials"
+      ],
+      "closeCondition": "plgg-bundle@0.0.7 (containing #212's bundle-repeat-build.spec.mjs coverage) is live on the npm registry per `npm view`, and a clean npm consumer on a Node version that reproduces the original EISDIR runs `npx plgg-bundle` twice in the same directory with the second run exiting 0.",
+      "rollback": {
+        "trigger": "The post-publish Confirmation step in .workaholic/deployments/npm.md fails (registry doesn't resolve within the poll window, or the scratch install/import/repeat-build check fails).",
+        "action": "Do not merge the PR that staged the failed version. Bump packages/plgg-bundle/package.json to 0.0.8, fix whatever the Confirmation check caught, and re-run the full procedure from `PREFLIGHT=1 ./scripts/publish-npm.sh`.",
+        "irreversibility": "npm forbids deleting or re-publishing an existing version number, so 0.0.7 can never be corrected in place once published broken — only superseded by a later version."
+      }
+    },
+    {
+      "issue": 156,
+      "url": "https://github.com/qmu/plgg/issues/156",
+      "title": "plgg-bundle を npm から入れると、利用側の TypeScript 7 を掴んで transpile できない",
+      "package": "plgg-bundle",
+      "npm": { "current": "0.0.6", "required": "0.0.7" },
+      "status": "open",
+      "rootCause": {
+        "fixedOnMain": false,
+        "note": "Commit 5b109cec removed the relocate.mjs symlink step that caused the app-build transpile path to resolve the consumer's top-level TypeScript, so the issue's literal `target: \"app\"` repro no longer occurs on main. But declaration (.d.ts) emission in packages/plgg-bundle/src/domain/usecase/emitDts.ts independently resolved `typescript` by walking up from the package's own root, which does not reliably prefer the package's nested typescript@6 over a consumer's top-level typescript@7 in every layout. That residual gap is still open on main."
+      },
+      "residualGap": "emitDts.ts's ad hoc typescript resolution, fixed only in PR #189's new vendors/consumerCompiler.ts.",
+      "implementingPRs": [
+        { "pr": 189, "url": "https://github.com/qmu/plgg/pull/189", "role": "source fix (consumerCompiler.ts, used by emitDts.ts and nodeProc.ts)", "state": "OPEN", "touches": ["packages/plgg-bundle/src/domain/usecase/emitDts.ts", "packages/plgg-bundle/src/vendors/consumerCompiler.ts(+spec)", "packages/plgg-bundle/src/vendors/nodeProc.ts", "scripts/gate-bundle-declarations-consumer.sh", "scripts/check-all.sh"] },
+        { "pr": 179, "url": "https://github.com/qmu/plgg/pull/179", "role": "test-only: packs plgg-bundle, installs into an isolated TypeScript 7 fixture consumer, asserts the app build works", "state": "OPEN", "touches": ["scripts/gate-bundle-ts7-consumer.ts", "scripts/fixtures/bundle-ts7/**", "scripts/check-all.sh"] },
+        { "pr": 212, "role": "carries the shared 0.0.6->0.0.7 bump this issue also needs", "state": "OPEN" },
+        { "pr": 165, "role": "duplicate 0.0.7 bump; superseded by #212, recommend closing without merge", "state": "OPEN" }
+      ],
+      "consumerGate": {
+        "pr": 213,
+        "url": "https://github.com/qmu/plgg/pull/213",
+        "script": "scripts/gate-corpd-consumer.mjs",
+        "command": "npm run gate:corpd-consumer",
+        "state": "OPEN, opt-in; #214's one-off run of the same scenario (check id consumer-ts7) failed against the currently-published 0.0.6 with a CommonJS error, matching this issue"
+      },
+      "publicEvidenceToClose": [
+        { "check": "npm registry version", "command": "npm view plgg-bundle version", "expect": "0.0.7", "status": "pending" },
+        { "check": "TypeScript 7 consumer app build", "command": "isolated consumer with typescript@7.0.2 at the top level and plgg-bundle's own nested typescript@6 dependency, `npx plgg-bundle` with target:\"app\" (see #179 scripts/gate-bundle-ts7-consumer.ts or #213/#214 check id consumer-ts7)", "expect": "build succeeds, no TranspileError / 'Cannot read properties of undefined (reading CommonJS)'", "status": "pending" },
+        { "check": "TypeScript 7 consumer declaration emission", "command": "scripts/gate-bundle-declarations-consumer.sh from #189", "expect": "emitted .d.ts resolves plgg-bundle's own nested typescript, not the consumer's top-level one", "status": "pending" },
+        { "check": "corpd drops its tsgo workaround", "command": "n/a — verified on the qmu/corpd side, not in this repository", "expect": "corpd's top-level typescript returns to a single `typescript@7` dependency instead of aliasing tsgo + pinning typescript@6.0.3", "status": "pending, out of this repo's scope" }
+      ],
+      "blockers": [
+        "#189 not merged (no review yet)",
+        "#179 not merged (no review yet)",
+        "#189 and #179 are not yet combined with #212's 0.0.7 bump in one branch — publishing 0.0.7 from #212 alone, without #189's fix, would require an 0.0.8 bump later to add it, since npm forbids re-publishing 0.0.7"
+      ],
+      "closeCondition": "plgg-bundle@0.0.7 (containing #189's consumerCompiler fix) is live on npm per `npm view`, an isolated TypeScript 7 consumer fixture builds the app and emits declarations without resolving the consumer's own typescript, and corpd's config drops the tsgo alias workaround.",
+      "rollback": {
+        "trigger": "Same shared-version Confirmation step as issue #155 (plgg-bundle@0.0.7 is one publish for both issues).",
+        "action": "Same as issue #155: bump to 0.0.8, fix, re-run the full publish procedure. Do not publish 0.0.7 a second time.",
+        "irreversibility": "Shared with issue #155 — one version number, one publish, one rollback path."
+      }
+    },
+    {
+      "issue": 157,
+      "url": "https://github.com/qmu/plgg/issues/157",
+      "title": "plgg-view：dispatch の描画をフレームでまとめ、変わらない部分木を飛ばす lazy が欲しい",
+      "package": "plgg-view",
+      "npm": { "current": "0.0.2", "required": "0.0.3" },
+      "status": "open",
+      "rootCause": {
+        "fixedOnMain": false,
+        "note": "The fix exists only on unmerged PR #166; nothing frame-batches dispatch or implements lazy() on main."
+      },
+      "residualGap": "Entire feature is unmerged.",
+      "implementingPRs": [
+        { "pr": 166, "url": "https://github.com/qmu/plgg/pull/166", "role": "source fix: batches application's dispatch->view->diff into one animation frame (render:\"sync\" selectable for tests), adds lazy(fn, arg) to skip view/diff when the argument is referentially unchanged; bumps plgg-view 0.0.2->0.0.3", "state": "OPEN", "touches": ["packages/plgg-view/src/Html/model/element.ts(+spec)", "packages/plgg-view/src/Program/usecase/render.ts(+spec)", "packages/plgg-view/src/Html/model/Html.ts", "packages/plgg-view/src/Program/usecase/application.ts", "packages/plgg-view/package.json (0.0.2->0.0.3)"] }
+      ],
+      "conflictNote": "PR #216 (opened 2026-10-25T09:55:28Z, after #166) also bumps plgg-view to 0.0.3 while fixing issue #158, and its own body states #166 'must be rebased/versioned after this release to avoid a version collision.' Only one of #166/#216 can ship as plgg-view@0.0.3 — see issue #158's conflictNote for the same pair.",
+      "consumerGate": {
+        "pr": 213,
+        "url": "https://github.com/qmu/plgg/pull/213",
+        "script": "scripts/gate-corpd-consumer.mjs",
+        "command": "npm run gate:corpd-consumer",
+        "state": "OPEN, opt-in; #214's one-off run shows checks id frame-dispatch and lazy-subtree both failing against the currently-published 0.0.2, matching this issue"
+      },
+      "publicEvidenceToClose": [
+        { "check": "npm registry version", "command": "npm view plgg-view version", "expect": "0.0.3", "status": "pending" },
+        { "check": "frame batching", "command": "mount an application, fire several dispatches within one animation-frame tick, count view()/diff invocations (see #166's own render.spec.ts, or #213/#214 check id frame-dispatch)", "expect": "exactly one view+diff pass per animation frame regardless of how many dispatches landed in it", "status": "pending" },
+        { "check": "lazy subtree skip", "command": "wrap a subtree in lazy(fn, arg), re-render with an unchanged arg reference (check id lazy-subtree)", "expect": "fn is not called again and no diff walks that subtree", "status": "pending" },
+        { "check": "live registry ledger", "command": "regenerate docs/published-completion.json via #214", "expect": "checks[id=frame-dispatch].status == passed and checks[id=lazy-subtree].status == passed", "status": "pending" }
+      ],
+      "blockers": [
+        "#166 not merged (no review yet)",
+        "Version collision with #216 (see conflictNote) — whichever of #166/#216 merges second must rebase onto the other's 0.0.3 bump rather than republish the same version"
+      ],
+      "closeCondition": "plgg-view@0.0.3 (containing #166's frame batching and lazy()) is live on npm per `npm view`, and corpd observes exactly one render per animation frame across several same-frame dispatches, with lazy-wrapped subtrees skipping view/diff.",
+      "rollback": {
+        "trigger": "Post-publish Confirmation step fails for plgg-view@0.0.3, or the version collision with #216 is discovered only after one of the two has already published 0.0.3.",
+        "action": "Do not merge the losing PR as-is. Rebase it onto the other's already-published 0.0.3 content, bump to 0.0.4, and re-run the full publish procedure.",
+        "irreversibility": "npm forbids re-publishing 0.0.3 under different content, so whichever of #166/#216 ships 0.0.3 second must carry a new version number, not a corrected 0.0.3."
+      }
+    },
+    {
+      "issue": 158,
+      "url": "https://github.com/qmu/plgg/issues/158",
+      "title": "plgg-view：SVG の rect・circle などを描けるようにし、raw の包みと毎回の作り直しをやめたい",
+      "package": "plgg-view",
+      "npm": { "current": "0.0.2", "required": "0.0.3" },
+      "status": "open",
+      "rootCause": {
+        "fixedOnMain": false,
+        "note": "The fix exists only on unmerged PR #216 (superseding #164 and #196); main still creates SVG descendants via document.createElement, so rect/circle/etc. become HTMLUnknownElement."
+      },
+      "residualGap": "Entire feature is unmerged. The single-root raw() <span> wrapper removal asked about in the issue body is explicitly out of scope in both #164 and #216 (left for a future issue if corpd still needs it).",
+      "implementingPRs": [
+        { "pr": 216, "url": "https://github.com/qmu/plgg/pull/216", "role": "consolidated source fix: typed rect/circle/ellipse/line/polyline/polygon/g builders rendered in the SVG namespace, raw() DOM-identity preservation across unchanged html, asSvgNumberList caster; bumps plgg-view 0.0.2->0.0.3; supersedes #164 and #196 (Fixes #158)", "state": "OPEN", "touches": ["packages/plgg-view/src/Html/model/element.ts(+spec)", "packages/plgg-view/src/Program/usecase/render.ts(+spec)", "packages/plgg-view/src/Html/model/Attribute.ts(+spec)", "packages/plgg-view/package.json (0.0.2->0.0.3)", "packages/plgg-test/src/Env/Dom/**"] },
+        { "pr": 164, "url": "https://github.com/qmu/plgg/pull/164", "role": "earlier, narrower SVG/raw fix; carries no version bump; superseded by #216, recommend closing without merge", "state": "OPEN" },
+        { "pr": 196, "role": "asSvgNumberList caster, originally scoped to issue #167 (not #155-#158); its caster is folded into #216 as a dependency for safe SVG numeric attributes — #167 itself is out of this ledger's scope", "state": "OPEN" }
+      ],
+      "conflictNote": "PR #166 (issue #157's fix, opened before #216) also bumps plgg-view to 0.0.3. #216's own body says #166 'must be rebased/versioned after this release to avoid a version collision.' Only one of #166/#216 can ship as plgg-view@0.0.3 as-is; the other must be rebased onto it before either publishes.",
+      "consumerGate": {
+        "pr": 213,
+        "url": "https://github.com/qmu/plgg/pull/213",
+        "script": "scripts/gate-corpd-consumer.mjs",
+        "command": "npm run gate:corpd-consumer",
+        "state": "OPEN, opt-in; #214's one-off run shows checks id svg-elements and raw-identity both failing against the currently-published 0.0.2, matching this issue"
+      },
+      "publicEvidenceToClose": [
+        { "check": "npm registry version", "command": "npm view plgg-view version", "expect": "0.0.3", "status": "pending" },
+        { "check": "SVG shape rendering", "command": "el(\"svg\", ..., [el(\"rect\", ...)]) etc. rendered in a real DOM / Chromium (see #216's own render.spec.ts, or #213/#214 check id svg-elements)", "expect": "rect/circle/ellipse/line/polyline/polygon/g render as SVG elements, not HTMLUnknownElement; `.row > svg` child-combinator selectors match", "status": "pending" },
+        { "check": "raw() DOM identity", "command": "dispatch the same view twice with an unchanged raw(html) string (check id raw-identity)", "expect": "the raw node is not replaced; only a changed html string triggers a rebuild", "status": "pending" },
+        { "check": "live registry ledger", "command": "regenerate docs/published-completion.json via #214", "expect": "checks[id=svg-elements].status == passed and checks[id=raw-identity].status == passed", "status": "pending" }
+      ],
+      "blockers": [
+        "#216 not merged (no review yet)",
+        "Version collision with #166 (see conflictNote)",
+        "#164 and #196 remain open and should be closed in favor of #216 to avoid confusion over which PR is canonical"
+      ],
+      "closeCondition": "plgg-view@0.0.3 (containing #216's typed SVG builders and raw() identity preservation) is live on npm per `npm view`, and corpd's menu icons render via the typed rect/circle/etc. builders with `.row > svg` selectors matching.",
+      "rollback": {
+        "trigger": "Post-publish Confirmation step fails for plgg-view@0.0.3, or the version collision with #166 surfaces only after one of the two has already published.",
+        "action": "Do not merge the losing PR as-is. Rebase it onto the other's already-published 0.0.3 content, bump to 0.0.4, and re-run the full publish procedure.",
+        "irreversibility": "Shared with issue #157 — one version number for plgg-view, one publish, one rollback path."
+      }
+    }
+  ],
+  "relatedDocs": {
+    "narrativeDecisionRecord": {
+      "pr": 215,
+      "path": "docs/issues-155-158-decision-record.md",
+      "note": "Prose merge-order, conflict-table and rollback/close-condition writeup this ledger restates in structured form. Opened 2026-10-25T09:47:31Z, 8 minutes before #216 existed, so it does not account for #216 or the #166/#216 version collision this ledger records."
+    },
+    "liveRegistryProbe": {
+      "pr": 214,
+      "path": "docs/published-completion.json, scripts/publishedCompletion.mjs",
+      "note": "Generated by actually installing the currently-published tarballs and hashing them. Re-running it is how each 'pending' entry in this ledger's publicEvidenceToClose flips to passed/failed with a timestamp and SHA-256/512."
+    },
+    "combinedConsumerGate": {
+      "pr": 213,
+      "path": "scripts/gate-corpd-consumer.mjs",
+      "command": "npm run gate:corpd-consumer",
+      "note": "Opt-in acceptance test exercising all four issues together once their implementation PRs are merged and published."
+    },
+    "supersededStatusDocs": [176, 181, 182, 185],
+    "outOfScope": {
+      "note": "Issues #170-#172 and the Node 24 / TypeScript 7 CI ledger built around them (#168, #180, #182's all-package table, #187, #191, #193, #197, #199-#209) are a separate concern unrelated to these four corpd consumer requests.",
+      "prs": [168, 180, 187, 191, 193, 197, 199, 201, 202, 203, 204, 205, 206, 207, 208, 209]
+    }
+  },
+  "notVerified": [
+    "No sandbox network/process access in this job to run npm, node package scripts, scripts/tsc-plgg.sh, or scripts/test-plgg.sh (each requires interactive approval this unattended run had no one to grant) — the same limitation #164, #166, #181, #185, #189, #213, #214 and #215 each already recorded. This PR adds only a JSON document; no package source changed.",
+    "This ledger's PR does not merge, rebase, publish, or close any of the issues or PRs it describes; every 'status: pending' entry needs the referenced command re-run against a merged/published state before it can flip."
+  ]
+}
