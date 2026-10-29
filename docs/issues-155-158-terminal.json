@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-25T13:43:40.066Z",
+  "registry": "https://registry.npmjs.org",
+  "sources": {
+    "completionSha256": "ce33a1bdf53860c5d027b96055ef4190945b383f8913f76926bc6300aa7b1cbc",
+    "tagsSha256": "143fdc9257d709ee2d681202a49413a6ee55e67ac0574e9d3f960833e68cc2d9",
+    "supplementalSha256": "b0f86220a83f0cee7c11298f8da3701c033d704b20d6c9ce06d77ff57431d3c8",
+    "pullsSha256": "bdf0562379b2480421e410d7cbdb53cffdcf4ec18cf3e58c802ceaf5f1cb0968"
+  },
+  "complete": false,
+  "issues": [
+    {
+      "issue": 155,
+      "url": "https://github.com/qmu/plgg/issues/155",
+      "package": "plgg-bundle",
+      "minimumVersion": "0.0.7",
+      "npmVersion": "0.0.6",
+      "latest": "0.0.6",
+      "publicationMatched": false,
+      "prs": [
+        {
+          "number": 212,
+          "url": "https://github.com/qmu/plgg/pull/212",
+          "merged": false,
+          "mergedAt": null,
+          "mergeCommit": null
+        }
+      ],
+      "consumerChecks": [
+        {
+          "id": "bundle-restart",
+          "passed": true
+        }
+      ],
+      "closureChecks": [
+        {
+          "id": "affected-runtime-repeat-build",
+          "passed": false
+        }
+      ],
+      "canClose": false,
+      "blockers": [
+        "unbound-or-incomplete-public-evidence",
+        "npm-version-or-latest-mismatch",
+        "pr-not-merged:212",
+        "closure-check-pending:affected-runtime-repeat-build"
+      ]
+    },
+    {
+      "issue": 156,
+      "url": "https://github.com/qmu/plgg/issues/156",
+      "package": "plgg-bundle",
+      "minimumVersion": "0.0.7",
+      "npmVersion": "0.0.6",
+      "latest": "0.0.6",
+      "publicationMatched": false,
+      "prs": [
+        {
+          "number": 189,
+          "url": "https://github.com/qmu/plgg/pull/189",
+          "merged": false,
+          "mergedAt": null,
+          "mergeCommit": null
+        },
+        {
+          "number": 179,
+          "url": "https://github.com/qmu/plgg/pull/179",
+          "merged": false,
+          "mergedAt": null,
+          "mergeCommit": null
+        },
+        {
+          "number": 212,
+          "url": "https://github.com/qmu/plgg/pull/212",
+          "merged": false,
+          "mergedAt": null,
+          "mergeCommit": null
+        }
+      ],
+      "consumerChecks": [
+        {
+          "id": "consumer-ts7",
+          "passed": false
+        }
+      ],
+      "closureChecks": [
+        {
+          "id": "consumer-declarations",
+          "passed": false
+        },
+        {
+          "id": "corpd-tsgo-workaround-removed",
+          "passed": false
+        }
+      ],
+      "canClose": false,
+      "blockers": [
+        "unbound-or-incomplete-public-evidence",
+        "npm-version-or-latest-mismatch",
+        "pr-not-merged:189",
+        "pr-not-merged:179",
+        "pr-not-merged:212",
+        "consumer-check-pending:consumer-ts7",
+        "closure-check-pending:consumer-declarations",
+        "closure-check-pending:corpd-tsgo-workaround-removed"
+      ]
+    },
+    {
+      "issue": 157,
+      "url": "https://github.com/qmu/plgg/issues/157",
+      "package": "plgg-view",
+      "minimumVersion": "0.0.3",
+      "npmVersion": "0.0.2",
+      "latest": "0.0.2",
+      "publicationMatched": false,
+      "prs": [
+        {
+          "number": 166,
+          "url": "https://github.com/qmu/plgg/pull/166",
+          "merged": true,
+          "mergedAt": "2026-10-25T11:34:03Z",
+          "mergeCommit": "2ebc9e9b104067cb6b9ef146d565619fd64f1861"
+        }
+      ],
+      "consumerChecks": [
+        {
+          "id": "frame-dispatch",
+          "passed": false
+        },
+        {
+          "id": "lazy-subtree",
+          "passed": false
+        }
+      ],
+      "closureChecks": [
+        {
+          "id": "corpd-frame-lazy",
+          "passed": false
+        }
+      ],
+      "canClose": false,
+      "blockers": [
+        "unbound-or-incomplete-public-evidence",
+        "npm-version-or-latest-mismatch",
+        "consumer-check-pending:frame-dispatch",
+        "consumer-check-pending:lazy-subtree",
+        "closure-check-pending:corpd-frame-lazy"
+      ]
+    },
+    {
+      "issue": 158,
+      "url": "https://github.com/qmu/plgg/issues/158",
+      "package": "plgg-view",
+      "minimumVersion": "0.0.3",
+      "npmVersion": "0.0.2",
+      "latest": "0.0.2",
+      "publicationMatched": false,
+      "prs": [
+        {
+          "number": 216,
+          "url": "https://github.com/qmu/plgg/pull/216",
+          "merged": false,
+          "mergedAt": null,
+          "mergeCommit": null
+        }
+      ],
+      "consumerChecks": [
+        {
+          "id": "svg-elements",
+          "passed": false
+        },
+        {
+          "id": "raw-identity",
+          "passed": false
+        }
+      ],
+      "closureChecks": [
+        {
+          "id": "corpd-typed-svg-child-selector",
+          "passed": false
+        }
+      ],
+      "canClose": false,
+      "blockers": [
+        "unbound-or-incomplete-public-evidence",
+        "npm-version-or-latest-mismatch",
+        "pr-not-merged:216",
+        "consumer-check-pending:svg-elements",
+        "consumer-check-pending:raw-identity",
+        "closure-check-pending:corpd-typed-svg-child-selector"
+      ]
+    }
+  ]
+}
