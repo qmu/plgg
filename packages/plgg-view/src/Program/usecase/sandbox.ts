@@ -11,9 +11,11 @@ import { type Cmd } from "plgg-view/Program/model/Cmd";
 import { type Sub } from "plgg-view/Program/model/Sub";
 import {
   type SubEnv,
+  type FrameEnv,
   runCmd,
   makeSubRuntime,
   browserSubEnv,
+  browserFrameEnv,
 } from "plgg-view/Program/usecase/effects";
 
 /**
@@ -39,34 +41,75 @@ export type Sandbox<Model, Msg> = Readonly<{
   ) => readonly [Model, Cmd<Msg>];
   view: (model: Model) => Html<Msg>;
   subscriptions?: (model: Model) => Sub<Msg>;
+  /**
+   * How a dispatch schedules its paint — the same knob as
+   * `Application.render` (see `application.ts`), since a `sandbox` app can
+   * drive just as many out-of-order `Cmd`-resolved dispatches as an
+   * `application` one and deserves the same one-paint-per-frame collapse.
+   * `"frame"` (the default) batches every dispatch landing within the same
+   * browser frame into ONE `view()` call and ONE patch; `"sync"` paints
+   * immediately after every dispatch (today's pre-batching behaviour) — the
+   * deterministic choice for a spec that asserts DOM state right after a
+   * synchronous dispatch with no frame to flush.
+   */
+  render?: "frame" | "sync";
 }>;
 
 /**
  * Runs a {@link Sandbox} against a DOM container: paints `view(init)`, runs the
  * init `Cmd`, and starts the initial subscriptions; then on every dispatched
- * `Msg` folds `update`, re-renders through the diffing {@link makeRenderer}
- * (only changed DOM is touched — a focused input keeps its focus/caret), runs
- * the returned `Cmd`, and re-diffs `subscriptions(model)` by key. Returns a
- * cleanup that stops effects/subscriptions and empties the container.
+ * `Msg` folds `update` and schedules a paint through the diffing
+ * {@link makeRenderer} (only changed DOM is touched — a focused input keeps its
+ * focus/caret), runs the returned `Cmd`, and re-diffs `subscriptions(model)` by
+ * key. Returns a cleanup that stops effects/subscriptions, cancels a pending
+ * paint, and empties the container.
  *
- * The live `model` and the `alive` flag are the runtime's mutable seams — the
- * Elm Architecture is imperative at exactly these points, so the app author's
- * code stays pure. `env` is injectable (default the real
- * `setInterval`/`window`) so tests drive timers/events deterministically,
- * mirroring the renderer's {@link Play} seam.
+ * The live `model`, the `alive` flag, and the frame-paint bookkeeping
+ * (`paintPending`/`cancelPaint`) are the runtime's mutable seams — the Elm
+ * Architecture is imperative at exactly these points, so the app author's code
+ * stays pure. `env`/`frameEnv` are injectable (default the real
+ * `setInterval`/`window`/`requestAnimationFrame`) so tests drive
+ * timers/events/frames deterministically, mirroring the renderer's {@link Play}
+ * seam and `application.ts`'s identical frame-batching seam.
  */
 export const sandbox =
   <Model, Msg>(
     program: Sandbox<Model, Msg>,
     env: SubEnv = browserSubEnv,
+    frameEnv: FrameEnv = browserFrameEnv,
   ) =>
   (container: Element): (() => void) => {
     const [initModel, initCmd] = program.init;
-    // mutable seams: the live model, and an `alive` flag so an effect or
-    // subscription resolving after teardown is dropped.
+    // mutable seams: the live model, an `alive` flag so an effect or
+    // subscription resolving after teardown is dropped, and the frame-paint
+    // bookkeeping (see application.ts's identical seam for why `paintPending`
+    // is kept separate from `cancelPaint`: `frameEnv.schedule` may call back
+    // synchronously).
     let model: Model = initModel;
     let alive = true;
+    let paintPending = false;
+    let cancelPaint: (() => void) | null = null;
+    const sync = program.render === "sync";
     const sheet = makeSheet();
+    // Flushes the LATEST `model` through one `view()` + patch — read at flush
+    // time (not schedule time), so N dispatches batched into one frame still
+    // repaint only once, on the model the last of them produced.
+    const flushPaint = (): void => {
+      paintPending = false;
+      cancelPaint = null;
+      if (alive) {
+        paint(program.view(model));
+      }
+    };
+    const schedulePaint = (): void => {
+      if (sync) {
+        paint(program.view(model));
+      } else if (!paintPending) {
+        paintPending = true;
+        cancelPaint =
+          frameEnv.schedule(flushPaint);
+      }
+    };
     const dispatch = (msg: Msg): void => {
       if (!alive) {
         return;
@@ -76,7 +119,7 @@ export const sandbox =
         model,
       );
       model = next;
-      paint(program.view(model));
+      schedulePaint();
       runCmd(cmd, dispatch);
       syncSubs();
     };
@@ -108,6 +151,11 @@ export const sandbox =
     syncSubs();
     return () => {
       alive = false;
+      paintPending = false;
+      if (cancelPaint !== null) {
+        cancelPaint();
+        cancelPaint = null;
+      }
       subs.disposeAll();
       container.replaceChildren();
       sheet.dispose();
