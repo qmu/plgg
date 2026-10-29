@@ -100,7 +100,8 @@ export const parseCheckArgs = (
   defaultJobs: number,
 ): CheckArgs => {
   const at = argv.indexOf("--jobs");
-  const raw = at === -1 ? "" : (argv[at + 1] ?? "");
+  const raw =
+    at === -1 ? "" : (argv[at + 1] ?? "");
   const parsed = Number.parseInt(raw, 10);
   return {
     jobs:
@@ -124,12 +125,7 @@ export const parseCheckArgs = (
 export const tscBinFromMain = (
   resolvedMain: string,
 ): string =>
-  join(
-    dirname(resolvedMain),
-    "..",
-    "bin",
-    "tsc",
-  );
+  join(dirname(resolvedMain), "..", "bin", "tsc");
 
 /**
  * How many diagnostics a `tsc` run reported. Counted from the output
@@ -185,6 +181,19 @@ export const summaryOf = (
 };
 
 /**
+ * Attribute a failed check to the launcher actually resolved for it.
+ * The path exposes an unexpected consumer/hoisted TypeScript immediately
+ * when diagnosing the TS6 runtime / TS7 toolchain split.
+ */
+export const failureOutputOf = (
+  name: string,
+  tscBin: string,
+  errorCount: number,
+  output: string,
+): string =>
+  `\n=== packages/${name} — ${errorCount} error(s) ===\nTypeScript compiler: ${tscBin}\n${output}\n`;
+
+/**
  * Typecheck one package by spawning its own `tsc`. `--noEmit` is forced
  * so a package whose tsconfig emits declarations (plgg, plggmatic, …)
  * is checked exactly as its retired `tsc --noEmit` script checked it,
@@ -230,7 +239,12 @@ const checkProject = (
       );
       if (errorCount > 0) {
         process.stdout.write(
-          `\n=== packages/${name} — ${errorCount} error(s) ===\n${output}\n`,
+          failureOutputOf(
+            name,
+            tscBin,
+            errorCount,
+            output,
+          ),
         );
       }
       done({
@@ -261,8 +275,9 @@ const runPool = async (
   names: ReadonlyArray<string>,
   jobs: number,
 ): Promise<ReadonlyArray<ProjectResult>> => {
-  const results: Array<ProjectResult> =
-    new Array(names.length);
+  const results: Array<ProjectResult> = new Array(
+    names.length,
+  );
   let next = 0;
   const worker = async (): Promise<void> => {
     for (;;) {
@@ -331,7 +346,8 @@ const main = async (): Promise<void> => {
 const invoked = process.argv[1];
 if (
   invoked !== undefined &&
-  fileURLToPath(import.meta.url) === resolve(invoked)
+  fileURLToPath(import.meta.url) ===
+    resolve(invoked)
 ) {
   void main();
 }
