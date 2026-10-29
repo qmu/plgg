@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-25T10:43:15.109Z",
+  "registry": "https://registry.npmjs.org",
+  "issues": [155, 156, 157, 158],
+  "observations": [
+    {
+      "name": "plgg-bundle",
+      "recordedVersion": "0.0.6",
+      "publishedVersion": "0.0.6",
+      "distTag": "latest",
+      "distTagVersion": "0.0.6",
+      "matched": true
+    },
+    {
+      "name": "plgg-view",
+      "recordedVersion": "0.0.2",
+      "publishedVersion": "0.0.2",
+      "distTag": "latest",
+      "distTagVersion": "0.0.2",
+      "matched": true
+    },
+    {
+      "name": "plgg",
+      "recordedVersion": "0.0.27",
+      "publishedVersion": "0.0.27",
+      "distTag": "latest",
+      "distTagVersion": "0.0.27",
+      "matched": true
+    }
+  ],
+  "reasons": ["consumer-checks-incomplete"],
+  "complete": false,
+  "sourceSha256": "a87f716fd12a26f3ae4251ed3260d3ef0ebe5f5e291c289e58231c62f41b3070"
+}
