@@ -234,6 +234,55 @@ test("injected highlighter + link resolver are honored", () =>
     }),
   ));
 
+// The defect this closes: a bare URL fell through to
+// literal text and shipped HTML-ESCAPED, and because no
+// `Link` node ever existed the dead-link checker saw
+// nothing to check either. Both halves are pinned here.
+test("extended autolinks render as anchors and reach the links surface", () =>
+  check(
+    renderMarkdownWithOptions(opts(false))(
+      src(
+        "# Autolinks",
+        "",
+        "Ask ada@example.com, or see www.example.com/x.",
+      ),
+    ),
+    okThen((doc) => {
+      const html = renderToString(doc.body);
+      return all([
+        // the www host gains the implied protocol…
+        check(
+          html,
+          toContain(
+            'href="http://www.example.com/x"',
+          ),
+        ),
+        // …while the link text still reads as authored
+        check(
+          html,
+          toContain(">www.example.com/x</a>"),
+        ),
+        // the sentence's full stop stayed outside the link
+        check(html, toContain("/x</a>.")),
+        check(
+          html,
+          toContain(
+            'href="mailto:ada@example.com"',
+          ),
+        ),
+        // both now reach the dead-link checker's surface
+        check(
+          doc.links,
+          toContain("http://www.example.com/x"),
+        ),
+        check(
+          doc.links,
+          toContain("mailto:ada@example.com"),
+        ),
+      ]);
+    }),
+  ));
+
 test("layout-home frontmatter is detected and stripped", () =>
   check(
     renderMarkdownWith(
