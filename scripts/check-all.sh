@@ -24,6 +24,13 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # can't silently drift (scripts/gate-guide-deps.sh).
 ./scripts/gate-guide-deps.sh
 
+# Gate: workloads/guide and workloads/development actually build AND reach a
+# request-answering state, not just `docker build` exiting 0. Docker/podman
+# are optional (skipped with a note when neither is on PATH), so this runs
+# for real on the hosted run-tests.yml backstop (ubuntu-latest has Docker)
+# even when a developer's machine does not (scripts/gate-workload-startup.sh).
+./scripts/gate-workload-startup.sh
+
 # Gate: the vendor-boundary policy — a third-party import (node:*, the tsc API,
 # any bare non-plgg specifier) may appear in PRODUCTION code only under a
 # package's vendors/ or entrypoints/. Unexempted violations OR stale exemptions
