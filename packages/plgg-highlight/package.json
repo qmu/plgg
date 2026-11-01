@@ -35,6 +35,9 @@
   },
   "author": "qmu",
   "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
   "bugs": {
     "url": "https://github.com/qmu/plgg/issues"
   },
