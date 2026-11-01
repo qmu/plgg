@@ -48,5 +48,8 @@
     "plgg-bundle": "file:../plgg-bundle",
     "plgg-test": "file:../plgg-test",
     "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
