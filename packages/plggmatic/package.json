@@ -3,6 +3,9 @@
   "version": "0.2.2",
   "description": "A column-oriented UI design framework on the plgg family: pane alignment, a typed light/dark color scheme, and fundamental components as pure functions returning plgg-view Html",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "main": "dist/index.es.js",
   "module": "dist/index.es.js",
   "exports": {
