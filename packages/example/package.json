@@ -2,6 +2,9 @@
   "name": "@plgg/example",
   "version": "0.0.2",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "description": "A To-Do app demo for the plgg monorepo — one Elm-Architecture program (Model/update/view) rendered both server-side (SSR via plgg-server) and client-side (CSR via plgg-view's runtime).",
   "scripts": {
