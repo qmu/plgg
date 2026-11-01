@@ -226,7 +226,7 @@ flowchart LR
 
 ### Runtime
 
-Node.js is required. The observed version in this environment is `v24.13.1` with npm `11.8.0`. No `.nvmrc`, `.node-version`, or `engines` field in any `package.json` specifies a minimum version constraint explicitly; the Node version requirement is not observed as documented.
+Node.js 24 or newer is required. The observed version in this environment is `v24.13.1` with npm `11.8.0`. `.nvmrc` pins `24`, and the root and package `package.json` files declare `engines.node` as `>=24`. CI workflows under `.github/workflows` still pin `22.x` and are migrated separately.
 
 TypeScript target is `ES2021` (configured in all four `tsconfig.json` files). Module format is `NodeNext`.
 
@@ -288,7 +288,7 @@ The use of `as`, `any`, and `@ts-ignore` is explicitly prohibited by `CLAUDE.md`
 - **[Explicit]** The `.gitignore` excludes `node_modules/`, `**/dist/`, `**/coverage/`, `.env`, `.env.*`, and `.claude/settings.local.json`. Verified by reading `.gitignore`.
 - **[Explicit]** `scripts/check-all.sh` is the full integration gate, combining test, type-check, and build steps. Verified by reading the script.
 - **[Inferred]** No root-level `package.json` implies the monorepo does not use npm workspaces. Each package manages its own `node_modules`. This is consistent with independent versioning and publishing of each package.
-- **[Inferred]** The absence of a `.nvmrc` or `engines` field suggests that no specific Node version constraint is formally enforced; the observed `v24.13.1` is the development environment version but is not guaranteed to be the minimum supported version.
+- **[Explicit]** The Node >=24 minimum is formally declared via `.nvmrc` and `engines.node`.
 - **[Inferred]** `dotenv` as a dev-only dependency (not in `dependencies`) confirms that API key loading from `.env` files is a test-time behavior only. Production consumers are expected to supply API keys via environment variables or inline configuration.
 - **[Inferred]** The `TodoFoundry.ts` file at the root of `plgg-foundry/` (outside `src/`) is a development scratchpad and is not part of the package's published surface.
 - **[Not observed]** No CI/CD pipeline configuration (GitHub Actions, CircleCI, etc.) is present in the repository. Continuous integration is not observed as implemented.
