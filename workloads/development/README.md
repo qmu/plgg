@@ -6,7 +6,8 @@ and runs its **SSR + CSR To-Do** server — so you can *see plgg-view (and the
 plgg-server SSR path) actually work* without bootstrapping the monorepo by hand.
 
 This is a dev image (it builds from source and runs the `tsx` dev server), not a
-production artifact.
+production artifact. It is based on `node:24-slim`, matching the repo's
+`engines.node >=24` and `.nvmrc`.
 
 ## Run it
 
