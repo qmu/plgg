@@ -2,6 +2,9 @@
   "name": "plgg-monorepo",
   "private": true,
   "description": "The plgg family monorepo: the npm-workspaces root. Not a published package -- it exists so one root install resolves every packages/* member and writes the single lockfile.",
+  "engines": {
+    "node": ">=24"
+  },
   "workspaces": [
     "packages/*"
   ],
