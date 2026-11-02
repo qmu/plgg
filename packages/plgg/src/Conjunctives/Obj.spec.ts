@@ -30,6 +30,8 @@ test("isObj type guard", () =>
       toBe(true),
     ),
     check(isObj([]), toBe(true)), // Arrays are records in JavaScript runtime
+    check(isObj({ a: 1, b: null }), toBe(true)),
+    check(isObj({ a: { b: null } }), toBe(true)),
     check(isObj(null), toBe(false)),
     check(isObj(undefined), toBe(false)),
     check(isObj("string"), toBe(false)),
