@@ -28,10 +28,13 @@ type OnlyDatumObject = {
 
 /**
  * Type guard to check if a value is an Obj.
+ * Property values may be null (e.g. parsed JSON), but the value itself may not.
  */
 const is = (value: unknown): value is Obj =>
   typeof value === "object" && value !== null
-    ? Object.values(value).every(isDatum)
+    ? Object.values(value).every(
+        (v) => v === null || isDatum(v),
+      )
     : false;
 
 /**
