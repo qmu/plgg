@@ -31,7 +31,9 @@ type OnlyDatumObject = {
  */
 const is = (value: unknown): value is Obj =>
   typeof value === "object" && value !== null
-    ? Object.values(value).every(isDatum)
+    ? Object.values(value).every(
+        (v) => v === null || isDatum(v),
+      )
     : false;
 
 /**
