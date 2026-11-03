@@ -16,13 +16,13 @@
  *
  *  - **Each package is checked by the compiler it declares.** The `tsc`
  *    launcher is resolved from the package's own `typescript` dependency
- *    (same seam as plgg-bundle's emitDts): the 27 TS7 packages get the
+ *    (same seam as plgg-bundle's emitDts): the 28 TS7 packages get the
  *    native binary, while `plgg-bundle` and `plgg-test` — whose runtime
  *    dependency stays pinned to TS6 because `transpileModule` has no TS7
  *    counterpart — are checked by the exact TS6 that ships with them. A
  *    hoist-order change can never silently swap the compiler under a
  *    package again.
- *  - **Each package keeps its own options.** The 29 tsconfigs carry 12
+ *  - **Each package keeps its own options.** The 30 tsconfigs carry 12
  *    distinct shapes — DOM vs node-only `lib`, `NodeNext` vs `ESNext`
  *    module — so there is still one `tsc -p` per package, never a merged
  *    program that would let a node-only package see `DOM`.
