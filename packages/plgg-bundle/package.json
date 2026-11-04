@@ -18,6 +18,9 @@
   },
   "author": "qmu",
   "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
   "dependencies": {
     "typescript": "^6.0.3"
   },

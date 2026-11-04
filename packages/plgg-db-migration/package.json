@@ -1,7 +1,7 @@
 {
   "name": "plgg-db-migration",
   "version": "0.0.2",
-  "description": "Minimal, dependency-free schema-migration tool \u2014 dbmate-style single-file up/down, a schema_migrations ledger, and on-demand per-tenant SQLite \u2014 built from scratch on plgg + plgg-sql",
+  "description": "Minimal, dependency-free schema-migration tool — dbmate-style single-file up/down, a schema_migrations ledger, and on-demand per-tenant SQLite — built from scratch on plgg + plgg-sql",
   "files": [
     "dist",
     "bin"
@@ -44,7 +44,7 @@
   },
   "homepage": "https://github.com/qmu/plgg#readme",
   "engines": {
-    "node": ">=22.6"
+    "node": ">=24"
   },
   "dependencies": {
     "plgg": "file:../plgg",

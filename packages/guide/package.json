@@ -2,6 +2,9 @@
   "name": "@plgg/guide",
   "version": "0.0.1",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "description": "The official user guide for plgg and the plgg family. Content is authored in Markdown; code samples are drawn from the real packages and tested examples.",
   "scripts": {

@@ -132,6 +132,20 @@ export const forOptionProp =
         );
 
 /**
+ * Reads a property from any non-null object as
+ * unknown, whatever its contents (null included).
+ * Lets untyped JSON be walked one key at a time.
+ */
+export const prop =
+  (key: string) =>
+  (value: unknown): Option<unknown> =>
+    typeof value === "object" &&
+    value !== null &&
+    hasProp(value, key)
+      ? some(Reflect.get(value, key))
+      : none();
+
+/**
  * Type guard for record field existence.
  */
 export const hasProp = <K extends string>(

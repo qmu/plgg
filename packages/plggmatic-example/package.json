@@ -2,6 +2,9 @@
   "name": "@plggmatic/example",
   "version": "0.0.1",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "description": "The reference plggmatic app — the whole program is a plggmatic DECLARATION (Resources, Menu, list/detail views, Query, create/delete Actions) scheduled into a plgg-view program and drawn by the multi-column renderer. The 691-line hand-written Model/Msg/update/URL-codec/column-stack is gone; the app author writes only the declaration, app identity, and the mount.",
   "scripts": {

@@ -22,7 +22,7 @@ The project uses GitHub Actions as its CI/CD platform. Four workflows are define
 **run-tests** (`.github/workflows/run-tests.yml`) is the primary quality gate. It triggers
 on three pull request events — `review_requested`, `synchronize`, and `labeled` — and also
 on direct pushes to the `main` branch. The workflow runs on `ubuntu-latest` with Node.js
-22.x. It executes five sequential steps: dependency installation via `npm ci`, TypeScript
+22.x (still pending a move to 24.x to match `.nvmrc` and `engines.node`). It executes five sequential steps: dependency installation via `npm ci`, TypeScript
 compilation check via `npx tsc --noEmit`, test suite via `npm test`, library build via
 `npm run build`, and test coverage via `npm run coverage`. The workflow manages a
 `ci-testing` label: when a review is requested, the label is automatically added to the

@@ -3,6 +3,9 @@
   "version": "0.0.4",
   "description": "A reusable VitePress-like static-site generator built from scratch on the plgg family: a typed SiteConfig contract (IA + home data), a single base-path href resolver, and a config-loading CLI.",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "files": [
     "dist",
     "src",

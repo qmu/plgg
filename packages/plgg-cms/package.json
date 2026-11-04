@@ -3,6 +3,9 @@
   "version": "0.0.3",
   "description": "The dynamic content-management surface that pairs with the plggpress static-site generator: the admin UI, content query/index services, the read-only content delivery API, OIDC auth, content editing, media, stakeholder submission, ops, MCP tools, and agent surfaces — composed onto plggpress's framework seam and served as an always-on node:http instance.",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "files": [
     "dist",
     "src",
