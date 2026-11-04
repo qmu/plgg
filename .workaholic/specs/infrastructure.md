@@ -28,16 +28,12 @@ The monorepo relies on a deliberately small set of external dependencies. The gu
 
 ### Development Dependencies
 
-Every package shares an identical set of development dependencies (evidence: all four `package.json` files):
+The third-party development surface is `typescript` and `@types/node` (evidence: `packages/plgg/package.json`; vite and vitest are no longer used):
 
 | Package | Version constraint |
 |---|---|
-| `typescript` | `^5.8.3` |
-| `vite` | `^6.3.5` |
-| `vite-plugin-dts` | `^4.5.4` |
-| `vitest` | `^3.2.4` |
-| `@vitest/coverage-v8` | `^3.2.4` |
-| `@types/node` | `^24.0.3` |
+| `typescript` | `^7.0.2` (plgg-bundle and plgg-test stay on TS6) |
+| `@types/node` | `^26.2.0` |
 
 `plgg-kit` and `plgg-foundry` also include `dotenv` (`^17.2.3`) as a dev dependency, used exclusively to load `.env` files during test execution (configured in `vite.config.ts` via `dotenv.config({ path: ".env" })`).
 
