@@ -9,6 +9,10 @@ import {
 } from "plgg-test";
 import {
   isRawObj,
+  rawProp,
+  isSome,
+  some,
+  none,
   asRawObj,
   mapRawObj,
   applyRawObj,
@@ -305,4 +309,32 @@ test("sequenceRawObj lifts the input record", () => {
     mutRecApplicative,
   )(input);
   return check(result, toEqual(input));
+});
+
+/**
+ * Verifies rawProp walks JSON that contains null.
+ */
+test("rawProp reads keys of objects holding null", () => {
+  const json: unknown = {
+    detail: { value: null, resetSummary: "ok" },
+  };
+  const detail = rawProp("detail")(json);
+  return all([
+    check(
+      isSome(detail)
+        ? rawProp("resetSummary")(detail.content)
+        : detail,
+      toEqual(some("ok")),
+    ),
+    check(
+      rawProp("value")({ value: null }),
+      toEqual(some(null)),
+    ),
+    check(
+      rawProp("x")({ value: null }),
+      toEqual(none()),
+    ),
+    check(rawProp("x")(null), toEqual(none())),
+    check(rawProp("x")("str"), toEqual(none())),
+  ]);
 });

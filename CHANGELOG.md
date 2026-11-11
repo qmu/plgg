@@ -2,6 +2,12 @@
 
 All notable changes to the project root (tooling, scripts, CI) will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- Require Node 24 or newer for development (`engines.node` >=24 and `.nvmrc`) as part of the TypeScript 7 / Node 24 migration
+
 ## drive-20260226-032733
 
 ### Added

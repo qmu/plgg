@@ -80,6 +80,12 @@ export {
   confirmDialog,
 } from "plggmatic/Component/usecase/confirmDialog";
 export {
+  type BadgeTone,
+  type BadgeProps,
+  badgeTones,
+  badge,
+} from "plggmatic/Component/usecase/badge";
+export {
   type Tone,
   type ToastProps,
   tones,

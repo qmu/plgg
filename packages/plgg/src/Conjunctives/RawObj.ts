@@ -14,6 +14,9 @@ import {
   Monad1,
   KindKeys1,
   Kind1,
+  Option,
+  some,
+  none,
   ok,
   err,
 } from "plgg/index";
@@ -51,6 +54,18 @@ export const mutRecRefinable: Refinable1<"MutRec"> =
  * Exported type guard function for mutable record values.
  */
 export const { is: isRawObj } = mutRecRefinable;
+
+/**
+ * Reads a key from any non-null object without
+ * checking its contents. Values stay unknown, so
+ * JSON containing null can be walked step by step.
+ */
+export const rawProp =
+  (key: string) =>
+  (value: unknown): Option<unknown> =>
+    is(value) && key in value
+      ? some(Reflect.get(value, key))
+      : none();
 
 export const asRawObj = <A>(
   value: unknown,

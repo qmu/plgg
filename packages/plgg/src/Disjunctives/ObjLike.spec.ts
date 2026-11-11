@@ -15,9 +15,29 @@ import {
   forProp,
   forOptionProp,
   hasProp,
+  prop,
   asNum,
   asStr,
 } from "plgg/index";
+
+test("prop reads through objects holding null", () =>
+  all([
+    check(
+      prop("a")({ a: { b: 1 }, c: null }),
+      someThen(toEqual({ b: 1 })),
+    ),
+    check(
+      prop("c")({ a: 1, c: null }),
+      someThen(toBe(null)),
+    ),
+  ]));
+
+test("prop is None for missing keys and non-objects", () =>
+  all([
+    check(prop("x")({ a: 1 }), shouldBeNone),
+    check(prop("x")(null), shouldBeNone),
+    check(prop("x")("str"), shouldBeNone),
+  ]));
 
 test("isObjLike accepts plain objects", () =>
   all([
