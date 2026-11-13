@@ -10,6 +10,7 @@ import {
   el,
   text,
   managedHost,
+  lazy,
 } from "plgg-view/Html/model/element";
 import {
   attr,
@@ -128,6 +129,57 @@ test("mixed children retire the unkeyed subtree once and retain a keyed editor",
         "editor mount",
         "nested cleanup",
         "editor cleanup",
+      ]),
+    ),
+  ]);
+});
+
+test("an unkeyed lazy host is retired before a direct keyed host mounts", () => {
+  const root = document.createElement("div"),
+    events: string[] = [],
+    render = makeRenderer<never>(root, () => {}),
+    host = () =>
+      managedHost<never>("a", [], {
+        mount: (node) => {
+          node.appendChild(
+            document.createTextNode("editor"),
+          );
+          events.push("mount");
+          return () => {
+            events.push("cleanup");
+          };
+        },
+        update: () => {
+          events.push("update");
+        },
+      });
+  render(el("section", [], [lazy(host, 0)]));
+  const previous = root.firstChild?.firstChild;
+  render(el("section", [], [host()]));
+  const afterTransition = [...events],
+    childCount =
+      root.firstChild?.childNodes.length,
+    content = root.textContent,
+    detached = previous?.parentNode === null,
+    replaced =
+      root.firstChild?.firstChild !== previous;
+  render.dispose();
+  return all([
+    check(childCount, toBe(1)),
+    check(content, toBe("editor")),
+    check(detached, toBe(true)),
+    check(replaced, toBe(true)),
+    check(
+      afterTransition,
+      toEqual(["mount", "cleanup", "mount"]),
+    ),
+    check(
+      events,
+      toEqual([
+        "mount",
+        "cleanup",
+        "mount",
+        "cleanup",
       ]),
     ),
   ]);

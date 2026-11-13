@@ -1447,7 +1447,10 @@ const keyedPatchChildren =
           matchOption(
             (): void => undefined,
             (k: SoftStr): void => {
-              domByKey.set(k, domChild);
+              // A lazy result may carry a DOM key without a keyed old vnode.
+              if (oldByKey.has(k)) {
+                domByKey.set(k, domChild);
+              }
             },
           )(
             fromNullable(
@@ -1457,6 +1460,7 @@ const keyedPatchChildren =
         }
       },
     );
+    const ownedNodes = new Set(domByKey.values());
     const newKeys = new Set<SoftStr>();
     newChildren.forEach((child) =>
       matchOption(
@@ -1486,15 +1490,15 @@ const keyedPatchChildren =
         ? parent.getBoundingClientRect().height
         : 0;
 
-    // DOM teardown seam: a fully-keyed target cannot reuse old unkeyed
-    // children. Retire their subtrees before positioning survivors, but keep
+    // DOM teardown seam: only nodes owned by keyed old vnodes are reusable.
+    // Retire unkeyed/lazy results before positioning survivors, but keep
     // already-exiting keyed nodes in place until their motion completes.
     Array.from(parent.childNodes).forEach(
       (node) => {
         if (
           node instanceof Element &&
           (wiring.exiting.has(node) ||
-            wiring.keyed.has(node))
+            ownedNodes.has(node))
         ) {
           return;
         }
