@@ -20,6 +20,8 @@ import {
   CssRule,
   attr$,
   handler$,
+  eventHandler$,
+  host$,
   anim$,
   css$,
   key$,
@@ -37,6 +39,11 @@ const rulesOf = <Msg>(
         handler$(),
         (): ReadonlyArray<CssRule> => [],
       ],
+      [
+        eventHandler$(),
+        (): ReadonlyArray<CssRule> => [],
+      ],
+      [host$(), (): ReadonlyArray<CssRule> => []],
       [anim$(), (): ReadonlyArray<CssRule> => []],
       [
         css$(),

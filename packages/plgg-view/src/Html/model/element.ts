@@ -1,3 +1,7 @@
+import {
+  HostLifecycle,
+  key,
+} from "plgg-view/Html/model/Attribute";
 import { SoftStr, box } from "plgg";
 import {
   Html,
@@ -79,7 +83,11 @@ export const text = (
  * reconciles by index (see `allKeyed`'s docs); key the element `fn` returns
  * instead if the list also reorders.
  */
-export const lazy = <Msg, A, T extends string = string>(
+export const lazy = <
+  Msg,
+  A,
+  T extends string = string,
+>(
   fn: (arg: A) => Html<Msg, T>,
   arg: A,
 ): Html<Msg, T> =>
@@ -208,7 +216,8 @@ export type TableCell<Msg> = Html<
  * any {@link Flow} content (the disclosure body).
  */
 export type DetailsContent<Msg> =
-  Html<Msg, "summary"> | Flow<Msg>;
+  | Html<Msg, "summary">
+  | Flow<Msg>;
 
 /**
  * What the `html` document root accepts: the `head`
@@ -592,3 +601,23 @@ export const html = documentEl("html");
 export const head = headEl("head");
 export const title = textEl("title");
 export const style = textEl("style");
+
+/** An explicitly keyed external-editor island. The renderer owns the wrapper
+ * and its attributes; lifecycle owns ALL children. No raw HTML, child diff,
+ * or value synchronization is applied inside it. Keys must be unique among
+ * siblings. Reusing a key retains the mounted instance; changing it disposes
+ * the old instance. SSR emits an empty div and never calls lifecycle code. */
+export const managedHost = <Msg>(
+  hostKey: SoftStr,
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  lifecycle: HostLifecycle<Msg>,
+): Html<Msg> =>
+  el(
+    "div",
+    [
+      key(hostKey),
+      ...attributes,
+      box("Host")(lifecycle),
+    ],
+    [],
+  );

@@ -9,6 +9,7 @@ import {
   fromNullable,
   chainOption,
   matchOption,
+  isSome,
 } from "plgg";
 import {
   Html,
@@ -20,10 +21,13 @@ import {
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
+  HostLifecycle,
   Motion,
   Frame,
   attr$,
   handler$,
+  eventHandler$,
+  host$,
   anim$,
   css$,
   key$,
@@ -54,9 +58,16 @@ const payloadOf = (event: Event): SoftStr =>
  * single attached listener reads it live — so a re-render never adds, removes,
  * or duplicates DOM listeners (no leaks, no stale closures).
  */
+type EventDecoder<Msg> = (
+  event: Event,
+) => Option<Msg>;
+type MountedHost = Readonly<{
+  cleanup: () => void;
+}>;
+
 type NodeWiring<Msg> = Readonly<{
-  on: Map<SoftStr, (payload: SoftStr) => Msg>;
-  attached: Set<SoftStr>;
+  on: Map<SoftStr, EventDecoder<Msg>>;
+  attached: Map<SoftStr, EventListener>;
 }>;
 
 /**
@@ -66,6 +77,8 @@ type NodeWiring<Msg> = Readonly<{
  * be collected with the nodes themselves.
  */
 export type Wiring<Msg> = Readonly<{
+  hosts: WeakMap<Element, MountedHost>;
+  pendingHosts: Map<Element, HostLifecycle<Msg>>;
   dispatch: (msg: Msg) => void;
   registry: WeakMap<Element, NodeWiring<Msg>>;
   play: Play;
@@ -94,7 +107,7 @@ const nodeWiringOf = <Msg>(
       (): NodeWiring<Msg> => {
         const created: NodeWiring<Msg> = {
           on: new Map(),
-          attached: new Set(),
+          attached: new Map(),
         };
         wiring.registry.set(node, created);
         return created;
@@ -112,28 +125,34 @@ const setHandler = <Msg>(
   wiring: Wiring<Msg>,
   node: Element,
   event: SoftStr,
-  toMsg: (payload: SoftStr) => Msg,
+  toMsg: EventDecoder<Msg>,
 ): void => {
-  // confined DOM seam: attach at most one listener per (node, event)
+  // DOM seam: a live registry entry avoids stale closures and duplicate listeners.
   const nodeWiring = nodeWiringOf(wiring, node);
   if (!nodeWiring.attached.has(event)) {
-    nodeWiring.attached.add(event);
-    node.addEventListener(event, (domEvent) =>
+    const listener: EventListener = (
+      domEvent,
+    ) => {
       pipe(
         fromNullable(nodeWiring.on.get(event)),
         matchOption(
           () => undefined,
-          (current: (p: SoftStr) => Msg) => {
-            if (event === "submit") {
+          (current: EventDecoder<Msg>) => {
+            if (event === "submit")
               domEvent.preventDefault();
-            }
-            wiring.dispatch(
-              current(payloadOf(domEvent)),
+            return pipe(
+              current(domEvent),
+              matchOption(
+                () => undefined,
+                wiring.dispatch,
+              ),
             );
           },
         ),
-      ),
-    );
+      );
+    };
+    nodeWiring.attached.set(event, listener);
+    node.addEventListener(event, listener);
   }
   nodeWiring.on.set(event, toMsg);
 };
@@ -159,7 +178,8 @@ const clearHandler = <Msg>(
 const isValueControl = (
   node: Element,
 ): node is
-  HTMLInputElement | HTMLTextAreaElement =>
+  | HTMLInputElement
+  | HTMLTextAreaElement =>
   node instanceof HTMLInputElement ||
   node instanceof HTMLTextAreaElement;
 
@@ -251,9 +271,23 @@ const applyAttribute =
             wiring,
             node,
             content.event,
+            (event) =>
+              some(
+                content.toMsg(payloadOf(event)),
+              ),
+          ),
+      ],
+      [
+        eventHandler$(),
+        ({ content }): void =>
+          setHandler(
+            wiring,
+            node,
+            content.event,
             content.toMsg,
           ),
       ],
+      [host$(), (): void => undefined],
       // an animation directive is not a DOM attribute: the enter motion is
       // played in createNode once the node and its children exist.
       [anim$(), (): void => undefined],
@@ -301,6 +335,11 @@ const enterOf = <Msg>(
         [attr$(), (): Option<Motion> => acc],
         [handler$(), (): Option<Motion> => acc],
         [
+          eventHandler$(),
+          (): Option<Motion> => acc,
+        ],
+        [host$(), (): Option<Motion> => acc],
+        [
           anim$(),
           ({ content }): Option<Motion> =>
             keepSome(acc, content.enter),
@@ -320,6 +359,11 @@ const exitOf = <Msg>(
       match(attribute)(
         [attr$(), (): Option<Motion> => acc],
         [handler$(), (): Option<Motion> => acc],
+        [
+          eventHandler$(),
+          (): Option<Motion> => acc,
+        ],
+        [host$(), (): Option<Motion> => acc],
         [
           anim$(),
           ({ content }): Option<Motion> =>
@@ -388,6 +432,11 @@ const keyOf = <Msg>(
       match(attribute)(
         [attr$(), (): Option<SoftStr> => acc],
         [handler$(), (): Option<SoftStr> => acc],
+        [
+          eventHandler$(),
+          (): Option<SoftStr> => acc,
+        ],
+        [host$(), (): Option<SoftStr> => acc],
         [anim$(), (): Option<SoftStr> => acc],
         [css$(), (): Option<SoftStr> => acc],
         [
@@ -587,9 +636,22 @@ export const createNode =
               },
             ),
           );
-          content.children.forEach((child) =>
-            el.appendChild(
-              createNode(wiring)(child),
+          pipe(
+            hostOf(content.attributes),
+            matchOption(
+              () =>
+                content.children.forEach(
+                  (child) =>
+                    el.appendChild(
+                      createNode(wiring)(child),
+                    ),
+                ),
+              (lifecycle: HostLifecycle<Msg>) => {
+                wiring.pendingHosts.set(
+                  el,
+                  lifecycle,
+                );
+              },
             ),
           );
           // confined DOM seam: play the enter motion on the freshly built node
@@ -617,7 +679,8 @@ export const createNode =
           const resolved = resolveLazy(
             content.render(),
           );
-          const node = createNode(wiring)(resolved);
+          const node =
+            createNode(wiring)(resolved);
           wiring.lazyResolved.set(node, resolved);
           return node;
         },
@@ -641,6 +704,14 @@ const staticAttrsOf = <Msg>(
           (): Map<SoftStr, SoftStr> => acc,
         ],
         [
+          eventHandler$(),
+          (): Map<SoftStr, SoftStr> => acc,
+        ],
+        [
+          host$(),
+          (): Map<SoftStr, SoftStr> => acc,
+        ],
+        [
           anim$(),
           (): Map<SoftStr, SoftStr> => acc,
         ],
@@ -660,51 +731,113 @@ const staticAttrsOf = <Msg>(
 /** The handlers of an attribute list, as an `event → toMsg` map. */
 const handlersOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
-): Map<SoftStr, (payload: SoftStr) => Msg> =>
+): Map<SoftStr, EventDecoder<Msg>> =>
   attributes.reduce(
     (acc, attribute) =>
       match(attribute)(
-        [
-          attr$(),
-          (): Map<
-            SoftStr,
-            (payload: SoftStr) => Msg
-          > => acc,
-        ],
+        [attr$(), () => acc],
+        [anim$(), () => acc],
+        [css$(), () => acc],
+        [key$(), () => acc],
+        [host$(), () => acc],
         [
           handler$(),
-          ({
-            content,
-          }): Map<
-            SoftStr,
-            (payload: SoftStr) => Msg
-          > =>
+          ({ content }) =>
+            acc.set(content.event, (event) =>
+              some(
+                content.toMsg(payloadOf(event)),
+              ),
+            ),
+        ],
+        [
+          eventHandler$(),
+          ({ content }) =>
             acc.set(content.event, content.toMsg),
         ],
-        [
-          anim$(),
-          (): Map<
-            SoftStr,
-            (payload: SoftStr) => Msg
-          > => acc,
-        ],
-        [
-          css$(),
-          (): Map<
-            SoftStr,
-            (payload: SoftStr) => Msg
-          > => acc,
-        ],
-        [
-          key$(),
-          (): Map<
-            SoftStr,
-            (payload: SoftStr) => Msg
-          > => acc,
-        ],
       ),
-    new Map<SoftStr, (payload: SoftStr) => Msg>(),
+    new Map<SoftStr, EventDecoder<Msg>>(),
   );
+
+/** The last host directive owns all children; attributes remain renderer-owned. */
+const hostOf = <Msg>(
+  attributes: ReadonlyArray<Attribute<Msg>>,
+): Option<HostLifecycle<Msg>> =>
+  attributes.reduce<Option<HostLifecycle<Msg>>>(
+    (acc, attribute) =>
+      match(attribute)(
+        [attr$(), () => acc],
+        [handler$(), () => acc],
+        [eventHandler$(), () => acc],
+        [anim$(), () => acc],
+        [css$(), () => acc],
+        [key$(), () => acc],
+        [host$(), ({ content }) => some(content)],
+      ),
+    none(),
+  );
+
+/** DOM teardown seam: even detached/animated subtrees release listeners once. */
+const disposeTree = <Msg>(
+  wiring: Wiring<Msg>,
+  node: Node,
+): void => {
+  if (node instanceof Element) {
+    wiring.pendingHosts.delete(node);
+    pipe(
+      fromNullable(wiring.hosts.get(node)),
+      matchOption(
+        () => undefined,
+        (host: MountedHost) => {
+          wiring.hosts.delete(node);
+          host.cleanup();
+        },
+      ),
+    );
+    pipe(
+      fromNullable(wiring.registry.get(node)),
+      matchOption(
+        () => undefined,
+        (registry: NodeWiring<Msg>) => {
+          registry.on.clear();
+          registry.attached.forEach(
+            (listener, event) =>
+              node.removeEventListener(
+                event,
+                listener,
+              ),
+          );
+          wiring.registry.delete(node);
+        },
+      ),
+    );
+    Array.from(node.childNodes).forEach((child) =>
+      disposeTree(wiring, child),
+    );
+  }
+};
+const flushHosts = <Msg>(
+  wiring: Wiring<Msg>,
+): void => {
+  const pending = Array.from(wiring.pendingHosts);
+  wiring.pendingHosts.clear();
+  pending.forEach(([node, lifecycle]) =>
+    pipe(
+      fromNullable(wiring.hosts.get(node)),
+      matchOption(
+        () => {
+          wiring.hosts.set(node, {
+            cleanup: lifecycle.mount(
+              node,
+              wiring.dispatch,
+            ),
+          });
+        },
+        () =>
+          lifecycle.update(node, wiring.dispatch),
+      ),
+    ),
+  );
+};
 
 /** Patches a reused element's attributes: add/change, remove, re-point. */
 const patchAttributes =
@@ -755,10 +888,67 @@ const patchElement =
       oldContent.attributes,
       newContent.attributes,
     );
-    patchChildren(wiring)(
-      node,
-      oldContent.children,
-      newContent.children,
+    pipe(
+      keyOf(newContent.attributes),
+      matchOption(
+        () => {
+          wiring.keyed.delete(node);
+        },
+        (k: SoftStr) => {
+          wiring.keyed.set(node, k);
+        },
+      ),
+    );
+    const oldHost = hostOf(oldContent.attributes),
+      newHost = hostOf(newContent.attributes);
+    const reset = (): void => {
+      disposeTree(wiring, node);
+      node.replaceChildren();
+      newContent.attributes.forEach(
+        applyAttribute(wiring, node),
+      );
+    };
+    pipe(
+      newHost,
+      matchOption(
+        () =>
+          pipe(
+            oldHost,
+            matchOption(
+              () =>
+                patchChildren(wiring)(
+                  node,
+                  oldContent.children,
+                  newContent.children,
+                ),
+              () => {
+                reset();
+                patchChildren(wiring)(
+                  node,
+                  [],
+                  newContent.children,
+                );
+              },
+            ),
+          ),
+        (lifecycle: HostLifecycle<Msg>) => {
+          const oldKey = keyOf(
+              oldContent.attributes,
+            ),
+            newKey = keyOf(newContent.attributes);
+          if (
+            !isSome(oldHost) ||
+            !isSome(oldKey) ||
+            !isSome(newKey) ||
+            oldKey.content !== newKey.content
+          )
+            reset();
+          wiring.pendingHosts.set(
+            node,
+            lifecycle,
+          );
+        },
+      ),
     );
   };
 
@@ -784,6 +974,7 @@ export const reconcile =
   ): Node => {
     const replace = (): Node => {
       const fresh = createNode(wiring)(newVnode);
+      disposeTree(wiring, domNode);
       parent.replaceChild(fresh, domNode);
       return fresh;
     };
@@ -888,8 +1079,7 @@ export const reconcile =
               lazy$(),
               ({ content: oldContent }): Node =>
                 oldContent.fn === newContent.fn &&
-                oldContent.arg ===
-                  newContent.arg
+                oldContent.arg === newContent.arg
                   ? domNode
                   : resolveAndReconcile(
                       pipe(
@@ -992,11 +1182,13 @@ const indexPatchChildren =
             ),
             matchOption(
               (): void => {
+                disposeTree(wiring, surplus);
                 surplus.remove();
               },
               (motion: Motion): void => {
                 // confined DOM seam: hold the node until its exit motion
                 // ends, then detach (`remove` tolerates concurrent churn).
+                disposeTree(wiring, surplus);
                 void wiring
                   .play(surplus, motion)
                   .then(() => {
@@ -1006,6 +1198,7 @@ const indexPatchChildren =
             ),
           );
         } else {
+          disposeTree(wiring, surplus);
           surplus.remove();
         }
       });
@@ -1140,10 +1333,12 @@ const playKeyedExit = <Msg>(
 ): number =>
   matchOption(
     (): number => {
+      disposeTree(wiring, node);
       node.remove();
       return 0;
     },
     (motion: Motion): number => {
+      disposeTree(wiring, node);
       wiring.exiting.add(node);
       // confined DOM seam: out of flow so survivors take the space (and FLIP
       // into it), then fade in place via the seam; detach when the fade ends
@@ -1171,6 +1366,7 @@ const patchKeyed =
   ): Node => {
     const replace = (): Node => {
       const fresh = createNode(wiring)(newVnode);
+      disposeTree(wiring, node);
       parent.replaceChild(fresh, node);
       return fresh;
     };
@@ -1350,17 +1546,21 @@ const keyedPatchChildren =
       }
       return cursor;
     };
+    const focused = finalNodes.find(
+      (node) =>
+        node instanceof Element &&
+        node.contains(document.activeElement),
+    );
     let anchor: Node | null = pastExiting(
       parent.firstChild,
     );
     finalNodes.forEach((node) => {
-      if (anchor !== null && node === anchor) {
-        anchor = pastExiting(anchor.nextSibling);
-      } else {
-        parent.insertBefore(node, anchor);
-      }
+      // Walk unchanged predecessors/exits in place. If focus must move in the
+      // logical order, defer the displaced siblings instead of detaching it.
+      if (node === anchor || node === focused) {
+        anchor = pastExiting(node.nextSibling);
+      } else parent.insertBefore(node, anchor);
     });
-
     // FLIP step 2: glide each survivor from its old box to its new one. When a
     // row is leaving, the slide is delayed by its fade so survivors hold their
     // old spots first, then slide into the cleared space (never over the row).
@@ -1441,13 +1641,29 @@ const patchChildren =
  * The remembered previous tree is the renderer's one mutable seam, mirroring the
  * live model owned by `sandbox`/`application`; the DOM itself is the other.
  */
+export type Renderer<Msg> = ((
+  next: Html<Msg>,
+) => void) &
+  Readonly<{ dispose: () => void }>;
 export const makeRenderer = <Msg>(
   container: Element,
   dispatch: (msg: Msg) => void,
   play: Play = waapiPlay,
-): ((next: Html<Msg>) => void) => {
+): Renderer<Msg> => {
+  // DOM commit seam: mount/update/cleanup may dispatch, but never reenter
+  // an unfinished reconciliation or observe a half-mounted host instance.
+  let committing = false;
+  let disposed = false;
+  let disposePending = false;
+  const queued: Msg[] = [];
   const wiring: Wiring<Msg> = {
-    dispatch,
+    dispatch: (msg) => {
+      if (disposed) return;
+      if (committing) queued.push(msg);
+      else dispatch(msg);
+    },
+    hosts: new WeakMap(),
+    pendingHosts: new Map(),
     registry: new WeakMap(),
     play,
     keyed: new WeakMap(),
@@ -1456,36 +1672,66 @@ export const makeRenderer = <Msg>(
   };
   // mutable seam: the last tree rendered into `container` (none until first paint)
   let previous: Option<Html<Msg>> = none();
-  return (next: Html<Msg>): void => {
-    pipe(
-      previous,
-      matchOption(
-        () => {
-          container.replaceChildren(
-            createNode(wiring)(next),
-          );
-        },
-        (old: Html<Msg>) =>
-          pipe(
-            fromNullable(container.firstChild),
-            matchOption(
-              () => {
-                container.replaceChildren(
-                  createNode(wiring)(next),
-                );
-              },
-              (domNode: ChildNode) => {
-                reconcile(wiring)(
-                  container,
-                  domNode,
-                  old,
-                  next,
-                );
-              },
-            ),
-          ),
-      ),
+  const teardown = (): void => {
+    disposePending = false;
+    queued.length = 0;
+    Array.from(container.childNodes).forEach(
+      (node) => disposeTree(wiring, node),
     );
-    previous = some(next);
+    container.replaceChildren();
+    previous = none();
   };
+  const render = (next: Html<Msg>): void => {
+    if (disposed) return;
+    committing = true;
+    try {
+      pipe(
+        previous,
+        matchOption(
+          () => {
+            container.replaceChildren(
+              createNode(wiring)(next),
+            );
+          },
+          (old: Html<Msg>) =>
+            pipe(
+              fromNullable(container.firstChild),
+              matchOption(
+                () => {
+                  container.replaceChildren(
+                    createNode(wiring)(next),
+                  );
+                },
+                (domNode: ChildNode) => {
+                  reconcile(wiring)(
+                    container,
+                    domNode,
+                    old,
+                    next,
+                  );
+                },
+              ),
+            ),
+        ),
+      );
+      previous = some(next);
+      flushHosts(wiring);
+    } finally {
+      committing = false;
+      if (disposePending) teardown();
+      if (!disposed)
+        queued.splice(0).forEach(wiring.dispatch);
+    }
+  };
+  return Object.assign(render, {
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      if (committing) {
+        disposePending = true;
+        return;
+      }
+      teardown();
+    },
+  });
 };
