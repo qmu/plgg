@@ -17,6 +17,7 @@ import {
   onEvent,
   onInput,
   fadeOut,
+  key,
   type HostLifecycle,
 } from "plgg-view/Html/model/Attribute";
 import { mapHtml } from "plgg-view/Html/usecase/mapHtml";
@@ -460,5 +461,156 @@ test("dispose requested from mount waits until its returned cleanup is installed
   return all([
     check(events, toEqual(["mount", "cleanup"])),
     check(root.childNodes.length, toBe(0)),
+  ]);
+});
+
+test("disposing on the first queued mount message suppresses the remaining snapshot", () => {
+  const root = document.createElement("div"),
+    messages: string[] = [],
+    cleanup: string[] = [];
+  const render: import("plgg-view/Program/usecase/render").Renderer<string> =
+    makeRenderer<string>(root, (msg) => {
+      messages.push(msg);
+      if (msg === "first") render.dispose();
+    });
+  render(
+    managedHost("host", [], {
+      mount: (_node, dispatch) => {
+        dispatch("first");
+        dispatch("second");
+        return () => {
+          cleanup.push("cleanup");
+        };
+      },
+      update: () => undefined,
+    }),
+  );
+  return all([
+    check(messages, toEqual(["first"])),
+    check(cleanup, toEqual(["cleanup"])),
+    check(root.childNodes.length, toBe(0)),
+  ]);
+});
+
+test("focused keyed order keeps an unchanged predecessor before an exiting sibling", async () => {
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  const editor = document.createElement("input");
+  let finish: () => void = () => undefined;
+  const render = makeRenderer<never>(
+    root,
+    () => undefined,
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const a = el(
+      "div",
+      [key("a"), attr("data-node", "a")],
+      [],
+    ),
+    x = el(
+      "div",
+      [
+        key("x"),
+        attr("data-node", "x"),
+        fadeOut(50),
+      ],
+      [],
+    );
+  const b = managedHost<never>(
+    "b",
+    [attr("data-node", "b")],
+    {
+      mount: (node) => {
+        node.appendChild(editor);
+        return () => undefined;
+      },
+      update: () => undefined,
+    },
+  );
+  render(el("section", [], [a, x, b]));
+  editor.focus();
+  render(el("section", [], [a, b]));
+  const order = Array.from(
+      root.firstElementChild?.children || [],
+    ).map((n) => n.getAttribute("data-node")),
+    focused = document.activeElement === editor;
+  finish();
+  await Promise.resolve();
+  const settled = Array.from(
+    root.firstElementChild?.children || [],
+  ).map((n) => n.getAttribute("data-node"));
+  render.dispose();
+  root.remove();
+  return all([
+    check(order, toEqual(["a", "x", "b"])),
+    check(focused, toBe(true)),
+    check(settled, toEqual(["a", "b"])),
+  ]);
+});
+
+test("focused keyed order keeps an exiting sibling before unchanged successors", async () => {
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  const editor = document.createElement("input");
+  let finish: () => void = () => undefined;
+  const render = makeRenderer<never>(
+    root,
+    () => undefined,
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const a = el(
+      "div",
+      [key("a"), attr("data-node", "a")],
+      [],
+    ),
+    c = el(
+      "div",
+      [key("c"), attr("data-node", "c")],
+      [],
+    ),
+    x = el(
+      "div",
+      [
+        key("x"),
+        attr("data-node", "x"),
+        fadeOut(50),
+      ],
+      [],
+    );
+  const b = managedHost<never>(
+    "b",
+    [attr("data-node", "b")],
+    {
+      mount: (node) => {
+        node.appendChild(editor);
+        return () => undefined;
+      },
+      update: () => undefined,
+    },
+  );
+  render(el("section", [], [b, x, a, c]));
+  editor.focus();
+  render(el("section", [], [b, a, c]));
+  const order = Array.from(
+      root.firstElementChild?.children || [],
+    ).map((n) => n.getAttribute("data-node")),
+    focused = document.activeElement === editor;
+  finish();
+  await Promise.resolve();
+  const settled = Array.from(
+    root.firstElementChild?.children || [],
+  ).map((n) => n.getAttribute("data-node"));
+  render.dispose();
+  root.remove();
+  return all([
+    check(order, toEqual(["b", "x", "a", "c"])),
+    check(focused, toBe(true)),
+    check(settled, toEqual(["b", "a", "c"])),
   ]);
 });

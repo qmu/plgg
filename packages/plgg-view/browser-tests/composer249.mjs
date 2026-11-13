@@ -4,6 +4,7 @@ import {
   attr,
   onEvent,
   mapHtml,
+  fadeOut,
 } from "../dist/index.es.js";
 import { makeRenderer } from "../dist/client.es.js";
 import { some, none } from "plgg";
@@ -295,6 +296,157 @@ verify(
   cleanup.join(",") === "a,b",
 );
 decode.dispose();
+// 終端化と退出中の隣接要素を、実ブラウザのDOM/focus/座標でも確認する。
+const terminalRoot =
+  document.createElement("div");
+document.body.append(terminalRoot);
+const terminalMessages = [];
+let terminalCleanup = 0;
+const terminalRender = makeRenderer(
+  terminalRoot,
+  (message) => {
+    terminalMessages.push(message);
+    if (message === "first")
+      terminalRender.dispose();
+  },
+);
+terminalRender(
+  managedHost("terminal", [], {
+    mount: (_node, dispatch) => {
+      dispatch("first");
+      dispatch("second");
+      return () => terminalCleanup++;
+    },
+    update: () => {},
+  }),
+);
+verify(
+  "queued messages stop after disposal inside first outer dispatch",
+  terminalMessages.join(",") === "first" &&
+    terminalCleanup === 1 &&
+    terminalRoot.childNodes.length === 0,
+);
+terminalRoot.remove();
+const exitRoot = document.createElement("div");
+document.body.append(exitRoot);
+const focusedInput =
+  document.createElement("input");
+let finishExit = () => {};
+const exitRender = makeRenderer(
+  exitRoot,
+  () => {},
+  (_node, motion) =>
+    motion.durationMs === 50
+      ? new Promise((resolve) => {
+          finishExit = resolve;
+        })
+      : Promise.resolve(),
+);
+const row = (id, attrs = []) =>
+  el(
+    "div",
+    [
+      key(id),
+      attr("data-node", id),
+      attr("style", "height:24px"),
+      ...attrs,
+    ],
+    [],
+  );
+const predecessor = row("a"),
+  leaving = row("x", [fadeOut(50)]),
+  focusedHost = managedHost(
+    "b",
+    [attr("data-node", "b")],
+    {
+      mount: (node) => {
+        node.append(focusedInput);
+        return () => {};
+      },
+      update: () => {},
+    },
+  );
+exitRender(
+  el(
+    "div",
+    [attr("style", "position:relative")],
+    [predecessor, leaving, focusedHost],
+  ),
+);
+focusedInput.focus();
+const leavingNode = exitRoot.querySelector(
+    '[data-node="x"]',
+  ),
+  beforeExit =
+    leavingNode.getBoundingClientRect();
+exitRender(
+  el(
+    "div",
+    [attr("style", "position:relative")],
+    [predecessor, focusedHost],
+  ),
+);
+const duringExit =
+  leavingNode.getBoundingClientRect();
+verify(
+  "unchanged predecessor stays before exiting sibling",
+  [...exitRoot.firstElementChild.children]
+    .map((node) => node.getAttribute("data-node"))
+    .join(",") === "a,x,b",
+);
+verify(
+  "focused subtree is not detached by exit ordering",
+  document.activeElement === focusedInput,
+);
+verify(
+  "exit keeps its original visual footprint",
+  Math.abs(beforeExit.top - duringExit.top) < 1 &&
+    Math.abs(beforeExit.left - duringExit.left) <
+      1,
+);
+finishExit();
+await Promise.resolve();
+verify(
+  "exit settlement removes only the leaving sibling",
+  [...exitRoot.firstElementChild.children]
+    .map((node) => node.getAttribute("data-node"))
+    .join(",") === "a,b",
+);
+const suffixLeaving = row("suffix-x", [
+    fadeOut(50),
+  ]),
+  last = row("c");
+exitRender(
+  el(
+    "div",
+    [attr("style", "position:relative")],
+    [
+      focusedHost,
+      suffixLeaving,
+      predecessor,
+      last,
+    ],
+  ),
+);
+focusedInput.focus();
+exitRender(
+  el(
+    "div",
+    [attr("style", "position:relative")],
+    [focusedHost, predecessor, last],
+  ),
+);
+verify(
+  "exit after focus stays before unchanged successors",
+  [...exitRoot.firstElementChild.children]
+    .map((node) => node.getAttribute("data-node"))
+    .join(",") === "b,suffix-x,a,c" &&
+    document.activeElement === focusedInput,
+);
+finishExit();
+await Promise.resolve();
+exitRender.dispose();
+exitRoot.remove();
 output.textContent = JSON.stringify(
   {
     passed: checks.every((c) => c.passed),

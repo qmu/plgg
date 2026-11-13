@@ -61,11 +61,14 @@ A host's identity is its key within its parent plus its wrapper tag. Keep keys
 unique and stable; key the enclosing composer/column too when that wrapper is
 reordered. During a keyed reorder the renderer moves siblings around the active
 subtree rather than detaching/reinserting that subtree, preserving focus and
-selection without a focus-restoration workaround.
+selection without a focus-restoration workaround. The same anchor walk skips
+exiting siblings on both sides of focus, leaving unchanged predecessors and
+successors in place until the exit settles.
 
 Mount/update dispatch is queued until the current DOM commit finishes. A mount
 can dispatch an initial message that immediately replaces its own host: cleanup
-is installed before that next render runs. Callback exceptions remain consumer
+is installed before that next render runs. Each queued message rechecks terminal
+state: disposal triggered by one outer dispatch suppresses later queued messages. Callback exceptions remain consumer
 errors; lifecycle callbacks should complete normally.
 
 For an animated exit, logical removal ends ownership: cleanup and renderer event
@@ -90,7 +93,7 @@ removal/disposal, legacy mapping, keyed host identity, connected focus, cleanup,
 key/tag/ownership transitions, reentrant mount dispatch, SSR and animated exits.
 
 After building plgg and plgg-view, serve the repository read-only, then open
-`packages/plgg-view/browser-tests/composer249.html`. Its result contains 16
+`packages/plgg-view/browser-tests/composer249.html`. Its result contains 22
 checks using real browser File/FileList/DataTransfer/selection/focus and synthetic
 native CompositionEvent/InputEvent/KeyboardEvent/DragEvent. Two editor hosts
 complete Tab mentions, retain different files through unrelated renders and

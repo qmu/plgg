@@ -1551,38 +1551,16 @@ const keyedPatchChildren =
         node instanceof Element &&
         node.contains(document.activeElement),
     );
-    if (focused) {
-      // DOM move seam: never reinsert the active subtree (preserves selection/IME).
-      const pivot = finalNodes.indexOf(focused);
-      finalNodes
-        .slice(0, pivot)
-        .forEach((node) =>
-          parent.insertBefore(node, focused),
-        );
-      let after = focused.nextSibling;
-      finalNodes
-        .slice(pivot + 1)
-        .forEach((node) => {
-          if (node === after) {
-            after = after.nextSibling;
-          } else {
-            parent.insertBefore(node, after);
-          }
-        });
-    } else {
-      let anchor: Node | null = pastExiting(
-        parent.firstChild,
-      );
-      finalNodes.forEach((node) => {
-        if (anchor !== null && node === anchor) {
-          anchor = pastExiting(
-            anchor.nextSibling,
-          );
-        } else {
-          parent.insertBefore(node, anchor);
-        }
-      });
-    }
+    let anchor: Node | null = pastExiting(
+      parent.firstChild,
+    );
+    finalNodes.forEach((node) => {
+      // Walk unchanged predecessors/exits in place. If focus must move in the
+      // logical order, defer the displaced siblings instead of detaching it.
+      if (node === anchor || node === focused) {
+        anchor = pastExiting(node.nextSibling);
+      } else parent.insertBefore(node, anchor);
+    });
     // FLIP step 2: glide each survivor from its old box to its new one. When a
     // row is leaving, the slide is delayed by its fade so survivors hold their
     // old spots first, then slide into the cleared space (never over the row).
@@ -1742,7 +1720,7 @@ export const makeRenderer = <Msg>(
       committing = false;
       if (disposePending) teardown();
       if (!disposed)
-        queued.splice(0).forEach(dispatch);
+        queued.splice(0).forEach(wiring.dispatch);
     }
   };
   return Object.assign(render, {
