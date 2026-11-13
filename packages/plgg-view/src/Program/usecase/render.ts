@@ -1486,6 +1486,23 @@ const keyedPatchChildren =
         ? parent.getBoundingClientRect().height
         : 0;
 
+    // DOM teardown seam: a fully-keyed target cannot reuse old unkeyed
+    // children. Retire their subtrees before positioning survivors, but keep
+    // already-exiting keyed nodes in place until their motion completes.
+    Array.from(parent.childNodes).forEach(
+      (node) => {
+        if (
+          node instanceof Element &&
+          (wiring.exiting.has(node) ||
+            wiring.keyed.has(node))
+        ) {
+          return;
+        }
+        disposeTree(wiring, node);
+        node.remove();
+      },
+    );
+
     // exits first (out of flow), so the layout has already closed when the
     // survivors are measured below — they then FLIP from old box to new (slide).
     let exitDuration = 0;
