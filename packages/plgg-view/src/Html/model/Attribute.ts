@@ -48,7 +48,29 @@ export type Motion = Readonly<{
  * `Anim` is — like a handler — non-attribute metadata that SSR drops and only
  * the client renderer interprets.
  */
+/** Client-owned children. Mount runs after insertion, update after each
+ * committed render, and the returned cleanup runs once before removal.
+ * Updates must not reset draft/selection/IME state on unrelated renders. */
+export type HostLifecycle<Msg> = Readonly<{
+  mount: (
+    node: Element,
+    dispatch: (msg: Msg) => void,
+  ) => () => void;
+  update: (
+    node: Element,
+    dispatch: (msg: Msg) => void,
+  ) => void;
+}>;
+
 export type Attribute<Msg> =
+  | Box<
+      "EventHandler",
+      Readonly<{
+        event: SoftStr;
+        toMsg: (event: Event) => Option<Msg>;
+      }>
+    >
+  | Box<"Host", HostLifecycle<Msg>>
   | Box<
       "Attr",
       Readonly<{ name: SoftStr; value: SoftStr }>
@@ -74,10 +96,7 @@ export type Attribute<Msg> =
         rules: ReadonlyArray<CssRule>;
       }>
     >
-  | Box<
-      "Key",
-      Readonly<{ value: SoftStr }>
-    >;
+  | Box<"Key", Readonly<{ value: SoftStr }>>;
 
 /**
  * One atomic CSS rule as pure data: a content-hashed `className`, an optional
@@ -95,6 +114,9 @@ export type CssRule = Readonly<{
 
 /** Pattern matchers for folding an {@link Attribute} with `match`. */
 export const attr$ = () => pattern("Attr")();
+export const eventHandler$ = () =>
+  pattern("EventHandler")();
+export const host$ = () => pattern("Host")();
 export const handler$ = () =>
   pattern("Handler")();
 export const anim$ = () => pattern("Anim")();
@@ -169,8 +191,7 @@ export const name_ = (
 /** `placeholder` attribute. */
 export const placeholder_ = (
   value: SoftStr,
-): Attribute<never> =>
-  attr("placeholder", value);
+): Attribute<never> => attr("placeholder", value);
 
 /** `id` attribute. */
 export const id_ = (
@@ -225,8 +246,10 @@ export const key = (
  * smooth settle for things arriving/moving; `easeIn` a clean quick exit;
  * `easeInOut` a balanced glide for repositioning (FLIP).
  */
-export const easeOut = "cubic-bezier(0.16, 1, 0.3, 1)";
-export const easeIn = "cubic-bezier(0.5, 0, 0.75, 0)";
+export const easeOut =
+  "cubic-bezier(0.16, 1, 0.3, 1)";
+export const easeIn =
+  "cubic-bezier(0.5, 0, 0.75, 0)";
 export const easeInOut =
   "cubic-bezier(0.65, 0, 0.35, 1)";
 
@@ -299,3 +322,15 @@ export const slideIn = (
       easing: easeOut,
     },
   });
+
+/** Lossless DOM-event boundary. Narrow Event with instanceof in the decoder;
+ * return none() to suppress dispatch (for example during IME composition).
+ * Decode synchronously: currentTarget is cleared when the listener returns.
+ * The decoder may preventDefault/stopPropagation before returning. Legacy
+ * on/onInput/onChange keep their string payload contract. Last handler wins
+ * when both APIs target the same event. */
+export const onEvent = <Msg>(
+  event: SoftStr,
+  toMsg: (event: Event) => Option<Msg>,
+): Attribute<Msg> =>
+  box("EventHandler")({ event, toMsg });

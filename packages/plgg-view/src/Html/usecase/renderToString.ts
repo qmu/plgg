@@ -4,6 +4,8 @@ import {
   Attribute,
   attr$,
   handler$,
+  eventHandler$,
+  host$,
   anim$,
   css$,
   key$,
@@ -52,10 +54,17 @@ const renderAttribute = <Msg>(
       attr$(),
       ({ content }): SoftStr =>
         isSafeAttrName(content.name)
-          ? ` ${content.name}="${escapeAttr(safeAttrValue(content.name, content.value))}"`
+          ? ` ${content.name}="${escapeAttr(
+              safeAttrValue(
+                content.name,
+                content.value,
+              ),
+            )}"`
           : "",
     ],
     [handler$(), (): SoftStr => ""],
+    [eventHandler$(), (): SoftStr => ""],
+    [host$(), (): SoftStr => ""],
     [anim$(), (): SoftStr => ""],
     [key$(), (): SoftStr => ""],
     [
@@ -63,7 +72,9 @@ const renderAttribute = <Msg>(
       ({ content }): SoftStr =>
         content.classes === ""
           ? ""
-          : ` class="${escapeAttr(content.classes)}"`,
+          : ` class="${escapeAttr(
+              content.classes,
+            )}"`,
     ],
   );
 
@@ -86,12 +97,18 @@ export const renderToString = <Msg>(
       !isSafeTag(tag)
         ? ""
         : VOID_TAGS.some((t) => t === tag)
-          ? `<${tag}${attributes.map(renderAttribute).join("")} />`
+          ? `<${tag}${attributes
+              .map(renderAttribute)
+              .join("")} />`
           : // the `html` shell leads with a doctype so
             // the document renders in standards mode
-            `${tag === "html" ? "<!doctype html>" : ""}<${tag}${attributes
+            `${
+              tag === "html"
+                ? "<!doctype html>"
+                : ""
+            }<${tag}${attributes
               .map(renderAttribute)
-              .join(
-                "",
-              )}>${children.join("")}</${tag}>`,
+              .join("")}>${children.join(
+              "",
+            )}</${tag}>`,
   })(node);

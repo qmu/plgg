@@ -1,4 +1,9 @@
-import { box, match } from "plgg";
+import {
+  box,
+  match,
+  mapOption,
+  SoftStr,
+} from "plgg";
 import {
   Html,
   LazyContent,
@@ -11,6 +16,8 @@ import {
   Attribute,
   attr$,
   handler$,
+  eventHandler$,
+  host$,
   anim$,
   css$,
   key$,
@@ -35,8 +42,31 @@ const mapAttribute =
         ({ content }): Attribute<B> =>
           box("Handler")({
             event: content.event,
-            toMsg: (payload) =>
+            toMsg: (payload: SoftStr) =>
               f(content.toMsg(payload)),
+          }),
+      ],
+      [
+        eventHandler$(),
+        ({ content }): Attribute<B> =>
+          box("EventHandler")({
+            event: content.event,
+            toMsg: (event: Event) =>
+              mapOption(f)(content.toMsg(event)),
+          }),
+      ],
+      [
+        host$(),
+        ({ content }): Attribute<B> =>
+          box("Host")({
+            mount: (node, dispatch) =>
+              content.mount(node, (msg) =>
+                dispatch(f(msg)),
+              ),
+            update: (node, dispatch) =>
+              content.update(node, (msg) =>
+                dispatch(f(msg)),
+              ),
           }),
       ],
       [

@@ -1,0 +1,43 @@
+<!doctype html><meta charset="utf-8" /><title>
+  plgg-view composer lifecycle regression
+</title>
+<script type="importmap">
+  {
+    "imports": {
+      "plgg": "../../plgg/dist/index.es.js"
+    }
+  }
+</script>
+<style>
+  body {
+    font: 16px sans-serif;
+    margin: 24px;
+  }
+  section {
+    display: flex;
+    gap: 24px;
+  }
+  .editor {
+    border: 1px solid #aaa;
+    padding: 16px;
+    width: 340px;
+  }
+  .input {
+    min-height: 48px;
+    border: 1px solid #ddd;
+  }
+  #result {
+    white-space: pre-wrap;
+  }
+</style>
+<h1>Composer event / ownership regression</h1>
+<p>
+  Local browser test. Files remain in memory; no
+  upload, database or network API.
+</p>
+<div id="app"></div>
+<pre id="result">Running…</pre>
+<script
+  type="module"
+  src="composer249.mjs"
+></script>
