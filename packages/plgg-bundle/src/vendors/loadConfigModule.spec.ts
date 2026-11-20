@@ -129,3 +129,21 @@ test("importConfigModule emits no MODULE_TYPELESS_PACKAGE_JSON warning", async (
     });
   }
 });
+
+test("concurrent configs in one directory load their own module", async () => {
+  const root = makeConfigPkg();
+  try {
+    const load = (name: string) => {
+      const path = join(root, name + ".ts");
+      writeFileSync(path, "export default " + JSON.stringify(name));
+      return importConfigModule(path).then(pickDefault);
+    };
+    const [first, second] = await Promise.all([load("first"), load("second")]);
+    return all([
+      check(first === "first", toBe(true)),
+      check(second === "second", toBe(true)),
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
