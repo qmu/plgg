@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "node bin/plgg-bundle.mjs",
-    "tsc": "tsc --noEmit",
+    "tsc": "node ../../node_modules/typescript/bin/tsc --noEmit",
     "test": "plgg-test src",
     "coverage": "plgg-test src --coverage"
   },

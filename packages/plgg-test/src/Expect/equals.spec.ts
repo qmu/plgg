@@ -181,3 +181,12 @@ test("class instances compare by own enumerable fields", () => {
     ),
   ]);
 });
+
+test("collections with missing entries or different sizes are unequal", () =>
+  all([
+    check(deepEqual(new Map([[1, "x"]]), new Map()), toBe(false)),
+    check(deepEqual(new Map([[1, "x"]]), new Map([[2, "x"]])), toBe(false)),
+    check(deepEqual(new Set([1]), new Set()), toBe(false)),
+    check(deepEqual({ x: 1 }, { y: 1 }), toBe(false)),
+    check(deepEqual(/first/, /second/), toBe(false)),
+  ]));

@@ -14,14 +14,8 @@
  * exist, and no incremental API replaces it (docs/typescript-7-api-gap.md).
  * What survives the redesign, deliberately:
  *
- *  - **Each package is checked by the compiler it declares.** The `tsc`
- *    launcher is resolved from the package's own `typescript` dependency
- *    (same seam as plgg-bundle's emitDts): the 27 TS7 packages get the
- *    native binary, while `plgg-bundle` and `plgg-test` — whose runtime
- *    dependency stays pinned to TS6 because `transpileModule` has no TS7
- *    counterpart — are checked by the exact TS6 that ships with them. A
- *    hoist-order change can never silently swap the compiler under a
- *    package again.
+ *  - All projects use the workspace TypeScript 7 compiler. The bundler
+ *    and test runner separately depend on the TS6 runtime compiler API.
  *  - **Each package keeps its own options.** The 29 tsconfigs carry 12
  *    distinct shapes — DOM vs node-only `lib`, `NodeNext` vs `ESNext`
  *    module — so there is still one `tsc -p` per package, never a merged
@@ -185,7 +179,7 @@ export const summaryOf = (
 };
 
 /**
- * Typecheck one package by spawning its own `tsc`. `--noEmit` is forced
+ * Typecheck one package by spawning the workspace `tsc`. `--noEmit` is forced
  * so a package whose tsconfig emits declarations (plgg, plggmatic, …)
  * is checked exactly as its retired `tsc --noEmit` script checked it,
  * and nothing is written. Output is buffered and printed as one
@@ -199,9 +193,7 @@ const checkProject = (
     const started = Date.now();
     const root = join(packagesDir, name);
     const tscBin = tscBinFromMain(
-      createRequire(
-        join(root, "package.json"),
-      ).resolve("typescript"),
+      createRequire(import.meta.url).resolve("typescript"),
     );
     const child = spawn(
       process.execPath,

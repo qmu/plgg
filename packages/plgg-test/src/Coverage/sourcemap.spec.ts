@@ -93,3 +93,11 @@ test("negative source-line delta decodes", () => {
     ),
   ]);
 });
+
+test("ignores empty and invalid segments and decodes multi-digit deltas", () => {
+  const map = generatedToSource("!,;AAwBA,,");
+  return all([
+    check(map.has(0), toBe(false)),
+    check(map.get(1)?.has(24), toBe(true)),
+  ]);
+});
