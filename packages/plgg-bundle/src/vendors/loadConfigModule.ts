@@ -3,6 +3,7 @@ import {
   writeFileSync,
   rmSync,
 } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { transpileToEsm } from "plgg-bundle/vendors/transpiler";
@@ -37,9 +38,9 @@ export const importConfigModule = async (
   const js = transpileToEsm(configPath, source);
   const mjsPath = join(
     dirname(configPath),
-    `.bundle.config.${process.pid}.mjs`,
+    `.bundle.config.${randomUUID()}.mjs`,
   );
-  writeFileSync(mjsPath, js, "utf8");
+  writeFileSync(mjsPath, js, { flag: "wx", mode: 0o600 });
   try {
     return await import(
       pathToFileURL(mjsPath).href
