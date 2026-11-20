@@ -59,7 +59,7 @@ readmes="$ROOT"
 for p in $packages; do
   [ -f "$p/README.md" ] && readmes="$readmes $p/README.md"
 done
-broken=$(
+find_broken_links() {
   for f in $readmes; do
     dir=${f%/*}
     [ "$dir" = "$f" ] && dir="."
@@ -74,7 +74,8 @@ broken=$(
       [ -e "$dir/$path" ] || printf '  %s -> %s\n' "$f" "$t"
     done
   done
-)
+}
+broken=$(find_broken_links)
 if [ -n "$broken" ]; then
   echo "README GATE FAILED — broken relative links:"
   echo "$broken"

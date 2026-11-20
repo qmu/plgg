@@ -292,3 +292,13 @@ test("a script whose source is unreadable yields zero-line file", () =>
       check(rep.lines.total, toBe(0)),
     ]);
   }));
+
+test("collect excludes a sibling with the same directory prefix", () =>
+  withScratch((dir) => {
+    const sibling = join(dir, "src-other.ts");
+    writeFileSync(sibling, "export const other = true;");
+    writeFileSync(join(dir, "coverage.json"), JSON.stringify({
+      result: [{ url: pathToFileURL(sibling).href, functions: [] }],
+    }));
+    return check(collect(dir, join(dir, "src"), []).files.length, toBe(0));
+  }));

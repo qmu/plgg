@@ -203,7 +203,7 @@ const keep = (
   srcRoot: string,
   exclude: ReadonlyArray<string>,
 ): boolean =>
-  path.startsWith(srcRoot) &&
+  path.startsWith(join(srcRoot, "/")) &&
   path.endsWith(".ts") &&
   !path.endsWith(".spec.ts") &&
   !path.endsWith(".test.ts") &&
