@@ -28,8 +28,8 @@
   },
   "scripts": {
     "build": "plgg-bundle",
-    "tsc": "tsc --noEmit",
-    "tsc:watch": "tsc --noEmit --watch",
+    "tsc": "node ../../node_modules/typescript/bin/tsc --noEmit",
+    "tsc:watch": "node ../../node_modules/typescript/bin/tsc --noEmit --watch",
     "test": "node ./bin/plgg-test.mjs src",
     "test:watch": "node ./bin/plgg-test.mjs src --watch",
     "coverage": "node ./bin/plgg-test.mjs src --coverage",
