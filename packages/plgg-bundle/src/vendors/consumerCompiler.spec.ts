@@ -2,6 +2,7 @@ import { test, check, toBe } from "plgg-test";
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -17,7 +18,7 @@ for (const main of [
 ]) {
   test(`consumerTscBin resolves ${main} from the requested consumer`, () => {
     const root = mkdtempSync(
-      join(tmpdir(), "consumer-compiler-"),
+      join(realpathSync(tmpdir()), "consumer-compiler-"),
     );
     const dependency = join(
       root,
@@ -51,7 +52,7 @@ for (const main of [
 
 test("consumerTscBin finds hoisted TS7 before the CLI's nested TS6", () => {
   const root = mkdtempSync(
-    join(tmpdir(), "consumer-compiler-"),
+    join(realpathSync(tmpdir()), "consumer-compiler-"),
   );
   const consumer = join(root, "packages/library");
   const dependency = join(

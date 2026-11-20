@@ -6,6 +6,7 @@ import {
 } from "plgg-test";
 import {
   mkdtempSync,
+  realpathSync,
   writeFileSync,
   rmSync,
   readdirSync,
@@ -39,7 +40,7 @@ const CONFIG_BODY = [
  */
 const makeConfigPkg = (): string => {
   const root = mkdtempSync(
-    join(tmpdir(), "plgg-bundle-loadcfg-"),
+    join(realpathSync(tmpdir()), "plgg-bundle-loadcfg-"),
   );
   writeFileSync(
     join(root, "package.json"),
