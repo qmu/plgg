@@ -97,7 +97,11 @@ and key-rotation machinery:
   on every use (new token, `rotated_from` lineage, old →
   `rotated`); presenting a rotated/revoked token is a
   reuse signal that revokes the whole family
-  (`family_id`) and fails — OAuth 2.1 rotation.
+  (`family_id`) and fails — OAuth 2.1 rotation. Client binding is
+  verified before family revocation. Custom `AuthStore` adapters must
+  implement `rotateRefreshToken(parent, successor, expiresAt)` as one
+  atomic operation. A successful rotation consumes the active parent
+  and persists its successor. A storage error must roll back both changes.
 - **Key rotation**: `rotateSigningKey` installs a new
   `active` key and demotes the previous to `retiring`
   (still served in the JWKS so outstanding ID tokens

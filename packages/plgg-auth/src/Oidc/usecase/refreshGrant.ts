@@ -1,14 +1,12 @@
 import {
   SoftStr,
   Dict,
-  Num,
   Option,
   Result,
   ok,
   err,
   isErr,
   pipe,
-  some,
   none,
   fromNullable,
   matchOption,
@@ -21,7 +19,6 @@ import { IssuedCode } from "plgg-auth/Oidc/model/AuthStore";
 import { liftStore } from "plgg-auth/Oidc/model/AuthStore";
 import {
   RefreshRecord,
-  RefreshToken,
   freshRefreshToken,
   hashRefreshToken,
   asRefreshToken,
@@ -130,27 +127,6 @@ const rotate = async (
   record: RefreshRecord,
 ): Promise<Result<TokenResponse, OidcError>> => {
   const now = config.clock();
-  // Reuse detection: a non-active token that is
-  // presented is a replay — revoke the family.
-  if (record.status !== "active") {
-    const revoked = await liftStore(() =>
-      config.store.revokeRefreshFamily(
-        record.familyId,
-      ),
-    );
-    return isErr(revoked)
-      ? revoked
-      : err(
-          invalidGrant(
-            "refresh token reuse detected; the token family has been revoked",
-          ),
-        );
-  }
-  if (record.expiresAt <= now) {
-    return err(
-      invalidGrant("refresh token has expired"),
-    );
-  }
   if (
     clientIdString(record.clientId) !==
     clientIdString(client.id)
@@ -161,27 +137,33 @@ const rotate = async (
       ),
     );
   }
-  // Mark the presented token rotated, then issue a
-  // successor in the same family.
-  const marked = await liftStore(() =>
-    config.store.setRefreshStatus(
-      record.tokenHash,
-      "rotated",
-    ),
-  );
-  if (isErr(marked)) {
-    return marked;
+  if (record.status !== "active") {
+    return rejectReuse(config, record);
+  }
+  if (record.expiresAt <= now) {
+    return err(
+      invalidGrant("refresh token has expired"),
+    );
   }
   const next = freshRefreshToken();
-  const saved = await saveRotated(
-    config,
-    record,
-    next,
-    now,
-  );
-  if (isErr(saved)) {
-    return saved;
+  const hash = await hashRefreshToken(next);
+  if (isErr(hash)) {
+    return err(
+      serverError(
+        "failed to hash the rotated refresh token",
+      ),
+    );
   }
+  const rotated = await liftStore(() =>
+    config.store.rotateRefreshToken(
+      record.tokenHash,
+      hash.content,
+      now + config.refreshTtlSeconds,
+    ),
+  );
+  if (isErr(rotated)) return rotated;
+  if (!rotated.content)
+    return rejectReuse(config, record);
   return issueTokensFor(config)(
     {
       subject: record.subject,
@@ -193,32 +175,22 @@ const rotate = async (
   );
 };
 
-const saveRotated = async (
+const rejectReuse = async (
   config: ProviderConfig,
-  parent: RefreshRecord,
-  next: RefreshToken,
-  now: Num,
-): Promise<Result<void, OidcError>> => {
-  const hash = await hashRefreshToken(next);
-  if (isErr(hash)) {
-    return err(
-      serverError(
-        "failed to hash the rotated refresh token",
-      ),
-    );
-  }
-  return liftStore(() =>
-    config.store.saveRefreshToken({
-      tokenHash: hash.content,
-      familyId: parent.familyId,
-      clientId: parent.clientId,
-      subject: parent.subject,
-      scopes: parent.scopes,
-      rotatedFrom: some(parent.tokenHash),
-      status: "active",
-      expiresAt: now + config.refreshTtlSeconds,
-    }),
+  record: RefreshRecord,
+): Promise<Result<never, OidcError>> => {
+  const revoked = await liftStore(() =>
+    config.store.revokeRefreshFamily(
+      record.familyId,
+    ),
   );
+  return isErr(revoked)
+    ? revoked
+    : err(
+        invalidGrant(
+          "refresh token reuse detected; the token family has been revoked",
+        ),
+      );
 };
 
 // Re-export so the token handler can name the

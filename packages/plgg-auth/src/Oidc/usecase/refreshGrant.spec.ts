@@ -12,6 +12,7 @@ import {
   asCodeVerifier,
   refreshGrant,
   oidcErrorKind,
+  type OidcError,
   freshRefreshToken,
   hashRefreshToken,
 } from "plgg-auth/index";
@@ -461,46 +462,97 @@ const seedActiveRefresh = async (
   return t;
 };
 
-test("a failing setRefreshStatus during rotation is a StoreFailure", async () => {
+test("overlapping grants issue one successor and revoke it on reuse", async () => {
   const s = await setup();
   if (s === null)
     return check(s === null, toBe(false));
   const clock = { now: 1_700_000_000 };
-  const base = memoryStore(
+  const store = memoryStore(
     [publicClient],
     some(s.keyPair.privateKey),
   );
-  const t = await seedActiveRefresh(
-    base,
+  const token = await seedActiveRefresh(
+    store,
     "demo-rp",
     clock,
   );
-  if (t === null)
-    return check(t === null, toBe(false));
-  const config = makeConfigWithStore(
-    overrideStore(base, {
-      setRefreshStatus: boom,
-    }),
-    clock,
+  if (token === null)
+    return check(token === null, toBe(false));
+  const grant = refreshGrant(
+    makeConfigWithStore(store, clock),
+  )(publicClient);
+  const form = { refresh_token: token.content };
+  const [first, second] = await Promise.all([
+    grant(form),
+    grant(form),
+  ]);
+  const [winner, loser] = isOk(first)
+    ? [first, second]
+    : [second, first];
+  if (!isOk(winner))
+    return check(isOk(winner), toBe(true));
+  const invalid = errThen((e: OidcError) =>
+    check(oidcErrorKind(e), toBe("InvalidGrant")),
   );
-  return check(
-    await refreshGrant(config)(publicClient)(
-      Object.fromEntries(
-        new URLSearchParams({
-          refresh_token: t.content,
-        }).entries(),
-      ),
+  return all([
+    check(loser, invalid),
+    check(
+      await grant({
+        refresh_token:
+          winner.content.refreshToken.content,
+      }),
+      invalid,
     ),
-    errThen((e) =>
-      check(
-        oidcErrorKind(e),
-        toBe("StoreFailure"),
-      ),
-    ),
-  );
+  ]);
 });
 
-test("a failing saveRefreshToken during rotation is a StoreFailure", async () => {
+test("only the bound client can trigger reuse revocation", async () => {
+  const s = await setup();
+  if (s === null)
+    return check(s === null, toBe(false));
+  const clock = { now: 1_700_000_000 };
+  const store = memoryStore(
+    [publicClient],
+    some(s.keyPair.privateKey),
+  );
+  const token = await seedActiveRefresh(
+    store,
+    "demo-rp",
+    clock,
+  );
+  if (token === null)
+    return check(token === null, toBe(false));
+  const grant = refreshGrant(
+    makeConfigWithStore(store, clock),
+  );
+  const form = { refresh_token: token.content };
+  const first = await grant(publicClient)(form);
+  if (!isOk(first)) {
+    return check(false, toBe(true));
+  }
+  const foreign = await grant({
+    ...publicClient,
+    id: clientId("other"),
+  })(form);
+  const successor = await grant(publicClient)({
+    refresh_token:
+      first.content.refreshToken.content,
+  });
+  return all([
+    check(
+      foreign,
+      errThen((e) =>
+        check(
+          oidcErrorKind(e),
+          toBe("InvalidGrant"),
+        ),
+      ),
+    ),
+    check(isOk(successor), toBe(true)),
+  ]);
+});
+
+test("a failing atomic rotation is a StoreFailure", async () => {
   const s = await setup();
   if (s === null)
     return check(s === null, toBe(false));
@@ -518,7 +570,7 @@ test("a failing saveRefreshToken during rotation is a StoreFailure", async () =>
     return check(t === null, toBe(false));
   const config = makeConfigWithStore(
     overrideStore(base, {
-      saveRefreshToken: boom,
+      rotateRefreshToken: boom,
     }),
     clock,
   );

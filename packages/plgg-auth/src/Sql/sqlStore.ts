@@ -379,6 +379,29 @@ export const sqlStore = (db: Db): AuthStore => {
         ),
         asRefreshRecord,
       ),
+    rotateRefreshToken: async (
+      parent,
+      successor,
+      expiresAt,
+    ) => {
+      // Both rows come from the same active parent in one SQLite write.
+      // Target the parent's rowid for the status update. The new row gets
+      // its own rowid, so a duplicate token_hash aborts the entire write.
+      const result = await db.run(sql`
+        WITH parent AS MATERIALIZED (
+          SELECT rowid AS original_rowid, * FROM oidc_refresh_tokens
+          WHERE token_hash = ${refreshTokenHashString(parent)} AND status = 'active'
+        )
+        INSERT INTO oidc_refresh_tokens
+          (rowid, token_hash, family_id, client_id, subject, scopes, rotated_from, status, expires_at)
+        SELECT original_rowid, token_hash, family_id, client_id, subject, scopes, rotated_from, 'rotated', expires_at FROM parent
+        UNION ALL
+        SELECT NULL, ${refreshTokenHashString(successor)}, family_id, client_id, subject, scopes, token_hash, 'active', ${expiresAt}
+          FROM parent WHERE true
+        ON CONFLICT(rowid) DO UPDATE SET status = excluded.status
+      `);
+      return result.changes === 2;
+    },
     setRefreshStatus: async (
       hash: RefreshTokenHash,
       status: RefreshStatus,
