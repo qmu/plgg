@@ -9,6 +9,11 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # shared-with-CI canonical gate (scripts/gate-happy-dom.sh).
 ./scripts/gate-happy-dom.sh
 
+# Gate: the TypeScript 6/7 split-version layout stays intact — a typescript
+# pin under runtime `dependencies` stays ^6.x, one under `devDependencies`
+# stays ^7.x (scripts/gate-typescript-split.sh).
+./scripts/gate-typescript-split.sh
+
 # Gate: every package is documented and linked top-to-bottom — presence, the
 # root README index, back-links, and no dead links (scripts/gate-readme.sh).
 ./scripts/gate-readme.sh
