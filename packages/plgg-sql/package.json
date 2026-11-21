@@ -39,6 +39,9 @@
     "url": "https://github.com/qmu/plgg/issues"
   },
   "homepage": "https://github.com/qmu/plgg#readme",
+  "engines": {
+    "node": ">=22.13"
+  },
   "dependencies": {
     "plgg": "file:../plgg"
   },

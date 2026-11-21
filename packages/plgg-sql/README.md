@@ -11,6 +11,12 @@ are **interchangeable links in the same pipe** — `request → validate → que
 map → response` is one chain. The only runtime dependency is `plgg`; the
 database driver lives entirely at a seam the application supplies.
 
+The published surface is driver-agnostic, but the `Db` seam this package's
+`example.ts` and FTS5 suite wire is Node's built-in `node:sqlite`, which needs
+**Node ≥ 22.13** — the release where it stopped requiring
+`--experimental-sqlite`. That is the `engines.node` floor the manifest declares;
+a consumer on another driver only needs whatever that driver needs.
+
 ## One handler, one pipe
 
 ```typescript

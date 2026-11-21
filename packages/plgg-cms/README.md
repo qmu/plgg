@@ -13,6 +13,12 @@ composed onto plggpress's generic web-application seam
 (`plggpress/framework`) and served as a persistent
 `node:http` instance via the `plgg-cms` bin.
 
+Requires **Node ≥ 22.13**: the content stores open through
+`node:sqlite` (`src/content/vendors/openDb.ts`), and that
+built-in only stopped requiring `--experimental-sqlite` in
+22.13 / 23.4 — below it the import throws
+`ERR_UNKNOWN_BUILTIN_MODULE`.
+
 ## Why this package exists
 
 plggpress split its two concerns into two packages so the

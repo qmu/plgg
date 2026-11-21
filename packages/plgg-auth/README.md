@@ -106,7 +106,8 @@ and key-rotation machinery:
 The same shared contract spec runs against both the
 in-memory and the plgg-sql drivers; the SQL driver is
 tested against a real `node:sqlite` database (Node ≥
-22.6).
+22.13 — the release where `node:sqlite` stopped
+requiring `--experimental-sqlite`).
 
 ## Commands
 

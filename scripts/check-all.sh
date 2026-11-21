@@ -31,6 +31,14 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # scripts/vendor-boundary-exemptions.txt).
 ./scripts/gate-vendor-boundary.sh
 
+# Gate: every package that imports `node:sqlite` declares an `engines.node`
+# floor that can actually load it (>=22.13 — the release where the built-in
+# stopped requiring `--experimental-sqlite`). Nothing in this repository runs
+# below that floor, so a wrong or missing floor is invisible until a consumer
+# installs on an older Node and the import throws
+# (scripts/gate-node-support.sh).
+./scripts/gate-node-support.sh
+
 # Gate: plggmatic owns the `pm-*` namespace, and a consumer names one of its
 # hooks by IMPORT or not at all — a class name a consumer types is a contract no
 # compiler checks (scripts/gate-framework-names.sh).
