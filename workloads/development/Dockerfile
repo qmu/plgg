@@ -5,7 +5,7 @@
 # artifact (no multi-stage slimming, no pinned lockfile install).
 #
 # Build context is the repo root (see workloads/development/compose.yaml).
-FROM node:22-slim
+FROM node:24-slim
 
 WORKDIR /app
 

@@ -9,7 +9,7 @@
 # Build context is the repo root (see
 # workloads/guide/compose.yaml) so the in-container build
 # can reach every sibling package plggpress imports.
-FROM node:22-slim
+FROM node:24-slim
 
 WORKDIR /app
 
