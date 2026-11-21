@@ -483,6 +483,8 @@ See [packages/plgg-token-metering/README.md](packages/plgg-token-metering/README
 
 ## Development
 
+Requires Node >=24 (see `.nvmrc`).
+
 ```bash
 # Install dependencies for all packages
 scripts/npm-install.sh
