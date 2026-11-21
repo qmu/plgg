@@ -11,13 +11,11 @@ import {
   fromNullable,
 } from "plgg";
 import { Html } from "plgg-view/Html/model/Html";
-import { collectCssRules } from "plgg-view/Html/usecase/collectCss";
 import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
-import { makeRenderer } from "plgg-view/Program/usecase/render";
-import { makeSheet } from "plgg-view/Program/usecase/sheet";
+import { type AfterRender, makeProgramRenderer } from "plgg-view/Program/usecase/programRenderer";
 import { type Cmd } from "plgg-view/Program/model/Cmd";
 import { type Sub } from "plgg-view/Program/model/Sub";
 import {
@@ -66,6 +64,7 @@ export type Application<Model, Msg> = Readonly<{
     model: Model,
   ) => readonly [Model, Cmd<Msg>];
   view: (model: Model) => Html<Msg>;
+  afterRender?: AfterRender<Model>;
   onUrlChange: (url: Url) => Msg;
   navigation?: ParentNavigation;
   /**
@@ -277,7 +276,6 @@ export const application =
     let paintPending = false;
     let cancelPaint: (() => void) | null = null;
     const sync = program.render === "sync";
-    const sheet = makeSheet();
     // Flushes the LATEST `model` through one `view()` + patch — read at flush
     // time (not schedule time), so N dispatches batched into one frame still
     // repaint only once, on the model the last of them produced.
@@ -285,7 +283,7 @@ export const application =
       paintPending = false;
       cancelPaint = null;
       if (alive) {
-        paint(program.view(model));
+        renderer.paint(model);
       }
     };
     // `"sync"` paints every dispatch immediately (no batching); the `"frame"`
@@ -294,7 +292,7 @@ export const application =
     // updates `model` for the SAME pending flush to pick up.
     const schedulePaint = (): void => {
       if (sync) {
-        paint(program.view(model));
+        renderer.paint(model);
       } else if (!paintPending) {
         paintPending = true;
         cancelPaint =
@@ -316,16 +314,7 @@ export const application =
       if (alive) runCmd(cmd, dispatch);
       if (alive) syncSubs();
     };
-    const render = makeRenderer(
-      container,
-      dispatch,
-    );
-    // render the DOM, then merge the tree's atomic CSS into the managed sheet
-    // (insert-only: exiting nodes still wear classes the new tree dropped)
-    const paint = (html: Html<Msg>): void => {
-      render(html);
-      sheet.add(collectCssRules(html));
-    };
+    const renderer = makeProgramRenderer(container, dispatch, program.view, program.afterRender);
     const subs = makeSubRuntime(dispatch, env);
     // reconcile the active subscriptions for the current model (no-op when the
     // program declares none).
@@ -425,7 +414,7 @@ export const application =
         })();
     container.addEventListener("click", onClick);
 
-    paint(program.view(model));
+    renderer.paint(model);
     runCmd(initCmd, dispatch);
     syncSubs();
 
@@ -443,7 +432,6 @@ export const application =
         "click",
         onClick,
       );
-      render.dispose();
-      sheet.dispose();
+      renderer.dispose();
     };
   };

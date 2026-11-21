@@ -14,6 +14,7 @@ import {
 } from "plgg-view/Program/model/Cmd";
 import {
   subNone,
+  readOnce,
   subBatch,
   interval,
   windowEvent,
@@ -251,4 +252,36 @@ test("browserSubEnv wires real interval + window listeners with cleanups", () =>
     new Event("pm-effects-test"),
   );
   return check(got, toEqual(["hit"]));
+});
+
+test("a read belongs to one mount of its key, including A to B to A", async () => {
+  const results: string[] = [];
+  const finish: Array<(v: string) => void> = [];
+  const signals: AbortSignal[] = [];
+  const sub = (key: string) =>
+    readOnce(key, (signal) => {
+      signals.push(signal);
+      return new Promise<string>((resolve) =>
+        finish.push(resolve),
+      );
+    });
+  const runtime = makeSubRuntime<string>(
+    (msg) => results.push(msg),
+    makeFakeEnv().env,
+  );
+  runtime.reconcile(sub("A"));
+  runtime.reconcile(sub("A"));
+  runtime.reconcile(sub("B"));
+  runtime.reconcile(sub("A"));
+  finish[2]?.("current");
+  finish[0]?.("old A");
+  finish[1]?.("old B");
+  await flush();
+  const aborted = signals.map((s) => s.aborted);
+  runtime.disposeAll();
+  return all([
+    check(aborted, toEqual([true, true, false])),
+    check(signals[2]?.aborted, toBe(true)),
+    check(results, toEqual(["current"])),
+  ]);
 });

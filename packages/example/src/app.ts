@@ -38,6 +38,7 @@ import {
   key,
   fadeIn,
   fadeOut,
+  animateMoves,
   transition,
   easeOut,
   easeIn,
@@ -557,6 +558,7 @@ const viewToaster = (
   div(
     [
       key("toaster"),
+      animateMoves(),
       class_("toaster"),
       attr(
         "style",
@@ -1090,6 +1092,7 @@ export const view = (model: Model): Html<Msg> =>
           ),
           ul(
             [
+              animateMoves(),
               sx.style_(
                 "todo-list",
                 sx.flexCol,

@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pane rendering contracts</title>
+<script type="importmap">{"imports":{"plgg":"../../plgg/dist/index.es.js"}}</script>
+<div id="root"></div><pre id="result">pending</pre>
+<script type="module">
+import {attr, button, circle, el, g, href, key, lazy, onClick, rect, renderToString, svg, text, title, urlFor, value_} from "../dist/index.es.js";
+import {application, cmdNone, makeRenderer} from "../dist/client.es.js";
+const root = document.querySelector("#root");
+const result = document.querySelector("#result");
+const passed = [];
+function expect(label, ok) {
+  if (!ok) throw new Error(label);
+  passed.push(label);
+}
+try {
+  const render = makeRenderer(root, () => {});
+  const choices = (value, names) => el("form", [], [el("select", [value_(value)], [
+    el("optgroup", [], names.map(name => el("option", [], [text(name)]))),
+  ])]);
+  const form = choices("two", ["one","two"]);
+  const ssr = document.createElement("template");
+  ssr.innerHTML = renderToString(form);
+  render(form);
+  const select = root.querySelector("select");
+  expect("SSR and initial selected value", [ssr.content.querySelector("select"),select].every(s => s.value === "two"));
+  select.value = "one";
+  render(choices("two", ["two","three"]));
+  expect("replace options", select.value === "two" && select.selectedIndex === 0);
+  select.value = "three";
+  select.form.reset();
+  expect("form reset follows model", select.value === "two");
+  render(choices("missing", ["first","second"]));
+  expect("missing value follows native fallback", select.value === "first");
+  const rows = ids => el("section", [], ids.map(id => el("div",[key(id)], [el("input", [], [])])));
+  const ids = Array.from({length:100}, (_,i)=>String(i));
+  render(rows(ids));
+  const field = root.querySelector("input");
+  field.value = "draft"; field.focus(); field.setSelectionRange(1,3);
+  let reads = 0;
+  const rectOf = Element.prototype.getBoundingClientRect;
+  Element.prototype.getBoundingClientRect = function() { reads++; return rectOf.call(this); };
+  try { render(rows(ids)); render(rows([...ids].reverse())); }
+  finally { Element.prototype.getBoundingClientRect = rectOf; }
+  expect("keyed update and reorder without measurements", reads === 0);
+  expect("focused row follows its key", root.querySelector("section").lastChild.firstChild === field && document.activeElement === field && field.selectionStart === 1 && field.selectionEnd === 3);
+  const graphics = show => svg([], [g([], [title([], [text("Marker")]), ...(show ? [lazy(() => circle([], []),0),rect([],[])] : [])])]);
+  render(graphics(false)); render(graphics(true));
+  expect("patched SVG descendants inherit namespace", [...root.querySelectorAll("svg *")].every(node => node.namespaceURI === "http://www.w3.org/2000/svg"));
+  const bridge = el("svg", [], [el("foreignObject", [], [el("div", [], [])])]);
+  render(bridge);
+  expect("foreignObject restores HTML", root.querySelector("div").namespaceURI === "http://www.w3.org/1999/xhtml");
+  const link = value => {
+    const checked = urlFor("same-origin", location.href)(value);
+    return checked.__tag === "Some" ? el("a",[href(checked.content)],[text("open")]) : text("unavailable");
+  };
+  for (const [value, allowed] of [["/safe", true], ["//other.example", false]]) {
+    render(link(value)); ssr.innerHTML = renderToString(link(value));
+    expect("link policy in HTML and DOM: "+value, !!root.querySelector("a") === allowed && !!ssr.content.querySelector("a") === allowed);
+  }
+  render.dispose();
+  let frame, commits = [];
+  const stop = application({
+    init: () => [false,cmdNone()], update: (_,open) => [!open,cmdNone()],
+    onUrlChange: () => "toggle",
+    view: open => el("div", [], [button([onClick("toggle")],[text("toggle")]),...(open?[el("textarea",[],[])]:[])]),
+    afterRender: (root,prev,open) => {
+      commits.push([prev.__tag==="Some"?prev.content:null,open]);
+      if(open) root.querySelector("textarea").focus();
+    }
+  }, undefined, {schedule: f => {frame = f;return ()=>{};}})(root);
+  const toggle = () => root.querySelector("button").click();
+  toggle(); toggle(); frame();
+  expect("open then close stays closed", root.querySelector("textarea") === null && JSON.stringify(commits) === "[[null,false],[false,false]]");
+  toggle(); frame();
+  expect("focus runs after insertion", document.activeElement === root.querySelector("textarea"));
+  toggle(); stop(); frame();
+  expect("unmount drops pending callback", commits.length===3);
+  result.textContent = "PASS "+passed.length;
+} catch(e) { result.textContent = "FAIL "+e.message; }
+</script>

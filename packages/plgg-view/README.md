@@ -25,11 +25,11 @@ touches them directly.
 | ✅ `Model` / `Msg` / pure `update`→`[Model, Cmd]` / `view` / `subscriptions` | ❌ effects never RUN inside `update` — it returns them as data |
 | ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style element builder functions instead) |
 | ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no hydration (mount re-renders from `init`) |
-| ✅ keyed-list reconcile (`key()`, FLIP reorder) | ❌ a `lazy(...)` list cannot ALSO be keyed (reconciles by index) |
+| ✅ keyed-list reconcile (`key()`, optional FLIP reorder) | ❌ a `lazy(...)` list cannot ALSO be keyed (reconciles by index) |
 | ✅ `application`'s dispatch batches into one `requestAnimationFrame` paint per frame (`render: "sync"` opts out) | |
 | ✅ `lazy(fn, arg)` skips a subtree's rebuild+diff when `arg` is `===` the previous render | |
 | ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | |
-| ✅ declarative enter/exit transitions (WAAPI, `prefers-reduced-motion`-aware) | ❌ no spring physics, keyed-FLIP reorder, or exit-while-list-churns (follow-ups) |
+| ✅ declarative enter/exit transitions (WAAPI, `prefers-reduced-motion`-aware) | ❌ no spring physics |
 | ✅ pure SSR `renderToString(Html)` | |
 
 ## The view tree — `Html<Msg, T>`
@@ -109,6 +109,15 @@ clicks, fragment links, downloads and external targets retain native
 browser behavior. A parent handling bubbled clicks must honor
 `event.defaultPrevented`. Call the returned teardown when removing the
 pane to release its subscriptions, pending paint and managed hosts.
+
+### Rendering contracts for interactive panes
+
+- Set `value_(model.choice)` on a single select. The renderer synchronizes the live selection after patching the options and updates the reset default. SSR writes the corresponding selected option. Duplicate values select the first match. Missing values follow native single-select fallback. Multiple selects retain their per-option defaults.
+- `afterRender(root, previous, current)` is available on application and sandbox. The callback runs after the DOM and styles are committed. Compare the last painted model with the current one to decide when to focus, measure or scroll. Unmount cancels pending frame work.
+- A stable `key` preserves row identity. Put `animateMoves()` on the list container to opt into layout measurement and FLIP animation. Explicit row enter and exit motions still run independently.
+- Use the client subscription `readOnce(key, read)` for cancellable reads. Pass its signal to the transport. A removed or superseded subscription suppresses a late completion even after the same key returns. Include the read generation in the key when refreshing in place.
+- Build SVGs with `svg`, `g`, `title`, `circle`, `rect` and `path`. Child creation and incremental insertions inherit the SVG namespace. HTML resumes inside `foreignObject`.
+- `urlFor(use, pageBase)(input)` yields an `Option<string>` for a same-origin resource, web link or HTTPS link. Provide the same page base on the server and client. Render a text fallback for None. An application can impose narrower rules such as requiring a root-relative attachment path.
 
 ### `application`'s dispatch batches into one paint per frame
 

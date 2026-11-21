@@ -23,6 +23,7 @@ import {
 import { some, none, isSome, box } from "plgg";
 import {
   attr,
+  animateMoves,
   class_,
   type_,
   value_,
@@ -934,7 +935,7 @@ const kli = (
 
 const kul = (
   ...kids: ReadonlyArray<ReturnType<typeof kli>>
-) => el("ul", [], kids);
+) => el("ul", [animateMoves()], kids);
 
 /** Records every play call so a test can assert what animated and with what. */
 const spyPlay = () => {

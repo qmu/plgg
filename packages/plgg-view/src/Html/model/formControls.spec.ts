@@ -22,7 +22,7 @@ import {
   value_,
   type_,
 } from "plgg-view/Html/model/Attribute";
-import { input } from "plgg-view/Html/model/element";
+import { el, input } from "plgg-view/Html/model/element";
 
 test("textarea renders its text value", () =>
   check(
@@ -131,3 +131,46 @@ test("placeholder_ and id_ are thin sugar over attr", () =>
       ),
     ),
   ]));
+
+test("controlled single selects serialize the first matching option, including option label defaults", () => {
+  const choices = el(
+    "select",
+    [value_("B C")],
+    [
+      el(
+        "optgroup",
+        [],
+        [
+          option(
+            [value_("A"), attr("selected", "")],
+            [text("First")],
+          ),
+          option([], [text("  B\n C  ")]),
+          option([value_("B C")], [text("Last")]),
+        ],
+      ),
+    ],
+  );
+  return all([
+    check(
+      renderToString(choices),
+      toBe(
+        '<select value="B C"><optgroup><option value="A">First</option><option selected="">  B\n C  </option><option value="B C">Last</option></optgroup></select>',
+      ),
+    ),
+    check(
+      renderToString(
+        select(
+          [attr("multiple", ""), value_("A")],
+          [
+            option(
+              [value_("B"), attr("selected", "")],
+              [text("B")],
+            ),
+          ],
+        ),
+      ).includes('value="B" selected=""'),
+      toBe(true),
+    ),
+  ]);
+});
