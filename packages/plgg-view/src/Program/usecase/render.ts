@@ -1079,7 +1079,13 @@ export const reconcile =
               lazy$(),
               ({ content: oldContent }): Node =>
                 oldContent.fn === newContent.fn &&
-                oldContent.arg === newContent.arg
+                oldContent.arg === newContent.arg &&
+                oldContent.messageMaps.length ===
+                  newContent.messageMaps.length &&
+                oldContent.messageMaps.every(
+                  (f, i) =>
+                    f === newContent.messageMaps[i],
+                )
                   ? domNode
                   : resolveAndReconcile(
                       pipe(

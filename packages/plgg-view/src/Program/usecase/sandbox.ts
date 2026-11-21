@@ -107,9 +107,10 @@ export const sandbox =
     runCmd(initCmd, dispatch);
     syncSubs();
     return () => {
+      if (!alive) return;
       alive = false;
       subs.disposeAll();
-      container.replaceChildren();
+      render.dispose();
       sheet.dispose();
     };
   };

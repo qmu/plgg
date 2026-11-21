@@ -127,6 +127,7 @@ export const mapHtml =
           box("Lazy")<LazyContent<B>>({
             arg: content.arg,
             fn: content.fn,
+            messageMaps: [...content.messageMaps, f],
             render: () =>
               mapHtml(f)(content.render()),
           }),

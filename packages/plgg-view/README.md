@@ -76,16 +76,39 @@ const column = (c: Column): Html<Msg> => div([], c.rows.map(row));
 const view = (m: Model) => div([], m.columns.map((c) => lazy(column, c)));
 ```
 
-`lazy(fn, arg)` defers `fn(arg)` to a thunk the renderer calls only when it
-actually needs the subtree — on first paint, or when patching against a
-previous render whose `arg` is no longer `===` this one's. When `arg` IS
-`===` the previous render's, the renderer skips `fn` *and* the diff entirely:
-the old subtree's DOM is left untouched, so a column whose slice of the model
-the current dispatch never replaced costs nothing, no matter how many rows it
-holds. `foldHtml`/`mapHtml`/`renderToString` resolve a `lazy` node
-transparently (SSR has no notion of "skip"); only the client renderer
-exploits it. A `lazy(...)` child is never keyed — key the element `fn`
-returns if the list also reorders.
+`lazy(fn, arg)` defers constructing a subtree until the renderer needs it.
+At the same DOM position, the renderer can skip a rebuild when the producer,
+argument and message wrappers have the same identities. A change to any of
+them reconciles the subtree. For a list that reorders, put the lazy node
+inside a keyed element that is a direct child of the list.
+
+### Child programs and navigation in a shared shell
+
+When a parent owns the model, pair `mapHtml(wrap)(childView)` with
+`mapCmd(wrap)(childCmd)`. Import `mapCmd` from `plgg-view/client`.
+A wrapper can carry the pane ID and its generation. Nested batches keep
+their order and effects start when the runtime executes the command.
+When a child uses `lazy`, reuse a message wrapper while its destination is
+stable. Changing a wrapper updates the live event handlers even if the
+child model and renderer function stay identical.
+
+For an independently mounted pane, pass a `ParentNavigation` to
+`application({ ...program, navigation })(root)`. The shell implements
+three functions.
+
+- `current()` returns this pane's committed path and query.
+- `request(url, mode)` asks the shell to push or replace a route. The
+  shell can accept, redirect or decline. A link takes effect in the
+  pane when the shell sends the confirmed route.
+- `subscribe(changed)` registers the callback and returns its cleanup.
+  Update the value read by `current()` before notifying subscribers.
+  Notify affected panes on back and forward navigation too.
+
+The mount handles ordinary same-origin links inside its root. Modified
+clicks, fragment links, downloads and external targets retain native
+browser behavior. A parent handling bubbled clicks must honor
+`event.defaultPrevented`. Call the returned teardown when removing the
+pane to release its subscriptions, pending paint and managed hosts.
 
 ### `application`'s dispatch batches into one paint per frame
 
