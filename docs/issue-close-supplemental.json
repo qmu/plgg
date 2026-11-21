@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "ce33a1bdf53860c5d027b96055ef4190945b383f8913f76926bc6300aa7b1cbc",
+  "issues": [
+    {
+      "issue": 155,
+      "checks": [
+        {
+          "id": "affected-runtime-repeat-build",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 156,
+      "checks": [
+        {
+          "id": "consumer-declarations",
+          "status": "pending"
+        },
+        {
+          "id": "corpd-tsgo-workaround-removed",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 157,
+      "checks": [
+        {
+          "id": "corpd-frame-lazy",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "issue": 158,
+      "checks": [
+        {
+          "id": "corpd-typed-svg-child-selector",
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}
