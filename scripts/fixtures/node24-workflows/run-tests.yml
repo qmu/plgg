@@ -1,0 +1,32 @@
+name: Run Tests
+
+# The fresh-clone BACKSTOP merge gate — the only inspection role hosted CI
+# holds under the local CI/CD policy (inspections are repository scripts run
+# locally; a green badge here is never the primary health signal). The gate
+# is one call to the canonical runner, identical to what a developer runs,
+# so the local and CI paths cannot drift.
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+jobs:
+  check-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Install every package's dependencies
+        run: ./scripts/npm-install.sh
+
+      - name: Check all (gates + fresh build + full test suite)
+        run: ./scripts/check-all.sh

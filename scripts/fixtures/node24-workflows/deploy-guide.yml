@@ -1,0 +1,84 @@
+name: Deploy Guide
+
+# Build the plggpress guide (packages/guide) — including the auto-generated,
+# per-package API reference — and publish it to the production Cloudflare
+# Worker (packages/guide/wrangler.jsonc).
+#
+# Independent of the CalVer release pipeline (prepare-release/release): the docs
+# follow the code, so this runs on any push to main that touches the packages or
+# the guide itself, plus on-demand via workflow_dispatch.
+#
+# This workflow published to GitHub Pages until 2026-08-18. The site now has
+# exactly ONE publisher: the Worker below. Nothing here may re-introduce a
+# second one — two publishers for one hostname is the failure the cutover was
+# done to remove. The rollback is this file's history plus re-enabling Pages in
+# the repository settings; the last Pages publish was run 31633532497
+# (2026-08-12, "Merge pull request #117").
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "packages/**"
+      - ".github/workflows/deploy-guide.yml"
+  workflow_dispatch:
+
+# Read-only: the deploy leaves GitHub entirely, so the Pages-era `pages: write`
+# and `id-token: write` grants are gone. Cloudflare is authenticated by a
+# repository secret instead, not by the workflow's own GitHub identity.
+permissions:
+  contents: read
+
+# One in-flight deploy at a time; don't cancel a running publish.
+concurrency:
+  group: deploy-guide
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      # The canonical scripts own the topology: npm-install.sh installs every
+      # package's deps (the `file:` links install nothing on a clean runner),
+      # and build.sh builds every dist in dependency order — the same commands
+      # a developer runs locally, so this workflow can never hold a second,
+      # divergent copy of the dependency graph (the failure class behind the
+      # PR #51 deploy incident).
+      - name: Install every package's dependencies
+        run: ./scripts/npm-install.sh
+
+      - name: Build package dists (dependency order)
+        run: ./scripts/build.sh
+
+      # The guide's OWN build script: `plggpress build` plus the post-build
+      # nest-exhibit.ts step that copies the plggmatic reference exhibit
+      # (packages/plggmatic-example/dist, built by build.sh above) under
+      # dist/plggmatic-reference/. One command the repository owns and a
+      # developer runs identically — an inline plggpress invocation here would
+      # be a second, divergent copy of the build (the same failure class the
+      # install/build steps above name).
+      #
+      # The site serves at the domain root: site.config.ts defaults the base
+      # to "/" and the Worker serves that root, so no DOCS_BASE is needed.
+      - name: Build the guide (plggpress + exhibit)
+        run: npm run build --prefix packages/guide
+
+      # `wrangler deploy`, through the guide's OWN deploy script — so the
+      # command that publishes is one this repository owns and a developer can
+      # run by hand, never a wrangler invocation that lives only here.
+      #
+      # The token is a repository secret scoped to Workers deployment on this
+      # account; it is never inlined and never echoed. An absent secret fails
+      # this step loudly on purpose: a green run that quietly skipped the
+      # publish would be worse than a red one.
+      - name: Deploy the guide to the production Worker
+        run: npm run deploy --prefix packages/guide
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
