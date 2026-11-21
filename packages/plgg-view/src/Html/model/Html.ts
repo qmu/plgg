@@ -62,6 +62,8 @@ export type LazyContent<
 > = Readonly<{
   arg: unknown;
   fn: object;
+  /** Ordered mapHtml wrappers whose identity determines the active handlers. */
+  messageMaps: ReadonlyArray<object>;
   render: () => Html<Msg, T>;
 }>;
 

@@ -80,8 +80,8 @@ export const text = (
  * ```
  *
  * Never carries a {@link key} of its own — a list of `lazy(...)` children
- * reconciles by index (see `allKeyed`'s docs); key the element `fn` returns
- * instead if the list also reorders.
+ * reconciles by index. For reordering, put the lazy node inside a keyed
+ * element that is itself a direct child of the list.
  */
 export const lazy = <
   Msg,
@@ -94,6 +94,7 @@ export const lazy = <
   box("Lazy")<LazyContent<Msg, T>>({
     arg,
     fn,
+    messageMaps: [],
     render: () => fn(arg),
   });
 
@@ -566,7 +567,7 @@ const svgEl =
   <T extends string>(name: T) =>
   <Msg>(
     attributes: ReadonlyArray<Attribute<Msg>>,
-    children: ReadonlyArray<Html<Msg, "path">>,
+    children: ReadonlyArray<Html<Msg, "path" | "circle" | "rect" | "g" | "title">>,
   ): Html<Msg, T> =>
     box("Element")<ElementContent<Msg, T>>({
       tag: name,
@@ -595,6 +596,9 @@ const drawEl =
 // SVG icons — `svg` holds `path` drawings.
 export const svg = svgEl("svg");
 export const path = drawEl("path");
+export const circle = drawEl("circle");
+export const rect = drawEl("rect");
+export const g = svgEl("g");
 
 // Document shell — first-class typed builders.
 export const html = documentEl("html");

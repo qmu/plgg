@@ -4,9 +4,7 @@ import {
   fromNullable,
 } from "plgg";
 import { Html } from "plgg-view/Html/model/Html";
-import { collectCssRules } from "plgg-view/Html/usecase/collectCss";
-import { makeRenderer } from "plgg-view/Program/usecase/render";
-import { makeSheet } from "plgg-view/Program/usecase/sheet";
+import { type AfterRender, makeProgramRenderer } from "plgg-view/Program/usecase/programRenderer";
 import { type Cmd } from "plgg-view/Program/model/Cmd";
 import { type Sub } from "plgg-view/Program/model/Sub";
 import {
@@ -38,6 +36,7 @@ export type Sandbox<Model, Msg> = Readonly<{
     model: Model,
   ) => readonly [Model, Cmd<Msg>];
   view: (model: Model) => Html<Msg>;
+  afterRender?: AfterRender<Model>;
   subscriptions?: (model: Model) => Sub<Msg>;
 }>;
 
@@ -66,7 +65,6 @@ export const sandbox =
     // subscription resolving after teardown is dropped.
     let model: Model = initModel;
     let alive = true;
-    const sheet = makeSheet();
     const dispatch = (msg: Msg): void => {
       if (!alive) {
         return;
@@ -76,20 +74,11 @@ export const sandbox =
         model,
       );
       model = next;
-      paint(program.view(model));
+      renderer.paint(model);
       runCmd(cmd, dispatch);
       syncSubs();
     };
-    const render = makeRenderer(
-      container,
-      dispatch,
-    );
-    // render the DOM, then merge the tree's atomic CSS into the managed sheet
-    // (insert-only: exiting nodes still wear classes the new tree dropped)
-    const paint = (html: Html<Msg>): void => {
-      render(html);
-      sheet.add(collectCssRules(html));
-    };
+    const renderer = makeProgramRenderer(container, dispatch, program.view, program.afterRender);
     const subs = makeSubRuntime(dispatch, env);
     // reconcile the active subscriptions for the current model (no-op when the
     // program declares none).
@@ -103,13 +92,13 @@ export const sandbox =
           ): void => subs.reconcile(of(model)),
         ),
       );
-    paint(program.view(model));
+    renderer.paint(model);
     runCmd(initCmd, dispatch);
     syncSubs();
     return () => {
+      if (!alive) return;
       alive = false;
       subs.disposeAll();
-      container.replaceChildren();
-      sheet.dispose();
+      renderer.dispose();
     };
   };

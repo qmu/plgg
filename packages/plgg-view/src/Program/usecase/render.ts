@@ -559,30 +559,33 @@ export const waapiPlay: Play = (node, motion) =>
         )
     : Promise.resolve();
 
-/**
- * SVG needs its namespace: an `<svg>`/`<path>` created via plain
- * `createElement` is an inert `HTMLUnknownElement` that never draws. These are
- * the two SVG tags the typed builders vocabulary ships (`svg` holds `path`
- * children only); extend alongside the builders if that vocabulary grows.
- */
-const SVG_TAGS: ReadonlyArray<SoftStr> = [
-  "svg",
-  "path",
-];
-
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/**
- * Creates the right kind of element for a tag: namespaced for the SVG
- * vocabulary, plain HTML otherwise. Both return `Element`, which is all the
- * attribute/keyed/motion seams require.
- */
-const createElementFor = (
-  tag: SoftStr,
-): Element =>
-  SVG_TAGS.some((t) => t === tag)
+/** SVG descendants inherit their namespace, including later insertions.
+ * foreignObject switches its children back to HTML. */
+const createElementFor = (tag: SoftStr, parent?: Node): Element =>
+  tag === "svg" || (parent instanceof Element && parent.namespaceURI === SVG_NS && parent.localName !== "foreignObject")
     ? document.createElementNS(SVG_NS, tag)
     : document.createElement(tag);
+
+/** Apply the single-select model after the options exist. The selected
+ * default also governs native form.reset(). Missing choices follow HTML's
+ * first enabled option rule for a single-line select. */
+const syncSelect = (node: Element): void => {
+  if (node.tagName !== "SELECT" || typeof HTMLSelectElement === "undefined" || !(node instanceof HTMLSelectElement) || node.multiple) return;
+  const value = node.getAttribute("value");
+  if (value === null) return;
+  if (!node.options) { node.value = value; return; }
+  const options = Array.from(node.options);
+  const index = options.findIndex(option => option.value === value);
+  options.forEach((option, i) => {
+    if (option.defaultSelected !== (i === index)) option.defaultSelected = i === index;
+  });
+  const selection = index < 0 && node.size <= 1
+    ? options.findIndex(option => !option.disabled && !option.closest("optgroup[disabled]"))
+    : index;
+  if (node.selectedIndex !== selection) node.selectedIndex = selection;
+};
 
 /**
  * Builds a fresh DOM node from an {@link Html} tree — text becomes a `Text`
@@ -591,7 +594,7 @@ const createElementFor = (
  */
 export const createNode =
   <Msg>(wiring: Wiring<Msg>) =>
-  (node: Html<Msg>): Node =>
+  (node: Html<Msg>, parent?: Node): Node =>
     match(node)(
       [
         text$(),
@@ -621,7 +624,7 @@ export const createNode =
         element$(),
         ({ content }): Node => {
           const el = createElementFor(
-            content.tag,
+            content.tag, parent,
           );
           content.attributes.forEach(
             applyAttribute(wiring, el),
@@ -643,7 +646,7 @@ export const createNode =
                 content.children.forEach(
                   (child) =>
                     el.appendChild(
-                      createNode(wiring)(child),
+                      createNode(wiring)(child, el),
                     ),
                 ),
               (lifecycle: HostLifecycle<Msg>) => {
@@ -666,6 +669,7 @@ export const createNode =
               },
             ),
           );
+          syncSelect(el);
           return el;
         },
       ],
@@ -680,7 +684,7 @@ export const createNode =
             content.render(),
           );
           const node =
-            createNode(wiring)(resolved);
+            createNode(wiring)(resolved, parent);
           wiring.lazyResolved.set(node, resolved);
           return node;
         },
@@ -950,6 +954,7 @@ const patchElement =
         },
       ),
     );
+    syncSelect(node);
   };
 
 /**
@@ -973,7 +978,7 @@ export const reconcile =
     newVnode: Html<Msg>,
   ): Node => {
     const replace = (): Node => {
-      const fresh = createNode(wiring)(newVnode);
+      const fresh = createNode(wiring)(newVnode, parent);
       disposeTree(wiring, domNode);
       parent.replaceChild(fresh, domNode);
       return fresh;
@@ -1079,7 +1084,13 @@ export const reconcile =
               lazy$(),
               ({ content: oldContent }): Node =>
                 oldContent.fn === newContent.fn &&
-                oldContent.arg === newContent.arg
+                oldContent.arg === newContent.arg &&
+                oldContent.messageMaps.length ===
+                  newContent.messageMaps.length &&
+                oldContent.messageMaps.every(
+                  (f, i) =>
+                    f === newContent.messageMaps[i],
+                )
                   ? domNode
                   : resolveAndReconcile(
                       pipe(
@@ -1143,7 +1154,7 @@ const indexPatchChildren =
         matchOption(
           () => {
             parent.appendChild(
-              createNode(wiring)(child),
+              createNode(wiring)(child, parent),
             );
           },
           (domNode: ChildNode) =>
@@ -1152,7 +1163,7 @@ const indexPatchChildren =
               matchOption(
                 () => {
                   parent.appendChild(
-                    createNode(wiring)(child),
+                    createNode(wiring)(child, parent),
                   );
                 },
                 (oldChild: Html<Msg>) => {
@@ -1365,7 +1376,7 @@ const patchKeyed =
     newVnode: Html<Msg>,
   ): Node => {
     const replace = (): Node => {
-      const fresh = createNode(wiring)(newVnode);
+      const fresh = createNode(wiring)(newVnode, parent);
       disposeTree(wiring, node);
       parent.replaceChild(fresh, node);
       return fresh;
@@ -1476,17 +1487,23 @@ const keyedPatchChildren =
       Element,
       DOMRect
     >();
-    domByKey.forEach((node, k) => {
-      if (newKeys.has(k)) {
-        firstRects.set(
-          node,
-          node.getBoundingClientRect(),
-        );
-      }
-    });
+    const move =
+      parent instanceof Element &&
+      parent.hasAttribute(
+        "data-plgg-animate-moves",
+      );
+    if (move)
+      domByKey.forEach((node, k) => {
+        if (newKeys.has(k)) {
+          firstRects.set(
+            node,
+            node.getBoundingClientRect(),
+          );
+        }
+      });
     // the parent's height before any exit, to close it down smoothly after.
     const firstParentHeight =
-      parent instanceof HTMLElement
+      move && parent instanceof HTMLElement
         ? parent.getBoundingClientRect().height
         : 0;
 
@@ -1529,15 +1546,15 @@ const keyedPatchChildren =
     const finalNodes: ReadonlyArray<Node> =
       newChildren.map((child) =>
         matchOption(
-          (): Node => createNode(wiring)(child),
+          (): Node => createNode(wiring)(child, parent),
           (k: SoftStr): Node =>
             matchOption(
               (): Node =>
-                createNode(wiring)(child),
+                createNode(wiring)(child, parent),
               (node: Element): Node =>
                 matchOption(
                   (): Node =>
-                    createNode(wiring)(child),
+                    createNode(wiring)(child, parent),
                   (oldVnode: Html<Msg>): Node =>
                     patchKeyed(wiring)(
                       parent,
@@ -1600,7 +1617,7 @@ const keyedPatchChildren =
     // close the container's height to its new (smaller) layout — also after the
     // fade — so the bottom edge holds, then eases shut as the survivors slide,
     // instead of snapping when the exiting row(s) left the flow.
-    if (exitDuration > 0) {
+    if (move && exitDuration > 0) {
       animateParentHeight(
         parent,
         firstParentHeight,
@@ -1711,7 +1728,7 @@ export const makeRenderer = <Msg>(
         matchOption(
           () => {
             container.replaceChildren(
-              createNode(wiring)(next),
+              createNode(wiring)(next, container),
             );
           },
           (old: Html<Msg>) =>
@@ -1720,7 +1737,7 @@ export const makeRenderer = <Msg>(
               matchOption(
                 () => {
                   container.replaceChildren(
-                    createNode(wiring)(next),
+                    createNode(wiring)(next, container),
                   );
                 },
                 (domNode: ChildNode) => {

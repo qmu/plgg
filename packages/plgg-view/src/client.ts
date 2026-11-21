@@ -10,6 +10,7 @@ export {
 export {
   application,
   type Application,
+  type ParentNavigation,
 } from "plgg-view/Program/usecase/application";
 export {
   makeUrl,
@@ -20,6 +21,7 @@ export {
   cmdNone,
   cmdBatch,
   cmdEffect,
+  mapCmd,
   // matchers, so consumers can fold a Cmd as data (e.g. assert in a test that
   // `update` returned an effect vs `cmdNone`).
   cmdNone$,
@@ -29,6 +31,7 @@ export {
 export {
   type Sub,
   subNone,
+  readOnce,
   subBatch,
   interval,
   windowEvent,
@@ -45,3 +48,5 @@ export {
   type FrameEnv,
   browserFrameEnv,
 } from "plgg-view/Program/usecase/effects";
+
+export type { AfterRender } from "plgg-view/Program/usecase/programRenderer";

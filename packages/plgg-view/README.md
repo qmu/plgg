@@ -25,11 +25,11 @@ touches them directly.
 | ✅ `Model` / `Msg` / pure `update`→`[Model, Cmd]` / `view` / `subscriptions` | ❌ effects never RUN inside `update` — it returns them as data |
 | ✅ a typed `Html<Msg>` view tree (handlers produce `Msg`) | ❌ no JSX (Elm-style element builder functions instead) |
 | ✅ `sandbox` + `application` (routing-aware) runtimes | ❌ no hydration (mount re-renders from `init`) |
-| ✅ keyed-list reconcile (`key()`, FLIP reorder) | ❌ a `lazy(...)` list cannot ALSO be keyed (reconciles by index) |
+| ✅ keyed-list reconcile (`key()`, optional FLIP reorder) | ❌ a `lazy(...)` list cannot ALSO be keyed (reconciles by index) |
 | ✅ `application`'s dispatch batches into one `requestAnimationFrame` paint per frame (`render: "sync"` opts out) | |
 | ✅ `lazy(fn, arg)` skips a subtree's rebuild+diff when `arg` is `===` the previous render | |
 | ✅ virtual-DOM diff/patch — re-renders preserve focus/caret | |
-| ✅ declarative enter/exit transitions (WAAPI, `prefers-reduced-motion`-aware) | ❌ no spring physics, keyed-FLIP reorder, or exit-while-list-churns (follow-ups) |
+| ✅ declarative enter/exit transitions (WAAPI, `prefers-reduced-motion`-aware) | ❌ no spring physics |
 | ✅ pure SSR `renderToString(Html)` | |
 
 ## The view tree — `Html<Msg, T>`
@@ -76,16 +76,48 @@ const column = (c: Column): Html<Msg> => div([], c.rows.map(row));
 const view = (m: Model) => div([], m.columns.map((c) => lazy(column, c)));
 ```
 
-`lazy(fn, arg)` defers `fn(arg)` to a thunk the renderer calls only when it
-actually needs the subtree — on first paint, or when patching against a
-previous render whose `arg` is no longer `===` this one's. When `arg` IS
-`===` the previous render's, the renderer skips `fn` *and* the diff entirely:
-the old subtree's DOM is left untouched, so a column whose slice of the model
-the current dispatch never replaced costs nothing, no matter how many rows it
-holds. `foldHtml`/`mapHtml`/`renderToString` resolve a `lazy` node
-transparently (SSR has no notion of "skip"); only the client renderer
-exploits it. A `lazy(...)` child is never keyed — key the element `fn`
-returns if the list also reorders.
+`lazy(fn, arg)` defers constructing a subtree until the renderer needs it.
+At the same DOM position, the renderer can skip a rebuild when the producer,
+argument and message wrappers have the same identities. A change to any of
+them reconciles the subtree. For a list that reorders, put the lazy node
+inside a keyed element that is a direct child of the list.
+
+### Child programs and navigation in a shared shell
+
+When a parent owns the model, pair `mapHtml(wrap)(childView)` with
+`mapCmd(wrap)(childCmd)`. Import `mapCmd` from `plgg-view/client`.
+A wrapper can carry the pane ID and its generation. Nested batches keep
+their order and effects start when the runtime executes the command.
+When a child uses `lazy`, reuse a message wrapper while its destination is
+stable. Changing a wrapper updates the live event handlers even if the
+child model and renderer function stay identical.
+
+For an independently mounted pane, pass a `ParentNavigation` to
+`application({ ...program, navigation })(root)`. The shell implements
+three functions.
+
+- `current()` returns this pane's committed path and query.
+- `request(url, mode)` asks the shell to push or replace a route. The
+  shell can accept, redirect or decline. A link takes effect in the
+  pane when the shell sends the confirmed route.
+- `subscribe(changed)` registers the callback and returns its cleanup.
+  Update the value read by `current()` before notifying subscribers.
+  Notify affected panes on back and forward navigation too.
+
+The mount handles ordinary same-origin links inside its root. Modified
+clicks, fragment links, downloads and external targets retain native
+browser behavior. A parent handling bubbled clicks must honor
+`event.defaultPrevented`. Call the returned teardown when removing the
+pane to release its subscriptions, pending paint and managed hosts.
+
+### Rendering contracts for interactive panes
+
+- Set `value_(model.choice)` on a single select. The renderer synchronizes the live selection after patching the options and updates the reset default. SSR writes the corresponding selected option. Duplicate values select the first match. Missing values follow native single-select fallback. Multiple selects retain their per-option defaults.
+- `afterRender(root, previous, current)` is available on application and sandbox. The callback runs after the DOM and styles are committed. Compare the last painted model with the current one to decide when to focus, measure or scroll. Unmount cancels pending frame work.
+- A stable `key` preserves row identity. Put `animateMoves()` on the list container to opt into layout measurement and FLIP animation. Explicit row enter and exit motions still run independently.
+- Use the client subscription `readOnce(key, read)` for cancellable reads. Pass its signal to the transport. A removed or superseded subscription suppresses a late completion even after the same key returns. Include the read generation in the key when refreshing in place.
+- Build SVGs with `svg`, `g`, `title`, `circle`, `rect` and `path`. Child creation and incremental insertions inherit the SVG namespace. HTML resumes inside `foreignObject`.
+- `urlFor(use, pageBase)(input)` yields an `Option<string>` for a same-origin resource, web link or HTTPS link. Provide the same page base on the server and client. Render a text fallback for None. An application can impose narrower rules such as requiring a root-relative attachment path.
 
 ### `application`'s dispatch batches into one paint per frame
 

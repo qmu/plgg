@@ -5,9 +5,11 @@ import {
   toBe,
 } from "plgg-test";
 import { match } from "plgg";
+import { runCmd } from "plgg-view/Program/usecase/effects";
 import {
   type Cmd,
   cmdNone,
+  mapCmd,
   cmdBatch,
   cmdEffect,
   cmdNone$,
@@ -70,3 +72,33 @@ test("batch preserves its children in order", () =>
       () => check(true, toBe(false)),
     ],
   ));
+
+test("mapCmd keeps nested batches lazy and maps each delivered child message", async () => {
+  const calls: string[] = [];
+  const seen: string[] = [];
+  const cmd = mapCmd((n: number) => "plan-" + n)(
+    cmdBatch([
+      cmdNone(),
+      cmdBatch([
+        cmdEffect(async () => {
+          calls.push("first");
+          return 1;
+        }),
+      ]),
+      cmdEffect(async () => {
+        calls.push("second");
+        return 2;
+      }),
+    ]),
+  );
+  const before = calls.length;
+  runCmd(cmd, (msg) => seen.push(msg));
+  await new Promise<void>((resolve) =>
+    setTimeout(resolve, 0),
+  );
+  return all([
+    check(before, toBe(0)),
+    check(calls.join(","), toBe("first,second")),
+    check(seen.join(","), toBe("plan-1,plan-2")),
+  ]);
+});

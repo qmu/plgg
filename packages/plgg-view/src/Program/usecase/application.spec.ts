@@ -857,3 +857,95 @@ test("benchmark: 3×2000-row columns, 5 out-of-order dispatches collapse into on
     check(root.textContent, toContain("c0-0")), // "c" still shows its ORIGINAL fetch
   ]);
 });
+
+test("a column requests navigation from its owner and only receives confirmed routes", () => {
+  spyHistory();
+  const listeners = new Set<(url: Url) => void>();
+  const requested: string[] = [];
+  const seen: string[] = [];
+  let route = makeUrl("/plans/", "");
+  const root = mountApp({
+    ...app,
+    navigation: {
+      current: () => route,
+      request: (url, mode) => {
+        requested.push(
+          mode + " " + url.path + url.search,
+        );
+      },
+      subscribe: (f) => {
+        listeners.add(f);
+        return () => {
+          listeners.delete(f);
+        };
+      },
+    },
+    view: (model) =>
+      a([href("detail")], [text(model.path)]),
+    onUrlChange: (url) => {
+      seen.push(url.path);
+      return { url };
+    },
+  });
+  const anchor = root.firstElementChild;
+  const sibling = document.createElement("a");
+  sibling.href = "/elsewhere";
+  document.body.appendChild(sibling);
+  const outside = click(sibling);
+  const modified =
+    anchor && click(anchor, { ctrlKey: true });
+  const inside = anchor && click(anchor);
+  window.dispatchEvent(new Event("popstate"));
+  const before = root.textContent;
+  route = makeUrl("/confirmed", "");
+  listeners.forEach((f) => f(route));
+  const after = root.textContent;
+  stop();
+  return all([
+    check(outside.defaultPrevented, toBe(false)),
+    check(
+      modified?.defaultPrevented,
+      toBe(false),
+    ),
+    check(inside?.defaultPrevented, toBe(true)),
+    check(
+      requested,
+      toEqual(["push /plans/detail"]),
+    ),
+    check(seen, toEqual(["/confirmed"])),
+    check(before, toBe("/plans/")),
+    check(after, toBe("/confirmed")),
+    check(listeners.size, toBe(0)),
+    check(historyCalls, toEqual([])),
+  ]);
+});
+
+test("a column's model reflection asks its owner once and does not echo a confirmation", () => {
+  spyHistory();
+  const listeners = new Set<(url: Url) => void>();
+  let route = makeUrl("/", "?n=2");
+  const requested: string[] = [];
+  const root = mountApp({
+    ...baseCountApp,
+    navigation: {
+      current: () => route,
+      request: (url, mode) => {
+        requested.push(mode + url.search);
+        route = url;
+        listeners.forEach((f) => f(url));
+      },
+      subscribe: (f) => {
+        listeners.add(f);
+        return () => {
+          listeners.delete(f);
+        };
+      },
+    },
+  });
+  clickButton(root);
+  return all([
+    check(requested, toEqual(["replace?n=3"])),
+    check(root.textContent, toBe("n=3")),
+    check(historyCalls, toEqual([])),
+  ]);
+});

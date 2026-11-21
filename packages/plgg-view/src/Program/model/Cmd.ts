@@ -3,6 +3,7 @@ import {
   type Icon,
   box,
   icon,
+  match,
   pattern,
 } from "plgg";
 
@@ -60,3 +61,21 @@ export const cmdBatch = <Msg>(
 export const cmdEffect = <Msg>(
   run: () => Promise<Msg>,
 ): Cmd<Msg> => box("CmdEffect")(run);
+
+/** Lift a child program's messages into its parent. Keep every effect deferred. */
+export const mapCmd =
+  <A, B>(wrap: (msg: A) => B) =>
+  (cmd: Cmd<A>): Cmd<B> =>
+    match(cmd)(
+      [cmdNone$(), (): Cmd<B> => cmdNone()],
+      [
+        cmdBatch$(),
+        ({ content }): Cmd<B> =>
+          cmdBatch(content.map(mapCmd(wrap))),
+      ],
+      [
+        cmdEffect$(),
+        ({ content }): Cmd<B> =>
+          cmdEffect(() => content().then(wrap)),
+      ],
+    );

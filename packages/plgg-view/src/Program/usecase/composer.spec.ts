@@ -22,6 +22,9 @@ import {
 } from "plgg-view/Html/model/Attribute";
 import { mapHtml } from "plgg-view/Html/usecase/mapHtml";
 import { renderToString } from "plgg-view/Html/usecase/renderToString";
+import { type Cmd, cmdNone } from "plgg-view/Program/model/Cmd";
+import { application } from "plgg-view/Program/usecase/application";
+import { sandbox } from "plgg-view/Program/usecase/sandbox";
 import { makeRenderer } from "plgg-view/Program/usecase/render";
 
 test("onEvent preserves events and dispatches none0/latest1/remove0/dispose0", () => {
@@ -612,5 +615,46 @@ test("focused keyed order keeps an exiting sibling before unchanged successors",
     check(order, toEqual(["b", "x", "a", "c"])),
     check(focused, toBe(true)),
     check(settled, toEqual(["b", "a", "c"])),
+  ]);
+});
+
+test("application and sandbox teardown release each mounted editor once", () => {
+  const events: string[] = [];
+  const view = () =>
+    managedHost<string>("draft", [], {
+      mount: (node) => {
+        node.appendChild(
+          document.createTextNode("draft"),
+        );
+        return () => {
+          events.push(node.textContent ?? "");
+        };
+      },
+      update: () => {},
+    });
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  const update = (): readonly [
+    number,
+    Cmd<string>,
+  ] => [0, cmdNone()];
+  const unmountApp = application<number, string>({
+    init: update,
+    update,
+    view,
+    onUrlChange: () => "navigate",
+  })(root);
+  unmountApp();
+  unmountApp();
+  const unmountSandbox = sandbox<number, string>({
+    init: update(),
+    update,
+    view,
+  })(root);
+  unmountSandbox();
+  unmountSandbox();
+  return all([
+    check(events, toEqual(["draft", "draft"])),
+    check(root.childNodes.length, toBe(0)),
   ]);
 });

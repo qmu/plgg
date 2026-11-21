@@ -334,3 +334,6 @@ export const onEvent = <Msg>(
   toMsg: (event: Event) => Option<Msg>,
 ): Attribute<Msg> =>
   box("EventHandler")({ event, toMsg });
+
+/** Opt a keyed container into layout measurements and FLIP moves. */
+export const animateMoves = (): Attribute<never> => attr("data-plgg-animate-moves", "");

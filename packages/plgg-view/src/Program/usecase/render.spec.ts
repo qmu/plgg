@@ -23,6 +23,7 @@ import {
 import { some, none, isSome, box } from "plgg";
 import {
   attr,
+  animateMoves,
   class_,
   type_,
   value_,
@@ -35,6 +36,7 @@ import {
   type Motion,
 } from "plgg-view/Html/model/Attribute";
 import { Html } from "plgg-view/Html/model/Html";
+import { mapHtml } from "plgg-view/Html/usecase/mapHtml";
 import {
   style_,
   hashClass,
@@ -933,7 +935,7 @@ const kli = (
 
 const kul = (
   ...kids: ReadonlyArray<ReturnType<typeof kli>>
-) => el("ul", [], kids);
+) => el("ul", [animateMoves()], kids);
 
 /** Records every play call so a test can assert what animated and with what. */
 const spyPlay = () => {
@@ -1502,6 +1504,50 @@ test("a list of lazy(...) children reconciles by index, even when the wrapped el
     check(
       ul?.firstElementChild?.textContent,
       toBe("B"),
+    ),
+  ]);
+});
+
+test("mapped lazy panes retain their DOM and dispatch through the current parent mapping", () => {
+  const root = document.createElement("div");
+  const messages: string[] = [];
+  const render = makeRenderer<string>(
+    root,
+    (msg) => messages.push(msg),
+  );
+  let builds = 0;
+  const view = (label: string) => {
+    builds++;
+    return button(
+      [onClick(label)],
+      [text(label)],
+    );
+  };
+  const child = lazy(view, "save");
+  const outer = (msg: string) => "pane:" + msg;
+  const old = (msg: string) => "old:" + msg;
+  const current = (msg: string) =>
+    "current:" + msg;
+  const pane = (route: (msg: string) => string) =>
+    mapHtml(outer)(mapHtml(route)(child));
+  render(pane(old));
+  const first = root.firstElementChild;
+  first?.dispatchEvent(new Event("click"));
+  render(pane(current));
+  render(pane(current));
+  first?.dispatchEvent(new Event("click"));
+  return all([
+    check(
+      root.firstElementChild === first,
+      toBe(true),
+    ),
+    check(builds, toBe(2)),
+    check(
+      messages,
+      toEqual([
+        "pane:old:save",
+        "pane:current:save",
+      ]),
     ),
   ]);
 });

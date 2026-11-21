@@ -114,3 +114,17 @@ export const custom = <Msg>(
     dispatch: (msg: Msg) => void,
   ) => () => void,
 ): Sub<Msg> => box("SubCustom")({ key, start });
+
+/** A one-shot read owned by a subscription key. Change the key to reload,
+ * or drop it to abort. A late result from an old instance is ignored even
+ * when the same key has since been mounted again. Map expected errors into Msg.
+ */
+export const readOnce = <Msg>(key: SoftStr, read: (signal: AbortSignal) => Promise<Msg>): Sub<Msg> =>
+  custom(key, dispatch => {
+    const controller = new AbortController();
+    void read(controller.signal).then(
+      msg => { if (!controller.signal.aborted) dispatch(msg); },
+      (error: unknown) => { if (!controller.signal.aborted) throw error; },
+    );
+    return () => controller.abort();
+  });

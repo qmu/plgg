@@ -11,13 +11,11 @@ import {
   fromNullable,
 } from "plgg";
 import { Html } from "plgg-view/Html/model/Html";
-import { collectCssRules } from "plgg-view/Html/usecase/collectCss";
 import {
   Url,
   makeUrl,
 } from "plgg-view/Program/model/Url";
-import { makeRenderer } from "plgg-view/Program/usecase/render";
-import { makeSheet } from "plgg-view/Program/usecase/sheet";
+import { type AfterRender, makeProgramRenderer } from "plgg-view/Program/usecase/programRenderer";
 import { type Cmd } from "plgg-view/Program/model/Cmd";
 import { type Sub } from "plgg-view/Program/model/Sub";
 import {
@@ -28,6 +26,22 @@ import {
   browserSubEnv,
   browserFrameEnv,
 } from "plgg-view/Program/usecase/effects";
+
+/** A shell owns the URL and confirms navigation through its subscription.
+ * current() reads this pane's projection of the committed route. request()
+ * proposes a change; the shell may accept, redirect or ignore it. Update
+ * current() before notifying subscribers, including on back/forward.
+ */
+export type ParentNavigation = Readonly<{
+  current: () => Url;
+  request: (
+    url: Url,
+    mode: "push" | "replace",
+  ) => void;
+  subscribe: (
+    changed: (url: Url) => void,
+  ) => () => void;
+}>;
 
 /**
  * A routing-aware Elm-Architecture program (Browser.application-style) WITH
@@ -44,15 +58,15 @@ import {
  * reflection stays OUTSIDE `Cmd` on purpose (see {@link reflectUrl}).
  */
 export type Application<Model, Msg> = Readonly<{
-  init: (
-    url: Url,
-  ) => readonly [Model, Cmd<Msg>];
+  init: (url: Url) => readonly [Model, Cmd<Msg>];
   update: (
     msg: Msg,
     model: Model,
   ) => readonly [Model, Cmd<Msg>];
   view: (model: Model) => Html<Msg>;
+  afterRender?: AfterRender<Model>;
   onUrlChange: (url: Url) => Msg;
+  navigation?: ParentNavigation;
   /**
    * Ongoing sources active for the current model, re-diffed by key each
    * dispatch. Omit for a program with no subscriptions.
@@ -99,17 +113,15 @@ const currentUrl = (): Url =>
 
 /**
  * Applies one history write for a model→URL reflection: `"replace"` rewrites the
- * current entry (the default — no history spam), `"push"` adds one (so
- * back/forward traverses it), `"none"` skips. The confined imperative seam for
- * the reflection direction.
+ * current entry and `"push"` adds one that back/forward can traverse.
  */
 const applyHistory = (
-  mode: "push" | "replace" | "none",
+  mode: "push" | "replace",
   target: SoftStr,
 ): void => {
   if (mode === "push") {
     window.history.pushState(null, "", target);
-  } else if (mode === "replace") {
+  } else {
     window.history.replaceState(null, "", target);
   }
 };
@@ -129,18 +141,24 @@ const PASSTHROUGH_REL = [
  * peer experimental packages define this in parallel rather than import.
  */
 const isPlainLeftClick = (
-  event: MouseEvent,
+  event: Event,
 ): boolean =>
   !event.defaultPrevented &&
+  "button" in event &&
   event.button === 0 &&
-  !event.metaKey &&
-  !event.ctrlKey &&
-  !event.shiftKey &&
-  !event.altKey;
+  "metaKey" in event &&
+  event.metaKey === false &&
+  "ctrlKey" in event &&
+  event.ctrlKey === false &&
+  "shiftKey" in event &&
+  event.shiftKey === false &&
+  "altKey" in event &&
+  event.altKey === false;
 
 /** Walks up to the nearest enclosing `<a>` (instanceof, no cast). */
 const findAnchor = (
   target: EventTarget | null,
+  root: Element,
 ): Option<HTMLAnchorElement> => {
   let el: Element | null =
     target instanceof Element ? target : null;
@@ -148,6 +166,7 @@ const findAnchor = (
     if (el instanceof HTMLAnchorElement) {
       return some(el);
     }
+    if (el === root) break;
     el = el.parentElement;
   }
   return none();
@@ -162,14 +181,22 @@ const relPassesThrough = (
       PASSTHROUGH_REL.includes(token),
     );
 
-const toUrl = (href: SoftStr): Option<URL> =>
-  pipe(
-    tryCatch(
-      (h: SoftStr) =>
-        new URL(h, window.location.href),
-    )(href),
-    toOption,
-  );
+const toUrl =
+  (base: Url) =>
+  (href: SoftStr): Option<URL> =>
+    pipe(
+      tryCatch(
+        (h: SoftStr) =>
+          new URL(
+            h,
+            new URL(
+              base.path + base.search,
+              window.location.href,
+            ),
+          ),
+      )(href),
+      toOption,
+    );
 
 const isHttp = (url: URL): boolean =>
   url.protocol === "http:" ||
@@ -181,11 +208,13 @@ const isHttp = (url: URL): boolean =>
  * pass-through `rel`, hrefless, malformed/non-`http(s)`, cross-origin).
  */
 const navTarget = (
-  event: MouseEvent,
+  event: Event,
+  root: Element,
+  base: Url,
 ): Option<Url> =>
   isPlainLeftClick(event)
     ? pipe(
-        findAnchor(event.target),
+        findAnchor(event.target, root),
         chainOption(
           (anchor: HTMLAnchorElement) =>
             anchor.target !== "" ||
@@ -196,9 +225,10 @@ const navTarget = (
                   anchor.getAttribute("href"),
                 ),
         ),
-        chainOption(toUrl),
+        chainOption(toUrl(base)),
         chainOption((url: URL) =>
           isHttp(url) &&
+          !url.href.includes("#") &&
           url.origin === window.location.origin
             ? some(
                 makeUrl(url.pathname, url.search),
@@ -210,9 +240,9 @@ const navTarget = (
 
 /**
  * Runs an {@link Application} against a DOM container: renders `view(init(url))`,
- * re-renders on every dispatched `Msg`, intercepts in-app `<a>` clicks (push +
- * `onUrlChange`), and handles back/forward via `popstate`. Returns a cleanup
- * that removes the listeners and empties the container.
+ * renders the latest model and intercepts eligible links inside its container.
+ * With a parent navigation owner, the shell confirms URL changes. Otherwise
+ * this mount handles browser history and popstate. Teardown also disposes hosts.
  *
  * The live `model` is the runtime's single mutable seam (as in {@link sandbox});
  * the History/DOM listeners are the irreducible imperative seam.
@@ -224,9 +254,12 @@ export const application =
     frameEnv: FrameEnv = browserFrameEnv,
   ) =>
   (container: Element): (() => void) => {
-    const [initModel, initCmd] = program.init(
-      currentUrl(),
-    );
+    const owner = program.navigation;
+    const readUrl = owner
+      ? owner.current
+      : currentUrl;
+    const [initModel, initCmd] =
+      program.init(readUrl());
     // mutable seams: the live model, an `alive` flag so an effect or
     // subscription resolving after teardown is dropped, and the frame-paint
     // bookkeeping — `paintPending` gates whether a NEW flush must be
@@ -243,7 +276,6 @@ export const application =
     let paintPending = false;
     let cancelPaint: (() => void) | null = null;
     const sync = program.render === "sync";
-    const sheet = makeSheet();
     // Flushes the LATEST `model` through one `view()` + patch — read at flush
     // time (not schedule time), so N dispatches batched into one frame still
     // repaint only once, on the model the last of them produced.
@@ -251,7 +283,7 @@ export const application =
       paintPending = false;
       cancelPaint = null;
       if (alive) {
-        paint(program.view(model));
+        renderer.paint(model);
       }
     };
     // `"sync"` paints every dispatch immediately (no batching); the `"frame"`
@@ -260,10 +292,11 @@ export const application =
     // updates `model` for the SAME pending flush to pick up.
     const schedulePaint = (): void => {
       if (sync) {
-        paint(program.view(model));
+        renderer.paint(model);
       } else if (!paintPending) {
         paintPending = true;
-        cancelPaint = frameEnv.schedule(flushPaint);
+        cancelPaint =
+          frameEnv.schedule(flushPaint);
       }
     };
     const dispatch = (msg: Msg): void => {
@@ -277,20 +310,11 @@ export const application =
       );
       model = next;
       schedulePaint();
-      reflectUrl(prev, model);
-      runCmd(cmd, dispatch);
-      syncSubs();
+      if (alive) reflectUrl(prev, model);
+      if (alive) runCmd(cmd, dispatch);
+      if (alive) syncSubs();
     };
-    const render = makeRenderer(
-      container,
-      dispatch,
-    );
-    // render the DOM, then merge the tree's atomic CSS into the managed sheet
-    // (insert-only: exiting nodes still wear classes the new tree dropped)
-    const paint = (html: Html<Msg>): void => {
-      render(html);
-      sheet.add(collectCssRules(html));
-    };
+    const renderer = makeProgramRenderer(container, dispatch, program.view, program.afterRender);
     const subs = makeSubRuntime(dispatch, env);
     // reconcile the active subscriptions for the current model (no-op when the
     // program declares none).
@@ -320,58 +344,82 @@ export const application =
           () => undefined,
           (toUrl: (model: Model) => Url) => {
             const target = toUrl(next);
-            const targetStr =
-              target.path + target.search;
+            const current = readUrl();
             if (
-              targetStr !==
-              window.location.pathname +
-                window.location.search
-            ) {
+              target.path === current.path &&
+              target.search === current.search
+            )
+              return;
+            if (owner) {
+              // An unrelated update must not resubmit a pending or denied request.
+              const before = toUrl(prev);
+              if (
+                target.path === before.path &&
+                target.search === before.search
+              )
+                return;
+            }
+            const mode = program.historyMode
+              ? program.historyMode(prev, next)
+              : "replace";
+            if (mode === "none") return;
+            if (owner)
+              owner.request(target, mode);
+            else
               applyHistory(
-                program.historyMode
-                  ? program.historyMode(
-                      prev,
-                      next,
-                    )
-                  : "replace",
-                targetStr,
+                mode,
+                target.path + target.search,
               );
+          },
+        ),
+      );
+    const go = (url: Url): void => {
+      if (alive)
+        dispatch(program.onUrlChange(url));
+    };
+
+    const onClick = (event: Event): void => {
+      pipe(
+        navTarget(event, container, readUrl()),
+        matchOption(
+          () => undefined,
+          (url: Url): void => {
+            event.preventDefault();
+            if (owner) owner.request(url, "push");
+            else {
+              applyHistory(
+                "push",
+                url.path + url.search,
+              );
+              go(url);
             }
           },
         ),
       );
-    const go = (url: Url): void =>
-      dispatch(program.onUrlChange(url));
-
-    const onClick = (event: MouseEvent): void =>
-      pipe(
-        navTarget(event),
-        matchOption(
-          () => undefined,
-          (url) => {
-            event.preventDefault();
-            window.history.pushState(
-              null,
-              "",
-              url.path + url.search,
-            );
-            go(url);
-          },
-        ),
-      );
+    };
     const onPopState = (): void =>
       go(currentUrl());
+    const stopNavigation = owner
+      ? owner.subscribe(go)
+      : (() => {
+          window.addEventListener(
+            "popstate",
+            onPopState,
+          );
+          return () =>
+            window.removeEventListener(
+              "popstate",
+              onPopState,
+            );
+        })();
+    container.addEventListener("click", onClick);
 
-    paint(program.view(model));
+    renderer.paint(model);
     runCmd(initCmd, dispatch);
     syncSubs();
-    window.addEventListener(
-      "popstate",
-      onPopState,
-    );
-    document.addEventListener("click", onClick);
 
     return () => {
+      if (!alive) return;
       alive = false;
       paintPending = false;
       if (cancelPaint !== null) {
@@ -379,15 +427,11 @@ export const application =
         cancelPaint = null;
       }
       subs.disposeAll();
-      window.removeEventListener(
-        "popstate",
-        onPopState,
-      );
-      document.removeEventListener(
+      stopNavigation();
+      container.removeEventListener(
         "click",
         onClick,
       );
-      container.replaceChildren();
-      sheet.dispose();
+      renderer.dispose();
     };
   };
