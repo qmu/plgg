@@ -86,6 +86,8 @@ export interface DomText {
 export interface DomElement {
   readonly nodeType: typeof ELEMENT_NODE;
   readonly tagName: string;
+  // HTML by default; createElementNS preserves the supplied namespace.
+  readonly namespaceURI: string | null;
   parentNode: DomParent | null;
   readonly listeners: ListenerMap;
   readonly defaultView: DomEventTarget | null;
@@ -160,6 +162,10 @@ export interface DomDocument {
   readonly listeners: ListenerMap;
   readonly defaultView: DomEventTarget | null;
   createElement: (tag: string) => DomElement;
+  createElementNS: (
+    namespaceURI: string,
+    tag: string,
+  ) => DomElement;
   createTextNode: (data: string) => DomText;
   readonly body: DomElement;
   readonly head: DomElement;
