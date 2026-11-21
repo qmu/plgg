@@ -80,6 +80,9 @@ node --test scripts/smokeBundle.spec.mjs
 # the sibling-dist masking class this repository keeps rediscovering.
 ./scripts/gate-cross-runtime.sh
 
+# Pack and install plgg-router outside the workspace, then check Node 24 / TS7.
+./scripts/gate-router-consumer.sh
+
 # The verification phase: the whole-repo typecheck gate plus every package's
 # suite, fanned out across processes through the one canonical runner.
 #
