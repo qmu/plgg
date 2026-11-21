@@ -29,6 +29,11 @@ test("isObj type guard", () =>
       isObj({ a: "test", b: 123, c: true }),
       toBe(true),
     ),
+    check(isObj({ a: null }), toBe(true)),
+    check(
+      isObj({ a: 1, b: null, c: "x" }),
+      toBe(true),
+    ),
     check(isObj([]), toBe(true)), // Arrays are records in JavaScript runtime
     check(isObj(null), toBe(false)),
     check(isObj(undefined), toBe(false)),
@@ -46,6 +51,10 @@ test("asObj validation", async () =>
     check(
       asObj({ a: 1, b: "test" }),
       okThen(toEqual({ a: 1, b: "test" })),
+    ),
+    check(
+      asObj({ a: null }),
+      okThen(toEqual({ a: null })),
     ),
     check(
       asObj([1, 2, 3]),
