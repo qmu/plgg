@@ -24,8 +24,9 @@
  *
  * Usage:
  *   node scripts/publish.ts --preflight [--only "a,b"] [--set-out FILE]
+ *                           [--remote-out FILE]
  *     --preflight  print the publish-set summary (no gate, no publish)
- *   node scripts/publish.ts --publish  --only "a,b"
+ *   node scripts/publish.ts --publish  --only "a,b" [--remote-in FILE]
  *     --publish    stage → publish → verify the named set, in order
  *   node scripts/publish.ts --dry-run  --only "a,b"
  *     --dry-run    stage → `npm pack` only — NEVER touches the registry
@@ -33,6 +34,15 @@
  *     --only       restrict to the named package dirs (comma/space list);
  *                  REQUIRED for --publish/--dry-run
  *     --set-out    (preflight) write the publish-set dirs to FILE
+ *     --remote-out (preflight) write the queried `{name: version|null}`
+ *                  registry baseline to FILE
+ *     --remote-in  (--publish) re-query that same baseline right before
+ *                  publishing and reject the whole run, publishing
+ *                  NOTHING, if any named package's remote version no
+ *                  longer matches it — the registry's `latest` moved in
+ *                  the preflight→gate→publish gap, so the decision this
+ *                  run was handed is for a registry state that no longer
+ *                  exists
  *
  * Zero new dependencies: Node + the ambient `npm` CLI only.
  */
@@ -55,7 +65,10 @@ import { fileURLToPath } from "node:url";
 import { smokeBundle } from "./smokeBundle.ts";
 import {
   computePublishSet,
+  driftedPackages,
+  isRemoteBaseline,
   type PkgMeta,
+  type RemoteBaseline,
 } from "./publishSet.ts";
 import {
   stagedManifest,
@@ -81,6 +94,8 @@ type Argv = Readonly<{
   dryRun: boolean;
   only: ReadonlyArray<string>;
   setOut: string | null;
+  remoteOut: string | null;
+  remoteIn: string | null;
 }>;
 
 const parseArgv = (
@@ -104,6 +119,8 @@ const parseArgv = (
             .split(/[,\s]+/)
             .filter((s) => s.length > 0),
     setOut: valueOf("--set-out"),
+    remoteOut: valueOf("--remote-out"),
+    remoteIn: valueOf("--remote-in"),
   };
 };
 
@@ -665,10 +682,52 @@ const main = async (): Promise<void> => {
       );
       process.exit(1);
     }
-    await runPublishSet(
-      order.map(readMeta).filter((m) => !m.private),
-      args.dryRun,
-    );
+    const metas = order
+      .map(readMeta)
+      .filter((m) => !m.private);
+    // `--publish` is the irreversible step; the gate (check-all.sh) between
+    // this run's preflight and here is a real window for another publish to
+    // move the registry's `latest`. Re-reading it here, against the
+    // baseline `--remote-in` carries from THAT preflight, catches a `latest`
+    // that moved underneath this run's now-stale decision, with a fixed
+    // reason rather than attempting the publish and finding out from npm's
+    // own diagnostics. `--dry-run` never touches the registry, so it is not
+    // guarded — there is nothing for it to get wrong.
+    if (args.publish && args.remoteIn !== null) {
+      const parsedBaseline: unknown = JSON.parse(
+        readFileSync(resolve(args.remoteIn), "utf8"),
+      );
+      if (!isRemoteBaseline(parsedBaseline)) {
+        process.stderr.write(
+          "!!! remote-latest-drifted: --remote-in baseline is malformed\n",
+        );
+        process.exit(1);
+      }
+      const currentRemotes = await Promise.all(
+        metas.map((m) => remoteVersion(m.name)),
+      );
+      const current: RemoteBaseline =
+        Object.fromEntries<string | null>(
+          metas.map((m, i) => [
+            m.name,
+            currentRemotes[i] ?? null,
+          ]),
+        );
+      const drifted = driftedPackages(
+        metas.map((m) => m.name),
+        parsedBaseline,
+        current,
+      );
+      if (drifted.length > 0) {
+        process.stderr.write(
+          `!!! remote-latest-drifted: ${drifted.join(", ")} -- ` +
+            `registry "latest" moved since preflight; rerun ` +
+            `preflight and retry. Published: nothing.\n`,
+        );
+        process.exit(1);
+      }
+    }
+    await runPublishSet(metas, args.dryRun);
     return;
   }
 
@@ -714,6 +773,19 @@ const main = async (): Promise<void> => {
     writeFileSync(
       resolve(args.setOut),
       decision.publish.map((p) => p.dir).join(" "),
+    );
+  }
+  if (args.remoteOut !== null) {
+    const baseline: RemoteBaseline =
+      Object.fromEntries<string | null>(
+        queryable.map((m) => [
+          m.name,
+          remoteByName.get(m.name) ?? null,
+        ]),
+      );
+    writeFileSync(
+      resolve(args.remoteOut),
+      JSON.stringify(baseline),
     );
   }
 };

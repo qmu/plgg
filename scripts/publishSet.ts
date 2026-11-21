@@ -84,6 +84,46 @@ export const isNewer = (
 };
 
 /**
+ * `{ name: version-or-null }`, as written by a preflight run (`--remote-out`)
+ * and read back by a later `--publish` run (`--remote-in`) to detect the
+ * registry's `latest` moving in the gate/human gap between the two. JSON has
+ * no `undefined`, so an unqueried name is absent from the object, not a key
+ * mapped to `undefined`.
+ */
+export type RemoteBaseline = Readonly<
+  Record<string, string | null>
+>;
+
+/** A parsed, unknown-typed value narrowed to {@link RemoteBaseline}. */
+export const isRemoteBaseline = (
+  v: unknown,
+): v is RemoteBaseline =>
+  typeof v === "object" &&
+  v !== null &&
+  !Array.isArray(v) &&
+  Object.values(v).every(
+    (value) => value === null || typeof value === "string",
+  );
+
+/**
+ * Names whose `current` remote version no longer matches what `baseline`
+ * recorded for the same name — the registry's `latest` moved since the
+ * baseline was captured. A name absent from either side reads as `null`
+ * (never published), so a package that became published (or unpublished)
+ * in the gap still counts as drift. Pure: both sides are already read.
+ */
+export const driftedPackages = (
+  names: ReadonlyArray<string>,
+  baseline: RemoteBaseline,
+  current: RemoteBaseline,
+): ReadonlyArray<string> =>
+  names.filter(
+    (name) =>
+      (baseline[name] ?? null) !==
+      (current[name] ?? null),
+  );
+
+/**
  * Split packages (already in publish/build order) into publish / skip /
  * private buckets. `remoteByName` maps a package name to its registry
  * version string, or `null` when the package was never published. Pure:

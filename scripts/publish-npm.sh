@@ -74,10 +74,18 @@ if [ -n "$ONLY_PACKAGES" ]; then
   echo "=== Publish filter: ONLY=$ONLY_PACKAGES ==="
 fi
 SET_FILE=$(mktemp "$REPO_ROOT/.publish-set.XXXXXX")
+# REMOTE_FILE carries this preflight's queried `latest` versions past the
+# gate below, so the publish step can re-read the registry right before its
+# first `npm publish` and refuse the whole run — publishing nothing — if
+# `latest` moved underneath this run's decision in that gap. `trap` cleans
+# it up on every exit path, including an early `exit 0` or a gate failure
+# under `set -e`.
+REMOTE_FILE=$(mktemp "$REPO_ROOT/.publish-remote.XXXXXX")
+trap 'rm -f "$REMOTE_FILE"' EXIT
 if [ -n "$ONLY_PACKAGES" ]; then
-  node scripts/publish.ts --preflight --set-out "$SET_FILE" --only "$ONLY_PACKAGES"
+  node scripts/publish.ts --preflight --set-out "$SET_FILE" --remote-out "$REMOTE_FILE" --only "$ONLY_PACKAGES"
 else
-  node scripts/publish.ts --preflight --set-out "$SET_FILE"
+  node scripts/publish.ts --preflight --set-out "$SET_FILE" --remote-out "$REMOTE_FILE"
 fi
 PUBLISH_SET=$(cat "$SET_FILE")
 rm -f "$SET_FILE"
@@ -136,7 +144,12 @@ fi
 # import/bin smoke — emitting one compact status line per phase instead of the
 # `===` banner walls + raw `npm notice` spew the inline shell loop produced.
 # PUBLISH_SET is the preflight's already-resolved dir set (local > registry),
-# passed as --only so publish.ts publishes exactly it, in order.
-node scripts/publish.ts --publish --only "$PUBLISH_SET"
+# passed as --only so publish.ts publishes exactly it, in order. --remote-in
+# re-reads the registry's `latest` for that same set right before the first
+# `npm publish` and aborts the whole run, publishing nothing, if any of it
+# moved since the preflight that captured REMOTE_FILE — this run's decision
+# would otherwise commit against a registry state the gate already made
+# stale.
+node scripts/publish.ts --publish --only "$PUBLISH_SET" --remote-in "$REMOTE_FILE"
 
 echo "\n=== All shell scripts have been executed successfully ==="
