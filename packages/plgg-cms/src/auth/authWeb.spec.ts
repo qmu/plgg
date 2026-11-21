@@ -59,6 +59,7 @@ const throwingStore: AuthStore = {
   verificationJwks: boom,
   saveRefreshToken: boom,
   findRefreshToken: boom,
+  rotateRefreshToken: boom,
   setRefreshStatus: boom,
   revokeRefreshFamily: boom,
   saveSigningKey: boom,

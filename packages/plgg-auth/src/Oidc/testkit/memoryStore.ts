@@ -1,4 +1,9 @@
-import { Option, fromNullable, none } from "plgg";
+import {
+  Option,
+  fromNullable,
+  none,
+  some,
+} from "plgg";
 import {
   RsaPrivateJwk,
   kidString,
@@ -192,6 +197,31 @@ export const memoryStore = (
       fromNullable(
         refresh.get(refreshTokenHashString(hash)),
       ),
+    rotateRefreshToken: async (
+      parent,
+      successor,
+      expiresAt,
+    ) => {
+      const key = refreshTokenHashString(parent);
+      const record = refresh.get(key);
+      if (record?.status !== "active")
+        return false;
+      const nextKey =
+        refreshTokenHashString(successor);
+      if (refresh.has(nextKey))
+        throw new Error("duplicate refresh hash");
+      refresh.set(key, {
+        ...record,
+        status: "rotated",
+      });
+      refresh.set(nextKey, {
+        ...record,
+        tokenHash: successor,
+        rotatedFrom: some(parent),
+        expiresAt,
+      });
+      return true;
+    },
     setRefreshStatus: async (
       hash: RefreshTokenHash,
       status: RefreshStatus,

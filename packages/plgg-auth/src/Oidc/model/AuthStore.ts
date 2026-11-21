@@ -148,6 +148,16 @@ export type AuthStore = {
   findRefreshToken: (
     hash: RefreshTokenHash,
   ) => Promise<Option<RefreshRecord>>;
+  /**
+   * Atomically consume an active parent and insert its active successor,
+   * inheriting its client, family, subject and scopes. Return false if
+   * the parent is missing or no longer active. On failure write neither.
+   */
+  rotateRefreshToken: (
+    parent: RefreshTokenHash,
+    successor: RefreshTokenHash,
+    expiresAt: Num,
+  ) => Promise<boolean>;
   /** Transitions one refresh token to a new status. */
   setRefreshStatus: (
     hash: RefreshTokenHash,

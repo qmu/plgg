@@ -182,13 +182,98 @@ const runStoreContract = async (
       foundRefresh.content.status === "active" &&
       isNone(foundRefresh.content.rotatedFrom),
   );
-  await store.setRefreshStatus(hash, "rotated");
+  // An insert failure must leave the parent active.
+  let collisionRejected = false;
+  try {
+    await store.rotateRefreshToken(
+      hash,
+      hash,
+      600,
+    );
+  } catch {
+    collisionRejected = true;
+  }
+  want(
+    "reject-duplicate-hash",
+    collisionRejected,
+  );
+  const children = [
+    box("RefreshTokenHash")("a".repeat(43)),
+    box("RefreshTokenHash")("b".repeat(43)),
+  ];
+  const results = await Promise.all(
+    children.map((child) =>
+      store.rotateRefreshToken(hash, child, 600),
+    ),
+  );
+  want(
+    "one-successful-rotation",
+    results.filter(Boolean).length === 1,
+  );
+  for (const [i, child] of children.entries()) {
+    const childRecord =
+      await store.findRefreshToken(child);
+    want(
+      "successor-only-for-winner",
+      isSome(childRecord) === results[i],
+    );
+    if (isSome(childRecord)) {
+      const rec = childRecord.content;
+      want(
+        "successor-metadata",
+        rec.status === "active" &&
+          rec.expiresAt === 600 &&
+          rec.familyId.content ===
+            family.content &&
+          rec.clientId.content ===
+            demoClient.id.content &&
+          isSome(rec.rotatedFrom) &&
+          rec.rotatedFrom.content.content ===
+            hash.content,
+      );
+    }
+  }
   const afterRotate =
     await store.findRefreshToken(hash);
   want(
-    "setRefreshStatus",
+    "rotated-parent",
     afterRotate.__tag === "Some" &&
       afterRotate.content.status === "rotated",
+  );
+  // Rows written by older clients can already carry a rotated_from link.
+  const importedHash = box("RefreshTokenHash")(
+    "i".repeat(43),
+  );
+  await store.saveRefreshToken({
+    tokenHash: importedHash,
+    familyId: family,
+    clientId: demoClient.id,
+    subject: subject("u"),
+    scopes: [scope("openid")],
+    rotatedFrom: some(hash),
+    status: "active",
+    expiresAt: 700,
+  });
+  const imported =
+    await store.findRefreshToken(importedHash);
+  want(
+    "existing-lineage",
+    isSome(imported) &&
+      isSome(imported.content.rotatedFrom) &&
+      imported.content.rotatedFrom.content
+        .content === hash.content,
+  );
+  await store.setRefreshStatus(
+    importedHash,
+    "revoked",
+  );
+  want(
+    "revoked-parent-cannot-rotate",
+    !(await store.rotateRefreshToken(
+      importedHash,
+      box("RefreshTokenHash")("n".repeat(43)),
+      800,
+    )),
   );
   await store.revokeRefreshFamily(family);
   const afterRevoke =
