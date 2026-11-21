@@ -4,6 +4,9 @@ import {
   all,
   toBe,
   toEqual,
+  toContain,
+  okThen,
+  errThen,
 } from "plgg-test";
 import { some, none, box } from "plgg";
 import {
@@ -20,6 +23,7 @@ import {
   transition,
   easeOut,
   easeIn,
+  asSvgNumberList,
 } from "plgg-view/Html/model/Attribute";
 
 type Msg =
@@ -164,6 +168,40 @@ test("slideIn carries a transform on both endpoints", () => {
       ])
     : check(a.__tag, toBe("Anim"));
 });
+
+test("asSvgNumberList joins finite numbers with a space", () =>
+  check(
+    asSvgNumberList([0, 0, 100, 100]),
+    okThen(toBe("0 0 100 100")),
+  ));
+
+test("asSvgNumberList succeeds on an empty array", () =>
+  check(
+    asSvgNumberList([]),
+    okThen(toBe("")),
+  ));
+
+test("asSvgNumberList rejects NaN at its index", () =>
+  check(
+    asSvgNumberList([1, NaN, 3]),
+    errThen((e) =>
+      toContain("index 1")(e.content.message),
+    ),
+  ));
+
+test("asSvgNumberList rejects Infinity", () =>
+  check(
+    asSvgNumberList([Infinity, 1]),
+    errThen((e) =>
+      toContain("index 0")(e.content.message),
+    ),
+  ));
+
+test("asSvgNumberList preserves negative and fractional values", () =>
+  check(
+    asSvgNumberList([-1.5, 0, 2.25]),
+    okThen(toBe("-1.5 0 2.25")),
+  ));
 
 test("transition carries both directions when given", () => {
   const enter = {
