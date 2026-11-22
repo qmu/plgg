@@ -165,3 +165,19 @@ export default defineSite({
   through `defineSite`.
 - After editing a `file:`-linked dependency's source, rebuild
   its `dist` or this package won't see new exports.
+
+### Markdown に図を埋め込む
+
+````markdown
+```plgg-diagram
+diagram orders {
+  group shop "店舗" {
+    node cart "カート" { out submit: Order }
+  }
+  node api "受注 API" { in receive: Order }
+  cart.submit -> api.receive "注文を送る"
+}
+```
+````
+
+plggpress が図を HTML に埋め込みます。各図は独立してパン、回転、ソース編集ができ、JavaScript を無効にしても初期図と原文を読めます。ページ上の編集はその閲覧中だけ有効です。保存するには Markdown のコードフェンスを編集して再ビルドしてください。

@@ -55,6 +55,9 @@ cd $REPO_ROOT/packages/plgg-http && npm run build
 # plgg-router: a pure path toolkit depending only on plgg core (no plgg-view).
 cd $REPO_ROOT/packages/plgg-router && npm run build
 cd $REPO_ROOT/packages/plgg-view && npm run build
+cd $REPO_ROOT/packages/plgg-board && npm run build
+cd $REPO_ROOT/packages/plgg-flow && npm run build
+cd $REPO_ROOT/packages/plgg-ir-diagram && npm run build
 # plggmatic after plgg-view + the plgg-ir family: the column-oriented UI
 # framework returns plgg-view Html and interprets the plgg-ir Domain Manifest,
 # so it consumes plgg, plgg-view, and plgg-ir-syntax/language/manifest dists —
@@ -93,6 +96,7 @@ cd $REPO_ROOT/packages/plgg-mcp && npm run build
 # all built earlier so it can resolve dists. Its static theme support is local.
 # The dynamic content/server surface now lives in plgg-cms, built next.
 cd $REPO_ROOT/packages/plggpress && npm run build
+cd $REPO_ROOT/packages/plgg-flow-example && npm run build
 # plgg-cms after plggpress: the dynamic content-management surface (admin, /api,
 # auth, editing, media, ops, mcp, agent). It owns the former content and MCP
 # source trees internally, composes onto plggpress's framework seam

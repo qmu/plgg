@@ -174,6 +174,10 @@ export const defaultHeading: HeadingDecorator = ({
  */
 export type RenderOptions = Readonly<{
   highlighter: Highlighter;
+  fences?: ReadonlyMap<
+    string,
+    (source: SoftStr) => Html<never>
+  >;
   resolveLink: LinkResolver;
   rawHtml: boolean;
   slug: SlugFn;

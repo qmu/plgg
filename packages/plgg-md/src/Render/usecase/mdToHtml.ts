@@ -184,7 +184,8 @@ const alignAttrs = (
 
 /** A nested list (`ul`/`ol`), the only Flow a `li` nests here. */
 type ListEl =
-  Html<never, "ul"> | Html<never, "ol">;
+  | Html<never, "ul">
+  | Html<never, "ol">;
 
 /** Builds the `ul`/`ol` element for a list's items. */
 const renderListEl =
@@ -299,11 +300,19 @@ export const blockToHtml =
       ],
       [
         codeFence$(),
-        ({ content }): Html<never> =>
-          options.highlighter(
-            content.lang,
-            content.code,
-          ),
+        ({ content }): Html<never> => {
+          const widget = isSome(content.lang)
+            ? options.fences?.get(
+                content.lang.content,
+              )
+            : undefined;
+          return widget
+            ? widget(content.code)
+            : options.highlighter(
+                content.lang,
+                content.code,
+              );
+        },
       ],
       [
         list$(),

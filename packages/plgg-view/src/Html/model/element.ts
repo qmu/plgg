@@ -1,4 +1,5 @@
 import {
+  attr,
   HostLifecycle,
   key,
 } from "plgg-view/Html/model/Attribute";
@@ -625,3 +626,15 @@ export const managedHost = <Msg>(
     ],
     [],
   );
+
+/** A scalable SVG drawing surface in logical coordinates. */
+export const svgViewport = <Msg>(
+  width: number,
+  height: number,
+  attributes: ReadonlyArray<Attribute<Msg>>,
+  children: ReadonlyArray<Html<Msg>>,
+): Html<Msg> =>
+  el("svg", [
+    attr("viewBox", `0 0 ${width} ${height}`),
+    ...attributes,
+  ], children);

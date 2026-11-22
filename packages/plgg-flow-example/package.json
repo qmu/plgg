@@ -1,0 +1,39 @@
+{
+  "name": "plgg-flow-example",
+  "version": "0.1.0",
+  "description": "Interactive diagram gallery.",
+  "scripts": {
+    "build": "plgg-bundle && cp index.html diagram.html dist/ && plggpress build --config markdown/site.config.ts --contentDir markdown --outDir dist/markdown",
+    "test": "plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-board": "file:../plgg-board",
+    "plgg-flow": "file:../plgg-flow",
+    "plgg-view": "file:../plgg-view",
+    "plgg-ir-diagram": "file:../plgg-ir-diagram"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^7.0.2",
+    "plggpress": "file:../plggpress"
+  },
+  "private": true
+}

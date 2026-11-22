@@ -1,3 +1,4 @@
+import { diagramFence } from "plggpress/SiteConfig/usecase/diagramFence";
 import { pipe, getOr, matchOption } from "plgg";
 import {
   type SlugFn,
@@ -65,6 +66,9 @@ export const pressRenderOptions = (
   resolveLink: LinkResolver,
 ): RenderOptions => ({
   highlighter,
+  fences: new Map([
+    ["plgg-diagram", diagramFence],
+  ]),
   resolveLink,
   rawHtml: rawHtmlOf(config),
   slug: sluggerOf(config),

@@ -1,0 +1,213 @@
+{
+  "name": "plgg-flow",
+  "version": "0.1.0",
+  "files": [
+    "dist"
+  ],
+  "description": "Interactive spatial diagrams for plgg-view.",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.es.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs.js"
+      }
+    },
+    "./hierarchy": {
+      "import": {
+        "types": "./dist/hierarchy.d.ts",
+        "default": "./dist/hierarchy.es.js"
+      },
+      "require": {
+        "types": "./dist/hierarchy.d.ts",
+        "default": "./dist/hierarchy.cjs.js"
+      }
+    },
+    "./layout": {
+      "import": {
+        "types": "./dist/layout.d.ts",
+        "default": "./dist/layout.es.js"
+      },
+      "require": {
+        "types": "./dist/layout.d.ts",
+        "default": "./dist/layout.cjs.js"
+      }
+    },
+    "./topology": {
+      "import": {
+        "types": "./dist/topology.d.ts",
+        "default": "./dist/topology.es.js"
+      },
+      "require": {
+        "types": "./dist/topology.d.ts",
+        "default": "./dist/topology.cjs.js"
+      }
+    },
+    "./interchange": {
+      "import": {
+        "types": "./dist/interchange.d.ts",
+        "default": "./dist/interchange.es.js"
+      },
+      "require": {
+        "types": "./dist/interchange.d.ts",
+        "default": "./dist/interchange.cjs.js"
+      }
+    },
+    "./edits": {
+      "import": {
+        "types": "./dist/edits.d.ts",
+        "default": "./dist/edits.es.js"
+      },
+      "require": {
+        "types": "./dist/edits.d.ts",
+        "default": "./dist/edits.cjs.js"
+      }
+    },
+    "./connections": {
+      "import": {
+        "types": "./dist/connections.d.ts",
+        "default": "./dist/connections.es.js"
+      },
+      "require": {
+        "types": "./dist/connections.d.ts",
+        "default": "./dist/connections.cjs.js"
+      }
+    },
+    "./metadata": {
+      "import": {
+        "types": "./dist/metadata.d.ts",
+        "default": "./dist/metadata.es.js"
+      },
+      "require": {
+        "types": "./dist/metadata.d.ts",
+        "default": "./dist/metadata.cjs.js"
+      }
+    },
+    "./spatial": {
+      "import": {
+        "types": "./dist/spatial.d.ts",
+        "default": "./dist/spatial.es.js"
+      },
+      "require": {
+        "types": "./dist/spatial.d.ts",
+        "default": "./dist/spatial.cjs.js"
+      }
+    },
+    "./revisions": {
+      "import": {
+        "types": "./dist/revisions.d.ts",
+        "default": "./dist/revisions.es.js"
+      },
+      "require": {
+        "types": "./dist/revisions.d.ts",
+        "default": "./dist/revisions.cjs.js"
+      }
+    },
+    "./routing": {
+      "import": {
+        "types": "./dist/routing.d.ts",
+        "default": "./dist/routing.es.js"
+      },
+      "require": {
+        "types": "./dist/routing.d.ts",
+        "default": "./dist/routing.cjs.js"
+      }
+    },
+    "./model": {
+      "import": {
+        "types": "./dist/model.d.ts",
+        "default": "./dist/model.es.js"
+      },
+      "require": {
+        "types": "./dist/model.d.ts",
+        "default": "./dist/model.cjs.js"
+      }
+    },
+    "./annotations": {
+      "import": {
+        "types": "./dist/annotations.d.ts",
+        "default": "./dist/annotations.es.js"
+      },
+      "require": {
+        "types": "./dist/annotations.d.ts",
+        "default": "./dist/annotations.cjs.js"
+      }
+    },
+    "./storage": {
+      "import": {
+        "types": "./dist/storage.d.ts",
+        "default": "./dist/storage.es.js"
+      },
+      "require": {
+        "types": "./dist/storage.d.ts",
+        "default": "./dist/storage.cjs.js"
+      }
+    },
+    "./imageExport": {
+      "import": {
+        "types": "./dist/imageExport.d.ts",
+        "default": "./dist/imageExport.es.js"
+      },
+      "require": {
+        "types": "./dist/imageExport.d.ts",
+        "default": "./dist/imageExport.cjs.js"
+      }
+    },
+    "./constraints": {
+      "import": {
+        "types": "./dist/constraints.d.ts",
+        "default": "./dist/constraints.es.js"
+      },
+      "require": {
+        "types": "./dist/constraints.d.ts",
+        "default": "./dist/constraints.cjs.js"
+      }
+    },
+    "./analysis": {
+      "import": {
+        "types": "./dist/analysis.d.ts",
+        "default": "./dist/analysis.es.js"
+      },
+      "require": {
+        "types": "./dist/analysis.d.ts",
+        "default": "./dist/analysis.cjs.js"
+      }
+    }
+  },
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "plgg-bundle",
+    "test": "plgg-test src",
+    "tsc": "tsc --noEmit",
+    "tsc:watch": "tsc --noEmit --watch",
+    "test:watch": "plgg-test src --watch",
+    "coverage": "plgg-test src --coverage",
+    "coverage:watch": "plgg-test src --coverage --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qmu/plgg.git"
+  },
+  "author": "qmu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/qmu/plgg/issues"
+  },
+  "homepage": "https://github.com/qmu/plgg#readme",
+  "dependencies": {
+    "plgg": "file:../plgg",
+    "plgg-board": "file:../plgg-board",
+    "plgg-view": "file:../plgg-view"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-test": "file:../plgg-test",
+    "typescript": "^7.0.2"
+  }
+}

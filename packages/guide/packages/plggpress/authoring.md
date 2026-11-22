@@ -160,3 +160,31 @@ guards still hold (edits stay inside the content root, and
 than of your filesystem — but keep the port to your own
 machine or a trusted tunnel, and remember that production is
 `plggpress build` onto a CDN, which has none of these routes.
+
+## Interactive diagrams
+
+Use a `plgg-diagram` fence to embed a graph. Declare nodes by stable ID, then connect an output to an input with the same payload type. Groups can contain nodes and other groups.
+
+````markdown
+```plgg-diagram
+diagram orders {
+  group shop "店舗" {
+    node cart "カート" { out submit: Order }
+  }
+  node api "受注 API" { in receive: Order }
+  edge checkout: cart.submit -> api.receive "注文を送る"
+}
+```
+````
+
+The example above renders here. Open **図のソース** and change the cart label to see the diagram update. Edits in the widget last for the current visit. Edit the Markdown file and rebuild to publish them.
+
+```plgg-diagram
+diagram orders {
+  group shop "店舗" {
+    node cart "カート" { out submit: Order }
+  }
+  node api "受注 API" { in receive: Order }
+  edge checkout: cart.submit -> api.receive "注文を送る"
+}
+```

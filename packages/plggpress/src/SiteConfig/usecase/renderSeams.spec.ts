@@ -1,3 +1,4 @@
+import { renderToString } from "plgg-view";
 import {
   test,
   check,
@@ -93,4 +94,22 @@ test("pressRenderOptions folds the config knobs plus the supplied seams", () => 
       toBe(true),
     ),
   ]);
+});
+
+test("the plgg-diagram fence embeds the source and a sandboxed interactive viewport", () => {
+  const view = pressRenderOptions(
+    config({}),
+    plainHighlighter,
+    identityResolver,
+  ).fences?.get("plgg-diagram")?.(
+    'diagram d { node a "カート" }',
+  );
+  const html = view ? renderToString(view) : "";
+  return check(
+    html.includes("<iframe") &&
+      html.includes('sandbox="allow-scripts"') &&
+      html.includes("data-diagram-root") &&
+      html.includes("カート"),
+    toBe(true),
+  );
 });

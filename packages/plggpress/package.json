@@ -59,7 +59,8 @@
     "plgg-md": "file:../plgg-md",
     "plgg-highlight": "file:../plgg-highlight",
     "plgg-cli": "file:../plgg-cli",
-    "plgg-bundle": "file:../plgg-bundle"
+    "plgg-bundle": "file:../plgg-bundle",
+    "plgg-ir-diagram": "file:../plgg-ir-diagram"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
