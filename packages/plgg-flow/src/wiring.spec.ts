@@ -3,6 +3,7 @@ import {
   check,
   all,
   toBe,
+  toEqual,
 } from "plgg-test";
 import {
   wireGraph,
@@ -921,3 +922,55 @@ test("N enters Lower through its facing left socket", () =>
     wireGraph(patterns.cross)[0]?.targetSide,
     toBe("left"),
   ));
+
+for (const route of [
+  "curve",
+  "step",
+] satisfies WireStyle[]) {
+  test(
+    route +
+      " keeps every wire in the distant cluster identical",
+    () => {
+      const cluster = [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+      ].map((id, i) => node(id, i * 180, 0));
+      const fixed = [
+        link("a", "b"),
+        link("a", "d"),
+        link("a", "e"),
+        link("e", "a"),
+        link("c", "e"),
+      ].map((e) => ({ ...e, route }));
+      const edges = [
+        link("U", "V"),
+        ...fixed,
+        link("V", "W"),
+      ];
+      // The second off-row card used to disable row routing across the graph.
+      const distant = (y: number) =>
+        wireGraph({
+          nodes: [
+            ...cluster,
+            node("U", 2200, 0),
+            node("V", 2400, y),
+            node("W", 2600, 180),
+          ],
+          edges,
+        }).filter((w) =>
+          fixed.some((e) => e === w.edge),
+        );
+      const isolated = wireGraph({
+        nodes: cluster,
+        edges: fixed,
+      });
+      return all([
+        check(distant(0), toEqual(isolated)),
+        check(distant(240), toEqual(isolated)),
+      ]);
+    },
+  );
+}

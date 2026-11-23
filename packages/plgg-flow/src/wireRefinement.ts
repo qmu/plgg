@@ -1,4 +1,8 @@
 import {
+  corridor,
+  intersects,
+} from "plgg-flow/wireCorridors";
+import {
   search,
   laneSearch,
 } from "plgg-flow/wireSearch";
@@ -6,7 +10,7 @@ import type { Point } from "plgg-board";
 import type { FlowNode } from "./model";
 import type { Wire } from "./wiring";
 import type { laneIndex } from "./wireLanes";
-import { sides } from "plgg-flow/wirePorts";
+
 import {
   portPosition,
   type Side,
@@ -48,17 +52,12 @@ const nearFace = (
 export const refine = (
   wires: Wire[],
   nodes: ReadonlyMap<string, FlowNode>,
-  boxes: Box[],
+  componentBoxes: Box[],
   lanes: ReturnType<typeof laneIndex>,
-  rowAxis: string | undefined,
-  ordinal: ReadonlyMap<string, number>,
   radius: number,
   clearance: number,
 ) => {
-  // Once every lane is present, a spare face may eliminate a shared-end crossing.
-  const padded = boxes.map((q) =>
-    inflate(q, Math.min(clearance, 6)),
-  );
+  // Smooth the occupied channel while retaining both socket choices.
   for (let i = 0; i < wires.length; i++) {
     const w = required(wires[i]),
       edge = w.edge;
@@ -68,6 +67,19 @@ export const refine = (
       edge.route === "straight"
     )
       continue;
+    const area = corridor(
+      w.points,
+      3 * clearance,
+    );
+    const boxes = componentBoxes.filter(
+      (q) =>
+        q.id === edge.source ||
+        q.id === edge.target ||
+        intersects(area, q),
+    );
+    const padded = boxes.map((q) =>
+      inflate(q, Math.min(clearance, 6)),
+    );
     const baseline = lanes.score(
       w.points,
       edge,
@@ -79,6 +91,7 @@ export const refine = (
       arch: boolean,
       span: number,
     ) =>
+      Math.max(0, r.crowd - 28) / 28 +
       r.conflicts * 1.2 +
       2 * Number(span < 60 && r.turn > 1.8) +
       Math.max(0, r.turn - 5.8) +
@@ -111,33 +124,6 @@ export const refine = (
     const open = free(
       [a.position, b.position],
       foreign,
-    );
-    const sideCost = (
-      side: Side,
-      node: typeof a,
-      peer: typeof a,
-    ) => {
-      const dx =
-          peer.position.x - node.position.x,
-        dy = peer.position.y - node.position.y;
-      const loss =
-        (Math.max(Math.abs(dx), Math.abs(dy)) -
-          dx * normal[side].x -
-          dy * normal[side].y) /
-        (Math.hypot(dx, dy) || 1);
-      return open
-        ? Math.max(0, loss - 0.15) * 3
-        : 0;
-    };
-    const outgoing = wires.filter(
-      (other) =>
-        other !== w &&
-        other.edge.source === edge.source,
-    );
-    const incoming = wires.filter(
-      (other) =>
-        other !== w &&
-        other.edge.target === edge.target,
     );
     const single = !wires.some(
       (v) =>
@@ -201,16 +187,6 @@ export const refine = (
           Number(
             bendsInOpenLane(path, s, t, sa, sb),
           ) +
-        (outgoing.some(
-          (other) => other.sourceSide === sa,
-        )
-          ? 0
-          : 2 * sideCost(sa, a, b)) +
-        (incoming.some(
-          (other) => other.targetSide === sb,
-        )
-          ? 0
-          : 2 * sideCost(sb, b, a)) +
         Math.max(
           0,
           len / Math.max(40, direct) - 1.25,
@@ -251,434 +227,384 @@ export const refine = (
         w.targetSide,
       );
     if (best < 1) continue;
-    const permissible = (
-      end: typeof a,
-      peer: typeof a,
-      side: Side,
-      current: Side,
+    let improved: Wire | undefined;
+    const sa = w.sourceSide,
+      sb = w.targetSide;
+    const s = {
+        ...portPosition(a, sa, 0),
+        side: sa,
+      },
+      t = {
+        ...portPosition(b, sb, 0),
+        side: sb,
+      };
+    // Short gaps need enough room between the stems to turn.
+    const span = distance(s, t);
+    const stem =
+      span < 90 ? Math.min(14, span / 6) : 14;
+    const u = move(s, sa, stem),
+      v = move(t, sb, stem),
+      room = distance(u, v),
+      arm = Math.min(
+        room * 0.45,
+        Math.max(18, room * 0.35),
+      );
+    const padding =
+      clearance > 18 || free([u, v], foreign)
+        ? clearance
+        : Math.min(clearance, 8);
+    const buffer = boxes.map((q) =>
+      q.id === a.id || q.id === b.id
+        ? q
+        : inflate(
+            q,
+            Math.min(
+              padding,
+              pointGap(s, q),
+              pointGap(t, q),
+              pointGap(u, q),
+              pointGap(v, q),
+            ),
+          ),
+    );
+    const accept = (
+      path: Point[],
+      corners: number,
     ) => {
-      if (side === current) return true;
+      if (!free(path, buffer)) return;
+      if (bendsInOpenLane(path, s, t, sa, sb))
+        return;
+      const score = lanes.score(
+        path,
+        edge,
+        s,
+        t,
+        Infinity,
+        undefined,
+        13,
+      );
       if (
-        wires.some((other) =>
-          end === a
-            ? other.edge.target === end.id &&
-              other.targetSide === side &&
-              other.edge.source === peer.id
-            : other.edge.source === end.id &&
-              other.sourceSide === side &&
-              other.edge.target === peer.id,
-        )
+        score.crossings >
+          baseline.crossings + 2 ||
+        congestion(score.crossings) +
+          defects(score, sa === sb, span) >=
+          best ||
+        score.overlap > 13
       )
-        return false;
-      // A spare face must still point toward its peer in an open corridor.
+        return;
+      const n =
+        congestion(score.crossings) +
+        defects(score, sa === sb, span) +
+        geometry(path, s, t, sa, sb);
       if (
-        rowAxis &&
-        Math.abs(
-          required(ordinal.get(end.id)) -
-            required(ordinal.get(peer.id)),
-        ) <= 1
+        n >= best ||
+        score.overlap > 13 ||
+        !free(path, componentBoxes) ||
+        crossesItself(path)
       )
-        return false;
-      return (
-        (peer.position.x - end.position.x) *
-          normal[side].x +
-          (peer.position.y - end.position.y) *
-            normal[side].y >=
-        -0.25 *
-          distance(end.position, peer.position)
+        return;
+      best = n;
+      improved = materialize(
+        edge,
+        s,
+        t,
+        path,
+        corners,
       );
     };
-    let improved: Wire | undefined;
-    for (const sa of [
-      w.sourceSide,
-      ...sides.filter((v) => v !== w.sourceSide),
-    ]) {
-      if (
-        !best ||
-        !permissible(a, b, sa, w.sourceSide)
+    if (
+      bounds &&
+      sa === w.sourceSide &&
+      sb === w.targetSide &&
+      w.points.some(
+        (p) => pointGap(p, bounds) > 65,
       )
-        continue;
-      for (const sb of [
-        w.targetSide,
-        ...sides.filter(
-          (v) => v !== w.targetSide,
-        ),
+    ) {
+      // Compress only the part outside the endpoint span, preserving both shoulders.
+      const scaleBeyond = (
+        x: number,
+        low: number,
+        high: number,
+        scale: number,
+      ) => {
+        const anchor = Math.max(
+          low - 14,
+          Math.min(high + 14, x),
+        );
+        return anchor + (x - anchor) * scale;
+      };
+      for (const scale of [
+        0.12, 0.25, 0.4, 0.6, 0.8,
       ]) {
-        if (
-          !best ||
-          !permissible(b, a, sb, w.targetSide)
-        )
-          continue;
-        const s = {
-            ...portPosition(a, sa, 0),
-            side: sa,
-          },
-          t = {
-            ...portPosition(b, sb, 0),
-            side: sb,
-          };
-        // Short gaps need enough room between the stems to turn.
-        const span = distance(s, t);
-        const stem =
-          span < 90 ? Math.min(14, span / 6) : 14;
-        const u = move(s, sa, stem),
-          v = move(t, sb, stem),
-          room = distance(u, v),
-          arm = Math.min(
-            room * 0.45,
-            Math.max(18, room * 0.35),
-          );
-        const padding =
-          clearance > 18 || free([u, v], foreign)
-            ? clearance
-            : Math.min(clearance, 8);
-        const buffer = boxes.map((q) =>
-          q.id === a.id || q.id === b.id
-            ? q
-            : inflate(
-                q,
-                Math.min(
-                  padding,
-                  pointGap(s, q),
-                  pointGap(t, q),
-                ),
+        accept(
+          w.points.map((p) =>
+            pt(
+              scaleBeyond(
+                p.x,
+                bounds.l,
+                bounds.r,
+                scale,
               ),
-        );
-        const accept = (
-          path: Point[],
-          corners: number,
-        ) => {
-          if (!free(path, buffer)) return;
-          if (bendsInOpenLane(path, s, t, sa, sb))
-            return;
-          const score = lanes.score(
-            path,
-            edge,
-            s,
-            t,
-            Infinity,
-            undefined,
-            13,
-          );
-          if (
-            score.crossings >
-              baseline.crossings +
-                (wires.length > 4 ? 2 : 0) ||
-            congestion(score.crossings) +
-              defects(score, sa === sb, span) >=
-              best ||
-            score.overlap > 13
-          )
-            return;
-          const n =
-            congestion(score.crossings) +
-            defects(score, sa === sb, span) +
-            geometry(path, s, t, sa, sb);
-          if (
-            n >= best ||
-            score.overlap > 13 ||
-            crossesItself(path)
-          )
-            return;
-          best = n;
-          improved = materialize(
-            edge,
-            s,
-            t,
-            path,
-            corners,
-          );
-        };
-        if (
-          bounds &&
-          sa === w.sourceSide &&
-          sb === w.targetSide &&
-          w.points.some(
-            (p) => pointGap(p, bounds) > 65,
-          )
-        ) {
-          // Compress only the part outside the endpoint span, preserving both shoulders.
-          const scaleBeyond = (
-            x: number,
-            low: number,
-            high: number,
-            scale: number,
-          ) => {
-            const anchor = Math.max(
-              low - 14,
-              Math.min(high + 14, x),
-            );
-            return anchor + (x - anchor) * scale;
-          };
-          for (const scale of [
-            0.12, 0.25, 0.4, 0.6, 0.8,
-          ]) {
-            accept(
-              w.points.map((p) =>
-                pt(
-                  scaleBeyond(
-                    p.x,
-                    bounds.l,
-                    bounds.r,
-                    scale,
-                  ),
-                  scaleBeyond(
-                    p.y,
-                    bounds.t,
-                    bounds.b,
-                    scale,
-                  ),
-                ),
+              scaleBeyond(
+                p.y,
+                bounds.t,
+                bounds.b,
+                scale,
               ),
-              w.corners,
-            );
-          }
-        }
-        // Try open channels beside obstacles before accepting a longer reversal.
-        const local = buffer.filter(
-          (q) =>
-            q.id !== edge.source &&
-            q.id !== edge.target &&
-            q.r >= Math.min(u.x, v.x) - 50 &&
-            q.l <= Math.max(u.x, v.x) + 50 &&
-            q.b >= Math.min(u.y, v.y) - 50 &&
-            q.t <= Math.max(u.y, v.y) + 50,
+            ),
+          ),
+          w.corners,
         );
-        const step = edge.route === "step";
-        const candidate = (knots: Point[]) => {
-          const raw = simplify([s, ...knots, t]);
-          if (step && !free(raw, buffer)) return;
-          const path = step
-            ? rounded(raw, radius)
-            : [
-                s,
-                ...throughKnots(knots, sa, sb),
-                t,
-              ];
-          accept(
-            path,
-            Math.max(0, raw.length - 2),
-          );
-        };
-        // Try lanes on either side of the chord, including unequal approaches.
-        if (!step) {
-          for (const along of [0.25, 0.5, 0.75]) {
-            for (const across of [
-              -80, -40, -16, 16, 40, 80,
-            ]) {
-              if (best < 0.01) break;
-              const vx = v.x - u.x,
-                vy = v.y - u.y;
-              const mid = pt(
-                u.x +
-                  along * vx -
-                  (across * vy) / (room || 1),
-                u.y +
-                  along * vy +
-                  (across * vx) / (room || 1),
-              );
-              candidate([u, mid, v]);
-            }
-          }
-        }
-        const shortest =
-          local.length &&
-          search(u, v, buffer, step);
-        if (shortest && shortest.length > 1)
-          candidate(shortest);
-        if (best >= 1 && local.length) {
-          // Search occupied channels when the shortest clear path shares a lane.
-          const channel = laneSearch(
-            u,
-            v,
-            buffer,
-            step,
-            normal[sa],
-            normal[sb],
-            (p, q) => lanes.toll(p, q, edge),
-          );
-          if (channel) candidate(channel);
-        }
-        for (const q of local) {
+      }
+    }
+    // Try open channels beside obstacles before accepting a longer reversal.
+    const local = buffer.filter(
+      (q) =>
+        q.id !== edge.source &&
+        q.id !== edge.target &&
+        q.r >= Math.min(u.x, v.x) - 50 &&
+        q.l <= Math.max(u.x, v.x) + 50 &&
+        q.b >= Math.min(u.y, v.y) - 50 &&
+        q.t <= Math.max(u.y, v.y) + 50,
+    );
+    const step = edge.route === "step";
+    const candidate = (knots: Point[]) => {
+      const raw = simplify([s, ...knots, t]);
+      if (step && !free(raw, buffer)) return;
+      const path = step
+        ? rounded(raw, radius)
+        : [s, ...throughKnots(knots, sa, sb), t];
+      accept(path, Math.max(0, raw.length - 2));
+    };
+    // Try lanes on either side of the chord, including unequal approaches.
+    if (!step) {
+      for (const along of [0.25, 0.5, 0.75]) {
+        for (const across of [
+          -80, -40, -16, 16, 40, 80,
+        ]) {
           if (best < 0.01) break;
-          for (const x of [q.l - 6, q.r + 6]) {
-            if (best < 0.01) break;
-            if (step)
-              candidate([
-                u,
-                pt(x, u.y),
-                pt(x, v.y),
-                v,
-              ]);
-            for (const y of [q.t - 6, q.b + 6]) {
-              if (best < 0.01) break;
-              if (!step)
-                candidate([u, pt(x, y), v]);
-              else {
-                candidate([
-                  u,
-                  pt(x, u.y),
-                  pt(x, y),
-                  pt(v.x, y),
-                  v,
-                ]);
-                candidate([
-                  u,
-                  pt(u.x, y),
-                  pt(x, y),
-                  pt(x, v.y),
-                  v,
-                ]);
-                candidate([
-                  u,
-                  pt(u.x, y),
-                  pt(v.x, y),
-                  v,
-                ]);
-              }
-            }
-          }
+          const vx = v.x - u.x,
+            vy = v.y - u.y;
+          const mid = pt(
+            u.x +
+              along * vx -
+              (across * vy) / (room || 1),
+            u.y +
+              along * vy +
+              (across * vx) / (room || 1),
+          );
+          candidate([u, mid, v]);
         }
-        if (edge.route === "step") {
-          const h = !vertical(sa);
-          if (vertical(sa) !== vertical(sb)) {
-            const elbow = h
-              ? pt(v.x, u.y)
-              : pt(u.x, v.y);
-            const raw = simplify([
-              s,
+      }
+    }
+    // Leave room at obstacle corners for the curve to cut inside the search path.
+    if (local.length && best >= 1) {
+      for (const reserve of [12, 28, 48]) {
+        const outer = boxes.map((q) =>
+          inflate(
+            q,
+            Math.min(
+              padding + reserve,
+              pointGap(u, q),
+              pointGap(v, q),
+              pointGap(s, q),
+              pointGap(t, q),
+            ),
+          ),
+        );
+        const detour = search(u, v, outer, step);
+        if (!detour || detour.length < 3)
+          continue;
+        candidate(detour);
+        if (!step) {
+          const fillet = rounded(
+            simplify([s, ...detour, t]),
+            reserve * 1.5,
+          );
+          accept(fillet, detour.length - 2);
+        }
+      }
+    }
+    const shortest =
+      local.length && search(u, v, buffer, step);
+    if (shortest && shortest.length > 1)
+      candidate(shortest);
+    if (best >= 1 && local.length) {
+      // Search occupied channels when the shortest clear path shares a lane.
+      const channel = laneSearch(
+        u,
+        v,
+        buffer,
+        step,
+        normal[sa],
+        normal[sb],
+        (p, q) => lanes.toll(p, q, edge),
+      );
+      if (channel) candidate(channel);
+    }
+    for (const q of local) {
+      if (best < 0.01) break;
+      for (const x of [q.l - 6, q.r + 6]) {
+        if (best < 0.01) break;
+        if (step)
+          candidate([
+            u,
+            pt(x, u.y),
+            pt(x, v.y),
+            v,
+          ]);
+        for (const y of [q.t - 6, q.b + 6]) {
+          if (best < 0.01) break;
+          if (!step) candidate([u, pt(x, y), v]);
+          else {
+            candidate([
               u,
-              elbow,
+              pt(x, u.y),
+              pt(x, y),
+              pt(v.x, y),
               v,
-              t,
             ]);
-            accept(
-              rounded(raw, radius),
-              raw.length - 2,
-            );
-          }
-          if (sa === sb) {
-            const sign = h
-              ? normal[sa].x
-              : normal[sa].y;
-            for (const f of [0.1, 0.22, 0.36]) {
-              if (best < 0.01) break;
-              const l =
-                sign *
-                (Math.max(
-                  sign * (h ? u.x : u.y),
-                  sign * (h ? v.x : v.y),
-                ) +
-                  Math.max(8, room * f));
-              const raw = [
-                s,
-                h ? pt(l, u.y) : pt(u.x, l),
-                h ? pt(l, v.y) : pt(v.x, l),
-                t,
-              ];
-              accept(rounded(raw, radius), 2);
-            }
-          }
-          const mid = (f: number) =>
-            h
-              ? u.x + (v.x - u.x) * f
-              : u.y + (v.y - u.y) * f;
-          for (const f of [0.2, 0.5, 0.8]) {
-            if (best < 0.01) break;
-            const m = mid(f),
-              raw = simplify([
-                s,
-                u,
-                h ? pt(m, u.y) : pt(u.x, m),
-                h ? pt(m, v.y) : pt(v.x, m),
-                v,
-                t,
-              ]);
-            accept(
-              rounded(raw, radius),
-              raw.length - 2,
-            );
-          }
-        } else {
-          if (span < 90) {
-            // A short connection can turn directly between its two normals.
-            for (const ratio of [0.25, 0.4, 0.6])
-              accept(
-                bezier(
-                  s,
-                  move(s, sa, span * ratio),
-                  move(t, sb, span * ratio),
-                  t,
-                ),
-                0,
-              );
-          }
-          // Unequal shoulders can clear a near corner without widening the far end.
-          for (const left of [
-            0.12, 0.32, 0.65, 0.95,
-          ]) {
-            for (const right of [
-              0.12, 0.32, 0.65, 0.95,
-            ]) {
-              if (best < 0.01) break;
-              accept(
-                [
-                  s,
-                  ...bezier(
-                    u,
-                    move(u, sa, room * left),
-                    move(v, sb, room * right),
-                    v,
-                  ),
-                  t,
-                ],
-                0,
-              );
-            }
-          }
-          for (const scale of [
-            1, 0.5, 1.6, 2.5,
-          ]) {
-            if (best < 0.01) break;
-            accept(
-              [
-                s,
-                ...bezier(
-                  u,
-                  move(u, sa, arm * scale),
-                  move(v, sb, arm * scale),
-                  v,
-                ),
-                t,
-              ],
-              0,
-            );
-          }
-          for (const offset of [
-            0.04, -0.04, 0.1, -0.1, 0.24, -0.24,
-            0.42, -0.42,
-          ]) {
-            if (best < 0.01) break;
-            const mid = pt(
-              (u.x + v.x) / 2 -
-                (v.y - u.y) * offset,
-              (u.y + v.y) / 2 +
-                (v.x - u.x) * offset,
-            );
-            accept(
-              [
-                s,
-                ...throughKnots(
-                  [u, mid, v],
-                  sa,
-                  sb,
-                ),
-                t,
-              ],
-              0,
-            );
+            candidate([
+              u,
+              pt(u.x, y),
+              pt(x, y),
+              pt(x, v.y),
+              v,
+            ]);
+            candidate([
+              u,
+              pt(u.x, y),
+              pt(v.x, y),
+              v,
+            ]);
           }
         }
+      }
+    }
+    if (edge.route === "step") {
+      const h = !vertical(sa);
+      if (vertical(sa) !== vertical(sb)) {
+        const elbow = h
+          ? pt(v.x, u.y)
+          : pt(u.x, v.y);
+        const raw = simplify([s, u, elbow, v, t]);
+        accept(
+          rounded(raw, radius),
+          raw.length - 2,
+        );
+      }
+      if (sa === sb) {
+        const sign = h
+          ? normal[sa].x
+          : normal[sa].y;
+        for (const f of [0.1, 0.22, 0.36]) {
+          if (best < 0.01) break;
+          const l =
+            sign *
+            (Math.max(
+              sign * (h ? u.x : u.y),
+              sign * (h ? v.x : v.y),
+            ) +
+              Math.max(8, room * f));
+          const raw = [
+            s,
+            h ? pt(l, u.y) : pt(u.x, l),
+            h ? pt(l, v.y) : pt(v.x, l),
+            t,
+          ];
+          accept(rounded(raw, radius), 2);
+        }
+      }
+      const mid = (f: number) =>
+        h
+          ? u.x + (v.x - u.x) * f
+          : u.y + (v.y - u.y) * f;
+      for (const f of [0.2, 0.5, 0.8]) {
+        if (best < 0.01) break;
+        const m = mid(f),
+          raw = simplify([
+            s,
+            u,
+            h ? pt(m, u.y) : pt(u.x, m),
+            h ? pt(m, v.y) : pt(v.x, m),
+            v,
+            t,
+          ]);
+        accept(
+          rounded(raw, radius),
+          raw.length - 2,
+        );
+      }
+    } else {
+      if (span < 90) {
+        // A short connection can turn directly between its two normals.
+        for (const ratio of [0.25, 0.4, 0.6])
+          accept(
+            bezier(
+              s,
+              move(s, sa, span * ratio),
+              move(t, sb, span * ratio),
+              t,
+            ),
+            0,
+          );
+      }
+      // Unequal shoulders can clear a near corner without widening the far end.
+      for (const left of [
+        0.12, 0.32, 0.65, 0.95,
+      ]) {
+        for (const right of [
+          0.12, 0.32, 0.65, 0.95,
+        ]) {
+          if (best < 0.01) break;
+          accept(
+            [
+              s,
+              ...bezier(
+                u,
+                move(u, sa, room * left),
+                move(v, sb, room * right),
+                v,
+              ),
+              t,
+            ],
+            0,
+          );
+        }
+      }
+      for (const scale of [1, 0.5, 1.6, 2.5]) {
+        if (best < 0.01) break;
+        accept(
+          [
+            s,
+            ...bezier(
+              u,
+              move(u, sa, arm * scale),
+              move(v, sb, arm * scale),
+              v,
+            ),
+            t,
+          ],
+          0,
+        );
+      }
+      for (const offset of [
+        0.04, -0.04, 0.1, -0.1, 0.24, -0.24, 0.42,
+        -0.42,
+      ]) {
+        if (best < 0.01) break;
+        const mid = pt(
+          (u.x + v.x) / 2 - (v.y - u.y) * offset,
+          (u.y + v.y) / 2 + (v.x - u.x) * offset,
+        );
+        accept(
+          [
+            s,
+            ...throughKnots([u, mid, v], sa, sb),
+            t,
+          ],
+          0,
+        );
       }
     }
     if (improved) {

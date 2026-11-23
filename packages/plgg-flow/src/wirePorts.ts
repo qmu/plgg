@@ -6,17 +6,15 @@ import {
   type Side,
 } from "plgg-flow/nodeBody";
 import {
+  box,
+  gap,
+  move,
   vertical,
   pt,
   required,
   normal,
-  move,
   distance,
   facing,
-  cuts,
-  gap,
-  bezier,
-  type Box,
 } from "plgg-flow/wireGeometry";
 export const sides = [
   "top",
@@ -28,37 +26,7 @@ export const sides = [
 export const planPorts = (
   nodes: ReadonlyMap<string, FlowNode>,
   edges: Edge[],
-  boxes: Box[],
 ) => {
-  // A displaced card does not change the orientation of an established row.
-  const aligned = (axis: "x" | "y") => {
-    const coords = [...nodes.values()]
-      .map((n) => n.position[axis])
-      .sort((a, b) => a - b);
-    const centre =
-      coords[Math.floor(coords.length / 2)] ?? 0;
-    return (
-      coords.length >= 4 &&
-      coords.filter(
-        (v) => Math.abs(v - centre) <= 8,
-      ).length >=
-        coords.length - 1
-    );
-  };
-  const rowAxis = aligned("y")
-    ? "y"
-    : aligned("x")
-      ? "x"
-      : undefined;
-  const ordered = [...nodes.values()].sort(
-    (a, b) =>
-      rowAxis === "x"
-        ? a.position.y - b.position.y
-        : a.position.x - b.position.x,
-  );
-  const ordinal = new Map(
-    ordered.map((n, i) => [n.id, i]),
-  );
   const degrees = new Map<string, number>();
   const means = new Map<string, Point>(),
     groups = new Map<string, End[]>(),
@@ -88,12 +56,26 @@ export const planPorts = (
         d = Math.hypot(dx, dy) || 1,
         k = key(n.id, start),
         old = means.get(k) ?? pt(0, 0);
-      degrees.set(k, (degrees.get(k) ?? 0) + 1);
+      degrees.set(
+        k,
+        (degrees.get(k) ?? 0) + Number(n !== p),
+      );
       means.set(
         k,
         pt(old.x + dx / d, old.y + dy / d),
       );
     }
+  }
+  for (const list of parallels.values()) {
+    list.sort((a, b) => {
+      const p = required(
+          nodes.get(a.source),
+        ).position,
+        q = required(
+          nodes.get(b.source),
+        ).position;
+      return p.x - q.x || p.y - q.y;
+    });
   }
   const end = (
     edge: Edge,
@@ -122,76 +104,15 @@ export const planPorts = (
         : facing(m.x, m.y);
     if (
       node !== peer &&
-      (Math.hypot(m.x, m.y) < 0.4 ||
+      (Math.hypot(m.x, m.y) <
+        0.5 *
+          (degrees.get(key(node.id, start)) ??
+            1) ||
         dx * normal[side].x +
           dy * normal[side].y <
-          (means.has(key(node.id, !start))
-            ? 0.62
-            : 0.12) *
-            Math.hypot(dx, dy))
+          0.26 * Math.hypot(dx, dy))
     )
       side = facing(dx, dy);
-    const other = required(
-      means.get(key(peer.id, !start)),
-    );
-    if (
-      node !== peer &&
-      degrees.get(key(node.id, start)) === 1 &&
-      (degrees.get(key(peer.id, !start)) ?? 0) > 1
-    ) {
-      const alt = facing(-other.x, -other.y);
-      if (
-        normal[alt].x * dx + normal[alt].y * dy >
-        Math.hypot(dx, dy) * 0.35
-      )
-        side = alt;
-    }
-    if (node !== peer && rowAxis) {
-      const along = rowAxis === "y" ? dx : dy;
-      if (
-        Math.abs(along) >
-        0.2 * Math.hypot(dx, dy)
-      )
-        side =
-          rowAxis === "y"
-            ? facing(dx, 0)
-            : facing(0, dy);
-    }
-    const socket = portPosition(node, side, 0);
-    if (
-      boxes.some(
-        (q) =>
-          q.id !== node.id &&
-          cuts(socket, move(socket, side, 15), q),
-      )
-    ) {
-      const choices = [
-        "left",
-        "right",
-        "top",
-        "bottom",
-      ] satisfies Side[];
-      const next = choices
-        .filter(
-          (k) =>
-            dx * normal[k].x + dy * normal[k].y >=
-            0,
-        )
-        .sort(
-          (a, b) =>
-            dx * (normal[b].x - normal[a].x) +
-            dy * (normal[b].y - normal[a].y),
-        )
-        .find((k) => {
-          const p = portPosition(node, k, 0);
-          return !boxes.some(
-            (q) =>
-              q.id !== node.id &&
-              cuts(p, move(p, k, 16), q),
-          );
-        });
-      if (next) side = next;
-    }
     return {
       node,
       peer,
@@ -205,123 +126,6 @@ export const planPorts = (
     a: end(edge, true),
     b: end(edge, false),
   }));
-  if (rowAxis) {
-    const skips = plans
-      .map(({ a, b }) => {
-        const from = required(
-            ordinal.get(a.node.id),
-          ),
-          to = required(ordinal.get(b.node.id));
-        return {
-          a,
-          b,
-          lo: Math.min(from, to),
-          hi: Math.max(from, to),
-          from,
-          to,
-        };
-      })
-      .filter((p) => p.hi - p.lo > 1)
-      .sort(
-        (p, q) => q.hi - q.lo - (p.hi - p.lo),
-      );
-    // Minimise interleaving spans and opposing uses of a socket on each bank.
-    const weights = skips.map((p) =>
-      skips.map((q) => {
-        if (p.lo === q.lo && p.hi === q.hi)
-          return 100;
-        if (p.to === q.from || p.from === q.to)
-          return 6;
-        if (p.hi <= q.lo || q.hi <= p.lo)
-          return 0;
-        if (
-          (p.lo < q.lo && p.hi < q.hi) ||
-          (p.lo > q.lo && p.hi > q.hi)
-        )
-          return 36;
-        return p.from === q.from || p.to === q.to
-          ? 5
-          : 1;
-      }),
-    );
-    const banks: number[] = [];
-    const cost = (i: number, side: number) =>
-      banks.reduce(
-        (sum, b, j) =>
-          sum +
-          (j !== i && b === side
-            ? required(required(weights[i])[j])
-            : 0),
-        0,
-      );
-    skips.forEach((_, i) =>
-      banks.push(
-        cost(i, 0) <= cost(i, 1) ? 0 : 1,
-      ),
-    );
-    for (
-      let pass = 0;
-      pass < skips.length;
-      pass++
-    ) {
-      let change = false;
-      for (let i = 0; i < skips.length; i++) {
-        const current = required(banks[i]);
-        if (
-          cost(i, 1 - current) < cost(i, current)
-        ) {
-          banks[i] = 1 - current;
-          change = true;
-        }
-      }
-      if (!change) break;
-    }
-    // Joint flips can resolve interleavings that a single-bank flip cannot improve.
-    if (skips.length <= 12) {
-      let best =
-        banks.reduce(
-          (sum, bank, i) => sum + cost(i, bank),
-          0,
-        ) / 2;
-      const assignment: number[] = [0];
-      const choose = (
-        i: number,
-        total: number,
-      ) => {
-        if (total >= best) return;
-        if (i === skips.length) {
-          best = total;
-          banks.splice(
-            0,
-            banks.length,
-            ...assignment,
-          );
-          return;
-        }
-        for (const side of [0, 1]) {
-          let next = total;
-          for (let j = 0; j < i; j++)
-            if (assignment[j] === side)
-              next += required(
-                required(weights[i])[j],
-              );
-          assignment[i] = side;
-          choose(i + 1, next);
-        }
-      };
-      if (skips.length > 1) choose(1, 0);
-    }
-    skips.forEach(({ a, b }, i) => {
-      a.side = b.side =
-        rowAxis === "y"
-          ? banks[i]
-            ? "bottom"
-            : "top"
-          : banks[i]
-            ? "right"
-            : "left";
-    });
-  }
   // Partition the four faces together so a return edge cannot steal an arrival socket.
   const incident = new Map<
     string,
@@ -338,336 +142,163 @@ export const planPorts = (
       incident.set(id, entries);
     }
   }
-  for (const entries of incident.values()) {
-    const mixed =
-      entries.some((x) => x.start) &&
-      entries.some((x) => !x.start);
-    if (
-      !rowAxis &&
-      mixed &&
-      entries.some((x) =>
-        entries.some(
-          (y) =>
-            x.start !== y.start &&
-            x.end.side === y.end.side,
-        ),
-      )
-    ) {
-      const costs = entries.map(({ end }) =>
-        sides.map((side) => {
-          const dx =
-              end.peer.position.x -
-              end.node.position.x,
-            dy =
-              end.peer.position.y -
-              end.node.position.y;
-          const p = portPosition(
-            end.node,
-            side,
-            0,
-          );
-          return (
-            (boxes.some(
-              (q) =>
-                q.id !== end.node.id &&
-                cuts(p, move(p, side, 16), q),
-            )
-              ? 1000
-              : 0) +
-            (end.side === side ? 0 : 1) -
-            (dx * normal[side].x +
-              dy * normal[side].y) /
-              (Math.hypot(dx, dy) || 1)
-          );
-        }),
-      );
-      let best = Infinity;
-      for (let mask = 1; mask < 15; mask++) {
-        let sum = 0;
-        const assignment = entries.map(
-          ({ start }, i) => {
-            let cost = Infinity,
-              pick = 0;
-            sides.forEach((_, j) => {
-              const v = required(
-                required(costs[i])[j],
-              );
-              if (
-                Boolean(mask & (1 << j)) ===
-                  start &&
-                v < cost
-              ) {
-                cost = v;
-                pick = j;
-              }
-            });
-            sum += cost;
-            return required(sides[pick]);
-          },
-        );
-        if (sum < best) {
-          best = sum;
-          entries.forEach(({ end }, i) => {
-            end.side = required(assignment[i]);
-          });
-        }
-      }
-    }
-  }
-  if (!rowAxis) {
-    // A spare face can give a blocked wire a shorter, gentler exit.
-
-    for (const { a, b } of plans) {
-      if (
-        a.node === b.node ||
-        (!boxes.some(
-          (q) =>
-            q.id !== a.node.id &&
-            q.id !== b.node.id &&
-            cuts(
-              a.node.position,
-              b.node.position,
-              q,
-            ),
-        ) &&
-          (parallels.get(
-            JSON.stringify(
-              [a.node.id, b.node.id].sort(),
-            ),
-          )?.length ?? 0) <= 1)
-      )
-        continue;
-      const options = (
-        end: End,
-        start: boolean,
-      ) => {
-        const entries = required(
-          incident.get(end.node.id),
-        );
-        if (entries.length > 7) return [end.side];
-        const dx =
-            end.peer.position.x -
-            end.node.position.x,
-          dy =
-            end.peer.position.y -
-            end.node.position.y;
-        return [
-          end.side,
-          ...sides.filter(
-            (side) =>
-              side !== end.side &&
-              dx * normal[side].x +
-                dy * normal[side].y >=
-                0 &&
-              !entries.some(
-                (x) =>
-                  x.start !== start &&
-                  x.end.side === side,
-              ),
-          ),
-        ];
-      };
-      const preview = (sa: Side, sb: Side) => {
-        const p = portPosition(a.node, sa, 0),
-          q = portPosition(b.node, sb, 0);
-        const u = move(p, sa, 14),
-          v = move(q, sb, 14),
-          gap = distance(u, v),
-          arm = Math.max(40, gap * 0.45);
-        return [
-          p,
-          ...bezier(
-            u,
-            move(u, sa, arm),
-            move(v, sb, arm),
-            v,
-            8,
-          ),
-          q,
-        ];
-      };
-      const assess = (path: Point[]) => {
-        const p = required(path[0]),
-          q = required(path[path.length - 1]);
-        let cost = 0;
-        const bounds = {
-          l: Infinity,
-          r: -Infinity,
-          t: Infinity,
-          b: -Infinity,
-        };
-        for (const p of path) {
-          bounds.l = Math.min(bounds.l, p.x);
-          bounds.r = Math.max(bounds.r, p.x);
-          bounds.t = Math.min(bounds.t, p.y);
-          bounds.b = Math.max(bounds.b, p.y);
-        }
-        for (const box of boxes) {
-          const margin = 12;
-          if (
-            bounds.r < box.l - margin ||
-            bounds.l > box.r + margin ||
-            bounds.b < box.t - margin ||
-            bounds.t > box.b + margin
-          )
-            continue;
-          if (
-            box.id === a.node.id ||
-            box.id === b.node.id
-          ) {
-            if (
-              path.some(
-                (p, i) =>
-                  i > 0 &&
-                  cuts(
-                    required(path[i - 1]),
-                    p,
-                    box,
-                  ),
-              )
-            )
-              cost += 120;
-            continue;
-          }
-          // Charge progressively for entering the margin around a foreign card.
-          let nearest = margin;
-          for (let i = 1; i < path.length; i++)
-            nearest = Math.min(
-              nearest,
-              gap(
-                required(path[i - 1]),
-                required(path[i]),
-                box,
-              ),
-            );
-          cost += 120 * (1 - nearest / margin);
-        }
-        // Reject short facing gaps that force the cubic to turn back on itself.
-        let length = 0,
-          maxTurn = 0;
-        for (let i = 1; i < path.length; i++) {
-          const p = required(path[i - 1]),
-            q = required(path[i]),
-            r = path[i + 1];
-          length += distance(p, q);
-          if (r) {
-            const dx = q.x - p.x,
-              dy = q.y - p.y,
-              x = r.x - q.x,
-              y = r.y - q.y;
-            maxTurn = Math.max(
-              maxTurn,
-              Math.abs(
-                Math.atan2(
-                  dx * y - dy * x,
-                  dx * x + dy * y,
-                ),
-              ),
-            );
-          }
-        }
-        cost +=
-          Math.max(0, maxTurn - 0.7) * 90 +
-          Math.max(
-            0,
-            length - 1.35 * distance(p, q),
-          ) *
-            0.35;
-        return cost;
-      };
-      const chosen = preview(a.side, b.side);
-      let low = assess(chosen);
-      const left = options(a, true),
-        right = options(b, false);
-      let bestA = a.side,
-        bestB = b.side;
-      if (low >= 12)
-        for (const sa of left)
-          for (const sb of right) {
-            if (sa === a.side && sb === b.side)
-              continue;
-            const candidate = preview(sa, sb);
-            const cost =
-              assess(candidate) +
-              (sa === a.side ? 0 : 16) +
-              (sb === b.side ? 0 : 16);
-            if (cost < low) {
-              low = cost;
-
-              bestA = sa;
-              bestB = sb;
-            }
-          }
-      a.side = bestA;
-      b.side = bestB;
-    }
-  }
-  // Keep the clearest facing sockets, then prefer an established sibling fan.
+  const banks = new Map<End, "x" | "y">();
+  // Compare the peer with the spacing of this node's own row.
   for (const entries of incident.values()) {
     for (const { end, start } of entries) {
       const { node, peer } = end;
-      if (
-        node === peer ||
-        ((Math.abs(
-          node.position.x - peer.position.x,
-        ) < 1 ||
-          Math.abs(
-            node.position.y - peer.position.y,
-          ) < 1) &&
-          entries.some(
-            (x) =>
-              x.start !== start &&
-              x.end.peer === peer,
-          )) ||
-        boxes.some(
-          (q) =>
-            q.id !== node.id &&
-            q.id !== peer.id &&
-            cuts(node.position, peer.position, q),
-        )
-      )
-        continue;
+      if (node === peer) continue;
       const dx =
           peer.position.x - node.position.x,
         dy = peer.position.y - node.position.y;
-      const cosine = (side: Side) =>
-        (dx * normal[side].x +
-          dy * normal[side].y) /
-        (Math.hypot(dx, dy) || 1);
-      const open = sides.filter((side) => {
-        const p = portPosition(node, side, 0);
-        return !boxes.some(
-          (q) =>
-            q.id !== node.id &&
-            cuts(p, move(p, side, 16), q),
-        );
-      });
-      const score = (side: Side) =>
-        cosine(side) +
-        Number(
-          entries.some(
-            (x) =>
-              x.end !== end &&
-              x.start === start &&
-              x.end.side === side,
-          ),
-        ) *
-          0.28 -
-        Number(
-          entries.some(
-            (x) =>
-              x.start !== start &&
-              x.end.side === side,
-          ),
-        ) *
-          0.07;
+      const along =
+          Math.abs(dx) > Math.abs(dy) ? "x" : "y",
+        across = along === "x" ? "y" : "x";
+      const span = Math.abs(
+        peer.position[along] -
+          node.position[along],
+      );
+      const near = entries.filter(
+        (e) =>
+          e.end.peer !== node &&
+          Math.abs(
+            e.end.peer.position[across] -
+              node.position[across],
+          ) < 8,
+      );
+      const distinct = new Set(
+        near.map((e) => e.end.peer),
+      );
+      const outside = entries.filter(
+        (e) =>
+          e.end.peer !== node &&
+          !near.includes(e),
+      );
+      if (
+        !near.some((e) => e.end.peer !== peer) ||
+        Math.abs(
+          peer.position[across] -
+            node.position[across],
+        ) > 8 ||
+        (outside.length &&
+          (distinct.size < 3 ||
+            outside.some(
+              (e) =>
+                Math.abs(
+                  e.end.peer.position[across] -
+                    node.position[across],
+                ) >
+                span * 0.35,
+            )))
+      )
+        continue;
+      const q = box(node),
+        r = box(peer);
+      const spacing =
+        along === "x"
+          ? Math.max(q.r - q.l, r.r - r.l) * 1.7
+          : Math.max(q.b - q.t, r.b - r.t) * 3.2;
+      if (span < spacing * 1.5) continue;
+      const forward =
+        peer.position[along] >
+        node.position[along];
+      const even =
+        Math.round(span / spacing) % 2 === 0;
+      const positive =
+        (start === forward) === even;
+      banks.set(end, across);
       Object.assign(end, {
         side:
-          open.sort(
-            (a, b) => score(b) - score(a),
-          )[0] ?? end.side,
+          along === "x"
+            ? positive
+              ? "top"
+              : "bottom"
+            : positive
+              ? "left"
+              : "right",
       });
     }
+  }
+  // Opposite directions need distinct approaches at the same peer.
+  for (const entries of incident.values()) {
+    for (const { end, start } of entries) {
+      if (
+        entries.length !== 2 ||
+        !start ||
+        end.node === end.peer ||
+        !entries.some(
+          (e) =>
+            !e.start &&
+            e.end.peer === end.peer &&
+            e.end.side === end.side,
+        )
+      )
+        continue;
+      const side = vertical(end.side)
+        ? end.side === "top"
+          ? "left"
+          : "right"
+        : end.side === "right"
+          ? "top"
+          : "bottom";
+      Object.assign(end, { side });
+    }
+  }
+  // Leave room for a stem beside an overlapping peer.
+  for (const entries of incident.values()) {
+    const neighbours = [
+      ...new Set(entries.map((e) => e.end.peer)),
+    ]
+      .filter((n) => n !== entries[0]?.end.node)
+      .map(box);
+    for (const { end } of entries) {
+      const { node, peer } = end;
+      if (node === peer) continue;
+      const clear = (side: Side) => {
+        const p = portPosition(node, side, 0);
+        return neighbours.every(
+          (q) =>
+            gap(p, move(p, side, 14), q) >= 6,
+        );
+      };
+      if (clear(end.side)) continue;
+      const dx =
+          peer.position.x - node.position.x,
+        dy = peer.position.y - node.position.y;
+      const side = sides
+        .filter(
+          (k) =>
+            dx * normal[k].x + dy * normal[k].y >=
+              0 && clear(k),
+        )
+        .sort(
+          (a, b) =>
+            dx * (normal[b].x - normal[a].x) +
+            dy * (normal[b].y - normal[a].y),
+        )[0];
+      if (side) Object.assign(end, { side });
+    }
+  }
+  // Put loops in the least occupied corner of their node.
+  for (const { a, b } of plans) {
+    if (a.node !== b.node) continue;
+    const entries = required(
+      incident.get(a.node.id),
+    );
+    const used = (side: Side) =>
+      entries.filter(
+        (e) =>
+          e.end.node !== e.end.peer &&
+          e.end.side === side,
+      ).length;
+    const source = (
+      ["right", "left"] satisfies Side[]
+    ).sort((x, y) => used(x) - used(y))[0];
+    const target = (
+      ["top", "bottom"] satisfies Side[]
+    ).sort((x, y) => used(x) - used(y))[0];
+    Object.assign(a, { side: required(source) });
+    Object.assign(b, { side: required(target) });
   }
   for (const entries of incident.values()) {
     for (const { end } of entries) {
@@ -708,7 +339,7 @@ export const planPorts = (
     group.forEach((e, i) => {
       e.count = group.length;
       let rank = i - (group.length - 1) / 2;
-      // Neighbouring fan shoulders meet as their rays exchange angular order.
+      // Close rays need close shoulders when their angular order changes.
       for (const [j, other] of group.entries()) {
         if (e.peer === other.peer || j === i)
           continue;
@@ -727,8 +358,7 @@ export const planPorts = (
     (degrees.get(key(id, true)) ?? 0) +
     (degrees.get(key(id, false)) ?? 0);
   return {
-    rowAxis,
-    ordinal,
+    banks,
     plans,
     parallels,
     degree,

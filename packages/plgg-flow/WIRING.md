@@ -613,3 +613,47 @@ by the moved node entering that wire's corridor; zero `slow`,
 `squashed-short-wire`, `wobble-on-straight`, `diagonal-in-step`.
 Add a spec: route graph G1, then G2, then G1 again with fresh objects —
 the two G1 results are deep-equal; and routing G2 first changes nothing.
+
+## Round 10 review — pure again, 27 static defects; dragging is the last wall
+
+`history-dependent` is zero and the static picture is close (27 moderate
+static defects over 36 runs). Every drag sweep still reports a jump
+(54): 31 on the dragged node's own wires, 23 on unrelated wires — one of
+them 372 units away from the moved node (`scatter`: dragging `s14`
+changes both sockets of `s2 → s15`).
+
+**Locality is the rule that fixes this.** A wire's route may depend on:
+(a) its own two nodes; (b) the other wires on its two sockets (fan
+order); (c) the nodes whose inflated boxes intersect its corridor — the
+box spanned by its two sockets grown by `2 × clearance`, or by its
+detour when it has one; (d) wires it shares a lane with inside that
+corridor. NOTHING else. In particular:
+- A node's side assignment depends only on that node and the nodes its
+  own wires go to — never on a global pass, a global ordering, or how
+  many wires another node has.
+- Crossing reduction and lane assignment work on connected components
+  of "corridors that intersect", not on the whole diagram, and lane
+  order inside a component is keyed by the wires' own geometry (socket
+  coordinates, then edge order), so an unrelated edit cannot permute
+  it.
+- Moving a node therefore changes only wires in (a)–(d) relative to its
+  old or new position.
+
+**Own-wire flips must be small.** When a dragged node's wire changes
+side, the shapes before and after the flip should nearly coincide:
+around the flip threshold (far end near the node's diagonal), route the
+wire out of the side *near the corner* it is about to cross — i.e. let
+the socket slide along the side toward that corner within the last 30°
+before the flip, on both sides of the threshold — so the flip moves the
+wire by a few units, not by half a node. (This is the one place a
+socket may leave the centre: `socket-off-centre` in the audit tolerates
+it only if you report it; the reviewer will adapt the check.)
+If sliding sockets proves worse than it sounds, the alternative is to
+keep sockets centred and accept own-wire flips, but then unrelated
+wires must be perfectly still.
+
+Acceptance: `TOTAL sev3 0`; unrelated `drag-jump` ≤ 3, each with the
+moved node inside that wire's corridor at the jump; static moderate
+defects (everything except `drag-jump`) ≤ 25; zero `slow`.
+Add a spec for locality: in a two-cluster graph, moving a node of one
+cluster leaves every wire of the other cluster deep-equal.

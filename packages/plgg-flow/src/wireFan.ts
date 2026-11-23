@@ -110,7 +110,31 @@ export const fanCorridors = (
       else columns.push([peer]);
     }
     const u = pt(origin.x + 14, origin.y);
-    for (const [rank, peer] of peers.entries()) {
+    for (const [index, peer] of peers.entries()) {
+      // Branch shoulders converge when two leaves exchange vertical order.
+      const rank = peers.reduce(
+        (sum, other, j) => {
+          if (
+            peer.leaf.peer === other.leaf.peer &&
+            peer.leaf.node === other.leaf.node
+          )
+            return (
+              sum + Math.sign(index - j) * 0.5
+            );
+          const separation =
+            (peer.p.y - other.p.y) / 16;
+          return (
+            sum +
+            Math.max(
+              -1,
+              Math.min(1, separation),
+            ) *
+              0.5
+          );
+        },
+        0,
+      );
+
       const v = pt(peer.p.x - 14, peer.p.y);
       if (v.x <= u.x + 28) continue;
       const knots = [u];
@@ -171,9 +195,7 @@ export const fanCorridors = (
         }
         if (peer.edge.route === "step") {
           // Outer branches turn first so nearer lanes can continue through the fan.
-          const level = Math.abs(
-            rank - (peers.length - 1) / 2,
-          );
+          const level = Math.abs(rank);
           const branch =
             a.x +
             Math.min(
@@ -203,8 +225,7 @@ export const fanCorridors = (
           const ctrl = Math.min(dx * 0.36, 110);
           const across =
             i === 1
-              ? (rank - (peers.length - 1) / 2) *
-                Math.min(12, dx / 12)
+              ? rank * Math.min(12, dx / 12)
               : 0;
           path.push(
             ...bezier(

@@ -250,8 +250,9 @@ export const rounded = (
     if (!u || !v) continue;
     const r = Math.min(
       radius,
-      u / 2,
-      v / 2,
+      // Leave a straight run between neighbouring quarter circles.
+      u * 0.38,
+      v * 0.38,
       i === 1 ? Math.max(0, u - 14) : Infinity,
       i === path.length - 2
         ? Math.max(0, v - 14)

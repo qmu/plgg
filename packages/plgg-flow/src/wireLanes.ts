@@ -153,16 +153,16 @@ export const laneIndex = () => {
         vx,
         vy,
         inverse: 1 / den,
-        l: Math.min(a.x, b.x) - 6,
-        r: Math.max(a.x, b.x) + 6,
-        top: Math.min(a.y, b.y) - 6,
-        bottom: Math.max(a.y, b.y) + 6,
+        l: Math.min(a.x, b.x) - 8,
+        r: Math.max(a.x, b.x) + 8,
+        top: Math.min(a.y, b.y) - 8,
+        bottom: Math.max(a.y, b.y) + 8,
         edge: wire.edge,
         s: wire.source,
         t: wire.target,
         id,
       };
-      tiles(a, b, 4, (k) => {
+      tiles(a, b, 8, (k) => {
         keys.add(k);
         const cell = cells.get(k);
         if (cell) cell.push(seg);
@@ -194,7 +194,8 @@ export const laneIndex = () => {
       length = 0;
     const runs: number[] = [],
       hits: number[] = [];
-    let overlap = 0;
+    let overlap = 0,
+      crowd = 0;
     for (let i = 1; i < path.length; i++) {
       if (cost >= limit || overlap > maxOverlap)
         return {
@@ -204,6 +205,7 @@ export const laneIndex = () => {
           crossings,
           conflicts,
           overlap,
+          crowd,
           cost: Infinity,
           clear: false,
         };
@@ -247,7 +249,8 @@ export const laneIndex = () => {
             Math.floor(y / tileSize),
         );
         if (!list) continue;
-        let previous = -1;
+        let previous = -1,
+          near = 0;
         for (const seg of list) {
           if (seg.edge === edge) continue;
           const { a: c, vx, vy, id } = seg;
@@ -270,7 +273,7 @@ export const laneIndex = () => {
             (x - c.x - h * vx) ** 2 +
             (y - c.y - h * vy) ** 2;
           if (
-            dist < 10 &&
+            dist < 64 &&
             (x - s.x) ** 2 + (y - s.y) ** 2 >
               460 &&
             (x - t.x) ** 2 + (y - t.y) ** 2 >
@@ -283,16 +286,28 @@ export const laneIndex = () => {
               460 &&
             id !== previous
           ) {
-            const old = runs[id] ?? 0,
-              run = old + d / n;
-            cost +=
-              (run - old) * 0.6 +
-              (Math.max(0, run - 14) -
-                Math.max(0, old - 14)) *
-                550;
-            runs[id] = run;
-            overlap = Math.max(overlap, run);
-            previous = id;
+            const parallel =
+              (Math.abs(dx * vx + dy * vy) *
+                Math.sqrt(seg.inverse)) /
+              d;
+            near = Math.max(
+              near,
+              (Math.max(0, parallel - 0.65) /
+                0.35) *
+                (1 - dist / 64),
+            );
+            if (dist < 10) {
+              const old = runs[id] ?? 0,
+                run = old + d / n;
+              cost +=
+                (run - old) * 0.6 +
+                (Math.max(0, run - 14) -
+                  Math.max(0, old - 14)) *
+                  550;
+              runs[id] = run;
+              overlap = Math.max(overlap, run);
+              previous = id;
+            }
           }
           const den2 = dx * vy - dy * vx;
           if (!den2) continue;
@@ -330,8 +345,12 @@ export const laneIndex = () => {
             const count = hits[id] ?? 0;
             hits[id] = count + 1;
             const sibling =
-              seg.edge.source === edge.source ||
-              seg.edge.target === edge.target;
+              (seg.edge.source === edge.source &&
+                seg.s.x === s.x &&
+                seg.s.y === s.y) ||
+              (seg.edge.target === edge.target &&
+                seg.t.x === t.x &&
+                seg.t.y === t.y);
             if (
               count === 1 ||
               (!count && sibling)
@@ -339,9 +358,11 @@ export const laneIndex = () => {
               conflicts++;
               onConflict?.(seg.edge);
             }
-            cost += count || sibling ? 300 : 8;
+            cost += count || sibling ? 300 : 0;
           }
         }
+        crowd += (near * d) / n;
+        cost += (near * near * d) / n;
       }
     }
     const stiff =
@@ -355,6 +376,7 @@ export const laneIndex = () => {
       kink,
       conflicts,
       overlap,
+      crowd,
       crossings,
       cost:
         cost +
@@ -368,6 +390,7 @@ export const laneIndex = () => {
         !stiff &&
         (edge.route === "step" || kink < 0.7) &&
         turn < 6.8 &&
+        crowd < 40 &&
         overlap < 15 &&
         !conflicts &&
         cost < 120 + distance(s, t) * 0.04,

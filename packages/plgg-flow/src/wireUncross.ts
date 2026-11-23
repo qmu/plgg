@@ -143,6 +143,15 @@ export const uncross = (
       const reverse =
         a.source !== b.source &&
         a.target === b.target;
+      // Exchange branches only where the sockets coincide.
+      if (
+        shared &&
+        (reverse
+          ? first.targetSide !== second.targetSide
+          : first.sourceSide !==
+            second.sourceSide)
+      )
+        continue;
       let previous:
         | { p: Point; h: number; k: number }
         | undefined;
