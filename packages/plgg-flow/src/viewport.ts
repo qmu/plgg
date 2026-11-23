@@ -329,11 +329,12 @@ export const flowView = (
     depth: number;
     html: Html<Change>;
   }[] = drawNodes.map((n) => {
-    const solid =
-      state.camera.pitch !== 0 ||
-      state.camera.yaw !== 0
-        ? projectNodeBody(n, state.camera)
-        : undefined;
+    // One solid for every camera: the flat view is this
+    // same box seen face-on, never a second drawing.
+    const solid = projectNodeBody(
+      n,
+      state.camera,
+    );
     const hue = state.spatial?.depthColor
       ? 210 -
         Math.max(
@@ -346,7 +347,7 @@ export const flowView = (
       registry.nodes?.get(n.type ?? "") ??
       renderLabel;
     return {
-      depth: solid?.depth ?? n.p.z,
+      depth: solid.depth,
       html: el<Change>(
         "g",
         [
@@ -373,90 +374,47 @@ export const flowView = (
           ),
         ],
         [
-          ...(solid
-            ? solid.visible.map((face) =>
-                el<Change>(
-                  "polygon",
-                  [
-                    a(
-                      "data-node-face",
-                      face.side,
-                    ),
-                    a(
-                      "points",
-                      face.points
-                        .map(
-                          (p) => p.x + "," + p.y,
-                        )
-                        .join(" "),
-                    ),
-                    a(
-                      "fill",
-                      "hsl(" +
-                        hue +
-                        " " +
-                        (state.spatial?.depthColor
-                          ? 50
-                          : 16) +
-                        "% " +
-                        face.light +
-                        "%)",
-                    ),
-                    ...(n.group &&
-                    !n.collapsed &&
-                    n.width &&
-                    n.height
-                      ? [a("fill-opacity", 0.15)]
-                      : []),
-                    a(
-                      "stroke",
-                      chosen.has(n.id)
-                        ? "#ed623a"
-                        : "#718e89",
-                    ),
-                    a("stroke-linejoin", "round"),
-                  ],
-                  [],
+          ...solid.visible.map((face) =>
+            el<Change>(
+              "polygon",
+              [
+                a("data-node-face", face.side),
+                a(
+                  "points",
+                  face.points
+                    .map((p) => p.x + "," + p.y)
+                    .join(" "),
                 ),
-              )
-            : [
-                el(
-                  "rect",
-                  [
-                    a("x", -(n.width ?? 104) / 2),
-                    a("y", -(n.height ?? 36) / 2),
-                    a("width", n.width ?? 104),
-                    a("height", n.height ?? 36),
-                    a("rx", 7),
-                    ...(n.group &&
-                    !n.collapsed &&
-                    n.width !== undefined &&
-                    n.height !== undefined
-                      ? [
-                          a("fill-opacity", 0.12),
-                          a(
-                            "pointer-events",
-                            "stroke",
-                          ),
-                        ]
-                      : []),
-                    a(
-                      "fill",
-                      state.spatial?.depthColor
-                        ? `hsl(${210 - Math.max(-1, Math.min(1, n.position.z / 250)) * 100} 58% 86%)`
-                        : "#fff",
-                    ),
-                    a(
-                      "stroke",
-                      chosen.has(n.id)
-                        ? "#ed623a"
-                        : "#789398",
-                    ),
-                  ],
-                  [],
+                a(
+                  "fill",
+                  "hsl(" +
+                    hue +
+                    " " +
+                    (state.spatial?.depthColor
+                      ? 50
+                      : 16) +
+                    "% " +
+                    face.light +
+                    "%)",
                 ),
-              ]),
-          solid?.caption
+                ...(n.group &&
+                !n.collapsed &&
+                n.width &&
+                n.height
+                  ? [a("fill-opacity", 0.15)]
+                  : []),
+                a(
+                  "stroke",
+                  chosen.has(n.id)
+                    ? "#ed623a"
+                    : "#718e89",
+                ),
+                a("stroke-linejoin", "round"),
+              ],
+              [],
+            ),
+          ),
+          solid.caption
             ? el(
                 "g",
                 [
@@ -465,10 +423,6 @@ export const flowView = (
                     "transform",
                     `matrix(${solid.caption.join(" ")})`,
                   ),
-                  a("paint-order", "stroke"),
-                  a("stroke", "#f7faf7"),
-                  a("stroke-width", 2),
-                  a("stroke-linejoin", "round"),
                 ],
                 [
                   el(
@@ -494,9 +448,7 @@ export const flowView = (
                   ),
                 ],
               )
-            : solid
-              ? el("g", [], [])
-              : render(n, state),
+            : el("g", [], []),
           ...(n.collapsed
             ? [
                 el(
@@ -525,17 +477,6 @@ export const flowView = (
               "target",
             ] satisfies Port["direction"][]
           ).flatMap((direction) => {
-            if (
-              solid &&
-              !solid.visible.some(
-                (face) =>
-                  face.side ===
-                  (direction === "source"
-                    ? "right"
-                    : "left"),
-              )
-            )
-              return [];
             if (n.connectable === false)
               return [];
             const available =
@@ -573,35 +514,9 @@ export const flowView = (
               const x =
                   (socket.x - n.p.x) / n.scale,
                 y = (socket.y - n.p.y) / n.scale;
-              // Project the socket disk onto its mounting face. Its two
-              // in-plane axes are world Z and Y, relative to the node group.
-              const world = portPosition(
-                n,
-                direction,
-                offset,
-              );
-              const at = project(state.camera);
-              const zAxis =
-                solid &&
-                at({ ...world, z: world.z + 1 });
-              const yAxis =
-                solid &&
-                at({ ...world, y: world.y + 1 });
-              const disk =
-                zAxis && yAxis
-                  ? [
-                      (zAxis.x - socket.x) /
-                        n.scale,
-                      (zAxis.y - socket.y) /
-                        n.scale,
-                      (yAxis.x - socket.x) /
-                        n.scale,
-                      (yAxis.y - socket.y) /
-                        n.scale,
-                      x,
-                      y,
-                    ]
-                  : undefined;
+              // A socket is a ball on the box's flank: it
+              // reads as a dot from every side, so wires
+              // never lose their ends when the view turns.
               const control = el<Change>(
                 "circle",
                 [
@@ -610,22 +525,14 @@ export const flowView = (
                   ...(handle === undefined
                     ? []
                     : [a("data-handle", handle)]),
-                  ...(disk
-                    ? [
-                        a(
-                          "transform",
-                          `matrix(${disk.join(" ")})`,
-                        ),
-                      ]
-                    : []),
-                  a("cy", disk ? 0 : y),
+                  a("cy", y),
                   a("tabindex", 0),
                   a("role", "button"),
                   a(
                     "aria-label",
                     n.label + " " + title,
                   ),
-                  a("cx", disk ? 0 : x),
+                  a("cx", x),
                   a("stroke", "#215f57"),
                   a(
                     "r",
