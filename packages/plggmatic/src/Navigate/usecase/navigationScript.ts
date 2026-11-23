@@ -204,7 +204,7 @@ export const navigationInitScript: SoftStr =
   "if(!b){b=document.createElement('button');b.type='button';" +
   "b.className='pm-fold';b.setAttribute('aria-label','この列を閉じる');" +
   "b.textContent='\u00d7';col.insertBefore(b,col.firstChild);}" +
-  "b.onclick=function(){fold(columnOf(col));};})(c[i],i);}" +
+  "})(c[i],i);}" +
   "var s=strip();if(!s){return;}" +
   "var t=document.querySelector('.pm-trail');" +
   "if(c.length<2){if(t){t.remove();}}else{" +
@@ -215,7 +215,7 @@ export const navigationInitScript: SoftStr =
   "var a=document.createElement('button');a.type='button';" +
   "a.textContent=titleOf(col);" +
   "if(j===c.length-1){a.setAttribute('aria-current','true');}" +
-  "a.onclick=function(){col.scrollIntoView({inline:'nearest',block:'nearest'});};" +
+  "a.setAttribute('data-col',String(j));" +
   "t.appendChild(a);})(c[j],j);}}" +
   "var r=B+(c.length?c[c.length-1].getAttribute(C)||'':'');" +
   "var ls=document.querySelectorAll('a[href]');" +
@@ -231,6 +231,13 @@ export const navigationInitScript: SoftStr =
   "(function(){var t=target(),c=current();" +
   "if(c.length&&t[0]===c[0]&&t.length>c.length){reconcile();}else{sync();}})();" +
   "document.addEventListener('click',function(ev){" +
+  // the chrome this runtime adds answers through the one
+  // delegated listener, never an inline handler
+  "var t=ev.target;var fb=t&&t.closest?t.closest('.pm-fold'):null;" +
+  "if(fb){ev.preventDefault();fold(columnOf(fb));return;}" +
+  "var tb=t&&t.closest?t.closest('.pm-trail [data-col]'):null;" +
+  "if(tb){var cc=cols()[Number(tb.getAttribute('data-col'))];" +
+  "if(cc){cc.scrollIntoView({inline:'nearest',block:'nearest'});}return;}" +
   "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
   "var at=columnOf(a);if(at<0){return;}" +
   "ev.preventDefault();openFrom(at,a.pathname);});" +

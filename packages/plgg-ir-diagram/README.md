@@ -1,5 +1,7 @@
 # plgg-ir-diagram
 
+> Part of the [plgg monorepo](../../README.md).
+
 図をテキストで記述し、plgg IR で参照と型を検査する。plggpress の Markdown では次のフェンスが操作可能な図になる。
 
 ````markdown

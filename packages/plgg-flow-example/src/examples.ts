@@ -25,7 +25,11 @@ export type DemoId =
   | "history"
   | "checkpoint"
   | "compute"
-  | "overview";
+  | "overview"
+  | "trace"
+  | "revisions"
+  | "outline"
+  | "files";
 type Demo = Readonly<{
   id: DemoId;
   name: string;
@@ -294,6 +298,59 @@ node Live at 220 -85
 node Backup at 220 85
 Input -> Route
 Route -> Live
+`,
+  ),
+  demo(
+    "trace",
+    "配線をたどる",
+    "ノードを選ぶと、つながっている相手が入力・出力の一覧に出ます。押すとその相手へ移動し、移動の履歴を戻る・進むで行き来できます。",
+    `node Order at -260 0
+node Stock at -40 -90
+node Payment at -40 90
+node Ship at 200 0
+node Notify at 380 0
+Order -> Stock "在庫確認"
+Order -> Payment "決済"
+Stock -> Ship
+Payment -> Ship
+Ship -> Notify
+`,
+  ),
+  demo(
+    "revisions",
+    "編集履歴",
+    "ノードを選んで「履歴を追う」を押し、動かしたり名前を変えたりすると、そのノードに起きた変更が順に並びます。",
+    `node Draft at -220 0
+node Review at 0 0
+node Publish at 220 0
+Draft -> Review
+Review -> Publish
+`,
+  ),
+  demo(
+    "outline",
+    "グループ一覧",
+    "入れ子になったグループを一覧でたどれます。グループを開くと中身が並び、選ぶと図の上でそのノードへ移動します。",
+    `node Company at -300 -120 group
+node Sales at -150 -40 group in Company
+node Dev at 60 -40 group in Company
+node Alice at -180 40 in Sales
+node Bob at -90 40 in Sales
+node Carol at 40 40 in Dev
+node Dave at 140 40 in Dev
+Alice -> Carol
+Bob -> Dave
+`,
+  ),
+  demo(
+    "files",
+    "保存と読み込み",
+    "図をファイルに書き出して読み込み直したり、ブラウザの中に保存して後から再開したりできます。",
+    `node Source at -220 -50
+node Process at 0 15
+node Result at 220 -50
+Source -> Process
+Process -> Result
 `,
   ),
 ];

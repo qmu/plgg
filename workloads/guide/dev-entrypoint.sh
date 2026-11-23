@@ -44,6 +44,12 @@ for pkg in \
   plgg-md \
   plgg-highlight \
   plgg-server \
+  plgg-parser \
+  plgg-ir-syntax \
+  plgg-ir-language \
+  plgg-board \
+  plgg-flow \
+  plgg-ir-diagram \
   plggpress \
   guide
 do

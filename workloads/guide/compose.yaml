@@ -61,6 +61,12 @@ services:
       - /app/packages/plgg-md/node_modules
       - /app/packages/plgg-highlight/node_modules
       - /app/packages/plgg-server/node_modules
+      - /app/packages/plgg-parser/node_modules
+      - /app/packages/plgg-ir-syntax/node_modules
+      - /app/packages/plgg-ir-language/node_modules
+      - /app/packages/plgg-board/node_modules
+      - /app/packages/plgg-flow/node_modules
+      - /app/packages/plgg-ir-diagram/node_modules
       - /app/packages/plggpress/node_modules
       - /app/packages/plgg-bundle/node_modules
       - /app/packages/guide/node_modules

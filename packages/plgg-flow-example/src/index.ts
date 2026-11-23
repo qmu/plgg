@@ -1,8 +1,11 @@
+import { diffGraph } from "plgg-flow/revisions";
 import { writeDrawing } from "plgg-flow/storage";
 import {
+  filesView,
   initialFiles,
   perform,
   type Files,
+  type FileEdit,
 } from "./files";
 import {
   toolState,
@@ -15,6 +18,8 @@ import {
   removeOverlaps,
 } from "plgg-flow/layout";
 import {
+  revealNode,
+  ownershipPath,
   enclose,
   reparent,
   dissolve,
@@ -85,6 +90,12 @@ type Visit = Readonly<{
     Flow["spatial"]
   >["section"];
 }>;
+const visit = (f: Flow): Visit => ({
+  camera: f.camera,
+  ids: selectedNodes(f),
+  scope: f.isolatedBranch,
+  section: f.spatial?.section,
+});
 type Session = Readonly<{
   trackedCard?: string;
   outline?: { parent?: string };
@@ -293,6 +304,359 @@ const center =
       },
     };
   };
+const navigate =
+  (fn: Change): Edit =>
+  (s) => ({
+    ...s,
+    returning: false,
+    flow: fn(s.flow),
+    back: [...s.back.slice(-49), visit(s.flow)],
+    forward: [],
+  });
+const revisit =
+  (forward: boolean): Edit =>
+  (s) => {
+    const stack = forward ? s.forward : s.back,
+      entry = stack[stack.length - 1];
+    if (!entry) return s;
+    const { isolatedBranch, ...rest } = s.flow;
+    const { section, ...spatial } =
+      s.flow.spatial ?? {};
+    const destination = entry.ids.filter((id) =>
+      rest.nodes.some((n) => n.id === id),
+    );
+    const revealed = destination.reduce<Graph>(
+      (g, id) => revealNode(g, id),
+      { nodes: rest.nodes, edges: rest.edges },
+    );
+    const flow = selectNodes(destination)({
+      ...rest,
+      ...revealed,
+      camera: entry.camera,
+      ...(entry.scope !== undefined &&
+      rest.nodes.some((n) => n.id === entry.scope)
+        ? { isolatedBranch: entry.scope }
+        : {}),
+      ...(rest.spatial || entry.section
+        ? {
+            spatial: {
+              ...spatial,
+              ...(entry.section
+                ? { section: entry.section }
+                : {}),
+            },
+          }
+        : {}),
+    });
+    return {
+      ...s,
+      flow,
+      returning: false,
+      back: forward
+        ? [...s.back.slice(-49), visit(s.flow)]
+        : stack.slice(0, -1),
+      forward: forward
+        ? stack.slice(0, -1)
+        : [
+            ...s.forward.slice(-49),
+            visit(s.flow),
+          ],
+    };
+  };
+const focusNode =
+  (target: FlowNode): Change =>
+  (f) => {
+    const { isolatedBranch, ...rest } = f;
+    const scoped =
+      isolatedBranch !== undefined &&
+      ownershipPath(f.nodes, target.id).some(
+        (n) => n.id === isolatedBranch,
+      );
+    const section = f.spatial?.section,
+      clipped =
+        section &&
+        (target.position[section.axis] <
+          section.min ||
+          target.position[section.axis] >
+            section.max);
+    const {
+      section: oldSection,
+      ...otherSpatial
+    } = f.spatial ?? {};
+    const revealed = revealNode(
+      { nodes: f.nodes, edges: f.edges },
+      target.id,
+    );
+    return center(target)(
+      selectNodes([target.id])({
+        ...rest,
+        ...revealed,
+        ...(scoped && isolatedBranch !== undefined
+          ? { isolatedBranch }
+          : {}),
+        ...(clipped
+          ? { spatial: otherSpatial }
+          : {}),
+      }),
+    );
+  };
+const cardHistory = (
+  s: Session,
+): Html<Action> => {
+  const id = s.trackedCard,
+    current = selected(s.flow);
+  const track = btn(
+    "履歴を追う",
+    (state) =>
+      current
+        ? { ...state, trackedCard: current.id }
+        : state,
+    !current,
+  );
+  if (id === undefined) return track;
+  const states = [
+    ...s.before,
+    s.flow,
+    ...s.after.slice().reverse(),
+  ];
+  const local = states.map((f) => ({
+    nodes: f.nodes.filter((n) => n.id === id),
+    edges: f.edges.filter(
+      (e) => e.source === id || e.target === id,
+    ),
+  }));
+  const rows: Html<Action>[] = [];
+  for (let i = 1; i < local.length; i++) {
+    const from = local[i - 1]!,
+      to = local[i]!,
+      patch = diffGraph(from, to);
+    if (patch.__tag === "Err") {
+      rows.push(
+        el("li", [], [text(patch.content)]),
+      );
+      continue;
+    }
+    const { nodes, edges } = patch.content;
+    if (!nodes.length && !edges.length) continue;
+    const changes: string[] = [];
+    for (const n of nodes) {
+      if (!isSome(n.before))
+        changes.push("カード追加");
+      else if (!isSome(n.after))
+        changes.push("カード削除");
+      else {
+        const before = n.before.content,
+          after = n.after.content;
+        const keys = new Set([
+          ...Object.keys(before),
+          ...Object.keys(after),
+        ] as (keyof FlowNode)[]);
+        changes.push(
+          ...Array.from(keys).filter(
+            (k) =>
+              JSON.stringify(before[k]) !==
+              JSON.stringify(after[k]),
+          ),
+        );
+      }
+    }
+    for (const edge of edges) {
+      const value = isSome(edge.after)
+        ? edge.after
+        : edge.before;
+      if (isSome(value))
+        changes.push(
+          (!isSome(edge.before)
+            ? "配線追加"
+            : !isSome(edge.after)
+              ? "配線削除"
+              : "配線変更") +
+            " " +
+            value.content.source +
+            " → " +
+            value.content.target,
+        );
+    }
+    rows.push(
+      el(
+        "li",
+        [],
+        [
+          text(
+            (i > s.before.length
+              ? "やり直し可能"
+              : "編集") +
+              " " +
+              i +
+              " · " +
+              changes.join("、"),
+          ),
+        ],
+      ),
+    );
+  }
+  return el(
+    "section",
+    [attr("aria-label", "カード別の編集履歴")],
+    [
+      el("strong", [], [text(id)]),
+      track,
+      btn("編集履歴を閉じる", (state) => {
+        const { trackedCard, ...rest } = state;
+        return rest;
+      }),
+      ...(rows.length
+        ? [el("ol", [], rows)]
+        : [
+            text(
+              "このカードの編集記録はありません",
+            ),
+          ]),
+    ],
+  );
+};
+const hierarchyBrowser = (
+  s: Session,
+): Html<Action> => {
+  if (!s.outline)
+    return btn(
+      "グループ一覧を開く",
+      (current) => ({ ...current, outline: {} }),
+    );
+  const parent = s.flow.nodes.find(
+    (n) => n.id === s.outline?.parent,
+  );
+  const children = s.flow.nodes.filter(
+    (n) => n.parent === parent?.id,
+  );
+  const containers = new Set(
+    s.flow.nodes.map((n) => n.parent),
+  );
+  const enter =
+    (id?: string): Edit =>
+    (current) => ({
+      ...current,
+      outline:
+        id === undefined ? {} : { parent: id },
+    });
+  return el(
+    "section",
+    [attr("aria-label", "グループ一覧")],
+    [
+      el(
+        "strong",
+        [],
+        [
+          text(
+            parent
+              ? ownershipPath(
+                  s.flow.nodes,
+                  parent.id,
+                )
+                  .map((n) => n.label)
+                  .join(" › ")
+              : "図面の最上位",
+          ),
+        ],
+      ),
+      ...(parent
+        ? [
+            btn(
+              "一つ上の階層へ",
+              enter(parent.parent),
+            ),
+          ]
+        : []),
+      btn("グループ一覧を閉じる", (current) => {
+        const { outline, ...rest } = current;
+        return rest;
+      }),
+      el(
+        "ul",
+        [],
+        children.map((node) =>
+          el(
+            "li",
+            [],
+            [
+              btn(node.label, (s) => ({
+                ...apply(focusNode(node))(s),
+                back: [
+                  ...s.back.slice(-49),
+                  visit(s.flow),
+                ],
+                forward: [],
+              })),
+              ...(containers.has(node.id)
+                ? [
+                    btn(
+                      node.label + " の中を見る",
+                      enter(node.id),
+                    ),
+                  ]
+                : []),
+            ],
+          ),
+        ),
+      ),
+    ],
+  );
+};
+const connectionLinks = (flow: Flow) => {
+  const current = selected(flow);
+  if (!current) return [];
+  const byId = new Map(
+    flow.nodes.map((n) => [n.id, n]),
+  );
+  const links = flow.edges.flatMap((edge) => {
+    const outgoing = edge.source === current.id;
+    if (!outgoing && edge.target !== current.id)
+      return [];
+    const target = byId.get(
+      outgoing ? edge.target : edge.source,
+    );
+    if (!target) return [];
+    const handle = outgoing
+      ? edge.targetHandle
+      : edge.sourceHandle;
+    const caption = [
+      outgoing ? "出力 →" : "入力 ←",
+      target.label,
+      handle,
+      edge.label ?? edge.id,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return [
+      btn(caption, navigate(focusNode(target))),
+    ];
+  });
+  return links.length
+    ? [
+        el(
+          "details",
+          [
+            attr("class", "connection-links"),
+            attr("open", ""),
+          ],
+          [
+            el(
+              "summary",
+              [],
+              [
+                text(
+                  "配線をたどる（" +
+                    links.length +
+                    "）",
+                ),
+              ],
+            ),
+            ...links,
+          ],
+        ),
+      ]
+    : [];
+};
 const angle = (radians: number) =>
   Math.atan2(
     Math.sin(radians),
@@ -891,6 +1255,33 @@ const controls = (
             ),
           ],
         ),
+      ];
+    case "trace":
+      return [
+        ...connectionLinks(f),
+        btn(
+          "移動履歴を戻る",
+          revisit(false),
+          !s.back.length,
+        ),
+        btn(
+          "移動履歴を進む",
+          revisit(true),
+          !s.forward.length,
+        ),
+      ];
+    case "revisions":
+      return [cardHistory(s)];
+    case "outline":
+      return [hierarchyBrowser(s)];
+    case "files":
+      return [
+        mapHtml((fn: FileEdit) =>
+          edit((s) => ({
+            ...s,
+            files: fn(s.files),
+          })),
+        )(filesView(s.files)),
       ];
   }
 };

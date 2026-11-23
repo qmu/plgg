@@ -280,7 +280,10 @@ export const filesView = (
 ): Html<FileEdit> =>
   el(
     "details",
-    [attr("class", "editing-tools")],
+    [
+      attr("class", "editing-tools"),
+      attr("open", ""),
+    ],
     [
       el(
         "summary",
