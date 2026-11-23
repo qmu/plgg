@@ -106,6 +106,7 @@ const rendered = renderToString(
         {
           route: activePath,
           span: none(),
+          title: "",
           body: content,
         },
       ],
@@ -125,6 +126,7 @@ const renderedHome = renderToString(
         {
           route: "/",
           span: none(),
+          title: "",
           body: content,
         },
       ],
@@ -294,16 +296,19 @@ const renderedComposition = renderToString(
         {
           route: activePath,
           span: none(),
+          title: "",
           body: content,
         },
         {
           route: "/a/",
           span: none(),
+          title: "",
           body: content,
         },
         {
           route: "/b/",
           span: none(),
+          title: "",
           body: content,
         },
       ],

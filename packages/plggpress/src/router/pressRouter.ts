@@ -10,6 +10,7 @@ import {
   err,
   isOk,
   pipe,
+  getOr,
   mapErr,
   mapResult,
   chainResult,
@@ -177,6 +178,10 @@ const pageView = (
         (column: RenderedColumn): PageColumn => ({
           route: column.route,
           span: column.span,
+          title: pipe(
+            column.doc.firstHeading,
+            getOr(column.route),
+          ),
           body: column.body,
         }),
       ),
@@ -220,8 +225,9 @@ const renderColumn =
                 href(base),
               ),
             )(source),
-            mapErr((e: InvalidError): HttpError =>
-              internalError(e.content.message),
+            mapErr(
+              (e: InvalidError): HttpError =>
+                internalError(e.content.message),
             ),
             mapResult(
               (

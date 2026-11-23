@@ -60,6 +60,9 @@ export const navigationInitScript: SoftStr =
   "(function(){" +
   `var S=${q(stripAttr)},C=${q(columnAttr)},P=${q(spanAttr)};` +
   `var FC=${q(foldClass)},TC=${q(trailClass)};` +
+  // an opened column glides into view unless the reader
+  // asked for less motion
+  "var R0=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;" +
   `var R=${q(restParam)},Q=${q(spanParam)};` +
   `var E=${q(escapeChar)},N=${q(entrySeparator)},F=${q(fieldSeparator)};` +
   // escape one field so a route or a quoted passage can
@@ -107,7 +110,7 @@ export const navigationInitScript: SoftStr =
   // chrome rail, a nav column) keeps its position
   "function place(node,at){var c=cols();var prev=c[at];" +
   "prev.parentNode.insertBefore(node,prev.nextSibling);" +
-  "node.scrollIntoView({inline:'end',block:'nearest'});" +
+  "node.scrollIntoView({inline:'nearest',block:'nearest',behavior:R0?'auto':'smooth'});" +
   "showMark(node);sync();}" +
   // put a column's highlighted passage under the reader's
   // eyes. The mark is server-rendered — it exists only
@@ -197,18 +200,20 @@ export const navigationInitScript: SoftStr =
   // CLOSE a column and everything beyond it
   "function fold(at){truncate(at-1);" +
   "window.history.pushState(null,'',urlFor(entries().slice(0,at-1)));}" +
-  "function titleOf(c){var h=c.querySelector('h1');" +
+  "function titleOf(c){var hd=c.querySelector(':scope>header');" +
+  "var h=hd?(hd.firstElementChild||hd):c.querySelector('h1');" +
   "return (h?h.textContent:c.getAttribute(C)||'').trim();}" +
   // KEEP THE CHROME HONEST: every column past the head
   // gets a close control, the trail lists what is open,
   // and the sidebar marks the column read last.
   "function sync(){var c=cols();" +
   "for(var i=0;i<c.length;i++){(function(col,i){" +
-  "var b=col.querySelector(':scope>.'+FC);" +
+  "var b=col.querySelector('.'+FC);" +
   "if(i===0){if(b){b.remove();}return;}" +
   "if(!b){b=document.createElement('button');b.type='button';" +
   "b.className=FC;b.setAttribute('aria-label','この列を閉じる');" +
-  "b.textContent='\u00d7';col.insertBefore(b,col.firstChild);}" +
+  "b.textContent='\u00d7';var hd=col.querySelector(':scope>header');" +
+  "if(hd){hd.appendChild(b);}else{col.insertBefore(b,col.firstChild);}}" +
   "})(c[i],i);}" +
   "var s=strip();if(!s){return;}" +
   "var t=document.querySelector('.'+TC);" +

@@ -63,6 +63,7 @@ export const notFound = (
       {
         route: "/404",
         span: none(),
+        title: "404",
         body: content,
       },
     ],

@@ -183,7 +183,7 @@ test("headings: H1 2rem symmetry (tightened rhythm) and the sub-sm downscale fro
     check(css, toContain("font-size:1.75rem")),
     check(
       css,
-      toContain("scroll-margin-top:3.75rem"),
+      toContain("scroll-margin-top:1rem"),
     ),
   ]));
 
@@ -215,13 +215,13 @@ test("inline code is the translucent overlay badge (surface-independent, not a t
     ),
   ]));
 
-test("chrome text matches the oracle (wordmark 1rem, footer 13px)", () =>
+test("chrome text: the wordmark sits in a head bar, the footer is 13px", () =>
   all([
     check(css, toContain("font-size:13px")),
     check(
       css,
       toContain(
-        "border-radius:6px;font-size:1rem",
+        "border-radius:4px;font-size:0.9375rem",
       ),
     ),
   ]));
@@ -305,28 +305,54 @@ test("chrome fades use qmu's sharp-in curve; only the fill fades", () =>
     check(css, not(toContain(",color 0.15s"))),
   ]));
 
-test("every column of the strip is a ruled track", () =>
+test("the strip is one frame, one strip, one column shape", () =>
   all([
-    // one rule per column, drawn on the shared class, so
-    // a column opened by a followed link is ruled too
+    // the frame is exactly the viewport
     check(
       css,
       toContain(
-        ".vp-app " +
-          selector(colClass) +
-          "{\n  border-right:1px solid " +
+        "flex-direction:column;height:100dvh",
+      ),
+    ),
+    // the strip scrolls sideways, nothing bounds it
+    check(
+      css,
+      toContain(
+        "overflow-x:auto;overflow-y:hidden",
+      ),
+    ),
+    // one hairline per column, on the shared class, so a
+    // column opened by a followed link is ruled too
+    check(
+      css,
+      toContain(
+        "border-right:1px solid " +
           cvar("border"),
       ),
     ),
-    // each page column names itself with a sticky heading
     check(
       css,
-      toContain(".vp-doc h1:first-child{"),
+      toContain(
+        ".vp-app " + selector(colClass) + "{",
+      ),
     ),
+    // a fixed head bar names the column; the body under
+    // it is the only vertical scroller
+    check(css, toContain(".vp-col-head{")),
     check(
       css,
-      toContain("position:sticky;top:-2rem"),
+      toContain(
+        "flex:1 1 auto;min-height:0;overflow:auto",
+      ),
     ),
-    // the choice lists stay a centred text-width block
-    check(css, toContain("margin-inline:auto")),
+    // no heading is pinned by hand any more
+    check(
+      css,
+      not(toContain("position:sticky;top:-")),
+    ),
+    // a phone shows one page at a time
+    check(
+      css,
+      toContain("scroll-snap-type:x mandatory"),
+    ),
   ]));

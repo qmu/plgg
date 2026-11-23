@@ -11,6 +11,7 @@ import {
   type Flow,
   type Attribute,
   div,
+  header,
   nav,
   main_,
   a,
@@ -42,6 +43,23 @@ import {
   href,
   samePath,
 } from "plggpress/Href/usecase/href";
+
+/**
+ * THE COLUMN SHAPE every column of the strip shares: a
+ * fixed-height head bar that names the column, and a body
+ * that scrolls on its own beneath it. The sections column,
+ * the drilled section and every page are the same thing.
+ */
+const colHead = (
+  children: ReadonlyArray<Flow<never>>,
+): Html<never> =>
+  header([class_("vp-col-head")], children);
+const colTitle = (title: SoftStr): Flow<never> =>
+  span([class_("vp-col-title")], [text(title)]);
+const colBody = (
+  children: ReadonlyArray<Flow<never>>,
+): Html<never> =>
+  div([class_("vp-col-body")], children);
 
 /**
  * The hidden checkbox the `☰` mobile-bar label toggles. A
@@ -202,16 +220,18 @@ const sectionsColumn = (
   return column(
     ["vp-sidebar"],
     [
-      nav(
-        [
-          class_("vp-sidebar-nav"),
-          attr("aria-label", "Sections"),
-        ],
-        [
-          a(wordmarkAttrs, [text(config.title)]),
-          ...config.sidebar.map(groupEntry),
-        ],
-      ),
+      colHead([
+        a(wordmarkAttrs, [text(config.title)]),
+      ]),
+      colBody([
+        nav(
+          [
+            class_("vp-sidebar-nav"),
+            attr("aria-label", "Sections"),
+          ],
+          config.sidebar.map(groupEntry),
+        ),
+      ]),
     ],
   );
 };
@@ -239,7 +259,16 @@ const drilledColumn = (
     (active: SidebarGroup) => [
       column(
         ["vp-section"],
-        [sidebarTree([active], activePath, base)],
+        [
+          colHead([colTitle(active.text)]),
+          colBody([
+            sidebarTree(
+              [active],
+              activePath,
+              base,
+            ),
+          ]),
+        ],
       ),
     ],
   )(
@@ -261,6 +290,8 @@ const drilledColumn = (
 export type PageColumn = Readonly<{
   route: SoftStr;
   span: Option<SoftStr>;
+  /** What the column's head bar calls it. */
+  title: SoftStr;
   body: Html<never>;
 }>;
 
@@ -283,16 +314,19 @@ const contentColumn = (
     content.span,
     ["vp-content"],
     [
-      main_(
-        [class_("vp-main")],
-        [
-          div(
-            [class_("vp-doc")],
-            [slot([], [content.body])],
-          ),
-          siteFooter(config),
-        ],
-      ),
+      colHead([colTitle(content.title)]),
+      colBody([
+        main_(
+          [class_("vp-main")],
+          [
+            div(
+              [class_("vp-doc")],
+              [slot([], [content.body])],
+            ),
+            siteFooter(config),
+          ],
+        ),
+      ]),
     ],
   );
 

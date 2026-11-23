@@ -133,38 +133,118 @@ body.vp{
   -webkit-box-decoration-break:clone;
 }
 
-/* column-oriented horizontal strip (the plggmatic row):
-   the sections column, the drilled section column, the
-   content column, and the chrome rail sit side by side. On
-   lg+ the strip fills the viewport height and scrolls
-   HORIZONTALLY as depth grows — the content column's width
-   is fixed, so "depth does not consume the viewport": the
-   top bar and body width stay invariant and the strip
-   scrolls beneath. Below lg it collapses to normal page
-   flow with a sticky mobile bar + off-canvas drawer. The
-   row/column skeleton is plggmatic's (its own exported
-   class hooks); these .vp-* rules
-   carry the qmu geometry. */
-.vp-shell{position:relative}
-.vp-app{
-  display:flex;align-items:stretch;
+/* ---- the column system ----------------------------------
+   One frame, one strip, one column shape — the layout
+   coop-planner and corpd share.
+   FRAME  .vp-shell is exactly the viewport, a flex column:
+          the trail row (when more than one page is open)
+          on top, the strip beneath taking the rest.
+   STRIP  .vp-app scrolls HORIZONTALLY as columns open;
+          nothing bounds its width.
+   COLUMN every column — sections, drilled section, page —
+          is the same thing: a fixed-height head bar that
+          names it, and a body that scrolls VERTICALLY on
+          its own. One hairline on its right edge is the
+          only separator; there is no gap.
+   Widths are declared once, here. */
+.vp-shell{
+  position:relative;display:flex;
+  flex-direction:column;height:100dvh;
 }
-/* far-RIGHT chrome rail (lg+ only, qmu DocsLayout): the
-   appearance toggle and the social links, grouped at the
-   TOP — one corner for every control the site offers.
-   Carries no navigation. The top padding matches the nav
-   columns' own, so the whole top edge reads as one band. */
+.vp-app{
+  flex:1 1 auto;min-height:0;
+  display:flex;align-items:stretch;
+  overflow-x:auto;overflow-y:hidden;
+  overscroll-behavior-x:contain;
+  scroll-padding-right:${mvar("rail")};
+}
+.vp-app ${selector(colClass)}{
+  flex:none;display:flex;flex-direction:column;
+  min-height:0;overflow:hidden;
+  background:${cvar("surface")};
+  border-right:1px solid ${cvar("border")};
+}
+.vp-col-head{
+  flex:none;display:flex;align-items:center;
+  gap:0.5rem;height:2.75rem;
+  padding:0 0.5rem 0 1rem;
+  border-bottom:1px solid ${cvar("border")};
+  font-size:0.875rem;line-height:1.25rem;
+  font-weight:600;color:${cvar("text")};
+}
+.vp-col-title{
+  flex:1 1 auto;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.vp-col-body{
+  flex:1 1 auto;min-height:0;overflow:auto;
+  scroll-behavior:smooth;
+}
+.vp-sidebar{width:${mvar("sidebar")}}
+.vp-section{width:15rem}
+.vp-content{
+  width:min(
+    clamp(40rem,45vw,calc(${mvar("measure")} + 4rem)),
+    100vw
+  );
+}
+.vp-sidebar .vp-col-body,
+.vp-section .vp-col-body{
+  padding:0.75rem 0.5rem;font-size:0.875rem;
+}
+.vp-content .vp-col-body{
+  padding:1.5rem 2rem 2.5rem;
+}
+/* the close control a followed column carries, in its
+   head bar; the trail names every open column, above the
+   strip */
+${selector(foldClass)}{
+  flex:none;width:1.75rem;height:1.75rem;
+  border:0;border-radius:4px;background:none;
+  color:${cvar("muted")};font:inherit;
+  font-size:1.1rem;line-height:1;cursor:pointer;
+}
+${selector(foldClass)}:hover,
+${selector(foldClass)}:focus-visible{
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
+}
+${selector(trailClass)}{
+  flex:none;display:flex;align-items:stretch;
+  height:2rem;overflow-x:auto;
+  border-bottom:1px solid ${cvar("border")};
+  background:${cvar("surface-2")};
+  font-size:0.75rem;
+}
+${selector(trailClass)} button{
+  flex:none;border:0;background:none;
+  color:${cvar("muted")};font:inherit;
+  padding:0 0.75rem;cursor:pointer;
+  white-space:nowrap;max-width:14rem;
+  overflow:hidden;text-overflow:ellipsis;
+}
+${selector(trailClass)} button + button::before{
+  content:"›";margin-right:0.75rem;
+  color:${cvar("muted")};
+}
+${selector(trailClass)} button[aria-current]{
+  color:${cvar("text")};font-weight:600;
+}
+${selector(trailClass)} button:hover{
+  color:${cvar("text")};
+}
+/* far-RIGHT chrome rail (lg+ only): the appearance toggle
+   and the social links. Always the rightmost bar: pushed
+   right while the strip is narrower than the viewport,
+   stuck to the right edge once it scrolls. */
 .vp-rail{
   display:none;flex:0 0 ${mvar("rail")};
-  width:${mvar("rail")};height:100vh;
+  width:${mvar("rail")};
   flex-direction:column;align-items:center;
-  padding:2rem 0 0.75rem;
-  /* always the RIGHTMOST bar, whatever the strip is doing:
-     pushed to the far right while the strip is narrower
-     than the viewport, and stuck to the right edge once it
-     overflows and scrolls. The controls stay in one corner
-     no matter how deep the reader has drilled. */
+  padding:0.5rem 0 0.75rem;
   margin-left:auto;position:sticky;right:0;
+  background:${cvar("surface")};
+  border-left:1px solid ${cvar("border")};
 }
 .vp-rail-controls{
   display:flex;flex-direction:column;
@@ -225,22 +305,15 @@ body.vp{
   background-repeat:no-repeat;
 }
 
-/* sidebar column (the nav): a permanent independent-scroll
-   column on lg+, an off-canvas drawer below lg. Holds the
-   wordmark home link, the always-expanded tree, and (below
-   lg) the social links the rail carries on lg+. */
-.vp-sidebar{
-  flex:0 0 ${mvar("sidebar")};
-  width:${mvar("sidebar")};
-  padding:2rem 1rem;
-  font-size:0.9rem;
-}
+/* the sections column's head bar holds the wordmark home
+   link */
 .vp-wordmark{
-  display:block;width:fit-content;
-  margin:0 0 1rem;padding:0.25rem 0.5rem;
-  border-radius:6px;font-size:1rem;
-  line-height:1.5rem;
-  font-weight:500;color:${cvar("text")};
+  display:block;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+  margin-left:-0.5rem;padding:0.25rem 0.5rem;
+  border-radius:4px;font-size:0.9375rem;
+  line-height:1.25rem;font-weight:600;
+  color:${cvar("text")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
@@ -258,17 +331,7 @@ body.vp{
   background:${cvar("primary-base")};
   color:${cvar("surface")};
 }
-/* The two CHOICE-LIST columns (the sections column and the
-   drilled section column) share this root. Their entries
-   already size to their own text; making the nav itself
-   fit-content and centring it puts EQUAL space to the left
-   and right of the list while every entry keeps a common
-   left edge. Alignment is carried by that rhythm — there
-   are no rules drawn between the columns. */
-.vp-sidebar-nav{
-  display:block;width:fit-content;
-  max-width:100%;margin-inline:auto;
-}
+.vp-sidebar-nav{display:block}
 /* top-level section header — always visible, no collapse */
 .vp-group{margin-top:1rem}
 .vp-group:first-child{margin-top:0.25rem}
@@ -285,7 +348,7 @@ body.vp{
    gap-px separates items - a 29px pitch, tighter than the
    prose leading these would otherwise inherit. */
 .vp-sidebar-link{
-  display:block;width:fit-content;
+  display:block;
   margin-top:1px;
   padding:0.25rem 0.5rem;border-radius:4px;
   font-size:0.875rem;line-height:1.25rem;
@@ -354,26 +417,6 @@ body.vp{
   writing-mode:vertical-rl;letter-spacing:0.02em;
 }
 
-/* the DRILLED section column: opens to the right of the
-   sections column when the reader is inside a section,
-   holding that section's always-expanded tree. Fixed
-   width, its own scroll on lg+. NO RULES between columns —
-   the strip reads as discrete tracks from the equal
-   spacing alone. Hidden below lg (the sections drawer
-   already carries navigation). */
-.vp-section{
-  flex:0 0 15rem;width:15rem;
-  padding:2rem 1rem;font-size:0.9rem;
-}
-/* content column: a FIXED-width prose column (its width is
-   invariant as columns are added to the strip's left), the
-   footer confined to it, independent-scroll on lg+. */
-.vp-content{
-  flex:0 0 auto;
-  width:calc(${mvar("measure")} + 5rem);
-  max-width:100%;
-  padding:2rem 2.5rem 2.5rem;
-}
 .vp-main{display:block}
 .vp-doc{max-width:${mvar("measure")};margin:0}
 .vp-footer{
@@ -409,7 +452,7 @@ body.vp{
 /* Anchor jumps clear the sticky bars (mobile bar / lg pane
    header, both 3rem) — qmu scroll-margin-top. */
 .vp-doc h1,.vp-doc h2,.vp-doc h3,.vp-doc h4{
-  scroll-margin-top:3.75rem;
+  scroll-margin-top:1rem;
 }
 .vp-doc p{margin:0.85rem 0}
 .vp-doc ul,.vp-doc ol{
@@ -443,7 +486,7 @@ body.vp{
   padding:0.1em 0.25em;border-radius:0.2em;
   box-decoration-break:clone;
   -webkit-box-decoration-break:clone;
-  scroll-margin-top:3.75rem;
+  scroll-margin-top:1rem;
 }
 
 /* code — inline code is qmu's soft translucent badge: an
@@ -576,20 +619,8 @@ html.dark .vp-doc pre code{background:none}
   .vp-doc h3{font-size:1.125rem}
 }
 
-/* lg+ (min-width 1024px): the strip is ON — it fills the
-   viewport height and scrolls HORIZONTALLY as depth grows
-   (overflow-x:auto), while each column scrolls vertically on
-   its own. The content column's fixed width means adding a
-   column to its left never shrinks it — the body width is
-   invariant, depth spends horizontal scroll, not viewport. */
 @media ${minWidth("lg")}{
-  .vp-app{
-    height:100vh;overflow-x:auto;overflow-y:hidden;
-  }
   .vp-rail{display:flex}
-  .vp-sidebar{height:100vh;overflow-y:auto}
-  .vp-section{height:100vh;overflow-y:auto}
-  .vp-content{height:100vh;overflow-y:auto}
 }
 
 /* below lg: no rail; a sticky mobile bar + an off-canvas
@@ -603,16 +634,21 @@ html.dark .vp-doc pre code{background:none}
      drawer already carries; drop it so the phone shows just
      the content column full-bleed. */
   .vp-section{display:none}
+  /* one page per screen: the strip snaps column by
+     column, as the apps do on a phone */
+  .vp-app{scroll-snap-type:x mandatory}
   .vp-content{
-    flex:1 1 auto;width:100%;min-width:0;
-    padding:1.5rem 1.25rem 3rem;
+    width:100vw;scroll-snap-align:start;
+    scroll-snap-stop:always;
+  }
+  .vp-content .vp-col-body{
+    padding:1.25rem 1.25rem 3rem;
   }
   .vp-doc{max-width:100%}
   .vp-doc pre{max-width:100%}
   .vp-sidebar{
     position:fixed;top:0;left:0;z-index:50;
-    height:100vh;width:17rem;max-width:82vw;
-    overflow-y:auto;
+    height:100dvh;width:17rem;max-width:82vw;
     background:${cvar("surface-2")};
     border-right:1px solid ${cvar("border")};
     transform:translateX(-100%);
@@ -622,77 +658,7 @@ html.dark .vp-doc pre code{background:none}
     transform:translateX(0);
   }
   .vp-menu-cb:checked ~ .vp-backdrop{display:block}
-  /* the drawer is full-bleed, so a centred list would read
-     as an accident rather than as composition */
-  .vp-sidebar-nav{margin-inline:0}
-}
-/* ---- column system (coop-planner's horizontal layout) ----
-   Every column is a ruled track. Following a link opens the
-   target as the next column (plggmatic navigation script);
-   each page column names itself with a sticky heading, so
-   a reader always sees which page each track holds. Page
-   columns are sized so two sit side by side on a desktop;
-   a lone page column keeps the full reading measure. */
-.vp-app ${selector(colClass)}{
-  border-right:1px solid ${cvar("border")};
-}
-.vp-wordmark{
-  font-size:1.5rem;line-height:1;font-weight:800;
-  letter-spacing:-0.035em;padding:0.3rem 0.5rem;
-  border-radius:0;
-}
-.vp-sidebar-link,.vp-sidebar-flat{border-radius:0}
-.vp-content{
-  width:clamp(22rem,40vw,calc(${mvar("measure")} + 5rem));
-}
-.vp-app:not(:has(.vp-content ~ .vp-content)) .vp-content{
-  width:calc(${mvar("measure")} + 5rem);
-}
-.vp-doc h1:first-child{
-  position:sticky;top:-2rem;z-index:5;
-  margin:-2rem -2.5rem 1.75rem;
-  padding:1.6rem 2.5rem 0.9rem;
-  background:${cvar("surface")};
-  border-bottom:1px solid ${cvar("border")};
-  font-size:1.5rem;font-weight:700;
-  letter-spacing:-0.02em;
 }
 .vp-doc iframe{display:block;margin:1.25rem 0}
-/* opened columns close from their own corner; the trail
-   names every open column and jumps to it */
-.vp-app ${selector(colClass)}{position:relative}
-${selector(foldClass)}{
-  position:absolute;top:0.9rem;right:0.9rem;z-index:6;
-  width:2rem;height:2rem;border:1px solid ${cvar("border")};
-  background:${cvar("surface")};color:${cvar("text")};
-  font:inherit;font-size:1.1rem;line-height:1;cursor:pointer;
-}
-${selector(foldClass)}:hover,${selector(foldClass)}:focus-visible{
-  background:${cvar("text")};color:${cvar("surface")};
-}
-${selector(trailClass)}{
-  position:fixed;left:0;right:0;bottom:0;z-index:40;
-  display:flex;gap:0;overflow-x:auto;
-  background:${cvar("surface")};
-  border-top:1px solid ${cvar("border")};
-  font-size:0.8rem;
-}
-${selector(trailClass)} button{
-  flex:none;border:0;border-right:1px solid ${cvar("border")};
-  background:none;color:inherit;font:inherit;
-  padding:0.5rem 1rem;cursor:pointer;white-space:nowrap;
-}
-${selector(trailClass)} button[aria-current]{font-weight:700}
-${selector(trailClass)} button:hover{background:${cvar("border")}}
-@media ${maxWidth("lg")}{
-  .vp-app ${selector(colClass)}{border-right:0}
-  .vp-content{width:100%}
-  .vp-app:not(:has(.vp-content ~ .vp-content)) .vp-content{
-    width:100%;
-  }
-  .vp-doc h1:first-child{
-    position:static;margin:0 0 1.5rem;padding:0 0 0.75rem;
-  }
-}
 `;
 };
