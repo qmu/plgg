@@ -327,6 +327,7 @@ export const planPorts = (
       entries.some((x) => x.start) &&
       entries.some((x) => !x.start);
     if (
+      !rowAxis &&
       mixed &&
       entries.some((x) =>
         entries.some(
@@ -405,7 +406,25 @@ export const planPorts = (
     // A spare face can give a blocked wire a shorter, gentler exit.
 
     for (const { a, b } of plans) {
-      if (a.node === b.node) continue;
+      if (
+        a.node === b.node ||
+        (!boxes.some(
+          (q) =>
+            q.id !== a.node.id &&
+            q.id !== b.node.id &&
+            cuts(
+              a.node.position,
+              b.node.position,
+              q,
+            ),
+        ) &&
+          (parallels.get(
+            JSON.stringify(
+              [a.node.id, b.node.id].sort(),
+            ),
+          )?.length ?? 0) <= 1)
+      )
+        continue;
       const options = (
         end: End,
         start: boolean,
@@ -552,6 +571,85 @@ export const planPorts = (
       b.side = bestB;
     }
   }
+  // Keep the clearest facing sockets, then prefer an established sibling fan.
+  if (!previous)
+    for (const entries of incident.values()) {
+      for (const { end, start } of entries) {
+        const { node, peer } = end;
+        if (
+          node === peer ||
+          ((Math.abs(
+            node.position.x - peer.position.x,
+          ) < 1 ||
+            Math.abs(
+              node.position.y - peer.position.y,
+            ) < 1) &&
+            entries.some(
+              (x) =>
+                x.start !== start &&
+                x.end.peer === peer,
+            )) ||
+          boxes.some(
+            (q) =>
+              q.id !== node.id &&
+              q.id !== peer.id &&
+              cuts(
+                node.position,
+                peer.position,
+                q,
+              ),
+          )
+        )
+          continue;
+        const dx =
+            peer.position.x - node.position.x,
+          dy = peer.position.y - node.position.y;
+        const cosine = (side: Side) =>
+          (dx * normal[side].x +
+            dy * normal[side].y) /
+          (Math.hypot(dx, dy) || 1);
+        const open = sides.filter((side) => {
+          const p = portPosition(node, side, 0);
+          return !boxes.some(
+            (q) =>
+              q.id !== node.id &&
+              cuts(p, move(p, side, 16), q),
+          );
+        });
+        const best = Math.max(
+          ...open.map(cosine),
+        );
+        const score = (side: Side) =>
+          cosine(side) +
+          Number(
+            entries.some(
+              (x) =>
+                x.end !== end &&
+                x.start === start &&
+                x.end.side === side,
+            ),
+          ) *
+            4 -
+          Number(
+            entries.some(
+              (x) =>
+                x.start !== start &&
+                x.end.side === side,
+            ),
+          );
+        Object.assign(end, {
+          side:
+            open
+              .filter(
+                (side) =>
+                  best - cosine(side) <= 0.35,
+              )
+              .sort(
+                (a, b) => score(b) - score(a),
+              )[0] ?? end.side,
+        });
+      }
+    }
   for (const entries of incident.values()) {
     for (const { end } of entries) {
       const k = JSON.stringify([

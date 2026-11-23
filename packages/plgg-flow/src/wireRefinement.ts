@@ -158,6 +158,21 @@ export const refine = (
       start: boolean,
     ) => {
       if (side === current) return true;
+      const dx = peer.position.x - end.position.x,
+        dy = peer.position.y - end.position.y;
+      // A spare face must still point toward its peer in an open corridor.
+      if (
+        baseline.overlap <= 16 &&
+        Math.max(Math.abs(dx), Math.abs(dy)) -
+          dx * normal[side].x -
+          dy * normal[side].y >
+          0.35 * Math.hypot(dx, dy) &&
+        free(
+          [end.position, peer.position],
+          foreign,
+        )
+      )
+        return false;
       if (
         (rowAxis &&
           Math.abs(

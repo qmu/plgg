@@ -570,6 +570,7 @@ test("a transverse crossing at a sample counts once", () => {
     return {
       source,
       target,
+      arrow: { at: target, toward: target },
       sourceSide: "right",
       targetSide: "left",
       edge: link(id, id + " end"),
@@ -914,3 +915,9 @@ test("the level branch of a crossing fan retains its free cubic", () => {
     toBe(JSON.stringify(single?.points)),
   );
 });
+
+test("N enters Lower through its facing left socket", () =>
+  check(
+    wireGraph(patterns.cross)[0]?.targetSide,
+    toBe("left"),
+  ));

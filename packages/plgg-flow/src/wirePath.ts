@@ -111,6 +111,10 @@ export const materialize = (
     targetSide: t.side,
     source: s,
     target: t,
+    arrow: {
+      at: t,
+      toward: { ...move(t, t.side, -1), z: t.z },
+    },
 
     points,
     corners,

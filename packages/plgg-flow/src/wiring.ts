@@ -55,6 +55,7 @@ export type Wire = Readonly<{
   targetSide: Side;
   source: Point3;
   target: Point3;
+  arrow: { at: Point3; toward: Point3 };
   points: readonly Point3[];
   corners: number;
 }>;
@@ -407,6 +408,47 @@ export const wireGraph = (
     }
   }
 
+  // Nested row skips run in parallel channels, closest first.
+  const arches = new Map<Edge, number>();
+  if (rowAxis) {
+    const along = rowAxis === "y" ? "x" : "y";
+    const spans = plans
+      .filter(
+        ({ a, b }) =>
+          a.side === b.side && a.node !== b.node,
+      )
+      .map(({ edge, a, b }) => ({
+        edge,
+        side: a.side,
+        lo: Math.min(
+          a.node.position[along],
+          b.node.position[along],
+        ),
+        hi: Math.max(
+          a.node.position[along],
+          b.node.position[along],
+        ),
+      }))
+      .sort(
+        (a, b) => a.hi - a.lo - (b.hi - b.lo),
+      );
+    for (const span of spans) {
+      let lane = 0;
+      for (const other of spans) {
+        if (other === span) break;
+        if (
+          other.side === span.side &&
+          other.lo <= span.hi &&
+          other.hi >= span.lo
+        )
+          lane = Math.max(
+            lane,
+            (arches.get(other.edge) ?? 0) + 1,
+          );
+      }
+      arches.set(span.edge, lane);
+    }
+  }
   const stars = new Set(nodes.keys());
   for (const edge of edges) {
     if (degree(edge.source) !== 1)
@@ -471,6 +513,115 @@ export const wireGraph = (
         v = move(t, b.side, 14);
       const prior =
         shift && previous?.wires[index];
+      // Preserve an untouched corridor throughout a drag.
+      if (
+        shift &&
+        prior &&
+        prior.edge === edge &&
+        edge.source !== shift.id &&
+        edge.target !== shift.id &&
+        free(prior.points, [
+          inflate(box(required(moved)), 60),
+        ]) &&
+        free(prior.points, boxes)
+      ) {
+        lanes.insert(prior);
+        return prior;
+      }
+      const pair =
+        parallels.get(
+          JSON.stringify(
+            [edge.source, edge.target].sort(),
+          ),
+        ) ?? [];
+      if (
+        !edge.waypoints?.length &&
+        a.side !== b.side &&
+        vertical(a.side) === vertical(b.side) &&
+        (vertical(a.side)
+          ? Math.abs(s.x - t.x) < 1e-7
+          : Math.abs(s.y - t.y) < 1e-7) &&
+        free([s, t], boxes) &&
+        pair.filter(
+          (other) => other.source === edge.source,
+        ).length === 1 &&
+        !plans.some(
+          (other) =>
+            other.edge !== edge &&
+            other.a.node === b.node &&
+            other.b.node === a.node &&
+            other.a.side === b.side &&
+            other.b.side === a.side,
+        )
+      ) {
+        const wire = materialize(
+          edge,
+          s,
+          t,
+          [s, t],
+          0,
+        );
+        lanes.insert(wire);
+        return wire;
+      }
+      const channel = arches.get(edge);
+      if (
+        !shift &&
+        channel !== undefined &&
+        !edge.waypoints?.length &&
+        (rowAxis === "x" || rowAxis === "y")
+      ) {
+        const along = rowAxis === "y" ? "x" : "y",
+          sign = normal[a.side][rowAxis];
+        let boundary = Math.max(
+          sign * s[rowAxis],
+          sign * t[rowAxis],
+        );
+        for (const q of boxes) {
+          const lo = rowAxis === "y" ? q.l : q.t,
+            hi = rowAxis === "y" ? q.r : q.b;
+          if (
+            hi < Math.min(s[along], t[along]) ||
+            lo > Math.max(s[along], t[along])
+          )
+            continue;
+          boundary = Math.max(
+            boundary,
+            rowAxis === "y"
+              ? sign > 0
+                ? q.b
+                : -q.t
+              : sign > 0
+                ? q.r
+                : -q.l,
+          );
+        }
+        const height =
+          sign *
+          (boundary +
+            Math.max(clearance, 24) +
+            10 * channel);
+        const path = rounded(
+          [
+            s,
+            { ...s, [rowAxis]: height },
+            { ...t, [rowAxis]: height },
+            t,
+          ],
+          24,
+        );
+        if (free(path, boxes)) {
+          const wire = materialize(
+            edge,
+            s,
+            t,
+            path,
+            2,
+          );
+          lanes.insert(wire);
+          return wire;
+        }
+      }
       if (
         shift &&
         prior &&
@@ -729,6 +880,13 @@ export const wireGraph = (
             corners,
             source: s,
             target: t,
+            arrow: {
+              at: t,
+              toward: {
+                ...move(t, b.side, -1),
+                z: t.z,
+              },
+            },
             sourceSide: a.side,
             targetSide: b.side,
           };
@@ -867,7 +1025,7 @@ export const wireGraph = (
           free(direct, buffer) &&
           !crossesItself(direct) &&
           (lanes.score(direct, edge, s, t)
-            .clear ||
+            .overlap <= 12 ||
             (room < 40 &&
               a.count === 1 &&
               b.count === 1))
@@ -922,11 +1080,31 @@ export const wireGraph = (
         const bank =
           bus?.sign ??
           (a.rank + b.rank < 0 ? -1 : 1);
-        for (const offset of [
+        const span = free([u, v], legal)
+          ? Math.min(room, 140)
+          : room;
+        for (const height of [
           0, 0.12, -0.12, 0.25, -0.25, 0.42,
           -0.42, 0.65, -0.65,
-        ]) {
-          const h = offset * bank * room + lens;
+        ]
+          .map((k) => k * span)
+          .concat(
+            room > span
+              ? [
+                  0.25 * room,
+                  -0.25 * room,
+                  0.42 * room,
+                  -0.42 * room,
+                ]
+              : [],
+          )) {
+          if (
+            Math.abs(height) > 91 &&
+            best.length &&
+            bestOverlap <= 12
+          )
+            break;
+          const h = height * bank + lens;
           const mid = pt(
             centre.x - dy * h,
             centre.y + dx * h,
@@ -1074,7 +1252,10 @@ export const wireGraph = (
           const level =
             sign *
             (outer +
-              Math.max(8, room * fraction));
+              Math.max(
+                8,
+                Math.min(120, room) * fraction,
+              ));
           const raw = [
             s,
             h ? pt(level, s.y) : pt(s.x, level),
@@ -1945,7 +2126,7 @@ export const wireGraph = (
       lanes.insert(updated);
     }
   }
-  if (!shift)
+  if (!shift && !rowAxis)
     refine(
       wires,
       nodes,
@@ -1956,7 +2137,7 @@ export const wireGraph = (
       radius,
       clearance,
     );
-  if (!shift) {
+  if (!shift && !rowAxis) {
     const changed = uncross(
       wires,
       boxes,
@@ -1981,6 +2162,96 @@ export const wireGraph = (
         radius,
         clearance,
       );
+  }
+  // A swapped branch may have acquired two facing sockets during refinement.
+  for (const [i, w] of wires.entries()) {
+    if (
+      w.edge.waypoints?.length ||
+      w.sourceSide === w.targetSide ||
+      vertical(w.sourceSide) !==
+        vertical(w.targetSide)
+    )
+      continue;
+    const axis = vertical(w.sourceSide)
+      ? "x"
+      : "y";
+    if (
+      Math.abs(w.source[axis] - w.target[axis]) >
+        1e-7 ||
+      w.points.every(
+        (p) =>
+          Math.abs(p[axis] - w.source[axis]) <
+          1e-7,
+      ) ||
+      !free([w.source, w.target], boxes)
+    )
+      continue;
+    if (
+      wires.some(
+        (v) =>
+          v !== w &&
+          ((v.edge.source === w.edge.source &&
+            v.edge.target === w.edge.target) ||
+            (v.edge.source === w.edge.target &&
+              v.edge.target === w.edge.source &&
+              v.sourceSide === w.targetSide &&
+              v.targetSide === w.sourceSide)),
+      )
+    )
+      continue;
+    wires[i] = materialize(
+      w.edge,
+      { ...w.source, side: w.sourceSide },
+      { ...w.target, side: w.targetSide },
+      [w.source, w.target],
+      0,
+    );
+  }
+  const departures = new Set(
+    wires.map((w) =>
+      JSON.stringify([
+        w.edge.source,
+        w.sourceSide,
+      ]),
+    ),
+  );
+  for (const [i, w] of wires.entries()) {
+    if (
+      !departures.has(
+        JSON.stringify([
+          w.edge.target,
+          w.targetSide,
+        ]),
+      )
+    )
+      continue;
+    // Measure back along the wire so sampling density cannot move the arrow.
+    let remaining = 14;
+    for (
+      let j = w.points.length - 1;
+      j > 0;
+      j--
+    ) {
+      const end = required(w.points[j]),
+        start = required(w.points[j - 1]),
+        length = distance(start, end);
+      if (!length) continue;
+      if (length < remaining && j > 1) {
+        remaining -= length;
+        continue;
+      }
+      const f = Math.min(1, remaining / length);
+      const at = {
+        x: end.x + (start.x - end.x) * f,
+        y: end.y + (start.y - end.y) * f,
+        z: end.z + (start.z - end.z) * f,
+      };
+      wires[i] = {
+        ...w,
+        arrow: { at, toward: end },
+      };
+      break;
+    }
   }
   byEdges.set(graph.edges, {
     clearance,

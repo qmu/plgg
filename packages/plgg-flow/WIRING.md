@@ -444,3 +444,53 @@ crossings inside a shared fan no longer count. It now reads
 Acceptance: `TOTAL sev3 0`; `TOTAL sev2 ≤ 60` with no `mixed-socket`
 outside `radial`/`hub`/`scatter`/`grid5x4`, no `diagonal-in-step`, no
 unrelated `drag-jump`, no `slow`.
+
+## Round 6 review — close on structure; shape still not pleasant
+
+Round 6 holds zero severe defects and reads as a diagram: steps are
+axis-aligned, the state machine and the trace sample are clean. Looking
+at the sheet and the demo, four things a person notices at once were not
+measured; the audit now measures them (`wobble-on-straight`,
+`excursion`, `awkward-side`; `mixed-socket` is demoted to a note). It
+reads **0 severe, 227 moderate**.
+
+1. **A straight wire wobbles** (13). `pipelineSkips · curve`: Src → Parse
+   is a level wire between facing sockets with nothing between them, and
+   it is drawn with a small wave. Level + facing + free corridor = a
+   straight line, exactly. Nothing a sibling does may bend it.
+2. **Detours swing far too wide** (25 `excursion`). Skip wires arc
+   100–280 units away from their row (Ship → Src dips 280 below). A
+   detour clears what it must by `clearance` plus its lane offset and no
+   more: over a row of nodes it runs LEVEL at `clearance` above the
+   tallest node it passes (next wires at +10 lanes), entering and
+   leaving through quarter-turns of radius ≈ 24 — a flat-topped arch,
+   not a semicircle. Curve style: same arch, corners as smooth cubics.
+3. **Wires take the wrong side and hook back** (83 `awkward-side`).
+   `cross` in the demo: N → Lower enters Lower's TOP through a hump
+   though Lower's left side faces N. The disjoint in/out rule from round
+   5 was applied too hard. New priority, per wire end:
+   (a) the side that faces the far end (within 0.35 in cosine of the
+   best-facing side), provided the corridor from it is not blocked;
+   (b) among those, the side its siblings of the same direction already
+   use; (c) only then, a side not used by the opposite direction.
+   Mixing arrivals and departures on a socket is ALLOWED when (a) would
+   otherwise be violated.
+   So that a mixed socket stays readable: an arriving wire's arrowhead
+   sits at the END OF ITS OWN FAN — just before the shared stem begins —
+   whenever its socket also has departures; on an arrivals-only socket
+   it stays at the tip. `Wire` exposes where its arrowhead goes
+   (`arrow: { at: Point3; toward: Point3 }`), and the viewport draws it
+   there.
+4. **Dragging still makes wires jump** (27 `drag-jump`), e.g. moving
+   Catalog makes the unrelated Search → Cache jump 82. An unrelated wire
+   may change only if the moved node enters its corridor. Route each
+   wire against obstacles only (not against other wires' current
+   shapes) for its base path; separate wires afterwards with small,
+   bounded lane offsets (≤ 14). Crossing reduction may reorder lanes and
+   pick over/under, but with a margin so it does not flicker.
+5. Still open from round 5: `wiggly` 19, `siblings-cross` 16, `kink` 11,
+   `slow` 8 (`grid5x4` ≈ 12–18 ms; budget 6.5 ms).
+
+Acceptance: `TOTAL sev3 0`; `TOTAL sev2 ≤ 60`; zero `wobble-on-straight`,
+zero `slow`, zero unrelated `drag-jump`; `excursion` ≤ 5;
+`awkward-side` ≤ 10.

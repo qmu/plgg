@@ -1024,15 +1024,27 @@ export const flowView = (
           (atStart ? "backward" : "forward")
       )
         continue;
-      const tip = sample(atStart ? 0 : 1),
-        near =
-          points[
-            atStart ? 1 : points.length - 2
-          ] ?? tip;
+      const at = project(state.camera)(
+        wire.arrow.at,
+      );
+      const tip = atStart
+        ? sample(0)
+        : {
+            ...at,
+            scale: projectedScale(
+              state.camera,
+              at.z,
+            ),
+          };
+      const near = atStart
+        ? (points[1] ?? tip)
+        : project(state.camera)(
+            wire.arrow.toward,
+          );
       const angle =
         (Math.atan2(
-          tip.y - near.y,
-          tip.x - near.x,
+          (tip.y - near.y) * (atStart ? 1 : -1),
+          (tip.x - near.x) * (atStart ? 1 : -1),
         ) *
           180) /
         Math.PI;

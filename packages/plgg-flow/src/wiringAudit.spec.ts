@@ -271,3 +271,41 @@ for (const [name, graph] of Object.entries({
     );
   }
 }
+for (const route of [
+  "curve",
+  "step",
+] satisfies WireStyle[]) {
+  const routes = () =>
+    wireGraph({
+      ...pipeline,
+      edges: pipeline.edges.map((edge) => ({
+        ...edge,
+        route,
+      })),
+    });
+  test(
+    route +
+      " keeps the free Src to Parse corridor straight",
+    () =>
+      check(
+        routes()[0]?.points.every(
+          (p) => p.y === 0,
+        ),
+        toBe(true),
+      ),
+  );
+  test(
+    route +
+      " bounds pipeline skips by the row and its lanes",
+    () =>
+      check(
+        routes().every((w) =>
+          w.points.every(
+            (p) =>
+              Math.abs(p.y) <= 18 + 24 + 3 * 10,
+          ),
+        ),
+        toBe(true),
+      ),
+  );
+}
