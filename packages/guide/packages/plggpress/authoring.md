@@ -188,3 +188,37 @@ diagram orders {
   edge checkout: cart.submit -> api.receive "注文を送る"
 }
 ```
+
+## Flow boards
+
+Use a `plgg-flow` fence when you want to place nodes yourself. Each line is either a node with its position, or a connection. The block is drawn as a board when the site is built, so it reads without JavaScript. Once the page loads, readers can drag nodes, rotate the view, and edit the source under the board.
+
+````markdown
+```plgg-flow
+node Source at -220 -50
+node Process at 0 15 80
+node Result at 220 -50
+Source -> Process "受け取る"
+Process -> Result curve animated
+```
+````
+
+```plgg-flow
+node Source at -220 -50
+node Process at 0 15 80
+node Result at 220 -50
+Source -> Process "受け取る"
+Process -> Result curve animated
+```
+
+The full syntax:
+
+| Line | Meaning |
+| --- | --- |
+| `node Name at x y [z]` | A node at a position; `z` adds depth |
+| `… group`, `… in Parent` | Make a group, or put the node inside one |
+| `… label "表示名"`, `… value 3`, `… width 160` | Display name, a summed value, card width |
+| `A -> B ["label"] [straight\|step\|curve] [animated]` | A connection |
+| `rule acyclic`, `rule max-outputs 1`, `snap 32` | Rules for the whole board |
+
+Names with spaces are quoted. `#` starts a comment.

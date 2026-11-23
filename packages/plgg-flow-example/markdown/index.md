@@ -1,13 +1,19 @@
-# 受注フロー
+# plgg-flow
 
-カートから受注 API へ注文を送ります。「立体」で視点を変え、「図のソース」を開くと、このページ上で接続やラベルを編集できます。
+ノードと線でできた図を、文章で書いて、つかんで動かせる形で配信します。Markdown に `plgg-flow` のコードブロックを置くと、ビルド時に図として描かれ、ページを開いたあとはドラッグや回転で操作できます。
 
-```plgg-diagram
-diagram orders {
-  group shop "店舗" {
-    node cart "カート" { out submit: Order }
-  }
-  node api "受注 API" { in receive: Order }
-  edge checkout: cart.submit -> api.receive "注文を送る"
-}
+```plgg-flow
+node 書く at -260 0 label "Markdown を書く"
+node 描く at 0 0 label "ビルドで描く"
+node 動かす at 260 0 label "ページで動かす"
+書く -> 描く
+描く -> 動かす "読み込み後"
 ```
+
+- [DSL の書き方](./guide/dsl.md) — ノード、接続、規則の書き方
+- [図の実例](./guide/gallery.md) — 立体交差、グループ、計算ノード
+- [配置と視点](./guide/camera.md) — 奥行きと視点の回し方
+
+## 図は文章のまま残る
+
+図の元は文章なので、差分として読めて、レビューできます。JavaScript が動かない環境でも、ビルド時に描いた図はそのまま見えます。

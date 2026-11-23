@@ -621,5 +621,47 @@ html.dark .vp-doc pre code{background:none}
      as an accident rather than as composition */
   .vp-sidebar-nav{margin-inline:0}
 }
+/* ---- column system (coop-planner's horizontal layout) ----
+   Every column is a ruled track. Following a link opens the
+   target as the next column (plggmatic navigation script);
+   each page column names itself with a sticky heading, so
+   a reader always sees which page each track holds. Page
+   columns are sized so two sit side by side on a desktop;
+   a lone page column keeps the full reading measure. */
+.vp-app .pm-col{
+  border-right:1px solid ${cvar("border")};
+}
+.vp-wordmark{
+  font-size:1.5rem;line-height:1;font-weight:800;
+  letter-spacing:-0.035em;padding:0.3rem 0.5rem;
+  border-radius:0;
+}
+.vp-sidebar-link,.vp-sidebar-flat{border-radius:0}
+.vp-content{
+  width:clamp(22rem,40vw,calc(${mvar("measure")} + 5rem));
+}
+.vp-app:not(:has(.vp-content ~ .vp-content)) .vp-content{
+  width:calc(${mvar("measure")} + 5rem);
+}
+.vp-doc h1:first-child{
+  position:sticky;top:-2rem;z-index:5;
+  margin:-2rem -2.5rem 1.75rem;
+  padding:1.6rem 2.5rem 0.9rem;
+  background:${cvar("surface")};
+  border-bottom:1px solid ${cvar("border")};
+  font-size:1.5rem;font-weight:700;
+  letter-spacing:-0.02em;
+}
+.vp-doc iframe{display:block;margin:1.25rem 0}
+@media ${maxWidth("lg")}{
+  .vp-app .pm-col{border-right:0}
+  .vp-content{width:100%}
+  .vp-app:not(:has(.vp-content ~ .vp-content)) .vp-content{
+    width:100%;
+  }
+  .vp-doc h1:first-child{
+    position:static;margin:0 0 1.5rem;padding:0 0 0.75rem;
+  }
+}
 `;
 };

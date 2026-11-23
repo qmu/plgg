@@ -303,20 +303,26 @@ test("chrome fades use qmu's sharp-in curve; only the fill fades", () =>
     check(css, not(toContain(",color 0.15s"))),
   ]));
 
-// The drilled column's own rule block, isolated so a
-// border added back to it fails here rather than visually.
-const sectionRule: string = css.slice(
-  css.indexOf(".vp-section{"),
-  css.indexOf("}", css.indexOf(".vp-section{")),
-);
-
-test("no rules are drawn between the strip's columns", () =>
+test("every column of the strip is a ruled track", () =>
   all([
-    // the drilled section column carried a left and a right
-    // border; alignment is spacing now, not drawn lines
-    check(sectionRule, not(toContain("border"))),
-    // and the choice lists are a text-width block, centred
-    // in their column, with the text left-aligned inside it
+    // one rule per column, drawn on the shared class, so
+    // a column opened by a followed link is ruled too
+    check(
+      css,
+      toContain(
+        ".vp-app .pm-col{\n  border-right:1px solid " +
+          cvar("border"),
+      ),
+    ),
+    // each page column names itself with a sticky heading
+    check(
+      css,
+      toContain(".vp-doc h1:first-child{"),
+    ),
+    check(
+      css,
+      toContain("position:sticky;top:-2rem"),
+    ),
+    // the choice lists stay a centred text-width block
     check(css, toContain("margin-inline:auto")),
-    check(css, toContain(".vp-sidebar-nav{")),
   ]));

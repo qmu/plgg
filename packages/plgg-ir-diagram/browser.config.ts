@@ -5,6 +5,7 @@ export default {
   outDir: "dist/browser",
   entries: [
     { name: "interactive", input: "browser.ts" },
+    { name: "flow", input: "flowBrowser.ts" },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",

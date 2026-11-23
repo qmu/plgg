@@ -38,7 +38,28 @@
         "default": "./dist/editor.cjs.js"
       }
     },
-    "./interactive": "./dist/browser/interactive.js"
+    "./interactive": "./dist/browser/interactive.js",
+    "./flow": {
+      "import": {
+        "types": "./dist/flow.d.ts",
+        "default": "./dist/flow.es.js"
+      },
+      "require": {
+        "types": "./dist/flow.d.ts",
+        "default": "./dist/flow.cjs.js"
+      }
+    },
+    "./flowEditor": {
+      "import": {
+        "types": "./dist/flowEditor.d.ts",
+        "default": "./dist/flowEditor.es.js"
+      },
+      "require": {
+        "types": "./dist/flowEditor.d.ts",
+        "default": "./dist/flowEditor.cjs.js"
+      }
+    },
+    "./flow-interactive": "./dist/browser/flow.js"
   },
   "types": "dist/index.d.ts",
   "scripts": {

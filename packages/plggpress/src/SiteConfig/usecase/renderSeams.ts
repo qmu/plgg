@@ -1,4 +1,7 @@
-import { diagramFence } from "plggpress/SiteConfig/usecase/diagramFence";
+import {
+  diagramFence,
+  flowFence,
+} from "plggpress/SiteConfig/usecase/diagramFence";
 import { pipe, getOr, matchOption } from "plgg";
 import {
   type SlugFn,
@@ -68,6 +71,7 @@ export const pressRenderOptions = (
   highlighter,
   fences: new Map([
     ["plgg-diagram", diagramFence],
+    ["plgg-flow", flowFence],
   ]),
   resolveLink,
   rawHtml: rawHtmlOf(config),

@@ -177,6 +177,16 @@
         "types": "./dist/analysis.d.ts",
         "default": "./dist/analysis.cjs.js"
       }
+    },
+    "./dsl": {
+      "import": {
+        "types": "./dist/dsl.d.ts",
+        "default": "./dist/dsl.es.js"
+      },
+      "require": {
+        "types": "./dist/dsl.d.ts",
+        "default": "./dist/dsl.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

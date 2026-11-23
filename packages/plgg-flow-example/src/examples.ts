@@ -3,7 +3,7 @@ import {
   parseSpec,
   specFlow,
   type Spec,
-} from "plgg-flow-example/flowDsl";
+} from "plgg-flow/dsl";
 
 export type DemoId =
   | "space"

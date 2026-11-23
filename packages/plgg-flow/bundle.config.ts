@@ -23,6 +23,7 @@ export default {
     "annotations",
     "routing",
     "revisions",
+    "dsl",
   ].map((name) => ({
     name,
     input: name + ".ts",

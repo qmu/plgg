@@ -2,7 +2,7 @@ import { test, check, toBe } from "plgg-test";
 import {
   parseSpec,
   printSpec,
-} from "plgg-flow-example/flowDsl";
+} from "plgg-flow/dsl";
 import { examples } from "plgg-flow-example/examples";
 test("all twenty diagrams have unique identities and valid directed edges", () =>
   check(

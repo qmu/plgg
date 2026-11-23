@@ -2,12 +2,14 @@ import { ok, err, type Result } from "plgg";
 import {
   acyclicConnection,
   limitOutputs,
+} from "plgg-flow/graph";
+import {
   createFlow,
   type Edge,
   type Flow,
   type FlowNode,
   type Graph,
-} from "plgg-flow";
+} from "plgg-flow/model";
 
 /**
  * A line-based text form for every gallery diagram.

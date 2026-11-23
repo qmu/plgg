@@ -81,7 +81,7 @@ import {
   printSpec,
   applySpec,
   type Rule,
-} from "./flowDsl";
+} from "plgg-flow/dsl";
 
 type Visit = Readonly<{
   camera: Flow["camera"];
