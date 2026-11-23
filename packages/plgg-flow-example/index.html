@@ -3,47 +3,123 @@
   <meta charset="utf-8" /><meta
     name="viewport"
     content="width=device-width,initial-scale=1"
-  /><title>Flow atlas · plgg-flow</title>
+  /><title>plgg-flow</title>
+  <meta
+    name="description"
+    content="plgg-flow — plgg-view のための空間ダイアグラム。インタラクション実例集。"
+  />
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
+  />
   <style>
+    :root {
+      --ink: #000;
+      --paper: #fff;
+      --graphite: #5c5c5c;
+      --pencil: #a8a8a8;
+      --trace: #e4e4e4;
+      --wash: #f4f4f4;
+      --display:
+        "Archivo", "Zen Kaku Gothic New",
+        system-ui, sans-serif;
+      --body:
+        "Zen Kaku Gothic New", "Archivo",
+        system-ui, sans-serif;
+    }
     * {
       box-sizing: border-box;
     }
     body {
       margin: 0;
-      background: #eceee6;
-      color: #163837;
-      font:
-        15px "DM Sans",
-        system-ui,
-        sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font: 400 15px/1.75 var(--body);
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    :focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+    a {
+      color: inherit;
+      text-underline-offset: 3px;
+      text-decoration-thickness: 1px;
     }
     main {
       display: grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: 272px minmax(0, 1fr);
       min-height: 100vh;
     }
-    aside {
-      background: #173d3b;
-      color: #f3f3e8;
-      padding: 30px 18px;
-    }
-    h1,
-    h2 {
-      font-family: Georgia, serif;
-      font-weight: 400;
-      letter-spacing: -0.045em;
-      margin: 0;
+
+    /* ---------- side: wordmark + index ---------- */
+    main > aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 28px 0 28px;
+      border-right: 2px solid var(--ink);
+      display: flex;
+      flex-direction: column;
     }
     h1 {
-      font-size: 40px;
+      margin: 0 20px;
+      font-family: var(--display);
+      font-weight: 900;
+      font-stretch: 62%;
+      font-size: 64px;
+      line-height: 0.82;
+      letter-spacing: -0.02em;
     }
-    aside p {
-      margin: 4px 0 24px;
-      color: #b3c8be;
+    /* the wordmark: two nodes joined by an edge */
+    h1::after {
+      content: "";
+      display: block;
+      height: 14px;
+      margin-top: 14px;
+      background:
+        radial-gradient(
+            circle at 7px 7px,
+            var(--ink) 5px,
+            transparent 5.5px
+          )
+          left / 14px 14px no-repeat,
+        radial-gradient(
+            circle at 7px 7px,
+            var(--paper) 3.5px,
+            var(--ink) 4px 6.5px,
+            transparent 7px
+          )
+          right / 14px 14px no-repeat,
+        linear-gradient(var(--ink), var(--ink))
+          center / calc(100% - 20px) 2px no-repeat;
+    }
+    aside > p {
+      margin: 18px 20px 4px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--graphite);
+    }
+    aside > a {
+      order: 10;
+      margin: auto 20px 0;
+      padding-top: 24px;
+      font-size: 13px;
     }
     nav {
       display: grid;
-      gap: 2px;
+      margin-top: 20px;
+      border-top: 1px solid var(--ink);
+      counter-reset: ex;
     }
     button {
       font: inherit;
@@ -51,19 +127,39 @@
       color: inherit;
     }
     nav button {
+      counter-increment: ex;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      align-items: baseline;
       border: 0;
+      border-bottom: 1px solid var(--trace);
       background: transparent;
       text-align: left;
-      padding: 6px 12px;
-      border-radius: 5px;
+      padding: 8px 20px;
       font-size: 14px;
+      line-height: 1.45;
     }
-    nav button:hover,
+    nav button::before {
+      content: counter(ex, decimal-leading-zero);
+      font: 500 11px var(--display);
+      font-variant-numeric: tabular-nums;
+      color: var(--pencil);
+    }
+    nav button:hover {
+      background: var(--wash);
+    }
     nav button[aria-pressed="true"] {
-      background: #36615a;
+      background: var(--ink);
+      color: var(--paper);
+      border-bottom-color: var(--ink);
     }
+    nav button[aria-pressed="true"]::before {
+      color: var(--paper);
+    }
+
+    /* ---------- sheet ---------- */
     section {
-      padding: clamp(16px, 3vw, 48px);
+      padding: 32px clamp(16px, 3.4vw, 56px) 64px;
       min-width: 0;
     }
     header,
@@ -75,39 +171,152 @@
     }
     header {
       justify-content: space-between;
-      margin: 16px 0 24px;
+      align-items: flex-end;
+      gap: 12px 24px;
+      margin: 0 0 18px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--ink);
     }
     h2 {
-      font-size: clamp(32px, 4vw, 66px);
+      margin: 0;
+      font-family: var(--display);
+      font-weight: 800;
+      font-stretch: 75%;
+      font-size: clamp(34px, 4.4vw, 68px);
+      line-height: 0.95;
+      letter-spacing: -0.015em;
     }
-    header span,
+    header span {
+      font: 500 13px var(--display);
+      font-stretch: 100%;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      padding: 2px 10px;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+    }
     footer {
       font-size: 13px;
-      color: #4a6461;
+      color: var(--graphite);
     }
-    .toolbar button {
-      padding: 7px 13px;
-      border: 1px solid #b9c5bb;
-      background: #f9faf3;
-      border-radius: 6px;
+    .hint {
+      margin: 0 0 12px;
+      line-height: 1.85;
+      max-width: 62ch;
     }
-    .toolbar button[aria-pressed="true"] {
-      background: #173d3b;
-      color: white;
+    section > small {
+      display: block;
+      max-width: 72ch;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--graphite);
+    }
+
+    /* ---------- controls ---------- */
+    .toolbar button,
+    .feature button,
+    section > div button,
+    .editing-tools button {
+      padding: 6px 14px;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      border-radius: 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .toolbar button:hover:not(:disabled),
+    .feature button:hover:not(:disabled),
+    section > div button:hover:not(:disabled) {
+      background: var(--wash);
+    }
+    .toolbar button[aria-pressed="true"],
+    .feature button,
+    section > div button[aria-pressed="true"] {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .feature button:hover:not(:disabled) {
+      background: var(--graphite);
+    }
+    button:disabled {
+      cursor: default;
+      color: var(--pencil);
+      border-color: var(--pencil);
+    }
+    .feature button:disabled {
+      background: var(--paper);
+    }
+    .toolbar {
+      gap: 0;
+    }
+    .toolbar button + button {
+      margin-left: -1px;
+    }
+    .feature {
+      min-height: 44px;
+      display: flex;
+      gap: 8px 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .feature label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input,
+    select,
+    textarea {
+      accent-color: var(--ink);
+      font: inherit;
+      color: inherit;
+      border: 1px solid var(--ink);
+      border-radius: 0;
+      background: var(--paper);
+    }
+
+    /* ---------- the board: a drafting sheet ---------- */
+    .canvas-wrap {
+      touch-action: none;
+      position: relative;
+      margin: 14px 0;
+    }
+    .canvas-wrap::before,
+    .canvas-wrap::after {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      width: 14px;
+      height: 14px;
+      pointer-events: none;
+    }
+    .canvas-wrap::before {
+      top: -6px;
+      left: -6px;
+      border-top: 2px solid var(--ink);
+      border-left: 2px solid var(--ink);
+    }
+    .canvas-wrap::after {
+      bottom: -6px;
+      right: -6px;
+      border-bottom: 2px solid var(--ink);
+      border-right: 2px solid var(--ink);
     }
     .flow-board {
+      display: block;
       width: 100%;
-      height: clamp(340px, 62vh, 730px);
-      margin: 14px 0;
-      background-color: #f9faf4;
-      border: 1px solid #c0cbc1;
-      border-radius: 12px;
+      height: clamp(340px, 64vh, 760px);
+      margin: 0;
+      background-color: var(--paper) !important;
+      border: 1px solid var(--ink);
+      border-radius: 0;
       touch-action: none;
       user-select: none;
     }
     .flow-board text {
-      font: 13px system-ui;
-      fill: #173d3b;
+      font: 500 13px var(--body);
+      fill: var(--ink) !important;
     }
     .flow-board g {
       cursor: grab;
@@ -115,72 +324,35 @@
     .flow-board circle {
       cursor: crosshair;
     }
-    @media (max-width: 720px) {
-      main {
-        display: block;
-      }
-      aside {
-        padding: 14px;
-      }
-      h1 {
-        font-size: 30px;
-      }
-      aside p {
-        margin: 2px 0 10px;
-      }
-      nav {
-        display: flex;
-        overflow-x: auto;
-      }
-      nav button {
-        white-space: nowrap;
-      }
-      .flow-board {
-        height: 50vh;
-      }
+    /* Monochrome: every colour drawn by the library or the
+       examples is folded onto the ink scale. */
+    .flow-board [stroke]:not([stroke="none"]) {
+      stroke: var(--ink);
     }
-    .hint {
-      line-height: 1.7;
-      max-width: 65ch;
+    .flow-board [fill]:not([fill="none"]) {
+      fill: var(--paper);
     }
-    .feature {
-      min-height: 50px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
+    .flow-board [fill="#000"],
+    .flow-board [fill="black"],
+    .flow-board [fill="currentColor"],
+    .flow-board
+      circle[fill]:not([fill="none"]):not(
+        [fill="#fff"]
+      ):not([fill="white"]) {
+      fill: var(--ink);
     }
-    .feature button {
-      background: #22615a;
-      border: 0;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 6px;
+    .flow-board [stroke-dasharray] {
+      stroke: var(--graphite);
     }
-    .feature button:disabled {
-      opacity: 0.4;
-    }
-    .feature label {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .feature input {
-      accent-color: #22615a;
-    }
-    .minimap {
-      background: #fff;
-      border: 1px solid #9bafa3;
-      width: 180px;
-      height: 85px;
-    }
-    .minimap circle {
-      cursor: pointer;
+    .world-grid,
+    .flow-board .world-grid {
+      stroke: var(--trace) !important;
+      stroke-width: 0.8;
     }
     .edge-label {
       paint-order: stroke;
-      stroke: #f9faf4;
-      stroke-width: 4px;
+      stroke: var(--paper) !important;
+      stroke-width: 5px;
     }
     .animated {
       stroke-dasharray: 9 6;
@@ -196,39 +368,53 @@
         );
       }
     }
-    .world-grid {
-      stroke-width: 0.8;
-    }
-    .canvas-wrap {
-      touch-action: none;
-      position: relative;
+    @media (prefers-reduced-motion: reduce) {
+      .animated {
+        animation: none;
+      }
     }
     .ground-side {
       pointer-events: none;
       position: absolute;
-      inset: auto auto 29px 13px;
-      background: #f8faf4e8;
-      color: #345445;
-      border: 1px solid #acbfae;
-      padding: 4px 9px;
-      border-radius: 5px;
+      inset: auto auto 14px 14px;
+      background: var(--paper);
+      color: var(--ink);
+      border: 1px solid var(--ink);
+      padding: 2px 10px;
       font-size: 12px;
-      pointer-events: none;
     }
     [data-ground-side="below"] + .ground-side {
-      background: #fbf1e9;
-      color: #654837;
-      border-color: #c3a48f;
+      background: var(--ink);
+      color: var(--paper);
     }
-    h2 {
-      font-size: clamp(28px, 3vw, 48px);
+    .minimap {
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      width: 180px;
+      height: 85px;
+    }
+    .minimap * {
+      stroke: var(--ink);
+    }
+    .minimap circle {
+      cursor: pointer;
+      fill: var(--ink);
+    }
+
+    /* ---------- secondary panels ---------- */
+    section > div:last-child {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
     }
     .editing-tools {
       margin-top: 18px;
+      border-top: 1px solid var(--ink);
+      padding-top: 12px;
     }
     .editing-tools summary {
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
     }
     .editing-tools > div {
       display: grid;
@@ -246,17 +432,23 @@
     .editing-tools table {
       display: block;
       overflow-x: auto;
+      border-collapse: collapse;
+    }
+    .editing-tools td,
+    .editing-tools th {
+      border-bottom: 1px solid var(--trace);
+      padding: 4px 10px 4px 0;
+      text-align: left;
     }
     .editing-tools input,
     .editing-tools select,
-    .editing-tools textarea,
-    .editing-tools button {
-      font: inherit;
+    .editing-tools textarea {
       padding: 6px;
     }
     .editing-tools textarea {
       height: 9em;
-      font-family: monospace;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
     }
     .editing-tools output {
       white-space: pre-wrap;
@@ -266,7 +458,196 @@
       display: grid;
       gap: 4px;
     }
+
+    @media (max-width: 760px) {
+      main {
+        display: block;
+      }
+      aside {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 2px solid var(--ink);
+        padding: 18px 0 0;
+      }
+      h1 {
+        margin: 0 16px;
+        font-size: 48px;
+      }
+      h1::after {
+        width: 50%;
+      }
+      aside > p {
+        margin: 12px 16px 0;
+      }
+      aside > a {
+        order: 0;
+        margin: 4px 16px 0;
+        padding: 0;
+      }
+      nav {
+        display: flex;
+        overflow-x: auto;
+        margin-top: 14px;
+        border-bottom: 0;
+      }
+      nav button {
+        white-space: nowrap;
+        border-bottom: 0;
+        border-right: 1px solid var(--trace);
+        padding: 8px 14px;
+      }
+      section {
+        padding: 22px 16px 48px;
+      }
+      .flow-board {
+        height: 52vh;
+      }
+    }
+
+    /* ---------- stage: board + DSL side by side ---------- */
+    section {
+      display: flex;
+      flex-direction: column;
+    }
+    section > header {
+      order: -2;
+    }
+    .stage {
+      order: -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(
+          280px,
+          28%
+        );
+      border: 1px solid var(--ink);
+      margin: 0 0 18px;
+    }
+    /* the library draws on a fixed 900×580 world; the frame
+       keeps that ratio so the sheet fills edge to edge */
+    .stage .canvas-wrap {
+      margin: 0;
+      aspect-ratio: 900 / 580;
+      overflow: hidden;
+    }
+    .stage .dsl {
+      position: static;
+      height: auto;
+      padding: 0;
+      border-right: 0;
+      border-bottom: 0;
+      min-height: 0;
+      overflow: hidden;
+      contain: size;
+    }
+    .stage .dsl textarea {
+      min-height: 0;
+    }
+    .stage .canvas-wrap::before,
+    .stage .canvas-wrap::after {
+      display: none;
+    }
+    .stage .flow-board {
+      border: 0;
+      height: 100%;
+    }
+    .board-controls {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+    .board-controls > * {
+      pointer-events: auto;
+    }
+    .board-controls .toolbar button {
+      background: var(--paper);
+    }
+    .board-controls .feature {
+      min-height: 0;
+      margin: 0;
+      padding: 4px 10px;
+      background: var(--paper);
+      border: 1px solid var(--ink);
+      font-size: 13px;
+    }
+    .board-controls .feature:empty {
+      display: none;
+    }
+    .board-controls .feature button {
+      padding: 3px 10px;
+    }
+    .dsl {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border-left: 1px solid var(--ink);
+      background: var(--paper);
+    }
+    .dsl-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--ink);
+    }
+    .dsl-head strong {
+      font: 800 18px var(--display);
+      font-stretch: 75%;
+    }
+    .dsl-head span {
+      font-size: 12px;
+      color: var(--graphite);
+    }
+    .dsl textarea {
+      flex: 1;
+      min-height: 240px;
+      width: 100%;
+      resize: none;
+      border: 0;
+      padding: 14px;
+      font: 13px/1.7 ui-monospace, "SF Mono",
+        Menlo, monospace;
+      white-space: pre;
+      overflow: auto;
+      tab-size: 2;
+    }
+    .dsl textarea:focus-visible {
+      outline-offset: -3px;
+    }
+    .dsl-status {
+      padding: 8px 14px;
+      border-top: 1px solid var(--ink);
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--graphite);
+    }
+    .dsl-status[data-error] {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    @media (max-width: 1000px) {
+      .stage {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 320px;
+      }
+      .dsl {
+        border-left: 0;
+        border-top: 1px solid var(--ink);
+      }
+      .dsl textarea {
+        min-height: 220px;
+      }
+    }
   </style>
   <div id="app"></div>
-  <script type="module" src="./index.js?v=two-finger-orbit"></script>
+  <script
+    type="module"
+    src="./index.js?v=two-finger-orbit"
+  ></script>
 </html>

@@ -1,4 +1,8 @@
 import { test, check, toBe } from "plgg-test";
+import {
+  parseSpec,
+  printSpec,
+} from "plgg-flow-example/flowDsl";
 import { examples } from "plgg-flow-example/examples";
 test("all twenty diagrams have unique identities and valid directed edges", () =>
   check(
@@ -24,5 +28,23 @@ test("all twenty diagrams have unique identities and valid directed edges", () =
           ).size === graph.edges.length
         );
       }),
+    toBe(true),
+  ));
+test("every diagram is written in the DSL and prints back to the same graph", () =>
+  check(
+    examples.every((e) => {
+      const first = parseSpec(e.source);
+      if (first.__tag === "Err") return false;
+      const printed = printSpec(
+        e.initial(),
+        first.content.rules,
+      );
+      const again = parseSpec(printed);
+      return (
+        again.__tag === "Ok" &&
+        JSON.stringify(again.content) ===
+          JSON.stringify(first.content)
+      );
+    }),
     toBe(true),
   ));

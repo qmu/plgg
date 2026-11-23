@@ -6,8 +6,25 @@
       name="viewport"
       content="width=device-width,initial-scale=1"
     />
-    <title>図面エディター · plgg-flow</title>
+    <title>図面エディター — plgg-flow</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
+    />
     <style>
+      body {
+        margin: 0;
+        background: #fff;
+        color: #000;
+        font:
+          15px/1.75 "Zen Kaku Gothic New",
+          system-ui,
+          sans-serif;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
       main {
         max-width: 960px;
         margin: auto;
@@ -15,14 +32,19 @@
       }
       h1 {
         font:
-          2rem Georgia,
-          serif;
+          800 clamp(36px, 6vw, 64px) / 0.95
+            "Archivo",
+          sans-serif;
+        font-stretch: 75%;
+        margin: 18px 0 20px;
+        padding-bottom: 14px;
+        border-bottom: 2px solid #000;
       }
     </style>
   </head>
   <body>
     <main>
-      <a href="./">Flow atlas</a> ·
+      <a href="./">plgg-flow</a> ·
       <a href="./markdown/"
         >Markdown 埋め込み例</a
       >

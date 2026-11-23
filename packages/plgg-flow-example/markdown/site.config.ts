@@ -1,5 +1,5 @@
 export default {
-  title: "Flow atlas",
+  title: "plgg-flow",
   description: "Markdown に埋め込んだ受注フロー",
   base: "/markdown/",
   nav: [],

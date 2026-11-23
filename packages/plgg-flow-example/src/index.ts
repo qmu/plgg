@@ -76,6 +76,12 @@ import {
   examples,
   type DemoId,
 } from "./examples";
+import {
+  parseSpec,
+  printSpec,
+  applySpec,
+  type Rule,
+} from "./flowDsl";
 
 type Visit = Readonly<{
   camera: Flow["camera"];
@@ -113,9 +119,20 @@ type Session = Readonly<{
   clipboard: Option<FlowNode>;
   hidden: Option<Graph>;
   message: string;
+  rules: readonly Rule[];
+  /** Text being typed in the DSL panel, tied to the flow it produced. */
+  dsl?: Readonly<{
+    text: string;
+    flow: Flow;
+    error?: string;
+  }>;
 }>;
-const session = (flow: Flow): Session => ({
+const session = (
+  flow: Flow,
+  rules: readonly Rule[] = [],
+): Session => ({
   flow,
+  rules,
   back: [],
   forward: [],
   tools: toolState(),
@@ -1381,6 +1398,93 @@ const diagram = (id: DemoId, f: Flow) =>
       ],
     );
   });
+const dslPanel = (s: Session) => {
+  const typed =
+    s.dsl && s.dsl.flow === s.flow
+      ? s.dsl
+      : undefined;
+  const source =
+    typed?.text ?? printSpec(s.flow, s.rules);
+  return el(
+    "aside",
+    [
+      attr("class", "dsl"),
+      attr("aria-label", "DSL"),
+    ],
+    [
+      el(
+        "div",
+        [attr("class", "dsl-head")],
+        [
+          el("strong", [], [text("DSL")]),
+          el(
+            "span",
+            [],
+            [
+              text(
+                typed?.error
+                  ? "エラー"
+                  : "編集すると図に反映",
+              ),
+            ],
+          ),
+        ],
+      ),
+      el(
+        "textarea",
+        [
+          attr("spellcheck", "false"),
+          attr("aria-label", "図の DSL"),
+          attr("value", source),
+          onInput((value) =>
+            edit((cur) => {
+              const r = parseSpec(value);
+              if (r.__tag === "Err")
+                return {
+                  ...cur,
+                  dsl: {
+                    text: value,
+                    flow: cur.flow,
+                    error: r.content,
+                  },
+                };
+              const next = apply(
+                applySpec(r.content),
+              )({
+                ...cur,
+                rules: r.content.rules,
+              });
+              return {
+                ...next,
+                dsl: {
+                  text: value,
+                  flow: next.flow,
+                },
+              };
+            }),
+          ),
+        ],
+        [text(source)],
+      ),
+      el(
+        "output",
+        [
+          attr("class", "dsl-status"),
+          attr("aria-live", "polite"),
+          ...(typed?.error
+            ? [attr("data-error", "")]
+            : []),
+        ],
+        [
+          text(
+            typed?.error ??
+              'node 名前 at x y [z] · A -> B "ラベル" · rule acyclic · snap 32',
+          ),
+        ],
+      ),
+    ],
+  );
+};
 const view = (m: Model): Html<Action> => {
   const e = examples[m.index],
     s = m.sessions[m.index];
@@ -1447,12 +1551,20 @@ const view = (m: Model): Html<Action> => {
         "aside",
         [],
         [
-          el("h1", [], [text("Flow atlas")]),
-          el("a",[attr("href","./diagram.html"),attr("style","color:inherit")],[text("図面を文章で書く")]),
+          el("h1", [], [text("plgg-flow")]),
+          el(
+            "a",
+            [attr("href", "./diagram.html")],
+            [text("図面を文章で書く")],
+          ),
           el(
             "p",
             [],
-            [text("インタラクション実例集")],
+            [
+              text(
+                "plgg-view のための空間ダイアグラム。ノードと線を、つかんで動かせる実例集。",
+              ),
+            ],
           ),
           el(
             "nav",
@@ -1497,14 +1609,121 @@ const view = (m: Model): Html<Action> => {
             ],
           ),
           el(
-            "p",
-            [attr("class", "hint")],
-            [text(e.hint)],
-          ),
-          el(
             "div",
-            [attr("class", "feature")],
-            controls(e.id, s),
+            [attr("class", "stage")],
+            [
+              el(
+                "div",
+                [attr("class", "canvas-wrap")],
+                [
+                  mapHtml((fn: Change) =>
+                    edit(apply(fn)),
+                  )(diagram(e.id, s.flow)),
+                  el(
+                    "output",
+                    [
+                      attr(
+                        "class",
+                        "ground-side",
+                      ),
+                      attr("aria-live", "off"),
+                    ],
+                    [
+                      text(
+                        {
+                          above: "地面の表側",
+                          below: "地面の裏側",
+                          level: "地面と同じ高さ",
+                        }[
+                          groundSide(
+                            s.flow.camera,
+                          )
+                        ],
+                      ),
+                    ],
+                  ),
+                  el(
+                    "div",
+                    [
+                      attr(
+                        "class",
+                        "board-controls",
+                      ),
+                    ],
+                    [
+                      el(
+                        "div",
+                        [
+                          attr(
+                            "class",
+                            "toolbar",
+                          ),
+                        ],
+                        [
+                          btn(
+                            "正面に戻す",
+                            (s) => ({
+                              ...s,
+                              returning: true,
+                            }),
+                            s.flow.camera.yaw ===
+                              0 &&
+                              s.flow.camera
+                                .pitch === 0,
+                          ),
+                          change("−", zoom(0.8)),
+                          change("+", zoom(1.25)),
+                          change(
+                            "全体表示",
+                            fitFlow,
+                          ),
+                          btn("初期状態", () =>
+                            session(
+                              e.initial(),
+                              e.spec().rules,
+                            ),
+                          ),
+                          change(
+                            "ノードを追加",
+                            (f) => {
+                              const id = unique(
+                                "Node ",
+                                f,
+                              );
+                              return addNode({
+                                id,
+                                label: id,
+                                position: {
+                                  x: 0,
+                                  y: 90,
+                                  z: 0,
+                                },
+                              })(f);
+                            },
+                          ),
+                          change(
+                            "選択を削除",
+                            deleteSelected,
+                            !selected(s.flow),
+                          ),
+                        ],
+                      ),
+                      el(
+                        "div",
+                        [
+                          attr(
+                            "class",
+                            "feature",
+                          ),
+                        ],
+                        controls(e.id, s),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              dslPanel(s),
+            ],
           ),
           el(
             "small",
@@ -1516,63 +1735,9 @@ const view = (m: Model): Html<Action> => {
             ],
           ),
           el(
-            "div",
-            [attr("class", "canvas-wrap")],
-            [
-              mapHtml((fn: Change) =>
-                edit(apply(fn)),
-              )(diagram(e.id, s.flow)),
-              el(
-                "output",
-                [
-                  attr("class", "ground-side"),
-                  attr("aria-live", "off"),
-                ],
-                [
-                  text(
-                    {
-                      above: "地面の表側",
-                      below: "地面の裏側",
-                      level: "地面と同じ高さ",
-                    }[groundSide(s.flow.camera)],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          el(
-            "div",
-            [attr("class", "toolbar")],
-            [
-              btn(
-                "正面に戻す",
-                (s) => ({
-                  ...s,
-                  returning: true,
-                }),
-                s.flow.camera.yaw === 0 &&
-                  s.flow.camera.pitch === 0,
-              ),
-              change("−", zoom(0.8)),
-              change("+", zoom(1.25)),
-              change("全体表示", fitFlow),
-              btn("初期状態", () =>
-                session(e.initial()),
-              ),
-              change("ノードを追加", (f) => {
-                const id = unique("Node ", f);
-                return addNode({
-                  id,
-                  label: id,
-                  position: { x: 0, y: 90, z: 0 },
-                })(f);
-              }),
-              change(
-                "選択を削除",
-                deleteSelected,
-                !selected(s.flow),
-              ),
-            ],
+            "p",
+            [attr("class", "hint")],
+            [text(e.hint)],
           ),
           el(
             "div",
@@ -1803,7 +1968,7 @@ if (root)
       {
         index: 0,
         sessions: examples.map((e) =>
-          session(e.initial()),
+          session(e.initial(), e.spec().rules),
         ),
       },
       cmdNone(),
