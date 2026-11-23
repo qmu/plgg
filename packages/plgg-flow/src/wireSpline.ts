@@ -238,6 +238,10 @@ export const fitCurves = (
       [36, 11, -6, 0],
       [54, 10, 6, 0],
       [54, 10, -6, 0],
+      [20, 6, 3, 0],
+      [20, 6, -3, 0],
+      [38, 6, 0, 0],
+      [48, 6, 0, 0],
     ] satisfies [
       number,
       number,
@@ -446,7 +450,7 @@ export const fitCurves = (
         );
       }
       const shape =
-        Math.max(0, drift - 6) * 0.85 +
+        Math.max(0, drift - 4) * 2.5 +
         Math.max(0, 7 - clearance) * 8 +
         Math.max(0, peak - 0.46) * 45 +
         contour.turn * 1.5 +
@@ -509,6 +513,141 @@ export const fitCurves = (
           contours[i] = choice.contour;
         }
       }
+    }
+  }
+  for (const [i, w] of result.entries()) {
+    if (
+      w.edge.route === "step" ||
+      w.edge.route === "straight" ||
+      w.edge.waypoints?.length ||
+      !w.corners
+    )
+      continue;
+    const s = { ...w.source, side: w.sourceSide },
+      t = { ...w.target, side: w.targetSide };
+    const samples = sampleCurve([...w.points]);
+    const walls = boxes.filter(
+      (q) =>
+        q.id !== w.edge.source &&
+        q.id !== w.edge.target &&
+        q.r >= required(contours[i]).l - 8 &&
+        q.l <= required(contours[i]).r + 8 &&
+        q.b >= required(contours[i]).t - 8 &&
+        q.t <= required(contours[i]).b + 8,
+    );
+    const quality = (path: Point[]) => {
+      let peak = 0,
+        clearance = 8;
+      for (const [j, p] of path.entries()) {
+        const a = path[j - 1],
+          b = path[j + 1];
+        if (!a || !b) continue;
+        const x = p.x - a.x,
+          y = p.y - a.y,
+          u = b.x - p.x,
+          v = b.y - p.y;
+        peak = Math.max(
+          peak,
+          Math.abs(
+            Math.atan2(
+              x * v - y * u,
+              x * u + y * v,
+            ),
+          ),
+        );
+        for (const wall of walls)
+          clearance = Math.min(
+            clearance,
+            gap(a, p, wall),
+          );
+      }
+      return (
+        Math.max(0, peak - 0.52) * 30 +
+        Math.max(0, 7 - clearance) * 2
+      );
+    };
+    let best = quality(samples);
+    if (best < 1) continue;
+    let path = samples;
+    const others = contours.filter(
+      (_, j) => j !== i,
+    );
+    const cost = (
+      wire: ReturnType<typeof profile>,
+    ) =>
+      others.reduce(
+        (n, p) => n + conflict(wire, p),
+        0,
+      );
+    const initial = cost(required(contours[i]));
+    // Fair only the crowded bend, keeping each sample inside its original lane.
+    for (let pass = 0; pass < 10; pass++) {
+      path = path.map((p, j) => {
+        const a = path[j - 1],
+          b = path[j + 1],
+          origin = required(samples[j]);
+        if (
+          !a ||
+          !b ||
+          distance(p, s) < 14 ||
+          distance(p, t) < 14
+        )
+          return p;
+        let x = (a.x + 2 * p.x + b.x) / 4,
+          y = (a.y + 2 * p.y + b.y) / 4;
+        for (const q of walls) {
+          const dx =
+              x - Math.max(q.l, Math.min(q.r, x)),
+            dy =
+              y - Math.max(q.t, Math.min(q.b, y));
+          const d = Math.hypot(dx, dy);
+          if (d > 0 && d < 8) {
+            x += ((dx * (8 - d)) / d) * 0.5;
+            y += ((dy * (8 - d)) / d) * 0.5;
+          }
+        }
+        const dx = x - origin.x,
+          dy = y - origin.y,
+          scale = Math.min(
+            1,
+            7 / (Math.hypot(dx, dy) || 1),
+          );
+        return pt(
+          origin.x + scale * dx,
+          origin.y + scale * dy,
+        );
+      });
+      if (pass % 3 !== 0) continue;
+      const knots = path.filter(
+        (_, j) =>
+          j % 2 === 0 || j === path.length - 1,
+      );
+      const fitted = throughKnots(
+        knots,
+        s.side,
+        t.side,
+      );
+      if (
+        !aligned(fitted, s) ||
+        !aligned([...fitted].reverse(), t) ||
+        !free(fitted, boxes) ||
+        crossesItself(fitted)
+      )
+        continue;
+      const value = quality(sampleCurve(fitted));
+      if (value + 0.3 >= best) continue;
+      const candidate = materialize(
+          w.edge,
+          s,
+          t,
+          fitted,
+          w.corners,
+        ),
+        contour = profile(candidate);
+      if (cost(contour) > initial + 1) continue;
+      best = value;
+      result[i] = candidate;
+      contours[i] = contour;
     }
   }
   return result;

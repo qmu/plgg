@@ -239,6 +239,7 @@ export const crossesItself = (path: Point[]) => {
 export const rounded = (
   path: Point[],
   radius: number,
+  stemFraction = 1,
 ) => {
   const out = [required(path[0])];
   for (let i = 1; i < path.length - 1; i++) {
@@ -253,9 +254,11 @@ export const rounded = (
       // Leave a straight run between neighbouring quarter circles.
       u * 0.38,
       v * 0.38,
-      i === 1 ? Math.max(0, u - 14) : Infinity,
+      i === 1
+        ? stemFraction * Math.max(0, u - 14)
+        : Infinity,
       i === path.length - 2
-        ? Math.max(0, v - 14)
+        ? stemFraction * Math.max(0, v - 14)
         : Infinity,
     );
     const dx = (a.x - b.x) / u,

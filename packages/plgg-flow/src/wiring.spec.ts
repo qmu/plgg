@@ -1014,3 +1014,41 @@ test("staggered fan branches nest at either end of a wire", () => {
     ),
   );
 });
+
+test("parallel step wires turn across the bus at both sockets", () => {
+  const edges = Array.from(
+    { length: 5 },
+    (_, i) =>
+      ({
+        ...link("A", "B"),
+        id: String(i),
+        route: "step",
+      }) satisfies Edge,
+  );
+  const wires = wireGraph({ nodes: pair, edges });
+  const branches = wires.filter((w) =>
+    w.points.some((p) => p.y !== w.source.y),
+  );
+  return all([
+    check(branches.length, toBe(4)),
+    check(
+      branches.every((w) => {
+        const mid = (w.source.x + w.target.x) / 2;
+        // Each offset lane needs a transverse run between its two fillets.
+        const turns = w.points.filter((p, j) => {
+          const before = w.points[j - 1];
+          return (
+            before !== undefined &&
+            Math.abs(p.x - before.x) < 1e-8 &&
+            Math.abs(p.y - before.y) > 1
+          );
+        });
+        return (
+          turns.some((p) => p.x < mid) &&
+          turns.some((p) => p.x > mid)
+        );
+      }),
+      toBe(true),
+    ),
+  ]);
+});

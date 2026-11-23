@@ -19,6 +19,7 @@ export const shortcuts = (
   boxes: Box[],
   source: string,
   target: string,
+  guide?: Point[],
 ) => {
   const paths: Point[][] = [];
   const clear = boxes.map((q) =>
@@ -26,9 +27,24 @@ export const shortcuts = (
       ? q
       : inflate(q, 7),
   );
+  const seen = new Set<string>();
   const add = (raw: Point[]) => {
     const path = simplify(raw);
-    if (path.length < 3) return;
+    if (
+      path.length < 3 ||
+      path.some((p, j) => {
+        const prev = path[j - 1],
+          before = path[j - 2];
+        return (
+          prev !== undefined &&
+          before !== undefined &&
+          (p.x - prev.x) * (prev.x - before.x) +
+            (p.y - prev.y) * (prev.y - before.y) <
+            0
+        );
+      })
+    )
+      return;
     const valid = (socket: Socket, p: Point) => {
       const n = normal[socket.side],
         x = p.x - socket.x,
@@ -38,6 +54,12 @@ export const shortcuts = (
         Math.abs(x * n.y - y * n.x) < 0.01
       );
     };
+    const key = path
+      .slice(1, -1)
+      .map((p) => [p.x, p.y].join(","))
+      .join("|");
+    if (seen.has(key)) return;
+    seen.add(key);
     if (
       valid(s, required(path[1])) &&
       valid(t, required(path[path.length - 2])) &&
@@ -67,8 +89,7 @@ export const shortcuts = (
       b = move(t, t.side, 15)[axis],
       lo = Math.min(a, b),
       hi = Math.max(a, b);
-    if ((b - a) * normal[s.side][axis] <= 0)
-      return paths;
+
     const stops = new Set([lo, hi]);
     for (const q of clear) {
       if (
@@ -91,6 +112,9 @@ export const shortcuts = (
       a,
       b,
       (a + b) / 2,
+      ...[6, 12, 20, 30, 44]
+        .flatMap((d) => [lo + d, hi - d])
+        .filter((x) => x >= lo && x <= hi),
       ...levels
         .slice(1)
         .map(
@@ -104,6 +128,94 @@ export const shortcuts = (
         { ...t, [axis]: level },
         t,
       ]);
+  }
+  if (guide) {
+    // Reuse nearby clear tracks while moving the first and last bends together.
+    const exits = (socket: Socket) => {
+      const along = vertical(socket.side)
+        ? "y"
+        : "x";
+      const levels = new Set([14, 22, 32, 46]);
+      for (const p of guide) {
+        const d =
+          (p[along] - socket[along]) *
+          normal[socket.side][along];
+        if (d < 8) continue;
+        for (const shift of [-8, 0, 8])
+          if (d + shift >= 14)
+            levels.add(d + shift);
+      }
+      return [...levels];
+    };
+    const starts = exits(s),
+      ends = exits(t);
+    const lanes = new Set(
+      guide.map((p) => p[across]),
+    );
+    for (const box of clear) {
+      for (const level of v
+        ? [box.l, box.r]
+        : [box.t, box.b]) {
+        if (
+          guide.some(
+            (p) =>
+              Math.abs(level - p[across]) < 44,
+          )
+        )
+          lanes.add(level);
+      }
+    }
+    if (s.side === t.side) {
+      const n = normal[s.side][axis];
+      const outside =
+        n > 0
+          ? Math.max(s[axis], t[axis])
+          : Math.min(s[axis], t[axis]);
+      for (const d of [14, 20, 28, 38, 50, 64])
+        add([
+          s,
+          { ...s, [axis]: outside + d * n },
+          { ...t, [axis]: outside + d * n },
+          t,
+        ]);
+    }
+    if (v !== vertical(t.side)) {
+      for (const left of starts)
+        for (const right of ends) {
+          const a = move(s, s.side, left),
+            b = move(t, t.side, right);
+          add([
+            s,
+            a,
+            { ...a, [across]: b[across] },
+            b,
+            t,
+          ]);
+        }
+    } else {
+      for (const lane of lanes)
+        for (const left of starts)
+          for (const right of ends) {
+            const a = move(s, s.side, left),
+              b = move(t, t.side, right);
+            if (
+              (b[axis] - a[axis]) *
+                normal[s.side][axis] >=
+                0 &&
+              (lane === s[across] ||
+                lane === t[across])
+            )
+              continue;
+            add([
+              s,
+              a,
+              { ...a, [across]: lane },
+              { ...b, [across]: lane },
+              b,
+              t,
+            ]);
+          }
+    }
   }
   return paths;
 };

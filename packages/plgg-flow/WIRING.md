@@ -784,3 +784,39 @@ base path to change. Fix them there:
 Acceptance (to adopt this architecture over round 11): `TOTAL sev3 0`;
 static moderate ≤ 81 (target ≤ 60); `drag-jump` ≤ 5;
 `drag-jump-neighbour` ≤ 15; the zero-kinds stay zero.
+
+## Round 14 review — adopted
+
+Two-layer routing now matches round 11's static quality (81 moderate)
+with dragging essentially solved (`drag-jump` 3, `drag-jump-neighbour`
+15), `sev3 0`. `microservices` draws at its five-crossing minimum, the
+org tree leaves every parent from the bottom, and in the demo a wire no
+longer bulges after a drag. This is the committed architecture.
+
+Left for round 15, all polish inside layer 2 / per-wire shape:
+
+1. **Step fans show a wedge.** Where several step wires leave one
+   socket, the first few units are drawn as short diagonals converging
+   on the socket (`microservices · step`: Web/Mobile → Gateway, Queue's
+   outputs). The audit's diagonal threshold was tightened to 7 units:
+   6 `diagonal-in-step`, severe. A step fan is orthogonal too: the
+   shared stem runs straight out along the normal; each wire leaves it
+   with a quarter-circle into its own lane at a different distance
+   along the stem (nearest lane turns first), like a bus. If the stem
+   is too short for all the turns, lengthen the stem (up to gap / 2)
+   before compressing the pitch.
+2. `siblings-cross` 26 (12 in `diamonds` and `grid5x4`),
+   `double-cross` 8, `more-crossings-than-straight` 8.
+3. `wiggly` 18 (15 step: an elbow that buys nothing — remove it when
+   the straight continuation keeps clearance and adds no crossing).
+4. `kink` 5 (3 in `tight`), `grazes-node` 6, `hugs-own-node` 4,
+   `runs-too-close` 3.
+5. `drag-jump-neighbour` 15: a neighbour may shift by lanes, not
+   re-route.
+
+Acceptance: `TOTAL sev3 0`; static moderate ≤ 55; `drag-jump` ≤ 3;
+`drag-jump-neighbour` ≤ 10; zero kinds stay zero.
+
+Note on specs: wall-clock assertions in `wiring.spec.ts` were loosened
+to blow-up guards by the reviewer (CI runners are slow; eight commits
+went red on a 15 ms assertion). Keep time budgets in the audit only.
