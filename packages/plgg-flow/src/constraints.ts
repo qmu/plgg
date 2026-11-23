@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   moveExpandingParents,
   subtree,
@@ -62,9 +63,9 @@ export const constrainedDelta = (
     for (const n of nodes) {
       const half =
         axis === "x"
-          ? (n.width ?? 104) / 2
+          ? nodeSize(n).width / 2
           : axis === "y"
-            ? (n.height ?? 36) / 2
+            ? nodeSize(n).height / 2
             : 0;
       if (rules.bounds) {
         min = Math.max(
@@ -95,8 +96,8 @@ export const constrainedDelta = (
         continue;
       const room =
         (axis === "x"
-          ? (parent.width ?? 104)
-          : (parent.height ?? 36)) /
+          ? nodeSize(parent).width
+          : nodeSize(parent).height) /
           2 -
         half;
       const offset =
@@ -125,16 +126,16 @@ export const constrainedDelta = (
                 delta.x -
                 target.position.x,
             ) -
-              ((n.width ?? 104) +
-                (target.width ?? 104)) /
+              (nodeSize(n).width +
+                nodeSize(target).width) /
                 2,
             Math.abs(
               n.position.y +
                 delta.y -
                 target.position.y,
             ) -
-              ((n.height ?? 36) +
-                (target.height ?? 36)) /
+              (nodeSize(n).height +
+                nodeSize(target).height) /
                 2,
             Math.abs(
               n.position.z +

@@ -360,6 +360,26 @@
       background: var(--ink);
       color: var(--paper);
     }
+    .flow-board path.edge[stroke="#e36731"] {
+      stroke-width: 3px;
+    }
+    .flow-board path.edge {
+      cursor: pointer;
+    }
+    .board-controls .remove {
+      position: absolute;
+      top: 56px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+      font: 400 20px/1 var(--display);
+      cursor: pointer;
+      pointer-events: auto;
+    }
     .flow-board [stroke-dasharray] {
       stroke: var(--graphite);
     }

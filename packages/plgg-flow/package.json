@@ -178,6 +178,16 @@
         "default": "./dist/analysis.cjs.js"
       }
     },
+    "./wiring": {
+      "import": {
+        "types": "./dist/wiring.d.ts",
+        "default": "./dist/wiring.es.js"
+      },
+      "require": {
+        "types": "./dist/wiring.d.ts",
+        "default": "./dist/wiring.cjs.js"
+      }
+    },
     "./dsl": {
       "import": {
         "types": "./dist/dsl.d.ts",

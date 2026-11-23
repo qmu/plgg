@@ -234,7 +234,7 @@ test("React Flow import resolves unordered relative coordinates and reports cust
   return check(
     isOk(r) &&
       r.content.drawing.nodes[0]?.position.x ===
-        156 &&
+        152 &&
       r.content.drawing.nodes[0]?.position.y ===
         224 &&
       r.content.drawing.nodes[0]?.label ===
@@ -352,9 +352,9 @@ test("fit container includes nested card extents and leaves child world coordina
   const result = fitContainer(g, "root", 10),
     root = result.nodes[0];
   return check(
-    root?.width === 212 &&
+    root?.width === 192 &&
       root.height === 138 &&
-      root.position.x === 44 &&
+      root.position.x === 54 &&
       root.position.y === 41 &&
       root.position.z === 7 &&
       result.nodes[2] === child &&
@@ -1325,8 +1325,8 @@ test("rerooting reverses only the selected group's ancestry in one edit", () => 
       {
         ...node("inner", "mid"),
         group: true,
-        extent: "parent" as const,
-      },
+        extent: "parent",
+      } satisfies FlowNode,
       node("branch", "root"),
     ],
   };
@@ -2046,7 +2046,7 @@ test("minimum wire cut can cancel an earlier path through a shared junction", ()
     ["B", "C"],
     ["C", "end"],
     ["D", "end"],
-  ] as const;
+  ] satisfies [string, string][];
   const graph = {
     nodes: [
       "start",

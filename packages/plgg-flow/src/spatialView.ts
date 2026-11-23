@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import { isSome } from "plgg";
 import { project, type Point3 } from "plgg-board";
 import {
@@ -140,8 +141,8 @@ export const groupVolumes = (
   const boxes = new Map(
     nodes.map((n) => {
       const { x, y, z } = n.position,
-        w = (n.width ?? 104) / 2,
-        h = (n.height ?? 36) / 2;
+        w = nodeSize(n).width / 2,
+        h = nodeSize(n).height / 2;
       return [
         n.id,
         {

@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   constrainedDelta,
   type Movement,
@@ -108,9 +109,11 @@ export type Drag = Readonly<{
     | "ink"
     | "lasso"
     | "frame";
+  socket?: Point3;
   outline?: readonly Point[];
   waypoint?: number;
   first?: Point;
+  pressed?: Point;
   node: string;
 }>;
 export type Flow = Graph &
@@ -119,6 +122,7 @@ export type Flow = Graph &
     orbitCenter?: Point3;
     selected: Option<string>;
     activeEdge?: Edge;
+    chosenEdges?: readonly Edge[];
     movement?: Movement;
     lasso?: boolean;
     bookmarks?: readonly CameraBookmark[];
@@ -202,6 +206,15 @@ export const moveSelectionGeometry = (
   return {
     nodes,
     edges: changed ? edges : flow.edges,
+    ...(flow.chosenEdges
+      ? {
+          chosenEdges: flow.chosenEdges.flatMap(
+            (e) =>
+              edges[edgeIndex(flow.edges, e)] ??
+              [],
+          ),
+        }
+      : {}),
     ...(activeEdge ? { activeEdge } : {}),
   };
 };
@@ -229,23 +242,25 @@ const fitGeometry = (
   const fitted = fit(
     [
       ...extra,
-      ...nodes.flatMap(
-        ({ position, width, height }) =>
-          [-1, 1].map((sign) => {
-            const offset = worldDelta(
-              { ...state.camera, scale: 1 },
-              {
-                x:
-                  ((width ?? 104) / 2 + 5) * sign,
-                y: ((height ?? 36) / 2) * sign,
-              },
-            );
-            return {
-              x: position.x + offset.x,
-              y: position.y + offset.y,
-              z: position.z + offset.z,
-            };
-          }),
+      ...nodes.flatMap((node) =>
+        [-1, 1].map((sign) => {
+          const offset = worldDelta(
+            { ...state.camera, scale: 1 },
+            {
+              x:
+                (nodeSize(node).width / 2 + 5) *
+                sign,
+              y:
+                (nodeSize(node).height / 2) *
+                sign,
+            },
+          );
+          return {
+            x: node.position.x + offset.x,
+            y: node.position.y + offset.y,
+            z: node.position.z + offset.z,
+          };
+        }),
       ),
     ],
     viewport,
@@ -285,7 +300,10 @@ export const selectedNodes = (
     : [state.selected.content];
 };
 export const selectNodes =
-  (ids: readonly string[]): Change =>
+  (
+    ids: readonly string[],
+    keepEdges = false,
+  ): Change =>
   (state) => {
     const valid = new Set(
         state.nodes.map((n) => n.id),
@@ -294,12 +312,44 @@ export const selectNodes =
         valid.has(id),
       );
     const last = selection[selection.length - 1];
+    const { activeEdge, chosenEdges, ...rest } =
+      state;
     return {
-      ...state,
+      ...(keepEdges ? state : rest),
       selection,
       selected:
         last === undefined ? none() : some(last),
     };
+  };
+export const selectedEdges = (state: Flow) =>
+  state.chosenEdges ??
+  (state.activeEdge ? [state.activeEdge] : []);
+export const chooseEdges =
+  (edges: readonly Edge[]): Change =>
+  (state) => {
+    const { activeEdge, ...rest } = state;
+    const last = edges[edges.length - 1];
+    return {
+      ...rest,
+      chosenEdges: edges,
+      ...(last ? { activeEdge: last } : {}),
+    };
+  };
+export const selectArea =
+  (
+    ids: readonly string[],
+    wires?: readonly Edge[],
+  ): Change =>
+  (state) => {
+    const nodes = new Set(ids);
+    return chooseEdges(
+      wires ??
+        state.edges.filter(
+          (e) =>
+            nodes.has(e.source) &&
+            nodes.has(e.target),
+        ),
+    )(selectNodes(ids)(state));
   };
 export const addNode =
   (node: FlowNode): Change =>
@@ -315,25 +365,36 @@ export const disconnect =
   (edge: Edge): Change =>
   (state) => {
     const index = edgeIndex(state.edges, edge);
-    return index < 0
-      ? state
-      : {
-          ...state,
-          edges: state.edges.filter(
-            (_, i) => i !== index,
-          ),
-        };
+    if (index < 0) return state;
+    const kept = selectedEdges(state).filter(
+      (e) => edgeIndex(state.edges, e) !== index,
+    );
+    return {
+      ...chooseEdges(kept)(state),
+      edges: state.edges.filter(
+        (_, i) => i !== index,
+      ),
+    };
   };
 export const deleteSelected: Change = (state) => {
-  if (!isSome(state.selected)) return state;
+  const edges = new Set(
+    selectedEdges(state).map((e) =>
+      edgeIndex(state.edges, e),
+    ),
+  );
+  if (!edges.size && !isSome(state.selected))
+    return state;
+  const rest = chooseEdges([])(state);
   const graph = selectedNodes(
     state,
-  ).reduce<Graph>(
-    (g, id) => dissolve(g, id),
-    state,
-  );
+  ).reduce<Graph>((g, id) => dissolve(g, id), {
+    nodes: state.nodes,
+    edges: state.edges.filter(
+      (_, i) => !edges.has(i),
+    ),
+  });
   return {
-    ...state,
+    ...rest,
     ...graph,
     selection: [],
     selected: none(),
@@ -590,6 +651,9 @@ export const movePointer =
       };
       return {
         ...state,
+        chosenEdges: selectedEdges(state).map(
+          (e) => (e === edge ? next : e),
+        ),
         activeEdge: next,
         edges: state.edges.map((v, i) =>
           i === index ? next : v,

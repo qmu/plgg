@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import { none, some, type Option } from "plgg";
 import { visibleScene } from "plgg-flow/hierarchy";
 import {
@@ -342,8 +343,8 @@ export const foregroundOverlaps = (
       flow.camera,
       point.z,
     );
-    const w = (item.width ?? 104) * scale,
-      h = (item.height ?? 36) * scale;
+    const w = nodeSize(item).width * scale,
+      h = nodeSize(item).height * scale;
     return {
       left: point.x - w / 2,
       right: point.x + w / 2,

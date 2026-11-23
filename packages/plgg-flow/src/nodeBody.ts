@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   project,
   projectedScale,
@@ -5,6 +6,12 @@ import {
   type Point3,
 } from "plgg-board";
 import type { FlowNode } from "./model";
+
+export type Side =
+  | "right"
+  | "left"
+  | "top"
+  | "bottom";
 
 const faces = [
   {
@@ -37,36 +44,53 @@ const faces = [
     indices: [1, 2, 6, 5],
     light: 81,
   },
-] as const;
+] satisfies {
+  side: Side | "front" | "back";
+  indices: number[];
+  light: number;
+}[];
 
 /** How far each face stands off the node's centre plane. */
 export const bodyDepth = (node: FlowNode) =>
   Math.min(
     18,
-    Math.max(7, ((node.height ?? 36) / 2) * 0.7),
+    Math.max(
+      7,
+      (nodeSize(node).height / 2) * 0.7,
+    ),
   );
 
-/** A socket sits on the front edge of its flank, where
- * the wire can reach it from every visible side. */
+/** Mid-depth keeps the socket on the physical flank. */
 export const portPosition = (
   node: FlowNode,
-  direction: "source" | "target",
+  direction: Side | "source" | "target",
   offset: number,
 ): Point3 => ({
   x:
     node.position.x +
-    ((direction === "source" ? 1 : -1) *
-      (node.width ?? 104)) /
-      2,
-  y: node.position.y + offset,
-  z: node.position.z + bodyDepth(node),
+    (direction === "top" || direction === "bottom"
+      ? offset
+      : ((direction === "source" ||
+        direction === "right"
+          ? 1
+          : -1) *
+          nodeSize(node).width) /
+        2),
+  y:
+    node.position.y +
+    (direction === "top"
+      ? -nodeSize(node).height / 2
+      : direction === "bottom"
+        ? nodeSize(node).height / 2
+        : offset),
+  z: node.position.z,
 });
 
 /** Wire endpoints and sockets share a world-space attachment point. */
 export const projectSocket = (
   node: FlowNode,
   camera: Camera,
-  direction: "source" | "target",
+  direction: Side | "source" | "target",
   offset: number,
 ) =>
   project(camera)(
@@ -86,8 +110,8 @@ export const projectNodeBody = (
     y: (p.y - center.y) / scale,
     z: p.z,
   });
-  const w = (node.width ?? 104) / 2,
-    h = (node.height ?? 36) / 2,
+  const w = nodeSize(node).width / 2,
+    h = nodeSize(node).height / 2,
     d = bodyDepth(node);
   const corners = [-d, d].flatMap((z) =>
     [

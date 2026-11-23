@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import { islands } from "plgg-flow/analysis";
 import type { Graph } from "./model";
 import { dependencyLevels } from "plgg-flow/topology";
@@ -37,19 +38,19 @@ export const arrangeHierarchy = (
         if (!n) continue;
         bounds.x = Math.min(
           bounds.x,
-          n.position.x - (n.width ?? 104) / 2,
+          n.position.x - nodeSize(n).width / 2,
         );
         bounds.right = Math.max(
           bounds.right,
-          n.position.x + (n.width ?? 104) / 2,
+          n.position.x + nodeSize(n).width / 2,
         );
         bounds.y = Math.min(
           bounds.y,
-          n.position.y - (n.height ?? 36) / 2,
+          n.position.y - nodeSize(n).height / 2,
         );
         bounds.bottom = Math.max(
           bounds.bottom,
-          n.position.y + (n.height ?? 36) / 2,
+          n.position.y + nodeSize(n).height / 2,
         );
       }
       return [root.id, bounds];
@@ -196,21 +197,22 @@ export const removeOverlaps = (
           Math.abs(
             other.position.x - n.position.x,
           ) <
-            ((other.width ?? 104) +
-              (n.width ?? 104)) /
+            (nodeSize(other).width +
+              nodeSize(n).width) /
               2 +
               gap,
       )
       .sort(
         (a, b) =>
           a.position.y -
-          (a.height ?? 36) / 2 -
-          (b.position.y - (b.height ?? 36) / 2),
+          nodeSize(a).height / 2 -
+          (b.position.y - nodeSize(b).height / 2),
       );
     let y = n.position.y;
     for (const b of before) {
       const spacing =
-        ((n.height ?? 36) + (b.height ?? 36)) /
+        (nodeSize(n).height +
+          nodeSize(b).height) /
           2 +
         gap;
       if (Math.abs(y - b.position.y) < spacing)
@@ -274,8 +276,8 @@ export const swimlaneLayout = (
       top: Infinity,
       bottom: -Infinity,
     };
-    const w = (n.width ?? 104) / 2,
-      h = (n.height ?? 36) / 2;
+    const w = nodeSize(n).width / 2,
+      h = nodeSize(n).height / 2;
     b.left = Math.min(b.left, n.position.x - w);
     b.right = Math.max(b.right, n.position.x + w);
     b.top = Math.min(b.top, n.position.y - h);
@@ -424,8 +426,8 @@ export const packComponents = (
     include(
       n.id,
       n.position,
-      n.width ?? 104,
-      n.height ?? 36,
+      nodeSize(n).width,
+      nodeSize(n).height,
     );
     const box = boxFor(n.id);
     if (box && n.locked) box.pinned = true;
@@ -548,7 +550,7 @@ export const relaxWiring = (
       b !== undefined &&
       a !== b &&
       (movable[a] || movable[b])
-      ? [[a, b] as const]
+      ? [[a, b] satisfies [number, number]]
       : [];
   });
   if (!springs.length) return graph;

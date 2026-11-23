@@ -24,6 +24,7 @@ export default {
     "routing",
     "revisions",
     "dsl",
+    "wiring",
   ].map((name) => ({
     name,
     input: name + ".ts",

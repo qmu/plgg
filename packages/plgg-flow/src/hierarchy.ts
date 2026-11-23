@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import { ok, err, type Result } from "plgg";
 import { matchesData } from "plgg-flow/metadata";
 import { adjacency } from "plgg-flow/topology";
@@ -431,8 +432,8 @@ export const fitContainer = (
   for (const n of graph.nodes) {
     if (n === group || !members.has(n.id))
       continue;
-    const w = (n.width ?? 104) / 2,
-      h = (n.height ?? 36) / 2;
+    const w = nodeSize(n).width / 2,
+      h = nodeSize(n).height / 2;
     left = Math.min(left, n.position.x - w);
     right = Math.max(right, n.position.x + w);
     top = Math.min(top, n.position.y - h);
@@ -499,10 +500,10 @@ export const moveExpandingParents = (
       const parent = index.get(child.parent);
       if (!parent || parent.locked) break;
       visited.add(parent.id);
-      const pw = parent.width ?? 104,
-        ph = parent.height ?? 36,
-        cw = child.width ?? 104,
-        ch = child.height ?? 36;
+      const pw = nodeSize(parent).width,
+        ph = nodeSize(parent).height,
+        cw = nodeSize(child).width,
+        ch = nodeSize(child).height;
       const left = Math.min(
           parent.position.x - pw / 2,
           child.position.x - cw / 2,
@@ -590,12 +591,12 @@ export const swapBranches = (
     node.extent !== "parent" ||
     (Math.abs(position.x - parent.position.x) *
       2 +
-      (node.width ?? 104) <=
-      (parent.width ?? 104) &&
+      nodeSize(node).width <=
+      nodeSize(parent).width &&
       Math.abs(position.y - parent.position.y) *
         2 +
-        (node.height ?? 36) <=
-        (parent.height ?? 36));
+        nodeSize(node).height <=
+        nodeSize(parent).height);
   if (
     !fits(a, b.position) ||
     !fits(b, a.position)
@@ -718,8 +719,8 @@ export const adoptByBounds = (
     bottom = -Infinity;
   for (const n of graph.nodes) {
     if (!branch.has(n.id)) continue;
-    const w = (n.width ?? 104) / 2,
-      h = (n.height ?? 36) / 2;
+    const w = nodeSize(n).width / 2,
+      h = nodeSize(n).height / 2;
     left = Math.min(left, n.position.x - w);
     right = Math.max(right, n.position.x + w);
     top = Math.min(top, n.position.y - h);
@@ -735,8 +736,8 @@ export const adoptByBounds = (
       branch.has(n.id)
     )
       continue;
-    const w = n.width ?? 104,
-      h = n.height ?? 36;
+    const w = nodeSize(n).width,
+      h = nodeSize(n).height;
     if (
       n.position.x - w / 2 > left ||
       n.position.x + w / 2 < right ||
@@ -1049,7 +1050,7 @@ export const partitionCards = (
         "x",
         "y",
         "z",
-      ] as const) {
+      ] satisfies (keyof Point3)[]) {
         min[axis] = Math.min(
           min[axis],
           n.position[axis],
@@ -1059,8 +1060,8 @@ export const partitionCards = (
           n.position[axis],
         );
       }
-      const w = (n.width ?? 104) / 2,
-        h = (n.height ?? 36) / 2;
+      const w = nodeSize(n).width / 2,
+        h = nodeSize(n).height / 2;
       left = Math.min(left, n.position.x - w);
       right = Math.max(right, n.position.x + w);
       top = Math.min(top, n.position.y - h);
@@ -1070,7 +1071,7 @@ export const partitionCards = (
       const span = (axis: keyof Point3) =>
         max[axis] - min[axis];
       const axis = (
-        ["x", "y", "z"] as const
+        ["x", "y", "z"] satisfies (keyof Point3)[]
       ).reduce((a, b) =>
         span(a) >= span(b) ? a : b,
       );

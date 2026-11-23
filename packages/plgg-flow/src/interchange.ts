@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   decodeMarks,
   type Mark,
@@ -717,6 +718,11 @@ export const importReactFlow = (
       );
     if (n.style || n.className)
       warnings.add("Custom styling is omitted");
+    const label =
+      record(n.data) &&
+      typeof n.data.label === "string"
+        ? n.data.label
+        : n.id;
     const measured = record(n.measured)
         ? n.measured
         : {},
@@ -724,18 +730,21 @@ export const importReactFlow = (
         ? n.width
         : number(measured.width)
           ? measured.width
-          : 104,
+          : nodeSize({ label }).width,
       height = number(n.height)
         ? n.height
         : number(measured.height)
           ? measured.height
-          : 36;
+          : nodeSize({ label }).height;
     if (width <= 0 || height <= 0)
       return err("Invalid measured dimensions");
     sizes.set(n.id, { width, height });
     nodes.push({
       id: n.id,
-      height,
+      ...(number(n.height) ||
+      number(measured.height)
+        ? { height }
+        : {}),
       ...(origin(n.origin)
         ? { origin: n.origin }
         : {}),
@@ -743,12 +752,11 @@ export const importReactFlow = (
       ...(isJsonObject(n.data)
         ? { data: n.data }
         : {}),
-      label:
-        record(n.data) &&
-        typeof n.data.label === "string"
-          ? n.data.label
-          : n.id,
-      width,
+      label,
+      ...(number(n.width) ||
+      number(measured.width)
+        ? { width }
+        : {}),
       position: {
         x:
           n.position.x -
@@ -943,8 +951,15 @@ export const importReactFlow = (
               }
             : {}),
           position: {
-            x: p.x + (size?.width ?? 104) / 2,
-            y: p.y + (size?.height ?? 36) / 2,
+            x:
+              p.x +
+              (size?.width ?? nodeSize(n).width) /
+                2,
+            y:
+              p.y +
+              (size?.height ??
+                nodeSize(n).height) /
+                2,
             z: 0,
           },
         };
@@ -994,15 +1009,15 @@ export const exportReactFlow = (
             n.parent === undefined
               ? undefined
               : byId.get(n.parent),
-          width = n.width ?? 104,
-          height = n.height ?? 36;
+          width = nodeSize(n).width,
+          height = nodeSize(n).height;
         const px = parent
             ? parent.position.x -
-              (parent.width ?? 104) / 2
+              nodeSize(parent).width / 2
             : 0,
           py = parent
             ? parent.position.y -
-              (parent.height ?? 36) / 2
+              nodeSize(parent).height / 2
             : 0;
         return {
           id: n.id,

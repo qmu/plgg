@@ -26,6 +26,7 @@ import {
   createFlow,
   viewAt,
   type Graph,
+  type Flow,
 } from "plgg-flow/model";
 import {
   compareReachability,
@@ -517,7 +518,7 @@ test("foreground overlap uses drawing order and excludes hidden cards", () => {
       n("half", 52, 0),
       n("front", 0, 0, 10),
       { ...n("hidden", 0, 0, 15), hidden: true },
-    ],
+    ].map((node) => ({ ...node, width: 104 })),
     edges: [],
   };
   const result = foregroundOverlaps(
@@ -621,7 +622,7 @@ test("pruning cascades through empty ancestry while retaining review, dimension 
     group: true,
     ...(parent ? { parent } : {}),
   });
-  const flow = {
+  const flow: Flow = {
     ...createFlow({
       nodes: [
         g("outer"),
@@ -635,7 +636,7 @@ test("pruning cascades through empty ancestry while retaining review, dimension 
     }),
     marks: [
       {
-        kind: "review" as const,
+        kind: "review",
         id: "r",
         node: "note",
         position: { x: 0, y: 0, z: 0 },

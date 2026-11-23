@@ -1,7 +1,5 @@
-import {
-  portsFor,
-  portOffset,
-} from "plgg-flow/connections";
+import { nodeSize } from "plgg-flow/nodeSize";
+import { wireGraph } from "plgg-flow/wiring";
 import { simplifyTrace } from "plgg-flow/polyline";
 import { push, pop } from "plgg-flow/frontier";
 import { err, ok, type Result } from "plgg";
@@ -42,18 +40,18 @@ export const routeAroundNodes = (
     )
     .map((n) => ({
       left:
-        n.position.x - (n.width ?? 104) / 2 - 6,
+        n.position.x - nodeSize(n).width / 2 - 6,
       right:
-        n.position.x + (n.width ?? 104) / 2 + 6,
+        n.position.x + nodeSize(n).width / 2 + 6,
       top:
-        n.position.y - (n.height ?? 36) / 2 - 6,
+        n.position.y - nodeSize(n).height / 2 - 6,
       bottom:
-        n.position.y + (n.height ?? 36) / 2 + 6,
+        n.position.y + nodeSize(n).height / 2 + 6,
     }));
   const start = {
     x: Math.ceil(
       (from.position.x +
-        (from.width ?? 104) / 2 +
+        nodeSize(from).width / 2 +
         grid) /
         grid,
     ),
@@ -62,7 +60,7 @@ export const routeAroundNodes = (
   const end = {
     x: Math.floor(
       (to.position.x -
-        (to.width ?? 104) / 2 -
+        nodeSize(to).width / 2 -
         grid) /
         grid,
     ),
@@ -316,29 +314,18 @@ export const routeOnPlane = (
     );
   if (!from || !to)
     return err("端点のカードが見つかりません");
-  const ports = portsFor(graph);
-  const start = {
-    x: from.position.x + (from.width ?? 104) / 2,
-    y:
-      from.position.y +
-      portOffset(
-        ports.get(from.id) ?? [],
-        "source",
-        edge.sourceHandle,
-      ),
-    z,
-  };
-  const end = {
-    x: to.position.x - (to.width ?? 104) / 2,
-    y:
-      to.position.y +
-      portOffset(
-        ports.get(to.id) ?? [],
-        "target",
-        edge.targetHandle,
-      ),
-    z,
-  };
+  const routed = wireGraph(
+    graph.edges.includes(edge)
+      ? graph
+      : {
+          ...graph,
+          edges: [...graph.edges, edge],
+        },
+  ).find((w) => w.edge === edge);
+  if (!routed)
+    return err("Missing visible socket");
+  const start = { ...routed.source, z },
+    end = { ...routed.target, z };
   const waypoints: Point3[] = [];
   for (const point of [
     start,

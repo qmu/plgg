@@ -1,6 +1,11 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
-  portPosition,
+  type Side,
+  wireGraph,
+} from "plgg-flow/wiring";
+import {
   projectSocket,
+  portPosition,
   projectNodeBody,
 } from "plgg-flow/nodeBody";
 import { insideLasso } from "plgg-flow/constraints";
@@ -46,7 +51,6 @@ import {
 import {
   edgeIndex,
   portsFor,
-  portOffset,
   type Port,
 } from "plgg-flow/connections";
 import {
@@ -59,6 +63,9 @@ import {
   movePointer,
   orbitByDrag,
   selectNodes,
+  selectArea,
+  selectedEdges,
+  chooseEdges,
   selectedNodes,
   zoom,
   moveConstrainedSelection,
@@ -288,6 +295,47 @@ export const flowView = (
     ),
   };
   const ports = portsFor(state);
+  const wires = wireGraph(
+    clipped.nodes === state.nodes &&
+      clipped.edges.length ===
+        state.edges.length &&
+      clipped.edges.every(
+        (e, i) => e === state.edges[i],
+      )
+      ? state
+      : clipped,
+  );
+  const routes = new Map(
+    wires.map((w) => [w.edge, w]),
+  );
+  type Socket = {
+    handle: string | undefined;
+
+    direction: Port["direction"];
+  };
+  const attachments = new Map<string, Socket>();
+  for (const w of wires)
+    for (const direction of [
+      "source",
+      "target",
+    ] satisfies Port["direction"][]) {
+      const side =
+        direction === "source"
+          ? w.sourceSide
+          : w.targetSide;
+      const key = JSON.stringify([
+        w.edge[direction],
+        side,
+      ]);
+      if (!attachments.has(key))
+        attachments.set(key, {
+          direction,
+          handle:
+            direction === "source"
+              ? w.edge.sourceHandle
+              : w.edge.targetHandle,
+        });
+    }
   const chosen = new Set(selectedNodes(state));
   const projected = projectLayer(
     state.camera,
@@ -307,9 +355,11 @@ export const flowView = (
     ? projected
     : projected.filter((n) => {
         const w =
-            ((n.width ?? 104) * n.scale) / 2 + 48,
+            (nodeSize(n).width * n.scale) / 2 +
+            48,
           h =
-            ((n.height ?? 36) * n.scale) / 2 + 48;
+            (nodeSize(n).height * n.scale) / 2 +
+            48;
         return (
           n.p.x + w >= 0 &&
           n.p.x - w <= viewport.x &&
@@ -325,8 +375,29 @@ export const flowView = (
         ])
       : [],
   );
+  const active =
+    state.activeEdge &&
+    state.edges[
+      edgeIndex(state.edges, state.activeEdge)
+    ];
+  const picked = new Set(
+    selectedEdges(state).map(
+      (e) =>
+        state.edges[edgeIndex(state.edges, e)],
+    ),
+  );
+  const silhouettes = new Map<
+    string,
+    Point[][]
+  >();
+  const turned = new Map<
+    string,
+    Record<Side, boolean>
+  >();
   const layers: {
     depth: number;
+    chosen?: boolean;
+    arrow?: boolean;
     html: Html<Change>;
   }[] = drawNodes.map((n) => {
     // One solid for every camera: the flat view is this
@@ -346,114 +417,119 @@ export const flowView = (
     const render =
       registry.nodes?.get(n.type ?? "") ??
       renderLabel;
-    // Sockets sit on the front face's edges: seen from
-    // behind, the solid hides them, so they are drawn
-    // before the faces.
-    const back = !solid.visible.some(
-      (f) => f.side === "front",
-    );
+    // A socket sits on its flank. When the camera sees
+    // the opposite flank, this one faces away: its dots
+    // are drawn before the faces, so the solid hides
+    // them. Face-on, both flanks are silhouette edges.
+    const shows = (side: string) =>
+      solid.visible.some((f) => f.side === side);
+    const away = {
+      right: shows("left"),
+      bottom: shows("top"),
+      top: shows("bottom"),
+      left: shows("right"),
+    };
+    turned.set(n.id, away);
+    if (picked.size)
+      silhouettes.set(
+        n.id,
+        solid.visible.map((face) =>
+          face.points.map((p) => ({
+            x: n.p.x + p.x * n.scale,
+            y: n.p.y + p.y * n.scale,
+          })),
+        ),
+      );
+
     // A socket earns its dot by carrying a wire; a bare
     // one shows only while it can take a new connection.
-    const wired = (
-      direction: Port["direction"],
-      handle: string | undefined,
-    ) =>
-      chosen.has(n.id) ||
-      isSome(state.source) ||
-      state.edges.some((e) =>
-        direction === "source"
-          ? e.source === n.id &&
-            e.sourceHandle === handle
-          : e.target === n.id &&
-            e.targetHandle === handle,
-      );
     const sockets = (behind: boolean) =>
       (
         [
-          "source",
-          "target",
-        ] satisfies Port["direction"][]
-      ).flatMap((direction) => {
-        if (
-          n.connectable === false ||
-          behind !== back
-        )
-          return [];
-        const available = ports.get(n.id) ?? [];
-        return [
-          undefined,
-          ...available
-            .filter(
-              (p) => p.direction === direction,
-            )
-            .map((p) => p.id),
-        ]
-          .filter((handle) =>
-            wired(direction, handle),
-          )
-          .map((handle) => {
-            const description = n.ports?.find(
-              (p) =>
-                p.direction === direction &&
-                p.id === handle,
-            )?.description;
-            const title =
-              (handle ?? direction) +
-              (description
-                ? " — " + description
-                : "");
-            const offset = portOffset(
-              available,
-              direction,
-              handle,
-            );
-            const socket = projectSocket(
-              n,
-              state.camera,
-              direction,
-              offset,
-            );
-            const x =
-                (socket.x - n.p.x) / n.scale,
-              y = (socket.y - n.p.y) / n.scale;
-            // A socket is a ball on the box's flank: it
-            // reads as a dot from every side, so wires
-            // never lose their ends when the view turns.
-            const control = el<Change>(
-              "circle",
-              [
-                a("data-port", n.id),
-                a("data-direction", direction),
-                ...(handle === undefined
-                  ? []
-                  : [a("data-handle", handle)]),
-                a("cy", y),
-                a("tabindex", 0),
-                a("role", "button"),
-                a(
-                  "aria-label",
-                  n.label + " " + title,
-                ),
-                a("cx", x),
-                a("stroke", "#215f57"),
-                a(
-                  "r",
-                  available.length ? 3.5 : 5,
-                ),
-                a(
-                  "fill",
-                  isSome(state.source) &&
-                    state.source.content === n.id
-                    ? "#ed623a"
-                    : direction === "source"
-                      ? "#167b70"
-                      : "#e6f4ef",
-                ),
-              ],
-              [el("title", [], [text(title)])],
-            );
-            return control;
-          });
+          "right",
+          "left",
+          "top",
+          "bottom",
+        ] satisfies Side[]
+      ).flatMap((side) => {
+        if (behind !== away[side]) return [];
+        const used = attachments.get(
+          JSON.stringify([n.id, side]),
+        );
+        const connecting = isSome(state.source),
+          canConnect =
+            n.connectable !== false &&
+            (chosen.has(n.id) || connecting);
+        if (!used && !canConnect) return [];
+        const direction = canConnect
+          ? connecting
+            ? "target"
+            : "source"
+          : (used?.direction ?? "source");
+        const handle =
+          used?.direction === direction
+            ? used.handle
+            : ports
+                .get(n.id)
+                ?.find(
+                  (p) =>
+                    p.direction === direction,
+                )?.id;
+        const description = n.ports?.find(
+          (p) =>
+            p.direction === direction &&
+            p.id === handle,
+        )?.description;
+        const title =
+          (handle ?? direction) +
+          (description
+            ? " — " + description
+            : "");
+        const offset = 0;
+        const socket = projectSocket(
+          n,
+          state.camera,
+          side,
+          offset,
+        );
+        const x = (socket.x - n.p.x) / n.scale,
+          y = (socket.y - n.p.y) / n.scale;
+        // A socket is a ball on the box's flank: it
+        // looks round from every side, so wires
+        // never lose their ends when the view turns.
+        const control = el<Change>(
+          "circle",
+          [
+            a("data-port", n.id),
+            a("data-side", side),
+            a("data-offset", offset),
+            a("data-direction", direction),
+            ...(handle === undefined
+              ? []
+              : [a("data-handle", handle)]),
+            a("cy", y),
+            a("tabindex", 0),
+            a("role", "button"),
+            a(
+              "aria-label",
+              n.label + " " + title,
+            ),
+            a("cx", x),
+            a("stroke", "#215f57"),
+            a("r", 3),
+            a(
+              "fill",
+              isSome(state.source) &&
+                state.source.content === n.id
+                ? "#ed623a"
+                : direction === "source"
+                  ? "#167b70"
+                  : "#e6f4ef",
+            ),
+          ],
+          [el("title", [], [text(title)])],
+        );
+        return [control];
       });
     return {
       depth: solid.depth,
@@ -540,17 +616,23 @@ export const flowView = (
                     [
                       a(
                         "x",
-                        -(n.width ?? 104) / 2,
+                        -nodeSize(n).width / 2,
                       ),
                       a(
                         "y",
-                        -(n.height ?? 36) / 2,
+                        -nodeSize(n).height / 2,
                       ),
-                      a("width", n.width ?? 104),
-                      a("height", n.height ?? 36),
+                      a(
+                        "width",
+                        nodeSize(n).width,
+                      ),
+                      a(
+                        "height",
+                        nodeSize(n).height,
+                      ),
                       a(
                         "viewBox",
-                        `${-(n.width ?? 104) / 2} ${-(n.height ?? 36) / 2} ${n.width ?? 104} ${n.height ?? 36}`,
+                        `${-nodeSize(n).width / 2} ${-nodeSize(n).height / 2} ${nodeSize(n).width} ${nodeSize(n).height}`,
                       ),
                       a("overflow", "hidden"),
                     ],
@@ -567,7 +649,7 @@ export const flowView = (
                     a("text-anchor", "middle"),
                     a(
                       "y",
-                      (n.height ?? 36) / 2 + 13,
+                      nodeSize(n).height / 2 + 13,
                     ),
                     a("font-size", 11),
                     a("pointer-events", "none"),
@@ -587,152 +669,57 @@ export const flowView = (
     };
   });
   // Sort projected segments with the billboards so a crossing changes
-  // order as the same camera moves around the diagram.
-  // A wire meets its socket on the front edge of the
-  // box, so the stretch next to a socket paints over
-  // that box rather than vanishing into it.
+  // order when the camera moves around the diagram.
   const solidDepth = new Map(
     drawNodes.map((n, i) => [
       n.id,
       layers[i]?.depth ?? n.p.z,
     ]),
   );
-  const above = (id: string, depth: number) =>
-    Math.max(
-      depth,
-      (solidDepth.get(id) ?? depth) + 0.02,
-    );
-  const families = new Map<string, Edge[]>();
-  for (const { edge, original } of scene.edges) {
-    const k = JSON.stringify([
-      edge.source,
-      edge.target,
-    ]);
-    const g = families.get(k);
-    if (g) g.push(original);
-    else families.set(k, [original]);
-  }
-  const lanes = new Map<Edge, number>();
-  for (const g of families.values())
-    g.forEach((e, i) =>
-      lanes.set(e, (i - (g.length - 1) / 2) * 30),
-    );
-  const active = state.activeEdge
-    ? state.edges[
-        edgeIndex(state.edges, state.activeEdge)
-      ]
-    : undefined;
+  // The stretch of wire next to a socket paints over
+  // its box — unless that flank faces away, where the
+  // solid hides the wire end.
+  const above = (
+    id: string,
+    direction: Side,
+    depth: number,
+  ) => {
+    const solid = solidDepth.get(id) ?? depth;
+    return turned.get(id)?.[direction]
+      ? Math.min(depth, solid - 0.02)
+      : Math.max(depth, solid + 0.02);
+  };
   for (const { edge, original } of scene.edges) {
     const from = lookup.get(edge.source),
       to = lookup.get(edge.target);
     if (!from || !to) continue;
-    const start = from.position,
-      endPoint = to.position;
-    const w1 = (from.width ?? 104) / 2,
-      w2 = (to.width ?? 104) / 2;
-    const x1 = start.x + w1,
-      x2 = endPoint.x - w2,
-      mid = (x1 + x2) / 2;
-    const bend = Math.max(
-      45,
-      Math.abs(x2 - x1) * 0.45,
-    );
-    const dy1 = portOffset(
-        ports.get(from.id) ?? [],
-        "source",
-        edge.sourceHandle,
-      ),
-      dy2 = portOffset(
-        ports.get(to.id) ?? [],
-        "target",
-        edge.targetHandle,
-      );
-    const head = portPosition(
-        from,
-        "source",
-        dy1,
-      ),
-      tail = portPosition(to, "target", dy2);
-    const knots = [
-      head,
-      ...(edge.waypoints ?? []),
-      tail,
-    ];
-    const poly = edge.waypoints?.length
-      ? polylineSampler(knots)
-      : undefined;
+    const wire = routes.get(edge);
+    if (!wire) continue;
+    const chosenWire = picked.has(original);
+    const paintDepth = (
+      id: string,
+      side: Side,
+      depth: number,
+    ) =>
+      chosenWire && !turned.get(id)?.[side]
+        ? Infinity
+        : above(id, side, depth);
+    const knots = wire.points;
+    const poly = polylineSampler(knots);
     const sample = (t: number) => {
-      const u = 1 - t,
-        blend = t * t * (3 - 2 * t);
-      const lerp = (
-        a: number,
-        b: number,
-        f: number,
-      ) => a + (b - a) * f;
-      const step = edge.route === "step",
-        straight = edge.route === "straight";
-      const f = straight
-        ? t
-        : step
-          ? Math.min(1, Math.max(0, 3 * t - 1))
-          : blend;
-      const x = straight
-        ? lerp(x1, x2, t)
-        : step
-          ? t < 1 / 3
-            ? lerp(x1, mid, 3 * t)
-            : t > 2 / 3
-              ? lerp(mid, x2, 3 * t - 2)
-              : mid
-          : u * u * u * x1 +
-            3 * u * u * t * (x1 + bend) +
-            3 * u * t * t * (x2 - bend) +
-            t * t * t * x2;
-      const y =
-        lerp(start.y + dy1, endPoint.y + dy2, f) +
-        (lanes.get(original) ?? 0) *
-          4 *
-          t *
-          (1 - t) -
-        (x2 < x1 && !straight && !step
-          ? 64 * Math.sin(Math.PI * t) ** 2
-          : 0);
-      const p = project(state.camera)(
-        poly
-          ? poly(t)
-          : {
-              x,
-              y,
-              z: lerp(head.z, tail.z, f),
-            },
-      );
+      const p = project(state.camera)(poly(t));
       return {
         ...p,
         scale: projectedScale(state.camera, p.z),
       };
     };
-    const lengths = [0];
-    if (poly)
-      knots.forEach((p, i) => {
-        const q = knots[i - 1];
-        if (q)
-          lengths.push(
-            (lengths[i - 1] ?? 0) +
-              Math.hypot(
-                p.x - q.x,
-                p.y - q.y,
-                p.z - q.z,
-              ),
-          );
-      });
-    const total =
-      lengths[lengths.length - 1] ?? 0;
-    const points =
-      poly && total > 0
-        ? lengths.map((l) => sample(l / total))
-        : Array.from({ length: 25 }, (_, i) =>
-            sample(i / 24),
-          );
+    const points = knots.map((k) => {
+      const p = project(state.camera)(k);
+      return {
+        ...p,
+        scale: projectedScale(state.camera, p.z),
+      };
+    });
     if (
       cull &&
       (points.every((p) => p.x < -64) ||
@@ -746,9 +733,14 @@ export const flowView = (
     )
       continue;
     // Coplanar samples have one painter depth; one path is sufficient.
-    const flat = points.every(
-      (p) => p.z === from.p.z,
-    );
+    const flat =
+      !turned.get(edge.source)?.[
+        wire.sourceSide
+      ] &&
+      !turned.get(edge.target)?.[
+        wire.targetSide
+      ] &&
+      points.every((p) => p.z === points[0]?.z);
     const line = flat
       ? points
           .map(
@@ -771,10 +763,9 @@ export const flowView = (
         1,
         Math.max(0, (depth + 300) / 600),
       );
-      const color =
-        active === original || edge.highlighted
-          ? "#e36731"
-          : `hsl(174 28% ${60 - fade * 38}%)`;
+      const color = edge.highlighted
+        ? "#e36731"
+        : `hsl(174 28% ${60 - fade * 38}%)`;
       const path =
         line || `M${a0.x} ${a0.y}L${b.x} ${b.y}`;
       const visible = [
@@ -798,7 +789,13 @@ export const flowView = (
         a("style", `--arc:${-offset}px`),
         a("fill", "none"),
         a("stroke", color),
-        a("stroke-width", b.scale),
+        ...(chosenWire
+          ? [a("data-chosen", "true")]
+          : []),
+        a(
+          "stroke-width",
+          b.scale * (chosenWire ? 2.4 : 1),
+        ),
         a("stroke-linecap", "round"),
       ];
       const events = [
@@ -870,7 +867,7 @@ export const flowView = (
                 prev = original.waypoints ?? [],
                 at = Math.min(
                   prev.length,
-                  nearest - 1,
+                  Math.max(0, nearest - 2),
                 );
               const next = {
                 ...original,
@@ -882,6 +879,12 @@ export const flowView = (
               };
               return some((s) => ({
                 ...s,
+                chosenEdges: [
+                  ...selectedEdges(s).filter(
+                    (e) => e !== original,
+                  ),
+                  next,
+                ],
                 activeEdge: next,
                 edges: s.edges.map((v) =>
                   v === original ? next : v,
@@ -903,7 +906,8 @@ export const flowView = (
                   e.pointerId,
                 );
                 return some((s) => ({
-                  ...s,
+                  ...selectNodes([])(s),
+                  chosenEdges: [original],
                   activeEdge: original,
                   source: none(),
                   drag: some<Drag>({
@@ -911,29 +915,66 @@ export const flowView = (
                     mode: "pan",
                     node: "",
                     last: point.content,
-                    first: point.content,
                   }),
                 }));
               }
             }
           }
-          return some((s) => ({
-            ...s,
-            activeEdge: original,
-          }));
+          return some((s) => {
+            const prev = selectedEdges(s);
+            const next = e.shiftKey
+              ? prev.includes(original)
+                ? prev.filter(
+                    (v) => v !== original,
+                  )
+                : [...prev, original]
+              : [original];
+            return chooseEdges(next)(
+              e.shiftKey ? s : selectNodes([])(s),
+            );
+          });
         }),
         onEvent<Change>("dblclick", () =>
           some(disconnect(original)),
         ),
       ];
       const hitWidth = edge.interactionWidth ?? 0;
+      const behindFace = (
+        id: string,
+        side: Side,
+      ) =>
+        chosenWire &&
+        turned.get(id)?.[side] &&
+        silhouettes
+          .get(id)
+          ?.some(
+            (face) =>
+              insideLasso(a0, face) ||
+              insideLasso(b, face),
+          );
       layers.push({
+        chosen: chosenWire,
         depth:
-          i <= 2
-            ? above(edge.source, depth - 0.01)
-            : i >= points.length - 3
-              ? above(edge.target, depth - 0.01)
-              : depth - 0.01,
+          i <= 2 ||
+          behindFace(edge.source, wire.sourceSide)
+            ? paintDepth(
+                edge.source,
+                wire.sourceSide,
+                depth - 0.01,
+              )
+            : i >= points.length - 3 ||
+                behindFace(
+                  edge.target,
+                  wire.targetSide,
+                )
+              ? paintDepth(
+                  edge.target,
+                  wire.targetSide,
+                  depth - 0.01,
+                )
+              : chosenWire
+                ? Infinity
+                : depth - 0.01,
         html:
           hitWidth > 0
             ? el("g", events, [
@@ -970,7 +1011,10 @@ export const flowView = (
       )
         continue;
       const tip = sample(atStart ? 0 : 1),
-        near = sample(atStart ? 1 / 24 : 23 / 24);
+        near =
+          points[
+            atStart ? 1 : points.length - 2
+          ] ?? tip;
       const angle =
         (Math.atan2(
           tip.y - near.y,
@@ -979,8 +1023,13 @@ export const flowView = (
           180) /
         Math.PI;
       layers.push({
-        depth: above(
+        chosen: chosenWire,
+        arrow: true,
+        depth: paintDepth(
           atStart ? edge.source : edge.target,
+          atStart
+            ? wire.sourceSide
+            : wire.targetSide,
           tip.z - 0.01,
         ),
         html: el(
@@ -991,7 +1040,7 @@ export const flowView = (
               "transform",
               `translate(${tip.x} ${tip.y}) rotate(${angle}) scale(${tip.scale})`,
             ),
-            a("points", "-5,0 -14,-4 -14,4"),
+            a("points", "0,0 -9,-4 -9,4"),
             a("fill", "#426f71"),
             a("pointer-events", "none"),
           ],
@@ -1055,6 +1104,27 @@ export const flowView = (
       });
     }
   }
+  const selectRegion = (
+    inside: (p: Point) => boolean,
+  ) => {
+    const projectPoint = project(state.camera);
+    const edges = scene.edges.flatMap(
+      ({ edge, original }) => {
+        const wire = routes.get(edge);
+        return wire &&
+          inside(projectPoint(wire.source)) &&
+          inside(projectPoint(wire.target))
+          ? [original]
+          : [];
+      },
+    );
+    return selectArea(
+      projected
+        .filter((n) => inside(n.p))
+        .map((n) => n.id),
+      edges,
+    );
+  };
   return svgViewport<Change>(
     viewport.x,
     viewport.y,
@@ -1145,6 +1215,27 @@ export const flowView = (
             ? "target"
             : "source";
         if (port) {
+          const dot = e.target.closest(
+              "[data-port]",
+            ),
+            side = dot?.getAttribute("data-side"),
+            node = lookup.get(port);
+          const socket =
+            node &&
+            (side === "left" ||
+              side === "right" ||
+              side === "top" ||
+              side === "bottom")
+              ? portPosition(
+                  node,
+                  side,
+                  Number(
+                    dot?.getAttribute(
+                      "data-offset",
+                    ),
+                  ),
+                )
+              : undefined;
           svg.setPointerCapture(e.pointerId);
           return some((s) => {
             const next = connect(
@@ -1157,6 +1248,7 @@ export const flowView = (
                   ...next,
                   drag: some<Drag>({
                     mode: "connect",
+                    ...(socket ? { socket } : {}),
                     node: port,
                     last: point.content,
                     pointer: e.pointerId,
@@ -1176,6 +1268,7 @@ export const flowView = (
               ids.includes(node)
                 ? ids.filter((id) => id !== node)
                 : [...ids, node],
+              true,
             ),
           );
         }
@@ -1183,16 +1276,16 @@ export const flowView = (
         if (e.pointerType !== "touch")
           svg.focus({ preventScroll: true });
         return some((s) => ({
-          ...s,
-          source: none(),
           ...(node &&
           !selectedNodes(s).includes(node)
             ? selectNodes([node])(s)
-            : {}),
+            : s),
+          source: none(),
           drag: some<Drag>({
             pointer: e.pointerId,
             last: point.content,
             first: point.content,
+            pressed: point.content,
             ...(!node && s.lasso
               ? { outline: [point.content] }
               : {}),
@@ -1352,12 +1445,8 @@ export const flowView = (
               const outline =
                 s.drag.content.outline ?? [];
               return name === "pointerup"
-                ? selectNodes(
-                    projected
-                      .filter((n) =>
-                        insideLasso(n.p, outline),
-                      )
-                      .map((n) => n.id),
+                ? selectRegion((p) =>
+                    insideLasso(p, outline),
                   )({ ...s, drag: none() })
                 : { ...s, drag: none() };
             }
@@ -1368,20 +1457,26 @@ export const flowView = (
               const box = s.drag.content,
                 first = box.first ?? box.last,
                 last = box.last;
-              const inside = projected.filter(
-                (n) =>
-                  n.p.x >=
-                    Math.min(first.x, last.x) &&
-                  n.p.x <=
-                    Math.max(first.x, last.x) &&
-                  n.p.y >=
-                    Math.min(first.y, last.y) &&
-                  n.p.y <=
-                    Math.max(first.y, last.y),
-              );
               return name === "pointerup"
-                ? selectNodes(
-                    inside.map((n) => n.id),
+                ? selectRegion(
+                    (p) =>
+                      p.x >=
+                        Math.min(
+                          first.x,
+                          last.x,
+                        ) &&
+                      p.x <=
+                        Math.max(
+                          first.x,
+                          last.x,
+                        ) &&
+                      p.y >=
+                        Math.min(
+                          first.y,
+                          last.y,
+                        ) &&
+                      p.y <=
+                        Math.max(first.y, last.y),
                   )({ ...s, drag: none() })
                 : { ...s, drag: none() };
             }
@@ -1429,23 +1524,30 @@ export const flowView = (
               ...geometry,
               drag: none(),
             };
-            // A click on empty ground (a pan that never
-            // moved) lets go of whatever was chosen.
             if (
               name === "pointerup" &&
-              isSome(s.drag) &&
-              s.drag.content.mode === "pan" &&
-              s.drag.content.first &&
-              Math.hypot(
-                s.drag.content.last.x -
-                  s.drag.content.first.x,
-                s.drag.content.last.y -
-                  s.drag.content.first.y,
-              ) < 4
+              isSome(s.drag)
             ) {
-              const { activeEdge, ...rest } =
-                selectNodes([])(released);
-              return rest;
+              const d = s.drag.content;
+              if (
+                d.pressed &&
+                Math.hypot(
+                  d.last.x - d.pressed.x,
+                  d.last.y - d.pressed.y,
+                ) < 4
+              ) {
+                if (d.mode === "node")
+                  return selectNodes([d.node])(
+                    released,
+                  );
+                if (
+                  d.mode === "pan" ||
+                  d.mode === "orbit"
+                )
+                  return selectNodes([])(
+                    released,
+                  );
+              }
             }
             if (
               !isSome(s.drag) ||
@@ -1666,25 +1768,25 @@ export const flowView = (
               left: Math.min(
                 b.left,
                 n.p.x -
-                  ((n.width ?? 104) * n.scale) /
+                  (nodeSize(n).width * n.scale) /
                     2,
               ),
               right: Math.max(
                 b.right,
                 n.p.x +
-                  ((n.width ?? 104) * n.scale) /
+                  (nodeSize(n).width * n.scale) /
                     2,
               ),
               top: Math.min(
                 b.top,
                 n.p.y -
-                  ((n.height ?? 36) / 2) *
+                  (nodeSize(n).height / 2) *
                     n.scale,
               ),
               bottom: Math.max(
                 b.bottom,
                 n.p.y +
-                  ((n.height ?? 36) / 2) *
+                  (nodeSize(n).height / 2) *
                     n.scale,
               ),
             }),
@@ -1777,19 +1879,15 @@ export const flowView = (
         ? (() => {
             const drag = state.drag.content,
               start = lookup.get(drag.node);
-            const portY = portOffset(
-              ports.get(drag.node) ?? [],
-              "source",
-              state.pendingHandle,
-            );
-            const socket =
-              start &&
-              projectSocket(
-                start,
-                state.camera,
-                "source",
-                portY,
-              );
+            const socket = drag.socket
+              ? project(state.camera)(drag.socket)
+              : start &&
+                projectSocket(
+                  start,
+                  state.camera,
+                  "source",
+                  0,
+                );
             return socket
               ? [
                   el(
@@ -1818,7 +1916,13 @@ export const flowView = (
         chosen,
       ),
       ...layers
-        .sort((a, b) => a.depth - b.depth)
+        .sort(
+          (a, b) =>
+            a.depth - b.depth ||
+            Number(!!a.chosen) -
+              Number(!!b.chosen) ||
+            Number(!!a.arrow) - Number(!!b.arrow),
+        )
         .map((layer) => layer.html),
       ...(active &&
       scene.edges.some(
@@ -1891,6 +1995,13 @@ export const flowView = (
                       };
                       return some((s) => ({
                         ...s,
+                        chosenEdges:
+                          selectedEdges(s).map(
+                            (e) =>
+                              e === active
+                                ? next
+                                : e,
+                          ),
                         activeEdge: next,
                         edges: s.edges.map((v) =>
                           v === active ? next : v,

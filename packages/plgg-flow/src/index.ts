@@ -6,3 +6,4 @@ export type {
   JsonValue,
   JsonObject,
 } from "plgg-flow/metadata";
+export { nodeSize } from "plgg-flow/nodeSize";

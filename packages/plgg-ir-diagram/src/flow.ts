@@ -88,6 +88,7 @@ figure{margin:0;position:relative}
 .flow-board [data-node][aria-pressed="true"] polygon{stroke-width:2.4}
 :focus:not(:focus-visible){outline:none}
 .flow-board:focus,.flow-board :focus{outline:none}
+.flow-board path.edge[stroke="#e36731"]{stroke-width:3px}
 .flow-board .world-grid{stroke:var(--trace)!important;stroke-width:.8}
 .flow-board .edge-label{paint-order:stroke;stroke:var(--paper)!important;stroke-width:5px}
 .flow-board g{cursor:grab}

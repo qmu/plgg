@@ -1567,6 +1567,36 @@ const view = (m: Model): Html<Action> => {
                         ],
                         controls(e.id, s),
                       ),
+                      ...(selected(s.flow) ||
+                      s.flow.activeEdge
+                        ? [
+                            el(
+                              "button",
+                              [
+                                attr(
+                                  "class",
+                                  "remove",
+                                ),
+                                attr(
+                                  "aria-label",
+                                  "選択を削除",
+                                ),
+                                attr(
+                                  "title",
+                                  "選択を削除（Delete）",
+                                ),
+                                onClick(
+                                  edit(
+                                    apply(
+                                      deleteSelected,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              [text("×")],
+                            ),
+                          ]
+                        : []),
                       el(
                         "button",
                         [

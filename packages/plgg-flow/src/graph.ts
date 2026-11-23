@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import { boundaryConnections } from "plgg-flow/hierarchy";
 import type { Port } from "plgg-flow/connections";
 import {
@@ -382,7 +383,7 @@ export const exposeGroupInputs = (
       for (const direction of [
         "source",
         "target",
-      ] as const)
+      ] satisfies ("source" | "target")[])
         ports.push({
           id: handle,
           direction,
@@ -415,7 +416,7 @@ export const exposeGroupInputs = (
         ...group.position,
         x:
           group.position.x -
-          (group.width ?? 104) / 2,
+          nodeSize(group).width / 2,
       },
     },
   ];

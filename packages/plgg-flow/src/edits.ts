@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   ok,
   err,
@@ -167,7 +168,7 @@ export const bindModuleTerminals = (
     for (const end of [
       "source",
       "target",
-    ] as const) {
+    ] satisfies ("source" | "target")[]) {
       const target = bindings.get(edge[end]);
       if (target === undefined) continue;
       const handle =
@@ -451,8 +452,8 @@ export const distribute = (
     spacing === "centers" || axis === "z"
       ? 0
       : axis === "x"
-        ? (n.width ?? 104)
-        : (n.height ?? 36);
+        ? nodeSize(n).width
+        : nodeSize(n).height;
   const values = new Map<string, number>();
   let start = 0;
   for (let end = 1; end < members.length; end++) {
@@ -616,6 +617,16 @@ export const renameFlowIdentity = (
           node: ref(flow.drag.content.node),
         })
       : flow.drag,
+    ...(flow.chosenEdges
+      ? {
+          chosenEdges: flow.chosenEdges.flatMap(
+            (e) =>
+              graph.edges[
+                edgeIndex(flow.edges, e)
+              ] ?? [],
+          ),
+        }
+      : {}),
     ...(edge ? { activeEdge: edge } : {}),
     ...(flow.selection
       ? { selection: flow.selection.map(ref) }
@@ -1055,7 +1066,7 @@ export const stitchDrawing = (
     for (const side of [
       "source",
       "target",
-    ] as const) {
+    ] satisfies ("source" | "target")[]) {
       const handle =
         side === "source"
           ? e.sourceHandle
