@@ -957,7 +957,7 @@ test("wire framing fits a distant bend but ignores unrelated distant cards", () 
   );
 });
 
-test("solid cards expose their back and keep edge-on sockets apart at the projected wire anchors", () => {
+test("solid cards expose their back and keep sockets on the physical side faces", () => {
   const card = n("card", 0, 0);
   const flow = createFlow({
     nodes: [card],
@@ -986,12 +986,15 @@ test("solid cards expose their back and keep edge-on sockets apart at the projec
       !body.visible.some(
         (f) => f.side === "front",
       ) &&
-      output.x - input.x > 20 &&
-      input.anchor.x === end.x &&
-      input.anchor.y === end.y &&
-      Number.isFinite(
-        projectNodeBody(card, side).caption.y,
-      ),
+      output.z !== input.z &&
+      input.x === end.x &&
+      input.y === end.y &&
+      projectNodeBody(card, side).visible.filter(
+        (f) =>
+          f.side === "left" || f.side === "right",
+      ).length === 1 &&
+      body.caption?.every(Number.isFinite) ===
+        true,
     toBe(true),
   );
 });

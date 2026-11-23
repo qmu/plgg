@@ -456,23 +456,47 @@ export const flowView = (
                   [],
                 ),
               ]),
-          solid
+          solid?.caption
             ? el(
                 "g",
                 [
                   a("data-node-caption", ""),
                   a(
                     "transform",
-                    `translate(${solid.caption.x} ${solid.caption.y})`,
+                    `matrix(${solid.caption.join(" ")})`,
                   ),
                   a("paint-order", "stroke"),
                   a("stroke", "#f7faf7"),
                   a("stroke-width", 2),
                   a("stroke-linejoin", "round"),
                 ],
-                [render(n, state)],
+                [
+                  el(
+                    "svg",
+                    [
+                      a(
+                        "x",
+                        -(n.width ?? 104) / 2,
+                      ),
+                      a(
+                        "y",
+                        -(n.height ?? 36) / 2,
+                      ),
+                      a("width", n.width ?? 104),
+                      a("height", n.height ?? 36),
+                      a(
+                        "viewBox",
+                        `${-(n.width ?? 104) / 2} ${-(n.height ?? 36) / 2} ${n.width ?? 104} ${n.height ?? 36}`,
+                      ),
+                      a("overflow", "hidden"),
+                    ],
+                    [render(n, state)],
+                  ),
+                ],
               )
-            : render(n, state),
+            : solid
+              ? el("g", [], [])
+              : render(n, state),
           ...(n.collapsed
             ? [
                 el(
@@ -501,6 +525,17 @@ export const flowView = (
               "target",
             ] satisfies Port["direction"][]
           ).flatMap((direction) => {
+            if (
+              solid &&
+              !solid.visible.some(
+                (face) =>
+                  face.side ===
+                  (direction === "source"
+                    ? "right"
+                    : "left"),
+              )
+            )
+              return [];
             if (n.connectable === false)
               return [];
             const available =
@@ -538,6 +573,35 @@ export const flowView = (
               const x =
                   (socket.x - n.p.x) / n.scale,
                 y = (socket.y - n.p.y) / n.scale;
+              // Project the socket disk onto its mounting face. Its two
+              // in-plane axes are world Z and Y, relative to the node group.
+              const world = portPosition(
+                n,
+                direction,
+                offset,
+              );
+              const at = project(state.camera);
+              const zAxis =
+                solid &&
+                at({ ...world, z: world.z + 1 });
+              const yAxis =
+                solid &&
+                at({ ...world, y: world.y + 1 });
+              const disk =
+                zAxis && yAxis
+                  ? [
+                      (zAxis.x - socket.x) /
+                        n.scale,
+                      (zAxis.y - socket.y) /
+                        n.scale,
+                      (yAxis.x - socket.x) /
+                        n.scale,
+                      (yAxis.y - socket.y) /
+                        n.scale,
+                      x,
+                      y,
+                    ]
+                  : undefined;
               const control = el<Change>(
                 "circle",
                 [
@@ -546,14 +610,22 @@ export const flowView = (
                   ...(handle === undefined
                     ? []
                     : [a("data-handle", handle)]),
-                  a("cy", y),
+                  ...(disk
+                    ? [
+                        a(
+                          "transform",
+                          `matrix(${disk.join(" ")})`,
+                        ),
+                      ]
+                    : []),
+                  a("cy", disk ? 0 : y),
                   a("tabindex", 0),
                   a("role", "button"),
                   a(
                     "aria-label",
                     n.label + " " + title,
                   ),
-                  a("cx", x),
+                  a("cx", disk ? 0 : x),
                   a("stroke", "#215f57"),
                   a(
                     "r",
@@ -572,40 +644,7 @@ export const flowView = (
                 ],
                 [el("title", [], [text(title)])],
               );
-              return socket.fan > 0
-                ? el(
-                    "g",
-                    [],
-                    [
-                      el(
-                        "line",
-                        [
-                          a(
-                            "x1",
-                            (socket.anchor.x -
-                              n.p.x) /
-                              n.scale,
-                          ),
-                          a(
-                            "y1",
-                            (socket.anchor.y -
-                              n.p.y) /
-                              n.scale,
-                          ),
-                          a("x2", x),
-                          a("y2", y),
-                          a("stroke", "#426e68"),
-                          a(
-                            "pointer-events",
-                            "none",
-                          ),
-                        ],
-                        [],
-                      ),
-                      control,
-                    ],
-                  )
-                : control;
+              return control;
             });
           }),
         ],
@@ -999,7 +1038,25 @@ export const flowView = (
     }
     const customEdgeLabel =
       registry.edgeLabels?.get(edge.type ?? "");
-    if (customEdgeLabel)
+    if (customEdgeLabel || edge.label) {
+      const spatial =
+        state.camera.pitch !== 0 ||
+        state.camera.yaw !== 0;
+      const before = sample(0.49),
+        after = sample(0.51);
+      const tangent =
+        (Math.atan2(
+          after.y - before.y,
+          after.x - before.x,
+        ) *
+          180) /
+        Math.PI;
+      const angle =
+        tangent > 90
+          ? tangent - 180
+          : tangent < -90
+            ? tangent + 180
+            : tangent;
       layers.push({
         depth: middle.z,
         html: el(
@@ -1007,25 +1064,33 @@ export const flowView = (
           [
             a(
               "transform",
-              `translate(${middle.x} ${middle.y})`,
+              `translate(${middle.x} ${middle.y})` +
+                (spatial
+                  ? ` rotate(${angle}) scale(${middle.scale})`
+                  : ""),
             ),
           ],
-          [customEdgeLabel(edge, state)],
+          customEdgeLabel
+            ? [customEdgeLabel(edge, state)]
+            : [
+                el(
+                  "text",
+                  [
+                    a("class", "edge-label"),
+                    a("text-anchor", "middle"),
+                    a("y", -8),
+                    a("paint-order", "stroke"),
+                    a("stroke", "#f7faf7"),
+                    a("stroke-width", 3),
+                    a("stroke-linejoin", "round"),
+                    a("pointer-events", "none"),
+                  ],
+                  [text(edge.label ?? "")],
+                ),
+              ],
         ),
       });
-    else if (edge.label)
-      layers.push({
-        depth: middle.z,
-        html: el(
-          "text",
-          [
-            a("class", "edge-label"),
-            a("x", middle.x),
-            a("y", middle.y - 8),
-          ],
-          [text(edge.label)],
-        ),
-      });
+    }
   }
   return svgViewport<Change>(
     viewport.x,

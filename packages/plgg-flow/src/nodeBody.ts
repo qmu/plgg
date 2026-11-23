@@ -1,5 +1,4 @@
 import {
-  facingXYPlane,
   project,
   projectedScale,
   type Camera,
@@ -54,42 +53,16 @@ export const portPosition = (
   z: node.position.z,
 });
 
-/** Near an edge-on view, fan the controls out onto two readable rails.
- * The short leader keeps each socket attached to its physical port. */
+/** Wire endpoints and sockets share a world-space attachment point. */
 export const projectSocket = (
   node: FlowNode,
   camera: Camera,
   direction: "source" | "target",
   offset: number,
-) => {
-  const at = project(camera),
-    anchor = at(
-      portPosition(node, direction, offset),
-    ),
-    c = at(node.position);
-  const scale = projectedScale(camera, c.z);
-  const fan = Math.max(
-    0,
-    1 -
-      Math.abs(
-        facingXYPlane(camera, node.position.z),
-      ) /
-        0.28,
+) =>
+  project(camera)(
+    portPosition(node, direction, offset),
   );
-  const railX =
-    c.x +
-    (direction === "source" ? 1 : -1) *
-      ((node.width ?? 104) * 0.5 + 7) *
-      scale;
-  return {
-    anchor,
-    x: anchor.x + fan * (railX - anchor.x),
-    y:
-      anchor.y +
-      fan * (c.y + offset * scale - anchor.y),
-    fan,
-  };
-};
 /** Project one closed solid. Counterclockwise screen faces are hidden.
  * Local coordinates share the viewport's translated/scaled SVG node group. */
 export const projectNodeBody = (
@@ -135,52 +108,34 @@ export const projectNodeBody = (
       ? [{ ...face, points }]
       : [];
   });
-  const front = local(
-      at({
-        ...node.position,
-        z: node.position.z + d,
-      }),
-    ),
-    back = local(
-      at({
-        ...node.position,
-        z: node.position.z - d,
-      }),
-    );
   const wide = visible.find(
     (f) =>
       f.side === "front" || f.side === "back",
   );
-  const span = wide
-    ? Math.max(...wide.points.map((p) => p.x)) -
-      Math.min(...wide.points.map((p) => p.x))
-    : 0;
-  const height = wide
-    ? Math.max(...wide.points.map((p) => p.y)) -
-      Math.min(...wide.points.map((p) => p.y))
-    : 0;
-  // Ease the caption above the silhouette as its reading surface narrows.
-  const room = Math.min(
-    1,
-    Math.max(
-      0,
-      (Math.min(
-        span / Math.max(w, 1),
-        height / 16,
-      ) -
-        0.65) /
-        0.55,
-    ),
-  );
-  const weight = room * room * (3 - 2 * room);
-  const surface =
-    front.z >= back.z ? front : back;
-  const above =
-    Math.min(...corners.map((p) => p.y)) - 10;
-  const caption = {
-    x: surface.x * weight,
-    y: above + (surface.y - above) * weight,
-  };
+  // The reverse face reads from its own left to right. Sample the local
+  // tangent axes at the face centre so perspective affects the lettering.
+  const caption =
+    wide &&
+    (() => {
+      const sign = wide.side === "front" ? 1 : -1;
+      const face = {
+        ...node.position,
+        z: node.position.z + sign * d,
+      };
+      const origin = local(at(face));
+      const x = local(
+          at({ ...face, x: face.x + sign }),
+        ),
+        y = local(at({ ...face, y: face.y + 1 }));
+      return [
+        x.x - origin.x,
+        x.y - origin.y,
+        y.x - origin.x,
+        y.y - origin.y,
+        origin.x,
+        origin.y,
+      ];
+    })();
   return {
     visible,
     caption,
