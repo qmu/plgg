@@ -860,3 +860,63 @@ Open, in order of how visible they are: `siblings-cross` 15 (mostly
 `grid5x4`, `diamonds`), `wiggly` 13 (step elbows), 9 neighbour drag
 jumps, `hugs-own-node` 4 and the `overlapping` scenario's A → B, which
 has to wrap two intersecting cards.
+
+## Round 16, second look — the speed numbers were an illusion; this is now the priority
+
+CI caught it: the spec "40 cards and 60 wires route within a frame"
+failed at its 500 ms blow-up guard. Measured locally: the step style
+takes ~800 ms for that graph. The audit had reported `slow: 0` since
+round 8 only because the router's value-keyed cache answered the
+audit's repeated timing calls. The audit's timing was the reviewer's
+flaw and is fixed:
+
+- `slow-cold`: each timing run shifts every node slightly, so nothing
+  can be remembered. Budget `max(30, 1.0 × edges)` ms; severe above 4×.
+- `slow-drag`: every frame of the drag sweeps is timed (one node moves
+  2–4 units per frame — exactly what an editor does). Budget 8 ms at
+  the 90th percentile; severe above 32 ms. Step sweeps are now run too
+  (one short sweep per scenario while it is this slow).
+- New scenario `big40x60` (40 cards, 60 wires).
+
+Measured on the committed round 16:
+
+| | curve | step |
+|---|---|---|
+| cold, worst | 63 ms (`grid5x4`) | 1032 ms (`hub`), 890 (`layered`), 525 (`grid5x4`) |
+| drag frame p90, median over scenarios | 16 ms | 229 ms |
+| drag frame p90, worst | 76 ms (`grid5x4`) | 1345 ms (`layered`) |
+
+`TOTAL sev3 36` (all `slow-*`), `slow-drag` 65, `slow-cold` 19.
+Dragging a node in the step style is unusable, and in the curve style
+it stutters. Nothing else matters until this is fixed.
+
+**What to do**
+
+1. **Profile first** (`node --cpu-prof` on a script that routes
+   `layered`, `hub` and `big40x60` in step style and replays a drag);
+   fix what the profile shows, not what seems likely. Suspects: lane
+   nesting or crossing repair doing pairwise work over ALL wires
+   (should be per channel component, and pairwise only within one
+   channel); re-sampling dense polylines inside loops; A* without a
+   spatial index or rebuilding the grid per wire; splines re-fitted
+   repeatedly; `Array.includes`/`find` in hot loops; JSON/string keys
+   built per call.
+2. **Algorithmic bounds to hold**: with N nodes, E wires, and K wires
+   in the busiest channel — obstacle index built once per graph
+   O(N log N); each base path O(grid-local) with no dependence on E;
+   lane and fan ordering O(K log K) per channel/socket, plus adjacent-
+   swap repair bounded by a small constant number of passes; emitting
+   points O(length).
+3. **Incremental drags**: memoise per wire on the VALUES it depends on
+   (its two nodes' boxes and sides, the boxes intersecting its
+   corridor); memoise layer 2 per channel component on the base paths
+   in it. Moving one node then recomputes only the base paths whose
+   key changed and only the components those wires belong to. Keep it
+   pure (value keys only; bounded size, e.g. LRU of a few thousand
+   entries).
+4. No quality regression: static moderate stays ≤ 55, the drag-jump
+   kinds no worse, zero kinds stay zero.
+
+Acceptance: zero `slow-cold` and zero `slow-drag` in every scenario and
+both styles (so `TOTAL sev3 0`); `big40x60 · step` cold ≤ 60 ms; the
+spec's 500 ms guard passes with a wide margin on a slow machine.
