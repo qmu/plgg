@@ -84,20 +84,26 @@ export const navigationInitScript: SoftStr =
   "var s=ps().get(Q);if(s){p.push(Q+'='+pct(s));}" +
   "return window.location.pathname+(p.length?'?'+p.join('&'):'');}" +
   "function strip(){return document.querySelector('['+S+']');}" +
+  // the site's base path: a column names its route
+  // relative to the site root, the address bar does not
+  "var B=(function(){var h=document.querySelector('['+C+']');" +
+  "var a=h?h.getAttribute(C)||'':'';var p=window.location.pathname;" +
+  "return a&&p.length>a.length&&p.slice(p.length-a.length)===a" +
+  "?p.slice(0,p.length-a.length):'';})();" +
   "function cols(){return document.querySelectorAll('['+C+']');}" +
   // drop every column to the right of `at`. The strip is
   // what you are reading now, not a log of everywhere you
   // have been: opening from a middle column closes what
   // stood beyond it.
   "function truncate(at){var c=cols();" +
-  "for(var i=c.length-1;i>at;i--){c[i].remove();}}" +
+  "for(var i=c.length-1;i>at;i--){c[i].remove();}sync();}" +
   // place a fetched column immediately after the one it
   // was opened from, so whatever else the strip holds (a
   // chrome rail, a nav column) keeps its position
   "function place(node,at){var c=cols();var prev=c[at];" +
   "prev.parentNode.insertBefore(node,prev.nextSibling);" +
   "node.scrollIntoView({inline:'end',block:'nearest'});" +
-  "showMark(node);}" +
+  "showMark(node);sync();}" +
   // put a column's highlighted passage under the reader's
   // eyes. The mark is server-rendered — it exists only
   // because the quotation located in the document exactly
@@ -160,7 +166,7 @@ export const navigationInitScript: SoftStr =
   // route showing the wrong passage is a different column.
   "function current(){var c=cols();var out=[];" +
   "for(var i=0;i<c.length;i++){out.push(entryOf(" +
-  "c[i].getAttribute(C),c[i].getAttribute(P)||''));}return out;}" +
+  "B+c[i].getAttribute(C),c[i].getAttribute(P)||''));}return out;}" +
   // WHAT THE URL SAYS: the head (this page) then the rest.
   "function target(){var s=ps().get(Q);" +
   "return [entryOf(window.location.pathname,s||'')].concat(entries());}" +
@@ -183,15 +189,52 @@ export const navigationInitScript: SoftStr =
   "return fetchCol(routeOf(e),spanOf(e)).then(function(col){" +
   "place(col,at);return step();});};" +
   "return step().catch(function(){window.location.reload();});}" +
+  // CLOSE a column and everything beyond it
+  "function fold(at){truncate(at-1);" +
+  "window.history.pushState(null,'',urlFor(entries().slice(0,at-1)));}" +
+  "function titleOf(c){var h=c.querySelector('h1');" +
+  "return (h?h.textContent:c.getAttribute(C)||'').trim();}" +
+  // KEEP THE CHROME HONEST: every column past the head
+  // gets a close control, the trail lists what is open,
+  // and the sidebar marks the column read last.
+  "function sync(){var c=cols();" +
+  "for(var i=0;i<c.length;i++){(function(col,i){" +
+  "var b=col.querySelector(':scope>.pm-fold');" +
+  "if(i===0){if(b){b.remove();}return;}" +
+  "if(!b){b=document.createElement('button');b.type='button';" +
+  "b.className='pm-fold';b.setAttribute('aria-label','この列を閉じる');" +
+  "b.textContent='\u00d7';col.insertBefore(b,col.firstChild);}" +
+  "b.onclick=function(){fold(columnOf(col));};})(c[i],i);}" +
+  "var s=strip();if(!s){return;}" +
+  "var t=document.querySelector('.pm-trail');" +
+  "if(c.length<2){if(t){t.remove();}}else{" +
+  "if(!t){t=document.createElement('nav');t.className='pm-trail';" +
+  "t.setAttribute('aria-label','開いている列');" +
+  "s.parentNode.insertBefore(t,s);}t.textContent='';" +
+  "for(var j=0;j<c.length;j++){(function(col,j){" +
+  "var a=document.createElement('button');a.type='button';" +
+  "a.textContent=titleOf(col);" +
+  "if(j===c.length-1){a.setAttribute('aria-current','true');}" +
+  "a.onclick=function(){col.scrollIntoView({inline:'nearest',block:'nearest'});};" +
+  "t.appendChild(a);})(c[j],j);}}" +
+  "var r=B+(c.length?c[c.length-1].getAttribute(C)||'':'');" +
+  "var ls=document.querySelectorAll('a[href]');" +
+  "for(var m=0;m<ls.length;m++){var l=ls[m];" +
+  "if(columnOf(l)>=0||!l.closest('nav')){continue;}" +
+  "if(l.pathname===r){l.setAttribute('aria-current','page');}" +
+  "else if(l.getAttribute('aria-current')==='page'){l.removeAttribute('aria-current');}}}" +
   "window.addEventListener('popstate',function(){reconcile();});" +
   // on a hard load of a composition URL, the marks are
   // already in the markup: put each column on its own.
   "for(var k=0;k<cols().length;k++){showMark(cols()[k]);}" +
+  // a static host renders only the head: open the rest
+  "(function(){var t=target(),c=current();" +
+  "if(c.length&&t[0]===c[0]&&t.length>c.length){reconcile();}else{sync();}})();" +
   "document.addEventListener('click',function(ev){" +
   "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
   "var at=columnOf(a);if(at<0){return;}" +
   "ev.preventDefault();openFrom(at,a.pathname);});" +
-  `window[${q(navHookName)}]={open:open,openFrom:openFrom,urlFor:urlFor,entries:entries,entryOf:entryOf,columnOf:columnOf,claims:claims,current:current,target:target,reconcile:reconcile};` +
+  `window[${q(navHookName)}]={open:open,openFrom:openFrom,urlFor:urlFor,entries:entries,entryOf:entryOf,columnOf:columnOf,claims:claims,current:current,target:target,reconcile:reconcile,fold:fold};` +
   "})();";
 
 /**

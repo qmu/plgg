@@ -79,7 +79,8 @@ main{scroll-behavior:smooth}
 body.vp{
   margin:0;
   font-family:"Inter",ui-sans-serif,system-ui,
-    -apple-system,"Segoe UI",sans-serif,
+    -apple-system,"Segoe UI","Hiragino Sans",
+    "Noto Sans JP",sans-serif,
     "Apple Color Emoji","Segoe UI Emoji";
   font-size:16px;line-height:1.7;
   color:${cvar("text")};
@@ -653,6 +654,32 @@ html.dark .vp-doc pre code{background:none}
   letter-spacing:-0.02em;
 }
 .vp-doc iframe{display:block;margin:1.25rem 0}
+/* opened columns close from their own corner; the trail
+   names every open column and jumps to it */
+.vp-app .pm-col{position:relative}
+.pm-fold{
+  position:absolute;top:0.9rem;right:0.9rem;z-index:6;
+  width:2rem;height:2rem;border:1px solid ${cvar("border")};
+  background:${cvar("surface")};color:${cvar("text")};
+  font:inherit;font-size:1.1rem;line-height:1;cursor:pointer;
+}
+.pm-fold:hover,.pm-fold:focus-visible{
+  background:${cvar("text")};color:${cvar("surface")};
+}
+.pm-trail{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  display:flex;gap:0;overflow-x:auto;
+  background:${cvar("surface")};
+  border-top:1px solid ${cvar("border")};
+  font-size:0.8rem;
+}
+.pm-trail button{
+  flex:none;border:0;border-right:1px solid ${cvar("border")};
+  background:none;color:inherit;font:inherit;
+  padding:0.5rem 1rem;cursor:pointer;white-space:nowrap;
+}
+.pm-trail button[aria-current]{font-weight:700}
+.pm-trail button:hover{background:${cvar("border")}}
 @media ${maxWidth("lg")}{
   .vp-app .pm-col{border-right:0}
   .vp-content{width:100%}
