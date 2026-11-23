@@ -120,6 +120,31 @@ export const planPorts = (
           0.26 * Math.hypot(dx, dy))
     )
       side = facing(dx, dy);
+    // A near-diagonal step leaf can lose an elbow along the card's long axis.
+    if (
+      edge.route === "step" &&
+      node !== peer &&
+      (degrees.get(key(node.id, true)) ?? 0) +
+        (degrees.get(key(node.id, false)) ??
+          0) ===
+        1
+    ) {
+      const wall = box(node);
+      const horizontal =
+        wall.r - wall.l >= wall.b - wall.t;
+      if (
+        Math.min(Math.abs(dx), Math.abs(dy)) >=
+        0.97 *
+          Math.max(Math.abs(dx), Math.abs(dy))
+      )
+        side = horizontal
+          ? dx > 0
+            ? "right"
+            : "left"
+          : dy > 0
+            ? "bottom"
+            : "top";
+    }
     return {
       node,
       peer,
@@ -201,43 +226,115 @@ export const planPorts = (
                   2,
             ) < 8,
         );
+      const between = row.filter(
+        (n) =>
+          (n.position[along] -
+            node.position[along]) *
+            (n.position[along] -
+              peer.position[along]) <
+          0,
+      );
+      const narrow = between.some((n) => {
+        const wall = box(n);
+        return (
+          gap(
+            node.position,
+            peer.position,
+            wall,
+          ) === 0 &&
+          Math.max(
+            Math.abs(
+              n.position[along] -
+                node.position[along],
+            ),
+            Math.abs(
+              n.position[along] -
+                peer.position[along],
+            ),
+          ) <
+            (along === "x"
+              ? q.r - q.l
+              : q.b - q.t) +
+              34
+        );
+      });
       if (
         (!regular &&
+          !narrow &&
           row.length < 4 &&
           (along !== "y" || span > 200)) ||
         Math.abs(
           peer.position[across] -
             node.position[across],
         ) > 8 ||
-        !row.some(
-          (n) =>
-            n !== node &&
-            n !== peer &&
-            !n.group &&
-            Math.abs(
-              n.position[across] -
-                node.position[across],
-            ) < 12 &&
-            (n.position[along] -
-              node.position[along]) *
-              (n.position[along] -
-                peer.position[along]) <
-              0,
-        )
+        !between.length
       )
         continue;
       if (
+        !narrow &&
         span <
-        spacing * (along === "y" ? 1.2 : 1.5)
+          spacing * (along === "y" ? 1.2 : 1.5)
       )
         continue;
       const forward =
         peer.position[along] >
         node.position[along];
-      const even =
-        Math.round(span / spacing) % 2 === 0;
-      const positive =
-        (start === forward) === even;
+      // Put skips from the head of a row on one flank and interior skips on the other.
+      const low = Math.min(
+        node.position[along],
+        peer.position[along],
+      );
+      const vicinity = [...nodes.values()].filter(
+        (n) =>
+          !n.group &&
+          n.position[along] >=
+            low - 2.5 * spacing &&
+          n.position[along] <=
+            low + span + 2.5 * spacing &&
+          Math.abs(
+            n.position[across] -
+              node.position[across],
+          ) <
+            spacing * 3,
+      );
+      const inRow =
+        vicinity.filter(
+          (n) =>
+            Math.abs(
+              n.position[across] -
+                node.position[across],
+            ) > 12,
+        ).length <= 1;
+      const even = inRow
+        ? !vicinity.some(
+            (n) => n.position[along] < low - 8,
+          )
+        : Math.round(span / spacing) % 2 === 0;
+      const flank = vicinity.filter(
+        (n) =>
+          n.position[along] > low &&
+          n.position[along] < low + span &&
+          Math.abs(
+            n.position[across] -
+              node.position[across],
+          ) < spacing,
+      );
+      if (
+        flank.some(
+          (n) =>
+            n.position[across] <
+            node.position[across] - 36,
+        ) &&
+        flank.some(
+          (n) =>
+            n.position[across] >
+            node.position[across] + 36,
+        )
+      )
+        continue;
+      const positive = narrow
+        ? along === "x"
+        : (start === forward) === even;
 
       Object.assign(end, {
         side:
@@ -312,7 +409,8 @@ export const planPorts = (
         .filter(
           (k) =>
             dx * normal[k].x + dy * normal[k].y >=
-              0 && clear(k),
+              -0.25 * Math.hypot(dx, dy) &&
+            clear(k),
         )
         .sort(
           (a, b) =>

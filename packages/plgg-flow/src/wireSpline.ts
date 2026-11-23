@@ -129,6 +129,11 @@ export const fitCurves = (
           : 0),
       0,
     );
+    const backwards =
+      (t.x - s.x) * normal[s.side].x +
+        (t.y - s.y) * normal[s.side].y <
+        0 && s.side !== t.side;
+    const span = distance(s, t);
     const current = required(contours[i]);
     const foreign = boxes.filter(
       (q) =>
@@ -449,7 +454,17 @@ export const fitCurves = (
           ),
         );
       }
+      // A backward-facing socket needs room to turn without widening the detour.
+      const retreat = backwards
+        ? Math.max(
+            0,
+            ...contour.path.map(
+              (p) => distance(p, t) - span - 20,
+            ),
+          )
+        : 0;
       const shape =
+        retreat * 16 +
         Math.max(0, drift - 4) * 2.5 +
         Math.max(0, 7 - clearance) * 8 +
         Math.max(0, peak - 0.46) * 45 +

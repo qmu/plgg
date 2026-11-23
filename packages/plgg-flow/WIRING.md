@@ -820,3 +820,43 @@ Acceptance: `TOTAL sev3 0`; static moderate ≤ 55; `drag-jump` ≤ 3;
 Note on specs: wall-clock assertions in `wiring.spec.ts` were loosened
 to blow-up guards by the reviewer (CI runners are slow; eight commits
 went red on a 15 ms assertion). Keep time budgets in the audit only.
+
+## Round 15 review — adopted; the step hub regressed in looks
+
+`sev3 0`, static moderate 72, `drag-jump` 3, `drag-jump-neighbour` 10.
+Step wedges are gone (`microservices · step` is clean and orthogonal).
+
+One visible regression the numbers under-report — `hub · step`: twelve
+wires arriving at Hub's left socket now pile into a narrow vertical
+trunk a few units apart right in front of the socket, with jogs
+(in4/in5/in6/in7) and crossings (in0, in9, in10). The bus rule was
+right for the *stem* but wrong for the approach. The rule for a step
+fan with many wires, stated fully:
+
+- The shared stem is short (≤ 14) and straight.
+- Each wire then has exactly ONE vertical run (for a left/right socket)
+  in its own lane, and the lanes NEST: the wire whose far end is
+  farthest above the socket takes the lane farthest from the node,
+  the next one the next lane inward, and so on; same below, mirrored.
+  The wire level with the socket goes straight in. Lane pitch 10
+  (compress toward 6 when the gap to the nearest far-end node is too
+  small). Result: concentric L-shapes, zero crossings, no jogs — what
+  the `fanIn` toy fixture has always looked like.
+- A wire's horizontal run from its far end meets its lane with one
+  corner. No second jog unless a node blocks the run.
+
+Also still open: `siblings-cross` 24, `wiggly` 15,
+`more-crossings-than-straight` 11, `runs-too-close` 5, `grazes-node` 5,
+`hugs-own-node` 4, `kink` 3, `double-cross` 3.
+
+Acceptance: `TOTAL sev3 0`; static moderate ≤ 50; `hub · step` and
+`hub · curve` with zero sev2; drag kinds no worse (3 / 10).
+
+## Round 16 review — adopted
+
+`sev3 0`; static moderate 48; `hub` clean in both styles (concentric
+L-shapes, zero crossings); `drag-jump` 3, `drag-jump-neighbour` 9.
+Open, in order of how visible they are: `siblings-cross` 15 (mostly
+`grid5x4`, `diamonds`), `wiggly` 13 (step elbows), 9 neighbour drag
+jumps, `hugs-own-node` 4 and the `overlapping` scenario's A → B, which
+has to wrap two intersecting cards.

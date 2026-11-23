@@ -206,6 +206,42 @@ const softCorridor = (
   }
   if (!bands.length)
     return rise ? undefined : [s, t];
+  // A single smooth arch can clear several cards on the same level.
+  if (Math.abs(rise) < 1 && bands.length > 1) {
+    const arch = (x: number) => {
+      const wave =
+        Math.sin(
+          (Math.PI * (x - low)) / (high - low),
+        ) ** 2;
+      return (
+        0.4 * wave + (0.6 * wave) / (0.03 + wave)
+      );
+    };
+    const dir = Math.sign(
+      required(bands[0]).push,
+    );
+    if (bands.every((b) => dir * b.push > 0)) {
+      const height = Math.max(
+        ...bands.map(
+          (b) =>
+            (dir * b.push) /
+            Math.min(arch(b.left), arch(b.right)),
+        ),
+      );
+      if (height < 90)
+        return Array.from(
+          { length: 65 },
+          (_, i) => {
+            const x =
+              s[along] + (advance * i) / 64;
+            const y =
+              baseline(x) +
+              dir * height * arch(x);
+            return upright ? pt(y, x) : pt(x, y);
+          },
+        );
+    }
+  }
   const coords = new Set([low, high]);
   for (const band of bands) {
     coords.add(band.left);

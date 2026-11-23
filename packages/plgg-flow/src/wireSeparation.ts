@@ -1,3 +1,4 @@
+import { nestedFans } from "plgg-flow/wireNestedFans";
 import { shortcuts } from "plgg-flow/wireShortcuts";
 import { mendFans } from "plgg-flow/wireFanRepair";
 import { fitCurves } from "plgg-flow/wireSpline";
@@ -2146,7 +2147,7 @@ export const separate = (
         : w;
     });
   }
-  if (wires.every((w) => w.edge.route === "step"))
-    return wires;
-  return fitCurves(wires, bases, boxes);
+  if (wires.some((w) => w.edge.route !== "step"))
+    wires = fitCurves(wires, bases, boxes);
+  return nestedFans(wires, ports, boxes, radius);
 };

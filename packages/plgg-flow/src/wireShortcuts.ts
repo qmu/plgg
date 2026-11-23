@@ -90,6 +90,37 @@ export const shortcuts = (
       lo = Math.min(a, b),
       hi = Math.max(a, b);
 
+    // A card across both approaches can be bypassed along either clear face.
+    for (const wall of clear) {
+      if (
+        wall.id === source ||
+        wall.id === target
+      )
+        continue;
+      const near = v ? wall.t : wall.l,
+        far = v ? wall.b : wall.r;
+      const low = v ? wall.l : wall.t,
+        high = v ? wall.r : wall.b;
+      if (
+        near <= lo ||
+        far >= hi ||
+        low > Math.max(s[across], t[across]) ||
+        high < Math.min(s[across], t[across])
+      )
+        continue;
+      for (const level of [low, high]) {
+        const first = { ...s, [axis]: a },
+          last = { ...t, [axis]: b };
+        add([
+          s,
+          first,
+          { ...first, [across]: level },
+          { ...last, [across]: level },
+          last,
+          t,
+        ]);
+      }
+    }
     const stops = new Set([lo, hi]);
     for (const q of clear) {
       if (

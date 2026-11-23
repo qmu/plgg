@@ -1052,3 +1052,90 @@ test("parallel step wires turn across the bus at both sockets", () => {
     ),
   ]);
 });
+
+test("dense step fans keep one transverse lane per branch on every face", () =>
+  all(
+    [false, true].flatMap((upright) =>
+      [-1, 1].flatMap((sign) =>
+        [false, true].map((incoming) => {
+          const hub = node("hub", 0, 0);
+          const leaves = Array.from(
+            { length: 9 },
+            (_, i) => {
+              const level = (i - 4) * 112,
+                depth =
+                  sign * (780 + (i % 2) * 160);
+              return node(
+                String(i),
+                upright ? level : depth,
+                upright ? depth : level,
+              );
+            },
+          );
+          const graph = {
+            nodes: [hub, ...leaves],
+            edges: leaves.map(
+              (leaf) =>
+                ({
+                  ...link(
+                    incoming ? leaf.id : hub.id,
+                    incoming ? hub.id : leaf.id,
+                  ),
+                  route: "step",
+                }) satisfies Edge,
+            ),
+          };
+          const wires = wireGraph(graph);
+          const along = upright ? "y" : "x",
+            across = upright ? "x" : "y";
+          const depths = wires.map((w) => {
+            const root = incoming
+              ? w.target
+              : w.source;
+            const lanes = new Set<number>();
+            for (const [
+              i,
+              p,
+            ] of w.points.entries()) {
+              const q = w.points[i - 1];
+              if (
+                q &&
+                Math.abs(q[along] - p[along]) <
+                  0.000001 &&
+                Math.abs(q[across] - p[across]) >
+                  0.000001
+              )
+                lanes.add(
+                  Math.round(
+                    Math.abs(
+                      p[along] - root[along],
+                    ),
+                  ),
+                );
+            }
+            return [...lanes];
+          });
+          return all([
+            check(
+              wireMetrics(graph, wires).crossings,
+              toBe(0),
+            ),
+            check(
+              depths,
+              toEqual([
+                [14],
+                [24],
+                [34],
+                [44],
+                [],
+                [44],
+                [34],
+                [24],
+                [14],
+              ]),
+            ),
+          ]);
+        }),
+      ),
+    ),
+  ));
