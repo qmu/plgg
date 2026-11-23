@@ -39,6 +39,12 @@ export {
   themeToggleCss,
 } from "plggmatic/Component/usecase/themeToggle";
 export {
+  colClass,
+  foldClass,
+  trailClass,
+  selector,
+} from "plggmatic/Meta/model/classHooks";
+export {
   type Theme,
   defaultTheme,
   type Color,

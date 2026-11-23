@@ -2,6 +2,10 @@ import { type SoftStr } from "plgg";
 import {
   type Theme,
   themeToggleClass,
+  colClass,
+  foldClass,
+  trailClass,
+  selector,
   colorVar,
   metricVar,
   maxWidth,
@@ -629,7 +633,7 @@ html.dark .vp-doc pre code{background:none}
    a reader always sees which page each track holds. Page
    columns are sized so two sit side by side on a desktop;
    a lone page column keeps the full reading measure. */
-.vp-app .pm-col{
+.vp-app ${selector(colClass)}{
   border-right:1px solid ${cvar("border")};
 }
 .vp-wordmark{
@@ -656,32 +660,32 @@ html.dark .vp-doc pre code{background:none}
 .vp-doc iframe{display:block;margin:1.25rem 0}
 /* opened columns close from their own corner; the trail
    names every open column and jumps to it */
-.vp-app .pm-col{position:relative}
-.pm-fold{
+.vp-app ${selector(colClass)}{position:relative}
+${selector(foldClass)}{
   position:absolute;top:0.9rem;right:0.9rem;z-index:6;
   width:2rem;height:2rem;border:1px solid ${cvar("border")};
   background:${cvar("surface")};color:${cvar("text")};
   font:inherit;font-size:1.1rem;line-height:1;cursor:pointer;
 }
-.pm-fold:hover,.pm-fold:focus-visible{
+${selector(foldClass)}:hover,${selector(foldClass)}:focus-visible{
   background:${cvar("text")};color:${cvar("surface")};
 }
-.pm-trail{
+${selector(trailClass)}{
   position:fixed;left:0;right:0;bottom:0;z-index:40;
   display:flex;gap:0;overflow-x:auto;
   background:${cvar("surface")};
   border-top:1px solid ${cvar("border")};
   font-size:0.8rem;
 }
-.pm-trail button{
+${selector(trailClass)} button{
   flex:none;border:0;border-right:1px solid ${cvar("border")};
   background:none;color:inherit;font:inherit;
   padding:0.5rem 1rem;cursor:pointer;white-space:nowrap;
 }
-.pm-trail button[aria-current]{font-weight:700}
-.pm-trail button:hover{background:${cvar("border")}}
+${selector(trailClass)} button[aria-current]{font-weight:700}
+${selector(trailClass)} button:hover{background:${cvar("border")}}
 @media ${maxWidth("lg")}{
-  .vp-app .pm-col{border-right:0}
+  .vp-app ${selector(colClass)}{border-right:0}
   .vp-content{width:100%}
   .vp-app:not(:has(.vp-content ~ .vp-content)) .vp-content{
     width:100%;

@@ -89,6 +89,8 @@ export {
   cssVar,
   cssVarRef,
   selector,
+  foldClass,
+  trailClass,
 } from "plggmatic/Meta/model/classHooks";
 export {
   type PaneRole,

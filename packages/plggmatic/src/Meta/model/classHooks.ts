@@ -40,6 +40,13 @@ export const rowClass: SoftStr = hook("row");
 export const colClass: SoftStr = hook("col");
 export const paneClass: SoftStr = hook("pane");
 
+// --- Strip chrome (Navigate/usecase/navigationScript) ---
+
+/** A placed column's close control. */
+export const foldClass: SoftStr = hook("fold");
+/** The row naming every open column. */
+export const trailClass: SoftStr = hook("trail");
+
 // --- Appearance toggle (Component/usecase/themeToggle) ---
 
 export const themeToggleClass: SoftStr = hook(

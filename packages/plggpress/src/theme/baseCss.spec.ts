@@ -8,6 +8,8 @@ import {
 import {
   colorVar,
   metricVar,
+  colClass,
+  selector,
 } from "plggpress/themeSupport/styleEntry";
 import { baseCss } from "plggpress/theme/baseCss";
 import { defaultTheme } from "plggpress/themeSupport/styleEntry";
@@ -310,7 +312,9 @@ test("every column of the strip is a ruled track", () =>
     check(
       css,
       toContain(
-        ".vp-app .pm-col{\n  border-right:1px solid " +
+        ".vp-app " +
+          selector(colClass) +
+          "{\n  border-right:1px solid " +
           cvar("border"),
       ),
     ),

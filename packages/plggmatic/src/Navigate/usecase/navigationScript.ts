@@ -6,6 +6,10 @@ import {
   navHookName,
 } from "plggmatic/Navigate/model/marker";
 import {
+  foldClass,
+  trailClass,
+} from "plggmatic/Meta/model/classHooks";
+import {
   restParam,
   spanParam,
   entrySeparator,
@@ -55,6 +59,7 @@ const q = (value: SoftStr): SoftStr =>
 export const navigationInitScript: SoftStr =
   "(function(){" +
   `var S=${q(stripAttr)},C=${q(columnAttr)},P=${q(spanAttr)};` +
+  `var FC=${q(foldClass)},TC=${q(trailClass)};` +
   `var R=${q(restParam)},Q=${q(spanParam)};` +
   `var E=${q(escapeChar)},N=${q(entrySeparator)},F=${q(fieldSeparator)};` +
   // escape one field so a route or a quoted passage can
@@ -199,16 +204,16 @@ export const navigationInitScript: SoftStr =
   // and the sidebar marks the column read last.
   "function sync(){var c=cols();" +
   "for(var i=0;i<c.length;i++){(function(col,i){" +
-  "var b=col.querySelector(':scope>.pm-fold');" +
+  "var b=col.querySelector(':scope>.'+FC);" +
   "if(i===0){if(b){b.remove();}return;}" +
   "if(!b){b=document.createElement('button');b.type='button';" +
-  "b.className='pm-fold';b.setAttribute('aria-label','この列を閉じる');" +
+  "b.className=FC;b.setAttribute('aria-label','この列を閉じる');" +
   "b.textContent='\u00d7';col.insertBefore(b,col.firstChild);}" +
   "})(c[i],i);}" +
   "var s=strip();if(!s){return;}" +
-  "var t=document.querySelector('.pm-trail');" +
+  "var t=document.querySelector('.'+TC);" +
   "if(c.length<2){if(t){t.remove();}}else{" +
-  "if(!t){t=document.createElement('nav');t.className='pm-trail';" +
+  "if(!t){t=document.createElement('nav');t.className=TC;" +
   "t.setAttribute('aria-label','開いている列');" +
   "s.parentNode.insertBefore(t,s);}t.textContent='';" +
   "for(var j=0;j<c.length;j++){(function(col,j){" +
@@ -233,9 +238,9 @@ export const navigationInitScript: SoftStr =
   "document.addEventListener('click',function(ev){" +
   // the chrome this runtime adds answers through the one
   // delegated listener, never an inline handler
-  "var t=ev.target;var fb=t&&t.closest?t.closest('.pm-fold'):null;" +
+  "var t=ev.target;var fb=t&&t.closest?t.closest('.'+FC):null;" +
   "if(fb){ev.preventDefault();fold(columnOf(fb));return;}" +
-  "var tb=t&&t.closest?t.closest('.pm-trail [data-col]'):null;" +
+  "var tb=t&&t.closest?t.closest('.'+TC+' [data-col]'):null;" +
   "if(tb){var cc=cols()[Number(tb.getAttribute('data-col'))];" +
   "if(cc){cc.scrollIntoView({inline:'nearest',block:'nearest'});}return;}" +
   "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
