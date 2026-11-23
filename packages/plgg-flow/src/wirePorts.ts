@@ -206,7 +206,7 @@ export const planPorts = (
     a: end(edge, true),
     b: end(edge, false),
   }));
-  if (rowAxis) {
+  if (rowAxis && !previous) {
     const skips = plans
       .map(({ a, b }) => {
         const from = required(
@@ -229,8 +229,10 @@ export const planPorts = (
     // Minimise interleaving spans and opposing uses of a socket on each bank.
     const weights = skips.map((p) =>
       skips.map((q) => {
-        if (p.to === q.from || p.from === q.to)
+        if (p.lo === q.lo && p.hi === q.hi)
           return 100;
+        if (p.to === q.from || p.from === q.to)
+          return 6;
         if (p.hi <= q.lo || q.hi <= p.lo)
           return 0;
         if (
@@ -275,6 +277,41 @@ export const planPorts = (
       }
       if (!change) break;
     }
+    // Joint flips can resolve interleavings that a single-bank flip cannot improve.
+    if (skips.length <= 12) {
+      let best =
+        banks.reduce(
+          (sum, bank, i) => sum + cost(i, bank),
+          0,
+        ) / 2;
+      const assignment: number[] = [0];
+      const choose = (
+        i: number,
+        total: number,
+      ) => {
+        if (total >= best) return;
+        if (i === skips.length) {
+          best = total;
+          banks.splice(
+            0,
+            banks.length,
+            ...assignment,
+          );
+          return;
+        }
+        for (const side of [0, 1]) {
+          let next = total;
+          for (let j = 0; j < i; j++)
+            if (assignment[j] === side)
+              next += required(
+                required(weights[i])[j],
+              );
+          assignment[i] = side;
+          choose(i + 1, next);
+        }
+      };
+      if (skips.length > 1) choose(1, 0);
+    }
     skips.forEach(({ a, b }, i) => {
       a.side = b.side =
         rowAxis === "y"
@@ -299,10 +336,47 @@ export const planPorts = (
           !boxes.some(
             (q) =>
               q.id !== end.node.id &&
-              cuts(p, move(p, side, 16), q),
+              cuts(p, move(p, side, 1), q),
           )
         )
           end.side = side;
+        else {
+          // When the old stem closes, keep the replacement close to the visible wire.
+          let best = Infinity;
+          for (const face of sides) {
+            const socket = portPosition(
+              end.node,
+              face,
+              0,
+            );
+            if (
+              boxes.some(
+                (q) =>
+                  q.id !== end.node.id &&
+                  cuts(
+                    socket,
+                    move(socket, face, 16),
+                    q,
+                  ),
+              )
+            )
+              continue;
+            let gap = Infinity;
+            for (const sample of w.points)
+              gap = Math.min(
+                gap,
+                distance(sample, socket),
+              );
+            const cost =
+              gap +
+              0.25 * distance(socket, p) +
+              (face === end.side ? 0 : 4);
+            if (cost < best) {
+              best = cost;
+              end.side = face;
+            }
+          }
+        }
       }
     });
   }
@@ -327,6 +401,7 @@ export const planPorts = (
       entries.some((x) => x.start) &&
       entries.some((x) => !x.start);
     if (
+      !previous &&
       !rowAxis &&
       mixed &&
       entries.some((x) =>
@@ -358,11 +433,7 @@ export const planPorts = (
             )
               ? 1000
               : 0) +
-            (end.side === side
-              ? 0
-              : previous
-                ? 32
-                : 1) -
+            (end.side === side ? 0 : 1) -
             (dx * normal[side].x +
               dy * normal[side].y) /
               (Math.hypot(dx, dy) || 1)

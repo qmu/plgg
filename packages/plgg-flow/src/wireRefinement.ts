@@ -1,3 +1,4 @@
+import { search } from "plgg-flow/wireSearch";
 import type { Point } from "plgg-board";
 import type { FlowNode } from "./model";
 import type { Wire } from "./wiring";
@@ -55,31 +56,6 @@ export const refine = (
   const padded = boxes.map((q) =>
     inflate(q, Math.min(clearance, 6)),
   );
-  const occupied = new Map<string, number>();
-  const socketKey = (
-    id: string,
-    side: Side,
-    start: boolean,
-  ) => id + "|" + side + "|" + start;
-  const mark = (wire: Wire, delta: number) => {
-    for (const key of [
-      socketKey(
-        wire.edge.source,
-        wire.sourceSide,
-        true,
-      ),
-      socketKey(
-        wire.edge.target,
-        wire.targetSide,
-        false,
-      ),
-    ])
-      occupied.set(
-        key,
-        (occupied.get(key) ?? 0) + delta,
-      );
-  };
-  for (const w of wires) mark(w, 1);
   for (let i = 0; i < wires.length; i++) {
     const w = required(wires[i]),
       edge = w.edge;
@@ -95,13 +71,18 @@ export const refine = (
       w.source,
       w.target,
     );
-    const defects = (r: typeof baseline) =>
-      r.conflicts +
+    const defects = (
+      r: typeof baseline,
+      arch: boolean,
+      span: number,
+    ) =>
+      r.conflicts * 1.5 +
+      Number(span < 60 && r.turn > 2.6) +
       Number(r.turn > 6.8) +
       Number(
         edge.route !== "step" && r.kink > 0.72,
       ) +
-      Number(r.stiff) +
+      Number(!arch && r.stiff) +
       20 * Number(r.overlap > 16);
     const foreign = padded.filter(
       (q) =>
@@ -114,10 +95,51 @@ export const refine = (
       targetBox = boxes.find(
         (q) => q.id === edge.target,
       );
+    const a = required(nodes.get(edge.source)),
+      b = required(nodes.get(edge.target));
+    const bounds = sourceBox &&
+      targetBox && {
+        id: "",
+        l: Math.min(sourceBox.l, targetBox.l),
+        r: Math.max(sourceBox.r, targetBox.r),
+        t: Math.min(sourceBox.t, targetBox.t),
+        b: Math.max(sourceBox.b, targetBox.b),
+      };
+    const open = free(
+      [a.position, b.position],
+      foreign,
+    );
+    const sideCost = (
+      side: Side,
+      node: typeof a,
+      peer: typeof a,
+    ) => {
+      const dx =
+          peer.position.x - node.position.x,
+        dy = peer.position.y - node.position.y;
+      return Number(
+        Math.max(Math.abs(dx), Math.abs(dy)) -
+          dx * normal[side].x -
+          dy * normal[side].y >
+          0.35 * Math.hypot(dx, dy) && open,
+      );
+    };
+    const outgoing = wires.filter(
+      (other) =>
+        other !== w &&
+        other.edge.source === edge.source,
+    );
+    const incoming = wires.filter(
+      (other) =>
+        other !== w &&
+        other.edge.target === edge.target,
+    );
     const geometry = (
       path: readonly Point[],
       s: Point,
       t: Point,
+      sa: Side,
+      sb: Side,
     ) => {
       let len = 0,
         contact = false;
@@ -139,49 +161,93 @@ export const refine = (
             Math.abs(t.y - s.y)
           : distance(s, t);
       return (
+        (outgoing.some(
+          (other) => other.sourceSide === sa,
+        )
+          ? 0
+          : 1.5 * sideCost(sa, a, b)) +
+        (incoming.some(
+          (other) => other.targetSide === sb,
+        )
+          ? 0
+          : 1.5 * sideCost(sb, b, a)) +
+        Math.max(
+          0,
+          len / Math.max(40, direct) - 1.25,
+        ) *
+          0.15 +
+        Number(
+          bounds &&
+            path.some(
+              (p) => pointGap(p, bounds) > 90,
+            ),
+        ) +
+        Number(
+          open &&
+            path.some(
+              (p) =>
+                distance(p, t) >
+                distance(s, t) + 30,
+            ),
+        ) +
         Number(!free(path, foreign)) +
         Number(contact) +
-        Number(len > Math.max(40, direct) * 1.8)
+        Number(len > Math.max(40, direct) * 1.8) +
+        Number(
+          distance(s, t) < 60 &&
+            len > distance(s, t) * 1.6 + 8,
+        )
       );
     };
+    const congestion = (crossings: number) =>
+      Math.max(0, crossings - 2) * 0.2;
     let best =
-      defects(baseline) +
-      geometry(w.points, w.source, w.target);
-    if (!best) continue;
-    const a = required(nodes.get(edge.source)),
-      b = required(nodes.get(edge.target));
+      congestion(baseline.crossings) +
+      defects(
+        baseline,
+        w.sourceSide === w.targetSide,
+        distance(w.source, w.target),
+      ) +
+      geometry(
+        w.points,
+        w.source,
+        w.target,
+        w.sourceSide,
+        w.targetSide,
+      );
+    if (best < 1) continue;
     const permissible = (
       end: typeof a,
       peer: typeof a,
       side: Side,
       current: Side,
-      start: boolean,
     ) => {
       if (side === current) return true;
-      const dx = peer.position.x - end.position.x,
-        dy = peer.position.y - end.position.y;
-      // A spare face must still point toward its peer in an open corridor.
+      const shared =
+        end === a
+          ? outgoing.length
+          : incoming.length;
       if (
-        baseline.overlap <= 16 &&
-        Math.max(Math.abs(dx), Math.abs(dy)) -
-          dx * normal[side].x -
-          dy * normal[side].y >
-          0.35 * Math.hypot(dx, dy) &&
-        free(
-          [end.position, peer.position],
-          foreign,
+        wires.some((other) =>
+          end === a
+            ? other.edge.target === end.id &&
+              other.targetSide === side &&
+              (!shared ||
+                other.edge.source === peer.id)
+            : other.edge.source === end.id &&
+              other.sourceSide === side &&
+              (!shared ||
+                other.edge.target === peer.id),
         )
       )
         return false;
+      // A spare face must still point toward its peer in an open corridor.
       if (
-        (rowAxis &&
-          Math.abs(
-            required(ordinal.get(end.id)) -
-              required(ordinal.get(peer.id)),
-          ) <= 1) ||
-        occupied.get(
-          socketKey(end.id, side, !start),
-        )
+        rowAxis &&
+        Math.abs(
+          required(ordinal.get(end.id)) -
+            required(ordinal.get(peer.id)),
+        ) <= 1
       )
         return false;
       return (
@@ -199,7 +265,7 @@ export const refine = (
     ]) {
       if (
         !best ||
-        !permissible(a, b, sa, w.sourceSide, true)
+        !permissible(a, b, sa, w.sourceSide)
       )
         continue;
       for (const sb of [
@@ -210,13 +276,7 @@ export const refine = (
       ]) {
         if (
           !best ||
-          !permissible(
-            b,
-            a,
-            sb,
-            w.targetSide,
-            false,
-          )
+          !permissible(b, a, sb, w.targetSide)
         )
           continue;
         const s = {
@@ -227,18 +287,28 @@ export const refine = (
             ...portPosition(b, sb, 0),
             side: sb,
           };
-        const u = move(s, sa, 14),
-          v = move(t, sb, 14),
+        // Short gaps need enough room between the stems to turn.
+        const span = distance(s, t);
+        const stem =
+          span < 90 ? Math.min(14, span / 6) : 14;
+        const u = move(s, sa, stem),
+          v = move(t, sb, stem),
           room = distance(u, v),
-          arm = Math.max(40, 0.45 * room);
+          arm = Math.min(
+            room * 0.45,
+            Math.max(18, room * 0.35),
+          );
+        const padding =
+          clearance > 18 || free([u, v], foreign)
+            ? clearance
+            : Math.min(clearance, 8);
         const buffer = boxes.map((q) =>
           q.id === a.id || q.id === b.id
             ? q
             : inflate(
                 q,
                 Math.min(
-                  clearance,
-                  7,
+                  padding,
                   pointGap(s, q),
                   pointGap(t, q),
                 ),
@@ -259,12 +329,19 @@ export const refine = (
             13,
           );
           if (
-            defects(score) >= best ||
+            score.crossings >
+              baseline.crossings +
+                (baseline.turn > 6.8 ? 1 : 0) ||
+            congestion(score.crossings) +
+              defects(score, sa === sb, span) >=
+              best ||
             score.overlap > 13
           )
             return;
           const n =
-            defects(score) + geometry(path, s, t);
+            congestion(score.crossings) +
+            defects(score, sa === sb, span) +
+            geometry(path, s, t, sa, sb);
           if (
             n >= best ||
             score.overlap > 13 ||
@@ -280,6 +357,77 @@ export const refine = (
             corners,
           );
         };
+        // Try open channels beside obstacles before accepting a longer reversal.
+        const local = buffer.filter(
+          (q) =>
+            q.id !== edge.source &&
+            q.id !== edge.target &&
+            q.r >= Math.min(u.x, v.x) - 50 &&
+            q.l <= Math.max(u.x, v.x) + 50 &&
+            q.b >= Math.min(u.y, v.y) - 50 &&
+            q.t <= Math.max(u.y, v.y) + 50,
+        );
+        const step = edge.route === "step";
+        const candidate = (knots: Point[]) => {
+          const raw = simplify([s, ...knots, t]);
+          if (!free(raw, buffer)) return;
+          const path = step
+            ? rounded(raw, radius)
+            : [
+                s,
+                ...throughKnots(knots, sa, sb),
+                t,
+              ];
+          accept(
+            path,
+            Math.max(0, raw.length - 2),
+          );
+        };
+        const shortest =
+          local.length &&
+          search(u, v, buffer, step);
+        if (shortest && shortest.length > 1)
+          candidate(shortest);
+        for (const q of local) {
+          if (best < 0.01) break;
+          for (const x of [q.l - 6, q.r + 6]) {
+            if (best < 0.01) break;
+            if (step)
+              candidate([
+                u,
+                pt(x, u.y),
+                pt(x, v.y),
+                v,
+              ]);
+            for (const y of [q.t - 6, q.b + 6]) {
+              if (best < 0.01) break;
+              if (!step)
+                candidate([u, pt(x, y), v]);
+              else {
+                candidate([
+                  u,
+                  pt(x, u.y),
+                  pt(x, y),
+                  pt(v.x, y),
+                  v,
+                ]);
+                candidate([
+                  u,
+                  pt(u.x, y),
+                  pt(x, y),
+                  pt(x, v.y),
+                  v,
+                ]);
+                candidate([
+                  u,
+                  pt(u.x, y),
+                  pt(v.x, y),
+                  v,
+                ]);
+              }
+            }
+          }
+        }
         if (edge.route === "step") {
           const h = !vertical(sa);
           if (vertical(sa) !== vertical(sb)) {
@@ -303,7 +451,7 @@ export const refine = (
               ? normal[sa].x
               : normal[sa].y;
             for (const f of [0.1, 0.22, 0.36]) {
-              if (!best) break;
+              if (best < 0.01) break;
               const l =
                 sign *
                 (Math.max(
@@ -325,7 +473,7 @@ export const refine = (
               ? u.x + (v.x - u.x) * f
               : u.y + (v.y - u.y) * f;
           for (const f of [0.2, 0.5, 0.8]) {
-            if (!best) break;
+            if (best < 0.01) break;
             const m = mid(f),
               raw = simplify([
                 s,
@@ -341,23 +489,42 @@ export const refine = (
             );
           }
         } else {
-          accept(
-            [
-              s,
-              ...bezier(
-                u,
-                move(u, sa, arm),
-                move(v, sb, arm),
-                v,
-              ),
-              t,
-            ],
-            0,
-          );
-          for (const offset of [
-            0.1, -0.1, 0.24, -0.24, 0.42, -0.42,
+          if (span < 90) {
+            // A short connection can turn directly between its two normals.
+            for (const ratio of [0.25, 0.4, 0.6])
+              accept(
+                bezier(
+                  s,
+                  move(s, sa, span * ratio),
+                  move(t, sb, span * ratio),
+                  t,
+                ),
+                0,
+              );
+          }
+          for (const scale of [
+            1, 0.5, 1.6, 2.5,
           ]) {
-            if (!best) break;
+            if (best < 0.01) break;
+            accept(
+              [
+                s,
+                ...bezier(
+                  u,
+                  move(u, sa, arm * scale),
+                  move(v, sb, arm * scale),
+                  v,
+                ),
+                t,
+              ],
+              0,
+            );
+          }
+          for (const offset of [
+            0.04, -0.04, 0.1, -0.1, 0.24, -0.24,
+            0.42, -0.42,
+          ]) {
+            if (best < 0.01) break;
             const mid = pt(
               (u.x + v.x) / 2 -
                 (v.y - u.y) * offset,
@@ -381,8 +548,6 @@ export const refine = (
       }
     }
     if (improved) {
-      mark(w, -1);
-      mark(improved, 1);
       wires[i] = improved;
       lanes.insert(improved);
     }

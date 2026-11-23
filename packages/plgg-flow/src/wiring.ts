@@ -32,6 +32,7 @@ import {
   obstacles,
   pointGap,
   crossesItself,
+  crossing,
   facing,
   rounded,
   normal,
@@ -191,6 +192,50 @@ const recent = new WeakMap<
   Graph["edges"],
   CachedRoutes & { nodes: Graph["nodes"] }
 >();
+// Immutable entries can survive replacement of their containing arrays.
+const layouts = new WeakMap<
+  Edge,
+  CachedRoutes & {
+    nodes: Graph["nodes"];
+    edges: Graph["edges"];
+  }
+>();
+// Cache short corridor bounds so a distant card misses even a long curved wire cheaply.
+const corridors = new WeakMap<Wire, Box[]>();
+const touchesCorridor = (
+  wire: Wire,
+  obstacle: Box,
+) => {
+  let spans = corridors.get(wire);
+  if (!spans) {
+    spans = [];
+    for (
+      let i = 0;
+      i < wire.points.length;
+      i += 12
+    ) {
+      const points = wire.points.slice(
+        Math.max(0, i - 1),
+        i + 12,
+      );
+      spans.push({
+        id: "",
+        l: Math.min(...points.map((p) => p.x)),
+        r: Math.max(...points.map((p) => p.x)),
+        t: Math.min(...points.map((p) => p.y)),
+        b: Math.max(...points.map((p) => p.y)),
+      });
+    }
+    corridors.set(wire, spans);
+  }
+  return spans.some(
+    (q) =>
+      q.r >= obstacle.l &&
+      q.l <= obstacle.r &&
+      q.b >= obstacle.t &&
+      q.t <= obstacle.b,
+  );
+};
 export const wireGraph = (
   graph: Graph,
   options: WiringOptions = {},
@@ -208,9 +253,38 @@ export const wireGraph = (
     known &&
     known.clearance === clearance &&
     known.radius === radius
-  )
+  ) {
+    recent.set(graph.edges, {
+      ...known,
+      nodes: graph.nodes,
+    });
     return known.wires;
-  const previous = recent.get(graph.edges);
+  }
+  const firstEdge = graph.edges[0];
+  const layout =
+    firstEdge && layouts.get(firstEdge);
+  const sameEdges =
+    layout &&
+    layout.edges.length === graph.edges.length &&
+    layout.edges.every(
+      (edge, i) => edge === graph.edges[i],
+    );
+  const previous =
+    recent.get(graph.edges) ??
+    (sameEdges ? layout : undefined);
+  if (
+    previous &&
+    previous.clearance === clearance &&
+    previous.radius === radius &&
+    previous.nodes.length ===
+      graph.nodes.length &&
+    previous.nodes.every(
+      (node, i) => node === graph.nodes[i],
+    )
+  ) {
+    recent.set(graph.edges, previous);
+    return previous.wires;
+  }
   const changed =
     previous &&
     previous.nodes.length ===
@@ -228,7 +302,7 @@ export const wireGraph = (
     previous?.nodes.find(
       (n) => n.id === moved.id,
     );
-  const shift =
+  const translation =
     old &&
     moved &&
     !moved.hidden &&
@@ -238,14 +312,21 @@ export const wireGraph = (
     old.width === moved.width &&
     old.height === moved.height &&
     old.group === moved.group &&
-    old.collapsed === moved.collapsed &&
-    distance(old.position, moved.position) <= 12
+    old.collapsed === moved.collapsed
       ? {
           dx: moved.position.x - old.position.x,
           dy: moved.position.y - old.position.y,
           box: box(old),
+          oldInfluence: inflate(box(old), 60),
+          influence: inflate(box(moved), 60),
           id: old.id,
         }
+      : undefined;
+  const shift =
+    translation &&
+    Math.hypot(translation.dx, translation.dy) <=
+      12
+      ? translation
       : undefined;
   const nodes = new Map(
       graph.nodes
@@ -461,7 +542,7 @@ export const wireGraph = (
     boxes,
     radius,
   );
-  const lanes = laneIndex();
+  const lanes = laneIndex(Boolean(shift));
   const alternatives = new Map<
     Edge,
     { path: Point[]; corners: number }[]
@@ -512,18 +593,24 @@ export const wireGraph = (
       const u = move(s, a.side, 14),
         v = move(t, b.side, 14);
       const prior =
-        shift && previous?.wires[index];
-      // Preserve an untouched corridor throughout a drag.
+        translation && previous?.wires[index];
+      // A box outside both corridor snapshots cannot invalidate this wire.
       if (
-        shift &&
+        translation &&
         prior &&
         prior.edge === edge &&
-        edge.source !== shift.id &&
-        edge.target !== shift.id &&
-        free(prior.points, [
-          inflate(box(required(moved)), 60),
-        ]) &&
-        free(prior.points, boxes)
+        edge.source !== translation.id &&
+        edge.target !== translation.id &&
+        a.side === prior.sourceSide &&
+        b.side === prior.targetSide &&
+        !touchesCorridor(
+          prior,
+          translation.influence,
+        ) &&
+        !touchesCorridor(
+          prior,
+          translation.oldInfluence,
+        )
       ) {
         lanes.insert(prior);
         return prior;
@@ -535,6 +622,7 @@ export const wireGraph = (
           ),
         ) ?? [];
       if (
+        !shift &&
         !edge.waypoints?.length &&
         a.side !== b.side &&
         vertical(a.side) === vertical(b.side) &&
@@ -709,51 +797,79 @@ export const wireGraph = (
         path[0] = s;
         path[path.length - 1] = t;
         // Slide a contacted section around the card while retaining its distant bends.
-        for (const q of boxes) {
-          if (free(path, [q])) continue;
-          let first = path.findIndex(
-            (p, i) =>
-              i > 0 &&
-              cuts(required(path[i - 1]), p, q),
-          );
-          if (first < 1) continue;
-          while (first < path.length) {
-            let last = first;
-            while (
-              last + 1 < path.length &&
-              cuts(
-                required(path[last]),
-                required(path[last + 1]),
-                q,
-              )
-            )
-              last++;
-            const left = required(
-                path[first - 1],
-              ),
-              right = required(path[last]);
-            const detour = search(
-              left,
-              right,
-              [q],
-              false,
-            );
-            if (!detour) break;
-            path.splice(
-              first,
-              last - first,
-              ...detour.slice(1, -1),
-            );
-            first += detour.length - 1;
-            while (
-              first < path.length &&
-              !cuts(
+        for (
+          let first = 1;
+          first < path.length;
+          first++
+        ) {
+          if (
+            free(
+              [
                 required(path[first - 1]),
                 required(path[first]),
-                q,
-              )
+              ],
+              boxes,
             )
-              first++;
+          )
+            continue;
+          let last = first;
+          while (
+            last + 1 < path.length &&
+            !free(
+              [
+                required(path[last]),
+                required(path[last + 1]),
+              ],
+              boxes,
+            )
+          )
+            last++;
+          const detour = search(
+            required(path[first - 1]),
+            required(path[last]),
+            boxes,
+            false,
+          );
+          if (!detour) break;
+          path.splice(
+            first,
+            last - first,
+            ...detour.slice(1, -1),
+          );
+          first += detour.length - 2;
+        }
+        if (
+          free(path, boxes) &&
+          crossesItself(path)
+        ) {
+          // A pinched bend can shed its loop without replacing the rest of the route.
+          for (let i = 1; i < path.length; i++) {
+            for (
+              let j = path.length - 1;
+              j > i + 1;
+              j--
+            ) {
+              if (!crossing(path, i, path, j))
+                continue;
+              const a = required(path[i - 1]),
+                b = required(path[i]),
+                c = required(path[j - 1]),
+                d = required(path[j]);
+              const dx = b.x - a.x,
+                dy = b.y - a.y,
+                vx = d.x - c.x,
+                vy = d.y - c.y;
+              const t =
+                ((c.x - a.x) * vy -
+                  (c.y - a.y) * vx) /
+                (dx * vy - dy * vx);
+              path.splice(
+                i,
+                j - i,
+                pt(a.x + t * dx, a.y + t * dy),
+              );
+              break;
+            }
           }
         }
         if (
@@ -2163,9 +2279,105 @@ export const wireGraph = (
         clearance,
       );
   }
+  // Swaps can free an obstacle channel that was occupied on the first pass.
+  if (
+    !shift &&
+    !rowAxis &&
+    wires.some((w) =>
+      boxes.some(
+        (q) =>
+          q.id !== w.edge.source &&
+          q.id !== w.edge.target &&
+          cuts(w.source, w.target, q),
+      ),
+    )
+  ) {
+    refine(
+      wires,
+      nodes,
+      boxes,
+      lanes,
+      rowAxis,
+      ordinal,
+      radius,
+      clearance,
+    );
+  }
+  // Exchanging branches can leave a sharp join even when both halves were smooth.
+  if (!shift && !rowAxis)
+    for (const [i, w] of wires.entries()) {
+      if (
+        w.edge.route === "step" ||
+        w.edge.route === "straight" ||
+        w.edge.waypoints?.length ||
+        w.edge.source === w.edge.target
+      )
+        continue;
+      const before = lanes.score(
+        w.points,
+        w.edge,
+        w.source,
+        w.target,
+      );
+      const defects = (r: typeof before) =>
+        Number(r.kink > 0.72) +
+        Number(r.turn > 6.8) +
+        Number(
+          w.sourceSide !== w.targetSide &&
+            r.stiff,
+        );
+      if (!defects(before)) continue;
+      const padded = boxes.map((q) =>
+        q.id === w.edge.source ||
+        q.id === w.edge.target
+          ? q
+          : inflate(
+              q,
+              Math.min(
+                clearance,
+                7,
+                pointGap(w.source, q),
+                pointGap(w.target, q),
+              ),
+            ),
+      );
+      const path = fair(
+        [...w.points],
+        w.sourceSide,
+        w.targetSide,
+        padded,
+      );
+      const after = lanes.score(
+        path,
+        w.edge,
+        w.source,
+        w.target,
+      );
+      if (
+        defects(after) >= defects(before) ||
+        after.overlap > 13 ||
+        after.conflicts > before.conflicts ||
+        after.crossings > before.crossings ||
+        crossesItself(path)
+      )
+        continue;
+      const wire = materialize(
+        w.edge,
+        { ...w.source, side: w.sourceSide },
+        { ...w.target, side: w.targetSide },
+        path,
+        w.corners,
+      );
+      wires[i] = wire;
+      lanes.insert(wire);
+    }
   // A swapped branch may have acquired two facing sockets during refinement.
   for (const [i, w] of wires.entries()) {
     if (
+      (shift &&
+        shift.dx * shift.dx +
+          shift.dy * shift.dy >
+          0) ||
       w.edge.waypoints?.length ||
       w.sourceSide === w.targetSide ||
       vertical(w.sourceSide) !==
@@ -2223,8 +2435,20 @@ export const wireGraph = (
           w.targetSide,
         ]),
       )
-    )
+    ) {
+      if (w.arrow.at !== w.target)
+        wires[i] = {
+          ...w,
+          arrow: {
+            at: w.target,
+            toward: {
+              ...move(w.target, w.targetSide, -1),
+              z: w.target.z,
+            },
+          },
+        };
       continue;
+    }
     // Measure back along the wire so sampling density cannot move the arrow.
     let remaining = 14;
     for (
@@ -2258,6 +2482,13 @@ export const wireGraph = (
     radius,
     wires,
   });
+  if (firstEdge)
+    layouts.set(firstEdge, {
+      ...graph,
+      wires,
+      clearance,
+      radius,
+    });
   recent.set(graph.edges, {
     nodes: graph.nodes,
     wires,

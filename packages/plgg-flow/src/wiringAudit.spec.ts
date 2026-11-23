@@ -309,3 +309,65 @@ for (const route of [
       ),
   );
 }
+
+test("a card crossing a wire bends it continuously", () => {
+  const left = n("left", -220, 0);
+  const right = n("right", 220, 0);
+  const distant = [
+    n("upper left", -220, -240),
+    n("upper right", 220, -240),
+  ];
+  const edges = [
+    e("left", "right"),
+    e("upper left", "upper right"),
+  ];
+  let previous: readonly Wire[] = [];
+  let worst = 0;
+  let clear = true;
+  for (let y = -90; y <= 64; y += 2) {
+    const card = n("card", 0, y);
+    const wires = wireGraph({
+      nodes: [left, right, ...distant, card],
+      edges,
+    });
+    for (const [i, w] of wires.entries()) {
+      const old = previous[i];
+      if (old) {
+        // Check both directions so deleting a detour also counts as motion.
+        for (const [from, to] of [
+          [old, w],
+          [w, old],
+        ] satisfies [Wire, Wire][]) {
+          for (const point of from.points) {
+            let nearest = Infinity;
+            for (
+              let j = 1;
+              j < to.points.length;
+              j++
+            ) {
+              const a = to.points[j - 1],
+                b = to.points[j];
+              if (a && b)
+                nearest = Math.min(
+                  nearest,
+                  segmentGap(point, a, b),
+                );
+            }
+            worst = Math.max(worst, nearest);
+          }
+        }
+      }
+      clear &&= w.points.every(
+        (p) =>
+          Math.abs(p.x) >= 52 ||
+          Math.abs(p.y - y) >= 18,
+      );
+    }
+    previous = wires;
+  }
+  return all([
+    check(previous.length, toBe(2)),
+    check(clear, toBe(true)),
+    check(worst <= 14, toBe(true)),
+  ]);
+});

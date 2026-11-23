@@ -494,3 +494,53 @@ reads **0 severe, 227 moderate**.
 Acceptance: `TOTAL sev3 0`; `TOTAL sev2 ≤ 60`; zero `wobble-on-straight`,
 zero `slow`, zero unrelated `drag-jump`; `excursion` ≤ 5;
 `awkward-side` ≤ 10.
+
+## Round 7 review — reads as a diagram; finish the feel
+
+The demo's `cross` is the plain one-crossing figure again, the layered
+DAG and the pipeline arches read well. **0 severe, 149 moderate.** What
+remains is feel, and it is what a person dragging nodes notices first:
+
+1. **Dragging** (29 `drag-jump`, 14 of them unrelated wires). This is
+   the first priority: the product is an editor. Reproduce each with
+   the audit's sweep, and remove the discontinuity at its source —
+   base paths depend on obstacles only; when a moved node enters a
+   wire's corridor the wire should start bending as the node
+   approaches (clearance grows smoothly from 0), not snap to a
+   different route at one frame; choices between over/under and
+   between sides carry a margin of at least 24 units.
+2. **Speed** (10 `slow`): `grid5x4` 10–15 ms vs 6.5 ms. During a drag
+   only the wires whose corridor or endpoints the moved node touches
+   need re-routing: cache each wire's base path keyed by its own two
+   nodes' boxes and the set of obstacle boxes intersecting its
+   corridor; reuse everything else.
+3. **Wiggle, kinks, needless loops** (22 `wiggly`, 13 `kink`,
+   `microservices`: Gateway → Auth leaves the right side, swings left
+   and climbs — it should leave toward Auth). After routing, run a
+   straightening pass: drop any via-point whose removal keeps the wire
+   clear, then rebuild the spline; never leave a turn that reverses
+   within 40 units.
+4. **Crossings that ordering can remove** (21 `siblings-cross`,
+   10 `double-cross`, 10 `more-crossings-than-straight`): order a fan's
+   branches by the angle of their far ends; two wires that cross twice
+   swap their detour sides.
+5. **Sides** (11 `awkward-side`), clearance (5 `grazes-node`,
+   5 `hugs-own-node`).
+
+Acceptance: `TOTAL sev3 0`; `TOTAL sev2 ≤ 60`; zero `slow`; zero
+unrelated `drag-jump` and ≤ 6 own.
+
+### Addendum to round 7 review (found by using the demo)
+
+6. **Close neighbours squash their wire.** With nodes ~26 apart
+   (`配線をたどる` after dragging Stock next to Ship) the wire between
+   them squiggles and its arrowhead collides with the fan. Stems, fan
+   length, arrowhead size and corner radius scale down with the
+   available gap: stem ≤ gap / 3, and a wire between facing sockets
+   closer than 60 is a plain short S (or a straight line when level).
+   New audit scenario `closePairs`, new check `squashed-short-wire`.
+7. **Wires must not move while a connection is being dragged.** In the
+   demo, starting a connection from Order makes the existing
+   Order → Stock wire bulge until the drag ends. A connection in
+   progress (`state.source` / connect drag) changes no existing wire;
+   only the dashed preview follows the pointer.

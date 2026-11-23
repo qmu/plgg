@@ -18,6 +18,7 @@ import {
   crossesItself,
   inflate,
   pointGap,
+  required,
   type Box,
 } from "plgg-flow/wireGeometry";
 
@@ -113,10 +114,28 @@ export const shorten = (
       for (const f of [
         0.2, 0.1, 0.05, 0.025, 0.01,
       ]) {
-        const knots = simplifyTrace(
-          core,
-          Math.max(2, room * f),
+        const knots = Array.from(
+          simplifyTrace(
+            core,
+            Math.max(2, room * f),
+          ),
         );
+        for (
+          let j = knots.length - 2;
+          j > 0;
+          j--
+        ) {
+          if (
+            free(
+              [
+                required(knots[j - 1]),
+                required(knots[j + 1]),
+              ],
+              buffer,
+            )
+          )
+            knots.splice(j, 1);
+        }
         if (
           accept(
             [
