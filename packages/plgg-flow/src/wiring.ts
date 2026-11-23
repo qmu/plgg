@@ -1,4 +1,3 @@
-import { followCorridor } from "plgg-flow/wireDrag";
 import { refine } from "plgg-flow/wireRefinement";
 import { planPorts } from "plgg-flow/wirePorts";
 import { shorten } from "plgg-flow/wireShortcut";
@@ -33,7 +32,6 @@ import {
   obstacles,
   pointGap,
   crossesItself,
-  crossing,
   facing,
   rounded,
   normal,
@@ -43,7 +41,6 @@ import {
   inflate,
   simplify,
   bezier,
-  box,
   type Box,
 } from "plgg-flow/wireGeometry";
 export type WireStyle = "curve" | "step";
@@ -179,64 +176,98 @@ const fair = (
   return path;
 };
 
-type CachedRoutes = {
-  clearance: number;
-  radius: number;
-  wires: Wire[];
-};
-const cache = new WeakMap<
-  Graph["nodes"],
-  WeakMap<Graph["edges"], CachedRoutes>
->();
-// Keep the last layout for small translations during a drag.
-const recent = new WeakMap<
-  Graph["edges"],
-  CachedRoutes & { nodes: Graph["nodes"] }
->();
-// Immutable entries can survive replacement of their containing arrays.
-const layouts = new WeakMap<
-  Edge,
-  CachedRoutes & {
-    nodes: Graph["nodes"];
-    edges: Graph["edges"];
-  }
->();
-// Cache short corridor bounds so a distant card misses even a long curved wire cheaply.
-const corridors = new WeakMap<Wire, Box[]>();
-const touchesCorridor = (
-  wire: Wire,
-  obstacle: Box,
+// Ease the shoulders into the clearance band before a card reaches the wire.
+const softCorridor = (
+  s: Point & { side: Side },
+  t: Point,
+  boxes: Box[],
+  clearance: number,
 ) => {
-  let spans = corridors.get(wire);
-  if (!spans) {
-    spans = [];
-    for (
-      let i = 0;
-      i < wire.points.length;
-      i += 12
-    ) {
-      const points = wire.points.slice(
-        Math.max(0, i - 1),
-        i + 12,
-      );
-      spans.push({
-        id: "",
-        l: Math.min(...points.map((p) => p.x)),
-        r: Math.max(...points.map((p) => p.x)),
-        t: Math.min(...points.map((p) => p.y)),
-        b: Math.max(...points.map((p) => p.y)),
-      });
-    }
-    corridors.set(wire, spans);
+  const upright = vertical(s.side);
+  const along = upright ? "y" : "x",
+    across = upright ? "x" : "y";
+  const advance = t[along] - s[along],
+    rise = t[across] - s[across];
+  if (
+    advance * normal[s.side][along] <= 0 ||
+    Math.abs(rise) > Math.abs(advance)
+  )
+    return;
+  const baseline = (x: number) => {
+    const f = Math.max(
+      0,
+      Math.min(1, (x - s[along]) / advance),
+    );
+    return s[across] + rise * f * f * (3 - 2 * f);
+  };
+  const low = Math.min(s[along], t[along]),
+    high = Math.max(s[along], t[along]);
+
+  const bands: {
+    left: number;
+    right: number;
+    push: number;
+  }[] = [];
+  for (const q of boxes) {
+    const left =
+        (upright ? q.t : q.l) - clearance,
+      right = (upright ? q.b : q.r) + clearance;
+    if (right <= low || left >= high) continue;
+    const atLeft = baseline(left),
+      atRight = baseline(right);
+    const top =
+        (upright ? q.l : q.t) -
+        Math.max(atLeft, atRight),
+      bottom =
+        (upright ? q.r : q.b) -
+        Math.min(atLeft, atRight);
+    const push =
+      top + bottom >= 0
+        ? Math.min(0, top - clearance)
+        : Math.max(0, bottom + clearance);
+    if (!push) continue;
+    if (left <= low || right >= high) return;
+    bands.push({ left, right, push });
   }
-  return spans.some(
-    (q) =>
-      q.r >= obstacle.l &&
-      q.l <= obstacle.r &&
-      q.b >= obstacle.t &&
-      q.t <= obstacle.b,
-  );
+  if (!bands.length)
+    return rise ? undefined : [s, t];
+  const coords = new Set([low, high]);
+  for (const band of bands) {
+    coords.add(band.left);
+    coords.add(band.right);
+  }
+  for (let i = 1; i < 48; i++)
+    coords.add(low + ((high - low) * i) / 48);
+  return [...coords]
+    .sort(
+      (a, b) =>
+        (a - b) * Math.sign(t[along] - s[along]),
+    )
+    .map((x) => {
+      let offset = 0;
+      for (const { left, right, push } of bands) {
+        const f = Math.min(
+          1,
+          (x - low) / (left - low),
+          (high - x) / (high - right),
+        );
+        const v = push * f * f * (3 - 2 * f);
+        if (Math.abs(v) > Math.abs(offset))
+          offset = v;
+      }
+      return upright
+        ? pt(baseline(x) + offset, x)
+        : pt(x, baseline(x) + offset);
+    });
 };
+let memo:
+  | {
+      key: string;
+      wires: Wire[];
+      edges: Edge[];
+      knots: Point3[];
+    }
+  | undefined;
 export const wireGraph = (
   graph: Graph,
   options: WiringOptions = {},
@@ -246,89 +277,24 @@ export const wireGraph = (
       options.clearance ?? 18,
     ),
     radius = Math.max(0, options.radius ?? 10);
-  const byEdges =
-    cache.get(graph.nodes) ??
-    new WeakMap<Graph["edges"], CachedRoutes>();
-  const known = byEdges.get(graph.edges);
+  const key = JSON.stringify([
+    graph.nodes,
+    graph.edges,
+    clearance,
+    radius,
+  ]);
+  // Routes expose the caller's edge and waypoint objects.
+  const knots = graph.edges.flatMap(
+    (edge) => edge.waypoints ?? [],
+  );
   if (
-    known &&
-    known.clearance === clearance &&
-    known.radius === radius
-  ) {
-    recent.set(graph.edges, {
-      ...known,
-      nodes: graph.nodes,
-    });
-    return known.wires;
-  }
-  const firstEdge = graph.edges[0];
-  const layout =
-    firstEdge && layouts.get(firstEdge);
-  const sameEdges =
-    layout &&
-    layout.edges.length === graph.edges.length &&
-    layout.edges.every(
+    memo?.key === key &&
+    memo.knots.every((p, i) => p === knots[i]) &&
+    memo.edges.every(
       (edge, i) => edge === graph.edges[i],
-    );
-  const previous =
-    recent.get(graph.edges) ??
-    (sameEdges ? layout : undefined);
-  if (
-    previous &&
-    previous.clearance === clearance &&
-    previous.radius === radius &&
-    previous.nodes.length ===
-      graph.nodes.length &&
-    previous.nodes.every(
-      (node, i) => node === graph.nodes[i],
     )
-  ) {
-    recent.set(graph.edges, previous);
-    return previous.wires;
-  }
-  const changed =
-    previous &&
-    previous.nodes.length ===
-      graph.nodes.length &&
-    clearance === previous.clearance &&
-    radius === previous.radius
-      ? graph.nodes.filter(
-          (n, i) => previous.nodes[i] !== n,
-        )
-      : [];
-  const moved =
-    changed.length === 1 ? changed[0] : undefined;
-  const old =
-    moved &&
-    previous?.nodes.find(
-      (n) => n.id === moved.id,
-    );
-  const translation =
-    old &&
-    moved &&
-    !moved.hidden &&
-    !old.hidden &&
-    old.position.z === moved.position.z &&
-    old.label === moved.label &&
-    old.width === moved.width &&
-    old.height === moved.height &&
-    old.group === moved.group &&
-    old.collapsed === moved.collapsed
-      ? {
-          dx: moved.position.x - old.position.x,
-          dy: moved.position.y - old.position.y,
-          box: box(old),
-          oldInfluence: inflate(box(old), 24),
-          influence: inflate(box(moved), 24),
-          id: old.id,
-        }
-      : undefined;
-  const shift =
-    translation &&
-    Math.hypot(translation.dx, translation.dy) <=
-      12
-      ? translation
-      : undefined;
+  )
+    return memo.wires;
   const nodes = new Map(
       graph.nodes
         .filter((n) => !n.hidden)
@@ -342,40 +308,39 @@ export const wireGraph = (
       b = Infinity;
     for (const n of boxes) {
       if (n === q) continue;
-      if (n.b >= q.t && n.t <= q.b) {
-        if (n.r <= q.l)
-          l = Math.min(l, (q.l - n.r) * 0.48);
-        if (n.l >= q.r)
-          r = Math.min(r, (n.l - q.r) * 0.48);
-      }
-      if (n.r >= q.l && n.l <= q.r) {
-        if (n.b <= q.t)
-          t = Math.min(t, (q.t - n.b) * 0.48);
-        if (n.t >= q.b)
-          b = Math.min(b, (n.t - q.b) * 0.48);
-      }
+      // Oblique neighbours constrain padding less as their projections separate.
+      const dx = Math.max(
+          0,
+          q.l - n.r,
+          n.l - q.r,
+        ),
+        dy = Math.max(0, q.t - n.b, n.t - q.b);
+      const horizontal = 0.48 * dx + dy,
+        vertical = 0.48 * dy + dx;
+      if (n.r <= q.l) l = Math.min(l, horizontal);
+      if (n.l >= q.r) r = Math.min(r, horizontal);
+      if (n.b <= q.t) t = Math.min(t, vertical);
+      if (n.t >= q.b) b = Math.min(b, vertical);
     }
     return { l, r, t, b };
   });
-  const edges = graph.edges.filter(
+  const visible = graph.edges.filter(
     (e) =>
       !e.hidden &&
       nodes.has(e.source) &&
       nodes.has(e.target),
   );
+  // Each occurrence owns a lane even when the caller repeats an edge object.
+  const edges = visible.map((edge) => ({
+    ...edge,
+  }));
   const {
     rowAxis,
     ordinal,
     plans,
     parallels,
     degree,
-  } = planPorts(
-    nodes,
-    edges,
-    boxes,
-    shift ? previous?.wires : undefined,
-    shift,
-  );
+  } = planPorts(nodes, edges, boxes);
   // Nest collinear skips in channels, with shorter spans nearest the row.
   type Bus = { sign: number; lane: number };
   const buses = new Map<Edge, Bus>();
@@ -544,7 +509,7 @@ export const wireGraph = (
     boxes,
     radius,
   );
-  const lanes = laneIndex(Boolean(shift));
+  const lanes = laneIndex();
   const alternatives = new Map<
     Edge,
     { path: Point[]; corners: number }[]
@@ -553,36 +518,62 @@ export const wireGraph = (
   const order = new Map(
     edges.map((edge, i) => [edge, i]),
   );
-  // Reserve clear axial corridors before routing the branches that cross them.
-  const axial = (a: End, b: End) => {
-    if (
-      a.side === b.side ||
-      vertical(a.side) !== vertical(b.side)
-    )
-      return false;
+  // Busy sockets reserve their lanes first. Near-level branches win geometric ties.
+  // Preserve authored lane order in orthogonal bundles with duplicate edges.
+  const bundledSteps = [
+    ...parallels.values(),
+  ].some((pair) =>
+    pair.some(
+      (e, i) =>
+        e.route === "step" &&
+        pair
+          .slice(0, i)
+          .some(
+            (other) => other.source === e.source,
+          ),
+    ),
+  );
+  const priority = plans.map((plan) => {
+    const { edge, a, b } = plan;
+    const curve = edge.route !== "step";
     const dx =
         b.node.position.x - a.node.position.x,
       dy = b.node.position.y - a.node.position.y;
-    return vertical(a.side)
-      ? Math.abs(dx) < 0.08 * Math.abs(dy)
-      : Math.abs(dy) < 0.08 * Math.abs(dx);
-  };
-  const wires = plans
-    .slice()
+    const along = vertical(a.side) ? dy : dx,
+      across = vertical(a.side) ? dx : dy;
+    const aligned =
+      curve &&
+      a.side !== b.side &&
+      vertical(a.side) === vertical(b.side)
+        ? Math.max(
+            0,
+            1 -
+              (12 * Math.abs(across)) /
+                (Math.abs(along) || 1),
+          )
+        : 0;
+    const ranked = curve || !bundledSteps;
+    const incoming = ranked
+        ? degree(edge.target)
+        : 0,
+      outgoing = ranked ? degree(edge.source) : 0;
+    return {
+      plan,
+      loop: Number(a.node === b.node),
+      busy: Math.min(incoming, outgoing),
+      total: incoming + outgoing,
+      aligned,
+    };
+  });
+  const wires = priority
     .sort(
       (p, q) =>
-        Number(q.a.node === q.b.node) -
-          Number(p.a.node === p.b.node) ||
-        Number(
-          q.edge.route !== "step" &&
-            axial(q.a, q.b),
-        ) -
-          Number(
-            p.edge.route !== "step" &&
-              axial(p.a, p.b),
-          ),
+        q.loop - p.loop ||
+        q.busy - p.busy ||
+        q.total - p.total ||
+        q.aligned - p.aligned,
     )
-    .map(({ edge, a, b }) => {
+    .map(({ plan: { edge, a, b } }) => {
       const index = required(order.get(edge));
       const s = {
           ...portPosition(a.node, a.side, 0),
@@ -606,31 +597,6 @@ export const wireGraph = (
       );
       const u = move(s, a.side, stem),
         v = move(t, b.side, stem);
-      const prior =
-        translation && previous?.wires[index];
-      // A box outside both corridor snapshots cannot invalidate this wire.
-      if (
-        translation &&
-        prior &&
-        prior.edge === edge &&
-        edge.source !== translation.id &&
-        edge.target !== translation.id &&
-        ((!touchesCorridor(
-          prior,
-          translation.influence,
-        ) &&
-          !touchesCorridor(
-            prior,
-            translation.oldInfluence,
-          )) ||
-          (shift &&
-            free(prior.points, [
-              translation.influence,
-            ])))
-      ) {
-        lanes.insert(prior);
-        return prior;
-      }
       const pair =
         parallels.get(
           JSON.stringify(
@@ -668,7 +634,6 @@ export const wireGraph = (
         }
       }
       if (
-        !shift &&
         !edge.waypoints?.length &&
         a.side !== b.side &&
         vertical(a.side) === vertical(b.side) &&
@@ -700,7 +665,6 @@ export const wireGraph = (
       }
       const channel = arches.get(edge);
       if (
-        !shift &&
         channel !== undefined &&
         !edge.waypoints?.length &&
         (rowAxis === "x" || rowAxis === "y")
@@ -714,20 +678,23 @@ export const wireGraph = (
         for (const q of boxes) {
           const lo = rowAxis === "y" ? q.l : q.t,
             hi = rowAxis === "y" ? q.r : q.b;
-          if (
-            hi < Math.min(s[along], t[along]) ||
-            lo > Math.max(s[along], t[along])
-          )
-            continue;
-          boundary = Math.max(
-            boundary,
+          // Taper a neighbouring card's influence beyond the span endpoints.
+          const outside = Math.max(
+            0,
+            Math.min(s[along], t[along]) - hi,
+            lo - Math.max(s[along], t[along]),
+          );
+          const rim =
             rowAxis === "y"
               ? sign > 0
                 ? q.b
                 : -q.t
               : sign > 0
                 ? q.r
-                : -q.l,
+                : -q.l;
+          boundary = Math.max(
+            boundary,
+            rim - outside * 2,
           );
         }
         const height =
@@ -751,189 +718,6 @@ export const wireGraph = (
             t,
             path,
             2,
-          );
-          lanes.insert(wire);
-          return wire;
-        }
-      }
-      if (
-        shift &&
-        prior &&
-        prior.edge === edge &&
-        !edge.waypoints?.length &&
-        edge.route !== "step" &&
-        edge.route !== "straight"
-      ) {
-        // Carry the nearby span with the moving card, tapering to fixed sockets.
-        const ownA = edge.source === shift.id,
-          ownB = edge.target === shift.id;
-        const fixed = boxes.filter(
-          (q) => q.id !== shift.id,
-        );
-        const path = prior.points.map((p) => {
-          const gap = pointGap(p, shift.box);
-          const anchor = Math.min(
-            ownA ? Infinity : distance(p, s),
-            ownB ? Infinity : distance(p, t),
-          );
-          const wall = fixed.reduce(
-            (d, q) => Math.min(d, pointGap(p, q)),
-            Infinity,
-          );
-          const influence = Math.min(
-            wall / 12,
-            1,
-            Math.max(0, (100 - gap) / 70),
-            Math.max(0, (anchor - 14) / 40),
-          );
-          return pt(
-            p.x + shift.dx * influence,
-            p.y + shift.dy * influence,
-          );
-        });
-        if (
-          !ownA &&
-          !ownB &&
-          prior.sourceSide === a.side &&
-          prior.targetSide === b.side &&
-          !free(path, boxes) &&
-          free([...prior.points], boxes)
-        ) {
-          lanes.insert(prior);
-          return prior;
-        }
-        // If a moving card covers a face, reconnect only the end that must move.
-        const reconnect = (
-          socket: Point,
-          stem: Point,
-        ) => {
-          let best = Infinity,
-            index = 1;
-          for (
-            let i = 1;
-            i < path.length - 1;
-            i++
-          ) {
-            const d = distance(
-              stem,
-              required(path[i]),
-            );
-            if (
-              d < best &&
-              free(
-                [stem, required(path[i])],
-                boxes,
-              )
-            ) {
-              best = d;
-              index = i;
-            }
-          }
-          if (Number.isFinite(best))
-            path.splice(0, index, socket, stem);
-          else path.splice(0, 1, socket, stem);
-        };
-        if (prior.sourceSide !== a.side)
-          reconnect(
-            s,
-            move(s, a.side, Math.min(4, stem)),
-          );
-        if (prior.targetSide !== b.side) {
-          path.reverse();
-          reconnect(
-            t,
-            move(t, b.side, Math.min(4, stem)),
-          );
-          path.reverse();
-        }
-        path[0] = s;
-        path[path.length - 1] = t;
-        // Slide a contacted section around the card while retaining its distant bends.
-        for (
-          let first = 1;
-          first < path.length;
-          first++
-        ) {
-          if (
-            free(
-              [
-                required(path[first - 1]),
-                required(path[first]),
-              ],
-              boxes,
-            )
-          )
-            continue;
-          let last = first;
-          while (
-            last + 1 < path.length &&
-            !free(
-              [
-                required(path[last]),
-                required(path[last + 1]),
-              ],
-              boxes,
-            )
-          )
-            last++;
-          const detour = search(
-            required(path[first - 1]),
-            required(path[last]),
-            boxes,
-            false,
-          );
-          if (!detour) break;
-          path.splice(
-            first,
-            last - first,
-            ...detour.slice(1, -1),
-          );
-          first += detour.length - 2;
-        }
-        if (
-          free(path, boxes) &&
-          crossesItself(path)
-        ) {
-          // A pinched bend can shed its loop without replacing the rest of the route.
-          for (let i = 1; i < path.length; i++) {
-            for (
-              let j = path.length - 1;
-              j > i + 1;
-              j--
-            ) {
-              if (!crossing(path, i, path, j))
-                continue;
-              const a = required(path[i - 1]),
-                b = required(path[i]),
-                c = required(path[j - 1]),
-                d = required(path[j]);
-              const dx = b.x - a.x,
-                dy = b.y - a.y,
-                vx = d.x - c.x,
-                vy = d.y - c.y;
-              const t =
-                ((c.x - a.x) * vy -
-                  (c.y - a.y) * vx) /
-                (dx * vy - dy * vx);
-              path.splice(
-                i,
-                j - i,
-                pt(a.x + t * dx, a.y + t * dy),
-              );
-              break;
-            }
-          }
-        }
-        if (
-          free(path, boxes) &&
-          !crossesItself(path)
-        ) {
-          const wire = materialize(
-            edge,
-            s,
-            t,
-            path,
-            prior.corners,
           );
           lanes.insert(wire);
           return wire;
@@ -1153,6 +937,53 @@ export const wireGraph = (
         corners: number;
       }[] = [];
       alternatives.set(edge, choices);
+      if (
+        !step &&
+        facingPair &&
+        list.length === 1 &&
+        edge.route !== "straight"
+      ) {
+        const middle = softCorridor(
+          { ...u, side: a.side },
+          v,
+          boxes.filter(
+            (q) =>
+              q.id !== a.node.id &&
+              q.id !== b.node.id,
+          ),
+          clearance,
+        );
+        if (middle && middle.length > 2) {
+          const path = [s, ...middle, t];
+          if (
+            free(path, buffer) &&
+            !crossesItself(path)
+          ) {
+            const score = lanes.score(
+              path,
+              edge,
+              s,
+              t,
+            );
+            choices.push({ path, corners: 0 });
+            if (score.clear) {
+              const wire = materialize(
+                edge,
+                s,
+                t,
+                path,
+                0,
+              );
+              lanes.insert(wire);
+              return wire;
+            }
+            best = path;
+            bestCost = score.cost;
+            bestOverlap = score.overlap;
+            bestConflicts = score.conflicts;
+          }
+        }
+      }
       const star =
         stars.has(a.node.id) ||
         stars.has(b.node.id);
@@ -1165,12 +996,47 @@ export const wireGraph = (
         (free([u, v], legal) || a.side === b.side)
       ) {
         const arm = Math.max(40, room * 0.45);
+        // Near a diagonal both faces lead into the same interior curve.
+        const shoulder = (
+          end: End,
+          stem: Point,
+        ) => {
+          const from = end.node.position,
+            to = end.peer.position;
+          const dx = to.x - from.x,
+            dy = to.y - from.y;
+          const directed =
+            dx * normal[end.side].x +
+            dy * normal[end.side].y;
+          const blend =
+            directed <= 0
+              ? 0
+              : Math.max(
+                  0,
+                  1 -
+                    (4 *
+                      Math.abs(
+                        Math.abs(dx) -
+                          Math.abs(dy),
+                      )) /
+                      (Math.hypot(dx, dy) || 1),
+                );
+          const axial = move(stem, end.side, arm);
+          return pt(
+            axial.x +
+              (from.x + dx / 3 - axial.x) * blend,
+            axial.y +
+              (from.y + dy / 3 - axial.y) * blend,
+          );
+        };
+        const left = shoulder(a, u),
+          right = shoulder(b, v);
         const direct = [
           s,
           ...bezier(
             u,
-            move(u, a.side, arm),
-            move(v, b.side, arm),
+            left,
+            right,
             v,
             Math.max(
               2,
@@ -1178,10 +1044,7 @@ export const wireGraph = (
                 (3 *
                   Math.max(
                     arm,
-                    distance(
-                      move(u, a.side, arm),
-                      move(v, b.side, arm),
-                    ),
+                    distance(left, right),
                   )) /
                   12,
               ),
@@ -2294,7 +2157,7 @@ export const wireGraph = (
       lanes.insert(updated);
     }
   }
-  if (!shift && !rowAxis)
+  if (!rowAxis)
     refine(
       wires,
       nodes,
@@ -2305,7 +2168,7 @@ export const wireGraph = (
       radius,
       clearance,
     );
-  if (!shift && !rowAxis) {
+  if (!rowAxis) {
     const changed = uncross(
       wires,
       boxes,
@@ -2333,7 +2196,6 @@ export const wireGraph = (
   }
   // Swaps can free an obstacle channel that was occupied on the first pass.
   if (
-    !shift &&
     !rowAxis &&
     wires.some((w) =>
       boxes.some(
@@ -2357,7 +2219,6 @@ export const wireGraph = (
   }
   // Revisit occupied corridors after their neighbouring lanes have moved.
   if (
-    !shift &&
     !rowAxis &&
     wires.some((w) =>
       boxes.some(
@@ -2384,7 +2245,7 @@ export const wireGraph = (
     }
   }
   // Exchanging branches can leave a sharp join even when both halves were smooth.
-  if (!shift && !rowAxis)
+  if (!rowAxis)
     for (const [i, w] of wires.entries()) {
       if (
         w.edge.route === "step" ||
@@ -2454,10 +2315,76 @@ export const wireGraph = (
   // A swapped branch may have acquired two facing sockets during refinement.
   for (const [i, w] of wires.entries()) {
     if (
-      (shift &&
-        shift.dx * shift.dx +
-          shift.dy * shift.dy >
-          0) ||
+      !w.edge.waypoints?.length &&
+      w.edge.route !== "straight" &&
+      w.edge.route !== "step" &&
+      w.edge.source !== w.edge.target &&
+      parallels.get(
+        JSON.stringify(
+          [w.edge.source, w.edge.target].sort(),
+        ),
+      )?.length === 1
+    ) {
+      const a = required(
+          nodes.get(w.edge.source),
+        ),
+        b = required(nodes.get(w.edge.target));
+      const face = facing(
+        b.position.x - a.position.x,
+        b.position.y - a.position.y,
+      );
+      const other = facing(
+        a.position.x - b.position.x,
+        a.position.y - b.position.y,
+      );
+      const s = {
+          ...portPosition(a, face, 0),
+          side: face,
+        },
+        t = {
+          ...portPosition(b, other, 0),
+          side: other,
+        };
+      const stem = Math.min(
+        14,
+        distance(s, t) / 3,
+      );
+      const middle = softCorridor(
+        { ...move(s, face, stem), side: face },
+        move(t, other, stem),
+        boxes.filter(
+          (q) => q.id !== a.id && q.id !== b.id,
+        ),
+        clearance,
+      );
+      const path = middle && [s, ...middle, t];
+      const candidate =
+        path && lanes.score(path, w.edge, s, t);
+      const isolated =
+        degree(a.id) === 1 && degree(b.id) === 1;
+      if (
+        path &&
+        free(path, boxes) &&
+        (isolated ||
+          (face === w.sourceSide &&
+            other === w.targetSide &&
+            candidate?.clear &&
+            candidate.crossings <=
+              lanes.score(w.points, w.edge, s, t)
+                .crossings))
+      ) {
+        wires[i] = materialize(
+          w.edge,
+          s,
+          t,
+          path,
+          0,
+        );
+        lanes.insert(required(wires[i]));
+        continue;
+      }
+    }
+    if (
       w.edge.waypoints?.length ||
       w.sourceSide === w.targetSide ||
       vertical(w.sourceSide) !==
@@ -2498,32 +2425,6 @@ export const wireGraph = (
       [w.source, w.target],
       0,
     );
-  }
-  if (shift && previous) {
-    for (const [i, wire] of wires.entries()) {
-      const prior = previous.wires[i];
-      if (
-        !prior ||
-        prior === wire ||
-        prior.edge !== wire.edge
-      )
-        continue;
-      if (
-        prior.sourceSide === wire.sourceSide &&
-        prior.targetSide === wire.targetSide &&
-        free(prior.points, [shift.influence])
-      )
-        continue;
-      wires[i] = followCorridor(
-        wire,
-        prior,
-        required(nodes.get(wire.edge.source)),
-        required(nodes.get(wire.edge.target)),
-        boxes,
-        wire.edge.source === shift.id ||
-          wire.edge.target === shift.id,
-      );
-    }
   }
   const departures = new Set(
     wires.map((w) =>
@@ -2586,24 +2487,16 @@ export const wireGraph = (
       break;
     }
   }
-  byEdges.set(graph.edges, {
-    clearance,
-    radius,
+  for (const [i, wire] of wires.entries())
+    wires[i] = {
+      ...wire,
+      edge: required(visible[i]),
+    };
+  memo = {
+    key,
     wires,
-  });
-  if (firstEdge)
-    layouts.set(firstEdge, {
-      ...graph,
-      wires,
-      clearance,
-      radius,
-    });
-  recent.set(graph.edges, {
-    nodes: graph.nodes,
-    wires,
-    clearance,
-    radius,
-  });
-  cache.set(graph.nodes, byEdges);
+    knots,
+    edges: [...graph.edges],
+  };
   return wires;
 };

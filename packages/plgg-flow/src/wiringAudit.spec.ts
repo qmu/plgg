@@ -2,6 +2,7 @@ import {
   test,
   check,
   toBe,
+  toEqual,
   all,
 } from "plgg-test";
 import type { Edge, Graph } from "./model";
@@ -310,7 +311,7 @@ for (const route of [
   );
 }
 
-test("a card crossing a wire bends it continuously", () => {
+test("a card pushes a wire continuously on each side of the over-under tie", () => {
   const left = n("left", -220, 0);
   const right = n("right", 220, 0);
   const distant = [
@@ -323,6 +324,7 @@ test("a card crossing a wire bends it continuously", () => {
   ];
   let previous: readonly Wire[] = [];
   let worst = 0;
+  let earlyPush = false;
   let clear = true;
   for (let y = -90; y <= 64; y += 2) {
     const card = n("card", 0, y);
@@ -331,8 +333,11 @@ test("a card crossing a wire bends it continuously", () => {
       edges,
     });
     for (const [i, w] of wires.entries()) {
+      if (i === 0 && y === -26)
+        earlyPush = w.points.some((p) => p.y > 0);
       const old = previous[i];
-      if (old) {
+      // At the centre the two collision-free detours exchange sides.
+      if (old && !(i === 0 && y === 0)) {
         // Check both directions so deleting a detour also counts as motion.
         for (const [from, to] of [
           [old, w],
@@ -368,6 +373,64 @@ test("a card crossing a wire bends it continuously", () => {
   return all([
     check(previous.length, toBe(2)),
     check(clear, toBe(true)),
+    check(earlyPush, toBe(true)),
     check(worst <= 14, toBe(true)),
   ]);
+});
+
+test("routing depends only on the current graph values", () => {
+  const graph = (y: number) => ({
+    nodes: [
+      n("a", -220, 0),
+      n("b", 220, 0),
+      n("card", 0, y),
+    ],
+    edges: [e("a", "b")],
+  });
+  const sweep = (y: number) => {
+    const initial = graph(y),
+      first = wireGraph(initial);
+    const nodes = initial.nodes.map((node) =>
+      node.id === "card"
+        ? n("card", 0, -y)
+        : node,
+    );
+    const next = wireGraph({
+      nodes,
+      edges: initial.edges,
+    });
+    const again = wireGraph(graph(y));
+    return { first, next, again };
+  };
+  const forward = sweep(-2),
+    reverse = sweep(2);
+  const mutable = graph(-2);
+  wireGraph(mutable);
+  const card = mutable.nodes[2];
+  if (!card) throw new Error("Missing card");
+  card.position.y = 2;
+  return all([
+    check(forward.first, toEqual(forward.again)),
+    check(reverse.first, toEqual(reverse.again)),
+    check(forward.next, toEqual(reverse.first)),
+    check(reverse.next, toEqual(forward.first)),
+    check(
+      wireGraph(mutable),
+      toEqual(reverse.first),
+    ),
+  ]);
+});
+
+test("repeated edges route like equal separate edges", () => {
+  const nodes = [n("a", -220, 0), n("b", 220, 0)];
+  const edge = e("a", "b");
+  return check(
+    wireGraph({ nodes, edges: [edge, edge] }),
+    toEqual(
+      wireGraph({
+        nodes,
+        edges: [{ ...edge }, { ...edge }],
+      }),
+    ),
+  );
 });

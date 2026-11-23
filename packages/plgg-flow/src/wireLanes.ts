@@ -29,7 +29,7 @@ const equallySpaced = (
   out.push(required(points[points.length - 1]));
   return out;
 };
-export const laneIndex = (defer = false) => {
+export const laneIndex = () => {
   type Segment = {
     a: Point;
     vx: number;
@@ -88,10 +88,8 @@ export const laneIndex = (defer = false) => {
       )
         visit(x * 65537 + y);
   };
-  const pending = new Map<Edge, Wire>();
   let serial = 0;
   const remove = (edge: Edge) => {
-    pending.delete(edge);
     const old = footprints.get(edge);
     if (old)
       for (const k of old) {
@@ -106,7 +104,7 @@ export const laneIndex = (defer = false) => {
       }
     footprints.delete(edge);
   };
-  const index = (wire: Wire) => {
+  const insert = (wire: Wire) => {
     remove(wire.edge);
     const keys = new Set<number>();
     footprints.set(wire.edge, keys);
@@ -173,14 +171,6 @@ export const laneIndex = (defer = false) => {
     });
   };
   // A drag that reuses every lane needs no segment index.
-  const insert = (wire: Wire) => {
-    if (defer) pending.set(wire.edge, wire);
-    else index(wire);
-  };
-  const flush = () => {
-    for (const wire of pending.values())
-      index(wire);
-  };
   const score = (
     raw: readonly Point[],
     edge: Edge,
@@ -190,7 +180,6 @@ export const laneIndex = (defer = false) => {
     onConflict?: (other: Edge) => void,
     maxOverlap = Infinity,
   ) => {
-    if (pending.size) flush();
     const path =
       raw.length > 2 ? trackFor(raw) : raw;
     let cost = 0,
@@ -389,7 +378,6 @@ export const laneIndex = (defer = false) => {
     b: Point,
     edge: Edge,
   ) => {
-    if (pending.size) flush();
     const dx = b.x - a.x,
       dy = b.y - a.y,
       d = Math.sqrt(dx * dx + dy * dy),

@@ -574,3 +574,42 @@ Acceptance: `TOTAL sev3 0`; `TOTAL sev2 ≤ 45`; zero unrelated
 existing wires do not change while a connection is dragged (add a
 viewport spec: the wires computed with a connect drag in progress equal
 the wires computed without it).
+
+## Round 9 review — 53 moderate, but routes now depend on history: rejected
+
+Item 7 is fixed (wires are byte-identical before and during a connect
+drag) and moderate defects fell to 53. But the drag-jump work bought
+smoothness with memory: after dragging Stock next to Ship in the demo,
+Order → Stock stays bulged upward, while the same graph routed fresh
+draws it straight. The audit now compares the last frame of every drag
+sweep with a fresh routing of the identical graph (new node and edge
+objects): **54 `history-dependent`, severe.**
+
+**Hard rule: `wireGraph` is a pure function of the graph's values.**
+Same node positions/sizes and same edges ⇒ same wires, whatever was
+routed before, whatever object identities are passed. Caches may only
+memoise that pure function (key = the values a wire's route depends on),
+never carry state from one graph to the next: no "side being left", no
+remembered detour side, no previous-frame blending.
+
+Continuity then has to come from geometry alone:
+- Choices (side, over/under, lane order) are decided by scores that are
+  continuous in node position, with ties broken by stable keys. A flip
+  happens at one position and is the same flip in both directions.
+- Make the *shapes on both sides of a flip close to each other* so the
+  flip is small: near the threshold where a wire would change side,
+  both candidate routes should approach the same curve (e.g. as the far
+  end crosses a node's diagonal, the wire leaves from near the corner
+  on either side). Where that is impossible (over vs under an
+  obstacle), the flip is accepted.
+- An unrelated wire changes only when the moved node enters or leaves
+  its corridor; as the node approaches, clearance pushes the wire
+  gradually (soft margin), so by the time the node would block it the
+  wire has already moved aside.
+
+Acceptance: `TOTAL sev3 0` (so zero `history-dependent`);
+`TOTAL sev2 ≤ 60`; `drag-jump` on unrelated wires ≤ 5 and each explained
+by the moved node entering that wire's corridor; zero `slow`,
+`squashed-short-wire`, `wobble-on-straight`, `diagonal-in-step`.
+Add a spec: route graph G1, then G2, then G1 again with fresh objects —
+the two G1 results are deep-equal; and routing G2 first changes nothing.

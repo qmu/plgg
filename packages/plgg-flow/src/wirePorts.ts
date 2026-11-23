@@ -1,6 +1,5 @@
 import type { Point } from "plgg-board";
 import type { FlowNode, Edge } from "./model";
-import type { Wire } from "./wiring";
 import type { End } from "./wireFan";
 import {
   portPosition,
@@ -14,8 +13,8 @@ import {
   move,
   distance,
   facing,
-  free,
   cuts,
+  gap,
   bezier,
   type Box,
 } from "plgg-flow/wireGeometry";
@@ -30,8 +29,6 @@ export const planPorts = (
   nodes: ReadonlyMap<string, FlowNode>,
   edges: Edge[],
   boxes: Box[],
-  previous?: Wire[],
-  motion?: { id: string; dx: number; dy: number },
 ) => {
   // A displaced card does not change the orientation of an established row.
   const aligned = (axis: "x" | "y") => {
@@ -208,7 +205,7 @@ export const planPorts = (
     a: end(edge, true),
     b: end(edge, false),
   }));
-  if (rowAxis && !previous) {
+  if (rowAxis) {
     const skips = plans
       .map(({ a, b }) => {
         const from = required(
@@ -241,7 +238,7 @@ export const planPorts = (
           (p.lo < q.lo && p.hi < q.hi) ||
           (p.lo > q.lo && p.hi > q.hi)
         )
-          return 12;
+          return 36;
         return p.from === q.from || p.to === q.to
           ? 5
           : 1;
@@ -325,107 +322,6 @@ export const planPorts = (
             : "left";
     });
   }
-  if (previous) {
-    plans.forEach(({ a, b, edge }, i) => {
-      const w = previous[i];
-      if (!w || w.edge !== edge) return;
-      for (const [end, side] of [
-        [a, w.sourceSide],
-        [b, w.targetSide],
-      ] satisfies [End, Side][]) {
-        const p = portPosition(end.node, side, 0);
-        const own =
-          motion &&
-          (edge.source === motion.id ||
-            edge.target === motion.id);
-        // Reserve a hand-width of travel before a moving endpoint loses its face.
-        const approach = (
-          q: Box,
-          socket: Point,
-          face: Side,
-          lead: number,
-        ) => {
-          if (q.id === end.node.id) return false;
-          const dx =
-            (Number(end.node.id === motion?.id) -
-              Number(q.id === motion?.id)) *
-            (motion?.dx ?? 0);
-          const dy =
-            (Number(end.node.id === motion?.id) -
-              Number(q.id === motion?.id)) *
-            (motion?.dy ?? 0);
-          const d = Math.hypot(dx, dy);
-          const tip = move(socket, face, 1);
-          return (
-            cuts(socket, tip, q) ||
-            (d > 0 &&
-              cuts(
-                tip,
-                pt(
-                  tip.x + (lead * dx) / d,
-                  tip.y + (lead * dy) / d,
-                ),
-                q,
-              ))
-          );
-        };
-        if (
-          !boxes.some((q) =>
-            approach(q, p, side, 0),
-          )
-        )
-          end.side = side;
-        else {
-          // When the old stem closes, keep the replacement close to the visible wire.
-          let best = Infinity;
-          for (const face of sides) {
-            const socket = portPosition(
-              end.node,
-              face,
-              0,
-            );
-            if (
-              boxes.some(
-                (q) =>
-                  approach(
-                    q,
-                    socket,
-                    face,
-                    own ? 24 : 0,
-                  ) ||
-                  (q.id !== end.node.id &&
-                    cuts(
-                      socket,
-                      move(socket, face, 4),
-                      q,
-                    )),
-              )
-            )
-              continue;
-            const stem = move(socket, face, 4);
-            let gap = Infinity;
-            for (const sample of w.points) {
-              const d = distance(sample, stem);
-              if (
-                d < gap &&
-                free([stem, sample], boxes)
-              )
-                gap = d;
-            }
-            const cost =
-              (Number.isFinite(gap)
-                ? gap
-                : 200 + distance(socket, p)) +
-              distance(socket, p) * 0.35;
-            if (cost < best) {
-              best = cost;
-              end.side = face;
-            }
-          }
-        }
-      }
-    });
-  }
   // Partition the four faces together so a return edge cannot steal an arrival socket.
   const incident = new Map<
     string,
@@ -447,7 +343,6 @@ export const planPorts = (
       entries.some((x) => x.start) &&
       entries.some((x) => !x.start);
     if (
-      !previous &&
       !rowAxis &&
       mixed &&
       entries.some((x) =>
@@ -519,7 +414,7 @@ export const planPorts = (
       }
     }
   }
-  if (!rowAxis && !previous) {
+  if (!rowAxis) {
     // A spare face can give a blocked wire a shorter, gentler exit.
 
     for (const { a, b } of plans) {
@@ -608,25 +503,44 @@ export const planPorts = (
           bounds.b = Math.max(bounds.b, p.y);
         }
         for (const box of boxes) {
+          const margin = 12;
           if (
-            bounds.r <= box.l ||
-            bounds.l >= box.r ||
-            bounds.t >= box.b ||
-            bounds.b <= box.t
+            bounds.r < box.l - margin ||
+            bounds.l > box.r + margin ||
+            bounds.b < box.t - margin ||
+            bounds.t > box.b + margin
           )
             continue;
           if (
-            path.some(
-              (p, i) =>
-                i > 0 &&
-                cuts(
-                  required(path[i - 1]),
-                  p,
-                  box,
-                ),
+            box.id === a.node.id ||
+            box.id === b.node.id
+          ) {
+            if (
+              path.some(
+                (p, i) =>
+                  i > 0 &&
+                  cuts(
+                    required(path[i - 1]),
+                    p,
+                    box,
+                  ),
+              )
             )
-          )
-            cost += 120;
+              cost += 120;
+            continue;
+          }
+          // Charge progressively for entering the margin around a foreign card.
+          let nearest = margin;
+          for (let i = 1; i < path.length; i++)
+            nearest = Math.min(
+              nearest,
+              gap(
+                required(path[i - 1]),
+                required(path[i]),
+                box,
+              ),
+            );
+          cost += 120 * (1 - nearest / margin);
         }
         // Reject short facing gaps that force the cubic to turn back on itself.
         let length = 0,
@@ -689,84 +603,72 @@ export const planPorts = (
     }
   }
   // Keep the clearest facing sockets, then prefer an established sibling fan.
-  if (!previous)
-    for (const entries of incident.values()) {
-      for (const { end, start } of entries) {
-        const { node, peer } = end;
-        if (
-          node === peer ||
-          ((Math.abs(
-            node.position.x - peer.position.x,
-          ) < 1 ||
-            Math.abs(
-              node.position.y - peer.position.y,
-            ) < 1) &&
-            entries.some(
-              (x) =>
-                x.start !== start &&
-                x.end.peer === peer,
-            )) ||
-          boxes.some(
-            (q) =>
-              q.id !== node.id &&
-              q.id !== peer.id &&
-              cuts(
-                node.position,
-                peer.position,
-                q,
-              ),
-          )
+  for (const entries of incident.values()) {
+    for (const { end, start } of entries) {
+      const { node, peer } = end;
+      if (
+        node === peer ||
+        ((Math.abs(
+          node.position.x - peer.position.x,
+        ) < 1 ||
+          Math.abs(
+            node.position.y - peer.position.y,
+          ) < 1) &&
+          entries.some(
+            (x) =>
+              x.start !== start &&
+              x.end.peer === peer,
+          )) ||
+        boxes.some(
+          (q) =>
+            q.id !== node.id &&
+            q.id !== peer.id &&
+            cuts(node.position, peer.position, q),
         )
-          continue;
-        const dx =
-            peer.position.x - node.position.x,
-          dy = peer.position.y - node.position.y;
-        const cosine = (side: Side) =>
-          (dx * normal[side].x +
-            dy * normal[side].y) /
-          (Math.hypot(dx, dy) || 1);
-        const open = sides.filter((side) => {
-          const p = portPosition(node, side, 0);
-          return !boxes.some(
-            (q) =>
-              q.id !== node.id &&
-              cuts(p, move(p, side, 16), q),
-          );
-        });
-        const best = Math.max(
-          ...open.map(cosine),
+      )
+        continue;
+      const dx =
+          peer.position.x - node.position.x,
+        dy = peer.position.y - node.position.y;
+      const cosine = (side: Side) =>
+        (dx * normal[side].x +
+          dy * normal[side].y) /
+        (Math.hypot(dx, dy) || 1);
+      const open = sides.filter((side) => {
+        const p = portPosition(node, side, 0);
+        return !boxes.some(
+          (q) =>
+            q.id !== node.id &&
+            cuts(p, move(p, side, 16), q),
         );
-        const score = (side: Side) =>
-          cosine(side) +
-          Number(
-            entries.some(
-              (x) =>
-                x.end !== end &&
-                x.start === start &&
-                x.end.side === side,
-            ),
-          ) *
-            4 -
-          Number(
-            entries.some(
-              (x) =>
-                x.start !== start &&
-                x.end.side === side,
-            ),
-          );
-        Object.assign(end, {
-          side:
-            open
-              .filter(
-                (side) =>
-                  best - cosine(side) <= 0.35,
-              )
-              .sort(
-                (a, b) => score(b) - score(a),
-              )[0] ?? end.side,
-        });
-      }
+      });
+      const score = (side: Side) =>
+        cosine(side) +
+        Number(
+          entries.some(
+            (x) =>
+              x.end !== end &&
+              x.start === start &&
+              x.end.side === side,
+          ),
+        ) *
+          0.28 -
+        Number(
+          entries.some(
+            (x) =>
+              x.start !== start &&
+              x.end.side === side,
+          ),
+        ) *
+          0.07;
+      Object.assign(end, {
+        side:
+          open.sort(
+            (a, b) => score(b) - score(a),
+          )[0] ?? end.side,
+      });
     }
+  }
   for (const entries of incident.values()) {
     for (const { end } of entries) {
       const k = JSON.stringify([
@@ -805,7 +707,20 @@ export const planPorts = (
     );
     group.forEach((e, i) => {
       e.count = group.length;
-      e.rank = i - (group.length - 1) / 2;
+      let rank = i - (group.length - 1) / 2;
+      // Neighbouring fan shoulders meet as their rays exchange angular order.
+      for (const [j, other] of group.entries()) {
+        if (e.peer === other.peer || j === i)
+          continue;
+        const delta = Math.abs(
+          angle(e) - angle(other),
+        );
+        rank +=
+          Math.sign(j - i) *
+          0.5 *
+          Math.max(0, 1 - delta / 0.08);
+      }
+      e.rank = rank;
     });
   }
   const degree = (id: string) =>

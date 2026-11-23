@@ -81,10 +81,10 @@ export const refine = (
     ) =>
       r.conflicts * 1.2 +
       2 * Number(span < 60 && r.turn > 1.8) +
-      Number(r.turn > 6.8) +
-      Number(
-        edge.route !== "step" && r.kink > 0.72,
-      ) +
+      Math.max(0, r.turn - 5.8) +
+      (edge.route === "step"
+        ? 0
+        : Math.max(0, r.kink - 0.55) * 5) +
       Number(!arch && r.stiff) +
       20 * Number(r.overlap > 16);
     const foreign = padded.filter(
@@ -120,12 +120,14 @@ export const refine = (
       const dx =
           peer.position.x - node.position.x,
         dy = peer.position.y - node.position.y;
-      return Number(
-        Math.max(Math.abs(dx), Math.abs(dy)) -
+      const loss =
+        (Math.max(Math.abs(dx), Math.abs(dy)) -
           dx * normal[side].x -
-          dy * normal[side].y >
-          0.35 * Math.hypot(dx, dy) && open,
-      );
+          dy * normal[side].y) /
+        (Math.hypot(dx, dy) || 1);
+      return open
+        ? Math.max(0, loss - 0.15) * 3
+        : 0;
     };
     const outgoing = wires.filter(
       (other) =>
@@ -170,13 +172,19 @@ export const refine = (
       sb: Side,
     ) => {
       let len = 0,
-        contact = false;
+        contact = false,
+        excursion = 0;
       for (let i = 0; i < path.length; i++) {
         const p = required(path[i]);
         if (i)
           len += distance(
             p,
             required(path[i - 1]),
+          );
+        if (bounds)
+          excursion = Math.max(
+            excursion,
+            pointGap(p, bounds),
           );
         if (!contact)
           contact =
@@ -208,12 +216,7 @@ export const refine = (
           len / Math.max(40, direct) - 1.25,
         ) *
           0.15 +
-        Number(
-          bounds &&
-            path.some(
-              (p) => pointGap(p, bounds) > 90,
-            ),
-        ) +
+        Math.max(0, excursion - 60) / 30 +
         Number(
           open &&
             path.some(
