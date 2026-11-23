@@ -55,6 +55,7 @@ export const materialize = (
   t: Point3 & { side: Side },
   path: Point[],
   corners: number,
+  dense = true,
 ): Wire => {
   const points: Point3[] = [s];
   const total = path.reduce(
@@ -78,7 +79,9 @@ export const materialize = (
       const a = required(path[j - 1]),
         b = required(path[j]),
         d = distance(a, b),
-        steps = Math.ceil(d / 12);
+        steps = dense
+          ? Math.ceil(d / 12)
+          : Number(d > 0);
       for (let k = 1; k <= steps; k++) {
         const f = k / steps;
         points.push({

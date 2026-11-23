@@ -1,3 +1,7 @@
+import {
+  boundsIndex,
+  type Bounds,
+} from "plgg-flow/wireCorridors";
 import type { Point } from "plgg-board";
 import type { Wire } from "./wiring";
 import {
@@ -21,10 +25,9 @@ export const chordGap = (
         (x * x + y * y || 1),
     ),
   );
-  return Math.hypot(
-    p.x - a.x - t * x,
-    p.y - a.y - t * y,
-  );
+  const dx = p.x - a.x - t * x,
+    dy = p.y - a.y - t * y;
+  return Math.sqrt(dx * dx + dy * dy);
 };
 
 // Short chords retain bends while avoiding comparisons along straight samples.
@@ -57,7 +60,7 @@ export const outline = (
   span(0, points.length - 1);
   return result;
 };
-export const profile = (wire: Wire) => {
+const buildProfile = (wire: Wire) => {
   const path = outline(wire.points);
   return {
     l: Math.min(...path.map((p) => p.x)),
@@ -110,9 +113,49 @@ export const profile = (wire: Wire) => {
     }),
   };
 };
-export const conflict = (
+const contours = new WeakMap<
+  Wire,
+  ReturnType<typeof buildProfile>
+>();
+export const profile = (wire: Wire) => {
+  const hit = contours.get(wire);
+  if (hit) return hit;
+  const result = buildProfile(wire);
+  contours.set(wire, result);
+  return result;
+};
+type Contour = ReturnType<typeof profile>;
+const chordBlocks = new WeakMap<
+  Contour,
+  {
+    l: number;
+    r: number;
+    t: number;
+    b: number;
+    chords: Contour["segments"];
+  }[]
+>();
+const blocksFor = (p: Contour) => {
+  const hit = chordBlocks.get(p);
+  if (hit) return hit;
+  const blocks = [];
+  for (let j = 0; j < p.segments.length; j += 6) {
+    const chords = p.segments.slice(j, j + 6);
+    blocks.push({
+      l: Math.min(...chords.map((c) => c.l)),
+      r: Math.max(...chords.map((c) => c.r)),
+      t: Math.min(...chords.map((c) => c.t)),
+      b: Math.max(...chords.map((c) => c.bottom)),
+      chords,
+    });
+  }
+  chordBlocks.set(p, blocks);
+  return blocks;
+};
+const measureConflict = (
   u: ReturnType<typeof profile>,
   v: ReturnType<typeof profile>,
+  limit = Infinity,
 ) => {
   if (
     u.l > v.r + 6 ||
@@ -132,85 +175,172 @@ export const conflict = (
   let intersections = 0,
     contact = 0,
     near = 0;
-  for (const a of u.segments)
-    for (const b of v.segments) {
-      if (
-        a.l > b.r + 7 ||
-        b.l > a.r + 7 ||
-        a.t > b.bottom + 7 ||
-        b.t > a.bottom + 7
-      )
-        continue;
-      const dx = b.a.x - a.a.x,
-        dy = b.a.y - a.a.y;
-      const det = a.x * b.y - a.y * b.x;
-      if (
-        Math.abs(det) > 0.001 &&
-        crossing(u.path, a.i, v.path, b.i)
-      ) {
-        const at = (dx * b.y - dy * b.x) / det;
-        if (
-          !shared.some(
-            (p) =>
-              Math.hypot(
-                a.a.x + a.x * at - p.x,
-                a.a.y + a.y * at - p.y,
-              ) < 26,
-          )
-        )
-          intersections++;
-      }
-      // Clip each chord against the peer's lane, then exclude the common stem.
-      const dot = a.x * b.x + a.y * b.y,
-        along = dx * b.x + dy * b.y,
-        across = dx * b.y - dy * b.x;
-      let lo = 0,
-        hi = a.d;
-      if (Math.abs(dot) > 1e-8) {
-        const t0 = along / dot,
-          t1 = (along + b.d) / dot;
-        lo = Math.max(lo, Math.min(t0, t1));
-        hi = Math.min(hi, Math.max(t0, t1));
-      } else if (along > 0 || along < -b.d)
-        continue;
-      if (hi <= lo) continue;
-      const band = (width: number) => {
-        let l = lo,
-          h = hi;
-        if (Math.abs(det) > 1e-8) {
-          const t0 = (across - width) / det,
-            t1 = (across + width) / det;
-          l = Math.max(l, Math.min(t0, t1));
-          h = Math.min(h, Math.max(t0, t1));
-        } else if (Math.abs(across) >= width)
-          return 0;
-        if (h <= l) return 0;
-        let extent = h - l;
-        for (const q of shared) {
-          const x = q.x - a.a.x,
-            y = q.y - a.a.y,
-            center = x * a.x + y * a.y,
-            side = x * a.y - y * a.x;
-          if (Math.abs(side) >= 21) continue;
-          const reach = Math.sqrt(
-            441 - side * side,
-          );
-          extent -= Math.max(
-            0,
-            Math.min(h, center + reach) -
-              Math.max(l, center - reach),
-          );
-        }
-        return Math.max(0, extent);
-      };
-      contact += band(3.2);
-      near += band(6.2);
-    }
-  return (
+  const blocks = blocksFor(v);
+  const value = () =>
     intersections * (shared.length ? 45 : 3) +
     Math.max(0, intersections - 1) * 38 +
     Math.max(0, contact - 11) * 10 +
     Math.max(0, near - 85) * 0.3 +
-    contact * 0.12
-  );
+    contact * 0.12;
+  for (const a of u.segments) {
+    if (
+      a.l > v.r + 7 ||
+      a.r < v.l - 7 ||
+      a.t > v.b + 7 ||
+      a.bottom < v.t - 7
+    )
+      continue;
+    for (const block of blocks) {
+      if (
+        a.l > block.r + 7 ||
+        a.r < block.l - 7 ||
+        a.t > block.b + 7 ||
+        a.bottom < block.t - 7
+      )
+        continue;
+      for (const b of block.chords) {
+        if (
+          a.l > b.r + 7 ||
+          b.l > a.r + 7 ||
+          a.t > b.bottom + 7 ||
+          b.t > a.bottom + 7
+        )
+          continue;
+        const dx = b.a.x - a.a.x,
+          dy = b.a.y - a.a.y;
+        const det = a.x * b.y - a.y * b.x;
+        if (
+          Math.abs(det) > 0.001 &&
+          crossing(u.path, a.i, v.path, b.i)
+        ) {
+          const at = (dx * b.y - dy * b.x) / det;
+          if (
+            !shared.some(
+              (p) =>
+                Math.hypot(
+                  a.a.x + a.x * at - p.x,
+                  a.a.y + a.y * at - p.y,
+                ) < 26,
+            )
+          )
+            intersections++;
+        }
+        // Clip each chord against the peer's lane, then exclude the common stem.
+        const dot = a.x * b.x + a.y * b.y,
+          along = dx * b.x + dy * b.y,
+          across = dx * b.y - dy * b.x;
+        let lo = 0,
+          hi = a.d;
+        if (Math.abs(dot) > 1e-8) {
+          const t0 = along / dot,
+            t1 = (along + b.d) / dot;
+          lo = Math.max(lo, Math.min(t0, t1));
+          hi = Math.min(hi, Math.max(t0, t1));
+        } else if (along > 0 || along < -b.d)
+          continue;
+        if (hi <= lo) continue;
+        const band = (width: number) => {
+          let l = lo,
+            h = hi;
+          if (Math.abs(det) > 1e-8) {
+            const t0 = (across - width) / det,
+              t1 = (across + width) / det;
+            l = Math.max(l, Math.min(t0, t1));
+            h = Math.min(h, Math.max(t0, t1));
+          } else if (Math.abs(across) >= width)
+            return 0;
+          if (h <= l) return 0;
+          let extent = h - l;
+          for (const q of shared) {
+            const x = q.x - a.a.x,
+              y = q.y - a.a.y,
+              center = x * a.x + y * a.y,
+              side = x * a.y - y * a.x;
+            if (Math.abs(side) >= 21) continue;
+            const reach = Math.sqrt(
+              441 - side * side,
+            );
+            extent -= Math.max(
+              0,
+              Math.min(h, center + reach) -
+                Math.max(l, center - reach),
+            );
+          }
+          return Math.max(0, extent);
+        };
+        contact += band(3.2);
+        near += band(6.2);
+      }
+    }
+    if (limit !== Infinity && value() >= limit)
+      return limit;
+  }
+  return value();
+};
+
+// Repaired lanes often compare the same unchanged pair on consecutive frames.
+const penalties = new WeakMap<
+  Contour,
+  WeakMap<Contour, number>
+>();
+export const conflict = (
+  a: Contour,
+  b: Contour,
+  limit = Infinity,
+) => {
+  if (
+    a.l > b.r + 6 ||
+    a.r < b.l - 6 ||
+    a.t > b.b + 6 ||
+    a.b < b.t - 6
+  )
+    return 0;
+  let peers = penalties.get(a);
+  const old = peers?.get(b);
+  if (old !== undefined) {
+    if (old >= 0) return old;
+    if (-old >= limit) return limit;
+  }
+  const value = measureConflict(a, b, limit);
+  if (!peers) {
+    peers = new WeakMap();
+    penalties.set(a, peers);
+  }
+  peers.set(b, value >= limit ? -limit : value);
+  return value;
+};
+// Keep candidates local while allowing accepted repairs to change their extent.
+export const neighbourIndex = (
+  items: Bounds[],
+) => {
+  const envelope = (p: Bounds, i: number) => ({
+    l: p.l - 16,
+    r: p.r + 16,
+    t: p.t - 16,
+    b: p.b + 16,
+    i,
+  });
+  const regions = items.map(envelope);
+  let query = boundsIndex(regions);
+  return {
+    query: (p: Bounds) =>
+      query({
+        l: p.l - 7,
+        r: p.r + 7,
+        t: p.t - 7,
+        b: p.b + 7,
+      }),
+    update: (i: number, p: Bounds) => {
+      const r = required(regions[i]);
+      if (
+        p.l >= r.l &&
+        p.r <= r.r &&
+        p.t >= r.t &&
+        p.b <= r.b
+      )
+        return;
+      regions[i] = envelope(p, i);
+      query = boundsIndex(regions);
+    },
+  };
 };

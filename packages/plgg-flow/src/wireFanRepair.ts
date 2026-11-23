@@ -12,6 +12,7 @@ import {
   profile,
   conflict,
   chordGap,
+  neighbourIndex,
 } from "plgg-flow/wireInteraction";
 import { materialize } from "plgg-flow/wirePath";
 
@@ -116,6 +117,24 @@ const splice = (
     ? join(head, p.slice(end.i), end.p, radius)
     : [];
 };
+// Adjacent fillets need a visible straight or they read like a diagonal.
+const distinctBends = (path: Point[]) => {
+  let span = 0;
+  for (let j = 1; j < path.length; j++) {
+    const p = required(path[j - 1]),
+      q = required(path[j]),
+      d = distance(p, q);
+    if (
+      (Math.abs(p.x - q.x) < 0.001 ||
+        Math.abs(p.y - q.y) < 0.001) &&
+      d >= 6
+    )
+      span = 0;
+    else span += d;
+    if (span > 32) return false;
+  }
+  return true;
+};
 // Swap only the portions of two lanes enclosed by successive crossings.
 export const mendFans = (
   original: Wire[],
@@ -124,6 +143,7 @@ export const mendFans = (
 ) => {
   const wires = [...original],
     profiles = wires.map(profile);
+  const peers = neighbourIndex(profiles);
   const paths = wires.map((w) =>
     w.edge.route === "step" &&
     !w.edge.waypoints?.length &&
@@ -141,7 +161,10 @@ export const mendFans = (
     changed = false;
     for (const [i, path] of paths.entries()) {
       if (!eligible(path)) continue;
-      for (let j = 0; j < i; j++) {
+      for (const { i: j } of peers.query(
+        required(profiles[i]),
+      )) {
+        if (j >= i) continue;
         const p = required(paths[i]),
           other = required(paths[j]);
         if (!eligible(other)) continue;
@@ -225,6 +248,8 @@ export const mendFans = (
             if (
               !x.length ||
               !y.length ||
+              !distinctBends(x) ||
+              !distinctBends(y) ||
               !free(x, boxes) ||
               !free(y, boxes) ||
               crossesItself(x) ||
@@ -255,15 +280,32 @@ export const mendFans = (
             const gain =
               conflict(a, b) - conflict(u, v);
             if (gain <= 1) continue;
-            const delta = profiles.reduce(
-              (sum, c, k) =>
+            const neighbours = new Set(
+              [u, v, a, b].flatMap((p) =>
+                peers.query(p).map((r) => r.i),
+              ),
+            );
+            const delta = [...neighbours].reduce(
+              (sum, k) =>
                 k === i || k === j
                   ? sum
                   : sum +
-                    conflict(u, c) +
-                    conflict(v, c) -
-                    conflict(a, c) -
-                    conflict(b, c),
+                    conflict(
+                      u,
+                      required(profiles[k]),
+                    ) +
+                    conflict(
+                      v,
+                      required(profiles[k]),
+                    ) -
+                    conflict(
+                      a,
+                      required(profiles[k]),
+                    ) -
+                    conflict(
+                      b,
+                      required(profiles[k]),
+                    ),
               0,
             );
             if (
@@ -277,6 +319,8 @@ export const mendFans = (
               continue;
             wires[i] = u.wire;
             wires[j] = v.wire;
+            peers.update(i, u);
+            peers.update(j, v);
             profiles[i] = u;
             profiles[j] = v;
             changed = true;

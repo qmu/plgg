@@ -31,13 +31,16 @@ export const pt = (
 });
 export const distance = (a: Point, b: Point) =>
   Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-export const box = (n: FlowNode) => ({
-  id: n.id,
-  l: n.position.x - nodeSize(n).width / 2,
-  r: n.position.x + nodeSize(n).width / 2,
-  t: n.position.y - nodeSize(n).height / 2,
-  b: n.position.y + nodeSize(n).height / 2,
-});
+export const box = (n: FlowNode) => {
+  const { width, height } = nodeSize(n);
+  return {
+    id: n.id,
+    l: n.position.x - width / 2,
+    r: n.position.x + width / 2,
+    t: n.position.y - height / 2,
+    b: n.position.y + height / 2,
+  };
+};
 export type Box = ReturnType<typeof box>;
 export const obstacles = (graph: Graph) =>
   graph.nodes

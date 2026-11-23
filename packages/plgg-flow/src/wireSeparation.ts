@@ -1,3 +1,9 @@
+import {
+  corridor,
+  boundsIndex,
+  type Bounds,
+} from "plgg-flow/wireCorridors";
+import { cache } from "plgg-flow/wireMemo";
 import { nestedFans } from "plgg-flow/wireNestedFans";
 import { shortcuts } from "plgg-flow/wireShortcuts";
 import { mendFans } from "plgg-flow/wireFanRepair";
@@ -5,6 +11,7 @@ import { fitCurves } from "plgg-flow/wireSpline";
 import {
   profile,
   chordGap,
+  neighbourIndex,
   conflict,
 } from "plgg-flow/wireInteraction";
 import { type Point } from "plgg-board";
@@ -31,6 +38,11 @@ import {
 import type { planPorts } from "./wirePorts";
 import { curvedChannels } from "plgg-flow/wireChannels";
 import { materialize } from "plgg-flow/wirePath";
+const compactPaths = new WeakSet<Base>();
+const rememberRenders =
+  cache<Map<string, Base>>(384);
+const rememberGuides =
+  cache<ReturnType<typeof profile>[]>(96);
 // Two tangent arcs enter a parallel lane without two full right-angle turns.
 const socketJog = (
   s: Socket,
@@ -200,6 +212,8 @@ export const separate = (
   ports: ReturnType<typeof planPorts>,
   boxes: Box[],
   radius: number,
+  tokens: number[],
+  boxIndex: (area: Bounds) => Box[],
 ) => {
   const runs = bases.flatMap((w, index) =>
     (w.spine ?? []).slice(1).map((b, j) => {
@@ -246,6 +260,37 @@ export const separate = (
     (typeof runs)[number],
     number
   >();
+  type Run = (typeof runs)[number];
+  const ordered: Run[][] = bases.map(() => []);
+  const extent = (
+    axis: Run["axis"],
+    level: number,
+    lo: number,
+    hi: number,
+    margin: number,
+  ) =>
+    axis === "x"
+      ? {
+          l: level - margin,
+          r: level + margin,
+          t: lo,
+          b: hi,
+        }
+      : {
+          l: lo,
+          r: hi,
+          t: level - margin,
+          b: level + margin,
+        };
+  const runIndex = boundsIndex(
+    runs.map((r) => {
+      required(ordered[r.index]).push(r);
+      return {
+        ...extent(r.axis, r.level, r.lo, r.hi, 0),
+        run: r,
+      };
+    }),
+  );
   const visited = new Set<
     (typeof runs)[number]
   >();
@@ -265,7 +310,9 @@ export const separate = (
     const group = [first];
     visited.add(first);
     for (const r of group)
-      for (const q of runs)
+      for (const { run: q } of runIndex(
+        extent(r.axis, r.level, r.lo, r.hi, 7),
+      ))
         if (!visited.has(q) && shares(r, q)) {
           visited.add(q);
           group.push(q);
@@ -359,7 +406,17 @@ export const separate = (
       if (!changed) break;
     }
     groups.push(group);
-    const ranks = group.map(() => 0);
+    // A common span gives every lane its sorted rank directly.
+    const common =
+      Math.min(...group.map((r) => r.hi)) -
+        Math.max(...group.map((r) => r.lo)) >
+        14 &&
+      Math.max(...group.map((r) => r.level)) -
+        Math.min(...group.map((r) => r.level)) <
+        7;
+    const ranks = group.map((_, i) =>
+      common ? i : 0,
+    );
     let anchor: number | undefined;
     const limits: {
       rank: number;
@@ -367,12 +424,13 @@ export const separate = (
       high: number;
     }[] = [];
     for (const [j, r] of group.entries()) {
-      for (let k = 0; k < j; k++)
-        if (shares(r, required(group[k])))
-          ranks[j] = Math.max(
-            ranks[j] ?? 0,
-            (ranks[k] ?? 0) + 1,
-          );
+      if (!common)
+        for (let k = 0; k < j; k++)
+          if (shares(r, required(group[k])))
+            ranks[j] = Math.max(
+              ranks[j] ?? 0,
+              (ranks[k] ?? 0) + 1,
+            );
       const wire = required(bases[r.index]),
         spine = required(wire.spine);
       if (spine.length === 2) anchor = j;
@@ -438,16 +496,53 @@ export const separate = (
       });
     }
     const top = Math.max(...ranks);
+    // The upper hull gives the tightest opposing wall for each higher lane.
+    const hull: { rank: number; low: number }[] =
+      [];
     let pitch = 10;
-    for (const lower of limits)
-      for (const upper of limits) {
-        if (upper.rank > lower.rank)
-          pitch = Math.min(
-            pitch,
-            (upper.high - lower.low) /
-              (upper.rank - lower.rank),
-          );
+    const ranked = [...limits].sort(
+      (a, b) => a.rank - b.rank,
+    );
+    for (let i = 0; i < ranked.length; ) {
+      const rank = required(ranked[i]).rank;
+      let low = -Infinity,
+        high = Infinity;
+      while (
+        i < ranked.length &&
+        required(ranked[i]).rank === rank
+      ) {
+        const wall = required(ranked[i++]);
+        low = Math.max(low, wall.low);
+        high = Math.min(high, wall.high);
       }
+      if (Number.isFinite(high) && hull.length) {
+        const slope = (j: number) => {
+          const p = required(hull[j]);
+          return (high - p.low) / (rank - p.rank);
+        };
+        let l = 0,
+          r = hull.length - 1;
+        while (l < r) {
+          const mid = (l + r) >> 1;
+          if (slope(mid) <= slope(mid + 1))
+            r = mid;
+          else l = mid + 1;
+        }
+        pitch = Math.min(pitch, slope(l));
+      }
+      if (!Number.isFinite(low)) continue;
+      while (hull.length >= 2) {
+        const a = required(hull[hull.length - 2]),
+          b = required(hull[hull.length - 1]);
+        if (
+          (b.low - a.low) * (rank - b.rank) >
+          (low - b.low) * (b.rank - a.rank)
+        )
+          break;
+        hull.pop();
+      }
+      hull.push({ rank, low });
+    }
     pitch = Math.max(6, pitch);
     const low = Math.max(
         ...limits.map(
@@ -478,9 +573,7 @@ export const separate = (
     );
   }
   // A displaced corner can extend into a second bundle.
-  const ordered = bases.map((_, i) =>
-    runs.filter((r) => r.index === i),
-  );
+
   for (let pass = 0; pass < 3; pass++) {
     const shifted = runs.map((r) => {
       const w = required(bases[r.index]),
@@ -507,10 +600,25 @@ export const separate = (
         fixed,
       };
     });
+    const tracks = boundsIndex(
+      shifted.map((p, i) => ({
+        ...extent(
+          p.r.axis,
+          p.level,
+          p.lo,
+          p.hi,
+          0,
+        ),
+        p,
+        i,
+      })),
+    );
     let changed = false;
     for (const [j, p] of shifted.entries())
-      for (let k = 0; k < j; k++) {
-        const q = required(shifted[k]);
+      for (const { p: q, i: k } of tracks(
+        extent(p.r.axis, p.level, p.lo, p.hi, 12),
+      )) {
+        if (k >= j) continue;
         if (
           p.r.index === q.r.index ||
           p.r.axis !== q.r.axis ||
@@ -812,8 +920,15 @@ export const separate = (
   const archLevels = new Map(
     arches.map((r) => [r, r.level]),
   );
-  const bands = arches.flatMap((p, i) =>
-    arches.slice(i + 1).flatMap((q) => {
+  const bands = arches.flatMap((p) =>
+    runIndex(
+      extent(p.axis, p.level, p.lo, p.hi, 28),
+    ).flatMap(({ run: q }) => {
+      if (
+        q.index <= p.index ||
+        !archLevels.has(q)
+      )
+        return [];
       if (p.arch !== q.arch || p.axis !== q.axis)
         return [];
       const overlap =
@@ -936,11 +1051,143 @@ export const separate = (
     stemRoom(w.source, w.sourceSide),
     stemRoom(w.target, w.targetSide),
   ]);
-  const render = (
+
+  const walls = bases.map((w) =>
+    boxIndex(
+      corridor(w.spine ?? w.points, 128 + radius),
+    ),
+  );
+  const emit = (
+    w: Base,
+    s: Socket,
+    t: Socket,
+    path: Point[],
+    corners: number,
+  ) => {
+    const dense = w.edge.route !== "step";
+    const wire = materialize(
+      w.edge,
+      s,
+      t,
+      path,
+      corners,
+      dense,
+    );
+    if (!dense) compactPaths.add(wire);
+    return wire;
+  };
+  const laneOffsets = (w: Base, i: number) => {
+    const raw = required(w.spine);
+    const offsets = required(ordered[i]).map(
+      (r) => byRun.get(r) ?? 0,
+    );
+    const { compact, span } = required(
+      bendLimits[i],
+    );
+    if (w.edge.route === "step" && compact)
+      offsets[1] = Math.min(
+        span,
+        Math.max(-span, offsets[1] ?? 0),
+      );
+    // Extend a short stem before reducing its corner radius.
+    for (const [j, side, reach, end] of [
+      [
+        1,
+        w.sourceSide,
+        distance(w.source, required(raw[1])),
+        0,
+      ],
+      [
+        raw.length - 3,
+        w.targetSide,
+        distance(
+          w.target,
+          required(raw[raw.length - 2]),
+        ),
+        1,
+      ],
+    ] satisfies [
+      number,
+      Side,
+      number,
+      number,
+    ][]) {
+      if (j < 0 || j >= offsets.length) continue;
+      const sign = vertical(side)
+        ? normal[side].y
+        : normal[side].x;
+      const shift = Math.abs(
+        offsets[
+          end === 0 ? 0 : offsets.length - 1
+        ] ?? 0,
+      );
+      const stem =
+        w.edge.route === "step" && shift
+          ? Math.max(
+              Math.min(14, reach),
+              Math.min(
+                required(required(room[i])[end]),
+                14 + Math.min(shift, 2 * radius),
+              ),
+            )
+          : Math.min(14, reach);
+      offsets[j] =
+        sign *
+        Math.max(
+          stem - reach,
+          sign * (offsets[j] ?? 0),
+        );
+    }
+    return offsets;
+  };
+  const byEdge = new Map(
+    bases.map((w) => [w.edge, w]),
+  );
+  const sockets = boundsIndex(
+    bases.flatMap((w) =>
+      [true, false].map((start) => {
+        const root = start ? w.source : w.target;
+        return {
+          ...corridor([root], 0),
+          root,
+          w,
+          start,
+        };
+      }),
+    ),
+  );
+  const pairPositions = new Map<
+    Base["edge"],
+    number
+  >();
+  const singleDirections = new Map<
+    Base["edge"][],
+    number
+  >();
+  for (const list of ports.parallels.values()) {
+    const counts = new Map<string, number>();
+    for (const [i, edge] of list.entries()) {
+      pairPositions.set(edge, i);
+      counts.set(
+        edge.source,
+        (counts.get(edge.source) ?? 0) + 1,
+      );
+    }
+    singleDirections.set(
+      list,
+      list.findIndex(
+        (edge) => counts.get(edge.source) === 1,
+      ),
+    );
+  }
+  const draw = (
     w: Base,
     i: number,
     guides?: Point[][],
+    boxesForDraw = boxes,
+    trialOffsets?: number[],
   ) => {
+    const boxes = boxesForDraw;
     const { edge, a, b } = required(
       ports.plans[i],
     );
@@ -973,30 +1220,39 @@ export const separate = (
     if (flat && pair.length > 2) {
       // Leave the outside of a straight bundle free for the adjacent fan.
       let demand = 0;
-      for (const other of bases) {
-        if (pair.includes(other.edge)) continue;
-        for (const end of [true, false]) {
-          const root = end
-            ? other.source
-            : other.target;
-          if (
-            ![s, t].some(
-              (p) => distance(p, root) < 1,
-            )
-          )
-            continue;
-          const points = end
-            ? other.points
-            : [...other.points].reverse();
-          const exit =
-            points.find(
-              (q) => distance(root, q) > 40,
-            ) ??
-            required(points[points.length - 1]);
-          demand += Math.sign(
-            exit[across] - root[across],
-          );
-        }
+      const related = new Set(
+        [s, t].flatMap((p) =>
+          sockets(corridor([p], 1)),
+        ),
+      );
+      for (const {
+        w: other,
+        root,
+        start,
+      } of related) {
+        if (
+          (other.edge.source === edge.source &&
+            other.edge.target === edge.target) ||
+          (other.edge.source === edge.target &&
+            other.edge.target === edge.source)
+        )
+          continue;
+        if (
+          distance(root, s) >= 1 &&
+          distance(root, t) >= 1
+        )
+          continue;
+        const points = start
+          ? other.points
+          : [...other.points].reverse();
+        const exit =
+          points.find(
+            (q) => distance(root, q) > 40,
+          ) ??
+          required(points[points.length - 1]);
+        demand += Math.sign(
+          exit[across] - root[across],
+        );
       }
       centre = Math.max(
         0,
@@ -1005,19 +1261,15 @@ export const separate = (
           Math.round(centre + demand / 2),
         ),
       );
-      const single = pair.findIndex(
-        (e) =>
-          pair.filter(
-            (p) => p.source === e.source,
-          ).length === 1,
-      );
+      const single =
+        singleDirections.get(pair) ?? -1;
       if (single >= 0) centre = single;
     }
     const peer = reciprocal
-      ? bases.find(
-          (v) =>
-            v.edge ===
-            pair.find((e) => e !== edge),
+      ? byEdge.get(
+          required(
+            pair[pair[0] === edge ? 1 : 0],
+          ),
         )
       : undefined;
     const sameSockets =
@@ -1033,22 +1285,16 @@ export const separate = (
           )
       : 10;
     const lens = sameSockets
-      ? (pair.indexOf(edge) - centre) * spread
+      ? (required(pairPositions.get(edge)) -
+          centre) *
+        spread
       : 0;
     if (flat && !lens) return w;
     if (w.spine && !flat) {
       const raw = w.spine;
-      const offsets = runs
-        .filter((r) => r.index === i)
-        .map((r) => byRun.get(r) ?? 0);
-      const { compact, span } = required(
-        bendLimits[i],
-      );
-      if (edge.route === "step" && compact)
-        offsets[1] = Math.min(
-          span,
-          Math.max(-span, offsets[1] ?? 0),
-        );
+      const offsets =
+        trialOffsets ?? laneOffsets(w, i);
+      const { compact } = required(bendLimits[i]);
       if (
         edge.route !== "step" &&
         s.side === t.side &&
@@ -1079,59 +1325,6 @@ export const separate = (
             );
         }
         return w;
-      }
-      // Extend a short stem before reducing its corner radius.
-      for (const [j, side, reach, end] of [
-        [
-          1,
-          s.side,
-          distance(s, required(raw[1])),
-          0,
-        ],
-        [
-          raw.length - 3,
-          t.side,
-          distance(
-            t,
-            required(raw[raw.length - 2]),
-          ),
-          1,
-        ],
-      ] satisfies [
-        number,
-        Side,
-        number,
-        number,
-      ][]) {
-        if (j < 0 || j >= offsets.length)
-          continue;
-        const sign = vertical(side)
-          ? normal[side].y
-          : normal[side].x;
-        const shift = Math.abs(
-          offsets[
-            end === 0 ? 0 : offsets.length - 1
-          ] ?? 0,
-        );
-        const stem =
-          edge.route === "step" && shift
-            ? Math.max(
-                Math.min(14, reach),
-                Math.min(
-                  required(
-                    required(room[i])[end],
-                  ),
-                  14 +
-                    Math.min(shift, 2 * radius),
-                ),
-              )
-            : Math.min(14, reach);
-        offsets[j] =
-          sign *
-          Math.max(
-            stem - reach,
-            sign * (offsets[j] ?? 0),
-          );
       }
       for (const scale of [1, 0.65, 0.35]) {
         if (!offsets.some(Boolean)) break;
@@ -1205,6 +1398,21 @@ export const separate = (
             (fanWidths.get(key) ?? 0) -
             Math.abs(offset);
           const reach = Math.max(0, along - 14);
+          if (
+            edge.route === "step" &&
+            Math.min(a.count, b.count) > 1 &&
+            (compact || (first && last)) &&
+            reach >= 36 &&
+            Math.abs(offset) <= 12 &&
+            radius > 0
+          )
+            return socketJog(
+              socket,
+              offset,
+              radius,
+              reach,
+              10,
+            );
           if (edge.route === "step")
             return busJog(
               socket,
@@ -1268,8 +1476,8 @@ export const separate = (
             ...right.reverse(),
           ];
           if (free(arc, boxes))
-            return materialize(
-              edge,
+            return emit(
+              w,
               s,
               t,
               arc,
@@ -1281,8 +1489,8 @@ export const separate = (
           edge.route === "step" ? radius : 24,
         );
         if (free(arc, boxes))
-          return materialize(
-            edge,
+          return emit(
+            w,
             s,
             t,
             arc,
@@ -1440,7 +1648,94 @@ export const separate = (
     }
     return w;
   };
+  // Lane trials revisit the same offset vector between repair passes.
+  const rendered = bases.map((w, i) => {
+    if (
+      w.edge.route !== "step" ||
+      !w.spine ||
+      w.spine.length < 3 ||
+      (w.source.x === w.target.x &&
+        w.points.every(
+          (p) => p.x === w.source.x,
+        )) ||
+      (w.source.y === w.target.y &&
+        w.points.every((p) => p.y === w.source.y))
+    )
+      return;
+    const lanes = [-1, 1].flatMap((sign) =>
+      [
+        [w.edge.source, w.sourceSide, sign],
+        [w.edge.target, w.targetSide, sign],
+      ].map((end) =>
+        firstLanes.get(JSON.stringify(end)),
+      ),
+    );
+    const key = JSON.stringify([
+      tokens[i],
+      room[i],
+      bendLimits[i],
+      Math.min(
+        required(ports.plans[i]).a.count,
+        required(ports.plans[i]).b.count,
+      ) > 1,
+      lanes,
+      radius,
+    ]);
+    return {
+      shapes: rememberRenders(
+        key,
+        () => new Map<string, Base>(),
+      ),
+      checked: new Map<string, Base>(),
+    };
+  });
+  const render = (
+    w: Base,
+    i: number,
+    guides?: Point[][],
+  ) => {
+    const store = rendered[i];
+    if (!store || guides)
+      return draw(w, i, guides);
+    const offsets = laneOffsets(w, i);
+    const key = offsets.join(",");
+    const checked = store.checked.get(key);
+    if (checked) return checked;
+    let first = store.shapes.get(key);
+    if (!first) {
+      first = draw(w, i, undefined, [], offsets);
+      if (store.shapes.size >= 96)
+        store.shapes.delete(
+          required(
+            store.shapes.keys().next().value,
+          ),
+        );
+      store.shapes.set(key, first);
+    }
+    // Moving an obstacle changes clearance without changing the candidate's shape.
+    const local = offsets.some(
+      (d) => Math.abs(d) > 96,
+    )
+      ? boxes
+      : required(walls[i]);
+    const wire = free(first.points, local)
+      ? first
+      : draw(w, i, undefined, local, offsets);
+    store.checked.set(key, wire);
+    return wire;
+  };
   let wires = bases.map((w, i) => render(w, i));
+  // A complete leaf fan has its own direct construction.
+  const nested = nestedFans(
+    [...wires],
+    ports,
+    boxes,
+    radius,
+  );
+  const settled = nested.map(
+    (w, i) => w !== wires[i],
+  );
+  wires = nested;
   for (const [i, w] of wires.entries()) {
     if (
       w.edge.source !== w.edge.target ||
@@ -1458,11 +1753,13 @@ export const separate = (
           ),
       )
       .map(profile);
-    const cost = (w: Base) =>
-      peers.reduce(
-        (sum, p) => sum + conflict(p, profile(w)),
+    const cost = (w: Base) => {
+      const contour = profile(w);
+      return peers.reduce(
+        (sum, p) => sum + conflict(p, contour),
         0,
       );
+    };
     let best = cost(w);
     if (best < 1) continue;
     for (const reach of w.edge.route === "step"
@@ -1496,19 +1793,76 @@ export const separate = (
     bases.some((w) => w.edge.route === "step")
   ) {
     const profiles = wires.map(profile);
+    const index = neighbourIndex(profiles);
+    const accept = (
+      i: number,
+      p: ReturnType<typeof profile>,
+    ) => {
+      index.update(i, p);
+      profiles[i] = p;
+    };
     const score = (
       p: ReturnType<typeof profile>,
       i: number,
       skip = -1,
-    ) =>
-      profiles.reduce(
-        (sum, q, j) =>
-          sum +
-          (i === j || skip === j
-            ? 0
-            : conflict(p, q)),
-        0,
-      );
+      limit = Infinity,
+    ) => {
+      let total = 0;
+      for (const entry of index.query(p)) {
+        if (entry.i === i || entry.i === skip)
+          continue;
+        total += conflict(
+          p,
+          required(profiles[entry.i]),
+          limit - total,
+        );
+        if (total >= limit) break;
+      }
+      return total;
+    };
+    // Test the most expensive current neighbours first so losing trials end early.
+    const trialScore = (i: number) => {
+      const old = required(profiles[i]);
+      const region = {
+        l: old.l - 80,
+        r: old.r + 80,
+        t: old.t - 80,
+        b: old.b + 80,
+      };
+      const peers = index
+        .query(region)
+        .filter((r) => r.i !== i)
+        .map((r) => {
+          const peer = required(profiles[r.i]);
+          return {
+            peer,
+            penalty: conflict(old, peer),
+          };
+        })
+        .sort((a, b) => b.penalty - a.penalty);
+      return (
+        p: ReturnType<typeof profile>,
+        limit: number,
+      ) => {
+        if (
+          p.l < region.l ||
+          p.r > region.r ||
+          p.t < region.t ||
+          p.b > region.b
+        )
+          return score(p, i, -1, limit);
+        let total = 0;
+        for (const { peer } of peers) {
+          total += conflict(
+            p,
+            peer,
+            limit - total,
+          );
+          if (total >= limit) break;
+        }
+        return total;
+      };
+    };
     for (let pass = 0; pass < 4; pass++) {
       let changed = false;
       for (const group of groups) {
@@ -1525,6 +1879,8 @@ export const separate = (
             a = p.index,
             b = q.index;
           if (
+            settled[a] ||
+            settled[b] ||
             a === b ||
             !shares(p, q) ||
             required(bases[a]).edge.route !==
@@ -1559,8 +1915,8 @@ export const separate = (
                 improvement -
                 1
           ) {
-            profiles[a] = x;
-            profiles[b] = y;
+            accept(a, x);
+            accept(b, y);
             wires[a] = x.wire;
             wires[b] = y.wire;
             group[j] = p;
@@ -1575,6 +1931,17 @@ export const separate = (
       if (!changed) break;
     }
     // Retract shoulders and slide shared bends within the allocated channel.
+    const socketRuns = new Map<string, Run[]>();
+    const socketKey = (p: Point) =>
+      JSON.stringify([p.x, p.y]);
+    for (const [i, w] of bases.entries()) {
+      for (const socket of [w.source, w.target]) {
+        const key = socketKey(socket),
+          list = socketRuns.get(key) ?? [];
+        list.push(...required(ordered[i]));
+        socketRuns.set(key, list);
+      }
+    }
     const initial = new Map(byRun);
     for (let pass = 0; pass < 2; pass++) {
       let changed = false;
@@ -1582,6 +1949,7 @@ export const separate = (
         const raw = w.spine;
         if (
           w.edge.route !== "step" ||
+          settled[i] ||
           !raw ||
           raw.length < 3
         )
@@ -1592,32 +1960,45 @@ export const separate = (
             ? q
             : inflate(q, 6),
         );
+        const trial = trialScore(i);
         const cost = (
           p: ReturnType<typeof profile>,
-        ) =>
-          score(p, i) +
-          p.turn * 1.8 +
-          Math.max(0, p.turn - 6.3) * 10 +
-          p.length * 0.005;
+          limit = Infinity,
+        ) => {
+          const shape =
+            p.turn * 1.8 +
+            Math.max(0, p.turn - 6.3) * 10 +
+            p.length * 0.005;
+          return shape >= limit
+            ? shape
+            : shape + trial(p, limit - shape);
+        };
         const start = required(profiles[i]);
+
         const penalty = score(start, i);
         if (
           penalty < 2 &&
           (start.turn < 6.6 || raw.length <= 4)
         )
           continue;
-        const fan = Math.max(
-          ...[w.source, w.target].map(
-            (s) =>
-              bases.filter((v) =>
-                [v.source, v.target].some(
-                  (t) =>
-                    s.x === t.x && s.y === t.y,
-                ),
-              ).length,
-          ),
-        );
+        const plan = required(ports.plans[i]),
+          fan = Math.max(
+            plan.a.count,
+            plan.b.count,
+          );
+
+        const peers = new Set([
+          ...(socketRuns.get(
+            socketKey(w.source),
+          ) ?? []),
+          ...(socketRuns.get(
+            socketKey(w.target),
+          ) ?? []),
+        ]);
         let best = cost(start);
+        const tried = new Set([
+          start.wire.points,
+        ]);
         for (const run of required(ordered[i])) {
           const original = byRun.get(run) ?? 0;
           let picked = original;
@@ -1650,25 +2031,12 @@ export const separate = (
           }
           // A sibling's next bend marks the usable width of the shared fan.
           const alternatives = new Set<number>();
-          const touches = (p: Point, q: Point) =>
-            p.x === q.x && p.y === q.y;
-          for (const peer of runs) {
+          for (const peer of peers) {
             if (
               peer.index === i ||
               peer.axis !== run.axis ||
               run.socket ||
               peer.socket
-            )
-              continue;
-            const other = required(
-              bases[peer.index],
-            );
-            if (
-              ![other.source, other.target].some(
-                (p) =>
-                  touches(p, w.source) ||
-                  touches(p, w.target),
-              )
             )
               continue;
             if (
@@ -1699,22 +2067,23 @@ export const separate = (
               continue;
             byRun.set(run, offset);
             const candidate = render(w, i);
-            if (
-              !free(
-                candidate.points,
-                clearance,
-              ) ||
-              crossesItself([...candidate.points])
-            )
+            if (tried.has(candidate.points))
               continue;
+            tried.add(candidate.points);
             const next = profile(candidate);
-            const value = cost(next);
-            if (value + 0.25 < best) {
+            const value = cost(next, best);
+            if (
+              value + 0.25 < best &&
+              free(candidate.points, clearance) &&
+              !crossesItself(
+                simplify(candidate.points),
+              )
+            ) {
               best = value;
-              picked = offset;
-              profiles[i] = next;
-              wires[i] = candidate;
               changed = true;
+              picked = offset;
+              accept(i, next);
+              wires[i] = candidate;
             }
           }
           byRun.set(run, picked);
@@ -1726,12 +2095,17 @@ export const separate = (
     for (const group of fans.values()) {
       if (group.length < 2) continue;
       for (const [j, left] of group.entries())
-        for (const right of group.slice(j + 1)) {
+        for (const right of group.slice(
+          j + 1,
+          j + 4,
+        )) {
           const i = left.i,
             k = right.i,
             u = required(profiles[i]),
             v = required(profiles[k]);
           if (
+            settled[i] ||
+            settled[k] ||
             i === k ||
             u.wire.edge.route !== "step" ||
             v.wire.edge.route !== "step" ||
@@ -1811,8 +2185,8 @@ export const separate = (
             if (cost + 1 < best) {
               best = cost;
               mask = trial;
-              profiles[i] = x;
-              profiles[k] = y;
+              accept(i, x);
+              accept(k, y);
               wires[i] = x.wire;
               wires[k] = y.wire;
             }
@@ -1837,233 +2211,306 @@ export const separate = (
           });
         }
     }
-    for (let pass = 0; pass < 2; pass++)
-      for (const [i, w] of wires.entries()) {
-        const old = required(profiles[i]);
-        if (
-          w.edge.route !== "step" ||
-          old.turn < 0.01 ||
-          (old.turn < 4 && score(old, i) < 2) ||
-          !bases[i]?.spine
-        )
-          continue;
-        const paths: Point[][] = [];
-        render(required(bases[i]), i, paths);
-        const raw = paths[0] ?? bases[i]?.spine;
-        if (!raw) continue;
-        const cost = (
-          p: ReturnType<typeof profile>,
-        ) =>
-          score(p, i) +
+    for (const [i, w] of wires.entries()) {
+      const old = required(profiles[i]);
+
+      if (
+        w.edge.route !== "step" ||
+        settled[i] ||
+        old.turn < 0.01 ||
+        (old.turn < 4 && score(old, i) < 2) ||
+        !bases[i]?.spine
+      )
+        continue;
+      const paths: Point[][] = [];
+      render(required(bases[i]), i, paths);
+      const raw = paths[0] ?? bases[i]?.spine;
+      if (!raw) continue;
+      const trial = trialScore(i);
+      const cost = (
+        p: ReturnType<typeof profile>,
+        limit = Infinity,
+      ) => {
+        const shape =
           p.turn * 2 +
           Math.max(0, p.turn - 6.4) * 16 +
           p.length * 0.008;
-        let best = cost(old);
-        const s = {
-            ...w.source,
-            side: w.sourceSide,
-          },
-          t = { ...w.target, side: w.targetSide };
-        const clear = boxes.map((q) =>
-          q.id === w.edge.source ||
-          q.id === w.edge.target
-            ? q
-            : inflate(q, 6),
-        );
+        return shape >= limit
+          ? shape
+          : shape + trial(p, limit - shape);
+      };
+      let best = cost(old);
+      const s = {
+          ...w.source,
+          side: w.sourceSide,
+        },
+        t = { ...w.target, side: w.targetSide };
+      const localBoxes = boxes.filter(
+        (q) =>
+          q.l <= old.r + 64 &&
+          q.r >= old.l - 64 &&
+          q.t <= old.b + 64 &&
+          q.b >= old.t - 64,
+      );
+      const clear = localBoxes.map((q) =>
+        q.id === w.edge.source ||
+        q.id === w.edge.target
+          ? q
+          : inflate(q, 6),
+      );
 
-        const socketWalls = boxes
-          .filter(
-            (q) =>
-              q.id === w.edge.source ||
-              q.id === w.edge.target,
-          )
-          .map((q) => inflate(q, 5));
-        const baseSpine = required(
-          required(bases[i]).spine,
-        );
-        const { facing, compact, span } =
-          required(bendLimits[i]);
-        const arch =
-          w.sourceSide === w.targetSide &&
-          baseSpine.length === 4;
-        for (const guide of shortcuts(
-          s,
-          t,
-          boxes,
-          w.edge.source,
-          w.edge.target,
-          raw,
-        )) {
-          if (facing) {
-            const across = vertical(s.side)
-              ? "x"
-              : "y";
+      const socketWalls = boxes
+        .filter(
+          (q) =>
+            q.id === w.edge.source ||
+            q.id === w.edge.target,
+        )
+        .map((q) => inflate(q, 5));
+      const baseSpine = required(
+        required(bases[i]).spine,
+      );
+      const { facing, compact, span } = required(
+        bendLimits[i],
+      );
+      const arch =
+        w.sourceSide === w.targetSide &&
+        baseSpine.length === 4;
+      const along = vertical(s.side) ? "y" : "x",
+        across = along === "x" ? "y" : "x";
+      // On shallow runs a distant elbow swap can move the whole middle lane.
+      const shallow =
+        vertical(s.side) === vertical(t.side) &&
+        s.side !== t.side &&
+        Math.abs(s[along] - t[along]) >
+          4 * Math.abs(s[across] - t[across]) &&
+        Math.min(
+          required(ports.plans[i]).a.count,
+          required(ports.plans[i]).b.count,
+        ) > 1;
+      const trialKey = JSON.stringify([
+        s,
+        t,
+        w.edge.source,
+        w.edge.target,
+        raw,
+        baseSpine,
+        radius,
+        clear,
+        compact,
+        shallow,
+        facing,
+        span,
+      ]);
+      const choices = rememberGuides(
+        trialKey,
+        () => {
+          const choices: ReturnType<
+            typeof profile
+          >[] = [];
+          for (const guide of shortcuts(
+            s,
+            t,
+            localBoxes,
+            w.edge.source,
+            w.edge.target,
+            raw,
+          )) {
+            if (facing) {
+              const across = vertical(s.side)
+                ? "x"
+                : "y";
+              if (
+                guide.some(
+                  (p) =>
+                    p[across] <
+                      Math.min(
+                        s[across],
+                        t[across],
+                      ) -
+                        span ||
+                    p[across] >
+                      Math.max(
+                        s[across],
+                        t[across],
+                      ) +
+                        span,
+                )
+              )
+                continue;
+            }
             if (
+              (compact ||
+                shallow ||
+                (baseSpine.length === 3 &&
+                  Math.max(
+                    required(ports.plans[i]).a
+                      .count,
+                    required(ports.plans[i]).b
+                      .count,
+                  ) <= 2)) &&
               guide.some(
                 (p) =>
-                  p[across] <
-                    Math.min(
-                      s[across],
-                      t[across],
-                    ) -
-                      span ||
-                  p[across] >
-                    Math.max(
-                      s[across],
-                      t[across],
-                    ) +
-                      span,
+                  !baseSpine.some(
+                    (q, j) =>
+                      j > 0 &&
+                      chordGap(
+                        p,
+                        required(
+                          baseSpine[j - 1],
+                        ),
+                        q,
+                      ) <= span,
+                  ),
               )
             )
               continue;
-          }
-          if (
-            compact &&
-            guide.some(
-              (p) =>
-                !baseSpine.some(
-                  (q, j) =>
-                    j > 0 &&
-                    chordGap(
-                      p,
-                      required(baseSpine[j - 1]),
-                      q,
-                    ) <= span,
-                ),
-            )
-          )
-            continue;
 
-          const arc = rounded(guide, radius, 0.8);
-          if (
-            !free(arc, clear) ||
-            !free(
-              arc.slice(1, -1),
-              socketWalls,
-            ) ||
-            crossesItself(arc)
-          )
-            continue;
-          const next = profile(
-            materialize(
-              w.edge,
-              s,
-              t,
-              arc,
-              guide.length - 2,
-            ),
-          );
-          if (
-            next.length > old.length * 0.84 &&
-            old.path.some(
-              (p) =>
-                !next.segments.some(
-                  (seg) =>
-                    chordGap(p, seg.a, seg.b) <=
-                    (arch ? 10 : 100),
-                ),
+            const arc = rounded(
+              guide,
+              radius,
+              0.8,
+            );
+            if (
+              !free(arc, clear) ||
+              !free(
+                arc.slice(1, -1),
+                socketWalls,
+              ) ||
+              crossesItself(arc)
             )
-          )
-            continue;
-          const value = cost(next);
-          if (value + 1 < best) {
-            best = value;
-            wires[i] = next.wire;
-            profiles[i] = next;
+              continue;
+            const next = profile(
+              materialize(
+                w.edge,
+                s,
+                t,
+                arc,
+                guide.length - 2,
+                false,
+              ),
+            );
+            choices.push(next);
           }
+          return choices;
+        },
+      );
+      for (const next of choices) {
+        if (
+          next.length > old.length * 0.84 &&
+          old.path.some(
+            (p) =>
+              !next.segments.some(
+                (seg) =>
+                  chordGap(p, seg.a, seg.b) <=
+                  (arch ? 10 : 100),
+              ),
+          )
+        )
+          continue;
+        const value = cost(next, best);
+        if (value + 1 < best) {
+          best = value;
+          wires[i] = materialize(
+            w.edge,
+            s,
+            t,
+            [...next.wire.points],
+            next.wire.corners,
+          );
+          accept(i, {
+            ...next,
+            wire: required(wires[i]),
+          });
         }
-        for (let j = 0; j + 3 < raw.length; j++) {
-          for (
-            let k = j + 3;
-            k < raw.length;
-            k++
-          ) {
-            const a = required(raw[j]),
-              d = required(raw[k]);
-            for (const elbow of [
-              pt(a.x, d.y),
-              pt(d.x, a.y),
-            ]) {
-              if (
-                raw
-                  .slice(j + 1, k)
-                  .some(
-                    (p) =>
-                      Math.min(
-                        chordGap(p, a, elbow),
-                        chordGap(p, elbow, d),
-                      ) > 40,
-                  )
-              )
-                continue;
-              const knots = simplify([
-                ...raw.slice(0, j + 1),
-                elbow,
-                ...raw.slice(k),
-              ]);
-              const head = required(knots[1]),
-                tail = required(
-                  knots[knots.length - 2],
-                );
-              const valid = (
-                p: Point,
-                s: Socket,
-              ) => {
-                const n = normal[s.side];
-                return (
-                  (p.x - s.x) * n.x +
-                    (p.y - s.y) * n.y >=
-                    14 &&
-                  Math.abs(
-                    (p.x - s.x) * n.y -
-                      (p.y - s.y) * n.x,
-                  ) < 0.01
-                );
-              };
-              if (
-                !valid(head, s) ||
-                !valid(tail, t)
-              )
-                continue;
-              const arc = rounded(
-                knots,
-                radius,
-                0.8,
+      }
+      for (let j = 0; j + 3 < raw.length; j++) {
+        for (let k = j + 3; k < raw.length; k++) {
+          const a = required(raw[j]),
+            d = required(raw[k]);
+          for (const elbow of [
+            pt(a.x, d.y),
+            pt(d.x, a.y),
+          ]) {
+            if (
+              raw
+                .slice(j + 1, k)
+                .some(
+                  (p) =>
+                    Math.min(
+                      chordGap(p, a, elbow),
+                      chordGap(p, elbow, d),
+                    ) > 40,
+                )
+            )
+              continue;
+            const knots = simplify([
+              ...raw.slice(0, j + 1),
+              elbow,
+              ...raw.slice(k),
+            ]);
+            const head = required(knots[1]),
+              tail = required(
+                knots[knots.length - 2],
               );
-              if (
-                !free(arc, clear) ||
-                !free(
-                  arc.slice(1, -1),
-                  socketWalls,
-                ) ||
-                crossesItself(arc)
-              )
-                continue;
-              const next = profile(
-                  materialize(
-                    w.edge,
-                    s,
-                    t,
-                    arc,
-                    knots.length - 2,
-                  ),
+            const valid = (
+              p: Point,
+              s: Socket,
+            ) => {
+              const n = normal[s.side];
+              return (
+                (p.x - s.x) * n.x +
+                  (p.y - s.y) * n.y >=
+                  14 &&
+                Math.abs(
+                  (p.x - s.x) * n.y -
+                    (p.y - s.y) * n.x,
+                ) < 0.01
+              );
+            };
+            if (
+              !valid(head, s) ||
+              !valid(tail, t)
+            )
+              continue;
+            const arc = rounded(
+              knots,
+              radius,
+              0.8,
+            );
+            if (
+              !free(arc, clear) ||
+              !free(
+                arc.slice(1, -1),
+                socketWalls,
+              ) ||
+              crossesItself(arc)
+            )
+              continue;
+            const next = profile(
+                materialize(
+                  w.edge,
+                  s,
+                  t,
+                  arc,
+                  knots.length - 2,
                 ),
-                value = cost(next);
-              if (value + 0.5 < best) {
-                best = value;
-                wires[i] = next.wire;
-                profiles[i] = next;
-              }
+              ),
+              value = cost(next);
+            if (value + 0.5 < best) {
+              best = value;
+              wires[i] = next.wire;
+              accept(i, next);
             }
           }
         }
       }
+    }
   }
   if (wires.some((w) => w.edge.route === "step"))
     wires = mendFans(wires, boxes, radius);
   const laneOrigins = wires;
   // Resolve residual crowding on the fanned curves before fixing their samples.
-  for (let pass = 0; pass < 4; pass++) {
+  for (let pass = 0; pass < 3; pass++) {
     if (
       wires.every((w) => w.edge.route === "step")
     )
@@ -2071,6 +2518,7 @@ export const separate = (
     const channel = curvedChannels(wires);
     wires = wires.map((w, i) => {
       if (
+        settled[i] ||
         w.edge.route === "step" ||
         w.edge.waypoints?.length ||
         w.edge.source === w.edge.target ||
@@ -2148,6 +2596,27 @@ export const separate = (
     });
   }
   if (wires.some((w) => w.edge.route !== "step"))
-    wires = fitCurves(wires, bases, boxes);
-  return nestedFans(wires, ports, boxes, radius);
+    wires = fitCurves(
+      wires,
+      bases,
+      boxes,
+      settled,
+      boxIndex,
+    );
+  return nestedFans(
+    wires,
+    ports,
+    boxes,
+    radius,
+  ).map((w) =>
+    compactPaths.has(w)
+      ? materialize(
+          w.edge,
+          { ...w.source, side: w.sourceSide },
+          { ...w.target, side: w.targetSide },
+          [...w.points],
+          w.corners,
+        )
+      : w,
+  );
 };

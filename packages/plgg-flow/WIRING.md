@@ -920,3 +920,29 @@ it stutters. Nothing else matters until this is fixed.
 Acceptance: zero `slow-cold` and zero `slow-drag` in every scenario and
 both styles (so `TOTAL sev3 0`); `big40x60 · step` cold ≤ 60 ms; the
 spec's 500 ms guard passes with a wide margin on a slow machine.
+
+## Round 17 review — adopted; 20× faster, not yet at budget
+
+Profile: 92 % of time was layer-2 separation (conflict scoring 35 %,
+contour profiling 18 %, shortcut generation 14 %, self-crossing checks
+11 %). After a shared obstacle index, value-keyed caches per wire and
+per channel component, and early-exit scoring:
+
+| | curve | step |
+|---|---|---|
+| cold, worst | 25 ms | 56 ms (`grid5x4`) |
+| drag frame p90, median | 5.7 ms | 9.4 ms |
+| drag frame p90, worst | 25–32 ms | 51 ms (`grid5x4`) |
+
+`big40x60 · step` cold 11 ms (was ~800). Static moderate 53. Remaining:
+25 `slow-drag` (15 curve, 10 step), 3 `slow-cold`, and with step sweeps
+now counted `drag-jump` 7, `drag-jump-neighbour` 21.
+
+Round 18: (1) drag frames to budget — the dragged node's own wires and
+the components they touch are the only work a frame should do; trying
+lane offsets by repeated scoring is the remaining cost: compute lane
+order once per component by sorting (entry/exit keys), not by trial;
+(2) the step-style drag jumps (4 new unrelated, 12 new neighbour);
+(3) leftovers: `siblings-cross` 19, `wiggly` 16.
+Acceptance: zero `slow-cold`; `slow-drag` ≤ 5, none above 16 ms;
+`drag-jump` ≤ 5; `drag-jump-neighbour` ≤ 14; static moderate ≤ 55.

@@ -1,3 +1,8 @@
+import { type Bounds } from "plgg-flow/wireCorridors";
+import {
+  type Box,
+  inflate,
+} from "plgg-flow/wireGeometry";
 import type { Point } from "plgg-board";
 import type { FlowNode, Edge } from "./model";
 type End = {
@@ -33,7 +38,33 @@ export const sides = [
 export const planPorts = (
   nodes: ReadonlyMap<string, FlowNode>,
   edges: Edge[],
+  query: (bounds: Bounds) => Box[],
 ) => {
+  const cards = (
+    along: "x" | "y",
+    low: number,
+    high: number,
+    middle: number,
+    width: number,
+  ) => {
+    const bounds =
+      along === "x"
+        ? {
+            l: low,
+            r: high,
+            t: middle - width,
+            b: middle + width,
+          }
+        : {
+            t: low,
+            b: high,
+            l: middle - width,
+            r: middle + width,
+          };
+    return query(bounds).map((b) =>
+      required(nodes.get(b.id)),
+    );
+  };
   const degrees = new Map<string, number>();
   const means = new Map<string, Point>(),
     groups = new Map<string, End[]>(),
@@ -190,7 +221,24 @@ export const planPorts = (
         peer.position[along] -
           node.position[along],
       );
-      const row = [...nodes.values()].filter(
+      if (
+        Math.abs(
+          peer.position[across] -
+            node.position[across],
+        ) > 8
+      )
+        continue;
+      const low = Math.min(
+        node.position[along],
+        peer.position[along],
+      );
+      const row = cards(
+        along,
+        low - 200,
+        low + span + 200,
+        node.position[across],
+        12,
+      ).filter(
         (n) =>
           !n.group &&
           Math.abs(
@@ -263,10 +311,6 @@ export const planPorts = (
           !narrow &&
           row.length < 4 &&
           (along !== "y" || span > 200)) ||
-        Math.abs(
-          peer.position[across] -
-            node.position[across],
-        ) > 8 ||
         !between.length
       )
         continue;
@@ -280,11 +324,13 @@ export const planPorts = (
         peer.position[along] >
         node.position[along];
       // Put skips from the head of a row on one flank and interior skips on the other.
-      const low = Math.min(
-        node.position[along],
-        peer.position[along],
-      );
-      const vicinity = [...nodes.values()].filter(
+      const vicinity = cards(
+        along,
+        low - 2.5 * spacing,
+        low + span + 2.5 * spacing,
+        node.position[across],
+        spacing * 3,
+      ).filter(
         (n) =>
           !n.group &&
           n.position[along] >=
@@ -312,8 +358,8 @@ export const planPorts = (
         : Math.round(span / spacing) % 2 === 0;
       const flank = vicinity.filter(
         (n) =>
-          n.position[along] > low &&
-          n.position[along] < low + span &&
+          n.position[along] >= low &&
+          n.position[along] <= low + span &&
           Math.abs(
             n.position[across] -
               node.position[across],
@@ -385,12 +431,14 @@ export const planPorts = (
   }
   // Leave room for a stem beside an overlapping peer.
   for (const entries of incident.values()) {
-    const neighbours = [...nodes.values()]
-      .filter(
-        (n) =>
-          !n.group && n !== entries[0]?.end.node,
-      )
-      .map(box);
+    const owner = required(entries[0]).end.node;
+    const neighbours = query(
+      inflate(box(owner), 22),
+    ).filter(
+      (q) =>
+        q.id !== owner.id &&
+        !nodes.get(q.id)?.group,
+    );
     for (const { end } of entries) {
       const { node, peer } = end;
       if (node === peer) continue;
@@ -487,21 +535,61 @@ export const planPorts = (
               a.node.position,
             )),
     );
+    const angles = group.map(angle),
+      sums = [0];
+    const count = new Map<FlowNode, number>(),
+      seen = new Map<FlowNode, number>();
+    for (const [i, e] of group.entries()) {
+      sums.push(
+        required(sums[i]) + required(angles[i]),
+      );
+      count.set(
+        e.peer,
+        (count.get(e.peer) ?? 0) + 1,
+      );
+    }
+    // Integrate close rays in angular order, excluding duplicate peers.
+    let lo = 0,
+      hi = 0;
     group.forEach((e, i) => {
       e.count = group.length;
-      let rank = i - (group.length - 1) / 2;
-      // Close rays need close shoulders when their angular order changes.
-      for (const [j, other] of group.entries()) {
-        if (e.peer === other.peer || j === i)
-          continue;
-        const delta = Math.abs(
-          angle(e) - angle(other),
-        );
-        rank +=
-          Math.sign(j - i) *
-          0.5 *
-          Math.max(0, 1 - delta / 0.08);
-      }
+      const theta = required(angles[i]);
+      while (
+        lo < i &&
+        theta - required(angles[lo]) >= 0.08
+      )
+        lo++;
+      hi = Math.max(hi, i + 1);
+      while (
+        hi < group.length &&
+        required(angles[hi]) - theta < 0.08
+      )
+        hi++;
+      const left = i - lo,
+        right = hi - i - 1,
+        previous = seen.get(e.peer) ?? 0;
+      const nearLeft =
+        left -
+        (theta * left -
+          required(sums[i]) +
+          required(sums[lo])) /
+          0.08;
+      const nearRight =
+        right -
+        (required(sums[hi]) -
+          required(sums[i + 1]) -
+          theta * right) /
+          0.08;
+      const rank =
+        i -
+        (group.length - 1) / 2 +
+        (nearRight -
+          nearLeft -
+          required(count.get(e.peer)) +
+          1 +
+          2 * previous) /
+          2;
+      seen.set(e.peer, previous + 1);
       e.rank = rank;
     });
   }

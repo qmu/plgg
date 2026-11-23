@@ -166,15 +166,17 @@ export const shortcuts = (
       const along = vertical(socket.side)
         ? "y"
         : "x";
-      const levels = new Set([14, 22, 32, 46]);
-      for (const p of guide) {
-        const d =
-          (p[along] - socket[along]) *
+      const levels = new Set([14, 32]);
+      // Keep the existing shoulder available beside the standard reaches.
+      const bend =
+        socket === s
+          ? guide[1]
+          : guide[guide.length - 2];
+      if (bend) {
+        const reach =
+          (bend[along] - socket[along]) *
           normal[socket.side][along];
-        if (d < 8) continue;
-        for (const shift of [-8, 0, 8])
-          if (d + shift >= 14)
-            levels.add(d + shift);
+        if (reach >= 14) levels.add(reach);
       }
       return [...levels];
     };

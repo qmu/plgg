@@ -64,20 +64,24 @@ export const curvedChannels = (wires: Wire[]) => {
         }
     }),
   );
+  const sockets = new Map<string, Set<number>>();
+  for (const [i, w] of wires.entries())
+    for (const p of [w.source, w.target]) {
+      const key = cell(p.x, p.y),
+        ids =
+          sockets.get(key) ?? new Set<number>();
+      ids.add(i);
+      sockets.set(key, ids);
+    }
   return (i: number) => {
     const w = required(wires[i]),
       offsets = w.points.map(() => 0);
-    const siblings = new Set<number>();
-    wires.forEach((peer, j) => {
-      if (
-        [w.source, w.target].some((p) =>
-          [peer.source, peer.target].some(
-            (q) => p.x === q.x && p.y === q.y,
-          ),
-        )
-      )
-        siblings.add(j);
-    });
+    const atSource = required(
+        sockets.get(cell(w.source.x, w.source.y)),
+      ),
+      atTarget = required(
+        sockets.get(cell(w.target.x, w.target.y)),
+      );
     const encounters = new Map<
       number,
       Map<number, Contact>
@@ -97,16 +101,19 @@ export const curvedChannels = (wires: Wire[]) => {
         const normalComponent = Math.abs(
           nx * seg.dx + ny * seg.dy,
         );
-        const alignment = siblings.has(seg.i)
-          ? Number(normalComponent <= 0.5)
-          : Math.min(
-              1,
-              Math.max(
-                0,
-                (0.65 - normalComponent) / 0.3,
-              ),
-            );
-        if (seg.i === i || !alignment) continue;
+        if (seg.i === i) continue;
+        const alignment =
+          atSource.has(seg.i) ||
+          atTarget.has(seg.i)
+            ? Number(normalComponent <= 0.5)
+            : Math.min(
+                1,
+                Math.max(
+                  0,
+                  (0.65 - normalComponent) / 0.3,
+                ),
+              );
+        if (!alignment) continue;
         const x = p.x - seg.a.x,
           y = p.y - seg.a.y;
         const t = Math.max(
