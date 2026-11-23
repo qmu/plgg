@@ -81,6 +81,8 @@ figure{margin:0;position:relative}
 .flow-board circle[fill]:not([fill="none"]):not([fill="#fff"]):not([fill="white"]){fill:var(--ink)}
 .flow-board polygon[data-arrow][fill]{fill:var(--ink)}
 .flow-board [stroke-dasharray]{stroke:var(--graphite)}
+.flow-board .scroll-hint rect{fill:var(--ink)!important}
+.flow-board .scroll-hint text{fill:var(--paper)!important;font-size:16px}
 .flow-board .world-grid{stroke:var(--trace)!important;stroke-width:.8}
 .flow-board .edge-label{paint-order:stroke;stroke:var(--paper)!important;stroke-width:5px}
 .flow-board g{cursor:grab}

@@ -1469,6 +1469,18 @@ export const flowView = (
           )
         )
           return none();
+        // Like an embedded map: a plain wheel scrolls the
+        // page; Ctrl/⌘ (and a trackpad pinch, which the
+        // browser reports with Ctrl) zooms the board.
+        if (!e.ctrlKey && !e.metaKey) {
+          const at = e.timeStamp;
+          return some((s) =>
+            s.scrollHint !== undefined &&
+            at - s.scrollHint < 400
+              ? s
+              : { ...s, scrollHint: at },
+          );
+        }
         e.preventDefault();
         const p = local(e.currentTarget, e);
         return isSome(p)
@@ -1879,6 +1891,61 @@ export const flowView = (
             ];
           })()
         : []),
+      ...(state.scrollHint === undefined
+        ? []
+        : [
+            el<Change>(
+              "g",
+              [
+                key("hint" + state.scrollHint),
+                a("class", "scroll-hint"),
+                a("pointer-events", "none"),
+                a("opacity", 0),
+              ],
+              [
+                el(
+                  "animate",
+                  [
+                    a("attributeName", "opacity"),
+                    a("values", "1;1;0"),
+                    a("keyTimes", "0;0.7;1"),
+                    a("dur", "1.6s"),
+                    a("fill", "freeze"),
+                  ],
+                  [],
+                ),
+                el(
+                  "rect",
+                  [
+                    a("width", viewport.x),
+                    a("height", viewport.y),
+                    a("fill", "#000"),
+                    a("fill-opacity", 0.45),
+                  ],
+                  [],
+                ),
+                el(
+                  "text",
+                  [
+                    a("x", viewport.x / 2),
+                    a("y", viewport.y / 2),
+                    a("text-anchor", "middle"),
+                    a(
+                      "dominant-baseline",
+                      "middle",
+                    ),
+                    a("font-size", 18),
+                    a("fill", "#fff"),
+                  ],
+                  [
+                    text(
+                      "Ctrl（⌘）＋ スクロールで拡大・縮小",
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ]),
     ],
   );
 };

@@ -121,6 +121,9 @@ export type Flow = Graph &
     sets?: readonly SelectionSet[];
     marks?: readonly Mark[];
     ink?: "pen" | "erase" | "off";
+    /** When a plain wheel last passed over the board: the
+     * page keeps it, and the board shows how to zoom. */
+    scrollHint?: number;
     activeMark?: string;
     showResolved?: boolean;
     selection?: readonly string[];
