@@ -798,7 +798,7 @@ export const flowView = (
         a("style", `--arc:${-offset}px`),
         a("fill", "none"),
         a("stroke", color),
-        a("stroke-width", 2.6 * b.scale),
+        a("stroke-width", b.scale),
         a("stroke-linecap", "round"),
       ];
       const events = [
@@ -1429,6 +1429,24 @@ export const flowView = (
               ...geometry,
               drag: none(),
             };
+            // A click on empty ground (a pan that never
+            // moved) lets go of whatever was chosen.
+            if (
+              name === "pointerup" &&
+              isSome(s.drag) &&
+              s.drag.content.mode === "pan" &&
+              s.drag.content.first &&
+              Math.hypot(
+                s.drag.content.last.x -
+                  s.drag.content.first.x,
+                s.drag.content.last.y -
+                  s.drag.content.first.y,
+              ) < 4
+            ) {
+              const { activeEdge, ...rest } =
+                selectNodes([])(released);
+              return rest;
+            }
             if (
               !isSome(s.drag) ||
               s.drag.content.mode !== "connect"
