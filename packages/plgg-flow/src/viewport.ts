@@ -346,6 +346,102 @@ export const flowView = (
     const render =
       registry.nodes?.get(n.type ?? "") ??
       renderLabel;
+    // A socket on the far flank sits behind the box: it
+    // is drawn before the faces, so the solid hides it.
+    // Face-on, neither flank shows and both read in front.
+    const flank = (side: string) =>
+      solid.visible.some((f) => f.side === side);
+    const behind = (
+      direction: Port["direction"],
+    ) =>
+      flank(
+        direction === "source" ? "left" : "right",
+      );
+    const sockets = (back: boolean) =>
+      (
+        [
+          "source",
+          "target",
+        ] satisfies Port["direction"][]
+      )
+        .filter(
+          (direction) =>
+            behind(direction) === back,
+        )
+        .flatMap((direction) => {
+          if (n.connectable === false) return [];
+          const available = ports.get(n.id) ?? [];
+          return [
+            undefined,
+            ...available
+              .filter(
+                (p) => p.direction === direction,
+              )
+              .map((p) => p.id),
+          ].map((handle) => {
+            const description = n.ports?.find(
+              (p) =>
+                p.direction === direction &&
+                p.id === handle,
+            )?.description;
+            const title =
+              (handle ?? direction) +
+              (description
+                ? " — " + description
+                : "");
+            const offset = portOffset(
+              available,
+              direction,
+              handle,
+            );
+            const socket = projectSocket(
+              n,
+              state.camera,
+              direction,
+              offset,
+            );
+            const x =
+                (socket.x - n.p.x) / n.scale,
+              y = (socket.y - n.p.y) / n.scale;
+            // A socket is a ball on the box's flank: it
+            // reads as a dot from every side, so wires
+            // never lose their ends when the view turns.
+            const control = el<Change>(
+              "circle",
+              [
+                a("data-port", n.id),
+                a("data-direction", direction),
+                ...(handle === undefined
+                  ? []
+                  : [a("data-handle", handle)]),
+                a("cy", y),
+                a("tabindex", 0),
+                a("role", "button"),
+                a(
+                  "aria-label",
+                  n.label + " " + title,
+                ),
+                a("cx", x),
+                a("stroke", "#215f57"),
+                a(
+                  "r",
+                  available.length ? 3.5 : 5,
+                ),
+                a(
+                  "fill",
+                  isSome(state.source) &&
+                    state.source.content === n.id
+                    ? "#ed623a"
+                    : direction === "source"
+                      ? "#167b70"
+                      : "#e6f4ef",
+                ),
+              ],
+              [el("title", [], [text(title)])],
+            );
+            return control;
+          });
+        });
     return {
       depth: solid.depth,
       html: el<Change>(
@@ -374,6 +470,7 @@ export const flowView = (
           ),
         ],
         [
+          ...sockets(true),
           ...solid.visible.map((face) =>
             el<Change>(
               "polygon",
@@ -471,89 +568,7 @@ export const flowView = (
                 ),
               ]
             : []),
-          ...(
-            [
-              "source",
-              "target",
-            ] satisfies Port["direction"][]
-          ).flatMap((direction) => {
-            if (n.connectable === false)
-              return [];
-            const available =
-              ports.get(n.id) ?? [];
-            return [
-              undefined,
-              ...available
-                .filter(
-                  (p) =>
-                    p.direction === direction,
-                )
-                .map((p) => p.id),
-            ].map((handle) => {
-              const description = n.ports?.find(
-                (p) =>
-                  p.direction === direction &&
-                  p.id === handle,
-              )?.description;
-              const title =
-                (handle ?? direction) +
-                (description
-                  ? " — " + description
-                  : "");
-              const offset = portOffset(
-                available,
-                direction,
-                handle,
-              );
-              const socket = projectSocket(
-                n,
-                state.camera,
-                direction,
-                offset,
-              );
-              const x =
-                  (socket.x - n.p.x) / n.scale,
-                y = (socket.y - n.p.y) / n.scale;
-              // A socket is a ball on the box's flank: it
-              // reads as a dot from every side, so wires
-              // never lose their ends when the view turns.
-              const control = el<Change>(
-                "circle",
-                [
-                  a("data-port", n.id),
-                  a("data-direction", direction),
-                  ...(handle === undefined
-                    ? []
-                    : [a("data-handle", handle)]),
-                  a("cy", y),
-                  a("tabindex", 0),
-                  a("role", "button"),
-                  a(
-                    "aria-label",
-                    n.label + " " + title,
-                  ),
-                  a("cx", x),
-                  a("stroke", "#215f57"),
-                  a(
-                    "r",
-                    available.length ? 3.5 : 5,
-                  ),
-                  a(
-                    "fill",
-                    isSome(state.source) &&
-                      state.source.content ===
-                        n.id
-                      ? "#ed623a"
-                      : direction === "source"
-                        ? "#167b70"
-                        : "#e6f4ef",
-                  ),
-                ],
-                [el("title", [], [text(title)])],
-              );
-              return control;
-            });
-          }),
+          ...sockets(false),
         ],
       ),
     };
