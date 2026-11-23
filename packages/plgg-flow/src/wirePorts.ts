@@ -1,6 +1,13 @@
 import type { Point } from "plgg-board";
 import type { FlowNode, Edge } from "./model";
-import type { End } from "./wireFan";
+type End = {
+  node: FlowNode;
+  peer: FlowNode;
+  side: Side;
+  rank: number;
+  count: number;
+};
+
 import {
   portPosition,
   type Side,
@@ -142,7 +149,7 @@ export const planPorts = (
       incident.set(id, entries);
     }
   }
-  const banks = new Map<End, "x" | "y">();
+
   // Compare the peer with the spacing of this node's own row.
   for (const entries of incident.values()) {
     for (const { end, start } of entries) {
@@ -158,47 +165,72 @@ export const planPorts = (
         peer.position[along] -
           node.position[along],
       );
-      const near = entries.filter(
-        (e) =>
-          e.end.peer !== node &&
+      const row = [...nodes.values()].filter(
+        (n) =>
+          !n.group &&
           Math.abs(
-            e.end.peer.position[across] -
+            n.position[across] -
               node.position[across],
-          ) < 8,
+          ) < 12 &&
+          Math.abs(
+            n.position[along] -
+              (node.position[along] +
+                peer.position[along]) /
+                2,
+          ) <=
+            span * 0.5 + 200,
       );
-      const distinct = new Set(
-        near.map((e) => e.end.peer),
-      );
-      const outside = entries.filter(
-        (e) =>
-          e.end.peer !== node &&
-          !near.includes(e),
-      );
-      if (
-        !near.some((e) => e.end.peer !== peer) ||
-        Math.abs(
-          peer.position[across] -
-            node.position[across],
-        ) > 8 ||
-        (outside.length &&
-          (distinct.size < 3 ||
-            outside.some(
-              (e) =>
-                Math.abs(
-                  e.end.peer.position[across] -
-                    node.position[across],
-                ) >
-                span * 0.35,
-            )))
-      )
-        continue;
       const q = box(node),
         r = box(peer);
       const spacing =
         along === "x"
           ? Math.max(q.r - q.l, r.r - r.l) * 1.7
-          : Math.max(q.b - q.t, r.b - r.t) * 3.2;
-      if (span < spacing * 1.5) continue;
+          : Math.max(q.b - q.t, r.b - r.t) * 3.8;
+      // A regular three-card span determines its own skip even at the end of a row.
+      const regular =
+        Math.abs(span / 2 - spacing) <
+          spacing * 0.2 &&
+        row.some(
+          (n) =>
+            n !== node &&
+            n !== peer &&
+            Math.abs(
+              n.position[along] -
+                (node.position[along] +
+                  peer.position[along]) /
+                  2,
+            ) < 8,
+        );
+      if (
+        (!regular &&
+          row.length < 4 &&
+          (along !== "y" || span > 200)) ||
+        Math.abs(
+          peer.position[across] -
+            node.position[across],
+        ) > 8 ||
+        !row.some(
+          (n) =>
+            n !== node &&
+            n !== peer &&
+            !n.group &&
+            Math.abs(
+              n.position[across] -
+                node.position[across],
+            ) < 12 &&
+            (n.position[along] -
+              node.position[along]) *
+              (n.position[along] -
+                peer.position[along]) <
+              0,
+        )
+      )
+        continue;
+      if (
+        span <
+        spacing * (along === "y" ? 1.2 : 1.5)
+      )
+        continue;
       const forward =
         peer.position[along] >
         node.position[along];
@@ -206,7 +238,7 @@ export const planPorts = (
         Math.round(span / spacing) % 2 === 0;
       const positive =
         (start === forward) === even;
-      banks.set(end, across);
+
       Object.assign(end, {
         side:
           along === "x"
@@ -223,7 +255,17 @@ export const planPorts = (
   for (const entries of incident.values()) {
     for (const { end, start } of entries) {
       if (
-        entries.length !== 2 ||
+        (end.node.position.x !==
+          end.peer.position.x &&
+          end.node.position.y !==
+            end.peer.position.y) ||
+        (entries.length !== 2 &&
+          entries.some(
+            (e) =>
+              e.start &&
+              e.end.side === end.side &&
+              e.end.peer !== end.peer,
+          )) ||
         !start ||
         end.node === end.peer ||
         !entries.some(
@@ -246,10 +288,11 @@ export const planPorts = (
   }
   // Leave room for a stem beside an overlapping peer.
   for (const entries of incident.values()) {
-    const neighbours = [
-      ...new Set(entries.map((e) => e.end.peer)),
-    ]
-      .filter((n) => n !== entries[0]?.end.node)
+    const neighbours = [...nodes.values()]
+      .filter(
+        (n) =>
+          !n.group && n !== entries[0]?.end.node,
+      )
       .map(box);
     for (const { end } of entries) {
       const { node, peer } = end;
@@ -282,15 +325,25 @@ export const planPorts = (
   // Put loops in the least occupied corner of their node.
   for (const { a, b } of plans) {
     if (a.node !== b.node) continue;
-    const entries = required(
-      incident.get(a.node.id),
-    );
-    const used = (side: Side) =>
-      entries.filter(
-        (e) =>
-          e.end.node !== e.end.peer &&
-          e.end.side === side,
-      ).length;
+    const used = (side: Side) => {
+      const socket = portPosition(
+          a.node,
+          side,
+          0,
+        ),
+        tip = move(socket, side, 40);
+      return [...nodes.values()].reduce(
+        (sum, n) =>
+          n === a.node || n.group
+            ? sum
+            : sum +
+              Math.max(
+                0,
+                64 - gap(socket, tip, box(n)),
+              ),
+        0,
+      );
+    };
     const source = (
       ["right", "left"] satisfies Side[]
     ).sort((x, y) => used(x) - used(y))[0];
@@ -354,13 +407,5 @@ export const planPorts = (
       e.rank = rank;
     });
   }
-  const degree = (id: string) =>
-    (degrees.get(key(id, true)) ?? 0) +
-    (degrees.get(key(id, false)) ?? 0);
-  return {
-    banks,
-    plans,
-    parallels,
-    degree,
-  };
+  return { plans, parallels };
 };

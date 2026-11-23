@@ -974,3 +974,38 @@ for (const route of [
     },
   );
 }
+
+test("staggered fan branches nest at either end of a wire", () => {
+  const nodes = [
+    node("hub", 0, 0),
+    node("outer", 300, -160),
+    node("far", 440, -100),
+    node("near", 300, -40),
+    node("lower", 370, 60),
+  ];
+  return all(
+    (
+      ["step", "curve"] satisfies WireStyle[]
+    ).flatMap((route) =>
+      [false, true].map((incoming) => {
+        const edges = nodes
+          .slice(1)
+          .map((peer) => ({
+            ...(incoming
+              ? link(peer.id, "hub")
+              : link("hub", peer.id)),
+            route,
+          }));
+        const graph = { nodes, edges },
+          wires = wireGraph(graph),
+          metrics = wireMetrics(graph, wires);
+        return all([
+          check(wires.length, toBe(edges.length)),
+          check(metrics.crossings, toBe(0)),
+          check(metrics.overlap, toBe(0)),
+          check(metrics.nodeHits, toBe(0)),
+        ]);
+      }),
+    ),
+  );
+});

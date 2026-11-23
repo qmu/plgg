@@ -338,7 +338,7 @@ test("a card pushes a wire continuously on each side of the over-under tie", () 
       const old = previous[i];
       // At the centre the two collision-free detours exchange sides.
       if (old && !(i === 0 && y === 0)) {
-        // Check both directions so deleting a detour also counts as motion.
+        // Measure both directions to catch a disappearing detour.
         for (const [from, to] of [
           [old, w],
           [w, old],
@@ -434,3 +434,115 @@ test("repeated edges route like equal separate edges", () => {
     ),
   );
 });
+
+for (const route of [
+  "curve",
+  "step",
+] satisfies WireStyle[]) {
+  test(
+    route +
+      " removing a wire off both sockets keeps each remaining path within its lane shift",
+    () => {
+      // Nested spans share a channel while each socket belongs to a distinct node.
+      const nodes = Array.from(
+        { length: 8 },
+        (_, i) => n(String(i), i * 160, 0),
+      );
+      const nested = {
+        nodes,
+        edges: [
+          e("0", "6"),
+          e("1", "7"),
+          e("2", "5"),
+          e("3", "4"),
+        ],
+      };
+      return all(
+        [
+          nested,
+          microservices,
+          orgTree,
+          pipeline,
+        ].flatMap((graph) => {
+          const nodes = graph.nodes,
+            edges = graph.edges.map((edge) => ({
+              ...edge,
+              route,
+            }));
+          const before = wireGraph({
+            nodes,
+            edges,
+          });
+          return before.map((removedWire) => {
+            const removed = removedWire.edge;
+            const after = wireGraph({
+              nodes,
+              edges: edges.filter(
+                (edge) => edge !== removed,
+              ),
+            });
+            return check(
+              after.every((w) => {
+                const old = before.find(
+                  (v) => v.edge === w.edge,
+                );
+                if (!old) return false;
+                if (
+                  [old.source, old.target].some(
+                    (s) =>
+                      [
+                        removedWire.source,
+                        removedWire.target,
+                      ].some(
+                        (t) =>
+                          s.x === t.x &&
+                          s.y === t.y,
+                      ),
+                  )
+                )
+                  return true;
+                // An occupied fan can shift by its lane span when a shared channel opens.
+                const lanes = (socket: Point) =>
+                  before.filter((v) =>
+                    [v.source, v.target].some(
+                      (p) =>
+                        p.x === socket.x &&
+                        p.y === socket.y,
+                    ),
+                  ).length;
+                const bound = Math.max(
+                  14,
+                  10 *
+                    (Math.max(
+                      lanes(old.source),
+                      lanes(old.target),
+                    ) -
+                      1),
+                );
+                return [
+                  [old, w],
+                  [w, old],
+                ].every(
+                  ([a, b]) =>
+                    a &&
+                    b &&
+                    a.points.every((p) =>
+                      b.points.some((q, i) => {
+                        const r = b.points[i - 1];
+                        return (
+                          r &&
+                          segmentGap(p, q, r) <=
+                            bound + 0.000001
+                        );
+                      }),
+                    ),
+                );
+              }),
+              toBe(true),
+            );
+          });
+        }),
+      );
+    },
+  );
+}

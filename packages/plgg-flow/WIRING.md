@@ -657,3 +657,130 @@ moved node inside that wire's corridor at the jump; static moderate
 defects (everything except `drag-jump`) ≤ 25; zero `slow`.
 Add a spec for locality: in a two-cluster graph, moving a node of one
 cluster leaves every wire of the other cluster deep-equal.
+
+## Round 11 review — the architecture decision that ends the drag jumps
+
+Round 11 made routing local per corridor component and fixed the three
+new checks (`siblings-disagree-on-side`, `awkward-side`,
+`runs-too-close` are all zero). But `drag-jump` is unchanged at 54 (27
+unrelated), and static defects rose to 81. Codex's own analysis names
+the cause: 25 of 27 unrelated jumps keep both sockets — the wire changes
+its *path between fixed ends* because lane and detour choices react to
+other wires.
+
+**Decision (the reviewer's, final): two layers, and only the second
+sees other wires.**
+
+1. **Base path — obstacles only.** A wire's base path is computed from
+   its own two nodes, its two sides, and the foreign node boxes — and
+   nothing else. No other wire's shape, no crossing count, no lane
+   occupancy may influence which way it goes around a node or which
+   via-points it takes. The detour side (over/under, left/right of an
+   obstacle) is chosen by the shorter clear path, with a margin, and a
+   stable tie-break. Result: a wire's base path changes only when a
+   node enters, leaves, or moves within its own corridor.
+2. **Separation — bounded offsets on top.** Other wires may affect a
+   wire only through: (a) fan order at a shared socket; (b) lane order
+   among wires whose base paths run along the same channel — each lane
+   offset is a parallel shift of that stretch, at most ±14 from the
+   base path (compress the lane pitch when a channel is crowded rather
+   than exceeding 14); (c) the lens for parallel wires between the same
+   two nodes. Crossing reduction happens ONLY here, by choosing fan and
+   lane orders. It never changes a base path.
+
+Consequences to accept: a few more crossings than a global optimiser
+would find; that is the price of wires that stay still while an
+unrelated node is dragged, and it is the right trade for an editor.
+
+With that in place, an unrelated wire can move by more than 14 only
+when the moved node is inside its corridor — the allowed case.
+
+Then the static leftovers, all per-wire and now independent of each
+other, so each fix stays fixed: 19 `siblings-cross` (fan order by far-
+end angle), 12 `kink`, 11 `grazes-node` (inflate by full clearance;
+shrink only in gaps narrower than 2 × clearance, to the middle),
+9 `wiggly`, 4 `wobble-on-straight`, 4 `hugs-own-node`.
+
+Acceptance: `TOTAL sev3 0`; unrelated `drag-jump` ≤ 5; static moderate
+defects ≤ 35; zero `slow`, `wobble-on-straight`, `diagonal-in-step`,
+`squashed-short-wire`, `siblings-disagree-on-side`, `awkward-side` ≤ 5.
+Add a spec: for a wire W and any other wire V not on W's sockets,
+removing V from the graph moves no point of W by more than 14.
+
+## Round 12 review — right architecture, wrong bound (the reviewer's mistake)
+
+Two-layer routing cut unrelated drag jumps from 27 to 12, proving the
+direction — but static quality collapsed (35 overlaps, 85
+`siblings-cross`, 50 `double-cross`). The cause is the reviewer's own
+±14 cap on lane offsets: in a crowded channel the wires cannot get out
+of each other's way. **The cap is withdrawn.** What stays:
+
+1. **Base path — nodes only** (unchanged): sides, via-points and detour
+   side depend on node boxes alone.
+2. **Separation — lanes, as many as needed.** Wires whose base paths
+   share a channel are spread into lanes at pitch 10 (compressed toward
+   6 only when the channel is physically too narrow), centred on the
+   base path, however many lanes that takes. A lane shift moves the
+   whole parallel stretch and its two corners, keeping clearance from
+   nodes (the channel was inflated-box-free; if lanes spill into a
+   node's clearance, push the whole bundle away from that node).
+   Order lanes and fans to remove crossings: two wires in one channel
+   are ordered by where they LEAVE it (the one turning off first takes
+   the lane on the side it turns to), fans by far-end angle — the
+   classic rules that make bundles untangle with zero crossings among
+   wires that need not cross. No two wires may end up collinear.
+3. Parallel pairs: lens, as before.
+
+The audit's drag check was also refined after inspecting its hits: a
+jump is no longer a defect when the moved node is in that wire's way
+(`flip-around-moved-node`, a note) or when the wire belongs to the moved
+node (`own-flip`, a note). Defects are `drag-jump` (truly unrelated) and
+`drag-jump-neighbour` (the wire shares a node with one of the moved
+node's wires — it may shift by a lane or two, not reroute).
+
+Baseline to beat is round 11: `TOTAL sev3 0`, static moderate 81,
+`drag-jump` 19, `drag-jump-neighbour` 31.
+
+Acceptance: `TOTAL sev3 0` (zero `overlap`); static moderate ≤ 60;
+`drag-jump` ≤ 5; `drag-jump-neighbour` ≤ 12; zero `slow`,
+`wobble-on-straight`, `diagonal-in-step`, `squashed-short-wire`,
+`siblings-disagree-on-side`, `history-dependent`.
+
+## Round 13 review — dragging solved; now make the bundles tidy
+
+Two-layer routing with uncapped lanes: `sev3 0`, `drag-jump` 4,
+`drag-jump-neighbour` 13 — the drag targets are essentially met. Static
+quality is the price so far: 226 moderate (round 11 had 81):
+78 `siblings-cross` (57 in step), 29 `double-cross` (27 in step),
+45 `kink` (all curve), 31 `wiggly`, 16 `more-crossings-than-straight`.
+All of these live in layer 2 or in per-wire smoothing — none needs a
+base path to change. Fix them there:
+
+1. **Step fans and lanes cross because order is wrong, not because
+   they must.** For the wires leaving one socket (same for arriving):
+   sort by the direction each wire turns at the end of the stem and
+   then by how far it travels before turning — wires turning "up" take
+   the upper lanes with the one that travels FARTHEST along the stem
+   axis turning LAST and lying OUTERMOST; mirror for "down"; straight-
+   ahead wires sit in the middle. Within a shared channel, two wires
+   are ordered by their entry and exit sides so that they nest (the
+   wire that enters first and leaves last is outermost). Two wires that
+   cross twice are, by definition, mis-ordered in a channel they share:
+   swap them. After ordering, verify per pair and repair with adjacent
+   swaps until no removable crossing remains (bounded passes).
+2. **Curve kinks** come from joining pieces without matching tangents,
+   or from lane shifts applied to a spline's control points piecewise.
+   Apply the lane offset to the base polyline FIRST, then fit ONE
+   C1 spline through the shifted via-points (Catmull-Rom with chord
+   tangents, arm ≥ 1/3 of each piece, horizontal/vertical only at the
+   stems). No post-hoc nudging of spline points.
+3. **Wiggle**: after lane shifting, drop via-points that are collinear
+   within 2 units or whose removal keeps clearance; a wire never has
+   two turns in opposite directions within 40 units unless an obstacle
+   sits between them.
+4. Keep the drag numbers: nothing in 1–3 may read other wires for base
+   paths.
+
+Acceptance (to adopt this architecture over round 11): `TOTAL sev3 0`;
+static moderate ≤ 81 (target ≤ 60); `drag-jump` ≤ 5;
+`drag-jump-neighbour` ≤ 15; the zero-kinds stay zero.
