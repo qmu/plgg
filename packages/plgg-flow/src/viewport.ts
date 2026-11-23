@@ -346,39 +346,52 @@ export const flowView = (
     const render =
       registry.nodes?.get(n.type ?? "") ??
       renderLabel;
-    // A socket on the far flank sits behind the box: it
-    // is drawn before the faces, so the solid hides it.
-    // Face-on, neither flank shows and both read in front.
-    const flank = (side: string) =>
-      solid.visible.some((f) => f.side === side);
-    const behind = (
+    // Sockets sit on the front face's edges: seen from
+    // behind, the solid hides them, so they are drawn
+    // before the faces.
+    const back = !solid.visible.some(
+      (f) => f.side === "front",
+    );
+    // A socket earns its dot by carrying a wire; a bare
+    // one shows only while it can take a new connection.
+    const wired = (
       direction: Port["direction"],
+      handle: string | undefined,
     ) =>
-      flank(
-        direction === "source" ? "left" : "right",
+      chosen.has(n.id) ||
+      isSome(state.source) ||
+      state.edges.some((e) =>
+        direction === "source"
+          ? e.source === n.id &&
+            e.sourceHandle === handle
+          : e.target === n.id &&
+            e.targetHandle === handle,
       );
-    const sockets = (back: boolean) =>
+    const sockets = (behind: boolean) =>
       (
         [
           "source",
           "target",
         ] satisfies Port["direction"][]
-      )
-        .filter(
-          (direction) =>
-            behind(direction) === back,
+      ).flatMap((direction) => {
+        if (
+          n.connectable === false ||
+          behind !== back
         )
-        .flatMap((direction) => {
-          if (n.connectable === false) return [];
-          const available = ports.get(n.id) ?? [];
-          return [
-            undefined,
-            ...available
-              .filter(
-                (p) => p.direction === direction,
-              )
-              .map((p) => p.id),
-          ].map((handle) => {
+          return [];
+        const available = ports.get(n.id) ?? [];
+        return [
+          undefined,
+          ...available
+            .filter(
+              (p) => p.direction === direction,
+            )
+            .map((p) => p.id),
+        ]
+          .filter((handle) =>
+            wired(direction, handle),
+          )
+          .map((handle) => {
             const description = n.ports?.find(
               (p) =>
                 p.direction === direction &&
@@ -441,7 +454,7 @@ export const flowView = (
             );
             return control;
           });
-        });
+      });
     return {
       depth: solid.depth,
       html: el<Change>(
@@ -575,6 +588,20 @@ export const flowView = (
   });
   // Sort projected segments with the billboards so a crossing changes
   // order as the same camera moves around the diagram.
+  // A wire meets its socket on the front edge of the
+  // box, so the stretch next to a socket paints over
+  // that box rather than vanishing into it.
+  const solidDepth = new Map(
+    drawNodes.map((n, i) => [
+      n.id,
+      layers[i]?.depth ?? n.p.z,
+    ]),
+  );
+  const above = (id: string, depth: number) =>
+    Math.max(
+      depth,
+      (solidDepth.get(id) ?? depth) + 0.02,
+    );
   const families = new Map<string, Edge[]>();
   for (const { edge, original } of scene.edges) {
     const k = JSON.stringify([
@@ -620,10 +647,16 @@ export const flowView = (
         "target",
         edge.targetHandle,
       );
+    const head = portPosition(
+        from,
+        "source",
+        dy1,
+      ),
+      tail = portPosition(to, "target", dy2);
     const knots = [
-      portPosition(from, "source", dy1),
+      head,
       ...(edge.waypoints ?? []),
-      portPosition(to, "target", dy2),
+      tail,
     ];
     const poly = edge.waypoints?.length
       ? polylineSampler(knots)
@@ -670,7 +703,7 @@ export const flowView = (
           : {
               x,
               y,
-              z: lerp(start.z, endPoint.z, f),
+              z: lerp(head.z, tail.z, f),
             },
       );
       return {
@@ -895,7 +928,12 @@ export const flowView = (
       ];
       const hitWidth = edge.interactionWidth ?? 0;
       layers.push({
-        depth: depth - 0.01,
+        depth:
+          i <= 2
+            ? above(edge.source, depth - 0.01)
+            : i >= points.length - 3
+              ? above(edge.target, depth - 0.01)
+              : depth - 0.01,
         html:
           hitWidth > 0
             ? el("g", events, [
@@ -941,7 +979,10 @@ export const flowView = (
           180) /
         Math.PI;
       layers.push({
-        depth: tip.z - 0.01,
+        depth: above(
+          atStart ? edge.source : edge.target,
+          tip.z - 0.01,
+        ),
         html: el(
           "polygon",
           [

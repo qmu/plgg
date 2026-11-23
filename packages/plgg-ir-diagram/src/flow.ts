@@ -79,6 +79,7 @@ figure{margin:0;position:relative}
 .flow-board [stroke]:not([stroke="none"]){stroke:var(--ink)}
 .flow-board [fill]:not([fill="none"]){fill:var(--paper)}
 .flow-board circle[fill]:not([fill="none"]):not([fill="#fff"]):not([fill="white"]){fill:var(--ink)}
+.flow-board polygon[data-arrow][fill]{fill:var(--ink)}
 .flow-board [stroke-dasharray]{stroke:var(--graphite)}
 .flow-board .world-grid{stroke:var(--trace)!important;stroke-width:.8}
 .flow-board .edge-label{paint-order:stroke;stroke:var(--paper)!important;stroke-width:5px}

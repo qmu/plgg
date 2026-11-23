@@ -39,6 +39,15 @@ const faces = [
   },
 ] as const;
 
+/** How far each face stands off the node's centre plane. */
+export const bodyDepth = (node: FlowNode) =>
+  Math.min(
+    18,
+    Math.max(7, ((node.height ?? 36) / 2) * 0.7),
+  );
+
+/** A socket sits on the front edge of its flank, where
+ * the wire can reach it from every visible side. */
 export const portPosition = (
   node: FlowNode,
   direction: "source" | "target",
@@ -50,7 +59,7 @@ export const portPosition = (
       (node.width ?? 104)) /
       2,
   y: node.position.y + offset,
-  z: node.position.z,
+  z: node.position.z + bodyDepth(node),
 });
 
 /** Wire endpoints and sockets share a world-space attachment point. */
@@ -79,7 +88,7 @@ export const projectNodeBody = (
   });
   const w = (node.width ?? 104) / 2,
     h = (node.height ?? 36) / 2,
-    d = Math.min(18, Math.max(7, h * 0.7));
+    d = bodyDepth(node);
   const corners = [-d, d].flatMap((z) =>
     [
       [-w, -h],
