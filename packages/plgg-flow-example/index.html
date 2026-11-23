@@ -342,6 +342,24 @@
     .flow-board :focus {
       outline: none;
     }
+    .add-node {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      color: var(--ink);
+      font: 400 22px/1 var(--display);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .add-node:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
     .flow-board [stroke-dasharray] {
       stroke: var(--graphite);
     }
@@ -641,7 +659,36 @@
         min-height: 220px;
       }
     }
-  </style>
+      /* the page never scrolls on a desktop: the stage takes
+       whatever height the title leaves */
+    @media (min-width: 1001px) {
+      main > section {
+        height: 100vh;
+        overflow: hidden;
+        padding-bottom: 20px;
+      }
+      .stage {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin-bottom: 10px;
+      }
+      .stage .canvas-wrap {
+        aspect-ratio: auto;
+        height: 100%;
+      }
+      section > small {
+        flex: none;
+      }
+    }
+    .board-controls .add-node {
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .board-controls .add-node:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+</style>
   <div id="app"></div>
   <script
     type="module"

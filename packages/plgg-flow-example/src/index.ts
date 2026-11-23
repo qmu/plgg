@@ -54,14 +54,12 @@ import {
 } from "plgg-view/client";
 import {
   createFlow,
-  groundSide,
   addNode,
   selectNodes,
   selectedNodes,
   fitFlow,
   flowView,
   viewAt,
-  zoom,
   deleteSelected,
   splitEdge,
   bypassNode,
@@ -1534,29 +1532,6 @@ const view = (m: Model): Html<Action> => {
                     edit(apply(fn)),
                   )(diagram(e.id, s.flow)),
                   el(
-                    "output",
-                    [
-                      attr(
-                        "class",
-                        "ground-side",
-                      ),
-                      attr("aria-live", "off"),
-                    ],
-                    [
-                      text(
-                        {
-                          above: "地面の表側",
-                          below: "地面の裏側",
-                          level: "地面と同じ高さ",
-                        }[
-                          groundSide(
-                            s.flow.camera,
-                          )
-                        ],
-                      ),
-                    ],
-                  ),
-                  el(
                     "div",
                     [
                       attr(
@@ -1574,51 +1549,11 @@ const view = (m: Model): Html<Action> => {
                           ),
                         ],
                         [
-                          btn(
-                            "正面に戻す",
-                            (s) => ({
-                              ...s,
-                              returning: true,
-                            }),
-                            s.flow.camera.yaw ===
-                              0 &&
-                              s.flow.camera
-                                .pitch === 0,
-                          ),
-                          change("−", zoom(0.8)),
-                          change("+", zoom(1.25)),
-                          change(
-                            "全体表示",
-                            fitFlow,
-                          ),
-                          btn("初期状態", () =>
+                          btn("リセット", () =>
                             session(
                               e.initial(),
                               e.spec().rules,
                             ),
-                          ),
-                          change(
-                            "ノードを追加",
-                            (f) => {
-                              const id = unique(
-                                "Node ",
-                                f,
-                              );
-                              return addNode({
-                                id,
-                                label: id,
-                                position: {
-                                  x: 0,
-                                  y: 90,
-                                  z: 0,
-                                },
-                              })(f);
-                            },
-                          ),
-                          change(
-                            "選択を削除",
-                            deleteSelected,
-                            !selected(s.flow),
                           ),
                         ],
                       ),
@@ -1631,6 +1566,43 @@ const view = (m: Model): Html<Action> => {
                           ),
                         ],
                         controls(e.id, s),
+                      ),
+                      el(
+                        "button",
+                        [
+                          attr(
+                            "class",
+                            "add-node",
+                          ),
+                          attr(
+                            "aria-label",
+                            "ノードを追加",
+                          ),
+                          attr(
+                            "title",
+                            "ノードを追加",
+                          ),
+                          onClick(
+                            edit(
+                              apply((f) => {
+                                const id = unique(
+                                  "Node ",
+                                  f,
+                                );
+                                return addNode({
+                                  id,
+                                  label: id,
+                                  position: {
+                                    x: 0,
+                                    y: 90,
+                                    z: 0,
+                                  },
+                                })(f);
+                              }),
+                            ),
+                          ),
+                        ],
+                        [text("+")],
                       ),
                     ],
                   ),
