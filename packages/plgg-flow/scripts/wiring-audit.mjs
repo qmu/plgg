@@ -168,10 +168,12 @@ const audit = (g, wires, style) => {
 };
 // drag continuity: move one node along a line, flag wires that jump
 const drag = (g, id, dx, dy, steps = 40) => {
-  let prev = null, worst = 0, where = ""; const m0 = g.nodes.find((m) => m.id === id);
+  let prev = null, worst = 0, where = "", history = null; const m0 = g.nodes.find((m) => m.id === id);
   for (let k = 0; k <= steps; k++) { const nodes = g.nodes.map((m) => m.id === id ? { ...m, position: { ...m.position, x: m0.position.x + dx * k / steps, y: m0.position.y + dy * k / steps } } : m); const ws = wireGraph({ nodes, edges: g.edges });
-    const cur = ws.map((w) => resample(w.points, 12)); if (prev) cur.forEach((r, i) => { if (!prev[i]) return; let d = 0; for (const p of r) d = Math.max(d, dPoly(p, prev[i])); const own = g.edges[i].source === id || g.edges[i].target === id; const lim = own ? 60 : 14; if (d > lim && d > worst) { worst = d; where = g.edges[i].source + "→" + g.edges[i].target + (own ? " (own)" : " (unrelated)") + " at step " + k; } }); prev = cur; }
-  return worst ? { worst: +worst.toFixed(0), where } : null;
+    const cur = ws.map((w) => resample(w.points, 12)); if (prev) cur.forEach((r, i) => { if (!prev[i]) return; let d = 0; for (const p of r) d = Math.max(d, dPoly(p, prev[i])); const own = g.edges[i].source === id || g.edges[i].target === id; const lim = own ? 60 : 14; if (d > lim && d > worst) { worst = d; where = g.edges[i].source + "→" + g.edges[i].target + (own ? " (own)" : " (unrelated)") + " at step " + k; } }); prev = cur;
+    // the picture must be a function of where things ARE, not of how they got there
+    if (k === steps) { const fresh = wireGraph({ nodes: nodes.map((m) => ({ ...m, position: { ...m.position } })), edges: g.edges.map((x) => ({ ...x })) }).map((w) => resample(w.points, 12)); let h = 0, hw = ""; cur.forEach((r, i) => { if (!fresh[i]) return; let d = 0; for (const p of r) d = Math.max(d, dPoly(p, fresh[i])); if (d > h) { h = d; hw = g.edges[i].source + "→" + g.edges[i].target; } }); if (h > 3) history = { h: +h.toFixed(0), hw }; } }
+  return worst || history ? { worst: +worst.toFixed(0), where, history } : null;
 };
 // ---- run -----------------------------------------------------------------
 const W = 1240, H = 640; let cells = "", row = 0; const summary = [], all = [];
@@ -181,7 +183,7 @@ for (const [name, g0] of Object.entries(S)) for (const style of ["curve", "step"
   try { const ts = []; for (let k = 0; k < 5; k++) { const gg = { nodes: [...g.nodes], edges: [...g.edges] }; const t0 = performance.now(); wires = wireGraph(gg); ts.push(performance.now() - t0); } ts.sort((a, b) => a - b); ms = ts[2]; wires = wireGraph(g); } catch (x) { err = String(x).slice(0, 120); }
   const { D, crossings, base } = err ? { D: [{ sev: 3, kind: "THROWS", wire: "", note: err }], crossings: 0, base: 0 } : audit(g, wires, style);
   const budget = Math.max(4, g.edges.length * 0.25); if (ms > budget) D.push({ sev: 2, kind: "slow", wire: "", note: ms.toFixed(1) + "ms" });
-  if (!err && style === "curve") { const r = rng(name.length); for (let k = 0; k < 3; k++) { const m = g.nodes[Math.floor(r() * g.nodes.length)]; try { const j = drag(g, m.id, 160 * (k % 2 ? 1 : -1), 120 * (k < 2 ? 1 : -1)); if (j) D.push({ sev: 2, kind: "drag-jump", wire: "", note: `move ${m.id}: ${j.where} jumps ${j.worst}` }); } catch (x) { D.push({ sev: 3, kind: "drag-THROWS", wire: "", note: String(x).slice(0, 80) }); } } }
+  if (!err && style === "curve") { const r = rng(name.length); for (let k = 0; k < 3; k++) { const m = g.nodes[Math.floor(r() * g.nodes.length)]; try { const j = drag(g, m.id, 160 * (k % 2 ? 1 : -1), 120 * (k < 2 ? 1 : -1)); if (j && j.worst) D.push({ sev: 2, kind: "drag-jump", wire: "", note: `move ${m.id}: ${j.where} jumps ${j.worst}` }); if (j && j.history) D.push({ sev: 3, kind: "history-dependent", wire: "", note: `after dragging ${m.id}, ${j.history.hw} differs from a fresh routing of the same graph by ${j.history.h}` }); } catch (x) { D.push({ sev: 3, kind: "drag-THROWS", wire: "", note: String(x).slice(0, 80) }); } } }
   const s3 = D.filter((d) => d.sev === 3).length, s2 = D.filter((d) => d.sev === 2).length, s1 = D.filter((d) => d.sev === 1).length;
   summary.push({ name, style, wires: g.edges.length, cross: crossings, straight: base, sev3: s3, sev2: s2, sev1: s1, ms: +ms.toFixed(2) });
   D.forEach((d) => all.push({ name, style, ...d }));

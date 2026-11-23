@@ -102,6 +102,38 @@ export const shorten = (
       return true;
     };
     if (!step) {
+      // Relax a tight join locally so a distant constrained bend stays in its lane.
+      let smooth = [...w.points].map((p) =>
+        pt(p.x, p.y),
+      );
+      for (let pass = 1; pass <= 32; pass++) {
+        smooth = smooth.map((p, i) => {
+          const a = smooth[i - 1],
+            b = smooth[i + 1];
+          if (
+            !a ||
+            !b ||
+            distance(p, s) < 15 ||
+            distance(p, t) < 15
+          )
+            return p;
+          const left = distance(a, p),
+            right = distance(p, b);
+          const f = left / (left + right || 1);
+          const q = pt(
+            (p.x + a.x + (b.x - a.x) * f) / 2,
+            (p.y + a.y + (b.y - a.y) * f) / 2,
+          );
+          return free([a, q, b], buffer) ? q : p;
+        });
+        if (
+          (pass === 4 ||
+            pass === 12 ||
+            pass === 32) &&
+          accept(smooth, w.corners)
+        )
+          return;
+      }
       const core = [
         { ...u, z: s.z },
         ...w.points.filter(
@@ -120,6 +152,22 @@ export const shorten = (
             Math.max(2, room * f),
           ),
         );
+        // The original guides may carry a bend around another occupied lane.
+        if (
+          accept(
+            [
+              s,
+              ...throughKnots(
+                knots,
+                s.side,
+                t.side,
+              ),
+              t,
+            ],
+            knots.length - 2,
+          )
+        )
+          return;
         for (
           let j = knots.length - 2;
           j > 0;
@@ -153,6 +201,57 @@ export const shorten = (
           return;
       }
       return;
+    }
+    // Replace only the winding middle, retaining the occupied lanes at either end.
+    const trace = simplify([...w.points]);
+    const runs = trace.flatMap((p, i) => {
+      const q = trace[i + 1];
+      if (
+        !q ||
+        (p.x !== q.x && p.y !== q.y) ||
+        distance(p, q) < 24
+      )
+        return [];
+      return [
+        {
+          i,
+          mid: pt(
+            (p.x + q.x) / 2,
+            (p.y + q.y) / 2,
+          ),
+        },
+      ];
+    });
+    for (const a of runs) {
+      for (const b of [...runs].reverse()) {
+        if (b.i <= a.i + 1) break;
+        for (const elbow of [
+          pt(a.mid.x, b.mid.y),
+          pt(b.mid.x, a.mid.y),
+        ]) {
+          const bridge = rounded(
+            simplify([
+              required(trace[a.i]),
+              a.mid,
+              elbow,
+              b.mid,
+              required(trace[b.i + 1]),
+            ]),
+            radius,
+          );
+          if (
+            accept(
+              [
+                ...trace.slice(0, a.i),
+                ...bridge,
+                ...trace.slice(b.i + 2),
+              ],
+              Math.max(0, w.corners - 2),
+            )
+          )
+            return;
+        }
+      }
     }
     const h = !vertical(s.side),
       pos = (x: number, y: number) =>

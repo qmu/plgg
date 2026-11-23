@@ -544,3 +544,33 @@ unrelated `drag-jump` and ≤ 6 own.
    Order → Stock wire bulge until the drag ends. A connection in
    progress (`state.source` / connect drag) changes no existing wire;
    only the dashed preview follows the pointer.
+
+## Round 8 review — 0 severe, 90 moderate; three things left to feel right
+
+Speed is met, `microservices` is down to its straight-line minimum of
+five crossings. Using the demo, the two addendum items above (6: close
+neighbours squash their wire; 7: wires move while a connection is being
+dragged) are both still present — do them first, they are what a person
+hits in the first minute. Then:
+
+- **Dragging** (23 `drag-jump`). The remaining jumps are side flips
+  (Search → Cache switching its target side when Catalog moves). A side
+  flip is allowed only for the dragged node's own wires, and it must be
+  *blended*: within a 24-unit band around the flip threshold, emit the
+  route of the side being left, so the flip happens once and far from
+  where the hand is hovering — never back and forth, and never on a
+  wire neither of whose nodes moved unless the moved node now blocks
+  it.
+- **Wide swings** (6 `excursion`, e.g. Audit → Gateway 194 outside its
+  span) and **entering from above for no reason** (7 `awkward-side`,
+  Catalog → Cache).
+- **Leftover shape** (9 `kink`, 7 `wiggly`, 5 `stiff-curve`,
+  3 `squashed-short-wire`) and **clearance** (5 `grazes-node`,
+  5 `hugs-own-node`), **crossings** (9 `siblings-cross`, 2
+  `double-cross`).
+
+Acceptance: `TOTAL sev3 0`; `TOTAL sev2 ≤ 45`; zero unrelated
+`drag-jump`; zero `squashed-short-wire`; zero `slow`; and in the demo,
+existing wires do not change while a connection is dragged (add a
+viewport spec: the wires computed with a connect drag in progress equal
+the wires computed without it).

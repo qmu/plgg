@@ -1,3 +1,4 @@
+import { followCorridor } from "plgg-flow/wireDrag";
 import { refine } from "plgg-flow/wireRefinement";
 import { planPorts } from "plgg-flow/wirePorts";
 import { shorten } from "plgg-flow/wireShortcut";
@@ -119,7 +120,7 @@ const fair = (
       );
     },
   );
-  for (const radius of [5, 3]) {
+  for (const radius of [12, 8, 5, 3]) {
     const smooth = samples.map((p, i) => {
       let x = 0,
         y = 0,
@@ -317,8 +318,8 @@ export const wireGraph = (
           dx: moved.position.x - old.position.x,
           dy: moved.position.y - old.position.y,
           box: box(old),
-          oldInfluence: inflate(box(old), 60),
-          influence: inflate(box(moved), 60),
+          oldInfluence: inflate(box(old), 24),
+          influence: inflate(box(moved), 24),
           id: old.id,
         }
       : undefined;
@@ -373,6 +374,7 @@ export const wireGraph = (
     edges,
     boxes,
     shift ? previous?.wires : undefined,
+    shift,
   );
   // Nest collinear skips in channels, with shorter spans nearest the row.
   type Bus = { sign: number; lane: number };
@@ -590,8 +592,20 @@ export const wireGraph = (
           ...portPosition(b.node, b.side, 0),
           side: b.side,
         };
-      const u = move(s, a.side, 14),
-        v = move(t, b.side, 14);
+      const span = distance(s, t);
+      const forward =
+        (t.x - s.x) * normal[a.side].x +
+        (t.y - s.y) * normal[a.side].y;
+      const facingPair =
+        a.side !== b.side &&
+        vertical(a.side) === vertical(b.side) &&
+        forward > 0;
+      const stem = Math.min(
+        14,
+        (facingPair ? forward : span) / 3,
+      );
+      const u = move(s, a.side, stem),
+        v = move(t, b.side, stem);
       const prior =
         translation && previous?.wires[index];
       // A box outside both corridor snapshots cannot invalidate this wire.
@@ -601,16 +615,18 @@ export const wireGraph = (
         prior.edge === edge &&
         edge.source !== translation.id &&
         edge.target !== translation.id &&
-        a.side === prior.sourceSide &&
-        b.side === prior.targetSide &&
-        !touchesCorridor(
+        ((!touchesCorridor(
           prior,
           translation.influence,
         ) &&
-        !touchesCorridor(
-          prior,
-          translation.oldInfluence,
-        )
+          !touchesCorridor(
+            prior,
+            translation.oldInfluence,
+          )) ||
+          (shift &&
+            free(prior.points, [
+              translation.influence,
+            ])))
       ) {
         lanes.insert(prior);
         return prior;
@@ -621,6 +637,36 @@ export const wireGraph = (
             [edge.source, edge.target].sort(),
           ),
         ) ?? [];
+      // A short facing pair has no room for independent fan shoulders.
+      if (
+        facingPair &&
+        span < 60 &&
+        pair.length === 1 &&
+        !edge.waypoints?.length &&
+        edge.route !== "straight"
+      ) {
+        // Step shoulders hold the middle of the S close to its cross axis.
+        const arm =
+          forward *
+          (edge.route === "step" ? 0.8 : 1 / 3);
+        const path = bezier(
+          s,
+          move(s, a.side, arm),
+          move(t, b.side, arm),
+          t,
+        );
+        if (free(path, boxes)) {
+          const wire = materialize(
+            edge,
+            s,
+            t,
+            path,
+            0,
+          );
+          lanes.insert(wire);
+          return wire;
+        }
+      }
       if (
         !shift &&
         !edge.waypoints?.length &&
@@ -788,10 +834,16 @@ export const wireGraph = (
           else path.splice(0, 1, socket, stem);
         };
         if (prior.sourceSide !== a.side)
-          reconnect(s, u);
+          reconnect(
+            s,
+            move(s, a.side, Math.min(4, stem)),
+          );
         if (prior.targetSide !== b.side) {
           path.reverse();
-          reconnect(t, v);
+          reconnect(
+            t,
+            move(t, b.side, Math.min(4, stem)),
+          );
           path.reverse();
         }
         path[0] = s;
@@ -2303,6 +2355,34 @@ export const wireGraph = (
       clearance,
     );
   }
+  // Revisit occupied corridors after their neighbouring lanes have moved.
+  if (
+    !shift &&
+    !rowAxis &&
+    wires.some((w) =>
+      boxes.some(
+        (q) =>
+          q.id !== w.edge.source &&
+          q.id !== w.edge.target &&
+          cuts(w.source, w.target, q),
+      ),
+    )
+  ) {
+    for (const padding of [8, 6, 12]) {
+      refine(
+        wires,
+        nodes,
+        boxes,
+        lanes,
+        rowAxis,
+        ordinal,
+        radius,
+        clearance > 18
+          ? clearance
+          : Math.min(clearance, padding),
+      );
+    }
+  }
   // Exchanging branches can leave a sharp join even when both halves were smooth.
   if (!shift && !rowAxis)
     for (const [i, w] of wires.entries()) {
@@ -2419,6 +2499,32 @@ export const wireGraph = (
       0,
     );
   }
+  if (shift && previous) {
+    for (const [i, wire] of wires.entries()) {
+      const prior = previous.wires[i];
+      if (
+        !prior ||
+        prior === wire ||
+        prior.edge !== wire.edge
+      )
+        continue;
+      if (
+        prior.sourceSide === wire.sourceSide &&
+        prior.targetSide === wire.targetSide &&
+        free(prior.points, [shift.influence])
+      )
+        continue;
+      wires[i] = followCorridor(
+        wire,
+        prior,
+        required(nodes.get(wire.edge.source)),
+        required(nodes.get(wire.edge.target)),
+        boxes,
+        wire.edge.source === shift.id ||
+          wire.edge.target === shift.id,
+      );
+    }
+  }
   const departures = new Set(
     wires.map((w) =>
       JSON.stringify([
@@ -2450,7 +2556,10 @@ export const wireGraph = (
       continue;
     }
     // Measure back along the wire so sampling density cannot move the arrow.
-    let remaining = 14;
+    let remaining = Math.min(
+      14,
+      distance(w.source, w.target) / 3 || 14,
+    );
     for (
       let j = w.points.length - 1;
       j > 0;

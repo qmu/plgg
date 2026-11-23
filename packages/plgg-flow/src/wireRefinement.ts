@@ -1,4 +1,7 @@
-import { search } from "plgg-flow/wireSearch";
+import {
+  search,
+  laneSearch,
+} from "plgg-flow/wireSearch";
 import type { Point } from "plgg-board";
 import type { FlowNode } from "./model";
 import type { Wire } from "./wiring";
@@ -76,8 +79,8 @@ export const refine = (
       arch: boolean,
       span: number,
     ) =>
-      r.conflicts * 1.5 +
-      Number(span < 60 && r.turn > 2.6) +
+      r.conflicts * 1.2 +
+      2 * Number(span < 60 && r.turn > 1.8) +
       Number(r.turn > 6.8) +
       Number(
         edge.route !== "step" && r.kink > 0.72,
@@ -134,6 +137,31 @@ export const refine = (
         other !== w &&
         other.edge.target === edge.target,
     );
+    const single = !wires.some(
+      (v) =>
+        v !== w &&
+        v.edge.source === edge.source &&
+        v.edge.target === edge.target,
+    );
+    const bendsInOpenLane = (
+      path: readonly Point[],
+      s: Point,
+      t: Point,
+      sa: Side,
+      sb: Side,
+    ) => {
+      const axis = vertical(sa) ? "x" : "y";
+      return (
+        single &&
+        sa !== sb &&
+        vertical(sa) === vertical(sb) &&
+        s[axis] === t[axis] &&
+        free([s, t], foreign) &&
+        path.some(
+          (p) => Math.abs(p[axis] - s[axis]) > 1,
+        )
+      );
+    };
     const geometry = (
       path: readonly Point[],
       s: Point,
@@ -161,16 +189,20 @@ export const refine = (
             Math.abs(t.y - s.y)
           : distance(s, t);
       return (
+        4 *
+          Number(
+            bendsInOpenLane(path, s, t, sa, sb),
+          ) +
         (outgoing.some(
           (other) => other.sourceSide === sa,
         )
           ? 0
-          : 1.5 * sideCost(sa, a, b)) +
+          : 2 * sideCost(sa, a, b)) +
         (incoming.some(
           (other) => other.targetSide === sb,
         )
           ? 0
-          : 1.5 * sideCost(sb, b, a)) +
+          : 2 * sideCost(sb, b, a)) +
         Math.max(
           0,
           len / Math.max(40, direct) - 1.25,
@@ -200,7 +232,7 @@ export const refine = (
       );
     };
     const congestion = (crossings: number) =>
-      Math.max(0, crossings - 2) * 0.2;
+      crossings * 0.18;
     let best =
       congestion(baseline.crossings) +
       defects(
@@ -223,21 +255,15 @@ export const refine = (
       current: Side,
     ) => {
       if (side === current) return true;
-      const shared =
-        end === a
-          ? outgoing.length
-          : incoming.length;
       if (
         wires.some((other) =>
           end === a
             ? other.edge.target === end.id &&
               other.targetSide === side &&
-              (!shared ||
-                other.edge.source === peer.id)
+              other.edge.source === peer.id
             : other.edge.source === end.id &&
               other.sourceSide === side &&
-              (!shared ||
-                other.edge.target === peer.id),
+              other.edge.target === peer.id,
         )
       )
         return false;
@@ -255,7 +281,8 @@ export const refine = (
           normal[side].x +
           (peer.position.y - end.position.y) *
             normal[side].y >=
-        0
+        -0.25 *
+          distance(end.position, peer.position)
       );
     };
     let improved: Wire | undefined;
@@ -319,6 +346,8 @@ export const refine = (
           corners: number,
         ) => {
           if (!free(path, buffer)) return;
+          if (bendsInOpenLane(path, s, t, sa, sb))
+            return;
           const score = lanes.score(
             path,
             edge,
@@ -331,7 +360,7 @@ export const refine = (
           if (
             score.crossings >
               baseline.crossings +
-                (baseline.turn > 6.8 ? 1 : 0) ||
+                (wires.length > 4 ? 2 : 0) ||
             congestion(score.crossings) +
               defects(score, sa === sb, span) >=
               best ||
@@ -357,6 +386,51 @@ export const refine = (
             corners,
           );
         };
+        if (
+          bounds &&
+          sa === w.sourceSide &&
+          sb === w.targetSide &&
+          w.points.some(
+            (p) => pointGap(p, bounds) > 65,
+          )
+        ) {
+          // Compress only the part outside the endpoint span, preserving both shoulders.
+          const scaleBeyond = (
+            x: number,
+            low: number,
+            high: number,
+            scale: number,
+          ) => {
+            const anchor = Math.max(
+              low - 14,
+              Math.min(high + 14, x),
+            );
+            return anchor + (x - anchor) * scale;
+          };
+          for (const scale of [
+            0.12, 0.25, 0.4, 0.6, 0.8,
+          ]) {
+            accept(
+              w.points.map((p) =>
+                pt(
+                  scaleBeyond(
+                    p.x,
+                    bounds.l,
+                    bounds.r,
+                    scale,
+                  ),
+                  scaleBeyond(
+                    p.y,
+                    bounds.t,
+                    bounds.b,
+                    scale,
+                  ),
+                ),
+              ),
+              w.corners,
+            );
+          }
+        }
         // Try open channels beside obstacles before accepting a longer reversal.
         const local = buffer.filter(
           (q) =>
@@ -370,7 +444,7 @@ export const refine = (
         const step = edge.route === "step";
         const candidate = (knots: Point[]) => {
           const raw = simplify([s, ...knots, t]);
-          if (!free(raw, buffer)) return;
+          if (step && !free(raw, buffer)) return;
           const path = step
             ? rounded(raw, radius)
             : [
@@ -383,11 +457,45 @@ export const refine = (
             Math.max(0, raw.length - 2),
           );
         };
+        // Try lanes on either side of the chord, including unequal approaches.
+        if (!step) {
+          for (const along of [0.25, 0.5, 0.75]) {
+            for (const across of [
+              -80, -40, -16, 16, 40, 80,
+            ]) {
+              if (best < 0.01) break;
+              const vx = v.x - u.x,
+                vy = v.y - u.y;
+              const mid = pt(
+                u.x +
+                  along * vx -
+                  (across * vy) / (room || 1),
+                u.y +
+                  along * vy +
+                  (across * vx) / (room || 1),
+              );
+              candidate([u, mid, v]);
+            }
+          }
+        }
         const shortest =
           local.length &&
           search(u, v, buffer, step);
         if (shortest && shortest.length > 1)
           candidate(shortest);
+        if (best >= 1 && local.length) {
+          // Search occupied channels when the shortest clear path shares a lane.
+          const channel = laneSearch(
+            u,
+            v,
+            buffer,
+            step,
+            normal[sa],
+            normal[sb],
+            (p, q) => lanes.toll(p, q, edge),
+          );
+          if (channel) candidate(channel);
+        }
         for (const q of local) {
           if (best < 0.01) break;
           for (const x of [q.l - 6, q.r + 6]) {
@@ -501,6 +609,29 @@ export const refine = (
                 ),
                 0,
               );
+          }
+          // Unequal shoulders can clear a near corner without widening the far end.
+          for (const left of [
+            0.12, 0.32, 0.65, 0.95,
+          ]) {
+            for (const right of [
+              0.12, 0.32, 0.65, 0.95,
+            ]) {
+              if (best < 0.01) break;
+              accept(
+                [
+                  s,
+                  ...bezier(
+                    u,
+                    move(u, sa, room * left),
+                    move(v, sb, room * right),
+                    v,
+                  ),
+                  t,
+                ],
+                0,
+              );
+            }
           }
           for (const scale of [
             1, 0.5, 1.6, 2.5,

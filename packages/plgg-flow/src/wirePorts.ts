@@ -14,6 +14,7 @@ import {
   move,
   distance,
   facing,
+  free,
   cuts,
   bezier,
   type Box,
@@ -30,6 +31,7 @@ export const planPorts = (
   edges: Edge[],
   boxes: Box[],
   previous?: Wire[],
+  motion?: { id: string; dx: number; dy: number },
 ) => {
   // A displaced card does not change the orientation of an established row.
   const aligned = (axis: "x" | "y") => {
@@ -332,11 +334,44 @@ export const planPorts = (
         [b, w.targetSide],
       ] satisfies [End, Side][]) {
         const p = portPosition(end.node, side, 0);
+        const own =
+          motion &&
+          (edge.source === motion.id ||
+            edge.target === motion.id);
+        // Reserve a hand-width of travel before a moving endpoint loses its face.
+        const approach = (
+          q: Box,
+          socket: Point,
+          face: Side,
+          lead: number,
+        ) => {
+          if (q.id === end.node.id) return false;
+          const dx =
+            (Number(end.node.id === motion?.id) -
+              Number(q.id === motion?.id)) *
+            (motion?.dx ?? 0);
+          const dy =
+            (Number(end.node.id === motion?.id) -
+              Number(q.id === motion?.id)) *
+            (motion?.dy ?? 0);
+          const d = Math.hypot(dx, dy);
+          const tip = move(socket, face, 1);
+          return (
+            cuts(socket, tip, q) ||
+            (d > 0 &&
+              cuts(
+                tip,
+                pt(
+                  tip.x + (lead * dx) / d,
+                  tip.y + (lead * dy) / d,
+                ),
+                q,
+              ))
+          );
+        };
         if (
-          !boxes.some(
-            (q) =>
-              q.id !== end.node.id &&
-              cuts(p, move(p, side, 1), q),
+          !boxes.some((q) =>
+            approach(q, p, side, 0),
           )
         )
           end.side = side;
@@ -352,25 +387,36 @@ export const planPorts = (
             if (
               boxes.some(
                 (q) =>
-                  q.id !== end.node.id &&
-                  cuts(
-                    socket,
-                    move(socket, face, 16),
+                  approach(
                     q,
-                  ),
+                    socket,
+                    face,
+                    own ? 24 : 0,
+                  ) ||
+                  (q.id !== end.node.id &&
+                    cuts(
+                      socket,
+                      move(socket, face, 4),
+                      q,
+                    )),
               )
             )
               continue;
+            const stem = move(socket, face, 4);
             let gap = Infinity;
-            for (const sample of w.points)
-              gap = Math.min(
-                gap,
-                distance(sample, socket),
-              );
+            for (const sample of w.points) {
+              const d = distance(sample, stem);
+              if (
+                d < gap &&
+                free([stem, sample], boxes)
+              )
+                gap = d;
+            }
             const cost =
-              gap +
-              0.25 * distance(socket, p) +
-              (face === end.side ? 0 : 4);
+              (Number.isFinite(gap)
+                ? gap
+                : 200 + distance(socket, p)) +
+              distance(socket, p) * 0.35;
             if (cost < best) {
               best = cost;
               end.side = face;

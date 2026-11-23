@@ -1,3 +1,8 @@
+import { some } from "plgg";
+import {
+  movePointer,
+  type Drag,
+} from "plgg-flow/model";
 import { renderToString } from "plgg-view";
 import { test, check, toBe } from "plgg-test";
 import {
@@ -187,6 +192,70 @@ test("shared sockets render once and the chosen stroke paints last", () => {
         .length === 4 &&
       [...html.matchAll(/data-port="b"/g)]
         .length === 1,
+    toBe(true),
+  );
+});
+
+test("a connection preview leaves rendered wire paths fixed", () => {
+  const flow = selectNodes(["Order"])(
+    createFlow({
+      nodes: (
+        [
+          ["Order", -260, 0],
+          ["Stock", -40, -90],
+          ["Payment", -40, 90],
+          ["Ship", 200, 0],
+          ["Notify", 380, 0],
+        ] satisfies [string, number, number][]
+      ).map(([id, x, y]) => ({
+        ...node(id),
+        position: {
+          x,
+          y,
+          z: 0,
+        },
+      })),
+      edges: [
+        { source: "Order", target: "Stock" },
+        { source: "Order", target: "Payment" },
+        { source: "Stock", target: "Ship" },
+        { source: "Payment", target: "Ship" },
+        { source: "Ship", target: "Notify" },
+      ],
+    }),
+  );
+  const pending = connect("Order")(flow);
+  const dragging = {
+    ...pending,
+    drag: some<Drag>({
+      mode: "connect",
+      node: "Order",
+      pointer: 1,
+      last: { x: 0, y: 0 },
+    }),
+  };
+  const paths = (state: typeof flow) =>
+    Array.from(
+      renderToString(flowView(state)).matchAll(
+        /<path\b[^>]*data-edge="[^"]+"[^>]*>/g,
+      ),
+      (m) => m[0],
+    );
+  const before = paths(flow);
+  return check(
+    before.length === 5 &&
+      [
+        pending,
+        dragging,
+        movePointer(
+          { x: 35, y: 64 },
+          1,
+        )(dragging),
+      ].every(
+        (state) =>
+          JSON.stringify(paths(state)) ===
+          JSON.stringify(before),
+      ),
     toBe(true),
   );
 });

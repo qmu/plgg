@@ -264,18 +264,7 @@ export type ViewRegistry = Readonly<{
     (edge: Edge, state: Flow) => Html<Change>
   >;
 }>;
-export const flowView = (
-  state: Flow,
-  renderLabel: (
-    node: FlowNode,
-  ) => Html<Change> = (node) =>
-    el(
-      "text",
-      [a("text-anchor", "middle"), a("y", 5)],
-      [text(node.label)],
-    ),
-  registry: ViewRegistry = {},
-): Html<Change> => {
+const routedScene = (state: Flow) => {
   const whole = visibleScene(
     state,
     state.isolatedBranch,
@@ -294,7 +283,6 @@ export const flowView = (
       visibleEdges.has(e.edge),
     ),
   };
-  const ports = portsFor(state);
   const wires = wireGraph(
     clipped.nodes === state.nodes &&
       clipped.edges.length ===
@@ -302,9 +290,62 @@ export const flowView = (
       clipped.edges.every(
         (e, i) => e === state.edges[i],
       )
-      ? state
+      ? { nodes: state.nodes, edges: state.edges }
       : clipped,
   );
+  return { scene, wires };
+};
+const sceneCache = new WeakMap<
+  Flow["nodes"],
+  {
+    edges: Flow["edges"];
+    branch: Flow["isolatedBranch"];
+    overview: boolean;
+    section: Parameters<typeof sectionGraph>[1];
+    layout: ReturnType<typeof routedScene>;
+  }
+>();
+// Visibility can synthesize edges; keep their identities across preview frames.
+const viewportLayout = (state: Flow) => {
+  const known = sceneCache.get(state.nodes);
+  const section = state.spatial?.section,
+    branch = state.isolatedBranch;
+  const overview = Boolean(
+    state.spatial?.overview &&
+      state.camera.scale < 0.5,
+  );
+  if (
+    known &&
+    known.edges === state.edges &&
+    known.section === section &&
+    known.branch === branch &&
+    known.overview === overview
+  )
+    return known.layout;
+  const layout = routedScene(state);
+  sceneCache.set(state.nodes, {
+    edges: state.edges,
+    section,
+    branch,
+    overview,
+    layout,
+  });
+  return layout;
+};
+export const flowView = (
+  state: Flow,
+  renderLabel: (
+    node: FlowNode,
+  ) => Html<Change> = (node) =>
+    el(
+      "text",
+      [a("text-anchor", "middle"), a("y", 5)],
+      [text(node.label)],
+    ),
+  registry: ViewRegistry = {},
+): Html<Change> => {
+  const { scene, wires } = viewportLayout(state);
+  const ports = portsFor(state);
   const routes = new Map(
     wires.map((w) => [w.edge, w]),
   );
@@ -1048,6 +1089,15 @@ export const flowView = (
         ) *
           180) /
         Math.PI;
+      const gap = Math.hypot(
+        wire.source.x - wire.target.x,
+        wire.source.y - wire.target.y,
+      );
+      const arrowScale =
+        tip.scale *
+        (edge.source === edge.target
+          ? 1
+          : Math.min(1, gap / 60));
       layers.push({
         chosen: chosenWire,
         arrow: true,
@@ -1064,7 +1114,7 @@ export const flowView = (
             a("data-arrow", side),
             a(
               "transform",
-              `translate(${tip.x} ${tip.y}) rotate(${angle}) scale(${tip.scale})`,
+              `translate(${tip.x} ${tip.y}) rotate(${angle}) scale(${arrowScale})`,
             ),
             a("points", "0,0 -9,-4 -9,4"),
             a("fill", "#426f71"),
@@ -1900,42 +1950,52 @@ export const flowView = (
           );
           return el("g", [], [frame, handle]);
         }),
-      ...(isSome(state.drag) &&
-      state.drag.content.mode === "connect"
-        ? (() => {
-            const drag = state.drag.content,
-              start = lookup.get(drag.node);
-            const socket = drag.socket
-              ? project(state.camera)(drag.socket)
-              : start &&
-                projectSocket(
-                  start,
-                  state.camera,
-                  "source",
-                  0,
-                );
-            return socket
-              ? [
-                  el(
-                    "line",
-                    [
-                      a("x1", socket.x),
-                      a("y1", socket.y),
-                      a("x2", drag.last.x),
-                      a("y2", drag.last.y),
-                      a("stroke", "#167b70"),
-                      a(
-                        "stroke-dasharray",
-                        "4 4",
-                      ),
-                      a("pointer-events", "none"),
-                    ],
-                    [],
-                  ),
-                ]
-              : [];
-          })()
-        : []),
+      // Keep the preview in its own SVG layer across pointer updates.
+      el(
+        "g",
+        [key("connection-preview")],
+        isSome(state.drag) &&
+          state.drag.content.mode === "connect"
+          ? (() => {
+              const drag = state.drag.content,
+                start = lookup.get(drag.node);
+              const socket = drag.socket
+                ? project(state.camera)(
+                    drag.socket,
+                  )
+                : start &&
+                  projectSocket(
+                    start,
+                    state.camera,
+                    "source",
+                    0,
+                  );
+              return socket
+                ? [
+                    el(
+                      "line",
+                      [
+                        a("x1", socket.x),
+                        a("y1", socket.y),
+                        a("x2", drag.last.x),
+                        a("y2", drag.last.y),
+                        a("stroke", "#167b70"),
+                        a(
+                          "stroke-dasharray",
+                          "4 4",
+                        ),
+                        a(
+                          "pointer-events",
+                          "none",
+                        ),
+                      ],
+                      [],
+                    ),
+                  ]
+                : [];
+            })()
+          : [],
+      ),
       ...groupVolumes(
         scene.nodes,
         state.camera,
