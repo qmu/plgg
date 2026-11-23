@@ -1598,13 +1598,9 @@ const view = (m: Model): Html<Action> => {
             [
               el("h2", [], [text(e.name)]),
               el(
-                "span",
-                [],
-                [
-                  text(
-                    `${s.flow.nodes.length} nodes · ${s.flow.edges.length} edges`,
-                  ),
-                ],
+                "p",
+                [attr("class", "lede")],
+                [text(e.hint)],
               ),
             ],
           ),
@@ -1733,11 +1729,6 @@ const view = (m: Model): Html<Action> => {
                 "背景ドラッグでパン · Shift＋ドラッグで回転 · Alt＋ドラッグで範囲選択 · Ctrl（⌘）＋スクロールでズーム。タッチは1本指でパン、2本指で回転・ピンチズーム。",
               ),
             ],
-          ),
-          el(
-            "p",
-            [attr("class", "hint")],
-            [text(e.hint)],
           ),
           el(
             "div",
