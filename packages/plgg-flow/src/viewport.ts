@@ -1695,21 +1695,74 @@ export const flowView = (
               bottom: -Infinity,
             },
           );
-          return el(
+          const right =
+              box.right +
+              12 +
+              (group.grow?.x ?? 0) * group.scale,
+            bottom =
+              box.bottom +
+              12 +
+              (group.grow?.y ?? 0) * group.scale;
+          // The corner handle drags the frame's size.
+          const handle = el<Change>(
+            "rect",
+            [
+              a("data-group-handle", group.id),
+              a("x", right - 6),
+              a("y", bottom - 6),
+              a("width", 12),
+              a("height", 12),
+              a("fill", "#fff"),
+              a("stroke", "#8bb8aa"),
+              a("style", "cursor:nwse-resize"),
+              onEvent<Change>(
+                "pointerdown",
+                (e) => {
+                  if (
+                    !(
+                      e instanceof PointerEvent
+                    ) ||
+                    !(
+                      e.currentTarget instanceof
+                      SVGElement
+                    ) ||
+                    !e.currentTarget
+                      .ownerSVGElement
+                  )
+                    return none();
+                  const svg =
+                      e.currentTarget
+                        .ownerSVGElement,
+                    here = local(svg, e);
+                  if (!isSome(here))
+                    return none();
+                  e.stopPropagation();
+                  svg.setPointerCapture(
+                    e.pointerId,
+                  );
+                  return some((s) => ({
+                    ...s,
+                    drag: some<Drag>({
+                      pointer: e.pointerId,
+                      last: here.content,
+                      mode: "frame",
+                      node: group.id,
+                    }),
+                  }));
+                },
+              ),
+            ],
+            [],
+          );
+          const frame = el(
             "rect",
             [
               a("data-group", group.id),
               a("pointer-events", "none"),
               a("x", box.left - 12),
               a("y", box.top - 12),
-              a(
-                "width",
-                box.right - box.left + 24,
-              ),
-              a(
-                "height",
-                box.bottom - box.top + 24,
-              ),
+              a("width", right - box.left + 12),
+              a("height", bottom - box.top + 12),
               a("rx", 12),
               a("fill", "#167b7009"),
               a("stroke", "#8bb8aa"),
@@ -1717,6 +1770,7 @@ export const flowView = (
             ],
             [],
           );
+          return el("g", [], [frame, handle]);
         }),
       ...(isSome(state.drag) &&
       state.drag.content.mode === "connect"

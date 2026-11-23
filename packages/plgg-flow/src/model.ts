@@ -53,6 +53,9 @@ export type FlowNode = Readonly<{
   boundary?: "inbound" | "outbound" | "closed";
   ports?: readonly Port[];
   group?: boolean;
+  /** How far a group's frame reaches past its members,
+   * in world units — the size a reader dragged it to. */
+  grow?: Readonly<{ x: number; y: number }>;
   collapsed?: boolean;
   locked?: boolean;
   hidden?: boolean;
@@ -103,7 +106,8 @@ export type Drag = Readonly<{
     | "box"
     | "waypoint"
     | "ink"
-    | "lasso";
+    | "lasso"
+    | "frame";
   outline?: readonly Point[];
   waypoint?: number;
   first?: Point;
@@ -593,6 +597,34 @@ export const movePointer =
         drag: some({ ...d, last: point }),
       };
     }
+    if (d.mode === "frame") {
+      const group = state.nodes.find(
+        (n) => n.id === d.node,
+      );
+      if (!group) return state;
+      const delta = worldDelta(
+        state.camera,
+        { x: dx, y: dy },
+        project(state.camera)(group.position).z,
+      );
+      const grow = {
+        x: Math.max(
+          0,
+          (group.grow?.x ?? 0) + delta.x,
+        ),
+        y: Math.max(
+          0,
+          (group.grow?.y ?? 0) + delta.y,
+        ),
+      };
+      return {
+        ...state,
+        nodes: state.nodes.map((n) =>
+          n.id === group.id ? { ...n, grow } : n,
+        ),
+        drag: some({ ...d, last: point }),
+      };
+    }
     const moving = state.nodes.find(
       (n) => n.id === d.node,
     );
@@ -607,6 +639,72 @@ export const movePointer =
       },
       depth,
     );
+    // Snap while moving: the node stays put until the
+    // pointer has travelled past the next grid line, then
+    // jumps a whole cell. The unapplied travel is kept in
+    // `first`, so a slow drag still arrives.
+    if (
+      d.mode === "node" &&
+      state.snap &&
+      moving
+    ) {
+      const snap = state.snap,
+        previous = d.first ?? d.last,
+        roots = selectedNodes(state).filter(
+          (id) =>
+            !state.nodes.find((n) => n.id === id)
+              ?.locked,
+        ),
+        travel = worldDelta(
+          state.camera,
+          {
+            x: point.x - previous.x,
+            y: point.y - previous.y,
+          },
+          depth,
+        ),
+        step = (at: number, by: number) =>
+          Math.round((at + by) / snap) * snap -
+          at,
+        adjusted = {
+          x: step(moving.position.x, travel.x),
+          y: step(moving.position.y, travel.y),
+          z: 0,
+        };
+      if (!adjusted.x && !adjusted.y)
+        return {
+          ...state,
+          drag: some({
+            ...d,
+            last: point,
+            first: previous,
+          }),
+        };
+      const from = project(state.camera)(
+          moving.position,
+        ),
+        to = project(state.camera)({
+          x: moving.position.x + adjusted.x,
+          y: moving.position.y + adjusted.y,
+          z: moving.position.z,
+        });
+      return {
+        ...state,
+        ...moveConstrainedSelection(
+          state,
+          roots,
+          adjusted,
+        ),
+        drag: some({
+          ...d,
+          last: point,
+          first: {
+            x: previous.x + to.x - from.x,
+            y: previous.y + to.y - from.y,
+          },
+        }),
+      };
+    }
     if (
       d.mode === "node" &&
       (state.movement ||

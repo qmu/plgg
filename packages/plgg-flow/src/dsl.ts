@@ -20,6 +20,7 @@ import {
  *   node Team at -250 -100 0 group
  *   node Review at 105 10 100 in Design label "査読"
  *   node A at -180 -75 value 3 width 160
+ *   node Team at 0 0 group grow 80 40
  *   Route -> Live "条件" curve animated
  *
  * `#` starts a comment. Names with spaces are quoted.
@@ -106,6 +107,15 @@ const parseNode = (
           ? { ...node, parent: v.text }
           : { ...node, label: v.text };
       i += 2;
+    } else if (word === "grow") {
+      const x = num(ts[i + 1]),
+        y = num(ts[i + 2]);
+      if (x === undefined || y === undefined)
+        return err(
+          `${id.text}: grow には数値が2つ必要です`,
+        );
+      node = { ...node, grow: { x, y } };
+      i += 3;
     } else if (
       word === "value" ||
       word === "width"
@@ -299,6 +309,13 @@ export const printSpec = (
         ...(n.width === undefined
           ? []
           : ["width", coord(n.width)]),
+        ...(n.grow && (n.grow.x || n.grow.y)
+          ? [
+              "grow",
+              coord(n.grow.x),
+              coord(n.grow.y),
+            ]
+          : []),
       ].join(" "),
     ),
     ...flow.edges.map((e) =>
