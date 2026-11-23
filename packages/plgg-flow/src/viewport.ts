@@ -732,15 +732,10 @@ export const flowView = (
         ))
     )
       continue;
-    // Coplanar samples have one painter depth; one path is sufficient.
+    // A face-on camera shows the whole stroke without depth seams.
     const flat =
-      !turned.get(edge.source)?.[
-        wire.sourceSide
-      ] &&
-      !turned.get(edge.target)?.[
-        wire.targetSide
-      ] &&
-      points.every((p) => p.z === points[0]?.z);
+      state.camera.pitch === 0 &&
+      state.camera.yaw === 0;
     const line = flat
       ? points
           .map(
@@ -766,8 +761,27 @@ export const flowView = (
       const color = edge.highlighted
         ? "#e36731"
         : `hsl(174 28% ${60 - fade * 38}%)`;
+      const next = points[i + 1];
+      const extension = next
+        ? Math.min(
+            0.5,
+            1 /
+              (Math.hypot(
+                next.x - b.x,
+                next.y - b.y,
+              ) || 1),
+          )
+        : 0;
+      const overlap = next
+        ? "L" +
+          (b.x + (next.x - b.x) * extension) +
+          " " +
+          (b.y + (next.y - b.y) * extension)
+        : "";
       const path =
-        line || `M${a0.x} ${a0.y}L${b.x} ${b.y}`;
+        line ||
+        `M${a0.x} ${a0.y}L${b.x} ${b.y}` +
+          overlap;
       const visible = [
         a(
           "class",

@@ -177,7 +177,8 @@ test("shared sockets render once and the chosen stroke paints last", () => {
       /stroke-width="([^"]+)"/.exec(path)?.[1],
     );
   return check(
-    paths[paths.length - 1]?.[1] === "one" &&
+    paths.length === 2 &&
+      paths[paths.length - 1]?.[1] === "one" &&
       chosen.includes('data-chosen="true"') &&
       Math.abs(
         width(chosen) - 2.4 * width(other),

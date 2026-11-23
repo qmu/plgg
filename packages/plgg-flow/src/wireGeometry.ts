@@ -169,9 +169,71 @@ export const crossing = (
   );
 };
 export const crossesItself = (path: Point[]) => {
-  for (let i = 1; i < path.length; i++)
-    for (let j = i + 2; j < path.length; j++)
-      if (crossing(path, i, path, j)) return true;
+  // A strictly monotone coordinate rules out a self-intersection.
+  for (const axis of ["x", "y"] satisfies (
+    | "x"
+    | "y"
+  )[]) {
+    const direction = Math.sign(
+      required(path[path.length - 1])[axis] -
+        required(path[0])[axis],
+    );
+    if (
+      direction &&
+      path.every(
+        (p, i) =>
+          i === 0 ||
+          direction *
+            (p[axis] -
+              required(path[i - 1])[axis]) >
+            0,
+      )
+    )
+      return false;
+  }
+  // Cull distant spans before testing individual segment pairs.
+  const blocks = [];
+  for (
+    let start = 1;
+    start < path.length;
+    start += 12
+  ) {
+    const end = Math.min(path.length, start + 12);
+    let l = Infinity,
+      r = -Infinity,
+      t = Infinity,
+      b = -Infinity;
+    for (let k = start - 1; k < end; k++) {
+      const p = required(path[k]);
+      l = Math.min(l, p.x);
+      r = Math.max(r, p.x);
+      t = Math.min(t, p.y);
+      b = Math.max(b, p.y);
+    }
+    blocks.push({ start, end, l, r, t, b });
+  }
+  for (let k = 0; k < blocks.length; k++) {
+    const a = required(blocks[k]);
+    for (let h = k; h < blocks.length; h++) {
+      const b = required(blocks[h]);
+      if (
+        a.l > b.r ||
+        b.l > a.r ||
+        a.t > b.b ||
+        b.t > a.b
+      )
+        continue;
+      for (let i = a.start; i < a.end; i++) {
+        for (
+          let j = Math.max(b.start, i + 2);
+          j < b.end;
+          j++
+        )
+          if (crossing(path, i, path, j))
+            return true;
+      }
+    }
+  }
   return false;
 };
 export const rounded = (
@@ -295,7 +357,7 @@ export const cuts = (
   );
 };
 export const free = (
-  path: Point[],
+  path: readonly Point[],
   boxes: Box[],
 ) => {
   let l = Infinity,
@@ -371,35 +433,41 @@ export const bezier = (
   d: Point,
   samples?: number,
 ) => {
+  // The second derivative bounds the chord error independently of the span length.
   const count =
     samples ??
     Math.max(
       2,
       Math.ceil(
-        (3 *
-          Math.max(
-            distance(a, b),
-            distance(b, c),
-            distance(c, d),
-          )) /
-          12,
+        Math.sqrt(
+          6 *
+            Math.max(
+              Math.hypot(
+                a.x - 2 * b.x + c.x,
+                a.y - 2 * b.y + c.y,
+              ),
+              Math.hypot(
+                b.x - 2 * c.x + d.x,
+                b.y - 2 * c.y + d.y,
+              ),
+            ),
+        ),
       ),
     );
-  return Array.from(
-    { length: count + 1 },
-    (_, i) => {
-      const t = i / count,
-        u = 1 - t;
-      return pt(
-        u * u * u * a.x +
-          3 * u * u * t * b.x +
-          3 * u * t * t * c.x +
-          t * t * t * d.x,
-        u * u * u * a.y +
-          3 * u * u * t * b.y +
-          3 * u * t * t * c.y +
-          t * t * t * d.y,
-      );
-    },
-  );
+  const points: Point[] = new Array(count + 1);
+  for (let i = 0; i <= count; i++) {
+    const t = i / count,
+      u = 1 - t;
+    points[i] = pt(
+      u * u * u * a.x +
+        3 * u * u * t * b.x +
+        3 * u * t * t * c.x +
+        t * t * t * d.x,
+      u * u * u * a.y +
+        3 * u * u * t * b.y +
+        3 * u * t * t * c.y +
+        t * t * t * d.y,
+    );
+  }
+  return points;
 };

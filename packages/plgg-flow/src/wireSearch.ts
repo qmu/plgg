@@ -15,13 +15,36 @@ export const search = (
   boxes: Box[],
   step: boolean,
 ) => {
+  const estimate = (p: Point) =>
+    step
+      ? Math.abs(t.x - p.x) + Math.abs(t.y - p.y)
+      : distance(p, t);
+  if (
+    !boxes.some((q) => cuts(s, t, q)) &&
+    (!step || s.x === t.x || s.y === t.y)
+  )
+    return [s, t];
+  if (step && s.x !== t.x && s.y !== t.y) {
+    for (const bend of [
+      pt(t.x, s.y),
+      pt(s.x, t.y),
+    ]) {
+      if (
+        !boxes.some(
+          (q) =>
+            cuts(s, bend, q) || cuts(bend, t, q),
+        )
+      )
+        return [s, bend, t];
+    }
+  }
   const vertices = [s, t],
     seen = new Set<Box>();
   const costs = [0, Infinity],
     parent: number[] = [-1, -1],
     turns: (Point | undefined)[] = [];
   const done = new Set<number>(),
-    heuristic = [distance(s, t), 0],
+    heuristic = [estimate(s), 0],
     expandedCost: number[] = [],
     expandedTo: number[] = [];
 
@@ -71,11 +94,17 @@ export const search = (
         const d =
           (costs[at] ?? 0) +
           (turn
-            ? distance(a, turn) +
-              distance(turn, b) +
+            ? Math.abs(a.x - b.x) +
+              Math.abs(a.y - b.y) +
               4
             : distance(a, b));
-        if (d >= (costs[i] ?? Infinity)) continue;
+        if (
+          d >= (costs[i] ?? Infinity) ||
+          (i !== 1 &&
+            d + required(heuristic[i]) >=
+              required(costs[1]))
+        )
+          continue;
         const block = boxes.find(
           (q) =>
             cuts(a, turn ?? b, q) ||
@@ -96,10 +125,7 @@ export const search = (
               j++
             )
               heuristic.push(
-                distance(
-                  required(vertices[j]),
-                  t,
-                ),
+                estimate(required(vertices[j])),
               );
             // Previously settled corners can see newly discovered vertices.
             done.clear();
@@ -246,7 +272,12 @@ export const laneSearch = (
         cost[i] = value;
         push(open, {
           at: i,
-          priority: value + distance(b, t),
+          priority:
+            value +
+            (step
+              ? Math.abs(t.x - b.x) +
+                Math.abs(t.y - b.y)
+              : distance(b, t)),
         });
       }
     }

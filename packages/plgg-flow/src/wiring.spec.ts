@@ -260,17 +260,21 @@ for (const style of [
           toBe(0),
         ),
         check(
-          wires.every((w, i) =>
+          wires.every((w) =>
             name === "stacked"
               ? w.sourceSide === "bottom" &&
                 w.targetSide === "top"
-              : name === "backward" ||
-                  (name === "cycle" && i === 1)
+              : name === "backward"
                 ? w.sourceSide === "left" &&
                   w.targetSide === "right"
                 : name !== "cycle" ||
-                  (w.sourceSide === "right" &&
-                    w.targetSide === "left"),
+                  wires.every(
+                    (v) =>
+                      v.edge.target !==
+                        w.edge.source ||
+                      v.targetSide !==
+                        w.sourceSide,
+                  ),
           ),
           toBe(true),
         ),
@@ -757,4 +761,156 @@ test("overlap measures the whole collinear run across sample boundaries", () => 
     check(overlap(3), toBe(32)),
     check(overlap(4), toBe(0)),
   ]);
+});
+
+test("arrivals and departures own separate pipeline and tree faces", () => {
+  const ids = ["Src", "Parse", "Lint", "Ship"];
+  const pipeline = {
+    nodes: ids.map((id, i) =>
+      node(id, i * 160, 0),
+    ),
+    edges: [
+      link("Src", "Parse"),
+      link("Parse", "Lint"),
+      link("Lint", "Ship"),
+      link("Src", "Ship"),
+      link("Ship", "Src"),
+    ],
+  };
+  const tree = {
+    nodes: [
+      node("Root", 0, -140),
+      node("Dept", 0, 0),
+      node("L", -160, 140),
+      node("R", 160, 140),
+    ],
+    edges: [
+      link("Root", "Dept"),
+      link("Dept", "L"),
+      link("Dept", "R"),
+    ],
+  };
+  return check(
+    [pipeline, tree].every((graph) => {
+      const wires = wireGraph(graph);
+      return wires.every((w) =>
+        wires.every(
+          (v) =>
+            v.edge.target !== w.edge.source ||
+            v.targetSide !== w.sourceSide,
+        ),
+      );
+    }),
+    toBe(true),
+  );
+});
+test("step diagonals are confined to quarter-circle corners", () => {
+  const wires = [
+    patterns.parallel,
+    patterns.fanOut,
+    patterns.cycle,
+    { nodes: pair, edges: [link("A", "A")] },
+  ].flatMap((graph) =>
+    wireGraph({
+      ...graph,
+      edges: graph.edges.map((edge) => ({
+        ...edge,
+        route: "step",
+      })),
+    }),
+  );
+  return check(
+    wires.every((w) =>
+      w.points.every((p, i) => {
+        const q = w.points[i - 1];
+        if (
+          !q ||
+          Math.min(
+            Math.abs(p.x - q.x),
+            Math.abs(p.y - q.y),
+          ) < 1e-8
+        )
+          return true;
+        // Six equal chords sample each ten-unit quarter circle.
+        const chord =
+          (Math.atan2(
+            Math.abs(p.y - q.y),
+            Math.abs(p.x - q.x),
+          ) *
+            12) /
+            Math.PI -
+          0.5;
+        return (
+          Math.abs(chord - Math.round(chord)) <
+            1e-6 &&
+          Math.hypot(p.x - q.x, p.y - q.y) <=
+            20 * Math.sin(Math.PI / 24) + 1e-6
+        );
+      }),
+    ),
+    toBe(true),
+  );
+});
+test("a free curve follows its single cubic between stems", () => {
+  const w = wireGraph(patterns.single)[0];
+  if (!w) throw new Error("Missing curve");
+  const u = { x: w.source.x + 14, y: w.source.y },
+    v = { x: w.target.x - 14, y: w.target.y };
+  const arm = Math.max(
+    40,
+    0.45 * Math.hypot(u.x - v.x, u.y - v.y),
+  );
+  const samples = Math.ceil(
+    (3 *
+      Math.max(
+        arm,
+        Math.hypot(
+          v.x - u.x - 2 * arm,
+          v.y - u.y,
+        ),
+      )) /
+      12,
+  );
+  return check(
+    Array.from(
+      { length: samples + 1 },
+      (_, i) => {
+        const t = i / samples,
+          k = 1 - t;
+        const x =
+          k * k * k * u.x +
+          3 * k * k * t * (u.x + arm) +
+          3 * k * t * t * (v.x - arm) +
+          t * t * t * v.x;
+        const y =
+          (k * k * k + 3 * k * k * t) * u.y +
+          (3 * k * t * t + t * t * t) * v.y;
+        return w.points.some(
+          (p) =>
+            Math.hypot(p.x - x, p.y - y) < 1e-7,
+        );
+      },
+    ).every(Boolean),
+    toBe(true),
+  );
+});
+
+test("the level branch of a crossing fan retains its free cubic", () => {
+  const graph = patterns.cross;
+  const edge = graph.edges.find(
+    (e) => e.source === "N" && e.target === "U",
+  );
+  if (!edge)
+    throw new Error("Missing fan branch");
+  const single = wireGraph({
+    ...graph,
+    edges: [edge],
+  })[0];
+  const branch = wireGraph(graph).find(
+    (w) => w.edge === edge,
+  );
+  return check(
+    JSON.stringify(branch?.points),
+    toBe(JSON.stringify(single?.points)),
+  );
 });

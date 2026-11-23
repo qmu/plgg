@@ -170,31 +170,32 @@ export const fanCorridors = (
           continue;
         }
         if (peer.edge.route === "step") {
-          const level =
-              rank - (peers.length - 1) / 2,
-            theta =
-              level *
-              Math.min(0.48, 2.65 / peers.length);
-          const reach = Math.min(46, dx * 0.3),
-            across =
-              Math.sign(b.y - a.y) *
-              Math.min(
-                Math.abs(b.y - a.y) * 0.65,
-                Math.abs(reach * Math.sin(theta)),
-              );
-          const arm = Math.min(
-              reach * Math.cos(theta),
-              dx * 0.3,
-            ),
-            mid = Math.max(
-              a.x + arm + 6,
-              (a.x + b.x) / 2 -
-                (dx * 0.32 * Math.abs(level)) /
-                  (peers.length / 2),
+          // Outer branches turn first so nearer lanes can continue through the fan.
+          const level = Math.abs(
+            rank - (peers.length - 1) / 2,
+          );
+          const branch =
+            a.x +
+            Math.min(
+              dx / 5,
+              Math.max(2, 23 - level * 5),
             );
+          const mid =
+            a.x +
+            dx *
+              (0.65 -
+                (0.6 * level) / peers.length);
+          const lane =
+            a.y +
+            Math.sign(b.y - a.y) *
+              Math.min(
+                Math.abs(b.y - a.y),
+                level * 7,
+              );
           path.push(
-            pt(a.x + arm, a.y + across),
-            pt(mid, a.y + across),
+            pt(branch, a.y),
+            pt(branch, lane),
+            pt(mid, lane),
             pt(mid, b.y),
             b,
           );

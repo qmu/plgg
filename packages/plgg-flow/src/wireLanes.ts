@@ -18,7 +18,7 @@ const equallySpaced = (
       b = required(points[i]),
       dx = b.x - a.x,
       dy = b.y - a.y,
-      d = Math.hypot(dx, dy);
+      d = Math.sqrt(dx * dx + dy * dy);
     while (next < d) {
       const f = next / d;
       out.push(pt(a.x + dx * f, a.y + dy * f));
@@ -89,8 +89,8 @@ export const laneIndex = () => {
         visit(x * 65537 + y);
   };
   let serial = 0;
-  const insert = (wire: Wire) => {
-    const old = footprints.get(wire.edge);
+  const remove = (edge: Edge) => {
+    const old = footprints.get(edge);
     if (old)
       for (const k of old) {
         const cell = cells.get(k);
@@ -98,14 +98,49 @@ export const laneIndex = () => {
           cells.set(
             k,
             cell.filter(
-              (seg) => seg.edge !== wire.edge,
+              (seg) => seg.edge !== edge,
             ),
           );
       }
+    footprints.delete(edge);
+  };
+  const insert = (wire: Wire) => {
+    remove(wire.edge);
     const keys = new Set<number>();
     footprints.set(wire.edge, keys);
     const id = serial++;
-    const track = trackFor(wire.points);
+    // Coalesce straight runs to keep the spatial index compact.
+    const track: Point[] = [];
+    let merged = 0;
+    for (const p of trackFor(wire.points)) {
+      const a = track[track.length - 2],
+        b = track[track.length - 1];
+      if (
+        a &&
+        b &&
+        ((a.x === p.x &&
+          b.x === p.x &&
+          (b.y - a.y) * (p.y - b.y) >= 0) ||
+          (a.y === p.y &&
+            b.y === p.y &&
+            (b.x - a.x) * (p.x - b.x) >= 0) ||
+          (merged < 4 &&
+            (p.x - b.x) * (b.x - a.x) +
+              (p.y - b.y) * (b.y - a.y) >
+              0 &&
+            Math.abs(
+              (p.x - a.x) * (b.y - a.y) -
+                (p.y - a.y) * (b.x - a.x),
+            ) <
+              0.045 *
+                (Math.abs(p.x - a.x) +
+                  Math.abs(p.y - a.y))))
+      ) {
+        track.pop();
+        merged++;
+      } else merged = 0;
+      track.push(p);
+    }
     track.forEach((b, i) => {
       const a = track[i - 1];
       if (!a) return;
@@ -136,11 +171,13 @@ export const laneIndex = () => {
     });
   };
   const score = (
-    raw: Point[],
+    raw: readonly Point[],
     edge: Edge,
     s: Point,
     t: Point,
     limit = Infinity,
+    onConflict?: (other: Edge) => void,
+    maxOverlap = Infinity,
   ) => {
     const path =
       raw.length > 2 ? trackFor(raw) : raw;
@@ -150,13 +187,17 @@ export const laneIndex = () => {
       kink = 0,
       prevDx = 0,
       prevDy = 0;
+    let flat = 0,
+      runLength = 0,
+      length = 0;
     const runs: number[] = [],
       hits: number[] = [];
     let overlap = 0;
     for (let i = 1; i < path.length; i++) {
-      if (cost >= limit)
+      if (cost >= limit || overlap > maxOverlap)
         return {
           turn,
+          stiff: false,
           kink,
           conflicts,
           overlap,
@@ -167,16 +208,24 @@ export const laneIndex = () => {
         b = required(path[i]),
         dx = b.x - a.x,
         dy = b.y - a.y,
-        d = Math.hypot(dx, dy);
+        d = Math.sqrt(dx * dx + dy * dy);
       if (d < 0.001) continue;
       cost += d * 0.04;
       if (prevDx || prevDy) {
-        const ang = Math.abs(
-          Math.atan2(
+        const cross = Math.abs(
             prevDx * dy - prevDy * dx,
-            prevDx * dx + prevDy * dy,
           ),
-        );
+          dot = prevDx * dx + prevDy * dy;
+        const ang =
+          dot > 0 && cross < 0.05 * dot
+            ? cross / dot
+            : Math.atan2(cross, dot);
+        length += d;
+        if (ang < 0.004) runLength += d;
+        else {
+          if (runLength > 90) flat += runLength;
+          runLength = 0;
+        }
         turn += ang;
         kink = Math.max(kink, ang);
       }
@@ -264,14 +313,14 @@ export const laneIndex = () => {
                   s.y === seg.t.y)) &&
                 (cx - s.x) ** 2 +
                   (cy - s.y) ** 2 <=
-                  196) ||
+                  900) ||
               (((t.x === seg.s.x &&
                 t.y === seg.s.y) ||
                 (t.x === seg.t.x &&
                   t.y === seg.t.y)) &&
                 (cx - t.x) ** 2 +
                   (cy - t.y) ** 2 <=
-                  196)
+                  900)
             )
               continue;
             const count = hits[id] ?? 0;
@@ -282,26 +331,36 @@ export const laneIndex = () => {
             if (
               count === 1 ||
               (!count && sibling)
-            )
+            ) {
               conflicts++;
+              onConflict?.(seg.edge);
+            }
             cost += count || sibling ? 300 : 8;
           }
         }
       }
     }
+    const stiff =
+      edge.route !== "step" &&
+      turn > 0.5 &&
+      flat + (runLength > 90 ? runLength : 0) >
+        length * 0.44;
     return {
+      stiff,
       turn,
       kink,
       conflicts,
       overlap,
       cost:
         cost +
+        (stiff ? 180 : 0) +
         turn * 3 +
         (edge.route === "step"
           ? 0
           : Math.max(0, kink - 0.55) * 450) +
         Math.max(0, turn - 6.5) * 400,
       clear:
+        !stiff &&
         (edge.route === "step" || kink < 0.7) &&
         turn < 6.8 &&
         overlap < 15 &&
@@ -316,7 +375,7 @@ export const laneIndex = () => {
   ) => {
     const dx = b.x - a.x,
       dy = b.y - a.y,
-      d = Math.hypot(dx, dy),
+      d = Math.sqrt(dx * dx + dy * dy),
       n = Math.max(1, Math.ceil(d / 8));
     let total = 0;
     for (let i = 1; i <= n; i++) {
@@ -369,5 +428,5 @@ export const laneIndex = () => {
     }
     return total;
   };
-  return { insert, score, toll };
+  return { insert, remove, score, toll };
 };
