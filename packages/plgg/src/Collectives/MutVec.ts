@@ -1,3 +1,4 @@
+import { collectResults } from "plgg/Functionals/collectResults";
 import {
   Result,
   InvalidError,
@@ -16,8 +17,6 @@ import {
   Kind1,
   ok,
   err,
-  isOk,
-  isErr,
 } from "plgg/index";
 
 declare module "plgg/Abstracts/Principals/Kind" {
@@ -234,8 +233,4 @@ export const concludeMutVec =
   (
     vec: MutVec<T>,
   ): Result<MutVec<U>, MutVec<F>> =>
-    vec
-      .map(fn)
-      .reduce<
-        Result<MutVec<U>, MutVec<F>>
-      >((acc, result) => (isOk(result) ? (isOk(acc) ? ok([...acc.content, result.content]) : acc) : isErr(acc) ? err([...acc.content, result.content]) : err([result.content])), ok([]));
+    collectResults(vec.map(fn));
