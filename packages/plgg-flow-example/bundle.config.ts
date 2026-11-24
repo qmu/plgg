@@ -8,7 +8,6 @@ export default {
   outDir: "dist",
   entries: [
     { name: "index", input: "index.ts" },
-    { name: "diagram", input: "diagram.ts" },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",

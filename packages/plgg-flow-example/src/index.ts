@@ -1436,8 +1436,8 @@ const sidebar = (index: number): Html<Action> =>
       el("h1", [], [text("plgg-flow")]),
       el(
         "a",
-        [attr("href", "./diagram.html")],
-        [text("図面を文章で書く")],
+        [attr("href", "./markdown/")],
+        [text("Markdown に埋め込む")],
       ),
       el(
         "p",
