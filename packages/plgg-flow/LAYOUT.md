@@ -584,3 +584,57 @@ end is its **name label** (the label's box, top-left of the tray):
 the wire leaves the label's right or bottom side and runs to the
 member inside the tray. Wires to anything outside keep the tray's
 edges.
+
+## Rooms — the three axes, drawn (owner, 2026-11-24)
+
+Owner: the rooms sheet is ambitious and good, but it is still hard to
+tell what lies along each dimension; draw the axes properly, in
+space, as dotted lines.
+
+Today the values float near whichever edges happen to face the
+viewer and the attribute names sit at corners; nothing says "this
+direction is 層". The lattice gets a real set of axes, like a 3D
+chart:
+
+- **One origin, three axes.** The origin is the lattice corner at
+  (x min, y min, z min) — the top-left of the ground floor, where a
+  table starts. From it run three axis lines, each along one edge of
+  the cuboid and 40 beyond its far end:
+  x to the right along the top edge, y down the left edge, z up
+  through the floors.
+- **Dotted.** Each axis is a dotted ink line (1.25px, dash 2 / gap
+  4, round caps) drawn over the lattice, with a small open arrowhead
+  at its far end. The cuboid's own edges stay solid hairlines, so
+  the axes read as a different thing: the measure, not the box.
+- **Named at the arrow.** The attribute name (層, 担当, 環境) sits
+  just past the arrowhead, 12px, weight 600, ink, with its axis
+  letter small before it in pencil (`x 層`). It always faces the
+  viewer.
+- **Ticked and labelled along its length.** At every slab boundary a
+  tick 6 long crosses the axis (perpendicular to it, in the plane
+  that faces the viewer most). Each value's label sits at the middle
+  of its segment, on the outer side of the axis (away from the
+  cuboid), 11px, graphite, facing the viewer — clickable as today
+  (the slab highlight). The pinned value is ink with an ink underline.
+- **Guides from a node (on hover or selection).** Three dotted
+  pencil lines drop from the node to the three axes (to its value's
+  segment on each), so its place on every dimension can be read off;
+  its three values turn ink on the axes.
+- The old corner labels and nearest-edge value labels go; the axes
+  are the only labelling. From a face view the two visible axes are
+  the table's header row and column (the third axis is a dot at the
+  origin with its name beside it).
+- The fit includes the axes, arrowheads and names. Labels along one
+  axis never overlap each other (they shift along the segment or
+  shrink to 10px; never dropped).
+- The origin stays the same corner at every angle, so the picture is
+  stable while turning; when that corner is behind the cuboid the
+  axes are still drawn over the lattice (they are the reference).
+- Performance rules from the previous section hold: the three axes,
+  their ticks and labels are at most 3 paths plus the label texts.
+
+Specs: three axis paths from one origin, each parallel to its edge
+and 40 longer; ticks count = values + 1 per axis; value labels at
+segment midpoints on the outer side; name labels beyond the arrows;
+node guides end on its three value segments; labels of one axis do
+not intersect for yaw/pitch swept in 15° steps.
