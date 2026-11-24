@@ -1046,3 +1046,54 @@ nodes are the same boxes as in "立体交差" at the same zoom; the
 existing specs of other sheets are untouched; a spec draws a
 non-rooms flow with one plane, one line and one label of scenery;
 a spec drags a node with `within` and it stays inside.
+
+## Space as scenery — review, adopted; and what "intuitive from any angle" still needs (owner's goal: shoot it from many angles and polish until a not-too-complex solid structure reads at a glance from all of them)
+
+Adopted: `viewport.ts` mentions rooms nowhere; nodes are the
+standard boxes; scenery / within / quiet are general and specified.
+Browser, four named views, looked at.
+
+What still stands between this and "reads at a glance":
+
+1. **Scenery veils the nodes.** A node on a lower storey is seen
+   through every plate above it and through the near faces' lines
+   and comes out grey. Rule: scenery never changes how a node
+   looks. Plates: wash at 14 %, pencil outline, trace rulings —
+   and a plate is painted *before* every node and wire of its block
+   that is not below it from the camera; simplest correct form:
+   all plates of a block, far to near, then nodes and wires in the
+   standard order. Near faces of the hull: outer edges only.
+2. **A cage of lines.** Rulings on near faces are withdrawn (they
+   were this reviewer's instruction). Partitions are shown where
+   they are useful and behind: the far three faces carry the
+   rulings; each storey plate carries its cells' rulings; four
+   corner posts and the top outline complete the box in pencil.
+3. **Names vanish when a box is seen from the side or from above.**
+   General rule for every sheet, in the standard node renderer: a
+   node's caption is drawn on its front face while that face's
+   projected width is at least 45 % of its true width and its
+   height at least 45 %; otherwise the caption is drawn as an
+   upright tag centred just above the box's projected top (same
+   size and weight, paper halo 2px so it stays legible over lines).
+   Switching is by face ratio with 5 % hysteresis.
+4. **The sample is two things at once.** "部屋に分ける" goes back to
+   three axes, one block — the plain case, twice as large on the
+   board. A new sample right after it, 「次元を足す」, is the same
+   system with 地域 (東京 / 大阪) as a fourth axis shown as two
+   blocks; description 「4つ目の軸は、空間そのものを並べて見せます。」
+5. **Fit.** Scale cap 1.25 → 1.6 for space sheets so a single
+   block fills the board; 40px clear each side.
+6. **Axis text.** Values 10px (9 was too small on screen), name
+   10px 600.
+
+Specs: a node's fill, stroke and caption tone are identical with
+and without scenery present; no scenery element is painted after a
+node unless its layer is "front"; caption placement follows the
+face-ratio rule at yaw 0, 0.9, 1.4 and elevation 0, 0.8, 1.3; the
+two samples parse, print and fit.
+
+Reviewer's shooting list for acceptance (browser): yaw −150° to
+150° in 30° steps at elevations 10°, 30°, 55°, plus the four named
+views — in every shot each node's name is readable, its storey and
+cell can be told without touching the sheet, and no label lies on
+a node.
