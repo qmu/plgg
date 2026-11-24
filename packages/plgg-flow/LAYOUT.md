@@ -528,3 +528,44 @@ faces; its outline's projected corners are the frame's corners at the
 group's z for a turned camera; a member's drop line ends at its
 group's z; the frame contains every member's box plus 16; one resize
 handle per group.
+
+## Performance of the sheet — measured 2026-11-24 (owner: "drawing is a bit heavy")
+
+Measured in the browser: synchronous time of one update (a ⌘-wheel
+zoom step, which re-renders the board) per demo sample.
+
+| sample | ms per update | SVG elements |
+|---|---|---|
+| most samples (3–8 nodes) | 2.6 – 4.7 | 50 – 107 |
+| 自動配置 (15 nodes, 19 wires) | 10.6 | 286 |
+| 部屋に分ける (14 nodes, 12 wires) | **74** | **2411** (1089 `path`) |
+
+Budget: an update is 8 ms at most for a sheet of 20 nodes; the small
+samples should cost about 1 ms.
+
+What to do, in this order:
+1. **Rooms**: the lattice is ~1000 separate path elements and is
+   recomputed with its labels on every update. Draw the lattice as
+   one path per tone (outer / near / far / inner / empty: five `d`
+   strings), floors and shadows as one path per floor; compute rooms,
+   slab boundaries and room membership once per flow (memo by the
+   flow's nodes/axes identity), and per update only project corners
+   (8 per slab boundary plane) and choose label edges. Target ≤ 8 ms,
+   ≤ 150 elements.
+2. **Every sheet**: the DSL panel (lines + properties) must not be
+   rebuilt when only the camera or a drag position changes — `lazy`
+   on the values it actually shows (during a node drag only that
+   node's line and its position fields change). Wires and nodes not
+   touched by an update stay behind their `lazy` (as built in rounds
+   19–20); check the edge hit band and the arrow/dot layering did not
+   break those `lazy` boundaries.
+3. **Grid**: with G = 16 the grid path has four times the lines; it
+   is one path already — keep it so, cap the line count per axis at
+   160 by widening the step (fine lines drop out first), and do not
+   rebuild its `d` when the camera did not change.
+4. A bench that guards it: `scripts/sheet-bench.mjs` in plgg-flow —
+   builds the 自動配置 and 部屋に分ける flows, runs 60 zoom steps and
+   60 one-node drag steps through `flowView` + the shared sheet's
+   view with plgg-view's diff against the Node test DOM, prints
+   median / p90 per step and the element count, and exits non-zero
+   above 8 ms median.
