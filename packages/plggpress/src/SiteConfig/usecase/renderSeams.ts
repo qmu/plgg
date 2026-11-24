@@ -1,3 +1,4 @@
+import { sheetToolNames } from "plgg-ir-diagram/flowSheet";
 import {
   builtins,
   islandFence,
@@ -103,6 +104,14 @@ export const pressRenderOptions = (
     parts.map((part) => [
       part.name,
       (code: string, info?: string) => {
+        if (part.tools)
+          for (const name of sheetToolNames(
+            info ?? "",
+          ))
+            if (!part.tools.has(name))
+              warn?.(
+                "Unknown plgg-flow tool: " + name,
+              );
         used?.add(part);
         return islandFence(part)(code, info);
       },

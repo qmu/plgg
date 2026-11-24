@@ -1,3 +1,8 @@
+export {
+  sheetTools,
+  sheetToolNames,
+  type SheetTool,
+} from "plgg-ir-diagram/sheetTools";
 import {
   dslRows,
   revealSelection,
@@ -727,6 +732,7 @@ export const sheetToolbar = <Action>(
   reset: Action,
   change: (fn: Change) => Action,
   rooms: boolean,
+  tools: readonly Html<Action>[] = [],
 ) => {
   const button = (
     label: string,
@@ -772,6 +778,7 @@ export const sheetToolbar = <Action>(
           ]
         : []),
       button("最適化", change(optimize)),
+      ...tools,
     ],
   );
 };

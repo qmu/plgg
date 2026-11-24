@@ -296,6 +296,16 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .board-controls .toolbar button {
     background: var(--paper);
   }
+  /* the pressed state must outrank the rule above, or a
+     pressed button is paper on paper */
+  .board-controls .toolbar button[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .board-controls .toolbar {
+    flex-wrap: wrap;
+    max-width: calc(100% - 48px);
+  }
   .board-controls .feature {
     min-height: 0;
     margin: 0;

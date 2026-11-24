@@ -1,3 +1,5 @@
+import { sheetTools } from "plgg-ir-diagram/flowSheet";
+import { builtins } from "plggpress/SiteConfig/usecase/diagramFence";
 import { renderToString } from "plgg-view";
 import {
   test,
@@ -109,6 +111,30 @@ test("the plgg-diagram fence embeds the source and an island with static content
     html.includes('data-island="plgg-diagram"') &&
       html.includes('type="application/json"') &&
       html.includes("カート"),
+    toBe(true),
+  );
+});
+
+test("the flow part shares the sheet registry and renders through unknown tools", () => {
+  const warnings: string[] = [];
+  const view = pressRenderOptions(
+    config({}),
+    plainHighlighter,
+    identityResolver,
+    builtins,
+    (message) => warnings.push(message),
+  ).fences?.get("plgg-flow")?.(
+    "A -> B",
+    "plgg-flow fill tools=snap,missing,routes",
+  );
+  return check(
+    builtins.find(
+      (part) => part.name === "plgg-flow",
+    )?.tools === sheetTools &&
+      warnings.join("") ===
+        "Unknown plgg-flow tool: missing" &&
+      !!view &&
+      renderToString(view).includes("flow-board"),
     toBe(true),
   );
 });

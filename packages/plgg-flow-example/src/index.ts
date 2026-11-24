@@ -77,7 +77,6 @@ import {
   flowView,
   viewAt,
   deleteSelected,
-  splitEdge,
   bypassNode,
   reachable,
   type Change,
@@ -86,6 +85,7 @@ import {
   type Graph,
 } from "plgg-flow";
 import {
+  demoSheetTools,
   examples,
   resizeDemo,
   type DemoId,
@@ -714,53 +714,6 @@ const controls = (
       (n) => n.id === "Process",
     );
   switch (id) {
-    case "split":
-      return [
-        change(
-          "接続の途中に挿入",
-          (f) => {
-            const e = f.edges[0],
-              a = f.nodes.find(
-                (n) => n.id === e?.source,
-              ),
-              b = f.nodes.find(
-                (n) => n.id === e?.target,
-              );
-            if (!e || !a || !b) return f;
-            const id = unique("Step ", f);
-            return {
-              ...f,
-              ...splitEdge(
-                f,
-                e,
-                {
-                  id,
-                  label: id,
-                  position: {
-                    x:
-                      (a.position.x +
-                        b.position.x) /
-                      2,
-                    y:
-                      (a.position.y +
-                        b.position.y) /
-                        2 +
-                      65,
-                    z:
-                      (a.position.z +
-                        b.position.z) /
-                      2,
-                  },
-                },
-                f.allowConnection
-                  ? { allow: f.allowConnection }
-                  : {},
-              ),
-            };
-          },
-          !f.edges.length,
-        ),
-      ];
     case "reconnect":
       return [
         change("接続先を切替", (f) => ({
@@ -805,14 +758,6 @@ const controls = (
           !process,
         ),
       ];
-    case "snap":
-      return [8, 16, 32, 0].map((step) =>
-        change(
-          step ? `snap ${step}` : "snap off",
-          (f) => ({ ...f, snap: step }),
-          f.snap === step,
-        ),
-      );
     case "resize":
       return [
         input(
@@ -841,24 +786,6 @@ const controls = (
             })),
         ),
       ];
-    case "routes":
-      return (
-        [
-          "straight",
-          "step",
-          "curve",
-        ] satisfies Array<
-          "straight" | "step" | "curve"
-        >
-      ).map((route) =>
-        change(route, (f) => ({
-          ...f,
-          edges: f.edges.map((e) => ({
-            ...e,
-            route,
-          })),
-        })),
-      );
     case "motion":
       return [
         change(
@@ -1285,6 +1212,9 @@ const controls = (
       return [cardHistory(s)];
     case "outline":
       return [hierarchyBrowser(s)];
+    case "routes":
+    case "snap":
+    case "split":
     case "rooms":
     case "layered":
     case "space":
@@ -1464,14 +1394,20 @@ const header = (
  */
 const toolbar = (
   e: (typeof examples)[number],
-): Html<Action> =>
-  sheetToolbar(
+  flow: Flow,
+): Html<Action> => {
+  const tool = demoSheetTools.get(
+    e.id === "space" ? "views" : e.id,
+  );
+  return sheetToolbar(
     edit(() =>
       session(e.initial(), e.spec().rules),
     ),
     (fn) => edit(apply(fn)),
     e.id === "rooms",
+    tool ? [boardActions(tool.view(flow))] : [],
   );
+};
 const dslCache = new WeakMap<
   Flow,
   {
@@ -1517,15 +1453,17 @@ const featureInput = (
   switch (id) {
     case "rooms":
     case "layered":
-    case "space":
       return id;
+    case "space":
+      return f.camera;
     case "split":
       return !!f.edges.length;
     case "cycles":
     case "limit":
       return s.message;
-    case "reconnect":
     case "routes":
+      return f.edges;
+    case "reconnect":
     case "layout":
       return id;
     case "bypass":
@@ -1613,7 +1551,7 @@ const boardControls = (
       "div",
       [attr("class", "board-controls")],
       [
-        lazy(toolbar, e),
+        toolbar(e, s.flow),
         el(
           "div",
           [attr("class", "feature")],

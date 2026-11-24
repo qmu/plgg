@@ -29,6 +29,7 @@ import {
   removeButton,
   addSheetNode,
   sheetToolbar,
+  sheetTools,
   sheetHelp,
   sheetDsl,
   sheetStage,
@@ -95,6 +96,7 @@ export const mountSheet = (
   root: Element,
   code: string,
   dsl: boolean,
+  names: readonly string[] = [],
 ) => {
   const parsed = parseSpec(code);
   if (parsed.__tag === "Err") return;
@@ -127,6 +129,12 @@ export const mountSheet = (
           reset,
           (fn) => change(fn, true),
           !!current.rooms,
+          names.flatMap((name) => {
+            const tool = sheetTools.get(name);
+            return tool
+              ? [board(tool.view(current))]
+              : [];
+          }),
         ),
         ...(selectedNodes(current).length ||
         current.activeEdge

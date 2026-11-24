@@ -1,3 +1,4 @@
+import { sheetTools } from "plgg-ir-diagram/flowSheet";
 import { project } from "plgg-board";
 import {
   frameOf,
@@ -15,6 +16,7 @@ import {
   joinLine,
 } from "plgg-flow/dsl";
 import {
+  demoSheetTools,
   examples,
   resizeDemo,
   fitDemo,
@@ -366,3 +368,9 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
     toBe(true),
   );
 });
+
+test("the demo uses the shared sheet tool registry", () =>
+  check(
+    demoSheetTools === sheetTools,
+    toBe(true),
+  ));

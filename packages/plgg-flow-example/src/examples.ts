@@ -1,4 +1,5 @@
 import {
+  sheetTools,
   fitDemo,
   roomsOpening,
 } from "plgg-ir-diagram/flowSheet";
@@ -14,6 +15,7 @@ import {
   parseSpec,
   specFlow,
 } from "plgg-flow/dsl";
+export const demoSheetTools = sheetTools;
 export type DemoId =
   | "rooms"
   | "layered"

@@ -29,6 +29,11 @@ export default {
           link: "/samples/rooms",
           items: [],
         },
+        {
+          text: "エッジの経路",
+          link: "/samples/routes",
+          items: [],
+        },
       ],
     },
     {

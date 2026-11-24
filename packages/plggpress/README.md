@@ -182,6 +182,8 @@ diagram orders {
 
 plggpress が図を HTML に埋め込みます。各図は独立してパン、回転、ソース編集ができ、JavaScript を無効にしても初期図と原文を読めます。ページ上の編集はその閲覧中だけ有効です。保存するには Markdown のコードフェンスを編集して再ビルドしてください。
 
+`plgg-flow fill dsl tools=routes,snap` のように、ツール名をカンマで区切ると、指定順にボタンが並びます。`routes` は全エッジの経路、`snap` は格子の間隔、`split` は先頭のエッジへのノード挿入、`views` は部屋のない図の正面・立体表示を操作します。
+
 ### Registering a fence part
 
 Place an optional `site.parts.ts` beside `site.config.ts`, or pass

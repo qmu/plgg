@@ -149,3 +149,13 @@ Differences still visible side by side (for P2):
   it).
 - dark mode: check the sheet on a dark page — board, grid, nodes,
   wires, lattice and panel must all follow the theme tokens.
+
+## Tools, first slice — adopted
+
+`routes`, `snap`, `split`, `views` live in one registry
+(plgg-ir-diagram/sheetTools) used by the demo and by the `plgg-flow`
+part; a fence lists them with `tools=a,b`; an unknown name warns at
+build and the sheet still renders. Seen on the Markdown sheet
+"エッジの経路": the route and snap buttons act and show their pressed
+state. Tools that keep state beyond the flow (history, snapshots,
+files) are not part of this slice.

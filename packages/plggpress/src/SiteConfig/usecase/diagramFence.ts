@@ -1,3 +1,7 @@
+import {
+  sheetTools,
+  type SheetTool,
+} from "plgg-ir-diagram/flowSheet";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
@@ -21,6 +25,7 @@ export type Part = Readonly<{
     code: string,
     info: string,
   ) => Html<never>;
+  tools?: ReadonlyMap<string, SheetTool>;
   css: string;
   runtime: string;
 }>;
@@ -29,6 +34,7 @@ export const builtins: readonly Part[] = [
   {
     name: "plgg-flow",
     render: flowWidget,
+    tools: sheetTools,
     css: flowCss,
     runtime: "plgg-ir-diagram/flow-interactive",
   },
