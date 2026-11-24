@@ -441,9 +441,7 @@ ${selector(trailClass)} button:hover{
 .vp-doc h1{
   font-size:1.375rem;font-weight:600;
   letter-spacing:-0.01em;
-  line-height:1.3;margin:0 0 1.25rem;
-  padding-bottom:0.875rem;
-  border-bottom:1px solid ${cvar("text")};
+  line-height:1.3;margin:0 0 1rem;
 }
 /* the sentence under the title is the page's description:
    quieter, as beside the demo's titles */

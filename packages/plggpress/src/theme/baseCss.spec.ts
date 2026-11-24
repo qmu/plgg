@@ -171,13 +171,11 @@ test("prose links keep a padded hit-area, cloning on wrap", () =>
     ),
   ]));
 
-test("headings: the title sits on an ink hairline, and the sub-sm downscale comes from the token breakpoint", () =>
+test("headings: the title carries no rule of its own, and the sub-sm downscale comes from the token breakpoint", () =>
   all([
     check(
       css,
-      toContain(
-        "border-bottom:1px solid " + cvar("text"),
-      ),
+      toContain("line-height:1.3;margin:0 0 1rem"),
     ),
     // the sub-sm media boundary is composed from
     // plggmatic's maxWidth("sm") → (max-width:639px)
