@@ -904,3 +904,58 @@ yaws at two elevations, no axis label box meets a card box or
 another label; every axis edge used is a silhouette edge of its
 block; each storey draws one plate; hull rulings count
 (X−1)+(Z−1) per vertical face pair and per storey.
+
+## Space — every view is a correct 3D drawing (owner: "front / top / side are a good idea, but they are entirely unreadable; the ideal is: drawn in three dimensions, correctly, with the axes auxiliary, placed where they do not get in the way")
+
+Seen: in 正面 the deeper level is a pencil copy shifted (12, −12)
+over the near one; in 上 the three storeys are three shifted
+outlines with the cards crushed to slivers; in 横 the cards are huge
+and cover each other. The "stacked level" cue of the earlier
+section is withdrawn — it is not a drawing of the space, it is a
+trick, and it is unreadable.
+
+**One rule: the sheet is always the same solid scene, seen from a
+camera; the buttons only move the camera.** No view dims, shifts,
+re-lays or resizes anything.
+
+- 正面 / 上 / 横 are **three-quarter views that favour one face**,
+  never exactly face-on, so depth is always visible:
+  - 正面: yaw −0.22, elevation 0.20 — the x × y face dominates,
+    the depth shows as a narrow side and top.
+  - 上: yaw −0.22, elevation 1.05 — the storeys are seen from
+    above like a plan, stepping up the screen.
+  - 横: yaw −1.30, elevation 0.20 — the z × y face dominates.
+  - 立体: yaw −0.60, elevation 0.50 (the opening view).
+  The camera turns there in 300 ms; each view is re-fitted to the
+  open frame (48px clear each side, scale ≤ 1.25).
+- **Cards are billboards**: a card always faces the viewer at its
+  own size (width × 32 at the fitted scale), upright, standing at
+  its place on its storey; its foot point is what is placed. Size
+  never changes with the view.
+- **Solid, correct occlusion**: cards and plates are opaque paper;
+  everything is painted far to near along the view direction (cell
+  by cell, a storey's plate before the cards standing on it), so a
+  nearer card covers a farther one and a floor covers what is under
+  it when seen from above. Nothing is dimmed for being far.
+- Wires run in space between the cards' foot-level sockets and are
+  painted with the farther of their two ends' cells (pencil unless
+  hovered / selected / pinned, as before).
+- If something is hidden behind something else, that is the truth
+  of that view; turning, or pinning a value, is how to see it. A
+  pinned slab is drawn alone at full ink with the rest of the block
+  as outline only.
+
+**Axes are auxiliary.** On top of the outline-edge rule of the
+previous section: axis lines, ticks and arrowheads in the pencil
+tone at 1px; values 11px graphite; the attribute name 11px 600
+graphite; nothing of an axis is ink unless its value is pinned
+(then that value alone is ink 600). Axes are painted last but must
+not sit over any card (the no-overlap spec holds in all four
+named views and while turning).
+
+Specs: the four named views have the listed angles; in none of
+them is any direction of the block edge-on (each of the three
+world axes projects to at least 12 % of its length); a card's
+projected box has the same size in all four views; paint order is
+far to near for the four views; no opacity or tone depends on
+depth; the stacked-level offset is gone.
