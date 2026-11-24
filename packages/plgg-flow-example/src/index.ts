@@ -1,6 +1,8 @@
+import { demoSheetStyle } from "plgg-flow-example/sheetStyle";
 import {
   sheetHint,
   addButton,
+  removeButton,
   addSheetNode,
   sheetToolbar,
   observeFrame,
@@ -1605,23 +1607,8 @@ const boardControls = (
         ),
         ...(canRemove
           ? [
-              el(
-                "button",
-                [
-                  attr("class", "remove"),
-                  attr(
-                    "aria-label",
-                    "選択を削除",
-                  ),
-                  attr(
-                    "title",
-                    "選択を削除（Delete）",
-                  ),
-                  onClick(
-                    edit(apply(deleteSelected)),
-                  ),
-                ],
-                [text("×")],
+              removeButton(
+                edit(apply(deleteSelected)),
               ),
             ]
           : []),
@@ -1699,11 +1686,12 @@ const view = (m: Model): Html<Action> => {
     ],
     [
       lazy(sidebar, m.index),
-      ...(m.help ? [helpToast] : []),
+      demoSheetStyle,
       el(
         "section",
-        [],
+        [attr("class", "flow-sheet")],
         [
+          ...(m.help ? [helpToast] : []),
           lazy(header, e),
           sheetStage(
             boardActions(diagram(e.id, s.flow)),

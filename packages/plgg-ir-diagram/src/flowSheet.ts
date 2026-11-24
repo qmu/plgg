@@ -1,3 +1,4 @@
+export { sheetCss } from "plgg-ir-diagram/sheetCss";
 import { project } from "plgg-board";
 import {
   addNode,
@@ -553,6 +554,20 @@ export const addButton = <Action>(
       onClick(action),
     ],
     [text("+")],
+  );
+export const removeButton = <Action>(
+  action: Action,
+) =>
+  el(
+    "button",
+    [
+      attr("type", "button"),
+      attr("class", "remove"),
+      attr("aria-label", "選択を削除"),
+      attr("title", "選択を削除（Delete）"),
+      onClick(action),
+    ],
+    [text("−")],
   );
 export const sheetToolbar = <Action>(
   reset: Action,

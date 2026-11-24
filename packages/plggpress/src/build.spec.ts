@@ -1,3 +1,5 @@
+import { sheetCss } from "plgg-ir-diagram/flowSheet";
+import { builtins } from "plggpress/SiteConfig/usecase/diagramFence";
 import { none, some } from "plgg";
 import { loadParts } from "plggpress/Config/usecase/loadParts";
 import { rm, readdir } from "node:fs/promises";
@@ -452,3 +454,11 @@ export default {parts:[{name:"plgg-flow",runtime:"./counter.mjs",css:'[data-isla
     });
   }
 });
+
+test("the flow part emits the shared demo sheet rules", () =>
+  check(
+    builtins
+      .find((part) => part.name === "plgg-flow")
+      ?.css.includes(sheetCss),
+    toBe(true),
+  ));

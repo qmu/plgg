@@ -1321,3 +1321,30 @@ The audit now reports an avoidable mix as moderate `mixed-socket`:
 104 on round 30's code. Target for round 31: 0 avoidable, with no
 more `long-detour`, `excursion`, `drag-jump` or `drag-jump-neighbour`
 than today (0, 0, 4, 12) and the other counts no worse.
+
+## Round 31 review — rejected; the rule as written makes sheets worse
+
+Codex implemented "a side that sends does not receive" exactly:
+avoidable mixes 104 → 0. The reviewer's run and the sheet: sev3 0 → 7
+(overlaps), other moderate kinds 81 → 140, six existing specs
+failing; stateMachine becomes a knot of loops, microservices grows
+arcs under and over its nodes, crossPair's step drawing breaks. The
+code is in `git stash` ("round31-taskA"), not adopted.
+
+This is round 5 again (the reviewer warned of it and still wrote the
+rule strictly). What the picture shows: sending a wire round to a
+perpendicular side costs a bend and an arc every time, and in a
+connected sheet most nodes both send and receive on their facing
+side, so nearly every arrival pays.
+
+What the owner wants is the *reading* — a dot is a start, an arrow an
+arrival, never one on top of the other. Options that keep the
+reading without the loops, for the owner to choose:
+1. **Separate on the same side.** A mixed side keeps its dot at the
+   centre for leaving wires; arriving wires land beside it (8u off
+   centre, on the side their source lies), so no arrowhead sits on a
+   dot. No extra bends, the fan/arrival shapes stay.
+2. **Separate sides only when it is free**: an arrival moves to
+   another side only if that side faces the source within 45° (a
+   diagonal neighbour); otherwise as in 1.
+3. The strict rule, accepting the loops.

@@ -10,6 +10,8 @@ import {
 } from "plgg-view/client";
 import {
   flowView,
+  selectedNodes,
+  deleteSelected,
   type Change,
   type Flow,
 } from "plgg-flow";
@@ -22,6 +24,7 @@ import {
 import {
   sheetHint,
   addButton,
+  removeButton,
   addSheetNode,
   sheetToolbar,
   sheetHelp,
@@ -114,18 +117,23 @@ export const mountSheet = (
       m.flow.cover ?? 0,
     ),
   });
-  const controls = el<Action>(
-    "div",
-    [attr("class", "board-controls")],
-    [
-      sheetToolbar(
-        reset,
-        (fn) => change(fn, true),
-        !!flow.rooms,
-      ),
-      addButton(change(addSheetNode)),
-    ],
-  );
+  const controls = (current: Flow) =>
+    el<Action>(
+      "div",
+      [attr("class", "board-controls")],
+      [
+        sheetToolbar(
+          reset,
+          (fn) => change(fn, true),
+          !!flow.rooms,
+        ),
+        ...(selectedNodes(current).length ||
+        current.activeEdge
+          ? [removeButton(change(deleteSelected))]
+          : []),
+        addButton(change(addSheetNode)),
+      ],
+    );
   const frame = observeFrame<Action>(
     root,
     (height, cover) => (m) => ({
@@ -148,7 +156,7 @@ export const mountSheet = (
       [
         sheetStage(
           board(flowView(m.flow)),
-          controls,
+          controls(m.flow),
           [
             ...(dsl
               ? [
