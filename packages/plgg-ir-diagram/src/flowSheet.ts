@@ -21,6 +21,8 @@ import {
   selectedNodes,
   viewAt,
   roomViews,
+  roomBlocks,
+  focusGeometry,
   movingRooms,
   roomFaceView,
   turnRooms,
@@ -62,12 +64,13 @@ import {
 } from "plgg-view";
 import { custom } from "plgg-view/client";
 // Initial and reset sessions both open on the front of the board.
-export const fitDemo = (flow: Flow): Flow => {
+export const fitDemo = (state: Flow): Flow => {
+  const flow = focusGeometry(state);
   if (
     !flow.nodes.length &&
     !flow.rooms?.rooms.length
   )
-    return flow;
+    return state;
   const camera = {
     ...flow.camera,
     origin: { x: 0, y: 0 },
@@ -222,7 +225,7 @@ export const fitDemo = (flow: Flow): Flow => {
   scale = lower || scale;
   const { origin } = measure(scale);
   return {
-    ...flow,
+    ...state,
     camera: {
       ...flow.camera,
       scale,
@@ -313,7 +316,7 @@ const layoutKey = (flow: Flow) =>
 // updated selection. Fit against the sheet from before the edit.
 export const applyDemoSpec =
   (spec: Spec, edited?: Flow) => (flow: Flow) => {
-    const next = applySpec(
+    const parsed = applySpec(
       edited
         ? {
             ...spec,
@@ -324,6 +327,30 @@ export const applyDemoSpec =
           }
         : spec,
     )(edited ?? flow);
+    const previous =
+      flow.focus &&
+      flow.rooms &&
+      roomBlocks(flow.rooms).find((b) =>
+        [...b.ids].some((id) =>
+          flow.focus?.has(id),
+        ),
+      );
+    const blocks =
+      parsed.rooms && roomBlocks(parsed.rooms);
+    const next = previous
+      ? {
+          ...parsed,
+          focus:
+            blocks && blocks.length > 1
+              ? (
+                  blocks.find(
+                    (b) =>
+                      b.name === previous.name,
+                  ) ?? blocks[0]
+                )?.ids
+              : undefined,
+        }
+      : parsed;
     return layoutKey(next) === layoutKey(flow)
       ? next
       : flow.rooms && next.rooms
@@ -403,7 +430,19 @@ const layerViews = [
   ["上", -Math.PI / 4, -1.2],
   ["立体", -Math.PI / 6, -0.55],
 ] satisfies [string, number, number][];
+const firstBlock = (flow: Flow): Flow => {
+  const blocks =
+    flow.rooms && roomBlocks(flow.rooms);
+  return {
+    ...flow,
+    focus:
+      blocks && blocks.length > 1
+        ? blocks[0]!.ids
+        : undefined,
+  };
+};
 export const roomsOpening: Change = (flow) => {
+  flow = firstBlock(flow);
   const to = flow.suggestions
     ? flow
     : viewAt(-Math.PI / 6, -0.55)(flow);
@@ -516,6 +555,7 @@ export const resetSheet: Change = (f) => {
       ? viewAt(-0.22, -0.2)
       : viewAt(0, 0))({
       ...f,
+      focus: undefined,
       roomMotion: undefined,
     }),
   );
@@ -710,40 +750,40 @@ export const sheetDsl = <Action>(
     ],
     [
       el(
-        "button",
-        [
-          attr("type", "button"),
-          attr("class", "dsl-handle"),
-          attr(
-            "aria-label",
-            "DSL パネルの大きさを変更",
-          ),
-        ],
-        [
-          text(
-            [
-              "DSL",
-              flow.nodes.find((n) =>
-                selectedNodes(flow).includes(
-                  n.id,
-                ),
-              )?.label ??
-                flow.activeEdge?.label ??
-                (flow.activeEdge
-                  ? flow.activeEdge.source +
-                    " → " +
-                    flow.activeEdge.target
-                  : ""),
-            ]
-              .filter(Boolean)
-              .join(" · "),
-          ),
-        ],
-      ),
-      el(
         "div",
         [attr("class", "dsl-head")],
         [
+          el(
+            "button",
+            [
+              attr("type", "button"),
+              attr("class", "dsl-handle"),
+              attr(
+                "aria-label",
+                "DSL パネルの大きさを変更",
+              ),
+            ],
+            [
+              text(
+                [
+                  "DSL",
+                  flow.nodes.find((n) =>
+                    selectedNodes(flow).includes(
+                      n.id,
+                    ),
+                  )?.label ??
+                    flow.activeEdge?.label ??
+                    (flow.activeEdge
+                      ? flow.activeEdge.source +
+                        " → " +
+                        flow.activeEdge.target
+                      : ""),
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+              ),
+            ],
+          ),
           el("strong", [], [text("DSL")]),
           el(
             "span",
@@ -1086,14 +1126,19 @@ const rankSheetView = (
   const layout = same
     ? undefined
     : planRooms(f, chosen);
-  const to = fitDemo({
+  const scene = {
     ...f,
     ...layout?.graph,
     rooms: layout ?? f.rooms,
     camera: next.camera,
     suggestions,
     suggestionIndex: index,
-  });
+  };
+  const to = fitDemo(
+    opening || (layout && f.focus)
+      ? firstBlock(scene)
+      : scene,
+  );
   return opening ? to : turnRooms(f, to, 300);
 };
 export const nextSheetView: Change = (f) =>
@@ -1105,6 +1150,7 @@ export const sheetToolbar = <Action>(
   change: (fn: Change) => Action,
   views: boolean | "layer",
   tools: readonly Html<Action>[] = [],
+  flow?: Flow,
 ) => {
   const button = (
     label: string,
@@ -1132,6 +1178,26 @@ export const sheetToolbar = <Action>(
       ],
       [text(label)],
     );
+  const blocks = flow?.rooms
+    ? roomBlocks(flow.rooms)
+    : [];
+  const step =
+    (delta: number): Change =>
+    (f) => {
+      const current = blocks.findIndex((b) =>
+        [...b.ids].some((id) => f.focus?.has(id)),
+      );
+      const i =
+        current < 0 && delta < 0
+          ? blocks.length - 1
+          : (current + delta + blocks.length) %
+            blocks.length;
+      return fitDemo({
+        ...f,
+        focus: blocks[i]!.ids,
+        roomMotion: undefined,
+      });
+    };
   return el(
     "div",
     [attr("class", "toolbar")],
@@ -1234,21 +1300,38 @@ export const sheetToolbar = <Action>(
             ).map(([label, yaw, pitch]) =>
               button(
                 label,
+                change((f) => {
+                  const scene =
+                    label === "立体"
+                      ? { ...f, focus: undefined }
+                      : f;
+                  const to = fitDemo(
+                    viewAt(yaw, pitch)(scene),
+                  );
+                  return views === "layer"
+                    ? to
+                    : turnRooms(f, to, 300);
+                }),
+              ),
+            ),
+          ]
+        : []),
+      ...(blocks.length > 1
+        ? [
+            button("◀", change(step(-1))),
+            ...blocks.map((b) =>
+              button(
+                b.name,
                 change((f) =>
-                  views === "layer"
-                    ? fitDemo(
-                        viewAt(yaw, pitch)(f),
-                      )
-                    : turnRooms(
-                        f,
-                        fitDemo(
-                          viewAt(yaw, pitch)(f),
-                        ),
-                        300,
-                      ),
+                  fitDemo({
+                    ...f,
+                    focus: b.ids,
+                    roomMotion: undefined,
+                  }),
                 ),
               ),
             ),
+            button("▶", change(step(1))),
           ]
         : []),
       ...tools,

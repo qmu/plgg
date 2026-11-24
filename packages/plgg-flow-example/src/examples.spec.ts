@@ -5,6 +5,7 @@ import {
   frameOf,
   roomFaceView,
   roomLabels,
+  spaceScenery,
   nodeSize,
   viewAt,
 } from "plgg-flow";
@@ -20,6 +21,7 @@ import {
   resizeDemo,
   applyDemoSpec,
   roomsOpening,
+  resetSheet,
   sheetToolNames,
 } from "plgg-ir-diagram/flowSheet";
 import { specFlow } from "plgg-flow/dsl";
@@ -257,15 +259,39 @@ test("room labels fit with a 40 pixel margin beside the DSL overlay", () => {
   const flow = examples
     .find((d) => d.id === "dimensions")!
     .initial();
-  const f = resizeDemo(flow, 580, true, 320),
+  const focused = resizeDemo(
+    flow,
+    580,
+    true,
+    320,
+  );
+  const f = fitDemo({
+      ...focused,
+      focus: undefined,
+    }),
     open = frameOf(f).x - 320;
+  const other = spaceScenery(
+    focused.rooms!,
+    focused,
+  ).find(
+    (s) =>
+      s.kind === "label" && s.text === "大阪",
+  );
+  const switched =
+    other?.kind === "label" &&
+    other.press?.(focused);
   const labels = roomLabels(
     f.rooms!,
     f.camera,
     f.nodes,
   );
   return check(
-    labels.length === 17 &&
+    !!focused.focus?.has("会員画面") &&
+      focused.camera.scale > f.camera.scale &&
+      !!switched &&
+      !!switched.focus?.has("会員画面(大阪)") &&
+      !resetSheet(switched).focus &&
+      labels.length === 17 &&
       labels.some(
         (l) => "outer" in l && l.outer,
       ) &&

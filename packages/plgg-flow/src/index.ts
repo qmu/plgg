@@ -22,6 +22,8 @@ export {
 } from "plgg-flow/roomCamera";
 export { cardBounds } from "plgg-flow/nodeBody";
 export {
+  roomBlocks,
+  focusGeometry,
   roomLabels,
   spaceScenery,
 } from "plgg-flow/roomView";

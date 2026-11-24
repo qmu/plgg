@@ -195,6 +195,7 @@ export type Drag = Readonly<{
 }>;
 export type Flow = Graph &
   Readonly<{
+    focus?: ReadonlySet<string> | undefined;
     mark?: readonly string[] | undefined;
     markCleared?: boolean;
     suggestions?: ReturnType<
@@ -490,7 +491,14 @@ const fitGeometry = (
     : state;
 };
 export const fitFlow: Change = (state) =>
-  fitGeometry(state, state.nodes, []);
+  fitGeometry(
+    state,
+    state.nodes.filter(
+      (n) =>
+        !state.focus || state.focus.has(n.id),
+    ),
+    [],
+  );
 export const fitWire: Change = (state) => {
   const index = state.activeEdge
     ? edgeIndex(state.edges, state.activeEdge)
@@ -1669,11 +1677,40 @@ export const insertOnEdge: Change = (f) => {
 export const quietMarked = (
   flow: Flow,
   thing: string | Edge,
-) =>
-  !flow.markCleared &&
-  !!flow.mark?.length &&
-  !flow.mark.includes(
-    typeof thing === "string"
-      ? thing
-      : thing.source + " -> " + thing.target,
+) => {
+  const { focus, mark } = flow;
+  if (typeof thing === "string") {
+    if (focus && !focus.has(thing)) return true;
+    if (
+      !mark?.length ||
+      flow.markCleared ||
+      mark.includes(thing)
+    )
+      return false;
+    return !flow.edges.some(
+      (e) =>
+        (e.source === thing ||
+          e.target === thing) &&
+        mark.includes(
+          e.source + " -> " + e.target,
+        ),
+    );
+  }
+  if (
+    focus &&
+    (!focus.has(thing.source) ||
+      !focus.has(thing.target))
+  )
+    return true;
+  return (
+    !!mark?.length &&
+    !flow.markCleared &&
+    !mark.includes(
+      thing.source + " -> " + thing.target,
+    ) &&
+    !(
+      mark.includes(thing.source) &&
+      mark.includes(thing.target)
+    )
   );
+};

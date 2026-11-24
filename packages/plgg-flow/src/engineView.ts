@@ -323,6 +323,8 @@ export const engineView = (
   tagged.set(flow.nodes, upright);
   const at = project(camera);
   for (const n of nodes) {
+    if (flow.focus && !flow.focus.has(n.id))
+      continue;
     const id = "node:" + n.id,
       size = nodeSize(n),
       d = bodyDepth(n),

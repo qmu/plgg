@@ -127,7 +127,23 @@ test("marked nodes and wires keep their ink and survive printing", () => {
   const printed = printSpec(f, []);
   const again = parseSpec(printed);
   return check(
-    !quietMarked(f, "A") &&
+    !quietMarked(
+      { ...f, mark: ["A -> B"] },
+      "A",
+    ) &&
+      !quietMarked(
+        { ...f, mark: ["A -> B"] },
+        "B",
+      ) &&
+      quietMarked(
+        { ...f, mark: ["A"] },
+        f.edges[0]!,
+      ) &&
+      !quietMarked(
+        { ...f, mark: ["A", "B"] },
+        f.edges[0]!,
+      ) &&
+      !quietMarked(f, "A") &&
       quietMarked(f, "C") &&
       !quietMarked(f, f.edges[0]!) &&
       quietMarked(f, f.edges[1]!) &&

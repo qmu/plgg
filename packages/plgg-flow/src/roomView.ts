@@ -93,6 +93,47 @@ const groupsOf = (layout: RoomLayout) => {
   }
   return [...groups.values()];
 };
+export const roomBlocks = (layout: RoomLayout) =>
+  groupsOf(layout)
+    .map((cells) => ({
+      cells,
+      name: cells[0]!.caption,
+      ids: new Set(
+        cells.flatMap((c) => c.members),
+      ),
+    }))
+    .filter((b) => b.ids.size);
+// Geometry used to measure the focused drawing, in its original coordinates.
+export const focusGeometry = (
+  flow: Flow,
+): Flow => {
+  const focus = flow.focus;
+  if (!focus) return flow;
+  return {
+    ...flow,
+    nodes: flow.nodes.filter((n) =>
+      focus.has(n.id),
+    ),
+    edges: flow.edges.filter(
+      (e) =>
+        focus.has(e.source) &&
+        focus.has(e.target),
+    ),
+    ...(flow.rooms && {
+      rooms: {
+        ...flow.rooms,
+        rooms: roomBlocks(flow.rooms)
+          .filter((b) =>
+            [...b.ids].some((id) =>
+              focus.has(id),
+            ),
+          )
+          .flatMap((b) => b.cells),
+      },
+    }),
+    focus: undefined,
+  };
+};
 type Box = {
   left: number;
   right: number;
@@ -566,6 +607,22 @@ const blockLabels = (
     occupied.push(labelBox(label));
     return label;
   };
+  if (layout.axes.row && layout.axes.column) {
+    for (const [i, b] of blocks.entries()) {
+      const place = names[i];
+      labels.push(
+        add(
+          b.value,
+          b.left,
+          b.right,
+          place?.y ?? baseline,
+          false,
+          place?.anchor,
+          place?.x,
+        ),
+      );
+    }
+  }
   let y = baseline;
   for (const role of ["column", "row"] satisfies (
     | "column"
@@ -705,6 +762,42 @@ export const spaceScenery = (
         strokes: strokes.slice(1),
       });
     };
+    if (
+      flow.focus &&
+      !cells.some((c) =>
+        c.members.some((id) =>
+          flow.focus?.has(id),
+        ),
+      )
+    ) {
+      frame(bounds, pencil);
+      const { min, max } = bounds;
+      const ids = new Set(
+        cells.flatMap((c) => c.members),
+      );
+      result.push({
+        kind: "label",
+        layer: "front",
+        anchor: {
+          x: (min.x + max.x) / 2,
+          y: max.y,
+          z: max.z,
+        },
+        offset: { x: 0, y: 16 },
+        text: cells[0]!.caption,
+        weight: 400,
+        size: 13,
+        tone: pencil,
+        ...(ids.size && {
+          press: (s: Flow) => ({
+            ...s,
+            focus: ids,
+            roomMotion: undefined,
+          }),
+        }),
+      });
+      continue;
+    }
     const cake = flow.layered?.options.layerAxis;
     if (!cake) frame(bounds, pencil);
     const selected = cells.filter((c) =>
@@ -915,6 +1008,11 @@ export const spaceScenery = (
     }
     return result;
   }
+  flow = focusGeometry({
+    ...flow,
+    rooms: layout,
+  });
+  layout = flow.rooms!;
   const cards = cardBounds(camera, flow.nodes);
   const blocks = blockLabels(
     layout,
@@ -944,7 +1042,12 @@ export const spaceScenery = (
         strokes: strokes.slice(1),
       });
   };
+  const groups = roomBlocks(layout);
   for (const l of blocks) {
+    const block =
+      groups.length > 1 &&
+      !l.outer &&
+      groups.find((b) => b.name === l.value);
     const y = l.y + l.dy,
       half = labelBox(l).right - l.x + 2;
     const segments = [
@@ -994,6 +1097,13 @@ export const spaceScenery = (
       anchor: unproject(camera, l, l.z),
       offset: { x: l.dx, y: l.dy },
       text: l.value,
+      ...(block && {
+        press: (s: Flow) => ({
+          ...s,
+          focus: block.ids,
+          roomMotion: undefined,
+        }),
+      }),
       size: l.outer ? 11 : 13,
       weight: 600,
       tone: l.outer

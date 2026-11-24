@@ -210,6 +210,7 @@ export const mountSheet = (
                     ),
                   ];
           }),
+          current,
         ),
         ...(selectedNodes(current).length ||
         current.activeEdge
@@ -252,7 +253,12 @@ export const mountSheet = (
   const board = mapHtml(
     (fn: Change): Action =>
       (m) => {
-        const next = change(fn)(m);
+        const next = change((f) => {
+          const state = fn(f);
+          return state.focus !== f.focus
+            ? fitDemo(state)
+            : state;
+        })(m);
         if (
           compact.matches &&
           (selectedNodes(next.flow).some(
