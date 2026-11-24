@@ -613,7 +613,8 @@ export const spaceScenery = (
         strokes: strokes.slice(1),
       });
     };
-    frame(bounds, pencil);
+    const cake = flow.layered?.options.layerAxis;
+    if (!cake) frame(bounds, pencil);
     const selected = cells.filter((c) =>
       directions.every((d, i) => {
         const attr = layout.axes[d]?.attribute;
@@ -669,26 +670,85 @@ export const spaceScenery = (
       )
         grid(axis, far, cells);
     }
-    for (const level of new Set(
-      selected.map((c) => c.max.y),
+    for (const level of [
+      ...new Set(
+        (cake ? cells : selected).map(
+          (c) => c.max.y,
+        ),
+      ),
+    ].sort(
+      (a, b) =>
+        at({ ...bounds.min, y: a }).z -
+        at({ ...bounds.min, y: b }).z,
     )) {
-      const tiles = selected.filter(
-        (c) => c.max.y === level,
+      const tiles = (
+        cake ? cells : selected
+      ).filter((c) => c.max.y === level);
+      const [p, q, r, t] = rect(
+        "y",
+        level,
+        stageBounds(tiles),
       );
+      const tone = cake ? ink : pencil;
+      for (const [a, b, opposite] of [
+        [p, q, t],
+        [q, r, p],
+        [r, t, q],
+        [t, p, r],
+      ] satisfies [Point3, Point3, Point3][]) {
+        if (at(a).z < at(opposite).z) continue;
+        const y = level + (cake ? 6 : 4);
+        result.push({
+          kind: "plane",
+          layer: "behind",
+          points: [
+            a,
+            b,
+            { ...b, y },
+            { ...a, y },
+          ],
+          fill: "var(--wash,white)",
+          opacity: 1,
+          tone,
+        });
+      }
       result.push({
         kind: "plane",
-        layer: "sorted",
-        points: rect(
-          "y",
-          level,
-          stageBounds(tiles),
-        ),
-        fill: "var(--wash,white)",
-        opacity: 0.14,
-        tone: pencil,
+        layer: "behind",
+        points: [p, q, r, t],
+        fill: "var(--paper,white)",
+        opacity: 0.92,
+        tone,
       });
+      if (cake) {
+        const value = tiles[0]!.values[1];
+        result.push({
+          kind: "label",
+          layer: "front",
+          anchor: {
+            ...t,
+            x: t.x - 16,
+            z: t.z + 16,
+          },
+          offset: { x: 0, y: 8 },
+          text: value,
+          size: 12,
+          weight: 600,
+          tone: ink,
+          press: (f) => ({
+            ...f,
+            roomPins:
+              f.roomPins?.[cake.attribute] ===
+              value
+                ? {}
+                : { [cake.attribute]: value },
+          }),
+        });
+        continue;
+      }
       grid("y", level, tiles);
     }
+    if (cake) continue;
     if (rulings.length)
       result.push({
         kind: "line",
@@ -703,6 +763,8 @@ export const spaceScenery = (
     )
       frame(stageBounds(selected), ink);
   }
+  if (flow.layered?.options.layerAxis)
+    return result;
   const cards = cardBounds(camera, flow.nodes);
   const blocks = blockLabels(
     layout,

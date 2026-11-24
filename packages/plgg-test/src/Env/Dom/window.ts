@@ -50,7 +50,8 @@ export type DomComputedStyle = Readonly<{
   position: string;
 }>;
 
-export interface DomWindow extends DomEventTarget {
+export interface DomWindow
+  extends DomEventTarget {
   readonly document: DomDocument;
   readonly history: DomHistory;
   readonly location: DomLocation;
@@ -121,6 +122,10 @@ export const makeDom = (): Readonly<{
       return winHolder.win;
     },
     createElement: (tag) => makeElement(tag),
+    createElementNS: (namespaceURI, tag) =>
+      Object.assign(makeElement(tag), {
+        namespaceURI,
+      }),
     createTextNode: (data) => makeText(data),
     body,
     head,

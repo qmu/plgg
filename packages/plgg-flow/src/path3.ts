@@ -146,27 +146,36 @@ export const movePath = (
   );
 };
 
-// Socket stubs may meet. Interior runs reserve their occupied
+// Socket stubs and interior runs reserve their occupied
 // interval, so disjoint sections of the same aisle can be reused.
 export const aisleRuns = (
   path: readonly Point3[],
-) =>
-  path.slice(2, -1).flatMap((end, i) => {
-    const start = path[i + 1]!,
-      axis = axes.find(
-        (k) => start[k] !== end[k],
-      );
-    return axis
-      ? [
-          {
-            axis,
-            start,
-            lo: Math.min(start[axis], end[axis]),
-            hi: Math.max(start[axis], end[axis]),
-          },
-        ]
-      : [];
-  });
+) => {
+  const runs: {
+    axis: keyof Point3;
+    start: Point3;
+    lo: number;
+    hi: number;
+  }[] = [];
+  for (let i = 1; i < path.length; i++) {
+    const start = path[i - 1]!,
+      end = path[i]!;
+    const axis =
+      start.x !== end.x
+        ? "x"
+        : start.y !== end.y
+          ? "y"
+          : "z";
+    if (start[axis] !== end[axis])
+      runs.push({
+        axis,
+        start,
+        lo: Math.min(start[axis], end[axis]),
+        hi: Math.max(start[axis], end[axis]),
+      });
+  }
+  return runs;
+};
 export const lanesOverlap = (
   a: ReturnType<typeof aisleRuns>,
   b: ReturnType<typeof aisleRuns>,

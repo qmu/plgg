@@ -558,11 +558,12 @@ export const sheetProperties = <A>(
     });
   const sheetRows = () => {
     const options = flow.layered?.options;
-    const mode = flow.rooms
-      ? "rooms"
-      : options
-        ? (options.direction ?? "right")
-        : "none";
+    const mode =
+      flow.rooms && !options?.layerAxis
+        ? "rooms"
+        : options
+          ? (options.direction ?? "right")
+          : "none";
     const updateRule = (
       kind: Rule["kind"],
       replacement: readonly Rule[],
@@ -673,7 +674,7 @@ export const sheetProperties = <A>(
             ),
           ]
         : []),
-      ...axisRows(),
+      ...(!options?.layerAxis ? axisRows() : []),
       toggle(
         "循環を禁止",
         [rules.some((r) => r.kind === "acyclic")],

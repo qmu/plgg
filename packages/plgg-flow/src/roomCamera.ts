@@ -14,7 +14,7 @@ export const roomViews = [
   ["正面", 0.22, -0.2],
   ["上", 0.22, -1.05],
   ["横", 1.3, -0.2],
-  ["立体", 0.6, -0.5],
+  ["立体", -Math.PI / 4, -0.62],
 ] satisfies [string, number, number][];
 export const directions: readonly Direction[] = [
   "x",
@@ -22,12 +22,7 @@ export const directions: readonly Direction[] = [
   "z",
 ];
 export const roomFilter = (flow: Flow) =>
-  flow.roomHover
-    ? {
-        ...flow.roomPins,
-        [flow.roomHover[0]]: flow.roomHover[1],
-      }
-    : (flow.roomPins ?? {});
+  flow.roomPins ?? {};
 export const inSlab = (
   values: Readonly<Record<string, string>>,
   filter: Readonly<Record<string, string>>,

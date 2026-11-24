@@ -1,11 +1,8 @@
-import {
-  aisleRuns,
-  lanesOverlap,
-  simplifyPath,
-} from "plgg-flow/path3";
+import { dependencyLevels } from "plgg-flow/topology";
+import { routeAssignment } from "plgg-flow/spaceRouting";
+export { routeSpace } from "plgg-flow/spaceRouting";
 import type { Point3 } from "plgg-board";
-import { bodyDepth } from "plgg-flow/nodeBody";
-import type { Graph, FlowNode } from "./model";
+import type { FlowNode } from "./model";
 import type { Classification } from "plgg-flow/classify";
 import type {
   View,
@@ -29,13 +26,20 @@ export const planSpace = (
     );
   const values = (role: Role) =>
     data.axes[axis(role)]?.values ?? ["—"];
+  const cake = data.axes.length === 1 && !!view.y;
   const spans = {
     x: values("x").map(() => 112),
-    y: values("y").map(() => 80),
+    y: values("y").map((): number =>
+      cake ? 144 : 80,
+    ),
     z: values("z").map(() => 176),
   };
   const index = (address: number[], role: Role) =>
     address[axis(role)] ?? 0;
+  const storey = (address: number[]) =>
+    cake
+      ? spans.y.length - 1 - index(address, "y")
+      : index(address, "y");
   const local = new Map<string, Point3>();
   const visible = data.cells.filter((c) =>
     data.axes.every(
@@ -59,6 +63,17 @@ export const planSpace = (
       ),
     ),
   );
+  const boardLevels = new Map<string, number>();
+  if (cake)
+    for (const { nodes } of visible) {
+      for (const [id, rank] of dependencyLevels({
+        nodes,
+        edges: data.edges,
+      })) {
+        boardLevels.set(id, rank);
+        ranks.set(id, rank);
+      }
+    }
   const neighbours = new Map<string, number[]>();
   for (const e of data.edges)
     for (const [source, target] of [
@@ -75,28 +90,63 @@ export const planSpace = (
       ? ns.reduce((a, b) => a + b, 0) / ns.length
       : 0;
   };
+  const pitches = spans.x.map(() => 96);
+  for (const cell of visible) {
+    const i = index(cell.address, "x");
+    for (const n of cell.nodes) {
+      const degree =
+        neighbours.get(n.id)?.length ?? 0;
+      const aisle = Math.max(
+        32,
+        round(Math.ceil(degree / 4) * 8),
+      );
+      pitches[i] = Math.max(
+        pitches[i]!,
+        round(sizes(n).width) + aisle,
+      );
+    }
+  }
   for (const { address, nodes } of visible) {
     const i = index(address, "x"),
-      j = index(address, "y"),
+      j = storey(address),
       k = index(address, "z");
     const count = Math.ceil(
       Math.sqrt(nodes.length),
     );
-    let left = 16;
+
     const ordered = [...nodes].sort(
       (a, b) => mean(a) - mean(b),
     );
+    const layered =
+      cake &&
+      ordered.some(
+        (n) => boardLevels.get(n.id)! > 0,
+      );
+    const rows = new Map<number, number>();
+    const pitch = pitches[i]!;
     ordered.forEach((n, t) => {
-      if (t % count === 0) left = 16;
       const { width, height } = sizes(n);
-      const z = 32 + 64 * Math.floor(t / count);
+      const col = layered
+        ? boardLevels.get(n.id)!
+        : cake
+          ? t
+          : t % count;
+      const row = cake
+        ? (rows.get(col) ?? 0)
+        : Math.floor(t / count);
+      rows.set(col, row + 1);
+      const left = (cake ? 32 : 16) + pitch * col;
+      const z = 32 + 80 * row;
       local.set(n.id, {
         x: left + width / 2,
-        y: 16 + height / 2,
+        y: (cake ? 0 : 16) + height / 2,
         z,
       });
-      left += round(width) + 32;
-      spans.x[i] = Math.max(spans.x[i]!, left);
+
+      spans.x[i] = Math.max(
+        spans.x[i]!,
+        left + pitch,
+      );
       spans.y[j] = Math.max(
         spans.y[j]!,
         round(height) + 32,
@@ -140,7 +190,7 @@ export const planSpace = (
         )
         .map((cell) => {
           const i = index(cell.address, "x"),
-            j = index(cell.address, "y"),
+            j = storey(cell.address),
             k = index(cell.address, "z");
           const lo = {
             x: min.x + slabs.x[i]!,
@@ -180,6 +230,14 @@ export const planSpace = (
               spans.z[k]!,
             ),
           };
+          // Keep the same slot grid across an aisle, even when a cell is sparse.
+          if (view.z) {
+            const pitch = pitches[i]!;
+            shift.x =
+              Math.round(shift.x / pitch) * pitch;
+            shift.z =
+              Math.round(shift.z / 80) * 80;
+          }
           for (const { n, p } of placed)
             positions.set(n.id, {
               x: lo.x + p.x + shift.x,
@@ -195,7 +253,9 @@ export const planSpace = (
             ],
             values: [
               values("x")[i]!,
-              values("y")[j]!,
+              values("y")[
+                index(cell.address, "y")
+              ]!,
               values("z")[k]!,
             ] satisfies [string, string, string],
             min: lo,
@@ -227,11 +287,218 @@ export const planSpace = (
       position: positions.get(n.id)!,
     })),
   );
-  const routes = routeSpace(
-    { nodes, edges: data.edges },
-    cells,
-    sizes,
+  const edges = data.edges;
+  const ids = new Map(
+    nodes.map((n, i) => [n.id, i]),
   );
+  const links = edges.flatMap((e) => {
+    const a = ids.get(e.source),
+      b = ids.get(e.target);
+    return a === undefined || b === undefined
+      ? []
+      : [{ a, b }];
+  });
+  const swaps = cells.flatMap((cell) =>
+    cell.nodes.flatMap((a, i) =>
+      cell.nodes.slice(i + 1).flatMap((b) => {
+        const p = positions.get(a.id)!,
+          q = positions.get(b.id)!;
+        return cake &&
+          p.x - sizes(a).width / 2 !==
+            q.x - sizes(b).width / 2
+          ? []
+          : [
+              [
+                ids.get(a.id)!,
+                ids.get(b.id)!,
+              ] satisfies [number, number],
+            ];
+      }),
+    ),
+  );
+  // Score a slot exchange cheaply before spending time assigning lanes.
+  const slots = nodes.map((n) => n.position);
+  const evaluate = (assignment: Point3[]) => {
+    let score = 0;
+    for (let i = 0; i < links.length; i++) {
+      const { a, b } = links[i]!,
+        p = assignment[a]!,
+        q = assignment[b]!;
+      score +=
+        Math.abs(p.x - q.x) +
+        Math.abs(p.y - q.y) +
+        Math.abs(p.z - q.z);
+      for (let j = 0; j < i; j++) {
+        const link = links[j]!;
+        if (
+          link.a === a ||
+          link.b === a ||
+          link.a === b ||
+          link.b === b
+        )
+          continue;
+        const r = assignment[link.a]!,
+          t = assignment[link.b]!;
+        const crosses = (
+          ax: number,
+          ay: number,
+          bx: number,
+          by: number,
+          cx: number,
+          cy: number,
+          dx: number,
+          dy: number,
+        ) => {
+          const u = bx - ax,
+            v = by - ay,
+            w = dx - cx,
+            h = dy - cy;
+          return (
+            (u * (cy - ay) - v * (cx - ax)) *
+              (u * (dy - ay) - v * (dx - ax)) <
+              0 &&
+            (w * (ay - cy) - h * (ax - cx)) *
+              (w * (by - cy) - h * (bx - cx)) <
+              0
+          );
+        };
+        score +=
+          10000 *
+          (Number(
+            crosses(
+              p.x,
+              p.y,
+              q.x,
+              q.y,
+              r.x,
+              r.y,
+              t.x,
+              t.y,
+            ),
+          ) +
+            Number(
+              crosses(
+                p.x,
+                p.z,
+                q.x,
+                q.z,
+                r.x,
+                r.z,
+                t.x,
+                t.z,
+              ),
+            ) +
+            Number(
+              crosses(
+                p.y,
+                p.z,
+                q.y,
+                q.z,
+                r.y,
+                r.z,
+                t.y,
+                t.z,
+              ),
+            ));
+      }
+    }
+    return score;
+  };
+  const exchange = (
+    assignment: Point3[],
+    a: number,
+    b: number,
+  ) => {
+    const copy = assignment.slice(),
+      p = copy[a]!,
+      q = copy[b]!;
+    const delta =
+      (sizes(nodes[a]!).width -
+        sizes(nodes[b]!).width) /
+      2;
+    copy[a] = { ...q, x: q.x + delta, y: p.y };
+    copy[b] = { ...p, x: p.x - delta, y: q.y };
+    return copy;
+  };
+  const routed = (assignment: Point3[]) =>
+    routeAssignment(
+      {
+        nodes: nodes.map((n, i) => ({
+          ...n,
+          position: assignment[i]!,
+        })),
+        edges,
+      },
+      cells,
+      sizes,
+    );
+  let chosen = slots,
+    result = routed(slots);
+  if (
+    swaps.length &&
+    links.length &&
+    result.cost >= 1000000
+  ) {
+    let trial = slots;
+    let estimate = evaluate(trial);
+    for (
+      let round = 0;
+      round < (links.length > 32 ? 2 : 4);
+      round++
+    ) {
+      let next = trial;
+      for (const [a, b] of swaps) {
+        const alt = exchange(trial, a, b),
+          cost = evaluate(alt);
+        if (cost < estimate) {
+          estimate = cost;
+          next = alt;
+        }
+      }
+      if (next === trial) break;
+      trial = next;
+    }
+    if (trial !== slots) {
+      const candidate = routed(trial);
+      if (candidate.cost < result.cost) {
+        chosen = trial;
+        result = candidate;
+      }
+    }
+    if (nodes.length <= 20) {
+      for (const [a, b] of swaps.slice(
+        0,
+        links.length > 24 ? 3 : 12,
+      )) {
+        if (result.cost < 1000000) break;
+        const alt = exchange(chosen, a, b),
+          candidate = routed(alt);
+        if (candidate.cost < result.cost) {
+          chosen = alt;
+          result = candidate;
+        }
+      }
+    }
+  }
+  if (result.cost >= 1000000) {
+    result = routeAssignment(
+      {
+        nodes: nodes.map((n, i) => ({
+          ...n,
+          position: chosen[i]!,
+        })),
+        edges,
+      },
+      cells,
+      sizes,
+      undefined,
+      result,
+    );
+  }
+  nodes.forEach((n, i) =>
+    positions.set(n.id, chosen[i]!),
+  );
+  const routes = result.routes;
   return {
     routes,
     blocks,
@@ -240,431 +507,3 @@ export const planSpace = (
   };
 };
 export type Space = ReturnType<typeof planSpace>;
-
-type Bounds = { min: Point3; max: Point3 };
-type RouteCell = Bounds & {
-  block: number;
-  members: readonly string[];
-};
-export const routeSpace = (
-  graph: Graph,
-  cells: readonly RouteCell[],
-  sizes: (n: FlowNode) => {
-    width: number;
-    height: number;
-  } = nodeSize,
-  moved?: ReadonlySet<string>,
-) => {
-  const blocks = new Map<number, Bounds>();
-  const owners = new Map<string, Bounds>();
-  for (const cell of cells) {
-    const block = blocks.get(cell.block) ?? {
-      min: { ...cell.min },
-      max: { ...cell.max },
-    };
-    for (const k of [
-      "x",
-      "y",
-      "z",
-    ] satisfies (keyof Point3)[]) {
-      block.min = {
-        ...block.min,
-        [k]: Math.min(block.min[k], cell.min[k]),
-      };
-      block.max = {
-        ...block.max,
-        [k]: Math.max(block.max[k], cell.max[k]),
-      };
-    }
-    blocks.set(cell.block, block);
-    for (const id of cell.members)
-      owners.set(id, block);
-  }
-  const boxes = graph.nodes
-    .filter((n) => owners.has(n.id))
-    .map((n) => ({
-      id: n.id,
-      p: n.position,
-      w: sizes(n).width / 2,
-      h: sizes(n).height / 2,
-      d: bodyDepth(n),
-    }));
-  const byId = new Map(
-    boxes.map((b) => [b.id, b]),
-  );
-  const routes = new Map<
-    string | number,
-    Point3[]
-  >();
-  const occupied: ReturnType<typeof aisleRuns> =
-    [];
-  const ordered = graph.edges
-    .map((edge, i) => ({ edge, i }))
-    .filter(({ edge }) => {
-      if (
-        !moved ||
-        moved.has(edge.source) ||
-        moved.has(edge.target)
-      )
-        return true;
-      if (edge.path)
-        occupied.push(...aisleRuns(edge.path));
-      return false;
-    })
-    .sort(
-      (a, b) =>
-        (byId.get(a.edge.target)?.p.z ?? 0) -
-          (byId.get(b.edge.target)?.p.z ?? 0) ||
-        (byId.get(a.edge.target)?.p.y ?? 0) -
-          (byId.get(b.edge.target)?.p.y ?? 0),
-    );
-  for (const { edge, i } of ordered) {
-    const a = byId.get(edge.source),
-      b = byId.get(edge.target);
-    if (!a || !b || a === b) continue;
-    const hits = (
-      s: Point3,
-      t: Point3,
-      allowSource = true,
-      allowTarget = true,
-    ) =>
-      boxes.some(
-        (q) =>
-          (!allowSource || q !== a) &&
-          (!allowTarget || q !== b) &&
-          Math.min(s.x, t.x) < q.p.x + q.w + 6 &&
-          Math.max(s.x, t.x) > q.p.x - q.w - 6 &&
-          Math.min(s.y, t.y) < q.p.y + q.h + 6 &&
-          Math.max(s.y, t.y) > q.p.y - q.h - 6 &&
-          Math.min(s.z, t.z) < q.p.z + q.d + 6 &&
-          Math.max(s.z, t.z) > q.p.z - q.d - 6,
-      );
-    const id = edge.id ?? i;
-    if (
-      a.p.x === b.p.x &&
-      a.p.z === b.p.z &&
-      !hits(a.p, b.p)
-    ) {
-      const sign = Math.sign(b.p.y - a.p.y);
-      routes.set(id, [
-        { ...a.p, y: a.p.y + sign * a.h },
-        { ...b.p, y: b.p.y - sign * b.h },
-      ]);
-      continue;
-    }
-    const sourceBlock = owners.get(a.id)!,
-      targetBlock = owners.get(b.id)!;
-    const between = sourceBlock !== targetBlock;
-    if (
-      !between &&
-      a.p.y === b.p.y &&
-      a.p.z === b.p.z &&
-      !hits(a.p, b.p)
-    )
-      continue;
-    const direction = b.p.x >= a.p.x ? 1 : -1;
-    let best: Point3[] | undefined,
-      cost = Infinity;
-    const consider = (raw: Point3[]) => {
-      const path = simplifyPath(raw);
-      let length = 0;
-      for (let j = 1; j < path.length; j++) {
-        const p = path[j - 1]!,
-          q = path[j]!;
-        if (
-          hits(
-            p,
-            q,
-            j === 1,
-            j === path.length - 1,
-          )
-        )
-          return;
-        if (
-          between &&
-          p.y !== sourceBlock.max.y - 16 - a.h
-        ) {
-          for (const k of ["x", "z"] satisfies (
-            | "x"
-            | "z"
-          )[]) {
-            if (
-              sourceBlock.min[k] ===
-              targetBlock.min[k]
-            )
-              continue;
-            const near = Math.min(
-                sourceBlock.max[k],
-                targetBlock.max[k],
-              ),
-              far = Math.max(
-                sourceBlock.min[k],
-                targetBlock.min[k],
-              );
-            if (
-              Math.min(p[k], q[k]) < far &&
-              Math.max(p[k], q[k]) > near &&
-              p[k] !== q[k]
-            )
-              return;
-          }
-        }
-        length +=
-          Math.abs(q.x - p.x) +
-          Math.abs(q.y - p.y) +
-          Math.abs(q.z - p.z);
-      }
-      const crowded = lanesOverlap(
-        aisleRuns(path),
-        occupied,
-      );
-      const first = path[0]!,
-        last = path[path.length - 1]!;
-      const direct =
-        Math.abs(first.x - last.x) +
-        Math.abs(first.y - last.y) +
-        Math.abs(first.z - last.z);
-      const score =
-        length +
-        (crowded ? 1000 : 0) +
-        (path.length > 7 || length > 1.6 * direct
-          ? 10000
-          : 0);
-      if (score < cost) {
-        cost = score;
-        best = path;
-      }
-    };
-    const offsets = [16, 24, 32, 40, 48, 8];
-    // The short route needs only one shaft. Look for a separate
-    // arrival aisle when the target cannot be reached from it.
-    for (const sign of [direction, -direction]) {
-      const s = { ...a.p, x: a.p.x + sign * a.w };
-      for (const offset of offsets) {
-        const x = s.x + sign * offset,
-          arrival = x < b.p.x ? -1 : 1;
-        const t = {
-          ...b.p,
-          x: b.p.x + arrival * b.w,
-        };
-        if (
-          between ||
-          Math.abs(x - b.p.x) < b.w + 6
-        )
-          continue;
-        const start = { ...s, x },
-          end = { ...t, x };
-        if (s.y === t.y && s.z === t.z) continue;
-        consider([
-          s,
-          start,
-          { ...start, z: t.z },
-          end,
-          t,
-        ]);
-        if (s.y !== t.y && s.z !== t.z)
-          consider([
-            s,
-            start,
-            { ...start, y: t.y },
-            end,
-            t,
-          ]);
-      }
-    }
-    if (
-      between &&
-      sourceBlock.min.z !== targetBlock.min.z
-    ) {
-      const ground = sourceBlock.max.y - 16 - a.h;
-      for (const sign of [
-        direction,
-        -direction,
-      ]) {
-        const s = {
-          ...a.p,
-          x: a.p.x + sign * a.w,
-        };
-        for (const offset of offsets) {
-          const x = s.x + sign * offset;
-          if (Math.abs(x - b.p.x) < b.w + 6)
-            continue;
-          const t = {
-              ...b.p,
-              x: b.p.x + (x < b.p.x ? -b.w : b.w),
-            },
-            exit = { ...s, x },
-            entry = { ...t, x };
-          consider([
-            s,
-            exit,
-            { ...exit, y: ground },
-            { ...entry, y: ground },
-            entry,
-            t,
-          ]);
-        }
-      }
-    }
-    if (
-      between &&
-      sourceBlock.min.x !== targetBlock.min.x
-    ) {
-      const sign = Math.sign(
-        targetBlock.min.x - sourceBlock.min.x,
-      );
-      const s = { ...a.p, x: a.p.x + sign * a.w },
-        t = { ...b.p, x: b.p.x - sign * b.w };
-      const sourceX =
-        sign > 0
-          ? sourceBlock.max.x
-          : sourceBlock.min.x;
-      const targetX =
-        sign > 0
-          ? targetBlock.min.x
-          : targetBlock.max.x;
-      const ground = sourceBlock.max.y - 16 - a.h;
-      for (const x of [
-        sourceX,
-        s.x + sign * 16,
-      ]) {
-        for (const tx of [
-          targetX,
-          t.x - sign * 16,
-        ]) {
-          const exit = { ...s, x },
-            entry = { ...t, x: tx };
-          for (const z of [s.z, t.z]) {
-            const left = { ...exit, z },
-              right = { ...entry, z };
-            consider([
-              s,
-              exit,
-              left,
-              { ...left, y: ground },
-              { ...right, y: ground },
-              right,
-              entry,
-              t,
-            ]);
-          }
-        }
-      }
-    }
-    if (!best || cost >= 1000) {
-      const ground = between
-        ? sourceBlock.max.y - 16 - a.h
-        : a.p.y;
-      for (const sign of [
-        direction,
-        -direction,
-      ]) {
-        const s = {
-          ...a.p,
-          x: a.p.x + sign * a.w,
-        };
-        for (const arrival of [
-          -direction,
-          direction,
-        ]) {
-          const t = {
-            ...b.p,
-            x: b.p.x + arrival * b.w,
-          };
-          if (between) {
-            // A far block can hide a whole row of intervening cards.
-            // Use the clear vertical socket when the journey already
-            // begins or ends with a change of storey.
-            for (const z of [
-              s.z + 32,
-              s.z - 32,
-              t.z + 32,
-              t.z - 32,
-            ]) {
-              const entry = {
-                  ...t,
-                  x: t.x + arrival * 16,
-                },
-                start = {
-                  ...s,
-                  x: s.x + sign * 16,
-                };
-              if (ground > a.p.y + a.h) {
-                const from = {
-                    ...a.p,
-                    y: a.p.y + a.h,
-                  },
-                  floor = { ...from, y: ground },
-                  dest = { ...entry, z };
-                consider([
-                  from,
-                  floor,
-                  { ...floor, z },
-                  { ...dest, y: ground },
-                  dest,
-                  entry,
-                  t,
-                ]);
-              }
-              if (ground > b.p.y + b.h) {
-                const to = {
-                    ...b.p,
-                    y: b.p.y + b.h,
-                  },
-                  floor = { ...to, y: ground },
-                  exit = { ...start, z };
-                consider([
-                  s,
-                  start,
-                  exit,
-                  { ...exit, y: ground },
-                  { ...floor, z },
-                  floor,
-                  to,
-                ]);
-              }
-            }
-          }
-          for (const offset of [16, 8, 24]) {
-            const start = {
-                ...s,
-                x: s.x + sign * offset,
-              },
-              entry = {
-                ...t,
-                x: t.x + arrival * offset,
-              };
-            if (hits(s, start) || hits(entry, t))
-              continue;
-            for (const z of new Set([
-              s.z,
-              t.z,
-              s.z + 32,
-              s.z - 32,
-              t.z + 32,
-              t.z - 32,
-            ])) {
-              const exit = { ...start, z },
-                dest = { ...entry, z };
-              consider([
-                s,
-                start,
-                exit,
-                { ...exit, y: ground },
-                { ...dest, y: ground },
-                dest,
-                entry,
-                t,
-              ]);
-            }
-          }
-        }
-      }
-    }
-    if (best) {
-      routes.set(id, best);
-      occupied.push(...aisleRuns(best));
-    }
-  }
-  return routes;
-};

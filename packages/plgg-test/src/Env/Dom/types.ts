@@ -160,6 +160,10 @@ export interface DomDocument {
   readonly listeners: ListenerMap;
   readonly defaultView: DomEventTarget | null;
   createElement: (tag: string) => DomElement;
+  createElementNS: (
+    namespaceURI: string | null,
+    tag: string,
+  ) => DomElement;
   createTextNode: (data: string) => DomText;
   readonly body: DomElement;
   readonly head: DomElement;

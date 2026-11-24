@@ -1,5 +1,4 @@
 import { routeSpace } from "plgg-flow/space";
-import { placeOnLayers } from "plgg-flow/autoLayout";
 import { movePath } from "plgg-flow/path3";
 import { bodyDepth } from "plgg-flow/nodeBody";
 import type {
@@ -213,7 +212,6 @@ export type Flow = Graph &
       computed: ReadonlyMap<string, Point3>;
     }>;
     camera: Camera;
-    layerPin?: string | undefined;
     manualZoom?: boolean;
     orbitEase?: { from: Camera; to: Camera };
     orbitCenter?: Point3;
@@ -347,15 +345,6 @@ export const moveSelectionGeometry = (
       nodeSize,
       relocated,
     );
-  const options = flow.layered?.options;
-  const layeredEdges =
-    options?.layerAxis &&
-    placeOnLayers(
-      graph,
-      options.layerAxis,
-      options.direction ?? "right",
-      relocated,
-    ).graph.edges;
   let activeEdge = flow.activeEdge,
     changed = false;
   const edges = flow.edges.map(
@@ -368,15 +357,13 @@ export const moveSelectionGeometry = (
       if (touched) {
         const next = roomPaths
           ? roomPaths.get(original.id ?? i)
-          : layeredEdges
-            ? layeredEdges[i]?.path
-            : path &&
-              movePath(
-                path,
-                relocated.has(original.source),
-                relocated.has(original.target),
-                delta,
-              );
+          : path &&
+            movePath(
+              path,
+              relocated.has(original.source),
+              relocated.has(original.target),
+              delta,
+            );
         if (next) e = { ...rest, path: next };
         else if (path || via) e = rest;
       }

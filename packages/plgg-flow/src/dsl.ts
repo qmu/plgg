@@ -1,3 +1,4 @@
+import { routeSpace } from "plgg-flow/space";
 import { edgeIndex } from "plgg-flow/connections";
 import {
   selectNodes,
@@ -8,7 +9,6 @@ import {
 } from "plgg-flow/model";
 import {
   planLayers,
-  placeOnLayers,
   roles,
   type Axis,
   planRooms,
@@ -466,17 +466,77 @@ const laySpec =
       rooms,
       ...rest
     } = flow;
-    if (spec.axes) {
-      const { graph, rooms, axes } = planRooms(
-        spec.graph,
-        spec.axes,
-      );
+    const axis = spec.layout?.layerAxis;
+    const axesForSpace =
+      spec.axes ?? (axis && { y: axis });
+    if (axesForSpace) {
+      const {
+        graph,
+        rooms: cells,
+        axes,
+      } = planRooms(spec.graph, axesForSpace);
+      const pins = new Set(spec.pinned);
+      let positioned = graph;
+      if (axis && pins.size) {
+        const nodes = graph.nodes.map((n, i) => {
+          if (!pins.has(n.id) || !n.within)
+            return n;
+          const p = spec.graph.nodes[i]!.position;
+          const { min, max } = n.within;
+          return {
+            ...n,
+            position: {
+              x: Math.max(
+                min.x,
+                Math.min(max.x, p.x),
+              ),
+              y: n.position.y,
+              z: Math.max(
+                min.z,
+                Math.min(max.z, p.z),
+              ),
+            },
+          };
+        });
+        const routes = routeSpace(
+          { nodes, edges: graph.edges },
+          cells,
+        );
+        positioned = {
+          nodes,
+          edges: graph.edges.map((e: Edge, i) => {
+            const { path, ...rest } = e;
+            const next = routes.get(e.id ?? i);
+            return next
+              ? { ...rest, path: next }
+              : rest;
+          }),
+        };
+      }
       return {
         ...rest,
-        ...graph,
-        rooms: { rooms, axes },
+        ...positioned,
+        rooms: { rooms: cells, axes },
+        ...(axis &&
+          spec.layout && {
+            layered: {
+              options: spec.layout,
+              computed: new Map(
+                graph.nodes.map((n) => [
+                  n.id,
+                  n.position,
+                ]),
+              ),
+            },
+          }),
         camera: {
           ...flow.camera,
+          ...(rooms
+            ? {}
+            : {
+                yaw: -Math.PI / 4,
+                pitch: -0.62,
+              }),
           perspective: false,
         },
         snap: spec.snap ?? grid,
@@ -521,22 +581,6 @@ const laySpec =
           computed.get(n.id) ?? n.position,
       }),
     );
-    const axis = spec.layout?.layerAxis;
-    const lifted =
-      axis &&
-      placeOnLayers(
-        {
-          nodes: positioned,
-          edges: spec.graph.edges.map(
-            (e, i) => routed.get(i) ?? e,
-          ),
-        },
-        axis,
-        spec.layout?.direction ?? "right",
-      );
-    for (const n of lifted?.graph.nodes ?? [])
-      if (computed.has(n.id))
-        computed.set(n.id, n.position);
     return {
       ...rest,
       ...spec.graph,
@@ -548,28 +592,14 @@ const laySpec =
       }),
       ...(spec.layout
         ? {
-            ...(axis && {
-              camera: {
-                ...flow.camera,
-                perspective: false,
-                ...(!layered?.options
-                  .layerAxis && {
-                  yaw: -0.5,
-                  pitch: 0.35,
-                }),
-              },
-            }),
-            edges:
-              lifted?.graph.edges ??
-              spec.graph.edges.map(
-                (e, i) => routed.get(i) ?? e,
-              ),
+            edges: spec.graph.edges.map(
+              (e, i) => routed.get(i) ?? e,
+            ),
             layered: {
               options: spec.layout,
               computed,
             },
-            nodes:
-              lifted?.graph.nodes ?? positioned,
+            nodes: positioned,
           }
         : {}),
       ...allow(spec.rules),
@@ -646,7 +676,7 @@ export const placedByLayout = (
 ) => {
   const p = flow.layered?.computed.get(node.id);
   return (
-    !!flow.rooms ||
+    (!!flow.rooms && !flow.layered) ||
     !!(
       p &&
       p.x === node.position.x &&
@@ -718,7 +748,7 @@ const buildLines = (
   );
   const options = flow.layered?.options;
   return [
-    ...(flow.rooms
+    ...(flow.rooms && !options
       ? [
           directive("layout", ["rooms"]),
           ...Object.entries(flow.rooms.axes).map(

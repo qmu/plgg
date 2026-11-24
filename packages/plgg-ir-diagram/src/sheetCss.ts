@@ -361,9 +361,6 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     overflow: auto;
     tab-size: 2;
   }
-  .dsl textarea:focus-visible {
-    outline-offset: -3px;
-  }
   .dsl-status {
     padding: 8px 14px;
     border-top: 1px solid var(--ink);
@@ -565,11 +562,36 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .dsl-mode {
     margin-left: auto;
     margin-right: 8px;
-    font-size: 12px;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    background: var(--paper);
     cursor: pointer;
   }
   .dsl-mode input {
-    vertical-align: middle;
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .dsl-mode:hover,
+  .dsl-mode:has(input:checked) {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  /* No focus rings on the sheet: a ring around a row or a field
+     reads as a second selection. Focus shows as a hairline inside. */
+  .dsl-row:focus,
+  .dsl :is(input, select, button, textarea):focus,
+  .dsl-mode:has(input:focus-visible),
+  :is(.toolbar, .board-controls) button:focus {
+    outline: none;
+  }
+  .dsl :is(input, select, textarea):focus-visible {
+    box-shadow: inset 0 -1px 0 var(--ink);
   }
   .dsl:not(:has(.dsl-mode input:checked))
     textarea,

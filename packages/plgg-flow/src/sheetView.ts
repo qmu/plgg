@@ -1,4 +1,3 @@
-import { layerView } from "plgg-flow/layerView";
 import { drawFlow } from "plgg-flow/viewport";
 import { movingRooms } from "plgg-flow/roomCamera";
 import { spaceScenery } from "plgg-flow/roomView";
@@ -7,11 +6,7 @@ export const flowView = (
 ) => {
   const [flow, label, registry] = args;
   if (!flow.rooms)
-    return drawFlow(
-      layerView(flow),
-      label,
-      registry,
-    );
+    return drawFlow(flow, label, registry);
   const state = movingRooms(flow);
   return drawFlow(
     {

@@ -139,17 +139,17 @@ node Payments 層=業務
 node Users 層=データ
 node Stock 層=データ
 node Ledger 層=データ
-Web -> Auth
-Mobile -> Auth
-Web -> Catalog
-Mobile -> Orders
+Web -> Checkout
+Mobile -> Checkout
+Checkout -> Auth
+Checkout -> Catalog
 Checkout -> Orders
-Checkout -> Payments
-Auth -> Users
-Orders -> Users
-Orders -> Stock
-Catalog -> Stock
+Auth -> Orders
+Catalog -> Orders
 Orders -> Payments
+Auth -> Users
+Catalog -> Stock
+Orders -> Stock
 Payments -> Ledger
 `,
   ),

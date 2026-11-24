@@ -41,7 +41,6 @@ import {
 } from "plgg-flow/dsl";
 import { arrangeHierarchy } from "plgg-flow/layout";
 import {
-  placeOnLayers,
   planLayers,
   planRooms,
 } from "plgg-flow/autoLayout";
@@ -72,19 +71,7 @@ export const fitDemo = (flow: Flow): Flow => {
     flow.rooms &&
     camera.yaw === 0 &&
     camera.pitch === 0;
-  const axis = flow.layered?.options.layerAxis;
   const bounds = [
-    ...(axis
-      ? placeOnLayers(flow, axis).planes.flatMap(
-          ({ min, max }) =>
-            [
-              min,
-              max,
-              { ...min, x: max.x },
-              { ...max, x: min.x },
-            ].map(at),
-        )
-      : []),
     ...(flow.rooms?.rooms.flatMap((r) =>
       face
         ? [
@@ -346,10 +333,14 @@ export const roomFrames = <Action>(
   );
 };
 const layerViews = [
-  ["正面", 0, 0],
-  ["立体", -0.5, 0.35],
+  ["正面", 0, -0.12],
+  ["上", -Math.PI / 4, -1.2],
+  ["立体", -Math.PI / 4, -0.62],
 ] satisfies [string, number, number][];
-export const roomsOpening = viewAt(0.6, -0.5);
+export const roomsOpening = viewAt(
+  -Math.PI / 4,
+  -0.62,
+);
 const arrangeSheet: Change = (f) => {
   if (f.rooms) {
     const { axes, rooms, graph } = planRooms(
@@ -626,17 +617,53 @@ export const sheetDsl = <Action>(
           ),
           el(
             "label",
-            [attr("class", "dsl-mode")],
+            [
+              attr("class", "dsl-mode"),
+              attr("title", "テキストとして編集"),
+            ],
             [
               el(
                 "input",
                 [
                   attr("type", "checkbox"),
-                  attr("aria-label", "テキスト"),
+                  attr(
+                    "aria-label",
+                    "テキストとして編集",
+                  ),
                 ],
                 [],
               ),
-              text("テキスト"),
+              el(
+                "svg",
+                [
+                  attr("width", "14"),
+                  attr("height", "14"),
+                  attr("viewBox", "0 0 16 16"),
+                  attr("aria-hidden", "true"),
+                ],
+                [
+                  el(
+                    "path",
+                    [
+                      attr(
+                        "d",
+                        "M2.5 13.5l.8-3.3 7.6-7.6 2.5 2.5-7.6 7.6zM9.6 3.9l2.5 2.5",
+                      ),
+                      attr("fill", "none"),
+                      attr(
+                        "stroke",
+                        "currentColor",
+                      ),
+                      attr("stroke-width", "1.2"),
+                      attr(
+                        "stroke-linejoin",
+                        "round",
+                      ),
+                    ],
+                    [],
+                  ),
+                ],
+              ),
             ],
           ),
           el(

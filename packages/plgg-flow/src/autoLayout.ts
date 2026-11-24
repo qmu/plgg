@@ -1,19 +1,7 @@
-import { search } from "plgg-flow/wireSearch";
-import {
-  box,
-  inflate,
-  gap,
-} from "plgg-flow/wireGeometry";
-import {
-  aisleRuns,
-  lanesOverlap,
-  simplifyPath,
-} from "plgg-flow/path3";
 import {
   classify,
   type Axis,
 } from "plgg-flow/classify";
-import { portPosition } from "plgg-flow/nodeBody";
 import { planSpace } from "plgg-flow/space";
 import {
   roles,
@@ -36,7 +24,6 @@ export type LayerOptions = Readonly<{
   layerAxis?: Axis;
 }>;
 export type LayerPlan = Readonly<{
-  planes?: readonly LayerPlane[];
   graph: Graph;
   layers: ReadonlyMap<string, number>;
   routes: ReadonlyMap<number, readonly Point[]>;
@@ -633,239 +620,6 @@ const wrappedPositions = (
   return positions;
 };
 
-export type LayerPlane = {
-  value: string;
-  min: Point3;
-  max: Point3;
-};
-export const placeOnLayers = (
-  graph: Graph,
-  axis: Axis,
-  direction?: "right" | "down",
-  moved?: ReadonlySet<string>,
-) => {
-  const data = classify(graph, [axis]),
-    values = data.axes[0]!.values;
-  let left = Infinity,
-    right = -Infinity,
-    top = Infinity,
-    bottom = -Infinity;
-  const nodes = graph.nodes.map((n) => {
-    const z = -112 * data.addressOf(n)[0]!,
-      { x, y } = n.position,
-      { width, height } = nodeSize(n);
-    left = Math.min(left, x - width / 2);
-    right = Math.max(right, x + width / 2);
-    top = Math.min(top, y - height / 2);
-    bottom = Math.max(bottom, y + height / 2);
-    return {
-      ...n,
-      position: { x, y, z },
-      within: {
-        min: {
-          x: Number.MIN_SAFE_INTEGER,
-          y: Number.MIN_SAFE_INTEGER,
-          z,
-        },
-        max: {
-          x: Number.MAX_SAFE_INTEGER,
-          y: Number.MAX_SAFE_INTEGER,
-          z,
-        },
-      },
-    };
-  });
-  const planes = nodes.length
-    ? values.map((value, i) => {
-        const z = -112 * i - 20;
-        return {
-          value,
-          min: { x: left - 32, y: top - 32, z },
-          max: {
-            x: right + 32,
-            y: bottom + 32,
-            z,
-          },
-        };
-      })
-    : [];
-  const byId = new Map(
-    nodes.map((n) => [n.id, n]),
-  );
-  const occupied: ReturnType<typeof aisleRuns> =
-    [];
-  const across = direction === "down" ? "x" : "y";
-  const socketOffset = (
-    edge: Graph["edges"][number],
-    end: "source" | "target",
-    n: FlowNode,
-  ) => {
-    const peer =
-      end === "source" ? "target" : "source";
-    const siblings = graph.edges
-      .filter(
-        (e) =>
-          e[end] === edge[end] &&
-          byId.get(e[peer])?.position.z !==
-            n.position.z,
-      )
-      .sort(
-        (a, b) =>
-          (byId.get(a[peer])?.position[across] ??
-            0) -
-          (byId.get(b[peer])?.position[across] ??
-            0),
-      );
-    return (
-      (siblings.indexOf(edge) -
-        (siblings.length - 1) / 2) *
-      Math.min(
-        8,
-        (nodeSize(n)[
-          across === "x" ? "width" : "height"
-        ] -
-          12) /
-          Math.max(1, siblings.length - 1),
-      )
-    );
-  };
-  if (moved)
-    for (const e of graph.edges)
-      if (
-        !moved.has(e.source) &&
-        !moved.has(e.target) &&
-        e.path
-      )
-        occupied.push(...aisleRuns(e.path));
-  const edges = direction
-    ? graph.edges.map((edge) => {
-        if (
-          moved &&
-          !moved.has(edge.source) &&
-          !moved.has(edge.target)
-        )
-          return edge;
-        const a = byId.get(edge.source),
-          b = byId.get(edge.target);
-        if (
-          !a ||
-          !b ||
-          a.position.z === b.position.z
-        )
-          return edge;
-        const down = direction === "down",
-          axis = down ? "y" : "x";
-        const forward =
-          b.position[axis] >= a.position[axis];
-        const s = portPosition(
-          a,
-          down
-            ? forward
-              ? "bottom"
-              : "top"
-            : forward
-              ? "right"
-              : "left",
-          socketOffset(edge, "source", a),
-        );
-        const t = portPosition(
-          b,
-          down
-            ? forward
-              ? "top"
-              : "bottom"
-            : forward
-              ? "left"
-              : "right",
-          socketOffset(edge, "target", b),
-        );
-        const via = {
-          ...t,
-          [axis]: t[axis] + (forward ? -16 : 16),
-        };
-        const middle = (s[axis] + via[axis]) / 2;
-        const departure = {
-            ...s,
-            [axis]:
-              s[axis] + (forward ? 16 : -16),
-          },
-          landing = { ...via, z: s.z };
-        const track = (middle: number) => [
-          departure,
-          { ...departure, [axis]: middle },
-          { ...landing, [axis]: middle },
-          landing,
-        ];
-        const walls = nodes
-          .filter(
-            (n) =>
-              n !== a && n.position.z === s.z,
-          )
-          .map((n) => inflate(box(n), 7));
-        const plane =
-          [0, 8, -8, 16, -16, 24, -24, 32, -32]
-            .map((offset) =>
-              track(middle + offset),
-            )
-            .find((candidate) => {
-              const k = candidate[1]![axis];
-              return (
-                k >=
-                  Math.min(
-                    departure[axis],
-                    landing[axis],
-                  ) &&
-                k <=
-                  Math.max(
-                    departure[axis],
-                    landing[axis],
-                  ) &&
-                !lanesOverlap(
-                  aisleRuns(
-                    simplifyPath([
-                      s,
-                      ...candidate,
-                      via,
-                      t,
-                    ]),
-                  ),
-                  occupied,
-                )
-              );
-            }) ?? track(middle);
-        const obstructed = plane
-          .slice(1)
-          .some((p, i) =>
-            walls.some(
-              (w) => gap(plane[i]!, p, w) === 0,
-            ),
-          );
-        const run = obstructed
-          ? (search(
-              departure,
-              landing,
-              walls,
-              true,
-              false,
-              undefined,
-              1,
-            ) ?? plane)
-          : plane;
-        const path = simplifyPath([
-          s,
-          ...run.map((p) => ({ ...p, z: s.z })),
-          via,
-          t,
-        ]);
-        occupied.push(...aisleRuns(path));
-        return { ...edge, path };
-      })
-    : graph.edges;
-  return {
-    graph: { ...graph, nodes, edges },
-    planes,
-  };
-};
 export const planLayers = (
   graph: Graph,
   options: LayerOptions = {},
@@ -875,15 +629,19 @@ export const planLayers = (
       throw new Error(
         "depth and layerAxis cannot be combined",
       );
-    const { layerAxis, ...plain } = options,
-      plan = planLayers(graph, plain);
+    const placed = planRooms(graph, {
+      y: options.layerAxis,
+    });
     return {
-      ...plan,
-      ...placeOnLayers(
-        plan.graph,
-        layerAxis,
-        options.direction ?? "right",
+      graph: placed.graph,
+      layers: new Map(
+        placed.graph.nodes.map((n) => [
+          n.id,
+          roomFor(placed, n)!.index[1],
+        ]),
       ),
+      routes: new Map(),
+      reversed: [],
     };
   }
 

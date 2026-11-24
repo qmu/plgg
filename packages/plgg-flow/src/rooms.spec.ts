@@ -1,3 +1,4 @@
+import { drawFlow } from "plgg-flow/viewport";
 import { flowView } from "plgg-flow/index";
 import { wireDepthRuns } from "plgg-flow/wireDepth";
 import { wireGraph } from "plgg-flow/wiring";
@@ -332,11 +333,9 @@ test("named views draw the standard solid and dimension labels", () => {
         spaceScenery(flow.rooms!, state).every(
           (item) =>
             item.layer === "front" ||
-            item.layer === "behind" ||
-            (item.kind === "plane" &&
-              item.layer === "sorted"),
+            item.layer === "behind",
         ) &&
-        html.indexOf('fill-opacity="0.14"') >=
+        html.indexOf('fill-opacity="0.92"') >=
           0 &&
         !!faces(html) &&
         faces(html) === faces(ordinary) &&
@@ -682,6 +681,43 @@ test("roles and pinned slices round-trip independently of declaration order", ()
       !printSpec(read(sheet), []).includes(
         "view ",
       ),
+    toBe(true),
+  );
+});
+
+test("an unpinned space paints every background item before its first node", () => {
+  const flow = read(sheet);
+  const state = roomFaceView({
+    ...flow,
+    roomHover: ["owner", "unknown"],
+    nodes: flow.nodes.map((n) => ({
+      ...n,
+      quiet: true,
+    })),
+  });
+  const scenery = spaceScenery(
+    state.rooms!,
+    state,
+  ).map((item, i) => ({
+    ...item,
+    tone: "paint-marker-" + i + "-end",
+  }));
+  const html = renderToString(
+    drawFlow({ ...state, scenery }),
+  );
+  const first = html.indexOf("data-node-face");
+  return check(
+    first >= 0 &&
+      state.nodes.every((n) => !n.quiet) &&
+      scenery.every((item, i) => {
+        const mark = html.indexOf(
+          "paint-marker-" + i + "-end",
+        );
+        return (
+          mark >= 0 &&
+          (item.layer === "front" || mark < first)
+        );
+      }),
     toBe(true),
   );
 });
