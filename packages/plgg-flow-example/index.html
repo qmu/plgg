@@ -788,6 +788,36 @@
         monospace;
       white-space: nowrap;
     }
+  
+    /* the round buttons sit on the toolbar's own line, the
+       sign drawn exactly in the middle */
+    .board-controls .add-node,
+    .board-controls .remove {
+      top: 0;
+      right: 0;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      place-content: center;
+      font-size: 0;
+    }
+    .board-controls .remove {
+      top: 42px;
+    }
+    .board-controls .add-node::before,
+    .board-controls .add-node::after,
+    .board-controls .remove::before {
+      content: "";
+      grid-area: 1 / 1;
+      width: 12px;
+      height: 1px;
+      background: currentColor;
+    }
+    .board-controls .add-node::after {
+      transform: rotate(90deg);
+    }
   </style>
   <div id="app"></div>
   <script
