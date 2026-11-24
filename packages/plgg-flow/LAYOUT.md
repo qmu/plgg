@@ -1681,3 +1681,31 @@ Specs: no socket or arrowhead centre projects inside its own
 node's caption box at the four named views and 12 turned ones; no
 run enters the grown box of a node it does not end at; with
 `clear`, no stroke segment lies inside a caption box.
+
+## The axis name embraces its values (owner: "x, y, z should each gather their elements — enclosed by a dotted line that holds them, the name centred; where they are now is half-hearted")
+
+The name of an axis hangs off the tip of its line, beside the last
+value: it belongs to nothing. An axis is drawn as two rows of
+dimension lines, the second holding the first:
+
+```
+ |·· 入口 ··|·· 処理 ··|·· 保存 ··|      values, one stretch each
+ |··············· 層 ···············|     the axis, one stretch for all
+```
+
+- Row 1 (as now): each value centred in the dotted line that runs
+  from both ends of its stretch, extension ticks at the ends.
+- Row 2: one dotted line from the first value's start to the last
+  value's end, 16 further out than row 1, its extension ticks
+  reaching from row 1's line; the attribute name centred in it,
+  10px 600 graphite. The role letter (x / y / z) is dropped from
+  the drawing — the properties area says which is which.
+- No line beyond the last value, no arrowhead: an axis of
+  categories has no direction to point in.
+- Row 2 obeys the same outline-edge and no-overlap rules as row 1
+  (it moves outward in 4px steps when its name's box meets
+  anything).
+- With repeated blocks (4th / 5th axis): row 2 appears on the
+  first block only; the block axis itself gets the same treatment
+  across all blocks — the block values (東京, 大阪) centred under
+  their blocks, one dotted line holding them with 地域 centred.
