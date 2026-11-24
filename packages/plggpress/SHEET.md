@@ -201,3 +201,98 @@ Specs: リセット keeps node and edge counts, sets yaw = pitch = 0, is
 undoable; ⏮ equals the opening flow; ◀ then ▶ is the identity; ⏭
 after ⏮ returns the newest; an edit after ◀ drops the forward steps;
 disabled states at both ends; 最適化 is gone from every sheet.
+
+## One site, every viewport (owner, 2026-11-25: "can it be unified in this style?" about /markdown/samples/layers/, and: "the phone is no good at all — review every viewport")
+
+Two things at once, because they are one job: the gallery becomes a
+plggpress site only, and that site's sheet layout is designed for
+every width instead of for a desktop with a phone as an afterthought.
+
+### Seen at 390 × 844 (both sites, in a frame of that size)
+
+- Demo app: below the sample chips the page is blank — the sheet
+  gets no height.
+- plggpress: the board is a 220px strip; the toolbar wraps to two
+  rows and lies on the drawing; the DSL list and the properties are
+  both squeezed into what is left and cut off; a third of the screen
+  below is empty; the hint speaks of Shift and ⌘.
+
+### Unification
+
+- `packages/plgg-flow-example` becomes a plggpress site at its
+  root: every sample is a Markdown page (`layout: sheet`,
+  `description`, one `plgg-flow fill dsl tools=…` fence). The 28
+  samples keep their order and ids as page slugs; the nine
+  architectures and ten subjects under `plgg-flow/subjects` are
+  added as two further sidebar groups (「多層アーキテクチャ」,
+  「題材」), each page's description being the subject's sentence.
+- Samples that need behaviour (history, snapshots, files, computed
+  nodes, minimap, trace, outline, revisions…) get it from named
+  tools registered through `site.parts.ts`; a sample page only
+  names them. Tools that carry state are added to the tools slice
+  (SHEET.md, "tools") rather than left out.
+- `index.html`, `src/index.ts`, `src/examples.ts` and the demo's
+  own CSS are deleted. Specs that asserted on `examples` assert on
+  the Markdown pages instead (parse every fence, fit, grid).
+- The audits' contact sheets stay where they are (`/wiring-audit.html` …).
+- The served root (`/`) is the site; `/markdown/…` redirects to the
+  same page without the prefix.
+
+### The sheet at every width
+
+One layout rule per range, no special cases inside them. The board
+is always the largest thing on the screen.
+
+**≥ 1100 (desktop)** — as now: sidebar, board, DSL as a
+translucent overlay on the right (320), properties under it.
+
+**760 – 1099 (tablet, small laptop)** — sidebar collapses to the
+menu button; the DSL overlay is 280 and has a fold handle on its
+left edge (folded: a 28px strip with the pencil); folded by default
+below 900. Fit uses the actual cover.
+
+**< 760 (phone)**
+- The page is exactly one screen: `100dvh`, no page scroll. Top
+  bar 48 (menu, title on one line, theme). The description moves
+  into the menu drawer and under the title only if it fits one
+  line.
+- The board fills everything under the top bar.
+- **Tools: one row, never wrapping**, 44px targets, icons instead
+  of words (リセット ⟲, 見方 ◎, 正面 / 上 / 横 / 立体 as small
+  cube-face glyphs), horizontally scrollable if it must be, on a
+  paper strip — it does not lie on the drawing: the board's fit
+  treats the strip as covered.
+- **＋** is a round button at the bottom right, above the sheet
+  handle.
+- **DSL and properties are a bottom sheet.** Closed: a 44px handle
+  「DSL」 with the selected thing's name when something is
+  selected. Half: 45 % of the height — the text list, scrollable,
+  the board still visible and usable above (fit recomputed for the
+  uncovered part). Full: 85 % — list above, properties below, or,
+  when something is selected, properties first. Drag the handle or
+  tap it to step; selecting a node on the board opens it to half
+  with that node's line in view.
+- Properties: one column, label above field, 44px fields.
+- Hint: touch wording only, one line, shown once per visit for
+  4 s, then gone.
+- Safe areas respected (`env(safe-area-inset-*)`); no horizontal
+  scroll anywhere; text never below 12px; the help toast is a
+  full-width sheet from the top.
+- Gestures as specified before: one finger pans, two fingers turn
+  and pinch; a long press on a node selects it (so a pan that
+  starts on a node does not drag it by accident — drag begins
+  only on a selected node).
+
+**Landscape phone (height < 500)** — top bar 40, tools in a column
+on the left edge, bottom sheet becomes a right sheet (50 % width).
+
+### Acceptance
+
+The reviewer looks at 390 × 844, 844 × 390, 768 × 1024, 1024 × 768,
+1280 × 800 and 1680 × 1050, on three pages (a flat sample, the
+cake, rooms): the board is the largest area; nothing overlaps
+anything; nothing is cut; no page scroll on phone; every control
+reachable with a thumb; a node can be selected, renamed and
+connected by touch. Specs: the fence's SSR HTML carries the
+classes the ranges need; fit's cover equals the measured overlay
+at each range (a DOM spec at the six sizes).
