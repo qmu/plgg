@@ -976,3 +976,73 @@ growing where a card has room. Cell minimums 160 × 96 × 96 →
 Open: the two blocks side by side are fitted by width and leave
 half a tall board empty; cards in adjacent depth rows can cover
 one another in 上; step C (animated change of roles) not started.
+
+## Space is a layout and a scenery; the standard drawing draws it (owner: "the nodes' boxes are omitted — unacceptable; this must be drawn as an extension of the standard sheet, and instead it is an ad hoc implementation, isn't it")
+
+It is. The previous section told cards to be billboards, and the
+viewport now branches on `state.rooms` in 38 places (14 before the
+space work): its own node body, caption, sockets, wire route, tone,
+paint order, drag. A rooms sheet is drawn by a second renderer
+living inside the first. "Cards are billboards" is withdrawn.
+
+**Principle.** A space sheet is an ordinary sheet whose positions
+came from `planSpace` and which carries a scenery. Everything a
+reader sees of a node or a wire is drawn by the same code as on any
+other sheet: the node is the standard box with its standard depth,
+caption, sockets, selection, hover, resize; a wire is the standard
+wire between sockets with the standard routing and arrowhead; the
+camera is the standard camera. `viewport.ts` must not mention
+rooms, cells, storeys or axes at all.
+
+What a space adds goes through four **general** seams, each usable
+by any sheet:
+
+1. **Positions.** `planSpace` returns ordinary node positions in
+   the flow's own coordinates (x right, y down the sheet, z toward
+   the viewer). A storey is a band of sheet-y; "up" is −y. The one
+   conversion from the space's world coordinates lives in
+   `space.ts`. A node's box stands in its cell with its face to +z,
+   exactly as a node on any 3D sheet.
+2. **Scenery.** `Flow.scenery?: Scenery[]`, plain data in the
+   flow's 3D coordinates, drawn by the viewport with no knowledge of
+   what it means:
+   - `plane` (four corners, fill tone + opacity, stroke tone),
+   - `line` (points, tone, dotted or solid),
+   - `label` (anchor point, screen offset, text, size, weight, tone,
+     optional `press: Change` making it clickable),
+   - each with `layer: "behind" | "sorted" | "front"`; `sorted`
+     items are depth-sorted together with nodes and wires by the
+     viewport's existing painter's order.
+   The stage (far faces, storey plates, hull rulings, pinned frame)
+   and the axes (dotted lines, dimension lines, value names) are
+   produced as scenery by `roomView.ts` from the space and the
+   camera; choosing outline edges and avoiding boxes stays there.
+3. **Confinement.** `FlowNode.within?: { min: Point3; max: Point3 }`
+   — the standard drag keeps a node inside it (and on its plane
+   when the box is flat in one direction). The space sets it to the
+   node's cell.
+4. **Emphasis.** `FlowNode.quiet?: boolean` and `FlowEdge.quiet?`
+   — drawn in the pencil tone by the standard renderer, ink on
+   hover / selection as usual. Pinning a slab sets `quiet` on
+   everything outside it; a space sheet sets `quiet` on its wires.
+
+Camera: the standard camera and orbit. The named views (正面, 上,
+横, 立体) are camera positions set by the sheet, as before. If the
+standard orbit lets the sheet's up direction tip over, fix that in
+the standard camera for every sheet, not with a rooms flag.
+
+Remove: `billboardBody`, `roomCaption`, the rooms wire route and
+tone, the rooms socket and paint-order branches, `Camera.turntable`
+if the standard camera can serve, `roomReceded` in favour of
+`quiet`.
+
+Kept from the last two sections: one solid scene in every view;
+three-quarter named views; plates at 45 %; axes pencil, on outline
+edges, clear of nodes (the boxes to avoid are now the standard
+boxes' projected hulls); storeys, blocks, pins.
+
+Acceptance: `grep -c rooms src/viewport.ts` is 0; the sample's
+nodes are the same boxes as in "立体交差" at the same zoom; the
+existing specs of other sheets are untouched; a spec draws a
+non-rooms flow with one plane, one line and one label of scenery;
+a spec drags a node with `within` and it stays inside.

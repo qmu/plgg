@@ -152,6 +152,7 @@ type AxisLabel = {
   attribute: string;
   clear: boolean;
   size: number;
+  span?: { from: Point3; to: Point3 };
 };
 const axisGeometry = (
   layout: RoomLayout,
@@ -334,17 +335,26 @@ const axisGeometry = (
         const boxes = [...occupied];
         const labels: AxisLabel[] = [];
         let blocked = false;
+        // Every value of one axis sits at the same distance, so
+        // their dimension lines run in one row.
+        const reach = (value: string) =>
+          8 +
+          (Math.abs(dx) * 13 * value.length) / 2 +
+          Math.abs(dy) * 7;
+        const row = Math.max(
+          0,
+          ...slabs.map((r) =>
+            reach(r.values[index]!),
+          ),
+        );
         const add = (
           p: Point3,
           value: string,
           clear: boolean,
+          span?: { from: Point3; to: Point3 },
         ) => {
-          const gap =
-            8 +
-            (Math.abs(dx) * 13 * value.length) /
-              2 +
-            Math.abs(dy) * 7;
-          const l = {
+          const gap = clear ? reach(value) : row;
+          const l: AxisLabel = {
             axis,
             letter: axis,
             x: p.x,
@@ -355,7 +365,8 @@ const axisGeometry = (
             value,
             attribute: definition.attribute,
             clear,
-            size: 11,
+            size: clear ? 10 : 9,
+            ...(span && { span }),
           };
           let box = labelBox(l);
           while (
@@ -378,6 +389,10 @@ const axisGeometry = (
             ),
             r.values[index]!,
             false,
+            {
+              from: position(r.min[axis]),
+              to: position(r.max[axis]),
+            },
           );
         if (!i)
           add(
@@ -411,14 +426,6 @@ const axisGeometry = (
         labels,
       } = chosen;
       occupied.push(...labels.map(labelBox));
-      const ticks = [
-        ...new Set(
-          slabs.flatMap((r) => [
-            r.min[axis],
-            r.max[axis],
-          ]),
-        ),
-      ];
       const path = hidden
         ? `M${start.x} ${start.y}h0`
         : mark(
@@ -439,15 +446,61 @@ const axisGeometry = (
             -6 * tx - 3 * dx,
             -6 * ty - 3 * dy,
           ) +
-          ticks
-            .map((v) => {
-              const p = position(v);
-              return mark(
-                p.x,
-                p.y,
-                6 * dx,
-                6 * dy,
+          labels
+            .flatMap((l) => {
+              if (!l.span) return [];
+              // A dimension line: from both ends of the value's
+              // stretch toward its name, which sits in the middle.
+              const { from, to } = l.span;
+              const length = Math.hypot(
+                to.x - from.x,
+                to.y - from.y,
               );
+              if (!length) return [];
+              const ux = (to.x - from.x) / length,
+                uy = (to.y - from.y) / length;
+              const run =
+                length / 2 -
+                (Math.abs(ux) *
+                  l.size *
+                  l.value.length) /
+                  2 -
+                Math.abs(uy) * (l.size / 2) -
+                4;
+              const out = Math.hypot(l.dx, l.dy);
+              const over = out
+                ? (out + 3) / out
+                : 0;
+              return [
+                mark(
+                  from.x,
+                  from.y,
+                  l.dx * over,
+                  l.dy * over,
+                ),
+                mark(
+                  to.x,
+                  to.y,
+                  l.dx * over,
+                  l.dy * over,
+                ),
+                ...(run > 2
+                  ? [
+                      mark(
+                        from.x + l.dx,
+                        from.y + l.dy,
+                        ux * run,
+                        uy * run,
+                      ),
+                      mark(
+                        to.x + l.dx,
+                        to.y + l.dy,
+                        -ux * run,
+                        -uy * run,
+                      ),
+                    ]
+                  : []),
+              ];
             })
             .join("");
       return {
@@ -840,6 +893,7 @@ export const roomView = (
             attr("stroke", "var(--pencil)"),
             attr("stroke-width", "1"),
             attr("stroke-linecap", "round"),
+            attr("stroke-dasharray", "1 3"),
           ],
           [],
         ),

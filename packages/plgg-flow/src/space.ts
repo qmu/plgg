@@ -26,7 +26,7 @@ export const planSpace = (
   const spans = {
     x: values("x").map(() => 112),
     y: values("y").map(() => 80),
-    z: values("z").map(() => 80),
+    z: values("z").map(() => 176),
   };
   const index = (address: number[], role: Role) =>
     address[axis(role)] ?? 0;
