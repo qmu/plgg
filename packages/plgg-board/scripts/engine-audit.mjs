@@ -48,7 +48,15 @@ const boxSolid = (id, c, s) => {
     ],
   };
 };
-const line = (id, points) => ({ id, style: "wire", points });
+// One line item per segment: two parts of one polyline can lie on
+// top of each other on screen at different depths, and the strokes
+// carry no depth to tell them apart.
+const line = (id, points) =>
+  points.slice(1).map((b, i) => ({
+    id: id + "#" + i,
+    style: "wire",
+    points: [points[i], b],
+  }));
 const empty = () => ({
   solids: [],
   sheets: [],
@@ -67,7 +75,7 @@ S.lineBehindBox = (() => {
   const s = empty();
   s.solids.push(boxSolid("a", { x: 0, y: 0, z: 0 }, { x: 96, y: 48, z: 24 }));
   s.lines.push(
-    line("w", [
+    ...line("w", [
       { x: -120, y: 0, z: -60 },
       { x: 120, y: 0, z: -60 },
     ]),
@@ -94,7 +102,7 @@ S.stack = (() => {
   [0, 1].forEach((k) =>
     [-1, 0, 1].forEach((i) =>
       s.lines.push(
-        line(`d${k}.${i}`, [
+        ...line(`d${k}.${i}`, [
           { x: i * 144 + 60, y: k * 144 - 20, z: 100 },
           { x: i * 144 + 60, y: (k + 1) * 144 - 20, z: 100 },
           { x: i * 144 + 60, y: (k + 1) * 144 - 20, z: 48 },
@@ -104,7 +112,7 @@ S.stack = (() => {
   );
   // a drop that passes through a board
   s.lines.push(
-    line("through", [
+    ...line("through", [
       { x: -200, y: -60, z: -100 },
       { x: -200, y: 260, z: -100 },
     ]),
@@ -133,7 +141,7 @@ S.block = (() => {
     };
     const b = { ...a, y: Math.floor(r() * 3) * 96 - 96 };
     const c = { ...b, z: Math.floor(r() * 2) * 176 - 88 };
-    s.lines.push(line("w" + i, [a, b, c]));
+    s.lines.push(...line("w" + i, [a, b, c]));
   }
   [0, 1, 2].forEach((j) =>
     s.sheets.push({
@@ -190,7 +198,7 @@ S.big = (() => {
     const b = { ...a, x: (r() - 0.5) * 700 };
     const c = { ...b, y: (r() - 0.5) * 500 };
     const d = { ...c, z: (r() - 0.5) * 500 };
-    s.lines.push(line("w" + i, [a, b, c, d]));
+    s.lines.push(...line("w" + i, [a, b, c, d]));
   }
   return s;
 })();
@@ -353,8 +361,9 @@ for (const [name, scene] of Object.entries(S)) {
     // each box shows one to three faces
     for (const s of scene.solids) {
       const faces = drawing.fills.filter((f) => f.id === s.id).length;
-      if (faces > 3 && scene.sheets.length === 0 && name !== "stack")
-        faceBad++;
+      // (the BSP may split a face into fragments when solids are
+      // many, so this is checked where nothing can split it)
+      if (faces > 3 && scene.solids.length === 1) faceBad++;
     }
     // lines: visible exactly where the z-buffer shows nothing nearer
     const at = project(camera);
@@ -367,6 +376,9 @@ for (const [name, scene] of Object.entries(S)) {
       l.points.slice(1).forEach((b3, i) => {
         const a = at(l.points[i]),
           b = at(b3);
+        // seen nearly end-on, near and far parts of one segment share
+        // their pixels: the strokes cannot say which part is meant
+        if (Math.hypot(b.x - a.x, b.y - a.y) < 24) return;
         for (let k = 1; k < 24; k++) {
           const t = k / 24;
           const p = {

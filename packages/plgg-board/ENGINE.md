@@ -145,3 +145,26 @@ the z-buffer shows at that pixel; time within budget.
    drawing is deleted.
 4. Then the art direction, the hidden-line comparison, the
    subjects and the view search, on top.
+
+## Step 1–2 review — adopted
+
+`render`, `pick`, `box` / `slab` / `quad`, `toSvg`; BSP with
+splitting, analytic line visibility, edge classes, tone, shadows,
+holes, gaps, lying labels. 2 231 lines, no escape hatches.
+
+Against the z-buffer oracle (7 scenes, 50 cameras each, 8 for the
+large one): **surfaces 100 % on every scene, pick 100 %**, the
+large scene (60 boxes, 300 segments) 2.8 ms per frame.
+
+The implementer found two faults in the reviewer's oracle, both
+real and both fixed in the audit: a polyline's parts can coincide
+on screen at different depths (lines are now audited one segment
+per item, and segments seen nearly end-on are skipped), and BSP
+fragments were counted as faces.
+
+One finding left that is the engine's: **the part of a line that
+lies inside a solid is reported visible** (the stack scene's drops
+pass through a 6-thick board: oracle hidden, engine visible; 94–96 %
+line agreement on `stack` and `block`). A line inside an opaque
+solid is hidden; it reappears where it leaves the solid, with a
+hole mark at entry and exit.

@@ -302,3 +302,8 @@ export const orbitAround = (
     b = project(next)(pivot);
   return pan(a.x - b.x, a.y - b.y)(next);
 };
+
+export * from "plgg-board/scene";
+export * from "plgg-board/drawing";
+export { render } from "plgg-board/engine";
+export { toSvg } from "plgg-board/svg";
