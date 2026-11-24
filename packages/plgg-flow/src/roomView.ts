@@ -401,7 +401,7 @@ export const roomView = (
     y: limits.y / 2,
     z: limits.z / 2,
   }).z;
-  const rooms = cells.map(
+  const rooms = (face ? cells : []).map(
     ({ room, corners, floor, values, edges }) => {
       const far = corners.reduce((best, p) =>
         at(p).z < at(best).z ? p : best,
@@ -530,6 +530,133 @@ export const roomView = (
       b = at(q);
     return `M${a.x} ${a.y}L${b.x} ${b.y}`;
   }
+  const plates = (face ? [] : cells)
+    .filter(
+      ({ room }) =>
+        room.index[0] === 0 &&
+        room.index[1] === 0,
+    )
+    .map(({ room }) => {
+      const z = room.min.z;
+      const point = (x: number, y: number) => ({
+        x,
+        y,
+        z,
+      });
+      const corners = [
+        point(0, 0),
+        point(limits.x, 0),
+        point(limits.x, limits.y),
+        point(0, limits.y),
+      ].map(at);
+      const polygon = (
+        points: readonly Point3[],
+      ) =>
+        "M" +
+        points
+          .map((p) => p.x + "," + p.y)
+          .join("L") +
+        "Z";
+      const nearEdge =
+        corners[3]!.z >= corners[0]!.z
+          ? corners.slice(2)
+          : corners.slice(0, 2);
+      const near = nearEdge.reduce((left, p) =>
+        p.x < left.x ? p : left,
+      );
+      const floor = cells.filter(
+        (c) => c.room.index[2] === room.index[2],
+      );
+      const rulings = floor
+        .map(
+          ({ room: r }) =>
+            (r.index[0] && !r.index[1]
+              ? segment(
+                  point(r.min.x, 0),
+                  point(r.min.x, limits.y),
+                )
+              : "") +
+            (r.index[1] && !r.index[0]
+              ? segment(
+                  point(0, r.min.y),
+                  point(limits.x, r.min.y),
+                )
+              : ""),
+        )
+        .join("");
+      const path = (kind: string, d: string) =>
+        el<Change>(
+          "path",
+          [attr("class", kind), attr("d", d)],
+          [],
+        );
+      const highlight = active
+        ? floor
+            .filter((c) =>
+              inSlab(c.values, filter),
+            )
+            .map((c) => polygon(c.floor.map(at)))
+            .join("")
+        : "";
+      return {
+        depth: at(
+          point(limits.x / 2, limits.y / 2),
+        ).z,
+        view: el<Change>(
+          "g",
+          [],
+          [
+            path("room-plate", polygon(corners)),
+            ...(highlight
+              ? [path("room-selected", highlight)]
+              : []),
+            path("room-ruling", rulings),
+            path(
+              "room-shadow",
+              floor
+                .flatMap(
+                  (c) =>
+                    shadows.get(c.room) ?? [],
+                )
+                .join(""),
+            ),
+            ...(layout.axes.z
+              ? [
+                  el<Change>(
+                    "text",
+                    [
+                      attr(
+                        "class",
+                        "room-floor-value",
+                      ),
+                      attr("x", String(near.x)),
+                      attr(
+                        "y",
+                        String(near.y - 4),
+                      ),
+                      attr(
+                        "text-anchor",
+                        "start",
+                      ),
+                    ],
+                    [text(room.values[2]!)],
+                  ),
+                ]
+              : []),
+          ],
+        ),
+      };
+    });
+  const uprights = [0, limits.x]
+    .flatMap((x) =>
+      [0, limits.y].map((y) =>
+        segment(
+          { x, y, z: 0 },
+          { x, y, z: limits.z },
+        ),
+      ),
+    )
+    .join("");
   const labelEvents = (
     label: ReturnType<typeof roomLabels>[number],
   ) => [
@@ -598,33 +725,46 @@ export const roomView = (
       attr("pointer-events", "none"),
     ],
     [
-      ...rooms
+      ...(face ? rooms : plates)
         .sort((a, b) => a.depth - b.depth)
         .map((r) => r.view),
-      el(
-        "g",
-        [attr("class", "room-lattice")],
-        ["empty", "inner", "far", "outer"].map(
-          (kind) =>
-            el<Change>(
-              "path",
-              [
-                attr("class", "room-" + kind),
-                attr(
-                  "d",
-                  [...lines.values()]
-                    .filter(
-                      (l) => l.kind === kind,
-                    )
-                    .map((l) => l.d)
-                    .join(""),
-                ),
-                attr("fill", "none"),
-              ],
-              [],
+      face
+        ? el(
+            "g",
+            [attr("class", "room-lattice")],
+            [
+              "empty",
+              "inner",
+              "far",
+              "outer",
+            ].map((kind) =>
+              el<Change>(
+                "path",
+                [
+                  attr("class", "room-" + kind),
+                  attr(
+                    "d",
+                    [...lines.values()]
+                      .filter(
+                        (l) => l.kind === kind,
+                      )
+                      .map((l) => l.d)
+                      .join(""),
+                  ),
+                  attr("fill", "none"),
+                ],
+                [],
+              ),
             ),
-        ),
-      ),
+          )
+        : el(
+            "path",
+            [
+              attr("class", "room-uprights"),
+              attr("d", uprights),
+            ],
+            [],
+          ),
       ...axes.map((a) =>
         el<Change>(
           "path",

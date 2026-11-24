@@ -1105,7 +1105,7 @@ const computeRooms = (
           local.set(n.id, {
             x,
             y,
-            z: k * 140,
+            z: k * 220,
           });
           widths[i] = Math.max(
             widths[i]!,
@@ -1140,9 +1140,9 @@ const computeRooms = (
           if (previous >= 0)
             top += squareUp(
               ((floor - previous) *
-                140 *
-                Math.tan(0.5)) /
-                Math.cos(0.6),
+                220 *
+                Math.tan(0.48)) /
+                Math.cos(0.62),
             );
           const start = top;
           top += height + 2 * grid;
@@ -1213,11 +1213,11 @@ const computeRooms = (
           ),
           index: [i, j, k],
           values: [v, w, u],
-          min: { x: x[i]!, y: y[j]!, z: k * 140 },
+          min: { x: x[i]!, y: y[j]!, z: k * 220 },
           max: {
             x: x[i + 1]!,
             y: y[j + 1]!,
-            z: (k + 1) * 140,
+            z: (k + 1) * 220,
           },
         });
   return {

@@ -1294,7 +1294,27 @@ export const flowView = (
         ]?.some((s) => s.direction === "source" && s.point.x === wire.target.x && s.point.y === wire.target.y && s.point.z === wire.target.z);
       const originalIndex =
         originalIndices.get(original);
+      const pins = Object.entries(
+        state.roomPins ?? {},
+      );
+      const roomTone = !state.rooms
+        ? ""
+        : [from, to].some(
+              (n) =>
+                n.id === state.roomNode ||
+                chosen.has(n.id),
+            ) ||
+            (pins.length > 0 &&
+              pins.every(([k, v]) =>
+                [from, to].every(
+                  (n) =>
+                    (n.data?.[k] ?? "—") === v,
+                ),
+              ))
+          ? " room-wire-ink"
+          : " room-wire-pencil";
       const inputs = [
+        roomTone,
         index,
         original,
         state.camera,
@@ -1302,7 +1322,7 @@ export const flowView = (
         sharedArrival,
         originalIndex,
         flat ? undefined : state.nodes,
-        muted(from) || muted(to),
+
         frame,
         state.ink,
         cull,
@@ -1649,9 +1669,9 @@ export const flowView = (
             [
               a(
                 "class",
-                edge.animated
+                (edge.animated
                   ? "edge animated"
-                  : "edge",
+                  : "edge") + roomTone,
               ),
               a("d", path),
               a(
@@ -1838,6 +1858,9 @@ export const flowView = (
               "polygon",
               [
                 a("data-arrow", side),
+                ...(roomTone
+                  ? [a("class", roomTone.trim())]
+                  : []),
                 a(
                   "transform",
                   `translate(${x} ${y}) rotate(${angle}) scale(${arrowScale})`,
@@ -1923,16 +1946,7 @@ export const flowView = (
       const group = items.map((layer, i) =>
         keyedLayer(
           "wire-" + index + "-" + i,
-          muted(from) || muted(to)
-            ? {
-                ...layer,
-                html: el(
-                  "g",
-                  [a("class", "room-muted-wire")],
-                  [layer.html],
-                ),
-              }
-            : layer,
+          layer,
         ),
       );
       wireLayers.set(wire, {
@@ -1971,6 +1985,7 @@ export const flowView = (
       state.rooms,
       state.roomPins,
       state.roomHover,
+      state.roomNode,
       state.selection,
       state.selected,
       state.activeEdge,

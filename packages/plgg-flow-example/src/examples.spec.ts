@@ -171,8 +171,8 @@ test("every gallery box sits on grid lines and Rooms opens on its two floors", (
     examples[index - 1]?.id === "layered" &&
       flow.rooms?.rooms.length === 18 &&
       flow.nodes.length === 14 &&
-      flow.camera.yaw === -0.32 &&
-      flow.camera.pitch === 0.26 &&
+      flow.camera.yaw === -0.62 &&
+      flow.camera.pitch === 0.48 &&
       examples.every((d) =>
         d.initial().nodes.every((n) => {
           const size = nodeSize(n);

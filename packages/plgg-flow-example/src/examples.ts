@@ -126,7 +126,7 @@ DB -> Catalog
   demo(
     "rooms",
     "部屋に分ける",
-    "軸の値（「処理」「本番」など）をクリックすると、その部屋が浮かびます。正面・上・横で表に、⌘（Ctrl）＋ドラッグで回せます。",
+    "軸の値をクリックすると、その区画が浮かびます。正面・上・横で表に、⌘（Ctrl）＋ドラッグで回せます。",
     `layout rooms
 axis x 層 入口 処理 保存
 axis y 担当 顧客 注文 基盤
@@ -156,7 +156,8 @@ Orders -> Monitor
 Monitor -> Logs
 Preview -> Sandbox
 Sandbox -> Fixtures
-Sandbox -> Trace`,
+Sandbox -> Trace
+Trace -> Logs`,
   ),
   demo(
     "split",

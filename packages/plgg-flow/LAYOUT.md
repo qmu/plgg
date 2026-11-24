@@ -727,3 +727,17 @@ Specs: a rooms sheet's projected parallel edges stay parallel within
 plates are painted far to near; a wire's tone follows the hover /
 selection / slab rule; the opening view shows the top, front and side
 of the cuboid (three faces with positive projected area).
+
+## Rooms, third pass — review, adopted
+
+Seen at the opening view: parallel projection, two plates (本番,
+検証) clearly apart with their names at the corner, rulings on the
+plates, wires in pencil turning ink for a selected node, the dotted
+axes following. 1.6 ms per update in the browser, 245 elements.
+
+Open, from looking: the sheet is fitted small (the cuboid takes
+about half the board and the node labels are near 8px) — the fit
+counts the axes' full length and the far plate's corner; fit to the
+plates and let axis names sit inside the margin. With z toward the
+viewer the plates stand like panes rather than lie like floors; the
+owner has not said which they want.

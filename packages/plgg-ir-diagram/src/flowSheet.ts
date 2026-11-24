@@ -378,7 +378,7 @@ export const roomFrames = <Action>(
     },
   );
 };
-export const roomsOpening = viewAt(-0.32, 0.26);
+export const roomsOpening = viewAt(-0.62, 0.48);
 const arrangeSheet: Change = (f) => {
   if (f.rooms) {
     const { axes, rooms, graph } = planRooms(
@@ -976,7 +976,7 @@ export const sheetToolbar = <Action>(
                 ["正面", 0, 0],
                 ["上", 0, -Math.PI / 2],
                 ["横", Math.PI / 2, 0],
-                ["立体", -0.32, 0.26],
+                ["立体", -0.62, 0.48],
               ] satisfies [
                 string,
                 number,

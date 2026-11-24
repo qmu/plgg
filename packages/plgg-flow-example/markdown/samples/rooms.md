@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: 軸の値（「処理」「本番」など）をクリックすると、その部屋が浮かびます。正面・上・横で表に、⌘（Ctrl）＋ドラッグで回せます。
+description: 軸の値をクリックすると、その区画が浮かびます。正面・上・横で表に、⌘（Ctrl）＋ドラッグで回せます。
 ---
 
 # 部屋に分ける
@@ -36,4 +36,5 @@ Monitor -> Logs
 Preview -> Sandbox
 Sandbox -> Fixtures
 Sandbox -> Trace
+Trace -> Logs
 ```

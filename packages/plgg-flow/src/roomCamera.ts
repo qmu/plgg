@@ -78,6 +78,11 @@ export const faceAxes = (
 };
 export const faceTable = (flow: Flow): Flow => {
   if (!flow.rooms) return flow;
+  if (flow.camera.perspective)
+    return faceTable({
+      ...flow,
+      camera: { ...flow.camera, perspective: 0 },
+    });
   // As the last twelve degrees collapse the hidden axis, open up
   // the slots of the table in its two remaining world coordinates.
   const depth = project(flow.camera);
@@ -274,22 +279,3 @@ export const turnRooms = (
     duration,
   },
 });
-export const roomPerspective = (
-  layout: RoomLayout,
-  camera: Camera,
-) => {
-  if (faceAxes(camera)) return 0;
-  const depths = cornersOf({
-    min: { x: 0, y: 0, z: 0 },
-    max: limitsOf(layout),
-  }).map((p) => project(camera)(p).z);
-  return Math.min(
-    Number(camera.perspective ?? 0),
-    300 /
-      Math.max(
-        300,
-        Math.max(...depths) -
-          0.7 * Math.min(...depths),
-      ),
-  );
-};

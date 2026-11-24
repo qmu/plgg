@@ -1,4 +1,3 @@
-import { roomPerspective } from "plgg-flow/roomCamera";
 import { roomFor } from "plgg-flow/autoLayout";
 import type {
   RoomLayout,
@@ -570,13 +569,10 @@ export const viewAt =
       ...state.camera,
       yaw,
       pitch,
-      perspective: tilt * tilt * (3 - 2 * tilt),
+      perspective: state.rooms
+        ? 0
+        : tilt * tilt * (3 - 2 * tilt),
     };
-    if (state.rooms)
-      camera.perspective = roomPerspective(
-        state.rooms,
-        camera,
-      );
     const pivot = state.spatial?.pivot
       ? state.nodes.find(
           (n) => n.id === state.spatial?.pivot,

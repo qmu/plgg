@@ -1,3 +1,4 @@
+import { flowView } from "plgg-flow/index";
 import { wireDepthRuns } from "plgg-flow/wireDepth";
 import { wireGraph } from "plgg-flow/wiring";
 import { portPosition } from "plgg-flow/nodeBody";
@@ -5,7 +6,6 @@ import { project } from "plgg-board";
 import { viewAt } from "plgg-flow/model";
 import {
   faceTable,
-  roomPerspective,
   inSlab,
 } from "plgg-flow/roomCamera";
 import {
@@ -308,7 +308,7 @@ test("successive layers leave six squares between default boxes", () => {
   );
 });
 
-test("empty rooms only draw corner ticks and turning reveals floor labels", () => {
+test("turning reveals one plate, ruling path and value per floor", () => {
   const flow = read(sheet),
     html = (angle: number) =>
       renderToString(
@@ -319,16 +319,14 @@ test("empty rooms only draw corner ticks and turning reveals floor labels", () =
       ),
     front = html(0),
     turned = html(-0.5);
-  const segments = [
-    ...turned.matchAll(
-      /class="room-(?:empty|inner|far|outer|near)" d="([^"]*)"/g,
-    ),
-  ].map((m) => m[1]!.split("M").length - 1);
+  const floors = new Set(
+    flow.rooms!.rooms.map((r) => r.min.z),
+  ).size;
   return check(
-    segments.length > 0 &&
-      segments.length <= 8 &&
-      segments.reduce((a, b) => a + b, 0) <=
-        2 * 3 * 4 + 3 * 2 * 4 + 3 * 3 * 3 &&
+    turned.match(/class="room-plate"/g)
+      ?.length === floors &&
+      turned.match(/class="room-ruling"/g)
+        ?.length === floors &&
       front.includes(">app<") &&
       front.includes(">dev<") &&
       !front.includes(">live<") &&
@@ -413,13 +411,9 @@ test("the axes share the ground origin, extend forty units and tick every slab b
                 1
           );
         }) &&
-        ["outer", "inner", "empty"].every(
-          (kind) =>
-            html.includes(
-              'class="room-' + kind + '" d="M',
-            ),
-        ) &&
-        html.includes('class="room-floor"')
+        (yaw
+          ? html.includes('class="room-plate"')
+          : html.includes('class="room-floor"'))
       );
     }),
     toBe(true),
@@ -514,21 +508,8 @@ test("room labels clear one another and perspective stays bounded through a turn
           width,
         };
       });
-      const depths = layout.rooms.flatMap((r) =>
-        [r.min.x, r.max.x].flatMap((x) =>
-          [r.min.y, r.max.y].flatMap((y) =>
-            [r.min.z, r.max.z].map(
-              (z) =>
-                project(camera)({ x, y, z }).z,
-            ),
-          ),
-        ),
-      );
-      const k = roomPerspective(layout, camera);
       if (
-        (1000 - k * Math.max(...depths)) /
-          (1000 - k * Math.min(...depths)) <
-          0.7 - 1e-8 ||
+        camera.perspective !== 0 ||
         labels.some((a, i) =>
           labels
             .slice(i + 1)
@@ -545,34 +526,25 @@ test("room labels clear one another and perspective stays bounded through a turn
   return check(true, toBe(true));
 });
 
-test("the same outer edge changes from far to near after half a turn", () => {
-  const flow = read(sheet),
-    layout = flow.rooms!,
-    room = layout.rooms[0]!;
-  const classes = [0, Math.PI].map((yaw) => {
-    // Give coincident front and back edges distinct screen positions.
-    const tilted = viewAt(
-      yaw + 0.12,
-      0,
-    )(flow).camera;
-    const a = project(tilted)(room.min),
-      b = project(tilted)({
-        ...room.min,
-        x: room.max.x,
-      });
-    const segment = `M${a.x} ${a.y}L${b.x} ${b.y}`;
-    const html = renderToString(
-      roomView(layout, tilted),
-    );
-    return [
-      ...html.matchAll(
-        /class="room-(far|outer)" d="([^"]+)"/g,
+test("floor plates reverse paint order after half a turn", () => {
+  const flow = read(sheet);
+  const values = (yaw: number) =>
+    [
+      ...renderToString(
+        roomView(
+          flow.rooms!,
+          viewAt(yaw, 0.48)(flow).camera,
+        ),
+      ).matchAll(
+        /class="room-floor-value"[^>]*>([^<]+)</g,
       ),
-    ].find((m) => m[2]?.includes(segment))?.[1];
-  });
+    ].map((m) => m[1]);
+  const front = values(-0.62),
+    back = values(Math.PI - 0.62);
   return check(
-    classes.join(","),
-    toBe("far,outer"),
+    front.length === 3 &&
+      front.join() === back.reverse().join(),
+    toBe(true),
   );
 });
 
@@ -686,6 +658,44 @@ test("a wire only splits where an overlapping node has ink on both sides of its 
       wireDepthRuns(points, [
         { ...box, top: 20, bottom: 30 },
       ]).length === 1,
+    toBe(true),
+  );
+});
+
+test("only an incident node or two pinned endpoints ink a room wire", () => {
+  const flow = viewAt(-0.62, 0.48)(read(sheet));
+  const tones = (state: typeof flow) =>
+    [
+      ...renderToString(flowView(state)).matchAll(
+        /class="edge room-wire-(ink|pencil)"[^>]*data-edge-index="0"/g,
+      ),
+    ].map((m) => m[1]);
+  const cases: readonly [typeof flow, string][] =
+    [
+      [flow, "pencil"],
+      [
+        { ...flow, roomHover: ["env", "live"] },
+        "pencil",
+      ],
+      [{ ...flow, roomNode: "B" }, "ink"],
+      [selectNodes(["A"])(flow), "ink"],
+      [
+        { ...flow, roomPins: { env: "live" } },
+        "ink",
+      ],
+      [
+        { ...flow, roomPins: { env: "test" } },
+        "pencil",
+      ],
+    ];
+  return check(
+    cases.every(([state, tone]) => {
+      const runs = tones(state);
+      return (
+        runs.length > 0 &&
+        runs.every((t) => t === tone)
+      );
+    }),
     toBe(true),
   );
 });
