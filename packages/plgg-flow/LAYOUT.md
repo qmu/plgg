@@ -1650,3 +1650,34 @@ face, no dashed outline of a node behind a node). Hidden lines
 remain only for what a *board* covers — and that is the thing to
 compare on screen against boards that hide completely. Node faces
 are opaque paper / wash / shade, never translucent.
+
+## The name on a node's face is never smeared (owner: "the text is on the front face, yet the edges' start and end points land on it and the text is smeared and hard to read — solve this well")
+
+Seen on the cake: arrowheads and socket dots sit on top of the
+captions (Auth, Orders, Stock), and runs pass in front of faces.
+Three rules, in the router, the standard node and the engine:
+
+1. **Wires meet a node on its flanks, never on its lettered
+   faces.** Sockets exist on the four flanks only (left, right,
+   top, bottom), at the flank's centre *at mid-depth*; the last
+   16 of a wire is perpendicular to that flank. Seen on screen the
+   dot and the arrowhead then lie on the flank's surface or beyond
+   the face's edge — outside the caption's box by construction.
+   Dots are r 3 in 3D. An arrowhead's tip stops on the flank
+   plane; its body lies outside the box.
+2. **The air in front of a face is kept clear.** For routing, a
+   node's box is grown by 24 toward its lettered sides (±z) as
+   well as by 6 around: no run passes just in front of or behind a
+   caption. (Audit: piercing is tested against this grown box.)
+3. **Text has the right of way.** Whatever still crosses a
+   caption's box on screen from some angle — a wire far in front,
+   an axis line — is interrupted across the box plus 2px, the way
+   a draughtsman breaks a line around lettering. In the engine: a
+   label may `clear` — strokes painted after it are cut by its
+   screen box; fills are not. Applies to node captions, tags,
+   board names and axis values.
+
+Specs: no socket or arrowhead centre projects inside its own
+node's caption box at the four named views and 12 turned ones; no
+run enters the grown box of a node it does not end at; with
+`clear`, no stroke segment lies inside a caption box.
