@@ -2,7 +2,11 @@ import {
   canonical,
   curvePath,
 } from "plgg-flow/wireCurve";
-import { box } from "plgg-flow/wireGeometry";
+import {
+  box,
+  inflate,
+  free,
+} from "plgg-flow/wireGeometry";
 import { portPosition } from "plgg-flow/nodeBody";
 import {
   test,
@@ -941,21 +945,24 @@ test("canonical arches nest by their socket span", () => {
   ]);
 });
 
-test("a blocked facing cubic retries the far socket before adding a via", () => {
+test("a blocked facing cubic keeps both sockets while denting around the blocker", () => {
   const nodes = [n("a", 0, 0), n("b", 400, 150)],
     edges = [e("a", "b")];
   const direct = wireGraph({ nodes, edges })[0]!;
-  const retry = wireGraph({
+  const dent = wireGraph({
     nodes: [...nodes, n("block", 180, 60)],
     edges,
   })[0]!;
   return all([
     check(direct.targetSide, toBe("left")),
-    check(retry.sourceSide, toBe("right")),
-    check(retry.targetSide, toBe("top")),
-    check(retry.controls?.length, toBe(2)),
+    check(dent.sourceSide, toBe("right")),
     check(
-      retry.points.every(
+      dent.targetSide,
+      toBe(direct.targetSide),
+    ),
+    check(dent.controls, toBe(undefined)),
+    check(
+      dent.points.every(
         (p) =>
           Math.hypot(
             Math.max(0, Math.abs(p.x - 180) - 52),
@@ -1109,3 +1116,118 @@ test("removing a different pair preserves the trace at unchanged curve sockets",
     toBe(true),
   );
 });
+
+const grid5x4 = () => {
+  const nodes = Array.from(
+    { length: 20 },
+    (_, i) =>
+      n(
+        "g" + Math.floor(i / 4) + (i % 4),
+        -480 + Math.floor(i / 4) * 240,
+        -210 + (i % 4) * 140,
+      ),
+  );
+  let seed = 7;
+  const pick = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return nodes[
+      Math.floor(
+        (seed / 4294967296) * nodes.length,
+      )
+    ]!.id;
+  };
+  const edges: Edge[] = [];
+  while (edges.length < 26) {
+    const source = pick(),
+      target = pick();
+    if (
+      source !== target &&
+      !edges.some(
+        (edge) =>
+          edge.source === source &&
+          edge.target === target,
+      )
+    )
+      edges.push(e(source, target));
+  }
+  return { nodes, edges };
+};
+for (const route of [
+  "curve",
+  "step",
+] satisfies WireStyle[]) {
+  test(
+    route +
+      " keeps distant grid wires within 20u throughout a 40-step drag",
+    () => {
+      const graph = grid5x4();
+      const edges = graph.edges.map((edge) => ({
+        ...edge,
+        route,
+      }));
+      const moved = graph.nodes[0]!;
+      let before = wireGraph(
+        { nodes: graph.nodes, edges },
+        { draggedNode: moved.id },
+      );
+      let previous = inflate(box(moved), 34);
+      const failures: string[] = [];
+      for (let step = 1; step <= 40; step++) {
+        const node = {
+          ...moved,
+          position: {
+            ...moved.position,
+            x: moved.position.x + 24 * step,
+            y: moved.position.y + 10.5 * step,
+          },
+        };
+        const current = inflate(box(node), 34);
+        const after = wireGraph(
+          {
+            nodes: [
+              node,
+              ...graph.nodes.slice(1),
+            ],
+            edges,
+          },
+          { draggedNode: moved.id },
+        );
+        after.forEach((w, i) => {
+          const old = before[i]!;
+          if (
+            old === w ||
+            w.edge.source === node.id ||
+            w.edge.target === node.id ||
+            !free(old.points, [previous]) ||
+            !free(w.points, [current])
+          )
+            return;
+          const close = (a: Wire, b: Wire) =>
+            [...a.points, ...samples(a)].every(
+              (p) =>
+                b.points.some(
+                  (q, j) =>
+                    j > 0 &&
+                    segmentGap(
+                      p,
+                      q,
+                      b.points[j - 1]!,
+                    ) <= 20,
+                ),
+            );
+          if (!close(old, w) || !close(w, old))
+            failures.push(
+              step +
+                " " +
+                w.edge.source +
+                "→" +
+                w.edge.target,
+            );
+        });
+        before = after;
+        previous = current;
+      }
+      return check(failures, toEqual([]));
+    },
+  );
+}

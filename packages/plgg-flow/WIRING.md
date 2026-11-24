@@ -1242,3 +1242,22 @@ Withdrawn. The rule for round 29:
 - Exception, static only: a wire whose facing passage is closed by a
   node that touches (< 24u) one of its own two nodes may use the next
   side — this depends on a neighbour that is practically attached.
+
+## Round 29 review — adopted; work paused here at the user's request
+
+Sides are now a function of a wire's own two nodes; a blocked wire
+dents in place. Reviewer's audit run: sev3 0, moderate 126 → 98;
+`drag-jump` 16 → 4, `drag-jump-neighbour` 19 → 12, `slow-drag` 11 → 3;
+microservices and the org tree read cleanly on the sheet.
+
+The price, to pick up next:
+- `hub`/curve: dented wires cut across the fan again
+  (`siblings-cross` 13, `kink` 12). A dent in a fan must keep the
+  fan's order (via on the side where the wire's far end lies) and use
+  the standard fillet.
+- the remaining drag jumps are almost all step style: lane
+  optimisation, shoulder retraction and `mendFans` amplify a 5u lane
+  shift into 30–120u (Codex's frame-by-frame replay). Those passes
+  need to be continuous in their inputs.
+- orgTreeVertical: CEO→A, CEO→C leave the bottom and arrive at the
+  side (`awkward-side` 4); they should enter the top.

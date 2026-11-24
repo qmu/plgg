@@ -1,12 +1,12 @@
 import {
   socketRegion,
-  socketOption,
+  fixedCurve,
 } from "plgg-flow/wireCurvePairs";
-import { chooseSides } from "plgg-flow/wireSideChoice";
 import {
   curvePath,
   fillet,
 } from "plgg-flow/wireCurve";
+import { search } from "plgg-flow/wireSearch";
 import { materialize } from "plgg-flow/wirePath";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
@@ -28,10 +28,11 @@ import {
   required,
   distance,
   vertical,
-  facing,
   simplify,
   normal,
   obstacles,
+  gap,
+  facing,
   move,
   free,
   inflate,
@@ -56,6 +57,7 @@ export type WireStyle = "curve" | "step";
 export type WiringOptions = Readonly<{
   clearance?: number;
   radius?: number;
+  draggedNode?: string;
 }>;
 export type Wire = Readonly<{
   edge: Edge;
@@ -175,6 +177,7 @@ export const wireGraph = (
   const inputs: unknown[] = [
     clearance,
     radius,
+    options.draggedNode,
     graph.nodes.length,
     graph.edges.length,
   ];
@@ -228,11 +231,20 @@ export const wireGraph = (
   );
   // Each occurrence owns a lane even for a repeated edge object.
   const boxes = obstacles(graph);
-  const query = boundsIndex(boxes);
+  const moving = boxes.find(
+    (q) => q.id === options.draggedNode,
+  );
+  const query = boundsIndex(
+    boxes.filter((q) => q !== moving),
+  );
+  const fullQuery = moving
+    ? boundsIndex(boxes)
+    : query;
   const ports = planPorts(
     byId,
     visible.map((e) => ({ ...e })),
     query,
+    options.draggedNode !== undefined,
   );
 
   // Only wires with matching physical sockets share a bundle arc.
@@ -252,7 +264,7 @@ export const wireGraph = (
     membersByEdge.set(edge, members);
   }
   // Base paths depend only on the chosen sockets and nearby node boxes.
-  const guides = new Map<Edge, Wire[]>();
+  const stationaryQuery = query;
   const bases = ports.plans.map(
     ({ edge, a, b }) => {
       const s = {
@@ -276,6 +288,11 @@ export const wireGraph = (
         [s, t, ...(edge.waypoints ?? [])],
         3 * clearance,
       );
+      const query =
+        edge.source === moving?.id ||
+        edge.target === moving?.id
+          ? fullQuery
+          : stationaryQuery;
       const nearby = query(bounds);
       const route = (walls: typeof nearby) => {
         const key = JSON.stringify([
@@ -405,85 +422,74 @@ export const wireGraph = (
       };
       if (
         edge.via?.length &&
+        !a.book &&
         !edge.waypoints?.length &&
         (curve || edge.route === "step")
       ) {
-        const socket = (
-          end: typeof a,
-          via: (typeof edge.via)[number],
-        ) => {
-          const side = facing(
-            via.x - end.node.position.x,
-            via.y - end.node.position.y,
-          );
-          return {
-            ...portPosition(end.node, side, 0),
-            side,
-          };
-        };
-        const preferred = [
-          socket(a, edge.via[0]!),
-          socket(
-            b,
-            edge.via[edge.via.length - 1]!,
-          ),
-        ] satisfies [typeof s, typeof t];
-        for (const [start, end] of [
-          [s, t],
-          preferred,
-          [s, preferred[1]],
-          [preferred[0], t],
-        ] satisfies [typeof s, typeof t][]) {
-          const u = move(start, start.side, 16),
-            v = move(end, end.side, 16);
-          const guide = [u, ...edge.via, v];
-          const axis = vertical(start.side)
-            ? "y"
-            : "x";
-          const spine = simplify([
-            start,
-            ...guide.flatMap((p, i) => {
-              const q = guide[i + 1];
-              if (!q || curve) return [p];
-              const level =
-                (p[axis] + q[axis]) / 2;
-              return [
-                p,
-                { ...p, [axis]: level },
-                { ...q, [axis]: level },
-              ];
-            }),
-            end,
-          ]);
-          const path = fillet(spine);
-          const bounds = corridor(path, 10);
-          const walls = query(bounds).map((q) =>
-            q.id === edge.source ||
-            q.id === edge.target
-              ? q
-              : inflate(q, 8),
-          );
+        const u = move(s, s.side, 16),
+          v = move(t, t.side, 16);
+        const guide = [u, ...edge.via, v];
+        const axis = vertical(s.side) ? "y" : "x";
+        const spine = simplify([
+          s,
+          ...guide.flatMap((p, i) => {
+            const q = guide[i + 1];
+            if (!q || curve) return [p];
+            const level = (p[axis] + q[axis]) / 2;
+            return [
+              p,
+              { ...p, [axis]: level },
+              { ...q, [axis]: level },
+            ];
+          }),
+          t,
+        ]);
+        const walls = query(
+          corridor(spine, 100),
+        ).map((q) =>
+          q.id === edge.source ||
+          q.id === edge.target
+            ? q
+            : inflate(q, 8),
+        );
+        const knots = [spine[0]!];
+        for (let i = 1; i < spine.length; i++) {
+          const p = spine[i - 1]!,
+            q = spine[i]!;
+          if (free([p, q], walls)) knots.push(q);
+          else {
+            const run = search(
+              p,
+              q,
+              walls,
+              !curve,
+            );
+            if (!run) break;
+            knots.push(...run.slice(1));
+          }
+        }
+        if (
+          knots[knots.length - 1] === t ||
+          (knots[knots.length - 1]?.x === t.x &&
+            knots[knots.length - 1]?.y === t.y)
+        ) {
+          const path = fillet(knots);
           if (free(path, walls)) {
             const wire = materialize(
               edge,
-              start,
-              end,
+              s,
+              t,
               path,
-              spine.length - 2,
+              knots.length - 2,
             );
-            const group = guides.get(edge) ?? [];
-            group.push(wire);
-            guides.set(edge, group);
+            return {
+              wire: { ...wire, settled: true },
+              bounds: corridor(wire.points, 0),
+              token: 0,
+            };
           }
         }
       }
-      const guide = guides.get(edge)?.[0];
-      if (guide)
-        return {
-          wire: { ...guide, settled: true },
-          bounds: corridor(guide.points, 0),
-          token: 0,
-        };
       if (
         curve &&
         pair.length === 1 &&
@@ -491,15 +497,23 @@ export const wireGraph = (
         !edge.waypoints?.length
       ) {
         const walls = query(
-          socketRegion(a.node, b.node),
+          expand(
+            socketRegion(a.node, b.node),
+            clearance,
+          ),
+        ).map((q) =>
+          clearance > 18 &&
+          q.id !== edge.source &&
+          q.id !== edge.target
+            ? inflate(q, clearance - 7)
+            : q,
         );
-        const wire = socketOption(
+        const wire = fixedCurve(
           edge,
           s,
           t,
           walls,
-          true,
-        ).shape.wire;
+        );
         return member({
           wire,
           bounds: corridor(wire.points, 0),
@@ -575,6 +589,12 @@ export const wireGraph = (
     const base = required(bases[i]).wire;
     if (base.edge.via?.length && base.settled)
       return true;
+    if (
+      moving &&
+      (base.edge.source === moving.id ||
+        base.edge.target === moving.id)
+    )
+      return true;
     const route = base.edge.route;
     return !route || route === "curve";
   };
@@ -634,7 +654,7 @@ export const wireGraph = (
     if (group) group.push(region);
     else groups.set(id, [region]);
   }
-  let wires: Wire[] = bases.map((m) => m.wire);
+  const wires: Wire[] = bases.map((m) => m.wire);
   for (const group of groups.values()) {
     const plans = group.map((r) =>
       required(ports.plans[r.i]),
@@ -735,18 +755,109 @@ export const wireGraph = (
       break;
     }
   }
-  if (
-    ports.plans.some(
-      ({ edge }) =>
-        !edge.route || edge.route === "curve",
-    )
-  )
-    wires = chooseSides(
-      wires,
-      byId,
-      query,
-      guides,
-    );
+  if (moving) {
+    const padded = inflate(moving, clearance);
+    for (const [i, w] of wires.entries()) {
+      const edge = ports.plans[i]!.edge;
+      if (
+        edge.source === moving.id ||
+        edge.target === moving.id ||
+        free(w.points, [padded])
+      )
+        continue;
+      const s = {
+          ...w.source,
+          side: w.sourceSide,
+        },
+        t = { ...w.target, side: w.targetSide };
+      const walls = fullQuery(
+        expand(corridor(w.points, 0), 180),
+      );
+      if (
+        !edge.waypoints?.length &&
+        edge.route !== "straight"
+      ) {
+        const contact = w.points.flatMap(
+          (p, j) =>
+            j &&
+            gap(w.points[j - 1]!, p, padded) === 0
+              ? [j]
+              : [],
+        );
+        if (contact.length) {
+          const first = Math.max(
+              0,
+              contact[0]! - 2,
+            ),
+            last = Math.min(
+              w.points.length - 1,
+              contact[contact.length - 1]! + 1,
+            );
+          const start = w.points[first]!,
+            end = w.points[last]!,
+            next = w.points[first + 1]!,
+            prev = w.points[last - 1]!;
+          const from = {
+            ...start,
+            side:
+              first === 0
+                ? s.side
+                : facing(
+                    next.x - start.x,
+                    next.y - start.y,
+                  ),
+          };
+          const to = {
+            ...end,
+            side:
+              last === w.points.length - 1
+                ? t.side
+                : facing(
+                    prev.x - end.x,
+                    prev.y - end.y,
+                  ),
+          };
+          const detour =
+            edge.route === "step"
+              ? basePath(
+                  edge,
+                  from,
+                  to,
+                  walls,
+                  clearance,
+                  radius,
+                )
+              : fixedCurve(edge, from, to, walls);
+          const points = [
+            ...w.points.slice(0, first),
+            ...detour.points,
+            ...w.points.slice(last + 1),
+          ];
+          if (free(points, walls)) {
+            const { controls, ...trace } = w;
+            wires[i] = {
+              ...trace,
+              points,
+              corners: w.corners + detour.corners,
+            };
+            continue;
+          }
+        }
+      }
+      const rerouted =
+        edge.route === "step"
+          ? basePath(
+              edge,
+              s,
+              t,
+              walls,
+              clearance,
+              radius,
+            )
+          : fixedCurve(edge, s, t, walls);
+      wires[i] = { ...rerouted, edge };
+    }
+  }
   const departures = new Set(
     wires.map((w) =>
       JSON.stringify([

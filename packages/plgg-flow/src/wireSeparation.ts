@@ -1584,7 +1584,26 @@ export const separate = (
           ),
         )?.length ?? 0) > 2),
   );
-  wires = nested;
+  const laneShapes = nested.map(profile);
+  const laneIndex = neighbourIndex(laneShapes);
+  const clearLanes = laneShapes.map(
+    (shape, i) =>
+      shape.wire.edge.route === "step" &&
+      shape.turn <= 6.4 &&
+      !crossesItself([...shape.wire.points]) &&
+      !laneIndex
+        .query(shape)
+        .some(
+          ({ i: j }) =>
+            i !== j &&
+            conflict(shape, laneShapes[j]!, 12) >=
+              12,
+        ),
+  );
+  clearLanes.forEach((clear, i) => {
+    if (clear) settled[i] = true;
+  });
+  wires = nested.slice();
   if (
     bases.some((w) => w.edge.route === "step")
   ) {
@@ -2488,6 +2507,9 @@ export const separate = (
       walls,
       radius,
     );
+    clearLanes.forEach((clear, i) => {
+      if (clear) wires[i] = nested[i]!;
+    });
     // A socket fixes the first and last run. Retract displaced
     // shoulders together when their interior track is already free.
     const contours = wires.map(profile);
@@ -2711,6 +2733,43 @@ export const separate = (
       }
     }
     orderStemBranches(wires, fans.values());
+  }
+  // Keep the original lane when the repair would move the
+  // track and the lane still clears the final set of neighbours.
+  const finalShapes = wires.map(profile);
+  const finalIndex = neighbourIndex(finalShapes);
+  for (const [i, lane] of nested.entries()) {
+    if (
+      lane.edge.route !== "step" ||
+      lane.points === wires[i]?.points ||
+      crossesItself([...lane.points])
+    )
+      continue;
+    const shape = profile(lane),
+      final = required(finalShapes[i]);
+    if (
+      shape.turn > final.turn + 0.5 ||
+      shape.length > final.length + 24 ||
+      !free(lane.points, required(walls[i]))
+    )
+      continue;
+    if (
+      finalIndex
+        .query(shape)
+        .some(
+          ({ i: j }) =>
+            i !== j &&
+            conflict(
+              shape,
+              required(finalShapes[j]),
+              12,
+            ) >= 12,
+        )
+    )
+      continue;
+    wires[i] = lane;
+    finalShapes[i] = shape;
+    finalIndex.update(i, shape);
   }
   const laneOrigins = wires;
   // Preserve the channel adjustment for explicitly straight edges.

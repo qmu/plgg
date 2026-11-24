@@ -318,6 +318,11 @@ const routedScene = (state: Flow) => {
       )
       ? { nodes: state.nodes, edges: state.edges }
       : clipped,
+    isSome(state.drag) &&
+      state.drag.content.mode === "node" &&
+      state.drag.content.node !== undefined
+      ? { draggedNode: state.drag.content.node }
+      : {},
   );
   return { scene, wires };
 };
@@ -327,6 +332,7 @@ const sceneCache = new WeakMap<
     edges: Flow["edges"];
     branch: Flow["isolatedBranch"];
     overview: boolean;
+    draggedNode: string | undefined;
     section: Parameters<typeof sectionGraph>[1];
     layout: ReturnType<typeof routedScene>;
   }
@@ -340,8 +346,14 @@ const viewportLayout = (state: Flow) => {
     state.spatial?.overview &&
       state.camera.scale < 0.5,
   );
+  const draggedNode =
+    isSome(state.drag) &&
+    state.drag.content.mode === "node"
+      ? state.drag.content.node
+      : undefined;
   if (
     known &&
+    known.draggedNode === draggedNode &&
     known.edges === state.edges &&
     known.section === section &&
     known.branch === branch &&
@@ -351,6 +363,7 @@ const viewportLayout = (state: Flow) => {
   const layout = routedScene(state);
   sceneCache.set(state.nodes, {
     edges: state.edges,
+    draggedNode,
     section,
     branch,
     overview,

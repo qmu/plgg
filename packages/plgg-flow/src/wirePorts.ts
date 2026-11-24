@@ -1,4 +1,3 @@
-import { selectCurvePairs } from "plgg-flow/wireCurvePairs";
 import { type Bounds } from "plgg-flow/wireCorridors";
 import {
   type Box,
@@ -11,7 +10,6 @@ export type End = {
   peer: FlowNode;
   side: Side;
   book?: { page: number; depth: number };
-  skip?: boolean;
   depth?: number;
   bundleBranch?: boolean;
   rank: number;
@@ -56,7 +54,15 @@ const assignPages = (plans: Plan[]) => {
         !edge.waypoints?.length,
     )
     .map(({ a, b }) => {
-      const along = vertical(a.side) ? "x" : "y";
+      const along =
+        Math.abs(
+          a.node.position.x - b.node.position.x,
+        ) >
+        Math.abs(
+          a.node.position.y - b.node.position.y,
+        )
+          ? "x"
+          : "y";
       const across = along === "x" ? "y" : "x";
       const p = a.node.position,
         q = b.node.position;
@@ -103,36 +109,8 @@ export const planPorts = (
   nodes: ReadonlyMap<string, FlowNode>,
   edges: Edge[],
   query: (bounds: Bounds) => Box[],
+  dragging = false,
 ) => {
-  const cards = (
-    along: "x" | "y",
-    low: number,
-    high: number,
-    middle: number,
-    width: number,
-  ) => {
-    const bounds =
-      along === "x"
-        ? {
-            l: low,
-            r: high,
-            t: middle - width,
-            b: middle + width,
-          }
-        : {
-            t: low,
-            b: high,
-            l: middle - width,
-            r: middle + width,
-          };
-    return query(bounds).map((b) =>
-      required(nodes.get(b.id)),
-    );
-  };
-  const reach = new Map<
-    string,
-    { longest: number; total: number; ray: Point }
-  >();
   const degrees = new Map<string, number>();
   const means = new Map<string, Point>(),
     groups = new Map<string, End[]>(),
@@ -162,19 +140,6 @@ export const planPorts = (
         d = Math.hypot(dx, dy) || 1,
         k = key(n.id, start),
         old = means.get(k) ?? pt(0, 0);
-      const oldReach = reach.get(k);
-      if (n !== p)
-        reach.set(k, {
-          longest: Math.max(
-            d,
-            oldReach?.longest ?? 0,
-          ),
-          total: (oldReach?.total ?? 0) + d,
-          ray:
-            d > (oldReach?.longest ?? 0)
-              ? pt(dx, dy)
-              : required(oldReach).ray,
-        });
       degrees.set(
         k,
         (degrees.get(k) ?? 0) + Number(n !== p),
@@ -215,22 +180,12 @@ export const planPorts = (
       m = required(
         means.get(key(node.id, start)),
       );
-    const distances = reach.get(
-      key(node.id, start),
-    );
-    const axis =
-      distances &&
-      (degrees.get(key(node.id, start)) ?? 0) >=
-        3 &&
-      distances.longest > distances.total * 0.6
-        ? distances.ray
-        : m;
     let side =
       node === peer
         ? start
           ? "left"
           : "bottom"
-        : facing(axis.x, axis.y);
+        : facing(m.x, m.y);
     if (
       node !== peer &&
       (Math.hypot(m.x, m.y) <
@@ -297,302 +252,302 @@ export const planPorts = (
     }
   }
 
-  // Compare the peer with the spacing of this node's own row.
-  for (const entries of incident.values()) {
-    for (const { end, start } of entries) {
-      const { node, peer } = end;
-      if (node === peer) continue;
-      const dx =
-          peer.position.x - node.position.x,
-        dy = peer.position.y - node.position.y;
-      const along =
-          Math.abs(dx) > Math.abs(dy) ? "x" : "y",
-        across = along === "x" ? "y" : "x";
-      const span = Math.abs(
-        peer.position[along] -
-          node.position[along],
-      );
-      if (
-        Math.abs(
-          peer.position[across] -
-            node.position[across],
-        ) > 8
-      )
-        continue;
-      const low = Math.min(
-        node.position[along],
-        peer.position[along],
-      );
-      const row = cards(
-        along,
-        low - 200,
-        low + span + 200,
-        node.position[across],
-        12,
-      ).filter(
-        (n) =>
-          !n.group &&
-          Math.abs(
-            n.position[across] -
-              node.position[across],
-          ) < 12 &&
-          Math.abs(
-            n.position[along] -
-              (node.position[along] +
-                peer.position[along]) /
-                2,
-          ) <=
-            span * 0.5 + 200,
-      );
-      const q = box(node),
-        r = box(peer);
-      const spacing =
-        along === "x"
-          ? Math.max(q.r - q.l, r.r - r.l) * 1.7
-          : Math.max(q.b - q.t, r.b - r.t) * 3.8;
-      // A regular three-card span determines its own skip even at the end of a row.
-      const regular =
-        Math.abs(span / 2 - spacing) <
-          spacing * 0.2 &&
-        row.some(
-          (n) =>
-            n !== node &&
-            n !== peer &&
-            Math.abs(
-              n.position[along] -
-                (node.position[along] +
-                  peer.position[along]) /
-                  2,
-            ) < 8,
-        );
-      const between = row.filter(
-        (n) =>
-          (n.position[along] -
-            node.position[along]) *
-            (n.position[along] -
-              peer.position[along]) <
-          0,
-      );
-      const narrow = between.some((n) => {
-        const wall = box(n);
-        return (
-          gap(
-            node.position,
-            peer.position,
-            wall,
-          ) === 0 &&
-          Math.max(
-            Math.abs(
-              n.position[along] -
-                node.position[along],
-            ),
-            Math.abs(
-              n.position[along] -
-                peer.position[along],
-            ),
-          ) <
-            (along === "x"
-              ? q.r - q.l
-              : q.b - q.t) +
-              34
-        );
-      });
-      if (
-        (!regular &&
-          !narrow &&
-          row.length < 4 &&
-          (along !== "y" || span > 200)) ||
-        !between.length
-      )
-        continue;
-      if (
-        !narrow &&
-        span <
-          spacing * (along === "y" ? 1.2 : 1.5)
-      )
-        continue;
-      const forward =
-        peer.position[along] >
-        node.position[along];
-      // Put skips from the head of a row on one flank and interior skips on the other.
-      const vicinity = cards(
-        along,
-        low - 2.5 * spacing,
-        low + span + 2.5 * spacing,
-        node.position[across],
-        spacing * 3,
-      ).filter(
-        (n) =>
-          !n.group &&
-          n.position[along] >=
-            low - 2.5 * spacing &&
-          n.position[along] <=
-            low + span + 2.5 * spacing &&
-          Math.abs(
-            n.position[across] -
-              node.position[across],
-          ) <
-            spacing * 3,
-      );
-      const inRow =
-        vicinity.filter(
-          (n) =>
-            Math.abs(
-              n.position[across] -
-                node.position[across],
-            ) > 12,
-        ).length <= 1;
-      const even = inRow
-        ? !vicinity.some(
-            (n) => n.position[along] < low - 8,
+  // A skip spans a nearer aligned sibling. Its page depends on
+  // the continuations visible at its two ends.
+  for (const { a, b } of plans) {
+    const p = a.node.position,
+      q = b.node.position;
+    const qa = box(a.node),
+      qb = box(b.node);
+    if (
+      a.node !== b.node &&
+      qa.l < qb.r &&
+      qa.r > qb.l &&
+      qa.t < qb.b &&
+      qa.b > qb.t
+    ) {
+      // In the overlapping rectangle, join the two nearest adjacent faces.
+      const pairs = sides.flatMap((left) =>
+        sides
+          .filter(
+            (right) =>
+              vertical(right) !== vertical(left),
           )
-        : Math.round(span / spacing) % 2 === 0;
-      const flank = vicinity.filter(
-        (n) =>
-          n.position[along] >= low &&
-          n.position[along] <= low + span &&
+          .map((right) => ({
+            left,
+            right,
+            d: distance(
+              portPosition(a.node, left, 0),
+              portPosition(b.node, right, 0),
+            ),
+          })),
+      );
+      const nearest = pairs.sort(
+        (x, y) => x.d - y.d,
+      )[0]!;
+      a.side = nearest.left;
+      b.side = nearest.right;
+      continue;
+    }
+    const children = (
+      incident.get(a.node.id) ?? []
+    ).filter((entry) => entry.start);
+    if (
+      children.length > 1 &&
+      (children.some(
+        (child) =>
           Math.abs(
-            n.position[across] -
-              node.position[across],
-          ) < spacing,
-      );
+            child.end.peer.position.x - p.x,
+          ) > 8,
+      ) ||
+        !degrees.get(key(b.node.id, true))) &&
+      children.every(
+        (entry) =>
+          entry.end.peer.position.y > p.y,
+      ) &&
+      children.some(
+        (entry) =>
+          Math.abs(
+            entry.end.peer.position.x - p.x,
+          ) < 8,
+      ) &&
+      degrees.get(key(b.node.id, false)) === 1
+    ) {
+      a.side = "bottom";
+      b.side = "top";
+      continue;
+    }
+    for (const [hub, tip, start] of [
+      [a, b, true],
+      [b, a, false],
+    ] satisfies [End, End, boolean][]) {
+      const k = key(hub.node.id, start),
+        n = degrees.get(k) ?? 0,
+        m = means.get(k)!;
       if (
-        flank.some(
-          (n) =>
-            n.position[across] <
-            node.position[across] - 36,
-        ) &&
-        flank.some(
-          (n) =>
-            n.position[across] >
-            node.position[across] + 36,
-        )
-      )
-        continue;
-      Object.assign(end, {
-        skip: !inRow && !narrow,
-      });
-      const head = !vicinity.some(
-        (n) => n.position[along] < low - 8,
-      );
-      const tail = !vicinity.some(
-        (n) => n.position[along] > low + span + 8,
-      );
-      if (inRow && !narrow) {
-        const extent =
-          Math.max(
-            ...vicinity.map(
-              (n) => n.position[along],
-            ),
-          ) -
-          Math.min(
-            ...vicinity.map(
-              (n) => n.position[along],
-            ),
-          );
-        const exterior =
-          tail ||
-          (head && span <= (extent * 2) / 3);
-        const page =
-          head && tail && start !== forward
-            ? 1
-            : exterior
-              ? -1
-              : 1;
-        const depth =
-          23.5 +
-          7 * Math.max(0, between.length - 3);
-        Object.assign(end, {
-          book: { page, depth },
+        n >= 4 &&
+        Math.hypot(m.x, m.y) > 0.8 * n &&
+        degrees.get(key(tip.node.id, !start)) ===
+          1
+      ) {
+        Object.assign(hub, {
+          side: facing(m.x, m.y),
         });
-      }
-      const positive = narrow
-        ? along === "x"
-        : (start === forward) === even;
-
-      Object.assign(end, {
-        side:
-          along === "x"
-            ? positive
-              ? "top"
-              : "bottom"
-            : positive
-              ? "left"
-              : "right",
-      });
-    }
-  }
-  // Keep an aligned skip outside the fan of diagonal siblings.
-  for (const { a, b, edge } of plans) {
-    if (
-      !a.skip ||
-      !b.skip ||
-      a.side !== b.side ||
-      edge.waypoints?.length ||
-      (parallels.get(
-        JSON.stringify(
-          [edge.source, edge.target].sort(),
-        ),
-      )?.length ?? 0) > 1
-    )
-      continue;
-    const upright = vertical(a.side),
-      across = upright ? "y" : "x";
-    let bias = 0;
-    for (const [end, start] of [
-      [a, true],
-      [b, false],
-    ] satisfies [End, boolean][]) {
-      for (const peer of incident.get(
-        end.node.id,
-      ) ?? []) {
+        const main = hub.side;
+        const axis = vertical(main) ? "y" : "x",
+          across = axis === "x" ? "y" : "x";
+        const travel = normal[main][axis],
+          origin = hub.node.position;
+        const dx =
+            (tip.node.position[axis] -
+              origin[axis]) *
+            travel,
+          dy =
+            tip.node.position[across] -
+            origin[across];
+        const face = facing(
+          -normal[main].x,
+          -normal[main].y,
+        );
+        let side = face;
+        const opening = Math.abs(
+          portPosition(hub.node, main, 0)[axis] -
+            portPosition(tip.node, face, 0)[axis],
+        );
         if (
-          peer.start !== start ||
-          peer.end.peer === end.peer
-        )
-          continue;
-        const d =
-          peer.end.peer.position[across] -
-          end.node.position[across];
-        if (Math.abs(d) > 12)
-          bias += Math.sign(d);
+          n >= 6 &&
+          opening > 320 &&
+          opening <
+            6 *
+              Math.max(
+                box(tip.node).r - box(tip.node).l,
+                box(tip.node).b - box(tip.node).t,
+              ) &&
+          dx > 0 &&
+          Math.abs(dy) >
+            Math.abs(
+              portPosition(
+                tip.node,
+                vertical(main)
+                  ? "right"
+                  : "bottom",
+                0,
+              )[across] -
+                tip.node.position[across],
+            ) *
+              2
+        ) {
+          const pitch = Math.abs(dy / dx);
+          const bearings = (
+            incident.get(hub.node.id) ?? []
+          )
+            .filter(
+              (entry) =>
+                entry.start === start &&
+                entry.end.peer !== tip.node,
+            )
+            .map((entry) => {
+              const q = entry.end.peer.position;
+              return (
+                (Math.sign(dy) *
+                  (q[across] - origin[across])) /
+                ((q[axis] - origin[axis]) *
+                  travel)
+              );
+            })
+            .filter(
+              (v) => v > 0 && Number.isFinite(v),
+            );
+          const inner = bearings.filter(
+              (b) => b < pitch,
+            ),
+            outer = bearings.filter(
+              (b) => b > pitch,
+            );
+          if (
+            inner.length &&
+            outer.length &&
+            2 * (pitch - Math.max(...inner)) <
+              Math.min(...outer) - pitch
+          )
+            side =
+              across === "x"
+                ? facing(-dy, 0)
+                : facing(0, -dy);
+        }
+        Object.assign(tip, { side });
       }
     }
-    if (
-      !bias ||
-      Math.sign(bias) !== normal[a.side][across]
-    )
+    const along =
+      Math.abs(p.x - q.x) > Math.abs(p.y - q.y)
+        ? "x"
+        : "y";
+    const across = along === "x" ? "y" : "x";
+    if (Math.abs(p[across] - q[across]) > 8)
       continue;
-    const side: Side = upright
-      ? bias > 0
-        ? "top"
-        : "bottom"
-      : bias > 0
-        ? "left"
-        : "right";
-    const u = portPosition(a.node, side, 0),
-      v = portPosition(b.node, side, 0);
-    const l = move(u, side, 38),
-      r = move(v, side, 38);
-    const walls = query({
-      l: Math.min(u.x, v.x, l.x, r.x) - 10,
-      r: Math.max(u.x, v.x, l.x, r.x) + 10,
-      t: Math.min(u.y, v.y, l.y, r.y) - 10,
-      b: Math.max(u.y, v.y, l.y, r.y) + 10,
+    const peers = [a, b].flatMap((end) =>
+      (incident.get(end.node.id) ?? []).map(
+        (entry) => entry.end.peer.position,
+      ),
+    );
+    const lo = Math.min(p[along], q[along]),
+      hi = Math.max(p[along], q[along]);
+    const size = Math.max(
+      ...[a.node, b.node].map((node) => {
+        const rect = box(node);
+        return along === "x"
+          ? rect.r - rect.l
+          : rect.b - rect.t;
+      }),
+    );
+    const span = hi - lo;
+    const skipSpan =
+      size * (along === "x" ? 2.7 : 5.8);
+    if (span < skipSpan) continue;
+    const rowEnds = [a, b].map((end) => {
+      const rays = (
+        incident.get(end.node.id) ?? []
+      ).filter(
+        (entry) => entry.end.peer !== end.node,
+      );
+      const towards = Math.sign(
+        end.peer.position[along] -
+          end.node.position[along],
+      );
+      const orientation = (other: End) => {
+        const delta =
+          other.peer.position[along] -
+          end.node.position[along];
+        if (
+          !delta ||
+          Math.abs(
+            other.peer.position[across] -
+              end.node.position[across],
+          ) >
+            (span > 5 * size ? 0.45 : 0.035) *
+              Math.abs(delta)
+        )
+          return 0;
+        return Math.sign(delta) * towards;
+      };
+      return {
+        inside: rays.some(
+          (e) =>
+            e.end.peer !== end.peer &&
+            orientation(e.end) > 0,
+        ),
+        outside: rays.every(
+          (e) =>
+            (e.end.peer.position[along] -
+              end.node.position[along]) *
+              towards >=
+            0,
+        ),
+        twoWay:
+          rays.some((e) => e.start) &&
+          rays.some((e) => !e.start),
+        branch:
+          rays.filter((e) => e.start).length >
+            1 &&
+          rays.filter((e) => !e.start).length > 1,
+        returning: rays.some(
+          (e) =>
+            e.start &&
+            e.end.peer !== end.peer &&
+            orientation(e.end) > 0,
+        ),
+        low: end.node.position[along] === lo,
+      };
     });
     if (
-      walls.every(
-        (q) =>
-          q.id === a.node.id ||
-          q.id === b.node.id ||
-          (gap(u, l, q) >= 10 &&
-            gap(l, r, q) >= 10 &&
-            gap(r, v, q) >= 10),
+      !rowEnds.some((end) => end.inside) ||
+      (peers.some(
+        (peer) => peer[across] < p[across] - 36,
+      ) &&
+        peers.some(
+          (peer) => peer[across] > p[across] + 36,
+        ))
+    )
+      continue;
+    const reciprocal = parallels
+      .get(
+        JSON.stringify(
+          [a.node.id, b.node.id].sort(),
+        ),
       )
-    ) {
-      Object.assign(a, { side });
-      Object.assign(b, { side });
-    }
+      ?.some((e) => e.source === b.node.id);
+    if (
+      reciprocal &&
+      span <
+        3 *
+          Math.max(
+            a.node.width ?? 0,
+            b.node.width ?? 0,
+            size,
+          ) &&
+      !rowEnds.every((end) => end.inside)
+    )
+      continue;
+    const exterior = rowEnds.some(
+      (end, i) =>
+        end.outside &&
+        (end.twoWay || rowEnds[1 - i]!.branch) &&
+        !(end.low && rowEnds[1 - i]!.returning),
+    );
+    const page = rowEnds.every(
+      (end) => end.outside,
+    )
+      ? p[along] < q[along] &&
+        (reciprocal ||
+          !rowEnds.some(
+            (e) => !e.low && e.returning,
+          ))
+        ? -1
+        : 1
+      : exterior && !reciprocal
+        ? -1
+        : 1;
+    a.book = b.book = { page, depth: 23.5 };
   }
   assignPages(plans);
   // Opposite directions need distinct approaches at the same peer.
@@ -633,6 +588,114 @@ export const planPorts = (
           ? "top"
           : "bottom";
       Object.assign(end, { side });
+    }
+  }
+  // If a return fan surrounds its only arrival, its two halves
+  // depart on opposite flanks of the arrival face.
+  const splitSources = new Set<string>();
+  for (const entries of incident.values()) {
+    const incoming = entries.filter(
+        (e) => !e.start,
+      ),
+      outgoing = entries.filter((e) => e.start);
+    if (
+      incoming.length !== 1 ||
+      outgoing.length < 2
+    )
+      continue;
+    const inward = incoming[0]!.end,
+      p = inward.node.position;
+    const axis = vertical(inward.side)
+      ? "x"
+      : "y";
+    if (
+      outgoing.some(
+        (e) =>
+          e.end.peer === inward.peer ||
+          Math.abs(
+            e.end.peer.position[axis] - p[axis],
+          ) >
+            0.25 *
+              distance(e.end.peer.position, p),
+      )
+    )
+      continue;
+    const shifts = outgoing.map(
+      ({ end }) =>
+        end.peer.position[axis] - p[axis],
+    );
+    if (
+      !outgoing.every(
+        ({ end }) =>
+          !end.book &&
+          facing(
+            end.peer.position.x - p.x,
+            end.peer.position.y - p.y,
+          ) === inward.side,
+      ) ||
+      !shifts.some((d) => d > 8) ||
+      !shifts.some((d) => d < -8)
+    )
+      continue;
+    splitSources.add(inward.node.id);
+    outgoing.forEach(({ end }, i) => {
+      const shift = shifts[i]!;
+      if (Math.abs(shift) > 8)
+        Object.assign(end, {
+          side:
+            axis === "x"
+              ? facing(shift, 0)
+              : facing(0, shift),
+        });
+    });
+  }
+  for (const entries of incident.values()) {
+    const reciprocal = entries.filter(
+      (e) =>
+        e.start &&
+        entries.some(
+          (q) =>
+            !q.start && q.end.peer === e.end.peer,
+        ),
+    );
+    for (const { start, end } of entries) {
+      if (
+        start ||
+        end.book ||
+        splitSources.has(end.peer.id)
+      )
+        continue;
+      const p = end.node.position,
+        q = end.peer.position,
+        dx = q.x - p.x,
+        dy = q.y - p.y;
+      const short = reciprocal.find(
+        (e) =>
+          e.end.peer !== end.peer &&
+          distance(p, q) >
+            Math.max(
+              box(end.node).r - box(end.node).l,
+              box(end.node).b - box(end.node).t,
+            ) *
+              3 &&
+          facing(
+            e.end.peer.position.x - p.x,
+            e.end.peer.position.y - p.y,
+          ) === end.side,
+      );
+      if (!short) continue;
+      const lateral = vertical(end.side)
+        ? dx
+        : dy;
+      if (
+        Math.abs(lateral) > 8 &&
+        Math.abs(lateral) < distance(p, q) * 0.25
+      )
+        Object.assign(end, {
+          side: vertical(end.side)
+            ? facing(dx, 0)
+            : facing(0, dy),
+        });
     }
   }
   // Diagonal branches share the facing socket with the bundle.
@@ -705,11 +768,25 @@ export const planPorts = (
   // Leave room for a stem beside an overlapping peer.
   for (const entries of incident.values()) {
     const owner = required(entries[0]).end.node;
+    if (dragging) continue;
+    const bounds = box(owner);
     const neighbours = query(
-      inflate(box(owner), 22),
+      inflate(bounds, 24),
     ).filter(
       (q) =>
         q.id !== owner.id &&
+        Math.hypot(
+          Math.max(
+            q.l - bounds.r,
+            bounds.l - q.r,
+            0,
+          ),
+          Math.max(
+            q.t - bounds.b,
+            bounds.t - q.b,
+            0,
+          ),
+        ) < 24 &&
         !nodes.get(q.id)?.group,
     );
     for (const { end } of entries) {
@@ -719,7 +796,7 @@ export const planPorts = (
         const p = portPosition(node, side, 0);
         return neighbours.every(
           (q) =>
-            gap(p, move(p, side, 14), q) >= 6,
+            gap(p, move(p, side, 18), q) >= 6,
         );
       };
       if (clear(end.side)) continue;
@@ -834,90 +911,6 @@ export const planPorts = (
       seen.set(e.peer, previous + 1);
       e.rank = rank;
     });
-  }
-  if (
-    plans.some(
-      ({ edge }) =>
-        !edge.route || edge.route === "curve",
-    )
-  ) {
-    selectCurvePairs(
-      plans,
-      query,
-      (end, start) => {
-        const entries = required(
-          incident.get(end.node.id),
-        );
-        const m = required(
-          means.get(key(end.node.id, start)),
-        );
-        const degree =
-          degrees.get(key(end.node.id, start)) ??
-          0;
-        const dx =
-            end.peer.position.x -
-            end.node.position.x,
-          dy =
-            end.peer.position.y -
-            end.node.position.y;
-        const main = facing(m.x, m.y);
-        const common =
-          degree > 1 &&
-          Math.hypot(m.x, m.y) >= degree * 0.5 &&
-          dx * normal[main].x +
-            dy * normal[main].y >
-            0.26 * Math.hypot(dx, dy);
-        const allowed = sides.filter((side) => {
-          if (
-            side === end.side ||
-            dx * normal[side].x +
-              dy * normal[side].y <
-              0
-          )
-            return false;
-          if (
-            entries.some(
-              (e) =>
-                e.start !== start &&
-                e.end.side === side,
-            )
-          )
-            return false;
-          if (
-            entries.some(
-              (e) => e.end.side === side,
-            )
-          )
-            return true;
-          let best = -Infinity,
-            owner = start,
-            tie = "";
-          for (const other of entries) {
-            const p = other.end.peer.position,
-              q = end.node.position;
-            if (other.end.node === other.end.peer)
-              continue;
-            const score =
-              ((p.x - q.x) * normal[side].x +
-                (p.y - q.y) * normal[side].y) /
-              (distance(p, q) || 1);
-            const id =
-              other.end.peer.id +
-              Number(other.start);
-            if (
-              score > best ||
-              (score === best && id < tie)
-            ) {
-              best = score;
-              tie = id;
-              owner = other.start;
-            }
-          }
-          return owner === start;
-        });
-        return { common, main, allowed };
-      },
-    );
   }
   return { plans, parallels };
 };
