@@ -445,8 +445,7 @@ const laySpec =
         rooms: { rooms, axes },
         camera: {
           ...flow.camera,
-          turntable: true,
-          perspective: 0,
+          perspective: false,
         },
         snap: spec.snap ?? grid,
         ...allow(spec.rules),
@@ -486,10 +485,10 @@ const laySpec =
     return {
       ...rest,
       ...spec.graph,
-      ...(flow.camera.turntable && {
+      ...(rooms && {
         camera: {
           ...flow.camera,
-          turntable: false,
+          perspective: 0,
         },
       }),
       ...(spec.layout

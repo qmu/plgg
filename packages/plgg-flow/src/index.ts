@@ -1,5 +1,9 @@
 export * from "plgg-flow/model";
-export * from "plgg-flow/viewport";
+export { flowView } from "plgg-flow/sheetView";
+export {
+  groundSide,
+  type ViewRegistry,
+} from "plgg-flow/viewport";
 export * from "plgg-flow/graph";
 export type { Port } from "plgg-flow/connections";
 export type {

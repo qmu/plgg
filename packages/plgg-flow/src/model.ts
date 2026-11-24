@@ -1,4 +1,3 @@
-import { roomFor } from "plgg-flow/autoLayout";
 import type {
   RoomLayout,
   LayerOptions,
@@ -52,6 +51,9 @@ import type { SpatialView } from "plgg-flow/spatial";
 import type { Pinch } from "plgg-flow/gesture";
 import type { JsonObject } from "./metadata";
 export type FlowNode = Readonly<{
+  /** Allowed center positions in sheet coordinates, inclusive. */
+  within?: { min: Point3; max: Point3 };
+  quiet?: boolean;
   id: string;
   label: string;
   width?: number;
@@ -76,6 +78,7 @@ export type FlowNode = Readonly<{
   position: Point3;
 }>;
 export type Edge = Readonly<{
+  quiet?: boolean;
   arrows?:
     | "forward"
     | "backward"
@@ -98,6 +101,42 @@ export type Edge = Readonly<{
   highlighted?: boolean;
   hidden?: boolean;
 }>;
+/** Sheet-coordinate decorations. Behind and front bracket the graph;
+ * sorted primitives share its painter order at their mean depth.
+ * Tones are CSS colors. Label offsets and type sizes are screen pixels. */
+export type Scenery = {
+  layer: "behind" | "sorted" | "front";
+  tone: string;
+} & (
+  | {
+      kind: "plane";
+      points: readonly [
+        Point3,
+        Point3,
+        Point3,
+        Point3,
+      ];
+      fill: string;
+      opacity: number;
+    }
+  | {
+      kind: "line";
+      points: readonly Point3[];
+      /** Additional disconnected strokes with the same style. */ strokes?: readonly (readonly Point3[])[];
+      dotted?: boolean;
+    }
+  | {
+      kind: "label";
+      anchor: Point3;
+      offset: Point;
+      text: string;
+      size: number;
+      weight: number;
+      press?: Change;
+      enter?: Change;
+      leave?: Change;
+    }
+);
 export type CameraBookmark = Readonly<{
   name: string;
   camera: Camera;
@@ -134,6 +173,7 @@ export type Drag = Readonly<{
 }>;
 export type Flow = Graph &
   Readonly<{
+    scenery?: readonly Scenery[];
     frame?: Point;
     /** Logical width at the right of the frame that a
      * panel laid over the board hides; fitting keeps
@@ -141,7 +181,8 @@ export type Flow = Graph &
     cover?: number;
     rooms?: RoomLayout;
     roomPins?: Readonly<Record<string, string>>;
-    roomNode?: string | undefined;
+    hoveredEdge?: Edge | undefined;
+    hoveredNode?: string | undefined;
     roomHover?:
       | readonly [string, string]
       | undefined;
@@ -221,6 +262,35 @@ export const moveSelectionGeometry = (
   roots: readonly string[],
   delta: Point3,
 ) => {
+  if (flow.nodes.some((n) => n.within)) {
+    const moved = subtree(flow.nodes, roots);
+    for (const k of [
+      "x",
+      "y",
+      "z",
+    ] satisfies (keyof Point3)[]) {
+      let min = -Infinity,
+        max = Infinity;
+      for (const n of flow.nodes)
+        if (n.within && moved.has(n.id)) {
+          min = Math.max(
+            min,
+            n.within.min[k] - n.position[k],
+          );
+          max = Math.min(
+            max,
+            n.within.max[k] - n.position[k],
+          );
+        }
+      delta = {
+        ...delta,
+        [k]: Math.max(
+          min,
+          Math.min(max, delta[k]),
+        ),
+      };
+    }
+  }
   const nodes = encloseTrays(
     moveExpandingParents(
       flow.nodes,
@@ -567,12 +637,12 @@ export const viewAt =
     );
     const camera = {
       ...state.camera,
-      turntable: !!state.rooms,
       yaw,
       pitch,
-      perspective: state.rooms
-        ? 0
-        : tilt * tilt * (3 - 2 * tilt),
+      perspective:
+        state.camera.perspective === false
+          ? false
+          : tilt * tilt * (3 - 2 * tilt),
     };
     const pivot = state.spatial?.pivot
       ? state.nodes.find(
@@ -586,28 +656,7 @@ export const viewAt =
     // Pan and off-center zoom move the subject under the screen center.
     // Keep its depth when choosing the next pivot.
     const center =
-      (state.rooms?.rooms.length
-        ? {
-            x:
-              Math.max(
-                ...state.rooms.rooms.map(
-                  (r) => r.max.x,
-                ),
-              ) / 2,
-            y:
-              Math.max(
-                ...state.rooms.rooms.map(
-                  (r) => r.max.y,
-                ),
-              ) / 2,
-            z:
-              Math.max(
-                ...state.rooms.rooms.map(
-                  (r) => r.max.z,
-                ),
-              ) / 2,
-          }
-        : pivot?.position) ??
+      pivot?.position ??
       (previous &&
       Math.hypot(
         previous.x - screen.x,
@@ -636,17 +685,14 @@ export const orbitByDrag =
       Math.PI / frameOf(state).x;
     return viewAt(
       state.camera.yaw - dx * radiansPerUnit,
-      state.rooms
-        ? Math.max(
-            -0.2,
-            Math.min(
-              1.45,
-              state.camera.pitch -
-                dy * radiansPerUnit,
-            ),
-          )
-        : state.camera.pitch -
+      Math.max(
+        -Math.PI / 2,
+        Math.min(
+          Math.PI / 2,
+          state.camera.pitch -
             dy * radiansPerUnit,
+        ),
+      ),
     )(state);
   };
 export const front: Change = viewAt(0, 0);
@@ -738,7 +784,7 @@ const moveOnGrid = (
   return {
     ...geometry,
     nodes: geometry.nodes.map((n) => {
-      if (!moved.has(n.id)) return n;
+      if (!moved.has(n.id) || n.within) return n;
       const offset = boxDelta(
         n,
         { x: 0, y: 0 },
@@ -785,7 +831,7 @@ export const releasePointer: Change = (flow) => {
         flow.snap,
       )
     : {};
-  return settleRooms({ ...idle, ...geometry });
+  return { ...idle, ...geometry };
 };
 export const movePointer =
   (point: Point, pointer: number): Change =>
@@ -915,62 +961,76 @@ export const movePointer =
     const moving = state.nodes.find(
       (n) => n.id === d.node,
     );
+    const bound = moving?.within;
+    const flat =
+      bound &&
+      (
+        ["x", "y", "z"] satisfies (keyof Point3)[]
+      ).find(
+        (k) => bound.min[k] === bound.max[k],
+      );
     if (
       d.mode === "node" &&
-      moving &&
-      state.rooms
+      bound &&
+      flat &&
+      moving
     ) {
-      const room = roomFor(state.rooms, moving);
-      if (!room) return state;
+      const previous = d.first ?? d.last;
       const hit = (p: Point) =>
         pickPlane(
           state.camera,
           p,
-          "y",
-          room.max.y,
+          flat,
+          bound.min[flat],
         );
-      const previous = d.first ?? d.last;
-      const before = hit(previous),
-        after = hit(point);
-      if (!isSome(before) || !isSome(after))
-        return state;
-      const snap = state.snap;
-      const travel = (v: number) =>
-        snap ? Math.round(v / snap) * snap : v;
-      const x = travel(
-          after.content.x - before.content.x,
-        ),
-        z = travel(
-          after.content.z - before.content.z,
-        );
-      const first = project(state.camera)({
-        ...before.content,
-        x: before.content.x + x,
-        z: before.content.z + z,
-      });
-      const drag = some({
-        ...d,
-        last: point,
-        first: snap ? first : point,
-      });
-      if (!x && !z) return { ...state, drag };
-      const ids = new Set(selectedNodes(state));
-      return settleRooms({
-        ...state,
-        drag,
-        nodes: state.nodes.map((n) =>
-          ids.has(n.id) && !n.locked
-            ? {
-                ...n,
-                position: {
-                  ...n.position,
-                  x: n.position.x + x,
-                  z: n.position.z + z,
-                },
-              }
-            : n,
-        ),
-      });
+      const a = hit(previous),
+        b = hit(point);
+      if (isSome(a) && isSome(b)) {
+        const travel = (k: keyof Point3) => {
+          const v = b.content[k] - a.content[k];
+          return state.snap
+            ? Math.round(v / state.snap) *
+                state.snap
+            : v;
+        };
+        const delta = {
+          x: travel("x"),
+          y: travel("y"),
+          z: travel("z"),
+        };
+        if (!delta.x && !delta.y && !delta.z)
+          return {
+            ...state,
+            drag: some({
+              ...d,
+              last: point,
+              first: previous,
+            }),
+          };
+        const first = project(state.camera)({
+          x: a.content.x + delta.x,
+          y: a.content.y + delta.y,
+          z: a.content.z + delta.z,
+        });
+        return {
+          ...state,
+          ...moveConstrainedSelection(
+            state,
+            selectedNodes(state).filter(
+              (id) =>
+                !state.nodes.find(
+                  (n) => n.id === id,
+                )?.locked,
+            ),
+            delta,
+          ),
+          drag: some({
+            ...d,
+            last: point,
+            first,
+          }),
+        };
+      }
     }
     const depth = moving
       ? project(state.camera)(moving.position).z
@@ -1269,64 +1329,6 @@ export const pruneEmptyGroups: Change = (
       (n) => !removed.has(n.id),
     ),
   });
-};
-
-export const settleRooms: Change = (flow) => {
-  const layout = flow.rooms;
-  if (!layout) return flow;
-  return {
-    ...flow,
-    nodes: flow.nodes.map((n) => {
-      const room = roomFor(layout, n);
-      if (!room) return n;
-      const size = nodeSize(n);
-      const clamp = (
-        at: number,
-        extent: number,
-        min: number,
-        max: number,
-      ) =>
-        Math.max(
-          min + extent / 2,
-          Math.min(
-            Math.floor((max - extent) / grid) *
-              grid +
-              extent / 2,
-            at,
-          ),
-        );
-      if (
-        n.position.x - size.width / 2 >=
-          room.min.x &&
-        n.position.x + size.width / 2 <=
-          room.max.x &&
-        n.position.y ===
-          room.max.y - 16 - size.height / 2 &&
-        n.position.z >= room.min.z + 16 &&
-        n.position.z <= room.max.z - 16
-      )
-        return n;
-      return {
-        ...n,
-        position: {
-          x: clamp(
-            n.position.x,
-            size.width,
-            room.min.x,
-            room.max.x,
-          ),
-          y: room.max.y - 16 - size.height / 2,
-          z: Math.min(
-            room.max.z - 16,
-            Math.max(
-              room.min.z + 16,
-              n.position.z,
-            ),
-          ),
-        },
-      };
-    }),
-  };
 };
 
 export const resizeNode = (

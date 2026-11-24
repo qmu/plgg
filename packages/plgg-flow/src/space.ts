@@ -138,14 +138,14 @@ export const planSpace = (
             k = index(cell.address, "z");
           const lo = {
             x: min.x + slabs.x[i]!,
-            y: slabs.y[j]!,
+            y: extent.y - slabs.y[j + 1]!,
             z: min.z + slabs.z[k]!,
           };
           for (const n of cell.nodes) {
             const p = local.get(n.id)!;
             positions.set(n.id, {
               x: lo.x + p.x,
-              y: lo.y + p.y,
+              y: extent.y - slabs.y[j]! - p.y,
               z: lo.z + p.z,
             });
           }
@@ -164,7 +164,7 @@ export const planSpace = (
             min: lo,
             max: {
               x: min.x + slabs.x[i + 1]!,
-              y: slabs.y[j + 1]!,
+              y: extent.y - slabs.y[j]!,
               z: min.z + slabs.z[k + 1]!,
             },
           };

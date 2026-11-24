@@ -1,18 +1,19 @@
 import { flowView } from "plgg-flow/index";
 import { wireDepthRuns } from "plgg-flow/wireDepth";
 import { wireGraph } from "plgg-flow/wiring";
-import { portPosition } from "plgg-flow/nodeBody";
+import {
+  bodyDepth,
+  portPosition,
+} from "plgg-flow/nodeBody";
 import { project } from "plgg-board";
 import { viewAt } from "plgg-flow/model";
 import {
   roomFaceView,
   roomViews,
-  roomSocket,
   inSlab,
 } from "plgg-flow/roomCamera";
 import {
-  roomView,
-  roomPlate,
+  spaceScenery,
   roomLabels,
 } from "plgg-flow/roomView";
 import { renderToString } from "plgg-view";
@@ -28,7 +29,7 @@ import {
   movePointer,
   resizeNode,
   selectNodes,
-  settleRooms,
+  moveConstrainedSelection,
   type Drag,
   type FlowNode,
 } from "plgg-flow/model";
@@ -177,14 +178,10 @@ test("room DSL infers value order, ignores at, prints attributes and settles a d
       "layout rooms\naxis x kind\nnode C kind=z at 999 999\nnode B kind=a",
     ),
     n = flow.nodes[0]!,
-    p = settleRooms({
-      ...flow,
-      nodes: [
-        {
-          ...n,
-          position: { x: 5000, y: -500, z: 400 },
-        },
-      ],
+    p = moveConstrainedSelection(flow, [n.id], {
+      x: 5000,
+      y: -500,
+      z: 400,
     }).nodes[0]!,
     r = roomFor(flow.rooms!, n)!;
   const printed = printSpec(flow, []);
@@ -315,132 +312,30 @@ test("successive layers leave six squares between default boxes", () => {
   );
 });
 
-test("each camera paints cells far to near, each plate before its cards, and axes last", () => {
-  const original = read(sheet);
+test("named views draw the standard solid and dimension labels", () => {
+  const flow = read(sheet);
   return check(
     roomViews.every(([, yaw, pitch]) => {
-      const f = viewAt(yaw, pitch)(original),
-        at = project(f.camera),
-        html = renderToString(flowView(f));
-      const cells = f
-        .rooms!.rooms.map((cell) => {
-          const plate = html.indexOf(
-            renderToString(
-              roomPlate(cell, f.camera),
-            ),
-          );
-          const cards = cell.members.map((id) =>
-            html.indexOf(`data-node="${id}"`),
-          );
-          return {
-            plate,
-            cards,
-            depth:
-              (at(cell.min).z + at(cell.max).z) /
-              2,
-          };
-        })
-        .sort((a, b) => a.plate - b.plate);
-      return (
-        cells.every(
-          (c, i) =>
-            c.plate >= 0 &&
-            c.cards.every(
-              (index) => index > c.plate,
-            ) &&
-            (i === 0 ||
-              cells[i - 1]!.depth <= c.depth),
-        ) &&
-        html.indexOf("data-room-axis") >
-          html.lastIndexOf("data-node=")
+      const state = viewAt(yaw, pitch)(flow),
+        html = renderToString(flowView(state));
+      const { rooms, ...ordinaryState } = state;
+      const ordinary = renderToString(
+        flowView(ordinaryState),
       );
-    }),
-    toBe(true),
-  );
-});
-test("all four cameras keep the billboard upright and its sockets on the floor during a drag", () => {
-  const f = selectNodes(["A"])(read(sheet));
-  const node = f.nodes.find((n) => n.id === "A")!,
-    cell = roomFor(f.rooms!, node)!;
-  return check(
-    roomViews.every(([, yaw, pitch]) => {
-      const flow = viewAt(yaw, pitch)(f),
-        camera = flow.camera,
-        at = project(camera);
-      const close = (a: number, b: number) =>
-        Math.abs(a - b) < 1e-5;
-      const foot = {
-          ...node.position,
-          y: cell.max.y,
-        },
-        start = at(foot);
-      const left = at(
-          roomSocket(
-            node,
-            foot.y,
-            camera,
-            "left",
-          ),
-        ),
-        right = at(
-          roomSocket(
-            node,
-            foot.y,
-            camera,
-            "right",
-          ),
-        );
-      const end = at({
-        ...foot,
-        x: foot.x + 3,
-        z: foot.z + 2,
-      });
-      const drag = movePointer(
-        end,
-        1,
-      )({
-        ...flow,
-        snap: 0,
-        drag: some<Drag>({
-          mode: "node",
-          node: node.id,
-          pointer: 1,
-          last: start,
-        }),
-      });
-      const moved = drag.nodes.find(
-        (n) => n.id === node.id,
-      )!;
-      const html = renderToString(flowView(flow));
-      const zero = at({ x: 0, y: 0, z: 0 });
+      const faces = (markup: string) =>
+        markup
+          .match(
+            /<polygon[^>]*data-node-face[^>]*>/g,
+          )
+          ?.join("");
       return (
-        close(left.y, start.y) &&
-        close(right.y, start.y) &&
-        close(
-          right.x - left.x,
-          nodeSize(node).width * camera.scale,
-        ) &&
-        close(moved.position.x, foot.x + 3) &&
-        close(moved.position.z, foot.z + 2) &&
-        moved.position.y === node.position.y &&
-        html.includes(
-          `translate(${start.x} ${start.y - 16 * camera.scale}) scale(${camera.scale})`,
-        ) &&
-        ["x", "y", "z"].every((axis) => {
-          const p = at({
-            x: 0,
-            y: 0,
-            z: 0,
-            [axis]: 1,
-          });
-          return (
-            Math.hypot(
-              p.x - zero.x,
-              p.y - zero.y,
-            ) >=
-            0.12 * camera.scale
-          );
-        })
+        !!faces(html) &&
+        faces(html) === faces(ordinary) &&
+        spaceScenery(flow.rooms!, state).some(
+          (item) =>
+            item.kind === "label" &&
+            item.size === 9,
+        )
       );
     }),
     toBe(true),
@@ -495,19 +390,33 @@ test("two-block outline edges support their cuboids and axis labels clear cards 
     const occupied = f.nodes
       .filter((n) => !n.hidden)
       .map((n) => {
-        const r = roomFor(layout, n)!,
-          foot = at({
-            ...n.position,
-            y: r.max.y,
-          }),
-          half =
-            (nodeSize(n).width * f.camera.scale) /
-            2;
+        const { width, height } = nodeSize(n),
+          p = n.position,
+          d = bodyDepth(n);
+        const corners = [-1, 1].flatMap((i) =>
+          [-1, 1].flatMap((j) =>
+            [-1, 1].map((k) =>
+              at({
+                x: p.x + (i * width) / 2,
+                y: p.y + (j * height) / 2,
+                z: p.z + k * d,
+              }),
+            ),
+          ),
+        );
         return {
-          left: foot.x - half,
-          right: foot.x + half,
-          top: foot.y - 32 * f.camera.scale,
-          bottom: foot.y,
+          left: Math.min(
+            ...corners.map((q) => q.x),
+          ),
+          right: Math.max(
+            ...corners.map((q) => q.x),
+          ),
+          top: Math.min(
+            ...corners.map((q) => q.y),
+          ),
+          bottom: Math.max(
+            ...corners.map((q) => q.y),
+          ),
         };
       });
     const labels = roomLabels(
@@ -522,7 +431,10 @@ test("two-block outline edges support their cuboids and axis labels clear cards 
       const x = l.x + l.dx,
         y = l.y + l.dy,
         w = (l.value.length * 13) / 2;
-      if ("axis" in l) {
+      if (
+        "axis" in l &&
+        typeof l.axis === "string"
+      ) {
         if (
           occupied.some(
             (b) =>
@@ -605,7 +517,7 @@ test("camera changes preserve world positions and pins isolate a slab", () => {
       q.y === p.y &&
       pinned.nodes.every(
         (n) =>
-          !!n.hidden === (n.data?.env !== "live"),
+          !!n.quiet === (n.data?.env !== "live"),
       ),
     toBe(true),
   );
@@ -638,7 +550,7 @@ test("room labels clear one another and perspective stays bounded through a turn
         };
       });
       if (
-        camera.perspective !== 0 ||
+        Number(camera.perspective) !== 0 ||
         labels.some((a, i) =>
           labels
             .slice(i + 1)
@@ -655,76 +567,26 @@ test("room labels clear one another and perspective stays bounded through a turn
   return check(true, toBe(true));
 });
 
-test("inter-floor wires use one vertical riser at the upper socket in either direction", () => {
-  const flow = read(sheet);
-  const wires = [
-    { source: "A", target: "D" },
-    { source: "D", target: "A" },
-  ].flatMap((edge) =>
-    wireGraph({ ...flow, edges: [edge] }),
-  );
+test("space routes use standard flank sockets", () => {
+  const f = read(sheet);
   return check(
-    wires.length >= 2 &&
-      wires.every((w) => {
-        const rises = w.target.y < w.source.y;
-        const upper = rises ? w.target : w.source;
-        const run = rises
-          ? w.points.slice(0, -1)
-          : w.points.slice(1);
-        const foot = rises
-          ? run[run.length - 1]
-          : run[0];
-        const target = flow.nodes.find(
-          (n) => n.id === w.edge.target,
-        )!;
-        const socket = portPosition(
-          target,
-          w.targetSide,
-          0,
-        );
-        return (
-          w.target.x === socket.x &&
-          w.target.y === socket.y &&
-          foot?.x === upper.x &&
-          foot.z === upper.z &&
-          run.every(
-            (p) =>
-              p.y ===
-              Math.max(w.source.y, w.target.y),
-          )
-        );
-      }),
-    toBe(true),
-  );
-});
-
-test("hover and selection guide a room node to its three segment midpoints in one path", () => {
-  const flow = read(sheet);
-  const layout = flow.rooms!,
-    node = flow.nodes[0]!,
-    camera = viewAt(-0.32, 0.26)(flow).camera;
-  return check(
-    [
-      { ...flow, roomNode: node.id },
-      selectNodes([node.id])(flow),
-    ].every((state) => {
-      const html = renderToString(
-        roomView(layout, camera, state),
+    wireGraph(f).every((w) => {
+      const node = f.nodes.find(
+        (n) => n.id === w.edge.target,
+      )!;
+      const p = portPosition(
+        node,
+        w.targetSide,
+        0,
       );
       return (
-        /class="room-guides" d="M[^"]+L/.test(
-          html,
-        ) &&
-        html.match(/data-room-axis=/g)?.length ===
-          3 &&
-        html.match(/class="room-guides"/g)
-          ?.length === 1
+        w.target.z === p.z &&
+        (w.target.x === p.x || w.target.y === p.y)
       );
     }),
     toBe(true),
   );
 });
-
 test("a wire only splits where an overlapping node has ink on both sides of its depth", () => {
   const points = [
     { x: 0, y: 0, z: 0, scale: 1 },
@@ -752,46 +614,19 @@ test("a wire only splits where an overlapping node has ink on both sides of its 
   );
 });
 
-test("only an incident node or two pinned endpoints ink a room wire", () => {
-  const flow = viewAt(-0.62, 0.48)(read(sheet));
-  const tones = (state: typeof flow) =>
-    [
-      ...renderToString(flowView(state)).matchAll(
-        /class="edge room-wire-(ink|pencil)"[^>]*data-edge-index="0"/g,
-      ),
-    ].map((m) => m[1]);
-  const cases: readonly [typeof flow, string][] =
-    [
-      [flow, "pencil"],
-      [
-        { ...flow, roomHover: ["env", "live"] },
-        "pencil",
-      ],
-      [{ ...flow, roomNode: "B" }, "ink"],
-      [selectNodes(["A"])(flow), "ink"],
-      [
-        { ...flow, roomPins: { env: "live" } },
-        "ink",
-      ],
-      [
-        { ...flow, roomPins: { env: "test" } },
-        "hidden",
-      ],
-    ];
+test("quiet space wires gain ink on incident hover and selection", () => {
+  const f = read(sheet);
+  const quiet = (state: typeof f) =>
+    /class="edge quiet-wire"[^>]*data-edge-index="0"/.test(
+      renderToString(flowView(state)),
+    );
   return check(
-    cases.every(([state, tone]) => {
-      const runs = tones(state);
-      if (tone === "hidden")
-        return runs.length === 0;
-      return (
-        runs.length > 0 &&
-        runs.every((t) => t === tone)
-      );
-    }),
+    quiet(f) &&
+      !quiet({ ...f, hoveredNode: "B" }) &&
+      !quiet(selectNodes(["A"])(f)),
     toBe(true),
   );
 });
-
 test("roles and pinned slices round-trip independently of declaration order", () => {
   const source =
     'layout rooms\naxis owner one two\naxis env a b\naxis "x" left right\naxis region east west\naxis team red blue\nview row=owner pin=env=b y=x column=region x=team\nnode A env=a\nnode B env=b';

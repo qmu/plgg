@@ -1,19 +1,17 @@
-import { nodeSize } from "plgg-flow/nodeSize";
 import { roomFor } from "plgg-flow/autoLayout";
-import { some, none } from "plgg";
+import { bodyDepth } from "plgg-flow/nodeBody";
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   project,
+  unproject,
   type Camera,
   type Point3,
 } from "plgg-board";
-import {
-  onEvent,
-  attr,
-  el,
-  text,
-  type Html,
-} from "plgg-view";
-import type { Change, Flow } from "./model";
+import type {
+  Flow,
+  Scenery,
+  Change,
+} from "./model";
 import type {
   RoomLayout,
   Direction,
@@ -36,12 +34,6 @@ const stageBounds = (
     z: Math.max(...cells.map((c) => c.max.z)),
   },
 });
-const depthSign = (
-  camera: Camera,
-  d: Direction,
-) =>
-  project(camera)({ x: 0, y: 0, z: 0, [d]: 1 }).z;
-
 // Remove the part of a screen-space stroke inside each card.
 const clearLine = (
   x: number,
@@ -80,12 +72,10 @@ const clearLine = (
         ].filter(([u = 0, v = 1]) => u < v),
       );
   }
-  return spans
-    .map(
-      ([a = 0, b = 1]) =>
-        `M${x + a * dx} ${y + a * dy}L${x + b * dx} ${y + b * dy}`,
-    )
-    .join("");
+  return spans.map(([a = 0, b = 1]) => [
+    { x: x + a * dx, y: y + a * dy },
+    { x: x + b * dx, y: y + b * dy },
+  ]);
 };
 const groupsOf = (layout: RoomLayout) => {
   const groups = new Map<
@@ -143,6 +133,7 @@ const labelBox = (l: {
 type AxisLabel = {
   axis: Direction;
   letter: Direction;
+  z: number;
   x: number;
   y: number;
   dx: number;
@@ -169,19 +160,27 @@ const axisGeometry = (
   for (const node of nodes.filter(
     (n) => !n.hidden,
   )) {
-    const cell = roomFor(layout, node);
-    if (!cell) continue;
-    const foot = at({
-      ...node.position,
-      y: cell.max.y,
-    });
-    const half =
-      (nodeSize(node).width * camera.scale) / 2;
+    const size = nodeSize(node),
+      p = node.position,
+      d = bodyDepth(node);
+    const pts = corners(
+      {
+        x: p.x - size.width / 2,
+        y: p.y - size.height / 2,
+        z: p.z - d,
+      },
+      {
+        x: p.x + size.width / 2,
+        y: p.y + size.height / 2,
+        z: p.z + d,
+      },
+    ).map(at);
     cards.push({
-      left: foot.x - half - 4,
-      right: foot.x + half + 4,
-      top: foot.y - 32 * camera.scale - 4,
-      bottom: foot.y + 4,
+      left: Math.min(...pts.map((v) => v.x)) - 4,
+      right: Math.max(...pts.map((v) => v.x)) + 4,
+      top: Math.min(...pts.map((v) => v.y)) - 4,
+      bottom:
+        Math.max(...pts.map((v) => v.y)) + 4,
     });
   }
   occupied.push(...cards);
@@ -357,6 +356,7 @@ const axisGeometry = (
           const l: AxisLabel = {
             axis,
             letter: axis,
+            z: p.z,
             x: p.x,
             y: p.y,
             dx: dx * gap,
@@ -427,82 +427,88 @@ const axisGeometry = (
       } = chosen;
       occupied.push(...labels.map(labelBox));
       const path = hidden
-        ? `M${start.x} ${start.y}h0`
-        : mark(
-            start.x,
-            start.y,
-            tip.x - start.x,
-            tip.y - start.y,
-          ) +
-          mark(
-            tip.x,
-            tip.y,
-            -6 * tx + 3 * dx,
-            -6 * ty + 3 * dy,
-          ) +
-          mark(
-            tip.x,
-            tip.y,
-            -6 * tx - 3 * dx,
-            -6 * ty - 3 * dy,
-          ) +
-          labels
-            .flatMap((l) => {
-              if (!l.span) return [];
-              // A dimension line: from both ends of the value's
-              // stretch toward its name, which sits in the middle.
-              const { from, to } = l.span;
-              const length = Math.hypot(
-                to.x - from.x,
-                to.y - from.y,
-              );
-              if (!length) return [];
-              const ux = (to.x - from.x) / length,
-                uy = (to.y - from.y) / length;
-              const run =
-                length / 2 -
-                (Math.abs(ux) *
-                  l.size *
-                  l.value.length) /
-                  2 -
-                Math.abs(uy) * (l.size / 2) -
-                4;
-              const out = Math.hypot(l.dx, l.dy);
-              const over = out
-                ? (out + 3) / out
-                : 0;
-              return [
-                mark(
-                  from.x,
-                  from.y,
-                  l.dx * over,
-                  l.dy * over,
-                ),
-                mark(
-                  to.x,
-                  to.y,
-                  l.dx * over,
-                  l.dy * over,
-                ),
-                ...(run > 2
-                  ? [
-                      mark(
-                        from.x + l.dx,
-                        from.y + l.dy,
-                        ux * run,
-                        uy * run,
-                      ),
-                      mark(
-                        to.x + l.dx,
-                        to.y + l.dy,
-                        -ux * run,
-                        -uy * run,
-                      ),
-                    ]
-                  : []),
-              ];
-            })
-            .join("");
+        ? []
+        : [
+            ...mark(
+              start.x,
+              start.y,
+              tip.x - start.x,
+              tip.y - start.y,
+            ),
+            ...mark(
+              tip.x,
+              tip.y,
+              -6 * tx + 3 * dx,
+              -6 * ty + 3 * dy,
+            ),
+            ...mark(
+              tip.x,
+              tip.y,
+              -6 * tx - 3 * dx,
+              -6 * ty - 3 * dy,
+            ),
+            ...labels
+              .flatMap((l) => {
+                if (!l.span) return [];
+                // A dimension line: from both ends of the value's
+                // stretch toward its name, which sits in the middle.
+                const { from, to } = l.span;
+                const length = Math.hypot(
+                  to.x - from.x,
+                  to.y - from.y,
+                );
+                if (!length) return [];
+                const ux =
+                    (to.x - from.x) / length,
+                  uy = (to.y - from.y) / length;
+                const run =
+                  length / 2 -
+                  (Math.abs(ux) *
+                    l.size *
+                    l.value.length) /
+                    2 -
+                  Math.abs(uy) * (l.size / 2) -
+                  4;
+                const out = Math.hypot(
+                  l.dx,
+                  l.dy,
+                );
+                const over = out
+                  ? (out + 3) / out
+                  : 0;
+                return [
+                  mark(
+                    from.x,
+                    from.y,
+                    l.dx * over,
+                    l.dy * over,
+                  ),
+                  mark(
+                    to.x,
+                    to.y,
+                    l.dx * over,
+                    l.dy * over,
+                  ),
+                  ...(run > 2
+                    ? [
+                        mark(
+                          from.x + l.dx,
+                          from.y + l.dy,
+                          ux * run,
+                          uy * run,
+                        ),
+                        mark(
+                          to.x + l.dx,
+                          to.y + l.dy,
+                          -ux * run,
+                          -uy * run,
+                        ),
+                      ]
+                    : []),
+                ];
+              })
+              .flat(),
+          ];
       return {
         axis,
         letter: axis,
@@ -565,7 +571,10 @@ export const roomLabels = (
   layout: RoomLayout,
   camera: Camera,
   nodes: Flow["nodes"] = [],
-) => {
+): (
+  | AxisLabel
+  | ReturnType<typeof blockLabels>[number]
+)[] => {
   const local = {
     ...camera,
     origin: { x: 0, y: 0 },
@@ -581,371 +590,212 @@ export const roomLabels = (
     y: l.y + camera.origin.y,
   }));
 };
-export const roomStage = (
+const pencil = "var(--pencil,gray)",
+  ink = "var(--ink,black)";
+export const spaceScenery = (
   layout: RoomLayout,
-  camera: Camera,
-  pins?: Flow["roomPins"],
-) => {
-  const at = project(camera);
-
-  const path = (kind: string, d: string) =>
-    el<Change>(
-      "path",
-      [
-        attr("class", kind),
-        attr("d", d),
-        attr("fill", "none"),
-        attr(
-          "stroke",
-          kind === "room-pinned"
-            ? "var(--ink,black)"
-            : "var(--pencil,gray)",
-        ),
-      ],
-      [],
-    );
-  const blocks = groupsOf(layout).map((cells) => {
-    const { min, max } = stageBounds(cells);
-    const points = (p: Point3) => {
-      const q = at(p);
-      return q.x + " " + q.y;
-    };
+  flow: Flow,
+): Scenery[] => {
+  const camera = flow.camera;
+  const result: Scenery[] = [];
+  for (const cells of groupsOf(layout)) {
+    const bounds = stageBounds(cells);
     const rect = (
-      normal: Direction,
+      d: Direction,
       level: number,
-      lo = min,
-      hi = max,
-    ) => {
+      { min, max } = bounds,
+    ): [Point3, Point3, Point3, Point3] => {
       const [u, v] = directions.filter(
-        (d) => d !== normal,
+        (k) => k !== d,
       );
-      const p = { ...lo, [normal]: level };
-      return (
-        "M" +
-        points(p) +
-        "L" +
-        points({ ...p, [u!]: hi[u!] }) +
-        "L" +
-        points({ ...hi, [normal]: level }) +
-        "L" +
-        points({ ...p, [v!]: hi[v!] }) +
-        "Z"
-      );
+      const p = { ...min, [d]: level };
+      return [
+        p,
+        { ...p, [u!]: max[u!] },
+        { ...max, [d]: level },
+        { ...p, [v!]: max[v!] },
+      ];
     };
-    const line = (p: Point3, q: Point3) =>
-      "M" + points(p) + "L" + points(q);
-    const faces = directions.map((d) =>
-      path(
-        "room-face",
-        rect(
-          d,
-          depthSign(camera, d) >= 0
-            ? min[d]
-            : max[d],
-        ),
-      ),
+    const frame = (
+      box: typeof bounds,
+      tone: string,
+    ) => {
+      const strokes = directions.flatMap((d) =>
+        [box.min[d], box.max[d]].map((level) => {
+          const points = rect(d, level, box);
+          return [...points, points[0]];
+        }),
+      );
+      result.push({
+        kind: "line",
+        layer: "behind",
+        tone,
+        points: strokes[0]!,
+        strokes: strokes.slice(1),
+      });
+    };
+    frame(bounds, pencil);
+    const selected = cells.filter((c) =>
+      directions.every((d, i) => {
+        const attr = layout.axes[d]?.attribute;
+        return (
+          !attr ||
+          flow.roomPins?.[attr] === undefined ||
+          flow.roomPins[attr] === c.values[i]
+        );
+      }),
     );
-    let hull = "";
-    for (const cell of cells) {
+    for (const c of selected)
+      result.push({
+        kind: "plane",
+        layer: "sorted",
+        points: rect("y", c.max.y, c),
+        fill: "var(--wash,white)",
+        opacity: 0.45,
+        tone: pencil,
+      });
+    const rulings: Point3[][] = [];
+    for (const c of cells)
       for (const axis of [
         "x",
         "z",
       ] satisfies Direction[]) {
         const side = axis === "x" ? "z" : "x";
-        if (cell.max[axis] === max[axis])
+        if (c.max[axis] === bounds.max[axis])
           continue;
         for (const level of [
-          min[side],
-          max[side],
-        ]) {
+          bounds.min[side],
+          bounds.max[side],
+        ])
           if (
-            cell.min[side] !== level &&
-            cell.max[side] !== level
-          )
-            continue;
-          const p = {
-            ...cell.max,
-            [side]: level,
-          };
-          hull += line(p, {
-            ...p,
-            y: cell.min.y,
-          });
-        }
+            c.min[side] === level ||
+            c.max[side] === level
+          ) {
+            const p = { ...c.max, [side]: level };
+            rulings.push([
+              p,
+              { ...p, y: c.min.y },
+            ]);
+          }
       }
-    }
-    const selected = cells.filter((c) =>
-      directions.every((d, i) => {
-        const attribute =
-          layout.axes[d]?.attribute;
-        return (
-          !attribute ||
-          pins?.[attribute] === undefined ||
-          pins[attribute] === c.values[i]
-        );
-      }),
-    );
-    const pinned =
-      pins &&
-      Object.keys(pins).length &&
-      selected.length
-        ? stageBounds(selected)
-        : undefined;
-    return {
-      depth: (at(min).z + at(max).z) / 2,
-      items: [
-        ...faces,
-
-        path(
-          "room-hull",
-          directions
-            .map((d) =>
-              rect(
-                d,
-                depthSign(camera, d) >= 0
-                  ? max[d]
-                  : min[d],
-              ),
-            )
-            .join(""),
-        ),
-        path("room-ruling", hull),
-        ...(pinned
-          ? directions.flatMap((d) =>
-              [pinned.min[d], pinned.max[d]].map(
-                (level) =>
-                  path(
-                    "room-pinned",
-                    rect(
-                      d,
-                      level,
-                      pinned.min,
-                      pinned.max,
-                    ),
-                  ),
-              ),
-            )
-          : []),
-      ],
-    };
-  });
-  return el<Change>(
-    "g",
-    [
-      attr("class", "room-stage"),
-      attr("pointer-events", "none"),
-    ],
-    blocks
-      .sort((a, b) => a.depth - b.depth)
-      .flatMap((b) => b.items),
-  );
-};
-export const roomPlate = (
-  cell: RoomLayout["rooms"][number],
-  camera: Camera,
-) => {
-  const { min, max } = cell;
-  const at = project(camera);
-  const points = [
-    [min.x, min.z],
-    [max.x, min.z],
-    [max.x, max.z],
-    [min.x, max.z],
-  ].map(([x, z]) => {
-    const p = at({ x: x!, y: max.y, z: z! });
-    return p.x + " " + p.y;
-  });
-  return el<Change>(
-    "path",
-    [
-      attr("class", "room-storeys"),
-      attr("fill", "var(--paper, white)"),
-      attr("stroke", "var(--pencil, gray)"),
-      attr("d", "M" + points.join("L") + "Z"),
-    ],
-    [],
-  );
-};
-export const roomView = (
-  layout: RoomLayout,
-  view: Camera,
-  flow?: Flow,
-): Html<Change> => {
-  const camera = {
-    ...view,
-    origin: { x: 0, y: 0 },
-  };
-  const at = project(camera);
-  const labelEvents = (label: AxisLabel) => [
-    attr("class", "room-label"),
-    attr("pointer-events", "all"),
-    onEvent<Change>("pointerdown", (e) => {
-      e.stopPropagation();
-      return none();
-    }),
-    onEvent<Change>("pointerenter", () =>
-      some((s) => ({
-        ...s,
-        roomHover: label.clear
-          ? undefined
-          : [label.attribute, label.value],
-      })),
-    ),
-    onEvent<Change>("pointerleave", () =>
-      some((s) => ({
-        ...s,
-        roomHover: undefined,
-      })),
-    ),
-    onEvent<Change>("click", (e) => {
-      e.stopPropagation();
-      return some((s) => ({
-        ...s,
-        roomHover: undefined,
-        roomPins: label.clear
-          ? {}
-          : s.roomPins?.[label.attribute] ===
-              label.value
-            ? Object.fromEntries(
-                Object.entries(s.roomPins).filter(
-                  ([key]) =>
-                    key !== label.attribute,
-                ),
-              )
-            : {
-                ...s.roomPins,
-                [label.attribute]: label.value,
-              },
-      }));
-    }),
-  ];
+    if (rulings.length)
+      result.push({
+        kind: "line",
+        layer: "behind",
+        tone: "var(--trace,gray)",
+        points: rulings[0]!,
+        strokes: rulings.slice(1),
+      });
+    if (
+      selected.length &&
+      Object.keys(flow.roomPins ?? {}).length
+    )
+      frame(stageBounds(selected), ink);
+  }
   const axes = axisGeometry(
     layout,
     camera,
-    flow?.nodes,
+    flow.nodes,
   );
-  const node = flow?.nodes.find(
+  const addLines = (
+    segments: ReturnType<typeof clearLine>,
+  ) => {
+    const strokes = segments.map((segment) =>
+      segment.map((p) => unproject(camera, p, 0)),
+    );
+    if (strokes.length)
+      result.push({
+        kind: "line",
+        layer: "front",
+        tone: pencil,
+        dotted: true,
+        points: strokes[0]!,
+        strokes: strokes.slice(1),
+      });
+  };
+  for (const l of blockLabels(layout, camera))
+    result.push({
+      kind: "label",
+      layer: "front",
+      anchor: unproject(camera, l, l.z),
+      offset: { x: l.dx, y: l.dy },
+      text: l.value,
+      size: 13,
+      weight: 600,
+      tone: ink,
+    });
+  const node = flow.nodes.find(
     (n) =>
       n.id ===
-      (flow.roomNode ??
+      (flow.hoveredNode ??
         (flow.selected.__tag === "Some"
           ? flow.selected.content
           : undefined)),
   );
-  const room = node && roomFor(layout, node);
-  const guides =
-    node && room
-      ? axes
-          .filter(
-            (a) =>
-              a.axis !== "x" ||
-              a.block === room.block,
-          )
-          .map(({ axis, position, mark }) => {
-            const p = at({
-                ...node.position,
-                y: room.max.y,
-              }),
-              q = position(
-                (room.min[axis] +
-                  room.max[axis]) /
-                  2,
-              );
-            return mark(
-              p.x,
-              p.y,
-              q.x - p.x,
-              q.y - p.y,
-            );
-          })
-          .join("")
-      : "";
-  return el(
-    "g",
-    [
-      attr("class", "room-scene"),
-      attr(
-        "transform",
-        `translate(${view.origin.x} ${view.origin.y})`,
-      ),
-      attr("pointer-events", "none"),
-    ],
-    [
-      ...blockLabels(layout, camera).map((l) =>
-        el<Change>(
-          "text",
-          [
-            attr("x", String(l.x)),
-            attr("y", String(l.y + l.dy)),
-            attr("text-anchor", l.anchor),
-            attr("dominant-baseline", "middle"),
-          ],
-          [text(l.value)],
-        ),
-      ),
-      ...axes.map((a) =>
-        el<Change>(
-          "path",
-          [
-            attr("data-room-axis", a.letter),
-            attr("d", a.path),
-            attr("fill", "none"),
-            attr("stroke", "var(--pencil)"),
-            attr("stroke-width", "1"),
-            attr("stroke-linecap", "round"),
-            attr("stroke-dasharray", "1 3"),
-          ],
-          [],
-        ),
-      ),
-      ...(guides
-        ? [
-            el<Change>(
-              "path",
-              [
-                attr("class", "room-guides"),
-                attr("d", guides),
-                attr("stroke", "var(--pencil)"),
-                attr("stroke-dasharray", "2 4"),
-                attr("fill", "none"),
-              ],
-              [],
-            ),
-          ]
-        : []),
-      ...axes
-        .flatMap((a) => a.labels)
-        .map((l) =>
-          el<Change>(
-            "text",
-            [
-              attr("x", String(l.x + l.dx)),
-              attr("y", String(l.y + l.dy)),
-              attr("text-anchor", l.anchor),
-              attr("dominant-baseline", "middle"),
-              ...labelEvents(l),
-              attr(
-                "style",
-                `font-size:${l.size}px;font-weight:${l.clear || flow?.roomPins?.[l.attribute] === l.value ? 600 : 400};fill:var(--${!l.clear && flow?.roomPins?.[l.attribute] === l.value ? "ink" : "graphite"}) !important;text-decoration:${!l.clear && flow?.roomPins?.[l.attribute] === l.value ? "underline" : "none"}`,
-              ),
-            ],
-            l.clear
-              ? [
-                  el(
-                    "tspan",
-                    [
-                      attr(
-                        "style",
-                        "font-size:10px;fill:var(--pencil)",
-                      ),
-                    ],
-                    [text(l.letter + " ")],
-                  ),
-                  text(l.attribute),
-                ]
-              : [text(l.value)],
-          ),
-        ),
-    ],
-  );
+  const cell = node && roomFor(layout, node);
+  for (const axis of axes) {
+    addLines(axis.path);
+    if (
+      node &&
+      cell &&
+      (axis.axis !== "x" ||
+        axis.block === cell.block)
+    ) {
+      const p = project(camera)(node.position),
+        q = axis.position(
+          (cell.min[axis.axis] +
+            cell.max[axis.axis]) /
+            2,
+        );
+      addLines(
+        axis.mark(p.x, p.y, q.x - p.x, q.y - p.y),
+      );
+    }
+    for (const l of axis.labels) {
+      const pinned =
+        flow.roomPins?.[l.attribute] === l.value;
+      const press: Change = (s) => ({
+        ...s,
+        roomHover: undefined,
+        roomPins: l.clear
+          ? {}
+          : s.roomPins?.[l.attribute] === l.value
+            ? Object.fromEntries(
+                Object.entries(s.roomPins).filter(
+                  ([key]) => key !== l.attribute,
+                ),
+              )
+            : {
+                ...s.roomPins,
+                [l.attribute]: l.value,
+              },
+      });
+      result.push({
+        kind: "label",
+        layer: "front",
+        anchor: unproject(camera, l, l.z),
+        offset: { x: l.dx, y: l.dy },
+        text: l.clear
+          ? l.letter + " " + l.attribute
+          : l.value,
+        size: l.size,
+        weight: l.clear || pinned ? 600 : 400,
+        tone: pinned
+          ? ink
+          : "var(--graphite,gray)",
+        press,
+        enter: (s) => ({
+          ...s,
+          roomHover: l.clear
+            ? undefined
+            : [l.attribute, l.value],
+        }),
+        leave: (s) => ({
+          ...s,
+          roomHover: undefined,
+        }),
+      });
+    }
+  }
+  return result;
 };

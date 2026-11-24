@@ -1001,16 +1001,8 @@ const computeRooms = (
         )!.values[0]!;
   }
   const space = planSpace(data, view);
-  const sheet = (p: Point3) => ({
-    ...p,
-    y:
-      space.slabs.y[space.slabs.y.length - 1]! -
-      p.y,
-  });
   const rooms = space.blocks.flatMap((b, block) =>
     b.cells.map((c) => {
-      const lo = sheet(c.min),
-        hi = sheet(c.max);
       return {
         block,
         caption: [
@@ -1023,20 +1015,40 @@ const computeRooms = (
         occupied: !!c.nodes.length,
         index: c.index,
         values: c.values,
-        min: { ...lo, y: hi.y },
-        max: { ...hi, y: lo.y },
+        min: c.min,
+        max: c.max,
       };
     }),
   );
+  const layout = { axes, rooms };
   return {
-    axes,
-    rooms,
+    ...layout,
     graph: {
-      edges: graph.edges,
+      edges: graph.edges.map((e) => ({
+        ...e,
+        quiet: true,
+      })),
       nodes: graph.nodes.map((n) => {
         const p = space.place(n);
-        return p
-          ? { ...n, position: sheet(p) }
+        const cell = roomFor(layout, n);
+        const size = nodeSize(n);
+        return p && cell
+          ? {
+              ...n,
+              position: p,
+              within: {
+                min: {
+                  x: cell.min.x + size.width / 2,
+                  y: p.y,
+                  z: cell.min.z + 18,
+                },
+                max: {
+                  x: cell.max.x - size.width / 2,
+                  y: p.y,
+                  z: cell.max.z - 18,
+                },
+              },
+            }
           : n;
       }),
     },

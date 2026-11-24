@@ -1,26 +1,13 @@
-import { roomFor } from "plgg-flow/autoLayout";
-import {
-  roomSocket,
-  roomViews,
-  movingRooms,
-  roomFilter,
-  turnRooms,
-} from "plgg-flow/roomCamera";
+import { drawScenery } from "plgg-flow/scenery";
 import {
   wireDepthRuns,
   type Occluder,
 } from "plgg-flow/wireDepth";
-import {
-  roomStage,
-  roomPlate,
-  roomView,
-} from "plgg-flow/roomView";
 import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
 import {
   grid,
   nodeSize,
-  labelWidth,
 } from "plgg-flow/nodeSize";
 import {
   type Side,
@@ -85,7 +72,6 @@ import {
   visibleScene,
 } from "plgg-flow/hierarchy";
 import {
-  viewAt,
   releasePointer,
   beginStroke,
   movePointer,
@@ -403,10 +389,7 @@ export type ViewRegistry = Readonly<{
     (edge: Edge, state: Flow) => Html<Change>
   >;
 }>;
-const routedScene = (
-  state: Flow,
-  rooms: Flow["rooms"],
-) => {
+const routedScene = (state: Flow) => {
   const whole = visibleScene(
     state,
     state.isolatedBranch,
@@ -426,10 +409,7 @@ const routedScene = (
     ),
   };
   const wires = wireGraph(
-    {
-      ...clipped,
-      ...(rooms && { rooms }),
-    },
+    clipped,
     isSome(state.drag) &&
       state.drag.content.mode === "node" &&
       state.drag.content.node !== undefined
@@ -442,7 +422,6 @@ const sceneCache = new WeakMap<
   Flow["nodes"],
   {
     edges: Flow["edges"];
-    rooms: Flow["rooms"];
     branch: Flow["isolatedBranch"];
     overview: boolean;
     draggedNode: string | undefined;
@@ -453,7 +432,6 @@ const sceneCache = new WeakMap<
 // Visibility can synthesize edges; keep their identities across preview frames.
 const viewportLayout = (state: Flow) => {
   const known = sceneCache.get(state.nodes);
-  const rooms = state.rooms;
   const section = state.spatial?.section,
     branch = state.isolatedBranch;
   const overview = Boolean(
@@ -468,16 +446,14 @@ const viewportLayout = (state: Flow) => {
   if (
     known &&
     known.draggedNode === draggedNode &&
-    known.rooms === rooms &&
     known.edges === state.edges &&
     known.section === section &&
     known.branch === branch &&
     known.overview === overview
   )
     return known.layout;
-  const layout = routedScene(state, rooms);
+  const layout = routedScene(state);
   sceneCache.set(state.nodes, {
-    rooms,
     edges: state.edges,
     draggedNode,
     section,
@@ -488,7 +464,6 @@ const viewportLayout = (state: Flow) => {
   return layout;
 };
 type Layer = {
-  withinCell?: number;
   depth: number;
   chosen?: boolean;
   arrow?: boolean;
@@ -514,33 +489,8 @@ const bodies = new WeakMap<
   {
     camera: Camera;
     solid: ReturnType<typeof projectNodeBody>;
-    rooms: boolean;
   }
 >();
-const billboardBody = (
-  node: FlowNode,
-  depth: number,
-): ReturnType<typeof projectNodeBody> => {
-  const half = nodeSize(node).width / 2;
-  const points = [
-    { x: -half, y: -16, z: depth },
-    { x: half, y: -16, z: depth },
-    { x: half, y: 16, z: depth },
-    { x: -half, y: 16, z: depth },
-  ];
-  return {
-    visible: [
-      {
-        side: "front",
-        indices: [0, 1, 2, 3],
-        light: 95,
-        points,
-      },
-    ],
-    caption: [1, 0, 0, 1, 0, 0],
-    depth,
-  };
-};
 const polygonPoints = (
   points: readonly Point[],
 ) => points.map((p) => p.x + "," + p.y).join(" ");
@@ -557,15 +507,6 @@ const matches = (
 ) =>
   old.length === next.length &&
   old.every((v, i) => v === next[i]);
-// Pan and zoom are a single affine transform after perspective projection.
-const roomLayers = new WeakMap<
-  Flow["nodes"],
-  {
-    inputs: unknown[];
-    camera: Camera;
-    html: Html<Change>;
-  }
->();
 const defaultLabel = (
   node: FlowNode,
 ): Html<Change> =>
@@ -574,29 +515,6 @@ const defaultLabel = (
     [a("text-anchor", "middle"), a("y", 5)],
     [text(node.label)],
   );
-const roomCaption = (node: FlowNode) => {
-  const { width, height } = nodeSize(node);
-  // One size for every card: a card is a sign, not a caption
-  // that grows where there happens to be room.
-  const size = Math.min(
-    13,
-    height - 2,
-    (13 * (width - 4)) /
-      Math.max(1, labelWidth(node.label)),
-  );
-  return el<Change>(
-    "text",
-    [
-      a("text-anchor", "middle"),
-      a("dominant-baseline", "central"),
-      a(
-        "style",
-        `font-size:${Math.max(1, size)}px`,
-      ),
-    ],
-    [text(node.label)],
-  );
-};
 const scrollHint = (hint: number, frame: Point) =>
   el<Change>(
     "g",
@@ -652,7 +570,7 @@ const emptyPreview = () =>
     [key("connection-preview")],
     [],
   );
-export const flowView = (
+export const drawFlow = (
   flow: Flow,
   renderLabel: (
     node: FlowNode,
@@ -663,18 +581,13 @@ export const flowView = (
     trayFrames.get(flow.nodes) ??
     encloseTrays(flow.nodes);
   trayFrames.set(flow.nodes, framed);
-  const state = movingRooms(
+  const state =
     framed === flow.nodes
       ? flow
-      : { ...flow, nodes: framed },
+      : { ...flow, nodes: framed };
+  const scenery = (state.scenery ?? []).map(
+    (item) => drawScenery(item, state.camera),
   );
-  const filter = roomFilter(flow);
-  const muted = (n: FlowNode) =>
-    !!flow.rooms &&
-    Object.entries(filter).some(
-      ([key, value]) =>
-        (n.data?.[key] ?? "—") !== value,
-    );
   const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
   const ports = portsFor(state);
@@ -684,7 +597,6 @@ export const flowView = (
   type Socket = {
     point: Point3;
     handle: string | undefined;
-
     direction: Port["direction"];
   };
   const attachments = new Map<
@@ -728,21 +640,9 @@ export const flowView = (
       }
     }
   const chosen = new Set(selectedNodes(state));
-  const floor = (n: FlowNode) =>
-    state.rooms && roomFor(state.rooms, n)?.max.y;
-  const socketWorld = (n: FlowNode, side: Side) =>
-    roomSocket(
-      n,
-      floor(n) ?? n.position.y,
-      state.camera,
-      side,
-    );
   const projected = projectLayer(
     state.camera,
-    (n: FlowNode) => ({
-      ...n.position,
-      y: floor(n) ?? n.position.y,
-    }),
+    (n: FlowNode) => n.position,
   )(scene.nodes).map(({ item, point }) => {
     const scale = projectedScale(
       state.camera,
@@ -750,11 +650,8 @@ export const flowView = (
     );
     return {
       ...item,
-      ...(state.rooms && { height: 32 }),
       item,
-      p: state.rooms
-        ? { ...point, y: point.y - 16 * scale }
-        : point,
+      p: point,
       scale,
     };
   });
@@ -811,32 +708,17 @@ export const flowView = (
       string,
       Record<Side, boolean>
     >();
-    const at = project(state.camera);
-    const cellDepth = (
-      n: FlowNode,
-      depth: number,
-    ) => {
-      const room =
-        state.rooms && roomFor(state.rooms, n);
-      return room
-        ? (at(room.min).z + at(room.max).z) / 2
-        : depth;
-    };
     const layers: Layer[] = drawNodes.map((n) => {
       // The projected geometry is shared by drawing and hit targets.
       const cached = bodies.get(n.item);
       const solid =
-        cached?.camera === state.camera &&
-        cached.rooms === !!state.rooms
+        cached?.camera === state.camera
           ? cached.solid
-          : state.rooms
-            ? billboardBody(n, n.p.z)
-            : projectNodeBody(n, state.camera);
+          : projectNodeBody(n, state.camera);
       if (cached?.solid !== solid)
         bodies.set(n.item, {
           camera: state.camera,
           solid,
-          rooms: !!state.rooms,
         });
       const hue = state.spatial?.depthColor
         ? 210 -
@@ -874,7 +756,6 @@ export const flowView = (
             })),
           ),
         );
-
       const drag = isSome(state.drag)
         ? state.drag.content
         : undefined;
@@ -888,11 +769,14 @@ export const flowView = (
           original &&
           (original.width !== n.width ||
             original.height !== n.height));
+      const quiet =
+        n.quiet &&
+        state.hoveredNode !== n.id &&
+        !chosen.has(n.id);
       const inputs = [
-        !!state.rooms,
         extent,
         state.camera,
-        muted(n),
+        quiet,
         chosen.has(n.id),
         state.spatial?.depthColor,
         isSome(state.source),
@@ -992,11 +876,8 @@ export const flowView = (
                   ? " — " + description
                   : "");
               const offset = 0;
-              const socket = state.rooms
-                ? project(state.camera)(
-                    socketWorld(n, side),
-                  )
-                : used && n.group && !n.collapsed
+              const socket =
+                used && n.group && !n.collapsed
                   ? project(state.camera)(
                       used.point,
                     )
@@ -1058,43 +939,40 @@ export const flowView = (
           );
         });
       const value = {
-        withinCell: n.p.z,
-        depth: cellDepth(
-          n,
-          state.rooms ? n.p.z : solid.depth,
-        ),
+        depth: solid.depth,
         html: lazy(deferred, () =>
           el<Change>(
             "g",
             [
               a("data-node", n.id),
-              ...(state.rooms
-                ? [
-                    onEvent<Change>(
-                      "pointerenter",
-                      () =>
-                        some((s) => ({
+              onEvent<Change>(
+                "pointerenter",
+                () =>
+                  some((s) => ({
+                    ...s,
+                    hoveredNode: n.id,
+                  })),
+              ),
+              onEvent<Change>(
+                "pointerleave",
+                () =>
+                  some((s) =>
+                    s.hoveredNode === n.id
+                      ? {
                           ...s,
-                          roomNode: n.id,
-                        })),
-                    ),
-                    onEvent<Change>(
-                      "pointerleave",
-                      () =>
-                        some((s) =>
-                          s.roomNode === n.id
-                            ? {
-                                ...s,
-                                roomNode:
-                                  undefined,
-                              }
-                            : s,
-                        ),
+                          hoveredNode: undefined,
+                        }
+                      : s,
+                  ),
+              ),
+              ...(quiet
+                ? [
+                    a("class", "quiet-node"),
+                    a(
+                      "fill",
+                      "var(--pencil,gray)",
                     ),
                   ]
-                : []),
-              ...(muted(n)
-                ? [a("class", "room-muted")]
                 : []),
               a("tabindex", 0),
               a("role", "button"),
@@ -1209,24 +1087,23 @@ export const flowView = (
                     ),
                     a(
                       "fill",
-                      state.rooms
-                        ? "var(--paper, white)"
-                        : "hsl(" +
-                            hue +
-                            " " +
-                            (state.spatial
-                              ?.depthColor
-                              ? 50
-                              : 16) +
-                            "% " +
-                            face.light +
-                            "%)",
+                      "hsl(" +
+                        hue +
+                        " " +
+                        (state.spatial?.depthColor
+                          ? 50
+                          : 16) +
+                        "% " +
+                        face.light +
+                        "%)",
                     ),
                     a(
                       "stroke",
                       chosen.has(n.id)
                         ? "#ed623a"
-                        : "#718e89",
+                        : quiet
+                          ? "var(--pencil,gray)"
+                          : "#718e89",
                     ),
                     a("stroke-linejoin", "round"),
                   ],
@@ -1240,9 +1117,7 @@ export const flowView = (
                       a("data-node-caption", ""),
                       a(
                         "transform",
-                        state.rooms
-                          ? `translate(${solid.caption[4]} ${solid.caption[5]})`
-                          : `matrix(${solid.caption.join(" ")})`,
+                        `matrix(${solid.caption.join(" ")})`,
                       ),
                     ],
                     [
@@ -1273,12 +1148,7 @@ export const flowView = (
                           ),
                           a("overflow", "hidden"),
                         ],
-                        [
-                          state.rooms &&
-                          render === defaultLabel
-                            ? roomCaption(n)
-                            : render(n, state),
-                        ],
+                        [render(n, state)],
                       ),
                     ],
                   )
@@ -1392,28 +1262,18 @@ export const flowView = (
         ]?.some((s) => s.direction === "source" && s.point.x === wire.target.x && s.point.y === wire.target.y && s.point.z === wire.target.z);
       const originalIndex =
         originalIndices.get(original);
-      const pins = Object.entries(
-        state.roomPins ?? {},
-      );
-      const roomTone = !state.rooms
-        ? ""
-        : chosenWire ||
-            [from, to].some(
-              (n) =>
-                n.id === state.roomNode ||
-                chosen.has(n.id),
-            ) ||
-            (pins.length > 0 &&
-              pins.every(([k, v]) =>
-                [from, to].every(
-                  (n) =>
-                    (n.data?.[k] ?? "—") === v,
-                ),
-              ))
-          ? " room-wire-ink"
-          : " room-wire-pencil";
+      const tone =
+        original.quiet &&
+        state.hoveredEdge !== original &&
+        !chosenWire &&
+        !chosen.has(from.id) &&
+        !chosen.has(to.id) &&
+        state.hoveredNode !== from.id &&
+        state.hoveredNode !== to.id
+          ? " quiet-wire"
+          : "";
       const inputs = [
-        roomTone,
+        tone,
         index,
         original,
         state.camera,
@@ -1421,7 +1281,6 @@ export const flowView = (
         sharedArrival,
         originalIndex,
         flat ? undefined : state.nodes,
-
         frame,
         state.ink,
         cull,
@@ -1449,39 +1308,8 @@ export const flowView = (
         chosenWire && !turned.get(id)?.[side]
           ? Infinity
           : above(id, side, depth);
-      const roomRoute = () => {
-        const source = socketWorld(
-            from,
-            wire.sourceSide,
-          ),
-          target = socketWorld(
-            to,
-            wire.targetSide,
-          );
-        const run = wire.points.slice(1, -1);
-        // Keep the riser vertical when a billboard socket rotates around its foot.
-        if (source.y !== target.y && run.length) {
-          const floor = Math.max(
-            source.y,
-            target.y,
-          );
-          const upper =
-            source.y < target.y ? source : target;
-          const corner =
-            upper === source ? 0 : run.length - 1;
-          return [
-            source,
-            ...run.map((point, i) => ({
-              ...(i === corner ? upper : point),
-              y: floor,
-            })),
-            target,
-          ];
-        }
-        return [source, ...run, target];
-      };
       const knots = bridgePoints(
-        state.rooms ? roomRoute() : wire.points,
+        wire.points,
         wire.lift,
         flat,
       );
@@ -1517,11 +1345,9 @@ export const flowView = (
       )
         continue;
       // A face-on camera shows the whole stroke without depth seams.
-
       const controls = wire.controls;
       const line =
         flat &&
-        !state.rooms &&
         controls &&
         (wire.source.z === wire.target.z ||
           !state.camera.perspective)
@@ -1558,6 +1384,31 @@ export const flowView = (
                 .join("")
             : "";
       const events = () => [
+        ...(original.quiet
+          ? [
+              onEvent<Change>(
+                "pointerenter",
+                () =>
+                  some((s) => ({
+                    ...s,
+                    hoveredEdge: original,
+                  })),
+              ),
+              onEvent<Change>(
+                "pointerleave",
+                () =>
+                  some((s) =>
+                    s.hoveredEdge === original
+                      ? {
+                          ...s,
+                          hoveredEdge: undefined,
+                        }
+                      : s,
+                  ),
+              ),
+            ]
+          : []),
+
         onEvent<Change>("pointerdown", (e) => {
           if (
             !(e instanceof PointerEvent) ||
@@ -1719,28 +1570,16 @@ export const flowView = (
                   // to stroke colours
                   a("stroke-opacity", 0),
                   a("stroke-width", hitWidth),
-                  ...(state.rooms
-                    ? [
-                        a(
-                          "style",
-                          `stroke-width:calc(${hitWidth}px * var(--hit-scale, 1))`,
-                        ),
-                      ]
-                    : []),
-                  a("stroke-linecap", "round"),
                   a("pointer-events", "stroke"),
                 ],
                 [],
               ),
-
               visible,
             ])
           : el("g", attributes, [visible]);
       };
       let length = 0;
-      const runs = state.rooms
-        ? [points]
-        : wireDepthRuns(points, boxes);
+      const runs = wireDepthRuns(points, boxes);
       for (const [
         indexInWire,
         run,
@@ -1766,8 +1605,8 @@ export const flowView = (
           1,
           Math.max(0, (depth + 300) / 600),
         );
-        const color = state.rooms
-          ? "var(--room-tone, var(--pencil))"
+        const color = tone
+          ? "var(--pencil,gray)"
           : edge.highlighted
             ? "#e36731"
             : `hsl(174 28% ${60 - fade * 38}%)`;
@@ -1806,7 +1645,7 @@ export const flowView = (
                 "class",
                 (edge.animated
                   ? "edge animated"
-                  : "edge") + roomTone,
+                  : "edge") + tone,
               ),
               a("d", path),
               a(
@@ -1898,64 +1737,54 @@ export const flowView = (
             ? wire.target
             : wire.arrow.at,
         );
-        const tip = state.rooms
-          ? points[
-              atStart ? 0 : points.length - 1
-            ]!
-          : atStart
-            ? sample(0)
-            : {
-                ...at,
-                scale: projectedScale(
-                  state.camera,
-                  at.z,
-                ),
-              };
+        const tip = atStart
+          ? sample(0)
+          : {
+              ...at,
+              scale: projectedScale(
+                state.camera,
+                at.z,
+              ),
+            };
         const sourceRiser =
           wire.points[1]?.z !== wire.source.z &&
           wire.points[1]?.x === wire.source.x &&
           wire.points[1]?.y === wire.source.y;
-        const near = state.rooms
-          ? points[
-              atStart ? 1 : points.length - 2
-            ]!
-          : bridge
-            ? atStart
-              ? (points[1] ?? tip)
-              : project(state.camera)({
-                  ...wire.target,
-                  z: 2 * wire.target.z - deck,
+        const near = bridge
+          ? atStart
+            ? (points[1] ?? tip)
+            : project(state.camera)({
+                ...wire.target,
+                z: 2 * wire.target.z - deck,
+              })
+          : atStart
+            ? (!edge.route ||
+                edge.route === "curve") &&
+              edge.source !== edge.target &&
+              !sourceRiser
+              ? project(state.camera)({
+                  ...move(
+                    wire.source,
+                    wire.sourceSide,
+                    1,
+                  ),
+                  z: wire.source.z,
                 })
-            : atStart
-              ? (!edge.route ||
-                  edge.route === "curve") &&
-                edge.source !== edge.target &&
-                !sourceRiser
-                ? project(state.camera)({
-                    ...move(
-                      wire.source,
-                      wire.sourceSide,
-                      1,
-                    ),
-                    z: wire.source.z,
-                  })
-                : (points[1] ?? tip)
-              : sharedArrival
-                ? (points
-                    .slice(0, -1)
-                    .reverse()
-                    .find(
-                      (p) =>
-                        p.x !== tip.x ||
-                        p.y !== tip.y,
-                    ) ?? tip)
-                : project(state.camera)(
-                    wire.arrow.toward,
-                  );
+              : (points[1] ?? tip)
+            : sharedArrival
+              ? (points
+                  .slice(0, -1)
+                  .reverse()
+                  .find(
+                    (p) =>
+                      p.x !== tip.x ||
+                      p.y !== tip.y,
+                  ) ?? tip)
+              : project(state.camera)(
+                  wire.arrow.toward,
+                );
         const towardTip =
-          !!state.rooms ||
-          atStart ||
-          (sharedArrival && !bridge);
+          atStart || (sharedArrival && !bridge);
         const radians = Math.atan2(
           towardTip
             ? tip.y - near.y
@@ -2003,15 +1832,20 @@ export const flowView = (
               "polygon",
               [
                 a("data-arrow", side),
-                ...(roomTone
-                  ? [a("class", roomTone.trim())]
+                ...(tone
+                  ? [a("class", tone.trim())]
                   : []),
                 a(
                   "transform",
                   `translate(${x} ${y}) rotate(${angle}) scale(${arrowScale})`,
                 ),
                 a("points", "0,0 -9,-4 -9,4"),
-                a("fill", "#426f71"),
+                a(
+                  "fill",
+                  tone
+                    ? "var(--pencil,gray)"
+                    : "#426f71",
+                ),
                 a("pointer-events", "none"),
               ],
               [],
@@ -2091,16 +1925,7 @@ export const flowView = (
       const group = items.map((layer, i) =>
         keyedLayer(
           "wire-" + index + "-" + i,
-          state.rooms
-            ? {
-                ...layer,
-                depth: Math.min(
-                  cellDepth(from, from.p.z),
-                  cellDepth(to, to.p.z),
-                ),
-                withinCell: Infinity,
-              }
-            : layer,
+          layer,
         ),
       );
       wireLayers.set(wire, {
@@ -2110,34 +1935,14 @@ export const flowView = (
       for (const layer of group)
         layers.push(layer);
     }
-    if (state.rooms)
-      for (const cell of state.rooms.rooms) {
-        if (
-          ["x", "y", "z"].some((axis, i) => {
-            const key =
-              state.rooms?.axes[axis]?.attribute;
-            return (
-              key &&
-              state.roomPins?.[key] !==
-                undefined &&
-              state.roomPins[key] !==
-                cell.values[i]
-            );
-          })
-        )
-          continue;
-        layers.push({
-          depth:
-            (at(cell.min).z + at(cell.max).z) / 2,
-          withinCell: -Infinity,
-          html: roomPlate(cell, state.camera),
-        });
-      }
+    layers.push(
+      ...scenery.filter(
+        (s) => s.layer === "sorted",
+      ),
+    );
     const sorted = layers.sort(
       (a, b) =>
         a.depth - b.depth ||
-        (a.withinCell ?? 0) -
-          (b.withinCell ?? 0) ||
         Number(!!a.chosen) - Number(!!b.chosen) ||
         Number(!!a.arrow) - Number(!!b.arrow),
     );
@@ -2145,70 +1950,6 @@ export const flowView = (
       "g",
       [key("depth-layers")],
       sorted.map((layer) => layer.html),
-    );
-  };
-  const depthLayers = () => {
-    if (
-      !state.rooms ||
-      cull ||
-      registry.nodes ||
-      registry.edgeLabels ||
-      state.edges.some(
-        (e) => e.animated || e.highlighted,
-      )
-    )
-      return paintLayers();
-    const camera = state.camera;
-    const inputs = [
-      state.edges,
-      state.rooms,
-      state.roomPins,
-      state.roomHover,
-      state.roomNode,
-      state.selection,
-      state.selected,
-      state.activeEdge,
-      state.chosenEdges,
-      state.drag,
-      state.source,
-      state.ink,
-      state.spatial,
-      state.isolatedBranch,
-      renderLabel,
-      frame,
-      camera.pitch,
-      camera.yaw,
-      camera.perspective,
-    ];
-    const old = roomLayers.get(state.nodes);
-    const layer =
-      old && matches(old.inputs, inputs)
-        ? old
-        : {
-            inputs,
-            camera,
-            html: lazy(deferred, paintLayers),
-          };
-    roomLayers.set(state.nodes, layer);
-    const scale =
-      camera.scale / layer.camera.scale;
-    const x =
-      camera.origin.x -
-      scale * layer.camera.origin.x;
-    const y =
-      camera.origin.y -
-      scale * layer.camera.origin.y;
-    return el(
-      "g",
-      [
-        key("room-depth"),
-        a(
-          "transform",
-          `translate(${x} ${y}) scale(${scale})`,
-        ),
-        a("style", `--hit-scale:${1 / scale}`),
-      ],
-      [layer.html],
     );
   };
   const selectRegion = (
@@ -2333,26 +2074,22 @@ export const flowView = (
               side === "right" ||
               side === "top" ||
               side === "bottom")
-              ? state.rooms
-                ? socketWorld(node, side)
-                : (attachments.get(port)?.[
-                    side
-                  ]?.[
-                    Number(
-                      dot?.getAttribute(
-                        "data-socket-index",
-                      ) ?? -1,
-                    )
-                  ]?.point ??
-                  portPosition(
-                    node,
-                    side,
-                    Number(
-                      dot?.getAttribute(
-                        "data-offset",
-                      ),
+              ? (attachments.get(port)?.[side]?.[
+                  Number(
+                    dot?.getAttribute(
+                      "data-socket-index",
+                    ) ?? -1,
+                  )
+                ]?.point ??
+                portPosition(
+                  node,
+                  side,
+                  Number(
+                    dot?.getAttribute(
+                      "data-offset",
                     ),
-                  ))
+                  ),
+                ))
               : undefined;
           svg.setPointerCapture(e.pointerId);
           return some((s) => {
@@ -2652,32 +2389,6 @@ export const flowView = (
               isSome(s.drag)
             ) {
               const d = s.drag.content;
-              if (s.rooms && d.mode === "orbit") {
-                const { yaw, pitch } = s.camera;
-                for (const [
-                  ,
-                  y,
-                  p,
-                ] of roomViews) {
-                  const delta = (a: number) =>
-                    Math.atan2(
-                      Math.sin(a),
-                      Math.cos(a),
-                    );
-                  if (
-                    Math.hypot(
-                      delta(yaw - y),
-                      delta(pitch - p),
-                    ) <=
-                    Math.PI / 15
-                  )
-                    return turnRooms(
-                      released,
-                      viewAt(y, p)(released),
-                      300,
-                    );
-                }
-              }
               if (
                 d.pressed &&
                 Math.hypot(
@@ -2893,14 +2604,10 @@ export const flowView = (
       }),
     ],
     [
-      ...(state.rooms
-        ? [
-            roomStage(
-              state.rooms,
-              state.camera,
-              state.roomPins,
-            ),
-          ]
+      ...(state.scenery
+        ? scenery
+            .filter((s) => s.layer === "behind")
+            .map((s) => s.html)
         : [
             surfaceLayer(
               state.camera,
@@ -2982,16 +2689,10 @@ export const flowView = (
             })(),
           )
         : lazy(emptyPreview, undefined),
-      depthLayers(),
-      ...(state.rooms
-        ? [
-            roomView(
-              state.rooms,
-              state.camera,
-              state,
-            ),
-          ]
-        : []),
+      paintLayers(),
+      ...scenery
+        .filter((s) => s.layer === "front")
+        .map((s) => s.html),
       ...(active &&
       scene.edges.some(
         (e) => e.original === active,
@@ -3163,3 +2864,5 @@ export const flowView = (
     ],
   );
 };
+
+export const flowView = drawFlow;

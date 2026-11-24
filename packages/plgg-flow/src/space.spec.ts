@@ -70,7 +70,7 @@ for (let count = 0; count <= 5; count++) {
                   p.x === q.x &&
                   p.y === q.y &&
                   p.z === q.z &&
-                  p.y === c.min.y + 32 &&
+                  p.y === c.max.y - 32 &&
                   p.y + 16 <= c.max.y &&
                   p.z - 16 >= c.min.z &&
                   p.z + 16 <= c.max.z &&
@@ -142,18 +142,26 @@ test("five-axis blocks share all three slab boundaries and stand 96 apart on the
                 | "y"
                 | "z"
               )[]
-            ).every(
-              (axis, i) =>
-                cell.min[axis] -
-                  block.min[axis] ===
-                  space.slabs[axis][
-                    cell.index[i]!
-                  ] &&
-                cell.max[axis] -
-                  block.min[axis] ===
-                  space.slabs[axis][
-                    cell.index[i]! + 1
-                  ],
+            ).every((axis, i) =>
+              axis === "y"
+                ? block.max.y - cell.max.y ===
+                    space.slabs.y[
+                      cell.index[i]!
+                    ] &&
+                  block.max.y - cell.min.y ===
+                    space.slabs.y[
+                      cell.index[i]! + 1
+                    ]
+                : cell.min[axis] -
+                    block.min[axis] ===
+                    space.slabs[axis][
+                      cell.index[i]!
+                    ] &&
+                  cell.max[axis] -
+                    block.min[axis] ===
+                    space.slabs[axis][
+                      cell.index[i]! + 1
+                    ],
             ),
           ),
       ),

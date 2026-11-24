@@ -19,7 +19,6 @@ import { project } from "plgg-board";
 import {
   addNode,
   viewAt,
-  roomFoot,
   roomViews,
   roomFaceView,
   turnRooms,
@@ -42,7 +41,6 @@ import {
 } from "plgg-flow/dsl";
 import { arrangeHierarchy } from "plgg-flow/layout";
 import {
-  roomFor,
   planLayers,
   planRooms,
 } from "plgg-flow/autoLayout";
@@ -88,8 +86,9 @@ export const fitDemo = (flow: Flow): Flow => {
             ),
           ),
     ) ?? []),
-    ...(flow.rooms ? [] : flow.nodes).flatMap(
-      (n) => {
+    ...flow.nodes
+      .filter((n) => !flow.rooms || n.within)
+      .flatMap((n) => {
         const { width, height } = nodeSize(n);
         return [-1, 1].flatMap((x) =>
           [-1, 1].flatMap((y) =>
@@ -104,8 +103,7 @@ export const fitDemo = (flow: Flow): Flow => {
             ),
           ),
         );
-      },
-    ),
+      }),
     ...(flow.rooms
       ? []
       : wireGraph(flow)
@@ -145,18 +143,6 @@ export const fitDemo = (flow: Flow): Flow => {
         ...flow,
         camera: fitted,
       });
-      for (const n of visible.nodes) {
-        const cell = roomFor(flow.rooms, n);
-        if (!cell || n.hidden) continue;
-        const foot = project(fitted)(
-            roomFoot(n, cell.max.y),
-          ),
-          half = (nodeSize(n).width * scale) / 2;
-        left = Math.min(left, foot.x - half);
-        right = Math.max(right, foot.x + half);
-        top = Math.min(top, foot.y - 32 * scale);
-        bottom = Math.max(bottom, foot.y);
-      }
       for (const l of roomLabels(
         flow.rooms,
         fitted,
@@ -346,7 +332,7 @@ export const roomFrames = <Action>(
     },
   );
 };
-export const roomsOpening = viewAt(-0.6, 0.5);
+export const roomsOpening = viewAt(0.6, -0.5);
 const arrangeSheet: Change = (f) => {
   if (f.rooms) {
     const { axes, rooms, graph } = planRooms(
@@ -417,7 +403,7 @@ export const optimize: Change = (f) =>
   fitDemo(arrangeSheet(f));
 export const resetSheet: Change = (f) => {
   const laid = arrangeSheet(
-    (f.rooms ? viewAt(-0.22, 0.2) : viewAt(0, 0))(
+    (f.rooms ? viewAt(0.22, -0.2) : viewAt(0, 0))(
       { ...f, roomMotion: undefined },
     ),
   );

@@ -110,22 +110,9 @@ export const boardCss = (root: string) => `
     stroke: var(--trace) !important;
     stroke-width: 0.8;
   }
-  .flow-board .room-scene [data-room-axis] { stroke: var(--pencil); }
-  .flow-board .room-scene .room-guides { stroke: var(--pencil); }
-  .flow-board .room-storeys[stroke] { fill: var(--wash); fill-opacity: .45; stroke: var(--pencil); }
-  .flow-board .room-hull[stroke] { fill: none; stroke: var(--pencil); }
-  .flow-board .room-pinned[stroke] { fill: none; stroke: var(--ink); }
-  .flow-board .room-face[stroke] { fill: none; stroke: var(--pencil); }
-  .flow-board .room-ruling[stroke] { fill: none; stroke: var(--trace); stroke-width: .8; }
-  .flow-board .room-wire-ink { --room-tone: var(--ink); }
-  .flow-board .room-wire-pencil { --room-tone: var(--pencil); }
-  .flow-board path.edge:is(.room-wire-ink,.room-wire-pencil) { stroke: var(--room-tone); stroke-width: 1px; vector-effect: non-scaling-stroke; }
-  .flow-board polygon[data-arrow]:is(.room-wire-ink,.room-wire-pencil) { fill: var(--room-tone); }
-  .flow-board g:has(> .edge-hit):hover > .room-wire-pencil { --room-tone: var(--ink); }
-  .flow-board .room-label { cursor: pointer; }
-  .flow-board .room-muted [stroke], .flow-board .room-muted-wire [stroke] { stroke: var(--pencil); }
-  .flow-board .room-muted text { fill: var(--pencil) !important; }
-  .flow-board .room-muted-wire { opacity: .3; }
+  .flow-board .quiet-node:not(:hover) [stroke], .flow-board path.quiet-wire { stroke: var(--pencil); }
+  .flow-board .quiet-node:not(:hover) text, .flow-board polygon.quiet-wire { fill: var(--pencil) !important; }
+  .flow-board g:has(> .edge-hit):hover > .quiet-wire { stroke: var(--ink); }
   .edge-label {
     paint-order: stroke;
     stroke: var(--paper) !important;

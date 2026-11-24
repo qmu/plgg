@@ -1,7 +1,5 @@
-import { nodeSize } from "plgg-flow/nodeSize";
 import {
   project,
-  worldDelta,
   type Camera,
   type Point3,
 } from "plgg-board";
@@ -11,10 +9,10 @@ import {
 } from "plgg-flow/autoLayout";
 import type { Flow } from "./model";
 export const roomViews = [
-  ["正面", -0.22, 0.2],
-  ["上", -0.22, 1.05],
-  ["横", -1.3, 0.2],
-  ["立体", -0.6, 0.5],
+  ["正面", 0.22, -0.2],
+  ["上", 0.22, -1.05],
+  ["横", 1.3, -0.2],
+  ["立体", 0.6, -0.5],
 ] satisfies [string, number, number][];
 export const directions: readonly Direction[] = [
   "x",
@@ -61,29 +59,25 @@ export const roomFaceView = (
   const camera = flow.camera.perspective
     ? { ...flow.camera, perspective: 0 }
     : flow.camera;
-  const pins = Object.entries(
-    flow.roomPins ?? {},
-  );
-  if (
-    !pins.length &&
-    !Object.keys(layout.axes).some((k) =>
-      k.startsWith("pin:"),
-    )
-  )
-    return camera === flow.camera
-      ? flow
-      : { ...flow, camera };
+  const filter = Object.entries(roomFilter(flow));
+  let changed = false;
+  const nodes = flow.nodes.map((n) => {
+    if (!roomFor(layout, n)) {
+      if (n.hidden) return n;
+      changed = true;
+      return { ...n, hidden: true };
+    }
+    const quiet = filter.some(
+      ([k, v]) => (n.data?.[k] ?? "—") !== v,
+    );
+    if (!!n.quiet === quiet) return n;
+    changed = true;
+    return { ...n, quiet };
+  });
   return {
     ...flow,
     camera,
-    nodes: flow.nodes.map((n) =>
-      roomFor(layout, n) &&
-      pins.every(
-        ([k, v]) => (n.data?.[k] ?? "—") === v,
-      )
-        ? n
-        : { ...n, hidden: true },
-    ),
+    nodes: changed ? nodes : flow.nodes,
   };
 };
 export const roomFoot = (
@@ -93,30 +87,6 @@ export const roomFoot = (
   ...node.position,
   y: floor,
 });
-export const roomSocket = (
-  node: Flow["nodes"][number],
-  floor: number,
-  camera: Camera,
-  side: string,
-) => {
-  const foot = roomFoot(node, floor);
-  const half =
-    (nodeSize(node).width * camera.scale) / 2;
-  const delta = worldDelta(camera, {
-    x:
-      side === "right"
-        ? half
-        : side === "left"
-          ? -half
-          : 0,
-    y: 0,
-  });
-  return {
-    x: foot.x + delta.x,
-    y: foot.y,
-    z: foot.z + delta.z,
-  };
-};
 export const movingRooms = (flow: Flow): Flow => {
   const motion = flow.roomMotion;
   if (!motion) return roomFaceView(flow);

@@ -170,8 +170,8 @@ test("every gallery box sits on grid lines and Rooms opens on its three storeys"
     examples[index - 1]?.id === "layered" &&
       flow.rooms?.rooms.length === 36 &&
       flow.nodes.length === 14 &&
-      flow.camera.yaw === -0.6 &&
-      flow.camera.pitch === 0.5 &&
+      flow.camera.yaw === 0.6 &&
+      flow.camera.pitch === -0.5 &&
       examples.every((d) =>
         d.initial().nodes.every((n) => {
           const size = nodeSize(n);
@@ -267,10 +267,10 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
   return check(
     (
       [
-        [-0.22, 0.2],
-        [-0.22, 1.05],
-        [-1.3, 0.2],
-        [-0.6, 0.5],
+        [0.22, -0.2],
+        [0.22, -1.05],
+        [1.3, -0.2],
+        [0.6, -0.5],
       ] satisfies [number, number][]
     ).every(([yaw, pitch]) => {
       const table = roomFaceView(

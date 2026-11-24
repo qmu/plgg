@@ -9,7 +9,7 @@ export type Point3 = Point &
 export type Camera = Readonly<{
   /** Strength of perspective division, from orthographic (0) to full (1). */
   perspective?: boolean | number;
-  turntable?: boolean;
+
   yaw: number;
   pitch: number;
   scale: number;
@@ -85,15 +85,13 @@ export const projectedScale = (
         ),
   );
 
-const sine = (camera: Camera, angle: number) =>
-  Math.sin(camera.turntable ? -angle : angle);
 export const project =
   (camera: Camera) =>
   (p: Point3): Point3 => {
     const c = Math.cos(camera.yaw),
-      s = sine(camera, camera.yaw);
+      s = Math.sin(camera.yaw);
     const cp = Math.cos(camera.pitch),
-      sp = sine(camera, camera.pitch);
+      sp = Math.sin(camera.pitch);
     const depth = -s * p.x + c * p.z;
     const z = sp * p.y + cp * depth;
     const scale = projectedScale(camera, z);
@@ -120,14 +118,14 @@ export const worldDelta = (
   return {
     x:
       Math.cos(camera.yaw) * x +
-      sine(camera, camera.yaw) *
-        sine(camera, camera.pitch) *
+      Math.sin(camera.yaw) *
+        Math.sin(camera.pitch) *
         y,
     y: Math.cos(camera.pitch) * y,
     z:
-      sine(camera, camera.yaw) * x -
+      Math.sin(camera.yaw) * x -
       Math.cos(camera.yaw) *
-        sine(camera, camera.pitch) *
+        Math.sin(camera.pitch) *
         y,
   };
 };
@@ -265,9 +263,9 @@ export const unproject = (
     x:
       xy.x -
       depth *
-        sine(camera, camera.yaw) *
+        Math.sin(camera.yaw) *
         Math.cos(camera.pitch),
-    y: xy.y + depth * sine(camera, camera.pitch),
+    y: xy.y + depth * Math.sin(camera.pitch),
     z:
       xy.z +
       depth *

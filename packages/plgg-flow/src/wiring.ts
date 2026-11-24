@@ -1,4 +1,3 @@
-import { roomFor } from "plgg-flow/autoLayout";
 import {
   socketRegion,
   fixedCurve,
@@ -32,7 +31,6 @@ import {
   type Edge,
   type FlowNode,
   type Graph,
-  type Flow,
 } from "./model";
 import {
   required,
@@ -240,7 +238,7 @@ const trayEndpoints = (
   return { labels, routed };
 };
 export const wireGraph = (
-  graph: Graph & Pick<Flow, "rooms">,
+  graph: Graph,
   options: WiringOptions = {},
 ): readonly Wire[] => {
   const clearance = Math.max(
@@ -252,7 +250,7 @@ export const wireGraph = (
     clearance,
     radius,
     options.draggedNode,
-    graph.rooms,
+
     graph.nodes.length,
     graph.edges.length,
   ];
@@ -1103,54 +1101,9 @@ export const wireGraph = (
       break;
     }
   }
-  const routed = wires.map((original, i) => {
-    let w = original;
+  const routed = wires.map((w, i) => {
     const edge = required(visible[i]),
       old = previousWire.get(edge);
-    const source = byId.get(edge.source),
-      target = byId.get(edge.target);
-    const sourceFloor =
-      graph.rooms &&
-      source &&
-      roomFor(graph.rooms, source)?.max.y;
-    const targetFloor =
-      graph.rooms &&
-      target &&
-      roomFor(graph.rooms, target)?.max.y;
-    if (
-      sourceFloor !== undefined &&
-      targetFloor !== undefined &&
-      sourceFloor !== targetFloor
-    ) {
-      const rises = sourceFloor > targetFloor;
-      const y = rises ? w.source.y : w.target.y;
-      const run = w.points.map((p) => ({
-        ...p,
-        y,
-      }));
-      const { controls, ...body } = w;
-      w = {
-        ...body,
-        edge,
-        points: rises
-          ? [...run, w.target]
-          : [w.source, ...run],
-        corners: w.corners + 1,
-        arrow: rises
-          ? {
-              at: w.target,
-              toward: {
-                ...w.target,
-                y: w.target.y - 1,
-              },
-            }
-          : {
-              ...w.arrow,
-              at: { ...w.arrow.at, y },
-              toward: { ...w.arrow.toward, y },
-            },
-      };
-    }
     if (
       !edge.waypoints?.length &&
       old &&

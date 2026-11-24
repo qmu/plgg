@@ -4,7 +4,7 @@ import {
   text,
   renderToString,
 } from "plgg-view";
-import { flowView } from "plgg-flow/viewport";
+import { flowView } from "plgg-flow/sheetView";
 import {
   frameOf,
   type Flow,
