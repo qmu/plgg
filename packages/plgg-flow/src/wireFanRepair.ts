@@ -17,29 +17,64 @@ import {
 import { materialize } from "plgg-flow/wirePath";
 
 type Cut = { i: number; j: number; p: Point };
+type Run = {
+  i: number;
+  p: Point;
+  q: Point;
+  horizontal: boolean;
+};
+const axisRuns = (path: Point[]) => {
+  const ordered: Run[] = [],
+    horizontal: Run[] = [],
+    vertical: Run[] = [];
+  for (let i = 1; i < path.length; i++) {
+    const p = required(path[i - 1]),
+      q = required(path[i]);
+    if ((p.x === q.x) === (p.y === q.y)) continue;
+    const run = {
+      i,
+      p,
+      q,
+      horizontal: p.y === q.y,
+    };
+    ordered.push(run);
+    (run.horizontal ? horizontal : vertical).push(
+      run,
+    );
+  }
+  return { ordered, horizontal, vertical };
+};
+const runLists = new WeakMap<
+  Point[],
+  ReturnType<typeof axisRuns>
+>();
+const runsOf = (path: Point[]) => {
+  const known = runLists.get(path);
+  if (known) return known;
+  const runs = axisRuns(path);
+  runLists.set(path, runs);
+  return runs;
+};
 const cuts = (a: Point[], b: Point[]) => {
   const result: Cut[] = [];
-  for (let i = 1; i < a.length; i++)
-    for (let j = 1; j < b.length; j++) {
-      const p = required(a[i - 1]),
-        q = required(a[i]),
-        u = required(b[j - 1]),
-        v = required(b[j]);
-      const xy = p.x === q.x && u.y === v.y,
-        yx = p.y === q.y && u.x === v.x;
-      if (!xy && !yx) continue;
-      const x = xy ? p.x : u.x,
-        y = xy ? u.y : p.y;
+  const peers = runsOf(b);
+  for (const left of runsOf(a).ordered)
+    for (const right of left.horizontal
+      ? peers.vertical
+      : peers.horizontal) {
+      const h = left.horizontal ? left : right,
+        v = left.horizontal ? right : left;
+      const x = v.p.x,
+        y = h.p.y;
       if (
-        (xy
-          ? (y - p.y) * (y - q.y)
-          : (x - p.x) * (x - q.x)) >= 0 ||
-        (xy
-          ? (x - u.x) * (x - v.x)
-          : (y - u.y) * (y - v.y)) >= 0
+        (x - h.p.x) * (x - h.q.x) < 0 &&
+        (y - v.p.y) * (y - v.q.y) < 0
       )
-        continue;
-      result.push({ i, j, p: { x, y } });
+        result.push({
+          i: left.i,
+          j: right.i,
+          p: { x, y },
+        });
     }
   // Splice branches in travel order when one leg crosses several returns.
   return result.sort(
@@ -73,7 +108,7 @@ const join = (
     u = distance(at, a),
     v = distance(at, b);
   const r = Math.min(radius, u, v);
-  if (r < 4) return [];
+  if (r < 2) return [];
   const arc = Array.from(
     { length: 7 },
     (_, i) => {
@@ -170,7 +205,6 @@ export const mendFans = (
         if (!eligible(other)) continue;
         const a = required(profiles[i]),
           b = required(profiles[j]);
-        if (conflict(a, b) < 8) continue;
         const shared = [
           a.wire.source,
           a.wire.target,
@@ -179,13 +213,27 @@ export const mendFans = (
             (t) => distance(s, t) < 1,
           ),
         );
+        // Reversing travel order preserves all interior intersections.
+        const crossings = cuts(p, other);
+        if (
+          crossings.length < (shared ? 1 : 2) ||
+          conflict(a, b, 8) < 8
+        )
+          continue;
         const trySwap = (
           p: Point[],
           q: Point[],
           reverseP: boolean,
           reverseQ: boolean,
         ) => {
-          const intersections = cuts(p, q);
+          const intersections = crossings.map(
+            (c) => ({
+              i: reverseP ? p.length - c.i : c.i,
+              j: reverseQ ? q.length - c.j : c.j,
+              p: c.p,
+            }),
+          );
+          if (reverseP) intersections.reverse();
           if (
             distance(
               required(p[0]),
@@ -221,7 +269,7 @@ export const mendFans = (
                 ...q.slice(start.j, end.j),
                 end.p,
               ];
-            const cap = shared ? 40 : 14;
+            const cap = shared ? 32 : 14;
             if (
               !near(m, n, cap) ||
               !near(n, m, cap)

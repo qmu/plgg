@@ -176,12 +176,23 @@ export const shortcuts = (
         const reach =
           (bend[along] - socket[along]) *
           normal[socket.side][along];
-        if (reach >= 14) levels.add(reach);
+        if (reach >= 14) {
+          levels.delete(reach);
+          levels.add(reach);
+        }
       }
       return [...levels];
     };
     const starts = exits(s),
       ends = exits(t);
+    // Keep one allocated shoulder or move both to the same reach.
+    const preservesTrack = (
+      left: number,
+      right: number,
+    ) =>
+      left === right ||
+      left === starts[starts.length - 1] ||
+      right === ends[ends.length - 1];
     const lanes = new Set(
       guide.map((p) => p[across]),
     );
@@ -215,6 +226,8 @@ export const shortcuts = (
     if (v !== vertical(t.side)) {
       for (const left of starts)
         for (const right of ends) {
+          if (!preservesTrack(left, right))
+            continue;
           const a = move(s, s.side, left),
             b = move(t, t.side, right);
           add([
@@ -229,6 +242,8 @@ export const shortcuts = (
       for (const lane of lanes)
         for (const left of starts)
           for (const right of ends) {
+            if (!preservesTrack(left, right))
+              continue;
             const a = move(s, s.side, left),
               b = move(t, t.side, right);
             if (

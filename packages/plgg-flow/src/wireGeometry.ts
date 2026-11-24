@@ -172,27 +172,36 @@ export const crossing = (
   );
 };
 export const crossesItself = (path: Point[]) => {
-  // A strictly monotone coordinate rules out a self-intersection.
+  // A monotone path can only meet itself within a flat run that doubles back.
   for (const axis of ["x", "y"] satisfies (
     | "x"
     | "y"
   )[]) {
+    const other = axis === "x" ? "y" : "x";
     const direction = Math.sign(
       required(path[path.length - 1])[axis] -
         required(path[0])[axis],
     );
-    if (
-      direction &&
-      path.every(
-        (p, i) =>
-          i === 0 ||
-          direction *
-            (p[axis] -
-              required(path[i - 1])[axis]) >
-            0,
-      )
-    )
-      return false;
+    if (!direction) continue;
+    let flat = 0,
+      monotone = true;
+    for (let i = 1; i < path.length; i++) {
+      const a = required(path[i - 1]),
+        b = required(path[i]);
+      const advance =
+        direction * (b[axis] - a[axis]);
+      if (advance > 0) {
+        flat = 0;
+        continue;
+      }
+      const side = Math.sign(b[other] - a[other]);
+      if (advance < 0 || flat * side < 0) {
+        monotone = false;
+        break;
+      }
+      if (side) flat = side;
+    }
+    if (monotone) return false;
   }
   // Cull distant spans before testing individual segment pairs.
   const blocks = [];
@@ -227,6 +236,15 @@ export const crossesItself = (path: Point[]) => {
       )
         continue;
       for (let i = a.start; i < a.end; i++) {
+        const start = required(path[i - 1]),
+          end = required(path[i]);
+        if (
+          Math.max(start.x, end.x) < b.l ||
+          Math.min(start.x, end.x) > b.r ||
+          Math.max(start.y, end.y) < b.t ||
+          Math.min(start.y, end.y) > b.b
+        )
+          continue;
         for (
           let j = Math.max(b.start, i + 2);
           j < b.end;
@@ -239,6 +257,17 @@ export const crossesItself = (path: Point[]) => {
   }
   return false;
 };
+// Every fillet samples the same quarter turn.
+const quarterTurn = Array.from(
+  { length: 7 },
+  (_, k) => {
+    const angle = (k * Math.PI) / 12;
+    return pt(
+      1 - Math.sin(angle),
+      1 - Math.cos(angle),
+    );
+  },
+);
 export const rounded = (
   path: Point[],
   radius: number,
@@ -275,18 +304,11 @@ export const rounded = (
       out.push(b);
       continue;
     }
-    for (let k = 0; k <= 6; k++) {
-      const t = (Math.PI * k) / 12;
+    for (const q of quarterTurn) {
       out.push(
         pt(
-          b.x +
-            r *
-              (dx * (1 - Math.sin(t)) +
-                ex * (1 - Math.cos(t))),
-          b.y +
-            r *
-              (dy * (1 - Math.sin(t)) +
-                ey * (1 - Math.cos(t))),
+          b.x + r * (dx * q.x + ex * q.y),
+          b.y + r * (dy * q.x + ey * q.y),
         ),
       );
     }
@@ -367,6 +389,7 @@ export const free = (
   path: readonly Point[],
   boxes: Box[],
 ) => {
+  if (!boxes.length) return true;
   let l = Infinity,
     r = -Infinity,
     t = Infinity,

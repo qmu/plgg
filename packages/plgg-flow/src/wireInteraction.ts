@@ -60,8 +60,11 @@ export const outline = (
   span(0, points.length - 1);
   return result;
 };
-const buildProfile = (wire: Wire) => {
-  const path = outline(wire.points);
+const geometryOf = (
+  points: Wire["points"],
+  tolerance: number,
+) => {
+  const path = outline(points, tolerance);
   return {
     l: Math.min(...path.map((p) => p.x)),
     r: Math.max(...path.map((p) => p.x)),
@@ -93,7 +96,6 @@ const buildProfile = (wire: Wire) => {
         )
       );
     }, 0),
-    wire,
     path,
     segments: path.slice(1).map((b, i) => {
       const a = required(path[i]),
@@ -113,20 +115,42 @@ const buildProfile = (wire: Wire) => {
     }),
   };
 };
+type Geometry = ReturnType<typeof geometryOf>;
+const geometries = new WeakMap<
+  Wire["points"],
+  Geometry
+>();
+const stepGeometries = new WeakMap<
+  Wire["points"],
+  Geometry
+>();
 const contours = new WeakMap<
   Wire,
-  ReturnType<typeof buildProfile>
+  Geometry & { wire: Wire }
 >();
 export const profile = (wire: Wire) => {
   const hit = contours.get(wire);
   if (hit) return hit;
-  const result = buildProfile(wire);
+  // Straight step runs keep their track at unit tolerance through a fillet.
+  const step = wire.edge.route === "step";
+  const store = step
+    ? stepGeometries
+    : geometries;
+  let geometry = store.get(wire.points);
+  if (!geometry) {
+    geometry = geometryOf(
+      wire.points,
+      step ? 1 : 0.45,
+    );
+    store.set(wire.points, geometry);
+  }
+  const result = { ...geometry, wire };
   contours.set(wire, result);
   return result;
 };
 type Contour = ReturnType<typeof profile>;
 const chordBlocks = new WeakMap<
-  Contour,
+  Geometry["segments"],
   {
     l: number;
     r: number;
@@ -136,7 +160,7 @@ const chordBlocks = new WeakMap<
   }[]
 >();
 const blocksFor = (p: Contour) => {
-  const hit = chordBlocks.get(p);
+  const hit = chordBlocks.get(p.segments);
   if (hit) return hit;
   const blocks = [];
   for (let j = 0; j < p.segments.length; j += 6) {
@@ -149,7 +173,7 @@ const blocksFor = (p: Contour) => {
       chords,
     });
   }
-  chordBlocks.set(p, blocks);
+  chordBlocks.set(p.segments, blocks);
   return blocks;
 };
 const measureConflict = (
@@ -176,9 +200,14 @@ const measureConflict = (
     contact = 0,
     near = 0;
   const blocks = blocksFor(v);
+  // Siblings can leave the same node through different sockets.
+  const sibling =
+    shared.length ||
+    u.wire.edge.source === v.wire.edge.source ||
+    u.wire.edge.target === v.wire.edge.target;
   const value = () =>
-    intersections * (shared.length ? 45 : 3) +
-    Math.max(0, intersections - 1) * 38 +
+    intersections * (sibling ? 45 : 3) +
+    Math.max(0, intersections - 1) * 90 +
     Math.max(0, contact - 11) * 10 +
     Math.max(0, near - 85) * 0.3 +
     contact * 0.12;
@@ -279,10 +308,12 @@ const measureConflict = (
 };
 
 // Repaired lanes often compare the same unchanged pair on consecutive frames.
-const penalties = new WeakMap<
-  Contour,
-  WeakMap<Contour, number>
->();
+type Penalties = WeakMap<
+  Geometry["segments"],
+  WeakMap<Geometry["segments"], number>
+>;
+const relatedPenalties: Penalties = new WeakMap();
+const otherPenalties: Penalties = new WeakMap();
 export const conflict = (
   a: Contour,
   b: Contour,
@@ -295,8 +326,13 @@ export const conflict = (
     a.b < b.t - 6
   )
     return 0;
-  let peers = penalties.get(a);
-  const old = peers?.get(b);
+  const penalties =
+    a.wire.edge.source === b.wire.edge.source ||
+    a.wire.edge.target === b.wire.edge.target
+      ? relatedPenalties
+      : otherPenalties;
+  let peers = penalties.get(a.segments);
+  const old = peers?.get(b.segments);
   if (old !== undefined) {
     if (old >= 0) return old;
     if (-old >= limit) return limit;
@@ -304,9 +340,12 @@ export const conflict = (
   const value = measureConflict(a, b, limit);
   if (!peers) {
     peers = new WeakMap();
-    penalties.set(a, peers);
+    penalties.set(a.segments, peers);
   }
-  peers.set(b, value >= limit ? -limit : value);
+  peers.set(
+    b.segments,
+    value >= limit ? -limit : value,
+  );
   return value;
 };
 // Keep candidates local while allowing accepted repairs to change their extent.

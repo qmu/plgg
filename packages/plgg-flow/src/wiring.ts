@@ -4,6 +4,7 @@ import {
 } from "plgg-flow/wireInteraction";
 import {
   cache,
+  boxId,
   pathValues,
 } from "plgg-flow/wireMemo";
 import { type Point3 } from "plgg-board";
@@ -22,6 +23,7 @@ import {
 } from "plgg-flow/wireGeometry";
 import {
   corridor,
+  type Bounds,
   boundsIndex,
 } from "plgg-flow/wireCorridors";
 import {
@@ -47,13 +49,82 @@ export type Wire = Readonly<{
   points: readonly Point3[];
   corners: number;
 }>;
+// Reuse the narrow-phase channel test while both base paths keep their shape.
+const channelShape = (wire: Base) => {
+  const path =
+    wire.spine ?? outline(wire.points, 2);
+  const segments = path.slice(1).map((end, j) => {
+    const a = required(path[j]),
+      d = distance(a, end) || 1;
+    return {
+      ...corridor([a, end], 12),
+      a,
+      end,
+      dx: (end.x - a.x) / d,
+      dy: (end.y - a.y) / d,
+    };
+  });
+  return {
+    segments,
+    near: boundsIndex(segments),
+    bounds: corridor(path, 12),
+    contacts: new WeakMap<
+      Base["points"],
+      boolean
+    >(),
+  };
+};
+const rememberedShapes = new WeakMap<
+  Base["points"],
+  ReturnType<typeof channelShape>
+>();
+const shapeOf = (w: Base) => {
+  const hit = rememberedShapes.get(w.points);
+  if (hit) return hit;
+  const shape = channelShape(w);
+  rememberedShapes.set(w.points, shape);
+  return shape;
+};
+const shareChannel = (
+  a: ReturnType<typeof channelShape>,
+  b: ReturnType<typeof channelShape>,
+) =>
+  a.segments.some((seg) =>
+    b
+      .near(seg)
+      .some(
+        (peer) =>
+          Math.abs(
+            seg.dx * peer.dy - seg.dy * peer.dx,
+          ) <= 0.52 &&
+          (chordGap(seg.a, peer.a, peer.end) <=
+            24 ||
+            chordGap(seg.end, peer.a, peer.end) <=
+              24 ||
+            chordGap(peer.a, seg.a, seg.end) <=
+              24 ||
+            chordGap(peer.end, seg.a, seg.end) <=
+              24),
+      ),
+  );
 let serial = 0;
 const geometryTokens = cache<number>(4096);
-const rememberBase = cache<{
+type BaseRoute = {
   wire: Base;
   token: number;
+  bounds: Bounds;
+};
+const expand = (b: Bounds, m: number) => ({
+  l: b.l - m,
+  r: b.r + m,
+  t: b.t - m,
+  b: b.b + m,
+});
+const rememberBase = cache<BaseRoute>();
+const rememberChannel = cache<{
+  wires: Wire[];
+  bounds: Bounds;
 }>();
-const rememberChannel = cache<Wire[]>();
 let memo:
   | {
       key: string;
@@ -126,7 +197,7 @@ export const wireGraph = (
         3 * clearance,
       );
       const nearby = query(bounds);
-      for (;;) {
+      const route = (walls: typeof nearby) => {
         const key = JSON.stringify([
           edge.source,
           edge.target,
@@ -135,14 +206,14 @@ export const wireGraph = (
           t,
           clearance,
           radius,
-          nearby,
+          walls.map(boxId),
         ]);
         const build = () => {
           const wire = basePath(
             edge,
             s,
             t,
-            nearby,
+            walls,
             clearance,
             radius,
           );
@@ -159,39 +230,63 @@ export const wireGraph = (
             ]) + pathValues(wire.points);
           return {
             wire,
+            bounds: corridor(wire.points, 0),
             token: geometryTokens(
               shape,
               () => ++serial,
             ),
           };
         };
-        const result = edge.waypoints?.length
+        return edge.waypoints?.length
           ? build()
           : rememberBase(key, build);
-        const w = result.wire;
-        const area = corridor(
-          w.points,
-          clearance,
-        );
-        const extra = query(area).filter(
+      };
+      // A clear natural path depends only on its sockets and its swept clearance.
+      const own = nearby.filter(
+        (q) =>
+          q.id === edge.source ||
+          q.id === edge.target,
+      );
+      const plain = edge.waypoints?.length
+        ? undefined
+        : route(own);
+      const member = (base: BaseRoute) => ({
+        wire: { ...base.wire, edge },
+        token: base.token,
+        bounds: expand(
+          base.bounds,
+          Math.max(
+            18,
+            5 * Math.max(a.count, b.count),
+          ),
+        ),
+      });
+      if (
+        plain &&
+        query(
+          expand(plain.bounds, clearance),
+        ).every(
+          (q) =>
+            q.id === edge.source ||
+            q.id === edge.target ||
+            free(plain.wire.points, [
+              inflate(q, clearance),
+            ]),
+        )
+      )
+        return member(plain);
+      for (;;) {
+        const result = route(nearby);
+        const extra = query(
+          expand(result.bounds, clearance),
+        ).filter(
           (q) =>
             !nearby.includes(q) &&
-            !free(w.points, [
+            !free(result.wire.points, [
               inflate(q, clearance),
             ]),
         );
-        if (!extra.length)
-          return {
-            wire: { ...w, edge },
-            token: result.token,
-            bounds: corridor(
-              w.points,
-              Math.max(
-                18,
-                5 * Math.max(a.count, b.count),
-              ),
-            ),
-          };
+        if (!extra.length) return member(result);
         nearby.push(...extra);
       }
     },
@@ -214,67 +309,48 @@ export const wireGraph = (
     return n;
   };
   const sockets = new Map<string, number>();
-  const segments = bases.flatMap(
-    ({ wire }, i) => {
-      for (const key of [
-        JSON.stringify([
-          wire.source.x,
-          wire.source.y,
-        ]),
-        JSON.stringify([
-          wire.target.x,
-          wire.target.y,
-        ]),
-        JSON.stringify(
-          [
-            wire.edge.source,
-            wire.edge.target,
-          ].sort(),
-        ),
-      ]) {
-        const other = sockets.get(key);
-        if (other === undefined)
-          sockets.set(key, i);
-        else parent[root(i)] = root(other);
-      }
-      const path =
-        wire.spine ?? outline(wire.points, 2);
-      return path.slice(1).map((b, j) => {
-        const a = required(path[j]),
-          d = distance(a, b) || 1;
-        return {
-          ...corridor([a, b], 12),
-          a,
-          end: b,
-          dx: (b.x - a.x) / d,
-          dy: (b.y - a.y) / d,
-          i,
-        };
-      });
-    },
-  );
-  const near = boundsIndex(segments);
-  for (const seg of segments) {
-    for (const peer of near(seg)) {
-      if (
-        peer.i >= seg.i ||
-        root(seg.i) === root(peer.i) ||
-        Math.abs(
-          seg.dx * peer.dy - seg.dy * peer.dx,
-        ) > 0.52
-      )
-        continue;
-      if (
-        Math.min(
-          chordGap(seg.a, peer.a, peer.end),
-          chordGap(seg.end, peer.a, peer.end),
-          chordGap(peer.a, seg.a, seg.end),
-          chordGap(peer.end, seg.a, seg.end),
-        ) <= 24
-      )
-        parent[root(seg.i)] = root(peer.i);
+  const shapes = bases.map(({ wire }, i) => {
+    for (const key of [
+      JSON.stringify([
+        wire.source.x,
+        wire.source.y,
+      ]),
+      JSON.stringify([
+        wire.target.x,
+        wire.target.y,
+      ]),
+      JSON.stringify(
+        [
+          wire.edge.source,
+          wire.edge.target,
+        ].sort(),
+      ),
+    ]) {
+      const other = sockets.get(key);
+      if (other === undefined)
+        sockets.set(key, i);
+      else parent[root(i)] = root(other);
     }
-  }
+    const shape = shapeOf(wire);
+    return { ...shape.bounds, i, wire, shape };
+  });
+  const near = boundsIndex(shapes);
+  for (const a of shapes)
+    for (const b of near(a)) {
+      if (b.i >= a.i || root(a.i) === root(b.i))
+        continue;
+      let shared = a.shape.contacts.get(
+        b.wire.points,
+      );
+      if (shared === undefined) {
+        shared = shareChannel(a.shape, b.shape);
+        a.shape.contacts.set(
+          b.wire.points,
+          shared,
+        );
+      }
+      if (shared) parent[root(a.i)] = root(b.i);
+    }
   const groups = new Map<
     number,
     typeof regions
@@ -321,10 +397,10 @@ export const wireGraph = (
           b.count,
           b.rank,
         ]),
-        walls,
+        walls.map(boxId),
       ]);
-      const solve = () =>
-        separate(
+      const solve = () => {
+        const wires = separate(
           members.map((m) => m.wire),
           { parallels, plans },
           walls,
@@ -335,20 +411,39 @@ export const wireGraph = (
               wallSet.has(q),
             ),
         );
+        const bounds = wires.map((w) =>
+          corridor(w.points, 7),
+        );
+        return {
+          wires,
+          bounds: {
+            l: Math.min(
+              ...bounds.map((b) => b.l),
+            ),
+            r: Math.max(
+              ...bounds.map((b) => b.r),
+            ),
+            t: Math.min(
+              ...bounds.map((b) => b.t),
+            ),
+            b: Math.max(
+              ...bounds.map((b) => b.b),
+            ),
+          },
+        };
+      };
       const solved = plans.some(
         (p) => p.edge.waypoints?.length,
       )
         ? solve()
         : rememberChannel(key, solve);
       // An escaping detour must account for obstacles beyond the first corridor.
-      const expanded = { ...area };
-      for (const w of solved) {
-        const b = corridor(w.points, 7);
-        expanded.l = Math.min(expanded.l, b.l);
-        expanded.r = Math.max(expanded.r, b.r);
-        expanded.t = Math.min(expanded.t, b.t);
-        expanded.b = Math.max(expanded.b, b.b);
-      }
+      const expanded = {
+        l: Math.min(area.l, solved.bounds.l),
+        r: Math.max(area.r, solved.bounds.r),
+        t: Math.min(area.t, solved.bounds.t),
+        b: Math.max(area.b, solved.bounds.b),
+      };
       if (
         (expanded.l < area.l ||
           expanded.r > area.r ||
@@ -362,7 +457,7 @@ export const wireGraph = (
         continue;
       }
       group.forEach((r, j) => {
-        wires[r.i] = required(solved[j]);
+        wires[r.i] = required(solved.wires[j]);
       });
       break;
     }

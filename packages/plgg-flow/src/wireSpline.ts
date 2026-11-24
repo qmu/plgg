@@ -1,10 +1,12 @@
 import {
   cache,
+  boxId,
   pathValues,
 } from "plgg-flow/wireMemo";
 import {
   type Bounds,
   corridor,
+  intersects,
 } from "plgg-flow/wireCorridors";
 import { shortcuts } from "plgg-flow/wireShortcuts";
 import type { Point } from "plgg-board";
@@ -58,6 +60,30 @@ const sampleCurve = (path: Point[]) => {
   result.push(required(path[path.length - 1]));
   return result;
 };
+// Compare rotations before converting the largest one to radians.
+const peakTurn = (points: Point[]) => {
+  let sine = 0,
+    cosine = 1;
+  for (let j = 1; j + 1 < points.length; j++) {
+    const a = required(points[j - 1]),
+      b = required(points[j]),
+      c = required(points[j + 1]);
+    const x = b.x - a.x,
+      y = b.y - a.y,
+      u = c.x - b.x,
+      v = c.y - b.y;
+    const cross = Math.abs(x * v - y * u),
+      dot = x * u + y * v;
+    if (
+      cross * cosine > dot * sine ||
+      (dot < 0 && cosine >= 0 && cross === 0)
+    ) {
+      sine = cross;
+      cosine = dot;
+    }
+  }
+  return Math.atan2(sine, cosine);
+};
 const aligned = (path: Point[], s: Socket) => {
   let remain = 14;
   const n = normal[s.side];
@@ -92,8 +118,27 @@ const rememberFairing = cache<
     contour: ReturnType<typeof profile>;
   }[]
 >(384);
+type FitRecord = {
+  regions: Bounds[];
+  walls: string;
+  fit: Fit | null;
+};
+// A changed wall matters only where the fit read guides or tested its curve.
+const recordSpans = (
+  regions: Bounds[],
+  points: Point[],
+  margin: number,
+) => {
+  for (let j = 0; j < points.length; j += 8)
+    regions.push(
+      corridor(
+        points.slice(Math.max(0, j - 1), j + 8),
+        margin,
+      ),
+    );
+};
 const rememberFits =
-  cache<Map<string, Fit | null>>(256);
+  cache<Map<string, FitRecord>>(512);
 export const fitCurves = (
   wires: Wire[],
   bases: Base[],
@@ -199,11 +244,10 @@ export const fitCurves = (
         baseLength,
         w.edge.source,
         w.edge.target,
-        boxes,
       ]) + pathValues(w.points);
     const fits = rememberFits(
       key,
-      () => new Map<string, Fit | null>(),
+      () => new Map<string, FitRecord>(),
     );
     const choices = [];
     if (
@@ -291,6 +335,18 @@ export const fitCurves = (
         lane,
         shortcut,
       ].join(",");
+      const regions: Bounds[] = [];
+      const wallsKey = (regions: Bounds[]) =>
+        (shortcut
+          ? boxes
+          : boxes.filter((q) =>
+              regions.some((b) =>
+                intersects(b, q),
+              ),
+            )
+        )
+          .map(boxId)
+          .join(",");
       const build = () => {
         const count = Math.max(
           2,
@@ -350,6 +406,8 @@ export const fitCurves = (
             p.y + n.y * push,
           );
         }
+        if (!shortcut)
+          recordSpans(regions, knots, 10);
         // Leave a clearance band for the cubic between adjacent guides.
         for (const [j, p] of knots.entries()) {
           if (!j || j === knots.length - 1)
@@ -415,6 +473,8 @@ export const fitCurves = (
           ...throughKnots(guides, s.side, t.side),
           t,
         ];
+        if (!shortcut)
+          recordSpans(regions, path, 9);
         if (
           !free(path, boxes) ||
           crossesItself(path)
@@ -445,29 +505,7 @@ export const fitCurves = (
           !aligned([...path].reverse(), t)
         )
           return null;
-        let peak = 0;
-        for (
-          let j = 1;
-          j + 1 < samples.length;
-          j++
-        ) {
-          const a = required(samples[j - 1]),
-            b = required(samples[j]),
-            c = required(samples[j + 1]);
-          const x = b.x - a.x,
-            y = b.y - a.y,
-            u = c.x - b.x,
-            v = c.y - b.y;
-          peak = Math.max(
-            peak,
-            Math.abs(
-              Math.atan2(
-                x * v - y * u,
-                x * u + y * v,
-              ),
-            ),
-          );
-        }
+        const peak = peakTurn(samples);
         const clearance = Math.min(
           8,
           ...foreign.map((q) =>
@@ -530,26 +568,45 @@ export const fitCurves = (
             contour.turn < 4,
         };
       };
-      let fit = fits.get(variant);
-      if (fit === undefined) {
-        fit = build();
-        fits.set(variant, fit);
+      let record = fits.get(variant);
+      if (
+        !record ||
+        record.walls !== wallsKey(record.regions)
+      ) {
+        const fit = build();
+        record = {
+          fit,
+          regions,
+          walls: wallsKey(regions),
+        };
+        fits.set(variant, record);
       }
+      const fit = record.fit;
       if (!fit) continue;
       choices.push(fit);
       if (
         fit.smooth &&
         peers
           .query(fit.contour)
-          .every(
-            ({ i: j }) =>
-              i === j ||
-              conflict(
-                fit.contour,
-                required(contours[j]),
-                1,
-              ) < 1,
-          )
+          .every(({ i: j }) => {
+            if (i === j) return true;
+            const peer = required(contours[j]);
+            // A single transverse crossing is unavoidable for interleaved sockets.
+            const limit = [
+              w.edge.source,
+              w.edge.target,
+            ].some(
+              (id) =>
+                id === peer.wire.edge.source ||
+                id === peer.wire.edge.target,
+            )
+              ? 1
+              : 5;
+            return (
+              conflict(fit.contour, peer, limit) <
+              limit
+            );
+          })
       )
         break;
     }
@@ -629,7 +686,7 @@ export const fitCurves = (
         w.corners,
         w.edge.source,
         w.edge.target,
-        walls,
+        walls.map(boxId),
       ]) + pathValues(w.points);
     const choices = rememberFairing(key, () => {
       const choices: {
@@ -639,25 +696,12 @@ export const fitCurves = (
       }[] = [];
       const samples = sampleCurve([...w.points]);
       const quality = (path: Point[]) => {
-        let peak = 0,
-          clearance = 8;
+        const peak = peakTurn(path);
+        let clearance = 8;
         for (const [j, p] of path.entries()) {
-          const a = path[j - 1],
-            b = path[j + 1];
-          if (!a || !b) continue;
-          const x = p.x - a.x,
-            y = p.y - a.y,
-            u = b.x - p.x,
-            v = b.y - p.y;
-          peak = Math.max(
-            peak,
-            Math.abs(
-              Math.atan2(
-                x * v - y * u,
-                x * u + y * v,
-              ),
-            ),
-          );
+          const a = path[j - 1];
+          if (!a || j === path.length - 1)
+            continue;
           for (const wall of walls)
             clearance = Math.min(
               clearance,
@@ -753,6 +797,7 @@ export const fitCurves = (
           contour,
           value,
         });
+        if (value < 0.3) break;
       }
       return choices;
     });

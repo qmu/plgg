@@ -1,5 +1,8 @@
 import type { Point3 } from "plgg-board";
-import { required } from "plgg-flow/wireGeometry";
+import {
+  required,
+  type Box,
+} from "plgg-flow/wireGeometry";
 // Eviction changes only the amount of work on the next call.
 export const cache = <T>(limit = 2048) => {
   const entries = new Map<string, T>();
@@ -14,6 +17,21 @@ export const cache = <T>(limit = 2048) => {
     entries.set(key, value);
     return value;
   };
+};
+
+// Boxes are immutable during a solve. Reuse their value keys across local queries.
+const boxIds = new WeakMap<Box, number>();
+const boxValues = cache<number>(4096);
+let nextBox = 0;
+export const boxId = (box: Box) => {
+  const known = boxIds.get(box);
+  if (known !== undefined) return known;
+  const id = boxValues(
+    JSON.stringify(box),
+    () => ++nextBox,
+  );
+  boxIds.set(box, id);
+  return id;
 };
 
 // Preserve exact coordinates without decimal formatting in cache keys.
@@ -31,8 +49,10 @@ export const pathValues = (
   const words = new Uint16Array(values.buffer);
   let key = "";
   for (let i = 0; i < words.length; i += 4096)
-    key += String.fromCharCode(
-      ...words.subarray(i, i + 4096),
+    key += Reflect.apply(
+      String.fromCharCode,
+      undefined,
+      words.subarray(i, i + 4096),
     );
   return key;
 };
