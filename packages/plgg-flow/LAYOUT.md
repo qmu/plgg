@@ -199,3 +199,98 @@ rises over the forward flow as a deck with risers; from the front the
 2D picture is unchanged; the sample now has two cycles; the sheet
 refits after a DSL edit. Open: the bridge has raw corners in 3D, and
 long forward edges have no height of their own yet.
+
+## Rooms — three discrete axes, a lattice of rooms (owner's brief, 2026-11-24)
+
+> When X, Y and Z each take a few discrete values, space becomes a
+> run of rooms. Declare which room each node belongs to and the
+> layout places it there; what a node *is* can then be read from where
+> it stands on each axis. It should look like a cube, and turning it
+> is what makes "what is where" clear.
+
+### Writing it
+
+Nodes carry attributes; axes say which attribute runs along which
+direction. Nothing else is positioned by hand.
+
+```
+layout rooms
+axis x 層 入口 処理 保存
+axis y 担当 顧客 注文 基盤
+axis z 環境 本番 検証
+node Gateway 層=入口 担当=基盤 環境=本番
+node Orders 層=処理 担当=注文 環境=本番
+Gateway -> Orders
+```
+
+- `axis <x|y|z> <attribute> [values…]` — the values in the order
+  they run along the axis; if none are listed, the order of first
+  appearance. An axis line may be omitted: that direction has one
+  value. Swapping two axis lines' letters turns the sheet — the same
+  data, classified along other directions.
+- `key=value` on a node line sets an attribute (stored in the node's
+  `data`). A node lacking an axis's attribute goes to a last,
+  unnamed value on that axis ("—").
+- `at` is not used under `layout rooms`; a node dragged by hand keeps
+  its room (it snaps back inside its room's bounds on release).
+- `printSpec` round-trips all of it.
+
+### Placing
+
+- A room is the cell (i, j, k). All rooms in one x-slab share a
+  width, in one y-slab a depth (sheet-y), in one z-slab a height:
+  each slab is as large as its fullest room needs, with a minimum
+  (160 × 110) and 28 of padding inside the walls.
+- **The front view must stay a readable table.** Seen from the
+  front, z collapses, so the nodes of one (x, y) column — over all
+  z — are placed so that none overlaps another in the sheet plane:
+  the column is laid out as one group, each z-level taking its own
+  band inside the cell. From the front it is a table of x × y with
+  every node visible; turned, the bands lift apart into floors.
+- Inside a room, nodes are ordered to keep wires short and uncrossed:
+  by the barycentre of their neighbours' positions along the room's
+  free direction, ties by id; a room with internal edges lays them
+  out with the layered layout along x.
+- z of a node = k × floor height (floor height = 140), so floors are
+  clearly apart when turned.
+- Deterministic, order-independent, stable under adding a node (only
+  its slabs may grow).
+- API in `plgg-flow/autoLayout`:
+  `planRooms(graph, axes): { graph; rooms: Room[]; axes }` where a
+  `Room` is `{ index: [i,j,k]; values: [string,string,string];
+  min: Point3; max: Point3 }` and every slab boundary is available
+  for drawing.
+
+### Drawing
+
+- The lattice is drawn in space: every room's 12 edges as hairlines
+  in the trace colour (shared edges once), the outer cuboid's edges
+  in ink. No fills.
+- Axis values are written along the lattice's outer edges (x values
+  along the front bottom edge, y values along the left edge, z values
+  up the front-left vertical), the attribute name at each axis's end;
+  text faces the viewer, 11px, graphite; from the front only x and y
+  labels show (z labels appear as the sheet turns).
+- A node sits on its floor: its drop line goes to its own floor, not
+  the ground.
+- Empty rooms are drawn (the lattice is the classification).
+- Front view: the same picture as a 2D table with ruled cells.
+
+### Demo
+
+A sample "部屋に分ける" after "自動配置": about 14 services on
+層 (入口/処理/保存) × 担当 (顧客/注文/基盤) × 環境 (本番/検証), a dozen
+edges, opened slightly turned (yaw −0.5, pitch 0.45) so the cube
+reads at first sight. Description: 「ノードに属性を書くと、軸ごとの部屋に
+自動で入ります。Shift を押しながらドラッグして回すと、どこに何があるかが
+立体で分かります。axis の x・y・z を入れ替えると、分け方が変わります。」
+The 最適化 button re-runs the rooms layout on such a sheet.
+
+### Specs to write
+
+No two node boxes overlap in the sheet plane; every node lies inside
+its room on all three axes; slabs are monotone and non-overlapping;
+swapping axis letters permutes coordinates consistently; a node
+without an attribute lands in the "—" slab; order-independence;
+adding one node moves no node out of its room; print/parse round
+trip; the lattice has (X+1)(Y+1)(Z+1) corners.
