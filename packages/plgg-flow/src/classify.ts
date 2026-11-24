@@ -12,7 +12,9 @@ export const attributeValue = (
   return typeof value === "string" ? value : "—";
 };
 export const classify = (
-  graph: Graph,
+  graph: Graph & {
+    mark?: readonly string[] | undefined;
+  },
   definitions: readonly Axis[],
 ) => {
   const axes = definitions.map(
@@ -59,6 +61,7 @@ export const classify = (
     );
   return {
     axes,
+    mark: graph.mark ?? [],
     cells,
     addressOf,
     edges: graph.edges,

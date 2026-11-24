@@ -716,3 +716,15 @@ test("room storeys receive node shadows and never cast a storey shadow", () => {
     toBe(true),
   );
 });
+
+test("the first written storey stands above the next one", () => {
+  const f = read(
+    "layout rooms\naxis y 層 画面 処理 永続化\nnode top 層=画面\nnode middle 層=処理\nnode bottom 層=永続化",
+  );
+  const [top, middle, bottom] = f.nodes;
+  return check(
+    top!.position.y < middle!.position.y &&
+      middle!.position.y < bottom!.position.y,
+    toBe(true),
+  );
+});

@@ -20,6 +20,7 @@ import {
   addNode,
   viewAt,
   roomViews,
+  movingRooms,
   roomFaceView,
   turnRooms,
   roomLabels,
@@ -34,6 +35,9 @@ import {
 import { wireGraph } from "plgg-flow/wiring";
 import {
   applySpec,
+  axesFromView,
+  writeCurrentView,
+  searchSheetViews,
   parseSpec,
   printSpec,
   type Spec,
@@ -50,6 +54,7 @@ import {
   attr,
   text,
   onClick,
+  on,
   onInput,
   type Html,
 } from "plgg-view";
@@ -147,6 +152,7 @@ export const fitDemo = (flow: Flow): Flow => {
         flow.rooms,
         fitted,
         visible.nodes,
+        visible.edges,
       )) {
         const width = l.value.length * 13;
         const x =
@@ -213,6 +219,17 @@ export const resizeDemo = (
     return flow;
   const frame = { x: viewport.x, y: height };
   const next = { ...flow, frame, cover };
+  if (
+    fitted &&
+    !flow.frame &&
+    flow.suggestions &&
+    !flow.writtenCamera
+  ) {
+    const opening = rankSheetView(next, true);
+    return flow.roomMotion?.opening
+      ? roomsOpening(opening)
+      : opening;
+  }
   if (fitted) return fitDemo(next);
   return {
     ...next,
@@ -339,7 +356,9 @@ const layerViews = [
   ["立体", -Math.PI / 6, -0.55],
 ] satisfies [string, number, number][];
 export const roomsOpening: Change = (flow) => {
-  const to = viewAt(-Math.PI / 6, -0.55)(flow);
+  const to = flow.suggestions
+    ? flow
+    : viewAt(-Math.PI / 6, -0.55)(flow);
   if (
     typeof window === "undefined" ||
     window.matchMedia?.(
@@ -730,6 +749,25 @@ export const sheetDsl = <Action>(
           );
         },
         properties,
+        flow.suggestions
+          ? [
+              el(
+                "button",
+                [
+                  attr("type", "button"),
+                  on("click", () => {
+                    return retype(
+                      writeCurrentView(
+                        source,
+                        movingRooms(current()),
+                      ),
+                    );
+                  }),
+                ],
+                [text("この見方を書く")],
+              ),
+            ]
+          : [],
       ),
       ...(error
         ? [
@@ -895,6 +933,61 @@ export const removeButton = <Action>(
     ],
     [text("−")],
   );
+const rankSheetView = (
+  f: Flow,
+  opening: boolean,
+): Flow => {
+  if (!f.rooms || !f.suggestions?.length)
+    return f;
+  const axes = f.declaredAxes ?? f.rooms.axes;
+  const frame = frameOf(f);
+  const suggestions = searchSheetViews(
+    f,
+    axes,
+    {
+      ...frame,
+      x: Math.max(1, frame.x - (f.cover ?? 0)),
+    },
+    !!f.fixedRoles,
+    f.markCleared ? [] : f.mark,
+  );
+  const current = suggestions.findIndex(
+    (v) =>
+      v.camera.yaw === f.camera.yaw &&
+      v.camera.pitch === f.camera.pitch &&
+      Object.entries(f.rooms!.axes).every(
+        ([r, a]) =>
+          Object.entries(v.view).some(
+            ([role, name]) =>
+              r === role && name === a.attribute,
+          ) || r.startsWith("pin:"),
+      ),
+  );
+  const index = opening
+    ? 0
+    : (current + 1) % suggestions.length;
+  const next = suggestions[index]!;
+  const chosen = axesFromView(axes, next.view);
+  const same = Object.entries(chosen).every(
+    ([key, a]) =>
+      f.rooms?.axes[key]?.attribute ===
+      a.attribute,
+  );
+  const layout = same
+    ? undefined
+    : planRooms(f, chosen);
+  const to = fitDemo({
+    ...f,
+    ...layout?.graph,
+    rooms: layout ?? f.rooms,
+    camera: next.camera,
+    suggestions,
+    suggestionIndex: index,
+  });
+  return opening ? to : turnRooms(f, to, 300);
+};
+export const nextSheetView: Change = (f) =>
+  rankSheetView(f, false);
 export const sheetToolbar = <Action>(
   navigate: (way: Travel) => Action,
   back: boolean,
@@ -1007,6 +1100,7 @@ export const sheetToolbar = <Action>(
 
       ...(views
         ? [
+            button("見方", change(nextSheetView)),
             ...(views === "layer"
               ? layerViews
               : roomViews

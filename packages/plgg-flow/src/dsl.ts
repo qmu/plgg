@@ -8,6 +8,9 @@ import {
   type Change,
 } from "plgg-flow/model";
 import {
+  bestViews,
+  classify,
+  type View,
   planLayers,
   roles,
   type Axis,
@@ -23,6 +26,7 @@ import {
 } from "plgg-flow/graph";
 import {
   createFlow,
+  frameOf,
   type Edge,
   type Flow,
   type FlowNode,
@@ -54,6 +58,10 @@ export type Spec = Readonly<{
   rules: readonly Rule[];
   snap?: number;
   axes?: RoomAxes;
+  fixedView?: boolean;
+  explicitView?: boolean;
+  camera?: { yaw: number; pitch: number };
+  mark?: readonly string[];
   layout?: LayerOptions;
   pinned?: readonly string[];
 }>;
@@ -217,7 +225,10 @@ export const parseSpec = (
   const nodes: FlowNode[] = [],
     edges: Edge[] = [],
     rules: Rule[] = [];
+  const mark: string[] = [];
   let rooms = false;
+  let explicitView = false;
+  let camera: Spec["camera"];
   const definitions: Axis[] = [];
   const axisLines: string[] = [];
   const assignments = new Map<string, string>();
@@ -253,6 +264,12 @@ export const parseSpec = (
       if (r.__tag === "Err")
         return err(at + r.content);
       edges.push(r.content);
+    } else if (head === "mark") {
+      if (ts.length < 2)
+        return err(at + "mark 名前…");
+      mark.push(
+        ...ts.slice(1).map((t) => t.text),
+      );
     } else if (head === "axis") {
       const words = ts
         .slice(1)
@@ -281,9 +298,25 @@ export const parseSpec = (
       });
       if (role) assignments.set(attribute, role);
     } else if (head === "view") {
+      explicitView = true;
       for (const t of ts.slice(1)) {
         const [role, attribute, ...value] =
           t.text.split("=");
+        if (role === "camera") {
+          const parts = attribute
+            ?.split(",")
+            .map(Number);
+          if (
+            parts?.length !== 2 ||
+            !parts.every(Number.isFinite)
+          )
+            return err(at + "camera=yaw,pitch");
+          camera = {
+            yaw: parts[0]!,
+            pitch: parts[1]!,
+          };
+          continue;
+        }
         if (
           !attribute ||
           (!roles.some((r) => r === role) &&
@@ -432,7 +465,12 @@ export const parseSpec = (
   }
   return ok({
     graph: { nodes, edges },
+    ...(mark.length && { mark }),
     ...(rooms ? { axes } : {}),
+    ...(rooms &&
+      assignments.size && { fixedView: true }),
+    ...(explicitView && { explicitView: true }),
+    ...(camera && { camera }),
     ...(layout ? { layout, pinned } : {}),
     rules,
     ...(snap === undefined ? {} : { snap }),
@@ -455,6 +493,58 @@ const allow = (rules: readonly Rule[]) => {
     : {};
 };
 
+export const searchSheetViews = (
+  graph: Graph,
+  axes: RoomAxes,
+  frame: ReturnType<typeof frameOf>,
+  fixedRoles: boolean,
+  mark?: readonly string[],
+) => {
+  const data = classify(
+    graph,
+    Object.values(axes),
+  );
+  const pins: Record<string, string> = {};
+  const view: View = { pins };
+  for (const [key, a] of Object.entries(axes)) {
+    const role = roles.find((r) => r === key);
+    if (role) view[role] = a.attribute;
+    else
+      pins[a.attribute] =
+        a.pin ??
+        data.axes.find(
+          (d) => d.attribute === a.attribute,
+        )?.values[0] ??
+        "—";
+  }
+  return bestViews(
+    data,
+    frame,
+    fixedRoles ? view : undefined,
+    mark,
+  );
+};
+
+export const axesFromView = (
+  axes: RoomAxes,
+  view: View,
+): RoomAxes =>
+  Object.fromEntries(
+    Object.values(axes).map((a) => {
+      const role = roles.find(
+        (r) => view[r] === a.attribute,
+      );
+      const pin = view.pins[a.attribute];
+      return [
+        role ?? "pin:" + a.attribute,
+        {
+          ...a,
+          ...(pin !== undefined && { pin }),
+        },
+      ];
+    }),
+  );
+
 /** Lay a spec onto a flow, keeping its camera. */
 const laySpec =
   (spec: Spec) =>
@@ -464,17 +554,35 @@ const laySpec =
       snap,
       layered,
       rooms,
+      suggestions: previousSuggestions,
+      declaredAxes,
+      explicitView,
+      fixedRoles,
+      writtenCamera,
+      suggestionIndex,
       ...rest
     } = flow;
     const axis = spec.layout?.layerAxis;
-    const axesForSpace =
+    const axesForSpace: RoomAxes | undefined =
       spec.axes ?? (axis && { y: axis });
     if (axesForSpace) {
+      const suggestions = searchSheetViews(
+        spec.graph,
+        axesForSpace,
+        frameOf(flow),
+        !!axis || !!spec.fixedView,
+        spec.mark,
+      );
+      const best = suggestions[0]!;
+      const chosen =
+        axis || spec.fixedView
+          ? axesForSpace
+          : axesFromView(axesForSpace, best.view);
       const {
         graph,
         rooms: cells,
         axes,
-      } = planRooms(spec.graph, axesForSpace);
+      } = planRooms(spec.graph, chosen);
       const pins = new Set(spec.pinned);
       let positioned = graph;
       if (axis && pins.size) {
@@ -516,6 +624,14 @@ const laySpec =
       return {
         ...rest,
         ...positioned,
+        suggestions,
+        declaredAxes: axesForSpace,
+        fixedRoles: !!axis || !!spec.fixedView,
+        explicitView: !!spec.explicitView,
+        suggestionIndex: 0,
+        ...(spec.camera && {
+          writtenCamera: spec.camera,
+        }),
         rooms: { rooms: cells, axes },
         ...(axis &&
           spec.layout && {
@@ -531,12 +647,8 @@ const laySpec =
           }),
         camera: {
           ...flow.camera,
-          ...(rooms
-            ? {}
-            : {
-                yaw: -Math.PI / 6,
-                pitch: -0.55,
-              }),
+          ...(spec.camera ??
+            (rooms ? {} : best.camera)),
           perspective: false,
         },
         snap: spec.snap ?? grid,
@@ -612,7 +724,11 @@ const laySpec =
 export const applySpec =
   (spec: Spec) =>
   (flow: Flow): Flow => {
-    const next = laySpec(spec)(flow);
+    const next = laySpec(spec)({
+      ...flow,
+      mark: spec.mark,
+      markCleared: false,
+    });
     const wires = selectedEdges(flow),
       ids = selectedNodes(flow);
     if (!wires.length && !ids.length) return next;
@@ -650,6 +766,76 @@ const name = (s: string) =>
   /^[^\s"#]+$/.test(s) && s !== "->"
     ? s
     : quoted(s);
+const viewWords = (
+  axes: RoomAxes,
+  layered: boolean,
+  camera?: { yaw: number; pitch: number },
+) => [
+  ...Object.entries(axes).map(([key, a]) =>
+    name(
+      layered
+        ? "layer=" + a.attribute
+        : key.startsWith("pin:")
+          ? "pin=" +
+            a.attribute +
+            (a.pin === undefined
+              ? ""
+              : "=" + a.pin)
+          : key + "=" + a.attribute,
+    ),
+  ),
+  ...(camera
+    ? [
+        "camera=" +
+          camera.yaw +
+          "," +
+          camera.pitch,
+      ]
+    : []),
+];
+
+export const writeCurrentView = (
+  source: string,
+  flow: Flow,
+) => {
+  if (!flow.rooms) return source;
+  const line = [
+    "view",
+    ...viewWords(
+      flow.rooms.axes,
+      !!flow.layered,
+      flow.camera,
+    ),
+  ].join(" ");
+  let wrote = false;
+  const lines = source
+    .split("\n")
+    .flatMap((raw) => {
+      if (
+        !/^[ \t]*view(?:[ \t]+(?!->)(?:["\w]+)=|[ \t]*$)/.test(
+          raw,
+        )
+      )
+        return [raw];
+      const comment = raw
+        .match(/"(?:\\.|[^"\\])*"|#.*$/g)
+        ?.find((s) => s.startsWith("#"));
+      if (wrote) return comment ? [comment] : [];
+      wrote = true;
+      return [
+        line + (comment ? " " + comment : ""),
+      ];
+    });
+  if (!wrote)
+    lines.splice(
+      lines[lines.length - 1] === ""
+        ? lines.length - 1
+        : lines.length,
+      0,
+      line,
+    );
+  return lines.join("\n");
+};
 const coord = (n: number) =>
   String(Math.round(n));
 
@@ -659,6 +845,7 @@ export type Subject =
   | Readonly<{
       kind: "directive";
       name:
+        | "mark"
         | "layout"
         | "axis"
         | "view"
@@ -747,50 +934,35 @@ const buildLines = (
     ]),
   );
   const options = flow.layered?.options;
+  const declared =
+    flow.declaredAxes ?? flow.rooms?.axes ?? {};
+  const assignments = Object.entries(declared);
+  const writeRoles =
+    flow.explicitView ||
+    assignments.some(
+      ([key, a], i) =>
+        key !==
+          (roles[i] ?? "pin:" + a.attribute) ||
+        (a.pin !== undefined &&
+          a.pin !== a.values[0]),
+    );
   return [
+    ...(flow.mark?.length
+      ? [directive("mark", flow.mark.map(name))]
+      : []),
     ...(flow.rooms && !options
       ? [
           directive("layout", ["rooms"]),
-          ...Object.entries(flow.rooms.axes).map(
-            ([, axis]) =>
-              directive("axis", [
-                ["x", "y", "z"].includes(
-                  axis.attribute,
-                )
-                  ? JSON.stringify(axis.attribute)
-                  : name(axis.attribute),
-                ...axis.values.map(name),
-              ]),
+          ...assignments.map(([, axis]) =>
+            directive("axis", [
+              ["x", "y", "z"].includes(
+                axis.attribute,
+              )
+                ? quoted(axis.attribute)
+                : name(axis.attribute),
+              ...axis.values.map(name),
+            ]),
           ),
-          ...(Object.entries(
-            flow.rooms.axes,
-          ).some(
-            ([key, a], i) =>
-              key !==
-                (roles[i] ??
-                  "pin:" + a.attribute) ||
-              (a.pin !== undefined &&
-                a.pin !== a.values[0]),
-          )
-            ? [
-                directive(
-                  "view",
-                  Object.entries(
-                    flow.rooms.axes,
-                  ).map(([key, a]) =>
-                    name(
-                      key.startsWith("pin:")
-                        ? "pin=" +
-                            a.attribute +
-                            (a.pin === undefined
-                              ? ""
-                              : "=" + a.pin)
-                        : key + "=" + a.attribute,
-                    ),
-                  ),
-                ),
-              ]
-            : []),
         ]
       : []),
     ...(options
@@ -814,6 +986,20 @@ const buildLines = (
                 ]),
               ]
             : []),
+        ]
+      : []),
+    ...(flow.rooms &&
+    ((!options && writeRoles) ||
+      flow.writtenCamera)
+      ? [
+          directive(
+            "view",
+            viewWords(
+              declared,
+              !!options,
+              flow.writtenCamera,
+            ),
+          ),
         ]
       : []),
     ...(flow.snap === undefined ||
@@ -873,6 +1059,10 @@ const printedSheet = (
   rules: readonly Rule[],
 ) => {
   const inputs = [
+    flow.mark,
+    flow.declaredAxes,
+    flow.explicitView,
+    flow.writtenCamera,
     flow.edges,
     flow.rooms?.axes,
     flow.layered,

@@ -965,6 +965,7 @@ export const layeredLayout = (
 export type Direction = "x" | "y" | "z";
 export * from "plgg-flow/classify";
 export * from "plgg-flow/spaceView";
+export * from "plgg-flow/bestViews";
 export * from "plgg-flow/space";
 export type RoomAxes = Readonly<
   Record<string, Axis & { pin?: string }>

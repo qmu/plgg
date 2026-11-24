@@ -39,9 +39,7 @@ export const planSpace = (
   const index = (address: number[], role: Role) =>
     address[axis(role)] ?? 0;
   const storey = (address: number[]) =>
-    cake
-      ? spans.y.length - 1 - index(address, "y")
-      : index(address, "y");
+    spans.y.length - 1 - index(address, "y");
   const local = new Map<string, Point3>();
   const visible = data.cells.filter((c) =>
     data.axes.every(
@@ -158,7 +156,18 @@ export const planSpace = (
       spans.z[k] = Math.max(spans.z[k]!, z + 32);
     });
   }
-  if (cake) spans.y.fill(Math.max(...spans.y));
+  // Wider boards need more headroom for a wire to reach the rim
+  // without a long detour relative to the distance between tiers.
+  if (cake)
+    spans.y.fill(
+      Math.max(
+        ...spans.y,
+        Math.min(
+          208,
+          round(0.45 * Math.max(...spans.x)),
+        ),
+      ),
+    );
   const bounds = (s: number[]) =>
     s.reduce<number[]>(
       (b, v) => [...b, b[b.length - 1]! + v],

@@ -1,3 +1,5 @@
+import { quietMarked } from "plgg-flow/model";
+import { writeCurrentView } from "plgg-flow/dsl";
 import { test, check, toBe } from "plgg-test";
 import {
   parseSpec,
@@ -111,6 +113,53 @@ test("row selection retains individual parallel wires, loops and additive node s
           )(chosen),
         ),
       ).length === 1,
+    toBe(true),
+  );
+});
+
+test("marked nodes and wires keep their ink and survive printing", () => {
+  const parsed = parseSpec(
+    'mark A B "A -> B"\nA -> B\nB -> C',
+  );
+  if (parsed.__tag === "Err")
+    throw Error(parsed.content);
+  const f = specFlow(parsed.content);
+  const printed = printSpec(f, []);
+  const again = parseSpec(printed);
+  return check(
+    !quietMarked(f, "A") &&
+      quietMarked(f, "C") &&
+      !quietMarked(f, f.edges[0]!) &&
+      quietMarked(f, f.edges[1]!) &&
+      !quietMarked(
+        { ...f, markCleared: true },
+        "C",
+      ) &&
+      again.__tag === "Ok" &&
+      JSON.stringify(again.content.mark) ===
+        JSON.stringify(f.mark),
+    toBe(true),
+  );
+});
+
+test("writing a suggested view preserves comments and restores its camera", () => {
+  const source =
+    "layout rooms\naxis 層 A B\nnode a 層=A\nnode b 層=B\na -> b\n# keep\n";
+  const parsed = parseSpec(source);
+  if (parsed.__tag === "Err")
+    throw Error(parsed.content);
+  const f = specFlow(parsed.content);
+  const written = writeCurrentView(source, f);
+  const again = parseSpec(written);
+  if (again.__tag === "Err")
+    throw Error(again.content);
+  const restored = specFlow(again.content);
+  return check(
+    !printSpec(f, []).includes("view ") &&
+      written.startsWith(source) &&
+      writeCurrentView(written, f) === written &&
+      restored.camera.yaw === f.camera.yaw &&
+      restored.camera.pitch === f.camera.pitch,
     toBe(true),
   );
 });

@@ -310,3 +310,7 @@ export {
   toSvg,
   strokePath,
 } from "plgg-board/svg";
+export {
+  coveredFractions,
+  crossesFill,
+} from "plgg-board/coverage";

@@ -89,6 +89,20 @@ export const projectSocket = (
   project(camera)(
     portPosition(node, direction, offset),
   );
+export const captionTagged = (
+  camera: Camera,
+  previous = false,
+) =>
+  Math.min(
+    Math.abs(Math.cos(camera.yaw)),
+    Math.abs(Math.cos(camera.pitch)),
+  ) -
+    Math.abs(
+      Math.sin(camera.yaw) *
+        Math.sin(camera.pitch),
+    ) <
+  (previous ? 0.75 : 0.7);
+
 /** Project one closed solid. Counterclockwise screen faces are hidden.
  * Local coordinates share the viewport's translated/scaled SVG node group. */
 export const projectNodeBody = (
@@ -200,15 +214,7 @@ export const projectNodeBody = (
   const back = visible.some(
     (f) => f.side === "back",
   );
-  const i = back ? 0 : 4;
-  const origin = corners[i]!,
-    right = corners[i + 1]!,
-    bottom = corners[i + 3]!;
-  const ratio = Math.min(
-    Math.abs(right.x - origin.x) / (2 * w),
-    Math.abs(bottom.y - origin.y) / (2 * h),
-  );
-  const tagged = ratio < (wasTagged ? 0.75 : 0.7);
+  const tagged = captionTagged(camera, wasTagged);
   const face = {
     ...node.position,
     z: node.position.z + (back ? -d : d),

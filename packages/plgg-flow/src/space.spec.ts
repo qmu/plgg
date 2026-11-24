@@ -8,14 +8,20 @@ import {
 } from "plgg-flow/path3";
 import { flowView } from "plgg-flow/index";
 import { renderToString } from "plgg-view";
-import { readFileSync } from "node:fs";
+import {
+  readdirSync,
+  readFileSync,
+} from "node:fs";
 import {
   parseSpec,
   specFlow,
 } from "plgg-flow/dsl";
 import { moveSelectionGeometry } from "plgg-flow/model";
 import { wireGraph } from "plgg-flow/wiring";
-import { nodeSize } from "plgg-flow/nodeSize";
+import {
+  labelWidth,
+  nodeSize,
+} from "plgg-flow/nodeSize";
 import { bodyDepth } from "plgg-flow/nodeBody";
 import { test, check, toBe } from "plgg-test";
 import {
@@ -502,3 +508,96 @@ test("screen crossings sort at their intersection and halo only the nearer strok
     toBe(true),
   );
 });
+
+const subjects = (dir: string): string[] =>
+  readdirSync(dir, {
+    withFileTypes: true,
+  }).flatMap((entry) => {
+    const path = dir + "/" + entry.name;
+    return entry.isDirectory()
+      ? subjects(path)
+      : [path];
+  });
+for (const file of subjects("subjects")) {
+  test(
+    file +
+      " fits captions and routes through free space",
+    () => {
+      const parsed = parseSpec(
+        readFileSync(file, "utf8").replace(
+          /^\s*#.*$/gm,
+          "",
+        ),
+      );
+      if (parsed.__tag === "Err")
+        throw Error(parsed.content);
+      const f = specFlow(parsed.content);
+      const occupied: ReturnType<
+        typeof aisleRuns
+      > = [];
+      for (const edge of f.edges) {
+        if (!edge.path)
+          throw Error(
+            "Missing route " +
+              edge.source +
+              " -> " +
+              edge.target,
+          );
+        const runs = aisleRuns(edge.path);
+        if (lanesOverlap(runs, occupied))
+          throw Error(
+            "Overlapping runs " +
+              edge.source +
+              " -> " +
+              edge.target,
+          );
+        occupied.push(...runs);
+        for (const [
+          i,
+          b,
+        ] of edge.path.entries()) {
+          if (!i) continue;
+          const a = edge.path[i - 1]!;
+          for (const n of f.nodes) {
+            if (
+              n.id === edge.source ||
+              n.id === edge.target
+            )
+              continue;
+            const size = nodeSize(n),
+              half = {
+                x: size.width / 2,
+                y: size.height / 2,
+                z: bodyDepth(n),
+              };
+            if (
+              (
+                [
+                  "x",
+                  "y",
+                  "z",
+                ] satisfies (keyof Point3)[]
+              ).every(
+                (k) =>
+                  Math.min(a[k], b[k]) <
+                    n.position[k] + half[k] &&
+                  Math.max(a[k], b[k]) >
+                    n.position[k] - half[k],
+              )
+            )
+              throw Error("Pierces " + n.id);
+          }
+        }
+      }
+      return check(
+        f.suggestions?.length === 3 &&
+          f.nodes.every(
+            (n) =>
+              labelWidth(n.label) <=
+              nodeSize(n).width,
+          ),
+        toBe(true),
+      );
+    },
+  );
+}

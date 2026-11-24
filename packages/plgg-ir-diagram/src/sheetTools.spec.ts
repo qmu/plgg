@@ -1,4 +1,9 @@
 // @plgg-test-environment dom
+import {
+  parseSpec,
+  specFlow,
+  printSpec,
+} from "plgg-flow/dsl";
 import { test, check, toBe } from "plgg-test";
 import { renderToString } from "plgg-view";
 import { makeRenderer } from "plgg-view/client";
@@ -8,6 +13,7 @@ import {
   type Change,
 } from "plgg-flow";
 import {
+  nextSheetView,
   readSheetSource,
   sheetToolbar,
   sheetTools,
@@ -192,6 +198,39 @@ test("the toolbar exposes disabled history endpoints and four drawn navigation c
       initial.match(/<svg/g)?.length === 4 &&
       initial.indexOf("リセット") <
         initial.indexOf("最初に"),
+    toBe(true),
+  );
+});
+
+test("three suggested views cycle without changing the written sheet", () => {
+  const parsed = parseSpec(
+    "layout rooms\naxis 層 A B\naxis 場所 X Y\nnode a 層=A 場所=X\nnode b 層=B 場所=Y\na -> b",
+  );
+  if (parsed.__tag === "Err")
+    throw Error(parsed.content);
+  const initial = specFlow(parsed.content);
+  const source = printSpec(initial, []);
+  let f = initial;
+  const seen = new Set<string>();
+  for (let i = 0; i < 3; i++) {
+    f = nextSheetView(f);
+    if (
+      printSpec(f, []) !== source ||
+      !f.roomMotion
+    )
+      return check(false, toBe(true));
+    seen.add(
+      JSON.stringify([
+        f.rooms?.axes,
+        f.camera.yaw,
+        f.camera.pitch,
+      ]),
+    );
+  }
+  return check(
+    seen.size === 3 &&
+      f.camera.yaw === initial.camera.yaw &&
+      f.camera.pitch === initial.camera.pitch,
     toBe(true),
   );
 });

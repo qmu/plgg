@@ -1,6 +1,7 @@
 import { test, check, toBe } from "plgg-test";
 import {
   render,
+  coveredFractions,
   pick,
   toSvg,
   frontCamera,
@@ -331,6 +332,34 @@ test("clear lettering leaves a two pixel margin in a crossing stroke", () => {
     drawing.strokes
       .map((s) => s.points.map((q) => q.x).join())
       .join("|") === "-12,-2|10,20",
+    toBe(true),
+  );
+});
+
+test("two aligned solids cover half of the rear silhouette", () => {
+  const d = render(
+    {
+      ...scene,
+      solids: [
+        box(p(0, 0, 0), p(20, 20, 2), {
+          id: "rear",
+          style: "node",
+        }),
+        box(p(10, 0, 8), p(20, 20, 2), {
+          id: "front",
+          style: "node",
+        }),
+      ],
+    },
+    camera,
+    light,
+  );
+  const coverage = coveredFractions(d);
+  return check(
+    coverage.find((f) => f.id === "rear")
+      ?.fraction === 0.5 &&
+      coverage.find((f) => f.id === "front")
+        ?.fraction === 0,
     toBe(true),
   );
 });

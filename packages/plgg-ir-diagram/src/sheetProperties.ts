@@ -133,16 +133,15 @@ const setLayout =
   };
 const roomAxes =
   (fn: (a: RoomAxes) => RoomAxes): Change =>
-  (f) =>
-    f.rooms
-      ? {
-          ...f,
-          rooms: {
-            ...f.rooms,
-            axes: fn(f.rooms.axes),
-          },
-        }
-      : f;
+  (f) => {
+    if (!f.rooms) return f;
+    const axes = fn(f.rooms.axes);
+    return {
+      ...f,
+      declaredAxes: axes,
+      rooms: { ...f.rooms, axes },
+    };
+  };
 const arrange =
   (
     axis: "x" | "y",
@@ -214,6 +213,7 @@ export const sheetProperties = <A>(
     rules: readonly Rule[],
   ) => A,
   cache = propertyCache(),
+  actions: readonly Html<A>[] = [],
 ) => {
   const ids = selectedNodes(flow),
     nodes = flow.nodes.filter((n) =>
@@ -1142,6 +1142,10 @@ export const sheetProperties = <A>(
         (type) => onEvent(type, dispatch),
       ),
     ],
-    [el("strong", [], [text(title)]), ...rows],
+    [
+      el("strong", [], [text(title)]),
+      ...actions,
+      ...rows,
+    ],
   );
 };

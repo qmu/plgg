@@ -106,9 +106,14 @@ const change =
             ...m,
             flow,
             source:
-              flow.rooms &&
-              flow.nodes === m.flow.nodes &&
-              flow.edges === m.flow.edges
+              (flow.suggestions &&
+                flow.declaredAxes ===
+                  m.flow.declaredAxes &&
+                flow.suggestions !==
+                  m.flow.suggestions) ||
+              (flow.rooms &&
+                flow.nodes === m.flow.nodes &&
+                flow.edges === m.flow.edges)
                 ? m.source
                 : printSpec(flow, m.rules),
             error: "",

@@ -1,3 +1,7 @@
+import { project } from "plgg-board";
+import { cardBounds } from "plgg-flow/nodeBody";
+import { readFileSync } from "node:fs";
+import { roomViews } from "plgg-flow/roomCamera";
 import { renderToString } from "plgg-view";
 import { flowView } from "plgg-flow/sheetView";
 import { test, check, toBe } from "plgg-test";
@@ -145,4 +149,109 @@ test("moving a node on its board survives printing and parsing", () => {
       printed === printSpec(restored, []),
     toBe(true),
   );
+});
+
+test("board captions clear the cards, boards and each other through a turn", () => {
+  const flow = specFlow(
+    read(
+      readFileSync(
+        "subjects/architectures/ec-3tier.txt",
+        "utf8",
+      ),
+    ),
+  );
+  if (
+    renderToString(flowView(flow)).includes(
+      "world-grid",
+    )
+  )
+    throw Error("grid on space sheet");
+  const poses = [
+    ...roomViews.map(([, yaw, pitch]) => [
+      yaw,
+      pitch,
+    ]),
+    ...Array.from({ length: 12 }, (_, i) => [
+      (i * Math.PI) / 6,
+      0.5 * Math.cos(i),
+    ]),
+  ];
+  for (const [yaw, pitch] of poses) {
+    const camera = {
+      ...flow.camera,
+      yaw: yaw!,
+      pitch: pitch!,
+    };
+    const scene = spaceScenery(flow.rooms!, {
+      ...flow,
+      camera,
+    });
+    const at = project(camera);
+    const occupied = cardBounds(
+      camera,
+      flow.nodes,
+    );
+    for (const label of scene) {
+      if (label.kind !== "label") continue;
+      const p = at(label.anchor);
+      const x = p.x + label.offset.x,
+        y = p.y + label.offset.y;
+      const half = (13 * label.text.length) / 2;
+      const rect = {
+        left: x - half,
+        right: x + half,
+        top: y - 8,
+        bottom: y + 8,
+      };
+      if (
+        occupied.some(
+          (b) =>
+            b.left < rect.right &&
+            rect.left < b.right &&
+            b.top < rect.bottom &&
+            rect.top < b.bottom,
+        )
+      )
+        throw Error(
+          "label collision " + label.text,
+        );
+      occupied.push(rect);
+      for (const board of scene) {
+        if (board.kind !== "plane") continue;
+        const poly = board.points.map(at);
+        const normals = [
+          { x: 1, y: 0 },
+          { x: 0, y: 1 },
+          ...poly.map((q, i) => ({
+            x: q.y - poly[(i + 1) % 4]!.y,
+            y: poly[(i + 1) % 4]!.x - q.x,
+          })),
+        ];
+        if (
+          normals.every((n) => {
+            const offsets = poly.map(
+              (q) => n.x * q.x + n.y * q.y,
+            );
+            const middle = x * n.x + y * n.y,
+              r =
+                Math.abs(n.x) * half +
+                Math.abs(n.y) * 8;
+            return (
+              middle + r > Math.min(...offsets) &&
+              middle - r < Math.max(...offsets)
+            );
+          })
+        )
+          throw Error(
+            "board collision " +
+              label.text +
+              " " +
+              yaw +
+              " " +
+              pitch,
+          );
+      }
+    }
+  }
+  return check(true, toBe(true));
 });

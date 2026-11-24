@@ -11,6 +11,7 @@ export const flowView = (
   return drawFlow(
     {
       ...state,
+      showWorldGrid: false,
       scenery: [
         ...spaceScenery(state.rooms!, state),
         ...(state.scenery ?? []),

@@ -246,6 +246,16 @@ const apply =
     return {
       ...s,
       flow,
+      ...(s.dsl?.flow === s.flow &&
+        flow.suggestions &&
+        flow.declaredAxes ===
+          s.flow.declaredAxes &&
+        (flow.suggestions !==
+          s.flow.suggestions ||
+          (flow.nodes === s.flow.nodes &&
+            flow.edges === s.flow.edges)) && {
+          dsl: { ...s.dsl, flow },
+        }),
       returning: false,
       start: dragging ? some(start) : none(),
       ...(!dragging && changed

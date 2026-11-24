@@ -188,6 +188,14 @@ test("flat and spatial sheets dispatch the same editing gestures", () => {
       };
       const a = at("a"),
         b = at("b");
+      state = { ...state, mark: ["a"] };
+      const empty = { x: 8, y: 8 };
+      send("pointerdown", empty);
+      send("pointerup", empty);
+      if (!state.markCleared)
+        throw Error(
+          "empty paper did not clear the mark",
+        );
       const body = z
         ? undefined
         : { "data-node": "a" };

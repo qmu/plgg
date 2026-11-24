@@ -88,6 +88,7 @@ import {
   selectArea,
   selectedEdges,
   chooseEdges,
+  quietMarked,
   selectedNodes,
   zoom,
   moveConstrainedSelection,
@@ -990,7 +991,7 @@ export const drawFlow = (
           (original.width !== n.width ||
             original.height !== n.height));
       const quiet =
-        n.quiet &&
+        (n.quiet || quietMarked(state, n.id)) &&
         state.hoveredNode !== n.id &&
         !chosen.has(n.id);
       const inputs = [
@@ -1382,7 +1383,8 @@ export const drawFlow = (
       const originalIndex =
         originalIndices.get(original);
       const tone =
-        original.quiet &&
+        (original.quiet ||
+          quietMarked(state, original)) &&
         state.hoveredEdge !== original &&
         !chosenWire &&
         !chosen.has(from.id) &&
@@ -2475,7 +2477,12 @@ export const drawFlow = (
                   d.mode === "orbit"
                 )
                   return selectNodes([])(
-                    released,
+                    released.mark
+                      ? {
+                          ...released,
+                          markCleared: true,
+                        }
+                      : released,
                   );
               }
             }
@@ -2710,54 +2717,60 @@ export const drawFlow = (
       }),
     ],
     easeDrawing([
-      ...(engine
-        ? [
-            gridLayer(
-              state.camera,
-              [state.frame],
-              () => worldGrid(state),
-            ),
-          ]
-        : state.scenery
-          ? scenery
-              .filter((s) => s.layer === "behind")
-              .sort((a, b) => a.depth - b.depth)
-              .map((s) => s.html)
-          : [
-              surfaceLayer(
-                state.camera,
-                [state.frame],
-                () => groundSurface(state),
-              ),
-              ...drawNodes
-                .filter(
-                  (n) =>
-                    !(n.group && !n.collapsed) &&
-                    !parents.get(n.parent ?? "")
-                      ?.group,
-                )
-                .map((n) =>
-                  footprintLayer(
-                    n.item,
-                    [state.camera],
-                    () =>
-                      footprint(
-                        state.camera,
-                        n.item,
-                      ),
-                  ),
-                ),
+      ...(engine && state.showWorldGrid === false
+        ? []
+        : engine
+          ? [
               gridLayer(
                 state.camera,
                 [state.frame],
                 () => worldGrid(state),
               ),
-              depthStems(
-                state.camera,
-                drawNodes,
-                parents,
-              ),
-            ]),
+            ]
+          : state.scenery
+            ? scenery
+                .filter(
+                  (s) => s.layer === "behind",
+                )
+                .sort((a, b) => a.depth - b.depth)
+                .map((s) => s.html)
+            : [
+                surfaceLayer(
+                  state.camera,
+                  [state.frame],
+                  () => groundSurface(state),
+                ),
+                ...drawNodes
+                  .filter(
+                    (n) =>
+                      !(
+                        n.group && !n.collapsed
+                      ) &&
+                      !parents.get(n.parent ?? "")
+                        ?.group,
+                  )
+                  .map((n) =>
+                    footprintLayer(
+                      n.item,
+                      [state.camera],
+                      () =>
+                        footprint(
+                          state.camera,
+                          n.item,
+                        ),
+                    ),
+                  ),
+                gridLayer(
+                  state.camera,
+                  [state.frame],
+                  () => worldGrid(state),
+                ),
+                depthStems(
+                  state.camera,
+                  drawNodes,
+                  parents,
+                ),
+              ]),
       // Keep the preview in its own SVG layer across pointer updates.
       isSome(state.drag) &&
       state.drag.content.mode === "connect"

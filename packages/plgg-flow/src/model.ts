@@ -195,8 +195,22 @@ export type Drag = Readonly<{
 }>;
 export type Flow = Graph &
   Readonly<{
+    mark?: readonly string[] | undefined;
+    markCleared?: boolean;
+    suggestions?: ReturnType<
+      typeof import("./bestViews").bestViews
+    >;
+    suggestionIndex?: number;
+    declaredAxes?: RoomLayout["axes"];
+    explicitView?: boolean;
+    fixedRoles?: boolean;
+    writtenCamera?: {
+      yaw: number;
+      pitch: number;
+    };
     hidden?: "lines" | "none";
     scenery?: readonly Scenery[];
+    showWorldGrid?: boolean;
     frame?: Point;
     /** Logical width at the right of the frame that a
      * panel laid over the board hides; fitting keeps
@@ -1645,3 +1659,15 @@ export const insertOnEdge: Change = (f) => {
     ? f
     : selectNodes([id])({ ...f, ...graph });
 };
+
+export const quietMarked = (
+  flow: Flow,
+  thing: string | Edge,
+) =>
+  !flow.markCleared &&
+  !!flow.mark?.length &&
+  !flow.mark.includes(
+    typeof thing === "string"
+      ? thing
+      : thing.source + " -> " + thing.target,
+  );

@@ -4,8 +4,6 @@ import {
   render,
   strokePath,
   clearLabelStrokes,
-  project,
-  projectedScale,
   pick,
   facingXYPlane,
   type Solid,
@@ -29,12 +27,13 @@ import {
   type Edge,
   type Change,
   type Scenery,
+  quietMarked,
   selectedNodes,
   selectedEdges,
 } from "plgg-flow/model";
 import {
   bodyDepth,
-  portPosition,
+  captionTagged,
 } from "plgg-flow/nodeBody";
 import {
   nodeSize,
@@ -85,7 +84,10 @@ export type SheetTarget = {
   };
   label?: Extract<Scenery, { kind: "label" }>;
 };
-const tagged = new WeakMap<FlowNode, boolean>();
+const tagged = new WeakMap<
+  readonly FlowNode[],
+  boolean
+>();
 // Keep BSP geometry stable across camera and interaction changes.
 const geometry = new WeakMap<
   Flow["edges"],
@@ -120,6 +122,7 @@ export const engineView = (
     lines: Line[] = [],
     marks: Mark[] = [],
     labels: Label[] = [];
+  const quietInk = new Set<string>();
   const captions = new Map<string, FlowNode>();
   const targets = new Map<string, SheetTarget>(),
     offsets = new Map<string, Point>(),
@@ -128,7 +131,6 @@ export const engineView = (
     selected = new Set(selectedNodes(flow)),
     chosen = new Set(selectedEdges(flow));
 
-  const endpoints = new Map<string, Point3[]>();
   const socket = (
     node: string,
     side: Side,
@@ -148,6 +150,7 @@ export const engineView = (
     targets.set(id, {
       port: { node, point, direction, handle },
     });
+    if (quietMarked(flow, node)) quietInk.add(id);
     marks.push({ id, style: "socket", point });
   };
   const originals = new Map(
@@ -170,18 +173,11 @@ export const engineView = (
             flow.hoveredNode === n,
         )
           ? " active"
-          : edge.quiet
+          : edge.quiet || quietMarked(flow, edge)
             ? " quiet"
             : "");
-    for (const end of [
-      "source",
-      "target",
-    ] satisfies ("source" | "target")[]) {
-      const node = edge[end],
-        list = endpoints.get(node) ?? [];
-      list.push(w[end]);
-      endpoints.set(node, list);
-    }
+    if (style.endsWith(" quiet"))
+      quietInk.add(id);
     targets.set(id, { edge });
     wireItems.set(id, w);
     lines.push({
@@ -319,6 +315,11 @@ export const engineView = (
       .filter((n) => n.group && !n.collapsed)
       .map((n) => [n.id, n]),
   );
+  const upright = captionTagged(
+    camera,
+    tagged.get(flow.nodes),
+  );
+  tagged.set(flow.nodes, upright);
   for (const n of nodes) {
     const id = "node:" + n.id,
       size = nodeSize(n),
@@ -336,12 +337,13 @@ export const engineView = (
       });
     targets.set(id, { node: n.id });
     captions.set(id, n);
+    if (quietMarked(flow, n.id)) quietInk.add(id);
     const style =
       "node" +
       (selected.has(n.id) ||
       flow.hoveredNode === n.id
         ? " active"
-        : n.quiet
+        : n.quiet || quietMarked(flow, n.id)
           ? " quiet"
           : "");
     const tray = n.group && !n.collapsed;
@@ -383,56 +385,11 @@ export const engineView = (
     const sign =
         facingXYPlane(camera, p.z) >= 0 ? 1 : -1,
       width = labelWidth(n.label);
-    const at = project(camera),
-      face = {
-        ...p,
-        z: tray ? p.z : p.z + sign * d,
-      },
-      center = at(face),
-      scale = projectedScale(camera, at(p).z);
-    const across = at({ ...face, x: face.x + 1 }),
-      down = at({ ...face, y: face.y + 1 });
-    const halfWidth =
-      (width * Math.abs(across.x - center.x) +
-        16 * Math.abs(down.x - center.x)) /
-      2;
-    const halfHeight =
-      (width * Math.abs(across.y - center.y) +
-        16 * Math.abs(down.y - center.y)) /
-      2;
-    const tag =
-      (!tray &&
-        [
-          ...(endpoints.get(n.id) ?? []),
-          ...(selected.has(n.id) ||
-          isSome(flow.source)
-            ? (
-                [
-                  "right",
-                  "left",
-                  "top",
-                  "bottom",
-                ] satisfies Side[]
-              ).map((side) =>
-                portPosition(n, side, 0),
-              )
-            : []),
-        ].some((world) => {
-          const socket = at(world);
-          return (
-            Math.abs(socket.x - center.x) <=
-              halfWidth + 3 &&
-            Math.abs(socket.y - center.y) <=
-              halfHeight + 3
-          );
-        })) ||
-      Math.min(
-        Math.abs(across.x - center.x),
-        Math.abs(down.y - center.y),
-      ) /
-        scale <
-        (tagged.get(n) ? 0.75 : 0.7);
-    tagged.set(n, tag);
+    const face = {
+      ...p,
+      z: tray ? p.z : p.z + sign * d,
+    };
+    const tag = !tray && upright;
     const eye = {
       x:
         -Math.sin(camera.yaw) *
@@ -602,7 +559,17 @@ export const engineView = (
     el<Change>(
       "path",
       [
-        attr("class", style + " " + kind),
+        attr(
+          "class",
+          style +
+            " " +
+            kind +
+            (style === "arrow" &&
+            id &&
+            quietInk.has(id)
+              ? " quiet"
+              : ""),
+        ),
         ...(id ? [attr("data-id", id)] : []),
         attr("style", styles.get(style) ?? ""),
         attr("d", d),
@@ -633,7 +600,13 @@ export const engineView = (
         el(
           "ellipse",
           [
-            attr("class", m.kind),
+            attr(
+              "class",
+              m.kind +
+                (quietInk.has(m.id)
+                  ? " quiet"
+                  : ""),
+            ),
             attr("data-id", m.id),
             attr(
               "transform",
@@ -772,7 +745,9 @@ export const engineView = (
     const attributes = [
       attr(
         "class",
-        l.style + (l.covered ? " covered" : ""),
+        l.style +
+          (l.covered ? " covered" : "") +
+          (quietInk.has(l.id) ? " quiet" : ""),
       ),
       attr("style", styles.get(l.style) ?? ""),
     ];

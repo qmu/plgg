@@ -1,3 +1,4 @@
+import { boardNames } from "plgg-flow/boardNames";
 import { roomFor } from "plgg-flow/autoLayout";
 import {
   cardBounds,
@@ -499,6 +500,7 @@ const blockLabels = (
   layout: RoomLayout,
   camera: Camera,
   cards: Box[],
+  edges: Flow["edges"] = [],
 ) => {
   const at = project(camera);
   const occupied = [...cards];
@@ -508,6 +510,7 @@ const blockLabels = (
       const { min, max } = stageBounds(c);
       const points = corners(min, max).map(at);
       return {
+        points: corners(min, max),
         value: c[0]!.caption,
         address: c[0]!.blockAddress,
         left: Math.min(...points.map((p) => p.x)),
@@ -519,6 +522,16 @@ const blockLabels = (
         ),
       };
     });
+  const names = boardNames(
+    blocks.map((b) => ({
+      points: b.points,
+      text: b.value,
+    })),
+    cards,
+    edges,
+    camera,
+    layout,
+  );
   const labels = [];
   const baseline =
     Math.max(...blocks.map((b) => b.bottom)) + 24;
@@ -528,9 +541,12 @@ const blockLabels = (
     right: number,
     y: number,
     outer: boolean,
+    tick?: { x: number; y: number; z: number },
+    centre = (left + right) / 2,
   ) => {
     const label = {
-      x: (left + right) / 2,
+      x: centre,
+      tick,
       y,
       z: 0,
       dx: 0,
@@ -576,16 +592,23 @@ const blockLabels = (
         ),
       });
     }
-    for (const [value, span] of spans)
+    for (const [value, span] of spans) {
+      const block = blocks.findIndex(
+        (b) => b.value === value,
+      );
+      const place = names[block];
       labels.push(
         add(
           value,
           span.left,
           span.right,
-          y,
+          place?.y ?? y,
           false,
+          place?.anchor,
+          place?.x,
         ),
       );
+    }
     const name = add(
       axis.attribute,
       Math.min(...blocks.map((b) => b.left)),
@@ -603,6 +626,7 @@ export const roomLabels = (
   layout: RoomLayout,
   camera: Camera,
   nodes: Flow["nodes"] = [],
+  edges: Flow["edges"] = [],
 ): (
   | AxisLabel
   | ReturnType<typeof blockLabels>[number]
@@ -616,6 +640,7 @@ export const roomLabels = (
     layout,
     local,
     cards,
+    edges,
   );
   return [
     ...axisGeometry(
@@ -639,6 +664,11 @@ export const spaceScenery = (
 ): Scenery[] => {
   const camera = flow.camera;
   const result: Scenery[] = [];
+  const boards: {
+    points: Point3[];
+    text: string;
+    label: Extract<Scenery, { kind: "label" }>;
+  }[] = [];
   for (const cells of groupsOf(layout)) {
     const bounds = stageBounds(cells);
     const rect = (
@@ -783,16 +813,15 @@ export const spaceScenery = (
         });
       if (cake) {
         const value = tiles[0]!.values[1];
-        result.push({
+        const label: Extract<
+          Scenery,
+          { kind: "label" }
+        > = {
           kind: "label",
           layer: "sorted",
           surface: level,
-          anchor: {
-            y: level,
-            x: Math.min(p.x, q.x) - 16,
-            z: Math.max(t.z, p.z) + 12,
-          },
-          offset: { x: 0, y: 8 },
+          anchor: p,
+          offset: { x: 0, y: 0 },
           text: value,
           size: 12,
           weight: 600,
@@ -813,6 +842,11 @@ export const spaceScenery = (
                 ? {}
                 : { [cake.attribute]: value },
           }),
+        };
+        boards.push({
+          points: [p, q, r, t],
+          text: value,
+          label,
         });
         continue;
       }
@@ -834,13 +868,59 @@ export const spaceScenery = (
     )
       frame(stageBounds(selected), ink);
   }
-  if (flow.layered?.options.layerAxis)
+  if (flow.layered?.options.layerAxis) {
+    const names = boardNames(
+      boards,
+      cardBounds(camera, flow.nodes),
+      flow.edges,
+      camera,
+      layout,
+    );
+    for (const [i, b] of boards.entries()) {
+      const { anchor, x, y, box } = names[i]!;
+      const end = {
+        x: Math.max(
+          box.left,
+          Math.min(box.right, anchor.x),
+        ),
+        y: Math.max(
+          box.top,
+          Math.min(box.bottom, anchor.y),
+        ),
+      };
+      if (
+        Math.hypot(
+          end.x - anchor.x,
+          end.y - anchor.y,
+        ) > 14
+      )
+        result.push({
+          kind: "line",
+          layer: "front",
+          tone: pencil,
+          points: [
+            unproject(camera, anchor, anchor.z),
+            unproject(camera, end, anchor.z),
+          ],
+        });
+      result.push({
+        ...b.label,
+        anchor: unproject(
+          camera,
+          { x, y },
+          anchor.z,
+        ),
+        offset: { x: 0, y: 0 },
+      });
+    }
     return result;
+  }
   const cards = cardBounds(camera, flow.nodes);
   const blocks = blockLabels(
     layout,
     camera,
     cards,
+    flow.edges,
   );
   const axes = axisGeometry(
     layout,
@@ -889,7 +969,25 @@ export const spaceScenery = (
           ]
         : []),
     ];
-    addLines(segments);
+    if (l.tick) {
+      const end = {
+        x: Math.min(
+          l.x + half,
+          Math.max(l.x - half, l.tick.x),
+        ),
+        y: Math.min(
+          y + 8,
+          Math.max(y - 8, l.tick.y),
+        ),
+      };
+      if (
+        Math.hypot(
+          end.x - l.tick.x,
+          end.y - l.tick.y,
+        ) > 14
+      )
+        addLines([[l.tick, end]]);
+    } else addLines(segments);
     result.push({
       kind: "label",
       layer: "front",

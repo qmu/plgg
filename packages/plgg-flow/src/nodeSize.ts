@@ -12,24 +12,40 @@ type Card = {
   height?: number;
 };
 const fullWidth =
-  /[\p{Script=Han}\p{Script=Hangul}\p{Script=Katakana}\p{Script=Hiragana}\u3000-\u30ff\uff01-\uff60\uffe0-\uffe6]/u;
+  /(?![\uff61-\uffdc])[\p{Script=Han}\p{Script=Hangul}\p{Script=Katakana}\p{Script=Hiragana}\u3000-\u30ff\uff01-\uff60\uffe0-\uffe6]/u;
 export const labelWidth = (label: string) => {
+  if (/^[ -~]*$/.test(label))
+    return label.length * 7.5;
   let width = 0;
-  for (const ch of label)
+  for (const ch of label) {
+    if (
+      /[\u3099\u309a\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/u.test(
+        ch,
+      )
+    )
+      continue;
     width += fullWidth.test(ch) ? 13 : 7.5;
+  }
   return width;
 };
 export const nodeSize = (node: Card) => {
   return {
     width:
-      node.width ??
-      Math.max(
-        4 * grid,
-        grid *
-          Math.ceil(
-            (labelWidth(node.label) + 24) / grid,
+      node.width !== undefined
+        ? fullWidth.test(node.label)
+          ? Math.max(
+              node.width,
+              labelWidth(node.label) + 24,
+            )
+          : node.width
+        : Math.max(
+            4 * grid,
+            grid *
+              Math.ceil(
+                (labelWidth(node.label) + 24) /
+                  grid,
+              ),
           ),
-      ),
     height: node.height ?? 2 * grid,
   };
 };

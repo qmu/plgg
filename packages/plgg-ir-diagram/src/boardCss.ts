@@ -44,6 +44,8 @@ export const boardCss = (root: string) => `
     stroke: var(--pencil, gray);
     stroke-width: 0.75;
   }
+  .engine-drawing :is(.arrow, .mark, text).quiet,
+  .engine-drawing .quiet text,
   .engine-drawing .covered text,
   .engine-drawing .covered {
     fill: var(--pencil, gray) !important;

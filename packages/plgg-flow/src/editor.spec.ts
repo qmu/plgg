@@ -1,3 +1,4 @@
+import { labelWidth } from "plgg-flow/nodeSize";
 import { wireGraph } from "plgg-flow/wiring";
 import { some } from "plgg";
 import {
@@ -134,7 +135,12 @@ test("mixed selections delete parallel wires and cards together", () => {
 });
 test("label width rounds padded text to the 16-unit grid", () =>
   check(
-    nodeSize({ label: "a" }).height === 32 &&
+    labelWidth("商品DB") === 41 &&
+      labelWidth("カ\u3099") === 13 &&
+      labelWidth("ｶ") === 7.5 &&
+      nodeSize({ label: "商品ページ", width: 32 })
+        .width >= labelWidth("商品ページ") &&
+      nodeSize({ label: "a" }).height === 32 &&
       nodeSize({ label: "a" }).width === 64 &&
       nodeSize({ label: "サービス" }).width ===
         80 &&
