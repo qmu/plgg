@@ -987,3 +987,57 @@ audit `sev3 0`, `slow-drag` ≤ 5, `drag-jump-neighbour` ≤ 14, static
 moderate ≤ 55, `drag-jump` ≤ 5; all specs pass; a spec asserting that
 two consecutive `flowView` calls with one node moved return `===`
 lazy arguments for an unrelated wire.
+
+## Round 19 review — adopted; the remaining frame cost is the renderer
+
+`drag-bench` `flowView` p90: 10.2 → 1.3 ms (curve), 14.9 → 0.9 ms
+(step). Audit unchanged in quality (`sev3 0`, static 53).
+
+In the browser the drag frame went 30 → 21–22 ms only after the
+reviewer fixed the demo: it built a fresh `mapHtml` function every
+frame, and plgg-view compares `messageMaps` by identity, so no lazy
+subtree was ever skipped (now one module-level mapper and one node
+renderer). A CPU profile of 60 drag frames (15 cards, 23 wires, 290
+SVG elements) then shows 1211 ms in `paint`, of which ~600 ms is
+plgg-view's `render` (diff/patch) and most of the rest the view
+function; the hot self-time is plgg's `match` machinery (`isAtomic`,
+proxy `get`, the `attr$`/`handler$`/`anim$`/`eventHandler$`/`host$`
+pattern constructors) — i.e. per-vnode and per-attribute dispatch by
+pattern matching. Router functions are negligible (`measureConflict`
+26 ms total).
+
+Round 20 — get a drag frame under 8 ms in the browser:
+1. plgg-flow: everything `flowView` emits that does not depend on the
+   moved node must sit behind a `lazy` with a stable argument — ground
+   plane and grid (camera only), guides, group frames, labels, arrow-
+   heads, sockets of unmoved nodes. Check with a spec that counts how
+   many non-lazy vnodes `flowView` returns at the top level for a
+   20-node sheet (should be a handful).
+2. plgg-flow-example: wrap the sidebar, header, toolbar and DSL panel
+   in `lazy` with stable arguments so a drag frame does not rebuild
+   them (the DSL text does change while dragging — keep it live, but
+   key it on the flow only).
+3. plgg-view (allowed this round, narrowly): in
+   `src/Program/usecase/render.ts` and the attribute/vnode dispatch it
+   calls, replace `match(...)` over pattern constructors in the hot
+   diff/patch path with a direct `switch` on the discriminant tag,
+   and avoid constructing pattern objects per call. Behaviour must be
+   byte-identical: all plgg-view specs pass unchanged, no API change.
+   Measure before/after with a Node micro-bench that diffs two
+   290-element SVG trees (keep the bench out of the repo or under
+   `packages/plgg-view/scripts/`).
+
+## Round 20 review — adopted; drags fit a 60 fps frame
+
+plgg-view's diff/patch dispatches on `__tag` with exhaustive switches
+(13 functions in `render.ts`; 290-element SVG diff 12.3 → 0.6 ms in the
+package's Node test DOM), `flowView` keeps everything unrelated to the
+moved node behind `lazy`, and the demo's chrome is lazy too. Measured
+in the browser on the 15-card / 23-wire sheet, per pointer move:
+curve 11.6 ms median / 13.6 p90 (was 30), step 14.0 / 15.7, a
+lightly-wired node 9.2 / 11.2. The remaining cost per frame is the
+router re-routing the moved node's own wires (6–10 ms).
+
+Open: frame budget of 8 ms not yet met (router: own wires of the moved
+node); audit `slow-drag` 12; `drag-jump-neighbour` 18; static moderate
+53 (`siblings-cross` 18, `wiggly` 14).

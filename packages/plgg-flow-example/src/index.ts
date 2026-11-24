@@ -41,6 +41,7 @@ import {
   onEvent,
   onInput,
   mapHtml,
+  lazy,
   type Html,
 } from "plgg-view";
 import {
@@ -445,15 +446,23 @@ const cardHistory = (
       else {
         const before = n.before.content,
           after = n.after.content;
+        const beforeFields = new Map(
+            Object.entries(before),
+          ),
+          afterFields = new Map(
+            Object.entries(after),
+          );
         const keys = new Set([
-          ...Object.keys(before),
-          ...Object.keys(after),
-        ] as (keyof FlowNode)[]);
+          ...beforeFields.keys(),
+          ...afterFields.keys(),
+        ]);
         changes.push(
           ...Array.from(keys).filter(
             (k) =>
-              JSON.stringify(before[k]) !==
-              JSON.stringify(after[k]),
+              JSON.stringify(
+                beforeFields.get(k),
+              ) !==
+              JSON.stringify(afterFields.get(k)),
           ),
         );
       }
@@ -1327,7 +1336,11 @@ const diagram = (id: DemoId, f: Flow) =>
                   )),
           ),
   );
-const dslPanel = (s: Session) => {
+const dslPanel = (s: {
+  flow: Flow;
+  rules: Session["rules"];
+  dsl: Session["dsl"];
+}) => {
   const typed =
     s.dsl && s.dsl.flow === s.flow
       ? s.dsl
@@ -1414,6 +1427,277 @@ const dslPanel = (s: Session) => {
     ],
   );
 };
+const sidebar = (index: number): Html<Action> =>
+  el(
+    "aside",
+    [],
+    [
+      el("h1", [], [text("plgg-flow")]),
+      el(
+        "a",
+        [attr("href", "./diagram.html")],
+        [text("図面を文章で書く")],
+      ),
+      el(
+        "p",
+        [],
+        [
+          text(
+            "plgg-view のための空間ダイアグラム。ノードと線を、つかんで動かせる実例集。",
+          ),
+        ],
+      ),
+      el(
+        "nav",
+        [attr("aria-label", "Examples")],
+        examples.map((e, i) =>
+          el(
+            "button",
+            [
+              onClick((m: Model) => ({
+                ...m,
+                index: i,
+              })),
+              attr(
+                "aria-pressed",
+                String(i === index),
+              ),
+            ],
+            [text(e.name)],
+          ),
+        ),
+      ),
+    ],
+  );
+const header = (
+  e: (typeof examples)[number],
+): Html<Action> =>
+  el(
+    "header",
+    [],
+    [
+      el("h2", [], [text(e.name)]),
+      el(
+        "p",
+        [attr("class", "lede")],
+        [text(e.hint)],
+      ),
+    ],
+  );
+const toolbar = (
+  e: (typeof examples)[number],
+): Html<Action> =>
+  el(
+    "div",
+    [attr("class", "toolbar")],
+    [
+      btn("リセット", () =>
+        session(e.initial(), e.spec().rules),
+      ),
+    ],
+  );
+const dslCache = new WeakMap<
+  Flow,
+  {
+    draft: Session["dsl"];
+    rules: Session["rules"];
+    panel: Html<Action>;
+  }
+>();
+const renderPanel = (build: () => Html<Action>) =>
+  build();
+const lazyDsl = (s: Session) => {
+  const draft =
+    s.dsl?.flow === s.flow ? s.dsl : undefined;
+  const old = dslCache.get(s.flow);
+  if (
+    old &&
+    old.draft === draft &&
+    old.rules === s.rules
+  )
+    return old.panel;
+  const panel = lazy(
+    (flow: Flow) =>
+      dslPanel({
+        flow,
+        rules: s.rules,
+        dsl: draft,
+      }),
+    s.flow,
+  );
+  dslCache.set(s.flow, {
+    draft,
+    rules: s.rules,
+    panel,
+  });
+  return panel;
+};
+// Controls whose labels read board geometry must follow those edits.
+const featureInput = (
+  id: DemoId,
+  s: Session,
+): unknown => {
+  const f = s.flow;
+  switch (id) {
+    case "space":
+      return f.camera;
+    case "split":
+      return !!f.edges.length;
+    case "cycles":
+    case "limit":
+      return s.message;
+    case "reconnect":
+    case "routes":
+    case "layout":
+      return id;
+    case "bypass":
+      return f.nodes.some(
+        (n) => n.id === "Process",
+      );
+    case "snap":
+      return f.snap;
+    case "resize":
+      return f.nodes.find(
+        (n) => n.id === "Process",
+      )?.width;
+    case "rename":
+      return f.nodes.find(
+        (n) => n.id === "Process",
+      )?.label;
+    case "motion":
+    case "labels":
+      return f.edges;
+    case "collapse":
+      return isSome(s.hidden);
+    case "files":
+      return s.files;
+    case "copy":
+      return JSON.stringify([
+        !!selected(f),
+        isSome(s.clipboard),
+      ]);
+    case "history":
+      return JSON.stringify([
+        !!selected(f),
+        !!s.before.length,
+        !!s.after.length,
+      ]);
+    case "checkpoint":
+      return JSON.stringify([
+        s.message,
+        isSome(s.saved),
+      ]);
+    case "compute":
+      return JSON.stringify(
+        ["A", "B"].map(
+          (id) =>
+            f.nodes.find((n) => n.id === id)
+              ?.value,
+        ),
+      );
+    case "overview":
+      return f;
+    case "trace":
+    case "group":
+    case "revisions":
+    case "outline":
+      return s;
+    default:
+      return id satisfies never;
+  }
+};
+const featureCache = new Map<
+  DemoId,
+  {
+    input: unknown;
+    canRemove: boolean;
+    html: Html<Action>;
+  }
+>();
+const boardControls = (
+  e: (typeof examples)[number],
+  s: Session,
+) => {
+  const id = e.id,
+    canRemove = !!(
+      selected(s.flow) || s.flow.activeEdge
+    );
+  const input = featureInput(id, s),
+    old = featureCache.get(id);
+  if (
+    old &&
+    old.input === input &&
+    old.canRemove === canRemove
+  )
+    return old.html;
+  const html = lazy(renderPanel, () =>
+    el(
+      "div",
+      [attr("class", "board-controls")],
+      [
+        lazy(toolbar, e),
+        el(
+          "div",
+          [attr("class", "feature")],
+          controls(id, s),
+        ),
+        ...(canRemove
+          ? [
+              el(
+                "button",
+                [
+                  attr("class", "remove"),
+                  attr(
+                    "aria-label",
+                    "選択を削除",
+                  ),
+                  attr(
+                    "title",
+                    "選択を削除（Delete）",
+                  ),
+                  onClick(
+                    edit(apply(deleteSelected)),
+                  ),
+                ],
+                [text("×")],
+              ),
+            ]
+          : []),
+        el(
+          "button",
+          [
+            attr("class", "add-node"),
+            attr("aria-label", "ノードを追加"),
+            attr("title", "ノードを追加"),
+            onClick(
+              edit(
+                apply((f) => {
+                  const id = unique("Node ", f);
+                  return addNode({
+                    id,
+                    label: id,
+                    position: {
+                      x: 0,
+                      y: 90,
+                      z: 0,
+                    },
+                  })(f);
+                }),
+              ),
+            ),
+          ],
+          [text("+")],
+        ),
+      ],
+    ),
+  );
+  featureCache.set(id, {
+    input,
+    canRemove,
+    html,
+  });
+  return html;
+};
 const view = (m: Model): Html<Action> => {
   const e = examples[m.index],
     s = m.sessions[m.index];
@@ -1476,63 +1760,12 @@ const view = (m: Model): Html<Action> => {
       }),
     ],
     [
-      el(
-        "aside",
-        [],
-        [
-          el("h1", [], [text("plgg-flow")]),
-          el(
-            "a",
-            [attr("href", "./diagram.html")],
-            [text("図面を文章で書く")],
-          ),
-          el(
-            "p",
-            [],
-            [
-              text(
-                "plgg-view のための空間ダイアグラム。ノードと線を、つかんで動かせる実例集。",
-              ),
-            ],
-          ),
-          el(
-            "nav",
-            [attr("aria-label", "Examples")],
-            examples.map((e, i) =>
-              el(
-                "button",
-                [
-                  onClick((m: Model) => ({
-                    ...m,
-                    index: i,
-                  })),
-                  attr(
-                    "aria-pressed",
-                    String(i === m.index),
-                  ),
-                ],
-                [text(e.name)],
-              ),
-            ),
-          ),
-        ],
-      ),
+      lazy(sidebar, m.index),
       el(
         "section",
         [],
         [
-          el(
-            "header",
-            [],
-            [
-              el("h2", [], [text(e.name)]),
-              el(
-                "p",
-                [attr("class", "lede")],
-                [text(e.hint)],
-              ),
-            ],
-          ),
+          lazy(header, e),
           el(
             "div",
             [attr("class", "stage")],
@@ -1544,114 +1777,10 @@ const view = (m: Model): Html<Action> => {
                   boardActions(
                     diagram(e.id, s.flow),
                   ),
-                  el(
-                    "div",
-                    [
-                      attr(
-                        "class",
-                        "board-controls",
-                      ),
-                    ],
-                    [
-                      el(
-                        "div",
-                        [
-                          attr(
-                            "class",
-                            "toolbar",
-                          ),
-                        ],
-                        [
-                          btn("リセット", () =>
-                            session(
-                              e.initial(),
-                              e.spec().rules,
-                            ),
-                          ),
-                        ],
-                      ),
-                      el(
-                        "div",
-                        [
-                          attr(
-                            "class",
-                            "feature",
-                          ),
-                        ],
-                        controls(e.id, s),
-                      ),
-                      ...(selected(s.flow) ||
-                      s.flow.activeEdge
-                        ? [
-                            el(
-                              "button",
-                              [
-                                attr(
-                                  "class",
-                                  "remove",
-                                ),
-                                attr(
-                                  "aria-label",
-                                  "選択を削除",
-                                ),
-                                attr(
-                                  "title",
-                                  "選択を削除（Delete）",
-                                ),
-                                onClick(
-                                  edit(
-                                    apply(
-                                      deleteSelected,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              [text("×")],
-                            ),
-                          ]
-                        : []),
-                      el(
-                        "button",
-                        [
-                          attr(
-                            "class",
-                            "add-node",
-                          ),
-                          attr(
-                            "aria-label",
-                            "ノードを追加",
-                          ),
-                          attr(
-                            "title",
-                            "ノードを追加",
-                          ),
-                          onClick(
-                            edit(
-                              apply((f) => {
-                                const id = unique(
-                                  "Node ",
-                                  f,
-                                );
-                                return addNode({
-                                  id,
-                                  label: id,
-                                  position: {
-                                    x: 0,
-                                    y: 90,
-                                    z: 0,
-                                  },
-                                })(f);
-                              }),
-                            ),
-                          ),
-                        ],
-                        [text("+")],
-                      ),
-                    ],
-                  ),
+                  boardControls(e, s),
                 ],
               ),
-              dslPanel(s),
+              lazyDsl(s),
             ],
           ),
           el(

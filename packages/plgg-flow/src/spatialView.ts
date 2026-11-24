@@ -1,3 +1,4 @@
+import { lazyLayer } from "plgg-flow/lazyLayer";
 import { nodeSize } from "plgg-flow/nodeSize";
 import { isSome } from "plgg";
 import { project, type Point3 } from "plgg-board";
@@ -16,6 +17,9 @@ const a = (
   name: string,
   value: string | number,
 ) => attr(name, String(value));
+const axesLayer = lazyLayer(),
+  dimensionLayer = lazyLayer(),
+  volumeLayer = lazyLayer();
 export const spatialGuides = (
   state: Flow,
 ): Html<Change>[] => {
@@ -64,18 +68,24 @@ export const spatialGuides = (
       [text(value)],
     );
   if (world?.axes) {
-    const origin = { x: 0, y: 0, z: 0 };
-    for (const [axis, color] of [
-      ["x", "#ad4c41"],
-      ["y", "#3c7653"],
-      ["z", "#3268a0"],
-    ] satisfies [keyof Point3, string][]) {
-      const end = { ...origin, [axis]: 100 };
-      items.push(
-        line(origin, end, color, "none"),
-        label(end, axis.toUpperCase(), color),
-      );
-    }
+    items.push(
+      axesLayer(state.camera, [], () => {
+        const axes: Html<Change>[] = [];
+        const origin = { x: 0, y: 0, z: 0 };
+        for (const [axis, color] of [
+          ["x", "#ad4c41"],
+          ["y", "#3c7653"],
+          ["z", "#3268a0"],
+        ] satisfies [keyof Point3, string][]) {
+          const end = { ...origin, [axis]: 100 };
+          axes.push(
+            line(origin, end, color, "none"),
+            label(end, axis.toUpperCase(), color),
+          );
+        }
+        return el("g", [], axes);
+      }),
+    );
   }
   const lookup = new Map(
     state.nodes.map((n) => [n.id, n.position]),
@@ -87,33 +97,43 @@ export const spatialGuides = (
       q = lookup.get(j ?? ""),
       r = lookup.get(k ?? "");
     if (!p || !q) continue;
-    if (dimension.kind === "distance") {
-      const middle = {
-        x: (p.x + q.x) / 2,
-        y: (p.y + q.y) / 2,
-        z: (p.z + q.z) / 2,
-      };
-      items.push(
-        line(p, q, "#855327", "3 3"),
-        label(
-          middle,
-          distance3(p, q).toFixed(1) + " u",
-          "#76451e",
-        ),
-      );
-    } else if (r) {
-      const v = angle3(p, q, r);
-      if (isSome(v))
-        items.push(
-          line(p, q, "#86517a", "4 4"),
-          line(q, r, "#86517a", "4 4"),
-          label(
-            q,
-            v.content.toFixed(1) + "°",
-            "#74446c",
-          ),
-        );
-    }
+    items.push(
+      dimensionLayer(
+        dimension,
+        [state.camera, p, q, r],
+        () => {
+          const parts: Html<Change>[] = [];
+          if (dimension.kind === "distance") {
+            const middle = {
+              x: (p.x + q.x) / 2,
+              y: (p.y + q.y) / 2,
+              z: (p.z + q.z) / 2,
+            };
+            parts.push(
+              line(p, q, "#855327", "3 3"),
+              label(
+                middle,
+                distance3(p, q).toFixed(1) + " u",
+                "#76451e",
+              ),
+            );
+          } else if (r) {
+            const v = angle3(p, q, r);
+            if (isSome(v))
+              parts.push(
+                line(p, q, "#86517a", "4 4"),
+                line(q, r, "#86517a", "4 4"),
+                label(
+                  q,
+                  v.content.toFixed(1) + "°",
+                  "#74446c",
+                ),
+              );
+          }
+          return el("g", [], parts);
+        },
+      ),
+    );
   }
   return items.length
     ? [
@@ -190,68 +210,92 @@ export const groupVolumes = (
       box.bottom += 12;
       box.back -= 16;
       box.front += 16;
-      const face = (z: number) =>
-        [
-          [box.left, box.top],
-          [box.right, box.top],
-          [box.right, box.bottom],
-          [box.left, box.bottom],
-        ].map(([x, y]) =>
-          at({ x: x!, y: y!, z }),
-        );
-      let far = face(box.back),
-        near = face(box.front);
-      if (far[0]!.z > near[0]!.z)
-        [far, near] = [near, far];
-      const xy = (p: Point3) => p.x + " " + p.y;
-      const outline = (points: Point3[]) =>
-        "M" + points.map(xy).join(" L") + " Z";
-      const sides = near
-        .map(
-          (p, j) =>
-            "M" + xy(p) + " L" + xy(far[j]!),
-        )
-        .join(" ");
       volumes.push(
-        el(
-          "g",
+        volumeLayer(
+          n,
           [
-            a("data-group-volume", n.id),
-            a("pointer-events", "none"),
-            a("aria-hidden", "true"),
-            a(
-              "stroke",
-              selection.has(n.id)
-                ? "#ae603c"
-                : "#427b75",
-            ),
-            a("fill", "none"),
+            camera,
+            selection.has(n.id),
+            box.left,
+            box.right,
+            box.top,
+            box.bottom,
+            box.front,
+            box.back,
           ],
-          [
-            el(
-              "path",
+          () => {
+            const face = (z: number) =>
               [
-                a("d", outline(far)),
-                a("stroke-dasharray", "4 4"),
-                a("opacity", 0.5),
-              ],
-              [],
-            ),
-            el(
-              "path",
-              [a("d", sides), a("opacity", 0.65)],
-              [],
-            ),
-            el(
-              "path",
+                [box.left, box.top],
+                [box.right, box.top],
+                [box.right, box.bottom],
+                [box.left, box.bottom],
+              ].map(([x, y]) =>
+                at({ x: x!, y: y!, z }),
+              );
+            let far = face(box.back),
+              near = face(box.front);
+            if (far[0]!.z > near[0]!.z)
+              [far, near] = [near, far];
+            const xy = (p: Point3) =>
+              p.x + " " + p.y;
+            const outline = (points: Point3[]) =>
+              "M" +
+              points.map(xy).join(" L") +
+              " Z";
+            const sides = near
+              .map(
+                (p, j) =>
+                  "M" +
+                  xy(p) +
+                  " L" +
+                  xy(far[j]!),
+              )
+              .join(" ");
+            return el(
+              "g",
               [
-                a("d", outline(near)),
-                a("fill", "#569d94"),
-                a("fill-opacity", 0.05),
+                a("data-group-volume", n.id),
+                a("pointer-events", "none"),
+                a("aria-hidden", "true"),
+                a(
+                  "stroke",
+                  selection.has(n.id)
+                    ? "#ae603c"
+                    : "#427b75",
+                ),
+                a("fill", "none"),
               ],
-              [],
-            ),
-          ],
+              [
+                el(
+                  "path",
+                  [
+                    a("d", outline(far)),
+                    a("stroke-dasharray", "4 4"),
+                    a("opacity", 0.5),
+                  ],
+                  [],
+                ),
+                el(
+                  "path",
+                  [
+                    a("d", sides),
+                    a("opacity", 0.65),
+                  ],
+                  [],
+                ),
+                el(
+                  "path",
+                  [
+                    a("d", outline(near)),
+                    a("fill", "#569d94"),
+                    a("fill-opacity", 0.05),
+                  ],
+                  [],
+                ),
+              ],
+            );
+          },
         ),
       );
     }

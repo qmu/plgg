@@ -5,7 +5,6 @@ import {
   some,
   none,
   pipe,
-  match,
   fromNullable,
   chainOption,
   matchOption,
@@ -14,23 +13,12 @@ import {
 import {
   Html,
   ElementContent,
-  element$,
-  text$,
-  raw$,
-  lazy$,
 } from "plgg-view/Html/model/Html";
 import {
   Attribute,
   HostLifecycle,
   Motion,
   Frame,
-  attr$,
-  handler$,
-  eventHandler$,
-  host$,
-  anim$,
-  css$,
-  key$,
   easeOut,
   easeInOut,
 } from "plgg-view/Html/model/Attribute";
@@ -253,58 +241,52 @@ const removeStaticAttr = (
 /** Applies one {@link Attribute} to a freshly created node. */
 const applyAttribute =
   <Msg>(wiring: Wiring<Msg>, node: Element) =>
-  (attribute: Attribute<Msg>): void =>
-    match(attribute)(
-      [
-        attr$(),
-        ({ content }): void =>
-          setStaticAttr(
-            node,
-            content.name,
-            content.value,
-          ),
-      ],
-      [
-        handler$(),
-        ({ content }): void =>
-          setHandler(
-            wiring,
-            node,
-            content.event,
-            (event) =>
-              some(
-                content.toMsg(payloadOf(event)),
-              ),
-          ),
-      ],
-      [
-        eventHandler$(),
-        ({ content }): void =>
-          setHandler(
-            wiring,
-            node,
-            content.event,
-            content.toMsg,
-          ),
-      ],
-      [host$(), (): void => undefined],
-      // an animation directive is not a DOM attribute: the enter motion is
-      // played in createNode once the node and its children exist.
-      [anim$(), (): void => undefined],
-      // a css() directive contributes the element's `class` (atomic names).
-      [
-        css$(),
-        ({ content }): void =>
-          setStaticAttr(
-            node,
-            "class",
-            content.classes,
-          ),
-      ],
-      // a key() is identity metadata, not a DOM attribute: recorded on the node
-      // (createNode) and read by the keyed reconcile, never written to the DOM.
-      [key$(), (): void => undefined],
-    );
+  (attribute: Attribute<Msg>): void => {
+    switch (attribute.__tag) {
+      case "Attr": {
+        const { content } = attribute;
+        return setStaticAttr(
+          node,
+          content.name,
+          content.value,
+        );
+      }
+      case "Handler": {
+        const { content } = attribute;
+        return setHandler(
+          wiring,
+          node,
+          content.event,
+          (event) =>
+            some(content.toMsg(payloadOf(event))),
+        );
+      }
+      case "EventHandler": {
+        const { content } = attribute;
+        return setHandler(
+          wiring,
+          node,
+          content.event,
+          content.toMsg,
+        );
+      }
+      case "Host":
+      case "Anim":
+      case "Key": {
+        return undefined;
+      }
+      case "Css": {
+        const { content } = attribute;
+        return setStaticAttr(
+          node,
+          "class",
+          content.classes,
+        );
+      }
+      default:
+        return attribute satisfies never;
+    }
+  };
 
 /**
  * Folds two {@link Option}s "last-some-wins": a later `none` preserves an earlier
@@ -330,23 +312,24 @@ const enterOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
 ): Option<Motion> =>
   attributes.reduce<Option<Motion>>(
-    (acc, attribute) =>
-      match(attribute)(
-        [attr$(), (): Option<Motion> => acc],
-        [handler$(), (): Option<Motion> => acc],
-        [
-          eventHandler$(),
-          (): Option<Motion> => acc,
-        ],
-        [host$(), (): Option<Motion> => acc],
-        [
-          anim$(),
-          ({ content }): Option<Motion> =>
-            keepSome(acc, content.enter),
-        ],
-        [css$(), (): Option<Motion> => acc],
-        [key$(), (): Option<Motion> => acc],
-      ),
+    (acc, attribute) => {
+      switch (attribute.__tag) {
+        case "Attr":
+        case "Handler":
+        case "EventHandler":
+        case "Host":
+        case "Css":
+        case "Key": {
+          return acc;
+        }
+        case "Anim": {
+          const { content } = attribute;
+          return keepSome(acc, content.enter);
+        }
+        default:
+          return attribute satisfies never;
+      }
+    },
     none(),
   );
 
@@ -355,23 +338,24 @@ const exitOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
 ): Option<Motion> =>
   attributes.reduce<Option<Motion>>(
-    (acc, attribute) =>
-      match(attribute)(
-        [attr$(), (): Option<Motion> => acc],
-        [handler$(), (): Option<Motion> => acc],
-        [
-          eventHandler$(),
-          (): Option<Motion> => acc,
-        ],
-        [host$(), (): Option<Motion> => acc],
-        [
-          anim$(),
-          ({ content }): Option<Motion> =>
-            keepSome(acc, content.exit),
-        ],
-        [css$(), (): Option<Motion> => acc],
-        [key$(), (): Option<Motion> => acc],
-      ),
+    (acc, attribute) => {
+      switch (attribute.__tag) {
+        case "Attr":
+        case "Handler":
+        case "EventHandler":
+        case "Host":
+        case "Css":
+        case "Key": {
+          return acc;
+        }
+        case "Anim": {
+          const { content } = attribute;
+          return keepSome(acc, content.exit);
+        }
+        default:
+          return attribute satisfies never;
+      }
+    },
     none(),
   );
 
@@ -381,23 +365,24 @@ const exitOf = <Msg>(
  */
 const exitMotionOf = <Msg>(
   vnode: Html<Msg>,
-): Option<Motion> =>
-  match(vnode)(
-    [text$(), (): Option<Motion> => none()],
-    [raw$(), (): Option<Motion> => none()],
-    [
-      element$(),
-      ({ content }): Option<Motion> =>
-        exitOf(content.attributes),
-    ],
-    // an exiting node is leaving for good — there is no later render to skip
-    // a rebuild for, so resolve it to find its real exit motion (if any).
-    [
-      lazy$(),
-      ({ content }): Option<Motion> =>
-        exitMotionOf(content.render()),
-    ],
-  );
+): Option<Motion> => {
+  switch (vnode.__tag) {
+    case "Text":
+    case "Raw": {
+      return none();
+    }
+    case "Element": {
+      const { content } = vnode;
+      return exitOf(content.attributes);
+    }
+    case "Lazy": {
+      const { content } = vnode;
+      return exitMotionOf(content.render());
+    }
+    default:
+      return vnode satisfies never;
+  }
+};
 
 /**
  * Forces a {@link lazy$} node's thunk until the result is no longer lazy — the
@@ -411,40 +396,45 @@ const exitMotionOf = <Msg>(
  */
 const resolveLazy = <Msg>(
   vnode: Html<Msg>,
-): Html<Msg> =>
-  match(vnode)(
-    [text$(), (): Html<Msg> => vnode],
-    [raw$(), (): Html<Msg> => vnode],
-    [element$(), (): Html<Msg> => vnode],
-    [
-      lazy$(),
-      ({ content }): Html<Msg> =>
-        resolveLazy(content.render()),
-    ],
-  );
+): Html<Msg> => {
+  switch (vnode.__tag) {
+    case "Text":
+    case "Raw":
+    case "Element": {
+      return vnode;
+    }
+    case "Lazy": {
+      const { content } = vnode;
+      return resolveLazy(content.render());
+    }
+    default:
+      return vnode satisfies never;
+  }
+};
 
 /** The {@link key} carried by an attribute list, if any. */
 const keyOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
 ): Option<SoftStr> =>
   attributes.reduce<Option<SoftStr>>(
-    (acc, attribute) =>
-      match(attribute)(
-        [attr$(), (): Option<SoftStr> => acc],
-        [handler$(), (): Option<SoftStr> => acc],
-        [
-          eventHandler$(),
-          (): Option<SoftStr> => acc,
-        ],
-        [host$(), (): Option<SoftStr> => acc],
-        [anim$(), (): Option<SoftStr> => acc],
-        [css$(), (): Option<SoftStr> => acc],
-        [
-          key$(),
-          ({ content }): Option<SoftStr> =>
-            some(content.value),
-        ],
-      ),
+    (acc, attribute) => {
+      switch (attribute.__tag) {
+        case "Attr":
+        case "Handler":
+        case "EventHandler":
+        case "Host":
+        case "Anim":
+        case "Css": {
+          return acc;
+        }
+        case "Key": {
+          const { content } = attribute;
+          return some(content.value);
+        }
+        default:
+          return attribute satisfies never;
+      }
+    },
     none(),
   );
 
@@ -458,17 +448,21 @@ const keyOf = <Msg>(
  */
 const keyOfVnode = <Msg>(
   vnode: Html<Msg>,
-): Option<SoftStr> =>
-  match(vnode)(
-    [text$(), (): Option<SoftStr> => none()],
-    [raw$(), (): Option<SoftStr> => none()],
-    [
-      element$(),
-      ({ content }): Option<SoftStr> =>
-        keyOf(content.attributes),
-    ],
-    [lazy$(), (): Option<SoftStr> => none()],
-  );
+): Option<SoftStr> => {
+  switch (vnode.__tag) {
+    case "Text":
+    case "Raw":
+    case "Lazy": {
+      return none();
+    }
+    case "Element": {
+      const { content } = vnode;
+      return keyOf(content.attributes);
+    }
+    default:
+      return vnode satisfies never;
+  }
+};
 
 /**
  * One {@link Frame} as a WAAPI keyframe — each present property contributed by
@@ -563,8 +557,14 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 
 /** SVG descendants inherit their namespace, including later insertions.
  * foreignObject switches its children back to HTML. */
-const createElementFor = (tag: SoftStr, parent?: Node): Element =>
-  tag === "svg" || (parent instanceof Element && parent.namespaceURI === SVG_NS && parent.localName !== "foreignObject")
+const createElementFor = (
+  tag: SoftStr,
+  parent?: Node,
+): Element =>
+  tag === "svg" ||
+  (parent instanceof Element &&
+    parent.namespaceURI === SVG_NS &&
+    parent.localName !== "foreignObject")
     ? document.createElementNS(SVG_NS, tag)
     : document.createElement(tag);
 
@@ -572,19 +572,37 @@ const createElementFor = (tag: SoftStr, parent?: Node): Element =>
  * default also governs native form.reset(). Missing choices follow HTML's
  * first enabled option rule for a single-line select. */
 const syncSelect = (node: Element): void => {
-  if (node.tagName !== "SELECT" || typeof HTMLSelectElement === "undefined" || !(node instanceof HTMLSelectElement) || node.multiple) return;
+  if (
+    node.tagName !== "SELECT" ||
+    typeof HTMLSelectElement === "undefined" ||
+    !(node instanceof HTMLSelectElement) ||
+    node.multiple
+  )
+    return;
   const value = node.getAttribute("value");
   if (value === null) return;
-  if (!node.options) { node.value = value; return; }
+  if (!node.options) {
+    node.value = value;
+    return;
+  }
   const options = Array.from(node.options);
-  const index = options.findIndex(option => option.value === value);
+  const index = options.findIndex(
+    (option) => option.value === value,
+  );
   options.forEach((option, i) => {
-    if (option.defaultSelected !== (i === index)) option.defaultSelected = i === index;
+    if (option.defaultSelected !== (i === index))
+      option.defaultSelected = i === index;
   });
-  const selection = index < 0 && node.size <= 1
-    ? options.findIndex(option => !option.disabled && !option.closest("optgroup[disabled]"))
-    : index;
-  if (node.selectedIndex !== selection) node.selectedIndex = selection;
+  const selection =
+    index < 0 && node.size <= 1
+      ? options.findIndex(
+          (option) =>
+            !option.disabled &&
+            !option.closest("optgroup[disabled]"),
+        )
+      : index;
+  if (node.selectedIndex !== selection)
+    node.selectedIndex = selection;
 };
 
 /**
@@ -594,189 +612,185 @@ const syncSelect = (node: Element): void => {
  */
 export const createNode =
   <Msg>(wiring: Wiring<Msg>) =>
-  (node: Html<Msg>, parent?: Node): Node =>
-    match(node)(
-      [
-        text$(),
-        ({ content }): Node =>
-          document.createTextNode(content.value),
-      ],
-      [
-        raw$(),
-        ({ content }): Node => {
-          // confined DOM seam: a raw passthrough parses
-          // its trusted html into a single wrapper whose
-          // box is elided (`display:contents`), so the
-          // author's markup lays out as if unwrapped. The
-          // 1:1 vnode→Node mapping needs one node; SSR
-          // (`renderToString`) emits the same html with no
-          // wrapper. The Markdown default path never
-          // produces a Raw node, so this stays a
-          // trusted-content-only seam.
-          const holder =
-            document.createElement("span");
-          holder.style.display = "contents";
-          holder.innerHTML = content.html;
-          return holder;
-        },
-      ],
-      [
-        element$(),
-        ({ content }): Node => {
-          const el = createElementFor(
-            content.tag, parent,
-          );
-          content.attributes.forEach(
-            applyAttribute(wiring, el),
-          );
-          // remember the node's key (if any) for the keyed child reconcile
-          pipe(
-            keyOf(content.attributes),
-            matchOption(
-              (): void => undefined,
-              (k: SoftStr): void => {
-                wiring.keyed.set(el, k);
-              },
-            ),
-          );
-          pipe(
-            hostOf(content.attributes),
-            matchOption(
-              () =>
-                content.children.forEach(
-                  (child) =>
-                    el.appendChild(
-                      createNode(wiring)(child, el),
-                    ),
+  (node: Html<Msg>, parent?: Node): Node => {
+    switch (node.__tag) {
+      case "Text": {
+        const { content } = node;
+        return document.createTextNode(
+          content.value,
+        );
+      }
+      case "Raw": {
+        const { content } = node;
+
+        // confined DOM seam: a raw passthrough parses
+        // its trusted html into a single wrapper whose
+        // box is elided (`display:contents`), so the
+        // author's markup lays out as if unwrapped. The
+        // 1:1 vnode→Node mapping needs one node; SSR
+        // (`renderToString`) emits the same html with no
+        // wrapper. The Markdown default path never
+        // produces a Raw node, so this stays a
+        // trusted-content-only seam.
+        const holder =
+          document.createElement("span");
+        holder.style.display = "contents";
+        holder.innerHTML = content.html;
+        return holder;
+      }
+      case "Element": {
+        const { content } = node;
+
+        const el = createElementFor(
+          content.tag,
+          parent,
+        );
+        content.attributes.forEach(
+          applyAttribute(wiring, el),
+        );
+        // remember the node's key (if any) for the keyed child reconcile
+        pipe(
+          keyOf(content.attributes),
+          matchOption(
+            (): void => undefined,
+            (k: SoftStr): void => {
+              wiring.keyed.set(el, k);
+            },
+          ),
+        );
+        pipe(
+          hostOf(content.attributes),
+          matchOption(
+            () =>
+              content.children.forEach((child) =>
+                el.appendChild(
+                  createNode(wiring)(child, el),
                 ),
-              (lifecycle: HostLifecycle<Msg>) => {
-                wiring.pendingHosts.set(
-                  el,
-                  lifecycle,
-                );
-              },
-            ),
-          );
-          // confined DOM seam: play the enter motion on the freshly built node
-          // (a no-op when none is declared or motion is unavailable). Fire and
-          // forget — the Model is uninvolved.
-          pipe(
-            enterOf(content.attributes),
-            matchOption(
-              (): void => undefined,
-              (motion: Motion): void => {
-                void wiring.play(el, motion);
-              },
-            ),
-          );
-          syncSelect(el);
-          return el;
-        },
-      ],
-      // first paint of a lazy slot (or a slot that just became lazy): there is
-      // no previous render to compare `arg` against, so force it once — and
-      // remember the resolved subtree so a later changed-arg patch can diff
-      // against it without re-forcing this arg's thunk.
-      [
-        lazy$(),
-        ({ content }): Node => {
-          const resolved = resolveLazy(
-            content.render(),
-          );
-          const node =
-            createNode(wiring)(resolved, parent);
-          wiring.lazyResolved.set(node, resolved);
-          return node;
-        },
-      ],
-    );
+              ),
+            (lifecycle: HostLifecycle<Msg>) => {
+              wiring.pendingHosts.set(
+                el,
+                lifecycle,
+              );
+            },
+          ),
+        );
+        // confined DOM seam: play the enter motion on the freshly built node
+        // (a no-op when none is declared or motion is unavailable). Fire and
+        // forget — the Model is uninvolved.
+        pipe(
+          enterOf(content.attributes),
+          matchOption(
+            (): void => undefined,
+            (motion: Motion): void => {
+              void wiring.play(el, motion);
+            },
+          ),
+        );
+        syncSelect(el);
+        return el;
+      }
+      case "Lazy": {
+        const { content } = node;
+
+        const resolved = resolveLazy(
+          content.render(),
+        );
+        const result = createNode(wiring)(
+          resolved,
+          parent,
+        );
+        wiring.lazyResolved.set(result, resolved);
+        return result;
+      }
+      default:
+        return node satisfies never;
+    }
+  };
 
 /** The static attributes of an attribute list, as a `name → value` map. */
 const staticAttrsOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
 ): Map<SoftStr, SoftStr> =>
-  attributes.reduce(
-    (acc, attribute) =>
-      match(attribute)(
-        [
-          attr$(),
-          ({ content }): Map<SoftStr, SoftStr> =>
-            acc.set(content.name, content.value),
-        ],
-        [
-          handler$(),
-          (): Map<SoftStr, SoftStr> => acc,
-        ],
-        [
-          eventHandler$(),
-          (): Map<SoftStr, SoftStr> => acc,
-        ],
-        [
-          host$(),
-          (): Map<SoftStr, SoftStr> => acc,
-        ],
-        [
-          anim$(),
-          (): Map<SoftStr, SoftStr> => acc,
-        ],
-        [
-          css$(),
-          ({ content }): Map<SoftStr, SoftStr> =>
-            acc.set("class", content.classes),
-        ],
-        [
-          key$(),
-          (): Map<SoftStr, SoftStr> => acc,
-        ],
-      ),
-    new Map<SoftStr, SoftStr>(),
-  );
+  attributes.reduce((acc, attribute) => {
+    switch (attribute.__tag) {
+      case "Attr": {
+        const { content } = attribute;
+        return acc.set(
+          content.name,
+          content.value,
+        );
+      }
+      case "Handler":
+      case "EventHandler":
+      case "Host":
+      case "Anim":
+      case "Key": {
+        return acc;
+      }
+      case "Css": {
+        const { content } = attribute;
+        return acc.set("class", content.classes);
+      }
+      default:
+        return attribute satisfies never;
+    }
+  }, new Map<SoftStr, SoftStr>());
 
 /** The handlers of an attribute list, as an `event → toMsg` map. */
 const handlersOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
 ): Map<SoftStr, EventDecoder<Msg>> =>
-  attributes.reduce(
-    (acc, attribute) =>
-      match(attribute)(
-        [attr$(), () => acc],
-        [anim$(), () => acc],
-        [css$(), () => acc],
-        [key$(), () => acc],
-        [host$(), () => acc],
-        [
-          handler$(),
-          ({ content }) =>
-            acc.set(content.event, (event) =>
-              some(
-                content.toMsg(payloadOf(event)),
-              ),
-            ),
-        ],
-        [
-          eventHandler$(),
-          ({ content }) =>
-            acc.set(content.event, content.toMsg),
-        ],
-      ),
-    new Map<SoftStr, EventDecoder<Msg>>(),
-  );
+  attributes.reduce((acc, attribute) => {
+    switch (attribute.__tag) {
+      case "Attr":
+      case "Anim":
+      case "Css":
+      case "Key":
+      case "Host": {
+        return acc;
+      }
+      case "Handler": {
+        const { content } = attribute;
+        return acc.set(content.event, (event) =>
+          some(content.toMsg(payloadOf(event))),
+        );
+      }
+      case "EventHandler": {
+        const { content } = attribute;
+        return acc.set(
+          content.event,
+          content.toMsg,
+        );
+      }
+      default:
+        return attribute satisfies never;
+    }
+  }, new Map<SoftStr, EventDecoder<Msg>>());
 
 /** The last host directive owns all children; attributes remain renderer-owned. */
 const hostOf = <Msg>(
   attributes: ReadonlyArray<Attribute<Msg>>,
 ): Option<HostLifecycle<Msg>> =>
   attributes.reduce<Option<HostLifecycle<Msg>>>(
-    (acc, attribute) =>
-      match(attribute)(
-        [attr$(), () => acc],
-        [handler$(), () => acc],
-        [eventHandler$(), () => acc],
-        [anim$(), () => acc],
-        [css$(), () => acc],
-        [key$(), () => acc],
-        [host$(), ({ content }) => some(content)],
-      ),
+    (acc, attribute) => {
+      switch (attribute.__tag) {
+        case "Attr":
+        case "Handler":
+        case "EventHandler":
+        case "Anim":
+        case "Css":
+        case "Key": {
+          return acc;
+        }
+        case "Host": {
+          const { content } = attribute;
+          return some(content);
+        }
+        default:
+          return attribute satisfies never;
+      }
+    },
     none(),
   );
 
@@ -978,158 +992,145 @@ export const reconcile =
     newVnode: Html<Msg>,
   ): Node => {
     const replace = (): Node => {
-      const fresh = createNode(wiring)(newVnode, parent);
+      const fresh = createNode(wiring)(
+        newVnode,
+        parent,
+      );
       disposeTree(wiring, domNode);
       parent.replaceChild(fresh, domNode);
       return fresh;
     };
-    return match(newVnode)(
-      [
-        text$(),
-        ({ content }): Node =>
-          match(oldVnode)(
-            [
-              text$(),
-              (): Node => {
-                // `CharacterData` (not `Text`) — `Text extends CharacterData`
-                // and exposes the writable `.data`; the test DOM brands text
-                // nodes as `CharacterData`, so this is the reliable guard
-                if (
-                  domNode instanceof CharacterData
-                ) {
-                  // reuse the text node — touch data only when it changed
-                  if (
-                    domNode.data !== content.value
-                  ) {
-                    domNode.data = content.value;
-                  }
-                  return domNode;
-                }
-                return replace();
-              },
-            ],
-            [element$(), (): Node => replace()],
-            [raw$(), (): Node => replace()],
-            [lazy$(), (): Node => replace()],
-          ),
-      ],
-      [
-        element$(),
-        ({ content: newContent }): Node =>
-          match(oldVnode)(
-            [
-              element$(),
-              ({ content: oldContent }): Node => {
-                if (
-                  domNode instanceof Element &&
-                  oldContent.tag ===
-                    newContent.tag
-                ) {
-                  patchElement(wiring)(
-                    domNode,
-                    oldContent,
-                    newContent,
-                  );
-                  return domNode;
-                }
-                return replace();
-              },
-            ],
-            [text$(), (): Node => replace()],
-            [raw$(), (): Node => replace()],
-            [lazy$(), (): Node => replace()],
-          ),
-      ],
-      // a raw passthrough is opaque to the differ — any
-      // change rebuilds it from the trusted html
-      [raw$(), (): Node => replace()],
-      // the lazy fast path: an unchanged `===` arg AND the same producer
-      // `fn` skips `render()` AND the diff entirely (DOM untouched, `domNode`
-      // returned as-is) — comparing `fn` too keeps two call sites sharing an
-      // `arg` reference (e.g. a slot alternating between `lazy(headerView,
-      // cfg)` and `lazy(footerView, cfg)`) from being wrongly treated as
-      // unchanged, the same hazard `collectCssRules`' cache is nested by `fn`
-      // first to avoid. A changed `fn` or `arg` resolves only the NEW side
-      // (the old side comes from `wiring.lazyResolved` — the subtree that was
-      // ACTUALLY rendered last time, never by re-forcing the old thunk, which
-      // would call its producer a second time for an arg it already
-      // rendered) and re-diffs through this same function, then remembers the
-      // new resolved subtree against whichever node ends up at this slot.
-      [
-        lazy$(),
-        ({ content: newContent }): Node => {
-          // resolves ONLY the new side, diffs it against `old`, then
-          // remembers the result for the NEXT changed-arg patch — shared by
-          // every "old wasn't an unchanged-arg lazy" branch below.
-          const resolveAndReconcile = (
-            old: Html<Msg>,
-          ): Node => {
-            const newResolved = resolveLazy(
-              newContent.render(),
-            );
-            const result = reconcile(wiring)(
-              parent,
-              domNode,
-              old,
-              newResolved,
-            );
-            wiring.lazyResolved.set(
-              result,
-              newResolved,
-            );
-            return result;
-          };
-          return match(oldVnode)(
-            [
-              lazy$(),
-              ({ content: oldContent }): Node =>
-                oldContent.fn === newContent.fn &&
-                oldContent.arg === newContent.arg &&
-                oldContent.messageMaps.length ===
-                  newContent.messageMaps.length &&
-                oldContent.messageMaps.every(
-                  (f, i) =>
-                    f === newContent.messageMaps[i],
-                )
-                  ? domNode
-                  : resolveAndReconcile(
-                      pipe(
-                        fromNullable(
-                          wiring.lazyResolved.get(
-                            domNode,
-                          ),
-                        ),
-                        matchOption(
-                          (): Html<Msg> =>
-                            resolveLazy(
-                              oldContent.render(),
-                            ),
-                          (
-                            cached: Html<Msg>,
-                          ): Html<Msg> => cached,
-                        ),
+    switch (newVnode.__tag) {
+      case "Text": {
+        const { content } = newVnode;
+        switch (oldVnode.__tag) {
+          case "Text": {
+            // `CharacterData` (not `Text`) — `Text extends CharacterData`
+            // and exposes the writable `.data`; the test DOM brands text
+            // nodes as `CharacterData`, so this is the reliable guard
+            if (
+              domNode instanceof CharacterData
+            ) {
+              // reuse the text node — touch data only when it changed
+              if (
+                domNode.data !== content.value
+              ) {
+                domNode.data = content.value;
+              }
+              return domNode;
+            }
+            return replace();
+          }
+          case "Element":
+          case "Raw":
+          case "Lazy": {
+            return replace();
+          }
+          default:
+            return oldVnode satisfies never;
+        }
+      }
+      case "Element": {
+        const { content: newContent } = newVnode;
+        switch (oldVnode.__tag) {
+          case "Element": {
+            const { content: oldContent } =
+              oldVnode;
+
+            if (
+              domNode instanceof Element &&
+              oldContent.tag === newContent.tag
+            ) {
+              patchElement(wiring)(
+                domNode,
+                oldContent,
+                newContent,
+              );
+              return domNode;
+            }
+            return replace();
+          }
+          case "Text":
+          case "Raw":
+          case "Lazy": {
+            return replace();
+          }
+          default:
+            return oldVnode satisfies never;
+        }
+      }
+      case "Raw": {
+        return replace();
+      }
+      case "Lazy": {
+        const { content: newContent } = newVnode;
+
+        // resolves ONLY the new side, diffs it against `old`, then
+        // remembers the result for the NEXT changed-arg patch — shared by
+        // every "old wasn't an unchanged-arg lazy" branch below.
+        const resolveAndReconcile = (
+          old: Html<Msg>,
+        ): Node => {
+          const newResolved = resolveLazy(
+            newContent.render(),
+          );
+          const result = reconcile(wiring)(
+            parent,
+            domNode,
+            old,
+            newResolved,
+          );
+          wiring.lazyResolved.set(
+            result,
+            newResolved,
+          );
+          return result;
+        };
+        switch (oldVnode.__tag) {
+          case "Lazy": {
+            const { content: oldContent } =
+              oldVnode;
+            return oldContent.fn ===
+              newContent.fn &&
+              oldContent.arg === newContent.arg &&
+              oldContent.messageMaps.length ===
+                newContent.messageMaps.length &&
+              oldContent.messageMaps.every(
+                (f, i) =>
+                  f === newContent.messageMaps[i],
+              )
+              ? domNode
+              : resolveAndReconcile(
+                  pipe(
+                    fromNullable(
+                      wiring.lazyResolved.get(
+                        domNode,
                       ),
                     ),
-            ],
-            [
-              text$(),
-              (): Node =>
-                resolveAndReconcile(oldVnode),
-            ],
-            [
-              element$(),
-              (): Node =>
-                resolveAndReconcile(oldVnode),
-            ],
-            [
-              raw$(),
-              (): Node =>
-                resolveAndReconcile(oldVnode),
-            ],
-          );
-        },
-      ],
-    );
+                    matchOption(
+                      (): Html<Msg> =>
+                        resolveLazy(
+                          oldContent.render(),
+                        ),
+                      (
+                        cached: Html<Msg>,
+                      ): Html<Msg> => cached,
+                    ),
+                  ),
+                );
+          }
+          case "Text":
+          case "Element":
+          case "Raw": {
+            return resolveAndReconcile(oldVnode);
+          }
+          default:
+            return oldVnode satisfies never;
+        }
+      }
+      default:
+        return newVnode satisfies never;
+    }
   };
 
 /**
@@ -1163,7 +1164,10 @@ const indexPatchChildren =
               matchOption(
                 () => {
                   parent.appendChild(
-                    createNode(wiring)(child, parent),
+                    createNode(wiring)(
+                      child,
+                      parent,
+                    ),
                   );
                 },
                 (oldChild: Html<Msg>) => {
@@ -1376,45 +1380,51 @@ const patchKeyed =
     newVnode: Html<Msg>,
   ): Node => {
     const replace = (): Node => {
-      const fresh = createNode(wiring)(newVnode, parent);
+      const fresh = createNode(wiring)(
+        newVnode,
+        parent,
+      );
       disposeTree(wiring, node);
       parent.replaceChild(fresh, node);
       return fresh;
     };
-    return match(newVnode)(
-      [text$(), (): Node => replace()],
-      [raw$(), (): Node => replace()],
-      [
-        element$(),
-        ({ content: newContent }): Node =>
-          match(oldVnode)(
-            [text$(), (): Node => replace()],
-            [raw$(), (): Node => replace()],
-            [lazy$(), (): Node => replace()],
-            [
-              element$(),
-              ({ content: oldContent }): Node => {
-                if (
-                  oldContent.tag ===
-                  newContent.tag
-                ) {
-                  patchElement(wiring)(
-                    node,
-                    oldContent,
-                    newContent,
-                  );
-                  return node;
-                }
-                return replace();
-              },
-            ],
-          ),
-      ],
-      // `keyOfVnode` always reads `none` for a lazy node, so a keyed list
-      // never actually carries one here — this arm only satisfies exhaustive
-      // matching, same as the unreachable `text$`/`raw$` arms above.
-      [lazy$(), (): Node => replace()],
-    );
+    switch (newVnode.__tag) {
+      case "Text":
+      case "Raw":
+      case "Lazy": {
+        return replace();
+      }
+      case "Element": {
+        const { content: newContent } = newVnode;
+        switch (oldVnode.__tag) {
+          case "Text":
+          case "Raw":
+          case "Lazy": {
+            return replace();
+          }
+          case "Element": {
+            const { content: oldContent } =
+              oldVnode;
+
+            if (
+              oldContent.tag === newContent.tag
+            ) {
+              patchElement(wiring)(
+                node,
+                oldContent,
+                newContent,
+              );
+              return node;
+            }
+            return replace();
+          }
+          default:
+            return oldVnode satisfies never;
+        }
+      }
+      default:
+        return newVnode satisfies never;
+    }
   };
 
 /**
@@ -1546,7 +1556,8 @@ const keyedPatchChildren =
     const finalNodes: ReadonlyArray<Node> =
       newChildren.map((child) =>
         matchOption(
-          (): Node => createNode(wiring)(child, parent),
+          (): Node =>
+            createNode(wiring)(child, parent),
           (k: SoftStr): Node =>
             matchOption(
               (): Node =>
@@ -1554,7 +1565,10 @@ const keyedPatchChildren =
               (node: Element): Node =>
                 matchOption(
                   (): Node =>
-                    createNode(wiring)(child, parent),
+                    createNode(wiring)(
+                      child,
+                      parent,
+                    ),
                   (oldVnode: Html<Msg>): Node =>
                     patchKeyed(wiring)(
                       parent,
@@ -1737,7 +1751,10 @@ export const makeRenderer = <Msg>(
               matchOption(
                 () => {
                   container.replaceChildren(
-                    createNode(wiring)(next, container),
+                    createNode(wiring)(
+                      next,
+                      container,
+                    ),
                   );
                 },
                 (domNode: ChildNode) => {

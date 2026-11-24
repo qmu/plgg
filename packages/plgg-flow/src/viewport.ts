@@ -1,3 +1,4 @@
+import { lazyLayer } from "plgg-flow/lazyLayer";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
   type Side,
@@ -115,14 +116,53 @@ export const groundSide = (
       ? "above"
       : "below";
 };
-const groundPlane = (
-  state: Flow,
-): Html<Change>[] => {
-  const camera = state.camera,
-    z = groundHeight;
-  const side = groundSide(camera);
+const onGround = (
+  camera: Camera,
+  x: number,
+  y: number,
+) => project(camera)({ x, y, z: groundHeight });
+const groundSurface = (
+  camera: Camera,
+): Html<Change> => {
   const at = (x: number, y: number) =>
-    project(camera)({ x, y, z });
+    onGround(camera, x, y);
+  const side = groundSide(camera);
+  const perimeter = [
+    at(-640, -640),
+    at(640, -640),
+    at(640, 640),
+    at(-640, 640),
+  ]
+    .map((p) => p.x + "," + p.y)
+    .join(" ");
+  return el(
+    "polygon",
+    [
+      a("class", "ground-surface"),
+      a("points", perimeter),
+      a(
+        "fill",
+        side === "above"
+          ? "#dde7d4"
+          : side === "below"
+            ? "#e4cbba"
+            : "#dad8c5",
+      ),
+      a(
+        "stroke",
+        side === "below" ? "#b39884" : "#a6baa3",
+      ),
+      a("pointer-events", "none"),
+    ],
+    [],
+  );
+};
+const worldGrid = (
+  camera: Camera,
+): Html<Change> => {
+  const at = (x: number, y: number) =>
+    onGround(camera, x, y);
+  const side = groundSide(camera);
   const line = (u: Point, v: Point) =>
     `M${u.x} ${u.y}L${v.x} ${v.y}`;
   const ticks = Array.from(
@@ -136,123 +176,104 @@ const groundPlane = (
         line(at(-640, t), at(640, t)),
     )
     .join("");
-  const stems = state.nodes
-    .map((n) =>
-      line(
-        at(n.position.x, n.position.y),
-        project(camera)(n.position),
+  return el(
+    "path",
+    [
+      a("class", "world-grid"),
+      a("d", path),
+      a("fill", "none"),
+      a(
+        "stroke",
+        side === "below" ? "#c3a48f" : "#b5c8b1",
       ),
-    )
-    .join("");
-  const perimeter = [
-    at(-640, -640),
-    at(640, -640),
-    at(640, 640),
-    at(-640, 640),
+      a("pointer-events", "none"),
+    ],
+    [],
+  );
+};
+const footprintLayer = lazyLayer();
+const frameLayer = lazyLayer();
+const waypointLayer = lazyLayer();
+const footprint = (
+  camera: Camera,
+  n: FlowNode,
+): Html<Change> => {
+  const at = (x: number, y: number) =>
+    onGround(camera, x, y);
+  const p = at(n.position.x, n.position.y);
+  const footprint = [
+    [-24, -8],
+    [24, -8],
+    [24, 8],
+    [-24, 8],
   ]
-    .map((p) => p.x + "," + p.y)
+    .map(([x = 0, y = 0]) =>
+      at(n.position.x + x, n.position.y + y),
+    )
+    .map((v) => v.x + "," + v.y)
     .join(" ");
-  return [
-    el(
-      "polygon",
-      [
-        a("class", "ground-surface"),
-        a("points", perimeter),
-        a(
-          "fill",
-          side === "above"
-            ? "#dde7d4"
-            : side === "below"
-              ? "#e4cbba"
-              : "#dad8c5",
-        ),
-        a(
-          "stroke",
-          side === "below"
-            ? "#b39884"
-            : "#a6baa3",
-        ),
-        a("pointer-events", "none"),
-      ],
-      [],
-    ),
-    ...state.nodes.map((n) => {
-      const p = at(n.position.x, n.position.y);
-      const footprint = [
-        [-24, -8],
-        [24, -8],
-        [24, 8],
-        [-24, 8],
-      ]
-        .map(([x = 0, y = 0]) =>
-          at(n.position.x + x, n.position.y + y),
-        )
-        .map((v) => v.x + "," + v.y)
-        .join(" ");
-      return el(
-        "g",
+  return el(
+    "g",
+    [
+      a("pointer-events", "none"),
+      a(
+        "opacity",
+        Number(camera.perspective ?? 0),
+      ),
+    ],
+    [
+      el(
+        "polygon",
         [
-          a("pointer-events", "none"),
-          a(
-            "opacity",
-            Number(camera.perspective ?? 0),
-          ),
+          a("points", footprint),
+          a("fill", "#8eada4"),
+          a("opacity", 0.28),
         ],
+        [],
+      ),
+      el(
+        "circle",
         [
-          el(
-            "polygon",
-            [
-              a("points", footprint),
-              a("fill", "#8eada4"),
-              a("opacity", 0.28),
-            ],
-            [],
-          ),
-          el(
-            "circle",
-            [
-              a("cx", p.x),
-              a("cy", p.y),
-              a("r", 2.8),
-              a("fill", "#71958a"),
-            ],
-            [],
-          ),
+          a("cx", p.x),
+          a("cy", p.y),
+          a("r", 2.8),
+          a("fill", "#71958a"),
         ],
-      );
-    }),
-    el(
-      "path",
-      [
-        a("class", "world-grid"),
-        a("d", path),
-        a("fill", "none"),
-        a(
-          "stroke",
-          side === "below"
-            ? "#c3a48f"
-            : "#b5c8b1",
+        [],
+      ),
+    ],
+  );
+};
+const depthStems = (
+  camera: Camera,
+  nodes: Flow["nodes"],
+) => {
+  const stems = nodes
+    .map((n) => {
+      const p = onGround(
+          camera,
+          n.position.x,
+          n.position.y,
         ),
-        a("pointer-events", "none"),
-      ],
-      [],
-    ),
-    el(
-      "path",
-      [
-        a("class", "depth-stems"),
-        a(
-          "opacity",
-          Number(camera.perspective ?? 0),
-        ),
-        a("d", stems),
-        a("stroke", "#83a9a0"),
-        a("stroke-dasharray", "3 4"),
-        a("pointer-events", "none"),
-      ],
-      [],
-    ),
-  ];
+        q = project(camera)(n.position);
+      return `M${p.x} ${p.y}L${q.x} ${q.y}`;
+    })
+    .join("");
+  return el(
+    "path",
+    [
+      a("class", "depth-stems"),
+      a(
+        "opacity",
+        Number(camera.perspective ?? 0),
+      ),
+      a("d", stems),
+      a("stroke", "#83a9a0"),
+      a("stroke-dasharray", "3 4"),
+      a("pointer-events", "none"),
+    ],
+    [],
+  );
 };
 export type ViewRegistry = Readonly<{
   cull?: boolean;
@@ -376,6 +397,61 @@ const defaultLabel = (
     "text",
     [a("text-anchor", "middle"), a("y", 5)],
     [text(node.label)],
+  );
+const scrollHint = (hint: number) =>
+  el<Change>(
+    "g",
+    [
+      key("hint" + hint),
+      a("class", "scroll-hint"),
+      a("pointer-events", "none"),
+      a("opacity", 0),
+    ],
+    [
+      el(
+        "animate",
+        [
+          a("attributeName", "opacity"),
+          a("values", "1;1;0"),
+          a("keyTimes", "0;0.7;1"),
+          a("dur", "1.6s"),
+          a("fill", "freeze"),
+        ],
+        [],
+      ),
+      el(
+        "rect",
+        [
+          a("width", viewport.x),
+          a("height", viewport.y),
+          a("fill", "#000"),
+          a("fill-opacity", 0.45),
+        ],
+        [],
+      ),
+      el(
+        "text",
+        [
+          a("x", viewport.x / 2),
+          a("y", viewport.y / 2),
+          a("text-anchor", "middle"),
+          a("dominant-baseline", "middle"),
+          a("font-size", 18),
+          a("fill", "#fff"),
+        ],
+        [
+          text(
+            "Ctrl（⌘）＋ スクロールで拡大・縮小",
+          ),
+        ],
+      ),
+    ],
+  );
+const emptyPreview = () =>
+  el<Change>(
+    "g",
+    [key("connection-preview")],
+    [],
   );
 export const flowView = (
   state: Flow,
@@ -1982,10 +2058,16 @@ export const flowView = (
       }),
     ],
     [
-      ...groundPlane({
-        ...state,
-        nodes: drawNodes,
-      }),
+      lazy(groundSurface, state.camera),
+      ...drawNodes.map((n) =>
+        footprintLayer(
+          n.item,
+          [state.camera],
+          () => footprint(state.camera, n.item),
+        ),
+      ),
+      lazy(worldGrid, state.camera),
+      depthStems(state.camera, drawNodes),
       ...projected
         .filter((n) => n.group && !n.collapsed)
         .map((group) => {
@@ -1995,124 +2077,150 @@ export const flowView = (
             children = projected.filter((n) =>
               members.has(n.id),
             );
-          const box = children.reduce(
-            (b, n) => ({
-              left: Math.min(
-                b.left,
-                n.p.x -
-                  (nodeSize(n).width * n.scale) /
-                    2,
-              ),
-              right: Math.max(
-                b.right,
-                n.p.x +
-                  (nodeSize(n).width * n.scale) /
-                    2,
-              ),
-              top: Math.min(
-                b.top,
-                n.p.y -
-                  (nodeSize(n).height / 2) *
-                    n.scale,
-              ),
-              bottom: Math.max(
-                b.bottom,
-                n.p.y +
-                  (nodeSize(n).height / 2) *
-                    n.scale,
-              ),
-            }),
-            {
-              left: Infinity,
-              right: -Infinity,
-              top: Infinity,
-              bottom: -Infinity,
+          return frameLayer(
+            group.item,
+            [
+              state.camera,
+              ...children.map((n) => n.item),
+            ],
+            () => {
+              const box = children.reduce(
+                (b, n) => ({
+                  left: Math.min(
+                    b.left,
+                    n.p.x -
+                      (nodeSize(n).width *
+                        n.scale) /
+                        2,
+                  ),
+                  right: Math.max(
+                    b.right,
+                    n.p.x +
+                      (nodeSize(n).width *
+                        n.scale) /
+                        2,
+                  ),
+                  top: Math.min(
+                    b.top,
+                    n.p.y -
+                      (nodeSize(n).height / 2) *
+                        n.scale,
+                  ),
+                  bottom: Math.max(
+                    b.bottom,
+                    n.p.y +
+                      (nodeSize(n).height / 2) *
+                        n.scale,
+                  ),
+                }),
+                {
+                  left: Infinity,
+                  right: -Infinity,
+                  top: Infinity,
+                  bottom: -Infinity,
+                },
+              );
+              const right =
+                  box.right +
+                  12 +
+                  (group.grow?.x ?? 0) *
+                    group.scale,
+                bottom =
+                  box.bottom +
+                  12 +
+                  (group.grow?.y ?? 0) *
+                    group.scale;
+              // The corner handle drags the frame's size.
+              const handle = el<Change>(
+                "rect",
+                [
+                  a(
+                    "data-group-handle",
+                    group.id,
+                  ),
+                  a("x", right - 6),
+                  a("y", bottom - 6),
+                  a("width", 12),
+                  a("height", 12),
+                  a("fill", "#fff"),
+                  a("stroke", "#8bb8aa"),
+                  a(
+                    "style",
+                    "cursor:nwse-resize",
+                  ),
+                  onEvent<Change>(
+                    "pointerdown",
+                    (e) => {
+                      if (
+                        !(
+                          e instanceof
+                          PointerEvent
+                        ) ||
+                        !(
+                          e.currentTarget instanceof
+                          SVGElement
+                        ) ||
+                        !e.currentTarget
+                          .ownerSVGElement
+                      )
+                        return none();
+                      const svg =
+                          e.currentTarget
+                            .ownerSVGElement,
+                        here = local(svg, e);
+                      if (!isSome(here))
+                        return none();
+                      e.stopPropagation();
+                      svg.setPointerCapture(
+                        e.pointerId,
+                      );
+                      return some((s) => ({
+                        ...s,
+                        drag: some<Drag>({
+                          pointer: e.pointerId,
+                          last: here.content,
+                          mode: "frame",
+                          node: group.id,
+                        }),
+                      }));
+                    },
+                  ),
+                ],
+                [],
+              );
+              const frame = el(
+                "rect",
+                [
+                  a("data-group", group.id),
+                  a("pointer-events", "none"),
+                  a("x", box.left - 12),
+                  a("y", box.top - 12),
+                  a(
+                    "width",
+                    right - box.left + 12,
+                  ),
+                  a(
+                    "height",
+                    bottom - box.top + 12,
+                  ),
+                  a("rx", 12),
+                  a("fill", "#167b7009"),
+                  a("stroke", "#8bb8aa"),
+                  a("stroke-dasharray", "6 4"),
+                ],
+                [],
+              );
+              return el("g", [], [frame, handle]);
             },
           );
-          const right =
-              box.right +
-              12 +
-              (group.grow?.x ?? 0) * group.scale,
-            bottom =
-              box.bottom +
-              12 +
-              (group.grow?.y ?? 0) * group.scale;
-          // The corner handle drags the frame's size.
-          const handle = el<Change>(
-            "rect",
-            [
-              a("data-group-handle", group.id),
-              a("x", right - 6),
-              a("y", bottom - 6),
-              a("width", 12),
-              a("height", 12),
-              a("fill", "#fff"),
-              a("stroke", "#8bb8aa"),
-              a("style", "cursor:nwse-resize"),
-              onEvent<Change>(
-                "pointerdown",
-                (e) => {
-                  if (
-                    !(
-                      e instanceof PointerEvent
-                    ) ||
-                    !(
-                      e.currentTarget instanceof
-                      SVGElement
-                    ) ||
-                    !e.currentTarget
-                      .ownerSVGElement
-                  )
-                    return none();
-                  const svg =
-                      e.currentTarget
-                        .ownerSVGElement,
-                    here = local(svg, e);
-                  if (!isSome(here))
-                    return none();
-                  e.stopPropagation();
-                  svg.setPointerCapture(
-                    e.pointerId,
-                  );
-                  return some((s) => ({
-                    ...s,
-                    drag: some<Drag>({
-                      pointer: e.pointerId,
-                      last: here.content,
-                      mode: "frame",
-                      node: group.id,
-                    }),
-                  }));
-                },
-              ),
-            ],
-            [],
-          );
-          const frame = el(
-            "rect",
-            [
-              a("data-group", group.id),
-              a("pointer-events", "none"),
-              a("x", box.left - 12),
-              a("y", box.top - 12),
-              a("width", right - box.left + 12),
-              a("height", bottom - box.top + 12),
-              a("rx", 12),
-              a("fill", "#167b7009"),
-              a("stroke", "#8bb8aa"),
-              a("stroke-dasharray", "6 4"),
-            ],
-            [],
-          );
-          return el("g", [], [frame, handle]);
         }),
       // Keep the preview in its own SVG layer across pointer updates.
-      el(
-        "g",
-        [key("connection-preview")],
-        isSome(state.drag) &&
-          state.drag.content.mode === "connect"
-          ? (() => {
+      isSome(state.drag) &&
+      state.drag.content.mode === "connect"
+        ? el(
+            "g",
+            [key("connection-preview")],
+            (() => {
               const drag = state.drag.content,
                 start = lookup.get(drag.node);
               const socket = drag.socket
@@ -2149,9 +2257,9 @@ export const flowView = (
                     ),
                   ]
                 : [];
-            })()
-          : [],
-      ),
+            })(),
+          )
+        : lazy(emptyPreview, undefined),
       ...groupVolumes(
         scene.nodes,
         state.camera,
@@ -2177,87 +2285,100 @@ export const flowView = (
       )
         ? (active.waypoints ?? []).map(
             (point, index) => {
-              const p = project(state.camera)(
+              return waypointLayer(
                 point,
-              );
-              return el(
-                "rect",
-                [
-                  a("data-waypoint", index),
-                  a("x", p.x - 4),
-                  a("y", p.y - 4),
-                  a("width", 8),
-                  a("height", 8),
-                  a("fill", "#fff"),
-                  a("stroke", "#d95f34"),
-                  onEvent<Change>(
-                    "pointerdown",
-                    (e) => {
-                      if (
-                        !(
-                          e instanceof
-                          PointerEvent
-                        ) ||
-                        !(
-                          e.currentTarget instanceof
-                          SVGElement
-                        ) ||
-                        !e.currentTarget
-                          .ownerSVGElement
-                      )
-                        return none();
-                      const svg =
-                          e.currentTarget
-                            .ownerSVGElement,
-                        here = local(svg, e);
-                      if (!isSome(here))
-                        return none();
-                      e.stopPropagation();
-                      svg.setPointerCapture(
-                        e.pointerId,
-                      );
-                      return some((s) => ({
-                        ...s,
-                        drag: some<Drag>({
-                          pointer: e.pointerId,
-                          last: here.content,
-                          mode: "waypoint",
-                          node: "",
-                          waypoint: index,
-                        }),
-                      }));
-                    },
-                  ),
-                  onEvent<Change>(
-                    "dblclick",
-                    (e) => {
-                      e.stopPropagation();
-                      const next = {
-                        ...active,
-                        waypoints: (
-                          active.waypoints ?? []
-                        ).filter(
-                          (_, i) => i !== index,
-                        ),
-                      };
-                      return some((s) => ({
-                        ...s,
-                        chosenEdges:
-                          selectedEdges(s).map(
-                            (e) =>
-                              e === active
-                                ? next
-                                : e,
-                          ),
-                        activeEdge: next,
-                        edges: s.edges.map((v) =>
-                          v === active ? next : v,
-                        ),
-                      }));
-                    },
-                  ),
-                ],
-                [],
+                [active, index, state.camera],
+                () => {
+                  const p = project(state.camera)(
+                    point,
+                  );
+                  return el(
+                    "rect",
+                    [
+                      a("data-waypoint", index),
+                      a("x", p.x - 4),
+                      a("y", p.y - 4),
+                      a("width", 8),
+                      a("height", 8),
+                      a("fill", "#fff"),
+                      a("stroke", "#d95f34"),
+                      onEvent<Change>(
+                        "pointerdown",
+                        (e) => {
+                          if (
+                            !(
+                              e instanceof
+                              PointerEvent
+                            ) ||
+                            !(
+                              e.currentTarget instanceof
+                              SVGElement
+                            ) ||
+                            !e.currentTarget
+                              .ownerSVGElement
+                          )
+                            return none();
+                          const svg =
+                              e.currentTarget
+                                .ownerSVGElement,
+                            here = local(svg, e);
+                          if (!isSome(here))
+                            return none();
+                          e.stopPropagation();
+                          svg.setPointerCapture(
+                            e.pointerId,
+                          );
+                          return some((s) => ({
+                            ...s,
+                            drag: some<Drag>({
+                              pointer:
+                                e.pointerId,
+                              last: here.content,
+                              mode: "waypoint",
+                              node: "",
+                              waypoint: index,
+                            }),
+                          }));
+                        },
+                      ),
+                      onEvent<Change>(
+                        "dblclick",
+                        (e) => {
+                          e.stopPropagation();
+                          const next = {
+                            ...active,
+                            waypoints: (
+                              active.waypoints ??
+                              []
+                            ).filter(
+                              (_, i) =>
+                                i !== index,
+                            ),
+                          };
+                          return some((s) => ({
+                            ...s,
+                            chosenEdges:
+                              selectedEdges(
+                                s,
+                              ).map((e) =>
+                                e === active
+                                  ? next
+                                  : e,
+                              ),
+                            activeEdge: next,
+                            edges: s.edges.map(
+                              (v) =>
+                                v === active
+                                  ? next
+                                  : v,
+                            ),
+                          }));
+                        },
+                      ),
+                    ],
+                    [],
+                  );
+                },
               );
             },
           )
@@ -2323,59 +2444,7 @@ export const flowView = (
         : []),
       ...(state.scrollHint === undefined
         ? []
-        : [
-            el<Change>(
-              "g",
-              [
-                key("hint" + state.scrollHint),
-                a("class", "scroll-hint"),
-                a("pointer-events", "none"),
-                a("opacity", 0),
-              ],
-              [
-                el(
-                  "animate",
-                  [
-                    a("attributeName", "opacity"),
-                    a("values", "1;1;0"),
-                    a("keyTimes", "0;0.7;1"),
-                    a("dur", "1.6s"),
-                    a("fill", "freeze"),
-                  ],
-                  [],
-                ),
-                el(
-                  "rect",
-                  [
-                    a("width", viewport.x),
-                    a("height", viewport.y),
-                    a("fill", "#000"),
-                    a("fill-opacity", 0.45),
-                  ],
-                  [],
-                ),
-                el(
-                  "text",
-                  [
-                    a("x", viewport.x / 2),
-                    a("y", viewport.y / 2),
-                    a("text-anchor", "middle"),
-                    a(
-                      "dominant-baseline",
-                      "middle",
-                    ),
-                    a("font-size", 18),
-                    a("fill", "#fff"),
-                  ],
-                  [
-                    text(
-                      "Ctrl（⌘）＋ スクロールで拡大・縮小",
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ]),
+        : [lazy(scrollHint, state.scrollHint)]),
     ],
   );
 };

@@ -321,3 +321,43 @@ test("an unrelated wire keeps its lazy argument when a card moves", () => {
     toBe(true),
   );
 });
+test("twenty cards leave only a handful of eager SVG children", () => {
+  const nodes = Array.from(
+    { length: 20 },
+    (_, i) => node(String(i)),
+  );
+  const flow = createFlow({ nodes, edges: [] });
+  const before = flowView(flow);
+  const after = flowView({
+    ...flow,
+    nodes: nodes.map((n, i) =>
+      i === 0
+        ? {
+            ...n,
+            position: { ...n.position, x: 16 },
+          }
+        : n,
+    ),
+  });
+  if (
+    before.__tag !== "Element" ||
+    after.__tag !== "Element"
+  )
+    return check(false, toBe(true));
+  const children = after.content.children;
+  const reused = children.filter((child, i) => {
+    const old = before.content.children[i];
+    return (
+      child.__tag === "Lazy" &&
+      old?.__tag === "Lazy" &&
+      child.content.fn === old.content.fn &&
+      child.content.arg === old.content.arg
+    );
+  });
+  return check(
+    children.filter(
+      (child) => child.__tag !== "Lazy",
+    ).length <= 5 && reused.length >= 21,
+    toBe(true),
+  );
+});
