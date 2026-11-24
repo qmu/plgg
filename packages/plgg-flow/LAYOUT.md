@@ -412,3 +412,57 @@ Open: at that angle the z values and the two attribute names at the
 front-right bottom corner (環境, 本番, 検証, 担当) overlap; labels need
 collision avoidance at the corners. Shift-drag, ⌘-drag and the
 marquee are still unverified by real input.
+
+## Rooms, second pass — from "it works" to "turning it tells you"
+
+Owner on the first rooms sheet: not bad, but a starting point. The
+brief's promise is that *turning it* makes "what is where" clear.
+Today the cuboid is there, but turning it teaches little: the lattice
+is a cage of similar lines, depth is hard to read, labels pile up,
+and nothing answers a question such as "which of these are 本番?".
+
+In order of what changes the experience most:
+
+1. **Ask the axes.** Hovering (tapping) an axis value lights its
+   whole slab — the rooms of that value get the wash, their nodes
+   stay ink, everything else drops to the pencil tone, wires leaving
+   the slab fade. Clicking pins it; a second value on another axis
+   intersects (層=処理 ∧ 環境=本番 → one column of rooms). Clicking
+   the attribute name clears. This is the classification made
+   interactive.
+2. **Three tables and the turn between them.** Buttons 「正面」
+   (x × y), 「上」 (x × z), 「横」 (y × z) and 「立体」: each face view
+   is a ruled table of two attributes, the third collapsed. Moving
+   between views is an animated turn (350 ms, eased) so the eye keeps
+   hold of the nodes — the turn itself is the explanation. ⌘-drag
+   release near a face (within 12°) settles onto it.
+3. **Depth you can read.** Near edges of the cuboid ink, far edges
+   pencil; inner partitions trace; a node's box and label scale with
+   depth as today, plus its floor shadow (a wash rectangle on its
+   floor under it) so its floor is unmistakable; floors nearer the
+   viewer are drawn after those behind. No perspective distortion
+   beyond what makes near things larger: cap the perspective so the
+   cuboid's far face is never under 70 % of the near face.
+4. **Labels that stay out of the way.** Axis values sit outside the
+   cuboid along the three edges nearest the viewer *for the current
+   angle* (recomputed as it turns), each attribute name at the far
+   end of its edge; labels never overlap each other (shift along the
+   edge, then drop the attribute name to the next free corner).
+   From a face view, only that face's two axes are labelled.
+5. **Rooms worth looking at.** A room with nodes shows its floor
+   wash; an empty room shows only its far corner ticks, not its
+   whole frame — the lattice reads from the occupied rooms. Hovering
+   a room shows its three values as a small caption at its near
+   bottom edge.
+6. **Wires in space.** A wire between floors travels on the lower
+   floor to under its target and rises (or the reverse), so floors
+   visibly connect by risers; in a face view it is an ordinary wire.
+7. **Movement.** When the DSL changes (a node's value, an axis
+   swap), nodes glide to their new rooms (300 ms) instead of jumping;
+   the lattice morphs with them.
+
+Specs: slab membership for a value and for an intersection; the
+three face views are axis-aligned tables with no overlapping boxes;
+label anchors do not intersect for a sweep of yaw/pitch in steps of
+15°; perspective cap; far/near edge classes swap when the cuboid is
+turned round.
