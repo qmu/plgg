@@ -1321,3 +1321,68 @@ one centre line; every node stands on its layer's board inside the
 footprint; in-board order follows the edges (a source is left of
 its target); printed text round-trips; pinning quiets the other
 boards; no upright-pane code remains.
+
+## Crossings are optimised in space, node positions included (owner: "crossing lines must be optimised in 3D too, node positions included — otherwise lines overlap, smear and look dirty")
+
+Today a cell orders its nodes by one barycentre along x and the
+wires take what is left. Routing cannot repair a bad placement.
+Placement and routing are one problem in space, as they are on the
+flat sheet (LAYOUT.md's first sections), with one more direction.
+
+**What is minimised**, in this order (lexicographic):
+
+1. **Overlaps: zero.** No two runs of different wires are collinear
+   and overlapping (in space), and no two wires share a socket
+   stub. This is a hard rule, not a cost.
+2. **Piercings: zero** (boxes; boards outside aisles). Hard rule.
+3. **Crossings in the three lattice projections** — the wires'
+   runs projected along x, along y and along z; a crossing is two
+   runs of different wires meeting at interior points. Summed over
+   the three. (The named views look almost along these directions;
+   a crossing there is a crossing on screen.)
+4. **Bends** — a wire between nodes that share two coordinates is
+   one straight run; count the runs beyond one.
+5. **Length** — total run length.
+
+**How**, deterministic and order-independent:
+
+- *Slots, not free positions.* A cell (or a board) is a small grid
+  of slots (columns along x, rows along z, pitch = widest node +
+  32 by 80); a node occupies a slot. Slabs are sized from the slot
+  counts.
+- *Alignment first.* Two nodes joined by a wire, in cells that
+  differ along one direction only, want the same slot coordinates
+  in the other two — then the wire is one straight run. Build
+  these wishes as a graph and assign slot coordinates by sweeps:
+  for each of the three directions in turn, order the nodes of
+  every cell by the barycentre of their neighbours' coordinates in
+  that direction (ties by id), four rounds forward and back, keep
+  the best assignment by the cost above (the classic layered
+  sweep, applied per direction).
+- *Then improve by exchange.* Repeat until no gain or 40 moves:
+  try swapping two nodes of one cell, or moving a node to a free
+  slot of its cell; keep the move if the cost drops. Cost is
+  evaluated on the routed wires of the affected nodes only.
+- *Lanes.* Runs sharing an aisle are ordered by their far ends so
+  that they leave the aisle without crossing one another (the
+  standard channel ordering); parallel runs are 8 apart; an aisle
+  widens (the slab grows by 16) when its lanes are full.
+- Budget: the two space samples and the layer cake place and route
+  in under 20 ms in Node; a drag re-routes only the touched wires
+  (under 2 ms) and does not re-place.
+- Stability: adding a node or an edge changes the slots of that
+  node's cell and at most the lane order of the aisles its wires
+  use; everything else keeps its place (re-placement of other
+  cells happens only on 最適化/リセット or when the text is
+  re-laid).
+
+**Measured by the reviewer's audit** `scripts/space-audit.mjs`
+(owned by the reviewer; the implementer does not edit it): a dozen
+spaces — the three samples, single-axis cakes of 2–4 boards, 2- and
+3-axis rooms with 8–30 nodes and 1–2 edges per node, two 4-axis
+ones — each reporting overlaps, piercings, crossings per
+projection, bends, length, time, and, for the small ones, the gap
+to the best of 2 000 random slot assignments. Pass: overlaps 0,
+piercings 0, crossings ≤ the random-best + 1, never more than
+twice the random-best, time within budget, order-independence and
+the stability rule.
