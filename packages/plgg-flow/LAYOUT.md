@@ -1150,3 +1150,39 @@ contain every node; a second axis is a parse error; `depth` plus
 an axis is a parse error; print/parse round trip; pinning a layer
 quiets the others; `viewport.ts` still mentions neither rooms nor
 layers-as-axis.
+
+## Shooting round 1 (browser, 部屋に分ける, eight angles) — adopted; what the shots show
+
+The opening view now reads at a glance: one block, three storeys,
+standard boxes, ink wires, quiet axes. Turned, four things break:
+
+1. **Tags are covered and collide.** Side-on (横, and any yaw near
+   ±90°) the upright name tags are cut by nearer boxes (Payments,
+   Sandbox, Orders, Checkout) and run into one another. Rule, in
+   the standard renderer: tags are painted after every box and
+   wire (front layer), each with its paper halo; they are placed
+   nearest node first, and a tag whose box (text + 2px) meets an
+   already placed tag moves up in 4px steps until free; a tag moved
+   more than 6px gets a pencil leader to its box's top centre.
+2. **A squashed caption is not a readable caption.** In 上 the
+   captions lie on faces seen at about half height and are crushed.
+   The face keeps its caption only while its projected width and
+   height are both at least 70 % of true (back to face at 75 %);
+   below that, the tag.
+3. **The back of a box is a face too.** Seen from behind (|yaw|
+   beyond 90°) the caption is drawn on the back face, readable
+   left to right (not mirrored), under the same 70 % rule.
+4. **Turning drifts the picture under the overlay.** Orbit must
+   turn about the centre of what is drawn (nodes and scenery
+   bounds) and keep that centre at the centre of the *open* frame
+   (frame minus `cover`), on every sheet. After a turn ends, if any
+   part of the bounds is outside the open frame less 24px, the
+   camera eases (200 ms) to the fitted scale and origin for the new
+   angle; a sheet the user has zoomed by hand is not re-scaled,
+   only re-centred.
+
+Specs: at yaw ±90° and at 上, no two tag boxes meet and no tag is
+painted before a box; caption-on-face switches at 70 / 75 %; at
+yaw 150° captions are on back faces and their text runs left to
+right on screen; after `orbitByDrag` on a sheet with `cover`, the
+bounds' centre projects to the open frame's centre.
