@@ -10,7 +10,10 @@ import {
   nestLayerFans,
   busJog,
 } from "plgg-flow/wireNestedFans";
-import { mendFans } from "plgg-flow/wireFanRepair";
+import {
+  mendFans,
+  orderStemBranches,
+} from "plgg-flow/wireFanRepair";
 import { fitCurves } from "plgg-flow/wireSpline";
 import {
   profile,
@@ -31,6 +34,7 @@ import {
   move,
   free,
   inflate,
+  gap,
   simplify,
   type Box,
 } from "plgg-flow/wireGeometry";
@@ -1083,6 +1087,7 @@ export const separate = (
     for (const [i, edge] of list.entries())
       pairPositions.set(edge, i);
   }
+  const bundleWires = new WeakSet<Base>();
   const draw = (
     w: Base,
     i: number,
@@ -1145,6 +1150,75 @@ export const separate = (
           centre) *
         spread
       : 0;
+    const span = distance(s, t);
+    if (
+      (!edge.route || edge.route === "curve") &&
+      span >= 50 &&
+      sameSockets &&
+      pair.length >= 2 &&
+      a.side !== b.side &&
+      vertical(a.side) === vertical(b.side)
+    ) {
+      const dx = t.x - s.x,
+        dy = t.y - s.y;
+      const upright = vertical(a.side);
+      const direction = Math.sign(
+        upright ? dy : dx,
+      );
+      const nx = upright
+        ? Math.abs(dy) / span
+        : (-dy * direction) / span;
+      const ny = upright
+        ? (-dx * direction) / span
+        : Math.abs(dx) / span;
+      // Unobstructed tracks use the same chord parameter, including
+      // the straight middle track when the sockets are off level.
+      if (
+        flat ||
+        (pair.length >= 3 &&
+          dx * normal[s.side].x +
+            dy * normal[s.side].y >
+            0 &&
+          boxes.every(
+            (q) =>
+              q.id === edge.source ||
+              q.id === edge.target ||
+              gap(s, t, q) >
+                1.7 * centre * spread,
+          ))
+      ) {
+        const count = lens
+          ? Math.ceil(span / 4)
+          : 1;
+        const path = Array.from(
+          { length: count + 1 },
+          (_, i) => {
+            const f = i / count;
+            const bow = 4 * f * (1 - f);
+            const offset =
+              lens *
+              (reciprocal
+                ? Math.pow(bow, 0.15)
+                : 1.7 * bow);
+            return pt(
+              s.x + dx * f + nx * offset,
+              s.y + dy * f + ny * offset,
+            );
+          },
+        );
+        if (free(path, boxes)) {
+          const wire = materialize(
+            edge,
+            s,
+            t,
+            path,
+            0,
+          );
+          bundleWires.add(wire);
+          return wire;
+        }
+      }
+    }
     if (flat && !lens) return w;
     if (w.spine && !flat) {
       const raw = w.spine;
@@ -1364,53 +1438,11 @@ export const separate = (
     )
       return w;
 
-    const span = distance(s, t);
     if (span < 50) return w;
     const ease = (x: number) => {
       const f = Math.max(0, Math.min(1, x));
       return f * f * (3 - 2 * f);
     };
-    if (flat && lens && edge.route !== "step") {
-      // A broad lens keeps parallel curves distinct through the middle of a span.
-      const n = normal[s.side],
-        axis = vertical(s.side) ? "x" : "y";
-      const ramp = reciprocal ? 20 : 24,
-        stem = reciprocal ? 6 : 14;
-      const count = Math.max(
-        4,
-        Math.ceil(span / 4),
-      );
-      const path = Array.from(
-        { length: count + 1 },
-        (_, j) => {
-          const f = j / count,
-            d = f * span,
-            offset =
-              lens *
-              ease((d - stem) / ramp) *
-              ease((span - d - stem) / ramp) *
-              (reciprocal
-                ? 1
-                : 1 + 2.8 * f * (1 - f));
-          const p = pt(
-            s.x + n.x * d,
-            s.y + n.y * d,
-          );
-          return {
-            ...p,
-            [axis]: p[axis] + offset,
-          };
-        },
-      );
-      if (free(path, boxes))
-        return materialize(
-          edge,
-          s,
-          t,
-          path,
-          w.corners,
-        );
-    }
     const path = w.points.map((p) => {
       const ds = distance(s, p),
         dt = distance(t, p);
@@ -1560,11 +1592,12 @@ export const separate = (
     w: Base,
     i: number,
     guides?: Point[][],
+    assigned?: number[],
   ) => {
     const store = rendered[i];
     if (!store || guides)
-      return draw(w, i, guides);
-    const offsets = laneOffsets(w, i);
+      return draw(w, i, guides, boxes, assigned);
+    const offsets = assigned ?? laneOffsets(w, i);
     const key = offsets.join(",");
     const checked = store.checked.get(key);
     if (checked) return checked;
@@ -1602,8 +1635,15 @@ export const separate = (
   const settled = nested.map(
     (w, i) =>
       w !== wires[i] ||
+      bundleWires.has(w) ||
       w.edge.source === w.edge.target ||
-      Boolean(bases[i]?.settled),
+      Boolean(bases[i]?.settled) ||
+      (bases[i]?.spine?.length === 2 &&
+        (ports.parallels.get(
+          JSON.stringify(
+            [w.edge.source, w.edge.target].sort(),
+          ),
+        )?.length ?? 0) > 2),
   );
   wires = nested;
   if (
@@ -2377,6 +2417,14 @@ export const separate = (
         | ReturnType<typeof profile>
         | undefined;
       for (const next of choices) {
+        // Lanes may trim fillets but must keep the solo route length.
+        if (
+          next.wire.corners > 2 &&
+          next.length + 20 < baseLength
+        )
+          continue;
+        const value = cost(next, best);
+        if (value + 1 >= best) continue;
         if (
           next.length > old.length * 0.84 &&
           old.path.some(
@@ -2389,17 +2437,8 @@ export const separate = (
           )
         )
           continue;
-        // Lanes may trim fillets but must keep the solo route length.
-        if (
-          next.wire.corners > 2 &&
-          next.length + 20 < baseLength
-        )
-          continue;
-        const value = cost(next, best);
-        if (value + 1 < best) {
-          best = value;
-          chosenLane = next;
-        }
+        best = value;
+        chosenLane = next;
       }
       if (chosenLane) {
         const wire = materialize(
@@ -2510,6 +2549,98 @@ export const separate = (
       walls,
       radius,
     );
+    // A socket fixes the first and last run. Retract displaced
+    // shoulders together when their interior track is already free.
+    const contours = wires.map(profile);
+    const index = neighbourIndex(contours);
+    for (const [i, base] of bases.entries()) {
+      const old = required(contours[i]);
+      if (
+        !base.spine ||
+        settled[i] ||
+        base.edge.route !== "step" ||
+        old.turn < 6.4 ||
+        base.spine.length < 3
+      )
+        continue;
+      const offsets = laneOffsets(base, i);
+      const plan = required(ports.plans[i]);
+      const variants = [offsets];
+      for (const start of [true, false]) {
+        const end = start ? plan.a : plan.b;
+        const run = start
+          ? 0
+          : offsets.length - 1;
+        const j = start ? 1 : offsets.length - 2;
+        const axis = vertical(end.side)
+          ? "y"
+          : "x";
+        const socket = start
+          ? base.source
+          : base.target;
+        const bend = required(
+          base.spine[
+            start ? 1 : base.spine.length - 2
+          ],
+        );
+        const offset =
+          socket[axis] -
+          bend[axis] +
+          normal[end.side][axis] *
+            (18 + Math.abs(end.rank) * 8);
+        for (const previous of [...variants]) {
+          const variant = [...previous];
+          variant[run] = 0;
+          if (previous[run])
+            variants.push(variant);
+          if (
+            end.count > 1 &&
+            j > 0 &&
+            j < offsets.length - 1
+          ) {
+            const shifted = [...variant];
+            shifted[j] = offset;
+            variants.push(shifted);
+          }
+        }
+      }
+      for (const variant of variants.slice(1)) {
+        const wire = render(
+          base,
+          i,
+          undefined,
+          variant,
+        );
+        const next = profile(wire);
+        if (
+          next.turn + 0.25 >=
+          required(contours[i]).turn
+        )
+          continue;
+        if (
+          index.query(next).some(({ i: j }) => {
+            if (i === j) return false;
+            const peer = required(contours[j]);
+            const limit =
+              Math.max(
+                6,
+                conflict(
+                  required(contours[i]),
+                  peer,
+                ),
+              ) + 1e-6;
+            return (
+              conflict(next, peer, limit) >= limit
+            );
+          })
+        )
+          continue;
+        wires[i] = wire;
+        contours[i] = next;
+        index.update(i, next);
+      }
+    }
+    orderStemBranches(wires, fans.values());
   }
   const laneOrigins = wires;
   // Resolve residual crowding on the fanned curves before fixing their samples.
@@ -2575,7 +2706,13 @@ export const separate = (
       settled,
       boxIndex,
     );
-    wires = mendFans(wires, boxes, radius, true);
+    wires = mendFans(
+      wires,
+      boxes,
+      radius,
+      true,
+      bundleWires,
+    );
   }
   return nestedFans(
     wires,

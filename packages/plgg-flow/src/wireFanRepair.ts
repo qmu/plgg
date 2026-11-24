@@ -6,6 +6,8 @@ import {
   simplify,
   free,
   crossesItself,
+  crossing,
+  alignedStem,
   rounded,
   vertical,
   normal,
@@ -115,7 +117,11 @@ const curveCuts = (p: Point[], q: Point[]) => {
         g =
           ((c.x - a.x) * dy - (c.y - a.y) * dx) /
           det;
-      if (f > 0 && f < 1 && g > 0 && g < 1)
+      if (
+        (f > 0 && f < 1 && g > 0 && g < 1) ||
+        ((f === 1 || g === 1) &&
+          crossing(p, i, q, j))
+      )
         result.push({
           i,
           j,
@@ -311,12 +317,23 @@ const trimJog = (
   }
   return candidates;
 };
+const keepsStems = (path: Point[], w: Wire) =>
+  alignedStem(path, {
+    ...w.source,
+    side: w.sourceSide,
+  }) &&
+  alignedStem(
+    path,
+    { ...w.target, side: w.targetSide },
+    true,
+  );
 // Swap only the portions of two lanes enclosed by successive crossings.
 export const mendFans = (
   original: Wire[],
   boxes: Box[],
   radius: number,
   curve = false,
+  protectedWires?: WeakSet<Wire>,
 ) => {
   const wires = [...original],
     profiles = wires.map(profile);
@@ -325,6 +342,7 @@ export const mendFans = (
     (curve
       ? !w.edge.route || w.edge.route === "curve"
       : w.edge.route === "step") &&
+    !protectedWires?.has(w) &&
     !w.edge.waypoints?.length &&
     w.edge.source !== w.edge.target
       ? simplify(w.points)
@@ -363,9 +381,16 @@ export const mendFans = (
           conflict(a, b, 8) < 8
         )
           continue;
-        const crossings = curve
+        let crossings = curve
           ? curveCuts(p, other)
           : cuts(p, other);
+        if (
+          !curve &&
+          !shared &&
+          crossings.length < 2 &&
+          conflict(a, b, 90) >= 90
+        )
+          crossings = curveCuts(p, other);
         if (crossings.length < (shared ? 1 : 2))
           continue;
         const trySwap = (
@@ -417,18 +442,39 @@ export const mendFans = (
                 ...q.slice(start.j, end.j),
                 end.p,
               ];
-            const cap = shared ? 48 : 14;
+            const cap = shared ? 48 : 96;
             if (
               !near(m, n, cap) ||
               !near(n, m, cap)
             )
               continue;
+            // A lane exchange can happen immediately outside a
+            // socket stem. Keep that stem intact on both new tracks.
+            const fillet = curve
+              ? radius
+              : Math.min(
+                  radius,
+                  ...[
+                    a.wire.source,
+                    a.wire.target,
+                    b.wire.source,
+                    b.wire.target,
+                  ]
+                    .flatMap((p) => [
+                      distance(p, start.p),
+                      distance(p, end.p),
+                    ])
+                    .filter((d) => d > 0)
+                    .map((d) =>
+                      Math.max(0, d - 14),
+                    ),
+                );
             const x = splice(
               p,
               q,
               start,
               end,
-              radius,
+              fillet,
               curve,
             );
             const y = splice(
@@ -440,7 +486,7 @@ export const mendFans = (
                 j: start.i,
               },
               { ...end, i: end.j, j: end.i },
-              radius,
+              fillet,
               curve,
             );
             if (
@@ -474,6 +520,12 @@ export const mendFans = (
               );
             if (reverseP) x.reverse();
             if (reverseQ) y.reverse();
+            if (
+              !curve &&
+              (!keepsStems(x, a.wire) ||
+                !keepsStems(y, b.wire))
+            )
+              continue;
             const originalU = profile(
                 make(a.wire, x),
               ),
@@ -538,6 +590,17 @@ export const mendFans = (
                   peers.query(p).map((r) => r.i),
                 ),
               );
+              // Exchanging tracks must not buy a crossing by adding
+              // a full pair of elbows to both paths.
+              if (
+                !shared &&
+                Math.min(
+                  u.turn - a.turn,
+                  v.turn - b.turn,
+                ) >
+                  Math.PI * 0.9
+              )
+                continue;
               const delta = [
                 ...neighbours,
               ].reduce(
@@ -610,4 +673,122 @@ export const mendFans = (
     }
   }
   return wires;
+};
+
+// Two branches sharing a socket can exchange their prefixes at a
+// shoulder crossing without changing a single occupied track.
+export const orderStemBranches = (
+  wires: Wire[],
+  groups: Iterable<
+    { i: number; start: boolean }[]
+  >,
+) => {
+  for (const group of groups) {
+    if (
+      group.length < 3 ||
+      !group.some(({ i }) => {
+        const w = required(wires[i]);
+        return (
+          w.edge.route === "step" &&
+          w.corners === 0
+        );
+      })
+    )
+      continue;
+    const branches = group.flatMap(
+      ({ i, start }) => {
+        const w = required(wires[i]);
+        if (
+          w.edge.route !== "step" ||
+          w.edge.source === w.edge.target ||
+          w.edge.waypoints?.length
+        )
+          return [];
+        const points = start
+          ? w.points
+          : [...w.points].reverse();
+        const origin = required(points[0]);
+        const end = points.findIndex(
+          (p) => distance(p, origin) > 36,
+        );
+        if (end < 2 || end === points.length - 1)
+          return [];
+        return [
+          {
+            i,
+            start,
+            points,
+            tip: points.slice(0, end + 1),
+          },
+        ];
+      },
+    );
+    for (const [j, a] of branches.entries())
+      for (const b of branches.slice(j + 1)) {
+        if (a.start !== b.start) continue;
+        const w = required(wires[a.i]),
+          v = required(wires[b.i]);
+        if (
+          w.edge.source === v.edge.source &&
+          w.edge.target === v.edge.target
+        )
+          continue;
+        const cut = curveCuts(a.tip, b.tip)[0];
+        if (
+          !cut ||
+          distance(required(a.tip[0]), cut.p) > 32
+        )
+          continue;
+        const left = [
+          ...b.points.slice(0, cut.j),
+          cut.p,
+          ...a.points.slice(cut.i),
+        ];
+        const right = [
+          ...a.points.slice(0, cut.i),
+          cut.p,
+          ...b.points.slice(cut.j),
+        ];
+        if (
+          crossesItself(left) ||
+          crossesItself(right)
+        )
+          continue;
+        for (const [branch, path, wire] of [
+          [a, left, w],
+          [b, right, v],
+        ] satisfies [typeof a, Point[], Wire][]) {
+          const next = materialize(
+            wire.edge,
+            {
+              ...wire.source,
+              side: wire.sourceSide,
+            },
+            {
+              ...wire.target,
+              side: wire.targetSide,
+            },
+            branch.start
+              ? path
+              : [...path].reverse(),
+            wire.corners,
+          );
+          wires[branch.i] = next;
+          branch.points = branch.start
+            ? next.points
+            : [...next.points].reverse();
+          const end = branch.points.findIndex(
+            (p) =>
+              distance(
+                p,
+                required(branch.points[0]),
+              ) > 36,
+          );
+          branch.tip = branch.points.slice(
+            0,
+            end + 1,
+          );
+        }
+      }
+  }
 };

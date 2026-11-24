@@ -32,6 +32,7 @@ import {
 } from "plgg-flow/wireCorridors";
 import {
   archStep,
+  bundleBranch,
   archCurve,
   basePath,
   type Base,
@@ -243,7 +244,8 @@ export const wireGraph = (
           clearance,
           radius,
           a.depth,
-          Boolean(a.direct && b.count === 1),
+          Boolean(a.bundleBranch),
+          Boolean(b.bundleBranch),
           walls.map(boxId),
         ]);
         const build = () => {
@@ -276,6 +278,15 @@ export const wireGraph = (
                 ),
               };
           }
+          if (a.bundleBranch || b.bundleBranch)
+            arch ??= bundleBranch(
+              edge,
+              s,
+              t,
+              walls,
+              radius,
+              Boolean(a.bundleBranch),
+            );
           const wire: Base =
             arch ??
             basePath(
@@ -286,12 +297,6 @@ export const wireGraph = (
               clearance,
               radius,
             );
-          if (
-            a.direct &&
-            b.count === 1 &&
-            wire.spine?.length === 4
-          )
-            wire.settled = true;
           const shape =
             JSON.stringify([
               edge.source,

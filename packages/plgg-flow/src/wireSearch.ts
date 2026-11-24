@@ -13,6 +13,11 @@ export const search = (
   t: Point,
   boxes: Box[],
   step: boolean,
+  monotone = false,
+  cornerAllowed?: (
+    corner: Point,
+    obstacle: Box,
+  ) => boolean,
 ) => {
   const estimate = (p: Point) =>
     step
@@ -85,6 +90,12 @@ export const search = (
     ) {
       if (i === at || done.has(i)) continue;
       const b = required(vertices[i]);
+      if (
+        monotone &&
+        ((b.x - a.x) * (t.x - s.x) < 0 ||
+          (b.y - a.y) * (t.y - s.y) < 0)
+      )
+        continue;
       for (const turn of step &&
       a.x !== b.x &&
       a.y !== b.y
@@ -112,11 +123,18 @@ export const search = (
         if (block) {
           if (!seen.has(block)) {
             seen.add(block);
-            vertices.push(
+            const corners = [
               pt(block.l, block.t),
               pt(block.r, block.t),
               pt(block.l, block.b),
               pt(block.r, block.b),
+            ];
+            vertices.push(
+              ...(cornerAllowed
+                ? corners.filter((p) =>
+                    cornerAllowed(p, block),
+                  )
+                : corners),
             );
             for (
               let j = heuristic.length;

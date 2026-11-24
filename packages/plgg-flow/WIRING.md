@@ -1064,3 +1064,19 @@ Not good enough, carried to round 22:
 - drag: `drag-jump` 5 → 8, `drag-jump-neighbour` 18 → 20; clusters
   a1→a4 still flips sides (102u) when a3 narrows the passage.
 - total moderate 93 → 93: the gain in looks is not a gain in count.
+
+## Round 22 review — adopted; moderate 93 → 81
+
+Confirmed by the reviewer's own audit run: `siblings-disagree-on-side`
+10 → 0, `double-cross` 6 → 3, `selfAndMulti` curve bundle is a lens of
+single arcs, the clusters a1→a4 102u flip is gone. sev3 0, excursion 0,
+192 specs.
+
+Open, as seen on the sheet:
+- `diamonds` curve: S→T humps over b and then dips under M — one wire
+  with two bulges; it should pass M on one side only.
+- step in dense sheets still tangles (`wiggly` 18; grid5x4, clusters).
+- drag: `drag-jump-neighbour` 20, `drag-jump` 7. Codex's own count:
+  of 910 jumps > 30u over all sweeps, 528 start at socket
+  reassignment — the side choice, not the router, is the main source.
+- `slow-drag` 16 (budget 8 ms; frames fit 16 ms).

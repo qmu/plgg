@@ -12,7 +12,7 @@ type End = {
   book?: { page: number; depth: number };
   skip?: boolean;
   depth?: number;
-  direct?: boolean;
+  bundleBranch?: boolean;
   rank: number;
   count: number;
 };
@@ -66,49 +66,6 @@ const assignPages = (plans: Plan[]) => {
         depth: required(a.book).depth,
       };
     });
-  const adjacent = arcs.map((a) =>
-    arcs.flatMap((b) => {
-      if (
-        a === b ||
-        a.along !== b.along ||
-        Math.abs(a.row - b.row) > 12
-      )
-        return [];
-      const interleaves =
-        (a.lo < b.lo &&
-          b.lo < a.hi &&
-          a.hi < b.hi) ||
-        (b.lo < a.lo &&
-          a.lo < b.hi &&
-          b.hi < a.hi);
-      const weight = interleaves
-        ? 1
-        : a.lo === b.lo && a.hi === b.hi
-          ? 0.25
-          : 0;
-      return weight ? [{ b, weight }] : [];
-    }),
-  );
-  // Keep the seeded page on a one-crossing trade so removing an arc
-  // cannot flip a distant wire solely to reclaim one crossing.
-  for (let pass = 0; pass < arcs.length; pass++) {
-    let gain = 1,
-      best;
-    for (const [i, a] of arcs.entries()) {
-      const score = required(adjacent[i]).reduce(
-        (sum, { b, weight }) =>
-          sum +
-          (a.page === b.page ? weight : -weight),
-        0,
-      );
-      if (score > gain) {
-        gain = score;
-        best = a;
-      }
-    }
-    if (!best) break;
-    best.page *= -1;
-  }
   const placed: typeof arcs = [];
   for (const arc of arcs.sort(
     (a, b) => a.hi - a.lo - (b.hi - b.lo),
@@ -123,7 +80,7 @@ const assignPages = (plans: Plan[]) => {
       )
         arc.depth = Math.max(
           arc.depth,
-          p.depth + 10,
+          p.depth + 7,
         );
     placed.push(arc);
     arc.a.side = arc.b.side =
@@ -135,120 +92,6 @@ const assignPages = (plans: Plan[]) => {
           ? "left"
           : "right";
     arc.a.depth = arc.depth;
-  }
-};
-const planDiagonalFans = (
-  plans: Plan[],
-  query: (bounds: Bounds) => Box[],
-) => {
-  // When a straight trunk and its blocked diagonal share both endpoint
-  // rows, keep the diagonal fan together in the open strip between rows.
-  const trunks = new Set(
-    plans
-      .filter(
-        ({ a, b }) =>
-          a.node !== b.node &&
-          !vertical(a.side) &&
-          !vertical(b.side) &&
-          Math.abs(
-            a.node.position.y - b.node.position.y,
-          ) < 8,
-      )
-      .flatMap(({ a, b }) => [
-        a.node.id,
-        b.node.id,
-      ]),
-  );
-  const branches = new Map<
-    string,
-    {
-      a: End;
-      b: End;
-      blocked: boolean;
-      source: Side;
-      target: Side;
-    }[]
-  >();
-  for (const { a, b, edge } of plans) {
-    const p = a.node.position,
-      q = b.node.position,
-      dy = q.y - p.y;
-    if (
-      edge.route !== "step" ||
-      edge.waypoints?.length ||
-      vertical(a.side) ||
-      vertical(b.side) ||
-      Math.abs(dy) < 60 ||
-      Math.abs(q.x - p.x) > Math.abs(dy) * 2.2 ||
-      !trunks.has(a.node.id) ||
-      !trunks.has(b.node.id)
-    )
-      continue;
-    const source = dy > 0 ? "bottom" : "top",
-      target = dy > 0 ? "top" : "bottom";
-    const u = portPosition(a.node, source, 0),
-      v = portPosition(b.node, target, 0);
-    const walls = query({
-      l: Math.min(u.x, v.x) - 12,
-      r: Math.max(u.x, v.x) + 12,
-      t: Math.min(u.y, v.y) - 12,
-      b: Math.max(u.y, v.y) + 12,
-    }).filter(
-      (o) =>
-        o.id !== a.node.id && o.id !== b.node.id,
-    );
-    if (
-      ![0.5, 0.25, 0.75].some((f) => {
-        const y = u.y + (v.y - u.y) * f;
-        const l = pt(u.x, y),
-          r = pt(v.x, y);
-        return walls.every(
-          (o) =>
-            gap(u, l, o) >= 12 &&
-            gap(l, r, o) >= 12 &&
-            gap(r, v, o) >= 12,
-        );
-      })
-    )
-      continue;
-    const key = JSON.stringify([
-        a.node.id,
-        a.side,
-        source,
-      ]),
-      list = branches.get(key) ?? [];
-    const start = portPosition(a.node, a.side, 0),
-      end = portPosition(b.node, b.side, 0);
-    list.push({
-      a,
-      b,
-      source,
-      target,
-      blocked: walls.some(
-        (o) => gap(start, end, o) < 8,
-      ),
-    });
-    branches.set(key, list);
-  }
-  for (const group of branches.values()) {
-    if (
-      group.length < 2 ||
-      !group.some((g) => g.blocked)
-    )
-      continue;
-    for (const {
-      a,
-      b,
-      source,
-      target,
-      blocked,
-    } of group) {
-      Object.assign(a, {
-        side: source,
-        direct: !blocked,
-      });
-      Object.assign(b, { side: target });
-    }
   }
 };
 export const planPorts = (
@@ -631,7 +474,22 @@ export const planPorts = (
         (n) => n.position[along] > low + span + 8,
       );
       if (inRow && !narrow) {
-        const exterior = head || tail;
+        const extent =
+          Math.max(
+            ...vicinity.map(
+              (n) => n.position[along],
+            ),
+          ) -
+          Math.min(
+            ...vicinity.map(
+              (n) => n.position[along],
+            ),
+          );
+        // Separate long skips leaving the head from shorter head
+        // skips. Only the row ends can change this page assignment.
+        const exterior =
+          tail ||
+          (head && span <= (extent * 2) / 3);
         const page =
           head && tail && start !== forward
             ? 1
@@ -640,7 +498,7 @@ export const planPorts = (
               : 1;
         const depth =
           23.5 +
-          10 * Math.max(0, between.length - 3);
+          7 * Math.max(0, between.length - 3);
         Object.assign(end, {
           book: { page, depth },
         });
@@ -774,8 +632,7 @@ export const planPorts = (
       Object.assign(end, { side });
     }
   }
-  // Keep the long axis free for a parallel bundle. Diagonal neighbours
-  // take the adjacent flank on that card and arrive on the facing flank.
+  // Diagonal branches share the facing socket with the bundle.
   const bundleAxes = new Map<string, "x" | "y">();
   for (const list of parallels.values()) {
     const first = list[0];
@@ -831,15 +688,17 @@ export const planPorts = (
           ? "bottom"
           : "top";
     Object.assign(a, {
-      side: bundleAxes.has(a.node.id)
-        ? side(across, rise)
-        : side(along, advance),
+      side: side(along, advance),
+      bundleBranch: bundleAxes.has(a.node.id),
     });
     Object.assign(b, {
-      side: side(across, -rise),
+      side: bundleAxes.has(b.node.id)
+        ? side(along, -advance)
+        : side(across, -rise),
+      bundleBranch: bundleAxes.has(b.node.id),
     });
   }
-  planDiagonalFans(plans, query);
+
   // Leave room for a stem beside an overlapping peer.
   for (const entries of incident.values()) {
     const owner = required(entries[0]).end.node;

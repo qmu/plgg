@@ -501,3 +501,32 @@ export const bezier = (
   }
   return points;
 };
+export const alignedStem = (
+  path: Point[],
+  s: Point & { side: Side },
+  reverse = false,
+) => {
+  let remain = 14;
+  const n = normal[s.side];
+  for (let j = 1; j < path.length; j++) {
+    const a = required(
+        path[reverse ? path.length - j : j - 1],
+      ),
+      b = required(
+        path[reverse ? path.length - j - 1 : j],
+      ),
+      d = distance(a, b);
+    if (!d) continue;
+    const f = Math.min(1, remain / d),
+      x = a.x - s.x + f * (b.x - a.x),
+      y = a.y - s.y + f * (b.y - a.y);
+    if (
+      Math.abs(x * n.y - y * n.x) > 1.5 ||
+      x * n.x + y * n.y < 0
+    )
+      return false;
+    remain -= d;
+    if (remain <= 0) break;
+  }
+  return true;
+};

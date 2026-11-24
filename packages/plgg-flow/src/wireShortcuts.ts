@@ -161,6 +161,38 @@ export const shortcuts = (
       ]);
   }
   if (guide) {
+    // A short transverse leg between parallel runs often only
+    // bridges two different clearance offsets from the same wall.
+    // Extend either neighbouring run through it when that track fits.
+    for (
+      let j = 1;
+      j + 3 < guide.length - 1;
+      j++
+    ) {
+      const a: Point = required(guide[j]),
+        b: Point = required(guide[j + 1]),
+        c = required(guide[j + 2]),
+        d = required(guide[j + 3]);
+      const axis = a.x === b.x ? "x" : "y",
+        along = axis === "x" ? "y" : "x";
+      if (
+        a[axis] !== b[axis] ||
+        c[axis] !== d[axis] ||
+        b[along] !== c[along] ||
+        Math.abs(b[axis] - c[axis]) > 14 ||
+        (b[along] - a[along]) *
+          (d[along] - c[along]) <=
+          0
+      )
+        continue;
+      for (const level of [a[axis], c[axis]])
+        add([
+          ...guide.slice(0, j),
+          { ...a, [axis]: level },
+          { ...d, [axis]: level },
+          ...guide.slice(j + 4),
+        ]);
+    }
     // Reuse nearby clear tracks while moving the first and last bends together.
     const exits = (socket: Socket) => {
       const along = vertical(socket.side)

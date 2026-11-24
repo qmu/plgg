@@ -337,8 +337,8 @@ test("a card pushes a wire continuously on each side of the over-under tie", () 
       if (i === 0 && y === -26)
         earlyPush = w.points.some((p) => p.y > 0);
       const old = previous[i];
-      // At the centre the two collision-free detours exchange sides.
-      if (old && !(i === 0 && y === 0)) {
+      // The ids select the lower passage through the 9-unit tie band.
+      if (old && !(i === 0 && y === 10)) {
         // Measure both directions to catch a disappearing detour.
         for (const [from, to] of [
           [old, w],
@@ -684,10 +684,39 @@ for (const route of [
             ).y,
         )
         .sort((a, b) => a - b);
+      const singleBow = (wire: Wire) => {
+        const height = wire.points.reduce(
+          (h, p) =>
+            Math.abs(p.y) > Math.abs(h) ? p.y : h,
+          0,
+        );
+        if (!height)
+          return wire.points.every(
+            (p) => p.y === 0,
+          );
+        // A parabola has one signed curvature throughout the chord.
+        return wire.points.every((p) => {
+          const f =
+            (p.x - wire.source.x) /
+            (wire.target.x - wire.source.x);
+          return (
+            Math.abs(
+              p.y - 4 * height * f * (1 - f),
+            ) < 0.05
+          );
+        });
+      };
       return all([
+        check(wires[5]?.targetSide, toBe("left")),
         check(
-          wires[5]?.targetSide,
-          toBe("bottom"),
+          route !== "curve" ||
+            wires.slice(0, 5).every(singleBow),
+          toBe(true),
+        ),
+        check(wires[6]?.sourceSide, toBe("left")),
+        check(
+          wires[7]?.sourceSide,
+          toBe("right"),
         ),
         check(
           levels.every(
@@ -728,3 +757,138 @@ for (const route of [
     },
   );
 }
+
+test("step diamond branches keep their shared source side into the merge", () => {
+  const nodes = [
+    n("S", -400, 0),
+    n("a", -200, -120),
+    n("b", -200, 0),
+    n("c", -200, 120),
+    n("M", 0, 0),
+    n("d", 200, -120),
+    n("f", 200, 120),
+    n("T", 400, 0),
+  ];
+  const edges: Edge[] = [
+    e("S", "a"),
+    e("S", "b"),
+    e("S", "c"),
+    e("a", "M"),
+    e("b", "M"),
+    e("c", "M"),
+    e("M", "d"),
+    e("M", "f"),
+    e("d", "T"),
+    e("f", "T"),
+    e("a", "d"),
+    e("c", "f"),
+    e("S", "T"),
+    e("a", "f"),
+    e("c", "d"),
+  ].map((edge) => ({ ...edge, route: "step" }));
+  const graph = { nodes, edges };
+  const wires = wireGraph(graph);
+  return all(
+    ["a", "c"].map((id) => {
+      const fan = wires.filter(
+        (w) => w.edge.source === id,
+      );
+      return all([
+        check(
+          fan.every(
+            (w) => w.sourceSide === "right",
+          ),
+          toBe(true),
+        ),
+        check(
+          fan.find((w) => w.edge.target === "M")
+            ?.targetSide,
+          toBe("left"),
+        ),
+        check(
+          wireMetrics(graph, fan).crossings,
+          toBe(0),
+        ),
+      ]);
+    }),
+  );
+});
+
+test("a narrowing cluster passage holds its side through twice the clearance", () => {
+  const nodes = [
+    ...["a", "b"].flatMap((prefix, j) =>
+      Array.from({ length: 6 }, (_, i) =>
+        n(
+          prefix + i,
+          (j ? 300 : -380) + (i % 2) * 180,
+          (j ? 40 : -60) +
+            Math.floor(i / 2) * 110 -
+            110,
+        ),
+      ),
+    ),
+  ];
+  const edges = [
+    ...["a", "b"].flatMap((p) => [
+      ...Array.from({ length: 5 }, (_, i) =>
+        e(p + i, p + (i + 1)),
+      ),
+      e(p + "0", p + "3"),
+      e(p + "1", p + "4"),
+      e(p + "5", p + "0"),
+    ]),
+    e("a1", "b0"),
+    e("a3", "b2"),
+    e("a5", "b4"),
+    e("b1", "a4"),
+    e("a1", "b4"),
+    e("b5", "a0"),
+  ];
+  let previous: Wire | undefined;
+  let worst = 0;
+  for (let k = 0; k <= 10; k++) {
+    const graph = {
+      edges,
+      nodes: nodes.map((node) =>
+        node.id === "a3"
+          ? n(
+              node.id,
+              node.position.x - 4 * k,
+              node.position.y - 3 * k,
+            )
+          : node,
+      ),
+    };
+    const wire = wireGraph(graph).find(
+      (w) =>
+        w.edge.source === "a1" &&
+        w.edge.target === "a4",
+    );
+    if (!wire)
+      throw new Error("Missing cluster route");
+    if (previous) {
+      for (const [from, to] of [
+        [wire, previous],
+        [previous, wire],
+      ] satisfies [Wire, Wire][]) {
+        for (const p of from.points)
+          worst = Math.max(
+            worst,
+            Math.min(
+              ...to.points
+                .slice(1)
+                .map((b, i) =>
+                  segmentGap(
+                    p,
+                    to.points[i] ?? b,
+                    b,
+                  ),
+                ),
+            ),
+          );
+      }
+    }
+    previous = wire;
+  }
+  return check(worst < 30, toBe(true));
+});

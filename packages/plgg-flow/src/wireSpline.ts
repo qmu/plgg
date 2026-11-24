@@ -27,6 +27,7 @@ import {
   required,
   free,
   crossesItself,
+  alignedStem,
   normal,
   pt,
   gap,
@@ -80,35 +81,6 @@ const peakTurn = (points: Point[]) => {
     }
   }
   return Math.atan2(sine, cosine);
-};
-const aligned = (
-  path: Point[],
-  s: Socket,
-  reverse = false,
-) => {
-  let remain = 14;
-  const n = normal[s.side];
-  for (let j = 1; j < path.length; j++) {
-    const a = required(
-        path[reverse ? path.length - j : j - 1],
-      ),
-      b = required(
-        path[reverse ? path.length - j - 1 : j],
-      ),
-      d = distance(a, b);
-    if (!d) continue;
-    const f = Math.min(1, remain / d),
-      x = a.x - s.x + f * (b.x - a.x),
-      y = a.y - s.y + f * (b.y - a.y);
-    if (
-      Math.abs(x * n.y - y * n.x) > 1.5 ||
-      x * n.x + y * n.y < 0
-    )
-      return false;
-    remain -= d;
-    if (remain <= 0) break;
-  }
-  return true;
 };
 type Fit = {
   wire: Wire;
@@ -429,8 +401,8 @@ export const fitCurves = (
         if (!shortcut)
           recordSpans(regions, path, 9);
         if (
-          !aligned(path, s) ||
-          !aligned(path, t, true) ||
+          !alignedStem(path, s) ||
+          !alignedStem(path, t, true) ||
           !free(path, boxes) ||
           crossesItself(path)
         )
@@ -729,8 +701,8 @@ export const fitCurves = (
           t.side,
         );
         if (
-          !aligned(fitted, s) ||
-          !aligned(fitted, t, true) ||
+          !alignedStem(fitted, s) ||
+          !alignedStem(fitted, t, true) ||
           crossesItself(fitted)
         )
           continue;

@@ -148,12 +148,29 @@ export const fair = (
   return path;
 };
 
+// Positive is below a horizontal chord and right of a vertical one.
+const centerSign = (
+  offset: number,
+  clearance: number,
+  obstacle: string,
+  edge: Edge,
+) =>
+  Math.abs(offset) > clearance / 2
+    ? Math.sign(offset)
+    : obstacle >
+        (edge.source < edge.target
+          ? edge.source
+          : edge.target)
+      ? 1
+      : -1;
+
 // Ease the shoulders into the clearance band before a card reaches the wire.
 const softCorridor = (
   s: Point & { side: Side },
   t: Point,
   boxes: Box[],
   clearance: number,
+  edge: Edge,
 ) => {
   const upright = vertical(s.side);
   const along = upright ? "y" : "x",
@@ -198,10 +215,23 @@ const softCorridor = (
       bottom =
         (upright ? q.r : q.b) -
         Math.min(atLeft, atRight);
-    const push =
-      top + bottom >= -1
-        ? Math.min(0, top - pad)
-        : Math.max(0, bottom + pad);
+    const center =
+      (upright ? q.l + q.r : q.t + q.b) / 2;
+    const chord =
+      s[across] +
+      (rise * ((left + right) / 2 - s[along])) /
+        advance;
+    const separation = center - chord;
+    const above =
+      centerSign(
+        separation,
+        clearance,
+        q.id,
+        edge,
+      ) > 0;
+    const push = above
+      ? Math.min(0, top - pad)
+      : Math.max(0, bottom + pad);
     if (!push) continue;
     if (left <= low || right >= high) return;
     bands.push({
@@ -366,6 +396,81 @@ export type Base = Wire & {
   settled?: boolean;
 };
 export type Socket = Point3 & { side: Side };
+// A branch peeling away from a facing bundle must clear the
+// outermost lane before turning toward the diagonal neighbour.
+export const bundleBranch = (
+  edge: Edge,
+  s: Socket,
+  t: Socket,
+  boxes: Box[],
+  radius: number,
+  leavesBundle: boolean,
+): Base | undefined => {
+  if (
+    edge.waypoints?.length ||
+    edge.route === "straight"
+  )
+    return;
+  const socket = leavesBundle ? s : t,
+    far = leavesBundle ? t : s;
+  const along = vertical(socket.side) ? "y" : "x",
+    across = along === "y" ? "x" : "y";
+  const forward =
+    (far[along] - socket[along]) *
+    normal[socket.side][along];
+  if (forward < 32) return;
+  let path: Point[],
+    corners = 0;
+  if (edge.route === "step") {
+    if (
+      !leavesBundle ||
+      vertical(s.side) === vertical(t.side)
+    )
+      return;
+    const l = move(s, s.side, 16),
+      r = move(t, t.side, 22);
+    const corner = vertical(s.side)
+      ? pt(r.x, l.y)
+      : pt(l.x, r.y);
+    path = rounded(
+      [s, l, corner, r, t],
+      Math.min(radius, 8),
+    );
+    corners = 3;
+  } else if (leavesBundle) {
+    if (vertical(s.side) === vertical(t.side))
+      return;
+    const control = {
+      ...s,
+      [along]:
+        s[along] + (t[along] - s[along]) / 3,
+      [across]: (s[across] + t[across]) / 2,
+    };
+    path = [
+      s,
+      ...bezier(
+        move(s, s.side, 10),
+        control,
+        move(t, t.side, 32),
+        move(t, t.side, 12),
+      ),
+      t,
+    ];
+  } else {
+    path = bezier(
+      s,
+      move(s, s.side, forward * 0.85),
+      move(t, t.side, Math.min(22, forward / 4)),
+      t,
+    );
+  }
+  if (free(path, boxes))
+    return {
+      ...materialize(edge, s, t, path, corners),
+      settled: true,
+    };
+  return undefined;
+};
 // Nested page arcs turn from the same stem. The deeper arc keeps its
 // vertical tangent longer, so a shallow sibling peels away inside it.
 export const archStep = (
@@ -715,6 +820,7 @@ const routeBase = (
       v,
       foreign,
       clearance,
+      edge,
     );
     if (middle && safe([s, ...middle, t]))
       return make([s, ...middle, t]);
@@ -809,11 +915,26 @@ const routeBase = (
             axis === "x" ? q.r : q.b,
           ),
         ),
-      ].sort(
-        (a, b) =>
-          Math.abs(a - s[axis]) -
-          Math.abs(b - s[axis]),
+      ];
+      const anchor = barriers.reduce((a, b) =>
+        a.id < b.id ? a : b,
       );
+      const wall = required(
+        foreign.find((q) => q.id === anchor.id),
+      );
+      const center =
+        axis === "x"
+          ? (wall.l + wall.r) / 2
+          : (wall.t + wall.b) / 2;
+      if (
+        centerSign(
+          center - s[axis],
+          clearance,
+          wall.id,
+          edge,
+        ) < 0
+      )
+        levels.reverse();
       const left = move(s, s.side, 24),
         right = move(t, t.side, 24);
       for (const level of levels) {
@@ -959,6 +1080,95 @@ const routeBase = (
         spine: raw,
       };
   }
+  // Use a consistently oriented normal so reversing an edge keeps
+  // the preferred side of the same physical obstacle.
+  const dx = v.x - u.x,
+    dy = v.y - u.y;
+  const orientation =
+    (Math.abs(dx) >= Math.abs(dy)
+      ? Math.sign(dx)
+      : -Math.sign(dy)) || 1;
+  const nx = (-dy * orientation) / (room || 1),
+    ny = (dx * orientation) / (room || 1);
+  const cornerAllowed = (p: Point, q: Box) => {
+    if (
+      q.id === edge.source ||
+      q.id === edge.target ||
+      !cuts(u, v, q)
+    )
+      return true;
+    const wall =
+      foreign.find((b) => b.id === q.id) ?? q;
+    const x = (wall.l + wall.r) / 2,
+      y = (wall.t + wall.b) / 2;
+    const signed =
+      (x - u.x) * nx + (y - u.y) * ny;
+    const sign = centerSign(
+      signed,
+      clearance,
+      q.id,
+      edge,
+    );
+    return (
+      sign * ((p.x - x) * nx + (p.y - y) * ny) <=
+      0
+    );
+  };
+  if (
+    !step &&
+    vertical(s.side) !== vertical(t.side)
+  ) {
+    for (const fraction of [1, 0.5, 0.25]) {
+      const walls =
+        fraction === 1
+          ? padded
+          : padded.map((p, i) => {
+              const q = required(boxes[i]);
+              return {
+                id: q.id,
+                l: q.l + (p.l - q.l) * fraction,
+                r: q.r + (p.r - q.r) * fraction,
+                t: q.t + (p.t - q.t) * fraction,
+                b: q.b + (p.b - q.b) * fraction,
+              };
+            });
+      const core =
+        search(
+          u,
+          v,
+          walls,
+          false,
+          true,
+          cornerAllowed,
+        ) ?? search(u, v, walls, false, true);
+      if (!core || core.length < 3) continue;
+      const path = [
+        s,
+        ...throughKnots(core, s.side, t.side),
+        t,
+      ];
+      if (
+        free(path, boxes) &&
+        (fraction === 1 ||
+          free(
+            path,
+            foreign.map((q) =>
+              inflate(
+                q,
+                Math.min(
+                  7,
+                  clearance,
+                  pointGap(s, q),
+                  pointGap(t, q),
+                ),
+              ),
+            ),
+          )) &&
+        !crossesItself(path)
+      )
+        return make(path, core.length - 2);
+    }
+  }
   for (const buffer of [
     padded,
     boxes,
@@ -966,7 +1176,15 @@ const routeBase = (
       (q) => !cuts(u, u, q) && !cuts(v, v, q),
     ),
   ]) {
-    const core = search(u, v, buffer, step);
+    const core =
+      search(
+        u,
+        v,
+        buffer,
+        step,
+        false,
+        cornerAllowed,
+      ) ?? search(u, v, buffer, step);
     if (!core) continue;
     const raw = simplify([s, ...core, t]);
     if (!step) {
