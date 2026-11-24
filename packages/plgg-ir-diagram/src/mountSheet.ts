@@ -36,7 +36,7 @@ import {
   fitDemo,
   resizeDemo,
   roomsOpening,
-  applyDemoSpec,
+  readSheetSource,
 } from "plgg-ir-diagram/flowSheet";
 
 type Model = Readonly<{
@@ -73,24 +73,18 @@ const change =
 const retype =
   (source: string): Action =>
   (m) => {
-    const result = parseSpec(source);
-    if (result.__tag === "Err")
-      return {
-        ...m,
-        source,
-        error: result.content,
-      };
-    const flow = applyDemoSpec(result.content)(
+    const draft = readSheetSource(
+      source,
       m.flow,
+      m.rules,
     );
     return {
       ...m,
-      flow,
+      ...draft,
       source,
-      rules: result.content.rules,
-      error: "",
       fitted:
-        m.fitted || flow.camera !== m.flow.camera,
+        m.fitted ||
+        draft.flow.camera !== m.flow.camera,
     };
   };
 const toggle: Action = (m) => ({
@@ -168,6 +162,9 @@ export const mountSheet = (
             ...(dsl
               ? [
                   sheetDsl(
+                    m.flow,
+                    m.rules,
+                    change,
                     m.source,
                     m.error,
                     toggle,

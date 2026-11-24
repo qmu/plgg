@@ -259,7 +259,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     overflow: hidden;
   }
   .stage .dsl {
-    position: static;
+    position: relative;
     height: auto;
     padding: 0;
     border-right: 0;
@@ -331,7 +331,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     font-size: 12px;
     color: var(--graphite);
   }
-  .dsl textarea {
+  .dsl textarea, .dsl-rows {
     flex: 1;
     min-height: 240px;
     width: 100%;
@@ -544,5 +544,104 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     text-overflow: ellipsis;
     line-height: 1.5;
   }
+  .dsl .dsl-rows {
+    min-height: 0;
+    color: var(--ink);
+  }
+  .dsl-mode {
+    margin-left: auto;
+    margin-right: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .dsl-mode input {
+    vertical-align: middle;
+  }
+  .dsl:not(:has(.dsl-mode input:checked))
+    textarea,
+  .dsl:has(.dsl-mode input:checked)
+    :is(.dsl-rows, .dsl-overlay) {
+    display: none;
+  }
+  .dsl-row {
+    position: relative;
+    min-height: 1.7em;
+    width: max-content;
+    min-width: 100%;
+  }
+  .dsl-row[aria-selected='true'],
+  .dsl-row:hover {
+    background: var(--wash);
+  }
+  .dsl-row[aria-selected='true'] {
+    box-shadow: -2px 0 var(--ink);
+  }
+  .dsl-row[aria-invalid='true'] {
+    text-decoration: underline wavy var(--ink);
+  }
+  .dsl .dsl-row button {
+    background: transparent;
+    color: inherit;
+    border: 0;
+    padding: 0;
+    font: inherit;
+  }
+  .dsl-row:hover .dsl-token,
+  .dsl-token:focus-visible {
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+  .dsl-token {
+    touch-action: none;
+  }
+  .dsl-row .ghost,
+  .dsl-row .dsl-delete {
+    display: none;
+    margin-left: 1ch;
+  }
+  .dsl-row:is(:hover, :focus-within)
+    :is(.ghost, .dsl-delete) {
+    display: inline;
+    color: var(--graphite);
+  }
+  .dsl-delete {
+    float: right;
+  }
+  .dsl-field,
+  .dsl-menu {
+    position: absolute;
+    z-index: 4;
+    font:
+      13px/1.7 ui-monospace,
+      monospace;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+  }
+  .dsl-menu {
+    overflow: auto;
+  }
+  .dsl .dsl-menu button {
+    display: block;
+    width: 100%;
+    border: 0;
+    text-align: start;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    padding: 2px 8px;
+  }
+  .dsl .dsl-menu button:is(:hover, :focus) {
+    background: var(--wash);
+  }
+  .flow-board .dsl-hover {
+    filter: drop-shadow(0 0 2px var(--graphite));
+  }
+  .dsl:has(.dsl-menu) .dsl-rows::after {
+    content: '';
+    display: block;
+    height: var(--choice-height);
+  }
+
 }
 `;

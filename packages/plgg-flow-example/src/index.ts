@@ -10,6 +10,7 @@ import {
   sheetHelp,
   sheetStage,
   sheetDsl,
+  readSheetSource,
 } from "plgg-ir-diagram/flowSheet";
 import { resizeNode, nodeSize } from "plgg-flow";
 import { diffGraph } from "plgg-flow/revisions";
@@ -87,11 +88,9 @@ import {
 import {
   examples,
   resizeDemo,
-  applyDemoSpec,
   type DemoId,
 } from "./examples";
 import {
-  parseSpec,
   printSpec,
   type Rule,
 } from "plgg-flow/dsl";
@@ -110,6 +109,14 @@ const visit = (f: Flow): Visit => ({
   scope: f.isolatedBranch,
   section: f.spatial?.section,
 });
+type Revision = Readonly<{
+  flow: Flow;
+  rules: readonly Rule[];
+}>;
+const revision = (s: Revision): Revision => ({
+  flow: s.flow,
+  rules: s.rules,
+});
 type Session = Readonly<{
   fittedCamera: Flow["camera"];
   trackedCard?: string;
@@ -126,8 +133,8 @@ type Session = Readonly<{
   tools: ToolState;
   files: Files;
   returning: boolean;
-  before: Flow[];
-  after: Flow[];
+  before: readonly Revision[];
+  after: readonly Revision[];
   start: Option<Flow>;
   saved: Option<Flow>;
   clipboard: Option<FlowNode>;
@@ -182,20 +189,20 @@ const historyEdit =
   (redo: boolean): Edit =>
   (s) => {
     const stack = redo ? s.after : s.before,
-      flow = stack[stack.length - 1];
-    if (!flow) return s;
+      entry = stack[stack.length - 1];
+    if (!entry) return s;
     return redo
       ? {
           ...s,
-          flow,
+          ...entry,
           after: stack.slice(0, -1),
-          before: [...s.before, s.flow],
+          before: [...s.before, revision(s)],
         }
       : {
           ...s,
-          flow,
+          ...entry,
           before: stack.slice(0, -1),
-          after: [...s.after, s.flow],
+          after: [...s.after, revision(s)],
         };
   };
 const apply =
@@ -225,7 +232,10 @@ const apply =
       start: dragging ? some(start) : none(),
       before:
         !dragging && changed
-          ? [...s.before.slice(-49), start]
+          ? [
+              ...s.before.slice(-49),
+              { flow: start, rules: s.rules },
+            ]
           : s.before,
       after: !dragging && changed ? [] : s.after,
       message: rejected
@@ -440,9 +450,9 @@ const cardHistory = (
   );
   if (id === undefined) return track;
   const states = [
-    ...s.before,
+    ...s.before.map((r) => r.flow),
     s.flow,
-    ...s.after.slice().reverse(),
+    ...s.after.map((r) => r.flow).reverse(),
   ];
   const local = states.map((f) => ({
     nodes: f.nodes.filter((n) => n.id === id),
@@ -1350,29 +1360,32 @@ const dslPanel = (s: {
   const source =
     typed?.text ?? printSpec(s.flow, s.rules);
   return sheetDsl(
+    s.flow,
+    s.rules,
+    (fn) => edit(apply(fn)),
     source,
     typed?.error,
     toggleHelp,
     (value) =>
       edit((cur) => {
-        const r = parseSpec(value);
-        if (r.__tag === "Err")
+        const draft = readSheetSource(
+          value,
+          cur.flow,
+          cur.rules,
+        );
+        if (draft.error)
           return {
             ...cur,
             dsl: {
               text: value,
               flow: cur.flow,
-              error: r.content,
+              error: draft.error,
             },
           };
-        const next = apply(
-          applyDemoSpec(r.content),
-        )({
-          ...cur,
-          rules: r.content.rules,
-        });
+        const next = apply(() => draft.flow)(cur);
         return {
           ...next,
+          rules: draft.rules,
           fittedCamera:
             next.flow.camera !== cur.flow.camera
               ? next.flow.camera

@@ -1035,6 +1035,9 @@ export const flowView = (
       ? Math.min(depth, solid - 0.02)
       : Math.max(depth, solid + 0.02);
   };
+  const originalIndices = new Map(
+    state.edges.map((e, i) => [e, i]),
+  );
   for (const [
     index,
     { edge, original },
@@ -1045,11 +1048,14 @@ export const flowView = (
     const wire = routes.get(edge);
     if (!wire) continue;
     const chosenWire = picked.has(original);
+    const originalIndex =
+      originalIndices.get(original);
     const inputs = [
       index,
       original,
       state.camera,
       chosenWire,
+      originalIndex,
       muted(from) || muted(to),
       frame,
       state.ink,
@@ -1236,6 +1242,10 @@ export const flowView = (
                 : "edge",
             ),
             a("d", path),
+            a(
+              "data-edge-index",
+              String(originalIndex),
+            ),
             a(
               "data-edge",
               JSON.stringify([

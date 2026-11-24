@@ -95,3 +95,23 @@ In the shared flow sheet module (the one the demo and the plggpress
 a `Change` whose reprint differs only in the acted token; selection
 maps line ↔ subject both ways for nodes, edges, parallel edges and
 self-loops; a row edit that fails to parse leaves the flow untouched.
+
+## Round E1 review — adopted; one flaw in the design itself
+
+Seen in the demo: at rest the panel is the text it was; selecting
+North on the board lights its line with the ink bar; hovering a line
+underlines its changeable words and emphasises its subject on the
+board; clicking `->` reversed North → Lower and the text followed;
+the 「テキスト」 toggle is in the head.
+
+The flaw is the reviewer's: the ghost words (`animated`, `route`)
+that appear on hover sit exactly where a row's free space is, so a
+click meant to select the row toggles `animated`. For E2:
+- ghosts appear only on a row that is already selected, after a gap
+  of two characters, in the pencil tone, each prefixed with `+`
+  (`+animated`, `+step`); a hovered, unselected row shows underlines
+  only;
+- a click anywhere on a row that is not on an underlined word or a
+  ghost selects the row — including on the text itself (keyword,
+  plain words);
+- the row's × stays at the far right and needs the row selected too.

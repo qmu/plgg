@@ -10,6 +10,8 @@ import { test, check, toBe } from "plgg-test";
 import {
   parseSpec,
   printSpec,
+  printLines,
+  joinLine,
 } from "plgg-flow/dsl";
 import {
   examples,
@@ -278,3 +280,17 @@ test("room labels fit with a 48 pixel margin beside the DSL overlay", () => {
     toBe(true),
   );
 });
+
+test("structured rows join to the canonical text for every gallery sheet", () =>
+  check(
+    examples.every((e) => {
+      const f = e.initial(),
+        rules = e.spec().rules;
+      return (
+        printLines(f, rules)
+          .map(joinLine)
+          .join("\n") === printSpec(f, rules)
+      );
+    }),
+    toBe(true),
+  ));

@@ -1,3 +1,7 @@
+import {
+  dslRows,
+  revealSelection,
+} from "plgg-ir-diagram/dslRows";
 export { sheetCss } from "plgg-ir-diagram/sheetCss";
 import { project } from "plgg-board";
 import {
@@ -17,7 +21,9 @@ import {
 import { wireGraph } from "plgg-flow/wiring";
 import {
   applySpec,
+  parseSpec,
   type Spec,
+  type Rule,
 } from "plgg-flow/dsl";
 import { arrangeHierarchy } from "plgg-flow/layout";
 import {
@@ -269,6 +275,20 @@ export const applyDemoSpec =
         ? turnRooms(flow, fitDemo(next), 300)
         : fitDemo(next);
   };
+export const readSheetSource = (
+  source: string,
+  flow: Flow,
+  rules: readonly Rule[],
+) => {
+  const parsed = parseSpec(source);
+  return parsed.__tag === "Err"
+    ? { flow, rules, error: parsed.content }
+    : {
+        flow: applyDemoSpec(parsed.content)(flow),
+        rules: parsed.content.rules,
+        error: "",
+      };
+};
 export const roomFrames = <Action>(
   flow: Flow,
   change: (fn: Change) => Action,
@@ -438,12 +458,14 @@ export const observeFrame = <Action>(
       },
     );
     observer.observe(host);
+    const stopSelection = revealSelection(root);
     const initial = requestAnimationFrame(() =>
       measure(host.getBoundingClientRect()),
     );
     return () => {
       cancelAnimationFrame(initial);
       observer.disconnect();
+      stopSelection();
     };
   });
 const helpRows: readonly (readonly [
@@ -522,6 +544,9 @@ export const sheetHelp = <Action>(
     ],
   );
 export const sheetDsl = <Action>(
+  flow: Flow,
+  rules: readonly Rule[],
+  select: (fn: Change) => Action,
   source: string,
   error: string | undefined,
   toggleHelp: Action,
@@ -539,9 +564,23 @@ export const sheetDsl = <Action>(
         [attr("class", "dsl-head")],
         [
           el("strong", [], [text("DSL")]),
-          ...(error
-            ? [el("span", [], [text("エラー")])]
-            : []),
+          el(
+            "span",
+            [],
+            [text(error ? "エラー" : "")],
+          ),
+          el(
+            "label",
+            [attr("class", "dsl-mode")],
+            [
+              el(
+                "input",
+                [attr("type", "checkbox")],
+                [],
+              ),
+              text("テキスト"),
+            ],
+          ),
           el(
             "button",
             [
@@ -553,6 +592,19 @@ export const sheetDsl = <Action>(
             [text("?")],
           ),
         ],
+      ),
+      dslRows(
+        flow,
+        rules,
+        source,
+        error,
+        select,
+        retype,
+      ),
+      el(
+        "div",
+        [attr("class", "dsl-overlay")],
+        [],
       ),
       el(
         "textarea",
