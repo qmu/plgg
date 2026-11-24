@@ -115,3 +115,74 @@ click meant to select the row toggles `animated`. For E2:
   ghost selects the row — including on the text itself (keyword,
   plain words);
 - the row's × stays at the far right and needs the row selected too.
+
+## Redesign (owner, 2026-11-24): plain lines above, properties below
+
+The owner's picture is the ordinary editor one, not words that act:
+
+> In the editor, lines are simply selectable. Under it a properties
+> area appears where each property can be edited — a node's when a
+> node line is selected, an edge's when an edge is selected, and for
+> several objects, the properties they have in common, applied to all.
+
+So the inline acts go. **Remove**: underlined words, ghost `+words`,
+the popovers under tokens, number scrubbing on the text, the arrow
+reversing on click. **Keep**: the text looking exactly as it does;
+line ↔ board selection both ways (click, Shift-click, hover
+emphasis); double-click / Enter to edit a line as text; the empty
+last line; 「テキスト」; `printLines` as the single source of the text.
+
+### The properties area
+
+It sits at the bottom of the DSL panel, under an ink hairline, with
+the panel's translucent background; the lines above scroll on their
+own. Its head names what is selected (「ノード North」, 「エッジ North →
+Lower」, 「3 個のノード」, 「2 本のエッジ」, 「ノード 2・エッジ 1」, or
+「図全体」 when nothing is). Rows are label left, control right, in the
+sheet's type; controls are the sheet's own (ink-bordered fields,
+segmented buttons with the pressed state inverted, a select as an
+ink-bordered list). Every change applies at once, is one undo step,
+and the text above follows.
+
+**A node**
+- 名前 (rename; edges follow) · ラベル
+- 位置 x / y / z — number fields stepping by the snap (arrow keys,
+  Shift ×4); disabled with a note when a layout places the node
+- 幅 / 高さ (whole squares; empty = fits the label)
+- グループ (toggle) · 折りたたみ (toggle, groups only) · 親 (choice of
+  groups, "なし")
+- under `layout rooms`: one choice per axis (層 / 担当 / 環境 …)
+- 値 (where the sheet uses values)
+- 削除
+
+**An edge**
+- 始点 → 終点 with a 「向きを逆に」 button
+- ラベル
+- 経路: 直線 / 角丸 / 曲線 (segmented)
+- アニメーション (toggle)
+- 削除
+
+**Several of one kind** — the same rows, minus those that only make
+sense for one (名前, 始点/終点). A field whose values differ shows
+「複数の値」 in the pencil tone; setting it sets all. Nodes also get
+整列 (左・中央・右 / 上・中央・下) and 等間隔 (横・縦), which keep boxes
+on the grid.
+
+**Nodes and edges together** — only what both have: 削除, and the
+count.
+
+**Nothing selected: 図全体**
+- 配置: なし / 階層（右へ）/ 階層（下へ）/ 部屋
+- 奥行き (toggle, with 階層)
+- 吸着: なし / 8 / 16 / 32
+- under 部屋: each axis's attribute and its letter x / y / z (swap)
+- 規則: 循環を禁止 (toggle), 出力数の上限 (number or none)
+
+### Specs
+
+Each control is a `Change` whose reprint differs only in that
+property; several-selection applies to all and shows 「複数の値」 when
+they differ; node + edge selection offers delete only; nothing
+selected shows the sheet's own; rename keeps edges; position fields
+are disabled under a layout; no inline act remains on the lines (a
+click on any word selects the line).
