@@ -1,0 +1,24 @@
+# 同じサービスを環境ごとに
+# 見えるはずのこと: 検証には、本番にある Billing と Ledger がない。
+layout rooms
+axis 層 画面 業務 データ
+axis 環境 本番 検証
+view y=層 z=環境
+node Web 層=画面 環境=本番
+node Auth 層=業務 環境=本番
+node Orders 層=業務 環境=本番
+node Billing 層=業務 環境=本番
+node Users 層=データ 環境=本番
+node Ledger 層=データ 環境=本番
+node Web' 層=画面 環境=検証
+node Auth' 層=業務 環境=検証
+node Orders' 層=業務 環境=検証
+node Users' 層=データ 環境=検証
+Web -> Auth
+Web -> Orders
+Auth -> Users
+Orders -> Billing
+Billing -> Ledger
+Web' -> Auth'
+Web' -> Orders'
+Auth' -> Users'
