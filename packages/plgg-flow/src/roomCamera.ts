@@ -15,7 +15,13 @@ export const directions: readonly Direction[] = [
   "y",
   "z",
 ];
+const layoutLimits = new WeakMap<
+  RoomLayout,
+  Point3
+>();
 export const limitsOf = (layout: RoomLayout) => {
+  const known = layoutLimits.get(layout);
+  if (known) return known;
   const limits = { x: 0, y: 0, z: 0 };
   for (const room of layout.rooms)
     for (const axis of directions)
@@ -23,6 +29,7 @@ export const limitsOf = (layout: RoomLayout) => {
         limits[axis],
         room.max[axis],
       );
+  layoutLimits.set(layout, limits);
   return limits;
 };
 export const roomFilter = (flow: Flow) =>

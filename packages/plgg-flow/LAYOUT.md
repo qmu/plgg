@@ -638,3 +638,46 @@ and 40 longer; ticks count = values + 1 per axis; value labels at
 segment midpoints on the outer side; name labels beyond the arrows;
 node guides end on its three value segments; labels of one axis do
 not intersect for yaw/pitch swept in 15° steps.
+
+## Performance, first pass — review: the bench measured the wrong path
+
+Adopted (lattice in four paths, camera-only updates keep the DSL
+panel's lazy argument, group wires leave the name label). But the
+reviewer's browser measurement, same method as before (synchronous
+time of the wheel handler for one zoom step):
+
+| sample | before | after | bench (Node) says |
+|---|---|---|---|
+| 立体交差 (4 nodes) | 4.2 | 3.8 – 7.6 | 0.28 |
+| 自動配置 | 10.6 | 10.1 – 10.9 | 1.43 |
+| 部屋に分ける | 74 | 39 – 40 | 0.43 |
+
+Forced layout after the handler is small (0.3 / 0.6 / 5.5 ms) and
+only 46 / 185 / 96 attributes change per update, so the time is
+JavaScript inside the handler that `sheet-bench.mjs` does not run:
+the bench drives `flowView` and the shared sheet's view, while the
+page runs the **demo's** update and view
+(plgg-flow-example/src/index.ts: sessions, per-sample tools,
+`workbench.ts` / `analysisTools.ts` features, fit, DSL cache …).
+
+Second pass:
+1. Make the bench run what the page runs: the demo's own `init`,
+   `update` and `view` (export them for the bench if needed), one
+   wheel-zoom message and one pointer-move drag message per step,
+   through plgg-view's real diff. Its numbers must be within 2× of
+   the browser figures above before any optimising starts — if not,
+   the bench is still not measuring the page.
+2. Profile it (`node --cpu-prof`) for the three samples and remove
+   what dominates. Expected suspects: work done for every sample on
+   every update whichever sample is shown (tool/feature views,
+   analysis, link lists, minimap), re-deriving the fitted frame,
+   re-printing the DSL, rebuilding wire segments for depth order on
+   camera-only changes, `match`-heavy hot paths.
+3. Targets in the browser (the reviewer re-measures): 部屋に分ける
+   ≤ 8 ms, 自動配置 ≤ 5 ms, small samples ≤ 1.5 ms per zoom step and
+   per drag step.
+4. Rooms still has 1,426 elements because every wire segment and its
+   hit band is painted separately for depth order: paint a wire as
+   one path (plus one hit path) and order whole wires by their
+   nearest point; split only wires that pass both in front of and
+   behind a node.

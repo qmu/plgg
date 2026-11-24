@@ -961,22 +961,33 @@ export const roomValue = (
     axis && node.data?.[axis.attribute];
   return typeof value === "string" ? value : "—";
 };
+const memberships = new WeakMap<
+  RoomLayout,
+  WeakMap<FlowNode, Room | undefined>
+>();
 export const roomFor = (
   layout: RoomLayout,
   node: FlowNode,
-) =>
-  layout.rooms.find(
-    (room) =>
-      room.values[0] ===
-        roomValue(node, layout.axes.x) &&
-      room.values[1] ===
-        roomValue(node, layout.axes.y) &&
-      room.values[2] ===
-        roomValue(node, layout.axes.z),
+) => {
+  const cache =
+    memberships.get(layout) ??
+    new WeakMap<FlowNode, Room | undefined>();
+  if (cache.has(node)) return cache.get(node);
+  const values = [
+    layout.axes.x,
+    layout.axes.y,
+    layout.axes.z,
+  ].map((axis) => roomValue(node, axis));
+  const room = layout.rooms.find((r) =>
+    r.values.every((v, i) => v === values[i]),
   );
+  cache.set(node, room);
+  memberships.set(layout, cache);
+  return room;
+};
 const squareUp = (n: number) =>
   Math.ceil(n / grid) * grid;
-export const planRooms = (
+const computeRooms = (
   graph: Graph,
   axes: RoomAxes,
 ) => {
@@ -1207,7 +1218,7 @@ export const planRooms = (
     axes,
     rooms,
     graph: {
-      ...graph,
+      edges: graph.edges,
       nodes: graph.nodes.map((n) => {
         const [i, j] = indices.get(n.id)!,
           p = local.get(n.id)!;
@@ -1222,4 +1233,31 @@ export const planRooms = (
       }),
     },
   };
+};
+
+const roomPlans = new WeakMap<
+  Graph["nodes"],
+  {
+    edges: Graph["edges"];
+    plan: ReturnType<typeof computeRooms>;
+  }
+>();
+export const planRooms = (
+  graph: Graph,
+  axes: RoomAxes,
+) => {
+  const known = roomPlans.get(graph.nodes);
+  if (
+    known?.edges === graph.edges &&
+    known.plan.axes.x === axes.x &&
+    known.plan.axes.y === axes.y &&
+    known.plan.axes.z === axes.z
+  )
+    return known.plan;
+  const plan = computeRooms(graph, axes);
+  roomPlans.set(graph.nodes, {
+    edges: graph.edges,
+    plan,
+  });
+  return plan;
 };

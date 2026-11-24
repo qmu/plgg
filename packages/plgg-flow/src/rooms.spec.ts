@@ -319,11 +319,15 @@ test("empty rooms only draw corner ticks and turning reveals floor labels", () =
     front = html(0),
     turned = html(-0.5);
   const segments = [
-    ...turned.matchAll(/ d="([^"]*)"/g),
+    ...turned.matchAll(
+      /class="room-(?:empty|inner|far|outer|near)" d="([^"]*)"/g,
+    ),
   ].map((m) => m[1]!.split("M").length - 1);
   return check(
-    segments.reduce((a, b) => a + b, 0) <=
-      2 * 3 * 4 + 3 * 2 * 4 + 3 * 3 * 3 &&
+    segments.length > 0 &&
+      segments.length <= 8 &&
+      segments.reduce((a, b) => a + b, 0) <=
+        2 * 3 * 4 + 3 * 2 * 4 + 3 * 3 * 3 &&
       front.includes(">app<") &&
       front.includes(">dev<") &&
       !front.includes(">live<") &&
@@ -333,6 +337,21 @@ test("empty rooms only draw corner ticks and turning reveals floor labels", () =
   );
 });
 
+test("the rooms lattice paints every stroke in at most eight paths", () => {
+  const flow = read(sheet);
+  const html = renderToString(
+    roomView(flow.rooms!, flow.camera, flow),
+  );
+  const lattice = html.match(
+    /<g class="room-lattice">([\s\S]*?)<\/g>/,
+  )?.[1];
+  const paths =
+    lattice?.match(/<path\b/g)?.length ?? 0;
+  return check(
+    paths > 0 && paths <= 8,
+    toBe(true),
+  );
+});
 test("lattice partitions have three strengths and anchors clear the projected cuboid by twelve pixels", () => {
   const flow = read(sheet),
     layout = flow.rooms!;

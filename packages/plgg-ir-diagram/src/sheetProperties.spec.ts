@@ -13,6 +13,7 @@ import { makeRenderer } from "plgg-view/client";
 import {
   readSheetSource,
   sheetDsl,
+  createDslPanel,
 } from "plgg-ir-diagram/flowSheet";
 
 const node = (id: string): Subject => ({
@@ -423,4 +424,32 @@ test("position arrows use snap and Shift advances four steps in one edit", () =>
     sheet.dispose();
     vi.unstubAllGlobals();
   }
+});
+
+test("zoom keeps the DSL panel lazy argument", () => {
+  const flow = createFlow({
+    nodes: [],
+    edges: [],
+  });
+  const panel = createDslPanel<Change>(
+    (fn) => fn,
+    (f) => f,
+    () => (f) => f,
+  );
+  const rules: [] = [];
+  const before = panel(flow, rules, "");
+  const after = panel(
+    {
+      ...flow,
+      camera: { ...flow.camera, scale: 2 },
+    },
+    rules,
+    "",
+  );
+  return check(
+    before.__tag === "Lazy" &&
+      after.__tag === "Lazy" &&
+      before.content.arg === after.content.arg,
+    toBe(true),
+  );
 });

@@ -1,5 +1,6 @@
 import { some, none } from "plgg";
 import {
+  lazy,
   attr,
   el,
   text,
@@ -142,6 +143,14 @@ export const replaceRow = (
     ...lines.slice(index + 1),
   ].join("\n");
 
+type RetainedRow<A> = {
+  key: string;
+  view: Html<A>;
+};
+export const rowCache = <A>() =>
+  new Map<number, RetainedRow<A>>();
+const buildRow = <A>(build: () => Html<A>) =>
+  build();
 export const dslRows = <A>(
   flow: Flow,
   rules: readonly Rule[],
@@ -149,6 +158,7 @@ export const dslRows = <A>(
   error: string | undefined,
   select: (fn: Change) => A,
   retype: (v: string) => A,
+  cache?: Map<number, RetainedRow<A>>,
 ) => {
   const lines = printLines(flow, rules);
   const printed = error
@@ -173,23 +183,15 @@ export const dslRows = <A>(
       (id) => !declared.has(id),
     ),
   );
+  if (cache)
+    for (const i of cache.keys())
+      if (i > printed.length) cache.delete(i);
   const row = (
     value: string,
     i: number,
     line?: Line,
   ): Html<A> => {
     const subject = line?.subject;
-    const replace = (value: string) =>
-      replaceRow(printed, i, value);
-    const remove = () =>
-      subject?.kind === "node"
-        ? printSpec(
-            deleteSelected(
-              selectSubject(subject, false)(flow),
-            ),
-            rules,
-          )
-        : replace("");
     const edit = (
       anchor: HTMLElement,
       initial = value,
@@ -197,11 +199,7 @@ export const dslRows = <A>(
       field(
         anchor,
         initial,
-        (v) =>
-          commit(
-            anchor,
-            v ? replace(v) : remove(),
-          ),
+        (v) => commit(anchor, v),
         initial === value,
       );
     const edge =
@@ -216,126 +214,148 @@ export const dslRows = <A>(
           (edge &&
             (implicit.has(edge.source) ||
               implicit.has(edge.target)))));
-    return el<A>(
-      "div",
-      [
-        attr("class", "dsl-row"),
-        attr("role", "option"),
-        attr("tabindex", "0"),
-        attr("aria-label", value || "行を追加"),
-        attr("aria-selected", String(!!chosen)),
-        ...(invalid === i + 1
-          ? [attr("aria-invalid", "true")]
-          : []),
-        onEvent("click", (e) => {
-          if (
-            !value &&
-            e.currentTarget instanceof HTMLElement
-          ) {
-            edit(e.currentTarget);
-          }
-          return some(
-            select(
-              subject &&
-                subject.kind !== "directive"
-                ? selectSubject(
-                    subject,
-                    "shiftKey" in e &&
-                      e.shiftKey === true,
-                  )
-                : (f) => ({
-                    ...selectNodes([])(f),
-                    selectedDslRow: {
-                      index: i,
-                      text: value,
-                    },
-                  }),
-            ),
-          );
-        }),
-        effect("dblclick", (_, a) => edit(a)),
-        onEvent<never>("keydown", (e) => {
-          if (
-            !(e instanceof KeyboardEvent) ||
-            !(
+    const key = JSON.stringify([
+      value,
+      subject,
+      !!chosen,
+      invalid === i + 1,
+      i < printed.length,
+    ]);
+    const previous = cache?.get(i);
+    if (previous?.key === key)
+      return previous.view;
+    const view = lazy(buildRow<A>, () =>
+      el<A>(
+        "div",
+        [
+          attr("class", "dsl-row"),
+          attr("role", "option"),
+          attr("data-row", String(i)),
+          attr("tabindex", "0"),
+          attr("aria-label", value || "行を追加"),
+          attr("aria-selected", String(!!chosen)),
+          ...(invalid === i + 1
+            ? [attr("aria-invalid", "true")]
+            : []),
+          onEvent("click", (e) => {
+            if (
+              !value &&
               e.currentTarget instanceof
-              HTMLElement
-            ) ||
-            e.isComposing
-          )
-            return none();
-          const a = e.currentTarget;
-          if (
-            e.key === "ArrowDown" ||
-            e.key === "ArrowUp"
-          ) {
-            const next =
-              e.key === "ArrowDown"
-                ? a.nextElementSibling
-                : a.previousElementSibling;
-            if (next instanceof HTMLElement) {
-              e.preventDefault();
-              next.focus();
-              if (next.nextElementSibling)
-                next.click();
+                HTMLElement
+            ) {
+              edit(e.currentTarget);
             }
-          } else if (
-            e.key === "Backspace" &&
-            !value &&
-            i < printed.length
-          ) {
-            e.preventDefault();
-            commit(a, remove());
-          } else if (
-            e.key === "Enter" ||
-            e.key === "F2" ||
-            (!value &&
-              e.key.length === 1 &&
-              !e.ctrlKey &&
-              !e.metaKey)
-          ) {
-            e.preventDefault();
-            edit(
-              a,
-              e.key.length === 1 ? e.key : value,
-            );
-          }
-          return none();
-        }),
-        ...(!subject ||
-        subject.kind === "directive"
-          ? []
-          : [
-              effect("pointerenter", (_, a) => {
-                const selector =
-                  subject.kind === "node"
-                    ? '[data-node="' +
-                      CSS.escape(subject.id) +
-                      '"]'
-                    : '[data-edge-index="' +
-                      subject.index +
-                      '"]';
-                a
-                  .closest(".stage")
-                  ?.querySelectorAll(selector)
-                  .forEach((n) =>
-                    n.classList.add("dsl-hover"),
-                  );
-              }),
-              effect("pointerleave", (_, a) =>
-                a
-                  .closest(".stage")
-                  ?.querySelectorAll(".dsl-hover")
-                  .forEach((n) =>
-                    n.classList.remove(
-                      "dsl-hover",
-                    ),
-                  ),
+            return some(
+              select(
+                subject &&
+                  subject.kind !== "directive"
+                  ? selectSubject(
+                      subject,
+                      "shiftKey" in e &&
+                        e.shiftKey === true,
+                    )
+                  : (f) => ({
+                      ...selectNodes([])(f),
+                      selectedDslRow: {
+                        index: i,
+                        text: value,
+                      },
+                    }),
               ),
-            ]),
-      ],
-      [text(value)],
+            );
+          }),
+          effect("dblclick", (_, a) => edit(a)),
+          onEvent<never>("keydown", (e) => {
+            if (
+              !(e instanceof KeyboardEvent) ||
+              !(
+                e.currentTarget instanceof
+                HTMLElement
+              ) ||
+              e.isComposing
+            )
+              return none();
+            const a = e.currentTarget;
+            if (
+              e.key === "ArrowDown" ||
+              e.key === "ArrowUp"
+            ) {
+              const next =
+                e.key === "ArrowDown"
+                  ? a.nextElementSibling
+                  : a.previousElementSibling;
+              if (next instanceof HTMLElement) {
+                e.preventDefault();
+                next.focus();
+                if (next.nextElementSibling)
+                  next.click();
+              }
+            } else if (
+              e.key === "Backspace" &&
+              !value &&
+              i < printed.length
+            ) {
+              e.preventDefault();
+              commit(a, "");
+            } else if (
+              e.key === "Enter" ||
+              e.key === "F2" ||
+              (!value &&
+                e.key.length === 1 &&
+                !e.ctrlKey &&
+                !e.metaKey)
+            ) {
+              e.preventDefault();
+              edit(
+                a,
+                e.key.length === 1
+                  ? e.key
+                  : value,
+              );
+            }
+            return none();
+          }),
+          ...(!subject ||
+          subject.kind === "directive"
+            ? []
+            : [
+                effect("pointerenter", (_, a) => {
+                  const selector =
+                    subject.kind === "node"
+                      ? '[data-node="' +
+                        CSS.escape(subject.id) +
+                        '"]'
+                      : '[data-edge-index="' +
+                        subject.index +
+                        '"]';
+                  a
+                    .closest(".stage")
+                    ?.querySelectorAll(selector)
+                    .forEach((n) =>
+                      n.classList.add(
+                        "dsl-hover",
+                      ),
+                    );
+                }),
+                effect("pointerleave", (_, a) =>
+                  a
+                    .closest(".stage")
+                    ?.querySelectorAll(
+                      ".dsl-hover",
+                    )
+                    .forEach((n) =>
+                      n.classList.remove(
+                        "dsl-hover",
+                      ),
+                    ),
+                ),
+              ]),
+        ],
+        [text(value)],
+      ),
     );
+    cache?.set(i, { key, view });
+    return view;
   };
   return el<A>(
     "div",
@@ -344,11 +364,35 @@ export const dslRows = <A>(
       attr("role", "listbox"),
       attr("aria-label", "図の DSL"),
       attr("aria-multiselectable", "true"),
-      onEvent("dsl-commit", (e) =>
-        e instanceof InputEvent && e.data !== null
-          ? some(retype(e.data))
-          : none(),
-      ),
+      onEvent("dsl-commit", (e) => {
+        if (
+          !(e instanceof InputEvent) ||
+          e.data === null ||
+          !(e.target instanceof HTMLElement)
+        )
+          return none();
+        const i = Number(
+          e.target.getAttribute("data-row"),
+        );
+        const subject = error
+          ? undefined
+          : lines[i]?.subject;
+        return some(
+          retype(
+            !e.data && subject?.kind === "node"
+              ? printSpec(
+                  deleteSelected(
+                    selectSubject(
+                      subject,
+                      false,
+                    )(flow),
+                  ),
+                  rules,
+                )
+              : replaceRow(printed, i, e.data),
+          ),
+        );
+      }),
     ],
     [
       ...printed.map((v, i) =>

@@ -31,7 +31,7 @@ import {
   sheetToolbar,
   sheetTools,
   sheetHelp,
-  sheetDsl,
+  createDslPanel,
   sheetStage,
   observeFrame,
   fitDemo,
@@ -159,6 +159,11 @@ export const mountSheet = (
   const board = mapHtml((fn: Change) =>
     change(fn),
   );
+  const panel = createDslPanel(
+    change,
+    toggle,
+    retype,
+  );
   const view = (m: Model): Html<Action> =>
     el(
       "div",
@@ -170,14 +175,11 @@ export const mountSheet = (
           [
             ...(dsl
               ? [
-                  sheetDsl(
+                  panel(
                     m.flow,
                     m.rules,
-                    change,
                     m.source,
                     m.error,
-                    toggle,
-                    retype,
                   ),
                 ]
               : []),

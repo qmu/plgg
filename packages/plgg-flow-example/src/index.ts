@@ -9,7 +9,7 @@ import {
   observeFrame,
   sheetHelp,
   sheetStage,
-  sheetDsl,
+  createDslPanel,
   readSheetSource,
 } from "plgg-ir-diagram/flowSheet";
 import { resizeNode, nodeSize } from "plgg-flow";
@@ -1280,55 +1280,53 @@ const toggleHelp: Action = (m) => ({
   ...m,
   help: !m.help,
 });
-const dslPanel = (s: {
-  flow: Flow;
-  rules: Session["rules"];
-  dsl: Session["dsl"];
-}) => {
+const panel = createDslPanel<Action>(
+  (fn) => edit(apply(fn)),
+  toggleHelp,
+  (value, edited) =>
+    edit((cur) => {
+      const draft = readSheetSource(
+        value,
+        cur.flow,
+        cur.rules,
+        edited,
+      );
+      if (draft.error)
+        return {
+          ...cur,
+          dsl: {
+            text: value,
+            flow: cur.flow,
+            error: draft.error,
+          },
+        };
+      const next = apply(() => draft.flow)(cur);
+      return {
+        ...next,
+        rules: draft.rules,
+        fittedCamera:
+          next.flow.camera !== cur.flow.camera
+            ? next.flow.camera
+            : cur.fittedCamera,
+        dsl: {
+          text: value,
+          flow: next.flow,
+        },
+      };
+    }),
+);
+const dslPanel = (s: Session) => {
   const typed =
     s.dsl && s.dsl.flow === s.flow
       ? s.dsl
       : undefined;
   const source =
     typed?.text ?? printSpec(s.flow, s.rules);
-  return sheetDsl(
+  return panel(
     s.flow,
     s.rules,
-    (fn) => edit(apply(fn)),
     source,
     typed?.error,
-    toggleHelp,
-    (value, edited) =>
-      edit((cur) => {
-        const draft = readSheetSource(
-          value,
-          cur.flow,
-          cur.rules,
-          edited,
-        );
-        if (draft.error)
-          return {
-            ...cur,
-            dsl: {
-              text: value,
-              flow: cur.flow,
-              error: draft.error,
-            },
-          };
-        const next = apply(() => draft.flow)(cur);
-        return {
-          ...next,
-          rules: draft.rules,
-          fittedCamera:
-            next.flow.camera !== cur.flow.camera
-              ? next.flow.camera
-              : cur.fittedCamera,
-          dsl: {
-            text: value,
-            flow: next.flow,
-          },
-        };
-      }),
   );
 };
 const helpToast = sheetHelp(toggleHelp);
@@ -1411,42 +1409,8 @@ const toolbar = (
     tool ? [boardActions(tool.view(flow))] : [],
   );
 };
-const dslCache = new WeakMap<
-  Flow,
-  {
-    draft: Session["dsl"];
-    rules: Session["rules"];
-    panel: Html<Action>;
-  }
->();
 const renderPanel = (build: () => Html<Action>) =>
   build();
-const lazyDsl = (s: Session) => {
-  const draft =
-    s.dsl?.flow === s.flow ? s.dsl : undefined;
-  const old = dslCache.get(s.flow);
-  if (
-    old &&
-    old.draft === draft &&
-    old.rules === s.rules
-  )
-    return old.panel;
-  const panel = lazy(
-    (flow: Flow) =>
-      dslPanel({
-        flow,
-        rules: s.rules,
-        dsl: draft,
-      }),
-    s.flow,
-  );
-  dslCache.set(s.flow, {
-    draft,
-    rules: s.rules,
-    panel,
-  });
-  return panel;
-};
 // Controls whose labels read board geometry must follow those edits.
 const featureInput = (
   id: DemoId,
@@ -1651,7 +1615,7 @@ const view = (m: Model): Html<Action> => {
           sheetStage(
             boardActions(diagram(e.id, s.flow)),
             boardControls(e, s),
-            [lazyDsl(s)],
+            [dslPanel(s)],
           ),
           sheetHint,
         ],

@@ -1,3 +1,4 @@
+import { wireGraph } from "plgg-flow/wiring";
 import { sheetTools } from "plgg-ir-diagram/flowSheet";
 import { project } from "plgg-board";
 import {
@@ -374,3 +375,59 @@ test("the demo uses the shared sheet tool registry", () =>
     demoSheetTools === sheetTools,
     toBe(true),
   ));
+
+test("Team sends to Design and Build inside its tray without looping", () => {
+  const flow = examples
+    .find((e) => e.id === "group")!
+    .initial();
+  const team = flow.nodes.find(
+    (n) => n.id === "Team",
+  )!;
+  const { width, height } = nodeSize(team);
+  const routes = wireGraph(flow).filter(
+    (w) =>
+      w.edge.source === "Team" &&
+      ["Design", "Build"].includes(w.edge.target),
+  );
+  return check(
+    routes.length === 2 &&
+      routes.every((w) => {
+        const turns: number[] = [];
+        for (
+          let i = 2;
+          i < w.points.length;
+          i++
+        ) {
+          const a = w.points[i - 2]!,
+            b = w.points[i - 1]!,
+            c = w.points[i]!;
+          const cross =
+            (b.x - a.x) * (c.y - b.y) -
+            (b.y - a.y) * (c.x - b.x);
+          if (
+            Math.abs(cross) > 1e-7 &&
+            turns[turns.length - 1] !==
+              Math.sign(cross)
+          )
+            turns.push(Math.sign(cross));
+        }
+        return (
+          (w.sourceSide === "right" ||
+            w.sourceSide === "bottom") &&
+          w.source.x <
+            team.position.x - width / 2 + 48 &&
+          w.source.y <
+            team.position.y - height / 2 + 24 &&
+          turns.length <= 2 &&
+          w.points.every(
+            (p) =>
+              Math.abs(p.x - team.position.x) <=
+                width / 2 &&
+              Math.abs(p.y - team.position.y) <=
+                height / 2,
+          )
+        );
+      }),
+    toBe(true),
+  );
+});

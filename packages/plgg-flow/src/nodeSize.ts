@@ -13,17 +13,22 @@ type Card = {
 };
 const fullWidth =
   /[\p{Script=Han}\p{Script=Hangul}\p{Script=Katakana}\p{Script=Hiragana}\u3000-\u30ff\uff01-\uff60\uffe0-\uffe6]/u;
+export const labelWidth = (label: string) => {
+  let width = 0;
+  for (const ch of label)
+    width += fullWidth.test(ch) ? 13 : 7.5;
+  return width;
+};
 export const nodeSize = (node: Card) => {
-  let text = 0;
-  if (node.width === undefined)
-    for (const ch of node.label)
-      text += fullWidth.test(ch) ? 13 : 7.5;
   return {
     width:
       node.width ??
       Math.max(
         4 * grid,
-        grid * Math.ceil((text + 24) / grid),
+        grid *
+          Math.ceil(
+            (labelWidth(node.label) + 24) / grid,
+          ),
       ),
     height: node.height ?? 2 * grid,
   };

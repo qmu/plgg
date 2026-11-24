@@ -182,12 +182,87 @@ export const roomLabels = (
   }
   return labels;
 };
+const prepareRooms = (layout: RoomLayout) => {
+  const limits = limitsOf(layout);
+  const points = new Map<string, Point3>();
+  const corner = (p: Point3) => {
+    const key = [p.x, p.y, p.z].join(",");
+    const known = points.get(key);
+    if (known) return known;
+    points.set(key, p);
+    return p;
+  };
+  return layout.rooms.map((room) => {
+    const corners = cornersOf(room).map(corner);
+    const floor = [
+      room.min,
+      { ...room.min, x: room.max.x },
+      { ...room.max, z: room.min.z },
+      { ...room.min, y: room.max.y },
+    ].map(corner);
+    const values = Object.fromEntries(
+      directions.flatMap((axis, i) => {
+        const definition = layout.axes[axis];
+        return definition
+          ? [
+              [
+                definition.attribute,
+                room.values[i]!,
+              ],
+            ]
+          : [];
+      }),
+    );
+    const edges = directions.flatMap((axis) =>
+      corners
+        .filter((p) => p[axis] === room.min[axis])
+        .map((p) => ({
+          axis,
+          p,
+          q: corner({
+            ...p,
+            [axis]: room.max[axis],
+          }),
+          outer: directions.every(
+            (d) =>
+              d === axis ||
+              p[d] === 0 ||
+              p[d] === limits[d],
+          ),
+          key: [axis, p.x, p.y, p.z].join(","),
+        })),
+    );
+    return {
+      room,
+      corners,
+      floor,
+      values,
+      edges,
+    };
+  });
+};
+const geometry = new WeakMap<
+  RoomLayout,
+  ReturnType<typeof prepareRooms>
+>();
 export const roomView = (
   layout: RoomLayout,
   camera: Camera,
   flow?: Flow,
 ): Html<Change> => {
-  const at = project(camera);
+  const transform = project(camera);
+  const projected = new Map<Point3, Point3>();
+  const at = (p: Point3) => {
+    const known = projected.get(p);
+    if (known) return known;
+    const q = transform(p);
+    projected.set(p, q);
+    return q;
+  };
+  const cells =
+    geometry.get(layout) ?? prepareRooms(layout);
+  geometry.set(layout, cells);
+  const face = faceAxes(camera);
   const limits = limitsOf(layout);
   const filter = flow ? roomFilter(flow) : {};
   const active = Object.keys(filter).length > 0;
@@ -195,11 +270,10 @@ export const roomView = (
     string,
     { d: string; kind: string }
   >();
-  const shadows = new Map<Room, Html<Change>[]>();
+  const shadows = new Map<Room, string[]>();
   for (const node of flow?.nodes ?? []) {
     const room = roomFor(layout, node);
-    if (!room || node.hidden || faceAxes(camera))
-      continue;
+    if (!room || node.hidden || face) continue;
     const { width, height } = nodeSize(node);
     const points = [
       [-1, -1],
@@ -217,77 +291,39 @@ export const roomView = (
       })
       .join(" ");
     const members = shadows.get(room) ?? [];
-    members.push(
-      el(
-        "polygon",
-        [
-          attr("class", "room-shadow"),
-          attr("points", points),
-        ],
-        [],
-      ),
-    );
+    members.push("M" + points + "Z");
     shadows.set(room, members);
   }
-  const rooms = layout.rooms.map((room) => {
-    const corners = cornersOf(room).sort(
-      (a, b) => at(a).z - at(b).z,
-    );
-    const floor = [
-      room.min,
-      { ...room.min, x: room.max.x },
-      { ...room.max, z: room.min.z },
-      { ...room.min, y: room.max.y },
-    ];
-    const values = Object.fromEntries(
-      directions.flatMap((axis, i) => {
-        const definition = layout.axes[axis];
-        return definition
-          ? [
-              [
-                definition.attribute,
-                room.values[i]!,
-              ],
-            ]
-          : [];
-      }),
-    );
-    const selected =
-      active && inSlab(values, filter);
-    for (const axis of directions) {
-      for (const p of corners.filter(
-        (p) => p[axis] === room.min[axis],
-      )) {
-        const q = {
-          ...p,
-          [axis]: room.max[axis],
-        };
-        const outer = directions
-          .filter((d) => d !== axis)
-          .every(
-            (d) =>
-              p[d] === 0 || p[d] === limits[d],
-          );
+  const centerDepth = at({
+    x: limits.x / 2,
+    y: limits.y / 2,
+    z: limits.z / 2,
+  }).z;
+  const rooms = cells.map(
+    ({ room, corners, floor, values, edges }) => {
+      const far = corners.reduce((best, p) =>
+        at(p).z < at(best).z ? p : best,
+      );
+      const selected =
+        active && inSlab(values, filter);
+      for (const {
+        axis,
+        p,
+        q,
+        outer,
+        key,
+      } of edges) {
         const midDepth = (at(p).z + at(q).z) / 2;
-        const centerDepth = at({
-          x: limits.x / 2,
-          y: limits.y / 2,
-          z: limits.z / 2,
-        }).z;
         const kind = outer
           ? midDepth >= centerDepth
             ? "outer"
             : "far"
           : "inner";
-        const key = [axis, p.x, p.y, p.z].join(
-          ",",
-        );
         if (
           !room.occupied &&
           !selected &&
           !outer
         ) {
-          const far = corners[0]!;
           if (
             directions.some(
               (d) =>
@@ -312,60 +348,81 @@ export const roomView = (
             d: segment(p, q),
           });
       }
-    }
-    const points = floor
-      .map((p) => at(p))
-      .map((p) => p.x + "," + p.y)
-      .join(" ");
-    const near = floor
-      .map((p) => at(p))
-      .sort((a, b) => b.z - a.z || b.y - a.y)[0]!;
-    return {
-      depth: floor.reduce(
-        (sum, p) => sum + at(p).z,
-        0,
-      ),
-      view: el<Change>(
-        "g",
-        [attr("class", "room-cell")],
-        [
-          el(
-            "polygon",
-            [
-              attr(
-                "class",
-                selected
-                  ? "room-selected"
-                  : room.occupied
-                    ? "room-floor"
-                    : "room-clear",
-              ),
-              attr("points", points),
-              attr("pointer-events", "all"),
-            ],
-            [],
-          ),
-          ...(shadows.get(room) ?? []),
-          el(
-            "text",
-            [
-              attr("class", "room-caption"),
-              attr("x", String(near.x)),
-              attr("y", String(near.y - 4)),
-              attr("text-anchor", "end"),
-            ],
-            [
-              text(
-                room.values
-                  .filter((v) => v !== "—")
-                  .join(" · "),
-              ),
-            ],
-          ),
-        ],
-      ),
-    };
-  });
+      const points = floor
+        .map((p) => at(p))
+        .map((p) => p.x + "," + p.y)
+        .join(" ");
+      const near = floor
+        .map((p) => at(p))
+        .sort(
+          (a, b) => b.z - a.z || b.y - a.y,
+        )[0]!;
+      return {
+        depth: floor.reduce(
+          (sum, p) => sum + at(p).z,
+          0,
+        ),
+        view: el<Change>(
+          "g",
+          [attr("class", "room-cell")],
+          [
+            el(
+              "path",
+              [
+                attr(
+                  "class",
+                  selected
+                    ? "room-selected"
+                    : room.occupied
+                      ? "room-floor"
+                      : "room-clear",
+                ),
+                attr("d", "M" + points + "Z"),
+                attr("pointer-events", "all"),
+              ],
+              [],
+            ),
+            ...(shadows.has(room)
+              ? [
+                  el<Change>(
+                    "path",
+                    [
+                      attr(
+                        "class",
+                        "room-shadow",
+                      ),
+                      attr(
+                        "d",
+                        shadows
+                          .get(room)
+                          ?.join("") ?? "",
+                      ),
+                    ],
+                    [],
+                  ),
+                ]
+              : []),
+            el(
+              "text",
+              [
+                attr("class", "room-caption"),
+                attr("x", String(near.x)),
+                attr("y", String(near.y - 4)),
+                attr("text-anchor", "end"),
+              ],
+              [
+                text(
+                  room.values
+                    .filter((v) => v !== "—")
+                    .join(" · "),
+                ),
+              ],
+            ),
+          ],
+        ),
+      };
+    },
+  );
   function segment(p: Point3, q: Point3) {
     const a = at(p),
       b = at(q);
@@ -411,30 +468,36 @@ export const roomView = (
   return el(
     "g",
     [
-      attr("class", "room-lattice"),
+      attr("class", "room-scene"),
       attr("pointer-events", "none"),
     ],
     [
       ...rooms
         .sort((a, b) => a.depth - b.depth)
         .map((r) => r.view),
-      ...["empty", "inner", "far", "outer"].map(
-        (kind) =>
-          el<Change>(
-            "path",
-            [
-              attr("class", "room-" + kind),
-              attr(
-                "d",
-                [...lines.values()]
-                  .filter((l) => l.kind === kind)
-                  .map((l) => l.d)
-                  .join(""),
-              ),
-              attr("fill", "none"),
-            ],
-            [],
-          ),
+      el(
+        "g",
+        [attr("class", "room-lattice")],
+        ["empty", "inner", "far", "outer"].map(
+          (kind) =>
+            el<Change>(
+              "path",
+              [
+                attr("class", "room-" + kind),
+                attr(
+                  "d",
+                  [...lines.values()]
+                    .filter(
+                      (l) => l.kind === kind,
+                    )
+                    .map((l) => l.d)
+                    .join(""),
+                ),
+                attr("fill", "none"),
+              ],
+              [],
+            ),
+        ),
       ),
       ...roomLabels(layout, camera).map((l) =>
         el<Change>(

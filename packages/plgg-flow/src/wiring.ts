@@ -9,7 +9,10 @@ import {
 } from "plgg-flow/wireCurve";
 import { search } from "plgg-flow/wireSearch";
 import { materialize } from "plgg-flow/wirePath";
-import { nodeSize } from "plgg-flow/nodeSize";
+import {
+  nodeSize,
+  labelWidth,
+} from "plgg-flow/nodeSize";
 import {
   outline,
   chordGap,
@@ -26,6 +29,7 @@ import {
 } from "plgg-flow/nodeBody";
 import {
   type Edge,
+  type FlowNode,
   type Graph,
   type Flow,
 } from "./model";
@@ -171,6 +175,69 @@ const snapshots = (shared[sheetCache] ??=
 const previousWire = new WeakMap<Edge, Wire>();
 const samePoint = (a: Point3, b: Point3) =>
   a.x === b.x && a.y === b.y && a.z === b.z;
+// A tray has two attachment surfaces: its frame for external wires and
+// the name inside its top-left corner for wires into its own branch.
+const trayEndpoints = (
+  nodes: ReadonlyMap<string, FlowNode>,
+  edges: readonly Edge[],
+) => {
+  const labels = new Map<string, FlowNode>();
+  const endpoint = (id: string, peer: string) => {
+    const tray = nodes.get(id);
+    if (
+      !tray?.group ||
+      tray.collapsed ||
+      id === peer
+    )
+      return id;
+    const visited = new Set<string>();
+    let parent = nodes.get(peer)?.parent;
+    while (
+      parent !== undefined &&
+      parent !== id &&
+      !visited.has(parent)
+    ) {
+      visited.add(parent);
+      parent = nodes.get(parent)?.parent;
+    }
+    if (parent !== id) return id;
+    const known = labels.get(id);
+    if (known) return known.id;
+    let labelId = id + "#label";
+    while (nodes.has(labelId)) labelId += "#";
+    const frame = nodeSize(tray);
+    const width = Math.min(
+      frame.width,
+      8 + labelWidth(tray.label),
+    );
+    const height = Math.min(frame.height, 18);
+    labels.set(id, {
+      id: labelId,
+      label: tray.label,
+      width,
+      height,
+      position: {
+        x:
+          tray.position.x +
+          (width - frame.width) / 2,
+        y:
+          tray.position.y +
+          (height - frame.height) / 2,
+        z: tray.position.z,
+      },
+    });
+    return labelId;
+  };
+  const routed = edges.map((e) => {
+    const source = endpoint(e.source, e.target),
+      target = endpoint(e.target, e.source);
+    return source === e.source &&
+      target === e.target
+      ? e
+      : { ...e, source, target };
+  });
+  return { labels, routed };
+};
 export const wireGraph = (
   graph: Graph & Pick<Flow, "rooms">,
   options: WiringOptions = {},
@@ -192,6 +259,8 @@ export const wireGraph = (
     const { width, height } = nodeSize(n);
     inputs.push(
       n.id,
+      n.parent,
+      n.group ? n.label : undefined,
       n.position.x,
       n.position.y,
       n.position.z,
@@ -236,8 +305,19 @@ export const wireGraph = (
       byId.has(e.source) &&
       byId.has(e.target),
   );
-  // Each occurrence owns a lane even for a repeated edge object.
-  const boxes = obstacles(graph);
+  const endpoints = graph.nodes.some(
+    (n) => n.group && !n.collapsed,
+  )
+    ? trayEndpoints(byId, visible)
+    : undefined;
+  for (const node of endpoints?.labels.values() ??
+    [])
+    byId.set(node.id, node);
+  const boxes = obstacles(
+    endpoints?.labels.size
+      ? { ...graph, nodes: [...byId.values()] }
+      : graph,
+  );
   const moving = boxes.find(
     (q) => q.id === options.draggedNode,
   );
@@ -249,9 +329,13 @@ export const wireGraph = (
     : query;
   const ports = planPorts(
     byId,
-    visible.map((e) => ({ ...e })),
+    (endpoints?.routed ?? visible).map((e) => ({
+      ...e,
+    })),
     query,
     options.draggedNode !== undefined,
+    endpoints &&
+      new Set(endpoints.labels.values()),
   );
 
   // Only wires with matching physical sockets share a bundle arc.
@@ -1018,7 +1102,8 @@ export const wireGraph = (
       break;
     }
   }
-  const routed = wires.map((w, i) => {
+  const routed = wires.map((original, i) => {
+    let w = original;
     const edge = required(visible[i]),
       old = previousWire.get(edge);
     if (
@@ -1035,7 +1120,7 @@ export const wireGraph = (
       }));
       const rises = w.target.z > floor;
       const { controls, ...body } = w;
-      return {
+      w = {
         ...body,
         edge,
         points: rises

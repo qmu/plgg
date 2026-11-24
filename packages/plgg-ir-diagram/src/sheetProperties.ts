@@ -1,9 +1,9 @@
 import { edgeIndex } from "plgg-flow/connections";
-import { none, some } from "plgg";
+import { none, some, type Option } from "plgg";
 import {
   attr,
   el,
-  onChange,
+  lazy,
   onEvent,
   text,
   type Html,
@@ -199,6 +199,13 @@ const arrange =
     };
   };
 
+export const propertyCache = () =>
+  new Map<
+    string,
+    { key: string; view: Html<never> }
+  >();
+const buildControl = (build: () => Html<never>) =>
+  build();
 export const sheetProperties = <A>(
   flow: Flow,
   rules: readonly Rule[],
@@ -206,6 +213,7 @@ export const sheetProperties = <A>(
     change: Change,
     rules: readonly Rule[],
   ) => A,
+  cache = propertyCache(),
 ) => {
   const ids = selectedNodes(flow),
     nodes = flow.nodes.filter((n) =>
@@ -251,36 +259,63 @@ export const sheetProperties = <A>(
         el("div", [], controls),
       ],
     );
+  const handlers = new Map<
+    string,
+    (event: Event) => Option<A>
+  >();
+  const retained = (
+    label: string,
+    inputs: readonly unknown[],
+    build: () => Html<never>,
+  ) => {
+    const key = JSON.stringify(inputs);
+    const old = cache.get(label);
+    if (old?.key === key) return old.view;
+    const view = lazy(buildControl, build);
+    cache.set(label, { key, view });
+    return view;
+  };
   const button = (
     label: string,
     aria: string,
     action: () => A,
     pressed?: boolean | "mixed",
     disabled = false,
-  ) =>
-    el(
-      "button",
-      [
-        attr("type", "button"),
-        attr("aria-label", aria),
-        ...(pressed === undefined
-          ? []
-          : [
-              attr(
-                "aria-pressed",
-                String(pressed),
-              ),
-            ]),
-        ...(disabled
-          ? [attr("disabled", "")]
-          : []),
-        onEvent("click", () => some(action())),
-        ...(label === mixed
-          ? [attr("data-mixed", "")]
-          : []),
-      ],
-      [text(label)],
+  ) => {
+    handlers.set(aria, (e) =>
+      e.type === "click"
+        ? some(action())
+        : none(),
     );
+    return retained(
+      aria,
+      ["button", label, pressed, disabled],
+      () =>
+        el(
+          "button",
+          [
+            attr("type", "button"),
+            attr("aria-label", aria),
+            ...(pressed === undefined
+              ? []
+              : [
+                  attr(
+                    "aria-pressed",
+                    String(pressed),
+                  ),
+                ]),
+            ...(disabled
+              ? [attr("disabled", "")]
+              : []),
+
+            ...(label === mixed
+              ? [attr("data-mixed", "")]
+              : []),
+          ],
+          [text(label)],
+        ),
+    );
+  };
   const field = (
     label: string,
     value: string | undefined,
@@ -288,77 +323,79 @@ export const sheetProperties = <A>(
     step?: number,
     disabled = false,
     min?: number,
-  ) =>
-    el(
-      "input",
-      [
-        attr("aria-label", label),
-        attr("type", step ? "number" : "text"),
-        attr("value", value ?? ""),
-        attr(
-          "placeholder",
-          value === undefined ? mixed : "",
+  ) => {
+    handlers.set(label, (e) => {
+      if (e.type === "change") {
+        const input = e.target;
+        if (!(input instanceof HTMLInputElement))
+          return none();
+        const v = input.value;
+        return !step ||
+          (!input.validity?.badInput &&
+            (!v ||
+              (Number.isFinite(Number(v)) &&
+                (min === undefined ||
+                  (Number.isInteger(Number(v)) &&
+                    Number(v) >= min)))))
+          ? some(apply(v))
+          : none();
+      }
+
+      if (
+        !(e instanceof KeyboardEvent) ||
+        !(e.target instanceof HTMLInputElement) ||
+        !step ||
+        !["ArrowUp", "ArrowDown"].includes(e.key)
+      )
+        return none();
+      e.preventDefault();
+      const origin = Number(e.target.value);
+      const base =
+        min === undefined
+          ? origin
+          : e.key === "ArrowUp"
+            ? Math.floor(origin)
+            : Math.ceil(origin);
+      const v =
+        base +
+        (e.key === "ArrowUp" ? 1 : -1) *
+          step *
+          (e.shiftKey ? 4 : 1);
+      return min !== undefined && v < min
+        ? none()
+        : some(apply(String(v)));
+    });
+    return retained(
+      label,
+      ["field", value, step, disabled, min],
+      () =>
+        el(
+          "input",
+          [
+            attr("aria-label", label),
+            attr(
+              "type",
+              step ? "number" : "text",
+            ),
+            attr("value", value ?? ""),
+            attr(
+              "placeholder",
+              value === undefined ? mixed : "",
+            ),
+            ...(step
+              ? [attr("step", String(step))]
+              : []),
+            ...(min === undefined
+              ? []
+              : [attr("min", String(min))]),
+            ...(disabled
+              ? [attr("disabled", "")]
+              : []),
+          ],
+          [],
         ),
-        ...(step
-          ? [attr("step", String(step))]
-          : []),
-        ...(min === undefined
-          ? []
-          : [attr("min", String(min))]),
-        ...(disabled
-          ? [attr("disabled", "")]
-          : []),
-        onEvent("change", (e) => {
-          const input = e.target;
-          if (
-            !(input instanceof HTMLInputElement)
-          )
-            return none();
-          const v = input.value;
-          return !step ||
-            (!input.validity?.badInput &&
-              (!v ||
-                (Number.isFinite(Number(v)) &&
-                  (min === undefined ||
-                    (Number.isInteger(
-                      Number(v),
-                    ) &&
-                      Number(v) >= min)))))
-            ? some(apply(v))
-            : none();
-        }),
-        onEvent("keydown", (e) => {
-          if (
-            !(e instanceof KeyboardEvent) ||
-            !(
-              e.target instanceof HTMLInputElement
-            ) ||
-            !step ||
-            !["ArrowUp", "ArrowDown"].includes(
-              e.key,
-            )
-          )
-            return none();
-          e.preventDefault();
-          const origin = Number(e.target.value);
-          const base =
-            min === undefined
-              ? origin
-              : e.key === "ArrowUp"
-                ? Math.floor(origin)
-                : Math.ceil(origin);
-          const v =
-            base +
-            (e.key === "ArrowUp" ? 1 : -1) *
-              step *
-              (e.shiftKey ? 4 : 1);
-          return min !== undefined && v < min
-            ? none()
-            : some(apply(String(v)));
-        }),
-      ],
-      [],
     );
+  };
   const choice = (
     label: string,
     value: string | undefined,
@@ -367,39 +404,50 @@ export const sheetProperties = <A>(
       string,
     ])[],
     apply: (s: string) => A,
-  ) =>
-    el(
-      "select",
-      [
-        attr("aria-label", label),
-        attr("value", value ?? mixed),
-        ...(value === undefined
-          ? [attr("data-mixed", "")]
-          : []),
-        onChange(apply),
-      ],
-      [
-        ...(value === undefined
-          ? [
+  ) => {
+    handlers.set(label, (e) =>
+      e.type === "change" &&
+      e.target instanceof HTMLSelectElement
+        ? some(apply(e.target.value))
+        : none(),
+    );
+    return retained(
+      label,
+      ["choice", value, options],
+      () =>
+        el(
+          "select",
+          [
+            attr("aria-label", label),
+            attr("value", value ?? mixed),
+            ...(value === undefined
+              ? [attr("data-mixed", "")]
+              : []),
+          ],
+          [
+            ...(value === undefined
+              ? [
+                  el(
+                    "option",
+                    [
+                      attr("disabled", ""),
+                      attr("value", mixed),
+                    ],
+                    [text(mixed)],
+                  ),
+                ]
+              : []),
+            ...options.map(([v, t]) =>
               el(
                 "option",
-                [
-                  attr("disabled", ""),
-                  attr("value", mixed),
-                ],
-                [text(mixed)],
+                [attr("value", v)],
+                [text(t)],
               ),
-            ]
-          : []),
-        ...options.map(([v, t]) =>
-          el(
-            "option",
-            [attr("value", v)],
-            [text(t)],
-          ),
+            ),
+          ],
         ),
-      ],
     );
+  };
   const hint = (s: string) =>
     el("small", [], [text(s)]);
   const toggle = (
@@ -1000,21 +1048,34 @@ export const sheetProperties = <A>(
               edge.target
             : edges.length + " 本のエッジ"
           : "図全体";
+  const rows =
+    node && edge
+      ? [del]
+      : node
+        ? nodeRows(node)
+        : edge
+          ? edgeRows(edge)
+          : sheetRows();
+  for (const label of cache.keys())
+    if (!handlers.has(label)) cache.delete(label);
+  const dispatch = (e: Event) => {
+    const label =
+      e.target instanceof HTMLElement
+        ? e.target.getAttribute("aria-label")
+        : undefined;
+    return label
+      ? (handlers.get(label)?.(e) ?? none())
+      : none();
+  };
   return el(
     "section",
     [
       attr("class", "dsl-properties"),
       attr("aria-label", "プロパティ"),
+      ...["click", "change", "keydown"].map(
+        (type) => onEvent(type, dispatch),
+      ),
     ],
-    [
-      el("strong", [], [text(title)]),
-      ...(node && edge
-        ? [del]
-        : node
-          ? nodeRows(node)
-          : edge
-            ? edgeRows(edge)
-            : sheetRows()),
-    ],
+    [el("strong", [], [text(title)]), ...rows],
   );
 };

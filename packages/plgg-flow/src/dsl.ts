@@ -567,7 +567,7 @@ const directive = (
   subject: { kind: "directive", name: key },
   text: [key, ...words].join(" "),
 });
-export const printLines = (
+const buildLines = (
   flow: Flow,
   rules: readonly Rule[],
 ): readonly Line[] => {
@@ -647,13 +647,48 @@ export const printLines = (
   ];
 };
 export const joinLine = (line: Line) => line.text;
+const printed = new WeakMap<
+  Flow["nodes"],
+  {
+    inputs: readonly unknown[];
+    lines: readonly Line[];
+    source: string;
+  }
+>();
+const printedSheet = (
+  flow: Flow,
+  rules: readonly Rule[],
+) => {
+  const inputs = [
+    flow.edges,
+    flow.rooms?.axes,
+    flow.layered,
+    flow.snap,
+    rules,
+  ];
+  const known = printed.get(flow.nodes);
+  if (
+    known &&
+    inputs.every((v, i) => known.inputs[i] === v)
+  )
+    return known;
+  const lines = buildLines(flow, rules);
+  const sheet = {
+    inputs,
+    lines,
+    source: lines.map(joinLine).join("\n"),
+  };
+  printed.set(flow.nodes, sheet);
+  return sheet;
+};
+export const printLines = (
+  flow: Flow,
+  rules: readonly Rule[],
+) => printedSheet(flow, rules).lines;
 export const printSpec = (
   flow: Flow,
   rules: readonly Rule[],
-) =>
-  printLines(flow, rules)
-    .map(joinLine)
-    .join("\n");
+) => printedSheet(flow, rules).source;
 export const subjectSelected = (
   s: Subject,
   f: Flow,

@@ -44,6 +44,7 @@ import {
   zoomAt,
   type Camera,
   type Point,
+  type Point3,
 } from "plgg-board";
 import {
   el,
@@ -101,7 +102,7 @@ import {
   type Drag,
 } from "plgg-flow/model";
 const local = (
-  svg: SVGSVGElement,
+  svg: SVGGraphicsElement,
   event: MouseEvent,
 ): Option<Point> => {
   const matrix = svg.getScreenCTM();
@@ -221,9 +222,24 @@ const worldGrid = (flow: Flow): Html<Change> => {
   const line = (u: Point, v: Point) =>
     `M${u.x} ${u.y}L${v.x} ${v.y}`;
   const lines = (major: boolean) => {
-    const step = major ? 4 * grid : grid;
-    const ticks = (low: number, high: number) =>
-      Array.from(
+    const ticks = (low: number, high: number) => {
+      const span = high - low;
+      if (
+        !major &&
+        Math.floor(high / grid) -
+          Math.ceil(low / grid) +
+          1 >
+          160
+      )
+        return [];
+      const unit = major ? 4 * grid : grid;
+      const step =
+        unit *
+        Math.max(
+          1,
+          Math.ceil((span / unit + 1) / 160),
+        );
+      return Array.from(
         {
           length: Math.max(
             0,
@@ -237,6 +253,7 @@ const worldGrid = (flow: Flow): Html<Change> => {
       ).filter(
         (n) => major || n % (4 * grid) !== 0,
       );
+    };
     const d = [
       ...ticks(left, right).map((x) =>
         line(at(x, top), at(x, bottom)),
@@ -469,7 +486,19 @@ const viewportLayout = (state: Flow) => {
   });
   return layout;
 };
+type StrokeSlice = {
+  id: string;
+  owner: object;
+  path: string;
+  visible: Html<Change>;
+  paint: (
+    path: string,
+    visible: Html<Change>[],
+    id?: string,
+  ) => Html<Change>;
+};
 type Layer = {
+  slice?: StrokeSlice;
   depth: number;
   chosen?: boolean;
   arrow?: boolean;
@@ -507,12 +536,22 @@ const trayFrames = new WeakMap<
 const socketRadius = 3;
 const nodeLayers = layerMemo<Layer>();
 const wireLayers = layerMemo<Layer[]>();
+const strokeRuns = layerMemo<Html<Change>>();
 const matches = (
   old: unknown[],
   next: unknown[],
 ) =>
   old.length === next.length &&
   old.every((v, i) => v === next[i]);
+// Pan and zoom are a single affine transform after perspective projection.
+const roomLayers = new WeakMap<
+  Flow["nodes"],
+  {
+    inputs: unknown[];
+    camera: Camera;
+    html: Html<Change>;
+  }
+>();
 const defaultLabel = (
   node: FlowNode,
 ): Html<Change> =>
@@ -606,13 +645,14 @@ export const flowView = (
     wires.map((w) => [w.edge, w]),
   );
   type Socket = {
+    point: Point3;
     handle: string | undefined;
 
     direction: Port["direction"];
   };
   const attachments = new Map<
     string,
-    Partial<Record<Side, Socket>>
+    Partial<Record<Side, Socket[]>>
   >();
   for (const w of wires)
     for (const direction of [
@@ -625,20 +665,28 @@ export const flowView = (
           : w.targetSide;
       const id = w.edge[direction];
       const sockets = attachments.get(id) ?? {};
-      // a side that sends any wire is a source side; one
-      // that only receives is marked by arrowheads alone
+      const point = w[direction];
+      const list = sockets[side] ?? [];
+      const index = list.findIndex(
+        (v) =>
+          v.point.x === point.x &&
+          v.point.y === point.y &&
+          v.point.z === point.z,
+      );
       if (
-        !sockets[side] ||
+        index < 0 ||
         (direction === "source" &&
-          sockets[side]?.direction === "target")
+          list[index]?.direction === "target")
       ) {
-        sockets[side] = {
+        list[index < 0 ? list.length : index] = {
+          point,
           direction,
           handle:
             direction === "source"
               ? w.edge.sourceHandle
               : w.edge.targetHandle,
         };
+        sockets[side] = list;
         attachments.set(id, sockets);
       }
     }
@@ -696,1077 +744,1287 @@ export const flowView = (
         state.edges[edgeIndex(state.edges, e)],
     ),
   );
-  const silhouettes = new Map<
-    string,
-    Point[][]
-  >();
-  const turned = new Map<
-    string,
-    Record<Side, boolean>
-  >();
-  const layers: Layer[] = drawNodes.map((n) => {
-    // The projected geometry is shared by drawing and hit targets.
-    const cached = bodies.get(n.item);
-    const solid =
-      cached?.camera === state.camera
-        ? cached.solid
-        : projectNodeBody(n, state.camera);
-    if (cached?.solid !== solid)
-      bodies.set(n.item, {
-        camera: state.camera,
-        solid,
-      });
-    const hue = state.spatial?.depthColor
-      ? 210 -
-        Math.max(
-          -1,
-          Math.min(1, n.position.z / 250),
-        ) *
-          100
-      : 175;
-    const render =
-      registry.nodes?.get(n.type ?? "") ??
-      renderLabel;
-    // A socket sits on its flank. When the camera sees
-    // the opposite flank, this one faces away: its dots
-    // are drawn before the faces, so the solid hides
-    // them. Face-on, both flanks are silhouette edges.
-    const shows = (side: string) =>
-      solid.visible.some((f) => f.side === side);
-    const away = {
-      right: shows("left"),
-      bottom: shows("top"),
-      top: shows("bottom"),
-      left: shows("right"),
-    };
-    turned.set(n.id, away);
-    if (picked.size)
-      silhouettes.set(
-        n.id,
-        solid.visible.map((face) =>
-          face.points.map((p) => ({
-            x: n.p.x + p.x * n.scale,
-            y: n.p.y + p.y * n.scale,
-          })),
-        ),
-      );
+  const paintLayers = () => {
+    const silhouettes = new Map<
+      string,
+      Point[][]
+    >();
+    const turned = new Map<
+      string,
+      Record<Side, boolean>
+    >();
+    const layers: Layer[] = drawNodes.map((n) => {
+      // The projected geometry is shared by drawing and hit targets.
+      const cached = bodies.get(n.item);
+      const solid =
+        cached?.camera === state.camera
+          ? cached.solid
+          : projectNodeBody(n, state.camera);
+      if (cached?.solid !== solid)
+        bodies.set(n.item, {
+          camera: state.camera,
+          solid,
+        });
+      const hue = state.spatial?.depthColor
+        ? 210 -
+          Math.max(
+            -1,
+            Math.min(1, n.position.z / 250),
+          ) *
+            100
+        : 175;
+      const render =
+        registry.nodes?.get(n.type ?? "") ??
+        renderLabel;
+      // A socket sits on its flank. When the camera sees
+      // the opposite flank, this one faces away: its dots
+      // are drawn before the faces, so the solid hides
+      // them. Face-on, both flanks are silhouette edges.
+      const shows = (side: string) =>
+        solid.visible.some(
+          (f) => f.side === side,
+        );
+      const away = {
+        right: shows("left"),
+        bottom: shows("top"),
+        top: shows("bottom"),
+        left: shows("right"),
+      };
+      turned.set(n.id, away);
+      if (picked.size)
+        silhouettes.set(
+          n.id,
+          solid.visible.map((face) =>
+            face.points.map((p) => ({
+              x: n.p.x + p.x * n.scale,
+              y: n.p.y + p.y * n.scale,
+            })),
+          ),
+        );
 
-    const drag = isSome(state.drag)
-      ? state.drag.content
-      : undefined;
-    const original = drag?.originalFrames?.get(
-      n.id,
-    );
-    const extent =
-      (drag?.mode === "frame" &&
-        drag.node === n.id) ||
-      (drag?.mode === "node" &&
-        original &&
-        (original.width !== n.width ||
-          original.height !== n.height));
-    const inputs = [
-      extent,
-      state.camera,
-      muted(n),
-      chosen.has(n.id),
-      state.spatial?.depthColor,
-      isSome(state.source),
-      isSome(state.source) &&
-        state.source.content === n.id,
-      counts.get(n.id),
-      render,
-      registry.nodes?.has(n.type ?? "")
-        ? state
-        : undefined,
-      ports
-        .get(n.id)
-        ?.find((p) => p.direction === "source")
-        ?.id,
-      ports
-        .get(n.id)
-        ?.find((p) => p.direction === "target")
-        ?.id,
-      ...(
-        [
-          "right",
-          "left",
-          "top",
-          "bottom",
-        ] satisfies Side[]
-      ).flatMap((side) => {
-        const used = attachments.get(n.id)?.[
-          side
-        ];
-        return [used?.direction, used?.handle];
-      }),
-    ];
-    const old = nodeLayers.get(n.item);
-    if (old && matches(old.inputs, inputs))
-      return old.value;
-    // A socket earns its dot by carrying a wire; a bare
-    // one shows only while it can take a new connection.
-    const sockets = (behind: boolean) =>
-      (
-        [
-          "right",
-          "left",
-          "top",
-          "bottom",
-        ] satisfies Side[]
-      ).flatMap((side) => {
-        if (behind !== away[side]) return [];
-        const used = attachments.get(n.id)?.[
-          side
-        ];
-        const connecting = isSome(state.source),
-          canConnect =
-            n.connectable !== false &&
-            (chosen.has(n.id) || connecting);
-        if (!used && !canConnect) return [];
-        // where arrows arrive, the arrowhead is the mark:
-        // no dot under it
-        if (
-          !canConnect &&
-          used?.direction === "target"
-        )
-          return [];
-        const direction = canConnect
-          ? connecting
-            ? "target"
-            : "source"
-          : (used?.direction ?? "source");
-        const handle =
-          used?.direction === direction
-            ? used.handle
-            : ports
-                .get(n.id)
-                ?.find(
-                  (p) =>
-                    p.direction === direction,
-                )?.id;
-        const description = n.ports?.find(
-          (p) =>
-            p.direction === direction &&
-            p.id === handle,
-        )?.description;
-        const title =
-          (handle ?? direction) +
-          (description
-            ? " — " + description
-            : "");
-        const offset = 0;
-        const socket = projectSocket(
-          n,
-          state.camera,
-          side,
-          offset,
-        );
-        const x = (socket.x - n.p.x) / n.scale,
-          y = (socket.y - n.p.y) / n.scale;
-        // A socket is a ball on the box's flank: it
-        // looks round from every side, so wires
-        // never lose their ends when the view turns.
-        const control = el<Change>(
-          "circle",
+      const drag = isSome(state.drag)
+        ? state.drag.content
+        : undefined;
+      const original = drag?.originalFrames?.get(
+        n.id,
+      );
+      const extent =
+        (drag?.mode === "frame" &&
+          drag.node === n.id) ||
+        (drag?.mode === "node" &&
+          original &&
+          (original.width !== n.width ||
+            original.height !== n.height));
+      const inputs = [
+        extent,
+        state.camera,
+        muted(n),
+        chosen.has(n.id),
+        state.spatial?.depthColor,
+        isSome(state.source),
+        isSome(state.source) &&
+          state.source.content === n.id,
+        counts.get(n.id),
+        render,
+        registry.nodes?.has(n.type ?? "")
+          ? state
+          : undefined,
+        ports
+          .get(n.id)
+          ?.find((p) => p.direction === "source")
+          ?.id,
+        ports
+          .get(n.id)
+          ?.find((p) => p.direction === "target")
+          ?.id,
+        ...(
           [
-            a("data-port", n.id),
-            a("data-side", side),
-            a("data-offset", offset),
-            a("data-direction", direction),
-            ...(handle === undefined
-              ? []
-              : [a("data-handle", handle)]),
-            a("cy", y),
-            a("tabindex", 0),
-            a("role", "button"),
-            a(
-              "aria-label",
-              n.label + " " + title,
-            ),
-            a("cx", x),
-            a("stroke", "#215f57"),
-            a("r", socketRadius),
-            a(
-              "fill",
-              isSome(state.source) &&
-                state.source.content === n.id
-                ? "#ed623a"
-                : direction === "source"
-                  ? "#167b70"
-                  : "#e6f4ef",
-            ),
-          ],
-          [el("title", [], [text(title)])],
-        );
-        return [control];
-      });
-    const value = {
-      depth: solid.depth,
-      html: lazy(deferred, () =>
-        el<Change>(
-          "g",
+            "right",
+            "left",
+            "top",
+            "bottom",
+          ] satisfies Side[]
+        ).flatMap((side) => {
+          return (
+            attachments.get(n.id)?.[side] ?? []
+          ).flatMap((used) => [
+            side,
+            used.direction,
+            used.handle,
+            used.point.x,
+            used.point.y,
+            used.point.z,
+          ]);
+        }),
+      ];
+      const old = nodeLayers.get(n.item);
+      if (old && matches(old.inputs, inputs))
+        return old.value;
+      // A socket earns its dot by carrying a wire; a bare
+      // one shows only while it can take a new connection.
+      const sockets = (behind: boolean) =>
+        (
           [
-            a("data-node", n.id),
-            ...(muted(n)
-              ? [a("class", "room-muted")]
-              : []),
-            a("tabindex", 0),
-            a("role", "button"),
-            a(
-              "aria-label",
-              n.collapsed
-                ? n.label +
-                    "（" +
-                    (counts.get(n.id) ?? 0) +
-                    " 枚）"
-                : n.label,
-            ),
-            a(
-              "aria-pressed",
-              String(chosen.has(n.id)),
-            ),
-            a(
-              "transform",
-              `translate(${n.p.x} ${n.p.y}) scale(${n.scale})`,
-            ),
-          ],
-          [
-            ...(solid.tray
-              ? [
-                  el<Change>(
-                    "polygon",
-                    [
-                      a("data-group", n.id),
-                      a(
-                        "points",
-                        polygonPoints(solid.tray),
-                      ),
-                      a(
-                        "fill",
-                        state.camera.pitch ||
-                          state.camera.yaw
-                          ? "var(--wash)"
-                          : "none",
-                      ),
-                      a("fill-opacity", 0.4),
-                      a("stroke", "var(--ink)"),
-                      a(
-                        "vector-effect",
-                        "non-scaling-stroke",
-                      ),
-                      a(
-                        "pointer-events",
-                        "stroke",
-                      ),
-                      ...(extent
-                        ? [
-                            a(
-                              "stroke-dasharray",
-                              "6 4",
-                            ),
-                          ]
-                        : []),
-                    ],
-                    [],
-                  ),
-                  el<Change>(
-                    "text",
-                    [
-                      a("class", "tray-label"),
-                      a(
-                        "transform",
-                        `matrix(${solid.label.join(" ")})`,
-                      ),
-                      a("x", 4),
-                      a("y", 14),
-                    ],
-                    [text(n.label)],
-                  ),
-                  el<Change>(
-                    "polygon",
-                    [
-                      a(
-                        "data-group-handle",
-                        n.id,
-                      ),
-                      a(
-                        "points",
-                        polygonPoints(
-                          solid.handle,
-                        ),
-                      ),
-                      a("fill", "var(--paper)"),
-                      a("stroke", "var(--ink)"),
-                    ],
-                    [],
-                  ),
-                ]
-              : []),
-            ...sockets(true),
-            ...solid.visible.map((face) =>
-              el<Change>(
-                "polygon",
+            "right",
+            "left",
+            "top",
+            "bottom",
+          ] satisfies Side[]
+        ).flatMap((side) => {
+          if (behind !== away[side]) return [];
+          const usedSockets = attachments.get(
+            n.id,
+          )?.[side] ?? [undefined];
+          return usedSockets.flatMap(
+            (used, index) => {
+              const connecting = isSome(
+                  state.source,
+                ),
+                canConnect =
+                  n.connectable !== false &&
+                  (chosen.has(n.id) ||
+                    connecting);
+              if (!used && !canConnect) return [];
+              // where arrows arrive, the arrowhead is the mark:
+              // no dot under it
+              if (
+                !canConnect &&
+                used?.direction === "target"
+              )
+                return [];
+              const direction = canConnect
+                ? connecting
+                  ? "target"
+                  : "source"
+                : (used?.direction ?? "source");
+              const handle =
+                used?.direction === direction
+                  ? used.handle
+                  : ports
+                      .get(n.id)
+                      ?.find(
+                        (p) =>
+                          p.direction ===
+                          direction,
+                      )?.id;
+              const description = n.ports?.find(
+                (p) =>
+                  p.direction === direction &&
+                  p.id === handle,
+              )?.description;
+              const title =
+                (handle ?? direction) +
+                (description
+                  ? " — " + description
+                  : "");
+              const offset = 0;
+              const socket =
+                used && n.group && !n.collapsed
+                  ? project(state.camera)(
+                      used.point,
+                    )
+                  : projectSocket(
+                      n,
+                      state.camera,
+                      side,
+                      offset,
+                    );
+              const x =
+                  (socket.x - n.p.x) / n.scale,
+                y = (socket.y - n.p.y) / n.scale;
+              // A socket is a ball on the box's flank: it
+              // looks round from every side, so wires
+              // never lose their ends when the view turns.
+              const control = el<Change>(
+                "circle",
                 [
-                  a("data-node-face", face.side),
+                  a("data-port", n.id),
+                  a("data-side", side),
+                  ...(n.group && used
+                    ? [
+                        a(
+                          "data-socket-index",
+                          index,
+                        ),
+                      ]
+                    : []),
+                  a("data-offset", offset),
+                  a("data-direction", direction),
+                  ...(handle === undefined
+                    ? []
+                    : [a("data-handle", handle)]),
+                  a("cy", y),
+                  a("tabindex", 0),
+                  a("role", "button"),
                   a(
-                    "points",
-                    face.points
-                      .map((p) => p.x + "," + p.y)
-                      .join(" "),
+                    "aria-label",
+                    n.label + " " + title,
                   ),
+                  a("cx", x),
+                  a("stroke", "#215f57"),
+                  a("r", socketRadius),
                   a(
                     "fill",
-                    "hsl(" +
-                      hue +
-                      " " +
-                      (state.spatial?.depthColor
-                        ? 50
-                        : 16) +
-                      "% " +
-                      face.light +
-                      "%)",
-                  ),
-                  a(
-                    "stroke",
-                    chosen.has(n.id)
+                    isSome(state.source) &&
+                      state.source.content ===
+                        n.id
                       ? "#ed623a"
-                      : "#718e89",
+                      : direction === "source"
+                        ? "#167b70"
+                        : "#e6f4ef",
                   ),
-                  a("stroke-linejoin", "round"),
                 ],
-                [],
+                [el("title", [], [text(title)])],
+              );
+              return [control];
+            },
+          );
+        });
+      const value = {
+        depth: solid.depth,
+        html: lazy(deferred, () =>
+          el<Change>(
+            "g",
+            [
+              a("data-node", n.id),
+              ...(muted(n)
+                ? [a("class", "room-muted")]
+                : []),
+              a("tabindex", 0),
+              a("role", "button"),
+              a(
+                "aria-label",
+                n.collapsed
+                  ? n.label +
+                      "（" +
+                      (counts.get(n.id) ?? 0) +
+                      " 枚）"
+                  : n.label,
               ),
-            ),
-            solid.caption
-              ? el(
-                  "g",
-                  [
-                    a("data-node-caption", ""),
-                    a(
-                      "transform",
-                      `matrix(${solid.caption.join(" ")})`,
+              a(
+                "aria-pressed",
+                String(chosen.has(n.id)),
+              ),
+              a(
+                "transform",
+                `translate(${n.p.x} ${n.p.y}) scale(${n.scale})`,
+              ),
+            ],
+            [
+              ...(solid.tray
+                ? [
+                    el<Change>(
+                      "polygon",
+                      [
+                        a("data-group", n.id),
+                        a(
+                          "points",
+                          polygonPoints(
+                            solid.tray,
+                          ),
+                        ),
+                        a(
+                          "fill",
+                          state.camera.pitch ||
+                            state.camera.yaw
+                            ? "var(--wash)"
+                            : "none",
+                        ),
+                        a("fill-opacity", 0.4),
+                        a("stroke", "var(--ink)"),
+                        a(
+                          "vector-effect",
+                          "non-scaling-stroke",
+                        ),
+                        a(
+                          "pointer-events",
+                          "stroke",
+                        ),
+                        ...(extent
+                          ? [
+                              a(
+                                "stroke-dasharray",
+                                "6 4",
+                              ),
+                            ]
+                          : []),
+                      ],
+                      [],
                     ),
-                  ],
-                  [
-                    el(
-                      "svg",
+                    el<Change>(
+                      "text",
+                      [
+                        a("class", "tray-label"),
+                        a(
+                          "transform",
+                          `matrix(${solid.label.join(" ")})`,
+                        ),
+                        a("x", 4),
+                        a("y", 14),
+                      ],
+                      [text(n.label)],
+                    ),
+                    el<Change>(
+                      "polygon",
                       [
                         a(
-                          "x",
-                          -nodeSize(n).width / 2,
+                          "data-group-handle",
+                          n.id,
                         ),
                         a(
-                          "y",
-                          -nodeSize(n).height / 2,
-                        ),
-                        a(
-                          "width",
-                          nodeSize(n).width,
-                        ),
-                        a(
-                          "height",
-                          nodeSize(n).height,
-                        ),
-                        a(
-                          "viewBox",
-                          `${-nodeSize(n).width / 2} ${-nodeSize(n).height / 2} ${nodeSize(n).width} ${nodeSize(n).height}`,
-                        ),
-                        a("overflow", "hidden"),
-                      ],
-                      [render(n, state)],
-                    ),
-                  ],
-                )
-              : el("g", [], []),
-            ...(n.collapsed
-              ? [
-                  el(
-                    "text",
-                    [
-                      a("text-anchor", "middle"),
-                      a(
-                        "y",
-                        nodeSize(n).height / 2 +
-                          13,
-                      ),
-                      a("font-size", 11),
-                      a("pointer-events", "none"),
-                    ],
-                    [
-                      text(
-                        (counts.get(n.id) ?? 0) +
-                          " 枚",
-                      ),
-                    ],
-                  ),
-                ]
-              : []),
-            ...sockets(false),
-          ],
-        ),
-      ),
-    };
-    const layer = keyedLayer(
-      "node-" + n.id,
-      value,
-    );
-    nodeLayers.set(n.item, {
-      inputs,
-      value: layer,
-    });
-    return layer;
-  });
-  // Sort projected segments with the billboards so a crossing changes
-  // order when the camera moves around the diagram.
-  const solidDepth = new Map(
-    drawNodes.map((n, i) => [
-      n.id,
-      layers[i]?.depth ?? n.p.z,
-    ]),
-  );
-  // The stretch of wire next to a socket paints over
-  // its box — unless that flank faces away, where the
-  // solid hides the wire end.
-  const above = (
-    id: string,
-    direction: Side,
-    depth: number,
-  ) => {
-    const solid = solidDepth.get(id) ?? depth;
-    return turned.get(id)?.[direction]
-      ? Math.min(depth, solid - 0.02)
-      : Math.max(depth, solid + 0.02);
-  };
-  const originalIndices = new Map(
-    state.edges.map((e, i) => [e, i]),
-  );
-  for (const [
-    index,
-    { edge, original },
-  ] of scene.edges.entries()) {
-    const from = lookup.get(edge.source),
-      to = lookup.get(edge.target);
-    if (!from || !to) continue;
-    const wire = routes.get(edge);
-    if (!wire) continue;
-    const chosenWire = picked.has(original);
-    const sharedArrival =
-      attachments.get(to.id)?.[wire.targetSide]
-        ?.direction === "source";
-    const originalIndex =
-      originalIndices.get(original);
-    const inputs = [
-      index,
-      original,
-      state.camera,
-      chosenWire,
-      sharedArrival,
-      originalIndex,
-      muted(from) || muted(to),
-      frame,
-      state.ink,
-      cull,
-      from.item,
-      to.item,
-      turned.has(from.id),
-      turned.has(to.id),
-      registry.edgeLabels?.get(edge.type ?? ""),
-      registry.edgeLabels?.has(edge.type ?? "")
-        ? state
-        : undefined,
-    ];
-    const old = wireLayers.get(wire);
-    if (old && matches(old.inputs, inputs)) {
-      for (const layer of old.value)
-        layers.push(layer);
-      continue;
-    }
-    const items: Layer[] = [];
-    const paintDepth = (
-      id: string,
-      side: Side,
-      depth: number,
-    ) =>
-      chosenWire && !turned.get(id)?.[side]
-        ? Infinity
-        : above(id, side, depth);
-    const flat =
-      state.camera.pitch === 0 &&
-      state.camera.yaw === 0;
-    const knots = bridgePoints(
-      wire.points,
-      wire.lift,
-      flat,
-    );
-    const poly = polylineSampler(knots);
-    const sample = (t: number) => {
-      const p = project(state.camera)(poly(t));
-      return {
-        ...p,
-        scale: projectedScale(state.camera, p.z),
-      };
-    };
-    const points = knots.map((k) => {
-      const p = project(state.camera)(k);
-      return {
-        ...p,
-        scale: projectedScale(state.camera, p.z),
-      };
-    });
-    if (
-      cull &&
-      (points.every((p) => p.x < -64) ||
-        points.every((p) => p.x > frame.x + 64) ||
-        points.every((p) => p.y < -64) ||
-        points.every((p) => p.y > frame.y + 64))
-    )
-      continue;
-    // A face-on camera shows the whole stroke without depth seams.
-
-    const controls = wire.controls;
-    const line =
-      flat &&
-      controls &&
-      (wire.source.z === wire.target.z ||
-        !state.camera.perspective)
-        ? [wire.source, ...controls, wire.target]
-            .map((k, i) => {
-              const p = project(state.camera)(k);
-              return (
-                (i === 0
-                  ? "M"
-                  : i === 1
-                    ? "C"
-                    : " ") +
-                p.x +
-                " " +
-                p.y
-              );
-            })
-            .join("")
-        : flat
-          ? points
-              .map(
-                (p, i) =>
-                  (i ? "L" : "M") +
-                  p.x +
-                  " " +
-                  p.y,
-              )
-              .join("")
-          : "";
-    let length = 0;
-    for (const [i, b] of points.entries()) {
-      const a0 = points[i - 1];
-      if (!a0 || (flat && i > 1)) continue;
-      const offset = length;
-      length += Math.hypot(
-        b.x - a0.x,
-        b.y - a0.y,
-      );
-      const depth = (a0.z + b.z) / 2;
-      const fade = Math.min(
-        1,
-        Math.max(0, (depth + 300) / 600),
-      );
-      const color = edge.highlighted
-        ? "#e36731"
-        : `hsl(174 28% ${60 - fade * 38}%)`;
-      const next = points[i + 1];
-      const extension = next
-        ? Math.min(
-            0.5,
-            1 /
-              (Math.hypot(
-                next.x - b.x,
-                next.y - b.y,
-              ) || 1),
-          )
-        : 0;
-      const overlap = next
-        ? "L" +
-          (b.x + (next.x - b.x) * extension) +
-          " " +
-          (b.y + (next.y - b.y) * extension)
-        : "";
-      const path =
-        line ||
-        `M${a0.x} ${a0.y}L${b.x} ${b.y}` +
-          overlap;
-      const behindFace = (
-        id: string,
-        side: Side,
-      ) =>
-        chosenWire &&
-        turned.get(id)?.[side] &&
-        silhouettes
-          .get(id)
-          ?.some(
-            (face) =>
-              insideLasso(a0, face) ||
-              insideLasso(b, face),
-          );
-      // Only the vertical risers meet the sockets. The raised deck
-      // participates in depth sorting at its own projected height.
-      const deckSegment =
-        knots !== wire.points &&
-        i > 1 &&
-        i < points.length - 1;
-      items.push({
-        chosen: chosenWire,
-        depth: deckSegment
-          ? depth
-          : i <= 2 ||
-              behindFace(
-                edge.source,
-                wire.sourceSide,
-              )
-            ? paintDepth(
-                edge.source,
-                wire.sourceSide,
-                depth - 0.01,
-              )
-            : i >= points.length - 3 ||
-                behindFace(
-                  edge.target,
-                  wire.targetSide,
-                )
-              ? paintDepth(
-                  edge.target,
-                  wire.targetSide,
-                  depth - 0.01,
-                )
-              : chosenWire
-                ? Infinity
-                : depth - 0.01,
-        html: lazy(deferred, () => {
-          const visible = [
-            a(
-              "class",
-              edge.animated
-                ? "edge animated"
-                : "edge",
-            ),
-            a("d", path),
-            a(
-              "data-edge-index",
-              String(originalIndex),
-            ),
-            a(
-              "data-edge",
-              JSON.stringify([
-                edge.source,
-                edge.target,
-              ]),
-            ),
-            ...(original.id === undefined
-              ? []
-              : [a("data-edge-id", original.id)]),
-            a("style", `--arc:${-offset}px`),
-            a("fill", "none"),
-            a("stroke", color),
-            ...(chosenWire
-              ? [a("data-chosen", "true")]
-              : []),
-            a(
-              "stroke-width",
-              b.scale * (chosenWire ? 2.4 : 1),
-            ),
-            a("stroke-linecap", "round"),
-          ];
-          const events = [
-            onEvent<Change>(
-              "pointerdown",
-              (e) => {
-                if (
-                  !(e instanceof PointerEvent) ||
-                  !e.isPrimary ||
-                  e.button !== 0
-                )
-                  return none();
-                if (
-                  state.ink === "pen" ||
-                  (e.pointerType === "touch" &&
-                    !e.isPrimary)
-                )
-                  return none();
-                e.stopPropagation();
-                if (
-                  e.altKey &&
-                  e.currentTarget instanceof
-                    SVGElement &&
-                  e.currentTarget.ownerSVGElement
-                ) {
-                  const pointer = local(
-                    e.currentTarget
-                      .ownerSVGElement,
-                    e,
-                  );
-                  if (isSome(pointer)) {
-                    const q = pointer.content;
-                    let nearest = 1,
-                      best = Infinity,
-                      fraction = 0;
-                    for (
-                      let k = 1;
-                      k < points.length;
-                      k++
-                    ) {
-                      const a = points[k - 1],
-                        b = points[k];
-                      if (!a || !b) continue;
-                      const dx = b.x - a.x,
-                        dy = b.y - a.y,
-                        t = Math.max(
-                          0,
-                          Math.min(
-                            1,
-                            ((q.x - a.x) * dx +
-                              (q.y - a.y) * dy) /
-                              (dx * dx +
-                                dy * dy || 1),
+                          "points",
+                          polygonPoints(
+                            solid.handle,
                           ),
-                        );
-                      const dist = Math.hypot(
-                        q.x - a.x - t * dx,
-                        q.y - a.y - t * dy,
-                      );
-                      if (dist < best) {
-                        nearest = k;
-                        fraction = t;
-                        best = dist;
-                      }
-                    }
-                    const a = points[nearest - 1],
-                      b = points[nearest],
-                      z =
-                        a && b
-                          ? a.z +
-                            fraction * (b.z - a.z)
-                          : depth,
-                      p = unproject(
-                        state.camera,
-                        q,
-                        z,
-                      ),
-                      prev =
-                        original.waypoints ?? [],
-                      at = Math.min(
-                        prev.length,
-                        Math.max(0, nearest - 2),
-                      );
-                    const next = {
-                      ...original,
-                      waypoints: [
-                        ...prev.slice(0, at),
-                        p,
-                        ...prev.slice(at),
-                      ],
-                    };
-                    return some((s) => ({
-                      ...s,
-                      chosenEdges: [
-                        ...selectedEdges(
-                          s,
-                        ).filter(
-                          (e) => e !== original,
                         ),
-                        next,
+                        a("fill", "var(--paper)"),
+                        a("stroke", "var(--ink)"),
                       ],
-                      activeEdge: next,
-                      edges: s.edges.map((v) =>
-                        v === original ? next : v,
-                      ),
-                    }));
-                  }
-                }
-                if (
-                  e.pointerType === "touch" &&
-                  e.currentTarget instanceof
-                    SVGElement
-                ) {
-                  const svg =
-                    e.currentTarget
-                      .ownerSVGElement;
-                  if (svg) {
-                    const point = local(svg, e);
-                    if (isSome(point)) {
-                      e.preventDefault();
-                      svg.setPointerCapture(
-                        e.pointerId,
-                      );
-                      return some((s) => ({
-                        ...selectNodes([])(s),
-                        chosenEdges: [original],
-                        activeEdge: original,
-                        source: none(),
-                        drag: some<Drag>({
-                          pointer: e.pointerId,
-                          mode: "pan",
-                          node: "",
-                          last: point.content,
-                        }),
-                      }));
-                    }
-                  }
-                }
-                return some((s) => {
-                  const prev = selectedEdges(s);
-                  const next = e.shiftKey
-                    ? prev.includes(original)
-                      ? prev.filter(
-                          (v) => v !== original,
-                        )
-                      : [...prev, original]
-                    : [original];
-                  return chooseEdges(next)(
-                    e.shiftKey
-                      ? s
-                      : selectNodes([])(s),
-                  );
-                });
-              },
-            ),
-            onEvent<Change>("dblclick", () =>
-              some(disconnect(original)),
-            ),
-          ];
-          // a wire is a hairline; what takes the click is
-          // a band around it wide enough for a finger
-          const hitWidth =
-            edge.interactionWidth ?? 16;
-          return hitWidth > 0
-            ? el("g", events, [
-                el(
-                  "path",
+                      [],
+                    ),
+                  ]
+                : []),
+              ...sockets(true),
+              ...solid.visible.map((face) =>
+                el<Change>(
+                  "polygon",
                   [
-                    a("class", "edge-hit"),
-                    a("d", path),
-                    a("fill", "none"),
-                    a("stroke", "#000"),
-                    // unseen whatever a stylesheet does
-                    // to stroke colours
-                    a("stroke-opacity", 0),
-                    a("stroke-width", hitWidth),
-                    a("stroke-linecap", "round"),
-                    a("pointer-events", "stroke"),
+                    a(
+                      "data-node-face",
+                      face.side,
+                    ),
+                    a(
+                      "points",
+                      face.points
+                        .map(
+                          (p) => p.x + "," + p.y,
+                        )
+                        .join(" "),
+                    ),
+                    a(
+                      "fill",
+                      "hsl(" +
+                        hue +
+                        " " +
+                        (state.spatial?.depthColor
+                          ? 50
+                          : 16) +
+                        "% " +
+                        face.light +
+                        "%)",
+                    ),
+                    a(
+                      "stroke",
+                      chosen.has(n.id)
+                        ? "#ed623a"
+                        : "#718e89",
+                    ),
+                    a("stroke-linejoin", "round"),
                   ],
                   [],
                 ),
-                el("path", visible, []),
-              ])
-            : el(
-                "path",
-                [...visible, ...events],
-                [],
-              );
-        }),
+              ),
+              solid.caption
+                ? el(
+                    "g",
+                    [
+                      a("data-node-caption", ""),
+                      a(
+                        "transform",
+                        `matrix(${solid.caption.join(" ")})`,
+                      ),
+                    ],
+                    [
+                      el(
+                        "svg",
+                        [
+                          a(
+                            "x",
+                            -nodeSize(n).width /
+                              2,
+                          ),
+                          a(
+                            "y",
+                            -nodeSize(n).height /
+                              2,
+                          ),
+                          a(
+                            "width",
+                            nodeSize(n).width,
+                          ),
+                          a(
+                            "height",
+                            nodeSize(n).height,
+                          ),
+                          a(
+                            "viewBox",
+                            `${-nodeSize(n).width / 2} ${-nodeSize(n).height / 2} ${nodeSize(n).width} ${nodeSize(n).height}`,
+                          ),
+                          a("overflow", "hidden"),
+                        ],
+                        [render(n, state)],
+                      ),
+                    ],
+                  )
+                : el("g", [], []),
+              ...(n.collapsed
+                ? [
+                    el(
+                      "text",
+                      [
+                        a(
+                          "text-anchor",
+                          "middle",
+                        ),
+                        a(
+                          "y",
+                          nodeSize(n).height / 2 +
+                            13,
+                        ),
+                        a("font-size", 11),
+                        a(
+                          "pointer-events",
+                          "none",
+                        ),
+                      ],
+                      [
+                        text(
+                          (counts.get(n.id) ??
+                            0) + " 枚",
+                        ),
+                      ],
+                    ),
+                  ]
+                : []),
+              ...sockets(false),
+            ],
+          ),
+        ),
+      };
+      const layer = keyedLayer(
+        "node-" + n.id,
+        value,
+      );
+      nodeLayers.set(n.item, {
+        inputs,
+        value: layer,
       });
-    }
-    const middle = sample(0.5),
-      arrows = edge.arrows ?? "forward";
-    for (const side of ["start", "end"]) {
-      const atStart = side === "start";
+      return layer;
+    });
+    // Sort projected segments with the billboards so a crossing changes
+    // order when the camera moves around the diagram.
+    const solidDepth = new Map(
+      drawNodes.map((n, i) => [
+        n.id,
+        layers[i]?.depth ?? n.p.z,
+      ]),
+    );
+    // The stretch of wire next to a socket paints over
+    // its box — unless that flank faces away, where the
+    // solid hides the wire end.
+    const above = (
+      id: string,
+      direction: Side,
+      depth: number,
+    ) => {
+      const solid = solidDepth.get(id) ?? depth;
+      return turned.get(id)?.[direction]
+        ? Math.min(depth, solid - 0.02)
+        : Math.max(depth, solid + 0.02);
+    };
+    const originalIndices = new Map(
+      state.edges.map((e, i) => [e, i]),
+    );
+    for (const [
+      index,
+      { edge, original },
+    ] of scene.edges.entries()) {
+      const from = lookup.get(edge.source),
+        to = lookup.get(edge.target);
+      if (!from || !to) continue;
+      const wire = routes.get(edge);
+      if (!wire) continue;
+      const chosenWire = picked.has(original);
+      const sharedArrival = attachments
+        .get(to.id)
+        ?.[
+          wire.targetSide
+        ]?.some((s) => s.direction === "source" && s.point.x === wire.target.x && s.point.y === wire.target.y && s.point.z === wire.target.z);
+      const originalIndex =
+        originalIndices.get(original);
+      const inputs = [
+        index,
+        original,
+        state.camera,
+        chosenWire,
+        sharedArrival,
+        originalIndex,
+        muted(from) || muted(to),
+        frame,
+        state.ink,
+        cull,
+        from.item,
+        to.item,
+        turned.has(from.id),
+        turned.has(to.id),
+        registry.edgeLabels?.get(edge.type ?? ""),
+        registry.edgeLabels?.has(edge.type ?? "")
+          ? state
+          : undefined,
+      ];
+      const old = wireLayers.get(wire);
+      if (old && matches(old.inputs, inputs)) {
+        for (const layer of old.value)
+          layers.push(layer);
+        continue;
+      }
+      const items: Layer[] = [];
+      const paintDepth = (
+        id: string,
+        side: Side,
+        depth: number,
+      ) =>
+        chosenWire && !turned.get(id)?.[side]
+          ? Infinity
+          : above(id, side, depth);
+      const flat =
+        state.camera.pitch === 0 &&
+        state.camera.yaw === 0;
+      const knots = bridgePoints(
+        wire.points,
+        wire.lift,
+        flat,
+      );
+      const poly = polylineSampler(knots);
+      const sample = (t: number) => {
+        const p = project(state.camera)(poly(t));
+        return {
+          ...p,
+          scale: projectedScale(
+            state.camera,
+            p.z,
+          ),
+        };
+      };
+      const points = knots.map((k) => {
+        const p = project(state.camera)(k);
+        return {
+          ...p,
+          scale: projectedScale(
+            state.camera,
+            p.z,
+          ),
+        };
+      });
       if (
-        arrows !== "both" &&
-        arrows !==
-          (atStart ? "backward" : "forward")
+        cull &&
+        (points.every((p) => p.x < -64) ||
+          points.every(
+            (p) => p.x > frame.x + 64,
+          ) ||
+          points.every((p) => p.y < -64) ||
+          points.every((p) => p.y > frame.y + 64))
       )
         continue;
-      const bridge = knots !== wire.points;
-      const deck = knots[1]?.z ?? wire.target.z;
-      const at = project(state.camera)(
-        sharedArrival
-          ? wire.target
-          : wire.arrow.at,
-      );
-      const tip = atStart
-        ? sample(0)
-        : {
-            ...at,
-            scale: projectedScale(
-              state.camera,
-              at.z,
-            ),
-          };
-      const sourceRiser =
-        wire.points[1]?.z !== wire.source.z &&
-        wire.points[1]?.x === wire.source.x &&
-        wire.points[1]?.y === wire.source.y;
-      const near = bridge
-        ? atStart
-          ? (points[1] ?? tip)
-          : project(state.camera)({
-              ...wire.target,
-              z: 2 * wire.target.z - deck,
-            })
-        : atStart
-          ? (!edge.route ||
-              edge.route === "curve") &&
-            edge.source !== edge.target &&
-            !sourceRiser
-            ? project(state.camera)({
-                ...move(
-                  wire.source,
-                  wire.sourceSide,
-                  1,
-                ),
-                z: wire.source.z,
+      // A face-on camera shows the whole stroke without depth seams.
+
+      const controls = wire.controls;
+      const line =
+        flat &&
+        controls &&
+        (wire.source.z === wire.target.z ||
+          !state.camera.perspective)
+          ? [
+              wire.source,
+              ...controls,
+              wire.target,
+            ]
+              .map((k, i) => {
+                const p = project(state.camera)(
+                  k,
+                );
+                return (
+                  (i === 0
+                    ? "M"
+                    : i === 1
+                      ? "C"
+                      : " ") +
+                  p.x +
+                  " " +
+                  p.y
+                );
               })
-            : (points[1] ?? tip)
-          : sharedArrival
-            ? (points
-                .slice(0, -1)
-                .reverse()
-                .find(
-                  (p) =>
-                    p.x !== tip.x ||
-                    p.y !== tip.y,
-                ) ?? tip)
-            : project(state.camera)(
-                wire.arrow.toward,
-              );
-      const towardTip =
-        atStart || (sharedArrival && !bridge);
-      const radians = Math.atan2(
-        towardTip
-          ? tip.y - near.y
-          : near.y - tip.y,
-        towardTip
-          ? tip.x - near.x
-          : near.x - tip.x,
-      );
-      const angle = (radians * 180) / Math.PI;
-      const gap = Math.hypot(
-        wire.source.x - wire.target.x,
-        wire.source.y - wire.target.y,
-      );
-      const arrowScale =
-        tip.scale *
-        (edge.source === edge.target
-          ? 1
-          : Math.min(1, gap / 60));
-      const sending = atStart || sharedArrival;
-      const node = atStart ? from : to;
-      const radius = sending
-        ? socketRadius * node.scale
-        : 0;
-      const x =
-        tip.x - radius * Math.cos(radians);
-      const y =
-        tip.y - radius * Math.sin(radians);
-      items.push({
-        chosen: chosenWire,
-        arrow: true,
-        depth: sending
-          ? (solidDepth.get(node.id) ?? tip.z) -
-            0.01
-          : paintDepth(
-              atStart ? edge.source : edge.target,
-              atStart
-                ? wire.sourceSide
-                : wire.targetSide,
-              tip.z - 0.01,
-            ),
-        html: lazy(deferred, () =>
-          el(
-            "polygon",
-            [
-              a("data-arrow", side),
-              a(
-                "transform",
-                `translate(${x} ${y}) rotate(${angle}) scale(${arrowScale})`,
+              .join("")
+          : flat
+            ? points
+                .map(
+                  (p, i) =>
+                    (i ? "L" : "M") +
+                    p.x +
+                    " " +
+                    p.y,
+                )
+                .join("")
+            : "";
+      const events = () => [
+        onEvent<Change>("pointerdown", (e) => {
+          if (
+            !(e instanceof PointerEvent) ||
+            !e.isPrimary ||
+            e.button !== 0
+          )
+            return none();
+          if (
+            state.ink === "pen" ||
+            (e.pointerType === "touch" &&
+              !e.isPrimary)
+          )
+            return none();
+          e.stopPropagation();
+          if (
+            e.altKey &&
+            e.currentTarget instanceof
+              SVGGraphicsElement &&
+            e.currentTarget.ownerSVGElement
+          ) {
+            const pointer = local(
+              e.currentTarget,
+              e,
+            );
+            if (isSome(pointer)) {
+              const q = pointer.content;
+              let nearest = 1,
+                best = Infinity,
+                fraction = 0;
+              for (
+                let k = 1;
+                k < points.length;
+                k++
+              ) {
+                const a = points[k - 1],
+                  b = points[k];
+                if (!a || !b) continue;
+                const dx = b.x - a.x,
+                  dy = b.y - a.y,
+                  t = Math.max(
+                    0,
+                    Math.min(
+                      1,
+                      ((q.x - a.x) * dx +
+                        (q.y - a.y) * dy) /
+                        (dx * dx + dy * dy || 1),
+                    ),
+                  );
+                const dist = Math.hypot(
+                  q.x - a.x - t * dx,
+                  q.y - a.y - t * dy,
+                );
+                if (dist < best) {
+                  nearest = k;
+                  fraction = t;
+                  best = dist;
+                }
+              }
+              const a = points[nearest - 1],
+                b = points[nearest],
+                z =
+                  a && b
+                    ? a.z + fraction * (b.z - a.z)
+                    : wire.source.z,
+                p = unproject(state.camera, q, z),
+                prev = original.waypoints ?? [],
+                at = Math.min(
+                  prev.length,
+                  Math.max(0, nearest - 2),
+                );
+              const next = {
+                ...original,
+                waypoints: [
+                  ...prev.slice(0, at),
+                  p,
+                  ...prev.slice(at),
+                ],
+              };
+              return some((s) => ({
+                ...s,
+                chosenEdges: [
+                  ...selectedEdges(s).filter(
+                    (e) => e !== original,
+                  ),
+                  next,
+                ],
+                activeEdge: next,
+                edges: s.edges.map((v) =>
+                  v === original ? next : v,
+                ),
+              }));
+            }
+          }
+          if (
+            e.pointerType === "touch" &&
+            e.currentTarget instanceof SVGElement
+          ) {
+            const svg =
+              e.currentTarget.ownerSVGElement;
+            if (svg) {
+              const point = local(svg, e);
+              if (isSome(point)) {
+                e.preventDefault();
+                svg.setPointerCapture(
+                  e.pointerId,
+                );
+                return some((s) => ({
+                  ...selectNodes([])(s),
+                  chosenEdges: [original],
+                  activeEdge: original,
+                  source: none(),
+                  drag: some<Drag>({
+                    pointer: e.pointerId,
+                    mode: "pan",
+                    node: "",
+                    last: point.content,
+                  }),
+                }));
+              }
+            }
+          }
+          return some((s) => {
+            const prev = selectedEdges(s);
+            const next = e.shiftKey
+              ? prev.includes(original)
+                ? prev.filter(
+                    (v) => v !== original,
+                  )
+                : [...prev, original]
+              : [original];
+            return chooseEdges(next)(
+              e.shiftKey ? s : selectNodes([])(s),
+            );
+          });
+        }),
+        onEvent<Change>("dblclick", () =>
+          some(disconnect(original)),
+        ),
+      ];
+      const paint = (
+        path: string,
+        visible: Html<Change>[],
+        id?: string,
+      ) => {
+        const attributes = id
+          ? [key(id), ...events()]
+          : events();
+        // a wire is a hairline; what takes the click is
+        // a band around it wide enough for a finger
+        const hitWidth =
+          edge.interactionWidth ?? 16;
+        return hitWidth > 0
+          ? el("g", attributes, [
+              el(
+                "path",
+                [
+                  a("class", "edge-hit"),
+                  a("d", path),
+                  a("fill", "none"),
+                  a("stroke", "#000"),
+                  // unseen whatever a stylesheet does
+                  // to stroke colours
+                  a("stroke-opacity", 0),
+                  a("stroke-width", hitWidth),
+                  ...(state.rooms
+                    ? [
+                        a(
+                          "style",
+                          `stroke-width:calc(${hitWidth}px * var(--hit-scale, 1))`,
+                        ),
+                      ]
+                    : []),
+                  a("stroke-linecap", "round"),
+                  a("pointer-events", "stroke"),
+                ],
+                [],
               ),
-              a("points", "0,0 -9,-4 -9,4"),
-              a("fill", "#426f71"),
-              a("pointer-events", "none"),
+
+              ...visible,
+            ])
+          : el("g", attributes, visible);
+      };
+      let length = 0;
+      for (const [i, b] of points.entries()) {
+        const a0 = points[i - 1];
+        if (!a0 || (flat && i > 1)) continue;
+        const offset = length;
+        length += Math.hypot(
+          b.x - a0.x,
+          b.y - a0.y,
+        );
+        const depth = (a0.z + b.z) / 2;
+        const fade = Math.min(
+          1,
+          Math.max(0, (depth + 300) / 600),
+        );
+        const color = edge.highlighted
+          ? "#e36731"
+          : `hsl(174 28% ${60 - fade * 38}%)`;
+        const next = points[i + 1];
+        const extension = next
+          ? Math.min(
+              0.5,
+              1 /
+                (Math.hypot(
+                  next.x - b.x,
+                  next.y - b.y,
+                ) || 1),
+            )
+          : 0;
+        const overlap = next
+          ? "L" +
+            (b.x + (next.x - b.x) * extension) +
+            " " +
+            (b.y + (next.y - b.y) * extension)
+          : "";
+        const path =
+          line ||
+          `M${a0.x} ${a0.y}L${b.x} ${b.y}` +
+            overlap;
+        const behindFace = (
+          id: string,
+          side: Side,
+        ) =>
+          chosenWire &&
+          turned.get(id)?.[side] &&
+          silhouettes
+            .get(id)
+            ?.some(
+              (face) =>
+                insideLasso(a0, face) ||
+                insideLasso(b, face),
+            );
+        // Only the vertical risers meet the sockets. The raised deck
+        // participates in depth sorting at its own projected height.
+        const deckSegment =
+          knots !== wire.points &&
+          i > 1 &&
+          i < points.length - 1;
+        const visible = lazy(deferred, () => {
+          return el<Change>(
+            "path",
+            [
+              a(
+                "class",
+                edge.animated
+                  ? "edge animated"
+                  : "edge",
+              ),
+              a("d", path),
+              a(
+                "data-edge-index",
+                String(originalIndex),
+              ),
+              a(
+                "data-edge",
+                JSON.stringify([
+                  edge.source,
+                  edge.target,
+                ]),
+              ),
+              ...(original.id === undefined
+                ? []
+                : [
+                    a(
+                      "data-edge-id",
+                      original.id,
+                    ),
+                  ]),
+              a("style", `--arc:${-offset}px`),
+              a("fill", "none"),
+              a("stroke", color),
+              ...(chosenWire
+                ? [a("data-chosen", "true")]
+                : []),
+              a(
+                "stroke-width",
+                b.scale * (chosenWire ? 2.4 : 1),
+              ),
+              a("stroke-linecap", "round"),
             ],
             [],
+          );
+        });
+        items.push({
+          chosen: chosenWire,
+          depth: deckSegment
+            ? depth
+            : i <= 2 ||
+                behindFace(
+                  edge.source,
+                  wire.sourceSide,
+                )
+              ? paintDepth(
+                  edge.source,
+                  wire.sourceSide,
+                  depth - 0.01,
+                )
+              : i >= points.length - 3 ||
+                  behindFace(
+                    edge.target,
+                    wire.targetSide,
+                  )
+                ? paintDepth(
+                    edge.target,
+                    wire.targetSide,
+                    depth - 0.01,
+                  )
+                : chosenWire
+                  ? Infinity
+                  : depth - 0.01,
+          ...(state.rooms &&
+          !muted(from) &&
+          !muted(to)
+            ? {
+                slice: {
+                  id:
+                    "wire-" +
+                    index +
+                    "-stroke-" +
+                    i,
+                  owner: wire,
+                  path,
+                  visible,
+                  paint,
+                },
+              }
+            : {}),
+          html: lazy(deferred, () =>
+            paint(path, [visible]),
           ),
-        ),
-      });
-    }
-    const customEdgeLabel =
-      registry.edgeLabels?.get(edge.type ?? "");
-    if (customEdgeLabel || edge.label) {
-      const spatial =
-        state.camera.pitch !== 0 ||
-        state.camera.yaw !== 0;
-      const before = sample(0.49),
-        after = sample(0.51);
-      const tangent =
-        (Math.atan2(
-          after.y - before.y,
-          after.x - before.x,
-        ) *
-          180) /
-        Math.PI;
-      const angle =
-        tangent > 90
-          ? tangent - 180
-          : tangent < -90
-            ? tangent + 180
-            : tangent;
-      items.push({
-        depth: middle.z,
-        html: lazy(deferred, () =>
-          el(
-            "g",
-            [
-              a(
-                "transform",
-                `translate(${middle.x} ${middle.y})` +
-                  (spatial
-                    ? ` rotate(${angle}) scale(${middle.scale})`
-                    : ""),
+        });
+      }
+      const middle = sample(0.5),
+        arrows = edge.arrows ?? "forward";
+      for (const side of ["start", "end"]) {
+        const atStart = side === "start";
+        if (
+          arrows !== "both" &&
+          arrows !==
+            (atStart ? "backward" : "forward")
+        )
+          continue;
+        const bridge = knots !== wire.points;
+        const deck = knots[1]?.z ?? wire.target.z;
+        const at = project(state.camera)(
+          sharedArrival
+            ? wire.target
+            : wire.arrow.at,
+        );
+        const tip = atStart
+          ? sample(0)
+          : {
+              ...at,
+              scale: projectedScale(
+                state.camera,
+                at.z,
               ),
-            ],
-            customEdgeLabel
-              ? [customEdgeLabel(edge, state)]
-              : [
-                  el(
-                    "text",
-                    [
-                      a("class", "edge-label"),
-                      a("text-anchor", "middle"),
-                      a("y", -8),
-                      a("paint-order", "stroke"),
-                      a("stroke", "#f7faf7"),
-                      a("stroke-width", 3),
-                      a(
-                        "stroke-linejoin",
-                        "round",
-                      ),
-                      a("pointer-events", "none"),
-                    ],
-                    [text(edge.label ?? "")],
+            };
+        const sourceRiser =
+          wire.points[1]?.z !== wire.source.z &&
+          wire.points[1]?.x === wire.source.x &&
+          wire.points[1]?.y === wire.source.y;
+        const near = bridge
+          ? atStart
+            ? (points[1] ?? tip)
+            : project(state.camera)({
+                ...wire.target,
+                z: 2 * wire.target.z - deck,
+              })
+          : atStart
+            ? (!edge.route ||
+                edge.route === "curve") &&
+              edge.source !== edge.target &&
+              !sourceRiser
+              ? project(state.camera)({
+                  ...move(
+                    wire.source,
+                    wire.sourceSide,
+                    1,
                   ),
-                ],
-          ),
-        ),
-      });
-    }
-    const group = items.map((layer, i) =>
-      keyedLayer(
-        "wire-" + index + "-" + i,
-        muted(from) || muted(to)
-          ? {
-              ...layer,
-              html: el(
-                "g",
-                [a("class", "room-muted-wire")],
-                [layer.html],
+                  z: wire.source.z,
+                })
+              : (points[1] ?? tip)
+            : sharedArrival
+              ? (points
+                  .slice(0, -1)
+                  .reverse()
+                  .find(
+                    (p) =>
+                      p.x !== tip.x ||
+                      p.y !== tip.y,
+                  ) ?? tip)
+              : project(state.camera)(
+                  wire.arrow.toward,
+                );
+        const towardTip =
+          atStart || (sharedArrival && !bridge);
+        const radians = Math.atan2(
+          towardTip
+            ? tip.y - near.y
+            : near.y - tip.y,
+          towardTip
+            ? tip.x - near.x
+            : near.x - tip.x,
+        );
+        const angle = (radians * 180) / Math.PI;
+        const gap = Math.hypot(
+          wire.source.x - wire.target.x,
+          wire.source.y - wire.target.y,
+        );
+        const arrowScale =
+          tip.scale *
+          (edge.source === edge.target
+            ? 1
+            : Math.min(1, gap / 60));
+        const sending = atStart || sharedArrival;
+        const node = atStart ? from : to;
+        const radius = sending
+          ? socketRadius * node.scale
+          : 0;
+        const x =
+          tip.x - radius * Math.cos(radians);
+        const y =
+          tip.y - radius * Math.sin(radians);
+        items.push({
+          chosen: chosenWire,
+          arrow: true,
+          depth: sending
+            ? (solidDepth.get(node.id) ?? tip.z) -
+              0.01
+            : paintDepth(
+                atStart
+                  ? edge.source
+                  : edge.target,
+                atStart
+                  ? wire.sourceSide
+                  : wire.targetSide,
+                tip.z - 0.01,
               ),
-            }
-          : layer,
-      ),
+          html: lazy(deferred, () =>
+            el(
+              "polygon",
+              [
+                a("data-arrow", side),
+                a(
+                  "transform",
+                  `translate(${x} ${y}) rotate(${angle}) scale(${arrowScale})`,
+                ),
+                a("points", "0,0 -9,-4 -9,4"),
+                a("fill", "#426f71"),
+                a("pointer-events", "none"),
+              ],
+              [],
+            ),
+          ),
+        });
+      }
+      const customEdgeLabel =
+        registry.edgeLabels?.get(edge.type ?? "");
+      if (customEdgeLabel || edge.label) {
+        const spatial =
+          state.camera.pitch !== 0 ||
+          state.camera.yaw !== 0;
+        const before = sample(0.49),
+          after = sample(0.51);
+        const tangent =
+          (Math.atan2(
+            after.y - before.y,
+            after.x - before.x,
+          ) *
+            180) /
+          Math.PI;
+        const angle =
+          tangent > 90
+            ? tangent - 180
+            : tangent < -90
+              ? tangent + 180
+              : tangent;
+        items.push({
+          depth: middle.z,
+          html: lazy(deferred, () =>
+            el(
+              "g",
+              [
+                a(
+                  "transform",
+                  `translate(${middle.x} ${middle.y})` +
+                    (spatial
+                      ? ` rotate(${angle}) scale(${middle.scale})`
+                      : ""),
+                ),
+              ],
+              customEdgeLabel
+                ? [customEdgeLabel(edge, state)]
+                : [
+                    el(
+                      "text",
+                      [
+                        a("class", "edge-label"),
+                        a(
+                          "text-anchor",
+                          "middle",
+                        ),
+                        a("y", -8),
+                        a(
+                          "paint-order",
+                          "stroke",
+                        ),
+                        a("stroke", "#f7faf7"),
+                        a("stroke-width", 3),
+                        a(
+                          "stroke-linejoin",
+                          "round",
+                        ),
+                        a(
+                          "pointer-events",
+                          "none",
+                        ),
+                      ],
+                      [text(edge.label ?? "")],
+                    ),
+                  ],
+            ),
+          ),
+        });
+      }
+      const group = items.map((layer, i) =>
+        keyedLayer(
+          "wire-" + index + "-" + i,
+          muted(from) || muted(to)
+            ? {
+                ...layer,
+                html: el(
+                  "g",
+                  [a("class", "room-muted-wire")],
+                  [layer.html],
+                ),
+              }
+            : layer,
+        ),
+      );
+      wireLayers.set(wire, {
+        inputs,
+        value: group,
+      });
+      for (const layer of group)
+        layers.push(layer);
+    }
+    const sorted = layers.sort(
+      (a, b) =>
+        a.depth - b.depth ||
+        Number(!!a.chosen) - Number(!!b.chosen) ||
+        Number(!!a.arrow) - Number(!!b.arrow),
     );
-    wireLayers.set(wire, {
-      inputs,
-      value: group,
-    });
-    for (const layer of group) layers.push(layer);
-  }
+    const children: Html<Change>[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const layer = sorted[i]!;
+      const first = layer.slice;
+      if (!first) {
+        children.push(layer.html);
+        continue;
+      }
+      const paths = [first.path],
+        visible = [first.visible];
+      while (
+        sorted[i + 1]?.slice?.owner ===
+        first.owner
+      ) {
+        const slice = sorted[++i]!.slice!;
+        paths.push(slice.path);
+        visible.push(slice.visible);
+      }
+      const old = strokeRuns.get(first);
+      if (old && matches(old.inputs, visible))
+        children.push(old.value);
+      else {
+        const value = first.paint(
+          paths.join(""),
+          visible,
+          first.id,
+        );
+        strokeRuns.set(first, {
+          inputs: visible,
+          value,
+        });
+        children.push(value);
+      }
+    }
+    return el(
+      "g",
+      [key("depth-layers")],
+      children,
+    );
+  };
+  const depthLayers = () => {
+    if (
+      !state.rooms ||
+      cull ||
+      registry.nodes ||
+      registry.edgeLabels ||
+      state.edges.some(
+        (e) => e.animated || e.highlighted,
+      )
+    )
+      return paintLayers();
+    const camera = state.camera;
+    const inputs = [
+      state.edges,
+      state.rooms,
+      state.roomPins,
+      state.roomHover,
+      state.selection,
+      state.selected,
+      state.activeEdge,
+      state.chosenEdges,
+      state.drag,
+      state.source,
+      state.ink,
+      state.spatial,
+      state.isolatedBranch,
+      renderLabel,
+      frame,
+      camera.pitch,
+      camera.yaw,
+      camera.perspective,
+    ];
+    const old = roomLayers.get(state.nodes);
+    const layer =
+      old && matches(old.inputs, inputs)
+        ? old
+        : {
+            inputs,
+            camera,
+            html: lazy(deferred, paintLayers),
+          };
+    roomLayers.set(state.nodes, layer);
+    const scale =
+      camera.scale / layer.camera.scale;
+    const x =
+      camera.origin.x -
+      scale * layer.camera.origin.x;
+    const y =
+      camera.origin.y -
+      scale * layer.camera.origin.y;
+    return el(
+      "g",
+      [
+        key("room-depth"),
+        a(
+          "transform",
+          `translate(${x} ${y}) scale(${scale})`,
+        ),
+        a("style", `--hit-scale:${1 / scale}`),
+      ],
+      [layer.html],
+    );
+  };
   const selectRegion = (
     inside: (p: Point) => boolean,
   ) => {
@@ -1889,7 +2147,14 @@ export const flowView = (
               side === "right" ||
               side === "top" ||
               side === "bottom")
-              ? portPosition(
+              ? (attachments.get(port)?.[side]?.[
+                  Number(
+                    dot?.getAttribute(
+                      "data-socket-index",
+                    ) ?? -1,
+                  )
+                ]?.point ??
+                portPosition(
                   node,
                   side,
                   Number(
@@ -1897,7 +2162,7 @@ export const flowView = (
                       "data-offset",
                     ),
                   ),
-                )
+                ))
               : undefined;
           svg.setPointerCapture(e.pointerId);
           return some((s) => {
@@ -2542,20 +2807,7 @@ export const flowView = (
             })(),
           )
         : lazy(emptyPreview, undefined),
-      el(
-        "g",
-        [key("depth-layers")],
-        layers
-          .sort(
-            (a, b) =>
-              a.depth - b.depth ||
-              Number(!!a.chosen) -
-                Number(!!b.chosen) ||
-              Number(!!a.arrow) -
-                Number(!!b.arrow),
-          )
-          .map((layer) => layer.html),
-      ),
+      depthLayers(),
       ...(active &&
       scene.edges.some(
         (e) => e.original === active,

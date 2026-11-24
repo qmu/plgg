@@ -1,10 +1,14 @@
-import { sheetProperties } from "plgg-ir-diagram/sheetProperties";
+import {
+  sheetProperties,
+  propertyCache,
+} from "plgg-ir-diagram/sheetProperties";
 export {
   sheetTools,
   sheetToolNames,
   type SheetTool,
 } from "plgg-ir-diagram/sheetTools";
 import {
+  rowCache,
   dslRows,
   revealSelection,
 } from "plgg-ir-diagram/dslRows";
@@ -38,6 +42,7 @@ import {
   planRooms,
 } from "plgg-flow/autoLayout";
 import {
+  lazy,
   el,
   attr,
   text,
@@ -587,6 +592,9 @@ export const sheetDsl = <Action>(
     source: string,
     edited?: Flow,
   ) => Action,
+  rows?: ReturnType<typeof rowCache<Action>>,
+  properties?: ReturnType<typeof propertyCache>,
+  current = () => flow,
 ) => {
   return el(
     "aside",
@@ -639,6 +647,7 @@ export const sheetDsl = <Action>(
         error,
         select,
         retype,
+        rows,
       ),
       el(
         "div",
@@ -659,12 +668,13 @@ export const sheetDsl = <Action>(
         flow,
         rules,
         (fn, nextRules) => {
-          const edited = fn(flow);
+          const edited = fn(current());
           return retype(
             printSpec(edited, nextRules),
             edited,
           );
         },
+        properties,
       ),
       ...(error
         ? [
@@ -681,6 +691,73 @@ export const sheetDsl = <Action>(
         : []),
     ],
   );
+};
+// Each mounted panel owns its handlers and one retained set of displayed inputs.
+export const createDslPanel = <Action>(
+  select: (fn: Change) => Action,
+  toggle: Action,
+  retype: (
+    source: string,
+    edited?: Flow,
+  ) => Action,
+) => {
+  const rows = rowCache<Action>();
+  const properties = propertyCache();
+  let current: Flow;
+  const render = (build: () => Html<Action>) =>
+    build();
+  let previous:
+    | {
+        inputs: readonly unknown[];
+        view: Html<Action>;
+      }
+    | undefined;
+  return (
+    flow: Flow,
+    rules: readonly Rule[],
+    source: string,
+    error?: string,
+  ) => {
+    current = flow;
+    const inputs = [
+      flow.nodes,
+      flow.edges,
+      flow.rooms?.axes,
+      flow.layered,
+      flow.snap,
+      flow.selected,
+      flow.selection,
+      flow.chosenEdges,
+      flow.activeEdge,
+      flow.selectedDslRow,
+      rules,
+      source,
+      error,
+    ];
+    if (
+      previous &&
+      inputs.every(
+        (v, i) => v === previous?.inputs[i],
+      )
+    )
+      return previous.view;
+    const view = lazy(render, () =>
+      sheetDsl(
+        flow,
+        rules,
+        select,
+        source,
+        error,
+        toggle,
+        retype,
+        rows,
+        properties,
+        () => current,
+      ),
+    );
+    previous = { inputs, view };
+    return view;
+  };
 };
 export const sheetStage = <Action>(
   board: Html<Action>,

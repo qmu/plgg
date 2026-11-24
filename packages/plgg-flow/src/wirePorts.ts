@@ -111,6 +111,7 @@ export const planPorts = (
   edges: Edge[],
   query: (bounds: Bounds) => Box[],
   dragging = false,
+  trayLabels?: ReadonlySet<FlowNode>,
 ) => {
   const degrees = new Map<string, number>();
   const means = new Map<string, Point>(),
@@ -838,6 +839,24 @@ export const planPorts = (
       if (side) Object.assign(end, { side });
     }
   }
+  if (trayLabels?.size)
+    for (const { a, b } of plans) {
+      const label = trayLabels.has(a.node)
+        ? a
+        : trayLabels.has(b.node)
+          ? b
+          : undefined;
+      if (!label) continue;
+      const member = label === a ? b : a;
+      const frame = box(member.node),
+        name = box(label.node);
+      const across =
+        frame.l - name.r >= frame.t - name.b;
+      label.side = across ? "right" : "bottom";
+      member.side = across ? "left" : "top";
+      delete label.book;
+      delete member.book;
+    }
   for (const entries of incident.values()) {
     for (const { end } of entries) {
       const k = JSON.stringify([

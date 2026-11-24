@@ -119,7 +119,7 @@ export const boardCss = (root: string) => `
   .flow-board .room-lattice .room-empty {
     stroke: var(--wash);
   }
-  .flow-board .room-lattice .room-floor {
+  .flow-board .room-scene .room-floor {
     fill: var(--wash);
   }
   .flow-board .room-far { stroke: var(--pencil); }
