@@ -1,6 +1,7 @@
 export const boardCss = (root: string) => `
 @scope (${root}) {
   .flow-board {
+    --shade: light-dark(#e9e9e9, #1f1f1f);
     display: block;
     width: 100%;
     height: clamp(340px, 64vh, 760px);

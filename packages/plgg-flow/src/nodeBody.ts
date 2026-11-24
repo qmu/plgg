@@ -17,37 +17,30 @@ const faces = [
   {
     side: "front",
     indices: [4, 5, 6, 7],
-    light: 95,
   },
   {
     side: "back",
     indices: [3, 2, 1, 0],
-    light: 78,
   },
   {
     side: "top",
     indices: [0, 1, 5, 4],
-    light: 87,
   },
   {
     side: "bottom",
     indices: [2, 3, 7, 6],
-    light: 66,
   },
   {
     side: "left",
     indices: [3, 0, 4, 7],
-    light: 73,
   },
   {
     side: "right",
     indices: [1, 2, 6, 5],
-    light: 81,
   },
 ] satisfies {
   side: Side | "front" | "back";
   indices: number[];
-  light: number;
 }[];
 
 /** How far each face stands off the node's centre plane. */
@@ -178,6 +171,32 @@ export const projectNodeBody = (
       ? [{ ...face, points }]
       : [];
   });
+  const edges = new Map<
+    number,
+    { start: number; end: number; count: number }
+  >();
+  for (const face of visible)
+    for (const [
+      j,
+      start,
+    ] of face.indices.entries()) {
+      const end = face.indices[(j + 1) % 4]!;
+      const key =
+        Math.min(start, end) * 8 +
+        Math.max(start, end);
+      const old = edges.get(key);
+      if (old) old.count++;
+      else
+        edges.set(key, { start, end, count: 1 });
+    }
+  const outline = [...edges.values()]
+    .filter((e) => e.count === 1)
+    .map((e) => {
+      const a = corners[e.start]!,
+        b = corners[e.end]!;
+      return `M${a.x} ${a.y}L${b.x} ${b.y}`;
+    })
+    .join("");
   const back = visible.some(
     (f) => f.side === "back",
   );
@@ -219,6 +238,7 @@ export const projectNodeBody = (
       ];
   return {
     visible,
+    outline,
     caption,
     tagged,
     depth: Math.max(...corners.map((p) => p.z)),

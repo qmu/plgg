@@ -318,8 +318,9 @@ export const roomFrames = <Action>(
                       ? undefined
                       : {
                           ...motion,
-                          progress:
-                            t * t * (3 - 2 * t),
+                          progress: motion.opening
+                            ? 1 - (1 - t) ** 3
+                            : t * t * (3 - 2 * t),
                         },
                 },
           ),
@@ -337,10 +338,26 @@ const layerViews = [
   ["上", -Math.PI / 4, -1.2],
   ["立体", -Math.PI / 6, -0.55],
 ] satisfies [string, number, number][];
-export const roomsOpening = viewAt(
-  -Math.PI / 6,
-  -0.55,
-);
+export const roomsOpening: Change = (flow) => {
+  const to = viewAt(-Math.PI / 6, -0.55)(flow);
+  if (
+    typeof window === "undefined" ||
+    window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    )?.matches !== false
+  )
+    return to;
+  return {
+    ...to,
+    roomMotion: {
+      opening: true,
+      from: to,
+      to,
+      progress: 0,
+      duration: 500,
+    },
+  };
+};
 const arrangeSheet: Change = (f) => {
   if (f.rooms) {
     const { axes, rooms, graph } = planRooms(

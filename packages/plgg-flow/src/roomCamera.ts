@@ -99,6 +99,79 @@ export const movingRooms = (flow: Flow): Flow => {
   const motion = flow.roomMotion;
   if (!motion) return roomFaceView(flow);
   const { from, to, progress: t } = motion;
+  if (motion.opening && flow.rooms) {
+    const floors = [
+      ...new Set(
+        flow.rooms.rooms.map((r) => r.max.y),
+      ),
+    ].sort((a, b) => a - b);
+    const centre =
+      ((floors[0] ?? 0) +
+        (floors[floors.length - 1] ?? 0)) /
+      2;
+    const shift = (p: Point3, i: number) => ({
+      ...p,
+      y: p.y + (centre - i) * (1 - t),
+    });
+    const index = new Map(
+      flow.rooms.rooms.flatMap((r) =>
+        r.members.map(
+          (id) =>
+            [id, r.max.y] satisfies [
+              string,
+              number,
+            ],
+        ),
+      ),
+    );
+    return roomFaceView({
+      ...flow,
+      rooms: {
+        ...flow.rooms,
+        rooms: flow.rooms.rooms.map((r) => {
+          const i = r.max.y;
+          return {
+            ...r,
+            min: shift(r.min, i),
+            max: shift(r.max, i),
+          };
+        }),
+      },
+      nodes: flow.nodes.map((n) => ({
+        ...n,
+        position: shift(
+          n.position,
+          index.get(n.id) ?? 0,
+        ),
+      })),
+      edges: flow.edges.map((e) => {
+        if (!e.path?.length) return e;
+        const source = index.get(e.source) ?? 0,
+          target = index.get(e.target) ?? source;
+        const a = e.path[0]!.y,
+          b = e.path[e.path.length - 1]!.y;
+        return {
+          ...e,
+          path: e.path.map((p) =>
+            shift(
+              p,
+              a === b
+                ? source
+                : source +
+                    (target - source) *
+                      Math.max(
+                        0,
+                        Math.min(
+                          1,
+                          (p.y - a) / (b - a),
+                        ),
+                      ),
+            ),
+          ),
+        };
+      }),
+    });
+  }
   const mix = (a: number, b: number) =>
     a + (b - a) * t;
   const point = (a: Point3, b: Point3) => ({

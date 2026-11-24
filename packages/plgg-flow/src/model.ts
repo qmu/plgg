@@ -127,12 +127,8 @@ export type Scenery = {
 } & (
   | {
       kind: "plane";
-      points: readonly [
-        Point3,
-        Point3,
-        Point3,
-        Point3,
-      ];
+      points: readonly Point3[];
+      thickness?: number;
       patches?: readonly (readonly Point3[])[];
       fill: string;
       opacity: number;
@@ -211,6 +207,7 @@ export type Flow = Graph &
           from: Flow;
           to: Flow;
           duration: number;
+          opening?: boolean;
           progress: number;
         };
     layered?: Readonly<{

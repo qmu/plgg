@@ -87,7 +87,7 @@ test("plate labels pin and release nodes and incident wires", () => {
   );
 });
 
-test("in-board edges advance along x and drops clear the board rims", () => {
+test("in-board edges advance along x and drops pierce boards at marked holes", () => {
   const flow = specFlow(
     read(
       source + "\nnode four 層=A\none -> four",
@@ -96,26 +96,25 @@ test("in-board edges advance along x and drops clear the board rims", () => {
   const [first, second] = ["one", "four"].map(
     (id) => flow.nodes.find((n) => n.id === id)!,
   );
+  const board = flow.rooms!.rooms[1]!;
+  const point = {
+    x: board.min.x + 8,
+    z: board.min.z + 8,
+    y: board.max.y,
+  };
+  const path = [
+    { ...point, y: point.y - 32 },
+    { ...point, y: point.y + 32 },
+  ];
+  const drawing = {
+    ...flow,
+    edges: [{ ...flow.edges[0]!, path }],
+  };
   return check(
     first!.position.x < second!.position.x &&
-      flow.edges.every(
-        (e) =>
-          e.path &&
-          e.path.slice(1).every((q, i) => {
-            const p = e.path![i]!;
-            return flow.rooms!.rooms.every(
-              (board) =>
-                p.y === q.y ||
-                Math.max(p.y, q.y) <=
-                  board.max.y ||
-                Math.min(p.y, q.y) >=
-                  board.max.y + 6 ||
-                p.x <= board.min.x ||
-                p.x >= board.max.x ||
-                p.z <= board.min.z ||
-                p.z >= board.max.z,
-            );
-          }),
+      spaceScenery(flow.rooms!, drawing).some(
+        (s) =>
+          s.kind === "plane" && s.width === 0.75,
       ),
     toBe(true),
   );

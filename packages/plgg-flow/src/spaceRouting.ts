@@ -281,18 +281,17 @@ export const routeAssignment = (
             ]);
           if (!detour) continue;
           for (const level of [
+            (s[k] + t[k]) / 2,
+            s[k] + a[k] + 16,
+            s[k] - a[k] - 16,
+            t[k] + b[k] + 16,
+            t[k] - b[k] - 16,
             ...(stack && k !== "y" && s.y !== t.y
               ? [
                   stack.min[k] - 8,
                   stack.max[k] + 8,
                 ]
-              : [
-                  (s[k] + t[k]) / 2,
-                  s[k] + a[k] + 16,
-                  s[k] - a[k] - 16,
-                  t[k] + b[k] + 16,
-                  t[k] - b[k] - 16,
-                ]),
+              : []),
           ]) {
             const start = shift(s, k, level),
               end = shift(t, k, level);

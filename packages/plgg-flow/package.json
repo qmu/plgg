@@ -212,6 +212,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "plgg-bundle",
+    "audit:space": "node scripts/space-audit.mjs && node scripts/space-rhythm.ts",
     "test": "plgg-test src",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",

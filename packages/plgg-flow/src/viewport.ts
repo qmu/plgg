@@ -468,6 +468,7 @@ const viewportLayout = (state: Flow) => {
   return layout;
 };
 type Layer = {
+  band?: number;
   depth: number;
   chosen?: boolean;
   arrow?: boolean;
@@ -589,8 +590,57 @@ export const drawFlow = (
     framed === flow.nodes
       ? flow
       : { ...flow, nodes: framed };
+  const levels = [
+    ...new Set(
+      (state.scenery ?? []).flatMap((s) =>
+        s.surface === undefined
+          ? []
+          : [s.surface],
+      ),
+    ),
+  ].sort((a, b) => a - b);
+  const direction = Math.sign(
+    Math.sin(state.camera.pitch),
+  );
+  const band = (y: number) =>
+    direction *
+    levels.filter((level) => level < y).length *
+    16;
+  const partition = (path: readonly Point3[]) =>
+    levels.length
+      ? path.flatMap((b, i) => {
+          const a = path[i - 1];
+          if (!a || b.y === a.y) return [b];
+          return [
+            ...levels
+              .filter(
+                (y) => (a.y - y) * (b.y - y) < 0,
+              )
+              .sort(
+                (x, y) =>
+                  (x - y) * Math.sign(b.y - a.y),
+              )
+              .map((y) => {
+                const t = (y - a.y) / (b.y - a.y);
+                return {
+                  x: a.x + t * (b.x - a.x),
+                  y,
+                  z: a.z + t * (b.z - a.z),
+                };
+              }),
+            b,
+          ];
+        })
+      : path;
   const scenery = (state.scenery ?? []).map(
-    (item) => drawScenery(item, state.camera),
+    (item) => ({
+      ...drawScenery(item, state.camera),
+      band:
+        item.surface === undefined
+          ? 0
+          : band(item.surface) +
+            direction * (8 - (item.order ?? 0)),
+    }),
   );
   const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
@@ -753,14 +803,6 @@ export const drawFlow = (
           camera: state.camera,
           solid,
         });
-      const hue = state.spatial?.depthColor
-        ? 210 -
-          Math.max(
-            -1,
-            Math.min(1, n.position.z / 250),
-          ) *
-            100
-        : 175;
       const render =
         registry.nodes?.get(n.type ?? "") ??
         renderLabel;
@@ -847,6 +889,7 @@ export const drawFlow = (
       }
       const inputs = [
         extent,
+        band(n.position.y),
         state.camera,
         quiet,
         chosen.has(n.id),
@@ -1011,6 +1054,7 @@ export const drawFlow = (
           );
         });
       const value = {
+        band: band(n.position.y),
         depth: solid.depth,
         html: lazy(deferred, () =>
           el<Change>(
@@ -1141,6 +1185,35 @@ export const drawFlow = (
                   ]
                 : []),
               ...sockets(true),
+              ...(solid.outline
+                ? [
+                    el<Change>(
+                      "path",
+                      [
+                        a("d", solid.outline),
+                        a("fill", "none"),
+                        a(
+                          "style",
+                          "stroke:var(--paper,white)",
+                        ),
+                        a("stroke-width", 7.5),
+                        a(
+                          "vector-effect",
+                          "non-scaling-stroke",
+                        ),
+                        a(
+                          "stroke-linecap",
+                          "round",
+                        ),
+                        a(
+                          "pointer-events",
+                          "none",
+                        ),
+                      ],
+                      [],
+                    ),
+                  ]
+                : []),
               ...solid.visible.map((face) =>
                 el<Change>(
                   "polygon",
@@ -1158,30 +1231,52 @@ export const drawFlow = (
                         .join(" "),
                     ),
                     a(
-                      "fill",
-                      "hsl(" +
-                        hue +
-                        " " +
-                        (state.spatial?.depthColor
-                          ? 50
-                          : 16) +
-                        "% " +
-                        face.light +
-                        "%)",
+                      "style",
+                      `fill:${face.side === "front" || face.side === "back" || face.side === "top" ? "var(--paper,white)" : face.side !== "bottom" && face.points.reduce((sum, p) => sum + p.x, 0) < 0 ? "var(--wash,#f5f5f5)" : "var(--shade,#e9e9e9)"}`,
                     ),
                     a(
                       "stroke",
-                      chosen.has(n.id)
-                        ? "#ed623a"
-                        : quiet
-                          ? "var(--pencil,gray)"
-                          : "#718e89",
+                      "var(--ink,black)",
+                    ),
+                    a("stroke-width", 0.75),
+                    a(
+                      "vector-effect",
+                      "non-scaling-stroke",
                     ),
                     a("stroke-linejoin", "round"),
                   ],
                   [],
                 ),
               ),
+              ...(solid.outline
+                ? [
+                    el<Change>(
+                      "path",
+                      [
+                        a("d", solid.outline),
+                        a("fill", "none"),
+                        a(
+                          "stroke",
+                          "var(--ink,black)",
+                        ),
+                        a("stroke-width", 1.5),
+                        a(
+                          "vector-effect",
+                          "non-scaling-stroke",
+                        ),
+                        a(
+                          "stroke-linecap",
+                          "round",
+                        ),
+                        a(
+                          "pointer-events",
+                          "none",
+                        ),
+                      ],
+                      [],
+                    ),
+                  ]
+                : []),
               solid.caption && !solid.tagged
                 ? el(
                     "g",
@@ -1331,13 +1426,14 @@ export const drawFlow = (
               });
             return box;
           });
-    const spatialSheet = wires.some(
-      (w) => w.edge.path,
-    );
+    const spatialSheet =
+      levels.length > 0 ||
+      wires.some((w) => w.edge.path);
     if (spatialSheet)
       state.scenery?.forEach((item, i) => {
         if (
           item.kind !== "plane" ||
+          item.surface !== undefined ||
           item.layer !== "sorted"
         )
           return;
@@ -1363,10 +1459,12 @@ export const drawFlow = (
     const spans = spatialSheet
       ? crossingSpans(
           wires.map((w) =>
-            bridgePoints(
-              w.points,
-              w.lift,
-              flat,
+            partition(
+              bridgePoints(
+                w.points,
+                w.lift,
+                flat,
+              ),
             ).map(project(state.camera)),
           ),
         )
@@ -1417,6 +1515,7 @@ export const drawFlow = (
         state.camera,
         chosenWire,
         sharedArrival,
+        levels.join(","),
         originalIndex,
         flat && !spans ? undefined : state.nodes,
         spans ? state.edges : undefined,
@@ -1447,11 +1546,21 @@ export const drawFlow = (
         chosenWire && !turned.get(id)?.[side]
           ? Infinity
           : above(id, side, depth);
-      const knots = bridgePoints(
-        wire.points,
-        wire.lift,
-        flat,
-      );
+      const knots = levels.length
+        ? Array.from(
+            partition(
+              bridgePoints(
+                wire.points,
+                wire.lift,
+                flat,
+              ),
+            ),
+          )
+        : bridgePoints(
+            wire.points,
+            wire.lift,
+            flat,
+          );
       const poly = polylineSampler(knots);
       const sample = (t: number) => {
         const p = project(state.camera)(poly(t));
@@ -1729,6 +1838,10 @@ export const drawFlow = (
                       "stroke",
                       "var(--paper,white)",
                     ),
+                    a(
+                      "style",
+                      "stroke:var(--paper,white)",
+                    ),
                     a("stroke-width", 3),
                     a("pointer-events", "none"),
                   ],
@@ -1742,7 +1855,9 @@ export const drawFlow = (
       let length = 0;
       const cuts = crossings?.get(wire);
       const spatial =
-        cuts?.some((c) => c.length) || edge.path
+        levels.length ||
+        cuts?.some((c) => c.length) ||
+        edge.path
           ? crossingRuns(
               points,
               cuts ?? [],
@@ -1854,10 +1969,10 @@ export const drawFlow = (
                 "stroke-width",
                 (flat ? run[1]!.scale : b.scale) *
                   (chosenWire
-                    ? 2.4
+                    ? 3
                     : hovered
                       ? 1.8
-                      : 1),
+                      : 1.25),
               ),
               a("stroke-linecap", "round"),
             ],
@@ -1866,6 +1981,15 @@ export const drawFlow = (
         });
         items.push({
           chosen: chosenWire,
+          band: levels.length
+            ? band(
+                (unproject(state.camera, a0, a0.z)
+                  .y +
+                  unproject(state.camera, b, b.z)
+                    .y) /
+                  2,
+              )
+            : 0,
           depth: spatial
             ? depth
             : !chosenWire && !flat
@@ -2006,6 +2130,7 @@ export const drawFlow = (
           tip.y - radius * Math.sin(radians);
         items.push({
           chosen: chosenWire,
+          band: band(node.position.y),
           arrow: true,
           depth: sending
             ? (solidDepth.get(node.id) ?? tip.z) -
@@ -2067,6 +2192,7 @@ export const drawFlow = (
               ? tangent + 180
               : tangent;
         items.push({
+          band: band(poly(0.5).y),
           depth: middle.z,
           html: lazy(deferred, () =>
             el(
@@ -2134,6 +2260,7 @@ export const drawFlow = (
     );
     const sorted = layers.sort(
       (a, b) =>
+        (a.band ?? 0) - (b.band ?? 0) ||
         a.depth - b.depth ||
         Number(!!a.chosen) - Number(!!b.chosen) ||
         Number(!!a.arrow) - Number(!!b.arrow),

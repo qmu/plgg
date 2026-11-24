@@ -328,26 +328,31 @@ test("named views draw the standard solid and dimension labels", () => {
           .match(
             /<polygon[^>]*data-node-face[^>]*>/g,
           )
-          ?.join("");
+          ?.sort()
+          .join("");
       return (
-        spaceScenery(flow.rooms!, state).every(
+        spaceScenery(flow.rooms!, state).some(
           (item) =>
-            item.layer === "front" ||
-            item.layer === "behind",
+            item.kind === "plane" &&
+            item.layer === "sorted",
         ) &&
-        html.indexOf('fill-opacity="0.92"') >=
+        html.indexOf('fill-opacity="0.14"') >=
           0 &&
         !!faces(html) &&
         faces(html) === faces(ordinary) &&
         JSON.stringify(
-          html.match(
-            /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
-          ),
+          html
+            .match(
+              /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
+            )
+            ?.sort(),
         ) ===
           JSON.stringify(
-            ordinary.match(
-              /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
-            ),
+            ordinary
+              .match(
+                /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
+              )
+              ?.sort(),
           ) &&
         spaceScenery(flow.rooms!, state).some(
           (item) =>
@@ -715,7 +720,8 @@ test("an unpinned space paints every background item before its first node", () 
         );
         return (
           mark >= 0 &&
-          (item.layer === "front" || mark < first)
+          (item.layer !== "behind" ||
+            mark < first)
         );
       }),
     toBe(true),

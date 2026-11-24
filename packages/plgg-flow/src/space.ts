@@ -32,7 +32,9 @@ export const planSpace = (
     y: values("y").map((): number =>
       cake ? 144 : 80,
     ),
-    z: values("z").map(() => 176),
+    z: values("z").map((): number =>
+      cake ? 64 : 176,
+    ),
   };
   const index = (address: number[], role: Role) =>
     address[axis(role)] ?? 0;
@@ -145,7 +147,9 @@ export const planSpace = (
 
       spans.x[i] = Math.max(
         spans.x[i]!,
-        cake ? round(left + width + 32) : left + pitch,
+        cake
+          ? round(left + width + 32)
+          : left + pitch,
       );
       spans.y[j] = Math.max(
         spans.y[j]!,
@@ -154,6 +158,7 @@ export const planSpace = (
       spans.z[k] = Math.max(spans.z[k]!, z + 32);
     });
   }
+  if (cake) spans.y.fill(Math.max(...spans.y));
   const bounds = (s: number[]) =>
     s.reduce<number[]>(
       (b, v) => [...b, b[b.length - 1]! + v],
@@ -231,13 +236,53 @@ export const planSpace = (
             ),
           };
           // Keep the same slot grid across an aisle, even when a cell is sparse.
-          if (cake) shift.x = 0;
+          if (cake) {
+            shift.x = 0;
+            shift.z = 0;
+          }
           if (view.z) {
             const pitch = pitches[i]!;
+            // Reserve the widest occupant of an exchangeable slot.
+            const lastLeft = Math.max(
+              0,
+              ...placed.map(
+                (q) => q.p.x - q.half,
+              ),
+            );
+            const lastZ = Math.max(
+              0,
+              ...placed.map((q) => q.p.z),
+            );
             shift.x =
-              Math.floor(Math.max(0, shift.x) / pitch) * pitch;
+              Math.max(
+                0,
+                Math.min(
+                  Math.round(shift.x / pitch),
+                  Math.floor(
+                    (spans.x[i]! -
+                      lastLeft -
+                      Math.max(
+                        0,
+                        ...placed.map(
+                          (q) => 2 * q.half,
+                        ),
+                      ) -
+                      16) /
+                      pitch,
+                  ),
+                ),
+              ) * pitch;
             shift.z =
-              Math.floor(shift.z / 80) * 80;
+              Math.max(
+                0,
+                Math.min(
+                  Math.round(shift.z / 80),
+                  Math.floor(
+                    (spans.z[k]! - lastZ - 32) /
+                      80,
+                  ),
+                ),
+              ) * 80;
           }
           for (const { n, p } of placed)
             positions.set(n.id, {
