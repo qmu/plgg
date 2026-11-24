@@ -492,6 +492,7 @@ const bodies = new WeakMap<
     solid: ReturnType<typeof projectNodeBody>;
   }
 >();
+const socketRadius = 3;
 const nodeLayers = layerMemo<Layer>();
 const wireLayers = layerMemo<Layer[]>();
 const matches = (
@@ -848,7 +849,7 @@ export const flowView = (
             ),
             a("cx", x),
             a("stroke", "#215f57"),
-            a("r", 3),
+            a("r", socketRadius),
             a(
               "fill",
               isSome(state.source) &&
@@ -1048,6 +1049,9 @@ export const flowView = (
     const wire = routes.get(edge);
     if (!wire) continue;
     const chosenWire = picked.has(original);
+    const sharedArrival =
+      attachments.get(to.id)?.[wire.targetSide]
+        ?.direction === "source";
     const originalIndex =
       originalIndices.get(original);
     const inputs = [
@@ -1055,6 +1059,7 @@ export const flowView = (
       original,
       state.camera,
       chosenWire,
+      sharedArrival,
       originalIndex,
       muted(from) || muted(to),
       frame,
@@ -1469,12 +1474,9 @@ export const flowView = (
         continue;
       const bridge = knots !== wire.points;
       const deck = knots[1]?.z ?? wire.target.z;
-      const inset =
-        wire.arrow.at.x !== wire.target.x ||
-        wire.arrow.at.y !== wire.target.y;
       const at = project(state.camera)(
-        bridge && inset
-          ? { ...wire.arrow.at, z: deck }
+        sharedArrival
+          ? wire.target
           : wire.arrow.at,
       );
       const tip = atStart
@@ -1486,22 +1488,22 @@ export const flowView = (
               at.z,
             ),
           };
+      const sourceRiser =
+        wire.points[1]?.z !== wire.source.z &&
+        wire.points[1]?.x === wire.source.x &&
+        wire.points[1]?.y === wire.source.y;
       const near = bridge
         ? atStart
           ? (points[1] ?? tip)
-          : inset
-            ? project(state.camera)({
-                ...wire.arrow.toward,
-                z: deck,
-              })
-            : project(state.camera)({
-                ...wire.target,
-                z: 2 * wire.target.z - deck,
-              })
+          : project(state.camera)({
+              ...wire.target,
+              z: 2 * wire.target.z - deck,
+            })
         : atStart
           ? (!edge.route ||
               edge.route === "curve") &&
-            edge.source !== edge.target
+            edge.source !== edge.target &&
+            !sourceRiser
             ? project(state.camera)({
                 ...move(
                   wire.source,
@@ -1511,16 +1513,29 @@ export const flowView = (
                 z: wire.source.z,
               })
             : (points[1] ?? tip)
-          : project(state.camera)(
-              wire.arrow.toward,
-            );
-      const angle =
-        (Math.atan2(
-          (tip.y - near.y) * (atStart ? 1 : -1),
-          (tip.x - near.x) * (atStart ? 1 : -1),
-        ) *
-          180) /
-        Math.PI;
+          : sharedArrival
+            ? (points
+                .slice(0, -1)
+                .reverse()
+                .find(
+                  (p) =>
+                    p.x !== tip.x ||
+                    p.y !== tip.y,
+                ) ?? tip)
+            : project(state.camera)(
+                wire.arrow.toward,
+              );
+      const towardTip =
+        atStart || (sharedArrival && !bridge);
+      const radians = Math.atan2(
+        towardTip
+          ? tip.y - near.y
+          : near.y - tip.y,
+        towardTip
+          ? tip.x - near.x
+          : near.x - tip.x,
+      );
+      const angle = (radians * 180) / Math.PI;
       const gap = Math.hypot(
         wire.source.x - wire.target.x,
         wire.source.y - wire.target.y,
@@ -1530,16 +1545,28 @@ export const flowView = (
         (edge.source === edge.target
           ? 1
           : Math.min(1, gap / 60));
+      const sending = atStart || sharedArrival;
+      const node = atStart ? from : to;
+      const radius = sending
+        ? socketRadius * node.scale
+        : 0;
+      const x =
+        tip.x - radius * Math.cos(radians);
+      const y =
+        tip.y - radius * Math.sin(radians);
       items.push({
         chosen: chosenWire,
         arrow: true,
-        depth: paintDepth(
-          atStart ? edge.source : edge.target,
-          atStart
-            ? wire.sourceSide
-            : wire.targetSide,
-          tip.z - 0.01,
-        ),
+        depth: sending
+          ? (solidDepth.get(node.id) ?? tip.z) -
+            0.01
+          : paintDepth(
+              atStart ? edge.source : edge.target,
+              atStart
+                ? wire.sourceSide
+                : wire.targetSide,
+              tip.z - 0.01,
+            ),
         html: lazy(deferred, () =>
           el(
             "polygon",
@@ -1547,7 +1574,7 @@ export const flowView = (
               a("data-arrow", side),
               a(
                 "transform",
-                `translate(${tip.x} ${tip.y}) rotate(${angle}) scale(${arrowScale})`,
+                `translate(${x} ${y}) rotate(${angle}) scale(${arrowScale})`,
               ),
               a("points", "0,0 -9,-4 -9,4"),
               a("fill", "#426f71"),

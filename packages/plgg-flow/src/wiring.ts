@@ -8,7 +8,6 @@ import {
   fillet,
 } from "plgg-flow/wireCurve";
 import { search } from "plgg-flow/wireSearch";
-import { bridgePoints } from "plgg-flow/polyline";
 import { materialize } from "plgg-flow/wirePath";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
@@ -1026,54 +1025,39 @@ export const wireGraph = (
       graph.rooms &&
       w.source.z !== w.target.z
     ) {
-      const dz = w.target.z - w.source.z;
-      const rise = Math.sign(dz) * 16;
-      const start = {
-          ...w.source,
-          z: w.source.z + rise,
-        },
-        end = {
-          ...w.target,
-          z: w.target.z - rise,
-        };
-      const points = [
-        start,
-        ...w.points.slice(1, -1).map((p) =>
-          edge.waypoints?.length
-            ? p
-            : {
-                ...p,
-                z:
-                  p.z +
-                  rise *
-                    (1 -
-                      (2 * (p.z - w.source.z)) /
-                        dz),
-              },
-        ),
-        end,
-      ];
+      const floor = Math.min(
+        w.source.z,
+        w.target.z,
+      );
+      const run = w.points.map((p) => ({
+        ...p,
+        z: floor,
+      }));
+      const rises = w.target.z > floor;
       const { controls, ...body } = w;
       return {
         ...body,
         edge,
-        points: [
-          w.source,
-          ...bridgePoints(
-            points,
-            edge.lift,
-            false,
-          ),
-          w.target,
-        ],
-        corners: w.corners + 2,
-        arrow: {
-          at: w.target,
-          toward: {
-            ...w.target,
-            z: w.target.z + Math.sign(dz),
-          },
-        },
+        points: rises
+          ? [...run, w.target]
+          : [w.source, ...run],
+        corners: w.corners + 1,
+        arrow: rises
+          ? {
+              at: w.target,
+              toward: {
+                ...w.target,
+                z: w.target.z + 1,
+              },
+            }
+          : {
+              ...w.arrow,
+              at: { ...w.arrow.at, z: floor },
+              toward: {
+                ...w.arrow.toward,
+                z: floor,
+              },
+            },
       };
     }
     if (

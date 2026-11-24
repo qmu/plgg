@@ -1374,3 +1374,32 @@ rowSkips A→D with E→A), crossings 7 → 16, nine existing specs failing
 ("round32-taskA with the rooms riser"). `arrow-on-dot` is a note in
 the audit until a version without those costs exists. The reading
 problem the owner raised stands unsolved.
+
+## The arrow stops at the dot (adopted) and what is left
+
+Third answer to "a dot is a start, an arrow an arrival": the wire is
+untouched; on a side that also sends, the arrowhead's tip stops at the
+dot's rim and the dot is painted over the arrowheads. Seen in the
+demo (Lower → North arriving on North's sending side): the dot stays
+whole, the arrow points at it. No shape changed, so no overlap or
+crossing was added. `arrow-on-dot` remains a note in the audit (it
+measures the wire's end, which is still the socket).
+
+For round 33 — the remaining moderate findings, in order:
+1. drag (step style): `drag-jump` 4, `drag-jump-neighbour` 12. Codex's
+   replay in round 29 found the cause: lane optimisation, shoulder
+   retraction and `mendFans` turn a 5u lane shift into 30–120u. Each
+   of those passes must be continuous in its inputs: a pass may move
+   a run by at most the amount its inputs moved plus one lane pitch;
+   where it cannot, it keeps the previous decision's *shape class*
+   (which side of an obstacle, which elbow) as long as that class is
+   still valid for the new geometry — decided from geometry alone,
+   with a dead band, not from history.
+2. `kink` 13 (curve): soft polylines whose fillet is smaller than the
+   bend deserves; a fillet is `min(40, half the shorter run)` and a
+   run shorter than 16 is merged into its neighbour.
+3. `siblings-cross` 11, `double-cross` 6, `more-crossings-than-
+   straight` 7: for wires sharing a socket, order the far sockets'
+   sides so the fan does not cross itself; never by moving a free
+   cubic.
+4. `wiggly` 9 (step), `runs-too-close` 7, `squashed-short-wire` 4.

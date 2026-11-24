@@ -1,3 +1,4 @@
+import { wireGraph } from "plgg-flow/wiring";
 import { some } from "plgg";
 import {
   movePointer,
@@ -360,6 +361,61 @@ test("twenty cards leave only a handful of eager SVG children", () => {
     children.filter(
       (child) => child.__tag !== "Lazy",
     ).length <= 5 && reused.length >= 21,
+    toBe(true),
+  );
+});
+
+test("opposing arrows meet the three-unit rim before either socket dot paints", () => {
+  const flow = createFlow({
+    nodes: [
+      node("a"),
+      {
+        ...node("b"),
+        position: { x: 280, y: 20, z: 10 },
+      },
+    ],
+    edges: [
+      {
+        source: "a",
+        target: "b",
+        route: "straight",
+      },
+      {
+        source: "b",
+        target: "a",
+        route: "straight",
+      },
+    ],
+  });
+  const html = renderToString(flowView(flow));
+  const tips = [
+    ...html.matchAll(
+      /data-arrow="end" transform="translate\(([^ ]+) ([^)]+)\) rotate\(([^)]+)\)/g,
+    ),
+  ];
+  const sockets = wireGraph(flow).map((w) =>
+    project(flow.camera)(w.target),
+  );
+  return check(
+    tips.length === 2 &&
+      html.indexOf("data-port=") >
+        html.lastIndexOf("data-arrow=") &&
+      sockets.every((p) =>
+        tips.some((t) => {
+          const angle =
+            (Number(t[3]) * Math.PI) / 180;
+          return (
+            Math.hypot(
+              Number(t[1]) +
+                3 * Math.cos(angle) -
+                p.x,
+              Number(t[2]) +
+                3 * Math.sin(angle) -
+                p.y,
+            ) < 1e-6
+          );
+        }),
+      ),
     toBe(true),
   );
 });

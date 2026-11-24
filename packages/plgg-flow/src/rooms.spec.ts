@@ -1,3 +1,5 @@
+import { wireGraph } from "plgg-flow/wiring";
+import { portPosition } from "plgg-flow/nodeBody";
 import { project } from "plgg-board";
 import { viewAt } from "plgg-flow/model";
 import {
@@ -548,5 +550,45 @@ test("the same outer edge changes from far to near after half a turn", () => {
   return check(
     classes.join(","),
     toBe("far,outer"),
+  );
+});
+
+test("inter-floor wires use one vertical riser at the upper socket in either direction", () => {
+  const flow = read(sheet + "\nA -> C\nC -> A");
+  const wires = wireGraph(flow).filter(
+    (w) => w.source.z !== w.target.z,
+  );
+  return check(
+    wires.length >= 2 &&
+      wires.every((w) => {
+        const rises = w.target.z > w.source.z;
+        const upper = rises ? w.target : w.source;
+        const run = rises
+          ? w.points.slice(0, -1)
+          : w.points.slice(1);
+        const foot = rises
+          ? run[run.length - 1]
+          : run[0];
+        const target = flow.nodes.find(
+          (n) => n.id === w.edge.target,
+        )!;
+        const socket = portPosition(
+          target,
+          w.targetSide,
+          0,
+        );
+        return (
+          w.target.x === socket.x &&
+          w.target.y === socket.y &&
+          foot?.x === upper.x &&
+          foot.y === upper.y &&
+          run.every(
+            (p) =>
+              p.z ===
+              Math.min(w.source.z, w.target.z),
+          )
+        );
+      }),
+    toBe(true),
   );
 });

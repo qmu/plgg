@@ -164,7 +164,7 @@ test("each token edit reprints its change and preserves the original", () => {
     ],
     [
       "layout layered down\nA -> B",
-      "route",
+      "step",
       "curve",
       "layout layered down\nA -> B curve",
     ],

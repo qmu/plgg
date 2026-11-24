@@ -49,17 +49,26 @@ export const fitDemo = (original: Flow): Flow => {
     scale: 1,
   };
   const at = project(camera);
+  const face =
+    flow.rooms &&
+    camera.yaw === 0 &&
+    camera.pitch === 0;
   const bounds = [
     ...(flow.rooms?.rooms.flatMap((r) =>
-      [r.min.x, r.max.x].flatMap((x) =>
-        [r.min.y, r.max.y].flatMap((y) =>
-          [r.min.z, r.max.z].map((z) =>
-            at({ x, y, z }),
+      face
+        ? [
+            at({ ...r.min, z: 0 }),
+            at({ ...r.max, z: 0 }),
+          ]
+        : [r.min.x, r.max.x].flatMap((x) =>
+            [r.min.y, r.max.y].flatMap((y) =>
+              [r.min.z, r.max.z].map((z) =>
+                at({ x, y, z }),
+              ),
+            ),
           ),
-        ),
-      ),
     ) ?? []),
-    ...flow.nodes.flatMap((n) => {
+    ...(face ? [] : flow.nodes).flatMap((n) => {
       const { width, height } = nodeSize(n);
       return [-1, 1].flatMap((x) =>
         [-1, 1].flatMap((y) =>
@@ -73,13 +82,14 @@ export const fitDemo = (original: Flow): Flow => {
         ),
       );
     }),
-    ...wireGraph(flow).flatMap((w) =>
-      bridgePoints(
-        w.points,
-        w.lift,
-        flow.camera.pitch === 0 &&
-          flow.camera.yaw === 0,
-      ).map(at),
+    ...(face ? [] : wireGraph(flow)).flatMap(
+      (w) =>
+        bridgePoints(
+          w.points,
+          w.lift,
+          flow.camera.pitch === 0 &&
+            flow.camera.yaw === 0,
+        ).map(at),
     ),
   ].reduce(
     (box, p) => ({
@@ -133,7 +143,7 @@ export const fitDemo = (original: Flow): Flow => {
             };
       }),
     ];
-    let scale = 1;
+    let scale = face ? 1.5 : 1;
     for (const a of spans)
       for (const b of spans)
         if (b.at > a.at)

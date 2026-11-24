@@ -772,22 +772,16 @@ const edgeLine = (
         i === index ? update(edge) : edge,
       ),
     });
-  const route = word(
-    e.route ?? "route",
-    "route",
-    {
-      kind: "choice",
-      label: "経路を選択",
-      value: e.route ?? "",
-      choices: routes,
-      change: (v) =>
-        set((edge) =>
-          isRoute(v)
-            ? { ...edge, route: v }
-            : edge,
-        ),
-    },
-  );
+  const route = word(e.route ?? "step", "route", {
+    kind: "choice",
+    label: "経路を選択",
+    value: e.route ?? "",
+    choices: routes,
+    change: (v) =>
+      set((edge) =>
+        isRoute(v) ? { ...edge, route: v } : edge,
+      ),
+  });
   const animated = word("animated", "flag", {
     kind: "toggle",
     label: "アニメーションを切り替え",

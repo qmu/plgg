@@ -9,6 +9,7 @@ import {
 import {
   deleteSelected,
   selectedNodes,
+  selectNodes,
   type Flow,
   type Change,
 } from "plgg-flow";
@@ -268,7 +269,7 @@ const tokenView = <A>(
   rules: readonly Rule[],
 ): Html<A> => {
   const act = t.act;
-  if (!act) return text(t.text);
+  if (!act) return el("span", [], [text(t.text)]);
   const apply = (
     anchor: HTMLElement,
     value: string,
@@ -316,7 +317,7 @@ const tokenView = <A>(
           ]
         : []),
     ],
-    [text(t.text)],
+    [text(ghost ? "+" + t.text : t.text)],
   );
 };
 export const replaceRow = (
@@ -403,11 +404,24 @@ export const dslRows = <A>(
         ? flow.edges[subject.index]
         : undefined;
     const chosen =
-      subject &&
-      (subjectSelected(subject, flow) ||
-        (edge &&
-          (implicit.has(edge.source) ||
-            implicit.has(edge.target))));
+      (flow.selectedDslRow?.index === i &&
+        flow.selectedDslRow.text === value) ||
+      (subject &&
+        (subjectSelected(subject, flow) ||
+          (edge &&
+            (implicit.has(edge.source) ||
+              implicit.has(edge.target)))));
+    const ghosts =
+      line?.ghosts ??
+      (!error &&
+      i === printed.length &&
+      !lines.some(
+        (l) =>
+          l.subject.kind === "directive" &&
+          l.subject.name === "snap",
+      )
+        ? [snapToken(flow.snap, true)]
+        : []);
     return el<A>(
       "div",
       [
@@ -425,19 +439,25 @@ export const dslRows = <A>(
             e.currentTarget instanceof HTMLElement
           ) {
             edit(e.currentTarget);
-            return none();
           }
-          return subject &&
-            e instanceof MouseEvent
-            ? some(
-                select(
-                  selectSubject(
+          return some(
+            select(
+              subject &&
+                subject.kind !== "directive"
+                ? selectSubject(
                     subject,
-                    e.shiftKey,
-                  ),
-                ),
-              )
-            : none();
+                    "shiftKey" in e &&
+                      e.shiftKey === true,
+                  )
+                : (f) => ({
+                    ...selectNodes([])(f),
+                    selectedDslRow: {
+                      index: i,
+                      text: value,
+                    },
+                  }),
+            ),
+          );
         }),
         effect("dblclick", (e, a) => {
           if (
@@ -541,27 +561,13 @@ export const dslRows = <A>(
               tokenView<A>(t, false, flow, rules),
             ])
           : [text(value)]),
-        ...(!line &&
-        !error &&
-        i === printed.length &&
-        !lines.some(
-          (l) =>
-            l.subject.kind === "directive" &&
-            l.subject.name === "snap",
-        )
-          ? [
-              tokenView<A>(
-                snapToken(flow.snap, true),
-                true,
-                flow,
-                rules,
-              ),
-            ]
-          : []),
-        ...(line?.ghosts ?? []).map((t) =>
-          tokenView<A>(t, true, flow, rules),
+        ...(chosen ? ghosts : []).flatMap(
+          (t, j) => [
+            text(j ? " " : "  "),
+            tokenView<A>(t, true, flow, rules),
+          ],
         ),
-        ...(i < printed.length
+        ...(chosen && i < printed.length
           ? [
               el<A>(
                 "button",

@@ -1,6 +1,7 @@
 import { project } from "plgg-board";
 import {
   frameOf,
+  faceTable,
   roomLabels,
   nodeSize,
   bodyDepth,
@@ -294,3 +295,74 @@ test("structured rows join to the canonical text for every gallery sheet", () =>
     }),
     toBe(true),
   ));
+
+test("each room face fills the open frame up to its 48 pixel margin", () => {
+  const original = examples
+    .find((d) => d.id === "rooms")!
+    .initial();
+  const f = resizeDemo(original, 580, true, 320);
+  return check(
+    (
+      [
+        [0, 0],
+        [0, -Math.PI / 2],
+        [Math.PI / 2, 0],
+      ] satisfies [number, number][]
+    ).every(([yaw, pitch]) => {
+      const table = faceTable(
+        fitDemo(viewAt(yaw, pitch)(f)),
+      );
+      const at = project(table.camera);
+      const corners = table.rooms!.rooms.flatMap(
+        (r) => [at(r.min), at(r.max)],
+      );
+      const boxes = roomLabels(
+        table.rooms!,
+        table.camera,
+      ).map((l) => {
+        const width = l.value.length * 13;
+        const left =
+          l.x +
+          l.dx -
+          (l.anchor === "end"
+            ? width
+            : l.anchor === "middle"
+              ? width / 2
+              : 0);
+        return {
+          left,
+          right: left + width,
+          top: l.y + l.dy - 7,
+          bottom: l.y + l.dy + 7,
+        };
+      });
+      const margins = [
+        Math.min(
+          ...corners.map((p) => p.x),
+          ...boxes.map((b) => b.left),
+        ),
+        frameOf(f).x -
+          320 -
+          Math.max(
+            ...corners.map((p) => p.x),
+            ...boxes.map((b) => b.right),
+          ),
+        Math.min(
+          ...corners.map((p) => p.y),
+          ...boxes.map((b) => b.top),
+        ),
+        frameOf(f).y -
+          Math.max(
+            ...corners.map((p) => p.y),
+            ...boxes.map((b) => b.bottom),
+          ),
+      ];
+      return (
+        table.camera.scale <= 1.5 &&
+        Math.min(...margins) >= 47.99 &&
+        Math.min(...margins) <= 60
+      );
+    }),
+    toBe(true),
+  );
+});

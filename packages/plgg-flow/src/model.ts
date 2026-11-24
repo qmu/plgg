@@ -156,6 +156,9 @@ export type Flow = Graph &
     camera: Camera;
     orbitCenter?: Point3;
     selected: Option<string>;
+    selectedDslRow?:
+      | Readonly<{ index: number; text: string }>
+      | undefined;
     activeEdge?: Edge;
     chosenEdges?: readonly Edge[];
     movement?: Movement;
@@ -384,6 +387,7 @@ export const selectNodes =
       state;
     return {
       ...(keepEdges ? state : rest),
+      selectedDslRow: undefined,
       selection,
       selected:
         last === undefined ? none() : some(last),
@@ -399,6 +403,7 @@ export const chooseEdges =
     const last = edges[edges.length - 1];
     return {
       ...rest,
+      selectedDslRow: undefined,
       chosenEdges: edges,
       ...(last ? { activeEdge: last } : {}),
     };

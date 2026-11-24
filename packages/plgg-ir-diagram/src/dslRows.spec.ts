@@ -1,11 +1,19 @@
+// @plgg-test-environment dom
+import { makeRenderer } from "plgg-view/client";
 import {
   selectSubject,
   subjectSelected,
   type Subject,
 } from "plgg-flow/dsl";
 import { test, check, toBe } from "plgg-test";
-import { replaceRow } from "plgg-ir-diagram/dslRows";
-import { createFlow } from "plgg-flow";
+import {
+  dslRows,
+  replaceRow,
+} from "plgg-ir-diagram/dslRows";
+import {
+  createFlow,
+  type Change,
+} from "plgg-flow";
 import { readSheetSource } from "plgg-ir-diagram/flowSheet";
 
 test("invalid replacement retains the last good flow, rules and measured frame", () => {
@@ -69,6 +77,73 @@ test("editing the second parallel wire preserves its selection through reparse",
         { kind: "edge", index: 0 },
         edited.flow,
       ),
+    toBe(true),
+  );
+});
+
+test("plain row text selects its row and reveals prefixed ghosts and the delete button", () => {
+  const source = "rule acyclic\nA -> B";
+  const sheet = readSheetSource(
+    source,
+    createFlow({ nodes: [], edges: [] }),
+    [],
+  );
+  const root = document.createElement("div");
+  let flow = sheet.flow;
+  const render = makeRenderer<Change>(
+    root,
+    (change) => {
+      flow = change(flow);
+    },
+  );
+  const draw = () =>
+    render(
+      dslRows(
+        flow,
+        sheet.rules,
+        source,
+        undefined,
+        (change) => change,
+        () => (f) => f,
+      ),
+    );
+  draw();
+  const row = (i: number) =>
+    root.querySelectorAll(".dsl-row")[i];
+  const hidden =
+    !root.querySelector(".ghost") &&
+    !root.querySelector(".dsl-delete");
+  const keyword = row(0)?.firstChild;
+  keyword?.dispatchEvent(
+    new MouseEvent("click", { bubbles: true }),
+  );
+  draw();
+  const directive =
+    row(0)?.getAttribute("aria-selected") ===
+      "true" &&
+    !!row(0)?.querySelector(".dsl-delete");
+  row(3)?.dispatchEvent(
+    new MouseEvent("click", { bubbles: true }),
+  );
+  draw();
+  const ghosts = Array.from(
+    row(3)?.querySelectorAll(".ghost") ?? [],
+  ).map((e) => e.textContent);
+  const selected =
+    row(3)?.getAttribute("aria-selected") ===
+      "true" &&
+    row(3)?.textContent?.includes(
+      "  +step +animated",
+    ) &&
+    !!row(3)?.querySelector(".dsl-delete") &&
+    !row(0)?.querySelector(".dsl-delete");
+  render.dispose();
+  return check(
+    keyword?.textContent === "rule" &&
+      hidden &&
+      directive &&
+      selected &&
+      ghosts.join(" ") === "+step +animated",
     toBe(true),
   );
 });

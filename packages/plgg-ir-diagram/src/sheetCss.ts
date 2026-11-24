@@ -594,15 +594,11 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .dsl-token {
     touch-action: none;
   }
-  .dsl-row .ghost,
-  .dsl-row .dsl-delete {
-    display: none;
-    margin-left: 1ch;
+  .dsl .dsl-row .ghost {
+    color: var(--pencil);
   }
-  .dsl-row:is(:hover, :focus-within)
-    :is(.ghost, .dsl-delete) {
-    display: inline;
-    color: var(--graphite);
+  .dsl .dsl-row .dsl-delete {
+    margin-left: 1ch;
   }
   .dsl-delete {
     float: right;
