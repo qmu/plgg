@@ -159,3 +159,45 @@ build and the sheet still renders. Seen on the Markdown sheet
 "エッジの経路": the route and snap buttons act and show their pressed
 state. Tools that keep state beyond the flow (history, snapshots,
 files) are not part of this slice.
+
+## The sheet's toolbar (owner, 2026-11-24)
+
+Left to right: **リセット** · ⏮ ◀ ▶ ⏭ · (the sheet's named tools) …
+and the round ＋ at the far right as today. 「最適化」 goes: リセット
+is it.
+
+- **リセット** = the best flat picture of what is there: every node
+  and edge kept, nodes placed again by the layout the sheet declares
+  (`layout layered …` / `layout rooms`; with no directive, layered in
+  the direction the frame's shape suggests; a sheet with groups
+  arranges the groups as units — exactly what 「最適化」 did), the
+  camera returned to the front (yaw 0, pitch 0) and the sheet fitted
+  to the frame clear of the DSL overlay. Heights (z) the author wrote
+  are kept, they just are not seen from the front. It is one step in
+  the history, so ◀ undoes it. It no longer throws edits away — that
+  is ⏮.
+- **⏮ 最初に** — the sheet as it was opened (what リセット used to
+  do), camera included.
+- **◀ 戻る** — one step back (undo). **▶ 次に** — one step forward
+  (redo). **⏭ 最後に** — the newest state.
+  All four move along one history; none of them erases it (after ⏮,
+  ⏭ brings everything back). A new edit made in the middle cuts the
+  steps after it, as undo histories do.
+- They are icon buttons, 34 × 34 like リセット's height, joined in one
+  group with shared borders: the signs are drawn in the sheet's ink
+  as 1.5px strokes / solid triangles (bar + triangle, triangle,
+  triangle, triangle + bar), no glyph font. Each has a Japanese
+  `aria-label` and `title` (最初に / 戻る / 次に / 最後に). Disabled
+  ones (nothing that way) are in the pencil tone and inert.
+- ⌘Z / ⇧⌘Z (Ctrl on other systems) do ◀ / ▶ as today.
+- The history is part of the shared sheet, so the plggpress
+  `plgg-flow` part has it too (per page load; not persisted). Camera-
+  only moves (pan, zoom, turn) are not history steps; リセット and the
+  face-view buttons of a rooms sheet are.
+- The demo's own samples "元に戻す・やり直す" and "スナップショット"
+  keep their extra buttons but use this same history.
+
+Specs: リセット keeps node and edge counts, sets yaw = pitch = 0, is
+undoable; ⏮ equals the opening flow; ◀ then ▶ is the identity; ⏭
+after ⏮ returns the newest; an edit after ◀ drops the forward steps;
+disabled states at both ends; 最適化 is gone from every sheet.
