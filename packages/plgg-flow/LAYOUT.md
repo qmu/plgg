@@ -112,3 +112,29 @@ now checks them:
 Still open: `sprawl` on wide layers (hub downwards: 12 inputs in one
 row). Wide layers of leaves may wrap into two rows when a layer is
 more than 3× wider than the median layer.
+
+## Round L2 review — adopted
+
+Layout audit 0/0 by the old checks; microservices now starts at
+Web/Mobile → Gateway, hubs wrap. The sheet still shows cyclic flows
+stretched out, so the reviewer added two cyclic scenes (`retryLoop`,
+`orderFlow`) and replaced the `ribbon` check: a flow with cycles may
+be no deeper than it needs to be from its start.
+
+For round L3:
+- **Cycles by distance from the start.** Inside a strongly connected
+  component, an edge is forward iff it increases the BFS distance from
+  the start (roots, else the first-written node); edges that decrease
+  it are reversed; equal-distance edges are forward in a fixed order
+  unless that closes a cycle. stateMachine then reads
+  Idle | Loading | Ready, Error | Editing, Closed | Saving — the way a
+  person draws it — instead of a row of six. Edges outside an SCC are
+  never reversed.
+- `chain-not-straight` in the cyclic scenes (retryLoop Parse→Validate,
+  orderFlow Cart→Checkout): the main line of a flow stays straight;
+  the side nodes of loops (Retry, Fix, Failed) sit beside it.
+- Wrapped wide layers (hub): rows of a wrapped layer are centred on
+  the same axis and filled evenly (12 → 6+6, not 3+6+3).
+- `printSpec`: a node needs no `node` line when it appears in an edge
+  and has nothing but its name (no `at`, label, group…). The demo's
+  DSL panel then shows edges only.
