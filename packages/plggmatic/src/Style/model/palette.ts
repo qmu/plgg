@@ -76,7 +76,9 @@ const paletteOf = (
   dark: rowOf((c) => get("dark", c)),
 });
 
-// The monochrome default (D9): the qmu.co.jp oracle port.
+// The monochrome default (D9): pure ink on paper, the
+// plgg-flow demo's drawing-sheet palette (black, white,
+// graphite #5c5c5c, trace #e4e4e4, wash #f4f4f4).
 // Raw literals live here; every one is validated through
 // `asHexColor` when the palette is built.
 const DEFAULT_RAW: Record<
@@ -85,14 +87,14 @@ const DEFAULT_RAW: Record<
 > = {
   light: {
     surface: "#ffffff",
-    "surface-2": "#f6f6f7",
-    text: "#1f1f22",
-    muted: "#5b5b61",
-    border: "#ededee",
-    "primary-base": "#111111",
-    "primary-text": "#111111",
-    "primary-surface": "#f6f6f7",
-    "primary-border": "#767679",
+    "surface-2": "#f4f4f4",
+    text: "#000000",
+    muted: "#5c5c5c",
+    border: "#e4e4e4",
+    "primary-base": "#000000",
+    "primary-text": "#000000",
+    "primary-surface": "#f4f4f4",
+    "primary-border": "#767676",
     "success-base": "#047857",
     "success-text": "#065f46",
     "success-surface": "#ecfdf5",
@@ -111,15 +113,15 @@ const DEFAULT_RAW: Record<
     "info-border": "#2563eb",
   },
   dark: {
-    surface: "#1b1b1f",
-    "surface-2": "#202127",
-    text: "#dfdfe4",
-    muted: "#8d8d95",
-    border: "#262629",
-    "primary-base": "#f4f4f4",
-    "primary-text": "#f4f4f4",
-    "primary-surface": "#202127",
-    "primary-border": "#8a8a90",
+    surface: "#000000",
+    "surface-2": "#141414",
+    text: "#ffffff",
+    muted: "#a8a8a8",
+    border: "#2a2a2a",
+    "primary-base": "#ffffff",
+    "primary-text": "#ffffff",
+    "primary-surface": "#141414",
+    "primary-border": "#8a8a8a",
     "success-base": "#34d399",
     "success-text": "#34d399",
     "success-surface": "#022c22",

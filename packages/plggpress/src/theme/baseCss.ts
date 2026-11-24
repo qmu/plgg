@@ -13,6 +13,12 @@ import {
 } from "plggpress/themeSupport/styleEntry";
 
 /**
+ * The house look is the plgg-flow demo's drawing sheet:
+ * ink on paper, Inter with Noto Sans JP, structure drawn
+ * with 1px ink hairlines (column edges, head bars, the
+ * rule under a title), rows parted by a faint trace line,
+ * the current row inverted, nothing rounded, no shadow.
+ *
  * The bespoke layout/prose stylesheet for the default
  * theme — the qmu.co.jp sidebar-first app shell: a
  * far-right 48px chrome rail (appearance toggle + social),
@@ -82,11 +88,10 @@ main{scroll-behavior:smooth}
 }
 body.vp{
   margin:0;
-  font-family:"Inter",ui-sans-serif,system-ui,
+  font-family:"Inter","Noto Sans JP",system-ui,
     -apple-system,"Segoe UI","Hiragino Sans",
-    "Noto Sans JP",sans-serif,
-    "Apple Color Emoji","Segoe UI Emoji";
-  font-size:16px;line-height:1.7;
+    sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-size:15px;line-height:1.75;
   color:${cvar("text")};
   background:${cvar("surface")};
   -webkit-font-smoothing:antialiased;
@@ -111,11 +116,10 @@ body.vp{
   color:${cvar("text")};
   text-decoration:underline;
   text-decoration-thickness:1px;
-  text-underline-offset:2px;
-  font-weight:500;
-  padding:0.15em 0.4em;
-  margin-inline:-0.4em;
-  border-radius:0.3em;
+  font-weight:400;
+  text-underline-offset:3px;
+  padding:0.15em 0.3em;
+  margin-inline:-0.3em;
   transition:background-color 0.15s;
 }
 .vp-doc a:hover{
@@ -162,13 +166,13 @@ body.vp{
   flex:none;display:flex;flex-direction:column;
   min-height:0;overflow:hidden;
   background:${cvar("surface")};
-  border-right:1px solid ${cvar("border")};
+  border-right:1px solid ${cvar("text")};
 }
 .vp-col-head{
   flex:none;display:flex;align-items:center;
-  gap:0.5rem;height:2.75rem;
-  padding:0 0.5rem 0 1rem;
-  border-bottom:1px solid ${cvar("border")};
+  gap:0.5rem;height:3rem;
+  padding:0 0.5rem 0 1.25rem;
+  border-bottom:1px solid ${cvar("text")};
   font-size:0.875rem;line-height:1.25rem;
   font-weight:600;color:${cvar("text")};
 }
@@ -190,17 +194,17 @@ body.vp{
 }
 .vp-sidebar .vp-col-body,
 .vp-section .vp-col-body{
-  padding:0.75rem 0.5rem;font-size:0.875rem;
+  padding:0;font-size:0.875rem;
 }
 .vp-content .vp-col-body{
-  padding:1.5rem 2rem 2.5rem;
+  padding:2rem 2.5rem 3rem;
 }
 /* the close control a followed column carries, in its
    head bar; the trail names every open column, above the
    strip */
 ${selector(foldClass)}{
   flex:none;width:1.75rem;height:1.75rem;
-  border:0;border-radius:4px;background:none;
+  border:0;background:none;
   color:${cvar("muted")};font:inherit;
   font-size:1.1rem;line-height:1;cursor:pointer;
 }
@@ -212,8 +216,8 @@ ${selector(foldClass)}:focus-visible{
 ${selector(trailClass)}{
   flex:none;display:flex;align-items:stretch;
   height:2rem;overflow-x:auto;
-  border-bottom:1px solid ${cvar("border")};
-  background:${cvar("surface-2")};
+  border-bottom:1px solid ${cvar("text")};
+  background:${cvar("surface")};
   font-size:0.75rem;
 }
 ${selector(trailClass)} button{
@@ -244,7 +248,7 @@ ${selector(trailClass)} button:hover{
   padding:0.5rem 0 0.75rem;
   margin-left:auto;position:sticky;right:0;
   background:${cvar("surface")};
-  border-left:1px solid ${cvar("border")};
+  border-left:1px solid ${cvar("text")};
 }
 .vp-rail-controls{
   display:flex;flex-direction:column;
@@ -262,12 +266,12 @@ ${selector(trailClass)} button:hover{
   align-items:center;gap:0.6rem;
   height:52px;padding:0 1rem;
   background:${cvar("surface")};
-  border-bottom:1px solid ${cvar("border")};
+  border-bottom:1px solid ${cvar("text")};
 }
 .vp-mobilebar-home{
-  font-weight:500;font-size:1.05rem;
+  font-weight:600;font-size:1rem;
   color:${cvar("text")};
-  padding:0.1rem 0.4rem;border-radius:6px;
+  padding:0.1rem 0.4rem;
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
 }
@@ -311,7 +315,7 @@ ${selector(trailClass)} button:hover{
   display:block;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap;
   margin-left:-0.5rem;padding:0.25rem 0.5rem;
-  border-radius:4px;font-size:0.9375rem;
+  font-size:1rem;letter-spacing:-0.01em;
   line-height:1.25rem;font-weight:600;
   color:${cvar("text")};
   transition:background-color 0.15s
@@ -333,12 +337,12 @@ ${selector(trailClass)} button:hover{
 }
 .vp-sidebar-nav{display:block}
 /* top-level section header — always visible, no collapse */
-.vp-group{margin-top:1rem}
-.vp-group:first-child{margin-top:0.25rem}
+.vp-group{margin:0}
 .vp-group-title{
-  padding:0.25rem 0.5rem;font-size:0.875rem;
+  padding:1.1rem 1.25rem 0.4rem;font-size:0.75rem;
   line-height:1.25rem;
-  font-weight:600;color:${cvar("text")};
+  font-weight:500;color:${cvar("muted")};
+  border-bottom:1px solid ${cvar("border")};
 }
 /* leaves + subgroup headers: an inverted pill on hover;
    the active leaf wears the same pill permanently (both
@@ -349,16 +353,13 @@ ${selector(trailClass)} button:hover{
    prose leading these would otherwise inherit. */
 .vp-sidebar-link{
   display:block;
-  margin-top:1px;
-  padding:0.25rem 0.5rem;border-radius:4px;
-  font-size:0.875rem;line-height:1.25rem;
+  padding:0.5rem 1.25rem;
+  border-bottom:1px solid ${cvar("border")};
+  font-size:0.875rem;line-height:1.45;
   color:${cvar("text")};
-  transition:background-color 0.15s
-    cubic-bezier(0.4,0,0.2,1);
 }
 .vp-sidebar-link:hover{
-  background:${cvar("primary-base")};
-  color:${cvar("surface")};
+  background:${cvar("surface-2")};
   text-decoration:none;
 }
 .vp-sidebar-link:focus-visible{
@@ -369,23 +370,25 @@ ${selector(trailClass)} button:hover{
 .vp-sidebar-link[aria-current]{
   background:${cvar("primary-base")};
   color:${cvar("surface")};
-  font-weight:500;
+  border-bottom-color:${cvar("primary-base")};
 }
 .vp-sidebar-flat{
-  display:block;margin-top:1px;
-  padding:0.25rem 0.5rem;
-  font-size:0.875rem;line-height:1.25rem;
+  display:block;
+  padding:0.5rem 1.25rem;
+  border-bottom:1px solid ${cvar("border")};
+  font-size:0.875rem;line-height:1.45;
   color:${cvar("muted")};
 }
 /* a nested group: its header, then its children, always
    shown (no disclosure). qmu keeps the whole tree flush
    left — hierarchy reads from weight and spacing alone,
    never indentation (SidebarTree.tsx has no pl-/ml-). */
-.vp-subgroup{margin:0.1rem 0}
+.vp-subgroup{margin:0}
 .vp-subgroup-title{
-  padding:0.25rem 0.5rem;font-size:0.875rem;
-  line-height:1.25rem;
-  font-weight:500;color:${cvar("text")};
+  padding:0.5rem 1.25rem;font-size:0.875rem;
+  line-height:1.45;
+  border-bottom:1px solid ${cvar("border")};
+  font-weight:600;color:${cvar("text")};
 }
 /* social links live ONLY in the chrome group: the rail on
    lg+, the mobile bar below it. Nothing chrome-like is left
@@ -396,7 +399,7 @@ ${selector(trailClass)} button:hover{
 }
 .vp-social{
   display:inline-flex;align-items:center;
-  padding:0.25rem 0.4rem;border-radius:6px;
+  padding:0.25rem 0.4rem;
   font-size:0.8rem;color:${cvar("muted")};
   transition:background-color 0.15s
     cubic-bezier(0.4,0,0.2,1);
@@ -434,19 +437,26 @@ ${selector(trailClass)} button:hover{
    (the column's own 2rem top padding) and below the title
    read the same. */
 .vp-doc h1{
-  font-size:1.875rem;font-weight:400;
-  line-height:1.25;margin:0 0 2rem;
+  font-size:1.375rem;font-weight:600;
+  letter-spacing:-0.01em;
+  line-height:1.3;margin:0 0 1.25rem;
+  padding-bottom:0.875rem;
+  border-bottom:1px solid ${cvar("text")};
 }
+/* the sentence under the title is the page's description:
+   quieter, as beside the demo's titles */
+.vp-doc h1 + p{color:${cvar("muted")}}
 .vp-doc h2{
-  font-size:1.5rem;font-weight:400;
-  line-height:1.3;margin:2.1rem 0 0.9rem;
+  font-size:1.0625rem;font-weight:600;
+  line-height:1.4;margin:2.5rem 0 0.75rem;
 }
 .vp-doc h3{
-  font-size:1.1875rem;font-weight:400;
-  line-height:1.45;margin:1.6rem 0 0.6rem;
+  font-size:0.9375rem;font-weight:600;
+  line-height:1.5;margin:1.75rem 0 0.5rem;
 }
 .vp-doc h4{
-  font-size:1.0625rem;line-height:1.5;
+  font-size:0.875rem;font-weight:600;
+  line-height:1.5;color:${cvar("muted")};
   margin:1.25rem 0 0.5rem;
 }
 /* Anchor jumps clear the sticky bars (mobile bar / lg pane
@@ -460,11 +470,11 @@ ${selector(trailClass)} button:hover{
 }
 .vp-doc li{margin:0.35rem 0}
 .vp-doc strong{
-  font-weight:400;color:${cvar("text")};
+  font-weight:600;color:${cvar("text")};
 }
 .vp-doc blockquote{
-  margin:1rem 0;padding:0.25rem 1rem;
-  border-left:3px solid ${cvar("border")};
+  margin:1rem 0;padding:0.1rem 1rem;
+  border-left:1px solid ${cvar("text")};
   color:${cvar("muted")};
 }
 .vp-doc hr{
@@ -483,7 +493,7 @@ ${selector(trailClass)} button:hover{
 .vp-doc mark{
   background:${cvar("primary-base")};
   color:${cvar("surface")};
-  padding:0.1em 0.25em;border-radius:0.2em;
+  padding:0.1em 0.25em;
   box-decoration-break:clone;
   -webkit-box-decoration-break:clone;
   scroll-margin-top:1rem;
@@ -497,22 +507,11 @@ ${selector(trailClass)} button:hover{
 .vp-doc code{
   font-family:"SF Mono",Menlo,Consolas,
     "Liberation Mono",monospace;
-  font-size:0.8em;font-weight:400;
-  color:${cvar("primary-base")};
-  background:rgba(0,0,0,0.08);
-  border:1px solid rgba(0,0,0,0.15);
-  padding:0.1em 0.4em;border-radius:0.2rem;
-  transition:background-color 0.15s;
-}
-.vp-doc code:hover{
-  background:rgba(0,0,0,0.16);
-}
-html.dark .vp-doc code{
-  background:rgba(255,255,255,0.13);
-  border-color:rgba(255,255,255,0.18);
-}
-html.dark .vp-doc code:hover{
-  background:rgba(255,255,255,0.24);
+  font-size:0.86em;font-weight:400;
+  color:${cvar("text")};
+  background:${cvar("surface-2")};
+  border:1px solid transparent;
+  padding:0.1em 0.35em;
 }
 /* a LINK wrapping an inline-code badge: when the link's
    hover/focus inversion paints, the badge must flip to the
@@ -540,18 +539,17 @@ html.dark .vp-doc a:focus-visible code{
   border-color:transparent;
 }
 .vp-doc pre{
-  background:${cvar("surface-2")};
-  border:1px solid ${cvar("border")};
-  padding:1.1rem 1.25rem;border-radius:10px;
+  background:${cvar("surface")};
+  border:1px solid ${cvar("text")};
+  padding:0.875rem 1rem;
   overflow-x:auto;margin:1.1rem 0;
-  font-size:0.86rem;line-height:1.6;
+  font-size:0.8125rem;line-height:1.65;
 }
 .vp-doc pre code{
-  background:none;padding:0;border-radius:0;
+  background:none;padding:0;
   border:none;font-size:inherit;
   color:inherit;
 }
-html.dark .vp-doc pre code{background:none}
 /* syntax-highlight hues (plgg-highlight's span classes) are
    framework-owned now: themeSupport's syntaxCss emits the
    framework code-token properties + the class rules per
@@ -565,11 +563,12 @@ html.dark .vp-doc pre code{background:none}
   display:block;overflow-x:auto;font-size:0.92rem;
 }
 .vp-doc th,.vp-doc td{
-  border:1px solid ${cvar("border")};
-  padding:0.5rem 0.85rem;text-align:left;
+  border-bottom:1px solid ${cvar("border")};
+  padding:0.5rem 1.25rem 0.5rem 0;text-align:left;
 }
 .vp-doc th{
-  background:${cvar("surface-2")};font-weight:600;
+  border-bottom-color:${cvar("text")};
+  font-weight:600;
 }
 
 /* callouts — qmu's tinted model (VitePress-style), now on
@@ -583,14 +582,14 @@ html.dark .vp-doc pre code{background:none}
    text colour. */
 .vp-callout{
   margin:1.25rem 0;padding:0.75rem 1rem;
-  border-radius:6px;border:1px solid transparent;
-  border-left-width:4px;
+  border:1px solid transparent;
+  border-left-width:1px;
   font-size:0.875rem;line-height:1.625;
 }
 .vp-callout-title{font-weight:600;margin:0 0 0.35rem}
 .vp-callout p{margin:0.35rem 0}
 .vp-callout-info,.vp-callout-note{
-  background:${cvar("surface-2")};
+  background:${cvar("surface")};
   border-color:${cvar("primary-base")};
   color:${cvar("text")};
 }
@@ -614,9 +613,7 @@ html.dark .vp-doc pre code{background:none}
    oversized relative to the phone column; scale them down.
    Body text keeps its base size. */
 @media ${maxWidth("sm")}{
-  .vp-doc h1{font-size:1.75rem;line-height:1.25}
-  .vp-doc h2{font-size:1.375rem;line-height:1.3}
-  .vp-doc h3{font-size:1.125rem}
+  .vp-doc h1{font-size:1.25rem}
 }
 
 @media ${minWidth("lg")}{
@@ -649,8 +646,8 @@ html.dark .vp-doc pre code{background:none}
   .vp-sidebar{
     position:fixed;top:0;left:0;z-index:50;
     height:100dvh;width:17rem;max-width:82vw;
-    background:${cvar("surface-2")};
-    border-right:1px solid ${cvar("border")};
+    background:${cvar("surface")};
+    border-right:1px solid ${cvar("text")};
     transform:translateX(-100%);
     transition:transform 0.2s ease-out;
   }
@@ -660,5 +657,9 @@ html.dark .vp-doc pre code{background:none}
   .vp-menu-cb:checked ~ .vp-backdrop{display:block}
 }
 .vp-doc iframe{display:block;margin:1.25rem 0}
+::selection{
+  background:${cvar("text")};
+  color:${cvar("surface")};
+}
 `;
 };

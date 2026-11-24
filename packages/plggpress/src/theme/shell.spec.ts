@@ -202,7 +202,7 @@ test("falls back to config.title when firstHeading is None", () =>
     toContain("<title>plgg Guide</title>"),
   ));
 
-test("emits only a base-routed canonical <link>, no external stylesheet", () =>
+test("emits a base-routed canonical <link>; the only external stylesheet is the type", () =>
   all([
     // canonical is routed through href(config.base)
     check(
@@ -213,10 +213,12 @@ test("emits only a base-routed canonical <link>, no external stylesheet", () =>
         )("/")}" />`,
       ),
     ),
-    // the restyle inlines the theme, so no external
-    // stylesheet link remains
+    // the theme is inlined; the one stylesheet link is
+    // the house face (Inter + Noto Sans JP)
     check(
       rendered,
-      not(toContain('rel="stylesheet"')),
+      toContain(
+        'rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter',
+      ),
     ),
   ]));

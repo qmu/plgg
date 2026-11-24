@@ -131,6 +131,34 @@ const documentHead = (
         ],
         [],
       ),
+      link(
+        [
+          attr("rel", "preconnect"),
+          attr(
+            "href",
+            "https://fonts.googleapis.com",
+          ),
+        ],
+        [],
+      ),
+      link(
+        [
+          attr("rel", "preconnect"),
+          attr(
+            "href",
+            "https://fonts.gstatic.com",
+          ),
+          attr("crossorigin", ""),
+        ],
+        [],
+      ),
+      link(
+        [
+          attr("rel", "stylesheet"),
+          attr("href", fontsHref),
+        ],
+        [],
+      ),
       style(
         [],
         [
@@ -145,6 +173,11 @@ const documentHead = (
     ],
   );
 };
+
+/** The type the demo set as the house face: Inter with
+ * Noto Sans JP, three weights. */
+const fontsHref =
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;600&display=swap";
 
 /**
  * The full `<html>` document SHELL for one rendered

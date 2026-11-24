@@ -161,26 +161,31 @@ test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
     ),
   ]));
 
-test("prose links carry qmu's weight and hit-area, cloning on wrap", () =>
+test("prose links keep a padded hit-area, cloning on wrap", () =>
   all([
-    check(css, toContain("padding:0.15em 0.4em")),
-    check(css, toContain("margin-inline:-0.4em")),
+    check(css, toContain("padding:0.15em 0.3em")),
+    check(css, toContain("margin-inline:-0.3em")),
     check(
       css,
       toContain("box-decoration-break:clone"),
     ),
   ]));
 
-test("headings: H1 2rem symmetry (tightened rhythm) and the sub-sm downscale from the token breakpoint", () =>
+test("headings: the title sits on an ink hairline, and the sub-sm downscale comes from the token breakpoint", () =>
   all([
-    check(css, toContain("margin:0 0 2rem")),
+    check(
+      css,
+      toContain(
+        "border-bottom:1px solid " + cvar("text"),
+      ),
+    ),
     // the sub-sm media boundary is composed from
     // plggmatic's maxWidth("sm") → (max-width:639px)
     check(
       css,
       toContain("@media (max-width:639px)"),
     ),
-    check(css, toContain("font-size:1.75rem")),
+    check(css, toContain("font-size:1.25rem")),
     check(
       css,
       toContain("scroll-margin-top:1rem"),
@@ -199,21 +204,19 @@ test("the lg app-shell boundary is the token breakpoint too", () =>
     ),
   ]));
 
-test("inline code is the translucent overlay badge (surface-independent, not a token)", () =>
+test("inline code is a square wash of the token surface, no overlay alphas", () =>
   all([
-    check(css, toContain("rgba(0,0,0,0.08)")),
-    check(css, toContain("rgba(0,0,0,0.15)")),
+    check(css, not(toContain("rgba(0,0,0,0.08)"))),
     check(
       css,
-      toContain("rgba(255,255,255,0.13)"),
-    ),
-    check(css, toContain(".vp-doc code:hover")),
-    // its ink IS a token (primary-base), matching the old brand
-    check(
-      css,
-      toContain("color:" + cvar("primary-base")),
+      toContain(
+        "background:" + cvar("surface-2"),
+      ),
     ),
   ]));
+
+test("nothing in the sheet is rounded", () =>
+  check(css, not(toContain("border-radius"))));
 
 test("chrome text: the wordmark sits in a head bar, the footer is 13px", () =>
   all([
@@ -221,15 +224,15 @@ test("chrome text: the wordmark sits in a head bar, the footer is 13px", () =>
     check(
       css,
       toContain(
-        "border-radius:4px;font-size:0.9375rem",
+        "font-size:1rem;letter-spacing:-0.01em",
       ),
     ),
   ]));
 
-test("the sans stack leads with Inter then qmu's system chain", () =>
+test("the sans stack leads with Inter and Noto Sans JP", () =>
   check(
     css,
-    toContain('"Inter",ui-sans-serif,system-ui'),
+    toContain('"Inter","Noto Sans JP",system-ui'),
   ));
 
 test("no per-page 目次 panel styles remain (widget removed, 2026-07-03)", () =>
@@ -250,20 +253,26 @@ test("the sidebar tree is flush left - hierarchy by weight, never indentation", 
     check(
       css,
       toContain(
-        "padding:0.25rem 0.5rem;font-size:0.875rem",
+        "padding:0.5rem 1.25rem;font-size:0.875rem",
       ),
     ),
   ]));
 
-test("sidebar rows carry qmu's text-sm leading and 1px item gap", () =>
+test("sidebar rows are full-width, ruled by a hairline, the current one inverted", () =>
   all([
     check(
       css,
       toContain(
-        "font-size:0.875rem;line-height:1.25rem",
+        "font-size:0.875rem;line-height:1.45",
       ),
     ),
-    check(css, toContain("margin-top:1px")),
+    check(
+      css,
+      toContain(
+        "border-bottom-color:" +
+          cvar("primary-base"),
+      ),
+    ),
   ]));
 
 test("a hovered link's inline-code badge flips to the hover ink (never ink-on-ink)", () =>
@@ -327,7 +336,7 @@ test("the strip is one frame, one strip, one column shape", () =>
       css,
       toContain(
         "border-right:1px solid " +
-          cvar("border"),
+          cvar("text"),
       ),
     ),
     check(

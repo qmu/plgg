@@ -227,11 +227,17 @@ export const navigationInitScript: SoftStr =
   "if(j===c.length-1){a.setAttribute('aria-current','true');}" +
   "a.setAttribute('data-col',String(j));" +
   "t.appendChild(a);})(c[j],j);}}" +
-  "var r=B+(c.length?c[c.length-1].getAttribute(C)||'':'');" +
+  // with nothing followed, the page itself is current; a
+  // static host may add a trailing slash, so compare bare
+  "var bare=function(p){return p.length>1?p.replace(/\\/+$/,''):p;};" +
+  "var r=bare(c.length?B+(c[c.length-1].getAttribute(C)||''):location.pathname);" +
   "var ls=document.querySelectorAll('a[href]');" +
   "for(var m=0;m<ls.length;m++){var l=ls[m];" +
   "if(columnOf(l)>=0||!l.closest('nav')){continue;}" +
-  "if(l.pathname===r){l.setAttribute('aria-current','page');}" +
+  // the marks the page was rendered with (its own row AND
+  // its section's) are what holds while nothing is followed
+  "if(l.getAttribute('data-home')===null){l.setAttribute('data-home',l.getAttribute('aria-current')==='page'?'1':'0');}" +
+  "if(c.length?bare(l.pathname)===r:l.getAttribute('data-home')==='1'){l.setAttribute('aria-current','page');}" +
   "else if(l.getAttribute('aria-current')==='page'){l.removeAttribute('aria-current');}}}" +
   "window.addEventListener('popstate',function(){reconcile();});" +
   // on a hard load of a composition URL, the marks are
