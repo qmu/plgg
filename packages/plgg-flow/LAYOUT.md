@@ -1527,3 +1527,63 @@ depth readable without labels 20 · which board / cell each node
 is in 15 · wires followable start to end 20 · nothing overlaps
 or smears 15 · line and tone hierarchy 10 · typography and
 spacing 10 · calm (alignment, few coordinates) 10.
+
+## What it is for (owner: "across many kinds of drawings, from many angles — how can the things of the world be modelled, and seen which way do they become plain")
+
+This is the aim the space work serves, and it changes what is
+judged. One pretty sample proves nothing. The questions are:
+*can a real subject be written down as axes, nodes and edges
+without strain*, and *is there a way of looking at it in which its
+point is obvious — and does the sheet find that way itself*.
+
+**1. Subjects, not samples.** A corpus of real things, each with
+the sentence it is supposed to make plain. It is the reviewer's
+shooting set, the audit's input and the gallery's source:
+
+| subject | axes | what should be plain |
+|---|---|---|
+| a web service's tiers | 層 | requests fall through the layers; one service skips a layer |
+| the same across environments | 層 × 環境 | 検証 lacks what 本番 has |
+| teams × stages of a release | 担当 × 工程 | where work piles up; one team touches every stage |
+| a supply chain | 工程 × 地域 | one region is a single point of failure |
+| data lineage | 領域 × 段階 (raw / cleaned / served) × 機密度 | sensitive data reaches a public table |
+| an incident | 時刻帯 × チーム | who waited on whom |
+| a curriculum | 学年 × 分野 | prerequisites that jump years |
+| a network | 層 (L2 / L3 / L7) × 拠点 | a path that leaves and re-enters a site |
+| module dependencies | パッケージ × 層 | an upward dependency (a cycle across layers) |
+| an org with projects | 部署 × 案件 × 四半期 | one person-node carrying three projects |
+
+Each is 8–20 nodes; each goes into `space-audit.mjs` and, written
+as Markdown, into the gallery.
+
+**2. The sheet finds the telling view.** For a classified graph
+there are only so many ways to look: which axis takes which role
+(x, y, z, column, row — permutations, with storeys preferred for
+the axis whose values are ordered like layers) and a handful of
+camera positions. Score each candidate on the *projected* picture
+and open with the best:
+
+- nodes hidden behind others (area covered) — weight 5
+- wire crossings on screen, wire-over-node — weight 3
+- overlapping labels / tags — weight 2
+- the picture's aspect against the open frame (wasted area) — 1
+- wires that run against the reading direction (right-to-left,
+  bottom-to-top) — 1
+
+`bestViews(classification, frame) → { view, camera, score }[]`,
+pure, the top three kept. A written `view` line fixes the roles
+(then only cameras are searched). Toolbar: 「見方」 steps through
+the top three, animated; the DSL shows the `view` line of the one
+on screen so a liked view can be kept by writing it down.
+
+**3. The point can be shown.** A subject's sentence is usually
+about a few nodes and edges. `mark A B "A -> B"` (a line in the
+text) marks them: everything else goes quiet when the sheet opens,
+and the view search weights the marked things' visibility ×3. One
+click on the paper clears the mark. (Emphasis through the general
+`quiet` seam.)
+
+Acceptance for this section is by the corpus: for each subject the
+reviewer opens the sheet cold and writes down what they see in one
+sentence *before* reading the intended one; a subject passes when
+the two agree. Target 8 of 10.
