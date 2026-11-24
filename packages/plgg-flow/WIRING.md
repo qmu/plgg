@@ -1175,3 +1175,25 @@ forwards gets long horizontal-looking handles. For sockets on
 different sides the control length is now measured along the socket
 normals: `c = clamp(0.5 · max(|AB·nA|, |AB·nB|), 24, 160)`. Same-side
 arches keep `24 + 0.13·|AB|`. The audit's canonical check uses this.
+
+## Round 26 review — adopted (with layout L2)
+
+Control length along the socket axis: hub laid out downwards 56 → 0
+wire crossings, `not-canonical` 0, `awkward-side` 15 → 3. `stiff-curve`
+is now a note: a soft polyline is straight by design. State: sev3 8,
+moderate 125.
+
+For round 27, by what the sheet shows:
+- `hub`/curve `siblings-cross` 10: a fan into one socket where some
+  wires are cubics and the blocked ones soft polylines; the polylines
+  cut across the fan. In a fan, a blocked wire keeps the fan's order:
+  its via goes on the side of the fan where its far end lies.
+- `clusters`, `grid5x4`: `snake` 10 — soft polylines with more than
+  one change of direction. A soft polyline has at most two vias; if
+  the searched route needs more, keep only the two that clear the
+  blocking boxes and re-check.
+- real overlaps (8: pipelineSkips arches sharing a socket at both
+  ends, radial, clusters).
+- drag: `drag-jump-neighbour` 13, `drag-jump` 5.
+- step style: `wiggly` 17 (round 23 was stopped; its partial work is
+  in `git stash` and may be consulted but is stale).

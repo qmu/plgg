@@ -156,3 +156,23 @@ Open, from looking at the sheet rather than the numbers:
   layout reserved for them (virtual nodes are not passed to wiring).
 - the sample sits small in the demo frame; fit-to-view on load.
 - depth: reversed and long edges do not yet get their own height.
+
+## For round L4
+
+- **Long edges follow the layout.** `planLayers` also returns
+  `routes: ReadonlyMap<number, readonly Point[]>` (edge index → the
+  positions of its virtual nodes, in order). `specFlow` stores them on
+  the edge as `via` (new optional `Edge` field), dropped as soon as
+  either end node is moved by hand. Wiring uses `via` as the soft
+  polyline's via points for that edge (curve style) or as the bend
+  rows (step style) when present and free. Audit expectation:
+  microservices wire crossings ≤ centre-line crossings + 2.
+- **Depth carries meaning beyond layers.** With `depth: true`:
+  reversed edges travel at their own height — the wire rises 24 above
+  the higher of its two ends, runs back, and comes down (the viewport
+  already draws wires between nodes of different z; extend the wire
+  with an optional `lift` so a reversed edge is visibly a bridge over
+  the forward flow when the sheet is turned). From the front the 2D
+  picture is unchanged.
+- **Fit to view.** The demo fits the diagram to the board on load and
+  on reset (largest scale ≤ 1 that leaves a 48px margin).
