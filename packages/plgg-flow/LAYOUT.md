@@ -1458,3 +1458,72 @@ Seen in the browser as well: on the rooms sheet four nodes (Auth,
 Users, Payments, Ledger) are drawn grey although nothing is pinned
 — scenery or a stale `quiet` is veiling them again; and the layer
 sheet is still the upright panes (to be replaced by the cake).
+
+## Drawing the space well — art direction, black and white (owner: "after that, pursue spatial intuition and beauty again; it is still 20 points out of 100")
+
+Correctness is in place (one scene, standard boxes, lattice wires,
+an audit). What is missing is *drawing*: the sheet is a wireframe
+with labels. A good technical illustration says depth with five
+old means, none of which needs colour. Apply all five, to every
+3D sheet (they belong to the standard renderer and the scenery
+primitives, not to rooms):
+
+1. **Light from the upper left: three tones for three
+   orientations.** Every solid — node box, board, slab — is
+   shaded by which way a face looks, the same everywhere: faces
+   looking up are paper; faces looking toward the viewer's left
+   are the wash; faces looking right are a darker wash (new token
+   `--shade`, between wash and trace… light `#e9e9e9`, dark
+   `#1f1f1f`). Front faces carrying a caption stay paper. Tone
+   depends on the face's world normal and the camera's side, never
+   on distance.
+2. **Line weight says what is an edge of the thing and what is
+   inside it.** Silhouette edges (between a visible face and
+   nothing) 1.5px ink; inner edges (between two visible faces)
+   0.75px ink; hidden edges are not drawn. Boards: silhouette
+   1.25px ink, rulings 0.5px trace. Wires stay 1.25px.
+3. **Things rest on things: cast shadows.** A node casts a flat
+   shadow on its board, offset down-right along the light (a
+   parallelogram, `--shade` at 60 %, no blur); a board casts the
+   same on the board below, clipped to it, at 35 %. Shadows are
+   scenery in the `sorted` layer just above the receiving board.
+   This is what makes a box *stand* instead of float.
+4. **Behind means interrupted.** A line that passes behind a
+   solid stops 3px short of its silhouette and resumes 3px after
+   (the paper halo already used at wire crossings, applied to
+   solids). Where a vertical drop passes *through* a board, a
+   small ellipse (the hole, 6 × 3 in the board's plane, ink
+   0.75px, paper fill) marks the place; where it *lands*, the
+   arrowhead sits on the node as usual.
+5. **Rhythm: things line up.** Columns of nodes on different
+   boards share x and z whenever the optimiser can (already its
+   aim), so drops are parallel verticals; boards have equal
+   margins (32) and equal gaps; every dimension a multiple of 16.
+   Add to the audit: the share of drops that are exactly vertical
+   and the number of distinct x / z coordinates used by node
+   centres (fewer is calmer).
+
+**The stage, quieter.** A single ground shadow under the whole
+stack (the footprint offset along the light, `--shade` 35 %)
+replaces the far-face rulings on cake sheets; rooms keep the far
+faces but at 0.5px trace. Axis dimension lines stay pencil.
+
+**Lettering.** Board names: 12px 600 ink, lying *in the board's
+plane* along its front edge (isometric lettering — sheared with
+the board, baseline on the edge), because a name that lies on the
+board belongs to it; if the edge's projected slope makes the text
+steeper than 35° or narrower than 60 %, it stands upright as a
+tag instead. Node captions as decided (face ≥ 70 %, else tag).
+
+**Opening.** A space sheet opens with the boards (or storeys)
+together and moves them apart to their places in 500 ms, ease-out,
+once (respecting reduced motion: no animation). 正面 ↔ 立体 turn
+in 300 ms as now.
+
+**Scoring** (the reviewer scores every round out of 100 from
+browser shots at the opening view, 正面, 上, behind, and two
+arbitrary angles; a round passes on to the owner at ≥ 80):
+depth readable without labels 20 · which board / cell each node
+is in 15 · wires followable start to end 20 · nothing overlaps
+or smears 15 · line and tone hierarchy 10 · typography and
+spacing 10 · calm (alignment, few coordinates) 10.
