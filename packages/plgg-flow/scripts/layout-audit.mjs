@@ -62,6 +62,12 @@ const audit = (name, sc, dir) => {
   const rev = new Set(plan.reversed); let reversed = 0;
   g.edges.forEach((x, i) => { if (x.source === x.target) return; const a = by.get(x.source), b = by.get(x.target); const fwd = b.position[main] - a.position[main]; if (rev.has(i)) { reversed++; return; } if (!(L.get(x.target) > L.get(x.source))) add(3, "layer-order", `${x.source}→${x.target}`); else if (fwd < 40) add(2, "not-forward", `${x.source}→${x.target} ${fwd.toFixed(0)}u`); });
   const ref = reference(g0);
+  // a reversed edge is one that returns toward where the flow starts: the roots (no inputs), or the first node written if there are none
+  { const roots = g0.nodes.filter((m) => !g0.edges.some((x) => x.target === m.id && x.source !== m.id)).map((m) => m.id); const start = roots.length ? roots : [g0.nodes[0].id]; const dist = new Map(start.map((id) => [id, 0])); const q = [...start]; while (q.length) { const u = q.shift(); for (const x of g0.edges) if (x.source === u && !dist.has(x.target)) { dist.set(x.target, dist.get(u) + 1); q.push(x.target); } }
+    g.edges.forEach((x, i) => { if (rev.has(i) && dist.has(x.source) && dist.has(x.target) && dist.get(x.target) > dist.get(x.source)) add(2, "reversed-the-wrong-edge", `${x.source}→${x.target} leads away from the start (${start[0]}) but is drawn backwards`); });
+    if (!roots.length && L.get(start[0]) !== 0) add(2, "start-not-first", `${start[0]} is written first but sits in layer ${L.get(start[0])}`); }
+  // a sheet is not a ribbon: few nodes in one long line with arcs is a failed layering
+  { const count = new Map(); g.nodes.forEach((m) => count.set(L.get(m.id), (count.get(L.get(m.id)) ?? 0) + 1)); const chainOnly = g.edges.filter((x) => x.source !== x.target).every((x) => Math.abs(L.get(x.target) - L.get(x.source)) === 1); if (g.nodes.length >= 6 && count.size === g.nodes.length && !chainOnly && reversed >= 2) add(2, "ribbon", `${g.nodes.length} nodes in ${count.size} layers of one`); }
   const lim = sc.maxReversed ?? ref.reversed; if (reversed > lim) add(2, "too-many-reversed", `${reversed} > ${lim}`);
   // layers are straight lines: same layer, same main coordinate (centres)
   const mains = new Map(); g.nodes.forEach((m) => { const l = L.get(m.id); const v = mains.get(l); if (v === undefined) mains.set(l, m.position[main]); else if (Math.abs(v - m.position[main]) > 1) add(2, "ragged-layer", `${m.id} in layer ${l}`); });

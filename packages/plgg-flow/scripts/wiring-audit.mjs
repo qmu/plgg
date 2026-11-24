@@ -132,7 +132,7 @@ const audit = (g, wires, style) => {
     // changes the sign of its curvature at most once (C or S, never a snake).
     if (style === "curve" && s.id !== t.id && w.edge.route !== "straight") {
       const nrm = (q, e) => Math.abs(e.x - q.l) < 1.5 ? { x: -1, y: 0 } : Math.abs(e.x - q.r) < 1.5 ? { x: 1, y: 0 } : Math.abs(e.y - q.t) < 1.5 ? { x: 0, y: -1 } : { x: 0, y: 1 };
-      const A = pts[0], B = pts[pts.length - 1], na = nrm(sb, A), nb = nrm(tb, B), dist = Math.hypot(B.x - A.x, B.y - A.y), sameSide = na.x === nb.x && na.y === nb.y, c = sameSide ? 24 + 0.13 * dist : Math.max(24, Math.min(160, 0.45 * dist));
+      const A = pts[0], B = pts[pts.length - 1], na = nrm(sb, A), nb = nrm(tb, B), dist = Math.hypot(B.x - A.x, B.y - A.y), sameSide = na.x === nb.x && na.y === nb.y, along = Math.max(Math.abs((B.x - A.x) * na.x + (B.y - A.y) * na.y), Math.abs((B.x - A.x) * nb.x + (B.y - A.y) * nb.y)), c = sameSide ? 24 + 0.13 * dist : Math.max(24, Math.min(160, 0.5 * along));
       const P1 = { x: A.x + na.x * c, y: A.y + na.y * c }, P2 = { x: B.x + nb.x * c, y: B.y + nb.y * c };
       const canon = Array.from({ length: 41 }, (_, k) => { const u = k / 40, v = 1 - u; return { x: v * v * v * A.x + 3 * v * v * u * P1.x + 3 * v * u * u * P2.x + u * u * u * B.x, y: v * v * v * A.y + 3 * v * v * u * P1.y + 3 * v * u * u * P2.y + u * u * u * B.y }; });
       const canonFree = !g.nodes.some((m) => { if (m.group) return false; const q = box(m), own = m.id === s.id || m.id === t.id; return canon.some((p, k) => own ? k > 5 && k < 35 && dBox(p, q) < 4 : dBox(p, q) < 10); });

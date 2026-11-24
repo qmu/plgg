@@ -86,3 +86,29 @@ A new sample "自動配置" in plgg-flow-example: a 15-node service
 diagram written as edges only with `layout layered right depth`, with
 the existing view-angle sliders so the user can turn it and see the
 layers as steps. The description (Japanese) says what to try.
+
+## Round L1 review — adopted
+
+sev3 0; trees, lattice, diamonds, CI, components come out as a person
+would draw them; 200 nodes in 4 ms; depth shows the layers as steps in
+the demo. The audit let three things through that the sheet shows, and
+now checks them:
+
+- `reversed-the-wrong-edge`: cycles were broken without regard to
+  where the flow starts. microservices put Payments and Queue in layer
+  0, left of Gateway, by reversing Orders→Payments instead of
+  Payments→Orders. Rule: a reversed edge returns toward the roots
+  (nodes with no inputs; if there are none, the node written first —
+  the one exception to order-independence, because for a pure cycle
+  the author's first node IS the start). Break cycles by DFS from the
+  roots in that sense: only edges that close a cycle back to an
+  ancestor are reversed.
+- `start-not-first` and `ribbon`: stateMachine came out as one row of
+  seven with arcs underneath, starting at Editing. With the rule above
+  Idle is first; layering should then give Loading / Ready+Error / …
+  a second dimension, not a line.
+- The demo sample still lists every node; it should be edges only.
+
+Still open: `sprawl` on wide layers (hub downwards: 12 inputs in one
+row). Wide layers of leaves may wrap into two rows when a layer is
+more than 3× wider than the median layer.

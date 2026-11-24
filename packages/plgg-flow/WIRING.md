@@ -1164,3 +1164,14 @@ Open:
   blocking boxes, so a passing node flips sides).
 - dense sheets (grid5x4, scatter) remain busy: that is placement, the
   subject of the layout work that follows.
+
+## Control length follows the socket axis (found through the layout sheet)
+
+`hub` laid out downwards: twelve inputs in a row 60u above the hub,
+and their cubics flatten into one horizontal band (56 wire crossings
+for 0 centre-line crossings). The control length was taken from the
+Euclidean distance, so a wire that travels far sideways and little
+forwards gets long horizontal-looking handles. For sockets on
+different sides the control length is now measured along the socket
+normals: `c = clamp(0.5 · max(|AB·nA|, |AB·nB|), 24, 160)`. Same-side
+arches keep `24 + 0.13·|AB|`. The audit's canonical check uses this.
