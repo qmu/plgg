@@ -1910,3 +1910,26 @@ Small things seen:
   7px; nothing to do in the drawing — the sheet should open on
   one block with the other as an outline and step between them
   (「見方」 already cycles views; a block focus is the next idea).
+
+## Shooting round 5 — the last subjects, block focus, marks
+
+Adopted: a marked edge inks its nodes (store → view now reads at
+once), the phone sheet's single title, block focus on four axes
+(東京 at full size, 大阪 an outline beside it).
+
+All twenty subjects read cold: eighteen say their sentence
+(層 — "Report reaches Sales past 業務"; 環境 — "Billing and Ledger
+exist only in 本番"; MVVM — plain). Two do not:
+
+- **学ぶ順番**: the view chosen puts the long 学年 axis receding
+  and the block comes out small — captions about 7px, unreadable.
+  The view search does not value being able to read. Add a
+  legibility term: captions' on-screen height (fitted scale ×
+  13 × the face's projected ratio), cost rising steeply below
+  11px; weight 4. A two-axis subject will then open nearly
+  face-on to its wall, as it should.
+- **次元を足す** (two blocks at once) is handled by block focus.
+
+Also: with the block steppers the desktop toolbar wraps to a
+second row over the drawing. The toolbar is one row at every
+width; what does not fit goes into a 「…」 menu at the end.
