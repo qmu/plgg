@@ -1431,3 +1431,12 @@ reordering of nodes, pinning and filtering (colour follows the
 entity); a 9th value has no hue; `color off` yields the exact
 ink sheet of before; captions' fill is never a hue; print / parse
 round trip of `color`.
+
+**Order (owner, right after): "only after every effort that can be
+made in black and white has been made."** The colour section above
+is parked — not to be implemented until the monochrome sheet is as
+good as it can be: boards as things, wires along the lattice with
+zero overlaps, crossings optimised with node positions, names
+readable from every side, the shooting list passing. Colour then
+has to earn its place against that result, not cover for what the
+drawing fails to say.
