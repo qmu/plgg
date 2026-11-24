@@ -102,9 +102,13 @@ test("pressServeWeb is a no-op over pressRouter: identical route set", () =>
       served.routes.length,
       toBe(built.routes.length),
     ),
-    // one GET route per discovered path, nothing added
+    // one GET route per discovered path; the only other
+    // routes are plggpress's own island modules
     check(
-      served.routes.length,
+      served.routes.filter(
+        (r) =>
+          !r.pattern.includes("assets/islands/"),
+      ).length,
       toBe(paths.length),
     ),
   ]));
