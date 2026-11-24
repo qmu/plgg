@@ -1186,3 +1186,71 @@ painted before a box; caption-on-face switches at 70 / 75 %; at
 yaw 150° captions are on back faces and their text runs left to
 right on screen; after `orbitByDrag` on a sheet with `cover`, the
 bounds' centre projects to the open frame's centre.
+
+## Wires in space — no compromise (owner: "I don't want to compromise on the edges either")
+
+Seen in the shots: wires on a space sheet are the flat sheet's
+curves stretched between sockets that happen to differ in depth
+and height. In parallel projection a free curve through space has
+no readable depth — the eye cannot tell where it is — and several
+pass through boxes and plates.
+
+**A wire in space runs along the lattice's directions.** The stage
+gives the eye three directions; a wire made of runs parallel to
+them is as readable as the stage itself, from any angle.
+
+Route (pure, in `space.ts` beside the positions, returned as
+`routes: Map<edgeId, Point3[]>`; drawn by the standard renderer
+through one general seam — an edge may carry `path?: Point3[]`,
+waypoints in the flow's coordinates, drawn as a polyline with the
+standard fillet, depth-sorted run by run):
+
+1. **Same storey, same depth row, facing sockets**: no path — the
+   standard wire (it lies in one plane and already reads).
+2. Otherwise an orthogonal route of at most four runs, in this
+   order of preference:
+   - leave the source's socket along x by a 16 stub into the
+     **aisle** beside the node (the free strip between node rows
+     and cell walls);
+   - change depth (z) in the aisle, at socket height;
+   - change storey (y) with one vertical **riser** in the aisle —
+     risers of one block share few aisles so they read as shafts;
+   - arrive along x into the target's socket with a 16 stub.
+   Same column, different storey, same depth: top / bottom sockets
+   and one straight riser.
+3. **Nothing is pierced**: no run passes through any node's box
+   (grown by 6); a riser passes a storey plate only in an aisle.
+4. **Parallel runs keep apart**: runs sharing an aisle take lanes
+   8 apart, ordered so they do not cross each other where avoidable
+   (sort by the far end's position along the run's direction).
+5. Corners are filleted (radius 8); the arrowhead lies along the
+   last run and stops at the dot rim as on every sheet.
+6. **Depth is visible**: runs are painted in the standard depth
+   order with boxes and plates; where two runs cross on screen the
+   nearer one is drawn over a 3px paper halo (the existing bridge
+   gap), so which is in front is never in doubt.
+7. Tone as decided: ink. (Quiet only when a pin puts them outside
+   the chosen slab.)
+8. Dragging a node re-routes only its own wires; the route is a
+   function of the two end cells, the two nodes and the aisle lanes
+   — stable under orbit (routes never depend on the camera).
+
+Blocks (4th / 5th axis): a wire between blocks leaves by the
+block's nearest side aisle, crosses the gap at ground level + its
+socket height in one straight run, and enters the other block's
+side aisle. The same rules.
+
+Layers sheets: a wire between layers is the in-plane standard wire
+on the source's layer up to a point 16 short of the target's
+position in the sheet plane, then one straight run along z to the
+target's layer (a short "via"), then the 16 stub. In-layer wires
+are the standard wires.
+
+Specs (in `space.spec.ts`, over the two space samples, the layers
+sample and ten random spaces of 2–4 axes): every run of a path is
+parallel to x, y or z; at most four runs between stubs; no run
+meets a grown node box; no riser meets a plate outside an aisle;
+parallel runs in one aisle are ≥ 8 apart; path length ≤ 1.6 × the
+Manhattan distance between its sockets; routes are identical for
+two cameras; moving one node changes only paths touching it;
+routing all wires of the sample takes under 2 ms.
