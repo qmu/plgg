@@ -574,6 +574,8 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     display: none;
   }
   .dsl-row {
+    user-select: none;
+    -webkit-user-select: none;
     position: relative;
     min-height: 1.7em;
     width: max-content;
@@ -583,38 +585,17 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .dsl-row:hover {
     background: var(--wash);
   }
-  .dsl-row[aria-selected='true'] {
-    box-shadow: -2px 0 var(--ink);
+  .dsl-row[aria-selected='true']::before {
+    content: '';
+    position: absolute;
+    inset: 0 100% 0 auto;
+    width: 2px;
+    background: var(--ink);
   }
   .dsl-row[aria-invalid='true'] {
     text-decoration: underline wavy var(--ink);
   }
-  .dsl .dsl-row button {
-    background: transparent;
-    color: inherit;
-    border: 0;
-    padding: 0;
-    font: inherit;
-  }
-  .dsl-row:hover .dsl-token,
-  .dsl-token:focus-visible {
-    text-decoration: underline dotted;
-    text-underline-offset: 3px;
-  }
-  .dsl-token {
-    touch-action: none;
-  }
-  .dsl .dsl-row .ghost {
-    color: var(--pencil);
-  }
-  .dsl .dsl-row .dsl-delete {
-    margin-left: 1ch;
-  }
-  .dsl-delete {
-    float: right;
-  }
-  .dsl-field,
-  .dsl-menu {
+  .dsl-field {
     position: absolute;
     z-index: 4;
     font:
@@ -624,29 +605,69 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     color: var(--ink);
     border: 1px solid var(--ink);
   }
-  .dsl-menu {
-    overflow: auto;
+  .dsl .dsl-properties {
+    margin: 0;
+    padding: 6px 0 10px;
   }
-  .dsl .dsl-menu button {
+  .dsl-properties {
+    flex: 0 1 auto;
+    max-height: 45%;
+    overflow: auto;
+    border-top: 1px solid var(--ink);
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .dsl-properties strong {
     display: block;
-    width: 100%;
-    border: 0;
-    text-align: start;
+    padding: 4px 14px 6px;
+    font-weight: 600;
+  }
+  .property-row {
+    display: grid;
+    grid-template-columns: 7.5em minmax(0, 1fr);
+    align-items: center;
+    height: 28px;
+    box-sizing: border-box;
+    border-top: 1px solid var(--trace);
+    padding: 0 14px;
+  }
+  .property-row > span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .property-row > div {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+  }
+  .dsl-properties :is(input, select, button) {
+    min-width: 0;
+    max-width: 100%;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    box-shadow: none;
     background: var(--paper);
     color: var(--ink);
     font: inherit;
-    padding: 2px 8px;
+    padding: 1px 4px;
   }
-  .dsl .dsl-menu button:is(:hover, :focus) {
-    background: var(--wash);
+  .dsl-properties :is(input, select) {
+    flex: 1;
+  }
+  .dsl .dsl-properties button[aria-pressed='true'],
+  .dsl .dsl-properties button[aria-pressed='true']:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .dsl-properties [data-mixed],
+  .dsl-properties small,
+  .dsl-properties input::placeholder,
+  .dsl-properties :disabled {
+    color: var(--pencil);
   }
   .flow-board .dsl-hover {
     filter: drop-shadow(0 0 2px var(--graphite));
-  }
-  .dsl:has(.dsl-menu) .dsl-rows::after {
-    content: '';
-    display: block;
-    height: var(--choice-height);
   }
 
 }

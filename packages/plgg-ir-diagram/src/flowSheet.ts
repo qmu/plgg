@@ -1,3 +1,4 @@
+import { sheetProperties } from "plgg-ir-diagram/sheetProperties";
 export {
   sheetTools,
   sheetToolNames,
@@ -27,6 +28,7 @@ import { wireGraph } from "plgg-flow/wiring";
 import {
   applySpec,
   parseSpec,
+  printSpec,
   type Spec,
   type Rule,
 } from "plgg-flow/dsl";
@@ -281,9 +283,21 @@ const layoutKey = (flow: Flow) =>
       e.lift,
     ]),
   ]);
+// A property edit also carries graph data outside the DSL, including the
+// updated selection. Fit against the sheet from before the edit.
 export const applyDemoSpec =
-  (spec: Spec) => (flow: Flow) => {
-    const next = applySpec(spec)(flow);
+  (spec: Spec, edited?: Flow) => (flow: Flow) => {
+    const next = applySpec(
+      edited
+        ? {
+            ...spec,
+            graph: {
+              nodes: edited.nodes,
+              edges: edited.edges,
+            },
+          }
+        : spec,
+    )(edited ?? flow);
     return layoutKey(next) === layoutKey(flow)
       ? next
       : flow.rooms && next.rooms
@@ -294,12 +308,16 @@ export const readSheetSource = (
   source: string,
   flow: Flow,
   rules: readonly Rule[],
+  edited?: Flow,
 ) => {
   const parsed = parseSpec(source);
   return parsed.__tag === "Err"
     ? { flow, rules, error: parsed.content }
     : {
-        flow: applyDemoSpec(parsed.content)(flow),
+        flow: applyDemoSpec(
+          parsed.content,
+          edited,
+        )(flow),
         rules: parsed.content.rules,
         error: "",
       };
@@ -565,7 +583,10 @@ export const sheetDsl = <Action>(
   source: string,
   error: string | undefined,
   toggleHelp: Action,
-  retype: (source: string) => Action,
+  retype: (
+    source: string,
+    edited?: Flow,
+  ) => Action,
 ) => {
   return el(
     "aside",
@@ -590,7 +611,10 @@ export const sheetDsl = <Action>(
             [
               el(
                 "input",
-                [attr("type", "checkbox")],
+                [
+                  attr("type", "checkbox"),
+                  attr("aria-label", "テキスト"),
+                ],
                 [],
               ),
               text("テキスト"),
@@ -630,6 +654,17 @@ export const sheetDsl = <Action>(
           onInput(retype),
         ],
         [text(source)],
+      ),
+      sheetProperties(
+        flow,
+        rules,
+        (fn, nextRules) => {
+          const edited = fn(flow);
+          return retype(
+            printSpec(edited, nextRules),
+            edited,
+          );
+        },
       ),
       ...(error
         ? [

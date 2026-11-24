@@ -110,12 +110,14 @@ const visit = (f: Flow): Visit => ({
   section: f.spatial?.section,
 });
 type Revision = Readonly<{
+  fittedCamera: Flow["camera"];
   flow: Flow;
   rules: readonly Rule[];
 }>;
 const revision = (s: Revision): Revision => ({
   flow: s.flow,
   rules: s.rules,
+  fittedCamera: s.fittedCamera,
 });
 type Session = Readonly<{
   fittedCamera: Flow["camera"];
@@ -234,7 +236,7 @@ const apply =
         !dragging && changed
           ? [
               ...s.before.slice(-49),
-              { flow: start, rules: s.rules },
+              revision({ ...s, flow: start }),
             ]
           : s.before,
       after: !dragging && changed ? [] : s.after,
@@ -1296,12 +1298,13 @@ const dslPanel = (s: {
     source,
     typed?.error,
     toggleHelp,
-    (value) =>
+    (value, edited) =>
       edit((cur) => {
         const draft = readSheetSource(
           value,
           cur.flow,
           cur.rules,
+          edited,
         );
         if (draft.error)
           return {

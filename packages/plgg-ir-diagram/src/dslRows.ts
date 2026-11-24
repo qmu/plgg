@@ -15,13 +15,11 @@ import {
 } from "plgg-flow";
 import {
   printLines,
-  snapToken,
   printSpec,
   joinLine,
   selectSubject,
   subjectSelected,
   type Rule,
-  type Token,
   type Line,
 } from "plgg-flow/dsl";
 
@@ -49,44 +47,19 @@ const effect = (
 const overlay = (
   anchor: HTMLElement,
   control: HTMLElement,
-  menu: boolean,
 ) => {
   const panel = anchor.closest(".dsl"),
     host = panel?.querySelector(".dsl-overlay");
   if (!(host instanceof HTMLElement) || !panel)
     return;
   host.replaceChildren(control);
-  const list = anchor.closest(".dsl-rows");
   const bounds = panel.getBoundingClientRect();
-  control.style.maxWidth =
-    panel.clientWidth + "px";
-  if (menu && list instanceof HTMLElement) {
-    // Reserve just enough scroll range below the last token for its menu.
-    const height = Math.min(
-      control.offsetHeight,
-      Math.max(
-        1,
-        list.clientHeight - anchor.offsetHeight,
-      ),
-    );
-    control.style.maxHeight = height + "px";
-    list.style.setProperty(
-      "--choice-height",
-      height + "px",
-    );
-    const overflow =
-      anchor.getBoundingClientRect().bottom +
-      height -
-      list.getBoundingClientRect().bottom;
-    if (overflow > 0) list.scrollTop += overflow;
-  }
   const box = anchor.getBoundingClientRect();
-  if (!menu)
-    control.style.width =
-      Math.min(
-        panel.clientWidth,
-        Math.max(90, box.width),
-      ) + "px";
+  control.style.width =
+    Math.min(
+      panel.clientWidth,
+      Math.max(90, box.width),
+    ) + "px";
   control.style.left =
     Math.max(
       0,
@@ -100,9 +73,7 @@ const overlay = (
       0,
       Math.min(
         panel.clientHeight - control.offsetHeight,
-        (menu ? box.bottom : box.top) -
-          bounds.top -
-          panel.clientTop,
+        box.top - bounds.top - panel.clientTop,
       ),
     ) + "px";
   const close = () => {
@@ -129,24 +100,23 @@ const overlay = (
 const field = (
   anchor: HTMLElement,
   value: string,
-  label: string,
   apply: (v: string) => void,
-  emptyDelete = false,
   selectText = true,
 ) => {
   const input = document.createElement("input");
   input.className = "dsl-field";
-  input.setAttribute("aria-label", label);
+  input.setAttribute(
+    "aria-label",
+    "DSL の行を編集",
+  );
   input.value = value;
-  const close = overlay(anchor, input, false);
+  const close = overlay(anchor, input);
   if (!close) return;
   input.addEventListener("keydown", (e) => {
     if (
       !e.isComposing &&
       (e.key === "Enter" ||
-        (emptyDelete &&
-          e.key === "Backspace" &&
-          !input.value))
+        (e.key === "Backspace" && !input.value))
     ) {
       e.preventDefault();
       close();
@@ -160,165 +130,6 @@ const field = (
       value.length,
       value.length,
     );
-};
-const choices = (
-  anchor: HTMLElement,
-  values: readonly string[],
-  apply: (v: string) => void,
-) => {
-  const menu = document.createElement("div");
-  menu.className = "dsl-menu";
-  const close = () => {
-    menu.remove();
-    anchor.focus({ preventScroll: true });
-  };
-  for (const v of values) {
-    const option =
-      document.createElement("button");
-    option.type = "button";
-    option.textContent = v || "なし";
-    option.setAttribute(
-      "aria-label",
-      (v || "なし") + " を選択",
-    );
-    option.onclick = () => {
-      close();
-      apply(v);
-    };
-    menu.append(option);
-  }
-  overlay(anchor, menu, true);
-  menu.querySelector("button")?.focus();
-};
-// Preview against the original value throughout a gesture and commit once,
-// so a drag occupies a single undo entry.
-const scrubNumber = (
-  initial: string,
-  snap: number | undefined,
-  apply: (
-    anchor: HTMLElement,
-    value: string,
-  ) => void,
-) =>
-  effect("pointerdown", (e, anchor) => {
-    if (
-      !(e instanceof PointerEvent) ||
-      e.button !== 0 ||
-      !e.isPrimary
-    )
-      return;
-    anchor.setPointerCapture(e.pointerId);
-    delete anchor.dataset.scrubbed;
-    const gesture = new AbortController();
-    const options = { signal: gesture.signal };
-    const preview = (p: PointerEvent) => {
-      if (p.pointerId !== e.pointerId)
-        return initial;
-      const delta = p.clientX - e.clientX;
-      if (Math.abs(delta) >= 3)
-        anchor.dataset.scrubbed = "true";
-      const value = String(
-        Number(initial) +
-          Math.round(delta / 4) *
-            (snap === 0 ? 1 : (snap ?? 16)) *
-            (p.shiftKey ? 4 : 1),
-      );
-      if (anchor.dataset.scrubbed)
-        anchor.textContent = value;
-      return value;
-    };
-    const end = (p: PointerEvent) => {
-      if (p.pointerId !== e.pointerId) return;
-      gesture.abort();
-      const value =
-        p.type === "pointerup"
-          ? preview(p)
-          : initial;
-      anchor.textContent = initial;
-      if (
-        anchor.dataset.scrubbed &&
-        value !== initial
-      )
-        apply(anchor, value);
-    };
-    anchor.addEventListener(
-      "pointermove",
-      preview,
-      options,
-    );
-    anchor.addEventListener(
-      "pointerup",
-      end,
-      options,
-    );
-    anchor.addEventListener(
-      "pointercancel",
-      end,
-      options,
-    );
-    anchor.addEventListener(
-      "lostpointercapture",
-      end,
-      options,
-    );
-  });
-const tokenView = <A>(
-  t: Token,
-  ghost: boolean,
-  flow: Flow,
-  rules: readonly Rule[],
-): Html<A> => {
-  const act = t.act;
-  if (!act) return el("span", [], [text(t.text)]);
-  const apply = (
-    anchor: HTMLElement,
-    value: string,
-  ) =>
-    commit(
-      anchor,
-      printSpec(act.change(value)(flow), rules),
-    );
-  const activate = (anchor: HTMLElement) => {
-    if (act.kind === "toggle")
-      apply(anchor, act.value);
-    else if (act.kind === "choice")
-      choices(anchor, act.choices ?? [], (v) =>
-        apply(anchor, v),
-      );
-    else
-      field(anchor, act.value, act.label, (v) =>
-        apply(anchor, v),
-      );
-  };
-  return el<A>(
-    "button",
-    [
-      attr("type", "button"),
-      attr("aria-label", act.label),
-      attr(
-        "class",
-        ghost ? "dsl-token ghost" : "dsl-token",
-      ),
-      effect("click", (e, anchor) => {
-        e.stopPropagation();
-        if (anchor.dataset.scrubbed) {
-          delete anchor.dataset.scrubbed;
-          return;
-        }
-        activate(anchor);
-      }),
-      ...(act.kind === "number"
-        ? [
-            scrubNumber(
-              act.value,
-              flow.snap,
-              apply,
-            ),
-          ]
-        : []),
-    ],
-    [text(ghost ? "+" + t.text : t.text)],
-  );
 };
 export const replaceRow = (
   lines: readonly string[],
@@ -347,11 +158,7 @@ export const dslRows = <A>(
     ? Number.parseInt(error) ||
       1 +
         printed.findIndex(
-          (v, i) =>
-            v !==
-            lines[i]?.tokens
-              .map((t) => t.text)
-              .join(" "),
+          (v, i) => v !== lines[i]?.text,
         )
     : 0;
   const declared = new Set(
@@ -390,13 +197,11 @@ export const dslRows = <A>(
       field(
         anchor,
         initial,
-        "DSL の行を編集",
         (v) =>
           commit(
             anchor,
             v ? replace(v) : remove(),
           ),
-        true,
         initial === value,
       );
     const edge =
@@ -411,17 +216,6 @@ export const dslRows = <A>(
           (edge &&
             (implicit.has(edge.source) ||
               implicit.has(edge.target)))));
-    const ghosts =
-      line?.ghosts ??
-      (!error &&
-      i === printed.length &&
-      !lines.some(
-        (l) =>
-          l.subject.kind === "directive" &&
-          l.subject.name === "snap",
-      )
-        ? [snapToken(flow.snap, true)]
-        : []);
     return el<A>(
       "div",
       [
@@ -459,15 +253,7 @@ export const dslRows = <A>(
             ),
           );
         }),
-        effect("dblclick", (e, a) => {
-          if (
-            !(
-              e.target instanceof Element &&
-              e.target.closest("button")
-            )
-          )
-            edit(a);
-        }),
+        effect("dblclick", (_, a) => edit(a)),
         onEvent<never>("keydown", (e) => {
           if (
             !(e instanceof KeyboardEvent) ||
@@ -475,12 +261,6 @@ export const dslRows = <A>(
               e.currentTarget instanceof
               HTMLElement
             ) ||
-            (e.target !== e.currentTarget &&
-              ![
-                "ArrowUp",
-                "ArrowDown",
-                "F2",
-              ].includes(e.key)) ||
             e.isComposing
           )
             return none();
@@ -554,37 +334,7 @@ export const dslRows = <A>(
               ),
             ]),
       ],
-      [
-        ...(line
-          ? line.tokens.flatMap((t, j) => [
-              ...(j ? [text(" ")] : []),
-              tokenView<A>(t, false, flow, rules),
-            ])
-          : [text(value)]),
-        ...(chosen ? ghosts : []).flatMap(
-          (t, j) => [
-            text(j ? " " : "  "),
-            tokenView<A>(t, true, flow, rules),
-          ],
-        ),
-        ...(chosen && i < printed.length
-          ? [
-              el<A>(
-                "button",
-                [
-                  attr("type", "button"),
-                  attr("class", "dsl-delete"),
-                  attr("aria-label", "行を削除"),
-                  effect("click", (e, a) => {
-                    e.stopPropagation();
-                    commit(a, remove());
-                  }),
-                ],
-                [text("×")],
-              ),
-            ]
-          : []),
-      ],
+      [text(value)],
     );
   };
   return el<A>(

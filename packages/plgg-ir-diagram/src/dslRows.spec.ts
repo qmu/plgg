@@ -81,7 +81,7 @@ test("editing the second parallel wire preserves its selection through reparse",
   );
 });
 
-test("plain row text selects its row and reveals prefixed ghosts and the delete button", () => {
+test("clicking plain directive and edge text selects the line without editing", () => {
   const source = "rule acyclic\nA -> B";
   const sheet = readSheetSource(
     source,
@@ -110,40 +110,26 @@ test("plain row text selects its row and reveals prefixed ghosts and the delete 
   draw();
   const row = (i: number) =>
     root.querySelectorAll(".dsl-row")[i];
-  const hidden =
-    !root.querySelector(".ghost") &&
-    !root.querySelector(".dsl-delete");
-  const keyword = row(0)?.firstChild;
-  keyword?.dispatchEvent(
+  row(0)?.dispatchEvent(
     new MouseEvent("click", { bubbles: true }),
   );
   draw();
   const directive =
     row(0)?.getAttribute("aria-selected") ===
-      "true" &&
-    !!row(0)?.querySelector(".dsl-delete");
+    "true";
   row(3)?.dispatchEvent(
     new MouseEvent("click", { bubbles: true }),
   );
   draw();
-  const ghosts = Array.from(
-    row(3)?.querySelectorAll(".ghost") ?? [],
-  ).map((e) => e.textContent);
   const selected =
     row(3)?.getAttribute("aria-selected") ===
-      "true" &&
-    row(3)?.textContent?.includes(
-      "  +step +animated",
-    ) &&
-    !!row(3)?.querySelector(".dsl-delete") &&
-    !row(0)?.querySelector(".dsl-delete");
+      "true" && row(3)?.textContent === "A -> B";
+  const plain =
+    !root.querySelector(".dsl-row button") &&
+    flow.edges === sheet.flow.edges;
   render.dispose();
   return check(
-    keyword?.textContent === "rule" &&
-      hidden &&
-      directive &&
-      selected &&
-      ghosts.join(" ") === "+step +animated",
+    directive && selected && plain,
     toBe(true),
   );
 });

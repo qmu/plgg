@@ -1,4 +1,3 @@
-import { renameFlowIdentity } from "plgg-flow/edits";
 import { edgeIndex } from "plgg-flow/connections";
 import {
   selectNodes,
@@ -497,403 +496,77 @@ export type Subject =
       kind: "directive";
       name: "layout" | "axis" | "snap" | "rule";
     }>;
-export type Act = Readonly<{
-  kind: "field" | "number" | "choice" | "toggle";
-  label: string;
-  value: string;
-  choices?: readonly string[];
-  change: (value: string) => Change;
-}>;
-export type Token = Readonly<{
-  text: string;
-  role:
-    | "keyword"
-    | "name"
-    | "arrow"
-    | "label"
-    | "number"
-    | "route"
-    | "flag"
-    | "attribute"
-    | "value"
-    | "plain";
-  act?: Act;
-}>;
 export type Line = Readonly<{
   subject: Subject;
-  tokens: readonly Token[];
-  ghosts?: readonly Token[];
+  text: string;
 }>;
-const word = (
-  text: string,
-  role: Token["role"] = "keyword",
-  act?: Act,
-): Token => ({
-  text,
-  role,
-  ...(act ? { act } : {}),
-});
-const editNode =
-  (
-    id: string,
-    update: (n: FlowNode) => FlowNode,
-  ): Change =>
-  (f) => ({
-    ...f,
-    nodes: f.nodes.map((n) =>
-      n.id === id ? update(n) : n,
-    ),
-  });
-const nodeName = (id: string): Token =>
-  word(name(id), "name", {
-    kind: "field",
-    label: "ノード名を変更",
-    value: id,
-    change: (v) => (flow) => {
-      const renamed = renameFlowIdentity(
-        flow,
-        id,
-        v,
-      );
-      if (renamed === flow) return flow;
-      const computed =
-        flow.layered?.computed.get(id);
-      const positions = new Map(
-        flow.layered?.computed,
-      );
-      positions.delete(id);
-      if (computed) positions.set(v, computed);
-      return {
-        ...renamed,
-        ...(flow.layered
-          ? {
-              layered: {
-                ...flow.layered,
-                computed: positions,
-              },
-            }
-          : {}),
-        nodes: renamed.nodes.map((node) =>
-          node.id === v && node.label === id
-            ? { ...node, label: v }
-            : node,
-        ),
-      };
-    },
-  });
-const nodeLine = (
-  f: Flow,
-  n: FlowNode,
-  groupIds: readonly string[],
-  axisValues: ReadonlyMap<
-    string,
-    readonly string[]
-  >,
-): Line => {
-  const set = (
-    update: (n: FlowNode) => FlowNode,
-  ) => editNode(n.id, update);
-  const position = f.layered ? String : coord;
-  const computed = f.layered?.computed.get(n.id);
-  const number = (
-    key:
-      | "x"
-      | "y"
-      | "z"
-      | "value"
-      | "height"
-      | "width",
-    value: string,
-  ) =>
-    word(value, "number", {
-      kind: "number",
-      label: key + " を変更",
-      value,
-      change: (v) =>
-        set((node) =>
-          !v.trim() || !Number.isFinite(Number(v))
-            ? node
-            : key === "x" ||
-                key === "y" ||
-                key === "z"
-              ? {
-                  ...node,
-                  position: {
-                    ...node.position,
-                    [key]: Number(v),
-                  },
-                }
-              : { ...node, [key]: Number(v) },
-        ),
-    });
-  const flag = (key: "group" | "collapsed") =>
-    word(key, "flag", {
-      kind: "toggle",
-      label:
-        key === "group"
-          ? "グループを切り替え"
-          : "折りたたみを切り替え",
-      value: key,
-      change: () =>
-        set((node) => ({
-          ...node,
-          [key]: !node[key],
-        })),
-    });
-  const groups = n.group
-    ? groupIds.filter((id) => id !== n.id)
-    : groupIds;
-  const parent = word(
-    name(n.parent ?? "in"),
-    "name",
-    {
-      kind: "choice",
-      label: "所属グループを選択",
-      value: n.parent ?? "",
-      choices: ["", ...groups],
-      change: (v) =>
-        set((node) => {
-          const { parent, ...rest } = node;
-          return v
-            ? { ...rest, parent: v }
-            : rest;
-        }),
-    },
+
+export const placedByLayout = (
+  flow: Flow,
+  node: FlowNode,
+) => {
+  const p = flow.layered?.computed.get(node.id);
+  return (
+    !!flow.rooms ||
+    !!(
+      p &&
+      p.x === node.position.x &&
+      p.y === node.position.y &&
+      p.z === node.position.z
+    )
   );
-  return {
-    subject: { kind: "node", id: n.id },
-    tokens: [
-      word("node"),
-      nodeName(n.id),
-      ...(f.rooms ||
-      (computed &&
-        computed.x === n.position.x &&
-        computed.y === n.position.y &&
-        computed.z === n.position.z)
-        ? []
-        : [
-            word("at"),
-            number("x", position(n.position.x)),
-            number("y", position(n.position.y)),
-            ...(Number(position(n.position.z))
-              ? [
-                  number(
-                    "z",
-                    position(n.position.z),
-                  ),
-                ]
-              : []),
-          ]),
-      ...Object.entries(n.data ?? {}).flatMap(
-        ([k, v]) => {
-          if (typeof v !== "string") return [];
-          const choices = axisValues.get(k);
-          return [
-            word(
-              name(k + "=" + v),
-              "attribute",
-              choices
-                ? {
-                    kind: "choice",
-                    value: v,
-                    label: k + " を選択",
-                    choices,
-                    change: (value) =>
-                      set((node) => ({
-                        ...node,
-                        data: {
-                          ...node.data,
-                          [k]: value,
-                        },
-                      })),
-                  }
-                : undefined,
-            ),
-          ];
-        },
-      ),
-      ...(n.group ? [flag("group")] : []),
-      ...(n.collapsed ? [flag("collapsed")] : []),
-      ...(n.parent ? [word("in"), parent] : []),
-      ...(n.id !== n.label
-        ? [
-            word("label"),
-            word(quoted(n.label), "label", {
-              kind: "field",
-              label: "表示名を変更",
-              value: n.label,
-              change: (label) =>
-                set((node) => ({
-                  ...node,
-                  label,
-                })),
-            }),
-          ]
-        : []),
-      ...(
-        ["value", "height", "width"] satisfies (
-          | "value"
-          | "height"
-          | "width"
-        )[]
-      ).flatMap((k) =>
-        n[k] === undefined
-          ? []
-          : [word(k), number(k, String(n[k]))],
-      ),
-      ...(n.grow && (n.grow.x || n.grow.y)
-        ? [
-            word("grow"),
-            word(coord(n.grow.x), "number"),
-            word(coord(n.grow.y), "number"),
-          ]
-        : []),
-    ],
-    ghosts: [
-      ...(!n.group ? [flag("group")] : []),
-      ...(!n.collapsed
-        ? [flag("collapsed")]
-        : []),
-      ...(!n.parent && groups.length
-        ? [parent]
-        : []),
-    ],
-  };
 };
-const edgeLine = (
-  e: Edge,
-  index: number,
-): Line => {
-  const set =
-    (update: (edge: Edge) => Edge): Change =>
-    (f) => ({
-      ...f,
-      edges: f.edges.map((edge, i) =>
-        i === index ? update(edge) : edge,
-      ),
-    });
-  const route = word(e.route ?? "step", "route", {
-    kind: "choice",
-    label: "経路を選択",
-    value: e.route ?? "",
-    choices: routes,
-    change: (v) =>
-      set((edge) =>
-        isRoute(v) ? { ...edge, route: v } : edge,
-      ),
-  });
-  const animated = word("animated", "flag", {
-    kind: "toggle",
-    label: "アニメーションを切り替え",
-    value: "animated",
-    change: () =>
-      set((edge) => ({
-        ...edge,
-        animated: !edge.animated,
-      })),
-  });
-  return {
-    subject: { kind: "edge", index },
-    tokens: [
-      nodeName(e.source),
-      word("->", "arrow", {
-        kind: "toggle",
-        label: "接続を反転",
-        value: "->",
-        change: () =>
-          set((edge) => ({
-            ...edge,
-            source: edge.target,
-            target: edge.source,
-          })),
-      }),
-      nodeName(e.target),
-      ...(e.label
-        ? [
-            word(quoted(e.label), "label", {
-              kind: "field",
-              label: "接続ラベルを変更",
-              value: e.label,
-              change: (label) =>
-                set((edge) => ({
-                  ...edge,
-                  label,
-                })),
-            }),
-          ]
-        : []),
-      ...(e.route ? [route] : []),
-      ...(e.animated ? [animated] : []),
-    ],
-    ghosts: [
-      ...(!e.route ? [route] : []),
-      ...(!e.animated ? [animated] : []),
-    ],
-  };
+const nodeWords = (f: Flow, n: FlowNode) => {
+  const position = f.layered ? String : coord;
+  return [
+    "node",
+    name(n.id),
+    ...(placedByLayout(f, n)
+      ? []
+      : [
+          "at",
+          position(n.position.x),
+          position(n.position.y),
+          ...(Number(position(n.position.z))
+            ? [position(n.position.z)]
+            : []),
+        ]),
+    ...Object.entries(n.data ?? {}).flatMap(
+      ([k, v]) =>
+        typeof v === "string"
+          ? [name(k + "=" + v)]
+          : [],
+    ),
+    ...(n.group ? ["group"] : []),
+    ...(n.collapsed ? ["collapsed"] : []),
+    ...(n.parent ? ["in", name(n.parent)] : []),
+    ...(n.id !== n.label
+      ? ["label", quoted(n.label)]
+      : []),
+    ...(
+      [
+        "value",
+        "height",
+        "width",
+      ] satisfies (keyof FlowNode)[]
+    ).flatMap((k) =>
+      n[k] === undefined ? [] : [k, String(n[k])],
+    ),
+    ...(n.grow && (n.grow.x || n.grow.y)
+      ? ["grow", coord(n.grow.x), coord(n.grow.y)]
+      : []),
+  ];
 };
 const directive = (
-  name: Extract<
+  key: Extract<
     Subject,
     { kind: "directive" }
   >["name"],
-  tokens: readonly Token[],
-  ghosts: readonly Token[] = [],
+  words: readonly string[],
 ): Line => ({
-  subject: { kind: "directive", name },
-  tokens: [word(name), ...tokens],
-  ghosts,
+  subject: { kind: "directive", name: key },
+  text: [key, ...words].join(" "),
 });
-const layered = (
-  key: "direction" | "depth",
-  text: string,
-): Token =>
-  word(text, "flag", {
-    kind: "toggle",
-    label:
-      key === "depth"
-        ? "奥行きを切り替え"
-        : "配置方向を切り替え",
-    value: text,
-    change: () => (f) =>
-      f.layered
-        ? {
-            ...f,
-            layered: {
-              ...f.layered,
-              options: {
-                ...f.layered.options,
-                [key]:
-                  key === "depth"
-                    ? !f.layered.options.depth
-                    : f.layered.options
-                          .direction === "right"
-                      ? "down"
-                      : "right",
-              },
-            },
-          }
-        : f,
-  });
-export const snapToken = (
-  snap = grid,
-  ghost = false,
-): Token => {
-  const value = String(snap || "off");
-  return word(
-    ghost ? "snap " + value : value,
-    "value",
-    {
-      kind: "choice",
-      label: "格子間隔を選択",
-      value,
-      choices: ["off", "8", "16", "32"],
-      change: (v) => (f) => ({
-        ...f,
-        snap: v === "off" ? 0 : Number(v),
-      }),
-    },
-  );
-};
 export const printLines = (
   flow: Flow,
   rules: readonly Rule[],
@@ -904,109 +577,30 @@ export const printLines = (
       e.target,
     ]),
   );
-  const axisValues = new Map(
-    Object.values(flow.rooms?.axes ?? {}).map(
-      (axis) => [
-        axis.attribute,
-        [
-          ...new Set([
-            ...axis.values,
-            ...flow.nodes.flatMap((n) => {
-              const v = n.data?.[axis.attribute];
-              return typeof v === "string"
-                ? [v]
-                : [];
-            }),
-          ]),
-        ],
-      ],
-    ),
-  );
-  const groups = flow.nodes
-    .filter((n) => n.group)
-    .map((n) => n.id);
   const options = flow.layered?.options;
-  const depth = layered("depth", "depth"),
-    direction = layered(
-      "direction",
-      options?.direction ?? "right",
-    );
   return [
     ...(flow.rooms
       ? [
-          directive("layout", [word("rooms")]),
-          ...Object.entries(
-            flow.rooms.axes,
-          ).flatMap(([dir, axis]) => {
-            if (
-              dir !== "x" &&
-              dir !== "y" &&
-              dir !== "z"
-            )
-              return [];
-            return [
+          directive("layout", ["rooms"]),
+          ...Object.entries(flow.rooms.axes).map(
+            ([dir, axis]) =>
               directive("axis", [
-                word(dir, "value", {
-                  kind: "toggle",
-                  label: "分類軸を回転",
-                  value: dir,
-                  change: () => (f) => {
-                    if (!f.rooms) return f;
-                    const next =
-                      dir === "x"
-                        ? "y"
-                        : dir === "y"
-                          ? "z"
-                          : "x";
-                    const axes = Object.entries(
-                      f.rooms.axes,
-                    ).reduce<RoomAxes>(
-                      (axes, [letter, axis]) => ({
-                        ...axes,
-                        [letter === dir
-                          ? next
-                          : letter === next
-                            ? dir
-                            : letter]: axis,
-                      }),
-                      {},
-                    );
-                    return {
-                      ...f,
-                      rooms: { ...f.rooms, axes },
-                    };
-                  },
-                }),
-                word(
-                  name(axis.attribute),
-                  "attribute",
-                ),
-                ...axis.values.map((v) =>
-                  word(name(v), "value"),
-                ),
+                dir,
+                name(axis.attribute),
+                ...axis.values.map(name),
               ]),
-            ];
-          }),
+          ),
         ]
       : []),
     ...(options
       ? [
-          directive(
-            "layout",
-            [
-              word("layered"),
-              ...(options.direction
-                ? [direction]
-                : []),
-              ...(options.depth ? [depth] : []),
-            ],
-            [
-              ...(!options.direction
-                ? [direction]
-                : []),
-              ...(!options.depth ? [depth] : []),
-            ],
-          ),
+          directive("layout", [
+            "layered",
+            ...(options.direction
+              ? [options.direction]
+              : []),
+            ...(options.depth ? ["depth"] : []),
+          ]),
         ]
       : []),
     ...(flow.snap === undefined ||
@@ -1014,35 +608,45 @@ export const printLines = (
       ? []
       : [
           directive("snap", [
-            snapToken(flow.snap),
+            String(flow.snap || "off"),
           ]),
         ]),
     ...rules.map((r) =>
       directive(
         "rule",
         r.kind === "acyclic"
-          ? [word(r.kind)]
-          : [
-              word(r.kind),
-              word(String(r.limit), "number"),
-            ],
+          ? [r.kind]
+          : [r.kind, String(r.limit)],
       ),
     ),
-    ...flow.nodes
-      .map((n) =>
-        nodeLine(flow, n, groups, axisValues),
-      )
-      .filter(
-        (l) =>
-          l.subject.kind === "node" &&
-          (l.tokens.length > 2 ||
-            !endpoints.has(l.subject.id)),
-      ),
-    ...flow.edges.map(edgeLine),
+    ...flow.nodes.flatMap((n): Line[] => {
+      const words = nodeWords(flow, n);
+      return words.length > 2 ||
+        !endpoints.has(n.id)
+        ? [
+            {
+              subject: { kind: "node", id: n.id },
+              text: words.join(" "),
+            },
+          ]
+        : [];
+    }),
+    ...flow.edges.map(
+      (e, index): Line => ({
+        subject: { kind: "edge", index },
+        text: [
+          name(e.source),
+          "->",
+          name(e.target),
+          ...(e.label ? [quoted(e.label)] : []),
+          ...(e.route ? [e.route] : []),
+          ...(e.animated ? ["animated"] : []),
+        ].join(" "),
+      }),
+    ),
   ];
 };
-export const joinLine = (line: Line) =>
-  line.tokens.map((t) => t.text).join(" ");
+export const joinLine = (line: Line) => line.text;
 export const printSpec = (
   flow: Flow,
   rules: readonly Rule[],

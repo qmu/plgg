@@ -186,3 +186,15 @@ they differ; node + edge selection offers delete only; nothing
 selected shows the sheet's own; rename keeps edges; position fields
 are disabled under a layout; no inline act remains on the lines (a
 click on any word selects the line).
+
+## Redesign review — adopted
+
+Seen in the demo: lines are plain and selectable; with nothing
+selected the area shows 図全体 (配置, 吸着, 循環を禁止, 出力数の上限);
+a node shows 名前 … 削除; an edge shows 接続, 向き, ラベル, 経路,
+アニメーション, 削除; two edges selected show 「2 本のエッジ」 and
+choosing 角丸 turned both to `step` in the text and on the board.
+Reviewer's fixes after looking: the area was inset by a stray
+`section` rule of the demo page, labels were cut at 5.5em, Shift-click
+painted a text selection over the row, and a pressed button under the
+pointer went blank.

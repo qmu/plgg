@@ -72,12 +72,13 @@ const change =
         };
   };
 const retype =
-  (source: string): Action =>
+  (source: string, edited?: Flow): Action =>
   (m) => {
     const draft = readSheetSource(
       source,
       m.flow,
       m.rules,
+      edited,
     );
     return {
       ...m,
