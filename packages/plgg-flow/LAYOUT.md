@@ -1709,3 +1709,31 @@ dimension lines, the second holding the first:
   first block only; the block axis itself gets the same treatment
   across all blocks — the block values (東京, 大阪) centred under
   their blocks, one dotted line holding them with 地域 centred.
+
+## The engine draws the 3D sheets — review, adopted (reviewer's score: cake 65, rooms 50)
+
+`viewport.ts` lost 553 lines (its depth sort, per-storey wire
+splitting, 3D halos). Engine audit: surfaces, lines and pick 100 %
+on all seven scenes (after one more fault of the reviewer's oracle
+was fixed: samples at the very point a line goes under). Space
+audit sev3 0 / sev2 0; flat wiring byte-identical.
+
+Seen: wires are whole again — the fragments are gone; covered
+parts are dotted; boards are solids with shadows; board names
+stand readable at the front-left corner; rooms with storeys 256
+tall read as three floors at last.
+
+**Broken — interaction parity.** On 「立体交差」 (drawn by the
+engine because its nodes have depth) selecting a node shows no
+connection dots (0 port elements), so an edge cannot be added; the
+sheet's grid is gone as well. Before the engine, selecting a node
+showed its dots and a drag from one made an edge. Everything a
+flat sheet can do must work on an engine-drawn sheet, face-on and
+turned: select, marquee, drag, resize, rename, connect from a
+selected node's dots, reconnect an end, insert on an edge, delete,
+hover tones, the world grid on the sheet plane.
+
+Still to do from the owner's notes: nodes solid (nothing through a
+node); names never smeared; axis names embracing their values.
+On rooms the storeys' cast shadows read as grey slabs — rooms
+floors cast no shadow (nodes still do).
