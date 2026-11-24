@@ -15,7 +15,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .toolbar {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
   .hint {
     margin: 0 0 12px;
@@ -285,7 +285,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     left: 12px;
     right: 12px;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
     align-items: flex-start;
     pointer-events: none;
@@ -303,9 +303,13 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     color: var(--paper);
   }
   .board-controls .toolbar {
-    flex-wrap: wrap;
-    max-width: calc(100% - 48px);
+    flex-wrap: nowrap;
+    min-width: 0;
+    flex: 1;
+    overflow: clip;
+    white-space: nowrap;
   }
+  .toolbar-item {display:inline-flex;flex:none;width:max-content}
   .sheet-history { display: inline-flex; }
   .toolbar .sheet-history button { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--ink); }
   .toolbar .sheet-history button + button { margin-left: -1px; }
@@ -448,8 +452,8 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
        sign drawn exactly in the middle */
   .board-controls .add-node,
   .board-controls .remove {
-    top: 0;
-    right: 0;
+    position: static;
+    flex: none;
     width: 34px;
     height: 34px;
     padding: 0;
@@ -458,9 +462,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     place-content: center;
     font-size: 0;
   }
-  .board-controls .remove {
-    top: 42px;
-  }
+
   .board-controls .add-node::before,
   .board-controls .add-node::after,
   .board-controls .remove::before {
@@ -676,13 +678,13 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     .stage .help-rows{grid-template-columns:minmax(0,1fr)}
     .stage .help-rows code{white-space:normal}
     .stage .board-controls,.stage:has(.dsl) .board-controls{inset:0;display:block}
-    .board-controls .toolbar{scrollbar-width:none;width:100%;max-width:none;overflow:auto;display:flex;flex-flow:row nowrap;align-items:center;background:var(--paper);white-space:nowrap}
+    .board-controls .toolbar{scrollbar-width:none;width:100%;max-width:none;overflow:clip;display:flex;flex-flow:row nowrap;align-items:center;background:var(--paper);white-space:nowrap}
     .toolbar>*{flex:none}.toolbar span{display:inline-flex}
     .toolbar :is(input,select,summary){min-height:44px}
     .toolbar button,.toolbar .sheet-history button,.stage .dsl :is(button,input,select){min-height:44px;min-width:44px}
     .toolbar button[data-icon]{font-size:0}.toolbar button[data-icon]::before{content:attr(data-icon);font-size:20px}
-    .board-controls .add-node,.board-controls .remove{position:absolute;top:auto;bottom:calc(var(--panel) + 6px);right:max(8px,env(safe-area-inset-right));margin:0;width:44px;height:44px}
-    .board-controls .remove{right:60px}
+    .toolbar-item[slot] button[data-icon]{font-size:14px}
+    .toolbar-item[slot] button[data-icon]::before{content:none}
     .property-row{grid-template-columns:minmax(0,1fr);height:auto;min-height:64px}
     .dsl-properties{max-height:45%}
     [data-level="full"] .dsl-properties[data-selected]{order:-1}
@@ -697,10 +699,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     [data-level="half"] .stage,[data-level="full"] .stage{--panel:50%}
     .stage .dsl{inset:0 0 0 auto;width:var(--panel);height:auto;padding-left:44px}
     .stage .dsl-handle{position:absolute;inset:0 auto 0 0;width:44px;writing-mode:vertical-rl}
-    .board-controls .toolbar{width:48px;height:100%;flex-direction:column;align-items:stretch}
-    .toolbar span{flex-direction:column}
-    .board-controls .add-node,.board-controls .remove{bottom:4px;right:calc(var(--panel) + 4px)}
-    .board-controls .remove{bottom:52px}
+    .stage:has(.dsl) .toolbar{width:calc(100% - var(--panel))}
   }
 
 }

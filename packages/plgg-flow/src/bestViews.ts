@@ -26,6 +26,8 @@ import {
   corners,
 } from "plgg-flow/nodeBody";
 
+export const roomFitMargin = 24;
+
 export const bestViews = (
   data: Classification,
   frame: Point,
@@ -179,6 +181,8 @@ export const bestViews = (
     const weight = (id: string) =>
       mark.includes(id) ? 3 : 1;
     for (const [yaw, pitch] of [
+      [-0.08, -0.06],
+      [-0.22, -0.12],
       [-0.52, -0.55],
       [-0.22, -0.2],
       [0.22, -1.05],
@@ -227,6 +231,20 @@ export const bestViews = (
         1 -
         (width * height * scale * scale) /
           (frame.x * frame.y);
+      const ratio = Math.min(
+        Math.abs(Math.cos(yaw)),
+        Math.abs(Math.cos(pitch)),
+      );
+      const fitted = Math.min(
+        1.6,
+        Math.max(1, frame.x - roomFitMargin) /
+          width,
+        Math.max(1, frame.y - roomFitMargin) /
+          height,
+      );
+      const captionHeight = 13 * fitted * ratio;
+      const legibility =
+        4 * Math.max(0, 11 - captionHeight) ** 2;
       for (const f of coveredFractions(drawing))
         if (ids.has(f.id))
           score += 5 * weight(f.id) * f.fraction;
@@ -301,6 +319,7 @@ export const bestViews = (
             );
       const tags = captionTagged(camera);
       const labels = nodes.map((n, i) => {
+        score += legibility * weight(n.id);
         if (tags) score += 2 * weight(n.id);
         const projected =
           solids[i]!.vertices.map(at);

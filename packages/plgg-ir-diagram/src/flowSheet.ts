@@ -1,3 +1,4 @@
+import { observeToolbar } from "plgg-ir-diagram/toolbarOverflow";
 import type { Travel } from "plgg-ir-diagram/sheetHistory";
 export * from "plgg-ir-diagram/sheetHistory";
 import {
@@ -21,6 +22,7 @@ import {
   selectedNodes,
   viewAt,
   roomViews,
+  roomFitMargin,
   roomBlocks,
   focusGeometry,
   movingRooms,
@@ -64,7 +66,10 @@ import {
 } from "plgg-view";
 import { custom } from "plgg-view/client";
 // Initial and reset sessions both open on the front of the board.
-export const fitDemo = (state: Flow): Flow => {
+export const fitDemo = (
+  state: Flow,
+  roomMargin = 80,
+): Flow => {
   const flow = focusGeometry(state);
   if (
     !flow.nodes.length &&
@@ -149,7 +154,7 @@ export const fitDemo = (state: Flow): Flow => {
     margin = phoneFlat
       ? (48 * frame.x) / phoneWidth
       : flow.rooms
-        ? 80
+        ? roomMargin
         : 96;
   const measure = (scale: number) => {
     let left = bounds.left * scale,
@@ -574,8 +579,8 @@ export const measuredFrame = (host: Element) => {
   const stage = host.parentElement;
   const panel = stage?.querySelector(".dsl");
   const strip = host.querySelector(".toolbar");
-  const { width, height } =
-    host.getBoundingClientRect();
+  const rect = host.getBoundingClientRect();
+  const { width, height } = rect;
   if (!width || !height) return;
   const unit = (px: number) =>
     Math.round((px * viewport.x) / width);
@@ -583,18 +588,16 @@ export const measuredFrame = (host: Element) => {
     tools = strip?.getBoundingClientRect();
   const bottom =
     box && Math.abs(width - box.width) < 1;
-  const side =
-    tools && Math.abs(height - tools.height) < 1;
-  const top =
-    tools && Math.abs(width - tools.width) < 1;
   return {
     height: unit(height),
     cover: !bottom && box ? unit(box.width) : 0,
     insets: {
       ...(width < 760 &&
         bottom && { phoneWidth: width }),
-      left: side && tools ? unit(tools.width) : 0,
-      top: top && tools ? unit(tools.height) : 0,
+      left: 0,
+      top: tools
+        ? unit(tools.bottom - rect.top)
+        : 0,
       bottom:
         bottom && box ? unit(box.height) : 0,
     },
@@ -635,12 +638,14 @@ export const observeFrame = <Action>(
       root.querySelector(".dsl"),
     ])
       if (el) observer.observe(el);
+    const stopToolbar = observeToolbar(root);
     const stop = revealSelection(root);
     const initial =
       requestAnimationFrame(measure);
     return () => {
       cancelAnimationFrame(initial);
       observer.disconnect();
+      stopToolbar();
       stop();
     };
   });
@@ -1138,6 +1143,7 @@ const rankSheetView = (
     opening || (layout && f.focus)
       ? firstBlock(scene)
       : scene,
+    roomFitMargin,
   );
   return opening ? to : turnRooms(f, to, 300);
 };
@@ -1335,6 +1341,12 @@ export const sheetToolbar = <Action>(
           ]
         : []),
       ...tools,
-    ],
+    ].map((item) =>
+      el(
+        "span",
+        [attr("class", "toolbar-item")],
+        [item],
+      ),
+    ),
   );
 };

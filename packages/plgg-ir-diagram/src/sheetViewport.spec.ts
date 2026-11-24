@@ -1,4 +1,5 @@
 // @plgg-test-environment dom
+import { inlineToolCount } from "plgg-ir-diagram/toolbarOverflow";
 import { check, test, toBe } from "plgg-test";
 import { renderToString } from "plgg-view";
 import { flowWidget } from "plgg-ir-diagram/flow";
@@ -21,7 +22,7 @@ for (const [
   stripHeight,
 ] of [
   [390, 844, 390, 796, 390, 44, 390, 44],
-  [844, 390, 844, 350, 422, 350, 48, 350],
+  [844, 390, 844, 350, 422, 350, 422, 44],
   [768, 1024, 768, 972, 28, 972, 346, 34],
   [1024, 768, 1024, 716, 280, 716, 346, 34],
   [1280, 800, 980, 752, 320, 752, 346, 34],
@@ -105,10 +106,9 @@ for (const [
           units(
             width === 390 ? panelHeight : 0,
           ) &&
-        flow.sheetInsets?.left ===
-          units(width === 844 ? stripWidth : 0) &&
+        flow.sheetInsets?.left === 0 &&
         flow.sheetInsets?.top ===
-          units(width === 390 ? stripHeight : 0),
+          units(stripHeight),
       toBe(true),
     );
   });
@@ -128,5 +128,17 @@ test("the static sheet has its responsive stage, drawing and DSL", () => {
       html.includes('class="' + name + '"'),
     ),
     toBe(true),
+  );
+});
+
+test("the overflow trigger takes space only when a tool needs the menu", () => {
+  const widths = [44, 136, 56];
+  return check(
+    [236, 235, 214, 213, 78, 77, 34]
+      .map((width) =>
+        inlineToolCount(widths, width, 34),
+      )
+      .join(","),
+    toBe("3,2,2,1,1,0,0"),
   );
 });

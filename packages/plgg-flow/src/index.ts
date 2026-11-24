@@ -27,4 +27,7 @@ export {
   roomLabels,
   spaceScenery,
 } from "plgg-flow/roomView";
-export { bestViews } from "plgg-flow/bestViews";
+export {
+  bestViews,
+  roomFitMargin,
+} from "plgg-flow/bestViews";

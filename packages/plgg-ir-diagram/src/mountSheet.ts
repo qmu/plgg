@@ -142,81 +142,87 @@ export const mountSheet = (
           current.layered?.options.layerAxis
             ? "layer"
             : !!current.rooms,
-          names.flatMap((name) => {
-            const tool = sheetTools.get(name);
-            return !tool
-              ? []
-              : "view" in tool
-                ? [board(tool.view(current))]
-                : [
-                    el(
-                      "span",
-                      [
-                        attr(
-                          "class",
-                          "session-tool",
-                        ),
-                      ],
-                      [
-                        el(
-                          "button",
-                          [
-                            attr(
-                              "type",
-                              "button",
-                            ),
-                            attr(
-                              "class",
-                              "tool-trigger",
-                            ),
-                            attr(
-                              "title",
-                              tool.label,
-                            ),
-                            attr(
-                              "aria-label",
-                              tool.label,
-                            ),
-                            attr(
-                              "data-icon",
-                              tool.icon,
-                            ),
-                            attr(
-                              "popovertarget",
-                              `tool-${sheetId}-${name}`,
-                            ),
-                          ],
-                          [text(tool.label)],
-                        ),
-                        el(
-                          "div",
-                          [
-                            attr(
-                              "id",
-                              `tool-${sheetId}-${name}`,
-                            ),
-                            attr(
-                              "class",
-                              "tool-content",
-                            ),
-                            attr(
-                              "popover",
-                              "auto",
-                            ),
-                          ],
-                          tool.sessionView(m),
-                        ),
-                      ],
-                    ),
-                  ];
-          }),
+          [
+            ...names.flatMap((name) => {
+              const tool = sheetTools.get(name);
+              return !tool
+                ? []
+                : "view" in tool
+                  ? [board(tool.view(current))]
+                  : [
+                      el(
+                        "span",
+                        [
+                          attr(
+                            "class",
+                            "session-tool",
+                          ),
+                        ],
+                        [
+                          el(
+                            "button",
+                            [
+                              attr(
+                                "type",
+                                "button",
+                              ),
+                              attr(
+                                "class",
+                                "tool-trigger",
+                              ),
+                              attr(
+                                "title",
+                                tool.label,
+                              ),
+                              attr(
+                                "aria-label",
+                                tool.label,
+                              ),
+                              attr(
+                                "data-icon",
+                                tool.icon,
+                              ),
+                              attr(
+                                "popovertarget",
+                                `tool-${sheetId}-${name}`,
+                              ),
+                            ],
+                            [text(tool.label)],
+                          ),
+                          el(
+                            "div",
+                            [
+                              attr(
+                                "id",
+                                `tool-${sheetId}-${name}`,
+                              ),
+                              attr(
+                                "class",
+                                "tool-content",
+                              ),
+                              attr(
+                                "popover",
+                                "auto",
+                              ),
+                            ],
+                            tool.sessionView(m),
+                          ),
+                        ],
+                      ),
+                    ];
+            }),
+            ...(selectedNodes(current).length ||
+            current.activeEdge
+              ? [
+                  removeButton(
+                    change(deleteSelected),
+                  ),
+                ]
+              : []),
+            addButton(change(addSheetNode)),
+          ],
           current,
         ),
-        ...(selectedNodes(current).length ||
-        current.activeEdge
-          ? [removeButton(change(deleteSelected))]
-          : []),
-        addButton(change(addSheetNode)),
       ],
     );
   };
