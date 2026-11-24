@@ -479,3 +479,52 @@ pile up at the opening angle.
 Open: the face views fit small (the table uses about half the board);
 item 6; the turn animation and reduced-motion path are unverified by
 eye.
+
+## Groups — one shape, in space (owner pointed at the turned sheet, 2026-11-24)
+
+Turned, a group is two things that disagree: a tall solid box (the
+group node drawn as a solid like any node, with the frame's width and
+height) and a dashed rounded outline lying on the ground (the frame
+of its members, drawn flat). From the front they nearly coincide and
+show as a doubled border, with two resize handles; turned they come
+apart. Members float at their own heights inside neither.
+
+A group is **a tray**: one flat rectangle in space, nothing else.
+
+- The tray lies in the plane of the group's own z. Its rectangle is
+  the group's frame (stored width × height around its position),
+  drawn as a 1px ink outline with square corners, no fill from the
+  front; when the sheet is turned its floor takes the wash tone at
+  40 % so it reads as a surface. Projected with the sheet like the
+  grid — never a screen-space shape.
+- No solid body, no walls, no second outline. The dashed "extent"
+  line is drawn only while a group is being resized or a member is
+  dragged across its edge (the frame it would take).
+- The group's name is a label on the tray's top-left corner, inside,
+  in the node label type at 600 weight — not a node-shaped card. It
+  is the handle for dragging the group; the tray's edge is too.
+- Members stand on or above the tray: a member's drop line ends on
+  the tray (its group's plane), not on the ground, so belonging is
+  visible when turned. A nested group is a tray above (or on) its
+  parent's tray, by its own z.
+- The frame always encloses its members with one square (16) of
+  padding on the grid; moving a member out past the edge grows the
+  tray (as today's expanding parents) and it snaps to whole squares.
+- One resize handle, on the tray's bottom-right corner, in the
+  tray's plane.
+- Sockets: a group can still send and receive wires; its sockets sit
+  on the tray's edges at their centres.
+- A collapsed group is drawn as an ordinary node (as today).
+- Wiring treats a tray as passable for wires of its own members and
+  as a box to avoid for others — unchanged.
+
+Samples: グループとネスト and グループ一覧 are re-laid so every member
+sits inside its tray with the padding, no member straddles another
+group's edge (Build must not sit on Design's border), and trays do
+not share edges with their parents.
+
+Specs: a group renders exactly one outline element and no solid
+faces; its outline's projected corners are the frame's corners at the
+group's z for a turned camera; a member's drop line ends at its
+group's z; the frame contains every member's box plus 16; one resize
+handle per group.
