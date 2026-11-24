@@ -1641,3 +1641,12 @@ whole without turning.
 
 To be tried on screen after the drawing round, against plain
 opaque: keep whichever reads better at the six shooting angles.
+
+**Owner, looking at the engine drawing in progress: "good — try
+not letting the nodes be see-through."** So the hidden-line rule
+narrows: **a node is solid and nothing shows through it.** What a
+node covers is simply not drawn (no dotted wire across a node's
+face, no dashed outline of a node behind a node). Hidden lines
+remain only for what a *board* covers — and that is the thing to
+compare on screen against boards that hide completely. Node faces
+are opaque paper / wash / shade, never translucent.
