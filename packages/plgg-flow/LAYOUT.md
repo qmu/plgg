@@ -294,3 +294,45 @@ swapping axis letters permutes coordinates consistently; a node
 without an attribute lands in the "—" slab; order-independence;
 adding one node moves no node out of its room; print/parse round
 trip; the lattice has (X+1)(Y+1)(Z+1) corners.
+
+## Grid fit — everything sits on the squares (owner's brief, 2026-11-24)
+
+> A node is as tall as one square of the grid; when it snaps, its
+> corners land on the squares' corners; a rectangle's size fits the
+> squares too. It should feel like things click into place.
+
+One unit: **G = 32**, the visible grid square.
+
+- **Size.** Default height = G. Default width = whole squares:
+  `G × max(2, ceil((textWidth + 24) / G))` (at least 12 of padding
+  each side, so labels never touch the border). An explicit
+  `width` / `height` in the DSL is honoured as written.
+- **Snap is on by default** at G. `snap 16` (or any number) changes
+  the step, `snap off` turns it off. What snaps is the **box**: the
+  node's top-left corner goes to a grid intersection
+  (`centre = k·snap + size/2`), so a default-sized node has all four
+  corners on intersections and its border lies on the grid lines.
+- **Dragging** moves a square at a time (as today: the node holds
+  until the pointer passes the next line, then jumps). A multi-
+  selection moves as one, each box staying on the grid.
+- **Resizing** a node or a group changes it by whole squares; a group's
+  frame closes outward to grid lines around its members.
+- **New nodes** (the ＋ button, paste, split) appear box-aligned in
+  the nearest free squares.
+- **Layouts** produce box-aligned places: the layered layout's gaps
+  become whole squares (between layers 3G, between neighbours 1G) and
+  every position it returns is box-aligned; the rooms layout the
+  same (room padding 1G, slab sizes whole squares, floor height
+  unchanged).
+- **Loading.** `at x y` is the centre the author wrote and is not
+  moved on load; the samples in plgg-flow-example are rewritten so
+  that every box is on the grid (and the 立体交差, エッジの経路… samples
+  read as drawn on the squares).
+- Wires need no change: sockets are at side centres, so a level wire
+  between two default nodes runs along the middle of a row of
+  squares. The wiring audit's scenes carry explicit sizes and must be
+  unaffected.
+- Specs: default sizes are whole squares; snapping any drag leaves
+  `(x − width/2) mod snap = 0` and likewise for y; resize keeps whole
+  squares; layered and rooms outputs are box-aligned; `snap off`
+  restores free movement; print/parse round trip of the directive.
