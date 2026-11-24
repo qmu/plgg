@@ -1,5 +1,6 @@
 import { roomFor } from "plgg-flow/autoLayout";
 import {
+  bodyDepth,
   cardBounds,
   corners,
 } from "plgg-flow/nodeBody";
@@ -22,6 +23,7 @@ import {
   directions,
   faceAxes,
 } from "plgg-flow/roomCamera";
+import {nodeSize} from "./nodeSize";
 const stageBounds = (
   cells: RoomLayout["rooms"],
 ) => ({
@@ -654,7 +656,7 @@ export const spaceScenery = (
       }
     };
     const at = project(camera);
-    for (const axis of directions) {
+    for (const axis of cake ? [] : directions) {
       const far =
         at(bounds.min).z <=
         at({
@@ -690,6 +692,20 @@ export const spaceScenery = (
         stageBounds(tiles),
       );
       const tone = cake ? ink : pencil;
+      const quad=(x:number,z:number,right:number,back:number,y:number):[Point3,Point3,Point3,Point3]=>[
+        {x,y,z},{x:right,y,z},{x:right,y,z:back},{x,y,z:back}];
+      const shadow=(patches: [Point3,Point3,Point3,Point3][], opacity:number, surface:number, order:number)=>{
+        if(patches[0])result.push({kind:"plane",layer:"sorted",surface,order,points:patches[0],patches:patches.slice(1),tone:"none",fill:"var(--shade,#e9e9e9)",opacity});
+      };
+      if(cake && level===bounds.max.y)
+        shadow([quad(p.x+12,p.z+8,r.x+12,r.z+8,level+16)],.35,level+16,0);
+      if(cake && cells.some(c=>c.max.y<level))
+        shadow([quad(p.x+12,p.z+8,r.x,r.z,level)],.35,level,2);
+      const members=new Set(tiles.flatMap(c=>c.members));
+      shadow(flow.nodes.filter(n=>members.has(n.id)&&!n.hidden).map(n=>{
+        const {x,z}=n.position,w=nodeSize(n).width/2,d=bodyDepth(n);
+        return quad(x-w+6,z-d+5,x+w+6,z+d+5,level);
+      }),.6,level,3);
       for (const [a, b, opposite] of [
         [p, q, t],
         [q, r, p],
@@ -700,36 +716,43 @@ export const spaceScenery = (
         const y = level + (cake ? 6 : 4);
         result.push({
           kind: "plane",
-          layer: "behind",
+          layer: "sorted",surface:level,order:0,width:1.25,
           points: [
             a,
             b,
             { ...b, y },
             { ...a, y },
           ],
-          fill: "var(--wash,white)",
+          fill: (at(a).x+at(b).x)/2 < (at(p).x+at(r).x)/2 ? "var(--wash,white)" : "var(--shade,#e9e9e9)",
           opacity: 1,
           tone,
         });
       }
       result.push({
         kind: "plane",
-        layer: "behind",
+        layer: "sorted",surface:level,order:1,width:1.25,
         points: [p, q, r, t],
-        fill: "var(--paper,white)",
-        opacity: 0.92,
+        fill: cake ? "var(--paper,white)" : "var(--wash,white)",
+        opacity: cake ? 1 : .14,
         tone,
       });
       if (cake) {
+        const holes:Point3[][]=[];
+        for(const edge of flow.edges){
+          const path=edge.path ?? [];
+          path.slice(1).forEach((b,i)=>{
+            const a=path[i]!;
+            if((a.y-level)*(b.y-level)>=0 || a.x!==b.x || a.z!==b.z || a.x<=p.x || a.x>=r.x || a.z<=p.z || a.z>=r.z)return;
+            holes.push(Array.from({length:16},(_,j)=>({x:a.x+3*Math.cos(j*Math.PI/8),y:level,z:a.z+1.5*Math.sin(j*Math.PI/8)})));
+          });
+        }
+        const hole=holes[0];
+        if(hole)result.push({kind:"plane",layer:"sorted",surface:level,order:4,points:[hole[0]!,hole[1]!,hole[2]!,hole[3]!],patches:holes,tone:ink,width:.75,fill:"var(--paper,white)",opacity:1});
         const value = tiles[0]!.values[1];
         result.push({
           kind: "label",
-          layer: "front",
-          anchor: {
-            ...t,
-            x: t.x - 16,
-            z: t.z + 16,
-          },
+          layer: "sorted", surface:level, order:5,onSurface:true,
+          anchor: {...(at(t).z>at(p).z?t:p),x:(p.x+q.x)/2},
           offset: { x: 0, y: 8 },
           text: value,
           size: 12,
@@ -753,7 +776,7 @@ export const spaceScenery = (
       result.push({
         kind: "line",
         layer: "behind",
-        tone: "var(--trace,gray)",
+        tone: "var(--trace,gray)",width:.5,
         points: rulings[0]!,
         strokes: rulings.slice(1),
       });

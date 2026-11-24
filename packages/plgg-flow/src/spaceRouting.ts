@@ -142,20 +142,6 @@ export const routeAssignment = (
           u = k === "x" ? "y" : "x",
           v = k === "z" ? "y" : "z";
         if (
-          stack &&
-          k === "y" &&
-          r.start.x > stack.min.x &&
-          r.start.x < stack.max.x &&
-          r.start.z > stack.min.z &&
-          r.start.z < stack.max.z &&
-          cells.some(
-            (c) =>
-              r.lo < c.max.y + 6 &&
-              r.hi > c.max.y,
-          )
-        )
-          return;
-        if (
           boxes.some(
             (q) =>
               q !== a &&

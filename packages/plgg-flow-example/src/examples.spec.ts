@@ -172,8 +172,8 @@ test("every gallery box sits on grid lines and Rooms opens on its three storeys"
       examples[index + 1]?.id === "dimensions" &&
       flow.rooms?.rooms.length === 18 &&
       flow.nodes.length === 14 &&
-      flow.camera.yaw === -Math.PI / 4 &&
-      flow.camera.pitch === -0.62 &&
+      flow.camera.yaw === -Math.PI / 6 &&
+      flow.camera.pitch === -0.55 &&
       examples.every((d) =>
         d.initial().nodes.every((n) => {
           const size = nodeSize(n);

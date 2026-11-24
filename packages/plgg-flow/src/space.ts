@@ -145,7 +145,7 @@ export const planSpace = (
 
       spans.x[i] = Math.max(
         spans.x[i]!,
-        left + pitch,
+        cake ? round(left + width + 32) : left + pitch,
       );
       spans.y[j] = Math.max(
         spans.y[j]!,
@@ -231,12 +231,13 @@ export const planSpace = (
             ),
           };
           // Keep the same slot grid across an aisle, even when a cell is sparse.
+          if (cake) shift.x = 0;
           if (view.z) {
             const pitch = pitches[i]!;
             shift.x =
-              Math.round(shift.x / pitch) * pitch;
+              Math.floor(Math.max(0, shift.x) / pitch) * pitch;
             shift.z =
-              Math.round(shift.z / 80) * 80;
+              Math.floor(shift.z / 80) * 80;
           }
           for (const { n, p } of placed)
             positions.set(n.id, {

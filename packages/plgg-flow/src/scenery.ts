@@ -16,6 +16,11 @@ export const drawScenery = (
   const style = attr("pointer-events", "none");
   if (item.kind === "label") {
     const p = at(item.anchor);
+    const x = at({...item.anchor,x:item.anchor.x+1});
+    const z = at({...item.anchor,z:item.anchor.z+1});
+    const dx=x.x-p.x, dy=x.y-p.y;
+    const laid=item.onSurface && Math.abs(dx)>=camera.scale*.6 && Math.abs(dy)<=Math.abs(dx)*Math.tan(35*Math.PI/180) && Math.abs(z.y-p.y)>camera.scale*.15;
+    const sx=Math.sign(dx)/camera.scale, sz=Math.sign(z.y-p.y)/camera.scale;
     const { press, enter, leave } = item;
     return {
       layer: item.layer,
@@ -23,8 +28,9 @@ export const drawScenery = (
       html: el<Change>(
         "text",
         [
-          attr("x", String(p.x + item.offset.x)),
-          attr("y", String(p.y + item.offset.y)),
+          ...(laid ? [attr("transform", `matrix(${dx*sx} ${dy*sx} ${(z.x-p.x)*sz} ${(z.y-p.y)*sz} ${p.x} ${p.y})`)] : []),
+          attr("x", String(laid ? 0 : p.x + item.offset.x)),
+          attr("y", String(laid ? -5 : p.y + item.offset.y)),
           attr("text-anchor", "middle"),
           attr("dominant-baseline", "middle"),
           attr(
@@ -72,7 +78,7 @@ export const drawScenery = (
     item.points,
     ...(item.kind === "line"
       ? (item.strokes ?? [])
-      : []),
+      : item.patches ?? []),
   ];
   let depth = 0,
     count = 0;
@@ -87,7 +93,7 @@ export const drawScenery = (
             (i ? "L" : "M") + p.x + " " + p.y
           );
         })
-        .join(""),
+        .join("") + (item.kind === "plane" ? "Z" : ""),
     )
     .join("");
   return {
@@ -99,11 +105,11 @@ export const drawScenery = (
         style,
         attr(
           "d",
-          d + (item.kind === "plane" ? "Z" : ""),
+          d,
         ),
         attr(
           "style",
-          `stroke:${item.tone};fill:${item.kind === "plane" ? item.fill : "none"}`,
+          `stroke-width:${item.width ?? 1}px;stroke:${item.tone};fill:${item.kind === "plane" ? item.fill : "none"}`,
         ),
         ...(item.kind === "plane"
           ? [

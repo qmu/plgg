@@ -534,8 +534,8 @@ const laySpec =
           ...(rooms
             ? {}
             : {
-                yaw: -Math.PI / 4,
-                pitch: -0.62,
+                yaw: -Math.PI / 6,
+                pitch: -0.55,
               }),
           perspective: false,
         },

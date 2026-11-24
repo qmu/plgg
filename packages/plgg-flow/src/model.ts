@@ -120,6 +120,10 @@ export const quietEdge = (edge: Edge) => {
 export type Scenery = {
   layer: "behind" | "sorted" | "front";
   tone: string;
+  width?: number;
+  /** Horizontal partition and paint order relative to its surface. */
+  surface?: number;
+  order?: number;
 } & (
   | {
       kind: "plane";
@@ -129,6 +133,7 @@ export type Scenery = {
         Point3,
         Point3,
       ];
+      patches?: readonly (readonly Point3[])[];
       fill: string;
       opacity: number;
     }
@@ -141,6 +146,7 @@ export type Scenery = {
   | {
       kind: "label";
       anchor: Point3;
+      onSurface?: boolean;
       offset: Point;
       text: string;
       size: number;

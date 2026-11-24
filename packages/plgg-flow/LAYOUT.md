@@ -1619,3 +1619,25 @@ Seen, to fix in the drawing round that follows:
   depth is not respected after the optimiser's exchange — keep
   boxes 16 apart on screen-relevant directions (x and z) in every
   cell.
+
+## See-through or not (owner, musing on the boards: "perhaps not see-through is better… hm, I see")
+
+Both have a cost. See-through: nothing is lost, but above and
+below cannot be told and everything is on top of everything.
+Opaque: above and below are plain, but what a board covers is gone
+until the sheet is turned.
+
+The drafting answer is the third thing — **hidden lines**. Boards
+are opaque, and what they cover is not erased but drawn the way a
+drawing says "behind": the covered part of a wire dotted in
+pencil (1 3), a covered node as its outline only, dashed pencil,
+no fill, its caption in pencil. The covered things stay findable;
+the covering is unmistakable. One rule for every solid that covers
+something (boards, and nodes covering wires).
+
+Pinning or hovering a board's name turns the boards above it to
+outlines for as long as it is held, so one layer can be looked at
+whole without turning.
+
+To be tried on screen after the drawing round, against plain
+opaque: keep whichever reads better at the six shooting angles.

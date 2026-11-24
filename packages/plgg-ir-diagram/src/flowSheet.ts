@@ -335,11 +335,11 @@ export const roomFrames = <Action>(
 const layerViews = [
   ["正面", 0, -0.12],
   ["上", -Math.PI / 4, -1.2],
-  ["立体", -Math.PI / 4, -0.62],
+  ["立体", -Math.PI / 6, -0.55],
 ] satisfies [string, number, number][];
 export const roomsOpening = viewAt(
-  -Math.PI / 4,
-  -0.62,
+  -Math.PI / 6,
+  -0.55,
 );
 const arrangeSheet: Change = (f) => {
   if (f.rooms) {
