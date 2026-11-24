@@ -1933,3 +1933,25 @@ exist only in 本番"; MVVM — plain). Two do not:
 Also: with the block steppers the desktop toolbar wraps to a
 second row over the drawing. The toolbar is one row at every
 width; what does not fit goes into a 「…」 menu at the end.
+
+## Shooting round 6 — rooms from six angles, tools pressed (reviewer's score: cakes 80, rooms 80, four axes 75)
+
+Legibility is in the view search (all twenty subjects open with
+captions ≥ 10px; 学ぶ順番 now reads); a node more than half hidden
+outweighs larger lettering (the four-axis sheet no longer opens
+face-on with its back row lost); the toolbar is one row with 「…」.
+
+Rooms at 正面, 上, 横, from the right, from behind and from steeply
+above: in every shot it is one solid block of three storeys, each
+node's storey and row can be told, names are on the faces that
+show them or on tags, the axes sit on the outline. Nineteen of
+twenty subjects say their sentence cold.
+
+Pressed on the unified site: delete / undo / redo on the history
+page change the text 5 → 2 → 5 → 2 lines; 放射状配置 and
+階層を自動配置 move the nodes on the layout page.
+
+Left: seen from above, the pencil tags of nodes covered by a floor
+run out of the frame on the left (会員DB, 会員API(検証) cut) — the
+fit must include the tags of covered nodes, or such a tag stays
+inside the block's outline.
