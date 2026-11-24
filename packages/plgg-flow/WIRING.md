@@ -1115,3 +1115,31 @@ Audit kinds added (curve style, moderate): `not-canonical` (the plain
 cubic is free but the wire is > 14u off it) and `snake` (the bend
 direction changes more than once). Baseline on round 22 code:
 `snake` 84, `not-canonical` 55.
+
+## Round 24 review — adopted as the new base for curves
+
+Free wires are now the plain cubic: `not-canonical` 55 → 0, `snake`
+84 → 7, curve drags no longer move unrelated wires
+(`drag-jump-neighbour` 13 → 0 for curves), 1350 lines of spline code
+gone, cold time halved. On the sheet the ordinary wires finally look
+alike.
+
+The audit was recalibrated by the reviewer: curves that share a socket
+and part by themselves are a fan (`fan-overlap`, a note), an `overlap`
+only if they stay together for 40 % of the shorter wire.
+
+What the reset broke (sev3 16, moderate 182), for round 25:
+- **Blocked wires** (via points): pretzels and dents — diamonds a→f,
+  c→d loop back on themselves; microservices Gateway→Search snakes;
+  S→T has a dent at its start. Cubic spans through a via do not work.
+  New rule: a blocked wire is a *soft polyline* — short stem along the
+  socket normal, straight runs between the fewest via points, joined by
+  large circular fillets (radius up to 40, never more than half the
+  shorter adjoining run). No cubic spans.
+- **Arches** (both sockets on the same side, e.g. row skips): all the
+  same height, so they overlap and cross (`pipelineSkips` 2 → 8
+  crossings, `excursion` 27). Arch height must grow with span so
+  arches nest: `c = 24 + 0.13·|AB|` for same-side sockets (the audit's
+  canonical check does not apply to these — see below).
+- **Siblings crossing** (43) and `double-cross` (21): the lever is the
+  side of the far socket, not the curve.

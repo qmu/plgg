@@ -14,7 +14,7 @@ import {
   mendFans,
   orderStemBranches,
 } from "plgg-flow/wireFanRepair";
-import { fitCurves } from "plgg-flow/wireSpline";
+
 import {
   profile,
   chordGap,
@@ -34,7 +34,6 @@ import {
   move,
   free,
   inflate,
-  gap,
   simplify,
   type Box,
 } from "plgg-flow/wireGeometry";
@@ -1087,7 +1086,7 @@ export const separate = (
     for (const [i, edge] of list.entries())
       pairPositions.set(edge, i);
   }
-  const bundleWires = new WeakSet<Base>();
+
   const draw = (
     w: Base,
     i: number,
@@ -1151,74 +1150,6 @@ export const separate = (
         spread
       : 0;
     const span = distance(s, t);
-    if (
-      (!edge.route || edge.route === "curve") &&
-      span >= 50 &&
-      sameSockets &&
-      pair.length >= 2 &&
-      a.side !== b.side &&
-      vertical(a.side) === vertical(b.side)
-    ) {
-      const dx = t.x - s.x,
-        dy = t.y - s.y;
-      const upright = vertical(a.side);
-      const direction = Math.sign(
-        upright ? dy : dx,
-      );
-      const nx = upright
-        ? Math.abs(dy) / span
-        : (-dy * direction) / span;
-      const ny = upright
-        ? (-dx * direction) / span
-        : Math.abs(dx) / span;
-      // Unobstructed tracks use the same chord parameter, including
-      // the straight middle track when the sockets are off level.
-      if (
-        flat ||
-        (pair.length >= 3 &&
-          dx * normal[s.side].x +
-            dy * normal[s.side].y >
-            0 &&
-          boxes.every(
-            (q) =>
-              q.id === edge.source ||
-              q.id === edge.target ||
-              gap(s, t, q) >
-                1.7 * centre * spread,
-          ))
-      ) {
-        const count = lens
-          ? Math.ceil(span / 4)
-          : 1;
-        const path = Array.from(
-          { length: count + 1 },
-          (_, i) => {
-            const f = i / count;
-            const bow = 4 * f * (1 - f);
-            const offset =
-              lens *
-              (reciprocal
-                ? Math.pow(bow, 0.15)
-                : 1.7 * bow);
-            return pt(
-              s.x + dx * f + nx * offset,
-              s.y + dy * f + ny * offset,
-            );
-          },
-        );
-        if (free(path, boxes)) {
-          const wire = materialize(
-            edge,
-            s,
-            t,
-            path,
-            0,
-          );
-          bundleWires.add(wire);
-          return wire;
-        }
-      }
-    }
     if (flat && !lens) return w;
     if (w.spine && !flat) {
       const raw = w.spine;
@@ -1635,7 +1566,6 @@ export const separate = (
   const settled = nested.map(
     (w, i) =>
       w !== wires[i] ||
-      bundleWires.has(w) ||
       w.edge.source === w.edge.target ||
       Boolean(bases[i]?.settled) ||
       (bases[i]?.spine?.length === 2 &&
@@ -2643,7 +2573,7 @@ export const separate = (
     orderStemBranches(wires, fans.values());
   }
   const laneOrigins = wires;
-  // Resolve residual crowding on the fanned curves before fixing their samples.
+  // Preserve the channel adjustment for explicitly straight edges.
   for (let pass = 0; pass < 2; pass++) {
     let channel:
       | ReturnType<typeof curvedChannels>
@@ -2695,24 +2625,6 @@ export const separate = (
     });
     if (wires.every((w, i) => w === previous[i]))
       break;
-  }
-  if (
-    wires.some((w) => w.edge.route !== "step")
-  ) {
-    wires = fitCurves(
-      wires,
-      bases,
-      boxes,
-      settled,
-      boxIndex,
-    );
-    wires = mendFans(
-      wires,
-      boxes,
-      radius,
-      true,
-      bundleWires,
-    );
   }
   return nestedFans(
     wires,

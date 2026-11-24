@@ -132,7 +132,7 @@ const audit = (g, wires, style) => {
     // changes the sign of its curvature at most once (C or S, never a snake).
     if (style === "curve" && s.id !== t.id && w.edge.route !== "straight") {
       const nrm = (q, e) => Math.abs(e.x - q.l) < 1.5 ? { x: -1, y: 0 } : Math.abs(e.x - q.r) < 1.5 ? { x: 1, y: 0 } : Math.abs(e.y - q.t) < 1.5 ? { x: 0, y: -1 } : { x: 0, y: 1 };
-      const A = pts[0], B = pts[pts.length - 1], na = nrm(sb, A), nb = nrm(tb, B), dist = Math.hypot(B.x - A.x, B.y - A.y), c = Math.max(24, Math.min(160, 0.45 * dist));
+      const A = pts[0], B = pts[pts.length - 1], na = nrm(sb, A), nb = nrm(tb, B), dist = Math.hypot(B.x - A.x, B.y - A.y), sameSide = na.x === nb.x && na.y === nb.y, c = sameSide ? 24 + 0.13 * dist : Math.max(24, Math.min(160, 0.45 * dist));
       const P1 = { x: A.x + na.x * c, y: A.y + na.y * c }, P2 = { x: B.x + nb.x * c, y: B.y + nb.y * c };
       const canon = Array.from({ length: 41 }, (_, k) => { const u = k / 40, v = 1 - u; return { x: v * v * v * A.x + 3 * v * v * u * P1.x + 3 * v * u * u * P2.x + u * u * u * B.x, y: v * v * v * A.y + 3 * v * v * u * P1.y + 3 * v * u * u * P2.y + u * u * u * B.y }; });
       const canonFree = !g.nodes.some((m) => { if (m.group) return false; const q = box(m), own = m.id === s.id || m.id === t.id; return canon.some((p, k) => own ? k > 5 && k < 35 && dBox(p, q) < 4 : dBox(p, q) < 10); });
@@ -142,7 +142,7 @@ const audit = (g, wires, style) => {
       if (flips > 1) add(2, "snake", w, flips + " changes of bend direction");
     }
     // excursion: how far the wire strays outside the box spanned by its two nodes
-    if (s.id !== t.id) { const U = { l: Math.min(sb.l, tb.l), r: Math.max(sb.r, tb.r), t: Math.min(sb.t, tb.t), b: Math.max(sb.b, tb.b) }; let ex = 0; for (const p of r) ex = Math.max(ex, dBox(p, U)); const fat = Math.min(U.r - U.l, U.b - U.t) > 150; if (ex > (fat ? 30 : 90)) add(2, "excursion", w, ex.toFixed(0) + "u outside its own span"); else if (ex > 60) add(1, "excursion", w, ex.toFixed(0)); }
+    if (s.id !== t.id) { const U = { l: Math.min(sb.l, tb.l), r: Math.max(sb.r, tb.r), t: Math.min(sb.t, tb.t), b: Math.max(sb.b, tb.b) }; let ex = 0; for (const p of r) ex = Math.max(ex, dBox(p, U)); { const A0 = pts[0], B0 = pts[pts.length - 1]; const sd = (q, e) => Math.abs(e.x - q.l) < 1.5 ? "l" : Math.abs(e.x - q.r) < 1.5 ? "r" : Math.abs(e.y - q.t) < 1.5 ? "t" : "b"; if (style === "curve" && sd(sb, A0) === sd(tb, B0)) ex -= 0.75 * (24 + 0.13 * Math.hypot(B0.x - A0.x, B0.y - A0.y)); } const fat = Math.min(U.r - U.l, U.b - U.t) > 150; if (ex > (fat ? 30 : 90)) add(2, "excursion", w, ex.toFixed(0) + "u outside its own span"); else if (ex > 60) add(1, "excursion", w, ex.toFixed(0)); }
     if (s.id !== t.id) { const A = pts[0], B = pts[pts.length - 1]; const d0 = Math.hypot(B.x - A.x, B.y - A.y); let far = 0; for (const p of r) far = Math.max(far, Math.hypot(B.x - p.x, B.y - p.y) - d0); let blockedLine = g.nodes.some((m) => { if (m.id === s.id || m.id === t.id) return false; const q = box(m); for (let u = 0; u <= 1; u += 0.02) { const p = { x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u }; if (p.x > q.l - 10 && p.x < q.r + 10 && p.y > q.t - 10 && p.y < q.b + 10) return true; } return false; }); if (far > 30 && !blockedLine) add(2, "moves-away-first", w, far.toFixed(0) + "u farther than its start"); }
     if (s.id !== t.id) { const A = pts[0], B = pts[pts.length - 1], d = Math.hypot(B.x - A.x, B.y - A.y); if (d < 60) { let tt = 0; for (let k = 2; k < r.length; k++) { const a = dir(r[k - 2], r[k - 1]), b = dir(r[k - 1], r[k]); tt += Math.abs(Math.atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y)); } const need = 2 * Math.abs(Math.atan2(Math.min(Math.abs(B.y - A.y), Math.abs(B.x - A.x)), Math.max(Math.abs(B.y - A.y), Math.abs(B.x - A.x)))) + 0.6; if (tt > need + 0.8 || len(pts) > d * 1.6 + 8) add(2, "squashed-short-wire", w, `turn ${tt.toFixed(1)} len ${len(pts).toFixed(0)}/${d.toFixed(0)}`); } }
     let self = 0; for (let a = 1; a < r.length; a++) for (let b = a + 3; b < r.length; b++) if (segX(r[a - 1], r[a], r[b - 1], r[b])) self++;
@@ -163,6 +163,9 @@ const audit = (g, wires, style) => {
       crossings += c;
       // overlap / too close running alongside (outside stems)
       let on = 0, close = 0; for (let a = 1; a < r.length; a++) { const p = r[a]; if (!stemFree(p, w) || !stemFree(p, v)) continue; const d = dPoly(p, q); if (d < 2.5) on += 6; else if (d < 6) close += 6; }
+      const near = (m, k) => Math.hypot(m.x - k.x, m.y - k.y) < 2; const fan = style === "curve" && [w.source, w.target].some((m) => [v.source, v.target].some((k) => near(m, k)));
+      // curves from one socket leave together and part by themselves: that is a fan, not an overlap, unless they stay together for most of the way
+      if (fan && on > 18 && on < 0.4 * Math.min(len(r), len(q))) { add(1, "fan-overlap", w, on + "u with " + v.edge.source + "→" + v.edge.target); on = 0; }
       if (on > 18) add(3, "overlap", w, on + "u on " + v.edge.source + "→" + v.edge.target); else if (close > 120 && c === 0) add(2, "runs-too-close", w, close + "u within 6 of " + v.edge.source + "→" + v.edge.target); else if (close > 60 && c === 0) add(1, "crowded", w, close + "u near " + v.edge.source + "→" + v.edge.target);
     });
   });

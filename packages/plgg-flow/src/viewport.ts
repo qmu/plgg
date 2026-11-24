@@ -1,3 +1,4 @@
+import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
@@ -972,14 +973,38 @@ export const flowView = (
     const flat =
       state.camera.pitch === 0 &&
       state.camera.yaw === 0;
-    const line = flat
-      ? points
-          .map(
-            (p, i) =>
-              (i ? "L" : "M") + p.x + " " + p.y,
-          )
-          .join("")
-      : "";
+    const controls = wire.controls;
+    const line =
+      flat &&
+      controls &&
+      (wire.source.z === wire.target.z ||
+        !state.camera.perspective)
+        ? [wire.source, ...controls, wire.target]
+            .map((k, i) => {
+              const p = project(state.camera)(k);
+              return (
+                (i === 0
+                  ? "M"
+                  : i === 1
+                    ? "C"
+                    : " ") +
+                p.x +
+                " " +
+                p.y
+              );
+            })
+            .join("")
+        : flat
+          ? points
+              .map(
+                (p, i) =>
+                  (i ? "L" : "M") +
+                  p.x +
+                  " " +
+                  p.y,
+              )
+              .join("")
+          : "";
     let length = 0;
     for (const [i, b] of points.entries()) {
       const a0 = points[i - 1];
@@ -1292,7 +1317,18 @@ export const flowView = (
             ),
           };
       const near = atStart
-        ? (points[1] ?? tip)
+        ? (!edge.route ||
+            edge.route === "curve") &&
+          edge.source !== edge.target
+          ? project(state.camera)({
+              ...move(
+                wire.source,
+                wire.sourceSide,
+                1,
+              ),
+              z: wire.source.z,
+            })
+          : (points[1] ?? tip)
         : project(state.camera)(
             wire.arrow.toward,
           );

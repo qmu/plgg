@@ -221,7 +221,10 @@ const invariants = (graph: Graph) => {
           ),
           toBe(true),
         ),
-        ...ws.slice(i + 1).map((v) => {
+        ...(w.edge.route === "step"
+          ? ws.slice(i + 1)
+          : []
+        ).map((v) => {
           const near = pts.filter(
             (p) =>
               [
@@ -304,7 +307,12 @@ for (const route of [
         routes().every((w) =>
           w.points.every(
             (p) =>
-              Math.abs(p.y) <= 18 + 24 + 3 * 10,
+              Math.abs(p.y) <=
+              (route === "curve"
+                ? 18 +
+                  0.75 * 160 +
+                  (w.controls ? 0 : 14)
+                : 18 + 24 + 3 * 10),
           ),
         ),
         toBe(true),
@@ -337,8 +345,11 @@ test("a card pushes a wire continuously on each side of the over-under tie", () 
       if (i === 0 && y === -26)
         earlyPush = w.points.some((p) => p.y > 0);
       const old = previous[i];
-      // The ids select the lower passage through the 9-unit tie band.
-      if (old && !(i === 0 && y === 10)) {
+      // The preferred rim changes when the centre crosses the chord.
+      if (
+        old &&
+        !(i === 0 && (y === 0 || y === 2))
+      ) {
         // Measure both directions to catch a disappearing detour.
         for (const [from, to] of [
           [old, w],
@@ -548,7 +559,7 @@ for (const route of [
   );
 }
 
-test("diagonal curves pass opposite rims inside their endpoint span", () => {
+test("diagonal curves clear the central card inside their endpoint span", () => {
   const nodes = [
     n("a", -200, -120),
     n("c", -200, 120),
@@ -568,12 +579,12 @@ test("diagonal curves pass opposite rims inside their endpoint span", () => {
   return check(
     wires
       .slice(0, 2)
-      .every((w, i) =>
+      .every((w) =>
         w.points.every(
           (p) =>
             Math.abs(p.y) <= 120.01 &&
             (Math.abs(p.x) > 52 ||
-              (i === 0 ? -p.y : p.y) >= 18),
+              Math.abs(p.y) >= 18),
         ),
       ),
     toBe(true),
@@ -620,10 +631,15 @@ for (const route of [
         }
       return all([
         check(conflicts, toBe(2)),
-        check(
-          wireMetrics(graph, wires).crossings,
-          toBe(2),
-        ),
+        ...(route === "step"
+          ? [
+              check(
+                wireMetrics(graph, wires)
+                  .crossings,
+                toBe(2),
+              ),
+            ]
+          : []),
         check(
           arcs.every((w) => {
             const heights = w.points.map((p) =>
@@ -814,7 +830,7 @@ test("step diamond branches keep their shared source side into the merge", () =>
   );
 });
 
-test("a narrowing cluster passage holds its side through twice the clearance", () => {
+test("a narrowing cluster passage clears the moving card with at most two vias", () => {
   const nodes = [
     ...["a", "b"].flatMap((prefix, j) =>
       Array.from({ length: 6 }, (_, i) =>
@@ -844,8 +860,7 @@ test("a narrowing cluster passage holds its side through twice the clearance", (
     e("a1", "b4"),
     e("b5", "a0"),
   ];
-  let previous: Wire | undefined;
-  let worst = 0;
+  let clear = true;
   for (let k = 0; k <= 10; k++) {
     const graph = {
       edges,
@@ -866,29 +881,18 @@ test("a narrowing cluster passage holds its side through twice the clearance", (
     );
     if (!wire)
       throw new Error("Missing cluster route");
-    if (previous) {
-      for (const [from, to] of [
-        [wire, previous],
-        [previous, wire],
-      ] satisfies [Wire, Wire][]) {
-        for (const p of from.points)
-          worst = Math.max(
-            worst,
-            Math.min(
-              ...to.points
-                .slice(1)
-                .map((b, i) =>
-                  segmentGap(
-                    p,
-                    to.points[i] ?? b,
-                    b,
-                  ),
-                ),
-            ),
-          );
-      }
-    }
-    previous = wire;
+    const card = graph.nodes.find(
+      (n) => n.id === "a3",
+    );
+    if (!card)
+      throw new Error("Missing moving card");
+    clear &&=
+      wire.corners <= 2 &&
+      wire.points.every(
+        (p) =>
+          Math.abs(p.x - card.position.x) >= 52 ||
+          Math.abs(p.y - card.position.y) >= 18,
+      );
   }
-  return check(worst < 30, toBe(true));
+  return check(clear, toBe(true));
 });

@@ -148,28 +148,8 @@ const join = (
   after: Point[],
   at: Point,
   radius: number,
-  curve: boolean,
 ) => {
   if (!before.length) return after;
-  if (curve) {
-    // Leave enough tangent length on both curves to round their junction.
-    let left = before.length - 1,
-      right = 0;
-    while (
-      left > 1 &&
-      distance(required(before[left]), at) <
-        radius
-    )
-      left--;
-    while (
-      right + 2 < after.length &&
-      distance(required(after[right]), at) <
-        radius
-    )
-      right++;
-    before = before.slice(0, left + 1);
-    after = after.slice(right);
-  }
   const a = required(before[before.length - 1]),
     b = required(after[0]),
     u = distance(at, a),
@@ -202,7 +182,6 @@ const splice = (
   start: Cut,
   end: Cut,
   radius: number,
-  curve: boolean,
 ) => {
   const middle = q.slice(start.j, end.j);
   if (!middle.length)
@@ -215,16 +194,9 @@ const splice = (
     middle,
     start.p,
     radius,
-    curve,
   );
   return head.length
-    ? join(
-        head,
-        p.slice(end.i),
-        end.p,
-        radius,
-        curve,
-      )
+    ? join(head, p.slice(end.i), end.p, radius)
     : [];
 };
 // Adjacent fillets need a visible straight or they read like a diagonal.
@@ -332,17 +304,12 @@ export const mendFans = (
   original: Wire[],
   boxes: Box[],
   radius: number,
-  curve = false,
-  protectedWires?: WeakSet<Wire>,
 ) => {
   const wires = [...original],
     profiles = wires.map(profile);
   const peers = neighbourIndex(profiles);
   const paths = wires.map((w) =>
-    (curve
-      ? !w.edge.route || w.edge.route === "curve"
-      : w.edge.route === "step") &&
-    !protectedWires?.has(w) &&
+    w.edge.route === "step" &&
     !w.edge.waypoints?.length &&
     w.edge.source !== w.edge.target
       ? simplify(w.points)
@@ -376,16 +343,9 @@ export const mendFans = (
           ),
         );
         // Reversing travel order preserves all interior intersections.
+        if (conflict(a, b, 8) < 8) continue;
+        let crossings = cuts(p, other);
         if (
-          (curve && !shared) ||
-          conflict(a, b, 8) < 8
-        )
-          continue;
-        let crossings = curve
-          ? curveCuts(p, other)
-          : cuts(p, other);
-        if (
-          !curve &&
           !shared &&
           crossings.length < 2 &&
           conflict(a, b, 90) >= 90
@@ -450,32 +410,27 @@ export const mendFans = (
               continue;
             // A lane exchange can happen immediately outside a
             // socket stem. Keep that stem intact on both new tracks.
-            const fillet = curve
-              ? radius
-              : Math.min(
-                  radius,
-                  ...[
-                    a.wire.source,
-                    a.wire.target,
-                    b.wire.source,
-                    b.wire.target,
-                  ]
-                    .flatMap((p) => [
-                      distance(p, start.p),
-                      distance(p, end.p),
-                    ])
-                    .filter((d) => d > 0)
-                    .map((d) =>
-                      Math.max(0, d - 14),
-                    ),
-                );
+            const fillet = Math.min(
+              radius,
+              ...[
+                a.wire.source,
+                a.wire.target,
+                b.wire.source,
+                b.wire.target,
+              ]
+                .flatMap((p) => [
+                  distance(p, start.p),
+                  distance(p, end.p),
+                ])
+                .filter((d) => d > 0)
+                .map((d) => Math.max(0, d - 14)),
+            );
             const x = splice(
               p,
               q,
               start,
               end,
               fillet,
-              curve,
             );
             const y = splice(
               q,
@@ -487,14 +442,12 @@ export const mendFans = (
               },
               { ...end, i: end.j, j: end.i },
               fillet,
-              curve,
             );
             if (
               !x.length ||
               !y.length ||
-              (!curve &&
-                (!distinctBends(x) ||
-                  !distinctBends(y))) ||
+              !distinctBends(x) ||
+              !distinctBends(y) ||
               !free(x, boxes) ||
               !free(y, boxes) ||
               crossesItself(x) ||
@@ -521,9 +474,8 @@ export const mendFans = (
             if (reverseP) x.reverse();
             if (reverseQ) y.reverse();
             if (
-              !curve &&
-              (!keepsStems(x, a.wire) ||
-                !keepsStems(y, b.wire))
+              !keepsStems(x, a.wire) ||
+              !keepsStems(y, b.wire)
             )
               continue;
             const originalU = profile(
@@ -546,7 +498,7 @@ export const mendFans = (
                   x,
                   y,
                 ];
-                if (!shared || curve) return;
+                if (!shared) return;
                 for (const trimmed of trimJog(
                   originalU.wire,
                   reverseP,

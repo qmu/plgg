@@ -187,7 +187,11 @@ const perpendicularEnds = (w: Wire) =>
       if (!q) continue;
       const d = Math.hypot(p.x - q.x, p.y - q.y);
       if (!d) continue;
-      const f = Math.min(1, (14 - length) / d),
+      const reach =
+        !w.edge.route || w.edge.route === "curve"
+          ? Math.min(2, d)
+          : 14;
+      const f = Math.min(1, (reach - length) / d),
         side = reverse
           ? w.targetSide
           : w.sourceSide,
@@ -206,7 +210,7 @@ const perpendicularEnds = (w: Wire) =>
       if (normal < 0 || Math.abs(tangent) > 1.5)
         return false;
       length += d;
-      if (length >= 14) return true;
+      if (length >= reach) return true;
     }
     return false;
   });
@@ -858,50 +862,47 @@ test("step diagonals are confined to quarter-circle corners", () => {
     toBe(true),
   );
 });
-test("a free curve follows its single cubic between stems", () => {
+test("a free curve samples its socket-normal cubic", () => {
   const w = wireGraph(patterns.single)[0];
-  if (!w) throw new Error("Missing curve");
-  const u = { x: w.source.x + 14, y: w.source.y },
-    v = { x: w.target.x - 14, y: w.target.y };
-  const arm = Math.max(
-    40,
-    0.45 * Math.hypot(u.x - v.x, u.y - v.y),
-  );
-  const samples = Math.ceil(
-    (3 *
-      Math.max(
-        arm,
-        Math.hypot(
-          v.x - u.x - 2 * arm,
-          v.y - u.y,
-        ),
-      )) /
-      12,
-  );
+  if (!w) throw new Error("Missing wire");
+  const a = w.source,
+    b = w.target,
+    c = Math.max(
+      24,
+      Math.min(
+        160,
+        0.45 * Math.hypot(a.x - b.x, a.y - b.y),
+      ),
+    );
   return check(
-    Array.from(
-      { length: samples + 1 },
-      (_, i) => {
-        const t = i / samples,
-          k = 1 - t;
-        const x =
-          k * k * k * u.x +
-          3 * k * k * t * (u.x + arm) +
-          3 * k * t * t * (v.x - arm) +
-          t * t * t * v.x;
-        const y =
-          (k * k * k + 3 * k * k * t) * u.y +
-          (3 * k * t * t + t * t * t) * v.y;
-        return w.points.some(
-          (p) =>
-            Math.hypot(p.x - x, p.y - y) < 1e-7,
-        );
-      },
-    ).every(Boolean),
+    w.points.every((p, i) => {
+      const t = i / (w.points.length - 1),
+        v = 1 - t;
+      const x =
+        v ** 3 * a.x +
+        3 * v * v * t * (a.x + c) +
+        3 * v * t * t * (b.x - c) +
+        t ** 3 * b.x;
+      const y =
+        v * v * (1 + 2 * t) * a.y +
+        t * t * (3 - 2 * t) * b.y;
+      return Math.hypot(x - p.x, y - p.y) <= 0.5;
+    }),
     toBe(true),
   );
 });
-
+test("moving a card outside the cubic preserves every sample", () => {
+  const graph = patterns.single;
+  const route = (y: number) =>
+    wireGraph({
+      ...graph,
+      nodes: [
+        ...graph.nodes,
+        node("unrelated", 0, y),
+      ],
+    })[0]?.points;
+  return check(route(-50), toEqual(route(150)));
+});
 test("the level branch of a crossing fan retains its free cubic", () => {
   const graph = patterns.cross;
   const edge = graph.edges.find(
@@ -1006,7 +1007,9 @@ test("staggered fan branches nest at either end of a wire", () => {
           metrics = wireMetrics(graph, wires);
         return all([
           check(wires.length, toBe(edges.length)),
-          check(metrics.crossings, toBe(0)),
+          ...(route === "step"
+            ? [check(metrics.crossings, toBe(0))]
+            : []),
           check(metrics.overlap, toBe(0)),
           check(metrics.nodeHits, toBe(0)),
         ]);

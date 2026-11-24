@@ -1,3 +1,4 @@
+import { curvePath } from "plgg-flow/wireCurve";
 import { materialize } from "plgg-flow/wirePath";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
@@ -54,6 +55,7 @@ export type Wire = Readonly<{
   target: Point3;
   arrow: { at: Point3; toward: Point3 };
   points: readonly Point3[];
+  controls?: readonly Point3[];
   corners: number;
 }>;
 // Reuse the narrow-phase channel test while both base paths keep their shape.
@@ -218,6 +220,22 @@ export const wireGraph = (
     query,
   );
 
+  // Only wires with matching physical sockets share a bundle arc.
+  const bundles = new Map<string, Edge[]>();
+  const membersByEdge = new Map<Edge, Edge[]>();
+  for (const { edge, a, b } of ports.plans) {
+    const sockets = [
+      [edge.source, a.side],
+      [edge.target, b.side],
+    ];
+    if (edge.source > edge.target)
+      sockets.reverse();
+    const key = JSON.stringify(sockets);
+    const members = bundles.get(key) ?? [];
+    members.push(edge);
+    bundles.set(key, members);
+    membersByEdge.set(edge, members);
+  }
   // Base paths depend only on the chosen sockets and nearby node boxes.
   const bases = ports.plans.map(
     ({ edge, a, b }) => {
@@ -229,6 +247,15 @@ export const wireGraph = (
           ...portPosition(b.node, b.side, 0),
           side: b.side,
         };
+      const curve =
+        !edge.route || edge.route === "curve";
+      const pair = required(
+        membersByEdge.get(edge),
+      );
+      const rank = curve ? pair.indexOf(edge) : 0;
+      const reciprocal =
+        pair.length === 2 &&
+        pair[0]?.source !== pair[1]?.source;
       const bounds = corridor(
         [s, t, ...(edge.waypoints ?? [])],
         3 * clearance,
@@ -246,11 +273,33 @@ export const wireGraph = (
           a.depth,
           Boolean(a.bundleBranch),
           Boolean(b.bundleBranch),
+          rank,
+          curve && pair.length,
+          curve && reciprocal,
           walls.map(boxId),
         ]);
         const build = () => {
           let arch;
-          if (a.depth && a.side === b.side) {
+          if (
+            curve &&
+            edge.source !== edge.target &&
+            !edge.waypoints?.length
+          )
+            arch = curvePath(
+              edge,
+              s,
+              t,
+              walls,
+              clearance,
+              rank,
+              pair.length,
+              reciprocal,
+            );
+          if (
+            !arch &&
+            a.depth &&
+            a.side === b.side
+          ) {
             const axis = vertical(a.side)
               ? "y"
               : "x";
@@ -297,6 +346,9 @@ export const wireGraph = (
               clearance,
               radius,
             );
+          const bounds = corridor(wire.points, 0);
+          if (curve)
+            return { wire, bounds, token: 0 };
           const shape =
             JSON.stringify([
               edge.source,
@@ -311,7 +363,7 @@ export const wireGraph = (
             ]) + pathValues(wire.points);
           return {
             wire,
-            bounds: corridor(wire.points, 0),
+            bounds,
             token: geometryTokens(
               shape,
               () => ++serial,
@@ -350,12 +402,22 @@ export const wireGraph = (
       let result = plain ?? route(active);
       for (;;) {
         const extra = query(
-          expand(result.bounds, clearance),
+          expand(
+            result.bounds,
+            curve
+              ? Math.max(10, clearance)
+              : clearance,
+          ),
         ).filter(
           (q) =>
             !active.includes(q) &&
             !free(result.wire.points, [
-              inflate(q, clearance),
+              inflate(
+                q,
+                curve
+                  ? Math.max(10, clearance)
+                  : clearance,
+              ),
             ]),
         );
         if (!extra.length) return member(result);
@@ -389,31 +451,39 @@ export const wireGraph = (
     return n;
   };
   const sockets = new Map<string, number>();
-  const shapes = bases.map(({ wire }, i) => {
-    for (const key of [
-      JSON.stringify([
-        wire.source.x,
-        wire.source.y,
-      ]),
-      JSON.stringify([
-        wire.target.x,
-        wire.target.y,
-      ]),
-      JSON.stringify(
-        [
-          wire.edge.source,
-          wire.edge.target,
-        ].sort(),
-      ),
-    ]) {
-      const other = sockets.get(key);
-      if (other === undefined)
-        sockets.set(key, i);
-      else parent[root(i)] = root(other);
-    }
-    const shape = shapeOf(wire);
-    return { ...shape.bounds, i, wire, shape };
-  });
+  const direct = (i: number) => {
+    const route = required(bases[i]).wire.edge
+      .route;
+    return !route || route === "curve";
+  };
+  const shapes = regions
+    .filter((r) => !direct(r.i))
+    .map(({ i }) => {
+      const { wire } = required(bases[i]);
+      for (const key of [
+        JSON.stringify([
+          wire.source.x,
+          wire.source.y,
+        ]),
+        JSON.stringify([
+          wire.target.x,
+          wire.target.y,
+        ]),
+        JSON.stringify(
+          [
+            wire.edge.source,
+            wire.edge.target,
+          ].sort(),
+        ),
+      ]) {
+        const other = sockets.get(key);
+        if (other === undefined)
+          sockets.set(key, i);
+        else parent[root(i)] = root(other);
+      }
+      const shape = shapeOf(wire);
+      return { ...shape.bounds, i, wire, shape };
+    });
   const near = boundsIndex(shapes);
   for (const a of shapes)
     for (const b of near(a)) {
@@ -435,13 +505,14 @@ export const wireGraph = (
     number,
     typeof regions
   >();
-  for (const r of regions) {
+  for (const r of shapes) {
+    const region = required(regions[r.i]);
     const id = root(r.i),
       group = groups.get(id);
-    if (group) group.push(r);
-    else groups.set(id, [r]);
+    if (group) group.push(region);
+    else groups.set(id, [region]);
   }
-  const wires: Wire[] = [];
+  const wires: Wire[] = bases.map((m) => m.wire);
   for (const group of groups.values()) {
     const plans = group.map((r) =>
       required(ports.plans[r.i]),
@@ -598,7 +669,15 @@ export const wireGraph = (
       };
       wires[i] = {
         ...w,
-        arrow: { at, toward: end },
+        arrow: {
+          at,
+          toward: direct(i)
+            ? {
+                ...move(at, w.targetSide, -1),
+                z: at.z,
+              }
+            : end,
+        },
       };
       break;
     }
@@ -609,6 +688,8 @@ export const wireGraph = (
     if (
       !edge.waypoints?.length &&
       old &&
+      Boolean(old.controls) ===
+        Boolean(w.controls) &&
       old.sourceSide === w.sourceSide &&
       old.targetSide === w.targetSide &&
       old.corners === w.corners &&
@@ -628,6 +709,7 @@ export const wireGraph = (
       return old;
     const wire: Wire = {
       edge,
+      ...(w.controls && { controls: w.controls }),
       points: w.points,
       corners: w.corners,
       source: w.source,

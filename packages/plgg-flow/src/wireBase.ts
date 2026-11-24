@@ -164,233 +164,6 @@ const centerSign = (
       ? 1
       : -1;
 
-// Ease the shoulders into the clearance band before a card reaches the wire.
-const softCorridor = (
-  s: Point & { side: Side },
-  t: Point,
-  boxes: Box[],
-  clearance: number,
-  edge: Edge,
-) => {
-  const upright = vertical(s.side);
-  const along = upright ? "y" : "x",
-    across = upright ? "x" : "y";
-  const advance = t[along] - s[along],
-    rise = t[across] - s[across];
-  if (
-    advance * normal[s.side][along] <= 0 ||
-    Math.abs(rise) > Math.abs(advance)
-  )
-    return;
-  const baseline = (x: number) => {
-    const f = Math.max(
-      0,
-      Math.min(1, (x - s[along]) / advance),
-    );
-    return s[across] + rise * f * f * (3 - 2 * f);
-  };
-  const low = Math.min(s[along], t[along]),
-    high = Math.max(s[along], t[along]);
-
-  const bands: {
-    left: number;
-    right: number;
-    push: number;
-    obstacle: Box;
-  }[] = [];
-  for (const q of boxes) {
-    const pad = Math.min(
-      clearance,
-      pointGap(s, q),
-      pointGap(t, q),
-    );
-    const left = (upright ? q.t : q.l) - pad,
-      right = (upright ? q.b : q.r) + pad;
-    if (right <= low || left >= high) continue;
-    const atLeft = baseline(left),
-      atRight = baseline(right);
-    const top =
-        (upright ? q.l : q.t) -
-        Math.max(atLeft, atRight),
-      bottom =
-        (upright ? q.r : q.b) -
-        Math.min(atLeft, atRight);
-    const center =
-      (upright ? q.l + q.r : q.t + q.b) / 2;
-    const chord =
-      s[across] +
-      (rise * ((left + right) / 2 - s[along])) /
-        advance;
-    const separation = center - chord;
-    const above =
-      centerSign(
-        separation,
-        clearance,
-        q.id,
-        edge,
-      ) > 0;
-    const push = above
-      ? Math.min(0, top - pad)
-      : Math.max(0, bottom + pad);
-    if (!push) continue;
-    if (left <= low || right >= high) return;
-    bands.push({
-      left,
-      right,
-      push,
-      obstacle: q,
-    });
-  }
-  if (!bands.length)
-    return rise ? undefined : [s, t];
-  // Ease into a clear level beside the obstacle without overshooting either socket.
-  if (
-    bands.length === 1 &&
-    Math.abs(rise) > 2 * clearance
-  ) {
-    const band = required(bands[0]);
-    const obstacle = band.obstacle;
-    if (
-      !boxes.some(
-        (q) =>
-          q !== obstacle &&
-          (upright ? q.t : q.l) < high &&
-          (upright ? q.b : q.r) > low &&
-          (upright ? q.l : q.t) <
-            Math.max(s[across], t[across]) &&
-          (upright ? q.r : q.b) >
-            Math.min(s[across], t[across]),
-      )
-    ) {
-      const fromLow =
-        advance > 0 ? s[across] : t[across];
-      const fromHigh =
-        advance > 0 ? t[across] : s[across];
-      const near =
-        (upright ? obstacle.l : obstacle.t) -
-        clearance;
-      const far =
-        (upright ? obstacle.r : obstacle.b) +
-        clearance;
-      const level =
-        fromLow < fromHigh ? near - 1 : far + 1;
-      if (
-        level > Math.min(fromLow, fromHigh) &&
-        level < Math.max(fromLow, fromHigh)
-      ) {
-        const ease = (f: number) =>
-          f * f * (3 - 2 * f);
-        // Shift the inflection of a single smoothstep until its value
-        // at the far rim is the required clearance level.
-        const height =
-          (level - fromLow) /
-          (fromHigh - fromLow);
-        let lower = 0,
-          upper = 1;
-        for (let i = 0; i < 12; i++) {
-          const mid = (lower + upper) / 2;
-          if (ease(mid) < height) lower = mid;
-          else upper = mid;
-        }
-        const rim =
-          (band.right - low) / (high - low);
-        const t = Math.max(1e-6, lower);
-        const weight =
-          (rim * (1 - t)) / (t * (1 - rim));
-        return Array.from(
-          { length: 65 },
-          (_, i) => {
-            const x =
-              s[along] + (advance * i) / 64;
-            const f = (x - low) / (high - low);
-            const y =
-              fromLow +
-              (fromHigh - fromLow) *
-                ease(f / (f + weight * (1 - f)));
-            return upright ? pt(y, x) : pt(x, y);
-          },
-        );
-      }
-    }
-  }
-  // A single smooth arch can clear several cards on the same level.
-  if (Math.abs(rise) < 1 && bands.length > 1) {
-    const arch = (x: number) => {
-      const wave =
-        Math.sin(
-          (Math.PI * (x - low)) / (high - low),
-        ) ** 2;
-      return (
-        0.4 * wave + (0.6 * wave) / (0.03 + wave)
-      );
-    };
-    const dir = Math.sign(
-      required(bands[0]).push,
-    );
-    if (bands.every((b) => dir * b.push > 0)) {
-      const height = Math.max(
-        ...bands.map(
-          (b) =>
-            (dir * b.push) /
-            Math.min(arch(b.left), arch(b.right)),
-        ),
-      );
-      if (height < 90)
-        return Array.from(
-          { length: 65 },
-          (_, i) => {
-            const x =
-              s[along] + (advance * i) / 64;
-            const y =
-              baseline(x) +
-              dir * height * arch(x);
-            return upright ? pt(y, x) : pt(x, y);
-          },
-        );
-    }
-  }
-  const coords = new Set([low, high]);
-  for (const band of bands) {
-    coords.add(band.left);
-    coords.add(band.right);
-  }
-  for (let i = 1; i < 48; i++)
-    coords.add(low + ((high - low) * i) / 48);
-  return [...coords]
-    .sort(
-      (a, b) =>
-        (a - b) * Math.sign(t[along] - s[along]),
-    )
-    .map((x) => {
-      let above = 0,
-        below = 0;
-      for (const { left, right, push } of bands) {
-        const shoulder = Math.max(
-          48,
-          Math.min(160, 3 * Math.abs(push) + 32),
-        );
-        const f = Math.max(
-          0,
-          Math.min(
-            1,
-            1 -
-              (left - x) /
-                Math.min(shoulder, left - low),
-            1 -
-              (x - right) /
-                Math.min(shoulder, high - right),
-          ),
-        );
-        const v = push * f * f * (3 - 2 * f);
-        above = Math.min(above, v);
-        below = Math.max(below, v);
-      }
-      const offset = above + below;
-      return upright
-        ? pt(baseline(x) + offset, x)
-        : pt(x, baseline(x) + offset);
-    });
-};
 export type Base = Wire & {
   spine?: Point[];
   settled?: boolean;
@@ -407,66 +180,31 @@ export const bundleBranch = (
   leavesBundle: boolean,
 ): Base | undefined => {
   if (
+    edge.route !== "step" ||
     edge.waypoints?.length ||
-    edge.route === "straight"
+    !leavesBundle ||
+    vertical(s.side) === vertical(t.side)
   )
     return;
-  const socket = leavesBundle ? s : t,
-    far = leavesBundle ? t : s;
-  const along = vertical(socket.side) ? "y" : "x",
-    across = along === "y" ? "x" : "y";
-  const forward =
-    (far[along] - socket[along]) *
-    normal[socket.side][along];
-  if (forward < 32) return;
-  let path: Point[],
-    corners = 0;
-  if (edge.route === "step") {
-    if (
-      !leavesBundle ||
-      vertical(s.side) === vertical(t.side)
-    )
-      return;
-    const l = move(s, s.side, 16),
-      r = move(t, t.side, 22);
-    const corner = vertical(s.side)
-      ? pt(r.x, l.y)
-      : pt(l.x, r.y);
-    path = rounded(
-      [s, l, corner, r, t],
-      Math.min(radius, 8),
-    );
-    corners = 3;
-  } else if (leavesBundle) {
-    if (vertical(s.side) === vertical(t.side))
-      return;
-    const control = {
-      ...s,
-      [along]:
-        s[along] + (t[along] - s[along]) / 3,
-      [across]: (s[across] + t[across]) / 2,
-    };
-    path = [
-      s,
-      ...bezier(
-        move(s, s.side, 10),
-        control,
-        move(t, t.side, 32),
-        move(t, t.side, 12),
-      ),
-      t,
-    ];
-  } else {
-    path = bezier(
-      s,
-      move(s, s.side, forward * 0.85),
-      move(t, t.side, Math.min(22, forward / 4)),
-      t,
-    );
-  }
+  const along = vertical(s.side) ? "y" : "x";
+  if (
+    (t[along] - s[along]) *
+      normal[s.side][along] <
+    32
+  )
+    return;
+  const l = move(s, s.side, 16),
+    r = move(t, t.side, 22);
+  const corner = vertical(s.side)
+    ? pt(r.x, l.y)
+    : pt(l.x, r.y);
+  const path = rounded(
+    [s, l, corner, r, t],
+    Math.min(radius, 8),
+  );
   if (free(path, boxes))
     return {
-      ...materialize(edge, s, t, path, corners),
+      ...materialize(edge, s, t, path, 3),
       settled: true,
     };
   return undefined;
@@ -809,21 +547,6 @@ const routeBase = (
       step ? radius : 24,
     );
     if (free(path, boxes)) return make(path, 3);
-  }
-  if (
-    opposite &&
-    !step &&
-    edge.route !== "straight"
-  ) {
-    const middle = softCorridor(
-      { ...u, side: s.side },
-      v,
-      foreign,
-      clearance,
-      edge,
-    );
-    if (middle && safe([s, ...middle, t]))
-      return make([s, ...middle, t]);
   }
   if (
     step &&
