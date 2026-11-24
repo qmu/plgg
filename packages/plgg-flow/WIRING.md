@@ -1403,3 +1403,13 @@ For round 33 — the remaining moderate findings, in order:
    sides so the fan does not cross itself; never by moving a free
    cubic.
 4. `wiggly` 9 (step), `runs-too-close` 7, `squashed-short-wire` 4.
+
+## Round 33 — stopped at the owner's word, not adopted
+
+Wiring work is paused. When stopped, Codex's working tree was at
+sev3 0 / moderate 51 (from 81: kink 13 → 3, double-cross 6 → 1,
+siblings-cross 11 → 6, drag-jump-neighbour 12 → 6) with one existing
+spec failing (curve: removing a wire moves a remaining one beyond its
+lane shift). It is in `git stash` ("round33 in progress"); main stays
+at round 30 plus the arrow-at-the-dot change: sev3 0, moderate ~81.
+To resume: pop that stash, fix the one spec, re-run the audit.
