@@ -1,3 +1,4 @@
+import type { Point } from "plgg-board";
 import type { Graph } from "./model";
 import { nodeSize } from "plgg-flow/nodeSize";
 import { islands } from "plgg-flow/analysis";
@@ -11,6 +12,7 @@ export type LayerOptions = Readonly<{
 export type LayerPlan = Readonly<{
   graph: Graph;
   layers: ReadonlyMap<string, number>;
+  routes: ReadonlyMap<number, readonly Point[]>;
   reversed: readonly number[];
 }>;
 
@@ -332,7 +334,7 @@ const placeComponent = (
 ) => {
   if (all.every((v) => v.incoming.length <= 1)) {
     placeTree(all);
-    return;
+    return [];
   }
   // Remove pendant sinks before crossing minimisation. Their single arc
   // can be placed beside its parent without reordering the core.
@@ -367,6 +369,11 @@ const placeComponent = (
     v.outgoing = core;
   }
 
+  const routes: {
+    source: Vertex;
+    target: Vertex;
+    chain: Vertex[];
+  }[] = [];
   const rows: Vertex[][] = [];
   for (const v of group)
     (rows[v.layer] ??= []).push(v);
@@ -375,6 +382,7 @@ const placeComponent = (
     const targets = v.outgoing.slice();
     v.outgoing = [];
     for (const target of targets) {
+      const chain: Vertex[] = [];
       let prev = v;
       for (
         let l = v.layer + 1;
@@ -388,10 +396,14 @@ const placeComponent = (
             ? 0
             : Math.min(v.size, target.size),
         );
+        dummy.layer = l;
+        chain.push(dummy);
         rows[l]!.push(dummy);
         link(prev, dummy);
         prev = dummy;
       }
+      if (chain.length)
+        routes.push({ source: v, target, chain });
       prev.outgoing.push(target);
       const i = target.incoming.indexOf(v);
       target.incoming[i] = prev;
@@ -472,6 +484,10 @@ const placeComponent = (
       x += v.size + 40;
     }
   }
+  for (const { chain } of routes)
+    for (const v of chain)
+      reserve([v], v.cross, occupied);
+  return routes;
 };
 
 // Measure the core layers before deciding whether the peripheral fans
@@ -643,10 +659,18 @@ export const planLayers = (
   }
   const reversed: number[] = [];
   const cycles = new Set<string>();
+  const indices = new Map<string, number[]>();
   for (const e of edges) {
     const a = by.get(e.source)!,
       b = by.get(e.target)!;
-    if (rank.get(a)! > rank.get(b)!) {
+    const back = rank.get(a)! > rank.get(b)!;
+    const key = JSON.stringify(
+      back ? [b.id, a.id] : [a.id, b.id],
+    );
+    const list = indices.get(key) ?? [];
+    list.push(e.i);
+    indices.set(key, list);
+    if (back) {
       reversed.push(e.i);
       cycles.add(e.source);
       link(b, a);
@@ -688,6 +712,7 @@ export const planLayers = (
   for (const leaf of pendant)
     leaf.layer = leaf.incoming[0]!.layer + 1;
   let cross = 0;
+  const virtual = new Map<number, Vertex[]>();
   let gap = 96;
   for (const ids of groups.sort(
     (a, b) =>
@@ -719,7 +744,23 @@ export const planLayers = (
     const returns = group.filter((v) =>
       cycles.has(v.id),
     ).length;
-    placeComponent(group, returns > 0, mainLine);
+    const routes = placeComponent(
+      group,
+      returns > 0,
+      mainLine,
+    );
+    for (const {
+      source,
+      target,
+      chain,
+    } of routes) {
+      const i = indices
+        .get(
+          JSON.stringify([source.id, target.id]),
+        )!
+        .shift()!;
+      virtual.set(i, chain);
+    }
     // Multiple return paths need room to turn beside the forward fan.
     if (returns > 1)
       gap = Math.max(
@@ -732,9 +773,38 @@ export const planLayers = (
       group,
       neighbours,
     );
+    const wrappedLayers = new Map<
+      number,
+      number
+    >();
+    for (const [v, position] of positions)
+      wrappedLayers.set(
+        v.layer,
+        Math.min(
+          wrappedLayers.get(v.layer) ?? Infinity,
+          position.layer,
+        ),
+      );
     for (const [v, position] of positions)
       Object.assign(v, position);
     const wrapped = positions.size > 0;
+    if (wrapped) {
+      const occupied = new Map<
+        number,
+        Vertex[]
+      >();
+      for (const v of group) {
+        const row = occupied.get(v.layer) ?? [];
+        row.push(v);
+        occupied.set(v.layer, row);
+      }
+      for (const { chain } of routes)
+        for (const v of chain) {
+          v.layer =
+            wrappedLayers.get(v.layer) ?? v.layer;
+          reserve([v], v.cross, occupied);
+        }
+    }
     if (tree || wrapped) {
       for (const v of group)
         for (const peer of neighbours.get(v)!) {
@@ -755,6 +825,10 @@ export const planLayers = (
     const high = Math.max(
       ...group.map((v) => v.cross + v.size / 2),
     );
+    for (const { chain } of routes) {
+      for (const v of chain)
+        v.cross += cross - low;
+    }
     for (const v of group) v.cross += cross - low;
     cross += high - low + 40;
   }
@@ -769,9 +843,40 @@ export const planLayers = (
     length += gap + w;
     return length - w / 2;
   });
+  const routes = new Map<number, Point[]>();
+  const feedback = new Set(reversed);
+  for (const [i, chain] of virtual) {
+    if (!chain.length) continue;
+    const via = chain.map((v) => {
+      const main = centres[v.layer]! - length / 2;
+      const side = v.cross - (cross - 40) / 2;
+      return down
+        ? { x: side, y: main }
+        : { x: main, y: side };
+    });
+    routes.set(
+      i,
+      feedback.has(i) ? via.reverse() : via,
+    );
+  }
   return {
+    routes,
     graph: {
       ...graph,
+      edges: graph.edges.map(
+        (
+          { via: oldVia, lift: oldLift, ...edge },
+          i,
+        ) => {
+          const via = routes.get(i);
+          return {
+            ...edge,
+            ...(via && { via }),
+            ...(options.depth &&
+              feedback.has(i) && { lift: 24 }),
+          };
+        },
+      ),
       nodes: graph.nodes.map((n) => {
         const v = by.get(n.id)!,
           a = centres[v.layer]! - length / 2,

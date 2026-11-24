@@ -5,6 +5,10 @@ import {
 import type { Point } from "plgg-board";
 import type { Wire } from "./wiring";
 import type { Edge } from "./model";
+import {
+  corridor,
+  intersects,
+} from "plgg-flow/wireCorridors";
 import type { Socket } from "plgg-flow/wireBase";
 import { materialize } from "plgg-flow/wirePath";
 import { search } from "plgg-flow/wireSearch";
@@ -166,9 +170,11 @@ export const blockers = (
   plain: Point[],
   boxes: Box[],
 ) => {
+  const bounds = corridor(plain, 10);
   const own = (q: Box) =>
     q.id === edge.source || q.id === edge.target;
   return boxes.filter((q) => {
+    if (!intersects(bounds, q)) return false;
     if (own(q))
       return plain.some(
         (p, i) =>
@@ -193,6 +199,7 @@ export const curvePath = (
   rank: number,
   count: number,
   reciprocal: boolean,
+  fan?: "source" | "target",
 ) => {
   const span = distance(s, t);
   const { plain, p1, p2 } = canonical(s, t);
@@ -271,15 +278,32 @@ export const curvePath = (
     (span || 1);
   const along = (p: Point) =>
     dx * (p.x - s.x) + dy * (p.y - s.y);
-  const u = move(s, s.side, 16),
-    v = move(t, t.side, 16);
+  const u = move(
+      s,
+      s.side,
+      fan === "source" ? 20 : 16,
+    ),
+    v = move(
+      t,
+      t.side,
+      fan === "target" ? 20 : 16,
+    );
+  const hub = fan === "source" ? s : t,
+    tip = fan === "source" ? t : s;
+  const axis = vertical(hub.side) ? "x" : "y";
+  // Follow the outside of the fan. A blocked outer branch cutting inward
+  // would have to pass through the unobstructed branches on its way back.
+  const outward = fan
+    ? Math.sign(tip[axis] - hub[axis])
+    : 0;
+
   const candidates = boxes
     .filter(
       (q) =>
         blocked.includes(q) || gap(u, v, q) < 12,
     )
     .flatMap((q) => {
-      const b = inflate(q, 12);
+      const b = inflate(q, fan ? 16 : 12);
       const center = pt(
         (q.l + q.r) / 2,
         (q.t + q.b) / 2,
@@ -302,7 +326,12 @@ export const curvePath = (
         pt(b.l, b.b),
         pt(b.r, b.b),
       ]
-        .filter((p) => sign * signed(p) < 0)
+        .filter((p) =>
+          outward
+            ? outward * (p[axis] - center[axis]) >
+              0
+            : sign * signed(p) < 0,
+        )
         .sort(
           (a, b) =>
             Math.abs(signed(a)) -
@@ -316,11 +345,16 @@ export const curvePath = (
       : inflate(q, 10),
   );
   let best: Point[] | undefined;
+  let viaCount = 0;
   let length = Infinity,
     leastBends = Infinity;
-  const consider = (vias: Point[]) => {
+  const consider = (
+    vias: Point[],
+    monotone = true,
+  ) => {
     const run = [u, ...vias, v];
     if (
+      monotone &&
       run.some(
         (p, i) =>
           i > 0 &&
@@ -346,21 +380,28 @@ export const curvePath = (
     ) {
       leastBends = bends;
       best = path;
+      viaCount = vias.length;
       length = cost;
     }
   };
-  consider([]);
+  if (!outward) consider([]);
   if (best)
     return materialize(edge, s, t, best, 0);
   for (const p of candidates) consider([p]);
-  if (best)
+  if (best && !leastBends)
     return materialize(edge, s, t, best, 1);
   for (const p of candidates)
     for (const q of candidates)
       if (p !== q && along(q) >= along(p))
         consider([p, q]);
   if (best)
-    return materialize(edge, s, t, best, 2);
+    return materialize(
+      edge,
+      s,
+      t,
+      best,
+      viaCount,
+    );
   // The arc cuts inside a searched corner. Reserve space for its trim.
   const own = boxes.filter(
     (q) =>
@@ -411,6 +452,26 @@ export const curvePath = (
       );
       if (!route) continue;
       const knots = outline(simplify(route), 8);
+      const interior = knots.slice(1, -1);
+      const monotone =
+        interior.length <= 2 ||
+        Boolean(direction);
+      for (const [i, p] of interior.entries()) {
+        consider([p], monotone);
+        for (const q of interior.slice(i + 1))
+          consider([p, q], monotone);
+      }
+      if (best)
+        return materialize(
+          edge,
+          s,
+          t,
+          best,
+          viaCount,
+        );
+      // Never emit an unverified shortcut through the interior of a
+      // multi-corner search result. Try a wider rim or the other side.
+      if (interior.length > 2) continue;
       const path = fillet([s, ...knots, t]);
       if (crossesItself(path)) continue;
       const wire = materialize(
@@ -467,6 +528,48 @@ export const curvePath = (
     }
     if (leastBends < Infinity) break;
   }
+  if (!fallback) {
+    // When obstacles form a chain, the two useful corners may lie on
+    // different rectangles. Try an outer lane on each side of the chain.
+    const rim = inflate(
+      {
+        id: "",
+        l: Math.min(
+          u.x,
+          v.x,
+          ...boxes.map((q) => q.l),
+        ),
+        r: Math.max(
+          u.x,
+          v.x,
+          ...boxes.map((q) => q.r),
+        ),
+        t: Math.min(
+          u.y,
+          v.y,
+          ...boxes.map((q) => q.t),
+        ),
+        b: Math.max(
+          u.y,
+          v.y,
+          ...boxes.map((q) => q.b),
+        ),
+      },
+      40,
+    );
+    for (const x of [rim.l, rim.r])
+      consider([pt(x, u.y), pt(x, v.y)], false);
+    for (const y of [rim.t, rim.b])
+      consider([pt(u.x, y), pt(v.x, y)], false);
+    if (best)
+      return materialize(
+        edge,
+        s,
+        t,
+        best,
+        viaCount,
+      );
+  }
   return (
     fallback ??
     materialize(
@@ -511,7 +614,7 @@ export const extraBends = (
   return Math.max(0, flips - 1);
 };
 
-const fillet = (knots: Point[]) => {
+export const fillet = (knots: Point[]) => {
   const path = simplify(knots);
   const arcs = path.slice(1, -1).map((b, i) => {
     const a = required(path[i]),

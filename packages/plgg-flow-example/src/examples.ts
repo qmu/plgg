@@ -1,4 +1,9 @@
-import { fitFlow, type Flow } from "plgg-flow";
+import {
+  nodeSize,
+  viewport,
+  type Flow,
+} from "plgg-flow";
+import { wireGraph } from "plgg-flow/wiring";
 import {
   parseSpec,
   specFlow,
@@ -44,6 +49,59 @@ const empty: Spec = {
   graph: { nodes: [], edges: [] },
   rules: [],
 };
+// Initial and reset sessions both open on the front of the board.
+export const fitDemo = (flow: Flow): Flow => {
+  if (!flow.nodes.length) return flow;
+  const bounds = [
+    ...flow.nodes.flatMap((n) => {
+      const { width, height } = nodeSize(n);
+      return [-1, 1].map((sign) => ({
+        x: n.position.x + (sign * width) / 2,
+        y: n.position.y + (sign * height) / 2,
+      }));
+    }),
+    ...wireGraph(flow).flatMap((w) => w.points),
+  ].reduce(
+    (box, p) => ({
+      left: Math.min(box.left, p.x),
+      right: Math.max(box.right, p.x),
+      top: Math.min(box.top, p.y),
+      bottom: Math.max(box.bottom, p.y),
+    }),
+    {
+      left: Infinity,
+      right: -Infinity,
+      top: Infinity,
+      bottom: -Infinity,
+    },
+  );
+  const scale = Math.min(
+    1,
+    (viewport.x - 96) /
+      (bounds.right - bounds.left),
+    (viewport.y - 96) /
+      (bounds.bottom - bounds.top),
+  );
+  return {
+    ...flow,
+    camera: {
+      ...flow.camera,
+      scale,
+      origin: {
+        x:
+          (viewport.x -
+            scale *
+              (bounds.left + bounds.right)) /
+          2,
+        y:
+          (viewport.y -
+            scale *
+              (bounds.top + bounds.bottom)) /
+          2,
+      },
+    },
+  };
+};
 const demo = (
   id: DemoId,
   name: string,
@@ -60,10 +118,7 @@ const demo = (
     hint,
     source,
     spec,
-    initial: () => {
-      const f = specFlow(spec());
-      return f.layered ? fitFlow(f) : f;
-    },
+    initial: () => fitDemo(specFlow(spec())),
   };
 };
 export const examples = [

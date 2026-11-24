@@ -306,31 +306,44 @@ export const applySpec =
       ...rest
     } = flow;
     const pins = new Set(spec.pinned);
+    const unpinned = spec.graph.edges.flatMap(
+      (edge, index) =>
+        pins.has(edge.source) ||
+        pins.has(edge.target)
+          ? []
+          : [{ edge, index }],
+    );
+    const plan =
+      spec.layout &&
+      planLayers(
+        {
+          nodes: spec.graph.nodes.filter(
+            (n) => !pins.has(n.id),
+          ),
+          edges: unpinned.map(({ edge }) => edge),
+        },
+        spec.layout,
+      );
     const computed = new Map(
-      spec.layout
-        ? planLayers(
-            {
-              nodes: spec.graph.nodes.filter(
-                (n) => !pins.has(n.id),
-              ),
-              edges: spec.graph.edges.filter(
-                (e) =>
-                  !pins.has(e.source) &&
-                  !pins.has(e.target),
-              ),
-            },
-            spec.layout,
-          ).graph.nodes.map((n) => [
-            n.id,
-            n.position,
-          ])
-        : [],
+      plan?.graph.nodes.map((n) => [
+        n.id,
+        n.position,
+      ]),
+    );
+    const routed = new Map(
+      unpinned.map(({ index }, i) => [
+        index,
+        plan?.graph.edges[i],
+      ]),
     );
     return {
       ...rest,
       ...spec.graph,
       ...(spec.layout
         ? {
+            edges: spec.graph.edges.map(
+              (e, i) => routed.get(i) ?? e,
+            ),
             layered: {
               options: spec.layout,
               computed,

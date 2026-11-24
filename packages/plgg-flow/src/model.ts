@@ -76,6 +76,8 @@ export type Edge = Readonly<{
   data?: JsonObject;
   sourceHandle?: string;
   targetHandle?: string;
+  via?: readonly Point[];
+  lift?: number;
   waypoints?: readonly Point3[];
   source: string;
   target: string;
@@ -183,31 +185,57 @@ export const moveSelectionGeometry = (
   );
   if (
     !(delta.x || delta.y || delta.z) ||
-    !flow.edges.some((e) => e.waypoints?.length)
+    !flow.edges.some(
+      (e) => e.waypoints?.length || e.via?.length,
+    )
   )
     return { nodes, edges: flow.edges };
   const moved = subtree(flow.nodes, roots);
+  const relocated = new Set(
+    nodes.flatMap((n, i) => {
+      const p = flow.nodes[i]!.position;
+      return p.x !== n.position.x ||
+        p.y !== n.position.y ||
+        p.z !== n.position.z
+        ? [n.id]
+        : [];
+    }),
+  );
   let activeEdge = flow.activeEdge,
     changed = false;
-  const edges = flow.edges.map((e) => {
-    if (
-      !e.waypoints?.length ||
-      !moved.has(e.source) ||
-      !moved.has(e.target)
-    )
-      return e;
-    const next = {
-      ...e,
-      waypoints: e.waypoints.map((p) => ({
-        x: p.x + delta.x,
-        y: p.y + delta.y,
-        z: p.z + delta.z,
-      })),
-    };
-    if (activeEdge === e) activeEdge = next;
-    changed = true;
-    return next;
-  });
+  const edges = flow.edges.map(
+    (original): Edge => {
+      const { via, ...rest } = original;
+      const e =
+        via &&
+        (relocated.has(original.source) ||
+          relocated.has(original.target))
+          ? rest
+          : original;
+      if (e !== original) {
+        changed = true;
+        if (activeEdge === original)
+          activeEdge = e;
+      }
+      if (
+        !e.waypoints?.length ||
+        !moved.has(e.source) ||
+        !moved.has(e.target)
+      )
+        return e;
+      const next = {
+        ...e,
+        waypoints: e.waypoints.map((p) => ({
+          x: p.x + delta.x,
+          y: p.y + delta.y,
+          z: p.z + delta.z,
+        })),
+      };
+      if (activeEdge === e) activeEdge = next;
+      changed = true;
+      return next;
+    },
+  );
   return {
     nodes,
     edges: changed ? edges : flow.edges,

@@ -104,3 +104,20 @@ export const simplifyTrace = (
     ? points
     : points.filter((_, i) => keep.has(i));
 };
+
+export const bridgePoints = (
+  points: readonly Point3[],
+  lift: number | undefined,
+  flat: boolean,
+) => {
+  const first = points[0],
+    last = points[points.length - 1];
+  if (flat || !lift || !first || !last)
+    return points;
+  const z = Math.max(first.z, last.z) + lift;
+  return [
+    first,
+    ...points.map((p) => ({ ...p, z })),
+    last,
+  ];
+};

@@ -1197,3 +1197,23 @@ For round 27, by what the sheet shows:
 - drag: `drag-jump-neighbour` 13, `drag-jump` 5.
 - step style: `wiggly` 17 (round 23 was stopped; its partial work is
   in `git stash` and may be consulted but is stale).
+
+## Round 27 review — adopted; static better, drag worse
+
+sev3 8 → 0 (all overlaps gone), hub fan clean (`siblings-cross`
+28 → 13), `snake` 14 → 3, step `wiggly` 17 → 9. Moderate 125 → 123.
+
+Regressions seen on the sheet and in the numbers:
+- drag: `drag-jump` 5 → 12, `drag-jump-neighbour` 13 → 19,
+  `slow-drag` 12 → 17. The new curve lanes make a wire's shape depend
+  on its neighbours again — the thing round 24 removed.
+- `orgTreeVertical`/curve: the second child of a node (A1→A1.1) is a
+  slanted polyline across its sibling; `siblings-disagree-on-side` 13.
+- `clusters`/curve: 16 moderate, snakes inside the a-cluster.
+- layout `via` wires are drawn as unrounded polylines (Audit→Gateway
+  in the demo): they must be soft polylines with the same fillets.
+
+Rule restated for round 28: a curve's shape may depend on other wires
+only through (a) the bundle between the same two nodes and (b) the
+side choice. Lanes for curves are removed again; overlaps are solved
+by side choice or accepted as a fan.

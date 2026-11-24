@@ -1,3 +1,13 @@
+import {
+  parseSpec,
+  specFlow,
+} from "plgg-flow/dsl";
+import { moveSelectionGeometry } from "plgg-flow/model";
+import {
+  wireGraph,
+  type WireStyle,
+} from "plgg-flow/wiring";
+import { bridgePoints } from "plgg-flow/polyline";
 import { test, check, toBe } from "plgg-test";
 import {
   planLayers,
@@ -182,6 +192,90 @@ test("twelve input leaves wrap into two centred rows of six", () => {
         row.length === 6 &&
         Math.min(...row) + Math.max(...row) === 0,
     ),
+    toBe(true),
+  );
+});
+
+test("long-edge guides survive pinned-edge filtering and clear on endpoint movement", () => {
+  const parsed = parseSpec(
+    "layout layered right\nnode P at 0 0\nP -> A\nA -> B\nB -> C\nC -> D\nA -> D",
+  );
+  if (parsed.__tag === "Err")
+    return check(false, toBe(true));
+  const flow = specFlow(parsed.content);
+  const edge = flow.edges[4]!;
+  const moved = (id: string) =>
+    moveSelectionGeometry(flow, [id], {
+      x: 1,
+      y: 0,
+      z: 0,
+    }).edges[4];
+  return check(
+    edge.via?.length === 2 &&
+      edge.via[0]!.x < edge.via[1]!.x &&
+      moved("B") === edge &&
+      !moved("A")?.via &&
+      !moved("D")?.via,
+    toBe(true),
+  );
+});
+test("both wire styles follow a free layout guide", () => {
+  const nodes = graph.nodes
+    .slice(0, 2)
+    .map((n, i) => ({
+      ...n,
+      position: { x: i * 400, y: 0, z: 0 },
+    }));
+  return check(
+    (
+      ["curve", "step"] satisfies WireStyle[]
+    ).every((route) => {
+      const [wire] = wireGraph({
+        nodes,
+        edges: [
+          {
+            source: nodes[0]!.id,
+            target: nodes[1]!.id,
+            route,
+            via: [{ x: 200, y: 100 }],
+          },
+        ],
+      });
+      return wire?.points.some((p) => p.y >= 85);
+    }),
+    toBe(true),
+  );
+});
+test("only a depth-layout feedback wire rises above both ends when turned", () => {
+  const g = {
+    ...graph,
+    edges: [
+      { source: "a", target: "b" },
+      { source: "b", target: "c" },
+      { source: "c", target: "a" },
+    ],
+  };
+  const plan = planLayers(g, { depth: true });
+  const wires = wireGraph(plan.graph),
+    i = plan.reversed[0]!;
+  const w = wires[i]!,
+    p = bridgePoints(w.points, w.lift, false);
+  return check(
+    w.lift === 24 &&
+      wires.every(
+        (v, j) => j === i || v.lift === undefined,
+      ) &&
+      bridgePoints(w.points, w.lift, true) ===
+        w.points &&
+      p[0] === w.points[0] &&
+      p
+        .slice(1, -1)
+        .every(
+          (v) =>
+            v.z ===
+            Math.max(w.source.z, w.target.z) + 24,
+        ) &&
+      !planLayers(g).graph.edges[i]?.lift,
     toBe(true),
   );
 });

@@ -176,3 +176,18 @@ Open, from looking at the sheet rather than the numbers:
   picture is unchanged.
 - **Fit to view.** The demo fits the diagram to the board on load and
   on reset (largest scale ≤ 1 that leaves a 48px margin).
+
+## Round L4 review — adopted in part
+
+Long edges follow the layout's virtual nodes (microservices wire
+crossings 6/8 → 4/4, equal to the centre-line count). Fit-to-view
+works on load and reset.
+
+Not right yet:
+- the bridge: a reversed edge with depth is drawn *below* the sheet
+  when turned and reads as a sagging cable, not a bridge. It must rise
+  above the higher end (z + 24), with vertical risers at both ends.
+- the demo sample has no cycle, so the bridge is never seen: add
+  `Audit -> Gateway` and `DB -> Catalog`.
+- fit-to-view must also run after the DSL is edited (the layout
+  changes and the sheet may leave the frame).

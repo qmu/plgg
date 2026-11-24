@@ -55,6 +55,7 @@ const option = (
   t: Socket,
   walls: Box[],
   detour: boolean,
+  fan?: "source" | "target",
 ) => {
   const ends = JSON.stringify([
     edge.source,
@@ -90,6 +91,7 @@ const option = (
       ends,
       nearby.map(boxId),
       detour,
+      fan,
     ]),
     () => {
       if (
@@ -107,6 +109,7 @@ const option = (
         0,
         1,
         false,
+        fan,
       );
       const shape = profile(wire);
       let contacts = 0;
@@ -140,14 +143,14 @@ const option = (
 };
 
 const conflictMemo = new WeakMap<
-  Option,
-  WeakMap<Option, number>
+  Option["shape"],
+  WeakMap<Option["shape"], number>
 >();
 const conflicts = (a: Option, b: Option) => {
   const memo =
-    conflictMemo.get(a) ??
-    new WeakMap<Option, number>();
-  const hit = memo.get(b);
+    conflictMemo.get(a.shape) ??
+    new WeakMap<Option["shape"], number>();
+  const hit = memo.get(b.shape);
   if (hit !== undefined) return hit;
   const cost = measureConflict(
     a.shape,
@@ -155,8 +158,8 @@ const conflicts = (a: Option, b: Option) => {
     Infinity,
     true,
   );
-  memo.set(b, cost);
-  conflictMemo.set(a, memo);
+  memo.set(b.shape, cost);
+  conflictMemo.set(a.shape, memo);
   return cost;
 };
 
@@ -261,6 +264,13 @@ export const selectCurvePairs = (
           },
           walls,
           detour,
+          (degree.get(a.node.id) ?? 0) >= 4 &&
+            degree.get(b.node.id) === 1
+            ? "source"
+            : (degree.get(b.node.id) ?? 0) >= 4 &&
+                degree.get(a.node.id) === 1
+              ? "target"
+              : undefined,
         );
       const variants = (detour: boolean) =>
         leftSides.flatMap((left) =>
@@ -292,8 +302,13 @@ export const selectCurvePairs = (
         aligned(b, v.right, false);
       const plain = variants(false);
       const clear = plain.filter((v) => v.free);
+      const largeFan =
+        Math.max(
+          degree.get(a.node.id) ?? 0,
+          degree.get(b.node.id) ?? 0,
+        ) >= 6;
       const preferred =
-        fixed || obstructed
+        fixed || (obstructed && !largeFan)
           ? []
           : plain
               .filter(facingPair)
@@ -310,6 +325,7 @@ export const selectCurvePairs = (
       // would coincide. An overlap costs 100 in the fan solver.
       const alternative =
         terminalFan &&
+        !largeFan &&
         preferred.some((p) => p.free)
           ? clear
               .filter((v) => !facingPair(v))
@@ -318,11 +334,50 @@ export const selectCurvePairs = (
                 sidePenalty: 60,
               }))
           : [];
-      const valid = preferred.length
+      let valid = preferred.length
         ? [...preferred, ...alternative]
         : clear.length
           ? clear
           : variants(true);
+      // A boxed-in socket can force two turns in opposite directions.
+      // Try the other forward-facing side before accepting that detour.
+      if (
+        !fixed &&
+        valid.every((v) => v.faults > 0)
+      ) {
+        const forward = (end: End) =>
+          (
+            [
+              "left",
+              "right",
+              "top",
+              "bottom",
+            ] satisfies Side[]
+          ).filter(
+            (side) =>
+              normal[side].x *
+                (end.peer.position.x -
+                  end.node.position.x) +
+                normal[side].y *
+                  (end.peer.position.y -
+                    end.node.position.y) >=
+              0,
+          );
+        const retry = forward(a).flatMap((left) =>
+          forward(b).map((right) =>
+            make(left, right, false),
+          ),
+        );
+        const free = retry.filter((v) => v.free);
+        valid = [
+          ...valid,
+          ...(free.length
+            ? free
+            : retry.map((v) =>
+                make(v.left, v.right, true),
+              )),
+        ];
+      }
       const minFaults = Math.min(
         ...valid.map((v) => v.faults),
       );

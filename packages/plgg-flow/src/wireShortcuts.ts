@@ -6,6 +6,7 @@ import {
   vertical,
   required,
   simplify,
+  rounded,
   free,
   inflate,
   pt,
@@ -297,5 +298,99 @@ export const shortcuts = (
           }
     }
   }
+  return paths;
+};
+
+// Extend two allocated tracks to a common elbow, or bridge parallel
+// tracks with a single transverse run. Keep both outer fan shoulders.
+export const trimElbows = (
+  points: readonly Point[],
+  radius: number,
+) => {
+  const runs: {
+    axis: "x" | "y";
+    i: number;
+    j: number;
+  }[] = [];
+  for (let j = 1; j < points.length; j++) {
+    const p = required(points[j - 1]),
+      q = required(points[j]);
+    const axis =
+      p.x === q.x
+        ? "y"
+        : p.y === q.y
+          ? "x"
+          : undefined;
+    if (!axis || q[axis] === p[axis]) continue;
+    const last = runs[runs.length - 1];
+    if (last?.axis === axis && last.j === j - 1)
+      last.j = j;
+    else runs.push({ axis, i: j - 1, j });
+  }
+  const paths: Point[][] = [];
+  for (const [k, a] of runs.entries())
+    for (const b of runs.slice(k + 2)) {
+      const p = required(points[a.i]),
+        q = required(points[b.j]);
+      const first = required(points[a.j]),
+        last = required(points[b.i]);
+      const add = (l: Point, r: Point) => {
+        const along = a.axis,
+          end = b.axis;
+        if (
+          (l[along] - p[along]) *
+            Math.sign(first[along] - p[along]) <
+            (a.i === 0 ? 14 : 1) ||
+          (r[end] - q[end]) *
+            Math.sign(last[end] - q[end]) <
+            (b.j === points.length - 1 ? 14 : 1)
+        )
+          return;
+        paths.push([
+          ...points.slice(0, a.i),
+          ...rounded(
+            simplify([p, l, r, q]),
+            radius,
+          ),
+          ...points.slice(b.j + 1),
+        ]);
+      };
+      if (a.axis !== b.axis) {
+        const corner = {
+          ...p,
+          [a.axis]: q[a.axis],
+        };
+        add(corner, corner);
+      } else {
+        for (const level of new Set([
+          first[a.axis],
+          last[a.axis],
+          (first[a.axis] + last[a.axis]) / 2,
+          p[a.axis] +
+            Math.sign(first[a.axis] - p[a.axis]) *
+              17,
+          q[a.axis] +
+            Math.sign(last[a.axis] - q[a.axis]) *
+              17,
+          ...[14, 22, 30, 42].flatMap((d) => [
+            p[a.axis] +
+              Math.sign(
+                first[a.axis] - p[a.axis],
+              ) *
+                d,
+            q[a.axis] +
+              Math.sign(
+                last[a.axis] - q[a.axis],
+              ) *
+                d,
+          ]),
+        ])) {
+          add(
+            { ...p, [a.axis]: level },
+            { ...q, [a.axis]: level },
+          );
+        }
+      }
+    }
   return paths;
 };

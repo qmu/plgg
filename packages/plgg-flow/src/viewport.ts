@@ -45,7 +45,10 @@ import {
   groupVolumes,
   spatialGuides,
 } from "plgg-flow/spatialView";
-import { polylineSampler } from "plgg-flow/polyline";
+import {
+  bridgePoints,
+  polylineSampler,
+} from "plgg-flow/polyline";
 import {
   midpoint,
   distance,
@@ -941,7 +944,14 @@ export const flowView = (
       chosenWire && !turned.get(id)?.[side]
         ? Infinity
         : above(id, side, depth);
-    const knots = wire.points;
+    const flat =
+      state.camera.pitch === 0 &&
+      state.camera.yaw === 0;
+    const knots = bridgePoints(
+      wire.points,
+      wire.lift,
+      flat,
+    );
     const poly = polylineSampler(knots);
     const sample = (t: number) => {
       const p = project(state.camera)(poly(t));
@@ -970,9 +980,7 @@ export const flowView = (
     )
       continue;
     // A face-on camera shows the whole stroke without depth seams.
-    const flat =
-      state.camera.pitch === 0 &&
-      state.camera.yaw === 0;
+
     const controls = wire.controls;
     const line =
       flat &&
@@ -1304,8 +1312,15 @@ export const flowView = (
           (atStart ? "backward" : "forward")
       )
         continue;
+      const bridge = knots !== wire.points;
+      const deck = knots[1]?.z ?? wire.target.z;
+      const inset =
+        wire.arrow.at.x !== wire.target.x ||
+        wire.arrow.at.y !== wire.target.y;
       const at = project(state.camera)(
-        wire.arrow.at,
+        bridge && inset
+          ? { ...wire.arrow.at, z: deck }
+          : wire.arrow.at,
       );
       const tip = atStart
         ? sample(0)
@@ -1316,22 +1331,34 @@ export const flowView = (
               at.z,
             ),
           };
-      const near = atStart
-        ? (!edge.route ||
-            edge.route === "curve") &&
-          edge.source !== edge.target
-          ? project(state.camera)({
-              ...move(
-                wire.source,
-                wire.sourceSide,
-                1,
-              ),
-              z: wire.source.z,
-            })
-          : (points[1] ?? tip)
-        : project(state.camera)(
-            wire.arrow.toward,
-          );
+      const near = bridge
+        ? atStart
+          ? (points[1] ?? tip)
+          : inset
+            ? project(state.camera)({
+                ...wire.arrow.toward,
+                z: deck,
+              })
+            : project(state.camera)({
+                ...wire.target,
+                z: 2 * wire.target.z - deck,
+              })
+        : atStart
+          ? (!edge.route ||
+              edge.route === "curve") &&
+            edge.source !== edge.target
+            ? project(state.camera)({
+                ...move(
+                  wire.source,
+                  wire.sourceSide,
+                  1,
+                ),
+                z: wire.source.z,
+              })
+            : (points[1] ?? tip)
+          : project(state.camera)(
+              wire.arrow.toward,
+            );
       const angle =
         (Math.atan2(
           (tip.y - near.y) * (atStart ? 1 : -1),

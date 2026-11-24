@@ -1,10 +1,17 @@
-import { shortcuts } from "plgg-flow/wireShortcuts";
+import {
+  shortcuts,
+  trimElbows,
+} from "plgg-flow/wireShortcuts";
 import {
   corridor,
   boundsIndex,
   type Bounds,
 } from "plgg-flow/wireCorridors";
-import { cache, boxId } from "plgg-flow/wireMemo";
+import {
+  cache,
+  boxId,
+  pathValues,
+} from "plgg-flow/wireMemo";
 import {
   nestedFans,
   nestLayerFans,
@@ -57,6 +64,8 @@ const guideCosts = new WeakMap<
 >();
 const rememberGuides =
   cache<ReturnType<typeof profile>[]>(192);
+const simplerSteps =
+  cache<ReturnType<typeof profile>[]>(512);
 const compactPaths = new WeakSet<Base>();
 const rememberRenders =
   cache<Map<string, Base>>(384);
@@ -2568,6 +2577,137 @@ export const separate = (
         wires[i] = wire;
         contours[i] = next;
         index.update(i, next);
+      }
+    }
+    for (const [i, base] of bases.entries()) {
+      const old = required(contours[i]);
+      if (
+        old.turn < 2.2 * Math.PI ||
+        !base.spine ||
+        settled[i] ||
+        base.edge.waypoints?.length
+      )
+        continue;
+      const s = {
+          ...base.source,
+          side: base.sourceSide,
+        },
+        t = {
+          ...base.target,
+          side: base.targetSide,
+        };
+      const obstacles = required(walls[i]);
+      const key =
+        JSON.stringify([
+          tokens[i],
+          radius,
+          obstacles.map(boxId),
+        ]) + pathValues(old.wire.points);
+      const candidates = simplerSteps(key, () => {
+        const clear = obstacles.map((q) =>
+          q.id === base.edge.source ||
+          q.id === base.edge.target
+            ? q
+            : inflate(q, 7),
+        );
+        const trims = trimElbows(
+          old.wire.points,
+          radius,
+        )
+          .filter(
+            (path) =>
+              free(path, clear) &&
+              !crossesItself(path),
+          )
+          .map((path) =>
+            profile(
+              materialize(
+                base.edge,
+                s,
+                t,
+                path,
+                Math.max(1, old.wire.corners - 2),
+                false,
+              ),
+            ),
+          );
+        if (
+          vertical(s.side) !== vertical(t.side)
+        ) {
+          const axis = vertical(s.side)
+            ? "y"
+            : "x";
+          for (const left of [
+            14, 18, 22, 26, 32, 40, 52,
+          ])
+            for (const right of [
+              14, 18, 22, 26, 32, 40, 52,
+            ]) {
+              const a = move(s, s.side, left),
+                b = move(t, t.side, right);
+              const arc = rounded(
+                [
+                  s,
+                  a,
+                  { ...b, [axis]: a[axis] },
+                  b,
+                  t,
+                ],
+                radius,
+              );
+              if (
+                free(arc, clear) &&
+                !crossesItself(arc)
+              )
+                trims.push(
+                  profile(
+                    materialize(
+                      base.edge,
+                      s,
+                      t,
+                      arc,
+                      3,
+                      false,
+                    ),
+                  ),
+                );
+            }
+        }
+        return trims.sort(
+          (a, b) =>
+            a.turn - b.turn ||
+            a.length - b.length,
+        );
+      });
+      for (const next of candidates) {
+        if (
+          next.turn + 0.4 >= old.turn ||
+          next.length > old.length * 1.1
+        )
+          continue;
+        if (
+          index.query(next).some(({ i: j }) => {
+            if (i === j) return false;
+            const peer = required(contours[j]);
+            const limit =
+              Math.max(35, conflict(old, peer)) +
+              0.001;
+            return (
+              conflict(next, peer, limit) >= limit
+            );
+          })
+        )
+          continue;
+        wires[i] = materialize(
+          base.edge,
+          s,
+          t,
+          [...next.wire.points],
+          next.wire.corners,
+        );
+        contours[i] = next;
+        index.update(i, next);
+        break;
       }
     }
     orderStemBranches(wires, fans.values());

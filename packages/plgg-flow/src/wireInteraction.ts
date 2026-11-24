@@ -193,6 +193,7 @@ export const measureConflict = (
   v: ReturnType<typeof profile>,
   limit = Infinity,
   curvePair = false,
+  compareLanes = false,
 ) => {
   if (
     u.l > v.r + 6 ||
@@ -293,9 +294,16 @@ export const measureConflict = (
             return 0;
           if (h <= l) return 0;
           let extent = h - l;
-          for (const q of curvePair
-            ? []
-            : shared) {
+          for (const q of compareLanes
+            ? [
+                u.wire.source,
+                u.wire.target,
+                v.wire.source,
+                v.wire.target,
+              ]
+            : curvePair
+              ? []
+              : shared) {
             const x = q.x - a.a.x,
               y = q.y - a.a.y,
               center = x * a.x + y * a.y,
@@ -318,6 +326,30 @@ export const measureConflict = (
     }
     if (limit !== Infinity && value() >= limit)
       return limit;
+  }
+  if (compareLanes) {
+    const threshold = shared.length
+      ? Math.max(
+          18,
+          0.39 * Math.min(u.length, v.length),
+        )
+      : [
+            u.wire.edge.source,
+            u.wire.edge.target,
+          ].some(
+            (id) =>
+              id === v.wire.edge.target ||
+              id === v.wire.edge.source,
+          )
+        ? 15
+        : 21;
+    return (
+      (contact > threshold
+        ? 100 + Math.min(30, contact / 5)
+        : 0) +
+      intersections * (sibling ? 10 : 0.25) +
+      Math.max(0, intersections - 1) * 10
+    );
   }
   return curvePair
     ? intersections +
