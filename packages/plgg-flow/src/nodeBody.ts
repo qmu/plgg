@@ -113,7 +113,7 @@ export const projectNodeBody = (
   const w = nodeSize(node).width / 2,
     h = nodeSize(node).height / 2,
     d = bodyDepth(node);
-  const corners = [-d, d].flatMap((z) =>
+  const plane = (z: number) =>
     [
       [-w, -h],
       [w, -h],
@@ -127,8 +127,44 @@ export const projectNodeBody = (
           z: node.position.z + z,
         }),
       ),
-    ),
-  );
+    );
+  if (node.group && !node.collapsed) {
+    const tray = plane(0);
+    const corner = tray[0]!;
+    const atCorner = (dx: number, dy: number) =>
+      local(
+        at({
+          x: node.position.x - w + dx,
+          y: node.position.y - h + dy,
+          z: node.position.z,
+        }),
+      );
+    const x = atCorner(1, 0),
+      y = atCorner(0, 1);
+    const handle = [
+      [-5, -5],
+      [5, -5],
+      [5, 5],
+      [-5, 5],
+    ].map(([dx, dy]) =>
+      atCorner(2 * w + dx!, 2 * h + dy!),
+    );
+    return {
+      tray,
+      handle,
+      label: [
+        x.x - corner.x,
+        x.y - corner.y,
+        y.x - corner.x,
+        y.y - corner.y,
+        corner.x,
+        corner.y,
+      ],
+      visible: [],
+      depth: center.z,
+    };
+  }
+  const corners = [-d, d].flatMap(plane);
   const visible = faces.flatMap((face) => {
     const points = face.indices.map(
       (i) => corners[i]!,

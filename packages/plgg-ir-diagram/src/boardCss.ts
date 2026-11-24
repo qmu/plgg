@@ -70,13 +70,25 @@ export const boardCss = (root: string) => `
   .flow-board [data-port]:focus {
     outline: none;
   }
-  .flow-board [data-node]:focus-visible polygon {
+  .flow-board [data-node]:focus-visible polygon[data-node-face] {
     stroke-dasharray: 3 2;
   }
   .flow-board
     [data-node][aria-pressed='true']
-    polygon {
+    polygon[data-node-face] {
     stroke-width: 2.4;
+  }
+  .flow-board polygon[data-group][fill='var(--wash)'] {
+    fill: var(--wash);
+  }
+  .flow-board [data-node]:focus-visible .tray-label {
+    text-decoration: underline;
+  }
+  .flow-board .tray-label {
+    font-weight: 600;
+  }
+  .flow-board [data-node] [data-group-handle] {
+    cursor: nwse-resize;
   }
   :focus:not(:focus-visible),
   .flow-board:focus,

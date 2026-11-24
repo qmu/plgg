@@ -414,7 +414,7 @@ export const revealNode = (
 export const fitContainer = (
   graph: Graph,
   id: string,
-  padding = 24,
+  padding = grid,
 ): Graph => {
   const group = graph.nodes.find(
     (n) => n.id === id,
@@ -479,6 +479,139 @@ export const fitContainer = (
         : n,
     ),
   };
+};
+
+/** Enclose direct members from the leaves up, preserving authored room. */
+export const encloseTrays = (
+  nodes: readonly FlowNode[],
+): readonly FlowNode[] => {
+  if (!nodes.some((n) => n.group && !n.collapsed))
+    return nodes;
+  const index = new Map(
+    nodes.map((n) => [n.id, n]),
+  );
+  const remaining = new Map<string, number>();
+  for (const n of nodes)
+    if (n.parent !== undefined)
+      remaining.set(
+        n.parent,
+        (remaining.get(n.parent) ?? 0) + 1,
+      );
+  const queue = nodes
+    .filter((n) => !remaining.has(n.id))
+    .map((n) => n.id);
+  let changed = false;
+  for (const id of queue) {
+    let child = index.get(id)!;
+    if (
+      child.group &&
+      !child.collapsed &&
+      child.grow
+    ) {
+      const { grow, ...frame } = child;
+      const size = nodeSize(frame);
+      const x = grid * Math.ceil(grow.x / grid),
+        y = grid * Math.ceil(grow.y / grid);
+      child = {
+        ...frame,
+        width: size.width + x,
+        height: size.height + y,
+        position: {
+          ...frame.position,
+          x: frame.position.x + x / 2,
+          y: frame.position.y + y / 2,
+        },
+      };
+      index.set(id, child);
+      changed = true;
+    }
+    if (child.parent === undefined) continue;
+    const parent = index.get(child.parent);
+    if (!parent) continue;
+    const pending =
+      (remaining.get(parent.id) ?? 1) - 1;
+    remaining.set(parent.id, pending);
+    if (!pending) queue.push(parent.id);
+    if (!parent.group || parent.collapsed)
+      continue;
+    const p = nodeSize(parent),
+      c = nodeSize(child);
+    const span = (
+      axis: "x" | "y",
+      size: number,
+      member: number,
+    ) => {
+      const left =
+        grid *
+        Math.floor(
+          Math.min(
+            parent.position[axis] - size / 2,
+            child.position[axis] -
+              member / 2 -
+              grid,
+          ) / grid,
+        );
+      const right =
+        grid *
+        Math.ceil(
+          Math.max(
+            parent.position[axis] + size / 2,
+            child.position[axis] +
+              member / 2 +
+              grid,
+          ) / grid,
+        );
+      return {
+        center: (left + right) / 2,
+        size: right - left,
+      };
+    };
+    const x = span("x", p.width, c.width),
+      y = span("y", p.height, c.height);
+    if (
+      x.size === parent.width &&
+      y.size === parent.height &&
+      x.center === parent.position.x &&
+      y.center === parent.position.y
+    )
+      continue;
+    changed = true;
+    index.set(parent.id, {
+      ...parent,
+      width: x.size,
+      height: y.size,
+      position: {
+        ...parent.position,
+        x: x.center,
+        y: y.center,
+      },
+    });
+  }
+  // Visit parents before children to carry the supporting plane through nested trays.
+  for (const id of queue.reverse()) {
+    const child = index.get(id)!;
+    const parent =
+      child.parent === undefined
+        ? undefined
+        : index.get(child.parent);
+    if (
+      parent?.group &&
+      !parent.collapsed &&
+      child.position.z < parent.position.z
+    ) {
+      changed = true;
+      index.set(id, {
+        ...child,
+        position: {
+          ...child.position,
+          z: parent.position.z,
+        },
+      });
+    }
+  }
+  return changed
+    ? nodes.map((n) => index.get(n.id)!)
+    : nodes;
 };
 
 /** Grow ancestor rectangles around moved branches, retaining sibling world positions. */

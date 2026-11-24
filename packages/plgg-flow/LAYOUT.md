@@ -569,3 +569,18 @@ What to do, in this order:
    view with plgg-view's diff against the Node test DOM, prints
    median / p90 per step and the element count, and exits non-zero
    above 8 ms median.
+
+## Groups as trays — review, adopted
+
+Seen from the front and turned (グループとネスト): Team and Design are
+each one flat rectangle with its name at the corner, a wash floor
+when turned, one handle; Review and Build stand inside with padding;
+nothing doubles and nothing comes apart.
+
+Open: a wire between a group and one of its own members (Team →
+Design, Team → Build) leaves the tray's edge centre and has to curl
+back inside — a loop over the top edge. For such wires the group's
+end is its **name label** (the label's box, top-left of the tray):
+the wire leaves the label's right or bottom side and runs to the
+member inside the tray. Wires to anything outside keep the tray's
+edges.

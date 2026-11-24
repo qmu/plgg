@@ -26,6 +26,7 @@ import {
 } from "plgg";
 import {
   frontCamera,
+  pickPlane,
   unproject,
   fit,
   worldDelta,
@@ -40,6 +41,7 @@ import {
 import {
   subtree,
   dissolve,
+  encloseTrays,
   moveExpandingParents,
 } from "plgg-flow/hierarchy";
 import {
@@ -125,6 +127,8 @@ export type Drag = Readonly<{
   socket?: Point3;
   outline?: readonly Point[];
   waypoint?: number;
+  frameOffset?: Point;
+  originalFrames?: ReadonlyMap<string, FlowNode>;
   first?: Point;
   pressed?: Point;
   node: string;
@@ -204,6 +208,7 @@ export const createFlow = (
   graph: Graph,
 ): Flow => ({
   ...graph,
+  nodes: encloseTrays(graph.nodes),
   snap: grid,
   camera: frontCamera({ x: 450, y: 290 }),
   selected: none(),
@@ -216,10 +221,12 @@ export const moveSelectionGeometry = (
   roots: readonly string[],
   delta: Point3,
 ) => {
-  const nodes = moveExpandingParents(
-    flow.nodes,
-    roots,
-    delta,
+  const nodes = encloseTrays(
+    moveExpandingParents(
+      flow.nodes,
+      roots,
+      delta,
+    ),
   );
   if (
     !(delta.x || delta.y || delta.z) ||
@@ -838,59 +845,33 @@ export const movePointer =
         (n) => n.id === d.node,
       );
       if (!group) return state;
-      const delta = worldDelta(
+      const hit = pickPlane(
         state.camera,
-        {
-          x: point.x - (d.first ?? d.last).x,
-          y: point.y - (d.first ?? d.last).y,
-        },
-        project(state.camera)(group.position).z,
+        point,
+        "z",
+        group.position.z,
       );
-      const grow = {
-        x: Math.max(
-          0,
-          (group.grow?.x ?? 0) +
-            grid * Math.round(delta.x / grid),
-        ),
-        y: Math.max(
-          0,
-          (group.grow?.y ?? 0) +
-            grid * Math.round(delta.y / grid),
-        ),
-      };
-      const origin = project(state.camera)(
-          group.position,
-        ),
-        moved = project(state.camera)({
-          ...group.position,
-          x:
-            group.position.x +
-            grow.x -
-            (group.grow?.x ?? 0),
-          y:
-            group.position.y +
-            grow.y -
-            (group.grow?.y ?? 0),
-        });
+      if (!isSome(hit)) return state;
+      const size = nodeSize(group);
+      const resized = resizeNode(
+        group,
+        hit.content.x -
+          group.position.x +
+          size.width / 2 +
+          (d.frameOffset?.x ?? 0),
+        hit.content.y -
+          group.position.y +
+          size.height / 2 +
+          (d.frameOffset?.y ?? 0),
+      );
       return {
         ...state,
-        nodes: state.nodes.map((n) =>
-          n.id === group.id ? { ...n, grow } : n,
+        nodes: encloseTrays(
+          state.nodes.map((n) =>
+            n === group ? resized : n,
+          ),
         ),
-        drag: some({
-          ...d,
-          first: {
-            x:
-              (d.first ?? d.last).x +
-              moved.x -
-              origin.x,
-            y:
-              (d.first ?? d.last).y +
-              moved.y -
-              origin.y,
-          },
-          last: point,
-        }),
+        drag: some({ ...d, last: point }),
       };
     }
     const moving = state.nodes.find(

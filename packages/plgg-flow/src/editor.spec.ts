@@ -2,6 +2,7 @@ import { wireGraph } from "plgg-flow/wiring";
 import { some } from "plgg";
 import {
   movePointer,
+  moveSelectionGeometry,
   type Drag,
 } from "plgg-flow/model";
 import { renderToString } from "plgg-view";
@@ -21,7 +22,12 @@ import {
   viewAt,
   front,
 } from "plgg-flow/index";
-import { project, pan, zoomAt } from "plgg-board";
+import {
+  projectedScale,
+  project,
+  pan,
+  zoomAt,
+} from "plgg-board";
 const node = (id: string) => ({
   id,
   label: id,
@@ -416,6 +422,116 @@ test("opposing arrows meet the three-unit rim before either socket dot paints", 
           );
         }),
       ),
+    toBe(true),
+  );
+});
+
+test("a turned tray projects its frame, corner control and member stem onto the group plane", () => {
+  const group = {
+    ...node("team"),
+    group: true,
+    width: 192,
+    height: 128,
+    position: { x: 0, y: 0, z: 32 },
+  };
+  const child = {
+    ...node("member"),
+    parent: "team",
+    position: { x: 16, y: 16, z: 64 },
+  };
+  const flow = rotateView(
+    createFlow({
+      nodes: [group, child],
+      edges: [],
+    }),
+  );
+  const html = renderToString(flowView(flow));
+  const at = project(flow.camera);
+  const center = at(group.position);
+  const scale = projectedScale(
+    flow.camera,
+    center.z,
+  );
+  const corners = [
+    [-96, -64],
+    [96, -64],
+    [96, 64],
+    [-96, 64],
+  ]
+    .map(([x, y]) => {
+      const p = at({ x: x!, y: y!, z: 32 });
+      return [
+        (p.x - center.x) / scale,
+        (p.y - center.y) / scale,
+      ].join(",");
+    })
+    .join(" ");
+  const base = at({ ...child.position, z: 32 }),
+    tip = at(child.position);
+  const trayOnly = renderToString(
+    flowView({ ...flow, nodes: [group] }),
+  );
+  return check(
+    html.split('data-group="team"').length ===
+      2 &&
+      html.split('data-group-handle="team"')
+        .length === 2 &&
+      html.includes('points="' + corners + '"') &&
+      html.includes(
+        `M${base.x} ${base.y}L${tip.x} ${tip.y}`,
+      ) &&
+      !trayOnly.includes("data-node-face") &&
+      !trayOnly.includes("data-group-volume"),
+    toBe(true),
+  );
+});
+
+test("moving a member grows each stored tray by a grid square of clearance", () => {
+  const flow = createFlow({
+    nodes: [
+      { ...node("outer"), group: true },
+      {
+        ...node("inner"),
+        group: true,
+        parent: "outer",
+      },
+      { ...node("leaf"), parent: "inner" },
+    ],
+    edges: [],
+  });
+  const { nodes } = moveSelectionGeometry(
+    flow,
+    ["leaf"],
+    { x: 151, y: -77, z: 0 },
+  );
+  return check(
+    nodes.every((child) => {
+      const parent = nodes.find(
+        (n) => n.id === child.parent,
+      );
+      if (!parent) return true;
+      const c = nodeSize(child),
+        p = nodeSize(parent);
+      return (
+        Math.abs(
+          child.position.x - parent.position.x,
+        ) +
+          c.width / 2 +
+          16 <=
+          p.width / 2 &&
+        Math.abs(
+          child.position.y - parent.position.y,
+        ) +
+          c.height / 2 +
+          16 <=
+          p.height / 2 &&
+        (parent.position.x - p.width / 2) % 16 ===
+          0 &&
+        (parent.position.y - p.height / 2) %
+          16 ===
+          0
+      );
+    }),
     toBe(true),
   );
 });

@@ -302,10 +302,10 @@ Route -> Backup
     "group",
     "グループとネスト",
     "Team を動かすと孫まで一緒に移動します。Shift＋クリックで複数選択し、グループ化・収納・親の変更を試せます。",
-    `node Team at -256 -112 group
-node Design at -40 -48 55 group in Team
-node Build at 32 48 -40 in Team
-node Review at 120 16 100 in Design
+    `node Team at -80 0 group height 192 width 384
+node Design at -160 0 48 group in Team height 96 width 160
+node Build at 32 16 32 in Team
+node Review at -152 16 96 in Design
 node External at 304 16
 Team -> Design
 Team -> Build
@@ -412,13 +412,13 @@ Review -> Publish
     "outline",
     "グループ一覧",
     "入れ子になったグループを一覧でたどれます。グループを開くと中身が並び、選ぶと図の上でそのノードへ移動します。",
-    `node Company at -296 -112 group
-node Sales at -160 -48 group in Company
-node Dev at 64 -48 group in Company
-node Alice at -192 48 in Sales
-node Bob at -96 48 in Sales
-node Carol at 32 48 in Dev
-node Dave at 128 48 in Dev
+    `node Company at 0 0 group height 192 width 512
+node Sales at -128 16 16 group in Company height 96 width 224
+node Dev at 128 16 16 group in Company height 96 width 224
+node Alice at -176 32 32 in Sales
+node Bob at -80 32 32 in Sales
+node Carol at 80 32 32 in Dev
+node Dave at 176 32 32 in Dev
 Alice -> Carol
 Bob -> Dave
 `,

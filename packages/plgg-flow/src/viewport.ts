@@ -56,10 +56,7 @@ import {
   type Html,
 } from "plgg-view";
 import { sectionGraph } from "plgg-flow/spatial";
-import {
-  groupVolumes,
-  spatialGuides,
-} from "plgg-flow/spatialView";
+import { spatialGuides } from "plgg-flow/spatialView";
 import {
   bridgePoints,
   polylineSampler,
@@ -75,9 +72,9 @@ import {
   type Port,
 } from "plgg-flow/connections";
 import {
+  encloseTrays,
   groupLoads,
   visibleScene,
-  subtree,
 } from "plgg-flow/hierarchy";
 import {
   viewAt,
@@ -279,7 +276,6 @@ const worldGrid = (flow: Flow): Html<Change> => {
 const surfaceLayer = lazyLayer();
 const gridLayer = lazyLayer();
 const footprintLayer = lazyLayer();
-const frameLayer = lazyLayer();
 const waypointLayer = lazyLayer();
 const footprint = (
   camera: Camera,
@@ -334,17 +330,24 @@ const footprint = (
 const depthStems = (
   camera: Camera,
   nodes: Flow["nodes"],
+  parents: ReadonlyMap<string, FlowNode>,
   rooms?: RoomLayout,
 ) => {
   const at = project(camera);
   const stems = nodes
     .map((n) => {
+      const parent =
+        n.parent === undefined
+          ? undefined
+          : parents.get(n.parent);
       const p = at({
           ...n.position,
-          z: rooms
-            ? (roomFor(rooms, n)?.min.z ??
-              n.position.z)
-            : groundHeight,
+          z: parent?.group
+            ? parent.position.z
+            : rooms
+              ? (roomFor(rooms, n)?.min.z ??
+                n.position.z)
+              : groundHeight,
         }),
         q = project(camera)(n.position);
       return `M${p.x} ${p.y}L${q.x} ${q.y}`;
@@ -356,7 +359,9 @@ const depthStems = (
       a("class", "depth-stems"),
       a(
         "opacity",
-        Number(camera.perspective ?? 0),
+        camera.pitch || camera.yaw
+          ? 1
+          : Number(camera.perspective ?? 0),
       ),
       a("d", stems),
       a("stroke", "#83a9a0"),
@@ -492,6 +497,13 @@ const bodies = new WeakMap<
     solid: ReturnType<typeof projectNodeBody>;
   }
 >();
+const polygonPoints = (
+  points: readonly Point[],
+) => points.map((p) => p.x + "," + p.y).join(" ");
+const trayFrames = new WeakMap<
+  Flow["nodes"],
+  Flow["nodes"]
+>();
 const socketRadius = 3;
 const nodeLayers = layerMemo<Layer>();
 const wireLayers = layerMemo<Layer[]>();
@@ -571,7 +583,15 @@ export const flowView = (
   ) => Html<Change> = defaultLabel,
   registry: ViewRegistry = {},
 ): Html<Change> => {
-  const state = movingRooms(flow);
+  const framed =
+    trayFrames.get(flow.nodes) ??
+    encloseTrays(flow.nodes);
+  trayFrames.set(flow.nodes, framed);
+  const state = movingRooms(
+    framed === flow.nodes
+      ? flow
+      : { ...flow, nodes: framed },
+  );
   const filter = roomFilter(flow);
   const muted = (n: FlowNode) =>
     !!flow.rooms &&
@@ -654,6 +674,9 @@ export const flowView = (
           n.p.y - h <= frame.y
         );
       });
+  const parents = new Map(
+    state.nodes.map((n) => [n.id, n]),
+  );
   const counts = new Map(
     drawNodes.some((n) => n.collapsed)
       ? groupLoads(state).map((g) => [
@@ -682,8 +705,7 @@ export const flowView = (
     Record<Side, boolean>
   >();
   const layers: Layer[] = drawNodes.map((n) => {
-    // One solid for every camera: the flat view is this
-    // same box seen face-on, never a second drawing.
+    // The projected geometry is shared by drawing and hit targets.
     const cached = bodies.get(n.item);
     const solid =
       cached?.camera === state.camera
@@ -729,7 +751,21 @@ export const flowView = (
         ),
       );
 
+    const drag = isSome(state.drag)
+      ? state.drag.content
+      : undefined;
+    const original = drag?.originalFrames?.get(
+      n.id,
+    );
+    const extent =
+      (drag?.mode === "frame" &&
+        drag.node === n.id) ||
+      (drag?.mode === "node" &&
+        original &&
+        (original.width !== n.width ||
+          original.height !== n.height));
     const inputs = [
+      extent,
       state.camera,
       muted(n),
       chosen.has(n.id),
@@ -895,6 +931,77 @@ export const flowView = (
             ),
           ],
           [
+            ...(solid.tray
+              ? [
+                  el<Change>(
+                    "polygon",
+                    [
+                      a("data-group", n.id),
+                      a(
+                        "points",
+                        polygonPoints(solid.tray),
+                      ),
+                      a(
+                        "fill",
+                        state.camera.pitch ||
+                          state.camera.yaw
+                          ? "var(--wash)"
+                          : "none",
+                      ),
+                      a("fill-opacity", 0.4),
+                      a("stroke", "var(--ink)"),
+                      a(
+                        "vector-effect",
+                        "non-scaling-stroke",
+                      ),
+                      a(
+                        "pointer-events",
+                        "stroke",
+                      ),
+                      ...(extent
+                        ? [
+                            a(
+                              "stroke-dasharray",
+                              "6 4",
+                            ),
+                          ]
+                        : []),
+                    ],
+                    [],
+                  ),
+                  el<Change>(
+                    "text",
+                    [
+                      a("class", "tray-label"),
+                      a(
+                        "transform",
+                        `matrix(${solid.label.join(" ")})`,
+                      ),
+                      a("x", 4),
+                      a("y", 14),
+                    ],
+                    [text(n.label)],
+                  ),
+                  el<Change>(
+                    "polygon",
+                    [
+                      a(
+                        "data-group-handle",
+                        n.id,
+                      ),
+                      a(
+                        "points",
+                        polygonPoints(
+                          solid.handle,
+                        ),
+                      ),
+                      a("fill", "var(--paper)"),
+                      a("stroke", "var(--ink)"),
+                    ],
+                    [],
+                  ),
+                ]
+              : []),
             ...sockets(true),
             ...solid.visible.map((face) =>
               el<Change>(
@@ -919,12 +1026,6 @@ export const flowView = (
                       face.light +
                       "%)",
                   ),
-                  ...(n.group &&
-                  !n.collapsed &&
-                  n.width &&
-                  n.height
-                    ? [a("fill-opacity", 0.15)]
-                    : []),
                   a(
                     "stroke",
                     chosen.has(n.id)
@@ -1823,6 +1924,42 @@ export const flowView = (
           e.target
             .closest("[data-node]")
             ?.getAttribute("data-node") ?? "";
+        const group = lookup.get(node);
+        if (
+          group &&
+          e.target.closest("[data-group-handle]")
+        ) {
+          const hit = pickPlane(
+            state.camera,
+            point.content,
+            "z",
+            group.position.z,
+          );
+          if (!isSome(hit) || group.locked)
+            return none();
+          svg.setPointerCapture(e.pointerId);
+          const size = nodeSize(group);
+          return some((s) => ({
+            ...s,
+            nodes: encloseTrays(s.nodes),
+            drag: some<Drag>({
+              mode: "frame",
+              node,
+              last: point.content,
+              pointer: e.pointerId,
+              frameOffset: {
+                x:
+                  group.position.x +
+                  size.width / 2 -
+                  hit.content.x,
+                y:
+                  group.position.y +
+                  size.height / 2 -
+                  hit.content.y,
+              },
+            }),
+          }));
+        }
         if (node && e.shiftKey) {
           const ids = selectedNodes(state);
           return some(
@@ -1842,12 +1979,24 @@ export const flowView = (
           !selectedNodes(s).includes(node)
             ? selectNodes([node])(s)
             : s),
+          ...(node
+            ? { nodes: encloseTrays(s.nodes) }
+            : {}),
           source: none(),
           drag: some<Drag>({
             pointer: e.pointerId,
             last: point.content,
             first: point.content,
             pressed: point.content,
+            ...(node
+              ? {
+                  originalFrames: new Map(
+                    framed
+                      .filter((n) => n.group)
+                      .map((n) => [n.id, n]),
+                  ),
+                }
+              : {}),
             ...(!node && s.lasso
               ? { outline: [point.content] }
               : {}),
@@ -2308,6 +2457,7 @@ export const flowView = (
             depthStems(
               state.camera,
               drawNodes,
+              parents,
               state.rooms,
             ),
           ]
@@ -2317,199 +2467,35 @@ export const flowView = (
               [state.frame],
               () => groundSurface(state),
             ),
-            ...drawNodes.map((n) =>
-              footprintLayer(
-                n.item,
-                [state.camera],
-                () =>
-                  footprint(state.camera, n.item),
+            ...drawNodes
+              .filter(
+                (n) =>
+                  !(n.group && !n.collapsed) &&
+                  !parents.get(n.parent ?? "")
+                    ?.group,
+              )
+              .map((n) =>
+                footprintLayer(
+                  n.item,
+                  [state.camera],
+                  () =>
+                    footprint(
+                      state.camera,
+                      n.item,
+                    ),
+                ),
               ),
-            ),
             gridLayer(
               state.camera,
               [state.frame],
               () => worldGrid(state),
             ),
-            depthStems(state.camera, drawNodes),
-          ]),
-      ...projected
-        .filter((n) => n.group && !n.collapsed)
-        .map((group) => {
-          const members = subtree(scene.nodes, [
-              group.id,
-            ]),
-            children = projected.filter((n) =>
-              members.has(n.id),
-            );
-          return frameLayer(
-            group.item,
-            [
+            depthStems(
               state.camera,
-              ...children.map((n) => n.item),
-            ],
-            () => {
-              const box = children.reduce(
-                (b, n) => ({
-                  left: Math.min(
-                    b.left,
-                    n.p.x -
-                      (nodeSize(n).width *
-                        n.scale) /
-                        2,
-                  ),
-                  right: Math.max(
-                    b.right,
-                    n.p.x +
-                      (nodeSize(n).width *
-                        n.scale) /
-                        2,
-                  ),
-                  top: Math.min(
-                    b.top,
-                    n.p.y -
-                      (nodeSize(n).height / 2) *
-                        n.scale,
-                  ),
-                  bottom: Math.max(
-                    b.bottom,
-                    n.p.y +
-                      (nodeSize(n).height / 2) *
-                        n.scale,
-                  ),
-                }),
-                {
-                  left: Infinity,
-                  right: -Infinity,
-                  top: Infinity,
-                  bottom: -Infinity,
-                },
-              );
-              const origin = project(
-                state.camera,
-              )({
-                x: 0,
-                y: 0,
-                z: group.position.z,
-              });
-              const step = grid * group.scale;
-              const left =
-                origin.x +
-                Math.floor(
-                  (box.left -
-                    origin.x -
-                    12 * group.scale) /
-                    step,
-                ) *
-                  step;
-              const top =
-                origin.y +
-                Math.floor(
-                  (box.top -
-                    origin.y -
-                    12 * group.scale) /
-                    step,
-                ) *
-                  step;
-              const right =
-                origin.x +
-                Math.ceil(
-                  (box.right -
-                    origin.x +
-                    12 * group.scale) /
-                    step,
-                ) *
-                  step +
-                (group.grow?.x ?? 0) *
-                  group.scale;
-              const bottom =
-                origin.y +
-                Math.ceil(
-                  (box.bottom -
-                    origin.y +
-                    12 * group.scale) /
-                    step,
-                ) *
-                  step +
-                (group.grow?.y ?? 0) *
-                  group.scale;
-              // The corner handle drags the frame's size.
-              const handle = el<Change>(
-                "rect",
-                [
-                  a(
-                    "data-group-handle",
-                    group.id,
-                  ),
-                  a("x", right - 6),
-                  a("y", bottom - 6),
-                  a("width", 12),
-                  a("height", 12),
-                  a("fill", "#fff"),
-                  a("stroke", "#8bb8aa"),
-                  a(
-                    "style",
-                    "cursor:nwse-resize",
-                  ),
-                  onEvent<Change>(
-                    "pointerdown",
-                    (e) => {
-                      if (
-                        !(
-                          e instanceof
-                          PointerEvent
-                        ) ||
-                        !(
-                          e.currentTarget instanceof
-                          SVGElement
-                        ) ||
-                        !e.currentTarget
-                          .ownerSVGElement
-                      )
-                        return none();
-                      const svg =
-                          e.currentTarget
-                            .ownerSVGElement,
-                        here = local(svg, e);
-                      if (!isSome(here))
-                        return none();
-                      e.stopPropagation();
-                      svg.setPointerCapture(
-                        e.pointerId,
-                      );
-                      return some((s) => ({
-                        ...s,
-                        drag: some<Drag>({
-                          pointer: e.pointerId,
-                          last: here.content,
-                          mode: "frame",
-                          node: group.id,
-                        }),
-                      }));
-                    },
-                  ),
-                ],
-                [],
-              );
-              const frame = el(
-                "rect",
-                [
-                  a("data-group", group.id),
-                  a("pointer-events", "none"),
-                  a("x", left),
-                  a("y", top),
-                  a("width", right - left),
-                  a("height", bottom - top),
-                  a("rx", 12),
-                  a("fill", "#167b7009"),
-                  a("stroke", "#8bb8aa"),
-                  a("stroke-dasharray", "6 4"),
-                ],
-                [],
-              );
-              return el("g", [], [frame, handle]);
-            },
-          );
-        }),
+              drawNodes,
+              parents,
+            ),
+          ]),
       // Keep the preview in its own SVG layer across pointer updates.
       isSome(state.drag) &&
       state.drag.content.mode === "connect"
@@ -2556,11 +2542,6 @@ export const flowView = (
             })(),
           )
         : lazy(emptyPreview, undefined),
-      ...groupVolumes(
-        scene.nodes,
-        state.camera,
-        chosen,
-      ),
       el(
         "g",
         [key("depth-layers")],
