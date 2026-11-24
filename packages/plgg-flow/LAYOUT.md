@@ -336,3 +336,23 @@ One unit: **G = 32**, the visible grid square.
   `(x − width/2) mod snap = 0` and likewise for y; resize keeps whole
   squares; layered and rooms outputs are box-aligned; `snap off`
   restores free movement; print/parse round trip of the directive.
+
+### Grid fit, revised the same day: the square is half a node
+
+Owner, on seeing one square = one node height: too jerky; it should
+move more smoothly and still click.
+
+- **G = 16.** The square is half a node's height. Default node
+  height = 2G (32, unchanged in pixels); default width = whole
+  squares, `G × max(4, ceil((textWidth + 24) / G))` — so widths now
+  fit labels in steps of 16, not 32.
+- Snap default = G = 16: a drag clicks twice per node height. Boxes
+  still land corner-on-intersection; sizes, resizing, new nodes and
+  layouts stay whole squares (layer gap 6G = 96, neighbour gap
+  2G = 32, room padding 2G).
+- The drawn grid follows G: a line every 16 in a lighter tone than
+  today's, and every fourth line (64) in the current trace tone, so
+  the sheet reads as fine squares grouped in fours rather than as a
+  dense mesh. When zoomed out so that 16 would be under 6 screen
+  pixels, only the 64 lines are drawn.
+- `snap 32`, `snap 8`, `snap off` keep working as written.
