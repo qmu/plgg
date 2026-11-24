@@ -499,6 +499,7 @@ export const searchSheetViews = (
   frame: ReturnType<typeof frameOf>,
   fixedRoles: boolean,
   mark?: readonly string[],
+  blocks: "all" | "first" | "auto" = "all",
 ) => {
   const data = classify(
     graph,
@@ -522,6 +523,7 @@ export const searchSheetViews = (
     frame,
     fixedRoles ? view : undefined,
     mark,
+    blocks,
   );
 };
 

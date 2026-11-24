@@ -1955,3 +1955,32 @@ Left: seen from above, the pencil tags of nodes covered by a floor
 run out of the frame on the left (会員DB, 会員API(検証) cut) — the
 fit must include the tags of covered nodes, or such a tag stays
 inside the block's outline.
+
+## Shooting round 7 — the view search scores what it will show
+
+The tags of covered nodes stay inside the open frame at every
+view (checked at 上: no text outside).
+
+The four-axis sheet, opened again at three frame widths, still
+opened with its back row half buried behind the front row on wide
+frames. Three causes, all in the view search, all fixed:
+
+- **It scored a picture it was not going to show.** The search
+  ranked cameras on all the blocks at once while the sheet opened
+  on the first block. `bestViews` now takes which blocks are drawn
+  (`all` / `first` / `auto`) and scores exactly those; `auto` opens
+  on every block when their captions cost nothing in legibility and
+  on the first block otherwise, and says which in the result.
+- **Its caption estimate was optimistic by more than a pixel.** It
+  fitted the bare block to the frame; the dimension rows and block
+  names take about 104px from it. The estimate allows for that.
+- **A third of a pixel of lettering beat six buried nodes.** Below
+  11px the legibility cost is quadratic, so 9.3px against 9.0px
+  outweighed nodes 35 % covered. Being covered now costs from a
+  tenth on (60 per unit above 0.1, with the step at one half kept).
+
+With that the four-axis and three-axis sheets open at yaw −0.22,
+elevation 0.20 with every node of the far row clear above the near
+row, at 560, 1250 and 1700 wide. At 900 × 700 this costs 0.3px of
+caption (9.7px); the opening-captions spec gives up half a pixel
+for it and says why.

@@ -478,7 +478,9 @@ const firstBlock = (flow: Flow): Flow => {
   };
 };
 export const roomsOpening: Change = (flow) => {
-  flow = firstBlock(flow);
+  // Before the frame is known the first block stands in; once
+  // it is, the view search has said which blocks to open on.
+  if (!flow.frame) flow = firstBlock(flow);
   const to = flow.suggestions
     ? flow
     : viewAt(-Math.PI / 6, -0.55)(flow);
@@ -1136,6 +1138,7 @@ const rankSheetView = (
     },
     !!f.fixedRoles,
     f.markCleared ? [] : f.mark,
+    opening ? "auto" : f.focus ? "first" : "all",
   );
   const current = suggestions.findIndex(
     (v) =>
@@ -1171,9 +1174,13 @@ const rankSheetView = (
     suggestionIndex: index,
   };
   const to = fitDemo(
-    opening || (layout && f.focus)
-      ? firstBlock(scene)
-      : scene,
+    opening
+      ? next.first
+        ? firstBlock(scene)
+        : { ...scene, focus: undefined }
+      : layout && f.focus
+        ? firstBlock(scene)
+        : scene,
     roomFitMargin,
   );
   return opening ? to : turnRooms(f, to, 300);
