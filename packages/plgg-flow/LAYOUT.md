@@ -1737,3 +1737,33 @@ Still to do from the owner's notes: nodes solid (nothing through a
 node); names never smeared; axis names embracing their values.
 On rooms the storeys' cast shadows read as grey slabs — rooms
 floors cast no shadow (nodes still do).
+
+## Board names are placed by calculation (owner: "画面, 業務, データ too — compute a place where they overlap less")
+
+A board's name stands at a fixed corner; turned, that corner lands
+on the board below, on wires or on another name. Place it per
+camera, the way axis values already are:
+
+- Candidates: outside each of the board's four corners and outside
+  the middle of each of its four edges (8), 10px clear of the
+  board's projected outline, on the side away from the stack's
+  centre.
+- Score each: its text box (13px per glyph × 16) must meet no
+  node box, no other label; then prefer, in order: not over any
+  board's projected polygon (its own or another's), not crossed by
+  a wire, on the outline's left side, near the front (larger
+  projected depth), the same choice as the neighbouring boards
+  (so names form a column, not a scatter).
+- All boards choose together: try each candidate index for the
+  whole stack first (a column of names), fall back to per-board
+  choice only if no common index is clean.
+- A short pencil tick joins the name to its board's edge when the
+  name is more than 14px from it.
+- The choice changes only when the current one becomes unclean
+  (hysteresis), and then jumps — names never slide.
+- Storey values on a rooms block are already on dimension lines;
+  this is for boards of a cake (and block names: 東京, 大阪).
+
+Specs: at the four named views and 12 turned ones no board name
+meets a node box, another name, or a board polygon; names share
+one candidate index wherever a clean common one exists.
