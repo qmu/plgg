@@ -63,7 +63,7 @@
     "plgg-ir-diagram": "file:../plgg-ir-diagram"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.6.3",
     "plgg-test": "file:../plgg-test",
     "typescript": "^7.0.2"
   }
